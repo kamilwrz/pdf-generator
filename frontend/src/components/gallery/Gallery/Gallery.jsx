@@ -34,11 +34,17 @@ export default function Gallery() {
         if (isGallery) {
             setShouldRender(true);
 
+            const start = performance.now();
+
             const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
 
             api.httpRequest(ENDPOINTS.IMG.FETCH, "GET", null, "Fetching images failed!").
-            then((images) => {setImages(images); setError(null); console.log(images)}).
+            then((images) => {setImages(images); setError(null)}).
             catch((error) => setError(error));
+
+            const duration = performance.now() - start
+
+            console.log(duration, "GALLERY");
 
         }
         

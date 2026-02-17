@@ -61,31 +61,28 @@ export default function Dropzone() {
             formData.append("file", file);
             console.log(file);
 
-            const startRequest = performance.now();
+            const start = performance.now();
 
             api.httpRequest(ENDPOINTS.IMG.UPLOAD, "POST", formData, "Image upload failed!").
             then((data) => {
 
                 setSuccess(data.message)
                 
-                const durationPeriod = performance.now() - startRequest;
-                setDuration(durationPeriod);
+                
+                //setDuration(durationPeriod);
 
                 const interval = setInterval(() => {
                     setValue(prevState => prevState + 100);
                 }, 100)
-        
-                setTimeout(() => {
-                    clearInterval(interval)
-                }, durationPeriod * 1000)
 
 
             }).
             catch((error) => {setError(error)}).
             finally(() => {
-                setTimeout(() => {
-                 setSuccess(null);
-                }, 5000)
+                const duration = performance.now() - start;
+                console.log(duration, "DROPZONE");
+                clearInterval(interval)
+
             })
             
         })
@@ -128,7 +125,7 @@ export default function Dropzone() {
                 <><aside>
                     {thumbs}
                 </aside>
-                    <Progress max={duration} value={progressValue} />
+                    <Progress max={2000} value={progressValue} />
                     {success && <p className={classes.success}>{success}</p>}
                     {error && <p className={classes.error}>{error.detail}</p>}
                     
