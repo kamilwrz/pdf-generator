@@ -79,6 +79,8 @@ export default function Dropzone() {
                     setSuccess(data.message)
                 }, durationPeriod * 1000)
 
+                console.log
+
             }).
             catch((error) => {setError(error)}).
             finally(() => {

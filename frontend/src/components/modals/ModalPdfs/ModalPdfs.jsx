@@ -65,7 +65,7 @@ export default function ModalPdfs() {
     useEffect(() => {
         if (isVisibleModal) {
             api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, "Failed to fetch PDF's").
-                then((data) => { setPDFs(data) }).
+                then((data) => { setPDFs(data); console.log(data) }).
                 catch((error) => { setError(error) });
         }
     }, [isVisibleModal])
