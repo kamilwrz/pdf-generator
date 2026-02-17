@@ -91,7 +91,7 @@ async def create_user_pdf(
     pdf.generatePDF()
 
     pdf_path = user_upload_dir / title
-    return {"message": "PDF created!", "link": f"http://127.0.0.1:8000/{pdf_path.as_posix()}", "pdf_id": pdf_id}
+    return {"message": "PDF created!", "link": f"https://pdf-generator-07cb.onrender.com/{pdf_path.as_posix()}", "pdf_id": pdf_id}
 
 
 @router.get("/fetch_pdfs", status_code=status.HTTP_200_OK)
