@@ -23,7 +23,8 @@ export default function Sidebar({ children }) {
         handleSetTitle,
         title,
         clearA4,
-        logout
+        logout,
+        isPdfLoading
      } = use(PdfContext)
 
     function setPdfTitle(e) {
