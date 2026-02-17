@@ -13,6 +13,7 @@ import ModalPdfs from '../components/modals/ModalPdfs/ModalPdfs';
 import ModalPdfRequestStatus from '../components/modals/ModalPdfRequestStatus/ModalPdfRequestStatus';
 import { ApiClient } from '../services/api';
 import { ENDPOINTS } from '../services/api';
+import Spinner from '../components/common/Spinner/Spinner';
 
 function PdfGenerator() {
 
@@ -169,6 +170,7 @@ function PdfGenerator() {
           <Editor />
         </Sidebar>
         <A4 width="595px" height="842px" ref={A4ref}>
+          <Spinner />
           <CanvasElements elements={A4_ELEMENTS} />
         </A4>
         <Gallery />
