@@ -8,6 +8,10 @@ from app.core.config import origins, IMAGES_UPLOAD_DIR, PDF_UPLOAD_DIR
 
 app = FastAPI()
 
+# Ensure upload directories exist (e.g. on fresh deploy / Render)
+IMAGES_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+PDF_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
 app.mount("/uploads", StaticFiles(directory=str(IMAGES_UPLOAD_DIR)), name="uploads")
 app.mount("/static/generated", StaticFiles(directory=str(PDF_UPLOAD_DIR)), name="static")
 
