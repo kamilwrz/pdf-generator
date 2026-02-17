@@ -1,4 +1,4 @@
-import DZContainer from '../components/gallery/Dropzone/DZContainer';
+import DropzoneContainer from '../components/gallery/Dropzone/DropzoneContainer';
 import Gallery from '../components/gallery/Gallery/Gallery';
 import Sidebar from '../components/editor/Sidebar/Sidebar';
 import A4 from "../components/Canvas/A4/A4";
@@ -165,7 +165,7 @@ function PdfGenerator() {
         <ModalPdfs />
         <ModalPdfRequestStatus open={modalRequestStatus} message={responsePDF} />
         <Sidebar>
-          <DZContainer />
+          <DropzoneContainer />
           <Editor />
         </Sidebar>
         <A4 width="595px" height="842px" ref={A4ref}>

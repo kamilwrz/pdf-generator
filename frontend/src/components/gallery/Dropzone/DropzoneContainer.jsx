@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import classes from "./DZContainer.module.css";
+import classes from "./DropzoneContainer.module.css";
 import Dropzone from "./Dropzone";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { use } from "react";
