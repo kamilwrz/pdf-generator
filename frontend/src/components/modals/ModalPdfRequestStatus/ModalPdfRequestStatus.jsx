@@ -1,4 +1,4 @@
-import { useRef, useEffect, use } from "react";
+import { useRef, useEffect, use, useState } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import classes from "./ModalPdfRequestStatus.module.css";
 import { createPortal } from "react-dom";
@@ -7,14 +7,19 @@ import { createPortal } from "react-dom";
 function ModalPdfRequestStatus({ message, open }) {
 
     const { showModalRequest } = use(PdfContext)
+    const [isLoading, setIsLoading] = useState();
 
     const dialogRequestStatus = useRef()
 
     useEffect(() => {
         if (open) {
             dialogRequestStatus.current.showModal();
+        }else{
+            setIsLoading(bool => !bool);
         }
     }, [open])
+
+    console.log(setIsLoading);
 
 
     return createPortal(<dialog ref={dialogRequestStatus} className={classes.modalPdfRequestStatus}>
