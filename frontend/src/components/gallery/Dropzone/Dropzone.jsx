@@ -89,7 +89,7 @@ export default function Dropzone() {
             catch((error) => {setError(error)}).
             finally(() => {;
                 setTimeout(() => {
-                    if(interval) clearInterval(interval);
+                    if(interval) {clearInterval(interval); setSuccess(undefined)};
                 }, duration + 50)
             })
         })
