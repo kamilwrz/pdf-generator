@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 function ModalPdfRequestStatus({ message, open }) {
 
     const { showModalRequest } = use(PdfContext)
-    const [isLoading, setIsLoading] = useState();
+    const [isLoading, setIsLoading] = useState(false);
 
     const dialogRequestStatus = useRef()
 
@@ -17,7 +17,7 @@ function ModalPdfRequestStatus({ message, open }) {
         }else{
             setIsLoading(bool => !bool);
         }
-    }, [open])
+    }, [open, isLoading])
 
     console.log(setIsLoading);
 
