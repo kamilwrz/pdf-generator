@@ -72,7 +72,7 @@ async def create_user_pdf(
     if title in files_in_user_folder:
         raise HTTPException(status_code=400, detail="File name already exists!")
 
-    pdf_id = create_new_pdf(db, title, db_user.id, str(user_upload_dir / title), elements)
+    pdf_id = create_new_pdf(db, title, db_user.id, str(user_upload_dir / title.as_posix()), elements)
 
     pdf = PDF_Generator(pdf_data, canvas.Canvas(str(user_upload_dir / title), pagesize=(595, 842)))
     pdf.setTitle(title)
