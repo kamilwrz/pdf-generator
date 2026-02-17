@@ -66,7 +66,7 @@ export default function Dropzone() {
             api.httpRequest(ENDPOINTS.IMG.UPLOAD, "POST", formData, "Image upload failed!").
             then((data) => {
 
-                
+                setSuccess(data.message)
                 const durationPeriod = performance.now() - startRequest;
                 setDuration(durationPeriod);
 
@@ -76,16 +76,14 @@ export default function Dropzone() {
         
                 setTimeout(() => {
                     clearInterval(interval)
-                    setSuccess(data.message)
                 }, durationPeriod * 1000)
 
             }).
             catch((error) => {setError(error)}).
             finally(() => {
-                
                 setTimeout(() => {
                  setSuccess(null);
-                }, 5000)
+                }, 3000)
             })
             
         })
