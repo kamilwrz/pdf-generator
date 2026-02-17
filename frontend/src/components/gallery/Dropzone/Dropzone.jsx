@@ -57,30 +57,41 @@ export default function Dropzone() {
         })));
 
         acceptedFiles.forEach((file) => {
-            
+
             const formData = new FormData();
             formData.append("file", file);
             console.log(file);
 
             const start = performance.now();
             let interval;
+            let duration = 0;
+            const progressMax = 2000;
 
             api.httpRequest(ENDPOINTS.IMG.UPLOAD, "POST", formData, "Image upload failed!").
             then((data) => {
-                const duration = performance.now() - start;
+                duration = performance.now() - start;
                 console.log(duration, "DROPZONE")
                 setDuration(duration);
                 setSuccess(data.message)
 
-                interval = setInterval(() => {
-                    setValue(prevState => prevState + 100);
-                }, 100)
+                const stepMs = 100;
+                const stepValue = (progressMax / duration) * stepMs;
+                let elapsed = 0;
 
+                interval = setInterval(() => {
+                    elapsed += stepMs;
+                    setValue((prev) => Math,min(prev + stepValue, progressMax));
+                    if(elapsed >= duration){
+                        clearInterval(interval);
+                    }
+                }, stepMs);
 
             }).
             catch((error) => {setError(error)}).
             finally(() => {;
-                clearInterval(interval)
+                setTimeout(() => {
+                    if(interval) clearInterval(interval);
+                }, duration + 50)
             })
         })
     }), [])
@@ -122,7 +133,7 @@ export default function Dropzone() {
                 <><aside>
                     {thumbs}
                 </aside>
-                    <Progress max={2000} value={progressValue} />
+                    <Progress max={duration} value={progressValue} />
                     {success && <p className={classes.success}>{success}</p>}
                     {error && <p className={classes.error}>{error.detail}</p>}
                     
