@@ -77,6 +77,7 @@ export default function ModalPdfs() {
         <ul className={classes.modalPdfs}>
             <h2>Your PDF's</h2>
             {!error ? PDFs.map((PDF) => {
+                console.log(PDF.file_path);
                 const date = PDF.created_at.split(".")[0].split("T").join(" : ");
                 return <li className={classes.pdfItem} key={PDF.id}>
                     <BsFileEarmarkPdf className={classes.pdfIcon} />
