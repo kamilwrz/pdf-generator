@@ -27,6 +27,8 @@ function PdfGenerator() {
   const [pdfId, setPdfId] = useState(null);
   const [title, setTitle] = useState();
 
+  const [isLoadingState, setIsLoadingState] =useState(false)
+
   const [modalRequestStatus, setModalRequestStatus] = useState(false);
 
 
@@ -53,8 +55,10 @@ function PdfGenerator() {
 
   function handleShowModalRequest() {
     setModalRequestStatus(bool => !bool);
+    setIsLoadingState(bool => !bool);
   }
 
+  console.log(setIsLoadingState);
 
   function handleLogout() {
     localStorage.removeItem("token")
