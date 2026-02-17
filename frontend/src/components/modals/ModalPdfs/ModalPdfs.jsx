@@ -78,12 +78,11 @@ export default function ModalPdfs() {
             <h2>Your PDF's</h2>
             {!error ? PDFs.map((PDF) => {
                 const date = PDF.created_at.split(".")[0].split("T").join(" : ");
-                const imagePath = PDF.file_path.replace("uploads/", "");
                 return <li className={classes.pdfItem} key={PDF.id}>
                     <BsFileEarmarkPdf className={classes.pdfIcon} />
                     <h2>{PDF.title.split(".")[0]}</h2>
                     <div className={classes.modalControls}>
-                        <button><a href={`${API_BASE_URL}/${imagePath}`}><IoMdDownload /></a></button>
+                        <button><a href={`${API_BASE_URL}/${PDF.file_path}`}><IoMdDownload /></a></button>
                         <button onClick={() => deltePDF(PDF.id)}><MdDelete /></button>
                         <button onClick={() => showPDF(PDF.id)}><GrView /></button>
                     </div>
