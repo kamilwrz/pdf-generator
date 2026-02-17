@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://pdf-generator-07cb.onrender.com';
+const API_BASE_URL = 'https://pdf-generator-07cb.onrender.com';
 
 //ENDPOINTS
 export const ENDPOINTS = {
