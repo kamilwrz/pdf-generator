@@ -1,0 +1,51 @@
+.resizeButtons{
+    position: absolute;
+    z-index: 4;
+    width: 20px;
+    height: 20px;
+    z-index: 1000;
+    border-radius: 50%;
+    border: none;
+    background-color: #86efac; /*GREEN 300*/
+}
+
+.resizeButtons:hover{
+    background-color: #16a34a; /*GREEN 600*/
+}
+
+.roundBottomRight{
+    bottom: -20px;
+    right: -20px;
+    cursor: nw-resize;
+}
+
+.roundTopLeft{
+    top: -20px;
+    left: -20px;
+    cursor: se-resize;
+}
+
+.roundTopRight{
+    top: -20px;
+    right: -20px;
+    cursor: sw-resize;
+}
+
+.roundBottomLeft{
+    bottom: -20px;
+    left: -20px;
+    cursor: ne-resize;
+}
+
+.roundCenterLeft{
+    left: -45px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.roundCenterRight{
+    right: -45px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+

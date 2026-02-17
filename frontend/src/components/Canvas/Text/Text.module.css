@@ -1,0 +1,16 @@
+.selectedElement{
+
+}
+
+.selectedElement::after{
+    content: "";
+    background-image: url("images/selected.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 2rem;
+    height: 2rem;
+    display: inline-block;
+    position: absolute;
+    top: -25px
+}

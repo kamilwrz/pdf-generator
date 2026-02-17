@@ -1,0 +1,38 @@
+.selectedElement{
+    opacity: 0.6;
+    border: 0.1px solid #44403c;
+}
+
+.resizeButtons{
+    width: 24px;
+    height: 24px;
+    position: absolute;
+    background-color: inherit;
+    border: none;
+    z-index: 4;
+}
+
+.roundBottomRight{
+    bottom: -20px;
+    right: -20px;
+    cursor: nw-resize;
+}
+
+.roundTopLeft{
+    top: -18px;
+    left: -18px;
+    cursor: se-resize;
+}
+
+.roundTopRight{
+    top: -18px;
+    right: -18px;
+    cursor: sw-resize;
+}
+
+.roundBottomLeft{
+    bottom: -20px;
+    left: -20px;
+    cursor: ne-resize;
+}
+

@@ -1,0 +1,42 @@
+ * {
+    box-sizing: border-box;
+ }
+
+
+
+ body {
+    margin: 0;
+    background-color: #e5e7eb;
+    overflow-x: hidden;
+ }
+
+ .main-container {
+    display: flex;
+    position: relative;
+ }
+
+ #A4 p {
+    margin: 0;
+    line-height: 0;
+ }
+
+ #A4 div,
+ #A4 p,
+ #A4 img {
+    -webkit-touch-callout: none;
+    /* iOS Safari */
+    -webkit-user-select: none;
+    /* Safari */
+    -khtml-user-select: none;
+    /* Konqueror HTML */
+    -moz-user-select: none;
+    /* Old versions of Firefox */
+    -ms-user-select: none;
+    /* Internet Explorer/Edge */
+    user-select: none;
+ }
+
+ @font-face {
+    font-family: Times-Roman;
+    src: url("../public/fonts/OPTITimes-Roman.otf");
+ }

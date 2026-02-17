@@ -1,0 +1,43 @@
+from typing import Optional
+from pydantic import BaseModel
+
+#PYDANTIC MODEL FOR CREATING A PDF VIA POST REQUEST
+class PdfElement(BaseModel):
+    #ELEMENT CATEGORY
+    category: Optional[str] = None
+    #ELEMENT POSITION
+    left: Optional[float] = None
+    top: Optional[float] = None
+    #TEXT ELEMENT
+    fontFamily: Optional[str] = None
+    fontSize: Optional[float] = None
+    color: Optional[str] = None
+    content: Optional[str] = None
+    #LINE / IMG ELEMENT
+    width: Optional[float | str] = None
+    height: Optional[float | str] = None
+    #LINE ELEMENT
+    backgroundColor: Optional[str] = None
+    #IMG ELEMENT
+    src: Optional[str] = None
+    #NANO ID
+    element_id : Optional[str] = None
+    #PDF TITLE
+    title: Optional[str] = None
+    #
+    pdf_id: Optional[int] = None
+    #EXTRA PROPERTIES exp. zIndex, isSelected etc.
+    zIndex: Optional[int] = None
+    isSelected : Optional[bool] = None
+    isMove: Optional[bool] = None
+    #
+    img_id : Optional[int] = None
+
+class PDFCreateRequest(BaseModel):
+    root: list[PdfElement]
+    pdf_title: str
+
+class PDFUpdateRequest(BaseModel):
+    pdf_id: int
+    pdf_title: str
+    root: list[PdfElement]

@@ -1,0 +1,36 @@
+.DZcontainer{
+    width: 80%;
+    height: 80%;
+    margin: 5rem auto;
+    padding: 2rem;
+    box-shadow: 2px 2px 2px 2px rgb(73, 73, 73);
+    border-radius: 4px;
+}
+
+.fileInput{
+    color: #525252; /* ZINC 600 */;
+    font-family: Inter, sans-serif;
+    text-align: center;
+    text-transform: uppercase;
+    border: 1px solid;
+    font-size: 1rem;
+    padding: 2rem;
+    border-radius: 3px;
+    margin-bottom: 2rem;
+}
+
+.error{
+    text-align: center;
+    padding: 1rem;
+    color: #f87171;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+.success{
+    text-align: center;
+    padding: 1rem;
+    color: #525252;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}

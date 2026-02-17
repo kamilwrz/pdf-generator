@@ -1,0 +1,53 @@
+.DZContainer {
+    width: 30rem;
+    height: calc(100vh - 15rem);
+    box-shadow: 0.5px 0.5px 2px 0.5px rgb(73, 73, 73);
+    background-color: #fafafa; /*ZINC 50*/
+    position: absolute;
+    visibility: hidden;
+    left: 0;
+    top: 6rem;
+    z-index: 100;
+}
+
+.DZContainerShow {
+    animation-name: showDZ;
+    animation-duration: 2s;
+    animation-fill-mode: forwards;
+}
+
+.DZContainerHide {
+    animation-name: hideDZ;
+    animation-duration: 2s;
+    animation-fill-mode: forwards;
+    visibility: hidden;
+}
+
+
+@keyframes showDZ {
+    from {
+        transform: translateX(0%);
+        visibility: visible;
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(calc(100% - 10rem));
+        visibility: visible;
+        opacity: 1;
+    }
+}
+
+@keyframes hideDZ {
+    from {
+        transform: translateX(calc(100% - 10rem));
+        visibility: visible;
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(0%);
+        visibility: hidden;
+        opacity: 0;
+    }
+}

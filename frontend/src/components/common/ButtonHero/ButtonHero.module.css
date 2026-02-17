@@ -1,0 +1,33 @@
+.btnHero{
+    width: 6rem;
+    height: 2.5rem;
+    text-transform: uppercase;
+    border-radius: 2px;
+    border: none;
+    cursor: pointer;
+    margin-right: 3rem;
+    background-color: #525252;
+    
+}
+
+.btnHero:hover{
+    background-color: #e4e4e7;
+    color: rgba(231, 229, 228);
+}
+
+.btnHero a{
+    text-decoration: none;
+    letter-spacing: 1px;
+    color: rgba(231, 229, 228);
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: inline-block;
+    width: 100%;
+    height: 100%;
+    vertical-align: middle;
+    padding-top: 0.65rem;
+}
+
+.btnHero a:hover{
+    color: #525252;
+}

@@ -1,0 +1,93 @@
+.overlayModal{
+    width: 100%;
+    height: 100%;
+    z-index: 4000;
+    position: absolute;
+    background-color: rgba(87, 87, 87, 0.651);
+}
+
+.modalPdfs{
+    width: 50%;
+    height: 50%;
+    z-index: 3000;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    background-color: #fafafa; /*ZINC 50*/
+    padding: 2rem;
+    overflow-y: scroll;
+}
+
+.modalPdfs>h2{
+    font-family: Inter, sans-serif;
+    text-align: center;
+    color: #71717a /*ZINC 500*/;
+}
+
+.modalVisible{
+    visibility: visible;
+}
+
+.modalClose{
+   visibility: hidden;
+}
+
+.closeModal{
+    color: rgb(239 68 68);
+    background-color: #f4f4f5; /* ZINC 100*/
+    font-size: 1rem;
+    position: absolute;
+    left: 27rem;
+    top: 13rem;
+    height: 2rem;
+    width: 2rem;
+    padding-top: 0.5rem;
+    padding-left: 0.5rem;
+    border-radius: 50%;
+}
+
+.closeModal:hover{
+    opacity: 0.8;
+    cursor: pointer;
+}
+
+.pdfItem{
+    box-shadow: 0.5px 0.5px 1px 0.5px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+    align-items: center;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.pdfIcon{
+    font-size: 1.2rem;
+    color: #b91c1c; /*RED 700*/
+}
+
+.pdfItem h2{
+    font-size: 0.9rem;
+    width: 50%;
+    color: #71717a /*ZINC 500*/;
+}
+
+.modalControls button{
+    width: 3rem;
+    margin-right: 4px;
+    background-color: #52525b; /* ZINC 600*/
+    color: white;
+    border-radius: 4px;
+}
+
+.modalControls button a{
+    color: white
+}
+
+
+.pdfItem p{
+    font-size: 0.8rem
+}

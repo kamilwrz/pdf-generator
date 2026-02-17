@@ -1,0 +1,49 @@
+/* Import */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+.container{
+    background-image: linear-gradient(to bottom, #18181bd0, #52525bc9), url("../../public/images/homepage-background.png");
+    background-position: top;
+    background-size: cover;
+    background-repeat: no-repeat;
+    width: 100%;
+    min-height: 100vh;
+    font-family: Inter, sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.mainHeading, .subHeading{
+    margin: 0;
+    color: rgba(231, 229, 228);
+}
+
+.mainHeading{
+    font-size: 5rem;
+    margin-top: 4rem;
+    margin-bottom: 0.5rem;
+}
+
+.pdf{
+    color: #60a5fa
+}
+
+.subHeading{
+    font-size: 3rem;
+    letter-spacing: -1px;
+}
+
+.description{
+    color: #60a5fa;
+    margin-bottom: 4rem;
+    width: 60%;
+    text-align: center;
+    letter-spacing: 2px;
+    font-size: 1.2rem;
+}
+
+.wrapperBtns{
+   margin-top: 2rem;
+}

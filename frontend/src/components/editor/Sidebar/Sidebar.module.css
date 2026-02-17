@@ -1,0 +1,154 @@
+.sidebar{
+    width: 20em;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: #fafafa; /*ZINC 50*/
+    position: relative;
+    font-family: Inter, sans-serif;
+    z-index: 1000;
+    box-shadow: 1px 1px 3px 1px #525252; /*ZINC 600*/
+}
+
+.logoWrapper{
+    width: 20rem;
+    height: 5rem;
+    display: flex;
+    justify-items: flex-start;
+    align-items: center;
+    padding: 0.5rem;
+    margin-top: 3rem;
+}
+
+.logoWrapper img{
+    width: 100%;
+    max-width: 5rem;
+    object-fit: contain;
+    margin-top: 0.5rem;
+    margin-left: 2rem;
+    z-index: 2;
+}
+
+.logoWrapper h1{
+    font-size: 1.2rem;
+    color: #18181b; /* ZINC 900*/;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+    padding: 0.5rem;
+    margin-left: -1.3rem;
+    border-radius: 3px;
+}
+
+.control{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;   
+}
+
+.control label{
+    font-size: 0.8rem;
+    color: #18181b; /* ZINC 900*/
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-left: 4rem;
+    font-weight: 500;
+}
+
+.controlTitle{
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: center;
+    width: 100%;
+    margin-top: 2rem;
+}
+
+.controlTitle label{
+    text-transform: uppercase;
+    align-self: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    color: #18181b; /* ZINC 900*/
+    font-weight: 600;
+}
+
+.controlTitle input{
+    width: 70%;
+    font-size: 1rem;
+    padding: 6px;
+    border: none;
+    margin-bottom: 4rem;
+    background-color: inherit; /* ZINC 400*/
+    color: #27272a /*ZINC 800*/;
+    text-align: center;
+    letter-spacing: 1px;
+    font-weight: 700;
+}
+
+.controlTitle input:focus{
+    border: none;
+    outline: none;
+    border-bottom: 1px solid #27272a;
+}
+
+.icons{
+    font-size: 2rem;
+    color: #f5f5f5; /* Neutral 100*/
+    background-color: #93c5fd; /* BLUE 300 */
+    padding: 6px;
+    margin-right: 3.5rem;
+    cursor: pointer;
+    border-radius: 2px;
+}
+
+.icons:hover{
+    opacity: 0.8;
+}
+
+.menuLine{
+    width: 50%;
+    height: 2px;
+    background-color: rgb(113 113 122);
+    margin: 2rem auto ;
+}
+
+
+.pdfButtons{
+    display: flex;
+    flex-direction: column;
+    height: 20vh;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.pdfButtons button {
+    width: 4rem;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    padding: 6px;
+    margin-top: 10px;
+    margin-right: 1rem;
+    border-radius: 2px;
+    letter-spacing: 1px;
+    background-color: #d4d4d8; /* ZINC 300*/
+    align-self: flex-end;
+    color: #27272a; /* ZINC 800*/
+    border: none;
+    cursor: pointer;
+}
+
+.pdfButtons button:hover{
+    opacity: 0.8;
+}
+
+.logout{
+    width: 4rem;
+    align-self: center;
+    font-size: 1.5rem;
+    background-color: inherit;
+    border: none;
+    cursor: pointer;
+}
+
+
