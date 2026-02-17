@@ -71,8 +71,8 @@ export default function Dropzone() {
                 setDuration(durationPeriod);
 
                 const interval = setInterval(() => {
-                    setValue(prevState => prevState + 1);
-                }, 1)
+                    setValue(prevState => prevState + 100);
+                }, 100)
         
                 setTimeout(() => {
                     clearInterval(interval)
