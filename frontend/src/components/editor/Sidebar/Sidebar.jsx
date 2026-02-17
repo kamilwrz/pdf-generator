@@ -12,8 +12,6 @@ import { use } from "react";
 
 export default function Sidebar({ children }) {
 
-    console.log("SIDEBAR");
-
     const { 
         addText,
         addLine,

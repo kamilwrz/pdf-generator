@@ -14,8 +14,6 @@ import { use } from "react";
 
 export default function Gallery() {
 
-    console.log("GALLERY");
-
     const {isGallery, isDropzone} = use(PdfContext)
 
     const [shouldRender, setShouldRender] = useState(false);
@@ -52,9 +50,7 @@ export default function Gallery() {
     }
     else {
         const IMAGES = images.map((image) => {
-            const imagePath = image.file_path.replace("uploads/", "");
-            console.log(image.file_path);
-            return <GalleryItem url={`${API_BASE_URL}/${imagePath}`} img_id={image.id} imageUsed={handleImageUsedInPDF}/>;
+            return <GalleryItem url={`${API_BASE_URL}/${image.file_path}`} img_id={image.id} imageUsed={handleImageUsedInPDF}/>;
          })
 
         return <aside className={`${classes.gallery} ${isGallery ? classes.galleryShow : classes.galleryHide}`}>
