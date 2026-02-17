@@ -20,6 +20,7 @@ export function usePdfExport(handlePdfId, handleShowModal) {
     then((data) => {handlePdfId(data.pdf_id); setResponsePDF({success: data.message, link:data.link})}).
     catch((error) => setResponsePDF(error)).finally(() => { 
       handleShowModal();
+      setIsPdfLoading(false);
     })
 
   }, [handlePdfId, handleShowModal]);
@@ -37,6 +38,7 @@ export function usePdfExport(handlePdfId, handleShowModal) {
     then((data) => {setResponsePDF({success: data.message})}).
     catch((error) => setResponsePDF(error)).finally(() => { 
       handleShowModal();
+      setIsPdfLoading(false);
     })
   }, [handleShowModal])
 
