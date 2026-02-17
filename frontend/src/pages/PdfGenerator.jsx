@@ -51,7 +51,7 @@ function PdfGenerator() {
     handleClearA4
   } = useA4Elements()
 
-  const { createPdf, updatePdf, responsePDF } = usePdfExport(handlePdfId, handleShowModalRequest);
+  const { createPdf, updatePdf, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, handleShowModalRequest);
 
   function handleShowModalRequest() {
     setModalRequestStatus(bool => !bool);
@@ -148,7 +148,8 @@ function PdfGenerator() {
     clearA4modalDelete: handleClearA4modalDelete,
     clearA4: handleClearA4,
     showModalRequest: handleShowModalRequest,
-    logout: handleLogout
+    logout: handleLogout,
+    isPdfLoading: isPdfLoading,
   }), [
     A4_ELEMENTS,
     isGallery, isDropzone, value,
@@ -174,7 +175,7 @@ function PdfGenerator() {
           <Editor />
         </Sidebar>
         <A4 width="595px" height="842px" ref={A4ref}>
-          <Spinner />
+          {isPdfLoading && <Spinner loading={isPdfLoading}/>}
           <CanvasElements elements={A4_ELEMENTS} />
         </A4>
         <Gallery />

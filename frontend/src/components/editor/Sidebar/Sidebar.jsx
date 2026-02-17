@@ -77,8 +77,8 @@ export default function Sidebar({ children }) {
 
         <section className={classes.pdfButtons}>
             <div>
-                <button onClick={createPdf}>CREATE</button>
-                <button onClick={updatePdf}>UPDATE</button>
+                <button onClick={createPdf} disabled={isPdfLoading}>CREATE</button>
+                <button onClick={updatePdf} disabled={isPdfLoading}>UPDATE</button>
                 <button onClick={clearA4}>CLEAR</button>
             </div>
         </section>

@@ -5,8 +5,12 @@ import { ENDPOINTS } from "../services/api";
 export function usePdfExport(handlePdfId, handleShowModal) {
 
   const [responsePDF, setResponsePDF] = useState();
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
+
 
   const createPdf = useCallback((A4_ELEMENTS, title) => {
+
+    setIsPdfLoading(true);
 
     const sorted = [...A4_ELEMENTS].sort((a, b) => a.zIndex - b.zIndex);
 
@@ -23,6 +27,8 @@ export function usePdfExport(handlePdfId, handleShowModal) {
   
   const updatePdf = useCallback((A4_ELEMENTS, PDF_ID, title) => {
     
+    setIsPdfLoading(true);
+
     const sorted = [...A4_ELEMENTS].sort((a, b) => a.zIndex - b.zIndex);
 
     const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
@@ -35,5 +41,5 @@ export function usePdfExport(handlePdfId, handleShowModal) {
   }, [handleShowModal])
 
 
-  return {createPdf, updatePdf, responsePDF};
+  return {createPdf, updatePdf, responsePDF, isPdfLoading};
 }
