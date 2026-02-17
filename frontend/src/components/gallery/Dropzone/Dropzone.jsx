@@ -76,15 +76,16 @@ export default function Dropzone() {
         
                 setTimeout(() => {
                     clearInterval(interval)
+                    setSuccess(data.message)
                 }, durationPeriod * 1000)
 
             }).
             catch((error) => {setError(error)}).
             finally(() => {
-                setSuccess(data.message)
+                
                 setTimeout(() => {
                  setSuccess(null);
-                }, 3000)
+                }, 5000)
             })
             
         })
