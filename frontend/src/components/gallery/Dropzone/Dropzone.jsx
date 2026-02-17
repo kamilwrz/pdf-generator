@@ -57,34 +57,31 @@ export default function Dropzone() {
         })));
 
         acceptedFiles.forEach((file) => {
+            
             const formData = new FormData();
             formData.append("file", file);
             console.log(file);
 
             const start = performance.now();
+            let interval;
 
             api.httpRequest(ENDPOINTS.IMG.UPLOAD, "POST", formData, "Image upload failed!").
             then((data) => {
-
+                const duration = performance.now() - start;
+                console.log(duration, "DROPZONE")
+                setDuration(duration);
                 setSuccess(data.message)
-                
-                
-                //setDuration(durationPeriod);
 
-                const interval = setInterval(() => {
+                interval = setInterval(() => {
                     setValue(prevState => prevState + 100);
                 }, 100)
 
 
             }).
             catch((error) => {setError(error)}).
-            finally(() => {
-                const duration = performance.now() - start;
-                console.log(duration, "DROPZONE");
+            finally(() => {;
                 clearInterval(interval)
-
             })
-            
         })
     }), [])
 
