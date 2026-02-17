@@ -44,7 +44,7 @@ export default function Sidebar({ children }) {
 
         <div className={classes.controlTitle}>
             <label htmlFor="title">Title</label>
-            <input type="text" name="title" id="title" value={title} onChange={setPdfTitle} />
+            <input type="text" name="title" id="title" value={title} onChange={setPdfTitle} required/>
         </div>
 
         <div className={classes.control}>
