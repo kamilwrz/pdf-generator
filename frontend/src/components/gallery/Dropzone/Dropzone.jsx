@@ -61,7 +61,6 @@ export default function Dropzone() {
 
             const formData = new FormData();
             formData.append("file", file);
-            console.log(file);
 
             const start = performance.now();
             let interval;
@@ -72,7 +71,7 @@ export default function Dropzone() {
                 duration = performance.now() - start;
                 console.log(duration, "DROPZONE")
                 setDuration(duration);
-                setSuccess(data.message)
+                setTimeout(() => {setSuccess(data.message)}, duration + 100)
 
                 const stepMs = 100;
                 const stepValue = (PROGRESS_MAX / duration) * stepMs;
