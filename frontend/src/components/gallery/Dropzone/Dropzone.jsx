@@ -80,7 +80,7 @@ export default function Dropzone() {
 
                 interval = setInterval(() => {
                     elapsed += stepMs;
-                    setValue((prev) => Math,min(prev + stepValue, progressMax));
+                    setValue((prev) => Math.min(prev + stepValue, progressMax));
                     if(elapsed >= duration){
                         clearInterval(interval);
                     }
@@ -133,7 +133,7 @@ export default function Dropzone() {
                 <><aside>
                     {thumbs}
                 </aside>
-                    <Progress max={duration} value={progressValue} />
+                    <Progress max={progressMax} value={progressValue} />
                     {success && <p className={classes.success}>{success}</p>}
                     {error && <p className={classes.error}>{error.detail}</p>}
                     
