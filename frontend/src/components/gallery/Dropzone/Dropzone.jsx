@@ -40,6 +40,7 @@ const img = {
     borderRadius: "4px"
 };
 
+const PROGRESS_MAX = 2000;
 
 export default function Dropzone() {
 
@@ -65,7 +66,6 @@ export default function Dropzone() {
             const start = performance.now();
             let interval;
             let duration = 0;
-            const progressMax = 2000;
 
             api.httpRequest(ENDPOINTS.IMG.UPLOAD, "POST", formData, "Image upload failed!").
             then((data) => {
@@ -75,12 +75,12 @@ export default function Dropzone() {
                 setSuccess(data.message)
 
                 const stepMs = 100;
-                const stepValue = (progressMax / duration) * stepMs;
+                const stepValue = (PROGRESS_MAX / duration) * stepMs;
                 let elapsed = 0;
 
                 interval = setInterval(() => {
                     elapsed += stepMs;
-                    setValue((prev) => Math.min(prev + stepValue, progressMax));
+                    setValue((prev) => Math.min(prev + stepValue, PROGRESS_MAX));
                     if(elapsed >= duration){
                         clearInterval(interval);
                     }
@@ -133,7 +133,7 @@ export default function Dropzone() {
                 <><aside>
                     {thumbs}
                 </aside>
-                    <Progress max={progressMax} value={progressValue} />
+                    <Progress max={PROGRESS_MAX} value={progressValue} />
                     {success && <p className={classes.success}>{success}</p>}
                     {error && <p className={classes.error}>{error.detail}</p>}
                     
