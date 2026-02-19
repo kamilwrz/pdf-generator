@@ -3,15 +3,12 @@ import { useDropzone } from 'react-dropzone';
 import { useState, useEffect, useCallback } from "react";
 
 import Progress from "../../common/Progress/Progress";
-import Error from "../../common/Error/Error";
 
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 
 import { ApiClient } from "../../../services/api";
 import { ENDPOINTS } from "../../../services/api";
-
-
 
 const thumb = {
     display: 'inline-flex',
@@ -69,7 +66,7 @@ export default function Dropzone() {
             api.httpRequest(ENDPOINTS.IMG.UPLOAD, "POST", formData, "Image upload failed!").
             then((data) => {
                 duration = performance.now() - start;
-                console.log(duration, "DROPZONE")
+ 
                 setDuration(duration);
                 setTimeout(() => {setSuccess(data.message)}, duration + 100)
 
@@ -138,7 +135,6 @@ export default function Dropzone() {
                     
                     </>
             }
-            {isDropzone && success || isDropzone && error && <aside></aside>}
         </section>
     );
 }
