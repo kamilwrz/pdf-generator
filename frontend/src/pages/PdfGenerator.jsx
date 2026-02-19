@@ -1,13 +1,13 @@
 import DropzoneContainer from '../components/gallery/Dropzone/DropzoneContainer';
 import Gallery from '../components/gallery/Gallery/Gallery';
 import Sidebar from '../components/editor/Sidebar/Sidebar';
-import A4 from "../components/Canvas/A4/A4";
+import A4 from "../components/canvas/A4/A4";
 import Editor from '../components/editor/Editor/Editor';
 import { PdfContext } from '../store/pdfgenerator-context';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useA4Elements } from "../hooks/useA4Elements";
 import { usePdfExport } from '../hooks/usePdfExport';
-import CanvasElements from "../components/Canvas/CanvasElements/CanvasElements";
+import CanvasElements from "../components/canvas/CanvasElements/CanvasElements";
 import { useNavigate } from 'react-router-dom';
 import ModalPdfs from '../components/modals/ModalPdfs/ModalPdfs';
 import ModalPdfRequestStatus from '../components/modals/ModalPdfRequestStatus/ModalPdfRequestStatus';

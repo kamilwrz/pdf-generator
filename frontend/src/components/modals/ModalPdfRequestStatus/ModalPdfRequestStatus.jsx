@@ -17,9 +17,7 @@ function ModalPdfRequestStatus({ message, open }) {
         }else{
             setIsLoading(bool => !bool);
         }
-    }, [open, isLoading])
-
-    console.log(setIsLoading);
+    }, [open])
 
 
     return createPortal(<dialog ref={dialogRequestStatus} className={classes.modalPdfRequestStatus}>
