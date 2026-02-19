@@ -128,7 +128,7 @@ export default function Dropzone() {
                 <input {...getInputProps()} />
                 <p className={classes.fileInput}>Drop the image here</p>
             </div>
-            {isDropzone ?
+            {isDropzone &&
                 <><aside>
                     {thumbs}
                 </aside>
@@ -137,7 +137,8 @@ export default function Dropzone() {
                     {error && <p className={classes.error}>{error.detail}</p>}
                     
                     </>
-                : ""}
+            }
+            {isDropzone && success || isDropzone && error && <aside></aside>}
         </section>
     );
 }
