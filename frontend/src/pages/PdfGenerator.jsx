@@ -4,7 +4,7 @@ import Sidebar from '../components/editor/Sidebar/Sidebar';
 import A4 from "../components/canvas/A4/A4";
 import Editor from '../components/editor/Editor/Editor';
 import { PdfContext } from '../store/pdfgenerator-context';
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback} from 'react';
 import { useA4Elements } from "../hooks/useA4Elements";
 import { usePdfExport } from '../hooks/usePdfExport';
 import CanvasElements from "../components/canvas/CanvasElements/CanvasElements";
@@ -19,13 +19,20 @@ function PdfGenerator() {
 
   const navigate = useNavigate();
 
+  //state for rendering Dropzone
   const [isDropzone, setIsDropzone] = useState(false);
+  //state for rendering the Gallery
   const [isGallery, setIsGallery] = useState(false);
+  //state for checking user activity via MouseEven
   const [checkActivity, setIsActive] = useState(false);
+  //state for showing the modal with generated PDF's
   const [isVisible, setIsVisible] = useState(false);
+  // state for showing the progress var in Dropzone when IMG is uploaded
   const [value, setValue] = useState(0);
+  //state for seting the PDF id, used in ModalPdf.jsx
   const [pdfId, setPdfId] = useState(null);
-  const [title, setTitle] = useState();
+  //state for giving the PDF a title
+  const [title, setTitle] = useState("");
 
   const [isLoadingState, setIsLoadingState] =useState(false)
 
@@ -57,8 +64,6 @@ function PdfGenerator() {
     setModalRequestStatus(bool => !bool);
     setIsLoadingState(bool => !bool);
   }
-
-  console.log(setIsLoadingState);
 
   function handleLogout() {
     localStorage.removeItem("token")
