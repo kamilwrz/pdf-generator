@@ -47,3 +47,32 @@
 .wrapperBtns{
    margin-top: 2rem;
 }
+
+/* Extra small devices (phones, 600px and down) */
+@media only screen and (max-width: 600px) {
+
+    .mainHeading{
+        font-size: 2rem;
+        margin-top: 2rem;
+        margin-bottom: 0.5rem;
+        text-align: center;
+        padding: 1rem;
+    }
+
+    .subHeading{
+        font-size: 1.2rem;
+        letter-spacing: -1px;
+        padding: 1rem;
+        text-align: center;
+    }
+
+    .description{
+        color: #60a5fa;
+        margin-bottom: 4rem;
+        width: 90%;
+        text-align: center;
+        letter-spacing: 2px;
+        font-size: 0.8rem;
+    }
+
+}

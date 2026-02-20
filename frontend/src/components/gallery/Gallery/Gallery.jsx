@@ -1,4 +1,5 @@
 import classes from "./Gallery.module.css";
+import { motion } from "framer-motion";
 
 import { useState, useEffect } from "react";
 
@@ -14,58 +15,47 @@ import { use } from "react";
 
 export default function Gallery() {
 
-    const {isGallery, isDropzone} = use(PdfContext)
+    const { isGallery, isDropzone } = use(PdfContext)
 
-    const [shouldRender, setShouldRender] = useState(false);
     const [images, setImages] = useState([]);
     const [error, setError] = useState()
 
 
-    function handleImageUsedInPDF(message){
+    function handleImageUsedInPDF(message) {
         console.log(message);
-        if(message.message){
+        if (message.message) {
             setError(message);
-        }else{
+        } else {
             setImages(prevState => prevState.filter(img => img.id !== message.deleted_image))
         }
     }
 
     useEffect(() => {
         if (isGallery) {
-            setShouldRender(true);
 
-            
-
-            const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
-
-            const start = performance.now();
-
+            const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` })
             api.httpRequest(ENDPOINTS.IMG.FETCH, "GET", null, "Fetching images failed!").
-            then((images) => {
-                const duration = performance.now() - start
-                console.log(duration, "GALLERY");
-                setImages(images);
-                 setError(null)
-            }).
-            catch((error) => setError(error));
+                then((images) => {
+                    setImages(images);
+                    setError(null)
+                }).
+                catch((error) => setError(error));
         }
-        
-    }, [isGallery, isDropzone, images.length])
 
+    }, [isGallery, isDropzone])
 
-    if (!shouldRender) {
-        return null
-    }
-    else {
-        const IMAGES = images.map((image) => {
-            return <GalleryItem url={`${API_BASE_URL}/${image.file_path}`} img_id={image.id} imageUsed={handleImageUsedInPDF}/>;
-         })
+    const IMAGES = images.map((image) => {
+        return <GalleryItem url={`${API_BASE_URL}/${image.file_path}`} key={image.id} img_id={image.id} imageUsed={handleImageUsedInPDF} />;
+    })
 
-        return <aside className={`${classes.gallery} ${isGallery ? classes.galleryShow : classes.galleryHide}`}>
-            {!error && IMAGES}
-            {error ? <p className={classes.error}>{error.message}</p> : undefined}
-        </aside>
-    }
+    return <motion.aside className={classes.gallery}
+        initial={{ opacity: 0, x: 640}}
+        animate={{ opacity: 1, x: -640 }}
+        exit={{ opacity: 0, x: 640}}
+        transition={{ type: "bounce", duration: 4, ease: [0, 0.71, 0.2, 1.01] }}>
+        {!error && IMAGES}
+        {error ? <p className={classes.error}>{error.message}</p> : undefined}
+    </motion.aside>
 }
 
-    
+

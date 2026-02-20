@@ -7,8 +7,6 @@ from app.core.config import origins, IMAGES_UPLOAD_DIR, PDF_UPLOAD_DIR
 from pathlib import Path
 from fastapi.responses import FileResponse
 
-
-
 app = FastAPI()
 
 # Ensure upload directories exist (e.g. on fresh deploy / Render)

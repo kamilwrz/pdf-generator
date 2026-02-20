@@ -1,28 +1,17 @@
-import { useEffect, useState } from "react";
 import classes from "./DropzoneContainer.module.css";
 import Dropzone from "./Dropzone";
-import { PdfContext } from "../../../store/pdfgenerator-context";
-import { use } from "react";
+import { motion } from "framer-motion";
 
-export default function DZContainer(){
 
-    const { isDropzone } = use(PdfContext)
+export default function DropzoneContainer() {
 
-    const [shouldRender, setShouldRender] = useState(false);
-   // console.log(isDropzone)
-    useEffect(() => {
-        if(isDropzone){
-            setShouldRender(true);
-        }
-    }, [isDropzone])
-
-    if(!shouldRender){
-        return null
-    }
-    else{
-
-    return <section className={`${classes.DZContainer} ${isDropzone ? classes.DZContainerShow : classes.DZContainerHide}`}>
+    return <motion.section
+        className={classes.dropzoneContainer}
+        initial={{ opacity: 0, x: -320 }}
+        animate={{ opacity: 1, x: 320 }}
+        exit={{ opacity: 0, x: -320 }}
+        transition={{type: "spring", duration:2, ease: [0, 0.71, 0.2, 1.01]}}>
         <Dropzone></Dropzone>
-    </section>
-    }
+    </motion.section>
+
 }

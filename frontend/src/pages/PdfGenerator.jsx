@@ -14,12 +14,13 @@ import ModalPdfRequestStatus from '../components/modals/ModalPdfRequestStatus/Mo
 import { ApiClient } from '../services/api';
 import { ENDPOINTS } from '../services/api';
 import Spinner from '../components/common/Spinner/Spinner';
+import { AnimatePresence } from "framer-motion";
 
 function PdfGenerator() {
 
   const navigate = useNavigate();
 
-  //state for rendering Dropzone
+  //state for rendering Dropzone // changed in Sidebar (upload images), passed via ctx
   const [isDropzone, setIsDropzone] = useState(false);
   //state for rendering the Gallery
   const [isGallery, setIsGallery] = useState(false);
@@ -102,7 +103,7 @@ function PdfGenerator() {
 
 
   const handleShowDropzone = useCallback(() => {
-    setIsDropzone(boolDZ => !boolDZ);
+    setIsDropzone(boolDropzone => !boolDropzone);
   }, [])
 
   const handleShowGallery = useCallback(() => {
@@ -176,14 +177,15 @@ function PdfGenerator() {
         <ModalPdfs />
         <ModalPdfRequestStatus open={modalRequestStatus} message={responsePDF} />
         <Sidebar>
-          <DropzoneContainer />
+          <AnimatePresence>{isDropzone && <DropzoneContainer />}</AnimatePresence>
+          
           <Editor />
         </Sidebar>
         <A4 width="595px" height="842px" ref={A4ref}>
           {isPdfLoading && <Spinner loading={isPdfLoading}/>}
           <CanvasElements elements={A4_ELEMENTS} />
         </A4>
-        <Gallery />
+        <AnimatePresence> {isGallery && <Gallery />} </AnimatePresence>
       </PdfContext.Provider>
     </main>
   )
