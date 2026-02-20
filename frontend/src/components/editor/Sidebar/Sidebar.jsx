@@ -1,4 +1,5 @@
 import classes from "./Sidebar.module.css";
+import SidebarControls from "../../common/SidebarControls/SidebarControls";
 import { FaRegImages } from "react-icons/fa";
 import { TfiLayoutLineSolid } from "react-icons/tfi";
 import { CiText } from "react-icons/ci";
@@ -12,7 +13,7 @@ import { use } from "react";
 
 export default function Sidebar({ children }) {
 
-    const { 
+    const {
         addText,
         addLine,
         showDropzone,
@@ -25,56 +26,37 @@ export default function Sidebar({ children }) {
         clearA4,
         logout,
         isPdfLoading
-     } = use(PdfContext)
+    } = use(PdfContext)
 
     function setPdfTitle(e) {
         handleSetTitle(e.target.value);
     }
 
-    function showModal() {
+    function showModalWithPDSs() {
         setIsVisibleModal(bool => !bool);
     }
 
 
     return <aside className={classes.sidebar}>
-
         <div className={classes.logoWrapper}>
-            <img src={logo} alt="Logo PDF GENERATOR" />
-            <h1>pdf generator</h1>
+            <img src={logo} alt="Logo PDF Canvas" />
+            <h1><span>pdf</span> canvas</h1>
         </div>
 
         <div className={classes.controlTitle}>
-            <label htmlFor="title">Title</label>
-            <input type="text" name="title" id="title" value={title} onChange={setPdfTitle} required/>
-        </div>
-
-        <div className={classes.control}>
-            <label>upload images</label>
-            <FaRegImages className={classes.icons} onClick={showDropzone} />
-        </div>
-
-        <div className={classes.control}>
-            <label>gallery</label>
-            <LuImagePlus className={classes.icons} onClick={showGallery} />
-        </div>
-
-        <div className={classes.control}>
-            <label>add text</label>
-            <CiText className={classes.icons} onClick={addText} />
-        </div>
-
-        <div className={classes.control}>
-            <label>add line</label>
-            <TfiLayoutLineSolid className={classes.icons} onClick={addLine} />
-        </div>
-
-        <div className={classes.control}>
-            <label>show pdf's</label>
-            <BsFileEarmarkPdf className={classes.icons} onClick={showModal} />
+            <label htmlFor="title">pdf title:</label>
+            <input type="text" name="title" id="title" value={title} onChange={setPdfTitle}/>
         </div>
 
 
-        <div className={classes.menuLine}></div>
+
+        <SidebarControls icon={<FaRegImages/>} labelText="upload images" sidebarEvent={showDropzone}/>
+        <SidebarControls icon={<LuImagePlus/>} labelText="gallery" sidebarEvent={showGallery}/>
+        <SidebarControls icon={<CiText/>} labelText="add text" sidebarEvent={addText}/>
+        <SidebarControls icon={<TfiLayoutLineSolid/>} labelText="add line" sidebarEvent={addLine}/>
+        <SidebarControls icon={<BsFileEarmarkPdf/>} labelText="show pds's" sidebarEvent={showModalWithPDSs}/>
+        
+
 
         <section className={classes.pdfButtons}>
             <div>
@@ -85,7 +67,7 @@ export default function Sidebar({ children }) {
         </section>
 
         <button className={classes.logout} onClick={logout}>
-        <AiOutlineLogout />
+            <AiOutlineLogout />
         </button>
 
         {children}

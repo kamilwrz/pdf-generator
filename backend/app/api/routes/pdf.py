@@ -157,10 +157,19 @@ async def update_user_pdf(
     elements = pdf_data.root
     pdf_id = pdf_data.pdf_id
     title = pdf_data.pdf_title
+
+    username = payload.get("sub")
+    db_user = get_user_by_username(db, username=username)
+
+    user_upload_dir = PDF_UPLOAD_DIR / username
+    user_upload_dir.mkdir(parents=True, exist_ok=True)
     
     pdf_row = request_pdf_by_id(db, pdf_id)
+    
     new_file_path = rename_pdf_file(pdf_row, title)
     db.add(pdf_row)
+
+    print(new_file_path)
 
     existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
     update_pdf_elements(db, elements, existing_by_id, pdf_id)

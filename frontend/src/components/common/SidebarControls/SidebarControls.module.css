@@ -1,0 +1,32 @@
+.controls{
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 0.5rem;
+    align-self: center;
+    gap: 1rem;
+    width: 70%;   
+}
+
+.controls label{
+    font-size: 0.7rem;
+    color: rgb(156 163 175); /* GRAY 400*/
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+    font-family: Inter, sans-serif;
+}
+
+.icons{
+    color: #18181b; /* Neutral 100*/
+    background-color: #f5f5f5;; /* BLUE 300 */
+    margin-right: 0.5rem;
+    margin-left: 1rem;
+    cursor: pointer;
+    border-radius: 2px;
+    border: none;
+}
+
+.icons:hover{
+    opacity: 0.8;
+}
