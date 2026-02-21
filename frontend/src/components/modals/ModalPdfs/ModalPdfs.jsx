@@ -16,7 +16,7 @@ import API_BASE_URL from "../../../services/api";
 
 import Error from "../../common/Error/Error";
 
-export default function ModalPdfs({title}) {
+export default function ModalPdfs({ title }) {
 
     const [PDFs, setPDFs] = useState([]);
     const [error, setError] = useState(false);
@@ -39,12 +39,12 @@ export default function ModalPdfs({title}) {
         api.httpRequest(ENDPOINTS.PDF.SHOW, "POST", JSON.stringify(id), "Failed to show choosen PDF!").
             then((data) => {
                 const elementsData = data.map((element) => {
-                    if(element.category !== "text"){
+                    if (element.category !== "text") {
                         return { ...element, "zIndex": element.extra_properties.zIndex, width: parseFloat(element.width), height: parseFloat(element.height) }
-                    }else{
-                        return { ...element, "zIndex": element.extra_properties.zIndex}
+                    } else {
+                        return { ...element, "zIndex": element.extra_properties.zIndex }
                     }
-                    
+
                 });
                 setA4_Elements(elementsData.filter(element => element.category !== "title"));
                 setIsVisibleModal(false);
@@ -57,7 +57,7 @@ export default function ModalPdfs({title}) {
 
     async function deltePDF(id) {
         clearA4();
-             
+
         api.httpRequest(ENDPOINTS.PDF.DELETE, "DELETE", JSON.stringify(id), "Failed to delete the PDF!").
             then((data) => {
                 console.log(data);
@@ -78,16 +78,14 @@ export default function ModalPdfs({title}) {
     }, [isVisibleModal])
 
     return createPortal(<div className={classNameOverlay}>
-
-        <span onClick={handleIsVisible} className={classes.closeModal}><RiCloseLargeFill /></span>
-
         <ul className={classes.modalPdfs}>
+            <span onClick={handleIsVisible} className={classes.closeModal}><RiCloseLargeFill /></span>
             <h2>Your PDF's</h2>
             {!error ? PDFs.map((PDF) => {
                 const date = PDF.created_at.split(".")[0].split("T").join(" : ");
                 return <li className={classes.pdfItem} key={PDF.id}>
                     <BsFileEarmarkPdf className={classes.pdfIcon} />
-                    <h2>{PDF.title.split(".")[0]}</h2>
+                    <h2 className={classes.title}>{PDF.title.split(".")[0]}</h2>
                     <div className={classes.modalControls}>
                         <button className={classes.downloadPdf}><a href={`${API_BASE_URL}/${PDF.file_path}`}><IoMdDownload /></a></button>
                         <button className={classes.deletePdf} onClick={() => deltePDF(PDF.id)}><MdDelete /></button>

@@ -18,7 +18,7 @@ class PDF_Generator:
         self.c.rect(left, corrected_y, width=width, height=height, stroke=0, fill=1)
 
     def renderText(self, left, top, fontFamily, fontSize, color, content):
-        corrected_y = 842 - top - fontSize * 0.333
+        corrected_y = 842 - top - fontSize * 0.34
         self.c.setFont(fontFamily, fontSize)
         self.c.setFillColor(HexColor(color))
         self.c.drawString(left, corrected_y , content)

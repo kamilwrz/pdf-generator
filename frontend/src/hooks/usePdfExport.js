@@ -22,8 +22,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       handleShowModal();
       setIsPdfLoading(false);
       setA4_Elements_deleted([]);
-    })
-
+    });
   }, [handlePdfId, handleShowModal, titleRef]);
 
   
@@ -43,9 +42,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     catch((error) => setResponsePDF(error)).finally(() => { 
       handleShowModal();
       setIsPdfLoading(false);
-    }).finally(() => {
       setA4_Elements_deleted([]);
-    })
+    });
   }, [handleShowModal, titleRef, A4_Elements_deleted])
 
 
