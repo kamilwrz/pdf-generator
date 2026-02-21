@@ -153,6 +153,9 @@ export function useA4Elements() {
     });
   }, [])
 
+  /**
+   * BUG THE DELETE ELEEMNT IS NOT UPDATED IN THE PDF / DB
+   */
   const handleDeleteElement = useCallback((elementId) => {
     setA4_Elements(prevState => {
       const newState = prevState.filter(element => element.element_id !== elementId)
