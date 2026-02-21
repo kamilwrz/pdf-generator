@@ -37,7 +37,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
 
     const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
 
-    api.httpRequest(ENDPOINTS.PDF.UPDATE, "PUT", JSON.stringify({root: sorted, pdf_id: PDF_ID, pdf_title: titleRef.current.value +".pdf"}), "Failed to update the PDF!").
+    api.httpRequest(ENDPOINTS.PDF.UPDATE, "PUT", JSON.stringify({root: elements, pdf_id: PDF_ID, pdf_title: titleRef.current.value +".pdf"}), "Failed to update the PDF!").
     then((data) => {setResponsePDF({success: data.message})}).
     catch((error) => setResponsePDF(error)).finally(() => { 
       handleShowModal();

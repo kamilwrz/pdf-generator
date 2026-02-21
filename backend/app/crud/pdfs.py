@@ -85,6 +85,7 @@ def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_i
               extra_properties={"zIndex": element.zIndex, "isSelected": element.isSelected, "isMove": element.isMove},
             )
             db.add(pdf_elements)
+       
         else:
             existing_row = existing_elements[element.element_id]
             existing_row.left = element.left
