@@ -89,7 +89,7 @@ export default function ModalPdfs() {
                     </div>
                     <p>{date}</p>
                 </li>;
-            }) : <Error title="An error occured!" message={error?.message || error} />}
+            }) : <Error title="No PDF's uploaded!" message={error?.message || error} />}
 
         </ul>
     </div>

@@ -110,7 +110,7 @@ async def fetch_user_pdfs(
     if not pdfs:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User has no pdfs uploaded yet.",
+            detail="Please create a PDF, so it is available for preview and editing.",
         )
     return pdfs
 

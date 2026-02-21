@@ -45,7 +45,7 @@ export default function Sidebar({ children }) {
 
         <div className={classes.controlTitle}>
             <label htmlFor="title">pdf title:</label>
-            <input type="text" name="title" id="title" value={title} onChange={setPdfTitle}/>
+            <textarea type="text" name="title" id="title" value={title} onChange={setPdfTitle} placeholder="Please enter the title of the PDF"/>
         </div>
 
         <SidebarControls icon={<FaRegImages/>} labelText="upload images" sidebarEvent={showDropzone}/>
@@ -55,7 +55,7 @@ export default function Sidebar({ children }) {
         <SidebarControls icon={<BsFileEarmarkPdf/>} labelText="show pdf's" sidebarEvent={showModalWithPDSs}/>
         
         <section className={classes.pdfButtons}>
-            <div><BsFileEarmarkPdf/></div>
+            <div className={classes.pdfButtonsIcon}><BsFileEarmarkPdf/></div>
             <div>
                 <button onClick={createPdf} disabled={isPdfLoading}>CREATE</button>
                 <button onClick={updatePdf} disabled={isPdfLoading}>UPDATE</button>

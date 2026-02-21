@@ -3,8 +3,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #fafafa;
-    /*ZINC 50*/
+    background-color: #f9fafb; /*SLATE 50*/
     position: relative;
     font-family: Inter, sans-serif;
     z-index: 1000;
@@ -28,9 +27,10 @@
 
 .logoWrapper img {
     width: 100%;
-    max-width: 4rem;
+    max-width: 6rem;
     object-fit: contain;
     z-index: 2;
+    margin-top: -1rem;
 }
 
 .logoWrapper h1 {
@@ -41,7 +41,7 @@
     letter-spacing: 2px;
     text-transform: uppercase;
     margin: 0;
-    margin-top: -1.5rem;
+    margin-top: -2rem;
     font-weight: 600;
 }
 
@@ -54,7 +54,7 @@
 .controlTitle {
     display: flex;
     flex-direction: column;
-    justify-content: start;
+    justify-content: center;
     align-items: center;
     width: 70%;
     margin-top: 5rem;
@@ -63,31 +63,31 @@
 
 .controlTitle label {
     text-transform: uppercase;
-    align-self: flex-start;
+    align-self: center;
     margin-bottom: 0.5rem;
     font-size: 0.8rem;
     color: #18181b;
-    /* ZINC 900*/
-    font-weight: 600;
+    font-weight: 400;
 }
 
-.controlTitle input {
+.controlTitle textarea {
     width: 100%;
-    font-size: 1rem;
+    font-size: 0.9rem;
     padding: 6px;
     border: none;
     margin-bottom: 4rem;
     background-color: white;
     /* ZINC 400*/
     color: #27272a
-        /*ZINC 800*/
-    ;
-    text-align: center;
+        /*ZINC 800*/;
+    font-family: Inter, sans-serif;
     letter-spacing: 1px;
     font-weight: 400;
+    text-align: center;
+    border-radius: 3px;
 }
 
-.controlTitle input:focus {
+.controlTitle textarea:focus {
     border: none;
     outline: none;
     border-bottom: 1px solid #27272a;
@@ -98,7 +98,12 @@
     flex-direction: column;
     height: 20vh;
     align-items: center;
-    margin-top: 1rem;
+    margin-top: 3em;
+}
+
+.pdfButtonsIcon{
+    font-size: 2rem;
+    color: red;
 }
 
 .pdfButtons button {
@@ -106,21 +111,20 @@
     font-size: 0.6rem;
     text-transform: uppercase;
     padding: 6px;
-    margin-top: 10px;
-    margin-right: 1rem;
+    margin-top: 1rem;
+    margin-right: 0.5rem;
     border-radius: 2px;
     letter-spacing: 1px;
     background-color: white;
-    /* ZINC 300*/
     align-self: flex-end;
     color: #27272a;
-    /* ZINC 800*/
     border: none;
     cursor: pointer;
 }
 
 .pdfButtons button:hover {
     opacity: 0.8;
+    box-shadow: 1px 1px 2px 1px;
 }
 
 .logout {

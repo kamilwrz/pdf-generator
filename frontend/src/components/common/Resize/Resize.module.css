@@ -6,11 +6,11 @@
     z-index: 1000;
     border-radius: 50%;
     border: none;
-    background-color: #86efac; /*GREEN 300*/
+    background-color: #2563eb; /*GREEN 300*/
 }
 
 .resizeButtons:hover{
-    background-color: #16a34a; /*GREEN 600*/
+    background-color: #2564ebb6; /*GREEN 600*/
 }
 
 .roundBottomRight{
