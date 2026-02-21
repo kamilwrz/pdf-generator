@@ -32,6 +32,7 @@ class PdfElement(BaseModel):
     isMove: Optional[bool] = None
     #
     img_id : Optional[int] = None
+    deleted: Optional[bool] = None
 
 class PDFCreateRequest(BaseModel):
     root: list[PdfElement]

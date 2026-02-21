@@ -147,7 +147,7 @@ export function useA4Elements(titleRef) {
       if (deletedElement) {
         setA4_Elements_deleted(prev =>
           prev.some(e => e.element_id === elementId && e.pdf_id !== undefined) 
-          ? prev : [...prev, { ...deletedElement, ...deletedElement.extra_properties.deleted = true}]
+          ? prev : [...prev, { ...deletedElement, deleted : true}]
         );
       }
       return prevState.filter(element => element.element_id !== elementId);
