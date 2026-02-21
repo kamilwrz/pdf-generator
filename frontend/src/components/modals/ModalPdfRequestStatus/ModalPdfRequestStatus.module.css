@@ -1,10 +1,14 @@
 .modalPdfRequestStatus{
-    width: 40rem;
-    height: 20rem;
+    width: 50%;
+    height: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    left: 50%;
+    top: 50%;
     background-color: var(--primary-bg);
     border: none;
     border-radius: 5px;
-    box-shadow: 2px 2px 2px 2px;
+    box-shadow: 1px 1px 2px 1px;
     text-align: center;
     position: relative;
     font-family: var(--primary-font-family);

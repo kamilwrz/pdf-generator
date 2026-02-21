@@ -162,7 +162,7 @@ function PdfCanvas() {
     handleMoveElement, handleSelectMoveElement, createPdfWithElements,
     handleShowDropzone, handleShowGallery, handleEditElementValues,
     handleAlignElements, handleDeleteElement, setA4_Elements,
-    setValue, , setIsVisible, handleResizeElement, 
+    setValue, setIsVisible, handleResizeElement, 
     updatePdfWithElements, handlePdfId, 
     handleClearA4, handleShowModalRequest, handleLogout
   ])

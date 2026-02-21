@@ -10,7 +10,7 @@
     width: 50%;
     height: 50%;
     z-index: 3000;
-    position: absolute;
+    position: relative;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
@@ -25,7 +25,10 @@
 .modalPdfs>h2{
     font-family: Inter, sans-serif;
     text-align: center;
-    color: var(--primary-font)
+    color: var(--primary-font);
+    background-color: var(--secondary-bg);
+    font-weight: 500;
+    padding: 1rem;
 }
 
 .modalVisible{
@@ -41,8 +44,8 @@
     background-color: var(--secondary-bg);
     font-size: 1rem;
     position: absolute;
-    left: 35%;
-    top: 1rem;
+    left: 3rem;
+    top: 2rem;
     height: 2rem;
     width: 2rem;
     padding-top: 0.5rem;

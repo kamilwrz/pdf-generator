@@ -7,3 +7,4 @@ cryptography
 reportlab
 passlib[bcrypt]
 boto3
+psycopg2-binary

@@ -52,7 +52,7 @@ export default function Login() {
         <div className={classes.container}>
             <div className={classes.loginCard}>
                 <div className={classes.logoWrapper}>
-                    <img src="/images/logo.png" alt="Logo" />
+                    <img src="/images/logo1-no_text.png" alt="Logo" />
                 </div>
                 <h1 className={classes.mainHeading}>Sign in</h1>
                 <form onSubmit={handleSubmit} className={classes.form}>

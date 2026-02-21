@@ -3,10 +3,11 @@
  }
 
  body {
-    margin: 0;
-    background-color: var(--secondary-bg);
-    overflow-x: hidden;
- }
+   margin: 0;
+   background: linear-gradient(180deg, #e8ecf1 0%, #d1d9e6 50%, #b8c5d6 100%);
+   overflow-x: hidden;
+   min-height: 100vh;
+}
 
  .main-container {
     display: flex;

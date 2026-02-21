@@ -50,9 +50,9 @@ export default function Gallery() {
 
     return <motion.aside className={classes.gallery}
         initial={{ opacity: 0, x: 640}}
-        animate={{ opacity: 1, x: -640 }}
+        animate={{ opacity: 1, x: 40 }}
         exit={{ opacity: 0, x: 640}}
-        transition={{ type: "spring", duration: 4, ease: [0, 0.71, 0.2, 1.01] }}>
+        transition={{ type: "spring", duration: 4 }}>
         {!error && IMAGES}
         {error ? <p className={classes.error}>{error.message}</p> : undefined}
     </motion.aside>
