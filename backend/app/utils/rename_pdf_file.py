@@ -1,7 +1,8 @@
 import os
+from app.core.config import PDF_UPLOAD_DIR
 
 def rename_pdf_file(pdf:object, title: str):
-    pdf_file_path = pdf.file_path
+    pdf_file_path = str(PDF_UPLOAD_DIR / pdf.file_path)
 
     new_file_path = pdf_file_path.split("\\")
     new_file_path[-1] = title

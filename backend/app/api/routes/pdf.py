@@ -169,8 +169,6 @@ async def update_user_pdf(
     new_file_path = rename_pdf_file(pdf_row, title)
     db.add(pdf_row)
 
-    print(new_file_path)
-
     existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
     update_pdf_elements(db, elements, existing_by_id, pdf_id)
 
