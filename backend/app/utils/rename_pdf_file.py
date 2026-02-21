@@ -16,4 +16,4 @@ def rename_pdf_file(pdf:object, title: str):
 
     print(pdf.file_path, "ROW FILE PATH AFTER CHANGING")
 
-    return "\\".join(new_file_path)
+    return "/".join(new_file_path)
