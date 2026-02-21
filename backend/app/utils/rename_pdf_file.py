@@ -8,6 +8,7 @@ def rename_pdf_file(pdf:object, title: str):
     new_file_path = pdf_file_path.split("\\")
     new_file_path[-1] = title
 
+    print(new_file_path, "NEW FIEL APTH AFTER TITLE CHANGE")
     os.rename(pdf_file_path, "\\".join(new_file_path))
 
     pdf.title = title
