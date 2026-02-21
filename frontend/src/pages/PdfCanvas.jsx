@@ -118,8 +118,8 @@ function PdfCanvas() {
   }, [A4_Elements, createPdf, titleRef]);
 
   const updatePdfWithElements = useCallback(() => {
-    updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted);
-  }, [A4_Elements, pdfId, updatePdf, titleRef, A4_Elements_deleted]);
+    updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted, setA4_Elements_deleted);
+  }, [A4_Elements, pdfId, updatePdf, titleRef, A4_Elements_deleted, setA4_Elements_deleted]);
 
   function handlePdfId(pdfId) {
     setPdfId(pdfId)

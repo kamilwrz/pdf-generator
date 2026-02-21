@@ -26,7 +26,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   }, [handlePdfId, handleShowModal, titleRef]);
 
   
-  const updatePdf = useCallback((A4_Elements, PDF_ID, titleRef, A4_Elements_deleted) => {
+  const updatePdf = useCallback((A4_Elements, PDF_ID, titleRef, A4_Elements_deleted, setA4_Elements_deleted) => {
     
     setIsPdfLoading(true);
 
@@ -42,7 +42,11 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     catch((error) => setResponsePDF(error)).finally(() => { 
       handleShowModal();
       setIsPdfLoading(false);
-    })
+    }).finally(() => {
+      setA4_Elements_deleted([]);
+    }
+      
+    )
   }, [handleShowModal, titleRef, A4_Elements_deleted])
 
 
