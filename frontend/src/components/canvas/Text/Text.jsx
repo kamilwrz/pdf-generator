@@ -38,6 +38,8 @@ function Text({
         onMouseDown={() => selectMoveElement(elementId)}
         onMouseUp={() => selectMoveElement(elementId)}
         onMouseMove={(e) => moveElement(e, elementId, category)}
+        onTouchMove={() => selectMoveElement(elementId)}
+        onTouchStart={() => selectMoveElement(elementId)}
         className={isSelected ? classes.selectedElement : ""}
         style={style}
     >
