@@ -1,15 +1,16 @@
 from fastapi import APIRouter, Depends, UploadFile, HTTPException, Body
 from sqlalchemy.orm import Session
-
 from starlette import status
 from app.models.database import SessionLocal
-from app.core.config import IMAGES_UPLOAD_DIR
+from app.core.config import IMAGES_UPLOAD_DIR, USE_S3
 from app.core.security import verify_token
 from app.crud.user import get_user_by_username
 from app.crud.images import create_image, request_image_by_id, request_images_by_user_id
 from app.models.models import Image, Pdf, PdfElements
 import os
 
+if USE_S3:
+    from app.services import s3_storage
 
 router = APIRouter(
     prefix="/images",
@@ -30,20 +31,30 @@ async def create_upload_image(
     payload: dict = Depends(verify_token),
     db:Session = Depends(get_db)):
 
+    #username from JWT Token
     username = payload.get("sub")
-
-    user_upload_dir = IMAGES_UPLOAD_DIR / username
-    user_upload_dir.mkdir(parents=True, exist_ok=True)
-
-    file_path = user_upload_dir / file.filename
-
-    data = await file.read()
-    with open(file_path, "wb") as f:
-        f.write(data)
-
+    #this user row from table users
     db_user = get_user_by_username(db, username=username)
-    create_image(db=db, image=file, owner_id=db_user.id, file_path=str(file_path))
 
+    #AWS request, with helper function from s3_storage
+    if USE_S3:
+        key = f"uploads/{username}/{file.filename}"
+        data = await file.read()
+        file_path = s3_storage.upload_bytes(
+            key, data, content_type=file.content_type or "application/octet-stream"
+        )
+    
+    else:
+        #UPLOAD TO DIRECOTY WITH UNIQUE USERNAME
+        user_upload_dir = IMAGES_UPLOAD_DIR / username
+        user_upload_dir.mkdir(parents=True, exist_ok=True)
+        file_path_str = str(user_upload_dir / file.filename)
+        data = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(data)
+        file_path = file_path_str
+
+    create_image(db=db, image=file, owner_id=db_user.id, file_path=file_path)
     return {"message": "Image upload was successfull!"}
 
 

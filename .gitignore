@@ -24,6 +24,7 @@ build/
 # Backend uploads/generated
 backend/static/
 backend/uploads/
+backend/check_db.py
 
 # Node / Frontend
 node_modules/
