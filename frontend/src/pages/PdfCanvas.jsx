@@ -61,7 +61,7 @@ function PdfCanvas() {
 
  
 
-  const { createPdf, updatePdf, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, handleShowModalRequest, titleRef, setA4_Elements_deleted);
+  const { createPdf, updatePdf, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, handleShowModalRequest, titleRef, A4_Elements_deleted, setA4_Elements_deleted);
 
   function handleShowModalRequest() {
     setModalRequestStatus(bool => !bool);
