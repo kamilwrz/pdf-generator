@@ -16,12 +16,12 @@ import API_BASE_URL from "../../../services/api";
 
 import Error from "../../common/Error/Error";
 
-export default function ModalPdfs() {
+export default function ModalPdfs({title}) {
 
     const [PDFs, setPDFs] = useState([]);
     const [error, setError] = useState(false);
 
-    const { isVisibleModal, setIsVisibleModal, setA4_Elements, handlePdfId, handleSetTitle, clearA4modalDelete } = use(PdfContext);
+    const { isVisibleModal, setIsVisibleModal, setA4_Elements, handlePdfId, clearA4modalDelete } = use(PdfContext);
 
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
 
@@ -34,7 +34,7 @@ export default function ModalPdfs() {
         handlePdfId(id);
 
         const pdfCanvas = PDFs.find(element => element.id === id);
-        handleSetTitle(pdfCanvas?.title.split(".pdf")[0]);
+        title.current.value = pdfCanvas?.title.split(".pdf")[0];
 
         api.httpRequest(ENDPOINTS.PDF.SHOW, "POST", JSON.stringify(id), "Failed to show choosen PDF!").
             then((data) => {
@@ -50,7 +50,7 @@ export default function ModalPdfs() {
 
     async function deltePDF(id) {
         clearA4modalDelete(id);
-        handleSetTitle("");
+        
         api.httpRequest(ENDPOINTS.PDF.DELETE, "DELETE", JSON.stringify(id), "Failed to delete the PDF!").
             then((data) => {
                 console.log(data);
@@ -77,7 +77,6 @@ export default function ModalPdfs() {
         <ul className={classes.modalPdfs}>
             <h2>Your PDF's</h2>
             {!error ? PDFs.map((PDF) => {
-                console.log(PDF.file_path);
                 const date = PDF.created_at.split(".")[0].split("T").join(" : ");
                 return <li className={classes.pdfItem} key={PDF.id}>
                     <BsFileEarmarkPdf className={classes.pdfIcon} />

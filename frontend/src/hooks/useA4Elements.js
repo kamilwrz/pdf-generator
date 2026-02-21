@@ -1,21 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { nanoid } from 'nanoid';
 
+export function useA4Elements(titleRef) {
 
-/**
- * 
- * IDEA BEHIND CUSTOM HOOKS TO WRAP AND REUSE CODE THATH GOES INTO COMPONENT FUNCTIONS, REUSABLE, CONFIGURABLE FUNCTION
- * WHY I USE IT HERE? MOST LIKELY OUTSOURCING CODE AND MAKING THE PdfGenerator.jsx leaner! 
- * HOOK STRUCTURE?
- * 
- * export useHook()
- * built in hooks, like useState, useRef, etc
- * functions
- * 
- * returning data
- */
-
-export function useA4Elements() {
+  
 
   const A4ref = useRef(null);
 
@@ -153,9 +141,7 @@ export function useA4Elements() {
     });
   }, [])
 
-  /**
-   * BUG THE DELETE ELEEMNT IS NOT UPDATED IN THE PDF / DB
-   */
+
   const handleDeleteElement = useCallback((elementId) => {
     setA4_Elements(prevState => {
       const newState = prevState.filter(element => element.element_id !== elementId)
@@ -381,6 +367,7 @@ export function useA4Elements() {
 
   const handleClearA4 = useCallback(() => {
       setA4_Elements([]);
+      titleRef.current.value = "";
   }, [])
 
 

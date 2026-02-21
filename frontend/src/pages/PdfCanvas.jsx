@@ -4,7 +4,7 @@ import Sidebar from '../components/editor/Sidebar/Sidebar';
 import A4 from "../components/canvas/A4/A4";
 import Editor from '../components/editor/Editor/Editor';
 import { PdfContext } from '../store/pdfgenerator-context';
-import { useState, useEffect, useMemo, useCallback} from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef} from 'react';
 import { useA4Elements } from "../hooks/useA4Elements";
 import { usePdfExport } from '../hooks/usePdfExport';
 import CanvasElements from "../components/canvas/CanvasElements/CanvasElements";
@@ -32,8 +32,8 @@ function PdfCanvas() {
   const [value, setValue] = useState(0);
   //state for seting the PDF id, used in ModalPdf.jsx
   const [pdfId, setPdfId] = useState(null);
-  //state for giving the PDF a title
-  const [title, setTitle] = useState("");
+
+  const titleRef = useRef();
 
   const [isLoadingState, setIsLoadingState] =useState(false)
 
@@ -53,13 +53,12 @@ function PdfCanvas() {
     handleEditElementValues,
     setA4_Elements,
     A4ref,
-    PDFTitle,
     handleResizeElement,
     handleClearA4modalDelete,
     handleClearA4
-  } = useA4Elements()
+  } = useA4Elements(titleRef)
 
-  const { createPdf, updatePdf, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, handleShowModalRequest);
+  const { createPdf, updatePdf, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, handleShowModalRequest, titleRef);
 
   function handleShowModalRequest() {
     setModalRequestStatus(bool => !bool);
@@ -112,18 +111,17 @@ function PdfCanvas() {
 
 
   const createPdfWithElements = useCallback(() => {
-    createPdf(A4_ELEMENTS, title);
-  }, [A4_ELEMENTS, createPdf, title]);
+    createPdf(A4_ELEMENTS, titleRef);
+  }, [A4_ELEMENTS, createPdf, titleRef]);
 
   const updatePdfWithElements = useCallback(() => {
-    updatePdf(A4_ELEMENTS, pdfId, title);
-  }, [A4_ELEMENTS, pdfId, updatePdf, title]);
+    updatePdf(A4_ELEMENTS, pdfId, titleRef);
+  }, [A4_ELEMENTS, pdfId, updatePdf, titleRef]);
 
   function handlePdfId(pdfId) {
     setPdfId(pdfId)
   }
 
-  //linking context to state
   const ctxValue = useMemo(() => ({
     A4_Elements: A4_ELEMENTS,
     addImage: handleAddImage,
@@ -143,14 +141,11 @@ function PdfCanvas() {
     setA4_Elements: setA4_Elements,
     progressValue: value,
     setValue: setValue,
-    addTitle: PDFTitle,
     isVisibleModal: isVisible,
     setIsVisibleModal: setIsVisible,
     resizeElement: handleResizeElement,
     updatePdf: updatePdfWithElements,
     handlePdfId: handlePdfId,
-    handleSetTitle: setTitle,
-    title: title,
     clearA4modalDelete: handleClearA4modalDelete,
     clearA4: handleClearA4,
     showModalRequest: handleShowModalRequest,
@@ -159,24 +154,26 @@ function PdfCanvas() {
   }), [
     A4_ELEMENTS,
     isGallery, isDropzone, value,
-    isVisible, title, handleAddImage,
+    isVisible, handleAddImage,
     handleAddText, handleAddLine, handleSelectElement,
     handleMoveElement, handleSelectMoveElement, createPdfWithElements,
     handleShowDropzone, handleShowGallery, handleEditElementValues,
     handleAlignElements, handleDeleteElement, setA4_Elements,
-    setValue, PDFTitle, setIsVisible, handleResizeElement, 
-    updatePdfWithElements, handlePdfId, setTitle, handleClearA4modalDelete, 
+    setValue, , setIsVisible, handleResizeElement, 
+    updatePdfWithElements, handlePdfId, handleClearA4modalDelete, 
     handleClearA4, handleShowModalRequest, handleLogout
   ])
+
+  console.log(titleRef);
 
 
   return (
     <main className='main-container' onMouseMove={throttledHandleIsActive}>
-      {/** providing the context, value prop is necessery to consume the context (use, useContext) */}
+    
       <PdfContext.Provider value={ctxValue}>
-        <ModalPdfs />
+        <ModalPdfs title={titleRef}/>
         <ModalPdfRequestStatus open={modalRequestStatus} message={responsePDF} />
-        <Sidebar>
+        <Sidebar ref={titleRef}>
           <AnimatePresence>{isDropzone && <DropzoneContainer />}</AnimatePresence>
           
           <Editor />

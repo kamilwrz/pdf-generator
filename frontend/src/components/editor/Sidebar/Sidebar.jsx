@@ -8,10 +8,10 @@ import { AiOutlineLogout } from "react-icons/ai";
 import { BsFileEarmarkPdf } from "react-icons/bs";
 import logo from "../../../../public/images/logo.png";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { use } from "react";
+import { forwardRef, use, useState} from "react";
 
 
-export default function Sidebar({ children }) {
+export default forwardRef(function Sidebar({ children }, ref) {
 
     const {
         addText,
@@ -21,18 +21,13 @@ export default function Sidebar({ children }) {
         showGallery,
         updatePdf,
         setIsVisibleModal,
-        handleSetTitle,
-        title,
         clearA4,
         logout,
         isPdfLoading
-    } = use(PdfContext)
+    } = use(PdfContext);
 
-    function setPdfTitle(e) {
-        handleSetTitle(e.target.value);
-    }
 
-    function showModalWithPDSs() {
+    function showModalWithPDFs() {
         setIsVisibleModal(bool => !bool);
     }
 
@@ -45,14 +40,14 @@ export default function Sidebar({ children }) {
 
         <div className={classes.controlTitle}>
             <label htmlFor="title">pdf title:</label>
-            <textarea type="text" name="title" id="title" value={title} onChange={setPdfTitle} placeholder="Please enter the title of the PDF"/>
+            <textarea type="text" name="title" id="title" ref={ref} placeholder="Please enter the title of the PDF"/>
         </div>
 
         <SidebarControls icon={<FaRegImages/>} labelText="upload images" sidebarEvent={showDropzone}/>
         <SidebarControls icon={<LuImagePlus/>} labelText="gallery" sidebarEvent={showGallery}/>
         <SidebarControls icon={<CiText/>} labelText="add text" sidebarEvent={addText}/>
         <SidebarControls icon={<TfiLayoutLineSolid/>} labelText="add line" sidebarEvent={addLine}/>
-        <SidebarControls icon={<BsFileEarmarkPdf/>} labelText="show pdf's" sidebarEvent={showModalWithPDSs}/>
+        <SidebarControls icon={<BsFileEarmarkPdf/>} labelText="show pdf's" sidebarEvent={showModalWithPDFs}/>
         
         <section className={classes.pdfButtons}>
             <div className={classes.pdfButtonsIcon}><BsFileEarmarkPdf/></div>
@@ -69,4 +64,4 @@ export default function Sidebar({ children }) {
 
         {children}
     </aside>
-}
+})
