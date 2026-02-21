@@ -120,7 +120,7 @@ export default function Dropzone() {
     }, [files]);
 
     return (
-        <section className={classes.DZcontainer}>
+        <section className={classes.dropzoneContainer}>
             <div {...getRootProps({ className: 'dropzone' })}>
                 <input {...getInputProps()} />
                 <p className={classes.fileInput}>Drop the images here... (max. 2 files)</p>

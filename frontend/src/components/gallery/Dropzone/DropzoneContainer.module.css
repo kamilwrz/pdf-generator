@@ -2,7 +2,7 @@
     width: 30rem;
     height: calc(100vh - 15rem);
     box-shadow: 0.5px 0.5px 2px 0.5px rgb(73, 73, 73);
-    background-color: #fafafa; /*ZINC 50*/
+    background-color: var(--primary-bg);
     position: absolute;
     left: 0;
     top: 6rem;

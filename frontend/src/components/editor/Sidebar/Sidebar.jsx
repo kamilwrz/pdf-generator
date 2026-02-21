@@ -6,7 +6,7 @@ import { CiText } from "react-icons/ci";
 import { LuImagePlus } from "react-icons/lu";
 import { AiOutlineLogout } from "react-icons/ai";
 import { BsFileEarmarkPdf } from "react-icons/bs";
-import logo from "../../../../public/images/logo.png";
+import logo from "../../../../public/images/logo1-no_text.png";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { forwardRef, use, useState } from "react";
 

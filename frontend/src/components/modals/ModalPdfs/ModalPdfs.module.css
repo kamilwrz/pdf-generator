@@ -16,7 +16,7 @@
     transform: translate(-50%, -50%);
     display: flex;
     flex-direction: column;
-    background-color: #fafafa; /*ZINC 50*/
+    background-color: var(--primary-bg);
     padding: 2rem;
     overflow-y: scroll;
     border-radius: 6px;
@@ -25,7 +25,7 @@
 .modalPdfs>h2{
     font-family: Inter, sans-serif;
     text-align: center;
-    color: #71717a /*ZINC 500*/;
+    color: var(--primary-font)
 }
 
 .modalVisible{
@@ -37,8 +37,8 @@
 }
 
 .closeModal{
-    color: rgb(239 68 68);
-    background-color: #f4f4f5; /* ZINC 100*/
+    color: var(--close-btn);
+    background-color: var(--secondary-bg);
     font-size: 1rem;
     position: absolute;
     left: 27rem;

@@ -4,7 +4,7 @@
 
  body {
     margin: 0;
-    background-color: #bae6fd;
+    background-color: var(--secondary-bg);
     overflow-x: hidden;
  }
 

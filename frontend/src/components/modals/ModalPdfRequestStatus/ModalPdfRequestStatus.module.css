@@ -1,20 +1,34 @@
 .modalPdfRequestStatus{
     width: 40rem;
     height: 20rem;
-    background-color: #fafafa;
+    background-color: var(--primary-bg);
     border: none;
     border-radius: 5px;
     box-shadow: 2px 2px 2px 2px;
     text-align: center;
     position: relative;
-    font-family: Inter, sans-serif;
+    font-family: var(--primary-font-family);
 }
 
 .modalPdfRequestStatus p{
     padding-top: 10%;
-    color: #18181b; /* ZINC 900*/;
+    color: var(--primary-font);
     font-size: 1.5rem;
     margin: 0;
+}
+
+.btnDownloadPDF{
+    background-color: var(--primary-btn);
+    width: 6rem;
+    height: 2rem;
+    border-radius: 4px;
+    border: none;
+    margin-top: 1rem;
+}
+
+.btnDownloadPDF a{
+    text-decoration: none;
+    color: var(--primary-bg);
 }
 
 .modalPdfRequestStatus form button{
@@ -26,9 +40,9 @@
    width: 5rem;
    height: 2rem;
    font-family: Inter, sans-serif;
-   background-color: #f87171;
+   background-color: var(--close-btn);
    border: none;
-   border-radius: 6px;
+   border-radius: 2px;
    color: #f4f4f5;
 }
 

@@ -24,7 +24,7 @@ function ModalPdfRequestStatus({ message, open }) {
         {/**SHOW ERROR MESSAGE */}
         {message?.message && <p>{message?.message}</p>}
         {/**SHOW SUCCESS MESSAGE / PDF CREATED */}
-        {message?.success && message?.link  && <><p>{message?.success}</p> <button><a href={message?.link}>DOWNLOAD</a></button> </>}
+        {message?.success && message?.link  && <><p>{message?.success}</p> <button className={classes.btnDownloadPDF}><a href={message?.link}>DOWNLOAD</a></button> </>}
         {/**SHOW SUCCESS MESSAGE / PDF UPDATE */}
         {message?.success && !message?.link && <p>{message?.success}</p>}
         <form method="dialog">

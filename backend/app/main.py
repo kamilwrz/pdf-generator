@@ -36,7 +36,7 @@ if DIST_DIR.exists():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Frontend origin
+    allow_origins=origins,  # Frontend origin
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers

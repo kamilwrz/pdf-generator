@@ -3,37 +3,41 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #f9fafb; /*SLATE 50*/
+    background-color: white;
     position: relative;
     font-family: Inter, sans-serif;
     z-index: 1000;
     box-shadow: 1px 1px 5px 1px #525252;
+    border-top-right-radius: 10px;
+    font-family: var(--primary-font-family);
 }
 
 .headingWrapper {
-    width: 9rem;
-    height: 4rem;
+    width:11rem;
+    height: 4.5rem;
     display: flex;
     flex-direction: column;
     justify-items: flex-start;
     align-items: center;
     align-self: center;
-    background-color: white;
-    box-shadow: 0.5px 0.5px 2px 0.5px;
+    background-color: var(--secondary-bg);
+    box-shadow: 0.5px 0.5px 1px 0.5px;
     border-radius: 4px;
-    margin-top: -2.5rem;
+    margin-top: -1.5rem;
 }
 
 .logo {
     width: 100%;
-    max-width: 7rem;
+    max-width: 5rem;
     object-fit: contain;
     z-index: 2;
-    align-self: center;
+    align-self: flex-end;
+    margin-right: 3rem;
+    margin-top: 2rem;
 }
 
 .headingWrapper h1 {
-    font-size: 0.9rem;
+    font-size: 1.2rem;
     color: #18181b;/* ZINC 900*/;
     letter-spacing: 2px;
     text-transform: uppercase;
@@ -60,8 +64,8 @@
     text-transform: uppercase;
     align-self: center;
     margin-bottom: 0.5rem;
-    font-size: 0.8rem;
-    color: #18181b;/* ZINC 900*/;
+    font-size: 1rem;
+    color: var(--primary-font);
     font-weight: 400;
 }
 
@@ -73,7 +77,6 @@
     margin-bottom: 3rem;
     background-color: white;
     color: #18181b;/* ZINC 900*/;
-    font-family: Inter, sans-serif;
     letter-spacing: 1px;
     font-weight: 400;
     text-align: center;
@@ -95,29 +98,31 @@
 }
 
 .pdfButtonsIcon{
-    font-size: 2rem;
-    color: red;
+    font-size: 3rem;
+    color: var(--deco-font);
 }
 
 .pdfButtons button {
     width: 4rem;
-    font-size: 0.6rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
     padding: 6px;
     margin-top: 1rem;
     margin-right: 0.5rem;
     border-radius: 2px;
     letter-spacing: 1px;
-    background-color: white;
+    background-color: var(--secondary-btn);
     align-self: flex-end;
-    color: #27272a;
+    color: var(--primary-font);
+    font-family: var(--secondary-font-family);
     border: none;
     cursor: pointer;
+    box-shadow: 0.5px 0.5px 1px 0.5px;
 }
 
 .pdfButtons button:hover {
     opacity: 0.8;
-    box-shadow: 0.5px 0.5px 1px 0.5px;
+    box-shadow: 1px 1px 1.5px 1px;
 }
 
 .logout {
