@@ -142,6 +142,7 @@ function PdfCanvas() {
     alignElement: handleAlignElements,
     deleteElement: handleDeleteElement,
     setA4_Elements: setA4_Elements,
+    setA4_Elements_deleted: setA4_Elements_deleted,
     progressValue: value,
     setValue: setValue,
     isVisibleModal: isVisible,

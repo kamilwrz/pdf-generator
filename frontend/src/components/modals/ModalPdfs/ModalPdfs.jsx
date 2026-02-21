@@ -21,7 +21,7 @@ export default function ModalPdfs({title}) {
     const [PDFs, setPDFs] = useState([]);
     const [error, setError] = useState(false);
 
-    const { isVisibleModal, setIsVisibleModal, setA4_Elements, handlePdfId, clearA4 } = use(PdfContext);
+    const { isVisibleModal, setIsVisibleModal, setA4_Elements, handlePdfId, clearA4, setA4_Elements_deleted } = use(PdfContext);
 
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
 
@@ -50,6 +50,8 @@ export default function ModalPdfs({title}) {
                 setIsVisibleModal(false);
             }).catch((error) => {
                 setError(error);
+            }).finally(() => {
+                setA4_Elements_deleted([]);
             })
     }
 
