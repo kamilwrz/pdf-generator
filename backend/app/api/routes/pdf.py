@@ -174,7 +174,7 @@ async def update_user_pdf(
     existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
     update_pdf_elements(db, elements, existing_by_id, pdf_id)
 
-    pdf = PDF_Generator(pdf_data, canvas.Canvas( str(user_upload_dir /new_file_path), pagesize=(595, 842)))
+    pdf = PDF_Generator(pdf_data, canvas.Canvas(new_file_path), pagesize=(595, 842))
     pdf.setTitle(pdf_row.title or "untitled")
 
     for element in elements:
