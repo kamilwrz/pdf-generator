@@ -2,13 +2,13 @@ import { useState, useCallback } from 'react';
 import { ApiClient } from "../services/api";
 import { ENDPOINTS } from "../services/api";
 
-export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements_deleted) {
+export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements_deleted, setA4_Elements_deleted) {
 
   const [responsePDF, setResponsePDF] = useState();
   const [isPdfLoading, setIsPdfLoading] = useState(false);
 
 
-  const createPdf = useCallback((A4_Elements, titleRef, setA4_Elements_deleted) => {
+  const createPdf = useCallback((A4_Elements, titleRef) => {
 
     setIsPdfLoading(true);
 
@@ -26,7 +26,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   }, [handlePdfId, handleShowModal, titleRef]);
 
   
-  const updatePdf = useCallback((A4_Elements, PDF_ID, titleRef, A4_Elements_deleted, setA4_Elements_deleted) => {
+  const updatePdf = useCallback((A4_Elements, PDF_ID, titleRef, A4_Elements_deleted) => {
     
     setIsPdfLoading(true);
 

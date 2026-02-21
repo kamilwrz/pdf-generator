@@ -61,7 +61,7 @@ function PdfCanvas() {
 
  
 
-  const { createPdf, updatePdf, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, handleShowModalRequest, titleRef);
+  const { createPdf, updatePdf, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, handleShowModalRequest, titleRef, setA4_Elements_deleted);
 
   function handleShowModalRequest() {
     setModalRequestStatus(bool => !bool);
@@ -115,11 +115,11 @@ function PdfCanvas() {
 
   const createPdfWithElements = useCallback(() => {
     createPdf(A4_Elements, titleRef);
-  }, [A4_Elements, createPdf, titleRef, setA4_Elements_deleted]);
+  }, [A4_Elements, createPdf, titleRef]);
 
   const updatePdfWithElements = useCallback(() => {
-    updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted, setA4_Elements_deleted);
-  }, [A4_Elements, pdfId, updatePdf, titleRef, A4_Elements_deleted, setA4_Elements_deleted]);
+    updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted);
+  }, [A4_Elements, pdfId, updatePdf, titleRef, A4_Elements_deleted]);
 
   function handlePdfId(pdfId) {
     setPdfId(pdfId)
