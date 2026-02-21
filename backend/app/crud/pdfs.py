@@ -86,7 +86,7 @@ def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_i
             )
             db.add(pdf_elements)
 
-        if element.element_id in existing_elements and element.deleted == True:
+        elif element.element_id in existing_elements and element.deleted == True:
             db.query(PdfElements).filter(PdfElements.element_id == element.element_id).delete()
             db.flush()
 
