@@ -177,11 +177,11 @@ async def update_user_pdf(
 
     for element in elements:
         category = element.category
-        if category == "text":
+        if category == "text" and element.deleted != True:
             pdf.renderText(element.left, element.top, element.fontFamily, element.fontSize, element.color, element.content)
-        if category == "line":
+        if category == "line" and element.deleted != True:
             pdf.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
-        if category == "image":
+        if category == "image" and element.deleted != True:
             src = image_src_to_local_path(element.src or "")
             pdf.renderImage(src, float(element.width), float(element.height), element.left, element.top)
 
