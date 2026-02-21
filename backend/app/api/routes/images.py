@@ -47,13 +47,16 @@ async def create_upload_image(
     else:
         #UPLOAD TO DIRECOTY WITH UNIQUE USERNAME
         user_upload_dir = IMAGES_UPLOAD_DIR / username
+        #mkdir if not exist
         user_upload_dir.mkdir(parents=True, exist_ok=True)
+        #the oath
         file_path_str = str(user_upload_dir / file.filename)
+        #read and write (create) the file
         data = await file.read()
         with open(file_path, "wb") as f:
             f.write(data)
         file_path = file_path_str
-
+    #insert record to DB
     create_image(db=db, image=file, owner_id=db_user.id, file_path=file_path)
     return {"message": "Image upload was successfull!"}
 
