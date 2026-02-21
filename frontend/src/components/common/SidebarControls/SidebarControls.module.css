@@ -9,12 +9,17 @@
 }
 
 .controls label{
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     color: rgb(156 163 175); /* GRAY 400*/
     text-transform: uppercase;
     letter-spacing: 1px;
     font-weight: 500;
     font-family: Inter, sans-serif;
+}
+
+.controls button{
+    padding: 4px;
+    background-color: white;
 }
 
 .icons{
@@ -25,8 +30,10 @@
     cursor: pointer;
     border-radius: 2px;
     border: none;
+    font-size: 1rem;
 }
 
 .icons:hover{
-    opacity: 0.8;
+    box-shadow: 0.5px 0.5px 1px 0.5px;
+    border-radius: 4px;
 }

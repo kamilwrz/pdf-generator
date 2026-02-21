@@ -48,17 +48,14 @@ export default function Sidebar({ children }) {
             <input type="text" name="title" id="title" value={title} onChange={setPdfTitle}/>
         </div>
 
-
-
         <SidebarControls icon={<FaRegImages/>} labelText="upload images" sidebarEvent={showDropzone}/>
         <SidebarControls icon={<LuImagePlus/>} labelText="gallery" sidebarEvent={showGallery}/>
         <SidebarControls icon={<CiText/>} labelText="add text" sidebarEvent={addText}/>
         <SidebarControls icon={<TfiLayoutLineSolid/>} labelText="add line" sidebarEvent={addLine}/>
-        <SidebarControls icon={<BsFileEarmarkPdf/>} labelText="show pds's" sidebarEvent={showModalWithPDSs}/>
+        <SidebarControls icon={<BsFileEarmarkPdf/>} labelText="show pdf's" sidebarEvent={showModalWithPDSs}/>
         
-
-
         <section className={classes.pdfButtons}>
+            <div><BsFileEarmarkPdf/></div>
             <div>
                 <button onClick={createPdf} disabled={isPdfLoading}>CREATE</button>
                 <button onClick={updatePdf} disabled={isPdfLoading}>UPDATE</button>

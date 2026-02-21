@@ -1,6 +1,6 @@
-import classes from "./Controls.module.css";
+import classes from "./EditorControls.module.css";
 
-export default function Controls({ labelText, type, inputValue, onChangeFn, isSelect, isDisabled }) {
+export default function EditorControls({ labelText, type, inputValue, onChangeFn, isSelect, isDisabled }) {
     return <div className={classes.formControl}>
         <label>{labelText}</label>
         {isSelect

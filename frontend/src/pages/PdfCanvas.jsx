@@ -16,7 +16,7 @@ import { ENDPOINTS } from '../services/api';
 import Spinner from '../components/common/Spinner/Spinner';
 import { AnimatePresence } from "framer-motion";
 
-function PdfGenerator() {
+function PdfCanvas() {
 
   const navigate = useNavigate();
 
@@ -191,4 +191,4 @@ function PdfGenerator() {
   )
 }
 
-export default PdfGenerator;
+export default PdfCanvas;

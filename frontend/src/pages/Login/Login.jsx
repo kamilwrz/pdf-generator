@@ -29,7 +29,7 @@ export default function Login() {
             setIsLoading(true);
             localStorage.setItem("token", data.access_token);
             setTimeout(() => {
-                navigate("/pdfgenerator");
+                navigate("/pdfcanvas");
                 setIsLoading(false);
             }, 2000)
         }).

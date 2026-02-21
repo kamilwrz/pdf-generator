@@ -2,11 +2,9 @@
     box-sizing: border-box;
  }
 
-
-
  body {
     margin: 0;
-    background-color: #e5e7eb;
+    background-color: #a1a1aa;
     overflow-x: hidden;
  }
 
@@ -39,4 +37,20 @@
  @font-face {
     font-family: Times-Roman;
     src: url("../public/fonts/OPTITimes-Roman.otf");
+ }
+
+
+ /* Extra small devices (phones, 600px and down) */
+ @media only screen and (max-width: 600px) {
+
+    .main-container {
+       flex-direction: column;
+    }
+
+    #A4{
+      height: 421px !important;
+      width: 297.5px !important;
+      margin: 0;
+    }
+
  }
