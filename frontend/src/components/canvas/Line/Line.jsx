@@ -50,7 +50,7 @@ function Line({
 
                 <div
                     onDoubleClick={() => selectElement(elementId)}
-                    onMouseMove={(e) => moveElement(e, elementId, category)}
+                    onMouseMove={(e) => moveElement(e, elementId)}
                     onMouseDown={() => selectMoveElement(elementId)}
                     onMouseUp={() => selectMoveElement(elementId)}
                     className={isSelected ? classes.selectedElement : ""}
