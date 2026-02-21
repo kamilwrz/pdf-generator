@@ -82,6 +82,7 @@ def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_i
               src=element.src,
               backgroundColor=element.backgroundColor,
               img_id=element.img_id,
+              deleted=element.deleted,
               extra_properties={"zIndex": element.zIndex, "isSelected": element.isSelected, "isMove": element.isMove},
             )
             db.add(pdf_elements)
