@@ -17,7 +17,7 @@ const thumb = {
     marginRight: "auto",
     marginLeft: "auto",
     width: "100%",
-    height: 200,
+    height: 100,
     padding: 4,
     justifyContent: "center"
 };
@@ -97,7 +97,7 @@ export default function Dropzone() {
         accept: {
             'image/*': []
         },
-        maxFiles: 1,
+        maxFiles: 2,
         onDrop
     });
 
@@ -123,7 +123,7 @@ export default function Dropzone() {
         <section className={classes.DZcontainer}>
             <div {...getRootProps({ className: 'dropzone' })}>
                 <input {...getInputProps()} />
-                <p className={classes.fileInput}>Drop the image here</p>
+                <p className={classes.fileInput}>Drop the images here... (max. 2 files)</p>
             </div>
             {isDropzone &&
                 <><aside>

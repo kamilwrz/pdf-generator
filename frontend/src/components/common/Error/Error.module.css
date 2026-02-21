@@ -1,14 +1,17 @@
 .error{
     width: 60%;
-    margin: 0 auto;
+    margin: 40px auto;
     text-align: center;
     background-color: white;
     box-shadow: 1px 1px 2px 1px;
+    font-family: Inter, sans-serif;
+    border-radius: 4px;
 }
 
 .error h2{
     margin: 0;
     padding-top: 0.5rem;
+    font-weight: 500;
 }
 
 .error p{

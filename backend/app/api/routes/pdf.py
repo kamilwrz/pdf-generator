@@ -161,7 +161,7 @@ async def update_user_pdf(
     username = payload.get("sub")
     db_user = get_user_by_username(db, username=username)
 
-    user_upload_dir = PDF_UPLOAD_DIR / username
+    user_upload_dir = PDF_UPLOAD_DIR / db_user.username
     user_upload_dir.mkdir(parents=True, exist_ok=True)
     
     pdf_row = request_pdf_by_id(db, pdf_id)
@@ -174,7 +174,7 @@ async def update_user_pdf(
     existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
     update_pdf_elements(db, elements, existing_by_id, pdf_id)
 
-    pdf = PDF_Generator(pdf_data, canvas.Canvas(new_file_path, pagesize=(595, 842)))
+    pdf = PDF_Generator(pdf_data, canvas.Canvas( str(user_upload_dir /new_file_path), pagesize=(595, 842)))
     pdf.setTitle(pdf_row.title or "untitled")
 
     for element in elements:
