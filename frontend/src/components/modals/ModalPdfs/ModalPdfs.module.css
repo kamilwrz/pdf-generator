@@ -19,6 +19,7 @@
     background-color: #fafafa; /*ZINC 50*/
     padding: 2rem;
     overflow-y: scroll;
+    border-radius: 6px;
 }
 
 .modalPdfs>h2{

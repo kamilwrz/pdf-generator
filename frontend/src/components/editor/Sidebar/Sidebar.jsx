@@ -8,7 +8,7 @@ import { AiOutlineLogout } from "react-icons/ai";
 import { BsFileEarmarkPdf } from "react-icons/bs";
 import logo from "../../../../public/images/logo.png";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { forwardRef, use, useState} from "react";
+import { forwardRef, use, useState } from "react";
 
 
 export default forwardRef(function Sidebar({ children }, ref) {
@@ -33,24 +33,25 @@ export default forwardRef(function Sidebar({ children }, ref) {
 
 
     return <aside className={classes.sidebar}>
-        <div className={classes.logoWrapper}>
-            <img src={logo} alt="Logo PDF Canvas" />
+
+        <img src={logo} alt="Logo PDF Canvas" className={classes.logo}/>
+        <div className={classes.headingWrapper}>
             <h1><span>pdf</span> canvas</h1>
         </div>
 
         <div className={classes.controlTitle}>
             <label htmlFor="title">pdf title:</label>
-            <textarea type="text" name="title" id="title" ref={ref} placeholder="Please enter the title of the PDF"/>
+            <textarea type="text" name="title" id="title" ref={ref} placeholder="Please enter the title of the PDF" />
         </div>
 
-        <SidebarControls icon={<FaRegImages/>} labelText="upload images" sidebarEvent={showDropzone}/>
-        <SidebarControls icon={<LuImagePlus/>} labelText="gallery" sidebarEvent={showGallery}/>
-        <SidebarControls icon={<CiText/>} labelText="add text" sidebarEvent={addText}/>
-        <SidebarControls icon={<TfiLayoutLineSolid/>} labelText="add line" sidebarEvent={addLine}/>
-        <SidebarControls icon={<BsFileEarmarkPdf/>} labelText="show pdf's" sidebarEvent={showModalWithPDFs}/>
-        
+        <SidebarControls icon={<FaRegImages />} labelText="upload images" sidebarEvent={showDropzone} />
+        <SidebarControls icon={<LuImagePlus />} labelText="gallery" sidebarEvent={showGallery} />
+        <SidebarControls icon={<CiText />} labelText="add text" sidebarEvent={addText} />
+        <SidebarControls icon={<TfiLayoutLineSolid />} labelText="add line" sidebarEvent={addLine} />
+        <SidebarControls icon={<BsFileEarmarkPdf />} labelText="show pdf's" sidebarEvent={showModalWithPDFs} />
+
         <section className={classes.pdfButtons}>
-            <div className={classes.pdfButtonsIcon}><BsFileEarmarkPdf/></div>
+            <div className={classes.pdfButtonsIcon}><BsFileEarmarkPdf /></div>
             <div>
                 <button onClick={createPdf} disabled={isPdfLoading}>CREATE</button>
                 <button onClick={updatePdf} disabled={isPdfLoading}>UPDATE</button>
