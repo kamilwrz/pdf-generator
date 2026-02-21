@@ -165,6 +165,8 @@ async def update_user_pdf(
     user_upload_dir.mkdir(parents=True, exist_ok=True)
     
     pdf_row = request_pdf_by_id(db, pdf_id)
+
+    print(pdf_row.file_path, "FILE PATH PDF ROW")
     
     new_file_path = rename_pdf_file(pdf_row, title)
     db.add(pdf_row)
