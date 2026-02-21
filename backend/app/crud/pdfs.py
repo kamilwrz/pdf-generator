@@ -62,6 +62,9 @@ def request_pdf_elements_by_element_id(db:Session, pdf_id:int):
 
 def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_id:int):
 
+    print(elements)
+    print(existing_elements)
+
     for element in elements:
         if element.element_id not in existing_elements:
             pdf_elements = PdfElements(

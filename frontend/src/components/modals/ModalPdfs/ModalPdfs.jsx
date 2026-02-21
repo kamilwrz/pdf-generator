@@ -21,7 +21,7 @@ export default function ModalPdfs({title}) {
     const [PDFs, setPDFs] = useState([]);
     const [error, setError] = useState(false);
 
-    const { isVisibleModal, setIsVisibleModal, setA4_Elements, handlePdfId, clearA4modalDelete } = use(PdfContext);
+    const { isVisibleModal, setIsVisibleModal, setA4_Elements, handlePdfId, clearA4 } = use(PdfContext);
 
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
 
@@ -39,7 +39,12 @@ export default function ModalPdfs({title}) {
         api.httpRequest(ENDPOINTS.PDF.SHOW, "POST", JSON.stringify(id), "Failed to show choosen PDF!").
             then((data) => {
                 const elementsData = data.map((element) => {
-                    return { ...element, "zIndex": element.extra_properties.zIndex }
+                    if(element.category !== "text"){
+                        return { ...element, "zIndex": element.extra_properties.zIndex, width: parseFloat(element.width), height: parseFloat(element.height) }
+                    }else{
+                        return { ...element, "zIndex": element.extra_properties.zIndex}
+                    }
+                    
                 });
                 setA4_Elements(elementsData.filter(element => element.category !== "title"));
                 setIsVisibleModal(false);
@@ -49,8 +54,8 @@ export default function ModalPdfs({title}) {
     }
 
     async function deltePDF(id) {
-        clearA4modalDelete(id);
-        
+        clearA4();
+             
         api.httpRequest(ENDPOINTS.PDF.DELETE, "DELETE", JSON.stringify(id), "Failed to delete the PDF!").
             then((data) => {
                 console.log(data);

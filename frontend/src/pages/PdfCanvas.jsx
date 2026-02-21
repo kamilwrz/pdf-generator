@@ -41,7 +41,10 @@ function PdfCanvas() {
 
 
   const {
-    A4_ELEMENTS,
+    A4_Elements,
+    setA4_Elements,
+    A4_Elements_deleted,
+    setA4_Elements_deleted,
     handleMoveElement,
     handleSelectMoveElement,
     handleAddImage,
@@ -51,12 +54,12 @@ function PdfCanvas() {
     handleDeleteElement,
     handleAlignElements,
     handleEditElementValues,
-    setA4_Elements,
     A4ref,
     handleResizeElement,
-    handleClearA4modalDelete,
     handleClearA4
   } = useA4Elements(titleRef)
+
+ 
 
   const { createPdf, updatePdf, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, handleShowModalRequest, titleRef);
 
@@ -111,19 +114,19 @@ function PdfCanvas() {
 
 
   const createPdfWithElements = useCallback(() => {
-    createPdf(A4_ELEMENTS, titleRef);
-  }, [A4_ELEMENTS, createPdf, titleRef]);
+    createPdf(A4_Elements, titleRef);
+  }, [A4_Elements, createPdf, titleRef]);
 
   const updatePdfWithElements = useCallback(() => {
-    updatePdf(A4_ELEMENTS, pdfId, titleRef);
-  }, [A4_ELEMENTS, pdfId, updatePdf, titleRef]);
+    updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted);
+  }, [A4_Elements, pdfId, updatePdf, titleRef, A4_Elements_deleted]);
 
   function handlePdfId(pdfId) {
     setPdfId(pdfId)
   }
 
   const ctxValue = useMemo(() => ({
-    A4_Elements: A4_ELEMENTS,
+    A4_Elements: A4_Elements,
     addImage: handleAddImage,
     addText: handleAddText,
     addLine: handleAddLine,
@@ -146,13 +149,12 @@ function PdfCanvas() {
     resizeElement: handleResizeElement,
     updatePdf: updatePdfWithElements,
     handlePdfId: handlePdfId,
-    clearA4modalDelete: handleClearA4modalDelete,
     clearA4: handleClearA4,
     showModalRequest: handleShowModalRequest,
     logout: handleLogout,
     isPdfLoading: isPdfLoading,
   }), [
-    A4_ELEMENTS,
+    A4_Elements,
     isGallery, isDropzone, value,
     isVisible, handleAddImage,
     handleAddText, handleAddLine, handleSelectElement,
@@ -160,11 +162,12 @@ function PdfCanvas() {
     handleShowDropzone, handleShowGallery, handleEditElementValues,
     handleAlignElements, handleDeleteElement, setA4_Elements,
     setValue, , setIsVisible, handleResizeElement, 
-    updatePdfWithElements, handlePdfId, handleClearA4modalDelete, 
+    updatePdfWithElements, handlePdfId, 
     handleClearA4, handleShowModalRequest, handleLogout
   ])
 
-  console.log(titleRef);
+  console.log(A4_Elements);
+  console.log(A4_Elements_deleted);
 
 
   return (
@@ -180,7 +183,7 @@ function PdfCanvas() {
         </Sidebar>
         <A4 width="595px" height="842px" ref={A4ref}>
           {isPdfLoading && <Spinner loading={isPdfLoading}/>}
-          <CanvasElements elements={A4_ELEMENTS} />
+          <CanvasElements elements={A4_Elements} />
         </A4>
         <AnimatePresence> {isGallery && <Gallery />} </AnimatePresence>
       </PdfContext.Provider>

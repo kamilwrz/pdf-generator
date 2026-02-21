@@ -3,15 +3,14 @@ import { nanoid } from 'nanoid';
 
 export function useA4Elements(titleRef) {
 
-  
-
   const A4ref = useRef(null);
 
-  const [A4_ELEMENTS, setA4_Elements] = useState([]);
+  const [A4_Elements, setA4_Elements] = useState([]);
+  const [A4_Elements_deleted, setA4_Elements_deleted] = useState([]);
 
   useEffect(() => {
     changeWidthHeightInState()
-  }, [A4_ELEMENTS?.length ?? 0])
+  }, [A4_Elements?.length ?? 0])
 
   function changeWidthHeightInState() {
     if (!A4ref.current) return;
@@ -141,13 +140,19 @@ export function useA4Elements(titleRef) {
     });
   }, [])
 
-
+  ///??? 
   const handleDeleteElement = useCallback((elementId) => {
     setA4_Elements(prevState => {
-      const newState = prevState.filter(element => element.element_id !== elementId)
-      return newState;
-    })
-  }, [])
+      const deletedElement = prevState.find(el => el.element_id === elementId);
+      if (deletedElement) {
+        setA4_Elements_deleted(prev =>
+          prev.some(e => e.element_id === elementId && e.pdf_id !== undefined) 
+          ? prev : [...prev, { ...deletedElement, deleted: true }]
+        );
+      }
+      return prevState.filter(element => element.element_id !== elementId);
+    });
+  }, []);
 
   const handleEditElementValues = useCallback((dataObject, id) => {
     setA4_Elements(prevState => {
@@ -358,13 +363,6 @@ export function useA4Elements(titleRef) {
     })
   }, [])
 
-  const handleClearA4modalDelete = useCallback((id) => {
-    setA4_Elements(prevState => {
-      const filtered = prevState.filter((element) => element.pdf_id !== id);
-      return filtered;
-    });
-  }, []);
-
   const handleClearA4 = useCallback(() => {
       setA4_Elements([]);
       titleRef.current.value = "";
@@ -372,8 +370,10 @@ export function useA4Elements(titleRef) {
 
 
   return {
-    A4_ELEMENTS,
+    A4_Elements,
     setA4_Elements,
+    A4_Elements_deleted,
+    setA4_Elements_deleted,
     handleMoveElement,
     handleSelectMoveElement,
     handleSelectElement,
@@ -387,7 +387,6 @@ export function useA4Elements(titleRef) {
     A4ref,
     PDFTitle,
     handleResizeElement,
-    handleClearA4modalDelete,
     handleClearA4
   };
 
