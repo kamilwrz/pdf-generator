@@ -1,12 +1,13 @@
 import './App.css';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import ProtectedRoute from "./ProtectedRoute";
 import PdfCanvas from './pages/PdfCanvas';
 import Login from './pages/Login/Login';
 import Register from './pages/Register/Register';
 import Hero from './pages/Hero/Hero';
 
 const router = createBrowserRouter([
-  { path: "/pdfcanvas", element: <PdfCanvas /> },
+  { path: "/pdfcanvas", element: <ProtectedRoute><PdfCanvas /></ProtectedRoute> },
   { path: "/register", element: <Register /> },
   { path: "/login", element: <Login /> },
   { path: "/", element: <Hero /> },
