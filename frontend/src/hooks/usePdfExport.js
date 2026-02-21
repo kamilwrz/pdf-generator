@@ -21,7 +21,6 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     catch((error) => setResponsePDF(error)).finally(() => { 
       handleShowModal();
       setIsPdfLoading(false);
-    }).finally(() => {
       setA4_Elements_deleted([]);
     })
 

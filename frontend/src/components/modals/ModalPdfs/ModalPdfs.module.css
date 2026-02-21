@@ -77,10 +77,8 @@
 }
 
 .modalControls button{
-    width: 3rem;
+    width: 4rem;
     margin-right: 4px;
-    background-color: #52525b; /* ZINC 600*/
-    color: white;
     border-radius: 4px;
 }
 

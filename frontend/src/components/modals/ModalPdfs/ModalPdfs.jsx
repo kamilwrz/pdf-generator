@@ -89,9 +89,9 @@ export default function ModalPdfs({title}) {
                     <BsFileEarmarkPdf className={classes.pdfIcon} />
                     <h2>{PDF.title.split(".")[0]}</h2>
                     <div className={classes.modalControls}>
-                        <button><a href={`${API_BASE_URL}/${PDF.file_path}`}><IoMdDownload /></a></button>
-                        <button onClick={() => deltePDF(PDF.id)}><MdDelete /></button>
-                        <button onClick={() => showPDF(PDF.id)}><GrView /></button>
+                        <button className={classes.downloadPdf}><a href={`${API_BASE_URL}/${PDF.file_path}`}><IoMdDownload /></a></button>
+                        <button className={classes.deletePdf} onClick={() => deltePDF(PDF.id)}><MdDelete /></button>
+                        <button className={classes.showPdf} onClick={() => showPDF(PDF.id)}><GrView /></button>
                     </div>
                     <p>{date}</p>
                 </li>;
