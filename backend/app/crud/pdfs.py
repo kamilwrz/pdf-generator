@@ -48,8 +48,8 @@ def request_pdfs_by_id(db:Session, user_id:int):
     return db.query(Pdf).filter(Pdf.owner_id==user_id).all()
 
 def delete_pdf_by_id(db:Session, pdf_id:int):
-    db.query(Pdf).filter(Pdf.id==pdf_id).delete()
-    db.query(PdfElements).filter(PdfElements.pdf_id==pdf_id).delete()
+    db.query(PdfElements).filter(PdfElements.pdf_id == pdf_id).delete()
+    db.query(Pdf).filter(Pdf.id == pdf_id).delete()
     db.commit()
 
 def request_pdf_by_id_show(db:Session, pdf_id: int):

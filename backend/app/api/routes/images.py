@@ -89,7 +89,6 @@ async def delete_user_image(
         raise HTTPException(status_code=404, detail="Image not found.")
     pdf_element = db.query(PdfElements).filter(PdfElements.img_id==img_id).first()
     if pdf_element is not None:
-        pdf = db.query(Image).filter(Image.id == pdf_element.pdf_id).first()
         pdf_row = db.query(Pdf).filter(Pdf.id == pdf_element.pdf_id).first()
         return {
             "message": f"Image is used in a created PDF. Please delete the PDF - {pdf_row.title} first (created at: {pdf_row.created_at}) to delete the image."
