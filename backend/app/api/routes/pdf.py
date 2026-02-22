@@ -14,9 +14,10 @@ from os import listdir
 from os.path import isfile, join
 import io, os, tempfile
 
-from app.crud.pdfs import (create_new_pdf,request_pdf_by_id,delete_pdf_by_id, request_pdf_by_id_show, 
-                           request_pdf_elements_by_element_id,
-                           update_pdf_elements, request_pdfs_by_id)
+from app.crud.pdfs import (
+    create_new_pdf,request_pdf_by_id,delete_pdf_by_id, request_pdf_by_id_show, 
+    request_pdf_elements_by_element_id, update_pdf_elements, request_pdfs_by_id
+    )
 
 from app.utils.delete_pdf_file import delete_pdf_file
 from app.utils.rename_pdf_file import rename_pdf_file
