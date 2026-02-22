@@ -9,6 +9,7 @@ from app.core.security import create_access_token, verify_token
 import os
 from dotenv import load_dotenv
 from datetime import timedelta
+from app.dependencies import get_db
 
 load_dotenv(override=True)
 
@@ -19,12 +20,6 @@ router = APIRouter(
     tags=["auth"]
 );
 
-def get_db():
-    db = SessionLocal()  
-    try:
-        yield db  
-    finally:
-        db.close()  
 
 @router.post("/register")
 async def register_user(user:UserCreateRequest, db: Session = Depends(get_db)):

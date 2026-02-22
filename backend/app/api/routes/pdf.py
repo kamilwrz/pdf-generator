@@ -9,6 +9,7 @@ from urllib.parse import unquote, urlparse
 from app.core.security import verify_token
 from app.crud.user import get_user_by_username
 from app.schemas.pdf_schema import PDFCreateRequest, PDFUpdateRequest
+from app.dependencies import get_db
 
 from os import listdir
 from os.path import isfile, join
@@ -72,13 +73,6 @@ router = APIRouter(
     prefix="/pdf",
     tags=["pdf"]
 )
-
-def get_db():
-    db = SessionLocal()  
-    try:
-        yield db  
-    finally:
-        db.close()  
 
 @router.post("/create_pdf")
 async def create_user_pdf(

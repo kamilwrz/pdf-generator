@@ -7,6 +7,7 @@ from app.core.security import verify_token
 from app.crud.user import get_user_by_username
 from app.crud.images import create_image, request_image_by_id, request_images_by_user_id
 from app.models.models import Image, Pdf, PdfElements
+from app.dependencies import get_db
 import os
 
 if USE_S3:
@@ -17,12 +18,6 @@ router = APIRouter(
     tags=["images"]
 )
 
-def get_db():
-    db = SessionLocal()  
-    try:
-        yield db  
-    finally:
-        db.close()  
 
 
 @router.post("/upload_image")
