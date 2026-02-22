@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, HTTPException, Body
 from sqlalchemy.orm import Session
 from starlette import status
-from app.models.database import SessionLocal
 from app.core.config import IMAGES_UPLOAD_DIR, USE_S3
 from app.core.security import verify_token
 from app.crud.user import get_user_by_username

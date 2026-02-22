@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
-from app.models.database import SessionLocal
 from app.schemas.user_schema import UserCreateRequest
 from app.crud.user import get_user_by_username, create_user, authenticate_user
 from fastapi.security import OAuth2PasswordRequestForm

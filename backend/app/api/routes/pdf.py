@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Body, Depends, HTTPException
 from starlette import status
-from app.models.database import SessionLocal
 from sqlalchemy.orm import Session
 from app.services.pdf_generator import PDF_Generator
 from reportlab.pdfgen import canvas
@@ -22,8 +21,7 @@ from app.crud.pdfs import (create_new_pdf,request_pdf_by_id,delete_pdf_by_id, re
 from app.utils.delete_pdf_file import delete_pdf_file
 from app.utils.rename_pdf_file import rename_pdf_file
 
-from app.core.config import S3_BUCKET, AWS_REGION, USE_S3
-
+from app.core.config import USE_S3
 
 if USE_S3:
     from app.services import s3_storage
