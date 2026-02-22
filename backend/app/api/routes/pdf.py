@@ -192,9 +192,17 @@ async def delete_user_pdf(
         raise HTTPException(status_code=404, detail='PDF not found.')
     
     delete_pdf_by_id(db, pdf_id)
-    delete_pdf_file(pdf_to_delete.file_path)
-
+    if USE_S3:
+        key = s3_storage.key_from_file_path(pdf_to_delete.file_path)
+        if key:
+            try:
+                s3_storage.delete_object(key)
+            except Exception:
+                pass
+    else:
+        delete_pdf_file(pdf_to_delete.file_path)
     return {"message": "PDF deleted", "name": pdf_to_delete.title, "id": pdf_to_delete.id}
+
 
 
 @router.put("/update_pdf", status_code=status.HTTP_201_CREATED)
