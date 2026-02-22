@@ -12,16 +12,30 @@ from app.schemas.pdf_schema import PDFCreateRequest, PDFUpdateRequest
 
 from os import listdir
 from os.path import isfile, join
+import io, os, tempfile
 
-from app.crud.pdfs import create_new_pdf,request_pdf_by_id,delete_pdf_by_id, request_pdf_by_id_show, request_pdf_elements_by_element_id, update_pdf_elements, request_pdfs_by_id
+from app.crud.pdfs import (create_new_pdf,request_pdf_by_id,delete_pdf_by_id, request_pdf_by_id_show, 
+                           request_pdf_elements_by_element_id,
+                           update_pdf_elements, request_pdfs_by_id)
+
 from app.utils.delete_pdf_file import delete_pdf_file
 from app.utils.rename_pdf_file import rename_pdf_file
 
+from app.core.config import S3_BUCKET, AWS_REGION, USE_S3
+
+
+if USE_S3:
+    from app.services import s3_storage
+
+
+REPORTLAB_IMAGES_TEMP = os.path.join(tempfile.gettempdir(), "pdf_generator_images")
 
 def image_src_to_local_path(src: str) -> str:
-    """Convert image src (URL or path) to a local absolute file path for ReportLab."""
+    """Convert image src (URL or path) to a path ReportLab can use. For S3, download to temp."""
     if not src:
         return src
+    if USE_S3 and src.startswith("https://") and ".amazonaws.com/" in src:
+        return s3_storage.image_src_to_path_for_reportlab(src, REPORTLAB_IMAGES_TEMP)
     if src.startswith(("http://", "https://")):
         parsed = urlparse(src)
         path = parsed.path.lstrip("/").replace("\\", "/")
@@ -36,6 +50,23 @@ def image_src_to_local_path(src: str) -> str:
         local = (IMAGES_UPLOAD_DIR / decoded).resolve()
         return str(local)
     return src
+
+def _build_pdf_to_buffer(pdf_data, elements, image_src_resolver):
+    """Build PDF into an in-memory buffer. image_src_resolver(src) returns path for ReportLab."""
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=(595, 842))
+    pdf = PDF_Generator(pdf_data, c)
+    pdf.setTitle(pdf_data.pdf_title if hasattr(pdf_data, 'pdf_title') else "untitled")
+    for element in elements:
+        if element.category == "text":
+            pdf.renderText(element.left, element.top, element.fontFamily, element.fontSize, element.color, element.content)
+        elif element.category == "line":
+            pdf.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
+        elif element.category == "image":
+            path = image_src_resolver(element.src or "")
+            pdf.renderImage(path, float(element.width), float(element.height), element.left, element.top)
+    pdf.generatePDF()
+    return buffer.getvalue()
 
 router = APIRouter(
     prefix="/pdf",
@@ -65,35 +96,53 @@ async def create_user_pdf(
     username = payload.get("sub")
     db_user = get_user_by_username(db, username=username)
 
-    user_upload_dir = PDF_UPLOAD_DIR / username
-    user_upload_dir.mkdir(parents=True, exist_ok=True)
+    if USE_S3:
+        key = f"pdfs/{username}/{title}"
+        try:
+            paginator = s3_storage.get_client().get_paginator("list_objects_v2")
+            for page in paginator.paginate(Bucket=s3_storage.S3_BUCKET, Prefix=f"pdfs/{username}/"):
+                for obj in page.get("Contents", []):
+                    if obj["Key"] == key:
+                        raise HTTPException(status_code=400, detail="File name already exists!")
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+        pdf_bytes = _build_pdf_to_buffer(pdf_data, elements, image_src_to_local_path)
+        file_path = s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
+        pdf_id = create_new_pdf(db, title, db_user.id, file_path, elements)
+        return {"message": "PDF created!", "link": file_path, "pdf_id": pdf_id}
     
-    files_in_user_folder = [f for f in listdir(user_upload_dir) if isfile(join(user_upload_dir, f))]
-    if title in files_in_user_folder:
-        raise HTTPException(status_code=400, detail="File name already exists!")
-
-    pdf_path = user_upload_dir / title
-
-    pdf_id = create_new_pdf(db, title, db_user.id, pdf_path.as_posix(), elements)
-
-    pdf = PDF_Generator(pdf_data, canvas.Canvas(str(user_upload_dir / title), pagesize=(595, 842)))
-    pdf.setTitle(title)
+    else:
+        user_upload_dir = PDF_UPLOAD_DIR / username
+        user_upload_dir.mkdir(parents=True, exist_ok=True)
     
-    for element in elements:
-        category = element.category
+        files_in_user_folder = [f for f in listdir(user_upload_dir) if isfile(join(user_upload_dir, f))]
+        if title in files_in_user_folder:
+            raise HTTPException(status_code=400, detail="File name already exists!")
+
+        pdf_path = user_upload_dir / title
+
+        pdf_id = create_new_pdf(db, title, db_user.id, pdf_path.as_posix(), elements)
+
+        pdf = PDF_Generator(pdf_data, canvas.Canvas(str(user_upload_dir / title), pagesize=(595, 842)))
+        pdf.setTitle(title)
+    
+        for element in elements:
+            category = element.category
         
-        if category == "text":
-            pdf.renderText(element.left, element.top, element.fontFamily, element.fontSize, element.color, element.content)
-        if category == "line":
-            pdf.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
-        if category == "image":
-            src = image_src_to_local_path(element.src or "")
-            pdf.renderImage(src, float(element.width), float(element.height), element.left, element.top)
+            if category == "text":
+                pdf.renderText(element.left, element.top, element.fontFamily, element.fontSize, element.color, element.content)
+            if category == "line":
+                pdf.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
+            if category == "image":
+                src = image_src_to_local_path(element.src or "")
+                pdf.renderImage(src, float(element.width), float(element.height), element.left, element.top)
 
-    pdf.generatePDF()
+        pdf.generatePDF()
 
     
-    return {"message": "PDF created!", "link": f"https://pdf-generator-07cb.onrender.com/{pdf_path.as_posix()}", "pdf_id": pdf_id}
+        return {"message": "PDF created!", "link": f"https://pdf-generator-07cb.onrender.com/{pdf_path.as_posix()}", "pdf_id": pdf_id}
 
 
 @router.get("/fetch_pdfs", status_code=status.HTTP_200_OK)
