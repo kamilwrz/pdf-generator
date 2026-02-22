@@ -45,10 +45,11 @@ export default function Gallery() {
     }, [isGallery, isDropzone])
 
     const IMAGES = images.map((image) => {
-        // If file_path is already a full URL (S3), use it; otherwise use API base URL.
+        
         const imageUrl = image.file_path.startsWith("http")
             ? image.file_path
             : `${API_BASE_URL}/${image.file_path}`;
+
         return <GalleryItem url={imageUrl} key={image.id} img_id={image.id} imageUsed={handleImageUsedInPDF} />;
     })
 
@@ -56,7 +57,7 @@ export default function Gallery() {
         initial={{ opacity: 0, x: 640 }}
         animate={{ opacity: 1, x: 40 }}
         exit={{ opacity: 0, x: 640 }}
-        transition={{ type: "spring", duration: 4 }}>
+        transition={{ type: "spring", duration: 2 }}>
         {!error && IMAGES}
         {error ? <p className={classes.error}>{error.message}</p> : undefined}
     </motion.aside>

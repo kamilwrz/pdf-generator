@@ -10,7 +10,7 @@
 
 .controls label {
     font-size: 0.8rem;
-    color: #18181b;/* ZINC 900*/;;
+    color: var(--primary-font);
     text-transform: uppercase;
     letter-spacing: 1px;
     font-weight: 500;
@@ -28,7 +28,7 @@
     cursor: pointer;
     border-radius: 2px;
     border: none;
-    font-size: 1.4rem;
+    font-size: 1.1rem;
     font-weight: 700;
 }
 

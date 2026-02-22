@@ -2,6 +2,9 @@ import { useRef, useEffect, use, useState } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import classes from "./ModalPdfRequestStatus.module.css";
 import { createPortal } from "react-dom";
+import { IoMdClose } from "react-icons/io";
+import { FiDownload } from "react-icons/fi";
+
 
 
 function ModalPdfRequestStatus({ message, open }) {
@@ -24,11 +27,11 @@ function ModalPdfRequestStatus({ message, open }) {
         {/**SHOW ERROR MESSAGE */}
         {message?.message && <p>{message?.message}</p>}
         {/**SHOW SUCCESS MESSAGE / PDF CREATED */}
-        {message?.success && message?.link  && <><p>{message?.success}</p> <button className={classes.btnDownloadPDF}><a href={message?.link}>DOWNLOAD</a></button> </>}
+        {message?.success && message?.link  && <><p>{message?.success}</p> <button className={classes.btnDownloadPDF}><a href={message?.link}><FiDownload /></a></button> </>}
         {/**SHOW SUCCESS MESSAGE / PDF UPDATE */}
         {message?.success && !message?.link && <p>{message?.success}</p>}
         <form method="dialog">
-            <button onClick={showModalRequest}>close</button>
+            <button onClick={showModalRequest}><IoMdClose /></button>
         </form>
     </dialog>, document.getElementById("modal-request-status"))
 

@@ -5,11 +5,11 @@
     flex-direction: column;
     background-color: white;
     position: relative;
-    font-family: Inter, sans-serif;
     z-index: 1000;
-    box-shadow: 1px 1px 5px 1px #525252;
+    box-shadow: 1px 1px 5px 1px var(--primary-font);
     border-top-right-radius: 10px;
     font-family: var(--primary-font-family);
+    color: var(--primary-font);
 }
 
 .headingWrapper {
@@ -38,7 +38,6 @@
 
 .headingWrapper h1 {
     font-size: 1.2rem;
-    color: #18181b;/* ZINC 900*/;
     letter-spacing: 2px;
     text-transform: uppercase;
     margin: 0;
@@ -47,7 +46,7 @@
 }
 
 .headingWrapper span {
-    color: rgb(96 165 250);
+    color: var(--deco-font);
 }
 
 .controlTitle {
@@ -65,25 +64,23 @@
     align-self: center;
     margin-bottom: 0.5rem;
     font-size: 1rem;
-    color: var(--primary-font);
     font-weight: 400;
 }
 
-.controlTitle textarea {
+.controlTitle input {
     width: 100%;
     font-size: 0.9rem;
     padding: 6px;
     border: none;
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
     background-color: white;
-    color: #18181b;/* ZINC 900*/;
     letter-spacing: 1px;
     font-weight: 400;
     text-align: center;
     border-radius: 3px;
 }
 
-.controlTitle textarea:focus {
+.controlTitle input:focus {
     border: none;
     outline: none;
     border-bottom: 1px solid #27272a;
@@ -98,7 +95,7 @@
 }
 
 .pdfButtonsIcon{
-    font-size: 3rem;
+    font-size: 2rem;
     color: var(--deco-font);
 }
 
@@ -113,7 +110,6 @@
     letter-spacing: 1px;
     background-color: var(--secondary-btn);
     align-self: flex-end;
-    color: var(--primary-font);
     font-family: var(--secondary-font-family);
     border: none;
     cursor: pointer;
@@ -132,63 +128,4 @@
     background-color: inherit;
     border: none;
     cursor: pointer;
-}
-
-
-/* Extra small devices (phones, 600px and down) */
-@media only screen and (max-width: 600px) {
-
-    .sidebar {
-        min-height: 50px;
-        flex-direction: row;
-        width: 100vw;
-        flex-wrap: wrap;
-        padding: 0;
-        margin: 0;
-
-    }
-
-    .logoWrapper {
-        width: 6rem;
-        height: 2rem;
-        display: flex;
-        flex-direction: row;
-        justify-items: flex-start;
-        align-items: center;
-        align-self: flex-start;
-        background-color: white;
-        box-shadow: 1px 1px 3px 1px;
-        border-radius: 4px;
-        margin: 0;
-    }
-
-    .logoWrapper img {
-        width: 100%;
-        max-width: 2rem;
-        object-fit: contain;
-        z-index: 2;
-    }
-
-    .logoWrapper h1 {
-        font-size: 0.6rem;
-        color: #18181b;
-        /* ZINC 900*/
-        ;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        margin: 0;
-        font-weight: 600;
-    }
-
-    .controlTitle {
-        display: flex;
-        flex-direction: row;
-        justify-content: start;
-        align-items: center;
-        align-self: center;
-        width: 20%;
-        margin: 0;
-    }
-
-
 }

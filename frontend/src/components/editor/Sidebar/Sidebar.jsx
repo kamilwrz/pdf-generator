@@ -41,7 +41,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
 
         <div className={classes.controlTitle}>
             <label htmlFor="title">pdf title:</label>
-            <textarea type="text" name="title" id="title" ref={ref} placeholder="Please enter the title of the PDF" />
+            <input type="text" name="title" id="title" ref={ref} placeholder="Please enter PDF title..." />
         </div>
 
         <SidebarControls icon={<FaRegImages />} labelText="upload images" sidebarEvent={showDropzone} />

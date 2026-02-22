@@ -57,8 +57,8 @@ export default function Editor() {
     return <AnimatePresence>{someElementSelected && <motion.aside className={classes.editor}
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 90 }}
-        exit={{ opacity: 0, x: -200}}
-        transition={{ type: "spring", bounce:0.3, duration: 4 }}>
+        exit={{ opacity: 0, x: -50}}
+        transition={{ type: "spring", duration: 2 }}>
 
         <form className={classes.editorForm}>
             {selectedElement?.category === "text" && <>
