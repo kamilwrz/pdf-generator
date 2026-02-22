@@ -22,11 +22,11 @@ export default function Gallery() {
 
 
     function handleImageUsedInPDF(message) {
-        console.log(message);
-        if (message.message) {
+        if (message?.deleted_image != null) {
+            setImages(prevState => prevState.filter(img => img.id !== message.deleted_image));
+            setError(null);
+        } else if (message?.message) {
             setError(message);
-        } else {
-            setImages(prevState => prevState.filter(img => img.id !== message.deleted_image))
         }
     }
 
