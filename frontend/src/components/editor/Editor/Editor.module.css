@@ -1,27 +1,13 @@
 .editor {
     width: 20rem;
-    transform: translateX(calc(100% - 20rem));
     position: absolute;
-    bottom: 10rem;
+    bottom: 15rem;
     background-color: var(--primary-bg);
     color: var(--primary-font);
     font-family: Inter, sans-serif;
     padding: 1rem;
     box-shadow: 0.5px 0.5px 1px 0.5px rgb(73, 73, 73);
-}
-
-.editorOpen {
-    opacity: 1;
-    animation-name: showEditor;
-    animation-duration: 3s;
-    animation-fill-mode: forwards;
-}
-
-.editorClose {
-    animation-name: hideEditor;
-    animation-duration: 2s;
-    animation-fill-mode: forwards; 
-    text-align: center;
+    border-radius: 6px;
 }
 
 .editorForm {
@@ -36,7 +22,7 @@
     padding: 4px;
     border-radius: 5px;
     font-size: 1rem;
-    margin-bottom: 5px;
+    margin-bottom: 15px;
     background-color: rgb(250 250 249);
 }
 
@@ -44,7 +30,6 @@
     padding: 5px;
     display: flex;
     justify-content: space-evenly;
-    margin: 2rem 0;
 }
 
 .positionBtnsWrapper button{
@@ -78,6 +63,7 @@
     font-size: 0.7rem;
     box-shadow: 0.5px 0.5px 1px 0.5px;
     padding: 6px;
+    margin-top: 10px;
 }
 
 .btnDelete:hover{
@@ -102,28 +88,3 @@
     font-size: 0.8rem;
 }
 
-
-@keyframes showEditor {
-    from {
-        transform: translateX(0%);
-        opacity: 0;
-    }
-
-    to{
-        transform: translateX(calc(100% - 10rem));
-        opacity: 1;
-    }
-}
-
-@keyframes hideEditor {
-    from {
-        transform: translateX(calc(100% - 10rem));
-        opacity: 1;
-    }
-
-    to {
-        transform: translateX(0%);
-        opacity: 0;
-        visibility: hidden;
-    }
-}

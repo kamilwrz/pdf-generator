@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, Integer, Float, String, ForeignKey, Text, JSON
+from sqlalchemy import VARCHAR, Boolean, Column, DateTime, Integer, Float, String, ForeignKey, Text, JSON
 from .database import Base, engine
 
 class User(Base):
@@ -48,8 +48,8 @@ class PdfElements(Base):
     category = Column(String)
     left = Column(Float)
     top = Column(Float)
-    width = Column(String, nullable=True)
-    height = Column(String, nullable=True)
+    width = Column(VARCHAR, nullable=True)
+    height = Column(VARCHAR, nullable=True)
     content = Column (Text, nullable=True)
     fontSize = Column(Float, nullable=True)
     fontFamily = Column(String, nullable=True)
