@@ -218,34 +218,40 @@ async def update_user_pdf(
     username = payload.get("sub")
     db_user = get_user_by_username(db, username=username)
 
-    user_upload_dir = PDF_UPLOAD_DIR / db_user.username
-    user_upload_dir.mkdir(parents=True, exist_ok=True)
-    
     pdf_row = request_pdf_by_id(db, pdf_id)
-    
-    new_file_path = rename_pdf_file(pdf_row, title)
-    db.add(pdf_row)
+    if not pdf_row:
+        raise HTTPException(status_code=404, detail="PDF not found.")
 
-    existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
-    update_pdf_elements(db, elements, existing_by_id, pdf_id)
+    if USE_S3:
+        key = f"pdfs/{username}/{title}"
+        pdf_bytes = _build_pdf_to_buffer(pdf_data, elements, image_src_to_local_path)
+        s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
+        pdf_row.title = title
+        pdf_row.file_path = f"https://{s3_storage.S3_BUCKET}.s3.{s3_storage.AWS_REGION}.amazonaws.com/{key}"
+        existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
+        update_pdf_elements(db, elements, existing_by_id, pdf_id)
+        db.commit()
+        return {"message": "PDF update was successful!"}
 
-    pdf = PDF_Generator(pdf_data, canvas.Canvas(new_file_path, pagesize=(595, 842)))
-    pdf.setTitle(pdf_row.title or "untitled")
-
-    for element in elements:
-        category = element.category
-        if category == "text" and element.deleted != True:
-            pdf.renderText(element.left, element.top, element.fontFamily, element.fontSize, element.color, element.content)
-        if category == "line" and element.deleted != True:
-            pdf.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
-        if category == "image" and element.deleted != True:
-            src = image_src_to_local_path(element.src or "")
-            pdf.renderImage(src, float(element.width), float(element.height), element.left, element.top)
-
-    pdf.generatePDF()
-    db.commit()
-
-    return {"message": "PDF update was successfull!"}
+    else:
+        new_file_path = rename_pdf_file(pdf_row, title)
+        db.add(pdf_row)
+        existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
+        update_pdf_elements(db, elements, existing_by_id, pdf_id)
+        c = canvas.Canvas(new_file_path, pagesize=(595, 842))
+        pdf = PDF_Generator(pdf_data, c)
+        pdf.setTitle(pdf_row.title or "untitled")
+        for element in elements:
+            if element.category == "text" and getattr(element, "deleted", None) != True:
+                pdf.renderText(element.left, element.top, element.fontFamily, element.fontSize, element.color, element.content)
+            elif element.category == "line" and getattr(element, "deleted", None) != True:
+                pdf.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
+            elif element.category == "image" and getattr(element, "deleted", None) != True:
+                src = image_src_to_local_path(element.src or "")
+                pdf.renderImage(src, float(element.width), float(element.height), element.left, element.top)
+        pdf.generatePDF()
+        db.commit()
+        return {"message": "PDF update was successful!"}
 
 
 
