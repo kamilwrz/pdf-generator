@@ -108,6 +108,6 @@ async def delete_user_image(
             os.remove(image.file_path)
         except FileNotFoundError:
             pass
-        return {"deleted_image": img_id}
+    return {"deleted_image": img_id}
 
 
