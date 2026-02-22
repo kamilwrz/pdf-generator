@@ -15,8 +15,6 @@ export default function CanvasElements({ elements }) {
             content={element.content}
             left={element.left}
             top={element.top}
-            width={element.width}
-            height={element.height}
             isSelected={element.isSelected}
             category={element.category}
             zIndex={element.zIndex}

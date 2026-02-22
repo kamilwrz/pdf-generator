@@ -8,35 +8,6 @@ export function useA4Elements(titleRef) {
   const [A4_Elements, setA4_Elements] = useState([]);
   const [A4_Elements_deleted, setA4_Elements_deleted] = useState([]);
 
-  useEffect(() => {
-    changeWidthHeightInState()
-  }, [A4_Elements?.length ?? 0])
-
-  function changeWidthHeightInState() {
-    if (!A4ref.current) return;
-
-    const A4 = A4ref.current;
-    const EL_HEIGHT_WIDTH = [];
-    for (let el of Array.from(A4.children)) {
-      if (el.tagName === "P") {
-        EL_HEIGHT_WIDTH.push([el.id, "auto", "auto"])
-      } else {
-        EL_HEIGHT_WIDTH.push([el.id, el.clientHeight, el.clientWidth])
-      }
-    };
-    setA4_Elements(prevState => {
-      const newState = prevState.map((element, id) => {
-        if (!element.element_id || element.category === "title") return { ...element }
-        else if (EL_HEIGHT_WIDTH[id] && element.element_id === EL_HEIGHT_WIDTH[id][0]) {
-          return { ...element, height: EL_HEIGHT_WIDTH[id][1], width: EL_HEIGHT_WIDTH[id][2] }
-        }
-        else {
-          return { ...element }
-        }
-      });
-      return newState;
-    })
-  }
 
   const handleMoveElement = useCallback((e, elementId) => {
     const A4 = e.currentTarget.closest('[class*="A4"]');
@@ -94,8 +65,6 @@ export function useA4Elements(titleRef) {
       isSelected: false,
       isMove: false,
       category: "text",
-      width: "auto",
-      height: "auto",
       zIndex: 3,
     };
     setA4_Elements(prevState => {
@@ -126,7 +95,7 @@ export function useA4Elements(titleRef) {
       element_id: nanoid(),
       src: e.target.src,
       width: 100,
-      height: "auto",
+      height: e.target.naturalHeight / e.target.naturalWidth * 100,
       left: 10,
       top: 10,
       isSelected: false,
@@ -380,7 +349,6 @@ export function useA4Elements(titleRef) {
     handleAddText,
     handleAddLine,
     handleAddImage,
-    changeWidthHeightInState,
     handleAlignElements,
     handleDeleteElement,
     handleEditElementValues,
