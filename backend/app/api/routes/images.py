@@ -85,20 +85,29 @@ async def delete_user_image(
     img_id = Body()):
 
     image = request_image_by_id(db, img_id)
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found.")
     pdf_element = db.query(PdfElements).filter(PdfElements.img_id==img_id).first()
-
-    if pdf_element is None:
-        db.query(Image).filter(Image.id==img_id).delete()
-        db.commit()
-        
+    if pdf_element is not None:
+        pdf = db.query(Image).filter(Image.id == pdf_element.pdf_id).first()
+        pdf_row = db.query(Pdf).filter(Pdf.id == pdf_element.pdf_id).first()
+        return {
+            "message": f"Image is used in a created PDF. Please delete the PDF - {pdf_row.title} first (created at: {pdf_row.created_at}) to delete the image."
+        }
+    db.query(Image).filter(Image.id==img_id).delete()
+    db.commit()
+    if USE_S3:
+        key = s3_storage.key_from_file_path(image.file_path)
+        if key:
+            try:
+                s3_storage.delete_object(key)
+            except Exception:
+                pass
+    else:
         try: 
             os.remove(image.file_path)
-        except:
-            FileNotFoundError: print(f"File '{image.file_path}' not found.")
-
+        except FileNotFoundError:
+            pass
         return {"deleted_image": img_id}
 
-    else:
-        pdf = db.query(Pdf).filter(Pdf.id==pdf_element.pdf_id).first()
-        return {"message": f"Image is used in a created PDF. Please delete the PDF - {pdf.title} first (created at: {pdf.created_at}) to delete the image."}
 
