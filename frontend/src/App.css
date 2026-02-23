@@ -18,36 +18,21 @@
     margin: 0;
     line-height: 0;
     padding: 0;
-    letter-spacing: 0;
  }
 
  #A4 div,
  #A4 p,
  #A4 img {
     -webkit-touch-callout: none;
-    /* iOS Safari */
     -webkit-user-select: none;
-    /* Safari */
     -khtml-user-select: none;
-    /* Konqueror HTML */
     -moz-user-select: none;
-    /* Old versions of Firefox */
     -ms-user-select: none;
-    /* Internet Explorer/Edge */
     user-select: none;
  }
 
  @font-face {
     font-family: Times-Roman;
-    src: url("../public/fonts/OPTITimes-Roman.otf");
+    src: url("/fonts/OPTITimes-Roman.otf");
  }
 
-
- /* Extra small devices (phones, 600px and down) */
- @media only screen and (max-width: 600px) {
-
-    .main-container {
-       flex-direction: column;
-    }
-
- }
