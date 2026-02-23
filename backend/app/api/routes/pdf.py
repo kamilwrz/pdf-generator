@@ -20,6 +20,7 @@ from app.crud.pdfs import (
 
 from app.utils.pdf_file_ops import delete_pdf_file, rename_pdf_file
 from app.utils.build_pdf import _build_pdf_to_buffer
+from app.utils.image_src_to_path import image_src_to_local_path
 
 from app.core.config import USE_S3
 
