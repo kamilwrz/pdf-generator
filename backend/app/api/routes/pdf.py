@@ -20,7 +20,7 @@ from app.crud.pdfs import (
     request_pdf_elements_by_element_id, update_pdf_elements, request_pdfs_by_id
     )
 
-from app.utils.pdf_helpers import delete_pdf_file, rename_pdf_file
+from app.utils.pdf_file_ops import delete_pdf_file, rename_pdf_file
 
 from app.core.config import USE_S3
 
