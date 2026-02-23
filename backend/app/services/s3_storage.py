@@ -1,9 +1,8 @@
-import io
 import os
-import tempfile
 import boto3
 from app.core.config import S3_BUCKET, AWS_REGION
 
+#CREATE A CLIENT FOR S3 STORAGE, LIKE A BRIGDE BETWEEN DIFFERENT MEHODS / REQUESTS
 def get_client():
     return boto3.client("s3", region_name=AWS_REGION)
 

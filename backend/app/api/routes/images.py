@@ -32,8 +32,11 @@ async def create_upload_image(
 
     #AWS request, with helper function from s3_storage
     if USE_S3:
+        #CREATE A KEY (LIKE A PATH FOR S3_STORAGE)
         key = f"uploads/{username}/{file.filename}"
+        #READ THE FILE
         data = await file.read()
+        #RETURN THE PATH / URL IN THE S3_STORAGE FOR UPLOADING TO THE DATABASE
         file_path = s3_storage.upload_bytes(
             key, data, content_type=file.content_type or "application/octet-stream"
         )
@@ -43,7 +46,7 @@ async def create_upload_image(
         user_upload_dir = IMAGES_UPLOAD_DIR / username
         #mkdir if not exist
         user_upload_dir.mkdir(parents=True, exist_ok=True)
-        #the oath
+        #the Path
         file_path_str = str(user_upload_dir / file.filename)
         #read and write (create) the file
         data = await file.read()
