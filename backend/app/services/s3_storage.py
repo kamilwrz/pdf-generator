@@ -6,6 +6,7 @@ from app.core.config import S3_BUCKET, AWS_REGION
 def get_client():
     return boto3.client("s3", region_name=AWS_REGION)
 
+#USED FOR UPLOADING IMAGES VIA DROPZONE
 def upload_bytes(key: str, body: bytes, content_type: str = "application/octet-stream"):
     get_client().put_object(Bucket=S3_BUCKET, Key=key, Body=body, ContentType=content_type)
     return f"https://{S3_BUCKET}.s3.{AWS_REGION}.amazonaws.com/{key}"

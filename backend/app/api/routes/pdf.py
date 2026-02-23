@@ -45,7 +45,7 @@ async def create_user_pdf(
     """ BOTH USE A PYDANTIC SCHEMA (BASE MODEL) FOR VALIDATION """
     title = pdf_data.pdf_title
 
-    #WHEN NO ELEMENTS IN THE CANVAS THROW HTTPException
+    #WHEN NO ELEMENTS IN THE CANVAS / STATE THROW HTTPException
     if not elements:
         raise HTTPException(status_code=400, detail="Some data seems to be missing...")
     
@@ -54,6 +54,8 @@ async def create_user_pdf(
     #GET THE TABLE ROW WITH THE RIGHT USER
     db_user = get_user_by_username(db, username=username)
 
+    #WITHOUT load_dotenv() USE_S3 is True, when in the host(render) enviorment the variable is set. Otherwise it wont read from the .env file
+    #CODE IS DEPLOYED ON RENDER -> VAR. IS SET USE_S3 WILL BE TRUE, SO THE "PROCESS" GOES OVER AWS S3_BUCKET
     if USE_S3:
         key = f"pdfs/{username}/{title}"
         try:
