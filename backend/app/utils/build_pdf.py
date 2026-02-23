@@ -3,7 +3,7 @@ import io
 from reportlab.pdfgen import canvas
 from app.services.pdf_generator import PDF_Generator 
 
-def _build_pdf_to_buffer(pdf_data, elements, image_src_resolver):
+def build_pdf_to_buffer(pdf_data, elements, image_src_resolver):
     """Build PDF into an in-memory buffer. image_src_resolver(src) returns path for ReportLab."""
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=(595, 842))

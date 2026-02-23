@@ -18,7 +18,7 @@ from app.crud.pdfs import (
     )
 
 from app.utils.pdf_file_ops import delete_pdf_file, rename_pdf_file
-from app.utils.build_pdf import _build_pdf_to_buffer
+from app.utils.build_pdf import build_pdf_to_buffer
 from app.utils.image_src_to_path import image_src_to_local_path
 
 from app.core.config import USE_S3
@@ -60,7 +60,7 @@ async def create_user_pdf(
             raise
         except Exception:
             pass
-        pdf_bytes = _build_pdf_to_buffer(pdf_data, elements, image_src_to_local_path)
+        pdf_bytes = build_pdf_to_buffer(pdf_data, elements, image_src_to_local_path)
         file_path = s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
         pdf_id = create_new_pdf(db, title, db_user.id, file_path, elements)
         return {"message": "PDF created!", "link": file_path, "pdf_id": pdf_id}
@@ -176,7 +176,7 @@ async def update_user_pdf(
 
     if USE_S3:
         key = f"pdfs/{username}/{title}"
-        pdf_bytes = _build_pdf_to_buffer(pdf_data, elements, image_src_to_local_path)
+        pdf_bytes = build_pdf_to_buffer(pdf_data, elements, image_src_to_local_path)
         s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
         pdf_row.title = title
         pdf_row.file_path = f"https://{s3_storage.S3_BUCKET}.s3.{s3_storage.AWS_REGION}.amazonaws.com/{key}"
