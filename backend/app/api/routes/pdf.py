@@ -3,7 +3,7 @@ from starlette import status
 from sqlalchemy.orm import Session
 from app.services.pdf_generator import PDF_Generator
 from reportlab.pdfgen import canvas
-from app.core.config import PDF_UPLOAD_DIR, IMAGES_UPLOAD_DIR
+from app.core.config import PDF_UPLOAD_DIR
 from app.core.security import verify_token
 from app.crud.user import get_user_by_username
 from app.schemas.pdf_schema import PDFCreateRequest, PDFUpdateRequest
@@ -11,7 +11,6 @@ from app.dependencies import get_db
 
 from os import listdir
 from os.path import isfile, join
-import io, os, tempfile
 
 from app.crud.pdfs import (
     create_new_pdf,request_pdf_by_id,delete_pdf_by_id, request_pdf_by_id_show, 
