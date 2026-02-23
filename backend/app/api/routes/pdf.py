@@ -1,4 +1,3 @@
-import imp
 from fastapi import APIRouter, Body, Depends, HTTPException
 from starlette import status
 from sqlalchemy.orm import Session
@@ -26,10 +25,6 @@ from app.core.config import USE_S3
 
 if USE_S3:
     from app.services import s3_storage
-
-
-
-
 
 
 router = APIRouter(
