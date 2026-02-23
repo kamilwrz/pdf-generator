@@ -33,7 +33,6 @@ export default function Editor() {
         });
     }
 
-
     useEffect(() => {
         setElementValues(prevState => {
             return {
@@ -48,16 +47,16 @@ export default function Editor() {
                 top: selectedElement?.top,
                 width: selectedElement?.width,
                 height: selectedElement?.height,
-                category: selectedElement?.category
+                category: selectedElement?.category,
+                zIndex: selectedElement?.zIndex
             };
         });
     }, [someElementSelected, selectedElement])
 
-
     return <AnimatePresence>{someElementSelected && <motion.aside className={classes.editor}
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 90 }}
-        exit={{ opacity: 0, x: -50}}
+        exit={{ opacity: 0, x: -50 }}
         transition={{ type: "spring", duration: 2 }}>
 
         <form className={classes.editorForm}>
@@ -82,6 +81,8 @@ export default function Editor() {
             </>}
 
             <>
+                <EditorControls labelText="Visibility" type="number" inputValue={elementValues.zIndex} onChangeFn={(e) => handleChangeValues(e, "zIndex")} />
+
                 <div className={classes.positionBtnsWrapper}>
                     <button type="button" onClick={() => alignElement(selectedElement.element_id, "LEFT", selectedElement.width, selectedElement.category)}>left</button>
                     <button type="button" onClick={() => alignElement(selectedElement.element_id, "CENTER", selectedElement.width, selectedElement.category)}>center</button>

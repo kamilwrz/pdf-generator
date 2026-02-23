@@ -109,7 +109,7 @@ export function useA4Elements(titleRef) {
     });
   }, [])
 
-  ///??? 
+  
   const handleDeleteElement = useCallback((elementId) => {
     setA4_Elements(prevState => {
       const deletedElement = prevState.find(el => el.element_id === elementId);

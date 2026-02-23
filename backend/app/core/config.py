@@ -1,4 +1,6 @@
 from pathlib import Path
+
+
 import os
 
 origins = [
@@ -8,6 +10,8 @@ origins = [
 
 PDF_UPLOAD_DIR = Path() / "static/generated"
 IMAGES_UPLOAD_DIR = Path() / "uploads"
+
+print(Path())
 
 S3_BUCKET = os.getenv("S3_BUCKET_NAME", "")
 AWS_REGION = os.getenv("AWS_REGION", "eu-north-1")

@@ -15,6 +15,7 @@ PDF_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # Path to frontend build (adjust if your structure is different)
 DIST_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+print(DIST_DIR)
 
 app.mount("/uploads", StaticFiles(directory=str(IMAGES_UPLOAD_DIR)), name="uploads")
 app.mount("/static/generated", StaticFiles(directory=str(PDF_UPLOAD_DIR)), name="static")

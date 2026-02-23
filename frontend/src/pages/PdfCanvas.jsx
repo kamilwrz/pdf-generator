@@ -179,7 +179,6 @@ function PdfCanvas() {
         <ModalPdfRequestStatus open={modalRequestStatus} message={responsePDF} />
         <Sidebar ref={titleRef}>
           <AnimatePresence>{isDropzone && <DropzoneContainer />}</AnimatePresence>
-          
           <Editor />
         </Sidebar>
         <A4 width="595px" height="842px" ref={A4ref}>

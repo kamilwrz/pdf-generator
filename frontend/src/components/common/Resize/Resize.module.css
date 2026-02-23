@@ -4,11 +4,12 @@
     width: 20px;
     height: 20px;
     z-index: 1000;
-    background-color: #2563eb; /*GREEN 300*/
+    background-color: var(--deco-font); 
+    border-radius: 50%;
 }
 
 .resizeButtons:hover{
-    background-color: #2564ebb6; /*GREEN 600*/
+    opacity: 0.8;
 }
 
 .roundBottomRight{

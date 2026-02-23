@@ -1,3 +1,4 @@
+import imp
 from fastapi import APIRouter, Body, Depends, HTTPException
 from starlette import status
 from sqlalchemy.orm import Session
@@ -19,8 +20,7 @@ from app.crud.pdfs import (
     request_pdf_elements_by_element_id, update_pdf_elements, request_pdfs_by_id
     )
 
-from app.utils.delete_pdf_file import delete_pdf_file
-from app.utils.rename_pdf_file import rename_pdf_file
+from app.utils.pdf_helpers import delete_pdf_file, rename_pdf_file
 
 from app.core.config import USE_S3
 

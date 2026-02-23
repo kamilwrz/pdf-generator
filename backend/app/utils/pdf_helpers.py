@@ -1,7 +1,13 @@
 import os
-from app.core.config import PDF_UPLOAD_DIR
+
+def delete_pdf_file(file_path):
+    try:
+        os.remove(file_path)
+    except:
+        return {"message": f"File '{file_path}' not found."}
 
 def rename_pdf_file(pdf:object, title: str):
+    
     pdf_file_path = str(pdf.file_path)
 
     new_file_path = pdf_file_path.split("/")

@@ -34,7 +34,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
 
     return <aside className={classes.sidebar}>
 
-        <img src={logo} alt="Logo PDF Canvas" className={classes.logo}/>
+        <img src={logo} alt="Logo PDF Canvas" className={classes.logo} />
         <div className={classes.headingWrapper}>
             <h1><span>pdf</span> canvas</h1>
         </div>
@@ -59,10 +59,15 @@ export default forwardRef(function Sidebar({ children }, ref) {
             </div>
         </section>
 
-        <button className={classes.logout} onClick={logout}>
-            <AiOutlineLogout />
-        </button>
+        <div className={classes.logoutWrapper}>
+            <label>Logout</label>
+            <button className={classes.logout} onClick={logout}>
+                <AiOutlineLogout />
+            </button>
+        </div>
+
 
         {children}
+
     </aside>
 })

@@ -121,6 +121,13 @@
     box-shadow: 1px 1px 1.5px 1px;
 }
 
+.logoutWrapper{
+    display: flex;
+    justify-items: center;
+    align-items: center;
+    align-self: center;
+}
+
 .logout {
     width: 4rem;
     align-self: center;
@@ -128,4 +135,5 @@
     background-color: inherit;
     border: none;
     cursor: pointer;
+    margin-top: 0.5rem;
 }
