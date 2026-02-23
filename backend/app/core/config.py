@@ -1,7 +1,5 @@
 from pathlib import Path
-
-
-import os
+import os, tempfile
 
 origins = [
     "http://localhost:5173",
@@ -11,7 +9,7 @@ origins = [
 PDF_UPLOAD_DIR = Path() / "static/generated"
 IMAGES_UPLOAD_DIR = Path() / "uploads"
 
-print(Path())
+REPORTLAB_IMAGES_TEMP = os.path.join(tempfile.gettempdir(), "pdf_generator_images")
 
 S3_BUCKET = os.getenv("S3_BUCKET_NAME", "")
 AWS_REGION = os.getenv("AWS_REGION", "eu-north-1")

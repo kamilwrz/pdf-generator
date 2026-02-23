@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 from app.services.pdf_generator import PDF_Generator
 from reportlab.pdfgen import canvas
 from app.core.config import PDF_UPLOAD_DIR, IMAGES_UPLOAD_DIR
-from urllib.parse import unquote, urlparse
 from app.core.security import verify_token
 from app.crud.user import get_user_by_username
 from app.schemas.pdf_schema import PDFCreateRequest, PDFUpdateRequest
@@ -21,6 +20,7 @@ from app.crud.pdfs import (
     )
 
 from app.utils.pdf_file_ops import delete_pdf_file, rename_pdf_file
+from app.utils.build_pdf import _build_pdf_to_buffer
 
 from app.core.config import USE_S3
 
@@ -28,45 +28,9 @@ if USE_S3:
     from app.services import s3_storage
 
 
-REPORTLAB_IMAGES_TEMP = os.path.join(tempfile.gettempdir(), "pdf_generator_images")
 
-def image_src_to_local_path(src: str) -> str:
-    """Convert image src (URL or path) to a path ReportLab can use. For S3, download to temp."""
-    if not src:
-        return src
-    if USE_S3 and src.startswith("https://") and ".amazonaws.com/" in src:
-        return s3_storage.image_src_to_path_for_reportlab(src, REPORTLAB_IMAGES_TEMP)
-    if src.startswith(("http://", "https://")):
-        parsed = urlparse(src)
-        path = parsed.path.lstrip("/").replace("\\", "/")
-        if path.startswith("uploads/"):
-            path = path[8:]
-        decoded = unquote(path)
-        local = (IMAGES_UPLOAD_DIR / decoded).resolve()
-        return str(local)
-    if "/uploads/" in src:
-        path_part = src.split("/uploads/")[1]
-        decoded = unquote(path_part)
-        local = (IMAGES_UPLOAD_DIR / decoded).resolve()
-        return str(local)
-    return src
 
-def _build_pdf_to_buffer(pdf_data, elements, image_src_resolver):
-    """Build PDF into an in-memory buffer. image_src_resolver(src) returns path for ReportLab."""
-    buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=(595, 842))
-    pdf = PDF_Generator(pdf_data, c)
-    pdf.setTitle(pdf_data.pdf_title if hasattr(pdf_data, 'pdf_title') else "untitled")
-    for element in elements:
-        if element.category == "text" and getattr(element, "deleted", None) != True:
-            pdf.renderText(element.left, element.top, element.fontFamily, element.fontSize, element.color, element.content)
-        elif element.category == "line" and getattr(element, "deleted", None) != True:
-            pdf.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
-        elif element.category == "image" and getattr(element, "deleted", None) != True:
-            path = image_src_resolver(element.src or "")
-            pdf.renderImage(path, float(element.width), float(element.height), element.left, element.top)
-    pdf.generatePDF()
-    return buffer.getvalue()
+
 
 router = APIRouter(
     prefix="/pdf",
