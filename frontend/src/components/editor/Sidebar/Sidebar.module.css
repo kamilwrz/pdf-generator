@@ -1,5 +1,5 @@
 .sidebar {
-    width: 320px;
+    min-width: 320px;
     height: 100vh;
     background-color: white;
     position: relative;
@@ -96,8 +96,12 @@
 
 .myDocumentsContainer{
     padding-left: 2rem;
-    height: 30vh;
+    height: 25vh;
     margin-top: 2rem;
+}
+
+.documentsCount{
+    margin-left: 50px;
 }
 
 
@@ -109,50 +113,48 @@
 }
 
 .sidebarFooter > button {
-    background-color: rgb(59 130 246) !important;
-    width: 80% !important;
-    margin: 10px auto 0 auto !important;
+    background-color: rgb(59 130 246) ;
+    width: 80% ;
+    margin: 10px auto 0 auto ;
     color: white;
+    font-size: 1.2rem ;
+    border-radius: 10px;
+    padding: 5px;
+    border: none;
+    box-shadow: 1px 2px 4px 1px lightgray;
 }
 
-.pdfButtonsIcon{
-    font-size: 2rem;
-    color: var(--deco-font);
-}
-
-.sidebarFooter button {
-    
+.btn {
     width: 4rem;
     font-size: 0.7rem;
     padding: 6px;
     margin-top: 0.5rem;
     margin-right: 0.5rem;
-    border-radius: 2px;
+    border-radius: 4px;
     letter-spacing: 1px;
     background-color: var(--secondary-btn);
     align-self: flex-end;
     font-family: var(--secondary-font-family);
-    border: none;
+    border: 0.5px solid lightgray;
     cursor: pointer;
-    box-shadow: 0.5px 0.5px 1px 0.5px;
 }
 
-.pdfButtons button:hover {
+.btn:hover {
     opacity: 0.8;
     box-shadow: 1px 1px 1.5px 1px;
 }
 
 .logoutWrapper{
     display: flex;
-    justify-items: center;
+    justify-items: flex-start;
     align-items: center;
     gap: 1rem;
+    margin-top: 2rem;
 }
 
-#logout {
-    width: 4rem;
+.logout {
     font-size: 1.5rem;
-    background-color: inherit !important;
+    background-color: none;
     border: none;
     cursor: pointer;
 }

@@ -69,14 +69,14 @@ export default forwardRef(function Sidebar({ children }, ref) {
 
         <hr />
         <footer className={classes.sidebarFooter}>
-            <button onClick={createPdf} disabled={isPdfLoading}> <MdPublishedWithChanges style={{marginRight:"20px"}} />Create PDF</button>
+            <button onClick={createPdf} disabled={isPdfLoading}> <MdPublishedWithChanges style={{marginRight:"20px", paddingTop: "5px"}} />Create PDF</button>
             <div>
-                <button onClick={updatePdf} disabled={isPdfLoading}>UPDATE</button>
-                <button onClick={clearA4}>CLEAR</button>
-                <button><RiDownload2Line /></button>
+                <button className={classes.btn} onClick={updatePdf} disabled={isPdfLoading}>UPDATE</button>
+                <button className={classes.btn} onClick={clearA4}>CLEAR</button>
+                <button className={classes.btn}><RiDownload2Line /></button>
             </div>
             <div className={classes.logoutWrapper}>
-                <button id="logout" onClick={logout}>
+                <button className={classes.logout} onClick={logout}>
                     <AiOutlineLogout />
                 </button>
                 <label>Logout</label>
