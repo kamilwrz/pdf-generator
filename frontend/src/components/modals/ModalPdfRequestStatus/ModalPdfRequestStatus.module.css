@@ -1,18 +1,21 @@
 .modalPdfRequestStatus{
     width: 360px;
     height: 120px;
-    position: relative;
-    top: 100px;
-    left: 50%;
-    transform: translateX(calc(-50%));
+    position: absolute;
+    top: 30px;
+    left: 610px;
     background-color: var(--primary-bg);
     border: none;
-    border-radius: 5px;
+    border-radius: 10px;
     box-shadow: 1px 1px 2px 1px;
     text-align: center;
     font-family: var(--primary-font-family);
-    margin: 0;
+    z-index: 4000;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
 }
+
 
 .modalPdfRequestStatus p{
     color: var(--primary-font);
@@ -22,11 +25,10 @@
 
 .btnDownloadPDF{
     background-color: var(--primary-btn);
-    width: 6rem;
+    width: 4rem;
     height: 2rem;
     border-radius: 4px;
     border: none;
-    margin-top: 1rem;
 }
 
 .btnDownloadPDF a{
@@ -34,20 +36,16 @@
     color: var(--primary-bg);
 }
 
-.modalPdfRequestStatus form button{
-   position: absolute;
-   left: 2rem;
-   top: 2rem;
+.modalPdfRequestStatus button{
    width: 2rem;
    height: 2rem;
-   background-color: var(--close-btn);
    border: none;
    border-radius: 50%;
-   color: var(--primary-bg);
+   color: rgb(161 161 170);
    font-size: 1rem;
 }
 
-.modalPdfRequestStatus form button:hover{
+.modalPdfRequestStatus button:hover{
     opacity: 0.8;
     cursor: pointer;
 }

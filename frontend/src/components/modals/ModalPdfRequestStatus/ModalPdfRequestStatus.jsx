@@ -5,37 +5,32 @@ import { createPortal } from "react-dom";
 import { IoMdClose } from "react-icons/io";
 import { FiDownload } from "react-icons/fi";
 import { MdDone } from "react-icons/md";
+import { motion, AnimatePresence } from "framer-motion";
 
 
 
 function ModalPdfRequestStatus({ message, open }) {
 
     const { showModalRequest } = use(PdfContext)
-    const [isLoading, setIsLoading] = useState(false);
 
-    const dialogRequestStatus = useRef()
+    return createPortal(<AnimatePresence>{open && <motion.div 
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 30 }}
+        exit={{ opacity: 0, y: -30 }}
+        transition={{ type: "spring", duration: 2, ease: [0, 0.71, 0.2, 1.01] }}
+        className={classes.modalPdfRequestStatus}
+        >
 
-    useEffect(() => {
-        if (open) {
-            dialogRequestStatus.current.showModal();
-        }else{
-            setIsLoading(bool => !bool);
-        }
-    }, [open])
-
-    console.log(message)
-    return createPortal(<dialog ref={dialogRequestStatus} className={classes.modalPdfRequestStatus}>
-        
         {/**SHOW ERROR MESSAGE */}
         {message?.message && <p>{message?.message}</p>}
         {/**SHOW SUCCESS MESSAGE / PDF CREATED */}
-        {message?.success && message?.link  && <><p>{message?.success}</p> <button className={classes.btnDownloadPDF}><a href={message?.link}><FiDownload /></a></button> </>}
+        {message?.success && message?.link && <><p>{message?.success}</p> <button className={classes.btnDownloadPDF}><a href={message?.link}><FiDownload /></a></button> </>}
         {/**SHOW SUCCESS MESSAGE / PDF UPDATE */}
         {message?.success && !message?.link && <p>{message?.success}</p>}
-        <form method="dialog">
-            <button onClick={showModalRequest}><IoMdClose /></button>
-        </form>
-    </dialog>, document.getElementById("modal-request-status"))
+
+        <button onClick={showModalRequest}><IoMdClose /></button>
+
+    </motion.div>}</AnimatePresence>, document.getElementById("modal-request-status"))
 
 };
 
