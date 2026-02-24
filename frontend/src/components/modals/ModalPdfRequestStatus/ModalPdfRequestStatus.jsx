@@ -25,12 +25,10 @@ function ModalPdfRequestStatus({ message, open }) {
 
         {/**SHOW ERROR MESSAGE */}
         {message?.message && <p>{message?.message}</p>}
-        {/**SHOW SUCCESS MESSAGE / PDF CREATED */}
+        {/**SHOW SUCCESS MESSAGE / PDF CREATED / PDF UPDATE */}
         {message?.success && message?.link && <><p>{message?.success}</p> <button className={classes.btnDownloadPDF}><a href={message?.link}><FiDownload /></a></button> </>}
-        {/**SHOW SUCCESS MESSAGE / PDF UPDATE */}
-        {message?.success && !message?.link && <p>{message?.success}</p>}
 
-        <button onClick={showModalRequest}><IoMdClose /></button>
+        <button onClick={showModalRequest} className={classes.btnCloseModal}><IoMdClose /></button>
 
     </motion.div>}</AnimatePresence>, document.getElementById("modal-request-status"))
 
