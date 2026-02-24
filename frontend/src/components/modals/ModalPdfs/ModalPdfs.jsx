@@ -70,12 +70,12 @@ export default function ModalPdfs({ title }) {
     const classNameOverlay = `${classes.overlayModal} ${isVisibleModal ? classes.modalVisible : classes.modalClose}`
 
     useEffect(() => {
-        if (isVisibleModal) {
+        
             api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, "Failed to fetch PDF's").
                 then((data) => { setPDFs(data); console.log(data) }).
                 catch((error) => { setError(error) });
-        }
-    }, [isVisibleModal])
+        
+    }, [])
 
     return createPortal(<div className={classNameOverlay}>
         <ul className={classes.modalPdfs}>

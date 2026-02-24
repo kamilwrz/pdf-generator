@@ -8,6 +8,7 @@ import { LuImagePlus } from "react-icons/lu";
 import { AiOutlineLogout } from "react-icons/ai";
 import { RiDownload2Line } from "react-icons/ri";
 import { FaRegFolderOpen } from "react-icons/fa";
+import { MdPublishedWithChanges } from "react-icons/md";
 import logo from "/images/logo.png";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { forwardRef, use, useState } from "react";
@@ -58,22 +59,28 @@ export default forwardRef(function Sidebar({ children }, ref) {
             <SidebarControls icon={<LuImagePlus style={{ color: "rgb(147 51 234)" }} />} labelText="gallery" sidebarEvent={showGallery} />
             <SidebarControls icon={<CiText style={{ color: "rgb(22 163 74)" }} />} labelText="add text" sidebarEvent={addText} />
             <SidebarControls icon={<TfiLayoutLineSolid style={{ color: "rgb(217 119 6)" }} />} labelText="add line" sidebarEvent={addLine} />
-            
+
+        </div>
+        <hr />
+        <div className={classes.myDocumentsContainer}>
             <SidebarControls icon={<FaRegFolderOpen style={{ color: "rgb(64 64 64)" }} />} labelText="My Documents " sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
         </div>
 
+
+        <hr />
         <footer className={classes.sidebarFooter}>
-            <button onClick={createPdf} disabled={isPdfLoading}>CREATE</button>
+            <button onClick={createPdf} disabled={isPdfLoading}> <MdPublishedWithChanges style={{marginRight:"20px"}} />Create PDF</button>
             <div>
                 <button onClick={updatePdf} disabled={isPdfLoading}>UPDATE</button>
                 <button onClick={clearA4}>CLEAR</button>
                 <button><RiDownload2Line /></button>
             </div>
             <div className={classes.logoutWrapper}>
-                <label>Logout</label>
-                <button className={classes.logout} onClick={logout}>
+                <button id="logout" onClick={logout}>
                     <AiOutlineLogout />
                 </button>
+                <label>Logout</label>
+
             </div>
         </footer>
 

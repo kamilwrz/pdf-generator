@@ -1,42 +1,47 @@
 .sidebar {
-    width: 15vw;
+    width: 320px;
     height: 100vh;
     background-color: white;
     position: relative;
     z-index: 1000;
     font-family: var(--primary-font-family);
     color: var(--primary-font);
-    padding-left: 2rem;
-    padding-right: 1rem;
 }
 
 .logoContainer {
-  display: flex;
-  margin-top: 2rem;
+    border-bottom: 0.5px solid lightgray;
+    padding-left: 2rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.logoWrapperText{
+    display: inline-block;
+    margin-top: -2.5rem;
 }
 
 .logoWrapperText h1{
   font-size: 1.3rem;
   margin: 0;
-  padding-top: 5px;
 }
 
 .logoWrapperText p{
     font-size: 0.8rem;
     margin: 0;
-    padding-top: 0.5rem;
   }
 
 .logo {
     width: 100%;
-    max-width: 4rem;
-    object-fit: contain;
+    max-width: 3rem;
+    object-fit: cover;
+    margin-bottom: -0.5rem;
 }
 
 .titleContainer {
     display: flex;
     flex-direction: column;
     margin-top: 2rem;
+    padding-left: 2rem;
 }
 
 .titleContainer label {
@@ -78,6 +83,7 @@
 
 .toolsContainer{
     margin-top: 3rem;
+    padding-left: 2rem;
 }
 
 .toolsLabel{
@@ -88,19 +94,25 @@
     color: rgb(156 163 175);
 }
 
+.myDocumentsContainer{
+    padding-left: 2rem;
+    height: 30vh;
+    margin-top: 2rem;
+}
+
 
 .sidebarFooter {
     display: flex;
     flex-direction: column;
-    height: 10vh;
     justify-content: flex-end;
-    position: absolute;
-    bottom: 30px;
+    align-items: center;
 }
 
 .sidebarFooter > button {
     background-color: rgb(59 130 246) !important;
-    width: 100% !important;
+    width: 80% !important;
+    margin: 10px auto 0 auto !important;
+    color: white;
 }
 
 .pdfButtonsIcon{
@@ -109,11 +121,11 @@
 }
 
 .sidebarFooter button {
+    
     width: 4rem;
     font-size: 0.7rem;
-    text-transform: uppercase;
     padding: 6px;
-    margin-top: 1rem;
+    margin-top: 0.5rem;
     margin-right: 0.5rem;
     border-radius: 2px;
     letter-spacing: 1px;
@@ -134,15 +146,13 @@
     display: flex;
     justify-items: center;
     align-items: center;
-    align-self: flex-start;
+    gap: 1rem;
 }
 
-.logout {
+#logout {
     width: 4rem;
-    align-self: flex-start;
     font-size: 1.5rem;
-    background-color: inherit;
+    background-color: inherit !important;
     border: none;
     cursor: pointer;
-    margin-top: 0.5rem;
 }
