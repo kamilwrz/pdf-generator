@@ -3,10 +3,12 @@ import SidebarControls from "../../common/SidebarControls/SidebarControls";
 import { FaRegImages } from "react-icons/fa";
 import { TfiLayoutLineSolid } from "react-icons/tfi";
 import { CiText } from "react-icons/ci";
+import { TiPen } from "react-icons/ti";
 import { LuImagePlus } from "react-icons/lu";
 import { AiOutlineLogout } from "react-icons/ai";
-import { BsFileEarmarkPdf } from "react-icons/bs";
-import logo from "../../../../public/images/logo1-no_text.png";
+import { RiDownload2Line } from "react-icons/ri";
+import { FaRegFolderOpen } from "react-icons/fa";
+import logo from "/images/logo.png";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { forwardRef, use, useState } from "react";
 
@@ -23,7 +25,8 @@ export default forwardRef(function Sidebar({ children }, ref) {
         setIsVisibleModal,
         clearA4,
         logout,
-        isPdfLoading
+        isPdfLoading,
+        PDFs,
     } = use(PdfContext);
 
 
@@ -31,41 +34,48 @@ export default forwardRef(function Sidebar({ children }, ref) {
         setIsVisibleModal(bool => !bool);
     }
 
-
     return <aside className={classes.sidebar}>
 
-        <img src={logo} alt="Logo PDF Canvas" className={classes.logo} />
-        <div className={classes.headingWrapper}>
-            <h1><span>pdf</span> canvas</h1>
+        <div className={classes.logoContainer}>
+            <img src={logo} alt="Logo PDF Canvas" className={classes.logo} />
+            <div className={classes.logoWrapperText}>
+                <h1>PDF Canvas</h1>
+                <p>Editor v.1.0b</p>
+            </div>
         </div>
 
-        <div className={classes.controlTitle}>
-            <label htmlFor="title">pdf title:</label>
-            <input type="text" name="title" id="title" ref={ref} placeholder="Please enter PDF title..." />
-        </div>
-
-        <SidebarControls icon={<FaRegImages />} labelText="upload images" sidebarEvent={showDropzone} />
-        <SidebarControls icon={<LuImagePlus />} labelText="gallery" sidebarEvent={showGallery} />
-        <SidebarControls icon={<CiText />} labelText="add text" sidebarEvent={addText} />
-        <SidebarControls icon={<TfiLayoutLineSolid />} labelText="add line" sidebarEvent={addLine} />
-        <SidebarControls icon={<BsFileEarmarkPdf />} labelText="show pdf's" sidebarEvent={showModalWithPDFs} />
-
-        <section className={classes.pdfButtons}>
-            <div className={classes.pdfButtonsIcon}><BsFileEarmarkPdf /></div>
+        <div className={classes.titleContainer}>
+            <label htmlFor="title">current project</label>
             <div>
-                <button onClick={createPdf} disabled={isPdfLoading}>CREATE</button>
+                <input type="text" name="title" id="title" ref={ref} />
+                <button><TiPen /></button>
+            </div>
+        </div>
+
+        <div className={classes.toolsContainer}>
+            <label className={classes.toolsLabel}> TOOLS</label>
+            <SidebarControls icon={<FaRegImages style={{ color: "rgb(2 132 199)" }} />} labelText="upload images" sidebarEvent={showDropzone} backgroundColor="rgb(125 211 252)" />
+            <SidebarControls icon={<LuImagePlus style={{ color: "rgb(147 51 234)" }} />} labelText="gallery" sidebarEvent={showGallery} />
+            <SidebarControls icon={<CiText style={{ color: "rgb(22 163 74)" }} />} labelText="add text" sidebarEvent={addText} />
+            <SidebarControls icon={<TfiLayoutLineSolid style={{ color: "rgb(217 119 6)" }} />} labelText="add line" sidebarEvent={addLine} />
+            
+            <SidebarControls icon={<FaRegFolderOpen style={{ color: "rgb(64 64 64)" }} />} labelText="My Documents " sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
+        </div>
+
+        <footer className={classes.sidebarFooter}>
+            <button onClick={createPdf} disabled={isPdfLoading}>CREATE</button>
+            <div>
                 <button onClick={updatePdf} disabled={isPdfLoading}>UPDATE</button>
                 <button onClick={clearA4}>CLEAR</button>
+                <button><RiDownload2Line /></button>
             </div>
-        </section>
-
-        <div className={classes.logoutWrapper}>
-            <label>Logout</label>
-            <button className={classes.logout} onClick={logout}>
-                <AiOutlineLogout />
-            </button>
-        </div>
-
+            <div className={classes.logoutWrapper}>
+                <label>Logout</label>
+                <button className={classes.logout} onClick={logout}>
+                    <AiOutlineLogout />
+                </button>
+            </div>
+        </footer>
 
         {children}
 

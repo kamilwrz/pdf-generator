@@ -18,10 +18,10 @@ import Error from "../../common/Error/Error";
 
 export default function ModalPdfs({ title }) {
 
-    const [PDFs, setPDFs] = useState([]);
+
     const [error, setError] = useState(false);
 
-    const { isVisibleModal, setIsVisibleModal, setA4_Elements, handlePdfId, clearA4, setA4_Elements_deleted } = use(PdfContext);
+    const { isVisibleModal, setIsVisibleModal, setA4_Elements, handlePdfId, clearA4, setA4_Elements_deleted, setPDFs, PDFs } = use(PdfContext);
 
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
 

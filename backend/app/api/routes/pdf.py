@@ -71,7 +71,7 @@ async def create_user_pdf(
         pdf_bytes = build_pdf_to_buffer(pdf_data, elements, image_src_to_local_path)
         file_path = s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
         pdf_id = create_new_pdf(db, title, db_user.id, file_path, elements)
-        return {"message": "PDF created!", "link": file_path, "pdf_id": pdf_id}
+        return {"created": "PDF created!", "link": file_path, "pdf_id": pdf_id}
     
     else:
         user_upload_dir = PDF_UPLOAD_DIR / username
@@ -102,7 +102,7 @@ async def create_user_pdf(
         pdf.generatePDF()
 
     
-        return {"message": "PDF created!", "link": f"https://pdf-generator-07cb.onrender.com/{pdf_path.as_posix()}", "pdf_id": pdf_id}
+        return {"created": "PDF created!", "link": f"https://pdf-generator-07cb.onrender.com/{pdf_path.as_posix()}", "pdf_id": pdf_id}
 
 
 @router.get("/fetch_pdfs", status_code=status.HTTP_200_OK)
@@ -161,7 +161,7 @@ async def delete_user_pdf(
                 pass
     else:
         delete_pdf_file(pdf_to_delete.file_path)
-    return {"message": "PDF deleted", "name": pdf_to_delete.title, "id": pdf_to_delete.id}
+    return {"deleted": "PDF deleted", "name": pdf_to_delete.title, "id": pdf_to_delete.id}
 
 
 
@@ -191,7 +191,7 @@ async def update_user_pdf(
         existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
         update_pdf_elements(db, elements, existing_by_id, pdf_id)
         db.commit()
-        return {"message": "PDF update was successful!"}
+        return {"updated": "PDF update was successful!"}
 
     else:
         new_file_path = rename_pdf_file(pdf_row, title)
@@ -211,7 +211,7 @@ async def update_user_pdf(
                 pdf.renderImage(src, float(element.width), float(element.height), element.left, element.top)
         pdf.generatePDF()
         db.commit()
-        return {"message": "PDF update was successful!"}
+        return {"updated": "PDF update was successful!"}
 
 
 

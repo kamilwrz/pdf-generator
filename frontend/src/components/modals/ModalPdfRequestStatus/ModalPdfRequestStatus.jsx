@@ -4,6 +4,7 @@ import classes from "./ModalPdfRequestStatus.module.css";
 import { createPortal } from "react-dom";
 import { IoMdClose } from "react-icons/io";
 import { FiDownload } from "react-icons/fi";
+import { MdDone } from "react-icons/md";
 
 
 
@@ -22,8 +23,9 @@ function ModalPdfRequestStatus({ message, open }) {
         }
     }, [open])
 
-
+    console.log(message)
     return createPortal(<dialog ref={dialogRequestStatus} className={classes.modalPdfRequestStatus}>
+        
         {/**SHOW ERROR MESSAGE */}
         {message?.message && <p>{message?.message}</p>}
         {/**SHOW SUCCESS MESSAGE / PDF CREATED */}

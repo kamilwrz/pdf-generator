@@ -32,6 +32,8 @@ function PdfCanvas() {
   const [value, setValue] = useState(0);
   //state for seting the PDF id, used in ModalPdf.jsx
   const [pdfId, setPdfId] = useState(null);
+  //FETCHED PDF's
+  const [PDFs, setPDFs] = useState([]);
 
   const titleRef = useRef();
 
@@ -154,6 +156,8 @@ function PdfCanvas() {
     showModalRequest: handleShowModalRequest,
     logout: handleLogout,
     isPdfLoading: isPdfLoading,
+    PDFs: PDFs,
+    setPDFs: setPDFs
   }), [
     A4_Elements,
     isGallery, isDropzone, value,

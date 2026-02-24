@@ -1,97 +1,106 @@
 .sidebar {
-    width: 18rem;
+    width: 15vw;
     height: 100vh;
-    display: flex;
-    flex-direction: column;
     background-color: white;
     position: relative;
     z-index: 1000;
-    box-shadow: 1px 1px 5px 1px var(--primary-font);
-    border-top-right-radius: 10px;
     font-family: var(--primary-font-family);
     color: var(--primary-font);
+    padding-left: 2rem;
+    padding-right: 1rem;
 }
 
-.headingWrapper {
-    width:11rem;
-    height: 4.5rem;
-    display: flex;
-    flex-direction: column;
-    justify-items: flex-start;
-    align-items: center;
-    align-self: center;
-    background-color: var(--secondary-bg);
-    box-shadow: 0.5px 0.5px 1px 0.5px;
-    border-radius: 4px;
-    margin-top: -1.5rem;
+.logoContainer {
+  display: flex;
+  margin-top: 2rem;
 }
+
+.logoWrapperText h1{
+  font-size: 1.3rem;
+  margin: 0;
+  padding-top: 5px;
+}
+
+.logoWrapperText p{
+    font-size: 0.8rem;
+    margin: 0;
+    padding-top: 0.5rem;
+  }
 
 .logo {
     width: 100%;
-    max-width: 5rem;
+    max-width: 4rem;
     object-fit: contain;
-    z-index: 2;
-    align-self: flex-end;
-    margin-right: 3rem;
+}
+
+.titleContainer {
+    display: flex;
+    flex-direction: column;
     margin-top: 2rem;
 }
 
-.headingWrapper h1 {
-    font-size: 1.2rem;
-    letter-spacing: 2px;
+.titleContainer label {
     text-transform: uppercase;
-    margin: 0;
-    font-weight: 500;
-    padding-top: 1.5rem;
-}
-
-.headingWrapper span {
-    color: var(--deco-font);
-}
-
-.controlTitle {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    width: 70%;
-    margin-top: 5rem;
-    align-self: center;
-}
-
-.controlTitle label {
-    text-transform: uppercase;
-    align-self: center;
     margin-bottom: 0.5rem;
-    font-size: 1rem;
+    font-size: 0.8rem;
     font-weight: 400;
+    color: rgb(156 163 175);
 }
 
-.controlTitle input {
-    width: 100%;
+.titleContainer input {
+    width: 80%;
     font-size: 0.9rem;
-    padding: 6px;
     border: none;
-    margin-bottom: 2rem;
-    background-color: white;
+    background-color: var(--secondary-bg);
     letter-spacing: 1px;
     font-weight: 400;
     text-align: center;
-    border-radius: 3px;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+    padding: 6px;
 }
 
-.controlTitle input:focus {
+.titleContainer input:focus {
     border: none;
     outline: none;
     border-bottom: 1px solid #27272a;
 }
 
-.pdfButtons {
+.titleContainer button{
+    background-color: var(--secondary-bg);
+    border: none;
+    font-size: 0.9rem;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    padding: 6px;
+}
+
+
+.toolsContainer{
+    margin-top: 3rem;
+}
+
+.toolsLabel{
+    text-transform: uppercase;
+    margin-bottom: 3.5rem;
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: rgb(156 163 175);
+}
+
+
+.sidebarFooter {
     display: flex;
     flex-direction: column;
-    height: 20vh;
-    align-items: center;
-    margin-top: 3em;
+    height: 10vh;
+    justify-content: flex-end;
+    position: absolute;
+    bottom: 30px;
+}
+
+.sidebarFooter > button {
+    background-color: rgb(59 130 246) !important;
+    width: 100% !important;
 }
 
 .pdfButtonsIcon{
@@ -99,7 +108,7 @@
     color: var(--deco-font);
 }
 
-.pdfButtons button {
+.sidebarFooter button {
     width: 4rem;
     font-size: 0.7rem;
     text-transform: uppercase;
@@ -125,12 +134,12 @@
     display: flex;
     justify-items: center;
     align-items: center;
-    align-self: center;
+    align-self: flex-start;
 }
 
 .logout {
     width: 4rem;
-    align-self: center;
+    align-self: flex-start;
     font-size: 1.5rem;
     background-color: inherit;
     border: none;

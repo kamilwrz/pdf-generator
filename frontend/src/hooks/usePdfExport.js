@@ -17,7 +17,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
 
     api.httpRequest(ENDPOINTS.PDF.CREATE, "POST", JSON.stringify({root: sorted, pdf_title: titleRef.current.value + ".pdf"}), "Failed to create the PDF!").
-    then((data) => {handlePdfId(data.pdf_id); setResponsePDF({success: data.message, link:data.link})}).
+    then((data) => {handlePdfId(data.pdf_id); setResponsePDF({success: data.created, link:data.link})}).
     catch((error) => setResponsePDF(error)).finally(() => { 
       handleShowModal();
       setIsPdfLoading(false);
@@ -38,7 +38,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
 
     api.httpRequest(ENDPOINTS.PDF.UPDATE, "PUT", JSON.stringify({root: elements, pdf_id: PDF_ID, pdf_title: titleRef.current.value +".pdf"}), "Failed to update the PDF!").
-    then((data) => {setResponsePDF({success: data.message})}).
+    then((data) => {setResponsePDF({success: data.updated})}).
     catch((error) => setResponsePDF(error)).finally(() => { 
       handleShowModal();
       setIsPdfLoading(false);

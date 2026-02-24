@@ -1,15 +1,16 @@
 .spinnerWrapper{
     position: relative;
     left: 50%;
-    top: 40%;
-    transform: translate(-50% , -50%);
+    top: 30px;
+    transform: translateX(-50%);
     z-index: 2000;
-    width: 300px;
-    height:300px;
+    width: 350px;
+    height:150px;
     background-color: var(--secondary-bg);
     border-radius: 6px;
     opacity: 0.9;
     box-shadow: 2px 2px 2px 2px;
+    display: flex;
  }
 
  .spinnerText{
@@ -19,7 +20,7 @@
     font-size: 1.2rem;
     color:var(--deco-font);
     position: absolute;
-    bottom: 100px;
+    bottom: 30px;
     left:50%;
     transform: translateX(-50%);
  }
