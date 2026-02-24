@@ -13,6 +13,8 @@ function ModalPdfRequestStatus({ message, open }) {
 
     const { showModalRequest } = use(PdfContext)
 
+    console.log(message)
+
     return createPortal(<AnimatePresence>{open && <motion.div 
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 30 }}

@@ -77,6 +77,8 @@ export default function ModalPdfs({ title }) {
         
     }, [])
 
+   
+
     return createPortal(<div className={classNameOverlay}>
         <ul className={classes.modalPdfs}>
             <span onClick={handleIsVisible} className={classes.closeModal}><RiCloseLargeFill /></span>

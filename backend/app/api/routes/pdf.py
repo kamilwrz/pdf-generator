@@ -188,10 +188,11 @@ async def update_user_pdf(
         s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
         pdf_row.title = title
         pdf_row.file_path = f"https://{s3_storage.S3_BUCKET}.s3.{s3_storage.AWS_REGION}.amazonaws.com/{key}"
+        link = pdf_row.file_path
         existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
         update_pdf_elements(db, elements, existing_by_id, pdf_id)
         db.commit()
-        return {"updated": "PDF update was successful!"}
+        return {"updated": "PDF update was successful!", "link": link}
 
     else:
         new_file_path = rename_pdf_file(pdf_row, title)
@@ -211,7 +212,7 @@ async def update_user_pdf(
                 pdf.renderImage(src, float(element.width), float(element.height), element.left, element.top)
         pdf.generatePDF()
         db.commit()
-        return {"updated": "PDF update was successful!"}
+        return {"updated": "PDF update was successful!", "link": new_file_path}
 
 
 

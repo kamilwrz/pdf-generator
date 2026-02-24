@@ -16,8 +16,7 @@
     padding: 2rem;
     border-radius: 3px;
     margin-bottom: 2rem;
-    background-color: var(--secondary-bg);
-    box-shadow: 0.5px 0.5px 1px 0.5px var(--primary-font);
+    border: 0.5px solid rgb(73, 73, 73);
 }
 
 .error{

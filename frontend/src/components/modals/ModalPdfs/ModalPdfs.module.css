@@ -19,7 +19,7 @@
     background-color: var(--primary-bg);
     padding: 2rem;
     overflow-y: scroll;
-    border-radius: 6px;
+    border-radius: 10px;
 }
 
 .modalPdfs>h2{
