@@ -6,6 +6,7 @@ import { useEffect, useState, use } from "react";
 import { BsFileEarmarkPdf } from "react-icons/bs";
 import { IoMdDownload } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
+import { CiClock1 } from "react-icons/ci";
 import { GrView } from "react-icons/gr";
 import { RiCloseLargeFill } from "react-icons/ri";
 import { PdfContext } from "../../../store/pdfgenerator-context";
@@ -70,36 +71,51 @@ export default function ModalPdfs({ title }) {
     const classNameOverlay = `${classes.overlayModal} ${isVisibleModal ? classes.modalVisible : classes.modalClose}`
 
     useEffect(() => {
-        
-            api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, "Failed to fetch PDF's").
-                then((data) => { setPDFs(data); console.log(data) }).
-                catch((error) => { setError(error) });
-        
-    }, [])
 
-   
+        api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, "Failed to fetch PDF's").
+            then((data) => { setPDFs(data); console.log(data) }).
+            catch((error) => { setError(error) });
+
+    }, [isVisibleModal])
+
+
 
     return createPortal(<div className={classNameOverlay}>
         <ul className={classes.modalPdfs}>
-            <span onClick={handleIsVisible} className={classes.closeModal}><RiCloseLargeFill /></span>
-            <h2>Your PDF's</h2>
-            {!error ? PDFs.map((PDF) => {
-                const date = PDF.created_at.split(".")[0].split("T").join(" : ");
-                const downloadUrl = PDF.file_path.startsWith("http")
-                    ? PDF.file_path
-                    : `${API_BASE_URL}/${PDF.file_path}`;
-                return <li className={classes.pdfItem} key={PDF.id}>
-                    <BsFileEarmarkPdf className={classes.pdfIcon} />
-                    <h2 className={classes.title}>{PDF.title.split(".")[0]}</h2>
-                    <div className={classes.modalControls}>
-                        <button className={classes.downloadPdf}><a href={downloadUrl}><IoMdDownload /></a></button>
-                        <button className={classes.deletePdf} onClick={() => deltePDF(PDF.id)}><MdDelete /></button>
-                        <button className={classes.showPdf} onClick={() => showPDF(PDF.id)}><GrView /></button>
-                    </div>
-                    <p>{date}</p>
-                </li>;
-            }) : <Error title="No PDF's uploaded!" message={error?.message || error} />}
+            <div className={classes.modalHeader}>
+                <div>
+                    <h2>Your PDF's</h2>
+                    <p>Manage, download or delete your saved PDF projects.</p>
+                </div>
+                <span onClick={handleIsVisible} className={classes.closeModal}><RiCloseLargeFill /></span>
+            </div>
+            <div className={classes.modalBody}>
 
+                {!error ? PDFs.map((PDF) => {
+                    const date = PDF.created_at.split(".")[0].split("T").join(" : ");
+                    const downloadUrl = PDF.file_path.startsWith("http")
+                        ? PDF.file_path
+                        : `${API_BASE_URL}/${PDF.file_path}`;
+                    return <li className={classes.pdfItem} key={PDF.id}>
+
+                        <div className={classes.wrapperIconTitleDate}>
+                            <div className={classes.wrapperPDFIcon}><BsFileEarmarkPdf className={classes.pdfIcon} /></div>
+                            <div className={classes.wrapperTitelDate}>
+                                <h2 className={classes.title}>{PDF.title.split(".")[0]}</h2>
+                                <div className={classes.date}><CiClock1 /><label>{date}</label></div>
+                            </div>
+                        </div>
+
+                        <div className={classes.modalControls}>
+                            <button className={classes.downloadPdfBtn}><a href={downloadUrl}>Download <IoMdDownload /></a></button>
+                            <button className={classes.deletePdfBtn} onClick={() => deltePDF(PDF.id)}><MdDelete /></button>
+                            <button className={classes.showPdfBtn} onClick={() => showPDF(PDF.id)}><GrView /></button>
+                        </div>
+
+                    </li>;
+                }) : <Error title="No PDF's uploaded!" message={error?.message || error} />}
+            </div>
+            <div className={classes.modalFooter}></div>
         </ul>
     </div>
         , document.getElementById("modal-pdfs"));

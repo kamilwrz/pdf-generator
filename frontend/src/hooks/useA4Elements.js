@@ -220,7 +220,7 @@ export function useA4Elements(titleRef) {
           else {
             return {
               ...element,
-              //isSelected: false
+              isSelected: false
             }
           }
         }
