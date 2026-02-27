@@ -222,7 +222,7 @@ async def download_pdf(db:Session = Depends(get_db), id = Body(), payload: dict 
     pdf_row = request_pdf_by_id(db, id)
     if not pdf_row:
         raise HTTPException(status_code=404, detail="PDF not found.")
-        print(pdf_row)
+    return pdf_row
     
 
 
