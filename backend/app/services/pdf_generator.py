@@ -1,8 +1,12 @@
 from reportlab.lib.colors import HexColor
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from pathlib import Path
 
-pdfmetrics.registerFont(TTFont('Inter', '../../fonts/Inter.ttf'))
+_BACKEND_DIR = Path(__file__).resolve().parent.parent.parent  # app -> backend
+FONT_PATH = _BACKEND_DIR / "fonts" / "Inter.ttf"
+
+pdfmetrics.registerFont(TTFont('Inter', FONT_PATH))
 
 
 class PDF_Generator:
