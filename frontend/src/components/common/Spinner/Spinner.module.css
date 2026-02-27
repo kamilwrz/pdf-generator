@@ -1,24 +1,20 @@
 .spinnerWrapper{
-    position: relative;
-    left: 50%;
-    top: 30px;
-    transform: translateX(-50%);
-    z-index: 2000;
-    width: 150px;
-    min-height:150px;
-    background-color: inherit;
-    border-radius: 10px;
+   position: relative;
+    z-index: 3000;
     display: flex;
- }
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--primary-bg);
+    border: 5px solid var(--secondary-bg);
+    width: 33%;
+    margin: 100px auto;
+    padding: 1rem;
+    border-radius: 10px;
+}
 
  .spinnerText{
-    width: 160px;
-    text-align: center;
     font-family: var(--secondary-font-family);
-    font-size: 1.2rem;
+    font-size: 1rem;
     color:var(--deco-font);
-    position: absolute;
-    bottom: 30px;
-    left:50%;
-    transform: translateX(-50%);
  }

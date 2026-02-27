@@ -1,9 +1,10 @@
 import classes from "./Gallery.module.css";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { useState, useEffect } from "react";
 
 import GalleryItem from "../GalleryItem/GalleryItem";
+import CloseButton from "../../common/CloseButton/CloseButton";
 
 import { ApiClient } from "../../../services/api";
 import { ENDPOINTS } from "../../../services/api";
@@ -15,7 +16,7 @@ import { use } from "react";
 
 export default function Gallery() {
 
-    const { isGallery, isDropzone } = use(PdfContext)
+    const { isGallery, showGallery, isDropzone } = use(PdfContext)
 
     const [images, setImages] = useState([]);
     const [error, setError] = useState()
@@ -53,14 +54,17 @@ export default function Gallery() {
         return <GalleryItem url={imageUrl} key={image.id} img_id={image.id} imageUsed={handleImageUsedInPDF} />;
     })
 
-    return <motion.aside className={classes.gallery}
-        initial={{ opacity: 0, x: 640 }}
-        animate={{ opacity: 1, x: 40 }}
-        exit={{ opacity: 0, x: 640 }}
+    return <AnimatePresence>{isGallery && <motion.aside className={classes.gallery}
+        initial={{ opacity: 0, x: 800 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 800 }}
         transition={{ type: "spring", duration: 2 }}>
+            <div className={classes.galleryHeader}><h2>Gallery</h2><CloseButton top={10} right={-10} clickHandler={showGallery}/></div>
+                
+        
         {!error && IMAGES}
         {error ? <p className={classes.error}>{error.message}</p> : undefined}
-    </motion.aside>
+    </motion.aside>}</AnimatePresence >
 }
 
 

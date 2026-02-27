@@ -1,26 +1,23 @@
 .modalPdfRequestStatus{
     width: 360px;
-    height: 120px;
     position: absolute;
-    top: 30px;
-    left: 610px;
     background-color: var(--primary-bg);
-    border: none;
+    border: 5px solid var(--secondary-bg);
     border-radius: 10px;
-    box-shadow: 1px 1px 2px 1px;
     text-align: center;
     font-family: var(--primary-font-family);
     z-index: 4000;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     justify-content: space-evenly;
     align-items: center;
+    padding: 1rem;
 }
 
 
 .modalPdfRequestStatus p{
     color: var(--primary-font);
-    font-size: 1rem;
+    font-size: 0.9rem;
     margin: 0;
 }
 

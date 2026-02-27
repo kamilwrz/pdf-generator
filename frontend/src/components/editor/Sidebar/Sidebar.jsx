@@ -23,7 +23,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
         createPdf,
         showGallery,
         updatePdf,
-        setIsVisibleModal,
+        setIsModalPdfs,
         clearA4,
         logout,
         isPdfLoading,
@@ -32,7 +32,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
 
 
     function showModalWithPDFs() {
-        setIsVisibleModal(bool => !bool);
+        setIsModalPdfs(bool => !bool);
     }
 
     return <aside className={classes.sidebar}>

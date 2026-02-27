@@ -22,19 +22,19 @@ function PdfCanvas() {
 
   //state for rendering Dropzone // changed in Sidebar (upload images), passed via ctx
   const [isDropzone, setIsDropzone] = useState(false);
-  //state for rendering the Gallery
+  //state for rendering the Gallery // changed in Sidebar (upload images), passed via ctx
   const [isGallery, setIsGallery] = useState(false);
-  //state for checking user activity via MouseEven
+  //state for checking user activity via MouseEven // not really a good idea
   const [checkActivity, setIsActive] = useState(false);
   //state for showing the modal with generated PDF's
-  const [isVisible, setIsVisible] = useState(false);
+  const [isModalPdfs, setIsModalPdfs] = useState(false);
   // state for showing the progress var in Dropzone when IMG is uploaded
-  const [value, setValue] = useState(0);
+  const [valueImageUpload, setValueImageUpload] = useState(0);
   //state for seting the PDF id, used in ModalPdf.jsx
   const [pdfId, setPdfId] = useState(null);
   //FETCHED PDF's
   const [PDFs, setPDFs] = useState([]);
-
+  //the title of the PDF, loadded when pdf loaded
   const titleRef = useRef();
 
   const [isLoadingState, setIsLoadingState] =useState(false)
@@ -128,6 +128,7 @@ function PdfCanvas() {
   }
 
   const ctxValue = useMemo(() => ({
+    //useA4Elements hook
     A4_Elements: A4_Elements,
     addImage: handleAddImage,
     addText: handleAddText,
@@ -135,40 +136,43 @@ function PdfCanvas() {
     selectElement: handleSelectElement,
     moveElement: handleMoveElement,
     selectMoveElement: handleSelectMoveElement,
-    isGallery: isGallery,
-    isDropzone: isDropzone,
-    createPdf: createPdfWithElements,
-    showDropzone: handleShowDropzone,
-    showGallery: handleShowGallery,
     editElementValues: handleEditElementValues,
     alignElement: handleAlignElements,
     deleteElement: handleDeleteElement,
+    resizeElement: handleResizeElement,
     setA4_Elements: setA4_Elements,
     setA4_Elements_deleted: setA4_Elements_deleted,
-    progressValue: value,
-    setValue: setValue,
-    isVisibleModal: isVisible,
-    setIsVisibleModal: setIsVisible,
-    resizeElement: handleResizeElement,
-    updatePdf: updatePdfWithElements,
-    handlePdfId: handlePdfId,
     clearA4: handleClearA4,
+    //usePdfExport hook
+    updatePdf: updatePdfWithElements,
+    createPdf: createPdfWithElements,
+    isPdfLoading: isPdfLoading,
+    //state values defined in PdfCanvas.jsx
+    isGallery: isGallery,
+    showGallery: handleShowGallery,
+    isDropzone: isDropzone,
+    showDropzone: handleShowDropzone,
+    valueImageUpload: valueImageUpload,
+    setValueImageUpload: setValueImageUpload,
+    isModalPdfs: isModalPdfs,
+    setIsModalPdfs: setIsModalPdfs,
+    handlePdfId: handlePdfId,
+    //ELSE
     showModalRequest: handleShowModalRequest,
     logout: handleLogout,
-    isPdfLoading: isPdfLoading,
     PDFs: PDFs,
     setPDFs: setPDFs
   }), [
     A4_Elements,
-    isGallery, isDropzone, value,
-    isVisible, handleAddImage,
+    isGallery, isDropzone, valueImageUpload,
+    isModalPdfs, handleAddImage,
     handleAddText, handleAddLine, handleSelectElement,
     handleMoveElement, handleSelectMoveElement, createPdfWithElements,
     handleShowDropzone, handleShowGallery, handleEditElementValues,
     handleAlignElements, handleDeleteElement, setA4_Elements,
-    setValue, setIsVisible, handleResizeElement, 
+    setValueImageUpload, setIsModalPdfs, handleResizeElement, 
     updatePdfWithElements, handlePdfId, 
-    handleClearA4, handleShowModalRequest, handleLogout
+    handleClearA4, handleShowModalRequest, handleLogout, PDFs, setPDFs,
   ])
 
   console.log(A4_Elements);
@@ -189,7 +193,7 @@ function PdfCanvas() {
           {isPdfLoading && <Spinner loading={isPdfLoading}/>}
           <CanvasElements elements={A4_Elements} />
         </A4>
-        <AnimatePresence> {isGallery && <Gallery />} </AnimatePresence>
+       <Gallery />
       </PdfContext.Provider>
     </main>
   )

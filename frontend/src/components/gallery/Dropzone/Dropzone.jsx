@@ -41,7 +41,7 @@ const PROGRESS_MAX = 2000;
 
 export default function Dropzone() {
 
-    const { progressValue, setValue, isDropzone } = use(PdfContext)
+    const { valueImageUpload, setValueImageUpload, isDropzone } = use(PdfContext)
     const [files, setFiles] = useState([]);
     const [error, setError] = useState();
     const [success, setSuccess] = useState();
@@ -76,7 +76,7 @@ export default function Dropzone() {
 
                 interval = setInterval(() => {
                     elapsed += stepMs;
-                    setValue((prev) => Math.min(prev + stepValue, PROGRESS_MAX));
+                    setValueImageUpload((prev) => Math.min(prev + stepValue, PROGRESS_MAX));
                     if(elapsed >= duration){
                         clearInterval(interval);
                     }
@@ -115,7 +115,7 @@ export default function Dropzone() {
     ));
 
     useEffect(() => {
-        setValue(0);
+        setValueImageUpload(0);
         return () => files.forEach(file => URL.revokeObjectURL(file.preview));
     }, [files]);
 
@@ -129,7 +129,7 @@ export default function Dropzone() {
                 <><aside>
                     {thumbs}
                 </aside>
-                    <Progress max={PROGRESS_MAX} value={progressValue} />
+                    <Progress max={PROGRESS_MAX} value={valueImageUpload} />
                     {success && <p className={classes.success}>{success}</p>}
                     {error && <p className={classes.error}>{error.detail}</p>}
                     

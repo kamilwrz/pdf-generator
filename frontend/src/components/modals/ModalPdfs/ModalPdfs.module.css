@@ -1,19 +1,8 @@
-.overlayModal{
-    width: 100%;
-    height: 100%;
-    z-index: 4000;
-    position: absolute;
-    background-color: rgba(70, 67, 67, 0.6);
-}
-
 .modalPdfs{
-    max-width: 720px;
+    width: 720px;
     height: 360px;
-    z-index: 3000;
-    position: relative;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
+    z-index: 5000;
+    position: absolute;
     display: flex;
     flex-direction: column;
     background-color: var(--primary-bg);
@@ -32,10 +21,13 @@
 
 .modalHeader h2{
    margin: 0;
+   font-size: 1.2rem;
+   padding-top: 0.5rem;
 }
 .modalHeader p{
     margin: 0;
     color: rgb(113 113 122); /* ZINC 500*/
+    font-size: 0.8rem;
  }
 
 .modalBody{
@@ -74,14 +66,6 @@
 .modalFooter{
     height: 10%;
     background-color: var(--secondary-bg);
-}
-
-.modalVisible{
-    visibility: visible;
-}
-
-.modalClose{
-   visibility: hidden;
 }
 
 .closeModal{

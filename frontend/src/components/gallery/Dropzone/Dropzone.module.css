@@ -9,7 +9,7 @@
 }
 
 .fileInput{
-    color: var(--deco-font);
+    color: var(--primary-font);
     text-align: center;
     text-transform: uppercase;
     font-size: 0.8rem;

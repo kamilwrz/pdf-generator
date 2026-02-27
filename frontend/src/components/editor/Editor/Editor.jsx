@@ -1,6 +1,7 @@
 import classes from "./Editor.module.css";
 import { useEffect, useState, useRef } from "react";
 import EditorControls from "../../common/EditorControls/EditorControls";
+import CloseButton from "../../common/CloseButton/CloseButton";
 import { RiDeleteBin2Line } from "react-icons/ri";
 import { CiTextAlignLeft } from "react-icons/ci";
 import { CiTextAlignCenter } from "react-icons/ci";
@@ -37,17 +38,20 @@ export default function Editor() {
         });
     }
 
-    function handleCloseEditor(){
+    function handleCloseEditor(elementId) {
         setA4_Elements(prevState => {
             const newState = prevState.map((element) => {
-                if(element.isSelected){
-                    return {...element, isSelected: false}
+                if(elementId === element.element_id){
+                    return { ...element, isSelected: false }
                 }
-                return {...element}
+                else{
+                    return element
+                }
+
             })
-            return newState;
+            return newState
         })
-    }
+      }
 
     useEffect(() => {
         setElementValues(prevState => {
@@ -78,7 +82,7 @@ export default function Editor() {
         <form className={classes.editorForm}>
             <div className={classes.editorHeading}>
                 <p>Element properties</p>
-                <button type="button" onClick={handleCloseEditor}>x</button>
+                <CloseButton clickHandler={() => handleCloseEditor(elementValues?.element_id)} right={10}/>
             </div>
             {selectedElement?.category === "text" && <>
 
