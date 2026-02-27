@@ -217,7 +217,7 @@ async def update_user_pdf(
         return {"updated": "PDF update was successful!", "link": new_file_path}
 
 
-@router.get("/download_pdf", status_code=status.HTTP_200_OK)
+@router.post("/download_pdf", status_code=status.HTTP_200_OK)
 async def download_pdf(db:Session = Depends(get_db), id = Body(), payload: dict = Depends(verify_token)):
     pdf_row = request_pdf_by_id(db, id)
     if not pdf_row:
