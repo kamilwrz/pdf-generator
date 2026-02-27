@@ -176,8 +176,9 @@ async def update_user_pdf(
     pdf_id = pdf_data.pdf_id
     title = pdf_data.pdf_title
 
-    if "%20" in title:
-        title = unquote(title)
+    title = unquote(title)
+
+    print(title)
 
 
 
