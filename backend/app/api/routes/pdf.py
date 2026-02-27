@@ -162,7 +162,7 @@ async def delete_user_pdf(
                 pass
     else:
         delete_pdf_file(pdf_to_delete.file_path)
-    return {"deleted": "PDF deleted", "name": pdf_to_delete.title, "id": pdf_to_delete.id}
+    return {"deleted": "PDF deleted", "name": pdf_to_delete.title, "pdf_id": pdf_to_delete.id}
 
 
 
@@ -190,10 +190,11 @@ async def update_user_pdf(
         pdf_row.title = title
         pdf_row.file_path = f"https://{s3_storage.S3_BUCKET}.s3.{s3_storage.AWS_REGION}.amazonaws.com/{key}"
         link = pdf_row.file_path
+        id = pdf_row.id
         existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
         update_pdf_elements(db, elements, existing_by_id, pdf_id)
         db.commit()
-        return {"updated": "PDF update was successful!", "link": link}
+        return {"updated": "PDF update was successful!", "link": link, "pdf_id": id}
 
     else:
         new_file_path = rename_pdf_file(pdf_row, title)
@@ -214,6 +215,15 @@ async def update_user_pdf(
         pdf.generatePDF()
         db.commit()
         return {"updated": "PDF update was successful!", "link": new_file_path}
+
+
+@router.get("/download_pdf", status_code=status.HTTP_200_OK)
+async def download_pdf(db:Session = Depends(get_db), id = Body(), payload: dict = Depends(verify_token)):
+    pdf_row = request_pdf_by_id(db, id)
+    if not pdf_row:
+        raise HTTPException(status_code=404, detail="PDF not found.")
+        print(pdf_row)
+    
 
 
 

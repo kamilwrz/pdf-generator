@@ -7,12 +7,13 @@ export const ENDPOINTS = {
         FETCH: "/pdf/fetch_pdfs",
         DELETE: "/pdf/delete_pdf",
         SHOW: "/pdf/show_pdf",
-        UPDATE: "/pdf/update_pdf"
+        UPDATE: "/pdf/update_pdf",
+        DOWNLOAD: "/pdf/download_pdf"
     },
     IMG: {
         UPLOAD: "/images/upload_image",
         FETCH: "/images/fetch_images",
-        DELETE: "/images/delete_image"
+        DELETE: "/images/delete_image",
     },
     AUTH: {
         LOGIN: "/auth/token",

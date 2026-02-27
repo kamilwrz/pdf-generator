@@ -11,7 +11,9 @@ import { FaRegFolderOpen } from "react-icons/fa";
 import { MdPublishedWithChanges } from "react-icons/md";
 import logo from "/images/logo.png";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { forwardRef, use, useState } from "react";
+import { forwardRef, use } from "react";
+import { download } from "../../../utils/download";
+import { ENDPOINTS } from "../../../services/api";
 
 
 export default forwardRef(function Sidebar({ children }, ref) {
@@ -29,6 +31,17 @@ export default forwardRef(function Sidebar({ children }, ref) {
         isPdfLoading,
         PDFs,
     } = use(PdfContext);
+
+    const pdfCreated = PDFs.find(element => element.title === ref.current?.value + ".pdf");
+    const pathToCreatedPdf = pdfCreated?.file_path;
+    let disabled;
+    if(pathToCreatedPdf){
+        disabled=false
+    } else{
+        disabled=true 
+    }
+
+    download(ENDPOINTS.PDF.DOWNLOAD)
 
 
     function showModalWithPDFs() {
@@ -71,7 +84,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
             <div>
                 <button className={classes.btn} onClick={updatePdf} disabled={isPdfLoading}>UPDATE</button>
                 <button className={classes.btn} onClick={clearA4}>CLEAR</button>
-                <button className={classes.btn}><RiDownload2Line /></button>
+                <button className={classes.btn} disabled={disabled}><a href={pathToCreatedPdf}><RiDownload2Line/></a></button>
             </div>
             <div className={classes.logoutWrapper}>
                 <button className={classes.logout} onClick={logout}>
