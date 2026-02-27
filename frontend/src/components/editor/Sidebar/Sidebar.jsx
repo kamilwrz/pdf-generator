@@ -61,13 +61,11 @@ export default forwardRef(function Sidebar({ children }, ref) {
             <SidebarControls icon={<TfiLayoutLineSolid style={{ color: "rgb(217 119 6)" }} />} labelText="add line" sidebarEvent={addLine} />
 
         </div>
-        <hr />
+      
         <div className={classes.myDocumentsContainer}>
             <SidebarControls icon={<FaRegFolderOpen style={{ color: "rgb(64 64 64)" }} />} labelText="My Documents " sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
         </div>
 
-
-        <hr />
         <footer className={classes.sidebarFooter}>
             <button onClick={createPdf} disabled={isPdfLoading}> <MdPublishedWithChanges style={{marginRight:"20px", paddingTop: "5px"}} />Create PDF</button>
             <div>

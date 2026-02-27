@@ -1,4 +1,9 @@
 from reportlab.lib.colors import HexColor
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+pdfmetrics.registerFont(TTFont('Inter', '../../fonts/Inter.ttf'))
+
 
 class PDF_Generator:
     def __init__(self, DATA, CANVAS):

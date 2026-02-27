@@ -84,6 +84,7 @@
 .toolsContainer{
     margin-top: 3rem;
     padding-left: 2rem;
+    border-bottom: 0.5px solid lightgray;
 }
 
 .toolsLabel{
@@ -98,6 +99,7 @@
     padding-left: 2rem;
     height: 25vh;
     margin-top: 2rem;
+    border-bottom: 0.5px solid lightgray;
 }
 
 .documentsCount{
