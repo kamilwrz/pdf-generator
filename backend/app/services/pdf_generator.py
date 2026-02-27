@@ -7,7 +7,7 @@ _BACKEND_DIR = Path(__file__).resolve().parent.parent.parent  # app -> backend
 
 FONT_PATH_INTER = _BACKEND_DIR / "fonts" / "Inter.ttf"
 FONT_PATH_ROBOTO = _BACKEND_DIR / "fonts" / "Roboto.ttf"
-FONT_PATH_TIMESROMAN = _BACKEND_DIR / "fonts" / "Times-Roman.otf"
+FONT_PATH_TIMESROMAN = _BACKEND_DIR / "fonts" / "TimesRoman.otf"
 
 pdfmetrics.registerFont(TTFont('Inter', FONT_PATH_INTER))
 pdfmetrics.registerFont(TTFont('Roboto', FONT_PATH_ROBOTO))
