@@ -41,7 +41,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
         disabled=true 
     }
 
-    download(ENDPOINTS.PDF.DOWNLOAD, 74)
+    
 
 
     function showModalWithPDFs() {
@@ -84,7 +84,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
             <div>
                 <button className={classes.btn} onClick={updatePdf} disabled={isPdfLoading}>UPDATE</button>
                 <button className={classes.btn} onClick={clearA4}>CLEAR</button>
-                <button className={classes.btn} disabled={disabled}><a href={pathToCreatedPdf}><RiDownload2Line/></a></button>
+                <button className={classes.btn} disabled={disabled}><a href={pathToCreatedPdf} onClick={download(ENDPOINTS.PDF.DOWNLOAD, 74)}><RiDownload2Line/></a></button>
             </div>
             <div className={classes.logoutWrapper}>
                 <button className={classes.logout} onClick={logout}>
