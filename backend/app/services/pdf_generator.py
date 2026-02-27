@@ -11,7 +11,7 @@ FONT_PATH_TIMESROMAN = _BACKEND_DIR / "fonts" / "Times-Roman.otf"
 
 pdfmetrics.registerFont(TTFont('Inter', FONT_PATH_INTER))
 pdfmetrics.registerFont(TTFont('Roboto', FONT_PATH_ROBOTO))
-pdfmetrics.registerFont(TTFont('Roboto', FONT_PATH_TIMESROMAN))
+pdfmetrics.registerFont(TTFont('Times-Roman', FONT_PATH_TIMESROMAN))
 
 
 class PDF_Generator:
