@@ -176,12 +176,6 @@ async def update_user_pdf(
     pdf_id = pdf_data.pdf_id
     title = pdf_data.pdf_title
 
-    title = unquote(title)
-
-    print(title)
-
-
-
     username = payload.get("sub")
     db_user = get_user_by_username(db, username=username)
 
