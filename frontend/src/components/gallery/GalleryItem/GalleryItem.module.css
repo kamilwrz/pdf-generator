@@ -10,6 +10,7 @@
 
 .image:hover{
     opacity: 0.7;
+    box-shadow: 1px 1px 2px 1px;
 }
 
 .imageWrapper{
@@ -27,4 +28,5 @@
 
 .imageWrapper button:hover{
     opacity: 0.7;
+    
 }

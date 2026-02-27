@@ -9,8 +9,7 @@ def image_src_to_local_path(src: str) -> str:
     if not src:
         return src
     if USE_S3 and src.startswith("https://") and ".amazonaws.com/" in src:
-        print(unquote(src))
-        return s3_storage.image_src_to_path_for_reportlab(src, REPORTLAB_IMAGES_TEMP)
+        return s3_storage.image_src_to_path_for_reportlab(unquote(src), REPORTLAB_IMAGES_TEMP)
     if src.startswith(("http://", "https://")):
         parsed = urlparse(src)
         path = parsed.path.lstrip("/").replace("\\", "/")
