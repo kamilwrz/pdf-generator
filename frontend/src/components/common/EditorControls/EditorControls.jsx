@@ -9,6 +9,7 @@ export default function EditorControls({ labelText, type, inputValue, onChangeFn
                 <option value="Helvetica" >Helvetica</option>
                 <option value="Courier" >Courier</option>
                 <option value="Inter" >Inter</option>
+                <option value="Roboto" >Roboto</option>
             </select>
             : <input type={type} value={inputValue} onChange={onChangeFn} disabled={isDisabled}/>}
     </div>

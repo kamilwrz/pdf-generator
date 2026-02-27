@@ -4,11 +4,12 @@ from reportlab.pdfbase.ttfonts import TTFont
 from pathlib import Path
 
 _BACKEND_DIR = Path(__file__).resolve().parent.parent.parent  # app -> backend
-print(Path(__file__))
-print(Path(__file__).resolve())
-FONT_PATH = _BACKEND_DIR / "fonts" / "Inter.ttf"
 
-pdfmetrics.registerFont(TTFont('Inter', FONT_PATH))
+FONT_PATH_INTER = _BACKEND_DIR / "fonts" / "Inter.ttf"
+FONT_PATH_ROBOTO = _BACKEND_DIR / "fonts" / "Roboto.ttf"
+
+pdfmetrics.registerFont(TTFont('Inter', FONT_PATH_INTER))
+pdfmetrics.registerFont(TTFont('Roboto', FONT_PATH_ROBOTO))
 
 
 class PDF_Generator:
