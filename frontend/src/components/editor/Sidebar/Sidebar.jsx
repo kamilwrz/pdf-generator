@@ -41,7 +41,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
         disabled=true 
     }
 
-    download(ENDPOINTS.PDF.DOWNLOAD)
+    download(ENDPOINTS.PDF.DOWNLOAD, 74)
 
 
     function showModalWithPDFs() {
