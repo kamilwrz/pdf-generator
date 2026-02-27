@@ -23,6 +23,7 @@
 .galleryHeader h2 {
     text-align: center;
     background-color: var(--secondary-bg);
+    color: var(--secondary-font);
     padding: 1rem;
     font-size: 1.2rem;
 }

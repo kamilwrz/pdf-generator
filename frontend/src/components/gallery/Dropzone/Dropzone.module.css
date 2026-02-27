@@ -9,14 +9,14 @@
 }
 
 .fileInput{
-    color: var(--primary-font);
+    color: var(--secondary-font);
     text-align: center;
     text-transform: uppercase;
     font-size: 0.8rem;
     padding: 2rem;
     border-radius: 3px;
     margin-bottom: 2rem;
-    border: 0.5px solid rgb(73, 73, 73);
+    border: 0.5px solid var(--secondary-font);
 }
 
 .error{
