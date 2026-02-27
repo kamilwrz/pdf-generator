@@ -4,6 +4,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 from pathlib import Path
 
 _BACKEND_DIR = Path(__file__).resolve().parent.parent.parent  # app -> backend
+print(Path(__file__))
+print(Path(__file__).resolve())
 FONT_PATH = _BACKEND_DIR / "fonts" / "Inter.ttf"
 
 pdfmetrics.registerFont(TTFont('Inter', FONT_PATH))
