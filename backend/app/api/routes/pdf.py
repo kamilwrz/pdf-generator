@@ -8,6 +8,7 @@ from app.core.security import verify_token
 from app.crud.user import get_user_by_username
 from app.schemas.pdf_schema import PDFCreateRequest, PDFUpdateRequest
 from app.dependencies import get_db
+from urllib.parse import unquote, urlparse
 
 from os import listdir
 from os.path import isfile, join
@@ -174,6 +175,11 @@ async def update_user_pdf(
     elements = pdf_data.root
     pdf_id = pdf_data.pdf_id
     title = pdf_data.pdf_title
+
+    if "%20" in title:
+        title = unquote(title)
+
+
 
     username = payload.get("sub")
     db_user = get_user_by_username(db, username=username)
