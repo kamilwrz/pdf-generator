@@ -41,7 +41,7 @@ function PdfCanvas() {
 
   const [modalRequestStatus, setModalRequestStatus] = useState(false);
 
-  const [PDFdownloadData, setPDFdownloadData] = useState({})
+  const [PDFdownloadData, setPDFdownloadData] = useState([])
 
 
   const {

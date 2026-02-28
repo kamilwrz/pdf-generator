@@ -224,7 +224,7 @@ async def download_pdf(db:Session = Depends(get_db), id = Body(), payload: dict 
         raise HTTPException(status_code=404, detail="PDF not found.")
     return pdf_row
 
-@router.post("/download_pdfs", status_code=status.HTTP_200_OK)
+@router.get("/download_pdfs", status_code=status.HTTP_200_OK)
 async def download_pdfs(db:Session = Depends(get_db), payload: dict = Depends(verify_token)):
     username = payload.get("sub")
     db_user = get_user_by_username(db, username=username)

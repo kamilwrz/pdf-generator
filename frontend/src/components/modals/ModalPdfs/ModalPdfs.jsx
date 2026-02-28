@@ -18,6 +18,7 @@ import API_BASE_URL from "../../../services/api";
 
 import Error from "../../common/Error/Error";
 import CloseButton from "../../common/CloseButton/CloseButton";
+import { data } from "react-router-dom";
 
 
 //MODAL FOR SHWOING SAVED PDF'S
@@ -27,7 +28,7 @@ export default function ModalPdfs({ title }) {
 
     const [error, setError] = useState(false);
 
-    const { 
+    const {
         isModalPdfs,
         setIsModalPdfs,
         setA4_Elements,
@@ -35,10 +36,10 @@ export default function ModalPdfs({ title }) {
         clearA4,
         setA4_Elements_deleted,
         setPDFs,
-        PDFs, 
+        PDFs,
         setPDFdownloadData,
         PDFdownloadData
-     } = use(PdfContext);
+    } = use(PdfContext);
 
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
 
@@ -86,20 +87,21 @@ export default function ModalPdfs({ title }) {
     }
 
     useEffect(() => {
-
         api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, "Failed to fetch PDF's").
-            then((data) => { setPDFs(data); console.log(data) }).
-            catch((error) => { setError(error) });
+            then((data) => {
+                setPDFs(data);
+                }).
+            catch((error) => { setError(error) })
 
-        api.httpRequest(ENDPOINTS.PDF.DOWNLOADS, "POST", null, "Failed to fetch PDF's", null).then(response => console.log(response))
-
+        api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "GET", null, "Error").then(data => console.log(data))
+            
     }, [isModalPdfs])
 
-
+   console.log(PDFdownloadData)
 
     return createPortal(
         <AnimatePresence>
-            {isModalPdfs && <motion.ul initial={{ opacity: 0, y: -30, x:475 }}
+            {isModalPdfs && <motion.ul initial={{ opacity: 0, y: -30, x: 475 }}
                 animate={{ opacity: 1, y: 30 }}
                 exit={{ opacity: 0, y: -30 }}
                 transition={{ type: "spring", duration: 2, ease: [0, 0.71, 0.2, 1.01] }} className={classes.modalPdfs} >
@@ -108,11 +110,11 @@ export default function ModalPdfs({ title }) {
                         <h2>Your PDF's</h2>
                         <p>Manage, download or delete your saved PDF projects.</p>
                     </div>
-                    <CloseButton clickHandler={handleIsVisible} top={10} right={80}/>
+                    <CloseButton clickHandler={handleIsVisible} top={10} right={80} />
                 </div>
                 <div className={classes.modalBody}>
 
-                    {!error ? PDFs.map((PDF) => {
+                    {!error ? PDFs.map((PDF, id) => {
                         const date = PDF.created_at.split(".")[0].split("T").join(" : ");
                         const downloadUrl = PDF.file_path.startsWith("http")
                             ? PDF.file_path
@@ -128,7 +130,8 @@ export default function ModalPdfs({ title }) {
                             </div>
 
                             <div className={classes.modalControls}>
-                                <button className={classes.downloadPdfBtn}><a href={downloadUrl}>Download <IoMdDownload /></a></button>
+                                <button className={classes.downloadPdfBtn}><a>
+                                Download <IoMdDownload /></a></button>
                                 <button className={classes.deletePdfBtn} onClick={() => deltePDF(PDF.id)}><MdDelete /></button>
                                 <button className={classes.showPdfBtn} onClick={() => showPDF(PDF.id)}><GrView /></button>
                             </div>

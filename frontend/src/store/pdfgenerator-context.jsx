@@ -38,5 +38,5 @@ export const PdfContext = createContext({
     isPdfLoading: false,
     setA4_Elements_deleted: () =>{},
     setPDFdownloadData: () => {},
-    PDFdownloadData: {}
+    PDFdownloadData: []
 })

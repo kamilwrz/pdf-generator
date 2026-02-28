@@ -28,11 +28,13 @@ export default API_BASE_URL;
 export class ApiClient {
     constructor(headers) {
         this.baseUrl = API_BASE_URL,
-        this.headers = { 'Content-Type': 'application/json', ...headers }
+        this.headers = { 'Content-Type': 'application/json', ...headers },
+        this.DATA = []
     }
 
-    async httpRequest(endpoint, method, body, errorMessage, filename) {
+    async httpRequest(endpoint, method, body, errorMessage) {
 
+        
         const headers = { ...this.headers };
         if (body instanceof FormData) delete headers['Content-Type'];
 
@@ -48,25 +50,16 @@ export class ApiClient {
                 const error = await response.json();
                 throw new Error(error.detail || errorMessage);
             }
-            else if(endpoint === ENDPOINTS.PDF.DOWNLOAD){
-                const data = await response.blob();
-                const blobUrl = URL.createObjectURL(data);
-                return {blob: blobUrl, filename: filename};  
-            }
-
-            else if(endpoint === ENDPOINTS.PDF.DOWNLOADS){
-                const data = await response.blob()
-                const blobUrl = URL.createObjectURL(data);
-                console.log(blobUrl);
-            }
-            
             else{
                 const data = await response.json();
                 return data;  
             }
 
+           
+
         } catch (error) {
             throw new Error(error?.message || errorMessage);
         }
     }
+    
 }
