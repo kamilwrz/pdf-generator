@@ -50,6 +50,10 @@ export class ApiClient {
                 const error = await response.json();
                 throw new Error(error.detail || errorMessage);
             }
+            else if(endpoint === ENDPOINTS.PDF.DOWNLOADS){
+                const data = response;
+                return data;
+            }
             else{
                 const data = await response.json();
                 return data;  

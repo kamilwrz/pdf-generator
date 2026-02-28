@@ -93,11 +93,26 @@ export default function ModalPdfs({ title }) {
                 }).
             catch((error) => { setError(error) })
 
-        api.httpRequest(ENDPOINTS.PDF.DOWNLOADS, "GET", null, "Error").then(data => console.log(data))
-            
+
     }, [isModalPdfs])
 
+
+    useEffect(() => {
+        api.httpRequest(ENDPOINTS.PDF.DOWNLOADS, "GET", null, "Error").then((data) => {return data.json()}).then(
+            async data => {
+                const BLOBS = await Promise.all(data.map(async (url) => {
+                     const response = await fetch(url.file_path);
+                     const blob = URL.createObjectURL(await response.blob());
+                     return {file_path: url.file_path, blob}
+                }))
+                setPDFdownloadData(BLOBS);
+            }
+        )
+    }, [PDFs])
+
+
    console.log(PDFdownloadData)
+   
 
     return createPortal(
         <AnimatePresence>
@@ -115,6 +130,7 @@ export default function ModalPdfs({ title }) {
                 <div className={classes.modalBody}>
 
                     {!error ? PDFs.map((PDF, id) => {
+                        const fileName = PDFdownloadData[id]?.file_path.split("/")[PDFdownloadData[id]?.file_path.split("/").length- 1];
                         const date = PDF.created_at.split(".")[0].split("T").join(" : ");
                         const downloadUrl = PDF.file_path.startsWith("http")
                             ? PDF.file_path
@@ -130,7 +146,7 @@ export default function ModalPdfs({ title }) {
                             </div>
 
                             <div className={classes.modalControls}>
-                                <button className={classes.downloadPdfBtn}><a>
+                                <button className={classes.downloadPdfBtn}><a href={PDFdownloadData[id]?.blob} download={fileName}>
                                 Download <IoMdDownload /></a></button>
                                 <button className={classes.deletePdfBtn} onClick={() => deltePDF(PDF.id)}><MdDelete /></button>
                                 <button className={classes.showPdfBtn} onClick={() => showPDF(PDF.id)}><GrView /></button>
