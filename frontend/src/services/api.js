@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://pdf-generator-07cb.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 //ENDPOINTS
 export const ENDPOINTS = {
@@ -9,7 +9,6 @@ export const ENDPOINTS = {
         SHOW: "/pdf/show_pdf",
         UPDATE: "/pdf/update_pdf",
         DOWNLOAD: "/pdf/download_pdf",
-        DOWNLOADS: "/pdf/download_pdfs"
     },
     IMG: {
         UPLOAD: "/images/upload_image",
@@ -49,10 +48,6 @@ export class ApiClient {
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || errorMessage);
-            }
-            else if(endpoint === ENDPOINTS.PDF.DOWNLOADS){
-                const data = response;
-                return data;
             }
             else{
                 const data = await response.json();
