@@ -12,7 +12,7 @@ import { MdPublishedWithChanges } from "react-icons/md";
 import logo from "/images/logo.png";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { forwardRef, use } from "react";
-import { ApiClient, ENDPOINTS } from "../../../services/api";
+import { ENDPOINTS } from "../../../services/api";
 
 
 export default forwardRef(function Sidebar({ children }, ref) {
@@ -39,6 +39,9 @@ export default forwardRef(function Sidebar({ children }, ref) {
     } else{
         disabled=true 
     }
+
+    
+
 
     function showModalWithPDFs() {
         setIsModalPdfs(bool => !bool);

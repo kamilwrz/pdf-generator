@@ -36,5 +36,7 @@ export const PdfContext = createContext({
     showModalRequest: () => {},
     logout: () => {},
     isPdfLoading: false,
-    setA4_Elements_deleted: () =>{}
+    setA4_Elements_deleted: () =>{},
+    setPDFdownloadData: () => {},
+    PDFdownloadData: {}
 })

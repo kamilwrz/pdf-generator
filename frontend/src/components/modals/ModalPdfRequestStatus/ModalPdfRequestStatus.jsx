@@ -10,9 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 function ModalPdfRequestStatus({ message, open }) {
 
-    const { showModalRequest } = use(PdfContext)
-
-    console.log(message)
+    const { showModalRequest} = use(PdfContext)
 
     return createPortal(<AnimatePresence>{open && <motion.div 
         initial={{ opacity: 0, y: -30, x: 530 }}

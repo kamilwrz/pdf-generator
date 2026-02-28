@@ -41,6 +41,8 @@ function PdfCanvas() {
 
   const [modalRequestStatus, setModalRequestStatus] = useState(false);
 
+  const [PDFdownloadData, setPDFdownloadData] = useState({})
+
 
   const {
     A4_Elements,
@@ -161,7 +163,9 @@ function PdfCanvas() {
     showModalRequest: handleShowModalRequest,
     logout: handleLogout,
     PDFs: PDFs,
-    setPDFs: setPDFs
+    setPDFs: setPDFs,
+    setPDFdownloadData: setPDFdownloadData,
+    PDFdownloadData: PDFdownloadData
   }), [
     A4_Elements,
     isGallery, isDropzone, valueImageUpload,

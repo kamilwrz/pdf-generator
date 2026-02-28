@@ -35,7 +35,9 @@ export default function ModalPdfs({ title }) {
         clearA4,
         setA4_Elements_deleted,
         setPDFs,
-        PDFs
+        PDFs, 
+        setPDFdownloadData,
+        PDFdownloadData
      } = use(PdfContext);
 
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
@@ -67,7 +69,6 @@ export default function ModalPdfs({ title }) {
                 setError(error);
             }).finally(() => {
                 setA4_Elements_deleted([]);
-                api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "POST", id, "Failed");
             })
     }
 
@@ -79,7 +80,7 @@ export default function ModalPdfs({ title }) {
             then((data) => {
                 console.log(data);
                 setPDFs(prevState => {
-                    return prevState.filter(element => element.id !== data.id);
+                    return prevState.filter(element => element.id !== data.pdf_id);
                 })
             }).catch((error) => { setError(error) })
     }
@@ -90,13 +91,15 @@ export default function ModalPdfs({ title }) {
             then((data) => { setPDFs(data); console.log(data) }).
             catch((error) => { setError(error) });
 
+        api.httpRequest(ENDPOINTS.PDF.DOWNLOADS, "POST", null, "Failed to fetch PDF's", null).then(response => console.log(response))
+
     }, [isModalPdfs])
 
 
 
     return createPortal(
         <AnimatePresence>
-            {isModalPdfs && <motion.ul initial={{ opacity: 0, y: -30, x:400 }}
+            {isModalPdfs && <motion.ul initial={{ opacity: 0, y: -30, x:475 }}
                 animate={{ opacity: 1, y: 30 }}
                 exit={{ opacity: 0, y: -30 }}
                 transition={{ type: "spring", duration: 2, ease: [0, 0.71, 0.2, 1.01] }} className={classes.modalPdfs} >
@@ -105,7 +108,7 @@ export default function ModalPdfs({ title }) {
                         <h2>Your PDF's</h2>
                         <p>Manage, download or delete your saved PDF projects.</p>
                     </div>
-                    <CloseButton clickHandler={handleIsVisible} top={10} right={40}/>
+                    <CloseButton clickHandler={handleIsVisible} top={10} right={80}/>
                 </div>
                 <div className={classes.modalBody}>
 

@@ -8,7 +8,8 @@ export const ENDPOINTS = {
         DELETE: "/pdf/delete_pdf",
         SHOW: "/pdf/show_pdf",
         UPDATE: "/pdf/update_pdf",
-        DOWNLOAD: "/pdf/download_pdf"
+        DOWNLOAD: "/pdf/download_pdf",
+        DOWNLOADS: "/pdf/download_pdfs"
     },
     IMG: {
         UPLOAD: "/images/upload_image",
@@ -30,7 +31,7 @@ export class ApiClient {
         this.headers = { 'Content-Type': 'application/json', ...headers }
     }
 
-    async httpRequest(endpoint, method, body, errorMessage) {
+    async httpRequest(endpoint, method, body, errorMessage, filename) {
 
         const headers = { ...this.headers };
         if (body instanceof FormData) delete headers['Content-Type'];
@@ -48,24 +49,20 @@ export class ApiClient {
                 throw new Error(error.detail || errorMessage);
             }
             else if(endpoint === ENDPOINTS.PDF.DOWNLOAD){
-                
                 const data = await response.blob();
-                console.log(URL.createObjectURL(data))
-                return data;  
+                const blobUrl = URL.createObjectURL(data);
+                return {blob: blobUrl, filename: filename};  
+            }
+
+            else if(endpoint === ENDPOINTS.PDF.DOWNLOADS){
+                const data = await response.blob()
+                console.log(data);
             }
             
             else{
-               console.log(response)
                 const data = await response.json();
                 return data;  
             }
-
-           
-            
-
-            
-
-
 
         } catch (error) {
             throw new Error(error?.message || errorMessage);
