@@ -4,7 +4,7 @@
     width: 20px;
     height: 20px;
     z-index: 1000;
-    background-color: var(--deco-font); 
+    background-color: var(--secondary-bg); 
     border-radius: 50%;
 }
 

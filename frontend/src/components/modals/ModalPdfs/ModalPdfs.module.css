@@ -1,6 +1,6 @@
 .modalPdfs{
     width: 720px;
-    height: 360px;
+    height: 420px;
     z-index: 5000;
     position: absolute;
     display: flex;
@@ -113,7 +113,7 @@
 }
 
 .title{
-    font-size: 1.1rem;
+    font-size: 1rem;
     color: #71717a /*ZINC 500*/;
 }
 

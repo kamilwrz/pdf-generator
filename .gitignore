@@ -12,10 +12,17 @@ env/
 dist/
 build/
 
-# Environment and secrets
+# Environment and secrets (never commit real keys; use .env.example as template)
 .env
 .env.local
+.env.development
+.env.development.local
+.env.production
+.env.production.local
+.env.test
+.env.test.local
 .env.*.local
+# Templates to keep committed: backend/.env.example  frontend/.env.example
 
 # Database
 *.db

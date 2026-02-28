@@ -116,7 +116,7 @@ export default function ModalPdfs({ title }) {
 
     return createPortal(
         <AnimatePresence>
-            {isModalPdfs && <motion.ul initial={{ opacity: 0, y: -30, x: 475 }}
+            {isModalPdfs && <motion.ul initial={{ opacity: 0, y: -30, x: 400 }}
                 animate={{ opacity: 1, y: 30 }}
                 exit={{ opacity: 0, y: -30 }}
                 transition={{ type: "spring", duration: 2, ease: [0, 0.71, 0.2, 1.01] }} className={classes.modalPdfs} >
@@ -125,7 +125,7 @@ export default function ModalPdfs({ title }) {
                         <h2>Your PDF's</h2>
                         <p>Manage, download or delete your saved PDF projects.</p>
                     </div>
-                    <CloseButton clickHandler={handleIsVisible} top={10} right={80} />
+                    <CloseButton clickHandler={handleIsVisible} top={20} right={20} />
                 </div>
                 <div className={classes.modalBody}>
 

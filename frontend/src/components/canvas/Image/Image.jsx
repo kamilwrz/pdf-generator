@@ -69,7 +69,7 @@ function Image({
             src={src}
             style={style}
             onDoubleClick={() => selectElement(elementId)}
-            onMouseMove={(e) => moveElement(e, elementId, category)}
+            onMouseMove={(e) => moveElement(e, elementId)}
             onMouseDown={() => selectMoveElement(elementId)}
             onMouseUp={() => selectMoveElement(elementId)}
             className={isSelected ? classes.selectedElement : ""}

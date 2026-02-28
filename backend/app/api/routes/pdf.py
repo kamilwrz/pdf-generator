@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.services.pdf_generator import PDF_Generator
 from reportlab.pdfgen import canvas
 from app.core.config import PDF_UPLOAD_DIR
+from app.core.config import BACKEND_URL
 from app.core.security import verify_token
 from app.crud.user import get_user_by_username
 from app.schemas.pdf_schema import PDFCreateRequest, PDFUpdateRequest
@@ -103,7 +104,7 @@ async def create_user_pdf(
         pdf.generatePDF()
 
     
-        return {"created": "PDF created!", "link": f"https://pdf-generator-07cb.onrender.com/{pdf_path.as_posix()}", "pdf_id": pdf_id}
+        return {"created": "PDF created!", "link": BACKEND_URL/pdf_path.as_posix(), "pdf_id": pdf_id}
 
 
 @router.get("/fetch_pdfs", status_code=status.HTTP_200_OK)

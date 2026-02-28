@@ -59,8 +59,6 @@ export class ApiClient {
                 return data;  
             }
 
-           
-
         } catch (error) {
             throw new Error(error?.message || errorMessage);
         }
