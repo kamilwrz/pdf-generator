@@ -5,12 +5,36 @@ import { createPortal } from "react-dom";
 import CloseButton from "../../common/CloseButton/CloseButton";
 import { FiDownload } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
+import { ENDPOINTS } from "../../../services/api";
+import { ApiClient } from "../../../services/api";
 
 
 
 function ModalPdfRequestStatus({ message, open }) {
 
-    const { showModalRequest} = use(PdfContext)
+    const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
+
+    async function downloadPdf(id){
+        const response = await api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "POST", id, "Error");
+    
+        const blob = (await fetch(response.url)).blob()
+        const urlBlob = URL.createObjectURL(await blob);
+    
+        setPDFdownloadData({blob: urlBlob, title: response.title})
+    
+        const timeout = setTimeout(() => {
+            URL.revokeObjectURL(urlBlob);
+            showModalRequest();
+        },6000)
+
+        clearTimeout(timeout);
+      }
+
+    useEffect(() => {
+        downloadPdf(message?.pdf_id);
+    }, [open])
+
+    const { showModalRequest, setPDFdownloadData, PDFdownloadData} = use(PdfContext)
 
     return createPortal(<AnimatePresence>{open && <motion.div 
         initial={{ opacity: 0, y: -30, x: 530 }}
@@ -23,7 +47,7 @@ function ModalPdfRequestStatus({ message, open }) {
         {/**SHOW ERROR MESSAGE */}
         {message?.message && <p>{message?.message}</p>}
         {/**SHOW SUCCESS MESSAGE / PDF CREATED / PDF UPDATE */}
-        {message?.success && message?.link && <><p>{message?.success}</p> <button className={classes.btnDownloadPDF}><a href={message?.link}><FiDownload /></a></button> </>}
+        {message?.success && <><p>{message?.success}</p> <button className={classes.btnDownloadPDF}><a href={PDFdownloadData.blob} download={PDFdownloadData.title}><FiDownload /></a></button> </>}
 
         <CloseButton top={-15} left={-15} clickHandler={showModalRequest}/>
 

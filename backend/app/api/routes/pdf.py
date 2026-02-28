@@ -215,7 +215,7 @@ async def update_user_pdf(
                 pdf.renderImage(src, float(element.width), float(element.height), element.left, element.top)
         pdf.generatePDF()
         db.commit()
-        return {"updated": "PDF update was successful!", "link": new_file_path}
+        return {"updated": "PDF update was successful!", "link": new_file_path, "pdf_id": pdf_row.id}
 
 
 @router.post("/download_pdf", status_code=status.HTTP_200_OK)

@@ -99,11 +99,11 @@ export default function ModalPdfs({ title }) {
 
   async function downloadPdf(id){
     const response = await api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "POST", id, "Error");
-    const blob = (await fetch(response.file_path)).blob()
-    const urlBlob = URL.createObjectURL(await blob);
-    const fileName = await response.title;
 
-    setPDFdownloadData({blob: urlBlob, title: fileName})
+    const blob = (await fetch(response.url)).blob()
+    const urlBlob = URL.createObjectURL(await blob);
+
+    setPDFdownloadData({blob: urlBlob, title: response.title})
 
     setTimeout(() => {
         URL.revokeObjectURL(urlBlob);
