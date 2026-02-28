@@ -106,8 +106,8 @@ export default function ModalPdfs({ title }) {
     setPDFdownloadData({blob: urlBlob, title: fileName})
 
     setTimeout(() => {
-        console.log(URL.revokeObjectURL(urlBlob));
-    },10000)
+        URL.revokeObjectURL(urlBlob);
+    },3000)
     
   }
 
