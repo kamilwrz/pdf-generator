@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.models import Pdf, PdfElements
 from datetime import datetime, timezone
 import datetime
+from images import request_image_by_id
 
 
 def create_new_pdf(db:Session, title:str, user_id:int, file_path:str, elements:list):
@@ -14,10 +15,17 @@ def create_new_pdf(db:Session, title:str, user_id:int, file_path:str, elements:l
         updated_at = datetime.datetime.now(timezone.utc)
     )
 
+
     db.add(pdf_db)
     db.flush()
 
     for element in elements:
+        if element.img_id != None:
+            if not request_image_by_id(db, element.img_id):
+                img_id = None
+            else:
+                img_id = element.img_id
+
         pdf_elements_db = PdfElements(
             pdf_id = pdf_db.id,
             element_id = element.element_id,
@@ -32,7 +40,7 @@ def create_new_pdf(db:Session, title:str, user_id:int, file_path:str, elements:l
             color = element.color,
             src = element.src,
             backgroundColor = element.backgroundColor,
-            img_id = element.img_id,
+            img_id = img_id,
             extra_properties = {"zIndex": element.zIndex, "isSelected" : element.isSelected, "isMove": element.isMove}
     )
         db.add(pdf_elements_db)
@@ -66,6 +74,13 @@ def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_i
     print(existing_elements)
 
     for element in elements:
+           
+        if element.img_id != None:
+            if not request_image_by_id(db, element.img_id):
+                img_id = None
+            else:
+                img_id = element.img_id
+
         if element.element_id not in existing_elements:
             pdf_elements = PdfElements(
               pdf_id=pdf_id,
@@ -81,7 +96,7 @@ def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_i
               color=element.color,
               src=element.src,
               backgroundColor=element.backgroundColor,
-              img_id=element.img_id,
+              img_id=img_id,
               extra_properties={"zIndex": element.zIndex, "isSelected": element.isSelected, "isMove": element.isMove},
             )
             db.add(pdf_elements)
@@ -101,5 +116,5 @@ def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_i
             existing_row.color = element.color
             existing_row.src = element.src
             existing_row.backgroundColor = element.backgroundColor
-            existing_row.img_id = element.img_id
+            existing_row.img_id = img_id
             existing_row.extra_properties = {"zIndex": element.zIndex, "isSelected": element.isSelected, "isMove": element.isMove}

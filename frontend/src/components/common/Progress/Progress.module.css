@@ -13,7 +13,7 @@
 }
 
 .progress::-webkit-progress-value {
-    background: #a1a1aa;
+    background: var(--deco-font);
     border-radius: 3px;
 }
 
