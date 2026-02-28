@@ -20,11 +20,10 @@ def create_new_pdf(db:Session, title:str, user_id:int, file_path:str, elements:l
     db.flush()
 
     for element in elements:
-        if element.img_id != None:
-            if not request_image_by_id(db, element.img_id):
-                img_id = None
-            else:
-                img_id = element.img_id
+        
+        img_id = element.img_id
+        if element.img_id is not None and not request_image_by_id(db, element.img_id):
+            img_id = None
 
         pdf_elements_db = PdfElements(
             pdf_id = pdf_db.id,
@@ -74,12 +73,10 @@ def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_i
     print(existing_elements)
 
     for element in elements:
-           
-        if element.img_id != None:
-            if not request_image_by_id(db, element.img_id):
-                img_id = None
-            else:
-                img_id = element.img_id
+
+        img_id = element.img_id
+        if element.img_id is not None and not request_image_by_id(db, element.img_id):
+            img_id = None
 
         if element.element_id not in existing_elements:
             pdf_elements = PdfElements(
