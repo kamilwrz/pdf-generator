@@ -39,16 +39,33 @@ export class ApiClient {
             const response = await fetch(this.baseUrl + endpoint, {
                 method: method,
                 headers: headers,
-                body: body
+                body: body,
+                credentials: "include"
             });
 
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || errorMessage);
             }
+            else if(endpoint === ENDPOINTS.PDF.DOWNLOAD){
+                
+                const data = await response.blob();
+                console.log(URL.createObjectURL(data))
+                return data;  
+            }
+            
+            else{
+               console.log(response)
+                const data = await response.json();
+                return data;  
+            }
 
-            const data = await response.json();
-            return data;
+           
+            
+
+            
+
+
 
         } catch (error) {
             throw new Error(error?.message || errorMessage);

@@ -67,6 +67,7 @@ export default function ModalPdfs({ title }) {
                 setError(error);
             }).finally(() => {
                 setA4_Elements_deleted([]);
+                api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "POST", id, "Failed");
             })
     }
 

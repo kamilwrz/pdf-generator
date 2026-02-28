@@ -12,8 +12,7 @@ import { MdPublishedWithChanges } from "react-icons/md";
 import logo from "/images/logo.png";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { forwardRef, use } from "react";
-import { download } from "../../../utils/download";
-import { ENDPOINTS } from "../../../services/api";
+import { ApiClient, ENDPOINTS } from "../../../services/api";
 
 
 export default forwardRef(function Sidebar({ children }, ref) {
@@ -40,9 +39,6 @@ export default forwardRef(function Sidebar({ children }, ref) {
     } else{
         disabled=true 
     }
-
-    
-
 
     function showModalWithPDFs() {
         setIsModalPdfs(bool => !bool);
@@ -84,7 +80,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
             <div>
                 <button className={classes.btn} onClick={updatePdf} disabled={isPdfLoading}>UPDATE</button>
                 <button className={classes.btn} onClick={clearA4}>CLEAR</button>
-                <button className={classes.btn} disabled={disabled}><a onClick={download(ENDPOINTS.PDF.DOWNLOAD, 74)}><RiDownload2Line/></a></button>
+                <button className={classes.btn} disabled={disabled}><a><RiDownload2Line/></a></button>
             </div>
             <div className={classes.logoutWrapper}>
                 <button className={classes.logout} onClick={logout}>
