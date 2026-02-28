@@ -147,7 +147,7 @@ export default function ModalPdfs({ title }) {
                             </div>
 
                             <div className={classes.modalControls}>
-                                <button className={classes.downloadPdfBtn}><a href={PDFdownloadData.blob} download={PDFdownloadData.title} onMouseEnter={() => downloadPdf(PDF.id)}>
+                                <button className={classes.downloadPdfBtn} onMouseEnter={() => downloadPdf(PDF.id)}><a href={PDFdownloadData.blob} download={PDFdownloadData.title}>
                                 Download <IoMdDownload /></a></button>
                                 <button className={classes.deletePdfBtn} onClick={() => deltePDF(PDF.id)}><MdDelete /></button>
                                 <button className={classes.showPdfBtn} onClick={() => showPDF(PDF.id)}><GrView /></button>
