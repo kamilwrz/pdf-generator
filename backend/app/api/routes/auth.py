@@ -6,11 +6,8 @@ from app.crud.user import get_user_by_username, create_user, authenticate_user
 from fastapi.security import OAuth2PasswordRequestForm
 from app.core.security import create_access_token, verify_token
 import os
-from dotenv import load_dotenv
 from datetime import timedelta
 from app.dependencies import get_db
-
-load_dotenv(override=True)
 
 token_exp_min = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 

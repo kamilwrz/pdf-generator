@@ -55,9 +55,9 @@ export default function Gallery() {
     })
 
     return <AnimatePresence>{isGallery && <motion.aside className={classes.gallery}
-        initial={{ opacity: 0, x: 800 }}
+        initial={{ opacity: 0, x: 400 }}
         animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 800 }}
+        exit={{ opacity: 0, x: 400 }}
         transition={{ type: "spring", duration: 2 }}>
             <div className={classes.galleryHeader}><h2>Gallery</h2><CloseButton top={10} right={-10} clickHandler={showGallery}/></div>
                 

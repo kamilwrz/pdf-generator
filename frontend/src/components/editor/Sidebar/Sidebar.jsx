@@ -33,6 +33,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
 
     const pdfCreated = PDFs.find(element => element.title === ref.current?.value + ".pdf");
     const pathToCreatedPdf = pdfCreated?.file_path;
+
     let disabled;
     if(pathToCreatedPdf){
         disabled=false
@@ -67,6 +68,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
 
         <div className={classes.toolsContainer}>
             <label className={classes.toolsLabel}> TOOLS</label>
+            
             <SidebarControls icon={<FaRegImages style={{ color: "rgb(2 132 199)" }} />} labelText="upload images" sidebarEvent={showDropzone} backgroundColor="rgb(125 211 252)" />
             <SidebarControls icon={<LuImagePlus style={{ color: "rgb(147 51 234)" }} />} labelText="gallery" sidebarEvent={showGallery} />
             <SidebarControls icon={<CiText style={{ color: "rgb(22 163 74)" }} />} labelText="add text" sidebarEvent={addText} />
@@ -83,7 +85,6 @@ export default forwardRef(function Sidebar({ children }, ref) {
             <div>
                 <button className={classes.btn} onClick={updatePdf} disabled={isPdfLoading}>UPDATE</button>
                 <button className={classes.btn} onClick={clearA4}>CLEAR</button>
-                <button className={classes.btn} disabled={disabled}><a><RiDownload2Line/></a></button>
             </div>
             <div className={classes.logoutWrapper}>
                 <button className={classes.logout} onClick={logout}>

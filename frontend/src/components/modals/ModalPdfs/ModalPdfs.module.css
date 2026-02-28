@@ -1,6 +1,6 @@
 .modalPdfs{
     width: 720px;
-    height: 420px;
+    height: 360px;
     z-index: 5000;
     position: absolute;
     display: flex;
@@ -90,11 +90,11 @@
 }
 
 .pdfItem{
-    box-shadow: 0.5px 0.5px 1px 0.5px;
+    box-shadow: 0.2px 0.2px 0.4px 0.2px;
     display: flex;
     flex-direction: row;
     align-items: center;
-    border-radius: 4px;
+    border-radius: 2px;
     padding: 4px;
 }
 

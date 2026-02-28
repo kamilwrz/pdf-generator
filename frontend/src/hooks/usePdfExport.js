@@ -33,7 +33,6 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const sorted = [...A4_Elements].sort((a, b) => a.zIndex - b.zIndex);
 
     const elements = [...sorted, ...A4_Elements_deleted];
-    console.log(elements);
 
     const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
 

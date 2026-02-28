@@ -12,7 +12,6 @@ function Image({
     top,
     elementId,
     isSelected,
-    category,
     zIndex }) {
 
     const { moveElement, selectElement, A4_Elements, selectMoveElement, resizeElement } = use(PdfContext)
@@ -39,14 +38,16 @@ function Image({
 
         const selectedElement = A4_Elements.find(element => element.element_id === elementId);
 
-        return <> <Resize
-            selectedElement={selectedElement}
-            isResizeable={isResizeable}
-            handleIsResizable={handleIsResizeable}
-            resizeElement={resizeElement}
-            category={selectedElement.category}
-            elementId={elementId} 
-            elementRef = {image}
+        return <>
+
+            <Resize
+                selectedElement={selectedElement}
+                isResizeable={isResizeable}
+                handleIsResizable={handleIsResizeable}
+                resizeElement={resizeElement}
+                category={selectedElement.category}
+                elementId={elementId}
+                elementRef={image}
             />
             <img
                 ref={image}
@@ -57,6 +58,7 @@ function Image({
                 onDoubleClick={() => selectElement(elementId)}
                 onMouseMove={(e) => moveElement(e, elementId)}
                 onMouseDown={() => selectMoveElement(elementId)}
+                onMouseLeave={() => selectMoveElement(elementId)}
                 onMouseUp={() => selectMoveElement(elementId)}
                 className={isSelected ? classes.selectedElement : ""}
             /></>
