@@ -13,7 +13,7 @@ secret_key = os.getenv("SECRET_KEY")
 algorithm = os.getenv("ALGORITHM")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 def create_access_token(data:dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
