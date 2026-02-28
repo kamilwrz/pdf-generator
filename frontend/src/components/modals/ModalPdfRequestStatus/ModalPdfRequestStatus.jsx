@@ -1,4 +1,4 @@
-import { useRef, useEffect, use, useState } from "react";
+import { useRef, useEffect, use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import classes from "./ModalPdfRequestStatus.module.css";
 import { createPortal } from "react-dom";
@@ -12,6 +12,8 @@ import { ApiClient } from "../../../services/api";
 
 function ModalPdfRequestStatus({ message, open }) {
 
+    const timeout = useRef();
+
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
 
     async function downloadPdf(id){
@@ -22,13 +24,14 @@ function ModalPdfRequestStatus({ message, open }) {
     
         setPDFdownloadData({blob: urlBlob, title: response.title})
     
-        const timeout = setTimeout(() => {
+         timeout.current = setTimeout(() => {
             URL.revokeObjectURL(urlBlob);
             showModalRequest();
+            
         },6000)
-
-        clearTimeout(timeout);
       }
+
+    clearTimeout(timeout.current);
 
     useEffect(() => {
         downloadPdf(message?.pdf_id);

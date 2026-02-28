@@ -2,7 +2,7 @@ import classes from "./ModalPdfs.module.css";
 
 import { createPortal } from "react-dom";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useRef } from "react";
 import { BsFileEarmarkPdf } from "react-icons/bs";
 import { IoMdDownload } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
@@ -25,6 +25,7 @@ import { data } from "react-router-dom";
 
 export default function ModalPdfs({ title }) {
 
+    const timeout = useRef();
 
     const [error, setError] = useState(false);
 
@@ -105,12 +106,13 @@ export default function ModalPdfs({ title }) {
 
     setPDFdownloadData({blob: urlBlob, title: response.title})
 
-    setTimeout(() => {
-        URL.revokeObjectURL(urlBlob);
-    },3000)
-    
+    timeout.current = setTimeout(() => {
+      //  URL.revokeObjectURL(urlBlob);
+        
+    },6000)  
   }
 
+  clearTimeout(timeout.current);
 
    console.log(PDFdownloadData)
    
