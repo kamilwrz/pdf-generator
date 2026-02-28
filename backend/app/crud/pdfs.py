@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.models import Pdf, PdfElements
 from datetime import datetime, timezone
 import datetime
-from images import request_image_by_id
+from app.crud.images import request_image_by_id
 
 
 def create_new_pdf(db:Session, title:str, user_id:int, file_path:str, elements:list):
