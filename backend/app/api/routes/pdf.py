@@ -221,12 +221,14 @@ async def update_user_pdf(
 @router.post("/download_pdf", status_code=status.HTTP_200_OK)
 async def download_pdf(db:Session = Depends(get_db), id = Body(), payload: dict = Depends(verify_token)):
     pdf_row = request_pdf_by_id(db, id)
-    key = s3_storage.key_from_file_path(pdf_row.file_path)
-    download_url = s3_storage.generate_presigned_download_url(key)
-    print(download_url)
     if not pdf_row:
         raise HTTPException(status_code=404, detail="PDF not found.")
-    return pdf_row
+    if USE_S3:
+        key = s3_storage.key_from_file_path(pdf_row.file_path)
+        download_url = s3_storage.generate_presigned_download_url(key)
+        return {"url": download_url, "title":pdf_row.title}
+    else:
+        return pdf_row
 
 
     
