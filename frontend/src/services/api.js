@@ -56,7 +56,8 @@ export class ApiClient {
 
             else if(endpoint === ENDPOINTS.PDF.DOWNLOADS){
                 const data = await response.blob()
-                console.log(data);
+                const blobUrl = URL.createObjectURL(data);
+                console.log(blobUrl);
             }
             
             else{
