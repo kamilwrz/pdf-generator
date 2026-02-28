@@ -52,3 +52,12 @@ def image_src_to_path_for_reportlab(src: str, imgs_dir: str) -> str:
         return path
     # local path: already fine for ReportLab
     return src
+
+def generate_presigned_download_url(key: str, expires_in: int = 300) -> str:
+    """Return a temporary URL for GET. Default 5 minutes."""
+    client = get_client()
+    return client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": S3_BUCKET, "Key": key},
+        ExpiresIn=expires_in,
+    )

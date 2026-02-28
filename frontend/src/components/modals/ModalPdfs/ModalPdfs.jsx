@@ -94,7 +94,7 @@ export default function ModalPdfs({ title }) {
             catch((error) => { setError(error) })
 
 
-    }, [isModalPdfs])
+    }, [isModalPdfs, PDFdownloadData])
 
 
   async function downloadPdf(id){
