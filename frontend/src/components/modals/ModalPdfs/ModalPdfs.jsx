@@ -93,7 +93,7 @@ export default function ModalPdfs({ title }) {
                 }).
             catch((error) => { setError(error) })
 
-        api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "GET", null, "Error").then(data => console.log(data))
+        api.httpRequest(ENDPOINTS.PDF.DOWNLOADS, "GET", null, "Error").then(data => console.log(data))
             
     }, [isModalPdfs])
 
