@@ -51,7 +51,6 @@ function Line({
                     onDoubleClick={() => selectElement(elementId)}
                     onMouseMove={(e) => moveElement(e, elementId)}
                     onMouseDown={() => selectMoveElement(elementId)}
-                    onMouseLeave={() => selectMoveElement(elementId)}
                     onMouseUp={() => selectMoveElement(elementId)}
                     className={isSelected ? classes.selectedElement : ""}
                     style={style}>
@@ -65,7 +64,6 @@ function Line({
                 onDoubleClick={() => selectElement(elementId)}
                 onMouseMove={(e) => moveElement(e, elementId, category)}
                 onMouseDown={() => selectMoveElement(elementId)}
-                onMouseLeave={() => selectMoveElement(elementId)}
                 onMouseUp={() => selectMoveElement(elementId)}
                 className={isSelected ? classes.selectedElement : ""}
                 style={style}>

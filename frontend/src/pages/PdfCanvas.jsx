@@ -15,6 +15,7 @@ import { ApiClient } from '../services/api';
 import { ENDPOINTS } from '../services/api';
 import Spinner from '../components/common/Spinner/Spinner';
 import { AnimatePresence } from "framer-motion";
+import Textarea from '../components/canvas/Textarea/Textarea';
 
 function PdfCanvas() {
 

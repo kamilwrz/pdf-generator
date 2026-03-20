@@ -1,6 +1,6 @@
 .A4{
     position: relative;
-    margin: auto;
+    margin: auto 150px;
     background-color: white;
-    flex-shrink: 0;
+    align-self: self-start;
 }

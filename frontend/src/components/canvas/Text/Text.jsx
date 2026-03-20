@@ -36,7 +36,7 @@ function Text({
         id={elementId}
         onDoubleClick={() => selectElement(elementId)}
         onMouseDown={() => selectMoveElement(elementId)}
-        onMouseLeave={() => selectMoveElement(elementId)}
+       // onMouseLeave={() => selectMoveElement(elementId)}
         onMouseUp={() => selectMoveElement(elementId)}
         onMouseMove={(e) => moveElement(e, elementId)}
         className={isSelected ? classes.selectedElement : ""}

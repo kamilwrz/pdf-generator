@@ -1,12 +1,22 @@
 .closeBtn{
     position: absolute;
     border-radius: 50%;
-    width: 2rem;
-    height: 2rem;
     border: none;
     color: rgb(220 38 38); /* red 600*/
     background-color: rgb(212 212 216); /* ZINC 300*/
     cursor: pointer;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    
+}
+
+.closeBtn svg{
+    font-size: 1.2rem;
+    flex-shrink: 0;
 }
 
 .closeBtn:hover{

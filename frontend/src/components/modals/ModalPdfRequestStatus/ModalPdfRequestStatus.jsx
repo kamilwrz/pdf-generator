@@ -27,7 +27,6 @@ function ModalPdfRequestStatus({ message, open }) {
          timeout.current = setTimeout(() => {
             URL.revokeObjectURL(urlBlob);
             showModalRequest();
-            
         },6000)
       }
 
@@ -40,8 +39,8 @@ function ModalPdfRequestStatus({ message, open }) {
     const { showModalRequest, setPDFdownloadData, PDFdownloadData} = use(PdfContext)
 
     return createPortal(<AnimatePresence>{open && <motion.div 
-        initial={{ opacity: 0, y: -30, x: 530 }}
-        animate={{ opacity: 1, y: 60, x: 530 }}
+        initial={{ opacity: 0, y: -30, x: 500 }}
+        animate={{ opacity: 1, y: 60, x: 500 }}
         exit={{ opacity: 0, y: -30 }}
         transition={{ type: "spring", duration: 2, ease: [0, 0.71, 0.2, 1.01] }}
         className={classes.modalPdfRequestStatus}
@@ -50,9 +49,9 @@ function ModalPdfRequestStatus({ message, open }) {
         {/**SHOW ERROR MESSAGE */}
         {message?.message && <p>{message?.message}</p>}
         {/**SHOW SUCCESS MESSAGE / PDF CREATED / PDF UPDATE */}
-        {message?.success && <><p>{message?.success}</p> <button className={classes.btnDownloadPDF}><a href={PDFdownloadData.blob} download={PDFdownloadData.title}><FiDownload /></a></button> </>}
+        {message?.success && <><p>{message?.success}</p> <button className={classes.btnDownloadPDF}><a href={PDFdownloadData.blob} download={PDFdownloadData.title}><span>Download</span><FiDownload /></a></button> </>}
 
-        <CloseButton top={-15} left={-15} clickHandler={showModalRequest}/>
+        <CloseButton top={-10} left={-10} height="1.5rem" width="1.5rem" clickHandler={showModalRequest}/>
 
     </motion.div>}</AnimatePresence>, document.getElementById("modal-request-status"))
 

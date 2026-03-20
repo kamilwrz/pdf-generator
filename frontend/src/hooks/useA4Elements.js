@@ -26,7 +26,7 @@ export function useA4Elements(titleRef) {
       setA4_Elements(prevState => {
 
         const newState = prevState.map((element) => {
-          return elementId === element.element_id && element.isMove === true ? { ...element, left: newPositionLeft, top: newPositionTop } : element
+          return elementId === element.element_id && element.isMove == true ? { ...element, left: newPositionLeft, top: newPositionTop } : element
         });
         return newState;
       });
@@ -35,10 +35,11 @@ export function useA4Elements(titleRef) {
 
   const handleSelectMoveElement = useCallback((elementId) => {
     setA4_Elements(prevState => {
-      const newState = prevState.map((element) => (
-        element.element_id === elementId ? { ...element, isMove: !element.isMove }
+      const newState = prevState.map((element) => {
+        console.log(element);
+        return element.element_id === elementId ? { ...element, isMove: !element.isMove }
           : { ...element, isMove: false }
-      ));
+    });
       return newState;
     });
   }, [])
@@ -58,7 +59,7 @@ export function useA4Elements(titleRef) {
       element_id: nanoid(),
       content: "Some text....",
       fontSize: 14,
-      fontFamily: "Times-Roman",
+      fontFamily: "Inter",
       color: "#000000",
       left: 10,
       top: 10,
