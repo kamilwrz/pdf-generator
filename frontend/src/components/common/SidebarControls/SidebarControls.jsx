@@ -1,11 +1,11 @@
 import classes from "./SidebarControls.module.css";
 
-export default function SidebarControls({icon, labelText, sidebarEvent, documents}){
-    return(
-        <div className={classes.controls}>
-          <button onClick={sidebarEvent} className={classes.icons} >{icon}</button>
-          <label>{labelText}</label>
-          {documents ? <label className={classes.documentsCount}>{documents}</label> : ""}
-        </div>
-    )
+export default function SidebarControls({ icon, labelText, sidebarEvent, documents, iconBg }) {
+    return (
+        <button type="button" className={classes.tile} onClick={sidebarEvent}>
+            <span className={classes.iconBox} style={iconBg ? { background: iconBg } : undefined}>{icon}</span>
+            <span className={classes.label}>{labelText}</span>
+            {documents != null && documents !== false ? <span className={classes.documentsCount}>{documents}</span> : null}
+        </button>
+    );
 }

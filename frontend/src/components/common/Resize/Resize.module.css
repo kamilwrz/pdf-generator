@@ -1,52 +1,53 @@
-.resizeButtons{
+.resizeButtons {
     position: absolute;
-    z-index: 4;
-    width: 20px;
-    height: 20px;
     z-index: 1000;
-    background-color: var(--secondary-bg); 
-    border-radius: 50%;
+    width: 13px;
+    height: 13px;
+    background-color: #fff;
+    border: 1.5px solid var(--accent);
+    border-radius: 3px;
+    padding: 0;
+    box-shadow: 0 1px 3px rgba(90, 55, 20, .2);
 }
 
-.resizeButtons:hover{
-    opacity: 0.8;
+.resizeButtons:hover {
+    background-color: var(--accent-soft);
 }
 
-.roundBottomRight{
-    bottom: -20px;
-    right: -20px;
+.roundBottomRight {
+    bottom: -18px;
+    right: -18px;
     cursor: nw-resize;
 }
 
-.roundTopLeft{
-    top: -20px;
-    left: -20px;
+.roundTopLeft {
+    top: -18px;
+    left: -18px;
     cursor: se-resize;
 }
 
-.roundTopRight{
-    top: -20px;
-    right: -20px;
+.roundTopRight {
+    top: -18px;
+    right: -18px;
     cursor: sw-resize;
 }
 
-.roundBottomLeft{
-    bottom: -20px;
-    left: -20px;
+.roundBottomLeft {
+    bottom: -18px;
+    left: -18px;
     cursor: ne-resize;
 }
 
-.roundCenterLeft{
-    left: -45px;
+.roundCenterLeft {
+    left: -42px;
     top: 50%;
     transform: translateY(-50%);
     cursor: w-resize;
 }
 
-.roundCenterRight{
-    right: -45px;
+.roundCenterRight {
+    right: -42px;
     top: 50%;
     transform: translateY(-50%);
     cursor: e-resize;
 }
-

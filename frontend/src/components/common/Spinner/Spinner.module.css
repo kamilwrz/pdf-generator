@@ -1,20 +1,80 @@
-.spinnerWrapper{
-   position: relative;
+.spinnerWrapper {
+    position: relative;
     z-index: 3000;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
-    background-color: var(--primary-bg);
-    border: 5px solid var(--secondary-bg);
-    width: 33%;
+    background: #fff;
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-card);
+    width: 320px;
+    max-width: 80%;
     margin: 100px auto;
-    padding: 1rem;
-    border-radius: 10px;
+    padding: 34px 30px;
+    border-radius: var(--r-lg);
+    text-align: center;
 }
 
- .spinnerText{
-    font-family: var(--secondary-font-family);
-    font-size: 1rem;
-    color:var(--deco-font);
- }
+.ring {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 20px;
+}
+
+.track {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 5px solid var(--accent-soft);
+}
+
+.arc {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 5px solid transparent;
+    border-top-color: var(--accent);
+    border-right-color: var(--accent);
+    animation: spin .9s linear infinite;
+}
+
+.center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.title {
+    font: 800 19px var(--font-display);
+    color: var(--primary-font);
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    font: 600 13px var(--font-body);
+    color: var(--secondary-font);
+    margin-bottom: 20px;
+}
+
+.bar {
+    width: 100%;
+    height: 7px;
+    border-radius: 4px;
+    background: var(--border-soft);
+    overflow: hidden;
+    position: relative;
+}
+
+.bar span {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 45%;
+    height: 100%;
+    border-radius: 4px;
+    background: var(--accent-grad);
+    animation: indet 1.4s ease-in-out infinite;
+}

@@ -8,11 +8,8 @@ import { LuImagePlus } from "react-icons/lu";
 import { AiOutlineLogout } from "react-icons/ai";
 import { RiDownload2Line } from "react-icons/ri";
 import { FaRegFolderOpen } from "react-icons/fa";
-import { MdPublishedWithChanges } from "react-icons/md";
-import logo from "/images/logo.png";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { forwardRef, use } from "react";
-import { ENDPOINTS } from "../../../services/api";
 
 
 export default forwardRef(function Sidebar({ children }, ref) {
@@ -31,19 +28,6 @@ export default forwardRef(function Sidebar({ children }, ref) {
         PDFs,
     } = use(PdfContext);
 
-    const pdfCreated = PDFs.find(element => element.title === ref.current?.value + ".pdf");
-    const pathToCreatedPdf = pdfCreated?.file_path;
-
-    let disabled;
-    if(pathToCreatedPdf){
-        disabled=false
-    } else{
-        disabled=true 
-    }
-
-    
-
-
     function showModalWithPDFs() {
         setIsModalPdfs(bool => !bool);
     }
@@ -51,47 +35,54 @@ export default forwardRef(function Sidebar({ children }, ref) {
     return <aside className={classes.sidebar}>
 
         <div className={classes.logoContainer}>
-            <img src={logo} alt="Logo PDF Canvas" className={classes.logo} />
+            <div className={classes.logoMark}>
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
+            </div>
             <div className={classes.logoWrapperText}>
                 <h1>PDF Canvas</h1>
-                <p>Editor v.1.0b</p>
+                <p>Editor · v2.0</p>
             </div>
         </div>
 
         <div className={classes.titleContainer}>
-            <label htmlFor="title">current project</label>
-            <div>
-                <input type="text" name="title" id="title" ref={ref} />
-                <button><TiPen /></button>
+            <label htmlFor="title">Current project</label>
+            <div className={classes.titleField}>
+                <input type="text" name="title" id="title" ref={ref} placeholder="Untitled project" />
+                <button type="button" aria-label="Rename"><TiPen /></button>
             </div>
         </div>
 
         <div className={classes.toolsContainer}>
-            <label className={classes.toolsLabel}> TOOLS</label>
-            
-            <SidebarControls icon={<FaRegImages style={{ color: "rgb(2 132 199)" }} />} labelText="upload images" sidebarEvent={showDropzone} backgroundColor="rgb(125 211 252)" />
-            <SidebarControls icon={<LuImagePlus style={{ color: "rgb(147 51 234)" }} />} labelText="gallery" sidebarEvent={showGallery} />
-            <SidebarControls icon={<CiText style={{ color: "rgb(22 163 74)" }} />} labelText="add text" sidebarEvent={addText} />
-            <SidebarControls icon={<TfiLayoutLineSolid style={{ color: "rgb(217 119 6)" }} />} labelText="add line" sidebarEvent={addLine} />
-
+            <label className={classes.toolsLabel}>Add to canvas</label>
+            <div className={classes.toolsList}>
+                <SidebarControls icon={<FaRegImages style={{ color: "#E0856B" }} />} iconBg="#FCEAE2" labelText="Upload images" sidebarEvent={showDropzone} />
+                <SidebarControls icon={<LuImagePlus style={{ color: "#8A6FC4" }} />} iconBg="#EDE8F7" labelText="Gallery" sidebarEvent={showGallery} />
+                <SidebarControls icon={<CiText style={{ color: "#5FA777" }} />} iconBg="#E6F1E7" labelText="Add text" sidebarEvent={addText} />
+                <SidebarControls icon={<TfiLayoutLineSolid style={{ color: "#D9934A" }} />} iconBg="#FBEED9" labelText="Add line" sidebarEvent={addLine} />
+            </div>
         </div>
-      
+
         <div className={classes.myDocumentsContainer}>
-            <SidebarControls icon={<FaRegFolderOpen style={{ color: "rgb(64 64 64)" }} />} labelText="My Documents " sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
+            <SidebarControls icon={<FaRegFolderOpen style={{ color: "#6B5F52" }} />} iconBg="#fff" labelText="My documents" sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
         </div>
 
         <footer className={classes.sidebarFooter}>
-            <button onClick={createPdf} disabled={isPdfLoading}> <MdPublishedWithChanges style={{marginRight:"20px", paddingTop: "5px"}} />Create PDF</button>
-            <div>
-                <button className={classes.btn} onClick={updatePdf} disabled={isPdfLoading}>UPDATE</button>
-                <button className={classes.btn} onClick={clearA4}>CLEAR</button>
+            <button className={classes.createBtn} onClick={createPdf} disabled={isPdfLoading}>
+                <RiDownload2Line />Create PDF
+            </button>
+            <div className={classes.footerActions}>
+                <button className={classes.btn} onClick={updatePdf} disabled={isPdfLoading}>Update</button>
+                <button className={classes.btn} onClick={clearA4}>Clear</button>
             </div>
-            <div className={classes.logoutWrapper}>
-                <button className={classes.logout} onClick={logout}>
+            <div className={classes.profileRow}>
+                <span className={classes.avatar} />
+                <div className={classes.profileMeta}>
+                    <div className={classes.profileName}>Your account</div>
+                    <div className={classes.profilePlan}>Free plan</div>
+                </div>
+                <button className={classes.logout} onClick={logout} aria-label="Log out">
                     <AiOutlineLogout />
                 </button>
-                <label>Logout</label>
-
             </div>
         </footer>
 

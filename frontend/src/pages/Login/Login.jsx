@@ -3,8 +3,15 @@ import classes from "./Login.module.css";
 import { ApiClient } from "../../services/api";
 import { ENDPOINTS } from "../../services/api";
 
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { useState } from "react";
+
+const UserIcon = () => (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B7A892" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 20a8 8 0 0 1 16 0" /></svg>
+);
+const LockIcon = () => (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B7A892" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+);
 
 
 export default function Login() {
@@ -51,38 +58,43 @@ export default function Login() {
     return (
         <div className={classes.container}>
             <div className={classes.loginCard}>
-                <div className={classes.logoWrapper}>
-                    <img src="/images/logo1-no_text.png" alt="Logo" />
+                <div className={classes.logoBadge}>
+                    <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
                 </div>
-                <h1 className={classes.mainHeading}>Sign in</h1>
+                <h1 className={classes.mainHeading}>Welcome back</h1>
+                <p className={classes.subHeading}>Sign in to keep designing</p>
                 <form onSubmit={handleSubmit} className={classes.form}>
                     <div className={classes.control}>
                         <label htmlFor="username">Username</label>
-                        <input
-                            id="username"
-                            type="text"
-                            name="username"
-                            value={username ?? ""}
-                            onChange={handleChangeUsername}
-                            className={error ? classes.inputAuthError : classes.input}
-                            placeholder="Enter your username"
-                            autoComplete="username"
-                            disabled={isLoading}
-                        />
+                        <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
+                            <UserIcon />
+                            <input
+                                id="username"
+                                type="text"
+                                name="username"
+                                value={username ?? ""}
+                                onChange={handleChangeUsername}
+                                placeholder="Enter your username"
+                                autoComplete="username"
+                                disabled={isLoading}
+                            />
+                        </div>
                     </div>
                     <div className={classes.control}>
                         <label htmlFor="password">Password</label>
-                        <input
-                            id="password"
-                            type="password"
-                            name="password"
-                            value={password ?? ""}
-                            onChange={handleChangePassword}
-                            className={error ? classes.inputAuthError : classes.input}
-                            placeholder="Enter your password"
-                            autoComplete="current-password"
-                            disabled={isLoading}
-                        />
+                        <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
+                            <LockIcon />
+                            <input
+                                id="password"
+                                type="password"
+                                name="password"
+                                value={password ?? ""}
+                                onChange={handleChangePassword}
+                                placeholder="Enter your password"
+                                autoComplete="current-password"
+                                disabled={isLoading}
+                            />
+                        </div>
                     </div>
                     {error && (
                         <p className={classes.error} role="alert">
@@ -97,6 +109,9 @@ export default function Login() {
                         {isLoading ? "Signing in…" : "Sign in"}
                     </button>
                 </form>
+                <p className={classes.linkWrapper}>
+                    New here? <Link to="/register">Create an account</Link>
+                </p>
             </div>
         </div>
     )

@@ -81,7 +81,12 @@ export default function Editor() {
 
         <form className={classes.editorForm}>
             <div className={classes.editorHeading}>
-                <p>Element properties</p>
+                <div className={classes.headingLeft}>
+                    <span className={classes.headingIcon}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5FA777" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7V5h16v2" /><path d="M12 5v14" /><path d="M9 19h6" /></svg>
+                    </span>
+                    <p>{selectedElement?.category ? `${selectedElement.category.charAt(0).toUpperCase()}${selectedElement.category.slice(1)} element` : "Element properties"}</p>
+                </div>
                 <CloseButton clickHandler={() => handleCloseEditor(elementValues?.element_id)} right={10}/>
             </div>
             {selectedElement?.category === "text" && <>

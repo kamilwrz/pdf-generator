@@ -1,23 +1,25 @@
-.error{
-    width: 60%;
+.error {
+    width: 80%;
     margin: 40px auto;
     text-align: center;
-    background-color: var(--secondary-bg);
-    box-shadow: 1px 1px 2px 1px;
-    font-family: var(--primary-font-family);
-    border-radius: 4px;
+    background: var(--secondary-bg);
+    border: 1px solid var(--border-soft);
+    box-shadow: 0 8px 20px -14px rgba(90, 55, 20, .3);
+    font-family: var(--font-body);
+    border-radius: var(--r-md);
+    padding: 4px 0 12px;
 }
 
-.error h2{
+.error h2 {
     margin: 0;
-    padding-top: 0.5rem;
-    font-weight: 500;
-    font-size: 1.2rem;
+    padding-top: 0.75rem;
+    font: 800 16px var(--font-display);
+    color: var(--primary-font);
 }
 
-.error p{
+.error p {
     margin: 0;
     padding-top: 0.5rem;
-    padding-bottom: 1rem;
-    font-family: var(--secondary-font-family);
+    font: 500 13px var(--font-body);
+    color: var(--muted-font);
 }

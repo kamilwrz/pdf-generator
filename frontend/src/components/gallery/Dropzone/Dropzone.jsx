@@ -121,18 +121,26 @@ export default function Dropzone() {
 
     return (
         <section className={classes.dropzoneContainer}>
-            <div {...getRootProps({ className: 'dropzone' })}>
+            <div className={classes.head}>
+                <div className={classes.title}>Upload images</div>
+                <div className={classes.subtitle}>Up to 2 files · JPG, PNG</div>
+            </div>
+            <div {...getRootProps({ className: classes.dropzone })}>
                 <input {...getInputProps()} />
-                <p className={classes.fileInput}>Drop your images here... (max. 2 files)</p>
+                <div className={classes.dropIcon}>
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 13v8" /><path d="m8 17 4-4 4 4" /><path d="M20 16.5A4.5 4.5 0 0 0 17 8h-1.3A7 7 0 1 0 5 15" /></svg>
+                </div>
+                <div className={classes.dropTitle}>Drop images here</div>
+                <div className={classes.dropHint}>or <span>browse files</span></div>
             </div>
             {isDropzone &&
-                <><aside>
+                <><aside className={classes.thumbsWrap}>
                     {thumbs}
                 </aside>
                     <Progress max={PROGRESS_MAX} value={valueImageUpload} />
                     {success && <p className={classes.success}>{success}</p>}
                     {error && <p className={classes.error}>{error.detail}</p>}
-                    
+
                     </>
             }
         </section>

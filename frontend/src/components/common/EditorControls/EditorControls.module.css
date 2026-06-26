@@ -2,22 +2,44 @@
     display: flex;
     flex-direction: column;
     width: 100%;
+    margin-bottom: 14px;
 }
 
 .formControl label {
     text-transform: uppercase;
-    font-size: 0.6rem;
-    margin-bottom: 3px;
-    font-weight: 700;
-    font-family: Inter, sans-serif;
+    letter-spacing: .06em;
+    font: 700 11px var(--font-body);
+    color: var(--label-font);
+    margin-bottom: 6px;
 }
 
-.formControl input, .formControl select {
+.formControl input,
+.formControl select {
     width: 100%;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    font: 600 13px var(--font-body);
+    color: var(--primary-font);
+    background: var(--secondary-bg);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.formControl input:focus,
+.formControl select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    background: #fff;
+}
+
+.formControl input[type="color"] {
     padding: 4px;
-    border-radius: 5px;
-    font-size: 1rem;
-    margin-bottom: 5px;
-    background-color: rgb(250 250 249);
-    font-family: Inter, sans-serif;
+    height: 38px;
+    cursor: pointer;
+}
+
+.formControl input:disabled {
+    opacity: .6;
+    cursor: not-allowed;
 }

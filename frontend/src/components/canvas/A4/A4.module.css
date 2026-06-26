@@ -1,6 +1,8 @@
-.A4{
+.A4 {
     position: relative;
-    margin: auto 150px;
+    margin: 60px 150px;
     background-color: white;
     align-self: self-start;
+    border-radius: 4px;
+    box-shadow: 0 20px 50px -18px rgba(90, 55, 20, .32);
 }

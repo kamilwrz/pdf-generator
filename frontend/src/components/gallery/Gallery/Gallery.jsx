@@ -59,10 +59,15 @@ export default function Gallery() {
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: 400 }}
         transition={{ type: "spring", duration: 2 }}>
-            <div className={classes.galleryHeader}><h2>Gallery</h2><CloseButton top={10} right={-10} clickHandler={showGallery}/></div>
-                
-        
-        {!error && IMAGES}
+        <div className={classes.galleryHeader}>
+            <div className={classes.headerText}>
+                <h2>Your gallery</h2>
+                <p>Click an image to place it</p>
+            </div>
+            <CloseButton top={22} right={24} clickHandler={showGallery} />
+        </div>
+
+        {!error && <div className={classes.grid}>{IMAGES}</div>}
         {error ? <p className={classes.error}>{error.message}</p> : undefined}
     </motion.aside>}</AnimatePresence >
 }

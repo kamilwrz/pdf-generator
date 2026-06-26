@@ -1,13 +1,61 @@
 :root {
-    --primary-bg: white;
-    --secondary-bg: rgb(245 245 245); /*bg-neutral-100*/
-    --primary-btn: rgb(161 161 170); /* bg-zinc-400*/
-    --secondary-btn: rgb(253, 253, 253); /*bg-stone-200*/
-    --close-btn: rgb(248 113 113) /*bg-red-400*/;
-    --primary-font: #18181b; /* zinc 900*/
-    --secondary-font: rgb(156 163 175); /* gray 400*/ 
-    --deco-font: rgb(96 165 250); /* blue 400*/
-    --primary-font-family: "Inter", "sans-serif";
-    --secondary-font-family: "Roboto",
-  }
-  
+    /* ---- Surfaces & backgrounds ---- */
+    --primary-bg: #ffffff;
+    --secondary-bg: #FBF6EF;          /* warm cream surface */
+    --surface-2: #F3ECE1;             /* canvas / panel backdrop */
+    --bg-cream: #FCF8F2;
+
+    /* ---- Brand accent (warm terracotta) ---- */
+    --accent: #E96B4C;
+    --accent-strong: #DC5535;
+    --accent-soft: #FCEAE2;
+    --accent-grad: linear-gradient(150deg, var(--accent), var(--accent-strong));
+
+    /* ---- Buttons ---- */
+    --primary-btn: var(--accent);
+    --secondary-btn: #FBF6EF;
+    --close-btn: #FBE7E2;
+
+    /* ---- Text ---- */
+    --primary-font: #2C2620;          /* darkest ink */
+    --ink-2: #3A332B;
+    --secondary-font: #9A8E7F;        /* muted */
+    --muted-font: #6B5F52;            /* secondary body */
+    --label-font: #A89A88;            /* uppercase labels */
+    --deco-font: #E96B4C;             /* accent text */
+
+    /* ---- Lines & borders ---- */
+    --border: #ECE2D4;
+    --border-soft: #F1E8DB;
+    --border-line: #EFE6D8;
+
+    /* ---- Status ---- */
+    --success: #5FA777;
+    --success-soft: #E6F1E7;
+    --danger: #D2503C;
+    --danger-soft: #FBE7E2;
+
+    /* ---- Radius scale ---- */
+    --r-xl: 22px;
+    --r-lg: 16px;
+    --r-md: 12px;
+    --r-sm: 9px;
+
+    /* ---- Elevation ---- */
+    --shadow-card: 0 1px 2px rgba(60, 40, 20, .05), 0 26px 60px -28px rgba(90, 55, 20, .30);
+    --shadow-pop: 0 18px 44px -16px rgba(90, 55, 20, .30);
+    --shadow-accent: 0 12px 24px -10px var(--accent);
+
+    /* ---- Typography ---- */
+    --font-display: 'Nunito', sans-serif;       /* brand / headings */
+    --font-body: 'Nunito Sans', sans-serif;     /* UI / body */
+    --font-serif: 'Playfair Display', serif;    /* elegant document text */
+
+    /* legacy aliases kept so existing references resolve */
+    --primary-font-family: 'Nunito Sans', sans-serif;
+    --secondary-font-family: 'Nunito Sans', sans-serif;
+}
+
+@keyframes spin { to { transform: rotate(360deg) } }
+@keyframes indet { 0% { transform: translateX(-100%) } 50% { transform: translateX(60%) } 100% { transform: translateX(220%) } }
+@keyframes floaty { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-10px) } }

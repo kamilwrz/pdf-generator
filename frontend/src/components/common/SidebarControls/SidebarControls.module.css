@@ -1,43 +1,49 @@
-.controls {
+.tile {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    margin-bottom: 1.5rem;
-    gap: 0.5rem;
-}
-
-.controls label {
-    font-size: 0.8rem;
-    color: var(--primary-font);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 500;
-    font-family: Inter, sans-serif;
-}
-
-.controls button {
-    padding: 4px;
-    background-color: var(--secondary-bg);
-}
-
-.icons {
-    color: white;
+    gap: 13px;
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--border-soft);
+    background: #fff;
     cursor: pointer;
-    border-radius: 2px;
-    border: none;
-    font-size: 1rem;
-    font-weight: 700;
+    text-align: left;
+    transition: border-color .15s, box-shadow .15s, transform .1s;
 }
 
-.controls button:hover {
-    box-shadow: 1px 1px 1px 1px var(--primary-btn);
-    opacity: 0.8;
-    border-radius: 4px;
+.tile:hover {
+    border-color: var(--accent-soft);
+    box-shadow: 0 6px 16px -10px rgba(90, 55, 20, .35);
+    transform: translateY(-1px);
 }
 
-.documentsCount{
-    background-color: var(--secondary-bg);
-    padding: 6px;
-    border-radius: 50%;
+.tile:active {
+    transform: translateY(0);
 }
 
+.iconBox {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--secondary-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.1rem;
+}
+
+.label {
+    flex: 1;
+    font: 700 14px var(--font-body);
+    color: var(--ink-2);
+}
+
+.documentsCount {
+    font: 800 12px var(--font-body);
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 3px 10px;
+    border-radius: 999px;
+}

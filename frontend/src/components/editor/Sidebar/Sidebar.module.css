@@ -1,163 +1,239 @@
 .sidebar {
-    min-width: 320px;
+    width: 300px;
+    min-width: 300px;
     height: 100vh;
-    background-color: white;
+    flex-shrink: 0;
+    background: #fff;
+    border-right: 1px solid var(--border-line);
     position: relative;
     z-index: 1000;
-    font-family: var(--primary-font-family);
+    display: flex;
+    flex-direction: column;
+    padding: 22px 20px;
+    font-family: var(--font-body);
     color: var(--primary-font);
+    overflow-y: auto;
 }
 
+/* ---- Logo header ---- */
 .logoContainer {
-    border-bottom: 0.5px solid lightgray;
-    padding-left: 2rem;
-    padding-top: 1rem;
-    padding-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-soft);
 }
 
-.logoWrapperText{
-    display: inline-block;
-    margin-top: -2.5rem;
+.logoMark {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--accent-grad);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 16px -6px var(--accent);
+    flex-shrink: 0;
 }
 
-.logoWrapperText h1{
-  font-size: 1.3rem;
-  margin: 0;
-}
-
-.logoWrapperText p{
-    font-size: 0.8rem;
+.logoWrapperText h1 {
+    font: 800 17px var(--font-display);
+    color: var(--primary-font);
+    line-height: 1.1;
     margin: 0;
-  }
-
-.logo {
-    width: 100%;
-    max-width: 3rem;
-    object-fit: cover;
-    margin-bottom: -0.5rem;
 }
 
+.logoWrapperText p {
+    font: 600 11px var(--font-body);
+    color: var(--label-font);
+    margin: 0;
+}
+
+/* ---- Project title ---- */
 .titleContainer {
     display: flex;
     flex-direction: column;
-    margin-top: 2rem;
-    padding-left: 2rem;
+    margin-top: 22px;
 }
 
 .titleContainer label {
+    font: 700 11px var(--font-body);
+    color: var(--label-font);
+    letter-spacing: .08em;
     text-transform: uppercase;
-    margin-bottom: 0.5rem;
-    font-size: 0.8rem;
-    font-weight: 400;
-    color: rgb(156 163 175);
 }
 
-.titleContainer input {
-    width: 80%;
-    font-size: 0.9rem;
-    border: none;
-    background-color: var(--secondary-bg);
-    letter-spacing: 1px;
-    font-weight: 400;
-    text-align: center;
-    border-top-left-radius: 8px;
-    border-bottom-left-radius: 8px;
-    padding: 6px;
+.titleField {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--secondary-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 10px 12px;
+    margin-top: 9px;
 }
 
-.titleContainer input:focus {
+.titleField input {
+    flex: 1;
+    min-width: 0;
     border: none;
+    background: transparent;
     outline: none;
-    border-bottom: 1px solid #27272a;
+    font: 700 14px var(--font-body);
+    color: var(--primary-font);
 }
 
-.titleContainer button{
-    background-color: var(--secondary-bg);
+.titleField input::placeholder {
+    color: var(--label-font);
+    font-weight: 600;
+}
+
+.titleField button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: none;
-    font-size: 0.9rem;
-    border-top-right-radius: 8px;
-    border-bottom-right-radius: 8px;
-    padding: 6px;
+    background: transparent;
+    color: var(--accent);
+    font-size: 15px;
+    cursor: pointer;
+    padding: 0;
 }
 
-
-.toolsContainer{
-    margin-top: 3rem;
-    padding-left: 2rem;
-    border-bottom: 0.5px solid lightgray;
+/* ---- Tools ---- */
+.toolsContainer {
+    margin-top: 26px;
 }
 
-.toolsLabel{
+.toolsLabel {
+    font: 700 11px var(--font-body);
+    color: var(--label-font);
+    letter-spacing: .08em;
     text-transform: uppercase;
-    margin-bottom: 3.5rem;
-    font-size: 0.8rem;
-    font-weight: 400;
-    color: rgb(156 163 175);
 }
 
-.myDocumentsContainer{
-    padding-left: 2rem;
-    height: 25vh;
-    margin-top: 2rem;
-    border-bottom: 0.5px solid lightgray;
-}
-
-.documentsCount{
-    margin-left: 50px;
-}
-
-
-.sidebarFooter {
+.toolsList {
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
-    align-items: center;
-    margin-top: 20px;
+    gap: 9px;
+    margin-top: 12px;
 }
 
-.sidebarFooter > button {
-    background-color: rgb(59 130 246) ;
-    width: 80% ;
-    margin: 10px auto 0 auto ;
-    color: white;
-    font-size: 1.2rem ;
-    border-radius: 10px;
-    padding: 5px;
+/* ---- My documents ---- */
+.myDocumentsContainer {
+    margin-top: 24px;
+}
+
+/* ---- Footer ---- */
+.sidebarFooter {
+    margin-top: auto;
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.createBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: var(--accent-grad);
+    color: #fff;
+    font: 700 16px var(--font-body);
+    padding: 14px;
     border: none;
-    box-shadow: 1px 2px 4px 1px lightgray;
+    border-radius: var(--r-md);
+    cursor: pointer;
+    box-shadow: 0 12px 24px -10px var(--accent);
+    transition: transform .15s, opacity .2s;
+}
+
+.createBtn svg {
+    font-size: 19px;
+}
+
+.createBtn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.createBtn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.footerActions {
+    display: flex;
+    gap: 9px;
+    margin-top: 10px;
 }
 
 .btn {
-    width: 4rem;
-    font-size: 0.7rem;
-    padding: 6px;
-    margin-top: 0.5rem;
-    margin-right: 0.5rem;
-    border-radius: 4px;
-    letter-spacing: 1px;
-    background-color: var(--secondary-btn);
-    align-self: flex-end;
-    font-family: var(--secondary-font-family);
-    border: 0.5px solid lightgray;
+    flex: 1;
+    text-align: center;
+    font: 700 13px var(--font-body);
+    color: var(--muted-font);
+    background: var(--secondary-bg);
+    border: 1px solid var(--border);
+    padding: 10px;
+    border-radius: var(--r-sm);
     cursor: pointer;
+    transition: border-color .15s, color .15s;
 }
 
 .btn:hover {
-    opacity: 0.8;
-    box-shadow: 1px 1px 1.5px 1px;
+    border-color: var(--accent-soft);
+    color: var(--accent);
 }
 
-.logoutWrapper{
+.profileRow {
     display: flex;
-    justify-items: flex-start;
     align-items: center;
-    gap: 1rem;
-    margin-top: 2rem;
+    gap: 9px;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-soft);
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #F2C9A0;
+    flex-shrink: 0;
+}
+
+.profileMeta {
+    flex: 1;
+    min-width: 0;
+}
+
+.profileName {
+    font: 700 13px var(--font-body);
+    color: var(--ink-2);
+}
+
+.profilePlan {
+    font: 600 11px var(--font-body);
+    color: var(--label-font);
 }
 
 .logout {
-    font-size: 1.5rem;
-    background-color: none;
-    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: var(--secondary-bg);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--secondary-font);
+    font-size: 16px;
     cursor: pointer;
+    transition: color .15s, border-color .15s;
+}
+
+.logout:hover {
+    color: var(--accent);
+    border-color: var(--accent-soft);
 }
