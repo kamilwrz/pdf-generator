@@ -12,7 +12,7 @@
     padding: 22px 20px;
     font-family: var(--font-body);
     color: var(--primary-font);
-    overflow-y: auto;
+    overflow: visible;
 }
 
 /* ---- Logo header ---- */

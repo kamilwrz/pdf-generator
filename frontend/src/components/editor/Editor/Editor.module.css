@@ -1,7 +1,9 @@
 .editor {
     width: 268px;
     position: absolute;
+    left: 320px;
     bottom: 5rem;
+    z-index: 1200;
     background: #fff;
     color: var(--primary-font);
     font-family: var(--font-body);
