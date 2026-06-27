@@ -21,15 +21,15 @@ function Text({
     const { moveElement, selectElement, selectMoveElement } = use(PdfContext);
 
     const style = {
-        fontSize: fontSize,
-        color: color,
-        fontFamily: fontFamily,
+        fontSize: `${fontSize}px`,
+        color,
+        fontFamily,
         position: "absolute",
-        left: left,
-        top: top,
-        zIndex: zIndex,
-        width: width,
-        height: height,
+        left,
+        top,
+        zIndex,
+        width,
+        height,
     }
 
     return <p
@@ -39,7 +39,7 @@ function Text({
        // onMouseLeave={() => selectMoveElement(elementId)}
         onMouseUp={() => selectMoveElement(elementId)}
         onMouseMove={(e) => moveElement(e, elementId)}
-        className={isSelected ? classes.selectedElement : ""}
+        className={`${classes.textElement} ${isSelected ? classes.selectedElement : ""}`}
         style={style}
     >
         {content}

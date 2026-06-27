@@ -43,3 +43,13 @@
     src: url("/fonts/TimesRoman.ttf");
  }
 
+ @font-face {
+    font-family: Inter;
+    src: url("/fonts/Inter.ttf");
+ }
+
+ @font-face {
+    font-family: Roboto;
+    src: url("/fonts/Roboto.ttf");
+ }
+

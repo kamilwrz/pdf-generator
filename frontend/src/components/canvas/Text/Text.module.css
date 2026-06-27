@@ -1,3 +1,11 @@
+.textElement{
+    display: inline-block;
+    width: max-content;
+    margin: 0;
+    padding: 0;
+    white-space: pre;
+}
+
 .selectedElement{
 
 }
