@@ -182,6 +182,57 @@ export function useA4Elements(titleRef) {
     });
   }, [])
 
+  const handleAddTextarea = useCallback(() => {
+    const fontSize = 14;
+    const textarea = {
+      element_id: nanoid(),
+      content: "",
+      fontSize,
+      fontFamily: "Inter",
+      color: "#000000",
+      lineHeight: Math.round(fontSize * 1.4),
+      letterSpacing: 0,
+      left: 20,
+      top: 20,
+      width: 260,
+      height: 90,
+      isSelected: true,
+      isMove: false,
+      isEditing: true,
+      category: "textarea",
+      zIndex: 4,
+      page: currentPageRef.current,
+    };
+    // New box starts in edit mode; clear selection/editing on everything else.
+    setA4_Elements(prevState => [
+      ...prevState.map(el => ({
+        ...el,
+        isSelected: false,
+        isEditing: el.category === "textarea" ? false : el.isEditing,
+      })),
+      textarea,
+    ]);
+  }, [])
+
+  // Select an element without toggling (used by the text box on single click)
+  // and leave edit mode on any other text box.
+  const markSelected = useCallback((elementId) => {
+    setA4_Elements(prevState => prevState.map(el => (
+      el.element_id === elementId
+        ? { ...el, isSelected: true }
+        : { ...el, isSelected: false, isEditing: el.category === "textarea" ? false : el.isEditing }
+    )));
+  }, [])
+
+  const handleSetTextareaEditing = useCallback((elementId, editing) => {
+    setA4_Elements(prevState => prevState.map(el => {
+      if (el.element_id === elementId) {
+        return { ...el, isEditing: editing, isSelected: true };
+      }
+      return el.category === "textarea" ? { ...el, isEditing: false } : el;
+    }));
+  }, [])
+
   
   const handleDeleteElement = useCallback((elementId) => {
     setA4_Elements(prevState => {
@@ -274,6 +325,28 @@ export function useA4Elements(titleRef) {
 
     setA4_Elements((prevState) => {
       const newState = prevState.map((element) => {
+        // Text boxes resize freely: width follows horizontal drag, height
+        // follows vertical drag (unlike lines, where height tracks movementX).
+        if (category === "textarea") {
+          if (element.element_id !== elementId) {
+            return { ...element, isSelected: false };
+          }
+          let w = element.width;
+          let h = element.height;
+          let l = element.left;
+          let t = element.top;
+          const MIN_W = 40;
+          const MIN_H = 24;
+          if (direction === "bottom-right") { w += e.movementX; h += e.movementY; }
+          else if (direction === "bottom-left") { w -= e.movementX; l += e.movementX; h += e.movementY; }
+          else if (direction === "top-right") { w += e.movementX; h -= e.movementY; t += e.movementY; }
+          else if (direction === "top-left") { w -= e.movementX; l += e.movementX; h -= e.movementY; t += e.movementY; }
+          if (l < 0) { w += l; l = 0; }
+          if (t < 0) { h += t; t = 0; }
+          w = Math.max(MIN_W, Math.min(A4_WIDTH - l, w));
+          h = Math.max(MIN_H, Math.min(A4_HEIGHT - t, h));
+          return { ...element, width: w, height: h, left: l, top: t };
+        }
         if (category === "image") {
           heightFactor = element.width
         } else {
@@ -425,6 +498,9 @@ export function useA4Elements(titleRef) {
     handleAddText,
     handleAddLine,
     handleAddImage,
+    handleAddTextarea,
+    markSelected,
+    handleSetTextareaEditing,
     handleAlignElements,
     handleDeleteElement,
     handleEditElementValues,

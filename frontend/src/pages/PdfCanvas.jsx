@@ -15,7 +15,6 @@ import { ApiClient } from '../services/api';
 import { ENDPOINTS } from '../services/api';
 import Spinner from '../components/common/Spinner/Spinner';
 import { AnimatePresence } from "framer-motion";
-import Textarea from '../components/canvas/Textarea/Textarea';
 import PageControls from '../components/editor/PageControls/PageControls';
 
 function PdfCanvas() {
@@ -56,6 +55,9 @@ function PdfCanvas() {
     handleAddImage,
     handleAddLine,
     handleAddText,
+    handleAddTextarea,
+    markSelected,
+    handleSetTextareaEditing,
     handleSelectElement,
     handleDeleteElement,
     handleAlignElements,
@@ -144,6 +146,9 @@ function PdfCanvas() {
     addImage: handleAddImage,
     addText: handleAddText,
     addLine: handleAddLine,
+    addTextarea: handleAddTextarea,
+    markSelected: markSelected,
+    setTextareaEditing: handleSetTextareaEditing,
     selectElement: handleSelectElement,
     moveElement: handleMoveElement,
     selectMoveElement: handleSelectMoveElement,
@@ -195,6 +200,7 @@ function PdfCanvas() {
     updatePdfWithElements, handlePdfId, 
     handleClearA4, handleShowModalRequest, handleLogout, PDFs, setPDFs,
     pageCount, currentPage, addPage, removePage, goToPage, setPageCount, setCurrentPage,
+    handleAddTextarea, markSelected, handleSetTextareaEditing,
   ])
 
   console.log(A4_Elements);

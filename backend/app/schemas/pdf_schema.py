@@ -15,6 +15,9 @@ class PdfElement(BaseModel):
     fontSize: Optional[float] = None
     color: Optional[str] = None
     content: Optional[str] = None
+    #TEXTAREA ELEMENT (multi-line text box)
+    lineHeight: Optional[float] = None
+    letterSpacing: Optional[float] = None
     #LINE / IMG ELEMENT
     width: Optional[float | str] = None
     height: Optional[float | str] = None

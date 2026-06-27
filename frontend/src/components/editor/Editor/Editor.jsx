@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function Editor() {
 
-    const { A4_Elements, editElementValues, alignElement, deleteElement, setA4_Elements } = use(PdfContext);
+    const { A4_Elements, editElementValues, alignElement, deleteElement, setA4_Elements, setTextareaEditing } = use(PdfContext);
 
     let selectedElement = A4_Elements.find(element => element.isSelected === true);
     const someElementSelected = A4_Elements.some(element => element.isSelected);
@@ -23,7 +23,7 @@ export default function Editor() {
 
     function handleChangeValues(e, identifier) {
 
-        const value = (identifier === "fontSize" || identifier === "height" || identifier === "width") ? Number(e.target.value) : e.target.value;
+        const value = (identifier === "fontSize" || identifier === "height" || identifier === "width" || identifier === "lineHeight" || identifier === "letterSpacing") ? Number(e.target.value) : e.target.value;
         let valueObject = { [identifier]: value }
 
         if (identifier === "width" && selectedElement.category === "image") {
@@ -63,6 +63,8 @@ export default function Editor() {
                 backgroundColor: selectedElement?.backgroundColor,
                 fontSize: selectedElement?.fontSize,
                 fontFamily: selectedElement?.fontFamily,
+                lineHeight: selectedElement?.lineHeight,
+                letterSpacing: selectedElement?.letterSpacing,
                 left: selectedElement?.left,
                 top: selectedElement?.top,
                 width: selectedElement?.width,
@@ -95,6 +97,21 @@ export default function Editor() {
                 <EditorControls labelText="Font Size" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
                 <EditorControls labelText="Text Color" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
                 <EditorControls labelText="Font Family" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
+            </>}
+            {selectedElement?.category === "textarea" && <>
+
+                <button type="button" className={classes.editTextBtn} onClick={() => setTextareaEditing(selectedElement.element_id, true)}>Edit text</button>
+                <EditorControls labelText="Font Size" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
+                <EditorControls labelText="Text Color" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
+                <EditorControls labelText="Font Family" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
+                <div className={classes.elementSize}>
+                    <EditorControls labelText="Line Height" type="number" inputValue={elementValues.lineHeight} onChangeFn={(e) => handleChangeValues(e, "lineHeight")} />
+                    <EditorControls labelText="Letter Spacing" type="number" inputValue={elementValues.letterSpacing} onChangeFn={(e) => handleChangeValues(e, "letterSpacing")} />
+                </div>
+                <div className={classes.elementSize}>
+                    <EditorControls labelText="Width" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
+                    <EditorControls labelText="Height" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
+                </div>
             </>}
             {selectedElement?.category === "line" && <>
                 <div className={classes.elementSize}>

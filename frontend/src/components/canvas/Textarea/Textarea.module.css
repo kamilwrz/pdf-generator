@@ -1,12 +1,43 @@
-.textarea{
-    padding: 0;
+/* The editing textarea and the display block MUST share the same box model
+   (no padding/border affecting content width) so the wrapped text is byte-for
+   -byte identical between modes — and matches the PDF renderer. Selection is
+   drawn with `outline`, which does not consume layout width. */
+.block,
+.editing {
     margin: 0;
+    padding: 0;
     border: none;
-    font-family: Inter, sans-serif;
-    font-size: 14px;
+    box-sizing: border-box;
+    background: transparent;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    overflow: hidden;
 }
 
-.textarea:focus{
-    border: none;
-    outline: none;
+.block {
+    cursor: move;
+}
+
+.block:empty::before {
+    content: "Double-click to edit";
+    color: #c9bfb0;
+}
+
+.selected {
+    outline: 1.5px dashed var(--accent, #E96B4C);
+    outline-offset: 2px;
+}
+
+.editing {
+    resize: none;
+    cursor: text;
+    outline: 2px solid var(--accent, #E96B4C);
+    outline-offset: 2px;
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+.editing::placeholder {
+    color: #c9bfb0;
 }

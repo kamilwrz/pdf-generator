@@ -64,7 +64,17 @@ export default function ModalPdfs({ title }) {
         api.httpRequest(ENDPOINTS.PDF.SHOW, "POST", JSON.stringify(id), "Failed to show choosen PDF!").
             then((data) => {
                 const elementsData = data.map((element) => {
-                    if (element.category !== "text") {
+                    if (element.category === "textarea") {
+                        return {
+                            ...element,
+                            zIndex: element.extra_properties.zIndex,
+                            lineHeight: element.extra_properties.lineHeight,
+                            letterSpacing: element.extra_properties.letterSpacing,
+                            width: parseFloat(element.width),
+                            height: parseFloat(element.height),
+                            isEditing: false,
+                        }
+                    } else if (element.category !== "text") {
                         return { ...element, "zIndex": element.extra_properties.zIndex, width: parseFloat(element.width), height: parseFloat(element.height) }
                     } else {
                         return { ...element, "zIndex": element.extra_properties.zIndex }

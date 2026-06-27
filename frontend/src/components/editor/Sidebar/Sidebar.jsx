@@ -3,6 +3,7 @@ import SidebarControls from "../../common/SidebarControls/SidebarControls";
 import { FaRegImages } from "react-icons/fa";
 import { TfiLayoutLineSolid } from "react-icons/tfi";
 import { CiText } from "react-icons/ci";
+import { BsTextParagraph } from "react-icons/bs";
 import { TiPen } from "react-icons/ti";
 import { LuImagePlus } from "react-icons/lu";
 import { AiOutlineLogout } from "react-icons/ai";
@@ -17,6 +18,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
     const {
         addText,
         addLine,
+        addTextarea,
         showDropzone,
         createPdf,
         showGallery,
@@ -58,6 +60,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
                 <SidebarControls icon={<FaRegImages style={{ color: "#E0856B" }} />} iconBg="#FCEAE2" labelText="Upload images" sidebarEvent={showDropzone} />
                 <SidebarControls icon={<LuImagePlus style={{ color: "#8A6FC4" }} />} iconBg="#EDE8F7" labelText="Gallery" sidebarEvent={showGallery} />
                 <SidebarControls icon={<CiText style={{ color: "#5FA777" }} />} iconBg="#E6F1E7" labelText="Add text" sidebarEvent={addText} />
+                <SidebarControls icon={<BsTextParagraph style={{ color: "#5B8AA6" }} />} iconBg="#E3EEF4" labelText="Add text box" sidebarEvent={addTextarea} />
                 <SidebarControls icon={<TfiLayoutLineSolid style={{ color: "#D9934A" }} />} iconBg="#FBEED9" labelText="Add line" sidebarEvent={addLine} />
             </div>
         </div>
