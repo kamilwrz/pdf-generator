@@ -1,4 +1,4 @@
-from sqlalchemy import VARCHAR, Boolean, Column, DateTime, Integer, Float, String, ForeignKey, Text, JSON
+from sqlalchemy import VARCHAR, Boolean, Column, DateTime, Integer, Float, String, ForeignKey, Text, JSON, inspect, text
 from .database import Base, engine
 
 class User(Base):
@@ -35,6 +35,7 @@ class Pdf(Base):
     created_at = Column (DateTime)
     updated_at = Column(DateTime)
     owner_id = Column(Integer, ForeignKey("users.id"))
+    pages = Column(Integer, default=1)
 
 Pdf.metadata.create_all(bind=engine)
 
@@ -46,6 +47,7 @@ class PdfElements(Base):
     img_id = Column(Integer, ForeignKey("images.id"), nullable=True)
     element_id = Column(String)
     category = Column(String)
+    page = Column(Integer, default=1)
     left = Column(Float)
     top = Column(Float)
     width = Column(VARCHAR, nullable=True)
@@ -59,4 +61,39 @@ class PdfElements(Base):
     extra_properties = Column(JSON, nullable=True)
 
 PdfElements.metadata.create_all(bind=engine)
+
+
+def _run_lightweight_migrations():
+    """Add multi-page columns to pre-existing tables.
+
+    SQLAlchemy's create_all() never ALTERs existing tables, so for databases
+    created before multi-page support we add the columns by hand. Idempotent
+    and DB-agnostic (the ADD COLUMN ... DEFAULT 1 syntax works on both SQLite
+    and PostgreSQL)."""
+    inspector = inspect(engine)
+    pending = []
+    existing_tables = inspector.get_table_names()
+
+    if "pdf_elements" in existing_tables:
+        cols = {c["name"] for c in inspector.get_columns("pdf_elements")}
+        if "page" not in cols:
+            pending.append("ALTER TABLE pdf_elements ADD COLUMN page INTEGER DEFAULT 1")
+
+    if "pdfs" in existing_tables:
+        cols = {c["name"] for c in inspector.get_columns("pdfs")}
+        if "pages" not in cols:
+            pending.append("ALTER TABLE pdfs ADD COLUMN pages INTEGER DEFAULT 1")
+
+    if not pending:
+        return
+
+    with engine.begin() as conn:
+        for statement in pending:
+            try:
+                conn.execute(text(statement))
+            except Exception as exc:  # pragma: no cover - defensive
+                print(f"[migration] skipped '{statement}': {exc}")
+
+
+_run_lightweight_migrations()
 

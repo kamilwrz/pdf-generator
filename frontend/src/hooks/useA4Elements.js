@@ -8,6 +8,75 @@ export function useA4Elements(titleRef) {
   const [A4_Elements, setA4_Elements] = useState([]);
   const [A4_Elements_deleted, setA4_Elements_deleted] = useState([]);
 
+  // ---- Multi-page state ----
+  const [pageCount, setPageCount] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Refs let the stable add-element callbacks read the latest page/elements
+  // without being recreated on every page change.
+  const currentPageRef = useRef(1);
+  const elementsRef = useRef([]);
+  useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
+  useEffect(() => { elementsRef.current = A4_Elements; }, [A4_Elements]);
+
+  const clearSelection = useCallback(() => {
+    setA4_Elements(prev => prev.some(e => e.isSelected)
+      ? prev.map(e => (e.isSelected ? { ...e, isSelected: false } : e))
+      : prev);
+  }, []);
+
+  const handleGoToPage = useCallback((page) => {
+    setPageCount(count => {
+      setCurrentPage(Math.min(Math.max(1, page), count));
+      return count;
+    });
+    clearSelection();
+  }, [clearSelection]);
+
+  const handleAddPage = useCallback(() => {
+    setPageCount(prev => {
+      const next = prev + 1;
+      setCurrentPage(next);
+      return next;
+    });
+    clearSelection();
+  }, [clearSelection]);
+
+  const handleRemovePage = useCallback(() => {
+    setPageCount(prevCount => {
+      if (prevCount <= 1) return prevCount;
+
+      // Read the page being removed from the ref so we don't depend on
+      // currentPage in this callback.
+      const removed = currentPageRef.current;
+
+      // Track elements on the removed page as deletions so an update wipes
+      // them from the DB (mirrors handleDeleteElement).
+      const removedEls = elementsRef.current.filter(e => (e.page ?? 1) === removed);
+      if (removedEls.length) {
+        setA4_Elements_deleted(prevDel => {
+          const additions = removedEls
+            .filter(e => !prevDel.some(d => d.element_id === e.element_id))
+            .map(e => ({ ...e, deleted: true }));
+          return additions.length ? [...prevDel, ...additions] : prevDel;
+        });
+      }
+
+      // Drop the page and shift every later page down by one.
+      setA4_Elements(prev => prev
+        .filter(e => (e.page ?? 1) !== removed)
+        .map(e => {
+          const p = e.page ?? 1;
+          return { ...e, isSelected: false, page: p > removed ? p - 1 : p };
+        }));
+
+      const next = prevCount - 1;
+      setCurrentPage(Math.min(removed, next));
+      return next;
+    });
+  }, []);
+
+
 
   const handleMoveElement = useCallback((e, elementId) => {
     const A4 = e.currentTarget.closest('[class*="A4"]');
@@ -67,6 +136,7 @@ export function useA4Elements(titleRef) {
       isMove: false,
       category: "text",
       zIndex: 3,
+      page: currentPageRef.current,
     };
     setA4_Elements(prevState => {
       return [...prevState, text];
@@ -84,7 +154,8 @@ export function useA4Elements(titleRef) {
       isSelected: false,
       isMove: false,
       category: "line",
-      zIndex: 2
+      zIndex: 2,
+      page: currentPageRef.current,
     };
     setA4_Elements(prevState => {
       return [...prevState, line];
@@ -103,7 +174,8 @@ export function useA4Elements(titleRef) {
       isMove: false,
       category: "image",
       zIndex: 1,
-      img_id : e.target.id
+      img_id : e.target.id,
+      page: currentPageRef.current,
     };
     setA4_Elements(prevState => {
       return [...prevState, image];
@@ -335,6 +407,9 @@ export function useA4Elements(titleRef) {
 
   const handleClearA4 = useCallback(() => {
       setA4_Elements([]);
+      setA4_Elements_deleted([]);
+      setPageCount(1);
+      setCurrentPage(1);
       titleRef.current.value = "";
   }, [])
 
@@ -356,7 +431,15 @@ export function useA4Elements(titleRef) {
     A4ref,
     PDFTitle,
     handleResizeElement,
-    handleClearA4
+    handleClearA4,
+    // multi-page
+    pageCount,
+    setPageCount,
+    currentPage,
+    setCurrentPage,
+    addPage: handleAddPage,
+    removePage: handleRemovePage,
+    goToPage: handleGoToPage,
   };
 
 }

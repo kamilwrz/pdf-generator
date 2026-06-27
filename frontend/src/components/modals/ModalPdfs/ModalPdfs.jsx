@@ -39,7 +39,9 @@ export default function ModalPdfs({ title }) {
         setPDFs,
         PDFs,
         setPDFdownloadData,
-        PDFdownloadData
+        PDFdownloadData,
+        setPageCount,
+        setCurrentPage
     } = use(PdfContext);
 
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
@@ -54,6 +56,10 @@ export default function ModalPdfs({ title }) {
 
         const pdfCanvas = PDFs.find(element => element.id === id);
         title.current.value = pdfCanvas?.title.split(".pdf")[0];
+
+        // Restore the saved page count and jump back to the first page.
+        setPageCount(pdfCanvas?.pages || 1);
+        setCurrentPage(1);
 
         api.httpRequest(ENDPOINTS.PDF.SHOW, "POST", JSON.stringify(id), "Failed to show choosen PDF!").
             then((data) => {

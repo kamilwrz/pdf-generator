@@ -1,0 +1,116 @@
+.wrapper {
+    position: fixed;
+    left: 300px;
+    right: 0;
+    bottom: 24px;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 1300;
+}
+
+.bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #fff;
+    border: 1px solid var(--border-soft);
+    border-radius: 999px;
+    box-shadow: 0 16px 34px -12px rgba(90, 55, 20, .32);
+    padding: 7px 10px;
+    pointer-events: auto;
+    font-family: var(--font-body);
+}
+
+.navBtn {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: var(--secondary-bg);
+    color: var(--muted-font);
+    cursor: pointer;
+    transition: background .15s, color .15s;
+}
+
+.navBtn:hover:not(:disabled) {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.navBtn:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+.label {
+    font: 600 13px var(--font-body);
+    color: var(--muted-font);
+    padding: 0 8px;
+    white-space: nowrap;
+}
+
+.label b {
+    color: var(--primary-font);
+    font-weight: 800;
+}
+
+.sep {
+    color: var(--label-font);
+}
+
+.divider {
+    width: 1px;
+    height: 22px;
+    background: var(--border);
+    margin: 0 4px;
+}
+
+.addBtn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--accent-grad);
+    color: #fff;
+    font: 700 13px var(--font-body);
+    border: none;
+    padding: 9px 15px;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 8px 18px -8px var(--accent);
+    transition: transform .15s;
+}
+
+.addBtn:hover {
+    transform: translateY(-1px);
+}
+
+.removeBtn {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: var(--danger-soft);
+    color: var(--danger);
+    cursor: pointer;
+    transition: filter .15s;
+}
+
+.removeBtn:hover:not(:disabled) {
+    filter: brightness(.96);
+}
+
+.removeBtn:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+@media only screen and (max-width: 700px) {
+    .wrapper { left: 0; }
+}

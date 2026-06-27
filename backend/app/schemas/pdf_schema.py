@@ -5,6 +5,8 @@ from pydantic import BaseModel
 class PdfElement(BaseModel):
     #ELEMENT CATEGORY
     category: Optional[str] = None
+    #PAGE THE ELEMENT BELONGS TO (1-based)
+    page: Optional[int] = 1
     #ELEMENT POSITION
     left: Optional[float] = None
     top: Optional[float] = None
@@ -37,8 +39,10 @@ class PdfElement(BaseModel):
 class PDFCreateRequest(BaseModel):
     root: list[PdfElement]
     pdf_title: str
+    pages: int = 1
 
 class PDFUpdateRequest(BaseModel):
     pdf_id: int
     pdf_title: str
     root: list[PdfElement]
+    pages: int = 1

@@ -41,6 +41,34 @@ class PDF_Generator:
         self.c.showPage()
         self.c.save()
 
+    def render_elements(self, elements, image_resolver, pages=1):
+        """Render every element onto the canvas, one ReportLab page per
+        document page. Elements are grouped by their ``page`` attribute
+        (1-based). Empty pages are still emitted so the page count is
+        preserved. ``image_resolver(src)`` returns a local path ReportLab
+        can read."""
+        by_page = {}
+        for element in elements:
+            if getattr(element, "deleted", None) == True:
+                continue
+            page_no = getattr(element, "page", 1) or 1
+            by_page.setdefault(page_no, []).append(element)
+
+        total_pages = max(int(pages or 1), max(by_page.keys(), default=1))
+
+        for page_no in range(1, total_pages + 1):
+            for element in by_page.get(page_no, []):
+                category = element.category
+                if category == "text":
+                    self.renderText(element.left, element.top, element.fontFamily, element.fontSize, element.color, element.content)
+                elif category == "line":
+                    self.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
+                elif category == "image":
+                    self.renderImage(image_resolver(element.src or ""), float(element.width), float(element.height), element.left, element.top)
+            self.c.showPage()
+
+        self.c.save()
+
 
 
 

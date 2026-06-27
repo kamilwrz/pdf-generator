@@ -72,7 +72,7 @@ async def create_user_pdf(
             pass
         pdf_bytes = build_pdf_to_buffer(pdf_data, elements, image_src_to_local_path)
         file_path = s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
-        pdf_id = create_new_pdf(db, title, db_user.id, file_path, elements)
+        pdf_id = create_new_pdf(db, title, db_user.id, file_path, elements, pdf_data.pages)
         return {"created": "PDF created!", "link": file_path, "pdf_id": pdf_id}
     
     else:
@@ -85,23 +85,12 @@ async def create_user_pdf(
 
         pdf_path = user_upload_dir / title
 
-        pdf_id = create_new_pdf(db, title, db_user.id, pdf_path.as_posix(), elements)
+        pdf_id = create_new_pdf(db, title, db_user.id, pdf_path.as_posix(), elements, pdf_data.pages)
 
         pdf = PDF_Generator(pdf_data, canvas.Canvas(str(user_upload_dir / title), pagesize=(595, 842)))
         pdf.setTitle(title)
-    
-        for element in elements:
-            category = element.category
-        
-            if category == "text":
-                pdf.renderText(element.left, element.top, element.fontFamily, element.fontSize, element.color, element.content)
-            if category == "line":
-                pdf.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
-            if category == "image":
-                src = image_src_to_local_path(element.src or "")
-                pdf.renderImage(src, float(element.width), float(element.height), element.left, element.top)
 
-        pdf.generatePDF()
+        pdf.render_elements(elements, image_src_to_local_path, pdf_data.pages)
 
     
         return {"created": "PDF created!", "link": BACKEND_URL/pdf_path.as_posix(), "pdf_id": pdf_id}
@@ -189,6 +178,7 @@ async def update_user_pdf(
         pdf_bytes = build_pdf_to_buffer(pdf_data, elements, image_src_to_local_path)
         s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
         pdf_row.title = title
+        pdf_row.pages = pdf_data.pages
         pdf_row.file_path = f"https://{s3_storage.S3_BUCKET}.s3.{s3_storage.AWS_REGION}.amazonaws.com/{key}"
         link = pdf_row.file_path
         id = pdf_row.id
@@ -199,21 +189,14 @@ async def update_user_pdf(
 
     else:
         new_file_path = rename_pdf_file(pdf_row, title)
+        pdf_row.pages = pdf_data.pages
         db.add(pdf_row)
         existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
         update_pdf_elements(db, elements, existing_by_id, pdf_id)
         c = canvas.Canvas(new_file_path, pagesize=(595, 842))
         pdf = PDF_Generator(pdf_data, c)
         pdf.setTitle(pdf_row.title or "untitled")
-        for element in elements:
-            if element.category == "text" and getattr(element, "deleted", None) != True:
-                pdf.renderText(element.left, element.top, element.fontFamily, element.fontSize, element.color, element.content)
-            elif element.category == "line" and getattr(element, "deleted", None) != True:
-                pdf.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
-            elif element.category == "image" and getattr(element, "deleted", None) != True:
-                src = image_src_to_local_path(element.src or "")
-                pdf.renderImage(src, float(element.width), float(element.height), element.left, element.top)
-        pdf.generatePDF()
+        pdf.render_elements(elements, image_src_to_local_path, pdf_data.pages)
         db.commit()
         return {"updated": "PDF update was successful!", "link": new_file_path, "pdf_id": pdf_row.id}
 

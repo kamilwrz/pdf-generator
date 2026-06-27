@@ -16,6 +16,7 @@ import { ENDPOINTS } from '../services/api';
 import Spinner from '../components/common/Spinner/Spinner';
 import { AnimatePresence } from "framer-motion";
 import Textarea from '../components/canvas/Textarea/Textarea';
+import PageControls from '../components/editor/PageControls/PageControls';
 
 function PdfCanvas() {
 
@@ -61,7 +62,14 @@ function PdfCanvas() {
     handleEditElementValues,
     A4ref,
     handleResizeElement,
-    handleClearA4
+    handleClearA4,
+    pageCount,
+    setPageCount,
+    currentPage,
+    setCurrentPage,
+    addPage,
+    removePage,
+    goToPage
   } = useA4Elements(titleRef)
 
  
@@ -119,12 +127,12 @@ function PdfCanvas() {
 
 
   const createPdfWithElements = useCallback(() => {
-    createPdf(A4_Elements, titleRef);
-  }, [A4_Elements, createPdf, titleRef]);
+    createPdf(A4_Elements, titleRef, pageCount);
+  }, [A4_Elements, createPdf, titleRef, pageCount]);
 
   const updatePdfWithElements = useCallback(() => {
-    updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted);
-  }, [A4_Elements, pdfId, updatePdf, titleRef, A4_Elements_deleted]);
+    updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted, pageCount);
+  }, [A4_Elements, pdfId, updatePdf, titleRef, A4_Elements_deleted, pageCount]);
 
   function handlePdfId(pdfId) {
     setPdfId(pdfId)
@@ -146,6 +154,14 @@ function PdfCanvas() {
     setA4_Elements: setA4_Elements,
     setA4_Elements_deleted: setA4_Elements_deleted,
     clearA4: handleClearA4,
+    //multi-page
+    pageCount: pageCount,
+    setPageCount: setPageCount,
+    currentPage: currentPage,
+    setCurrentPage: setCurrentPage,
+    addPage: addPage,
+    removePage: removePage,
+    goToPage: goToPage,
     //usePdfExport hook
     updatePdf: updatePdfWithElements,
     createPdf: createPdfWithElements,
@@ -178,6 +194,7 @@ function PdfCanvas() {
     setValueImageUpload, setIsModalPdfs, handleResizeElement, 
     updatePdfWithElements, handlePdfId, 
     handleClearA4, handleShowModalRequest, handleLogout, PDFs, setPDFs,
+    pageCount, currentPage, addPage, removePage, goToPage, setPageCount, setCurrentPage,
   ])
 
   console.log(A4_Elements);
@@ -196,8 +213,9 @@ function PdfCanvas() {
         </Sidebar>
         <A4 width="595px" height="842px" ref={A4ref}>
           {isPdfLoading && <Spinner loading={isPdfLoading}/>}
-          <CanvasElements elements={A4_Elements} />
+          <CanvasElements elements={A4_Elements.filter(element => (element.page ?? 1) === currentPage)} />
         </A4>
+       <PageControls />
        <Gallery />
       </PdfContext.Provider>
     </main>

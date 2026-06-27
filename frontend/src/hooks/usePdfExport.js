@@ -8,7 +8,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   const [isPdfLoading, setIsPdfLoading] = useState(false);
 
 
-  const createPdf = useCallback((A4_Elements, titleRef) => {
+  const createPdf = useCallback((A4_Elements, titleRef, pages = 1) => {
 
     setIsPdfLoading(true);
 
@@ -16,7 +16,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
 
     const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
 
-    api.httpRequest(ENDPOINTS.PDF.CREATE, "POST", JSON.stringify({root: sorted, pdf_title: titleRef.current.value + ".pdf"}), "Failed to create the PDF!").
+    api.httpRequest(ENDPOINTS.PDF.CREATE, "POST", JSON.stringify({root: sorted, pdf_title: titleRef.current.value + ".pdf", pages}), "Failed to create the PDF!").
     then((data) => {handlePdfId(data.pdf_id); setResponsePDF({success: data.created, link:data.link, pdf_id:data.pdf_id})}).
     catch((error) => setResponsePDF(error)).finally(() => { 
       handleShowModal();
@@ -26,8 +26,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   }, [handlePdfId, handleShowModal, titleRef]);
 
   
-  const updatePdf = useCallback((A4_Elements, PDF_ID, titleRef, A4_Elements_deleted) => {
-    
+  const updatePdf = useCallback((A4_Elements, PDF_ID, titleRef, A4_Elements_deleted, pages = 1) => {
+
     setIsPdfLoading(true);
 
     const sorted = [...A4_Elements].sort((a, b) => a.zIndex - b.zIndex);
@@ -36,7 +36,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
 
     const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
 
-    api.httpRequest(ENDPOINTS.PDF.UPDATE, "PUT", JSON.stringify({root: elements, pdf_id: PDF_ID, pdf_title: titleRef.current.value +".pdf"}), "Failed to update the PDF!").
+    api.httpRequest(ENDPOINTS.PDF.UPDATE, "PUT", JSON.stringify({root: elements, pdf_id: PDF_ID, pdf_title: titleRef.current.value +".pdf", pages}), "Failed to update the PDF!").
     then((data) => {setResponsePDF({success: data.updated, link: data.link, pdf_id: data.pdf_id})}).
     catch((error) => setResponsePDF(error)).finally(() => { 
       handleShowModal();

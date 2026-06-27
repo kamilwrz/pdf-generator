@@ -5,12 +5,13 @@ import datetime
 from app.crud.images import request_image_by_id
 
 
-def create_new_pdf(db:Session, title:str, user_id:int, file_path:str, elements:list):
+def create_new_pdf(db:Session, title:str, user_id:int, file_path:str, elements:list, pages:int = 1):
 
     pdf_db = Pdf(
         title = title,
         file_path = file_path,
         owner_id = user_id,
+        pages = pages or 1,
         created_at = datetime.datetime.now(timezone.utc),
         updated_at = datetime.datetime.now(timezone.utc)
     )
@@ -20,7 +21,7 @@ def create_new_pdf(db:Session, title:str, user_id:int, file_path:str, elements:l
     db.flush()
 
     for element in elements:
-        
+
         img_id = element.img_id
         if element.img_id is not None and not request_image_by_id(db, element.img_id):
             img_id = None
@@ -29,6 +30,7 @@ def create_new_pdf(db:Session, title:str, user_id:int, file_path:str, elements:l
             pdf_id = pdf_db.id,
             element_id = element.element_id,
             category = element.category,
+            page = getattr(element, "page", 1) or 1,
             left = element.left,
             top = element.top,
             width = element.width,
@@ -83,6 +85,7 @@ def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_i
               pdf_id=pdf_id,
               element_id=element.element_id,
               category=element.category,
+              page=getattr(element, "page", 1) or 1,
               left=element.left,
               top=element.top,
               width=element.width,
@@ -103,6 +106,7 @@ def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_i
 
         else:
             existing_row = existing_elements[element.element_id]
+            existing_row.page = getattr(element, "page", 1) or 1
             existing_row.left = element.left
             existing_row.top = element.top
             existing_row.width = element.width
