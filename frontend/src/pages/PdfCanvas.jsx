@@ -60,6 +60,7 @@ function PdfCanvas() {
     handleSetTextareaEditing,
     handleSelectElement,
     handleDeleteElement,
+    handleDuplicateElement,
     handleAlignElements,
     handleEditElementValues,
     A4ref,
@@ -155,6 +156,7 @@ function PdfCanvas() {
     editElementValues: handleEditElementValues,
     alignElement: handleAlignElements,
     deleteElement: handleDeleteElement,
+    duplicateElement: handleDuplicateElement,
     resizeElement: handleResizeElement,
     setA4_Elements: setA4_Elements,
     setA4_Elements_deleted: setA4_Elements_deleted,
@@ -200,7 +202,7 @@ function PdfCanvas() {
     updatePdfWithElements, handlePdfId, 
     handleClearA4, handleShowModalRequest, handleLogout, PDFs, setPDFs,
     pageCount, currentPage, addPage, removePage, goToPage, setPageCount, setCurrentPage,
-    handleAddTextarea, markSelected, handleSetTextareaEditing,
+    handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
   ])
 
   console.log(A4_Elements);

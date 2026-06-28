@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import EditorControls from "../../common/EditorControls/EditorControls";
 import CloseButton from "../../common/CloseButton/CloseButton";
 import { RiDeleteBin2Line } from "react-icons/ri";
+import { RiFileCopyLine } from "react-icons/ri";
 import { CiTextAlignLeft } from "react-icons/ci";
 import { CiTextAlignCenter } from "react-icons/ci";
 import { CiTextAlignRight } from "react-icons/ci";
@@ -14,7 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function Editor() {
 
-    const { A4_Elements, editElementValues, alignElement, deleteElement, setA4_Elements, setTextareaEditing } = use(PdfContext);
+    const { A4_Elements, editElementValues, alignElement, deleteElement, duplicateElement, setA4_Elements, setTextareaEditing } = use(PdfContext);
 
     let selectedElement = A4_Elements.find(element => element.isSelected === true);
     const someElementSelected = A4_Elements.some(element => element.isSelected);
@@ -146,6 +147,7 @@ export default function Editor() {
                         <span>Y: {Math.round(selectedElement?.top) + "px"}</span>
                     </div>
                 </div>
+                <button type="button" className={classes.btnDuplicate} onClick={() => duplicateElement(selectedElement.element_id)}>Duplicate element<RiFileCopyLine /></button>
                 <button type="button" className={classes.btnDelete} onClick={() => deleteElement(selectedElement.element_id)}>Remove Element<RiDeleteBin2Line /></button>
 
             </>

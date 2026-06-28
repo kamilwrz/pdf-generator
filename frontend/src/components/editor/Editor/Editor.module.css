@@ -128,6 +128,29 @@
     background: var(--accent-soft);
 }
 
+.btnDuplicate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    font: 700 13px var(--font-body);
+    border: 1px solid var(--border);
+    background: var(--secondary-bg);
+    color: var(--accent);
+    border-radius: var(--r-sm);
+    padding: 11px;
+    margin-top: 4px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+
+.btnDuplicate:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
+
 .btnDelete {
     display: flex;
     align-items: center;
@@ -140,7 +163,6 @@
     border-radius: var(--r-sm);
     color: var(--danger);
     padding: 11px;
-    margin-top: 4px;
     cursor: pointer;
     transition: filter .15s;
 }

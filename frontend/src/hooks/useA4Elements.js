@@ -234,6 +234,36 @@ export function useA4Elements(titleRef) {
   }, [])
 
   
+  // Clone the selected element: same size/text/colors/font/page, new id,
+  // nudged 15px down-right so the copy is visibly distinct, then selected.
+  const handleDuplicateElement = useCallback((elementId) => {
+    setA4_Elements(prevState => {
+      const original = prevState.find(el => el.element_id === elementId);
+      if (!original) return prevState;
+
+      const A4_WIDTH = 595;
+      const A4_HEIGHT = 842;
+      const OFFSET = 15;
+      const w = parseFloat(original.width) || 0;
+      const h = parseFloat(original.height) || 0;
+      const left = Math.max(0, Math.min(original.left + OFFSET, A4_WIDTH - (w || 10)));
+      const top = Math.max(0, Math.min(original.top + OFFSET, A4_HEIGHT - (h || 10)));
+
+      const copy = {
+        ...original,            // carries width/height/content/color/font/lineHeight/letterSpacing/src/img_id/backgroundColor/zIndex/page
+        element_id: nanoid(),
+        left,
+        top,
+        isSelected: true,       // copy becomes the active element
+        isMove: false,
+        isEditing: false,       // textarea copies render as a block, not in edit mode
+      };
+
+      // Deselect everything else; the new copy is the only selected element.
+      return [...prevState.map(el => ({ ...el, isSelected: false })), copy];
+    });
+  }, []);
+
   const handleDeleteElement = useCallback((elementId) => {
     setA4_Elements(prevState => {
       const deletedElement = prevState.find(el => el.element_id === elementId);
@@ -503,6 +533,7 @@ export function useA4Elements(titleRef) {
     handleSetTextareaEditing,
     handleAlignElements,
     handleDeleteElement,
+    handleDuplicateElement,
     handleEditElementValues,
     A4ref,
     PDFTitle,
