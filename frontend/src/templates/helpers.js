@@ -1,0 +1,23 @@
+// Factory helpers for authoring CV templates as plain element specs.
+// The loader (useA4Elements.handleLoadTemplate) assigns element_id + page and
+// merges interaction defaults (isSelected/isMove/isEditing). Only fonts the
+// backend can render are used: Inter / Roboto / Times-Roman / Helvetica / Courier.
+
+export const text = (content, fontSize, fontFamily, color, left, top, zIndex = 2) =>
+    ({ category: "text", content, fontSize, fontFamily, color, left, top, zIndex });
+
+// `line` is a filled rectangle (the only decoration primitive): rules, bands,
+// sidebar backgrounds, photo placeholder boxes.
+export const line = (left, top, width, height, backgroundColor, zIndex = 1) =>
+    ({ category: "line", left, top, width, height, backgroundColor, zIndex });
+
+// `block` is a metric-exact textarea — multi-line bodies wrap in the PDF exactly
+// as they do on the canvas.
+export const block = (
+    content, left, top, width, height, fontSize, lineHeight,
+    color = "#2B2B2B", fontFamily = "Inter", letterSpacing = 0, zIndex = 2
+) => ({
+    category: "textarea",
+    content, left, top, width, height,
+    fontSize, fontFamily, color, lineHeight, letterSpacing, zIndex,
+});

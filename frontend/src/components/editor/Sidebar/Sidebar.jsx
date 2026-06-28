@@ -9,6 +9,7 @@ import { LuImagePlus } from "react-icons/lu";
 import { AiOutlineLogout } from "react-icons/ai";
 import { RiDownload2Line } from "react-icons/ri";
 import { FaRegFolderOpen } from "react-icons/fa";
+import { LuLayoutTemplate } from "react-icons/lu";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { forwardRef, use } from "react";
 
@@ -19,6 +20,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
         addText,
         addLine,
         addTextarea,
+        showTemplates,
         showDropzone,
         createPdf,
         showGallery,
@@ -52,6 +54,10 @@ export default forwardRef(function Sidebar({ children }, ref) {
                 <input type="text" name="title" id="title" ref={ref} placeholder="Untitled project" />
                 <button type="button" aria-label="Rename"><TiPen /></button>
             </div>
+        </div>
+
+        <div className={classes.templatesBlock}>
+            <SidebarControls icon={<LuLayoutTemplate style={{ color: "#C28A3D" }} />} iconBg="#FBEED9" labelText="CV Templates" sidebarEvent={showTemplates} />
         </div>
 
         <div className={classes.toolsContainer}>

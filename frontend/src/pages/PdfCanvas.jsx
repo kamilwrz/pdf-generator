@@ -17,6 +17,7 @@ import Spinner from '../components/common/Spinner/Spinner';
 import { AnimatePresence } from "framer-motion";
 import PageControls from '../components/editor/PageControls/PageControls';
 import Guides from '../components/canvas/Guides/Guides';
+import TemplatesModal from '../components/modals/TemplatesModal/TemplatesModal';
 
 function PdfCanvas() {
 
@@ -30,6 +31,8 @@ function PdfCanvas() {
   const [checkActivity, setIsActive] = useState(false);
   //state for showing the modal with generated PDF's
   const [isModalPdfs, setIsModalPdfs] = useState(false);
+  //state for showing the CV templates picker
+  const [isTemplates, setIsTemplates] = useState(false);
   // state for showing the progress var in Dropzone when IMG is uploaded
   const [valueImageUpload, setValueImageUpload] = useState(0);
   //state for seting the PDF id, used in ModalPdf.jsx
@@ -67,6 +70,7 @@ function PdfCanvas() {
     A4ref,
     handleResizeElement,
     handleClearA4,
+    handleLoadTemplate,
     pageCount,
     setPageCount,
     currentPage,
@@ -125,6 +129,10 @@ function PdfCanvas() {
     setIsDropzone(boolDropzone => !boolDropzone);
   }, [])
 
+  const handleShowTemplates = useCallback(() => {
+    setIsTemplates(bool => !bool);
+  }, [])
+
   const handleShowGallery = useCallback(() => {
     setIsGallery(boolGallery => !boolGallery);
   }, [])
@@ -162,6 +170,10 @@ function PdfCanvas() {
     setA4_Elements: setA4_Elements,
     setA4_Elements_deleted: setA4_Elements_deleted,
     clearA4: handleClearA4,
+    //templates
+    isTemplates: isTemplates,
+    showTemplates: handleShowTemplates,
+    loadTemplate: handleLoadTemplate,
     //multi-page
     pageCount: pageCount,
     setPageCount: setPageCount,
@@ -204,6 +216,7 @@ function PdfCanvas() {
     handleClearA4, handleShowModalRequest, handleLogout, PDFs, setPDFs,
     pageCount, currentPage, addPage, removePage, goToPage, setPageCount, setCurrentPage,
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
+    isTemplates, handleShowTemplates, handleLoadTemplate,
   ])
 
   console.log(A4_Elements);
@@ -216,6 +229,7 @@ function PdfCanvas() {
       <PdfContext.Provider value={ctxValue}>
         <ModalPdfs title={titleRef}/>
         <ModalPdfRequestStatus open={modalRequestStatus} message={responsePDF} />
+        <TemplatesModal />
         <Sidebar ref={titleRef}>
           <AnimatePresence>{isDropzone && <DropzoneContainer />}</AnimatePresence>
           <Editor />

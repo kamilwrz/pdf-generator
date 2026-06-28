@@ -101,6 +101,11 @@
     padding: 0;
 }
 
+/* ---- Templates ---- */
+.templatesBlock {
+    margin-top: 22px;
+}
+
 /* ---- Tools ---- */
 .toolsContainer {
     margin-top: 26px;

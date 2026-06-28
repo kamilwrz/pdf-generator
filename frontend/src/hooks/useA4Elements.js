@@ -516,6 +516,26 @@ export function useA4Elements(titleRef) {
       titleRef.current.value = "";
   }, [])
 
+  // Replace the canvas with a template (array of element specs). Each spec gets
+  // a fresh id + page; interaction flags default off. Resets to a single page.
+  const handleLoadTemplate = useCallback((templateElements, templateName) => {
+    const mapped = templateElements.map((spec) => ({
+      isSelected: false,
+      isMove: false,
+      isEditing: false,
+      ...spec,
+      element_id: nanoid(),
+      page: 1,
+    }));
+    setA4_Elements(mapped);
+    setA4_Elements_deleted([]);
+    setPageCount(1);
+    setCurrentPage(1);
+    if (titleRef?.current && templateName) {
+      titleRef.current.value = `${templateName} CV`;
+    }
+  }, [])
+
 
   return {
     A4_Elements,
@@ -539,6 +559,7 @@ export function useA4Elements(titleRef) {
     PDFTitle,
     handleResizeElement,
     handleClearA4,
+    handleLoadTemplate,
     // multi-page
     pageCount,
     setPageCount,
