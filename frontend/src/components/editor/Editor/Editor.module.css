@@ -1,8 +1,8 @@
 .editor {
     width: 268px;
     position: absolute;
-    left: 320px;
-    bottom: 5rem;
+    left: 16px;
+    top: 80px;
     z-index: 1200;
     background: #fff;
     color: var(--primary-font);
