@@ -1,0 +1,21 @@
+/* Alignment guides shown while dragging. pointer-events:none so they never
+   intercept the drag's mousemove events on the element underneath. */
+.vLine,
+.hLine {
+    position: absolute;
+    background: #1FB6C7;
+    z-index: 5000;
+    pointer-events: none;
+}
+
+.vLine {
+    top: 0;
+    width: 1px;
+    height: 842px;
+}
+
+.hLine {
+    left: 0;
+    height: 1px;
+    width: 595px;
+}

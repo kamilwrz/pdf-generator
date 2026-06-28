@@ -16,6 +16,7 @@ import { ENDPOINTS } from '../services/api';
 import Spinner from '../components/common/Spinner/Spinner';
 import { AnimatePresence } from "framer-motion";
 import PageControls from '../components/editor/PageControls/PageControls';
+import Guides from '../components/canvas/Guides/Guides';
 
 function PdfCanvas() {
 
@@ -222,6 +223,7 @@ function PdfCanvas() {
         <A4 width="595px" height="842px" ref={A4ref}>
           {isPdfLoading && <Spinner loading={isPdfLoading}/>}
           <CanvasElements elements={A4_Elements.filter(element => (element.page ?? 1) === currentPage)} />
+          <Guides />
         </A4>
        <PageControls />
        <Gallery />
