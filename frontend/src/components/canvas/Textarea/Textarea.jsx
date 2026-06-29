@@ -21,6 +21,7 @@ function Textarea({
     bold,
     italic,
     underline,
+    align,
     zIndex,
 }) {
     const {
@@ -58,6 +59,7 @@ function Textarea({
         fontWeight: bold ? 700 : 400,
         fontStyle: italic ? "italic" : "normal",
         textDecoration: underline ? "underline" : "none",
+        textAlign: align || "left",
     };
 
     if (isEditing) {

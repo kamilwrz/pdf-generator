@@ -25,6 +25,7 @@ export default function CanvasElements({ elements }) {
             bold={element.bold}
             italic={element.italic}
             underline={element.underline}
+            align={element.align}
             zIndex={element.zIndex}
           />
         );

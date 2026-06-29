@@ -22,6 +22,8 @@ class PdfElement(BaseModel):
     bold: Optional[bool] = False
     italic: Optional[bool] = False
     underline: Optional[bool] = False
+    #TEXTAREA TEXT ALIGNMENT: left | center | right | justify
+    align: Optional[str] = "left"
     #LINE / IMG ELEMENT
     width: Optional[float | str] = None
     height: Optional[float | str] = None

@@ -7,6 +7,7 @@ import { RiFileCopyLine } from "react-icons/ri";
 import { CiTextAlignLeft } from "react-icons/ci";
 import { CiTextAlignCenter } from "react-icons/ci";
 import { CiTextAlignRight } from "react-icons/ci";
+import { CiTextAlignJustify } from "react-icons/ci";
 
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { use } from "react";
@@ -49,6 +50,10 @@ export default function Editor() {
 
     function toggleStyle(key) {
         editElementValues({ [key]: !selectedElement[key] }, selectedElement.element_id);
+    }
+
+    function setAlign(value) {
+        editElementValues({ align: value }, selectedElement.element_id);
     }
 
     function handleCloseEditor(elementId) {
@@ -119,6 +124,7 @@ export default function Editor() {
                 <EditorControls labelText="Text Color" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
                 <EditorControls labelText="Font Family" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
                 <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
+                <AlignToggles selectedElement={selectedElement} setAlign={setAlign} />
                 <div className={classes.elementSize}>
                     <EditorControls labelText="Line Height" type="number" inputValue={elementValues.lineHeight} onChangeFn={(e) => handleChangeValues(e, "lineHeight")} />
                     <EditorControls labelText="Letter Spacing" type="number" inputValue={elementValues.letterSpacing} onChangeFn={(e) => handleChangeValues(e, "letterSpacing")} />
@@ -167,6 +173,26 @@ export default function Editor() {
             </>
         </form>
     </motion.aside>}</AnimatePresence>
+}
+
+function AlignToggles({ selectedElement, setAlign }) {
+    const current = selectedElement?.align || "left";
+    const btn = (value, Icon, label) => (
+        <button
+            type="button"
+            className={current === value ? classes.styleActive : ""}
+            onClick={() => setAlign(value)}
+            aria-label={label}
+        ><Icon /></button>
+    );
+    return (
+        <div className={classes.styleRow}>
+            {btn("left", CiTextAlignLeft, "Align left")}
+            {btn("center", CiTextAlignCenter, "Align center")}
+            {btn("right", CiTextAlignRight, "Align right")}
+            {btn("justify", CiTextAlignJustify, "Justify")}
+        </div>
+    );
 }
 
 function StyleToggles({ selectedElement, toggleStyle }) {

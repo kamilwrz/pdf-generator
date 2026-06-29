@@ -74,11 +74,12 @@ class PDF_Generator:
             return italic_f, False, False
         return family, False, False
 
-    def _draw_text_line(self, x, y, text, font, size, color, bold=False, italic=False, underline=False, letter_spacing=0.0):
+    def _draw_text_line(self, x, y, text, font, size, color, bold=False, italic=False, underline=False, letter_spacing=0.0, word_space=0.0):
         """Draw one line of text at baseline (x, y) with optional bold, italic
         and underline. Uses a real bold/italic font when available; faux styling
         (fill+stroke for bold, sheared matrix for italic) is the fallback for
-        fonts without a registered variant. Underline is always a drawn rule."""
+        fonts without a registered variant. Underline is always a drawn rule.
+        ``word_space`` adds extra width to each space char (used by justify)."""
         draw_font, faux_bold, faux_italic = self._resolve_font(font, bold, italic)
         if text:
             to = self.c.beginText()
@@ -89,6 +90,8 @@ class PDF_Generator:
             to.setFont(draw_font, size)
             if letter_spacing:
                 to.setCharSpace(letter_spacing)
+            if word_space:
+                to.setWordSpace(word_space)
             to.setFillColor(HexColor(color))
             if faux_bold:
                 to.setTextRenderMode(2)  # fill + stroke
@@ -97,7 +100,7 @@ class PDF_Generator:
             to.textLine(text)
             self.c.drawText(to)
         if underline and text:
-            width = stringWidth(text, draw_font, size) + len(text) * letter_spacing
+            width = stringWidth(text, draw_font, size) + len(text) * letter_spacing + word_space * text.count(" ")
             uy = y - size * 0.12
             self.c.setLineWidth(max(0.4, size * 0.05))
             self.c.setStrokeColor(HexColor(color))
@@ -121,13 +124,18 @@ class PDF_Generator:
         Honours explicit newlines, breaks on spaces, and hard-breaks words
         that are individually wider than the box. Width is measured with the
         same font metrics + letter-spacing the canvas uses, so the wrap points
-        match what the user sees in edit mode."""
-        lines = []
+        match what the user sees in edit mode.
+
+        Returns a list of (line, is_last_of_paragraph) tuples. The flag lets
+        justify leave the final line of each paragraph left-aligned, matching
+        CSS text-align: justify."""
+        out = []
         for paragraph in (text or "").split("\n"):
             if paragraph == "":
-                lines.append("")
+                out.append(("", True))
                 continue
 
+            para_lines = []
             current = ""
             for word in paragraph.split(" "):
                 candidate = word if current == "" else current + " " + word
@@ -136,7 +144,7 @@ class PDF_Generator:
                     continue
 
                 if current:
-                    lines.append(current)
+                    para_lines.append(current)
                     current = ""
 
                 # A single word that overflows the box is hard-broken per char.
@@ -146,16 +154,18 @@ class PDF_Generator:
                         if chunk == "" or self._line_width(chunk + ch, font, size, letter_spacing) <= max_width:
                             chunk += ch
                         else:
-                            lines.append(chunk)
+                            para_lines.append(chunk)
                             chunk = ch
                     current = chunk
                 else:
                     current = word
 
-            lines.append(current)
-        return lines
+            para_lines.append(current)
+            for i, ln in enumerate(para_lines):
+                out.append((ln, i == len(para_lines) - 1))
+        return out
 
-    def renderTextarea(self, left, top, width, height, fontFamily, fontSize, color, content, lineHeight, letterSpacing, bold=False, italic=False, underline=False):
+    def renderTextarea(self, left, top, width, height, fontFamily, fontSize, color, content, lineHeight, letterSpacing, bold=False, italic=False, underline=False, align="left"):
         """Render a multi-line text box so it matches the on-canvas edit-mode
         box: same wrap, line-height, letter-spacing and font metrics. Lines
         whose top falls outside the box height are clipped (mirrors the
@@ -179,14 +189,31 @@ class PDF_Generator:
 
         lines = self._wrap_textarea(content, measure_font, fontSize, letter_spacing, width)
 
-        for i, line in enumerate(lines):
+        for i, (line, is_last) in enumerate(lines):
             line_top = i * line_height
             if line_top >= height:  # clipped by the box
                 break
             baseline_from_top = line_top + half_leading + ascent
             y = 842 - top - baseline_from_top
 
-            self._draw_text_line(left, y, line, fontFamily, fontSize, color, bold, italic, underline, letter_spacing)
+            # Alignment: offset each line by its measured width (same width the
+            # browser computes, since both use the same font). Justify fills the
+            # box by stretching the spaces, leaving each paragraph's last line
+            # left-aligned (CSS behaviour).
+            x = left
+            word_space = 0.0
+            if line:
+                line_w = self._line_width(line, measure_font, fontSize, letter_spacing)
+                if align == "right":
+                    x = left + (width - line_w)
+                elif align == "center":
+                    x = left + (width - line_w) / 2.0
+                elif align == "justify" and not is_last:
+                    spaces = line.count(" ")
+                    if spaces > 0 and line_w < width:
+                        word_space = (width - line_w) / spaces
+
+            self._draw_text_line(x, y, line, fontFamily, fontSize, color, bold, italic, underline, letter_spacing, word_space)
 
     def generatePDF(self):
         self.c.showPage()
@@ -221,6 +248,7 @@ class PDF_Generator:
                         element.fontFamily, element.fontSize, element.color, element.content,
                         getattr(element, "lineHeight", None), getattr(element, "letterSpacing", None),
                         getattr(element, "bold", False), getattr(element, "italic", False), getattr(element, "underline", False),
+                        getattr(element, "align", "left") or "left",
                     )
                 elif category == "line":
                     self.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
