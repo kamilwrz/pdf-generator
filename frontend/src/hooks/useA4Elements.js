@@ -292,21 +292,45 @@ export function useA4Elements(titleRef) {
 
   // Move an element to newTop and shift every element BELOW it (same page,
   // greater top) by the same delta — opens/closes vertical space above the
-  // moved block while preserving the spacing within and below it.
+  // moved block while preserving the spacing within and below it. When a moved
+  // element runs past the bottom of the page (top >= A4 height) it flows onto
+  // the next page at the carried-over Y, creating pages as needed.
   const handleMoveElementWithBelow = useCallback((elementId, newTop) => {
-    setA4_Elements(prevState => {
-      const target = prevState.find(el => el.element_id === elementId);
-      if (!target) return prevState;
-      const oldTop = target.top;
-      const delta = newTop - oldTop;
-      if (delta === 0) return prevState;
-      const page = target.page ?? 1;
-      return prevState.map(el => {
-        if (el.element_id === elementId) return { ...el, top: newTop };
-        if ((el.page ?? 1) === page && el.top > oldTop) return { ...el, top: el.top + delta };
-        return el;
-      });
+    const PAGE_HEIGHT = 842;
+    const elements = elementsRef.current;
+    const target = elements.find(el => el.element_id === elementId);
+    if (!target) return;
+    const oldTop = target.top;
+    const delta = newTop - oldTop;
+    if (delta === 0) return;
+    const page = target.page ?? 1;
+
+    // Convert an (page, top) that overflows the page bottom into the page it
+    // actually lands on plus the wrapped top. Upward moves (negative top) are
+    // left untouched — out of scope here.
+    const flow = (p0, t0) => {
+      let p = p0;
+      let t = t0;
+      while (t >= PAGE_HEIGHT) { t -= PAGE_HEIGHT; p += 1; }
+      return { p, t };
+    };
+
+    let maxPage = 1;
+    const next = elements.map(el => {
+      let res = el;
+      if (el.element_id === elementId) {
+        const { p, t } = flow(page, newTop);
+        res = { ...el, page: p, top: t };
+      } else if ((el.page ?? 1) === page && el.top > oldTop) {
+        const { p, t } = flow(page, el.top + delta);
+        res = { ...el, page: p, top: t };
+      }
+      if ((res.page ?? 1) > maxPage) maxPage = res.page ?? 1;
+      return res;
     });
+
+    setA4_Elements(next);
+    setPageCount(prev => Math.max(prev, maxPage));
   }, [])
 
   const handleAlignElements = useCallback((elementId, position, width, category) => {
