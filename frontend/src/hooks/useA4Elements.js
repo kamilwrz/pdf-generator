@@ -290,11 +290,11 @@ export function useA4Elements(titleRef) {
     });
   }, [])
 
-  // Move an element to newTop and shift every element BELOW it (same page,
-  // greater top) by the same delta — opens/closes vertical space above the
-  // moved block while preserving the spacing within and below it. When a moved
-  // element runs past the bottom of the page (top >= A4 height) it flows onto
-  // the next page at the carried-over Y, creating pages as needed.
+  // Move an element to newTop and shift every element BELOW it (in absolute
+  // document order) by the same delta — opens/closes vertical space above the
+  // moved block while preserving spacing. Fully bidirectional: pushing down
+  // flows overflow onto the next page (creating it), pushing up pulls elements
+  // back from later pages and trims the now-empty trailing pages.
   const handleMoveElementWithBelow = useCallback((elementId, newTop) => {
     const PAGE_HEIGHT = 842;
     const elements = elementsRef.current;
@@ -337,7 +337,13 @@ export function useA4Elements(titleRef) {
     });
 
     setA4_Elements(next);
-    setPageCount(prev => Math.max(prev, maxPage));
+    // Set the page count to the furthest page that actually holds an element:
+    // grows as overflow flows down, shrinks when an upward push empties the
+    // trailing pages the overflow created. Empty pages between content are kept
+    // (maxPage tracks the highest OCCUPIED page). Clamp the view so it doesn't
+    // sit on a page that no longer exists.
+    setPageCount(maxPage);
+    setCurrentPage(cp => Math.min(cp, maxPage));
   }, [])
 
   const handleAlignElements = useCallback((elementId, position, width, category) => {
