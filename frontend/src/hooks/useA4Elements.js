@@ -300,30 +300,37 @@ export function useA4Elements(titleRef) {
     const elements = elementsRef.current;
     const target = elements.find(el => el.element_id === elementId);
     if (!target) return;
-    const oldTop = target.top;
-    const delta = newTop - oldTop;
-    if (delta === 0) return;
-    const page = target.page ?? 1;
 
-    // Convert an (page, top) that overflows the page bottom into the page it
-    // actually lands on plus the wrapped top. Upward moves (negative top) are
-    // left untouched — out of scope here.
-    const flow = (p0, t0) => {
-      let p = p0;
-      let t = t0;
-      while (t >= PAGE_HEIGHT) { t -= PAGE_HEIGHT; p += 1; }
-      return { p, t };
+    // Work in absolute document Y (across all pages). This keeps the moved
+    // block rigid as it flows across page boundaries — measuring per-page and
+    // matching only the target's page collapses spacing the moment an element
+    // crosses onto the next page.
+    const absOf = (el) => ((el.page ?? 1) - 1) * PAGE_HEIGHT + el.top;
+    const oldAbs = absOf(target);
+    const newAbs = ((target.page ?? 1) - 1) * PAGE_HEIGHT + newTop;
+    const delta = newAbs - oldAbs;
+    if (delta === 0) return;
+
+    // Absolute Y -> { page, top }. Only wraps downward overflow; upward moves
+    // that pull an element to an earlier page resolve naturally too.
+    const toPageTop = (abs) => {
+      let a = abs;
+      let p = 1;
+      while (a >= PAGE_HEIGHT) { a -= PAGE_HEIGHT; p += 1; }
+      return { page: p, top: a };
     };
 
     let maxPage = 1;
     const next = elements.map(el => {
       let res = el;
       if (el.element_id === elementId) {
-        const { p, t } = flow(page, newTop);
-        res = { ...el, page: p, top: t };
-      } else if ((el.page ?? 1) === page && el.top > oldTop) {
-        const { p, t } = flow(page, el.top + delta);
-        res = { ...el, page: p, top: t };
+        const { page, top } = toPageTop(newAbs);
+        res = { ...el, page, top };
+      } else if (absOf(el) > oldAbs) {
+        // Every element below the target (in absolute terms) shifts by the
+        // same delta — spacing preserved across the page break.
+        const { page, top } = toPageTop(absOf(el) + delta);
+        res = { ...el, page, top };
       }
       if ((res.page ?? 1) > maxPage) maxPage = res.page ?? 1;
       return res;
