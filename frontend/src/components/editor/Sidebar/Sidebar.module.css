@@ -9,7 +9,7 @@
     z-index: 1000;
     display: flex;
     flex-direction: column;
-    padding: 22px 20px;
+    padding: 14px 18px;
     font-family: var(--font-body);
     color: var(--primary-font);
     overflow: visible;
@@ -20,14 +20,14 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding-bottom: 20px;
+    padding-bottom: 12px;
     border-bottom: 1px solid var(--border-soft);
 }
 
 .logoMark {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
     background: var(--accent-grad);
     display: flex;
     align-items: center;
@@ -53,7 +53,7 @@
 .titleContainer {
     display: flex;
     flex-direction: column;
-    margin-top: 22px;
+    margin-top: 14px;
 }
 
 .titleContainer label {
@@ -70,8 +70,8 @@
     background: var(--secondary-bg);
     border: 1px solid var(--border);
     border-radius: var(--r-md);
-    padding: 10px 12px;
-    margin-top: 9px;
+    padding: 8px 10px;
+    margin-top: 7px;
 }
 
 .titleField input {
@@ -103,12 +103,12 @@
 
 /* ---- Templates ---- */
 .templatesBlock {
-    margin-top: 22px;
+    margin-top: 12px;
 }
 
 /* ---- Tools ---- */
 .toolsContainer {
-    margin-top: 26px;
+    margin-top: 14px;
 }
 
 .toolsLabel {
@@ -121,19 +121,19 @@
 .toolsList {
     display: flex;
     flex-direction: column;
-    gap: 9px;
-    margin-top: 12px;
+    gap: 7px;
+    margin-top: 8px;
 }
 
 /* ---- My documents ---- */
 .myDocumentsContainer {
-    margin-top: 24px;
+    margin-top: 12px;
 }
 
 /* ---- Footer ---- */
 .sidebarFooter {
     margin-top: auto;
-    padding-top: 20px;
+    padding-top: 12px;
     display: flex;
     flex-direction: column;
 }
@@ -145,8 +145,8 @@
     gap: 10px;
     background: var(--accent-grad);
     color: #fff;
-    font: 700 16px var(--font-body);
-    padding: 14px;
+    font: 700 15px var(--font-body);
+    padding: 10px;
     border: none;
     border-radius: var(--r-md);
     cursor: pointer;
@@ -170,7 +170,7 @@
 .footerActions {
     display: flex;
     gap: 9px;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 
 .btn {
@@ -180,7 +180,7 @@
     color: var(--muted-font);
     background: var(--secondary-bg);
     border: 1px solid var(--border);
-    padding: 10px;
+    padding: 8px;
     border-radius: var(--r-sm);
     cursor: pointer;
     transition: border-color .15s, color .15s;
@@ -195,8 +195,8 @@
     display: flex;
     align-items: center;
     gap: 9px;
-    margin-top: 18px;
-    padding-top: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
     border-top: 1px solid var(--border-soft);
 }
 
