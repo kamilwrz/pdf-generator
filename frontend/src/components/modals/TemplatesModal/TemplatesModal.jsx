@@ -40,6 +40,56 @@ function Preview({ id, accent }) {
             </div>
         );
     }
+    if (id === "nocturne") {
+        return (
+            <div className={classes.paper} style={{ flexDirection: "column" }}>
+                <div style={{ height: "30%", background: "#1F2933", display: "flex", flexDirection: "column", justifyContent: "center", gap: "4px", padding: "0 12px" }}>
+                    <span className={classes.bar} style={{ background: "#fff", width: "62%" }} />
+                    <span className={classes.barThin} style={{ background: accent, width: "34%" }} />
+                </div>
+                <div className={classes.col}>
+                    <span className={classes.barAccent} style={{ background: accent, width: "30%" }} />
+                    <span className={classes.line} /><span className={classes.line} />
+                    <span className={classes.barAccent} style={{ background: accent, width: "30%", marginTop: "6px" }} />
+                    <span className={classes.line} /><span className={classes.line} />
+                </div>
+            </div>
+        );
+    }
+    if (id === "ampersand") {
+        return (
+            <div className={classes.paper}>
+                <div style={{ width: "5px", background: accent }} />
+                <div className={classes.col}>
+                    <span className={classes.bar} style={{ background: "#2A2320", width: "55%" }} />
+                    <span className={classes.barThin} style={{ background: accent, width: "30%" }} />
+                    <span className={classes.line} /><span className={classes.line} />
+                    <span className={classes.bar} style={{ background: "#2A2320", width: "42%", marginTop: "6px" }} />
+                    <span className={classes.line} /><span className={classes.line} />
+                </div>
+            </div>
+        );
+    }
+    if (id === "blueprint") {
+        return (
+            <div className={classes.paper} style={{ flexDirection: "column" }}>
+                <div style={{ padding: "12px 12px 6px" }}>
+                    <span className={classes.bar} style={{ background: "#1A2530", width: "45%", display: "block" }} />
+                    <span className={classes.rule} style={{ background: "#1A2530", marginTop: "6px" }} />
+                </div>
+                <div style={{ display: "flex", flex: 1, gap: "8px", padding: "0 12px 12px" }}>
+                    <div style={{ flex: "0 0 34%", display: "flex", flexDirection: "column", gap: "4px", borderRight: "1px solid #D8DEE4", paddingRight: "6px" }}>
+                        <span className={classes.barThin} style={{ background: accent, width: "70%" }} />
+                        <span className={classes.line} /><span className={classes.line} />
+                    </div>
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <span className={classes.barThin} style={{ background: accent, width: "55%" }} />
+                        <span className={classes.line} /><span className={classes.line} />
+                    </div>
+                </div>
+            </div>
+        );
+    }
     // finance
     return (
         <div className={classes.paper}>
