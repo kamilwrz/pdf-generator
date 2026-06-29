@@ -22,6 +22,9 @@ export default function CanvasElements({ elements }) {
             height={parseFloat(element.height)}
             isSelected={element.isSelected}
             isEditing={element.isEditing}
+            bold={element.bold}
+            italic={element.italic}
+            underline={element.underline}
             zIndex={element.zIndex}
           />
         );
@@ -39,6 +42,9 @@ export default function CanvasElements({ elements }) {
             top={element.top}
             isSelected={element.isSelected}
             category={element.category}
+            bold={element.bold}
+            italic={element.italic}
+            underline={element.underline}
             zIndex={element.zIndex}
           />
         );

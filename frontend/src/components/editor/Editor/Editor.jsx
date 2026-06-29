@@ -47,6 +47,10 @@ export default function Editor() {
         });
     }
 
+    function toggleStyle(key) {
+        editElementValues({ [key]: !selectedElement[key] }, selectedElement.element_id);
+    }
+
     function handleCloseEditor(elementId) {
         setA4_Elements(prevState => {
             const newState = prevState.map((element) => {
@@ -106,6 +110,7 @@ export default function Editor() {
                 <EditorControls labelText="Font Size" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
                 <EditorControls labelText="Text Color" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
                 <EditorControls labelText="Font Family" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
+                <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
             </>}
             {selectedElement?.category === "textarea" && <>
 
@@ -113,6 +118,7 @@ export default function Editor() {
                 <EditorControls labelText="Font Size" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
                 <EditorControls labelText="Text Color" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
                 <EditorControls labelText="Font Family" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
+                <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
                 <div className={classes.elementSize}>
                     <EditorControls labelText="Line Height" type="number" inputValue={elementValues.lineHeight} onChangeFn={(e) => handleChangeValues(e, "lineHeight")} />
                     <EditorControls labelText="Letter Spacing" type="number" inputValue={elementValues.letterSpacing} onChangeFn={(e) => handleChangeValues(e, "letterSpacing")} />
@@ -161,5 +167,33 @@ export default function Editor() {
             </>
         </form>
     </motion.aside>}</AnimatePresence>
+}
+
+function StyleToggles({ selectedElement, toggleStyle }) {
+    return (
+        <div className={classes.styleRow}>
+            <button
+                type="button"
+                className={selectedElement?.bold ? classes.styleActive : ""}
+                style={{ fontWeight: 800 }}
+                onClick={() => toggleStyle("bold")}
+                aria-label="Bold"
+            >B</button>
+            <button
+                type="button"
+                className={selectedElement?.italic ? classes.styleActive : ""}
+                style={{ fontStyle: "italic" }}
+                onClick={() => toggleStyle("italic")}
+                aria-label="Italic"
+            >I</button>
+            <button
+                type="button"
+                className={selectedElement?.underline ? classes.styleActive : ""}
+                style={{ textDecoration: "underline" }}
+                onClick={() => toggleStyle("underline")}
+                aria-label="Underline"
+            >U</button>
+        </div>
+    );
 }
 

@@ -18,6 +18,9 @@ function Textarea({
     height,
     isSelected,
     isEditing,
+    bold,
+    italic,
+    underline,
     zIndex,
 }) {
     const {
@@ -52,6 +55,9 @@ function Textarea({
         lineHeight: `${lineHeight}px`,
         letterSpacing: `${letterSpacing}px`,
         color,
+        fontWeight: bold ? 700 : 400,
+        fontStyle: italic ? "italic" : "normal",
+        textDecoration: underline ? "underline" : "none",
     };
 
     if (isEditing) {

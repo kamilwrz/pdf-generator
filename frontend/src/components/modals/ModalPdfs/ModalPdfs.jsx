@@ -70,6 +70,9 @@ export default function ModalPdfs({ title }) {
                             zIndex: element.extra_properties.zIndex,
                             lineHeight: element.extra_properties.lineHeight,
                             letterSpacing: element.extra_properties.letterSpacing,
+                            bold: element.extra_properties.bold,
+                            italic: element.extra_properties.italic,
+                            underline: element.extra_properties.underline,
                             width: parseFloat(element.width),
                             height: parseFloat(element.height),
                             isEditing: false,
@@ -77,7 +80,13 @@ export default function ModalPdfs({ title }) {
                     } else if (element.category !== "text") {
                         return { ...element, "zIndex": element.extra_properties.zIndex, width: parseFloat(element.width), height: parseFloat(element.height) }
                     } else {
-                        return { ...element, "zIndex": element.extra_properties.zIndex }
+                        return {
+                            ...element,
+                            zIndex: element.extra_properties.zIndex,
+                            bold: element.extra_properties.bold,
+                            italic: element.extra_properties.italic,
+                            underline: element.extra_properties.underline,
+                        }
                     }
 
                 });

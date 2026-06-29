@@ -106,6 +106,34 @@
     gap: 10px;
 }
 
+.styleRow {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.styleRow button {
+    flex: 1;
+    height: 32px;
+    border: 1px solid var(--border);
+    background: var(--secondary-bg);
+    color: var(--muted-font);
+    border-radius: var(--r-sm);
+    font: 700 15px var(--font-body);
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+}
+
+.styleRow button:hover {
+    border-color: var(--accent-soft);
+}
+
+.styleActive {
+    background: var(--accent-soft) !important;
+    color: var(--accent) !important;
+    border-color: var(--accent) !important;
+}
+
 .pushToggle {
     display: flex;
     align-items: center;

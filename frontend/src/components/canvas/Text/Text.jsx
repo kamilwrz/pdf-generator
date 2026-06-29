@@ -16,6 +16,9 @@ function Text({
     isSelected,
     isMove,
     category,
+    bold,
+    italic,
+    underline,
     zIndex }) {
 
     const { moveElement, selectElement, selectMoveElement } = use(PdfContext);
@@ -24,6 +27,9 @@ function Text({
         fontSize: `${fontSize}px`,
         color,
         fontFamily,
+        fontWeight: bold ? 700 : 400,
+        fontStyle: italic ? "italic" : "normal",
+        textDecoration: underline ? "underline" : "none",
         position: "absolute",
         left,
         top,

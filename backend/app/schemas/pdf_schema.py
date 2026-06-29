@@ -18,6 +18,10 @@ class PdfElement(BaseModel):
     #TEXTAREA ELEMENT (multi-line text box)
     lineHeight: Optional[float] = None
     letterSpacing: Optional[float] = None
+    #TEXT STYLE TOGGLES (text + textarea)
+    bold: Optional[bool] = False
+    italic: Optional[bool] = False
+    underline: Optional[bool] = False
     #LINE / IMG ELEMENT
     width: Optional[float | str] = None
     height: Optional[float | str] = None

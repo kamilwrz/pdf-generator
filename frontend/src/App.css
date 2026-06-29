@@ -43,13 +43,57 @@
     src: url("/fonts/TimesRoman.ttf");
  }
 
+ /* Inter — regular + real bold/italic cuts. The browser picks the file by
+    weight/style; the backend renders the SAME .ttf files, so bold/italic text
+    boxes wrap identically. */
  @font-face {
     font-family: Inter;
+    font-weight: 400;
+    font-style: normal;
     src: url("/fonts/Inter.ttf");
  }
+ @font-face {
+    font-family: Inter;
+    font-weight: 700;
+    font-style: normal;
+    src: url("/fonts/Inter-Bold.ttf");
+ }
+ @font-face {
+    font-family: Inter;
+    font-weight: 400;
+    font-style: italic;
+    src: url("/fonts/Inter-Italic.ttf");
+ }
+ @font-face {
+    font-family: Inter;
+    font-weight: 700;
+    font-style: italic;
+    src: url("/fonts/Inter-BoldItalic.ttf");
+ }
 
+ /* Roboto — regular + real bold/italic cuts. */
  @font-face {
     font-family: Roboto;
+    font-weight: 400;
+    font-style: normal;
     src: url("/fonts/Roboto.ttf");
+ }
+ @font-face {
+    font-family: Roboto;
+    font-weight: 700;
+    font-style: normal;
+    src: url("/fonts/Roboto-Bold.ttf");
+ }
+ @font-face {
+    font-family: Roboto;
+    font-weight: 400;
+    font-style: italic;
+    src: url("/fonts/Roboto-Italic.ttf");
+ }
+ @font-face {
+    font-family: Roboto;
+    font-weight: 700;
+    font-style: italic;
+    src: url("/fonts/Roboto-BoldItalic.ttf");
  }
 
