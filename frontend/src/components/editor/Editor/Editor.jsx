@@ -15,12 +15,15 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function Editor() {
 
-    const { A4_Elements, editElementValues, alignElement, deleteElement, duplicateElement, setA4_Elements, setTextareaEditing } = use(PdfContext);
+    const { A4_Elements, editElementValues, alignElement, deleteElement, duplicateElement, setA4_Elements, setTextareaEditing, moveElementWithBelow } = use(PdfContext);
 
     let selectedElement = A4_Elements.find(element => element.isSelected === true);
     const someElementSelected = A4_Elements.some(element => element.isSelected);
 
     const [elementValues, setElementValues] = useState({});
+    // When on, changing Y pushes every element below the selected one by the
+    // same delta, making proportional vertical space for more elements.
+    const [pushBelow, setPushBelow] = useState(false);
 
     function handleChangeValues(e, identifier) {
 
@@ -33,7 +36,12 @@ export default function Editor() {
             const newHeight = Math.round(value * aspectRatio);
             valueObject = { height: newHeight, width: value };
         }
-        editElementValues(valueObject, selectedElement.element_id);
+        if (identifier === "top" && pushBelow) {
+            // Skip empty input so clearing the field doesn't scatter the page.
+            if (e.target.value !== "") moveElementWithBelow(selectedElement.element_id, value);
+        } else {
+            editElementValues(valueObject, selectedElement.element_id);
+        }
         setElementValues(prevData => {
             return { ...prevData, [identifier]: e.target.value };
         });
@@ -143,6 +151,10 @@ export default function Editor() {
                     <EditorControls labelText="X (px)" type="number" inputValue={elementValues.left} onChangeFn={(e) => handleChangeValues(e, "left")} />
                     <EditorControls labelText="Y (px)" type="number" inputValue={elementValues.top} onChangeFn={(e) => handleChangeValues(e, "top")} />
                 </div>
+                <label className={classes.pushToggle}>
+                    <input type="checkbox" checked={pushBelow} onChange={(e) => setPushBelow(e.target.checked)} />
+                    <span>Push elements below when moving Y</span>
+                </label>
                 <button type="button" className={classes.btnDuplicate} onClick={() => duplicateElement(selectedElement.element_id)}>Duplicate element<RiFileCopyLine /></button>
                 <button type="button" className={classes.btnDelete} onClick={() => deleteElement(selectedElement.element_id)}>Remove Element<RiDeleteBin2Line /></button>
 

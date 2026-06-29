@@ -290,6 +290,25 @@ export function useA4Elements(titleRef) {
     });
   }, [])
 
+  // Move an element to newTop and shift every element BELOW it (same page,
+  // greater top) by the same delta — opens/closes vertical space above the
+  // moved block while preserving the spacing within and below it.
+  const handleMoveElementWithBelow = useCallback((elementId, newTop) => {
+    setA4_Elements(prevState => {
+      const target = prevState.find(el => el.element_id === elementId);
+      if (!target) return prevState;
+      const oldTop = target.top;
+      const delta = newTop - oldTop;
+      if (delta === 0) return prevState;
+      const page = target.page ?? 1;
+      return prevState.map(el => {
+        if (el.element_id === elementId) return { ...el, top: newTop };
+        if ((el.page ?? 1) === page && el.top > oldTop) return { ...el, top: el.top + delta };
+        return el;
+      });
+    });
+  }, [])
+
   const handleAlignElements = useCallback((elementId, position, width, category) => {
     if (category === "text") {
       const widthText = document.getElementById(elementId).clientWidth;
@@ -555,6 +574,7 @@ export function useA4Elements(titleRef) {
     handleDeleteElement,
     handleDuplicateElement,
     handleEditElementValues,
+    handleMoveElementWithBelow,
     A4ref,
     PDFTitle,
     handleResizeElement,
