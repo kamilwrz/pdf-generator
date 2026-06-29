@@ -24,7 +24,7 @@ export default function Editor() {
 
     function handleChangeValues(e, identifier) {
 
-        const value = (identifier === "fontSize" || identifier === "height" || identifier === "width" || identifier === "lineHeight" || identifier === "letterSpacing") ? Number(e.target.value) : e.target.value;
+        const value = ["fontSize", "height", "width", "lineHeight", "letterSpacing", "left", "top"].includes(identifier) ? Number(e.target.value) : e.target.value;
         let valueObject = { [identifier]: value }
 
         if (identifier === "width" && selectedElement.category === "image") {
@@ -66,8 +66,8 @@ export default function Editor() {
                 fontFamily: selectedElement?.fontFamily,
                 lineHeight: selectedElement?.lineHeight,
                 letterSpacing: selectedElement?.letterSpacing,
-                left: selectedElement?.left,
-                top: selectedElement?.top,
+                left: selectedElement ? Math.round(selectedElement.left) : undefined,
+                top: selectedElement ? Math.round(selectedElement.top) : undefined,
                 width: selectedElement?.width,
                 height: selectedElement?.height,
                 category: selectedElement?.category,
@@ -139,13 +139,9 @@ export default function Editor() {
                     <button type="button" onClick={() => alignElement(selectedElement.element_id, "CENTER", selectedElement.width, selectedElement.category)}><CiTextAlignCenter /></button>
                     <button type="button" onClick={() => alignElement(selectedElement.element_id, "RIGHT", selectedElement.width, selectedElement.category)}><CiTextAlignRight /></button>
                 </div>
-                <div className={classes.coordsText}>
-                    <label>Position:</label>
-                    <div>
-                        <span>X: {Math.round(selectedElement?.left) + "px"}</span>
-                        <span>||</span>
-                        <span>Y: {Math.round(selectedElement?.top) + "px"}</span>
-                    </div>
+                <div className={classes.elementSize}>
+                    <EditorControls labelText="X (px)" type="number" inputValue={elementValues.left} onChangeFn={(e) => handleChangeValues(e, "left")} />
+                    <EditorControls labelText="Y (px)" type="number" inputValue={elementValues.top} onChangeFn={(e) => handleChangeValues(e, "top")} />
                 </div>
                 <button type="button" className={classes.btnDuplicate} onClick={() => duplicateElement(selectedElement.element_id)}>Duplicate element<RiFileCopyLine /></button>
                 <button type="button" className={classes.btnDelete} onClick={() => deleteElement(selectedElement.element_id)}>Remove Element<RiDeleteBin2Line /></button>
