@@ -72,26 +72,27 @@ def fill_template_elements(cv_data: dict, elements: list[dict]) -> list[dict]:
 
     Returns list of {"id": element_id, "content": filled_text}.
     """
+    # Use the position index as a stable id — template specs have no element_id yet
+    # (that is assigned by nanoid() on the frontend when they land on the canvas).
     fillable = [
-        e for e in elements
-        if e.get("category") in ("text", "textarea") and e.get("content", "").strip()
-        and not e.get("content", "").startswith("PHOTO")  # skip placeholder-only boxes
+        (i, e) for i, e in enumerate(elements)
+        if e.get("category") in ("text", "textarea")
+        and e.get("content", "").strip()
+        and not e.get("content", "").startswith("PHOTO")
     ]
     if not fillable:
         return []
 
-    # Build a character budget per element so GPT knows not to overflow the box.
     specs = []
-    for el in fillable:
+    for idx, el in fillable:
         fs = float(el.get("fontSize") or 12)
         lh = float(el.get("lineHeight") or (fs * 1.4))
         w = float(el.get("width") or 200)
         h = float(el.get("height") or lh)
-        # ~0.52× fontSize gives average Inter character width
         chars_per_line = max(8, int(w / (fs * 0.52)))
         num_lines = max(1, int(h / lh))
         specs.append({
-            "id": el["element_id"],
+            "id": str(idx),              # stable index, matched on the frontend
             "placeholder": el.get("content", ""),
             "category": el.get("category"),
             "max_chars": chars_per_line * num_lines,

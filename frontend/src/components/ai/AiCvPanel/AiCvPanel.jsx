@@ -61,9 +61,12 @@ export default function AiCvPanel({ onClose }) {
         setFillingId(template.id);
         setError(null);
         try {
+            // Tag each element with its array index so the backend can use it
+            // as a stable key (template specs have no element_id yet).
+            const indexedElements = template.elements.map((el, i) => ({ ...el, element_id: String(i) }));
             const res = await api.httpRequest(
                 ENDPOINTS.AI.FILL_TEMPLATE, "POST",
-                JSON.stringify({ cv_data: cvData, elements: template.elements }),
+                JSON.stringify({ cv_data: cvData, elements: indexedElements }),
                 "Template fill failed"
             );
             loadTemplateWithFill(template.elements, template.name, res.fills);

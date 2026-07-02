@@ -584,21 +584,22 @@ export function useA4Elements(titleRef) {
   // Load a template and overlay AI-generated content.
   // fills: [{id, content}] from POST /ai/fill_template
   const handleLoadTemplateWithFill = useCallback((templateElements, templateName, fills) => {
+    // fills use array index as id (String) — match by position, not by element_id
     const fillMap = Object.fromEntries((fills || []).map(f => [f.id, f.content]));
-    const mapped = templateElements.map((spec) => ({
-      isSelected: false,
-      isMove: false,
-      isEditing: false,
-      ...spec,
-      element_id: nanoid(),
-      page: 1,
-      // Only override content when the AI produced a non-empty value
-      content: (spec.category === "text" || spec.category === "textarea")
-        && fillMap[spec.element_id] !== undefined
-        && fillMap[spec.element_id] !== ""
-        ? fillMap[spec.element_id]
-        : spec.content,
-    }));
+    const mapped = templateElements.map((spec, i) => {
+      const aiContent = fillMap[String(i)];
+      const useAi = (spec.category === "text" || spec.category === "textarea")
+        && aiContent !== undefined && aiContent !== "";
+      return {
+        isSelected: false,
+        isMove: false,
+        isEditing: false,
+        ...spec,
+        element_id: nanoid(),
+        page: 1,
+        content: useAi ? aiContent : spec.content,
+      };
+    });
     setA4_Elements(mapped);
     setA4_Elements_deleted([]);
     setPageCount(1);
