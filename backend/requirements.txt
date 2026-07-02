@@ -10,3 +10,4 @@ boto3
 boto3-stubs[s3]
 psycopg2-binary
 openai
+pymupdf
