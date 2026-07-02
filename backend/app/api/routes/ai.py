@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from app.core.security import verify_token
-from app.services.ai_service import extract_cv_data
-from app.services.cv_generator import generate_resume
+from app.services.ai_service import extract_cv_data, generate_resume
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
