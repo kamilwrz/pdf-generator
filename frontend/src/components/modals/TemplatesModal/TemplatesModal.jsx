@@ -90,6 +90,68 @@ function Preview({ id, accent }) {
             </div>
         );
     }
+    if (id === "monolith") {
+        return (
+            <div className={classes.paper} style={{ flexDirection: "column" }}>
+                <div style={{ padding: "12px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <span className={classes.bar} style={{ background: "#0A0A0A", width: "62%" }} />
+                    <span className={classes.barThin} style={{ background: "#777777", width: "40%" }} />
+                    <span className={classes.rule} style={{ background: "#444444" }} />
+                </div>
+                <div className={classes.col} style={{ paddingTop: 4 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px" }}>
+                        <span style={{ width: "4px", height: "12px", background: "#0A0A0A", flexShrink: 0 }} />
+                        <span className={classes.barThin} style={{ background: "#0A0A0A", width: "55%" }} />
+                    </div>
+                    <span className={classes.line} /><span className={classes.line} />
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "6px", marginBottom: "4px" }}>
+                        <span style={{ width: "4px", height: "12px", background: "#0A0A0A", flexShrink: 0 }} />
+                        <span className={classes.barThin} style={{ background: "#0A0A0A", width: "35%" }} />
+                    </div>
+                    <span className={classes.line} />
+                </div>
+            </div>
+        );
+    }
+    if (id === "prism") {
+        return (
+            <div className={classes.paper} style={{ flexDirection: "column" }}>
+                <div style={{ height: "32%", background: "#6B21A8", display: "flex", flexDirection: "column", justifyContent: "center", gap: "4px", padding: "0 12px" }}>
+                    <span className={classes.bar} style={{ background: "#fff", width: "62%" }} />
+                    <span className={classes.barThin} style={{ background: "#E9D5FF", width: "42%" }} />
+                </div>
+                <div style={{ height: "3px", background: "#0D9488" }} />
+                <div className={classes.col}>
+                    {[["#F26B2E"], ["#0D9488"], ["#D63384"]].map(([c], i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px", marginTop: i > 0 ? "6px" : 0 }}>
+                            <span style={{ width: "8px", height: "8px", background: c, flexShrink: 0 }} />
+                            <span className={classes.barThin} style={{ background: "#1A1A1A", width: "45%" }} />
+                        </div>
+                    ))}
+                    <span className={classes.line} /><span className={classes.line} />
+                </div>
+            </div>
+        );
+    }
+    if (id === "aria") {
+        return (
+            <div className={classes.paper} style={{ flexDirection: "column" }}>
+                <div className={classes.col}>
+                    {/* large regular-weight name stub */}
+                    <span className={classes.bar} style={{ background: "#1A1A1A", width: "72%", height: "9px" }} />
+                    <span className={classes.barThin} style={{ background: "#888888", width: "38%" }} />
+                    <span className={classes.rule} style={{ background: "#BBBBBB", marginTop: "4px" }} />
+                    {/* section label (small) + hairline */}
+                    <span className={classes.barThin} style={{ background: "#999999", width: "28%", marginTop: "10px" }} />
+                    <span className={classes.rule} style={{ background: "#DDDDDD" }} />
+                    <span className={classes.line} /><span className={classes.line} />
+                    <span className={classes.barThin} style={{ background: "#999999", width: "22%", marginTop: "8px" }} />
+                    <span className={classes.rule} style={{ background: "#DDDDDD" }} />
+                    <span className={classes.line} />
+                </div>
+            </div>
+        );
+    }
     // finance
     return (
         <div className={classes.paper}>

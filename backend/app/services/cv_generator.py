@@ -480,15 +480,183 @@ def _gen_blueprint(cv: dict) -> list[dict]:
     return static + b.build()
 
 
+def _gen_monolith(cv: dict) -> list[dict]:
+    """Stark black / white / grayscale. Left 4 px bar before every section heading."""
+    K, MG, LG, VLG = "#0A0A0A", "#777777", "#AAAAAA", "#DDDDDD"
+    L, W = 50, 495
+    lbl = _labels(cv)
+    b = Builder(54)
+
+    b.text(cv.get("name", ""), 32, "Inter", K, L, bold=True); b.gap(4)
+    b.text(cv.get("title", ""), 13, "Inter", MG, L, italic=True); b.gap(4)
+    b.text(_contact_line(cv), 9.5, "Inter", LG, L); b.gap(8)
+    b.line(L, W, 0.5, "#444444"); b.gap(16)
+
+    def section(label):
+        b.need(30)
+        # 4 px black bar at current y — line doesn't advance b.y
+        b.els.append(_line(L, b.y, 4, 12, K, zIndex=2, page=b.pg))
+        b.text(label, 11, "Inter", K, 68, bold=True); b.gap(6)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10.5, 15, MG, "Inter"); b.gap(14)
+
+    if cv.get("experience"):
+        section(lbl["experience"])
+        for job in cv["experience"]:
+            b.need(56)
+            b.text(job.get("title", ""), 11, "Inter", K, L, bold=True); b.gap(2)
+            b.text(_company_period(job), 9.5, "Inter", MG, L); b.gap(2)
+            bul = _bullets(job)
+            if bul:
+                b.block(bul, L, W, 10, 14, MG, "Inter")
+            b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, {"body": MG}, L, W, "Inter", fs=10, lh=14)
+
+    if cv.get("education"):
+        b.need(50)
+        b.els.append(_line(L, b.y, W, 0.5, VLG, page=b.pg)); b.gap(14)
+        section(lbl["education"])
+        for edu in cv["education"]:
+            b.text(edu.get("degree", ""), 11, "Inter", K, L, bold=True); b.gap(2)
+            b.text(edu.get("period", ""), 9.5, "Inter", MG, L); b.gap(10)
+
+    if cv.get("skills"):
+        b.need(44)
+        b.els.append(_line(L, b.y, W, 0.5, VLG, page=b.pg)); b.gap(14)
+        section(lbl["skills"])
+        b.block(" · ".join(cv["skills"]), L, W, 10, 15, MG, "Inter"); b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, {"body": MG}, L, W, "Inter", fs=10, lh=15)
+    return b.build()
+
+
+def _gen_prism(cv: dict) -> list[dict]:
+    """Colourful & artistic. Purple header band + rotating accent squares per section."""
+    PURPLE  = "#6B21A8"
+    TEAL    = "#0D9488"
+    ORANGE  = "#F26B2E"
+    MAGENTA = "#D63384"
+    COLORS  = [ORANGE, TEAL, PURPLE, MAGENTA, "#F59E0B"]
+    INK, GRAY = "#1A1A1A", "#6B7280"
+    L, W = 50, 495
+    lbl = _labels(cv)
+
+    static = [
+        _line(0, 0, 595, 118, PURPLE, zIndex=0),
+        _line(0, 118, 595, 6, TEAL,   zIndex=1),
+        _line(0, 124, 595, 3, ORANGE, zIndex=1),
+        _text(cv.get("name", ""), 30, "Inter", "#FFFFFF", L, 38, bold=True),
+        _text(cv.get("title", ""), 13, "Inter", "#E9D5FF", L, 80, italic=True),
+    ]
+
+    b = Builder(148)
+    col = [0]   # mutable colour-cycle index
+
+    def section(label):
+        b.need(30)
+        c = COLORS[col[0] % len(COLORS)]; col[0] += 1
+        # coloured square at current y — does not advance b.y
+        b.els.append(_line(L, b.y + 1, 10, 10, c, zIndex=2, page=b.pg))
+        b.text(label, 12, "Inter", INK, 68, bold=True); b.gap(8)
+
+    b.text(_contact_line(cv), 9.5, "Inter", "#9CA3AF", L); b.gap(8)
+    b.line(L, W, 1.5, ORANGE); b.gap(16)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10.5, 15, GRAY, "Inter"); b.gap(16)
+
+    if cv.get("experience"):
+        section(lbl["experience"])
+        for job in cv["experience"]:
+            b.need(56)
+            b.text(job.get("title", ""), 11, "Inter", INK, L, bold=True); b.gap(2)
+            b.text(_company_period(job), 9.5, "Inter", GRAY, L); b.gap(2)
+            bul = _bullets(job)
+            if bul:
+                b.block(bul, L, W, 10, 14, GRAY, "Inter")
+            b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, {"body": GRAY}, L, W, "Inter")
+
+    if cv.get("education"):
+        b.need(50); section(lbl["education"])
+        for edu in cv["education"]:
+            b.text(edu.get("degree", ""), 11, "Inter", INK, L, bold=True); b.gap(2)
+            b.text(edu.get("period", ""), 9.5, "Inter", GRAY, L); b.gap(10)
+
+    if cv.get("skills"):
+        b.need(40); section(lbl["skills"])
+        b.block(" · ".join(cv["skills"]), L, W, 10, 15, GRAY, "Inter"); b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, {"body": GRAY}, L, W, "Inter")
+    return static + b.build()
+
+
+def _gen_aria(cv: dict) -> list[dict]:
+    """Ultra-minimalist. No coloured accents. Hierarchy comes from size only.
+    The name is deliberately large and regular-weight; section headings are
+    smaller than body text with generous whitespace above and below."""
+    INK, MID, SOFT = "#1A1A1A", "#666666", "#BBBBBB"
+    L, W = 50, 495
+    lbl = _labels(cv)
+    b = Builder(60)
+
+    # Name: large, NOT bold — that's the signature of this template
+    b.text(cv.get("name", ""), 36, "Inter", INK, L); b.gap(4)
+    b.text(cv.get("title", ""), 12, "Inter", MID, L, italic=True); b.gap(4)
+    b.text(_contact_line(cv), 9, "Inter", MID, L); b.gap(10)
+    b.line(L, W, 0.5, SOFT); b.gap(26)
+
+    def section(label):
+        b.need(40)
+        # very small heading, then a hairline rule below
+        b.text(label, 9, "Inter", MID, L); b.gap(2)
+        b.line(L, W, 0.5, SOFT); b.gap(14)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10.5, 16, MID, "Inter"); b.gap(24)
+
+    if cv.get("experience"):
+        section(lbl["experience"])
+        for job in cv["experience"]:
+            b.need(60)
+            b.text(job.get("title", ""), 11, "Inter", INK, L, bold=True); b.gap(2)
+            b.text(_company_period(job), 9.5, "Inter", MID, L); b.gap(4)
+            bul = _bullets(job)
+            if bul:
+                b.block(bul, L, W, 10.5, 16, MID, "Inter")
+            b.gap(16)
+        _extra_sections(b, cv, "after_experience", section, {"body": MID}, L, W, "Inter", fs=10.5, lh=16)
+
+    if cv.get("education"):
+        b.gap(8); section(lbl["education"])
+        for edu in cv["education"]:
+            b.text(edu.get("degree", ""), 11, "Inter", INK, L, bold=True); b.gap(2)
+            b.text(edu.get("period", ""), 9.5, "Inter", MID, L); b.gap(14)
+
+    if cv.get("skills"):
+        b.gap(8); section(lbl["skills"])
+        b.block(" · ".join(cv["skills"]), L, W, 10.5, 16, MID, "Inter"); b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, {"body": MID}, L, W, "Inter", fs=10.5, lh=16)
+    return b.build()
+
+
 # ── public API ───────────────────────────────────────────────────────────────
 
 _GENERATORS = {
-    "finance": _gen_finance,
-    "nocturne": _gen_nocturne,
+    "finance":   _gen_finance,
+    "nocturne":  _gen_nocturne,
     "ampersand": _gen_ampersand,
     "education": _gen_education,
-    "it": _gen_it,
+    "it":        _gen_it,
     "blueprint": _gen_blueprint,
+    "monolith":  _gen_monolith,
+    "prism":     _gen_prism,
+    "aria":      _gen_aria,
 }
 
 
