@@ -583,6 +583,26 @@ export function useA4Elements(titleRef) {
   // a fresh id + page; interaction flags default off. Resets to a single page.
   // Load a template and overlay AI-generated content.
   // fills: [{id, content}] from POST /ai/fill_template
+  // Load AI-generated elements directly (the backend already built the full layout).
+  // Each spec gets a fresh nanoid; the page count is derived from the highest page value.
+  const handleLoadAiElements = useCallback((specs, templateName) => {
+    const mapped = (specs || []).map(spec => ({
+      isSelected: false,
+      isMove: false,
+      isEditing: false,
+      ...spec,
+      element_id: nanoid(),
+    }));
+    const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
+    setA4_Elements(mapped);
+    setA4_Elements_deleted([]);
+    setPageCount(maxPage);
+    setCurrentPage(1);
+    if (titleRef?.current && templateName) {
+      titleRef.current.value = `${templateName} CV`;
+    }
+  }, [])
+
   const handleLoadTemplateWithFill = useCallback((templateElements, templateName, fills) => {
     // fills use array index as id (String) — match by position, not by element_id
     const fillMap = Object.fromEntries((fills || []).map(f => [f.id, f.content]));
@@ -653,6 +673,7 @@ export function useA4Elements(titleRef) {
     handleClearA4,
     handleLoadTemplate,
     handleLoadTemplateWithFill,
+    handleLoadAiElements,
     // multi-page
     pageCount,
     setPageCount,

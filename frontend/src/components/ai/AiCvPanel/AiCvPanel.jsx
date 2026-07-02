@@ -19,7 +19,7 @@ const SparkIcon = () => (
 );
 
 export default function AiCvPanel({ onClose }) {
-    const { loadTemplateWithFill, showTemplates } = use(PdfContext);
+    const { loadAiElements, showTemplates } = use(PdfContext);
 
     const fileRef = useRef(null);
     const [fileName, setFileName] = useState(null);
@@ -61,22 +61,21 @@ export default function AiCvPanel({ onClose }) {
         setFillingId(template.id);
         setError(null);
         try {
-            // Tag each element with its array index so the backend can use it
-            // as a stable key (template specs have no element_id yet).
-            const indexedElements = template.elements.map((el, i) => ({ ...el, element_id: String(i) }));
+            // Send only the template id — the backend generates all elements
+            // dynamically (one block per job, page overflow handled in Python).
             const res = await api.httpRequest(
                 ENDPOINTS.AI.FILL_TEMPLATE, "POST",
-                JSON.stringify({ cv_data: cvData, elements: indexedElements }),
-                "Template fill failed"
+                JSON.stringify({ cv_data: cvData, template_id: template.id }),
+                "Template generation failed"
             );
-            loadTemplateWithFill(template.elements, template.name, res.fills);
+            loadAiElements(res.elements, template.name);
             onClose();
         } catch (err) {
-            setError(err.message || "Failed to fill template.");
+            setError(err.message || "Failed to generate template.");
         } finally {
             setFillingId(null);
         }
-    }, [cvData, loadTemplateWithFill, onClose]);
+    }, [cvData, loadAiElements, onClose]);
 
     const extracted = cvData && (cvData.name || cvData.email);
 
