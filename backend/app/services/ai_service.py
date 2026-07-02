@@ -1,5 +1,6 @@
 import base64
 import json
+import math
 import fitz
 from openai import OpenAI
 from app.core.config import OPENAI_API_KEY
@@ -7,7 +8,7 @@ from app.core.config import OPENAI_API_KEY
 _client = OpenAI(api_key=OPENAI_API_KEY)
 
 
-# ── PDF → images ─────────────────────────────────────────────────────────────
+# ── PDF → images ──────────────────────────────────────────────────────────────
 
 def _pdf_to_b64_images(pdf_bytes: bytes, max_pages: int = 3) -> list[str]:
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -21,7 +22,7 @@ def _pdf_to_b64_images(pdf_bytes: bytes, max_pages: int = 3) -> list[str]:
     return out
 
 
-# ── CV data extraction ────────────────────────────────────────────────────────
+# ── CV data extraction ─────────────────────────────────────────────────────────
 
 def extract_cv_data(pdf_bytes: bytes) -> dict:
     images = _pdf_to_b64_images(pdf_bytes)
@@ -40,8 +41,8 @@ def extract_cv_data(pdf_bytes: bytes) -> dict:
                 '"education":[{"degree":"","period":"","detail":""}],"skills":[]}\n\n'
                 "Rules:\n"
                 "- experience: include EVERY job, sorted newest first\n"
-                "- bullets: include ALL bullet points for each job (no limit)\n"
-                "- skills: include all, as flat list of strings\n"
+                "- bullets: include ALL bullet points for each job, no limit\n"
+                "- skills: include all as flat list\n"
                 "- Return ONLY valid JSON."
             ),
         }
@@ -61,51 +62,100 @@ def extract_cv_data(pdf_bytes: bytes) -> dict:
     return json.loads(resp.choices[0].message.content)
 
 
-# ── Template visual DNA ───────────────────────────────────────────────────────
-# Each entry has:
-#   "static"  – decorative elements always present (sidebar, frame, band…) as canvas JSON
-#   "style"   – natural-language description of the visual language for content elements
+# ── Post-processing: fix textarea heights from actual content ─────────────────
+
+def _fix_heights_and_reflow(elements: list[dict]) -> list[dict]:
+    """
+    Recalculate every textarea's height from its actual content lines and
+    propagate the height delta downward so elements don't overlap.
+
+    Column grouping (left // 210):
+      • 0  → left column  (single-col templates or sidebar in two-col)
+      • 1+ → main / right column
+    """
+    els = [dict(e) for e in elements]
+
+    # process in top-to-bottom order within each page+column
+    els.sort(key=lambda e: (e.get("page", 1), e.get("left", 0) // 210, e.get("top", 0)))
+
+    for i, el in enumerate(els):
+        if el.get("category") != "textarea":
+            continue
+
+        content = el.get("content", "") or ""
+        lh      = float(el.get("lineHeight") or 14)
+        w       = float(el.get("width")      or 200)
+        fs      = float(el.get("fontSize")   or 10)
+
+        # characters that fit on one line (Inter metrics ≈ 0.52 × fontSize)
+        cpl = max(10, int(w / (fs * 0.52)))
+
+        actual_lines = 0
+        for raw_line in content.split("\n"):
+            stripped = raw_line.strip()
+            if not stripped:
+                actual_lines += 1          # blank line still takes vertical space
+            else:
+                actual_lines += max(1, math.ceil(len(stripped) / cpl))
+
+        new_h = round(max(actual_lines, 1) * lh + 6)   # +6 px padding top+bottom
+        old_h = float(el.get("height") or new_h)
+        delta = new_h - old_h
+
+        els[i]["height"] = new_h
+
+        if abs(delta) < 0.5:
+            continue
+
+        # shift every element that sits below this one in the same page+column
+        el_page = el.get("page", 1)
+        el_top  = el.get("top",  0)
+        el_col  = el.get("left", 0) // 210
+
+        for j, other in enumerate(els):
+            if j == i:
+                continue
+            if (other.get("page", 1) == el_page
+                    and other.get("top",  0) >  el_top
+                    and other.get("left", 0) // 210 == el_col):
+                els[j]["top"] = round(other["top"] + delta, 1)
+
+    return els
+
+
+# ── Template visual DNA ────────────────────────────────────────────────────────
 
 _TEMPLATES: dict[str, dict] = {
 
     "finance": {
-        "static": [],   # pure single-column; all elements generated
+        "static": [],
         "style": """\
-TEMPLATE: Finance — classic conservative single column
-CANVAS: 595 × 842 pt. left_margin=50, content_width=495.
+LAYOUT: single column  |  left=50  content_width=495  start_y=54
+COLORS:  ink=#16243A  sub=#5A6B7B  gray=#6B7280  gold=#B08D57  body=#2B2B2B
+FONTS:   headings=Times-Roman (bold, UPPERCASE)   body/bullets=Inter
 
-COLORS:  ink=#16243A  subtitle=#5A6B7B  gray=#6B7280  gold=#B08D57  body=#2B2B2B
-FONTS:   section headings = Times-Roman bold uppercase; body/bullets = Inter
+HEADER (top=54):
+  name      fontSize=30  Times-Roman  #16243A  bold=true
+  title     fontSize=14  Times-Roman  #5A6B7B                (gap after name = 4)
+  contact   fontSize=9.5 Inter        #5A6B7B  "email · phone · city"  (gap=4)
+  separator line left=50 width=495 height=1.5 #16243A        (gap after contact=8)
 
-HEADER (start at top=54):
-  • Name:      fontSize=30  fontFamily=Times-Roman  color=#16243A  bold=true
-  • Title:     fontSize=14  fontFamily=Times-Roman  color=#5A6B7B  (2pt gap after name)
-  • Contact:   fontSize=9.5 fontFamily=Inter        color=#5A6B7B  format: "email · phone · city"  (4pt gap)
-  • Separator: line left=50 width=495 height=1.5 color=#16243A  (8pt gap after contact)
+SECTION PATTERN (first section gap=16, subsequent=22):
+  heading   fontSize=12  Times-Roman  #16243A  bold=true  UPPERCASE
+  gold_bar  line left=50 width=70 height=2 #B08D57            (2pt below heading)
+  [10pt gap, then content]
 
-SECTION PATTERN (for Summary / Experience / Education / Skills):
-  gap_before_heading = 16pt (first section) or 20pt (subsequent)
-  • Heading:    fontSize=12  fontFamily=Times-Roman  color=#16243A  bold=true  UPPERCASE
-    (6pt gap below heading)
-  • Gold bar:   line left=50 width=70 height=2 color=#B08D57
-    (10pt gap below bar)
-  • Content (10pt below bar)
+PER JOB (repeat for EVERY job):
+  job_title  fontSize=11  Inter  #16243A  bold=true
+  company    fontSize=9.5 Inter  #6B7280  "Company   ·   Period"  (2pt gap)
+  bullets    textarea: fontSize=10 lineHeight=14 Inter #2B2B2B width=495
+             content: "• bullet1\\n• bullet2\\n• bullet3"
+             HEIGHT = (number_of_newlines+1) × 14 + 6      ← count \\n chars exactly
+  [gap 14pt after bullets before next job]
 
-PER-JOB block (repeat for EVERY job in experience):
-  • Job title:  fontSize=11  fontFamily=Inter  color=#16243A  bold=true
-    (2pt gap)
-  • Company·Period: fontSize=9.5  fontFamily=Inter  color=#6B7280
-    format: "Company Name   ·   Period"
-    (2pt gap)
-  • Bullets textarea:
-      fontSize=10  lineHeight=14  fontFamily=Inter  color=#2B2B2B
-      width=495   height = (num_bullets × 14) + 4
-      content: "• bullet1\\n• bullet2\\n• bullet3"
-  gap after job block = 12pt
-
-SUMMARY textarea:   fontSize=10.5 lineHeight=15 fontFamily=Inter color=#2B2B2B width=495
-SKILLS textarea:    fontSize=10   lineHeight=15 fontFamily=Inter color=#2B2B2B width=495
-EDUCATION block:    degree fontSize=11 Inter bold #16243A, period fontSize=9.5 Inter #6B7280
+SUMMARY textarea:  fontSize=10.5 lineHeight=15 Inter #2B2B2B width=495
+SKILLS  textarea:  fontSize=10   lineHeight=15 Inter #2B2B2B width=495  skills joined " · "
+EDUCATION:  degree fontSize=11 Inter bold #16243A  |  period 9.5pt Inter #6B7280  (gap 10 between entries)
 """,
     },
 
@@ -117,36 +167,32 @@ EDUCATION block:    degree fontSize=11 Inter bold #16243A, period fontSize=9.5 I
              "backgroundColor": "#F25F4C", "zIndex": 1, "page": 1},
         ],
         "style": """\
-TEMPLATE: Nocturne — modern bold single column with dark header band (already placed, top 0-160pt)
-CANVAS: 595 × 842 pt. left_margin=50, content_width=495.
-
+LAYOUT: single column  |  left=50  content_width=495
 COLORS:  ink=#1F2933  coral=#F25F4C  gray=#6B7280  body=#1F2933  light=#AEB6BD
 FONTS:   all Inter
 
-HEADER (inside the dark band, top=56 to top=140 — white text on dark):
-  • Name:    fontSize=32  fontFamily=Inter  color=#FFFFFF  bold=true  top=56
-  • Title:   fontSize=14  fontFamily=Inter  color=#F25F4C  top≈98  (gap: name height + 4)
-  • Contact: fontSize=9.5 fontFamily=Inter  color=#AEB6BD  format: "email · phone · city"
+HEADER (inside dark band — white/coral text):
+  name     fontSize=32  Inter  #FFFFFF  bold=true  top=56
+  title    fontSize=14  Inter  #F25F4C             (gap=4 after name)
+  contact  fontSize=9.5 Inter  #AEB6BD  "email · phone · city"  (gap=4)
 
-CONTENT starts at top=192 (below the band):
+CONTENT starts at top=192 (below band):
 
-SECTION PATTERN:
-  gap_before_heading = 16pt (first) or 20pt (others)
-  • Heading:  fontSize=12  fontFamily=Inter  color=#1F2933  bold=true  UPPERCASE
-    (2pt gap)
-  • Coral bar: line left=50 width=40 height=2 color=#F25F4C
-    (10pt gap below bar)
+SECTION PATTERN (first gap=0, subsequent=22):
+  heading   fontSize=12  Inter  #1F2933  bold=true  UPPERCASE
+  coral_bar line left=50 width=40 height=2 #F25F4C   (2pt below heading)
+  [10pt gap, then content]
 
-PER-JOB block (repeat for EVERY job):
-  • Job title:  fontSize=11  fontFamily=Inter  color=#1F2933  bold=true  (2pt gap)
-  • Company·Period: fontSize=9.5  fontFamily=Inter  color=#6B7280  (2pt gap)
-  • Bullets textarea: fontSize=10 lineHeight=14 color=#1F2933 fontFamily=Inter
-    width=495  height=(num_bullets×14)+4
-  gap after block = 12pt
+PER JOB (EVERY job):
+  job_title  fontSize=11  Inter  #1F2933  bold=true
+  company    fontSize=9.5 Inter  #6B7280  "Company   ·   Period"  (2pt gap)
+  bullets    textarea: fontSize=10 lineHeight=14 Inter #1F2933 width=495
+             HEIGHT = (number_of_newlines+1) × 14 + 6
+  [gap 14pt]
 
-SUMMARY:  fontSize=10.5 lineHeight=15 Inter color=#1F2933 width=495
-SKILLS:   fontSize=10   lineHeight=15 Inter color=#1F2933 width=495
-EDUCATION: degree fontSize=11 Inter bold #1F2933, period 9.5pt Inter #6B7280
+SUMMARY: fontSize=10.5 lineHeight=15 Inter #1F2933 width=495
+SKILLS:  fontSize=10   lineHeight=15 Inter #1F2933 width=495  skills joined " · "
+EDUCATION: degree 11pt Inter bold #1F2933  |  period 9.5pt Inter #6B7280  (gap 10)
 """,
     },
 
@@ -156,35 +202,32 @@ EDUCATION: degree fontSize=11 Inter bold #1F2933, period 9.5pt Inter #6B7280
              "backgroundColor": "#7B2D3A", "zIndex": 0, "page": 1},
         ],
         "style": """\
-TEMPLATE: Ampersand — editorial serif, thin wine left stripe (already placed, x=0 width=9)
-CANVAS: 595 × 842 pt. left_margin=50, content_width=497.
-
+LAYOUT: single column  |  left=50  content_width=497  (wine left-stripe already placed)
 COLORS:  ink=#2A2320  wine=#7B2D3A  gray=#8A7F78  rule=#E0D7D1  body=#3A332E
-FONTS:   headings & body = Times-Roman
+FONTS:   all Times-Roman
 
 HEADER (top=58):
-  • Name:    fontSize=31  fontFamily=Times-Roman  color=#2A2320  bold=true
-  • Title:   fontSize=14  fontFamily=Times-Roman  color=#7B2D3A  italic=true  (gap: name_h + 4)
-  • Contact: fontSize=9.5 fontFamily=Times-Roman  color=#8A7F78
-  • Rule:    line left=50 width=497 height=1 color=#E0D7D1  (8pt after contact)
+  name     fontSize=31  Times-Roman  #2A2320  bold=true
+  title    fontSize=14  Times-Roman  #7B2D3A  italic=true  (gap=4)
+  contact  fontSize=9.5 Times-Roman  #8A7F78  "email · phone · city"  (gap=4)
+  rule     line left=50 width=497 height=1 #E0D7D1                     (gap=8 after contact)
 
-CONTENT starts ~16pt after the rule:
+CONTENT starts ~16pt after rule:
 
-SECTION HEADING (no accent bar — just bold heading):
-  gap_before = 18pt
-  • fontSize=12  fontFamily=Times-Roman  color=#2A2320  bold=true  UPPERCASE
+SECTION (gap=20 before):
+  heading   fontSize=12  Times-Roman  #2A2320  bold=true  UPPERCASE
 
-PER-JOB block (EVERY job):
-  • Job title:  fontSize=11.5  fontFamily=Times-Roman  color=#2A2320  bold=true  (2pt gap)
-  • Period:     fontSize=9.5   fontFamily=Times-Roman  color=#8A7F78  italic=true  (2pt gap)
-  • Company (if separate): fontSize=9.5 Times-Roman #8A7F78  (2pt gap)
-  • Bullets textarea: fontSize=10.5 lineHeight=15 Times-Roman color=#3A332E
-    width=497  height=(num_bullets×15)+4
-  gap after block = 12pt
+PER JOB (EVERY job):
+  job_title  fontSize=11.5  Times-Roman  #2A2320  bold=true  (gap=2)
+  period     fontSize=9.5   Times-Roman  #8A7F78  italic=true  (gap=2)
+  company    fontSize=9.5   Times-Roman  #8A7F78  (if company field not empty, gap=2)
+  bullets    textarea: fontSize=10.5 lineHeight=15 Times-Roman #3A332E width=497
+             HEIGHT = (number_of_newlines+1) × 15 + 6
+  [gap 14pt]
 
-SUMMARY:  fontSize=11 lineHeight=16 Times-Roman color=#3A332E width=497
-SKILLS:   fontSize=10.5 lineHeight=15 Times-Roman color=#3A332E width=497
-EDUCATION: degree 11pt Times-Roman bold #2A2320, period 9.5pt Times-Roman italic #8A7F78
+SUMMARY: fontSize=11 lineHeight=16 Times-Roman #3A332E width=497
+SKILLS:  fontSize=10.5 lineHeight=15 Times-Roman #3A332E width=497
+EDUCATION: degree 11pt Times-Roman bold #2A2320  |  period 9.5pt italic #8A7F78  (gap 10)
 """,
     },
 
@@ -196,51 +239,46 @@ EDUCATION: degree 11pt Times-Roman bold #2A2320, period 9.5pt Times-Roman italic
              "backgroundColor": "#D8CDBA", "zIndex": 1, "page": 1},
             {"category": "line", "left": 28, "top": 28,  "width": 1,   "height": 786,
              "backgroundColor": "#D8CDBA", "zIndex": 1, "page": 1},
-            {"category": "line", "left": 566, "top": 28, "width": 1,   "height": 786,
+            {"category": "line", "left": 566,"top": 28,  "width": 1,   "height": 786,
              "backgroundColor": "#D8CDBA", "zIndex": 1, "page": 1},
         ],
         "style": """\
-TEMPLATE: Education — academic, centered headings, thin border frame (already placed)
-CANVAS: 595 × 842 pt. left_margin=55, content_width=485. Centered text where noted.
-
+LAYOUT: single column centered  |  left=55  content_width=485  (thin frame already placed)
 COLORS:  ink=#2E2A25  sage=#4E7A6B  flank=#CBB89E  gray=#6B7280  body=#2B2B2B
-FONTS:   section headings = Times-Roman bold uppercase; body = Inter
+FONTS:   headings=Times-Roman  body=Inter
 
 HEADER (centered, top=52):
-  • Name:    fontSize=28  fontFamily=Times-Roman  color=#2E2A25  bold=true
-    left ≈ (595 - estimated_text_width) / 2  (estimate ~10pt/char for 28pt Times-Roman)
-  • Title:   fontSize=13  fontFamily=Times-Roman  color=#4E7A6B  centered  (gap: name_h+4)
-  • Contact: fontSize=9.5 fontFamily=Inter color=#6B7280 centered
-  • Sage divider: line left=248 width=100 height=1.5 color=#4E7A6B  (8pt after contact)
+  name     fontSize=28  Times-Roman  #2E2A25  bold=true
+           center it: left = (595 - len(name)*13) / 2  (estimate 13pt per char at 28pt)
+  title    fontSize=13  Times-Roman  #4E7A6B  centered same formula  (gap=4)
+  contact  fontSize=9.5 Inter        #6B7280  centered               (gap=4)
+  divider  line left=248 width=100 height=1.5 #4E7A6B                (gap=8)
 
 CONTENT starts ~16pt after divider:
 
-SECTION PATTERN (flanked heading):
-  gap_before = 18pt
-  • Heading:   fontSize=12  fontFamily=Times-Roman  color=#2E2A25  bold=true  UPPERCASE  centered
-  • Left flank:  line left=90  width=150 height=1 color=#CBB89E  (at heading baseline +4)
-  • Right flank: line left=355 width=150 height=1 color=#CBB89E  (same top)
-  (10pt below heading)
+SECTION PATTERN (gap=20 before):
+  heading    fontSize=12  Times-Roman  #2E2A25  bold=true  UPPERCASE  centered (left≈(595-len*6)/2)
+  left_flank  line left=90  width=150 height=1 #CBB89E  (same top as heading baseline +4)
+  right_flank line left=355 width=150 height=1 #CBB89E  (same top)
+  [10pt gap below]
 
-PER-JOB block (EVERY job), left-aligned at left=55:
-  • Job title:  fontSize=11  fontFamily=Inter  color=#2E2A25  bold=true  (2pt gap)
-  • Company·Period: fontSize=9.5  fontFamily=Inter  color=#6B7280  (2pt gap)
-  • Bullets textarea: fontSize=10 lineHeight=14 Inter color=#2B2B2B
-    width=485  height=(num_bullets×14)+4
-  gap after block = 12pt
+PER JOB (EVERY job), left-aligned at left=55:
+  job_title  fontSize=11  Inter  #2E2A25  bold=true
+  company    fontSize=9.5 Inter  #6B7280  "Company   ·   Period"  (gap=2)
+  bullets    textarea: fontSize=10 lineHeight=14 Inter #2B2B2B width=485 left=55
+             HEIGHT = (number_of_newlines+1) × 14 + 6
+  [gap 14pt]
 
-SUMMARY:  fontSize=10.5 lineHeight=15 Inter color=#2B2B2B width=485
-SKILLS:   fontSize=10   lineHeight=15 Inter color=#2B2B2B width=485
-EDUCATION: degree 11pt Inter bold #2E2A25, period 9.5pt Inter #6B7280
+SUMMARY: fontSize=10.5 lineHeight=15 Inter #2B2B2B width=485 left=55
+SKILLS:  fontSize=10   lineHeight=15 Inter #2B2B2B width=485 left=55
+EDUCATION: degree 11pt Inter bold #2E2A25  |  period 9.5pt Inter #6B7280  (gap 10)
 """,
     },
 
     "it": {
         "static": [
-            # sidebar background
             {"category": "line", "left": 0, "top": 0, "width": 190, "height": 842,
              "backgroundColor": "#0F2A33", "zIndex": 0, "page": 1},
-            # photo placeholder
             {"category": "line", "left": 43, "top": 38,  "width": 104, "height": 104,
              "backgroundColor": "#2BB3C0", "zIndex": 1, "page": 1},
             {"category": "line", "left": 45, "top": 40,  "width": 100, "height": 100,
@@ -250,42 +288,41 @@ EDUCATION: degree 11pt Inter bold #2E2A25, period 9.5pt Inter #6B7280
              "bold": False, "italic": False},
         ],
         "style": """\
-TEMPLATE: IT — modern two-column. Dark teal sidebar (left 0-190pt, already placed). Main column right.
-CANVAS: 595 × 842 pt.
+LAYOUT: two-column  |  sidebar left=28 width=148 zIndex=3  |  main left=220 width=330
+COLORS:  teal=#2BB3C0  white=#FFFFFF  light=#C9D8DA  mute=#9FB8BC  ink=#1F2937  gray=#6B7280  body=#3A4753
+FONTS:   Inter throughout  (all sidebar elements use zIndex=3)
 
-SIDEBAR (left=28, width=150, zIndex=3 — on top of dark background):
-  • Name:   fontSize=18  fontFamily=Inter  color=#FFFFFF  bold=true  top=158
-  • Role:   fontSize=11  fontFamily=Inter  color=#2BB3C0  top≈182
-  • "CONTACT" label: fontSize=10 Inter color=#9FB8BC bold=true  top=218
-  • Teal bar: line left=28 width=40 height=2 color=#2BB3C0  top=232
-  • Contact textarea (email, phone, location, github one per line):
-      left=28 top=242 width=148 fontFamily=Inter fontSize=9 lineHeight=15 color=#C9D8DA
-      height=(num_lines×15)+4
-  • "SKILLS" label: fontSize=10 Inter color=#9FB8BC bold=true  (20pt after contact block)
-  • Teal bar: line left=28 width=40 height=2  (2pt below label)
-  • Skills textarea (one skill per line):
-      left=28 width=148 fontFamily=Inter fontSize=9 lineHeight=15 color=#C9D8DA
-      height=(num_skills×15)+4
+SIDEBAR (all elements zIndex=3, on top of dark background):
+  name     top=158  fontSize=18  #FFFFFF  bold=true  left=28
+  role     top≈182  fontSize=11  #2BB3C0             left=28  (gap=4 after name)
+  "CONTACT" label  fontSize=10  #9FB8BC  bold=true  top=218  left=28
+  teal bar  line left=28 width=40 height=2 #2BB3C0  top=232
+  contact textarea  left=28 top=242 width=148  fontSize=9 lineHeight=15 #C9D8DA
+    content: "email\\nphone\\ncity\\ngithub (if known)"
+    HEIGHT = (number_of_newlines+1) × 15 + 6
+  "SKILLS" label  fontSize=10  #9FB8BC  bold=true  left=28  (20pt after contact textarea)
+  teal bar  line left=28 width=40 height=2  (2pt below label)
+  skills textarea  left=28 width=148  fontSize=9 lineHeight=15 #C9D8DA
+    content: one skill per line
+    HEIGHT = num_skills × 15 + 6
 
-MAIN COLUMN (left=220, width=330):
+MAIN COLUMN (left=220):
   CONTENT starts at top=48.
+  SECTION PATTERN (gap=20):
+    heading   fontSize=12  Inter  #1F2937  bold=true  UPPERCASE  left=220
+    teal_bar  line left=220 width=60 height=2 #2BB3C0  (2pt below heading)
+    [10pt gap]
 
-  SECTION PATTERN:
-    gap_before = 16pt (first) or 20pt (others)
-    • Heading:   fontSize=12  fontFamily=Inter  color=#1F2937  bold=true  UPPERCASE  left=220
-    • Teal bar:  line left=220 width=60 height=2 color=#2BB3C0  (2pt below heading)
-    (10pt below bar)
+  PER JOB (EVERY job):
+    job_title  fontSize=11  Inter  #1F2937  bold=true  left=220
+    company    fontSize=9.5 Inter  #6B7280  "Company   ·   Period"  left=220  (gap=2)
+    bullets    textarea: fontSize=10 lineHeight=14 Inter #3A4753 left=220 width=330
+               HEIGHT = (number_of_newlines+1) × 14 + 6
+    [gap 14pt]
 
-  PER-JOB block (EVERY job), left=220:
-    • Job title:     fontSize=11  Inter  color=#1F2937  bold=true  (2pt gap)
-    • Company·Period: fontSize=9.5 Inter color=#6B7280  (2pt gap)
-    • Bullets textarea: fontSize=10 lineHeight=14 Inter color=#3A4753
-      left=220 width=330  height=(num_bullets×14)+4
-    gap after block = 12pt
-
-  SUMMARY:   left=220 width=330 fontSize=10.5 lineHeight=15 Inter color=#3A4753
-  EDUCATION: degree 11pt Inter bold #1F2937, period 9.5pt Inter #6B7280, left=220
-  NO skills section in main column (skills are in sidebar)
+  SUMMARY: left=220 width=330  fontSize=10.5 lineHeight=15 Inter #3A4753
+  EDUCATION: degree 11pt Inter bold #1F2937 left=220  |  period 9.5pt Inter #6B7280  (gap 10)
+  (do NOT add a skills section in the main column — skills are in the sidebar)
 """,
     },
 
@@ -297,118 +334,120 @@ MAIN COLUMN (left=220, width=330):
              "backgroundColor": "#D8DEE4", "zIndex": 1, "page": 1},
         ],
         "style": """\
-TEMPLATE: Blueprint — technical two-column. Divider at x=205 (already placed).
-CANVAS: 595 × 842 pt.
+LAYOUT: two-column  |  left_col left=50 width=148  |  main_col left=225 width=320
+        header separator at top=138 already placed; divider at x=205 already placed
+COLORS:  ink=#1A2530  blue=#2B6CB0  gray=#6B7280  body=#3A4753  div=#D8DEE4
+FONTS:   labels=Courier  body=Inter
 
-HEADER (full width, top=56):
-  • Name:  fontSize=30  fontFamily=Inter  color=#1A2530  bold=true  left=50
-  • Role:  fontSize=12  fontFamily=Courier  color=#2B6CB0  format:"// job_title"  left=50  (gap: name_h+4)
-  • Contact line: fontSize=9.5 Inter color=#6B7280  format:"email · phone · city"  left=50  (4pt gap)
-  Header separator: already placed (line top=138)
+HEADER (top=56, full width):
+  name     fontSize=30  Inter  #1A2530  bold=true  left=50
+  role     fontSize=12  Courier #2B6CB0  "// job_title"  left=50  (gap after name=4)
+  contact  fontSize=9.5 Inter  #6B7280  "email · phone · city"  left=50  (gap=4)
+  (separator line top=138 already placed)
 
-LEFT COLUMN (left=50, width=148):
-  Starts at top=176.
-  • "CONTACT" label:  fontSize=10 Courier color=#2B6CB0 bold=true
-    (4pt gap, then contact textarea)
-  • Contact textarea: one item per line, fontSize=8.5 Inter color=#3A4753 lineHeight=13 width=148
-  • "SKILLS" label:   fontSize=10 Courier color=#2B6CB0 bold=true  (18pt after contact)
-    (4pt gap)
-  • Skills textarea:  one skill per line, fontSize=9 Inter color=#3A4753 lineHeight=15 width=148
-  • "EDUCATION" label if there's room (optional — can also go in main column)
+LEFT COLUMN (left=50, starts at top=176):
+  "CONTACT" label  fontSize=10 Courier #2B6CB0 bold=true  top=176
+  contact textarea  left=50 top=190 width=148  fontSize=8.5 Inter #3A4753 lineHeight=13
+    one item per line: email, phone, location, linkedin/github if known
+    HEIGHT = (number_of_newlines+1) × 13 + 6
+  "SKILLS" label   fontSize=10 Courier #2B6CB0 bold=true  (20pt after contact textarea)
+  skills textarea  left=50 width=148 fontSize=9 Inter #3A4753 lineHeight=15
+    one skill per line
+    HEIGHT = num_skills × 15 + 6
+  "TOOLS" label (optional subset of skills: Git, Linux, Docker etc)  if skills long enough
 
-MAIN COLUMN (left=225, width=320):
-  Starts at top=176.
+MAIN COLUMN (left=225, starts at top=176):
+  SECTION PATTERN (gap=18):
+    label  fontSize=10 Courier #2B6CB0 bold=true  left=225
+    [10pt gap]
 
-  SECTION PATTERN:
-    gap_before = 16pt
-    • Label:  fontSize=10  fontFamily=Courier  color=#2B6CB0  bold=true  left=225
-    (10pt below label)
+  PER JOB (EVERY job):
+    job_title  fontSize=11  Inter  #1A2530  bold=true  left=225
+    company    fontSize=9.5 Inter  #6B7280  "Company · Period"  left=225  (gap=2)
+    bullets    textarea: fontSize=10 lineHeight=14 Inter #3A4753 left=225 width=320
+               HEIGHT = (number_of_newlines+1) × 14 + 6
+    [gap 14pt]
 
-  PER-JOB block (EVERY job), left=225:
-    • Job title:      fontSize=11  Inter  color=#1A2530  bold=true  (2pt gap)
-    • Company·Period: fontSize=9.5 Inter  color=#6B7280  (2pt gap)
-    • Bullets textarea: fontSize=10 lineHeight=14 Inter color=#3A4753
-      left=225 width=320  height=(num_bullets×14)+4
-    gap after block = 12pt
-
-  EDUCATION in main column (left=225):
-    degree 11pt Inter bold #1A2530, period 9.5pt Inter #6B7280
+  EDUCATION: degree 11pt Inter bold #1A2530 left=225  |  period 9.5pt Inter #6B7280  (gap 10)
 """,
     },
 }
 
 
-# ── GPT-driven layout generation ──────────────────────────────────────────────
+# ── GPT layout generation ─────────────────────────────────────────────────────
+
+_LAYOUT_RULES = """\
+════════════════════════════════
+CANVAS RULES
+════════════════════════════════
+• A4: 595 × 842 pt  |  bottom margin 40 pt  →  overflow threshold = 802
+• When running_y + next_element_height > 802: set page=page+1, running_y=40
+• After placing a TEXT element:   running_y += fontSize × 1.35
+• After placing a TEXTAREA:       running_y += height
+• After placing a LINE element:   running_y unchanged  (decorative only)
+
+════════════════════════════════
+TEXTAREA HEIGHT — MANDATORY FORMULA
+════════════════════════════════
+Before writing any textarea, you MUST:
+  1. Write the exact content string including all \\n characters
+  2. Count n = number of "\\n" characters in that string
+  3. Set height = (n + 1) × lineHeight + 6
+
+For text that wraps (summary, long skill lists):
+  chars_per_line = floor(width / (fontSize × 0.52))
+  For each \\n-separated segment: wrapped_rows = ceil(len(segment) / chars_per_line)
+  n_total = sum of wrapped_rows across all segments
+  height = n_total × lineHeight + 6
+
+Minimum height is 1 × lineHeight + 6.
+
+════════════════════════════════
+ELEMENT SCHEMAS
+════════════════════════════════
+Text:
+  {"category":"text","content":"VALUE","fontSize":N,"fontFamily":"Inter|Times-Roman|Roboto|Courier",
+   "color":"#HEX","left":N,"top":N,"zIndex":2,"page":1,"bold":false,"italic":false}
+
+Textarea:
+  {"category":"textarea","content":"VALUE","left":N,"top":N,"width":N,"height":N,
+   "fontSize":N,"lineHeight":N,"letterSpacing":0,"color":"#HEX","fontFamily":"NAME",
+   "zIndex":2,"page":1,"bold":false,"italic":false,"align":"left"}
+
+Line:
+  {"category":"line","left":N,"top":N,"width":N,"height":N,
+   "backgroundColor":"#HEX","zIndex":1,"page":1}
+
+════════════════════════════════
+MANDATORY CONTENT RULES
+════════════════════════════════
+1. Include EVERY job. Never skip a job.
+2. Include ALL bullet points for each job.
+3. Compute height BEFORE placing each textarea. Use the formula above.
+4. running_y must be updated after each text/textarea. Show your work mentally.
+5. Do NOT include the static decorative elements (they are added separately).
+6. Return ONLY: {"elements": [...]}
+"""
+
 
 def generate_resume(template_id: str, cv_data: dict) -> list[dict]:
-    """
-    Ask GPT-4o to generate the complete canvas-element list for the given template
-    and CV data.  Static decorative elements (sidebar bands, frame lines) are always
-    added by Python; GPT generates every content element with computed positions.
-    """
     cfg = _TEMPLATES.get(template_id)
     if cfg is None:
         raise ValueError(f"Unknown template '{template_id}'. Available: {list(_TEMPLATES)}")
 
-    static_els = cfg["static"]
-    style_desc  = cfg["style"]
-
     prompt = f"""\
-You are a precise CV layout engine for a canvas editor. Your job is to generate
-every content element for the resume — with exact pixel positions — so the result
-is clean, well-spaced, and professional.
+You are a precise CV layout engine for a visual canvas editor (A4, 595×842 pt).
+Generate canvas elements — with exact computed positions — for the CV below.
 
-════════════════════════════════════════════
-TEMPLATE VISUAL GUIDE
-════════════════════════════════════════════
-{style_desc}
+TEMPLATE STYLE
+══════════════
+{cfg['style']}
 
-════════════════════════════════════════════
-CANDIDATE CV DATA  (include EVERYTHING — every job, every bullet, all skills)
-════════════════════════════════════════════
+CANDIDATE DATA  (include ALL of this — EVERY job, EVERY bullet, all skills)
+══════════════
 {json.dumps(cv_data, ensure_ascii=False, indent=2)}
 
-════════════════════════════════════════════
-CANVAS RULES
-════════════════════════════════════════════
-• A4 page: 595 × 842 pt.
-• Page overflow: when the NEXT element's top would exceed 802 (= 842 − 40 margin),
-  set page=2 and reset the running y to 40. Continue generating on page 2.
-• text element: after placing it, advance running_y by (fontSize × 1.35)
-• line element: does NOT advance running_y
-• textarea element: after placing it, advance running_y by height
-• Track running_y carefully — every element's "top" must equal running_y at the
-  moment you place it.
-
-════════════════════════════════════════════
-ELEMENT SCHEMAS (output these exact keys)
-════════════════════════════════════════════
-Text:
-  {{"category":"text","content":"VALUE","fontSize":N,"fontFamily":"Inter|Times-Roman|Roboto|Courier",
-    "color":"#HEX","left":N,"top":N,"zIndex":2,"page":1,"bold":false,"italic":false}}
-
-Textarea:
-  {{"category":"textarea","content":"VALUE","left":N,"top":N,"width":N,"height":N,
-    "fontSize":N,"lineHeight":N,"letterSpacing":0,"color":"#HEX","fontFamily":"NAME",
-    "zIndex":2,"page":1,"bold":false,"italic":false,"align":"left"}}
-
-Line:
-  {{"category":"line","left":N,"top":N,"width":N,"height":N,
-    "backgroundColor":"#HEX","zIndex":1,"page":1}}
-
-════════════════════════════════════════════
-CRITICAL REQUIREMENTS
-════════════════════════════════════════════
-1. Include EVERY job from the candidate data. Do not drop any.
-2. Include ALL bullet points for each job.
-3. Include every education entry and all skills.
-4. Calculate textarea heights from bullet counts: height = (n_lines × lineHeight) + 4
-5. Recalculate running_y after every text/textarea you place.
-6. Use the EXACT hex colors and font names from the template guide.
-7. Do NOT include the static decorative elements — they are added separately.
-
-Return ONLY this JSON object, no markdown, no explanation:
-{{"elements": [ ... all content elements ... ]}}
+{_LAYOUT_RULES}
 """
 
     resp = _client.chat.completions.create(
@@ -419,7 +458,10 @@ Return ONLY this JSON object, no markdown, no explanation:
         response_format={"type": "json_object"},
     )
 
-    raw = json.loads(resp.choices[0].message.content)
-    content_els = raw.get("elements", [])
+    raw  = json.loads(resp.choices[0].message.content)
+    els  = raw.get("elements", [])
 
-    return static_els + content_els
+    # Recalculate textarea heights from actual content and reflow vertical positions
+    els = _fix_heights_and_reflow(els)
+
+    return cfg["static"] + els
