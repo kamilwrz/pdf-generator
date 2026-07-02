@@ -19,6 +19,10 @@ export const ENDPOINTS = {
         LOGIN: "/auth/token",
         REGISTER: "/auth/register",
         TOKEN: "/auth/verify-token/"
+    },
+    AI: {
+        EXTRACT_CV: "/ai/extract_cv",
+        FILL_TEMPLATE: "/ai/fill_template",
     }
 }
 

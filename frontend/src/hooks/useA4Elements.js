@@ -581,6 +581,33 @@ export function useA4Elements(titleRef) {
 
   // Replace the canvas with a template (array of element specs). Each spec gets
   // a fresh id + page; interaction flags default off. Resets to a single page.
+  // Load a template and overlay AI-generated content.
+  // fills: [{id, content}] from POST /ai/fill_template
+  const handleLoadTemplateWithFill = useCallback((templateElements, templateName, fills) => {
+    const fillMap = Object.fromEntries((fills || []).map(f => [f.id, f.content]));
+    const mapped = templateElements.map((spec) => ({
+      isSelected: false,
+      isMove: false,
+      isEditing: false,
+      ...spec,
+      element_id: nanoid(),
+      page: 1,
+      // Only override content when the AI produced a non-empty value
+      content: (spec.category === "text" || spec.category === "textarea")
+        && fillMap[spec.element_id] !== undefined
+        && fillMap[spec.element_id] !== ""
+        ? fillMap[spec.element_id]
+        : spec.content,
+    }));
+    setA4_Elements(mapped);
+    setA4_Elements_deleted([]);
+    setPageCount(1);
+    setCurrentPage(1);
+    if (titleRef?.current && templateName) {
+      titleRef.current.value = `${templateName} CV`;
+    }
+  }, [])
+
   const handleLoadTemplate = useCallback((templateElements, templateName) => {
     const mapped = templateElements.map((spec) => ({
       isSelected: false,
@@ -624,6 +651,7 @@ export function useA4Elements(titleRef) {
     handleResizeElement,
     handleClearA4,
     handleLoadTemplate,
+    handleLoadTemplateWithFill,
     // multi-page
     pageCount,
     setPageCount,

@@ -19,3 +19,5 @@ S3_BUCKET = os.getenv("S3_BUCKET_NAME", "")
 AWS_REGION = os.getenv("AWS_REGION", "eu-north-1")
 USE_S3 = bool(S3_BUCKET)
 
+OPENAI_API_KEY = os.getenv("API_GPT_KEY", "")
+

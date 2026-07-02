@@ -18,6 +18,7 @@ import { AnimatePresence } from "framer-motion";
 import PageControls from '../components/editor/PageControls/PageControls';
 import Guides from '../components/canvas/Guides/Guides';
 import TemplatesModal from '../components/modals/TemplatesModal/TemplatesModal';
+import AiCvPanel from '../components/ai/AiCvPanel/AiCvPanel';
 
 function PdfCanvas() {
 
@@ -33,6 +34,8 @@ function PdfCanvas() {
   const [isModalPdfs, setIsModalPdfs] = useState(false);
   //state for showing the CV templates picker
   const [isTemplates, setIsTemplates] = useState(false);
+  //state for showing the AI CV fill panel
+  const [isAiPanel, setIsAiPanel] = useState(false);
   // state for showing the progress var in Dropzone when IMG is uploaded
   const [valueImageUpload, setValueImageUpload] = useState(0);
   //state for seting the PDF id, used in ModalPdf.jsx
@@ -72,6 +75,7 @@ function PdfCanvas() {
     handleResizeElement,
     handleClearA4,
     handleLoadTemplate,
+    handleLoadTemplateWithFill,
     pageCount,
     setPageCount,
     currentPage,
@@ -134,6 +138,10 @@ function PdfCanvas() {
     setIsTemplates(bool => !bool);
   }, [])
 
+  const handleShowAiPanel = useCallback(() => {
+    setIsAiPanel(bool => !bool);
+  }, [])
+
   const handleShowGallery = useCallback(() => {
     setIsGallery(boolGallery => !boolGallery);
   }, [])
@@ -176,6 +184,9 @@ function PdfCanvas() {
     isTemplates: isTemplates,
     showTemplates: handleShowTemplates,
     loadTemplate: handleLoadTemplate,
+    loadTemplateWithFill: handleLoadTemplateWithFill,
+    //ai panel
+    showAiPanel: handleShowAiPanel,
     //multi-page
     pageCount: pageCount,
     setPageCount: setPageCount,
@@ -218,7 +229,7 @@ function PdfCanvas() {
     handleClearA4, handleShowModalRequest, handleLogout, PDFs, setPDFs,
     pageCount, currentPage, addPage, removePage, goToPage, setPageCount, setCurrentPage,
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
-    isTemplates, handleShowTemplates, handleLoadTemplate, handleMoveElementWithBelow,
+    isTemplates, handleShowTemplates, handleLoadTemplate, handleLoadTemplateWithFill, handleMoveElementWithBelow, handleShowAiPanel,
   ])
 
   console.log(A4_Elements);
@@ -234,6 +245,11 @@ function PdfCanvas() {
         <TemplatesModal />
         <Sidebar ref={titleRef}>
           <AnimatePresence>{isDropzone && <DropzoneContainer />}</AnimatePresence>
+          {isAiPanel && (
+            <div style={{ position: "absolute", left: "100%", top: 0, width: 320, background: "#fff", borderLeft: "1px solid var(--border-line)", borderRight: "1px solid var(--border-line)", height: "100%", overflowY: "auto", zIndex: 1100, boxShadow: "4px 0 16px rgba(90,55,20,.10)" }}>
+              <AiCvPanel onClose={handleShowAiPanel} />
+            </div>
+          )}
           <Editor />
         </Sidebar>
         <A4 width="595px" height="842px" ref={A4ref}>

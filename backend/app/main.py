@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.api.routes import auth, pdf, images
+from app.api.routes import auth, pdf, images, ai
 from app.core.config import origins, IMAGES_UPLOAD_DIR, PDF_UPLOAD_DIR
 
 from pathlib import Path
@@ -23,6 +23,7 @@ app.mount("/static/generated", StaticFiles(directory=str(PDF_UPLOAD_DIR)), name=
 app.include_router(auth.router)
 app.include_router(pdf.router)
 app.include_router(images.router)
+app.include_router(ai.router)
 
 if DIST_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(DIST_DIR / "assets")), name="frontend_assets")

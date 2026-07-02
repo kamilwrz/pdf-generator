@@ -10,6 +10,7 @@ import { AiOutlineLogout } from "react-icons/ai";
 import { RiDownload2Line } from "react-icons/ri";
 import { FaRegFolderOpen } from "react-icons/fa";
 import { LuLayoutTemplate } from "react-icons/lu";
+import { RiRobot2Line } from "react-icons/ri";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { forwardRef, use } from "react";
 
@@ -21,6 +22,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
         addLine,
         addTextarea,
         showTemplates,
+        showAiPanel,
         showDropzone,
         createPdf,
         showGallery,
@@ -58,6 +60,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
 
         <div className={classes.templatesBlock}>
             <SidebarControls icon={<LuLayoutTemplate style={{ color: "#C28A3D" }} />} iconBg="#FBEED9" labelText="CV Templates" sidebarEvent={showTemplates} />
+            <SidebarControls icon={<RiRobot2Line style={{ color: "#7B5EA7" }} />} iconBg="#EDE8F7" labelText="Fill from my CV" sidebarEvent={showAiPanel} />
         </div>
 
         <div className={classes.toolsContainer}>
