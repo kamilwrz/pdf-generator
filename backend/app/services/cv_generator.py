@@ -96,6 +96,44 @@ class Builder:
 
 # ── shared helpers ───────────────────────────────────────────────────────────
 
+_LABEL_DEFAULTS = {
+    "summary":    "PROFESSIONAL SUMMARY",
+    "experience": "PROFESSIONAL EXPERIENCE",
+    "education":  "EDUCATION",
+    "skills":     "SKILLS",
+}
+
+def _labels(cv: dict) -> dict:
+    """Return section headings in the CV's language (GPT-supplied), with English fallbacks."""
+    raw = cv.get("labels") or {}
+    return {k: (raw.get(k) or v).upper() for k, v in _LABEL_DEFAULTS.items()}
+
+
+def _extra_sections(b: Builder, cv: dict, placement: str,
+                    section_fn, C: dict, L: int, W: int,
+                    font_b: str, fs: float = 10, lh: float = 15) -> None:
+    """
+    Render extra (custom) sections found in the CV but not in the template.
+
+    placement='after_experience' → called after the experience block
+    placement='after_skills'     → called after the skills block
+    Sections tagged with the requested placement are rendered; others are skipped
+    here (they'll be picked up at their own placement call).
+    """
+    for sec in cv.get("extra_sections") or []:
+        if sec.get("placement", "after_skills") != placement:
+            continue
+        title = (sec.get("title") or "").strip().upper()
+        items = [i for i in (sec.get("items") or []) if i and str(i).strip()]
+        if not title or not items:
+            continue
+        b.need(50)
+        section_fn(title)
+        content = "\n".join(f"• {item}" for item in items)
+        b.block(content, L, W, fs, lh, C.get("body", "#2B2B2B"), font_b)
+        b.gap(14)
+
+
 def _contact_line(cv: dict) -> str:
     return "   ·   ".join(filter(None, [
         cv.get("email"), cv.get("phone"), cv.get("location")
@@ -116,9 +154,9 @@ def _gen_finance(cv: dict) -> list[dict]:
     C = dict(ink="#16243A", sub="#5A6B7B", gray="#6B7280",
              gold="#B08D57", body="#2B2B2B")
     L, W = 50, 495
+    lbl = _labels(cv)
     b = Builder(54)
 
-    # header
     b.text(cv.get("name", ""), 30, "Times-Roman", C["ink"], L, bold=True); b.gap(4)
     b.text(cv.get("title", ""), 14, "Times-Roman", C["sub"], L); b.gap(4)
     b.text(_contact_line(cv), 9.5, "Inter", C["sub"], L); b.gap(8)
@@ -129,11 +167,11 @@ def _gen_finance(cv: dict) -> list[dict]:
         b.line(L, 70, 2, C["gold"]); b.gap(10)
 
     if cv.get("summary"):
-        section("PROFESSIONAL SUMMARY")
+        section(lbl["summary"])
         b.block(cv["summary"], L, W, 10.5, 15, C["body"], "Inter"); b.gap(18)
 
     if cv.get("experience"):
-        section("PROFESSIONAL EXPERIENCE")
+        section(lbl["experience"])
         for job in cv["experience"]:
             b.need(56)
             b.text(job.get("title", ""), 11, "Inter", C["ink"], L, bold=True); b.gap(2)
@@ -142,10 +180,10 @@ def _gen_finance(cv: dict) -> list[dict]:
             if bul:
                 b.block(bul, L, W, 10, 14, C["body"], "Inter")
             b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, C, L, W, "Inter")
 
     if cv.get("education"):
-        b.need(50)
-        section("EDUCATION")
+        b.need(50); section(lbl["education"])
         for edu in cv["education"]:
             b.text(edu.get("degree", ""), 11, "Inter", C["ink"], L, bold=True); b.gap(2)
             b.text(edu.get("period", ""), 9.5, "Inter", C["gray"], L)
@@ -154,9 +192,10 @@ def _gen_finance(cv: dict) -> list[dict]:
             b.gap(10)
 
     if cv.get("skills"):
-        b.need(40)
-        section("SKILLS & CERTIFICATIONS")
-        b.block(" · ".join(cv["skills"]), L, W, 10, 15, C["body"], "Inter")
+        b.need(40); section(lbl["skills"])
+        b.block(" · ".join(cv["skills"]), L, W, 10, 15, C["body"], "Inter"); b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, C, L, W, "Inter")
 
     return b.build()
 
@@ -164,7 +203,7 @@ def _gen_finance(cv: dict) -> list[dict]:
 def _gen_nocturne(cv: dict) -> list[dict]:
     C = dict(ink="#1F2933", coral="#F25F4C", gray="#6B7280", body="#1F2933")
     L, W = 50, 495
-    # static dark header band + name on top
+    lbl = _labels(cv)
     static = [
         _line(0, 0, 595, 160, "#1F2933", zIndex=0),
         _line(L, 120, 56, 4, C["coral"], zIndex=1),
@@ -172,7 +211,6 @@ def _gen_nocturne(cv: dict) -> list[dict]:
         _text(cv.get("title", ""), 14, "Inter", C["coral"], L, 96, zIndex=2),
         _text(_contact_line(cv), 9.5, "Inter", "#AEB6BD", L, 132, zIndex=2),
     ]
-
     b = Builder(192)
 
     def section(label):
@@ -180,11 +218,11 @@ def _gen_nocturne(cv: dict) -> list[dict]:
         b.line(L, 40, 2, C["coral"]); b.gap(10)
 
     if cv.get("summary"):
-        section("ABOUT")
+        section(lbl["summary"])
         b.block(cv["summary"], L, W, 10.5, 15, C["body"], "Inter"); b.gap(18)
 
     if cv.get("experience"):
-        section("EXPERIENCE")
+        section(lbl["experience"])
         for job in cv["experience"]:
             b.need(56)
             b.text(job.get("title", ""), 11, "Inter", C["ink"], L, bold=True); b.gap(2)
@@ -193,15 +231,16 @@ def _gen_nocturne(cv: dict) -> list[dict]:
             if bul:
                 b.block(bul, L, W, 10, 14, C["body"], "Inter")
             b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, C, L, W, "Inter")
 
     if cv.get("skills"):
-        b.need(40)
-        section("SKILLS")
+        b.need(40); section(lbl["skills"])
         b.block(" · ".join(cv["skills"]), L, W, 10, 15, C["body"], "Inter"); b.gap(14)
 
+    _extra_sections(b, cv, "after_skills", section, C, L, W, "Inter")
+
     if cv.get("education"):
-        b.need(50)
-        section("EDUCATION")
+        b.need(50); section(lbl["education"])
         for edu in cv["education"]:
             b.text(edu.get("degree", ""), 11, "Inter", C["ink"], L, bold=True); b.gap(2)
             b.text(edu.get("period", ""), 9.5, "Inter", C["gray"], L); b.gap(10)
@@ -214,7 +253,7 @@ def _gen_ampersand(cv: dict) -> list[dict]:
              rule="#E0D7D1", body="#3A332E")
     L, W = 50, 497
     S = "Times-Roman"
-
+    lbl = _labels(cv)
     static = [
         _line(0, 0, 9, 842, C["wine"], zIndex=0),
         _text(cv.get("name", ""), 31, S, C["ink"], L, 58, bold=True),
@@ -222,18 +261,16 @@ def _gen_ampersand(cv: dict) -> list[dict]:
         _text(_contact_line(cv), 9.5, S, C["gray"], L, 122),
         _line(L, 140, W, 1, C["rule"]),
     ]
-
     b = Builder(158)
 
     def section(label):
-        b.text(label, 12, S, C["ink"], L, bold=True)
-        b.gap(2)
+        b.text(label, 12, S, C["ink"], L, bold=True); b.gap(2)
 
-    section("PROFILE")
+    section(lbl["summary"])
     b.block(cv.get("summary", ""), L, W, 11, 16, C["body"], S); b.gap(16)
 
     if cv.get("experience"):
-        section("EXPERIENCE")
+        section(lbl["experience"])
         for job in cv["experience"]:
             b.need(56)
             b.text(job.get("title", ""), 11.5, S, C["ink"], L, bold=True); b.gap(2)
@@ -245,18 +282,19 @@ def _gen_ampersand(cv: dict) -> list[dict]:
             if bul:
                 b.block(bul, L, W, 10.5, 15, C["body"], S)
             b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, C, L, W, S, fs=10.5, lh=15)
 
     if cv.get("education"):
-        b.need(50)
-        section("EDUCATION")
+        b.need(50); section(lbl["education"])
         for edu in cv["education"]:
             b.text(edu.get("degree", ""), 11, S, C["ink"], L, bold=True); b.gap(2)
             b.text(edu.get("period", ""), 9.5, S, C["gray"], L, italic=True); b.gap(10)
 
     if cv.get("skills"):
-        b.need(40)
-        section("SKILLS")
-        b.block(" · ".join(cv["skills"]), L, W, 10.5, 15, C["body"], S)
+        b.need(40); section(lbl["skills"])
+        b.block(" · ".join(cv["skills"]), L, W, 10.5, 15, C["body"], S); b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, C, L, W, S, fs=10.5, lh=15)
 
     return static + b.build()
 
@@ -264,9 +302,9 @@ def _gen_ampersand(cv: dict) -> list[dict]:
 def _gen_education(cv: dict) -> list[dict]:
     C = dict(ink="#2E2A25", sage="#4E7A6B", flank="#CBB89E",
              frame="#D8CDBA", gray="#6B7280", body="#2B2B2B")
-    L, W, MID = 55, 485, 297  # W=595-55-55, MID≈center
+    L, W = 55, 485
     S = "Times-Roman"
-
+    lbl = _labels(cv)
     static = [
         _line(28, 28, 539, 1, C["frame"]),
         _line(28, 813, 539, 1, C["frame"]),
@@ -277,20 +315,10 @@ def _gen_education(cv: dict) -> list[dict]:
         _text(_contact_line(cv), 9.5, "Inter", C["gray"], 55, 116),
         _line(248, 138, 100, 1.5, C["sage"]),
     ]
-
     b = Builder(158)
 
     def section(label):
         b.need(30)
-        b.text(label, 12, S, C["ink"], L, bold=True, align="center" if False else None); b.gap(2)
-        b.line(L, 150, 1, C["flank"])
-        b.els[-1]["left"] = 90
-        b.els.append(_line(355, b.y, 150, 1, C["flank"], page=b.pg))
-        b.gap(10)
-
-    def section(label):  # noqa: F811
-        b.need(30)
-        # flanked heading: rule ——LABEL—— rule
         b.text(label, 12, S, C["ink"], L, bold=True)
         y_rule = b.y - 8
         b.els.append(_line(90, y_rule, 150, 1, C["flank"], page=b.pg))
@@ -298,11 +326,11 @@ def _gen_education(cv: dict) -> list[dict]:
         b.gap(4)
 
     if cv.get("summary"):
-        section("PROFILE")
+        section(lbl["summary"])
         b.block(cv["summary"], L, W, 10.5, 15, C["body"], "Inter"); b.gap(16)
 
     if cv.get("experience"):
-        section("EXPERIENCE")
+        section(lbl["experience"])
         for job in cv["experience"]:
             b.need(56)
             b.text(job.get("title", ""), 11, "Inter", C["ink"], L, bold=True); b.gap(2)
@@ -311,18 +339,19 @@ def _gen_education(cv: dict) -> list[dict]:
             if bul:
                 b.block(bul, L, W, 10, 14, C["body"], "Inter")
             b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, C, L, W, "Inter")
 
     if cv.get("education"):
-        b.need(50)
-        section("EDUCATION")
+        b.need(50); section(lbl["education"])
         for edu in cv["education"]:
             b.text(edu.get("degree", ""), 11, "Inter", C["ink"], L, bold=True); b.gap(2)
             b.text(edu.get("period", ""), 9.5, "Inter", C["gray"], L); b.gap(10)
 
     if cv.get("skills"):
-        b.need(40)
-        section("SKILLS")
-        b.block(" · ".join(cv["skills"]), L, W, 10, 15, C["body"], "Inter")
+        b.need(40); section(lbl["skills"])
+        b.block(" · ".join(cv["skills"]), L, W, 10, 15, C["body"], "Inter"); b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, C, L, W, "Inter")
 
     return static + b.build()
 
@@ -330,38 +359,37 @@ def _gen_education(cv: dict) -> list[dict]:
 def _gen_it(cv: dict) -> list[dict]:
     C = dict(teal="#2BB3C0", white="#FFFFFF", light="#C9D8DA",
              mute="#9FB8BC", ink="#1F2937", gray="#6B7280", body="#3A4753")
-    SB, ML, MW = 190, 220, 330  # sidebar width, main-left, main-width
+    SB, ML, MW = 190, 220, 330
+    lbl = _labels(cv)
 
-    # Static sidebar structure
-    sidebar_bg = _line(0, 0, SB, 842, "#0F2A33", zIndex=0)
+    sidebar_bg  = _line(0, 0, SB, 842, "#0F2A33", zIndex=0)
     photo_frame = _line(43, 38, 104, 104, C["teal"], zIndex=1)
     photo_inner = _line(45, 40, 100, 100, "#14333D", zIndex=2)
     photo_label = _text("PHOTO", 10, "Inter", "#6E8C92", 78, 84, zIndex=3)
 
+    # sidebar contact label (localized)
+    contact_label = (cv.get("labels") or {}).get("contact", "CONTACT").upper()
+    skills_label  = lbl["skills"]
+
     static = [sidebar_bg, photo_frame, photo_inner, photo_label,
               _text(cv.get("name", ""), 18, "Inter", C["white"], 28, 158, zIndex=3, bold=True),
               _text(cv.get("title", ""), 11, "Inter", C["teal"], 28, 184, zIndex=3),
-              _text("CONTACT", 10, "Inter", C["mute"], 28, 218, zIndex=3, bold=True),
-              _line(28, 232, 40, 2, C["teal"], zIndex=3),
-              ]
+              _text(contact_label, 10, "Inter", C["mute"], 28, 218, zIndex=3, bold=True),
+              _line(28, 232, 40, 2, C["teal"], zIndex=3)]
 
-    contact_text = "\n".join(filter(None, [
-        cv.get("email"), cv.get("phone"), cv.get("location")
-    ]))
+    contact_text = "\n".join(filter(None, [cv.get("email"), cv.get("phone"), cv.get("location")]))
     static.append(_block(contact_text, 28, 242, 148, max(len(contact_text.splitlines()) * 15, 45),
                          9, 15, C["light"], "Inter", zIndex=3))
 
     skills_y = 320
-    static.append(_text("SKILLS", 10, "Inter", C["mute"], 28, skills_y, zIndex=3, bold=True))
+    static.append(_text(skills_label, 10, "Inter", C["mute"], 28, skills_y, zIndex=3, bold=True))
     static.append(_line(28, skills_y + 13, 40, 2, C["teal"], zIndex=3))
     skills_text = "\n".join(cv.get("skills", []))
     static.append(_block(skills_text, 28, skills_y + 23,
                          148, max(len(cv.get("skills", [])) * 16, 60),
                          9, 16, C["light"], "Inter", zIndex=3))
 
-    # Dynamic main column
     b = Builder(48)
-    b.pg = 1  # stays page 1 (sidebar spans all pages anyway)
 
     def section(label):
         b.need(30)
@@ -371,11 +399,11 @@ def _gen_it(cv: dict) -> list[dict]:
         b.gap(10)
 
     if cv.get("summary"):
-        section("PROFILE")
+        section(lbl["summary"])
         b.block(cv["summary"], ML, MW, 10.5, 15, C["body"], "Inter"); b.gap(16)
 
     if cv.get("experience"):
-        section("EXPERIENCE")
+        section(lbl["experience"])
         for job in cv["experience"]:
             b.need(56)
             b.text(job.get("title", ""), 11, "Inter", C["ink"], ML, bold=True); b.gap(2)
@@ -384,13 +412,15 @@ def _gen_it(cv: dict) -> list[dict]:
             if bul:
                 b.block(bul, ML, MW, 10, 14, C["body"], "Inter")
             b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, C, ML, MW, "Inter")
 
     if cv.get("education"):
-        b.need(50)
-        section("EDUCATION")
+        b.need(50); section(lbl["education"])
         for edu in cv["education"]:
             b.text(edu.get("degree", ""), 11, "Inter", C["ink"], ML, bold=True); b.gap(2)
             b.text(edu.get("period", ""), 9.5, "Inter", C["gray"], ML); b.gap(10)
+
+    _extra_sections(b, cv, "after_skills", section, C, ML, MW, "Inter")
 
     return static + b.build()
 
@@ -398,7 +428,9 @@ def _gen_it(cv: dict) -> list[dict]:
 def _gen_blueprint(cv: dict) -> list[dict]:
     C = dict(ink="#1A2530", blue="#2B6CB0", gray="#6B7280",
              body="#3A4753", div="#D8DEE4")
-    ML, MW = 225, 320  # main column
+    ML, MW = 225, 320
+    lbl = _labels(cv)
+    skills_label = lbl["skills"]
 
     static = [
         _text(cv.get("name", ""), 30, "Inter", C["ink"], 50, 56, bold=True),
@@ -406,25 +438,19 @@ def _gen_blueprint(cv: dict) -> list[dict]:
         _text(_contact_line(cv), 9.5, "Inter", C["gray"], 50, 118),
         _line(50, 138, 495, 1.5, C["ink"]),
         _line(205, 160, 1, 645, C["div"]),
-        # left column header
         _text("CONTACT", 10, "Courier", C["blue"], 50, 176, bold=True),
     ]
 
-    contact_text = "\n".join(filter(None, [
-        cv.get("email"), cv.get("phone"), cv.get("location")
-    ]))
+    contact_text = "\n".join(filter(None, [cv.get("email"), cv.get("phone"), cv.get("location")]))
     static.append(_block(contact_text, 50, 196, 148,
-                         max(len(contact_text.splitlines()) * 13, 40),
-                         8.5, 13, C["body"], "Inter"))
+                         max(len(contact_text.splitlines()) * 13, 40), 8.5, 13, C["body"], "Inter"))
 
     skills_y = 290
-    static.append(_text("SKILLS", 10, "Courier", C["blue"], 50, skills_y, bold=True))
+    static.append(_text(skills_label, 10, "Courier", C["blue"], 50, skills_y, bold=True))
     skills_text = "\n".join(cv.get("skills", []))
     static.append(_block(skills_text, 50, skills_y + 14, 148,
-                         max(len(cv.get("skills", [])) * 15, 50),
-                         9, 15, C["body"], "Inter"))
+                         max(len(cv.get("skills", [])) * 15, 50), 9, 15, C["body"], "Inter"))
 
-    # Dynamic main column
     b = Builder(176)
 
     def section(label):
@@ -432,7 +458,7 @@ def _gen_blueprint(cv: dict) -> list[dict]:
         b.text(label, 10, "Courier", C["blue"], ML, bold=True); b.gap(10)
 
     if cv.get("experience"):
-        section("EXPERIENCE")
+        section(lbl["experience"])
         for job in cv["experience"]:
             b.need(56)
             b.text(job.get("title", ""), 11, "Inter", C["ink"], ML, bold=True); b.gap(2)
@@ -441,13 +467,15 @@ def _gen_blueprint(cv: dict) -> list[dict]:
             if bul:
                 b.block(bul, ML, MW, 10, 14, C["body"], "Inter")
             b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, C, ML, MW, "Inter")
 
     if cv.get("education"):
-        b.need(50)
-        section("EDUCATION")
+        b.need(50); section(lbl["education"])
         for edu in cv["education"]:
             b.text(edu.get("degree", ""), 11, "Inter", C["ink"], ML, bold=True); b.gap(2)
             b.text(edu.get("period", ""), 9.5, "Inter", C["gray"], ML); b.gap(10)
+
+    _extra_sections(b, cv, "after_skills", section, C, ML, MW, "Inter")
 
     return static + b.build()
 
