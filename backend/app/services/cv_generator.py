@@ -9,6 +9,7 @@ truncation, multi-page when content overflows.
 """
 
 from __future__ import annotations
+import math
 
 A4_H = 842
 MARGIN_BOTTOM = 40   # py before switching to the next page
@@ -70,8 +71,13 @@ class Builder:
               bold=False, italic=False, align="left", min_h=0.0) -> float:
         if not content:
             return self.y
-        n = content.count("\n") + 1
-        h = max(n * lh + 4, min_h)
+        # Count rendered lines including soft-wrapping for long segments.
+        # chars_per_line ≈ width / (fontSize × 0.52) for Inter-style fonts.
+        cpl = max(10, int(width / (fs * 0.52)))
+        rendered = 0
+        for seg in content.split("\n"):
+            rendered += max(1, math.ceil(len(seg) / cpl)) if seg.strip() else 1
+        h = max(rendered * lh + 6, min_h)
         self.need(h)
         self.els.append(_block(content, left, self.y, width, h, fs, lh, col, fam,
                                 zIndex=2, page=self.pg, bold=bold, italic=italic, align=align))

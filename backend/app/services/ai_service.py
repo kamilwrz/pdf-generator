@@ -374,94 +374,18 @@ MAIN COLUMN (left=225, starts at top=176):
 }
 
 
-# ── GPT layout generation ─────────────────────────────────────────────────────
-
-_LAYOUT_RULES = """\
-════════════════════════════════
-CANVAS RULES
-════════════════════════════════
-• A4: 595 × 842 pt  |  bottom margin 40 pt  →  overflow threshold = 802
-• When running_y + next_element_height > 802: set page=page+1, running_y=40
-• After placing a TEXT element:   running_y += fontSize × 1.35
-• After placing a TEXTAREA:       running_y += height
-• After placing a LINE element:   running_y unchanged  (decorative only)
-
-════════════════════════════════
-TEXTAREA HEIGHT — MANDATORY FORMULA
-════════════════════════════════
-Before writing any textarea, you MUST:
-  1. Write the exact content string including all \\n characters
-  2. Count n = number of "\\n" characters in that string
-  3. Set height = (n + 1) × lineHeight + 6
-
-For text that wraps (summary, long skill lists):
-  chars_per_line = floor(width / (fontSize × 0.52))
-  For each \\n-separated segment: wrapped_rows = ceil(len(segment) / chars_per_line)
-  n_total = sum of wrapped_rows across all segments
-  height = n_total × lineHeight + 6
-
-Minimum height is 1 × lineHeight + 6.
-
-════════════════════════════════
-ELEMENT SCHEMAS
-════════════════════════════════
-Text:
-  {"category":"text","content":"VALUE","fontSize":N,"fontFamily":"Inter|Times-Roman|Roboto|Courier",
-   "color":"#HEX","left":N,"top":N,"zIndex":2,"page":1,"bold":false,"italic":false}
-
-Textarea:
-  {"category":"textarea","content":"VALUE","left":N,"top":N,"width":N,"height":N,
-   "fontSize":N,"lineHeight":N,"letterSpacing":0,"color":"#HEX","fontFamily":"NAME",
-   "zIndex":2,"page":1,"bold":false,"italic":false,"align":"left"}
-
-Line:
-  {"category":"line","left":N,"top":N,"width":N,"height":N,
-   "backgroundColor":"#HEX","zIndex":1,"page":1}
-
-════════════════════════════════
-MANDATORY CONTENT RULES
-════════════════════════════════
-1. Include EVERY job. Never skip a job.
-2. Include ALL bullet points for each job.
-3. Compute height BEFORE placing each textarea. Use the formula above.
-4. running_y must be updated after each text/textarea. Show your work mentally.
-5. Do NOT include the static decorative elements (they are added separately).
-6. Return ONLY valid JSON: {"elements": [...]}
-"""
-
+# ── Layout generation ──────────────────────────────────────────────────────────
 
 def generate_resume(template_id: str, cv_data: dict) -> list[dict]:
-    cfg = _TEMPLATES.get(template_id)
-    if cfg is None:
-        raise ValueError(f"Unknown template '{template_id}'. Available: {list(_TEMPLATES)}")
+    """
+    Generate the complete canvas-element list for the given template and CV data.
 
-    prompt = f"""\
-You are a precise CV layout engine for a visual canvas editor (A4, 595×842 pt).
-Generate canvas elements — with exact computed positions — for the CV below.
-
-TEMPLATE STYLE
-══════════════
-{cfg['style']}
-
-CANDIDATE DATA  (include ALL of this — EVERY job, EVERY bullet, all skills)
-══════════════
-{json.dumps(cv_data, ensure_ascii=False, indent=2)}
-
-{_LAYOUT_RULES}
-"""
-
-    resp = _client.chat.completions.create(
-        model="gpt-4o",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=8000,
-        temperature=0.1,
-        response_format={"type": "json_object"},
-    )
-
-    raw  = json.loads(resp.choices[0].message.content)
-    els  = raw.get("elements", [])
-
-    # Recalculate textarea heights from actual content and reflow vertical positions
-    els = _fix_heights_and_reflow(els)
-
-    return cfg["static"] + els
+    Layout is handled by the deterministic Python engine in cv_generator.py so
+    elements are always cleanly stacked and aligned. GPT is used only for the
+    earlier extraction step (turning the uploaded PDF into structured data).
+    """
+    from app.services.cv_generator import generate_resume as _python_layout
+    els = _python_layout(template_id, cv_data)
+    # Safety pass: recalculate textarea heights from actual content and
+    # propagate any height deltas so nothing overlaps.
+    return _fix_heights_and_reflow(els)
