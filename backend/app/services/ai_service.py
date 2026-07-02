@@ -64,16 +64,13 @@ def extract_cv_data(pdf_bytes: bytes) -> dict:
 
 def fill_template_elements(cv_data: dict, elements: list[dict]) -> list[dict]:
     """
-    Given extracted CV data and a list of template element specs, ask GPT-4o to
-    generate content for each text/textarea element that fits within its box.
+    Fill template elements with extracted CV data.
 
-    Each element includes its placeholder (revealing the field type), dimensions,
-    and fontSize/lineHeight so GPT can estimate how many characters fit.
-
-    Returns list of {"id": element_id, "content": filled_text}.
+    Uses the placeholder text of each element to infer its role (name, job title,
+    experience block, skills, etc.) and fills it with the complete candidate data.
+    No character-budget truncation — the canvas clips overflow and the user can
+    resize any box, which is far better than silently losing data.
     """
-    # Use the position index as a stable id — template specs have no element_id yet
-    # (that is assigned by nanoid() on the frontend when they land on the canvas).
     fillable = [
         (i, e) for i, e in enumerate(elements)
         if e.get("category") in ("text", "textarea")
@@ -85,42 +82,38 @@ def fill_template_elements(cv_data: dict, elements: list[dict]) -> list[dict]:
 
     specs = []
     for idx, el in fillable:
-        fs = float(el.get("fontSize") or 12)
-        lh = float(el.get("lineHeight") or (fs * 1.4))
-        w = float(el.get("width") or 200)
-        h = float(el.get("height") or lh)
-        chars_per_line = max(8, int(w / (fs * 0.52)))
-        num_lines = max(1, int(h / lh))
         specs.append({
-            "id": str(idx),              # stable index, matched on the frontend
-            "placeholder": el.get("content", ""),
-            "category": el.get("category"),
-            "max_chars": chars_per_line * num_lines,
-            "max_lines": num_lines,
+            "id": str(idx),
+            "placeholder": el.get("content", ""),   # tells GPT what the field is
+            "multiline": el.get("category") == "textarea",
         })
 
     prompt = (
-        "You are filling a visual CV template with real candidate data.\n"
-        "Each element has a placeholder that shows WHAT goes there, and a character/line limit that MUST NOT be exceeded.\n\n"
+        "You are filling a visual CV template with a real candidate's data.\n"
+        "The 'placeholder' of each element shows you EXACTLY what kind of content belongs there "
+        "(it is the template's sample text — e.g. 'ALEXANDER MORGAN' means this is the candidate's full name).\n\n"
         f"CANDIDATE DATA:\n{json.dumps(cv_data, ensure_ascii=False)}\n\n"
         f"ELEMENTS:\n{json.dumps(specs, ensure_ascii=False)}\n\n"
         "Rules:\n"
-        "1. Use only data from CANDIDATE DATA — do not invent anything.\n"
-        "2. Never exceed max_chars for any element. Write concisely; summarise if needed.\n"
-        "3. For textarea multi-line content: separate lines with \\n, prefix bullet points with • \n"
-        "4. For single-line text elements: no newlines.\n"
-        "5. Dates: keep the exact format from the candidate data.\n"
-        "6. If data is missing for a field, use empty string \"\".\n"
-        "7. Skills: comma-separated on one line; stop before max_chars.\n"
-        "8. Experience: use only the most recent entries if space is limited.\n"
-        "9. Return ONLY this JSON object and nothing else:\n"
-        '{"fills": [{"id": "element_id", "content": "text"}]}'
+        "1. Use ONLY data from CANDIDATE DATA. Never invent anything.\n"
+        "2. NEVER truncate names, titles, company names, or dates — always use the complete value.\n"
+        "3. Experience: include EVERY job position from the candidate's experience list. "
+        "   For a textarea that holds one job's bullets, use the job that matches the "
+        "   template's positional order (1st block = most recent job, 2nd block = 2nd job, etc.).\n"
+        "4. Bullet points in textareas: prefix each with '• ' and separate with \\n. "
+        "   Include ALL bullets from CANDIDATE DATA for that job.\n"
+        "5. For single-line text (multiline=false): output one line only, no \\n.\n"
+        "6. Dates: keep the exact format from CANDIDATE DATA (e.g. '2019 – Present').\n"
+        "7. Skills: list them comma-separated, include all of them.\n"
+        "8. If a field has no matching data, output empty string \"\".\n"
+        "9. Return ONLY this JSON and nothing else:\n"
+        '{"fills": [{"id": "0", "content": "text"}, ...]}'
     )
 
     resp = _client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=3000,
+        max_tokens=4000,
         temperature=0.1,
         response_format={"type": "json_object"},
     )
