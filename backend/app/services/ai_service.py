@@ -426,7 +426,7 @@ MANDATORY CONTENT RULES
 3. Compute height BEFORE placing each textarea. Use the formula above.
 4. running_y must be updated after each text/textarea. Show your work mentally.
 5. Do NOT include the static decorative elements (they are added separately).
-6. Return ONLY: {"elements": [...]}
+6. Return ONLY valid JSON: {"elements": [...]}
 """
 
 
