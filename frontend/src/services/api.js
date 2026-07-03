@@ -23,6 +23,7 @@ export const ENDPOINTS = {
     AI: {
         EXTRACT_CV: "/ai/extract_cv",
         FILL_TEMPLATE: "/ai/fill_template",
+        ASSISTANT: "/ai/assistant",
     }
 }
 

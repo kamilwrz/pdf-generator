@@ -19,6 +19,7 @@ import PageControls from '../components/editor/PageControls/PageControls';
 import Guides from '../components/canvas/Guides/Guides';
 import TemplatesModal from '../components/modals/TemplatesModal/TemplatesModal';
 import AiCvPanel from '../components/ai/AiCvPanel/AiCvPanel';
+import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 
 function PdfCanvas() {
 
@@ -261,6 +262,7 @@ function PdfCanvas() {
         </A4>
        <PageControls />
        <Gallery />
+       <AiAssistant />
       </PdfContext.Provider>
     </main>
   )
