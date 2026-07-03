@@ -69,8 +69,8 @@ def _gpt(system: str, user: str) -> dict:
         model=_MODEL,
         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
         response_format={"type": "json_object"},
-        reasoning_effort="high",
-        max_completion_tokens=4000,
+        reasoning_effort="medium",
+        max_completion_tokens=16000,
     )
     content = resp.choices[0].message.content or ""
     if not content.strip():
