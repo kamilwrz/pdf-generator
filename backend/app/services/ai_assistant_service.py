@@ -10,7 +10,7 @@ import os
 from openai import OpenAI
 from app.core.config import OPENAI_API_KEY
 
-_MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.4-mini")
+_MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.5")
 _client = OpenAI(api_key=OPENAI_API_KEY)
 
 
