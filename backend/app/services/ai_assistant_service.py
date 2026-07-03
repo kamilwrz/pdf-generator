@@ -70,9 +70,20 @@ def _gpt(system: str, user: str) -> dict:
         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
         response_format={"type": "json_object"},
         reasoning_effort="high",
-        max_completion_tokens=2000,
+        max_completion_tokens=4000,
     )
-    return json.loads(resp.choices[0].message.content)
+    content = resp.choices[0].message.content or ""
+    if not content.strip():
+        # reasoning models sometimes surface the answer only in refusal or finish_reason
+        raise ValueError(f"Model returned empty content (finish_reason={resp.choices[0].finish_reason})")
+    # strip markdown fences if the model wraps JSON in ```json ... ```
+    stripped = content.strip()
+    if stripped.startswith("```"):
+        stripped = stripped.split("```", 2)[1]
+        if stripped.startswith("json"):
+            stripped = stripped[4:]
+        stripped = stripped.rsplit("```", 1)[0].strip()
+    return json.loads(stripped)
 
 
 def _ddg_search(query: str, max_results: int = 4) -> list[dict]:
