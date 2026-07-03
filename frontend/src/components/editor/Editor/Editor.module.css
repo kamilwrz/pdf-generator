@@ -1,22 +1,22 @@
 .editor {
-    width: 268px;
     position: absolute;
-    left: 16px;
-    top: 80px;
+    inset: 0;                       /* left:0 top:0 right:0 bottom:0 */
     z-index: 1200;
-    background: #fff;
+    background: var(--primary-bg, #fff);
     color: var(--primary-font);
     font-family: var(--font-body);
-    border: 1px solid var(--border-soft);
-    border-radius: var(--r-lg);
-    box-shadow: var(--shadow-pop);
-    overflow: hidden;
+    border-right: 1px solid var(--border-soft);
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .editorForm {
     display: flex;
     flex-direction: column;
     width: 100%;
+    flex: 1;
 }
 
 .editorHeading {

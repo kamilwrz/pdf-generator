@@ -94,10 +94,10 @@ export default function Editor() {
     }, [someElementSelected, selectedElement])
 
     return <AnimatePresence>{someElementSelected && <motion.aside className={classes.editor}
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -20 }}
-        transition={{ type: "spring", duration: 2 }}>
+        initial={{ x: "-100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "-100%" }}
+        transition={{ type: "spring", damping: 28, stiffness: 320 }}>
 
         <form className={classes.editorForm}>
             <div className={classes.editorHeading}>
