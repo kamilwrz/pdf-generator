@@ -21,3 +21,6 @@ export const block = (
     content, left, top, width, height,
     fontSize, fontFamily, color, lineHeight, letterSpacing, zIndex,
 });
+
+// Marks a block's "•" lines for hanging-indent wrapping (canvas + PDF).
+export const bulleted = (el) => ({ ...el, bulletList: true });

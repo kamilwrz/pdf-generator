@@ -8,6 +8,7 @@ import { CiTextAlignLeft } from "react-icons/ci";
 import { CiTextAlignCenter } from "react-icons/ci";
 import { CiTextAlignRight } from "react-icons/ci";
 import { CiTextAlignJustify } from "react-icons/ci";
+import { MdFormatListBulleted } from "react-icons/md";
 
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { use } from "react";
@@ -50,6 +51,32 @@ export default function Editor() {
 
     function toggleStyle(key) {
         editElementValues({ [key]: !selectedElement[key] }, selectedElement.element_id);
+    }
+
+    // Inserts "• " at the start of whichever line the cursor is currently on,
+    // reading straight from the live <textarea> DOM node (same pattern as
+    // handleAlignElements reading clientWidth). No-ops if that line already
+    // has a bullet. Restores focus + cursor position afterwards so typing
+    // can continue uninterrupted.
+    function insertBulletAtCurrentLine() {
+        const el = document.getElementById(selectedElement.element_id);
+        if (!el || typeof el.selectionStart !== "number") return;
+
+        const start = el.selectionStart;
+        const value = el.value;
+        const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+        const lineEnd = value.indexOf("\n", start);
+        const line = value.slice(lineStart, lineEnd === -1 ? value.length : lineEnd);
+        if (line.trimStart().startsWith("•")) return;
+
+        const newValue = value.slice(0, lineStart) + "• " + value.slice(lineStart);
+        editElementValues({ content: newValue }, selectedElement.element_id);
+
+        const cursorPos = start + 2;
+        requestAnimationFrame(() => {
+            el.focus();
+            el.setSelectionRange(cursorPos, cursorPos);
+        });
     }
 
     function setAlign(value) {
@@ -120,11 +147,29 @@ export default function Editor() {
             {selectedElement?.category === "textarea" && <>
 
                 <button type="button" className={classes.editTextBtn} onClick={() => setTextareaEditing(selectedElement.element_id, true)}>Edit text</button>
+                {/* Always mounted (never conditionally removed from the tree): if this
+                    were `isEditing && <button>`, clicking a LATER sibling (e.g. the
+                    hanging-indent checkbox below) blurs the textarea first, which flips
+                    isEditing and removes this button in the same click — shifting every
+                    sibling after it by one position and breaking that click's own
+                    onChange under React's positional reconciliation. Disabling instead
+                    of unmounting keeps sibling positions stable. */}
+                <button
+                    type="button"
+                    className={classes.editTextBtn}
+                    disabled={!selectedElement?.isEditing}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={insertBulletAtCurrentLine}
+                ><MdFormatListBulleted />Insert bullet</button>
                 <EditorControls labelText="Font Size" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
                 <EditorControls labelText="Text Color" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
                 <EditorControls labelText="Font Family" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
                 <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
                 <AlignToggles selectedElement={selectedElement} setAlign={setAlign} />
+                <label className={classes.pushToggle}>
+                    <input type="checkbox" checked={!!selectedElement?.bulletList} onChange={() => toggleStyle("bulletList")} />
+                    <span>Hanging indent for bullet (•) lines</span>
+                </label>
                 <div className={classes.elementSize}>
                     <EditorControls labelText="Line Height" type="number" inputValue={elementValues.lineHeight} onChangeFn={(e) => handleChangeValues(e, "lineHeight")} />
                     <EditorControls labelText="Letter Spacing" type="number" inputValue={elementValues.letterSpacing} onChangeFn={(e) => handleChangeValues(e, "letterSpacing")} />

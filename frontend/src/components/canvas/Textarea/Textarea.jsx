@@ -4,6 +4,26 @@ import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import Resize from "../../common/Resize/Resize";
 
+// Same factor as the backend's BULLET_INDENT_FACTOR (pdf_generator.py), so
+// the canvas preview and the PDF hang-indent by the same amount.
+const BULLET_INDENT_FACTOR = 1.1;
+
+// Splits content into one node per line, applying a hanging indent (via
+// negative text-indent) to lines that already start with "•" — so a
+// wrapped bullet line's continuation text lines up under the bullet's
+// text instead of under the bullet itself.
+function renderBulletLines(content, fontSize) {
+    const indent = fontSize * BULLET_INDENT_FACTOR;
+    return content.split("\n").map((line, i) => {
+        const isBullet = line.trimStart().startsWith("•");
+        return (
+            <div key={i} style={isBullet ? { paddingLeft: indent, textIndent: -indent } : undefined}>
+                {line}
+            </div>
+        );
+    });
+}
+
 function Textarea({
     elementId,
     content,
@@ -22,6 +42,7 @@ function Textarea({
     italic,
     underline,
     align,
+    bulletList,
     zIndex,
 }) {
     const {
@@ -40,7 +61,7 @@ function Textarea({
     }
 
     // Box geometry and text styling are applied IDENTICALLY to the editing
-    // <textarea> and the display <p> so the browser wraps both the same way —
+    // <textarea> and the display <div> so the browser wraps both the same way —
     // which is what the PDF renderer reproduces.
     const boxStyle = {
         position: "absolute",
@@ -84,7 +105,7 @@ function Textarea({
     }
 
     const block = (
-        <p
+        <div
             id={elementId}
             className={`${classes.block} ${isSelected ? classes.selected : ""}`}
             style={{ ...boxStyle, ...textStyle }}
@@ -94,8 +115,8 @@ function Textarea({
             onMouseUp={() => selectMoveElement(elementId)}
             onMouseMove={(e) => moveElement(e, elementId)}
         >
-            {content}
-        </p>
+            {bulletList && content ? renderBulletLines(content, fontSize) : content}
+        </div>
     );
 
     if (isSelected) {

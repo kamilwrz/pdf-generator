@@ -1,6 +1,6 @@
 // Finance CV — classic single column. Times-Roman headings + Inter body.
 // Decoration: full-width header rule + short gold accent bars under headings.
-import { text, line, block } from "./helpers";
+import { text, line, block, bulleted } from "./helpers";
 
 const INK = "#16243A";
 const SUB = "#5A6B7B";
@@ -22,10 +22,10 @@ export const financeTemplate = [
     line(50, 268, 70, 2, GOLD),
     text("Senior Financial Analyst", 11, "Inter", INK, 50, 282),
     text("Goldman Stanley Capital   ·   New York   ·   2019 – Present", 9.5, "Inter", GRAY, 50, 298),
-    block("• Built DCF and LBO models supporting $250M in transactions.\n• Managed a $250M multi-asset portfolio, outperforming benchmark by 4%.\n• Presented quarterly results to executive leadership and clients.", 50, 314, 495, 52, 10, 14),
+    bulleted(block("• Built DCF and LBO models supporting $250M in transactions.\n• Managed a $250M multi-asset portfolio, outperforming benchmark by 4%.\n• Presented quarterly results to executive leadership and clients.", 50, 314, 495, 52, 10, 14)),
     text("Financial Analyst", 11, "Inter", INK, 50, 378),
     text("Meridian Advisors   ·   2016 – 2019", 9.5, "Inter", GRAY, 50, 394),
-    block("• Automated monthly reporting, cutting close time by 30%.\n• Supported due diligence on 12 M&A deals.", 50, 410, 495, 38, 10, 14),
+    bulleted(block("• Automated monthly reporting, cutting close time by 30%.\n• Supported due diligence on 12 M&A deals.", 50, 410, 495, 38, 10, 14)),
 
     text("EDUCATION", 12, "Times-Roman", INK, 50, 462),
     line(50, 478, 70, 2, GOLD),

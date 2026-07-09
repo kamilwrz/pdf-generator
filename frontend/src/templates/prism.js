@@ -1,6 +1,6 @@
 // Prism — colourful & artistic. Bold purple header band, teal accent strip,
 // and a rotating 10 × 10 colour square before every section heading.
-import { text, line, block } from "./helpers";
+import { text, line, block, bulleted } from "./helpers";
 
 const PURPLE  = "#6B21A8";
 const TEAL    = "#0D9488";
@@ -39,11 +39,11 @@ export const prismTemplate = [
     sq(280, ORANGE), bold(text("EXPERIENCE", 12, "Inter", INK, 68, 280)),
     bold(text("Senior UX Designer", 11, "Inter", INK, 50, 306)),
     text("Stripe   ·   San Francisco   ·   2021 – Present", 9.5, "Inter", GRAY, 50, 322),
-    block("• Led design of the global payments dashboard used by 2M+ merchants.\n• Built a design system adopted across 6 product teams.\n• Mentored 3 junior designers to senior level.", 50, 338, 495, 50, 10, 14, GRAY, "Inter"),
+    bulleted(block("• Led design of the global payments dashboard used by 2M+ merchants.\n• Built a design system adopted across 6 product teams.\n• Mentored 3 junior designers to senior level.", 50, 338, 495, 50, 10, 14, GRAY, "Inter")),
 
     bold(text("UX Designer", 11, "Inter", INK, 50, 402)),
     text("Airbnb   ·   2018 – 2021", 9.5, "Inter", GRAY, 50, 418),
-    block("• Redesigned host onboarding, improving completion 34%.\n• Ran 20+ usability studies across 8 countries.", 50, 434, 495, 36, 10, 14, GRAY, "Inter"),
+    bulleted(block("• Redesigned host onboarding, improving completion 34%.\n• Ran 20+ usability studies across 8 countries.", 50, 434, 495, 36, 10, 14, GRAY, "Inter")),
 
     // ── EDUCATION ────────────────────────────────────────────────
     sq(486, TEAL), bold(text("EDUCATION", 12, "Inter", INK, 68, 486)),

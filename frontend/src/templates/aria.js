@@ -2,7 +2,7 @@
 // beyond hairline rules. All hierarchy comes from size and weight alone.
 // The name is deliberately large and regular-weight; section headings are
 // smaller than body text and spaced generously to let the page breathe.
-import { text, line, block } from "./helpers";
+import { text, line, block, bulleted } from "./helpers";
 
 const INK  = "#1A1A1A";
 const MID  = "#666666";
@@ -26,11 +26,11 @@ export const ariaTemplate = [
 
     bold(text("Senior Brand Strategist", 11, "Inter", INK, 50, 208)),
     text("Luxury Agency Milano   ·   2020 – Present", 9.5, "Inter", MID, 50, 224),
-    block("• Developed brand strategy for 12 luxury clients across 5 European markets.\n• Led a full rebranding initiative that increased brand equity 35%.\n• Managed team of 6 creatives and 2 strategists.", 50, 240, 495, 52, 10.5, 16, MID, "Inter"),
+    bulleted(block("• Developed brand strategy for 12 luxury clients across 5 European markets.\n• Led a full rebranding initiative that increased brand equity 35%.\n• Managed team of 6 creatives and 2 strategists.", 50, 240, 495, 52, 10.5, 16, MID, "Inter")),
 
     bold(text("Brand Manager", 11, "Inter", INK, 50, 308)),
     text("Creative Studio   ·   2016 – 2020", 9.5, "Inter", MID, 50, 324),
-    block("• Managed brand guidelines for 8 international clients.\n• Coordinated global campaigns across 12 countries.\n• Introduced quarterly brand-health tracking framework.", 50, 340, 495, 52, 10.5, 16, MID, "Inter"),
+    bulleted(block("• Managed brand guidelines for 8 international clients.\n• Coordinated global campaigns across 12 countries.\n• Introduced quarterly brand-health tracking framework.", 50, 340, 495, 52, 10.5, 16, MID, "Inter")),
 
     // ── EDUCATION ────────────────────────────────────────────────
     text("EDUCATION", 9, "Inter", MID, 50, 412),

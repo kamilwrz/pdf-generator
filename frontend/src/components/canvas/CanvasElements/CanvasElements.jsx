@@ -26,6 +26,7 @@ export default function CanvasElements({ elements }) {
             italic={element.italic}
             underline={element.underline}
             align={element.align}
+            bulletList={element.bulletList}
             zIndex={element.zIndex}
           />
         );

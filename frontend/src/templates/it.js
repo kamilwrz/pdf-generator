@@ -2,7 +2,7 @@
 // The photo slot is the "visible empty space": a teal frame rect, a darker
 // inner box, and a PHOTO label. To use it, add a gallery image over the box
 // (or delete the box). zIndex keeps the dark fills under their text.
-import { text, line, block } from "./helpers";
+import { text, line, block, bulleted } from "./helpers";
 
 const SIDEBG = "#0F2A33";
 const TEAL = "#2BB3C0";
@@ -39,10 +39,10 @@ export const itTemplate = [
     line(220, 168, 60, 2, TEAL, 2),
     text("Senior Software Engineer", 11, "Inter", MAININK, 220, 182, 2),
     text("TechCorp · Remote · 2021 – Present", 9.5, "Inter", GRAY, 220, 198, 2),
-    block("• Led migration to microservices, cutting deploy time 70%.\n• Built a React design system used across 8 teams.\n• Mentored 4 engineers to senior level.", 220, 214, 330, 52, 10, 14, MAININK, "Inter", 0, 2),
+    bulleted(block("• Led migration to microservices, cutting deploy time 70%.\n• Built a React design system used across 8 teams.\n• Mentored 4 engineers to senior level.", 220, 214, 330, 52, 10, 14, MAININK, "Inter", 0, 2)),
     text("Software Engineer", 11, "Inter", MAININK, 220, 280, 2),
     text("StartupXYZ · 2018 – 2021", 9.5, "Inter", GRAY, 220, 296, 2),
-    block("• Shipped the core API serving 2M requests/day.\n• Introduced CI/CD, reducing release bugs 40%.", 220, 312, 330, 38, 10, 14, MAININK, "Inter", 0, 2),
+    bulleted(block("• Shipped the core API serving 2M requests/day.\n• Introduced CI/CD, reducing release bugs 40%.", 220, 312, 330, 38, 10, 14, MAININK, "Inter", 0, 2)),
 
     text("EDUCATION", 12, "Inter", SIDEBG, 220, 372, 2),
     line(220, 388, 60, 2, TEAL, 2),

@@ -206,6 +206,7 @@ export function useA4Elements(titleRef) {
       italic: false,
       underline: false,
       align: "left",
+      bulletList: false,
       category: "textarea",
       zIndex: 4,
       page: currentPageRef.current,

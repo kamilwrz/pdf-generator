@@ -1,6 +1,6 @@
 // Ampersand — editorial serif CV with a left accent stripe. Times-Roman with
 // real bold headings and real italic for the role/dates. Wine accent.
-import { text, line, block } from "./helpers";
+import { text, line, block, bulleted } from "./helpers";
 
 const INK = "#2A2320";
 const WINE = "#7B2D3A";
@@ -26,10 +26,10 @@ export const ampersandTemplate = [
     bold(text("EXPERIENCE", 12, S, INK, 50, 246)),
     bold(text("Senior Editor — Meridian Press", 11.5, S, INK, 50, 268)),
     ital(text("2018 – Present", 9.5, S, GRAY, 50, 284)),
-    block("• Commissioned and edited 200+ features across print and web.\n• Grew the essays vertical's readership by 40%.\n• Mentored a team of six staff writers.", 50, 300, 497, 52, 10.5, 15, BODY, S),
+    bulleted(block("• Commissioned and edited 200+ features across print and web.\n• Grew the essays vertical's readership by 40%.\n• Mentored a team of six staff writers.", 50, 300, 497, 52, 10.5, 15, BODY, S)),
     bold(text("Staff Writer — The Quarterly", 11.5, S, INK, 50, 364)),
     ital(text("2014 – 2018", 9.5, S, GRAY, 50, 380)),
-    block("• Wrote cover stories and a weekly column.\n• Won two regional press awards.", 50, 396, 497, 40, 10.5, 15, BODY, S),
+    bulleted(block("• Wrote cover stories and a weekly column.\n• Won two regional press awards.", 50, 396, 497, 40, 10.5, 15, BODY, S)),
 
     bold(text("EDUCATION", 12, S, INK, 50, 452)),
     bold(text("M.A. English Literature — Reed College", 11, S, INK, 50, 472)),

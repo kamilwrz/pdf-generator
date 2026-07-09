@@ -2,7 +2,7 @@
 // Decoration: a thin full-page frame (4 line rects) + centered headings flanked
 // by short rules ("—— EXPERIENCE ——"). Centered text uses approximate `left`;
 // the Center-align button refines it after load.
-import { text, line, block } from "./helpers";
+import { text, line, block, bulleted } from "./helpers";
 
 const INK = "#2E2A25";
 const SAGE = "#4E7A6B";
@@ -36,7 +36,7 @@ export const educationTemplate = [
     line(355, 263, 150, 1, FLANK, 1),
     text("Senior Lecturer — Boston University", 11, "Inter", INK, 55, 278, 2),
     text("2017 – Present", 9.5, "Inter", GRAY, 55, 294, 2),
-    block("• Redesigned the graduate education core, raising satisfaction 25%.\n• Secured $400K in research grants.\n• Supervised 30+ master's theses.", 55, 310, 485, 50, 10, 14, BODY),
+    bulleted(block("• Redesigned the graduate education core, raising satisfaction 25%.\n• Secured $400K in research grants.\n• Supervised 30+ master's theses.", 55, 310, 485, 50, 10, 14, BODY)),
 
     // EDUCATION
     text("EDUCATION", 12, "Times-Roman", INK, 262, 380, 2),

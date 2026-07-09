@@ -24,6 +24,8 @@ class PdfElement(BaseModel):
     underline: Optional[bool] = False
     #TEXTAREA TEXT ALIGNMENT: left | center | right | justify
     align: Optional[str] = "left"
+    #TEXTAREA HANGING INDENT FOR LINES STARTING WITH A BULLET (•)
+    bulletList: Optional[bool] = False
     #LINE / IMG ELEMENT
     width: Optional[float | str] = None
     height: Optional[float | str] = None

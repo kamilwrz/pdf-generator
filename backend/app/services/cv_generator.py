@@ -27,13 +27,13 @@ def _text(content, fontSize, fontFamily, color, left, top, *,
 
 
 def _block(content, left, top, width, height, fontSize, lineHeight, color, fontFamily, *,
-           zIndex=2, page=1, bold=False, italic=False, align="left"):
+           zIndex=2, page=1, bold=False, italic=False, align="left", bulletList=False):
     return {"category": "textarea", "content": str(content),
             "left": left, "top": top, "width": width, "height": height,
             "fontSize": fontSize, "lineHeight": lineHeight,
             "letterSpacing": 0, "color": color, "fontFamily": fontFamily,
             "zIndex": zIndex, "page": page, "bold": bold, "italic": italic,
-            "align": align}
+            "align": align, "bulletList": bulletList}
 
 
 def _line(left, top, width, height, color, *, zIndex=1, page=1):
@@ -68,7 +68,7 @@ class Builder:
         return self.y
 
     def block(self, content, left, width, fs, lh, col, fam, *,
-              bold=False, italic=False, align="left", min_h=0.0) -> float:
+              bold=False, italic=False, align="left", min_h=0.0, bulletList=False) -> float:
         if not content:
             return self.y
         # Count rendered lines including soft-wrapping for long segments.
@@ -80,7 +80,8 @@ class Builder:
         h = max(rendered * lh + 6, min_h)
         self.need(h)
         self.els.append(_block(content, left, self.y, width, h, fs, lh, col, fam,
-                                zIndex=2, page=self.pg, bold=bold, italic=italic, align=align))
+                                zIndex=2, page=self.pg, bold=bold, italic=italic, align=align,
+                                bulletList=bulletList))
         self.y += h
         return self.y
 
@@ -130,7 +131,7 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
         b.need(50)
         section_fn(title)
         content = "\n".join(f"• {item}" for item in items)
-        b.block(content, L, W, fs, lh, C.get("body", "#2B2B2B"), font_b)
+        b.block(content, L, W, fs, lh, C.get("body", "#2B2B2B"), font_b, bulletList=True)
         b.gap(14)
 
 
@@ -178,7 +179,7 @@ def _gen_finance(cv: dict) -> list[dict]:
             b.text(_company_period(job), 9.5, "Inter", C["gray"], L); b.gap(2)
             bul = _bullets(job)
             if bul:
-                b.block(bul, L, W, 10, 14, C["body"], "Inter")
+                b.block(bul, L, W, 10, 14, C["body"], "Inter", bulletList=True)
             b.gap(12)
         _extra_sections(b, cv, "after_experience", section, C, L, W, "Inter")
 
@@ -229,7 +230,7 @@ def _gen_nocturne(cv: dict) -> list[dict]:
             b.text(_company_period(job), 9.5, "Inter", C["gray"], L); b.gap(2)
             bul = _bullets(job)
             if bul:
-                b.block(bul, L, W, 10, 14, C["body"], "Inter")
+                b.block(bul, L, W, 10, 14, C["body"], "Inter", bulletList=True)
             b.gap(12)
         _extra_sections(b, cv, "after_experience", section, C, L, W, "Inter")
 
@@ -280,7 +281,7 @@ def _gen_ampersand(cv: dict) -> list[dict]:
                 b.text(company, 9.5, S, C["gray"], L); b.gap(2)
             bul = _bullets(job)
             if bul:
-                b.block(bul, L, W, 10.5, 15, C["body"], S)
+                b.block(bul, L, W, 10.5, 15, C["body"], S, bulletList=True)
             b.gap(12)
         _extra_sections(b, cv, "after_experience", section, C, L, W, S, fs=10.5, lh=15)
 
@@ -337,7 +338,7 @@ def _gen_education(cv: dict) -> list[dict]:
             b.text(_company_period(job), 9.5, "Inter", C["gray"], L); b.gap(2)
             bul = _bullets(job)
             if bul:
-                b.block(bul, L, W, 10, 14, C["body"], "Inter")
+                b.block(bul, L, W, 10, 14, C["body"], "Inter", bulletList=True)
             b.gap(12)
         _extra_sections(b, cv, "after_experience", section, C, L, W, "Inter")
 
@@ -410,7 +411,7 @@ def _gen_it(cv: dict) -> list[dict]:
             b.text(_company_period(job), 9.5, "Inter", C["gray"], ML); b.gap(2)
             bul = _bullets(job)
             if bul:
-                b.block(bul, ML, MW, 10, 14, C["body"], "Inter")
+                b.block(bul, ML, MW, 10, 14, C["body"], "Inter", bulletList=True)
             b.gap(12)
         _extra_sections(b, cv, "after_experience", section, C, ML, MW, "Inter")
 
@@ -465,7 +466,7 @@ def _gen_blueprint(cv: dict) -> list[dict]:
             b.text(_company_period(job), 9.5, "Inter", C["gray"], ML); b.gap(2)
             bul = _bullets(job)
             if bul:
-                b.block(bul, ML, MW, 10, 14, C["body"], "Inter")
+                b.block(bul, ML, MW, 10, 14, C["body"], "Inter", bulletList=True)
             b.gap(12)
         _extra_sections(b, cv, "after_experience", section, C, ML, MW, "Inter")
 
@@ -510,7 +511,7 @@ def _gen_monolith(cv: dict) -> list[dict]:
             b.text(_company_period(job), 9.5, "Inter", MG, L); b.gap(2)
             bul = _bullets(job)
             if bul:
-                b.block(bul, L, W, 10, 14, MG, "Inter")
+                b.block(bul, L, W, 10, 14, MG, "Inter", bulletList=True)
             b.gap(12)
         _extra_sections(b, cv, "after_experience", section, {"body": MG}, L, W, "Inter", fs=10, lh=14)
 
@@ -576,7 +577,7 @@ def _gen_prism(cv: dict) -> list[dict]:
             b.text(_company_period(job), 9.5, "Inter", GRAY, L); b.gap(2)
             bul = _bullets(job)
             if bul:
-                b.block(bul, L, W, 10, 14, GRAY, "Inter")
+                b.block(bul, L, W, 10, 14, GRAY, "Inter", bulletList=True)
             b.gap(12)
         _extra_sections(b, cv, "after_experience", section, {"body": GRAY}, L, W, "Inter")
 
@@ -627,7 +628,7 @@ def _gen_aria(cv: dict) -> list[dict]:
             b.text(_company_period(job), 9.5, "Inter", MID, L); b.gap(4)
             bul = _bullets(job)
             if bul:
-                b.block(bul, L, W, 10.5, 16, MID, "Inter")
+                b.block(bul, L, W, 10.5, 16, MID, "Inter", bulletList=True)
             b.gap(16)
         _extra_sections(b, cv, "after_experience", section, {"body": MID}, L, W, "Inter", fs=10.5, lh=16)
 

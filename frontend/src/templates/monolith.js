@@ -1,6 +1,6 @@
 // Monolith — pure black / white / grayscale. No colour at all.
 // Section headings use a thick 4 px black left bar as the only decoration.
-import { text, line, block } from "./helpers";
+import { text, line, block, bulleted } from "./helpers";
 
 const K   = "#0A0A0A";   // near-black
 const DG  = "#444444";   // dark grey
@@ -29,11 +29,11 @@ export const monolithTemplate = [
     bar(154), head("PROFESSIONAL EXPERIENCE", 154),
     bold(text("Vice President of Product", 11, "Inter", K, 50, 180)),
     text("MidWest Financial Group   ·   2021 – Present", 9.5, "Inter", MG, 50, 196),
-    block("• Built product roadmap that grew MRR 40%.\n• Led cross-functional team of 12 across design, engineering and data.\n• Launched 3 product lines serving 150,000+ customers.", 50, 212, 495, 50, 10, 14, MG, "Inter"),
+    bulleted(block("• Built product roadmap that grew MRR 40%.\n• Led cross-functional team of 12 across design, engineering and data.\n• Launched 3 product lines serving 150,000+ customers.", 50, 212, 495, 50, 10, 14, MG, "Inter")),
 
     bold(text("Senior Product Manager", 11, "Inter", K, 50, 276)),
     text("SaaS Startup Inc   ·   2018 – 2021", 9.5, "Inter", MG, 50, 292),
-    block("• Owned full product lifecycle for 2 core products.\n• Increased user retention 22% through personalization.\n• Reduced time-to-market 30% through agile process improvements.", 50, 308, 495, 50, 10, 14, MG, "Inter"),
+    bulleted(block("• Owned full product lifecycle for 2 core products.\n• Increased user retention 22% through personalization.\n• Reduced time-to-market 30% through agile process improvements.", 50, 308, 495, 50, 10, 14, MG, "Inter")),
 
     sep(372),
 
