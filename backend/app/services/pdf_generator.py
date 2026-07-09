@@ -3,6 +3,8 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase.pdfmetrics import stringWidth, getAscentDescent
 from pathlib import Path
+import io
+from fontTools.ttLib import TTFont as _FTFont
 
 _BACKEND_DIR = Path(__file__).resolve().parent.parent.parent  # app -> backend
 
@@ -10,18 +12,47 @@ FONT_PATH_INTER = _BACKEND_DIR / "fonts" / "Inter.ttf"
 FONT_PATH_ROBOTO = _BACKEND_DIR / "fonts" / "Roboto.ttf"
 FONT_PATH_TIMESROMAN = _BACKEND_DIR / "fonts" / "TimesRoman.ttf"
 
-pdfmetrics.registerFont(TTFont('Inter', FONT_PATH_INTER))
-pdfmetrics.registerFont(TTFont('Roboto', FONT_PATH_ROBOTO))
-pdfmetrics.registerFont(TTFont('Times-Roman', FONT_PATH_TIMESROMAN))
+
+def _register_ttf(name, path):
+    """Register a TTF under ``name``, first forcing its internal name-table
+    identifiers to match ``name``.
+
+    ReportLab dedupes dynamic (TTF) font registrations by the font FILE's own
+    internal PostScript name, not by the name passed to registerFont()
+    (pdfmetrics._dynFaceNames, keyed on TTFontFace.name — parsed from the
+    file's nameID 6/4/1 records). Some of our bundled variant files mislabel
+    themselves internally as their Regular/Italic sibling (e.g. Inter-Bold.ttf
+    and Inter.ttf both self-report "Inter-Regular"), so registering them under
+    different Python-side names still collides at that internal-name layer:
+    the second registerFont() call silently aliases onto the first font
+    object and its glyphs are never used — bold/italic text renders as
+    whichever variant got registered first. Rewriting each file's name table
+    to its intended registration name before handing it to ReportLab makes
+    every variant a distinct entry regardless of what the file itself claims
+    to be.
+    """
+    ft = _FTFont(str(path))
+    for record in ft["name"].names:
+        if record.nameID in (1, 3, 4, 6, 16):
+            record.string = name
+    buf = io.BytesIO()
+    ft.save(buf)
+    buf.seek(0)
+    pdfmetrics.registerFont(TTFont(name, buf))
+
+
+_register_ttf('Inter', FONT_PATH_INTER)
+_register_ttf('Roboto', FONT_PATH_ROBOTO)
+_register_ttf('Times-Roman', FONT_PATH_TIMESROMAN)
 
 # Real bold/italic cuts (latin) for the custom TTF families, so styled text
 # uses true variants (matching the browser, which @font-faces the same files)
 # instead of faux stroke/skew.
 _FONTS_DIR = _BACKEND_DIR / "fonts"
 for _fam in ("Inter", "Roboto"):
-    pdfmetrics.registerFont(TTFont(f'{_fam}-Bold', _FONTS_DIR / f'{_fam}-Bold.ttf'))
-    pdfmetrics.registerFont(TTFont(f'{_fam}-Italic', _FONTS_DIR / f'{_fam}-Italic.ttf'))
-    pdfmetrics.registerFont(TTFont(f'{_fam}-BoldItalic', _FONTS_DIR / f'{_fam}-BoldItalic.ttf'))
+    _register_ttf(f'{_fam}-Bold', _FONTS_DIR / f'{_fam}-Bold.ttf')
+    _register_ttf(f'{_fam}-Italic', _FONTS_DIR / f'{_fam}-Italic.ttf')
+    _register_ttf(f'{_fam}-BoldItalic', _FONTS_DIR / f'{_fam}-BoldItalic.ttf')
     pdfmetrics.registerFontFamily(
         _fam, normal=_fam, bold=f'{_fam}-Bold', italic=f'{_fam}-Italic', boldItalic=f'{_fam}-BoldItalic'
     )

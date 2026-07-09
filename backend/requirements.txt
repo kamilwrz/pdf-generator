@@ -5,6 +5,7 @@ python-multipart
 python-jose
 cryptography
 reportlab
+fonttools
 passlib[bcrypt]
 boto3
 boto3-stubs[s3]
