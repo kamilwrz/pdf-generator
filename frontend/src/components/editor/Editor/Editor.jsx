@@ -79,6 +79,29 @@ export default function Editor() {
         });
     }
 
+    // Toggles the element into/out of a bullet list. Turning it ON prepends
+    // "• " to every non-empty line that isn't already bulleted and enables the
+    // hanging-indent rendering (bulletList flag). Turning it OFF strips a
+    // leading bullet (plus one following space) from each line and disables the
+    // flag. Reads content from state (kept in sync by the textarea's onChange),
+    // so it works whether or not the textarea is currently being edited.
+    function toggleBulletList() {
+        const turningOn = !selectedElement.bulletList;
+        const content = selectedElement.content ?? "";
+        const newContent = content
+            .split("\n")
+            .map((line) => {
+                if (turningOn) {
+                    if (line.trim() === "") return line;
+                    if (line.trimStart().startsWith("•")) return line;
+                    return "• " + line;
+                }
+                return line.replace(/^(\s*)•[ \t]?/, "$1");
+            })
+            .join("\n");
+        editElementValues({ bulletList: turningOn, content: newContent }, selectedElement.element_id);
+    }
+
     function setAlign(value) {
         editElementValues({ align: value }, selectedElement.element_id);
     }
@@ -167,8 +190,8 @@ export default function Editor() {
                 <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
                 <AlignToggles selectedElement={selectedElement} setAlign={setAlign} />
                 <label className={classes.pushToggle}>
-                    <input type="checkbox" checked={!!selectedElement?.bulletList} onChange={() => toggleStyle("bulletList")} />
-                    <span>Hanging indent for bullet (•) lines</span>
+                    <input type="checkbox" checked={!!selectedElement?.bulletList} onChange={toggleBulletList} />
+                    <span>Bullet list (• on each line)</span>
                 </label>
                 <div className={classes.elementSize}>
                     <EditorControls labelText="Line Height" type="number" inputValue={elementValues.lineHeight} onChangeFn={(e) => handleChangeValues(e, "lineHeight")} />
