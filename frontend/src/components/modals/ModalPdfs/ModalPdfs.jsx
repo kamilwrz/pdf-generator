@@ -74,6 +74,7 @@ export default function ModalPdfs({ title }) {
                             italic: element.extra_properties.italic,
                             underline: element.extra_properties.underline,
                             align: element.extra_properties.align,
+                            bulletList: element.extra_properties.bulletList ?? false,
                             width: parseFloat(element.width),
                             height: parseFloat(element.height),
                             isEditing: false,
