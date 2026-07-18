@@ -5,6 +5,7 @@ import { PdfContext } from "../../../store/pdfgenerator-context";
 const A4_WIDTH = 595;
 const A4_HEIGHT = 842;
 const THRESHOLD = 4; // px — how close counts as "aligned"
+const PAD = 8;       // px — how far the guide extends past the outermost element
 
 // Left / center / right x-coordinates of an element.
 function xAnchors(el) {
@@ -15,6 +16,27 @@ function xAnchors(el) {
 function yAnchors(el) {
     const h = parseFloat(el.height) || 0;
     return [el.top, el.top + h / 2, el.top + h];
+}
+const boundsX = (el) => [el.left, el.left + (parseFloat(el.width) || 0)];
+const boundsY = (el) => [el.top, el.top + (parseFloat(el.height) || 0)];
+const clamp = (v, max) => Math.max(0, Math.min(v, max));
+
+// Pick the single closest alignment on one axis: compare each moving anchor to
+// each other-element anchor, keep the coordinate with the smallest gap. Returns
+// the guide coordinate or null when nothing is within THRESHOLD.
+function closestCoord(movAnchors, others, anchorsOf) {
+    let best = null;
+    others.forEach((el) => {
+        anchorsOf(el).forEach((o) => {
+            movAnchors.forEach((m) => {
+                const d = Math.abs(m - o);
+                if (d <= THRESHOLD && (best === null || d < best.delta)) {
+                    best = { delta: d, coord: o };
+                }
+            });
+        });
+    });
+    return best ? best.coord : null;
 }
 
 export default function Guides() {
@@ -29,38 +51,53 @@ export default function Guides() {
     );
     if (others.length === 0) return null;
 
-    const movX = xAnchors(moving);
-    const movY = yAnchors(moving);
-
-    // Dedupe lines by rounded coordinate so overlapping matches collapse.
-    const vertical = new Set();
-    const horizontal = new Set();
-
-    others.forEach((el) => {
-        const ox = xAnchors(el);
-        const oy = yAnchors(el);
-        movX.forEach((mx) =>
-            ox.forEach((o) => {
-                if (Math.abs(mx - o) <= THRESHOLD) vertical.add(Math.round(o));
-            })
+    // ---- One vertical guide: the nearest x-alignment, drawn only across the
+    // moving element and the elements it lines up with. ----
+    let vGuide = null;
+    const vx = closestCoord(xAnchors(moving), others, xAnchors);
+    if (vx !== null) {
+        const aligned = others.filter((el) =>
+            xAnchors(el).some((o) => Math.abs(o - vx) <= THRESHOLD)
         );
-        movY.forEach((my) =>
-            oy.forEach((o) => {
-                if (Math.abs(my - o) <= THRESHOLD) horizontal.add(Math.round(o));
-            })
-        );
-    });
+        const tops = [moving, ...aligned].flatMap(boundsY);
+        vGuide = {
+            x: clamp(Math.round(vx), A4_WIDTH),
+            y1: clamp(Math.min(...tops) - PAD, A4_HEIGHT),
+            y2: clamp(Math.max(...tops) + PAD, A4_HEIGHT),
+        };
+    }
 
-    if (vertical.size === 0 && horizontal.size === 0) return null;
+    // ---- One horizontal guide: the nearest y-alignment. ----
+    let hGuide = null;
+    const hy = closestCoord(yAnchors(moving), others, yAnchors);
+    if (hy !== null) {
+        const aligned = others.filter((el) =>
+            yAnchors(el).some((o) => Math.abs(o - hy) <= THRESHOLD)
+        );
+        const sides = [moving, ...aligned].flatMap(boundsX);
+        hGuide = {
+            y: clamp(Math.round(hy), A4_HEIGHT),
+            x1: clamp(Math.min(...sides) - PAD, A4_WIDTH),
+            x2: clamp(Math.max(...sides) + PAD, A4_WIDTH),
+        };
+    }
+
+    if (!vGuide && !hGuide) return null;
 
     return (
         <>
-            {[...vertical].map((x) => (
-                <div key={`v${x}`} className={classes.vLine} style={{ left: Math.max(0, Math.min(x, A4_WIDTH)) }} />
-            ))}
-            {[...horizontal].map((y) => (
-                <div key={`h${y}`} className={classes.hLine} style={{ top: Math.max(0, Math.min(y, A4_HEIGHT)) }} />
-            ))}
+            {vGuide && (
+                <div
+                    className={classes.vLine}
+                    style={{ left: vGuide.x, top: vGuide.y1, height: vGuide.y2 - vGuide.y1 }}
+                />
+            )}
+            {hGuide && (
+                <div
+                    className={classes.hLine}
+                    style={{ top: hGuide.y, left: hGuide.x1, width: hGuide.x2 - hGuide.x1 }}
+                />
+            )}
         </>
     );
 }

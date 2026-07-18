@@ -1,5 +1,7 @@
-/* Alignment guides shown while dragging. pointer-events:none so they never
-   intercept the drag's mousemove events on the element underneath. */
+/* Alignment guides shown while dragging. A single vertical + single horizontal
+   segment spanning only the moving element and the elements it lines up with
+   (not the whole page). pointer-events:none so they never intercept the drag's
+   events on the element underneath. Geometry (length/offset) is set inline. */
 .vLine,
 .hLine {
     position: absolute;
@@ -9,13 +11,9 @@
 }
 
 .vLine {
-    top: 0;
     width: 1px;
-    height: 842px;
 }
 
 .hLine {
-    left: 0;
     height: 1px;
-    width: 595px;
 }
