@@ -56,9 +56,9 @@ function Image({
                 src={src}
                 style={style}
                 onDoubleClick={() => selectElement(elementId)}
-                onMouseMove={(e) => moveElement(e, elementId)}
-                onMouseDown={() => selectMoveElement(elementId)}
-                onMouseUp={() => selectMoveElement(elementId)}
+                onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); selectMoveElement(elementId); }}
+                onPointerMove={(e) => moveElement(e, elementId)}
+                onPointerUp={() => selectMoveElement(elementId)}
                 className={isSelected ? classes.selectedElement : ""}
             /></>
 
@@ -70,9 +70,9 @@ function Image({
             src={src}
             style={style}
             onDoubleClick={() => selectElement(elementId)}
-            onMouseMove={(e) => moveElement(e, elementId)}
-            onMouseDown={() => selectMoveElement(elementId)}
-            onMouseUp={() => selectMoveElement(elementId)}
+            onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); selectMoveElement(elementId); }}
+            onPointerMove={(e) => moveElement(e, elementId)}
+            onPointerUp={() => selectMoveElement(elementId)}
             className={isSelected ? classes.selectedElement : ""}
         />
     }

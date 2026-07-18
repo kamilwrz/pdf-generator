@@ -111,9 +111,9 @@ function Textarea({
             style={{ ...boxStyle, ...textStyle }}
             onClick={() => markSelected(elementId)}
             onDoubleClick={() => setTextareaEditing(elementId, true)}
-            onMouseDown={() => selectMoveElement(elementId)}
-            onMouseUp={() => selectMoveElement(elementId)}
-            onMouseMove={(e) => moveElement(e, elementId)}
+            onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); selectMoveElement(elementId); }}
+            onPointerUp={() => selectMoveElement(elementId)}
+            onPointerMove={(e) => moveElement(e, elementId)}
         >
             {bulletList && content ? renderBulletLines(content, fontSize) : content}
         </div>

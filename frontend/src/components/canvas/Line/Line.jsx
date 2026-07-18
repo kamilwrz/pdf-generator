@@ -49,9 +49,9 @@ function Line({
 
                 <div
                     onDoubleClick={() => selectElement(elementId)}
-                    onMouseMove={(e) => moveElement(e, elementId)}
-                    onMouseDown={() => selectMoveElement(elementId)}
-                    onMouseUp={() => selectMoveElement(elementId)}
+                    onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); selectMoveElement(elementId); }}
+                    onPointerMove={(e) => moveElement(e, elementId)}
+                    onPointerUp={() => selectMoveElement(elementId)}
                     className={isSelected ? classes.selectedElement : ""}
                     style={style}>
                 </div>
@@ -62,9 +62,9 @@ function Line({
         return (
             <div
                 onDoubleClick={() => selectElement(elementId)}
-                onMouseMove={(e) => moveElement(e, elementId, category)}
-                onMouseDown={() => selectMoveElement(elementId)}
-                onMouseUp={() => selectMoveElement(elementId)}
+                onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); selectMoveElement(elementId); }}
+                onPointerMove={(e) => moveElement(e, elementId, category)}
+                onPointerUp={() => selectMoveElement(elementId)}
                 className={isSelected ? classes.selectedElement : ""}
                 style={style}>
             </div>

@@ -41,10 +41,9 @@ function Text({
     return <p
         id={elementId}
         onDoubleClick={() => selectElement(elementId)}
-        onMouseDown={() => selectMoveElement(elementId)}
-       // onMouseLeave={() => selectMoveElement(elementId)}
-        onMouseUp={() => selectMoveElement(elementId)}
-        onMouseMove={(e) => moveElement(e, elementId)}
+        onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); selectMoveElement(elementId); }}
+        onPointerUp={() => selectMoveElement(elementId)}
+        onPointerMove={(e) => moveElement(e, elementId)}
         className={`${classes.textElement} ${isSelected ? classes.selectedElement : ""}`}
         style={style}
     >
