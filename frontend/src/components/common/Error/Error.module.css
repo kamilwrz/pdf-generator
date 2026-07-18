@@ -4,7 +4,7 @@
     text-align: center;
     background: var(--secondary-bg);
     border: 1px solid var(--border-soft);
-    box-shadow: 0 8px 20px -14px rgba(90, 55, 20, .3);
+    box-shadow: 0 8px 20px -14px rgba(30, 48, 78, .3);
     font-family: var(--font-body);
     border-radius: var(--r-md);
     padding: 4px 0 12px;

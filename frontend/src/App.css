@@ -8,8 +8,8 @@
    color: var(--primary-font);
    -webkit-font-smoothing: antialiased;
    text-rendering: optimizeLegibility;
-   background: radial-gradient(1100px 620px at 78% -8%, #FBE3D6 0%, rgba(251, 227, 214, 0) 60%),
-               linear-gradient(168deg, #FCF8F2 0%, #FBF4EA 52%, #F8EDDF 100%);
+   background: radial-gradient(1100px 620px at 78% -8%, #DCE8F7 0%, rgba(220, 232, 247, 0) 60%),
+               linear-gradient(168deg, #F8FAFD 0%, #EFF4FA 52%, #E7EEF7 100%);
    background-attachment: fixed;
    overflow-x: hidden;
    min-height: 100vh;

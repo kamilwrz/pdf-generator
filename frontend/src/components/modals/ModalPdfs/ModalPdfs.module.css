@@ -60,7 +60,7 @@
 
 .pdfItem:hover {
     border-color: var(--accent-soft);
-    box-shadow: 0 6px 16px -10px rgba(90, 55, 20, .3);
+    box-shadow: 0 6px 16px -10px rgba(30, 48, 78, .3);
 }
 
 .wrapperIconTitleDate {
@@ -83,7 +83,7 @@
 
 .pdfIcon {
     font-size: 1.3rem;
-    color: #DD5C46;
+    color: #3E6DB5;
 }
 
 .wrapperTitelDate {

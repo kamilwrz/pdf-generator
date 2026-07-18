@@ -82,7 +82,7 @@
     padding: 11px 20px;
     border-radius: 999px;
     text-decoration: none;
-    box-shadow: 0 8px 20px -8px rgba(44, 38, 32, .5);
+    box-shadow: 0 8px 20px -8px rgba(28, 36, 48, .5);
     transition: transform .15s;
 }
 
@@ -114,10 +114,10 @@
     align-items: center;
     gap: 8px;
     background: #fff;
-    border: 1px solid #F0E4D5;
+    border: 1px solid #E5EAF2;
     padding: 7px 14px 7px 9px;
     border-radius: 999px;
-    box-shadow: 0 4px 12px rgba(90, 55, 20, .06);
+    box-shadow: 0 4px 12px rgba(30, 48, 78, .06);
     margin-bottom: 26px;
 }
 
@@ -193,7 +193,7 @@
     align-items: center;
     gap: 10px;
     background: #fff;
-    border: 1px solid #EBDECE;
+    border: 1px solid #E1E7F0;
     color: var(--ink-2);
     font: 700 16px var(--font-body);
     padding: 15px 24px;
@@ -221,7 +221,7 @@
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    border: 2px solid #FCF8F2;
+    border: 2px solid #F8FAFD;
 }
 
 .avatars span + span {
@@ -248,7 +248,7 @@
     max-width: 100%;
     background: #fff;
     border-radius: 18px;
-    box-shadow: 0 30px 70px -24px rgba(90, 55, 20, .40);
+    box-shadow: 0 30px 70px -24px rgba(30, 48, 78, .40);
     overflow: hidden;
     transform: rotate(-1.5deg);
 }
@@ -258,8 +258,8 @@
     align-items: center;
     gap: 7px;
     padding: 13px 16px;
-    background: #FBF6EF;
-    border-bottom: 1px solid #F0E7DA;
+    background: #F1F5FA;
+    border-bottom: 1px solid #E8EEF5;
 }
 
 .dot {
@@ -281,8 +281,8 @@
 
 .windowRail {
     width: 62px;
-    background: #FBF6EF;
-    border-right: 1px solid #F0E7DA;
+    background: #F1F5FA;
+    border-right: 1px solid #E8EEF5;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -303,12 +303,12 @@
     height: 34px;
     border-radius: 10px;
     background: #fff;
-    border: 1px solid #EFE5D7;
+    border: 1px solid #E5EAF2;
 }
 
 .windowCanvas {
     flex: 1;
-    background: #F3ECE1;
+    background: #EDF1F7;
     display: flex;
     justify-content: center;
     padding: 18px;
@@ -318,34 +318,34 @@
     width: 200px;
     background: #fff;
     border-radius: 5px;
-    box-shadow: 0 6px 18px rgba(90, 55, 20, .14);
+    box-shadow: 0 6px 18px rgba(30, 48, 78, .14);
     padding: 16px;
 }
 
 .miniBanner {
     height: 46px;
     border-radius: 5px;
-    background: linear-gradient(120deg, #F5D9B8, #E9B59C);
+    background: linear-gradient(120deg, #B9D0EC, #7FA6D6);
     margin-bottom: 12px;
 }
 
 .miniLine {
     height: 11px;
-    background: #E7DFD2;
+    background: #DEE5EE;
     border-radius: 3px;
     margin: 0 auto 8px;
 }
 
 .miniLineSm {
     height: 7px;
-    background: #EFE8DD;
+    background: #E8EDF4;
     border-radius: 3px;
     margin: 0 auto 14px;
 }
 
 .miniBar {
     height: 6px;
-    background: #EFE8DD;
+    background: #E8EDF4;
     border-radius: 3px;
     margin-bottom: 6px;
 }
@@ -356,7 +356,7 @@
     bottom: -14px;
     background: #fff;
     border-radius: 14px;
-    box-shadow: 0 16px 34px -12px rgba(90, 55, 20, .32);
+    box-shadow: 0 16px 34px -12px rgba(30, 48, 78, .32);
     padding: 12px 16px;
     display: flex;
     align-items: center;

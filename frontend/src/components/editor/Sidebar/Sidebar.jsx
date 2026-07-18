@@ -59,23 +59,23 @@ export default forwardRef(function Sidebar({ children }, ref) {
         </div>
 
         <div className={classes.templatesBlock}>
-            <SidebarControls icon={<LuLayoutTemplate style={{ color: "#C28A3D" }} />} iconBg="#FBEED9" labelText="CV Templates" sidebarEvent={showTemplates} />
+            <SidebarControls icon={<LuLayoutTemplate style={{ color: "#3E6DB5" }} />} iconBg="#E7F0FB" labelText="CV Templates" sidebarEvent={showTemplates} />
             <SidebarControls icon={<RiRobot2Line style={{ color: "#7B5EA7" }} />} iconBg="#EDE8F7" labelText="Fill from my CV" sidebarEvent={showAiPanel} />
         </div>
 
         <div className={classes.toolsContainer}>
             <label className={classes.toolsLabel}>Add to canvas</label>
             <div className={classes.toolsList}>
-                <SidebarControls icon={<FaRegImages style={{ color: "#E0856B" }} />} iconBg="#FCEAE2" labelText="Upload images" sidebarEvent={showDropzone} />
+                <SidebarControls icon={<FaRegImages style={{ color: "#2C8C9E" }} />} iconBg="#DFF0F3" labelText="Upload images" sidebarEvent={showDropzone} />
                 <SidebarControls icon={<LuImagePlus style={{ color: "#8A6FC4" }} />} iconBg="#EDE8F7" labelText="Gallery" sidebarEvent={showGallery} />
                 <SidebarControls icon={<CiText style={{ color: "#5FA777" }} />} iconBg="#E6F1E7" labelText="Add text" sidebarEvent={addText} />
                 <SidebarControls icon={<BsTextParagraph style={{ color: "#5B8AA6" }} />} iconBg="#E3EEF4" labelText="Add text box" sidebarEvent={addTextarea} />
-                <SidebarControls icon={<TfiLayoutLineSolid style={{ color: "#D9934A" }} />} iconBg="#FBEED9" labelText="Add line" sidebarEvent={addLine} />
+                <SidebarControls icon={<TfiLayoutLineSolid style={{ color: "#5B7CB8" }} />} iconBg="#E6EDF8" labelText="Add line" sidebarEvent={addLine} />
             </div>
         </div>
 
         <div className={classes.myDocumentsContainer}>
-            <SidebarControls icon={<FaRegFolderOpen style={{ color: "#6B5F52" }} />} iconBg="#fff" labelText="My documents" sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
+            <SidebarControls icon={<FaRegFolderOpen style={{ color: "#57616F" }} />} iconBg="#fff" labelText="My documents" sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
         </div>
 
         <footer className={classes.sidebarFooter}>

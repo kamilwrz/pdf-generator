@@ -98,7 +98,7 @@
 .positionBtnsWrapper button:hover {
     background: #fff;
     color: var(--accent);
-    box-shadow: 0 1px 3px rgba(90, 55, 20, .12);
+    box-shadow: 0 1px 3px rgba(30, 48, 78, .12);
 }
 
 .elementSize {

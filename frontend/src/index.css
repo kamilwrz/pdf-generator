@@ -1,37 +1,37 @@
 :root {
     /* ---- Surfaces & backgrounds ---- */
     --primary-bg: #ffffff;
-    --secondary-bg: #FBF6EF;          /* warm cream surface */
-    --surface-2: #F3ECE1;             /* canvas / panel backdrop */
-    --bg-cream: #FCF8F2;
+    --secondary-bg: #F6F8FB;          /* cool white surface */
+    --surface-2: #EDF1F7;             /* canvas / panel backdrop */
+    --bg-cream: #F8FAFD;              /* light cool white (legacy name) */
 
-    /* ---- Brand accent (warm terracotta) ---- */
-    --accent: #E96B4C;
-    --accent-strong: #DC5535;
-    --accent-soft: #FCEAE2;
+    /* ---- Brand accent (elegant blue) ---- */
+    --accent: #3E6DB5;
+    --accent-strong: #2C5490;
+    --accent-soft: #E7F0FB;
     --accent-grad: linear-gradient(150deg, var(--accent), var(--accent-strong));
 
     /* ---- Buttons ---- */
     --primary-btn: var(--accent);
-    --secondary-btn: #FBF6EF;
-    --close-btn: #FBE7E2;
+    --secondary-btn: #EEF2F8;
+    --close-btn: #E7EEF7;
 
     /* ---- Text ---- */
-    --primary-font: #2C2620;          /* darkest ink */
-    --ink-2: #3A332B;
-    --secondary-font: #9A8E7F;        /* muted */
-    --muted-font: #6B5F52;            /* secondary body */
-    --label-font: #A89A88;            /* uppercase labels */
-    --deco-font: #E96B4C;             /* accent text */
+    --primary-font: #1E2733;          /* darkest slate ink */
+    --ink-2: #2A3542;
+    --secondary-font: #8894A5;        /* muted cool gray */
+    --muted-font: #57616F;            /* secondary body */
+    --label-font: #97A1B0;            /* uppercase labels */
+    --deco-font: #3E6DB5;             /* accent text */
 
     /* ---- Lines & borders ---- */
-    --border: #ECE2D4;
-    --border-soft: #F1E8DB;
-    --border-line: #EFE6D8;
+    --border: #E1E7F0;
+    --border-soft: #E9EEF5;
+    --border-line: #E5EAF2;
 
     /* ---- Status ---- */
-    --success: #5FA777;
-    --success-soft: #E6F1E7;
+    --success: #4E9A6B;
+    --success-soft: #E6F1EB;
     --danger: #D2503C;
     --danger-soft: #FBE7E2;
 
@@ -42,8 +42,8 @@
     --r-sm: 9px;
 
     /* ---- Elevation ---- */
-    --shadow-card: 0 1px 2px rgba(60, 40, 20, .05), 0 26px 60px -28px rgba(90, 55, 20, .30);
-    --shadow-pop: 0 18px 44px -16px rgba(90, 55, 20, .30);
+    --shadow-card: 0 1px 2px rgba(24, 40, 66, .05), 0 26px 60px -28px rgba(30, 48, 78, .30);
+    --shadow-pop: 0 18px 44px -16px rgba(30, 48, 78, .30);
     --shadow-accent: 0 12px 24px -10px var(--accent);
 
     /* ---- Typography ---- */

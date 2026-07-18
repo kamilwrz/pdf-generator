@@ -6,7 +6,7 @@
     align-items: center;
     justify-content: center;
     padding: 1rem;
-    background: rgba(44, 38, 32, .45);
+    background: rgba(28, 36, 48, .45);
     backdrop-filter: blur(2px);
     font-family: var(--font-body);
 }
@@ -61,7 +61,7 @@
 
 .card:hover {
     border-color: var(--accent-soft);
-    box-shadow: 0 10px 24px -14px rgba(90, 55, 20, .4);
+    box-shadow: 0 10px 24px -14px rgba(30, 48, 78, .4);
     transform: translateY(-2px);
 }
 
@@ -105,7 +105,7 @@
     width: 132px;
     height: 186px;
     background: #fff;
-    box-shadow: 0 4px 14px rgba(90, 55, 20, .18);
+    box-shadow: 0 4px 14px rgba(30, 48, 78, .18);
     border-radius: 3px;
     display: flex;
     overflow: hidden;
@@ -180,7 +180,7 @@
     height: 3px;
     width: 100%;
     border-radius: 2px;
-    background: #E7DFD2;
+    background: #DEE5EE;
 }
 
 .lineLight {

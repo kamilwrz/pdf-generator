@@ -16,7 +16,7 @@
     background: #fff;
     border: 1px solid var(--border-soft);
     border-radius: 999px;
-    box-shadow: 0 16px 34px -12px rgba(90, 55, 20, .32);
+    box-shadow: 0 16px 34px -12px rgba(30, 48, 78, .32);
     padding: 7px 10px;
     pointer-events: auto;
     font-family: var(--font-body);

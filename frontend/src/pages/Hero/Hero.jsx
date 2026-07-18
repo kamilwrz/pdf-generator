@@ -53,7 +53,7 @@ export default function Hero() {
                     </div>
                     <div className={classes.social}>
                         <div className={classes.avatars}>
-                            <span style={{ background: "#F2C9A0" }} />
+                            <span style={{ background: "#8FB0DB" }} />
                             <span style={{ background: "#E8A6A0" }} />
                             <span style={{ background: "#A9C5B0" }} />
                         </div>
@@ -66,7 +66,7 @@ export default function Hero() {
                     <div className={classes.window}>
                         <div className={classes.windowBar}>
                             <span className={classes.dot} style={{ background: "#E8A6A0" }} />
-                            <span className={classes.dot} style={{ background: "#F2C98A" }} />
+                            <span className={classes.dot} style={{ background: "#9DB6D8" }} />
                             <span className={classes.dot} style={{ background: "#A9C5B0" }} />
                             <span className={classes.windowFile}>garden-gala.pdf</span>
                         </div>

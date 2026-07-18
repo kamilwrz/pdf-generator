@@ -21,23 +21,23 @@
 
 .block:empty::before {
     content: "Double-click to edit";
-    color: #c9bfb0;
+    color: #AEB7C4;
 }
 
 .selected {
-    outline: 1.5px dashed var(--accent, #E96B4C);
+    outline: 1.5px dashed var(--accent, #3E6DB5);
     outline-offset: 2px;
 }
 
 .editing {
     resize: none;
     cursor: text;
-    outline: 2px solid var(--accent, #E96B4C);
+    outline: 2px solid var(--accent, #3E6DB5);
     outline-offset: 2px;
     -webkit-user-select: text;
     user-select: text;
 }
 
 .editing::placeholder {
-    color: #c9bfb0;
+    color: #AEB7C4;
 }

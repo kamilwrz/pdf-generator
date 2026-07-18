@@ -15,7 +15,7 @@ const ACTIONS = [
     { id: "rating",          label: "Rate CV",      icon: FaStar,        color: "#F59E0B", description: "Overall CV quality score 1–10" },
     { id: "design_rating",   label: "Design",       icon: FaPalette,     color: "#6B21A8", description: "Visual design & layout assessment" },
     { id: "position_rating", label: "Position Fit", icon: FaBriefcase,   color: "#0D9488", description: "Match CV to a job description" },
-    { id: "grammar",         label: "Grammar",      icon: RiEditLine,    color: "#E96B4C", description: "Find and fix grammar errors" },
+    { id: "grammar",         label: "Grammar",      icon: RiEditLine,    color: "#4C51BF", description: "Find and fix grammar errors" },
     { id: "language",        label: "Style",        icon: FaFont,        color: "#2B6CB0", description: "Improve writing tone and clarity" },
     { id: "improve",         label: "Improve",      icon: FaMagic,       color: "#5FA777", description: "Stronger bullets with action verbs" },
     { id: "ats_score",       label: "ATS Score",    icon: FaRobot,       color: "#D63384", description: "Applicant tracking system check" },

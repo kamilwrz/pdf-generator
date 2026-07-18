@@ -3,7 +3,7 @@
     aspect-ratio: 1;
     border-radius: var(--r-md);
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(90, 55, 20, .10);
+    box-shadow: 0 4px 12px rgba(30, 48, 78, .10);
     transition: outline .15s, transform .12s;
 }
 
@@ -36,7 +36,7 @@
     color: var(--danger);
     cursor: pointer;
     font-size: 13px;
-    box-shadow: 0 2px 6px rgba(90, 55, 20, .18);
+    box-shadow: 0 2px 6px rgba(30, 48, 78, .18);
     transition: background .15s;
 }
 

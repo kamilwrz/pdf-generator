@@ -14,7 +14,7 @@
 
 .tile:hover {
     border-color: var(--accent-soft);
-    box-shadow: 0 6px 16px -10px rgba(90, 55, 20, .35);
+    box-shadow: 0 6px 16px -10px rgba(30, 48, 78, .35);
     transform: translateY(-1px);
 }
 

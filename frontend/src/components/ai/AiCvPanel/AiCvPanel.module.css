@@ -171,7 +171,7 @@
 
 .templateCard:hover:not(:disabled) {
     border-color: var(--accent-soft);
-    box-shadow: 0 4px 12px -8px rgba(90,55,20,.4);
+    box-shadow: 0 4px 12px -8px rgba(30, 48, 78,.4);
     transform: translateY(-1px);
 }
 
@@ -212,7 +212,7 @@
 }
 
 .templateCard .spinner {
-    border-color: rgba(44,38,32,.15);
+    border-color: rgba(28, 36, 48,.15);
     border-top-color: var(--accent);
 }
 

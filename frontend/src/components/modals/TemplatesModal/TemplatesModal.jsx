@@ -122,7 +122,7 @@ function Preview({ id, accent }) {
                 </div>
                 <div style={{ height: "3px", background: "#0D9488" }} />
                 <div className={classes.col}>
-                    {[["#F26B2E"], ["#0D9488"], ["#D63384"]].map(([c], i) => (
+                    {[["#3E6DB5"], ["#0D9488"], ["#D63384"]].map(([c], i) => (
                         <div key={i} style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px", marginTop: i > 0 ? "6px" : 0 }}>
                             <span style={{ width: "8px", height: "8px", background: c, flexShrink: 0 }} />
                             <span className={classes.barThin} style={{ background: "#1A1A1A", width: "45%" }} />

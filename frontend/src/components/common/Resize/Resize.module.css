@@ -7,7 +7,7 @@
     border: 1.5px solid var(--accent);
     border-radius: 3px;
     padding: 0;
-    box-shadow: 0 1px 3px rgba(90, 55, 20, .2);
+    box-shadow: 0 1px 3px rgba(30, 48, 78, .2);
 }
 
 .resizeButtons:hover {
