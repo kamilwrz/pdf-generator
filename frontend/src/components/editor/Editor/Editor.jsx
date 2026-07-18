@@ -162,8 +162,10 @@ export default function Editor() {
             {selectedElement?.category === "text" && <>
 
                 <EditorControls labelText="Text Content" type="text" inputValue={elementValues.content} onChangeFn={(e) => handleChangeValues(e, "content")} />
-                <EditorControls labelText="Font Size" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
-                <EditorControls labelText="Text Color" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
+                <div className={classes.elementSize}>
+                    <EditorControls labelText="Font Size" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
+                    <EditorControls labelText="Text Color" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
+                </div>
                 <EditorControls labelText="Font Family" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
                 <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
             </>}
@@ -184,8 +186,10 @@ export default function Editor() {
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={insertBulletAtCurrentLine}
                 ><MdFormatListBulleted />Insert bullet</button>
-                <EditorControls labelText="Font Size" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
-                <EditorControls labelText="Text Color" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
+                <div className={classes.elementSize}>
+                    <EditorControls labelText="Font Size" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
+                    <EditorControls labelText="Text Color" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
+                </div>
                 <EditorControls labelText="Font Family" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
                 <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
                 <AlignToggles selectedElement={selectedElement} setAlign={setAlign} />
