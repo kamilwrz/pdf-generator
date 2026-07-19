@@ -899,6 +899,146 @@ def _gen_mistral(cv: dict) -> list[dict]:
     return scaffolding + static + flow
 
 
+def _gen_axiom(cv: dict) -> list[dict]:
+    """Architectural one-column CV with nested outline frames and square markers."""
+    INK, ACCENT, SLATE = "#182A33", "#0D6E72", "#60757B"
+    PALE, BODY = "#C8D7D6", "#2E3E44"
+    SANS, SERIF = "Inter", "Times-Roman"
+    L, W = 64, 467
+    lbl = _labels(cv)
+
+    static = [
+        _rect(44, 44, 507, 120, INK, 1.2),
+        _rect(56, 56, 38, 38, ACCENT, 1.4),
+        _rect(64, 64, 22, 22, PALE, 0.9),
+        _text("01", 8, SANS, ACCENT, 68, 71),
+        _text((cv.get("name") or "").upper(), 27, SERIF, INK, 112, 68, bold=True),
+        _text((cv.get("title") or "").upper(), 10, SANS, ACCENT, 114, 108),
+        _text(_contact_line(cv), 9.2, SANS, SLATE, 114, 134),
+        _line(112, 151, 400, 1, PALE),
+    ]
+    static[5]["letterSpacing"] = 1.35
+    b = Builder(188)
+
+    def section(label):
+        b.need(34)
+        b.els.append(_rect(L, b.y + 1, 18, 18, ACCENT, 1.4, zIndex=1, page=b.pg))
+        b.text(label, 11, SANS, INK, L + 32, bold=True)
+        b.els.append(_line(L + 32, b.y - 1, W - 32, 0.75, PALE, page=b.pg))
+        b.gap(8)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10.4, 15, BODY, SANS); b.gap(16)
+
+    if cv.get("experience"):
+        section(lbl["experience"])
+        for job in cv["experience"]:
+            b.need(56)
+            b.text(job.get("title", ""), 11, SANS, INK, L, bold=True); b.gap(2)
+            b.text(_company_period(job), 9, SANS, SLATE, L); b.gap(3)
+            bullets = _bullets(job)
+            if bullets:
+                b.block(bullets, L, W, 9.8, 13.5, BODY, SANS, bulletList=True)
+            b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, SANS, fs=9.8, lh=13.5)
+
+    if cv.get("education"):
+        b.need(48); section(lbl["education"])
+        for edu in cv["education"]:
+            b.text(edu.get("degree", ""), 10.6, SANS, INK, L, bold=True); b.gap(2)
+            b.text(edu.get("period", ""), 9, SANS, SLATE, L)
+            if edu.get("detail"):
+                b.gap(1); b.text(edu["detail"], 9, SANS, SLATE, L)
+            b.gap(10)
+
+    if cv.get("skills"):
+        b.need(40); section(lbl["skills"])
+        b.block(" · ".join(cv["skills"]), L, W, 10, 15, BODY, SANS); b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, SANS, fs=10, lh=15)
+    flow = b.build()
+    pages_used = max([element.get("page", 1) for element in static + flow] or [1])
+    frames = [
+        decoration
+        for page in range(1, pages_used + 1)
+        for decoration in (
+            _rect(22, 22, 551, 798, "#8EA3A2", 1.25, page=page),
+            _rect(30, 30, 535, 782, PALE, 0.75, page=page),
+        )
+    ]
+    return frames + static + flow
+
+
+def _gen_vellum(cv: dict) -> list[dict]:
+    """Warm editorial one-column CV with transparent outlined content panels."""
+    INK, WINE, CLAY = "#312724", "#7C3B42", "#B8765A"
+    SAND, GRAY, BODY = "#DCCFC0", "#786E68", "#493D37"
+    SERIF, SANS = "Times-Roman", "Inter"
+    L, W = 60, 475
+    lbl = _labels(cv)
+
+    static = [
+        _rect(60, 54, 475, 106, CLAY, 1.15),
+        _rect(70, 64, 455, 86, SAND, 0.75),
+        _block((cv.get("name") or "").upper(), 70, 72, 455, 30, 26, 30, INK, SERIF,
+               bold=True, align="center"),
+        _block((cv.get("title") or "").upper(), 70, 108, 455, 14, 9.5, 12, WINE, SANS,
+               align="center"),
+        _block(_contact_line(cv), 70, 132, 455, 14, 9, 12, GRAY, SANS, align="center"),
+    ]
+    static[3]["letterSpacing"] = 1.45
+    b = Builder(186)
+
+    def section(label):
+        b.need(40)
+        b.els.append(_rect(L, b.y, W, 26, CLAY, 1, zIndex=1, page=b.pg))
+        b.text(label, 11, SANS, WINE, L + 16, bold=True)
+        b.gap(14)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10.3, 15, BODY, SANS); b.gap(18)
+
+    if cv.get("experience"):
+        section(lbl["experience"])
+        for job in cv["experience"]:
+            b.need(56)
+            b.text(job.get("title", ""), 11, SANS, INK, L, bold=True); b.gap(2)
+            b.text(_company_period(job), 9, SANS, GRAY, L); b.gap(3)
+            bullets = _bullets(job)
+            if bullets:
+                b.block(bullets, L, W, 9.8, 13.5, BODY, SANS, bulletList=True)
+            b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, SANS, fs=9.8, lh=13.5)
+
+    if cv.get("education"):
+        b.need(50); section(lbl["education"])
+        for edu in cv["education"]:
+            b.text(edu.get("degree", ""), 10.6, SANS, INK, L, bold=True); b.gap(2)
+            b.text(edu.get("period", ""), 9, SANS, GRAY, L)
+            if edu.get("detail"):
+                b.gap(1); b.text(edu["detail"], 9, SANS, GRAY, L)
+            b.gap(10)
+
+    if cv.get("skills"):
+        b.need(42); section(lbl["skills"])
+        b.block(" · ".join(cv["skills"]), L, W, 10, 15, BODY, SANS); b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, SANS, fs=10, lh=15)
+    flow = b.build()
+    pages_used = max([element.get("page", 1) for element in static + flow] or [1])
+    frames = [
+        decoration
+        for page in range(1, pages_used + 1)
+        for decoration in (
+            _rect(28, 26, 539, 790, WINE, 1.2, page=page),
+            _rect(36, 34, 523, 774, SAND, 0.75, page=page),
+        )
+    ]
+    return frames + static + flow
+
+
 # ── public API ───────────────────────────────────────────────────────────────
 
 _GENERATORS = {
@@ -914,6 +1054,8 @@ _GENERATORS = {
     "aria":      _gen_aria,
     "solstice":  _gen_solstice,
     "mistral":   _gen_mistral,
+    "axiom":     _gen_axiom,
+    "vellum":    _gen_vellum,
 }
 
 

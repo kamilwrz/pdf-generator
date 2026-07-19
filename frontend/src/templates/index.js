@@ -12,6 +12,8 @@ import { sterlingTemplate } from "./sterling";
 import { gazetteTemplate } from "./gazette";
 import { solsticeTemplate } from "./solstice";
 import { mistralTemplate } from "./mistral";
+import { axiomTemplate } from "./axiom";
+import { vellumTemplate } from "./vellum";
 
 // Every template declares a category (drives the modal tabs) and the page-size
 // preset it is designed for (applied on load).
@@ -34,6 +36,8 @@ export const TEMPLATES = [
     { id: "aria",      name: "Aria",      industry: "Minimalistyczny · Przestrzeń",  accent: "#AAAAAA", category: "cv",   pageSize: "a4-portrait", elements: ariaTemplate },
     { id: "solstice",  name: "Solstice",  industry: "Art Deco · Słoneczny",          accent: "#D99A32", category: "cv",   pageSize: "a4-portrait", elements: solsticeTemplate },
     { id: "mistral",   name: "Mistral",   industry: "Redakcyjny · Nadmorski",        accent: "#4D9AA6", category: "cv",   pageSize: "a4-portrait", elements: mistralTemplate },
+    { id: "axiom",     name: "Axiom",     industry: "Architektoniczny · Geometryczny", accent: "#0D6E72", category: "cv",   pageSize: "a4-portrait", elements: axiomTemplate },
+    { id: "vellum",    name: "Vellum",    industry: "Redakcyjny · Ciepły minimalizm",  accent: "#7C3B42", category: "cv",   pageSize: "a4-portrait", elements: vellumTemplate },
     { id: "meridian",  name: "Meridian",  industry: "Prezentacja · Szeryf redakcyjny", accent: "#3E6DB5", category: "deck", pageSize: "deck-16-9",   elements: meridianTemplate },
     { id: "onyx",      name: "Onyx",      industry: "Prezentacja · Ciemna i odważna",  accent: "#F25F4C", category: "deck", pageSize: "deck-16-9",   elements: onyxTemplate },
     { id: "verdant",   name: "Verdant",   industry: "Prezentacja · Spokojna zieleń",   accent: "#3E7A5E", category: "deck", pageSize: "deck-16-9",   elements: verdantTemplate },

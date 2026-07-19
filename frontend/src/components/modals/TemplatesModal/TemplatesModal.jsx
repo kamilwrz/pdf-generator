@@ -98,6 +98,48 @@ function Preview({ id, accent }) {
             </div>
         );
     }
+    if (id === "axiom") {
+        // architectural one-column CV: nested blueprint frames and square markers
+        return (
+            <div className={classes.paper} style={{ flexDirection: "column", position: "relative", padding: "10px 11px", gap: "4px", boxShadow: "inset 0 0 0 1.5px #8EA3A2, inset 0 0 0 4px #fff, inset 0 0 0 5px #C8D7D6" }}>
+                <div style={{ height: "27%", border: "1px solid #182A33", padding: "7px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "4px" }}>
+                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                        <span style={{ width: "16px", height: "16px", border: "1.4px solid #0D6E72" }} />
+                        <span className={classes.bar} style={{ background: "#182A33", width: "62%" }} />
+                    </div>
+                    <span className={classes.barThin} style={{ background: accent, width: "48%", marginLeft: "22px" }} />
+                    <span className={classes.line} style={{ marginLeft: "22px", width: "72%" }} />
+                </div>
+                {[0, 1, 2].map((i) => (
+                    <div key={i} style={{ display: "flex", flexDirection: "column", gap: "3px", marginTop: i ? "5px" : "2px" }}>
+                        <div style={{ display: "flex", gap: "5px", alignItems: "center" }}>
+                            <span style={{ width: "8px", height: "8px", border: `1px solid ${accent}` }} />
+                            <span className={classes.barThin} style={{ background: "#182A33", width: i === 1 ? "46%" : "35%" }} />
+                        </div>
+                        <span className={classes.line} /><span className={classes.line} />
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    if (id === "vellum") {
+        // warm editorial one-column CV: calm outline panels and centered masthead
+        return (
+            <div className={classes.paper} style={{ flexDirection: "column", padding: "9px 11px", gap: "4px", boxShadow: "inset 0 0 0 1.3px #7C3B42, inset 0 0 0 4px #fff, inset 0 0 0 5px #DCCFC0" }}>
+                <div style={{ height: "25%", border: "1px solid #B8765A", padding: "7px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "4px" }}>
+                    <span className={classes.bar} style={{ background: "#312724", width: "64%" }} />
+                    <span className={classes.barThin} style={{ background: accent, width: "48%" }} />
+                    <span className={classes.line} style={{ width: "72%" }} />
+                </div>
+                {[0, 1, 2].map((i) => (
+                    <div key={i} style={{ border: "1px solid #B8765A", padding: "4px 5px", display: "flex", flexDirection: "column", gap: "3px", marginTop: i ? "4px" : 0 }}>
+                        <span className={classes.barThin} style={{ background: accent, width: i === 0 ? "37%" : "29%" }} />
+                        <span className={classes.line} /><span className={classes.line} />
+                    </div>
+                ))}
+            </div>
+        );
+    }
     if (id === "mistral") {
         // coastal editorial: deep sea masthead, sea-glass strip, narrow notes column
         return (
