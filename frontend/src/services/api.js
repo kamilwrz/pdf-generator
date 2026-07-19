@@ -24,6 +24,7 @@ export const ENDPOINTS = {
         EXTRACT_CV: "/ai/extract_cv",
         FILL_TEMPLATE: "/ai/fill_template",
         GENERATE_DECK: "/ai/generate_deck",
+        GENERATE_ARTICLE: "/ai/generate_article",
         ASSISTANT: "/ai/assistant",
     }
 }

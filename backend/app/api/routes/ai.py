@@ -77,6 +77,28 @@ async def generate_deck_route(
         raise HTTPException(status_code=500, detail=f"Deck generation failed: {exc}")
 
 
+@router.post("/generate_article", status_code=200)
+async def generate_article_route(
+    file: UploadFile = File(...),
+    payload: dict = Depends(verify_token),
+):
+    """Rewrite an uploaded PDF's content as a newspaper-style two-column
+    article (Gazette layout): drop cap, section headings, pull-quote, folio
+    page numbers. Returns element specs ready for loadAiElements."""
+    if not (file.filename or "").lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
+    data = await file.read()
+    if len(data) > MAX_PDF_BYTES:
+        raise HTTPException(status_code=400, detail="File exceeds 10 MB limit.")
+    from app.services.article_generator import generate_article
+    try:
+        return generate_article(data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Article generation failed: {exc}")
+
+
 @router.post("/fill_template", status_code=200)
 async def fill_template(
     request: FillRequest,

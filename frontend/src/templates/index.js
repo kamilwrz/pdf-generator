@@ -9,12 +9,14 @@ import { prismTemplate }     from "./prism";
 import { ariaTemplate }      from "./aria";
 import { meridianTemplate, onyxTemplate, verdantTemplate } from "./meridian";
 import { sterlingTemplate } from "./sterling";
+import { gazetteTemplate } from "./gazette";
 
 // Every template declares a category (drives the modal tabs) and the page-size
 // preset it is designed for (applied on load).
 export const TEMPLATE_CATEGORIES = [
-    { id: "cv",   label: "CV" },
-    { id: "deck", label: "Decks" },
+    { id: "cv",      label: "CV" },
+    { id: "deck",    label: "Decks" },
+    { id: "article", label: "Articles" },
 ];
 
 export const TEMPLATES = [
@@ -31,4 +33,5 @@ export const TEMPLATES = [
     { id: "meridian",  name: "Meridian",  industry: "Deck · Editorial serif",   accent: "#3E6DB5", category: "deck", pageSize: "deck-16-9",   elements: meridianTemplate },
     { id: "onyx",      name: "Onyx",      industry: "Deck · Dark & bold",       accent: "#F25F4C", category: "deck", pageSize: "deck-16-9",   elements: onyxTemplate },
     { id: "verdant",   name: "Verdant",   industry: "Deck · Calm green",        accent: "#3E7A5E", category: "deck", pageSize: "deck-16-9",   elements: verdantTemplate },
+    { id: "gazette",   name: "Gazette",   industry: "Article · Newspaper",      accent: "#8C2F39", category: "article", pageSize: "a4-portrait", elements: gazetteTemplate },
 ];

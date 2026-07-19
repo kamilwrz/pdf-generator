@@ -6,6 +6,7 @@ import { LuLayoutTemplate } from "react-icons/lu";
 import { RiRobot2Line, RiDownload2Line } from "react-icons/ri";
 import { FiRefreshCw, FiTrash2 } from "react-icons/fi";
 import { MdOutlineSlideshow } from "react-icons/md";
+import { RiArticleLine } from "react-icons/ri";
 import { TiPen } from "react-icons/ti";
 
 export default function Topbar({ titleRef }) {
@@ -13,6 +14,7 @@ export default function Topbar({ titleRef }) {
         showTemplates,
         showAiPanel,
         showDeckPanel,
+        showArticlePanel,
         createPdf,
         updatePdf,
         clearA4,
@@ -35,6 +37,10 @@ export default function Topbar({ titleRef }) {
                 <button type="button" className={classes.feature} onClick={showDeckPanel}>
                     <MdOutlineSlideshow />
                     <span className={classes.label}>AI Deck</span>
+                </button>
+                <button type="button" className={classes.feature} onClick={showArticlePanel}>
+                    <RiArticleLine />
+                    <span className={classes.label}>AI Article</span>
                 </button>
             </div>
 

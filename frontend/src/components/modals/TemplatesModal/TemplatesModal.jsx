@@ -28,6 +28,36 @@ function Preview({ id, accent }) {
             </div>
         );
     }
+    if (id === "gazette") {
+        // newspaper: masthead rules, headline, two justified columns, drop cap
+        return (
+            <div className={classes.paper} style={{ flexDirection: "column" }}>
+                <div style={{ padding: "9px 10px 4px" }}>
+                    <span style={{ display: "block", height: "3px", background: "#191B1E" }} />
+                    <span style={{ display: "block", height: "1px", background: "#191B1E", marginTop: "2px" }} />
+                    <span className={classes.bar} style={{ background: "#191B1E", width: "78%", height: "8px", marginTop: "6px", display: "block" }} />
+                    <span className={classes.barThin} style={{ background: "#9AA0A8", width: "55%", marginTop: "3px", display: "block" }} />
+                </div>
+                <div style={{ display: "flex", flex: 1, gap: "6px", padding: "2px 10px 8px" }}>
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "3px" }}>
+                        <div style={{ display: "flex", gap: "3px" }}>
+                            <span style={{ width: "9px", height: "11px", background: accent, flexShrink: 0 }} />
+                            <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: "3px" }}>
+                                <span className={classes.line} /><span className={classes.line} />
+                            </span>
+                        </div>
+                        <span className={classes.line} /><span className={classes.line} /><span className={classes.line} />
+                    </div>
+                    <span style={{ width: "1px", background: "#D9DCE1" }} />
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "3px" }}>
+                        <span className={classes.line} /><span className={classes.line} />
+                        <span style={{ height: "12px", border: "1px solid #D9DCE1", margin: "2px 0" }} />
+                        <span className={classes.line} /><span className={classes.line} />
+                    </div>
+                </div>
+            </div>
+        );
+    }
     if (id === "sterling") {
         // engraved certificate: double outline frame, centered name, KPI boxes
         return (

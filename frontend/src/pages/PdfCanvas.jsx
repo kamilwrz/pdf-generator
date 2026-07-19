@@ -22,6 +22,7 @@ import Connectors from '../components/canvas/Connectors/Connectors';
 import TemplatesModal from '../components/modals/TemplatesModal/TemplatesModal';
 import AiCvPanel from '../components/ai/AiCvPanel/AiCvPanel';
 import AiDeckPanel from '../components/ai/AiDeckPanel/AiDeckPanel';
+import AiArticlePanel from '../components/ai/AiArticlePanel/AiArticlePanel';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 
 function PdfCanvas() {
@@ -42,6 +43,8 @@ function PdfCanvas() {
   const [isAiPanel, setIsAiPanel] = useState(false);
   //state for showing the AI deck generator panel
   const [isDeckPanel, setIsDeckPanel] = useState(false);
+  //state for showing the AI article generator panel
+  const [isArticlePanel, setIsArticlePanel] = useState(false);
   // state for showing the progress var in Dropzone when IMG is uploaded
   const [valueImageUpload, setValueImageUpload] = useState(0);
   //state for seting the PDF id, used in ModalPdf.jsx
@@ -187,6 +190,10 @@ function PdfCanvas() {
     setIsDeckPanel(bool => !bool);
   }, [])
 
+  const handleShowArticlePanel = useCallback(() => {
+    setIsArticlePanel(bool => !bool);
+  }, [])
+
   const handleShowGallery = useCallback(() => {
     setIsGallery(boolGallery => !boolGallery);
   }, [])
@@ -236,6 +243,7 @@ function PdfCanvas() {
     //ai panel
     showAiPanel: handleShowAiPanel,
     showDeckPanel: handleShowDeckPanel,
+    showArticlePanel: handleShowArticlePanel,
     //page geometry
     pageSize: pageSize,
     setPageSize: setPageSize,
@@ -285,7 +293,7 @@ function PdfCanvas() {
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
     isTemplates, handleShowTemplates, handleLoadTemplate, handleLoadTemplateWithFill, handleLoadAiElements, handleMoveElementWithBelow, handleShowAiPanel,
-    handleShowDeckPanel, pageSize, setPageSize, setPagePreset,
+    handleShowDeckPanel, handleShowArticlePanel, pageSize, setPageSize, setPagePreset,
   ])
 
   console.log(A4_Elements);
@@ -320,6 +328,11 @@ function PdfCanvas() {
           {isDeckPanel && (
             <div style={{ position: "absolute", left: "100%", top: 50, width: 340, background: "#fff", borderLeft: "1px solid var(--border-line)", borderRight: "1px solid var(--border-line)", height: "calc(100% - 50px)", overflowY: "auto", zIndex: 1100, boxShadow: "4px 0 16px rgba(30,48,78,.10)" }}>
               <AiDeckPanel onClose={handleShowDeckPanel} />
+            </div>
+          )}
+          {isArticlePanel && (
+            <div style={{ position: "absolute", left: "100%", top: 50, width: 340, background: "#fff", borderLeft: "1px solid var(--border-line)", borderRight: "1px solid var(--border-line)", height: "calc(100% - 50px)", overflowY: "auto", zIndex: 1100, boxShadow: "4px 0 16px rgba(30,48,78,.10)" }}>
+              <AiArticlePanel onClose={handleShowArticlePanel} />
             </div>
           )}
           <Editor />
