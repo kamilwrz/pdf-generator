@@ -10,6 +10,8 @@ truncation, multi-page when content overflows.
 
 from __future__ import annotations
 import math
+import re
+from datetime import datetime
 
 A4_H = 842
 MARGIN_BOTTOM = 40   # py before switching to the next page
@@ -40,6 +42,13 @@ def _line(left, top, width, height, color, *, zIndex=1, page=1):
     return {"category": "line", "left": left, "top": top,
             "width": width, "height": height, "backgroundColor": color,
             "zIndex": zIndex, "page": page}
+
+
+def _rect(left, top, width, height, color, borderWidth=1, *, zIndex=1, page=1):
+    """Outline-only rectangle (backgroundColor = border colour)."""
+    return {"category": "rectangle", "left": left, "top": top,
+            "width": width, "height": height, "backgroundColor": color,
+            "borderWidth": borderWidth, "zIndex": zIndex, "page": page}
 
 
 # ── builder helper ───────────────────────────────────────────────────────────
@@ -646,10 +655,110 @@ def _gen_aria(cv: dict) -> list[dict]:
     return b.build()
 
 
+def _gen_sterling(cv: dict) -> list[dict]:
+    """Engraved share-certificate finance CV (mirrors templates/sterling.js):
+    double outline frame on EVERY page, centered serif header, a row of
+    outlined KPI stat boxes derived from the data, outline-square section
+    markers. Navy/steel blues over cool greys."""
+    NAVY, ACCENT, STEEL = "#1B2A41", "#2E5E9E", "#7C8CA0"
+    GRAY, PALE, BODY = "#66707E", "#D9E0E9", "#33404F"
+    S, I = "Times-Roman", "Inter"
+    L, W = 55, 485
+    lbl = _labels(cv)
+
+    # ---- centered header (align-center textareas: exact on canvas + PDF) ----
+    static = [
+        _block((cv.get("name") or "").upper(), 50, 56, 495, 36, 28, 34, NAVY, S,
+               bold=True, align="center"),
+        _block((cv.get("title") or "").upper(), 50, 96, 495, 18, 12, 16, ACCENT, I,
+               align="center"),
+        _block(_contact_line(cv), 50, 120, 495, 14, 9.5, 13, GRAY, I, align="center"),
+        # ornament: accent bar flanked by outline squares
+        _rect(255, 139, 8, 8, STEEL, 1),
+        _line(271, 142, 53, 2, ACCENT),
+        _rect(332, 139, 8, 8, STEEL, 1),
+    ]
+    static[1]["letterSpacing"] = 2  # engraved small-caps tracking on the title
+
+    # ---- KPI stat boxes derived from the data ----
+    exp = cv.get("experience") or []
+    years_found = [int(m) for job in exp
+                   for m in re.findall(r"\b(?:19|20)\d{2}\b", job.get("period") or "")]
+    years = max(datetime.now().year - min(years_found), 1) if years_found else None
+    skills = cv.get("skills") or []
+    kpis = [
+        (f"{years}+" if years else str(len(exp) or "—"),
+         "YEARS EXPERIENCE" if years else "ROLES"),
+        (str(len(exp)) if exp else "—", "POSITIONS HELD"),
+        (str(len(skills)) if skills else "—", "CORE SKILLS"),
+    ]
+    for i, (figure, label) in enumerate(kpis):
+        left = 55 + i * 164
+        static.append(_rect(left, 160, 157, 52, STEEL, 1.2))
+        static.append(_block(figure, left, 168, 157, 18, 15, 18, NAVY, S,
+                             bold=True, align="center"))
+        lab = _block(label, left, 190, 157, 12, 7.5, 10, GRAY, I, align="center")
+        lab["letterSpacing"] = 1
+        static.append(lab)
+
+    # ---- flowing sections ----
+    b = Builder(244)
+
+    def section(label):
+        b.need(34)
+        b.els.append(_rect(L, b.y + 2, 9, 9, ACCENT, 1.5, zIndex=2, page=b.pg))
+        b.text(label, 11.5, S, NAVY, 72, bold=True)
+        b.els.append(_line(L, b.y - 2, W, 1, PALE, page=b.pg))
+        b.gap(8)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10.5, 15, BODY, I); b.gap(16)
+
+    if exp:
+        section(lbl["experience"])
+        for job in exp:
+            b.need(56)
+            b.text(job.get("title", ""), 11, I, NAVY, L, bold=True); b.gap(2)
+            b.text(_company_period(job), 9, I, GRAY, L); b.gap(2)
+            bul = _bullets(job)
+            if bul:
+                b.block(bul, L, W, 10, 14, BODY, I, bulletList=True)
+            b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, I)
+
+    if cv.get("education"):
+        b.need(50); section(lbl["education"])
+        for edu in cv["education"]:
+            b.text(edu.get("degree", ""), 10.5, I, NAVY, L, bold=True); b.gap(2)
+            b.text(edu.get("period", ""), 9, I, GRAY, L)
+            if edu.get("detail"):
+                b.gap(1); b.text(edu["detail"], 9, I, GRAY, L)
+            b.gap(10)
+
+    if skills:
+        b.need(40); section(lbl["skills"])
+        b.block(" · ".join(skills), L, W, 10, 15, BODY, I); b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, I)
+
+    flow = b.build()
+
+    # ---- engraved double frame on every page used ----
+    pages_used = max([e.get("page", 1) for e in static + flow] or [1])
+    frames = []
+    for p in range(1, pages_used + 1):
+        frames.append(_rect(24, 24, 547, 794, STEEL, 1.5, page=p))
+        frames.append(_rect(29, 29, 537, 784, PALE, 1, page=p))
+
+    return frames + static + flow
+
+
 # ── public API ───────────────────────────────────────────────────────────────
 
 _GENERATORS = {
     "finance":   _gen_finance,
+    "sterling":  _gen_sterling,
     "nocturne":  _gen_nocturne,
     "ampersand": _gen_ampersand,
     "education": _gen_education,

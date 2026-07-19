@@ -149,7 +149,7 @@ export default function AiCvPanel({ onClose }) {
                 <div className={classes.section}>
                     <div className={classes.sectionLabel}>2. Choose a template to fill</div>
                     <div className={classes.templateGrid}>
-                        {TEMPLATES.map(t => (
+                        {TEMPLATES.filter(t => (t.category ?? "cv") === "cv").map(t => (
                             <button
                                 key={t.id}
                                 type="button"
