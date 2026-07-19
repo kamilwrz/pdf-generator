@@ -122,9 +122,8 @@ function PdfCanvas() {
 
 
   const { createPdf, updatePdf, saveElements, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, handleShowModalRequest, titleRef, A4_Elements_deleted, setA4_Elements_deleted);
-
-  // Autosave status shown in the topbar: null | "saving" | "saved" | "error".
-  const [autosaveStatus, setAutosaveStatus] = useState(null);
+  const autosaveTimerRef = useRef(null);
+  const autosaveQueueRef = useRef(Promise.resolve());
 
   function handleShowModalRequest() {
     setModalRequestStatus(bool => !bool);
@@ -206,18 +205,85 @@ function PdfCanvas() {
     return () => window.removeEventListener("keydown", onKey);
   }, [undo, redo])
 
+  // Every save captures a document-specific snapshot and runs after earlier
+  // saves. This prevents a slower, older request from overwriting newer canvas
+  // data or from clearing a deletion queued for another document.
+  const enqueueAutosave = useCallback((snapshot) => {
+    const persistSnapshot = async () => {
+      await saveElements(
+        snapshot.elements,
+        snapshot.pdfId,
+        titleRef,
+        snapshot.deleted,
+        snapshot.pageCount,
+        snapshot.pageSize,
+      );
+
+      const savedDeletionIds = new Set(snapshot.deleted.map((element) => element.element_id));
+      if (savedDeletionIds.size > 0) {
+        setA4_Elements_deleted((current) => current.filter(
+          (element) => !savedDeletionIds.has(element.element_id)
+        ));
+      }
+    };
+
+    const queuedSave = autosaveQueueRef.current.then(persistSnapshot, persistSnapshot);
+    // Keep the queue usable after a failed request. The caller still receives
+    // the rejection from `queuedSave`, while the next save is allowed to run.
+    autosaveQueueRef.current = queuedSave.catch(() => {});
+    return queuedSave;
+  }, [saveElements, setA4_Elements_deleted, titleRef]);
+
+  const flushAutosave = useCallback(async () => {
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    if (pdfId == null || isPdfLoading) return;
+
+    await enqueueAutosave({
+      elements: A4_Elements,
+      pdfId,
+      deleted: A4_Elements_deleted,
+      pageCount,
+      pageSize,
+    });
+  }, [
+    A4_Elements,
+    A4_Elements_deleted,
+    enqueueAutosave,
+    isPdfLoading,
+    pageCount,
+    pageSize,
+    pdfId,
+  ]);
+
   // Lightweight autosave: 2s after edits settle, persist canvas elements only
   // (no PDF render). Runs only once the document has been saved (has a pdfId).
   useEffect(() => {
     if (pdfId == null || isPdfLoading) return;
-    const t = setTimeout(() => {
-      setAutosaveStatus("saving");
-      saveElements(A4_Elements, pdfId, titleRef, A4_Elements_deleted, pageCount, pageSize)
-        .then(() => { setAutosaveStatus("saved"); setA4_Elements_deleted([]); })
-        .catch(() => setAutosaveStatus("error"));
+    const snapshot = {
+      elements: A4_Elements,
+      pdfId,
+      deleted: A4_Elements_deleted,
+      pageCount,
+      pageSize,
+    };
+    const timer = setTimeout(() => {
+      autosaveTimerRef.current = null;
+      enqueueAutosave(snapshot).catch((error) => {
+        console.error("Autozapis nie powiódł się.", error);
+      });
     }, 2000);
-    return () => clearTimeout(t);
-  }, [A4_Elements, pageCount, pageSize, pdfId, isPdfLoading, saveElements, titleRef, A4_Elements_deleted, setA4_Elements_deleted])
+    autosaveTimerRef.current = timer;
+
+    return () => {
+      clearTimeout(timer);
+      if (autosaveTimerRef.current === timer) {
+        autosaveTimerRef.current = null;
+      }
+    };
+  }, [A4_Elements, A4_Elements_deleted, enqueueAutosave, isPdfLoading, pageCount, pageSize, pdfId])
 
   const handleShowDropzone = useCallback(() => {
     setIsDropzone(boolDropzone => !boolDropzone);
@@ -275,13 +341,44 @@ function PdfCanvas() {
     setPdfId(pdfId)
   }
 
-  // Loading a template / AI doc / clearing starts a FRESH, unsaved document:
-  // drop the current pdfId so autosave can't overwrite the previously-open PDF,
-  // and only persists once the user explicitly creates it.
-  const loadTemplateFresh = useCallback((...args) => { setPdfId(null); handleLoadTemplate(...args); }, [handleLoadTemplate]);
-  const loadTemplateWithFillFresh = useCallback((...args) => { setPdfId(null); handleLoadTemplateWithFill(...args); }, [handleLoadTemplateWithFill]);
-  const loadAiElementsFresh = useCallback((...args) => { setPdfId(null); handleLoadAiElements(...args); }, [handleLoadAiElements]);
-  const clearA4Fresh = useCallback(() => { setPdfId(null); handleClearA4(); }, [handleClearA4]);
+  // Loading a template / AI doc / clearing starts a fresh, unsaved document.
+  // Flush first so switching away never drops edits from the currently open PDF.
+  const startFreshDocument = useCallback(async (loadDocument) => {
+    try {
+      await flushAutosave();
+      setPdfId(null);
+      loadDocument();
+    } catch (error) {
+      console.error("Nie można rozpocząć nowego dokumentu: autozapis nie powiódł się.", error);
+    }
+  }, [flushAutosave]);
+
+  const loadTemplateFresh = useCallback(
+    (...args) => startFreshDocument(() => handleLoadTemplate(...args)),
+    [handleLoadTemplate, startFreshDocument],
+  );
+  const loadTemplateWithFillFresh = useCallback(
+    (...args) => startFreshDocument(() => handleLoadTemplateWithFill(...args)),
+    [handleLoadTemplateWithFill, startFreshDocument],
+  );
+  const loadAiElementsFresh = useCallback(
+    (...args) => startFreshDocument(() => handleLoadAiElements(...args)),
+    [handleLoadAiElements, startFreshDocument],
+  );
+  const clearA4Fresh = useCallback(
+    () => startFreshDocument(handleClearA4),
+    [handleClearA4, startFreshDocument],
+  );
+  // A successful delete must clear the local canvas without attempting to
+  // autosave the PDF row that has just been removed from the server.
+  const discardActiveDocument = useCallback(() => {
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    setPdfId(null);
+    handleClearA4();
+  }, [handleClearA4]);
 
   const ctxValue = useMemo(() => ({
     //useA4Elements hook
@@ -310,6 +407,9 @@ function PdfCanvas() {
     resizeElement: handleResizeElement,
     setA4_Elements: setA4_Elements,
     setA4_Elements_deleted: setA4_Elements_deleted,
+    activePdfId: pdfId,
+    flushAutosave,
+    discardActiveDocument,
     clearA4: clearA4Fresh,
     //templates
     isTemplates: isTemplates,
@@ -340,7 +440,6 @@ function PdfCanvas() {
     canUndo: canUndo,
     canRedo: canRedo,
     resetHistory: resetHistory,
-    autosaveStatus: autosaveStatus,
     //usePdfExport hook
     updatePdf: updatePdfWithElements,
     createPdf: createPdfWithElements,
@@ -374,13 +473,13 @@ function PdfCanvas() {
     handleAlignElements, handleDeleteElement, handleDeleteSelectedElements, handleDuplicateSelectedElements, setA4_Elements,
     setValueImageUpload, setIsModalPdfs, handleResizeElement, 
     updatePdfWithElements, handlePdfId, 
-    clearA4Fresh, loadTemplateFresh, loadTemplateWithFillFresh, loadAiElementsFresh,
+    clearA4Fresh, discardActiveDocument, flushAutosave, loadTemplateFresh, loadTemplateWithFillFresh, loadAiElementsFresh,
     handleShowModalRequest, handleLogout, PDFs, setPDFs,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
     isTemplates, handleShowTemplates, handleMoveElementWithBelow, handleShowAiPanel,
     handleShowDeckPanel, handleShowArticlePanel, pageSize, setPageSize, setPagePreset,
-    undo, redo, canUndo, canRedo, resetHistory, autosaveStatus,
+    undo, redo, canUndo, canRedo, resetHistory,
     layoutPreviewPatches,
   ])
 

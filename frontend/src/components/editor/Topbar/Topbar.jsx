@@ -19,6 +19,7 @@ export default function Topbar({ titleRef }) {
         updatePdf,
         clearA4,
         isPdfLoading,
+        activePdfId,
         pageSize,
         setPagePreset,
         undo,
@@ -99,7 +100,13 @@ export default function Topbar({ titleRef }) {
                     <FiTrash2 />
                     <span className={classes.label}>Wyczyść</span>
                 </button>
-                <button type="button" className={classes.secondary} onClick={updatePdf} disabled={isPdfLoading}>
+                <button
+                    type="button"
+                    className={classes.secondary}
+                    onClick={updatePdf}
+                    disabled={isPdfLoading || activePdfId == null}
+                    title={activePdfId == null ? "Najpierw utwórz PDF" : "Aktualizuj zapisany PDF"}
+                >
                     <FiRefreshCw />
                     <span className={classes.label}>Aktualizuj</span>
                 </button>
