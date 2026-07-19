@@ -68,7 +68,7 @@ export default function AiCvPanel({ onClose }) {
                 JSON.stringify({ cv_data: cvData, template_id: template.id }),
                 "Template generation failed"
             );
-            loadAiElements(res.elements, template.name);
+            loadAiElements(res.elements, `${template.name} CV`);
             onClose();
         } catch (err) {
             setError(err.message || "Failed to generate template.");

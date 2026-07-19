@@ -36,6 +36,8 @@ class Pdf(Base):
     updated_at = Column(DateTime)
     owner_id = Column(Integer, ForeignKey("users.id"))
     pages = Column(Integer, default=1)
+    page_width = Column(Float, default=595)
+    page_height = Column(Float, default=842)
 
 Pdf.metadata.create_all(bind=engine)
 
@@ -83,6 +85,10 @@ def _run_lightweight_migrations():
         cols = {c["name"] for c in inspector.get_columns("pdfs")}
         if "pages" not in cols:
             pending.append("ALTER TABLE pdfs ADD COLUMN pages INTEGER DEFAULT 1")
+        if "page_width" not in cols:
+            pending.append("ALTER TABLE pdfs ADD COLUMN page_width FLOAT DEFAULT 595")
+        if "page_height" not in cols:
+            pending.append("ALTER TABLE pdfs ADD COLUMN page_height FLOAT DEFAULT 842")
 
     if not pending:
         return

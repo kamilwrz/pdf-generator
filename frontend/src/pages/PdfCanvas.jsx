@@ -21,6 +21,7 @@ import Guides from '../components/canvas/Guides/Guides';
 import Connectors from '../components/canvas/Connectors/Connectors';
 import TemplatesModal from '../components/modals/TemplatesModal/TemplatesModal';
 import AiCvPanel from '../components/ai/AiCvPanel/AiCvPanel';
+import AiDeckPanel from '../components/ai/AiDeckPanel/AiDeckPanel';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 
 function PdfCanvas() {
@@ -39,6 +40,8 @@ function PdfCanvas() {
   const [isTemplates, setIsTemplates] = useState(false);
   //state for showing the AI CV fill panel
   const [isAiPanel, setIsAiPanel] = useState(false);
+  //state for showing the AI deck generator panel
+  const [isDeckPanel, setIsDeckPanel] = useState(false);
   // state for showing the progress var in Dropzone when IMG is uploaded
   const [valueImageUpload, setValueImageUpload] = useState(0);
   //state for seting the PDF id, used in ModalPdf.jsx
@@ -92,7 +95,10 @@ function PdfCanvas() {
     setCurrentPage,
     addPage,
     removePage,
-    goToPage
+    goToPage,
+    pageSize,
+    setPageSize,
+    setPagePreset
   } = useA4Elements(titleRef)
 
  
@@ -175,18 +181,22 @@ function PdfCanvas() {
     setIsAiPanel(bool => !bool);
   }, [])
 
+  const handleShowDeckPanel = useCallback(() => {
+    setIsDeckPanel(bool => !bool);
+  }, [])
+
   const handleShowGallery = useCallback(() => {
     setIsGallery(boolGallery => !boolGallery);
   }, [])
 
 
   const createPdfWithElements = useCallback(() => {
-    createPdf(A4_Elements, titleRef, pageCount);
-  }, [A4_Elements, createPdf, titleRef, pageCount]);
+    createPdf(A4_Elements, titleRef, pageCount, pageSize);
+  }, [A4_Elements, createPdf, titleRef, pageCount, pageSize]);
 
   const updatePdfWithElements = useCallback(() => {
-    updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted, pageCount);
-  }, [A4_Elements, pdfId, updatePdf, titleRef, A4_Elements_deleted, pageCount]);
+    updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted, pageCount, pageSize);
+  }, [A4_Elements, pdfId, updatePdf, titleRef, A4_Elements_deleted, pageCount, pageSize]);
 
   function handlePdfId(pdfId) {
     setPdfId(pdfId)
@@ -223,6 +233,11 @@ function PdfCanvas() {
     loadAiElements: handleLoadAiElements,
     //ai panel
     showAiPanel: handleShowAiPanel,
+    showDeckPanel: handleShowDeckPanel,
+    //page geometry
+    pageSize: pageSize,
+    setPageSize: setPageSize,
+    setPagePreset: setPagePreset,
     //multi-page
     pageCount: pageCount,
     setPageCount: setPageCount,
@@ -266,6 +281,7 @@ function PdfCanvas() {
     pageCount, currentPage, addPage, removePage, goToPage, setPageCount, setCurrentPage,
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
     isTemplates, handleShowTemplates, handleLoadTemplate, handleLoadTemplateWithFill, handleLoadAiElements, handleMoveElementWithBelow, handleShowAiPanel,
+    handleShowDeckPanel, pageSize, setPageSize, setPagePreset,
   ])
 
   console.log(A4_Elements);
@@ -294,12 +310,17 @@ function PdfCanvas() {
               <AiCvPanel onClose={handleShowAiPanel} />
             </div>
           )}
+          {isDeckPanel && (
+            <div style={{ position: "absolute", left: "100%", top: 0, width: 340, background: "#fff", borderLeft: "1px solid var(--border-line)", borderRight: "1px solid var(--border-line)", height: "100%", overflowY: "auto", zIndex: 1100, boxShadow: "4px 0 16px rgba(30,48,78,.10)" }}>
+              <AiDeckPanel onClose={handleShowDeckPanel} />
+            </div>
+          )}
           <Editor />
         </Sidebar>
         <div className="right-pane">
           <Topbar titleRef={titleRef} />
           <div className="canvas-area">
-            <A4 width="595px" height="842px" ref={A4ref}>
+            <A4 width={`${pageSize.width}px`} height={`${pageSize.height}px`} ref={A4ref}>
               {isPdfLoading && <Spinner loading={isPdfLoading}/>}
               <CanvasElements elements={A4_Elements.filter(element => (element.page ?? 1) === currentPage)} />
               <Connectors />

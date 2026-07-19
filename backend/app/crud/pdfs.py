@@ -5,13 +5,15 @@ import datetime
 from app.crud.images import request_image_by_id
 
 
-def create_new_pdf(db:Session, title:str, user_id:int, file_path:str, elements:list, pages:int = 1):
+def create_new_pdf(db:Session, title:str, user_id:int, file_path:str, elements:list, pages:int = 1, page_width:float = 595, page_height:float = 842):
 
     pdf_db = Pdf(
         title = title,
         file_path = file_path,
         owner_id = user_id,
         pages = pages or 1,
+        page_width = page_width or 595,
+        page_height = page_height or 842,
         created_at = datetime.datetime.now(timezone.utc),
         updated_at = datetime.datetime.now(timezone.utc)
     )

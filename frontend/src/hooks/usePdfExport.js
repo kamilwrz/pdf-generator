@@ -12,7 +12,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   const MIN_SPINNER_MS = 650;
 
 
-  const createPdf = useCallback((A4_Elements, titleRef, pages = 1) => {
+  const createPdf = useCallback((A4_Elements, titleRef, pages = 1, pageSize) => {
 
     setIsPdfLoading(true);
     const startedAt = Date.now();
@@ -21,7 +21,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
 
     const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
 
-    api.httpRequest(ENDPOINTS.PDF.CREATE, "POST", JSON.stringify({root: sorted, pdf_title: titleRef.current.value + ".pdf", pages}), "Failed to create the PDF!").
+    api.httpRequest(ENDPOINTS.PDF.CREATE, "POST", JSON.stringify({root: sorted, pdf_title: titleRef.current.value + ".pdf", pages, page_width: pageSize?.width ?? 595, page_height: pageSize?.height ?? 842}), "Failed to create the PDF!").
     then((data) => {handlePdfId(data.pdf_id); setResponsePDF({success: data.created, link:data.link, pdf_id:data.pdf_id})}).
     catch((error) => setResponsePDF(error)).finally(() => {
       setTimeout(() => {
@@ -33,7 +33,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   }, [handlePdfId, handleShowModal, titleRef]);
 
   
-  const updatePdf = useCallback((A4_Elements, PDF_ID, titleRef, A4_Elements_deleted, pages = 1) => {
+  const updatePdf = useCallback((A4_Elements, PDF_ID, titleRef, A4_Elements_deleted, pages = 1, pageSize) => {
 
     setIsPdfLoading(true);
     const startedAt = Date.now();
@@ -44,7 +44,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
 
     const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
 
-    api.httpRequest(ENDPOINTS.PDF.UPDATE, "PUT", JSON.stringify({root: elements, pdf_id: PDF_ID, pdf_title: titleRef.current.value +".pdf", pages}), "Failed to update the PDF!").
+    api.httpRequest(ENDPOINTS.PDF.UPDATE, "PUT", JSON.stringify({root: elements, pdf_id: PDF_ID, pdf_title: titleRef.current.value +".pdf", pages, page_width: pageSize?.width ?? 595, page_height: pageSize?.height ?? 842}), "Failed to update the PDF!").
     then((data) => {setResponsePDF({success: data.updated, link: data.link, pdf_id: data.pdf_id})}).
     catch((error) => setResponsePDF(error)).finally(() => {
       setTimeout(() => {

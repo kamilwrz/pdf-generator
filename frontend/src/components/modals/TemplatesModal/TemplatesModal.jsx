@@ -1,13 +1,30 @@
 import { createPortal } from "react-dom";
-import { use } from "react";
+import { use, useState } from "react";
 import classes from "./TemplatesModal.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { TEMPLATES } from "../../../templates";
+import { TEMPLATES, TEMPLATE_CATEGORIES } from "../../../templates";
 import CloseButton from "../../common/CloseButton/CloseButton";
 
 // Lightweight CSS mini-mock of each template, keyed by id. Not a render — just
 // enough to convey the layout character (column vs sidebar vs framed).
 function Preview({ id, accent }) {
+    if (id === "meridian") {
+        // landscape 16:9 slide mock: left accent bar, serif title, frame motif
+        return (
+            <div className={classes.paper} style={{ aspectRatio: "16 / 9", height: "auto", alignSelf: "center" }}>
+                <div style={{ width: "5px", background: accent }} />
+                <div className={classes.col} style={{ justifyContent: "center" }}>
+                    <span className={classes.bar} style={{ background: "#1F2A3A", width: "58%", height: "9px" }} />
+                    <span className={classes.barThin} style={{ background: accent, width: "20%" }} />
+                    <span className={classes.line} style={{ width: "48%" }} />
+                </div>
+                <div style={{ position: "relative", width: "34%", margin: "10px" }}>
+                    <span style={{ position: "absolute", inset: "8% 20% 30% 0", border: `1.5px solid #9DBBE6` }} />
+                    <span style={{ position: "absolute", inset: "22% 6% 16% 14%", border: `1.5px solid ${accent}` }} />
+                </div>
+            </div>
+        );
+    }
     if (id === "it") {
         return (
             <div className={classes.paper}>
@@ -169,6 +186,7 @@ function Preview({ id, accent }) {
 
 export default function TemplatesModal() {
     const { isTemplates, showTemplates, loadTemplate, A4_Elements } = use(PdfContext);
+    const [category, setCategory] = useState("cv");
 
     if (!isTemplates) return null;
 
@@ -177,9 +195,12 @@ export default function TemplatesModal() {
             !window.confirm("Replace the current canvas with this template? Unsaved elements on the canvas will be cleared.")) {
             return;
         }
-        loadTemplate(t.elements, t.name);
+        const title = t.category === "deck" ? `${t.name} deck` : `${t.name} CV`;
+        loadTemplate(t.elements, title, t.pageSize);
         showTemplates();
     }
+
+    const visible = TEMPLATES.filter((t) => (t.category ?? "cv") === category);
 
     return createPortal(
         <div className={classes.backdrop} onClick={showTemplates}>
@@ -187,12 +208,22 @@ export default function TemplatesModal() {
                 <div className={classes.header}>
                     <div>
                         <h2>Start from a template</h2>
-                        <p>Pick a CV layout, then personalize every element on the canvas.</p>
+                        <p>Pick a layout, then personalize every element on the canvas.</p>
                     </div>
                     <CloseButton clickHandler={showTemplates} right={20} top={20} />
                 </div>
+                <div className={classes.tabs}>
+                    {TEMPLATE_CATEGORIES.map((c) => (
+                        <button
+                            key={c.id}
+                            type="button"
+                            className={`${classes.tab} ${category === c.id ? classes.tabActive : ""}`}
+                            onClick={() => setCategory(c.id)}
+                        >{c.label}</button>
+                    ))}
+                </div>
                 <div className={classes.grid}>
-                    {TEMPLATES.map((t) => (
+                    {visible.map((t) => (
                         <div key={t.id} className={classes.card}>
                             <div className={classes.previewWrap}>
                                 <Preview id={t.id} accent={t.accent} />

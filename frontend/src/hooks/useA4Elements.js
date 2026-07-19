@@ -6,6 +6,21 @@ import { nanoid } from 'nanoid';
 // is intentionally excluded.
 const CONNECTABLE = new Set(["textarea", "rectangle", "image", "line"]);
 
+// Canvas size presets (pt = px, 1:1 with the PDF). The deck preset matches
+// PowerPoint's 13.33×7.5in widescreen slide.
+export const PAGE_PRESETS = {
+  "a4-portrait":  { label: "A4 · Portrait",  width: 595, height: 842 },
+  "a4-landscape": { label: "A4 · Landscape", width: 842, height: 595 },
+  "deck-16-9":    { label: "Deck · 16:9",    width: 960, height: 540 },
+};
+
+// Match stored dimensions back to a preset id (loading a saved PDF).
+export function presetFromDims(width, height) {
+  const found = Object.entries(PAGE_PRESETS)
+    .find(([, p]) => p.width === width && p.height === height);
+  return found ? found[0] : "custom";
+}
+
 export function useA4Elements(titleRef) {
 
   const A4ref = useRef(null);
@@ -23,12 +38,22 @@ export function useA4Elements(titleRef) {
   const [pageCount, setPageCount] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // ---- Page geometry (preset-driven; default A4 portrait) ----
+  const [pageSize, setPageSize] = useState({ preset: "a4-portrait", ...PAGE_PRESETS["a4-portrait"] });
+
   // Refs let the stable add-element callbacks read the latest page/elements
   // without being recreated on every page change.
   const currentPageRef = useRef(1);
   const elementsRef = useRef([]);
+  const pageSizeRef = useRef(pageSize);
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
   useEffect(() => { elementsRef.current = A4_Elements; }, [A4_Elements]);
+  useEffect(() => { pageSizeRef.current = pageSize; }, [pageSize]);
+
+  const setPagePreset = useCallback((presetId) => {
+    const p = PAGE_PRESETS[presetId];
+    if (p) setPageSize({ preset: presetId, width: p.width, height: p.height });
+  }, []);
 
   const clearSelection = useCallback(() => {
     setA4_Elements(prev => prev.some(e => e.isSelected)
@@ -337,8 +362,7 @@ export function useA4Elements(titleRef) {
       const original = prevState.find(el => el.element_id === elementId);
       if (!original) return prevState;
 
-      const A4_WIDTH = 595;
-      const A4_HEIGHT = 842;
+      const { width: A4_WIDTH, height: A4_HEIGHT } = pageSizeRef.current;
       const OFFSET = 15;
       const w = parseFloat(original.width) || 0;
       const h = parseFloat(original.height) || 0;
@@ -403,7 +427,7 @@ export function useA4Elements(titleRef) {
   // flows overflow onto the next page (creating it), pushing up pulls elements
   // back from later pages and trims the now-empty trailing pages.
   const handleMoveElementWithBelow = useCallback((elementId, newTop) => {
-    const PAGE_HEIGHT = 842;
+    const PAGE_HEIGHT = pageSizeRef.current.height;
     const elements = elementsRef.current;
     const target = elements.find(el => el.element_id === elementId);
     if (!target) return;
@@ -470,7 +494,7 @@ export function useA4Elements(titleRef) {
       setA4_Elements(prevState => {
         const newState = prevState.map((element) => {
           if (element.element_id === elementId) {
-            return { ...element, left: (595 - width) / 2 };
+            return { ...element, left: (pageSizeRef.current.width - width) / 2 };
           }
           else {
             return { ...element };
@@ -483,7 +507,7 @@ export function useA4Elements(titleRef) {
       setA4_Elements(prevState => {
         const newState = prevState.map((element) => {
           if (element.element_id === elementId) {
-            return { ...element, left: 595 - width - 1 };
+            return { ...element, left: pageSizeRef.current.width - width - 1 };
           }
           else {
             return { ...element };
@@ -511,8 +535,7 @@ export function useA4Elements(titleRef) {
 
     const A4_COORDS = A4ref.current.getBoundingClientRect();
 
-    const A4_WIDTH = 595;   
-    const A4_HEIGHT = 842;  
+    const { width: A4_WIDTH, height: A4_HEIGHT } = pageSizeRef.current;
     const MIN_WIDTH = 10;
     const MIN_HEIGHT = 10;
 
@@ -679,20 +702,55 @@ export function useA4Elements(titleRef) {
       titleRef.current.value = "";
   }, [])
 
-  // Replace the canvas with a template (array of element specs). Each spec gets
-  // a fresh id + page; interaction flags default off. Resets to a single page.
-  // Load a template and overlay AI-generated content.
-  // fills: [{id, content}] from POST /ai/fill_template
-  // Load AI-generated elements directly (the backend already built the full layout).
-  // Each spec gets a fresh nanoid; the page count is derived from the highest page value.
-  const handleLoadAiElements = useCallback((specs, templateName) => {
-    const mapped = (specs || []).map(spec => ({
-      isSelected: false,
-      isMove: false,
-      isEditing: false,
-      ...spec,
-      element_id: nanoid(),
-    }));
+  // Assign fresh element_ids to a list of specs, honouring symbolic `id` keys:
+  // a template/AI spec may carry `id: "box1"` and a connector referencing it via
+  // source_id/target_id — those references are rewritten to the generated
+  // nanoids so connectors survive loading. Interaction flags default off.
+  const materializeSpecs = (specs) => {
+    const idMap = {};
+    const mapped = (specs || []).map(spec => {
+      const nid = nanoid();
+      if (spec.id != null) idMap[spec.id] = nid;
+      const { id, ...rest } = spec;
+      return {
+        isSelected: false,
+        isMove: false,
+        isEditing: false,
+        ...rest,
+        page: rest.page ?? 1,
+        element_id: nid,
+      };
+    });
+    return mapped.map(el => el.category === "connector"
+      ? { ...el, source_id: idMap[el.source_id] ?? el.source_id, target_id: idMap[el.target_id] ?? el.target_id }
+      : el);
+  };
+
+  // Replace the canvas with generated/authored specs. `title` is used verbatim;
+  // `presetId` (optional) switches the page size (e.g. deck templates).
+  const handleLoadAiElements = useCallback((specs, title, presetId) => {
+    const mapped = materializeSpecs(specs);
+    const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
+    setA4_Elements(mapped);
+    setA4_Elements_deleted([]);
+    setPageCount(maxPage);
+    setCurrentPage(1);
+    if (presetId) setPagePreset(presetId);
+    if (titleRef?.current && title) {
+      titleRef.current.value = title;
+    }
+  }, [setPagePreset])
+
+  const handleLoadTemplateWithFill = useCallback((templateElements, templateName, fills) => {
+    // fills use array index as id (String) — match by position, not by element_id
+    const fillMap = Object.fromEntries((fills || []).map(f => [f.id, f.content]));
+    const withContent = templateElements.map((spec, i) => {
+      const aiContent = fillMap[String(i)];
+      const useAi = (spec.category === "text" || spec.category === "textarea")
+        && aiContent !== undefined && aiContent !== "";
+      return { ...spec, content: useAi ? aiContent : spec.content };
+    });
+    const mapped = materializeSpecs(withContent);
     const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
     setA4_Elements(mapped);
     setA4_Elements_deleted([]);
@@ -703,49 +761,18 @@ export function useA4Elements(titleRef) {
     }
   }, [])
 
-  const handleLoadTemplateWithFill = useCallback((templateElements, templateName, fills) => {
-    // fills use array index as id (String) — match by position, not by element_id
-    const fillMap = Object.fromEntries((fills || []).map(f => [f.id, f.content]));
-    const mapped = templateElements.map((spec, i) => {
-      const aiContent = fillMap[String(i)];
-      const useAi = (spec.category === "text" || spec.category === "textarea")
-        && aiContent !== undefined && aiContent !== "";
-      return {
-        isSelected: false,
-        isMove: false,
-        isEditing: false,
-        ...spec,
-        element_id: nanoid(),
-        page: 1,
-        content: useAi ? aiContent : spec.content,
-      };
-    });
+  const handleLoadTemplate = useCallback((templateElements, title, presetId) => {
+    const mapped = materializeSpecs(templateElements);
+    const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
     setA4_Elements(mapped);
     setA4_Elements_deleted([]);
-    setPageCount(1);
+    setPageCount(maxPage);
     setCurrentPage(1);
-    if (titleRef?.current && templateName) {
-      titleRef.current.value = `${templateName} CV`;
+    if (presetId) setPagePreset(presetId);
+    if (titleRef?.current && title) {
+      titleRef.current.value = title;
     }
-  }, [])
-
-  const handleLoadTemplate = useCallback((templateElements, templateName) => {
-    const mapped = templateElements.map((spec) => ({
-      isSelected: false,
-      isMove: false,
-      isEditing: false,
-      ...spec,
-      element_id: nanoid(),
-      page: 1,
-    }));
-    setA4_Elements(mapped);
-    setA4_Elements_deleted([]);
-    setPageCount(1);
-    setCurrentPage(1);
-    if (titleRef?.current && templateName) {
-      titleRef.current.value = `${templateName} CV`;
-    }
-  }, [])
+  }, [setPagePreset])
 
 
   return {
@@ -789,6 +816,10 @@ export function useA4Elements(titleRef) {
     addPage: handleAddPage,
     removePage: handleRemovePage,
     goToPage: handleGoToPage,
+    // page geometry
+    pageSize,
+    setPageSize,
+    setPagePreset,
   };
 
 }

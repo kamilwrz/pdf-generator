@@ -62,16 +62,19 @@ class PDF_Generator:
     def __init__(self, DATA, CANVAS):
         self.data = DATA
         self.c = CANVAS
+        # Page height drives the top-left -> bottom-left y flip everywhere.
+        # A4 portrait (842) by default; decks pass 540 via the request schema.
+        self.page_h = float(getattr(DATA, "page_height", 842) or 842)
 
     def setTitle(self, title):
         self.c.setTitle(title)
 
     def renderImage(self, src, width, height, left, top):
-        corrected_y = 842 - top - height
+        corrected_y = self.page_h - top - height
         self.c.drawImage(src, left, corrected_y, width=width, height=height, mask=None)
 
     def renderLine(self, width, height, left, top, color):
-        corrected_y = 842 - top - height
+        corrected_y = self.page_h - top - height
         self.c.setFillColor(HexColor(color))
         self.c.rect(left, corrected_y, width=width, height=height, stroke=0, fill=1)
 
@@ -80,7 +83,7 @@ class PDF_Generator:
         (the element reuses backgroundColor for it, like the line). The stroke
         is inset by half its width so the outer edge lines up with the box —
         matching the canvas's box-sizing: border-box."""
-        corrected_y = 842 - top - height
+        corrected_y = self.page_h - top - height
         bw = float(border_width) if border_width else 1.0
         self.c.setStrokeColor(HexColor(color or "#000000"))
         self.c.setLineWidth(bw)
@@ -129,7 +132,7 @@ class PDF_Generator:
         stroke = HexColor(color or "#000000")
         self.c.setStrokeColor(stroke)
         self.c.setLineWidth(bw)
-        flip = lambda p: (p[0], 842 - p[1])
+        flip = lambda p: (p[0], self.page_h - p[1])
         for i in range(len(pts) - 1):
             x1, y1 = flip(pts[i])
             x2, y2 = flip(pts[i + 1])
@@ -218,7 +221,7 @@ class PDF_Generator:
             self.c.line(x, uy, x + width, uy)
 
     def renderText(self, left, top, fontFamily, fontSize, color, content, bold=False, italic=False, underline=False):
-        corrected_y = 842 - top - fontSize * 0.34
+        corrected_y = self.page_h - top - fontSize * 0.34
         self._draw_text_line(left, corrected_y, content, fontFamily, fontSize, color, bold, italic, underline)
 
     @staticmethod
@@ -320,7 +323,7 @@ class PDF_Generator:
             if line_top >= height:  # clipped by the box
                 break
             baseline_from_top = line_top + half_leading + ascent
-            y = 842 - top - baseline_from_top
+            y = self.page_h - top - baseline_from_top
 
             # Alignment: offset each line by its measured width (same width the
             # browser computes, since both use the same font). Justify fills the

@@ -10,6 +10,7 @@ import { CiClock1 } from "react-icons/ci";
 import { GrView } from "react-icons/gr";
 import { RiCloseLargeFill } from "react-icons/ri";
 import { PdfContext } from "../../../store/pdfgenerator-context";
+import { presetFromDims } from "../../../hooks/useA4Elements";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { ApiClient } from "../../../services/api";
@@ -41,7 +42,8 @@ export default function ModalPdfs({ title }) {
         setPDFdownloadData,
         PDFdownloadData,
         setPageCount,
-        setCurrentPage
+        setCurrentPage,
+        setPageSize
     } = use(PdfContext);
 
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
@@ -60,6 +62,11 @@ export default function ModalPdfs({ title }) {
         // Restore the saved page count and jump back to the first page.
         setPageCount(pdfCanvas?.pages || 1);
         setCurrentPage(1);
+
+        // Restore the saved page geometry (older PDFs default to A4 portrait).
+        const pw = parseFloat(pdfCanvas?.page_width) || 595;
+        const ph = parseFloat(pdfCanvas?.page_height) || 842;
+        setPageSize({ preset: presetFromDims(pw, ph), width: pw, height: ph });
 
         api.httpRequest(ENDPOINTS.PDF.SHOW, "POST", JSON.stringify(id), "Failed to show choosen PDF!").
             then((data) => {

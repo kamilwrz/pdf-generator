@@ -1,19 +1,24 @@
 import classes from "./Topbar.module.css";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
+import { PAGE_PRESETS } from "../../../hooks/useA4Elements";
 import { LuLayoutTemplate } from "react-icons/lu";
 import { RiRobot2Line, RiDownload2Line } from "react-icons/ri";
 import { FiRefreshCw, FiTrash2 } from "react-icons/fi";
+import { MdOutlineSlideshow } from "react-icons/md";
 import { TiPen } from "react-icons/ti";
 
 export default function Topbar({ titleRef }) {
     const {
         showTemplates,
         showAiPanel,
+        showDeckPanel,
         createPdf,
         updatePdf,
         clearA4,
         isPdfLoading,
+        pageSize,
+        setPagePreset,
     } = use(PdfContext);
 
     return (
@@ -21,11 +26,15 @@ export default function Topbar({ titleRef }) {
             <div className={classes.group}>
                 <button type="button" className={classes.feature} onClick={showTemplates}>
                     <LuLayoutTemplate />
-                    <span className={classes.label}>CV Templates</span>
+                    <span className={classes.label}>Templates</span>
                 </button>
                 <button type="button" className={classes.feature} onClick={showAiPanel}>
                     <RiRobot2Line />
                     <span className={classes.label}>Fill from my CV</span>
+                </button>
+                <button type="button" className={classes.feature} onClick={showDeckPanel}>
+                    <MdOutlineSlideshow />
+                    <span className={classes.label}>AI Deck</span>
                 </button>
             </div>
 
@@ -51,6 +60,19 @@ export default function Topbar({ titleRef }) {
                         <TiPen />
                     </button>
                 </div>
+                <select
+                    className={classes.sizeSelect}
+                    aria-label="Page size"
+                    value={pageSize?.preset ?? "a4-portrait"}
+                    onChange={(e) => setPagePreset(e.target.value)}
+                >
+                    {Object.entries(PAGE_PRESETS).map(([id, p]) => (
+                        <option key={id} value={id}>{p.label}</option>
+                    ))}
+                    {pageSize?.preset === "custom" && (
+                        <option value="custom">{`${pageSize.width}×${pageSize.height}`}</option>
+                    )}
+                </select>
             </div>
 
             <div className={classes.group}>

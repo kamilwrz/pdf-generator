@@ -193,3 +193,36 @@
 @media only screen and (max-width: 640px) {
     .grid { grid-template-columns: 1fr; }
 }
+
+/* ---- category tabs (CV | Decks) ---- */
+.tabs {
+    display: flex;
+    gap: 8px;
+    padding: 0 24px 14px;
+}
+
+.tab {
+    padding: 7px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--secondary-bg);
+    font: 700 13px var(--font-body);
+    color: var(--muted-font);
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+}
+
+.tab:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.tabActive {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.tabActive:hover {
+    color: #fff;
+}

@@ -72,7 +72,7 @@ async def create_user_pdf(
             pass
         pdf_bytes = build_pdf_to_buffer(pdf_data, elements, image_src_to_local_path)
         file_path = s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
-        pdf_id = create_new_pdf(db, title, db_user.id, file_path, elements, pdf_data.pages)
+        pdf_id = create_new_pdf(db, title, db_user.id, file_path, elements, pdf_data.pages, pdf_data.page_width, pdf_data.page_height)
         return {"created": "PDF created!", "link": file_path, "pdf_id": pdf_id}
     
     else:
@@ -85,9 +85,9 @@ async def create_user_pdf(
 
         pdf_path = user_upload_dir / title
 
-        pdf_id = create_new_pdf(db, title, db_user.id, pdf_path.as_posix(), elements, pdf_data.pages)
+        pdf_id = create_new_pdf(db, title, db_user.id, pdf_path.as_posix(), elements, pdf_data.pages, pdf_data.page_width, pdf_data.page_height)
 
-        pdf = PDF_Generator(pdf_data, canvas.Canvas(str(user_upload_dir / title), pagesize=(595, 842)))
+        pdf = PDF_Generator(pdf_data, canvas.Canvas(str(user_upload_dir / title), pagesize=(pdf_data.page_width, pdf_data.page_height)))
         pdf.setTitle(title)
 
         pdf.render_elements(elements, image_src_to_local_path, pdf_data.pages)
@@ -179,6 +179,8 @@ async def update_user_pdf(
         s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
         pdf_row.title = title
         pdf_row.pages = pdf_data.pages
+        pdf_row.page_width = pdf_data.page_width
+        pdf_row.page_height = pdf_data.page_height
         pdf_row.file_path = f"https://{s3_storage.S3_BUCKET}.s3.{s3_storage.AWS_REGION}.amazonaws.com/{key}"
         link = pdf_row.file_path
         id = pdf_row.id
@@ -190,10 +192,12 @@ async def update_user_pdf(
     else:
         new_file_path = rename_pdf_file(pdf_row, title)
         pdf_row.pages = pdf_data.pages
+        pdf_row.page_width = pdf_data.page_width
+        pdf_row.page_height = pdf_data.page_height
         db.add(pdf_row)
         existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
         update_pdf_elements(db, elements, existing_by_id, pdf_id)
-        c = canvas.Canvas(new_file_path, pagesize=(595, 842))
+        c = canvas.Canvas(new_file_path, pagesize=(pdf_data.page_width, pdf_data.page_height))
         pdf = PDF_Generator(pdf_data, c)
         pdf.setTitle(pdf_row.title or "untitled")
         pdf.render_elements(elements, image_src_to_local_path, pdf_data.pages)

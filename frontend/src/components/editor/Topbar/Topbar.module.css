@@ -95,6 +95,28 @@
     color: var(--accent);
 }
 
+/* ---- page size preset picker ---- */
+.sizeSelect {
+    height: 34px;
+    margin-left: 8px;
+    padding: 0 8px;
+    flex-shrink: 0;
+    background: var(--secondary-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font: 700 12px var(--font-body);
+    color: var(--muted-font);
+    outline: none;
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+}
+
+.sizeSelect:hover,
+.sizeSelect:focus {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
 /* shared button base */
 .feature,
 .ghost,

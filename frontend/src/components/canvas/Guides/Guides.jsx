@@ -2,8 +2,6 @@ import classes from "./Guides.module.css";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 
-const A4_WIDTH = 595;
-const A4_HEIGHT = 842;
 const THRESHOLD = 4; // px — how close counts as "aligned"
 const PAD = 8;       // px — how far the guide extends past the outermost element
 
@@ -40,7 +38,9 @@ function closestCoord(movAnchors, others, anchorsOf) {
 }
 
 export default function Guides() {
-    const { A4_Elements, currentPage } = use(PdfContext);
+    const { A4_Elements, currentPage, pageSize } = use(PdfContext);
+    const A4_WIDTH = pageSize?.width ?? 595;
+    const A4_HEIGHT = pageSize?.height ?? 842;
 
     const onPage = (el) => (el.page ?? 1) === currentPage;
     const moving = A4_Elements.find((el) => el.isMove && onPage(el));
