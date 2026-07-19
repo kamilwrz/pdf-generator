@@ -4,12 +4,9 @@ from starlette import status
 from app.schemas.user_schema import UserCreateRequest
 from app.crud.user import get_user_by_username, create_user, authenticate_user
 from fastapi.security import OAuth2PasswordRequestForm
-from app.core.security import create_access_token, verify_token
-import os
+from app.core.security import create_access_token, get_access_token_expire_minutes, verify_token
 from datetime import timedelta
 from app.dependencies import get_db
-
-token_exp_min = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
 router = APIRouter(
     prefix="/auth",
@@ -34,7 +31,7 @@ async def login_for_acess_token(form_data: OAuth2PasswordRequestForm = Depends()
             detail="Nieprawidłowa nazwa użytkownika lub hasło.",
             headers={"WWW-Authenticate" : "Bearer"},
         )
-    access_token_expires = timedelta(minutes=token_exp_min)
+    access_token_expires = timedelta(minutes=get_access_token_expire_minutes())
     access_token = create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
 
     return {"access_token": access_token, "token_type": "bearer"}

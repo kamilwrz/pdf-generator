@@ -55,7 +55,9 @@ export class ApiClient {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.detail || fallbackMessage);
+                const requestError = new Error(error.detail || fallbackMessage);
+                requestError.status = response.status;
+                throw requestError;
             }
             else{
                 const data = await response.json();
@@ -63,7 +65,8 @@ export class ApiClient {
             }
 
         } catch (error) {
-            throw new Error(error?.message || fallbackMessage);
+            if (error instanceof Error) throw error;
+            throw new Error(fallbackMessage);
         }
     }
     

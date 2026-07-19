@@ -7,20 +7,32 @@ from jose import jwt, JWTError
 import os
 from dotenv import load_dotenv
 
-load_dotenv(override=True)
+load_dotenv()
 
 secret_key = os.getenv("SECRET_KEY")
 algorithm = os.getenv("ALGORITHM")
+DEFAULT_ACCESS_TOKEN_EXPIRE_MINUTES = 7 * 24 * 60
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+
+def get_access_token_expire_minutes() -> int:
+    """Return a safe, configurable lifetime for login access tokens."""
+    try:
+        lifetime = int(
+            os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(DEFAULT_ACCESS_TOKEN_EXPIRE_MINUTES))
+        )
+    except ValueError:
+        return DEFAULT_ACCESS_TOKEN_EXPIRE_MINUTES
+
+    return lifetime if lifetime > 0 else DEFAULT_ACCESS_TOKEN_EXPIRE_MINUTES
 
 def create_access_token(data:dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=get_access_token_expire_minutes())
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=algorithm)
     return encoded_jwt

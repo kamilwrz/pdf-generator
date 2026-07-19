@@ -159,8 +159,10 @@ function PdfCanvas() {
     api.httpRequest(ENDPOINTS.AUTH.TOKEN + localStorage.getItem("token"), "GET", null, "Weryfikacja tokenu nie powiodła się!").
       catch((error) => {
         console.log(error);
-        localStorage.removeItem("token");
-        navigate("/");
+        if (error.status === 401 || error.status === 403) {
+          localStorage.removeItem("token");
+          navigate("/");
+        }
       })
 
   }, [checkActivity])
