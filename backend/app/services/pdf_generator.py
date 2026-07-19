@@ -202,10 +202,11 @@ class PDF_Generator:
             else:
                 to.setTextOrigin(x, y)
             to.setFont(draw_font, size)
-            if letter_spacing:
-                to.setCharSpace(letter_spacing)
-            if word_space:
-                to.setWordSpace(word_space)
+            # ALWAYS set both: Tc/Tw are PDF graphics state and persist across
+            # text objects, so a previous line's letter-spacing/justify word
+            # spacing would silently leak into every following text otherwise.
+            to.setCharSpace(letter_spacing or 0)
+            to.setWordSpace(word_space or 0)
             to.setFillColor(HexColor(color))
             if faux_bold:
                 to.setTextRenderMode(2)  # fill + stroke

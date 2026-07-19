@@ -28,6 +28,27 @@ function Preview({ id, accent }) {
             </div>
         );
     }
+    if (id === "sterling") {
+        // engraved certificate: double outline frame, centered name, KPI boxes
+        return (
+            <div className={classes.paper} style={{ flexDirection: "column", border: "1.5px solid #7C8CA0", boxShadow: "inset 0 0 0 3px #fff, inset 0 0 0 4px #D9E0E9" }}>
+                <div className={classes.centerCol} style={{ paddingTop: 10 }}>
+                    <span className={classes.bar} style={{ background: "#1B2A41", width: "52%" }} />
+                    <span className={classes.barThin} style={{ background: accent, width: "34%" }} />
+                    <div style={{ display: "flex", gap: "5px", margin: "7px 0 6px", width: "82%" }}>
+                        {[0, 1, 2].map((i) => (
+                            <span key={i} style={{ flex: 1, height: "16px", border: "1.2px solid #7C8CA0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <span style={{ width: "55%", height: "4px", background: "#1B2A41" }} />
+                            </span>
+                        ))}
+                    </div>
+                    <span className={classes.line} /><span className={classes.line} />
+                    <span className={classes.barThin} style={{ background: accent, width: "24%", marginTop: "5px" }} />
+                    <span className={classes.line} /><span className={classes.line} />
+                </div>
+            </div>
+        );
+    }
     if (id === "it") {
         return (
             <div className={classes.paper}>

@@ -8,6 +8,7 @@ import { monolithTemplate }  from "./monolith";
 import { prismTemplate }     from "./prism";
 import { ariaTemplate }      from "./aria";
 import { meridianTemplate, onyxTemplate, verdantTemplate } from "./meridian";
+import { sterlingTemplate } from "./sterling";
 
 // Every template declares a category (drives the modal tabs) and the page-size
 // preset it is designed for (applied on load).
@@ -18,6 +19,7 @@ export const TEMPLATE_CATEGORIES = [
 
 export const TEMPLATES = [
     { id: "finance",   name: "Finance",   industry: "Finance · Classic",       accent: "#16243A", category: "cv",   pageSize: "a4-portrait", elements: financeTemplate },
+    { id: "sterling",  name: "Sterling",  industry: "Finance · Engraved frame", accent: "#2E5E9E", category: "cv",   pageSize: "a4-portrait", elements: sterlingTemplate },
     { id: "it",        name: "IT",        industry: "IT · Modern + photo",      accent: "#2BB3C0", category: "cv",   pageSize: "a4-portrait", elements: itTemplate },
     { id: "education", name: "Education", industry: "Education · Academic",     accent: "#4E7A6B", category: "cv",   pageSize: "a4-portrait", elements: educationTemplate },
     { id: "nocturne",  name: "Nocturne",  industry: "Bold · Dark header",       accent: "#F25F4C", category: "cv",   pageSize: "a4-portrait", elements: nocturneTemplate },
