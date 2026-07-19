@@ -7,7 +7,7 @@ import { blueprintTemplate } from "./blueprint";
 import { monolithTemplate }  from "./monolith";
 import { prismTemplate }     from "./prism";
 import { ariaTemplate }      from "./aria";
-import { meridianTemplate }  from "./meridian";
+import { meridianTemplate, onyxTemplate, verdantTemplate } from "./meridian";
 
 // Every template declares a category (drives the modal tabs) and the page-size
 // preset it is designed for (applied on load).
@@ -26,5 +26,7 @@ export const TEMPLATES = [
     { id: "monolith",  name: "Monolith",  industry: "Stark · Black & White",    accent: "#0A0A0A", category: "cv",   pageSize: "a4-portrait", elements: monolithTemplate },
     { id: "prism",     name: "Prism",     industry: "Creative · Colourful",     accent: "#6B21A8", category: "cv",   pageSize: "a4-portrait", elements: prismTemplate },
     { id: "aria",      name: "Aria",      industry: "Minimal · Breathing room", accent: "#AAAAAA", category: "cv",   pageSize: "a4-portrait", elements: ariaTemplate },
-    { id: "meridian",  name: "Meridian",  industry: "Deck · 16:9 · 5 slides",   accent: "#3E6DB5", category: "deck", pageSize: "deck-16-9",   elements: meridianTemplate },
+    { id: "meridian",  name: "Meridian",  industry: "Deck · Editorial serif",   accent: "#3E6DB5", category: "deck", pageSize: "deck-16-9",   elements: meridianTemplate },
+    { id: "onyx",      name: "Onyx",      industry: "Deck · Dark & bold",       accent: "#F25F4C", category: "deck", pageSize: "deck-16-9",   elements: onyxTemplate },
+    { id: "verdant",   name: "Verdant",   industry: "Deck · Calm green",        accent: "#3E7A5E", category: "deck", pageSize: "deck-16-9",   elements: verdantTemplate },
 ];

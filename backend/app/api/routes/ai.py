@@ -40,12 +40,14 @@ async def extract_cv(
 async def generate_deck_route(
     file: UploadFile = File(...),
     image_ids: str = Form("[]"),
+    template_id: str = Form("meridian"),
     payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
-    """Generate a 16:9 slide deck from an uploaded PDF's text. Selected gallery
-    images are vision-captioned and placed on the slides whose content they
-    match. Returns Meridian-layout element specs ready for loadAiElements."""
+    """Generate a 16:9 slide deck from an uploaded PDF's text, in the chosen
+    deck theme (meridian / onyx / verdant). Selected gallery images are
+    vision-captioned and placed on the slides whose content they match.
+    Returns element specs ready for loadAiElements."""
     if not (file.filename or "").lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
     data = await file.read()
@@ -67,7 +69,7 @@ async def generate_deck_route(
 
     from app.services.deck_generator import generate_deck
     try:
-        result = generate_deck(data, rows)
+        result = generate_deck(data, rows, template_id)
         return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))

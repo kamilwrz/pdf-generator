@@ -188,3 +188,44 @@
     background: var(--danger-soft);
     border-radius: var(--r-sm);
 }
+
+/* ---- deck style picker ---- */
+.styleGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.styleCard {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 7px;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    background: #fff;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color .15s, transform .15s, box-shadow .15s;
+}
+
+.styleCard:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+}
+
+.styleCardOn {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.styleName {
+    font: 700 12px var(--font-body);
+    color: var(--ink-2);
+}
+
+.styleTag {
+    font: 600 10px var(--font-body);
+    color: var(--secondary-font);
+    margin-top: -3px;
+}

@@ -1,9 +1,10 @@
 """AI deck generation: uploaded PDF text + vision-captioned gallery images →
-slide plan (LLM) → deterministic 960×540 layout mirroring the frontend's
-Meridian template (templates/meridian.js). Keep the two in sync.
+slide plan (LLM) → deterministic 960×540 layout in one of the deck themes.
+Geometry + themes mirror the frontend's templates/meridian.js (makeDeckTemplate
++ DECK_THEMES). Keep the two in sync.
 
 Pipeline (route /ai/generate_deck):
-  extract_pdf_text → describe_images → plan_deck → build_deck
+  extract_pdf_text → analyze_images → plan_deck → build_deck(theme)
 """
 import base64
 import json
@@ -24,17 +25,34 @@ def _get_client() -> OpenAI:
         raise ValueError("OpenAI API key is not configured (API_GPT_KEY).")
     return OpenAI(api_key=key)
 
-# ---- Meridian palette / geometry (mirror of meridian.js) --------------------
-PAGE_W, PAGE_H = 960, 540
-INK, BODY = "#1F2A3A", "#2A3542"
-BLUE, SKY = "#3E6DB5", "#9DBBE6"
-GRAY, MIST = "#57616F", "#D9E2EF"
-SERIF, SANS = "Times-Roman", "Inter"
 
+# ---- themes (mirror of DECK_THEMES in meridian.js) --------------------------
+DECK_THEMES = {
+    "meridian": {
+        "name": "Meridian", "dark": False, "bg": "#FFFFFF",
+        "ink": "#1F2A3A", "body": "#2A3542", "accent": "#3E6DB5", "soft": "#9DBBE6",
+        "gray": "#57616F", "mist": "#D9E2EF", "placeholder": "#8894A5",
+        "display": "Times-Roman", "sans": "Inter",
+    },
+    "onyx": {
+        "name": "Onyx", "dark": True, "bg": "#14181F",
+        "ink": "#F2F5F9", "body": "#C7CFDA", "accent": "#F25F4C", "soft": "#7A8494",
+        "gray": "#8B94A3", "mist": "#2A313C", "placeholder": "#6C7686",
+        "display": "Inter", "sans": "Inter",
+    },
+    "verdant": {
+        "name": "Verdant", "dark": False, "bg": "#FFFFFF",
+        "ink": "#1E2B24", "body": "#2F3E35", "accent": "#3E7A5E", "soft": "#A8C8B8",
+        "gray": "#5F6B64", "mist": "#DCE7E0", "placeholder": "#8AA294",
+        "display": "Helvetica", "sans": "Roboto",
+    },
+}
+
+PAGE_W, PAGE_H = 960, 540
 MAX_TEXT_CHARS = 15000
 MAX_SLIDES = 10
 
-# Inner slot of the slide-3 image frame (frame at 560,160 340×255, 12px inset)
+# Inner slot of the image frame on image_right slides (frame 560,160 340×255, 12px inset)
 IMG_SLOT = {"left": 572, "top": 172, "w": 316, "h": 231}
 
 
@@ -45,7 +63,7 @@ def _text(content, size, font, color, left, top, z=2, bold=False, italic=False):
             "color": color, "left": left, "top": top, "zIndex": z, "bold": bold, "italic": italic}
 
 
-def _block(content, left, top, w, h, size, lh, color=BODY, font=SANS, z=2, bold=False,
+def _block(content, left, top, w, h, size, lh, color, font, z=2, bold=False,
            align="left", bullets=False, italic=False):
     return {"category": "textarea", "content": content, "left": left, "top": top,
             "width": w, "height": h, "fontSize": size, "lineHeight": lh, "letterSpacing": 0,
@@ -63,27 +81,32 @@ def _rect(left, top, w, h, color, bw=1.5, z=1):
             "backgroundColor": color, "borderWidth": bw, "zIndex": z}
 
 
-def _conn(source_id, target_id):
+def _conn(source_id, target_id, T):
     return {"category": "connector", "source_id": source_id, "target_id": target_id,
-            "backgroundColor": BLUE, "borderWidth": 1.5, "arrow": True, "zIndex": 6}
+            "backgroundColor": T["accent"], "borderWidth": 1.5, "arrow": True, "zIndex": 6}
 
 
 def _bullets_text(items):
     return "\n".join(f"• {b.lstrip('•- ').strip()}" for b in items if b and b.strip())
 
 
-def _footer(page_no, deck_name):
+def _bg(T):
+    """Full-bleed background block for dark themes (zIndex 0, drawn first)."""
+    return [_line(0, 0, PAGE_W, PAGE_H, T["bg"], 0)] if T["dark"] else []
+
+
+def _footer(page_no, deck_name, T):
     return [
-        _line(80, 497, 800, 1, MIST),
-        _text(f"{page_no:02d}", 10, SANS, GRAY, 862, 507),
-        _text(deck_name[:40], 10, SANS, GRAY, 80, 507),
+        _line(80, 497, 800, 1, T["mist"]),
+        _text(f"{page_no:02d}", 10, T["sans"], T["gray"], 862, 507),
+        _text(deck_name[:40], 10, T["sans"], T["gray"], 80, 507),
     ]
 
 
-def _header(title):
+def _header(title, T):
     return [
-        _text(title, 28, SERIF, INK, 80, 64, bold=True),
-        _line(80, 106, 56, 3, BLUE, 2),
+        _text(title, 28, T["display"], T["ink"], 80, 64, bold=True),
+        _line(80, 106, 56, 3, T["accent"], 2),
     ]
 
 
@@ -189,136 +212,139 @@ def plan_deck(document_text: str, images: dict) -> dict:
 
 # ---- layout engine ----------------------------------------------------------
 
-def _slide_title(s, page):
-    els = [
-        _line(0, 0, 14, 540, BLUE), _line(14, 0, 3, 540, SKY),
-        _rect(700, 140, 180, 180, SKY, 1.5), _rect(730, 170, 180, 180, BLUE, 1.5),
-        _line(676, 116, 14, 14, BLUE),
-        _text((s.get("kicker") or "PRESENTATION").upper(), 11, SANS, BLUE, 84, 96, bold=True),
-        _block(s.get("title") or "Untitled deck", 84, 150, 520, 120,
-               44 if len(s.get("title") or "") <= 42 else 34, 52, INK, SERIF, bold=True),
-        _line(84, 296, 110, 3, BLUE, 2),
+def _slide_title(s, page, T):
+    title = s.get("title") or "Untitled deck"
+    els = _bg(T) + [
+        _line(0, 0, 14, 540, T["accent"]), _line(14, 0, 3, 540, T["soft"]),
+        _rect(700, 140, 180, 180, T["soft"], 1.5), _rect(730, 170, 180, 180, T["accent"], 1.5),
+        _line(676, 116, 14, 14, T["accent"]),
+        _text((s.get("kicker") or "PRESENTATION").upper(), 11, T["sans"], T["accent"], 84, 96, bold=True),
+        _block(title, 84, 150, 520, 120, 44 if len(title) <= 42 else 34, 52, T["ink"], T["display"], bold=True),
+        _line(84, 296, 110, 3, T["accent"], 2),
     ]
     if s.get("subtitle"):
-        els.append(_block(s["subtitle"], 84, 320, 480, 48, 15, 22, GRAY, SANS))
+        els.append(_block(s["subtitle"], 84, 320, 480, 48, 15, 22, T["gray"], T["sans"]))
     if s.get("author"):
-        els.append(_text(s["author"], 12, SANS, INK, 84, 452, bold=True))
+        els.append(_text(s["author"], 12, T["sans"], T["ink"], 84, 452, bold=True))
     return els
 
 
-def _slide_agenda(s, page, deck_name):
+def _slide_agenda(s, page, deck_name, T):
     items = (s.get("items") or [])[:4] or [{"title": "Agenda", "detail": ""}]
     n = len(items)
     box_w = 200 if n <= 3 else 190
     lefts = [80] if n == 1 else [round(80 + i * (800 - box_w) / (n - 1)) for i in range(n)]
-    els = _header(s.get("title") or "Agenda")
+    els = _bg(T) + _header(s.get("title") or "Agenda", T)
     prev_id = None
     for i, (left, item) in enumerate(zip(lefts, items)):
         box_id = f"p{page}-ag{i}"
-        els.append({**_rect(left, 210, box_w, 130, BLUE, 1.5, 2), "id": box_id})
-        els.append(_text(f"{i + 1:02d}", 20, SERIF, BLUE, left + 18, 226, 3, bold=True))
+        els.append({**_rect(left, 210, box_w, 130, T["accent"], 1.5, 2), "id": box_id})
+        els.append(_text(f"{i + 1:02d}", 20, T["display"], T["accent"], left + 18, 226, 3, bold=True))
         label = (item.get("title") or "").strip()
         detail = (item.get("detail") or "").strip()
-        els.append(_block(f"{label}\n{detail}".strip(), left + 18, 268, box_w - 36, 56, 12.5, 18, BODY, SANS, 3))
+        els.append(_block(f"{label}\n{detail}".strip(), left + 18, 268, box_w - 36, 56, 12.5, 18, T["body"], T["sans"], 3))
         if prev_id:
-            els.append(_conn(prev_id, box_id))
+            els.append(_conn(prev_id, box_id, T))
         prev_id = box_id
-    return els + _footer(page, deck_name)
+    return els + _footer(page, deck_name, T)
 
 
-def _slide_bullets(s, page, deck_name):
-    els = _header(s.get("title") or "")
+def _slide_bullets(s, page, deck_name, T):
+    els = _bg(T) + _header(s.get("title") or "", T)
     els.append(_block(_bullets_text(s.get("bullets") or []), 80, 160, 800, 300,
-                      15, 26, BODY, SANS, bullets=True))
-    return els + _footer(page, deck_name)
+                      15, 26, T["body"], T["sans"], bullets=True))
+    return els + _footer(page, deck_name, T)
 
 
-def _slide_image_right(s, page, deck_name, images):
-    els = _header(s.get("title") or "")
+def _slide_image_right(s, page, deck_name, T, images):
+    els = _bg(T) + _header(s.get("title") or "", T)
     els.append(_block(_bullets_text(s.get("bullets") or []), 80, 160, 400, 240,
-                      14, 24, BODY, SANS, bullets=True))
-    els.append(_rect(548, 148, 340, 255, MIST, 1.5, 1))
-    els.append(_rect(560, 160, 340, 255, BLUE, 1.5, 2))
+                      14, 24, T["body"], T["sans"], bullets=True))
+    els.append(_rect(548, 148, 340, 255, T["mist"], 1.5, 1))
+    els.append(_rect(560, 160, 340, 255, T["accent"], 1.5, 2))
     meta = images.get(s.get("image_id"))
     if meta:
-        # fit inside the frame slot, preserving aspect, centered
         scale = min(IMG_SLOT["w"] / meta["w"], IMG_SLOT["h"] / meta["h"])
         w, h = round(meta["w"] * scale), round(meta["h"] * scale)
         left = IMG_SLOT["left"] + (IMG_SLOT["w"] - w) // 2
         top = IMG_SLOT["top"] + (IMG_SLOT["h"] - h) // 2
         els.append({"category": "image", "src": meta["src"], "img_id": s.get("image_id"),
                     "left": left, "top": top, "width": w, "height": h, "zIndex": 3})
-        els.append(_text(meta["caption"][:80], 9.5, SANS, GRAY, 560, 430))
+        els.append(_text(meta["caption"][:80], 9.5, T["sans"], T["gray"], 560, 430))
     else:
-        els.append(_text("Image placeholder", 10.5, SANS, "#8894A5", 672, 278, 3))
-    return els + _footer(page, deck_name)
+        els.append(_text("Image placeholder", 10.5, T["sans"], T["placeholder"], 672, 278, 3))
+    return els + _footer(page, deck_name, T)
 
 
-def _slide_two_column(s, page, deck_name):
-    els = _header(s.get("title") or "")
-    els.append(_line(478, 160, 2, 270, MIST))
-    els.append(_text(s.get("left_title") or "", 15, SANS, INK, 80, 162, bold=True))
+def _slide_two_column(s, page, deck_name, T):
+    els = _bg(T) + _header(s.get("title") or "", T)
+    els.append(_line(478, 160, 2, 270, T["mist"]))
+    els.append(_text(s.get("left_title") or "", 15, T["sans"], T["ink"], 80, 162, bold=True))
     els.append(_block(_bullets_text(s.get("left_bullets") or []), 80, 192, 360, 230,
-                      12.5, 20, BODY, SANS, bullets=True))
-    els.append(_text(s.get("right_title") or "", 15, SANS, INK, 518, 162, bold=True))
+                      12.5, 20, T["body"], T["sans"], bullets=True))
+    els.append(_text(s.get("right_title") or "", 15, T["sans"], T["ink"], 518, 162, bold=True))
     els.append(_block(_bullets_text(s.get("right_bullets") or []), 518, 192, 360, 230,
-                      12.5, 20, BODY, SANS, bullets=True))
-    return els + _footer(page, deck_name)
+                      12.5, 20, T["body"], T["sans"], bullets=True))
+    return els + _footer(page, deck_name, T)
 
 
-def _slide_quote(s, page, deck_name):
-    els = [
-        _text("“", 90, SERIF, SKY, 96, 96, 1),
-        _block(s.get("quote") or "", 150, 180, 660, 130, 28, 40, INK, SERIF,
+def _slide_quote(s, page, deck_name, T):
+    els = _bg(T) + [
+        _text("“", 90, T["display"], T["soft"], 96, 96, 1),
+        _block(s.get("quote") or "", 150, 180, 660, 130, 28, 40, T["ink"], T["display"],
                align="center", italic=True),
-        _line(430, 330, 100, 3, BLUE, 2),
+        _line(430, 330, 100, 3, T["accent"], 2),
     ]
     if s.get("attribution"):
-        els.append(_block(f"— {s['attribution']}", 230, 352, 500, 24, 12.5, 17, GRAY, SANS, align="center"))
-    return els + _footer(page, deck_name)
+        els.append(_block(f"— {s['attribution']}", 230, 352, 500, 24, 12.5, 17, T["gray"], T["sans"], align="center"))
+    return els + _footer(page, deck_name, T)
 
 
-def _slide_closing(s, page, deck_name):
-    els = [
-        _rect(880, 44, 36, 36, SKY, 1), _line(864, 28, 12, 12, BLUE),
-        _block(s.get("title") or "Thank you.", 230, 196, 500, 64, 46, 56, INK, SERIF,
+def _slide_closing(s, page, deck_name, T):
+    els = _bg(T) + [
+        _rect(880, 44, 36, 36, T["soft"], 1), _line(864, 28, 12, 12, T["accent"]),
+        _block(s.get("title") or "Thank you.", 230, 196, 500, 64, 46, 56, T["ink"], T["display"],
                bold=True, align="center"),
-        _line(430, 286, 100, 3, BLUE, 2),
+        _line(430, 286, 100, 3, T["accent"], 2),
     ]
     if s.get("contact"):
-        els.append(_block(s["contact"], 230, 312, 500, 24, 12.5, 17, GRAY, SANS, align="center"))
-    return els + _footer(page, deck_name)
+        els.append(_block(s["contact"], 230, 312, 500, 24, 12.5, 17, T["gray"], T["sans"], align="center"))
+    return els + _footer(page, deck_name, T)
 
 
-_LAYOUTS = {
-    "agenda": _slide_agenda,
-    "bullets": _slide_bullets,
-    "two_column": _slide_two_column,
-    "quote": _slide_quote,
-    "closing": _slide_closing,
-}
-
-
-def build_deck(plan: dict, images: dict) -> list[dict]:
+def build_deck(plan: dict, images: dict, template_id: str = "meridian") -> list[dict]:
+    T = DECK_THEMES.get(template_id)
+    if T is None:
+        raise ValueError(f"Unknown deck template '{template_id}'. Available: {', '.join(DECK_THEMES)}.")
     deck_name = plan.get("deck_title") or "Deck"
     elements = []
     for page, slide in enumerate(plan["slides"], start=1):
         layout = slide.get("layout") or "bullets"
         if layout == "title":
-            els = _slide_title(slide, page)
+            els = _slide_title(slide, page, T)
+        elif layout == "agenda":
+            els = _slide_agenda(slide, page, deck_name, T)
         elif layout == "image_right":
-            els = _slide_image_right(slide, page, deck_name, images)
+            els = _slide_image_right(slide, page, deck_name, T, images)
+        elif layout == "two_column":
+            els = _slide_two_column(slide, page, deck_name, T)
+        elif layout == "quote":
+            els = _slide_quote(slide, page, deck_name, T)
+        elif layout == "closing":
+            els = _slide_closing(slide, page, deck_name, T)
         else:
-            els = _LAYOUTS.get(layout, _slide_bullets)(slide, page, deck_name)
+            els = _slide_bullets(slide, page, deck_name, T)
         for el in els:
             el["page"] = page
         elements.extend(els)
     return elements
 
 
-def generate_deck(pdf_bytes: bytes, image_rows) -> dict:
+def generate_deck(pdf_bytes: bytes, image_rows, template_id: str = "meridian") -> dict:
+    if template_id not in DECK_THEMES:
+        raise ValueError(f"Unknown deck template '{template_id}'. Available: {', '.join(DECK_THEMES)}.")
     text = extract_pdf_text(pdf_bytes)
     images = analyze_images(image_rows)
     plan = plan_deck(text, images)
-    elements = build_deck(plan, images)
+    elements = build_deck(plan, images, template_id)
     return {"title": plan.get("deck_title") or "Deck", "elements": elements}

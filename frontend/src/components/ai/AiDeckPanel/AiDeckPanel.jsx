@@ -3,7 +3,29 @@ import classes from "./AiDeckPanel.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
 import API_BASE_URL from "../../../services/api";
+import { TEMPLATES } from "../../../templates";
+import { DECK_THEMES } from "../../../templates/meridian";
 import CloseButton from "../../common/CloseButton/CloseButton";
+
+const DECKS = TEMPLATES.filter((t) => t.category === "deck");
+
+// tiny 16:9 mock of a deck theme's title slide
+function StyleMock({ theme }) {
+    return (
+        <span style={{
+            display: "flex", width: "100%", aspectRatio: "16 / 9", borderRadius: 6,
+            overflow: "hidden", background: theme.dark ? theme.bg : "#fff",
+            border: "1px solid var(--border)",
+        }}>
+            <span style={{ width: 4, background: theme.accent, flexShrink: 0 }} />
+            <span style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 3, padding: "0 8px" }}>
+                <span style={{ height: 6, width: "70%", borderRadius: 2, background: theme.ink }} />
+                <span style={{ height: 3, width: "28%", borderRadius: 2, background: theme.accent }} />
+                <span style={{ height: 3, width: "52%", borderRadius: 2, background: theme.mist }} />
+            </span>
+        </span>
+    );
+}
 
 const UploadIcon = () => (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -23,6 +45,7 @@ export default function AiDeckPanel({ onClose }) {
     const [fileData, setFileData] = useState(null);
     const [images, setImages] = useState([]);
     const [selectedIds, setSelectedIds] = useState([]);
+    const [templateId, setTemplateId] = useState(DECKS[0]?.id ?? "meridian");
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState(null);
 
@@ -54,6 +77,7 @@ export default function AiDeckPanel({ onClose }) {
             const form = new FormData();
             form.append("file", fileData);
             form.append("image_ids", JSON.stringify(selectedIds));
+            form.append("template_id", templateId);
             const res = await api.httpRequest(ENDPOINTS.AI.GENERATE_DECK, "POST", form, "Deck generation failed");
             loadAiElements(res.elements, res.title || "Deck", "deck-16-9");
             onClose();
@@ -62,7 +86,7 @@ export default function AiDeckPanel({ onClose }) {
         } finally {
             setIsGenerating(false);
         }
-    }, [fileData, selectedIds, loadAiElements, onClose]);
+    }, [fileData, selectedIds, templateId, loadAiElements, onClose]);
 
     return (
         <div className={classes.panel}>
@@ -128,7 +152,30 @@ export default function AiDeckPanel({ onClose }) {
                 )}
             </div>
 
-            {/* Step 3 — generate */}
+            {/* Step 3 — deck style */}
+            <div className={classes.section}>
+                <div className={classes.sectionLabel}>3. Choose a style</div>
+                <div className={classes.styleGrid}>
+                    {DECKS.map((t) => {
+                        const theme = DECK_THEMES[t.id];
+                        const on = templateId === t.id;
+                        return (
+                            <button
+                                key={t.id}
+                                type="button"
+                                className={`${classes.styleCard} ${on ? classes.styleCardOn : ""}`}
+                                onClick={() => setTemplateId(t.id)}
+                            >
+                                {theme && <StyleMock theme={theme} />}
+                                <span className={classes.styleName}>{t.name}</span>
+                                <span className={classes.styleTag}>{t.industry.replace("Deck · ", "")}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Step 4 — generate */}
             <div className={classes.section}>
                 <button
                     type="button"

@@ -8,18 +8,21 @@ import CloseButton from "../../common/CloseButton/CloseButton";
 // Lightweight CSS mini-mock of each template, keyed by id. Not a render — just
 // enough to convey the layout character (column vs sidebar vs framed).
 function Preview({ id, accent }) {
-    if (id === "meridian") {
-        // landscape 16:9 slide mock: left accent bar, serif title, frame motif
+    if (id === "meridian" || id === "onyx" || id === "verdant") {
+        // landscape 16:9 slide mock: left accent bar, title stub, frame motif
+        const dark = id === "onyx";
+        const ink = dark ? "#F2F5F9" : "#1F2A3A";
+        const soft = dark ? "#7A8494" : "#9DBBE6";
         return (
-            <div className={classes.paper} style={{ aspectRatio: "16 / 9", height: "auto", alignSelf: "center" }}>
+            <div className={classes.paper} style={{ aspectRatio: "16 / 9", height: "auto", alignSelf: "center", background: dark ? "#14181F" : "#fff" }}>
                 <div style={{ width: "5px", background: accent }} />
                 <div className={classes.col} style={{ justifyContent: "center" }}>
-                    <span className={classes.bar} style={{ background: "#1F2A3A", width: "58%", height: "9px" }} />
+                    <span className={classes.bar} style={{ background: ink, width: "58%", height: "9px" }} />
                     <span className={classes.barThin} style={{ background: accent, width: "20%" }} />
-                    <span className={classes.line} style={{ width: "48%" }} />
+                    <span className={classes.line} style={{ width: "48%", background: dark ? "#2A313C" : undefined }} />
                 </div>
                 <div style={{ position: "relative", width: "34%", margin: "10px" }}>
-                    <span style={{ position: "absolute", inset: "8% 20% 30% 0", border: `1.5px solid #9DBBE6` }} />
+                    <span style={{ position: "absolute", inset: "8% 20% 30% 0", border: `1.5px solid ${soft}` }} />
                     <span style={{ position: "absolute", inset: "22% 6% 16% 14%", border: `1.5px solid ${accent}` }} />
                 </div>
             </div>
