@@ -55,9 +55,9 @@ function Rectangle({
 
                 <div
                     onDoubleClick={() => selectElement(elementId)}
-                    onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); selectMoveElement(elementId); }}
+                    onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); selectMoveElement(elementId, true); }}
                     onPointerMove={(e) => moveElement(e, elementId)}
-                    onPointerUp={() => selectMoveElement(elementId)}
+                    onPointerUp={() => selectMoveElement(elementId, false)}
                     className={isSelected ? classes.selectedElement : ""}
                     style={style}>
                 </div>
@@ -68,9 +68,9 @@ function Rectangle({
         return (
             <div
                 onDoubleClick={() => selectElement(elementId)}
-                onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); selectMoveElement(elementId); }}
+                onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); selectMoveElement(elementId, true); }}
                 onPointerMove={(e) => moveElement(e, elementId, category)}
-                onPointerUp={() => selectMoveElement(elementId)}
+                onPointerUp={() => selectMoveElement(elementId, false)}
                 className={isSelected ? classes.selectedElement : ""}
                 style={style}>
             </div>

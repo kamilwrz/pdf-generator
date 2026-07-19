@@ -195,15 +195,32 @@ export function useA4Elements(titleRef) {
     }
   }, [])
 
-  const handleSelectMoveElement = useCallback((elementId) => {
-    setA4_Elements(prevState => {
-      const newState = prevState.map((element) => {
-        console.log(element);
-        return element.element_id === elementId ? { ...element, isMove: !element.isMove }
-          : { ...element, isMove: false }
-    });
-      return newState;
-    });
+  // Explicit press/release drag state: pointerdown passes moving=true,
+  // pointerup moving=false. NEVER a toggle — a toggle inverts permanently the
+  // moment a pointerup is missed (e.g. the element remounts when selecting it
+  // swaps in the <Resize>-wrapped branch and the pointer capture dies).
+  const handleSelectMoveElement = useCallback((elementId, moving) => {
+    setA4_Elements(prevState => prevState.map((element) => (
+      element.element_id === elementId
+        ? { ...element, isMove: !!moving }
+        : { ...element, isMove: false }
+    )));
+  }, [])
+
+  // Safety net: releasing the button ANYWHERE ends every drag, even when the
+  // dragged element lost its pointer capture and its own pointerup never fired.
+  useEffect(() => {
+    const endDrag = () => {
+      setA4_Elements(prev => prev.some(e => e.isMove)
+        ? prev.map(e => (e.isMove ? { ...e, isMove: false } : e))
+        : prev);
+    };
+    window.addEventListener("pointerup", endDrag);
+    window.addEventListener("pointercancel", endDrag);
+    return () => {
+      window.removeEventListener("pointerup", endDrag);
+      window.removeEventListener("pointercancel", endDrag);
+    };
   }, [])
 
   const handleSelectElement = useCallback((elementId) => {
