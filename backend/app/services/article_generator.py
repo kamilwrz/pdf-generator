@@ -9,9 +9,9 @@ rules (kept with their text), one framed pull-quote, an end-of-article
 tombstone, folio page numbers on every page and a running head from page 2.
 """
 import json
-import math
 
 from app.services.deck_generator import _get_client, extract_pdf_text, PLAN_MODEL
+from app.services.pdf_generator import PDF_Generator
 
 # ---- Gazette metrics (mirror of gazette.js) ---------------------------------
 PAGE_W, PAGE_H = 595, 842
@@ -54,10 +54,13 @@ def _rect(left, top, w, h, color, bw, page, z=1):
             "backgroundColor": color, "borderWidth": bw, "page": page, "zIndex": z}
 
 
-def _est_lines(text, width, fs):
-    """Estimated rendered lines for Times-style serif (avg char ≈ 0.47×fs)."""
-    cpl = max(10, int(width / (fs * 0.47)))
-    return max(1, math.ceil(len(text) / cpl)), cpl
+def _wrap_lines(text, width, fs, font=S, bold=False, italic=False):
+    """EXACT wrapped lines, computed with the same font metrics + wrap logic
+    the PDF renderer (and the canvas, via the same font files) uses. Heights
+    derived from these can never clip. Returns the list of line strings."""
+    measure, _, _ = PDF_Generator._resolve_font(font, bold, italic)
+    wrapped = PDF_Generator._wrap_textarea(PDF_Generator, text or "", measure, fs, 0.0, width)
+    return [ln for (ln, _last, _indent) in wrapped]
 
 
 # ---- two-column flow --------------------------------------------------------
@@ -98,30 +101,29 @@ def _place_paragraph(f: _Flow, text, drop_cap=False):
         # oxblood cap + hanging paragraph beside it (cap column is 54px)
         cap, rest = text[0], text[1:]
         w = f.w() - 54
-        lines, _ = _est_lines(rest, w, BODY_FS)
-        h = lines * BODY_LH + 4
+        n = len(_wrap_lines(rest, w, BODY_FS))
+        h = n * BODY_LH + 6
         f.ensure(h)
         f.els.append(_text(cap, 44, S, ACCENT, f.x(), f.y - 8, f.page, bold=True))
         f.els.append(_block(rest, f.x() + 54, f.y, w, h, BODY_FS, BODY_LH, BODY, S, f.page, align="justify"))
         f.y += h + PARA_GAP
         return
     while text:
-        avail = int((BOTTOM - f.y - 4) // BODY_LH)
+        avail = int((BOTTOM - f.y - 6) // BODY_LH)
         if avail < 3:                       # widow control: don't start a stub
             f.next_col()
             continue
-        lines, cpl = _est_lines(text, f.w(), BODY_FS)
-        if lines <= avail:
-            h = lines * BODY_LH + 4
+        lines = _wrap_lines(text, f.w(), BODY_FS)
+        if len(lines) <= avail:
+            h = len(lines) * BODY_LH + 6
             f.els.append(_block(text, f.x(), f.y, f.w(), h, BODY_FS, BODY_LH, BODY, S, f.page, align="justify"))
             f.y += h + PARA_GAP
             return
-        # split at a word boundary near what fits, continue in the next column
-        cut = text.rfind(" ", 0, avail * cpl)
-        if cut < cpl:                       # pathological: no space found
-            cut = avail * cpl
-        part, text = text[:cut].strip(), text[cut:].strip()
-        h = avail * BODY_LH + 4
+        # split EXACTLY at the lines that fit; the remainder flows to the next
+        # column (wrapping re-runs there, so nothing can be lost or clipped)
+        part = " ".join(lines[:avail]).strip()
+        text = " ".join(lines[avail:]).strip()
+        h = avail * BODY_LH + 6
         f.els.append(_block(part, f.x(), f.y, f.w(), h, BODY_FS, BODY_LH, BODY, S, f.page, align="justify"))
         f.next_col()
 
@@ -134,7 +136,7 @@ def _place_heading(f: _Flow, heading):
 
 
 def _place_pull_quote(f: _Flow, quote, attribution):
-    qlines, _ = _est_lines(quote, f.w() - 28, 13)
+    qlines = len(_wrap_lines(quote, f.w() - 28, 13, italic=True))
     h = qlines * 18 + 52
     f.ensure(h + PARA_GAP)
     x, w = f.x(), f.w()
@@ -198,13 +200,13 @@ def _masthead(plan: dict):
     ]
     y = 92
     title = plan.get("title") or "Untitled article"
-    tl, _ = _est_lines(title, 495, 29)
-    th = tl * 34 + 6
+    tl = len(_wrap_lines(title, 495, 29, bold=True))
+    th = tl * 34 + 8
     els.append(_block(title, 50, y, 495, th, 29, 34, DARK, S, 1, bold=True))
     y += th + 8
     if plan.get("standfirst"):
-        sl, _ = _est_lines(plan["standfirst"], 495, 12.5)
-        sh = sl * 18 + 4
+        sl = len(_wrap_lines(plan["standfirst"], 495, 12.5, italic=True))
+        sh = sl * 18 + 6
         els.append(_block(plan["standfirst"], 50, y, 495, sh, 12.5, 18, "#4A5058", S, 1, italic=True))
         y += sh + 8
     els.append(_text(plan.get("byline") or "By The Gazette Desk", 9, I, DARK, 50, y, 1, bold=True))
