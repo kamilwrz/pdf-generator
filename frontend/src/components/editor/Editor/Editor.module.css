@@ -65,6 +65,31 @@
     padding-bottom: 12px;
 }
 
+.bulkPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding-top: 11px;
+}
+
+.bulkDescription,
+.bulkHint {
+    margin: 0;
+    font: 600 12px/1.45 var(--font-body);
+}
+
+.bulkDescription {
+    color: var(--primary-font);
+}
+
+.bulkHint {
+    color: var(--muted-font);
+    background: var(--secondary-bg);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    padding: 7px 8px;
+}
+
 .fontSizeTextColorWrapper {
     display: flex;
     gap: 10px;

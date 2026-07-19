@@ -26,10 +26,22 @@ const CATEGORY_LABELS = {
 
 export default function Editor() {
 
-    const { A4_Elements, editElementValues, alignElement, deleteElement, duplicateElement, setA4_Elements, setTextareaEditing, moveElementWithBelow } = use(PdfContext);
+    const {
+        A4_Elements,
+        editElementValues,
+        editSelectedElementValues,
+        alignElement,
+        deleteElement,
+        duplicateElement,
+        setA4_Elements,
+        setTextareaEditing,
+        moveElementWithBelow,
+    } = use(PdfContext);
 
-    let selectedElement = A4_Elements.find(element => element.isSelected === true);
-    const someElementSelected = A4_Elements.some(element => element.isSelected);
+    const selectedElements = A4_Elements.filter(element => element.isSelected);
+    const selectedElement = selectedElements[0];
+    const someElementSelected = selectedElements.length > 0;
+    const isMultiSelection = selectedElements.length > 1;
 
     const [elementValues, setElementValues] = useState({});
     // When on, changing Y pushes every element below the selected one by the
@@ -60,6 +72,33 @@ export default function Editor() {
 
     function toggleStyle(key) {
         editElementValues({ [key]: !selectedElement[key] }, selectedElement.element_id);
+    }
+
+    const supportsBulkField = (key) => selectedElements.every((element) =>
+        Object.prototype.hasOwnProperty.call(element, key)
+    );
+
+    const bulkValue = (key) => selectedElements[0]?.[key] ?? "";
+
+    const isBulkValueMixed = (key) => selectedElements.some((element) =>
+        element[key] !== selectedElements[0]?.[key]
+    );
+
+    function handleBulkChangeValues(e, identifier) {
+        const value = ["fontSize", "lineHeight", "letterSpacing", "borderWidth", "width", "height", "zIndex"].includes(identifier)
+            ? Number(e.target.value)
+            : e.target.value;
+        editSelectedElementValues({ [identifier]: value });
+        setElementValues((prevData) => ({ ...prevData, [identifier]: e.target.value }));
+    }
+
+    function toggleBulkStyle(key) {
+        const allEnabled = selectedElements.every((element) => Boolean(element[key]));
+        editSelectedElementValues({ [key]: !allEnabled });
+    }
+
+    function setBulkAlign(value) {
+        editSelectedElementValues({ align: value });
     }
 
     // Inserts "• " at the start of whichever line the cursor is currently on,
@@ -115,20 +154,15 @@ export default function Editor() {
         editElementValues({ align: value }, selectedElement.element_id);
     }
 
-    function handleCloseEditor(elementId) {
+    function handleCloseEditor() {
         setA4_Elements(prevState => {
-            const newState = prevState.map((element) => {
-                if(elementId === element.element_id){
-                    return { ...element, isSelected: false }
-                }
-                else{
-                    return element
-                }
-
-            })
-            return newState
-        })
-      }
+            return prevState.map((element) => (
+                element.isSelected
+                    ? { ...element, isSelected: false, isEditing: false }
+                    : element
+            ));
+        });
+    }
 
     useEffect(() => {
         setElementValues(prevState => {
@@ -165,10 +199,21 @@ export default function Editor() {
                     <span className={classes.headingIcon}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5FA777" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7V5h16v2" /><path d="M12 5v14" /><path d="M9 19h6" /></svg>
                     </span>
-                    <p>{selectedElement?.category ? `Element: ${CATEGORY_LABELS[selectedElement.category] ?? selectedElement.category}` : "Właściwości elementu"}</p>
+                    <p>{isMultiSelection ? `Zaznaczono elementów: ${selectedElements.length}` : selectedElement?.category ? `Element: ${CATEGORY_LABELS[selectedElement.category] ?? selectedElement.category}` : "Właściwości elementu"}</p>
                 </div>
-                <CloseButton clickHandler={() => handleCloseEditor(elementValues?.element_id)} right={10}/>
+                <CloseButton clickHandler={handleCloseEditor} right={10}/>
             </div>
+            {isMultiSelection ? (
+                <BulkEditor
+                    selectedElements={selectedElements}
+                    supportsField={supportsBulkField}
+                    valueForField={bulkValue}
+                    isValueMixed={isBulkValueMixed}
+                    onChangeValue={handleBulkChangeValues}
+                    onToggleStyle={toggleBulkStyle}
+                    onSetAlign={setBulkAlign}
+                />
+            ) : <>
             {selectedElement?.category === "text" && <>
 
                 <EditorControls labelText="Treść tekstu" type="text" inputValue={elementValues.content} onChangeFn={(e) => handleChangeValues(e, "content")} />
@@ -276,8 +321,192 @@ export default function Editor() {
                 <button type="button" className={classes.btnDelete} onClick={() => deleteElement(selectedElement.element_id)}>Usuń element<RiDeleteBin2Line /></button>
 
             </>}
+            </>}
         </form>
     </motion.aside>}</AnimatePresence>
+}
+
+function BulkEditor({
+    selectedElements,
+    supportsField,
+    valueForField,
+    isValueMixed,
+    onChangeValue,
+    onToggleStyle,
+    onSetAlign,
+}) {
+    const hasTypography = supportsField("fontSize") || supportsField("color");
+    const hasTextStyle = ["bold", "italic", "underline"].every(supportsField);
+    const hasBorder = supportsField("borderWidth") || supportsField("backgroundColor");
+    const canEditSize = ["width", "height"].every(supportsField)
+        && !selectedElements.some((element) => element.category === "image");
+    const editableFields = [
+        "fontSize", "color", "fontFamily", "bold", "italic", "underline",
+        "align", "lineHeight", "letterSpacing", "width", "height",
+        "backgroundColor", "borderWidth", "zIndex",
+    ];
+    const hasMixedValues = editableFields
+        .filter(supportsField)
+        .some(isValueMixed);
+
+    return (
+        <div className={classes.bulkPanel}>
+            <p className={classes.bulkDescription}>
+                Zmiany w tym panelu zostaną zastosowane do wszystkich {selectedElements.length} zaznaczonych elementów.
+            </p>
+            {hasMixedValues && (
+                <p className={classes.bulkHint}>
+                    Część wartości jest różna — kolejna zmiana ujednolici ją w całym zaznaczeniu.
+                </p>
+            )}
+            {hasTypography && (
+                <div className={classes.elementSize}>
+                    {supportsField("fontSize") && (
+                        <EditorControls
+                            labelText="Rozmiar czcionki"
+                            type="number"
+                            inputValue={valueForField("fontSize")}
+                            onChangeFn={(e) => onChangeValue(e, "fontSize")}
+                        />
+                    )}
+                    {supportsField("color") && (
+                        <EditorControls
+                            labelText="Kolor tekstu"
+                            type="color"
+                            inputValue={valueForField("color")}
+                            onChangeFn={(e) => onChangeValue(e, "color")}
+                        />
+                    )}
+                </div>
+            )}
+            {supportsField("fontFamily") && (
+                <EditorControls
+                    labelText="Rodzina czcionki"
+                    type="select"
+                    inputValue={valueForField("fontFamily")}
+                    onChangeFn={(e) => onChangeValue(e, "fontFamily")}
+                    isSelect
+                />
+            )}
+            {hasTextStyle && (
+                <BulkStyleToggles
+                    selectedElements={selectedElements}
+                    onToggleStyle={onToggleStyle}
+                />
+            )}
+            {supportsField("align") && (
+                <BulkAlignToggles
+                    value={isValueMixed("align") ? undefined : valueForField("align")}
+                    onSetAlign={onSetAlign}
+                />
+            )}
+            {(supportsField("lineHeight") || supportsField("letterSpacing")) && (
+                <div className={classes.elementSize}>
+                    {supportsField("lineHeight") && (
+                        <EditorControls
+                            labelText="Wysokość linii"
+                            type="number"
+                            inputValue={valueForField("lineHeight")}
+                            onChangeFn={(e) => onChangeValue(e, "lineHeight")}
+                        />
+                    )}
+                    {supportsField("letterSpacing") && (
+                        <EditorControls
+                            labelText="Odstęp między literami"
+                            type="number"
+                            inputValue={valueForField("letterSpacing")}
+                            onChangeFn={(e) => onChangeValue(e, "letterSpacing")}
+                        />
+                    )}
+                </div>
+            )}
+            {canEditSize && (
+                <div className={classes.elementSize}>
+                    <EditorControls
+                        labelText="Szerokość"
+                        type="number"
+                        inputValue={valueForField("width")}
+                        onChangeFn={(e) => onChangeValue(e, "width")}
+                    />
+                    <EditorControls
+                        labelText="Wysokość"
+                        type="number"
+                        inputValue={valueForField("height")}
+                        onChangeFn={(e) => onChangeValue(e, "height")}
+                    />
+                </div>
+            )}
+            {hasBorder && (
+                <div className={classes.elementSize}>
+                    {supportsField("borderWidth") && (
+                        <EditorControls
+                            labelText="Szerokość obramowania"
+                            type="number"
+                            inputValue={valueForField("borderWidth")}
+                            onChangeFn={(e) => onChangeValue(e, "borderWidth")}
+                        />
+                    )}
+                    {supportsField("backgroundColor") && (
+                        <EditorControls
+                            labelText="Kolor obramowania"
+                            type="color"
+                            inputValue={valueForField("backgroundColor")}
+                            onChangeFn={(e) => onChangeValue(e, "backgroundColor")}
+                        />
+                    )}
+                </div>
+            )}
+            {supportsField("zIndex") && (
+                <EditorControls
+                    labelText="Widoczność"
+                    type="number"
+                    inputValue={valueForField("zIndex")}
+                    onChangeFn={(e) => onChangeValue(e, "zIndex")}
+                />
+            )}
+        </div>
+    );
+}
+
+function BulkStyleToggles({ selectedElements, onToggleStyle }) {
+    const isActive = (key) => selectedElements.every((element) => Boolean(element[key]));
+    const btn = (key, label, content, style) => (
+        <button
+            type="button"
+            className={isActive(key) ? classes.styleActive : ""}
+            style={style}
+            onClick={() => onToggleStyle(key)}
+            aria-label={label}
+        >{content}</button>
+    );
+
+    return (
+        <div className={classes.styleRow}>
+            {btn("bold", "Pogrubienie", "B", { fontWeight: 800 })}
+            {btn("italic", "Kursywa", "I", { fontStyle: "italic" })}
+            {btn("underline", "Podkreślenie", "U", { textDecoration: "underline" })}
+        </div>
+    );
+}
+
+function BulkAlignToggles({ value, onSetAlign }) {
+    const btn = (alignment, Icon, label) => (
+        <button
+            type="button"
+            className={value === alignment ? classes.styleActive : ""}
+            onClick={() => onSetAlign(alignment)}
+            aria-label={label}
+        ><Icon /></button>
+    );
+
+    return (
+        <div className={classes.styleRow}>
+            {btn("left", CiTextAlignLeft, "Wyrównaj tekst do lewej")}
+            {btn("center", CiTextAlignCenter, "Wyśrodkuj tekst")}
+            {btn("right", CiTextAlignRight, "Wyrównaj tekst do prawej")}
+            {btn("justify", CiTextAlignJustify, "Wyjustuj tekst")}
+        </div>
+    );
 }
 
 function AlignToggles({ selectedElement, setAlign }) {

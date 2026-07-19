@@ -275,13 +275,28 @@ export function useA4Elements(titleRef) {
     };
   }, [])
 
-  const handleSelectElement = useCallback((elementId) => {
+  // Normal click makes one element the active selection. Ctrl/Cmd-click toggles
+  // only that element, preserving the rest of the selection for bulk editing.
+  const handleSelectElement = useCallback((elementId, additive = false) => {
     setA4_Elements(prevState => {
-      const newState = prevState.map((element) => (
-        element.element_id === elementId ? { ...element, isSelected: !element.isSelected }
-          : { ...element, isSelected: false }
-      ));
-      return newState;
+      return prevState.map((element) => {
+        if (element.element_id === elementId) {
+          return {
+            ...element,
+            isSelected: additive ? !element.isSelected : true,
+            isMove: false,
+            isEditing: element.category === "textarea" ? false : element.isEditing,
+          };
+        }
+        return additive
+          ? { ...element, isMove: false, isEditing: element.category === "textarea" ? false : element.isEditing }
+          : {
+              ...element,
+              isSelected: false,
+              isMove: false,
+              isEditing: element.category === "textarea" ? false : element.isEditing,
+            };
+      });
     });
   }, [])
 
@@ -407,19 +422,19 @@ export function useA4Elements(titleRef) {
   // Select an element without toggling (used by the text box on single click)
   // and leave edit mode on any other text box.
   const markSelected = useCallback((elementId) => {
-    setA4_Elements(prevState => prevState.map(el => (
-      el.element_id === elementId
-        ? { ...el, isSelected: true }
-        : { ...el, isSelected: false, isEditing: el.category === "textarea" ? false : el.isEditing }
-    )));
-  }, [])
+    handleSelectElement(elementId);
+  }, [handleSelectElement])
 
   const handleSetTextareaEditing = useCallback((elementId, editing) => {
     setA4_Elements(prevState => prevState.map(el => {
       if (el.element_id === elementId) {
         return { ...el, isEditing: editing, isSelected: true };
       }
-      return el.category === "textarea" ? { ...el, isEditing: false } : el;
+      // A text box in direct edit mode becomes the sole active element; this
+      // prevents a bulk selection from remaining active while typing content.
+      return editing
+        ? { ...el, isSelected: false, isEditing: el.category === "textarea" ? false : el.isEditing }
+        : (el.category === "textarea" ? { ...el, isEditing: false } : el);
     }));
   }, [])
 
@@ -488,6 +503,15 @@ export function useA4Elements(titleRef) {
       });
       return newState;
     });
+  }, [])
+
+  // Applies a shared set of editable fields to every selected element. The
+  // editor only exposes fields present on the entire selection, so this does
+  // not introduce properties incompatible with an element category.
+  const handleEditSelectedElementValues = useCallback((dataObject) => {
+    setA4_Elements(prevState => prevState.map((element) => (
+      element.isSelected ? { ...element, ...dataObject } : element
+    )));
   }, [])
 
   // Applies one reviewed layout group as a single state change. The backend
@@ -919,6 +943,7 @@ export function useA4Elements(titleRef) {
     handleDeleteElement,
     handleDuplicateElement,
     handleEditElementValues,
+    handleEditSelectedElementValues,
     applyLayoutPatches,
     handleMoveElementWithBelow,
     A4ref,

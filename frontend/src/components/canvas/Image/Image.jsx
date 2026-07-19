@@ -17,6 +17,7 @@ function Image({
     const { moveElement, selectElement, A4_Elements, selectMoveElement, resizeElement } = use(PdfContext)
 
     const [isResizeable, setIsResizeable] = useState(false);
+    const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
 
     const image = useRef();
 
@@ -34,7 +35,7 @@ function Image({
     }
 
 
-    if (isSelected) {
+    if (isSelected && selectedCount === 1) {
 
         const selectedElement = A4_Elements.find(element => element.element_id === elementId);
 
@@ -56,7 +57,12 @@ function Image({
                 src={src}
                 style={style}
                 onDoubleClick={() => selectElement(elementId)}
-                onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); selectMoveElement(elementId, true); }}
+                onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
+                onPointerDown={(e) => {
+                    if (e.ctrlKey || e.metaKey) return;
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    selectMoveElement(elementId, true);
+                }}
                 onPointerMove={(e) => moveElement(e, elementId)}
                 onPointerUp={() => selectMoveElement(elementId, false)}
                 className={isSelected ? classes.selectedElement : ""}
@@ -70,7 +76,12 @@ function Image({
             src={src}
             style={style}
             onDoubleClick={() => selectElement(elementId)}
-            onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); selectMoveElement(elementId, true); }}
+            onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
+            onPointerDown={(e) => {
+                if (e.ctrlKey || e.metaKey) return;
+                e.currentTarget.setPointerCapture(e.pointerId);
+                selectMoveElement(elementId, true);
+            }}
             onPointerMove={(e) => moveElement(e, elementId)}
             onPointerUp={() => selectMoveElement(elementId, false)}
             className={isSelected ? classes.selectedElement : ""}

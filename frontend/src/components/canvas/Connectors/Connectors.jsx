@@ -41,7 +41,10 @@ export default function Connectors({ elements }) {
                     <g
                         key={conn.element_id}
                         className={classes.hit}
-                        onPointerDown={(e) => { e.stopPropagation(); selectElement(conn.element_id); }}
+                        onPointerDown={(e) => {
+                            e.stopPropagation();
+                            selectElement(conn.element_id, e.ctrlKey || e.metaKey);
+                        }}
                     >
                         {/* fat transparent stroke = easy click target */}
                         <polyline points={d} fill="none" stroke="transparent" strokeWidth={Math.max(8, w + 6)} strokeLinejoin="round" />

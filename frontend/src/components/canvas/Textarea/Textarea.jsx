@@ -51,11 +51,12 @@ function Textarea({
         resizeElement,
         editElementValues,
         A4_Elements,
-        markSelected,
+        selectElement,
         setTextareaEditing,
     } = use(PdfContext);
 
     const [isResizeable, setIsResizeable] = useState(false);
+    const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
     function handleIsResizeable() {
         setIsResizeable((bool) => !bool);
     }
@@ -109,9 +110,13 @@ function Textarea({
             id={elementId}
             className={`${classes.block} ${isSelected ? classes.selected : ""}`}
             style={{ ...boxStyle, ...textStyle }}
-            onClick={() => markSelected(elementId)}
+            onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
             onDoubleClick={() => setTextareaEditing(elementId, true)}
-            onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); selectMoveElement(elementId, true); }}
+            onPointerDown={(e) => {
+                if (e.ctrlKey || e.metaKey) return;
+                e.currentTarget.setPointerCapture(e.pointerId);
+                selectMoveElement(elementId, true);
+            }}
             onPointerUp={() => selectMoveElement(elementId, false)}
             onPointerMove={(e) => moveElement(e, elementId)}
         >
@@ -119,7 +124,7 @@ function Textarea({
         </div>
     );
 
-    if (isSelected) {
+    if (isSelected && selectedCount === 1) {
         const selectedElement = A4_Elements.find((el) => el.element_id === elementId);
         return (
             <>
