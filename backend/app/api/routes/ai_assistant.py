@@ -7,7 +7,7 @@ router = APIRouter(prefix="/ai", tags=["ai_assistant"])
 
 VALID_ACTIONS = {
     "rating", "design_rating", "position_rating",
-    "grammar", "language", "improve", "ats_score", "chat",
+    "grammar", "language", "improve", "ats_score", "layout", "chat",
 }
 
 
@@ -16,6 +16,7 @@ class AssistantRequest(BaseModel):
     elements: list[dict] = []
     message: str = ""
     job_description: str = ""
+    page_size: dict = {}
 
 
 class AssistantResponse(BaseModel):
@@ -23,6 +24,8 @@ class AssistantResponse(BaseModel):
     rating: int | None = None
     tips: list[str] = []
     corrections: list[dict] = []
+    layout_groups: list[dict] = []
+    layout_issues: list[dict] = []
     web_sources: list[str] = []
 
 
@@ -46,6 +49,7 @@ async def ai_assistant(
             elements=request.elements,
             message=request.message,
             job_description=request.job_description,
+            page_size=request.page_size,
         )
         return AssistantResponse(**result)
     except Exception as exc:

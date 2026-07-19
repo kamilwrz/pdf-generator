@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, use } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { nanoid } from "nanoid";
 import { BsStars } from "react-icons/bs";
-import { FaStar, FaPalette, FaBriefcase, FaFont, FaMagic, FaRobot } from "react-icons/fa";
+import { FaArrowsAltH, FaStar, FaPalette, FaBriefcase, FaFont, FaMagic, FaRobot } from "react-icons/fa";
 import { RiEditLine } from "react-icons/ri";
 import { IoClose, IoSend } from "react-icons/io5";
 import { MdCheckCircle, MdCancel } from "react-icons/md";
@@ -19,6 +19,7 @@ const ACTIONS = [
     { id: "language",        label: "Style",        icon: FaFont,        color: "#2B6CB0", description: "Improve writing tone and clarity" },
     { id: "improve",         label: "Improve",      icon: FaMagic,       color: "#5FA777", description: "Stronger bullets with action verbs" },
     { id: "ats_score",       label: "ATS Score",    icon: FaRobot,       color: "#D63384", description: "Applicant tracking system check" },
+    { id: "layout",          label: "Layout",       icon: FaArrowsAltH,  color: "#B56520", description: "Check placement, alignment, and spacing" },
 ];
 
 // ── sub-components ────────────────────────────────────────────────────────
@@ -64,7 +65,64 @@ function CorrectionCard({ msgId, patch, correctionStates, onAccept, onReject, A4
     );
 }
 
-function ChatMessage({ msg, correctionStates, onAccept, onReject, onApplyAll, A4_Elements }) {
+function LayoutGroupCard({ msgId, group, layoutStates, onPreview, onClearPreview, onAccept, onReject }) {
+    const key = `${msgId}_${group.id}`;
+    const state = layoutStates[key] || "pending";
+    const moves = group.patches?.length || 0;
+
+    return (
+        <div className={`${classes.layoutCard} ${classes[`layout_${state}`]}`}>
+            <div className={classes.layoutCardHeader}>
+                <span className={`${classes.layoutSeverity} ${classes[`severity_${group.severity}`]}`}>
+                    {group.severity || "review"}
+                </span>
+                <span className={classes.layoutMoves}>{moves} move{moves !== 1 ? "s" : ""}</span>
+            </div>
+            <strong>{group.title}</strong>
+            <p>{group.reason}</p>
+            {state === "pending" && (
+                <div className={classes.layoutActions}>
+                    <button className={classes.layoutPreview} onClick={() => onPreview(msgId, group)}>
+                        Preview
+                    </button>
+                    <button className={classes.layoutAccept} onClick={() => onAccept(msgId, group)}>
+                        <MdCheckCircle /> Apply
+                    </button>
+                    <button className={classes.layoutReject} onClick={() => onReject(msgId, group)}>
+                        <MdCancel /> Skip
+                    </button>
+                </div>
+            )}
+            {state === "preview" && (
+                <div className={classes.layoutActions}>
+                    <span className={classes.previewingLabel}>Preview active on canvas</span>
+                    <button className={classes.layoutAccept} onClick={() => onAccept(msgId, group)}>
+                        <MdCheckCircle /> Apply
+                    </button>
+                    <button className={classes.layoutPreview} onClick={() => onClearPreview(msgId, group.id)}>
+                        Stop preview
+                    </button>
+                </div>
+            )}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "#5FA777" }}>✓ Applied</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "#9A8E7F" }}>✗ Skipped</span>}
+        </div>
+    );
+}
+
+function ChatMessage({
+    msg,
+    correctionStates,
+    layoutStates,
+    onAccept,
+    onReject,
+    onApplyAll,
+    onPreviewLayout,
+    onClearLayoutPreview,
+    onAcceptLayout,
+    onRejectLayout,
+    A4_Elements,
+}) {
     const isUser = msg.role === "user";
     const pendingCount = (msg.corrections || []).filter(
         c => (correctionStates[`${msg.id}_${c.element_id}`] || "pending") === "pending"
@@ -121,6 +179,33 @@ function ChatMessage({ msg, correctionStates, onAccept, onReject, onApplyAll, A4
                     </div>
                 )}
 
+                {/* reviewed layout groups */}
+                {msg.layout_groups?.length > 0 && (
+                    <div className={classes.layoutGroups}>
+                        <div className={classes.corrHeader}>
+                            <span>{msg.layout_groups.length} layout suggestion{msg.layout_groups.length !== 1 ? "s" : ""}</span>
+                        </div>
+                        {msg.layout_groups.map(group => (
+                            <LayoutGroupCard
+                                key={group.id}
+                                msgId={msg.id}
+                                group={group}
+                                layoutStates={layoutStates}
+                                onPreview={onPreviewLayout}
+                                onClearPreview={onClearLayoutPreview}
+                                onAccept={onAcceptLayout}
+                                onReject={onRejectLayout}
+                            />
+                        ))}
+                    </div>
+                )}
+
+                {msg.layout_issues?.length > 0 && (
+                    <ul className={classes.layoutIssues}>
+                        {msg.layout_issues.map((issue, index) => <li key={index}>{issue.message}</li>)}
+                    </ul>
+                )}
+
                 {/* web sources */}
                 {msg.web_sources?.length > 0 && (
                     <div className={classes.sources}>
@@ -139,8 +224,43 @@ function ChatMessage({ msg, correctionStates, onAccept, onReject, onApplyAll, A4
 
 // ── main component ────────────────────────────────────────────────────────
 
+function createLayoutSnapshot(elements) {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    return elements.map(element => {
+        const left = Number(element.left) || 0;
+        const top = Number(element.top) || 0;
+        let width = Number(element.width) || 0;
+        let height = Number(element.height) || 0;
+
+        if (element.category === "text" && context) {
+            const fontSize = Number(element.fontSize) || 12;
+            const weight = element.bold ? 700 : 400;
+            const style = element.italic ? "italic" : "normal";
+            context.font = `${style} ${weight} ${fontSize}px ${element.fontFamily || "sans-serif"}`;
+            width = Math.max(
+                ...String(element.content || "").split("\n").map(line => context.measureText(line).width),
+                fontSize
+            );
+            height = Math.max(fontSize * 1.35, (element.fontSize || fontSize) * 1.35);
+        }
+
+        return {
+            ...element,
+            layout_bounds: { left, top, width, height },
+        };
+    });
+}
+
 export default function AiAssistant() {
-    const { A4_Elements, editElementValues } = use(PdfContext);
+    const {
+        A4_Elements,
+        editElementValues,
+        applyLayoutPatches,
+        setLayoutPreviewPatches,
+        pageSize,
+    } = use(PdfContext);
 
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
@@ -149,6 +269,7 @@ export default function AiAssistant() {
     const [showJobDesc, setShowJobDesc] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [correctionStates, setCorrectionStates] = useState({});
+    const [layoutStates, setLayoutStates] = useState({});
 
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -186,6 +307,38 @@ export default function AiAssistant() {
         setCorrectionStates(prev => ({ ...prev, ...newStates }));
     }, [correctionStates, editElementValues]);
 
+    const previewLayoutGroup = useCallback((msgId, group) => {
+        setLayoutPreviewPatches(group.patches || []);
+        setLayoutStates(prev => {
+            const next = { ...prev };
+            Object.keys(next).forEach(key => {
+                if (next[key] === "preview") next[key] = "pending";
+            });
+            next[`${msgId}_${group.id}`] = "preview";
+            return next;
+        });
+    }, [setLayoutPreviewPatches]);
+
+    const clearLayoutPreview = useCallback((msgId, groupId) => {
+        setLayoutPreviewPatches([]);
+        setLayoutStates(prev => {
+            const key = `${msgId}_${groupId}`;
+            return prev[key] === "preview" ? { ...prev, [key]: "pending" } : prev;
+        });
+    }, [setLayoutPreviewPatches]);
+
+    const acceptLayoutGroup = useCallback((msgId, group) => {
+        applyLayoutPatches(group.patches || []);
+        setLayoutPreviewPatches([]);
+        setLayoutStates(prev => ({ ...prev, [`${msgId}_${group.id}`]: "accepted" }));
+    }, [applyLayoutPatches, setLayoutPreviewPatches]);
+
+    const rejectLayoutGroup = useCallback((msgId, group) => {
+        const key = `${msgId}_${group.id}`;
+        if (layoutStates[key] === "preview") setLayoutPreviewPatches([]);
+        setLayoutStates(prev => ({ ...prev, [key]: "rejected" }));
+    }, [layoutStates, setLayoutPreviewPatches]);
+
     // ── send message to backend ──────────────────────────────────────────
 
     const send = useCallback(async (action, userText) => {
@@ -205,9 +358,10 @@ export default function AiAssistant() {
                 ENDPOINTS.AI.ASSISTANT, "POST",
                 JSON.stringify({
                     action,
-                    elements: A4_Elements,
+                    elements: action === "layout" ? createLayoutSnapshot(A4_Elements) : A4_Elements,
                     message: action === "chat" ? userText : "",
                     job_description: action === "position_rating" ? jobDesc : "",
+                    page_size: pageSize,
                 }),
                 "AI Assistant failed"
             );
@@ -219,6 +373,8 @@ export default function AiAssistant() {
                 rating: res.rating ?? null,
                 tips: res.tips ?? [],
                 corrections: res.corrections ?? [],
+                layout_groups: res.layout_groups ?? [],
+                layout_issues: res.layout_issues ?? [],
                 web_sources: res.web_sources ?? [],
                 actionLabel: actionMeta?.label,
                 actionColor: actionMeta?.color,
@@ -236,7 +392,7 @@ export default function AiAssistant() {
         } finally {
             setIsLoading(false);
         }
-    }, [A4_Elements, api, isLoading, jobDesc]);
+    }, [A4_Elements, api, isLoading, jobDesc, pageSize]);
 
     const handleAction = useCallback((actionId) => {
         const meta = ACTIONS.find(a => a.id === actionId);
@@ -299,7 +455,10 @@ export default function AiAssistant() {
                                     <div className={classes.headerSub}>Analyse, correct & improve</div>
                                 </div>
                             </div>
-                            <button className={classes.closeBtn} onClick={() => setIsOpen(false)}>
+                            <button className={classes.closeBtn} onClick={() => {
+                                setLayoutPreviewPatches([]);
+                                setIsOpen(false);
+                            }}>
                                 <IoClose />
                             </button>
                         </div>
@@ -374,9 +533,14 @@ export default function AiAssistant() {
                                     key={msg.id}
                                     msg={msg}
                                     correctionStates={correctionStates}
+                                    layoutStates={layoutStates}
                                     onAccept={acceptCorrection}
                                     onReject={rejectCorrection}
                                     onApplyAll={applyAll}
+                                    onPreviewLayout={previewLayoutGroup}
+                                    onClearLayoutPreview={clearLayoutPreview}
+                                    onAcceptLayout={acceptLayoutGroup}
+                                    onRejectLayout={rejectLayoutGroup}
                                     A4_Elements={A4_Elements}
                                 />
                             ))}

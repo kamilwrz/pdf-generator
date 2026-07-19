@@ -490,6 +490,56 @@ export function useA4Elements(titleRef) {
     });
   }, [])
 
+  // Applies one reviewed layout group as a single state change. The backend
+  // already validates proposals, but this client-side guard prevents stale or
+  // malformed responses from moving elements outside the current canvas.
+  const applyLayoutPatches = useCallback((patches) => {
+    if (!Array.isArray(patches) || patches.length === 0) return;
+
+    const uniqueIds = new Set();
+    for (const patch of patches) {
+      if (
+        !patch?.element_id
+        || uniqueIds.has(patch.element_id)
+        || !Number.isFinite(patch.left)
+        || !Number.isFinite(patch.top)
+      ) {
+        return;
+      }
+      uniqueIds.add(patch.element_id);
+    }
+
+    setA4_Elements(prevState => {
+      const elementsById = new Map(prevState.map(element => [element.element_id, element]));
+      if ([...uniqueIds].some(elementId => !elementsById.has(elementId))) return prevState;
+
+      const { width: pageWidth, height: pageHeight } = pageSizeRef.current;
+      const patchById = new Map(patches.map(patch => [patch.element_id, patch]));
+      const isSafe = patches.every(patch => {
+        const element = elementsById.get(patch.element_id);
+        const width = Math.max(parseFloat(element.width) || 0, 0);
+        const height = Math.max(
+          parseFloat(element.height) || (element.category === "text" ? (element.fontSize || 12) * 1.35 : 0),
+          0
+        );
+        return (
+          patch.left >= 0
+          && patch.top >= 0
+          && patch.left + width <= pageWidth
+          && patch.top + height <= pageHeight
+        );
+      });
+      if (!isSafe) return prevState;
+
+      return prevState.map(element => {
+        const patch = patchById.get(element.element_id);
+        return patch
+          ? { ...element, left: patch.left, top: patch.top, isSelected: false, isMove: false, isEditing: false }
+          : element;
+      });
+    });
+  }, []);
+
   // Move an element to newTop and shift every element BELOW it (in absolute
   // document order) by the same delta — opens/closes vertical space above the
   // moved block while preserving spacing. Fully bidirectional: pushing down
@@ -869,6 +919,7 @@ export function useA4Elements(titleRef) {
     handleDeleteElement,
     handleDuplicateElement,
     handleEditElementValues,
+    applyLayoutPatches,
     handleMoveElementWithBelow,
     A4ref,
     PDFTitle,

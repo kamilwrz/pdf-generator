@@ -9,6 +9,7 @@ import json
 import os
 from openai import OpenAI
 from app.core.config import OPENAI_API_KEY
+from app.services.layout_analysis import analyze_layout
 
 _MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.5")
 _client = OpenAI(api_key=OPENAI_API_KEY)
@@ -531,6 +532,11 @@ Return JSON:
     return _safe_result(_gpt(system, user))
 
 
+def _analyze_layout(elements: list[dict], page_size: dict | None) -> dict:
+    """Return deterministic layout proposals; GPT never chooses coordinates."""
+    return analyze_layout(elements, page_size)
+
+
 # ── public dispatcher ──────────────────────────────────────────────────────
 
 def analyze_action(
@@ -538,6 +544,7 @@ def analyze_action(
     elements: list[dict],
     message: str = "",
     job_description: str = "",
+    page_size: dict | None = None,
 ) -> dict:
     text = _extract_text(elements)
 
@@ -550,6 +557,7 @@ def analyze_action(
         "improve":         lambda: _improve_content(elements),
         "ats_score":       lambda: _ats_score(text),
         "chat":            lambda: _chat(message, text),
+        "layout":          lambda: _analyze_layout(elements, page_size),
     }
 
     fn = dispatchers.get(action)

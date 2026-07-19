@@ -7,17 +7,18 @@ import { computeConnectorPath } from "./connectorPath";
 // Geometry is derived live from the two linked elements, so a connector stays
 // glued as they move. The layer is pointer-transparent except for each line's
 // hit area, so it never blocks dragging the elements underneath.
-export default function Connectors() {
+export default function Connectors({ elements }) {
     const { A4_Elements, currentPage, selectElement, pageSize } = use(PdfContext);
+    const canvasElements = elements ?? A4_Elements;
     const A4_WIDTH = pageSize?.width ?? 595;
     const A4_HEIGHT = pageSize?.height ?? 842;
 
     const onPage = (el) => (el.page ?? 1) === currentPage;
-    const connectors = A4_Elements.filter((el) => el.category === "connector" && onPage(el));
+    const connectors = canvasElements.filter((el) => el.category === "connector" && onPage(el));
     if (connectors.length === 0) return null;
 
     const byId = {};
-    A4_Elements.forEach((el) => { byId[el.element_id] = el; });
+    canvasElements.forEach((el) => { byId[el.element_id] = el; });
 
     return (
         <svg

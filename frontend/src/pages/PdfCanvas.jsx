@@ -59,6 +59,9 @@ function PdfCanvas() {
   const [modalRequestStatus, setModalRequestStatus] = useState(false);
 
   const [PDFdownloadData, setPDFdownloadData] = useState([])
+  // Layout suggestions are rendered here before acceptance, so previewing a
+  // correction never mutates the saved document state.
+  const [layoutPreviewPatches, setLayoutPreviewPatches] = useState([]);
 
 
   const {
@@ -85,6 +88,7 @@ function PdfCanvas() {
     handleDuplicateElement,
     handleAlignElements,
     handleEditElementValues,
+    applyLayoutPatches,
     handleMoveElementWithBelow,
     A4ref,
     handleResizeElement,
@@ -203,6 +207,25 @@ function PdfCanvas() {
     createPdf(A4_Elements, titleRef, pageCount, pageSize);
   }, [A4_Elements, createPdf, titleRef, pageCount, pageSize]);
 
+  const previewedElements = useMemo(() => {
+    if (layoutPreviewPatches.length === 0) return A4_Elements;
+
+    const patchesById = new Map(
+      layoutPreviewPatches.map(patch => [patch.element_id, patch])
+    );
+    return A4_Elements.map(element => {
+      const patch = patchesById.get(element.element_id);
+      return {
+        ...element,
+        isSelected: false,
+        isMove: false,
+        isEditing: false,
+        left: Number.isFinite(patch?.left) ? patch.left : element.left,
+        top: Number.isFinite(patch?.top) ? patch.top : element.top,
+      };
+    });
+  }, [A4_Elements, layoutPreviewPatches]);
+
   const updatePdfWithElements = useCallback(() => {
     updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted, pageCount, pageSize);
   }, [A4_Elements, pdfId, updatePdf, titleRef, A4_Elements_deleted, pageCount, pageSize]);
@@ -226,6 +249,7 @@ function PdfCanvas() {
     moveElement: handleMoveElement,
     selectMoveElement: handleSelectMoveElement,
     editElementValues: handleEditElementValues,
+    applyLayoutPatches: applyLayoutPatches,
     moveElementWithBelow: handleMoveElementWithBelow,
     alignElement: handleAlignElements,
     deleteElement: handleDeleteElement,
@@ -278,14 +302,16 @@ function PdfCanvas() {
     PDFs: PDFs,
     setPDFs: setPDFs,
     setPDFdownloadData: setPDFdownloadData,
-    PDFdownloadData: PDFdownloadData
+    PDFdownloadData: PDFdownloadData,
+    layoutPreviewPatches: layoutPreviewPatches,
+    setLayoutPreviewPatches: setLayoutPreviewPatches,
   }), [
     A4_Elements,
     isGallery, isDropzone, valueImageUpload,
     isModalPdfs, handleAddImage,
     handleAddText, handleAddLine, handleAddRectangle, startConnecting, handleSelectElement,
     handleMoveElement, handleSelectMoveElement, createPdfWithElements,
-    handleShowDropzone, handleShowGallery, handleEditElementValues,
+    handleShowDropzone, handleShowGallery, handleEditElementValues, applyLayoutPatches,
     handleAlignElements, handleDeleteElement, setA4_Elements,
     setValueImageUpload, setIsModalPdfs, handleResizeElement, 
     updatePdfWithElements, handlePdfId, 
@@ -294,6 +320,7 @@ function PdfCanvas() {
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
     isTemplates, handleShowTemplates, handleLoadTemplate, handleLoadTemplateWithFill, handleLoadAiElements, handleMoveElementWithBelow, handleShowAiPanel,
     handleShowDeckPanel, handleShowArticlePanel, pageSize, setPageSize, setPagePreset,
+    layoutPreviewPatches,
   ])
 
   console.log(A4_Elements);
@@ -342,9 +369,11 @@ function PdfCanvas() {
           <div className="canvas-area">
             <A4 width={`${pageSize.width}px`} height={`${pageSize.height}px`} ref={A4ref}>
               {isPdfLoading && <Spinner loading={isPdfLoading}/>}
-              <CanvasElements elements={A4_Elements.filter(element => (element.page ?? 1) === currentPage)} />
-              <Connectors />
-              <Guides />
+              <div style={layoutPreviewPatches.length > 0 ? { pointerEvents: "none" } : undefined}>
+                <CanvasElements elements={previewedElements.filter(element => (element.page ?? 1) === currentPage)} />
+                <Connectors elements={previewedElements} />
+                <Guides />
+              </div>
             </A4>
           </div>
         </div>
