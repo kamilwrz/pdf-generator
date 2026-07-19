@@ -17,18 +17,19 @@
 
  .main-container {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;       /* sidebar (full height) | right pane */
     height: 100vh;
     overflow: hidden;          /* the page itself never scrolls on Y */
     position: relative;
  }
 
- /* Editor row below the topbar: sidebar + scrollable canvas */
- .workspace {
+ /* Everything right of the full-height sidebar: topbar on top, canvas below. */
+ .right-pane {
     flex: 1;
+    min-width: 0;
     min-height: 0;
     display: flex;
-    align-items: stretch;
+    flex-direction: column;
     overflow: hidden;
  }
 

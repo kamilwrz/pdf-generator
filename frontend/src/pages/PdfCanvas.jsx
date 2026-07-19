@@ -287,17 +287,17 @@ function PdfCanvas() {
         <ModalPdfs title={titleRef}/>
         <ModalPdfRequestStatus open={modalRequestStatus} message={responsePDF} />
         <TemplatesModal />
-        <Topbar />
-        <div className="workspace">
-          <Sidebar ref={titleRef}>
-            <AnimatePresence>{isDropzone && <DropzoneContainer />}</AnimatePresence>
-            {isAiPanel && (
-              <div style={{ position: "absolute", left: "100%", top: 0, width: 320, background: "#fff", borderLeft: "1px solid var(--border-line)", borderRight: "1px solid var(--border-line)", height: "100%", overflowY: "auto", zIndex: 1100, boxShadow: "4px 0 16px rgba(30,48,78,.10)" }}>
-                <AiCvPanel onClose={handleShowAiPanel} />
-              </div>
-            )}
-            <Editor />
-          </Sidebar>
+        <Sidebar>
+          <AnimatePresence>{isDropzone && <DropzoneContainer />}</AnimatePresence>
+          {isAiPanel && (
+            <div style={{ position: "absolute", left: "100%", top: 0, width: 320, background: "#fff", borderLeft: "1px solid var(--border-line)", borderRight: "1px solid var(--border-line)", height: "100%", overflowY: "auto", zIndex: 1100, boxShadow: "4px 0 16px rgba(30,48,78,.10)" }}>
+              <AiCvPanel onClose={handleShowAiPanel} />
+            </div>
+          )}
+          <Editor />
+        </Sidebar>
+        <div className="right-pane">
+          <Topbar titleRef={titleRef} />
           <div className="canvas-area">
             <A4 width="595px" height="842px" ref={A4ref}>
               {isPdfLoading && <Spinner loading={isPdfLoading}/>}

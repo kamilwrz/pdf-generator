@@ -6,15 +6,14 @@ import { BiRectangle } from "react-icons/bi";
 import { TbTopologyStar3 } from "react-icons/tb";
 import { CiText } from "react-icons/ci";
 import { BsTextParagraph } from "react-icons/bs";
-import { TiPen } from "react-icons/ti";
 import { LuImagePlus } from "react-icons/lu";
 import { AiOutlineLogout } from "react-icons/ai";
 import { FaRegFolderOpen } from "react-icons/fa";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { forwardRef, use } from "react";
+import { use } from "react";
 
 
-export default forwardRef(function Sidebar({ children }, ref) {
+export default function Sidebar({ children }) {
 
     const {
         addText,
@@ -42,14 +41,6 @@ export default forwardRef(function Sidebar({ children }, ref) {
             <div className={classes.logoWrapperText}>
                 <h1>PDF Canvas</h1>
                 <p>Editor · v2.0</p>
-            </div>
-        </div>
-
-        <div className={classes.titleContainer}>
-            <label htmlFor="title">Current project</label>
-            <div className={classes.titleField}>
-                <input type="text" name="title" id="title" ref={ref} placeholder="Untitled project" />
-                <button type="button" aria-label="Rename"><TiPen /></button>
             </div>
         </div>
 
@@ -86,4 +77,4 @@ export default forwardRef(function Sidebar({ children }, ref) {
         {children}
 
     </aside>
-})
+}
