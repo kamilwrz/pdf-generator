@@ -1,12 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { nanoid } from 'nanoid';
 
+// Elements a connector can attach to — those with a real bounding box the
+// backend can reproduce for the PDF. Single-line text (no stored width/height)
+// is intentionally excluded.
+const CONNECTABLE = new Set(["textarea", "rectangle", "image", "line"]);
+
 export function useA4Elements(titleRef) {
 
   const A4ref = useRef(null);
 
   const [A4_Elements, setA4_Elements] = useState([]);
   const [A4_Elements_deleted, setA4_Elements_deleted] = useState([]);
+
+  // ---- Connector draw mode ----
+  // connectMode: true while the user is picking the two elements to link.
+  // connectSourceId: the first element picked (null until then).
+  const [connectMode, setConnectMode] = useState(false);
+  const [connectSourceId, setConnectSourceId] = useState(null);
 
   // ---- Multi-page state ----
   const [pageCount, setPageCount] = useState(1);
@@ -23,6 +34,63 @@ export function useA4Elements(titleRef) {
     setA4_Elements(prev => prev.some(e => e.isSelected)
       ? prev.map(e => (e.isSelected ? { ...e, isSelected: false } : e))
       : prev);
+  }, []);
+
+  // Enter connector mode: next two element clicks pick source then target.
+  const startConnecting = useCallback(() => {
+    setConnectSourceId(null);
+    setConnectMode(true);
+    clearSelection();
+  }, [clearSelection]);
+
+  const cancelConnecting = useCallback(() => {
+    setConnectMode(false);
+    setConnectSourceId(null);
+  }, []);
+
+  // Topmost connectable element on the current page whose box contains the
+  // given canvas-space point (px from the A4 top-left corner).
+  const elementAtPoint = (x, y) => {
+    const hits = elementsRef.current.filter((el) =>
+      CONNECTABLE.has(el.category) &&
+      (el.page ?? 1) === currentPageRef.current &&
+      x >= el.left && x <= el.left + (parseFloat(el.width) || 0) &&
+      y >= el.top && y <= el.top + (parseFloat(el.height) || 0)
+    );
+    if (hits.length === 0) return null;
+    return hits.reduce((top, el) => ((el.zIndex ?? 0) >= (top.zIndex ?? 0) ? el : top));
+  };
+
+  // Called by the A4 click handler while in connect mode. Resolves the element
+  // under the cursor by geometry (no DOM ids needed). First hit = source,
+  // second (different) hit = target -> creates the connector. Clicking empty
+  // space cancels.
+  const pickConnectorAt = useCallback((clientX, clientY) => {
+    const rect = A4ref.current?.getBoundingClientRect();
+    if (!rect) return;
+    const hit = elementAtPoint(clientX - rect.left, clientY - rect.top);
+    if (!hit) { setConnectMode(false); setConnectSourceId(null); return; }
+
+    setConnectSourceId((prevSource) => {
+      if (!prevSource) return hit.element_id;           // first pick
+      if (prevSource === hit.element_id) return prevSource; // ignore same element
+      const connector = {
+        element_id: nanoid(),
+        category: "connector",
+        source_id: prevSource,
+        target_id: hit.element_id,
+        backgroundColor: "#000000",
+        borderWidth: 1,
+        arrow: true,
+        isSelected: false,
+        isMove: false,
+        zIndex: 50,
+        page: currentPageRef.current,
+      };
+      setA4_Elements((prev) => [...prev, connector]);
+      setConnectMode(false);
+      return null;
+    });
   }, []);
 
   const handleGoToPage = useCallback((page) => {
@@ -294,14 +362,25 @@ export function useA4Elements(titleRef) {
 
   const handleDeleteElement = useCallback((elementId) => {
     setA4_Elements(prevState => {
-      const deletedElement = prevState.find(el => el.element_id === elementId);
-      if (deletedElement) {
-        setA4_Elements_deleted(prev =>
-          prev.some(e => e.element_id === elementId && e.pdf_id !== undefined) 
-          ? prev : [...prev, { ...deletedElement, deleted : true}]
-        );
-      }
-      return prevState.filter(element => element.element_id !== elementId);
+      // Remove the element plus any connector attached to it (no dangling lines).
+      const removedIds = new Set([elementId]);
+      prevState.forEach(el => {
+        if (el.category === "connector" && (el.source_id === elementId || el.target_id === elementId)) {
+          removedIds.add(el.element_id);
+        }
+      });
+
+      removedIds.forEach(id => {
+        const el = prevState.find(e => e.element_id === id);
+        if (el) {
+          setA4_Elements_deleted(prev =>
+            prev.some(e => e.element_id === id && e.pdf_id !== undefined)
+              ? prev : [...prev, { ...el, deleted: true }]
+          );
+        }
+      });
+
+      return prevState.filter(element => !removedIds.has(element.element_id));
     });
   }, []);
 
@@ -682,6 +761,12 @@ export function useA4Elements(titleRef) {
     handleAddRectangle,
     handleAddImage,
     handleAddTextarea,
+    // connector mode
+    connectMode,
+    connectSourceId,
+    startConnecting,
+    cancelConnecting,
+    pickConnectorAt,
     markSelected,
     handleSetTextareaEditing,
     handleAlignElements,

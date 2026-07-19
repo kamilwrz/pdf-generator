@@ -17,6 +17,7 @@ import Spinner from '../components/common/Spinner/Spinner';
 import { AnimatePresence } from "framer-motion";
 import PageControls from '../components/editor/PageControls/PageControls';
 import Guides from '../components/canvas/Guides/Guides';
+import Connectors from '../components/canvas/Connectors/Connectors';
 import TemplatesModal from '../components/modals/TemplatesModal/TemplatesModal';
 import AiCvPanel from '../components/ai/AiCvPanel/AiCvPanel';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
@@ -65,6 +66,11 @@ function PdfCanvas() {
     handleAddRectangle,
     handleAddText,
     handleAddTextarea,
+    connectMode,
+    connectSourceId,
+    startConnecting,
+    cancelConnecting,
+    pickConnectorAt,
     markSelected,
     handleSetTextareaEditing,
     handleSelectElement,
@@ -133,6 +139,29 @@ function PdfCanvas() {
   }, [checkActivity])
 
 
+  // While in connector mode, intercept clicks on the A4 in the capture phase
+  // (before any element's own pointerdown) so picking source/target never
+  // starts a drag or selection. Geometry-based hit-testing happens in the hook.
+  useEffect(() => {
+    if (!connectMode) return;
+    const node = A4ref.current;
+    if (!node) return;
+    const handler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      pickConnectorAt(e.clientX, e.clientY);
+    };
+    node.addEventListener("pointerdown", handler, true);
+    return () => node.removeEventListener("pointerdown", handler, true);
+  }, [connectMode, pickConnectorAt, A4ref])
+
+  useEffect(() => {
+    if (!connectMode) return;
+    const onKey = (e) => { if (e.key === "Escape") cancelConnecting(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [connectMode, cancelConnecting])
+
   const handleShowDropzone = useCallback(() => {
     setIsDropzone(boolDropzone => !boolDropzone);
   }, [])
@@ -169,6 +198,7 @@ function PdfCanvas() {
     addText: handleAddText,
     addLine: handleAddLine,
     addRectangle: handleAddRectangle,
+    addConnector: startConnecting,
     addTextarea: handleAddTextarea,
     markSelected: markSelected,
     setTextareaEditing: handleSetTextareaEditing,
@@ -225,7 +255,7 @@ function PdfCanvas() {
     A4_Elements,
     isGallery, isDropzone, valueImageUpload,
     isModalPdfs, handleAddImage,
-    handleAddText, handleAddLine, handleAddRectangle, handleSelectElement,
+    handleAddText, handleAddLine, handleAddRectangle, startConnecting, handleSelectElement,
     handleMoveElement, handleSelectMoveElement, createPdfWithElements,
     handleShowDropzone, handleShowGallery, handleEditElementValues,
     handleAlignElements, handleDeleteElement, setA4_Elements,
@@ -242,8 +272,16 @@ function PdfCanvas() {
 
 
   return (
-    <main className='main-container' onMouseMove={throttledHandleIsActive}>
-    
+    <main className='main-container' onMouseMove={throttledHandleIsActive} style={connectMode ? { cursor: "crosshair" } : undefined}>
+
+      {connectMode && (
+        <div style={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", zIndex: 5000,
+                      background: "var(--accent)", color: "#fff", padding: "8px 16px", borderRadius: 999,
+                      font: "700 13px var(--font-body)", boxShadow: "var(--shadow-pop)", pointerEvents: "none" }}>
+          {connectSourceId ? "Click the target element  ·  Esc to cancel" : "Click the source element  ·  Esc to cancel"}
+        </div>
+      )}
+
       <PdfContext.Provider value={ctxValue}>
         <ModalPdfs title={titleRef}/>
         <ModalPdfRequestStatus open={modalRequestStatus} message={responsePDF} />
@@ -260,6 +298,7 @@ function PdfCanvas() {
         <A4 width="595px" height="842px" ref={A4ref}>
           {isPdfLoading && <Spinner loading={isPdfLoading}/>}
           <CanvasElements elements={A4_Elements.filter(element => (element.page ?? 1) === currentPage)} />
+          <Connectors />
           <Guides />
         </A4>
        <PageControls />

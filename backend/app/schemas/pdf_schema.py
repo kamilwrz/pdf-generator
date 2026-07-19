@@ -33,6 +33,10 @@ class PdfElement(BaseModel):
     backgroundColor: Optional[str] = None
     #RECTANGLE ELEMENT (outline only): border thickness in px
     borderWidth: Optional[float] = None
+    #CONNECTOR ELEMENT: links two elements by their element_id, optional arrowhead
+    source_id: Optional[str] = None
+    target_id: Optional[str] = None
+    arrow: Optional[bool] = False
     #IMG ELEMENT
     src: Optional[str] = None
     #NANO ID

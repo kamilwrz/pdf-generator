@@ -234,7 +234,20 @@ export default function Editor() {
 
             </>}
 
-            <>
+            {selectedElement?.category === "connector" && <>
+                <div className={classes.elementSize}>
+                    <EditorControls labelText="Line Width" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
+                    <EditorControls labelText="Line Color" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
+                </div>
+                <label className={classes.pushToggle}>
+                    <input type="checkbox" checked={!!selectedElement?.arrow} onChange={() => toggleStyle("arrow")} />
+                    <span>Arrowhead at target</span>
+                </label>
+                <EditorControls labelText="Visibility" type="number" inputValue={elementValues.zIndex} onChangeFn={(e) => handleChangeValues(e, "zIndex")} />
+                <button type="button" className={classes.btnDelete} onClick={() => deleteElement(selectedElement.element_id)}>Remove Connector<RiDeleteBin2Line /></button>
+            </>}
+
+            {selectedElement?.category !== "connector" && <>
                 <EditorControls labelText="Visibility" type="number" inputValue={elementValues.zIndex} onChangeFn={(e) => handleChangeValues(e, "zIndex")} />
 
                 <div className={classes.positionBtnsWrapper}>
@@ -253,7 +266,7 @@ export default function Editor() {
                 <button type="button" className={classes.btnDuplicate} onClick={() => duplicateElement(selectedElement.element_id)}>Duplicate element<RiFileCopyLine /></button>
                 <button type="button" className={classes.btnDelete} onClick={() => deleteElement(selectedElement.element_id)}>Remove Element<RiDeleteBin2Line /></button>
 
-            </>
+            </>}
         </form>
     </motion.aside>}</AnimatePresence>
 }

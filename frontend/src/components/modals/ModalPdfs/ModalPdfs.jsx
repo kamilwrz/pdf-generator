@@ -80,7 +80,16 @@ export default function ModalPdfs({ title }) {
                             isEditing: false,
                         }
                     } else if (element.category !== "text") {
-                        return { ...element, "zIndex": element.extra_properties.zIndex, borderWidth: element.extra_properties.borderWidth, width: parseFloat(element.width), height: parseFloat(element.height) }
+                        return {
+                            ...element,
+                            "zIndex": element.extra_properties.zIndex,
+                            borderWidth: element.extra_properties.borderWidth,
+                            source_id: element.extra_properties.source_id,
+                            target_id: element.extra_properties.target_id,
+                            arrow: element.extra_properties.arrow,
+                            width: parseFloat(element.width),
+                            height: parseFloat(element.height),
+                        }
                     } else {
                         return {
                             ...element,

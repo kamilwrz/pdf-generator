@@ -1,0 +1,15 @@
+/* Connector layer sits above the shapes. The SVG itself lets pointer events
+   pass through to the elements below; only each connector's hit group catches
+   clicks (so lines can be selected without blocking element dragging). */
+.layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 30;
+    pointer-events: none;
+}
+
+.hit {
+    pointer-events: stroke;
+    cursor: pointer;
+}

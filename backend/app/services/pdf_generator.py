@@ -86,6 +86,75 @@ class PDF_Generator:
         self.c.setLineWidth(bw)
         self.c.rect(left + bw / 2, corrected_y + bw / 2, width=width - bw, height=height - bw, stroke=1, fill=0)
 
+    @staticmethod
+    def _connector_geometry(source, target):
+        """Orthogonal (right-angle) route between two element boxes. Endpoints
+        sit at the midpoint of each box's facing side; the path bends at the
+        midway line. Returns (points, end_point, last_dir) in canvas (top-left
+        origin) coordinates — identical to the frontend's connectorPath.js so
+        the PDF matches the canvas. last_dir is the direction the final segment
+        travels into the target (for the arrowhead)."""
+        def box(el):
+            w = float(getattr(el, "width", 0) or 0)
+            h = float(getattr(el, "height", 0) or 0)
+            left = float(getattr(el, "left", 0) or 0)
+            top = float(getattr(el, "top", 0) or 0)
+            return left, top, w, h, left + w / 2, top + h / 2, left + w, top + h
+
+        sl, st, sw, sh, scx, scy, sr, sb = box(source)
+        tl, tt, tw, th, tcx, tcy, tr, tb = box(target)
+        dx = tcx - scx
+        dy = tcy - scy
+        if abs(dx) >= abs(dy):
+            sx = sr if dx >= 0 else sl
+            tx = tl if dx >= 0 else tr
+            p0, p3 = (sx, scy), (tx, tcy)
+            mx = (sx + tx) / 2.0
+            pts = [p0, (mx, scy), (mx, tcy), p3]
+            last = "right" if dx >= 0 else "left"
+        else:
+            sy = sb if dy >= 0 else st
+            ty = tt if dy >= 0 else tb
+            p0, p3 = (scx, sy), (tcx, ty)
+            my = (sy + ty) / 2.0
+            pts = [p0, (scx, my), (tcx, my), p3]
+            last = "down" if dy >= 0 else "up"
+        return pts, p3, last
+
+    def renderConnector(self, source, target, color, border_width, arrow):
+        """Thin right-angle connector between two elements, with an optional
+        filled arrowhead at the target end."""
+        pts, end, last = self._connector_geometry(source, target)
+        bw = float(border_width) if border_width else 1.0
+        stroke = HexColor(color or "#000000")
+        self.c.setStrokeColor(stroke)
+        self.c.setLineWidth(bw)
+        flip = lambda p: (p[0], 842 - p[1])
+        for i in range(len(pts) - 1):
+            x1, y1 = flip(pts[i])
+            x2, y2 = flip(pts[i + 1])
+            self.c.line(x1, y1, x2, y2)
+        if arrow:
+            A = 7.0
+            ex, ey = end
+            if last == "right":
+                tri = [(ex, ey), (ex - A, ey - A), (ex - A, ey + A)]
+            elif last == "left":
+                tri = [(ex, ey), (ex + A, ey - A), (ex + A, ey + A)]
+            elif last == "down":
+                tri = [(ex, ey), (ex - A, ey - A), (ex + A, ey - A)]
+            else:  # up
+                tri = [(ex, ey), (ex - A, ey + A), (ex + A, ey + A)]
+            self.c.setFillColor(stroke)
+            path = self.c.beginPath()
+            fx, fy = flip(tri[0])
+            path.moveTo(fx, fy)
+            for pt in tri[1:]:
+                fx, fy = flip(pt)
+                path.lineTo(fx, fy)
+            path.close()
+            self.c.drawPath(path, stroke=0, fill=1)
+
     ITALIC_SHEAR = 0.21  # ~12 degree slant for faux italic (fallback only)
 
     # (family, bold, italic) -> a registered font that is a REAL variant.
@@ -286,7 +355,11 @@ class PDF_Generator:
         preserved. ``image_resolver(src)`` returns a local path ReportLab
         can read."""
         by_page = {}
+        by_id = {}
         for element in elements:
+            eid = getattr(element, "element_id", None)
+            if eid is not None:
+                by_id[eid] = element
             if getattr(element, "deleted", None) == True:
                 continue
             page_no = getattr(element, "page", 1) or 1
@@ -315,6 +388,11 @@ class PDF_Generator:
                     self.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
                 elif category == "rectangle":
                     self.renderRectangle(float(element.width), float(element.height), element.left, element.top, element.backgroundColor, getattr(element, "borderWidth", 1))
+                elif category == "connector":
+                    source = by_id.get(getattr(element, "source_id", None))
+                    target = by_id.get(getattr(element, "target_id", None))
+                    if source is not None and target is not None:
+                        self.renderConnector(source, target, element.backgroundColor, getattr(element, "borderWidth", 1), getattr(element, "arrow", False))
                 elif category == "image":
                     self.renderImage(image_resolver(element.src or ""), float(element.width), float(element.height), element.left, element.top)
             self.c.showPage()
