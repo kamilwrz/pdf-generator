@@ -21,6 +21,78 @@ export function presetFromDims(width, height) {
   return found ? found[0] : "custom";
 }
 
+function getElementBounds(element) {
+  const node = typeof document !== "undefined"
+    ? document.getElementById(element.element_id)
+    : null;
+  if (node) {
+    const rect = node.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      const canvas = node.closest("#A4");
+      const canvasRect = canvas?.getBoundingClientRect();
+      const scaleX = canvasRect?.width / (canvas?.clientWidth || canvasRect?.width || 1);
+      const scaleY = canvasRect?.height / (canvas?.clientHeight || canvasRect?.height || 1);
+      return { width: rect.width / scaleX, height: rect.height / scaleY };
+    }
+  }
+
+  return {
+    width: parseFloat(element.width) || 0,
+    height: parseFloat(element.height)
+      || (element.category === "text" ? (element.fontSize || 12) * 1.35 : 0),
+  };
+}
+
+// Translate a set of positioned elements by one shared delta. The delta is
+// clamped for the complete set, so their relative distances never change and
+// no individual element can leave the page.
+function moveElementsByDelta(elements, elementIds, deltaX, deltaY, pageSize) {
+  const movable = elements.filter((element) => (
+    elementIds.has(element.element_id)
+    && Number.isFinite(Number(element.left))
+    && Number.isFinite(Number(element.top))
+  ));
+  if (movable.length === 0) return elements;
+
+  let minX = -Infinity;
+  let maxX = Infinity;
+  let minY = -Infinity;
+  let maxY = Infinity;
+
+  movable.forEach((element) => {
+    const { width, height } = getElementBounds(element);
+    const left = Number(element.left);
+    const top = Number(element.top);
+    minX = Math.max(minX, -left);
+    maxX = Math.min(maxX, pageSize.width - left - width);
+    minY = Math.max(minY, -top);
+    maxY = Math.min(maxY, pageSize.height - top - height);
+  });
+
+  // An element already outside of the page must not make the group jump to an
+  // arbitrary edge. In that exceptional case, keep that axis stationary.
+  const safeDeltaX = minX > maxX
+    ? 0
+    : Math.min(Math.max(deltaX, minX), maxX);
+  const safeDeltaY = minY > maxY
+    ? 0
+    : Math.min(Math.max(deltaY, minY), maxY);
+
+  if (safeDeltaX === 0 && safeDeltaY === 0) return elements;
+
+  return elements.map((element) => (
+    elementIds.has(element.element_id)
+      && Number.isFinite(Number(element.left))
+      && Number.isFinite(Number(element.top))
+      ? {
+          ...element,
+          left: Number(element.left) + safeDeltaX,
+          top: Number(element.top) + safeDeltaY,
+        }
+      : element
+  ));
+}
+
 export function useA4Elements(titleRef) {
 
   const A4ref = useRef(null);
@@ -46,6 +118,7 @@ export function useA4Elements(titleRef) {
   const currentPageRef = useRef(1);
   const elementsRef = useRef([]);
   const pageSizeRef = useRef(pageSize);
+  const draggedElementIdsRef = useRef(new Set());
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
   useEffect(() => { elementsRef.current = A4_Elements; }, [A4_Elements]);
   useEffect(() => { pageSizeRef.current = pageSize; }, [pageSize]);
@@ -224,27 +297,63 @@ export function useA4Elements(titleRef) {
 
 
   const handleMoveElement = useCallback((e, elementId) => {
-    const A4 = e.currentTarget.closest('[class*="A4"]');
-    const element = e.currentTarget.getBoundingClientRect()
+    if ((e.buttons & 1) !== 1) return;
 
-    const newPositionLeft = e.pageX - A4.offsetLeft - (element.width / 2)
-    const newPositionTop = e.pageY - A4.offsetTop - (element.height / 2)
+    const canvas = A4ref.current;
+    const elementNode = e.currentTarget;
+    if (!canvas || !elementNode) return;
 
+    const canvasRect = canvas.getBoundingClientRect();
+    const elementRect = elementNode.getBoundingClientRect();
+    const scaleX = canvasRect.width / pageSizeRef.current.width;
+    const scaleY = canvasRect.height / pageSizeRef.current.height;
+    if (!scaleX || !scaleY) return;
 
-    if (
-      newPositionLeft < A4.clientWidth - element.width
-      && newPositionLeft > 0
-      && newPositionTop < A4.clientHeight - element.height
-      && newPositionTop > 0) {
+    const pointerX = (e.clientX - canvasRect.left) / scaleX;
+    const pointerY = (e.clientY - canvasRect.top) / scaleY;
+    const targetLeft = pointerX - elementRect.width / scaleX / 2;
+    const targetTop = pointerY - elementRect.height / scaleY / 2;
 
-      setA4_Elements(prevState => {
+    setA4_Elements((prevState) => {
+      const dragged = prevState.find((element) => element.element_id === elementId);
+      if (!dragged?.isMove) return prevState;
+      draggedElementIdsRef.current.add(elementId);
 
-        const newState = prevState.map((element) => {
-          return elementId === element.element_id && element.isMove == true ? { ...element, left: newPositionLeft, top: newPositionTop } : element
-        });
-        return newState;
-      });
-    }
+      const selectedOnSamePage = prevState.filter((element) => (
+        element.isSelected && (element.page ?? 1) === (dragged.page ?? 1)
+      ));
+      const movedElements = dragged.isSelected && selectedOnSamePage.length > 1
+        ? selectedOnSamePage
+        : [dragged];
+      const movedIds = new Set(movedElements.map((element) => element.element_id));
+
+      return moveElementsByDelta(
+        prevState,
+        movedIds,
+        targetLeft - dragged.left,
+        targetTop - dragged.top,
+        pageSizeRef.current,
+      );
+    });
+  }, [])
+
+  const handleMoveSelectedElements = useCallback((deltaX = 0, deltaY = 0) => {
+    if (!Number.isFinite(deltaX) || !Number.isFinite(deltaY)) return;
+
+    setA4_Elements((prevState) => {
+      const selectedIds = new Set(
+        prevState
+          .filter((element) => element.isSelected)
+          .map((element) => element.element_id)
+      );
+      return moveElementsByDelta(
+        prevState,
+        selectedIds,
+        deltaX,
+        deltaY,
+        pageSizeRef.current,
+      );
+    });
   }, [])
 
   // Explicit press/release drag state: pointerdown passes moving=true,
@@ -252,6 +361,14 @@ export function useA4Elements(titleRef) {
   // moment a pointerup is missed (e.g. the element remounts when selecting it
   // swaps in the <Resize>-wrapped branch and the pointer capture dies).
   const handleSelectMoveElement = useCallback((elementId, moving) => {
+    if (moving) {
+      draggedElementIdsRef.current.delete(elementId);
+    } else {
+      // Click follows pointerup in the same interaction. Delay cleanup by one
+      // task so handleSelectElement can recognise and ignore that post-drag
+      // click, preserving the current group selection.
+      window.setTimeout(() => draggedElementIdsRef.current.delete(elementId), 0);
+    }
     setA4_Elements(prevState => prevState.map((element) => (
       element.element_id === elementId
         ? { ...element, isMove: !!moving }
@@ -278,6 +395,8 @@ export function useA4Elements(titleRef) {
   // Normal click makes one element the active selection. Ctrl/Cmd-click toggles
   // only that element, preserving the rest of the selection for bulk editing.
   const handleSelectElement = useCallback((elementId, additive = false) => {
+    if (!additive && draggedElementIdsRef.current.delete(elementId)) return;
+
     setA4_Elements(prevState => {
       return prevState.map((element) => {
         if (element.element_id === elementId) {
@@ -924,6 +1043,7 @@ export function useA4Elements(titleRef) {
     A4_Elements_deleted,
     setA4_Elements_deleted,
     handleMoveElement,
+    handleMoveSelectedElements,
     handleSelectMoveElement,
     handleSelectElement,
     handleAddText,

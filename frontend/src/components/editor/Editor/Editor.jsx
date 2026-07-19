@@ -36,6 +36,7 @@ export default function Editor() {
         setA4_Elements,
         setTextareaEditing,
         moveElementWithBelow,
+        moveSelectedElements,
     } = use(PdfContext);
 
     const selectedElements = A4_Elements.filter(element => element.isSelected);
@@ -44,6 +45,9 @@ export default function Editor() {
     const isMultiSelection = selectedElements.length > 1;
 
     const [elementValues, setElementValues] = useState({});
+    const [groupMoveValues, setGroupMoveValues] = useState({ x: "0", y: "0" });
+    const groupMoveOffsetRef = useRef({ x: 0, y: 0 });
+    const selectionKey = selectedElements.map((element) => element.element_id).join("|");
     // When on, changing Y pushes every element below the selected one by the
     // same delta, making proportional vertical space for more elements.
     const [pushBelow, setPushBelow] = useState(false);
@@ -99,6 +103,26 @@ export default function Editor() {
 
     function setBulkAlign(value) {
         editSelectedElementValues({ align: value });
+    }
+
+    function handleGroupMoveValueChange(e, axis) {
+        const nextInputValue = e.target.value;
+        setGroupMoveValues((previous) => ({ ...previous, [axis]: nextInputValue }));
+
+        // Keep partially entered values such as "-" editable. A movement is
+        // applied as soon as the value represents a real numeric offset.
+        if (nextInputValue === "" || nextInputValue === "-") return;
+        const nextOffset = Number(nextInputValue);
+        if (!Number.isFinite(nextOffset)) return;
+
+        const delta = nextOffset - groupMoveOffsetRef.current[axis];
+        if (delta === 0) return;
+
+        moveSelectedElements(axis === "x" ? delta : 0, axis === "y" ? delta : 0);
+        groupMoveOffsetRef.current = {
+            ...groupMoveOffsetRef.current,
+            [axis]: nextOffset,
+        };
     }
 
     // Inserts "• " at the start of whichever line the cursor is currently on,
@@ -187,6 +211,13 @@ export default function Editor() {
         });
     }, [someElementSelected, selectedElement])
 
+    // Relative group offsets describe movement from the moment this collection
+    // was selected, so a different selection always starts at zero.
+    useEffect(() => {
+        setGroupMoveValues({ x: "0", y: "0" });
+        groupMoveOffsetRef.current = { x: 0, y: 0 };
+    }, [selectionKey]);
+
     return <AnimatePresence>{someElementSelected && <motion.aside className={classes.editor}
         initial={{ x: "-100%" }}
         animate={{ x: 0 }}
@@ -212,6 +243,8 @@ export default function Editor() {
                     onChangeValue={handleBulkChangeValues}
                     onToggleStyle={toggleBulkStyle}
                     onSetAlign={setBulkAlign}
+                    groupMoveValues={groupMoveValues}
+                    onGroupMoveValueChange={handleGroupMoveValueChange}
                 />
             ) : <>
             {selectedElement?.category === "text" && <>
@@ -334,6 +367,8 @@ function BulkEditor({
     onChangeValue,
     onToggleStyle,
     onSetAlign,
+    groupMoveValues,
+    onGroupMoveValueChange,
 }) {
     const hasTypography = supportsField("fontSize") || supportsField("color");
     const hasTextStyle = ["bold", "italic", "underline"].every(supportsField);
@@ -359,6 +394,23 @@ function BulkEditor({
                     Część wartości jest różna — kolejna zmiana ujednolici ją w całym zaznaczeniu.
                 </p>
             )}
+            <div className={classes.groupMove}>
+                <p className={classes.groupMoveTitle}>Przesuń całą grupę</p>
+                <div className={classes.elementSize}>
+                    <EditorControls
+                        labelText="X o (px)"
+                        type="number"
+                        inputValue={groupMoveValues.x}
+                        onChangeFn={(e) => onGroupMoveValueChange(e, "x")}
+                    />
+                    <EditorControls
+                        labelText="Y o (px)"
+                        type="number"
+                        inputValue={groupMoveValues.y}
+                        onChangeFn={(e) => onGroupMoveValueChange(e, "y")}
+                    />
+                </div>
+            </div>
             {hasTypography && (
                 <div className={classes.elementSize}>
                     {supportsField("fontSize") && (

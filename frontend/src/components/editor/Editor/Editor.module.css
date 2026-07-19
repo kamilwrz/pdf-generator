@@ -90,6 +90,19 @@
     padding: 7px 8px;
 }
 
+.groupMove {
+    background: var(--secondary-bg);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r-sm);
+    padding: 8px;
+}
+
+.groupMoveTitle {
+    margin: 0 0 7px;
+    color: var(--primary-font);
+    font: 800 12px var(--font-body);
+}
+
 .fontSizeTextColorWrapper {
     display: flex;
     gap: 10px;
