@@ -9,8 +9,6 @@ import { MdOutlineSlideshow } from "react-icons/md";
 import { RiArticleLine, RiArrowGoBackLine, RiArrowGoForwardLine } from "react-icons/ri";
 import { TiPen } from "react-icons/ti";
 
-const AUTOSAVE_LABEL = { saving: "Zapisywanie…", saved: "Zapisano", error: "Błąd zapisu" };
-
 export default function Topbar({ titleRef }) {
     const {
         showTemplates,
@@ -27,7 +25,6 @@ export default function Topbar({ titleRef }) {
         redo,
         canUndo,
         canRedo,
-        autosaveStatus,
     } = use(PdfContext);
 
     return (
@@ -95,11 +92,6 @@ export default function Topbar({ titleRef }) {
                         <option value="custom">{`${pageSize.width}×${pageSize.height}`}</option>
                     )}
                 </select>
-                {autosaveStatus && (
-                    <span className={`${classes.autosave} ${autosaveStatus === "error" ? classes.autosaveError : ""}`}>
-                        {AUTOSAVE_LABEL[autosaveStatus]}
-                    </span>
-                )}
             </div>
 
             <div className={classes.group}>
