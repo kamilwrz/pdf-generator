@@ -73,10 +73,21 @@ def request_pdf_elements_by_element_id(db:Session, pdf_id:int):
 
 def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_id:int):
 
-    print(elements)
-    print(existing_elements)
+    # The incoming LIVE elements are the authoritative set for this PDF. Anything
+    # in the DB that is not among them (elements the client dropped, e.g. after
+    # loading a different template, or ones flagged deleted) must be removed —
+    # otherwise every save appends and the document accumulates stale rows.
+    incoming_live = {
+        el.element_id: el for el in elements
+        if getattr(el, "deleted", False) != True and el.element_id is not None
+    }
+    for eid in list(existing_elements.keys()):
+        if eid not in incoming_live:
+            db.query(PdfElements).filter(
+                PdfElements.pdf_id == pdf_id, PdfElements.element_id == eid
+            ).delete()
 
-    for element in elements:
+    for element in incoming_live.values():
 
         img_id = element.img_id
         if element.img_id is not None and not request_image_by_id(db, element.img_id):
@@ -102,9 +113,6 @@ def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_i
               extra_properties={"zIndex": element.zIndex, "isSelected": element.isSelected, "isMove": element.isMove, "lineHeight": element.lineHeight, "letterSpacing": element.letterSpacing, "bold": element.bold, "italic": element.italic, "underline": element.underline, "align": element.align, "bulletList": element.bulletList, "borderWidth": element.borderWidth, "source_id": element.source_id, "target_id": element.target_id, "arrow": element.arrow},
             )
             db.add(pdf_elements)
-
-        elif element.element_id in existing_elements and element.deleted == True:
-            db.query(PdfElements).filter(PdfElements.element_id == element.element_id).delete()
 
         else:
             existing_row = existing_elements[element.element_id]

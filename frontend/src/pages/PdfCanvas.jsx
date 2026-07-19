@@ -275,6 +275,14 @@ function PdfCanvas() {
     setPdfId(pdfId)
   }
 
+  // Loading a template / AI doc / clearing starts a FRESH, unsaved document:
+  // drop the current pdfId so autosave can't overwrite the previously-open PDF,
+  // and only persists once the user explicitly creates it.
+  const loadTemplateFresh = useCallback((...args) => { setPdfId(null); handleLoadTemplate(...args); }, [handleLoadTemplate]);
+  const loadTemplateWithFillFresh = useCallback((...args) => { setPdfId(null); handleLoadTemplateWithFill(...args); }, [handleLoadTemplateWithFill]);
+  const loadAiElementsFresh = useCallback((...args) => { setPdfId(null); handleLoadAiElements(...args); }, [handleLoadAiElements]);
+  const clearA4Fresh = useCallback(() => { setPdfId(null); handleClearA4(); }, [handleClearA4]);
+
   const ctxValue = useMemo(() => ({
     //useA4Elements hook
     A4_Elements: A4_Elements,
@@ -302,13 +310,13 @@ function PdfCanvas() {
     resizeElement: handleResizeElement,
     setA4_Elements: setA4_Elements,
     setA4_Elements_deleted: setA4_Elements_deleted,
-    clearA4: handleClearA4,
+    clearA4: clearA4Fresh,
     //templates
     isTemplates: isTemplates,
     showTemplates: handleShowTemplates,
-    loadTemplate: handleLoadTemplate,
-    loadTemplateWithFill: handleLoadTemplateWithFill,
-    loadAiElements: handleLoadAiElements,
+    loadTemplate: loadTemplateFresh,
+    loadTemplateWithFill: loadTemplateWithFillFresh,
+    loadAiElements: loadAiElementsFresh,
     //ai panel
     showAiPanel: handleShowAiPanel,
     showDeckPanel: handleShowDeckPanel,
@@ -366,10 +374,11 @@ function PdfCanvas() {
     handleAlignElements, handleDeleteElement, handleDeleteSelectedElements, handleDuplicateSelectedElements, setA4_Elements,
     setValueImageUpload, setIsModalPdfs, handleResizeElement, 
     updatePdfWithElements, handlePdfId, 
-    handleClearA4, handleShowModalRequest, handleLogout, PDFs, setPDFs,
+    clearA4Fresh, loadTemplateFresh, loadTemplateWithFillFresh, loadAiElementsFresh,
+    handleShowModalRequest, handleLogout, PDFs, setPDFs,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
-    isTemplates, handleShowTemplates, handleLoadTemplate, handleLoadTemplateWithFill, handleLoadAiElements, handleMoveElementWithBelow, handleShowAiPanel,
+    isTemplates, handleShowTemplates, handleMoveElementWithBelow, handleShowAiPanel,
     handleShowDeckPanel, handleShowArticlePanel, pageSize, setPageSize, setPagePreset,
     undo, redo, canUndo, canRedo, resetHistory, autosaveStatus,
     layoutPreviewPatches,
