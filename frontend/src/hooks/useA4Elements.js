@@ -135,6 +135,58 @@ export function useA4Elements(titleRef) {
     clearSelection();
   }, [clearSelection]);
 
+  // Clone the current page: every element on it is duplicated with a fresh id
+  // onto a new page inserted DIRECTLY AFTER it (later pages shift down by one).
+  // Connectors between cloned elements are re-pointed at the clones. Works for
+  // any document type — it only touches the shared page model.
+  const handleClonePage = useCallback(() => {
+    const src = currentPageRef.current;
+    setPageCount(prevCount => {
+      setA4_Elements(prev => {
+        // make room: pages after the source shift one down
+        const shifted = prev.map(el => {
+          const p = el.page ?? 1;
+          return p > src ? { ...el, page: p + 1 } : el;
+        });
+        // duplicate the source page's elements onto the new page
+        const idMap = {};
+        const clones = prev
+          .filter(el => (el.page ?? 1) === src)
+          .map(el => {
+            const nid = nanoid();
+            idMap[el.element_id] = nid;
+            return { ...el, element_id: nid, page: src + 1, isSelected: false, isMove: false, isEditing: false };
+          })
+          .map(el => el.category === "connector"
+            ? { ...el, source_id: idMap[el.source_id] ?? el.source_id, target_id: idMap[el.target_id] ?? el.target_id }
+            : el);
+        return [...shifted, ...clones];
+      });
+      setCurrentPage(src + 1);   // land on the fresh copy
+      return prevCount + 1;
+    });
+    clearSelection();
+  }, [clearSelection]);
+
+  // Swap the current page with its neighbour (dir: -1 earlier, +1 later) and
+  // follow it, so repeated clicks walk the page through the document.
+  const handleMovePage = useCallback((dir) => {
+    const from = currentPageRef.current;
+    setPageCount(count => {
+      const to = from + dir;
+      if (to < 1 || to > count) return count;
+      setA4_Elements(prev => prev.map(el => {
+        const p = el.page ?? 1;
+        if (p === from) return { ...el, page: to };
+        if (p === to) return { ...el, page: from };
+        return el;
+      }));
+      setCurrentPage(to);
+      return count;
+    });
+    clearSelection();
+  }, [clearSelection]);
+
   const handleRemovePage = useCallback(() => {
     setPageCount(prevCount => {
       if (prevCount <= 1) return prevCount;
@@ -833,6 +885,8 @@ export function useA4Elements(titleRef) {
     addPage: handleAddPage,
     removePage: handleRemovePage,
     goToPage: handleGoToPage,
+    clonePage: handleClonePage,
+    movePage: handleMovePage,
     // page geometry
     pageSize,
     setPageSize,

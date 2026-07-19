@@ -12,6 +12,8 @@ export const PdfContext = createContext({
     addRectangle: () => {},
     addConnector: () => {},
     showDeckPanel: () => {},
+    clonePage: () => {},
+    movePage: () => {},
     pageSize: { preset: "a4-portrait", width: 595, height: 842 },
     setPageSize: () => {},
     setPagePreset: () => {},

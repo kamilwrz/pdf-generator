@@ -96,6 +96,8 @@ function PdfCanvas() {
     addPage,
     removePage,
     goToPage,
+    clonePage,
+    movePage,
     pageSize,
     setPageSize,
     setPagePreset
@@ -246,6 +248,8 @@ function PdfCanvas() {
     addPage: addPage,
     removePage: removePage,
     goToPage: goToPage,
+    clonePage: clonePage,
+    movePage: movePage,
     //usePdfExport hook
     updatePdf: updatePdfWithElements,
     createPdf: createPdfWithElements,
@@ -278,7 +282,7 @@ function PdfCanvas() {
     setValueImageUpload, setIsModalPdfs, handleResizeElement, 
     updatePdfWithElements, handlePdfId, 
     handleClearA4, handleShowModalRequest, handleLogout, PDFs, setPDFs,
-    pageCount, currentPage, addPage, removePage, goToPage, setPageCount, setCurrentPage,
+    pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
     isTemplates, handleShowTemplates, handleLoadTemplate, handleLoadTemplateWithFill, handleLoadAiElements, handleMoveElementWithBelow, handleShowAiPanel,
     handleShowDeckPanel, pageSize, setPageSize, setPagePreset,

@@ -9,7 +9,7 @@ const Chevron = ({ dir }) => (
 );
 
 export default function PageControls() {
-    const { currentPage, pageCount, addPage, removePage, goToPage } = use(PdfContext);
+    const { currentPage, pageCount, addPage, removePage, goToPage, clonePage, movePage } = use(PdfContext);
 
     return (
         <div className={classes.wrapper}>
@@ -36,6 +36,41 @@ export default function PageControls() {
                     aria-label="Next page"
                 >
                     <Chevron dir="right" />
+                </button>
+
+                <span className={classes.divider} />
+
+                {/* reorder: swap the current page with its neighbour */}
+                <button
+                    type="button"
+                    className={classes.navBtn}
+                    onClick={() => movePage(-1)}
+                    disabled={currentPage <= 1}
+                    aria-label="Move page earlier"
+                    title="Move page earlier"
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m14 18-6-6 6-6" /><path d="M5 6v12" /></svg>
+                </button>
+                <button
+                    type="button"
+                    className={classes.navBtn}
+                    onClick={() => movePage(1)}
+                    disabled={currentPage >= pageCount}
+                    aria-label="Move page later"
+                    title="Move page later"
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m10 18 6-6-6-6" /><path d="M19 6v12" /></svg>
+                </button>
+
+                {/* clone: duplicate this page right after itself */}
+                <button
+                    type="button"
+                    className={classes.navBtn}
+                    onClick={clonePage}
+                    aria-label="Clone current page"
+                    title="Clone page (inserted after this one)"
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
                 </button>
 
                 <span className={classes.divider} />
