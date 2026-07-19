@@ -49,8 +49,12 @@ DECK_THEMES = {
 }
 
 PAGE_W, PAGE_H = 960, 540
-MAX_TEXT_CHARS = 15000
-MAX_SLIDES = 10
+MAX_TEXT_CHARS = 60000
+MAX_SLIDES = 60
+
+# Planning model: newest reasoning-capable OpenAI model. Overridable via env
+# (DECK_PLAN_MODEL) so a newer model id can be adopted without a code change.
+PLAN_MODEL = os.getenv("DECK_PLAN_MODEL", "gpt-5.1")
 
 # Inner slot of the image frame on image_right slides (frame 560,160 340×255, 12px inset)
 IMG_SLOT = {"left": 572, "top": 172, "w": 316, "h": 231}
@@ -174,33 +178,46 @@ def analyze_images(image_rows) -> dict:
 def plan_deck(document_text: str, images: dict) -> dict:
     img_lines = "\n".join(f'- image_id {iid}: {meta["caption"]}' for iid, meta in images.items()) or "(none)"
     prompt = (
-        "You are a presentation designer. Turn the DOCUMENT below into a slide deck plan.\n"
+        "You are a senior presentation designer building a COMPREHENSIVE, knowledge-dense\n"
+        "teaching deck from the DOCUMENT below. The audience should be able to learn the\n"
+        "document's full content from the slides alone, without reading the document.\n\n"
         "Return ONLY a JSON object:\n"
         "{\n"
         '  "deck_title": "short deck title",\n'
         '  "slides": [\n'
         '    {"layout":"title","kicker":"COMPANY · 2026","title":"...","subtitle":"...","author":"..."},\n'
         '    {"layout":"agenda","title":"Agenda","items":[{"title":"...","detail":"one line"}]},   // 2-4 items\n'
-        '    {"layout":"bullets","title":"...","bullets":["...", "..."]},                          // 3-5 bullets\n'
+        '    {"layout":"bullets","title":"...","bullets":["...", "..."]},                          // 3-6 bullets\n'
         '    {"layout":"image_right","title":"...","bullets":["..."],"image_id":123},              // needs an image\n'
         '    {"layout":"two_column","title":"...","left_title":"...","left_bullets":["..."],"right_title":"...","right_bullets":["..."]},\n'
         '    {"layout":"quote","quote":"...","attribution":"..."},\n'
         '    {"layout":"closing","title":"Thank you.","contact":"email · phone · site"}\n'
         "  ]\n"
         "}\n\n"
-        "Rules:\n"
-        f"- {MAX_SLIDES} slides MAX. First slide layout=title, last slide layout=closing.\n"
-        "- Base every slide on the document's actual content; keep bullets short (max ~90 chars).\n"
-        "- AVAILABLE IMAGES (use each at most once, ONLY where its caption genuinely matches the\n"
-        "  slide's content, via an image_right slide with its image_id):\n"
+        "Coverage rules — depth over brevity:\n"
+        "- Cover the ENTIRE document. Do NOT summarise it away: every substantial section,\n"
+        "  concept, argument, number and example in the document gets slide space.\n"
+        f"- Use as many slides as the content requires — 20, 30, even 50 (hard cap {MAX_SLIDES}).\n"
+        "  A short document may need only 8; a dense one should get far more. Never pad with\n"
+        "  filler slides, and never cram three topics onto one slide to save space.\n"
+        "- ONE idea per slide. When a topic has more than ~6 bullets of material, split it\n"
+        "  into consecutive slides ('Topic (1/2)', 'Topic (2/2)').\n"
+        "- Use agenda slides as section dividers for long decks (an agenda slide per major\n"
+        "  part is good structure), two_column for comparisons/contrasts/before-after,\n"
+        "  quote for a genuinely notable sentence from the document.\n"
+        "- Bullets: concrete and specific (numbers, names, causal claims from the document),\n"
+        "  max ~110 characters each.\n"
+        "- First slide layout=title, last slide layout=closing.\n"
+        "- AVAILABLE IMAGES: use each at most once, via an image_right slide, placed EXACTLY\n"
+        "  where the slide's content matches what the image shows. The image appears next to\n"
+        "  the text — no caption is rendered, so never rely on a caption to explain it:\n"
         f"{img_lines}\n\n"
         f"DOCUMENT:\n{document_text}"
     )
     resp = _get_client().chat.completions.create(
-        model="gpt-4o",
+        model=PLAN_MODEL,
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=3500,
-        temperature=0.3,
+        max_completion_tokens=24000,
         response_format={"type": "json_object"},
     )
     plan = json.loads(resp.choices[0].message.content)
@@ -264,13 +281,14 @@ def _slide_image_right(s, page, deck_name, T, images):
     els.append(_rect(560, 160, 340, 255, T["accent"], 1.5, 2))
     meta = images.get(s.get("image_id"))
     if meta:
+        # The image simply sits beside the matching text — the vision caption is
+        # used only for slide matching and is never rendered on the slide.
         scale = min(IMG_SLOT["w"] / meta["w"], IMG_SLOT["h"] / meta["h"])
         w, h = round(meta["w"] * scale), round(meta["h"] * scale)
         left = IMG_SLOT["left"] + (IMG_SLOT["w"] - w) // 2
         top = IMG_SLOT["top"] + (IMG_SLOT["h"] - h) // 2
         els.append({"category": "image", "src": meta["src"], "img_id": s.get("image_id"),
                     "left": left, "top": top, "width": w, "height": h, "zIndex": 3})
-        els.append(_text(meta["caption"][:80], 9.5, T["sans"], T["gray"], 560, 430))
     else:
         els.append(_text("Image placeholder", 10.5, T["sans"], T["placeholder"], 672, 278, 3))
     return els + _footer(page, deck_name, T)
