@@ -60,9 +60,31 @@
     user-select: none;
  }
 
+ /* Times-Roman = Liberation Serif (SIL OFL, full Polish coverage). Real
+    bold/italic cuts so the canvas wraps with the SAME files the PDF embeds. */
  @font-face {
     font-family: Times-Roman;
+    font-weight: 400;
+    font-style: normal;
     src: url("/fonts/TimesRoman.ttf");
+ }
+ @font-face {
+    font-family: Times-Roman;
+    font-weight: 700;
+    font-style: normal;
+    src: url("/fonts/TimesRoman-Bold.ttf");
+ }
+ @font-face {
+    font-family: Times-Roman;
+    font-weight: 400;
+    font-style: italic;
+    src: url("/fonts/TimesRoman-Italic.ttf");
+ }
+ @font-face {
+    font-family: Times-Roman;
+    font-weight: 700;
+    font-style: italic;
+    src: url("/fonts/TimesRoman-BoldItalic.ttf");
  }
 
  /* Inter — regular + real bold/italic cuts. The browser picks the file by

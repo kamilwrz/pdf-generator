@@ -57,6 +57,18 @@ for _fam in ("Inter", "Roboto"):
         _fam, normal=_fam, bold=f'{_fam}-Bold', italic=f'{_fam}-Italic', boldItalic=f'{_fam}-BoldItalic'
     )
 
+# Times-Roman ships as Liberation Serif (SIL OFL, metric-compatible with Times
+# New Roman, full Latin Extended-A incl. Polish). Real bold/italic cuts replace
+# ReportLab's built-in Type1 Times-* variants, which are Latin-1 only and
+# cannot render ą/ę/ł/ż etc.
+_register_ttf('Times-Roman-Bold', _FONTS_DIR / 'TimesRoman-Bold.ttf')
+_register_ttf('Times-Roman-Italic', _FONTS_DIR / 'TimesRoman-Italic.ttf')
+_register_ttf('Times-Roman-BoldItalic', _FONTS_DIR / 'TimesRoman-BoldItalic.ttf')
+pdfmetrics.registerFontFamily(
+    'Times-Roman', normal='Times-Roman', bold='Times-Roman-Bold',
+    italic='Times-Roman-Italic', boldItalic='Times-Roman-BoldItalic'
+)
+
 
 class PDF_Generator:
     def __init__(self, DATA, CANVAS):
@@ -166,7 +178,7 @@ class PDF_Generator:
     _VARIANT_FONTS = {
         'Inter':       ('Inter-Bold', 'Inter-Italic', 'Inter-BoldItalic'),
         'Roboto':      ('Roboto-Bold', 'Roboto-Italic', 'Roboto-BoldItalic'),
-        'Times-Roman': ('Times-Bold', 'Times-Italic', 'Times-BoldItalic'),
+        'Times-Roman': ('Times-Roman-Bold', 'Times-Roman-Italic', 'Times-Roman-BoldItalic'),
         'Helvetica':   ('Helvetica-Bold', 'Helvetica-Oblique', 'Helvetica-BoldOblique'),
         'Courier':     ('Courier-Bold', 'Courier-Oblique', 'Courier-BoldOblique'),
     }
