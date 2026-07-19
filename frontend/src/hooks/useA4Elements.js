@@ -587,6 +587,69 @@ export function useA4Elements(titleRef) {
     });
   }, []);
 
+  // Clone the entire current selection as one group. Connectors explicitly
+  // selected by the user — plus connectors whose two endpoints are in the
+  // group — are copied with their endpoints re-linked to the clones.
+  const handleDuplicateSelectedElements = useCallback(() => {
+    setA4_Elements((prevState) => {
+      const selected = prevState.filter((element) => element.isSelected);
+      if (selected.length === 0) return prevState;
+
+      const idMap = {};
+      const copiedElements = selected
+        .filter((element) => element.category !== "connector")
+        .map((element) => {
+          const elementId = nanoid();
+          idMap[element.element_id] = elementId;
+          return {
+            ...element,
+            element_id: elementId,
+            isSelected: true,
+            isMove: false,
+            isEditing: false,
+          };
+        });
+
+      const copiedConnectors = prevState
+        .filter((element) => (
+          element.category === "connector"
+          && (
+            element.isSelected
+            || (idMap[element.source_id] && idMap[element.target_id])
+          )
+        ))
+        .map((element) => ({
+          ...element,
+          element_id: nanoid(),
+          source_id: idMap[element.source_id] ?? element.source_id,
+          target_id: idMap[element.target_id] ?? element.target_id,
+          isSelected: true,
+          isMove: false,
+          isEditing: false,
+        }));
+
+      const copies = [...copiedElements, ...copiedConnectors];
+      const copiedIds = new Set(copies.map((element) => element.element_id));
+      const offsetCopies = moveElementsByDelta(
+        copies,
+        copiedIds,
+        15,
+        15,
+        pageSizeRef.current,
+      );
+
+      return [
+        ...prevState.map((element) => ({
+          ...element,
+          isSelected: false,
+          isMove: false,
+          isEditing: element.category === "textarea" ? false : element.isEditing,
+        })),
+        ...offsetCopies,
+      ];
+    });
+  }, []);
+
   const handleDeleteElement = useCallback((elementId) => {
     setA4_Elements(prevState => {
       // Remove the element plus any connector attached to it (no dangling lines).
@@ -608,6 +671,40 @@ export function useA4Elements(titleRef) {
       });
 
       return prevState.filter(element => !removedIds.has(element.element_id));
+    });
+  }, []);
+
+  const handleDeleteSelectedElements = useCallback(() => {
+    setA4_Elements((prevState) => {
+      const removedIds = new Set(
+        prevState
+          .filter((element) => element.isSelected)
+          .map((element) => element.element_id)
+      );
+      if (removedIds.size === 0) return prevState;
+
+      // A connector cannot survive when either end of its line has gone.
+      prevState.forEach((element) => {
+        if (
+          element.category === "connector"
+          && (removedIds.has(element.source_id) || removedIds.has(element.target_id))
+        ) {
+          removedIds.add(element.element_id);
+        }
+      });
+
+      const removedElements = prevState.filter((element) => removedIds.has(element.element_id));
+      setA4_Elements_deleted((previousDeleted) => {
+        const additions = removedElements.filter((element) => (
+          !previousDeleted.some((deleted) => (
+            deleted.element_id === element.element_id && deleted.pdf_id !== undefined
+          ))
+        )).map((element) => ({ ...element, deleted: true }));
+
+        return additions.length ? [...previousDeleted, ...additions] : previousDeleted;
+      });
+
+      return prevState.filter((element) => !removedIds.has(element.element_id));
     });
   }, []);
 
@@ -1061,7 +1158,9 @@ export function useA4Elements(titleRef) {
     handleSetTextareaEditing,
     handleAlignElements,
     handleDeleteElement,
+    handleDeleteSelectedElements,
     handleDuplicateElement,
+    handleDuplicateSelectedElements,
     handleEditElementValues,
     handleEditSelectedElementValues,
     applyLayoutPatches,

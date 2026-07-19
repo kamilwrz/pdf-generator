@@ -33,6 +33,8 @@ export default function Editor() {
         alignElement,
         deleteElement,
         duplicateElement,
+        deleteSelectedElements,
+        duplicateSelectedElements,
         setA4_Elements,
         setTextareaEditing,
         moveElementWithBelow,
@@ -245,6 +247,8 @@ export default function Editor() {
                     onSetAlign={setBulkAlign}
                     groupMoveValues={groupMoveValues}
                     onGroupMoveValueChange={handleGroupMoveValueChange}
+                    onDuplicateSelected={duplicateSelectedElements}
+                    onDeleteSelected={deleteSelectedElements}
                 />
             ) : <>
             {selectedElement?.category === "text" && <>
@@ -369,6 +373,8 @@ function BulkEditor({
     onSetAlign,
     groupMoveValues,
     onGroupMoveValueChange,
+    onDuplicateSelected,
+    onDeleteSelected,
 }) {
     const hasTypography = supportsField("fontSize") || supportsField("color");
     const hasTextStyle = ["bold", "italic", "underline"].every(supportsField);
@@ -516,6 +522,12 @@ function BulkEditor({
                     onChangeFn={(e) => onChangeValue(e, "zIndex")}
                 />
             )}
+            <button type="button" className={classes.btnDuplicate} onClick={onDuplicateSelected}>
+                Duplikuj zaznaczone ({selectedElements.length})<RiFileCopyLine />
+            </button>
+            <button type="button" className={classes.btnDelete} onClick={onDeleteSelected}>
+                Usuń zaznaczone ({selectedElements.length})<RiDeleteBin2Line />
+            </button>
         </div>
     );
 }

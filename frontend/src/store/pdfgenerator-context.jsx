@@ -31,6 +31,8 @@ export const PdfContext = createContext({
     editSelectedElementValues: () => {},
     alignElement: () => {},
     deleteElement: () => {},
+    deleteSelectedElements: () => {},
+    duplicateSelectedElements: () => {},
     setA4_Elements: () => {},
     valueImageUpload: 0,
     setValueImageUpload: () => {},
