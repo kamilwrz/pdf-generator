@@ -1,6 +1,7 @@
 import DropzoneContainer from '../components/gallery/Dropzone/DropzoneContainer';
 import Gallery from '../components/gallery/Gallery/Gallery';
 import Sidebar from '../components/editor/Sidebar/Sidebar';
+import Topbar from '../components/editor/Topbar/Topbar';
 import A4 from "../components/canvas/A4/A4";
 import Editor from '../components/editor/Editor/Editor';
 import { PdfContext } from '../store/pdfgenerator-context';
@@ -275,7 +276,7 @@ function PdfCanvas() {
     <main className='main-container' onMouseMove={throttledHandleIsActive} style={connectMode ? { cursor: "crosshair" } : undefined}>
 
       {connectMode && (
-        <div style={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", zIndex: 5000,
+        <div style={{ position: "fixed", top: 62, left: "50%", transform: "translateX(-50%)", zIndex: 5000,
                       background: "var(--accent)", color: "#fff", padding: "8px 16px", borderRadius: 999,
                       font: "700 13px var(--font-body)", boxShadow: "var(--shadow-pop)", pointerEvents: "none" }}>
           {connectSourceId ? "Click the target element  ·  Esc to cancel" : "Click the source element  ·  Esc to cancel"}
@@ -286,21 +287,26 @@ function PdfCanvas() {
         <ModalPdfs title={titleRef}/>
         <ModalPdfRequestStatus open={modalRequestStatus} message={responsePDF} />
         <TemplatesModal />
-        <Sidebar ref={titleRef}>
-          <AnimatePresence>{isDropzone && <DropzoneContainer />}</AnimatePresence>
-          {isAiPanel && (
-            <div style={{ position: "absolute", left: "100%", top: 0, width: 320, background: "#fff", borderLeft: "1px solid var(--border-line)", borderRight: "1px solid var(--border-line)", height: "100%", overflowY: "auto", zIndex: 1100, boxShadow: "4px 0 16px rgba(30,48,78,.10)" }}>
-              <AiCvPanel onClose={handleShowAiPanel} />
-            </div>
-          )}
-          <Editor />
-        </Sidebar>
-        <A4 width="595px" height="842px" ref={A4ref}>
-          {isPdfLoading && <Spinner loading={isPdfLoading}/>}
-          <CanvasElements elements={A4_Elements.filter(element => (element.page ?? 1) === currentPage)} />
-          <Connectors />
-          <Guides />
-        </A4>
+        <Topbar />
+        <div className="workspace">
+          <Sidebar ref={titleRef}>
+            <AnimatePresence>{isDropzone && <DropzoneContainer />}</AnimatePresence>
+            {isAiPanel && (
+              <div style={{ position: "absolute", left: "100%", top: 0, width: 320, background: "#fff", borderLeft: "1px solid var(--border-line)", borderRight: "1px solid var(--border-line)", height: "100%", overflowY: "auto", zIndex: 1100, boxShadow: "4px 0 16px rgba(30,48,78,.10)" }}>
+                <AiCvPanel onClose={handleShowAiPanel} />
+              </div>
+            )}
+            <Editor />
+          </Sidebar>
+          <div className="canvas-area">
+            <A4 width="595px" height="842px" ref={A4ref}>
+              {isPdfLoading && <Spinner loading={isPdfLoading}/>}
+              <CanvasElements elements={A4_Elements.filter(element => (element.page ?? 1) === currentPage)} />
+              <Connectors />
+              <Guides />
+            </A4>
+          </div>
+        </div>
        <PageControls />
        <Gallery />
        <AiAssistant />

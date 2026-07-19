@@ -9,10 +9,7 @@ import { BsTextParagraph } from "react-icons/bs";
 import { TiPen } from "react-icons/ti";
 import { LuImagePlus } from "react-icons/lu";
 import { AiOutlineLogout } from "react-icons/ai";
-import { RiDownload2Line } from "react-icons/ri";
 import { FaRegFolderOpen } from "react-icons/fa";
-import { LuLayoutTemplate } from "react-icons/lu";
-import { RiRobot2Line } from "react-icons/ri";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { forwardRef, use } from "react";
 
@@ -25,16 +22,10 @@ export default forwardRef(function Sidebar({ children }, ref) {
         addRectangle,
         addConnector,
         addTextarea,
-        showTemplates,
-        showAiPanel,
         showDropzone,
-        createPdf,
         showGallery,
-        updatePdf,
         setIsModalPdfs,
-        clearA4,
         logout,
-        isPdfLoading,
         PDFs,
     } = use(PdfContext);
 
@@ -62,11 +53,6 @@ export default forwardRef(function Sidebar({ children }, ref) {
             </div>
         </div>
 
-        <div className={classes.templatesBlock}>
-            <SidebarControls icon={<LuLayoutTemplate style={{ color: "#3E6DB5" }} />} iconBg="#E7F0FB" labelText="CV Templates" sidebarEvent={showTemplates} />
-            <SidebarControls icon={<RiRobot2Line style={{ color: "#7B5EA7" }} />} iconBg="#EDE8F7" labelText="Fill from my CV" sidebarEvent={showAiPanel} />
-        </div>
-
         <div className={classes.toolsContainer}>
             <label className={classes.toolsLabel}>Add to canvas</label>
             <div className={classes.toolsList}>
@@ -85,13 +71,6 @@ export default forwardRef(function Sidebar({ children }, ref) {
         </div>
 
         <footer className={classes.sidebarFooter}>
-            <button className={classes.createBtn} onClick={createPdf} disabled={isPdfLoading}>
-                <RiDownload2Line />Create PDF
-            </button>
-            <div className={classes.footerActions}>
-                <button className={classes.btn} onClick={updatePdf} disabled={isPdfLoading}>Update</button>
-                <button className={classes.btn} onClick={clearA4}>Clear</button>
-            </div>
             <div className={classes.profileRow}>
                 <span className={classes.avatar} />
                 <div className={classes.profileMeta}>

@@ -1,0 +1,113 @@
+.topbar {
+    height: 50px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 16px;
+    background: rgba(255, 255, 255, .9);
+    -webkit-backdrop-filter: blur(12px) saturate(1.1);
+            backdrop-filter: blur(12px) saturate(1.1);
+    border-bottom: 1px solid var(--border-line);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .7) inset, 0 8px 20px -16px rgba(30, 48, 78, .55);
+    font-family: var(--font-body);
+    position: relative;
+    z-index: 1400;
+}
+
+.group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* shared button base */
+.feature,
+.ghost,
+.secondary,
+.primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    font: 700 13px var(--font-body);
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform .15s, background .15s, border-color .15s, color .15s, box-shadow .15s;
+}
+
+.feature svg,
+.ghost svg,
+.secondary svg,
+.primary svg {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+/* ---- CV Templates / Fill from my CV ---- */
+.feature {
+    background: var(--secondary-bg);
+    border-color: var(--border);
+    color: var(--ink-2);
+}
+.feature:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* ---- Clear (destructive ghost) ---- */
+.ghost {
+    background: transparent;
+    color: var(--muted-font);
+}
+.ghost:hover {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+
+/* ---- Update ---- */
+.secondary {
+    background: var(--secondary-bg);
+    border-color: var(--border);
+    color: var(--ink-2);
+}
+.secondary:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* ---- Create PDF (primary) ---- */
+.primary {
+    background: var(--accent-grad);
+    color: #fff;
+    box-shadow: 0 10px 20px -10px var(--accent);
+}
+.primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 15px 26px -10px var(--accent);
+}
+
+.secondary:disabled,
+.primary:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+/* On narrow widths collapse to icon-only so the 50px bar never wraps. */
+@media (max-width: 900px) {
+    .label {
+        display: none;
+    }
+    .feature,
+    .ghost,
+    .secondary,
+    .primary {
+        padding: 0 11px;
+    }
+}
