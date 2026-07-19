@@ -399,7 +399,7 @@ def generate_resume(template_id: str, cv_data: dict) -> list[dict]:
     earlier extraction step (turning the uploaded PDF into structured data).
     """
     from app.services.cv_generator import generate_resume as _python_layout
-    els = _python_layout(template_id, cv_data)
-    # Safety pass: recalculate textarea heights from actual content and
-    # propagate any height deltas so nothing overlaps.
-    return _fix_heights_and_reflow(els)
+    # The deterministic builder sizes and paginates its own flowing text. A
+    # second generic reflow cannot distinguish decorative slots from a content
+    # column, so it can shift labels and frames out of their intended layout.
+    return _python_layout(template_id, cv_data)

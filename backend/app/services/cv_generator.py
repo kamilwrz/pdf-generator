@@ -150,6 +150,25 @@ def _contact_line(cv: dict) -> str:
     ]))
 
 
+def _compact_text(value: object, limit: int) -> str:
+    """Collapse whitespace and shorten decorative-slot copy without splitting words."""
+    clean = " ".join(str(value or "").split())
+    if len(clean) <= limit:
+        return clean
+    shortened = clean[: max(limit - 1, 1)].rsplit(" ", 1)[0].rstrip()
+    return f"{shortened or clean[: max(limit - 1, 1)]}…"
+
+
+def _compact_lines(values: list[object], *, max_items: int, chars_per_item: int) -> str:
+    """Return a bounded multi-line summary suitable for a narrow decorative panel."""
+    lines = [
+        _compact_text(value, chars_per_item)
+        for value in values[:max_items]
+        if str(value or "").strip()
+    ]
+    return "\n".join(lines)
+
+
 def _bullets(job: dict) -> str:
     return "\n".join(f"• {b}" for b in job.get("bullets", []) if b)
 
@@ -762,23 +781,33 @@ def _gen_solstice(cv: dict) -> list[dict]:
     SIDE, L, W = 184, 224, 316
     lbl = _labels(cv)
 
-    contact = "\n".join(filter(None, [cv.get("email"), cv.get("phone"), cv.get("location")]))
-    skills = "\n".join(cv.get("skills") or [])
+    contact = _compact_lines(
+        [cv.get("email"), cv.get("phone"), cv.get("location")],
+        max_items=3,
+        chars_per_item=24,
+    )
+    skills_preview = _compact_lines(
+        cv.get("skills") or [],
+        max_items=4,
+        chars_per_item=18,
+    )
+    name = _compact_text(cv.get("name"), 22).upper()
+    title = _compact_text(cv.get("title"), 48).upper()
     static = [
         _rect(36, 42, 112, 112, SUN, 1.2, zIndex=2),
         _rect(43, 49, 98, 98, CREAM, 1, zIndex=2),
         _block("CV", 43, 74, 98, 28, 23, 28, MIDNIGHT, SERIF, zIndex=3, bold=True, align="center"),
         _block("SOLSTICE", 43, 110, 98, 14, 8, 10, MIDNIGHT, SANS, zIndex=3, align="center"),
-        _text(cv.get("name", ""), 34, SERIF, MIDNIGHT, L, 54),
-        _text(cv.get("title", ""), 10.5, SANS, SUN, L + 2, 98),
+        _block(name, L, 50, W, 34, 25, 28, MIDNIGHT, SERIF, bold=True),
+        _block(title, L + 2, 94, W - 2, 24, 9.5, 12, SUN, SANS),
         _line(L, 126, W, 1.5, MIDNIGHT),
         _line(L, 132, 104, 2, SUN),
         _text("KONTAKT", 9, SANS, SUN, 36, 196),
         _line(36, 211, 76, 1, "#5D6E7D", zIndex=2),
-        _block(contact, 36, 226, 112, max(len(contact.splitlines()) * 14, 48), 8.5, 14, "#E9E5DE", SANS),
+        _block(contact, 36, 226, 112, 56, 8.2, 13, "#E9E5DE", SANS),
         _text("SPECJALIZACJE", 9, SANS, SUN, 36, 342),
         _line(36, 357, 76, 1, "#5D6E7D", zIndex=2),
-        _block(skills, 36, 372, 112, max(len(cv.get("skills") or []) * 15, 48), 8.6, 15, "#E9E5DE", SANS),
+        _block(skills_preview, 36, 372, 112, 64, 8.4, 13, "#E9E5DE", SANS),
     ]
     b = Builder(162)
 
@@ -796,9 +825,9 @@ def _gen_solstice(cv: dict) -> list[dict]:
     if cv.get("experience"):
         section(lbl["experience"])
         for job in cv["experience"]:
-            b.need(58)
-            b.text(job.get("title", ""), 11.2, SANS, INK, L, bold=True); b.gap(2)
-            b.text(_company_period(job), 9.2, SANS, MIST, L); b.gap(3)
+            b.need(80)
+            b.block(job.get("title", ""), L, W, 11.2, 14, INK, SANS, bold=True, min_h=16); b.gap(1)
+            b.block(_company_period(job), L, W, 9.2, 12, MIST, SANS, min_h=13); b.gap(3)
             bullets = _bullets(job)
             if bullets:
                 b.block(bullets, L, W, 10, 14, INK, SANS, bulletList=True)
@@ -806,13 +835,17 @@ def _gen_solstice(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, {"body": INK}, L, W, SANS)
 
     if cv.get("education"):
-        b.need(48); section(lbl["education"])
+        b.need(58); section(lbl["education"])
         for edu in cv["education"]:
-            b.text(edu.get("degree", ""), 10.5, SANS, INK, L, bold=True); b.gap(2)
-            b.text(edu.get("period", ""), 9.2, SANS, MIST, L)
+            b.block(edu.get("degree", ""), L, W, 10.5, 13, INK, SANS, bold=True, min_h=15); b.gap(2)
+            b.block(edu.get("period", ""), L, W, 9.2, 12, MIST, SANS, min_h=12)
             if edu.get("detail"):
-                b.gap(1); b.text(edu["detail"], 9.2, SANS, MIST, L)
+                b.gap(1); b.block(edu["detail"], L, W, 9.2, 12, MIST, SANS, min_h=12)
             b.gap(10)
+
+    if cv.get("skills"):
+        b.need(42); section(lbl["skills"])
+        b.block(" · ".join(cv["skills"]), L, W, 10, 14, INK, SANS); b.gap(14)
 
     _extra_sections(b, cv, "after_skills", section, {"body": INK}, L, W, SANS)
     flow = b.build()
@@ -836,24 +869,30 @@ def _gen_mistral(cv: dict) -> list[dict]:
     SIDEBAR, L, W = 164, 204, 340
     lbl = _labels(cv)
 
-    profile = cv.get("summary") or ""
-    skills = "\n".join(cv.get("skills") or [])
-    contact = " · ".join(filter(None, [cv.get("email"), cv.get("phone"), cv.get("location")]))
+    profile_preview = _compact_text(cv.get("summary"), 125)
+    skills_preview = _compact_lines(
+        cv.get("skills") or [],
+        max_items=4,
+        chars_per_item=18,
+    )
+    contact = _compact_text(_contact_line(cv), 76)
+    name = _compact_text(cv.get("name"), 26).upper()
+    title = _compact_text(cv.get("title"), 52)
     static = [
         _line(0, 0, 595, 150, DEEP, zIndex=1),
         _line(0, 150, 595, 7, SEA, zIndex=1),
         _rect(48, 42, 88, 58, FOAM, 1, zIndex=2),
         _block("MISTRAL", 48, 57, 88, 14, 8.5, 11, DEEP, SANS, zIndex=3, align="center"),
         _line(62, 80, 60, 1, SEA, zIndex=3),
-        _text(cv.get("name", ""), 32, SERIF, "#FFFFFF", 188, 46),
-        _text(cv.get("title", ""), 12.5, SANS, "#CBE3DF", 190, 91, italic=True),
-        _text(contact, 9.2, SANS, "#B4D5D0", 190, 118),
+        _block(name, 188, 36, 356, 30, 24, 27, "#FFFFFF", SERIF, bold=True),
+        _block(title, 190, 78, 350, 24, 10.5, 12, "#CBE3DF", SANS, italic=True),
+        _block(contact, 190, 112, 350, 18, 8.4, 10, "#B4D5D0", SANS),
         _text("PROFIL", 8.5, SANS, SEA, 48, 198),
         _line(48, 213, 104, 1, "#C7D7D4"),
-        _block(profile, 48, 222, 104, 104, 9, 14, INK, SANS),
+        _block(profile_preview, 48, 222, 104, 92, 8.8, 13, INK, SANS),
         _text("UMIEJĘTNOŚCI", 8.5, SANS, SEA, 48, 364),
         _line(48, 379, 104, 1, "#C7D7D4"),
-        _block(skills, 48, 388, 104, max(len(cv.get("skills") or []) * 15, 48), 8.8, 15, INK, SANS),
+        _block(skills_preview, 48, 388, 104, 64, 8.4, 13, INK, SANS),
     ]
     b = Builder(194)
 
@@ -864,12 +903,16 @@ def _gen_mistral(cv: dict) -> list[dict]:
         b.els.append(_line(L, b.y + 2, W, 0.75, "#D9E1DE", page=b.pg))
         b.gap(10)
 
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10, 14, INK, SANS); b.gap(16)
+
     if cv.get("experience"):
         section(lbl["experience"])
         for job in cv["experience"]:
-            b.need(58)
-            b.text(job.get("title", ""), 11.5, SANS, INK, L, bold=True); b.gap(2)
-            b.text(_company_period(job), 9.2, SANS, DRIFT, L); b.gap(3)
+            b.need(80)
+            b.block(job.get("title", ""), L, W, 11.2, 14, INK, SANS, bold=True, min_h=16); b.gap(1)
+            b.block(_company_period(job), L, W, 9.2, 12, DRIFT, SANS, min_h=13); b.gap(3)
             bullets = _bullets(job)
             if bullets:
                 b.block(bullets, L, W, 10, 14, INK, SANS, bulletList=True)
@@ -877,13 +920,17 @@ def _gen_mistral(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, {"body": INK}, L, W, SANS)
 
     if cv.get("education"):
-        b.need(48); section(lbl["education"])
+        b.need(58); section(lbl["education"])
         for edu in cv["education"]:
-            b.text(edu.get("degree", ""), 10.8, SANS, INK, L, bold=True); b.gap(2)
-            b.text(edu.get("period", ""), 9.2, SANS, DRIFT, L)
+            b.block(edu.get("degree", ""), L, W, 10.5, 13, INK, SANS, bold=True, min_h=15); b.gap(2)
+            b.block(edu.get("period", ""), L, W, 9.2, 12, DRIFT, SANS, min_h=12)
             if edu.get("detail"):
-                b.gap(1); b.text(edu["detail"], 9.2, SANS, DRIFT, L)
+                b.gap(1); b.block(edu["detail"], L, W, 9.2, 12, DRIFT, SANS, min_h=12)
             b.gap(10)
+
+    if cv.get("skills"):
+        b.need(40); section(lbl["skills"])
+        b.block(" · ".join(cv["skills"]), L, W, 10, 14, INK, SANS); b.gap(14)
 
     _extra_sections(b, cv, "after_skills", section, {"body": INK}, L, W, SANS)
     flow = b.build()
@@ -906,15 +953,18 @@ def _gen_axiom(cv: dict) -> list[dict]:
     SANS, SERIF = "Inter", "Times-Roman"
     L, W = 64, 467
     lbl = _labels(cv)
+    name = _compact_text(cv.get("name"), 30).upper()
+    title = _compact_text(cv.get("title"), 58).upper()
+    contact = _compact_text(_contact_line(cv), 88)
 
     static = [
         _rect(44, 44, 507, 120, INK, 1.2),
         _rect(56, 56, 38, 38, ACCENT, 1.4),
         _rect(64, 64, 22, 22, PALE, 0.9),
         _text("01", 8, SANS, ACCENT, 68, 71),
-        _text((cv.get("name") or "").upper(), 27, SERIF, INK, 112, 68, bold=True),
-        _text((cv.get("title") or "").upper(), 10, SANS, ACCENT, 114, 108),
-        _text(_contact_line(cv), 9.2, SANS, SLATE, 114, 134),
+        _block(name, 112, 66, 400, 30, 25, 28, INK, SERIF, bold=True),
+        _block(title, 114, 102, 398, 16, 8.8, 10, ACCENT, SANS),
+        _block(contact, 114, 132, 398, 14, 8.5, 10, SLATE, SANS),
         _line(112, 151, 400, 1, PALE),
     ]
     static[5]["letterSpacing"] = 1.35
@@ -934,9 +984,9 @@ def _gen_axiom(cv: dict) -> list[dict]:
     if cv.get("experience"):
         section(lbl["experience"])
         for job in cv["experience"]:
-            b.need(56)
-            b.text(job.get("title", ""), 11, SANS, INK, L, bold=True); b.gap(2)
-            b.text(_company_period(job), 9, SANS, SLATE, L); b.gap(3)
+            b.need(78)
+            b.block(job.get("title", ""), L, W, 11, 13.5, INK, SANS, bold=True, min_h=15); b.gap(1)
+            b.block(_company_period(job), L, W, 9, 11.5, SLATE, SANS, min_h=12); b.gap(3)
             bullets = _bullets(job)
             if bullets:
                 b.block(bullets, L, W, 9.8, 13.5, BODY, SANS, bulletList=True)
@@ -944,12 +994,12 @@ def _gen_axiom(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, SANS, fs=9.8, lh=13.5)
 
     if cv.get("education"):
-        b.need(48); section(lbl["education"])
+        b.need(56); section(lbl["education"])
         for edu in cv["education"]:
-            b.text(edu.get("degree", ""), 10.6, SANS, INK, L, bold=True); b.gap(2)
-            b.text(edu.get("period", ""), 9, SANS, SLATE, L)
+            b.block(edu.get("degree", ""), L, W, 10.6, 13, INK, SANS, bold=True, min_h=15); b.gap(2)
+            b.block(edu.get("period", ""), L, W, 9, 11.5, SLATE, SANS, min_h=12)
             if edu.get("detail"):
-                b.gap(1); b.text(edu["detail"], 9, SANS, SLATE, L)
+                b.gap(1); b.block(edu["detail"], L, W, 9, 11.5, SLATE, SANS, min_h=12)
             b.gap(10)
 
     if cv.get("skills"):
@@ -977,15 +1027,18 @@ def _gen_vellum(cv: dict) -> list[dict]:
     SERIF, SANS = "Times-Roman", "Inter"
     L, W = 60, 475
     lbl = _labels(cv)
+    name = _compact_text(cv.get("name"), 32).upper()
+    title = _compact_text(cv.get("title"), 54).upper()
+    contact = _compact_text(_contact_line(cv), 82)
 
     static = [
         _rect(60, 54, 475, 106, CLAY, 1.15),
         _rect(70, 64, 455, 86, SAND, 0.75),
-        _block((cv.get("name") or "").upper(), 70, 72, 455, 30, 26, 30, INK, SERIF,
+        _block(name, 70, 72, 455, 30, 26, 30, INK, SERIF,
                bold=True, align="center"),
-        _block((cv.get("title") or "").upper(), 70, 108, 455, 14, 9.5, 12, WINE, SANS,
+        _block(title, 70, 108, 455, 14, 9.5, 12, WINE, SANS,
                align="center"),
-        _block(_contact_line(cv), 70, 132, 455, 14, 9, 12, GRAY, SANS, align="center"),
+        _block(contact, 70, 132, 455, 14, 9, 12, GRAY, SANS, align="center"),
     ]
     static[3]["letterSpacing"] = 1.45
     b = Builder(186)
@@ -1003,9 +1056,9 @@ def _gen_vellum(cv: dict) -> list[dict]:
     if cv.get("experience"):
         section(lbl["experience"])
         for job in cv["experience"]:
-            b.need(56)
-            b.text(job.get("title", ""), 11, SANS, INK, L, bold=True); b.gap(2)
-            b.text(_company_period(job), 9, SANS, GRAY, L); b.gap(3)
+            b.need(78)
+            b.block(job.get("title", ""), L, W, 11, 13.5, INK, SANS, bold=True, min_h=15); b.gap(1)
+            b.block(_company_period(job), L, W, 9, 11.5, GRAY, SANS, min_h=12); b.gap(3)
             bullets = _bullets(job)
             if bullets:
                 b.block(bullets, L, W, 9.8, 13.5, BODY, SANS, bulletList=True)
@@ -1013,12 +1066,12 @@ def _gen_vellum(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, SANS, fs=9.8, lh=13.5)
 
     if cv.get("education"):
-        b.need(50); section(lbl["education"])
+        b.need(56); section(lbl["education"])
         for edu in cv["education"]:
-            b.text(edu.get("degree", ""), 10.6, SANS, INK, L, bold=True); b.gap(2)
-            b.text(edu.get("period", ""), 9, SANS, GRAY, L)
+            b.block(edu.get("degree", ""), L, W, 10.6, 13, INK, SANS, bold=True, min_h=15); b.gap(2)
+            b.block(edu.get("period", ""), L, W, 9, 11.5, GRAY, SANS, min_h=12)
             if edu.get("detail"):
-                b.gap(1); b.text(edu["detail"], 9, SANS, GRAY, L)
+                b.gap(1); b.block(edu["detail"], L, W, 9, 11.5, GRAY, SANS, min_h=12)
             b.gap(10)
 
     if cv.get("skills"):
