@@ -1,80 +1,226 @@
-.spinnerWrapper {
-    position: relative;
-    z-index: 3000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: #fff;
-    border: 1px solid var(--border-soft);
-    box-shadow: var(--shadow-card);
-    width: 320px;
-    max-width: 80%;
-    margin: 100px auto;
-    padding: 34px 30px;
-    border-radius: var(--r-lg);
-    text-align: center;
-}
+/* ---------------------------------------------------------------------------
+   PDF generation loading state — full-screen frosted overlay with a
+   "document being rendered" mark (page + line-fill + scan beam + conic ring).
+   All CSS-only, scoped keyframes.
+--------------------------------------------------------------------------- */
 
-.ring {
-    position: relative;
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 20px;
-}
-
-.track {
-    position: absolute;
+.overlay {
+    position: fixed;
     inset: 0;
-    border-radius: 50%;
-    border: 5px solid var(--accent-soft);
-}
-
-.arc {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 5px solid transparent;
-    border-top-color: var(--accent);
-    border-right-color: var(--accent);
-    animation: spin .9s linear infinite;
-}
-
-.center {
-    position: absolute;
-    inset: 0;
+    z-index: 4500;
     display: flex;
     align-items: center;
     justify-content: center;
+    background:
+        radial-gradient(1000px 520px at 50% 32%, rgba(62, 109, 181, .16), transparent 62%),
+        rgba(226, 232, 242, .58);
+    -webkit-backdrop-filter: blur(8px) saturate(1.15);
+            backdrop-filter: blur(8px) saturate(1.15);
+    animation: overlayIn .28s ease both;
 }
 
+.card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 320px;
+    max-width: 86vw;
+    padding: 36px 30px 30px;
+    border-radius: 24px;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(255, 255, 255, .9), rgba(248, 250, 253, .82));
+    border: 1px solid rgba(255, 255, 255, .95);
+    box-shadow:
+        0 34px 80px -28px rgba(30, 48, 78, .5),
+        0 2px 0 rgba(255, 255, 255, .8) inset;
+    animation: cardIn .5s cubic-bezier(.2, .85, .2, 1) both;
+}
+
+/* ---- animated mark ---- */
+.stage {
+    position: relative;
+    width: 104px;
+    height: 104px;
+    margin-bottom: 24px;
+    display: grid;
+    place-items: center;
+}
+
+/* rotating conic ring, masked to a thin band */
+.ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 90deg,
+            rgba(62, 109, 181, 0) 0 8%,
+            var(--accent) 42%,
+            var(--accent-strong) 60%,
+            rgba(62, 109, 181, 0) 78% 100%);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+    animation: ringSpin 1.15s linear infinite;
+    filter: drop-shadow(0 3px 8px rgba(62, 109, 181, .3));
+}
+
+/* soft breathing halo behind the page */
+.glow {
+    position: absolute;
+    width: 66px;
+    height: 66px;
+    border-radius: 20px;
+    background: radial-gradient(circle at 50% 50%, rgba(62, 109, 181, .28), transparent 70%);
+    filter: blur(6px);
+    animation: pulse 2.4s ease-in-out infinite;
+}
+
+/* the document */
+.page {
+    position: relative;
+    width: 48px;
+    height: 60px;
+    border-radius: 8px;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    box-shadow: 0 8px 18px -8px rgba(30, 48, 78, .35);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 11px 9px 9px;
+    animation: pageFloat 2.6s ease-in-out infinite;
+}
+
+/* dog-eared corner */
+.corner {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(225deg, var(--surface-2) 0 50%, transparent 50%);
+    border-bottom-left-radius: 3px;
+}
+
+.line {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), #9dbbe6);
+    transform-origin: left center;
+    animation: lineGrow 1.9s ease-in-out infinite;
+}
+.line:nth-child(2) { width: 100%; animation-delay: 0s; }
+.line:nth-child(3) { width: 74%;  animation-delay: .22s; }
+.line:nth-child(4) { width: 92%;  animation-delay: .44s; }
+.line:nth-child(5) { width: 58%;  animation-delay: .66s; }
+
+/* scan beam sweeping down the page */
+.beam {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 16px;
+    top: -16px;
+    background: linear-gradient(180deg, transparent, rgba(62, 109, 181, .5), transparent);
+    box-shadow: 0 0 12px 3px rgba(62, 109, 181, .3);
+    animation: scan 2.6s cubic-bezier(.5, 0, .5, 1) infinite;
+}
+
+/* ---- copy ---- */
 .title {
     font: 800 19px var(--font-display);
+    letter-spacing: -.01em;
     color: var(--primary-font);
     margin-bottom: 5px;
+}
+
+/* animated ellipsis */
+.dots::after {
+    content: "";
+    animation: dots 1.5s steps(1, end) infinite;
 }
 
 .subtitle {
     font: 600 13px var(--font-body);
     color: var(--secondary-font);
-    margin-bottom: 20px;
+    margin-bottom: 22px;
 }
 
+/* ---- indeterminate progress ---- */
 .bar {
-    width: 100%;
-    height: 7px;
-    border-radius: 4px;
-    background: var(--border-soft);
-    overflow: hidden;
     position: relative;
+    width: 100%;
+    height: 6px;
+    border-radius: 6px;
+    background: var(--surface-2);
+    overflow: hidden;
 }
 
 .bar span {
     position: absolute;
     top: 0;
+    bottom: 0;
     left: 0;
-    width: 45%;
-    height: 100%;
-    border-radius: 4px;
+    width: 42%;
+    border-radius: 6px;
     background: var(--accent-grad);
-    animation: indet 1.4s ease-in-out infinite;
+    animation: shuttle 1.4s ease-in-out infinite;
+}
+
+/* ---- keyframes ---- */
+@keyframes overlayIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes cardIn {
+    from { opacity: 0; transform: translateY(14px) scale(.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes ringSpin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: .55; transform: scale(.94); }
+    50%      { opacity: 1;   transform: scale(1.06); }
+}
+
+@keyframes pageFloat {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-3px); }
+}
+
+@keyframes lineGrow {
+    0%, 100% { transform: scaleX(.35); opacity: .45; }
+    50%      { transform: scaleX(1);   opacity: 1; }
+}
+
+@keyframes scan {
+    0%   { top: -16px; opacity: 0; }
+    15%  { opacity: 1; }
+    85%  { opacity: 1; }
+    100% { top: 60px; opacity: 0; }
+}
+
+@keyframes dots {
+    0%   { content: ""; }
+    25%  { content: "."; }
+    50%  { content: ".."; }
+    75%  { content: "..."; }
+    100% { content: ""; }
+}
+
+@keyframes shuttle {
+    0%   { left: -42%; }
+    100% { left: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ring, .glow, .page, .line, .beam, .bar span, .dots::after, .card, .overlay {
+        animation-duration: .01ms;
+        animation-iteration-count: 1;
+    }
+    .ring { animation: ringSpin 1.15s linear infinite; }
+    .bar span { animation: shuttle 1.4s ease-in-out infinite; }
 }

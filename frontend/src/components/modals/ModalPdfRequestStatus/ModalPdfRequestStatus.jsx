@@ -38,20 +38,35 @@ function ModalPdfRequestStatus({ message, open }) {
 
     const { showModalRequest, setPDFdownloadData, PDFdownloadData} = use(PdfContext)
 
-    return createPortal(<AnimatePresence>{open && <motion.div 
-        initial={{ opacity: 0, y: -30, x: 500 }}
-        animate={{ opacity: 1, y: 60, x: 500 }}
-        exit={{ opacity: 0, y: -30 }}
-        transition={{ type: "spring", duration: 2, ease: [0, 0.71, 0.2, 1.01] }}
-        className={classes.modalPdfRequestStatus}
+    const isError = !!message?.message;
+
+    return createPortal(<AnimatePresence>{open && <motion.div
+        className={classes.toast}
+        data-state={isError ? "error" : "success"}
+        initial={{ opacity: 0, x: 52, scale: .96 }}
+        animate={{ opacity: 1, x: 0, scale: 1 }}
+        exit={{ opacity: 0, x: 52, scale: .96 }}
+        transition={{ type: "spring", stiffness: 260, damping: 24 }}
         >
+        <span className={classes.accent} aria-hidden="true" />
 
-        {/**SHOW ERROR MESSAGE */}
-        {message?.message && <p>{message?.message}</p>}
-        {/**SHOW SUCCESS MESSAGE / PDF CREATED / PDF UPDATE */}
-        {message?.success && <><p>{message?.success}</p> <button className={classes.btnDownloadPDF}><a href={PDFdownloadData.blob} download={PDFdownloadData.title}><span>Download</span><FiDownload /></a></button> </>}
+        <div className={classes.icon} aria-hidden="true">
+            {isError
+                ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4" /><path d="M12 17h.01" /><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" /></svg>
+                : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
+        </div>
 
-        <CloseButton top={-10} left={-10} height="1.5rem" width="1.5rem" clickHandler={showModalRequest}/>
+        <div className={classes.body}>
+            <div className={classes.title}>{isError ? "Something went wrong" : "Your PDF is ready"}</div>
+            <div className={classes.msg}>{message?.message || message?.success}</div>
+            {message?.success && (
+                <a className={classes.download} href={PDFdownloadData.blob} download={PDFdownloadData.title}>
+                    <FiDownload /> Download PDF
+                </a>
+            )}
+        </div>
+
+        <CloseButton top={10} right={10} height="1.6rem" width="1.6rem" clickHandler={showModalRequest} />
 
     </motion.div>}</AnimatePresence>, document.getElementById("modal-request-status"))
 

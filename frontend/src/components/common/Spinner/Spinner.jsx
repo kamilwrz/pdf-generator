@@ -1,19 +1,31 @@
 import classes from "./Spinner.module.css";
 
+// Full-screen loading state shown while a PDF is being generated. The mark is
+// contextual: a document whose lines render in under a sweeping scan beam,
+// wrapped in a rotating conic ring — on a frosted backdrop.
 export default function Spinner({ loading = true }) {
     if (!loading) return null;
     return (
-        <div className={classes.spinnerWrapper}>
-            <div className={classes.ring}>
-                <div className={classes.track} />
-                <div className={classes.arc} />
-                <div className={classes.center}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
+        <div className={classes.overlay} role="status" aria-live="polite" aria-label="Generating your PDF">
+            <div className={classes.card}>
+                <div className={classes.stage}>
+                    <span className={classes.ring} aria-hidden="true" />
+                    <span className={classes.glow} aria-hidden="true" />
+                    <span className={classes.page} aria-hidden="true">
+                        <i className={classes.corner} />
+                        <span className={classes.line} />
+                        <span className={classes.line} />
+                        <span className={classes.line} />
+                        <span className={classes.line} />
+                        <span className={classes.beam} />
+                    </span>
                 </div>
+                <div className={classes.title}>
+                    Generating your PDF<span className={classes.dots} aria-hidden="true" />
+                </div>
+                <div className={classes.subtitle}>Laying out pages &amp; rendering</div>
+                <div className={classes.bar}><span /></div>
             </div>
-            <div className={classes.title}>Generating your PDF…</div>
-            <div className={classes.subtitle}>This usually takes just a few seconds</div>
-            <div className={classes.bar}><span /></div>
         </div>
     );
 }
