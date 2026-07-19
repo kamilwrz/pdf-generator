@@ -754,6 +754,151 @@ def _gen_sterling(cv: dict) -> list[dict]:
     return frames + static + flow
 
 
+def _gen_solstice(cv: dict) -> list[dict]:
+    """Art-deco CV with a midnight sidecar and sun-gold geometric details."""
+    MIDNIGHT, SUN, CREAM = "#17283C", "#D99A32", "#F8F1E4"
+    INK, MIST = "#26323B", "#697682"
+    SERIF, SANS = "Times-Roman", "Inter"
+    SIDE, L, W = 184, 224, 316
+    lbl = _labels(cv)
+
+    contact = "\n".join(filter(None, [cv.get("email"), cv.get("phone"), cv.get("location")]))
+    skills = "\n".join(cv.get("skills") or [])
+    static = [
+        _rect(36, 42, 112, 112, SUN, 1.2, zIndex=2),
+        _rect(43, 49, 98, 98, CREAM, 1, zIndex=2),
+        _block("CV", 43, 74, 98, 28, 23, 28, MIDNIGHT, SERIF, zIndex=3, bold=True, align="center"),
+        _block("SOLSTICE", 43, 110, 98, 14, 8, 10, MIDNIGHT, SANS, zIndex=3, align="center"),
+        _text(cv.get("name", ""), 34, SERIF, MIDNIGHT, L, 54),
+        _text(cv.get("title", ""), 10.5, SANS, SUN, L + 2, 98),
+        _line(L, 126, W, 1.5, MIDNIGHT),
+        _line(L, 132, 104, 2, SUN),
+        _text("CONTACT", 9, SANS, SUN, 36, 196),
+        _line(36, 211, 76, 1, "#5D6E7D", zIndex=2),
+        _block(contact, 36, 226, 112, max(len(contact.splitlines()) * 14, 48), 8.5, 14, "#E9E5DE", SANS),
+        _text("SPECIALTIES", 9, SANS, SUN, 36, 342),
+        _line(36, 357, 76, 1, "#5D6E7D", zIndex=2),
+        _block(skills, 36, 372, 112, max(len(cv.get("skills") or []) * 15, 48), 8.6, 15, "#E9E5DE", SANS),
+    ]
+    b = Builder(162)
+
+    def section(label):
+        b.need(34)
+        b.els.append(_line(L, b.y + 6, 32, 2, SUN, page=b.pg))
+        b.text(label, 11, SANS, MIDNIGHT, L + 42, bold=True)
+        b.els.append(_line(L + 42, b.y - 1, 274, 0.75, "#D8D1C5", page=b.pg))
+        b.gap(8)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10.5, 15, MIST, SANS); b.gap(18)
+
+    if cv.get("experience"):
+        section(lbl["experience"])
+        for job in cv["experience"]:
+            b.need(58)
+            b.text(job.get("title", ""), 11.2, SANS, INK, L, bold=True); b.gap(2)
+            b.text(_company_period(job), 9.2, SANS, MIST, L); b.gap(3)
+            bullets = _bullets(job)
+            if bullets:
+                b.block(bullets, L, W, 10, 14, INK, SANS, bulletList=True)
+            b.gap(13)
+        _extra_sections(b, cv, "after_experience", section, {"body": INK}, L, W, SANS)
+
+    if cv.get("education"):
+        b.need(48); section(lbl["education"])
+        for edu in cv["education"]:
+            b.text(edu.get("degree", ""), 10.5, SANS, INK, L, bold=True); b.gap(2)
+            b.text(edu.get("period", ""), 9.2, SANS, MIST, L)
+            if edu.get("detail"):
+                b.gap(1); b.text(edu["detail"], 9.2, SANS, MIST, L)
+            b.gap(10)
+
+    _extra_sections(b, cv, "after_skills", section, {"body": INK}, L, W, SANS)
+    flow = b.build()
+    pages_used = max([element.get("page", 1) for element in static + flow] or [1])
+    sidecars = [
+        decoration
+        for page in range(1, pages_used + 1)
+        for decoration in (
+            _line(0, 0, SIDE, A4_H, MIDNIGHT, zIndex=0, page=page),
+            _line(SIDE, 0, 8, A4_H, SUN, zIndex=1, page=page),
+        )
+    ]
+    return sidecars + static + flow
+
+
+def _gen_mistral(cv: dict) -> list[dict]:
+    """Coastal editorial CV with a sea-glass side column and calm masthead."""
+    DEEP, SEA, FOAM = "#173F4C", "#4D9AA6", "#E8F0ED"
+    PAPER, INK, DRIFT = "#FBFAF5", "#29363A", "#748184"
+    SERIF, SANS = "Times-Roman", "Inter"
+    SIDEBAR, L, W = 164, 204, 340
+    lbl = _labels(cv)
+
+    profile = cv.get("summary") or ""
+    skills = "\n".join(cv.get("skills") or [])
+    contact = " · ".join(filter(None, [cv.get("email"), cv.get("phone"), cv.get("location")]))
+    static = [
+        _line(0, 0, 595, 150, DEEP, zIndex=1),
+        _line(0, 150, 595, 7, SEA, zIndex=1),
+        _rect(48, 42, 88, 58, FOAM, 1, zIndex=2),
+        _block("MISTRAL", 48, 57, 88, 14, 8.5, 11, DEEP, SANS, zIndex=3, align="center"),
+        _line(62, 80, 60, 1, SEA, zIndex=3),
+        _text(cv.get("name", ""), 32, SERIF, "#FFFFFF", 188, 46),
+        _text(cv.get("title", ""), 12.5, SANS, "#CBE3DF", 190, 91, italic=True),
+        _text(contact, 9.2, SANS, "#B4D5D0", 190, 118),
+        _text("PROFILE", 8.5, SANS, SEA, 48, 198),
+        _line(48, 213, 104, 1, "#C7D7D4"),
+        _block(profile, 48, 222, 104, 104, 9, 14, INK, SANS),
+        _text("PRACTICE", 8.5, SANS, SEA, 48, 364),
+        _line(48, 379, 104, 1, "#C7D7D4"),
+        _block(skills, 48, 388, 104, max(len(cv.get("skills") or []) * 15, 48), 8.8, 15, INK, SANS),
+    ]
+    b = Builder(194)
+
+    def section(label):
+        b.need(34)
+        b.els.append(_line(188, b.y + 4, 5, 16, SEA, zIndex=2, page=b.pg))
+        b.text(label, 10.5, SANS, DEEP, L, bold=True)
+        b.els.append(_line(L, b.y + 2, W, 0.75, "#D9E1DE", page=b.pg))
+        b.gap(10)
+
+    if cv.get("experience"):
+        section(lbl["experience"])
+        for job in cv["experience"]:
+            b.need(58)
+            b.text(job.get("title", ""), 11.5, SANS, INK, L, bold=True); b.gap(2)
+            b.text(_company_period(job), 9.2, SANS, DRIFT, L); b.gap(3)
+            bullets = _bullets(job)
+            if bullets:
+                b.block(bullets, L, W, 10, 14, INK, SANS, bulletList=True)
+            b.gap(13)
+        _extra_sections(b, cv, "after_experience", section, {"body": INK}, L, W, SANS)
+
+    if cv.get("education"):
+        b.need(48); section(lbl["education"])
+        for edu in cv["education"]:
+            b.text(edu.get("degree", ""), 10.8, SANS, INK, L, bold=True); b.gap(2)
+            b.text(edu.get("period", ""), 9.2, SANS, DRIFT, L)
+            if edu.get("detail"):
+                b.gap(1); b.text(edu["detail"], 9.2, SANS, DRIFT, L)
+            b.gap(10)
+
+    _extra_sections(b, cv, "after_skills", section, {"body": INK}, L, W, SANS)
+    flow = b.build()
+    pages_used = max([element.get("page", 1) for element in static + flow] or [1])
+    scaffolding = [
+        decoration
+        for page in range(1, pages_used + 1)
+        for decoration in (
+            _line(0, 0, 595, A4_H, PAPER, zIndex=0, page=page),
+            _line(SIDEBAR, 176 if page == 1 else 0, 1, A4_H - (176 if page == 1 else 0), "#C7D7D4", zIndex=1, page=page),
+        )
+    ]
+    return scaffolding + static + flow
+
+
 # ── public API ───────────────────────────────────────────────────────────────
 
 _GENERATORS = {
@@ -767,6 +912,8 @@ _GENERATORS = {
     "monolith":  _gen_monolith,
     "prism":     _gen_prism,
     "aria":      _gen_aria,
+    "solstice":  _gen_solstice,
+    "mistral":   _gen_mistral,
 }
 
 

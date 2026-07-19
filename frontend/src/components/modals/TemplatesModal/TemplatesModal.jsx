@@ -79,6 +79,50 @@ function Preview({ id, accent }) {
             </div>
         );
     }
+    if (id === "solstice") {
+        // art deco sidecar: midnight panel, gold inset emblem, serif masthead
+        return (
+            <div className={classes.paper}>
+                <div className={classes.sidebar} style={{ width: "31%", background: "#17283C", alignItems: "center", paddingTop: "10px" }}>
+                    <span style={{ width: "31px", height: "31px", border: "1px solid #D99A32", boxShadow: "inset 0 0 0 4px #F8F1E4", background: "#D99A32" }} />
+                    <span className={classes.barThin} style={{ background: "#D99A32", width: "57%", marginTop: "12px" }} />
+                    <span className={classes.lineLight} /><span className={classes.lineLight} />
+                </div>
+                <div className={classes.main} style={{ borderLeft: "4px solid #D99A32" }}>
+                    <span className={classes.bar} style={{ background: "#17283C", width: "72%" }} />
+                    <span className={classes.barThin} style={{ background: "#D99A32", width: "52%" }} />
+                    <span className={classes.rule} style={{ background: "#17283C" }} />
+                    <span className={classes.barThin} style={{ background: "#17283C", width: "42%", marginTop: "7px" }} />
+                    <span className={classes.line} /><span className={classes.line} />
+                </div>
+            </div>
+        );
+    }
+    if (id === "mistral") {
+        // coastal editorial: deep sea masthead, sea-glass strip, narrow notes column
+        return (
+            <div className={classes.paper} style={{ flexDirection: "column", background: "#FBFAF5" }}>
+                <div style={{ height: "30%", background: "#173F4C", borderBottom: "4px solid #4D9AA6", display: "flex", flexDirection: "column", justifyContent: "center", gap: "4px", padding: "0 12px" }}>
+                    <span className={classes.bar} style={{ background: "#fff", width: "64%" }} />
+                    <span className={classes.barThin} style={{ background: "#B4D5D0", width: "42%" }} />
+                </div>
+                <div style={{ display: "flex", flex: 1, padding: "9px 11px", gap: "9px" }}>
+                    <div style={{ width: "30%", borderRight: "1px solid #C7D7D4", display: "flex", flexDirection: "column", gap: "4px", paddingRight: "7px" }}>
+                        <span className={classes.barThin} style={{ background: accent, width: "68%" }} />
+                        <span className={classes.line} /><span className={classes.line} />
+                        <span className={classes.barThin} style={{ background: accent, width: "52%", marginTop: "6px" }} />
+                        <span className={classes.line} />
+                    </div>
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <span className={classes.barThin} style={{ background: "#173F4C", width: "45%" }} />
+                        <span className={classes.line} /><span className={classes.line} />
+                        <span className={classes.barThin} style={{ background: "#173F4C", width: "52%", marginTop: "6px" }} />
+                        <span className={classes.line} /><span className={classes.line} />
+                    </div>
+                </div>
+            </div>
+        );
+    }
     if (id === "it") {
         return (
             <div className={classes.paper}>
