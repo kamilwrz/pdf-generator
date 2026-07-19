@@ -54,7 +54,7 @@ MAX_SLIDES = 60
 
 # Planning model: newest reasoning-capable OpenAI model. Overridable via env
 # (DECK_PLAN_MODEL) so a newer model id can be adopted without a code change.
-PLAN_MODEL = os.getenv("DECK_PLAN_MODEL", "gpt-5.1")
+PLAN_MODEL = os.getenv("DECK_PLAN_MODEL", "gpt-5.6")
 
 # Inner slot of the image frame on image_right slides (frame 560,160 340×255, 12px inset)
 IMG_SLOT = {"left": 572, "top": 172, "w": 316, "h": 231}
