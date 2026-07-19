@@ -29,8 +29,10 @@ class PdfElement(BaseModel):
     #LINE / IMG ELEMENT
     width: Optional[float | str] = None
     height: Optional[float | str] = None
-    #LINE ELEMENT
+    #LINE ELEMENT / RECTANGLE ELEMENT (backgroundColor = fill for line, border colour for rectangle)
     backgroundColor: Optional[str] = None
+    #RECTANGLE ELEMENT (outline only): border thickness in px
+    borderWidth: Optional[float] = None
     #IMG ELEMENT
     src: Optional[str] = None
     #NANO ID

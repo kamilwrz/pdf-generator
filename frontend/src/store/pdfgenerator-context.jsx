@@ -9,6 +9,7 @@ export const PdfContext = createContext({
     addImage: () => {},
     addText: () => {},
     addLine: () => {},
+    addRectangle: () => {},
     selectElement: () => {},
     moveElement: () => {},
     selectMoveElement: () => {},

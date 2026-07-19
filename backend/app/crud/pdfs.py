@@ -42,7 +42,7 @@ def create_new_pdf(db:Session, title:str, user_id:int, file_path:str, elements:l
             src = element.src,
             backgroundColor = element.backgroundColor,
             img_id = img_id,
-            extra_properties = {"zIndex": element.zIndex, "isSelected" : element.isSelected, "isMove": element.isMove, "lineHeight": element.lineHeight, "letterSpacing": element.letterSpacing, "bold": element.bold, "italic": element.italic, "underline": element.underline, "align": element.align, "bulletList": element.bulletList}
+            extra_properties = {"zIndex": element.zIndex, "isSelected" : element.isSelected, "isMove": element.isMove, "lineHeight": element.lineHeight, "letterSpacing": element.letterSpacing, "bold": element.bold, "italic": element.italic, "underline": element.underline, "align": element.align, "bulletList": element.bulletList, "borderWidth": element.borderWidth}
     )
         db.add(pdf_elements_db)
     
@@ -97,7 +97,7 @@ def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_i
               src=element.src,
               backgroundColor=element.backgroundColor,
               img_id=img_id,
-              extra_properties={"zIndex": element.zIndex, "isSelected": element.isSelected, "isMove": element.isMove, "lineHeight": element.lineHeight, "letterSpacing": element.letterSpacing, "bold": element.bold, "italic": element.italic, "underline": element.underline, "align": element.align, "bulletList": element.bulletList},
+              extra_properties={"zIndex": element.zIndex, "isSelected": element.isSelected, "isMove": element.isMove, "lineHeight": element.lineHeight, "letterSpacing": element.letterSpacing, "bold": element.bold, "italic": element.italic, "underline": element.underline, "align": element.align, "bulletList": element.bulletList, "borderWidth": element.borderWidth},
             )
             db.add(pdf_elements)
 
@@ -118,4 +118,4 @@ def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_i
             existing_row.src = element.src
             existing_row.backgroundColor = element.backgroundColor
             existing_row.img_id = img_id
-            existing_row.extra_properties = {"zIndex": element.zIndex, "isSelected": element.isSelected, "isMove": element.isMove, "lineHeight": element.lineHeight, "letterSpacing": element.letterSpacing, "bold": element.bold, "italic": element.italic, "underline": element.underline, "align": element.align, "bulletList": element.bulletList}
+            existing_row.extra_properties = {"zIndex": element.zIndex, "isSelected": element.isSelected, "isMove": element.isMove, "lineHeight": element.lineHeight, "letterSpacing": element.letterSpacing, "bold": element.bold, "italic": element.italic, "underline": element.underline, "align": element.align, "bulletList": element.bulletList, "borderWidth": element.borderWidth}

@@ -2,6 +2,7 @@ import classes from "./Sidebar.module.css";
 import SidebarControls from "../../common/SidebarControls/SidebarControls";
 import { FaRegImages } from "react-icons/fa";
 import { TfiLayoutLineSolid } from "react-icons/tfi";
+import { BiRectangle } from "react-icons/bi";
 import { CiText } from "react-icons/ci";
 import { BsTextParagraph } from "react-icons/bs";
 import { TiPen } from "react-icons/ti";
@@ -20,6 +21,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
     const {
         addText,
         addLine,
+        addRectangle,
         addTextarea,
         showTemplates,
         showAiPanel,
@@ -71,6 +73,7 @@ export default forwardRef(function Sidebar({ children }, ref) {
                 <SidebarControls icon={<CiText style={{ color: "#5FA777" }} />} iconBg="#E6F1E7" labelText="Add text" sidebarEvent={addText} />
                 <SidebarControls icon={<BsTextParagraph style={{ color: "#5B8AA6" }} />} iconBg="#E3EEF4" labelText="Add text box" sidebarEvent={addTextarea} />
                 <SidebarControls icon={<TfiLayoutLineSolid style={{ color: "#5B7CB8" }} />} iconBg="#E6EDF8" labelText="Add line" sidebarEvent={addLine} />
+                <SidebarControls icon={<BiRectangle style={{ color: "#3E6DB5" }} />} iconBg="#E7F0FB" labelText="Add rectangle" sidebarEvent={addRectangle} />
             </div>
         </div>
 

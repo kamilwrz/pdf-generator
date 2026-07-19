@@ -75,6 +75,17 @@ class PDF_Generator:
         self.c.setFillColor(HexColor(color))
         self.c.rect(left, corrected_y, width=width, height=height, stroke=0, fill=1)
 
+    def renderRectangle(self, width, height, left, top, color, border_width):
+        """Outline-only rectangle (no fill). ``color`` is the border colour
+        (the element reuses backgroundColor for it, like the line). The stroke
+        is inset by half its width so the outer edge lines up with the box —
+        matching the canvas's box-sizing: border-box."""
+        corrected_y = 842 - top - height
+        bw = float(border_width) if border_width else 1.0
+        self.c.setStrokeColor(HexColor(color or "#000000"))
+        self.c.setLineWidth(bw)
+        self.c.rect(left + bw / 2, corrected_y + bw / 2, width=width - bw, height=height - bw, stroke=1, fill=0)
+
     ITALIC_SHEAR = 0.21  # ~12 degree slant for faux italic (fallback only)
 
     # (family, bold, italic) -> a registered font that is a REAL variant.
@@ -302,6 +313,8 @@ class PDF_Generator:
                     )
                 elif category == "line":
                     self.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
+                elif category == "rectangle":
+                    self.renderRectangle(float(element.width), float(element.height), element.left, element.top, element.backgroundColor, getattr(element, "borderWidth", 1))
                 elif category == "image":
                     self.renderImage(image_resolver(element.src or ""), float(element.width), float(element.height), element.left, element.top)
             self.c.showPage()

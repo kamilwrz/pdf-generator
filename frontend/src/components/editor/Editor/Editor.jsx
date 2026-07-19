@@ -29,7 +29,7 @@ export default function Editor() {
 
     function handleChangeValues(e, identifier) {
 
-        const value = ["fontSize", "height", "width", "lineHeight", "letterSpacing", "left", "top"].includes(identifier) ? Number(e.target.value) : e.target.value;
+        const value = ["fontSize", "height", "width", "lineHeight", "letterSpacing", "left", "top", "borderWidth"].includes(identifier) ? Number(e.target.value) : e.target.value;
         let valueObject = { [identifier]: value }
 
         if (identifier === "width" && selectedElement.category === "image") {
@@ -137,6 +137,7 @@ export default function Editor() {
                 top: selectedElement ? Math.round(selectedElement.top) : undefined,
                 width: selectedElement?.width,
                 height: selectedElement?.height,
+                borderWidth: selectedElement?.borderWidth,
                 category: selectedElement?.category,
                 zIndex: selectedElement?.zIndex
             };
@@ -212,6 +213,16 @@ export default function Editor() {
                 <EditorControls labelText="Width" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
                 </div>
                 <EditorControls labelText="Background Color" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
+            </>}
+            {selectedElement?.category === "rectangle" && <>
+                <div className={classes.elementSize}>
+                <EditorControls labelText="Width" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
+                <EditorControls labelText="Height" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
+                </div>
+                <div className={classes.elementSize}>
+                <EditorControls labelText="Border Width" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
+                <EditorControls labelText="Border Color" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
+                </div>
             </>}
 
             {selectedElement?.category === "image" && <>

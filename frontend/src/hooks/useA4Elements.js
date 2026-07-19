@@ -165,6 +165,26 @@ export function useA4Elements(titleRef) {
     });
   }, [])
 
+  const handleAddRectangle = useCallback(() => {
+    const rectangle = {
+      element_id: nanoid(),
+      backgroundColor: "#000000", // reused as the border (stroke) colour
+      borderWidth: 1,
+      left: 20,
+      top: 20,
+      width: 120,
+      height: 80,
+      isSelected: false,
+      isMove: false,
+      category: "rectangle",
+      zIndex: 2,
+      page: currentPageRef.current,
+    };
+    setA4_Elements(prevState => {
+      return [...prevState, rectangle];
+    });
+  }, [])
+
   const handleAddImage = useCallback((e) => {
     const image = {
       element_id: nanoid(),
@@ -659,6 +679,7 @@ export function useA4Elements(titleRef) {
     handleSelectElement,
     handleAddText,
     handleAddLine,
+    handleAddRectangle,
     handleAddImage,
     handleAddTextarea,
     markSelected,

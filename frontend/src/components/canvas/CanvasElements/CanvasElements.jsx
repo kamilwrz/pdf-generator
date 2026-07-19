@@ -1,6 +1,7 @@
 import Text from '../Text/Text';
 import Image from '../Image/Image';
 import Line from '../Line/Line';
+import Rectangle from '../Rectangle/Rectangle';
 import Textarea from '../Textarea/Textarea';
 
 export default function CanvasElements({ elements }) {
@@ -76,6 +77,23 @@ export default function CanvasElements({ elements }) {
             width={parseFloat(element.width)}
             height={parseFloat(element.height)}
             backgroundColor={element.backgroundColor}
+            left={element.left}
+            top={element.top}
+            isSelected={element.isSelected}
+            category={element.category}
+            zIndex={element.zIndex}
+          />
+        );
+      }
+      if (element.category === "rectangle") {
+        return (
+          <Rectangle
+            key={element.element_id}
+            elementId={element.element_id}
+            width={parseFloat(element.width)}
+            height={parseFloat(element.height)}
+            backgroundColor={element.backgroundColor}
+            borderWidth={element.borderWidth}
             left={element.left}
             top={element.top}
             isSelected={element.isSelected}

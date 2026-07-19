@@ -40,7 +40,7 @@ export default function Resize({ selectedElement, isResizeable, handleIsResizabl
 
             </button>
 
-            {selectedElement.category === "line" &&
+            {(selectedElement.category === "line" || selectedElement.category === "rectangle") &&
                 <> <button className={`${classes.roundCenterLeft} ${classes.resizeButtons}`}
                     onMouseMove={isResizeable ? (e) => resizeElement(e, "center-left", category, elementId, elementRef) : undefined}
                     onMouseDown={handleIsResizable}
