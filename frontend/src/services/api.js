@@ -8,6 +8,7 @@ export const ENDPOINTS = {
         DELETE: "/pdf/delete_pdf",
         SHOW: "/pdf/show_pdf",
         UPDATE: "/pdf/update_pdf",
+        SAVE_ELEMENTS: "/pdf/save_elements",
         DOWNLOAD: "/pdf/download_pdf",
     },
     IMG: {

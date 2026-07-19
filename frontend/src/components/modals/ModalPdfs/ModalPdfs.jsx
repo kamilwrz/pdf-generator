@@ -43,7 +43,8 @@ export default function ModalPdfs({ title }) {
         PDFdownloadData,
         setPageCount,
         setCurrentPage,
-        setPageSize
+        setPageSize,
+        resetHistory
     } = use(PdfContext);
 
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
@@ -108,6 +109,7 @@ export default function ModalPdfs({ title }) {
                     }
 
                 });
+                resetHistory();
                 setA4_Elements(elementsData.filter(element => element.category !== "title"));
                 setIsModalPdfs(false);
             }).catch((error) => {

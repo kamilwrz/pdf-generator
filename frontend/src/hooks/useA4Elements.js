@@ -118,10 +118,93 @@ export function useA4Elements(titleRef) {
   const currentPageRef = useRef(1);
   const elementsRef = useRef([]);
   const pageSizeRef = useRef(pageSize);
+  const pageCountRef = useRef(1);
   const draggedElementIdsRef = useRef(new Set());
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
   useEffect(() => { elementsRef.current = A4_Elements; }, [A4_Elements]);
   useEffect(() => { pageSizeRef.current = pageSize; }, [pageSize]);
+  useEffect(() => { pageCountRef.current = pageCount; }, [pageCount]);
+
+  // ---- Undo / redo history (in-memory, session-scoped) ----
+  // A snapshot is the DOCUMENT: elements with the volatile UI flags stripped
+  // (isSelected/isMove/isEditing) + page geometry. Stripping those flags means
+  // selecting an element or a single drag FRAME is not an undo step. The
+  // recorder is debounced, so a whole drag or a typed burst collapses into ONE
+  // step. History is never persisted — autosave persists the document; undo is
+  // a session concept. Undo/redo apply by content-equality, so re-applying a
+  // snapshot produces an identical snapshot the recorder skips (no flag needed).
+  const HISTORY_LIMIT = 100;
+  const historyRef = useRef({ stack: [], index: -1 });
+  const historyTimerRef = useRef(null);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  const buildSnapshot = () => ({
+    elements: elementsRef.current.map(({ isSelected, isMove, isEditing, ...keep }) => keep),
+    pageCount: pageCountRef.current,
+    pageWidth: pageSizeRef.current.width,
+    pageHeight: pageSizeRef.current.height,
+  });
+
+  const syncHistoryFlags = () => {
+    const { stack, index } = historyRef.current;
+    setCanUndo(index > 0);
+    setCanRedo(index < stack.length - 1);
+  };
+
+  const recordSnapshot = () => {
+    const snap = buildSnapshot();
+    const h = historyRef.current;
+    const cur = h.stack[h.index];
+    if (cur && JSON.stringify(cur) === JSON.stringify(snap)) return; // content unchanged (e.g. selection only)
+    const next = h.stack.slice(0, h.index + 1);
+    next.push(snap);
+    const overflow = next.length - HISTORY_LIMIT;
+    const capped = overflow > 0 ? next.slice(overflow) : next;
+    historyRef.current = { stack: capped, index: capped.length - 1 };
+    syncHistoryFlags();
+  };
+
+  // Debounced recorder: coalesces drag frames / keystrokes into a single step.
+  useEffect(() => {
+    clearTimeout(historyTimerRef.current);
+    historyTimerRef.current = setTimeout(recordSnapshot, 350);
+    return () => clearTimeout(historyTimerRef.current);
+  }, [A4_Elements, pageCount, pageSize]);
+
+  // Wipe history to a fresh baseline (loading a template / AI doc / saved PDF /
+  // clearing) so you can't undo BACK into the previous document. The pending
+  // debounced recorder seeds the new baseline from current state.
+  const resetHistory = useCallback(() => {
+    historyRef.current = { stack: [], index: -1 };
+    setCanUndo(false);
+    setCanRedo(false);
+  }, []);
+
+  const applySnapshot = (snap) => {
+    setA4_Elements(snap.elements.map(el => ({ ...el, isSelected: false, isMove: false, isEditing: false })));
+    setPageCount(snap.pageCount);
+    setCurrentPage(cp => Math.min(cp, snap.pageCount));
+    setPageSize(ps => (ps.width === snap.pageWidth && ps.height === snap.pageHeight)
+      ? ps
+      : { preset: presetFromDims(snap.pageWidth, snap.pageHeight), width: snap.pageWidth, height: snap.pageHeight });
+  };
+
+  const undo = useCallback(() => {
+    const h = historyRef.current;
+    if (h.index <= 0) return;
+    h.index -= 1;
+    applySnapshot(h.stack[h.index]);
+    syncHistoryFlags();
+  }, []);
+
+  const redo = useCallback(() => {
+    const h = historyRef.current;
+    if (h.index >= h.stack.length - 1) return;
+    h.index += 1;
+    applySnapshot(h.stack[h.index]);
+    syncHistoryFlags();
+  }, []);
 
   const setPagePreset = useCallback((presetId) => {
     const p = PAGE_PRESETS[presetId];
@@ -1054,12 +1137,13 @@ export function useA4Elements(titleRef) {
   }, [])
 
   const handleClearA4 = useCallback(() => {
+      resetHistory();
       setA4_Elements([]);
       setA4_Elements_deleted([]);
       setPageCount(1);
       setCurrentPage(1);
       titleRef.current.value = "";
-  }, [])
+  }, [resetHistory])
 
   // Assign fresh element_ids to a list of specs, honouring symbolic `id` keys:
   // a template/AI spec may carry `id: "box1"` and a connector referencing it via
@@ -1088,6 +1172,7 @@ export function useA4Elements(titleRef) {
   // Replace the canvas with generated/authored specs. `title` is used verbatim;
   // `presetId` (optional) switches the page size (e.g. deck templates).
   const handleLoadAiElements = useCallback((specs, title, presetId) => {
+    resetHistory();
     const mapped = materializeSpecs(specs);
     const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
     setA4_Elements(mapped);
@@ -1101,6 +1186,7 @@ export function useA4Elements(titleRef) {
   }, [setPagePreset])
 
   const handleLoadTemplateWithFill = useCallback((templateElements, templateName, fills) => {
+    resetHistory();
     // fills use array index as id (String) — match by position, not by element_id
     const fillMap = Object.fromEntries((fills || []).map(f => [f.id, f.content]));
     const withContent = templateElements.map((spec, i) => {
@@ -1121,6 +1207,7 @@ export function useA4Elements(titleRef) {
   }, [])
 
   const handleLoadTemplate = useCallback((templateElements, title, presetId) => {
+    resetHistory();
     const mapped = materializeSpecs(templateElements);
     const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
     setA4_Elements(mapped);
@@ -1131,7 +1218,7 @@ export function useA4Elements(titleRef) {
     if (titleRef?.current && title) {
       titleRef.current.value = title;
     }
-  }, [setPagePreset])
+  }, [setPagePreset, resetHistory])
 
 
   return {
@@ -1186,6 +1273,12 @@ export function useA4Elements(titleRef) {
     pageSize,
     setPageSize,
     setPagePreset,
+    // undo / redo
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    resetHistory,
   };
 
 }

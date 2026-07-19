@@ -111,12 +111,20 @@ function PdfCanvas() {
     movePage,
     pageSize,
     setPageSize,
-    setPagePreset
+    setPagePreset,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    resetHistory
   } = useA4Elements(titleRef)
 
- 
 
-  const { createPdf, updatePdf, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, handleShowModalRequest, titleRef, A4_Elements_deleted, setA4_Elements_deleted);
+
+  const { createPdf, updatePdf, saveElements, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, handleShowModalRequest, titleRef, A4_Elements_deleted, setA4_Elements_deleted);
+
+  // Autosave status shown in the topbar: null | "saving" | "saved" | "error".
+  const [autosaveStatus, setAutosaveStatus] = useState(null);
 
   function handleShowModalRequest() {
     setModalRequestStatus(bool => !bool);
@@ -181,6 +189,35 @@ function PdfCanvas() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [connectMode, cancelConnecting])
+
+  // Ctrl/Cmd+Z = undo, Ctrl+Shift+Z / Ctrl+Y = redo. Bail out when focus is in
+  // an editable field so the browser's native TEXT undo wins inside a textbox.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const t = e.target;
+      const editable = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
+      if (editable) return;
+      const key = e.key.toLowerCase();
+      if (key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+      else if ((key === "z" && e.shiftKey) || key === "y") { e.preventDefault(); redo(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo])
+
+  // Lightweight autosave: 2s after edits settle, persist canvas elements only
+  // (no PDF render). Runs only once the document has been saved (has a pdfId).
+  useEffect(() => {
+    if (pdfId == null || isPdfLoading) return;
+    const t = setTimeout(() => {
+      setAutosaveStatus("saving");
+      saveElements(A4_Elements, pdfId, titleRef, A4_Elements_deleted, pageCount, pageSize)
+        .then(() => { setAutosaveStatus("saved"); setA4_Elements_deleted([]); })
+        .catch(() => setAutosaveStatus("error"));
+    }, 2000);
+    return () => clearTimeout(t);
+  }, [A4_Elements, pageCount, pageSize, pdfId, isPdfLoading, saveElements, titleRef, A4_Elements_deleted, setA4_Elements_deleted])
 
   const handleShowDropzone = useCallback(() => {
     setIsDropzone(boolDropzone => !boolDropzone);
@@ -290,6 +327,12 @@ function PdfCanvas() {
     goToPage: goToPage,
     clonePage: clonePage,
     movePage: movePage,
+    undo: undo,
+    redo: redo,
+    canUndo: canUndo,
+    canRedo: canRedo,
+    resetHistory: resetHistory,
+    autosaveStatus: autosaveStatus,
     //usePdfExport hook
     updatePdf: updatePdfWithElements,
     createPdf: createPdfWithElements,
@@ -328,6 +371,7 @@ function PdfCanvas() {
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
     isTemplates, handleShowTemplates, handleLoadTemplate, handleLoadTemplateWithFill, handleLoadAiElements, handleMoveElementWithBelow, handleShowAiPanel,
     handleShowDeckPanel, handleShowArticlePanel, pageSize, setPageSize, setPagePreset,
+    undo, redo, canUndo, canRedo, resetHistory, autosaveStatus,
     layoutPreviewPatches,
   ])
 

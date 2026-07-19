@@ -1,3 +1,4 @@
+import datetime
 from fastapi import APIRouter, Body, Depends, HTTPException
 from starlette import status
 from sqlalchemy.orm import Session
@@ -215,8 +216,32 @@ async def update_user_pdf(
         return {"updated": "Pomyślnie zaktualizowano plik PDF.", "link": new_file_path, "pdf_id": pdf_row.id}
 
 
+@router.put("/save_elements", status_code=status.HTTP_200_OK)
+async def save_pdf_elements(
+    pdf_data: PDFUpdateRequest,
+    db: Session = Depends(get_db),
+    payload: dict = Depends(verify_token)):
+    """Lightweight autosave: persist the canvas elements + page geometry ONLY.
+    No ReportLab render, no S3 upload — cheap enough to call on an idle debounce
+    while editing. The rendered PDF stays stale until an explicit create/update;
+    reopening loads from these saved elements (show_pdf reads PdfElements)."""
+    pdf_row = _require_owned_pdf(db, payload, pdf_data.pdf_id)
+
+    pdf_row.pages = pdf_data.pages
+    pdf_row.page_width = pdf_data.page_width
+    pdf_row.page_height = pdf_data.page_height
+    pdf_row.updated_at = datetime.datetime.now(datetime.timezone.utc)
+    db.add(pdf_row)
+
+    existing_by_id = request_pdf_elements_by_element_id(db, pdf_data.pdf_id)
+    update_pdf_elements(db, pdf_data.root, existing_by_id, pdf_data.pdf_id)
+    db.commit()
+    return {"saved": True, "pdf_id": pdf_row.id}
+
+
 @router.post("/download_pdf", status_code=status.HTTP_200_OK)
 async def download_pdf(db:Session = Depends(get_db), id = Body(), payload: dict = Depends(verify_token)):
+    pdf_row = _require_owned_pdf(db, payload, id)
     pdf_row = _require_owned_pdf(db, payload, id)
     if USE_S3:
         key = s3_storage.key_from_file_path(pdf_row.file_path)

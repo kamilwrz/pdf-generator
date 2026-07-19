@@ -56,5 +56,20 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   }, [handleShowModal, titleRef, A4_Elements_deleted])
 
 
-  return {createPdf, updatePdf, responsePDF, isPdfLoading};
+  // Lightweight autosave: persist canvas elements + geometry only (no PDF
+  // render, no S3). Fire-and-report; caller debounces and gates on a saved id.
+  const saveElements = useCallback(async (A4_Elements, PDF_ID, titleRef, deleted, pages = 1, pageSize) => {
+    const sorted = [...A4_Elements].sort((a, b) => a.zIndex - b.zIndex);
+    const elements = [...sorted, ...(deleted || [])];
+    const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
+    await api.httpRequest(
+      ENDPOINTS.PDF.SAVE_ELEMENTS, "PUT",
+      JSON.stringify({
+        root: elements, pdf_id: PDF_ID, pdf_title: (titleRef.current?.value || "") + ".pdf",
+        pages, page_width: pageSize?.width ?? 595, page_height: pageSize?.height ?? 842,
+      }),
+      "Autozapis nie powiódł się.");
+  }, []);
+
+  return {createPdf, updatePdf, saveElements, responsePDF, isPdfLoading};
 }
