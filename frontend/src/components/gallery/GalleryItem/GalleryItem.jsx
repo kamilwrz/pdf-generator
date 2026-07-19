@@ -13,7 +13,7 @@ export default function GalleryItem({url, img_id, imageUsed}){
 
     function handleDeleteImage(){
         const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
-        api.httpRequest(ENDPOINTS.IMG.DELETE, "DELETE", JSON.stringify(img_id), "Failed to delete the image").
+        api.httpRequest(ENDPOINTS.IMG.DELETE, "DELETE", JSON.stringify(img_id), "Nie udało się usunąć obrazu").
         then((data) =>{imageUsed(data)}).catch((error) => console.log(error));
     }
 

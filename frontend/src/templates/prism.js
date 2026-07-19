@@ -24,33 +24,33 @@ export const prismTemplate = [
     line(0, 118, 595, 6, TEAL, 1),          // teal accent strip
     line(0, 124, 595, 3, ORANGE, 1),        // orange micro-strip
 
-    bold(text("PRIYA SHARMA", 30, "Inter", WHITE, 50, 38)),
-    ital(text("UX Designer & Creative Lead", 13, "Inter", "#E9D5FF", 50, 80)),
+    bold(text("MAGDALENA SZYMA", 30, "Inter", WHITE, 50, 38)),
+    ital(text("Projektantka UX i Liderka Kreatywna", 13, "Inter", "#E9D5FF", 50, 80)),
 
     // ── CONTACT / DIVIDER ────────────────────────────────────────
-    text("priya@email.com   ·   +1 (555) 820-0910   ·   San Francisco, CA", 9.5, "Inter", LGRAY, 50, 150),
+    text("magdalena.szyma@email.com   ·   +48 600 890 123   ·   Warszawa", 9.5, "Inter", LGRAY, 50, 150),
     line(50, 168, 495, 1.5, ORANGE),
 
     // ── PROFILE ─────────────────────────────────────────────────
-    sq(190, PURPLE), bold(text("PROFILE", 12, "Inter", INK, 68, 190)),
-    block("UX designer with 8 years crafting delightful digital products — from early-stage startups to Fortune 500 companies. Passionate about accessibility and design systems.", 50, 214, 495, 52, 10.5, 15, GRAY, "Inter"),
+    sq(190, PURPLE), bold(text("PROFIL", 12, "Inter", INK, 68, 190)),
+    block("Projektantka UX z 8-letnim doświadczeniem w tworzeniu angażujących produktów cyfrowych — od wczesnych startupów po korporacje z listy Fortune 500. Pasjonuje się dostępnością i systemami projektowymi.", 50, 214, 495, 52, 10.5, 15, GRAY, "Inter"),
 
     // ── EXPERIENCE ──────────────────────────────────────────────
-    sq(280, ORANGE), bold(text("EXPERIENCE", 12, "Inter", INK, 68, 280)),
-    bold(text("Senior UX Designer", 11, "Inter", INK, 50, 306)),
-    text("Stripe   ·   San Francisco   ·   2021 – Present", 9.5, "Inter", GRAY, 50, 322),
-    bulleted(block("• Led design of the global payments dashboard used by 2M+ merchants.\n• Built a design system adopted across 6 product teams.\n• Mentored 3 junior designers to senior level.", 50, 338, 495, 50, 10, 14, GRAY, "Inter")),
+    sq(280, ORANGE), bold(text("DOŚWIADCZENIE", 12, "Inter", INK, 68, 280)),
+    bold(text("Starsza Projektantka UX", 11, "Inter", INK, 50, 306)),
+    text("Allegro   ·   Warszawa   ·   2021 – obecnie", 9.5, "Inter", GRAY, 50, 322),
+    bulleted(block("• Poprowadziła projekt globalnego panelu płatności używanego przez ponad 2 mln sprzedawców.\n• Zbudowała system projektowy wdrożony przez 6 zespołów produktowych.\n• Wspierała rozwój 3 młodszych projektantów do poziomu seniora.", 50, 338, 495, 50, 10, 14, GRAY, "Inter")),
 
-    bold(text("UX Designer", 11, "Inter", INK, 50, 402)),
-    text("Airbnb   ·   2018 – 2021", 9.5, "Inter", GRAY, 50, 418),
-    bulleted(block("• Redesigned host onboarding, improving completion 34%.\n• Ran 20+ usability studies across 8 countries.", 50, 434, 495, 36, 10, 14, GRAY, "Inter")),
+    bold(text("Projektantka UX", 11, "Inter", INK, 50, 402)),
+    text("Booking.com   ·   2018 – 2021", 9.5, "Inter", GRAY, 50, 418),
+    bulleted(block("• Przeprojektowała onboarding hostów, poprawiając ukończenie o 34%.\n• Przeprowadziła ponad 20 badań użyteczności w 8 krajach.", 50, 434, 495, 36, 10, 14, GRAY, "Inter")),
 
     // ── EDUCATION ────────────────────────────────────────────────
-    sq(486, TEAL), bold(text("EDUCATION", 12, "Inter", INK, 68, 486)),
-    bold(text("B.F.A. Interaction Design — RISD", 11, "Inter", INK, 50, 512)),
+    sq(486, TEAL), bold(text("EDUKACJA", 12, "Inter", INK, 68, 486)),
+    bold(text("Licencjat Projektowania Interakcji — ASP w Warszawie", 11, "Inter", INK, 50, 512)),
     text("2013 – 2017", 9.5, "Inter", GRAY, 50, 528),
 
     // ── SKILLS ───────────────────────────────────────────────────
-    sq(560, MAGENTA), bold(text("SKILLS", 12, "Inter", INK, 68, 560)),
-    block("Figma · Prototyping · Design Systems · User Research · Accessibility · HTML / CSS · React", 50, 584, 495, 36, 10, 15, GRAY, "Inter"),
+    sq(560, MAGENTA), bold(text("UMIEJĘTNOŚCI", 12, "Inter", INK, 68, 560)),
+    block("Figma · Prototypowanie · Systemy projektowe · Badania użytkowników · Dostępność · HTML / CSS · React", 50, 584, 495, 36, 10, 15, GRAY, "Inter"),
 ];

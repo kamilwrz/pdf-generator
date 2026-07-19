@@ -55,7 +55,7 @@ async def create_upload_image(
         file_path = file_path_str
     #insert record to DB
     create_image(db=db, image=file, owner_id=db_user.id, file_path=file_path)
-    return {"message": "Image upload was successfull!"}
+    return {"message": "Obraz został pomyślnie przesłany."}
 
 
 
@@ -71,7 +71,7 @@ async def fetch_user_images(
     if not images:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No images uploaded yet.",
+            detail="Nie przesłano jeszcze żadnych obrazów.",
         )
     return images
 
@@ -83,16 +83,16 @@ async def delete_user_image(
 
     image = request_image_by_id(db, img_id)
     if not image:
-        raise HTTPException(status_code=404, detail="Image not found.")
+        raise HTTPException(status_code=404, detail="Nie znaleziono obrazu.")
     # IDOR guard: only the owner may delete their image.
     db_user = get_user_by_username(db, username=payload.get("sub"))
     if db_user is None or image.owner_id != db_user.id:
-        raise HTTPException(status_code=403, detail="This image does not belong to you.")
+        raise HTTPException(status_code=403, detail="Ten obraz nie należy do Ciebie.")
     pdf_element = db.query(PdfElements).filter(PdfElements.img_id==img_id).first()
     if pdf_element is not None:
         pdf_row = db.query(Pdf).filter(Pdf.id == pdf_element.pdf_id).first()
         return {
-            "message": f"Image is used in a created PDF. Please delete the PDF - {pdf_row.title} first (created at: {pdf_row.created_at}) to delete the image."
+            "message": f"Obraz jest używany w utworzonym pliku PDF. Aby usunąć obraz, najpierw usuń plik PDF „{pdf_row.title}” (utworzony: {pdf_row.created_at})."
         }
     db.query(Image).filter(Image.id==img_id).delete()
     db.commit()

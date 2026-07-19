@@ -27,36 +27,37 @@ def _pdf_to_b64_images(pdf_bytes: bytes, max_pages: int = 3) -> list[str]:
 def extract_cv_data(pdf_bytes: bytes) -> dict:
     images = _pdf_to_b64_images(pdf_bytes)
     if not images:
-        raise ValueError("Could not render any pages from the uploaded PDF.")
+        raise ValueError("Nie udało się wyrenderować żadnej strony z przesłanego pliku PDF.")
 
     content: list[dict] = [
         {
             "type": "text",
             "text": (
-                "You are a precise CV data extractor. "
-                "Read every page of the CV and return ONLY a JSON object — no markdown:\n"
+                "Jesteś precyzyjnym ekstraktorem danych z CV. "
+                "Przeczytaj każdą stronę CV i zwróć WYŁĄCZNIE obiekt JSON — bez markdown:\n"
                 "{\n"
                 '  "name":"","title":"","email":"","phone":"","location":"",\n'
                 '  "summary":"",\n'
                 '  "experience":[{"title":"","company":"","period":"","bullets":[]}],\n'
                 '  "education":[{"degree":"","period":"","detail":""}],\n'
                 '  "skills":[],\n'
-                '  "language":"English",\n'
-                '  "labels":{"summary":"PROFESSIONAL SUMMARY","experience":"PROFESSIONAL EXPERIENCE","education":"EDUCATION","skills":"SKILLS"},\n'
+                '  "language":"Polish",\n'
+                '  "labels":{"summary":"PODSUMOWANIE ZAWODOWE","experience":"DOŚWIADCZENIE ZAWODOWE","education":"WYKSZTAŁCENIE","skills":"UMIEJĘTNOŚCI"},\n'
                 '  "extra_sections":[{"title":"","placement":"after_skills","items":[]}]\n'
                 "}\n\n"
-                "Rules:\n"
-                "- experience: ALL jobs newest first; ALL bullet points (no limit)\n"
-                "- language: the main language of the CV (e.g. 'Polish', 'German', 'French')\n"
-                "- labels: translate the four standard section headings INTO the CV language, UPPERCASE\n"
-                "  (e.g. Polish → 'DOŚWIADCZENIE ZAWODOWE', 'WYKSZTAŁCENIE', 'UMIEJĘTNOŚCI', 'PODSUMOWANIE')\n"
-                "- extra_sections: any section in the CV NOT covered by experience/education/skills/summary.\n"
-                "  Common examples: Certifications, Languages, Projects, Awards, Publications,\n"
-                "  Volunteering, Interests, References, Courses, Training — title IN the CV language UPPERCASE.\n"
-                "  placement: 'after_experience' for project/award/volunteer sections with detailed bullets;\n"
-                "             'after_skills' for compact lists (languages, certs, interests).\n"
-                "  items: flat list of strings (one item per string).\n"
-                "- Return ONLY valid JSON."
+                "Zasady:\n"
+                "- experience: WSZYSTKIE stanowiska od najnowszego; WSZYSTKIE punkty (bez limitu)\n"
+                "- language: główny język CV (np. 'Polish', 'English', 'German')\n"
+                "- labels: zawsze zwracaj cztery standardowe nagłówki po polsku, WIELKIMI LITERAMI:\n"
+                "  'PODSUMOWANIE ZAWODOWE', 'DOŚWIADCZENIE ZAWODOWE', 'WYKSZTAŁCENIE', 'UMIEJĘTNOŚCI'.\n"
+                "- extra_sections: każda sekcja CV NIEobjęta experience/education/skills/summary.\n"
+                "  Przykłady: Certyfikaty, Języki, Projekty, Nagrody, Publikacje,\n"
+                "  Wolontariat, Zainteresowania, Referencje, Kursy, Szkolenia — tytuł po polsku, WIELKIMI LITERAMI.\n"
+                "  placement: 'after_experience' dla sekcji z punktami (projekty, nagrody, wolontariat);\n"
+                "             'after_skills' dla zwartych list (języki, certyfikaty, zainteresowania).\n"
+                "  items: płaska lista stringów (jeden element na string).\n"
+                "- Zachowaj oryginalny język treści CV, ale etykiety i tytuły dodatkowych sekcji zwracaj po polsku.\n"
+                "- Zwróć WYŁĄCZNIE poprawny JSON."
             ),
         }
     ]

@@ -9,9 +9,9 @@ const CONNECTABLE = new Set(["textarea", "rectangle", "image", "line"]);
 // Canvas size presets (pt = px, 1:1 with the PDF). The deck preset matches
 // PowerPoint's 13.33×7.5in widescreen slide.
 export const PAGE_PRESETS = {
-  "a4-portrait":  { label: "A4 · Portrait",  width: 595, height: 842 },
-  "a4-landscape": { label: "A4 · Landscape", width: 842, height: 595 },
-  "deck-16-9":    { label: "Deck · 16:9",    width: 960, height: 540 },
+  "a4-portrait":  { label: "A4 · Pion",       width: 595, height: 842 },
+  "a4-landscape": { label: "A4 · Poziom",     width: 842, height: 595 },
+  "deck-16-9":    { label: "Prezentacja · 16:9", width: 960, height: 540 },
 };
 
 // Match stored dimensions back to a preset id (loading a saved PDF).
@@ -288,7 +288,7 @@ export function useA4Elements(titleRef) {
   const handleAddText = useCallback(() => {
     const text = {
       element_id: nanoid(),
-      content: "Some text....",
+      content: "Przykładowy tekst…",
       fontSize: 14,
       fontFamily: "Inter",
       color: "#000000",

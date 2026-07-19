@@ -6,7 +6,7 @@ def delete_pdf_file(file_path):
     try:
         os.remove(file_path)
     except:
-        return {"message": f"File '{file_path}' not found."}
+        return {"message": f"Nie znaleziono pliku „{file_path}”."}
 
 def rename_pdf_file(pdf:object, title: str):
     

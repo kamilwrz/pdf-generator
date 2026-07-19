@@ -17,7 +17,7 @@ function ModalPdfRequestStatus({ message, open }) {
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
 
     async function downloadPdf(id){
-        const response = await api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "POST", id, "Error");
+        const response = await api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "POST", id, "Błąd pobierania");
     
         const blob = (await fetch(response.url)).blob()
         const urlBlob = URL.createObjectURL(await blob);
@@ -57,11 +57,11 @@ function ModalPdfRequestStatus({ message, open }) {
         </div>
 
         <div className={classes.body}>
-            <div className={classes.title}>{isError ? "Something went wrong" : "Your PDF is ready"}</div>
+            <div className={classes.title}>{isError ? "Coś poszło nie tak" : "Twój PDF jest gotowy"}</div>
             <div className={classes.msg}>{message?.message || message?.success}</div>
             {message?.success && (
                 <a className={classes.download} href={PDFdownloadData.blob} download={PDFdownloadData.title}>
-                    <FiDownload /> Download PDF
+                    <FiDownload /> Pobierz PDF
                 </a>
             )}
         </div>

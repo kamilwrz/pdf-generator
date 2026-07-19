@@ -25,15 +25,15 @@ async def extract_cv(
     payload: dict = Depends(verify_token),
 ):
     if not (file.filename or "").lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
+        raise HTTPException(status_code=400, detail="Akceptowane są wyłącznie pliki PDF.")
     data = await file.read()
     if len(data) > MAX_PDF_BYTES:
-        raise HTTPException(status_code=400, detail="File exceeds 10 MB limit.")
+        raise HTTPException(status_code=400, detail="Plik przekracza limit 10 MB.")
     try:
         cv_data = extract_cv_data(data)
         return {"cv_data": cv_data}
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"CV extraction failed: {exc}")
+        raise HTTPException(status_code=500, detail=f"Nie udało się wyodrębnić danych z CV: {exc}")
 
 
 @router.post("/generate_deck", status_code=200)
@@ -49,15 +49,15 @@ async def generate_deck_route(
     vision-captioned and placed on the slides whose content they match.
     Returns element specs ready for loadAiElements."""
     if not (file.filename or "").lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
+        raise HTTPException(status_code=400, detail="Akceptowane są wyłącznie pliki PDF.")
     data = await file.read()
     if len(data) > MAX_PDF_BYTES:
-        raise HTTPException(status_code=400, detail="File exceeds 10 MB limit.")
+        raise HTTPException(status_code=400, detail="Plik przekracza limit 10 MB.")
 
     try:
         ids = [int(i) for i in json.loads(image_ids or "[]")]
     except (ValueError, TypeError):
-        raise HTTPException(status_code=400, detail="image_ids must be a JSON list of ids.")
+        raise HTTPException(status_code=400, detail="image_ids musi być listą identyfikatorów w formacie JSON.")
 
     # Only the caller's own gallery images are eligible.
     db_user = get_user_by_username(db, username=payload.get("sub"))
@@ -74,7 +74,7 @@ async def generate_deck_route(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Deck generation failed: {exc}")
+        raise HTTPException(status_code=500, detail=f"Nie udało się wygenerować prezentacji: {exc}")
 
 
 @router.post("/generate_article", status_code=200)
@@ -86,17 +86,17 @@ async def generate_article_route(
     article (Gazette layout): drop cap, section headings, pull-quote, folio
     page numbers. Returns element specs ready for loadAiElements."""
     if not (file.filename or "").lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
+        raise HTTPException(status_code=400, detail="Akceptowane są wyłącznie pliki PDF.")
     data = await file.read()
     if len(data) > MAX_PDF_BYTES:
-        raise HTTPException(status_code=400, detail="File exceeds 10 MB limit.")
+        raise HTTPException(status_code=400, detail="Plik przekracza limit 10 MB.")
     from app.services.article_generator import generate_article
     try:
         return generate_article(data)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Article generation failed: {exc}")
+        raise HTTPException(status_code=500, detail=f"Nie udało się wygenerować artykułu: {exc}")
 
 
 @router.post("/fill_template", status_code=200)
@@ -110,4 +110,4 @@ async def fill_template(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Template generation failed: {exc}")
+        raise HTTPException(status_code=500, detail=f"Nie udało się wygenerować szablonu: {exc}")

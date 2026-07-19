@@ -200,7 +200,7 @@ def _bounds_groups(
         if max_left < 0 or max_top < 0:
             issues.append({
                 "severity": "warning",
-                "message": "An element is larger than its page and needs manual resizing.",
+                "message": "Element jest większy niż strona i wymaga ręcznej zmiany rozmiaru.",
             })
             continue
 
@@ -212,7 +212,7 @@ def _bounds_groups(
         if distance > MAX_SAFE_BOUNDS_MOVE:
             issues.append({
                 "severity": "warning",
-                "message": "An element is far outside its page and needs manual placement.",
+                "message": "Element jest daleko poza stroną i wymaga ręcznego umieszczenia.",
             })
             continue
 
@@ -223,8 +223,8 @@ def _bounds_groups(
         }
         suggestion = _group(
             group_id=f"bounds-{item['page']}-{item['element_id']}",
-            title=f"Keep content inside page {item['page']}",
-            reason="This element extends past the printable canvas boundary.",
+            title=f"Trzymaj treść w obrębie strony {item['page']}",
+            reason="Ten element wychodzi poza obszar do druku.",
             severity="high",
             patches=[patch],
             items=items,
@@ -257,6 +257,11 @@ def _alignment_groups(
             ("right edge", lambda item: item["left"] + item["width"], lambda item: item["width"]),
         )
         for anchor_name, anchor_of, offset_of in anchors:
+            anchor_label = {
+                "left edge": "lewa krawędź",
+                "center": "środek",
+                "right edge": "prawa krawędź",
+            }[anchor_name]
             candidates = [item for item in page_items if item["element_id"] not in used_ids]
             for cluster_index, cluster in enumerate(_clusters_for_anchor(candidates, anchor_of), start=1):
                 target = median(anchor_of(item) for item in cluster)
@@ -279,8 +284,8 @@ def _alignment_groups(
 
                 suggestion = _group(
                     group_id=f"alignment-{page}-{anchor_name.replace(' ', '-')}-{cluster_index}",
-                    title=f"Align {len(cluster)} content blocks on page {page}",
-                    reason=f"These blocks share a common {anchor_name} but have small horizontal drift.",
+                    title=f"Wyrównaj {len(cluster)} bloków treści na stronie {page}",
+                    reason=f"Te bloki mają wspólną {anchor_label}, ale wykazują niewielkie przesunięcie w poziomie.",
                     severity="low",
                     patches=patches,
                     items=items,
@@ -338,8 +343,8 @@ def _spacing_groups(
                 continue
             suggestion = _group(
                 group_id=f"spacing-{page}-{column_index}",
-                title=f"Normalize vertical spacing on page {page}",
-                reason="Repeated content blocks in one column have a small, inconsistent vertical gap.",
+                title=f"Ujednolić odstępy pionowe na stronie {page}",
+                reason="Powtarzające się bloki treści w jednej kolumnie mają niewielkie, niespójne odstępy pionowe.",
                 severity="low",
                 patches=patches,
                 items=items,
@@ -359,8 +364,8 @@ def _overlap_issues(items: list[dict[str, Any]]) -> list[dict[str, str]]:
                 issues.append({
                     "severity": "warning",
                     "message": (
-                        f"Two content elements overlap on page {first['page']}. "
-                        "Their intended order is ambiguous, so no automatic move was proposed."
+                        f"Dwa elementy treści nakładają się na stronie {first['page']}. "
+                        "Ich zamierzona kolejność jest niejednoznaczna, dlatego nie zaproponowano automatycznego przesunięcia."
                     ),
                 })
     return issues
@@ -372,12 +377,12 @@ def analyze_layout(elements: list[dict[str, Any]], page_size: dict[str, Any] | N
     page_width = _number(page_size.get("width"), 595.0)
     page_height = _number(page_size.get("height"), 842.0)
     if page_width <= 0 or page_height <= 0:
-        raise ValueError("page_size must include positive width and height values.")
+        raise ValueError("page_size musi zawierać dodatnie wartości width i height.")
 
     items = [bound for element in elements if (bound := _bounds_for(element))]
     if not items:
         return {
-            "message": "I need at least one measurable text block or image to assess the layout.",
+            "message": "Potrzebuję co najmniej jednego mierzalnego bloku tekstu lub obrazu, aby ocenić układ.",
             "rating": None,
             "tips": [],
             "corrections": [],
@@ -392,21 +397,24 @@ def analyze_layout(elements: list[dict[str, Any]], page_size: dict[str, Any] | N
     issues.extend(_overlap_issues(items))
 
     if groups:
-        message = (
-            f"I found {len(groups)} safe layout correction group"
-            f"{'s' if len(groups) != 1 else ''}. Preview a group before applying it."
-        )
+        n = len(groups)
+        if n == 1:
+            message = "Znalazłem 1 bezpieczną grupę korekty układu. Podglądaj grupę przed zastosowaniem."
+        elif 2 <= n <= 4:
+            message = f"Znalazłem {n} bezpieczne grupy korekty układu. Podglądaj grupę przed zastosowaniem."
+        else:
+            message = f"Znalazłem {n} bezpiecznych grup korekty układu. Podglądaj grupę przed zastosowaniem."
     elif issues:
-        message = "I found layout issues that need manual review; no safe automatic move was available."
+        message = "Wykryto problemy z układem wymagające ręcznej weryfikacji; brak bezpiecznej automatycznej korekty."
     else:
-        message = "The measurable content is already within bounds and aligned consistently."
+        message = "Wymierzalna treść mieści się w granicach i jest spójnie wyrównana."
 
     return {
         "message": message,
         "rating": None,
         "tips": [
-            "Layout corrections move content only; decorative lines, rectangles, and connectors stay fixed.",
-            "Overlaps with unclear document intent are reported for review instead of being moved automatically.",
+            "Korekty układu przesuwają tylko treść; dekoracyjne linie, prostokąty i łączniki pozostają na miejscu.",
+            "Nakładające się elementy o niejasnej intencji są zgłaszane do weryfikacji zamiast automatycznego przesuwania.",
         ],
         "corrections": [],
         "layout_groups": groups,

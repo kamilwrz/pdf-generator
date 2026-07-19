@@ -28,19 +28,19 @@ export default function Topbar({ titleRef }) {
             <div className={classes.group}>
                 <button type="button" className={classes.feature} onClick={showTemplates}>
                     <LuLayoutTemplate />
-                    <span className={classes.label}>Templates</span>
+                    <span className={classes.label}>Szablony</span>
                 </button>
                 <button type="button" className={classes.feature} onClick={showAiPanel}>
                     <RiRobot2Line />
-                    <span className={classes.label}>Fill from my CV</span>
+                    <span className={classes.label}>Wypełnij z mojego CV</span>
                 </button>
                 <button type="button" className={classes.feature} onClick={showDeckPanel}>
                     <MdOutlineSlideshow />
-                    <span className={classes.label}>AI Deck</span>
+                    <span className={classes.label}>Prezentacja AI</span>
                 </button>
                 <button type="button" className={classes.feature} onClick={showArticlePanel}>
                     <RiArticleLine />
-                    <span className={classes.label}>AI Article</span>
+                    <span className={classes.label}>Artykuł AI</span>
                 </button>
             </div>
 
@@ -54,13 +54,13 @@ export default function Topbar({ titleRef }) {
                         name="title"
                         id="title"
                         ref={titleRef}
-                        placeholder="Untitled project"
-                        aria-label="Current project name"
+                        placeholder="Projekt bez tytułu"
+                        aria-label="Nazwa bieżącego projektu"
                     />
                     <button
                         type="button"
                         className={classes.rename}
-                        aria-label="Rename project"
+                        aria-label="Zmień nazwę projektu"
                         onClick={() => titleRef?.current?.focus()}
                     >
                         <TiPen />
@@ -68,7 +68,7 @@ export default function Topbar({ titleRef }) {
                 </div>
                 <select
                     className={classes.sizeSelect}
-                    aria-label="Page size"
+                    aria-label="Rozmiar strony"
                     value={pageSize?.preset ?? "a4-portrait"}
                     onChange={(e) => setPagePreset(e.target.value)}
                 >
@@ -84,15 +84,15 @@ export default function Topbar({ titleRef }) {
             <div className={classes.group}>
                 <button type="button" className={classes.ghost} onClick={clearA4}>
                     <FiTrash2 />
-                    <span className={classes.label}>Clear</span>
+                    <span className={classes.label}>Wyczyść</span>
                 </button>
                 <button type="button" className={classes.secondary} onClick={updatePdf} disabled={isPdfLoading}>
                     <FiRefreshCw />
-                    <span className={classes.label}>Update</span>
+                    <span className={classes.label}>Aktualizuj</span>
                 </button>
                 <button type="button" className={classes.primary} onClick={createPdf} disabled={isPdfLoading}>
                     <RiDownload2Line />
-                    <span className={classes.label}>Create PDF</span>
+                    <span className={classes.label}>Utwórz PDF</span>
                 </button>
             </div>
         </header>

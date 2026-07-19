@@ -42,9 +42,9 @@ export const sterlingTemplate = [
     rect(29, 29, 537, 784, PALE, 1, 1),
 
     // ---- centered header ----
-    bold(centered(block("JULIAN MERCER", 50, 56, 495, 36, 28, 34, NAVY, S))),
-    spaced(centered(block("SENIOR INVESTMENT ANALYST", 50, 96, 495, 18, 12, 16, ACCENT, I)), 2),
-    centered(block("london · +44 20 7946 0000 · julian.mercer@email.com", 50, 120, 495, 14, 9.5, 13, GRAY, I)),
+    bold(centered(block("JAKUB ZIELIŃSKI", 50, 56, 495, 36, 28, 34, NAVY, S))),
+    spaced(centered(block("GŁÓWNY ANALITYK INWESTYCYJNY", 50, 96, 495, 18, 12, 16, ACCENT, I)), 2),
+    centered(block("warszawa · +48 22 000 00 00 · jakub.zielinski@email.com", 50, 120, 495, 14, 9.5, 13, GRAY, I)),
 
     // ornament: accent bar flanked by two outline squares
     rect(255, 139, 8, 8, STEEL, 1, 1),
@@ -52,52 +52,52 @@ export const sterlingTemplate = [
     rect(332, 139, 8, 8, STEEL, 1, 1),
 
     // ---- KPI strip (outline stat boxes — Sterling's signature) ----
-    ...kpi(55,  "8+",    "YEARS IN ASSET MANAGEMENT"),
-    ...kpi(219, "$2.4B", "PORTFOLIOS ADVISED"),
+    ...kpi(55,  "8+",    "LAT W ZARZĄDZANIU AKTYWAMI"),
+    ...kpi(219, "2,4 mld zł", "PORTFEL POD DORADZTWEM"),
     ...kpi(383, "CFA",   "CHARTERHOLDER · 2020"),
 
     // ---- profile ----
-    ...section("PROFILE", 238, 152),
+    ...section("PROFIL", 238, 152),
     block(
-        "Investment analyst covering European equities and fixed income. I build conviction from first-principles research and communicate it plainly — to committees, clients and regulators alike.",
+        "Analityk inwestycyjny specjalizujący się w akcjach europejskich i instrumentach dłużnych. Buduję przekonanie na podstawie badań od pierwszych zasad i komunikuję je prosto — komitetom, klientom i regulatorom.",
         55, 258, 485, 48, 10.5, 15, BODY, I
     ),
 
     // ---- experience ----
-    ...section("EXPERIENCE", 322, 186),
-    bold(text("Senior Investment Analyst — Hartwell Capital", 11, I, NAVY, 55, 344, 2)),
-    text("2019 – Present · London", 9, I, GRAY, 55, 360, 2),
+    ...section("DOŚWIADCZENIE", 322, 186),
+    bold(text("Główny Analityk Inwestycyjny — Hartwell Capital", 11, I, NAVY, 55, 344, 2)),
+    text("2019 – obecnie · Warszawa", 9, I, GRAY, 55, 360, 2),
     bulleted(block(
-        "• Lead analyst on a €640M European equity book; +310bps vs. benchmark over three years.\n• Built the desk's DCF and scenario library now used across four strategies.\n• Present quarterly to the investment committee and top-20 clients.\n• Mentor two juniors; run the summer analyst programme.",
+        "• Główny analityk portfela akcji europejskich o wartości 640 mln zł; +310 bps względem benchmarku przez trzy lata.\n• Zbudował bibliotekę modeli DCF i scenariuszy używaną w czterech strategiach.\n• Prezentuje kwartalnie komitetowi inwestycyjnemu i 20 największym klientom.\n• Rozwija dwóch młodszych analityków; prowadzi program letnich analityków.",
         55, 376, 485, 62, 10, 14, BODY, I
     )),
-    bold(text("Investment Analyst — Berkeley & Marsh", 11, I, NAVY, 55, 450, 2)),
-    text("2016 – 2019 · London", 9, I, GRAY, 55, 466, 2),
+    bold(text("Analityk Inwestycyjny — Berkeley & Marsh", 11, I, NAVY, 55, 450, 2)),
+    text("2016 – 2019 · Warszawa", 9, I, GRAY, 55, 466, 2),
     bulleted(block(
-        "• Covered industrials and financials across the FTSE 350.\n• Authored 40+ initiation notes; 68% hit rate on 12-month calls.\n• Automated the weekly risk pack, saving the desk a day per week.",
+        "• Pokrywał sektor przemysłowy i finansowy w indeksie WIG20.\n• Napisał ponad 40 raportów inicjacyjnych; 68% trafności prognoz 12-miesięcznych.\n• Zautomatyzował tygodniowy pakiet ryzyka, oszczędzając zespołowi jeden dzień tygodniowo.",
         55, 482, 485, 48, 10, 14, BODY, I
     )),
-    bold(text("Junior Analyst — Crown Asset Management", 11, I, NAVY, 55, 542, 2)),
-    text("2014 – 2016 · Edinburgh", 9, I, GRAY, 55, 558, 2),
+    bold(text("Młodszy Analityk — Crown Asset Management", 11, I, NAVY, 55, 542, 2)),
+    text("2014 – 2016 · Kraków", 9, I, GRAY, 55, 558, 2),
     bulleted(block(
-        "• Supported the multi-asset team with performance attribution.\n• Rebuilt the fund factsheet pipeline in Python.",
+        "• Wspierał zespół multi-asset w atrybucji wyników.\n• Przebudował pipeline factsheetów funduszy w Pythonie.",
         55, 574, 485, 34, 10, 14, BODY, I
     )),
 
     // ---- education ----
-    ...section("EDUCATION", 622, 182),
-    bold(text("MSc Finance — London School of Economics", 10.5, I, NAVY, 55, 644, 2)),
-    text("2013 – 2014 · Distinction", 9, I, GRAY, 55, 660, 2),
-    bold(text("BSc Economics — University of Edinburgh", 10.5, I, NAVY, 55, 680, 2)),
-    text("2009 – 2013 · First Class Honours", 9, I, GRAY, 55, 696, 2),
+    ...section("EDUKACJA", 622, 182),
+    bold(text("Magister Finansów — SGH w Warszawie", 10.5, I, NAVY, 55, 644, 2)),
+    text("2013 – 2014 · wyróżnienie", 9, I, GRAY, 55, 660, 2),
+    bold(text("Licencjat Ekonomii — Uniwersytet Warszawski", 10.5, I, NAVY, 55, 680, 2)),
+    text("2009 – 2013 · z wyróżnieniem", 9, I, GRAY, 55, 696, 2),
 
     // ---- skills ----
-    ...section("SKILLS", 724, 140),
+    ...section("UMIEJĘTNOŚCI", 724, 140),
     block(
-        "Valuation & DCF Modelling · Portfolio Analytics · Fixed Income · Python & SQL · IFRS · Client Reporting · Bloomberg / FactSet",
+        "Wycena i modelowanie DCF · Analityka portfelowa · Instrumenty dłużne · Python i SQL · MSSF · Raportowanie dla klientów · Bloomberg / FactSet",
         55, 746, 485, 30, 10, 15, BODY, I
     ),
 
     // ---- footer ----
-    spaced(centered(block("REFERENCES AVAILABLE ON REQUEST", 50, 788, 495, 12, 8, 11, STEEL, I)), 1.5),
+    spaced(centered(block("REFERENCJE DOSTĘPNE NA ŻYCZENIE", 50, 788, 495, 12, 8, 11, STEEL, I)), 1.5),
 ];

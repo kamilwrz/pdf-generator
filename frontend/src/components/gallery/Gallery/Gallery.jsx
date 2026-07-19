@@ -35,7 +35,7 @@ export default function Gallery() {
         if (isGallery) {
 
             const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` })
-            api.httpRequest(ENDPOINTS.IMG.FETCH, "GET", null, "Fetching images failed!").
+            api.httpRequest(ENDPOINTS.IMG.FETCH, "GET", null, "Pobieranie obrazów nie powiodło się!").
                 then((images) => {
                     setImages(images);
                     setError(null)
@@ -61,8 +61,8 @@ export default function Gallery() {
         transition={{ type: "spring", duration: 2 }}>
         <div className={classes.galleryHeader}>
             <div className={classes.headerText}>
-                <h2>Your gallery</h2>
-                <p>Click an image to place it</p>
+                <h2>Twoja galeria</h2>
+                <p>Kliknij obraz, aby umieścić go na płótnie</p>
             </div>
             <CloseButton top={22} right={24} clickHandler={showGallery} />
         </div>

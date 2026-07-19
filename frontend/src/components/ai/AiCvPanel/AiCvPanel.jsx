@@ -19,14 +19,14 @@ const SparkIcon = () => (
 );
 
 export default function AiCvPanel({ onClose }) {
-    const { loadAiElements, showTemplates } = use(PdfContext);
+    const { loadAiElements } = use(PdfContext);
 
     const fileRef = useRef(null);
     const [fileName, setFileName] = useState(null);
-    const [fileData, setFileData] = useState(null);       // the File object
-    const [cvData, setCvData] = useState(null);           // extracted JSON (cached)
+    const [fileData, setFileData] = useState(null);
+    const [cvData, setCvData] = useState(null);
     const [isExtracting, setIsExtracting] = useState(false);
-    const [fillingId, setFillingId] = useState(null);     // template id currently filling
+    const [fillingId, setFillingId] = useState(null);
     const [error, setError] = useState(null);
 
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
@@ -47,10 +47,10 @@ export default function AiCvPanel({ onClose }) {
         try {
             const form = new FormData();
             form.append("file", fileData);
-            const res = await api.httpRequest(ENDPOINTS.AI.EXTRACT_CV, "POST", form, "CV extraction failed");
+            const res = await api.httpRequest(ENDPOINTS.AI.EXTRACT_CV, "POST", form, "Ekstrakcja CV nie powiodła się");
             setCvData(res.cv_data);
         } catch (err) {
-            setError(err.message || "Failed to extract CV data.");
+            setError(err.message || "Nie udało się wyodrębnić danych z CV.");
         } finally {
             setIsExtracting(false);
         }
@@ -61,17 +61,15 @@ export default function AiCvPanel({ onClose }) {
         setFillingId(template.id);
         setError(null);
         try {
-            // Send only the template id — the backend generates all elements
-            // dynamically (one block per job, page overflow handled in Python).
             const res = await api.httpRequest(
                 ENDPOINTS.AI.FILL_TEMPLATE, "POST",
                 JSON.stringify({ cv_data: cvData, template_id: template.id }),
-                "Template generation failed"
+                "Generowanie szablonu nie powiodło się"
             );
-            loadAiElements(res.elements, `${template.name} CV`);
+            loadAiElements(res.elements, `CV ${template.name}`);
             onClose();
         } catch (err) {
-            setError(err.message || "Failed to generate template.");
+            setError(err.message || "Nie udało się wygenerować szablonu.");
         } finally {
             setFillingId(null);
         }
@@ -83,15 +81,14 @@ export default function AiCvPanel({ onClose }) {
         <div className={classes.panel}>
             <div className={classes.header}>
                 <div>
-                    <div className={classes.title}>Fill from my CV</div>
-                    <div className={classes.subtitle}>Upload your PDF — AI fills any template with your data</div>
+                    <div className={classes.title}>Wypełnij z mojego CV</div>
+                    <div className={classes.subtitle}>Prześlij PDF — AI wypełni dowolny szablon Twoimi danymi</div>
                 </div>
                 <CloseButton clickHandler={onClose} right={0} top={0} />
             </div>
 
-            {/* Step 1 — Upload */}
             <div className={classes.section}>
-                <div className={classes.sectionLabel}>1. Upload your CV</div>
+                <div className={classes.sectionLabel}>1. Prześlij swoje CV</div>
                 <div
                     className={`${classes.dropzone} ${fileName ? classes.dropzoneDone : ""}`}
                     onClick={() => fileRef.current?.click()}
@@ -101,12 +98,12 @@ export default function AiCvPanel({ onClose }) {
                         <>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             <span className={classes.dropFileName}>{fileName}</span>
-                            <span className={classes.dropChange}>Change</span>
+                            <span className={classes.dropChange}>Zmień</span>
                         </>
                     ) : (
                         <>
                             <UploadIcon />
-                            <span className={classes.dropText}>Drop PDF here or click to browse</span>
+                            <span className={classes.dropText}>Upuść PDF tutaj lub kliknij, aby wybrać plik</span>
                         </>
                     )}
                 </div>
@@ -118,36 +115,34 @@ export default function AiCvPanel({ onClose }) {
                         disabled={isExtracting}
                     >
                         {isExtracting ? (
-                            <><span className={classes.spinner} />Extracting your CV…</>
+                            <><span className={classes.spinner} />Wyodrębnianie CV…</>
                         ) : (
-                            <><SparkIcon />Extract CV data</>
+                            <><SparkIcon />Wyodrębnij dane CV</>
                         )}
                     </button>
                 )}
             </div>
 
-            {/* Extraction preview */}
             {extracted && (
                 <div className={classes.preview}>
                     <div className={classes.previewName}>{cvData.name}</div>
                     <div className={classes.previewMeta}>{cvData.title}</div>
                     <div className={classes.previewStats}>
-                        <span>{cvData.experience?.length ?? 0} jobs</span>
+                        <span>{cvData.experience?.length ?? 0} {cvData.experience?.length === 1 ? "stanowisko" : "stanowisk"}</span>
                         <span>·</span>
-                        <span>{cvData.education?.length ?? 0} education</span>
+                        <span>{cvData.education?.length ?? 0} {cvData.education?.length === 1 ? "wpis edukacyjny" : "wpisów edukacyjnych"}</span>
                         <span>·</span>
-                        <span>{cvData.skills?.length ?? 0} skills</span>
+                        <span>{cvData.skills?.length ?? 0} {cvData.skills?.length === 1 ? "umiejętność" : "umiejętności"}</span>
                     </div>
                     <button type="button" className={classes.reExtract} onClick={() => { setCvData(null); }}>
-                        Re-extract
+                        Wyodrębnij ponownie
                     </button>
                 </div>
             )}
 
-            {/* Step 2 — Pick template and fill */}
             {extracted && (
                 <div className={classes.section}>
-                    <div className={classes.sectionLabel}>2. Choose a template to fill</div>
+                    <div className={classes.sectionLabel}>2. Wybierz szablon do wypełnienia</div>
                     <div className={classes.templateGrid}>
                         {TEMPLATES.filter(t => (t.category ?? "cv") === "cv").map(t => (
                             <button
@@ -164,8 +159,8 @@ export default function AiCvPanel({ onClose }) {
                         ))}
                     </div>
                     <p className={classes.hint}>
-                        You can fill multiple templates without re-uploading.
-                        Each one opens on the canvas for immediate editing.
+                        Możesz wypełnić wiele szablonów bez ponownego przesyłania pliku.
+                        Każdy otworzy się na płótnie do natychmiastowej edycji.
                     </p>
                 </div>
             )}

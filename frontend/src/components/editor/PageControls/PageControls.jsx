@@ -19,13 +19,13 @@ export default function PageControls() {
                     className={classes.navBtn}
                     onClick={() => goToPage(currentPage - 1)}
                     disabled={currentPage <= 1}
-                    aria-label="Previous page"
+                    aria-label="Poprzednia strona"
                 >
                     <Chevron dir="left" />
                 </button>
 
                 <span className={classes.label}>
-                    Page <b>{currentPage}</b> <span className={classes.sep}>/</span> {pageCount}
+                    Strona <b>{currentPage}</b> <span className={classes.sep}>/</span> {pageCount}
                 </span>
 
                 <button
@@ -33,7 +33,7 @@ export default function PageControls() {
                     className={classes.navBtn}
                     onClick={() => goToPage(currentPage + 1)}
                     disabled={currentPage >= pageCount}
-                    aria-label="Next page"
+                    aria-label="Następna strona"
                 >
                     <Chevron dir="right" />
                 </button>
@@ -46,8 +46,8 @@ export default function PageControls() {
                     className={classes.navBtn}
                     onClick={() => movePage(-1)}
                     disabled={currentPage <= 1}
-                    aria-label="Move page earlier"
-                    title="Move page earlier"
+                    aria-label="Przenieś stronę wcześniej"
+                    title="Przenieś stronę wcześniej"
                 >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m14 18-6-6 6-6" /><path d="M5 6v12" /></svg>
                 </button>
@@ -56,8 +56,8 @@ export default function PageControls() {
                     className={classes.navBtn}
                     onClick={() => movePage(1)}
                     disabled={currentPage >= pageCount}
-                    aria-label="Move page later"
-                    title="Move page later"
+                    aria-label="Przenieś stronę później"
+                    title="Przenieś stronę później"
                 >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m10 18 6-6-6-6" /><path d="M19 6v12" /></svg>
                 </button>
@@ -67,8 +67,8 @@ export default function PageControls() {
                     type="button"
                     className={classes.navBtn}
                     onClick={clonePage}
-                    aria-label="Clone current page"
-                    title="Clone page (inserted after this one)"
+                    aria-label="Duplikuj bieżącą stronę"
+                    title="Duplikuj stronę (wstawiona po tej)"
                 >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
                 </button>
@@ -77,7 +77,7 @@ export default function PageControls() {
 
                 <button type="button" className={classes.addBtn} onClick={addPage}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
-                    Add page
+                    Dodaj stronę
                 </button>
 
                 <button
@@ -85,7 +85,7 @@ export default function PageControls() {
                     className={classes.removeBtn}
                     onClick={removePage}
                     disabled={pageCount <= 1}
-                    aria-label="Remove current page"
+                    aria-label="Usuń bieżącą stronę"
                 >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" /></svg>
                 </button>

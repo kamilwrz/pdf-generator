@@ -40,7 +40,7 @@ export class ApiClient {
 
     async httpRequest(endpoint, method, body, errorMessage) {
 
-        
+        const fallbackMessage = errorMessage || "Wystąpił błąd podczas komunikacji z serwerem.";
         const headers = { ...this.headers };
         if (body instanceof FormData) delete headers['Content-Type'];
 
@@ -54,7 +54,7 @@ export class ApiClient {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.detail || errorMessage);
+                throw new Error(error.detail || fallbackMessage);
             }
             else{
                 const data = await response.json();
@@ -62,7 +62,7 @@ export class ApiClient {
             }
 
         } catch (error) {
-            throw new Error(error?.message || errorMessage);
+            throw new Error(error?.message || fallbackMessage);
         }
     }
     

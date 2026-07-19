@@ -40,27 +40,27 @@ export default function Sidebar({ children }) {
             </div>
             <div className={classes.logoWrapperText}>
                 <h1>PDF Canvas</h1>
-                <p>Editor · v2.0</p>
+                <p>Edytor · v2.0</p>
             </div>
         </div>
 
         <div className={classes.toolsContainer}>
-            <label className={classes.toolsLabel}>Add to canvas</label>
+            <label className={classes.toolsLabel}>Dodaj do płótna</label>
             <div className={classes.toolsList}>
-                <SidebarControls icon={<LuImagePlus style={{ color: "#8A6FC4" }} />} iconBg="#EDE8F7" labelText="Gallery" sidebarEvent={showGallery} />
-                <SidebarControls icon={<CiText style={{ color: "#5FA777" }} />} iconBg="#E6F1E7" labelText="Add text" sidebarEvent={addText} />
-                <SidebarControls icon={<BsTextParagraph style={{ color: "#5B8AA6" }} />} iconBg="#E3EEF4" labelText="Add text box" sidebarEvent={addTextarea} />
-                <SidebarControls icon={<TfiLayoutLineSolid style={{ color: "#5B7CB8" }} />} iconBg="#E6EDF8" labelText="Add line" sidebarEvent={addLine} />
-                <SidebarControls icon={<BiRectangle style={{ color: "#3E6DB5" }} />} iconBg="#E7F0FB" labelText="Add rectangle" sidebarEvent={addRectangle} />
-                <SidebarControls icon={<TbTopologyStar3 style={{ color: "#2C8C9E" }} />} iconBg="#DFF0F3" labelText="Add connector" sidebarEvent={addConnector} />
+                <SidebarControls icon={<LuImagePlus style={{ color: "#8A6FC4" }} />} iconBg="#EDE8F7" labelText="Galeria" sidebarEvent={showGallery} />
+                <SidebarControls icon={<CiText style={{ color: "#5FA777" }} />} iconBg="#E6F1E7" labelText="Dodaj tekst" sidebarEvent={addText} />
+                <SidebarControls icon={<BsTextParagraph style={{ color: "#5B8AA6" }} />} iconBg="#E3EEF4" labelText="Dodaj pole tekstowe" sidebarEvent={addTextarea} />
+                <SidebarControls icon={<TfiLayoutLineSolid style={{ color: "#5B7CB8" }} />} iconBg="#E6EDF8" labelText="Dodaj linię" sidebarEvent={addLine} />
+                <SidebarControls icon={<BiRectangle style={{ color: "#3E6DB5" }} />} iconBg="#E7F0FB" labelText="Dodaj prostokąt" sidebarEvent={addRectangle} />
+                <SidebarControls icon={<TbTopologyStar3 style={{ color: "#2C8C9E" }} />} iconBg="#DFF0F3" labelText="Dodaj łącznik" sidebarEvent={addConnector} />
             </div>
         </div>
 
         <div className={classes.toolsContainer}>
-            <label className={classes.toolsLabel}>Files</label>
+            <label className={classes.toolsLabel}>Pliki</label>
             <div className={classes.toolsList}>
-                <SidebarControls icon={<FaRegImages style={{ color: "#2C8C9E" }} />} iconBg="#DFF0F3" labelText="Upload images" sidebarEvent={showDropzone} />
-                <SidebarControls icon={<FaRegFolderOpen style={{ color: "#57616F" }} />} iconBg="#fff" labelText="My documents" sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
+                <SidebarControls icon={<FaRegImages style={{ color: "#2C8C9E" }} />} iconBg="#DFF0F3" labelText="Prześlij obrazy" sidebarEvent={showDropzone} />
+                <SidebarControls icon={<FaRegFolderOpen style={{ color: "#57616F" }} />} iconBg="#fff" labelText="Moje dokumenty" sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
             </div>
         </div>
 
@@ -68,10 +68,10 @@ export default function Sidebar({ children }) {
             <div className={classes.profileRow}>
                 <span className={classes.avatar} />
                 <div className={classes.profileMeta}>
-                    <div className={classes.profileName}>Your account</div>
-                    <div className={classes.profilePlan}>Free plan</div>
+                    <div className={classes.profileName}>Twoje konto</div>
+                    <div className={classes.profilePlan}>Plan darmowy</div>
                 </div>
-                <button className={classes.logout} onClick={logout} aria-label="Log out">
+                <button className={classes.logout} onClick={logout} aria-label="Wyloguj się">
                     <AiOutlineLogout />
                 </button>
             </div>

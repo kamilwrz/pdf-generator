@@ -28,58 +28,58 @@ const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) =>
 export const gazetteTemplate = [
     // ---- masthead ----
     line(50, 55, 7, 7, ACCENT, 1),
-    { ...text("THE GAZETTE · ESSAYS & IDEAS", 8.5, I, GRAY, 63, 54, 2) },
+    { ...text("GAZETA · ESEJE I POMYSŁY", 8.5, I, GRAY, 63, 54, 2) },
     line(50, 72, 495, 3, DARK, 1),
     line(50, 78, 495, 1, DARK, 1),
-    bold(block("The Quiet Case for Slow Thinking in a Fast World", 50, 92, 495, 72, 29, 34, DARK, S)),
-    ital(block("Everything around us optimises for the instant answer. The best work still comes from people who refuse to hurry theirs.", 50, 170, 495, 40, 12.5, 18, "#4A5058", S)),
-    bold(text("By ADAM KOWALSKI", 9, I, DARK, 50, 216, 2)),
-    right(block("Warsaw · July 2026 · 6 min read", 50, 214, 495, 12, 8.5, 11, GRAY, I)),
+    bold(block("Cichy argument za powolnym myśleniem w szybkim świecie", 50, 92, 495, 72, 29, 34, DARK, S)),
+    ital(block("Wszystko wokół nas optymalizuje się pod natychmiastową odpowiedź. Najlepsza praca nadal pochodzi od ludzi, którzy odmawiają pośpiechu.", 50, 170, 495, 40, 12.5, 18, "#4A5058", S)),
+    bold(text("Autor: ADAM KOWALSKI", 9, I, DARK, 50, 216, 2)),
+    right(block("Warszawa · lipiec 2026 · 6 min czytania", 50, 214, 495, 12, 8.5, 11, GRAY, I)),
     line(50, 232, 495, 0.5, RULE, 1),
 
     // ---- column divider ----
     line(296, 244, 1, 470, SOFT, 1),
 
     // ---- LEFT column ----
-    // drop cap + hanging first paragraph ("W" + "e like…" = "We like…")
+    // drop cap + hanging first paragraph ("W" + "ierzymy…" = "Wierzymy…")
     bold(text("W", 44, S, ACCENT, 50, 240, 2)),
     just(block(
-        "e like to believe that speed is the same thing as intelligence. The fastest answer wins the meeting, the quickest reply wins the thread, and the person who hesitates looks unsure. Yet almost everything durable we have ever built was made slowly, by people who allowed themselves time.",
+        "ierzymy, że szybkość to to samo co inteligencja. Najszybsza odpowiedź wygrywa spotkanie, najszybsza wiadomość wygrywa wątek, a ten, kto się waha, wygląda na niepewnego. Tymczasem prawie wszystko trwałe, co kiedykolwiek zbudowaliśmy, powstało powoli — przez ludzi, którzy pozwolili sobie na czas.",
         104, 248, 183, 104, 9.5, 13.5, BODY, S
     )),
     just(block(
-        "Slow thinking is not laziness. It is the discipline of letting a problem ripen: reading past the summary, sitting with the uncomfortable draft, walking away long enough for the obvious answer to reveal its flaws. It is the difference between work that merely ships and work that lasts.",
+        "Powolne myślenie to nie lenistwo. To dyscyplina pozwalania problemowi dojrzeć: czytania dalej niż streszczenie, siedzenia z niewygodnym draftem, odejścia na tyle długo, by oczywista odpowiedź ujawniła swoje wady. To różnica między pracą, która tylko trafia na rynek, a pracą, która zostaje.",
         50, 364, 237, 104, 9.5, 13.5, BODY, S
     )),
     line(50, 482, 24, 2, ACCENT, 2),
-    bold(text("The cost of constant haste", 12.5, S, DARK, 50, 488, 2)),
+    bold(text("Koszt ciągłego pośpiechu", 12.5, S, DARK, 50, 488, 2)),
     just(block(
-        "The costs of haste hide in plain sight. Decisions get made twice — once quickly, then again properly after the rework. Meetings multiply because nobody had time to write the one clear page that would have made them unnecessary. We mistake motion for progress and exhaustion for effort.",
+        "Koszty pośpiechu kryją się na widoku. Decyzje zapadają dwa razy — raz szybko, potem właściwie, po przeróbce. Mnożą się spotkania, bo nikt nie miał czasu napisać tej jednej jasnej strony, która uczyniłaby je zbędnymi. Mylimy ruch z postępem, a wyczerpanie z wysiłkiem.",
         50, 512, 237, 104, 9.5, 13.5, BODY, S
     )),
     just(block(
-        "None of this argues against deadlines. Constraints are generous teachers, and urgency has saved many a wandering project. The argument is narrower: the default speed of our tools should not become the default speed of our judgment.",
+        "To nie argument przeciwko terminom. Ograniczenia są hojnymi nauczycielami, a pilność uratowała wiele błądzących projektów. Argument jest węższy: domyślna prędkość naszych narzędzi nie powinna stać się domyślną prędkością naszego osądu.",
         50, 624, 237, 78, 9.5, 13.5, BODY, S
     )),
 
     // ---- RIGHT column ----
     just(block(
-        "There is a practical way to begin. Write before you discuss, and read before you write. Keep one hour a day that belongs to no notification. Ask, of every urgent request, what would happen if it were answered tomorrow — and notice how often the honest answer is: nothing.",
+        "Jest praktyczny sposób, by zacząć. Pisz, zanim dyskutujesz, i czytaj, zanim piszesz. Zarezerwuj godzinę dziennie, która nie należy do żadnego powiadomienia. Zapytaj przy każdej pilnej prośbie, co by się stało, gdyby odpowiedzieć jutro — i zauważ, jak często szczera odpowiedź brzmi: nic.",
         308, 244, 237, 92, 9.5, 13.5, BODY, S
     )),
     // framed pull-quote
     rect(308, 349, 237, 86, SOFT, 1, 1),
     line(322, 361, 60, 2, ACCENT, 2),
-    ital(centered(block("“Speed is a tool. Judgment is the craft.”", 322, 371, 209, 40, 13, 18, DARK, S))),
-    centered(block("— the editors", 322, 411, 209, 12, 8.5, 11, GRAY, I)),
+    ital(centered(block("„Szybkość to narzędzie. Osąd to rzemiosło.”", 322, 371, 209, 40, 13, 18, DARK, S))),
+    centered(block("— redakcja", 322, 411, 209, 12, 8.5, 11, GRAY, I)),
     just(block(
-        "Institutions can help. Give reviews the time they claim to deserve. Reward the memo that prevented a project as loudly as the sprint that rescued one. Hire for the ability to say “I don't know yet” without flinching, because that sentence is where thinking starts.",
+        "Instytucje mogą pomóc. Daj recenzjom czas, na jaki zasługują. Nagradzaj memo, które uratowało projekt, tak samo głośno jak sprint, który go uratował. Zatrudniaj za umiejętność powiedzenia „jeszcze nie wiem” bez drgnięcia — bo ta zdanie jest początkiem myślenia.",
         308, 451, 237, 92, 9.5, 13.5, BODY, S
     )),
     line(308, 553, 24, 2, ACCENT, 2),
-    bold(text("What slowness gives back", 12.5, S, DARK, 308, 559, 2)),
+    bold(text("Co daje powolność", 12.5, S, DARK, 308, 559, 2)),
     just(block(
-        "What does slowness give back? Depth, mostly. The slow reader finishes fewer books and remembers more of them. The slow writer publishes less and is quoted longer. In a culture that measures everything by throughput, patience has quietly become a competitive advantage.",
+        "Co daje powolność? Głębię, przede wszystkim. Powolny czytelnik kończy mniej książek i pamięta więcej z nich. Powolny pisarz publikuje rzadziej i jest cytowany dłużej. W kulturze mierzącej wszystko przepustowością cierpliwość cicho stała się przewagą konkurencyjną.",
         308, 583, 237, 92, 9.5, 13.5, BODY, S
     )),
     // end-of-article tombstone

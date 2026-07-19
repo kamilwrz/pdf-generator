@@ -68,7 +68,7 @@ export default function ModalPdfs({ title }) {
         const ph = parseFloat(pdfCanvas?.page_height) || 842;
         setPageSize({ preset: presetFromDims(pw, ph), width: pw, height: ph });
 
-        api.httpRequest(ENDPOINTS.PDF.SHOW, "POST", JSON.stringify(id), "Failed to show choosen PDF!").
+        api.httpRequest(ENDPOINTS.PDF.SHOW, "POST", JSON.stringify(id), "Nie udało się wczytać wybranego PDF!").
             then((data) => {
                 const elementsData = data.map((element) => {
                     if (element.category === "textarea") {
@@ -121,7 +121,7 @@ export default function ModalPdfs({ title }) {
         //BUG CLEARS ELEMENT's NOT INCLUDED IN THE PDF, WRITE SEPERATE FUNCTION WITH PDF_ID AS PROPS/ PARAM
         clearA4();
 
-        api.httpRequest(ENDPOINTS.PDF.DELETE, "DELETE", JSON.stringify(id), "Failed to delete the PDF!").
+        api.httpRequest(ENDPOINTS.PDF.DELETE, "DELETE", JSON.stringify(id), "Nie udało się usunąć PDF!").
             then((data) => {
                 console.log(data);
                 setPDFs(prevState => {
@@ -131,7 +131,7 @@ export default function ModalPdfs({ title }) {
     }
 
     useEffect(() => {
-        api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, "Failed to fetch PDF's").
+        api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, "Nie udało się pobrać listy PDF!").
             then((data) => {
                 setPDFs(data);
                 }).
@@ -142,7 +142,7 @@ export default function ModalPdfs({ title }) {
 
 
   async function downloadPdf(id){
-    const response = await api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "POST", id, "Error");
+    const response = await api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "POST", id, "Błąd pobierania");
 
     const blob = (await fetch(response.url)).blob()
     const urlBlob = URL.createObjectURL(await blob);
@@ -168,8 +168,8 @@ export default function ModalPdfs({ title }) {
                 transition={{ type: "spring", duration: 1, ease: [0, 0.71, 0.2, 1.01] }} className={classes.modalPdfs} >
                 <div className={classes.modalHeader}>
                     <div>
-                        <h2>Your PDF's</h2>
-                        <p>Manage, download or delete your saved PDF projects.</p>
+                        <h2>Twoje PDF-y</h2>
+                        <p>Zarządzaj, pobieraj lub usuwaj zapisane projekty PDF.</p>
                     </div>
                     <CloseButton clickHandler={handleIsVisible} top={20} right={20} />
                 </div>
@@ -193,13 +193,13 @@ export default function ModalPdfs({ title }) {
 
                             <div className={classes.modalControls}>
                                 <button className={classes.downloadPdfBtn} onMouseEnter={() => downloadPdf(PDF.id)}><a href={PDFdownloadData.blob} download={PDFdownloadData.title}>
-                                Download <IoMdDownload /></a></button>
+                                Pobierz <IoMdDownload /></a></button>
                                 <button className={classes.deletePdfBtn} onClick={() => deltePDF(PDF.id)}><MdDelete /></button>
                                 <button className={classes.showPdfBtn} onClick={() => showPDF(PDF.id)}><GrView /></button>
                             </div>
 
                         </li>;
-                    }) : <Error title="No PDF's uploaded!" message={error?.message || error} />}
+                    }) : <Error title="Brak zapisanych PDF!" message={error?.message || error} />}
                 </div>
                 <div className={classes.modalFooter}></div>
             </motion.ul>}

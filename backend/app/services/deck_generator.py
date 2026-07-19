@@ -22,7 +22,7 @@ def _get_client() -> OpenAI:
     surfaces a clean 400 when none is configured."""
     key = OPENAI_API_KEY or os.getenv("API_GPT_KEY", "")
     if not key:
-        raise ValueError("OpenAI API key is not configured (API_GPT_KEY).")
+        raise ValueError("Klucz API OpenAI nie jest skonfigurowany (API_GPT_KEY).")
     return OpenAI(api_key=key)
 
 
@@ -122,7 +122,7 @@ def extract_pdf_text(pdf_bytes: bytes) -> str:
     doc.close()
     text = "\n".join(chunks).strip()
     if not text:
-        raise ValueError("The uploaded PDF contains no extractable text.")
+        raise ValueError("Przesłany plik PDF nie zawiera tekstu do wyodrębnienia.")
     return text[:MAX_TEXT_CHARS]
 
 
@@ -159,8 +159,8 @@ def analyze_images(image_rows) -> dict:
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": [
                     {"type": "text", "text":
-                        "In ONE sentence: what does this image show and what concept "
-                        "could it illustrate on a presentation slide?"},
+                        "W JEDNYM zdaniu po polsku: co pokazuje ten obraz i jaki koncept "
+                        "mógłby ilustrować na slajdzie prezentacji?"},
                     {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}", "detail": "low"}},
                 ]}],
                 max_tokens=80,
@@ -178,41 +178,40 @@ def analyze_images(image_rows) -> dict:
 def plan_deck(document_text: str, images: dict) -> dict:
     img_lines = "\n".join(f'- image_id {iid}: {meta["caption"]}' for iid, meta in images.items()) or "(none)"
     prompt = (
-        "You are a senior presentation designer building a COMPREHENSIVE, knowledge-dense\n"
-        "teaching deck from the DOCUMENT below. The audience should be able to learn the\n"
-        "document's full content from the slides alone, without reading the document.\n\n"
-        "Return ONLY a JSON object:\n"
+        "Jesteś starszym projektantem prezentacji i tworzysz OBSZERNĄ, merytoryczną\n"
+        "prezentację edukacyjną na podstawie DOKUMENTU poniżej. Odbiorca powinien poznać\n"
+        "całą treść dokumentu ze slajdów, bez czytania oryginału.\n"
+        "Pisz po polsku. Zwróć WYŁĄCZNIE obiekt JSON:\n"
         "{\n"
-        '  "deck_title": "short deck title",\n'
+        '  "deck_title": "krótki tytuł prezentacji",\n'
         '  "slides": [\n'
-        '    {"layout":"title","kicker":"COMPANY · 2026","title":"...","subtitle":"...","author":"..."},\n'
-        '    {"layout":"agenda","title":"Agenda","items":[{"title":"...","detail":"one line"}]},   // 2-4 items\n'
-        '    {"layout":"bullets","title":"...","bullets":["...", "..."]},                          // 3-6 bullets\n'
-        '    {"layout":"image_right","title":"...","bullets":["..."],"image_id":123},              // needs an image\n'
+        '    {"layout":"title","kicker":"FIRMA · 2026","title":"...","subtitle":"...","author":"..."},\n'
+        '    {"layout":"agenda","title":"Agenda","items":[{"title":"...","detail":"jedna linia"}]},   // 2-4 pozycje\n'
+        '    {"layout":"bullets","title":"...","bullets":["...", "..."]},                          // 3-6 punktów\n'
+        '    {"layout":"image_right","title":"...","bullets":["..."],"image_id":123},              // wymaga obrazu\n'
         '    {"layout":"two_column","title":"...","left_title":"...","left_bullets":["..."],"right_title":"...","right_bullets":["..."]},\n'
         '    {"layout":"quote","quote":"...","attribution":"..."},\n'
-        '    {"layout":"closing","title":"Thank you.","contact":"email · phone · site"}\n'
+        '    {"layout":"closing","title":"Dziękuję.","contact":"email · telefon · strona"}\n'
         "  ]\n"
         "}\n\n"
-        "Coverage rules — depth over brevity:\n"
-        "- Cover the ENTIRE document. Do NOT summarise it away: every substantial section,\n"
-        "  concept, argument, number and example in the document gets slide space.\n"
-        f"- Use as many slides as the content requires — 20, 30, even 50 (hard cap {MAX_SLIDES}).\n"
-        "  A short document may need only 8; a dense one should get far more. Never pad with\n"
-        "  filler slides, and never cram three topics onto one slide to save space.\n"
-        "- ONE idea per slide. When a topic has more than ~6 bullets of material, split it\n"
-        "  into consecutive slides ('Topic (1/2)', 'Topic (2/2)').\n"
-        "- Use agenda slides as section dividers for long decks (an agenda slide per major\n"
-        "  part is good structure), two_column for comparisons/contrasts/before-after,\n"
-        "  quote for a genuinely notable sentence from the document.\n"
-        "- Bullets: concrete and specific (numbers, names, causal claims from the document),\n"
-        "  max ~110 characters each.\n"
-        "- First slide layout=title, last slide layout=closing.\n"
-        "- AVAILABLE IMAGES: use each at most once, via an image_right slide, placed EXACTLY\n"
-        "  where the slide's content matches what the image shows. The image appears next to\n"
-        "  the text — no caption is rendered, so never rely on a caption to explain it:\n"
+        "Zasady pokrycia — głębia zamiast skrótów:\n"
+        "- Obejmij CAŁY dokument. NIE streszczaj go nadmiernie: każda istotna sekcja,\n"
+        "  koncepcja, argument, liczba i przykład z dokumentu musi mieć miejsce na slajdzie.\n"
+        f"- Użyj tylu slajdów, ile wymaga treść — 20, 30, nawet 50 (twardy limit {MAX_SLIDES}).\n"
+        "  Krótki dokument może wymagać tylko 8; gęsty powinien dostać znacznie więcej. Bez slajdów-wypełniaczy\n"
+        "  i bez upychania trzech tematów na jednym slajdzie.\n"
+        "- JEDEN temat na slajd. Gdy temat ma więcej niż ~6 punktów materiału, podziel go\n"
+        "  na kolejne slajdy ('Temat (1/2)', 'Temat (2/2)').\n"
+        "- Slajdy agendy jako separatory sekcji w długich deckach; two_column do porównań/kontrastów/przed-po;\n"
+        "  quote dla naprawdę mocnego zdania z dokumentu.\n"
+        "- Punkty: konkretne i szczegółowe (liczby, nazwy, związki przyczynowe z dokumentu),\n"
+        "  maks. ~110 znaków każdy.\n"
+        "- Pierwszy slajd layout=title, ostatni layout=closing.\n"
+        "- DOSTĘPNE OBRAZY: każdy użyj co najwyżej raz, w slajdzie image_right, dokładnie\n"
+        "  tam, gdzie treść slajdu pasuje do tego, co pokazuje obraz. Obraz stoi obok tekstu —\n"
+        "  podpis nie jest renderowany, więc nie polegaj na podpisie:\n"
         f"{img_lines}\n\n"
-        f"DOCUMENT:\n{document_text}"
+        f"DOKUMENT:\n{document_text}"
     )
     resp = _get_client().chat.completions.create(
         model=PLAN_MODEL,
@@ -222,7 +221,7 @@ def plan_deck(document_text: str, images: dict) -> dict:
     )
     plan = json.loads(resp.choices[0].message.content)
     if not isinstance(plan.get("slides"), list) or not plan["slides"]:
-        raise ValueError("The AI returned an empty slide plan.")
+        raise ValueError("AI zwróciło pusty plan slajdów.")
     plan["slides"] = plan["slides"][:MAX_SLIDES]
     return plan
 
@@ -230,12 +229,12 @@ def plan_deck(document_text: str, images: dict) -> dict:
 # ---- layout engine ----------------------------------------------------------
 
 def _slide_title(s, page, T):
-    title = s.get("title") or "Untitled deck"
+    title = s.get("title") or "Prezentacja bez tytułu"
     els = _bg(T) + [
         _line(0, 0, 14, 540, T["accent"]), _line(14, 0, 3, 540, T["soft"]),
         _rect(700, 140, 180, 180, T["soft"], 1.5), _rect(730, 170, 180, 180, T["accent"], 1.5),
         _line(676, 116, 14, 14, T["accent"]),
-        _text((s.get("kicker") or "PRESENTATION").upper(), 11, T["sans"], T["accent"], 84, 96, bold=True),
+        _text((s.get("kicker") or "PREZENTACJA").upper(), 11, T["sans"], T["accent"], 84, 96, bold=True),
         _block(title, 84, 150, 520, 120, 44 if len(title) <= 42 else 34, 52, T["ink"], T["display"], bold=True),
         _line(84, 296, 110, 3, T["accent"], 2),
     ]
@@ -290,7 +289,7 @@ def _slide_image_right(s, page, deck_name, T, images):
         els.append({"category": "image", "src": meta["src"], "img_id": s.get("image_id"),
                     "left": left, "top": top, "width": w, "height": h, "zIndex": 3})
     else:
-        els.append(_text("Image placeholder", 10.5, T["sans"], T["placeholder"], 672, 278, 3))
+        els.append(_text("Symbol zastępczy obrazu", 10.5, T["sans"], T["placeholder"], 672, 278, 3))
     return els + _footer(page, deck_name, T)
 
 
@@ -321,7 +320,7 @@ def _slide_quote(s, page, deck_name, T):
 def _slide_closing(s, page, deck_name, T):
     els = _bg(T) + [
         _rect(880, 44, 36, 36, T["soft"], 1), _line(864, 28, 12, 12, T["accent"]),
-        _block(s.get("title") or "Thank you.", 230, 196, 500, 64, 46, 56, T["ink"], T["display"],
+        _block(s.get("title") or "Dziękuję.", 230, 196, 500, 64, 46, 56, T["ink"], T["display"],
                bold=True, align="center"),
         _line(430, 286, 100, 3, T["accent"], 2),
     ]
@@ -333,8 +332,8 @@ def _slide_closing(s, page, deck_name, T):
 def build_deck(plan: dict, images: dict, template_id: str = "meridian") -> list[dict]:
     T = DECK_THEMES.get(template_id)
     if T is None:
-        raise ValueError(f"Unknown deck template '{template_id}'. Available: {', '.join(DECK_THEMES)}.")
-    deck_name = plan.get("deck_title") or "Deck"
+        raise ValueError(f"Nieznany szablon prezentacji '{template_id}'. Dostępne: {', '.join(DECK_THEMES)}.")
+    deck_name = plan.get("deck_title") or "Prezentacja"
     elements = []
     for page, slide in enumerate(plan["slides"], start=1):
         layout = slide.get("layout") or "bullets"
@@ -360,9 +359,9 @@ def build_deck(plan: dict, images: dict, template_id: str = "meridian") -> list[
 
 def generate_deck(pdf_bytes: bytes, image_rows, template_id: str = "meridian") -> dict:
     if template_id not in DECK_THEMES:
-        raise ValueError(f"Unknown deck template '{template_id}'. Available: {', '.join(DECK_THEMES)}.")
+        raise ValueError(f"Nieznany szablon prezentacji '{template_id}'. Dostępne: {', '.join(DECK_THEMES)}.")
     text = extract_pdf_text(pdf_bytes)
     images = analyze_images(image_rows)
     plan = plan_deck(text, images)
     elements = build_deck(plan, images, template_id)
-    return {"title": plan.get("deck_title") or "Deck", "elements": elements}
+    return {"title": plan.get("deck_title") or "Prezentacja", "elements": elements}

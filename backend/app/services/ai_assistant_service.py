@@ -126,60 +126,60 @@ def _rate_cv(text: str, elements: list[dict]) -> dict:
     element_count = len(structured)
 
     system = (
-        "You are a senior recruiter and CV coach with 15+ years of experience across tech, "
-        "finance, and consulting. You give rigorous, honest, specific feedback. "
-        "Return ONLY valid JSON."
+        "Jesteś starszym rekruterem i coachem CV z ponad 15-letnim doświadczeniem w branży "
+        "technologicznej, finansowej i konsultingowej. Udzielasz rygorystycznych, szczerych i konkretnych opinii. "
+        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
-    user = f"""Perform a structured rubric-based analysis of the CV below and calculate a precise score.
+    user = f"""Przeprowadź ustrukturyzowaną analizę poniższego CV według rubryki i oblicz dokładną ocenę.
 
-CV TEXT (all text elements joined):
+TEKST CV (połączone wszystkie elementy tekstowe):
 {text}
 
-ELEMENT COUNT: {element_count} text/textarea elements found on canvas.
+LICZBA ELEMENTÓW: na kanwie znaleziono {element_count} elementów text/textarea.
 
 ════════════════════════════════════════
-SCORING RUBRIC — work through each step explicitly before writing the final JSON.
+RUBRYKA OCENY — przeanalizuj wyraźnie każdy etap przed zapisaniem końcowego JSON.
 
-① SECTION COMPLETENESS (0–2 pts)
-   Identify which of these sections are present: Contact Info, Summary/Objective,
-   Work Experience, Education, Skills/Technologies.
-   Score = (sections present / 5) × 2. Round to 1 decimal.
+① KOMPLETNOŚĆ SEKCJI (0–2 pkt)
+   Określ, które z sekcji są obecne: dane kontaktowe, podsumowanie/cel,
+   doświadczenie zawodowe, wykształcenie, umiejętności/technologie.
+   Wynik = (liczba obecnych sekcji / 5) × 2. Zaokrąglij do 1 miejsca po przecinku.
 
-② EXPERIENCE QUALITY (0–3 pts)
-   For each job/role entry found:
-   - Does it open with a strong action verb? (Led, Built, Designed, Increased…)
-   - Does it include at least one quantified result (%, $, number, time saved)?
-   Award: 1 pt if >60% of bullets use action verbs, 1 pt if >40% include metrics,
-   1 pt if roles show progression or relevance to the target field.
+② JAKOŚĆ DOŚWIADCZENIA (0–3 pkt)
+   Dla każdego wpisu dotyczącego stanowiska/roli:
+   - Czy zaczyna się od mocnego czasownika działania? (Prowadziłem, Zbudowałem, Zaprojektowałem, Zwiększyłem…)
+   - Czy zawiera co najmniej jeden mierzalny rezultat (%, zł, liczba, zaoszczędzony czas)?
+   Przyznaj: 1 pkt, jeśli >60% punktów używa czasowników działania, 1 pkt, jeśli >40% zawiera metryki,
+   1 pkt, jeśli role pokazują rozwój lub związek z docelową branżą.
 
-③ LANGUAGE & PROFESSIONALISM (0–2 pts)
-   Check for: passive voice ("was responsible for"), clichés ("team player",
-   "go-getter", "passionate about"), vague filler, grammar/spelling issues.
-   2 pts = none found. 1 pt = minor issues. 0 pts = significant problems.
+③ JĘZYK I PROFESJONALIZM (0–2 pkt)
+   Sprawdź: stronę bierną („byłem odpowiedzialny”), frazesy („gracz zespołowy”,
+   „osoba z inicjatywą”, „pasjonuję się”), ogólniki oraz błędy gramatyczne i ortograficzne.
+   2 pkt = brak problemów. 1 pkt = drobne problemy. 0 pkt = istotne problemy.
 
-④ FORMAT & HIERARCHY (0–2 pts)
-   Based on element count and content variety: Is there a clear visual hierarchy
-   (name > headings > body)? Is length appropriate (1–2 pages)?
-   Award up to 2 pts.
+④ FORMAT I HIERARCHIA (0–2 pkt)
+   Na podstawie liczby elementów i różnorodności treści: czy istnieje wyraźna hierarchia wizualna
+   (imię > nagłówki > tekst główny)? Czy długość jest odpowiednia (1–2 strony)?
+   Przyznaj do 2 pkt.
 
-⑤ DIFFERENTIATION (0–1 pt)
-   Does the CV include something memorable — a standout achievement, rare skill,
-   leadership example, or quantified impact that sets this candidate apart?
-   1 pt if yes, 0 if generic.
+⑤ WYRÓŻNIENIE (0–1 pkt)
+   Czy CV zawiera coś zapadającego w pamięć — wyjątkowe osiągnięcie, rzadką umiejętność,
+   przykład przywództwa lub mierzalny wpływ wyróżniający kandydata?
+   1 pkt, jeśli tak; 0 pkt, jeśli treść jest ogólna.
 
-TOTAL = ①+②+③+④+⑤, rounded to nearest integer, clamped 1–10.
+SUMA = ①+②+③+④+⑤, zaokrąglona do najbliższej liczby całkowitej, w zakresie 1–10.
 ════════════════════════════════════════
 
-Return JSON (include the sub-scores in the tips):
+Zwróć JSON (uwzględnij wyniki cząstkowe w wskazówkach):
 {{
-  "message": "<3–4 sentences: state the calculated score, name 1–2 concrete strengths, name 1–2 concrete weaknesses. Be direct. Reference specific content found in the CV.>",
-  "rating": <calculated total 1-10>,
+  "message": "<3–4 zdania: podaj obliczoną ocenę, wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Bądź bezpośredni. Odnoś się do konkretnych treści z CV.>",
+  "rating": <obliczona suma 1-10>,
   "tips": [
-    "Score breakdown: Sections ①/2 + Experience ②/3 + Language ③/2 + Format ④/2 + Differentiation ⑤/1 = total/10",
-    "<most impactful fix with a before/after example>",
-    "<second most impactful fix>",
-    "<missing section or element if any>",
-    "<quantification opportunity: which role/bullet needs a metric>"
+    "Rozkład oceny: Sekcje ①/2 + Doświadczenie ②/3 + Język ③/2 + Format ④/2 + Wyróżnienie ⑤/1 = suma/10",
+    "<najważniejsza poprawka z przykładem przed/po>",
+    "<druga najważniejsza poprawka>",
+    "<brakująca sekcja lub element, jeśli występuje>",
+    "<możliwość kwantyfikacji: która rola/punkt wymaga metryki>"
   ],
   "corrections": [],
   "web_sources": []
@@ -191,50 +191,50 @@ def _rate_design(elements: list[dict]) -> dict:
     typo = json.dumps(_extract_typography(elements), ensure_ascii=False)
 
     system = (
-        "You are a CV typography and visual design expert. "
-        "You ONLY suggest changes to font size, font family, color, bold, italic, and text alignment. "
-        "You NEVER touch element positions (left, top, width, height) — those are fixed by the template. "
-        "Return ONLY valid JSON."
+        "Jesteś ekspertem od typografii i projektowania wizualnego CV. "
+        "Sugerujesz WYŁĄCZNIE zmiany rozmiaru i kroju czcionki, koloru, pogrubienia, kursywy oraz wyrównania tekstu. "
+        "NIGDY nie zmieniasz pozycji elementów (left, top, width, height) — są ustalone przez szablon. "
+        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
-    user = f"""Analyse the typography and text styling of this CV canvas.
+    user = f"""Przeanalizuj typografię i styl tekstu na tej kanwie CV.
 
-TYPOGRAPHY DATA (no positions — do not infer or suggest any positional changes):
+DANE TYPOGRAFICZNE (bez pozycji — nie wyciągaj wniosków ani nie sugeruj zmian pozycji):
 {typo}
 
 ════════════════════════════════════════
-ANALYSIS STEPS:
+ETAPY ANALIZY:
 
-① FONT SIZE HIERARCHY
-   Is there a clear size progression: name (largest) > section headings > body text?
-   Typical good values: name 22–28px, headings 14–16px, body 10–12px.
-   Flag elements that break this hierarchy.
+① HIERARCHIA ROZMIARÓW CZCIONKI
+   Czy występuje wyraźna progresja rozmiaru: imię i nazwisko (największe) > nagłówki sekcji > tekst główny?
+   Typowe dobre wartości: imię i nazwisko 22–28 px, nagłówki 14–16 px, tekst główny 10–12 px.
+   Wskaż elementy, które zaburzają tę hierarchię.
 
-② BOLD & EMPHASIS
-   Are headings consistently bold? Is bold overused (everything bold = nothing stands out)?
+② POGRUBIENIE I WYRÓŻNIENIE
+   Czy nagłówki są konsekwentnie pogrubione? Czy pogrubienie jest nadużywane (jeśli wszystko jest pogrubione, nic się nie wyróżnia)?
 
-③ COLOR CONSISTENCY
-   Are text colors used consistently? Identify any element with an outlier color.
+③ SPÓJNOŚĆ KOLORÓW
+   Czy kolory tekstu są używane konsekwentnie? Zidentyfikuj elementy o odstającym kolorze.
 
-④ ALIGNMENT
-   Is body text consistently left-aligned? Are headings consistently aligned?
-   Mixed alignment within the same section looks unprofessional.
+④ WYRÓWNANIE
+   Czy tekst główny jest konsekwentnie wyrównany do lewej? Czy nagłówki są wyrównane konsekwentnie?
+   Mieszane wyrównanie w jednej sekcji wygląda nieprofesjonalnie.
 
-⑤ OVERALL SCORE
-   Based on ①–④, assign a design score 1–10.
+⑤ OCENA OGÓLNA
+   Na podstawie punktów ①–④ przyznaj ocenę projektu w skali 1–10.
 ════════════════════════════════════════
 
-Return corrections ONLY for clear typography improvements.
-Each correction may contain ONLY these fields: fontSize, fontFamily, color, bold, italic, align.
-Do NOT include element_id values from the data above unless you are certain they need changing.
+Zwracaj poprawki WYŁĄCZNIE dla jednoznacznych ulepszeń typografii.
+Każda poprawka może zawierać WYŁĄCZNIE pola: fontSize, fontFamily, color, bold, italic, align.
+Nie uwzględniaj wartości element_id z danych powyżej, jeśli nie masz pewności, że wymagają zmiany.
 
-Return JSON:
+Zwróć JSON:
 {{
-  "message": "<2–3 sentences: state the score and name the most impactful typography issues found>",
+  "message": "<2–3 zdania: podaj ocenę i wskaż najważniejsze znalezione problemy typograficzne>",
   "rating": <1-10>,
   "tips": [
-    "Score breakdown: Hierarchy ①/3 + Emphasis ②/2 + Color ③/2 + Alignment ④/2 + Overall ⑤/1",
-    "<specific typography fix with element preview>",
-    "<second specific fix>"
+    "Rozkład oceny: Hierarchia ①/3 + Wyróżnienie ②/2 + Kolor ③/2 + Wyrównanie ④/2 + Ocena ogólna ⑤/1",
+    "<konkretna poprawka typografii z podglądem elementu>",
+    "<druga konkretna poprawka>"
   ],
   "corrections": [
     {{"element_id": "<id>", "fontSize": 12}},
@@ -255,56 +255,56 @@ def _rate_position(text: str, job_description: str) -> dict:
     web_urls = [r.get("href", "") for r in sources if r.get("href")]
 
     system = (
-        "You are a senior career advisor and hiring manager. "
-        "You give an honest, calculated fit assessment between a CV and a job description. "
-        "Return ONLY valid JSON."
+        "Jesteś starszym doradcą zawodowym i managerem rekrutującym. "
+        "Przygotowujesz szczerą, obliczoną ocenę dopasowania CV do opisu stanowiska. "
+        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
-    user = f"""Calculate how well this CV matches the job description. Score 1–10.
+    user = f"""Oblicz, jak dobrze to CV pasuje do opisu stanowiska. Oceń je w skali 1–10.
 
-JOB DESCRIPTION:
+OPIS STANOWISKA:
 {job_description[:2000]}
 
-CV CONTENT:
+TREŚĆ CV:
 {text}
 
-WEB CONTEXT (industry standards for this role):
-{web_ctx or "No web results available."}
+KONTEKST Z INTERNETU (standardy branżowe dla tej roli):
+{web_ctx or "Brak dostępnych wyników z internetu."}
 
 ════════════════════════════════════════
-CALCULATION STEPS:
+ETAPY OBLICZEŃ:
 
-① REQUIRED SKILLS MATCH (0–4 pts)
-   Extract the top 10 required skills/technologies from the job description.
-   Count how many appear in the CV (exact or close synonym).
-   Score = (matched / 10) × 4.
+① DOPASOWANIE WYMAGANYCH UMIEJĘTNOŚCI (0–4 pkt)
+   Wyodrębnij 10 najważniejszych wymaganych umiejętności/technologii z opisu stanowiska.
+   Policz, ile z nich występuje w CV (dokładnie lub jako bliski synonim).
+   Wynik = (liczba dopasowanych / 10) × 4.
 
-② EXPERIENCE LEVEL MATCH (0–2 pts)
-   Does the CV's years of experience and seniority match what the JD requires?
-   2 = perfect match, 1 = close, 0 = significant gap.
+② DOPASOWANIE POZIOMU DOŚWIADCZENIA (0–2 pkt)
+   Czy liczba lat doświadczenia i poziom seniority w CV odpowiadają wymaganiom opisu stanowiska?
+   2 = idealne dopasowanie, 1 = bliskie, 0 = istotna luka.
 
-③ DOMAIN / INDUSTRY MATCH (0–2 pts)
-   Does the candidate's background domain (industry, company type, scale) match?
-   2 = strong match, 1 = partial, 0 = different domain.
+③ DOPASOWANIE OBSZARU / BRANŻY (0–2 pkt)
+   Czy doświadczenie kandydata w danym obszarze (branża, typ firmy, skala) jest dopasowane?
+   2 = silne dopasowanie, 1 = częściowe, 0 = inny obszar.
 
-④ LANGUAGE & KEYWORD MATCH (0–1 pt)
-   Does the CV use terminology the JD uses? (ATS-relevant)
+④ DOPASOWANIE JĘZYKA I SŁÓW KLUCZOWYCH (0–1 pkt)
+   Czy CV używa terminologii z opisu stanowiska? (istotne dla ATS)
 
-⑤ DIFFERENTIATORS (0–1 pt)
-   Does the CV show something that makes this candidate stand out for this specific role?
+⑤ WYRÓŻNIKI (0–1 pkt)
+   Czy CV pokazuje coś, co wyróżnia tego kandydata na tym konkretnym stanowisku?
 
-TOTAL = ①+②+③+④+⑤, rounded, clamped 1–10.
+SUMA = ①+②+③+④+⑤, zaokrąglona, w zakresie 1–10.
 ════════════════════════════════════════
 
-Return JSON:
+Zwróć JSON:
 {{
-  "message": "<3–4 sentences: state the score and its calculation, name the matched skills, name the gaps. Be specific.>",
-  "rating": <calculated 1-10>,
+  "message": "<3–4 zdania: podaj ocenę i sposób jej obliczenia, wymień dopasowane umiejętności oraz luki. Bądź konkretny.>",
+  "rating": <obliczona ocena 1-10>,
   "tips": [
-    "Score breakdown: Skills ①/4 + Seniority ②/2 + Domain ③/2 + Keywords ④/1 + Differentiators ⑤/1 = total/10",
-    "<list the top 3–5 skills from JD that are MISSING from the CV>",
-    "<most impactful CV change to improve fit>",
-    "<specific keyword to add to the CV>",
-    "<section to tailor or add>"
+    "Rozkład oceny: Umiejętności ①/4 + Seniority ②/2 + Obszar ③/2 + Słowa kluczowe ④/1 + Wyróżniki ⑤/1 = suma/10",
+    "<wymień 3–5 najważniejszych umiejętności z opisu stanowiska, których BRAKUJE w CV>",
+    "<najważniejsza zmiana CV poprawiająca dopasowanie>",
+    "<konkretne słowo kluczowe do dodania do CV>",
+    "<sekcja do dopasowania lub dodania>"
   ],
   "corrections": [],
   "web_sources": {json.dumps(web_urls[:3])}
@@ -319,24 +319,24 @@ def _fix_grammar(elements: list[dict]) -> dict:
     structured = _extract_structured(elements)
 
     system = (
-        "You are a professional proofreader specialising in business and CV documents. "
-        "Fix ONLY grammar, spelling, and punctuation. Do not change meaning, tone, or structure. "
-        "Return ONLY valid JSON."
+        "Jesteś profesjonalnym korektorem specjalizującym się w dokumentach biznesowych i CV. "
+        "Poprawiaj WYŁĄCZNIE gramatykę, ortografię i interpunkcję. Nie zmieniaj znaczenia, tonu ani struktury. "
+        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
     )
-    user = f"""Proofread every text element below. Fix all grammar, spelling, and punctuation errors.
+    user = f"""Sprawdź korektę każdego poniższego elementu tekstowego. Popraw wszystkie błędy gramatyczne, ortograficzne i interpunkcyjne.
 
-ELEMENTS:
+ELEMENTY:
 {json.dumps(structured, ensure_ascii=False)}
 
-RULES:
-- Only include elements that actually have errors in the corrections array.
-- The "content" value in each correction must be the FULL corrected text (not a snippet).
-- Do not improve style or rephrase — only fix errors.
-- Count all errors found and report in the message.
+ZASADY:
+- W tablicy corrections uwzględniaj tylko elementy, które rzeczywiście zawierają błędy.
+- Wartość "content" w każdej poprawce musi zawierać PEŁNY poprawiony tekst (nie fragment).
+- Nie ulepszaj stylu ani nie parafrazuj — tylko poprawiaj błędy.
+- Policz wszystkie znalezione błędy i podaj ich liczbę w message.
 
-Return JSON:
+Zwróć JSON:
 {{
-  "message": "<summary: X errors found across Y elements. List the most common error types.>",
+  "message": "<podsumowanie: znaleziono X błędów w Y elementach. Wymień najczęstsze rodzaje błędów.>",
   "rating": null,
   "tips": [],
   "corrections": [
@@ -351,50 +351,51 @@ def _check_style(text: str, elements: list[dict]) -> dict:
     structured = _extract_structured(elements)
 
     system = (
-        "You are a professional CV writer who specialises in improving the tone, clarity, "
-        "and professionalism of CV language. Return ONLY valid JSON."
+        "Jesteś profesjonalnym autorem CV specjalizującym się w poprawianiu tonu, jasności "
+        "i profesjonalizmu języka w CV. Zwracaj WYŁĄCZNIE prawidłowy JSON. "
+        "Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
     )
-    user = f"""Analyse the writing style of this CV and rewrite weak elements.
+    user = f"""Przeanalizuj styl językowy tego CV i przeredaguj słabe elementy.
 
-FULL CV TEXT:
+PEŁNY TEKST CV:
 {text}
 
-INDIVIDUAL ELEMENTS (for targeted rewrites):
+POJEDYNCZE ELEMENTY (do ukierunkowanych przeredagowań):
 {json.dumps(structured[:30], ensure_ascii=False)}
 
 ════════════════════════════════════════
-ANALYSIS STEPS:
+ETAPY ANALIZY:
 
-① ACTIVE vs PASSIVE VOICE
-   Find every instance of passive voice ("was responsible for", "were managed by").
-   These are the highest-priority rewrites.
+① STRONA CZYNNA A BIERNA
+   Znajdź każde użycie strony biernej („byłem odpowiedzialny”, „było zarządzane przez”).
+   To przeredagowania o najwyższym priorytecie.
 
-② CLICHÉS & WEAK PHRASES
-   Flag: "team player", "hardworking", "passionate about", "go-getter",
-   "results-driven", "detail-oriented", "synergy". Replace with evidence.
+② FRAZESY I SŁABE SFORMUŁOWANIA
+   Oznacz: „gracz zespołowy”, „pracowity”, „pasjonuję się”, „osoba z inicjatywą”,
+   „nastawiony na wyniki”, „dbający o szczegóły”, „synergia”. Zastąp je dowodami.
 
-③ VAGUE CLAIMS
-   Flag claims without evidence: "improved efficiency", "led projects".
-   Add a placeholder metric where appropriate: "improved efficiency by [X%]".
+③ OGÓLNIKOWE STWIERDZENIA
+   Oznacz twierdzenia bez dowodów: „poprawiłem efektywność”, „prowadziłem projekty”.
+   Tam, gdzie to właściwe, dodaj zastępczą metrykę: „poprawiłem efektywność o [X%]”.
 
-④ PROFESSIONAL TONE
-   Is it too informal, too formal, or appropriate for the industry?
+④ PROFESJONALNY TON
+   Czy ton jest zbyt nieformalny, zbyt formalny czy odpowiedni dla branży?
 
-Rewrite only elements that genuinely need it. Short elements (names, dates, headings)
-should not be rewritten.
+Przeredagowuj tylko elementy, które rzeczywiście tego wymagają. Krótkie elementy (imiona i nazwiska, daty, nagłówki)
+nie powinny być przeredagowywane.
 ════════════════════════════════════════
 
-Return JSON:
+Zwróć JSON:
 {{
-  "message": "<2–3 sentences: describe the most common style issues found and the overall tone assessment>",
+  "message": "<2–3 zdania: opisz najczęstsze znalezione problemy stylistyczne i ogólną ocenę tonu>",
   "rating": null,
   "tips": [
-    "<passive voice instance found + rewrite example>",
-    "<cliché found + specific replacement>",
-    "<vague claim + how to strengthen it>"
+    "<znaleziony przykład strony biernej + przykład przeredagowania>",
+    "<znaleziony frazes + konkretna zamiana>",
+    "<ogólnikowe twierdzenie + sposób jego wzmocnienia>"
   ],
   "corrections": [
-    {{"element_id": "<id>", "content": "<full rewritten text>"}}
+    {{"element_id": "<id>", "content": "<pełny przeredagowany tekst po polsku>"}}
   ],
   "web_sources": []
 }}"""
@@ -405,44 +406,44 @@ def _improve_content(elements: list[dict]) -> dict:
     structured = _extract_structured(elements)
 
     system = (
-        "You are a top-tier CV writer. You specialise in turning ordinary job descriptions "
-        "into compelling, metric-driven bullet points that pass ATS and impress recruiters. "
-        "Return ONLY valid JSON."
+        "Jesteś wysokiej klasy autorem CV. Specjalizujesz się w przekształcaniu zwykłych opisów obowiązków "
+        "w przekonujące, oparte na metrykach punkty, które przechodzą przez ATS i robią wrażenie na rekruterach. "
+        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
     )
-    user = f"""Rewrite the CV content below to maximise impact.
+    user = f"""Przeredaguj poniższą treść CV, aby maksymalizować jej siłę oddziaływania.
 
-ELEMENTS:
+ELEMENTY:
 {json.dumps(structured[:30], ensure_ascii=False)}
 
 ════════════════════════════════════════
-REWRITING RULES (apply in order):
+ZASADY PRZEREDAGOWANIA (stosuj po kolei):
 
-① STRONG OPENING VERBS — every bullet must open with a past-tense action verb.
-   Prefer: Architected, Launched, Reduced, Increased, Negotiated, Delivered, Automated,
-   Scaled, Redesigned, Streamlined. Avoid: Helped, Assisted, Was involved in.
+① MOCNE CZASOWNIKI NA POCZĄTKU — każdy punkt musi zaczynać się od czasownika działania w czasie przeszłym.
+   Preferuj: Zaprojektowałem, Uruchomiłem, Zredukowałem, Zwiększyłem, Wynegocjowałem, Dostarczyłem, Zautomatyzowałem,
+   Skalowałem, Przeprojektowałem, Usprawniłem. Unikaj: Pomagałem, Wspierałem, Byłem zaangażowany.
 
-② QUANTIFY EVERYTHING — add a metric to every achievement bullet.
-   If the original has no number, add a sensible placeholder: [X%], [N users], [$K].
-   Example: "Managed social media" → "Grew social media following by [X%] in [N] months"
+② KWANTYFIKUJ WSZYSTKO — dodaj metrykę do każdego punktu opisującego osiągnięcie.
+   Jeśli oryginał nie zawiera liczby, dodaj sensowny symbol zastępczy: [X%], [N użytkowników], [K zł].
+   Przykład: „Zarządzałem mediami społecznościowymi” → „Zwiększyłem liczbę obserwujących w mediach społecznościowych o [X%] w ciągu [N] miesięcy”
 
-③ SPECIFICITY — replace vague tech/tool references with the actual names if inferable.
-   "Used databases" → "Optimised PostgreSQL queries reducing latency by [X%]"
+③ KONKRETNOŚĆ — zastępuj ogólne odniesienia do technologii/narzędzi ich rzeczywistymi nazwami, jeśli można je wywnioskować.
+   „Używałem baz danych” → „Zoptymalizowałem zapytania PostgreSQL, zmniejszając opóźnienia o [X%]”
 
-④ LENGTH — keep each bullet 1–2 lines. Cut filler. Every word must earn its place.
+④ DŁUGOŚĆ — zachowaj 1–2 wiersze na punkt. Usuń wypełniacze. Każde słowo musi być uzasadnione.
 
-⑤ SKIP headers, names, contact info, dates — only rewrite experience/skill/summary text.
+⑤ POMIJAJ nagłówki, imiona i nazwiska, dane kontaktowe oraz daty — przeredagowuj tylko tekst doświadczenia, umiejętności i podsumowania.
 ════════════════════════════════════════
 
-Return JSON:
+Zwróć JSON:
 {{
-  "message": "<2–3 sentences summarising what was improved and why>",
+  "message": "<2–3 zdania podsumowujące, co poprawiono i dlaczego>",
   "rating": null,
   "tips": [
-    "<general pattern found: e.g., '5 bullets lacked action verbs — all rewritten'>",
-    "<metric-placeholder tip: 'Replace [X%] placeholders with your real numbers before sending'>"
+    "<znaleziony ogólny wzorzec, np. „5 punktów nie miało czasowników działania — wszystkie przeredagowano”>",
+    "<wskazówka dotycząca zastępczych metryk: „Przed wysłaniem zastąp symbole [X%] rzeczywistymi wartościami”>"
   ],
   "corrections": [
-    {{"element_id": "<id>", "content": "<fully rewritten element text>"}}
+    {{"element_id": "<id>", "content": "<pełny przeredagowany tekst elementu po polsku>"}}
   ],
   "web_sources": []
 }}"""
@@ -451,55 +452,55 @@ Return JSON:
 
 def _ats_score(text: str) -> dict:
     system = (
-        "You are an ATS (Applicant Tracking System) expert. "
-        "You know how Workday, Greenhouse, Lever, and Taleo parse CVs. "
-        "Return ONLY valid JSON."
+        "Jesteś ekspertem od ATS (systemów śledzenia kandydatów). "
+        "Wiesz, jak Workday, Greenhouse, Lever i Taleo analizują CV. "
+        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
-    user = f"""Analyse this CV for ATS compatibility. Score 1–10.
+    user = f"""Przeanalizuj to CV pod kątem zgodności z ATS. Oceń je w skali 1–10.
 
-CV TEXT:
+TEKST CV:
 {text}
 
 ════════════════════════════════════════
-CALCULATION STEPS:
+ETAPY OBLICZEŃ:
 
-① STANDARD SECTION HEADINGS (0–2 pts)
-   ATS expects exact or near-exact headings. Check for:
-   "Work Experience" / "Experience", "Education", "Skills", "Summary" / "Profile",
-   "Certifications", "Languages".
-   Score = (standard headings found / 6) × 2.
+① STANDARDOWE NAGŁÓWKI SEKCJI (0–2 pkt)
+   ATS oczekuje dokładnych lub zbliżonych standardowych nagłówków. Sprawdź:
+   „Doświadczenie zawodowe” / „Doświadczenie”, „Wykształcenie”, „Umiejętności”, „Podsumowanie” / „Profil”,
+   „Certyfikaty”, „Języki”.
+   Wynik = (liczba znalezionych standardowych nagłówków / 6) × 2.
 
-② KEYWORD DENSITY (0–3 pts)
-   Identify the top 5 industry-standard keywords present in the CV
-   (e.g., specific technologies, methodologies, soft skills).
-   Score = (keywords found / 5) × 3.
+② GĘSTOŚĆ SŁÓW KLUCZOWYCH (0–3 pkt)
+   Zidentyfikuj 5 najważniejszych standardowych dla branży słów kluczowych obecnych w CV
+   (np. konkretne technologie, metodyki, kompetencje miękkie).
+   Wynik = (liczba znalezionych słów kluczowych / 5) × 3.
 
-③ CONTACT INFO COMPLETENESS (0–1 pt)
-   Email, phone, LinkedIn/GitHub, location. 1 pt if ≥3 present, 0.5 if 2, 0 if ≤1.
+③ KOMPLETNOŚĆ DANYCH KONTAKTOWYCH (0–1 pkt)
+   E-mail, telefon, LinkedIn/GitHub, lokalizacja. 1 pkt, jeśli obecne są ≥3; 0,5 pkt, jeśli 2; 0 pkt, jeśli ≤1.
 
-④ DATE FORMAT CONSISTENCY (0–1 pt)
-   Dates should be Month Year or MM/YYYY throughout. 1 pt if consistent, 0 if mixed.
+④ SPÓJNOŚĆ FORMATU DAT (0–1 pkt)
+   Daty powinny konsekwentnie mieć format miesiąc rok lub MM/RRRR. 1 pkt, jeśli są spójne; 0 pkt, jeśli są mieszane.
 
-⑤ FORMATTING SAFETY (0–2 pts)
-   ATS struggles with: tables, images in text flow, special characters, unusual fonts.
-   Based on element structure, award up to 2 pts.
+⑤ BEZPIECZEŃSTWO FORMATOWANIA (0–2 pkt)
+   ATS ma trudności z: tabelami, obrazami w przepływie tekstu, znakami specjalnymi i nietypowymi czcionkami.
+   Na podstawie struktury elementów przyznaj do 2 pkt.
 
-⑥ LENGTH (0–1 pt)
-   1–2 pages is optimal. Estimate from word count in text.
+⑥ DŁUGOŚĆ (0–1 pkt)
+   Optymalna długość to 1–2 strony. Oszacuj ją na podstawie liczby słów w tekście.
 
-TOTAL = ①+②+③+④+⑤+⑥, clamped 1–10.
+SUMA = ①+②+③+④+⑤+⑥, w zakresie 1–10.
 ════════════════════════════════════════
 
-Return JSON:
+Zwróć JSON:
 {{
-  "message": "<2–3 sentences: state the score, the main ATS risk factor, and the top keyword gap>",
-  "rating": <calculated 1-10>,
+  "message": "<2–3 zdania: podaj ocenę, główne ryzyko związane z ATS i najważniejszą lukę w słowach kluczowych>",
+  "rating": <obliczona ocena 1-10>,
   "tips": [
-    "Score breakdown: Headings ①/2 + Keywords ②/3 + Contact ③/1 + Dates ④/1 + Format ⑤/2 + Length ⑥/1 = total/10",
-    "<non-standard heading found + what to rename it to>",
-    "<top 3 missing ATS keywords for this apparent industry/role>",
-    "<contact info gap if any>",
-    "<date format issue if any>"
+    "Rozkład oceny: Nagłówki ①/2 + Słowa kluczowe ②/3 + Kontakt ③/1 + Daty ④/1 + Format ⑤/2 + Długość ⑥/1 = suma/10",
+    "<znaleziony niestandardowy nagłówek + proponowana nazwa>",
+    "<3 najważniejsze brakujące słowa kluczowe ATS dla widocznej branży/roli>",
+    "<brak w danych kontaktowych, jeśli występuje>",
+    "<problem z formatem dat, jeśli występuje>"
   ],
   "corrections": [],
   "web_sources": []
@@ -509,23 +510,24 @@ Return JSON:
 
 def _chat(message: str, text: str) -> dict:
     system = (
-        "You are an expert CV coach. You have the user's full CV content as context. "
-        "Give specific, actionable advice grounded in the actual CV text. "
-        "If the user asks for a rating or score, calculate it with a rubric (don't just guess). "
-        "Keep responses focused and concise — 3–5 sentences for simple questions, "
-        "longer for analysis requests. Return ONLY valid JSON."
+        "Jesteś ekspertem i coachem CV. Masz pełną treść CV użytkownika jako kontekst. "
+        "Udzielaj konkretnych, możliwych do wdrożenia porad opartych na rzeczywistej treści CV. "
+        "Jeśli użytkownik prosi o ocenę lub wynik, oblicz go według rubryki (nie zgaduj). "
+        "Utrzymuj odpowiedzi konkretne i zwięzłe — 3–5 zdań dla prostych pytań, "
+        "dłuższe dla próśb o analizę. Zwracaj WYŁĄCZNIE prawidłowy JSON. "
+        "Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
-    user = f"""CV CONTENT:
-{text or "(no content on canvas yet)"}
+    user = f"""TREŚĆ CV:
+{text or "(na kanwie nie ma jeszcze treści)"}
 
-USER QUESTION:
+PYTANIE UŻYTKOWNIKA:
 {message}
 
-Return JSON:
+Zwróć JSON:
 {{
-  "message": "<your response — specific, grounded in the CV content above>",
+  "message": "<Twoja odpowiedź — konkretna i oparta na powyższej treści CV>",
   "rating": null,
-  "tips": ["<tip if relevant>"],
+  "tips": ["<wskazówka, jeśli jest istotna>"],
   "corrections": [],
   "web_sources": []
 }}"""
@@ -563,7 +565,7 @@ def analyze_action(
     fn = dispatchers.get(action)
     if fn is None:
         return {
-            "message": f"Unknown action: {action}",
+            "message": f"Nieznana akcja: {action}",
             "rating": None,
             "tips": [],
             "corrections": [],

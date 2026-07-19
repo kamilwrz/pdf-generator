@@ -20,31 +20,31 @@ const sep  = (top) => line(50, top, 495, 0.5, VLG);
 
 export const monolithTemplate = [
     // ── HEADER ──────────────────────────────────────────────────
-    bold(text("JAMES HARRISON", 32, "Inter", K, 50, 54)),
-    ital(text("Senior Product Manager", 13, "Inter", MG, 50, 98)),
-    text("james.h@email.com   ·   +1 (555) 770-0800   ·   Chicago, IL", 9.5, "Inter", LG, 50, 118),
+    bold(text("PIOTR WIŚNIEWSKI", 32, "Inter", K, 50, 54)),
+    ital(text("Główny Menedżer Produktu", 13, "Inter", MG, 50, 98)),
+    text("piotr.wisniewski@email.com   ·   +48 600 789 012   ·   Łódź", 9.5, "Inter", LG, 50, 118),
     line(50, 136, 495, 0.5, DG),
 
     // ── EXPERIENCE ──────────────────────────────────────────────
-    bar(154), head("PROFESSIONAL EXPERIENCE", 154),
-    bold(text("Vice President of Product", 11, "Inter", K, 50, 180)),
-    text("MidWest Financial Group   ·   2021 – Present", 9.5, "Inter", MG, 50, 196),
-    bulleted(block("• Built product roadmap that grew MRR 40%.\n• Led cross-functional team of 12 across design, engineering and data.\n• Launched 3 product lines serving 150,000+ customers.", 50, 212, 495, 50, 10, 14, MG, "Inter")),
+    bar(154), head("DOŚWIADCZENIE ZAWODOWE", 154),
+    bold(text("Wiceprezes ds. Produktu", 11, "Inter", K, 50, 180)),
+    text("MidWest Financial Group   ·   2021 – obecnie", 9.5, "Inter", MG, 50, 196),
+    bulleted(block("• Zbudował mapę drogową produktu, która zwiększyła MRR o 40%.\n• Kierował zespołem 12 osób z projektowania, inżynierii i analityki.\n• Wprowadził 3 linie produktów obsługujących ponad 150 000 klientów.", 50, 212, 495, 50, 10, 14, MG, "Inter")),
 
-    bold(text("Senior Product Manager", 11, "Inter", K, 50, 276)),
+    bold(text("Główny Menedżer Produktu", 11, "Inter", K, 50, 276)),
     text("SaaS Startup Inc   ·   2018 – 2021", 9.5, "Inter", MG, 50, 292),
-    bulleted(block("• Owned full product lifecycle for 2 core products.\n• Increased user retention 22% through personalization.\n• Reduced time-to-market 30% through agile process improvements.", 50, 308, 495, 50, 10, 14, MG, "Inter")),
+    bulleted(block("• Odpowiadał za pełny cykl życia 2 kluczowych produktów.\n• Zwiększył retencję użytkowników o 22% dzięki personalizacji.\n• Skrócił czas wejścia na rynek o 30% dzięki usprawnieniom zwinnego procesu.", 50, 308, 495, 50, 10, 14, MG, "Inter")),
 
     sep(372),
 
     // ── EDUCATION ───────────────────────────────────────────────
-    bar(386), head("EDUCATION", 386),
-    bold(text("M.B.A. — Northwestern University, Kellogg", 11, "Inter", K, 50, 412)),
+    bar(386), head("EDUKACJA", 386),
+    bold(text("MBA — SGH w Warszawie", 11, "Inter", K, 50, 412)),
     text("2014 – 2016", 9.5, "Inter", MG, 50, 428),
 
     sep(450),
 
     // ── SKILLS ──────────────────────────────────────────────────
-    bar(464), head("SKILLS", 464),
-    block("Product Strategy · Roadmapping · Agile / Scrum · SQL · Tableau · Data Analysis · Stakeholder Management", 50, 490, 495, 36, 10, 15, MG, "Inter"),
+    bar(464), head("UMIEJĘTNOŚCI", 464),
+    block("Strategia produktowa · Roadmapowanie · Agile / Scrum · SQL · Tableau · Analiza danych · Zarządzanie interesariuszami", 50, 490, 495, 36, 10, 15, MG, "Inter"),
 ];

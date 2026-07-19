@@ -40,7 +40,7 @@ export default function Register() {
         setError("");
 
         const api = new ApiClient();
-        api.httpRequest(ENDPOINTS.AUTH.REGISTER, "POST", JSON.stringify({ username, email, password }), "Registration failed")
+        api.httpRequest(ENDPOINTS.AUTH.REGISTER, "POST", JSON.stringify({ username, email, password }), "Rejestracja nie powiodła się")
             .then(() => {
                 setIsLoading(true);
                 setTimeout(() => {
@@ -60,11 +60,11 @@ export default function Register() {
                 <div className={classes.logoBadge}>
                     <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
                 </div>
-                <h1 className={classes.mainHeading}>Create your account</h1>
-                <p className={classes.subHeading}>Free forever. No card needed.</p>
+                <h1 className={classes.mainHeading}>Utwórz konto</h1>
+                <p className={classes.subHeading}>Na zawsze za darmo. Karta nie jest wymagana.</p>
                 <form onSubmit={handleSubmit} className={classes.form}>
                     <div className={classes.control}>
-                        <label htmlFor="username">Username</label>
+                        <label htmlFor="username">Nazwa użytkownika</label>
                         <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
                             <UserIcon />
                             <input
@@ -73,7 +73,7 @@ export default function Register() {
                                 name="username"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
-                                placeholder="Enter your username"
+                                placeholder="Wpisz nazwę użytkownika"
                                 autoComplete="username"
                                 disabled={isLoading}
                                 required
@@ -81,7 +81,7 @@ export default function Register() {
                         </div>
                     </div>
                     <div className={classes.control}>
-                        <label htmlFor="email">Email</label>
+                        <label htmlFor="email">E-mail</label>
                         <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
                             <MailIcon />
                             <input
@@ -90,7 +90,7 @@ export default function Register() {
                                 name="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                placeholder="Enter your email"
+                                placeholder="Wpisz adres e-mail"
                                 autoComplete="email"
                                 disabled={isLoading}
                                 required
@@ -98,7 +98,7 @@ export default function Register() {
                         </div>
                     </div>
                     <div className={classes.control}>
-                        <label htmlFor="password">Password</label>
+                        <label htmlFor="password">Hasło</label>
                         <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
                             <LockIcon />
                             <input
@@ -107,7 +107,7 @@ export default function Register() {
                                 name="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Enter your password"
+                                placeholder="Wpisz hasło"
                                 autoComplete="new-password"
                                 disabled={isLoading}
                                 required
@@ -133,11 +133,11 @@ export default function Register() {
                         className={classes.authBtn}
                         disabled={isLoading}
                     >
-                        {isLoading ? "Creating account…" : "Create account"}
+                        {isLoading ? "Tworzenie konta…" : "Utwórz konto"}
                     </button>
                 </form>
                 <p className={classes.linkWrapper}>
-                    Already have an account? <Link to="/login">Sign in</Link>
+                    Masz już konto? <Link to="/login">Zaloguj się</Link>
                 </p>
             </div>
         </div>

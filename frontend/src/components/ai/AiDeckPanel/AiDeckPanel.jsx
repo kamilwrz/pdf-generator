@@ -9,7 +9,6 @@ import CloseButton from "../../common/CloseButton/CloseButton";
 
 const DECKS = TEMPLATES.filter((t) => t.category === "deck");
 
-// tiny 16:9 mock of a deck theme's title slide
 function StyleMock({ theme }) {
     return (
         <span style={{
@@ -34,9 +33,6 @@ const UploadIcon = () => (
     </svg>
 );
 
-// Generate a 16:9 slide deck from an uploaded PDF. Optional: tick gallery
-// images — the backend vision-captions them and places each on the slide whose
-// content it matches.
 export default function AiDeckPanel({ onClose }) {
     const { loadAiElements } = use(PdfContext);
 
@@ -52,9 +48,9 @@ export default function AiDeckPanel({ onClose }) {
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
 
     useEffect(() => {
-        api.httpRequest(ENDPOINTS.IMG.FETCH, "GET", null, "Fetching images failed!")
+        api.httpRequest(ENDPOINTS.IMG.FETCH, "GET", null, "Pobieranie obrazów nie powiodło się")
             .then(setImages)
-            .catch(() => setImages([]));   // empty gallery is fine — images are optional
+            .catch(() => setImages([]));
     }, []);
 
     function handleFilePick(e) {
@@ -78,11 +74,11 @@ export default function AiDeckPanel({ onClose }) {
             form.append("file", fileData);
             form.append("image_ids", JSON.stringify(selectedIds));
             form.append("template_id", templateId);
-            const res = await api.httpRequest(ENDPOINTS.AI.GENERATE_DECK, "POST", form, "Deck generation failed");
-            loadAiElements(res.elements, res.title || "Deck", "deck-16-9");
+            const res = await api.httpRequest(ENDPOINTS.AI.GENERATE_DECK, "POST", form, "Generowanie prezentacji nie powiodło się");
+            loadAiElements(res.elements, res.title || "Prezentacja", "deck-16-9");
             onClose();
         } catch (err) {
-            setError(err.message || "Failed to generate the deck.");
+            setError(err.message || "Nie udało się wygenerować prezentacji.");
         } finally {
             setIsGenerating(false);
         }
@@ -92,15 +88,14 @@ export default function AiDeckPanel({ onClose }) {
         <div className={classes.panel}>
             <div className={classes.header}>
                 <div>
-                    <div className={classes.title}>AI Deck</div>
-                    <div className={classes.subtitle}>Turn a document into a 16:9 slide deck</div>
+                    <div className={classes.title}>Prezentacja AI</div>
+                    <div className={classes.subtitle}>Zamień dokument w prezentację 16:9</div>
                 </div>
                 <CloseButton clickHandler={onClose} right={0} top={0} />
             </div>
 
-            {/* Step 1 — source document */}
             <div className={classes.section}>
-                <div className={classes.sectionLabel}>1. Upload the source PDF</div>
+                <div className={classes.sectionLabel}>1. Prześlij źródłowy PDF</div>
                 <div
                     className={`${classes.dropzone} ${fileName ? classes.dropzoneDone : ""}`}
                     onClick={() => fileRef.current?.click()}
@@ -110,24 +105,23 @@ export default function AiDeckPanel({ onClose }) {
                         <>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             <span className={classes.dropFileName}>{fileName}</span>
-                            <span className={classes.dropChange}>Change</span>
+                            <span className={classes.dropChange}>Zmień</span>
                         </>
                     ) : (
                         <>
                             <UploadIcon />
-                            <span className={classes.dropText}>Drop PDF here or click to browse</span>
+                            <span className={classes.dropText}>Upuść PDF tutaj lub kliknij, aby wybrać plik</span>
                         </>
                     )}
                 </div>
             </div>
 
-            {/* Step 2 — optional gallery images */}
             <div className={classes.section}>
                 <div className={classes.sectionLabel}>
-                    2. Pick images <span className={classes.optional}>(optional — AI places them by meaning)</span>
+                    2. Wybierz obrazy <span className={classes.optional}>(opcjonalnie — AI umieszcza je według treści)</span>
                 </div>
                 {images.length === 0 ? (
-                    <div className={classes.emptyGallery}>No gallery images yet — upload some via the sidebar first.</div>
+                    <div className={classes.emptyGallery}>Brak obrazów w galerii — najpierw prześlij je w panelu bocznym.</div>
                 ) : (
                     <div className={classes.imageGrid}>
                         {images.map((img) => {
@@ -152,9 +146,8 @@ export default function AiDeckPanel({ onClose }) {
                 )}
             </div>
 
-            {/* Step 3 — deck style */}
             <div className={classes.section}>
-                <div className={classes.sectionLabel}>3. Choose a style</div>
+                <div className={classes.sectionLabel}>3. Wybierz styl</div>
                 <div className={classes.styleGrid}>
                     {DECKS.map((t) => {
                         const theme = DECK_THEMES[t.id];
@@ -168,14 +161,13 @@ export default function AiDeckPanel({ onClose }) {
                             >
                                 {theme && <StyleMock theme={theme} />}
                                 <span className={classes.styleName}>{t.name}</span>
-                                <span className={classes.styleTag}>{t.industry.replace("Deck · ", "")}</span>
+                                <span className={classes.styleTag}>{t.industry.replace("Prezentacja · ", "")}</span>
                             </button>
                         );
                     })}
                 </div>
             </div>
 
-            {/* Step 4 — generate */}
             <div className={classes.section}>
                 <button
                     type="button"
@@ -183,9 +175,9 @@ export default function AiDeckPanel({ onClose }) {
                     onClick={handleGenerate}
                     disabled={!fileData || isGenerating}
                 >
-                    {isGenerating ? "Designing your deck…" : "Generate deck"}
+                    {isGenerating ? "Projektowanie prezentacji…" : "Generuj prezentację"}
                 </button>
-                {isGenerating && <div className={classes.hint}>Reading the document, captioning images, laying out slides…</div>}
+                {isGenerating && <div className={classes.hint}>Odczytywanie dokumentu, opisywanie obrazów, układ slajdów…</div>}
                 {error && <div className={classes.error}>{error}</div>}
             </div>
         </div>

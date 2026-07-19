@@ -6,7 +6,7 @@ import classes from "./Spinner.module.css";
 export default function Spinner({ loading = true }) {
     if (!loading) return null;
     return (
-        <div className={classes.overlay} role="status" aria-live="polite" aria-label="Generating your PDF">
+        <div className={classes.overlay} role="status" aria-live="polite" aria-label="Generowanie PDF">
             <div className={classes.card}>
                 <div className={classes.stage}>
                     <span className={classes.ring} aria-hidden="true" />
@@ -21,9 +21,9 @@ export default function Spinner({ loading = true }) {
                     </span>
                 </div>
                 <div className={classes.title}>
-                    Generating your PDF<span className={classes.dots} aria-hidden="true" />
+                    Generowanie PDF<span className={classes.dots} aria-hidden="true" />
                 </div>
-                <div className={classes.subtitle}>Laying out pages &amp; rendering</div>
+                <div className={classes.subtitle}>Układanie stron i renderowanie</div>
                 <div className={classes.bar}><span /></div>
             </div>
         </div>

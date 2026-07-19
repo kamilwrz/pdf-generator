@@ -31,7 +31,7 @@ export default function Login() {
         formDetails.append("password", password);
 
         const api = new ApiClient({ "Content-Type": "application/x-www-form-urlencoded" });
-        api.httpRequest(ENDPOINTS.AUTH.LOGIN, "POST", formDetails, "Login failed").
+        api.httpRequest(ENDPOINTS.AUTH.LOGIN, "POST", formDetails, "Logowanie nie powiodło się").
         then((data) => {
             setIsLoading(true);
             localStorage.setItem("token", data.access_token);
@@ -61,11 +61,11 @@ export default function Login() {
                 <div className={classes.logoBadge}>
                     <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
                 </div>
-                <h1 className={classes.mainHeading}>Welcome back</h1>
-                <p className={classes.subHeading}>Sign in to keep designing</p>
+                <h1 className={classes.mainHeading}>Witaj ponownie</h1>
+                <p className={classes.subHeading}>Zaloguj się, aby kontynuować projektowanie</p>
                 <form onSubmit={handleSubmit} className={classes.form}>
                     <div className={classes.control}>
-                        <label htmlFor="username">Username</label>
+                        <label htmlFor="username">Nazwa użytkownika</label>
                         <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
                             <UserIcon />
                             <input
@@ -74,14 +74,14 @@ export default function Login() {
                                 name="username"
                                 value={username ?? ""}
                                 onChange={handleChangeUsername}
-                                placeholder="Enter your username"
+                                placeholder="Wpisz nazwę użytkownika"
                                 autoComplete="username"
                                 disabled={isLoading}
                             />
                         </div>
                     </div>
                     <div className={classes.control}>
-                        <label htmlFor="password">Password</label>
+                        <label htmlFor="password">Hasło</label>
                         <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
                             <LockIcon />
                             <input
@@ -90,7 +90,7 @@ export default function Login() {
                                 name="password"
                                 value={password ?? ""}
                                 onChange={handleChangePassword}
-                                placeholder="Enter your password"
+                                placeholder="Wpisz hasło"
                                 autoComplete="current-password"
                                 disabled={isLoading}
                             />
@@ -106,11 +106,11 @@ export default function Login() {
                         className={classes.authBtn}
                         disabled={isLoading}
                     >
-                        {isLoading ? "Signing in…" : "Sign in"}
+                        {isLoading ? "Logowanie…" : "Zaloguj się"}
                     </button>
                 </form>
                 <p className={classes.linkWrapper}>
-                    New here? <Link to="/register">Create an account</Link>
+                    Nowy użytkownik? <Link to="/register">Utwórz konto</Link>
                 </p>
             </div>
         </div>

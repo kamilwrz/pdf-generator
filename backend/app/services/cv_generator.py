@@ -107,14 +107,14 @@ class Builder:
 # ── shared helpers ───────────────────────────────────────────────────────────
 
 _LABEL_DEFAULTS = {
-    "summary":    "PROFESSIONAL SUMMARY",
-    "experience": "PROFESSIONAL EXPERIENCE",
-    "education":  "EDUCATION",
-    "skills":     "SKILLS",
+    "summary":    "PODSUMOWANIE ZAWODOWE",
+    "experience": "DOŚWIADCZENIE ZAWODOWE",
+    "education":  "WYKSZTAŁCENIE",
+    "skills":     "UMIEJĘTNOŚCI",
 }
 
 def _labels(cv: dict) -> dict:
-    """Return section headings in the CV's language (GPT-supplied), with English fallbacks."""
+    """Return section headings in the CV's language (GPT-supplied), with Polish fallbacks."""
     raw = cv.get("labels") or {}
     return {k: (raw.get(k) or v).upper() for k, v in _LABEL_DEFAULTS.items()}
 
@@ -375,10 +375,10 @@ def _gen_it(cv: dict) -> list[dict]:
     sidebar_bg  = _line(0, 0, SB, 842, "#0F2A33", zIndex=0)
     photo_frame = _line(43, 38, 104, 104, C["teal"], zIndex=1)
     photo_inner = _line(45, 40, 100, 100, "#14333D", zIndex=2)
-    photo_label = _text("PHOTO", 10, "Inter", "#6E8C92", 78, 84, zIndex=3)
+    photo_label = _text("ZDJĘCIE", 10, "Inter", "#6E8C92", 78, 84, zIndex=3)
 
     # sidebar contact label (localized)
-    contact_label = (cv.get("labels") or {}).get("contact", "CONTACT").upper()
+    contact_label = (cv.get("labels") or {}).get("contact", "KONTAKT").upper()
     skills_label  = lbl["skills"]
 
     static = [sidebar_bg, photo_frame, photo_inner, photo_label,
@@ -448,7 +448,7 @@ def _gen_blueprint(cv: dict) -> list[dict]:
         _text(_contact_line(cv), 9.5, "Inter", C["gray"], 50, 118),
         _line(50, 138, 495, 1.5, C["ink"]),
         _line(205, 160, 1, 645, C["div"]),
-        _text("CONTACT", 10, "Courier", C["blue"], 50, 176, bold=True),
+        _text("KONTAKT", 10, "Courier", C["blue"], 50, 176, bold=True),
     ]
 
     contact_text = "\n".join(filter(None, [cv.get("email"), cv.get("phone"), cv.get("location")]))
@@ -688,9 +688,9 @@ def _gen_sterling(cv: dict) -> list[dict]:
     skills = cv.get("skills") or []
     kpis = [
         (f"{years}+" if years else str(len(exp) or "—"),
-         "YEARS EXPERIENCE" if years else "ROLES"),
-        (str(len(exp)) if exp else "—", "POSITIONS HELD"),
-        (str(len(skills)) if skills else "—", "CORE SKILLS"),
+         "LAT DOŚWIADCZENIA" if years else "STANOWISK"),
+        (str(len(exp)) if exp else "—", "ZAJMOWANYCH STANOWISK"),
+        (str(len(skills)) if skills else "—", "KLUCZOWYCH UMIEJĘTNOŚCI"),
     ]
     for i, (figure, label) in enumerate(kpis):
         left = 55 + i * 164
@@ -773,10 +773,10 @@ def _gen_solstice(cv: dict) -> list[dict]:
         _text(cv.get("title", ""), 10.5, SANS, SUN, L + 2, 98),
         _line(L, 126, W, 1.5, MIDNIGHT),
         _line(L, 132, 104, 2, SUN),
-        _text("CONTACT", 9, SANS, SUN, 36, 196),
+        _text("KONTAKT", 9, SANS, SUN, 36, 196),
         _line(36, 211, 76, 1, "#5D6E7D", zIndex=2),
         _block(contact, 36, 226, 112, max(len(contact.splitlines()) * 14, 48), 8.5, 14, "#E9E5DE", SANS),
-        _text("SPECIALTIES", 9, SANS, SUN, 36, 342),
+        _text("SPECJALIZACJE", 9, SANS, SUN, 36, 342),
         _line(36, 357, 76, 1, "#5D6E7D", zIndex=2),
         _block(skills, 36, 372, 112, max(len(cv.get("skills") or []) * 15, 48), 8.6, 15, "#E9E5DE", SANS),
     ]
@@ -848,10 +848,10 @@ def _gen_mistral(cv: dict) -> list[dict]:
         _text(cv.get("name", ""), 32, SERIF, "#FFFFFF", 188, 46),
         _text(cv.get("title", ""), 12.5, SANS, "#CBE3DF", 190, 91, italic=True),
         _text(contact, 9.2, SANS, "#B4D5D0", 190, 118),
-        _text("PROFILE", 8.5, SANS, SEA, 48, 198),
+        _text("PROFIL", 8.5, SANS, SEA, 48, 198),
         _line(48, 213, 104, 1, "#C7D7D4"),
         _block(profile, 48, 222, 104, 104, 9, 14, INK, SANS),
-        _text("PRACTICE", 8.5, SANS, SEA, 48, 364),
+        _text("UMIEJĘTNOŚCI", 8.5, SANS, SEA, 48, 364),
         _line(48, 379, 104, 1, "#C7D7D4"),
         _block(skills, 48, 388, 104, max(len(cv.get("skills") or []) * 15, 48), 8.8, 15, INK, SANS),
     ]
@@ -925,6 +925,6 @@ def generate_resume(template_id: str, cv_data: dict) -> list[dict]:
     """
     fn = _GENERATORS.get(template_id)
     if fn is None:
-        raise ValueError(f"Unknown template '{template_id}'. "
-                         f"Available: {list(_GENERATORS)}")
+        raise ValueError(f"Nieznany szablon '{template_id}'. "
+                         f"Dostępne: {list(_GENERATORS)}")
     return fn(cv_data)

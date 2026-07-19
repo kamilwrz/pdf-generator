@@ -12,15 +12,22 @@ import { ApiClient, ENDPOINTS } from "../../../services/api";
 
 // ── quick actions ─────────────────────────────────────────────────────────
 const ACTIONS = [
-    { id: "rating",          label: "Rate CV",      icon: FaStar,        color: "#F59E0B", description: "Overall CV quality score 1–10" },
-    { id: "design_rating",   label: "Design",       icon: FaPalette,     color: "#6B21A8", description: "Visual design & layout assessment" },
-    { id: "position_rating", label: "Position Fit", icon: FaBriefcase,   color: "#0D9488", description: "Match CV to a job description" },
-    { id: "grammar",         label: "Grammar",      icon: RiEditLine,    color: "#4C51BF", description: "Find and fix grammar errors" },
-    { id: "language",        label: "Style",        icon: FaFont,        color: "#2B6CB0", description: "Improve writing tone and clarity" },
-    { id: "improve",         label: "Improve",      icon: FaMagic,       color: "#5FA777", description: "Stronger bullets with action verbs" },
-    { id: "ats_score",       label: "ATS Score",    icon: FaRobot,       color: "#D63384", description: "Applicant tracking system check" },
-    { id: "layout",          label: "Layout",       icon: FaArrowsAltH,  color: "#B56520", description: "Check placement, alignment, and spacing" },
+    { id: "rating",          label: "Oceń CV",           icon: FaStar,        color: "#F59E0B", description: "Ogólna ocena jakości CV w skali 1–10" },
+    { id: "design_rating",   label: "Projekt",           icon: FaPalette,     color: "#6B21A8", description: "Ocena wyglądu i układu wizualnego" },
+    { id: "position_rating", label: "Dopasowanie",       icon: FaBriefcase,   color: "#0D9488", description: "Dopasowanie CV do opisu stanowiska" },
+    { id: "grammar",         label: "Gramatyka",         icon: RiEditLine,    color: "#4C51BF", description: "Znajdź i popraw błędy gramatyczne" },
+    { id: "language",        label: "Styl",              icon: FaFont,        color: "#2B6CB0", description: "Popraw ton i klarowność tekstu" },
+    { id: "improve",         label: "Ulepsz",            icon: FaMagic,       color: "#5FA777", description: "Mocniejsze punkty z czasownikami akcji" },
+    { id: "ats_score",       label: "Wynik ATS",         icon: FaRobot,       color: "#D63384", description: "Sprawdzenie pod systemy rekrutacyjne ATS" },
+    { id: "layout",          label: "Układ",             icon: FaArrowsAltH,  color: "#B56520", description: "Sprawdź rozmieszczenie, wyrównanie i odstępy" },
 ];
+const SEVERITY_LABELS = {
+    critical: "krytyczny",
+    high: "wysoki",
+    medium: "średni",
+    low: "niski",
+    review: "do sprawdzenia",
+};
 
 // ── sub-components ────────────────────────────────────────────────────────
 
@@ -51,16 +58,16 @@ function CorrectionCard({ msgId, patch, correctionStates, onAccept, onReject, A4
             ))}
             {state === "pending" && (
                 <div className={classes.corrActions}>
-                    <button className={classes.corrAccept} onClick={() => onAccept(msgId, patch)} title="Apply">
-                        <MdCheckCircle /> Accept
+                    <button className={classes.corrAccept} onClick={() => onAccept(msgId, patch)} title="Zastosuj">
+                        <MdCheckCircle /> Akceptuj
                     </button>
-                    <button className={classes.corrReject} onClick={() => onReject(msgId, element_id)} title="Reject">
-                        <MdCancel /> Reject
+                    <button className={classes.corrReject} onClick={() => onReject(msgId, element_id)} title="Odrzuć">
+                        <MdCancel /> Odrzuć
                     </button>
                 </div>
             )}
-            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "#5FA777" }}>✓ Applied</span>}
-            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "#9A8E7F" }}>✗ Skipped</span>}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "#5FA777" }}>✓ Zastosowano</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "#9A8E7F" }}>✗ Pominięto</span>}
         </div>
     );
 }
@@ -74,38 +81,38 @@ function LayoutGroupCard({ msgId, group, layoutStates, onPreview, onClearPreview
         <div className={`${classes.layoutCard} ${classes[`layout_${state}`]}`}>
             <div className={classes.layoutCardHeader}>
                 <span className={`${classes.layoutSeverity} ${classes[`severity_${group.severity}`]}`}>
-                    {group.severity || "review"}
+                    {SEVERITY_LABELS[group.severity] ?? group.severity ?? SEVERITY_LABELS.review}
                 </span>
-                <span className={classes.layoutMoves}>{moves} move{moves !== 1 ? "s" : ""}</span>
+                <span className={classes.layoutMoves}>{moves} {moves === 1 ? "przesunięcie" : moves < 5 ? "przesunięcia" : "przesunięć"}</span>
             </div>
             <strong>{group.title}</strong>
             <p>{group.reason}</p>
             {state === "pending" && (
                 <div className={classes.layoutActions}>
                     <button className={classes.layoutPreview} onClick={() => onPreview(msgId, group)}>
-                        Preview
+                        Podgląd
                     </button>
                     <button className={classes.layoutAccept} onClick={() => onAccept(msgId, group)}>
-                        <MdCheckCircle /> Apply
+                        <MdCheckCircle /> Zastosuj
                     </button>
                     <button className={classes.layoutReject} onClick={() => onReject(msgId, group)}>
-                        <MdCancel /> Skip
+                        <MdCancel /> Pomiń
                     </button>
                 </div>
             )}
             {state === "preview" && (
                 <div className={classes.layoutActions}>
-                    <span className={classes.previewingLabel}>Preview active on canvas</span>
+                    <span className={classes.previewingLabel}>Podgląd aktywny na płótnie</span>
                     <button className={classes.layoutAccept} onClick={() => onAccept(msgId, group)}>
-                        <MdCheckCircle /> Apply
+                        <MdCheckCircle /> Zastosuj
                     </button>
                     <button className={classes.layoutPreview} onClick={() => onClearPreview(msgId, group.id)}>
-                        Stop preview
+                        Zatrzymaj podgląd
                     </button>
                 </div>
             )}
-            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "#5FA777" }}>✓ Applied</span>}
-            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "#9A8E7F" }}>✗ Skipped</span>}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "#5FA777" }}>✓ Zastosowano</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "#9A8E7F" }}>✗ Pominięto</span>}
         </div>
     );
 }
@@ -158,10 +165,10 @@ function ChatMessage({
                 {msg.corrections?.length > 0 && (
                     <div className={classes.corrections}>
                         <div className={classes.corrHeader}>
-                            <span>{msg.corrections.length} correction{msg.corrections.length !== 1 ? "s" : ""}</span>
+                            <span>{msg.corrections.length} {msg.corrections.length === 1 ? "poprawka" : msg.corrections.length < 5 ? "poprawki" : "poprawek"}</span>
                             {pendingCount > 0 && (
                                 <button className={classes.applyAll} onClick={() => onApplyAll(msg.id, msg.corrections)}>
-                                    Apply all ({pendingCount})
+                                    Zastosuj wszystkie ({pendingCount})
                                 </button>
                             )}
                         </div>
@@ -183,7 +190,7 @@ function ChatMessage({
                 {msg.layout_groups?.length > 0 && (
                     <div className={classes.layoutGroups}>
                         <div className={classes.corrHeader}>
-                            <span>{msg.layout_groups.length} layout suggestion{msg.layout_groups.length !== 1 ? "s" : ""}</span>
+                            <span>{msg.layout_groups.length} {msg.layout_groups.length === 1 ? "sugestia układu" : msg.layout_groups.length < 5 ? "sugestie układu" : "sugestii układu"}</span>
                         </div>
                         {msg.layout_groups.map(group => (
                             <LayoutGroupCard
@@ -209,7 +216,7 @@ function ChatMessage({
                 {/* web sources */}
                 {msg.web_sources?.length > 0 && (
                     <div className={classes.sources}>
-                        <span className={classes.sourcesLabel}>Sources:</span>
+                        <span className={classes.sourcesLabel}>Źródła:</span>
                         {msg.web_sources.map((url, i) => (
                             <a key={i} href={url} target="_blank" rel="noopener noreferrer" className={classes.sourceLink}>
                                 {new URL(url).hostname}
@@ -363,7 +370,7 @@ export default function AiAssistant() {
                     job_description: action === "position_rating" ? jobDesc : "",
                     page_size: pageSize,
                 }),
-                "AI Assistant failed"
+                "Asystent AI nie odpowiedział"
             );
 
             const assistantMsg = {
@@ -384,7 +391,7 @@ export default function AiAssistant() {
             setMessages(prev => [...prev, {
                 id: nanoid(),
                 role: "assistant",
-                text: `Error: ${err.message}`,
+                text: `Błąd: ${err.message}`,
                 tips: [],
                 corrections: [],
                 web_sources: [],
@@ -409,7 +416,7 @@ export default function AiAssistant() {
         if (showJobDesc) {
             // confirm position_rating with job description
             setShowJobDesc(false);
-            send("position_rating", `Analyse my CV for this position:\n${jobDesc.slice(0, 200)}…`);
+            send("position_rating", `Przeanalizuj moje CV pod kątem tego stanowiska:\n${jobDesc.slice(0, 200)}…`);
             setInput("");
             return;
         }
@@ -430,8 +437,8 @@ export default function AiAssistant() {
             <button
                 className={`${classes.fab} ${isLoading ? classes.fabLoading : ""}`}
                 onClick={() => setIsOpen(o => !o)}
-                title="AI Assistant"
-                aria-label="Open AI Assistant"
+                title="Asystent AI"
+                aria-label="Otwórz asystenta AI"
             >
                 <BsStars />
             </button>
@@ -451,8 +458,8 @@ export default function AiAssistant() {
                             <div className={classes.headerLeft}>
                                 <BsStars className={classes.headerIcon} />
                                 <div>
-                                    <div className={classes.headerTitle}>AI Assistant</div>
-                                    <div className={classes.headerSub}>Analyse, correct & improve</div>
+                                    <div className={classes.headerTitle}>Asystent AI</div>
+                                    <div className={classes.headerSub}>Analizuj, poprawiaj i ulepszaj</div>
                                 </div>
                             </div>
                             <button className={classes.closeBtn} onClick={() => {
@@ -491,29 +498,29 @@ export default function AiAssistant() {
                                     transition={{ duration: 0.2 }}
                                 >
                                     <label className={classes.jobDescLabel}>
-                                        Paste the job description to analyse your CV fit:
+                                        Wklej opis stanowiska, aby ocenić dopasowanie CV:
                                     </label>
                                     <textarea
                                         className={classes.jobDescInput}
                                         value={jobDesc}
                                         onChange={e => setJobDesc(e.target.value)}
-                                        placeholder="Senior Frontend Engineer at Acme Inc…"
+                                        placeholder="Starszy programista frontend w Acme Inc…"
                                         rows={4}
                                     />
                                     <div className={classes.jobDescRow}>
                                         <button
                                             className={classes.jobDescCancel}
                                             onClick={() => setShowJobDesc(false)}
-                                        >Cancel</button>
+                                        >Anuluj</button>
                                         <button
                                             className={classes.jobDescAnalyse}
                                             disabled={!jobDesc.trim() || isLoading}
                                             onClick={() => {
                                                 setShowJobDesc(false);
-                                                send("position_rating", `Analyse my CV for this position:\n${jobDesc.slice(0, 200)}…`);
+                                                send("position_rating", `Przeanalizuj moje CV pod kątem tego stanowiska:\n${jobDesc.slice(0, 200)}…`);
                                             }}
                                         >
-                                            Analyse
+                                            Analizuj
                                         </button>
                                     </div>
                                 </motion.div>
@@ -525,7 +532,7 @@ export default function AiAssistant() {
                             {messages.length === 0 && (
                                 <div className={classes.emptyState}>
                                     <BsStars className={classes.emptyIcon} />
-                                    <p>Click an action above or type a question about your CV.</p>
+                                    <p>Kliknij akcję powyżej lub wpisz pytanie o swoje CV.</p>
                                 </div>
                             )}
                             {messages.map(msg => (
@@ -562,7 +569,7 @@ export default function AiAssistant() {
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
                                 onKeyDown={handleKey}
-                                placeholder="Ask anything about your CV…"
+                                placeholder="Zadaj pytanie o swoje CV…"
                                 rows={1}
                                 disabled={isLoading || showJobDesc}
                             />
@@ -570,7 +577,7 @@ export default function AiAssistant() {
                                 className={classes.sendBtn}
                                 onClick={handleSend}
                                 disabled={!input.trim() || isLoading || showJobDesc}
-                                aria-label="Send"
+                                aria-label="Wyślij"
                             >
                                 <IoSend />
                             </button>

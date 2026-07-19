@@ -145,7 +145,7 @@ function PdfCanvas() {
   useEffect(() => {
 
     const api = new ApiClient();
-    api.httpRequest(ENDPOINTS.AUTH.TOKEN + localStorage.getItem("token"), "GET", null, "Token not successfull verified!").
+    api.httpRequest(ENDPOINTS.AUTH.TOKEN + localStorage.getItem("token"), "GET", null, "Weryfikacja tokenu nie powiodła się!").
       catch((error) => {
         console.log(error);
         localStorage.removeItem("token");
@@ -334,7 +334,7 @@ function PdfCanvas() {
         <div style={{ position: "fixed", top: 62, left: "50%", transform: "translateX(-50%)", zIndex: 5000,
                       background: "var(--accent)", color: "#fff", padding: "8px 16px", borderRadius: 999,
                       font: "700 13px var(--font-body)", boxShadow: "var(--shadow-pop)", pointerEvents: "none" }}>
-          {connectSourceId ? "Click the target element  ·  Esc to cancel" : "Click the source element  ·  Esc to cancel"}
+          {connectSourceId ? "Kliknij element docelowy  ·  Esc anuluje" : "Kliknij element źródłowy  ·  Esc anuluje"}
         </div>
       )}
 

@@ -15,26 +15,26 @@ const ital = (el) => ({ ...el, italic: true });
 export const ampersandTemplate = [
     // left accent stripe
     line(0, 0, 9, 842, WINE, 0),
-    bold(text("ROWAN ELLIS", 31, S, INK, 50, 58, 2)),
-    ital(text("Writer & Editor", 14, S, WINE, 50, 98, 2)),
-    text("rowan.ellis@email.com   ·   +1 (555) 661-2210   ·   Portland, OR", 9.5, S, GRAY, 50, 122, 2),
+    bold(text("ZOFIA KRAWCZYK", 31, S, INK, 50, 58, 2)),
+    ital(text("Pisarka i Redaktorka", 14, S, WINE, 50, 98, 2)),
+    text("zofia.krawczyk@email.com   ·   +48 600 567 890   ·   Gdańsk", 9.5, S, GRAY, 50, 122, 2),
     line(50, 140, 497, 1, RULE),
 
-    bold(text("PROFILE", 12, S, INK, 50, 158)),
-    block("Editor and writer with a decade shaping long-form stories. I bring clarity to complex ideas and a steady hand to every deadline.", 50, 174, 497, 52, 11, 16, BODY, S),
+    bold(text("PROFIL", 12, S, INK, 50, 158)),
+    block("Redaktorka i pisarka z dekadą doświadczenia w kształtowaniu długich form narracyjnych. Wnosi klarowność w złożone idee i pewność przy każdym terminie.", 50, 174, 497, 52, 11, 16, BODY, S),
 
-    bold(text("EXPERIENCE", 12, S, INK, 50, 246)),
-    bold(text("Senior Editor — Meridian Press", 11.5, S, INK, 50, 268)),
-    ital(text("2018 – Present", 9.5, S, GRAY, 50, 284)),
-    bulleted(block("• Commissioned and edited 200+ features across print and web.\n• Grew the essays vertical's readership by 40%.\n• Mentored a team of six staff writers.", 50, 300, 497, 52, 10.5, 15, BODY, S)),
-    bold(text("Staff Writer — The Quarterly", 11.5, S, INK, 50, 364)),
+    bold(text("DOŚWIADCZENIE", 12, S, INK, 50, 246)),
+    bold(text("Starszy Redaktor — Wydawnictwo Meridian", 11.5, S, INK, 50, 268)),
+    ital(text("2018 – obecnie", 9.5, S, GRAY, 50, 284)),
+    bulleted(block("• Zleciła i zredagowała ponad 200 artykułów w druku i internecie.\n• Zwiększyła czytelność działu esejów o 40%.\n• Rozwijała zespół sześciu dziennikarzy.", 50, 300, 497, 52, 10.5, 15, BODY, S)),
+    bold(text("Dziennikarka — Kwartalnik", 11.5, S, INK, 50, 364)),
     ital(text("2014 – 2018", 9.5, S, GRAY, 50, 380)),
-    bulleted(block("• Wrote cover stories and a weekly column.\n• Won two regional press awards.", 50, 396, 497, 40, 10.5, 15, BODY, S)),
+    bulleted(block("• Pisała artykuły okładkowe i cotygodniową kolumnę.\n• Zdobyła dwie regionalne nagrody prasowe.", 50, 396, 497, 40, 10.5, 15, BODY, S)),
 
-    bold(text("EDUCATION", 12, S, INK, 50, 452)),
-    bold(text("M.A. English Literature — Reed College", 11, S, INK, 50, 472)),
+    bold(text("EDUKACJA", 12, S, INK, 50, 452)),
+    bold(text("Magister Literatury Angielskiej — Uniwersytet Gdański", 11, S, INK, 50, 472)),
     ital(text("2010 – 2014", 9.5, S, GRAY, 50, 488)),
 
-    bold(text("SKILLS", 12, S, INK, 50, 528)),
-    block("Editing · Copywriting · Storytelling · CMS · SEO · Fact-checking", 50, 546, 497, 36, 10.5, 15, BODY, S),
+    bold(text("UMIEJĘTNOŚCI", 12, S, INK, 50, 528)),
+    block("Redakcja · Tworzenie tekstów · Opowiadanie historii · CMS · SEO · Weryfikacja faktów", 50, 546, 497, 36, 10.5, 15, BODY, S),
 ];

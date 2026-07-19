@@ -290,10 +290,10 @@ export default function TemplatesModal() {
 
     function handlePick(t) {
         if (A4_Elements.length > 0 &&
-            !window.confirm("Replace the current canvas with this template? Unsaved elements on the canvas will be cleared.")) {
+            !window.confirm("Zastąpić bieżące płótno tym szablonem? Niezapisane elementy zostaną usunięte.")) {
             return;
         }
-        const title = t.category === "deck" ? `${t.name} deck` : `${t.name} CV`;
+        const title = t.category === "deck" ? `Prezentacja ${t.name}` : `CV ${t.name}`;
         loadTemplate(t.elements, title, t.pageSize);
         showTemplates();
     }
@@ -305,8 +305,8 @@ export default function TemplatesModal() {
             <div className={classes.modal} onClick={(e) => e.stopPropagation()}>
                 <div className={classes.header}>
                     <div>
-                        <h2>Start from a template</h2>
-                        <p>Pick a layout, then personalize every element on the canvas.</p>
+                        <h2>Zacznij od szablonu</h2>
+                        <p>Wybierz układ, a potem spersonalizuj każdy element na płótnie.</p>
                     </div>
                     <CloseButton clickHandler={showTemplates} right={20} top={20} />
                 </div>
@@ -329,7 +329,7 @@ export default function TemplatesModal() {
                             <div className={classes.cardName}>{t.name}</div>
                             <div className={classes.cardIndustry}>{t.industry}</div>
                             <button type="button" className={classes.useBtn} onClick={() => handlePick(t)}>
-                                Use template
+                                Użyj szablonu
                             </button>
                         </div>
                     ))}

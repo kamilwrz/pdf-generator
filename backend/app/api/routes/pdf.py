@@ -49,7 +49,7 @@ async def create_user_pdf(
 
     #WHEN NO ELEMENTS IN THE CANVAS / STATE THROW HTTPException
     if not elements:
-        raise HTTPException(status_code=400, detail="Some data seems to be missing...")
+        raise HTTPException(status_code=400, detail="Brakuje części danych.")
     
     #GET THE USERNAME FROM THE JWT TOKEN / CURRENT SESSION
     username = payload.get("sub")
@@ -65,7 +65,7 @@ async def create_user_pdf(
             for page in paginator.paginate(Bucket=s3_storage.S3_BUCKET, Prefix=f"pdfs/{username}/"):
                 for obj in page.get("Contents", []):
                     if obj["Key"] == key:
-                        raise HTTPException(status_code=400, detail="File name already exists!")
+                        raise HTTPException(status_code=400, detail="Plik o tej nazwie już istnieje.")
         except HTTPException:
             raise
         except Exception:
@@ -73,7 +73,7 @@ async def create_user_pdf(
         pdf_bytes = build_pdf_to_buffer(pdf_data, elements, image_src_to_local_path)
         file_path = s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
         pdf_id = create_new_pdf(db, title, db_user.id, file_path, elements, pdf_data.pages, pdf_data.page_width, pdf_data.page_height)
-        return {"created": "PDF created!", "link": file_path, "pdf_id": pdf_id}
+        return {"created": "Utworzono plik PDF.", "link": file_path, "pdf_id": pdf_id}
     
     else:
         user_upload_dir = PDF_UPLOAD_DIR / username
@@ -81,7 +81,7 @@ async def create_user_pdf(
     
         files_in_user_folder = [f for f in listdir(user_upload_dir) if isfile(join(user_upload_dir, f))]
         if title in files_in_user_folder:
-            raise HTTPException(status_code=400, detail="File name already exists!")
+            raise HTTPException(status_code=400, detail="Plik o tej nazwie już istnieje.")
 
         pdf_path = user_upload_dir / title
 
@@ -93,7 +93,7 @@ async def create_user_pdf(
         pdf.render_elements(elements, image_src_to_local_path, pdf_data.pages)
 
     
-        return {"created": "PDF created!", "link": BACKEND_URL/pdf_path.as_posix(), "pdf_id": pdf_id}
+        return {"created": "Utworzono plik PDF.", "link": BACKEND_URL/pdf_path.as_posix(), "pdf_id": pdf_id}
 
 
 @router.get("/fetch_pdfs", status_code=status.HTTP_200_OK)
@@ -110,7 +110,7 @@ async def fetch_user_pdfs(
     if not pdfs:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Please create a PDF, so it is available for preview and editing.",
+            detail="Utwórz plik PDF, aby był dostępny do podglądu i edycji.",
         )
     return pdfs
 
@@ -121,9 +121,9 @@ def _require_owned_pdf(db: Session, payload: dict, pdf_id):
     db_user = get_user_by_username(db, username=payload.get("sub"))
     pdf_row = request_pdf_by_id(db, pdf_id)
     if pdf_row is None:
-        raise HTTPException(status_code=404, detail="PDF not found.")
+        raise HTTPException(status_code=404, detail="Nie znaleziono pliku PDF.")
     if db_user is None or pdf_row.owner_id != db_user.id:
-        raise HTTPException(status_code=403, detail="This document does not belong to you.")
+        raise HTTPException(status_code=403, detail="Ten dokument nie należy do Ciebie.")
     return pdf_row
 
 
@@ -140,7 +140,7 @@ async def show_user_pdf(
     if not pdf_to_show:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="PDF not found.",
+            detail="Nie znaleziono pliku PDF.",
         )
     return pdf_to_show
 
@@ -164,7 +164,7 @@ async def delete_user_pdf(
                 pass
     else:
         delete_pdf_file(pdf_to_delete.file_path)
-    return {"deleted": "PDF deleted", "name": pdf_to_delete.title, "pdf_id": pdf_to_delete.id}
+    return {"deleted": "Usunięto plik PDF.", "name": pdf_to_delete.title, "pdf_id": pdf_to_delete.id}
 
 
 
@@ -197,7 +197,7 @@ async def update_user_pdf(
         existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
         update_pdf_elements(db, elements, existing_by_id, pdf_id)
         db.commit()
-        return {"updated": "PDF update was successful!", "link": link, "pdf_id": id}
+        return {"updated": "Pomyślnie zaktualizowano plik PDF.", "link": link, "pdf_id": id}
 
     else:
         new_file_path = rename_pdf_file(pdf_row, title)
@@ -212,7 +212,7 @@ async def update_user_pdf(
         pdf.setTitle(pdf_row.title or "untitled")
         pdf.render_elements(elements, image_src_to_local_path, pdf_data.pages)
         db.commit()
-        return {"updated": "PDF update was successful!", "link": new_file_path, "pdf_id": pdf_row.id}
+        return {"updated": "Pomyślnie zaktualizowano plik PDF.", "link": new_file_path, "pdf_id": pdf_row.id}
 
 
 @router.post("/download_pdf", status_code=status.HTTP_200_OK)

@@ -36,7 +36,7 @@ if DIST_DIR.exists():
         index_path = DIST_DIR / "index.html"
         if index_path.exists():
             return FileResponse(str(index_path))
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="Nie znaleziono")
 
 app.add_middleware(
     CORSMiddleware,

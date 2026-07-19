@@ -30,10 +30,10 @@ def verify_token(token: str = Depends(oauth2_scheme)):
         payload = jwt.decode(token, secret_key, algorithms=[algorithm])
         username: str = payload.get("sub")
         if username is None:
-            raise HTTPException(status_code=403, detail="Token is invalid or expired")
+            raise HTTPException(status_code=403, detail="Token jest nieprawidłowy lub wygasł")
         return payload
     except JWTError:
-        raise HTTPException(status_code=403, detail="Token is invalid or expired")
+        raise HTTPException(status_code=403, detail="Token jest nieprawidłowy lub wygasł")
 
 def _password_to_72_bytes(password: str | bytes | None) -> bytes:
     """Bcrypt accepts at most 72 bytes. Return password as bytes, never longer than 72."""

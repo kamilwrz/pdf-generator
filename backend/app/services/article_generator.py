@@ -154,28 +154,28 @@ def _place_pull_quote(f: _Flow, quote, attribution):
 
 def plan_article(document_text: str) -> dict:
     prompt = (
-        "You are a magazine editor. Rewrite the DOCUMENT below as a polished long-form\n"
-        "article for print. Keep ALL of its substantial knowledge — facts, numbers,\n"
-        "arguments, examples — reorganised into flowing editorial prose (no bullet lists).\n\n"
-        "Return ONLY a JSON object:\n"
+        "Jesteś redaktorem magazynu. Przepisz DOKUMENT poniżej jako dopracowany,\n"
+        "długi artykuł do druku. Zachowaj CAŁą istotną wiedzę — fakty, liczby,\n"
+        "argumenty, przykłady — uporządkowane w płynną prozę redakcyjną (bez list punktowanych).\n"
+        "Pisz po polsku. Zwróć WYŁĄCZNIE obiekt JSON:\n"
         "{\n"
-        '  "kicker": "THE GAZETTE · SECTION NAME",\n'
-        '  "title": "headline, sharp and concrete",\n'
-        '  "standfirst": "1-2 sentence italic intro that sells the piece",\n'
-        '  "byline": "By Author Name (from the document, else By The Gazette Desk)",\n'
-        '  "dateline": "Place · Month Year · N min read",\n'
-        '  "pull_quote": {"text": "one striking sentence from the article", "attribution": "source"},\n'
-        '  "sections": [ {"heading": "short heading or null for the opening section",\n'
+        '  "kicker": "GAZETA · NAZWA SEKCJI",\n'
+        '  "title": "nagłówek — konkretny i wyrazisty",\n'
+        '  "standfirst": "1-2 zdania kursywą, które sprzedają tekst",\n'
+        '  "byline": "Autor: Imię Nazwisko (z dokumentu, inaczej Redakcja Gazety)",\n'
+        '  "dateline": "Miejsce · miesiąc rok · N min czytania",\n'
+        '  "pull_quote": {"text": "jedno mocne zdanie z artykułu", "attribution": "źródło"},\n'
+        '  "sections": [ {"heading": "krótki nagłówek lub null dla sekcji otwierającej",\n'
         '                 "paragraphs": ["...", "..."]} ]\n'
         "}\n\n"
-        "Rules:\n"
-        "- The FIRST paragraph of the FIRST section opens with a drop cap: make it strong,\n"
-        "  and keep it under ~450 characters.\n"
-        "- Paragraphs 300-600 characters; headings 2-5 words; use as many sections and\n"
-        "  paragraphs as the content needs — a dense document should become a long,\n"
-        "  multi-page article, never a thin summary.\n"
-        "- Write paragraphs as plain prose (the layout justifies them into columns).\n\n"
-        f"DOCUMENT:\n{document_text}"
+        "Zasady:\n"
+        "- PIERWSZY akapit PIERWSZEJ sekcji ma drop cap: niech będzie mocny\n"
+        "  i nie dłuższy niż ~450 znaków.\n"
+        "- Akapity 300-600 znaków; nagłówki 2-5 słów; tyle sekcji i akapitów,\n"
+        "  ile wymaga treść — gęsty dokument powinien stać się długim artykułem\n"
+        "  wielostronicowym, nigdy cienkim streszczeniem.\n"
+        "- Akapity jako zwykła proza (układ justuje je w kolumny).\n\n"
+        f"DOKUMENT:\n{document_text}"
     )
     resp = _get_client().chat.completions.create(
         model=PLAN_MODEL,
@@ -185,7 +185,7 @@ def plan_article(document_text: str) -> dict:
     )
     plan = json.loads(resp.choices[0].message.content)
     if not isinstance(plan.get("sections"), list) or not plan["sections"]:
-        raise ValueError("The AI returned an empty article plan.")
+        raise ValueError("AI zwróciło pusty plan artykułu.")
     return plan
 
 
@@ -194,12 +194,12 @@ def plan_article(document_text: str) -> dict:
 def _masthead(plan: dict):
     els = [
         _line(50, 55, 7, 7, ACCENT, 1),
-        _text(plan.get("kicker") or "THE GAZETTE", 8.5, I, GRAY, 63, 54, 1),
+        _text(plan.get("kicker") or "GAZETA", 8.5, I, GRAY, 63, 54, 1),
         _line(50, 72, 495, 3, DARK, 1),
         _line(50, 78, 495, 1, DARK, 1),
     ]
     y = 92
-    title = plan.get("title") or "Untitled article"
+    title = plan.get("title") or "Artykuł bez tytułu"
     tl = len(_wrap_lines(title, 495, 29, bold=True))
     th = tl * 34 + 8
     els.append(_block(title, 50, y, 495, th, 29, 34, DARK, S, 1, bold=True))
@@ -209,7 +209,7 @@ def _masthead(plan: dict):
         sh = sl * 18 + 6
         els.append(_block(plan["standfirst"], 50, y, 495, sh, 12.5, 18, "#4A5058", S, 1, italic=True))
         y += sh + 8
-    els.append(_text(plan.get("byline") or "By The Gazette Desk", 9, I, DARK, 50, y, 1, bold=True))
+    els.append(_text(plan.get("byline") or "Redakcja Gazety", 9, I, DARK, 50, y, 1, bold=True))
     if plan.get("dateline"):
         els.append(_block(plan["dateline"], 50, y - 2, 495, 12, 8.5, 11, GRAY, I, 1, align="right"))
     y += 18
@@ -262,4 +262,4 @@ def generate_article(pdf_bytes: bytes) -> dict:
     text = extract_pdf_text(pdf_bytes)
     plan = plan_article(text)
     elements = build_article(plan)
-    return {"title": plan.get("title") or "Article", "elements": elements}
+    return {"title": plan.get("title") or "Artykuł", "elements": elements}

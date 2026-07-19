@@ -14,6 +14,15 @@ import { PdfContext } from "../../../store/pdfgenerator-context";
 import { use } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+const CATEGORY_LABELS = {
+    text: "Tekst",
+    textarea: "Pole tekstowe",
+    line: "Linia",
+    rectangle: "Prostokąt",
+    image: "Obraz",
+    connector: "Łącznik",
+};
+
 
 export default function Editor() {
 
@@ -156,23 +165,23 @@ export default function Editor() {
                     <span className={classes.headingIcon}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5FA777" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7V5h16v2" /><path d="M12 5v14" /><path d="M9 19h6" /></svg>
                     </span>
-                    <p>{selectedElement?.category ? `${selectedElement.category.charAt(0).toUpperCase()}${selectedElement.category.slice(1)} element` : "Element properties"}</p>
+                    <p>{selectedElement?.category ? `Element: ${CATEGORY_LABELS[selectedElement.category] ?? selectedElement.category}` : "Właściwości elementu"}</p>
                 </div>
                 <CloseButton clickHandler={() => handleCloseEditor(elementValues?.element_id)} right={10}/>
             </div>
             {selectedElement?.category === "text" && <>
 
-                <EditorControls labelText="Text Content" type="text" inputValue={elementValues.content} onChangeFn={(e) => handleChangeValues(e, "content")} />
+                <EditorControls labelText="Treść tekstu" type="text" inputValue={elementValues.content} onChangeFn={(e) => handleChangeValues(e, "content")} />
                 <div className={classes.elementSize}>
-                    <EditorControls labelText="Font Size" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
-                    <EditorControls labelText="Text Color" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
+                    <EditorControls labelText="Rozmiar czcionki" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
+                    <EditorControls labelText="Kolor tekstu" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
                 </div>
-                <EditorControls labelText="Font Family" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
+                <EditorControls labelText="Rodzina czcionki" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
                 <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
             </>}
             {selectedElement?.category === "textarea" && <>
 
-                <button type="button" className={classes.editTextBtn} onClick={() => setTextareaEditing(selectedElement.element_id, true)}>Edit text</button>
+                <button type="button" className={classes.editTextBtn} onClick={() => setTextareaEditing(selectedElement.element_id, true)}>Edytuj tekst</button>
                 {/* Always mounted (never conditionally removed from the tree): if this
                     were `isEditing && <button>`, clicking a LATER sibling (e.g. the
                     hanging-indent checkbox below) blurs the textarea first, which flips
@@ -186,69 +195,69 @@ export default function Editor() {
                     disabled={!selectedElement?.isEditing}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={insertBulletAtCurrentLine}
-                ><MdFormatListBulleted />Insert bullet</button>
+                ><MdFormatListBulleted />Wstaw punktor</button>
                 <div className={classes.elementSize}>
-                    <EditorControls labelText="Font Size" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
-                    <EditorControls labelText="Text Color" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
+                    <EditorControls labelText="Rozmiar czcionki" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
+                    <EditorControls labelText="Kolor tekstu" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
                 </div>
-                <EditorControls labelText="Font Family" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
+                <EditorControls labelText="Rodzina czcionki" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
                 <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
                 <AlignToggles selectedElement={selectedElement} setAlign={setAlign} />
                 <label className={classes.pushToggle}>
                     <input type="checkbox" checked={!!selectedElement?.bulletList} onChange={toggleBulletList} />
-                    <span>Bullet list (• on each line)</span>
+                    <span>Lista punktowana (• w każdej linii)</span>
                 </label>
                 <div className={classes.elementSize}>
-                    <EditorControls labelText="Line Height" type="number" inputValue={elementValues.lineHeight} onChangeFn={(e) => handleChangeValues(e, "lineHeight")} />
-                    <EditorControls labelText="Letter Spacing" type="number" inputValue={elementValues.letterSpacing} onChangeFn={(e) => handleChangeValues(e, "letterSpacing")} />
+                    <EditorControls labelText="Wysokość linii" type="number" inputValue={elementValues.lineHeight} onChangeFn={(e) => handleChangeValues(e, "lineHeight")} />
+                    <EditorControls labelText="Odstęp między literami" type="number" inputValue={elementValues.letterSpacing} onChangeFn={(e) => handleChangeValues(e, "letterSpacing")} />
                 </div>
                 <div className={classes.elementSize}>
-                    <EditorControls labelText="Width" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
-                    <EditorControls labelText="Height" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
+                    <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
+                    <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
                 </div>
             </>}
             {selectedElement?.category === "line" && <>
                 <div className={classes.elementSize}>
-                <EditorControls labelText="Height" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
-                <EditorControls labelText="Width" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
+                <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
+                <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
                 </div>
-                <EditorControls labelText="Background Color" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
+                <EditorControls labelText="Kolor tła" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
             </>}
             {selectedElement?.category === "rectangle" && <>
                 <div className={classes.elementSize}>
-                <EditorControls labelText="Width" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
-                <EditorControls labelText="Height" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
+                <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
+                <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
                 </div>
                 <div className={classes.elementSize}>
-                <EditorControls labelText="Border Width" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
-                <EditorControls labelText="Border Color" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
+                <EditorControls labelText="Szerokość obramowania" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
+                <EditorControls labelText="Kolor obramowania" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
                 </div>
             </>}
 
             {selectedElement?.category === "image" && <>
 
                 <div className={classes.elementSize}>
-                    <EditorControls labelText="Height" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} isDisabled />
-                    <EditorControls labelText="Width" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
+                    <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} isDisabled />
+                    <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
                 </div>
 
             </>}
 
             {selectedElement?.category === "connector" && <>
                 <div className={classes.elementSize}>
-                    <EditorControls labelText="Line Width" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
-                    <EditorControls labelText="Line Color" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
+                    <EditorControls labelText="Szerokość linii" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
+                    <EditorControls labelText="Kolor linii" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
                 </div>
                 <label className={classes.pushToggle}>
                     <input type="checkbox" checked={!!selectedElement?.arrow} onChange={() => toggleStyle("arrow")} />
-                    <span>Arrowhead at target</span>
+                    <span>Grot strzałki u celu</span>
                 </label>
-                <EditorControls labelText="Visibility" type="number" inputValue={elementValues.zIndex} onChangeFn={(e) => handleChangeValues(e, "zIndex")} />
-                <button type="button" className={classes.btnDelete} onClick={() => deleteElement(selectedElement.element_id)}>Remove Connector<RiDeleteBin2Line /></button>
+                <EditorControls labelText="Widoczność" type="number" inputValue={elementValues.zIndex} onChangeFn={(e) => handleChangeValues(e, "zIndex")} />
+                <button type="button" className={classes.btnDelete} onClick={() => deleteElement(selectedElement.element_id)}>Usuń łącznik<RiDeleteBin2Line /></button>
             </>}
 
             {selectedElement?.category !== "connector" && <>
-                <EditorControls labelText="Visibility" type="number" inputValue={elementValues.zIndex} onChangeFn={(e) => handleChangeValues(e, "zIndex")} />
+                <EditorControls labelText="Widoczność" type="number" inputValue={elementValues.zIndex} onChangeFn={(e) => handleChangeValues(e, "zIndex")} />
 
                 <div className={classes.positionBtnsWrapper}>
                     <button type="button" onClick={() => alignElement(selectedElement.element_id, "LEFT", selectedElement.width, selectedElement.category)}><CiTextAlignLeft /></button>
@@ -261,10 +270,10 @@ export default function Editor() {
                 </div>
                 <label className={classes.pushToggle}>
                     <input type="checkbox" checked={pushBelow} onChange={(e) => setPushBelow(e.target.checked)} />
-                    <span>Push elements below when moving Y</span>
+                    <span>Przesuwaj elementy poniżej przy zmianie Y</span>
                 </label>
-                <button type="button" className={classes.btnDuplicate} onClick={() => duplicateElement(selectedElement.element_id)}>Duplicate element<RiFileCopyLine /></button>
-                <button type="button" className={classes.btnDelete} onClick={() => deleteElement(selectedElement.element_id)}>Remove Element<RiDeleteBin2Line /></button>
+                <button type="button" className={classes.btnDuplicate} onClick={() => duplicateElement(selectedElement.element_id)}>Duplikuj element<RiFileCopyLine /></button>
+                <button type="button" className={classes.btnDelete} onClick={() => deleteElement(selectedElement.element_id)}>Usuń element<RiDeleteBin2Line /></button>
 
             </>}
         </form>
@@ -283,10 +292,10 @@ function AlignToggles({ selectedElement, setAlign }) {
     );
     return (
         <div className={classes.styleRow}>
-            {btn("left", CiTextAlignLeft, "Align left")}
-            {btn("center", CiTextAlignCenter, "Align center")}
-            {btn("right", CiTextAlignRight, "Align right")}
-            {btn("justify", CiTextAlignJustify, "Justify")}
+            {btn("left", CiTextAlignLeft, "Wyrównaj do lewej")}
+            {btn("center", CiTextAlignCenter, "Wyśrodkuj")}
+            {btn("right", CiTextAlignRight, "Wyrównaj do prawej")}
+            {btn("justify", CiTextAlignJustify, "Wyjustuj")}
         </div>
     );
 }
@@ -299,21 +308,21 @@ function StyleToggles({ selectedElement, toggleStyle }) {
                 className={selectedElement?.bold ? classes.styleActive : ""}
                 style={{ fontWeight: 800 }}
                 onClick={() => toggleStyle("bold")}
-                aria-label="Bold"
+                aria-label="Pogrubienie"
             >B</button>
             <button
                 type="button"
                 className={selectedElement?.italic ? classes.styleActive : ""}
                 style={{ fontStyle: "italic" }}
                 onClick={() => toggleStyle("italic")}
-                aria-label="Italic"
+                aria-label="Kursywa"
             >I</button>
             <button
                 type="button"
                 className={selectedElement?.underline ? classes.styleActive : ""}
                 style={{ textDecoration: "underline" }}
                 onClick={() => toggleStyle("underline")}
-                aria-label="Underline"
+                aria-label="Podkreślenie"
             >U</button>
         </div>
     );

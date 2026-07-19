@@ -91,7 +91,7 @@ function Textarea({
                 className={classes.editing}
                 style={{ ...boxStyle, ...textStyle }}
                 value={content ?? ""}
-                placeholder="Type your text…"
+                placeholder="Wpisz swój tekst…"
                 onChange={(e) => editElementValues({ content: e.target.value }, elementId)}
                 onBlur={() => setTextareaEditing(elementId, false)}
                 onKeyDown={(e) => {

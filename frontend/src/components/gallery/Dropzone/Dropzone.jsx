@@ -63,7 +63,7 @@ export default function Dropzone() {
             let interval;
             let duration = 0;
 
-            api.httpRequest(ENDPOINTS.IMG.UPLOAD, "POST", formData, "Image upload failed!").
+            api.httpRequest(ENDPOINTS.IMG.UPLOAD, "POST", formData, "Przesyłanie obrazu nie powiodło się!").
             then((data) => {
                 duration = performance.now() - start;
  
@@ -122,16 +122,16 @@ export default function Dropzone() {
     return (
         <section className={classes.dropzoneContainer}>
             <div className={classes.head}>
-                <div className={classes.title}>Upload images</div>
-                <div className={classes.subtitle}>Up to 2 files · JPG, PNG</div>
+                <div className={classes.title}>Prześlij obrazy</div>
+                <div className={classes.subtitle}>Maks. 2 pliki · JPG, PNG</div>
             </div>
             <div {...getRootProps({ className: classes.dropzone })}>
                 <input {...getInputProps()} />
                 <div className={classes.dropIcon}>
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 13v8" /><path d="m8 17 4-4 4 4" /><path d="M20 16.5A4.5 4.5 0 0 0 17 8h-1.3A7 7 0 1 0 5 15" /></svg>
                 </div>
-                <div className={classes.dropTitle}>Drop images here</div>
-                <div className={classes.dropHint}>or <span>browse files</span></div>
+                <div className={classes.dropTitle}>Upuść obrazy tutaj</div>
+                <div className={classes.dropHint}>lub <span>przeglądaj pliki</span></div>
             </div>
             {isDropzone &&
                 <><aside className={classes.thumbsWrap}>

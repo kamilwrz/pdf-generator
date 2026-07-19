@@ -64,12 +64,12 @@ export function makeDeckTemplate(T) {
         rect(700, 140, 180, 180, T.soft, 1.5, 1),
         rect(730, 170, 180, 180, T.accent, 1.5, 1),
         line(676, 116, 14, 14, T.accent, 1),
-        bold(text("COMPANY · 2026", 11, T.sans, T.accent, 84, 96, 2)),
-        bold(block("Presentation title goes here", 84, 150, 520, 120, 44, 52, T.ink, T.display)),
+        bold(text("FIRMA · 2026", 11, T.sans, T.accent, 84, 96, 2)),
+        bold(block("Tytuł prezentacji", 84, 150, 520, 120, 44, 52, T.ink, T.display)),
         line(84, 296, 110, 3, T.accent, 2),
-        block("A one-line subtitle that frames the story you are about to tell.", 84, 320, 480, 48, 15, 22, T.gray, T.sans),
-        bold(text("Author Name", 12, T.sans, T.ink, 84, 452, 2)),
-        text("City · July 2026", 10.5, T.sans, T.gray, 84, 472, 2),
+        block("Jednozdaniowy podtytuł, który wprowadza w historię, którą zaraz opowiesz.", 84, 320, 480, 48, 15, 22, T.gray, T.sans),
+        bold(text("Jan Kowalski", 12, T.sans, T.ink, 84, 452, 2)),
+        text("Warszawa · lipiec 2026", 10.5, T.sans, T.gray, 84, 472, 2),
     ]).map(onPage(1));
 
     // ---- Slide 2 · Agenda (connector flow) -------------------------------
@@ -81,9 +81,9 @@ export function makeDeckTemplate(T) {
 
     const slide2 = bg([
         ...header("Agenda"),
-        ...agendaBox("ag1", 80, "01", "Where we are\nThe starting point."),
-        ...agendaBox("ag2", 380, "02", "What we learned\nThe evidence."),
-        ...agendaBox("ag3", 680, "03", "Where we go\nThe decision."),
+        ...agendaBox("ag1", 80, "01", "Gdzie jesteśmy\nPunkt wyjścia."),
+        ...agendaBox("ag2", 380, "02", "Czego się nauczyliśmy\nDowody i wnioski."),
+        ...agendaBox("ag3", 680, "03", "Dokąd idziemy\nDecyzja."),
         conn("ag1", "ag2"),
         conn("ag2", "ag3"),
         ...footer(2),
@@ -91,30 +91,30 @@ export function makeDeckTemplate(T) {
 
     // ---- Slide 3 · Key insight + image frame -----------------------------
     const slide3 = bg([
-        ...header("Key insight"),
+        ...header("Kluczowy wniosek"),
         bulleted(block(
-            "• First supporting point stated clearly.\n• Second point backed by a concrete number.\n• Third point — the so-what for the audience.\n• Fourth point that closes the argument.",
+            "• Pierwszy punkt wspierający, sformułowany jasno.\n• Drugi punkt poparty konkretną liczbą.\n• Trzeci punkt — co z tego wynika dla odbiorców.\n• Czwarty punkt domykający argument.",
             80, 160, 400, 240, 14, 24, T.body, T.sans
         )),
         rect(548, 148, 340, 255, T.mist, 1.5, 1),
         rect(560, 160, 340, 255, T.accent, 1.5, 2),
-        text("Image placeholder", 10.5, T.sans, T.placeholder, 672, 278, 3),
-        text("Fig. 1 — replace with your visual", 9.5, T.sans, T.gray, 560, 430, 2),
+        text("Miejsce na obraz", 10.5, T.sans, T.placeholder, 672, 278, 3),
+        text("Rys. 1 — zastąp własną grafiką", 9.5, T.sans, T.gray, 560, 430, 2),
         ...footer(3),
     ]).map(onPage(3));
 
     // ---- Slide 4 · Two-column --------------------------------------------
     const slide4 = bg([
-        ...header("In detail"),
+        ...header("Szczegółowo"),
         line(478, 160, 2, 270, T.mist, 1),
-        bold(text("Where we are", 15, T.sans, T.ink, 80, 162, 2)),
+        bold(text("Gdzie jesteśmy", 15, T.sans, T.ink, 80, 162, 2)),
         bulleted(block(
-            "• Current state, summarised honestly.\n• The constraint that shaped this year.\n• What is already working well.",
+            "• Obecny stan, podsumowany uczciwie.\n• Ograniczenie, które ukształtowało ten rok.\n• Co już działa dobrze.",
             80, 192, 360, 230, 12.5, 20, T.body, T.sans
         )),
-        bold(text("Where we're going", 15, T.sans, T.ink, 518, 162, 2)),
+        bold(text("Dokąd idziemy", 15, T.sans, T.ink, 518, 162, 2)),
         bulleted(block(
-            "• The bet we are making next.\n• What changes for the team.\n• How we will know it worked.",
+            "• Zakład, który stawiamy na przyszłość.\n• Co zmienia się dla zespołu.\n• Jak poznamy, że się udało.",
             518, 192, 360, 230, 12.5, 20, T.body, T.sans
         )),
         ...footer(4),
@@ -124,9 +124,9 @@ export function makeDeckTemplate(T) {
     const slide5 = bg([
         rect(880, 44, 36, 36, T.soft, 1, 1),
         line(864, 28, 12, 12, T.accent, 1),
-        bold(centered(block("Thank you.", 230, 196, 500, 64, 46, 56, T.ink, T.display))),
+        bold(centered(block("Dziękuję.", 230, 196, 500, 64, 46, 56, T.ink, T.display))),
         line(430, 286, 100, 3, T.accent, 2),
-        centered(block("name@email.com  ·  +00 000 000 000  ·  company.com", 230, 312, 500, 24, 12.5, 17, T.gray, T.sans)),
+        centered(block("jan.kowalski@email.com  ·  +48 600 000 000  ·  firma.pl", 230, 312, 500, 24, 12.5, 17, T.gray, T.sans)),
         ...footer(5),
     ]).map(onPage(5));
 

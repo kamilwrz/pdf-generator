@@ -35,12 +35,12 @@ async def ai_assistant(
     payload: dict = Depends(verify_token),
 ):
     if request.action not in VALID_ACTIONS:
-        raise HTTPException(status_code=400, detail=f"Unknown action: {request.action}")
+        raise HTTPException(status_code=400, detail=f"Nieznana akcja: {request.action}")
 
     if request.action == "position_rating" and not request.job_description.strip():
         raise HTTPException(
             status_code=400,
-            detail="job_description is required for position_rating",
+            detail="Pole job_description jest wymagane dla akcji position_rating.",
         )
 
     try:
@@ -53,4 +53,4 @@ async def ai_assistant(
         )
         return AssistantResponse(**result)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"AI assistant error: {exc}")
+        raise HTTPException(status_code=500, detail=f"Błąd asystenta AI: {exc}")
