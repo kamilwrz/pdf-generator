@@ -47,7 +47,6 @@ export default function Sidebar({ children }) {
         <div className={classes.toolsContainer}>
             <label className={classes.toolsLabel}>Add to canvas</label>
             <div className={classes.toolsList}>
-                <SidebarControls icon={<FaRegImages style={{ color: "#2C8C9E" }} />} iconBg="#DFF0F3" labelText="Upload images" sidebarEvent={showDropzone} />
                 <SidebarControls icon={<LuImagePlus style={{ color: "#8A6FC4" }} />} iconBg="#EDE8F7" labelText="Gallery" sidebarEvent={showGallery} />
                 <SidebarControls icon={<CiText style={{ color: "#5FA777" }} />} iconBg="#E6F1E7" labelText="Add text" sidebarEvent={addText} />
                 <SidebarControls icon={<BsTextParagraph style={{ color: "#5B8AA6" }} />} iconBg="#E3EEF4" labelText="Add text box" sidebarEvent={addTextarea} />
@@ -57,8 +56,12 @@ export default function Sidebar({ children }) {
             </div>
         </div>
 
-        <div className={classes.myDocumentsContainer}>
-            <SidebarControls icon={<FaRegFolderOpen style={{ color: "#57616F" }} />} iconBg="#fff" labelText="My documents" sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
+        <div className={classes.toolsContainer}>
+            <label className={classes.toolsLabel}>Files</label>
+            <div className={classes.toolsList}>
+                <SidebarControls icon={<FaRegImages style={{ color: "#2C8C9E" }} />} iconBg="#DFF0F3" labelText="Upload images" sidebarEvent={showDropzone} />
+                <SidebarControls icon={<FaRegFolderOpen style={{ color: "#57616F" }} />} iconBg="#fff" labelText="My documents" sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
+            </div>
         </div>
 
         <footer className={classes.sidebarFooter}>

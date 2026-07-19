@@ -114,6 +114,19 @@ async def fetch_user_pdfs(
         )
     return pdfs
 
+def _require_owned_pdf(db: Session, payload: dict, pdf_id):
+    """Fetch a Pdf row and 403 unless it belongs to the authenticated user.
+    Every by-id pdf route MUST go through this — fetching by id alone lets any
+    logged-in user read/modify anyone's documents (IDOR)."""
+    db_user = get_user_by_username(db, username=payload.get("sub"))
+    pdf_row = request_pdf_by_id(db, pdf_id)
+    if pdf_row is None:
+        raise HTTPException(status_code=404, detail="PDF not found.")
+    if db_user is None or pdf_row.owner_id != db_user.id:
+        raise HTTPException(status_code=403, detail="This document does not belong to you.")
+    return pdf_row
+
+
 @router.post("/show_pdf", status_code=status.HTTP_200_OK)
 async def show_user_pdf(
     db:Session = Depends(get_db),
@@ -121,6 +134,7 @@ async def show_user_pdf(
     pdf_id = Body()
     ):
 
+    _require_owned_pdf(db, payload, pdf_id)
     pdf_to_show = request_pdf_by_id_show(db, pdf_id)
 
     if not pdf_to_show:
@@ -138,10 +152,8 @@ async def delete_user_pdf(
     pdf_id = Body()
     ):
 
-    pdf_to_delete = request_pdf_by_id(db, pdf_id)
-    if pdf_to_delete is None:
-        raise HTTPException(status_code=404, detail='PDF not found.')
-    
+    pdf_to_delete = _require_owned_pdf(db, payload, pdf_id)
+
     delete_pdf_by_id(db, pdf_id)
     if USE_S3:
         key = s3_storage.key_from_file_path(pdf_to_delete.file_path)
@@ -169,9 +181,7 @@ async def update_user_pdf(
     username = payload.get("sub")
     db_user = get_user_by_username(db, username=username)
 
-    pdf_row = request_pdf_by_id(db, pdf_id)
-    if not pdf_row:
-        raise HTTPException(status_code=404, detail="PDF not found.")
+    pdf_row = _require_owned_pdf(db, payload, pdf_id)
 
     if USE_S3:
         key = f"pdfs/{username}/{title}"
@@ -207,9 +217,7 @@ async def update_user_pdf(
 
 @router.post("/download_pdf", status_code=status.HTTP_200_OK)
 async def download_pdf(db:Session = Depends(get_db), id = Body(), payload: dict = Depends(verify_token)):
-    pdf_row = request_pdf_by_id(db, id)
-    if not pdf_row:
-        raise HTTPException(status_code=404, detail="PDF not found.")
+    pdf_row = _require_owned_pdf(db, payload, id)
     if USE_S3:
         key = s3_storage.key_from_file_path(pdf_row.file_path)
         download_url = s3_storage.generate_presigned_download_url(key)

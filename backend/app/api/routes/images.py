@@ -84,6 +84,10 @@ async def delete_user_image(
     image = request_image_by_id(db, img_id)
     if not image:
         raise HTTPException(status_code=404, detail="Image not found.")
+    # IDOR guard: only the owner may delete their image.
+    db_user = get_user_by_username(db, username=payload.get("sub"))
+    if db_user is None or image.owner_id != db_user.id:
+        raise HTTPException(status_code=403, detail="This image does not belong to you.")
     pdf_element = db.query(PdfElements).filter(PdfElements.img_id==img_id).first()
     if pdf_element is not None:
         pdf_row = db.query(Pdf).filter(Pdf.id == pdf_element.pdf_id).first()
