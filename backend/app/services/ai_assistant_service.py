@@ -9,7 +9,7 @@ import json
 import os
 from openai import OpenAI
 from app.core.config import OPENAI_API_KEY
-from app.services.layout_analysis import analyze_layout
+from app.services.layout_analysis import analyze_layout, extract_bounds, resolve_directed_operation
 
 _MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.5")
 _client = OpenAI(api_key=OPENAI_API_KEY)
@@ -46,6 +46,46 @@ def _extract_structured(elements: list[dict]) -> list[dict]:
         for el in elements
         if el.get("category") in ("text", "textarea") and el.get("content")
     ]
+
+
+def _extract_positional(elements: list[dict]) -> list[dict]:
+    """Content, style, AND geometry for text/textarea, plus a geometry-only
+    entry for images (e.g. a photo) so position instructions can target them
+    too — used only by _chat(), the one action that may propose position
+    operations (via a directive Python resolves, never a raw coordinate GPT
+    invents). _extract_structured() alone excludes images entirely, which is
+    correct for content/style edits but would make an image untargetable by
+    a position instruction like "move the photo left"."""
+    bounds_by_id = {b["element_id"]: b for b in extract_bounds(elements)}
+    structured = _extract_structured(elements)
+    for item in structured:
+        bounds = bounds_by_id.get(item["element_id"])
+        if bounds:
+            item["left"] = bounds["left"]
+            item["top"] = bounds["top"]
+            item["width"] = bounds["width"]
+            item["height"] = bounds["height"]
+            item["page"] = bounds["page"]
+
+    included_ids = {item["element_id"] for item in structured}
+    for el in elements:
+        element_id = el.get("element_id")
+        if el.get("category") != "image" or element_id in included_ids:
+            continue
+        bounds = bounds_by_id.get(element_id)
+        if not bounds:
+            continue
+        structured.append({
+            "element_id": element_id,
+            "category": "image",
+            "content": "[obraz]",
+            "left": bounds["left"],
+            "top": bounds["top"],
+            "width": bounds["width"],
+            "height": bounds["height"],
+            "page": bounds["page"],
+        })
+    return structured
 
 
 def _extract_typography(elements: list[dict]) -> list[dict]:
@@ -508,29 +548,41 @@ Zwróć JSON:
     return _safe_result(_gpt(system, user))
 
 
-def _chat(message: str, elements: list[dict]) -> dict:
-    structured = _extract_structured(elements)
+def _chat(message: str, elements: list[dict], page_size: dict | None) -> dict:
+    structured = _extract_positional(elements)
 
     system = (
-        "Jesteś ekspertem i coachem CV. Masz pełną treść i strukturę CV użytkownika jako kontekst. "
-        "Wiadomość użytkownika może być PYTANIEM (np. \"Czy moje podsumowanie jest za długie?\") "
-        "albo POLECENIEM edycji (np. \"zmień rozmiar czcionki wszystkich nagłówków na 13px\", "
-        "\"popraw sekcję wykształcenie\").\n"
-        "Jeśli to pytanie — odpowiedz konkretnie w polu message, zostaw corrections jako pustą listę.\n"
-        "Jeśli to polecenie edycji — znajdź w ELEMENTACH te, których dotyczy polecenie "
-        "(np. \"nagłówki\" to elementy o wyraźnie większym lub pogrubionym fontSize niż otaczający tekst; "
-        "\"sekcja X\" to elementy sąsiadujące w kolejności czytania z nagłówkiem o treści zbliżonej do X), "
-        "i zwróć po jednej poprawce na każdy pasujący element w polu corrections. "
-        "Każda poprawka może zawierać WYŁĄCZNIE pola: content, fontSize, fontFamily, color, bold, italic, align. "
-        "NIGDY nie zwracaj pól left, top, width, height, zIndex ani page — nie masz wpływu na pozycję elementów.\n"
-        "Jeśli polecenie wymaga przesunięcia, zmiany rozmiaru lub pozycji elementów, albo zmiany liczby stron "
-        "(np. \"zmieść CV na jednej stronie\", \"przesuń zdjęcie wyżej\") — NIE próbuj tego obejść zmianą treści lub stylu bez wyjaśnienia. "
-        "W message wyjaśnij, że nie możesz jeszcze zmieniać pozycji, rozmiaru ani liczby stron, "
-        "a w tips zaproponuj osiągalną alternatywę opartą wyłącznie o treść lub styl "
-        "(np. zmniejszenie czcionki lub skrócenie tekstu). "
+        "Jesteś ekspertem i coachem CV. Masz pełną treść, styl i pozycję (px, 1:1 z PDF) "
+        "każdego elementu CV użytkownika jako kontekst. Wiadomość użytkownika może być:\n"
+        "(1) PYTANIEM — odpowiedz konkretnie w message, zostaw corrections jako pustą listę "
+        "i position_operation jako null.\n"
+        "(2) POLECENIEM edycji treści lub stylu (np. \"zmień rozmiar czcionki nagłówków na 13px\", "
+        "\"popraw sekcję wykształcenie\") — znajdź pasujące elementy i zwróć po jednej poprawce "
+        "w corrections. Poprawka może zawierać WYŁĄCZNIE pola: content, fontSize, fontFamily, "
+        "color, bold, italic, align. NIGDY nie zwracaj left/top/width/height/zIndex/page w corrections.\n"
+        "(3) POLECENIEM dotyczącym POZYCJI elementów (np. \"przesuń nagłówki sekcji o 50px w lewo\", "
+        "\"wyrównaj te elementy na x=50\", \"rozłóż wpisy w sekcji doświadczenia równomiernie\") — "
+        "zwróć position_operation zamiast corrections:\n"
+        "  {\"type\": \"shift\"|\"align\"|\"distribute\", \"target_element_ids\": [\"...\"], "
+        "\"dx\": <liczba>, \"dy\": <liczba>, \"axis\": \"x\"|\"y\", "
+        "\"anchor\": \"start\"|\"center\"|\"end\", \"target\": <liczba lub pomiń>}\n"
+        "  - shift: przesunięcie względne (dx, dy) w px wybranych elementów.\n"
+        "  - align: ustawia wybrane elementy na wspólnej wartości jednej osi (axis) przy "
+        "zakotwiczeniu (anchor: start = lewa/górna krawędź, center = środek, end = prawa/dolna "
+        "krawędź). Jeśli użytkownik podał konkretną wartość (np. \"na x=50\"), podaj ją jako target. "
+        "Jeśli chodzi tylko o wzajemne wyrównanie bez podanej wartości, pomiń target.\n"
+        "  - distribute: równomiernie rozkłada odstępy między co najmniej 3 wybranymi elementami "
+        "wzdłuż osi (axis); pierwszy i ostatni z wybranych elementów pozostają na miejscu.\n"
+        "NIGDY sam nie podawaj wartości left/top — Python obliczy rzeczywiste współrzędne na "
+        "podstawie bieżącej, aktualnej pozycji elementów i sam odrzuci operację, jeśli wyszłaby "
+        "poza stronę lub nałożyłaby się na inny element.\n"
+        "(4) Jeśli polecenie wymaga zmiany rozmiaru elementów lub liczby stron (np. \"zmieść CV na "
+        "jednej stronie\"), albo jest zbyt niejednoznaczne, by bezpiecznie określić elementy "
+        "docelowe i operację — NIE zgaduj. W message wyjaśnij ograniczenie lub zadaj pytanie "
+        "doprecyzowujące, zostaw corrections puste i position_operation jako null.\n"
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
-    user = f"""ELEMENTY CV (id, typ, treść, styl — bez pozycji):
+    user = f"""ELEMENTY CV (id, typ, treść, styl, pozycja i rozmiar w px):
 {json.dumps(structured, ensure_ascii=False)}
 
 WIADOMOŚĆ UŻYTKOWNIKA:
@@ -541,12 +593,23 @@ Zwróć JSON:
   "message": "<Twoja odpowiedź — konkretna i oparta na powyższych elementach>",
   "rating": null,
   "tips": ["<wskazówka lub osiągalna alternatywa, jeśli istotna>"],
-  "corrections": [
-    {{"element_id": "<id>", "fontSize": 13}}
-  ],
+  "corrections": [],
+  "position_operation": null,
   "web_sources": []
 }}"""
-    return _safe_result(_gpt(system, user))
+    raw = _gpt(system, user)
+    result = _safe_result(raw)
+
+    directive = raw.get("position_operation")
+    if isinstance(directive, dict):
+        resolved = resolve_directed_operation(elements, directive, page_size)
+        result["layout_groups"] = resolved["layout_groups"]
+        result["layout_issues"] = resolved["layout_issues"]
+    else:
+        result["layout_groups"] = []
+        result["layout_issues"] = []
+
+    return result
 
 
 def _analyze_layout(elements: list[dict], page_size: dict | None) -> dict:
@@ -573,7 +636,7 @@ def analyze_action(
         "language":        lambda: _check_style(text, elements),
         "improve":         lambda: _improve_content(elements),
         "ats_score":       lambda: _ats_score(text),
-        "chat":            lambda: _chat(message, elements),
+        "chat":            lambda: _chat(message, elements, page_size),
         "layout":          lambda: _analyze_layout(elements, page_size),
     }
 
