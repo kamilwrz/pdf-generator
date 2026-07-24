@@ -106,8 +106,13 @@ def _is_safe_group(
     patches: list[dict[str, Any]],
     page_width: float,
     page_height: float,
+    allow_overlap: bool = False,
 ) -> bool:
-    """Reject proposals that leave the page or introduce new content overlaps."""
+    """Reject proposals that leave the page or, unless allow_overlap is set,
+    introduce new content overlaps. allow_overlap is for explicit,
+    GPT-directed operations (the user asked for this move specifically) —
+    the deterministic auto-scanner never sets it, since it's guessing intent
+    rather than executing an instruction."""
     if not patches:
         return False
 
@@ -133,6 +138,9 @@ def _is_safe_group(
         ):
             return False
 
+    if allow_overlap:
+        return True
+
     for index, first in enumerate(proposed):
         for second in proposed[index + 1:]:
             if first["page"] != second["page"] or not _rects_overlap(first, second):
@@ -153,8 +161,9 @@ def _group(
     items: list[dict[str, Any]],
     page_width: float,
     page_height: float,
+    allow_overlap: bool = False,
 ) -> dict[str, Any] | None:
-    if not _is_safe_group(items, patches, page_width, page_height):
+    if not _is_safe_group(items, patches, page_width, page_height, allow_overlap):
         return None
     return {
         "id": group_id,
@@ -473,6 +482,7 @@ def resolve_shift(
         items=items,
         page_width=page_width,
         page_height=page_height,
+        allow_overlap=True,
     )
 
 
@@ -531,6 +541,7 @@ def resolve_align(
         items=items,
         page_width=page_width,
         page_height=page_height,
+        allow_overlap=True,
     )
 
 
@@ -582,6 +593,7 @@ def resolve_distribute(
         items=items,
         page_width=page_width,
         page_height=page_height,
+        allow_overlap=True,
     )
 
 
@@ -642,6 +654,6 @@ def resolve_directed_operation(
     if group is None:
         return _issue(
             "Nie można bezpiecznie wykonać tego polecenia — zmiana wyszłaby poza stronę "
-            "lub nałożyłaby się na inny element."
+            "lub elementy nie mieszczą się w wybranym układzie."
         )
     return {"layout_groups": [group], "layout_issues": []}

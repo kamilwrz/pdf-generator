@@ -258,13 +258,19 @@ class DirectedOperationTests(unittest.TestCase):
         self.assertEqual(len(result["layout_issues"]), 1)
         self.assertEqual(result["layout_issues"][0]["severity"], "low")
 
-    def test_shift_rejects_move_that_creates_a_new_overlap(self):
+    def test_shift_allows_a_move_that_creates_a_new_overlap(self):
+        # Directed operations are an explicit instruction, not a guess — a
+        # user asking to move an element somewhere may mean for it to land
+        # on top of another element. Unlike the deterministic auto-scanner
+        # (see test_rejects_bound_correction_that_would_create_overlap),
+        # this is allowed as long as the result stays on the page.
         items = layout_analysis.extract_bounds([
             block("moving", 10, 10, width=12, height=10),
             block("stationary", 30, 10, width=12, height=10),
         ])
         group = layout_analysis.resolve_shift(items, {"moving"}, 15.0, 0.0, 100, 100)
-        self.assertIsNone(group)
+        self.assertIsNotNone(group)
+        self.assertEqual(group["patches"], [{"element_id": "moving", "left": 25.0, "top": 10.0}])
 
 
 if __name__ == "__main__":
