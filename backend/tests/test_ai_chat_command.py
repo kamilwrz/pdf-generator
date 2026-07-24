@@ -25,7 +25,7 @@ class ChatCommandTests(unittest.TestCase):
             self.assertIn('"element_id": "heading-1"', user)
             self.assertIn('"fontSize": 16', user)
             # And it must never carry positional data GPT has no business touching.
-            self.assertNotIn('"left"', user)
+            self.assertNotIn('"left":', user)
             return {
                 "message": "Zmieniono rozmiar czcionki nagłówka na 13px.",
                 "corrections": [

@@ -510,11 +510,6 @@ Zwróć JSON:
 
 def _chat(message: str, elements: list[dict]) -> dict:
     structured = _extract_structured(elements)
-    # Filter to exclude align field to avoid false positives in position field detection
-    structured = [
-        {k: v for k, v in item.items() if k != "align"}
-        for item in structured
-    ]
 
     system = (
         "Jesteś ekspertem i coachem CV. Masz pełną treść i strukturę CV użytkownika jako kontekst. "
