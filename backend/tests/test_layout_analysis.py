@@ -272,6 +272,113 @@ class DirectedOperationTests(unittest.TestCase):
         self.assertIsNotNone(group)
         self.assertEqual(group["patches"], [{"element_id": "moving", "left": 25.0, "top": 10.0}])
 
+    def test_target_groups_shift_moves_a_block_as_one_rigid_unit(self):
+        # PAGE_SIZE is 100x100 (this file's test convention) — widths must
+        # stay well under that or the shift below would legitimately be
+        # rejected as leaving the page, defeating the point of this test.
+        elements = [
+            block("title", 10, 10, width=30, height=15),
+            block("company", 10, 30, width=30, height=12),
+        ]
+        result = layout_analysis.resolve_directed_operation(
+            elements,
+            {"type": "shift", "target_groups": [["title", "company"]], "dx": 20, "dy": 5},
+            PAGE_SIZE,
+        )
+        self.assertEqual(result["layout_issues"], [])
+        self.assertEqual(len(result["layout_groups"]), 1)
+        changed = {p["element_id"]: (p["left"], p["top"]) for p in result["layout_groups"][0]["patches"]}
+        self.assertEqual(changed, {"title": (30.0, 15.0), "company": (30.0, 35.0)})
+
+    def test_target_groups_distribute_moves_middle_block_preserving_internal_layout(self):
+        elements = [
+            block("a-title", 0, 0, width=20, height=5),
+            block("a-desc", 0, 6, width=20, height=4),
+            block("b-title", 0, 15, width=20, height=5),
+            block("b-desc", 0, 21, width=20, height=4),
+            block("c-title", 0, 50, width=20, height=5),
+            block("c-desc", 0, 56, width=20, height=4),
+        ]
+        result = layout_analysis.resolve_directed_operation(
+            elements,
+            {
+                "type": "distribute",
+                "target_groups": [["a-title", "a-desc"], ["b-title", "b-desc"], ["c-title", "c-desc"]],
+                "axis": "y",
+            },
+            PAGE_SIZE,
+        )
+        self.assertEqual(result["layout_issues"], [])
+        self.assertEqual(len(result["layout_groups"]), 1)
+        changed = {p["element_id"]: p["top"] for p in result["layout_groups"][0]["patches"]}
+        self.assertEqual(changed, {"b-title": 25.0, "b-desc": 31.0})
+
+    def test_target_groups_align_moves_blocks_to_a_shared_value(self):
+        elements = [
+            block("a1", 10, 10, width=20, height=10),
+            block("a2", 10, 25, width=20, height=8),
+            block("b1", 40, 10, width=20, height=10),
+            block("b2", 40, 25, width=20, height=8),
+        ]
+        result = layout_analysis.resolve_directed_operation(
+            elements,
+            {
+                "type": "align",
+                "target_groups": [["a1", "a2"], ["b1", "b2"]],
+                "axis": "x",
+                "anchor": "start",
+                "target": 5,
+            },
+            PAGE_SIZE,
+        )
+        self.assertEqual(result["layout_issues"], [])
+        self.assertEqual(len(result["layout_groups"]), 1)
+        changed = {p["element_id"]: p["left"] for p in result["layout_groups"][0]["patches"]}
+        self.assertEqual(changed, {"a1": 5.0, "a2": 5.0, "b1": 5.0, "b2": 5.0})
+
+    def test_target_groups_rejects_a_block_whose_members_span_multiple_pages(self):
+        elements = [
+            block("title", 10, 10, page=1),
+            block("desc", 10, 30, page=2),
+        ]
+        result = layout_analysis.resolve_directed_operation(
+            elements,
+            {"type": "shift", "target_groups": [["title", "desc"]], "dx": 5, "dy": 0},
+            PAGE_SIZE,
+        )
+        self.assertEqual(result["layout_groups"], [])
+        self.assertEqual(len(result["layout_issues"]), 1)
+
+    def test_target_groups_rejects_blocks_on_different_pages(self):
+        elements = [
+            block("a1", 10, 10, page=1),
+            block("a2", 10, 30, page=1),
+            block("b1", 10, 10, page=2),
+            block("b2", 10, 30, page=2),
+        ]
+        result = layout_analysis.resolve_directed_operation(
+            elements,
+            {"type": "shift", "target_groups": [["a1", "a2"], ["b1", "b2"]], "dx": 5, "dy": 0},
+            PAGE_SIZE,
+        )
+        self.assertEqual(result["layout_groups"], [])
+        self.assertEqual(len(result["layout_issues"]), 1)
+
+    def test_target_groups_skips_empty_or_unmatched_groups(self):
+        elements = [
+            block("title", 10, 10, width=20, height=10),
+            block("desc", 10, 25, width=20, height=8),
+        ]
+        result = layout_analysis.resolve_directed_operation(
+            elements,
+            {"type": "shift", "target_groups": [["title", "desc"], ["ghost"], []], "dx": 5, "dy": 0},
+            PAGE_SIZE,
+        )
+        self.assertEqual(result["layout_issues"], [])
+        self.assertEqual(len(result["layout_groups"]), 1)
+        changed = {p["element_id"]: p["left"] for p in result["layout_groups"][0]["patches"]}
+        self.assertEqual(changed, {"title": 15.0, "desc": 15.0})
+
 
 if __name__ == "__main__":
     unittest.main()

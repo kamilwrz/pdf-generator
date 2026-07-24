@@ -597,6 +597,126 @@ def resolve_distribute(
     )
 
 
+def _block_bbox(members: list[dict[str, Any]]) -> dict[str, float] | None:
+    """Union bounding box of a block's member elements — the block moves as
+    this single rigid shape; members keep their position relative to it."""
+    if not members:
+        return None
+    left = min(m["left"] for m in members)
+    top = min(m["top"] for m in members)
+    right = max(m["left"] + m["width"] for m in members)
+    bottom = max(m["top"] + m["height"] for m in members)
+    return {"left": left, "top": top, "width": right - left, "height": bottom - top}
+
+
+def _resolve_block_operation(
+    items: list[dict[str, Any]],
+    op_type: str,
+    directive: dict[str, Any],
+    raw_groups: list[Any],
+    page_width: float,
+    page_height: float,
+) -> dict[str, Any]:
+    """Adapter: treat each group of element ids as one rigid block by
+    building a synthetic item for its union bounding box, running the exact
+    same per-item resolver used for flat targets against those synthetic
+    items, then expanding the resulting block-level patch into one patch
+    per real member — a pure translation that preserves each member's
+    position relative to the others in its block."""
+
+    def _issue(message: str) -> dict[str, Any]:
+        return {"layout_groups": [], "layout_issues": [{"severity": "warning", "message": message}]}
+
+    items_by_id = {item["element_id"]: item for item in items}
+    block_items: list[dict[str, Any]] = []
+    block_members: dict[str, list[dict[str, Any]]] = {}
+
+    for index, raw_ids in enumerate(raw_groups):
+        if not isinstance(raw_ids, list):
+            continue
+        members = [items_by_id[str(mid)] for mid in raw_ids if str(mid) in items_by_id]
+        if not members:
+            continue
+        if len({m["page"] for m in members}) > 1:
+            return _issue(
+                "Jeden ze wskazanych bloków obejmuje elementy z różnych stron — nie mogę wykonać "
+                "tej operacji na blokach rozdzielonych między strony."
+            )
+        bbox = _block_bbox(members)
+        block_id = f"__block_{index}__"
+        block_items.append({
+            "element_id": block_id,
+            "category": "block",
+            "page": members[0]["page"],
+            **bbox,
+        })
+        block_members[block_id] = members
+
+    if not block_items:
+        return _issue("Nie znaleziono wskazanych elementów na kanwie.")
+    if len({b["page"] for b in block_items}) > 1:
+        return _issue(
+            "Wskazane bloki znajdują się na różnych stronach — nie mogę wykonać tej operacji między stronami."
+        )
+
+    block_target_ids = {b["element_id"] for b in block_items}
+    if op_type == "shift":
+        dx = _number(directive.get("dx"), 0.0)
+        dy = _number(directive.get("dy"), 0.0)
+        group = resolve_shift(block_items, block_target_ids, dx, dy, page_width, page_height)
+    elif op_type == "align":
+        axis = directive.get("axis") if directive.get("axis") in _VALID_AXES else "x"
+        anchor = directive.get("anchor") if directive.get("anchor") in _VALID_ANCHORS else "start"
+        raw_target = directive.get("target")
+        target = _number(raw_target) if raw_target is not None else None
+        group = resolve_align(block_items, block_target_ids, axis, anchor, target, page_width, page_height)
+    else:
+        axis = directive.get("axis") if directive.get("axis") in _VALID_AXES else "y"
+        group = resolve_distribute(block_items, block_target_ids, axis, page_width, page_height)
+
+    if group == _NO_CHANGE:
+        return {
+            "layout_groups": [],
+            "layout_issues": [{
+                "severity": "low",
+                "message": "Wskazane bloki już spełniają żądaną pozycję — nie ma czego zmieniać.",
+            }],
+        }
+    if group is None:
+        return _issue(
+            "Nie można bezpiecznie wykonać tego polecenia — zmiana wyszłaby poza stronę "
+            "lub bloki nie mieszczą się w wybranym układzie."
+        )
+
+    block_by_id = {b["element_id"]: b for b in block_items}
+    expanded_patches = []
+    for patch in group["patches"]:
+        source_block = block_by_id[patch["element_id"]]
+        dx_block = patch["left"] - source_block["left"]
+        dy_block = patch["top"] - source_block["top"]
+        for member in block_members[patch["element_id"]]:
+            expanded_patches.append({
+                "element_id": member["element_id"],
+                "left": round(member["left"] + dx_block, 2),
+                "top": round(member["top"] + dy_block, 2),
+            })
+
+    final_group = _group(
+        group_id=group["id"],
+        title=group["title"],
+        reason=group["reason"],
+        severity=group["severity"],
+        patches=expanded_patches,
+        items=items,
+        page_width=page_width,
+        page_height=page_height,
+        allow_overlap=True,
+    )
+    if final_group is None:
+        return _issue("Nie można bezpiecznie wykonać tego polecenia — zmiana wyszłaby poza stronę.")
+    return {"layout_groups": [final_group], "layout_issues": []}
+
+
 def resolve_directed_operation(
     elements: list[dict[str, Any]],
     directive: dict[str, Any],
@@ -604,21 +724,29 @@ def resolve_directed_operation(
 ) -> dict[str, Any]:
     """Resolve one GPT-selected position directive into a safe, previewable
     layout group, or an explanation of why it can't be applied. GPT never
-    supplies a coordinate — only an operation type, target element ids, and
-    parameters; every actual left/top value is computed and validated here."""
+    supplies a coordinate — only an operation type, target element ids (or
+    target_groups of ids for a multi-element block), and parameters; every
+    actual left/top value is computed and validated here."""
     page_size = page_size or {}
     page_width = _number(page_size.get("width"), 595.0)
     page_height = _number(page_size.get("height"), 842.0)
 
     items = extract_bounds(elements)
     op_type = directive.get("type") if isinstance(directive, dict) else None
-    raw_ids = directive.get("target_element_ids") if isinstance(directive, dict) else None
-    target_ids = {str(i) for i in raw_ids} if isinstance(raw_ids, list) else set()
 
     def _issue(message: str) -> dict[str, Any]:
         return {"layout_groups": [], "layout_issues": [{"severity": "warning", "message": message}]}
 
-    if op_type not in _VALID_OPERATIONS or not target_ids:
+    if op_type not in _VALID_OPERATIONS:
+        return _issue("Nie rozpoznano poprawnego polecenia dotyczącego pozycji elementów.")
+
+    raw_groups = directive.get("target_groups") if isinstance(directive, dict) else None
+    if isinstance(raw_groups, list) and raw_groups:
+        return _resolve_block_operation(items, op_type, directive, raw_groups, page_width, page_height)
+
+    raw_ids = directive.get("target_element_ids") if isinstance(directive, dict) else None
+    target_ids = {str(i) for i in raw_ids} if isinstance(raw_ids, list) else set()
+    if not target_ids:
         return _issue("Nie rozpoznano poprawnego polecenia dotyczącego pozycji elementów.")
 
     targets = [item for item in items if item["element_id"] in target_ids]
