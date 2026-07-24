@@ -9,6 +9,7 @@ import { MdCheckCircle, MdCancel } from "react-icons/md";
 import classes from "./AiAssistant.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
+import { measureElements } from "../../../utils/elementBounds";
 
 // ── quick actions ─────────────────────────────────────────────────────────
 const ACTIONS = [
@@ -231,35 +232,6 @@ function ChatMessage({
 
 // ── main component ────────────────────────────────────────────────────────
 
-function createLayoutSnapshot(elements) {
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-
-    return elements.map(element => {
-        const left = Number(element.left) || 0;
-        const top = Number(element.top) || 0;
-        let width = Number(element.width) || 0;
-        let height = Number(element.height) || 0;
-
-        if (element.category === "text" && context) {
-            const fontSize = Number(element.fontSize) || 12;
-            const weight = element.bold ? 700 : 400;
-            const style = element.italic ? "italic" : "normal";
-            context.font = `${style} ${weight} ${fontSize}px ${element.fontFamily || "sans-serif"}`;
-            width = Math.max(
-                ...String(element.content || "").split("\n").map(line => context.measureText(line).width),
-                fontSize
-            );
-            height = Math.max(fontSize * 1.35, (element.fontSize || fontSize) * 1.35);
-        }
-
-        return {
-            ...element,
-            layout_bounds: { left, top, width, height },
-        };
-    });
-}
-
 export default function AiAssistant() {
     const {
         A4_Elements,
@@ -365,7 +337,7 @@ export default function AiAssistant() {
                 ENDPOINTS.AI.ASSISTANT, "POST",
                 JSON.stringify({
                     action,
-                    elements: action === "layout" ? createLayoutSnapshot(A4_Elements) : A4_Elements,
+                    elements: measureElements(A4_Elements),
                     message: action === "chat" ? userText : "",
                     job_description: action === "position_rating" ? jobDesc : "",
                     page_size: pageSize,
