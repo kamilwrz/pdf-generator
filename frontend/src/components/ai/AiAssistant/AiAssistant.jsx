@@ -532,7 +532,7 @@ export default function AiAssistant() {
                             {messages.length === 0 && (
                                 <div className={classes.emptyState}>
                                     <BsStars className={classes.emptyIcon} />
-                                    <p>Kliknij akcję powyżej lub wpisz pytanie o swoje CV.</p>
+                                    <p>Kliknij akcję powyżej, zadaj pytanie o swoje CV lub wpisz polecenie, np. „zmień rozmiar czcionki nagłówków na 13px".</p>
                                 </div>
                             )}
                             {messages.map(msg => (
@@ -569,7 +569,7 @@ export default function AiAssistant() {
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
                                 onKeyDown={handleKey}
-                                placeholder="Zadaj pytanie o swoje CV…"
+                                placeholder="Zadaj pytanie lub wydaj polecenie…"
                                 rows={1}
                                 disabled={isLoading || showJobDesc}
                             />
