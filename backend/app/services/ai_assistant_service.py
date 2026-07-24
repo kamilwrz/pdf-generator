@@ -508,27 +508,47 @@ Zwróć JSON:
     return _safe_result(_gpt(system, user))
 
 
-def _chat(message: str, text: str) -> dict:
-    system = (
-        "Jesteś ekspertem i coachem CV. Masz pełną treść CV użytkownika jako kontekst. "
-        "Udzielaj konkretnych, możliwych do wdrożenia porad opartych na rzeczywistej treści CV. "
-        "Jeśli użytkownik prosi o ocenę lub wynik, oblicz go według rubryki (nie zgaduj). "
-        "Utrzymuj odpowiedzi konkretne i zwięzłe — 3–5 zdań dla prostych pytań, "
-        "dłuższe dla próśb o analizę. Zwracaj WYŁĄCZNIE prawidłowy JSON. "
-        "Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
-    )
-    user = f"""TREŚĆ CV:
-{text or "(na kanwie nie ma jeszcze treści)"}
+def _chat(message: str, elements: list[dict]) -> dict:
+    structured = _extract_structured(elements)
+    # Filter to exclude align field to avoid false positives in position field detection
+    structured = [
+        {k: v for k, v in item.items() if k != "align"}
+        for item in structured
+    ]
 
-PYTANIE UŻYTKOWNIKA:
+    system = (
+        "Jesteś ekspertem i coachem CV. Masz pełną treść i strukturę CV użytkownika jako kontekst. "
+        "Wiadomość użytkownika może być PYTANIEM (np. \"Czy moje podsumowanie jest za długie?\") "
+        "albo POLECENIEM edycji (np. \"zmień rozmiar czcionki wszystkich nagłówków na 13px\", "
+        "\"popraw sekcję wykształcenie\").\n"
+        "Jeśli to pytanie — odpowiedz konkretnie w polu message, zostaw corrections jako pustą listę.\n"
+        "Jeśli to polecenie edycji — znajdź w ELEMENTACH te, których dotyczy polecenie "
+        "(np. \"nagłówki\" to elementy o wyraźnie większym lub pogrubionym fontSize niż otaczający tekst; "
+        "\"sekcja X\" to elementy sąsiadujące w kolejności czytania z nagłówkiem o treści zbliżonej do X), "
+        "i zwróć po jednej poprawce na każdy pasujący element w polu corrections. "
+        "Każda poprawka może zawierać WYŁĄCZNIE pola: content, fontSize, fontFamily, color, bold, italic, align. "
+        "NIGDY nie zwracaj pól left, top, width, height, zIndex ani page — nie masz wpływu na pozycję elementów.\n"
+        "Jeśli polecenie wymaga przesunięcia, zmiany rozmiaru lub pozycji elementów, albo zmiany liczby stron "
+        "(np. \"zmieść CV na jednej stronie\", \"przesuń zdjęcie wyżej\") — NIE próbuj tego obejść zmianą treści lub stylu bez wyjaśnienia. "
+        "W message wyjaśnij, że nie możesz jeszcze zmieniać pozycji, rozmiaru ani liczby stron, "
+        "a w tips zaproponuj osiągalną alternatywę opartą wyłącznie o treść lub styl "
+        "(np. zmniejszenie czcionki lub skrócenie tekstu). "
+        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
+    )
+    user = f"""ELEMENTY CV (id, typ, treść, styl — bez pozycji):
+{json.dumps(structured, ensure_ascii=False)}
+
+WIADOMOŚĆ UŻYTKOWNIKA:
 {message}
 
 Zwróć JSON:
 {{
-  "message": "<Twoja odpowiedź — konkretna i oparta na powyższej treści CV>",
+  "message": "<Twoja odpowiedź — konkretna i oparta na powyższych elementach>",
   "rating": null,
-  "tips": ["<wskazówka, jeśli jest istotna>"],
-  "corrections": [],
+  "tips": ["<wskazówka lub osiągalna alternatywa, jeśli istotna>"],
+  "corrections": [
+    {{"element_id": "<id>", "fontSize": 13}}
+  ],
   "web_sources": []
 }}"""
     return _safe_result(_gpt(system, user))
@@ -558,7 +578,7 @@ def analyze_action(
         "language":        lambda: _check_style(text, elements),
         "improve":         lambda: _improve_content(elements),
         "ats_score":       lambda: _ats_score(text),
-        "chat":            lambda: _chat(message, text),
+        "chat":            lambda: _chat(message, elements),
         "layout":          lambda: _analyze_layout(elements, page_size),
     }
 
