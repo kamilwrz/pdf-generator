@@ -532,7 +532,7 @@ export default function AiAssistant() {
                             {messages.length === 0 && (
                                 <div className={classes.emptyState}>
                                     <BsStars className={classes.emptyIcon} />
-                                    <p>Kliknij akcję powyżej, zadaj pytanie o swoje CV lub wpisz polecenie, np. „zmień rozmiar czcionki nagłówków na 13px".</p>
+                                    <p>Kliknij akcję powyżej, zadaj pytanie o swoje CV lub wpisz polecenie, np. „zmień rozmiar czcionki nagłówków na 13px”.</p>
                                 </div>
                             )}
                             {messages.map(msg => (
