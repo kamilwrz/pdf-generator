@@ -439,6 +439,7 @@ _MIN_DISTRIBUTE_TARGETS = MIN_CLUSTER_SIZE
 _VALID_OPERATIONS = {"shift", "align", "distribute"}
 _VALID_AXES = {"x", "y"}
 _VALID_ANCHORS = {"start", "center", "end"}
+_NO_CHANGE = "no_change"
 
 
 def resolve_shift(
@@ -448,12 +449,12 @@ def resolve_shift(
     dy: float,
     page_width: float,
     page_height: float,
-) -> dict[str, Any] | None:
+) -> dict[str, Any] | str | None:
     targets = [item for item in items if item["element_id"] in target_ids]
     if not targets:
         return None
     if abs(dx) <= EPSILON and abs(dy) <= EPSILON:
-        return None
+        return _NO_CHANGE
 
     patches = [
         {
@@ -483,7 +484,7 @@ def resolve_align(
     target: float | None,
     page_width: float,
     page_height: float,
-) -> dict[str, Any] | None:
+) -> dict[str, Any] | str | None:
     targets = [item for item in items if item["element_id"] in target_ids]
     if not targets:
         return None
@@ -519,7 +520,7 @@ def resolve_align(
         })
 
     if not patches:
-        return None
+        return _NO_CHANGE
 
     return _group(
         group_id="directed-align",
@@ -539,7 +540,7 @@ def resolve_distribute(
     axis: str,
     page_width: float,
     page_height: float,
-) -> dict[str, Any] | None:
+) -> dict[str, Any] | str | None:
     targets = [item for item in items if item["element_id"] in target_ids]
     if len(targets) < _MIN_DISTRIBUTE_TARGETS:
         return None
@@ -570,7 +571,7 @@ def resolve_distribute(
         cursor += item[size_key] + gap
 
     if not patches:
-        return None
+        return _NO_CHANGE
 
     return _group(
         group_id="directed-distribute",
@@ -630,6 +631,14 @@ def resolve_directed_operation(
         axis = directive.get("axis") if directive.get("axis") in _VALID_AXES else "y"
         group = resolve_distribute(items, target_ids, axis, page_width, page_height)
 
+    if group == _NO_CHANGE:
+        return {
+            "layout_groups": [],
+            "layout_issues": [{
+                "severity": "low",
+                "message": "Wskazane elementy już spełniają żądaną pozycję — nie ma czego zmieniać.",
+            }],
+        }
     if group is None:
         return _issue(
             "Nie można bezpiecznie wykonać tego polecenia — zmiana wyszłaby poza stronę "

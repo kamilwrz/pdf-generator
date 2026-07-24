@@ -222,6 +222,50 @@ class DirectedOperationTests(unittest.TestCase):
         changed = {p["element_id"]: p["left"] for p in result["layout_groups"][0]["patches"]}
         self.assertEqual(changed, {"one": 20.0, "two": 20.0})
 
+    def test_shift_reports_no_change_for_a_near_zero_offset(self):
+        items = layout_analysis.extract_bounds([block("stays", 10, 10)])
+        group = layout_analysis.resolve_shift(items, {"stays"}, 0.0, 0.0, 100, 100)
+        self.assertEqual(group, layout_analysis._NO_CHANGE)
+
+    def test_align_reports_no_change_when_already_aligned(self):
+        items = layout_analysis.extract_bounds([
+            block("one", 20, 10),
+            block("two", 20, 40),
+        ])
+        group = layout_analysis.resolve_align(items, {"one", "two"}, "x", "start", 20.0, 100, 100)
+        self.assertEqual(group, layout_analysis._NO_CHANGE)
+
+    def test_distribute_reports_no_change_when_already_even(self):
+        items = layout_analysis.extract_bounds([
+            block("first", 0, 0, width=10, height=10),
+            block("middle", 0, 45, width=10, height=10),
+            block("last", 0, 90, width=10, height=10),
+        ])
+        group = layout_analysis.resolve_distribute(items, {"first", "middle", "last"}, "y", 100, 100)
+        self.assertEqual(group, layout_analysis._NO_CHANGE)
+
+    def test_resolve_directed_operation_reports_a_neutral_message_for_no_change(self):
+        elements = [
+            block("one", 20, 10),
+            block("two", 20, 40),
+        ]
+        result = layout_analysis.resolve_directed_operation(
+            elements,
+            {"type": "align", "target_element_ids": ["one", "two"], "axis": "x", "anchor": "start", "target": 20},
+            PAGE_SIZE,
+        )
+        self.assertEqual(result["layout_groups"], [])
+        self.assertEqual(len(result["layout_issues"]), 1)
+        self.assertEqual(result["layout_issues"][0]["severity"], "low")
+
+    def test_shift_rejects_move_that_creates_a_new_overlap(self):
+        items = layout_analysis.extract_bounds([
+            block("moving", 10, 10, width=12, height=10),
+            block("stationary", 30, 10, width=12, height=10),
+        ])
+        group = layout_analysis.resolve_shift(items, {"moving"}, 15.0, 0.0, 100, 100)
+        self.assertIsNone(group)
+
 
 if __name__ == "__main__":
     unittest.main()
