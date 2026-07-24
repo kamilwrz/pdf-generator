@@ -48,15 +48,29 @@ export default function Connectors({ elements }) {
                     >
                         {/* fat transparent stroke = easy click target */}
                         <polyline points={d} fill="none" stroke="transparent" strokeWidth={Math.max(8, w + 6)} strokeLinejoin="round" />
+                        {conn.isSelected && (
+                            <polyline
+                                points={d}
+                                fill="none"
+                                stroke="var(--accent)"
+                                strokeWidth={Math.max(w + 4, 6)}
+                                strokeLinejoin="round"
+                                opacity={0.28}
+                            />
+                        )}
                         <polyline
                             points={d}
                             fill="none"
-                            stroke={color}
-                            strokeWidth={w}
+                            stroke={conn.isSelected ? "var(--accent)" : color}
+                            strokeWidth={conn.isSelected ? Math.max(w, 2) : w}
                             strokeLinejoin="round"
-                            opacity={conn.isSelected ? 0.6 : 1}
                         />
-                        {arrow && <polygon points={arrow} fill={color} opacity={conn.isSelected ? 0.6 : 1} />}
+                        {arrow && (
+                            <polygon
+                                points={arrow}
+                                fill={conn.isSelected ? "var(--accent)" : color}
+                            />
+                        )}
                     </g>
                 );
             })}

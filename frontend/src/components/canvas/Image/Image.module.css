@@ -1,6 +1,5 @@
 .selectedElement{
-    opacity: 0.6;
-    border: 0.1px solid #44403c;
+    /* Visual selection chrome is drawn by SelectionOverlay. */
 }
 
 .resizeButtons{
@@ -32,7 +31,6 @@
 
 .roundBottomLeft{
     bottom: -20px;
-    left: -20px;
+    left: -18px;
     cursor: ne-resize;
 }
-

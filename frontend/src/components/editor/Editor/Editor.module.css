@@ -45,6 +45,12 @@
     flex-shrink: 0;
 }
 
+.headingIconMulti {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font: 800 11px/1 var(--font-display);
+}
+
 .editorHeading p {
     margin: 0;
     font: 800 13px var(--font-display);

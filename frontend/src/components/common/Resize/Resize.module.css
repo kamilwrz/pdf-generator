@@ -1,17 +1,25 @@
+.resizeWrapper {
+    z-index: 960;
+    pointer-events: none;
+}
+
 .resizeButtons {
     position: absolute;
     z-index: 1000;
-    width: 13px;
-    height: 13px;
+    width: 11px;
+    height: 11px;
     background-color: #fff;
     border: 1.5px solid var(--accent);
-    border-radius: 3px;
+    border-radius: 2px;
     padding: 0;
-    box-shadow: 0 1px 3px rgba(30, 48, 78, .2);
+    pointer-events: auto;
+    box-shadow: 0 1px 3px rgba(30, 48, 78, .22);
+    transition: background-color 120ms ease, transform 120ms ease;
 }
 
 .resizeButtons:hover {
     background-color: var(--accent-soft);
+    transform: scale(1.08);
 }
 
 .roundBottomRight {

@@ -7,7 +7,7 @@ export default function Resize({ selectedElement, isResizeable, handleIsResizabl
             height: selectedElement.height,
             left: selectedElement.left,
             top: selectedElement.top,
-            position: "absolute"
+            position: "absolute",
         }}>
 
             <button className={`${classes.roundBottomRight} ${classes.resizeButtons}`}

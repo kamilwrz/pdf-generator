@@ -25,8 +25,7 @@
 }
 
 .selected {
-    outline: 1.5px dashed var(--accent, #3E6DB5);
-    outline-offset: 2px;
+    /* Visual selection chrome is drawn by SelectionOverlay. */
 }
 
 .editing {

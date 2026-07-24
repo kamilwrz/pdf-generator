@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo, useCallback, useRef} from 'react';
 import { useA4Elements } from "../hooks/useA4Elements";
 import { usePdfExport } from '../hooks/usePdfExport';
 import CanvasElements from "../components/canvas/CanvasElements/CanvasElements";
+import SelectionOverlay from "../components/canvas/SelectionOverlay/SelectionOverlay";
 import { useNavigate } from 'react-router-dom';
 import ModalPdfs from '../components/modals/ModalPdfs/ModalPdfs';
 import ModalPdfRequestStatus from '../components/modals/ModalPdfRequestStatus/ModalPdfRequestStatus';
@@ -534,6 +535,7 @@ function PdfCanvas() {
               <div style={layoutPreviewPatches.length > 0 ? { pointerEvents: "none" } : undefined}>
                 <CanvasElements elements={previewedElements.filter(element => (element.page ?? 1) === currentPage)} />
                 <Connectors elements={previewedElements} />
+                <SelectionOverlay elements={previewedElements} />
                 <Guides />
               </div>
             </A4>
