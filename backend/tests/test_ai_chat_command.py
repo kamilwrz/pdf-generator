@@ -152,6 +152,44 @@ class ChatCommandTests(unittest.TestCase):
         self.assertEqual(by_id["photo-1"]["left"], 450.0)
         self.assertEqual(by_id["photo-1"]["top"], 20.0)
 
+    def test_dispatcher_routes_target_groups_directive_to_block_resolution(self):
+        elements = [
+            {
+                "element_id": "title-1", "category": "text", "content": "Programista",
+                "fontSize": 12, "bold": True, "italic": False, "align": "left",
+                "left": 20, "top": 40, "width": 150, "height": 15, "page": 1,
+            },
+            {
+                "element_id": "desc-1", "category": "textarea", "content": "Opis obowiązków.",
+                "fontSize": 11, "bold": False, "italic": False, "align": "left",
+                "left": 20, "top": 58, "width": 150, "height": 20, "page": 1,
+            },
+        ]
+
+        def fake_gpt(system, user):
+            return {
+                "message": "Przesunąłem cały wpis o pracę o 30px w dół.",
+                "corrections": [],
+                "position_operation": {
+                    "type": "shift",
+                    "target_groups": [["title-1", "desc-1"]],
+                    "dx": 0,
+                    "dy": 30,
+                },
+            }
+
+        with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
+            result = ai_assistant_service.analyze_action(
+                action="chat",
+                elements=elements,
+                message="przesuń cały wpis o pracę 30px w dół",
+                page_size={"width": 595, "height": 842},
+            )
+
+        self.assertEqual(result["layout_issues"], [])
+        changed = {p["element_id"]: p["top"] for p in result["layout_groups"][0]["patches"]}
+        self.assertEqual(changed, {"title-1": 70.0, "desc-1": 88.0})
+
 
 if __name__ == "__main__":
     unittest.main()
