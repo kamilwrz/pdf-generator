@@ -1,6 +1,7 @@
 import unittest
 
 from app.services.layout_analysis import analyze_layout
+from app.services import layout_analysis
 
 
 PAGE_SIZE = {"width": 100, "height": 100}
@@ -115,6 +116,111 @@ class LayoutAnalysisTests(unittest.TestCase):
             for patch in group["patches"]
         }
         self.assertNotIn("header-band", patched_ids)
+
+
+class DirectedOperationTests(unittest.TestCase):
+    def test_shift_moves_targets_by_relative_offset(self):
+        items = layout_analysis.extract_bounds([
+            block("moved", 10, 10),
+            block("stays", 50, 50),
+        ])
+        group = layout_analysis.resolve_shift(items, {"moved"}, 10.0, 5.0, 100, 100)
+        self.assertIsNotNone(group)
+        self.assertEqual(group["patches"], [{"element_id": "moved", "left": 20.0, "top": 15.0}])
+
+    def test_shift_rejects_move_that_leaves_the_page(self):
+        items = layout_analysis.extract_bounds([block("edge", 90, 10, width=12, height=10)])
+        group = layout_analysis.resolve_shift(items, {"edge"}, 50.0, 0.0, 100, 100)
+        self.assertIsNone(group)
+
+    def test_align_to_explicit_target_value(self):
+        items = layout_analysis.extract_bounds([
+            block("one", 10, 10),
+            block("two", 30, 40),
+        ])
+        group = layout_analysis.resolve_align(items, {"one", "two"}, "x", "start", 20.0, 100, 100)
+        self.assertIsNotNone(group)
+        changed = {p["element_id"]: p["left"] for p in group["patches"]}
+        self.assertEqual(changed, {"one": 20.0, "two": 20.0})
+
+    def test_align_with_omitted_target_uses_median_of_selection(self):
+        # Distinct `top` values — these represent elements stacked in a
+        # column (e.g. section headings at different heights) being aligned
+        # on the x-axis. Same-row elements would legitimately overlap once
+        # forced to a shared x, which is a different scenario this test
+        # isn't exercising.
+        items = layout_analysis.extract_bounds([
+            block("one", 10, 10),
+            block("two", 20, 40),
+            block("three", 60, 70),
+        ])
+        group = layout_analysis.resolve_align(items, {"one", "two", "three"}, "x", "start", None, 100, 100)
+        self.assertIsNotNone(group)
+        changed = {p["element_id"]: p["left"] for p in group["patches"]}
+        self.assertEqual(changed, {"one": 20.0, "three": 20.0})
+
+    def test_distribute_equalizes_gaps_holding_ends_fixed(self):
+        items = layout_analysis.extract_bounds([
+            block("first", 0, 0, width=10, height=10),
+            block("middle", 0, 15, width=10, height=10),
+            block("last", 0, 90, width=10, height=10),
+        ])
+        group = layout_analysis.resolve_distribute(items, {"first", "middle", "last"}, "y", 100, 100)
+        self.assertIsNotNone(group)
+        changed = {p["element_id"]: p["top"] for p in group["patches"]}
+        self.assertEqual(changed, {"middle": 45.0})
+
+    def test_distribute_requires_at_least_three_targets(self):
+        items = layout_analysis.extract_bounds([
+            block("first", 0, 0, width=10, height=10),
+            block("last", 0, 90, width=10, height=10),
+        ])
+        group = layout_analysis.resolve_distribute(items, {"first", "last"}, "y", 100, 100)
+        self.assertIsNone(group)
+
+    def test_resolve_directed_operation_rejects_targets_spanning_multiple_pages(self):
+        elements = [
+            block("one", 10, 10, page=1),
+            block("two", 10, 10, page=2),
+        ]
+        result = layout_analysis.resolve_directed_operation(
+            elements,
+            {"type": "shift", "target_element_ids": ["one", "two"], "dx": 5, "dy": 0},
+            PAGE_SIZE,
+        )
+        self.assertEqual(result["layout_groups"], [])
+        self.assertEqual(len(result["layout_issues"]), 1)
+
+    def test_resolve_directed_operation_ignores_unknown_target_ids(self):
+        elements = [block("real", 10, 10)]
+        result = layout_analysis.resolve_directed_operation(
+            elements,
+            {"type": "shift", "target_element_ids": ["ghost"], "dx": 5, "dy": 0},
+            PAGE_SIZE,
+        )
+        self.assertEqual(result["layout_groups"], [])
+        self.assertEqual(len(result["layout_issues"]), 1)
+
+    def test_resolve_directed_operation_applies_a_valid_align_directive(self):
+        elements = [
+            block("one", 10, 10),
+            block("two", 30, 40),
+        ]
+        result = layout_analysis.resolve_directed_operation(
+            elements,
+            {
+                "type": "align",
+                "target_element_ids": ["one", "two"],
+                "axis": "x",
+                "anchor": "start",
+                "target": 20,
+            },
+            PAGE_SIZE,
+        )
+        self.assertEqual(result["layout_issues"], [])
+        self.assertEqual(len(result["layout_groups"]), 1)
+        changed = {p["element_id"]: p["left"] for p in result["layout_groups"][0]["patches"]}
+        self.assertEqual(changed, {"one": 20.0, "two": 20.0})
 
 
 if __name__ == "__main__":

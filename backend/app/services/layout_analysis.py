@@ -95,6 +95,12 @@ def _apply_patches(
     ]
 
 
+def extract_bounds(elements: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Public bounds extraction, shared by the deterministic scanner and
+    GPT-directed position operations so both reason about identical geometry."""
+    return [bound for element in elements if (bound := _bounds_for(element))]
+
+
 def _is_safe_group(
     items: list[dict[str, Any]],
     patches: list[dict[str, Any]],
@@ -379,7 +385,7 @@ def analyze_layout(elements: list[dict[str, Any]], page_size: dict[str, Any] | N
     if page_width <= 0 or page_height <= 0:
         raise ValueError("page_size musi zawierać dodatnie wartości width i height.")
 
-    items = [bound for element in elements if (bound := _bounds_for(element))]
+    items = extract_bounds(elements)
     if not items:
         return {
             "message": "Potrzebuję co najmniej jednego mierzalnego bloku tekstu lub obrazu, aby ocenić układ.",
@@ -421,3 +427,212 @@ def analyze_layout(elements: list[dict[str, Any]], page_size: dict[str, Any] | N
         "layout_issues": issues[:8],
         "web_sources": [],
     }
+
+
+# ── GPT-directed position operations ────────────────────────────────────────
+# GPT selects an operation type, target element ids, and parameters — never a
+# coordinate. Everything below computes and validates the actual left/top
+# values from the elements' real current bounds, reusing the same
+# _group/_is_safe_group safety net the deterministic scanner above uses.
+
+_MIN_DISTRIBUTE_TARGETS = MIN_CLUSTER_SIZE
+_VALID_OPERATIONS = {"shift", "align", "distribute"}
+_VALID_AXES = {"x", "y"}
+_VALID_ANCHORS = {"start", "center", "end"}
+
+
+def resolve_shift(
+    items: list[dict[str, Any]],
+    target_ids: set[str],
+    dx: float,
+    dy: float,
+    page_width: float,
+    page_height: float,
+) -> dict[str, Any] | None:
+    targets = [item for item in items if item["element_id"] in target_ids]
+    if not targets:
+        return None
+    if abs(dx) <= EPSILON and abs(dy) <= EPSILON:
+        return None
+
+    patches = [
+        {
+            "element_id": item["element_id"],
+            "left": round(item["left"] + dx, 2),
+            "top": round(item["top"] + dy, 2),
+        }
+        for item in targets
+    ]
+    return _group(
+        group_id="directed-shift",
+        title=f"Przesuń {len(targets)} {'element' if len(targets) == 1 else 'elementy'}",
+        reason="Bezpośrednie polecenie przesunięcia elementów.",
+        severity="review",
+        patches=patches,
+        items=items,
+        page_width=page_width,
+        page_height=page_height,
+    )
+
+
+def resolve_align(
+    items: list[dict[str, Any]],
+    target_ids: set[str],
+    axis: str,
+    anchor: str,
+    target: float | None,
+    page_width: float,
+    page_height: float,
+) -> dict[str, Any] | None:
+    targets = [item for item in items if item["element_id"] in target_ids]
+    if not targets:
+        return None
+
+    size_key = "width" if axis == "x" else "height"
+    pos_key = "left" if axis == "x" else "top"
+
+    def anchor_value(item: dict[str, Any]) -> float:
+        if anchor == "start":
+            return item[pos_key]
+        if anchor == "center":
+            return item[pos_key] + item[size_key] / 2
+        return item[pos_key] + item[size_key]
+
+    def offset_for(item: dict[str, Any]) -> float:
+        if anchor == "start":
+            return 0.0
+        if anchor == "center":
+            return item[size_key] / 2
+        return item[size_key]
+
+    value = target if target is not None else median(anchor_value(item) for item in targets)
+
+    patches = []
+    for item in targets:
+        new_pos = round(value - offset_for(item), 2)
+        if abs(new_pos - item[pos_key]) <= EPSILON:
+            continue
+        patches.append({
+            "element_id": item["element_id"],
+            "left": new_pos if axis == "x" else round(item["left"], 2),
+            "top": new_pos if axis == "y" else round(item["top"], 2),
+        })
+
+    if not patches:
+        return None
+
+    return _group(
+        group_id="directed-align",
+        title=f"Wyrównaj {len(targets)} {'element' if len(targets) == 1 else 'elementy'}",
+        reason="Bezpośrednie polecenie wyrównania elementów.",
+        severity="review",
+        patches=patches,
+        items=items,
+        page_width=page_width,
+        page_height=page_height,
+    )
+
+
+def resolve_distribute(
+    items: list[dict[str, Any]],
+    target_ids: set[str],
+    axis: str,
+    page_width: float,
+    page_height: float,
+) -> dict[str, Any] | None:
+    targets = [item for item in items if item["element_id"] in target_ids]
+    if len(targets) < _MIN_DISTRIBUTE_TARGETS:
+        return None
+
+    pos_key = "left" if axis == "x" else "top"
+    size_key = "width" if axis == "x" else "height"
+    ordered = sorted(targets, key=lambda item: item[pos_key])
+
+    first, last = ordered[0], ordered[-1]
+    total_span = (last[pos_key] + last[size_key]) - first[pos_key]
+    total_size = sum(item[size_key] for item in ordered)
+    gap_count = len(ordered) - 1
+    gap = (total_span - total_size) / gap_count
+
+    if gap < 0:
+        return None
+
+    patches = []
+    cursor = first[pos_key] + first[size_key] + gap
+    for item in ordered[1:-1]:
+        new_pos = round(cursor, 2)
+        if abs(new_pos - item[pos_key]) > EPSILON:
+            patches.append({
+                "element_id": item["element_id"],
+                "left": new_pos if axis == "x" else round(item["left"], 2),
+                "top": new_pos if axis == "y" else round(item["top"], 2),
+            })
+        cursor += item[size_key] + gap
+
+    if not patches:
+        return None
+
+    return _group(
+        group_id="directed-distribute",
+        title=f"Rozłóż równomiernie {len(targets)} elementów",
+        reason="Bezpośrednie polecenie równomiernego rozłożenia odstępów.",
+        severity="review",
+        patches=patches,
+        items=items,
+        page_width=page_width,
+        page_height=page_height,
+    )
+
+
+def resolve_directed_operation(
+    elements: list[dict[str, Any]],
+    directive: dict[str, Any],
+    page_size: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Resolve one GPT-selected position directive into a safe, previewable
+    layout group, or an explanation of why it can't be applied. GPT never
+    supplies a coordinate — only an operation type, target element ids, and
+    parameters; every actual left/top value is computed and validated here."""
+    page_size = page_size or {}
+    page_width = _number(page_size.get("width"), 595.0)
+    page_height = _number(page_size.get("height"), 842.0)
+
+    items = extract_bounds(elements)
+    op_type = directive.get("type") if isinstance(directive, dict) else None
+    raw_ids = directive.get("target_element_ids") if isinstance(directive, dict) else None
+    target_ids = {str(i) for i in raw_ids} if isinstance(raw_ids, list) else set()
+
+    def _issue(message: str) -> dict[str, Any]:
+        return {"layout_groups": [], "layout_issues": [{"severity": "warning", "message": message}]}
+
+    if op_type not in _VALID_OPERATIONS or not target_ids:
+        return _issue("Nie rozpoznano poprawnego polecenia dotyczącego pozycji elementów.")
+
+    targets = [item for item in items if item["element_id"] in target_ids]
+    if not targets:
+        return _issue("Nie znaleziono wskazanych elementów na kanwie.")
+    if len({item["page"] for item in targets}) > 1:
+        return _issue(
+            "Wskazane elementy znajdują się na różnych stronach — nie mogę wykonać tej operacji między stronami."
+        )
+
+    if op_type == "shift":
+        dx = _number(directive.get("dx"), 0.0)
+        dy = _number(directive.get("dy"), 0.0)
+        group = resolve_shift(items, target_ids, dx, dy, page_width, page_height)
+    elif op_type == "align":
+        axis = directive.get("axis") if directive.get("axis") in _VALID_AXES else "x"
+        anchor = directive.get("anchor") if directive.get("anchor") in _VALID_ANCHORS else "start"
+        raw_target = directive.get("target")
+        target = _number(raw_target) if raw_target is not None else None
+        group = resolve_align(items, target_ids, axis, anchor, target, page_width, page_height)
+    else:
+        axis = directive.get("axis") if directive.get("axis") in _VALID_AXES else "y"
+        group = resolve_distribute(items, target_ids, axis, page_width, page_height)
+
+    if group is None:
+        return _issue(
+            "Nie można bezpiecznie wykonać tego polecenia — zmiana wyszłaby poza stronę "
+            "lub nałożyłaby się na inny element."
+        )
+    return {"layout_groups": [group], "layout_issues": []}
