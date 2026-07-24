@@ -57,3 +57,6 @@ Thumbs.db
 #md
 need_for_understanding.md
 .gstack/
+
+# subagent-driven-development scratch state
+.superpowers/
