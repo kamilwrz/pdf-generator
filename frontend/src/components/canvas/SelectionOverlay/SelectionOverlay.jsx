@@ -44,12 +44,13 @@ export default function SelectionOverlay({ elements }) {
         [canvasElements, currentPage]
     );
 
-    if (selected.length === 0) return null;
+    // Text uses its own light background highlight — framing it caused jitter.
+    const framed = selected.filter((element) => element.category !== "text");
+    if (framed.length === 0) return null;
 
     const isMulti = selected.length > 1;
-    const frames = selected.map((element) => ({
+    const frames = framed.map((element) => ({
         id: element.element_id,
-        category: element.category,
         ...frameForElement(element),
     }));
 
@@ -78,7 +79,7 @@ export default function SelectionOverlay({ elements }) {
                         height: frame.height,
                     }}
                 >
-                    {(isMulti || frame.category === "text") && (
+                    {isMulti && (
                         <>
                             <span className={`${classes.corner} ${classes.tl}`} />
                             <span className={`${classes.corner} ${classes.tr}`} />
