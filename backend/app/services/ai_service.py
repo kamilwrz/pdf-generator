@@ -43,7 +43,7 @@ def extract_cv_data(pdf_bytes: bytes) -> dict:
                 '  "skills":[],\n'
                 '  "language":"Polish",\n'
                 '  "labels":{"summary":"PODSUMOWANIE ZAWODOWE","experience":"DOŚWIADCZENIE ZAWODOWE","education":"WYKSZTAŁCENIE","skills":"UMIEJĘTNOŚCI"},\n'
-                '  "extra_sections":[{"title":"","placement":"after_skills","items":[]}]\n'
+                '  "extra_sections":[{"title":"","kind":"languages|certifications|interests|other","placement":"after_skills","items":[]}]\n'
                 "}\n\n"
                 "Zasady:\n"
                 "- experience: WSZYSTKIE stanowiska od najnowszego; WSZYSTKIE punkty (bez limitu)\n"
@@ -53,6 +53,8 @@ def extract_cv_data(pdf_bytes: bytes) -> dict:
                 "- extra_sections: każda sekcja CV NIEobjęta experience/education/skills/summary.\n"
                 "  Przykłady: Certyfikaty, Języki, Projekty, Nagrody, Publikacje,\n"
                 "  Wolontariat, Zainteresowania, Referencje, Kursy, Szkolenia — tytuł po polsku, WIELKIMI LITERAMI.\n"
+                "  kind: 'languages' dla sekcji języków, 'certifications' dla certyfikatów/licencji/kursów,\n"
+                "        'interests' dla zainteresowań/hobby, 'other' dla pozostałych sekcji.\n"
                 "  placement: 'after_experience' dla sekcji z punktami (projekty, nagrody, wolontariat);\n"
                 "             'after_skills' dla zwartych list (języki, certyfikaty, zainteresowania).\n"
                 "  items: płaska lista stringów (jeden element na string).\n"

@@ -178,6 +178,130 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     self.assertTrue(sidebar_images[0]["fixedToPage"])
                     self.assertTrue(Path(image_src_to_local_path(sidebar_images[0]["src"])).is_file())
 
+    def test_sidebar_templates_place_complete_compact_semantic_sections(self):
+        cv = {
+            **LONG_CV,
+            "skills": ["Strategia", "Badania"],
+            "education": [{
+                "degree": "MBA",
+                "detail": "SGH",
+                "period": "2020",
+            }],
+            "extra_sections": [
+                {
+                    "title": "JĘZYKI",
+                    # Deliberately omit kind to prove title-based compatibility.
+                    "placement": "after_skills",
+                    "items": ["Polski — C2", "Angielski — C1"],
+                },
+                {
+                    "title": "CERTYFIKATY",
+                    "kind": "certifications",
+                    "placement": "after_skills",
+                    "items": ["PMP", "ICAgile"],
+                },
+                {
+                    "title": "ZAINTERESOWANIA",
+                    "kind": "interests",
+                    "placement": "after_skills",
+                    "items": ["Fotografia", "Żeglarstwo"],
+                },
+                {
+                    "title": "PROJEKTY",
+                    "kind": "other",
+                    "placement": "after_skills",
+                    "items": ["Platforma obsługi klienta"],
+                },
+            ],
+        }
+        sidebar_titles = {
+            "OBSZARY", "JĘZYKI", "CERTYFIKATY", "ZAINTERESOWANIA", "WYKSZTAŁCENIE",
+        }
+        complete_sidebar_bodies = {
+            "Strategia\nBadania",
+            "Polski — C2\nAngielski — C1",
+            "PMP\nICAgile",
+            "Fotografia\nŻeglarstwo",
+            "MBA\nSGH  ·  2020",
+        }
+
+        for template_id in ("quarry", "moss", "garnet", "harbor"):
+            with self.subTest(template_id=template_id):
+                elements = generate_resume(template_id, cv)
+                sidebar_text = [
+                    element for element in elements
+                    if element["category"] in {"text", "textarea"} and element["left"] == 24
+                ]
+                sidebar_bodies = {
+                    element["content"]
+                    for element in sidebar_text
+                    if element["category"] == "textarea"
+                }
+                main_copy = "\n".join(
+                    element["content"]
+                    for element in elements
+                    if element["category"] == "textarea" and element["left"] == 220
+                )
+
+                self.assertTrue(sidebar_titles <= {
+                    element["content"] for element in sidebar_text if element["category"] == "text"
+                })
+                self.assertTrue(complete_sidebar_bodies <= sidebar_bodies)
+                self.assertTrue(all(
+                    element["page"] == 1
+                    and element["width"] == 136
+                    and element["top"] + element["height"] <= 758
+                    for element in sidebar_text
+                    if element["category"] == "textarea"
+                ))
+                for body in complete_sidebar_bodies:
+                    self.assertNotIn(body, main_copy)
+                self.assertIn("• Platforma obsługi klienta", main_copy)
+
+    def test_sidebar_templates_keep_oversized_sections_complete_in_main_column(self):
+        skills = [f"Kompetencja strategiczna i operacyjna numer {index}" for index in range(1, 25)]
+        languages = [f"Język zawodowy poziom zaawansowany numer {index}" for index in range(1, 25)]
+        education = [
+            {
+                "degree": f"Studia podyplomowe z zarządzania transformacją {index}",
+                "detail": f"Akademia Rozwoju Organizacji {index}",
+                "period": f"20{index:02d} – 20{index + 1:02d}",
+            }
+            for index in range(1, 8)
+        ]
+        cv = {
+            **LONG_CV,
+            "skills": skills,
+            "education": education,
+            "extra_sections": [{
+                "title": "JĘZYKI",
+                "kind": "languages",
+                "placement": "after_skills",
+                "items": languages,
+            }],
+        }
+
+        elements = generate_resume("harbor", cv)
+        sidebar_text = [
+            element for element in elements
+            if element["category"] in {"text", "textarea"} and element["left"] == 24
+        ]
+        main_textareas = [
+            element for element in elements
+            if element["category"] == "textarea" and element["left"] == 220
+        ]
+        main_copy = "\n".join(element["content"] for element in main_textareas)
+
+        self.assertNotIn("OBSZARY", {element["content"] for element in sidebar_text})
+        self.assertNotIn("JĘZYKI", {element["content"] for element in sidebar_text})
+        self.assertNotIn("WYKSZTAŁCENIE", {element["content"] for element in sidebar_text})
+        self.assertIn(skills[0], main_copy)
+        self.assertIn(skills[-1], main_copy)
+        self.assertIn(f"• {languages[0]}", main_copy)
+        self.assertIn(f"• {languages[-1]}", main_copy)
+        self.assertIn(education[0]["degree"], main_copy)
+        self.assertIn(education[-1]["degree"], main_copy)
+
     def test_classic_templates_are_image_free_single_column_documents(self):
         multi_page_cv = {
             **LONG_CV,

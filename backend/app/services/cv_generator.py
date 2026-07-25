@@ -11,6 +11,7 @@ truncation, multi-page when content overflows.
 from __future__ import annotations
 import math
 import re
+import unicodedata
 from datetime import datetime
 
 from app.core.config import BACKEND_URL
@@ -129,6 +130,37 @@ _LABEL_DEFAULTS = {
     "skills":     "UMIEJĘTNOŚCI",
 }
 
+
+def _fold_label(value: object) -> str:
+    """Normalize section titles so old and newly extracted CVs classify alike."""
+    return (
+        unicodedata.normalize("NFKD", str(value or ""))
+        .encode("ascii", "ignore")
+        .decode("ascii")
+        .casefold()
+    )
+
+
+def _extra_section_kind(section: dict) -> str:
+    """Return a supported semantic kind with a title-based legacy fallback."""
+    declared = _fold_label(section.get("kind"))
+    if declared in {"languages", "certifications", "interests", "education", "skills"}:
+        return declared
+
+    title = _fold_label(section.get("title"))
+    if any(token in title for token in ("jezyk", "language", "lingua", "sprache")):
+        return "languages"
+    if any(token in title for token in ("certyf", "certificate", "certification", "licenc", "uprawnien", "kurs", "szkolen")):
+        return "certifications"
+    if any(token in title for token in ("zainteres", "hobb", "interest", "pasj")):
+        return "interests"
+    if any(token in title for token in ("wyksztalc", "education")):
+        return "education"
+    if any(token in title for token in ("umiejet", "kompetenc", "skill")):
+        return "skills"
+    return "other"
+
+
 def _labels(cv: dict) -> dict:
     """Return section headings in the CV's language (GPT-supplied), with Polish fallbacks."""
     raw = cv.get("labels") or {}
@@ -137,7 +169,8 @@ def _labels(cv: dict) -> dict:
 
 def _extra_sections(b: Builder, cv: dict, placement: str,
                     section_fn, C: dict, L: int, W: int,
-                    font_b: str, fs: float = 10, lh: float = 15) -> None:
+                    font_b: str, fs: float = 10, lh: float = 15,
+                    skip_indices: set[int] | None = None) -> None:
     """
     Render extra (custom) sections found in the CV but not in the template.
 
@@ -146,7 +179,9 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
     Sections tagged with the requested placement are rendered; others are skipped
     here (they'll be picked up at their own placement call).
     """
-    for sec in cv.get("extra_sections") or []:
+    for index, sec in enumerate(cv.get("extra_sections") or []):
+        if skip_indices and index in skip_indices:
+            continue
         if sec.get("placement", "after_skills") != placement:
             continue
         title = (sec.get("title") or "").strip().upper()
@@ -183,6 +218,114 @@ def _compact_lines(values: list[object], *, max_items: int, chars_per_item: int)
         if str(value or "").strip()
     ]
     return "\n".join(lines)
+
+
+_SIDEBAR_SECTION_ORDER = ("skills", "languages", "certifications", "interests", "education")
+_SIDEBAR_FONT_SIZES = (8.3, 8.0, 7.5)
+_SIDEBAR_MAX_SECTION_HEIGHT = 160
+
+
+def _sidebar_wrapped_height(content: str, width: float, font_size: float, line_height: float) -> float:
+    """Match Builder's text estimate for a narrow, auto-height sidebar block."""
+    chars_per_line = max(10, int(width / (font_size * 0.52)))
+    rendered_lines = sum(
+        max(1, math.ceil(len(line.strip()) / chars_per_line)) if line.strip() else 1
+        for line in content.split("\n")
+    )
+    return round(max(rendered_lines * line_height + 6, line_height + 6), 2)
+
+
+def _education_sidebar_content(education: list[dict]) -> str:
+    """Keep every education field while making each record scannable in a sidebar."""
+    lines: list[str] = []
+    for entry in education:
+        degree = str(entry.get("degree") or "").strip()
+        metadata = "  ·  ".join(
+            value
+            for value in (str(entry.get("detail") or "").strip(), str(entry.get("period") or "").strip())
+            if value
+        )
+        if degree:
+            lines.append(degree)
+        if metadata:
+            lines.append(metadata)
+    return "\n".join(lines)
+
+
+def _sidebar_candidates(cv: dict, labels: dict) -> list[dict]:
+    """Prepare complete, non-truncated sections eligible for sidebar placement."""
+    candidates: list[dict] = []
+    skills = [str(skill).strip() for skill in (cv.get("skills") or []) if str(skill).strip()]
+    if skills:
+        candidates.append({
+            "key": "skills",
+            "kind": "skills",
+            "title": "OBSZARY",
+            "content": "\n".join(skills),
+        })
+
+    for index, section in enumerate(cv.get("extra_sections") or []):
+        kind = _extra_section_kind(section)
+        if kind not in _SIDEBAR_SECTION_ORDER:
+            continue
+        title = str(section.get("title") or "").strip().upper()
+        items = [str(item).strip() for item in (section.get("items") or []) if str(item).strip()]
+        if title and items:
+            candidates.append({
+                "key": f"extra:{index}",
+                "kind": kind,
+                "title": title,
+                "content": "\n".join(items),
+                "extra_index": index,
+            })
+
+    education_content = _education_sidebar_content(cv.get("education") or [])
+    if education_content:
+        candidates.append({
+            "key": "education",
+            "kind": "education",
+            "title": labels["education"],
+            "content": education_content,
+        })
+
+    order = {kind: index for index, kind in enumerate(_SIDEBAR_SECTION_ORDER)}
+    return sorted(candidates, key=lambda candidate: (order[candidate["kind"]], candidate["key"]))
+
+
+def _fit_sidebar_sections(
+    candidates: list[dict],
+    *,
+    width: float,
+    start_y: float,
+    bottom_y: float,
+) -> tuple[list[dict], set[str]]:
+    """Select only complete sections that fit the first-page sidebar budget."""
+    placed: list[dict] = []
+    placed_keys: set[str] = set()
+    cursor = float(start_y)
+
+    for candidate in candidates:
+        for font_size in _SIDEBAR_FONT_SIZES:
+            line_height = round(max(font_size * 1.45, 11.0), 2)
+            body_height = _sidebar_wrapped_height(candidate["content"], width, font_size, line_height)
+            section_height = 10 + 5 + body_height + 18
+            if section_height > _SIDEBAR_MAX_SECTION_HEIGHT:
+                continue
+            if cursor + section_height <= bottom_y:
+                placed.append({
+                    **candidate,
+                    "left": 24,
+                    "top": round(cursor, 2),
+                    "width": width,
+                    "fontSize": font_size,
+                    "lineHeight": line_height,
+                    "body_top": round(cursor + 15, 2),
+                    "body_height": body_height,
+                })
+                placed_keys.add(candidate["key"])
+                cursor += section_height
+                break
+    return placed, placed_keys
 
 
 def _bullets(job: dict) -> str:
@@ -2004,11 +2147,28 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
             "arrow": False, "zIndex": 3, "page": 1,
         }
 
-    contact = _compact_lines(
-        [cv.get("location"), cv.get("email"), cv.get("phone")],
-        max_items=3, chars_per_item=25,
+    sidebar_left, sidebar_width = 24, 136
+    contact = "\n".join(filter(None, [
+        str(cv.get("location") or "").strip(),
+        str(cv.get("email") or "").strip(),
+        str(cv.get("phone") or "").strip(),
+    ]))
+    contact_font_size, contact_line_height = 8.0, 12.5
+    contact_height = _sidebar_wrapped_height(
+        contact or " ", sidebar_width, contact_font_size, contact_line_height
     )
-    skills_preview = _compact_lines(cv.get("skills") or [], max_items=4, chars_per_item=18)
+    sidebar_start = 322 + contact_height + 18
+    sidebar_sections, sidebar_keys = _fit_sidebar_sections(
+        _sidebar_candidates(cv, lbl),
+        width=sidebar_width,
+        start_y=sidebar_start,
+        bottom_y=758,
+    )
+    sidebar_extra_indices = {
+        section["extra_index"]
+        for section in sidebar_sections
+        if "extra_index" in section
+    }
     name = _compact_text(cv.get("name"), 32).upper()
     title = _compact_text(cv.get("title"), 54).upper()
     contact_line = _compact_text(_contact_line(cv), 78)
@@ -2016,23 +2176,42 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
     frame = {**_rect(462, 52, 58, 54, C["accent"], 0.85, zIndex=3), "id": f"{theme}-frame"}
     orbit = {**_ellipse(472, 62, 35, 17, C["marker"], borderWidth=1, zIndex=3), "id": f"{theme}-orbit"}
     node = {**_circle(484, 82, 11, C["accent"], filled=True, zIndex=3), "id": f"{theme}-node"}
+    contact_label = _text("KONTAKT", 8, SANS, C["side_label"], sidebar_left, 300, zIndex=3)
+    contact_rule = _line(sidebar_left, 312, 44, 1, C["accent"], zIndex=3)
+    contact_body = _block(
+        contact, sidebar_left, 322, sidebar_width, contact_height,
+        contact_font_size, contact_line_height, C["side_text"], SANS, zIndex=3,
+    )
+    sidebar_static = [contact_label, contact_rule, contact_body]
+    for section_data in sidebar_sections:
+        section_label = _text(
+            section_data["title"], 8, SANS, C["side_label"],
+            sidebar_left, section_data["top"], zIndex=3,
+        )
+        section_label["letterSpacing"] = 1.2
+        sidebar_static.extend([
+            section_label,
+            _line(sidebar_left, section_data["top"] + 12, 44, 1, C["accent"], zIndex=3),
+            _block(
+                section_data["content"], sidebar_left, section_data["body_top"],
+                sidebar_width, section_data["body_height"], section_data["fontSize"],
+                section_data["lineHeight"], C["side_text"], SANS, zIndex=3,
+            ),
+        ])
+
     static = [
         _text(name, 29, SERIF, C["ink"], L, 52, zIndex=3, bold=True),
         _text(title, 8.8, SANS, C["marker"], L + 2, 92, zIndex=3),
         _text(contact_line, 8.4, SANS, C["muted"], L + 2, 120, zIndex=3),
         _line(L, 145, W, 1, C["rule"], zIndex=2),
-        _text("KONTAKT", 8, SANS, C["side_label"], 24, 300, zIndex=3),
-        _block(contact, 24, 322, 136, 42, 8, 12.5, C["side_text"], SANS, zIndex=3),
-        _text("OBSZARY", 8, SANS, C["side_label"], 24, 434, zIndex=3),
-        _block(skills_preview, 24, 456, 136, 58, 8.3, 13, C["side_text"], SANS, zIndex=3),
+        *sidebar_static,
         frame, orbit, node,
         connector(f"{theme}-frame", f"{theme}-orbit", C["rule"]),
         connector(f"{theme}-orbit", f"{theme}-node"),
     ]
     static[0]["letterSpacing"] = 0.1
     static[1]["letterSpacing"] = 1.45
-    static[4]["letterSpacing"] = 1.2
-    static[6]["letterSpacing"] = 1.2
+    contact_label["letterSpacing"] = 1.2
 
     b = SidebarBuilder(184)
 
@@ -2068,9 +2247,9 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
                 b.block(bullets, L, W, 9.3, 13.2, C["body"], SANS, bulletList=True)
             b.gap(12)
         _extra_sections(b, cv, "after_experience", section, {"body": C["body"]},
-                        L, W, SANS, fs=9.3, lh=13.2)
+                        L, W, SANS, fs=9.3, lh=13.2, skip_indices=sidebar_extra_indices)
 
-    if cv.get("education"):
+    if cv.get("education") and "education" not in sidebar_keys:
         section(lbl["education"])
         for edu in cv["education"]:
             b.block(edu.get("degree", ""), L, W, 10.2, 13, C["ink"], SANS, bold=True, min_h=15)
@@ -2081,13 +2260,13 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
                 b.block(edu["detail"], L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
             b.gap(10)
 
-    if cv.get("skills"):
+    if cv.get("skills") and "skills" not in sidebar_keys:
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.3, 13.2, C["body"], SANS)
         b.gap(14)
 
     _extra_sections(b, cv, "after_skills", section, {"body": C["body"]},
-                    L, W, SANS, fs=9.3, lh=13.2)
+                    L, W, SANS, fs=9.3, lh=13.2, skip_indices=sidebar_extra_indices)
     flow = b.build()
     pages_used = max([element.get("page", 1) for element in static + flow] or [1])
 
