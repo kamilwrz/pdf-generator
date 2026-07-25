@@ -311,11 +311,55 @@ class DirectedOperationTests(unittest.TestCase):
             [{"element_id": "heading", "left": 10.0, "top": 10.0, "page": 2}],
         )
 
-    def test_move_to_page_rejects_collision_with_destination_content(self):
+    def test_move_to_page_finds_a_free_slot_after_destination_content(self):
         result = layout_analysis.resolve_directed_operation(
             [
                 block("moving", 10, 10, width=30, height=10, page=1),
                 block("occupied", 10, 10, width=30, height=10, page=2),
+            ],
+            {
+                "type": "move_to_page",
+                "target_element_ids": ["moving"],
+                "target_page": 2,
+            },
+            PAGE_SIZE,
+        )
+
+        self.assertEqual(result["layout_issues"], [])
+        self.assertEqual(
+            result["layout_groups"][0]["patches"],
+            [{"element_id": "moving", "left": 10.0, "top": 24.0, "page": 2}],
+        )
+
+    def test_move_to_page_places_a_related_field_below_its_reference(self):
+        result = layout_analysis.resolve_directed_operation(
+            [
+                block("period", 30, 10, width=30, height=10, page=2),
+                block("degree", 10, 50, width=40, height=12, page=1),
+            ],
+            {
+                "type": "move_to_page",
+                "target_element_ids": ["period"],
+                "target_page": 1,
+                "reference_element_id": "degree",
+                "align_element_ids": ["period"],
+                "axis": "x",
+                "anchor": "start",
+            },
+            PAGE_SIZE,
+        )
+
+        self.assertEqual(result["layout_issues"], [])
+        self.assertEqual(
+            result["layout_groups"][0]["patches"],
+            [{"element_id": "period", "left": 10.0, "top": 66.0, "page": 1}],
+        )
+
+    def test_move_to_page_rejects_when_destination_has_no_free_slot(self):
+        result = layout_analysis.resolve_directed_operation(
+            [
+                block("moving", 10, 10, width=30, height=10, page=1),
+                block("occupied", 0, 0, width=100, height=100, page=2),
             ],
             {
                 "type": "move_to_page",

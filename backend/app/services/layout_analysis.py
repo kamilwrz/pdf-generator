@@ -736,6 +736,25 @@ def resolve_move_to_page(
             "page": target_page,
         })
 
+    if (
+        axis == "x"
+        and reference["page"] == target_page
+        and reference["element_id"] not in moving_ids
+        and any(item["page"] != target_page for item in moving)
+    ):
+        proposed_moving = [
+            item
+            for item in _apply_patches(items, patches)
+            if item["element_id"] in moving_ids
+        ]
+        moving_bbox = _block_bbox(proposed_moving)
+        if moving_bbox is not None:
+            vertical_shift = reference["top"] + reference["height"] + 4 - moving_bbox["top"]
+            patches = [
+                {**patch, "top": round(patch["top"] + vertical_shift, 2)}
+                for patch in patches
+            ]
+
     if all(
         item["page"] == target_page
         and abs(patch["left"] - item["left"]) <= EPSILON
@@ -750,24 +769,108 @@ def resolve_move_to_page(
     # Moving content must not land on unrelated content. Page-fixed artwork
     # and line/rectangle decorations are ignored because they intentionally
     # sit behind or around the document's text.
-    proposed = _apply_patches(items, patches)
     original_overlaps = {
         frozenset((first["element_id"], second["element_id"]))
         for index, first in enumerate(items)
         for second in items[index + 1:]
         if first["page"] == second["page"] and _rects_overlap(first, second)
     }
-    for moved in (item for item in proposed if item["element_id"] in moving_ids):
-        for other in proposed:
-            if moved["element_id"] == other["element_id"] or moved["page"] != other["page"]:
+
+    def has_content_collision(proposed_items: list[dict[str, Any]]) -> bool:
+        for moved in (item for item in proposed_items if item["element_id"] in moving_ids):
+            for other in proposed_items:
+                if moved["element_id"] == other["element_id"] or moved["page"] != other["page"]:
+                    continue
+                if other.get("fixedToPage") or other["category"] in DECORATIVE_CATEGORIES:
+                    continue
+                if not _rects_overlap(moved, other):
+                    continue
+                pair = frozenset((moved["element_id"], other["element_id"]))
+                if other["element_id"] not in moving_ids or pair not in original_overlaps:
+                    return True
+        return False
+
+    proposed = _apply_patches(items, patches)
+    if has_content_collision(proposed):
+        # A cross-page command normally carries no raw coordinates. Keeping
+        # the source page's `top` can therefore put the element directly on
+        # top of destination content. For horizontal alignment operations,
+        # search deterministic free slots in the same column instead.
+        if axis != "x" or all(item["page"] == target_page for item in moving):
+            return None
+
+        proposed_moving = [
+            item for item in proposed if item["element_id"] in moving_ids
+        ]
+        moving_bbox = _block_bbox(proposed_moving)
+        if moving_bbox is None:
+            return None
+
+        def overlaps_moving_column(item: dict[str, Any]) -> bool:
+            return (
+                item["left"] < moving_bbox["left"] + moving_bbox["width"] - EPSILON
+                and item["left"] + item["width"] > moving_bbox["left"] + EPSILON
+            )
+
+        destination_content = [
+            item
+            for item in items
+            if item["page"] == target_page
+            and item["element_id"] not in moving_ids
+            and not item.get("fixedToPage")
+            and item["category"] not in DECORATIVE_CATEGORIES
+            and overlaps_moving_column(item)
+        ]
+
+        # Fixed footer rules/page numbers define the usable lower boundary.
+        # Full-page backgrounds are intentionally ignored.
+        footer_tops = [
+            item["top"]
+            for item in items
+            if item["page"] == target_page
+            and item.get("fixedToPage")
+            and item["top"] > page_height / 2
+            and overlaps_moving_column(item)
+            and not (
+                item["width"] >= page_width * 0.9
+                and item["height"] >= page_height * 0.9
+            )
+        ]
+        usable_bottom = min(footer_tops, default=page_height)
+
+        preferred_candidates: list[float] = []
+        if reference["page"] == target_page and reference["element_id"] not in moving_ids:
+            preferred_candidates.append(reference["top"] + reference["height"] + 4)
+        slot_candidates = sorted(
+            {
+                0.0,
+                *(
+                    round(item["top"] + item["height"] + 4, 2)
+                    for item in destination_content
+                ),
+            },
+            reverse=True,
+        )
+
+        placed = False
+        for candidate_top in preferred_candidates + slot_candidates:
+            vertical_shift = candidate_top - moving_bbox["top"]
+            shifted_patches = [
+                {**patch, "top": round(patch["top"] + vertical_shift, 2)}
+                for patch in patches
+            ]
+            shifted_bottom = moving_bbox["top"] + vertical_shift + moving_bbox["height"]
+            if candidate_top < -EPSILON or shifted_bottom > usable_bottom + EPSILON:
                 continue
-            if other.get("fixedToPage") or other["category"] in DECORATIVE_CATEGORIES:
+            shifted_proposed = _apply_patches(items, shifted_patches)
+            if has_content_collision(shifted_proposed):
                 continue
-            if not _rects_overlap(moved, other):
-                continue
-            pair = frozenset((moved["element_id"], other["element_id"]))
-            if other["element_id"] not in moving_ids or pair not in original_overlaps:
-                return None
+            patches = shifted_patches
+            proposed = shifted_proposed
+            placed = True
+            break
+        if not placed:
+            return None
 
     group = _group(
         group_id="directed-move-to-page",

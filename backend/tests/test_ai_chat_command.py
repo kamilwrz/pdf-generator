@@ -108,6 +108,7 @@ class ChatCommandTests(unittest.TestCase):
         def fake_gpt(system, user):
             self.assertIn('"move_to_page"', system)
             self.assertIn('"target_page"', system)
+            self.assertIn("ZAWSZE użyj tego powiązanego elementu", system)
             self.assertIn('"page": 1', user)
             return {
                 "message": "Przeniosłem sekcję wykształcenia na stronę 2.",
