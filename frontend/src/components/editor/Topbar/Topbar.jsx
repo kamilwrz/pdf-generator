@@ -34,12 +34,6 @@ export default function Topbar({ titleRef }) {
     return (
         <header className={classes.topbar}>
             <div className={classes.group}>
-                <div className={classes.topbarBrand} aria-label="Kompoza">
-                    <img src="/kompoza-logo.png" alt="" />
-                    <span>Kompoza</span>
-                </div>
-                <span className={classes.divider} aria-hidden="true" />
-
                 <button type="button" className={classes.feature} onClick={showTemplates}>
                     <LuLayoutTemplate />
                     <span className={classes.label}>Szablony</span>

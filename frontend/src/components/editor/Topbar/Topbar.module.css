@@ -27,24 +27,6 @@
     flex-shrink: 0;
 }
 
-.topbarBrand {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-right: 1px;
-    color: var(--topbar-ink);
-    font: 700 11.5px var(--font-display);
-    letter-spacing: -.01em;
-    white-space: nowrap;
-}
-
-.topbarBrand img {
-    display: block;
-    width: 23px;
-    height: 23px;
-    object-fit: contain;
-}
-
 /* ---- centered "current project" field ---- */
 .center {
     flex: 1;
@@ -226,9 +208,6 @@
         padding: 0 8px;
     }
 
-    .topbarBrand span {
-        display: none;
-    }
 }
 
 /* ---- undo/redo ---- */
