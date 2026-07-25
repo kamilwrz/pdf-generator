@@ -1954,6 +1954,178 @@ def _gen_vellum(cv: dict) -> list[dict]:
     return frames + static + flow
 
 
+def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
+    """Minimal, generated narrow-sidebars that repeat on every content page."""
+    themes = {
+        "quarry": {
+            "asset": "quarry-sidebar.png", "paper": "#F7FAFC", "ink": "#13293D",
+            "body": "#13293D", "accent": "#37D1EE", "marker": "#B7D84B",
+            "muted": "#607384", "rule": "#C7D5DE", "side_text": "#F3F7FC",
+            "side_label": "#37D1EE", "section": "circle",
+        },
+        "moss": {
+            "asset": "moss-sidebar.png", "paper": "#FBFAF6", "ink": "#274232",
+            "body": "#344238", "accent": "#B99854", "marker": "#73856E",
+            "muted": "#798078", "rule": "#D5D0C2", "side_text": "#274232",
+            "side_label": "#274232", "section": "ellipse",
+        },
+        "garnet": {
+            "asset": "garnet-sidebar.png", "paper": "#FBF8F5", "ink": "#2A2023",
+            "body": "#2A2023", "accent": "#C7A66A", "marker": "#722E3C",
+            "muted": "#7D6D70", "rule": "#DFCFC7", "side_text": "#FFF8F4",
+            "side_label": "#F4DEDE", "section": "rectangle",
+        },
+        "harbor": {
+            "asset": "harbor-sidebar.png", "paper": "#FAFBFB", "ink": "#1D3446",
+            "body": "#1D3446", "accent": "#B78355", "marker": "#527286",
+            "muted": "#6E7E88", "rule": "#CBD5D9", "side_text": "#F7FAFB",
+            "side_label": "#EAF0F3", "section": "circle",
+        },
+    }
+    if theme not in themes:
+        raise ValueError(f"Nieznany motyw sidebara: {theme}")
+
+    C = themes[theme]
+    SIDE, L, W = 184, 220, 326
+    SANS, SERIF = "Helvetica", "Times-Roman"
+    lbl = _labels(cv)
+
+    class SidebarBuilder(Builder):
+        def need(self, h: float):
+            # Leave clear space for the persistent footer on each page.
+            if self.y + h > 758:
+                self.pg += 1
+                self.y = 56.0
+
+    def connector(source_id: str, target_id: str, color: str | None = None) -> dict:
+        return {
+            "category": "connector", "source_id": source_id, "target_id": target_id,
+            "backgroundColor": color or C["accent"], "borderWidth": 0.8,
+            "arrow": False, "zIndex": 3, "page": 1,
+        }
+
+    contact = _compact_lines(
+        [cv.get("location"), cv.get("email"), cv.get("phone")],
+        max_items=3, chars_per_item=25,
+    )
+    skills_preview = _compact_lines(cv.get("skills") or [], max_items=4, chars_per_item=18)
+    name = _compact_text(cv.get("name"), 32).upper()
+    title = _compact_text(cv.get("title"), 54).upper()
+    contact_line = _compact_text(_contact_line(cv), 78)
+
+    frame = {**_rect(462, 52, 58, 54, C["accent"], 0.85, zIndex=3), "id": f"{theme}-frame"}
+    orbit = {**_ellipse(472, 62, 35, 17, C["marker"], borderWidth=1, zIndex=3), "id": f"{theme}-orbit"}
+    node = {**_circle(484, 82, 11, C["accent"], filled=True, zIndex=3), "id": f"{theme}-node"}
+    static = [
+        _text(name, 29, SERIF, C["ink"], L, 52, zIndex=3, bold=True),
+        _text(title, 8.8, SANS, C["marker"], L + 2, 92, zIndex=3),
+        _text(contact_line, 8.4, SANS, C["muted"], L + 2, 120, zIndex=3),
+        _line(L, 145, W, 1, C["rule"], zIndex=2),
+        _text("KONTAKT", 8, SANS, C["side_label"], 24, 300, zIndex=3),
+        _block(contact, 24, 322, 136, 42, 8, 12.5, C["side_text"], SANS, zIndex=3),
+        _text("OBSZARY", 8, SANS, C["side_label"], 24, 434, zIndex=3),
+        _block(skills_preview, 24, 456, 136, 58, 8.3, 13, C["side_text"], SANS, zIndex=3),
+        frame, orbit, node,
+        connector(f"{theme}-frame", f"{theme}-orbit", C["rule"]),
+        connector(f"{theme}-orbit", f"{theme}-node"),
+    ]
+    static[0]["letterSpacing"] = 0.1
+    static[1]["letterSpacing"] = 1.45
+    static[4]["letterSpacing"] = 1.2
+    static[6]["letterSpacing"] = 1.2
+
+    b = SidebarBuilder(184)
+
+    def section(label: str) -> None:
+        b.need(40)
+        marker_y = b.y + 1
+        if C["section"] == "rectangle":
+            b.els.append(_rect(L - 22, marker_y, 9, 9, C["marker"], 1, zIndex=3, page=b.pg))
+        elif C["section"] == "ellipse":
+            b.els.append(_ellipse(L - 23, marker_y, 12, 12, C["marker"], borderWidth=1, zIndex=3, page=b.pg))
+        else:
+            b.els.append(_circle(L - 22, marker_y + 1, 8, C["accent"], filled=True, zIndex=3, page=b.pg))
+        b.text(label, 8.4, SANS, C["marker"], L)
+        b.els[-1]["letterSpacing"] = 1.55 if label != lbl["skills"] else 1.3
+        b.line(L, W, 1, C["rule"])
+        b.gap(14)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10, 14.5, C["body"], SANS)
+        b.gap(18)
+
+    if cv.get("experience"):
+        section(lbl["experience"])
+        for job in cv["experience"]:
+            b.need(80)
+            b.block(job.get("title", ""), L, W, 10.8, 13.5, C["ink"], SANS, bold=True, min_h=15)
+            b.gap(1)
+            b.block(_company_period(job), L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
+            b.gap(3)
+            bullets = _bullets(job)
+            if bullets:
+                b.block(bullets, L, W, 9.3, 13.2, C["body"], SANS, bulletList=True)
+            b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, {"body": C["body"]},
+                        L, W, SANS, fs=9.3, lh=13.2)
+
+    if cv.get("education"):
+        section(lbl["education"])
+        for edu in cv["education"]:
+            b.block(edu.get("degree", ""), L, W, 10.2, 13, C["ink"], SANS, bold=True, min_h=15)
+            b.gap(2)
+            b.block(edu.get("period", ""), L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
+            if edu.get("detail"):
+                b.gap(1)
+                b.block(edu["detail"], L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
+            b.gap(10)
+
+    if cv.get("skills"):
+        section(lbl["skills"])
+        b.block("  ·  ".join(cv["skills"]), L, W, 9.3, 13.2, C["body"], SANS)
+        b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, {"body": C["body"]},
+                    L, W, SANS, fs=9.3, lh=13.2)
+    flow = b.build()
+    pages_used = max([element.get("page", 1) for element in static + flow] or [1])
+
+    page_decorations = [
+        decoration
+        for page in range(1, pages_used + 1)
+        for decoration in (
+            {
+                "category": "image", "src": f"{BACKEND_URL}/template-assets/{C['asset']}",
+                "width": SIDE, "height": A4_H, "left": 0, "top": 0, "zIndex": 0,
+                "page": page, "fixedToPage": True,
+            },
+            {**_line(SIDE, 0, 2, A4_H, C["accent"], zIndex=1, page=page), "fixedToPage": True},
+            {**_line(SIDE + 2, 0, 409, A4_H, C["paper"], zIndex=0, page=page), "fixedToPage": True},
+            {**_line(L, 783, W, 1, C["rule"], zIndex=2, page=page), "fixedToPage": True},
+            {**_circle(L, 796, 6, C["accent"], filled=True, zIndex=3, page=page), "fixedToPage": True},
+            {**_text(f"{page:02d}", 8, SANS, C["muted"], L + W - 15, 791, zIndex=3, page=page), "fixedToPage": True},
+        )
+    ]
+    return page_decorations + static + flow
+
+
+def _gen_quarry(cv: dict) -> list[dict]:
+    return _gen_sidebar_theme(cv, "quarry")
+
+
+def _gen_moss(cv: dict) -> list[dict]:
+    return _gen_sidebar_theme(cv, "moss")
+
+
+def _gen_garnet(cv: dict) -> list[dict]:
+    return _gen_sidebar_theme(cv, "garnet")
+
+
+def _gen_harbor(cv: dict) -> list[dict]:
+    return _gen_sidebar_theme(cv, "harbor")
+
+
 # ── public API ───────────────────────────────────────────────────────────────
 
 _GENERATORS = {
@@ -1970,6 +2142,10 @@ _GENERATORS = {
     "regent":    _gen_regent,
     "aldine":    _gen_aldine,
     "merit":     _gen_merit,
+    "quarry":    _gen_quarry,
+    "moss":      _gen_moss,
+    "garnet":    _gen_garnet,
+    "harbor":    _gen_harbor,
     "sterling":  _gen_sterling,
     "nocturne":  _gen_nocturne,
     "ampersand": _gen_ampersand,

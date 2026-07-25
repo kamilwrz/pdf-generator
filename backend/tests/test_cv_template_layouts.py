@@ -136,6 +136,48 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     self.assertEqual(len(backgrounds), 1)
                     self.assertTrue(backgrounds[0]["fixedToPage"])
 
+    def test_sidebar_templates_repeat_narrow_artwork_on_every_page(self):
+        multi_page_cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 3,
+        }
+        assets = {
+            "quarry": "quarry-sidebar.png",
+            "moss": "moss-sidebar.png",
+            "garnet": "garnet-sidebar.png",
+            "harbor": "harbor-sidebar.png",
+        }
+        expected_categories = {
+            "text", "textarea", "line", "rectangle", "circle", "ellipse",
+            "image", "connector",
+        }
+
+        for template_id, asset_name in assets.items():
+            with self.subTest(template_id=template_id):
+                elements = generate_resume(template_id, multi_page_cv)
+                pages = {element.get("page", 1) for element in elements}
+
+                self.assertTrue(expected_categories <= {element["category"] for element in elements})
+                self.assertGreater(max(pages), 1)
+                self.assertTrue(all(
+                    element.get("autoHeight") is True
+                    for element in elements
+                    if element["category"] == "textarea"
+                ))
+                for page in pages:
+                    sidebar_images = [
+                        element for element in elements
+                        if element["category"] == "image"
+                        and element.get("page", 1) == page
+                        and element["src"].endswith(f"/template-assets/{asset_name}")
+                    ]
+                    self.assertEqual(len(sidebar_images), 1)
+                    self.assertEqual(sidebar_images[0]["left"], 0)
+                    self.assertEqual(sidebar_images[0]["width"], 184)
+                    self.assertEqual(sidebar_images[0]["height"], 842)
+                    self.assertTrue(sidebar_images[0]["fixedToPage"])
+                    self.assertTrue(Path(image_src_to_local_path(sidebar_images[0]["src"])).is_file())
+
     def test_classic_templates_are_image_free_single_column_documents(self):
         multi_page_cv = {
             **LONG_CV,

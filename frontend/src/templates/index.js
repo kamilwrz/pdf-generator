@@ -12,6 +12,10 @@ import { scribeTemplate } from "./scribe";
 import { regentTemplate } from "./regent";
 import { aldineTemplate } from "./aldine";
 import { meritTemplate } from "./merit";
+import { quarryTemplate } from "./quarry";
+import { mossTemplate } from "./moss";
+import { garnetTemplate } from "./garnet";
+import { harborTemplate } from "./harbor";
 
 // Every template declares a category (drives the modal tabs) and the page-size
 // preset it is designed for (applied on load).
@@ -34,6 +38,10 @@ export const TEMPLATES = [
     { id: "regent",    name: "Regent",    industry: "Classic · Executive",                accent: "#733B43", category: "cv",      pageSize: "a4-portrait", elements: regentTemplate },
     { id: "aldine",    name: "Aldine",    industry: "Classic · Szlachetny papier",        accent: "#486151", category: "cv",      pageSize: "a4-portrait", elements: aldineTemplate },
     { id: "merit",     name: "Merit",     industry: "Classic · Dyplomatyczny minimalizm", accent: "#4F6679", category: "cv",      pageSize: "a4-portrait", elements: meritTemplate },
+    { id: "quarry",    name: "Quarry",    industry: "Sidebar · Nocny system",             accent: "#37D1EE", category: "cv",      pageSize: "a4-portrait", elements: quarryTemplate },
+    { id: "moss",      name: "Moss",      industry: "Sidebar · Botaniczna elegancja",     accent: "#B99854", category: "cv",      pageSize: "a4-portrait", elements: mossTemplate },
+    { id: "garnet",    name: "Garnet",    industry: "Sidebar · Art déco executive",       accent: "#C7A66A", category: "cv",      pageSize: "a4-portrait", elements: garnetTemplate },
+    { id: "harbor",    name: "Harbor",    industry: "Sidebar · Morski minimalizm",        accent: "#B78355", category: "cv",      pageSize: "a4-portrait", elements: harborTemplate },
     { id: "meridian",  name: "Meridian",  industry: "Prezentacja · Szeryf redakcyjny", accent: "#3E6DB5", category: "deck", pageSize: "deck-16-9",   elements: meridianTemplate },
     { id: "onyx",      name: "Onyx",      industry: "Prezentacja · Ciemna i odważna",  accent: "#F25F4C", category: "deck", pageSize: "deck-16-9",   elements: onyxTemplate },
     { id: "verdant",   name: "Verdant",   industry: "Prezentacja · Spokojna zieleń",   accent: "#3E7A5E", category: "deck", pageSize: "deck-16-9",   elements: verdantTemplate },
