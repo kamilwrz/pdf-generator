@@ -209,6 +209,7 @@ class ChatCommandTests(unittest.TestCase):
             {
                 "element_id": "accent-circle",
                 "category": "circle",
+                "filled": True,
                 "left": 400, "top": 180, "width": 60, "height": 60, "page": 1,
             },
             {
@@ -231,8 +232,10 @@ class ChatCommandTests(unittest.TestCase):
         self.assertEqual(by_id["accent-box"]["width"], 160.0)
         self.assertEqual(by_id["accent-circle"]["category"], "circle")
         self.assertEqual(by_id["accent-circle"]["height"], 60.0)
+        self.assertTrue(by_id["accent-circle"]["filled"])
         self.assertEqual(by_id["accent-ellipse"]["category"], "ellipse")
         self.assertEqual(by_id["accent-ellipse"]["width"], 120.0)
+        self.assertFalse(by_id["accent-ellipse"]["filled"])
 
     def test_dispatcher_routes_target_groups_directive_to_block_resolution(self):
         elements = [

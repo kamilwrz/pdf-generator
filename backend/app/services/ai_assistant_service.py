@@ -95,6 +95,7 @@ def _extract_positional(elements: list[dict]) -> list[dict]:
             "width": bounds["width"],
             "height": bounds["height"],
             "page": bounds["page"],
+            **({"filled": bool(el.get("filled", False))} if category in {"circle", "ellipse"} else {}),
             **({"fixedToPage": True} if bounds.get("fixedToPage") else {}),
         })
     return structured
