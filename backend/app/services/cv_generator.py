@@ -323,6 +323,93 @@ def _gen_ledger(cv: dict) -> list[dict]:
     return static + b.build()
 
 
+def _gen_nimbus(cv: dict) -> list[dict]:
+    """Light blue-grey finance CV with an airy editorial rhythm."""
+    INK, BLUE = "#2B3D4C", "#5F8EAD"
+    POWDER, SKY, CLOUD, SLATE = "#B9D2E5", "#DFEBF4", "#E9EEF1", "#72818C"
+    L, W, SANS, SERIF = 80, 462, "Inter", "Times-Roman"
+    lbl = _labels(cv)
+
+    mark_one = {**_rect(80, 176, 14, 14, BLUE, 1.2, zIndex=2), "id": "nimbus-mark-one"}
+    mark_two = {**_rect(114, 176, 14, 14, POWDER, 1.2, zIndex=2), "id": "nimbus-mark-two"}
+    mark_three = {**_rect(148, 176, 14, 14, POWDER, 1.2, zIndex=2), "id": "nimbus-mark-three"}
+    static = [
+        _line(0, 0, 595, 4, POWDER, zIndex=0),
+        _line(52, 207, 490, 1, POWDER),
+        _rect(401, 35, 141, 153, POWDER, 1.1, zIndex=3),
+        {
+            "category": "image",
+            "src": f"{BACKEND_URL}/uploads/templates/nimbus-finance-accent.png",
+            "width": 129,
+            "height": 141,
+            "left": 407,
+            "top": 41,
+            "zIndex": 2,
+            "page": 1,
+        },
+        _line(52, 48, 4, 112, BLUE, zIndex=2),
+        _text(_compact_text(cv.get("name"), 30), 29, SERIF, INK, 78, 55, zIndex=2, bold=True),
+        _text(_compact_text(cv.get("title"), 52), 9.3, SANS, BLUE, 80, 99, zIndex=2),
+        _text(_compact_text(_contact_line(cv), 78), 8.7, SANS, SLATE, 80, 153, zIndex=2),
+        mark_one,
+        mark_two,
+        mark_three,
+        {"category": "connector", "source_id": "nimbus-mark-one", "target_id": "nimbus-mark-two",
+         "backgroundColor": POWDER, "borderWidth": 1, "arrow": False, "zIndex": 1, "page": 1},
+        {"category": "connector", "source_id": "nimbus-mark-two", "target_id": "nimbus-mark-three",
+         "backgroundColor": POWDER, "borderWidth": 1, "arrow": False, "zIndex": 1, "page": 1},
+        _line(52, 347, 2, 328, SKY),
+        _rect(45, 362, 16, 16, BLUE, zIndex=2),
+    ]
+    static[6]["letterSpacing"] = 1.5
+
+    b = Builder(248)
+
+    def section(label: str) -> None:
+        b.need(34)
+        b.text(label, 8.7, SANS, BLUE, L)
+        b.line(L, W, 1, CLOUD)
+        b.gap(14)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10.1, 15, INK, SANS)
+        b.gap(18)
+
+    if cv.get("experience"):
+        section(lbl["experience"])
+        for job in cv["experience"]:
+            b.need(72)
+            b.block(job.get("title", ""), L, W, 11, 13.5, INK, SANS, bold=True, min_h=15)
+            b.gap(1)
+            b.block(_company_period(job), L, W, 8.8, 11.5, SLATE, SANS, min_h=12)
+            b.gap(3)
+            bullets = _bullets(job)
+            if bullets:
+                b.block(bullets, L, W, 9.5, 13.4, INK, SANS, bulletList=True)
+            b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, {"body": INK}, L, W, SANS, fs=9.5, lh=13.4)
+
+    if cv.get("education"):
+        section(lbl["education"])
+        for edu in cv["education"]:
+            b.block(edu.get("degree", ""), L, W, 10.3, 13, INK, SANS, bold=True, min_h=15)
+            b.gap(2)
+            b.block(edu.get("period", ""), L, W, 8.7, 11.5, SLATE, SANS, min_h=12)
+            if edu.get("detail"):
+                b.gap(1)
+                b.block(edu["detail"], L, W, 8.7, 11.5, SLATE, SANS, min_h=12)
+            b.gap(10)
+
+    if cv.get("skills"):
+        section(lbl["skills"])
+        b.block("  ·  ".join(cv["skills"]), L, W, 9.4, 13.5, INK, SANS)
+        b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, {"body": INK}, L, W, SANS, fs=9.4, lh=13.5)
+    return static + b.build()
+
+
 def _gen_nocturne(cv: dict) -> list[dict]:
     C = dict(ink="#1F2933", coral="#F25F4C", gray="#6B7280", body="#1F2933")
     L, W = 50, 495
@@ -1191,6 +1278,7 @@ def _gen_vellum(cv: dict) -> list[dict]:
 _GENERATORS = {
     "finance":   _gen_finance,
     "ledger":    _gen_ledger,
+    "nimbus":    _gen_nimbus,
     "sterling":  _gen_sterling,
     "nocturne":  _gen_nocturne,
     "ampersand": _gen_ampersand,

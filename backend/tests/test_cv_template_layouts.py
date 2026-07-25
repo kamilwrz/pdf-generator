@@ -76,6 +76,23 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in elements
         ))
 
+    def test_nimbus_uses_every_canvas_element_without_theme_copy(self):
+        elements = generate_resume("nimbus", LONG_CV)
+        categories = {element["category"] for element in elements}
+        rendered_copy = " ".join(
+            str(element.get("content", ""))
+            for element in elements
+            if element["category"] in {"text", "textarea"}
+        ).upper()
+
+        self.assertTrue({"text", "textarea", "line", "rectangle", "image", "connector"} <= categories)
+        self.assertNotIn("NIMBUS", rendered_copy)
+        self.assertTrue(any(
+            element["category"] == "image"
+            and element["src"].endswith("/uploads/templates/nimbus-finance-accent.png")
+            for element in elements
+        ))
+
     def test_final_templates_keep_textareas_inside_page_bounds(self):
         for template_id in ("solstice", "mistral", "axiom", "vellum"):
             with self.subTest(template_id=template_id):
