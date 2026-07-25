@@ -854,6 +854,54 @@ export function useA4Elements(titleRef) {
     });
   }, []);
 
+  // Applies an AI-proposed deletion only after the reviewed card is accepted.
+  // Keep fixed artwork and locked elements protected even if the client has
+  // stale or malformed response data.
+  const applyDeleteOperation = useCallback((group) => {
+    const targetIds = group?.remove_element_ids;
+    if (
+      !Array.isArray(targetIds)
+      || targetIds.length === 0
+      || targetIds.length > 80
+      || targetIds.some((elementId) => typeof elementId !== "string" || !elementId)
+      || new Set(targetIds).size !== targetIds.length
+    ) return;
+
+    setA4_Elements((prevState) => {
+      const byId = new Map(prevState.map((element) => [element.element_id, element]));
+      const targets = targetIds.map((elementId) => byId.get(elementId));
+      if (
+        targets.some((element) => (
+          !element
+          || element.locked
+          || element.fixedToPage
+          || element.category === "connector"
+        ))
+      ) return prevState;
+
+      const removedIds = new Set(targetIds);
+      prevState.forEach((element) => {
+        if (
+          element.category === "connector"
+          && (removedIds.has(element.source_id) || removedIds.has(element.target_id))
+        ) {
+          removedIds.add(element.element_id);
+        }
+      });
+      const removedElements = prevState.filter((element) => removedIds.has(element.element_id));
+      setA4_Elements_deleted((previousDeleted) => {
+        const additions = removedElements
+          .filter((element) => !previousDeleted.some((deleted) => (
+            deleted.element_id === element.element_id && deleted.pdf_id !== undefined
+          )))
+          .map((element) => ({ ...element, deleted: true }));
+        return additions.length ? [...previousDeleted, ...additions] : previousDeleted;
+      });
+
+      return prevState.filter((element) => !removedIds.has(element.element_id));
+    });
+  }, []);
+
   const handleEditElementValues = useCallback((dataObject, id) => {
     setA4_Elements(prevState => {
       const newState = prevState.map((element) => {
@@ -1563,6 +1611,7 @@ export function useA4Elements(titleRef) {
     fitTextareaToContent: handleFitTextareaToContent,
     applyLayoutPatches,
     applyStructureOperation,
+    applyDeleteOperation,
     handleMoveElementWithBelow,
     A4ref,
     PDFTitle,

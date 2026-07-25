@@ -161,6 +161,35 @@
 .structureCard strong { font: 700 11px var(--font-body); color: var(--chrome-ink); }
 .structureCard p { margin: 0; font: 500 10.5px/1.4 var(--font-body); color: var(--chrome-muted); }
 
+.deletionCard {
+    padding: 8px;
+    border: 1px solid #e5bbb3;
+    border-radius: 7px;
+    background: #fff8f7;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.deletion_preview { border-color: #d77e70; background: #fff1ee; }
+.deletion_accepted { border-color: #e4c0ba; background: #fcf8f7; }
+.deletion_rejected { opacity: .72; }
+
+.deletionCard strong { font: 700 11px var(--font-body); color: var(--chrome-ink); }
+.deletionCard p { margin: 0; font: 500 10.5px/1.4 var(--font-body); color: var(--chrome-muted); }
+
+.deleteAccept {
+    padding: 5px 8px;
+    border: 1px solid #c75645;
+    border-radius: 5px;
+    background: #d2503c;
+    color: #fff;
+    font: 700 10px var(--font-body);
+    cursor: pointer;
+}
+
+.deleteAccept:hover { background: #b83e2d; }
+
 /* ── Job Description ─────────────────────────────────────────────── */
 .jobDescArea {
     overflow: hidden;

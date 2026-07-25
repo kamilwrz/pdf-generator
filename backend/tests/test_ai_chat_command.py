@@ -374,6 +374,48 @@ class ChatCommandTests(unittest.TestCase):
         self.assertTrue(all("left" in element and "top" in element for element in group["add_elements"]))
         self.assertTrue(any(element["category"] == "line" for element in group["add_elements"]))
 
+    def test_dispatcher_returns_a_reviewed_delete_group_and_preserves_fixed_background(self):
+        elements = [
+            {
+                "element_id": "background", "category": "image", "left": 0, "top": 0,
+                "width": 595, "height": 842, "page": 2, "fixedToPage": True,
+            },
+            {
+                "element_id": "section-heading", "category": "text", "content": "PROFIL",
+                "fontSize": 12, "left": 40, "top": 70, "width": 80, "height": 16, "page": 2,
+            },
+            {
+                "element_id": "section-body", "category": "textarea", "content": "Treść profilu",
+                "fontSize": 10, "left": 40, "top": 100, "width": 220, "height": 40, "page": 2,
+            },
+        ]
+
+        def fake_gpt(system, user):
+            self.assertIn("delete_operation", system)
+            self.assertIn("fixedToPage=true", system)
+            self.assertIn('"page": 2', user)
+            return {
+                "message": "Przygotowałem usunięcie treści ze strony 2.",
+                "corrections": [],
+                "position_operation": None,
+                "structure_operation": None,
+                "delete_operation": {
+                    "type": "delete_elements",
+                    "target_element_ids": ["section-heading", "section-body"],
+                },
+            }
+
+        with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
+            result = ai_assistant_service.analyze_action(
+                action="chat",
+                elements=elements,
+                message="usuń wszystkie elementy ze strony 2 poza tłem",
+                page_size={"width": 595, "height": 842},
+            )
+
+        self.assertEqual(result["deletion_issues"], [])
+        self.assertEqual(result["deletion_groups"][0]["remove_element_ids"], ["section-heading", "section-body"])
+
 
 if __name__ == "__main__":
     unittest.main()

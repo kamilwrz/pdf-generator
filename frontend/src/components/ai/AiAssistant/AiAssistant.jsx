@@ -163,11 +163,55 @@ function StructureGroupCard({ msgId, group, structureStates, onPreview, onClearP
     );
 }
 
+function DeletionGroupCard({ msgId, group, deletionStates, onPreview, onClearPreview, onAccept, onReject }) {
+    const key = `${msgId}_${group.id}`;
+    const state = deletionStates[key] || "pending";
+    const count = group.remove_element_ids?.length || 0;
+
+    return (
+        <div className={`${classes.deletionCard} ${classes[`deletion_${state}`]}`}>
+            <div className={classes.structureCardHeader}>
+                <span>Usuwanie elementów</span>
+                <span>{count} {count === 1 ? "element" : "elementów"}</span>
+            </div>
+            <strong>{group.title}</strong>
+            <p>{group.reason}</p>
+            {state === "pending" && (
+                <div className={classes.layoutActions}>
+                    <button className={classes.layoutPreview} onClick={() => onPreview(msgId, group)}>
+                        Podgląd
+                    </button>
+                    <button className={classes.deleteAccept} onClick={() => onAccept(msgId, group)}>
+                        <MdCheckCircle /> Usuń
+                    </button>
+                    <button className={classes.layoutReject} onClick={() => onReject(msgId, group)}>
+                        <MdCancel /> Pomiń
+                    </button>
+                </div>
+            )}
+            {state === "preview" && (
+                <div className={classes.layoutActions}>
+                    <span className={classes.previewingLabel}>Podgląd aktywny na płótnie</span>
+                    <button className={classes.deleteAccept} onClick={() => onAccept(msgId, group)}>
+                        <MdCheckCircle /> Usuń
+                    </button>
+                    <button className={classes.layoutPreview} onClick={() => onClearPreview(msgId, group.id)}>
+                        Zatrzymaj podgląd
+                    </button>
+                </div>
+            )}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "#D2503C" }}>✓ Usunięto</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "#9A8E7F" }}>✗ Pominięto</span>}
+        </div>
+    );
+}
+
 function ChatMessage({
     msg,
     correctionStates,
     layoutStates,
     structureStates,
+    deletionStates,
     onAccept,
     onReject,
     onApplyAll,
@@ -179,6 +223,10 @@ function ChatMessage({
     onClearStructurePreview,
     onAcceptStructure,
     onRejectStructure,
+    onPreviewDeletion,
+    onClearDeletionPreview,
+    onAcceptDeletion,
+    onRejectDeletion,
     A4_Elements,
 }) {
     const isUser = msg.role === "user";
@@ -278,6 +326,26 @@ function ChatMessage({
                     </div>
                 )}
 
+                {msg.deletion_groups?.length > 0 && (
+                    <div className={classes.layoutGroups}>
+                        <div className={classes.corrHeader}>
+                            <span>{msg.deletion_groups.length} {msg.deletion_groups.length === 1 ? "propozycja usunięcia" : "propozycje usunięcia"}</span>
+                        </div>
+                        {msg.deletion_groups.map(group => (
+                            <DeletionGroupCard
+                                key={group.id}
+                                msgId={msg.id}
+                                group={group}
+                                deletionStates={deletionStates}
+                                onPreview={onPreviewDeletion}
+                                onClearPreview={onClearDeletionPreview}
+                                onAccept={onAcceptDeletion}
+                                onReject={onRejectDeletion}
+                            />
+                        ))}
+                    </div>
+                )}
+
                 {msg.layout_issues?.length > 0 && (
                     <ul className={classes.layoutIssues}>
                         {msg.layout_issues.map((issue, index) => <li key={index}>{issue.message}</li>)}
@@ -286,6 +354,11 @@ function ChatMessage({
                 {msg.structure_issues?.length > 0 && (
                     <ul className={classes.layoutIssues}>
                         {msg.structure_issues.map((issue, index) => <li key={index}>{issue.message}</li>)}
+                    </ul>
+                )}
+                {msg.deletion_issues?.length > 0 && (
+                    <ul className={classes.layoutIssues}>
+                        {msg.deletion_issues.map((issue, index) => <li key={index}>{issue.message}</li>)}
                     </ul>
                 )}
 
@@ -313,8 +386,10 @@ export default function AiAssistant() {
         editElementValues,
         applyLayoutPatches,
         applyStructureOperation,
+        applyDeleteOperation,
         setLayoutPreviewPatches,
         setStructurePreviewGroup,
+        setDeletionPreviewIds,
         pageSize,
         setCurrentPage,
     } = use(PdfContext);
@@ -328,6 +403,7 @@ export default function AiAssistant() {
     const [correctionStates, setCorrectionStates] = useState({});
     const [layoutStates, setLayoutStates] = useState({});
     const [structureStates, setStructureStates] = useState({});
+    const [deletionStates, setDeletionStates] = useState({});
 
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -367,6 +443,7 @@ export default function AiAssistant() {
 
     const previewLayoutGroup = useCallback((msgId, group) => {
         setStructurePreviewGroup(null);
+        setDeletionPreviewIds([]);
         setStructureStates((previous) => Object.fromEntries(
             Object.entries(previous).map(([key, state]) => [key, state === "preview" ? "pending" : state]),
         ));
@@ -382,7 +459,7 @@ export default function AiAssistant() {
             next[`${msgId}_${group.id}`] = "preview";
             return next;
         });
-    }, [setCurrentPage, setLayoutPreviewPatches, setStructurePreviewGroup]);
+    }, [setCurrentPage, setDeletionPreviewIds, setLayoutPreviewPatches, setStructurePreviewGroup]);
 
     const clearLayoutPreview = useCallback((msgId, groupId) => {
         setLayoutPreviewPatches([]);
@@ -406,6 +483,7 @@ export default function AiAssistant() {
 
     const previewStructureGroup = useCallback((msgId, group) => {
         setLayoutPreviewPatches([]);
+        setDeletionPreviewIds([]);
         setLayoutStates((previous) => Object.fromEntries(
             Object.entries(previous).map(([key, state]) => [key, state === "preview" ? "pending" : state]),
         ));
@@ -419,7 +497,7 @@ export default function AiAssistant() {
             next[`${msgId}_${group.id}`] = "preview";
             return next;
         });
-    }, [setCurrentPage, setLayoutPreviewPatches, setStructurePreviewGroup]);
+    }, [setCurrentPage, setDeletionPreviewIds, setLayoutPreviewPatches, setStructurePreviewGroup]);
 
     const clearStructurePreview = useCallback((msgId, groupId) => {
         setStructurePreviewGroup(null);
@@ -440,6 +518,41 @@ export default function AiAssistant() {
         if (structureStates[key] === "preview") setStructurePreviewGroup(null);
         setStructureStates((previous) => ({ ...previous, [key]: "rejected" }));
     }, [setStructurePreviewGroup, structureStates]);
+
+    const previewDeletionGroup = useCallback((msgId, group) => {
+        setLayoutPreviewPatches([]);
+        setStructurePreviewGroup(null);
+        setDeletionPreviewIds(group.remove_element_ids || []);
+        if (Number.isInteger(group.target_page) && group.target_page > 0) setCurrentPage(group.target_page);
+        setDeletionStates((previous) => {
+            const next = { ...previous };
+            Object.keys(next).forEach((key) => {
+                if (next[key] === "preview") next[key] = "pending";
+            });
+            next[`${msgId}_${group.id}`] = "preview";
+            return next;
+        });
+    }, [setCurrentPage, setDeletionPreviewIds, setLayoutPreviewPatches, setStructurePreviewGroup]);
+
+    const clearDeletionPreview = useCallback((msgId, groupId) => {
+        setDeletionPreviewIds([]);
+        setDeletionStates((previous) => {
+            const key = `${msgId}_${groupId}`;
+            return previous[key] === "preview" ? { ...previous, [key]: "pending" } : previous;
+        });
+    }, [setDeletionPreviewIds]);
+
+    const acceptDeletionGroup = useCallback((msgId, group) => {
+        applyDeleteOperation(group);
+        setDeletionPreviewIds([]);
+        setDeletionStates((previous) => ({ ...previous, [`${msgId}_${group.id}`]: "accepted" }));
+    }, [applyDeleteOperation, setDeletionPreviewIds]);
+
+    const rejectDeletionGroup = useCallback((msgId, group) => {
+        const key = `${msgId}_${group.id}`;
+        if (deletionStates[key] === "preview") setDeletionPreviewIds([]);
+        setDeletionStates((previous) => ({ ...previous, [key]: "rejected" }));
+    }, [deletionStates, setDeletionPreviewIds]);
 
     // ── send message to backend ──────────────────────────────────────────
 
@@ -479,6 +592,8 @@ export default function AiAssistant() {
                 layout_issues: res.layout_issues ?? [],
                 structure_groups: res.structure_groups ?? [],
                 structure_issues: res.structure_issues ?? [],
+                deletion_groups: res.deletion_groups ?? [],
+                deletion_issues: res.deletion_issues ?? [],
                 web_sources: res.web_sources ?? [],
                 actionLabel: actionMeta?.label,
                 actionColor: actionMeta?.color,
@@ -562,6 +677,7 @@ export default function AiAssistant() {
                             <button className={classes.closeBtn} onClick={() => {
                                 setLayoutPreviewPatches([]);
                                 setStructurePreviewGroup(null);
+                                setDeletionPreviewIds([]);
                                 setIsOpen(false);
                             }}>
                                 <IoClose />
@@ -640,6 +756,7 @@ export default function AiAssistant() {
                                     correctionStates={correctionStates}
                                     layoutStates={layoutStates}
                                     structureStates={structureStates}
+                                    deletionStates={deletionStates}
                                     onAccept={acceptCorrection}
                                     onReject={rejectCorrection}
                                     onApplyAll={applyAll}
@@ -651,6 +768,10 @@ export default function AiAssistant() {
                                     onClearStructurePreview={clearStructurePreview}
                                     onAcceptStructure={acceptStructureGroup}
                                     onRejectStructure={rejectStructureGroup}
+                                    onPreviewDeletion={previewDeletionGroup}
+                                    onClearDeletionPreview={clearDeletionPreview}
+                                    onAcceptDeletion={acceptDeletionGroup}
+                                    onRejectDeletion={rejectDeletionGroup}
                                     A4_Elements={A4_Elements}
                                 />
                             ))}

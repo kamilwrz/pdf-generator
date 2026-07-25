@@ -1401,6 +1401,64 @@ def resolve_restructure_section(
     }
 
 
+def resolve_delete_operation(
+    elements: list[dict[str, Any]],
+    directive: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Validate an explicit AI deletion request for user review.
+
+    The model may select existing element IDs only. Fixed page artwork and
+    position-locked elements are intentionally protected from bulk deletion.
+    """
+    if (
+        not isinstance(directive, dict)
+        or directive.get("type") != "delete_elements"
+        or set(directive) != {"type", "target_element_ids"}
+    ):
+        return None
+
+    raw_ids = directive.get("target_element_ids")
+    if not isinstance(raw_ids, list) or not 1 <= len(raw_ids) <= 80:
+        return None
+    target_ids = [str(element_id) for element_id in raw_ids if isinstance(element_id, str) and element_id]
+    if len(target_ids) != len(raw_ids) or len(set(target_ids)) != len(target_ids):
+        return None
+
+    by_id = {
+        str(element.get("element_id")): element
+        for element in elements
+        if element.get("element_id")
+    }
+    targets = [by_id.get(element_id) for element_id in target_ids]
+    if (
+        any(element is None for element in targets)
+        or any(
+            element.get("fixedToPage")
+            or element.get("locked")
+            or element.get("category") == "connector"
+            for element in targets
+        )
+    ):
+        return None
+
+    pages = {
+        max(1, int(_number(element.get("page"), 1)))
+        for element in targets
+    }
+    count = len(target_ids)
+    return {
+        "id": f"directed-delete-{target_ids[0]}",
+        "title": f"Usuń {count} {'element' if count == 1 else 'elementy'}",
+        "reason": (
+            "Elementy znikną po zatwierdzeniu. Stałe tła i dekoracje stron "
+            "pozostają chronione."
+        ),
+        "severity": "high",
+        "remove_element_ids": target_ids,
+        "target_page": next(iter(pages)) if len(pages) == 1 else None,
+    }
+
+
 def resolve_directed_operation(
     elements: list[dict[str, Any]],
     directive: dict[str, Any],

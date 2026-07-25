@@ -28,6 +28,8 @@ class AssistantResponse(BaseModel):
     layout_issues: list[dict] = []
     structure_groups: list[dict] = []
     structure_issues: list[dict] = []
+    deletion_groups: list[dict] = []
+    deletion_issues: list[dict] = []
     web_sources: list[str] = []
 
 

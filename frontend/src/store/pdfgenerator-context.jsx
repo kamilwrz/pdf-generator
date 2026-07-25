@@ -40,6 +40,7 @@ export const PdfContext = createContext({
     editElementValues: () => {},
     editSelectedElementValues: () => {},
     applyStructureOperation: () => {},
+    applyDeleteOperation: () => {},
     fitTextareaToContent: () => {},
     alignElement: () => {},
     deleteElement: () => {},
@@ -64,6 +65,8 @@ export const PdfContext = createContext({
     setA4_Elements_deleted: () =>{},
     structurePreviewGroup: null,
     setStructurePreviewGroup: () => {},
+    deletionPreviewIds: [],
+    setDeletionPreviewIds: () => {},
     setPDFdownloadData: () => {},
     PDFdownloadData: []
 })

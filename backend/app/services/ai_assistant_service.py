@@ -12,6 +12,7 @@ from app.core.config import OPENAI_API_KEY
 from app.services.layout_analysis import (
     analyze_layout,
     extract_bounds,
+    resolve_delete_operation,
     resolve_directed_operation,
     resolve_restructure_section,
 )
@@ -649,10 +650,19 @@ def _chat(message: str, elements: list[dict], page_size: dict | None) -> dict:
         "  - Użyj heading dla nazwy sekcji, entry_title dla tytułu wpisu, entry_meta dla dat lub "
         "instytucji, body dla opisu i list dla punktów. NIE podawaj nowych ID, kategorii canvas, "
         "współrzędnych, stylów, stron ani rozmiarów — Python bezpiecznie wyliczy elementy i reflow.\n"
+        "(5) POLECENIE usunięcia elementów (np. „usuń wszystkie elementy ze strony 2 oprócz tła”) "
+        "zwraca delete_operation zamiast corrections, position_operation i structure_operation:\n"
+        "  {\"type\":\"delete_elements\", \"target_element_ids\":[\"...\" ]}\n"
+        "  - Podaj wyłącznie istniejące ID elementów, które użytkownik wyraźnie chce usunąć. Przy "
+        "poleceniu „wszystkie na stronie X oprócz Y” wylicz wszystkie zwykłe elementy z tej strony "
+        "oprócz wskazanych wyjątków.\n"
+        "  - NIGDY nie podawaj elementów z fixedToPage=true ani locked=true: są to chronione tła, "
+        "stopki i pozycje użytkownika. Nie podawaj współrzędnych, stron, stylów ani nowych specyfikacji. "
+        "Usunięcie zawsze wymaga osobnego zatwierdzenia użytkownika w UI.\n"
         "NIGDY sam nie podawaj wartości left/top — Python obliczy rzeczywiste współrzędne na "
         "podstawie bieżącej, aktualnej pozycji elementów i sam odrzuci operację, jeśli wyszłaby "
         "poza stronę.\n"
-        "(4) Jeśli polecenie wymaga zmiany rozmiaru elementów w sposób inny niż przeniesienie tekstowej "
+        "(6) Jeśli polecenie wymaga zmiany rozmiaru elementów w sposób inny niż przeniesienie tekstowej "
         "sekcji do sidebara, lub usunięcia wielu stron (np. \"zmieść CV na "
         "jednej stronie\"), albo jest zbyt niejednoznaczne, by bezpiecznie określić elementy "
         "docelowe i operację — NIE zgaduj. W message wyjaśnij ograniczenie lub zadaj pytanie "
@@ -673,6 +683,7 @@ Zwróć JSON:
   "corrections": [],
   "position_operation": null,
   "structure_operation": null,
+  "delete_operation": null,
   "web_sources": []
 }}"""
     raw = _gpt(system, user)
@@ -705,6 +716,25 @@ Zwróć JSON:
     else:
         result["structure_groups"] = []
         result["structure_issues"] = []
+
+    delete_directive = raw.get("delete_operation")
+    if isinstance(delete_directive, dict):
+        delete_group = resolve_delete_operation(elements, delete_directive)
+        if delete_group is None:
+            result["deletion_groups"] = []
+            result["deletion_issues"] = [{
+                "severity": "warning",
+                "message": (
+                    "Nie można bezpiecznie przygotować usunięcia — wskazano nieznany, "
+                    "zablokowany lub chroniony element."
+                ),
+            }]
+        else:
+            result["deletion_groups"] = [delete_group]
+            result["deletion_issues"] = []
+    else:
+        result["deletion_groups"] = []
+        result["deletion_issues"] = []
 
     return result
 

@@ -65,6 +65,7 @@ function PdfCanvas() {
   // correction never mutates the saved document state.
   const [layoutPreviewPatches, setLayoutPreviewPatches] = useState([]);
   const [structurePreviewGroup, setStructurePreviewGroup] = useState(null);
+  const [deletionPreviewIds, setDeletionPreviewIds] = useState([]);
 
 
   const {
@@ -100,6 +101,7 @@ function PdfCanvas() {
     fitTextareaToContent: handleFitTextareaToContent,
     applyLayoutPatches,
     applyStructureOperation,
+    applyDeleteOperation,
     handleMoveElementWithBelow,
     A4ref,
     handleResizeElement,
@@ -330,12 +332,15 @@ function PdfCanvas() {
     const structurallyPreviewed = structurePreviewGroup
       ? previewStructureOperation(A4_Elements, structurePreviewGroup)
       : A4_Elements;
-    if (layoutPreviewPatches.length === 0) return structurallyPreviewed;
+    const deletionPreview = deletionPreviewIds.length > 0
+      ? structurallyPreviewed.filter((element) => !deletionPreviewIds.includes(element.element_id))
+      : structurallyPreviewed;
+    if (layoutPreviewPatches.length === 0) return deletionPreview;
 
     const patchesById = new Map(
       layoutPreviewPatches.map(patch => [patch.element_id, patch])
     );
-    const patchedElements = structurallyPreviewed.map(element => {
+    const patchedElements = deletionPreview.map(element => {
       const patch = patchesById.get(element.element_id);
       return {
         ...element,
@@ -357,7 +362,7 @@ function PdfCanvas() {
       if (!source || !target || (source.page ?? 1) !== (target.page ?? 1)) return element;
       return { ...element, page: source.page ?? 1 };
     });
-  }, [A4_Elements, layoutPreviewPatches, structurePreviewGroup]);
+  }, [A4_Elements, deletionPreviewIds, layoutPreviewPatches, structurePreviewGroup]);
 
   const updatePdfWithElements = useCallback(() => {
     updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted, pageCount, pageSize);
@@ -427,6 +432,7 @@ function PdfCanvas() {
     editSelectedElementValues: handleEditSelectedElementValues,
     fitTextareaToContent: handleFitTextareaToContent,
     applyStructureOperation: applyStructureOperation,
+    applyDeleteOperation: applyDeleteOperation,
     applyLayoutPatches: applyLayoutPatches,
     moveElementWithBelow: handleMoveElementWithBelow,
     alignElement: handleAlignElements,
@@ -499,12 +505,14 @@ function PdfCanvas() {
     setLayoutPreviewPatches: setLayoutPreviewPatches,
     structurePreviewGroup: structurePreviewGroup,
     setStructurePreviewGroup: setStructurePreviewGroup,
+    deletionPreviewIds: deletionPreviewIds,
+    setDeletionPreviewIds: setDeletionPreviewIds,
   }), [
     A4_Elements,
     isGallery, isDropzone, valueImageUpload,
     isModalPdfs, handleAddImage,
     handleAddText, handleAddLine, handleAddRectangle, handleAddCircle, handleAddEllipse, startConnecting, handleSelectElement,
-    handleMoveElement, handleMoveSelectedElements, handleSelectMoveElement, createPdfWithElements, applyStructureOperation,
+    handleMoveElement, handleMoveSelectedElements, handleSelectMoveElement, createPdfWithElements, applyStructureOperation, applyDeleteOperation,
     handleShowDropzone, handleShowGallery, handleEditElementValues, handleEditSelectedElementValues, handleFitTextareaToContent, applyLayoutPatches,
     handleAlignElements, handleDeleteElement, handleDeleteSelectedElements, handleDuplicateSelectedElements, setA4_Elements,
     setValueImageUpload, setIsModalPdfs, handleResizeElement, 
@@ -517,7 +525,7 @@ function PdfCanvas() {
     handleShowDeckPanel, handleShowArticlePanel, pageSize, setPageSize, setPagePreset,
     zoom, zoomIn, zoomOut,
     undo, redo, canUndo, canRedo, resetHistory,
-    layoutPreviewPatches, structurePreviewGroup,
+    deletionPreviewIds, layoutPreviewPatches, structurePreviewGroup,
   ])
 
   console.log(A4_Elements);
@@ -566,7 +574,7 @@ function PdfCanvas() {
           <div className="canvas-area">
             <A4 width={`${pageSize.width}px`} height={`${pageSize.height}px`} zoom={zoom} ref={A4ref}>
               {isPdfLoading && <Spinner loading={isPdfLoading}/>}
-              <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup ? { pointerEvents: "none" } : undefined}>
+              <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
                 <CanvasElements elements={previewedElements.filter(element => (element.page ?? 1) === currentPage)} />
                 <Connectors elements={previewedElements} />
                 <SelectionOverlay elements={previewedElements} />

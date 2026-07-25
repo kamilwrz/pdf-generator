@@ -674,6 +674,32 @@ class SectionRestructureTests(unittest.TestCase):
         self.assertTrue(any(element["page"] == 2 for element in result["add_elements"]))
         self.assertNotIn("background", {patch["element_id"] for patch in result["patches"]})
 
+    def test_delete_operation_accepts_explicit_content_and_rejects_protected_elements(self):
+        content = block("content", 20, 60, width=180, height=30, page=2)
+        fixed_background = block("background", 0, 0, width=100, height=100, page=2, category="image")
+        fixed_background["fixedToPage"] = True
+        locked = block("locked", 20, 100, width=180, height=30, page=2, locked=True)
+
+        result = layout_analysis.resolve_delete_operation(
+            [content, fixed_background, locked],
+            {"type": "delete_elements", "target_element_ids": ["content"]},
+        )
+        self.assertEqual(result["remove_element_ids"], ["content"])
+        self.assertEqual(result["target_page"], 2)
+
+        self.assertIsNone(layout_analysis.resolve_delete_operation(
+            [content, fixed_background, locked],
+            {"type": "delete_elements", "target_element_ids": ["background"]},
+        ))
+        self.assertIsNone(layout_analysis.resolve_delete_operation(
+            [content, fixed_background, locked],
+            {"type": "delete_elements", "target_element_ids": ["locked"]},
+        ))
+        self.assertIsNone(layout_analysis.resolve_delete_operation(
+            [content, fixed_background, locked],
+            {"type": "delete_elements", "target_element_ids": ["missing"]},
+        ))
+
     def test_target_groups_align_moves_blocks_to_a_shared_value(self):
         elements = [
             block("a1", 10, 10, width=20, height=10),
