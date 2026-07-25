@@ -89,6 +89,7 @@ function Textarea({
             <textarea
                 id={elementId}
                 autoFocus
+                rows={1}
                 className={classes.editing}
                 style={{ ...boxStyle, ...textStyle }}
                 value={content ?? ""}
