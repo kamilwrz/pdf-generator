@@ -93,7 +93,7 @@ function PdfCanvas() {
     handleAlignElements,
     handleEditElementValues,
     handleEditSelectedElementValues,
-    handleFitTextareaToContent,
+    fitTextareaToContent: handleFitTextareaToContent,
     applyLayoutPatches,
     handleMoveElementWithBelow,
     A4ref,
