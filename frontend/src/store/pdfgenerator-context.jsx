@@ -37,6 +37,7 @@ export const PdfContext = createContext({
     showGallery: () => {},
     editElementValues: () => {},
     editSelectedElementValues: () => {},
+    fitTextareaToContent: () => {},
     alignElement: () => {},
     deleteElement: () => {},
     deleteSelectedElements: () => {},

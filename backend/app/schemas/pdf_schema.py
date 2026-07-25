@@ -26,6 +26,8 @@ class PdfElement(BaseModel):
     align: Optional[str] = "left"
     #TEXTAREA HANGING INDENT FOR LINES STARTING WITH A BULLET (•)
     bulletList: Optional[bool] = False
+    #TEXTAREA TEMPLATE FIELD: height follows rendered content and reflows layout
+    autoHeight: Optional[bool] = False
     #LINE / IMG ELEMENT
     width: Optional[float | str] = None
     height: Optional[float | str] = None

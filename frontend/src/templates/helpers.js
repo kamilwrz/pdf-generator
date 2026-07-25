@@ -20,6 +20,9 @@ export const block = (
     category: "textarea",
     content, left, top, width, height,
     fontSize, fontFamily, color, lineHeight, letterSpacing, zIndex,
+    // Template text uses its rendered natural height after load. The authored
+    // height is only the initial geometry before the canvas measures it.
+    autoHeight: true,
 });
 
 // Marks a block's "•" lines for hanging-indent wrapping (canvas + PDF).

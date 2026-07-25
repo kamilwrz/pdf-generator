@@ -299,7 +299,13 @@ export default function Editor() {
                 </div>
                 <div className={classes.elementSize}>
                     <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
-                    <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
+                    <EditorControls
+                        labelText={selectedElement.autoHeight ? "Wysokość (automatyczna)" : "Wysokość"}
+                        type="number"
+                        inputValue={elementValues.height}
+                        onChangeFn={(e) => handleChangeValues(e, "height")}
+                        isDisabled={!!selectedElement.autoHeight}
+                    />
                 </div>
             </>}
             {selectedElement?.category === "line" && <>

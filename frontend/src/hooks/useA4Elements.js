@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { nanoid } from 'nanoid';
 import { getElementBounds } from '../utils/elementBounds';
 import { measureTextareaHeight } from '../utils/textareaHeight';
+import { reflowTextareaHeight } from '../utils/textareaReflow';
 
 // Elements a connector can attach to — those with a real bounding box the
 // backend can reproduce for the PDF. Single-line text (no stored width/height)
@@ -100,10 +101,19 @@ export function useA4Elements(titleRef) {
   const pageSizeRef = useRef(pageSize);
   const pageCountRef = useRef(1);
   const draggedElementIdsRef = useRef(new Set());
+  const reflowPageCountRef = useRef(null);
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
   useEffect(() => { elementsRef.current = A4_Elements; }, [A4_Elements]);
   useEffect(() => { pageSizeRef.current = pageSize; }, [pageSize]);
   useEffect(() => { pageCountRef.current = pageCount; }, [pageCount]);
+  useEffect(() => {
+    const nextPageCount = reflowPageCountRef.current;
+    if (nextPageCount === null) return;
+
+    reflowPageCountRef.current = null;
+    setPageCount(nextPageCount);
+    setCurrentPage((page) => Math.min(page, nextPageCount));
+  }, [A4_Elements]);
 
   // ---- Undo / redo history (in-memory, session-scoped) ----
   // A snapshot is the DOCUMENT: elements with the volatile UI flags stripped
@@ -795,6 +805,24 @@ export function useA4Elements(titleRef) {
     )));
   }, [])
 
+  // The canvas is the typography authority: after a template textarea has
+  // rendered, its measured content height replaces the authored placeholder
+  // height and every later element in the same visual lane keeps its gap.
+  const handleFitTextareaToContent = useCallback((elementId, measuredHeight) => {
+    setA4_Elements((prevState) => {
+      const result = reflowTextareaHeight(
+        prevState,
+        elementId,
+        measuredHeight,
+        pageSizeRef.current.height,
+      );
+      if (!result.changed) return prevState;
+
+      reflowPageCountRef.current = result.pageCount;
+      return result.elements;
+    });
+  }, []);
+
   // Applies one reviewed layout group as a single state change. The backend
   // already validates proposals, but this client-side guard prevents stale or
   // malformed responses from moving elements outside the current canvas.
@@ -979,6 +1007,12 @@ export function useA4Elements(titleRef) {
           else if (direction === "bottom-left" || direction === "top-left") { w -= e.movementX; l += e.movementX; }
           if (l < 0) { w += l; l = 0; }
           w = Math.max(MIN_W, Math.min(A4_WIDTH - l, w));
+          // Auto-height template fields are measured by the rendered canvas
+          // after this width update. Keeping the previous height here lets the
+          // shared reflow apply the full, exact delta once.
+          if (element.autoHeight) {
+            return { ...element, width: w, left: l };
+          }
           const h = measureTextareaHeight(element.content, w, element.fontSize, element.lineHeight);
           return { ...element, width: w, height: h, left: l };
         }
@@ -1227,6 +1261,7 @@ export function useA4Elements(titleRef) {
     handleDuplicateSelectedElements,
     handleEditElementValues,
     handleEditSelectedElementValues,
+    fitTextareaToContent: handleFitTextareaToContent,
     applyLayoutPatches,
     handleMoveElementWithBelow,
     A4ref,

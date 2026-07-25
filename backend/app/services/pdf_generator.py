@@ -306,7 +306,7 @@ class PDF_Generator:
                 out.append((ln, i == len(para_lines) - 1, para_indent, bullet_prefix if i == 0 else ""))
         return out
 
-    def renderTextarea(self, left, top, width, height, fontFamily, fontSize, color, content, lineHeight, letterSpacing, bold=False, italic=False, underline=False, align="left", bulletList=False):
+    def renderTextarea(self, left, top, width, height, fontFamily, fontSize, color, content, lineHeight, letterSpacing, bold=False, italic=False, underline=False, align="left", bulletList=False, autoHeight=False):
         """Render a multi-line text box so it matches the on-canvas edit-mode
         box: same wrap, line-height, letter-spacing and font metrics. Lines
         whose top falls outside the box height are clipped (mirrors the
@@ -329,6 +329,11 @@ class PDF_Generator:
         half_leading = (line_height - font_height) / 2.0
 
         lines = self._wrap_textarea(content, measure_font, fontSize, letter_spacing, width, bulletList)
+        if autoHeight:
+            # A template's canvas height is measured from its rendered content.
+            # Recompute from the same wrapped lines here so exporting before the
+            # browser's next paint cannot silently clip a line from the PDF.
+            height = len(lines) * line_height
 
         for i, (line, is_last, indent_px, bullet_prefix) in enumerate(lines):
             line_top = i * line_height
@@ -403,6 +408,7 @@ class PDF_Generator:
                         getattr(element, "bold", False), getattr(element, "italic", False), getattr(element, "underline", False),
                         getattr(element, "align", "left") or "left",
                         getattr(element, "bulletList", False),
+                        getattr(element, "autoHeight", False),
                     )
                 elif category == "line":
                     self.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)

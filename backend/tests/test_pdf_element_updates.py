@@ -32,6 +32,7 @@ def element(element_id, *, deleted=False):
         underline=False,
         align=None,
         bulletList=False,
+        autoHeight=True,
         borderWidth=None,
         source_id=None,
         target_id=None,
@@ -61,6 +62,7 @@ class PdfElementUpdateTests(unittest.TestCase):
         self.assertEqual(database.add.call_args.args[0].element_id, "new")
         self.assertEqual(keep_row.content, "Treść")
         self.assertEqual(keep_row.page, 1)
+        self.assertTrue(keep_row.extra_properties["autoHeight"])
 
     def test_empty_live_payload_removes_every_existing_element(self):
         database = MagicMock()

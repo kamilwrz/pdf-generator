@@ -72,7 +72,7 @@ def _block(content, left, top, w, h, size, lh, color, font, z=2, bold=False,
     return {"category": "textarea", "content": content, "left": left, "top": top,
             "width": w, "height": h, "fontSize": size, "lineHeight": lh, "letterSpacing": 0,
             "color": color, "fontFamily": font, "zIndex": z, "bold": bold, "italic": italic,
-            "align": align, "bulletList": bullets}
+            "align": align, "bulletList": bullets, "autoHeight": True}
 
 
 def _line(left, top, w, h, color, z=1):

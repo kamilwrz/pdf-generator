@@ -35,7 +35,7 @@ def _block(content, left, top, width, height, fontSize, lineHeight, color, fontF
             "fontSize": fontSize, "lineHeight": lineHeight,
             "letterSpacing": 0, "color": color, "fontFamily": fontFamily,
             "zIndex": zIndex, "page": page, "bold": bold, "italic": italic,
-            "align": align, "bulletList": bulletList}
+            "align": align, "bulletList": bulletList, "autoHeight": True}
 
 
 def _line(left, top, width, height, color, *, zIndex=1, page=1):

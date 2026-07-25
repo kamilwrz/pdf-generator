@@ -41,7 +41,8 @@ def _block(content, left, top, w, h, size, lh, color, font, page, z=2,
     return {"category": "textarea", "content": content, "left": left, "top": top,
             "width": w, "height": h, "fontSize": size, "lineHeight": lh, "letterSpacing": 0,
             "color": color, "fontFamily": font, "page": page, "zIndex": z,
-            "bold": bold, "italic": italic, "align": align, "bulletList": False}
+            "bold": bold, "italic": italic, "align": align, "bulletList": False,
+            "autoHeight": True}
 
 
 def _line(left, top, w, h, color, page, z=1):
@@ -60,7 +61,7 @@ def _wrap_lines(text, width, fs, font=S, bold=False, italic=False):
     derived from these can never clip. Returns the list of line strings."""
     measure, _, _ = PDF_Generator._resolve_font(font, bold, italic)
     wrapped = PDF_Generator._wrap_textarea(PDF_Generator, text or "", measure, fs, 0.0, width)
-    return [ln for (ln, _last, _indent) in wrapped]
+    return [ln for (ln, _last, _indent, _bullet_prefix) in wrapped]
 
 
 # ---- two-column flow --------------------------------------------------------

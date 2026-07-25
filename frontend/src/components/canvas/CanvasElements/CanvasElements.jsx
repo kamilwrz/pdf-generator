@@ -28,6 +28,7 @@ export default function CanvasElements({ elements }) {
             underline={element.underline}
             align={element.align}
             bulletList={element.bulletList}
+            autoHeight={element.autoHeight}
             zIndex={element.zIndex}
           />
         );

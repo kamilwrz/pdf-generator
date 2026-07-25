@@ -1,5 +1,5 @@
 import classes from "./Textarea.module.css";
-import { memo, useState } from "react";
+import { memo, useLayoutEffect, useRef, useState } from "react";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import Resize from "../../common/Resize/Resize";
@@ -42,6 +42,7 @@ function Textarea({
     underline,
     align,
     bulletList,
+    autoHeight,
     zIndex,
 }) {
     const {
@@ -52,9 +53,11 @@ function Textarea({
         A4_Elements,
         selectElement,
         setTextareaEditing,
+        fitTextareaToContent,
     } = use(PdfContext);
 
     const [isResizeable, setIsResizeable] = useState(false);
+    const blockRef = useRef(null);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
     function handleIsResizeable() {
         setIsResizeable((bool) => !bool);
@@ -83,6 +86,42 @@ function Textarea({
         textAlign: align || "left",
     };
 
+    // scrollHeight is the browser's actual line layout for this exact font,
+    // width, spacing, and bullet rendering. It is more accurate than the
+    // authoring-time estimate carried by a template spec.
+    useLayoutEffect(() => {
+        if (!autoHeight || isEditing) return undefined;
+
+        let cancelled = false;
+        const measure = () => {
+            const measuredHeight = blockRef.current?.scrollHeight;
+            if (!cancelled && Number.isFinite(measuredHeight) && measuredHeight > 0) {
+                fitTextareaToContent(elementId, measuredHeight);
+            }
+        };
+
+        measure();
+        if (typeof document !== "undefined" && document.fonts?.ready) {
+            document.fonts.ready.then(measure);
+        }
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        autoHeight,
+        bold,
+        bulletList,
+        content,
+        elementId,
+        fitTextareaToContent,
+        fontFamily,
+        fontSize,
+        isEditing,
+        letterSpacing,
+        lineHeight,
+        width,
+    ]);
+
     if (isEditing) {
         return (
             <textarea
@@ -98,7 +137,12 @@ function Textarea({
                     node.style.height = "auto";
                     const measuredHeight = node.scrollHeight;
                     node.style.height = `${measuredHeight}px`;
-                    editElementValues({ content: node.value, height: measuredHeight }, elementId);
+                    if (autoHeight) {
+                        editElementValues({ content: node.value }, elementId);
+                        fitTextareaToContent(elementId, measuredHeight);
+                    } else {
+                        editElementValues({ content: node.value, height: measuredHeight }, elementId);
+                    }
                 }}
                 onBlur={() => setTextareaEditing(elementId, false)}
                 onKeyDown={(e) => {
@@ -114,6 +158,7 @@ function Textarea({
     const block = (
         <div
             id={elementId}
+            ref={blockRef}
             className={`${classes.block} ${isSelected ? classes.selected : ""}`}
             style={{ ...boxStyle, ...textStyle }}
             onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}

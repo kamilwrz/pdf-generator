@@ -75,6 +75,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     self.assertGreaterEqual(element["top"], 0)
                     self.assertLessEqual(element["left"] + element["width"], 595)
                     self.assertLessEqual(element["top"] + element["height"], 842)
+                    self.assertTrue(element["autoHeight"])
                 self.assertGreater(max(element.get("page", 1) for element in elements), 1)
 
     def test_mistral_keeps_main_flow_independent_from_sidebar_preview(self):
