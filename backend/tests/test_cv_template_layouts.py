@@ -136,6 +136,52 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     self.assertEqual(len(backgrounds), 1)
                     self.assertTrue(backgrounds[0]["fixedToPage"])
 
+    def test_classic_templates_are_image_free_single_column_documents(self):
+        multi_page_cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 3,
+        }
+        templates = ("scribe", "regent", "aldine", "merit")
+        expected_categories = {
+            "text", "textarea", "line", "rectangle", "circle", "ellipse",
+            "connector",
+        }
+
+        for template_id in templates:
+            with self.subTest(template_id=template_id):
+                elements = generate_resume(template_id, multi_page_cv)
+                pages = {element.get("page", 1) for element in elements}
+                rendered_copy = " ".join(
+                    str(element.get("content", ""))
+                    for element in elements
+                    if element["category"] in {"text", "textarea"}
+                ).upper()
+
+                self.assertTrue(expected_categories <= {element["category"] for element in elements})
+                self.assertNotIn("IMAGE", {element["category"] for element in elements})
+                self.assertNotIn(template_id.upper(), rendered_copy)
+                self.assertGreater(max(pages), 1)
+                self.assertTrue(all(
+                    0 <= element["left"] <= 595
+                    and 0 <= element["top"] <= 842
+                    and element["left"] + element["width"] <= 595
+                    and element["top"] + element["height"] <= 842
+                    and element.get("autoHeight") is True
+                    for element in elements
+                    if element["category"] == "textarea"
+                ))
+                for page in pages:
+                    self.assertTrue(any(
+                        element["category"] == "line"
+                        and element.get("page", 1) == page
+                        and element["left"] == 0
+                        and element["top"] == 0
+                        and element["width"] == 595
+                        and element["height"] == 842
+                        and element.get("fixedToPage") is True
+                        for element in elements
+                    ))
+
     def test_rift_repeats_fixed_background_on_every_content_page(self):
         multi_page_cv = {
             **LONG_CV,
