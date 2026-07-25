@@ -40,11 +40,11 @@ export default function Topbar({ titleRef }) {
                 </button>
                 <button type="button" className={classes.feature} onClick={showAiPanel}>
                     <RiRobot2Line />
-                    <span className={classes.label}>Wypełnij z mojego CV</span>
+                    <span className={classes.label}>CV AI</span>
                 </button>
                 <button type="button" className={classes.feature} onClick={showDeckPanel}>
                     <MdOutlineSlideshow />
-                    <span className={classes.label}>Prezentacja AI</span>
+                    <span className={classes.label}>Slajdy AI</span>
                 </button>
                 <button type="button" className={classes.feature} onClick={showArticlePanel}>
                     <RiArticleLine />
@@ -64,7 +64,7 @@ export default function Topbar({ titleRef }) {
             <div className={classes.center}>
                 <div className={classes.projectField}>
                     <span className={classes.projectIcon} aria-hidden="true">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
                     </span>
                     <input
                         type="text"

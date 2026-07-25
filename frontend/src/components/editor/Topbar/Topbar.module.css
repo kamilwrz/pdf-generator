@@ -1,16 +1,20 @@
 .topbar {
-    height: 50px;
+    --topbar-ink: #2f4352;
+    --topbar-muted: #71818d;
+    --topbar-border: #d9e1e6;
+    --topbar-surface: #f8fafb;
+    --topbar-control: #f1f5f7;
+    --topbar-hover: #e7eef2;
+    --topbar-accent: #466b82;
+    height: 44px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 0 16px;
-    background: rgba(255, 255, 255, .9);
-    -webkit-backdrop-filter: blur(12px) saturate(1.1);
-            backdrop-filter: blur(12px) saturate(1.1);
-    border-bottom: 1px solid var(--border-line);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, .7) inset, 0 8px 20px -16px rgba(30, 48, 78, .55);
+    gap: 8px;
+    padding: 0 10px;
+    background: var(--topbar-surface);
+    border-bottom: 1px solid var(--topbar-border);
     font-family: var(--font-body);
     position: relative;
     z-index: 1400;
@@ -19,7 +23,7 @@
 .group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     flex-shrink: 0;
 }
 
@@ -29,32 +33,33 @@
     min-width: 0;
     display: flex;
     justify-content: center;
-    padding: 0 12px;
+    align-items: center;
+    padding: 0 4px;
 }
 
 .projectField {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     width: 100%;
-    max-width: 320px;
-    height: 34px;
-    padding: 0 6px 0 12px;
-    background: var(--secondary-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    max-width: 230px;
+    height: 30px;
+    padding: 0 4px 0 9px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
     transition: border-color .15s, box-shadow .15s, background .15s;
 }
 
 .projectField:focus-within {
     background: #fff;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
+    border-color: #aebdc7;
+    box-shadow: 0 0 0 2px rgba(70, 107, 130, .1);
 }
 
 .projectIcon {
     display: flex;
-    color: var(--secondary-font);
+    color: var(--topbar-muted);
     flex-shrink: 0;
 }
 
@@ -65,47 +70,47 @@
     background: transparent;
     outline: none;
     text-align: center;
-    font: 700 14px var(--font-body);
-    color: var(--primary-font);
+    font: 600 12px var(--font-body);
+    color: var(--topbar-ink);
 }
 
 .projectField input::placeholder {
-    color: var(--label-font);
-    font-weight: 600;
+    color: #8997a1;
+    font-weight: 500;
 }
 
 .rename {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
+    width: 22px;
+    height: 22px;
     flex-shrink: 0;
     border: none;
-    border-radius: 7px;
+    border-radius: 5px;
     background: transparent;
-    color: var(--secondary-font);
-    font-size: 15px;
+    color: var(--topbar-muted);
+    font-size: 13px;
     cursor: pointer;
     transition: background .15s, color .15s;
 }
 
 .rename:hover {
-    background: var(--accent-soft);
-    color: var(--accent);
+    background: var(--topbar-hover);
+    color: var(--topbar-accent);
 }
 
 /* ---- page size preset picker ---- */
 .sizeSelect {
-    height: 34px;
-    margin-left: 8px;
-    padding: 0 8px;
+    height: 30px;
+    margin-left: 4px;
+    padding: 0 6px;
     flex-shrink: 0;
-    background: var(--secondary-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    font: 700 12px var(--font-body);
-    color: var(--muted-font);
+    background: var(--topbar-control);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font: 600 10.5px var(--font-body);
+    color: var(--topbar-muted);
     outline: none;
     cursor: pointer;
     transition: border-color .15s, color .15s;
@@ -113,8 +118,8 @@
 
 .sizeSelect:hover,
 .sizeSelect:focus {
-    border-color: var(--accent);
-    color: var(--accent);
+    border-color: #b9c6ce;
+    color: var(--topbar-ink);
 }
 
 /* shared button base */
@@ -124,42 +129,40 @@
 .primary {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    height: 34px;
-    padding: 0 14px;
-    border-radius: 10px;
+    gap: 5px;
+    height: 30px;
+    padding: 0 9px;
+    border-radius: 6px;
     border: 1px solid transparent;
-    font: 700 13px var(--font-body);
+    font: 600 11px var(--font-body);
     line-height: 1;
     cursor: pointer;
     white-space: nowrap;
-    transition: transform .15s, background .15s, border-color .15s, color .15s, box-shadow .15s;
+    transition: background .15s, border-color .15s, color .15s;
 }
 
 .feature svg,
 .ghost svg,
 .secondary svg,
 .primary svg {
-    font-size: 16px;
+    font-size: 13px;
     flex-shrink: 0;
 }
 
 /* ---- CV Templates / Fill from my CV ---- */
 .feature {
-    background: var(--secondary-bg);
-    border-color: var(--border);
-    color: var(--ink-2);
+    background: transparent;
+    color: var(--topbar-muted);
 }
 .feature:hover {
-    background: var(--accent-soft);
-    border-color: var(--accent);
-    color: var(--accent);
+    background: var(--topbar-hover);
+    color: var(--topbar-ink);
 }
 
 /* ---- Clear (destructive ghost) ---- */
 .ghost {
     background: transparent;
-    color: var(--muted-font);
+    color: var(--topbar-muted);
 }
 .ghost:hover {
     background: var(--danger-soft);
@@ -168,24 +171,23 @@
 
 /* ---- Update ---- */
 .secondary {
-    background: var(--secondary-bg);
-    border-color: var(--border);
-    color: var(--ink-2);
+    background: transparent;
+    border-color: var(--topbar-border);
+    color: var(--topbar-ink);
 }
 .secondary:hover:not(:disabled) {
-    border-color: var(--accent);
-    color: var(--accent);
+    background: var(--topbar-hover);
+    border-color: #b9c6ce;
+    color: var(--topbar-accent);
 }
 
 /* ---- Create PDF (primary) ---- */
 .primary {
-    background: var(--accent-grad);
+    background: #344f61;
     color: #fff;
-    box-shadow: 0 10px 20px -10px var(--accent);
 }
 .primary:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 15px 26px -10px var(--accent);
+    background: #293f4e;
 }
 
 .secondary:disabled,
@@ -194,8 +196,8 @@
     cursor: not-allowed;
 }
 
-/* On narrow widths collapse to icon-only so the 50px bar never wraps. */
-@media (max-width: 900px) {
+/* Collapse to icon-only before the controls can crowd the project field. */
+@media (max-width: 1120px) {
     .label {
         display: none;
     }
@@ -203,16 +205,16 @@
     .ghost,
     .secondary,
     .primary {
-        padding: 0 11px;
+        padding: 0 8px;
     }
 }
 
 /* ---- undo/redo ---- */
 .divider {
     width: 1px;
-    height: 22px;
-    background: var(--border);
-    margin: 0 4px;
+    height: 18px;
+    background: var(--topbar-border);
+    margin: 0 2px;
     flex-shrink: 0;
 }
 
@@ -220,22 +222,21 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: 28px;
+    height: 28px;
     flex-shrink: 0;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--secondary-bg);
-    color: var(--ink-2);
-    font-size: 17px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--topbar-muted);
+    font-size: 13px;
     cursor: pointer;
     transition: background .15s, border-color .15s, color .15s, opacity .15s;
 }
 
 .iconBtn:hover:not(:disabled) {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: var(--accent-soft);
+    color: var(--topbar-ink);
+    background: var(--topbar-hover);
 }
 
 .iconBtn:disabled {
@@ -247,8 +248,12 @@
 .zoomCluster {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    margin-left: 8px;
+    gap: 1px;
+    margin-left: 4px;
+    height: 30px;
+    padding: 0 2px;
+    background: var(--topbar-control);
+    border-radius: 6px;
     flex-shrink: 0;
 }
 
@@ -256,21 +261,20 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--secondary-bg);
-    color: var(--ink-2);
-    font-size: 15px;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--topbar-muted);
+    font-size: 12px;
     cursor: pointer;
     transition: background .15s, border-color .15s, color .15s, opacity .15s;
 }
 
 .zoomBtn:hover:not(:disabled) {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: var(--accent-soft);
+    color: var(--topbar-ink);
+    background: #dce6eb;
 }
 
 .zoomBtn:disabled {
@@ -279,10 +283,23 @@
 }
 
 .zoomValue {
-    min-width: 44px;
+    min-width: 35px;
     text-align: center;
-    font: 700 12px var(--font-body);
-    color: var(--muted-font);
+    font: 600 10px var(--font-body);
+    color: var(--topbar-muted);
     user-select: none;
+}
+
+@media (max-width: 760px) {
+    .sizeSelect,
+    .projectIcon,
+    .rename {
+        display: none;
+    }
+
+    .projectField {
+        max-width: 150px;
+        padding: 0 4px;
+    }
 }
 
