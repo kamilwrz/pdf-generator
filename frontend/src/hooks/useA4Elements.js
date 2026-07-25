@@ -17,6 +17,13 @@ export const PAGE_PRESETS = {
   "deck-16-9":    { label: "Prezentacja · 16:9", width: 960, height: 540 },
 };
 
+// Canvas zoom is view-only (never persisted or exported). Clamp + round to
+// 2 decimals so repeated ±0.1 steps don't drift (0.1+0.2 float noise).
+const ZOOM_MIN = 0.25;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 0.1;
+const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
+
 // Match stored dimensions back to a preset id (loading a saved PDF).
 export function presetFromDims(width, height) {
   const found = Object.entries(PAGE_PRESETS)
@@ -93,6 +100,11 @@ export function useA4Elements(titleRef) {
 
   // ---- Page geometry (preset-driven; default A4 portrait) ----
   const [pageSize, setPageSize] = useState({ preset: "a4-portrait", ...PAGE_PRESETS["a4-portrait"] });
+
+  // View-only zoom (not persisted, not in undo/redo — lives outside A4_Elements).
+  const [zoom, setZoomState] = useState(1);
+  const zoomIn = useCallback(() => setZoomState(z => clampZoom(z + ZOOM_STEP)), []);
+  const zoomOut = useCallback(() => setZoomState(z => clampZoom(z - ZOOM_STEP)), []);
 
   // Refs let the stable add-element callbacks read the latest page/elements
   // without being recreated on every page change.
@@ -1285,6 +1297,10 @@ export function useA4Elements(titleRef) {
     pageSize,
     setPageSize,
     setPagePreset,
+    // zoom (view-only; not persisted)
+    zoom,
+    zoomIn,
+    zoomOut,
     // undo / redo
     undo,
     redo,

@@ -114,6 +114,9 @@ function PdfCanvas() {
     pageSize,
     setPageSize,
     setPagePreset,
+    zoom,
+    zoomIn,
+    zoomOut,
     undo,
     redo,
     canUndo,
@@ -430,6 +433,10 @@ function PdfCanvas() {
     pageSize: pageSize,
     setPageSize: setPageSize,
     setPagePreset: setPagePreset,
+    //zoom (view-only)
+    zoom: zoom,
+    zoomIn: zoomIn,
+    zoomOut: zoomOut,
     //multi-page
     pageCount: pageCount,
     setPageCount: setPageCount,
@@ -484,6 +491,7 @@ function PdfCanvas() {
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
     isTemplates, handleShowTemplates, handleMoveElementWithBelow, handleShowAiPanel,
     handleShowDeckPanel, handleShowArticlePanel, pageSize, setPageSize, setPagePreset,
+    zoom, zoomIn, zoomOut,
     undo, redo, canUndo, canRedo, resetHistory,
     layoutPreviewPatches,
   ])
@@ -532,7 +540,7 @@ function PdfCanvas() {
         <div className="right-pane">
           <Topbar titleRef={titleRef} />
           <div className="canvas-area">
-            <A4 width={`${pageSize.width}px`} height={`${pageSize.height}px`} ref={A4ref}>
+            <A4 width={`${pageSize.width}px`} height={`${pageSize.height}px`} zoom={zoom} ref={A4ref}>
               {isPdfLoading && <Spinner loading={isPdfLoading}/>}
               <div style={layoutPreviewPatches.length > 0 ? { pointerEvents: "none" } : undefined}>
                 <CanvasElements elements={previewedElements.filter(element => (element.page ?? 1) === currentPage)} />

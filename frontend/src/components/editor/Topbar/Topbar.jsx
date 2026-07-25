@@ -4,7 +4,7 @@ import { PdfContext } from "../../../store/pdfgenerator-context";
 import { PAGE_PRESETS } from "../../../hooks/useA4Elements";
 import { LuLayoutTemplate } from "react-icons/lu";
 import { RiRobot2Line, RiDownload2Line } from "react-icons/ri";
-import { FiRefreshCw, FiTrash2 } from "react-icons/fi";
+import { FiRefreshCw, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { MdOutlineSlideshow } from "react-icons/md";
 import { RiArticleLine, RiArrowGoBackLine, RiArrowGoForwardLine } from "react-icons/ri";
 import { TiPen } from "react-icons/ti";
@@ -22,6 +22,9 @@ export default function Topbar({ titleRef }) {
         activePdfId,
         pageSize,
         setPagePreset,
+        zoom,
+        zoomIn,
+        zoomOut,
         undo,
         redo,
         canUndo,
@@ -93,6 +96,29 @@ export default function Topbar({ titleRef }) {
                         <option value="custom">{`${pageSize.width}×${pageSize.height}`}</option>
                     )}
                 </select>
+                <div className={classes.zoomCluster}>
+                    <button
+                        type="button"
+                        className={classes.zoomBtn}
+                        onClick={zoomOut}
+                        disabled={zoom <= 0.25}
+                        aria-label="Pomniejsz"
+                        title="Pomniejsz"
+                    >
+                        <FiZoomOut />
+                    </button>
+                    <span className={classes.zoomValue}>{Math.round(zoom * 100)}%</span>
+                    <button
+                        type="button"
+                        className={classes.zoomBtn}
+                        onClick={zoomIn}
+                        disabled={zoom >= 3}
+                        aria-label="Powiększ"
+                        title="Powiększ"
+                    >
+                        <FiZoomIn />
+                    </button>
+                </div>
             </div>
 
             <div className={classes.group}>

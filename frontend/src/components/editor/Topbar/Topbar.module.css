@@ -243,3 +243,46 @@
     cursor: not-allowed;
 }
 
+/* ---- zoom control ---- */
+.zoomCluster {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    flex-shrink: 0;
+}
+
+.zoomBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--secondary-bg);
+    color: var(--ink-2);
+    font-size: 15px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s, opacity .15s;
+}
+
+.zoomBtn:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.zoomBtn:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+.zoomValue {
+    min-width: 44px;
+    text-align: center;
+    font: 700 12px var(--font-body);
+    color: var(--muted-font);
+    user-select: none;
+}
+

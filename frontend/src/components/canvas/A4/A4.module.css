@@ -1,6 +1,12 @@
+/* The wrapper is sized to the scaled canvas and centers it (margin auto)
+   when it fits, or left-aligns + scrolls when wider than .canvas-area —
+   mirroring what .A4's own margin:auto did before zoom existed. */
+.zoomWrapper {
+    margin: 0 auto;
+}
+
 .A4 {
     position: relative;
-    margin: 0 auto;
     background-color: white;
     border-radius: 4px;
     box-shadow: 0 20px 50px -18px rgba(30, 48, 78, .32);
