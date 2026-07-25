@@ -36,11 +36,11 @@ export default function Sidebar({ children }) {
 
         <div className={classes.logoContainer}>
             <div className={classes.logoMark}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
+                <img src="/kompoza-logo.png" alt="" />
             </div>
             <div className={classes.logoWrapperText}>
-                <h1>PDF Canvas</h1>
-                <p>Edytor · v2.0</p>
+                <h1>Kompoza</h1>
+                <p>Studio dokumentów</p>
             </div>
         </div>
 

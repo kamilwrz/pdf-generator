@@ -1,13 +1,6 @@
 import { Link } from "react-router-dom";
 import classes from "./Hero.module.css";
 
-const FileIcon = ({ size = 22 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
-        <path d="M14 3v5h5" />
-    </svg>
-);
-
 export default function Hero() {
     return (
         <div className={classes.page}>
@@ -16,8 +9,8 @@ export default function Hero() {
             {/* ---- Nav ---- */}
             <nav className={classes.nav}>
                 <div className={classes.brand}>
-                    <span className={classes.brandMark}><FileIcon /></span>
-                    <span className={classes.brandName}>PDF Canvas</span>
+                    <span className={classes.brandMark}><img src="/kompoza-logo.png" alt="" /></span>
+                    <span className={classes.brandName}>Kompoza</span>
                 </div>
                 <div className={classes.navLinks}>
                     <a className={classes.navLink}>Funkcje</a>

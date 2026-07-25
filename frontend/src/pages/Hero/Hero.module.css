@@ -40,12 +40,18 @@
 .brandMark {
     width: 42px;
     height: 42px;
-    border-radius: 13px;
-    background: var(--accent-grad);
+    border-radius: 9px;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 18px -6px var(--accent);
+}
+
+.brandMark img {
+    display: block;
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
 }
 
 .brandName {
