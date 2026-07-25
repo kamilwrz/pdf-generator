@@ -10,3 +10,17 @@ export function measureTextareaHeight(content, width, fontSize, lineHeight) {
   }
   return renderedLines * lineHeight + 6;
 }
+
+// scrollHeight cannot be smaller than an element's currently assigned height.
+// Measure with an intrinsic height so auto-height fields can shrink as well as
+// grow, then restore the rendered style before React's state update lands.
+export function measureNaturalScrollHeight(node) {
+  if (!node?.style) return 0;
+
+  const previousHeight = node.style.height;
+  node.style.height = "auto";
+  const measuredHeight = node.scrollHeight;
+  node.style.height = previousHeight;
+
+  return Number.isFinite(measuredHeight) ? measuredHeight : 0;
+}

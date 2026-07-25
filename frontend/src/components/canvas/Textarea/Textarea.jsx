@@ -3,6 +3,7 @@ import { memo, useLayoutEffect, useRef, useState } from "react";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import Resize from "../../common/Resize/Resize";
+import { measureNaturalScrollHeight } from "../../../utils/textareaHeight";
 
 // Normalize a bullet's whitespace and render the marker in a dedicated grid
 // column. The column's width is the actual rendered "• " width for the active
@@ -94,7 +95,7 @@ function Textarea({
 
         let cancelled = false;
         const measure = () => {
-            const measuredHeight = blockRef.current?.scrollHeight;
+            const measuredHeight = measureNaturalScrollHeight(blockRef.current);
             if (!cancelled && Number.isFinite(measuredHeight) && measuredHeight > 0) {
                 fitTextareaToContent(elementId, measuredHeight);
             }
@@ -134,8 +135,7 @@ function Textarea({
                 placeholder="Wpisz swój tekst…"
                 onChange={(e) => {
                     const node = e.target;
-                    node.style.height = "auto";
-                    const measuredHeight = node.scrollHeight;
+                    const measuredHeight = measureNaturalScrollHeight(node);
                     node.style.height = `${measuredHeight}px`;
                     if (autoHeight) {
                         editElementValues({ content: node.value }, elementId);
