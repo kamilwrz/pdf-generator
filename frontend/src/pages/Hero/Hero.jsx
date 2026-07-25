@@ -37,11 +37,11 @@ export default function Hero() {
                         <span>Bez umiejętności projektowania</span>
                     </div>
                     <h1 className={classes.heading}>
-                        Twórz <span className={classes.accentWord}>piękne</span> PDF-y w kilka minut.
+                        Twórz <span className={classes.accentWord}>piękne</span> CV w kilka minut.
                     </h1>
                     <p className={classes.subheading}>
-                        Przeciągaj, upuszczaj i projektuj. Dodawaj tekst, obrazy i kształty na przyjaznym
-                        wizualnym płótnie — a potem natychmiast eksportuj dopracowany PDF.
+                        Przeciągaj, upuszczaj i projektuj. Wybierz szablon, uzupełnij swoje doświadczenie,
+                        a Kompoza od razu wyeksportuje dopracowane CV w PDF, gotowe do wysłania.
                     </p>
                     <div className={classes.ctaRow}>
                         <Link to="/register" className={classes.primaryCta}>
@@ -70,7 +70,7 @@ export default function Hero() {
                             <span className={classes.dot} style={{ background: "#E8A6A0" }} />
                             <span className={classes.dot} style={{ background: "#9DB6D8" }} />
                             <span className={classes.dot} style={{ background: "#A9C5B0" }} />
-                            <span className={classes.windowFile}>gala-w-ogrodzie.pdf</span>
+                            <span className={classes.windowFile}>cv-anna-kowalska.pdf</span>
                         </div>
                         <div className={classes.windowBody}>
                             <div className={classes.windowRail}>
@@ -133,7 +133,7 @@ export default function Hero() {
                 <div className={classes.featuresInner}>
                     <div className={classes.sectionHead}>
                         <span className={classes.eyebrow}>Funkcje</span>
-                        <h2 className={classes.sectionTitle}>Wszystko, czego potrzebujesz do pięknego dokumentu</h2>
+                        <h2 className={classes.sectionTitle}>Wszystko, czego potrzebujesz do idealnego CV</h2>
                     </div>
                     <div className={classes.featuresGrid}>
                         <div className={classes.featureItem}>
@@ -155,7 +155,7 @@ export default function Hero() {
                                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
                             </div>
                             <h4 className={classes.featureTitle}>Biblioteka szablonów</h4>
-                            <p className={classes.featureText}>Ponad 20 gotowych układów CV, prezentacji i artykułów.</p>
+                            <p className={classes.featureText}>Ponad 20 gotowych układów CV, dopasowanych do różnych branż i stanowisk.</p>
                         </div>
                         <div className={classes.featureItem}>
                             <div className={classes.featureIcon}>
