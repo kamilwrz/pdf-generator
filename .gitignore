@@ -31,10 +31,6 @@ build/
 # Backend uploads/generated
 backend/static/
 backend/uploads/
-!backend/uploads/
-!backend/uploads/templates/
-!backend/uploads/templates/ledger-finance-accent.png
-!backend/uploads/templates/nimbus-finance-accent.png
 
 # Node / Frontend
 node_modules/

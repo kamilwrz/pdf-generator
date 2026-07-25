@@ -11,7 +11,7 @@ const CLOUD = "#E9EEF1";
 const SLATE = "#72818C";
 const SANS = "Inter";
 const SERIF = "Times-Roman";
-const ACCENT_IMAGE = `${API_BASE_URL}/uploads/templates/nimbus-finance-accent.png`;
+const ACCENT_IMAGE = `${API_BASE_URL}/template-assets/nimbus-finance-accent.png`;
 
 const bold = (element) => ({ ...element, bold: true });
 const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });

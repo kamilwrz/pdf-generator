@@ -12,7 +12,7 @@ const INK = "#17212B";
 const PAPER = "#F7F9FA";
 const SANS = "Inter";
 const SERIF = "Times-Roman";
-const ACCENT_IMAGE = `${API_BASE_URL}/uploads/templates/ledger-finance-accent.png`;
+const ACCENT_IMAGE = `${API_BASE_URL}/template-assets/ledger-finance-accent.png`;
 
 const bold = (element) => ({ ...element, bold: true });
 const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });

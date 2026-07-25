@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.api.routes import auth, pdf, images, ai
 from app.api.routes import ai_assistant
-from app.core.config import origins, IMAGES_UPLOAD_DIR, PDF_UPLOAD_DIR
+from app.core.config import origins, IMAGES_UPLOAD_DIR, PDF_UPLOAD_DIR, TEMPLATE_ASSETS_DIR
 
 from pathlib import Path
 from fastapi.responses import FileResponse
@@ -13,12 +13,14 @@ app = FastAPI()
 # Ensure upload directories exist (e.g. on fresh deploy / Render)
 IMAGES_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 PDF_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+TEMPLATE_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Path to frontend build (adjust if your structure is different)
 DIST_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 print(DIST_DIR)
 
 app.mount("/uploads", StaticFiles(directory=str(IMAGES_UPLOAD_DIR)), name="uploads")
+app.mount("/template-assets", StaticFiles(directory=str(TEMPLATE_ASSETS_DIR)), name="template_assets")
 app.mount("/static/generated", StaticFiles(directory=str(PDF_UPLOAD_DIR)), name="static")
 
 app.include_router(auth.router)

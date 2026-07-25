@@ -1,4 +1,4 @@
-from app.core.config import REPORTLAB_IMAGES_TEMP, IMAGES_UPLOAD_DIR
+from app.core.config import REPORTLAB_IMAGES_TEMP, IMAGES_UPLOAD_DIR, TEMPLATE_ASSETS_DIR
 from urllib.parse import unquote, urlparse
 from app.core.config import USE_S3
 if USE_S3:
@@ -13,6 +13,8 @@ def image_src_to_local_path(src: str) -> str:
     if src.startswith(("http://", "https://")):
         parsed = urlparse(src)
         path = parsed.path.lstrip("/").replace("\\", "/")
+        if path.startswith("template-assets/"):
+            return str((TEMPLATE_ASSETS_DIR / path.removeprefix("template-assets/")).resolve())
         if path.startswith("uploads/"):
             path = path[8:]
         decoded = unquote(path)

@@ -247,7 +247,7 @@ def _gen_ledger(cv: dict) -> list[dict]:
         _rect(416, 24, 122, 126, STEEL, 1.2, zIndex=3),
         {
             "category": "image",
-            "src": f"{BACKEND_URL}/uploads/templates/ledger-finance-accent.png",
+            "src": f"{BACKEND_URL}/template-assets/ledger-finance-accent.png",
             "width": 110,
             "height": 118,
             "left": 422,
@@ -339,7 +339,7 @@ def _gen_nimbus(cv: dict) -> list[dict]:
         _rect(401, 35, 141, 153, POWDER, 1.1, zIndex=3),
         {
             "category": "image",
-            "src": f"{BACKEND_URL}/uploads/templates/nimbus-finance-accent.png",
+            "src": f"{BACKEND_URL}/template-assets/nimbus-finance-accent.png",
             "width": 129,
             "height": 141,
             "left": 407,

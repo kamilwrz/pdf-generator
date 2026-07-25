@@ -7,6 +7,10 @@ origins = [o.strip() for o in _raw.split(",") if o.strip()]
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
+# Versioned, application-owned assets used by built-in templates. These must
+# not share the runtime uploads directory, which may be empty after a deploy.
+TEMPLATE_ASSETS_DIR = Path(__file__).resolve().parents[2] / "template_assets"
+
 #LOCALHOST FOLDERS
 PDF_UPLOAD_DIR = Path() / "static/generated"
 IMAGES_UPLOAD_DIR = Path() / "uploads"

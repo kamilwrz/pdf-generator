@@ -1,6 +1,8 @@
 import unittest
+from pathlib import Path
 
 from app.services.cv_generator import generate_resume
+from app.utils.image_src_to_path import image_src_to_local_path
 
 
 LONG_CV = {
@@ -60,6 +62,17 @@ LONG_CV = {
 
 
 class CvTemplateLayoutTests(unittest.TestCase):
+    def test_template_images_resolve_to_versioned_local_assets(self):
+        for template_id in ("ledger", "nimbus"):
+            with self.subTest(template_id=template_id):
+                image = next(
+                    element
+                    for element in generate_resume(template_id, LONG_CV)
+                    if element["category"] == "image"
+                )
+                local_path = Path(image_src_to_local_path(image["src"]))
+                self.assertTrue(local_path.is_file())
+
     def test_ledger_contains_every_canvas_element_category(self):
         elements = generate_resume("ledger", LONG_CV)
         categories = {element["category"] for element in elements}
@@ -72,7 +85,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         ))
         self.assertTrue(any(
             element["category"] == "image"
-            and element["src"].endswith("/uploads/templates/ledger-finance-accent.png")
+            and element["src"].endswith("/template-assets/ledger-finance-accent.png")
             for element in elements
         ))
 
@@ -89,7 +102,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertNotIn("NIMBUS", rendered_copy)
         self.assertTrue(any(
             element["category"] == "image"
-            and element["src"].endswith("/uploads/templates/nimbus-finance-accent.png")
+            and element["src"].endswith("/template-assets/nimbus-finance-accent.png")
             for element in elements
         ))
 
