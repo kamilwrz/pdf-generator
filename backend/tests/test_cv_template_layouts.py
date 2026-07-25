@@ -86,7 +86,10 @@ class CvTemplateLayoutTests(unittest.TestCase):
         )
 
     def test_template_images_resolve_to_versioned_local_assets(self):
-        for template_id in ("ledger", "nimbus", "rift"):
+        for template_id in (
+            "ledger", "nimbus", "rift",
+            "vector", "kernel", "relay", "lattice",
+        ):
             with self.subTest(template_id=template_id):
                 image = next(
                     element
@@ -95,6 +98,43 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 )
                 local_path = Path(image_src_to_local_path(image["src"]))
                 self.assertTrue(local_path.is_file())
+
+    def test_it_templates_use_all_canvas_shapes_and_repeat_artwork(self):
+        multi_page_cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 3,
+        }
+        assets = {
+            "vector": "vector-it-network.png",
+            "kernel": "kernel-it-architecture.png",
+            "relay": "relay-it-signal.png",
+            "lattice": "lattice-it-cloud.png",
+        }
+        expected_categories = {
+            "text", "textarea", "line", "rectangle", "circle", "ellipse",
+            "image", "connector",
+        }
+
+        for template_id, asset_name in assets.items():
+            with self.subTest(template_id=template_id):
+                elements = generate_resume(template_id, multi_page_cv)
+                pages = {element.get("page", 1) for element in elements}
+                self.assertTrue(expected_categories <= {element["category"] for element in elements})
+                self.assertGreater(max(pages), 1)
+                self.assertTrue(all(
+                    element.get("autoHeight") is True
+                    for element in elements
+                    if element["category"] == "textarea"
+                ))
+                for page in pages:
+                    backgrounds = [
+                        element for element in elements
+                        if element["category"] == "image"
+                        and element.get("page", 1) == page
+                        and element["src"].endswith(f"/template-assets/{asset_name}")
+                    ]
+                    self.assertEqual(len(backgrounds), 1)
+                    self.assertTrue(backgrounds[0]["fixedToPage"])
 
     def test_rift_repeats_fixed_background_on_every_content_page(self):
         multi_page_cv = {

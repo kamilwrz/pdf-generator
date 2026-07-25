@@ -53,6 +53,20 @@ def _rect(left, top, width, height, color, borderWidth=1, *, zIndex=1, page=1):
             "borderWidth": borderWidth, "zIndex": zIndex, "page": page}
 
 
+def _circle(left, top, diameter, color, *, filled=False, borderWidth=1, zIndex=1, page=1):
+    return {"category": "circle", "left": left, "top": top,
+            "width": diameter, "height": diameter, "backgroundColor": color,
+            "filled": filled, "borderWidth": borderWidth,
+            "zIndex": zIndex, "page": page}
+
+
+def _ellipse(left, top, width, height, color, *, filled=False, borderWidth=1, zIndex=1, page=1):
+    return {"category": "ellipse", "left": left, "top": top,
+            "width": width, "height": height, "backgroundColor": color,
+            "filled": filled, "borderWidth": borderWidth,
+            "zIndex": zIndex, "page": page}
+
+
 # ── builder helper ───────────────────────────────────────────────────────────
 
 class Builder:
@@ -598,6 +612,249 @@ def _gen_rift(cv: dict) -> list[dict]:
         )
     ]
     return page_decorations + header + flow
+
+
+def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
+    """Four distinct IT CV systems with shared safe, multi-page content flow."""
+    themes = {
+        "vector": {
+            "asset": "vector-it-network.png",
+            "left": 160, "width": 365, "start": 180, "continuation": 82,
+            "ink": "#FFFFFF", "body": "#DCEBFA", "muted": "#95AFC5",
+            "accent": "#26D8FF", "marker": "#B8EF4A", "rule": "#3C6682",
+            "font": "Inter", "display": "Times-Roman",
+        },
+        "kernel": {
+            "asset": "kernel-it-architecture.png",
+            "left": 167, "width": 355, "start": 184, "continuation": 78,
+            "ink": "#173A76", "body": "#253D54", "muted": "#526A83",
+            "accent": "#2462B7", "marker": "#D69B22", "rule": "#ACC5D8",
+            "font": "Helvetica", "display": "Times-Roman",
+        },
+        "relay": {
+            "asset": "relay-it-signal.png",
+            "left": 192, "width": 340, "start": 181, "continuation": 82,
+            "ink": "#F7F6F1", "body": "#F7F6F1", "muted": "#92989C",
+            "accent": "#F47B20", "marker": "#EE2525", "rule": "#596065",
+            "font": "Inter", "display": "Inter",
+        },
+        "lattice": {
+            "asset": "lattice-it-cloud.png",
+            "left": 103, "width": 424, "start": 184, "continuation": 78,
+            "ink": "#26336D", "body": "#2C3852", "muted": "#64708A",
+            "accent": "#5B62BA", "marker": "#F37E71", "rule": "#B9C4DC",
+            "font": "Helvetica", "display": "Times-Roman",
+        },
+    }
+    if theme not in themes:
+        raise ValueError(f"Nieznany motyw IT: {theme}")
+
+    C = themes[theme]
+    L, W = C["left"], C["width"]
+    SANS, DISPLAY = C["font"], C["display"]
+    lbl = _labels(cv)
+
+    class TechBuilder(Builder):
+        def need(self, h: float):
+            if self.y + h > 746:
+                self.pg += 1
+                self.y = float(C["continuation"])
+
+    def connector(source_id: str, target_id: str, color: str) -> dict:
+        return {
+            "category": "connector",
+            "source_id": source_id,
+            "target_id": target_id,
+            "backgroundColor": color,
+            "borderWidth": 1,
+            "arrow": False,
+            "zIndex": 3,
+            "page": 1,
+        }
+
+    contact = _compact_text(_contact_line(cv), 78)
+    name = _compact_text(cv.get("name"), 32)
+    title = _compact_text(cv.get("title"), 52)
+    header: list[dict]
+
+    if theme == "vector":
+        node_one = {**_circle(430, 53, 18, C["marker"], filled=True, zIndex=3), "id": "vector-node-one"}
+        node_two = {**_ellipse(468, 54, 42, 18, C["accent"], borderWidth=1.2, zIndex=3), "id": "vector-node-two"}
+        node_three = {**_circle(527, 53, 18, C["accent"], borderWidth=1.2, zIndex=3), "id": "vector-node-three"}
+        header = [
+            _line(133, 36, 2, 112, C["accent"], zIndex=3),
+            _rect(412, 38, 137, 48, "#184568", 0.8, zIndex=2),
+            _text(name, 31, DISPLAY, C["ink"], L, 48, zIndex=3, bold=True),
+            _text(title, 9.2, SANS, C["accent"], L, 91, zIndex=3),
+            _text(contact, 8.8, SANS, C["body"], L, 119, zIndex=3),
+            node_one, node_two, node_three,
+            connector("vector-node-one", "vector-node-two", C["marker"]),
+            connector("vector-node-two", "vector-node-three", C["accent"]),
+        ]
+        header[2]["letterSpacing"] = 0.2
+        header[3]["letterSpacing"] = 1.35
+    elif theme == "kernel":
+        orbit = {**_ellipse(435, 54, 75, 34, "#6FB9B4", borderWidth=1.2, zIndex=3), "id": "kernel-orbit"}
+        core = {**_circle(456, 64, 15, C["marker"], filled=True, zIndex=3), "id": "kernel-core"}
+        node = {**_circle(494, 64, 15, C["accent"], borderWidth=1.2, zIndex=3), "id": "kernel-node"}
+        header = [
+            _line(137, 48, 4, 104, C["ink"], zIndex=3),
+            _rect(425, 42, 105, 52, C["rule"], 0.8, zIndex=2),
+            _text(name, 30, DISPLAY, C["ink"], L, 51, zIndex=3, bold=True),
+            _text(title, 8.9, SANS, C["accent"], L, 94, zIndex=3),
+            _text(contact, 8.7, SANS, C["muted"], L, 121, zIndex=3),
+            orbit, core, node,
+            connector("kernel-core", "kernel-node", C["marker"]),
+        ]
+        header[2]["letterSpacing"] = 0.15
+        header[3]["letterSpacing"] = 1.55
+    elif theme == "relay":
+        module_one = {**_rect(428, 51, 18, 18, C["marker"], 1.2, zIndex=3), "id": "relay-module-one"}
+        module_two = {**_circle(471, 52, 18, C["accent"], filled=True, zIndex=3), "id": "relay-module-two"}
+        module_three = {**_ellipse(511, 53, 28, 17, "#D6D9D9", borderWidth=1.1, zIndex=3), "id": "relay-module-three"}
+        header = [
+            _line(164, 43, 4, 106, C["marker"], zIndex=3),
+            _rect(413, 40, 137, 49, "#3A3E42", 0.8, zIndex=2),
+            _text(name, 30, DISPLAY, C["ink"], L, 49, zIndex=3, bold=True),
+            _text(title, 8.7, "Courier", C["accent"], L, 91, zIndex=3),
+            _text(contact, 8.5, SANS, "#D6D9D9", L, 119, zIndex=3),
+            module_one, module_two, module_three,
+            connector("relay-module-one", "relay-module-two", C["accent"]),
+            connector("relay-module-two", "relay-module-three", "#D6D9D9"),
+        ]
+        header[2]["letterSpacing"] = 0.3
+        header[3]["letterSpacing"] = 0.9
+    else:
+        orbit_one = {**_ellipse(411, 50, 53, 28, "#8587D8", borderWidth=1.2, zIndex=3), "id": "lattice-orbit-one"}
+        orbit_two = {**_circle(434, 56, 16, "#8DE6ED", filled=True, zIndex=3), "id": "lattice-orbit-two"}
+        orbit_three = {**_circle(491, 56, 16, C["marker"], filled=True, zIndex=3), "id": "lattice-orbit-three"}
+        header = [
+            _line(70, 44, 6, 112, C["ink"], zIndex=3),
+            _rect(402, 42, 129, 51, C["rule"], 0.8, zIndex=2),
+            _text(name, 29, DISPLAY, C["ink"], L, 50, zIndex=3, bold=True),
+            _text(title, 8.8, SANS, C["accent"], L, 93, zIndex=3),
+            _text(contact, 8.6, SANS, C["muted"], L, 121, zIndex=3),
+            orbit_one, orbit_two, orbit_three,
+            connector("lattice-orbit-one", "lattice-orbit-two", "#8DE6ED"),
+            connector("lattice-orbit-two", "lattice-orbit-three", C["marker"]),
+        ]
+        header[2]["letterSpacing"] = 0.1
+        header[3]["letterSpacing"] = 1.35
+
+    b = TechBuilder(C["start"])
+
+    def section(label: str) -> None:
+        b.need(42)
+        marker_y = b.y + 1
+        if theme == "vector":
+            b.els.extend([
+                _ellipse(L - 27, marker_y, 13, 13, C["accent"], borderWidth=1.2, zIndex=3, page=b.pg),
+                _circle(L - 23, marker_y + 4, 5, C["marker"], filled=True, zIndex=3, page=b.pg),
+            ])
+        elif theme == "kernel":
+            b.els.extend([
+                _circle(L - 24, marker_y + 1, 12, C["marker"], filled=True, zIndex=3, page=b.pg),
+                _line(L - 8, marker_y + 7, 11, 1, C["accent"], zIndex=3, page=b.pg),
+            ])
+        elif theme == "relay":
+            b.els.extend([
+                _circle(L - 31, marker_y, 18, C["marker"], borderWidth=1.2, zIndex=3, page=b.pg),
+                _rect(L - 25, marker_y + 6, 6, 6, C["accent"], 1, zIndex=3, page=b.pg),
+            ])
+        else:
+            b.els.extend([
+                _ellipse(L - 29, marker_y, 16, 16, "#8587D8", borderWidth=1.2, zIndex=3, page=b.pg),
+                _circle(L - 25, marker_y + 4, 8, C["marker"], filled=True, zIndex=3, page=b.pg),
+            ])
+        b.text(label, 8.5 if theme != "relay" else 8.3,
+               "Courier" if theme == "relay" else SANS, C["accent"], L)
+        b.els[-1]["letterSpacing"] = 1.55 if theme != "relay" else 1.1
+        b.line(L, W, 1, C["rule"])
+        b.gap(14)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10, 14.5, C["body"], SANS)
+        b.gap(18)
+
+    if cv.get("experience"):
+        section(lbl["experience"])
+        for job in cv["experience"]:
+            b.need(80)
+            b.block(job.get("title", ""), L, W, 11 if theme != "relay" else 10.8,
+                    13.5, C["ink"], SANS, bold=True, min_h=15)
+            b.gap(1)
+            b.block(_company_period(job), L, W, 8.7 if theme != "relay" else 8.6,
+                    11.5, C["muted"], SANS, min_h=12)
+            b.gap(3)
+            bullets = _bullets(job)
+            if bullets:
+                b.block(bullets, L, W, 9.4 if theme != "relay" else 9.2,
+                        13.3 if theme != "relay" else 13.1,
+                        C["body"], SANS, bulletList=True)
+            b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, {"body": C["body"]},
+                        L, W, SANS, fs=9.4, lh=13.3)
+
+    if cv.get("education"):
+        section(lbl["education"])
+        for edu in cv["education"]:
+            b.block(edu.get("degree", ""), L, W, 10.4, 13,
+                    C["ink"], SANS, bold=True, min_h=15)
+            b.gap(2)
+            b.block(edu.get("period", ""), L, W, 8.7, 11.5, C["muted"], SANS, min_h=12)
+            if edu.get("detail"):
+                b.gap(1)
+                b.block(edu["detail"], L, W, 8.7, 11.5, C["muted"], SANS, min_h=12)
+            b.gap(10)
+
+    if cv.get("skills"):
+        section(lbl["skills"])
+        b.block("  ·  ".join(cv["skills"]), L, W, 9.3, 13.3, C["body"], SANS)
+        b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, {"body": C["body"]},
+                    L, W, SANS, fs=9.3, lh=13.3)
+    flow = b.build()
+    pages_used = max([element.get("page", 1) for element in header + flow] or [1])
+    page_decorations = [
+        decoration
+        for page in range(1, pages_used + 1)
+        for decoration in (
+            {
+                "category": "image",
+                "src": f"{BACKEND_URL}/template-assets/{C['asset']}",
+                "width": 595,
+                "height": 842,
+                "left": 0,
+                "top": 0,
+                "zIndex": 0,
+                "page": page,
+                "fixedToPage": True,
+            },
+            {**_line(L, 784, W, 1, C["rule"], zIndex=2, page=page), "fixedToPage": True},
+            {**_circle(L, 797, 7, C["marker"], filled=True, zIndex=3, page=page), "fixedToPage": True},
+            {**_text(f"{page:02d}", 8, "Courier" if theme == "relay" else SANS,
+                     C["muted"], L + W - 15, 792, zIndex=3, page=page), "fixedToPage": True},
+        )
+    ]
+    return page_decorations + header + flow
+
+
+def _gen_vector(cv: dict) -> list[dict]:
+    return _gen_it_theme(cv, "vector")
+
+
+def _gen_kernel(cv: dict) -> list[dict]:
+    return _gen_it_theme(cv, "kernel")
+
+
+def _gen_relay(cv: dict) -> list[dict]:
+    return _gen_it_theme(cv, "relay")
+
+
+def _gen_lattice(cv: dict) -> list[dict]:
+    return _gen_it_theme(cv, "lattice")
 
 
 def _gen_nocturne(cv: dict) -> list[dict]:
@@ -1471,6 +1728,10 @@ _GENERATORS = {
     "nimbus":    _gen_nimbus,
     "cinder":    _gen_cinder,
     "rift":      _gen_rift,
+    "vector":    _gen_vector,
+    "kernel":    _gen_kernel,
+    "relay":     _gen_relay,
+    "lattice":   _gen_lattice,
     "sterling":  _gen_sterling,
     "nocturne":  _gen_nocturne,
     "ampersand": _gen_ampersand,

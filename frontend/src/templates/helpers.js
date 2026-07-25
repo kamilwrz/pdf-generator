@@ -11,6 +11,28 @@ export const text = (content, fontSize, fontFamily, color, left, top, zIndex = 2
 export const line = (left, top, width, height, backgroundColor, zIndex = 1) =>
     ({ category: "line", left, top, width, height, backgroundColor, zIndex });
 
+export const circle = (left, top, diameter, backgroundColor, filled = false, borderWidth = 1, zIndex = 1) =>
+    ({
+        category: "circle",
+        left, top,
+        width: diameter,
+        height: diameter,
+        backgroundColor,
+        filled,
+        borderWidth,
+        zIndex,
+    });
+
+export const ellipse = (left, top, width, height, backgroundColor, filled = false, borderWidth = 1, zIndex = 1) =>
+    ({
+        category: "ellipse",
+        left, top, width, height,
+        backgroundColor,
+        filled,
+        borderWidth,
+        zIndex,
+    });
+
 // `block` is a metric-exact textarea — multi-line bodies wrap in the PDF exactly
 // as they do on the canvas.
 export const block = (
