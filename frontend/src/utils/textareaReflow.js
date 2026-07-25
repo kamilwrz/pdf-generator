@@ -14,7 +14,13 @@ function absoluteTop(element, pageHeight) {
 }
 
 function elementWidth(element) {
-  return Math.max(0, number(element.width));
+  const explicitWidth = Math.max(0, number(element.width));
+  if (explicitWidth > 0) return explicitWidth;
+  if (element.category === "text") {
+    const fontSize = Math.max(1, number(element.fontSize, 12));
+    return Math.max(fontSize, String(element.content || "").length * fontSize * 0.56);
+  }
+  return 0;
 }
 
 function elementHeight(element) {
@@ -94,6 +100,7 @@ export function reflowTextareaHeight(
       .filter((element) => (
         element.element_id !== elementId
         && FLOWABLE_CATEGORIES.has(element.category)
+        && !element.fixedToPage
         && absoluteTop(element, safePageHeight) >= sourceBottom
         && overlapsHorizontally(target, element)
       ))

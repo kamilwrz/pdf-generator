@@ -84,6 +84,7 @@ export default function ModalPdfs({ title }) {
                         align: element.extra_properties.align,
                         bulletList: element.extra_properties.bulletList ?? false,
                         autoHeight: element.extra_properties.autoHeight ?? false,
+                        fixedToPage: element.extra_properties.fixedToPage ?? false,
                         width: parseFloat(element.width),
                         height: parseFloat(element.height),
                         isEditing: false,

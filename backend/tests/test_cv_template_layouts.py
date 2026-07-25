@@ -189,6 +189,20 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 and element["width"] == 595
                 and element["height"] == 5
                 and element["backgroundColor"] == "#C93F3F"
+                and element["fixedToPage"] is True
+                for element in elements
+            ))
+        for heading in ("PODSUMOWANIE ZAWODOWE", "DOŚWIADCZENIE ZAWODOWE", "WYKSZTAŁCENIE", "UMIEJĘTNOŚCI"):
+            heading_element = next(
+                element
+                for element in elements
+                if element["category"] == "text" and element["content"] == heading
+            )
+            self.assertTrue(any(
+                element["category"] == "rectangle"
+                and element.get("page", 1) == heading_element.get("page", 1)
+                and element["left"] == 526
+                and abs(element["top"] - (heading_element["top"] + 2)) < 0.01
                 for element in elements
             ))
 

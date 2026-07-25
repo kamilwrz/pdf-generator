@@ -28,6 +28,8 @@ class PdfElement(BaseModel):
     bulletList: Optional[bool] = False
     #TEXTAREA TEMPLATE FIELD: height follows rendered content and reflows layout
     autoHeight: Optional[bool] = False
+    #PAGE DECORATION: remains anchored while auto-height content reflows
+    fixedToPage: Optional[bool] = False
     #LINE / IMG ELEMENT
     width: Optional[float | str] = None
     height: Optional[float | str] = None

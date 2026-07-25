@@ -445,7 +445,7 @@ def _gen_cinder(cv: dict) -> list[dict]:
 
     def section(label: str) -> None:
         b.need(40)
-        b.els.append(_rect(52, b.y + 2, 8, 18, RED, 1.2, zIndex=2, page=b.pg))
+        b.els.append(_rect(526, b.y + 2, 16, 16, RED, 1.2, zIndex=2, page=b.pg))
         b.text(label, 8.7, SANS, RED, L)
         b.line(L, W, 1, ASH)
         b.gap(14)
@@ -457,19 +457,15 @@ def _gen_cinder(cv: dict) -> list[dict]:
 
     if cv.get("experience"):
         section(lbl["experience"])
-        for index, job in enumerate(cv["experience"]):
+        for job in cv["experience"]:
             b.need(76)
-            marker_y = b.y + 2
-            marker_color = RED if index == 0 else GRAPHITE
-            b.els.append(_rect(51, marker_y, 14, 14, marker_color, 1.2, zIndex=2, page=b.pg))
-            b.els.append(_line(57, marker_y + 14, 2, 42, ASH, page=b.pg))
-            b.block(job.get("title", ""), L + 4, W - 4, 11, 13.5, BLACK, SANS, bold=True, min_h=15)
+            b.block(job.get("title", ""), L, W, 11, 13.5, BLACK, SANS, bold=True, min_h=15)
             b.gap(1)
-            b.block(_company_period(job), L + 4, W - 4, 8.7, 11.5, GRAPHITE, SANS, min_h=12)
+            b.block(_company_period(job), L, W, 8.7, 11.5, GRAPHITE, SANS, min_h=12)
             b.gap(3)
             bullets = _bullets(job)
             if bullets:
-                b.block(bullets, L + 4, W - 4, 9.5, 13.4, CHARCOAL, SANS, bulletList=True)
+                b.block(bullets, L, W, 9.5, 13.4, CHARCOAL, SANS, bulletList=True)
             b.gap(12)
         _extra_sections(b, cv, "after_experience", section, {"body": CHARCOAL}, L, W, SANS, fs=9.5, lh=13.4)
 
@@ -496,11 +492,11 @@ def _gen_cinder(cv: dict) -> list[dict]:
         decoration
         for page in range(1, pages_used + 1)
         for decoration in (
-            _line(0, 0, 595, 842, PAPER, zIndex=0, page=page),
-            _line(0, 0, 595, 5, RED, zIndex=2, page=page),
-            _line(52, 786, 490, 1, BLACK, page=page),
-            _line(52, 786, 64, 3, RED, zIndex=2, page=page),
-            _text(f"{page:02d}", 8, SANS, GRAPHITE, 522, 801, page=page),
+            {**_line(0, 0, 595, 842, PAPER, zIndex=0, page=page), "fixedToPage": True},
+            {**_line(0, 0, 595, 5, RED, zIndex=2, page=page), "fixedToPage": True},
+            {**_line(52, 786, 490, 1, BLACK, page=page), "fixedToPage": True},
+            {**_line(52, 786, 64, 3, RED, zIndex=2, page=page), "fixedToPage": True},
+            {**_text(f"{page:02d}", 8, SANS, GRAPHITE, 522, 801, page=page), "fixedToPage": True},
         )
     ]
     return page_decorations + header + flow

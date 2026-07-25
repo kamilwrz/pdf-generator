@@ -74,3 +74,51 @@ test("does not change ordinary manually sized textareas", () => {
   assert.equal(result.elements[1].top, 144);
 });
 
+test("keeps page decorations fixed while text content reflows", () => {
+  const result = reflowTextareaHeight([
+    textarea(),
+    {
+      element_id: "page-two-background",
+      category: "line",
+      left: 0,
+      top: 0,
+      width: 595,
+      height: 842,
+      page: 2,
+      fixedToPage: true,
+    },
+    {
+      element_id: "next-section",
+      category: "text",
+      left: 40,
+      top: 80,
+      width: 180,
+      fontSize: 12,
+      page: 2,
+    },
+  ], "textarea", 44, 842);
+
+  const background = result.elements.find((element) => element.element_id === "page-two-background");
+  const section = result.elements.find((element) => element.element_id === "next-section");
+  assert.deepEqual({ page: background.page, top: background.top }, { page: 2, top: 0 });
+  assert.deepEqual({ page: section.page, top: section.top }, { page: 2, top: 104 });
+});
+
+test("reflows generated single-line text without a stored width", () => {
+  const result = reflowTextareaHeight([
+    textarea(),
+    {
+      element_id: "generated-heading",
+      category: "text",
+      content: "WYKSZTAŁCENIE",
+      left: 40,
+      top: 144,
+      fontSize: 9,
+      page: 1,
+    },
+  ], "textarea", 44, 842);
+
+  const heading = result.elements.find((element) => element.element_id === "generated-heading");
+  assert.equal(heading.top, 168);
+});
+

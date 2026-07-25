@@ -44,7 +44,7 @@ def create_new_pdf(db:Session, title:str, user_id:int, file_path:str, elements:l
             src = element.src,
             backgroundColor = element.backgroundColor,
             img_id = img_id,
-            extra_properties = {"zIndex": element.zIndex, "isSelected" : element.isSelected, "isMove": element.isMove, "lineHeight": element.lineHeight, "letterSpacing": element.letterSpacing, "bold": element.bold, "italic": element.italic, "underline": element.underline, "align": element.align, "bulletList": element.bulletList, "autoHeight": element.autoHeight, "borderWidth": element.borderWidth, "source_id": element.source_id, "target_id": element.target_id, "arrow": element.arrow}
+            extra_properties = {"zIndex": element.zIndex, "isSelected" : element.isSelected, "isMove": element.isMove, "lineHeight": element.lineHeight, "letterSpacing": element.letterSpacing, "bold": element.bold, "italic": element.italic, "underline": element.underline, "align": element.align, "bulletList": element.bulletList, "autoHeight": element.autoHeight, "fixedToPage": element.fixedToPage, "borderWidth": element.borderWidth, "source_id": element.source_id, "target_id": element.target_id, "arrow": element.arrow}
     )
         db.add(pdf_elements_db)
     
@@ -110,7 +110,7 @@ def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_i
               src=element.src,
               backgroundColor=element.backgroundColor,
               img_id=img_id,
-              extra_properties={"zIndex": element.zIndex, "isSelected": element.isSelected, "isMove": element.isMove, "lineHeight": element.lineHeight, "letterSpacing": element.letterSpacing, "bold": element.bold, "italic": element.italic, "underline": element.underline, "align": element.align, "bulletList": element.bulletList, "autoHeight": element.autoHeight, "borderWidth": element.borderWidth, "source_id": element.source_id, "target_id": element.target_id, "arrow": element.arrow},
+              extra_properties={"zIndex": element.zIndex, "isSelected": element.isSelected, "isMove": element.isMove, "lineHeight": element.lineHeight, "letterSpacing": element.letterSpacing, "bold": element.bold, "italic": element.italic, "underline": element.underline, "align": element.align, "bulletList": element.bulletList, "autoHeight": element.autoHeight, "fixedToPage": element.fixedToPage, "borderWidth": element.borderWidth, "source_id": element.source_id, "target_id": element.target_id, "arrow": element.arrow},
             )
             db.add(pdf_elements)
 
@@ -128,4 +128,4 @@ def update_pdf_elements(db:Session, elements:list, existing_elements:dict, pdf_i
             existing_row.src = element.src
             existing_row.backgroundColor = element.backgroundColor
             existing_row.img_id = img_id
-            existing_row.extra_properties = {"zIndex": element.zIndex, "isSelected": element.isSelected, "isMove": element.isMove, "lineHeight": element.lineHeight, "letterSpacing": element.letterSpacing, "bold": element.bold, "italic": element.italic, "underline": element.underline, "align": element.align, "bulletList": element.bulletList, "autoHeight": element.autoHeight, "borderWidth": element.borderWidth, "source_id": element.source_id, "target_id": element.target_id, "arrow": element.arrow}
+            existing_row.extra_properties = {"zIndex": element.zIndex, "isSelected": element.isSelected, "isMove": element.isMove, "lineHeight": element.lineHeight, "letterSpacing": element.letterSpacing, "bold": element.bold, "italic": element.italic, "underline": element.underline, "align": element.align, "bulletList": element.bulletList, "autoHeight": element.autoHeight, "fixedToPage": element.fixedToPage, "borderWidth": element.borderWidth, "source_id": element.source_id, "target_id": element.target_id, "arrow": element.arrow}
