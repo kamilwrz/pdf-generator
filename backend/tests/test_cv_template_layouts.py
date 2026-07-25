@@ -60,6 +60,22 @@ LONG_CV = {
 
 
 class CvTemplateLayoutTests(unittest.TestCase):
+    def test_ledger_contains_every_canvas_element_category(self):
+        elements = generate_resume("ledger", LONG_CV)
+        categories = {element["category"] for element in elements}
+
+        self.assertTrue({"text", "textarea", "line", "rectangle", "image", "connector"} <= categories)
+        self.assertTrue(all(
+            element.get("autoHeight") is True
+            for element in elements
+            if element["category"] == "textarea"
+        ))
+        self.assertTrue(any(
+            element["category"] == "image"
+            and element["src"].endswith("/uploads/templates/ledger-finance-accent.png")
+            for element in elements
+        ))
+
     def test_final_templates_keep_textareas_inside_page_bounds(self):
         for template_id in ("solstice", "mistral", "axiom", "vellum"):
             with self.subTest(template_id=template_id):

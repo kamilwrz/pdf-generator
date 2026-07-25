@@ -31,6 +31,9 @@ build/
 # Backend uploads/generated
 backend/static/
 backend/uploads/
+!backend/uploads/
+!backend/uploads/templates/
+!backend/uploads/templates/ledger-finance-accent.png
 
 # Node / Frontend
 node_modules/

@@ -326,7 +326,7 @@ function Preview({ id, accent }) {
 
 export default function TemplatesModal() {
     const { isTemplates, showTemplates, loadTemplate, A4_Elements } = use(PdfContext);
-    const [category, setCategory] = useState("deck");
+    const [category, setCategory] = useState("cv");
 
     if (!isTemplates) return null;
 
@@ -335,7 +335,8 @@ export default function TemplatesModal() {
             !window.confirm("Zastąpić bieżące płótno tym szablonem? Niezapisane elementy zostaną usunięte.")) {
             return;
         }
-        const title = t.category === "deck" ? `Prezentacja ${t.name}` : `Artykuł ${t.name}`;
+        const prefix = t.category === "cv" ? "CV" : t.category === "deck" ? "Prezentacja" : "Artykuł";
+        const title = `${prefix} ${t.name}`;
         loadTemplate(t.elements, title, t.pageSize);
         showTemplates();
     }

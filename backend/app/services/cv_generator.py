@@ -13,6 +13,8 @@ import math
 import re
 from datetime import datetime
 
+from app.core.config import BACKEND_URL
+
 A4_H = 842
 MARGIN_BOTTOM = 40   # py before switching to the next page
 PAGE_TOP = 36        # y at the top of a continuation page
@@ -227,6 +229,98 @@ def _gen_finance(cv: dict) -> list[dict]:
     _extra_sections(b, cv, "after_skills", section, C, L, W, "Inter")
 
     return b.build()
+
+
+def _gen_ledger(cv: dict) -> list[dict]:
+    """Blue-grey finance CV with editable data panels and market graphic."""
+    NAVY, BLUE = "#102A43", "#2E5E86"
+    SLATE, STEEL, INK = "#607789", "#AEBECC", "#17212B"
+    L, W, SANS, SERIF = 52, 490, "Inter", "Times-Roman"
+    lbl = _labels(cv)
+
+    metric_revenue = {**_rect(52, 180, 150, 62, STEEL, page=1), "id": "metric-revenue"}
+    metric_margin = {**_rect(222, 180, 150, 62, STEEL, page=1), "id": "metric-margin"}
+    metric_capital = {**_rect(392, 180, 150, 62, STEEL, page=1), "id": "metric-capital"}
+    static = [
+        _line(0, 0, 595, 146, NAVY, zIndex=0),
+        _line(0, 146, 595, 5, BLUE, zIndex=1),
+        _rect(416, 24, 122, 126, STEEL, 1.2, zIndex=3),
+        {
+            "category": "image",
+            "src": f"{BACKEND_URL}/uploads/templates/ledger-finance-accent.png",
+            "width": 110,
+            "height": 118,
+            "left": 422,
+            "top": 28,
+            "zIndex": 2,
+            "page": 1,
+        },
+        _line(400, 30, 2, 102, BLUE, zIndex=2),
+        _text("LEDGER / FINANCE", 8.5, SANS, "#BFD0DE", L, 34, zIndex=2),
+        _text(_compact_text(cv.get("name"), 30), 30, SERIF, "#FFFFFF", L, 58, zIndex=2, bold=True),
+        _text(_compact_text(cv.get("title"), 52), 10, SANS, "#C7D7E2", L, 98, zIndex=2),
+        _text(_compact_text(_contact_line(cv), 78), 8.8, SANS, "#C7D7E2", L, 120, zIndex=2),
+        metric_revenue,
+        metric_margin,
+        metric_capital,
+        {"category": "connector", "source_id": "metric-revenue", "target_id": "metric-margin",
+         "backgroundColor": BLUE, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
+        {"category": "connector", "source_id": "metric-margin", "target_id": "metric-capital",
+         "backgroundColor": BLUE, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
+        _text("PRZYCHODY", 7.5, SANS, SLATE, 66, 193, zIndex=3),
+        _text("WZROST", 20, SERIF, NAVY, 66, 208, zIndex=3, bold=True),
+        _text("MARŻA", 7.5, SANS, SLATE, 236, 193, zIndex=3),
+        _text("KONTROLA", 20, SERIF, NAVY, 236, 208, zIndex=3, bold=True),
+        _text("KAPITAŁ", 7.5, SANS, SLATE, 406, 193, zIndex=3),
+        _text("WARTOŚĆ", 20, SERIF, NAVY, 406, 208, zIndex=3, bold=True),
+    ]
+    static[5]["letterSpacing"] = 1.5
+
+    b = Builder(278)
+
+    def section(label: str) -> None:
+        b.need(34)
+        b.text(label, 9, SANS, BLUE, L)
+        b.line(L, W, 1, STEEL)
+        b.gap(14)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10.2, 15, INK, SANS)
+        b.gap(18)
+
+    if cv.get("experience"):
+        section(lbl["experience"])
+        for job in cv["experience"]:
+            b.need(72)
+            b.block(job.get("title", ""), L, W, 11, 13.5, NAVY, SANS, bold=True, min_h=15)
+            b.gap(1)
+            b.block(_company_period(job), L, W, 9, 11.5, SLATE, SANS, min_h=12)
+            b.gap(3)
+            bullets = _bullets(job)
+            if bullets:
+                b.block(bullets, L, W, 9.6, 13.5, INK, SANS, bulletList=True)
+            b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, {"body": INK}, L, W, SANS, fs=9.6, lh=13.5)
+
+    if cv.get("education"):
+        section(lbl["education"])
+        for edu in cv["education"]:
+            b.block(edu.get("degree", ""), L, W, 10.6, 13, NAVY, SANS, bold=True, min_h=15)
+            b.gap(2)
+            b.block(edu.get("period", ""), L, W, 9, 11.5, SLATE, SANS, min_h=12)
+            if edu.get("detail"):
+                b.gap(1)
+                b.block(edu["detail"], L, W, 9, 11.5, SLATE, SANS, min_h=12)
+            b.gap(10)
+
+    if cv.get("skills"):
+        section(lbl["skills"])
+        b.block("  ·  ".join(cv["skills"]), L, W, 9.8, 14, INK, SANS)
+        b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, {"body": INK}, L, W, SANS, fs=9.8, lh=14)
+    return static + b.build()
 
 
 def _gen_nocturne(cv: dict) -> list[dict]:
@@ -1096,6 +1190,7 @@ def _gen_vellum(cv: dict) -> list[dict]:
 
 _GENERATORS = {
     "finance":   _gen_finance,
+    "ledger":    _gen_ledger,
     "sterling":  _gen_sterling,
     "nocturne":  _gen_nocturne,
     "ampersand": _gen_ampersand,
