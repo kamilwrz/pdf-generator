@@ -33,10 +33,12 @@ class PdfElement(BaseModel):
     #LINE / IMG ELEMENT
     width: Optional[float | str] = None
     height: Optional[float | str] = None
-    #LINE ELEMENT / RECTANGLE ELEMENT (backgroundColor = fill for line, border colour for rectangle)
+    #SHAPES (backgroundColor = fill or stroke colour depending on the element)
     backgroundColor: Optional[str] = None
     #RECTANGLE ELEMENT (outline only): border thickness in px
     borderWidth: Optional[float] = None
+    #CIRCLE / ELLIPSE: solid fill when true, outline only when false
+    filled: Optional[bool] = False
     #CONNECTOR ELEMENT: links two elements by their element_id, optional arrowhead
     source_id: Optional[str] = None
     target_id: Optional[str] = None

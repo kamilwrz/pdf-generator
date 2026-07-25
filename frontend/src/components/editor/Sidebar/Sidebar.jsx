@@ -2,7 +2,7 @@ import classes from "./Sidebar.module.css";
 import SidebarControls from "../../common/SidebarControls/SidebarControls";
 import { FaRegImages } from "react-icons/fa";
 import { TfiLayoutLineSolid } from "react-icons/tfi";
-import { BiRectangle } from "react-icons/bi";
+import { BiCircle, BiRectangle } from "react-icons/bi";
 import { TbTopologyStar3 } from "react-icons/tb";
 import { CiText } from "react-icons/ci";
 import { BsTextParagraph } from "react-icons/bs";
@@ -19,6 +19,8 @@ export default function Sidebar({ children }) {
         addText,
         addLine,
         addRectangle,
+        addCircle,
+        addEllipse,
         addConnector,
         addTextarea,
         showDropzone,
@@ -52,6 +54,12 @@ export default function Sidebar({ children }) {
                 <SidebarControls icon={<BsTextParagraph />} labelText="Dodaj pole tekstowe" sidebarEvent={addTextarea} />
                 <SidebarControls icon={<TfiLayoutLineSolid />} labelText="Dodaj linię" sidebarEvent={addLine} />
                 <SidebarControls icon={<BiRectangle />} labelText="Dodaj prostokąt" sidebarEvent={addRectangle} />
+                <SidebarControls icon={<BiCircle />} labelText="Dodaj koło" sidebarEvent={addCircle} />
+                <SidebarControls
+                    icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="12" rx="9" ry="5.5" fill="none" stroke="currentColor" strokeWidth="1.7" /></svg>}
+                    labelText="Dodaj elipsę"
+                    sidebarEvent={addEllipse}
+                />
                 <SidebarControls icon={<TbTopologyStar3 />} labelText="Dodaj łącznik" sidebarEvent={addConnector} />
             </div>
         </div>

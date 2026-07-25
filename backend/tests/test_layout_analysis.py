@@ -242,13 +242,15 @@ class DirectedOperationTests(unittest.TestCase):
             block("section-line", 20, 30, width=160, height=2, category="line"),
             block("accent-box", 40, 60, width=120, height=80, category="rectangle"),
             block("profile-photo", 430, 20, width=100, height=100, category="image"),
+            block("accent-circle", 200, 180, width=60, height=60, category="circle"),
+            block("accent-ellipse", 300, 260, width=100, height=50, category="ellipse"),
         ]
 
         result = layout_analysis.resolve_directed_operation(
             elements,
             {
                 "type": "shift",
-                "target_element_ids": ["section-line", "accent-box", "profile-photo"],
+                "target_element_ids": ["section-line", "accent-box", "profile-photo", "accent-circle", "accent-ellipse"],
                 "dx": 10,
                 "dy": 5,
             },
@@ -264,6 +266,8 @@ class DirectedOperationTests(unittest.TestCase):
             "section-line": (30.0, 35.0),
             "accent-box": (50.0, 65.0),
             "profile-photo": (440.0, 25.0),
+            "accent-circle": (210.0, 185.0),
+            "accent-ellipse": (310.0, 265.0),
         })
 
     def test_move_to_page_transfers_related_elements_and_aligns_them_to_reference(self):

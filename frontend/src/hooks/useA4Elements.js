@@ -7,7 +7,7 @@ import { reflowTextareaHeight } from '../utils/textareaReflow';
 // Elements a connector can attach to — those with a real bounding box the
 // backend can reproduce for the PDF. Single-line text (no stored width/height)
 // is intentionally excluded.
-const CONNECTABLE = new Set(["textarea", "rectangle", "image", "line"]);
+const CONNECTABLE = new Set(["textarea", "rectangle", "circle", "ellipse", "image", "line"]);
 
 // Canvas size presets (pt = px, 1:1 with the PDF). The deck preset matches
 // PowerPoint's 13.33×7.5in widescreen slide.
@@ -575,6 +575,44 @@ export function useA4Elements(titleRef) {
     });
   }, [])
 
+  const handleAddCircle = useCallback(() => {
+    const circle = {
+      element_id: nanoid(),
+      backgroundColor: "#000000",
+      borderWidth: 1,
+      filled: false,
+      left: 20,
+      top: 20,
+      width: 80,
+      height: 80,
+      isSelected: false,
+      isMove: false,
+      category: "circle",
+      zIndex: 2,
+      page: currentPageRef.current,
+    };
+    setA4_Elements((prevState) => [...prevState, circle]);
+  }, [])
+
+  const handleAddEllipse = useCallback(() => {
+    const ellipse = {
+      element_id: nanoid(),
+      backgroundColor: "#000000",
+      borderWidth: 1,
+      filled: false,
+      left: 20,
+      top: 20,
+      width: 120,
+      height: 80,
+      isSelected: false,
+      isMove: false,
+      category: "ellipse",
+      zIndex: 2,
+      page: currentPageRef.current,
+    };
+    setA4_Elements((prevState) => [...prevState, ellipse]);
+  }, [])
+
   const handleAddImage = useCallback((e) => {
     const image = {
       element_id: nanoid(),
@@ -821,9 +859,14 @@ export function useA4Elements(titleRef) {
   // editor only exposes fields present on the entire selection, so this does
   // not introduce properties incompatible with an element category.
   const handleEditSelectedElementValues = useCallback((dataObject) => {
-    setA4_Elements(prevState => prevState.map((element) => (
-      element.isSelected ? { ...element, ...dataObject } : element
-    )));
+    setA4_Elements(prevState => prevState.map((element) => {
+      if (!element.isSelected) return element;
+      if (element.category === "circle" && ("width" in dataObject || "height" in dataObject)) {
+        const diameter = dataObject.width ?? dataObject.height;
+        return { ...element, ...dataObject, width: diameter, height: diameter };
+      }
+      return { ...element, ...dataObject };
+    }));
   }, [])
 
   // The canvas is the typography authority: after a template textarea has
@@ -1225,12 +1268,15 @@ export function useA4Elements(titleRef) {
       const nid = nanoid();
       if (spec.id != null) idMap[spec.id] = nid;
       const { id, ...rest } = spec;
+      const normalizedRest = rest.category === "circle"
+        ? { ...rest, width: rest.width ?? rest.height ?? 80, height: rest.width ?? rest.height ?? 80 }
+        : rest;
       return {
         isSelected: false,
         isMove: false,
         isEditing: false,
-        ...rest,
-        page: rest.page ?? 1,
+        ...normalizedRest,
+        page: normalizedRest.page ?? 1,
         element_id: nid,
       };
     });
@@ -1303,6 +1349,8 @@ export function useA4Elements(titleRef) {
     handleAddText,
     handleAddLine,
     handleAddRectangle,
+    handleAddCircle,
+    handleAddEllipse,
     handleAddImage,
     handleAddTextarea,
     // connector mode

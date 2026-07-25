@@ -1,5 +1,5 @@
-const FLOWABLE_CATEGORIES = new Set(["text", "textarea", "line", "rectangle", "image"]);
-const NEARBY_DECORATION_CATEGORIES = new Set(["line", "rectangle"]);
+const FLOWABLE_CATEGORIES = new Set(["text", "textarea", "line", "rectangle", "circle", "ellipse", "image"]);
+const NEARBY_DECORATION_CATEGORIES = new Set(["line", "rectangle", "circle", "ellipse"]);
 const DECORATION_LANE_TOLERANCE = 32;
 
 function number(value, fallback = 0) {

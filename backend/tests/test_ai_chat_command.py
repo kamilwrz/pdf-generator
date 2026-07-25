@@ -179,7 +179,7 @@ class ChatCommandTests(unittest.TestCase):
     def test_extract_positional_includes_visual_elements_with_geometry(self):
         # _extract_structured() excludes visual elements because they have no
         # editable text, but position instructions must still be able to
-        # target a photo, line, or decorative rectangle by id.
+        # target images and decorative shapes by id.
         elements = [
             {
                 "element_id": "heading-1",
@@ -206,6 +206,16 @@ class ChatCommandTests(unittest.TestCase):
                 "content": "",
                 "left": 30, "top": 180, "width": 160, "height": 80, "page": 1,
             },
+            {
+                "element_id": "accent-circle",
+                "category": "circle",
+                "left": 400, "top": 180, "width": 60, "height": 60, "page": 1,
+            },
+            {
+                "element_id": "accent-ellipse",
+                "category": "ellipse",
+                "left": 360, "top": 260, "width": 120, "height": 50, "page": 1,
+            },
         ]
 
         result = ai_assistant_service._extract_positional(elements)
@@ -219,6 +229,10 @@ class ChatCommandTests(unittest.TestCase):
         self.assertEqual(by_id["section-line"]["height"], 2.0)
         self.assertEqual(by_id["accent-box"]["category"], "rectangle")
         self.assertEqual(by_id["accent-box"]["width"], 160.0)
+        self.assertEqual(by_id["accent-circle"]["category"], "circle")
+        self.assertEqual(by_id["accent-circle"]["height"], 60.0)
+        self.assertEqual(by_id["accent-ellipse"]["category"], "ellipse")
+        self.assertEqual(by_id["accent-ellipse"]["width"], 120.0)
 
     def test_dispatcher_routes_target_groups_directive_to_block_resolution(self):
         elements = [

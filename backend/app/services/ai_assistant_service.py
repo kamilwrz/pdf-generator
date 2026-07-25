@@ -51,7 +51,7 @@ def _extract_structured(elements: list[dict]) -> list[dict]:
 def _extract_positional(elements: list[dict]) -> list[dict]:
     """Content, style, and geometry plus geometry-only visual elements.
 
-    Text is the only editable content. Images, lines, and rectangles are also
+    Text is the only editable content. Images, lines, rectangles, circles, and ellipses are also
     emitted for chat commands so the AI can explicitly place every visible
     canvas element without being allowed to invent raw coordinates.
     """
@@ -73,6 +73,8 @@ def _extract_positional(elements: list[dict]) -> list[dict]:
         "image": "[obraz]",
         "line": "[linia]",
         "rectangle": "[prostokąt]",
+        "circle": "[koło]",
+        "ellipse": "[elipsa]",
     }
     for el in elements:
         element_id = el.get("element_id")
@@ -573,7 +575,7 @@ def _chat(message: str, elements: list[dict], page_size: dict | None) -> dict:
         "(3) POLECENIEM dotyczącym POZYCJI elementów (np. \"przesuń nagłówki sekcji o 50px w lewo\", "
         "\"wyrównaj te elementy na x=50\", \"rozłóż wpisy w sekcji doświadczenia równomiernie\") — "
         "zwróć position_operation zamiast corrections:\n"
-        "  - Elementy typu image, line i rectangle są prawidłowymi celami poleceń pozycji. "
+        "  - Elementy typu image, line, rectangle, circle i ellipse są prawidłowymi celami poleceń pozycji. "
         "Przesuwaj je tylko wtedy, gdy użytkownik wyraźnie o to prosi; nie traktuj dekoracji "
         "jako elementów do automatycznej korekty.\n"
         "  {\"type\": \"shift\"|\"align\"|\"distribute\"|\"space\"|\"move_to_page\", \"target_element_ids\": [\"...\"] LUB "

@@ -95,6 +95,7 @@ export default function ModalPdfs({ title }) {
                         ...element,
                         zIndex: element.extra_properties.zIndex,
                         borderWidth: element.extra_properties.borderWidth,
+                        filled: element.extra_properties.filled ?? false,
                         source_id: element.extra_properties.source_id,
                         target_id: element.extra_properties.target_id,
                         arrow: element.extra_properties.arrow,

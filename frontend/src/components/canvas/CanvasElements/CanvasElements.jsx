@@ -3,6 +3,7 @@ import Image from '../Image/Image';
 import Line from '../Line/Line';
 import Rectangle from '../Rectangle/Rectangle';
 import Textarea from '../Textarea/Textarea';
+import Ellipse from '../Ellipse/Ellipse';
 
 export default function CanvasElements({ elements }) {
     return elements.map((element) => {
@@ -95,6 +96,24 @@ export default function CanvasElements({ elements }) {
             height={parseFloat(element.height)}
             backgroundColor={element.backgroundColor}
             borderWidth={element.borderWidth}
+            left={element.left}
+            top={element.top}
+            isSelected={element.isSelected}
+            category={element.category}
+            zIndex={element.zIndex}
+          />
+        );
+      }
+      if (element.category === "circle" || element.category === "ellipse") {
+        return (
+          <Ellipse
+            key={element.element_id}
+            elementId={element.element_id}
+            width={parseFloat(element.width)}
+            height={parseFloat(element.height)}
+            backgroundColor={element.backgroundColor}
+            borderWidth={element.borderWidth}
+            filled={element.filled}
             left={element.left}
             top={element.top}
             isSelected={element.isSelected}

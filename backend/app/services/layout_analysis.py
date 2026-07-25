@@ -16,8 +16,8 @@ from typing import Any
 # commands may target them, however, so their bounds need a broader category
 # set than the scanner uses.
 AUTO_LAYOUT_CATEGORIES = {"text", "textarea", "image"}
-DIRECTED_POSITION_CATEGORIES = AUTO_LAYOUT_CATEGORIES | {"line", "rectangle"}
-DECORATIVE_CATEGORIES = {"line", "rectangle", "connector"}
+DIRECTED_POSITION_CATEGORIES = AUTO_LAYOUT_CATEGORIES | {"line", "rectangle", "circle", "ellipse"}
+DECORATIVE_CATEGORIES = {"line", "rectangle", "circle", "ellipse", "connector"}
 MAX_SNAP_DISTANCE = 12.0
 MAX_SAFE_SNAP_MOVE = 18.0
 MAX_SAFE_BOUNDS_MOVE = 96.0

@@ -19,6 +19,8 @@ const CATEGORY_LABELS = {
     textarea: "Pole tekstowe",
     line: "Linia",
     rectangle: "Prostokąt",
+    circle: "Koło",
+    ellipse: "Elipsa",
     image: "Obraz",
     connector: "Łącznik",
 };
@@ -65,7 +67,9 @@ export default function Editor() {
         const value = ["fontSize", "height", "width", "lineHeight", "letterSpacing", "left", "top", "borderWidth"].includes(identifier) ? Number(e.target.value) : e.target.value;
         let valueObject = { [identifier]: value }
 
-        if (identifier === "width" && selectedElement.category === "image") {
+        if ((identifier === "width" || identifier === "height") && selectedElement.category === "circle") {
+            valueObject = { width: value, height: value };
+        } else if (identifier === "width" && selectedElement.category === "image") {
             const image = document.getElementById(selectedElement.element_id);
             const aspectRatio = image.naturalHeight / image.naturalWidth;
             const newHeight = Math.round(value * aspectRatio);
@@ -209,6 +213,7 @@ export default function Editor() {
                 width: selectedElement?.width,
                 height: selectedElement?.height,
                 borderWidth: selectedElement?.borderWidth,
+                filled: selectedElement?.filled,
                 category: selectedElement?.category,
                 zIndex: selectedElement?.zIndex
             };
@@ -325,6 +330,27 @@ export default function Editor() {
                 <EditorControls labelText="Kolor obramowania" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
                 </div>
             </>}
+            {(selectedElement?.category === "circle" || selectedElement?.category === "ellipse") && <>
+                <div className={classes.elementSize}>
+                    <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
+                    <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
+                </div>
+                <label className={classes.pushToggle}>
+                    <input type="checkbox" checked={!!selectedElement.filled} onChange={() => toggleStyle("filled")} />
+                    <span>Wypełniony kształt</span>
+                </label>
+                <div className={classes.elementSize}>
+                    {!selectedElement.filled && (
+                        <EditorControls labelText="Szerokość obramowania" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
+                    )}
+                    <EditorControls
+                        labelText={selectedElement.filled ? "Kolor wypełnienia" : "Kolor obramowania"}
+                        type="color"
+                        inputValue={elementValues.backgroundColor}
+                        onChangeFn={(e) => handleChangeValues(e, "backgroundColor")}
+                    />
+                </div>
+            </>}
 
             {selectedElement?.category === "image" && <>
 
@@ -394,7 +420,7 @@ function BulkEditor({
     const editableFields = [
         "fontSize", "color", "fontFamily", "bold", "italic", "underline",
         "align", "lineHeight", "letterSpacing", "width", "height",
-        "backgroundColor", "borderWidth", "zIndex",
+        "backgroundColor", "borderWidth", "filled", "zIndex",
     ];
     const hasMixedValues = editableFields
         .filter(supportsField)
@@ -523,6 +549,16 @@ function BulkEditor({
                         />
                     )}
                 </div>
+            )}
+            {supportsField("filled") && (
+                <label className={classes.pushToggle}>
+                    <input
+                        type="checkbox"
+                        checked={!isValueMixed("filled") && !!valueForField("filled")}
+                        onChange={() => onToggleStyle("filled")}
+                    />
+                    <span>Wypełnione kształty</span>
+                </label>
             )}
             {supportsField("zIndex") && (
                 <EditorControls

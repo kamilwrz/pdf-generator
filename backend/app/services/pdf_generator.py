@@ -102,6 +102,29 @@ class PDF_Generator:
         self.c.setLineWidth(bw)
         self.c.rect(left + bw / 2, corrected_y + bw / 2, width=width - bw, height=height - bw, stroke=1, fill=0)
 
+    def renderEllipse(self, width, height, left, top, color, border_width, filled):
+        """Render a CSS border-box circle/ellipse with matching PDF bounds."""
+        corrected_y = self.page_h - top - height
+        shape_color = HexColor(color or "#000000")
+        if filled:
+            self.c.setFillColor(shape_color)
+            self.c.ellipse(left, corrected_y, left + width, corrected_y + height, stroke=0, fill=1)
+            return
+
+        bw = float(border_width) if border_width else 1.0
+        bw = min(bw, float(width), float(height))
+        inset = bw / 2
+        self.c.setStrokeColor(shape_color)
+        self.c.setLineWidth(bw)
+        self.c.ellipse(
+            left + inset,
+            corrected_y + inset,
+            left + width - inset,
+            corrected_y + height - inset,
+            stroke=1,
+            fill=0,
+        )
+
     @staticmethod
     def _connector_geometry(source, target):
         """Orthogonal (right-angle) route between two element boxes. Endpoints
@@ -414,6 +437,16 @@ class PDF_Generator:
                     self.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
                 elif category == "rectangle":
                     self.renderRectangle(float(element.width), float(element.height), element.left, element.top, element.backgroundColor, getattr(element, "borderWidth", 1))
+                elif category in {"circle", "ellipse"}:
+                    self.renderEllipse(
+                        float(element.width),
+                        float(element.height),
+                        element.left,
+                        element.top,
+                        element.backgroundColor,
+                        getattr(element, "borderWidth", 1),
+                        getattr(element, "filled", False),
+                    )
                 elif category == "connector":
                     source = by_id.get(getattr(element, "source_id", None))
                     target = by_id.get(getattr(element, "target_id", None))
