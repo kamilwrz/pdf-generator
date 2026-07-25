@@ -695,11 +695,11 @@ export function useA4Elements(titleRef) {
       if (el.element_id === elementId) {
         return { ...el, isEditing: editing, isSelected: true };
       }
-      // A text box in direct edit mode becomes the sole active element; this
+      // A directly edited text element becomes the sole active element; this
       // prevents a bulk selection from remaining active while typing content.
       return editing
-        ? { ...el, isSelected: false, isEditing: el.category === "textarea" ? false : el.isEditing }
-        : (el.category === "textarea" ? { ...el, isEditing: false } : el);
+        ? { ...el, isSelected: false, isEditing: ["textarea", "text"].includes(el.category) ? false : el.isEditing }
+        : (["textarea", "text"].includes(el.category) ? { ...el, isEditing: false } : el);
     }));
   }, [])
 

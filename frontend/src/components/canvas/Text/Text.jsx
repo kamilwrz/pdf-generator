@@ -14,6 +14,7 @@ function Text({
     width,
     height,
     isSelected,
+    isEditing,
     isMove,
     category,
     bold,
@@ -21,7 +22,13 @@ function Text({
     underline,
     zIndex }) {
 
-    const { moveElement, selectElement, selectMoveElement } = use(PdfContext);
+    const {
+        moveElement,
+        selectElement,
+        selectMoveElement,
+        editElementValues,
+        setTextareaEditing,
+    } = use(PdfContext);
 
     const style = {
         fontSize: `${fontSize}px`,
@@ -38,9 +45,33 @@ function Text({
         height,
     }
 
+    if (isEditing) {
+        return (
+            <input
+                id={elementId}
+                autoFocus
+                size={Math.max(1, String(content ?? "").length)}
+                className={classes.editingInput}
+                style={style}
+                value={content ?? ""}
+                onChange={(event) => editElementValues({ content: event.target.value }, elementId)}
+                onBlur={() => setTextareaEditing(elementId, false)}
+                onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === "Escape") {
+                        event.preventDefault();
+                        event.currentTarget.blur();
+                    }
+                }}
+            />
+        );
+    }
+
     return <p
         id={elementId}
-        onDoubleClick={() => selectElement(elementId)}
+        onDoubleClick={(event) => {
+            event.stopPropagation();
+            setTextareaEditing(elementId, true);
+        }}
         onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
         onPointerDown={(e) => {
             if (e.ctrlKey || e.metaKey) return;
