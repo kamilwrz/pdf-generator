@@ -3,6 +3,14 @@ import { memo, useState } from 'react';
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { use, useRef } from "react";
 import Resize from "../../common/Resize/Resize";
+import API_BASE_URL from "../../../services/api";
+
+function resolveTemplateAssetSrc(src) {
+    const assetPath = String(src || "").match(/\/template-assets\/[^?#]+(?:[?#].*)?$/)?.[0];
+    const isLocalFrontend = typeof window !== "undefined"
+        && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+    return assetPath && !isLocalFrontend ? `${API_BASE_URL}${assetPath}` : src;
+}
 
 function Image({
     src,
@@ -18,6 +26,7 @@ function Image({
 
     const [isResizeable, setIsResizeable] = useState(false);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
+    const displaySrc = resolveTemplateAssetSrc(src);
 
     const image = useRef();
 
@@ -54,7 +63,7 @@ function Image({
                 ref={image}
                 id={elementId}
                 draggable={false}
-                src={src}
+                src={displaySrc}
                 style={style}
                 onDoubleClick={() => selectElement(elementId)}
                 onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
@@ -73,7 +82,7 @@ function Image({
             ref={image}
             id={elementId}
             draggable={false}
-            src={src}
+            src={displaySrc}
             style={style}
             onDoubleClick={() => selectElement(elementId)}
             onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}

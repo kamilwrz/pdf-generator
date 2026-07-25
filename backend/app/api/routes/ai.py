@@ -1,6 +1,6 @@
 import json
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.core.security import verify_token
@@ -17,6 +17,32 @@ MAX_PDF_BYTES = 10 * 1024 * 1024  # 10 MB
 class FillRequest(BaseModel):
     cv_data: dict
     template_id: str
+
+
+def _public_request_origin(request: Request) -> str:
+    """Return the browser-visible API origin, including reverse-proxy headers."""
+    forwarded_proto = request.headers.get("x-forwarded-proto", "").split(",", 1)[0].strip()
+    forwarded_host = request.headers.get("x-forwarded-host", "").split(",", 1)[0].strip()
+    scheme = forwarded_proto or request.url.scheme
+    host = forwarded_host or request.headers.get("host") or request.url.netloc
+    return f"{scheme}://{host}"
+
+
+def _rebase_template_asset_urls(elements: list[dict], request: Request) -> list[dict]:
+    """Ensure generated template assets point at the API that served this CV."""
+    origin = _public_request_origin(request)
+    marker = "/template-assets/"
+    rebased = []
+
+    for element in elements:
+        source = str(element.get("src") or "")
+        asset_index = source.find(marker)
+        if element.get("category") == "image" and asset_index >= 0:
+            rebased.append({**element, "src": f"{origin}{source[asset_index:]}"})
+        else:
+            rebased.append(element)
+
+    return rebased
 
 
 @router.post("/extract_cv", status_code=200)
@@ -102,11 +128,12 @@ async def generate_article_route(
 @router.post("/fill_template", status_code=200)
 async def fill_template(
     request: FillRequest,
+    http_request: Request,
     payload: dict = Depends(verify_token),
 ):
     try:
         elements = generate_resume(request.template_id, request.cv_data)
-        return {"elements": elements}
+        return {"elements": _rebase_template_asset_urls(elements, http_request)}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:

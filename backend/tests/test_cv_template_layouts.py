@@ -1,6 +1,9 @@
 import unittest
 from pathlib import Path
 
+from starlette.requests import Request
+
+from app.api.routes.ai import _rebase_template_asset_urls
 from app.services.cv_generator import generate_resume
 from app.utils.image_src_to_path import image_src_to_local_path
 
@@ -62,6 +65,26 @@ LONG_CV = {
 
 
 class CvTemplateLayoutTests(unittest.TestCase):
+    def test_generated_template_image_uses_public_request_origin(self):
+        request = Request({
+            "type": "http",
+            "scheme": "http",
+            "headers": [
+                (b"host", b"internal-service:8000"),
+                (b"x-forwarded-proto", b"https"),
+                (b"x-forwarded-host", b"pdf-generator-07cb.onrender.com"),
+            ],
+        })
+        elements = _rebase_template_asset_urls([{
+            "category": "image",
+            "src": "http://localhost:8000/template-assets/nimbus-finance-accent.png",
+        }], request)
+
+        self.assertEqual(
+            elements[0]["src"],
+            "https://pdf-generator-07cb.onrender.com/template-assets/nimbus-finance-accent.png",
+        )
+
     def test_template_images_resolve_to_versioned_local_assets(self):
         for template_id in ("ledger", "nimbus"):
             with self.subTest(template_id=template_id):
