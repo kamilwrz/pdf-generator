@@ -7,6 +7,9 @@ import { createContext } from "react";
 export const PdfContext = createContext({
     A4_Elements : [],
     groupMoveDelta: null,
+    isTwoPageView: false,
+    toggleTwoPageView: () => {},
+    setPageCanvasRef: () => {},
     addImage: () => {},
     addText: () => {},
     addLine: () => {},

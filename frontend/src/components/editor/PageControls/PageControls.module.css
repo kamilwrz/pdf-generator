@@ -39,6 +39,16 @@
     color: var(--chrome-accent);
 }
 
+.spreadActive {
+    background: var(--chrome-accent-strong);
+    color: #fff;
+}
+
+.spreadActive:hover:not(:disabled) {
+    background: var(--chrome-accent-strong);
+    color: #fff;
+}
+
 .navBtn:disabled {
     opacity: .4;
     cursor: not-allowed;

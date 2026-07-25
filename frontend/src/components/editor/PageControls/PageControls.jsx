@@ -9,7 +9,10 @@ const Chevron = ({ dir }) => (
 );
 
 export default function PageControls() {
-    const { currentPage, pageCount, addPage, removePage, goToPage, clonePage, movePage } = use(PdfContext);
+    const {
+        currentPage, pageCount, addPage, removePage, goToPage, clonePage, movePage,
+        isTwoPageView, toggleTwoPageView,
+    } = use(PdfContext);
 
     return (
         <div className={classes.wrapper}>
@@ -36,6 +39,23 @@ export default function PageControls() {
                     aria-label="Następna strona"
                 >
                     <Chevron dir="right" />
+                </button>
+
+                <span className={classes.divider} />
+
+                <button
+                    type="button"
+                    className={`${classes.navBtn} ${isTwoPageView ? classes.spreadActive : ""}`}
+                    onClick={toggleTwoPageView}
+                    disabled={pageCount < 2}
+                    aria-label="Pokaż dwie strony obok siebie"
+                    aria-pressed={isTwoPageView}
+                    title="Widok dwóch stron"
+                >
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+                        <rect x="3" y="4" width="7" height="16" rx="1.2" />
+                        <rect x="14" y="4" width="7" height="16" rx="1.2" />
+                    </svg>
                 </button>
 
                 <span className={classes.divider} />

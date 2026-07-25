@@ -25,6 +25,7 @@ export default function Topbar({ titleRef }) {
         zoom,
         zoomIn,
         zoomOut,
+        isTwoPageView,
         undo,
         redo,
         canUndo,
@@ -101,18 +102,18 @@ export default function Topbar({ titleRef }) {
                         type="button"
                         className={classes.zoomBtn}
                         onClick={zoomOut}
-                        disabled={zoom <= 0.25}
+                        disabled={isTwoPageView || zoom <= 0.25}
                         aria-label="Pomniejsz"
                         title="Pomniejsz"
                     >
                         <FiZoomOut />
                     </button>
-                    <span className={classes.zoomValue}>{Math.round(zoom * 100)}%</span>
+                    <span className={classes.zoomValue}>{isTwoPageView ? "100%" : `${Math.round(zoom * 100)}%`}</span>
                     <button
                         type="button"
                         className={classes.zoomBtn}
                         onClick={zoomIn}
-                        disabled={zoom >= 3}
+                        disabled={isTwoPageView || zoom >= 3}
                         aria-label="Powiększ"
                         title="Powiększ"
                     >

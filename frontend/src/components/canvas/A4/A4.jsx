@@ -2,7 +2,9 @@ import classes from "./A4.module.css";
 import { forwardRef } from "react";
 
 
-export default forwardRef(function A4({ width, height, zoom = 1, children }, ref) {
+export default forwardRef(function A4({
+    width, height, zoom = 1, page, isSpread = false, children, onPointerDownCapture,
+}, ref) {
 
     // The wrapper reserves the SCALED layout box (CSS transforms don't affect
     // layout size), so .canvas-area's overflow:auto scrolls correctly. #A4
@@ -10,14 +12,15 @@ export default forwardRef(function A4({ width, height, zoom = 1, children }, ref
     // ref stays on #A4 so every getBoundingClientRect() call sees the scaled rect.
     return (
         <div
-            className={classes.zoomWrapper}
+            className={`${classes.zoomWrapper} ${isSpread ? classes.spreadPage : ""}`}
             style={{ width: `calc(${width} * ${zoom})`, height: `calc(${height} * ${zoom})` }}
         >
             <div
                 ref={ref}
-                id="A4"
-                className={classes.A4}
+                data-page-canvas={page}
+                className={`${classes.A4} page-canvas`}
                 style={{ width, height, transform: `scale(${zoom})`, transformOrigin: "top left" }}
+                onPointerDownCapture={onPointerDownCapture}
             >
                 {children}
             </div>

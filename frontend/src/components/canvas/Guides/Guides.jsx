@@ -37,12 +37,13 @@ function closestCoord(movAnchors, others, anchorsOf) {
     return best ? best.coord : null;
 }
 
-export default function Guides() {
+export default function Guides({ page }) {
     const { A4_Elements, currentPage, pageSize } = use(PdfContext);
     const A4_WIDTH = pageSize?.width ?? 595;
     const A4_HEIGHT = pageSize?.height ?? 842;
 
-    const onPage = (el) => (el.page ?? 1) === currentPage;
+    const displayedPage = page ?? currentPage;
+    const onPage = (el) => (el.page ?? 1) === displayedPage;
     const moving = A4_Elements.find((el) => el.isMove && onPage(el));
     if (!moving) return null;
 

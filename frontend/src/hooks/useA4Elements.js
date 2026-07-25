@@ -4,6 +4,8 @@ import { getElementBounds } from '../utils/elementBounds';
 import { measureTextareaHeight } from '../utils/textareaHeight';
 import { reflowTextareaHeight } from '../utils/textareaReflow';
 import { cloneFixedPageDecorations } from '../utils/structureOperation';
+import { findPageCanvasAtPoint } from '../utils/pageSpread';
+import { moveElementsByDelta, moveElementsToPage } from '../utils/pageDrag';
 
 // Elements a connector can attach to — those with a real bounding box the
 // backend can reproduce for the PDF. Single-line text (no stored width/height)
@@ -35,64 +37,6 @@ export function presetFromDims(width, height) {
   return found ? found[0] : "custom";
 }
 
-// Clamp a shared group delta so relative distances never change and no member
-// can leave the page. Exposed separately so drag UI can report actual movement.
-function getClampedMoveDelta(elements, elementIds, deltaX, deltaY, pageSize) {
-  const movable = elements.filter((element) => (
-    elementIds.has(element.element_id)
-    && !element.locked
-    && Number.isFinite(Number(element.left))
-    && Number.isFinite(Number(element.top))
-  ));
-  if (movable.length === 0) return { movable, deltaX: 0, deltaY: 0 };
-
-  let minX = -Infinity;
-  let maxX = Infinity;
-  let minY = -Infinity;
-  let maxY = Infinity;
-
-  movable.forEach((element) => {
-    const { width, height } = getElementBounds(element);
-    const left = Number(element.left);
-    const top = Number(element.top);
-    minX = Math.max(minX, -left);
-    maxX = Math.min(maxX, pageSize.width - left - width);
-    minY = Math.max(minY, -top);
-    maxY = Math.min(maxY, pageSize.height - top - height);
-  });
-
-  // An element already outside of the page must not make the group jump to an
-  // arbitrary edge. In that exceptional case, keep that axis stationary.
-  const safeDeltaX = minX > maxX
-    ? 0
-    : Math.min(Math.max(deltaX, minX), maxX);
-  const safeDeltaY = minY > maxY
-    ? 0
-    : Math.min(Math.max(deltaY, minY), maxY);
-
-  return { movable, deltaX: safeDeltaX, deltaY: safeDeltaY };
-}
-
-// Translate a set of positioned elements by one shared delta.
-function moveElementsByDelta(elements, elementIds, deltaX, deltaY, pageSize) {
-  const { movable, deltaX: safeDeltaX, deltaY: safeDeltaY } = getClampedMoveDelta(
-    elements, elementIds, deltaX, deltaY, pageSize,
-  );
-  if (movable.length === 0 || (safeDeltaX === 0 && safeDeltaY === 0)) return elements;
-
-  return elements.map((element) => (
-    elementIds.has(element.element_id)
-      && Number.isFinite(Number(element.left))
-      && Number.isFinite(Number(element.top))
-      ? {
-          ...element,
-          left: Number(element.left) + safeDeltaX,
-          top: Number(element.top) + safeDeltaY,
-        }
-      : element
-  ));
-}
-
 export function useA4Elements(titleRef) {
 
   const A4ref = useRef(null);
@@ -110,6 +54,7 @@ export function useA4Elements(titleRef) {
   // ---- Multi-page state ----
   const [pageCount, setPageCount] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isTwoPageView, setIsTwoPageView] = useState(false);
 
   // ---- Page geometry (preset-driven; default A4 portrait) ----
   const [pageSize, setPageSize] = useState({ preset: "a4-portrait", ...PAGE_PRESETS["a4-portrait"] });
@@ -118,6 +63,9 @@ export function useA4Elements(titleRef) {
   const [zoom, setZoomState] = useState(1);
   const zoomIn = useCallback(() => setZoomState(z => stepZoom(z, 1)), []);
   const zoomOut = useCallback(() => setZoomState(z => stepZoom(z, -1)), []);
+  const toggleTwoPageView = useCallback(() => {
+    setIsTwoPageView((visible) => (pageCountRef.current > 1 ? !visible : false));
+  }, []);
 
   // Refs let the stable add-element callbacks read the latest page/elements
   // without being recreated on every page change.
@@ -125,14 +73,41 @@ export function useA4Elements(titleRef) {
   const elementsRef = useRef([]);
   const pageSizeRef = useRef(pageSize);
   const pageCountRef = useRef(1);
+  const pageCanvasRefs = useRef(new Map());
   const draggedElementIdsRef = useRef(new Set());
+  const activeDragElementIdRef = useRef(null);
+  const crossPageDragRef = useRef(false);
   const groupDragRef = useRef(null);
   const reflowPageCountRef = useRef(null);
   const layoutTargetPageRef = useRef(null);
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
+  const setPageCanvasRef = useCallback((page, node) => {
+    if (node) {
+      pageCanvasRefs.current.set(page, node);
+    } else {
+      pageCanvasRefs.current.delete(page);
+    }
+    if (page === currentPageRef.current) {
+      A4ref.current = node ?? pageCanvasRefs.current.get(currentPageRef.current) ?? null;
+    }
+  }, []);
+  const canvasForPage = useCallback((page) => (
+    pageCanvasRefs.current.get(page) ?? A4ref.current
+  ), []);
+  const visibleCanvasEntries = useCallback(() => (
+    [...pageCanvasRefs.current.entries()]
+      .map(([page, node]) => ({ page, node }))
+      .filter(({ node }) => Boolean(node))
+  ), []);
+  useEffect(() => {
+    A4ref.current = pageCanvasRefs.current.get(currentPage) ?? null;
+  }, [currentPage]);
   useEffect(() => { elementsRef.current = A4_Elements; }, [A4_Elements]);
   useEffect(() => { pageSizeRef.current = pageSize; }, [pageSize]);
   useEffect(() => { pageCountRef.current = pageCount; }, [pageCount]);
+  useEffect(() => {
+    if (pageCount < 2) setIsTwoPageView(false);
+  }, [pageCount]);
   useEffect(() => {
     const nextPageCount = reflowPageCountRef.current;
     if (nextPageCount === null) return;
@@ -248,12 +223,12 @@ export function useA4Elements(titleRef) {
     setConnectSourceId(null);
   }, []);
 
-  // Topmost connectable element on the current page whose box contains the
+  // Topmost connectable element on the requested page whose box contains the
   // given canvas-space point (px from the A4 top-left corner).
-  const elementAtPoint = (x, y) => {
+  const elementAtPoint = (x, y, page = currentPageRef.current) => {
     const hits = elementsRef.current.filter((el) =>
       CONNECTABLE.has(el.category) &&
-      (el.page ?? 1) === currentPageRef.current &&
+      (el.page ?? 1) === page &&
       x >= el.left && x <= el.left + (parseFloat(el.width) || 0) &&
       y >= el.top && y <= el.top + (parseFloat(el.height) || 0)
     );
@@ -265,18 +240,27 @@ export function useA4Elements(titleRef) {
   // under the cursor by geometry (no DOM ids needed). First hit = source,
   // second (different) hit = target -> creates the connector. Clicking empty
   // space cancels.
-  const pickConnectorAt = useCallback((clientX, clientY) => {
-    const rect = A4ref.current?.getBoundingClientRect();
+  const pickConnectorAt = useCallback((clientX, clientY, requestedPage) => {
+    const resolved = requestedPage
+      ? { page: requestedPage, node: canvasForPage(requestedPage) }
+      : findPageCanvasAtPoint(visibleCanvasEntries(), clientX, clientY);
+    const page = resolved?.page ?? currentPageRef.current;
+    const rect = resolved?.node?.getBoundingClientRect();
     if (!rect) return;
     // rect is the SCALED #A4; convert the screen-space click offset back to
     // canvas units so it matches stored element left/top/width/height.
     const zoom = rect.width / pageSizeRef.current.width || 1;
-    const hit = elementAtPoint((clientX - rect.left) / zoom, (clientY - rect.top) / zoom);
+    const hit = elementAtPoint((clientX - rect.left) / zoom, (clientY - rect.top) / zoom, page);
     if (!hit) { setConnectMode(false); setConnectSourceId(null); return; }
 
     setConnectSourceId((prevSource) => {
       if (!prevSource) return hit.element_id;           // first pick
       if (prevSource === hit.element_id) return prevSource; // ignore same element
+      const source = elementsRef.current.find((element) => element.element_id === prevSource);
+      // Connector paths are page-local. Keep the first endpoint selected when
+      // the second click lands on the opposite page instead of creating an
+      // invalid cross-page path.
+      if ((source?.page ?? 1) !== page) return prevSource;
       const connector = {
         element_id: nanoid(),
         category: "connector",
@@ -289,13 +273,13 @@ export function useA4Elements(titleRef) {
         isMove: false,
         locked: false,
         zIndex: 50,
-        page: currentPageRef.current,
+        page,
       };
       setA4_Elements((prev) => [...prev, connector]);
       setConnectMode(false);
       return null;
     });
-  }, []);
+  }, [canvasForPage, visibleCanvasEntries]);
 
   const handleGoToPage = useCallback((page) => {
     setPageCount(count => {
@@ -404,48 +388,54 @@ export function useA4Elements(titleRef) {
 
   const handleMoveElement = useCallback((e, elementId) => {
     if ((e.buttons & 1) !== 1) return;
+    if (crossPageDragRef.current && e.currentTarget !== window) return;
 
-    const canvas = A4ref.current;
-    const elementNode = e.currentTarget;
-    if (!canvas || !elementNode) return;
-
-    const canvasRect = canvas.getBoundingClientRect();
-    const elementRect = elementNode.getBoundingClientRect();
+    const currentElements = elementsRef.current;
+    const currentDragged = currentElements.find((element) => element.element_id === elementId);
+    if (!currentDragged?.isMove || currentDragged.locked) return;
+    const sourcePage = currentDragged.page ?? 1;
+    const targetCanvas = findPageCanvasAtPoint(visibleCanvasEntries(), e.clientX, e.clientY);
+    const targetPage = targetCanvas?.page ?? sourcePage;
+    if (targetPage !== sourcePage) crossPageDragRef.current = true;
+    const canvas = targetCanvas?.node ?? canvasForPage(sourcePage);
+    const canvasRect = canvas?.getBoundingClientRect();
+    if (!canvasRect) return;
     const scaleX = canvasRect.width / pageSizeRef.current.width;
     const scaleY = canvasRect.height / pageSizeRef.current.height;
     if (!scaleX || !scaleY) return;
 
+    const { width, height } = getElementBounds(currentDragged);
     const pointerX = (e.clientX - canvasRect.left) / scaleX;
     const pointerY = (e.clientY - canvasRect.top) / scaleY;
-    const targetLeft = pointerX - elementRect.width / scaleX / 2;
-    const targetTop = pointerY - elementRect.height / scaleY / 2;
-    const currentElements = elementsRef.current;
-    const currentDragged = currentElements.find((element) => element.element_id === elementId);
-    if (!currentDragged?.isMove || currentDragged.locked) return;
+    const targetLeft = pointerX - width / 2;
+    const targetTop = pointerY - height / 2;
     const selectedOnSamePage = currentElements.filter((element) => (
       element.isSelected
       && !element.locked
-      && (element.page ?? 1) === (currentDragged.page ?? 1)
+      && (element.page ?? 1) === sourcePage
     ));
     const movedElements = currentDragged.isSelected && selectedOnSamePage.length > 1
       ? selectedOnSamePage
       : [currentDragged];
     const movedIds = new Set(movedElements.map((element) => element.element_id));
-    const clampedDelta = getClampedMoveDelta(
+    const moveResult = moveElementsToPage(
       currentElements,
       movedIds,
       targetLeft - currentDragged.left,
       targetTop - currentDragged.top,
+      targetPage,
       pageSizeRef.current,
     );
     const groupDrag = groupDragRef.current;
     const origin = groupDrag?.origins.get(elementId);
     if (groupDrag?.elementIds.has(elementId) && origin) {
       setGroupMoveDelta({
-        x: Math.round((currentDragged.left + clampedDelta.deltaX - origin.left) * 10) / 10,
-        y: Math.round((currentDragged.top + clampedDelta.deltaY - origin.top) * 10) / 10,
+        x: Math.round((currentDragged.left + moveResult.deltaX - origin.left) * 10) / 10,
+        y: Math.round((currentDragged.top + moveResult.deltaY - origin.top) * 10) / 10,
         count: groupDrag.elementIds.size,
         elementId,
+        page: targetPage,
+        originPage: groupDrag.originPage,
       });
     }
 
@@ -457,22 +447,46 @@ export function useA4Elements(titleRef) {
       const selectedOnSamePage = prevState.filter((element) => (
         element.isSelected
         && !element.locked
-        && (element.page ?? 1) === (dragged.page ?? 1)
+        && (element.page ?? 1) === sourcePage
       ));
       const movedElements = dragged.isSelected && selectedOnSamePage.length > 1
         ? selectedOnSamePage
         : [dragged];
       const movedIds = new Set(movedElements.map((element) => element.element_id));
 
-      return moveElementsByDelta(
+      const moved = moveElementsToPage(
         prevState,
         movedIds,
         targetLeft - dragged.left,
         targetTop - dragged.top,
+        targetPage,
         pageSizeRef.current,
       );
+      if (moved.removedConnectorIds.length > 0) {
+        const removed = prevState.filter((element) => moved.removedConnectorIds.includes(element.element_id));
+        setA4_Elements_deleted((previousDeleted) => {
+          const additions = removed
+            .filter((element) => !previousDeleted.some((deleted) => deleted.element_id === element.element_id))
+            .map((element) => ({ ...element, deleted: true }));
+          return additions.length > 0 ? [...previousDeleted, ...additions] : previousDeleted;
+        });
+      }
+      return moved.elements;
     });
-  }, [])
+  }, [canvasForPage, visibleCanvasEntries])
+
+  // Moving an element to the neighbour page remounts it in a different A4
+  // surface, which releases its original pointer capture. Continue listening
+  // from window for that one drag so the user can still position the element.
+  useEffect(() => {
+    const continueCrossPageDrag = (event) => {
+      const elementId = activeDragElementIdRef.current;
+      if (!crossPageDragRef.current || !elementId) return;
+      handleMoveElement(event, elementId);
+    };
+    window.addEventListener("pointermove", continueCrossPageDrag, true);
+    return () => window.removeEventListener("pointermove", continueCrossPageDrag, true);
+  }, [handleMoveElement]);
 
   const handleMoveSelectedElements = useCallback((deltaX = 0, deltaY = 0) => {
     if (!Number.isFinite(deltaX) || !Number.isFinite(deltaY)) return;
@@ -500,6 +514,8 @@ export function useA4Elements(titleRef) {
   const handleSelectMoveElement = useCallback((elementId, moving) => {
     if (moving) {
       draggedElementIdsRef.current.delete(elementId);
+      activeDragElementIdRef.current = elementId;
+      crossPageDragRef.current = false;
       const dragged = elementsRef.current.find((element) => element.element_id === elementId);
       const group = dragged?.isSelected
         ? elementsRef.current.filter((element) => (
@@ -511,6 +527,7 @@ export function useA4Elements(titleRef) {
       if (group.length > 0) {
         groupDragRef.current = {
           elementIds: new Set(group.map((element) => element.element_id)),
+          originPage: dragged?.page ?? 1,
           origins: new Map(group.map((element) => [
             element.element_id,
             { left: Number(element.left) || 0, top: Number(element.top) || 0 },
@@ -526,6 +543,8 @@ export function useA4Elements(titleRef) {
       // task so handleSelectElement can recognise and ignore that post-drag
       // click, preserving the current group selection.
       window.setTimeout(() => draggedElementIdsRef.current.delete(elementId), 0);
+      activeDragElementIdRef.current = null;
+      crossPageDragRef.current = false;
       groupDragRef.current = null;
       setGroupMoveDelta(null);
     }
@@ -540,6 +559,8 @@ export function useA4Elements(titleRef) {
   // dragged element lost its pointer capture and its own pointerup never fired.
   useEffect(() => {
     const endDrag = () => {
+      activeDragElementIdRef.current = null;
+      crossPageDragRef.current = false;
       groupDragRef.current = null;
       setGroupMoveDelta(null);
       setA4_Elements(prev => prev.some(e => e.isMove)
@@ -1375,7 +1396,8 @@ export function useA4Elements(titleRef) {
 
 
   const handleResizeElement = useCallback((e, direction, category, elementId, elementRef) => {
-    if (elementsRef.current.find((element) => element.element_id === elementId)?.locked) return;
+    const resizedElement = elementsRef.current.find((element) => element.element_id === elementId);
+    if (resizedElement?.locked) return;
 
     let aspectRatio = 1;
     let heightFactor;
@@ -1383,7 +1405,8 @@ export function useA4Elements(titleRef) {
       aspectRatio = elementRef.current.naturalHeight / elementRef.current.naturalWidth;
     }
 
-    const A4_COORDS = A4ref.current.getBoundingClientRect();
+    const A4_COORDS = canvasForPage(resizedElement?.page ?? 1)?.getBoundingClientRect();
+    if (!A4_COORDS) return;
 
     const { width: A4_WIDTH, height: A4_HEIGHT } = pageSizeRef.current;
     const MIN_WIDTH = 10;
@@ -1549,7 +1572,7 @@ export function useA4Elements(titleRef) {
       })
       return newState;
     })
-  }, [])
+  }, [canvasForPage])
 
   const handleClearA4 = useCallback(() => {
       resetHistory();
@@ -1678,6 +1701,7 @@ export function useA4Elements(titleRef) {
     applyDeleteOperation,
     handleMoveElementWithBelow,
     A4ref,
+    setPageCanvasRef,
     PDFTitle,
     handleResizeElement,
     handleClearA4,
@@ -1689,6 +1713,8 @@ export function useA4Elements(titleRef) {
     setPageCount,
     currentPage,
     setCurrentPage,
+    isTwoPageView,
+    toggleTwoPageView,
     addPage: handleAddPage,
     removePage: handleRemovePage,
     goToPage: handleGoToPage,

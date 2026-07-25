@@ -2,6 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npx eslint *)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Kamil\\.gstack\\projects\\kamilwrz-pdf-generator\\ceo-plans"
     ]
   }
 }

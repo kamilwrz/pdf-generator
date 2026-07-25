@@ -31,23 +31,24 @@ function frameForElement(element) {
     };
 }
 
-export default function SelectionOverlay({ elements }) {
+export default function SelectionOverlay({ elements, page }) {
     const { A4_Elements, currentPage, groupMoveDelta } = use(PdfContext);
     const canvasElements = elements ?? A4_Elements;
+    const displayedPage = page ?? currentPage;
 
     const selected = useMemo(
         () => canvasElements.filter((element) => (
             element.isSelected
             && element.category !== "connector"
-            && (element.page ?? 1) === currentPage
+            && (element.page ?? 1) === displayedPage
         )),
-        [canvasElements, currentPage]
+        [canvasElements, displayedPage]
     );
 
     const dragged = groupMoveDelta
         ? canvasElements.find((element) => (
             element.element_id === groupMoveDelta.elementId
-            && (element.page ?? 1) === currentPage
+            && (element.page ?? 1) === displayedPage
         ))
         : null;
     const displayed = selected.length > 0 ? selected : [dragged].filter(Boolean);
@@ -110,7 +111,7 @@ export default function SelectionOverlay({ elements }) {
                     {displayed.length} zaznaczone
                 </div>
             )}
-            {groupMoveDelta && (
+            {groupMoveDelta && groupMoveDelta.page === displayedPage && (
                 <div
                     className={classes.deltaBadge}
                     style={{ left: groupBox.left, top: groupBox.bottom }}

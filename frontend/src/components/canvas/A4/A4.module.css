@@ -5,6 +5,11 @@
     margin: 0 auto;
 }
 
+.spreadPage {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
 .A4 {
     position: relative;
     background-color: white;

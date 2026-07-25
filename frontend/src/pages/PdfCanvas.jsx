@@ -26,6 +26,7 @@ import AiDeckPanel from '../components/ai/AiDeckPanel/AiDeckPanel';
 import AiArticlePanel from '../components/ai/AiArticlePanel/AiArticlePanel';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 import { previewStructureOperation } from '../utils/structureOperation';
+import { visiblePageNumbers } from '../utils/pageSpread';
 
 function PdfCanvas() {
 
@@ -74,6 +75,7 @@ function PdfCanvas() {
     A4_Elements_deleted,
     setA4_Elements_deleted,
     groupMoveDelta,
+    setPageCanvasRef,
     handleMoveElement,
     handleMoveSelectedElements,
     handleSelectMoveElement,
@@ -104,7 +106,6 @@ function PdfCanvas() {
     applyStructureOperation,
     applyDeleteOperation,
     handleMoveElementWithBelow,
-    A4ref,
     handleResizeElement,
     handleClearA4,
     handleLoadTemplate,
@@ -114,6 +115,8 @@ function PdfCanvas() {
     setPageCount,
     currentPage,
     setCurrentPage,
+    isTwoPageView,
+    toggleTwoPageView,
     addPage,
     removePage,
     goToPage,
@@ -181,21 +184,14 @@ function PdfCanvas() {
   }, [checkActivity])
 
 
-  // While in connector mode, intercept clicks on the A4 in the capture phase
-  // (before any element's own pointerdown) so picking source/target never
-  // starts a drag or selection. Geometry-based hit-testing happens in the hook.
-  useEffect(() => {
+  // Each visible page receives this capture handler, allowing connector source
+  // and target elements to be chosen from either side of a two-page spread.
+  const handleCanvasPointerDownCapture = useCallback((event, page) => {
     if (!connectMode) return;
-    const node = A4ref.current;
-    if (!node) return;
-    const handler = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      pickConnectorAt(e.clientX, e.clientY);
-    };
-    node.addEventListener("pointerdown", handler, true);
-    return () => node.removeEventListener("pointerdown", handler, true);
-  }, [connectMode, pickConnectorAt, A4ref])
+    event.preventDefault();
+    event.stopPropagation();
+    pickConnectorAt(event.clientX, event.clientY, page);
+  }, [connectMode, pickConnectorAt]);
 
   useEffect(() => {
     if (!connectMode) return;
@@ -365,6 +361,11 @@ function PdfCanvas() {
     });
   }, [A4_Elements, deletionPreviewIds, layoutPreviewPatches, structurePreviewGroup]);
 
+  const visiblePages = useMemo(
+    () => visiblePageNumbers(currentPage, pageCount, isTwoPageView),
+    [currentPage, isTwoPageView, pageCount],
+  );
+
   const updatePdfWithElements = useCallback(() => {
     updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted, pageCount, pageSize);
   }, [A4_Elements, pdfId, updatePdf, titleRef, A4_Elements_deleted, pageCount, pageSize]);
@@ -416,6 +417,7 @@ function PdfCanvas() {
     //useA4Elements hook
     A4_Elements: A4_Elements,
     groupMoveDelta: groupMoveDelta,
+    setPageCanvasRef: setPageCanvasRef,
     addImage: handleAddImage,
     addText: handleAddText,
     addLine: handleAddLine,
@@ -472,6 +474,8 @@ function PdfCanvas() {
     setPageCount: setPageCount,
     currentPage: currentPage,
     setCurrentPage: setCurrentPage,
+    isTwoPageView: isTwoPageView,
+    toggleTwoPageView: toggleTwoPageView,
     addPage: addPage,
     removePage: removePage,
     goToPage: goToPage,
@@ -510,7 +514,7 @@ function PdfCanvas() {
     deletionPreviewIds: deletionPreviewIds,
     setDeletionPreviewIds: setDeletionPreviewIds,
   }), [
-    A4_Elements, groupMoveDelta,
+    A4_Elements, groupMoveDelta, setPageCanvasRef,
     isGallery, isDropzone, valueImageUpload,
     isModalPdfs, handleAddImage,
     handleAddText, handleAddLine, handleAddRectangle, handleAddCircle, handleAddEllipse, startConnecting, handleSelectElement,
@@ -522,6 +526,7 @@ function PdfCanvas() {
     clearA4Fresh, discardActiveDocument, flushAutosave, loadTemplateFresh, loadTemplateWithFillFresh, loadAiElementsFresh,
     handleShowModalRequest, handleLogout, PDFs, setPDFs,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
+    isTwoPageView, toggleTwoPageView,
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
     isTemplates, handleShowTemplates, handleMoveElementWithBelow, handleShowAiPanel,
     handleShowDeckPanel, handleShowArticlePanel, pageSize, setPageSize, setPagePreset,
@@ -574,15 +579,28 @@ function PdfCanvas() {
         <div className="right-pane">
           <Topbar titleRef={titleRef} />
           <div className="canvas-area">
-            <A4 width={`${pageSize.width}px`} height={`${pageSize.height}px`} zoom={zoom} ref={A4ref}>
-              {isPdfLoading && <Spinner loading={isPdfLoading}/>}
-              <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
-                <CanvasElements elements={previewedElements.filter(element => (element.page ?? 1) === currentPage)} />
-                <Connectors elements={previewedElements} />
-                <SelectionOverlay elements={previewedElements} />
-                <Guides />
-              </div>
-            </A4>
+            <div className={isTwoPageView ? "canvas-spread" : "canvas-single"}>
+              {visiblePages.map((page) => (
+                <A4
+                  key={page}
+                  page={page}
+                  width={`${pageSize.width}px`}
+                  height={`${pageSize.height}px`}
+                  zoom={isTwoPageView ? 1 : zoom}
+                  isSpread={isTwoPageView}
+                  ref={(node) => setPageCanvasRef(page, node)}
+                  onPointerDownCapture={(event) => handleCanvasPointerDownCapture(event, page)}
+                >
+                  {isPdfLoading && page === currentPage && <Spinner loading={isPdfLoading}/>}
+                  <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
+                    <CanvasElements elements={previewedElements.filter((element) => (element.page ?? 1) === page)} />
+                    <Connectors elements={previewedElements} page={page} />
+                    <SelectionOverlay elements={previewedElements} page={page} />
+                    <Guides page={page} />
+                  </div>
+                </A4>
+              ))}
+            </div>
           </div>
         </div>
        <PageControls />

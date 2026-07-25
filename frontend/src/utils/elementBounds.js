@@ -10,7 +10,7 @@ export function getElementBounds(element) {
   if (node) {
     const rect = node.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) {
-      const canvas = node.closest("#A4");
+      const canvas = node.closest("[data-page-canvas]");
       const canvasRect = canvas?.getBoundingClientRect();
       const scaleX = canvasRect?.width / (canvas?.clientWidth || canvasRect?.width || 1);
       const scaleY = canvasRect?.height / (canvas?.clientHeight || canvasRect?.height || 1);
@@ -39,7 +39,7 @@ export function measureElements(elements) {
     const rect = node.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return element;
 
-    const canvas = node.closest("#A4");
+    const canvas = node.closest("[data-page-canvas]");
     const canvasRect = canvas?.getBoundingClientRect();
     const scaleX = canvasRect?.width / (canvas?.clientWidth || canvasRect?.width || 1);
     const scaleY = canvasRect?.height / (canvas?.clientHeight || canvasRect?.height || 1);
