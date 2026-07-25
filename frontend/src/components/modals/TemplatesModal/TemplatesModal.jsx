@@ -326,7 +326,7 @@ function Preview({ id, accent }) {
 
 export default function TemplatesModal() {
     const { isTemplates, showTemplates, loadTemplate, A4_Elements } = use(PdfContext);
-    const [category, setCategory] = useState("cv");
+    const [category, setCategory] = useState("deck");
 
     if (!isTemplates) return null;
 
@@ -335,12 +335,12 @@ export default function TemplatesModal() {
             !window.confirm("Zastąpić bieżące płótno tym szablonem? Niezapisane elementy zostaną usunięte.")) {
             return;
         }
-        const title = t.category === "deck" ? `Prezentacja ${t.name}` : `CV ${t.name}`;
+        const title = t.category === "deck" ? `Prezentacja ${t.name}` : `Artykuł ${t.name}`;
         loadTemplate(t.elements, title, t.pageSize);
         showTemplates();
     }
 
-    const visible = TEMPLATES.filter((t) => (t.category ?? "cv") === category);
+    const visible = TEMPLATES.filter((t) => t.category === category);
 
     return createPortal(
         <div className={classes.backdrop} onClick={showTemplates}>

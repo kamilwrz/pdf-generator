@@ -5,6 +5,8 @@ import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { TEMPLATES } from "../../../templates";
 import CloseButton from "../../common/CloseButton/CloseButton";
 
+const CV_TEMPLATES = TEMPLATES.filter((template) => template.category === "cv");
+
 const UploadIcon = () => (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 13v8"/><path d="m8 17 4-4 4 4"/>
@@ -143,8 +145,9 @@ export default function AiCvPanel({ onClose }) {
             {extracted && (
                 <div className={classes.section}>
                     <div className={classes.sectionLabel}>2. Wybierz szablon do wypełnienia</div>
+                    {CV_TEMPLATES.length > 0 ? <>
                     <div className={classes.templateGrid}>
-                        {TEMPLATES.filter(t => (t.category ?? "cv") === "cv").map(t => (
+                        {CV_TEMPLATES.map(t => (
                             <button
                                 key={t.id}
                                 type="button"
@@ -162,6 +165,9 @@ export default function AiCvPanel({ onClose }) {
                         Możesz wypełnić wiele szablonów bez ponownego przesyłania pliku.
                         Każdy otworzy się na płótnie do natychmiastowej edycji.
                     </p>
+                    </> : (
+                        <p className={classes.hint}>Nie ma jeszcze dostępnych szablonów CV.</p>
+                    )}
                 </div>
             )}
 
