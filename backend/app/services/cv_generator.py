@@ -2101,7 +2101,7 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
     """Minimal, generated narrow-sidebars that repeat on every content page."""
     themes = {
         "quarry": {
-            "asset": "quarry-sidebar.png", "paper": "#F7FAFC", "ink": "#13293D",
+            "asset": "quarry-sidebar-v2.png", "paper": "#F7FAFC", "ink": "#13293D",
             "body": "#13293D", "accent": "#37D1EE", "marker": "#B7D84B",
             "muted": "#607384", "rule": "#C7D5DE", "side_text": "#F3F7FC",
             "side_label": "#37D1EE", "section": "circle",

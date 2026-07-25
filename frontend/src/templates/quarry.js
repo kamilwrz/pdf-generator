@@ -10,7 +10,7 @@ const SLATE = "#607384";
 const RULE = "#C7D5DE";
 const SANS = "Inter";
 const SERIF = "Times-Roman";
-const SIDEBAR = `${API_BASE_URL}/template-assets/quarry-sidebar.png`;
+const SIDEBAR = `${API_BASE_URL}/template-assets/quarry-sidebar-v2.png`;
 
 const bold = (element) => ({ ...element, bold: true });
 const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });

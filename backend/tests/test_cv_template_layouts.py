@@ -142,7 +142,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "experience": LONG_CV["experience"] * 3,
         }
         assets = {
-            "quarry": "quarry-sidebar.png",
+            "quarry": "quarry-sidebar-v2.png",
             "moss": "moss-sidebar.png",
             "garnet": "garnet-sidebar.png",
             "harbor": "harbor-sidebar-v3.png",
