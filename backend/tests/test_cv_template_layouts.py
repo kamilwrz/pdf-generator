@@ -158,6 +158,40 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in elements
         ))
 
+    def test_cinder_is_single_column_and_repeats_page_decorations(self):
+        multi_page_cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 4,
+        }
+        elements = generate_resume("cinder", multi_page_cv)
+        categories = {element["category"] for element in elements}
+        pages = {element.get("page", 1) for element in elements}
+        rendered_copy = " ".join(
+            str(element.get("content", ""))
+            for element in elements
+            if element["category"] in {"text", "textarea"}
+        ).upper()
+
+        self.assertTrue({"text", "textarea", "line", "rectangle", "connector"} <= categories)
+        self.assertNotIn("CINDER", rendered_copy)
+        self.assertGreater(max(pages), 1)
+        self.assertTrue(all(
+            element["left"] >= 76 and element["width"] >= 460
+            for element in elements
+            if element["category"] == "textarea"
+        ))
+        for page in pages:
+            self.assertTrue(any(
+                element["category"] == "line"
+                and element.get("page", 1) == page
+                and element["left"] == 0
+                and element["top"] == 0
+                and element["width"] == 595
+                and element["height"] == 5
+                and element["backgroundColor"] == "#C93F3F"
+                for element in elements
+            ))
+
     def test_final_templates_keep_textareas_inside_page_bounds(self):
         for template_id in ("solstice", "mistral", "axiom", "vellum"):
             with self.subTest(template_id=template_id):

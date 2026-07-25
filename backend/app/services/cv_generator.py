@@ -416,6 +416,96 @@ def _gen_nimbus(cv: dict) -> list[dict]:
     return static + b.build()
 
 
+def _gen_cinder(cv: dict) -> list[dict]:
+    """Single-column black, grey and signal-red editorial CV."""
+    BLACK, CHARCOAL, GRAPHITE = "#111315", "#292D31", "#62686D"
+    ASH, PAPER, RED = "#D5D6D6", "#F4F3F1", "#C93F3F"
+    L, W, SANS, SERIF = 76, 466, "Inter", "Times-Roman"
+    lbl = _labels(cv)
+
+    frame_one = {**_rect(425, 34, 72, 72, RED, 1.2, zIndex=3), "id": "cinder-frame-one"}
+    frame_two = {**_rect(455, 63, 78, 78, "#767B80", 1, zIndex=3), "id": "cinder-frame-two"}
+    node = {**_rect(482, 39, 12, 12, "#FFFFFF", 1, zIndex=3), "id": "cinder-node"}
+    header = [
+        _line(0, 0, 595, 170, BLACK, zIndex=1),
+        _line(52, 36, 5, 99, RED, zIndex=2),
+        _text(_compact_text(cv.get("name"), 30), 30, SERIF, "#FFFFFF", L, 43, zIndex=3, bold=True),
+        _text(_compact_text(cv.get("title"), 46), 9.5, SANS, "#E06B67", L + 2, 86, zIndex=3),
+        _text(_compact_text(_contact_line(cv), 78), 8.7, SANS, "#B8BCC0", L + 2, 119, zIndex=3),
+        frame_one,
+        frame_two,
+        node,
+        {"category": "connector", "source_id": "cinder-frame-one", "target_id": "cinder-frame-two",
+         "backgroundColor": "#8B9094", "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
+        {"category": "connector", "source_id": "cinder-frame-one", "target_id": "cinder-node",
+         "backgroundColor": RED, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
+    ]
+    header[3]["letterSpacing"] = 1.65
+    b = Builder(205)
+
+    def section(label: str) -> None:
+        b.need(40)
+        b.els.append(_rect(52, b.y + 2, 8, 18, RED, 1.2, zIndex=2, page=b.pg))
+        b.text(label, 8.7, SANS, RED, L)
+        b.line(L, W, 1, ASH)
+        b.gap(14)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10.2, 15, CHARCOAL, SANS)
+        b.gap(18)
+
+    if cv.get("experience"):
+        section(lbl["experience"])
+        for index, job in enumerate(cv["experience"]):
+            b.need(76)
+            marker_y = b.y + 2
+            marker_color = RED if index == 0 else GRAPHITE
+            b.els.append(_rect(51, marker_y, 14, 14, marker_color, 1.2, zIndex=2, page=b.pg))
+            b.els.append(_line(57, marker_y + 14, 2, 42, ASH, page=b.pg))
+            b.block(job.get("title", ""), L + 4, W - 4, 11, 13.5, BLACK, SANS, bold=True, min_h=15)
+            b.gap(1)
+            b.block(_company_period(job), L + 4, W - 4, 8.7, 11.5, GRAPHITE, SANS, min_h=12)
+            b.gap(3)
+            bullets = _bullets(job)
+            if bullets:
+                b.block(bullets, L + 4, W - 4, 9.5, 13.4, CHARCOAL, SANS, bulletList=True)
+            b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, {"body": CHARCOAL}, L, W, SANS, fs=9.5, lh=13.4)
+
+    if cv.get("education"):
+        section(lbl["education"])
+        for edu in cv["education"]:
+            b.block(edu.get("degree", ""), L, W, 10.3, 13, BLACK, SANS, bold=True, min_h=15)
+            b.gap(2)
+            b.block(edu.get("period", ""), L, W, 8.7, 11.5, GRAPHITE, SANS, min_h=12)
+            if edu.get("detail"):
+                b.gap(1)
+                b.block(edu["detail"], L, W, 8.7, 11.5, GRAPHITE, SANS, min_h=12)
+            b.gap(10)
+
+    if cv.get("skills"):
+        section(lbl["skills"])
+        b.block("  ·  ".join(cv["skills"]), L, W, 9.4, 13.5, CHARCOAL, SANS)
+        b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, {"body": CHARCOAL}, L, W, SANS, fs=9.4, lh=13.5)
+    flow = b.build()
+    pages_used = max([element.get("page", 1) for element in header + flow] or [1])
+    page_decorations = [
+        decoration
+        for page in range(1, pages_used + 1)
+        for decoration in (
+            _line(0, 0, 595, 842, PAPER, zIndex=0, page=page),
+            _line(0, 0, 595, 5, RED, zIndex=2, page=page),
+            _line(52, 786, 490, 1, BLACK, page=page),
+            _line(52, 786, 64, 3, RED, zIndex=2, page=page),
+            _text(f"{page:02d}", 8, SANS, GRAPHITE, 522, 801, page=page),
+        )
+    ]
+    return page_decorations + header + flow
+
+
 def _gen_nocturne(cv: dict) -> list[dict]:
     C = dict(ink="#1F2933", coral="#F25F4C", gray="#6B7280", body="#1F2933")
     L, W = 50, 495
@@ -1285,6 +1375,7 @@ _GENERATORS = {
     "finance":   _gen_finance,
     "ledger":    _gen_ledger,
     "nimbus":    _gen_nimbus,
+    "cinder":    _gen_cinder,
     "sterling":  _gen_sterling,
     "nocturne":  _gen_nocturne,
     "ampersand": _gen_ampersand,
