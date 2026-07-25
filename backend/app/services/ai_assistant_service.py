@@ -9,7 +9,12 @@ import json
 import os
 from openai import OpenAI
 from app.core.config import OPENAI_API_KEY
-from app.services.layout_analysis import analyze_layout, extract_bounds, resolve_directed_operation
+from app.services.layout_analysis import (
+    analyze_layout,
+    extract_bounds,
+    resolve_directed_operation,
+    resolve_restructure_section,
+)
 
 _MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.5")
 _client = OpenAI(api_key=OPENAI_API_KEY)
@@ -634,6 +639,16 @@ def _chat(message: str, elements: list[dict], page_size: dict | None) -> dict:
         "Python ustali szerokość sidebara na podstawie elementu referencyjnego, zawinie tekstarea "
         "do tej szerokości i ułoży wskazane pola pionowo jako jedną bezpieczną zmianę. Nie używaj "
         "move_to_sidebar dla obrazów, figur ani dekoracji — obejmuj nim tylko text i textarea.\n"
+        "(4) POLECENIE przebudowy sekcji (np. „sformatuj wykształcenie jako osobne pola”) zwraca "
+        "structure_operation zamiast corrections i position_operation. Format:\n"
+        "  {\"type\":\"restructure_section\", \"source_element_id\":\"...\", \"blocks\":["
+        "{\"role\":\"heading\"|\"entry_title\"|\"entry_meta\"|\"body\"|\"list\", \"content\":\"...\"}]}\n"
+        "  - source_element_id wskazuje JEDEN istniejący, odblokowany element text albo textarea "
+        "z całą treścią sekcji. blocks ma 2–12 pól i zachowuje DOKŁADNIE całą treść źródłową "
+        "w tej samej kolejności: nie skracaj, nie tłumacz i nie dodawaj słów.\n"
+        "  - Użyj heading dla nazwy sekcji, entry_title dla tytułu wpisu, entry_meta dla dat lub "
+        "instytucji, body dla opisu i list dla punktów. NIE podawaj nowych ID, kategorii canvas, "
+        "współrzędnych, stylów, stron ani rozmiarów — Python bezpiecznie wyliczy elementy i reflow.\n"
         "NIGDY sam nie podawaj wartości left/top — Python obliczy rzeczywiste współrzędne na "
         "podstawie bieżącej, aktualnej pozycji elementów i sam odrzuci operację, jeśli wyszłaby "
         "poza stronę.\n"
@@ -657,6 +672,7 @@ Zwróć JSON:
   "tips": ["<wskazówka lub osiągalna alternatywa, jeśli istotna>"],
   "corrections": [],
   "position_operation": null,
+  "structure_operation": null,
   "web_sources": []
 }}"""
     raw = _gpt(system, user)
@@ -670,6 +686,25 @@ Zwróć JSON:
     else:
         result["layout_groups"] = []
         result["layout_issues"] = []
+
+    structure_directive = raw.get("structure_operation")
+    if isinstance(structure_directive, dict):
+        structure_group = resolve_restructure_section(elements, structure_directive, page_size)
+        if structure_group is None:
+            result["structure_groups"] = []
+            result["structure_issues"] = [{
+                "severity": "warning",
+                "message": (
+                    "Nie można bezpiecznie przebudować tej sekcji — treść, blokada elementu, "
+                    "kolizja lub granice strony nie spełniają wymagań."
+                ),
+            }]
+        else:
+            result["structure_groups"] = [structure_group]
+            result["structure_issues"] = []
+    else:
+        result["structure_groups"] = []
+        result["structure_issues"] = []
 
     return result
 

@@ -572,6 +572,108 @@ class DirectedOperationTests(unittest.TestCase):
         changed = {patch["element_id"]: patch["top"] for patch in result["layout_groups"][0]["patches"]}
         self.assertEqual(changed, {"company": 30.0, "description": 48.0})
 
+
+class SectionRestructureTests(unittest.TestCase):
+    def _source(self, **overrides):
+        element = {
+            "element_id": "education",
+            "category": "textarea",
+            "content": (
+                "WYKSZTAŁCENIE\n"
+                "Magister ekonomii\n"
+                "Uniwersytet Warszawski · 2016–2019\n"
+                "Specjalizacja: finanse przedsiębiorstw."
+            ),
+            "fontSize": 11,
+            "fontFamily": "Inter",
+            "color": "#223344",
+            "left": 40,
+            "top": 100,
+            "width": 260,
+            "height": 76,
+            "page": 1,
+            "zIndex": 3,
+        }
+        element.update(overrides)
+        return element
+
+    def _directive(self):
+        return {
+            "type": "restructure_section",
+            "source_element_id": "education",
+            "blocks": [
+                {"role": "heading", "content": "WYKSZTAŁCENIE"},
+                {"role": "entry_title", "content": "Magister ekonomii"},
+                {"role": "entry_meta", "content": "Uniwersytet Warszawski · 2016–2019"},
+                {"role": "body", "content": "Specjalizacja: finanse przedsiębiorstw."},
+            ],
+        }
+
+    def test_restructure_preserves_content_and_reflows_the_following_lane(self):
+        later = block("later", 40, 196, width=260, height=18, category="textarea")
+        later["content"] = "DOŚWIADCZENIE"
+        result = layout_analysis.resolve_restructure_section(
+            [self._source(), later],
+            self._directive(),
+            {"width": 595, "height": 842},
+        )
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result["remove_element_ids"], ["education"])
+        self.assertEqual(
+            " ".join(
+                block["content"] for block in result["add_elements"]
+                if block["category"] != "line"
+            ).split(),
+            self._source()["content"].split(),
+        )
+        self.assertTrue(any(block["category"] == "line" for block in result["add_elements"]))
+        self.assertTrue(any(block["category"] == "text" for block in result["add_elements"]))
+        self.assertTrue(any(block["category"] == "textarea" for block in result["add_elements"]))
+        later_patch = next(patch for patch in result["patches"] if patch["element_id"] == "later")
+        self.assertGreater(later_patch["top"], later["top"])
+
+    def test_restructure_rejects_changed_content_and_locked_following_item(self):
+        malformed = self._directive()
+        malformed["blocks"][-1]["content"] = "Skrócony opis."
+        self.assertIsNone(layout_analysis.resolve_restructure_section(
+            [self._source()], malformed, {"width": 595, "height": 842}
+        ))
+
+        unsafe = self._directive()
+        unsafe["blocks"][0]["left"] = 0
+        self.assertIsNone(layout_analysis.resolve_restructure_section(
+            [self._source()], unsafe, {"width": 595, "height": 842}
+        ))
+
+        locked_later = block("later", 40, 196, width=260, height=18, locked=True)
+        self.assertIsNone(layout_analysis.resolve_restructure_section(
+            [self._source(), locked_later], self._directive(), {"width": 595, "height": 842}
+        ))
+
+    def test_restructure_flows_overflow_to_a_new_page_without_moving_fixed_artwork(self):
+        source = self._source(top=720, height=30, content=(
+            "WYKSZTAŁCENIE\n"
+            "Magister ekonomii\n"
+            "Uniwersytet Warszawski · 2016–2019\n"
+            + " ".join(["Opis programu i osiągnięć."] * 24)
+        ))
+        directive = self._directive()
+        directive["blocks"][-1]["content"] = " ".join(["Opis programu i osiągnięć."] * 24)
+        fixed_artwork = block("background", 0, 0, width=595, height=842, category="image")
+        fixed_artwork["fixedToPage"] = True
+        later = block("later", 40, 780, width=260, height=18)
+        result = layout_analysis.resolve_restructure_section(
+            [source, fixed_artwork, later],
+            directive,
+            {"width": 595, "height": 842},
+        )
+
+        self.assertIsNotNone(result)
+        self.assertGreaterEqual(result["page_count"], 2)
+        self.assertTrue(any(element["page"] == 2 for element in result["add_elements"]))
+        self.assertNotIn("background", {patch["element_id"] for patch in result["patches"]})
+
     def test_target_groups_align_moves_blocks_to_a_shared_value(self):
         elements = [
             block("a1", 10, 10, width=20, height=10),

@@ -322,6 +322,58 @@ class ChatCommandTests(unittest.TestCase):
         changed = {patch["element_id"]: patch["top"] for patch in result["layout_groups"][0]["patches"]}
         self.assertEqual(changed, {"pwc-company": 60.0, "pwc-description": 78.0})
 
+    def test_dispatcher_returns_a_reviewed_section_restructure_without_canvas_geometry(self):
+        elements = [{
+            "element_id": "education",
+            "category": "textarea",
+            "content": (
+                "WYKSZTAŁCENIE\n"
+                "Magister ekonomii\n"
+                "Uniwersytet Warszawski · 2016–2019\n"
+                "Specjalizacja: finanse przedsiębiorstw."
+            ),
+            "fontSize": 11,
+            "fontFamily": "Inter",
+            "color": "#223344",
+            "left": 40, "top": 100, "width": 260, "height": 76, "page": 1,
+        }]
+
+        def fake_gpt(system, user):
+            self.assertIn("structure_operation", system)
+            self.assertIn("NIE podawaj nowych ID", system)
+            self.assertIn('"element_id": "education"', user)
+            return {
+                "message": "Przygotowałem czytelniejszą strukturę wykształcenia.",
+                "corrections": [],
+                "position_operation": None,
+                "structure_operation": {
+                    "type": "restructure_section",
+                    "source_element_id": "education",
+                    "blocks": [
+                        {"role": "heading", "content": "WYKSZTAŁCENIE"},
+                        {"role": "entry_title", "content": "Magister ekonomii"},
+                        {"role": "entry_meta", "content": "Uniwersytet Warszawski · 2016–2019"},
+                        {"role": "body", "content": "Specjalizacja: finanse przedsiębiorstw."},
+                    ],
+                },
+            }
+
+        with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
+            result = ai_assistant_service.analyze_action(
+                action="chat",
+                elements=elements,
+                message="sformatuj wykształcenie jako osobne pola",
+                page_size={"width": 595, "height": 842},
+            )
+
+        self.assertEqual(result["layout_groups"], [])
+        self.assertEqual(result["structure_issues"], [])
+        self.assertEqual(len(result["structure_groups"]), 1)
+        group = result["structure_groups"][0]
+        self.assertEqual(group["remove_element_ids"], ["education"])
+        self.assertTrue(all("left" in element and "top" in element for element in group["add_elements"]))
+        self.assertTrue(any(element["category"] == "line" for element in group["add_elements"]))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -39,6 +39,7 @@ export const PdfContext = createContext({
     showGallery: () => {},
     editElementValues: () => {},
     editSelectedElementValues: () => {},
+    applyStructureOperation: () => {},
     fitTextareaToContent: () => {},
     alignElement: () => {},
     deleteElement: () => {},
@@ -61,6 +62,8 @@ export const PdfContext = createContext({
     logout: () => {},
     isPdfLoading: false,
     setA4_Elements_deleted: () =>{},
+    structurePreviewGroup: null,
+    setStructurePreviewGroup: () => {},
     setPDFdownloadData: () => {},
     PDFdownloadData: []
 })

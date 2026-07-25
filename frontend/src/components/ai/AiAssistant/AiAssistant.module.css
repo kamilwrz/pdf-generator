@@ -134,6 +134,33 @@
 
 .actionIcon { font-size: 14px; color: var(--chrome-accent); }
 
+.structureCard {
+    padding: 8px;
+    border: 1px solid #c9d8e0;
+    border-radius: 7px;
+    background: #f5f9fb;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.structure_preview { border-color: #7895a6; background: #edf5f8; }
+.structure_accepted { border-color: #9cc9ac; background: #f3faf5; }
+.structure_rejected { opacity: .72; }
+
+.structureCardHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--chrome-muted);
+    font: 700 9px var(--font-body);
+    letter-spacing: .03em;
+    text-transform: uppercase;
+}
+
+.structureCard strong { font: 700 11px var(--font-body); color: var(--chrome-ink); }
+.structureCard p { margin: 0; font: 500 10.5px/1.4 var(--font-body); color: var(--chrome-muted); }
+
 /* ── Job Description ─────────────────────────────────────────────── */
 .jobDescArea {
     overflow: hidden;

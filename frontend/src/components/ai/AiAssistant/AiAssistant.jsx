@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, use } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion as Motion } from "framer-motion";
 import { nanoid } from "nanoid";
 import { BsStars } from "react-icons/bs";
 import { FaArrowsAltH, FaStar, FaPalette, FaBriefcase, FaFont, FaMagic, FaRobot } from "react-icons/fa";
@@ -119,10 +119,55 @@ function LayoutGroupCard({ msgId, group, layoutStates, onPreview, onClearPreview
     );
 }
 
+function StructureGroupCard({ msgId, group, structureStates, onPreview, onClearPreview, onAccept, onReject }) {
+    const key = `${msgId}_${group.id}`;
+    const state = structureStates[key] || "pending";
+    const addedCount = group.add_elements?.length || 0;
+    const movedCount = group.patches?.length || 0;
+
+    return (
+        <div className={`${classes.structureCard} ${classes[`structure_${state}`]}`}>
+            <div className={classes.structureCardHeader}>
+                <span>Przebudowa sekcji</span>
+                <span>{addedCount} nowych pól · {movedCount} przesunięć</span>
+            </div>
+            <strong>{group.title}</strong>
+            <p>{group.reason}</p>
+            {state === "pending" && (
+                <div className={classes.layoutActions}>
+                    <button className={classes.layoutPreview} onClick={() => onPreview(msgId, group)}>
+                        Podgląd
+                    </button>
+                    <button className={classes.layoutAccept} onClick={() => onAccept(msgId, group)}>
+                        <MdCheckCircle /> Zastosuj
+                    </button>
+                    <button className={classes.layoutReject} onClick={() => onReject(msgId, group)}>
+                        <MdCancel /> Pomiń
+                    </button>
+                </div>
+            )}
+            {state === "preview" && (
+                <div className={classes.layoutActions}>
+                    <span className={classes.previewingLabel}>Podgląd aktywny na płótnie</span>
+                    <button className={classes.layoutAccept} onClick={() => onAccept(msgId, group)}>
+                        <MdCheckCircle /> Zastosuj
+                    </button>
+                    <button className={classes.layoutPreview} onClick={() => onClearPreview(msgId, group.id)}>
+                        Zatrzymaj podgląd
+                    </button>
+                </div>
+            )}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "#5FA777" }}>✓ Zastosowano</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "#9A8E7F" }}>✗ Pominięto</span>}
+        </div>
+    );
+}
+
 function ChatMessage({
     msg,
     correctionStates,
     layoutStates,
+    structureStates,
     onAccept,
     onReject,
     onApplyAll,
@@ -130,6 +175,10 @@ function ChatMessage({
     onClearLayoutPreview,
     onAcceptLayout,
     onRejectLayout,
+    onPreviewStructure,
+    onClearStructurePreview,
+    onAcceptStructure,
+    onRejectStructure,
     A4_Elements,
 }) {
     const isUser = msg.role === "user";
@@ -209,9 +258,34 @@ function ChatMessage({
                     </div>
                 )}
 
+                {msg.structure_groups?.length > 0 && (
+                    <div className={classes.layoutGroups}>
+                        <div className={classes.corrHeader}>
+                            <span>{msg.structure_groups.length} {msg.structure_groups.length === 1 ? "propozycja przebudowy" : "propozycje przebudowy"}</span>
+                        </div>
+                        {msg.structure_groups.map(group => (
+                            <StructureGroupCard
+                                key={group.id}
+                                msgId={msg.id}
+                                group={group}
+                                structureStates={structureStates}
+                                onPreview={onPreviewStructure}
+                                onClearPreview={onClearStructurePreview}
+                                onAccept={onAcceptStructure}
+                                onReject={onRejectStructure}
+                            />
+                        ))}
+                    </div>
+                )}
+
                 {msg.layout_issues?.length > 0 && (
                     <ul className={classes.layoutIssues}>
                         {msg.layout_issues.map((issue, index) => <li key={index}>{issue.message}</li>)}
+                    </ul>
+                )}
+                {msg.structure_issues?.length > 0 && (
+                    <ul className={classes.layoutIssues}>
+                        {msg.structure_issues.map((issue, index) => <li key={index}>{issue.message}</li>)}
                     </ul>
                 )}
 
@@ -238,7 +312,9 @@ export default function AiAssistant() {
         A4_Elements,
         editElementValues,
         applyLayoutPatches,
+        applyStructureOperation,
         setLayoutPreviewPatches,
+        setStructurePreviewGroup,
         pageSize,
         setCurrentPage,
     } = use(PdfContext);
@@ -251,6 +327,7 @@ export default function AiAssistant() {
     const [isLoading, setIsLoading] = useState(false);
     const [correctionStates, setCorrectionStates] = useState({});
     const [layoutStates, setLayoutStates] = useState({});
+    const [structureStates, setStructureStates] = useState({});
 
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -289,6 +366,10 @@ export default function AiAssistant() {
     }, [correctionStates, editElementValues]);
 
     const previewLayoutGroup = useCallback((msgId, group) => {
+        setStructurePreviewGroup(null);
+        setStructureStates((previous) => Object.fromEntries(
+            Object.entries(previous).map(([key, state]) => [key, state === "preview" ? "pending" : state]),
+        ));
         setLayoutPreviewPatches(group.patches || []);
         const targetPage = group.target_page
             ?? group.patches?.find(patch => Number.isInteger(patch.page))?.page;
@@ -301,7 +382,7 @@ export default function AiAssistant() {
             next[`${msgId}_${group.id}`] = "preview";
             return next;
         });
-    }, [setCurrentPage, setLayoutPreviewPatches]);
+    }, [setCurrentPage, setLayoutPreviewPatches, setStructurePreviewGroup]);
 
     const clearLayoutPreview = useCallback((msgId, groupId) => {
         setLayoutPreviewPatches([]);
@@ -322,6 +403,43 @@ export default function AiAssistant() {
         if (layoutStates[key] === "preview") setLayoutPreviewPatches([]);
         setLayoutStates(prev => ({ ...prev, [key]: "rejected" }));
     }, [layoutStates, setLayoutPreviewPatches]);
+
+    const previewStructureGroup = useCallback((msgId, group) => {
+        setLayoutPreviewPatches([]);
+        setLayoutStates((previous) => Object.fromEntries(
+            Object.entries(previous).map(([key, state]) => [key, state === "preview" ? "pending" : state]),
+        ));
+        setStructurePreviewGroup(group);
+        if (Number.isInteger(group.target_page) && group.target_page > 0) setCurrentPage(group.target_page);
+        setStructureStates((previous) => {
+            const next = { ...previous };
+            Object.keys(next).forEach((key) => {
+                if (next[key] === "preview") next[key] = "pending";
+            });
+            next[`${msgId}_${group.id}`] = "preview";
+            return next;
+        });
+    }, [setCurrentPage, setLayoutPreviewPatches, setStructurePreviewGroup]);
+
+    const clearStructurePreview = useCallback((msgId, groupId) => {
+        setStructurePreviewGroup(null);
+        setStructureStates((previous) => {
+            const key = `${msgId}_${groupId}`;
+            return previous[key] === "preview" ? { ...previous, [key]: "pending" } : previous;
+        });
+    }, [setStructurePreviewGroup]);
+
+    const acceptStructureGroup = useCallback((msgId, group) => {
+        applyStructureOperation(group);
+        setStructurePreviewGroup(null);
+        setStructureStates((previous) => ({ ...previous, [`${msgId}_${group.id}`]: "accepted" }));
+    }, [applyStructureOperation, setStructurePreviewGroup]);
+
+    const rejectStructureGroup = useCallback((msgId, group) => {
+        const key = `${msgId}_${group.id}`;
+        if (structureStates[key] === "preview") setStructurePreviewGroup(null);
+        setStructureStates((previous) => ({ ...previous, [key]: "rejected" }));
+    }, [setStructurePreviewGroup, structureStates]);
 
     // ── send message to backend ──────────────────────────────────────────
 
@@ -359,6 +477,8 @@ export default function AiAssistant() {
                 corrections: res.corrections ?? [],
                 layout_groups: res.layout_groups ?? [],
                 layout_issues: res.layout_issues ?? [],
+                structure_groups: res.structure_groups ?? [],
+                structure_issues: res.structure_issues ?? [],
                 web_sources: res.web_sources ?? [],
                 actionLabel: actionMeta?.label,
                 actionColor: actionMeta?.color,
@@ -423,7 +543,7 @@ export default function AiAssistant() {
             {/* ── sliding panel ── */}
             <AnimatePresence>
                 {isOpen && (
-                    <motion.aside
+                    <Motion.aside
                         className={classes.panel}
                         initial={{ x: "100%" }}
                         animate={{ x: 0 }}
@@ -441,6 +561,7 @@ export default function AiAssistant() {
                             </div>
                             <button className={classes.closeBtn} onClick={() => {
                                 setLayoutPreviewPatches([]);
+                                setStructurePreviewGroup(null);
                                 setIsOpen(false);
                             }}>
                                 <IoClose />
@@ -467,7 +588,7 @@ export default function AiAssistant() {
                         {/* job description input (for position fit) */}
                         <AnimatePresence>
                             {showJobDesc && (
-                                <motion.div
+                                <Motion.div
                                     className={classes.jobDescArea}
                                     initial={{ height: 0, opacity: 0 }}
                                     animate={{ height: "auto", opacity: 1 }}
@@ -500,7 +621,7 @@ export default function AiAssistant() {
                                             Analizuj
                                         </button>
                                     </div>
-                                </motion.div>
+                                </Motion.div>
                             )}
                         </AnimatePresence>
 
@@ -518,6 +639,7 @@ export default function AiAssistant() {
                                     msg={msg}
                                     correctionStates={correctionStates}
                                     layoutStates={layoutStates}
+                                    structureStates={structureStates}
                                     onAccept={acceptCorrection}
                                     onReject={rejectCorrection}
                                     onApplyAll={applyAll}
@@ -525,6 +647,10 @@ export default function AiAssistant() {
                                     onClearLayoutPreview={clearLayoutPreview}
                                     onAcceptLayout={acceptLayoutGroup}
                                     onRejectLayout={rejectLayoutGroup}
+                                    onPreviewStructure={previewStructureGroup}
+                                    onClearStructurePreview={clearStructurePreview}
+                                    onAcceptStructure={acceptStructureGroup}
+                                    onRejectStructure={rejectStructureGroup}
                                     A4_Elements={A4_Elements}
                                 />
                             ))}
@@ -559,7 +685,7 @@ export default function AiAssistant() {
                                 <IoSend />
                             </button>
                         </div>
-                    </motion.aside>
+                    </Motion.aside>
                 )}
             </AnimatePresence>
         </>

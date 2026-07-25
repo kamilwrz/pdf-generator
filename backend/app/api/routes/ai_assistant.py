@@ -26,6 +26,8 @@ class AssistantResponse(BaseModel):
     corrections: list[dict] = []
     layout_groups: list[dict] = []
     layout_issues: list[dict] = []
+    structure_groups: list[dict] = []
+    structure_issues: list[dict] = []
     web_sources: list[str] = []
 
 

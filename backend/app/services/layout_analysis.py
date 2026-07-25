@@ -7,6 +7,7 @@ overlaps or break a template's decorative elements.
 from __future__ import annotations
 
 import math
+import re
 from collections import defaultdict
 from statistics import median
 from typing import Any
@@ -486,6 +487,11 @@ _VALID_OPERATIONS = {"shift", "align", "distribute", "space", "move_to_page", "m
 _VALID_AXES = {"x", "y"}
 _VALID_ANCHORS = {"start", "center", "end"}
 _NO_CHANGE = "no_change"
+_STRUCTURE_ROLES = {"heading", "entry_title", "entry_meta", "body", "list"}
+_STRUCTURE_MAX_BLOCKS = 12
+_FLOWABLE_CATEGORIES = DIRECTED_POSITION_CATEGORIES
+_NEARBY_DECORATION_CATEGORIES = {"line", "rectangle", "circle", "ellipse"}
+_DECORATION_LANE_TOLERANCE = 32.0
 
 
 def resolve_shift(
@@ -1124,6 +1130,275 @@ def _resolve_block_operation(
     if final_group is None:
         return _issue("Nie można bezpiecznie wykonać tego polecenia — zmiana wyszłaby poza stronę.")
     return {"layout_groups": [final_group], "layout_issues": []}
+
+
+def _canonical_structure_content(value: object) -> str:
+    """Compare section content without making whitespace a structural concern."""
+    return " ".join(re.findall(r"\S+", str(value or "")))
+
+
+def _structure_text_height(content: str, width: float, font_size: float, line_height: float) -> float:
+    chars_per_line = max(10, int(width / (font_size * 0.52)))
+    line_count = sum(
+        max(1, math.ceil(len(line.strip()) / chars_per_line)) if line.strip() else 1
+        for line in content.split("\n")
+    )
+    return round(max(line_count * line_height + 6, line_height + 6), 2)
+
+
+def _structure_page_position(
+    absolute_top: float,
+    height: float,
+    page_height: float,
+    *,
+    page_top: float = 36.0,
+    bottom_margin: float = 40.0,
+) -> tuple[int, float, float]:
+    """Place an item on a safe page position, creating trailing pages if needed."""
+    absolute_top = max(0.0, absolute_top)
+    page = int(absolute_top // page_height) + 1
+    top = absolute_top - (page - 1) * page_height
+    if height <= page_height - page_top - bottom_margin and top + height > page_height - bottom_margin:
+        page += 1
+        top = page_top
+    return page, round(top, 2), (page - 1) * page_height + top
+
+
+def _belongs_to_structure_lane(source: dict[str, Any], item: dict[str, Any]) -> bool:
+    source_right = source["left"] + source["width"]
+    item_right = item["left"] + item["width"]
+    if min(source_right, item_right) - max(source["left"], item["left"]) > EPSILON:
+        return True
+    if item["category"] not in _NEARBY_DECORATION_CATEGORIES:
+        return False
+    horizontal_gap = max(source["left"] - item_right, item["left"] - source_right, 0.0)
+    return horizontal_gap <= _DECORATION_LANE_TOLERANCE
+
+
+def resolve_restructure_section(
+    elements: list[dict[str, Any]],
+    directive: dict[str, Any],
+    page_size: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Safely replace one text section with deterministic semantic elements.
+
+    GPT is restricted to semantic roles and exact content. This resolver is the
+    sole authority for element types, styling, coordinates, reflow, and IDs.
+    """
+    page_size = page_size or {}
+    page_width = _number(page_size.get("width"), 595.0)
+    page_height = _number(page_size.get("height"), 842.0)
+    if page_width <= 0 or page_height <= 0:
+        return None
+
+    source_id = str(directive.get("source_element_id") or "")
+    if (
+        directive.get("type") != "restructure_section"
+        or set(directive) - {"type", "source_element_id", "blocks"}
+    ):
+        return None
+    raw_by_id = {str(element.get("element_id")): element for element in elements if element.get("element_id")}
+    source_raw = raw_by_id.get(source_id)
+    bounds_by_id = {item["element_id"]: item for item in extract_bounds(elements)}
+    source = bounds_by_id.get(source_id)
+    if (
+        source_raw is None
+        or source is None
+        or source["category"] not in {"text", "textarea"}
+        or source.get("locked")
+        or source.get("fixedToPage")
+    ):
+        return None
+
+    raw_blocks = directive.get("blocks")
+    if not isinstance(raw_blocks, list) or not 2 <= len(raw_blocks) <= _STRUCTURE_MAX_BLOCKS:
+        return None
+
+    blocks: list[dict[str, str]] = []
+    heading_count = 0
+    for raw_block in raw_blocks:
+        if not isinstance(raw_block, dict) or set(raw_block) != {"role", "content"}:
+            return None
+        role = str(raw_block.get("role") or "")
+        content = raw_block.get("content")
+        if role not in _STRUCTURE_ROLES or not isinstance(content, str) or not content.strip():
+            return None
+        heading_count += role == "heading"
+        blocks.append({"role": role, "content": content})
+    if heading_count > 1:
+        return None
+    if _canonical_structure_content(source_raw.get("content")) != _canonical_structure_content(
+        "\n".join(block["content"] for block in blocks)
+    ):
+        return None
+
+    existing_ids = set(raw_by_id)
+    base_font_size = max(8.0, min(_number(source_raw.get("fontSize"), 11.0), 24.0))
+    source_color = str(source_raw.get("color") or "#2B2B2B")
+    source_family = str(source_raw.get("fontFamily") or "Inter")
+    source_z_index = int(_number(source_raw.get("zIndex"), 3.0))
+    source_page = source["page"]
+    source_absolute_top = (source_page - 1) * page_height + source["top"]
+    cursor = source_absolute_top
+    additions: list[dict[str, Any]] = []
+
+    def add_element(spec: dict[str, Any], height: float) -> None:
+        nonlocal cursor
+        page, top, resolved_absolute_top = _structure_page_position(cursor, height, page_height)
+        additions.append({**spec, "top": top, "page": page, "height": height})
+        cursor = resolved_absolute_top + height
+
+    for index, block in enumerate(blocks):
+        role, content = block["role"], block["content"]
+        font_size = (
+            max(9.0, base_font_size * 1.08) if role == "heading"
+            else max(8.0, base_font_size * 0.88) if role == "entry_meta"
+            else base_font_size
+        )
+        line_height = round(max(font_size * 1.35, 11.0), 2)
+        element_id = f"{source_id}__structure_{index}_{role}"
+        if element_id in existing_ids:
+            return None
+        existing_ids.add(element_id)
+        short_single_line = "\n" not in content and len(content) * font_size * 0.55 <= source["width"]
+        category = "text" if role in {"heading", "entry_title", "entry_meta"} and short_single_line else "textarea"
+        height = round(font_size * 1.35, 2) if category == "text" else _structure_text_height(
+            content, source["width"], font_size, line_height
+        )
+        add_element({
+            "element_id": element_id,
+            "category": category,
+            "content": content,
+            "fontSize": round(font_size, 2),
+            "fontFamily": source_family,
+            "color": "#667085" if role == "entry_meta" else source_color,
+            "left": source["left"],
+            "width": source["width"],
+            "lineHeight": line_height,
+            "letterSpacing": 0,
+            "bold": role in {"heading", "entry_title"},
+            "italic": False,
+            "underline": False,
+            "align": "left",
+            # Existing bullet glyphs are content and must remain untouched;
+            # only let the canvas add bullets when the source lines are plain.
+            "bulletList": role == "list" and not bool(re.search(r"^[•\-–—]\s", content, re.MULTILINE)),
+            "autoHeight": category == "textarea",
+            "locked": False,
+            "zIndex": source_z_index,
+        }, height)
+
+        if role == "heading":
+            cursor += 3
+            rule_id = f"{source_id}__structure_rule"
+            if rule_id in existing_ids:
+                return None
+            existing_ids.add(rule_id)
+            add_element({
+                "element_id": rule_id,
+                "category": "line",
+                "backgroundColor": source_color,
+                "left": source["left"],
+                "width": min(72.0, source["width"]),
+                "lineHeight": 0,
+                "letterSpacing": 0,
+                "bold": False,
+                "italic": False,
+                "underline": False,
+                "align": "left",
+                "bulletList": False,
+                "autoHeight": False,
+                "locked": False,
+                "zIndex": max(1, source_z_index - 1),
+            }, 1.5)
+            cursor += 7
+        else:
+            cursor += 6
+
+    structure_end = cursor - 6
+    source_end = source_absolute_top + source["height"]
+    flow_delta = structure_end - source_end
+    items = list(bounds_by_id.values())
+    patches: list[dict[str, Any]] = []
+    for item in items:
+        if (
+            item["element_id"] == source_id
+            or item.get("fixedToPage")
+            or item["category"] not in _FLOWABLE_CATEGORIES
+        ):
+            continue
+        absolute_top = (item["page"] - 1) * page_height + item["top"]
+        if absolute_top + EPSILON < source_end or not _belongs_to_structure_lane(source, item):
+            continue
+        if item.get("locked"):
+            return None
+        page, top, _ = _structure_page_position(
+            absolute_top + flow_delta, item["height"], page_height
+        )
+        if page != item["page"] or abs(top - item["top"]) > EPSILON:
+            patches.append({
+                "element_id": item["element_id"],
+                "left": round(item["left"], 2),
+                "top": top,
+                "page": page,
+            })
+
+    moved_by_id = {patch["element_id"]: patch for patch in patches}
+    proposed: list[dict[str, Any]] = []
+    for item in items:
+        if item["element_id"] == source_id:
+            continue
+        patch = moved_by_id.get(item["element_id"])
+        proposed.append({
+            **item,
+            **({"left": patch["left"], "top": patch["top"], "page": patch["page"]} if patch else {}),
+        })
+    proposed.extend({
+        "element_id": addition["element_id"],
+        "category": addition["category"],
+        "left": addition["left"],
+        "top": addition["top"],
+        "width": addition["width"],
+        "height": addition["height"],
+        "page": addition["page"],
+        "fixedToPage": False,
+    } for addition in additions)
+
+    for item in proposed:
+        if (
+            item["left"] < -EPSILON
+            or item["top"] < -EPSILON
+            or item["left"] + item["width"] > page_width + EPSILON
+            or item["top"] + item["height"] > page_height + EPSILON
+        ):
+            return None
+    for index, first in enumerate(proposed):
+        if first.get("fixedToPage") or first["category"] in DECORATIVE_CATEGORIES:
+            continue
+        for second in proposed[index + 1:]:
+            if (
+                second.get("fixedToPage")
+                or second["category"] in DECORATIVE_CATEGORIES
+                or first["page"] != second["page"]
+                or not _rects_overlap(first, second)
+            ):
+                continue
+            return None
+
+    max_page = max(
+        [source_page, *(addition["page"] for addition in additions), *(patch["page"] for patch in patches)]
+    )
+    return {
+        "id": "directed-restructure-section",
+        "title": f"Przebuduj sekcję na {len(additions)} elementów",
+        "reason": "Sekcja zostanie rozbita na edytowalne pola z zachowaniem pełnej treści i przepływu dokumentu.",
+        "severity": "review",
+        "remove_element_ids": [source_id],
+        "add_elements": additions,
+        "patches": patches,
+        "target_page": min(addition["page"] for addition in additions),
+        "page_count": max_page,
+    }
 
 
 def resolve_directed_operation(

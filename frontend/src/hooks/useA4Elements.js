@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid';
 import { getElementBounds } from '../utils/elementBounds';
 import { measureTextareaHeight } from '../utils/textareaHeight';
 import { reflowTextareaHeight } from '../utils/textareaReflow';
+import { cloneFixedPageDecorations } from '../utils/structureOperation';
 
 // Elements a connector can attach to — those with a real bounding box the
 // backend can reproduce for the PDF. Single-line text (no stored width/height)
@@ -1008,6 +1009,155 @@ export function useA4Elements(titleRef) {
     });
   }, []);
 
+  // Applies one reviewed section restructure atomically. The backend owns the
+  // proposed geometry; the client validates it again, records removals for
+  // autosave, and creates any fixed page decorations needed by overflow.
+  const applyStructureOperation = useCallback((group) => {
+    const removeIds = group?.remove_element_ids;
+    const additions = group?.add_elements;
+    const patches = group?.patches || [];
+    if (
+      !Array.isArray(removeIds)
+      || removeIds.length !== 1
+      || !Array.isArray(additions)
+      || additions.length === 0
+      || !Array.isArray(patches)
+    ) return;
+
+    const sourceId = removeIds[0];
+    const additionIds = new Set();
+    const allowedCategories = new Set(["text", "textarea", "line"]);
+    const additionsAreSafe = additions.every((spec) => (
+      spec
+      && typeof spec.element_id === "string"
+      && !additionIds.has(spec.element_id)
+      && allowedCategories.has(spec.category)
+      && Number.isFinite(spec.left)
+      && Number.isFinite(spec.top)
+      && Number.isFinite(spec.width)
+      && Number.isFinite(spec.height)
+      && Number.isInteger(spec.page)
+      && spec.page > 0
+      && spec.left >= 0
+      && spec.top >= 0
+      && spec.width > 0
+      && spec.height > 0
+      && (spec.category === "line" || typeof spec.content === "string")
+      && (additionIds.add(spec.element_id) || true)
+    ));
+    if (!additionsAreSafe) return;
+
+    const patchIds = new Set();
+    const patchesAreSafe = patches.every((patch) => (
+      patch
+      && typeof patch.element_id === "string"
+      && !patchIds.has(patch.element_id)
+      && Number.isFinite(patch.left)
+      && Number.isFinite(patch.top)
+      && Number.isInteger(patch.page)
+      && patch.page > 0
+      && patch.left >= 0
+      && patch.top >= 0
+      && (patchIds.add(patch.element_id) || true)
+    ));
+    if (!patchesAreSafe) return;
+
+    setA4_Elements((prevState) => {
+      const byId = new Map(prevState.map((element) => [element.element_id, element]));
+      const source = byId.get(sourceId);
+      if (
+        !source
+        || source.locked
+        || source.fixedToPage
+        || !["text", "textarea"].includes(source.category)
+        || additions.some((addition) => byId.has(addition.element_id))
+        || patches.some((patch) => !byId.has(patch.element_id) || byId.get(patch.element_id)?.locked)
+      ) return prevState;
+
+      const { width: pageWidth, height: pageHeight } = pageSizeRef.current;
+      const geometryIsSafe = [...additions, ...patches].every((item) => {
+        const existing = byId.get(item.element_id);
+        const width = Number.isFinite(item.width) ? item.width : Number(existing?.width) || 0;
+        const height = Number.isFinite(item.height)
+          ? item.height
+          : Number(existing?.height) || (existing?.category === "text" ? Number(existing.fontSize || 12) * 1.35 : 0);
+        return item.left + width <= pageWidth && item.top + height <= pageHeight;
+      });
+      if (!geometryIsSafe) return prevState;
+
+      const removedIds = new Set([sourceId]);
+      prevState.forEach((element) => {
+        if (
+          element.category === "connector"
+          && (element.source_id === sourceId || element.target_id === sourceId)
+        ) removedIds.add(element.element_id);
+      });
+      const removedElements = prevState.filter((element) => removedIds.has(element.element_id));
+      setA4_Elements_deleted((previousDeleted) => {
+        const newlyDeleted = removedElements
+          .filter((element) => !previousDeleted.some((deleted) => (
+            deleted.element_id === element.element_id && deleted.pdf_id !== undefined
+          )))
+          .map((element) => ({ ...element, deleted: true }));
+        return newlyDeleted.length ? [...previousDeleted, ...newlyDeleted] : previousDeleted;
+      });
+
+      const patchesById = new Map(patches.map((patch) => [patch.element_id, patch]));
+      const moved = prevState
+        .filter((element) => !removedIds.has(element.element_id))
+        .map((element) => {
+          const patch = patchesById.get(element.element_id);
+          if (!patch) return { ...element, isSelected: false, isMove: false, isEditing: false };
+          return {
+            ...element,
+            left: patch.left,
+            top: patch.top,
+            page: patch.page,
+            isSelected: false,
+            isMove: false,
+            isEditing: false,
+          };
+        });
+      const normalizedAdditions = additions.map((spec) => ({
+        ...spec,
+        isSelected: false,
+        isMove: false,
+        isEditing: false,
+        locked: false,
+        page: spec.page ?? 1,
+      }));
+
+      const documentElements = [...moved, ...normalizedAdditions];
+      const existingMaxPage = Math.max(1, ...prevState.map((element) => element.page ?? 1));
+      const targetMaxPage = Math.max(
+        existingMaxPage,
+        group.page_count || 1,
+        ...documentElements.map((element) => element.page ?? 1),
+      );
+      const generatedDecorations = cloneFixedPageDecorations(
+        documentElements,
+        existingMaxPage + 1,
+        targetMaxPage,
+        nanoid,
+      );
+
+      const withDecorations = [...documentElements, ...generatedDecorations];
+      const byNewId = new Map(withDecorations.map((element) => [element.element_id, element]));
+      const reconciled = withDecorations.map((element) => {
+        if (element.category !== "connector") return element;
+        const connectorSource = byNewId.get(element.source_id);
+        const connectorTarget = byNewId.get(element.target_id);
+        if (!connectorSource || !connectorTarget || (connectorSource.page ?? 1) !== (connectorTarget.page ?? 1)) {
+          return element;
+        }
+        return { ...element, page: connectorSource.page ?? 1 };
+      });
+      reflowPageCountRef.current = Math.max(targetMaxPage, ...reconciled.map((element) => element.page ?? 1));
+      layoutTargetPageRef.current = normalizedAdditions[0]?.page ?? null;
+      return reconciled;
+    });
+  }, []);
+
   // Move an element to newTop and shift every element BELOW it (in absolute
   // document order) by the same delta — opens/closes vertical space above the
   // moved block while preserving spacing. Fully bidirectional: pushing down
@@ -1412,6 +1562,7 @@ export function useA4Elements(titleRef) {
     handleEditSelectedElementValues,
     fitTextareaToContent: handleFitTextareaToContent,
     applyLayoutPatches,
+    applyStructureOperation,
     handleMoveElementWithBelow,
     A4ref,
     PDFTitle,
