@@ -40,6 +40,33 @@ test("shrinking content preserves gaps while pulling only following lane element
   assert.equal(result.elements.find((element) => element.element_id === "connector").top, undefined);
 });
 
+test("shrinking page-one content preserves the generated continuation-page boundary", () => {
+  const result = reflowTextareaHeight([
+    textarea({ top: 700, height: 80 }),
+    { element_id: "page-two-heading", category: "text", left: 40, top: 36, width: 180, fontSize: 12, page: 2 },
+    { element_id: "page-two-body", category: "textarea", left: 40, top: 60, width: 180, height: 40, page: 2 },
+  ], "textarea", 40, 842);
+
+  const heading = result.elements.find((element) => element.element_id === "page-two-heading");
+  const body = result.elements.find((element) => element.element_id === "page-two-body");
+  assert.deepEqual({ page: heading.page, top: heading.top }, { page: 2, top: 36 });
+  assert.deepEqual({ page: body.page, top: body.top }, { page: 2, top: 60 });
+  assert.equal(result.pageCount, 2);
+});
+
+test("same-page reflow keeps nearby section decorations aligned with content", () => {
+  const result = reflowTextareaHeight([
+    textarea({ height: 48 }),
+    { element_id: "rail", category: "line", left: 12, top: 154, width: 2, height: 200, page: 1 },
+    { element_id: "marker", category: "rectangle", left: 18, top: 164, width: 16, height: 16, page: 1 },
+    { element_id: "next-heading", category: "text", left: 40, top: 164, width: 180, fontSize: 12, page: 1 },
+  ], "textarea", 24, 842);
+
+  assert.equal(result.elements.find((element) => element.element_id === "rail").top, 130);
+  assert.equal(result.elements.find((element) => element.element_id === "marker").top, 140);
+  assert.equal(result.elements.find((element) => element.element_id === "next-heading").top, 140);
+});
+
 test("moves a reflowed element onto the next page when it no longer fits", () => {
   const result = reflowTextareaHeight([
     textarea({ top: 700 }),

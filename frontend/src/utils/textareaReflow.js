@@ -1,4 +1,6 @@
 const FLOWABLE_CATEGORIES = new Set(["text", "textarea", "line", "rectangle", "image"]);
+const NEARBY_DECORATION_CATEGORIES = new Set(["line", "rectangle"]);
+const DECORATION_LANE_TOLERANCE = 32;
 
 function number(value, fallback = 0) {
   const parsed = Number(value);
@@ -42,6 +44,22 @@ function overlapsHorizontally(first, second) {
   return overlap > 0;
 }
 
+function belongsToFlowLane(target, element) {
+  if (overlapsHorizontally(target, element)) return true;
+  if (!NEARBY_DECORATION_CATEGORIES.has(element.category)) return false;
+
+  const targetLeft = number(target.left);
+  const targetRight = targetLeft + elementWidth(target);
+  const elementLeft = number(element.left);
+  const elementRight = elementLeft + elementWidth(element);
+  const horizontalGap = Math.max(
+    targetLeft - elementRight,
+    elementLeft - targetRight,
+    0,
+  );
+  return horizontalGap <= DECORATION_LANE_TOLERANCE;
+}
+
 function toPagePosition(absolute, height, pageHeight, pageTop, bottomMargin) {
   const safeAbsolute = Math.max(0, absolute);
   let page = Math.floor(safeAbsolute / pageHeight) + 1;
@@ -83,6 +101,7 @@ export function reflowTextareaHeight(
   }
 
   const safePageHeight = Math.max(1, number(pageHeight, 842));
+  const sourcePage = pageOf(target);
   const sourceBottom = absoluteTop(target, safePageHeight) + oldHeight;
   let targetPage = pageOf(target);
   let targetTop = number(target.top);
@@ -101,8 +120,11 @@ export function reflowTextareaHeight(
         element.element_id !== elementId
         && FLOWABLE_CATEGORIES.has(element.category)
         && !element.fixedToPage
+        // A generated continuation page is an intentional layout boundary.
+        // Shrinking content must not pull it back into the previous page.
+        && (delta >= 0 || pageOf(element) === sourcePage)
         && absoluteTop(element, safePageHeight) >= sourceBottom
-        && overlapsHorizontally(target, element)
+        && belongsToFlowLane(target, element)
       ))
       .map((element) => element.element_id),
   );
