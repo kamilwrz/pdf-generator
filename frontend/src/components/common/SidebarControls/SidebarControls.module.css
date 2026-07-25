@@ -1,49 +1,57 @@
 .tile {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     width: 100%;
-    padding: 7px 10px;
-    border-radius: var(--r-md);
-    border: 1px solid var(--border-soft);
-    background: #fff;
+    min-height: 34px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
     cursor: pointer;
     text-align: left;
-    transition: border-color .15s, box-shadow .15s, transform .1s;
+    transition: background .15s, color .15s;
 }
 
 .tile:hover {
-    border-color: var(--accent-soft);
-    box-shadow: 0 6px 16px -10px rgba(30, 48, 78, .35);
-    transform: translateY(-1px);
+    background: #e7eef2;
 }
 
 .tile:active {
-    transform: translateY(0);
+    background: #dce6eb;
 }
 
 .iconBox {
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
-    background: var(--secondary-bg);
+    width: 24px;
+    height: 24px;
+    border-radius: 5px;
+    background: #e9eff2;
+    color: #587285;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 1rem;
+    font-size: 13px;
+    transition: background .15s, color .15s;
+}
+
+.tile:hover .iconBox {
+    background: #d8e4ea;
+    color: #35576c;
 }
 
 .label {
     flex: 1;
-    font: 700 13px var(--font-body);
-    color: var(--ink-2);
+    font: 600 11px var(--font-body);
+    color: #3b4e5b;
 }
 
 .documentsCount {
-    font: 800 12px var(--font-body);
-    color: var(--accent);
-    background: var(--accent-soft);
-    padding: 3px 10px;
+    min-width: 20px;
+    text-align: center;
+    font: 650 9.5px var(--font-body);
+    color: #466b82;
+    background: #dfe9ee;
+    padding: 2px 6px;
     border-radius: 999px;
 }

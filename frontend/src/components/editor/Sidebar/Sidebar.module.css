@@ -1,17 +1,23 @@
 .sidebar {
-    width: 300px;
-    min-width: 300px;
+    --sidebar-ink: #2f4352;
+    --sidebar-muted: #71818d;
+    --sidebar-border: #d9e1e6;
+    --sidebar-surface: #f8fafb;
+    --sidebar-hover: #e7eef2;
+    --sidebar-accent: #466b82;
+    width: 248px;
+    min-width: 248px;
     height: 100%;
     flex-shrink: 0;
-    background: #fff;
-    border-right: 1px solid var(--border-line);
+    background: var(--sidebar-surface);
+    border-right: 1px solid var(--sidebar-border);
     position: relative;
     z-index: 1000;
     display: flex;
     flex-direction: column;
-    padding: 14px 18px;
+    padding: 10px 12px;
     font-family: var(--font-body);
-    color: var(--primary-font);
+    color: var(--sidebar-ink);
     overflow: visible;
 }
 
@@ -19,33 +25,34 @@
 .logoContainer {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border-soft);
+    gap: 9px;
+    min-height: 35px;
+    padding: 0 3px 9px;
+    border-bottom: 1px solid var(--sidebar-border);
 }
 
 .logoMark {
-    width: 34px;
-    height: 34px;
-    border-radius: 11px;
-    background: var(--accent-grad);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #344f61;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 16px -6px var(--accent);
     flex-shrink: 0;
 }
 
 .logoWrapperText h1 {
-    font: 800 17px var(--font-display);
-    color: var(--primary-font);
+    font: 700 14px var(--font-display);
+    color: var(--sidebar-ink);
     line-height: 1.1;
     margin: 0;
 }
 
 .logoWrapperText p {
-    font: 600 11px var(--font-body);
-    color: var(--label-font);
+    font: 500 9.5px var(--font-body);
+    color: var(--sidebar-muted);
+    letter-spacing: .02em;
     margin: 0;
 }
 
@@ -108,21 +115,23 @@
 
 /* ---- Tools ---- */
 .toolsContainer {
-    margin-top: 14px;
+    margin-top: 12px;
 }
 
 .toolsLabel {
-    font: 700 11px var(--font-body);
-    color: var(--label-font);
-    letter-spacing: .08em;
+    display: block;
+    padding: 0 6px;
+    font: 650 9px var(--font-body);
+    color: #82909a;
+    letter-spacing: .11em;
     text-transform: uppercase;
 }
 
 .toolsList {
     display: flex;
     flex-direction: column;
-    gap: 7px;
-    margin-top: 8px;
+    gap: 2px;
+    margin-top: 5px;
 }
 
 /* ---- My documents ---- */
@@ -133,7 +142,7 @@
 /* ---- Footer ---- */
 .sidebarFooter {
     margin-top: auto;
-    padding-top: 12px;
+    padding-top: 8px;
     display: flex;
     flex-direction: column;
 }
@@ -194,17 +203,18 @@
 .profileRow {
     display: flex;
     align-items: center;
-    gap: 9px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-soft);
+    gap: 7px;
+    margin-top: 8px;
+    padding: 9px 3px 0;
+    border-top: 1px solid var(--sidebar-border);
 }
 
 .avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: #8FB0DB;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: #c7d4dc;
+    box-shadow: inset 0 0 0 1px #b8c7d0;
     flex-shrink: 0;
 }
 
@@ -214,31 +224,31 @@
 }
 
 .profileName {
-    font: 700 13px var(--font-body);
-    color: var(--ink-2);
+    font: 600 11px var(--font-body);
+    color: var(--sidebar-ink);
 }
 
 .profilePlan {
-    font: 600 11px var(--font-body);
-    color: var(--label-font);
+    font: 500 9.5px var(--font-body);
+    color: var(--sidebar-muted);
 }
 
 .logout {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
-    background: var(--secondary-bg);
-    border: 1px solid var(--border);
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid transparent;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--secondary-font);
-    font-size: 16px;
+    color: var(--sidebar-muted);
+    font-size: 13px;
     cursor: pointer;
     transition: color .15s, border-color .15s;
 }
 
 .logout:hover {
-    color: var(--accent);
-    border-color: var(--accent-soft);
+    color: var(--sidebar-accent);
+    background: var(--sidebar-hover);
 }
