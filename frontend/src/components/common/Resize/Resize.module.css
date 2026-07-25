@@ -46,6 +46,20 @@
     cursor: ne-resize;
 }
 
+.roundTextareaLeft {
+    left: -18px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: ew-resize;
+}
+
+.roundTextareaRight {
+    right: -18px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: ew-resize;
+}
+
 .roundCenterLeft {
     left: -42px;
     top: 50%;

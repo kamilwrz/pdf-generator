@@ -1296,8 +1296,8 @@ export function useA4Elements(titleRef) {
           let w = element.width;
           let l = element.left;
           const MIN_W = 40;
-          if (direction === "bottom-right" || direction === "top-right") { w += moveX; }
-          else if (direction === "bottom-left" || direction === "top-left") { w -= moveX; l += moveX; }
+          if (direction === "bottom-right" || direction === "top-right" || direction === "center-right") { w += moveX; }
+          else if (direction === "bottom-left" || direction === "top-left" || direction === "center-left") { w -= moveX; l += moveX; }
           if (l < 0) { w += l; l = 0; }
           w = Math.max(MIN_W, Math.min(A4_WIDTH - l, w));
           // Auto-height template fields are measured by the rendered canvas
