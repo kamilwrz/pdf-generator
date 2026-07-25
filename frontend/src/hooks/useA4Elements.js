@@ -440,11 +440,12 @@ export function useA4Elements(titleRef) {
     );
     const groupDrag = groupDragRef.current;
     const origin = groupDrag?.origins.get(elementId);
-    if (groupDrag?.elementIds.has(elementId) && groupDrag.elementIds.size > 1 && origin) {
+    if (groupDrag?.elementIds.has(elementId) && origin) {
       setGroupMoveDelta({
         x: Math.round((currentDragged.left + clampedDelta.deltaX - origin.left) * 10) / 10,
         y: Math.round((currentDragged.top + clampedDelta.deltaY - origin.top) * 10) / 10,
         count: groupDrag.elementIds.size,
+        elementId,
       });
     }
 
@@ -507,7 +508,7 @@ export function useA4Elements(titleRef) {
           && (element.page ?? 1) === (dragged.page ?? 1)
         ))
         : [dragged].filter(Boolean);
-      if (group.length > 1) {
+      if (group.length > 0) {
         groupDragRef.current = {
           elementIds: new Set(group.map((element) => element.element_id)),
           origins: new Map(group.map((element) => [
@@ -515,7 +516,7 @@ export function useA4Elements(titleRef) {
             { left: Number(element.left) || 0, top: Number(element.top) || 0 },
           ])),
         };
-        setGroupMoveDelta({ x: 0, y: 0, count: group.length });
+        setGroupMoveDelta({ x: 0, y: 0, count: group.length, elementId });
       } else {
         groupDragRef.current = null;
         setGroupMoveDelta(null);

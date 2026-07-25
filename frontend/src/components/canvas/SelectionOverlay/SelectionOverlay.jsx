@@ -44,15 +44,23 @@ export default function SelectionOverlay({ elements }) {
         [canvasElements, currentPage]
     );
 
+    const dragged = groupMoveDelta
+        ? canvasElements.find((element) => (
+            element.element_id === groupMoveDelta.elementId
+            && (element.page ?? 1) === currentPage
+        ))
+        : null;
+    const displayed = selected.length > 0 ? selected : [dragged].filter(Boolean);
+
     // Text uses its own light background highlight — framing it caused jitter.
-    const framed = selected.filter((element) => element.category !== "text");
-    const isMulti = selected.length > 1;
-    if (framed.length === 0 && !isMulti) return null;
+    const framed = displayed.filter((element) => element.category !== "text");
+    const isMulti = displayed.length > 1;
+    if (displayed.length === 0 || (framed.length === 0 && !isMulti && !groupMoveDelta)) return null;
     const frames = framed.map((element) => ({
         id: element.element_id,
         ...frameForElement(element),
     }));
-    const groupFrames = (frames.length > 0 ? frames : selected.map((element) => ({
+    const groupFrames = (frames.length > 0 ? frames : displayed.map((element) => ({
         id: element.element_id,
         ...frameForElement(element),
     })));
@@ -99,10 +107,10 @@ export default function SelectionOverlay({ elements }) {
                     style={{ left: groupBox.left, top: groupBox.top }}
                 >
                     <span className={classes.badgeDot} />
-                    {selected.length} zaznaczone
+                    {displayed.length} zaznaczone
                 </div>
             )}
-            {isMulti && groupMoveDelta && (
+            {groupMoveDelta && (
                 <div
                     className={classes.deltaBadge}
                     style={{ left: groupBox.left, top: groupBox.bottom }}
