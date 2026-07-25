@@ -984,69 +984,136 @@ and reused, not rebuilt.
   this is app-level structured logging only, not a new monitoring system;
   revisit if/when M0's Sentry wiring lands.
 
-## Failure Modes (this review's new codepaths)
+## Failure Modes (this review's new codepaths, updated post-Outside-Voice)
 ```
 CODEPATH                          | FAILURE MODE            | RESCUED? | TEST?  | USER SEES        | LOGGED?
 ------------------------------------|--------------------------|----------|--------|-------------------|--------
-POST /events/log (new, Issue 1)   | Write fails/times out    | Y (fire-and-forget) | Y (T-test-1b) | Nothing — action proceeds normally | Y (server-side, best-effort)
-AIServiceError handler (T8 revised) | OpenAI timeout/rate-limit/malformed JSON | Y (centralized handler) | Y (T-test-8) | Generic Polish message, no leak | Y
+POST /events/log (revised: auth+schema) | Write fails/times out | Y (fire-and-forget) | Y (T-test-1b) | Nothing — action proceeds normally | Y (server-side, best-effort)
+POST /events/log                  | Unauthenticated request | Y (401 via verify_token) | Y (T-test-1b) | 401, request rejected | N (rejected before write)
+POST /events/log                  | Malformed/out-of-allowlist payload | Y (422 via Pydantic schema) | Y (T-test-1b) | 422, request rejected | N
+AIServiceError handler (T8, except-block narrowed) | OpenAI timeout/rate-limit/malformed JSON | Y (centralized handler, NOW verified to actually fire — see T-test-8 extended) | Y (T-test-8) | Generic Polish message, no leak | Y
+AiAssistant open-rate logging (in-route, user.id not username) | Log write fails | Y (fire-and-forget, same as events endpoint) | Y (T-test-1b) | Nothing — call proceeds normally | Y (best-effort)
 ```
 No row has RESCUED=N + TEST=N + USER SEES=Silent — zero critical gaps.
 
-## Worktree parallelization strategy
+## Worktree parallelization strategy (revised, Outside Voice finding 2)
 | Step | Modules touched | Depends on |
 |------|-----------------|------------|
-| T1 (feature flag) | `frontend/src/config/`, `frontend/src/components/editor/Topbar/`, `frontend/src/pages/` | — |
-| T1b (events + logging) | `backend/app/api/routes/` (new), `frontend/src/components/modals/TemplatesModal/`, `frontend/src/pages/` | — |
+| T1 (feature flag + Cennik placeholder) | `frontend/src/config/`, `frontend/src/components/editor/Topbar/`, `frontend/src/pages/` (incl. `Hero.jsx`) | — |
+| T1b (events + logging) | `backend/app/api/routes/` (new `events.py`), **`backend/app/main.py`**, `frontend/src/components/modals/TemplatesModal/`, `frontend/src/pages/` | shares `main.py` with T8 |
 | T3 (renames) | `frontend/src/components/editor/Topbar/`, `frontend/src/components/ai/AiAssistant/` | — |
 | T4 (pdfsLoaded) | `frontend/src/pages/`, `frontend/src/store/`, `frontend/src/components/modals/TemplatesModal/` | — |
-| T8 (exception_handler) | `backend/app/services/`, `backend/app/api/routes/`, `backend/app/main.py` | — |
+| T8 (exception_handler) | `backend/app/services/`, `backend/app/api/routes/`, **`backend/app/main.py`** | shares `main.py` with T1b |
 
-T1, T1b, T3, T4 all touch `frontend/src/pages/PdfCanvas.jsx` — shared file,
-not a hard dependency, but sequential merge (not parallel edit) recommended
-to avoid conflicts. T8 is fully independent (backend-only).
+**[Corrected, Outside Voice finding 2]:** T8 is NOT fully independent — both
+T1b and T8 edit `backend/app/main.py` (T1b registers the events router, T8
+registers the exception handler). T1, T1b, T3, T4 all touch
+`frontend/src/pages/PdfCanvas.jsx` — shared file, sequential merge
+recommended.
 
-**Execution order:** Launch T8 in its own worktree (independent). Launch
-T1/T1b/T3/T4 sequentially in a second lane (shared `PdfCanvas.jsx`) — or in
-separate worktrees with careful merge order if parallelizing further,
-prioritizing T1b first since T1/T3/T4 don't depend on it but Issue 1's events
-endpoint is a prerequisite for T1b's own frontend logging calls.
+**Execution order (revised):** T1b and T8 cannot safely run in fully
+parallel worktrees due to the shared `main.py` edit — land one first (T1b
+recommended first, since T8's except-block narrowing is a small, low-conflict
+diff to layer on after), then the other. T1/T3/T4 can proceed in a separate
+sequential lane (shared `PdfCanvas.jsx`) in parallel with the T1b→T8 lane.
 
-## Implementation Tasks (Phase 1a, revised)
+## Implementation Tasks (Phase 1a, revised — 2 rounds: eng review + Outside Voice)
 The CEO plan's original T1, T1b, T3, T4, T8 stand with the following
-amendments from this eng review:
-- **T1b (revised):** now logs 2 metrics (not 3) via a new `POST /events/log`
-  endpoint; fire-and-forget; export-time-score metric moved to Phase 2.
-- **T8 (revised):** implemented via `AIServiceError` +
-  `@app.exception_handler()` in `main.py`, not inline per-route try/except.
-- **New:** T-test-1, T-test-1b, T-test-3 (specs above).
+amendments:
+- **T1 (revised):** adds a static "coming soon, no form" placeholder to
+  Hero.jsx's Cennik link (Outside Voice finding 6) — no email field, that
+  ships in Phase 1b with T2.
+- **T1b (revised):** logs 2 metrics via 2 distinct mechanisms — AiAssistant
+  open rate stays in-route in `ai_assistant.py` (logging `user.id`, not
+  username — finding 7); template-first completion rate goes through a new
+  `POST /events/log` endpoint, now gated behind `Depends(verify_token)` +
+  Pydantic schema (finding 4), registered in `main.py` (finding 2).
+  Export-time-score metric moved to Phase 2. Fire-and-forget throughout.
+- **T8 (revised — CRITICAL fix):** implemented via `AIServiceError` +
+  `@app.exception_handler()` in `main.py`, **with the route's existing
+  `except Exception` block explicitly narrowed** so `AIServiceError`
+  actually reaches the handler (finding 1 — the original fix as scoped was a
+  no-op bug).
+- **New:** T-test-1, T-test-1b (split per mechanism), T-test-3,
+  T-test-cennik, T-test-8 (extended) — specs above.
 
 _No new tasks from Performance review — zero findings._
+
+## Outside Voice (Eng-stage)
+Ran after Sections 1-4 completed, via Claude subagent (Codex not installed —
+same fallback as the CEO-stage review). Given full repo access and told to
+verify every claim against actual source rather than trust the plan's
+description. Found 7 issues, all verified against real code before being
+presented to the owner, all 7 accepted:
+
+1. **T8's exception_handler fix was a no-op bug** — the route's own
+   `except Exception` catches `AIServiceError` first. **CRITICAL** —
+   verified directly against `ai_assistant.py:50-58`.
+2. **`main.py` is a hidden shared dependency** between T1b and T8, breaking
+   the "T8 fully independent" parallelization claim. Verified against
+   `main.py`'s actual router-registration pattern.
+3. **The Phase 1a/1b file-count split was self-contradicted** by this same
+   review's own Section 1 fix (`events.py` pushed Phase 1a back over the
+   8-file threshold T2 was split out for). Re-confirmed at ~10 files with
+   owner sign-off rather than fragmenting into a 3rd phase.
+4. **The new events endpoint had no auth/schema/rate-limit**, and it's the
+   sole data source gating the Phase 2 go/no-go decision — verified no
+   rate-limiting library exists anywhere in this backend. Fixed with
+   `verify_token` + Pydantic schema.
+5. **Section 1 and Section 3 contradicted each other** on where AiAssistant
+   logging lives (in-route vs. via events endpoint) — a cross-check this
+   review's own sections should have caught internally. Diagram corrected.
+6. **A decision the CEO plan explicitly delegated to this eng review
+   ("pin down what happens to the dead Cennik link") was dropped entirely.**
+   Never mentioned anywhere in Sections 1-4. Resolved: static placeholder in
+   T1, no form until Phase 1b.
+7. **"log user id" had no defined source and, once checked, turned out to be
+   `user.username` (`auth.py:35`)** — an identifiable handle written into a
+   persistent, indefinitely-retained log on every AI call and template pick,
+   with none of the GDPR care this document applied to a one-shot mailto
+   link. Fixed: log numeric `user.id` instead.
+
+**CROSS-MODEL TENSION:** All 7 outside-voice findings were verified,
+concrete, and accepted without contest — no unresolved disagreement between
+this eng review and the outside voice. The tension was entirely
+self-correction: several of my own review's fixes were under-specified or
+actively broken in ways the outside voice caught by reading the real code
+instead of trusting the plan's own description of itself.
 
 ## Completion Summary
 ```
 +====================================================================+
 |              ENG PLAN REVIEW — COMPLETION SUMMARY                  |
 +====================================================================+
-| Step 0               | Scope reduced: 13 files → Phase 1a (8) +    |
-|                       | Phase 1b (5, T2, separate review)           |
-| Architecture Review   | 3 issues found, 3 accepted                  |
-| Code Quality Review   | 1 issue found, 1 accepted                   |
-| Test Review           | diagram produced, 3 gaps, 3 accepted        |
+| Step 0               | Scope reduced: 13 files → Phase 1a (~10,     |
+|                       | corrected post-Outside-Voice) + Phase 1b     |
+|                       | (5, T2, separate review)                     |
+| Architecture Review   | 3 issues found, 3 accepted; +1 post-OV      |
+| Code Quality Review   | 1 issue found, 1 accepted; 1 CRITICAL bug   |
+|                       | in that fix caught + fixed post-OV          |
+| Test Review           | diagram produced, 3 gaps, 3 accepted;       |
+|                       | diagram corrected + 2 tests added post-OV   |
 | Performance Review    | 0 issues found                              |
+| Outside Voice (eng)   | 7 findings, all verified against real code, |
+|                       | all 7 accepted                              |
 | NOT in scope          | written (3 items)                           |
 | What already exists   | written                                     |
 | TODOS.md updates      | 0 items proposed                            |
-| Failure modes         | 2 total, 0 critical gaps                    |
-| Outside voice         | see below                                   |
-| Parallelization       | 2 lanes (T8 independent; T1/T1b/T3/T4       |
-|                       | sequential, shared PdfCanvas.jsx)            |
-| Lake Score            | 5/5 recommendations chose complete option   |
+| Failure modes         | 5 total, 0 critical gaps                    |
+| Outside voice (eng)   | ran (claude fallback); 7 findings, 7 accepted|
+| Parallelization       | revised post-OV: T1b→T8 serialized (shared  |
+|                       | main.py), T1/T3/T4 sequential lane (shared  |
+|                       | PdfCanvas.jsx), 2 lanes total                |
+| Lake Score            | 12/12 recommendations chose complete option |
+|                       | (5 eng-review + 7 outside-voice)             |
 +====================================================================+
 ```
 
 ### Unresolved Decisions (this review)
-None — all 5 findings resolved via AskUserQuestion, all recommended options accepted.
+None — all 5 eng-review findings and all 7 outside-voice findings resolved
+via AskUserQuestion, all recommended options accepted. One prior gap closed:
+the CEO plan's delegated "pin down the Cennik link" decision (outside-voice
+finding 6) is now resolved, not dropped.
 
 ---
 
@@ -1055,13 +1122,13 @@ None — all 5 findings resolved via AskUserQuestion, all recommended options ac
 | Review | Trigger | Why | Runs | Status | Findings |
 |--------|---------|-----|------|--------|----------|
 | CEO Review | `/plan-ceo-review` | Scope & strategy | 3 | CLEAR | Positioning reversed to CV-only (logged decision); Approach B selected; 7 scope proposals, 7 accepted, 1 deferred |
-| Codex Review | `/codex review` | Independent 2nd opinion | 2 | issues_found (claude fallback, both runs) | CEO-stage: 7 findings, 4 substantive, all accepted. Eng-stage: see below |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | CLEAR (Phase 1a only) | 5 issues found (3 architecture, 1 code quality, 3 test gaps folded into 1 count-adjusted item), all accepted; Phase 1b (T2) not yet reviewed |
+| Codex Review | `/codex review` | Independent 2nd opinion | 2 | issues_found (claude fallback, both runs) | CEO-stage: 7 findings, 4 substantive, all accepted. Eng-stage: 7 findings, all verified against real code, all 7 accepted |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | CLEAR (Phase 1a only) | 5 findings (3 architecture, 1 code quality, 1 test-diagram gap) + 7 outside-voice findings, all 12 accepted; Phase 1b (T2) not yet reviewed |
 | Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | Not run this session — recommended given significant UI scope in Phase 1a (T1, T3, T4) |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | Not run this session |
 
-**CODEX:** Codex CLI not installed — both CEO-stage and eng-stage outside voice ran via Claude subagent fallback.
-**CROSS-MODEL:** Eng-stage outside voice runs next, findings appended below once complete.
-**VERDICT:** CEO CLEARED. Eng Review CLEAR for Phase 1a only — Phase 1b (T2, waitlist table/endpoint) requires its own separate eng review before it ships. Design review recommended but not blocking.
+**CODEX:** Codex CLI not installed — both CEO-stage and eng-stage outside voice ran via Claude subagent fallback with full repo access and instructions to verify every claim against real source rather than trust the plan's own description.
+**CROSS-MODEL:** No unresolved disagreement — eng-stage outside voice found 7 concrete, verified issues (including one CRITICAL bug: the exception_handler fix as originally scoped would not have fired) and all 7 were accepted without contest. The value here was catching under-specified or actually-broken fixes within this review's own output, not a genuine two-model disagreement.
+**VERDICT:** CEO CLEARED. Eng Review CLEAR for Phase 1a (T1, T1b, T3, T4, T8 — ~10 files after the outside-voice-corrected count) — ready to implement. Phase 1b (T2, waitlist table/endpoint) requires its own separate eng review before it ships; do not implement T2 against this report. Design review recommended but not blocking.
 
 NO UNRESOLVED DECISIONS
