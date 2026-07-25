@@ -40,7 +40,7 @@ construction. No backend or schema change of any kind.
 autosave snapshot, not in undo/redo history (it lives outside `A4_Elements`
 entirely, so it's naturally excluded), and reset to 100% on load. A saved CV
 does not remember a zoom level. Exposed through context as `zoom`, plus
-`zoomIn`/`zoomOut`/`setZoom` actions (each clamps to [0.25, 3.0]).
+`zoomIn`/`zoomOut` actions (each clamps to [0.25, 3.0]).
 
 **Visual scaling** (`A4.jsx` + `A4.module.css`): `A4` takes a `zoom` prop and
 wraps `#A4` in a sizing div. The wrapper's width/height are the *scaled*
