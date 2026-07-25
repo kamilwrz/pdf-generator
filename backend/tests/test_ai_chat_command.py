@@ -190,6 +190,51 @@ class ChatCommandTests(unittest.TestCase):
         changed = {p["element_id"]: p["top"] for p in result["layout_groups"][0]["patches"]}
         self.assertEqual(changed, {"title-1": 70.0, "desc-1": 88.0})
 
+    def test_dispatcher_resolves_exact_spacing_within_a_work_history_block(self):
+        elements = [
+            {
+                "element_id": "pwc-role", "category": "text", "content": "Konsultant",
+                "fontSize": 12, "bold": True, "italic": False, "align": "left",
+                "left": 20, "top": 40, "width": 150, "height": 10, "page": 1,
+            },
+            {
+                "element_id": "pwc-company", "category": "text", "content": "PwC · 2022–2024",
+                "fontSize": 11, "bold": False, "italic": False, "align": "left",
+                "left": 20, "top": 54, "width": 150, "height": 8, "page": 1,
+            },
+            {
+                "element_id": "pwc-description", "category": "textarea", "content": "Opis obowiązków.",
+                "fontSize": 11, "bold": False, "italic": False, "align": "left",
+                "left": 20, "top": 66, "width": 150, "height": 20, "page": 1,
+            },
+        ]
+
+        def fake_gpt(system, user):
+            self.assertIn('"type": "shift"|"align"|"distribute"|"space"', system)
+            self.assertIn("ustaw odstępy 10 px", system)
+            return {
+                "message": "Ustawiłem odstępy 10 px w bloku PwC.",
+                "corrections": [],
+                "position_operation": {
+                    "type": "space",
+                    "target_element_ids": ["pwc-role", "pwc-company", "pwc-description"],
+                    "axis": "y",
+                    "gap": 10,
+                },
+            }
+
+        with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
+            result = ai_assistant_service.analyze_action(
+                action="chat",
+                elements=elements,
+                message="ustaw odstępy 10 px między elementami w bloku PwC",
+                page_size={"width": 595, "height": 842},
+            )
+
+        self.assertEqual(result["layout_issues"], [])
+        changed = {patch["element_id"]: patch["top"] for patch in result["layout_groups"][0]["patches"]}
+        self.assertEqual(changed, {"pwc-company": 60.0, "pwc-description": 78.0})
+
 
 if __name__ == "__main__":
     unittest.main()

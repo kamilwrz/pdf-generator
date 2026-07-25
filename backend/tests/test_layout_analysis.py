@@ -178,6 +178,21 @@ class DirectedOperationTests(unittest.TestCase):
         group = layout_analysis.resolve_distribute(items, {"first", "last"}, "y", 100, 100)
         self.assertIsNone(group)
 
+    def test_space_sets_an_exact_gap_between_each_selected_element(self):
+        items = layout_analysis.extract_bounds([
+            block("role", 10, 10, width=40, height=10),
+            block("company", 10, 24, width=40, height=8),
+            block("description", 10, 36, width=40, height=12),
+        ])
+
+        group = layout_analysis.resolve_space(
+            items, {"role", "company", "description"}, "y", 10.0, 100, 100
+        )
+
+        self.assertIsNotNone(group)
+        changed = {patch["element_id"]: patch["top"] for patch in group["patches"]}
+        self.assertEqual(changed, {"company": 30.0, "description": 48.0})
+
     def test_resolve_directed_operation_rejects_targets_spanning_multiple_pages(self):
         elements = [
             block("one", 10, 10, page=1),
@@ -312,6 +327,28 @@ class DirectedOperationTests(unittest.TestCase):
         self.assertEqual(len(result["layout_groups"]), 1)
         changed = {p["element_id"]: p["top"] for p in result["layout_groups"][0]["patches"]}
         self.assertEqual(changed, {"b-title": 25.0, "b-desc": 31.0})
+
+    def test_single_target_group_spaces_its_members_individually(self):
+        elements = [
+            block("role", 10, 10, width=40, height=10),
+            block("company", 10, 24, width=40, height=8),
+            block("description", 10, 36, width=40, height=12),
+        ]
+
+        result = layout_analysis.resolve_directed_operation(
+            elements,
+            {
+                "type": "space",
+                "target_groups": [["role", "company", "description"]],
+                "axis": "y",
+                "gap": 10,
+            },
+            PAGE_SIZE,
+        )
+
+        self.assertEqual(result["layout_issues"], [])
+        changed = {patch["element_id"]: patch["top"] for patch in result["layout_groups"][0]["patches"]}
+        self.assertEqual(changed, {"company": 30.0, "description": 48.0})
 
     def test_target_groups_align_moves_blocks_to_a_shared_value(self):
         elements = [

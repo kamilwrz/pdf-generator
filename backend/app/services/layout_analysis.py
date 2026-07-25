@@ -445,7 +445,7 @@ def analyze_layout(elements: list[dict[str, Any]], page_size: dict[str, Any] | N
 # _group/_is_safe_group safety net the deterministic scanner above uses.
 
 _MIN_DISTRIBUTE_TARGETS = MIN_CLUSTER_SIZE
-_VALID_OPERATIONS = {"shift", "align", "distribute"}
+_VALID_OPERATIONS = {"shift", "align", "distribute", "space"}
 _VALID_AXES = {"x", "y"}
 _VALID_ANCHORS = {"start", "center", "end"}
 _NO_CHANGE = "no_change"
@@ -597,6 +597,51 @@ def resolve_distribute(
     )
 
 
+def resolve_space(
+    items: list[dict[str, Any]],
+    target_ids: set[str],
+    axis: str,
+    gap: float,
+    page_width: float,
+    page_height: float,
+) -> dict[str, Any] | str | None:
+    """Set an exact edge-to-edge gap while holding the first target in place."""
+    targets = [item for item in items if item["element_id"] in target_ids]
+    if len(targets) < 2 or gap < 0:
+        return None
+
+    pos_key = "left" if axis == "x" else "top"
+    size_key = "width" if axis == "x" else "height"
+    ordered = sorted(targets, key=lambda item: item[pos_key])
+
+    patches = []
+    cursor = ordered[0][pos_key] + ordered[0][size_key] + gap
+    for item in ordered[1:]:
+        new_pos = round(cursor, 2)
+        if abs(new_pos - item[pos_key]) > EPSILON:
+            patches.append({
+                "element_id": item["element_id"],
+                "left": new_pos if axis == "x" else round(item["left"], 2),
+                "top": new_pos if axis == "y" else round(item["top"], 2),
+            })
+        cursor = new_pos + item[size_key] + gap
+
+    if not patches:
+        return _NO_CHANGE
+
+    return _group(
+        group_id="directed-space",
+        title=f"Ustaw odstępy {gap:g}px między {len(targets)} elementami",
+        reason=f"Bezpośrednie polecenie ustawienia stałego odstępu {gap:g}px.",
+        severity="review",
+        patches=patches,
+        items=items,
+        page_width=page_width,
+        page_height=page_height,
+        allow_overlap=True,
+    )
+
+
 def _block_bbox(members: list[dict[str, Any]]) -> dict[str, float] | None:
     """Union bounding box of a block's member elements — the block moves as
     this single rigid shape; members keep their position relative to it."""
@@ -670,9 +715,13 @@ def _resolve_block_operation(
         raw_target = directive.get("target")
         target = _number(raw_target) if raw_target is not None else None
         group = resolve_align(block_items, block_target_ids, axis, anchor, target, page_width, page_height)
-    else:
+    elif op_type == "distribute":
         axis = directive.get("axis") if directive.get("axis") in _VALID_AXES else "y"
         group = resolve_distribute(block_items, block_target_ids, axis, page_width, page_height)
+    else:
+        axis = directive.get("axis") if directive.get("axis") in _VALID_AXES else "y"
+        gap = _number(directive.get("gap"), -1.0)
+        group = resolve_space(block_items, block_target_ids, axis, gap, page_width, page_height)
 
     if group == _NO_CHANGE:
         return {
@@ -740,11 +789,17 @@ def resolve_directed_operation(
     if op_type not in _VALID_OPERATIONS:
         return _issue("Nie rozpoznano poprawnego polecenia dotyczącego pozycji elementów.")
 
+    raw_ids = directive.get("target_element_ids") if isinstance(directive, dict) else None
     raw_groups = directive.get("target_groups") if isinstance(directive, dict) else None
     if isinstance(raw_groups, list) and raw_groups:
-        return _resolve_block_operation(items, op_type, directive, raw_groups, page_width, page_height)
+        # A single group with `space` means spacing its own members (such as
+        # role, employer/date, and description within one work-history entry).
+        # Multiple groups still mean rigid blocks that receive gaps between them.
+        if op_type == "space" and len(raw_groups) == 1 and isinstance(raw_groups[0], list):
+            raw_ids = raw_groups[0]
+        else:
+            return _resolve_block_operation(items, op_type, directive, raw_groups, page_width, page_height)
 
-    raw_ids = directive.get("target_element_ids") if isinstance(directive, dict) else None
     target_ids = {str(i) for i in raw_ids} if isinstance(raw_ids, list) else set()
     if not target_ids:
         return _issue("Nie rozpoznano poprawnego polecenia dotyczącego pozycji elementów.")
@@ -767,9 +822,13 @@ def resolve_directed_operation(
         raw_target = directive.get("target")
         target = _number(raw_target) if raw_target is not None else None
         group = resolve_align(items, target_ids, axis, anchor, target, page_width, page_height)
-    else:
+    elif op_type == "distribute":
         axis = directive.get("axis") if directive.get("axis") in _VALID_AXES else "y"
         group = resolve_distribute(items, target_ids, axis, page_width, page_height)
+    else:
+        axis = directive.get("axis") if directive.get("axis") in _VALID_AXES else "y"
+        gap = _number(directive.get("gap"), -1.0)
+        group = resolve_space(items, target_ids, axis, gap, page_width, page_height)
 
     if group == _NO_CHANGE:
         return {
