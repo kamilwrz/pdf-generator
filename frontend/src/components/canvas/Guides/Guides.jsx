@@ -1,22 +1,31 @@
 import classes from "./Guides.module.css";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
+import { getElementBounds } from "../../../utils/elementBounds";
 
 const THRESHOLD = 4; // px — how close counts as "aligned"
 const PAD = 8;       // px — how far the guide extends past the outermost element
 
 // Left / center / right x-coordinates of an element.
 function xAnchors(el) {
-    const w = parseFloat(el.width) || 0;
-    return [el.left, el.left + w / 2, el.left + w];
+    const left = Number(el.left) || 0;
+    const { width } = getElementBounds(el);
+    return [left, left + width / 2, left + width];
 }
 // Top / middle / bottom y-coordinates of an element.
 function yAnchors(el) {
-    const h = parseFloat(el.height) || 0;
-    return [el.top, el.top + h / 2, el.top + h];
+    const top = Number(el.top) || 0;
+    const { height } = getElementBounds(el);
+    return [top, top + height / 2, top + height];
 }
-const boundsX = (el) => [el.left, el.left + (parseFloat(el.width) || 0)];
-const boundsY = (el) => [el.top, el.top + (parseFloat(el.height) || 0)];
+const boundsX = (el) => {
+    const left = Number(el.left) || 0;
+    return [left, left + getElementBounds(el).width];
+};
+const boundsY = (el) => {
+    const top = Number(el.top) || 0;
+    return [top, top + getElementBounds(el).height];
+};
 const clamp = (v, max) => Math.max(0, Math.min(v, max));
 
 // Pick the single closest alignment on one axis: compare each moving anchor to

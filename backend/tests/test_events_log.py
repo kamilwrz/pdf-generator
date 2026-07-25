@@ -1,3 +1,4 @@
+import logging
 import unittest
 
 from fastapi.testclient import TestClient
@@ -68,6 +69,21 @@ class EventsLogTests(unittest.TestCase):
             headers={"Authorization": "Bearer fake"},
         )
         self.assertEqual(response.status_code, 422)
+
+    def test_logging_is_configured_so_info_logs_are_not_silently_dropped(self):
+        # Regression test for a bug caught during live verification: without
+        # logging.basicConfig() (or equivalent) at app startup, the root
+        # logger has no handler, so every logger.info() call in this app
+        # (events.py, ai_assistant.py) is silently dropped — no exception,
+        # no output, nothing. The metrics this endpoint exists to produce
+        # would never actually reach anywhere queryable.
+        self.assertTrue(
+            logging.getLogger().handlers,
+            "Root logger has no handlers — logger.info() calls are silently "
+            "dropped. app.main must call logging.basicConfig() (or equivalent) "
+            "at import time.",
+        )
+        self.assertLessEqual(logging.getLogger().getEffectiveLevel(), logging.INFO)
 
     def test_dismissed_event_without_template_id_is_accepted(self):
         app.dependency_overrides[verify_token] = _fake_verify_token

@@ -77,6 +77,7 @@ export function useA4Elements(titleRef) {
   const draggedElementIdsRef = useRef(new Set());
   const activeDragElementIdRef = useRef(null);
   const crossPageDragRef = useRef(false);
+  const dragDimensionsRef = useRef(null);
   const groupDragRef = useRef(null);
   const reflowPageCountRef = useRef(null);
   const layoutTargetPageRef = useRef(null);
@@ -404,7 +405,19 @@ export function useA4Elements(titleRef) {
     const scaleY = canvasRect.height / pageSizeRef.current.height;
     if (!scaleX || !scaleY) return;
 
-    const { width, height } = getElementBounds(currentDragged);
+    const sourceCanvasRect = canvasForPage(sourcePage)?.getBoundingClientRect();
+    if (e.currentTarget && e.currentTarget !== window && sourceCanvasRect) {
+      const elementRect = e.currentTarget.getBoundingClientRect();
+      const sourceScaleX = sourceCanvasRect.width / pageSizeRef.current.width;
+      const sourceScaleY = sourceCanvasRect.height / pageSizeRef.current.height;
+      if (sourceScaleX && sourceScaleY) {
+        dragDimensionsRef.current = {
+          width: elementRect.width / sourceScaleX,
+          height: elementRect.height / sourceScaleY,
+        };
+      }
+    }
+    const { width, height } = dragDimensionsRef.current ?? getElementBounds(currentDragged);
     const pointerX = (e.clientX - canvasRect.left) / scaleX;
     const pointerY = (e.clientY - canvasRect.top) / scaleY;
     const targetLeft = pointerX - width / 2;
@@ -516,6 +529,7 @@ export function useA4Elements(titleRef) {
       draggedElementIdsRef.current.delete(elementId);
       activeDragElementIdRef.current = elementId;
       crossPageDragRef.current = false;
+      dragDimensionsRef.current = null;
       const dragged = elementsRef.current.find((element) => element.element_id === elementId);
       const group = dragged?.isSelected
         ? elementsRef.current.filter((element) => (
@@ -545,6 +559,7 @@ export function useA4Elements(titleRef) {
       window.setTimeout(() => draggedElementIdsRef.current.delete(elementId), 0);
       activeDragElementIdRef.current = null;
       crossPageDragRef.current = false;
+      dragDimensionsRef.current = null;
       groupDragRef.current = null;
       setGroupMoveDelta(null);
     }
@@ -561,6 +576,7 @@ export function useA4Elements(titleRef) {
     const endDrag = () => {
       activeDragElementIdRef.current = null;
       crossPageDragRef.current = false;
+      dragDimensionsRef.current = null;
       groupDragRef.current = null;
       setGroupMoveDelta(null);
       setA4_Elements(prev => prev.some(e => e.isMove)
