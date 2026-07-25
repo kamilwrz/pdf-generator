@@ -93,7 +93,13 @@ function Textarea({
                 style={{ ...boxStyle, ...textStyle }}
                 value={content ?? ""}
                 placeholder="Wpisz swój tekst…"
-                onChange={(e) => editElementValues({ content: e.target.value }, elementId)}
+                onChange={(e) => {
+                    const node = e.target;
+                    node.style.height = "auto";
+                    const measuredHeight = node.scrollHeight;
+                    node.style.height = `${measuredHeight}px`;
+                    editElementValues({ content: node.value, height: measuredHeight }, elementId);
+                }}
                 onBlur={() => setTextareaEditing(elementId, false)}
                 onKeyDown={(e) => {
                     if (e.key === "Escape") {
