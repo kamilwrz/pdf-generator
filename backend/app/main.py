@@ -12,6 +12,11 @@ from app.services.ai_assistant_service import AIServiceError
 from pathlib import Path
 from fastapi.responses import FileResponse
 
+# Without this, logger.info()/logger.error() calls anywhere in the app
+# (ai_assistant, events, etc.) are silently dropped — the root logger has no
+# handler by default, so nothing reaches stdout/Render's log aggregation.
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
 logger = logging.getLogger("ai_assistant")
 
 app = FastAPI()
