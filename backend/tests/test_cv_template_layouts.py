@@ -145,7 +145,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "quarry": "quarry-sidebar.png",
             "moss": "moss-sidebar.png",
             "garnet": "garnet-sidebar.png",
-            "harbor": "harbor-sidebar.png",
+            "harbor": "harbor-sidebar-v3.png",
         }
         expected_categories = {
             "text", "textarea", "line", "rectangle", "circle", "ellipse",

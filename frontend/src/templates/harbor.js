@@ -10,7 +10,7 @@ const MUTE = "#6E7E88";
 const RULE = "#CBD5D9";
 const SANS = "Helvetica";
 const SERIF = "Times-Roman";
-const SIDEBAR = `${API_BASE_URL}/template-assets/harbor-sidebar.png`;
+const SIDEBAR = `${API_BASE_URL}/template-assets/harbor-sidebar-v3.png`;
 
 const bold = (element) => ({ ...element, bold: true });
 const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });

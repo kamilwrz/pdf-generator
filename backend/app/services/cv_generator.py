@@ -1976,7 +1976,7 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
             "side_label": "#F4DEDE", "section": "rectangle",
         },
         "harbor": {
-            "asset": "harbor-sidebar.png", "paper": "#FAFBFB", "ink": "#1D3446",
+            "asset": "harbor-sidebar-v3.png", "paper": "#FAFBFB", "ink": "#1D3446",
             "body": "#1D3446", "accent": "#B78355", "marker": "#527286",
             "muted": "#6E7E88", "rule": "#CBD5D9", "side_text": "#F7FAFB",
             "side_label": "#EAF0F3", "section": "circle",
