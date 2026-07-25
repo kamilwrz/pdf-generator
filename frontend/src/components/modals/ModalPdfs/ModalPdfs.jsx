@@ -85,6 +85,7 @@ export default function ModalPdfs({ title }) {
                         bulletList: element.extra_properties.bulletList ?? false,
                         autoHeight: element.extra_properties.autoHeight ?? false,
                         fixedToPage: element.extra_properties.fixedToPage ?? false,
+                        locked: element.extra_properties.locked ?? false,
                         width: parseFloat(element.width),
                         height: parseFloat(element.height),
                         isEditing: false,
@@ -96,6 +97,7 @@ export default function ModalPdfs({ title }) {
                         zIndex: element.extra_properties.zIndex,
                         borderWidth: element.extra_properties.borderWidth,
                         filled: element.extra_properties.filled ?? false,
+                        locked: element.extra_properties.locked ?? false,
                         source_id: element.extra_properties.source_id,
                         target_id: element.extra_properties.target_id,
                         arrow: element.extra_properties.arrow,
@@ -109,6 +111,7 @@ export default function ModalPdfs({ title }) {
                     bold: element.extra_properties.bold,
                     italic: element.extra_properties.italic,
                     underline: element.extra_properties.underline,
+                        locked: element.extra_properties.locked ?? false,
                 };
             });
 

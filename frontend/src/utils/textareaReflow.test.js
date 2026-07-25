@@ -131,6 +131,25 @@ test("keeps page decorations fixed while text content reflows", () => {
   assert.deepEqual({ page: section.page, top: section.top }, { page: 2, top: 104 });
 });
 
+test("does not shift a position-locked element during textarea reflow", () => {
+  const result = reflowTextareaHeight([
+    textarea(),
+    {
+      element_id: "locked-heading",
+      category: "text",
+      left: 40,
+      top: 144,
+      width: 180,
+      fontSize: 12,
+      page: 1,
+      locked: true,
+    },
+  ], "textarea", 44, 842);
+
+  const heading = result.elements.find((element) => element.element_id === "locked-heading");
+  assert.equal(heading.top, 144);
+});
+
 test("reflows generated single-line text without a stored width", () => {
   const result = reflowTextareaHeight([
     textarea(),

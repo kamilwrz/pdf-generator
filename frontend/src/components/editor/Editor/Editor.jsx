@@ -64,6 +64,7 @@ export default function Editor() {
 
     function handleChangeValues(e, identifier) {
 
+        if (selectedElement.locked && (identifier === "left" || identifier === "top")) return;
         const value = ["fontSize", "height", "width", "lineHeight", "letterSpacing", "left", "top", "borderWidth"].includes(identifier) ? Number(e.target.value) : e.target.value;
         let valueObject = { [identifier]: value }
 
@@ -214,6 +215,7 @@ export default function Editor() {
                 height: selectedElement?.height,
                 borderWidth: selectedElement?.borderWidth,
                 filled: selectedElement?.filled,
+                locked: selectedElement?.locked ?? false,
                 category: selectedElement?.category,
                 zIndex: selectedElement?.zIndex
             };
@@ -374,20 +376,24 @@ export default function Editor() {
                 <button type="button" className={classes.btnDelete} onClick={() => deleteElement(selectedElement.element_id)}>Usuń łącznik<RiDeleteBin2Line /></button>
             </>}
 
+            <label className={classes.pushToggle}>
+                <input type="checkbox" checked={!!selectedElement?.locked} onChange={() => toggleStyle("locked")} />
+                <span>Zablokuj pozycję elementu</span>
+            </label>
             {selectedElement?.category !== "connector" && <>
                 <EditorControls labelText="Widoczność" type="number" inputValue={elementValues.zIndex} onChangeFn={(e) => handleChangeValues(e, "zIndex")} />
 
                 <div className={classes.positionBtnsWrapper}>
-                    <button type="button" onClick={() => alignElement(selectedElement.element_id, "LEFT", selectedElement.width, selectedElement.category)}><CiTextAlignLeft /></button>
-                    <button type="button" onClick={() => alignElement(selectedElement.element_id, "CENTER", selectedElement.width, selectedElement.category)}><CiTextAlignCenter /></button>
-                    <button type="button" onClick={() => alignElement(selectedElement.element_id, "RIGHT", selectedElement.width, selectedElement.category)}><CiTextAlignRight /></button>
+                    <button type="button" disabled={!!selectedElement.locked} onClick={() => alignElement(selectedElement.element_id, "LEFT", selectedElement.width, selectedElement.category)}><CiTextAlignLeft /></button>
+                    <button type="button" disabled={!!selectedElement.locked} onClick={() => alignElement(selectedElement.element_id, "CENTER", selectedElement.width, selectedElement.category)}><CiTextAlignCenter /></button>
+                    <button type="button" disabled={!!selectedElement.locked} onClick={() => alignElement(selectedElement.element_id, "RIGHT", selectedElement.width, selectedElement.category)}><CiTextAlignRight /></button>
                 </div>
                 <div className={classes.elementSize}>
-                    <EditorControls labelText="X (px)" type="number" inputValue={elementValues.left} onChangeFn={(e) => handleChangeValues(e, "left")} />
-                    <EditorControls labelText="Y (px)" type="number" inputValue={elementValues.top} onChangeFn={(e) => handleChangeValues(e, "top")} />
+                    <EditorControls labelText="X (px)" type="number" inputValue={elementValues.left} onChangeFn={(e) => handleChangeValues(e, "left")} isDisabled={!!selectedElement.locked} />
+                    <EditorControls labelText="Y (px)" type="number" inputValue={elementValues.top} onChangeFn={(e) => handleChangeValues(e, "top")} isDisabled={!!selectedElement.locked} />
                 </div>
                 <label className={classes.pushToggle}>
-                    <input type="checkbox" checked={pushBelow} onChange={(e) => setPushBelow(e.target.checked)} />
+                    <input type="checkbox" checked={pushBelow} disabled={!!selectedElement.locked} onChange={(e) => setPushBelow(e.target.checked)} />
                     <span>Przesuwaj elementy poniżej przy zmianie Y</span>
                 </label>
                 <button type="button" className={classes.btnDuplicate} onClick={() => duplicateElement(selectedElement.element_id)}>Duplikuj element<RiFileCopyLine /></button>
@@ -420,7 +426,7 @@ function BulkEditor({
     const editableFields = [
         "fontSize", "color", "fontFamily", "bold", "italic", "underline",
         "align", "lineHeight", "letterSpacing", "width", "height",
-        "backgroundColor", "borderWidth", "filled", "zIndex",
+        "backgroundColor", "borderWidth", "filled", "locked", "zIndex",
     ];
     const hasMixedValues = editableFields
         .filter(supportsField)
@@ -558,6 +564,16 @@ function BulkEditor({
                         onChange={() => onToggleStyle("filled")}
                     />
                     <span>Wypełnione kształty</span>
+                </label>
+            )}
+            {supportsField("locked") && (
+                <label className={classes.pushToggle}>
+                    <input
+                        type="checkbox"
+                        checked={!isValueMixed("locked") && !!valueForField("locked")}
+                        onChange={() => onToggleStyle("locked")}
+                    />
+                    <span>Zablokuj pozycję zaznaczonych</span>
                 </label>
             )}
             {supportsField("zIndex") && (

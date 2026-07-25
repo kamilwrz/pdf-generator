@@ -67,6 +67,8 @@ def _extract_positional(elements: list[dict]) -> list[dict]:
             item["page"] = bounds["page"]
             if bounds.get("fixedToPage"):
                 item["fixedToPage"] = True
+            if bounds.get("locked"):
+                item["locked"] = True
 
     included_ids = {item["element_id"] for item in structured}
     visual_labels = {
@@ -97,6 +99,7 @@ def _extract_positional(elements: list[dict]) -> list[dict]:
             "page": bounds["page"],
             **({"filled": bool(el.get("filled", False))} if category in {"circle", "ellipse"} else {}),
             **({"fixedToPage": True} if bounds.get("fixedToPage") else {}),
+            **({"locked": True} if bounds.get("locked") else {}),
         })
     return structured
 
@@ -620,7 +623,8 @@ def _chat(message: str, elements: list[dict], page_size: dict | None) -> dict:
         "pojedynczy element jest częścią wpisu (np. okres edukacji), a jego tytuł lub uczelnia "
         "jest już na stronie docelowej, ZAWSZE użyj tego powiązanego elementu jako "
         "reference_element_id i dodaj przenoszony element do align_element_ids. Nie przenoś "
-        "elementów z fixedToPage=true; są to tła i stałe dekoracje stron.\n"
+        "elementów z fixedToPage=true ani locked=true; są to tła, stałe dekoracje stron "
+        "lub pozycje zablokowane przez użytkownika.\n"
         "NIGDY sam nie podawaj wartości left/top — Python obliczy rzeczywiste współrzędne na "
         "podstawie bieżącej, aktualnej pozycji elementów i sam odrzuci operację, jeśli wyszłaby "
         "poza stronę.\n"

@@ -7,7 +7,7 @@ from app.services import layout_analysis
 PAGE_SIZE = {"width": 100, "height": 100}
 
 
-def block(element_id, left, top, *, width=12, height=10, page=1, category="textarea"):
+def block(element_id, left, top, *, width=12, height=10, page=1, category="textarea", locked=False):
     return {
         "element_id": element_id,
         "category": category,
@@ -18,6 +18,7 @@ def block(element_id, left, top, *, width=12, height=10, page=1, category="texta
         "page": page,
         "zIndex": 2,
         "content": element_id,
+        "locked": locked,
     }
 
 
@@ -43,6 +44,12 @@ class LayoutAnalysisTests(unittest.TestCase):
         self.assertEqual(correction["element_id"], "off-page")
         self.assertEqual(correction["left"], 88.0)
         self.assertEqual(correction["top"], 20.0)
+
+    def test_automatic_layout_skips_locked_elements(self):
+        result = analyze_layout([block("locked-off-page", 94, 20, locked=True)], PAGE_SIZE)
+
+        self.assertEqual(result["layout_groups"], [])
+        self.assertEqual(result["layout_issues"], [])
 
     def test_rejects_bound_correction_that_would_create_overlap(self):
         result = analyze_layout(
@@ -269,6 +276,21 @@ class DirectedOperationTests(unittest.TestCase):
             "accent-circle": (210.0, 185.0),
             "accent-ellipse": (310.0, 265.0),
         })
+
+    def test_directed_operation_rejects_locked_elements(self):
+        result = layout_analysis.resolve_directed_operation(
+            [block("locked-title", 20, 30, locked=True)],
+            {
+                "type": "shift",
+                "target_element_ids": ["locked-title"],
+                "dx": 10,
+                "dy": 5,
+            },
+            PAGE_SIZE,
+        )
+
+        self.assertEqual(result["layout_groups"], [])
+        self.assertIn("zablokowanego", result["layout_issues"][0]["message"])
 
     def test_move_to_page_transfers_related_elements_and_aligns_them_to_reference(self):
         elements = [

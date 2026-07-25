@@ -40,6 +40,7 @@ export function presetFromDims(width, height) {
 function moveElementsByDelta(elements, elementIds, deltaX, deltaY, pageSize) {
   const movable = elements.filter((element) => (
     elementIds.has(element.element_id)
+    && !element.locked
     && Number.isFinite(Number(element.left))
     && Number.isFinite(Number(element.top))
   ));
@@ -276,6 +277,7 @@ export function useA4Elements(titleRef) {
         arrow: true,
         isSelected: false,
         isMove: false,
+        locked: false,
         zIndex: 50,
         page: currentPageRef.current,
       };
@@ -410,11 +412,13 @@ export function useA4Elements(titleRef) {
 
     setA4_Elements((prevState) => {
       const dragged = prevState.find((element) => element.element_id === elementId);
-      if (!dragged?.isMove) return prevState;
+      if (!dragged?.isMove || dragged.locked) return prevState;
       draggedElementIdsRef.current.add(elementId);
 
       const selectedOnSamePage = prevState.filter((element) => (
-        element.isSelected && (element.page ?? 1) === (dragged.page ?? 1)
+        element.isSelected
+        && !element.locked
+        && (element.page ?? 1) === (dragged.page ?? 1)
       ));
       const movedElements = dragged.isSelected && selectedOnSamePage.length > 1
         ? selectedOnSamePage
@@ -437,7 +441,7 @@ export function useA4Elements(titleRef) {
     setA4_Elements((prevState) => {
       const selectedIds = new Set(
         prevState
-          .filter((element) => element.isSelected)
+          .filter((element) => element.isSelected && !element.locked)
           .map((element) => element.element_id)
       );
       return moveElementsByDelta(
@@ -465,7 +469,7 @@ export function useA4Elements(titleRef) {
     }
     setA4_Elements(prevState => prevState.map((element) => (
       element.element_id === elementId
-        ? { ...element, isMove: !!moving }
+        ? { ...element, isMove: !!moving && !element.locked }
         : { ...element, isMove: false }
     )));
   }, [])
@@ -524,6 +528,7 @@ export function useA4Elements(titleRef) {
       top: 10,
       isSelected: false,
       isMove: false,
+      locked: false,
       category: "text",
       bold: false,
       italic: false,
@@ -546,6 +551,7 @@ export function useA4Elements(titleRef) {
       top: 10,
       isSelected: false,
       isMove: false,
+      locked: false,
       category: "line",
       zIndex: 2,
       page: currentPageRef.current,
@@ -566,6 +572,7 @@ export function useA4Elements(titleRef) {
       height: 80,
       isSelected: false,
       isMove: false,
+      locked: false,
       category: "rectangle",
       zIndex: 2,
       page: currentPageRef.current,
@@ -587,6 +594,7 @@ export function useA4Elements(titleRef) {
       height: 80,
       isSelected: false,
       isMove: false,
+      locked: false,
       category: "circle",
       zIndex: 2,
       page: currentPageRef.current,
@@ -606,6 +614,7 @@ export function useA4Elements(titleRef) {
       height: 80,
       isSelected: false,
       isMove: false,
+      locked: false,
       category: "ellipse",
       zIndex: 2,
       page: currentPageRef.current,
@@ -623,6 +632,7 @@ export function useA4Elements(titleRef) {
       top: 10,
       isSelected: false,
       isMove: false,
+      locked: false,
       category: "image",
       zIndex: 1,
       img_id : e.target.id,
@@ -651,6 +661,7 @@ export function useA4Elements(titleRef) {
       height: measureTextareaHeight("", width, fontSize, lineHeight),
       isSelected: true,
       isMove: false,
+      locked: false,
       isEditing: true,
       bold: false,
       italic: false,
@@ -846,6 +857,12 @@ export function useA4Elements(titleRef) {
     setA4_Elements(prevState => {
       const newState = prevState.map((element) => {
         if (element.element_id === id) {
+          if (
+            element.locked
+            && ("left" in dataObject || "top" in dataObject || "page" in dataObject)
+          ) {
+            return element;
+          }
           return { ...element, ...dataObject };
         } else {
           return element;
@@ -861,6 +878,12 @@ export function useA4Elements(titleRef) {
   const handleEditSelectedElementValues = useCallback((dataObject) => {
     setA4_Elements(prevState => prevState.map((element) => {
       if (!element.isSelected) return element;
+      if (
+        element.locked
+        && ("left" in dataObject || "top" in dataObject || "page" in dataObject)
+      ) {
+        return element;
+      }
       if (element.category === "circle" && ("width" in dataObject || "height" in dataObject)) {
         const diameter = dataObject.width ?? dataObject.height;
         return { ...element, ...dataObject, width: diameter, height: diameter };
@@ -913,6 +936,7 @@ export function useA4Elements(titleRef) {
     setA4_Elements(prevState => {
       const elementsById = new Map(prevState.map(element => [element.element_id, element]));
       if ([...uniqueIds].some(elementId => !elementsById.has(elementId))) return prevState;
+      if ([...uniqueIds].some(elementId => elementsById.get(elementId)?.locked)) return prevState;
 
       const { width: pageWidth, height: pageHeight } = pageSizeRef.current;
       const patchById = new Map(patches.map(patch => [patch.element_id, patch]));
@@ -978,7 +1002,7 @@ export function useA4Elements(titleRef) {
     const PAGE_HEIGHT = pageSizeRef.current.height;
     const elements = elementsRef.current;
     const target = elements.find(el => el.element_id === elementId);
-    if (!target) return;
+    if (!target || target.locked) return;
 
     // Work in absolute document Y (across all pages). This keeps the moved
     // block rigid as it flows across page boundaries — measuring per-page and
@@ -1005,7 +1029,7 @@ export function useA4Elements(titleRef) {
       if (el.element_id === elementId) {
         const { page, top } = toPageTop(newAbs);
         res = { ...el, page, top };
-      } else if (absOf(el) > oldAbs) {
+      } else if (absOf(el) > oldAbs && !el.locked) {
         // Every element below the target (in absolute terms) shifts by the
         // same delta — spacing preserved across the page break.
         const { page, top } = toPageTop(absOf(el) + delta);
@@ -1026,6 +1050,7 @@ export function useA4Elements(titleRef) {
   }, [])
 
   const handleAlignElements = useCallback((elementId, position, width, category) => {
+    if (elementsRef.current.find((element) => element.element_id === elementId)?.locked) return;
     if (category === "text") {
       const widthText = document.getElementById(elementId).clientWidth;
       width = widthText;
@@ -1074,6 +1099,7 @@ export function useA4Elements(titleRef) {
 
 
   const handleResizeElement = useCallback((e, direction, category, elementId, elementRef) => {
+    if (elementsRef.current.find((element) => element.element_id === elementId)?.locked) return;
 
     let aspectRatio = 1;
     let heightFactor;
@@ -1275,6 +1301,7 @@ export function useA4Elements(titleRef) {
         isSelected: false,
         isMove: false,
         isEditing: false,
+        locked: normalizedRest.locked ?? false,
         ...normalizedRest,
         page: normalizedRest.page ?? 1,
         element_id: nid,

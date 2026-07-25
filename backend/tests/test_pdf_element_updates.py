@@ -34,6 +34,7 @@ def element(element_id, *, deleted=False):
         bulletList=False,
         autoHeight=True,
         fixedToPage=True,
+        locked=True,
         borderWidth=None,
         filled=True,
         source_id=None,
@@ -66,6 +67,7 @@ class PdfElementUpdateTests(unittest.TestCase):
         self.assertEqual(keep_row.page, 1)
         self.assertTrue(keep_row.extra_properties["autoHeight"])
         self.assertTrue(keep_row.extra_properties["fixedToPage"])
+        self.assertTrue(keep_row.extra_properties["locked"])
         self.assertTrue(keep_row.extra_properties["filled"])
 
     def test_empty_live_payload_removes_every_existing_element(self):

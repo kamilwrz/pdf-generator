@@ -72,6 +72,7 @@ def _bounds_for(
         "category": category,
         "page": max(1, int(_number(element.get("page"), 1))),
         "fixedToPage": bool(element.get("fixedToPage", False)),
+        "locked": bool(element.get("locked", False)),
         "left": _number(measured.get("left", element.get("left"))),
         "top": _number(measured.get("top", element.get("top"))),
         "width": width,
@@ -420,7 +421,12 @@ def analyze_layout(elements: list[dict[str, Any]], page_size: dict[str, Any] | N
     if page_width <= 0 or page_height <= 0:
         raise ValueError("page_size musi zawierać dodatnie wartości width i height.")
 
-    items = extract_bounds(elements, AUTO_LAYOUT_CATEGORIES)
+    # User-locked items remain visible context, but automatic AI layout must
+    # never propose moving them.
+    items = [
+        item for item in extract_bounds(elements, AUTO_LAYOUT_CATEGORIES)
+        if not item.get("locked")
+    ]
     if not items:
         return {
             "message": "Potrzebuję co najmniej jednego mierzalnego bloku tekstu lub obrazu, aby ocenić układ.",
@@ -690,7 +696,7 @@ def resolve_move_to_page(
     moving = [item for item in items if item["element_id"] in moving_ids]
     if not target_ids or not moving or target_page < 1:
         return None
-    if any(item.get("fixedToPage") for item in moving):
+    if any(item.get("fixedToPage") or item.get("locked") for item in moving):
         return None
 
     reference = items_by_id.get(str(reference_element_id)) if reference_element_id else None
@@ -928,6 +934,8 @@ def _resolve_block_operation(
         members = [items_by_id[str(mid)] for mid in raw_ids if str(mid) in items_by_id]
         if not members:
             continue
+        if any(member.get("locked") for member in members):
+            return _issue("Jeden ze wskazanych bloków zawiera zablokowany element — AI nie może zmienić jego położenia.")
         if len({m["page"] for m in members}) > 1:
             return _issue(
                 "Jeden ze wskazanych bloków obejmuje elementy z różnych stron — nie mogę wykonać "
@@ -1052,6 +1060,8 @@ def resolve_directed_operation(
         known_ids = {item["element_id"] for item in items}
         if not target_ids or not requested_ids.issubset(known_ids):
             return _issue("Nie znaleziono wszystkich elementów wskazanych do przeniesienia lub wyrównania.")
+        if any(item.get("locked") for item in items if item["element_id"] in requested_ids):
+            return _issue("Nie można przenieść ani wyrównać zablokowanego elementu.")
 
         raw_target_page = directive.get("target_page")
         target_page_number = _number(raw_target_page, -1.0)
@@ -1115,6 +1125,8 @@ def resolve_directed_operation(
     targets = [item for item in items if item["element_id"] in target_ids]
     if not targets:
         return _issue("Nie znaleziono wskazanych elementów na kanwie.")
+    if any(item.get("locked") for item in targets):
+        return _issue("Nie można zmienić położenia zablokowanego elementu.")
     if len({item["page"] for item in targets}) > 1:
         return _issue(
             "Wskazane elementy znajdują się na różnych stronach — nie mogę wykonać tej operacji między stronami."

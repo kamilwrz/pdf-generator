@@ -30,6 +30,8 @@ class PdfElement(BaseModel):
     autoHeight: Optional[bool] = False
     #PAGE DECORATION: remains anchored while auto-height content reflows
     fixedToPage: Optional[bool] = False
+    #POSITION LOCK: prevents user and AI layout operations from moving the element
+    locked: Optional[bool] = False
     #LINE / IMG ELEMENT
     width: Optional[float | str] = None
     height: Optional[float | str] = None

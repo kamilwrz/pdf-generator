@@ -120,6 +120,7 @@ export function reflowTextareaHeight(
         element.element_id !== elementId
         && FLOWABLE_CATEGORIES.has(element.category)
         && !element.fixedToPage
+        && !element.locked
         // A generated continuation page is an intentional layout boundary.
         // Shrinking content must not pull it back into the previous page.
         && (delta >= 0 || pageOf(element) === sourcePage)
