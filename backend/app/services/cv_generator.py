@@ -502,6 +502,104 @@ def _gen_cinder(cv: dict) -> list[dict]:
     return page_decorations + header + flow
 
 
+def _gen_rift(cv: dict) -> list[dict]:
+    """Abstract red/grey CV over a generated full-page background."""
+    BLACK, GRAPHITE, ASH, RED = "#181A1C", "#565B60", "#C9CBCC", "#E21B1B"
+    L, W, SANS, SERIF = 194, 330, "Inter", "Times-Roman"
+    lbl = _labels(cv)
+
+    class RiftBuilder(Builder):
+        """Keep flowing copy inside the background's central quiet field."""
+        def need(self, h: float):
+            if self.y + h > 745:
+                self.pg += 1
+                self.y = 90.0
+
+    node_one = {**_rect(194, 158, 13, 13, RED, 1.2, zIndex=3), "id": "rift-node-one"}
+    node_two = {**_rect(229, 158, 13, 13, GRAPHITE, 1, zIndex=3), "id": "rift-node-two"}
+    node_three = {**_rect(264, 158, 13, 13, ASH, 1, zIndex=3), "id": "rift-node-three"}
+    header = [
+        _text(_compact_text(cv.get("name"), 30), 29, SERIF, BLACK, L, 48, zIndex=3, bold=True),
+        _text(_compact_text(cv.get("title"), 46), 9.3, SANS, RED, L + 2, 88, zIndex=3),
+        _block(_compact_text(_contact_line(cv), 72), L + 2, 113, 300, 30, 8.7, 13, GRAPHITE, SANS, zIndex=3),
+        node_one,
+        node_two,
+        node_three,
+        {"category": "connector", "source_id": "rift-node-one", "target_id": "rift-node-two",
+         "backgroundColor": RED, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
+        {"category": "connector", "source_id": "rift-node-two", "target_id": "rift-node-three",
+         "backgroundColor": GRAPHITE, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
+    ]
+    header[1]["letterSpacing"] = 1.7
+    b = RiftBuilder(202)
+
+    def section(label: str) -> None:
+        b.need(40)
+        b.els.append(_rect(510, b.y, 14, 14, RED, 1.2, zIndex=2, page=b.pg))
+        b.text(label, 8.5, SANS, RED, L)
+        b.line(L, W, 1, ASH)
+        b.gap(14)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10, 14.5, BLACK, SANS)
+        b.gap(18)
+
+    if cv.get("experience"):
+        section(lbl["experience"])
+        for job in cv["experience"]:
+            b.need(82)
+            b.block(job.get("title", ""), L, W, 11, 13.5, BLACK, SANS, bold=True, min_h=15)
+            b.gap(1)
+            b.block(_company_period(job), L, W, 8.7, 11.5, GRAPHITE, SANS, min_h=12)
+            b.gap(4)
+            bullets = _bullets(job)
+            if bullets:
+                b.block(bullets, L, W, 9.3, 13.2, BLACK, SANS, bulletList=True)
+            b.gap(14)
+        _extra_sections(b, cv, "after_experience", section, {"body": BLACK}, L, W, SANS, fs=9.3, lh=13.2)
+
+    if cv.get("education"):
+        section(lbl["education"])
+        for edu in cv["education"]:
+            b.block(edu.get("degree", ""), L, W, 10.2, 13, BLACK, SANS, bold=True, min_h=15)
+            b.gap(2)
+            b.block(edu.get("period", ""), L, W, 8.6, 11.5, GRAPHITE, SANS, min_h=12)
+            if edu.get("detail"):
+                b.gap(1)
+                b.block(edu["detail"], L, W, 8.6, 11.5, GRAPHITE, SANS, min_h=12)
+            b.gap(10)
+
+    if cv.get("skills"):
+        section(lbl["skills"])
+        b.block("  ·  ".join(cv["skills"]), L, W, 9.2, 13.2, BLACK, SANS)
+        b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, {"body": BLACK}, L, W, SANS, fs=9.2, lh=13.2)
+    flow = b.build()
+    pages_used = max([element.get("page", 1) for element in header + flow] or [1])
+    page_decorations = [
+        decoration
+        for page in range(1, pages_used + 1)
+        for decoration in (
+            {
+                "category": "image",
+                "src": f"{BACKEND_URL}/template-assets/rift-cv-background.png",
+                "width": 595,
+                "height": 842,
+                "left": 0,
+                "top": 0,
+                "zIndex": 0,
+                "page": page,
+                "fixedToPage": True,
+            },
+            {**_rect(493, 780, 31, 22, "#FFFFFF", 1, zIndex=2, page=page), "fixedToPage": True},
+            {**_text(f"{page:02d}", 8, SANS, GRAPHITE, 503, 787, zIndex=3, page=page), "fixedToPage": True},
+        )
+    ]
+    return page_decorations + header + flow
+
+
 def _gen_nocturne(cv: dict) -> list[dict]:
     C = dict(ink="#1F2933", coral="#F25F4C", gray="#6B7280", body="#1F2933")
     L, W = 50, 495
@@ -1372,6 +1470,7 @@ _GENERATORS = {
     "ledger":    _gen_ledger,
     "nimbus":    _gen_nimbus,
     "cinder":    _gen_cinder,
+    "rift":      _gen_rift,
     "sterling":  _gen_sterling,
     "nocturne":  _gen_nocturne,
     "ampersand": _gen_ampersand,

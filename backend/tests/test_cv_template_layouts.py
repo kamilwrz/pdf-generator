@@ -86,7 +86,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         )
 
     def test_template_images_resolve_to_versioned_local_assets(self):
-        for template_id in ("ledger", "nimbus"):
+        for template_id in ("ledger", "nimbus", "rift"):
             with self.subTest(template_id=template_id):
                 image = next(
                     element
@@ -95,6 +95,32 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 )
                 local_path = Path(image_src_to_local_path(image["src"]))
                 self.assertTrue(local_path.is_file())
+
+    def test_rift_repeats_fixed_background_on_every_content_page(self):
+        multi_page_cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 4,
+        }
+        elements = generate_resume("rift", multi_page_cv)
+        pages = {element.get("page", 1) for element in elements}
+        content_pages = {
+            element.get("page", 1)
+            for element in elements
+            if element["category"] in {"text", "textarea"} and not element.get("fixedToPage")
+        }
+
+        self.assertGreater(max(pages), 1)
+        self.assertEqual(pages, content_pages)
+        for page in pages:
+            backgrounds = [
+                element
+                for element in elements
+                if element["category"] == "image"
+                and element.get("page", 1) == page
+                and element["src"].endswith("/template-assets/rift-cv-background.png")
+            ]
+            self.assertEqual(len(backgrounds), 1)
+            self.assertTrue(backgrounds[0]["fixedToPage"])
 
     def test_ledger_contains_every_canvas_element_category(self):
         elements = generate_resume("ledger", LONG_CV)
