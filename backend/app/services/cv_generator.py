@@ -358,21 +358,27 @@ def _gen_nimbus(cv: dict) -> list[dict]:
          "backgroundColor": POWDER, "borderWidth": 1, "arrow": False, "zIndex": 1, "page": 1},
         {"category": "connector", "source_id": "nimbus-mark-two", "target_id": "nimbus-mark-three",
          "backgroundColor": POWDER, "borderWidth": 1, "arrow": False, "zIndex": 1, "page": 1},
-        _line(52, 347, 2, 328, SKY),
-        _rect(45, 362, 16, 16, BLUE, zIndex=2),
     ]
     static[6]["letterSpacing"] = 1.5
 
     b = Builder(248)
 
-    def section(label: str) -> None:
+    def section(label: str, decorated: bool = True) -> None:
         b.need(34)
+        if decorated:
+            # These elements belong to the flow rather than the page-one
+            # scaffold. A section that starts on a continuation page therefore
+            # receives the same rail and marker as its first-page counterpart.
+            rail_top = b.y + 5
+            rail_height = max(20, A4_H - MARGIN_BOTTOM - rail_top)
+            b.els.append(_line(52, rail_top, 2, rail_height, SKY, page=b.pg))
+            b.els.append(_rect(45, b.y + 20, 16, 16, BLUE, zIndex=2, page=b.pg))
         b.text(label, 8.7, SANS, BLUE, L)
         b.line(L, W, 1, CLOUD)
         b.gap(14)
 
     if cv.get("summary"):
-        section(lbl["summary"])
+        section(lbl["summary"], decorated=False)
         b.block(cv["summary"], L, W, 10.1, 15, INK, SANS)
         b.gap(18)
 

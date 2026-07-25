@@ -129,6 +129,35 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in elements
         ))
 
+    def test_nimbus_repeats_section_rail_on_continuation_pages(self):
+        multi_page_cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 4,
+        }
+        elements = generate_resume("nimbus", multi_page_cv)
+        education_heading = next(
+            element
+            for element in elements
+            if element["category"] == "text"
+            and element["content"] == "WYKSZTAŁCENIE"
+        )
+
+        self.assertGreater(education_heading["page"], 1)
+        self.assertTrue(any(
+            element["category"] == "rectangle"
+            and element["page"] == education_heading["page"]
+            and element["left"] == 45
+            and abs(element["top"] - (education_heading["top"] + 20)) < 0.01
+            for element in elements
+        ))
+        self.assertTrue(any(
+            element["category"] == "line"
+            and element["page"] == education_heading["page"]
+            and element["left"] == 52
+            and abs(element["top"] - (education_heading["top"] + 5)) < 0.01
+            for element in elements
+        ))
+
     def test_final_templates_keep_textareas_inside_page_bounds(self):
         for template_id in ("solstice", "mistral", "axiom", "vellum"):
             with self.subTest(template_id=template_id):
