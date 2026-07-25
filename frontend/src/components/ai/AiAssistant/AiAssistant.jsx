@@ -12,15 +12,16 @@ import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { measureElements } from "../../../utils/elementBounds";
 
 // ── quick actions ─────────────────────────────────────────────────────────
+const CHROME_ACCENT = "#466B82";
 const ACTIONS = [
-    { id: "rating",          label: "Oceń CV",           icon: FaStar,        color: "#F59E0B", description: "Ogólna ocena jakości CV w skali 1–10" },
-    { id: "design_rating",   label: "Projekt",           icon: FaPalette,     color: "#6B21A8", description: "Ocena wyglądu i układu wizualnego" },
-    { id: "position_rating", label: "Dopasowanie",       icon: FaBriefcase,   color: "#0D9488", description: "Dopasowanie CV do opisu stanowiska" },
-    { id: "grammar",         label: "Gramatyka",         icon: RiEditLine,    color: "#4C51BF", description: "Znajdź i popraw błędy gramatyczne" },
-    { id: "language",        label: "Styl",              icon: FaFont,        color: "#2B6CB0", description: "Popraw ton i klarowność tekstu" },
-    { id: "improve",         label: "Ulepsz",            icon: FaMagic,       color: "#5FA777", description: "Mocniejsze punkty z czasownikami akcji" },
-    { id: "ats_score",       label: "Wynik ATS",         icon: FaRobot,       color: "#D63384", description: "Sprawdzenie pod systemy rekrutacyjne ATS" },
-    { id: "layout",          label: "Układ",             icon: FaArrowsAltH,  color: "#B56520", description: "Sprawdź rozmieszczenie, wyrównanie i odstępy" },
+    { id: "rating",          label: "Oceń CV",           icon: FaStar,        color: CHROME_ACCENT, description: "Ogólna ocena jakości CV w skali 1–10" },
+    { id: "design_rating",   label: "Projekt",           icon: FaPalette,     color: CHROME_ACCENT, description: "Ocena wyglądu i układu wizualnego" },
+    { id: "position_rating", label: "Dopasowanie",       icon: FaBriefcase,   color: CHROME_ACCENT, description: "Dopasowanie CV do opisu stanowiska" },
+    { id: "grammar",         label: "Gramatyka",         icon: RiEditLine,    color: CHROME_ACCENT, description: "Znajdź i popraw błędy gramatyczne" },
+    { id: "language",        label: "Styl",              icon: FaFont,        color: CHROME_ACCENT, description: "Popraw ton i klarowność tekstu" },
+    { id: "improve",         label: "Ulepsz",            icon: FaMagic,       color: CHROME_ACCENT, description: "Mocniejsze punkty z czasownikami akcji" },
+    { id: "ats_score",       label: "Wynik ATS",         icon: FaRobot,       color: CHROME_ACCENT, description: "Sprawdzenie pod systemy rekrutacyjne ATS" },
+    { id: "layout",          label: "Układ",             icon: FaArrowsAltH,  color: CHROME_ACCENT, description: "Sprawdź rozmieszczenie, wyrównanie i odstępy" },
 ];
 const SEVERITY_LABELS = {
     critical: "krytyczny",

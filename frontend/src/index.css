@@ -5,6 +5,17 @@
     --surface-2: #EDF1F7;             /* canvas / panel backdrop */
     --bg-cream: #F8FAFD;              /* light cool white (legacy name) */
 
+    /* ---- Shared editor chrome (topbar, sidebar, panels, modals) ---- */
+    --chrome-ink: #2f4352;
+    --chrome-muted: #71818d;
+    --chrome-border: #d9e1e6;
+    --chrome-surface: #f8fafb;
+    --chrome-control: #f1f5f7;
+    --chrome-hover: #e7eef2;
+    --chrome-accent: #466b82;
+    --chrome-accent-strong: #344f61;
+    --chrome-shadow: 0 14px 34px -22px rgba(47, 67, 82, .38);
+
     /* ---- Brand accent (elegant blue) ---- */
     --accent: #3E6DB5;
     --accent-strong: #2C5490;

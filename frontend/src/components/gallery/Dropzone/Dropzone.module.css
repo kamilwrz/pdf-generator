@@ -1,84 +1,84 @@
 .dropzoneContainer {
     width: 100%;
     height: 100%;
-    padding: 26px;
+    padding: 16px;
     font-family: var(--font-body);
 }
 
 .head {
-    margin-bottom: 20px;
+    margin-bottom: 12px;
 }
 
 .title {
-    font: 800 18px var(--font-display);
-    color: var(--primary-font);
-    margin-bottom: 4px;
+    font: 700 14px var(--font-display);
+    color: var(--chrome-ink);
+    margin-bottom: 2px;
 }
 
 .subtitle {
-    font: 600 13px var(--font-body);
-    color: var(--secondary-font);
+    font: 500 10.5px var(--font-body);
+    color: var(--chrome-muted);
 }
 
 .dropzone {
-    border: 2px dashed var(--accent);
-    background: var(--accent-soft);
-    border-radius: var(--r-lg);
-    padding: 34px 20px;
+    border: 1px dashed #aebdc7;
+    background: var(--chrome-control);
+    border-radius: 8px;
+    padding: 22px 16px;
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     cursor: pointer;
     transition: filter .15s;
 }
 
 .dropzone:hover {
-    filter: brightness(.99);
+    background: var(--chrome-hover);
 }
 
 .dropIcon {
-    width: 54px;
-    height: 54px;
-    border-radius: 16px;
-    background: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: 7px;
+    background: var(--chrome-surface);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 14px;
-    box-shadow: 0 8px 18px -8px var(--accent);
+    margin: 0 auto 9px;
+    border: 1px solid var(--chrome-border);
 }
 
 .dropTitle {
-    font: 700 15px var(--font-body);
-    color: var(--primary-font);
+    font: 600 12px var(--font-body);
+    color: var(--chrome-ink);
 }
 
 .dropHint {
-    font: 600 12px var(--font-body);
-    color: var(--secondary-font);
-    margin-top: 3px;
+    font: 500 10.5px var(--font-body);
+    color: var(--chrome-muted);
+    margin-top: 2px;
 }
 
 .dropHint span {
-    color: var(--accent);
+    color: var(--chrome-accent);
 }
 
 .thumbsWrap {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 6px;
     justify-content: center;
 }
 
 .error {
     text-align: center;
-    padding: .75rem;
+    padding: .5rem;
     color: var(--danger);
-    font: 600 13px var(--font-body);
+    font: 600 11px var(--font-body);
 }
 
 .success {
     text-align: center;
-    padding: .75rem;
+    padding: .5rem;
     color: var(--success);
-    font: 600 13px var(--font-body);
+    font: 600 11px var(--font-body);
 }

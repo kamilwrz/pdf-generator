@@ -1,7 +1,7 @@
 .wrapper {
     position: fixed;
-    right: 24px;
-    bottom: 24px;
+    right: 20px;
+    bottom: 18px;
     display: flex;
     pointer-events: none;
     z-index: 1300;
@@ -10,33 +10,33 @@
 .bar {
     display: flex;
     align-items: center;
-    gap: 6px;
-    background: #fff;
-    border: 1px solid var(--border-soft);
-    border-radius: 999px;
-    box-shadow: 0 16px 34px -12px rgba(30, 48, 78, .32);
-    padding: 7px 10px;
+    gap: 3px;
+    background: var(--chrome-surface);
+    border: 1px solid var(--chrome-border);
+    border-radius: 8px;
+    box-shadow: var(--chrome-shadow);
+    padding: 4px 5px;
     pointer-events: auto;
     font-family: var(--font-body);
 }
 
 .navBtn {
-    width: 34px;
-    height: 34px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     border: none;
-    border-radius: 50%;
-    background: var(--secondary-bg);
-    color: var(--muted-font);
+    border-radius: 6px;
+    background: var(--chrome-control);
+    color: var(--chrome-muted);
     cursor: pointer;
     transition: background .15s, color .15s;
 }
 
 .navBtn:hover:not(:disabled) {
-    background: var(--accent-soft);
-    color: var(--accent);
+    background: var(--chrome-hover);
+    color: var(--chrome-accent);
 }
 
 .navBtn:disabled {
@@ -45,40 +45,41 @@
 }
 
 .label {
-    font: 600 13px var(--font-body);
-    color: var(--muted-font);
-    padding: 0 8px;
+    font: 600 10.5px var(--font-body);
+    color: var(--chrome-muted);
+    padding: 0 5px;
     white-space: nowrap;
 }
 
 .label b {
-    color: var(--primary-font);
-    font-weight: 800;
+    color: var(--chrome-ink);
+    font-weight: 700;
 }
 
 .sep {
-    color: var(--label-font);
+    color: #9aa7b0;
 }
 
 .divider {
     width: 1px;
-    height: 22px;
-    background: var(--border);
-    margin: 0 4px;
+    height: 16px;
+    background: var(--chrome-border);
+    margin: 0 2px;
 }
 
 .addBtn {
     display: flex;
     align-items: center;
-    gap: 7px;
-    background: var(--accent-grad);
+    gap: 5px;
+    height: 28px;
+    background: var(--chrome-accent-strong);
     color: #fff;
-    font: 700 13px var(--font-body);
+    font: 600 10.5px var(--font-body);
     border: none;
-    padding: 9px 15px;
-    border-radius: 999px;
+    padding: 0 10px;
+    border-radius: 6px;
     cursor: pointer;
-    box-shadow: 0 8px 18px -8px var(--accent);
+    box-shadow: none;
     transition: transform .15s;
 }
 
@@ -87,17 +88,22 @@
 }
 
 .removeBtn {
-    width: 34px;
-    height: 34px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     border: none;
-    border-radius: 50%;
+    border-radius: 6px;
     background: var(--danger-soft);
     color: var(--danger);
     cursor: pointer;
     transition: filter .15s;
+}
+
+.bar svg {
+    width: 13px;
+    height: 13px;
 }
 
 .removeBtn:hover:not(:disabled) {

@@ -16,7 +16,7 @@ export default function DropzoneContainer() {
         animate={{ opacity: 1, x: 320 }}
         exit={{ opacity: 0, x: -320 }}
         transition={{type: "spring", duration:2, ease: [0, 0.71, 0.2, 1.01]}}>
-            <CloseButton clickHandler={showDropzone} right={30} top={20}/>
+            <CloseButton clickHandler={showDropzone} right={10} top={10}/>
         <Dropzone></Dropzone>
     </motion.section>
 

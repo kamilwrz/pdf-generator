@@ -184,10 +184,10 @@ export default function ModalPdfs({ title }) {
                 transition={{ type: "spring", duration: 1, ease: [0, 0.71, 0.2, 1.01] }} className={classes.modalPdfs} >
                 <div className={classes.modalHeader}>
                     <div>
-                        <h2>Twoje PDF-y</h2>
-                        <p>Zarządzaj, pobieraj lub usuwaj zapisane projekty PDF.</p>
+                        <h2>Moje dokumenty</h2>
+                        <p>Otwieraj, pobieraj i usuwaj zapisane projekty.</p>
                     </div>
-                    <CloseButton clickHandler={handleIsVisible} top={20} right={20} />
+                    <CloseButton clickHandler={handleIsVisible} top={10} right={12} />
                 </div>
                 <div className={classes.modalBody}>
 

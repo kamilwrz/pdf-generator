@@ -1,15 +1,15 @@
 .dropzoneContainer {
-    width: 30rem;
+    width: 24rem;
     max-width: calc(100vw - 2rem);
     height: auto;
-    max-height: calc(100vh - 8rem);
+    max-height: calc(100vh - 5rem);
     overflow-y: auto;
-    background: #fff;
-    border: 1px solid var(--border-soft);
-    border-radius: var(--r-xl);
-    box-shadow: var(--shadow-card);
+    background: var(--chrome-surface);
+    border: 1px solid var(--chrome-border);
+    border-radius: 8px;
+    box-shadow: var(--chrome-shadow);
     position: absolute;
     left: 0;
-    top: 6rem;
+    top: 44px;
     z-index: 1600;
 }

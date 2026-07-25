@@ -64,7 +64,7 @@ export default function Gallery() {
                 <h2>Twoja galeria</h2>
                 <p>Kliknij obraz, aby umieścić go na płótnie</p>
             </div>
-            <CloseButton top={22} right={24} clickHandler={showGallery} />
+            <CloseButton top={10} right={12} clickHandler={showGallery} />
         </div>
 
         {!error && <div className={classes.grid}>{IMAGES}</div>}

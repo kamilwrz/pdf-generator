@@ -1,10 +1,10 @@
 .sidebar {
-    --sidebar-ink: #2f4352;
-    --sidebar-muted: #71818d;
-    --sidebar-border: #d9e1e6;
-    --sidebar-surface: #f8fafb;
-    --sidebar-hover: #e7eef2;
-    --sidebar-accent: #466b82;
+    --sidebar-ink: var(--chrome-ink);
+    --sidebar-muted: var(--chrome-muted);
+    --sidebar-border: var(--chrome-border);
+    --sidebar-surface: var(--chrome-surface);
+    --sidebar-hover: var(--chrome-hover);
+    --sidebar-accent: var(--chrome-accent);
     width: 248px;
     min-width: 248px;
     height: 100%;

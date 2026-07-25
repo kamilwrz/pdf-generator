@@ -1,11 +1,11 @@
 .topbar {
-    --topbar-ink: #2f4352;
-    --topbar-muted: #71818d;
-    --topbar-border: #d9e1e6;
-    --topbar-surface: #f8fafb;
-    --topbar-control: #f1f5f7;
-    --topbar-hover: #e7eef2;
-    --topbar-accent: #466b82;
+    --topbar-ink: var(--chrome-ink);
+    --topbar-muted: var(--chrome-muted);
+    --topbar-border: var(--chrome-border);
+    --topbar-surface: var(--chrome-surface);
+    --topbar-control: var(--chrome-control);
+    --topbar-hover: var(--chrome-hover);
+    --topbar-accent: var(--chrome-accent);
     height: 44px;
     flex-shrink: 0;
     display: flex;

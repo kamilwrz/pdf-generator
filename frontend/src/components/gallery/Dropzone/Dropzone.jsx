@@ -13,12 +13,12 @@ import { ENDPOINTS } from "../../../services/api";
 const thumb = {
     display: 'inline-flex',
     borderRadius: 2,
-    marginBottom: 8,
+    marginBottom: 4,
     marginRight: "auto",
     marginLeft: "auto",
     width: "100%",
-    height: 100,
-    padding: 4,
+    height: 80,
+    padding: 2,
     justifyContent: "center"
 };
 
@@ -128,7 +128,7 @@ export default function Dropzone() {
             <div {...getRootProps({ className: classes.dropzone })}>
                 <input {...getInputProps()} />
                 <div className={classes.dropIcon}>
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 13v8" /><path d="m8 17 4-4 4 4" /><path d="M20 16.5A4.5 4.5 0 0 0 17 8h-1.3A7 7 0 1 0 5 15" /></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 13v8" /><path d="m8 17 4-4 4 4" /><path d="M20 16.5A4.5 4.5 0 0 0 17 8h-1.3A7 7 0 1 0 5 15" /></svg>
                 </div>
                 <div className={classes.dropTitle}>Upuść obrazy tutaj</div>
                 <div className={classes.dropHint}>lub <span>przeglądaj pliki</span></div>

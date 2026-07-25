@@ -1,25 +1,25 @@
 .closeBtn {
     position: absolute;
-    border-radius: 8px;
-    border: none;
-    color: var(--secondary-font);
-    background: var(--secondary-bg);
+    border-radius: 6px;
+    border: 1px solid var(--chrome-border);
+    color: var(--chrome-muted);
+    background: var(--chrome-control);
     cursor: pointer;
     text-align: center;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 1.9rem;
-    height: 1.9rem;
+    width: 28px;
+    height: 28px;
     transition: background .15s, color .15s;
 }
 
 .closeBtn svg {
-    font-size: 1.05rem;
+    font-size: 13px;
     flex-shrink: 0;
 }
 
 .closeBtn:hover {
-    background: var(--accent-soft);
-    color: var(--accent);
+    background: var(--chrome-hover);
+    color: var(--chrome-accent);
 }
