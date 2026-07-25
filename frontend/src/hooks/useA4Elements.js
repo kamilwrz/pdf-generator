@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { nanoid } from 'nanoid';
 import { getElementBounds } from '../utils/elementBounds';
+import { measureTextareaHeight } from '../utils/textareaHeight';
 
 // Elements a connector can attach to — those with a real bounding box the
 // backend can reproduce for the PDF. Single-line text (no stored width/height)
@@ -565,18 +566,20 @@ export function useA4Elements(titleRef) {
 
   const handleAddTextarea = useCallback(() => {
     const fontSize = 14;
+    const lineHeight = Math.round(fontSize * 1.4);
+    const width = 260;
     const textarea = {
       element_id: nanoid(),
       content: "",
       fontSize,
       fontFamily: "Inter",
       color: "#000000",
-      lineHeight: Math.round(fontSize * 1.4),
+      lineHeight,
       letterSpacing: 0,
       left: 20,
       top: 20,
-      width: 260,
-      height: 90,
+      width,
+      height: measureTextareaHeight("", width, fontSize, lineHeight),
       isSelected: true,
       isMove: false,
       isEditing: true,
@@ -962,27 +965,22 @@ export function useA4Elements(titleRef) {
 
     setA4_Elements((prevState) => {
       const newState = prevState.map((element) => {
-        // Text boxes resize freely: width follows horizontal drag, height
-        // follows vertical drag (unlike lines, where height tracks movementX).
+        // Text boxes: only width follows the drag (horizontal component).
+        // Height always derives from content at the current width, never
+        // from the drag itself — see measureTextareaHeight.
         if (category === "textarea") {
           if (element.element_id !== elementId) {
             return { ...element, isSelected: false };
           }
           let w = element.width;
-          let h = element.height;
           let l = element.left;
-          let t = element.top;
           const MIN_W = 40;
-          const MIN_H = 24;
-          if (direction === "bottom-right") { w += e.movementX; h += e.movementY; }
-          else if (direction === "bottom-left") { w -= e.movementX; l += e.movementX; h += e.movementY; }
-          else if (direction === "top-right") { w += e.movementX; h -= e.movementY; t += e.movementY; }
-          else if (direction === "top-left") { w -= e.movementX; l += e.movementX; h -= e.movementY; t += e.movementY; }
+          if (direction === "bottom-right" || direction === "top-right") { w += e.movementX; }
+          else if (direction === "bottom-left" || direction === "top-left") { w -= e.movementX; l += e.movementX; }
           if (l < 0) { w += l; l = 0; }
-          if (t < 0) { h += t; t = 0; }
           w = Math.max(MIN_W, Math.min(A4_WIDTH - l, w));
-          h = Math.max(MIN_H, Math.min(A4_HEIGHT - t, h));
-          return { ...element, width: w, height: h, left: l, top: t };
+          const h = measureTextareaHeight(element.content, w, element.fontSize, element.lineHeight);
+          return { ...element, width: w, height: h, left: l };
         }
         if (category === "image") {
           heightFactor = element.width
