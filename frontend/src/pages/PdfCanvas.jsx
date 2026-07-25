@@ -73,6 +73,7 @@ function PdfCanvas() {
     setA4_Elements,
     A4_Elements_deleted,
     setA4_Elements_deleted,
+    groupMoveDelta,
     handleMoveElement,
     handleMoveSelectedElements,
     handleSelectMoveElement,
@@ -414,6 +415,7 @@ function PdfCanvas() {
   const ctxValue = useMemo(() => ({
     //useA4Elements hook
     A4_Elements: A4_Elements,
+    groupMoveDelta: groupMoveDelta,
     addImage: handleAddImage,
     addText: handleAddText,
     addLine: handleAddLine,
@@ -508,7 +510,7 @@ function PdfCanvas() {
     deletionPreviewIds: deletionPreviewIds,
     setDeletionPreviewIds: setDeletionPreviewIds,
   }), [
-    A4_Elements,
+    A4_Elements, groupMoveDelta,
     isGallery, isDropzone, valueImageUpload,
     isModalPdfs, handleAddImage,
     handleAddText, handleAddLine, handleAddRectangle, handleAddCircle, handleAddEllipse, startConnecting, handleSelectElement,

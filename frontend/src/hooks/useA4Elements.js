@@ -35,17 +35,16 @@ export function presetFromDims(width, height) {
   return found ? found[0] : "custom";
 }
 
-// Translate a set of positioned elements by one shared delta. The delta is
-// clamped for the complete set, so their relative distances never change and
-// no individual element can leave the page.
-function moveElementsByDelta(elements, elementIds, deltaX, deltaY, pageSize) {
+// Clamp a shared group delta so relative distances never change and no member
+// can leave the page. Exposed separately so drag UI can report actual movement.
+function getClampedMoveDelta(elements, elementIds, deltaX, deltaY, pageSize) {
   const movable = elements.filter((element) => (
     elementIds.has(element.element_id)
     && !element.locked
     && Number.isFinite(Number(element.left))
     && Number.isFinite(Number(element.top))
   ));
-  if (movable.length === 0) return elements;
+  if (movable.length === 0) return { movable, deltaX: 0, deltaY: 0 };
 
   let minX = -Infinity;
   let maxX = Infinity;
@@ -71,7 +70,15 @@ function moveElementsByDelta(elements, elementIds, deltaX, deltaY, pageSize) {
     ? 0
     : Math.min(Math.max(deltaY, minY), maxY);
 
-  if (safeDeltaX === 0 && safeDeltaY === 0) return elements;
+  return { movable, deltaX: safeDeltaX, deltaY: safeDeltaY };
+}
+
+// Translate a set of positioned elements by one shared delta.
+function moveElementsByDelta(elements, elementIds, deltaX, deltaY, pageSize) {
+  const { movable, deltaX: safeDeltaX, deltaY: safeDeltaY } = getClampedMoveDelta(
+    elements, elementIds, deltaX, deltaY, pageSize,
+  );
+  if (movable.length === 0 || (safeDeltaX === 0 && safeDeltaY === 0)) return elements;
 
   return elements.map((element) => (
     elementIds.has(element.element_id)
@@ -92,6 +99,7 @@ export function useA4Elements(titleRef) {
 
   const [A4_Elements, setA4_Elements] = useState([]);
   const [A4_Elements_deleted, setA4_Elements_deleted] = useState([]);
+  const [groupMoveDelta, setGroupMoveDelta] = useState(null);
 
   // ---- Connector draw mode ----
   // connectMode: true while the user is picking the two elements to link.
@@ -118,6 +126,7 @@ export function useA4Elements(titleRef) {
   const pageSizeRef = useRef(pageSize);
   const pageCountRef = useRef(1);
   const draggedElementIdsRef = useRef(new Set());
+  const groupDragRef = useRef(null);
   const reflowPageCountRef = useRef(null);
   const layoutTargetPageRef = useRef(null);
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
@@ -410,6 +419,34 @@ export function useA4Elements(titleRef) {
     const pointerY = (e.clientY - canvasRect.top) / scaleY;
     const targetLeft = pointerX - elementRect.width / scaleX / 2;
     const targetTop = pointerY - elementRect.height / scaleY / 2;
+    const currentElements = elementsRef.current;
+    const currentDragged = currentElements.find((element) => element.element_id === elementId);
+    if (!currentDragged?.isMove || currentDragged.locked) return;
+    const selectedOnSamePage = currentElements.filter((element) => (
+      element.isSelected
+      && !element.locked
+      && (element.page ?? 1) === (currentDragged.page ?? 1)
+    ));
+    const movedElements = currentDragged.isSelected && selectedOnSamePage.length > 1
+      ? selectedOnSamePage
+      : [currentDragged];
+    const movedIds = new Set(movedElements.map((element) => element.element_id));
+    const clampedDelta = getClampedMoveDelta(
+      currentElements,
+      movedIds,
+      targetLeft - currentDragged.left,
+      targetTop - currentDragged.top,
+      pageSizeRef.current,
+    );
+    const groupDrag = groupDragRef.current;
+    const origin = groupDrag?.origins.get(elementId);
+    if (groupDrag?.elementIds.has(elementId) && groupDrag.elementIds.size > 1 && origin) {
+      setGroupMoveDelta({
+        x: Math.round((currentDragged.left + clampedDelta.deltaX - origin.left) * 10) / 10,
+        y: Math.round((currentDragged.top + clampedDelta.deltaY - origin.top) * 10) / 10,
+        count: groupDrag.elementIds.size,
+      });
+    }
 
     setA4_Elements((prevState) => {
       const dragged = prevState.find((element) => element.element_id === elementId);
@@ -462,11 +499,34 @@ export function useA4Elements(titleRef) {
   const handleSelectMoveElement = useCallback((elementId, moving) => {
     if (moving) {
       draggedElementIdsRef.current.delete(elementId);
+      const dragged = elementsRef.current.find((element) => element.element_id === elementId);
+      const group = dragged?.isSelected
+        ? elementsRef.current.filter((element) => (
+          element.isSelected
+          && !element.locked
+          && (element.page ?? 1) === (dragged.page ?? 1)
+        ))
+        : [dragged].filter(Boolean);
+      if (group.length > 1) {
+        groupDragRef.current = {
+          elementIds: new Set(group.map((element) => element.element_id)),
+          origins: new Map(group.map((element) => [
+            element.element_id,
+            { left: Number(element.left) || 0, top: Number(element.top) || 0 },
+          ])),
+        };
+        setGroupMoveDelta({ x: 0, y: 0, count: group.length });
+      } else {
+        groupDragRef.current = null;
+        setGroupMoveDelta(null);
+      }
     } else {
       // Click follows pointerup in the same interaction. Delay cleanup by one
       // task so handleSelectElement can recognise and ignore that post-drag
       // click, preserving the current group selection.
       window.setTimeout(() => draggedElementIdsRef.current.delete(elementId), 0);
+      groupDragRef.current = null;
+      setGroupMoveDelta(null);
     }
     setA4_Elements(prevState => prevState.map((element) => (
       element.element_id === elementId
@@ -479,6 +539,8 @@ export function useA4Elements(titleRef) {
   // dragged element lost its pointer capture and its own pointerup never fired.
   useEffect(() => {
     const endDrag = () => {
+      groupDragRef.current = null;
+      setGroupMoveDelta(null);
       setA4_Elements(prev => prev.some(e => e.isMove)
         ? prev.map(e => (e.isMove ? { ...e, isMove: false } : e))
         : prev);
@@ -1582,6 +1644,7 @@ export function useA4Elements(titleRef) {
     setA4_Elements,
     A4_Elements_deleted,
     setA4_Elements_deleted,
+    groupMoveDelta,
     handleMoveElement,
     handleMoveSelectedElements,
     handleSelectMoveElement,

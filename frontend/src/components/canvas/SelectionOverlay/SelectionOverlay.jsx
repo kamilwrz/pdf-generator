@@ -32,7 +32,7 @@ function frameForElement(element) {
 }
 
 export default function SelectionOverlay({ elements }) {
-    const { A4_Elements, currentPage } = use(PdfContext);
+    const { A4_Elements, currentPage, groupMoveDelta } = use(PdfContext);
     const canvasElements = elements ?? A4_Elements;
 
     const selected = useMemo(
@@ -46,24 +46,27 @@ export default function SelectionOverlay({ elements }) {
 
     // Text uses its own light background highlight — framing it caused jitter.
     const framed = selected.filter((element) => element.category !== "text");
-    if (framed.length === 0) return null;
-
     const isMulti = selected.length > 1;
+    if (framed.length === 0 && !isMulti) return null;
     const frames = framed.map((element) => ({
         id: element.element_id,
         ...frameForElement(element),
     }));
+    const groupFrames = (frames.length > 0 ? frames : selected.map((element) => ({
+        id: element.element_id,
+        ...frameForElement(element),
+    })));
 
-    const groupBox = frames.reduce((box, frame) => ({
+    const groupBox = groupFrames.reduce((box, frame) => ({
         left: Math.min(box.left, frame.left),
         top: Math.min(box.top, frame.top),
         right: Math.max(box.right, frame.left + frame.width),
         bottom: Math.max(box.bottom, frame.top + frame.height),
     }), {
-        left: frames[0].left,
-        top: frames[0].top,
-        right: frames[0].left + frames[0].width,
-        bottom: frames[0].top + frames[0].height,
+        left: groupFrames[0].left,
+        top: groupFrames[0].top,
+        right: groupFrames[0].left + groupFrames[0].width,
+        bottom: groupFrames[0].top + groupFrames[0].height,
     });
 
     return (
@@ -97,6 +100,16 @@ export default function SelectionOverlay({ elements }) {
                 >
                     <span className={classes.badgeDot} />
                     {selected.length} zaznaczone
+                </div>
+            )}
+            {isMulti && groupMoveDelta && (
+                <div
+                    className={classes.deltaBadge}
+                    style={{ left: groupBox.left, top: groupBox.bottom }}
+                >
+                    ΔX {groupMoveDelta.x >= 0 ? "+" : ""}{groupMoveDelta.x}px
+                    <span>·</span>
+                    ΔY {groupMoveDelta.y >= 0 ? "+" : ""}{groupMoveDelta.y}px
                 </div>
             )}
         </div>

@@ -6,6 +6,7 @@ import { createContext } from "react";
 
 export const PdfContext = createContext({
     A4_Elements : [],
+    groupMoveDelta: null,
     addImage: () => {},
     addText: () => {},
     addLine: () => {},
