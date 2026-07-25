@@ -327,7 +327,7 @@ function PdfCanvas() {
     const patchesById = new Map(
       layoutPreviewPatches.map(patch => [patch.element_id, patch])
     );
-    return A4_Elements.map(element => {
+    const patchedElements = A4_Elements.map(element => {
       const patch = patchesById.get(element.element_id);
       return {
         ...element,
@@ -336,7 +336,16 @@ function PdfCanvas() {
         isEditing: false,
         left: Number.isFinite(patch?.left) ? patch.left : element.left,
         top: Number.isFinite(patch?.top) ? patch.top : element.top,
+        page: Number.isInteger(patch?.page) ? patch.page : element.page,
       };
+    });
+    const patchedById = new Map(patchedElements.map(element => [element.element_id, element]));
+    return patchedElements.map(element => {
+      if (element.category !== "connector") return element;
+      const source = patchedById.get(element.source_id);
+      const target = patchedById.get(element.target_id);
+      if (!source || !target || (source.page ?? 1) !== (target.page ?? 1)) return element;
+      return { ...element, page: source.page ?? 1 };
     });
   }, [A4_Elements, layoutPreviewPatches]);
 

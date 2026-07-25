@@ -117,6 +117,7 @@ export function useA4Elements(titleRef) {
   const pageCountRef = useRef(1);
   const draggedElementIdsRef = useRef(new Set());
   const reflowPageCountRef = useRef(null);
+  const layoutTargetPageRef = useRef(null);
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
   useEffect(() => { elementsRef.current = A4_Elements; }, [A4_Elements]);
   useEffect(() => { pageSizeRef.current = pageSize; }, [pageSize]);
@@ -127,7 +128,9 @@ export function useA4Elements(titleRef) {
 
     reflowPageCountRef.current = null;
     setPageCount(nextPageCount);
-    setCurrentPage((page) => Math.min(page, nextPageCount));
+    const targetPage = layoutTargetPageRef.current;
+    layoutTargetPageRef.current = null;
+    setCurrentPage((page) => targetPage ?? Math.min(page, nextPageCount));
   }, [A4_Elements]);
 
   // ---- Undo / redo history (in-memory, session-scoped) ----
@@ -854,6 +857,10 @@ export function useA4Elements(titleRef) {
         || uniqueIds.has(patch.element_id)
         || !Number.isFinite(patch.left)
         || !Number.isFinite(patch.top)
+        || (
+          patch.page !== undefined
+          && (!Number.isInteger(patch.page) || patch.page < 1)
+        )
       ) {
         return;
       }
@@ -882,12 +889,40 @@ export function useA4Elements(titleRef) {
       });
       if (!isSafe) return prevState;
 
-      return prevState.map(element => {
+      const movedElements = prevState.map(element => {
         const patch = patchById.get(element.element_id);
         return patch
-          ? { ...element, left: patch.left, top: patch.top, isSelected: false, isMove: false, isEditing: false }
+          ? {
+              ...element,
+              left: patch.left,
+              top: patch.top,
+              page: patch.page ?? element.page ?? 1,
+              isSelected: false,
+              isMove: false,
+              isEditing: false,
+            }
           : element;
       });
+      const movedById = new Map(movedElements.map(element => [element.element_id, element]));
+      const nextElements = movedElements.map(element => {
+        if (element.category !== "connector") return element;
+        const source = movedById.get(element.source_id);
+        const target = movedById.get(element.target_id);
+        if (!source || !target || (source.page ?? 1) !== (target.page ?? 1)) return element;
+        return { ...element, page: source.page ?? 1 };
+      });
+
+      const targetPages = patches
+        .map(patch => patch.page)
+        .filter(Number.isInteger);
+      const nextPageCount = Math.max(
+        1,
+        ...nextElements.map(element => element.page ?? 1),
+        ...targetPages,
+      );
+      reflowPageCountRef.current = nextPageCount;
+      layoutTargetPageRef.current = targetPages.length > 0 ? Math.max(...targetPages) : null;
+      return nextElements;
     });
   }, []);
 

@@ -87,6 +87,57 @@ class ChatCommandTests(unittest.TestCase):
         )
         self.assertEqual(result["layout_issues"], [])
 
+    def test_dispatcher_moves_a_section_to_another_page_with_reference_alignment(self):
+        elements = [
+            {
+                "element_id": "education-heading",
+                "category": "text",
+                "content": "WYKSZTAŁCENIE",
+                "fontSize": 16,
+                "left": 20, "top": 40, "width": 150, "height": 22, "page": 1,
+            },
+            {
+                "element_id": "education-entry",
+                "category": "textarea",
+                "content": "Uniwersytet",
+                "fontSize": 11,
+                "left": 35, "top": 75, "width": 200, "height": 30, "page": 1,
+            },
+        ]
+
+        def fake_gpt(system, user):
+            self.assertIn('"move_to_page"', system)
+            self.assertIn('"target_page"', system)
+            self.assertIn('"page": 1', user)
+            return {
+                "message": "Przeniosłem sekcję wykształcenia na stronę 2.",
+                "corrections": [],
+                "position_operation": {
+                    "type": "move_to_page",
+                    "target_groups": [["education-heading", "education-entry"]],
+                    "target_page": 2,
+                    "reference_element_id": "education-heading",
+                    "align_element_ids": ["education-entry"],
+                    "axis": "x",
+                    "anchor": "start",
+                },
+            }
+
+        with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
+            result = ai_assistant_service.analyze_action(
+                action="chat",
+                elements=elements,
+                message="przenieś sekcję wykształcenia na stronę 2 i wyrównaj wpis do nagłówka",
+                page_size={"width": 595, "height": 842},
+            )
+
+        self.assertEqual(result["layout_issues"], [])
+        self.assertEqual(result["layout_groups"][0]["target_page"], 2)
+        self.assertEqual(result["layout_groups"][0]["patches"], [
+            {"element_id": "education-heading", "left": 20.0, "top": 40.0, "page": 2},
+            {"element_id": "education-entry", "left": 20.0, "top": 75.0, "page": 2},
+        ])
+
     def test_dispatcher_reports_an_issue_instead_of_a_broken_position_operation(self):
         elements = [
             {

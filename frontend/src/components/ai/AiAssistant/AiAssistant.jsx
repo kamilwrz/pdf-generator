@@ -239,6 +239,7 @@ export default function AiAssistant() {
         applyLayoutPatches,
         setLayoutPreviewPatches,
         pageSize,
+        setCurrentPage,
     } = use(PdfContext);
 
     const [isOpen, setIsOpen] = useState(false);
@@ -288,6 +289,9 @@ export default function AiAssistant() {
 
     const previewLayoutGroup = useCallback((msgId, group) => {
         setLayoutPreviewPatches(group.patches || []);
+        const targetPage = group.target_page
+            ?? group.patches?.find(patch => Number.isInteger(patch.page))?.page;
+        if (Number.isInteger(targetPage) && targetPage > 0) setCurrentPage(targetPage);
         setLayoutStates(prev => {
             const next = { ...prev };
             Object.keys(next).forEach(key => {
@@ -296,7 +300,7 @@ export default function AiAssistant() {
             next[`${msgId}_${group.id}`] = "preview";
             return next;
         });
-    }, [setLayoutPreviewPatches]);
+    }, [setCurrentPage, setLayoutPreviewPatches]);
 
     const clearLayoutPreview = useCallback((msgId, groupId) => {
         setLayoutPreviewPatches([]);

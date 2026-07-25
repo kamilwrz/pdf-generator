@@ -71,6 +71,7 @@ def _bounds_for(
         "element_id": str(element_id),
         "category": category,
         "page": max(1, int(_number(element.get("page"), 1))),
+        "fixedToPage": bool(element.get("fixedToPage", False)),
         "left": _number(measured.get("left", element.get("left"))),
         "top": _number(measured.get("top", element.get("top"))),
         "width": width,
@@ -98,6 +99,7 @@ def _apply_patches(
             **item,
             **({"left": by_id[item["element_id"]]["left"]} if item["element_id"] in by_id else {}),
             **({"top": by_id[item["element_id"]]["top"]} if item["element_id"] in by_id else {}),
+            **({"page": by_id[item["element_id"]]["page"]} if item["element_id"] in by_id and "page" in by_id[item["element_id"]] else {}),
         }
         for item in items
     ]
@@ -133,6 +135,16 @@ def _is_safe_group(
     known_ids = {item["element_id"] for item in items}
     patch_ids = [patch.get("element_id") for patch in patches]
     if len(set(patch_ids)) != len(patch_ids) or any(item_id not in known_ids for item_id in patch_ids):
+        return False
+    if any(
+        "page" in patch
+        and (
+            not isinstance(patch["page"], int)
+            or isinstance(patch["page"], bool)
+            or patch["page"] < 1
+        )
+        for patch in patches
+    ):
         return False
 
     original_overlaps = {
@@ -459,7 +471,7 @@ def analyze_layout(elements: list[dict[str, Any]], page_size: dict[str, Any] | N
 # _group/_is_safe_group safety net the deterministic scanner above uses.
 
 _MIN_DISTRIBUTE_TARGETS = MIN_CLUSTER_SIZE
-_VALID_OPERATIONS = {"shift", "align", "distribute", "space"}
+_VALID_OPERATIONS = {"shift", "align", "distribute", "space", "move_to_page"}
 _VALID_AXES = {"x", "y"}
 _VALID_ANCHORS = {"start", "center", "end"}
 _NO_CHANGE = "no_change"
@@ -656,6 +668,123 @@ def resolve_space(
     )
 
 
+def resolve_move_to_page(
+    items: list[dict[str, Any]],
+    target_ids: set[str],
+    target_page: int,
+    reference_element_id: str | None,
+    align_ids: set[str],
+    axis: str,
+    anchor: str,
+    page_width: float,
+    page_height: float,
+) -> dict[str, Any] | str | None:
+    """Move related elements to another page and align selected members.
+
+    All moved elements keep their current coordinates unless listed in
+    ``align_ids``. Those members align to the reference element's requested
+    edge/center while retaining their coordinate on the other axis.
+    """
+    items_by_id = {item["element_id"]: item for item in items}
+    moving_ids = target_ids | align_ids
+    moving = [item for item in items if item["element_id"] in moving_ids]
+    if not target_ids or not moving or target_page < 1:
+        return None
+    if any(item.get("fixedToPage") for item in moving):
+        return None
+
+    reference = items_by_id.get(str(reference_element_id)) if reference_element_id else None
+    if reference is None:
+        reference = next((item for item in moving if item["element_id"] in target_ids), None)
+    if reference is None or (
+        reference["element_id"] not in moving_ids and reference["page"] != target_page
+    ):
+        return None
+
+    pos_key = "left" if axis == "x" else "top"
+    size_key = "width" if axis == "x" else "height"
+
+    def anchor_value(item: dict[str, Any]) -> float:
+        if anchor == "start":
+            return item[pos_key]
+        if anchor == "center":
+            return item[pos_key] + item[size_key] / 2
+        return item[pos_key] + item[size_key]
+
+    def anchor_offset(item: dict[str, Any]) -> float:
+        if anchor == "start":
+            return 0.0
+        if anchor == "center":
+            return item[size_key] / 2
+        return item[size_key]
+
+    reference_value = anchor_value(reference)
+    patches: list[dict[str, Any]] = []
+    for item in moving:
+        left = item["left"]
+        top = item["top"]
+        if item["element_id"] in align_ids and item["element_id"] != reference["element_id"]:
+            aligned_position = round(reference_value - anchor_offset(item), 2)
+            if axis == "x":
+                left = aligned_position
+            else:
+                top = aligned_position
+        patches.append({
+            "element_id": item["element_id"],
+            "left": round(left, 2),
+            "top": round(top, 2),
+            "page": target_page,
+        })
+
+    if all(
+        item["page"] == target_page
+        and abs(patch["left"] - item["left"]) <= EPSILON
+        and abs(patch["top"] - item["top"]) <= EPSILON
+        for item, patch in (
+            (items_by_id[patch["element_id"]], patch)
+            for patch in patches
+        )
+    ):
+        return _NO_CHANGE
+
+    # Moving content must not land on unrelated content. Page-fixed artwork
+    # and line/rectangle decorations are ignored because they intentionally
+    # sit behind or around the document's text.
+    proposed = _apply_patches(items, patches)
+    original_overlaps = {
+        frozenset((first["element_id"], second["element_id"]))
+        for index, first in enumerate(items)
+        for second in items[index + 1:]
+        if first["page"] == second["page"] and _rects_overlap(first, second)
+    }
+    for moved in (item for item in proposed if item["element_id"] in moving_ids):
+        for other in proposed:
+            if moved["element_id"] == other["element_id"] or moved["page"] != other["page"]:
+                continue
+            if other.get("fixedToPage") or other["category"] in DECORATIVE_CATEGORIES:
+                continue
+            if not _rects_overlap(moved, other):
+                continue
+            pair = frozenset((moved["element_id"], other["element_id"]))
+            if other["element_id"] not in moving_ids or pair not in original_overlaps:
+                return None
+
+    group = _group(
+        group_id="directed-move-to-page",
+        title=f"Przenieś {len(moving)} {'element' if len(moving) == 1 else 'elementy'} na stronę {target_page}",
+        reason="Przeniesienie elementów między stronami z zachowaniem układu i wskazanego wyrównania.",
+        severity="review",
+        patches=patches,
+        items=items,
+        page_width=page_width,
+        page_height=page_height,
+        allow_overlap=True,
+    )
+    if group is not None:
+        group["target_page"] = target_page
+    return group
+
+
 def _block_bbox(members: list[dict[str, Any]]) -> dict[str, float] | None:
     """Union bounding box of a block's member elements — the block moves as
     this single rigid shape; members keep their position relative to it."""
@@ -805,6 +934,68 @@ def resolve_directed_operation(
 
     raw_ids = directive.get("target_element_ids") if isinstance(directive, dict) else None
     raw_groups = directive.get("target_groups") if isinstance(directive, dict) else None
+    if op_type == "move_to_page":
+        target_ids = {str(i) for i in raw_ids} if isinstance(raw_ids, list) else set()
+        if isinstance(raw_groups, list):
+            target_ids.update(
+                str(element_id)
+                for group in raw_groups
+                if isinstance(group, list)
+                for element_id in group
+            )
+        align_raw = directive.get("align_element_ids")
+        align_ids = {str(i) for i in align_raw} if isinstance(align_raw, list) else set()
+        requested_ids = target_ids | align_ids
+        known_ids = {item["element_id"] for item in items}
+        if not target_ids or not requested_ids.issubset(known_ids):
+            return _issue("Nie znaleziono wszystkich elementów wskazanych do przeniesienia lub wyrównania.")
+
+        raw_target_page = directive.get("target_page")
+        target_page_number = _number(raw_target_page, -1.0)
+        target_page = int(target_page_number)
+        max_page = max((item["page"] for item in items), default=1)
+        if (
+            isinstance(raw_target_page, bool)
+            or target_page_number != target_page
+            or target_page < 1
+            or target_page > max_page + 1
+        ):
+            return _issue(
+                f"Strona docelowa musi mieć numer od 1 do {max_page + 1}."
+            )
+
+        axis = directive.get("axis") if directive.get("axis") in _VALID_AXES else "x"
+        anchor = directive.get("anchor") if directive.get("anchor") in _VALID_ANCHORS else "start"
+        reference_id = directive.get("reference_element_id")
+        if reference_id is not None and str(reference_id) not in known_ids:
+            return _issue("Nie znaleziono elementu referencyjnego używanego do wyrównania.")
+
+        group = resolve_move_to_page(
+            items,
+            target_ids,
+            target_page,
+            str(reference_id) if reference_id is not None else None,
+            align_ids,
+            axis,
+            anchor,
+            page_width,
+            page_height,
+        )
+        if group == _NO_CHANGE:
+            return {
+                "layout_groups": [],
+                "layout_issues": [{
+                    "severity": "low",
+                    "message": "Wskazane elementy są już na stronie docelowej i mają żądane wyrównanie.",
+                }],
+            }
+        if group is None:
+            return _issue(
+                "Nie można bezpiecznie przenieść elementów — nie mieszczą się na stronie docelowej "
+                "lub kolidowałyby z istniejącą treścią."
+            )
+        return {"layout_groups": [group], "layout_issues": []}
+
     if isinstance(raw_groups, list) and raw_groups:
         # A single group with `space` means spacing its own members (such as
         # role, employer/date, and description within one work-history entry).

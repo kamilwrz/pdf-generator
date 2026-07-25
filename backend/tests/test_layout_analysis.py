@@ -266,6 +266,84 @@ class DirectedOperationTests(unittest.TestCase):
             "profile-photo": (440.0, 25.0),
         })
 
+    def test_move_to_page_transfers_related_elements_and_aligns_them_to_reference(self):
+        elements = [
+            block("section-heading", 10, 10, width=30, height=10, page=1),
+            block("section-body", 24, 30, width=40, height=20, page=1),
+            block("page-two-content", 60, 70, width=30, height=10, page=2),
+        ]
+        result = layout_analysis.resolve_directed_operation(
+            elements,
+            {
+                "type": "move_to_page",
+                "target_element_ids": ["section-heading", "section-body"],
+                "target_page": 2,
+                "reference_element_id": "section-heading",
+                "align_element_ids": ["section-body"],
+                "axis": "x",
+                "anchor": "start",
+            },
+            PAGE_SIZE,
+        )
+
+        self.assertEqual(result["layout_issues"], [])
+        group = result["layout_groups"][0]
+        self.assertEqual(group["target_page"], 2)
+        self.assertEqual(group["patches"], [
+            {"element_id": "section-heading", "left": 10.0, "top": 10.0, "page": 2},
+            {"element_id": "section-body", "left": 10.0, "top": 30.0, "page": 2},
+        ])
+
+    def test_move_to_page_can_create_one_new_trailing_page(self):
+        result = layout_analysis.resolve_directed_operation(
+            [block("heading", 10, 10, width=30, height=10, page=1)],
+            {
+                "type": "move_to_page",
+                "target_element_ids": ["heading"],
+                "target_page": 2,
+            },
+            PAGE_SIZE,
+        )
+
+        self.assertEqual(result["layout_issues"], [])
+        self.assertEqual(
+            result["layout_groups"][0]["patches"],
+            [{"element_id": "heading", "left": 10.0, "top": 10.0, "page": 2}],
+        )
+
+    def test_move_to_page_rejects_collision_with_destination_content(self):
+        result = layout_analysis.resolve_directed_operation(
+            [
+                block("moving", 10, 10, width=30, height=10, page=1),
+                block("occupied", 10, 10, width=30, height=10, page=2),
+            ],
+            {
+                "type": "move_to_page",
+                "target_element_ids": ["moving"],
+                "target_page": 2,
+            },
+            PAGE_SIZE,
+        )
+
+        self.assertEqual(result["layout_groups"], [])
+        self.assertEqual(len(result["layout_issues"]), 1)
+
+    def test_move_to_page_rejects_fixed_page_decoration(self):
+        decoration = block("background", 0, 0, width=100, height=100, page=1, category="image")
+        decoration["fixedToPage"] = True
+        result = layout_analysis.resolve_directed_operation(
+            [decoration],
+            {
+                "type": "move_to_page",
+                "target_element_ids": ["background"],
+                "target_page": 2,
+            },
+            PAGE_SIZE,
+        )
+
+        self.assertEqual(result["layout_groups"], [])
+        self.assertEqual(len(result["layout_issues"]), 1)
+
     def test_shift_reports_no_change_for_a_near_zero_offset(self):
         items = layout_analysis.extract_bounds([block("stays", 10, 10)])
         group = layout_analysis.resolve_shift(items, {"stays"}, 0.0, 0.0, 100, 100)

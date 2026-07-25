@@ -65,6 +65,8 @@ def _extract_positional(elements: list[dict]) -> list[dict]:
             item["width"] = bounds["width"]
             item["height"] = bounds["height"]
             item["page"] = bounds["page"]
+            if bounds.get("fixedToPage"):
+                item["fixedToPage"] = True
 
     included_ids = {item["element_id"] for item in structured}
     visual_labels = {
@@ -91,6 +93,7 @@ def _extract_positional(elements: list[dict]) -> list[dict]:
             "width": bounds["width"],
             "height": bounds["height"],
             "page": bounds["page"],
+            **({"fixedToPage": True} if bounds.get("fixedToPage") else {}),
         })
     return structured
 
@@ -573,10 +576,12 @@ def _chat(message: str, elements: list[dict], page_size: dict | None) -> dict:
         "  - Elementy typu image, line i rectangle są prawidłowymi celami poleceń pozycji. "
         "Przesuwaj je tylko wtedy, gdy użytkownik wyraźnie o to prosi; nie traktuj dekoracji "
         "jako elementów do automatycznej korekty.\n"
-        "  {\"type\": \"shift\"|\"align\"|\"distribute\"|\"space\", \"target_element_ids\": [\"...\"] LUB "
+        "  {\"type\": \"shift\"|\"align\"|\"distribute\"|\"space\"|\"move_to_page\", \"target_element_ids\": [\"...\"] LUB "
         "\"target_groups\": [[\"...\"], [\"...\"]], "
         "\"dx\": <liczba>, \"dy\": <liczba>, \"gap\": <liczba nieujemna>, \"axis\": \"x\"|\"y\", "
-        "\"anchor\": \"start\"|\"center\"|\"end\", \"target\": <liczba lub pomiń>}\n"
+        "\"anchor\": \"start\"|\"center\"|\"end\", \"target\": <liczba lub pomiń>, "
+        "\"target_page\": <numer strony>, \"reference_element_id\": \"...\", "
+        "\"align_element_ids\": [\"...\"]}\n"
         "  - target_element_ids: użyj, gdy polecenie dotyczy pojedynczych elementów (np. nagłówków).\n"
         "  - target_groups: użyj ZAMIAST target_element_ids, gdy polecenie dotyczy CAŁYCH BLOKÓW "
         "złożonych z kilku elementów (np. \"rozłóż wpisy o pracę równomiernie\", gdzie każdy wpis to "
@@ -601,10 +606,19 @@ def _chat(message: str, elements: list[dict], page_size: dict | None) -> dict:
         "Dla elementów WEWNĄTRZ jednego bloku (np. stanowisko + firma/daty + opis PwC) użyj "
         "target_element_ids z trzema identyfikatorami. Dla odstępu MIĘDZY całymi blokami użyj "
         "target_groups z co najmniej dwiema grupami.\n"
+        "  - move_to_page: przenosi wskazany element albo cały logiczny blok na inną stronę. Podaj "
+        "\"target_page\" jako numer strony. Gdy z elementem muszą przejść powiązane elementy "
+        "(np. nagłówek sekcji, wpisy i ich dekoracje), umieść je razem w target_element_ids albo "
+        "w jednej target_groups — Python zachowa ich wzajemne pozycje. Jeżeli użytkownik chce "
+        "wyrównać część przenoszonych elementów do elementu referencyjnego, podaj dodatkowo "
+        "\"reference_element_id\", \"align_element_ids\", \"axis\" i \"anchor\". Domyślnie użyj "
+        "axis=\"x\" i anchor=\"start\", aby wyrównać lewe krawędzie. Element referencyjny może "
+        "być przenoszonym elementem albo elementem już obecnym na stronie docelowej. Nie przenoś "
+        "elementów z fixedToPage=true; są to tła i stałe dekoracje stron.\n"
         "NIGDY sam nie podawaj wartości left/top — Python obliczy rzeczywiste współrzędne na "
         "podstawie bieżącej, aktualnej pozycji elementów i sam odrzuci operację, jeśli wyszłaby "
         "poza stronę.\n"
-        "(4) Jeśli polecenie wymaga zmiany rozmiaru elementów lub liczby stron (np. \"zmieść CV na "
+        "(4) Jeśli polecenie wymaga zmiany rozmiaru elementów lub usunięcia wielu stron (np. \"zmieść CV na "
         "jednej stronie\"), albo jest zbyt niejednoznaczne, by bezpiecznie określić elementy "
         "docelowe i operację — NIE zgaduj. W message wyjaśnij ograniczenie lub zadaj pytanie "
         "doprecyzowujące, zostaw corrections puste i position_operation jako null.\n"
