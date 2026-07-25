@@ -27,7 +27,10 @@ export const ENDPOINTS = {
         GENERATE_DECK: "/ai/generate_deck",
         GENERATE_ARTICLE: "/ai/generate_article",
         ASSISTANT: "/ai/assistant",
-    }
+    },
+    EVENTS: {
+        LOG: "/events/log",
+    },
 }
 
 export default API_BASE_URL;

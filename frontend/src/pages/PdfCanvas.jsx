@@ -25,8 +25,13 @@ import AiCvPanel from '../components/ai/AiCvPanel/AiCvPanel';
 import AiDeckPanel from '../components/ai/AiDeckPanel/AiDeckPanel';
 import AiArticlePanel from '../components/ai/AiArticlePanel/AiArticlePanel';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
+import { FEATURES } from '../config/features';
 import { previewStructureOperation } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
+
+// Session-scoped flag so the template-first onboarding modal (see
+// markTemplatesModalSeen below) never re-triggers after being resolved once.
+const TEMPLATES_MODAL_SEEN_KEY = "kompoza:templatesModalSeen";
 
 function PdfCanvas() {
 
@@ -54,6 +59,13 @@ function PdfCanvas() {
   const [pdfId, setPdfId] = useState(null);
   //FETCHED PDF's
   const [PDFs, setPDFs] = useState([]);
+  // true once ModalPdfs' fetch-on-mount has resolved (success or failure) —
+  // distinguishes "no saved PDFs" from "still fetching" for T4's onboarding gate
+  const [pdfsLoaded, setPdfsLoaded] = useState(false);
+  // true only while the CURRENT open TemplatesModal instance is the one that
+  // auto-opened for first-time onboarding (not a manual "Szablony" click) —
+  // used to scope the pick/dismiss metric to onboarding completion specifically
+  const [autoOpenedTemplates, setAutoOpenedTemplates] = useState(false);
   //the title of the PDF, loadded when pdf loaded
   const titleRef = useRef();
 
@@ -304,6 +316,26 @@ function PdfCanvas() {
     setIsTemplates(bool => !bool);
   }, [])
 
+  // Template-first onboarding: auto-open the templates picker for a
+  // first-time user (no saved PDFs yet), once pdfsLoaded resolves so a
+  // returning user with saved PDFs never sees a false-positive flash while
+  // the fetch is still in flight. Fires at most once per browser session —
+  // see markTemplatesModalSeen.
+  useEffect(() => {
+    if (!pdfsLoaded || PDFs.length !== 0) return;
+    if (autoOpenedTemplates) return;
+    if (sessionStorage.getItem(TEMPLATES_MODAL_SEEN_KEY) === "1") return;
+    setAutoOpenedTemplates(true);
+    setIsTemplates(true);
+  }, [pdfsLoaded, PDFs.length, autoOpenedTemplates])
+
+  // Called once the auto-opened templates modal is resolved (template
+  // picked or dismissed) so it never re-triggers again this session.
+  const markTemplatesModalSeen = useCallback(() => {
+    sessionStorage.setItem(TEMPLATES_MODAL_SEEN_KEY, "1");
+    setAutoOpenedTemplates(false);
+  }, [])
+
   const handleShowAiPanel = useCallback(() => {
     setIsAiPanel(bool => !bool);
   }, [])
@@ -454,6 +486,8 @@ function PdfCanvas() {
     //templates
     isTemplates: isTemplates,
     showTemplates: handleShowTemplates,
+    autoOpenedTemplates: autoOpenedTemplates,
+    markTemplatesModalSeen: markTemplatesModalSeen,
     loadTemplate: loadTemplateFresh,
     loadTemplateWithFill: loadTemplateWithFillFresh,
     loadAiElements: loadAiElementsFresh,
@@ -505,6 +539,8 @@ function PdfCanvas() {
     logout: handleLogout,
     PDFs: PDFs,
     setPDFs: setPDFs,
+    pdfsLoaded: pdfsLoaded,
+    setPdfsLoaded: setPdfsLoaded,
     setPDFdownloadData: setPDFdownloadData,
     PDFdownloadData: PDFdownloadData,
     layoutPreviewPatches: layoutPreviewPatches,
@@ -524,11 +560,11 @@ function PdfCanvas() {
     setValueImageUpload, setIsModalPdfs, handleResizeElement, 
     updatePdfWithElements, handlePdfId, 
     clearA4Fresh, discardActiveDocument, flushAutosave, loadTemplateFresh, loadTemplateWithFillFresh, loadAiElementsFresh,
-    handleShowModalRequest, handleLogout, PDFs, setPDFs,
+    handleShowModalRequest, handleLogout, PDFs, setPDFs, pdfsLoaded, setPdfsLoaded,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     isTwoPageView, toggleTwoPageView,
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
-    isTemplates, handleShowTemplates, handleMoveElementWithBelow, handleShowAiPanel,
+    isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen, handleMoveElementWithBelow, handleShowAiPanel,
     handleShowDeckPanel, handleShowArticlePanel, pageSize, setPageSize, setPagePreset,
     zoom, zoomIn, zoomOut,
     undo, redo, canUndo, canRedo, resetHistory,
@@ -564,12 +600,12 @@ function PdfCanvas() {
               <AiCvPanel onClose={handleShowAiPanel} />
             </div>
           )}
-          {isDeckPanel && (
+          {FEATURES.decksArticles && isDeckPanel && (
             <div style={{ position: "absolute", left: "100%", top: 44, width: 340, background: "#fff", borderLeft: "1px solid var(--border-line)", borderRight: "1px solid var(--border-line)", height: "calc(100% - 44px)", overflowY: "auto", zIndex: 1100, boxShadow: "4px 0 16px rgba(30,48,78,.10)" }}>
               <AiDeckPanel onClose={handleShowDeckPanel} />
             </div>
           )}
-          {isArticlePanel && (
+          {FEATURES.decksArticles && isArticlePanel && (
             <div style={{ position: "absolute", left: "100%", top: 44, width: 340, background: "#fff", borderLeft: "1px solid var(--border-line)", borderRight: "1px solid var(--border-line)", height: "calc(100% - 44px)", overflowY: "auto", zIndex: 1100, boxShadow: "4px 0 16px rgba(30,48,78,.10)" }}>
               <AiArticlePanel onClose={handleShowArticlePanel} />
             </div>

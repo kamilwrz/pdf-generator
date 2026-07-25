@@ -1,14 +1,34 @@
-from fastapi import FastAPI, HTTPException
+import logging
+
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from app.api.routes import auth, pdf, images, ai
+from app.api.routes import auth, pdf, images, ai, events
 from app.api.routes import ai_assistant
 from app.core.config import origins, IMAGES_UPLOAD_DIR, PDF_UPLOAD_DIR, TEMPLATE_ASSETS_DIR
+from app.services.ai_assistant_service import AIServiceError
 
 from pathlib import Path
 from fastapi.responses import FileResponse
 
+logger = logging.getLogger("ai_assistant")
+
 app = FastAPI()
+
+
+@app.exception_handler(AIServiceError)
+async def ai_service_error_handler(request: Request, exc: AIServiceError):
+    logger.error(
+        "AI assistant service error: action=%s elements_count=%s error_type=%s detail=%s",
+        exc.action, exc.elements_count,
+        type(exc.original).__name__ if exc.original else "unknown",
+        str(exc),
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Asystent AI jest chwilowo niedostępny, spróbuj ponownie."},
+    )
 
 # Ensure upload directories exist (e.g. on fresh deploy / Render)
 IMAGES_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -28,6 +48,7 @@ app.include_router(pdf.router)
 app.include_router(images.router)
 app.include_router(ai.router)
 app.include_router(ai_assistant.router)
+app.include_router(events.router)
 
 if DIST_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(DIST_DIR / "assets")), name="frontend_assets")

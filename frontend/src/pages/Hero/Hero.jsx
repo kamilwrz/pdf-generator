@@ -22,7 +22,7 @@ export default function Hero() {
                 </div>
                 <div className={classes.navLinks}>
                     <a href="#funkcje" className={classes.navLink}>Funkcje</a>
-                    <a className={classes.navLink}>Cennik</a>
+                    <a href="#cennik" className={classes.navLink}>Cennik</a>
                     <a href="#szablony" className={classes.navLink}>Szablony</a>
                     <Link to="/login" className={classes.navLink}>Zaloguj się</Link>
                     <Link to="/register" className={classes.navCta}>Rozpocznij za darmo</Link>
@@ -231,6 +231,16 @@ export default function Hero() {
                 </div>
             </div>
 
+            {/* ---- Cennik (coming soon placeholder — real capture ships separately) ---- */}
+            <div id="cennik" className={classes.cennikSection}>
+                <span className={classes.eyebrow}>Cennik</span>
+                <h2 className={classes.sectionTitle}>Już wkrótce</h2>
+                <p className={classes.cennikText}>
+                    Pracujemy nad planami płatnymi z dodatkowymi szablonami i limitami AI.
+                    Na razie korzystaj z Kompozy bezpłatnie.
+                </p>
+            </div>
+
             {/* ---- Final CTA ---- */}
             <div className={classes.finalCta}>
                 <h2 className={classes.finalCtaTitle}>Gotowy na CV, które otwiera drzwi?</h2>
@@ -250,7 +260,7 @@ export default function Hero() {
                     </div>
                     <div className={classes.footerLinks}>
                         <a href="#funkcje" className={classes.footerLink}>Funkcje</a>
-                        <a className={classes.footerLink}>Cennik</a>
+                        <a href="#cennik" className={classes.footerLink}>Cennik</a>
                         <a href="#szablony" className={classes.footerLink}>Szablony</a>
                         <Link to="/login" className={classes.footerLink}>Zaloguj się</Link>
                         <Link to="/register" className={classes.footerLinkAccent}>Zarejestruj się</Link>

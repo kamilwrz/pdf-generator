@@ -4,6 +4,7 @@ import classes from "./TemplatesModal.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { TEMPLATES, TEMPLATE_CATEGORIES } from "../../../templates";
 import CloseButton from "../../common/CloseButton/CloseButton";
+import { logEvent } from "../../../services/eventLog";
 
 // Lightweight CSS mini-mock of each template, keyed by id. Not a render — just
 // enough to convey the layout character (column vs sidebar vs framed).
@@ -325,7 +326,10 @@ function Preview({ id, accent }) {
 }
 
 export default function TemplatesModal() {
-    const { isTemplates, showTemplates, loadTemplate, A4_Elements } = use(PdfContext);
+    const {
+        isTemplates, showTemplates, loadTemplate, A4_Elements,
+        autoOpenedTemplates, markTemplatesModalSeen,
+    } = use(PdfContext);
     const [category, setCategory] = useState("cv");
 
     if (!isTemplates) return null;
@@ -338,20 +342,36 @@ export default function TemplatesModal() {
         const prefix = t.category === "cv" ? "CV" : t.category === "deck" ? "Prezentacja" : "Artykuł";
         const title = `${prefix} ${t.name}`;
         loadTemplate(t.elements, title, t.pageSize);
+        if (autoOpenedTemplates) {
+            logEvent("template_picked", t.id);
+            markTemplatesModalSeen();
+        }
+        showTemplates();
+    }
+
+    // Dismissing (backdrop click / close button) without picking a template.
+    // Only counts as onboarding "dismissed" when this is the auto-opened
+    // first-time instance — a returning user closing the picker after
+    // browsing isn't an onboarding drop-off.
+    function handleClose() {
+        if (autoOpenedTemplates) {
+            logEvent("template_dismissed");
+            markTemplatesModalSeen();
+        }
         showTemplates();
     }
 
     const visible = TEMPLATES.filter((t) => t.category === category);
 
     return createPortal(
-        <div className={classes.backdrop} onClick={showTemplates}>
+        <div className={classes.backdrop} onClick={handleClose}>
             <div className={classes.modal} onClick={(e) => e.stopPropagation()}>
                 <div className={classes.header}>
                     <div>
                         <h2>Zacznij od szablonu</h2>
                         <p>Wybierz układ, a potem spersonalizuj każdy element na płótnie.</p>
                     </div>
-                    <CloseButton clickHandler={showTemplates} right={20} top={20} />
+                    <CloseButton clickHandler={handleClose} right={20} top={20} />
                 </div>
                 <div className={classes.tabs}>
                     {TEMPLATE_CATEGORIES.map((c) => (

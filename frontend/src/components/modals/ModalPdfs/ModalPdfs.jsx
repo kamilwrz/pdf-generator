@@ -42,6 +42,7 @@ export default function ModalPdfs({ title }) {
         setA4_Elements_deleted,
         setPDFs,
         PDFs,
+        setPdfsLoaded,
         setPDFdownloadData,
         PDFdownloadData,
         setPageCount,
@@ -154,8 +155,9 @@ export default function ModalPdfs({ title }) {
         api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, "Nie udało się pobrać listy PDF!").
             then((data) => {
                 setPDFs(data);
+                setPdfsLoaded(true);
                 }).
-            catch((error) => { setError(error) })
+            catch((error) => { setError(error); setPdfsLoaded(true); })
 
 
     }, [isModalPdfs, PDFdownloadData])

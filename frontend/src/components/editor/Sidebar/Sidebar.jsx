@@ -77,7 +77,6 @@ export default function Sidebar({ children }) {
                 <span className={classes.avatar} />
                 <div className={classes.profileMeta}>
                     <div className={classes.profileName}>Twoje konto</div>
-                    <div className={classes.profilePlan}>Plan darmowy</div>
                 </div>
                 <button className={classes.logout} onClick={logout} aria-label="Wyloguj się">
                     <AiOutlineLogout />

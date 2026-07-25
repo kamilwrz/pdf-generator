@@ -2,8 +2,9 @@ import classes from "./Topbar.module.css";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { PAGE_PRESETS } from "../../../hooks/useA4Elements";
+import { FEATURES } from "../../../config/features";
 import { LuLayoutTemplate } from "react-icons/lu";
-import { RiRobot2Line, RiDownload2Line } from "react-icons/ri";
+import { RiFileTextLine, RiDownload2Line } from "react-icons/ri";
 import { FiRefreshCw, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { MdOutlineSlideshow } from "react-icons/md";
 import { RiArticleLine, RiArrowGoBackLine, RiArrowGoForwardLine } from "react-icons/ri";
@@ -40,17 +41,21 @@ export default function Topbar({ titleRef }) {
                     <span className={classes.label}>Szablony</span>
                 </button>
                 <button type="button" className={classes.feature} onClick={showAiPanel}>
-                    <RiRobot2Line />
-                    <span className={classes.label}>CV AI</span>
+                    <RiFileTextLine />
+                    <span className={classes.label}>Wypełnij z PDF</span>
                 </button>
-                <button type="button" className={classes.feature} onClick={showDeckPanel}>
-                    <MdOutlineSlideshow />
-                    <span className={classes.label}>Slajdy AI</span>
-                </button>
-                <button type="button" className={classes.feature} onClick={showArticlePanel}>
-                    <RiArticleLine />
-                    <span className={classes.label}>Artykuł AI</span>
-                </button>
+                {FEATURES.decksArticles && (
+                    <>
+                        <button type="button" className={classes.feature} onClick={showDeckPanel}>
+                            <MdOutlineSlideshow />
+                            <span className={classes.label}>Slajdy AI</span>
+                        </button>
+                        <button type="button" className={classes.feature} onClick={showArticlePanel}>
+                            <RiArticleLine />
+                            <span className={classes.label}>Artykuł AI</span>
+                        </button>
+                    </>
+                )}
 
                 <span className={classes.divider} aria-hidden="true" />
 

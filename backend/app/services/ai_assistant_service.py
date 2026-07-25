@@ -7,7 +7,7 @@ calls GPT, and returns a structured response the frontend can render
 """
 import json
 import os
-from openai import OpenAI
+from openai import OpenAI, APIConnectionError, APIError, APITimeoutError, RateLimitError
 from app.core.config import OPENAI_API_KEY
 from app.services.layout_analysis import (
     analyze_layout,
@@ -19,6 +19,19 @@ from app.services.layout_analysis import (
 
 _MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.5")
 _client = OpenAI(api_key=OPENAI_API_KEY)
+
+
+class AIServiceError(Exception):
+    """Raised when the AI Assistant's OpenAI call fails in an expected way
+    (timeout, rate limit, connection error, malformed/empty response).
+    Caught by the app-level exception_handler in main.py, which logs full
+    context server-side and returns a generic, non-leaking message."""
+
+    def __init__(self, message: str, *, action: str = "", elements_count: int = 0, original: Exception | None = None):
+        super().__init__(message)
+        self.action = action
+        self.elements_count = elements_count
+        self.original = original
 
 # Fields that corrections are ALLOWED to patch.
 # Positional fields (left, top, width, height, zIndex, page) are intentionally
@@ -131,16 +144,20 @@ def _extract_typography(elements: list[dict]) -> list[dict]:
 
 
 def _gpt(system: str, user: str) -> dict:
-    resp = _client.chat.completions.create(
-        model=_MODEL,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-        response_format={"type": "json_object"},
-        reasoning_effort="medium",
-        max_completion_tokens=16000,
-    )
+    try:
+        resp = _client.chat.completions.create(
+            model=_MODEL,
+            messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+            response_format={"type": "json_object"},
+            reasoning_effort="medium",
+            max_completion_tokens=16000,
+        )
+    except (APITimeoutError, RateLimitError, APIConnectionError, APIError) as exc:
+        raise AIServiceError(f"OpenAI request failed: {type(exc).__name__}", original=exc) from exc
+
     content = resp.choices[0].message.content or ""
     if not content.strip():
-        raise ValueError(
+        raise AIServiceError(
             f"Model returned empty content (finish_reason={resp.choices[0].finish_reason})"
         )
     stripped = content.strip()
@@ -149,7 +166,10 @@ def _gpt(system: str, user: str) -> dict:
         if stripped.startswith("json"):
             stripped = stripped[4:]
         stripped = stripped.rsplit("```", 1)[0].strip()
-    return json.loads(stripped)
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError as exc:
+        raise AIServiceError(f"OpenAI returned malformed JSON: {exc}", original=exc) from exc
 
 
 def _ddg_search(query: str, max_results: int = 5) -> list[dict]:
@@ -776,4 +796,9 @@ def analyze_action(
             "corrections": [],
             "web_sources": [],
         }
-    return fn()
+    try:
+        return fn()
+    except AIServiceError as exc:
+        exc.action = exc.action or action
+        exc.elements_count = exc.elements_count or len(elements)
+        raise

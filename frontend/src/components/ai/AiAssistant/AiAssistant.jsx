@@ -653,6 +653,7 @@ export default function AiAssistant() {
                 aria-label="Otwórz asystenta AI"
             >
                 <BsStars />
+                <span className={classes.fabLabel}>Asystent AI</span>
             </button>
 
             {/* ── sliding panel ── */}

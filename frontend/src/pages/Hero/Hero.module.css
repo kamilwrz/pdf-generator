@@ -625,6 +625,21 @@
 }
 
 /* ---- Final CTA ---- */
+.cennikSection {
+    position: relative;
+    z-index: 2;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 56px 0;
+    text-align: center;
+}
+
+.cennikText {
+    font: 400 16px/1.6 var(--font-body);
+    color: var(--muted-font);
+    margin: 12px 0 0;
+}
+
 .finalCta {
     position: relative;
     z-index: 2;

@@ -1,0 +1,105 @@
+import unittest
+
+from fastapi.testclient import TestClient
+
+from app.core.security import verify_token
+from app.dependencies import get_db
+from app.main import app
+
+
+class _FakeQuery:
+    def filter(self, *args, **kwargs):
+        return self
+
+    def first(self):
+        return None
+
+
+class _FakeDB:
+    def query(self, *args, **kwargs):
+        return _FakeQuery()
+
+
+def _fake_verify_token():
+    return {"sub": "testuser"}
+
+
+def _fake_get_db():
+    yield _FakeDB()
+
+
+class EventsLogTests(unittest.TestCase):
+    """T1b's events endpoint: auth-gated + schema-validated because its data
+    is the sole signal gating the Phase 2 go/no-go decision (see
+    docs/designs/cv-only-ux-monetization.md, Outside Voice finding 4).
+    """
+
+    def setUp(self):
+        self.client = TestClient(app)
+
+    def tearDown(self):
+        app.dependency_overrides.clear()
+
+    def test_unauthenticated_request_is_rejected(self):
+        response = self.client.post(
+            "/events/log",
+            json={"event_type": "template_picked", "template_id": "ledger"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_authenticated_valid_event_is_accepted(self):
+        app.dependency_overrides[verify_token] = _fake_verify_token
+        app.dependency_overrides[get_db] = _fake_get_db
+
+        response = self.client.post(
+            "/events/log",
+            json={"event_type": "template_picked", "template_id": "ledger"},
+            headers={"Authorization": "Bearer fake"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_out_of_allowlist_event_type_is_rejected(self):
+        app.dependency_overrides[verify_token] = _fake_verify_token
+        app.dependency_overrides[get_db] = _fake_get_db
+
+        response = self.client.post(
+            "/events/log",
+            json={"event_type": "something_not_allowed"},
+            headers={"Authorization": "Bearer fake"},
+        )
+        self.assertEqual(response.status_code, 422)
+
+    def test_dismissed_event_without_template_id_is_accepted(self):
+        app.dependency_overrides[verify_token] = _fake_verify_token
+        app.dependency_overrides[get_db] = _fake_get_db
+
+        response = self.client.post(
+            "/events/log",
+            json={"event_type": "template_dismissed"},
+            headers={"Authorization": "Bearer fake"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_logging_failure_does_not_break_the_response(self):
+        # A DB lookup failure while resolving the numeric user id must not
+        # surface to the caller — fire-and-forget guarantee.
+        app.dependency_overrides[verify_token] = _fake_verify_token
+
+        def broken_db():
+            class Broken:
+                def query(self, *a, **k):
+                    raise RuntimeError("db unavailable")
+            yield Broken()
+
+        app.dependency_overrides[get_db] = broken_db
+
+        response = self.client.post(
+            "/events/log",
+            json={"event_type": "template_picked", "template_id": "ledger"},
+            headers={"Authorization": "Bearer fake"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+
+if __name__ == "__main__":
+    unittest.main()
