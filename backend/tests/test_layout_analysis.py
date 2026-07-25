@@ -237,6 +237,35 @@ class DirectedOperationTests(unittest.TestCase):
         changed = {p["element_id"]: p["left"] for p in result["layout_groups"][0]["patches"]}
         self.assertEqual(changed, {"one": 20.0, "two": 20.0})
 
+    def test_directed_operation_can_move_visual_elements(self):
+        elements = [
+            block("section-line", 20, 30, width=160, height=2, category="line"),
+            block("accent-box", 40, 60, width=120, height=80, category="rectangle"),
+            block("profile-photo", 430, 20, width=100, height=100, category="image"),
+        ]
+
+        result = layout_analysis.resolve_directed_operation(
+            elements,
+            {
+                "type": "shift",
+                "target_element_ids": ["section-line", "accent-box", "profile-photo"],
+                "dx": 10,
+                "dy": 5,
+            },
+            {"width": 595, "height": 842},
+        )
+
+        self.assertEqual(result["layout_issues"], [])
+        changed = {
+            patch["element_id"]: (patch["left"], patch["top"])
+            for patch in result["layout_groups"][0]["patches"]
+        }
+        self.assertEqual(changed, {
+            "section-line": (30.0, 35.0),
+            "accent-box": (50.0, 65.0),
+            "profile-photo": (440.0, 25.0),
+        })
+
     def test_shift_reports_no_change_for_a_near_zero_offset(self):
         items = layout_analysis.extract_bounds([block("stays", 10, 10)])
         group = layout_analysis.resolve_shift(items, {"stays"}, 0.0, 0.0, 100, 100)

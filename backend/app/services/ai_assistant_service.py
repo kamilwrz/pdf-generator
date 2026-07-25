@@ -49,13 +49,12 @@ def _extract_structured(elements: list[dict]) -> list[dict]:
 
 
 def _extract_positional(elements: list[dict]) -> list[dict]:
-    """Content, style, AND geometry for text/textarea, plus a geometry-only
-    entry for images (e.g. a photo) so position instructions can target them
-    too — used only by _chat(), the one action that may propose position
-    operations (via a directive Python resolves, never a raw coordinate GPT
-    invents). _extract_structured() alone excludes images entirely, which is
-    correct for content/style edits but would make an image untargetable by
-    a position instruction like "move the photo left"."""
+    """Content, style, and geometry plus geometry-only visual elements.
+
+    Text is the only editable content. Images, lines, and rectangles are also
+    emitted for chat commands so the AI can explicitly place every visible
+    canvas element without being allowed to invent raw coordinates.
+    """
     bounds_by_id = {b["element_id"]: b for b in extract_bounds(elements)}
     structured = _extract_structured(elements)
     for item in structured:
@@ -68,17 +67,25 @@ def _extract_positional(elements: list[dict]) -> list[dict]:
             item["page"] = bounds["page"]
 
     included_ids = {item["element_id"] for item in structured}
+    visual_labels = {
+        "image": "[obraz]",
+        "line": "[linia]",
+        "rectangle": "[prostokąt]",
+    }
     for el in elements:
         element_id = el.get("element_id")
-        if el.get("category") != "image" or element_id in included_ids:
+        category = el.get("category")
+        if category not in visual_labels or element_id in included_ids:
             continue
         bounds = bounds_by_id.get(element_id)
         if not bounds:
             continue
         structured.append({
             "element_id": element_id,
-            "category": "image",
-            "content": "[obraz]",
+            "category": category,
+            "content": visual_labels[category],
+            "color": el.get("backgroundColor"),
+            "borderWidth": el.get("borderWidth"),
             "left": bounds["left"],
             "top": bounds["top"],
             "width": bounds["width"],
@@ -563,6 +570,9 @@ def _chat(message: str, elements: list[dict], page_size: dict | None) -> dict:
         "(3) POLECENIEM dotyczącym POZYCJI elementów (np. \"przesuń nagłówki sekcji o 50px w lewo\", "
         "\"wyrównaj te elementy na x=50\", \"rozłóż wpisy w sekcji doświadczenia równomiernie\") — "
         "zwróć position_operation zamiast corrections:\n"
+        "  - Elementy typu image, line i rectangle są prawidłowymi celami poleceń pozycji. "
+        "Przesuwaj je tylko wtedy, gdy użytkownik wyraźnie o to prosi; nie traktuj dekoracji "
+        "jako elementów do automatycznej korekty.\n"
         "  {\"type\": \"shift\"|\"align\"|\"distribute\"|\"space\", \"target_element_ids\": [\"...\"] LUB "
         "\"target_groups\": [[\"...\"], [\"...\"]], "
         "\"dx\": <liczba>, \"dy\": <liczba>, \"gap\": <liczba nieujemna>, \"axis\": \"x\"|\"y\", "

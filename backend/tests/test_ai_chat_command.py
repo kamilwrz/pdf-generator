@@ -124,10 +124,10 @@ class ChatCommandTests(unittest.TestCase):
         self.assertEqual(result["layout_groups"], [])
         self.assertEqual(len(result["layout_issues"]), 1)
 
-    def test_extract_positional_includes_images_with_geometry(self):
-        # _extract_structured() alone excludes images (they have no content
-        # to edit), but a position instruction like "move the photo" needs
-        # GPT to see the image's element_id and geometry at all.
+    def test_extract_positional_includes_visual_elements_with_geometry(self):
+        # _extract_structured() excludes visual elements because they have no
+        # editable text, but position instructions must still be able to
+        # target a photo, line, or decorative rectangle by id.
         elements = [
             {
                 "element_id": "heading-1",
@@ -142,6 +142,18 @@ class ChatCommandTests(unittest.TestCase):
                 "content": "",
                 "left": 450, "top": 20, "width": 100, "height": 100, "page": 1,
             },
+            {
+                "element_id": "section-line",
+                "category": "line",
+                "content": "",
+                "left": 20, "top": 150, "width": 200, "height": 2, "page": 1,
+            },
+            {
+                "element_id": "accent-box",
+                "category": "rectangle",
+                "content": "",
+                "left": 30, "top": 180, "width": 160, "height": 80, "page": 1,
+            },
         ]
 
         result = ai_assistant_service._extract_positional(elements)
@@ -151,6 +163,10 @@ class ChatCommandTests(unittest.TestCase):
         self.assertEqual(by_id["photo-1"]["category"], "image")
         self.assertEqual(by_id["photo-1"]["left"], 450.0)
         self.assertEqual(by_id["photo-1"]["top"], 20.0)
+        self.assertEqual(by_id["section-line"]["category"], "line")
+        self.assertEqual(by_id["section-line"]["height"], 2.0)
+        self.assertEqual(by_id["accent-box"]["category"], "rectangle")
+        self.assertEqual(by_id["accent-box"]["width"], 160.0)
 
     def test_dispatcher_routes_target_groups_directive_to_block_resolution(self):
         elements = [

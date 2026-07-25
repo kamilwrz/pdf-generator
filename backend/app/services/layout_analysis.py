@@ -12,7 +12,11 @@ from statistics import median
 from typing import Any
 
 
-MOVABLE_CATEGORIES = {"text", "textarea", "image"}
+# Automatic layout analysis deliberately excludes decorations. Explicit AI
+# commands may target them, however, so their bounds need a broader category
+# set than the scanner uses.
+AUTO_LAYOUT_CATEGORIES = {"text", "textarea", "image"}
+DIRECTED_POSITION_CATEGORIES = AUTO_LAYOUT_CATEGORIES | {"line", "rectangle"}
 DECORATIVE_CATEGORIES = {"line", "rectangle", "connector"}
 MAX_SNAP_DISTANCE = 12.0
 MAX_SAFE_SNAP_MOVE = 18.0
@@ -38,10 +42,14 @@ def _text_dimensions(element: dict[str, Any]) -> tuple[float, float]:
     return max(font_size * 0.55 * longest_line, font_size), font_size * 1.35
 
 
-def _bounds_for(element: dict[str, Any]) -> dict[str, Any] | None:
+def _bounds_for(
+    element: dict[str, Any],
+    allowed_categories: set[str] | None = None,
+) -> dict[str, Any] | None:
     """Build normalized bounds from frontend measurements and stored geometry."""
     category = element.get("category")
-    if category not in MOVABLE_CATEGORIES:
+    allowed_categories = allowed_categories or DIRECTED_POSITION_CATEGORIES
+    if category not in allowed_categories:
         return None
 
     measured = element.get("layout_bounds") or {}
@@ -95,10 +103,16 @@ def _apply_patches(
     ]
 
 
-def extract_bounds(elements: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Public bounds extraction, shared by the deterministic scanner and
-    GPT-directed position operations so both reason about identical geometry."""
-    return [bound for element in elements if (bound := _bounds_for(element))]
+def extract_bounds(
+    elements: list[dict[str, Any]],
+    allowed_categories: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Normalize geometric bounds for the requested set of element types."""
+    return [
+        bound
+        for element in elements
+        if (bound := _bounds_for(element, allowed_categories))
+    ]
 
 
 def _is_safe_group(
@@ -394,7 +408,7 @@ def analyze_layout(elements: list[dict[str, Any]], page_size: dict[str, Any] | N
     if page_width <= 0 or page_height <= 0:
         raise ValueError("page_size musi zawierać dodatnie wartości width i height.")
 
-    items = extract_bounds(elements)
+    items = extract_bounds(elements, AUTO_LAYOUT_CATEGORIES)
     if not items:
         return {
             "message": "Potrzebuję co najmniej jednego mierzalnego bloku tekstu lub obrazu, aby ocenić układ.",
