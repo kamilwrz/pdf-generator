@@ -4,21 +4,20 @@ import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import Resize from "../../common/Resize/Resize";
 
-// Same factor as the backend's BULLET_INDENT_FACTOR (pdf_generator.py), so
-// the canvas preview and the PDF hang-indent by the same amount.
-const BULLET_INDENT_FACTOR = 1.1;
-
-// Splits content into one node per line, applying a hanging indent (via
-// negative text-indent) to lines that already start with "•" — so a
-// wrapped bullet line's continuation text lines up under the bullet's
-// text instead of under the bullet itself.
-function renderBulletLines(content, fontSize) {
-    const indent = fontSize * BULLET_INDENT_FACTOR;
+// Normalize a bullet's whitespace and render the marker in a dedicated grid
+// column. The column's width is the actual rendered "• " width for the active
+// font, so every bullet body and continuation line starts at one exact x value.
+function renderBulletLines(content) {
     return content.split("\n").map((line, i) => {
-        const isBullet = line.trimStart().startsWith("•");
+        const bulletMatch = line.match(/^\s*•[ \t]*/);
+        if (!bulletMatch) {
+            return <div key={i}>{line}</div>;
+        }
+
         return (
-            <div key={i} style={isBullet ? { paddingLeft: indent, textIndent: -indent } : undefined}>
-                {line}
+            <div key={i} className={classes.bulletLine}>
+                <span className={classes.bulletMarker}>• </span>
+                <span className={classes.bulletBody}>{line.slice(bulletMatch[0].length)}</span>
             </div>
         );
     });
@@ -127,7 +126,7 @@ function Textarea({
             onPointerUp={() => selectMoveElement(elementId, false)}
             onPointerMove={(e) => moveElement(e, elementId)}
         >
-            {bulletList && content ? renderBulletLines(content, fontSize) : content}
+            {bulletList && content ? renderBulletLines(content) : content}
         </div>
     );
 

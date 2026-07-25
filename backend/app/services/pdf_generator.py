@@ -4,6 +4,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase.pdfmetrics import stringWidth, getAscentDescent
 from pathlib import Path
 import io
+import re
 from fontTools.ttLib import TTFont as _FTFont
 
 _BACKEND_DIR = Path(__file__).resolve().parent.parent.parent  # app -> backend
@@ -245,8 +246,6 @@ class PDF_Generator:
             return 0.0
         return stringWidth(text, font, size) + len(text) * letter_spacing
 
-    BULLET_INDENT_FACTOR = 1.1  # hanging indent, in multiples of font size
-
     def _wrap_textarea(self, text, font, size, letter_spacing, max_width, bullet_list=False):
         """Reproduce the browser's soft-wrapping of a fixed-width text box.
 
@@ -255,28 +254,29 @@ class PDF_Generator:
         same font metrics + letter-spacing the canvas uses, so the wrap points
         match what the user sees in edit mode.
 
-        When ``bullet_list`` is set, any paragraph starting with "•" wraps
-        against a narrower width (max_width - hanging indent) and its
-        continuation lines carry that indent, so wrapped text lines up under
-        the bullet's text rather than under the bullet itself.
+        When ``bullet_list`` is set, a leading bullet is normalized to ``• ``
+        and rendered in its own prefix column. Its real font-metric width
+        determines the hanging indent, so every bullet's text and continuation
+        lines have exactly the same start on the canvas and in the PDF.
 
-        Returns a list of (line, is_last_of_paragraph, indent_px) tuples. The
-        is_last flag lets justify leave the final line of each paragraph
-        left-aligned, matching CSS text-align: justify."""
+        Returns tuples of (line, is_last_of_paragraph, indent_px,
+        bullet_prefix). The is_last flag lets justify leave the final line of
+        each paragraph left-aligned, matching CSS text-align: justify."""
         out = []
-        indent = size * self.BULLET_INDENT_FACTOR if bullet_list else 0.0
         for paragraph in (text or "").split("\n"):
             if paragraph == "":
-                out.append(("", True, 0.0))
+                out.append(("", True, 0.0, ""))
                 continue
 
-            is_bullet = bullet_list and paragraph.lstrip().startswith("•")
-            para_indent = indent if is_bullet else 0.0
+            is_bullet = bullet_list and bool(re.match(r"^\s*•", paragraph))
+            bullet_prefix = "• " if is_bullet else ""
+            body = re.sub(r"^\s*•[ \t]*", "", paragraph) if is_bullet else paragraph
+            para_indent = self._line_width(bullet_prefix, font, size, letter_spacing)
             avail_width = max_width - para_indent
 
             para_lines = []
             current = ""
-            for word in paragraph.split(" "):
+            for word in body.split(" "):
                 candidate = word if current == "" else current + " " + word
                 if self._line_width(candidate, font, size, letter_spacing) <= avail_width:
                     current = candidate
@@ -301,10 +301,9 @@ class PDF_Generator:
 
             para_lines.append(current)
             for i, ln in enumerate(para_lines):
-                # Only continuation lines of a bullet paragraph carry the
-                # indent — the first line starts at the box's left edge.
-                line_indent = para_indent if i > 0 else 0.0
-                out.append((ln, i == len(para_lines) - 1, line_indent))
+                # The bullet occupies a dedicated prefix column on the first
+                # line; all text starts at the same hanging-indent position.
+                out.append((ln, i == len(para_lines) - 1, para_indent, bullet_prefix if i == 0 else ""))
         return out
 
     def renderTextarea(self, left, top, width, height, fontFamily, fontSize, color, content, lineHeight, letterSpacing, bold=False, italic=False, underline=False, align="left", bulletList=False):
@@ -331,7 +330,7 @@ class PDF_Generator:
 
         lines = self._wrap_textarea(content, measure_font, fontSize, letter_spacing, width, bulletList)
 
-        for i, (line, is_last, indent_px) in enumerate(lines):
+        for i, (line, is_last, indent_px, bullet_prefix) in enumerate(lines):
             line_top = i * line_height
             if line_top >= height:  # clipped by the box
                 break
@@ -358,6 +357,11 @@ class PDF_Generator:
                     if spaces > 0 and line_w < eff_width:
                         word_space = (eff_width - line_w) / spaces
 
+            if bullet_prefix:
+                self._draw_text_line(
+                    left, y, bullet_prefix, fontFamily, fontSize, color,
+                    bold, italic, underline, letter_spacing,
+                )
             self._draw_text_line(x, y, line, fontFamily, fontSize, color, bold, italic, underline, letter_spacing, word_space)
 
     def generatePDF(self):

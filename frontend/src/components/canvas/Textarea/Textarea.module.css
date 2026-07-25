@@ -19,6 +19,23 @@
     cursor: move;
 }
 
+.bulletLine {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    width: 100%;
+}
+
+.bulletMarker {
+    /* Preserve the trailing space: it is the exact gap used by the PDF. */
+    white-space: pre;
+    text-align: left;
+}
+
+.bulletBody {
+    min-width: 0;
+    text-align: inherit;
+}
+
 .block:empty::before {
     content: "Double-click to edit";
     color: #AEB7C4;

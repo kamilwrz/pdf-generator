@@ -23,6 +23,12 @@ const CATEGORY_LABELS = {
     connector: "Łącznik",
 };
 
+const BULLET_PREFIX_PATTERN = /^\s*•[ \t]*/;
+
+function canonicalBulletLine(line) {
+    return `• ${line.replace(BULLET_PREFIX_PATTERN, "").trimStart()}`;
+}
+
 
 export default function Editor() {
 
@@ -127,11 +133,9 @@ export default function Editor() {
         };
     }
 
-    // Inserts "• " at the start of whichever line the cursor is currently on,
-    // reading straight from the live <textarea> DOM node (same pattern as
-    // handleAlignElements reading clientWidth). No-ops if that line already
-    // has a bullet. Restores focus + cursor position afterwards so typing
-    // can continue uninterrupted.
+    // Inserts a canonical "• " prefix at the current line. Canonicalizing
+    // removes indentation that would otherwise make one bullet body start
+    // farther right than the rest in the canvas or exported PDF.
     function insertBulletAtCurrentLine() {
         const el = document.getElementById(selectedElement.element_id);
         if (!el || typeof el.selectionStart !== "number") return;
@@ -143,22 +147,21 @@ export default function Editor() {
         const line = value.slice(lineStart, lineEnd === -1 ? value.length : lineEnd);
         if (line.trimStart().startsWith("•")) return;
 
-        const newValue = value.slice(0, lineStart) + "• " + value.slice(lineStart);
+        const leadingWhitespace = line.match(/^\s*/)[0].length;
+        const newLine = canonicalBulletLine(line);
+        const newValue = value.slice(0, lineStart) + newLine + value.slice(lineStart + line.length);
         editElementValues({ content: newValue }, selectedElement.element_id);
 
-        const cursorPos = start + 2;
+        const cursorPos = lineStart + 2 + Math.max(0, start - lineStart - leadingWhitespace);
         requestAnimationFrame(() => {
             el.focus();
             el.setSelectionRange(cursorPos, cursorPos);
         });
     }
 
-    // Toggles the element into/out of a bullet list. Turning it ON prepends
-    // "• " to every non-empty line that isn't already bulleted and enables the
-    // hanging-indent rendering (bulletList flag). Turning it OFF strips a
-    // leading bullet (plus one following space) from each line and disables the
-    // flag. Reads content from state (kept in sync by the textarea's onChange),
-    // so it works whether or not the textarea is currently being edited.
+    // Toggles canonical bullets for every non-empty line. A bullet's marker
+    // and one following space are the only prefix allowed, ensuring a shared
+    // text start in both rendering paths.
     function toggleBulletList() {
         const turningOn = !selectedElement.bulletList;
         const content = selectedElement.content ?? "";
@@ -167,10 +170,9 @@ export default function Editor() {
             .map((line) => {
                 if (turningOn) {
                     if (line.trim() === "") return line;
-                    if (line.trimStart().startsWith("•")) return line;
-                    return "• " + line;
+                    return canonicalBulletLine(line);
                 }
-                return line.replace(/^(\s*)•[ \t]?/, "$1");
+                return line.replace(BULLET_PREFIX_PATTERN, "");
             })
             .join("\n");
         editElementValues({ bulletList: turningOn, content: newContent }, selectedElement.element_id);
