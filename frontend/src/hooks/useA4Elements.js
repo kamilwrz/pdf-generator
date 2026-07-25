@@ -251,7 +251,10 @@ export function useA4Elements(titleRef) {
   const pickConnectorAt = useCallback((clientX, clientY) => {
     const rect = A4ref.current?.getBoundingClientRect();
     if (!rect) return;
-    const hit = elementAtPoint(clientX - rect.left, clientY - rect.top);
+    // rect is the SCALED #A4; convert the screen-space click offset back to
+    // canvas units so it matches stored element left/top/width/height.
+    const zoom = rect.width / pageSizeRef.current.width || 1;
+    const hit = elementAtPoint((clientX - rect.left) / zoom, (clientY - rect.top) / zoom);
     if (!hit) { setConnectMode(false); setConnectSourceId(null); return; }
 
     setConnectSourceId((prevSource) => {
@@ -1003,6 +1006,12 @@ export function useA4Elements(titleRef) {
     const MIN_WIDTH = 10;
     const MIN_HEIGHT = 10;
 
+    // Under canvas zoom, a screen-pixel drag covers fewer canvas units. The
+    // rect is the SCALED #A4, so rect.width / pageWidth is exactly the zoom
+    // factor. Every resize branch below is driven by the horizontal delta.
+    const zoom = A4_COORDS.width / A4_WIDTH || 1;
+    const moveX = e.movementX / zoom;
+
     setA4_Elements((prevState) => {
       const newState = prevState.map((element) => {
         // Text boxes: only width follows the drag (horizontal component).
@@ -1015,8 +1024,8 @@ export function useA4Elements(titleRef) {
           let w = element.width;
           let l = element.left;
           const MIN_W = 40;
-          if (direction === "bottom-right" || direction === "top-right") { w += e.movementX; }
-          else if (direction === "bottom-left" || direction === "top-left") { w -= e.movementX; l += e.movementX; }
+          if (direction === "bottom-right" || direction === "top-right") { w += moveX; }
+          else if (direction === "bottom-left" || direction === "top-left") { w -= moveX; l += moveX; }
           if (l < 0) { w += l; l = 0; }
           w = Math.max(MIN_W, Math.min(A4_WIDTH - l, w));
           // Auto-height template fields are measured by the rendered canvas
@@ -1038,10 +1047,10 @@ export function useA4Elements(titleRef) {
 
             return {
               ...element,
-              width: element.width - e.movementX,
-              height: Math.round((heightFactor - e.movementX) * aspectRatio),
-              left: element.left + e.movementX,
-              top: element.top + (element.height - Math.round((heightFactor - e.movementX) * aspectRatio))
+              width: element.width - moveX,
+              height: Math.round((heightFactor - moveX) * aspectRatio),
+              left: element.left + moveX,
+              top: element.top + (element.height - Math.round((heightFactor - moveX) * aspectRatio))
             }
           }
           else {
@@ -1053,8 +1062,8 @@ export function useA4Elements(titleRef) {
         }
         if (direction === "bottom-right") {
 
-          let newWidth = element.width + e.movementX;
-          let newHeight = Math.round((heightFactor + e.movementX) * aspectRatio);
+          let newWidth = element.width + moveX;
+          let newHeight = Math.round((heightFactor + moveX) * aspectRatio);
           let newLeft = element.left;
           let newTop = element.top;
           newWidth = Math.max(MIN_WIDTH, Math.min(A4_WIDTH - element.left, newWidth));
@@ -1081,9 +1090,9 @@ export function useA4Elements(titleRef) {
           if (element.element_id === elementId) {
             return {
               ...element,
-              width: element.width - e.movementX,
-              height: Math.round((heightFactor - e.movementX) * aspectRatio),
-              left: element.left + e.movementX,
+              width: element.width - moveX,
+              height: Math.round((heightFactor - moveX) * aspectRatio),
+              left: element.left + moveX,
 
             }
           }
@@ -1099,10 +1108,10 @@ export function useA4Elements(titleRef) {
           if (element.element_id === elementId) {
             return {
               ...element,
-              width: element.width + e.movementX,
-              height: Math.round((heightFactor + e.movementX) * aspectRatio),
+              width: element.width + moveX,
+              height: Math.round((heightFactor + moveX) * aspectRatio),
               left: element.left,
-              top: element.top + (element.height - Math.round((heightFactor + e.movementX) * aspectRatio))
+              top: element.top + (element.height - Math.round((heightFactor + moveX) * aspectRatio))
             }
           }
           else {
@@ -1115,7 +1124,7 @@ export function useA4Elements(titleRef) {
 
         if (direction === "center-right") {
           if (element.element_id === elementId) {
-            const proposedWidth = element.width + e.movementX;
+            const proposedWidth = element.width + moveX;
             const newWidth = Math.max(MIN_WIDTH, Math.min(A4_WIDTH - element.left, proposedWidth))
             return {
               ...element,
@@ -1135,7 +1144,7 @@ export function useA4Elements(titleRef) {
         if (direction === "center-left") {
 
           const rightEdge = element.left + element.width;
-          const proposedLeft = element.left + e.movementX;
+          const proposedLeft = element.left + moveX;
           const newLeft = Math.max(0, Math.min(rightEdge - MIN_WIDTH, proposedLeft));
           const newWidth = rightEdge - newLeft;
 
