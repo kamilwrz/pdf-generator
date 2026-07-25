@@ -245,7 +245,7 @@ export default function Editor() {
                     </span>
                     <p>{isMultiSelection ? `Zaznaczono: ${selectedElements.length}` : selectedElement?.category ? `Element: ${CATEGORY_LABELS[selectedElement.category] ?? selectedElement.category}` : "Właściwości elementu"}</p>
                 </div>
-                <CloseButton clickHandler={handleCloseEditor} right={10}/>
+                <CloseButton clickHandler={handleCloseEditor} right={10} top={7} />
             </div>
             {isMultiSelection ? (
                 <BulkEditor
