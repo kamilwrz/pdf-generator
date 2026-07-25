@@ -73,6 +73,9 @@ def _bounds_for(
         "page": max(1, int(_number(element.get("page"), 1))),
         "fixedToPage": bool(element.get("fixedToPage", False)),
         "locked": bool(element.get("locked", False)),
+        "content": str(element.get("content") or ""),
+        "fontSize": _number(element.get("fontSize"), 12.0),
+        "lineHeight": _number(element.get("lineHeight"), _number(element.get("fontSize"), 12.0) * 1.35),
         "left": _number(measured.get("left", element.get("left"))),
         "top": _number(measured.get("top", element.get("top"))),
         "width": width,
@@ -100,6 +103,8 @@ def _apply_patches(
             **item,
             **({"left": by_id[item["element_id"]]["left"]} if item["element_id"] in by_id else {}),
             **({"top": by_id[item["element_id"]]["top"]} if item["element_id"] in by_id else {}),
+            **({"width": by_id[item["element_id"]]["width"]} if item["element_id"] in by_id and "width" in by_id[item["element_id"]] else {}),
+            **({"height": by_id[item["element_id"]]["height"]} if item["element_id"] in by_id and "height" in by_id[item["element_id"]] else {}),
             **({"page": by_id[item["element_id"]]["page"]} if item["element_id"] in by_id and "page" in by_id[item["element_id"]] else {}),
         }
         for item in items
@@ -477,7 +482,7 @@ def analyze_layout(elements: list[dict[str, Any]], page_size: dict[str, Any] | N
 # _group/_is_safe_group safety net the deterministic scanner above uses.
 
 _MIN_DISTRIBUTE_TARGETS = MIN_CLUSTER_SIZE
-_VALID_OPERATIONS = {"shift", "align", "distribute", "space", "move_to_page"}
+_VALID_OPERATIONS = {"shift", "align", "distribute", "space", "move_to_page", "move_to_sidebar"}
 _VALID_AXES = {"x", "y"}
 _VALID_ANCHORS = {"start", "center", "end"}
 _NO_CHANGE = "no_change"
@@ -894,6 +899,107 @@ def resolve_move_to_page(
     return group
 
 
+def _wrapped_textarea_height(item: dict[str, Any], width: float) -> float:
+    """Estimate a textarea's natural height after a constrained-width move."""
+    font_size = max(_number(item.get("fontSize"), 12.0), 1.0)
+    line_height = max(_number(item.get("lineHeight"), font_size * 1.35), 1.0)
+    chars_per_line = max(10, int(width / (font_size * 0.52)))
+    rendered_lines = sum(
+        max(1, math.ceil(len(line.strip()) / chars_per_line))
+        if line.strip() else 1
+        for line in str(item.get("content") or "").split("\n")
+    )
+    return round(max(rendered_lines * line_height + 6, line_height + 6), 2)
+
+
+def resolve_move_to_sidebar(
+    items: list[dict[str, Any]],
+    target_ids: set[str],
+    target_page: int,
+    reference_element_id: str | None,
+    gap: float,
+    page_width: float,
+    page_height: float,
+) -> dict[str, Any] | None:
+    """Move a text section beneath an existing sidebar item as one safe edit.
+
+    The existing sidebar item's left edge and width define the destination
+    column. Textareas are resized to that width and remeasured before collision
+    checks, so a section from the main column cannot spill back into it.
+    """
+    if not target_ids or not reference_element_id or gap < 0:
+        return None
+
+    items_by_id = {item["element_id"]: item for item in items}
+    reference = items_by_id.get(str(reference_element_id))
+    targets = [item for item in items if item["element_id"] in target_ids]
+    if (
+        reference is None
+        or reference["page"] != target_page
+        or reference["element_id"] in target_ids
+        or any(item.get("locked") or item.get("fixedToPage") for item in targets)
+        or any(item["category"] not in {"text", "textarea"} for item in targets)
+    ):
+        return None
+
+    sidebar_width = min(reference["width"], page_width - reference["left"])
+    if sidebar_width <= EPSILON:
+        return None
+
+    ordered_targets = sorted(targets, key=lambda item: (item["top"], item["left"], item["element_id"]))
+    cursor = reference["top"] + reference["height"] + gap
+    patches: list[dict[str, Any]] = []
+    for index, item in enumerate(ordered_targets):
+        height = (
+            _wrapped_textarea_height(item, sidebar_width)
+            if item["category"] == "textarea"
+            else item["height"]
+        )
+        patches.append({
+            "element_id": item["element_id"],
+            "left": round(reference["left"], 2),
+            "top": round(cursor, 2),
+            "width": round(sidebar_width, 2),
+            "height": round(height, 2),
+            "page": target_page,
+        })
+        cursor += height + (6 if index < len(ordered_targets) - 1 else 0)
+
+    proposed = _apply_patches(items, patches)
+    proposed_by_id = {item["element_id"]: item for item in proposed}
+    for moved_id in target_ids:
+        moved = proposed_by_id[moved_id]
+        for other in proposed:
+            if (
+                other["element_id"] == moved_id
+                or other["element_id"] in target_ids
+                or other["page"] != moved["page"]
+                or other.get("fixedToPage")
+                or other["category"] in DECORATIVE_CATEGORIES
+            ):
+                continue
+            if _rects_overlap(moved, other):
+                return None
+
+    group = _group(
+        group_id="directed-move-to-sidebar",
+        title=f"Przenieś {len(targets)} {'element' if len(targets) == 1 else 'elementy'} do sidebara",
+        reason=(
+            "Sekcja zostanie ustawiona pod wskazanym elementem sidebara, "
+            "z szerokością tej kolumny i ponownie obliczoną wysokością tekstu."
+        ),
+        severity="review",
+        patches=patches,
+        items=items,
+        page_width=page_width,
+        page_height=page_height,
+        allow_overlap=True,
+    )
+    if group is not None:
+        group["target_page"] = target_page
+    return group
+
+
 def _block_bbox(members: list[dict[str, Any]]) -> dict[str, float] | None:
     """Union bounding box of a block's member elements — the block moves as
     this single rigid shape; members keep their position relative to it."""
@@ -1045,7 +1151,7 @@ def resolve_directed_operation(
 
     raw_ids = directive.get("target_element_ids") if isinstance(directive, dict) else None
     raw_groups = directive.get("target_groups") if isinstance(directive, dict) else None
-    if op_type == "move_to_page":
+    if op_type in {"move_to_page", "move_to_sidebar"}:
         target_ids = {str(i) for i in raw_ids} if isinstance(raw_ids, list) else set()
         if isinstance(raw_groups, list):
             target_ids.update(
@@ -1082,6 +1188,23 @@ def resolve_directed_operation(
         reference_id = directive.get("reference_element_id")
         if reference_id is not None and str(reference_id) not in known_ids:
             return _issue("Nie znaleziono elementu referencyjnego używanego do wyrównania.")
+
+        if op_type == "move_to_sidebar":
+            group = resolve_move_to_sidebar(
+                items,
+                target_ids,
+                target_page,
+                str(reference_id) if reference_id is not None else None,
+                _number(directive.get("gap"), 16.0),
+                page_width,
+                page_height,
+            )
+            if group is None:
+                return _issue(
+                    "Nie można bezpiecznie umieścić tej sekcji pod wskazanym elementem sidebara — "
+                    "brakuje miejsca lub kolidowałaby z istniejącą treścią."
+                )
+            return {"layout_groups": [group], "layout_issues": []}
 
         group = resolve_move_to_page(
             items,

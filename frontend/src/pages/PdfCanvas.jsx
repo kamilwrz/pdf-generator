@@ -338,6 +338,8 @@ function PdfCanvas() {
         isEditing: false,
         left: Number.isFinite(patch?.left) ? patch.left : element.left,
         top: Number.isFinite(patch?.top) ? patch.top : element.top,
+        width: Number.isFinite(patch?.width) ? patch.width : element.width,
+        height: Number.isFinite(patch?.height) ? patch.height : element.height,
         page: Number.isInteger(patch?.page) ? patch.page : element.page,
       };
     });

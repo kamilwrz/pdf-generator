@@ -924,6 +924,14 @@ export function useA4Elements(titleRef) {
         || !Number.isFinite(patch.left)
         || !Number.isFinite(patch.top)
         || (
+          patch.width !== undefined
+          && (!Number.isFinite(patch.width) || patch.width <= 0)
+        )
+        || (
+          patch.height !== undefined
+          && (!Number.isFinite(patch.height) || patch.height <= 0)
+        )
+        || (
           patch.page !== undefined
           && (!Number.isInteger(patch.page) || patch.page < 1)
         )
@@ -942,9 +950,14 @@ export function useA4Elements(titleRef) {
       const patchById = new Map(patches.map(patch => [patch.element_id, patch]));
       const isSafe = patches.every(patch => {
         const element = elementsById.get(patch.element_id);
-        const width = Math.max(parseFloat(element.width) || 0, 0);
+        const width = Math.max(
+          Number.isFinite(patch.width) ? patch.width : parseFloat(element.width) || 0,
+          0
+        );
         const height = Math.max(
-          parseFloat(element.height) || (element.category === "text" ? (element.fontSize || 12) * 1.35 : 0),
+          Number.isFinite(patch.height)
+            ? patch.height
+            : parseFloat(element.height) || (element.category === "text" ? (element.fontSize || 12) * 1.35 : 0),
           0
         );
         return (
@@ -963,6 +976,8 @@ export function useA4Elements(titleRef) {
               ...element,
               left: patch.left,
               top: patch.top,
+              ...(Number.isFinite(patch.width) ? { width: patch.width } : {}),
+              ...(Number.isFinite(patch.height) ? { height: patch.height } : {}),
               page: patch.page ?? element.page ?? 1,
               isSelected: false,
               isMove: false,

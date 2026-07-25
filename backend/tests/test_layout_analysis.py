@@ -381,6 +381,51 @@ class DirectedOperationTests(unittest.TestCase):
             [{"element_id": "period", "left": 10.0, "top": 66.0, "page": 1}],
         )
 
+    def test_move_to_sidebar_rewraps_a_section_below_its_reference(self):
+        areas = block("areas-list", 24, 456, width=136, height=58, page=1)
+        areas.update({"content": "Strategia\nBadania\nFacylitacja", "fontSize": 8.3, "lineHeight": 13})
+        languages_heading = block("languages-heading", 220, 120, width=326, height=11, page=2, category="text")
+        languages_heading.update({"content": "JĘZYKI", "fontSize": 8.4})
+        languages_body = block("languages-body", 220, 140, width=326, height=18, page=2)
+        languages_body.update({
+            "content": "Polski — C2\nAngielski — C1",
+            "fontSize": 9,
+            "lineHeight": 12,
+        })
+
+        result = layout_analysis.resolve_directed_operation(
+            [areas, languages_heading, languages_body],
+            {
+                "type": "move_to_sidebar",
+                "target_element_ids": ["languages-heading", "languages-body"],
+                "target_page": 1,
+                "reference_element_id": "areas-list",
+                "gap": 20,
+            },
+            {"width": 595, "height": 842},
+        )
+
+        self.assertEqual(result["layout_issues"], [])
+        self.assertEqual(result["layout_groups"][0]["target_page"], 1)
+        self.assertEqual(result["layout_groups"][0]["patches"], [
+            {
+                "element_id": "languages-heading",
+                "left": 24.0,
+                "top": 534.0,
+                "width": 136.0,
+                "height": 11.0,
+                "page": 1,
+            },
+            {
+                "element_id": "languages-body",
+                "left": 24.0,
+                "top": 551.0,
+                "width": 136.0,
+                "height": 30.0,
+                "page": 1,
+            },
+        ])
+
     def test_move_to_page_rejects_when_destination_has_no_free_slot(self):
         result = layout_analysis.resolve_directed_operation(
             [

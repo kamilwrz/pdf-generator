@@ -39,6 +39,7 @@ def _extract_structured(elements: list[dict]) -> list[dict]:
             "category": el.get("category"),
             "content": el.get("content", ""),
             "fontSize": el.get("fontSize"),
+            "lineHeight": el.get("lineHeight"),
             "bold": el.get("bold", False),
             "italic": el.get("italic", False),
             "align": el.get("align", "left"),
@@ -582,7 +583,7 @@ def _chat(message: str, elements: list[dict], page_size: dict | None) -> dict:
         "  - Elementy typu image, line, rectangle, circle i ellipse są prawidłowymi celami poleceń pozycji. "
         "Przesuwaj je tylko wtedy, gdy użytkownik wyraźnie o to prosi; nie traktuj dekoracji "
         "jako elementów do automatycznej korekty.\n"
-        "  {\"type\": \"shift\"|\"align\"|\"distribute\"|\"space\"|\"move_to_page\", \"target_element_ids\": [\"...\"] LUB "
+        "  {\"type\": \"shift\"|\"align\"|\"distribute\"|\"space\"|\"move_to_page\"|\"move_to_sidebar\", \"target_element_ids\": [\"...\"] LUB "
         "\"target_groups\": [[\"...\"], [\"...\"]], "
         "\"dx\": <liczba>, \"dy\": <liczba>, \"gap\": <liczba nieujemna>, \"axis\": \"x\"|\"y\", "
         "\"anchor\": \"start\"|\"center\"|\"end\", \"target\": <liczba lub pomiń>, "
@@ -625,10 +626,19 @@ def _chat(message: str, elements: list[dict], page_size: dict | None) -> dict:
         "reference_element_id i dodaj przenoszony element do align_element_ids. Nie przenoś "
         "elementów z fixedToPage=true ani locked=true; są to tła, stałe dekoracje stron "
         "lub pozycje zablokowane przez użytkownika.\n"
+        "  - move_to_sidebar: przenosi nagłówek sekcji i jej pola tekstowe do istniejącego sidebara "
+        "na wskazanej stronie. Użyj go dla poleceń typu „przenieś JĘZYKI pod OBSZARY w sidebarze”. "
+        "Podaj target_element_ids z nagłówkiem i wszystkimi polami treści tej sekcji, target_page "
+        "(zwykle 1), reference_element_id wskazujący NAJNIŻEJ położony element istniejącej sekcji "
+        "sidebara (dla „pod OBSZARY” będzie to lista obszarów, nie sam nagłówek) oraz gap w px. "
+        "Python ustali szerokość sidebara na podstawie elementu referencyjnego, zawinie tekstarea "
+        "do tej szerokości i ułoży wskazane pola pionowo jako jedną bezpieczną zmianę. Nie używaj "
+        "move_to_sidebar dla obrazów, figur ani dekoracji — obejmuj nim tylko text i textarea.\n"
         "NIGDY sam nie podawaj wartości left/top — Python obliczy rzeczywiste współrzędne na "
         "podstawie bieżącej, aktualnej pozycji elementów i sam odrzuci operację, jeśli wyszłaby "
         "poza stronę.\n"
-        "(4) Jeśli polecenie wymaga zmiany rozmiaru elementów lub usunięcia wielu stron (np. \"zmieść CV na "
+        "(4) Jeśli polecenie wymaga zmiany rozmiaru elementów w sposób inny niż przeniesienie tekstowej "
+        "sekcji do sidebara, lub usunięcia wielu stron (np. \"zmieść CV na "
         "jednej stronie\"), albo jest zbyt niejednoznaczne, by bezpiecznie określić elementy "
         "docelowe i operację — NIE zgaduj. W message wyjaśnij ograniczenie lub zadaj pytanie "
         "doprecyzowujące, zostaw corrections puste i position_operation jako null.\n"
