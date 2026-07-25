@@ -1,6 +1,8 @@
 .editor {
     position: absolute;
-    top: 0;
+    /* The topbar overlays the right pane at z-index 1400. Start below its
+       44px height so the editor header and close control stay accessible. */
+    top: 44px;
     bottom: 0;
     left: 100%;
     width: min(312px, calc(100vw - 68px));

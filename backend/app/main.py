@@ -15,7 +15,10 @@ from fastapi.responses import FileResponse
 # Without this, logger.info()/logger.error() calls anywhere in the app
 # (ai_assistant, events, etc.) are silently dropped — the root logger has no
 # handler by default, so nothing reaches stdout/Render's log aggregation.
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+# force=True because something importing this module first (pytest's own
+# logging plugin, uvicorn, etc.) may have already attached a handler at a
+# level above INFO — basicConfig() is a no-op in that case unless forced.
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", force=True)
 
 logger = logging.getLogger("ai_assistant")
 
