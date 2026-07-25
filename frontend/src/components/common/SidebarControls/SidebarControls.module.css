@@ -1,10 +1,10 @@
 .tile {
     display: flex;
     align-items: center;
-    gap: 8px;
-    width: 100%;
-    min-height: 34px;
-    padding: 4px 6px;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 3px;
     border-radius: 6px;
     border: 1px solid transparent;
     background: transparent;
@@ -22,8 +22,8 @@
 }
 
 .iconBox {
-    width: 24px;
-    height: 24px;
+    width: 32px;
+    height: 32px;
     border-radius: 5px;
     background: #e9eff2;
     color: #587285;
@@ -31,7 +31,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 13px;
+    font-size: 16px;
     transition: background .15s, color .15s;
 }
 
@@ -40,18 +40,3 @@
     color: #35576c;
 }
 
-.label {
-    flex: 1;
-    font: 600 11px var(--font-body);
-    color: #3b4e5b;
-}
-
-.documentsCount {
-    min-width: 20px;
-    text-align: center;
-    font: 650 9.5px var(--font-body);
-    color: #466b82;
-    background: #dfe9ee;
-    padding: 2px 6px;
-    border-radius: 999px;
-}

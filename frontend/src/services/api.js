@@ -1,4 +1,7 @@
-const API_BASE_URL = 'https://pdf-generator-07cb.onrender.com';
+// VITE_API_URL overrides this for local dev (see .env.example / .env.development)
+// and for production builds (see .env.production). Falls back to the deployed
+// backend so a fresh clone with no .env file still works out of the box.
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://pdf-generator-07cb.onrender.com';
 
 //ENDPOINTS
 export const ENDPOINTS = {

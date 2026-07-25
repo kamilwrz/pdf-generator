@@ -40,14 +40,9 @@ export default function Sidebar({ children }) {
             <div className={classes.logoMark}>
                 <img src="/kompoza-logo.png" alt="" />
             </div>
-            <div className={classes.logoWrapperText}>
-                <h1>Kompoza</h1>
-                <p>Studio dokumentów</p>
-            </div>
         </div>
 
         <div className={classes.toolsContainer}>
-            <label className={classes.toolsLabel}>Dodaj do płótna</label>
             <div className={classes.toolsList}>
                 <SidebarControls icon={<LuImagePlus />} labelText="Galeria" sidebarEvent={showGallery} />
                 <SidebarControls icon={<CiText />} labelText="Dodaj tekst" sidebarEvent={addText} />
@@ -65,7 +60,6 @@ export default function Sidebar({ children }) {
         </div>
 
         <div className={classes.toolsContainer}>
-            <label className={classes.toolsLabel}>Pliki</label>
             <div className={classes.toolsList}>
                 <SidebarControls icon={<FaRegImages />} labelText="Prześlij obrazy" sidebarEvent={showDropzone} />
                 <SidebarControls icon={<FaRegFolderOpen />} labelText="Moje dokumenty" sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
@@ -73,15 +67,9 @@ export default function Sidebar({ children }) {
         </div>
 
         <footer className={classes.sidebarFooter}>
-            <div className={classes.profileRow}>
-                <span className={classes.avatar} />
-                <div className={classes.profileMeta}>
-                    <div className={classes.profileName}>Twoje konto</div>
-                </div>
-                <button className={classes.logout} onClick={logout} aria-label="Wyloguj się">
-                    <AiOutlineLogout />
-                </button>
-            </div>
+            <button className={classes.logout} onClick={logout} aria-label="Wyloguj się" title="Wyloguj się">
+                <AiOutlineLogout />
+            </button>
         </footer>
 
         {children}
