@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { findVerticalSpacingGuides, resolveSpacingBox } from "./spacingGuides.js";
+import {
+  findAllVerticalSpacingGuides,
+  findVerticalSpacingGuides,
+  resolveSpacingBox,
+} from "./spacingGuides.js";
 
 const sizeOf = (element) => ({
   left: Number(element.left) || 0,
@@ -111,4 +115,23 @@ test("estimates width for text elements without stored dimensions", () => {
   assert.ok(box.width > 0);
   assert.ok(box.height > 0);
   assert.ok(box.height < 10 * 1.35);
+});
+
+test("collects unique nearest-below gaps across all page elements", () => {
+  const guides = findAllVerticalSpacingGuides([
+    { element_id: "a", left: 100, top: 40, width: 180, height: 20 },
+    { element_id: "b", left: 100, top: 80, width: 180, height: 20 },
+    { element_id: "c", left: 100, top: 140, width: 180, height: 20 },
+    { element_id: "side", left: 400, top: 60, width: 80, height: 20 },
+    { element_id: "bg", left: 0, top: 0, width: 595, height: 842, fixedToPage: true },
+  ], sizeOf);
+
+  assert.equal(guides.length, 2);
+  assert.deepEqual(
+    guides.map((g) => ({ gap: g.gap, neighborId: g.neighborId })).sort((x, y) => x.gap - y.gap),
+    [
+      { gap: 20, neighborId: "b" },
+      { gap: 40, neighborId: "c" },
+    ],
+  );
 });

@@ -1,8 +1,12 @@
+import { useEffect, useState } from "react";
 import classes from "./Guides.module.css";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { getElementBounds, getVisualBounds } from "../../../utils/elementBounds";
-import { findVerticalSpacingGuides } from "../../../utils/spacingGuides";
+import {
+    findAllVerticalSpacingGuides,
+    findVerticalSpacingGuides,
+} from "../../../utils/spacingGuides";
 
 const THRESHOLD = 4; // px — how close counts as "aligned"
 const PAD = 8;       // px — how far the guide extends past the outermost element
@@ -70,19 +74,67 @@ function SpacingMarker({ guide, pageWidth, pageHeight }) {
     );
 }
 
+/** True while both Shift and Alt are held — spacing inspect mode. */
+function useShiftAltHeld() {
+    const [held, setHeld] = useState(false);
+
+    useEffect(() => {
+        const sync = (event) => {
+            setHeld(Boolean(event.shiftKey && event.altKey));
+        };
+        const clear = () => setHeld(false);
+        const onVisibility = () => {
+            if (document.hidden) clear();
+        };
+
+        window.addEventListener("keydown", sync);
+        window.addEventListener("keyup", sync);
+        window.addEventListener("blur", clear);
+        document.addEventListener("visibilitychange", onVisibility);
+
+        return () => {
+            window.removeEventListener("keydown", sync);
+            window.removeEventListener("keyup", sync);
+            window.removeEventListener("blur", clear);
+            document.removeEventListener("visibilitychange", onVisibility);
+        };
+    }, []);
+
+    return held;
+}
+
 export default function Guides({ page }) {
     const { A4_Elements, currentPage, pageSize } = use(PdfContext);
+    const inspectSpacing = useShiftAltHeld();
     const A4_WIDTH = pageSize?.width ?? 595;
     const A4_HEIGHT = pageSize?.height ?? 842;
 
     const displayedPage = page ?? currentPage;
     const onPage = (el) => (el.page ?? 1) === displayedPage;
-    const moving = A4_Elements.find((el) => el.isMove && onPage(el));
+    const pageElements = A4_Elements.filter(onPage);
+    const moving = pageElements.find((el) => el.isMove);
+
+    // Shift+Alt: orange distance markers between every neighboring pair.
+    if (inspectSpacing) {
+        const allSpacing = findAllVerticalSpacingGuides(pageElements, getVisualBounds);
+        if (allSpacing.length === 0) return null;
+        return (
+            <>
+                {allSpacing.map((guide) => (
+                    <SpacingMarker
+                        key={`${guide.neighborId}-${guide.y1}-${guide.y2}-${guide.x}`}
+                        guide={guide}
+                        pageWidth={A4_WIDTH}
+                        pageHeight={A4_HEIGHT}
+                    />
+                ))}
+            </>
+        );
+    }
+
     if (!moving) return null;
 
-    const others = A4_Elements.filter(
-        (el) => el.element_id !== moving.element_id && onPage(el)
-    );
+    const others = pageElements.filter((el) => el.element_id !== moving.element_id);
 
     // ---- Spacing distance guides (above / below) for every element type. ----
     // Text uses glyph bounds so the gap is between peak edges, not line boxes.

@@ -111,3 +111,30 @@ export function findVerticalSpacingGuides(
 
   return { above, below };
 }
+
+/**
+ * Collect unique nearest-below gaps for every movable element on a page.
+ * Used by Shift+Alt spacing inspect mode so each gap is drawn once.
+ */
+export function findAllVerticalSpacingGuides(elements, boundsOf, options) {
+  if (!Array.isArray(elements) || typeof boundsOf !== "function") return [];
+
+  const guides = [];
+  const seen = new Set();
+
+  for (const element of elements) {
+    if (!element || element.fixedToPage) continue;
+    if (element.category === "connector") continue;
+
+    const others = elements.filter((candidate) => candidate?.element_id !== element.element_id);
+    const { below } = findVerticalSpacingGuides(element, others, boundsOf, options);
+    if (!below) continue;
+
+    const key = `${element.element_id}:${below.neighborId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    guides.push(below);
+  }
+
+  return guides;
+}
