@@ -1,21 +1,24 @@
 /* Alignment guides shown while dragging. A single vertical + single horizontal
    segment spanning only the moving element and the elements it lines up with
    (not the whole page). pointer-events:none so they never intercept the drag's
-   events on the element underneath. Geometry (length/offset) is set inline. */
+   events on the element underneath. Geometry (length/offset) is set inline.
+   Dark-gray dotted — distinct from the orange Y-spacing meters. */
 .vLine,
 .hLine {
     position: absolute;
-    background: #1FB6C7;
     z-index: 5000;
     pointer-events: none;
+    background: transparent;
 }
 
 .vLine {
-    width: 1px;
+    width: 0;
+    border-left: 1px dotted #4A4A4A;
 }
 
 .hLine {
-    height: 1px;
+    height: 0;
+    border-top: 1px dotted #4A4A4A;
 }
 
 /* Vertical spacing markers: distance from the neighbor above / below. */
