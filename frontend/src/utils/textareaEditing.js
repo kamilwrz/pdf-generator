@@ -1,5 +1,8 @@
-export function isTextareaEditGesture({ detail = 0, ctrlKey = false, metaKey = false }) {
-    return detail >= 2 && !ctrlKey && !metaKey;
+export function hasTextareaDragIntent(start, event, threshold = 3) {
+    if (!start || (event.buttons & 1) !== 1) return false;
+    const deltaX = event.clientX - start.clientX;
+    const deltaY = event.clientY - start.clientY;
+    return (deltaX * deltaX) + (deltaY * deltaY) >= threshold * threshold;
 }
 
 export function deferTextareaEdit({

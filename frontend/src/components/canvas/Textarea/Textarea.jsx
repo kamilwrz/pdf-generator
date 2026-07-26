@@ -4,7 +4,7 @@ import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import Resize from "../../common/Resize/Resize";
 import { measureNaturalScrollHeight } from "../../../utils/textareaHeight";
-import { deferTextareaEdit, isTextareaEditGesture } from "../../../utils/textareaEditing";
+import { deferTextareaEdit, hasTextareaDragIntent } from "../../../utils/textareaEditing";
 
 // Normalize a bullet's whitespace and render the marker in a dedicated grid
 // column. The column's width is the actual rendered "• " width for the active
@@ -63,6 +63,7 @@ function Textarea({
     const blockRef = useRef(null);
     const editingRef = useRef(null);
     const editFrameRef = useRef(null);
+    const pointerStartRef = useRef(null);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
     function handleIsResizeable(active) {
         setIsResizeable(Boolean(active));
@@ -200,16 +201,40 @@ function Textarea({
             onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
             onDoubleClick={startEditing}
             onPointerDown={(e) => {
-                if (isTextareaEditGesture(e)) {
-                    startEditing(e);
-                    return;
-                }
                 if (e.ctrlKey || e.metaKey) return;
                 e.currentTarget.setPointerCapture(e.pointerId);
-                selectMoveElement(elementId, true);
+                pointerStartRef.current = {
+                    pointerId: e.pointerId,
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                    dragging: false,
+                };
             }}
-            onPointerUp={() => selectMoveElement(elementId, false)}
-            onPointerMove={(e) => moveElement(e, elementId)}
+            onPointerUp={(e) => {
+                if (pointerStartRef.current?.dragging) {
+                    selectMoveElement(elementId, false);
+                }
+                pointerStartRef.current = null;
+                if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                    e.currentTarget.releasePointerCapture(e.pointerId);
+                }
+            }}
+            onPointerCancel={() => {
+                if (pointerStartRef.current?.dragging) {
+                    selectMoveElement(elementId, false);
+                }
+                pointerStartRef.current = null;
+            }}
+            onPointerMove={(e) => {
+                const pointerStart = pointerStartRef.current;
+                if (!pointerStart) return;
+                if (!pointerStart.dragging) {
+                    if (!hasTextareaDragIntent(pointerStart, e)) return;
+                    pointerStart.dragging = true;
+                    selectMoveElement(elementId, true);
+                }
+                moveElement(e, elementId);
+            }}
         >
             {bulletList && content ? renderBulletLines(content) : content}
         </div>

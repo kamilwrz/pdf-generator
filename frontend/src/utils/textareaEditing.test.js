@@ -1,15 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { deferTextareaEdit, isTextareaEditGesture } from "./textareaEditing.js";
+import { deferTextareaEdit, hasTextareaDragIntent } from "./textareaEditing.js";
 
-test("recognizes an unmodified second click as a textarea edit gesture", () => {
-    assert.equal(isTextareaEditGesture({ detail: 2 }), true);
-    assert.equal(isTextareaEditGesture({ detail: 1 }), false);
+test("does not treat a stationary click as textarea dragging", () => {
+    const start = { clientX: 100, clientY: 200 };
+    assert.equal(hasTextareaDragIntent(start, { clientX: 100, clientY: 200, buttons: 1 }), false);
+    assert.equal(hasTextareaDragIntent(start, { clientX: 102, clientY: 202, buttons: 1 }), false);
 });
 
-test("keeps Ctrl/Cmd double-click available for multi-selection", () => {
-    assert.equal(isTextareaEditGesture({ detail: 2, ctrlKey: true }), false);
-    assert.equal(isTextareaEditGesture({ detail: 2, metaKey: true }), false);
+test("starts textarea dragging only after meaningful pointer movement", () => {
+    const start = { clientX: 100, clientY: 200 };
+    assert.equal(hasTextareaDragIntent(start, { clientX: 104, clientY: 200, buttons: 1 }), true);
+    assert.equal(hasTextareaDragIntent(start, { clientX: 110, clientY: 200, buttons: 0 }), false);
 });
 
 test("waits for the current pointer interaction before entering edit mode", () => {
