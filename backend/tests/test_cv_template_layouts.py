@@ -333,6 +333,67 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertEqual(fourth_bullets["page"], 1)
         self.assertLessEqual(fourth_bullets["top"] + fourth_bullets["height"], 758)
 
+    def test_sidebar_experience_entries_follow_one_alignment_and_spacing_pattern(self):
+        jobs = [
+            {
+                "title": "Senior AML Analyst",
+                "company": "Northbridge Bank",
+                "city": "Warszawa",
+                "period": "2021 – obecnie",
+                "bullets": ["Prowadzenie analiz AML.", "Raportowanie ryzyka."],
+            },
+            {
+                "title": "AML Analyst",
+                "company": "Meridian Bank",
+                "city": "Kraków",
+                "period": "2018 – 2021",
+                "bullets": ["Weryfikacja klientów.", "Kontrola dokumentacji."],
+            },
+        ]
+        elements = generate_resume("moss", {
+            "name": "Anna Kowalska",
+            "title": "AML Analyst",
+            "experience": jobs,
+            "education": [],
+            "skills": [],
+            "extra_sections": [],
+        })
+        textareas = {
+            element["content"]: element
+            for element in elements
+            if element["category"] == "textarea" and element["left"] == 220
+        }
+        first_title = textareas[jobs[0]["title"]]
+        first_meta = textareas["Northbridge Bank   ·   Warszawa   ·   2021 – obecnie"]
+        first_bullets = textareas["• Prowadzenie analiz AML.\n• Raportowanie ryzyka."]
+        second_title = textareas[jobs[1]["title"]]
+        second_meta = textareas["Meridian Bank   ·   Kraków   ·   2018 – 2021"]
+        second_bullets = textareas["• Weryfikacja klientów.\n• Kontrola dokumentacji."]
+        records = (
+            (first_title, first_meta, first_bullets),
+            (second_title, second_meta, second_bullets),
+        )
+
+        for title, metadata, bullets in records:
+            self.assertEqual({title["left"], metadata["left"], bullets["left"]}, {220})
+            self.assertEqual({title["width"], metadata["width"], bullets["width"]}, {326})
+            # Equal stack gap inside a record; equal record gap between jobs.
+            self.assertAlmostEqual(metadata["top"] - (title["top"] + title["height"]), 4)
+            self.assertAlmostEqual(bullets["top"] - (metadata["top"] + metadata["height"]), 4)
+
+        self.assertAlmostEqual(
+            second_title["top"] - (first_bullets["top"] + first_bullets["height"]),
+            14,
+        )
+
+        header_texts = [
+            element for element in elements
+            if element["category"] == "text"
+            and element.get("content") in {"ANNA KOWALSKA", "AML ANALYST"}
+        ]
+        self.assertTrue(header_texts)
+        self.assertEqual({element["left"] for element in header_texts}, {220})
+
     def test_classic_templates_are_image_free_single_column_documents(self):
         multi_page_cv = {
             **LONG_CV,

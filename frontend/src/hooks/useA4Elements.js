@@ -1060,6 +1060,9 @@ export function useA4Elements(titleRef) {
         elementId,
         measuredHeight,
         pageSizeRef.current.height,
+        // Match backend Builder continuation margins so packed content does
+        // not collide with page chrome after an auto-height shrink/grow.
+        { pageTop: 36, bottomMargin: 40 },
       );
       if (!result.changed) return prevState;
 

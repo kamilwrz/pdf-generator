@@ -40,18 +40,20 @@ test("shrinking content preserves gaps while pulling only following lane element
   assert.equal(result.elements.find((element) => element.element_id === "connector").top, undefined);
 });
 
-test("shrinking page-one content preserves the generated continuation-page boundary", () => {
+test("shrinking page-one content reclaims the page-break hole for following blocks", () => {
   const result = reflowTextareaHeight([
     textarea({ top: 700, height: 80 }),
     { element_id: "page-two-heading", category: "text", left: 40, top: 36, width: 180, fontSize: 12, page: 2 },
-    { element_id: "page-two-body", category: "textarea", left: 40, top: 60, width: 180, height: 40, page: 2 },
-  ], "textarea", 40, 842);
+    { element_id: "page-two-body", category: "textarea", left: 40, top: 60, width: 180, height: 20, page: 2 },
+  ], "textarea", 40, 842, { pageTop: 36, bottomMargin: 40 });
 
   const heading = result.elements.find((element) => element.element_id === "page-two-heading");
   const body = result.elements.find((element) => element.element_id === "page-two-body");
-  assert.deepEqual({ page: heading.page, top: heading.top }, { page: 2, top: 36 });
-  assert.deepEqual({ page: body.page, top: body.top }, { page: 2, top: 60 });
-  assert.equal(result.pageCount, 2);
+  // 740 + pack gap 14 → heading; preserve the original same-page gap to body.
+  assert.deepEqual({ page: heading.page, top: heading.top }, { page: 1, top: 754 });
+  assert.equal(body.page, 1);
+  assert.ok(body.top < 800);
+  assert.equal(result.pageCount, 1);
 });
 
 test("same-page reflow keeps nearby section decorations aligned with content", () => {
@@ -128,7 +130,8 @@ test("keeps page decorations fixed while text content reflows", () => {
   const background = result.elements.find((element) => element.element_id === "page-two-background");
   const section = result.elements.find((element) => element.element_id === "next-section");
   assert.deepEqual({ page: background.page, top: background.top }, { page: 2, top: 0 });
-  assert.deepEqual({ page: section.page, top: section.top }, { page: 2, top: 104 });
+  // Cross-page dead space is reclaimed; the section packs under the taller box.
+  assert.deepEqual({ page: section.page, top: section.top }, { page: 1, top: 158 });
 });
 
 test("does not shift a position-locked element during textarea reflow", () => {
@@ -167,4 +170,3 @@ test("reflows generated single-line text without a stored width", () => {
   const heading = result.elements.find((element) => element.element_id === "generated-heading");
   assert.equal(heading.top, 168);
 });
-

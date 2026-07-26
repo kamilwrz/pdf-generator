@@ -21,6 +21,14 @@ A4_H = 842
 MARGIN_BOTTOM = 40   # py before switching to the next page
 PAGE_TOP = 36        # y at the top of a continuation page
 
+# Vertical rhythm for generated CVs. Every template should space content as:
+#   section → record (block) → stack (elements inside a record).
+# Keep these equal within each level so X/Y placement reads as one pattern.
+SPACE_STACK = 4       # title → meta → body inside one record
+SPACE_RECORD = 14     # between records in the same section
+SPACE_SECTION = 18    # after a finished section before the next heading
+SPACE_AFTER_RULE = 12 # section heading rule → first content block
+
 
 # ── low-level element constructors ──────────────────────────────────────────
 
@@ -118,9 +126,9 @@ class Builder:
             str(content), fam, fs, lh, width,
             bold=bold, italic=italic, bullet_list=bulletList,
         )
-        # Preserve a small box-model allowance without inventing a full extra
-        # line. The canvas will refine this to its measured natural height.
-        return max(rendered_height + 4, min_h)
+        # Canvas textareas have no padding or border. Match their integer
+        # scrollHeight so mounting the canvas does not alter the authored gaps.
+        return max(math.ceil(rendered_height), min_h)
 
     def line(self, left, width, height, col):
         self.els.append(_line(left, self.y, width, height, col, page=self.pg))
@@ -203,7 +211,7 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
         section_fn(title)
         content = "\n".join(f"• {item}" for item in items)
         b.block(content, L, W, fs, lh, C.get("body", "#2B2B2B"), font_b, bulletList=True)
-        b.gap(14)
+        b.gap(SPACE_SECTION)
 
 
 def _contact_line(cv: dict) -> str:
@@ -2466,8 +2474,9 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
 
     static = [
         _text(name, 29, SERIF, C["ink"], L, 52, zIndex=3, bold=True),
-        _text(title, 8.8, SANS, C["marker"], L + 2, 92, zIndex=3),
-        _text(contact_line, 8.4, SANS, C["muted"], L + 2, 120, zIndex=3),
+        # Keep the main-column X origin identical for header and body flow.
+        _text(title, 8.8, SANS, C["marker"], L, 92, zIndex=3),
+        _text(contact_line, 8.4, SANS, C["muted"], L, 120, zIndex=3),
         _line(L, 145, W, 1, C["rule"], zIndex=2),
         *sidebar_static,
         frame, orbit, node,
@@ -2478,33 +2487,32 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
     static[1]["letterSpacing"] = 1.45
     contact_label["letterSpacing"] = 1.2
 
-    b = SidebarBuilder(184)
+    # Header rule ends at 145; keep the same section gap used between body sections.
+    b = SidebarBuilder(145 + SPACE_SECTION)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
-        return (
+        height = (
             b.measure_block(job.get("title", ""), W, 10.8, 13.5, SANS, bold=True, min_h=15)
-            + 1
+            + SPACE_STACK
             + b.measure_block(_company_period(job), W, 8.6, 11.5, SANS, min_h=12)
-            + 3
-            + (
-                b.measure_block(bullets, W, 9.3, 13.2, SANS, bulletList=True)
-                if bullets else 0
-            )
-            + 12
         )
+        if bullets:
+            height += SPACE_STACK + b.measure_block(
+                bullets, W, 9.3, 13.2, SANS, bulletList=True
+            )
+        return height
 
     def education_height(education: dict) -> float:
         detail = education.get("detail", "")
         return (
             b.measure_block(education.get("degree", ""), W, 10.2, 13, SANS, bold=True, min_h=15)
-            + 2
+            + SPACE_STACK
             + b.measure_block(education.get("period", ""), W, 8.6, 11.5, SANS, min_h=12)
             + (
-                1 + b.measure_block(detail, W, 8.6, 11.5, SANS, min_h=12)
+                SPACE_STACK + b.measure_block(detail, W, 8.6, 11.5, SANS, min_h=12)
                 if detail else 0
             )
-            + 10
         )
 
     def section(label: str) -> None:
@@ -2519,51 +2527,60 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
         b.text(label, 8.4, SANS, C["marker"], L)
         b.els[-1]["letterSpacing"] = 1.55 if label != lbl["skills"] else 1.3
         b.line(L, W, 1, C["rule"])
-        b.gap(14)
+        b.gap(SPACE_AFTER_RULE)
+
+    def close_section() -> None:
+        b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need(40 + b.measure_block(cv["summary"], W, 10, 14.5, SANS) + 18)
+        b.need(40 + b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10, 14.5, C["body"], SANS)
-        b.gap(18)
+        close_section()
 
     if cv.get("experience"):
         b.need(40 + experience_height(cv["experience"][0]))
         section(lbl["experience"])
-        for job in cv["experience"]:
+        jobs = cv["experience"]
+        for index, job in enumerate(jobs):
             # Treat title, metadata and bullets as one visual record. This
             # avoids orphaned titles and uses the remaining page space when
             # the complete record genuinely fits.
             b.need(experience_height(job))
             b.block(job.get("title", ""), L, W, 10.8, 13.5, C["ink"], SANS, bold=True, min_h=15)
-            b.gap(1)
+            b.gap(SPACE_STACK)
             b.block(_company_period(job), L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
-            b.gap(3)
             bullets = _bullets(job)
             if bullets:
+                b.gap(SPACE_STACK)
                 b.block(bullets, L, W, 9.3, 13.2, C["body"], SANS, bulletList=True)
-            b.gap(12)
+            if index < len(jobs) - 1:
+                b.gap(SPACE_RECORD)
+        close_section()
         _extra_sections(b, cv, "after_experience", section, {"body": C["body"]},
                         L, W, SANS, fs=9.3, lh=13.2, skip_indices=sidebar_extra_indices)
 
     if cv.get("education") and "education" not in sidebar_keys:
-        b.need(40 + education_height(cv["education"][0]))
+        education_entries = cv["education"]
+        b.need(40 + education_height(education_entries[0]))
         section(lbl["education"])
-        for edu in cv["education"]:
+        for index, edu in enumerate(education_entries):
             b.need(education_height(edu))
             b.block(edu.get("degree", ""), L, W, 10.2, 13, C["ink"], SANS, bold=True, min_h=15)
-            b.gap(2)
+            b.gap(SPACE_STACK)
             b.block(edu.get("period", ""), L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
             if edu.get("detail"):
-                b.gap(1)
+                b.gap(SPACE_STACK)
                 b.block(edu["detail"], L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
-            b.gap(10)
+            if index < len(education_entries) - 1:
+                b.gap(SPACE_RECORD)
+        close_section()
 
     if cv.get("skills") and "skills" not in sidebar_keys:
-        b.need(40 + b.measure_block("  ·  ".join(cv["skills"]), W, 9.3, 13.2, SANS) + 14)
+        b.need(40 + b.measure_block("  ·  ".join(cv["skills"]), W, 9.3, 13.2, SANS) + SPACE_SECTION)
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.3, 13.2, C["body"], SANS)
-        b.gap(14)
+        close_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": C["body"]},
                     L, W, SANS, fs=9.3, lh=13.2, skip_indices=sidebar_extra_indices)

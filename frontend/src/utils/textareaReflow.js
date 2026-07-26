@@ -1,6 +1,9 @@
 const FLOWABLE_CATEGORIES = new Set(["text", "textarea", "line", "rectangle", "circle", "ellipse", "image"]);
 const NEARBY_DECORATION_CATEGORIES = new Set(["line", "rectangle", "circle", "ellipse"]);
 const DECORATION_LANE_TOLERANCE = 32;
+// Matches backend SPACE_RECORD: used when reclaiming a page-break gap so later
+// blocks pack into freed space instead of keeping the empty page-bottom hole.
+const DEFAULT_PACK_GAP = 14;
 
 function number(value, fallback = 0) {
   const parsed = Number(value);
@@ -76,10 +79,16 @@ function toPagePosition(absolute, height, pageHeight, pageTop, bottomMargin) {
   return { page, top };
 }
 
+function packGapAfterPageBreak(current, pageTop) {
+  const continuationInset = Math.max(0, number(current.top) - pageTop);
+  return Math.min(DEFAULT_PACK_GAP, continuationInset || DEFAULT_PACK_GAP);
+}
+
 /**
- * Applies a measured textarea height and flows only the elements that are
- * physically below it in the same horizontal lane. This preserves independent
- * columns, while lines/frames in the affected lane retain their relative gaps.
+ * Applies a measured textarea height and flows later elements in its lane.
+ * Same-page items keep their top-to-top rhythm (so tall rails/markers stay
+ * aligned). Page-break dead space is reclaimed so shrinks can pull later
+ * blocks into freed room on the previous page.
  */
 export function reflowTextareaHeight(
   elements,
@@ -101,8 +110,9 @@ export function reflowTextareaHeight(
   }
 
   const safePageHeight = Math.max(1, number(pageHeight, 842));
-  const sourcePage = pageOf(target);
-  const sourceBottom = absoluteTop(target, safePageHeight) + oldHeight;
+  const oldTargetTop = absoluteTop(target, safePageHeight);
+  const oldTargetBottom = oldTargetTop + oldHeight;
+
   let targetPage = pageOf(target);
   let targetTop = number(target.top);
   if (
@@ -112,44 +122,86 @@ export function reflowTextareaHeight(
     targetPage += 1;
     targetTop = pageTop;
   }
-  const targetAbsolute = (targetPage - 1) * safePageHeight + targetTop;
-  const flowDelta = targetAbsolute + nextHeight - sourceBottom;
-  const affectedIds = new Set(
-    elements
-      .filter((element) => (
-        element.element_id !== elementId
-        && FLOWABLE_CATEGORIES.has(element.category)
-        && !element.fixedToPage
-        && !element.locked
-        // A generated continuation page is an intentional layout boundary.
-        // Shrinking content must not pull it back into the previous page.
-        && (delta >= 0 || pageOf(element) === sourcePage)
-        && absoluteTop(element, safePageHeight) >= sourceBottom
-        && belongsToFlowLane(target, element)
-      ))
-      .map((element) => element.element_id),
-  );
 
+  const newTargetTop = (targetPage - 1) * safePageHeight + targetTop;
+  const newTargetBottom = newTargetTop + nextHeight;
+
+  const lane = elements
+    .filter((element) => (
+      FLOWABLE_CATEGORIES.has(element.category)
+      && !element.fixedToPage
+      && !element.locked
+      && (
+        element.element_id === elementId
+        || (
+          absoluteTop(element, safePageHeight) >= oldTargetBottom - 0.01
+          && belongsToFlowLane(target, element)
+        )
+      )
+    ))
+    .sort((left, right) => {
+      const topDelta = absoluteTop(left, safePageHeight) - absoluteTop(right, safePageHeight);
+      if (Math.abs(topDelta) > 0.01) return topDelta;
+      return String(left.element_id).localeCompare(String(right.element_id));
+    });
+
+  const targetIndex = lane.findIndex((element) => element.element_id === elementId);
+  if (targetIndex < 0) {
+    return { elements, pageCount: Math.max(1, ...elements.map(pageOf)), changed: false };
+  }
+
+  const placed = new Map();
+  placed.set(elementId, {
+    ...target,
+    height: nextHeight,
+    page: targetPage,
+    top: targetTop,
+  });
+
+  let previousOriginal = target;
+  let previousPlacedTop = newTargetTop;
+  let previousPlacedBottom = newTargetBottom;
   let maxPage = targetPage;
-  const reflowed = elements.map((element) => {
-    if (element.element_id === elementId) {
-      return { ...element, height: nextHeight, page: targetPage, top: targetTop };
-    }
 
-    if (!affectedIds.has(element.element_id)) {
-      maxPage = Math.max(maxPage, pageOf(element));
-      return element;
+  for (let index = targetIndex + 1; index < lane.length; index += 1) {
+    const current = lane[index];
+    const height = elementHeight(current);
+    const currentOriginalTop = absoluteTop(current, safePageHeight);
+    const crossedPage = pageOf(current) > pageOf(previousOriginal);
+
+    let nextAbsolute;
+    if (crossedPage) {
+      nextAbsolute = previousPlacedBottom + packGapAfterPageBreak(current, pageTop);
+    } else if (previousOriginal.element_id === elementId) {
+      nextAbsolute = newTargetBottom + Math.max(0, currentOriginalTop - oldTargetBottom);
+    } else {
+      nextAbsolute = previousPlacedTop + (
+        currentOriginalTop - absoluteTop(previousOriginal, safePageHeight)
+      );
     }
 
     const { page, top } = toPagePosition(
-      absoluteTop(element, safePageHeight) + flowDelta,
-      elementHeight(element),
+      nextAbsolute,
+      height,
       safePageHeight,
       pageTop,
       bottomMargin,
     );
+    const nextElement = { ...current, page, top };
+    placed.set(current.element_id, nextElement);
+
+    previousOriginal = current;
+    previousPlacedTop = (page - 1) * safePageHeight + top;
+    previousPlacedBottom = previousPlacedTop + height;
     maxPage = Math.max(maxPage, page);
-    return { ...element, page, top };
+  }
+
+  const reflowed = elements.map((element) => {
+    if (placed.has(element.element_id)) {
+      return placed.get(element.element_id);
+    }
+    maxPage = Math.max(maxPage, pageOf(element));
+    return element;
   });
 
   return { elements: reflowed, pageCount: maxPage, changed: true };
