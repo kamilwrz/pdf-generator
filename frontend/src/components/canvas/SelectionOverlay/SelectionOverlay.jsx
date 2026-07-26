@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { getElementBounds } from "../../../utils/elementBounds";
+import { getElementBounds, getTextContentBounds } from "../../../utils/elementBounds";
 import classes from "./SelectionOverlay.module.css";
 
 const PAD = 3;
@@ -10,20 +10,22 @@ const MIN_LINE_FRAME = 10;
 function frameForElement(element) {
     const left = Number(element.left) || 0;
     const top = Number(element.top) || 0;
-    let { width, height } = getElementBounds(element);
+    let { width, height } = element.category === "text"
+        ? getTextContentBounds(element)
+        : getElementBounds(element);
 
     // Single-line text often has no stored dimensions. Give it a predictable,
     // comfortably visible selection target without changing its layout.
     if (element.category === "text") {
-        const storedWidth = Number(element.width) || 0;
-        const minWidth = Math.max(120, (Number(element.fontSize) || 12) * 7);
-        const minHeight = Math.max(22, (Number(element.fontSize) || 12) * 1.7);
-        const verticalInset = Math.max(0, (minHeight - height) / 2);
+        const horizontalMargin = 6;
+        const verticalMargin = 4;
+        const fallbackWidth = Math.max(18, (Number(element.fontSize) || 12) * 1.5);
+        const fallbackHeight = Math.max(14, (Number(element.fontSize) || 12) * 1.35);
         return {
-            left: left - PAD,
-            top: top - verticalInset - PAD,
-            width: Math.max(width, storedWidth, minWidth) + PAD * 2,
-            height: Math.max(height, minHeight) + PAD * 2,
+            left: left - horizontalMargin,
+            top: top - verticalMargin,
+            width: Math.max(width, fallbackWidth) + horizontalMargin * 2,
+            height: Math.max(height, fallbackHeight) + verticalMargin * 2,
         };
     }
 

@@ -25,6 +25,29 @@ export function getElementBounds(element) {
   };
 }
 
+// Text elements can carry an authoring width that is wider or narrower than
+// their visible glyphs. A Range measures the rendered content itself, which is
+// the appropriate size for a canvas selection frame at every zoom level.
+export function getTextContentBounds(element) {
+  const node = typeof document !== "undefined"
+    ? document.getElementById(element.element_id)
+    : null;
+  if (node?.ownerDocument?.createRange) {
+    const range = node.ownerDocument.createRange();
+    range.selectNodeContents(node);
+    const rect = range.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      const canvas = node.closest("[data-page-canvas]");
+      const canvasRect = canvas?.getBoundingClientRect();
+      const scaleX = canvasRect?.width / (canvas?.clientWidth || canvasRect?.width || 1);
+      const scaleY = canvasRect?.height / (canvas?.clientHeight || canvasRect?.height || 1);
+      return { width: rect.width / scaleX, height: rect.height / scaleY };
+    }
+  }
+
+  return getElementBounds(element);
+}
+
 // Attaches a real, DOM-measured layout_bounds to every element that's
 // currently mounted on screen (i.e. on the page currently being viewed).
 // Elements with no live DOM node are left unchanged — the backend's own
