@@ -187,24 +187,15 @@ export default function Hero() {
                                     <span className={classes.mockStripe} style={{ background: "linear-gradient(90deg,#6C9BE6,#E5A65C)" }} />
                                     <div className={classes.mockHead}>
                                         <span className={classes.mockHeadTitle}>Płótno · strona 1 z 2</span>
-                                        <span className={classes.mockHeadMeta}>120%</span>
+                                        <span className={classes.mockHeadMeta}>100%</span>
                                     </div>
                                     <div className={classes.canvasStage}>
-                                        <div className={classes.canvasPage}>
-                                            <div className={classes.cvHeading} />
-                                            <div className={classes.cvSub} />
-                                            <div className={classes.cvBar} style={{ width: "100%" }} />
-                                            <div className={classes.cvBar} style={{ width: "94%", marginBottom: "18px" }} />
-                                            <div className={classes.cvSelected}>
-                                                <div className={classes.cvBar} style={{ width: "80%" }} />
-                                                <div className={classes.cvBar} style={{ width: "66%", marginBottom: 0 }} />
-                                            </div>
-                                            <div className={classes.cvBar} style={{ width: "88%" }} />
-                                            <div className={classes.cvBar} style={{ width: "72%", marginBottom: 0 }} />
-                                            <div className={classes.cvGuide} />
-                                            <div className={classes.cvGuideTag}>14 px</div>
-                                            <div className={classes.cvEdge} />
-                                        </div>
+                                        <img
+                                            className={classes.canvasMockImg}
+                                            src="/hero-canvas-mockup.png"
+                                            alt="Edytor CV na płótnie A4 — zaznaczony tekst z prowadnicami wyrównania"
+                                            loading="lazy"
+                                        />
                                     </div>
                                 </div>
 

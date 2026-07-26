@@ -665,79 +665,23 @@
 .canvasStage {
     flex: 1;
     background: #15171b;
-    padding: 22px;
+    padding: 14px;
     display: flex;
     justify-content: center;
     align-items: center;
+    min-height: 280px;
 }
 
-.canvasPage {
-    width: 230px;
-    height: 325px;
-    background: #F5F7FA;
-    border-radius: 4px;
-    box-shadow: 0 22px 44px rgba(0, 0, 0, .6);
-    padding: 20px;
-    position: relative;
-    box-sizing: border-box;
-}
-
-.cvHeading {
-    height: 14px;
-    width: 62%;
-    background: #3E4A5A;
-    border-radius: 2px;
-    margin-bottom: 7px;
-}
-
-.cvSub {
-    height: 7px;
-    width: 44%;
-    background: #C2CBD6;
-    border-radius: 2px;
-    margin-bottom: 18px;
-}
-
-.cvBar {
-    height: 6px;
-    background: #DDE3EB;
-    border-radius: 2px;
-    margin-bottom: 6px;
-}
-
-.cvSelected {
-    outline: 1.5px solid var(--blue);
-    border-radius: 2px;
-    padding: 8px;
-    margin-bottom: 14px;
-}
-
-.cvGuide {
-    position: absolute;
-    left: 20px;
-    right: 20px;
-    top: 196px;
-    border-top: 1px dashed var(--amber);
-}
-
-.cvGuideTag {
-    position: absolute;
-    right: 22px;
-    top: 186px;
-    background: var(--amber);
-    color: #1A1206;
-    font: 800 9px var(--body);
-    padding: 2px 6px;
-    border-radius: 4px;
-}
-
-.cvEdge {
-    position: absolute;
-    left: -1px;
-    top: 0;
-    bottom: 0;
-    width: 1px;
-    background: rgba(108, 155, 230, .55);
+.canvasMockImg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 360px;
+    object-fit: cover;
+    object-position: center top;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
 }
 
 /* ---- Collections ---- */
