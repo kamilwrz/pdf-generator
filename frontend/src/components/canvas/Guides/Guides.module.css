@@ -17,3 +17,47 @@
 .hLine {
     height: 1px;
 }
+
+/* Vertical spacing markers: distance from the neighbor above / below. */
+.spacing {
+    position: absolute;
+    width: 0;
+    z-index: 5001;
+    pointer-events: none;
+    transform: translateX(-0.5px);
+}
+
+.spacingRail {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #E4572E;
+}
+
+.spacingCapTop,
+.spacingCapBottom {
+    position: absolute;
+    left: -5px;
+    width: 11px;
+    height: 1px;
+    background: #E4572E;
+}
+
+.spacingCapTop { top: 0; }
+.spacingCapBottom { bottom: 0; }
+
+.spacingLabel {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #E4572E;
+    color: #fff;
+    font: 700 10px/1.2 var(--font-body, "Segoe UI", sans-serif);
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}

@@ -2,6 +2,7 @@ import classes from "./Guides.module.css";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { getElementBounds } from "../../../utils/elementBounds";
+import { findVerticalSpacingGuides } from "../../../utils/spacingGuides";
 
 const THRESHOLD = 4; // px — how close counts as "aligned"
 const PAD = 8;       // px — how far the guide extends past the outermost element
@@ -46,6 +47,29 @@ function closestCoord(movAnchors, others, anchorsOf) {
     return best ? best.coord : null;
 }
 
+function SpacingMarker({ guide, pageWidth, pageHeight }) {
+    if (!guide) return null;
+
+    const x = clamp(Math.round(guide.x), pageWidth);
+    const y1 = clamp(Math.round(guide.y1), pageHeight);
+    const y2 = clamp(Math.round(guide.y2), pageHeight);
+    const height = Math.max(0, y2 - y1);
+    const label = `${Math.round(guide.gap)} px`;
+
+    return (
+        <div
+            className={classes.spacing}
+            style={{ left: x, top: y1, height }}
+            data-direction={guide.direction}
+        >
+            <span className={classes.spacingCapTop} />
+            <span className={classes.spacingRail} />
+            <span className={classes.spacingCapBottom} />
+            <span className={classes.spacingLabel}>{label}</span>
+        </div>
+    );
+}
+
 export default function Guides({ page }) {
     const { A4_Elements, currentPage, pageSize } = use(PdfContext);
     const A4_WIDTH = pageSize?.width ?? 595;
@@ -59,7 +83,9 @@ export default function Guides({ page }) {
     const others = A4_Elements.filter(
         (el) => el.element_id !== moving.element_id && onPage(el)
     );
-    if (others.length === 0) return null;
+
+    // ---- Spacing distance guides (above / below), within 80px. ----
+    const spacing = findVerticalSpacingGuides(moving, others, getElementBounds);
 
     // ---- One vertical guide: the nearest x-alignment, drawn only across the
     // moving element and the elements it lines up with. ----
@@ -92,7 +118,7 @@ export default function Guides({ page }) {
         };
     }
 
-    if (!vGuide && !hGuide) return null;
+    if (!vGuide && !hGuide && !spacing.above && !spacing.below) return null;
 
     return (
         <>
@@ -108,6 +134,8 @@ export default function Guides({ page }) {
                     style={{ top: hGuide.y, left: hGuide.x1, width: hGuide.x2 - hGuide.x1 }}
                 />
             )}
+            <SpacingMarker guide={spacing.above} pageWidth={A4_WIDTH} pageHeight={A4_HEIGHT} />
+            <SpacingMarker guide={spacing.below} pageWidth={A4_WIDTH} pageHeight={A4_HEIGHT} />
         </>
     );
 }
