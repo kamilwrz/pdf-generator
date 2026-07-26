@@ -12,12 +12,12 @@ import CanvasElements from "../components/canvas/CanvasElements/CanvasElements";
 import SelectionOverlay from "../components/canvas/SelectionOverlay/SelectionOverlay";
 import { useNavigate } from 'react-router-dom';
 import ModalPdfs from '../components/modals/ModalPdfs/ModalPdfs';
-import ModalPdfRequestStatus from '../components/modals/ModalPdfRequestStatus/ModalPdfRequestStatus';
 import { ApiClient } from '../services/api';
 import { ENDPOINTS } from '../services/api';
 import Spinner from '../components/common/Spinner/Spinner';
-import { AnimatePresence } from "framer-motion";
 import PageControls from '../components/editor/PageControls/PageControls';
+import ToastStack from '../components/common/ToastStack/ToastStack';
+import { useToasts } from '../hooks/useToasts';
 import Guides from '../components/canvas/Guides/Guides';
 import Connectors from '../components/canvas/Connectors/Connectors';
 import TemplatesModal from '../components/modals/TemplatesModal/TemplatesModal';
@@ -38,18 +38,29 @@ function PdfCanvas() {
 
   const navigate = useNavigate();
 
-  //state for rendering Dropzone // changed in Sidebar (upload images), passed via ctx
-  const [isDropzone, setIsDropzone] = useState(false);
-  //state for rendering the Gallery // changed in Sidebar (upload images), passed via ctx
-  const [isGallery, setIsGallery] = useState(false);
   //state for checking user activity via MouseEven // not really a good idea
   const [checkActivity, setIsActive] = useState(false);
-  //state for showing the modal with generated PDF's
-  const [isModalPdfs, setIsModalPdfs] = useState(false);
-  //state for showing the CV templates picker
-  const [isTemplates, setIsTemplates] = useState(false);
-  //state for showing the AI CV fill panel
-  const [isAiPanel, setIsAiPanel] = useState(false);
+  // Unified surface state: `dialog` (centered, backdrop+Esc) and `panel`
+  // (docked to sidebar) are each mutually exclusive within themselves AND
+  // with each other — opening one always closes whatever else was open.
+  // Replaces 5 independent booleans that previously had no exclusivity at
+  // all (e.g. Moje dokumenty + Szablony + Gallery could all be open together).
+  const [dialog, setDialog] = useState(null); // 'docs' | 'templates' | 'ai' | null
+  const [panel, setPanel] = useState(null);   // 'upload' | 'gallery' | null
+  const isModalPdfs = dialog === 'docs';
+  const isTemplates = dialog === 'templates';
+  const isAiPanel = dialog === 'ai';
+  const isGallery = panel === 'gallery';
+  const isDropzone = panel === 'upload';
+  // Compatibility setter: ModalPdfs.jsx and Sidebar.jsx both call this as
+  // `setIsModalPdfs(bool => !bool)` / `setIsModalPdfs(false)`, matching
+  // React's setState contract, so neither needed to change.
+  const setIsModalPdfs = useCallback((valueOrUpdater) => {
+    const prevBool = dialog === 'docs';
+    const nextBool = typeof valueOrUpdater === 'function' ? valueOrUpdater(prevBool) : valueOrUpdater;
+    setDialog(nextBool ? 'docs' : null);
+    if (nextBool) setPanel(null);
+  }, [dialog]);
   //state for showing the AI deck generator panel
   const [isDeckPanel, setIsDeckPanel] = useState(false);
   //state for showing the AI article generator panel
@@ -80,9 +91,7 @@ function PdfCanvas() {
   //the title of the PDF, loadded when pdf loaded
   const titleRef = useRef();
 
-  const [isLoadingState, setIsLoadingState] =useState(false)
-
-  const [modalRequestStatus, setModalRequestStatus] = useState(false);
+  const { toasts, pushToast, dismissToast } = useToasts();
 
   const [PDFdownloadData, setPDFdownloadData] = useState([])
   // Layout suggestions are rendered here before acceptance, so previewing a
@@ -160,14 +169,51 @@ function PdfCanvas() {
 
 
 
-  const { createPdf, updatePdf, saveElements, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, handleShowModalRequest, titleRef, A4_Elements_deleted, setA4_Elements_deleted);
+  // usePdfExport's callback param only ever signals "the min-spinner delay
+  // has elapsed, react now" — the actual toast trigger lives in the
+  // isPdfLoading-transition effect below instead, since reading responsePDF
+  // synchronously inside this callback would close over a stale value (this
+  // callback is captured by createPdf/updatePdf's useCallback well before
+  // responsePDF is ever set for the request in flight).
+  function noopShowModal() {}
+
+  const { createPdf, updatePdf, saveElements, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, noopShowModal, titleRef, A4_Elements_deleted, setA4_Elements_deleted);
   const autosaveTimerRef = useRef(null);
   const autosaveQueueRef = useRef(Promise.resolve());
+  const wasPdfLoadingRef = useRef(false);
 
-  function handleShowModalRequest() {
-    setModalRequestStatus(bool => !bool);
-    setIsLoadingState(bool => !bool);
-  }
+  const prepareDownload = useCallback(async (pdfId) => {
+    try {
+      const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
+      const response = await api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "POST", pdfId, "Błąd pobierania");
+      const blob = await (await fetch(response.url)).blob();
+      const urlBlob = URL.createObjectURL(blob);
+      setPDFdownloadData({ blob: urlBlob, title: response.title });
+      setTimeout(() => URL.revokeObjectURL(urlBlob), 6000);
+    } catch (error) {
+      console.error("Nie udało się przygotować pobierania PDF.", error);
+    }
+  }, []);
+
+  // Fires exactly when the create/update spinner finishes (same timing the
+  // old ModalPdfRequestStatus used), reading responsePDF fresh from this
+  // render rather than a captured closure.
+  useEffect(() => {
+    if (wasPdfLoadingRef.current && !isPdfLoading) {
+      if (responsePDF?.message) {
+        pushToast({ title: "Coś poszło nie tak", msg: responsePDF.message, variant: "error" });
+      } else if (responsePDF?.success) {
+        pushToast({
+          title: "Twój PDF jest gotowy",
+          msg: `Pomyślnie zaktualizowano plik ${titleRef.current?.value || ""}.pdf.`,
+          variant: "success",
+          pdfDownload: true,
+        });
+        prepareDownload(responsePDF.pdf_id);
+      }
+    }
+    wasPdfLoadingRef.current = isPdfLoading;
+  }, [isPdfLoading, responsePDF, pushToast, prepareDownload, titleRef]);
 
   function handleLogout() {
     localStorage.removeItem("token")
@@ -320,8 +366,10 @@ function PdfCanvas() {
   }, [A4_Elements, A4_Elements_deleted, enqueueAutosave, isPdfLoading, pageCount, pageSize, pdfId])
 
   const handleShowDropzone = useCallback(() => {
-    setIsDropzone(boolDropzone => !boolDropzone);
-  }, [])
+    const next = panel !== 'upload';
+    setPanel(next ? 'upload' : null);
+    if (next) setDialog(null);
+  }, [panel])
 
   // Called once the auto-opened templates modal is resolved (template
   // picked or dismissed) so it never re-triggers again this session.
@@ -331,7 +379,7 @@ function PdfCanvas() {
   }, [setAutoOpenedTemplates])
 
   const handleShowTemplates = useCallback(() => {
-    const next = !isTemplates;
+    const next = dialog !== 'templates';
     // Closing an auto-opened modal via the Topbar "Szablony" toggle
     // bypasses TemplatesModal's own handleClose (backdrop/X button) — log
     // the dismiss and clear the seen-flag here too, so onboarding tracking
@@ -347,8 +395,9 @@ function PdfCanvas() {
       logEvent("template_dismissed");
       markTemplatesModalSeen();
     }
-    setIsTemplates(next);
-  }, [isTemplates, markTemplatesModalSeen])
+    setDialog(next ? 'templates' : null);
+    if (next) setPanel(null);
+  }, [dialog, markTemplatesModalSeen])
 
   // Template-first onboarding: auto-open the templates picker for a
   // first-time user (no saved PDFs yet), once pdfsLoaded resolves so a
@@ -360,15 +409,18 @@ function PdfCanvas() {
   // once per browser session — see markTemplatesModalSeen.
   useEffect(() => {
     if (!pdfsLoaded || PDFs.length !== 0) return;
-    if (autoOpenedTemplates || isTemplates) return;
+    if (autoOpenedTemplates || dialog === 'templates') return;
     if (sessionStorage.getItem(TEMPLATES_MODAL_SEEN_KEY) === "1") return;
     setAutoOpenedTemplates(true);
-    setIsTemplates(true);
-  }, [pdfsLoaded, PDFs.length, autoOpenedTemplates, isTemplates, setAutoOpenedTemplates])
+    setDialog('templates');
+    setPanel(null);
+  }, [pdfsLoaded, PDFs.length, autoOpenedTemplates, dialog, setAutoOpenedTemplates])
 
   const handleShowAiPanel = useCallback(() => {
-    setIsAiPanel(bool => !bool);
-  }, [])
+    const next = dialog !== 'ai';
+    setDialog(next ? 'ai' : null);
+    if (next) setPanel(null);
+  }, [dialog])
 
   const handleShowDeckPanel = useCallback(() => {
     setIsDeckPanel(bool => !bool);
@@ -379,8 +431,10 @@ function PdfCanvas() {
   }, [])
 
   const handleShowGallery = useCallback(() => {
-    setIsGallery(boolGallery => !boolGallery);
-  }, [])
+    const next = panel !== 'gallery';
+    setPanel(next ? 'gallery' : null);
+    if (next) setDialog(null);
+  }, [panel])
 
 
   const createPdfWithElements = useCallback(() => {
@@ -522,6 +576,7 @@ function PdfCanvas() {
     loadTemplateWithFill: loadTemplateWithFillFresh,
     loadAiElements: loadAiElementsFresh,
     //ai panel
+    isAiPanel: isAiPanel,
     showAiPanel: handleShowAiPanel,
     showDeckPanel: handleShowDeckPanel,
     showArticlePanel: handleShowArticlePanel,
@@ -564,8 +619,9 @@ function PdfCanvas() {
     isModalPdfs: isModalPdfs,
     setIsModalPdfs: setIsModalPdfs,
     handlePdfId: handlePdfId,
+    //toasts
+    pushToast: pushToast,
     //ELSE
-    showModalRequest: handleShowModalRequest,
     logout: handleLogout,
     PDFs: PDFs,
     setPDFs: setPDFs,
@@ -590,16 +646,26 @@ function PdfCanvas() {
     setValueImageUpload, setIsModalPdfs, handleResizeElement, 
     updatePdfWithElements, handlePdfId, 
     clearA4Fresh, discardActiveDocument, flushAutosave, loadTemplateFresh, loadTemplateWithFillFresh, loadAiElementsFresh,
-    handleShowModalRequest, handleLogout, PDFs, setPDFs, pdfsLoaded, setPdfsLoaded,
+    pushToast, handleLogout, PDFs, setPDFs, pdfsLoaded, setPdfsLoaded,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     isTwoPageView, toggleTwoPageView,
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
-    isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen, handleMoveElementWithBelow, handleShowAiPanel,
+    isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen, handleMoveElementWithBelow, isAiPanel, handleShowAiPanel,
     handleShowDeckPanel, handleShowArticlePanel, pageSize, setPageSize, setPagePreset,
     zoom, zoomIn, zoomOut,
     undo, redo, canUndo, canRedo, resetHistory,
     deletionPreviewIds, layoutPreviewPatches, structurePreviewGroup,
   ])
+
+  // The PDF-ready toast's download link is sourced live from PDFdownloadData
+  // (shared, single-slot context state — same pattern ModalPdfs already uses
+  // for its own per-row download buttons) rather than baked in at push time,
+  // since the blob isn't ready yet when the toast first appears.
+  const displayToasts = useMemo(() => toasts.map((t) => (
+    t.pdfDownload && PDFdownloadData.blob
+      ? { ...t, action: { label: "Pobierz PDF", href: PDFdownloadData.blob, download: PDFdownloadData.title } }
+      : t
+  )), [toasts, PDFdownloadData]);
 
   console.log(A4_Elements);
   console.log(A4_Elements_deleted);
@@ -618,18 +684,13 @@ function PdfCanvas() {
 
       <PdfContext.Provider value={ctxValue}>
         <ModalPdfs title={titleRef}/>
-        <ModalPdfRequestStatus open={modalRequestStatus} message={responsePDF} />
         <TemplatesModal />
+        <AiCvPanel />
         <Sidebar>
-          <AnimatePresence>{isDropzone && <DropzoneContainer />}</AnimatePresence>
+          <DropzoneContainer />
           {/* Side panels anchor to the full-height sidebar, but the topbar (44px,
               z-index 1400) lives in the right pane and would cover their header —
               so they start below it and give back its height. */}
-          {isAiPanel && (
-            <div style={{ position: "absolute", left: "100%", top: 44, width: 320, background: "#fff", borderLeft: "1px solid var(--border-line)", borderRight: "1px solid var(--border-line)", height: "calc(100% - 44px)", overflowY: "auto", zIndex: 1100, boxShadow: "4px 0 16px rgba(30,48,78,.10)" }}>
-              <AiCvPanel onClose={handleShowAiPanel} />
-            </div>
-          )}
           {FEATURES.decksArticles && isDeckPanel && (
             <div style={{ position: "absolute", left: "100%", top: 44, width: 340, background: "#fff", borderLeft: "1px solid var(--border-line)", borderRight: "1px solid var(--border-line)", height: "calc(100% - 44px)", overflowY: "auto", zIndex: 1100, boxShadow: "4px 0 16px rgba(30,48,78,.10)" }}>
               <AiDeckPanel onClose={handleShowDeckPanel} />
@@ -672,6 +733,7 @@ function PdfCanvas() {
        <PageControls />
        <Gallery />
        <AiAssistant />
+       <ToastStack toasts={displayToasts} onDismiss={dismissToast} offsetForGallery={isGallery} />
       </PdfContext.Provider>
     </main>
   )

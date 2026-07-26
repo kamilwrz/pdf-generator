@@ -5,21 +5,6 @@
     font-family: var(--font-body);
 }
 
-.head {
-    margin-bottom: 12px;
-}
-
-.title {
-    font: 700 14px var(--font-display);
-    color: var(--chrome-ink);
-    margin-bottom: 2px;
-}
-
-.subtitle {
-    font: 500 10.5px var(--font-body);
-    color: var(--chrome-muted);
-}
-
 .dropzone {
     border: 1px dashed #aebdc7;
     background: var(--chrome-control);

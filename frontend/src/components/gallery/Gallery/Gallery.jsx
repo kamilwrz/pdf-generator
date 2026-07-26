@@ -1,17 +1,15 @@
 import classes from "./Gallery.module.css";
-import { motion, AnimatePresence } from "framer-motion";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 
 import GalleryItem from "../GalleryItem/GalleryItem";
-import CloseButton from "../../common/CloseButton/CloseButton";
 
 import { ApiClient } from "../../../services/api";
 import { ENDPOINTS } from "../../../services/api";
 import API_BASE_URL from "../../../services/api";
 
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { use } from "react";
+import PanelShell from "../../common/PanelShell/PanelShell";
 
 
 export default function Gallery() {
@@ -46,7 +44,7 @@ export default function Gallery() {
     }, [isGallery, isDropzone])
 
     const IMAGES = images.map((image) => {
-        
+
         const imageUrl = image.file_path.startsWith("http")
             ? image.file_path
             : `${API_BASE_URL}/${image.file_path}`;
@@ -54,22 +52,22 @@ export default function Gallery() {
         return <GalleryItem url={imageUrl} key={image.id} img_id={image.id} imageUsed={handleImageUsedInPDF} />;
     })
 
-    return <AnimatePresence>{isGallery && <motion.aside className={classes.gallery}
-        initial={{ opacity: 0, x: 400 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 400 }}
-        transition={{ type: "spring", duration: 2 }}>
-        <div className={classes.galleryHeader}>
-            <div className={classes.headerText}>
-                <h2>Twoja galeria</h2>
-                <p>Kliknij obraz, aby umieścić go na płótnie</p>
-            </div>
-            <CloseButton top={10} right={12} clickHandler={showGallery} />
-        </div>
-
-        {!error && <div className={classes.grid}>{IMAGES}</div>}
-        {error ? <p className={classes.error}>{error.message}</p> : undefined}
-    </motion.aside>}</AnimatePresence >
+    return (
+        <PanelShell
+            open={isGallery}
+            onClose={showGallery}
+            className={classes.gallery}
+            motionProps={{
+                initial: { opacity: 0, x: 24 },
+                animate: { opacity: 1, x: 0 },
+                exit: { opacity: 0, x: 24 },
+                transition: { type: "spring", damping: 26, stiffness: 320 },
+            }}
+            title="Twoja galeria"
+            subtitle="Kliknij obraz, aby umieścić go na płótnie"
+        >
+            {!error && <div className={classes.grid}>{IMAGES}</div>}
+            {error ? <p className={classes.error}>{error.message}</p> : undefined}
+        </PanelShell>
+    );
 }
-
-

@@ -1,23 +1,28 @@
 import classes from "./DropzoneContainer.module.css";
 import Dropzone from "./Dropzone";
-import { motion } from "framer-motion";
-import CloseButton from "../../common/CloseButton/CloseButton";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-
+import PanelShell from "../../common/PanelShell/PanelShell";
 
 export default function DropzoneContainer() {
 
-    const {showDropzone} = use(PdfContext)
+    const { isDropzone, showDropzone } = use(PdfContext)
 
-    return <motion.section
-        className={classes.dropzoneContainer}
-        initial={{ opacity: 0, x: -320 }}
-        animate={{ opacity: 1, x: 320 }}
-        exit={{ opacity: 0, x: -320 }}
-        transition={{type: "spring", duration:2, ease: [0, 0.71, 0.2, 1.01]}}>
-            <CloseButton clickHandler={showDropzone} right={10} top={10}/>
-        <Dropzone></Dropzone>
-    </motion.section>
-
+    return (
+        <PanelShell
+            open={isDropzone}
+            onClose={showDropzone}
+            className={classes.dropzoneContainer}
+            motionProps={{
+                initial: { opacity: 0, x: -24 },
+                animate: { opacity: 1, x: 0 },
+                exit: { opacity: 0, x: -24 },
+                transition: { type: "spring", damping: 26, stiffness: 320 },
+            }}
+            title="Prześlij obrazy"
+            subtitle="Maks. 12 plików · JPG, PNG"
+        >
+            <Dropzone />
+        </PanelShell>
+    );
 }

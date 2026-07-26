@@ -1,44 +1,69 @@
-.modalPdfs {
-    width: 540px;
-    max-width: calc(100vw - 2rem);
-    max-height: 80vh;
-    z-index: 5000;
-    position: fixed;
-    top: 10vh;
-    left: 0;
-    right: 0;
-    margin: 0 auto;
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    background: var(--chrome-surface);
-    overflow: hidden;
+.countLabel {
+    font: 500 10px var(--font-body);
+    color: var(--chrome-muted);
+}
+
+.closeFooterBtn {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 6px;
     border: 1px solid var(--chrome-border);
-    border-radius: 8px;
-    padding: 0;
-    box-shadow: 0 24px 54px -28px rgba(47, 67, 82, .55);
-    font-family: var(--font-body);
+    background: transparent;
+    font: 600 10.5px var(--font-body);
+    color: var(--chrome-ink);
+    cursor: pointer;
 }
 
-.modalHeader {
+.closeFooterBtn:hover {
+    background: var(--chrome-hover);
+    border-color: #b9c6ce;
+    color: var(--chrome-accent);
+}
+
+.toolbar {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 12px 16px;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
     border-bottom: 1px solid var(--chrome-border);
-    position: relative;
+    flex-shrink: 0;
 }
 
-.modalHeader h2 {
-    margin: 0;
-    font: 700 15px var(--font-display);
+.searchField {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 9px;
+    background: var(--primary-bg);
+    border: 1px solid var(--chrome-border);
+    border-radius: 6px;
+    color: #8997a1;
+}
+
+.searchField input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font: 500 11.5px var(--font-body);
     color: var(--chrome-ink);
 }
 
-.modalHeader p {
-    margin: 1px 0 0;
+.sortSelect {
+    height: 30px;
+    padding: 0 6px;
+    flex-shrink: 0;
+    background: var(--chrome-control);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font: 600 10.5px var(--font-body);
     color: var(--chrome-muted);
-    font: 500 10.5px var(--font-body);
+    outline: none;
+    cursor: pointer;
 }
 
 .modalBody {
@@ -47,6 +72,187 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+}
+
+/* ---- loading skeleton ---- */
+.skeletonList {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.skeletonRow {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px;
+    border: 1px solid var(--chrome-border);
+    border-radius: 6px;
+    background: var(--primary-bg);
+}
+
+.skeletonThumb {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: var(--chrome-hover);
+    flex-shrink: 0;
+}
+
+.skeletonLines {
+    flex: 1;
+    min-width: 0;
+}
+
+.skeletonBar {
+    display: block;
+    height: 9px;
+    width: 46%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--chrome-hover) 0%, var(--chrome-control) 40%, var(--chrome-hover) 80%);
+    background-size: 320px 100%;
+    animation: shimmer 1.1s linear infinite;
+}
+
+.skeletonBarThin {
+    display: block;
+    height: 7px;
+    width: 28%;
+    border-radius: 3px;
+    margin-top: 6px;
+    background: var(--chrome-hover);
+}
+
+/* ---- empty state ---- */
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+    padding: 46px 20px;
+}
+
+.emptyIcon {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: var(--chrome-control);
+    border: 1px solid var(--chrome-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8997a1;
+    margin-bottom: 6px;
+    font-size: 20px;
+}
+
+.emptyTitle {
+    font: 700 13px var(--font-display);
+    color: var(--chrome-ink);
+}
+
+.emptyHint {
+    font: 500 11px var(--font-body);
+    color: var(--chrome-muted);
+    max-width: 280px;
+}
+
+/* ---- delete confirmation ---- */
+.confirmBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 6000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(28, 36, 48, .42);
+    backdrop-filter: blur(2px);
+    animation: fadeIn .16s ease both;
+}
+
+.confirmDialog {
+    width: 380px;
+    max-width: 100%;
+    background: var(--chrome-surface);
+    border: 1px solid var(--chrome-border);
+    border-radius: 8px;
+    box-shadow: 0 24px 54px -28px rgba(47, 67, 82, .55);
+    overflow: hidden;
+    animation: popIn .18s cubic-bezier(.2, .8, .3, 1) both;
+    font-family: var(--font-body);
+}
+
+.confirmHeader {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 14px 16px;
+}
+
+.confirmIcon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: var(--danger-soft);
+    color: var(--danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.confirmHeader h2 {
+    margin: 0;
+    font: 700 14px var(--font-display);
+    color: var(--chrome-ink);
+}
+
+.confirmHeader p {
+    margin: 3px 0 0;
+    font: 500 11px/1.5 var(--font-body);
+    color: var(--chrome-muted);
+}
+
+.confirmFooter {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--chrome-border);
+    background: var(--chrome-control);
+}
+
+.confirmCancel {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid var(--chrome-border);
+    background: var(--primary-bg);
+    font: 600 10.5px var(--font-body);
+    color: var(--chrome-ink);
+    cursor: pointer;
+}
+
+.confirmCancel:hover {
+    background: var(--chrome-hover);
+}
+
+.confirmDelete {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: var(--danger);
+    color: #fff;
+    font: 600 10.5px var(--font-body);
+    cursor: pointer;
+}
+
+.confirmDelete:hover {
+    background: #bb4331;
 }
 
 .pdfItem {

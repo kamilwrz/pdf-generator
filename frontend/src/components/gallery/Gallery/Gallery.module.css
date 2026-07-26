@@ -10,30 +10,8 @@
     top: 0;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
+    overflow: hidden;
     z-index: 1500;
-}
-
-.galleryHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 11px 14px;
-    border-bottom: 1px solid var(--chrome-border);
-    position: relative;
-    flex-shrink: 0;
-}
-
-.headerText h2 {
-    font: 700 14px var(--font-display);
-    color: var(--chrome-ink);
-    margin: 0;
-}
-
-.headerText p {
-    font: 500 10px var(--font-body);
-    color: var(--chrome-muted);
-    margin: 1px 0 0;
 }
 
 .grid {

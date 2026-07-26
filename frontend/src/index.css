@@ -70,3 +70,10 @@
 @keyframes spin { to { transform: rotate(360deg) } }
 @keyframes indet { 0% { transform: translateX(-100%) } 50% { transform: translateX(60%) } 100% { transform: translateX(220%) } }
 @keyframes floaty { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-10px) } }
+
+/* Shared surface-system animations (DialogShell, PanelShell, ToastStack) */
+@keyframes popIn { from { opacity: 0; transform: translateY(-8px) scale(.985) } to { opacity: 1; transform: none } }
+@keyframes slideFromLeft { from { opacity: 0; transform: translateX(-18px) } to { opacity: 1; transform: none } }
+@keyframes slideFromRight { from { opacity: 0; transform: translateX(18px) } to { opacity: 1; transform: none } }
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes shimmer { 0% { background-position: -220px 0 } 100% { background-position: 320px 0 } }

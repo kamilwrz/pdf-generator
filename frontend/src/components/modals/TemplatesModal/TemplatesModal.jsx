@@ -1,9 +1,8 @@
-import { createPortal } from "react-dom";
 import { use, useState } from "react";
 import classes from "./TemplatesModal.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { TEMPLATES, TEMPLATE_CATEGORIES } from "../../../templates";
-import CloseButton from "../../common/CloseButton/CloseButton";
+import DialogShell from "../../common/DialogShell/DialogShell";
 import { logEvent } from "../../../services/eventLog";
 
 // Lightweight CSS mini-mock of each template, keyed by id. Not a render — just
@@ -332,8 +331,6 @@ export default function TemplatesModal() {
     } = use(PdfContext);
     const [category, setCategory] = useState("cv");
 
-    if (!isTemplates) return null;
-
     function handlePick(t) {
         if (A4_Elements.length > 0 &&
             !window.confirm("Zastąpić bieżące płótno tym szablonem? Niezapisane elementy zostaną usunięte.")) {
@@ -363,42 +360,39 @@ export default function TemplatesModal() {
 
     const visible = TEMPLATES.filter((t) => t.category === category);
 
-    return createPortal(
-        <div className={classes.backdrop} onClick={handleClose}>
-            <div className={classes.modal} onClick={(e) => e.stopPropagation()}>
-                <div className={classes.header}>
-                    <div>
-                        <h2>Zacznij od szablonu</h2>
-                        <p>Wybierz układ, a potem spersonalizuj każdy element na płótnie.</p>
-                    </div>
-                    <CloseButton clickHandler={handleClose} right={20} top={20} />
-                </div>
-                <div className={classes.tabs}>
-                    {TEMPLATE_CATEGORIES.map((c) => (
-                        <button
-                            key={c.id}
-                            type="button"
-                            className={`${classes.tab} ${category === c.id ? classes.tabActive : ""}`}
-                            onClick={() => setCategory(c.id)}
-                        >{c.label}</button>
-                    ))}
-                </div>
-                <div className={classes.grid}>
-                    {visible.map((t) => (
-                        <div key={t.id} className={classes.card}>
-                            <div className={classes.previewWrap}>
-                                <Preview id={t.id} accent={t.accent} />
-                            </div>
-                            <div className={classes.cardName}>{t.name}</div>
-                            <div className={classes.cardIndustry}>{t.industry}</div>
-                            <button type="button" className={classes.useBtn} onClick={() => handlePick(t)}>
-                                Użyj szablonu
-                            </button>
-                        </div>
-                    ))}
-                </div>
+    return (
+        <DialogShell
+            open={isTemplates}
+            onClose={handleClose}
+            width={760}
+            title="Szablony"
+            subtitle="Wybierz układ — treść na płótnie zostanie zastąpiona."
+            footer={<span className={classes.countLabel}>{visible.length} szablonów w tej kategorii</span>}
+        >
+            <div className={classes.tabs}>
+                {TEMPLATE_CATEGORIES.map((c) => (
+                    <button
+                        key={c.id}
+                        type="button"
+                        className={`${classes.tab} ${category === c.id ? classes.tabActive : ""}`}
+                        onClick={() => setCategory(c.id)}
+                    >{c.label}</button>
+                ))}
             </div>
-        </div>,
-        document.body
+            <div className={classes.grid}>
+                {visible.map((t) => (
+                    <div key={t.id} className={classes.card}>
+                        <div className={classes.previewWrap}>
+                            <Preview id={t.id} accent={t.accent} />
+                        </div>
+                        <div className={classes.cardName}>{t.name}</div>
+                        <div className={classes.cardIndustry}>{t.industry}</div>
+                        <button type="button" className={classes.useBtn} onClick={() => handlePick(t)}>
+                            Użyj szablonu
+                        </button>
+                    </div>
+                ))}
+            </div>
+        </DialogShell>
     );
 }

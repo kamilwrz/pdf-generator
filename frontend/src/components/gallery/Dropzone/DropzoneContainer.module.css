@@ -3,7 +3,9 @@
     max-width: calc(100vw - 2rem);
     height: auto;
     max-height: calc(100vh - 5rem);
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     background: var(--chrome-surface);
     border: 1px solid var(--chrome-border);
     border-radius: 8px;

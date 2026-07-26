@@ -121,10 +121,6 @@ export default function Dropzone() {
 
     return (
         <section className={classes.dropzoneContainer}>
-            <div className={classes.head}>
-                <div className={classes.title}>Prześlij obrazy</div>
-                <div className={classes.subtitle}>Maks. 12 plików · JPG, PNG</div>
-            </div>
             <div {...getRootProps({ className: classes.dropzone })}>
                 <input {...getInputProps()} />
                 <div className={classes.dropIcon}>

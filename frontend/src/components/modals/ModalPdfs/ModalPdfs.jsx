@@ -1,28 +1,24 @@
 import classes from "./ModalPdfs.module.css";
 
 import { createPortal } from "react-dom";
-
-import { useEffect, useState, use, useRef } from "react";
+import { useEffect, useState, use, useRef, useMemo } from "react";
 import { BsFileEarmarkPdf } from "react-icons/bs";
 import { IoMdDownload } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
 import { CiClock1 } from "react-icons/ci";
 import { GrView } from "react-icons/gr";
-import { RiCloseLargeFill } from "react-icons/ri";
+import { FiSearch, FiAlertTriangle } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { presetFromDims } from "../../../hooks/useA4Elements";
-import { motion, AnimatePresence } from "framer-motion";
 
 import { ApiClient } from "../../../services/api";
 import { ENDPOINTS } from "../../../services/api";
-import API_BASE_URL from "../../../services/api";
 
 import Error from "../../common/Error/Error";
-import CloseButton from "../../common/CloseButton/CloseButton";
-import { data } from "react-router-dom";
+import DialogShell from "../../common/DialogShell/DialogShell";
 
 
-//MODAL FOR SHWOING SAVED PDF'S
+//DIALOG FOR SHOWING SAVED PDF'S
 
 export default function ModalPdfs({ title }) {
 
@@ -30,6 +26,10 @@ export default function ModalPdfs({ title }) {
 
     const [error, setError] = useState(false);
     const [isOpening, setIsOpening] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [query, setQuery] = useState("");
+    const [sort, setSort] = useState("new");
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
     const {
         isModalPdfs,
@@ -48,14 +48,23 @@ export default function ModalPdfs({ title }) {
         setPageCount,
         setCurrentPage,
         setPageSize,
-        resetHistory
+        resetHistory,
+        pushToast,
     } = use(PdfContext);
 
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
 
-    function handleIsVisible() {
-        setIsModalPdfs(bool => !bool);
+    // Routed through DialogShell's Escape/backdrop-click handler too — while
+    // the delete confirm is open this cancels only the confirm, so Escape
+    // never closes "Moje dokumenty" out from under an in-flight confirmation.
+    function closeDialog() {
+        if (confirmDeleteId != null) {
+            setConfirmDeleteId(null);
+            return;
+        }
+        setIsModalPdfs(false);
         setError(false);
+        setQuery("");
     }
 
     async function showPDF(id) {
@@ -136,7 +145,14 @@ export default function ModalPdfs({ title }) {
         }
     }
 
-    async function deltePDF(id) {
+    function askDelete(id) {
+        setConfirmDeleteId(id);
+    }
+
+    async function confirmDelete() {
+        const id = confirmDeleteId;
+        const target = PDFs.find((element) => element.id === id);
+        setConfirmDeleteId(null);
         try {
             const data = await api.httpRequest(
                 ENDPOINTS.PDF.DELETE,
@@ -146,18 +162,40 @@ export default function ModalPdfs({ title }) {
             );
             if (activePdfId === id) discardActiveDocument();
             setPDFs((prevState) => prevState.filter((element) => element.id !== data.pdf_id));
+            pushToast?.({
+                title: "Dokument usunięty",
+                msg: target ? `„${target.title.split(".")[0]}” został trwale usunięty.` : undefined,
+                variant: "success",
+            });
         } catch (error) {
             setError(error);
         }
     }
 
     useEffect(() => {
+        // Must fetch on mount regardless of isModalPdfs (not just when the
+        // dialog is open) — pdfsLoaded/PDFs.length here is what the
+        // template-first onboarding auto-open effect in PdfCanvas.jsx waits
+        // on. Gating this fetch on isModalPdfs (as a first pass at this
+        // rewrite did) silently broke that onboarding flow: pdfsLoaded would
+        // never become true until the user manually opened "Moje dokumenty".
+        // Only the loading-skeleton UI is scoped to the dialog being open.
+        if (isModalPdfs) setLoading(true);
         api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, "Nie udało się pobrać listy PDF!").
             then((data) => {
                 setPDFs(data);
                 setPdfsLoaded(true);
                 }).
-            catch((error) => { setError(error); setPdfsLoaded(true); })
+            catch((error) => {
+                // The backend signals "no PDFs yet" as a 404 rather than an
+                // empty 200 array — that's the real empty state, not a fetch
+                // failure, so it renders the empty-state UI below instead of
+                // the error banner.
+                if (error?.status === 404) setPDFs([]);
+                else setError(error);
+                setPdfsLoaded(true);
+            }).
+            finally(() => setLoading(false));
 
 
     }, [isModalPdfs, PDFdownloadData])
@@ -173,58 +211,131 @@ export default function ModalPdfs({ title }) {
 
     timeout.current = setTimeout(() => {
       //  URL.revokeObjectURL(urlBlob);
-        
-    },6000)  
+
+    },6000)
   }
 
   clearTimeout(timeout.current);
 
-   console.log(PDFdownloadData)
-   
+    const visiblePDFs = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        let list = PDFs.filter((pdf) => pdf.title.toLowerCase().includes(q));
+        if (sort === "az") list = [...list].sort((a, b) => a.title.localeCompare(b.title, "pl"));
+        else list = [...list].sort((a, b) => sort === "new"
+            ? new Date(b.created_at) - new Date(a.created_at)
+            : new Date(a.created_at) - new Date(b.created_at));
+        return list;
+    }, [PDFs, query, sort]);
 
-    return createPortal(
-        <AnimatePresence>
-            {isModalPdfs && <motion.ul initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ type: "spring", duration: 1, ease: [0, 0.71, 0.2, 1.01] }} className={classes.modalPdfs} >
-                <div className={classes.modalHeader}>
-                    <div>
-                        <h2>Moje dokumenty</h2>
-                        <p>Otwieraj, pobieraj i usuwaj zapisane projekty.</p>
-                    </div>
-                    <CloseButton clickHandler={handleIsVisible} top={10} right={12} />
+    const confirmTarget = PDFs.find((pdf) => pdf.id === confirmDeleteId);
+    const showEmpty = isModalPdfs && !loading && !error && visiblePDFs.length === 0;
+
+    return (
+        <DialogShell
+            open={isModalPdfs}
+            onClose={closeDialog}
+            width={560}
+            title="Moje dokumenty"
+            subtitle="Otwieraj, pobieraj i usuwaj zapisane projekty."
+            footer={<>
+                <span className={classes.countLabel}>
+                    {query ? `${visiblePDFs.length} z ${PDFs.length} dokumentów` : `${PDFs.length} zapisanych dokumentów`}
+                </span>
+                <button type="button" className={classes.closeFooterBtn} onClick={closeDialog}>Zamknij</button>
+            </>}
+        >
+            <div className={classes.toolbar}>
+                <div className={classes.searchField}>
+                    <FiSearch />
+                    <input
+                        type="text"
+                        placeholder="Szukaj wśród dokumentów"
+                        aria-label="Szukaj dokumentów"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                    />
                 </div>
-                <div className={classes.modalBody}>
+                <select aria-label="Sortowanie" className={classes.sortSelect} value={sort} onChange={(e) => setSort(e.target.value)}>
+                    <option value="new">Najnowsze</option>
+                    <option value="old">Najstarsze</option>
+                    <option value="az">Nazwa A–Z</option>
+                </select>
+            </div>
 
-                    {!error ? PDFs.map((PDF, id) => {
-                       
-                        const date = PDF.created_at.split(".")[0].split("T").join(" : ");
-                        const downloadUrl = PDF.file_path.startsWith("http")
-                            ? PDF.file_path
-                            : `${API_BASE_URL}/${PDF.file_path}`;
-                        return <li className={classes.pdfItem} key={PDF.id}>
+            <div className={classes.modalBody}>
+                {error && <Error title="Brak zapisanych PDF!" message={error?.message || error} />}
 
-                            <div className={classes.wrapperIconTitleDate}>
-                                <div className={classes.wrapperPDFIcon}><BsFileEarmarkPdf className={classes.pdfIcon} /></div>
-                                <div className={classes.wrapperTitelDate}>
-                                    <h2 className={classes.title}>{PDF.title.split(".")[0]}</h2>
-                                    <div className={classes.date}><CiClock1 /><label>{date}</label></div>
+                {!error && loading && (
+                    <div className={classes.skeletonList}>
+                        {[0, 1, 2, 3, 4].map((i) => (
+                            <div className={classes.skeletonRow} key={i}>
+                                <div className={classes.skeletonThumb} />
+                                <div className={classes.skeletonLines}>
+                                    <span className={classes.skeletonBar} />
+                                    <span className={classes.skeletonBarThin} />
                                 </div>
                             </div>
+                        ))}
+                    </div>
+                )}
 
-                            <div className={classes.modalControls}>
-                                <button className={classes.downloadPdfBtn} onMouseEnter={() => downloadPdf(PDF.id)}><a href={PDFdownloadData.blob} download={PDFdownloadData.title}>
-                                Pobierz <IoMdDownload /></a></button>
-                                <button className={classes.deletePdfBtn} onClick={() => deltePDF(PDF.id)}><MdDelete /></button>
-                                <button className={classes.showPdfBtn} onClick={() => showPDF(PDF.id)} disabled={isOpening}><GrView /></button>
+                {!error && !loading && visiblePDFs.map((PDF) => {
+                    const date = PDF.created_at.split(".")[0].split("T").join(" : ");
+                    return <div className={classes.pdfItem} key={PDF.id}>
+
+                        <div className={classes.wrapperIconTitleDate}>
+                            <div className={classes.wrapperPDFIcon}><BsFileEarmarkPdf className={classes.pdfIcon} /></div>
+                            <div className={classes.wrapperTitelDate}>
+                                <h2 className={classes.title}>{PDF.title.split(".")[0]}</h2>
+                                <div className={classes.date}><CiClock1 /><label>{date}</label></div>
                             </div>
+                        </div>
 
-                        </li>;
-                    }) : <Error title="Brak zapisanych PDF!" message={error?.message || error} />}
-                </div>
-                <div className={classes.modalFooter}></div>
-            </motion.ul>}
-        </AnimatePresence>
-        , document.getElementById("modal-pdfs"));
+                        <div className={classes.modalControls}>
+                            <button className={classes.downloadPdfBtn} onMouseEnter={() => downloadPdf(PDF.id)}><a href={PDFdownloadData.blob} download={PDFdownloadData.title}>
+                            Pobierz <IoMdDownload /></a></button>
+                            <button className={classes.deletePdfBtn} onClick={() => askDelete(PDF.id)} title="Usuń dokument" aria-label="Usuń dokument"><MdDelete /></button>
+                            <button className={classes.showPdfBtn} onClick={() => showPDF(PDF.id)} disabled={isOpening}><GrView /></button>
+                        </div>
+
+                    </div>;
+                })}
+
+                {showEmpty && (
+                    <div className={classes.emptyState}>
+                        <div className={classes.emptyIcon}><BsFileEarmarkPdf /></div>
+                        <div className={classes.emptyTitle}>{query ? "Brak wyników" : "Nie masz jeszcze dokumentów"}</div>
+                        <div className={classes.emptyHint}>
+                            {query
+                                ? `Żaden dokument nie pasuje do frazy „${query}”. Spróbuj innej nazwy.`
+                                : "Zapisz projekt przyciskiem „Utwórz PDF”, aby pojawił się na tej liście."}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {confirmDeleteId != null && createPortal(
+                <div className={classes.confirmBackdrop} onClick={() => setConfirmDeleteId(null)}>
+                    <div className={classes.confirmDialog} onClick={(e) => e.stopPropagation()}>
+                        <div className={classes.confirmHeader}>
+                            <div className={classes.confirmIcon}><FiAlertTriangle /></div>
+                            <div>
+                                <h2>Usunąć dokument?</h2>
+                                <p>
+                                    {confirmTarget
+                                        ? `„${confirmTarget.title.split(".")[0]}” zniknie z Twoich dokumentów wraz z zapisanym plikiem PDF. Tej operacji nie można cofnąć.`
+                                        : ""}
+                                </p>
+                            </div>
+                        </div>
+                        <div className={classes.confirmFooter}>
+                            <button type="button" className={classes.confirmCancel} onClick={() => setConfirmDeleteId(null)}>Anuluj</button>
+                            <button type="button" className={classes.confirmDelete} onClick={confirmDelete}>Usuń trwale</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+        </DialogShell>
+    );
 }

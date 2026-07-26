@@ -27,3 +27,16 @@ planned to run against Neon directly.
 
 **Depends on / blocked by:** M0's Alembic baseline must land first (nothing to test
 against otherwise). No hard blocker beyond that.
+
+## Gallery search box
+**What:** The approved Kompoza Modals redesign includes a "Szukaj obrazów" search
+input in the gallery panel, filtering uploaded images by name.
+
+**Why not shipped now:** Gallery images (`backend` image records, `GalleryItem.jsx`)
+carry only `img_id` and `file_path` — no name/tag field exists today. A search box
+with nothing real to filter on would be non-functional UI, which is worse than no
+search box at all.
+
+**Depends on / blocked by:** Adding a name/tag field to uploaded images (schema +
+upload-flow change). Once that exists, wire the existing mockup's search input
+(`Kompoza Modals.dc.html`, gallery panel) into `Gallery.jsx`'s image list.

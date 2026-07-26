@@ -3,12 +3,12 @@ import classes from "./AiCvPanel.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { TEMPLATES } from "../../../templates";
-import CloseButton from "../../common/CloseButton/CloseButton";
+import DialogShell from "../../common/DialogShell/DialogShell";
 
 const CV_TEMPLATES = TEMPLATES.filter((template) => template.category === "cv");
 
 const UploadIcon = () => (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 13v8"/><path d="m8 17 4-4 4 4"/>
         <path d="M20 16.5A4.5 4.5 0 0 0 17 8h-1.3A7 7 0 1 0 5 15"/>
     </svg>
@@ -20,8 +20,8 @@ const SparkIcon = () => (
     </svg>
 );
 
-export default function AiCvPanel({ onClose }) {
-    const { loadAiElements } = use(PdfContext);
+export default function AiCvPanel() {
+    const { isAiPanel, showAiPanel, loadAiElements } = use(PdfContext);
 
     const fileRef = useRef(null);
     const [fileName, setFileName] = useState(null);
@@ -69,28 +69,46 @@ export default function AiCvPanel({ onClose }) {
                 "Generowanie szablonu nie powiodło się"
             );
             loadAiElements(res.elements, `CV ${template.name}`);
-            onClose();
+            showAiPanel();
         } catch (err) {
             setError(err.message || "Nie udało się wygenerować szablonu.");
         } finally {
             setFillingId(null);
         }
-    }, [cvData, loadAiElements, onClose]);
+    }, [cvData, loadAiElements, showAiPanel]);
 
     const extracted = cvData && (cvData.name || cvData.email);
 
     return (
-        <div className={classes.panel}>
-            <div className={classes.header}>
-                <div>
-                    <div className={classes.title}>Wypełnij z mojego CV</div>
-                    <div className={classes.subtitle}>Prześlij PDF — AI wypełni dowolny szablon Twoimi danymi</div>
+        <DialogShell
+            open={isAiPanel}
+            onClose={showAiPanel}
+            width={480}
+            title="Wypełnij z mojego CV"
+            subtitle="Prześlij PDF — AI wypełni dowolny szablon Twoimi danymi."
+            footer={<>
+                <span className={classes.stepLabel}>Krok {extracted ? "2" : "1"} z 2</span>
+                <div className={classes.footerActions}>
+                    <button type="button" className={classes.cancelBtn} onClick={showAiPanel}>Anuluj</button>
+                    {!extracted && (
+                        <button
+                            type="button"
+                            className={classes.extractBtn}
+                            onClick={handleExtract}
+                            disabled={!fileName || isExtracting}
+                        >
+                            {isExtracting ? (
+                                <><span className={classes.spinner} />Wyodrębnianie CV…</>
+                            ) : (
+                                <><SparkIcon />Wyodrębnij dane CV</>
+                            )}
+                        </button>
+                    )}
                 </div>
-                <CloseButton clickHandler={onClose} right={0} top={0} />
-            </div>
-
+            </>}
+        >
             <div className={classes.section}>
-                <div className={classes.sectionLabel}>1. Prześlij swoje CV</div>
+                <div className={classes.sectionLabel}>Krok 1 · Prześlij swoje CV</div>
                 <div
                     className={`${classes.dropzone} ${fileName ? classes.dropzoneDone : ""}`}
                     onClick={() => fileRef.current?.click()}
@@ -109,20 +127,6 @@ export default function AiCvPanel({ onClose }) {
                         </>
                     )}
                 </div>
-                {fileName && !cvData && (
-                    <button
-                        type="button"
-                        className={classes.extractBtn}
-                        onClick={handleExtract}
-                        disabled={isExtracting}
-                    >
-                        {isExtracting ? (
-                            <><span className={classes.spinner} />Wyodrębnianie CV…</>
-                        ) : (
-                            <><SparkIcon />Wyodrębnij dane CV</>
-                        )}
-                    </button>
-                )}
             </div>
 
             {extracted && (
@@ -142,36 +146,38 @@ export default function AiCvPanel({ onClose }) {
                 </div>
             )}
 
-            {extracted && (
-                <div className={classes.section}>
-                    <div className={classes.sectionLabel}>2. Wybierz szablon do wypełnienia</div>
-                    {CV_TEMPLATES.length > 0 ? <>
-                    <div className={classes.templateGrid}>
-                        {CV_TEMPLATES.map(t => (
-                            <button
-                                key={t.id}
-                                type="button"
-                                className={classes.templateCard}
-                                onClick={() => handleFill(t)}
-                                disabled={fillingId !== null}
-                            >
-                                <span className={classes.dot} style={{ background: t.accent }} />
-                                <span className={classes.tName}>{t.name}</span>
-                                {fillingId === t.id && <span className={classes.spinner} />}
-                            </button>
-                        ))}
-                    </div>
-                    <p className={classes.hint}>
-                        Możesz wypełnić wiele szablonów bez ponownego przesyłania pliku.
-                        Każdy otworzy się na płótnie do natychmiastowej edycji.
-                    </p>
+            <div className={`${classes.section} ${!extracted ? classes.sectionDisabled : ""}`}>
+                <div className={classes.sectionLabel}>Krok 2 · Wybierz szablon do wypełnienia</div>
+                {extracted ? (
+                    CV_TEMPLATES.length > 0 ? <>
+                        <div className={classes.templateGrid}>
+                            {CV_TEMPLATES.map(t => (
+                                <button
+                                    key={t.id}
+                                    type="button"
+                                    className={classes.templateCard}
+                                    onClick={() => handleFill(t)}
+                                    disabled={fillingId !== null}
+                                >
+                                    <span className={classes.dot} style={{ background: t.accent }} />
+                                    <span className={classes.tName}>{t.name}</span>
+                                    {fillingId === t.id && <span className={classes.spinner} />}
+                                </button>
+                            ))}
+                        </div>
+                        <p className={classes.hint}>
+                            Możesz wypełnić wiele szablonów bez ponownego przesyłania pliku.
+                            Każdy otworzy się na płótnie do natychmiastowej edycji.
+                        </p>
                     </> : (
                         <p className={classes.hint}>Nie ma jeszcze dostępnych szablonów CV.</p>
-                    )}
-                </div>
-            )}
+                    )
+                ) : (
+                    <p className={classes.hint}>Dostępne po wyodrębnieniu danych z pliku.</p>
+                )}
+            </div>
 
             {error && <div className={classes.error}>{error}</div>}
-        </div>
+        </DialogShell>
     );
 }
