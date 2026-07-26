@@ -207,9 +207,12 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
         items = [i for i in (sec.get("items") or []) if i and str(i).strip()]
         if not title or not items:
             continue
-        b.need(50)
-        section_fn(title)
         content = "\n".join(f"• {item}" for item in items)
+        body_height = b.measure_block(content, W, fs, lh, font_b, bulletList=True)
+        # Reserve heading chrome + body together so custom sections do not leave
+        # a title stranded above the page footer.
+        b.need(36 + body_height + SPACE_SECTION)
+        section_fn(title)
         b.block(content, L, W, fs, lh, C.get("body", "#2B2B2B"), font_b, bulletList=True)
         b.gap(SPACE_SECTION)
 
@@ -1304,10 +1307,12 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
     L, W = C["left"], C["width"]
     SANS, SERIF = "Inter", "Times-Roman"
     lbl = _labels(cv)
+    # Keep flow clear of the repeating frame/footer chrome on every page.
+    CONTENT_BOTTOM = 746
 
     class ClassicBuilder(Builder):
         def need(self, h: float):
-            if self.y + h > 746:
+            if self.y + h > CONTENT_BOTTOM:
                 self.pg += 1
                 self.y = float(C["continuation"])
 
@@ -1392,8 +1397,36 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
 
     b = ClassicBuilder(C["start"])
 
+    def experience_height(job: dict) -> float:
+        bullets = _bullets(job)
+        height = (
+            b.measure_block(job.get("title", ""), W, 10.8, 13.5, SANS, bold=True, min_h=15)
+            + SPACE_STACK
+            + b.measure_block(_company_period(job), W, 8.6, 11.5, SANS, min_h=12)
+        )
+        if bullets:
+            height += SPACE_STACK + b.measure_block(
+                bullets, W, 9.3, 13.2, SANS, bulletList=True
+            )
+        return height
+
+    def education_height(education: dict) -> float:
+        detail = education.get("detail", "")
+        return (
+            b.measure_block(education.get("degree", ""), W, 10.2, 13, SANS, bold=True, min_h=15)
+            + SPACE_STACK
+            + b.measure_block(education.get("period", ""), W, 8.5, 11.5, SANS, min_h=12)
+            + (
+                SPACE_STACK + b.measure_block(detail, W, 8.5, 11.5, SANS, min_h=12)
+                if detail else 0
+            )
+        )
+
+    # Heading label + rule + after-rule gap. Callers reserve this together with
+    # the first body block so section titles are never stranded above the footer.
+    SECTION_CHROME = 36
+
     def section(label: str) -> None:
-        b.need(40)
         marker_y = b.y + 1
         if theme == "scribe":
             b.els.append(_circle(L - 22, marker_y + 1, 8, C["accent"], filled=True, zIndex=3, page=b.pg))
@@ -1406,43 +1439,61 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
         b.text(label, 8.4, SANS, C["accent"], L)
         b.els[-1]["letterSpacing"] = 1.6 if label != lbl["skills"] else 1.35
         b.line(L, W, 1, C["rule"])
-        b.gap(14)
+        b.gap(SPACE_AFTER_RULE)
+
+    def close_section() -> None:
+        b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
+        b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10, 14.5, C["ink"], SANS)
-        b.gap(18)
+        close_section()
 
     if cv.get("experience"):
+        jobs = cv["experience"]
+        b.need(SECTION_CHROME + experience_height(jobs[0]))
         section(lbl["experience"])
-        for job in cv["experience"]:
-            b.need(80)
+        for index, job in enumerate(jobs):
+            # Keep title/meta/bullets as one record so page breaks never split
+            # a role across the footer chrome.
+            if index > 0:
+                b.need(experience_height(job))
             b.block(job.get("title", ""), L, W, 10.8, 13.5, C["ink"], SANS, bold=True, min_h=15)
-            b.gap(1)
+            b.gap(SPACE_STACK)
             b.block(_company_period(job), L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
-            b.gap(3)
             bullets = _bullets(job)
             if bullets:
+                b.gap(SPACE_STACK)
                 b.block(bullets, L, W, 9.3, 13.2, C["ink"], SANS, bulletList=True)
-            b.gap(12)
+            if index < len(jobs) - 1:
+                b.gap(SPACE_RECORD)
+        close_section()
         _extra_sections(b, cv, "after_experience", section, {"body": C["ink"]},
                         L, W, SANS, fs=9.3, lh=13.2)
 
     if cv.get("education"):
+        education_entries = cv["education"]
+        b.need(SECTION_CHROME + education_height(education_entries[0]))
         section(lbl["education"])
-        for edu in cv["education"]:
+        for index, edu in enumerate(education_entries):
+            if index > 0:
+                b.need(education_height(edu))
             b.block(edu.get("degree", ""), L, W, 10.2, 13, C["ink"], SANS, bold=True, min_h=15)
-            b.gap(2)
+            b.gap(SPACE_STACK)
             b.block(edu.get("period", ""), L, W, 8.5, 11.5, C["muted"], SANS, min_h=12)
             if edu.get("detail"):
-                b.gap(1)
+                b.gap(SPACE_STACK)
                 b.block(edu["detail"], L, W, 8.5, 11.5, C["muted"], SANS, min_h=12)
-            b.gap(10)
+            if index < len(education_entries) - 1:
+                b.gap(SPACE_RECORD)
+        close_section()
 
     if cv.get("skills"):
+        b.need(SECTION_CHROME + b.measure_block("  ·  ".join(cv["skills"]), W, 9.1, 13, SANS) + SPACE_SECTION)
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.1, 13, C["ink"], SANS)
-        b.gap(14)
+        close_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": C["ink"]},
                     L, W, SANS, fs=9.1, lh=13)
@@ -2515,8 +2566,9 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
             )
         )
 
+    SECTION_CHROME = 36
+
     def section(label: str) -> None:
-        b.need(40)
         marker_y = b.y + 1
         if C["section"] == "rectangle":
             b.els.append(_rect(L - 22, marker_y, 9, 9, C["marker"], 1, zIndex=3, page=b.pg))
@@ -2533,20 +2585,21 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need(40 + b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
+        b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10, 14.5, C["body"], SANS)
         close_section()
 
     if cv.get("experience"):
-        b.need(40 + experience_height(cv["experience"][0]))
-        section(lbl["experience"])
         jobs = cv["experience"]
+        b.need(SECTION_CHROME + experience_height(jobs[0]))
+        section(lbl["experience"])
         for index, job in enumerate(jobs):
             # Treat title, metadata and bullets as one visual record. This
             # avoids orphaned titles and uses the remaining page space when
             # the complete record genuinely fits.
-            b.need(experience_height(job))
+            if index > 0:
+                b.need(experience_height(job))
             b.block(job.get("title", ""), L, W, 10.8, 13.5, C["ink"], SANS, bold=True, min_h=15)
             b.gap(SPACE_STACK)
             b.block(_company_period(job), L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
@@ -2562,10 +2615,11 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
 
     if cv.get("education") and "education" not in sidebar_keys:
         education_entries = cv["education"]
-        b.need(40 + education_height(education_entries[0]))
+        b.need(SECTION_CHROME + education_height(education_entries[0]))
         section(lbl["education"])
         for index, edu in enumerate(education_entries):
-            b.need(education_height(edu))
+            if index > 0:
+                b.need(education_height(edu))
             b.block(edu.get("degree", ""), L, W, 10.2, 13, C["ink"], SANS, bold=True, min_h=15)
             b.gap(SPACE_STACK)
             b.block(edu.get("period", ""), L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
@@ -2577,7 +2631,7 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
         close_section()
 
     if cv.get("skills") and "skills" not in sidebar_keys:
-        b.need(40 + b.measure_block("  ·  ".join(cv["skills"]), W, 9.3, 13.2, SANS) + SPACE_SECTION)
+        b.need(SECTION_CHROME + b.measure_block("  ·  ".join(cv["skills"]), W, 9.3, 13.2, SANS) + SPACE_SECTION)
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.3, 13.2, C["body"], SANS)
         close_section()

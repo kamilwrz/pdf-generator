@@ -440,6 +440,51 @@ class CvTemplateLayoutTests(unittest.TestCase):
                         for element in elements
                     ))
 
+    def test_classic_flow_keeps_clear_of_frame_and_continuation_inset(self):
+        education = [
+            {
+                "degree": "Bachelor of Laws (LL.B.)",
+                "period": "2014 – 2018",
+                "detail": "1. Juristische Prüfung. Goethe-Universität Frankfurt am Main.",
+            },
+            {
+                "degree": "Master of Laws (LL.M.)",
+                "period": "2018 – 2020",
+                "detail": "European Banking and Financial Law.",
+            },
+        ]
+        elements = generate_resume("aldine", {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 2,
+            "education": education,
+        })
+
+        flow = [
+            element for element in elements
+            if element["category"] in {"text", "textarea"}
+            and not element.get("fixedToPage")
+        ]
+        page_two = [element for element in flow if element.get("page", 1) == 2]
+        self.assertTrue(page_two)
+        self.assertGreaterEqual(min(element["top"] for element in page_two), 66)
+
+        for element in flow:
+            if element["category"] != "textarea":
+                continue
+            self.assertLessEqual(element["top"] + element["height"], 746)
+
+        first_degree = next(
+            element for element in elements
+            if element["category"] == "textarea"
+            and element["content"] == education[0]["degree"]
+        )
+        first_detail = next(
+            element for element in elements
+            if element["category"] == "textarea"
+            and education[0]["detail"] in element["content"]
+        )
+        self.assertEqual(first_degree["page"], first_detail["page"])
+
     def test_rift_repeats_fixed_background_on_every_content_page(self):
         multi_page_cv = {
             **LONG_CV,

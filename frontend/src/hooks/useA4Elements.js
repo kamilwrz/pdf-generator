@@ -1060,9 +1060,10 @@ export function useA4Elements(titleRef) {
         elementId,
         measuredHeight,
         pageSizeRef.current.height,
-        // Match backend Builder continuation margins so packed content does
-        // not collide with page chrome after an auto-height shrink/grow.
-        { pageTop: 36, bottomMargin: 40 },
+        // Framed classic/sidebar CVs reserve ~66px top and keep clear of the
+        // footer rule near y=783. Using those safe margins prevents canvas
+        // auto-height from packing into decorative chrome.
+        { pageTop: 66, bottomMargin: 96 },
       );
       if (!result.changed) return prevState;
 

@@ -42,18 +42,29 @@ test("shrinking content preserves gaps while pulling only following lane element
 
 test("shrinking page-one content reclaims the page-break hole for following blocks", () => {
   const result = reflowTextareaHeight([
-    textarea({ top: 700, height: 80 }),
-    { element_id: "page-two-heading", category: "text", left: 40, top: 36, width: 180, fontSize: 12, page: 2 },
-    { element_id: "page-two-body", category: "textarea", left: 40, top: 60, width: 180, height: 20, page: 2 },
-  ], "textarea", 40, 842, { pageTop: 36, bottomMargin: 40 });
+    textarea({ top: 620, height: 80 }),
+    { element_id: "page-two-heading", category: "text", left: 40, top: 66, width: 180, fontSize: 12, page: 2 },
+    { element_id: "page-two-body", category: "textarea", left: 40, top: 90, width: 180, height: 20, page: 2 },
+  ], "textarea", 40, 842, { pageTop: 66, bottomMargin: 96 });
 
   const heading = result.elements.find((element) => element.element_id === "page-two-heading");
   const body = result.elements.find((element) => element.element_id === "page-two-body");
-  // 740 + pack gap 14 → heading; preserve the original same-page gap to body.
-  assert.deepEqual({ page: heading.page, top: heading.top }, { page: 1, top: 754 });
+  // 660 + pack gap 14 → heading; preserve the original same-page gap to body.
+  assert.deepEqual({ page: heading.page, top: heading.top }, { page: 1, top: 674 });
   assert.equal(body.page, 1);
-  assert.ok(body.top < 800);
+  assert.ok(body.top + body.height <= 746);
   assert.equal(result.pageCount, 1);
+});
+
+test("overflowed blocks land on continuation inset, not page top 0", () => {
+  const result = reflowTextareaHeight([
+    textarea({ top: 700, height: 20 }),
+    { element_id: "next", category: "textarea", left: 40, top: 730, width: 180, height: 100, page: 1 },
+  ], "textarea", 40, 842, { pageTop: 66, bottomMargin: 96 });
+
+  const next = result.elements.find((element) => element.element_id === "next");
+  assert.equal(next.page, 2);
+  assert.equal(next.top, 66);
 });
 
 test("same-page reflow keeps nearby section decorations aligned with content", () => {
