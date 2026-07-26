@@ -59,7 +59,7 @@ export default function Login() {
         <div className={classes.container}>
             <div className={classes.loginCard}>
                 <div className={classes.logoBadge}>
-                    <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
+                    <img src="/kompoza-logo2.png" alt="Kompoza" />
                 </div>
                 <h1 className={classes.mainHeading}>Witaj ponownie</h1>
                 <p className={classes.subHeading}>Zaloguj się, aby kontynuować projektowanie</p>

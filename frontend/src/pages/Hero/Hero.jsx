@@ -64,7 +64,7 @@ export default function Hero() {
             <div className={classes.heroStage}>
                 <nav className={classes.nav}>
                     <div className={classes.brand}>
-                        <span className={classes.brandMark}><img src="/kompoza-logo.png" alt="" /></span>
+                        <span className={classes.brandMark}><img src="/kompoza-logo2.png" alt="" /></span>
                         <span className={classes.brandName}>Kompoza</span>
                     </div>
                     <div className={classes.navLinks}>
@@ -562,7 +562,7 @@ export default function Hero() {
             <footer className={classes.footer}>
                 <div className={classes.footerTop}>
                     <div className={classes.footerBrand}>
-                        <span className={classes.footerBrandMark}><img src="/kompoza-logo.png" alt="" /></span>
+                        <span className={classes.footerBrandMark}><img src="/kompoza-logo2.png" alt="" /></span>
                         <span className={classes.footerBrandName}>Kompoza</span>
                     </div>
                     <div className={classes.footerLinks}>

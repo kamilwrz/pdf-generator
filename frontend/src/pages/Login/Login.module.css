@@ -25,11 +25,18 @@
     height: 50px;
     border-radius: 15px;
     margin: 0 auto 18px;
-    background: var(--accent-grad);
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 10px 22px -8px var(--accent);
+    overflow: hidden;
+}
+
+.logoBadge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
 }
 
 .mainHeading {
