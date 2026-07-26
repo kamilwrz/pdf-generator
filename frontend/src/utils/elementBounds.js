@@ -65,6 +65,20 @@ export function getTextContentBounds(element) {
   };
 }
 
+/**
+ * Bounds used by orange spacing guides: glyph edges for text (ignores
+ * line-height leading), element box for everything else.
+ */
+export function getVisualBounds(element) {
+  if (element?.category === "text") {
+    return getTextContentBounds(element);
+  }
+  const left = Number(element?.left) || 0;
+  const top = Number(element?.top) || 0;
+  const { width, height } = getElementBounds(element);
+  return { left, top, width, height };
+}
+
 // Attaches a real, DOM-measured layout_bounds to every element that's
 // currently mounted on screen (i.e. on the page currently being viewed).
 // Elements with no live DOM node are left unchanged — the backend's own

@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { findVerticalSpacingGuides, resolveSpacingBox } from "./spacingGuides.js";
 
 const sizeOf = (element) => ({
+  left: Number(element.left) || 0,
+  top: Number(element.top) || 0,
   width: Number(element.width) || 0,
   height: Number(element.height) || 0,
 });
@@ -42,6 +44,43 @@ test("reports gaps to the nearest overlapping neighbors for any element type", (
   );
 });
 
+test("measures text gaps from glyph bounds, not authored line boxes", () => {
+  // Authored top/height include line-height leading; boundsOf returns ink edges.
+  const boundsOf = (element) => ({
+    left: Number(element.left) || 0,
+    top: (Number(element.top) || 0) + 3,
+    width: Number(element.width) || 100,
+    height: 10,
+  });
+  const moving = {
+    element_id: "m",
+    category: "text",
+    content: "A",
+    left: 40,
+    top: 100,
+    width: 80,
+    height: 19,
+    fontSize: 14,
+  };
+  const result = findVerticalSpacingGuides(moving, [
+    {
+      element_id: "below",
+      category: "text",
+      content: "B",
+      left: 40,
+      top: 140,
+      width: 80,
+      height: 19,
+      fontSize: 14,
+    },
+  ], boundsOf);
+
+  // Gap between ink bottoms/tops: (103+10)=113 → 143 = 30, not 140-119=21.
+  assert.equal(result.below.gap, 30);
+  assert.equal(result.below.y1, 113);
+  assert.equal(result.below.y2, 143);
+});
+
 test("still finds far neighbors when no distance threshold is applied", () => {
   const moving = { element_id: "m", left: 100, top: 300, width: 180, height: 40 };
   const result = findVerticalSpacingGuides(moving, [
@@ -71,4 +110,5 @@ test("estimates width for text elements without stored dimensions", () => {
   );
   assert.ok(box.width > 0);
   assert.ok(box.height > 0);
+  assert.ok(box.height < 10 * 1.35);
 });

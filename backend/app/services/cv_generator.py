@@ -3085,6 +3085,410 @@ def _gen_harbor(cv: dict) -> list[dict]:
     return _gen_sidebar_theme(cv, "harbor")
 
 
+def _gen_obsidian(cv: dict) -> list[dict]:
+    """Sidebar dark theme — a near-black sidecar beside a charcoal main field,
+    signed with a single warm-gold accent. Both panels stay dark on every page."""
+    SIDEBAR_BG, MAIN_BG = "#0B0D10", "#15181C"
+    GOLD, INK, MUTED, BODY, RULE = "#C9A24B", "#F4F1EA", "#9AA1AC", "#D7DAE0", "#33383F"
+    SANS, SERIF = "Inter", "Times-Roman"
+    SIDE, L, W = 184, 222, 337
+    lbl = _labels(cv)
+
+    contact = _compact_lines(
+        [cv.get("email"), cv.get("phone"), cv.get("location")],
+        max_items=3, chars_per_item=26,
+    )
+    skills_preview = _compact_lines(cv.get("skills") or [], max_items=6, chars_per_item=20)
+
+    frame = {**_rect(464, 50, 56, 52, GOLD, 1, zIndex=3), "id": "obsidian-frame"}
+    orbit = {**_ellipse(474, 60, 32, 15, GOLD, borderWidth=1, zIndex=3), "id": "obsidian-orbit"}
+    node = {**_circle(484, 79, 11, GOLD, filled=True, zIndex=3), "id": "obsidian-node"}
+
+    static = [
+        _text(_compact_text(cv.get("name"), 28), 29, SERIF, INK, L, 52, zIndex=3, bold=True),
+        _text(_compact_text(cv.get("title"), 46), 9, SANS, GOLD, L + 2, 92, zIndex=3),
+        _line(L, 116, W, 1, RULE, zIndex=2),
+        frame, orbit, node,
+        {"category": "connector", "source_id": "obsidian-frame", "target_id": "obsidian-orbit",
+         "backgroundColor": RULE, "borderWidth": 0.9, "arrow": False, "zIndex": 2, "page": 1},
+        {"category": "connector", "source_id": "obsidian-orbit", "target_id": "obsidian-node",
+         "backgroundColor": GOLD, "borderWidth": 0.9, "arrow": False, "zIndex": 2, "page": 1},
+        _text("KONTAKT", 8, SANS, GOLD, 24, 60, zIndex=3),
+        _block(contact, 24, 80, 136, 46, 8, 12.5, BODY, SANS, zIndex=3),
+    ]
+    static[1]["letterSpacing"] = 1.4
+    static[8]["letterSpacing"] = 1.3
+    if skills_preview:
+        skills_label = _text(lbl["skills"], 8, SANS, GOLD, 24, 200, zIndex=3)
+        skills_label["letterSpacing"] = 1.3
+        static.append(skills_label)
+        static.append(_block(skills_preview, 24, 220, 136, 90, 8.2, 13, BODY, SANS, zIndex=3))
+
+    b = Builder(148)
+
+    def section(label: str) -> None:
+        b.need(34)
+        b.els.append(_circle(L - 18, b.y + 2, 7, GOLD, filled=True, zIndex=3, page=b.pg))
+        b.text(label, 8.6, SANS, INK, L, bold=True)
+        b.els.append(_line(L, b.y - 2, W, 1, RULE, page=b.pg))
+        b.gap(SPACE_AFTER_RULE)
+
+    def close_section() -> None:
+        b.gap(SPACE_SECTION)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10, 15, BODY, SANS)
+        close_section()
+
+    if cv.get("experience"):
+        jobs = cv["experience"]
+        section(lbl["experience"])
+        for index, job in enumerate(jobs):
+            b.need(80)
+            b.block(job.get("title", ""), L, W, 11, 14, INK, SANS, bold=True, min_h=15)
+            b.gap(SPACE_STACK)
+            b.block(_company_period(job), L, W, 8.7, 11.5, MUTED, SANS, min_h=12)
+            bullets = _bullets(job)
+            if bullets:
+                b.gap(SPACE_STACK)
+                b.block(bullets, L, W, 9.4, 13.3, BODY, SANS, bulletList=True)
+            if index < len(jobs) - 1:
+                b.gap(SPACE_RECORD)
+        close_section()
+        _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, SANS, fs=9.4, lh=13.3)
+
+    if cv.get("education"):
+        b.need(50)
+        section(lbl["education"])
+        for index, edu in enumerate(cv["education"]):
+            _place_education_record(
+                b, edu, L, W,
+                ink=INK, muted=MUTED, body=BODY, font=SANS,
+                degree_fs=10.3, degree_lh=13,
+                meta_fs=8.7, meta_lh=11.5,
+                body_fs=8.7, body_lh=11.5,
+                after_gap=SPACE_RECORD,
+            )
+        close_section()
+
+    if cv.get("skills"):
+        section(lbl["skills"])
+        b.block("  ·  ".join(cv["skills"]), L, W, 9.4, 13.3, BODY, SANS)
+        close_section()
+
+    _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, SANS, fs=9.4, lh=13.3)
+
+    flow = b.build()
+    pages_used = max([element.get("page", 1) for element in static + flow] or [1])
+    page_decorations = [
+        decoration
+        for page in range(1, pages_used + 1)
+        for decoration in (
+            {**_line(0, 0, SIDE, A4_H, SIDEBAR_BG, zIndex=0, page=page), "fixedToPage": True},
+            {**_line(SIDE, 0, 2, A4_H, GOLD, zIndex=1, page=page), "fixedToPage": True},
+            {**_line(SIDE + 2, 0, 595 - SIDE - 2, A4_H, MAIN_BG, zIndex=0, page=page), "fixedToPage": True},
+            {**_line(L, 783, W, 1, RULE, zIndex=2, page=page), "fixedToPage": True},
+            {**_circle(L, 796, 6, GOLD, filled=True, zIndex=3, page=page), "fixedToPage": True},
+            {**_text(f"{page:02d}", 8, SANS, MUTED, L + W - 15, 791, zIndex=3, page=page), "fixedToPage": True},
+        )
+    ]
+    return page_decorations + static + flow
+
+
+def _gen_raven(cv: dict) -> list[dict]:
+    """Topbar dark theme — a raised masthead band over a fully dark page,
+    single column, cool teal accents. The structural counterpart to the
+    sidebar dark theme: one horizontal band instead of a vertical column."""
+    BODY_BG, BAND_BG = "#12161C", "#181D25"
+    TEAL, INK, MUTED, BODY, RULE = "#3FBFA6", "#F2F5F4", "#8B98A1", "#C9D2D6", "#2A3038"
+    L, W, SANS, SERIF = 76, 466, "Inter", "Times-Roman"
+    lbl = _labels(cv)
+
+    frame_one = {**_rect(425, 34, 72, 72, TEAL, 1.2, zIndex=3), "id": "raven-frame-one"}
+    frame_two = {**_rect(455, 63, 78, 78, "#4C5760", 1, zIndex=3), "id": "raven-frame-two"}
+    node = {**_rect(482, 39, 12, 12, INK, 1, zIndex=3), "id": "raven-node"}
+    header = [
+        _line(0, 0, 595, 170, BAND_BG, zIndex=1),
+        _line(0, 170, 595, 3, TEAL, zIndex=2),
+        _line(52, 36, 5, 99, TEAL, zIndex=2),
+        _text(_compact_text(cv.get("name"), 30), 30, SERIF, INK, L, 43, zIndex=3, bold=True),
+        _text(_compact_text(cv.get("title"), 46), 9.5, SANS, TEAL, L + 2, 86, zIndex=3),
+        _text(_compact_text(_contact_line(cv), 78), 8.7, SANS, MUTED, L + 2, 119, zIndex=3),
+        frame_one, frame_two, node,
+        {"category": "connector", "source_id": "raven-frame-one", "target_id": "raven-frame-two",
+         "backgroundColor": "#4C5760", "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
+        {"category": "connector", "source_id": "raven-frame-one", "target_id": "raven-node",
+         "backgroundColor": TEAL, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
+    ]
+    header[4]["letterSpacing"] = 1.65
+    SECTION_CHROME = 40
+    b = Builder(205)
+
+    def experience_height(job: dict) -> float:
+        bullets = _bullets(job)
+        height = (
+            b.measure_block(job.get("title", ""), W, 11, 13.5, SANS, bold=True, min_h=15)
+            + SPACE_STACK
+            + b.measure_block(_company_period(job), W, 8.7, 11.5, SANS, min_h=12)
+        )
+        if bullets:
+            height += SPACE_STACK + b.measure_block(bullets, W, 9.5, 13.4, SANS, bulletList=True)
+        return height
+
+    def education_height(education: dict) -> float:
+        return _education_record_height(
+            b, education, W, SANS,
+            degree_fs=10.3, degree_lh=13, meta_fs=8.7, meta_lh=11.5, body_fs=8.7, body_lh=11.5,
+        )
+
+    def section(label: str) -> None:
+        b.els.append(_rect(526, b.y + 2, 16, 16, TEAL, 1.2, zIndex=2, page=b.pg))
+        b.text(label, 8.7, SANS, TEAL, L)
+        b.line(L, W, 1, RULE)
+        b.gap(SPACE_AFTER_RULE)
+
+    def close_section() -> None:
+        b.gap(SPACE_SECTION)
+
+    if cv.get("summary"):
+        b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10.2, 15, SANS) + SPACE_SECTION)
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10.2, 15, BODY, SANS)
+        close_section()
+
+    if cv.get("experience"):
+        jobs = cv["experience"]
+        b.need(SECTION_CHROME + experience_height(jobs[0]))
+        section(lbl["experience"])
+        for index, job in enumerate(jobs):
+            if index > 0:
+                b.need(experience_height(job))
+            b.block(job.get("title", ""), L, W, 11, 13.5, INK, SANS, bold=True, min_h=15)
+            b.gap(SPACE_STACK)
+            b.block(_company_period(job), L, W, 8.7, 11.5, MUTED, SANS, min_h=12)
+            bullets = _bullets(job)
+            if bullets:
+                b.gap(SPACE_STACK)
+                b.block(bullets, L, W, 9.5, 13.4, BODY, SANS, bulletList=True)
+            if index < len(jobs) - 1:
+                b.gap(SPACE_RECORD)
+        close_section()
+        _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, SANS, fs=9.5, lh=13.4)
+
+    if cv.get("education"):
+        education_entries = cv["education"]
+        b.need(SECTION_CHROME + education_height(education_entries[0]))
+        section(lbl["education"])
+        for index, edu in enumerate(education_entries):
+            if index > 0:
+                b.need(education_height(edu))
+            _place_education_record(
+                b, edu, L, W,
+                ink=INK, muted=MUTED, body=BODY, font=SANS,
+                degree_fs=10.3, degree_lh=13, meta_fs=8.7, meta_lh=11.5, body_fs=8.7, body_lh=11.5,
+                after_gap=SPACE_RECORD if index < len(education_entries) - 1 else None,
+            )
+        close_section()
+
+    if cv.get("skills"):
+        b.need(SECTION_CHROME + b.measure_block("  ·  ".join(cv["skills"]), W, 9.4, 13.5, SANS) + SPACE_SECTION)
+        section(lbl["skills"])
+        b.block("  ·  ".join(cv["skills"]), L, W, 9.4, 13.5, BODY, SANS)
+        close_section()
+
+    _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, SANS, fs=9.4, lh=13.5)
+    flow = b.build()
+    pages_used = max([element.get("page", 1) for element in header + flow] or [1])
+    page_decorations = [
+        decoration
+        for page in range(1, pages_used + 1)
+        for decoration in (
+            {**_line(0, 0, 595, 842, BODY_BG, zIndex=0, page=page), "fixedToPage": True},
+            {**_line(0, 0, 595, 3, TEAL, zIndex=2, page=page), "fixedToPage": True},
+            {**_line(52, 786, 490, 1, RULE, page=page), "fixedToPage": True},
+            {**_line(52, 786, 64, 3, TEAL, zIndex=2, page=page), "fixedToPage": True},
+            {**_text(f"{page:02d}", 8, SANS, MUTED, 522, 801, page=page), "fixedToPage": True},
+        )
+    ]
+    return page_decorations + header + flow
+
+
+def _gen_graphite(cv: dict) -> list[dict]:
+    """Ultra-minimalist dark theme. A single cool-silver accent, hairline
+    rules and generous whitespace carry the whole hierarchy — no bands,
+    frames or sidebars, just quiet typography on a dark field."""
+    BG, SILVER, INK, MUTED, BODY, HAIRLINE = (
+        "#101113", "#B7C3CC", "#F5F6F7", "#8A9099", "#C7CBCF", "#2B2E32",
+    )
+    L, W, SANS, SERIF = 56, 483, "Inter", "Times-Roman"
+    lbl = _labels(cv)
+    b = Builder(58)
+
+    b.text(_compact_text(cv.get("name"), 34), 32, SERIF, INK, L, bold=True); b.gap(4)
+    b.text(_compact_text(cv.get("title"), 52), 12, SANS, SILVER, L, italic=True); b.gap(4)
+    b.text(_compact_text(_contact_line(cv), 82), 9, SANS, MUTED, L); b.gap(10)
+    b.line(L, W, 0.5, HAIRLINE); b.gap(24)
+
+    def section(label: str) -> None:
+        b.need(38)
+        b.text(label, 9, SANS, SILVER, L)
+        b.els[-1]["letterSpacing"] = 1.6
+        b.gap(2)
+        b.line(L, W, 0.5, HAIRLINE)
+        b.gap(14)
+
+    def close_section() -> None:
+        b.gap(SPACE_SECTION)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10.5, 16, BODY, SANS)
+        close_section()
+
+    if cv.get("experience"):
+        jobs = cv["experience"]
+        section(lbl["experience"])
+        for index, job in enumerate(jobs):
+            b.need(56)
+            b.text(job.get("title", ""), 11, SANS, INK, L, bold=True); b.gap(2)
+            b.text(_company_period(job), 9.3, SANS, MUTED, L); b.gap(2)
+            bullets = _bullets(job)
+            if bullets:
+                b.block(bullets, L, W, 10, 14.5, BODY, SANS, bulletList=True)
+            if index < len(jobs) - 1:
+                b.gap(SPACE_RECORD)
+        close_section()
+        _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, SANS, fs=10, lh=14.5)
+
+    if cv.get("education"):
+        education_entries = cv["education"]
+        section(lbl["education"])
+        for index, edu in enumerate(education_entries):
+            _place_education_record(
+                b, edu, L, W,
+                ink=INK, muted=MUTED, body=BODY, font=SANS,
+                mode="text",
+                degree_fs=10.5, meta_fs=9.3, body_fs=9.3,
+                after_gap=SPACE_RECORD if index < len(education_entries) - 1 else None,
+            )
+        close_section()
+
+    if cv.get("skills"):
+        section(lbl["skills"])
+        b.block(" · ".join(cv["skills"]), L, W, 10, 15, BODY, SANS)
+        close_section()
+
+    _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, SANS)
+
+    flow = b.build()
+    pages_used = max([element.get("page", 1) for element in flow] or [1])
+    page_decorations = [
+        decoration
+        for page in range(1, pages_used + 1)
+        for decoration in (
+            {**_line(0, 0, 595, 842, BG, zIndex=0, page=page), "fixedToPage": True},
+            {**_line(L, 784, W, 0.5, HAIRLINE, page=page), "fixedToPage": True},
+            {**_text(f"{page:02d}", 8, SANS, MUTED, L + W - 15, 792, page=page), "fixedToPage": True},
+        )
+    ]
+    return page_decorations + flow
+
+
+def _gen_onyx(cv: dict) -> list[dict]:
+    """Framed diplomatic dark theme: a bronze double frame, a centered serif
+    masthead and three data-derived stat boxes — the formal, symmetric
+    counterpart to the other, left-aligned dark themes."""
+    BG, FRAME, FRAME_INNER = "#0E0E10", "#B08D57", "#3A3227"
+    IVORY, MUTED, BODY, RULE = "#EDE6D8", "#8A7550", "#D2C9BA", "#332C22"
+    S, I = "Times-Roman", "Inter"
+    L, W = 55, 485
+    lbl = _labels(cv)
+
+    static = [
+        _block((cv.get("name") or "").upper(), 50, 56, 495, 36, 27, 33, IVORY, S,
+               bold=True, align="center"),
+        _block((cv.get("title") or "").upper(), 50, 96, 495, 18, 11.5, 15, FRAME, I,
+               align="center"),
+        _block(_contact_line(cv), 50, 120, 495, 14, 9.3, 13, MUTED, I, align="center"),
+        _rect(255, 139, 8, 8, FRAME, 1),
+        _line(271, 142, 53, 2, FRAME),
+        _rect(332, 139, 8, 8, FRAME, 1),
+    ]
+    static[1]["letterSpacing"] = 2
+
+    exp = cv.get("experience") or []
+    years_found = [int(m) for job in exp
+                   for m in re.findall(r"\b(?:19|20)\d{2}\b", job.get("period") or "")]
+    years = max(datetime.now().year - min(years_found), 1) if years_found else None
+    skills = cv.get("skills") or []
+    kpis = [
+        (f"{years}+" if years else str(len(exp) or "—"),
+         "LAT DOŚWIADCZENIA" if years else "STANOWISK"),
+        (str(len(exp)) if exp else "—", "ZAJMOWANYCH STANOWISK"),
+        (str(len(skills)) if skills else "—", "KLUCZOWYCH UMIEJĘTNOŚCI"),
+    ]
+    for i, (figure, label) in enumerate(kpis):
+        left = 55 + i * 164
+        static.append(_rect(left, 160, 157, 52, FRAME, 1, zIndex=1))
+        static.append(_block(figure, left, 168, 157, 18, 15, 18, IVORY, S, bold=True, align="center"))
+        lab = _block(label, left, 190, 157, 12, 7.3, 10, MUTED, I, align="center")
+        lab["letterSpacing"] = 1
+        static.append(lab)
+
+    b = Builder(244)
+
+    def section(label: str) -> None:
+        b.need(34)
+        b.els.append(_rect(L, b.y + 2, 9, 9, FRAME, 1.5, zIndex=2, page=b.pg))
+        b.text(label, 11.5, S, IVORY, 72, bold=True)
+        b.els.append(_line(L, b.y - 2, W, 1, RULE, page=b.pg))
+        b.gap(8)
+
+    if cv.get("summary"):
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 10.5, 15, BODY, I); b.gap(16)
+
+    if exp:
+        section(lbl["experience"])
+        for job in exp:
+            b.need(56)
+            b.text(job.get("title", ""), 11, I, IVORY, L, bold=True); b.gap(2)
+            b.text(_company_period(job), 9, I, MUTED, L); b.gap(2)
+            bul = _bullets(job)
+            if bul:
+                b.block(bul, L, W, 10, 14, BODY, I, bulletList=True)
+            b.gap(12)
+        _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, I)
+
+    if cv.get("education"):
+        b.need(50); section(lbl["education"])
+        for edu in cv["education"]:
+            _place_education_record(
+                b, edu, L, W,
+                ink=IVORY, muted=MUTED, body=BODY, font=I,
+                mode="text",
+                degree_fs=10.5, meta_fs=9, body_fs=9,
+                after_gap=10,
+            )
+
+    if skills:
+        b.need(40); section(lbl["skills"])
+        b.block(" · ".join(skills), L, W, 10, 15, BODY, I); b.gap(14)
+
+    _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, I)
+
+    flow = b.build()
+    pages_used = max([e.get("page", 1) for e in static + flow] or [1])
+    frames = []
+    for p in range(1, pages_used + 1):
+        frames.append({**_line(0, 0, 595, 842, BG, zIndex=0, page=p), "fixedToPage": True})
+        frames.append(_rect(24, 24, 547, 794, FRAME, 1.5, page=p))
+        frames.append(_rect(29, 29, 537, 784, FRAME_INNER, 1, page=p))
+
+    return frames + static + flow
+
+
 # ── public API ───────────────────────────────────────────────────────────────
 
 _GENERATORS = {
@@ -3122,6 +3526,10 @@ _GENERATORS = {
     "mistral":   _gen_mistral,
     "axiom":     _gen_axiom,
     "vellum":    _gen_vellum,
+    "obsidian":  _gen_obsidian,
+    "raven":     _gen_raven,
+    "graphite":  _gen_graphite,
+    "onyx":      _gen_onyx,
 }
 
 

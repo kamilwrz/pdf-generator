@@ -1,7 +1,7 @@
 import classes from "./Guides.module.css";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { getElementBounds } from "../../../utils/elementBounds";
+import { getElementBounds, getVisualBounds } from "../../../utils/elementBounds";
 import { findVerticalSpacingGuides } from "../../../utils/spacingGuides";
 
 const THRESHOLD = 4; // px — how close counts as "aligned"
@@ -85,7 +85,8 @@ export default function Guides({ page }) {
     );
 
     // ---- Spacing distance guides (above / below) for every element type. ----
-    const spacing = findVerticalSpacingGuides(moving, others, getElementBounds);
+    // Text uses glyph bounds so the gap is between peak edges, not line boxes.
+    const spacing = findVerticalSpacingGuides(moving, others, getVisualBounds);
 
     // ---- One vertical guide: the nearest x-alignment, drawn only across the
     // moving element and the elements it lines up with. ----

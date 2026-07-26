@@ -15,24 +15,26 @@ function overlapsHorizontally(first, second) {
 }
 
 /**
- * Resolve a usable box for spacing guides. Text often has no stored width;
- * fall back to a content-length estimate so guides work without relying only
- * on textarea dimensions.
+ * Resolve a usable box for spacing guides.
+ * Prefer visual/glyph bounds from boundsOf (left/top/width/height) so text
+ * distance is measured between peak edges, not line-height boxes.
  */
-export function resolveSpacingBox(element, sizeOf) {
-  const left = number(element.left);
-  const top = number(element.top);
-  const measured = typeof sizeOf === "function" ? sizeOf(element) : null;
+export function resolveSpacingBox(element, boundsOf) {
+  const measured = typeof boundsOf === "function" ? boundsOf(element) : null;
+  const fontSize = Math.max(1, number(element.fontSize, 12));
+
+  let left = number(measured?.left, number(element.left));
+  let top = number(measured?.top, number(element.top));
   let width = Math.max(0, number(measured?.width, number(element.width)));
   let height = Math.max(0, number(measured?.height, number(element.height)));
 
   if (element.category === "text") {
-    const fontSize = Math.max(1, number(element.fontSize, 12));
     if (width <= 0) {
       width = Math.max(fontSize, String(element.content || "").length * fontSize * 0.56);
     }
+    // Cap-height-ish fallback — tighter than full line box (fontSize * 1.35).
     if (height <= 0) {
-      height = fontSize * 1.35;
+      height = fontSize * 0.8;
     }
   }
 
@@ -56,14 +58,14 @@ export function resolveSpacingBox(element, sizeOf) {
 export function findVerticalSpacingGuides(
   movingElement,
   candidates,
-  sizeOf,
+  boundsOf,
   { threshold = SPACING_THRESHOLD } = {},
 ) {
-  if (!movingElement || !Array.isArray(candidates) || typeof sizeOf !== "function") {
+  if (!movingElement || !Array.isArray(candidates) || typeof boundsOf !== "function") {
     return { above: null, below: null };
   }
 
-  const moving = resolveSpacingBox(movingElement, sizeOf);
+  const moving = resolveSpacingBox(movingElement, boundsOf);
   if (moving.width <= 0 || moving.height <= 0) {
     return { above: null, below: null };
   }
@@ -76,7 +78,7 @@ export function findVerticalSpacingGuides(
     if (candidate.fixedToPage) continue;
     if (candidate.category === "connector") continue;
 
-    const other = resolveSpacingBox(candidate, sizeOf);
+    const other = resolveSpacingBox(candidate, boundsOf);
     if (other.width <= 0 || other.height <= 0) continue;
     if (!overlapsHorizontally(moving, other)) continue;
 

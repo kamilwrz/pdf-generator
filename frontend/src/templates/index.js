@@ -15,6 +15,10 @@ import { mossTemplate } from "./moss";
 import { garnetTemplate } from "./garnet";
 import { harborTemplate } from "./harbor";
 import { clearingTemplate, heraldTemplate, signalTemplate, vaultTemplate } from "./banking";
+import { obsidianTemplate } from "./obsidian";
+import { ravenTemplate } from "./raven";
+import { graphiteTemplate } from "./graphite";
+import { onyxTemplate } from "./onyx";
 
 export const TEMPLATES = [
     { id: "ledger",    name: "Ledger",    industry: "Finanse · Instytucjonalny",        accent: "#2E5E86", pageSize: "a4-portrait", elements: ledgerTemplate },
@@ -37,4 +41,8 @@ export const TEMPLATES = [
     { id: "clearing",  name: "Clearing",  industry: "Banking · Operacje i płatności",      accent: "#48B8C8", pageSize: "a4-portrait", elements: clearingTemplate },
     { id: "herald",    name: "Herald",    industry: "Banking · Wealth management",         accent: "#9D3341", pageSize: "a4-portrait", elements: heraldTemplate },
     { id: "signal",    name: "Signal",    industry: "Banking · Ryzyko i treasury",         accent: "#3BD2C7", pageSize: "a4-portrait", elements: signalTemplate },
+    { id: "obsidian",  name: "Obsidian",  industry: "Darktheme · Panel boczny",            accent: "#C9A24B", pageSize: "a4-portrait", elements: obsidianTemplate },
+    { id: "raven",     name: "Raven",     industry: "Darktheme · Pasek górny",             accent: "#3FBFA6", pageSize: "a4-portrait", elements: ravenTemplate },
+    { id: "graphite",  name: "Graphite",  industry: "Darktheme · Minimalistyczny",         accent: "#B7C3CC", pageSize: "a4-portrait", elements: graphiteTemplate },
+    { id: "onyx",      name: "Onyx",      industry: "Darktheme · Rama dyplomatyczna",      accent: "#B08D57", pageSize: "a4-portrait", elements: onyxTemplate },
 ];

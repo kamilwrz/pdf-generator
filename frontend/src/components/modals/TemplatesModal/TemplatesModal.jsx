@@ -259,6 +259,78 @@ function Preview({ id, accent }) {
             </div>
         );
     }
+    if (id === "obsidian") {
+        // sidebar dark theme: near-black sidecar, charcoal main field, gold accent
+        return (
+            <div className={classes.paper} style={{ background: "#15181C" }}>
+                <div className={classes.sidebar} style={{ background: "#0B0D10", borderRight: "2px solid #C9A24B" }}>
+                    <span className={classes.lineLight} style={{ background: "rgba(201,162,75,.55)" }} />
+                    <span className={classes.lineLight} /><span className={classes.lineLight} />
+                </div>
+                <div className={classes.main}>
+                    <span className={classes.bar} style={{ background: "#F4F1EA", width: "62%" }} />
+                    <span className={classes.barThin} style={{ background: "#C9A24B", width: "40%" }} />
+                    <span className={classes.rule} style={{ background: "#33383F" }} />
+                    <span className={classes.barThin} style={{ background: "#C9A24B", width: "34%", marginTop: "7px" }} />
+                    <span className={classes.line} style={{ background: "#33383F" }} /><span className={classes.line} style={{ background: "#33383F" }} />
+                </div>
+            </div>
+        );
+    }
+    if (id === "raven") {
+        // topbar dark theme: raised masthead band over a fully dark page
+        return (
+            <div className={classes.paper} style={{ flexDirection: "column", background: "#12161C" }}>
+                <div style={{ height: "30%", background: "#181D25", borderBottom: "3px solid #3FBFA6", display: "flex", flexDirection: "column", justifyContent: "center", gap: "4px", padding: "0 12px" }}>
+                    <span className={classes.bar} style={{ background: "#F2F5F4", width: "62%" }} />
+                    <span className={classes.barThin} style={{ background: "#3FBFA6", width: "40%" }} />
+                </div>
+                <div className={classes.col}>
+                    <span className={classes.barAccent} style={{ background: "#3FBFA6", width: "30%" }} />
+                    <span className={classes.line} style={{ background: "#2A3038" }} /><span className={classes.line} style={{ background: "#2A3038" }} />
+                    <span className={classes.barAccent} style={{ background: "#3FBFA6", width: "30%", marginTop: "6px" }} />
+                    <span className={classes.line} style={{ background: "#2A3038" }} /><span className={classes.line} style={{ background: "#2A3038" }} />
+                </div>
+            </div>
+        );
+    }
+    if (id === "graphite") {
+        // minimalist dark theme: no band, no sidebar — hairlines only
+        return (
+            <div className={classes.paper} style={{ flexDirection: "column", background: "#101113", padding: "14px 13px", gap: "5px" }}>
+                <span className={classes.bar} style={{ background: "#F5F6F7", width: "58%" }} />
+                <span className={classes.barThin} style={{ background: "#B7C3CC", width: "36%" }} />
+                <span className={classes.rule} style={{ background: "#2B2E32", marginTop: "6px" }} />
+                <span className={classes.barThin} style={{ background: "#B7C3CC", width: "26%", marginTop: "10px" }} />
+                <span className={classes.rule} style={{ background: "#2B2E32" }} />
+                <span className={classes.line} style={{ background: "#2B2E32" }} /><span className={classes.line} style={{ background: "#2B2E32" }} />
+                <span className={classes.barThin} style={{ background: "#B7C3CC", width: "22%", marginTop: "8px" }} />
+                <span className={classes.rule} style={{ background: "#2B2E32" }} />
+                <span className={classes.line} style={{ background: "#2B2E32" }} />
+            </div>
+        );
+    }
+    if (id === "onyx") {
+        // framed diplomatic dark theme: bronze double frame, centered masthead, KPI row
+        return (
+            <div className={classes.paper} style={{ flexDirection: "column", background: "#0E0E10", border: "1.5px solid #B08D57", boxShadow: "inset 0 0 0 4px #0E0E10, inset 0 0 0 5px #3A3227" }}>
+                <div className={classes.centerCol} style={{ paddingTop: 10 }}>
+                    <span className={classes.bar} style={{ background: "#EDE6D8", width: "50%" }} />
+                    <span className={classes.barThin} style={{ background: "#B08D57", width: "34%" }} />
+                    <div style={{ display: "flex", gap: "5px", margin: "7px 0 6px", width: "82%" }}>
+                        {[0, 1, 2].map((i) => (
+                            <span key={i} style={{ flex: 1, height: "16px", border: "1.2px solid #B08D57", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <span style={{ width: "55%", height: "4px", background: "#EDE6D8" }} />
+                            </span>
+                        ))}
+                    </div>
+                    <span className={classes.line} style={{ background: "#332C22" }} /><span className={classes.line} style={{ background: "#332C22" }} />
+                    <span className={classes.barThin} style={{ background: "#B08D57", width: "24%", marginTop: "5px" }} />
+                    <span className={classes.line} style={{ background: "#332C22" }} /><span className={classes.line} style={{ background: "#332C22" }} />
+                </div>
+            </div>
+        );
+    }
     // finance
     return (
         <div className={classes.paper}>
