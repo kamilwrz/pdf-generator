@@ -58,7 +58,7 @@ export default function Register() {
         <div className={classes.container}>
             <div className={classes.loginCard}>
                 <div className={classes.logoBadge}>
-                    <img src="/kompoza-logo2.png" alt="Kompoza" />
+                    <img src="/kompoza-logo.png" alt="Kompoza" />
                 </div>
                 <h1 className={classes.mainHeading}>Utwórz konto</h1>
                 <p className={classes.subHeading}>Na zawsze za darmo. Karta nie jest wymagana.</p>

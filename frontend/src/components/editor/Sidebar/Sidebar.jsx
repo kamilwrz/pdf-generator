@@ -38,7 +38,7 @@ export default function Sidebar({ children }) {
 
         <div className={classes.logoContainer}>
             <div className={classes.logoMark}>
-                <img src="/kompoza-logo2.png" alt="" />
+                <img src="/kompoza-logo.png" alt="" />
             </div>
         </div>
 
