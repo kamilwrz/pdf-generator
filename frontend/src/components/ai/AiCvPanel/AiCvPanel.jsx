@@ -3,9 +3,10 @@ import classes from "./AiCvPanel.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { TEMPLATES } from "../../../templates";
+import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
 import DialogShell from "../../common/DialogShell/DialogShell";
 
-const CV_TEMPLATES = TEMPLATES.filter((template) => template.category === "cv");
+const CV_TEMPLATES = selectCvTemplates(TEMPLATES);
 
 const UploadIcon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
