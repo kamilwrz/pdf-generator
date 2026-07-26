@@ -7,7 +7,9 @@ from fastapi.staticfiles import StaticFiles
 from app.api.routes import auth, pdf, images, ai, events
 from app.api.routes import ai_assistant
 from app.core.config import origins, IMAGES_UPLOAD_DIR, PDF_UPLOAD_DIR, TEMPLATE_ASSETS_DIR
+from app.models.database import SessionLocal
 from app.services.ai_assistant_service import AIServiceError
+from app.services.legacy_document_cleanup import run_legacy_document_cleanup
 
 from pathlib import Path
 from fastapi.responses import FileResponse
@@ -23,6 +25,18 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 logger = logging.getLogger("ai_assistant")
 
 app = FastAPI()
+
+
+@app.on_event("startup")
+def remove_retired_deck_and_article_documents() -> None:
+    """Run the explicitly approved destructive cleanup exactly once."""
+    db = SessionLocal()
+    try:
+        deleted = run_legacy_document_cleanup(db)
+        if deleted:
+            logger.warning("Removed %s retired deck/article documents.", deleted)
+    finally:
+        db.close()
 
 
 @app.exception_handler(AIServiceError)

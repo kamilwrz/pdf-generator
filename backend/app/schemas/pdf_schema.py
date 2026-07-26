@@ -65,7 +65,7 @@ class PDFCreateRequest(BaseModel):
     root: list[PdfElement]
     pdf_title: str
     pages: int = 1
-    #PAGE GEOMETRY (pt): A4 portrait by default; decks send 960x540
+    #PAGE GEOMETRY (pt): A4 portrait by default.
     page_width: float = 595
     page_height: float = 842
 

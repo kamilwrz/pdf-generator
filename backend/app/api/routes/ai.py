@@ -1,11 +1,8 @@
-import json
-
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.core.security import verify_token
 from app.crud.bio_cv_drafts import delete_bio_cv_draft, get_bio_cv_draft, upsert_bio_cv_draft
-from app.crud.images import request_image_by_id
 from app.crud.user import get_user_by_username
 from app.dependencies import get_db
 from app.schemas.cv_data_schema import BioCvDraftRequest, BioCvDraftResponse
@@ -110,69 +107,6 @@ async def delete_bio_cv_draft_route(
 ):
     deleted = delete_bio_cv_draft(db, _current_user_id(db, payload))
     return {"deleted": deleted}
-
-
-@router.post("/generate_deck", status_code=200)
-async def generate_deck_route(
-    file: UploadFile = File(...),
-    image_ids: str = Form("[]"),
-    template_id: str = Form("meridian"),
-    payload: dict = Depends(verify_token),
-    db: Session = Depends(get_db),
-):
-    """Generate a 16:9 slide deck from an uploaded PDF's text, in the chosen
-    deck theme (meridian / onyx / verdant). Selected gallery images are
-    vision-captioned and placed on the slides whose content they match.
-    Returns element specs ready for loadAiElements."""
-    if not (file.filename or "").lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Akceptowane są wyłącznie pliki PDF.")
-    data = await file.read()
-    if len(data) > MAX_PDF_BYTES:
-        raise HTTPException(status_code=400, detail="Plik przekracza limit 10 MB.")
-
-    try:
-        ids = [int(i) for i in json.loads(image_ids or "[]")]
-    except (ValueError, TypeError):
-        raise HTTPException(status_code=400, detail="image_ids musi być listą identyfikatorów w formacie JSON.")
-
-    # Only the caller's own gallery images are eligible.
-    db_user = get_user_by_username(db, username=payload.get("sub"))
-    rows = []
-    for img_id in ids:
-        row = request_image_by_id(db, img_id)
-        if row is not None and row.owner_id == db_user.id:
-            rows.append(row)
-
-    from app.services.deck_generator import generate_deck
-    try:
-        result = generate_deck(data, rows, template_id)
-        return result
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Nie udało się wygenerować prezentacji: {exc}")
-
-
-@router.post("/generate_article", status_code=200)
-async def generate_article_route(
-    file: UploadFile = File(...),
-    payload: dict = Depends(verify_token),
-):
-    """Rewrite an uploaded PDF's content as a newspaper-style two-column
-    article (Gazette layout): drop cap, section headings, pull-quote, folio
-    page numbers. Returns element specs ready for loadAiElements."""
-    if not (file.filename or "").lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Akceptowane są wyłącznie pliki PDF.")
-    data = await file.read()
-    if len(data) > MAX_PDF_BYTES:
-        raise HTTPException(status_code=400, detail="Plik przekracza limit 10 MB.")
-    from app.services.article_generator import generate_article
-    try:
-        return generate_article(data)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Nie udało się wygenerować artykułu: {exc}")
 
 
 @router.post("/fill_template", status_code=200)

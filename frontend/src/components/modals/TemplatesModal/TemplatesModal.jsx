@@ -1,63 +1,13 @@
-import { use, useState } from "react";
+import { use } from "react";
 import classes from "./TemplatesModal.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { TEMPLATES, TEMPLATE_CATEGORIES } from "../../../templates";
+import { TEMPLATES } from "../../../templates";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { logEvent } from "../../../services/eventLog";
 
 // Lightweight CSS mini-mock of each template, keyed by id. Not a render — just
 // enough to convey the layout character (column vs sidebar vs framed).
 function Preview({ id, accent }) {
-    if (id === "meridian" || id === "onyx" || id === "verdant") {
-        // landscape 16:9 slide mock: left accent bar, title stub, frame motif
-        const dark = id === "onyx";
-        const ink = dark ? "#F2F5F9" : "#1F2A3A";
-        const soft = dark ? "#7A8494" : "#9DBBE6";
-        return (
-            <div className={classes.paper} style={{ aspectRatio: "16 / 9", height: "auto", alignSelf: "center", background: dark ? "#14181F" : "#fff" }}>
-                <div style={{ width: "5px", background: accent }} />
-                <div className={classes.col} style={{ justifyContent: "center" }}>
-                    <span className={classes.bar} style={{ background: ink, width: "58%", height: "9px" }} />
-                    <span className={classes.barThin} style={{ background: accent, width: "20%" }} />
-                    <span className={classes.line} style={{ width: "48%", background: dark ? "#2A313C" : undefined }} />
-                </div>
-                <div style={{ position: "relative", width: "34%", margin: "10px" }}>
-                    <span style={{ position: "absolute", inset: "8% 20% 30% 0", border: `1.5px solid ${soft}` }} />
-                    <span style={{ position: "absolute", inset: "22% 6% 16% 14%", border: `1.5px solid ${accent}` }} />
-                </div>
-            </div>
-        );
-    }
-    if (id === "gazette") {
-        // newspaper: masthead rules, headline, two justified columns, drop cap
-        return (
-            <div className={classes.paper} style={{ flexDirection: "column" }}>
-                <div style={{ padding: "9px 10px 4px" }}>
-                    <span style={{ display: "block", height: "3px", background: "#191B1E" }} />
-                    <span style={{ display: "block", height: "1px", background: "#191B1E", marginTop: "2px" }} />
-                    <span className={classes.bar} style={{ background: "#191B1E", width: "78%", height: "8px", marginTop: "6px", display: "block" }} />
-                    <span className={classes.barThin} style={{ background: "#9AA0A8", width: "55%", marginTop: "3px", display: "block" }} />
-                </div>
-                <div style={{ display: "flex", flex: 1, gap: "6px", padding: "2px 10px 8px" }}>
-                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "3px" }}>
-                        <div style={{ display: "flex", gap: "3px" }}>
-                            <span style={{ width: "9px", height: "11px", background: accent, flexShrink: 0 }} />
-                            <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: "3px" }}>
-                                <span className={classes.line} /><span className={classes.line} />
-                            </span>
-                        </div>
-                        <span className={classes.line} /><span className={classes.line} /><span className={classes.line} />
-                    </div>
-                    <span style={{ width: "1px", background: "#D9DCE1" }} />
-                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "3px" }}>
-                        <span className={classes.line} /><span className={classes.line} />
-                        <span style={{ height: "12px", border: "1px solid #D9DCE1", margin: "2px 0" }} />
-                        <span className={classes.line} /><span className={classes.line} />
-                    </div>
-                </div>
-            </div>
-        );
-    }
     if (id === "sterling") {
         // engraved certificate: double outline frame, centered name, KPI boxes
         return (
@@ -329,15 +279,12 @@ export default function TemplatesModal() {
         isTemplates, showTemplates, loadTemplate, A4_Elements,
         autoOpenedTemplates, markTemplatesModalSeen,
     } = use(PdfContext);
-    const [category, setCategory] = useState("cv");
-
     function handlePick(t) {
         if (A4_Elements.length > 0 &&
             !window.confirm("Zastąpić bieżące płótno tym szablonem? Niezapisane elementy zostaną usunięte.")) {
             return;
         }
-        const prefix = t.category === "cv" ? "CV" : t.category === "deck" ? "Prezentacja" : "Artykuł";
-        const title = `${prefix} ${t.name}`;
+        const title = `CV ${t.name}`;
         loadTemplate(t.elements, title, t.pageSize);
         if (autoOpenedTemplates) {
             logEvent("template_picked", t.id);
@@ -358,8 +305,6 @@ export default function TemplatesModal() {
         showTemplates();
     }
 
-    const visible = TEMPLATES.filter((t) => t.category === category);
-
     return (
         <DialogShell
             open={isTemplates}
@@ -367,20 +312,10 @@ export default function TemplatesModal() {
             width={760}
             title="Szablony"
             subtitle="Wybierz układ — treść na płótnie zostanie zastąpiona."
-            footer={<span className={classes.countLabel}>{visible.length} szablonów w tej kategorii</span>}
+            footer={<span className={classes.countLabel}>{TEMPLATES.length} szablonów CV</span>}
         >
-            <div className={classes.tabs}>
-                {TEMPLATE_CATEGORIES.map((c) => (
-                    <button
-                        key={c.id}
-                        type="button"
-                        className={`${classes.tab} ${category === c.id ? classes.tabActive : ""}`}
-                        onClick={() => setCategory(c.id)}
-                    >{c.label}</button>
-                ))}
-            </div>
             <div className={classes.grid}>
-                {visible.map((t) => (
+                {TEMPLATES.map((t) => (
                     <div key={t.id} className={classes.card}>
                         <div className={classes.previewWrap}>
                             <Preview id={t.id} accent={t.accent} />

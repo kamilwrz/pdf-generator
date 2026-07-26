@@ -161,30 +161,3 @@
 @media only screen and (max-width: 640px) {
     .grid { grid-template-columns: 1fr; }
 }
-
-/* ---- category tabs (CV | Decks | Articles) ---- */
-.tabs {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--chrome-border);
-    flex-shrink: 0;
-}
-
-.tab {
-    height: 28px;
-    padding: 0 12px;
-    border-radius: 6px;
-    border: 1px solid var(--chrome-border);
-    background: var(--chrome-control);
-    font: 600 10.5px var(--font-body);
-    color: var(--chrome-muted);
-    cursor: pointer;
-}
-
-.tabActive {
-    background: var(--chrome-accent-strong);
-    border-color: transparent;
-    color: #fff;
-}

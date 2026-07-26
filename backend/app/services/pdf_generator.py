@@ -76,7 +76,7 @@ class PDF_Generator:
         self.data = DATA
         self.c = CANVAS
         # Page height drives the top-left -> bottom-left y flip everywhere.
-        # A4 portrait (842) by default; decks pass 540 via the request schema.
+        # A4 portrait (842) is the default document geometry.
         self.page_h = float(getattr(DATA, "page_height", 842) or 842)
 
     def setTitle(self, title):

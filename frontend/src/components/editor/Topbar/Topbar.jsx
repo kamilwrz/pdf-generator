@@ -2,12 +2,10 @@ import classes from "./Topbar.module.css";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { PAGE_PRESETS } from "../../../hooks/useA4Elements";
-import { FEATURES } from "../../../config/features";
 import { LuLayoutTemplate } from "react-icons/lu";
 import { RiFileTextLine, RiDownload2Line } from "react-icons/ri";
 import { FiEdit3, FiRefreshCw, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
-import { MdOutlineSlideshow } from "react-icons/md";
-import { RiArticleLine, RiArrowGoBackLine, RiArrowGoForwardLine } from "react-icons/ri";
+import { RiArrowGoBackLine, RiArrowGoForwardLine } from "react-icons/ri";
 import { TiPen } from "react-icons/ti";
 
 export default function Topbar({ titleRef }) {
@@ -15,8 +13,6 @@ export default function Topbar({ titleRef }) {
         showTemplates,
         showAiPanel,
         showBioCvModal,
-        showDeckPanel,
-        showArticlePanel,
         createPdf,
         updatePdf,
         clearA4,
@@ -49,19 +45,6 @@ export default function Topbar({ titleRef }) {
                     <FiEdit3 />
                     <span className={classes.label}>Utwórz CV krok po kroku</span>
                 </button>
-                {FEATURES.decksArticles && (
-                    <>
-                        <button type="button" className={classes.feature} onClick={showDeckPanel}>
-                            <MdOutlineSlideshow />
-                            <span className={classes.label}>Slajdy AI</span>
-                        </button>
-                        <button type="button" className={classes.feature} onClick={showArticlePanel}>
-                            <RiArticleLine />
-                            <span className={classes.label}>Artykuł AI</span>
-                        </button>
-                    </>
-                )}
-
                 <span className={classes.divider} aria-hidden="true" />
 
                 <button type="button" className={classes.iconBtn} onClick={undo} disabled={!canUndo} aria-label="Cofnij" title="Cofnij (Ctrl+Z)">

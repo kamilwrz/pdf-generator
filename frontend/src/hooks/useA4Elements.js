@@ -12,12 +12,10 @@ import { moveElementsByDelta, moveElementsToPage } from '../utils/pageDrag';
 // is intentionally excluded.
 const CONNECTABLE = new Set(["textarea", "rectangle", "circle", "ellipse", "image", "line"]);
 
-// Canvas size presets (pt = px, 1:1 with the PDF). The deck preset matches
-// PowerPoint's 13.33×7.5in widescreen slide.
+// Canvas size presets (pt = px, 1:1 with the PDF).
 export const PAGE_PRESETS = {
   "a4-portrait":  { label: "A4 · Pion",       width: 595, height: 842 },
   "a4-landscape": { label: "A4 · Poziom",     width: 842, height: 595 },
-  "deck-16-9":    { label: "Prezentacja · 16:9", width: 960, height: 540 },
 };
 
 // Canvas zoom is view-only (never persisted or exported). Snap each step to
@@ -1662,7 +1660,7 @@ export function useA4Elements(titleRef) {
   };
 
   // Replace the canvas with generated/authored specs. `title` is used verbatim;
-  // `presetId` (optional) switches the page size (e.g. deck templates).
+  // `presetId` (optional) switches the page size before loading a template.
   const handleLoadAiElements = useCallback((specs, title, presetId) => {
     resetHistory();
     const mapped = materializeSpecs(specs);

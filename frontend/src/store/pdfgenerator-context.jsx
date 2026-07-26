@@ -17,8 +17,6 @@ export const PdfContext = createContext({
     addCircle: () => {},
     addEllipse: () => {},
     addConnector: () => {},
-    showDeckPanel: () => {},
-    showArticlePanel: () => {},
     isBioCvModal: false,
     showBioCvModal: () => {},
     clonePage: () => {},

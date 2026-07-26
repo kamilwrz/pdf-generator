@@ -1,7 +1,6 @@
 import unittest
 
 from app.services.pdf_generator import PDF_Generator
-from app.services.article_generator import _wrap_lines
 
 
 class BulletLayoutTests(unittest.TestCase):
@@ -36,10 +35,6 @@ class BulletLayoutTests(unittest.TestCase):
         )
 
         self.assertEqual([text for _, text in drawn], ["Pierwsza linia", "Druga linia"])
-
-    def test_article_wrap_helper_accepts_current_pdf_line_shape(self):
-        self.assertEqual(_wrap_lines("Krótki akapit.", 180, 12), ["Krótki akapit."])
-
 
 if __name__ == "__main__":
     unittest.main()

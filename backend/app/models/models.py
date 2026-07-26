@@ -65,6 +65,19 @@ class PdfElements(Base):
 PdfElements.metadata.create_all(bind=engine)
 
 
+class MaintenanceMarker(Base):
+    """Records one-off operational migrations that must never run twice."""
+
+    __tablename__ = "maintenance_markers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, nullable=False, index=True)
+    completed_at = Column(DateTime, nullable=False)
+
+
+MaintenanceMarker.metadata.create_all(bind=engine)
+
+
 class BioCvDraft(Base):
     """One resumable, private CV-profile draft per user."""
 
