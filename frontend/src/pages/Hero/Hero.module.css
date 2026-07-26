@@ -440,32 +440,48 @@
     color: var(--text-3);
 }
 
-/* ---- Funkcje: scroll-snap panels ---- */
+/* ---- Funkcje: tabbed panels via section bullets ---- */
 .funkcje {
     position: relative;
     z-index: 3;
     border-top: 1px solid var(--line-2);
     border-bottom: 1px solid var(--line-2);
     background: var(--bg-2);
+    min-height: 100vh;
+    min-height: 100dvh;
 }
 
-.scroller {
-    height: 100vh;
-    overflow-y: auto;
-    scroll-snap-type: y mandatory;
-    scroll-behavior: smooth;
+.panelStage {
     position: relative;
+    width: 100%;
+    min-height: inherit;
 }
 
 .panel {
     min-height: 100vh;
-    scroll-snap-align: start;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 64px 72px;
+    padding: 64px 96px 64px 72px;
     box-sizing: border-box;
     background: var(--bg-2);
+    animation: panelIn 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.panel[hidden] {
+    display: none;
+}
+
+@keyframes panelIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .panelCanvas {
@@ -1100,7 +1116,7 @@
     text-decoration: none;
 }
 
-/* ---- Dot navigation ---- */
+/* ---- Section name / bullet navigation ---- */
 .dots {
     position: absolute;
     right: 26px;
@@ -1109,7 +1125,7 @@
     z-index: 6;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
     align-items: flex-end;
 }
 
@@ -1120,14 +1136,20 @@
     cursor: pointer;
     background: none;
     border: none;
-    padding: 0;
+    padding: 4px 0;
 }
 
 .dotLabel {
     font: 700 11px var(--body);
     letter-spacing: .06em;
     text-transform: uppercase;
+    color: var(--text-3);
     transition: color .2s;
+}
+
+.dotNav:hover .dotLabel,
+.dotNavActive .dotLabel {
+    color: #C6CEDA;
 }
 
 .dotMark {
@@ -1135,7 +1157,12 @@
     height: 9px;
     border-radius: 50%;
     display: block;
-    transition: background .2s;
+    flex-shrink: 0;
+    transition: background .2s, box-shadow .2s;
+}
+
+.dotNavActive .dotMark {
+    box-shadow: 0 0 0 3px rgba(198, 206, 218, .12);
 }
 
 /* ---- Section scaffolding (shared) ---- */
@@ -1442,19 +1469,23 @@
         object-position: center;
     }
 
-    /* Let the panels flow naturally on small screens — a 100vh scroll-snap
-       column with this much content is unusable on a phone. */
-    .scroller {
-        height: auto;
-        overflow-y: visible;
-        scroll-snap-type: none;
-    }
+    .funkcje { min-height: auto; }
     .panel {
         min-height: auto;
-        padding: 56px 24px;
+        padding: 88px 24px 56px;
     }
     .panelTitle { font-size: 34px; }
-    .dots { display: none; }
+    .dots {
+        position: static;
+        transform: none;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px 16px;
+        padding: 20px 24px 0;
+        align-items: center;
+    }
+    .dotNav { padding: 6px 0; }
 
     .templatesSection { padding: 56px 24px 40px; }
     .templatesGrid { grid-template-columns: repeat(2, 1fr); }
@@ -1479,5 +1510,5 @@
 @media (prefers-reduced-motion: reduce) {
     .mockup { animation: none; }
     .floatCard { animation: none; }
-    .scroller { scroll-behavior: auto; }
+    .panel { animation: none; }
 }

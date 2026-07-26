@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import classes from "./Hero.module.css";
 import API_BASE_URL from "../../services/api";
@@ -10,8 +10,7 @@ const TEMPLATE_PREVIEWS = [
     { id: "garnet", name: "Garnet", industry: "Sidebar · Art déco executive", image: `${API_BASE_URL}/template-assets/garnet-sidebar.png` },
 ];
 
-// Full-screen scroll-snap panels for the "Funkcje" section. Order + accent
-// colour drive both the dot navigation and each panel's eyebrow.
+// Funkcje panels. Order + accent colour drive the bullet nav and each eyebrow.
 const PANELS = [
     { label: "Płótno", color: "#6C9BE6" },
     { label: "Szablony", color: "#E5A65C" },
@@ -54,27 +53,7 @@ function FeatureCard({ stripe, tint, icon, title, text, span }) {
 }
 
 export default function Hero() {
-    const scrollerRef = useRef(null);
     const [panel, setPanel] = useState(0);
-
-    const onScroll = useCallback(() => {
-        const el = scrollerRef.current;
-        if (!el) return;
-        const sections = el.querySelectorAll(`.${classes.panel}`);
-        const pos = el.scrollTop + el.clientHeight / 2;
-        let next = 0;
-        sections.forEach((section, index) => {
-            if (section.offsetTop <= pos) next = index;
-        });
-        setPanel((current) => (current !== next ? next : current));
-    }, []);
-
-    const goTo = (index) => () => {
-        const el = scrollerRef.current;
-        if (!el) return;
-        const section = el.querySelectorAll(`.${classes.panel}`)[index];
-        if (section) el.scrollTo({ top: section.offsetTop, behavior: "smooth" });
-    };
 
     return (
         <div className={classes.page}>
@@ -130,12 +109,33 @@ export default function Hero() {
                 </div>
             </div>
 
-            {/* ---- Funkcje: full-screen scroll-snap panels ---- */}
+            {/* ---- Funkcje: one panel at a time, switched by section bullets ---- */}
             <div id="funkcje" className={classes.funkcje}>
-                <div className={classes.scroller} ref={scrollerRef} onScroll={onScroll}>
+                <nav className={classes.dots} aria-label="Sekcje funkcji">
+                    {PANELS.map((p, index) => (
+                        <button
+                            type="button"
+                            key={p.label}
+                            className={`${classes.dotNav} ${index === panel ? classes.dotNavActive : ""}`}
+                            onClick={() => setPanel(index)}
+                            aria-current={index === panel ? "true" : undefined}
+                        >
+                            <span className={classes.dotLabel}>{p.label}</span>
+                            <span
+                                className={classes.dotMark}
+                                style={{ background: index === panel ? p.color : "#3A4048" }}
+                            />
+                        </button>
+                    ))}
+                </nav>
 
+                <div className={classes.panelStage}>
                     {/* 01 — Płótno */}
-                    <section className={`${classes.panel} ${classes.panelCanvas}`}>
+                    <section
+                        className={`${classes.panel} ${classes.panelCanvas}`}
+                        hidden={panel !== 0}
+                        aria-hidden={panel !== 0}
+                    >
                         <div className={classes.panelInner}>
                             <div className={classes.panelHead}>
                                 <div className={classes.panelHeadCopy}>
@@ -207,7 +207,11 @@ export default function Hero() {
                     </section>
 
                     {/* 02 — Szablony */}
-                    <section className={`${classes.panel} ${classes.panelTemplates}`}>
+                    <section
+                        className={`${classes.panel} ${classes.panelTemplates}`}
+                        hidden={panel !== 1}
+                        aria-hidden={panel !== 1}
+                    >
                         <div className={classes.panelInner}>
                             <div className={classes.panelHead}>
                                 <div className={classes.panelHeadCopy}>
@@ -244,7 +248,11 @@ export default function Hero() {
                     </section>
 
                     {/* 03 — AI */}
-                    <section className={`${classes.panel} ${classes.panelAi}`}>
+                    <section
+                        className={`${classes.panel} ${classes.panelAi}`}
+                        hidden={panel !== 2}
+                        aria-hidden={panel !== 2}
+                    >
                         <div className={classes.panelInner}>
                             <div className={classes.panelHeadStack}>
                                 <span className={classes.eyebrowRow} style={{ color: "#E88A73" }}>03 — Asystent AI</span>
@@ -327,7 +335,11 @@ export default function Hero() {
                     </section>
 
                     {/* 04 — Eksport */}
-                    <section className={`${classes.panel} ${classes.panelExport}`}>
+                    <section
+                        className={`${classes.panel} ${classes.panelExport}`}
+                        hidden={panel !== 3}
+                        aria-hidden={panel !== 3}
+                    >
                         <div className={classes.panelInner}>
                             <div className={classes.panelHeadStack}>
                                 <span className={classes.eyebrowRow} style={{ color: "#6FBF8E" }}>04 — Eksport wierny płótnu</span>
@@ -371,7 +383,11 @@ export default function Hero() {
                     </section>
 
                     {/* 05 — Konto */}
-                    <section className={`${classes.panel} ${classes.panelAccount}`}>
+                    <section
+                        className={`${classes.panel} ${classes.panelAccount}`}
+                        hidden={panel !== 4}
+                        aria-hidden={panel !== 4}
+                    >
                         <div className={classes.panelInner}>
                             <div className={classes.panelHeadStack}>
                                 <span className={classes.eyebrowRow} style={{ color: "#7BA6EA" }}>05 — Konto, język i cennik</span>
@@ -405,29 +421,6 @@ export default function Hero() {
                             </div>
                         </div>
                     </section>
-                </div>
-
-                <div className={classes.dots} aria-hidden="true">
-                    {PANELS.map((p, index) => (
-                        <button
-                            type="button"
-                            key={p.label}
-                            className={classes.dotNav}
-                            onClick={goTo(index)}
-                            tabIndex={-1}
-                        >
-                            <span
-                                className={classes.dotLabel}
-                                style={{ color: index === panel ? "#C6CEDA" : "transparent" }}
-                            >
-                                {p.label}
-                            </span>
-                            <span
-                                className={classes.dotMark}
-                                style={{ background: index === panel ? p.color : "#3A4048" }}
-                            />
-                        </button>
-                    ))}
                 </div>
             </div>
 
