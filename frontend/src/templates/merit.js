@@ -38,7 +38,7 @@ export const meritTemplate = [
     connector("merit-dot-one", "merit-dot-two", STEEL),
 
     { ...ellipse(76, 194, 13, 13, STEEL, false, 0.9, 3), id: "merit-profile" },
-    tracked(text("PROFILE", 8.4, SANS, STEEL, 102, 193, 3), 1.6),
+    tracked(text("PROFIL", 8.4, SANS, STEEL, 102, 193, 3), 1.6),
     line(102, 211, 418, 1, SILVER, 2),
     block(
         "Liderka programów i polityk publicznych, która buduje porozumienie w złożonym otoczeniu. Łączę analizę, klarowną komunikację oraz sprawne przeprowadzanie inicjatyw przez organizację.",
@@ -46,7 +46,7 @@ export const meritTemplate = [
     ),
 
     { ...circle(78, 313, 8, STEEL, true, 1, 3), id: "merit-experience" },
-    tracked(text("EXPERIENCE", 8.4, SANS, STEEL, 102, 312, 3), 1.6),
+    tracked(text("DOŚWIADCZENIE", 8.4, SANS, STEEL, 102, 312, 3), 1.6),
     line(102, 330, 418, 1, SILVER, 2),
     bold(text("Programme Director  /  Civic Foundation", 10.8, SANS, INK, 102, 350, 3)),
     text("2020 – obecnie  ·  Strategy & Programmes", 8.6, SANS, BLUEGREY, 102, 368, 3),
@@ -62,7 +62,7 @@ export const meritTemplate = [
     )),
 
     { ...ellipse(76, 606, 13, 13, STEEL, false, 0.9, 3), id: "merit-education" },
-    tracked(text("EDUCATION & EXPERTISE", 8.4, SANS, STEEL, 102, 606, 3), 1.35),
+    tracked(text("EDUKACJA I KOMPETENCJE", 8.4, SANS, STEEL, 102, 606, 3), 1.35),
     line(102, 624, 418, 1, SILVER, 2),
     bold(text("Nauki Polityczne  /  Uniwersytet Warszawski", 10.2, SANS, INK, 102, 643, 3)),
     text("2011 – 2016", 8.5, SANS, BLUEGREY, 102, 661, 3),

@@ -32,9 +32,9 @@ export const garnetTemplate = [
     text("julia.nowak@email.com  ·  +48 600 000 000", 8.4, SANS, MUTE, 222, 120, 3),
     line(220, 145, 326, 1, RULE, 2),
 
-    tracked(text("CONTACT", 8, SANS, "#F4DEDE", 24, 299, 3), 1.2),
+    tracked(text("KONTAKT", 8, SANS, "#F4DEDE", 24, 299, 3), 1.2),
     block("Kraków\njulia.nowak@email.com\n+48 600 000 000", 24, 321, 136, 42, 8, 12.5, "#FFF8F4", SANS),
-    tracked(text("FOCUS", 8, SANS, "#F4DEDE", 24, 433, 3), 1.2),
+    tracked(text("OBSZARY", 8, SANS, "#F4DEDE", 24, 433, 3), 1.2),
     block("Brand strategy\nCorporate narrative\nChange communication\nLeadership", 24, 455, 136, 58, 8.3, 13, "#FFF8F4", SANS),
 
     { ...rect(462, 52, 58, 54, GOLD, 0.8, 3), id: "garnet-frame" },
@@ -44,7 +44,7 @@ export const garnetTemplate = [
     connector("garnet-arc", "garnet-seal"),
 
     { ...circle(220, 184, 8, GOLD, true, 1, 3), id: "garnet-profile" },
-    tracked(text("PROFILE", 8.4, SANS, WINE, 242, 182, 3), 1.55),
+    tracked(text("PROFIL", 8.4, SANS, WINE, 242, 182, 3), 1.55),
     line(242, 200, 304, 1, RULE, 2),
     block(
         "Liderka komunikacji łącząca strategiczną narrację, reputację oraz sprawne prowadzenie zmiany. Buduję język, który porządkuje złożone ambicje organizacji i angażuje ludzi.",
@@ -52,7 +52,7 @@ export const garnetTemplate = [
     ),
 
     { ...circle(220, 301, 8, WINE, true, 1, 3), id: "garnet-experience" },
-    tracked(text("EXPERIENCE", 8.4, SANS, WINE, 242, 299, 3), 1.55),
+    tracked(text("DOŚWIADCZENIE", 8.4, SANS, WINE, 242, 299, 3), 1.55),
     line(242, 317, 304, 1, RULE, 2),
     bold(text("Director of Communications  /  Verity", 10.7, SANS, INK, 242, 337, 3)),
     text("2020 – obecnie  ·  Brand & Reputation", 8.5, SANS, MUTE, 242, 355, 3),
@@ -68,7 +68,7 @@ export const garnetTemplate = [
     )),
 
     { ...ellipse(218, 590, 13, 13, WINE, false, 1, 3), id: "garnet-education" },
-    tracked(text("EDUCATION & EXPERTISE", 8.4, SANS, WINE, 242, 590, 3), 1.3),
+    tracked(text("EDUKACJA I KOMPETENCJE", 8.4, SANS, WINE, 242, 590, 3), 1.3),
     line(242, 608, 304, 1, RULE, 2),
     bold(text("Komunikacja i Media  /  UW", 10.1, SANS, INK, 242, 627, 3)),
     text("2011 – 2016", 8.5, SANS, MUTE, 242, 645, 3),

@@ -36,7 +36,7 @@ export const scribeTemplate = [
     connector("scribe-orbit", "scribe-seal"),
 
     { ...circle(72, 196, 8, NAVY, true, 1, 3), id: "scribe-profile" },
-    tracked(text("PROFILE", 8.4, SANS, NAVY, 94, 194, 3), 1.55),
+    tracked(text("PROFIL", 8.4, SANS, NAVY, 94, 194, 3), 1.55),
     line(94, 212, 429, 1, STONE, 2),
     block(
         "Liderka produktów cyfrowych, która łączy potrzebę użytkownika, strategię oraz rygor realizacji. Prowadzę zespoły przez złożone decyzje do prostych i mierzalnych rezultatów.",
@@ -44,7 +44,7 @@ export const scribeTemplate = [
     ),
 
     { ...circle(72, 310, 8, NAVY, true, 1, 3), id: "scribe-experience" },
-    tracked(text("EXPERIENCE", 8.4, SANS, NAVY, 94, 308, 3), 1.55),
+    tracked(text("DOŚWIADCZENIE", 8.4, SANS, NAVY, 94, 308, 3), 1.55),
     line(94, 326, 429, 1, STONE, 2),
     bold(text("Senior Product Manager  /  Northstar", 10.8, SANS, INK, 94, 346, 3)),
     text("2021 – obecnie  ·  Digital Products", 8.6, SANS, SLATE, 94, 364, 3),
@@ -60,7 +60,7 @@ export const scribeTemplate = [
     )),
 
     { ...ellipse(70, 603, 12, 12, NAVY, false, 0.9, 3), id: "scribe-merit" },
-    tracked(text("EDUCATION & EXPERTISE", 8.4, SANS, NAVY, 94, 604, 3), 1.4),
+    tracked(text("EDUKACJA I KOMPETENCJE", 8.4, SANS, NAVY, 94, 604, 3), 1.4),
     line(94, 622, 429, 1, STONE, 2),
     bold(text("Zarządzanie  /  Uniwersytet Warszawski", 10.2, SANS, INK, 94, 641, 3)),
     text("2012 – 2017", 8.5, SANS, SLATE, 94, 659, 3),

@@ -41,7 +41,7 @@ export const kernelTemplate = [
     connector("kernel-core", "kernel-node", GOLD),
 
     { ...circle(143, 185, 12, GOLD, true, 1, 3), id: "kernel-profile" },
-    tracked(text("PROFILE", 8.5, SANS, INK, 167, 184, 3), 1.5),
+    tracked(text("PROFIL", 8.5, SANS, INK, 167, 184, 3), 1.5),
     line(167, 203, 355, 1, "#ACC5D8", 2),
     block(
         "Architekt produktów cyfrowych, który porządkuje złożoność: od potrzeb użytkowników i procesów, po granice systemów, dane oraz bezpieczne wdrożenia.",
@@ -49,7 +49,7 @@ export const kernelTemplate = [
     ),
 
     { ...circle(143, 310, 12, GOLD, true, 1, 3), id: "kernel-experience" },
-    tracked(text("EXPERIENCE", 8.5, SANS, INK, 167, 309, 3), 1.5),
+    tracked(text("DOŚWIADCZENIE", 8.5, SANS, INK, 167, 309, 3), 1.5),
     line(167, 328, 355, 1, "#ACC5D8", 2),
     bold(text("Lead Solutions Architect  /  Velarium", 11, SANS, INK, 167, 348, 3)),
     text("2020 – obecnie  ·  Architecture & Delivery", 8.7, SANS, SLATE, 167, 366, 3),
@@ -65,7 +65,7 @@ export const kernelTemplate = [
     )),
 
     { ...circle(143, 607, 12, GOLD, true, 1, 3), id: "kernel-stack" },
-    tracked(text("STACK & EDUCATION", 8.5, SANS, INK, 167, 606, 3), 1.5),
+    tracked(text("TECHNOLOGIE I EDUKACJA", 8.5, SANS, INK, 167, 606, 3), 1.5),
     line(167, 625, 355, 1, "#ACC5D8", 2),
     bold(text("Informatyka  /  Uniwersytet Gdański", 10.3, SANS, INK, 167, 644, 3)),
     text("2010 – 2015", 8.6, SANS, SLATE, 167, 662, 3),

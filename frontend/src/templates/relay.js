@@ -45,7 +45,7 @@ export const relayTemplate = [
     connector("relay-module-two", "relay-module-three", SILVER),
 
     { ...rect(164, 181, 13, 13, RED, 1.2, 3), id: "relay-profile" },
-    tracked(text("PROFILE", 8.3, MONO, ORANGE, 192, 181, 3), 1.1),
+    tracked(text("PROFIL", 8.3, MONO, ORANGE, 192, 181, 3), 1.1),
     line(192, 200, 340, 1, "#596065", 2),
     block(
         "Inżynierka platformowa, która zamienia złożone środowiska w przewidywalne systemy. Buduję ścieżki dostarczania, monitoring i praktyki, które pozwalają zespołom pracować szybko oraz spokojnie.",
@@ -53,7 +53,7 @@ export const relayTemplate = [
     ),
 
     { ...circle(161, 311, 18, RED, false, 1.2, 3), id: "relay-experience" },
-    tracked(text("EXPERIENCE", 8.3, MONO, ORANGE, 192, 314, 3), 1.1),
+    tracked(text("DOŚWIADCZENIE", 8.3, MONO, ORANGE, 192, 314, 3), 1.1),
     line(192, 333, 340, 1, "#596065", 2),
     bold(text("Senior DevOps Engineer  /  Streamline", 10.8, SANS, WHITE, 192, 353, 3)),
     text("2021 – obecnie  ·  Platform & SRE", 8.6, SANS, STEEL, 192, 371, 3),
@@ -69,7 +69,7 @@ export const relayTemplate = [
     )),
 
     { ...ellipse(161, 606, 18, 18, ORANGE, false, 1.2, 3), id: "relay-stack" },
-    tracked(text("STACK & EDUCATION", 8.3, MONO, ORANGE, 192, 610, 3), 1.1),
+    tracked(text("TECHNOLOGIE I EDUKACJA", 8.3, MONO, ORANGE, 192, 610, 3), 1.1),
     line(192, 629, 340, 1, "#596065", 2),
     bold(text("Informatyka  /  AGH", 10.2, SANS, WHITE, 192, 648, 3)),
     text("2012 – 2017", 8.6, SANS, STEEL, 192, 666, 3),

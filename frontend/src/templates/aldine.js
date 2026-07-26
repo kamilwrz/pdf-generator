@@ -40,7 +40,7 @@ export const aldineTemplate = [
     connector("aldine-lozenge", "aldine-core", FOREST),
 
     { ...circle(94, 195, 7, FOREST, true, 1, 3), id: "aldine-profile" },
-    tracked(text("PROFILE", 8.4, SANS, FOREST, 116, 193, 3), 1.65),
+    tracked(text("PROFIL", 8.4, SANS, FOREST, 116, 193, 3), 1.65),
     line(116, 211, 384, 1, SAND, 2),
     block(
         "Konsultantka strategiczna, która z troską o szczegół porządkuje decyzje, projekty i relacje. Pomagam organizacjom tworzyć kierunek, który można konsekwentnie wdrażać.",
@@ -48,7 +48,7 @@ export const aldineTemplate = [
     ),
 
     { ...circle(94, 313, 7, FOREST, true, 1, 3), id: "aldine-experience" },
-    tracked(text("EXPERIENCE", 8.4, SANS, FOREST, 116, 311, 3), 1.65),
+    tracked(text("DOŚWIADCZENIE", 8.4, SANS, FOREST, 116, 311, 3), 1.65),
     line(116, 329, 384, 1, SAND, 2),
     bold(text("Senior Consultant  /  Lumen Advisory", 10.8, SANS, INK, 116, 349, 3)),
     text("2020 – obecnie  ·  Strategy & Transformation", 8.6, SANS, DUST, 116, 367, 3),
@@ -64,7 +64,7 @@ export const aldineTemplate = [
     )),
 
     { ...ellipse(92, 606, 11, 11, FOREST, false, 0.9, 3), id: "aldine-expertise" },
-    tracked(text("EDUCATION & EXPERTISE", 8.4, SANS, FOREST, 116, 606, 3), 1.35),
+    tracked(text("EDUKACJA I KOMPETENCJE", 8.4, SANS, FOREST, 116, 606, 3), 1.35),
     line(116, 624, 384, 1, SAND, 2),
     bold(text("Ekonomia  /  Uniwersytet Jagielloński", 10.2, SANS, INK, 116, 643, 3)),
     text("2011 – 2016", 8.5, SANS, DUST, 116, 661, 3),

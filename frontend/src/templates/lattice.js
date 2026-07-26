@@ -43,7 +43,7 @@ export const latticeTemplate = [
     connector("lattice-orbit-two", "lattice-orbit-three", CORAL),
 
     { ...ellipse(74, 183, 16, 16, VIOLET, false, 1.2, 3), id: "lattice-profile" },
-    tracked(text("PROFILE", 8.5, SANS, INDIGO, 103, 184, 3), 1.55),
+    tracked(text("PROFIL", 8.5, SANS, INDIGO, 103, 184, 3), 1.55),
     line(103, 203, 424, 1, "#B9C4DC", 2),
     block(
         "Product engineer łącząca ciekawość użytkowników z rzetelnością technologii. Tworzę produkty cyfrowe, które są zrozumiałe w użyciu, skalowalne w rozwoju i odpowiedzialne w działaniu.",
@@ -51,7 +51,7 @@ export const latticeTemplate = [
     ),
 
     { ...circle(76, 310, 12, CORAL, true, 1, 3), id: "lattice-experience" },
-    tracked(text("EXPERIENCE", 8.5, SANS, INDIGO, 103, 309, 3), 1.55),
+    tracked(text("DOŚWIADCZENIE", 8.5, SANS, INDIGO, 103, 309, 3), 1.55),
     line(103, 328, 424, 1, "#B9C4DC", 2),
     bold(text("Staff Product Engineer  /  Juniper Works", 11, SANS, INK, 103, 348, 3)),
     text("2020 – obecnie  ·  Product Systems", 8.7, SANS, SLATE, 103, 366, 3),
@@ -67,7 +67,7 @@ export const latticeTemplate = [
     )),
 
     { ...ellipse(74, 606, 16, 16, VIOLET, false, 1.2, 3), id: "lattice-stack" },
-    tracked(text("STACK & EDUCATION", 8.5, SANS, INDIGO, 103, 606, 3), 1.55),
+    tracked(text("TECHNOLOGIE I EDUKACJA", 8.5, SANS, INDIGO, 103, 606, 3), 1.55),
     line(103, 625, 424, 1, "#B9C4DC", 2),
     bold(text("Informatyka  /  Uniwersytet im. A. Mickiewicza", 10.3, SANS, INK, 103, 644, 3)),
     text("2011 – 2016", 8.6, SANS, SLATE, 103, 662, 3),

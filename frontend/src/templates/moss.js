@@ -32,9 +32,9 @@ export const mossTemplate = [
     text("aleksandra.wisniewska@email.com  ·  +48 600 000 000", 8.4, SANS, MUTE, 222, 120, 3),
     line(220, 145, 326, 1, RULE, 2),
 
-    tracked(text("CONTACT", 8, SANS, FOREST, 24, 308, 3), 1.2),
+    tracked(text("KONTAKT", 8, SANS, FOREST, 24, 308, 3), 1.2),
     block("Poznań\naleksandra.wisniewska@email.com\n+48 600 000 000", 24, 329, 136, 42, 8, 12.5, FOREST, SANS),
-    tracked(text("PRACTICE", 8, SANS, FOREST, 24, 438, 3), 1.2),
+    tracked(text("KOMPETENCJE", 8, SANS, FOREST, 24, 438, 3), 1.2),
     block("Service design\nResearch\nFacilitation\nOperating models", 24, 459, 136, 58, 8.3, 13, FOREST, SANS),
 
     { ...rect(462, 52, 58, 54, GOLD, 0.8, 3), id: "moss-frame" },
@@ -44,7 +44,7 @@ export const mossTemplate = [
     connector("moss-leaf", "moss-seed"),
 
     { ...circle(220, 184, 8, GOLD, true, 1, 3), id: "moss-profile" },
-    tracked(text("PROFILE", 8.4, SANS, FOREST, 242, 182, 3), 1.55),
+    tracked(text("PROFIL", 8.4, SANS, FOREST, 242, 182, 3), 1.55),
     line(242, 200, 304, 1, RULE, 2),
     block(
         "Projektantka usług, która pomaga organizacjom przełożyć złożone potrzeby na klarowne doświadczenia i realne modele działania. Łączę badania, strategię oraz uważną współpracę.",
@@ -52,7 +52,7 @@ export const mossTemplate = [
     ),
 
     { ...circle(220, 301, 8, GOLD, true, 1, 3), id: "moss-experience" },
-    tracked(text("EXPERIENCE", 8.4, SANS, FOREST, 242, 299, 3), 1.55),
+    tracked(text("DOŚWIADCZENIE", 8.4, SANS, FOREST, 242, 299, 3), 1.55),
     line(242, 317, 304, 1, RULE, 2),
     bold(text("Service Design Lead  /  Olive Works", 10.7, SANS, FOREST, 242, 337, 3)),
     text("2020 – obecnie  ·  Digital Services", 8.5, SANS, MUTE, 242, 355, 3),
@@ -68,7 +68,7 @@ export const mossTemplate = [
     )),
 
     { ...ellipse(218, 590, 13, 13, SAGE, false, 1, 3), id: "moss-education" },
-    tracked(text("EDUCATION & EXPERTISE", 8.4, SANS, FOREST, 242, 590, 3), 1.3),
+    tracked(text("EDUKACJA I KOMPETENCJE", 8.4, SANS, FOREST, 242, 590, 3), 1.3),
     line(242, 608, 304, 1, RULE, 2),
     bold(text("Projektowanie Usług  /  SWPS", 10.1, SANS, FOREST, 242, 627, 3)),
     text("2011 – 2016", 8.5, SANS, MUTE, 242, 645, 3),

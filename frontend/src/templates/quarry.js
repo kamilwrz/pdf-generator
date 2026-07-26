@@ -32,9 +32,9 @@ export const quarryTemplate = [
     text("martyna.rutkowska@email.com  ·  +48 600 000 000", 8.4, SANS, SLATE, 222, 120, 3),
     line(220, 145, 326, 1, RULE, 2),
 
-    tracked(text("CONTACT", 8, SANS, CYAN, 24, 73, 3), 1.3),
+    tracked(text("KONTAKT", 8, SANS, CYAN, 24, 73, 3), 1.3),
     block("Warszawa\nmartyna.rutkowska@email.com\n+48 600 000 000", 24, 93, 136, 42, 8.1, 12.5, INK, SANS),
-    tracked(text("CORE STACK", 8, SANS, CYAN, 24, 205, 3), 1.3),
+    tracked(text("GŁÓWNE TECHNOLOGIE", 8, SANS, CYAN, 24, 205, 3), 1.3),
     block("TypeScript\nGo\nKubernetes\nAWS\nPostgreSQL", 24, 225, 136, 70, 8.4, 13, INK, SANS),
 
     { ...rect(462, 51, 59, 54, CYAN, 0.9, 3), id: "quarry-frame" },
@@ -44,7 +44,7 @@ export const quarryTemplate = [
     connector("quarry-orbit", "quarry-node", LIME),
 
     { ...circle(220, 184, 8, LIME, true, 1, 3), id: "quarry-profile" },
-    tracked(text("PROFILE", 8.4, SANS, NAVY, 242, 182, 3), 1.55),
+    tracked(text("PROFIL", 8.4, SANS, NAVY, 242, 182, 3), 1.55),
     line(242, 200, 304, 1, RULE, 2),
     block(
         "Inżynierka budująca niezawodne platformy oraz proste ścieżki dostarczania. Łączę myślenie systemowe, obserwowalność i partnerską pracę z zespołami produktowymi.",
@@ -52,7 +52,7 @@ export const quarryTemplate = [
     ),
 
     { ...circle(220, 301, 8, CYAN, true, 1, 3), id: "quarry-experience" },
-    tracked(text("EXPERIENCE", 8.4, SANS, NAVY, 242, 299, 3), 1.55),
+    tracked(text("DOŚWIADCZENIE", 8.4, SANS, NAVY, 242, 299, 3), 1.55),
     line(242, 317, 304, 1, RULE, 2),
     bold(text("Senior Platform Engineer  /  Northstar", 10.7, SANS, NAVY, 242, 337, 3)),
     text("2021 – obecnie  ·  Distributed Systems", 8.5, SANS, SLATE, 242, 355, 3),
@@ -68,7 +68,7 @@ export const quarryTemplate = [
     )),
 
     { ...ellipse(218, 590, 13, 13, CYAN, false, 1, 3), id: "quarry-education" },
-    tracked(text("EDUCATION & EXPERTISE", 8.4, SANS, NAVY, 242, 590, 3), 1.3),
+    tracked(text("EDUKACJA I KOMPETENCJE", 8.4, SANS, NAVY, 242, 590, 3), 1.3),
     line(242, 608, 304, 1, RULE, 2),
     bold(text("Informatyka  /  Politechnika Warszawska", 10.1, SANS, NAVY, 242, 627, 3)),
     text("2012 – 2017", 8.5, SANS, SLATE, 242, 645, 3),

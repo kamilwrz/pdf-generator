@@ -40,7 +40,7 @@ export const vectorTemplate = [
     connector("vector-node-one", "vector-node-two", LIME),
     connector("vector-node-two", "vector-node-three"),
 
-    tracked(text("PROFILE", 8.5, SANS, LIME, 160, 180, 3), 1.7),
+    tracked(text("PROFIL", 8.5, SANS, LIME, 160, 180, 3), 1.7),
     line(160, 199, 365, 1, "#3C6682", 2),
     block(
         "Inżynierka oprogramowania budująca niezawodne platformy i produkty cyfrowe. Łączę myślenie systemowe, pragmatyczną architekturę oraz partnerską pracę z zespołami produktowymi.",
@@ -48,7 +48,7 @@ export const vectorTemplate = [
     ),
 
     { ...circle(137, 310, 13, LIME, true, 1, 3), id: "vector-section-one" },
-    tracked(text("EXPERIENCE", 8.5, SANS, ELECTRIC, 160, 312, 3), 1.7),
+    tracked(text("DOŚWIADCZENIE", 8.5, SANS, ELECTRIC, 160, 312, 3), 1.7),
     line(160, 331, 365, 1, "#3C6682", 2),
     bold(text("Senior Software Engineer  /  Northstar Cloud", 11, SANS, "#FFFFFF", 160, 351, 3)),
     text("2021 – obecnie  ·  Platform Engineering", 8.7, SANS, MIST, 160, 369, 3),
@@ -64,7 +64,7 @@ export const vectorTemplate = [
     )),
 
     { ...ellipse(133, 607, 17, 17, ELECTRIC, false, 1.2, 3), id: "vector-section-two" },
-    tracked(text("STACK & EDUCATION", 8.5, SANS, ELECTRIC, 160, 610, 3), 1.7),
+    tracked(text("TECHNOLOGIE I EDUKACJA", 8.5, SANS, ELECTRIC, 160, 610, 3), 1.7),
     line(160, 629, 365, 1, "#3C6682", 2),
     bold(text("Informatyka  /  Politechnika Warszawska", 10.4, SANS, "#FFFFFF", 160, 648, 3)),
     text("2012 – 2017", 8.7, SANS, MIST, 160, 666, 3),

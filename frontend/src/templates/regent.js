@@ -37,7 +37,7 @@ export const regentTemplate = [
     connector("regent-signet", "regent-rule", CLAY),
 
     { ...rect(88, 194, 8, 8, WINE, 0.9, 3), id: "regent-profile" },
-    tracked(text("PROFILE", 8.4, SANS, WINE, 113, 193, 3), 1.65),
+    tracked(text("PROFIL", 8.4, SANS, WINE, 113, 193, 3), 1.65),
     line(113, 211, 386, 1, TAUPE, 2),
     block(
         "Liderka operacyjna budująca spokojne, przejrzyste organizacje. Łączę strategiczną perspektywę z dbałością o decyzje, procesy i ludzi, którzy każdego dnia realizują ambitne cele.",
@@ -45,7 +45,7 @@ export const regentTemplate = [
     ),
 
     { ...rect(88, 313, 8, 8, WINE, 0.9, 3), id: "regent-experience" },
-    tracked(text("EXPERIENCE", 8.4, SANS, WINE, 113, 312, 3), 1.65),
+    tracked(text("DOŚWIADCZENIE", 8.4, SANS, WINE, 113, 312, 3), 1.65),
     line(113, 330, 386, 1, TAUPE, 2),
     bold(text("Director of Operations  /  Waverly Group", 10.8, SANS, INK, 113, 350, 3)),
     text("2020 – obecnie  ·  Business Operations", 8.6, SANS, GREY, 113, 368, 3),
@@ -61,7 +61,7 @@ export const regentTemplate = [
     )),
 
     { ...ellipse(87, 606, 11, 11, WINE, false, 0.9, 3), id: "regent-education" },
-    tracked(text("EDUCATION & EXPERTISE", 8.4, SANS, WINE, 113, 606, 3), 1.35),
+    tracked(text("EDUKACJA I KOMPETENCJE", 8.4, SANS, WINE, 113, 606, 3), 1.35),
     line(113, 624, 386, 1, TAUPE, 2),
     bold(text("Zarządzanie i Strategia  /  SGH", 10.2, SANS, INK, 113, 643, 3)),
     text("2011 – 2016", 8.5, SANS, GREY, 113, 661, 3),
