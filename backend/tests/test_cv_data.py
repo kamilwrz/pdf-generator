@@ -60,6 +60,31 @@ class CvDataNormalizationTests(unittest.TestCase):
         self.assertEqual(profile["custom_sections"][0]["title"], "PROJEKTY")
         self.assertEqual(profile["extra_sections"][0]["title"], "PROJEKTY")
 
+    def test_explicit_empty_custom_sections_do_not_restore_stale_extra_sections(self):
+        profile = normalize_cv_data({
+            "name": "Jan Nowak",
+            "custom_sections": [],
+            "languages": [],
+            "extra_sections": [
+                {
+                    "title": "PROJEKTY",
+                    "kind": "other",
+                    "placement": "after_skills",
+                    "items": ["Stary wpis"],
+                },
+                {
+                    "title": "JĘZYKI",
+                    "kind": "languages",
+                    "placement": "after_skills",
+                    "items": ["Angielski — C1"],
+                },
+            ],
+        })
+
+        self.assertEqual(profile["custom_sections"], [])
+        self.assertEqual(profile["languages"], [])
+        self.assertEqual(profile["extra_sections"], [])
+
     def test_generation_requires_name_but_draft_data_can_stay_partial(self):
         self.assertEqual(normalize_cv_data({})["name"], "")
         with self.assertRaises(CvDataValidationError):

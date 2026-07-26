@@ -198,8 +198,19 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
     raw = deepcopy(dict(value))
     address = _text(raw.get("address") or raw.get("location"))
     fallback_languages, fallback_sections = _derive_manual_sections(raw.get("extra_sections"))
-    languages = _normalize_languages(raw.get("languages")) or fallback_languages
-    custom_sections = _normalize_custom_sections(raw.get("custom_sections")) or fallback_sections
+    # An explicitly supplied empty list means the user deleted every item.
+    # Fall back to legacy `extra_sections` only when the editable field is
+    # absent, never when it is present and empty.
+    languages = (
+        _normalize_languages(raw.get("languages"))
+        if "languages" in raw
+        else fallback_languages
+    )
+    custom_sections = (
+        _normalize_custom_sections(raw.get("custom_sections"))
+        if "custom_sections" in raw
+        else fallback_sections
+    )
 
     language_items = [
         f"{entry['name']} — {entry['level']}" if entry["level"] else entry["name"]
