@@ -1191,10 +1191,16 @@
 .templatesSection {
     position: relative;
     z-index: 2;
+    box-sizing: border-box;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 88px 56px 60px;
-    scroll-margin-top: 24px;
+    padding: 72px 56px;
+    scroll-margin-top: 0;
 }
 
 .templatesGrid {
@@ -1253,14 +1259,21 @@
 .testimonialsBand {
     position: relative;
     z-index: 2;
+    box-sizing: border-box;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     background: var(--bg-2);
     border-top: 1px solid var(--line-2);
     border-bottom: 1px solid var(--line-2);
-    padding: 80px 56px;
-    margin-top: 60px;
+    padding: 72px 56px;
+    margin-top: 0;
 }
 
 .testimonialsInner {
+    width: 100%;
     max-width: 1080px;
     margin: 0 auto;
 }
@@ -1311,10 +1324,18 @@
 .cennikSection {
     position: relative;
     z-index: 2;
+    box-sizing: border-box;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     max-width: 720px;
     margin: 0 auto;
-    padding: 70px 56px 0;
+    padding: 72px 56px;
     text-align: center;
+    scroll-margin-top: 0;
 }
 
 .cennikText {
@@ -1487,9 +1508,13 @@
     }
     .dotNav { padding: 6px 0; }
 
-    .templatesSection { padding: 56px 24px 40px; }
+    .templatesSection,
+    .testimonialsBand,
+    .cennikSection {
+        min-height: auto;
+        padding: 72px 24px;
+    }
     .templatesGrid { grid-template-columns: repeat(2, 1fr); }
-    .testimonialsBand { padding: 56px 24px; }
     .testimonialsGrid { grid-template-columns: 1fr; gap: 20px; }
     .finalCta { padding: 64px 24px; }
     .finalCtaTitle { font-size: 30px; }
