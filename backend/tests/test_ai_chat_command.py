@@ -139,7 +139,7 @@ class ChatCommandTests(unittest.TestCase):
             {"element_id": "education-entry", "left": 20.0, "top": 75.0, "page": 2},
         ])
 
-    def test_dispatcher_reports_an_issue_instead_of_a_broken_position_operation(self):
+    def test_dispatcher_clamps_an_overshooting_shift_to_the_page_edge(self):
         elements = [
             {
                 "element_id": "heading-1",
@@ -173,8 +173,50 @@ class ChatCommandTests(unittest.TestCase):
                 page_size={"width": 595, "height": 842},
             )
 
-        self.assertEqual(result["layout_groups"], [])
-        self.assertEqual(len(result["layout_issues"]), 1)
+        # dx=-900 would leave the page; Python shortens the move to the left edge.
+        self.assertEqual(result["layout_issues"], [])
+        self.assertEqual(
+            result["layout_groups"][0]["patches"],
+            [{"element_id": "heading-1", "left": 0.0, "top": 40.0}],
+        )
+
+    def test_extract_positional_includes_text_color_and_font_family(self):
+        # Style-match chat prompts ("dopasuj kolor do sidebara") need hex colors
+        # in context — without them GPT refuses to invent a color.
+        elements = [
+            {
+                "element_id": "languages-heading",
+                "category": "text",
+                "content": "JĘZYKI",
+                "fontSize": 8,
+                "fontFamily": "Inter",
+                "color": "#37D1EE",
+                "left": 24, "top": 400, "width": 100, "height": 12, "page": 1,
+            },
+            {
+                "element_id": "education-heading",
+                "category": "text",
+                "content": "WYKSZTAŁCENIE",
+                "fontSize": 8,
+                "fontFamily": "Inter",
+                "color": "#13293D",
+                "left": 24, "top": 480, "width": 120, "height": 12, "page": 1,
+            },
+            {
+                "element_id": "education-body",
+                "category": "textarea",
+                "content": "Informatyka",
+                "fontSize": 8.4,
+                "left": 24, "top": 500, "width": 136, "height": 20, "page": 1,
+            },
+        ]
+        result = ai_assistant_service._extract_positional(elements)
+        by_id = {item["element_id"]: item for item in result}
+        self.assertEqual(by_id["languages-heading"]["color"], "#37D1EE")
+        self.assertEqual(by_id["education-heading"]["color"], "#13293D")
+        self.assertEqual(by_id["education-heading"]["fontFamily"], "Inter")
+        # Missing color falls back so the model always sees a hex.
+        self.assertEqual(by_id["education-body"]["color"], "#2B2B2B")
 
     def test_extract_positional_includes_visual_elements_with_geometry(self):
         # _extract_structured() excludes visual elements because they have no

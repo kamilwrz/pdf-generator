@@ -59,6 +59,10 @@ def _extract_structured(elements: list[dict]) -> list[dict]:
             "content": el.get("content", ""),
             "fontSize": el.get("fontSize"),
             "lineHeight": el.get("lineHeight"),
+            "fontFamily": el.get("fontFamily"),
+            # Always emit color so style-match prompts can read peers; missing
+            # values fall back to the canvas default ink used by the editor.
+            "color": el.get("color") or "#2B2B2B",
             "bold": el.get("bold", False),
             "italic": el.get("italic", False),
             "align": el.get("align", "left"),
@@ -602,9 +606,16 @@ def _chat(message: str, elements: list[dict], page_size: dict | None) -> dict:
         "(1) PYTANIEM — odpowiedz konkretnie w message, zostaw corrections jako pustą listę "
         "i position_operation jako null.\n"
         "(2) POLECENIEM edycji treści lub stylu (np. \"zmień rozmiar czcionki nagłówków na 13px\", "
-        "\"popraw sekcję wykształcenie\") — znajdź pasujące elementy i zwróć po jednej poprawce "
-        "w corrections. Poprawka może zawierać WYŁĄCZNIE pola: content, fontSize, fontFamily, "
-        "color, bold, italic, align. NIGDY nie zwracaj left/top/width/height/zIndex/page w corrections.\n"
+        "\"popraw sekcję wykształcenie\", \"zmień kolor czcionki w wykształceniu aby pasował do "
+        "reszty sekcji\") — znajdź pasujące elementy i zwróć po jednej poprawce w corrections. "
+        "Poprawka może zawierać WYŁĄCZNIE pola: content, fontSize, fontFamily, color, bold, italic, "
+        "align. NIGDY nie zwracaj left/top/width/height/zIndex/page w corrections.\n"
+        "  - Każdy element tekstowy w kontekście MA pole color (hex) oraz fontFamily — odczytaj je. "
+        "Przy poleceniach typu „dopasuj kolor do innych sekcji / sidebara / nagłówków” NIE odmawiaj "
+        "i NIE proś użytkownika o hex: porównaj kolory sąsiednich sekcji o tej samej roli "
+        "(np. nagłówek sekcji sidebara vs nagłówek WYKSZTAŁCENIE, treść vs treść) i ustaw color "
+        "na najczęściej używany lub najbliższy wizualnie hex z tych peerów. Jeśli sekcja ma kilka "
+        "ról (nagłówek + treść), dopasuj każdą rolę osobno.\n"
         "(3) POLECENIEM dotyczącym POZYCJI elementów (np. \"przesuń nagłówki sekcji o 50px w lewo\", "
         "\"wyrównaj te elementy na x=50\", \"rozłóż wpisy w sekcji doświadczenia równomiernie\") — "
         "zwróć position_operation zamiast corrections:\n"

@@ -615,11 +615,13 @@ def _shift_scale_is_safe(
     for item in targets:
         left = item["left"] + sdx
         top = item["top"] + sdy
+        # Strict page edges (no ±EPSILON slack): binary-search clamp must not
+        # accept a hair over the boundary as "safe".
         if (
-            left < -EPSILON
-            or top < -EPSILON
-            or left + item["width"] > page_width + EPSILON
-            or top + item["height"] > page_height + EPSILON
+            left < 0
+            or top < 0
+            or left + item["width"] > page_width
+            or top + item["height"] > page_height
         ):
             return False
         moved = {**item, "left": left, "top": top}
