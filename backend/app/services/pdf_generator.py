@@ -197,14 +197,17 @@ class PDF_Generator:
     ITALIC_SHEAR = 0.21  # ~12 degree slant for faux italic (fallback only)
 
     # (family, bold, italic) -> a registered font that is a REAL variant.
-    # Inter/Roboto are the cuts we ship; Times/Helvetica/Courier use ReportLab's
-    # always-available standard variants. Anything else falls back to faux.
+    # Inter/Roboto/Times are bundled Unicode fonts. ReportLab's standard
+    # Helvetica and Courier fonts use WinAnsi encoding, so they cannot render
+    # Polish letters and must resolve to the Unicode-safe Inter family.
     _VARIANT_FONTS = {
         'Inter':       ('Inter-Bold', 'Inter-Italic', 'Inter-BoldItalic'),
         'Roboto':      ('Roboto-Bold', 'Roboto-Italic', 'Roboto-BoldItalic'),
         'Times-Roman': ('Times-Roman-Bold', 'Times-Roman-Italic', 'Times-Roman-BoldItalic'),
-        'Helvetica':   ('Helvetica-Bold', 'Helvetica-Oblique', 'Helvetica-BoldOblique'),
-        'Courier':     ('Courier-Bold', 'Courier-Oblique', 'Courier-BoldOblique'),
+    }
+    _UNICODE_FONT_ALIASES = {
+        'Helvetica': 'Inter',
+        'Courier': 'Inter',
     }
 
     @classmethod
@@ -212,6 +215,7 @@ class PDF_Generator:
         """Pick the font to draw with. Returns (font_name, faux_bold,
         faux_italic): a real variant when one exists (no faux needed),
         otherwise the base font with faux flags so it still renders."""
+        family = cls._UNICODE_FONT_ALIASES.get(family, family)
         variants = cls._VARIANT_FONTS.get(family)
         if not variants:
             return family, bold, italic

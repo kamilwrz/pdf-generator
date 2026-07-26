@@ -776,7 +776,7 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
             "left": 167, "width": 355, "start": 184, "continuation": 78,
             "ink": "#173A76", "body": "#253D54", "muted": "#526A83",
             "accent": "#2462B7", "marker": "#D69B22", "rule": "#ACC5D8",
-            "font": "Helvetica", "display": "Times-Roman",
+            "font": "Inter", "display": "Times-Roman",
         },
         "relay": {
             "asset": "relay-it-signal.png",
@@ -790,7 +790,7 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
             "left": 103, "width": 424, "start": 184, "continuation": 78,
             "ink": "#26336D", "body": "#2C3852", "muted": "#64708A",
             "accent": "#5B62BA", "marker": "#F37E71", "rule": "#B9C4DC",
-            "font": "Helvetica", "display": "Times-Roman",
+            "font": "Inter", "display": "Times-Roman",
         },
     }
     if theme not in themes:
@@ -1033,7 +1033,7 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
 
     C = themes[theme]
     L, W = C["left"], C["width"]
-    SANS, SERIF = "Helvetica", "Times-Roman"
+    SANS, SERIF = "Inter", "Times-Roman"
     lbl = _labels(cv)
 
     class ClassicBuilder(Builder):
@@ -2134,7 +2134,7 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
 
     C = themes[theme]
     SIDE, L, W = 184, 220, 326
-    SANS, SERIF = "Helvetica", "Times-Roman"
+    SANS, SERIF = "Inter", "Times-Roman"
     lbl = _labels(cv)
 
     class SidebarBuilder(Builder):
