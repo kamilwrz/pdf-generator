@@ -4,47 +4,34 @@ import { PdfContext } from "../../../store/pdfgenerator-context";
 import { getElementBounds, getTextContentBounds } from "../../../utils/elementBounds";
 import classes from "./SelectionOverlay.module.css";
 
-const PAD = 3;
-const MIN_LINE_FRAME = 10;
-
 function frameForElement(element) {
     const left = Number(element.left) || 0;
     const top = Number(element.top) || 0;
-    let { width, height, left: contentLeft, top: contentTop } = element.category === "text"
-        ? getTextContentBounds(element)
-        : getElementBounds(element);
 
-    // Single-line text often has no stored dimensions. Give it a predictable,
-    // comfortably visible selection target without changing its layout.
+    // Text uses glyph bounds so the frame hugs the rendered characters.
+    // Everything else uses the element's own box — no padding/margin inset.
     if (element.category === "text") {
-        const horizontalMargin = 6;
-        const verticalMargin = 4;
-        const fallbackWidth = Math.max(18, (Number(element.fontSize) || 12) * 1.5);
-        const fallbackHeight = Math.max(14, (Number(element.fontSize) || 12) * 1.35);
+        const {
+            width,
+            height,
+            left: contentLeft,
+            top: contentTop,
+        } = getTextContentBounds(element);
+        const fontSize = Number(element.fontSize) || 12;
         return {
-            left: Number.isFinite(contentLeft) ? contentLeft - horizontalMargin : left - horizontalMargin,
-            top: Number.isFinite(contentTop) ? contentTop - verticalMargin : top - verticalMargin,
-            width: Math.max(width, fallbackWidth) + horizontalMargin * 2,
-            height: Math.max(height, fallbackHeight) + verticalMargin * 2,
+            left: Number.isFinite(contentLeft) ? contentLeft : left,
+            top: Number.isFinite(contentTop) ? contentTop : top,
+            width: Math.max(width, fontSize * 0.5, 1),
+            height: Math.max(height, fontSize * 0.8, 1),
         };
     }
 
-    // Thin lines need a taller frame so selection stays readable on the canvas.
-    if (element.category === "line" && height < MIN_LINE_FRAME) {
-        const extra = (MIN_LINE_FRAME - height) / 2;
-        return {
-            left: left - PAD,
-            top: top - extra - PAD,
-            width: Math.max(width, 1) + PAD * 2,
-            height: MIN_LINE_FRAME + PAD * 2,
-        };
-    }
-
+    const { width, height } = getElementBounds(element);
     return {
-        left: left - PAD,
-        top: top - PAD,
-        width: Math.max(width, 1) + PAD * 2,
-        height: Math.max(height, 1) + PAD * 2,
+        left,
+        top,
+        width: Math.max(width, 1),
+        height: Math.max(height, 1),
     };
 }
 

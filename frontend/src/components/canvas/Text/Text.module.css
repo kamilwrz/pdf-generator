@@ -7,10 +7,7 @@
 }
 
 .selectedElement{
-    background: color-mix(in srgb, var(--accent-soft) 58%, transparent);
-    border-radius: 2px;
-    box-decoration-break: clone;
-    -webkit-box-decoration-break: clone;
+    /* Selection chrome is drawn by SelectionOverlay — keep text unstyled. */
 }
 
 .movingElement {
