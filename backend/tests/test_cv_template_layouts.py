@@ -302,6 +302,37 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertIn(education[0]["degree"], main_copy)
         self.assertIn(education[-1]["degree"], main_copy)
 
+    def test_sidebar_layout_uses_remaining_page_space_for_complete_experience_entry(self):
+        fourth_job = {
+            "title": "Customer Service Specialist with German",
+            "company": "Amazon CS Poland",
+            "city": "Warszawa",
+            "period": "2022 – 2024",
+            "bullets": [
+                "Profesjonalna obsługa klienta z zachowaniem wysokich standardów jakości.",
+                "Rozwiązywanie eskalacji oraz monitoring nowych pracowników w ramach wdrożeń.",
+                "Analiza jakości obsługi klienta oraz przygotowywanie raportów.",
+            ],
+        }
+        elements = generate_resume("moss", {
+            **LONG_CV,
+            "experience": [*LONG_CV["experience"], fourth_job],
+        })
+
+        fourth_title = next(
+            element for element in elements
+            if element["category"] == "textarea"
+            and element["content"] == fourth_job["title"]
+        )
+        fourth_bullets = next(
+            element for element in elements
+            if element["category"] == "textarea"
+            and fourth_job["bullets"][0] in element["content"]
+        )
+        self.assertEqual(fourth_title["page"], 1)
+        self.assertEqual(fourth_bullets["page"], 1)
+        self.assertLessEqual(fourth_bullets["top"] + fourth_bullets["height"], 758)
+
     def test_classic_templates_are_image_free_single_column_documents(self):
         multi_page_cv = {
             **LONG_CV,

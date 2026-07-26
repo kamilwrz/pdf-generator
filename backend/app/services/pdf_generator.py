@@ -273,7 +273,8 @@ class PDF_Generator:
             return 0.0
         return stringWidth(text, font, size) + len(text) * letter_spacing
 
-    def _wrap_textarea(self, text, font, size, letter_spacing, max_width, bullet_list=False):
+    @classmethod
+    def _wrap_textarea(cls, text, font, size, letter_spacing, max_width, bullet_list=False):
         """Reproduce the browser's soft-wrapping of a fixed-width text box.
 
         Honours explicit newlines, breaks on spaces, and hard-breaks words
@@ -298,14 +299,14 @@ class PDF_Generator:
             is_bullet = bullet_list and bool(re.match(r"^\s*•", paragraph))
             bullet_prefix = "• " if is_bullet else ""
             body = re.sub(r"^\s*•[ \t]*", "", paragraph) if is_bullet else paragraph
-            para_indent = self._line_width(bullet_prefix, font, size, letter_spacing)
+            para_indent = cls._line_width(bullet_prefix, font, size, letter_spacing)
             avail_width = max_width - para_indent
 
             para_lines = []
             current = ""
             for word in body.split(" "):
                 candidate = word if current == "" else current + " " + word
-                if self._line_width(candidate, font, size, letter_spacing) <= avail_width:
+                if cls._line_width(candidate, font, size, letter_spacing) <= avail_width:
                     current = candidate
                     continue
 
@@ -314,10 +315,10 @@ class PDF_Generator:
                     current = ""
 
                 # A single word that overflows the box is hard-broken per char.
-                if self._line_width(word, font, size, letter_spacing) > avail_width:
+                if cls._line_width(word, font, size, letter_spacing) > avail_width:
                     chunk = ""
                     for ch in word:
-                        if chunk == "" or self._line_width(chunk + ch, font, size, letter_spacing) <= avail_width:
+                        if chunk == "" or cls._line_width(chunk + ch, font, size, letter_spacing) <= avail_width:
                             chunk += ch
                         else:
                             para_lines.append(chunk)
@@ -332,6 +333,32 @@ class PDF_Generator:
                 # line; all text starts at the same hanging-indent position.
                 out.append((ln, i == len(para_lines) - 1, para_indent, bullet_prefix if i == 0 else ""))
         return out
+
+    @classmethod
+    def measure_textarea_height(
+        cls,
+        content,
+        font_family,
+        font_size,
+        line_height,
+        width,
+        *,
+        bold=False,
+        italic=False,
+        letter_spacing=0.0,
+        bullet_list=False,
+    ):
+        """Measure wrapped copy with the exact metrics used by PDF rendering."""
+        measure_font, _, _ = cls._resolve_font(font_family, bold, italic)
+        lines = cls._wrap_textarea(
+            content,
+            measure_font,
+            float(font_size),
+            float(letter_spacing or 0),
+            float(width),
+            bullet_list,
+        )
+        return len(lines) * float(line_height)
 
     def renderTextarea(self, left, top, width, height, fontFamily, fontSize, color, content, lineHeight, letterSpacing, bold=False, italic=False, underline=False, align="left", bulletList=False, autoHeight=False):
         """Render a multi-line text box so it matches the on-canvas edit-mode

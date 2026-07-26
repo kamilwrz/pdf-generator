@@ -15,6 +15,7 @@ import unicodedata
 from datetime import datetime
 
 from app.core.config import BACKEND_URL
+from app.services.pdf_generator import PDF_Generator
 
 A4_H = 842
 MARGIN_BOTTOM = 40   # py before switching to the next page
@@ -97,19 +98,29 @@ class Builder:
               bold=False, italic=False, align="left", min_h=0.0, bulletList=False) -> float:
         if not content:
             return self.y
-        # Count rendered lines including soft-wrapping for long segments.
-        # chars_per_line ≈ width / (fontSize × 0.52) for Inter-style fonts.
-        cpl = max(10, int(width / (fs * 0.52)))
-        rendered = 0
-        for seg in content.split("\n"):
-            rendered += max(1, math.ceil(len(seg) / cpl)) if seg.strip() else 1
-        h = max(rendered * lh + 6, min_h)
+        h = self.measure_block(
+            content, width, fs, lh, fam,
+            bold=bold, italic=italic, min_h=min_h, bulletList=bulletList,
+        )
         self.need(h)
         self.els.append(_block(content, left, self.y, width, h, fs, lh, col, fam,
                                 zIndex=2, page=self.pg, bold=bold, italic=italic, align=align,
                                 bulletList=bulletList))
         self.y += h
         return self.y
+
+    @staticmethod
+    def measure_block(content, width, fs, lh, fam, *,
+                      bold=False, italic=False, min_h=0.0, bulletList=False) -> float:
+        if not content:
+            return 0.0
+        rendered_height = PDF_Generator.measure_textarea_height(
+            str(content), fam, fs, lh, width,
+            bold=bold, italic=italic, bullet_list=bulletList,
+        )
+        # Preserve a small box-model allowance without inventing a full extra
+        # line. The canvas will refine this to its measured natural height.
+        return max(rendered_height + 4, min_h)
 
     def line(self, left, width, height, col):
         self.els.append(_line(left, self.y, width, height, col, page=self.pg))
@@ -2469,6 +2480,33 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
 
     b = SidebarBuilder(184)
 
+    def experience_height(job: dict) -> float:
+        bullets = _bullets(job)
+        return (
+            b.measure_block(job.get("title", ""), W, 10.8, 13.5, SANS, bold=True, min_h=15)
+            + 1
+            + b.measure_block(_company_period(job), W, 8.6, 11.5, SANS, min_h=12)
+            + 3
+            + (
+                b.measure_block(bullets, W, 9.3, 13.2, SANS, bulletList=True)
+                if bullets else 0
+            )
+            + 12
+        )
+
+    def education_height(education: dict) -> float:
+        detail = education.get("detail", "")
+        return (
+            b.measure_block(education.get("degree", ""), W, 10.2, 13, SANS, bold=True, min_h=15)
+            + 2
+            + b.measure_block(education.get("period", ""), W, 8.6, 11.5, SANS, min_h=12)
+            + (
+                1 + b.measure_block(detail, W, 8.6, 11.5, SANS, min_h=12)
+                if detail else 0
+            )
+            + 10
+        )
+
     def section(label: str) -> None:
         b.need(40)
         marker_y = b.y + 1
@@ -2484,14 +2522,19 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
         b.gap(14)
 
     if cv.get("summary"):
+        b.need(40 + b.measure_block(cv["summary"], W, 10, 14.5, SANS) + 18)
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10, 14.5, C["body"], SANS)
         b.gap(18)
 
     if cv.get("experience"):
+        b.need(40 + experience_height(cv["experience"][0]))
         section(lbl["experience"])
         for job in cv["experience"]:
-            b.need(80)
+            # Treat title, metadata and bullets as one visual record. This
+            # avoids orphaned titles and uses the remaining page space when
+            # the complete record genuinely fits.
+            b.need(experience_height(job))
             b.block(job.get("title", ""), L, W, 10.8, 13.5, C["ink"], SANS, bold=True, min_h=15)
             b.gap(1)
             b.block(_company_period(job), L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
@@ -2504,8 +2547,10 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
                         L, W, SANS, fs=9.3, lh=13.2, skip_indices=sidebar_extra_indices)
 
     if cv.get("education") and "education" not in sidebar_keys:
+        b.need(40 + education_height(cv["education"][0]))
         section(lbl["education"])
         for edu in cv["education"]:
+            b.need(education_height(edu))
             b.block(edu.get("degree", ""), L, W, 10.2, 13, C["ink"], SANS, bold=True, min_h=15)
             b.gap(2)
             b.block(edu.get("period", ""), L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
@@ -2515,6 +2560,7 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
             b.gap(10)
 
     if cv.get("skills") and "skills" not in sidebar_keys:
+        b.need(40 + b.measure_block("  ·  ".join(cv["skills"]), W, 9.3, 13.2, SANS) + 14)
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.3, 13.2, C["body"], SANS)
         b.gap(14)
