@@ -18,13 +18,20 @@
 }
 
 .editingInput {
-    box-sizing: content-box;
+    appearance: none;
+    box-sizing: border-box;
     min-width: 64px;
     margin: 0;
-    padding: 0 2px;
-    border: 1px solid var(--accent);
-    border-radius: 2px;
+    padding: 0;
+    border: none;
+    border-radius: 0;
     outline: none;
-    background: #fff;
+    outline: 1.5px solid var(--accent);
+    outline-offset: 4px;
+    background: transparent;
+    height: 1em;
+    line-height: 1;
+    caret-color: currentColor;
+    transform: translateY(-0.18em);
     white-space: pre;
 }
