@@ -3368,8 +3368,8 @@ def _gen_graphite(cv: dict) -> list[dict]:
             _place_education_record(
                 b, edu, L, W,
                 ink=INK, muted=MUTED, body=BODY, font=SANS,
-                mode="text",
-                degree_fs=10.5, meta_fs=9.3, body_fs=9.3,
+                degree_fs=10.5, degree_lh=14, meta_fs=9.3, meta_lh=12.5,
+                body_fs=9.3, body_lh=13.5,
                 after_gap=SPACE_RECORD if index < len(education_entries) - 1 else None,
             )
         close_section()
@@ -3467,8 +3467,8 @@ def _gen_onyx(cv: dict) -> list[dict]:
             _place_education_record(
                 b, edu, L, W,
                 ink=IVORY, muted=MUTED, body=BODY, font=I,
-                mode="text",
-                degree_fs=10.5, meta_fs=9, body_fs=9,
+                degree_fs=10.5, degree_lh=14, meta_fs=9, meta_lh=12.5,
+                body_fs=9, body_lh=13,
                 after_gap=10,
             )
 
