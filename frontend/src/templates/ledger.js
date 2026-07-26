@@ -38,7 +38,6 @@ export const ledgerTemplate = [
         zIndex: 2,
     },
     line(400, 30, 2, 102, BLUE, 2),
-    tracked(text("LEDGER / FINANCE", 8.5, SANS, "#BFD0DE", 54, 34, 2), 1.5),
     bold(text("ANNA KOWALSKA", 30, SERIF, "#FFFFFF", 52, 58, 2)),
     tracked(text("DYREKTORKA FINANSOWA · STRATEGIA I KAPITAŁ", 10, SANS, "#C7D7E2", 54, 98, 2), 1.05),
     text("anna.kowalska@email.com  ·  +48 600 000 000  ·  Warszawa", 8.8, SANS, "#C7D7E2", 54, 120, 2),
@@ -90,5 +89,5 @@ export const ledgerTemplate = [
         "FP&A  ·  Treasury  ·  Finansowanie dłużne  ·  M&A  ·  Modelowanie finansowe  ·  IFRS  ·  Power BI  ·  Zarządzanie ryzykiem",
         66, 732, 458, 28, 9.3, 13, INK, SANS
     ),
-    text("LEDGER / 01", 8, SANS, SLATE, 467, 796, 2),
+    text("01", 8, SANS, SLATE, 522, 796, 2),
 ];

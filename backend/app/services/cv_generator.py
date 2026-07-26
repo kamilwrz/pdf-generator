@@ -606,7 +606,7 @@ def _banking_page_decorations(theme: str, page: int) -> list[dict]:
             {**_line(0, 0, 130, 842, C["ink"], page=page), "fixedToPage": True},
             {**_line(130, 0, 4, 842, C["accent"], zIndex=2, page=page), "fixedToPage": True},
             {**_line(164, 789, 377, 1, C["rule"], page=page), "fixedToPage": True},
-            {**_text(f"CLEAR / {page:02d}", 7.5, "Inter", C["muted"], 474, 800, page=page), "fixedToPage": True},
+            footer,
         ]
     if theme == "herald":
         return [
@@ -619,7 +619,7 @@ def _banking_page_decorations(theme: str, page: int) -> list[dict]:
         paper,
         {**_line(0, 0, 595, 5, C["accent"], page=page), "fixedToPage": True},
         {**_line(76, 789, 465, 1, C["rule"], page=page), "fixedToPage": True},
-        {**_text(f"{page:02d} / RISK", 7.5, "Inter", C["muted"], 477, 800, page=page), "fixedToPage": True},
+        footer,
     ]
 
 
@@ -647,7 +647,6 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
             _rect(408, 34, 112, 104, C["accent"], 1.1, zIndex=3),
             _circle(430, 50, 70, C["paper"], borderWidth=1.1, zIndex=2),
             _ellipse(444, 72, 42, 26, C["accent"], filled=True, zIndex=2),
-            _text("PRIVATE BANKING / STRATEGIA KAPITAŁU", 8.4, SANS, C["light"], 54, 40, zIndex=2),
             _text(_compact_text(cv.get("name"), 30), 29, SERIF, "#FFFFFF", 52, 65, zIndex=2, bold=True),
             _text(_compact_text(cv.get("title"), 54), 9.3, SANS, C["light"], 54, 108, zIndex=2),
             _text(_compact_text(_contact_line(cv), 78), 8.7, SANS, C["light"], 54, 132, zIndex=2),
@@ -663,7 +662,7 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
             _text("REPUTACJA", 7.4, SANS, C["muted"], 411, 207, zIndex=3),
             _text("ZAUFANIE", 13, SERIF, C["ink"], 411, 221, zIndex=3, bold=True),
         ]
-        static[5]["letterSpacing"] = 1.4
+        static[6]["letterSpacing"] = 1.2
     elif theme == "clearing":
         node_a = {**_circle(454, 59, 18, C["accent"], borderWidth=1.2, zIndex=2, page=1), "id": "clearing-node-a"}
         node_b = {**_circle(489, 59, 18, C["ink"], borderWidth=1.2, zIndex=2, page=1), "id": "clearing-node-b"}
@@ -723,7 +722,6 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
             _ellipse(427, 48, 94, 62, C["accent"], borderWidth=1, zIndex=1),
             _circle(460, 65, 28, C["accent"], filled=True, zIndex=2),
             _line(52, 42, 4, 118, C["accent"], zIndex=2),
-            _text("RISK / TREASURY / GOVERNANCE", 8.5, SANS, C["light"], 78, 50, zIndex=2),
             _text(_compact_text(cv.get("name"), 30), 30, SERIF, C["ink"], 76, 77, zIndex=2, bold=True),
             _text(_compact_text(cv.get("title"), 54), 9.2, SANS, C["muted"], 78, 122, zIndex=2),
             _text(_compact_text(_contact_line(cv), 78), 8.6, SANS, C["muted"], 78, 145, zIndex=2),
@@ -734,8 +732,7 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
              "backgroundColor": C["accent"], "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
             _rect(487, 181, 54, 22, C["rule"], 1, zIndex=2),
         ]
-        static[4]["letterSpacing"] = 1.6
-        static[6]["letterSpacing"] = 1.35
+        static[5]["letterSpacing"] = 1.35
 
     SECTION_CHROME = 38
     b = BankingBuilder(C["start"])
@@ -870,7 +867,6 @@ def _gen_ledger(cv: dict) -> list[dict]:
             "page": 1,
         },
         _line(400, 30, 2, 102, BLUE, zIndex=2),
-        _text("LEDGER / FINANCE", 8.5, SANS, "#BFD0DE", L, 34, zIndex=2),
         _text(_compact_text(cv.get("name"), 30), 30, SERIF, "#FFFFFF", L, 58, zIndex=2, bold=True),
         _text(_compact_text(cv.get("title"), 52), 10, SANS, "#C7D7E2", L, 98, zIndex=2),
         _text(_compact_text(_contact_line(cv), 78), 8.8, SANS, "#C7D7E2", L, 120, zIndex=2),
@@ -888,7 +884,7 @@ def _gen_ledger(cv: dict) -> list[dict]:
         _text("KAPITAŁ", 7.5, SANS, SLATE, 406, 193, zIndex=3),
         _text("WARTOŚĆ", 20, SERIF, NAVY, 406, 208, zIndex=3, bold=True),
     ]
-    static[5]["letterSpacing"] = 1.5
+    static[6]["letterSpacing"] = 1.05
 
     SECTION_CHROME = 36
     b = Builder(278)
