@@ -2,7 +2,7 @@
     font-family: var(--font-body);
     min-height: 100vh;
     width: 100%;
-    background: linear-gradient(168deg, #F8FAFD, #E7EEF7);
+    background: transparent;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -13,11 +13,11 @@
 .loginCard {
     width: 100%;
     max-width: 350px;
-    background: #fff;
+    background: var(--chrome-surface);
     border-radius: var(--r-lg);
-    box-shadow: 0 18px 40px -18px rgba(30, 48, 78, .22);
+    box-shadow: var(--shadow-card);
     padding: 36px 32px;
-    border: 1px solid #E5EAF2;
+    border: 1px solid var(--chrome-border);
 }
 
 .logoBadge {
@@ -67,7 +67,7 @@
     display: flex;
     align-items: center;
     gap: 9px;
-    background: #F1F5FA;
+    background: var(--chrome-control);
     border: 1px solid var(--border);
     border-radius: var(--r-md);
     padding: 12px 14px;
@@ -75,7 +75,7 @@
 }
 
 .field:focus-within {
-    background: #fff;
+    background: var(--chrome-hover);
     border: 1.5px solid var(--accent);
     box-shadow: 0 0 0 4px var(--accent-soft);
 }
@@ -91,13 +91,13 @@
 }
 
 .field input::placeholder {
-    color: #97A1B0;
+    color: var(--label-font);
     font-weight: 500;
 }
 
 .fieldError {
-    border-color: #E8A6A0;
-    background: #FBE7E2;
+    border-color: var(--danger);
+    background: var(--danger-soft);
 }
 
 .authBtn {
@@ -105,7 +105,7 @@
     margin-top: 8px;
     padding: 14px;
     font: 700 16px var(--font-body);
-    color: #fff;
+    color: #0F1216;
     background: var(--accent-grad);
     border: none;
     border-radius: var(--r-md);
@@ -147,5 +147,5 @@
     color: var(--danger);
     background: var(--danger-soft);
     border-radius: var(--r-sm);
-    border: 1px solid #F3CFC8;
+    border: 1px solid rgba(232, 138, 115, .35);
 }

@@ -40,13 +40,13 @@
 }
 
 .spreadActive {
-    background: var(--chrome-accent-strong);
-    color: #fff;
+    background: var(--accent-grad);
+    color: #0F1216;
 }
 
 .spreadActive:hover:not(:disabled) {
-    background: var(--chrome-accent-strong);
-    color: #fff;
+    background: var(--chrome-accent);
+    color: #0F1216;
 }
 
 .navBtn:disabled {
@@ -82,8 +82,8 @@
     align-items: center;
     gap: 5px;
     height: 28px;
-    background: var(--chrome-accent-strong);
-    color: #fff;
+    background: var(--accent-grad);
+    color: #0F1216;
     font: 600 10.5px var(--font-body);
     border: none;
     padding: 0 10px;

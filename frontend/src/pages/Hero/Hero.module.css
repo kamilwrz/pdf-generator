@@ -1,6 +1,4 @@
-/* Kompoza landing — dark theme scoped to this page only. The rest of the app
-   (editor, auth) keeps the light global tokens; every colour here is a local
-   custom property so nothing leaks past .page. */
+/* Kompoza landing — local tokens mirror the global dark app theme. */
 .page {
     --bg: #16181c;
     --bg-2: #131519;

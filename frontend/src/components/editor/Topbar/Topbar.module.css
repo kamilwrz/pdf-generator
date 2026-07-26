@@ -52,9 +52,9 @@
 }
 
 .projectField:focus-within {
-    background: #fff;
-    border-color: #aebdc7;
-    box-shadow: 0 0 0 2px rgba(70, 107, 130, .1);
+    background: var(--chrome-control);
+    border-color: var(--chrome-accent);
+    box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .projectIcon {
@@ -75,7 +75,7 @@
 }
 
 .projectField input::placeholder {
-    color: #8997a1;
+    color: var(--chrome-muted);
     font-weight: 500;
 }
 
@@ -118,7 +118,7 @@
 
 .sizeSelect:hover,
 .sizeSelect:focus {
-    border-color: #b9c6ce;
+    border-color: var(--topbar-accent);
     color: var(--topbar-ink);
 }
 
@@ -177,17 +177,17 @@
 }
 .secondary:hover:not(:disabled) {
     background: var(--topbar-hover);
-    border-color: #b9c6ce;
+    border-color: var(--topbar-accent);
     color: var(--topbar-accent);
 }
 
 /* ---- Create PDF (primary) ---- */
 .primary {
-    background: #344f61;
-    color: #fff;
+    background: var(--accent-grad);
+    color: #0F1216;
 }
 .primary:hover:not(:disabled) {
-    background: #293f4e;
+    background: var(--chrome-accent);
 }
 
 .secondary:disabled,
@@ -275,7 +275,7 @@
 
 .zoomBtn:hover:not(:disabled) {
     color: var(--topbar-ink);
-    background: #dce6eb;
+    background: var(--topbar-hover);
 }
 
 .zoomBtn:disabled {

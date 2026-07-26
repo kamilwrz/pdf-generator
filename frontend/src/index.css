@@ -1,50 +1,56 @@
 :root {
+    /* Dark theme aligned with the marketing Hero page. */
+
     /* ---- Surfaces & backgrounds ---- */
-    --primary-bg: #ffffff;
-    --secondary-bg: #F6F8FB;          /* cool white surface */
-    --surface-2: #EDF1F7;             /* canvas / panel backdrop */
-    --bg-cream: #F8FAFD;              /* light cool white (legacy name) */
+    --primary-bg: #1C1F24;
+    --secondary-bg: #22262d;
+    --surface-2: #131519;
+    --bg-cream: #16181c;
 
     /* ---- Shared editor chrome (topbar, sidebar, panels, modals) ---- */
-    --chrome-ink: #2f4352;
-    --chrome-muted: #71818d;
-    --chrome-border: #d9e1e6;
-    --chrome-surface: #f8fafb;
-    --chrome-control: #f1f5f7;
-    --chrome-hover: #e7eef2;
-    --chrome-accent: #466b82;
-    --chrome-accent-strong: #344f61;
-    --chrome-shadow: 0 14px 34px -22px rgba(47, 67, 82, .38);
+    --chrome-ink: #F3F5F8;
+    --chrome-muted: #9AA4B2;
+    --chrome-border: #2F343C;
+    --chrome-surface: #1C1F24;
+    --chrome-control: #22262d;
+    --chrome-hover: #2A3038;
+    --chrome-accent: #6C9BE6;
+    --chrome-accent-strong: #4A76BE;
+    --chrome-shadow: 0 14px 34px -18px rgba(0, 0, 0, .65);
 
-    /* ---- Brand accent (elegant blue) ---- */
-    --accent: #3E6DB5;
-    --accent-strong: #2C5490;
-    --accent-soft: #E7F0FB;
-    --accent-grad: linear-gradient(150deg, var(--accent), var(--accent-strong));
+    /* ---- Brand accent (hero blue) ---- */
+    --accent: #6C9BE6;
+    --accent-strong: #4A76BE;
+    --accent-soft: rgba(108, 155, 230, .16);
+    --accent-grad: linear-gradient(150deg, #6C9BE6, #4A76BE);
+
+    /* Secondary accents from Hero */
+    --amber: #E5A65C;
+    --green: #6FBF8E;
 
     /* ---- Buttons ---- */
     --primary-btn: var(--accent);
-    --secondary-btn: #EEF2F8;
-    --close-btn: #E7EEF7;
+    --secondary-btn: #22262d;
+    --close-btn: #2A3038;
 
     /* ---- Text ---- */
-    --primary-font: #1E2733;          /* darkest slate ink */
-    --ink-2: #2A3542;
-    --secondary-font: #8894A5;        /* muted cool gray */
-    --muted-font: #57616F;            /* secondary body */
-    --label-font: #97A1B0;            /* uppercase labels */
-    --deco-font: #3E6DB5;             /* accent text */
+    --primary-font: #ECEFF3;
+    --ink-2: #F3F5F8;
+    --secondary-font: #9AA4B2;
+    --muted-font: #8B95A3;
+    --label-font: #6E7887;
+    --deco-font: #7BA6EA;
 
     /* ---- Lines & borders ---- */
-    --border: #E1E7F0;
-    --border-soft: #E9EEF5;
-    --border-line: #E5EAF2;
+    --border: #2F343C;
+    --border-soft: #262a31;
+    --border-line: #2F343C;
 
     /* ---- Status ---- */
-    --success: #4E9A6B;
-    --success-soft: #E6F1EB;
-    --danger: #D2503C;
-    --danger-soft: #FBE7E2;
+    --success: #6FBF8E;
+    --success-soft: rgba(111, 191, 142, .16);
+    --danger: #E88A73;
+    --danger-soft: rgba(232, 138, 115, .16);
 
     /* ---- Radius scale ---- */
     --r-xl: 22px;
@@ -53,14 +59,14 @@
     --r-sm: 9px;
 
     /* ---- Elevation ---- */
-    --shadow-card: 0 1px 2px rgba(24, 40, 66, .05), 0 26px 60px -28px rgba(30, 48, 78, .30);
-    --shadow-pop: 0 18px 44px -16px rgba(30, 48, 78, .30);
-    --shadow-accent: 0 12px 24px -10px var(--accent);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, .25), 0 26px 60px -28px rgba(0, 0, 0, .55);
+    --shadow-pop: 0 18px 44px -16px rgba(0, 0, 0, .55);
+    --shadow-accent: 0 12px 24px -10px rgba(108, 155, 230, .45);
 
     /* ---- Typography ---- */
-    --font-display: 'Nunito', sans-serif;       /* brand / headings */
-    --font-body: 'Nunito Sans', sans-serif;     /* UI / body */
-    --font-serif: 'Playfair Display', serif;    /* elegant document text */
+    --font-display: 'Nunito', sans-serif;
+    --font-body: 'Nunito Sans', sans-serif;
+    --font-serif: 'Playfair Display', serif;
 
     /* legacy aliases kept so existing references resolve */
     --primary-font-family: 'Nunito Sans', sans-serif;

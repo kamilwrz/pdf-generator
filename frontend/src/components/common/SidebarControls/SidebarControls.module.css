@@ -14,19 +14,19 @@
 }
 
 .tile:hover {
-    background: #e7eef2;
+    background: var(--chrome-hover);
 }
 
 .tile:active {
-    background: #dce6eb;
+    background: var(--chrome-control);
 }
 
 .iconBox {
     width: 32px;
     height: 32px;
     border-radius: 5px;
-    background: #e9eff2;
-    color: #587285;
+    background: var(--chrome-control);
+    color: var(--chrome-muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -36,7 +36,6 @@
 }
 
 .tile:hover .iconBox {
-    background: #d8e4ea;
-    color: #35576c;
+    background: var(--chrome-hover);
+    color: var(--chrome-accent);
 }
-

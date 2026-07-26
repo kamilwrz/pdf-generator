@@ -22,7 +22,7 @@
 
 .cancelBtn:hover {
     background: var(--chrome-hover);
-    border-color: #b9c6ce;
+    border-color: var(--chrome-border);
     color: var(--chrome-accent);
 }
 
@@ -40,14 +40,14 @@
 
 .sectionLabel {
     font: 700 9.5px var(--font-body);
-    color: #8997a1;
+    color: var(--chrome-muted);
     letter-spacing: .1em;
     text-transform: uppercase;
 }
 
 /* Upload dropzone */
 .dropzone {
-    border: 1px dashed #aebdc7;
+    border: 1px dashed var(--chrome-border);
     border-radius: 8px;
     padding: 20px 16px;
     display: flex;
@@ -112,8 +112,8 @@
     padding: 0 12px;
     border-radius: 6px;
     border: 1px solid transparent;
-    background: var(--chrome-accent-strong);
-    color: #fff;
+    background: var(--accent-grad);
+    color: #0F1216;
     font: 600 10.5px var(--font-body);
     cursor: pointer;
     transition: background .15s, opacity .2s;
@@ -217,8 +217,8 @@
     display: inline-block;
     width: 14px;
     height: 14px;
-    border: 2px solid rgba(255,255,255,.35);
-    border-top-color: #fff;
+    border: 2px solid rgba(15, 18, 22, .25);
+    border-top-color: #0F1216;
     border-radius: 50%;
     animation: spin .7s linear infinite;
     flex-shrink: 0;
@@ -237,5 +237,5 @@
     color: var(--danger);
     background: var(--danger-soft);
     border-radius: 6px;
-    border: 1px solid #F3CFC8;
+    border: 1px solid rgba(232, 138, 115, .35);
 }

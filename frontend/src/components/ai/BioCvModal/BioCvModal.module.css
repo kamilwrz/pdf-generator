@@ -359,8 +359,8 @@
 .primaryBtn {
     border: 1px solid transparent;
     border-radius: 6px;
-    background: var(--chrome-accent-strong);
-    color: #fff;
+    background: var(--accent-grad);
+    color: #0F1216;
     font: 700 10.5px var(--font-body);
     cursor: pointer;
 }
@@ -370,7 +370,7 @@
 .error {
     margin-top: 13px;
     padding: 9px 10px;
-    border: 1px solid #F3CFC8;
+    border: 1px solid rgba(232, 138, 115, .35);
     border-radius: 6px;
     background: var(--danger-soft);
     color: var(--danger);

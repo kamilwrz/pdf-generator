@@ -6,8 +6,8 @@
     align-items: flex-start;
     justify-content: center;
     padding: 8vh 1rem 1rem;
-    background: rgba(28, 36, 48, .34);
-    backdrop-filter: blur(2px);
+    background: rgba(8, 10, 14, .62);
+    backdrop-filter: blur(4px);
     animation: fadeIn .16s ease both;
 }
 
@@ -19,7 +19,7 @@
     background: var(--chrome-surface);
     border: 1px solid var(--chrome-border);
     border-radius: 8px;
-    box-shadow: 0 24px 54px -28px rgba(47, 67, 82, .55);
+    box-shadow: 0 24px 54px -20px rgba(0, 0, 0, .7);
     overflow: hidden;
     animation: popIn .18s cubic-bezier(.2, .8, .3, 1) both;
     font-family: var(--font-body);
