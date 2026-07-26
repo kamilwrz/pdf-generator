@@ -4,6 +4,7 @@ import math
 import fitz
 from openai import OpenAI
 from app.core.config import OPENAI_API_KEY
+from app.services.cv_data import normalize_cv_data
 
 _client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -75,7 +76,7 @@ def extract_cv_data(pdf_bytes: bytes) -> dict:
         temperature=0.1,
         response_format={"type": "json_object"},
     )
-    return json.loads(resp.choices[0].message.content)
+    return normalize_cv_data(json.loads(resp.choices[0].message.content))
 
 
 # ── Post-processing: fix textarea heights from actual content ─────────────────

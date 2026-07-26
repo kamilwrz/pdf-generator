@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, use } from "react";
+import { useRef, useState, useCallback, use, useMemo } from "react";
 import classes from "./AiCvPanel.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
@@ -21,7 +21,7 @@ const SparkIcon = () => (
 );
 
 export default function AiCvPanel() {
-    const { isAiPanel, showAiPanel, loadAiElements } = use(PdfContext);
+    const { isAiPanel, showAiPanel, showBioCvModal, loadAiElements } = use(PdfContext);
 
     const fileRef = useRef(null);
     const [fileName, setFileName] = useState(null);
@@ -31,7 +31,10 @@ export default function AiCvPanel() {
     const [fillingId, setFillingId] = useState(null);
     const [error, setError] = useState(null);
 
-    const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
+    const api = useMemo(
+        () => new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` }),
+        [],
+    );
 
     function handleFilePick(e) {
         const f = e.target.files?.[0];
@@ -56,7 +59,7 @@ export default function AiCvPanel() {
         } finally {
             setIsExtracting(false);
         }
-    }, [fileData]);
+    }, [api, fileData]);
 
     const handleFill = useCallback(async (template) => {
         if (!cvData) return;
@@ -75,9 +78,9 @@ export default function AiCvPanel() {
         } finally {
             setFillingId(null);
         }
-    }, [cvData, loadAiElements, showAiPanel]);
+    }, [api, cvData, loadAiElements, showAiPanel]);
 
-    const extracted = cvData && (cvData.name || cvData.email);
+    const extracted = Boolean(cvData?.name);
 
     return (
         <DialogShell
@@ -127,6 +130,11 @@ export default function AiCvPanel() {
                         </>
                     )}
                 </div>
+                {!extracted && (
+                    <button type="button" className={classes.guidedLink} onClick={showBioCvModal}>
+                        Nie masz gotowego PDF? Utwórz CV krok po kroku
+                    </button>
+                )}
             </div>
 
             {extracted && (

@@ -22,6 +22,7 @@ import Guides from '../components/canvas/Guides/Guides';
 import Connectors from '../components/canvas/Connectors/Connectors';
 import TemplatesModal from '../components/modals/TemplatesModal/TemplatesModal';
 import AiCvPanel from '../components/ai/AiCvPanel/AiCvPanel';
+import BioCvModal from '../components/ai/BioCvModal/BioCvModal';
 import AiDeckPanel from '../components/ai/AiDeckPanel/AiDeckPanel';
 import AiArticlePanel from '../components/ai/AiArticlePanel/AiArticlePanel';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
@@ -45,11 +46,12 @@ function PdfCanvas() {
   // with each other — opening one always closes whatever else was open.
   // Replaces 5 independent booleans that previously had no exclusivity at
   // all (e.g. Moje dokumenty + Szablony + Gallery could all be open together).
-  const [dialog, setDialog] = useState(null); // 'docs' | 'templates' | 'ai' | null
+  const [dialog, setDialog] = useState(null); // 'docs' | 'templates' | 'ai' | 'bioCv' | null
   const [panel, setPanel] = useState(null);   // 'upload' | 'gallery' | null
   const isModalPdfs = dialog === 'docs';
   const isTemplates = dialog === 'templates';
   const isAiPanel = dialog === 'ai';
+  const isBioCvModal = dialog === 'bioCv';
   const isGallery = panel === 'gallery';
   const isDropzone = panel === 'upload';
   // Compatibility setter: ModalPdfs.jsx and Sidebar.jsx both call this as
@@ -222,20 +224,13 @@ function PdfCanvas() {
 
 
   //TOKEN EXPIRATION SINGLE PAGE APP PROBLEM (NO ROUTES)
-  function handleIsActive() {
-    setIsActive(active => !active)
-  }
-  const throttledHandleIsActive = useMemo(() => {
-    let lastCall = 0;
-    const throttleMs = 30000; // 30 seconds
-
-    return () => {
-      const now = Date.now();
-      if (now - lastCall >= throttleMs) {
-        lastCall = now;
-        handleIsActive();
-      }
-    };
+  const lastActivityCheckRef = useRef(0);
+  const throttledHandleIsActive = useCallback(() => {
+    const now = Date.now();
+    if (now - lastActivityCheckRef.current >= 30000) {
+      lastActivityCheckRef.current = now;
+      setIsActive(active => !active);
+    }
   }, []);
 
   useEffect(() => {
@@ -250,7 +245,7 @@ function PdfCanvas() {
         }
       })
 
-  }, [checkActivity])
+  }, [checkActivity, navigate])
 
 
   // Each visible page receives this capture handler, allowing connector source
@@ -422,6 +417,12 @@ function PdfCanvas() {
     if (next) setPanel(null);
   }, [dialog])
 
+  const handleShowBioCvModal = useCallback(() => {
+    const next = dialog !== 'bioCv';
+    setDialog(next ? 'bioCv' : null);
+    if (next) setPanel(null);
+  }, [dialog])
+
   const handleShowDeckPanel = useCallback(() => {
     setIsDeckPanel(bool => !bool);
   }, [])
@@ -578,6 +579,8 @@ function PdfCanvas() {
     //ai panel
     isAiPanel: isAiPanel,
     showAiPanel: handleShowAiPanel,
+    isBioCvModal: isBioCvModal,
+    showBioCvModal: handleShowBioCvModal,
     showDeckPanel: handleShowDeckPanel,
     showArticlePanel: handleShowArticlePanel,
     //page geometry
@@ -636,7 +639,7 @@ function PdfCanvas() {
     deletionPreviewIds: deletionPreviewIds,
     setDeletionPreviewIds: setDeletionPreviewIds,
   }), [
-    A4_Elements, groupMoveDelta, setPageCanvasRef,
+    A4_Elements, groupMoveDelta, setPageCanvasRef, PDFdownloadData, isPdfLoading, pdfId, setA4_Elements_deleted,
     isGallery, isDropzone, valueImageUpload,
     isModalPdfs, handleAddImage,
     handleAddText, handleAddLine, handleAddRectangle, handleAddCircle, handleAddEllipse, startConnecting, handleSelectElement,
@@ -650,7 +653,7 @@ function PdfCanvas() {
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     isTwoPageView, toggleTwoPageView,
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
-    isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen, handleMoveElementWithBelow, isAiPanel, handleShowAiPanel,
+    isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen, handleMoveElementWithBelow, isAiPanel, handleShowAiPanel, isBioCvModal, handleShowBioCvModal,
     handleShowDeckPanel, handleShowArticlePanel, pageSize, setPageSize, setPagePreset,
     zoom, zoomIn, zoomOut,
     undo, redo, canUndo, canRedo, resetHistory,
@@ -686,6 +689,7 @@ function PdfCanvas() {
         <ModalPdfs title={titleRef}/>
         <TemplatesModal />
         <AiCvPanel />
+        <BioCvModal />
         <Sidebar>
           <DropzoneContainer />
           {/* Side panels anchor to the full-height sidebar, but the topbar (44px,

@@ -333,7 +333,11 @@ def _bullets(job: dict) -> str:
 
 
 def _company_period(job: dict) -> str:
-    return "   ·   ".join(filter(None, [job.get("company"), job.get("period")]))
+    return "   ·   ".join(filter(None, [
+        job.get("company"),
+        job.get("city"),
+        job.get("period"),
+    ]))
 
 
 # ── template generators ──────────────────────────────────────────────────────

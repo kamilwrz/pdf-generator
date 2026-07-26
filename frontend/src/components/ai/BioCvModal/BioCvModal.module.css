@@ -1,0 +1,392 @@
+.progress {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--chrome-border);
+    background: var(--chrome-control);
+}
+
+.progressStep {
+    display: grid;
+    justify-items: center;
+    gap: 3px;
+    padding: 2px;
+    border: 0;
+    color: var(--chrome-muted);
+    background: transparent;
+    cursor: default;
+}
+
+.progressStep:not(:disabled) { cursor: pointer; }
+
+.progressStep span {
+    display: grid;
+    width: 18px;
+    height: 18px;
+    place-items: center;
+    border: 1px solid var(--chrome-border);
+    border-radius: 50%;
+    font: 700 9px var(--font-body);
+}
+
+.progressStep small {
+    overflow: hidden;
+    width: 100%;
+    color: inherit;
+    font: 600 8px var(--font-body);
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.progressStep.active { color: var(--chrome-accent); }
+.progressStep.active span {
+    border-color: var(--chrome-accent);
+    background: var(--chrome-accent);
+    color: #fff;
+}
+
+.progressStep.complete { color: var(--success); }
+.progressStep.complete span {
+    border-color: var(--success);
+    background: var(--success-soft);
+}
+
+.body {
+    min-height: 330px;
+    padding: 16px;
+}
+
+.sectionHeading {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.sectionHeading span {
+    color: var(--chrome-accent);
+    font: 700 9px var(--font-body);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+.sectionHeading h3 {
+    margin: 0;
+    color: var(--chrome-ink);
+    font: 700 15px var(--font-display);
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 11px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.field > span {
+    color: var(--chrome-muted);
+    font: 700 9.5px var(--font-body);
+    letter-spacing: .045em;
+    text-transform: uppercase;
+}
+
+.field input,
+.field textarea,
+.field select {
+    box-sizing: border-box;
+    width: 100%;
+    border: 1px solid var(--chrome-border);
+    border-radius: 6px;
+    outline: none;
+    background: var(--primary-bg);
+    color: var(--chrome-ink);
+    font: 500 12px var(--font-body);
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.field input,
+.field select {
+    height: 33px;
+    padding: 0 9px;
+}
+
+.field textarea {
+    resize: vertical;
+    padding: 8px 9px;
+    line-height: 1.42;
+}
+
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+    border-color: var(--chrome-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--chrome-accent) 13%, transparent);
+}
+
+.field small {
+    color: var(--chrome-muted);
+    font: 500 9.5px var(--font-body);
+}
+
+.full { grid-column: 1 / -1; }
+
+.intro {
+    margin: 0 0 12px;
+    color: var(--chrome-muted);
+    font: 500 11.5px/1.48 var(--font-body);
+}
+
+.repeater {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.entryCard {
+    padding: 11px;
+    border: 1px solid var(--chrome-border);
+    border-radius: 7px;
+    background: var(--chrome-control);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.cardHeader strong {
+    color: var(--chrome-ink);
+    font: 700 11px var(--font-body);
+}
+
+.cardActions {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.cardActions button,
+.clearBtn,
+.cancelBtn,
+.addBtn {
+    border: 1px solid var(--chrome-border);
+    border-radius: 5px;
+    background: var(--primary-bg);
+    color: var(--chrome-ink);
+    font: 600 10px var(--font-body);
+    cursor: pointer;
+}
+
+.cardActions button {
+    width: 23px;
+    height: 22px;
+    padding: 0;
+}
+
+.cardActions button:disabled {
+    cursor: default;
+    opacity: .35;
+}
+
+.cardActions .removeBtn {
+    width: auto;
+    padding: 0 7px;
+    color: var(--danger);
+}
+
+.addBtn {
+    align-self: flex-start;
+    padding: 7px 9px;
+    color: var(--chrome-accent);
+}
+
+.addBtn:hover,
+.clearBtn:hover,
+.cancelBtn:hover,
+.cardActions button:hover:not(:disabled) {
+    border-color: var(--chrome-accent);
+    background: var(--chrome-hover);
+}
+
+.singleStep { max-width: 560px; }
+
+.review {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+}
+
+.reviewIdentity {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--chrome-border);
+}
+
+.reviewIdentity strong {
+    color: var(--chrome-ink);
+    font: 700 17px var(--font-display);
+}
+
+.reviewIdentity span {
+    margin-top: 2px;
+    color: var(--chrome-muted);
+    font: 600 11px var(--font-body);
+}
+
+.reviewStats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.reviewStats span {
+    padding: 4px 7px;
+    border: 1px solid var(--chrome-border);
+    border-radius: 12px;
+    color: var(--chrome-muted);
+    font: 600 10px var(--font-body);
+}
+
+.review > p {
+    margin: -2px 0 0;
+    color: var(--chrome-muted);
+    font: 500 11px/1.45 var(--font-body);
+}
+
+.templateGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+}
+
+.templateCard {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 51px;
+    padding: 8px;
+    border: 1px solid var(--chrome-border);
+    border-radius: 7px;
+    background: var(--primary-bg);
+    color: var(--chrome-ink);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+
+.templateCard:hover:not(:disabled) {
+    border-color: var(--chrome-accent);
+    background: var(--chrome-hover);
+}
+
+.templateCard:disabled { cursor: not-allowed; opacity: .65; }
+
+.templateAccent {
+    width: 4px;
+    height: 31px;
+    border-radius: 3px;
+    flex: 0 0 auto;
+}
+
+.templateCopy {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.templateCopy strong { font: 700 11px var(--font-body); }
+.templateCopy small {
+    overflow: hidden;
+    color: var(--chrome-muted);
+    font: 500 9px var(--font-body);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.templateAction {
+    color: var(--chrome-accent);
+    font: 700 9px var(--font-body);
+    white-space: nowrap;
+}
+
+.footer {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.draftState {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    color: var(--chrome-muted);
+    font: 600 10px var(--font-body);
+}
+
+.draftState em {
+    color: var(--success);
+    font: 500 9px var(--font-body);
+    font-style: normal;
+}
+
+.footerActions { display: flex; gap: 6px; }
+
+.clearBtn,
+.cancelBtn,
+.primaryBtn {
+    height: 29px;
+    padding: 0 10px;
+}
+
+.clearBtn { color: var(--danger); }
+
+.primaryBtn {
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: var(--chrome-accent-strong);
+    color: #fff;
+    font: 700 10.5px var(--font-body);
+    cursor: pointer;
+}
+
+.primaryBtn:hover { background: var(--chrome-accent); }
+
+.error {
+    margin-top: 13px;
+    padding: 9px 10px;
+    border: 1px solid #F3CFC8;
+    border-radius: 6px;
+    background: var(--danger-soft);
+    color: var(--danger);
+    font: 600 11px var(--font-body);
+}
+
+.loading {
+    color: var(--chrome-muted);
+    font: 500 12px var(--font-body);
+}
+
+@media (max-width: 620px) {
+    .progress { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .formGrid,
+    .templateGrid { grid-template-columns: 1fr; }
+    .full { grid-column: auto; }
+    .footer { align-items: flex-end; }
+    .draftState { display: none; }
+}

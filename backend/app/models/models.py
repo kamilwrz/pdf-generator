@@ -65,6 +65,21 @@ class PdfElements(Base):
 PdfElements.metadata.create_all(bind=engine)
 
 
+class BioCvDraft(Base):
+    """One resumable, private CV-profile draft per user."""
+
+    __tablename__ = "bio_cv_drafts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False, index=True)
+    cv_data = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=False)
+
+
+BioCvDraft.metadata.create_all(bind=engine)
+
+
 def _run_lightweight_migrations():
     """Add multi-page columns to pre-existing tables.
 

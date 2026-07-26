@@ -5,7 +5,7 @@ import { PAGE_PRESETS } from "../../../hooks/useA4Elements";
 import { FEATURES } from "../../../config/features";
 import { LuLayoutTemplate } from "react-icons/lu";
 import { RiFileTextLine, RiDownload2Line } from "react-icons/ri";
-import { FiRefreshCw, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
+import { FiEdit3, FiRefreshCw, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { MdOutlineSlideshow } from "react-icons/md";
 import { RiArticleLine, RiArrowGoBackLine, RiArrowGoForwardLine } from "react-icons/ri";
 import { TiPen } from "react-icons/ti";
@@ -14,6 +14,7 @@ export default function Topbar({ titleRef }) {
     const {
         showTemplates,
         showAiPanel,
+        showBioCvModal,
         showDeckPanel,
         showArticlePanel,
         createPdf,
@@ -43,6 +44,10 @@ export default function Topbar({ titleRef }) {
                 <button type="button" className={classes.feature} onClick={showAiPanel}>
                     <RiFileTextLine />
                     <span className={classes.label}>Wypełnij z PDF</span>
+                </button>
+                <button type="button" className={classes.feature} onClick={showBioCvModal}>
+                    <FiEdit3 />
+                    <span className={classes.label}>Utwórz CV krok po kroku</span>
                 </button>
                 {FEATURES.decksArticles && (
                     <>
