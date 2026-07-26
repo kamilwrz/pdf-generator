@@ -1329,7 +1329,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    max-width: 720px;
+    max-width: 1120px;
     margin: 0 auto;
     padding: 72px 56px;
     text-align: center;
@@ -1339,7 +1339,153 @@
 .cennikText {
     font: 400 16px/1.6 var(--body);
     color: var(--text);
-    margin: 12px 0 0;
+    margin: 12px auto 0;
+    max-width: 520px;
+}
+
+.pricingGrid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 40px;
+    text-align: left;
+}
+
+.planCard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 28px 24px 24px;
+    background: #1C1F24;
+    border: 1px solid #2F343C;
+    border-radius: 16px;
+    min-height: 100%;
+}
+
+.planFeatured {
+    background: linear-gradient(165deg, #22262d 0%, #1a1e24 100%);
+    border-color: #6C9BE6;
+    box-shadow: 0 18px 40px -22px rgba(108, 155, 230, .55);
+    transform: translateY(-6px);
+}
+
+.planBadge {
+    position: absolute;
+    top: -11px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--grad);
+    color: #0F1216;
+    font: 800 11px var(--body);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.planName {
+    font: 800 15px var(--body);
+    color: var(--text-2);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.planPrice {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.planAmount {
+    font: 800 48px/1 var(--display);
+    color: var(--ink);
+    letter-spacing: -.02em;
+}
+
+.planCurrency {
+    font: 700 18px var(--body);
+    color: var(--text-2);
+}
+
+.planPeriod {
+    margin: 0 0 14px;
+    font: 500 13px var(--body);
+    color: var(--text-3);
+}
+
+.planFeatures {
+    list-style: none;
+    margin: 0 0 22px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+
+.planFeatures li {
+    position: relative;
+    padding-left: 22px;
+    font: 500 14px/1.4 var(--body);
+    color: var(--text);
+}
+
+.planFeatures li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 7px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--blue);
+    box-shadow: 0 0 0 3px rgba(108, 155, 230, .16);
+}
+
+.planMuted {
+    color: var(--text-3) !important;
+}
+
+.planMuted::before {
+    background: #5a6270 !important;
+    box-shadow: none !important;
+}
+
+.planCtaPrimary,
+.planCtaSecondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 10px;
+    font: 800 14px var(--body);
+    text-decoration: none;
+    transition: transform .15s, background .15s, border-color .15s;
+}
+
+.planCtaPrimary {
+    background: var(--grad);
+    color: #0F1216;
+}
+
+.planCtaPrimary:hover {
+    transform: translateY(-1px);
+}
+
+.planCtaSecondary {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid #3A4048;
+}
+
+.planCtaSecondary:hover {
+    border-color: var(--blue);
+    color: var(--blue);
 }
 
 /* ---- Final CTA ---- */
@@ -1512,6 +1658,13 @@
         min-height: auto;
         padding: 72px 24px;
     }
+    .pricingGrid {
+        grid-template-columns: 1fr;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .planFeatured { transform: none; }
     .templatesGrid { grid-template-columns: repeat(2, 1fr); }
     .testimonialsGrid { grid-template-columns: 1fr; gap: 20px; }
     .finalCta { padding: 64px 24px; }
