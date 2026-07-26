@@ -1,154 +1,154 @@
-# Kompoza — Features
+# Kompoza — Funkcje
 
 **Twórz piękne CV w kilka minut.**
 
-Kompoza is a Polish-first CV studio: a visual A4 canvas, industry-styled templates, and AI that helps you fill, refine, and export a PDF ready to send. No design degree required — just your story, a template, and a few clicks.
+Kompoza to studio CV po polsku: wizualne płótno A4, szablony dopasowane do branż oraz AI, które pomaga wypełnić, dopracować i wyeksportować PDF gotowy do wysłania. Bez studiów z designu — wystarczy Twoja historia, szablon i kilka kliknięć.
 
 ---
 
-## Why Kompoza
+## Dlaczego Kompoza
 
 | | |
 |---|---|
-| **Visual, not forms-only** | Drag, align, and style every block on a real page — what you see is what you export. |
-| **Templates that fit your field** | Finance, IT, banking, classic executive, sidebar, and dark themes — 24 ready layouts. |
-| **AI that finishes the heavy lifting** | Import an old PDF, walk through a guided bio, or chat with the assistant for scores, ATS, and rewrites. |
-| **Free to start** | Create an account, design, and download. No card required. Paid plans are coming later. |
+| **Wizualnie, nie tylko formularze** | Przeciągaj, wyrównuj i stylizuj każdy blok na prawdziwej stronie — to, co widzisz, trafia do eksportu. |
+| **Szablony pod Twoją branżę** | Finanse, IT, bankowość, klasyka executive, sidebar i motywy ciemne — 24 gotowe układy. |
+| **AI, które bierze na siebie ciężką robotę** | Zaimportuj stare PDF, przejdź kreator bio albo porozmawiaj z asystentem o ocenach, ATS i poprawkach. |
+| **Za darmo na start** | Załóż konto, projektuj i pobieraj. Karta nie jest wymagana. Plany płatne pojawią się później. |
 
 ---
 
-## Start in the way that fits you
+## Zacznij tak, jak Ci wygodnie
 
-### Choose a template
-Open the library, preview industry-tagged designs, and drop one onto the canvas. New accounts are guided here first so you never face a blank page alone.
+### Wybierz szablon
+Otwórz bibliotekę, podejrzyj projekty oznaczone branżą i przenieś wybrany układ na płótno. Nowe konta trafiają tu od razu — nie zostajesz sam na pustej stronie.
 
-### Fill from your PDF
-Upload an existing CV. Kompoza extracts name, title, experience, education, and skills — then pours them into any template you pick. Reuse the same data across multiple looks without re-uploading.
+### Wypełnij z PDF
+Prześlij istniejące CV. Kompoza wyciąga imię, stanowisko, doświadczenie, wykształcenie i umiejętności — a potem wlewa je do dowolnego szablonu. Te same dane możesz użyć w wielu wyglądach bez ponownego uploadu.
 
-### Build step by step
-Prefer a wizard? Walk through personal details, experience, education, skills, languages, custom sections, and a summary. Drafts autosave so you can leave and come back. When you’re ready, generate into your chosen template.
-
----
-
-## Visual canvas editor
-
-A full creative surface for A4 portrait or landscape — multi-page when your story needs room.
-
-### Build with precision
-- **Text & paragraphs** — single-line titles and multi-line body blocks with fonts, size, color, weight, italic, underline, alignment, line height, and letter spacing  
-- **Shapes & lines** — rectangles, circles, ellipses, rules; fill or stroke, border weight and color  
-- **Connectors** — link elements with optional arrows for editorial accent systems  
-- **Images** — upload to your gallery, place on the page, keep aspect ratio while resizing  
-
-### Work like a designer
-- Multi-select with Ctrl/Cmd, group move, duplicate, and delete  
-- Alignment guides while dragging; orange spacing markers show exact pixel gaps between peak edges  
-- Lock elements you don’t want to nudge; push content below when you change Y  
-- Z-order control, page align left / center / right  
-- Zoom 25%–300% for detail work (export stays true to document size)  
-- Two-page spread view when you’re editing longer CVs  
-- Add, clone, reorder, and remove pages  
-
-### Stay in flow
-- Undo / redo for the session  
-- Autosave after you pause editing  
-- Clear project title and toast confirmations when your PDF is ready  
+### Stwórz krok po kroku
+Wolisz kreator? Przejdź dane osobowe, doświadczenie, wykształcenie, umiejętności, języki, własne sekcje i podsumowanie. Szkic zapisuje się automatycznie — możesz wyjść i wrócić. Gdy będziesz gotowy, wygeneruj CV w wybranym szablonie.
 
 ---
 
-## Template library — 24 CV systems
+## Wizualny edytor na płótnie
 
-Every template is A4 portrait and built for real careers — not generic “resume #3.”
+Pełna przestrzeń twórcza na A4 pion lub poziom — wiele stron, gdy historia tego potrzebuje.
 
-| Collection | Templates | Character |
+### Buduj precyzyjnie
+- **Tekst i akapity** — jednoliniowe tytuły i wieloliniowe bloki z fontami, rozmiarem, kolorem, pogrubieniem, kursywą, podkreśleniem, wyrównaniem, interliną i odstępami liter  
+- **Kształty i linie** — prostokąty, koła, elipsy, linie; wypełnienie lub obrys, grubość i kolor krawędzi  
+- **Łączniki** — połącz elementy opcjonalnymi strzałkami w systemach akcentów redakcyjnych  
+- **Obrazy** — wgraj do galerii, umieść na stronie, zachowaj proporcje przy zmianie rozmiaru  
+
+### Pracuj jak projektant
+- Wielokrotne zaznaczenie Ctrl/Cmd, przesuwanie grupy, duplikowanie i usuwanie  
+- Prowadnice wyrównania podczas przeciągania; pomarańczowe markery pokazują dokładny odstęp w pikselach między krawędziami elementów  
+- Blokada elementów, których nie chcesz ruszać; przesuwanie treści poniżej przy zmianie Y  
+- Kolejność warstw (z-index), wyrównanie do strony: lewo / środek / prawo  
+- Zoom 25%–300% do precyzyjnej pracy (eksport zostaje w rozmiarze dokumentu)  
+- Widok dwóch stron przy dłuższych CV  
+- Dodawanie, klonowanie, zmiana kolejności i usuwanie stron  
+
+### Zachowaj rytm pracy
+- Cofnij / ponów w ramach sesji  
+- Autozapis po chwili bez edycji  
+- Tytuł projektu i powiadomienia, gdy PDF jest gotowy  
+
+---
+
+## Biblioteka szablonów — 24 systemy CV
+
+Każdy szablon to A4 pion i realna kariera — nie generyczne „CV nr 3”.
+
+| Kolekcja | Szablony | Charakter |
 |---|---|---|
-| **Finance** | Ledger · Nimbus · Cinder · Rift | Institutional calm to bold editorial |
-| **IT** | Vector · Kernel · Relay · Lattice | Platforms, architecture, DevOps, digital product |
-| **Classic** | Scribe · Regent · Aldine · Merit | Formal, executive, paper-luxury, diplomatic minimal |
-| **Sidebar** | Quarry · Moss · Garnet · Harbor | Night systems, botanical, art déco, maritime |
-| **Banking** | Vault · Clearing · Herald · Signal | Private banking, ops, wealth, risk & treasury |
-| **Dark** | Obsidian · Raven · Graphite · Onyx | Side panel, top bar, minimal, diplomatic frame |
+| **Finanse** | Ledger · Nimbus · Cinder · Rift | Od instytucjonalnego spokoju po odważną redakcję |
+| **IT** | Vector · Kernel · Relay · Lattice | Platformy, architektura, DevOps, produkt cyfrowy |
+| **Classic** | Scribe · Regent · Aldine · Merit | Formalny, executive, szlachetny papier, dyplomatyczny minimalizm |
+| **Sidebar** | Quarry · Moss · Garnet · Harbor | Nocny system, botanika, art déco, morski klimat |
+| **Banking** | Vault · Clearing · Herald · Signal | Private banking, operacje, wealth, ryzyko i treasury |
+| **Dark** | Obsidian · Raven · Graphite · Onyx | Panel boczny, pasek górny, minimal, rama dyplomatyczna |
 
-Pick a look that matches the role you’re applying for — then make it yours.
-
----
-
-## Asystent AI — your on-canvas career coach
-
-A floating assistant that understands the document you’re editing.
-
-### Instant checks
-1. **Oceń CV** — overall score out of 10  
-2. **Projekt** — visual and layout critique  
-3. **Dopasowanie** — paste a job description; see how well you fit  
-4. **Gramatyka** — language polish  
-5. **Styl** — tone and clarity  
-6. **Ulepsz** — stronger, action-led bullets  
-7. **Wynik ATS** — machine-readability signal  
-8. **Układ** — alignment and spacing feedback  
-
-### Conversational edits
-Chat in natural language. Accept or reject per-element corrections, preview layout move groups, apply structure rebuilds, or remove weak blocks — with severity cues so you stay in control.
+Wybierz wygląd pod rolę, na którą aplikujesz — i uczyn go swoim.
 
 ---
 
-## Export that matches the canvas
+## Asystent AI — coach kariery na płótnie
 
-- Server-side PDF from your exact element model  
-- Fonts aligned between editor and file (including Inter, Roboto, Times, Helvetica, Courier)  
-- Multi-page and page size preserved  
-- Download from the success toast or from **Moje dokumenty**  
-- Zoom never warps the exported geometry  
+Pływający asystent, który rozumie dokument, który właśnie edytujesz.
 
-Your PDF looks like the page you designed — not a watered-down export.
+### Szybkie analizy
+1. **Oceń CV** — ogólna ocena w skali 1–10  
+2. **Projekt** — krytyka wizualna i układu  
+3. **Dopasowanie** — wklej ogłoszenie o pracę; zobacz, jak dobrze pasujesz  
+4. **Gramatyka** — poprawność językowa  
+5. **Styl** — ton i klarowność  
+6. **Ulepsz** — mocniejsze, bardziej „action” bullet points  
+7. **Wynik ATS** — sygnał czytelności dla systemów rekrutacyjnych  
+8. **Układ** — feedback o wyrównaniu i odstępach  
 
----
-
-## Your account & documents
-
-- **Register / login** with username, email, and password — free forever messaging, no card  
-- **Moje dokumenty** — search, sort (newest, oldest, A–Z), open, download, delete  
-- **Gallery** — upload images once, reuse across projects  
-- Secure session with JWT; canvas is for signed-in creators  
+### Edycja w rozmowie
+Pisz naturalnym językiem. Akceptuj lub odrzucaj poprawki per element, podglądaj grupy przesunięć layoutu, przebudowuj strukturę albo usuwaj słabe bloki — z oznaczeniem istotności, żebyś Ty miał kontrolę.
 
 ---
 
-## Polish-first experience
+## Eksport wierny płótnu
 
-The whole product surface speaks Polish: marketing, editor, AI actions, toasts, and modals. Built for the Polish job market first — with section language and copy that feel native, not translated as an afterthought.
+- PDF po stronie serwera z dokładnego modelu elementów  
+- Fonty zsynchronizowane między edytorem a plikiem (m.in. Inter, Roboto, Times, Helvetica, Courier)  
+- Zachowane wiele stron i rozmiar strony  
+- Pobierz z powiadomienia o sukcesie albo z **Moje dokumenty**  
+- Zoom nigdy nie zniekształca geometrii eksportu  
 
----
-
-## Pricing today
-
-**Free to create.** Design CVs, use templates, run AI tools, and export PDFs.
-
-Paid plans with extra templates and AI limits are on the roadmap (“Już wkrótce” on the pricing section). Until then, start free and ship the CV that gets the interview.
+Twój PDF wygląda jak strona, którą zaprojektowałeś — nie jak uproszczona kopia.
 
 ---
 
-## In three steps
+## Konto i dokumenty
 
-1. **Choose** — template, PDF import, or guided bio  
-2. **Craft** — edit on the canvas with guides, styles, and AI  
-3. **Send** — export a polished PDF and keep it in Moje dokumenty  
+- **Rejestracja / logowanie** loginem, e-mailem i hasłem — na zawsze za darmo, bez karty  
+- **Moje dokumenty** — wyszukiwanie, sortowanie (najnowsze, najstarsze, A–Z), otwieranie, pobieranie, usuwanie  
+- **Galeria** — wgraj obrazy raz, używaj w wielu projektach  
+- Bezpieczna sesja JWT; płótno jest dla zalogowanych twórców  
 
 ---
 
-## Kompoza at a glance
+## Najpierw po polsku
 
-| Capability | What you get |
+Cały interfejs mówi po polsku: marketing, edytor, akcje AI, powiadomienia i modale. Zbudowane pod polski rynek pracy — z nagłówkami sekcji i copy, które brzmią naturalnie, a nie jak pośpieszne tłumaczenie.
+
+---
+
+## Cennik dziś
+
+**Twórz za darmo.** Projektuj CV, korzystaj z szablonów, uruchamiaj narzędzia AI i eksportuj PDF-y.
+
+Plany płatne z dodatkowymi szablonami i limitami AI są na roadmapie („Już wkrótce” w sekcji cennika). Do tego czasu zacznij za darmo i wyślij CV, które otwiera drzwi na rozmowę.
+
+---
+
+## W trzech krokach
+
+1. **Wybierz** — szablon, import z PDF albo kreator bio  
+2. **Dopracuj** — edytuj na płótnie z prowadnicami, stylami i AI  
+3. **Wyślij** — wyeksportuj dopracowany PDF i trzymaj go w Moje dokumenty  
+
+---
+
+## Kompoza w skrócie
+
+| Możliwość | Co dostajesz |
 |---|---|
-| Canvas | Full A4 visual editor, multi-page, zoom, guides |
-| Templates | 24 industry-styled CV systems |
-| Import AI | Fill any template from an uploaded PDF |
-| Guided AI | Step-by-step bio wizard with draft save |
-| Coach AI | Scores, ATS, grammar, style, fit, layout fixes |
-| Export | Faithful multi-page PDF |
-| Library | Saved projects + image gallery |
-| Language | Polish-first UI |
-| Cost | Free to start · paid plans coming |
+| Płótno | Pełny edytor wizualny A4, wiele stron, zoom, prowadnice |
+| Szablony | 24 systemy CV dopasowane do branż |
+| Import AI | Wypełnij dowolny szablon z przesłanego PDF |
+| Kreator AI | Bio krok po kroku z zapisem szkicu |
+| Coach AI | Oceny, ATS, gramatyka, styl, dopasowanie, poprawki układu |
+| Eksport | Wierny, wielostronicowy PDF |
+| Biblioteka | Zapisane projekty + galeria obrazów |
+| Język | Interfejs po polsku |
+| Koszt | Za darmo na start · plany płatne wkrótce |
 
 ---
 
-*Kompoza — from blank page to interview-ready PDF.*
+*Kompoza — od pustej strony do PDF-a gotowego na rozmowę kwalifikacyjną.*
