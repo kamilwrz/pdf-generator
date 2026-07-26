@@ -166,6 +166,21 @@ export function validateBioCvStep(step, data) {
     return null;
 }
 
+export const BIO_CV_SUMMARY_STEP = BIO_CV_STEPS.length - 1;
+
+/** Error blocking a jump to Podsumowanie, or null when all required fields are OK. */
+export function getBioCvSummaryJumpError(data) {
+    for (let step = 0; step < BIO_CV_SUMMARY_STEP; step += 1) {
+        const error = validateBioCvStep(step, data);
+        if (error) return error;
+    }
+    return null;
+}
+
+export function canJumpToBioCvSummary(data) {
+    return getBioCvSummaryJumpError(data) === null;
+}
+
 export function buildBioCvPayload(data) {
     const profile = normalizeBioCvData(data);
     return {

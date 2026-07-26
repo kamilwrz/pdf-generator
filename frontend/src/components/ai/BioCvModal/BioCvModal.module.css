@@ -356,6 +356,11 @@
 
 .clearBtn { color: var(--danger); }
 
+.cancelBtn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 .primaryBtn {
     border: 1px solid transparent;
     border-radius: 6px;

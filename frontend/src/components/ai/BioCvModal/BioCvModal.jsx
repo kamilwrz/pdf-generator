@@ -9,12 +9,15 @@ import { createSerialSaveQueue } from "../../../utils/serialSaveQueue";
 import {
     applyBioCvDraftUpdate,
     BIO_CV_STEPS,
+    BIO_CV_SUMMARY_STEP,
     buildBioCvPayload,
+    canJumpToBioCvSummary,
     createCustomSection,
     createEducation,
     createEmptyBioCvData,
     createExperience,
     createLanguage,
+    getBioCvSummaryJumpError,
     normalizeBioCvData,
     parseList,
     validateBioCvStep,
@@ -215,8 +218,21 @@ export default function BioCvModal() {
             setStepError(error);
             return;
         }
-        setStep((current) => Math.min(current + 1, BIO_CV_STEPS.length - 1));
+        setStepError(null);
+        setStep((current) => Math.min(current + 1, BIO_CV_SUMMARY_STEP));
     }, [profile, step]);
+
+    const jumpToSummary = useCallback(() => {
+        const error = getBioCvSummaryJumpError(profile);
+        if (error) {
+            setStepError(error);
+            return;
+        }
+        setStepError(null);
+        setStep(BIO_CV_SUMMARY_STEP);
+    }, [profile]);
+
+    const canJumpSummary = canJumpToBioCvSummary(profile);
 
     const handleClose = useCallback(async () => {
         if (saveTimer.current) {
@@ -494,7 +510,20 @@ export default function BioCvModal() {
                     <div className={classes.footerActions}>
                         <button type="button" className={classes.clearBtn} onClick={clearDraft}>Wyczyść szkic</button>
                         {step > 0 && <button type="button" className={classes.cancelBtn} onClick={() => { setStep((current) => current - 1); setStepError(null); }}>Wstecz</button>}
-                        {step < BIO_CV_STEPS.length - 1 && <button type="button" className={classes.primaryBtn} onClick={goNext}>Dalej</button>}
+                        {step < BIO_CV_SUMMARY_STEP && (
+                            <button
+                                type="button"
+                                className={classes.cancelBtn}
+                                onClick={jumpToSummary}
+                                disabled={!canJumpSummary}
+                                title={canJumpSummary
+                                    ? "Przejdź od razu do podsumowania i wyboru szablonu"
+                                    : (getBioCvSummaryJumpError(profile) || "Uzupełnij pola obowiązkowe")}
+                            >
+                                Do podsumowania
+                            </button>
+                        )}
+                        {step < BIO_CV_SUMMARY_STEP && <button type="button" className={classes.primaryBtn} onClick={goNext}>Dalej</button>}
                     </div>
                 </div>
             }
@@ -509,9 +538,13 @@ export default function BioCvModal() {
                             if (index < step) {
                                 setStep(index);
                                 setStepError(null);
+                                return;
+                            }
+                            if (index === BIO_CV_SUMMARY_STEP && canJumpSummary) {
+                                jumpToSummary();
                             }
                         }}
-                        disabled={index > step}
+                        disabled={index > step && !(index === BIO_CV_SUMMARY_STEP && canJumpSummary)}
                     >
                         <span>{index + 1}</span>
                         <small>{label}</small>

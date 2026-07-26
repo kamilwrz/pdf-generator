@@ -3,7 +3,9 @@ import test from "node:test";
 import {
     applyBioCvDraftUpdate,
     buildBioCvPayload,
+    canJumpToBioCvSummary,
     createEmptyBioCvData,
+    getBioCvSummaryJumpError,
     normalizeBioCvData,
     parseList,
     validateBioCvStep,
@@ -58,6 +60,27 @@ test("validates only completed repeater cards and email syntax", () => {
     );
     assert.equal(validateBioCvStep(0, { ...createEmptyBioCvData(), name: "Anna", email: "bad" }), "Podaj poprawny adres e-mail.");
     assert.equal(validateBioCvStep(0, { ...createEmptyBioCvData(), name: "Anna", email: "anna@example.com" }), null);
+});
+
+test("allows jumping to summary when required personal fields are filled", () => {
+    assert.equal(canJumpToBioCvSummary(createEmptyBioCvData()), false);
+    assert.equal(getBioCvSummaryJumpError(createEmptyBioCvData()), "Podaj imię i nazwisko.");
+
+    const ready = {
+        ...createEmptyBioCvData(),
+        name: "Anna Kowalska",
+        email: "anna@example.com",
+        experience: [{ company: "Kompoza", title: "PM", city: "", period: "", bullets: [] }],
+    };
+    assert.equal(canJumpToBioCvSummary(ready), true);
+    assert.equal(getBioCvSummaryJumpError(ready), null);
+
+    const blocked = {
+        ...ready,
+        experience: [{ company: "Kompoza", title: "", city: "", period: "", bullets: [] }],
+    };
+    assert.equal(canJumpToBioCvSummary(blocked), false);
+    assert.match(getBioCvSummaryJumpError(blocked), /stanowisk/);
 });
 
 test("parses and deduplicates tag-list input", () => {
