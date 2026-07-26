@@ -197,9 +197,13 @@ function PdfCanvas() {
       if (responsePDF?.message) {
         pushToast({ title: "Coś poszło nie tak", msg: responsePDF.message, variant: "error" });
       } else if (responsePDF?.success) {
+        const fileLabel = titleRef.current?.value ? `${titleRef.current.value}.pdf` : "CV";
+        const isDownload = responsePDF.intent === "download";
         pushToast({
-          title: "Twój PDF jest gotowy",
-          msg: `Pomyślnie zaktualizowano plik ${titleRef.current?.value || ""}.pdf.`,
+          title: isDownload ? "CV gotowe do pobrania" : "Twój PDF jest gotowy",
+          msg: isDownload
+            ? `Możesz pobrać plik ${fileLabel}.`
+            : `CV zostało zapisane pomyślnie${titleRef.current?.value ? `: ${fileLabel}` : "."}`,
           variant: "success",
           pdfDownload: true,
         });
