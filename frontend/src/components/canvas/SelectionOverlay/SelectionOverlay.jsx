@@ -10,7 +10,7 @@ const MIN_LINE_FRAME = 10;
 function frameForElement(element) {
     const left = Number(element.left) || 0;
     const top = Number(element.top) || 0;
-    let { width, height } = element.category === "text"
+    let { width, height, left: contentLeft, top: contentTop } = element.category === "text"
         ? getTextContentBounds(element)
         : getElementBounds(element);
 
@@ -22,8 +22,8 @@ function frameForElement(element) {
         const fallbackWidth = Math.max(18, (Number(element.fontSize) || 12) * 1.5);
         const fallbackHeight = Math.max(14, (Number(element.fontSize) || 12) * 1.35);
         return {
-            left: left - horizontalMargin,
-            top: top - verticalMargin,
+            left: Number.isFinite(contentLeft) ? contentLeft - horizontalMargin : left - horizontalMargin,
+            top: Number.isFinite(contentTop) ? contentTop - verticalMargin : top - verticalMargin,
             width: Math.max(width, fallbackWidth) + horizontalMargin * 2,
             height: Math.max(height, fallbackHeight) + verticalMargin * 2,
         };

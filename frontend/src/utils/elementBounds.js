@@ -41,11 +41,20 @@ export function getTextContentBounds(element) {
       const canvasRect = canvas?.getBoundingClientRect();
       const scaleX = canvasRect?.width / (canvas?.clientWidth || canvasRect?.width || 1);
       const scaleY = canvasRect?.height / (canvas?.clientHeight || canvasRect?.height || 1);
-      return { width: rect.width / scaleX, height: rect.height / scaleY };
+      return {
+        left: (rect.left - (canvasRect?.left ?? rect.left)) / scaleX,
+        top: (rect.top - (canvasRect?.top ?? rect.top)) / scaleY,
+        width: rect.width / scaleX,
+        height: rect.height / scaleY,
+      };
     }
   }
 
-  return getElementBounds(element);
+  return {
+    left: Number(element.left) || 0,
+    top: Number(element.top) || 0,
+    ...getElementBounds(element),
+  };
 }
 
 // Attaches a real, DOM-measured layout_bounds to every element that's
