@@ -1355,9 +1355,10 @@ export function useA4Elements(titleRef) {
       if (el.element_id === elementId) {
         const { page, top } = toPageTop(newAbs);
         res = { ...el, page, top };
-      } else if (absOf(el) > oldAbs && !el.locked) {
+      } else if (absOf(el) > oldAbs && !el.locked && !el.fixedToPage) {
         // Every element below the target (in absolute terms) shifts by the
         // same delta — spacing preserved across the page break.
+        // Skip page decorations (frames, sidebars, backgrounds).
         const { page, top } = toPageTop(absOf(el) + delta);
         res = { ...el, page, top };
       }

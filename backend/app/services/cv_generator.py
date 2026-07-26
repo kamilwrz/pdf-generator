@@ -2497,8 +2497,8 @@ def _gen_sterling(cv: dict) -> list[dict]:
     pages_used = max([e.get("page", 1) for e in static + flow] or [1])
     frames = []
     for p in range(1, pages_used + 1):
-        frames.append(_rect(24, 24, 547, 794, STEEL, 1.5, page=p))
-        frames.append(_rect(29, 29, 537, 784, PALE, 1, page=p))
+        frames.append({**_rect(24, 24, 547, 794, STEEL, 1.5, page=p), "fixedToPage": True})
+        frames.append({**_rect(29, 29, 537, 784, PALE, 1, page=p), "fixedToPage": True})
 
     return frames + static + flow
 
@@ -3483,8 +3483,14 @@ def _gen_onyx(cv: dict) -> list[dict]:
     frames = []
     for p in range(1, pages_used + 1):
         frames.append({**_line(0, 0, 595, 842, BG, zIndex=0, page=p), "fixedToPage": True})
-        frames.append(_rect(24, 24, 547, 794, FRAME, 1.5, page=p))
-        frames.append(_rect(29, 29, 537, 784, FRAME_INNER, 1, page=p))
+        # Frames must be fixed — otherwise textarea reflow treats the full-page
+        # outlines as content and shifts them down, leaving empty boxes / pages.
+        frames.append({**_rect(24, 24, 547, 794, FRAME, 1.5, page=p), "fixedToPage": True})
+        frames.append({**_rect(29, 29, 537, 784, FRAME_INNER, 1, page=p), "fixedToPage": True})
+        frames.append({
+            **_text(f"{p:02d}", 8, I, MUTED, 522, 801, page=p),
+            "fixedToPage": True,
+        })
 
     return frames + static + flow
 

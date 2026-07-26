@@ -762,6 +762,41 @@ class CvTemplateLayoutTests(unittest.TestCase):
                         for element in elements
                     ))
 
+    def test_onyx_page_frames_are_fixed_decorations(self):
+        """Full-page bronze frames must not participate in textarea reflow."""
+        multi_page_cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 4,
+        }
+        elements = generate_resume("onyx", multi_page_cv)
+        pages = {element.get("page", 1) for element in elements}
+        self.assertGreater(max(pages), 1)
+
+        frame_rects = [
+            element
+            for element in elements
+            if element["category"] == "rectangle"
+            and element.get("width", 0) >= 500
+            and element.get("height", 0) >= 700
+        ]
+        self.assertGreaterEqual(len(frame_rects), 2)
+        for frame in frame_rects:
+            self.assertTrue(
+                frame.get("fixedToPage") is True,
+                f"onyx frame on page {frame.get('page', 1)} must be fixedToPage",
+            )
+
+        for page in pages:
+            self.assertTrue(any(
+                element["category"] == "line"
+                and element.get("page", 1) == page
+                and element.get("fixedToPage") is True
+                and element["width"] == 595
+                and element["height"] == 842
+                and element["backgroundColor"] == "#0E0E10"
+                for element in elements
+            ))
+
     def test_final_templates_keep_textareas_inside_page_bounds(self):
         for template_id in ("solstice", "mistral", "axiom", "vellum"):
             with self.subTest(template_id=template_id):
