@@ -222,7 +222,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "Polski — C2\nAngielski — C1",
             "PMP\nICAgile",
             "Fotografia\nŻeglarstwo",
-            "MBA\nSGH  ·  2020",
+            "MBA\nSGH\n2020",
         }
 
         for template_id in ("quarry", "moss", "garnet", "harbor"):
@@ -394,6 +394,50 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertTrue(header_texts)
         self.assertEqual({element["left"] for element in header_texts}, {220})
 
+    def test_education_is_structured_in_main_column_and_sidebar(self):
+        education = [{
+            "degree": "Magister prawa",
+            "school": "Uniwersytet Warszawski",
+            "city": "Warszawa",
+            "period": "2017 – 2022",
+            "description": "Specjalizacja: prawo europejskie",
+        }]
+        main = generate_resume("merit", {
+            "name": "Anna Kowalska",
+            "title": "Prawnik",
+            "education": education,
+            "experience": [],
+            "skills": [],
+            "extra_sections": [],
+        })
+        main_copy = [
+            element["content"]
+            for element in main
+            if element["category"] == "textarea" and element.get("left", 0) >= 100
+        ]
+        self.assertIn("Magister prawa", main_copy)
+        self.assertIn("Uniwersytet Warszawski   ·   Warszawa   ·   2017 – 2022", main_copy)
+        self.assertIn("Specjalizacja: prawo europejskie", main_copy)
+
+        sidebar = generate_resume("moss", {
+            "name": "Anna Kowalska",
+            "title": "Prawnik",
+            "education": education,
+            "experience": [],
+            "skills": ["Analiza"],
+            "extra_sections": [],
+        })
+        sidebar_block = next(
+            element["content"]
+            for element in sidebar
+            if element["category"] == "textarea"
+            and element.get("left") == 24
+            and "Magister prawa" in element["content"]
+        )
+        self.assertIn("Uniwersytet Warszawski  ·  Warszawa", sidebar_block)
+        self.assertIn("2017 – 2022", sidebar_block)
+        self.assertIn("Specjalizacja: prawo europejskie", sidebar_block)
+
     def test_classic_templates_are_image_free_single_column_documents(self):
         multi_page_cv = {
             **LONG_CV,
@@ -444,13 +488,17 @@ class CvTemplateLayoutTests(unittest.TestCase):
         education = [
             {
                 "degree": "Bachelor of Laws (LL.B.)",
-                "period": "2014 – 2018",
-                "detail": "1. Juristische Prüfung. Goethe-Universität Frankfurt am Main.",
+                "school": "EU Viadrina",
+                "city": "Frankfurt (Oder)",
+                "period": "03/2015",
+                "description": "Uzyskanie tytułu Bachelor of Laws z zakresu prawa niemieckiego.",
             },
             {
-                "degree": "Master of Laws (LL.M.)",
-                "period": "2018 – 2020",
-                "detail": "European Banking and Financial Law.",
+                "degree": "1. Juristische Prüfung",
+                "school": "Goethe-Universität",
+                "city": "Frankfurt am Main",
+                "period": "04/2015",
+                "description": "Państwowy egzamin prawniczy.",
             },
         ]
         elements = generate_resume("aldine", {
@@ -478,12 +526,20 @@ class CvTemplateLayoutTests(unittest.TestCase):
             if element["category"] == "textarea"
             and element["content"] == education[0]["degree"]
         )
-        first_detail = next(
+        first_meta = next(
             element for element in elements
             if element["category"] == "textarea"
-            and education[0]["detail"] in element["content"]
+            and element["content"] == "EU Viadrina   ·   Frankfurt (Oder)   ·   03/2015"
         )
-        self.assertEqual(first_degree["page"], first_detail["page"])
+        first_body = next(
+            element for element in elements
+            if element["category"] == "textarea"
+            and element["content"] == education[0]["description"]
+        )
+        self.assertEqual(first_degree["page"], first_meta["page"])
+        self.assertEqual(first_degree["page"], first_body["page"])
+        self.assertLess(first_degree["top"], first_meta["top"])
+        self.assertLess(first_meta["top"], first_body["top"])
 
     def test_rift_repeats_fixed_background_on_every_content_page(self):
         multi_page_cv = {

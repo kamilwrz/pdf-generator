@@ -339,6 +339,7 @@ export default function BioCvModal() {
                     />
                     <div className={classes.formGrid}>
                         <TextField label="Uczelnia / szkoła *" value={entry.school} onChange={(school) => updateListItem("education", index, { school })} placeholder="np. Uniwersytet Warszawski" />
+                        <TextField label="Miasto" value={entry.city} onChange={(city) => updateListItem("education", index, { city })} placeholder="np. Warszawa" />
                         <TextField label="Okres" value={entry.period} onChange={(period) => updateListItem("education", index, { period })} placeholder="2017 – 2022" />
                         <TextField label="Dyplom / kierunek *" value={entry.degree} onChange={(degree) => updateListItem("education", index, { degree })} placeholder="np. Magister informatyki" full />
                         <label className={`${classes.field} ${classes.full}`}>

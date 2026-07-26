@@ -23,6 +23,7 @@ class CvDataNormalizationTests(unittest.TestCase):
             }],
             "education": [{
                 "university": "Uniwersytet Warszawski",
+                "city": "Warszawa",
                 "diploma": "Magister zarządzania",
                 "period": "2017 – 2022",
                 "description": "Specjalizacja: innowacje",
@@ -40,7 +41,11 @@ class CvDataNormalizationTests(unittest.TestCase):
         self.assertEqual(profile["location"], "Warszawa, Polska")
         self.assertEqual(profile["experience"][0]["company"], "Kompoza")
         self.assertEqual(profile["experience"][0]["bullets"], ["Prowadzenie produktu", "Badania użytkowników"])
-        self.assertEqual(profile["education"][0]["detail"], "Uniwersytet Warszawski · Specjalizacja: innowacje")
+        self.assertEqual(profile["education"][0]["city"], "Warszawa")
+        self.assertEqual(
+            profile["education"][0]["detail"],
+            "Uniwersytet Warszawski · Warszawa · Specjalizacja: innowacje",
+        )
         self.assertEqual(profile["skills"], ["Figma", "Analiza danych"])
         self.assertEqual(profile["extra_sections"][0]["title"], "CERTYFIKATY")
         self.assertEqual(profile["extra_sections"][1]["items"], ["Angielski — C1"])
@@ -103,6 +108,7 @@ class CvDataNormalizationTests(unittest.TestCase):
             }],
             "education": [{
                 "school": "Uniwersytet Warszawski",
+                "city": "Warszawa",
                 "degree": "Magister zarządzania",
                 "period": "2017 – 2022",
                 "description": "Specjalizacja: innowacje",
@@ -114,7 +120,9 @@ class CvDataNormalizationTests(unittest.TestCase):
             for element in generate_resume("ledger", profile)
         )
         self.assertIn("Kompoza   ·   Warszawa   ·   2023 – obecnie", content)
-        self.assertIn("Uniwersytet Warszawski · Specjalizacja: innowacje", content)
+        self.assertIn("Uniwersytet Warszawski   ·   Warszawa   ·   2017 – 2022", content)
+        self.assertIn("Specjalizacja: innowacje", content)
+        self.assertIn("Magister zarządzania", content)
 
 
 class BioCvDraftCrudTests(unittest.TestCase):

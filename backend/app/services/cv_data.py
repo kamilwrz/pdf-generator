@@ -92,13 +92,15 @@ def _normalize_education(value: Any) -> list[dict[str, str]]:
         if not isinstance(entry, Mapping):
             continue
         school = _text(entry.get("school") or entry.get("university"))
+        city = _text(entry.get("city"))
         degree = _text(entry.get("degree") or entry.get("diploma"))
         period = _text(entry.get("period") or entry.get("date"))
         description = _text(entry.get("description"))
         legacy_detail = _text(entry.get("detail"))
-        detail = " · ".join(part for part in (school, description) if part) or legacy_detail
+        detail = " · ".join(part for part in (school, city, description) if part) or legacy_detail
         normalized = {
             "school": school,
+            "city": city,
             "degree": degree,
             "period": period,
             "description": description,

@@ -257,22 +257,6 @@ def _sidebar_wrapped_height(content: str, width: float, font_size: float, line_h
     return round(max(rendered_lines * line_height + 6, line_height + 6), 2)
 
 
-def _education_sidebar_content(education: list[dict]) -> str:
-    """Keep every education field while making each record scannable in a sidebar."""
-    lines: list[str] = []
-    for entry in education:
-        degree = str(entry.get("degree") or "").strip()
-        metadata = "  ·  ".join(
-            value
-            for value in (str(entry.get("detail") or "").strip(), str(entry.get("period") or "").strip())
-            if value
-        )
-        if degree:
-            lines.append(degree)
-        if metadata:
-            lines.append(metadata)
-    return "\n".join(lines)
-
 
 def _sidebar_candidates(cv: dict, labels: dict) -> list[dict]:
     """Prepare complete, non-truncated sections eligible for sidebar placement."""
@@ -361,6 +345,163 @@ def _company_period(job: dict) -> str:
         job.get("period"),
     ]))
 
+def _education_meta(edu: dict) -> str:
+    """School · city · period — the muted line under the diploma title."""
+    school = str(edu.get("school") or "").strip()
+    city = str(edu.get("city") or "").strip()
+    period = str(edu.get("period") or "").strip()
+    parts = [part for part in (school, city, period) if part]
+    if parts:
+        return "   ·   ".join(parts)
+
+    # Legacy entries may only expose a combined detail string.
+    detail = str(edu.get("detail") or "").strip()
+    description = str(edu.get("description") or "").strip()
+    if detail and not description:
+        if period and period not in detail:
+            return f"{detail}   ·   {period}"
+        return detail
+    return period
+
+
+def _education_description(edu: dict) -> str:
+    """Optional body copy; never reuse the mashed legacy detail field."""
+    return str(edu.get("description") or "").strip()
+
+
+def _education_record_height(
+    b: "Builder",
+    edu: dict,
+    width: float,
+    font: str,
+    *,
+    degree_fs: float = 10.2,
+    degree_lh: float = 13,
+    meta_fs: float = 8.6,
+    meta_lh: float = 11.5,
+    body_fs: float = 8.5,
+    body_lh: float = 11.5,
+) -> float:
+    """Measured height of one structured education record (no trailing gap)."""
+    height = 0.0
+    degree = str(edu.get("degree") or "").strip()
+    if degree:
+        height += b.measure_block(
+            degree, width, degree_fs, degree_lh, font, bold=True, min_h=15
+        )
+    meta = _education_meta(edu)
+    if meta:
+        if height:
+            height += SPACE_STACK
+        height += b.measure_block(meta, width, meta_fs, meta_lh, font, min_h=12)
+    description = _education_description(edu)
+    if description:
+        if height:
+            height += SPACE_STACK
+        height += b.measure_block(description, width, body_fs, body_lh, font, min_h=12)
+    return height
+
+
+def _place_education_record(
+    b: "Builder",
+    edu: dict,
+    left: float,
+    width: float,
+    *,
+    ink: str,
+    muted: str,
+    font: str,
+    body: str | None = None,
+    mode: str = "block",
+    degree_fs: float = 10.2,
+    degree_lh: float = 13,
+    meta_fs: float = 8.6,
+    meta_lh: float = 11.5,
+    body_fs: float = 8.5,
+    body_lh: float = 11.5,
+    after_gap: float | None = None,
+) -> None:
+    """
+    Render one education entry as:
+      1. diploma / degree (bold)
+      2. school · city · period (muted)
+      3. optional description
+    """
+    degree = str(edu.get("degree") or "").strip()
+    meta = _education_meta(edu)
+    description = _education_description(edu)
+    body_color = body or muted
+    placed = False
+
+    if mode == "text":
+        if degree:
+            b.text(degree, degree_fs, font, ink, left, bold=True)
+            placed = True
+        if meta:
+            if placed:
+                b.gap(SPACE_STACK)
+            b.text(meta, meta_fs, font, muted, left)
+            placed = True
+        if description:
+            if placed:
+                b.gap(SPACE_STACK)
+            b.text(description, body_fs, font, body_color, left)
+            placed = True
+    else:
+        if degree:
+            b.block(
+                degree, left, width, degree_fs, degree_lh, ink, font,
+                bold=True, min_h=15,
+            )
+            placed = True
+        if meta:
+            if placed:
+                b.gap(SPACE_STACK)
+            b.block(meta, left, width, meta_fs, meta_lh, muted, font, min_h=12)
+            placed = True
+        if description:
+            if placed:
+                b.gap(SPACE_STACK)
+            b.block(
+                description, left, width, body_fs, body_lh, body_color, font, min_h=12
+            )
+            placed = True
+
+    if after_gap is not None and placed:
+        b.gap(after_gap)
+
+
+def _education_sidebar_content(education: list[dict]) -> str:
+    """Compact, structured records for a narrow sidebar column."""
+    records: list[str] = []
+    for entry in education:
+        lines: list[str] = []
+        degree = str(entry.get("degree") or "").strip()
+        school = str(entry.get("school") or "").strip()
+        city = str(entry.get("city") or "").strip()
+        period = str(entry.get("period") or "").strip()
+        description = _education_description(entry)
+        legacy_detail = str(entry.get("detail") or "").strip()
+        school_city = "  ·  ".join(part for part in (school, city) if part)
+        if degree:
+            lines.append(degree)
+        if school_city:
+            lines.append(school_city)
+        elif legacy_detail and legacy_detail not in {degree, period}:
+            # Older payloads store the school in `detail` only.
+            lines.append(legacy_detail)
+        if period:
+            lines.append(period)
+        if description:
+            lines.append(description)
+        if not lines:
+            legacy = _education_meta(entry)
+            if legacy:
+                lines.append(legacy)
+        if lines:
+            records.append("\n".join(lines))
+    return "\n\n".join(records)
+
 
 # ── template generators ──────────────────────────────────────────────────────
 
@@ -399,11 +540,13 @@ def _gen_finance(cv: dict) -> list[dict]:
     if cv.get("education"):
         b.need(50); section(lbl["education"])
         for edu in cv["education"]:
-            b.text(edu.get("degree", ""), 11, "Inter", C["ink"], L, bold=True); b.gap(2)
-            b.text(edu.get("period", ""), 9.5, "Inter", C["gray"], L)
-            if edu.get("detail"):
-                b.gap(1); b.text(edu["detail"], 9.5, "Inter", C["gray"], L)
-            b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=C["ink"], muted=C["gray"], body=C["gray"], font="Inter",
+                mode="text",
+                degree_fs=11, meta_fs=9.5, body_fs=9.5,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         b.need(40); section(lbl["skills"])
@@ -623,14 +766,14 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
     if cv.get("education"):
         section(lbl["education"])
         for edu in cv["education"]:
-            b.need(48)
-            b.block(edu.get("degree", ""), L, W, 10.2, 13, C["ink"], SANS, bold=True, min_h=15)
-            b.gap(2)
-            b.block(edu.get("period", ""), L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
-            if edu.get("detail"):
-                b.gap(1)
-                b.block(edu["detail"], L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
-            b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=C["ink"], muted=C["muted"], body=C["muted"], font=SANS,
+                degree_fs=10.2, degree_lh=13,
+                meta_fs=8.6, meta_lh=11.5,
+                body_fs=8.6, body_lh=11.5,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         section(lbl["skills"])
@@ -739,13 +882,14 @@ def _gen_ledger(cv: dict) -> list[dict]:
     if cv.get("education"):
         section(lbl["education"])
         for edu in cv["education"]:
-            b.block(edu.get("degree", ""), L, W, 10.6, 13, NAVY, SANS, bold=True, min_h=15)
-            b.gap(2)
-            b.block(edu.get("period", ""), L, W, 9, 11.5, SLATE, SANS, min_h=12)
-            if edu.get("detail"):
-                b.gap(1)
-                b.block(edu["detail"], L, W, 9, 11.5, SLATE, SANS, min_h=12)
-            b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=NAVY, muted=SLATE, body=SLATE, font=SANS,
+                degree_fs=10.6, degree_lh=13,
+                meta_fs=9, meta_lh=11.5,
+                body_fs=9, body_lh=11.5,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         section(lbl["skills"])
@@ -832,13 +976,14 @@ def _gen_nimbus(cv: dict) -> list[dict]:
     if cv.get("education"):
         section(lbl["education"])
         for edu in cv["education"]:
-            b.block(edu.get("degree", ""), L, W, 10.3, 13, INK, SANS, bold=True, min_h=15)
-            b.gap(2)
-            b.block(edu.get("period", ""), L, W, 8.7, 11.5, SLATE, SANS, min_h=12)
-            if edu.get("detail"):
-                b.gap(1)
-                b.block(edu["detail"], L, W, 8.7, 11.5, SLATE, SANS, min_h=12)
-            b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=INK, muted=SLATE, body=SLATE, font=SANS,
+                degree_fs=10.3, degree_lh=13,
+                meta_fs=8.7, meta_lh=11.5,
+                body_fs=8.7, body_lh=11.5,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         section(lbl["skills"])
@@ -905,13 +1050,14 @@ def _gen_cinder(cv: dict) -> list[dict]:
     if cv.get("education"):
         section(lbl["education"])
         for edu in cv["education"]:
-            b.block(edu.get("degree", ""), L, W, 10.3, 13, BLACK, SANS, bold=True, min_h=15)
-            b.gap(2)
-            b.block(edu.get("period", ""), L, W, 8.7, 11.5, GRAPHITE, SANS, min_h=12)
-            if edu.get("detail"):
-                b.gap(1)
-                b.block(edu["detail"], L, W, 8.7, 11.5, GRAPHITE, SANS, min_h=12)
-            b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=BLACK, muted=GRAPHITE, body=GRAPHITE, font=SANS,
+                degree_fs=10.3, degree_lh=13,
+                meta_fs=8.7, meta_lh=11.5,
+                body_fs=8.7, body_lh=11.5,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         section(lbl["skills"])
@@ -995,13 +1141,14 @@ def _gen_rift(cv: dict) -> list[dict]:
     if cv.get("education"):
         section(lbl["education"])
         for edu in cv["education"]:
-            b.block(edu.get("degree", ""), L, W, 10.2, 13, BLACK, SANS, bold=True, min_h=15)
-            b.gap(2)
-            b.block(edu.get("period", ""), L, W, 8.6, 11.5, GRAPHITE, SANS, min_h=12)
-            if edu.get("detail"):
-                b.gap(1)
-                b.block(edu["detail"], L, W, 8.6, 11.5, GRAPHITE, SANS, min_h=12)
-            b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=BLACK, muted=GRAPHITE, body=GRAPHITE, font=SANS,
+                degree_fs=10.2, degree_lh=13,
+                meta_fs=8.6, meta_lh=11.5,
+                body_fs=8.6, body_lh=11.5,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         section(lbl["skills"])
@@ -1218,14 +1365,14 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
     if cv.get("education"):
         section(lbl["education"])
         for edu in cv["education"]:
-            b.block(edu.get("degree", ""), L, W, 10.4, 13,
-                    C["ink"], SANS, bold=True, min_h=15)
-            b.gap(2)
-            b.block(edu.get("period", ""), L, W, 8.7, 11.5, C["muted"], SANS, min_h=12)
-            if edu.get("detail"):
-                b.gap(1)
-                b.block(edu["detail"], L, W, 8.7, 11.5, C["muted"], SANS, min_h=12)
-            b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=C["ink"], muted=C["muted"], body=C["muted"], font=SANS,
+                degree_fs=10.4, degree_lh=13,
+                meta_fs=8.7, meta_lh=11.5,
+                body_fs=8.7, body_lh=11.5,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         section(lbl["skills"])
@@ -1411,15 +1558,11 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
         return height
 
     def education_height(education: dict) -> float:
-        detail = education.get("detail", "")
-        return (
-            b.measure_block(education.get("degree", ""), W, 10.2, 13, SANS, bold=True, min_h=15)
-            + SPACE_STACK
-            + b.measure_block(education.get("period", ""), W, 8.5, 11.5, SANS, min_h=12)
-            + (
-                SPACE_STACK + b.measure_block(detail, W, 8.5, 11.5, SANS, min_h=12)
-                if detail else 0
-            )
+        return _education_record_height(
+            b, education, W, SANS,
+            degree_fs=10.2, degree_lh=13,
+            meta_fs=8.5, meta_lh=11.5,
+            body_fs=8.5, body_lh=11.5,
         )
 
     # Heading label + rule + after-rule gap. Callers reserve this together with
@@ -1479,14 +1622,14 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
         for index, edu in enumerate(education_entries):
             if index > 0:
                 b.need(education_height(edu))
-            b.block(edu.get("degree", ""), L, W, 10.2, 13, C["ink"], SANS, bold=True, min_h=15)
-            b.gap(SPACE_STACK)
-            b.block(edu.get("period", ""), L, W, 8.5, 11.5, C["muted"], SANS, min_h=12)
-            if edu.get("detail"):
-                b.gap(SPACE_STACK)
-                b.block(edu["detail"], L, W, 8.5, 11.5, C["muted"], SANS, min_h=12)
-            if index < len(education_entries) - 1:
-                b.gap(SPACE_RECORD)
+            _place_education_record(
+                b, edu, L, W,
+                ink=C["ink"], muted=C["muted"], body=C["muted"], font=SANS,
+                degree_fs=10.2, degree_lh=13,
+                meta_fs=8.5, meta_lh=11.5,
+                body_fs=8.5, body_lh=11.5,
+                after_gap=SPACE_RECORD if index < len(education_entries) - 1 else None,
+            )
         close_section()
 
     if cv.get("skills"):
@@ -1600,8 +1743,13 @@ def _gen_nocturne(cv: dict) -> list[dict]:
     if cv.get("education"):
         b.need(50); section(lbl["education"])
         for edu in cv["education"]:
-            b.text(edu.get("degree", ""), 11, "Inter", C["ink"], L, bold=True); b.gap(2)
-            b.text(edu.get("period", ""), 9.5, "Inter", C["gray"], L); b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=C["ink"], muted=C["gray"], body=C["gray"], font="Inter",
+                mode="text",
+                degree_fs=11, meta_fs=9.5, body_fs=9.5,
+                after_gap=10,
+            )
 
     return static + b.build()
 
@@ -1645,8 +1793,13 @@ def _gen_ampersand(cv: dict) -> list[dict]:
     if cv.get("education"):
         b.need(50); section(lbl["education"])
         for edu in cv["education"]:
-            b.text(edu.get("degree", ""), 11, S, C["ink"], L, bold=True); b.gap(2)
-            b.text(edu.get("period", ""), 9.5, S, C["gray"], L, italic=True); b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=C["ink"], muted=C["gray"], body=C["gray"], font=S,
+                mode="text",
+                degree_fs=11, meta_fs=9.5, body_fs=9.5,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         b.need(40); section(lbl["skills"])
@@ -1702,8 +1855,13 @@ def _gen_education(cv: dict) -> list[dict]:
     if cv.get("education"):
         b.need(50); section(lbl["education"])
         for edu in cv["education"]:
-            b.text(edu.get("degree", ""), 11, "Inter", C["ink"], L, bold=True); b.gap(2)
-            b.text(edu.get("period", ""), 9.5, "Inter", C["gray"], L); b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=C["ink"], muted=C["gray"], body=C["gray"], font="Inter",
+                mode="text",
+                degree_fs=11, meta_fs=9.5, body_fs=9.5,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         b.need(40); section(lbl["skills"])
@@ -1775,8 +1933,13 @@ def _gen_it(cv: dict) -> list[dict]:
     if cv.get("education"):
         b.need(50); section(lbl["education"])
         for edu in cv["education"]:
-            b.text(edu.get("degree", ""), 11, "Inter", C["ink"], ML, bold=True); b.gap(2)
-            b.text(edu.get("period", ""), 9.5, "Inter", C["gray"], ML); b.gap(10)
+            _place_education_record(
+                b, edu, ML, W,
+                ink=C["ink"], muted=C["gray"], body=C["gray"], font="Inter",
+                mode="text",
+                degree_fs=11, meta_fs=9.5, body_fs=9.5,
+                after_gap=10,
+            )
 
     _extra_sections(b, cv, "after_skills", section, C, ML, MW, "Inter")
 
@@ -1830,8 +1993,13 @@ def _gen_blueprint(cv: dict) -> list[dict]:
     if cv.get("education"):
         b.need(50); section(lbl["education"])
         for edu in cv["education"]:
-            b.text(edu.get("degree", ""), 11, "Inter", C["ink"], ML, bold=True); b.gap(2)
-            b.text(edu.get("period", ""), 9.5, "Inter", C["gray"], ML); b.gap(10)
+            _place_education_record(
+                b, edu, ML, W,
+                ink=C["ink"], muted=C["gray"], body=C["gray"], font="Inter",
+                mode="text",
+                degree_fs=11, meta_fs=9.5, body_fs=9.5,
+                after_gap=10,
+            )
 
     _extra_sections(b, cv, "after_skills", section, C, ML, MW, "Inter")
 
@@ -1877,8 +2045,13 @@ def _gen_monolith(cv: dict) -> list[dict]:
         b.els.append(_line(L, b.y, W, 0.5, VLG, page=b.pg)); b.gap(14)
         section(lbl["education"])
         for edu in cv["education"]:
-            b.text(edu.get("degree", ""), 11, "Inter", K, L, bold=True); b.gap(2)
-            b.text(edu.get("period", ""), 9.5, "Inter", MG, L); b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=K, muted=MG, body=MG, font="Inter",
+                mode="text",
+                degree_fs=11, meta_fs=9.5, body_fs=9.5,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         b.need(44)
@@ -1941,8 +2114,13 @@ def _gen_prism(cv: dict) -> list[dict]:
     if cv.get("education"):
         b.need(50); section(lbl["education"])
         for edu in cv["education"]:
-            b.text(edu.get("degree", ""), 11, "Inter", INK, L, bold=True); b.gap(2)
-            b.text(edu.get("period", ""), 9.5, "Inter", GRAY, L); b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=INK, muted=GRAY, body=GRAY, font="Inter",
+                mode="text",
+                degree_fs=11, meta_fs=9.5, body_fs=9.5,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         b.need(40); section(lbl["skills"])
@@ -1992,8 +2170,13 @@ def _gen_aria(cv: dict) -> list[dict]:
     if cv.get("education"):
         b.gap(8); section(lbl["education"])
         for edu in cv["education"]:
-            b.text(edu.get("degree", ""), 11, "Inter", INK, L, bold=True); b.gap(2)
-            b.text(edu.get("period", ""), 9.5, "Inter", MID, L); b.gap(14)
+            _place_education_record(
+                b, edu, L, W,
+                ink=INK, muted=MID, body=MID, font="Inter",
+                mode="text",
+                degree_fs=11, meta_fs=9.5, body_fs=9.5,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         b.gap(8); section(lbl["skills"])
@@ -2078,11 +2261,13 @@ def _gen_sterling(cv: dict) -> list[dict]:
     if cv.get("education"):
         b.need(50); section(lbl["education"])
         for edu in cv["education"]:
-            b.text(edu.get("degree", ""), 10.5, I, NAVY, L, bold=True); b.gap(2)
-            b.text(edu.get("period", ""), 9, I, GRAY, L)
-            if edu.get("detail"):
-                b.gap(1); b.text(edu["detail"], 9, I, GRAY, L)
-            b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=NAVY, muted=GRAY, body=GRAY, font=I,
+                mode="text",
+                degree_fs=10.5, meta_fs=9, body_fs=9,
+                after_gap=10,
+            )
 
     if skills:
         b.need(40); section(lbl["skills"])
@@ -2166,11 +2351,14 @@ def _gen_solstice(cv: dict) -> list[dict]:
     if cv.get("education"):
         b.need(58); section(lbl["education"])
         for edu in cv["education"]:
-            b.block(edu.get("degree", ""), L, W, 10.5, 13, INK, SANS, bold=True, min_h=15); b.gap(2)
-            b.block(edu.get("period", ""), L, W, 9.2, 12, MIST, SANS, min_h=12)
-            if edu.get("detail"):
-                b.gap(1); b.block(edu["detail"], L, W, 9.2, 12, MIST, SANS, min_h=12)
-            b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=INK, muted=MIST, body=MIST, font=SANS,
+                degree_fs=10.5, degree_lh=13,
+                meta_fs=9.2, meta_lh=12,
+                body_fs=9.2, body_lh=12,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         b.need(42); section(lbl["skills"])
@@ -2251,11 +2439,14 @@ def _gen_mistral(cv: dict) -> list[dict]:
     if cv.get("education"):
         b.need(58); section(lbl["education"])
         for edu in cv["education"]:
-            b.block(edu.get("degree", ""), L, W, 10.5, 13, INK, SANS, bold=True, min_h=15); b.gap(2)
-            b.block(edu.get("period", ""), L, W, 9.2, 12, DRIFT, SANS, min_h=12)
-            if edu.get("detail"):
-                b.gap(1); b.block(edu["detail"], L, W, 9.2, 12, DRIFT, SANS, min_h=12)
-            b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=INK, muted=DRIFT, body=DRIFT, font=SANS,
+                degree_fs=10.5, degree_lh=13,
+                meta_fs=9.2, meta_lh=12,
+                body_fs=9.2, body_lh=12,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         b.need(40); section(lbl["skills"])
@@ -2325,11 +2516,14 @@ def _gen_axiom(cv: dict) -> list[dict]:
     if cv.get("education"):
         b.need(56); section(lbl["education"])
         for edu in cv["education"]:
-            b.block(edu.get("degree", ""), L, W, 10.6, 13, INK, SANS, bold=True, min_h=15); b.gap(2)
-            b.block(edu.get("period", ""), L, W, 9, 11.5, SLATE, SANS, min_h=12)
-            if edu.get("detail"):
-                b.gap(1); b.block(edu["detail"], L, W, 9, 11.5, SLATE, SANS, min_h=12)
-            b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=INK, muted=SLATE, body=SLATE, font=SANS,
+                degree_fs=10.6, degree_lh=13,
+                meta_fs=9, meta_lh=11.5,
+                body_fs=9, body_lh=11.5,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         b.need(40); section(lbl["skills"])
@@ -2397,11 +2591,14 @@ def _gen_vellum(cv: dict) -> list[dict]:
     if cv.get("education"):
         b.need(56); section(lbl["education"])
         for edu in cv["education"]:
-            b.block(edu.get("degree", ""), L, W, 10.6, 13, INK, SANS, bold=True, min_h=15); b.gap(2)
-            b.block(edu.get("period", ""), L, W, 9, 11.5, GRAY, SANS, min_h=12)
-            if edu.get("detail"):
-                b.gap(1); b.block(edu["detail"], L, W, 9, 11.5, GRAY, SANS, min_h=12)
-            b.gap(10)
+            _place_education_record(
+                b, edu, L, W,
+                ink=INK, muted=GRAY, body=GRAY, font=SANS,
+                degree_fs=10.6, degree_lh=13,
+                meta_fs=9, meta_lh=11.5,
+                body_fs=9, body_lh=11.5,
+                after_gap=10,
+            )
 
     if cv.get("skills"):
         b.need(42); section(lbl["skills"])
@@ -2555,15 +2752,11 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
         return height
 
     def education_height(education: dict) -> float:
-        detail = education.get("detail", "")
-        return (
-            b.measure_block(education.get("degree", ""), W, 10.2, 13, SANS, bold=True, min_h=15)
-            + SPACE_STACK
-            + b.measure_block(education.get("period", ""), W, 8.6, 11.5, SANS, min_h=12)
-            + (
-                SPACE_STACK + b.measure_block(detail, W, 8.6, 11.5, SANS, min_h=12)
-                if detail else 0
-            )
+        return _education_record_height(
+            b, education, W, SANS,
+            degree_fs=10.2, degree_lh=13,
+            meta_fs=8.6, meta_lh=11.5,
+            body_fs=8.6, body_lh=11.5,
         )
 
     SECTION_CHROME = 36
@@ -2620,14 +2813,14 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
         for index, edu in enumerate(education_entries):
             if index > 0:
                 b.need(education_height(edu))
-            b.block(edu.get("degree", ""), L, W, 10.2, 13, C["ink"], SANS, bold=True, min_h=15)
-            b.gap(SPACE_STACK)
-            b.block(edu.get("period", ""), L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
-            if edu.get("detail"):
-                b.gap(SPACE_STACK)
-                b.block(edu["detail"], L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
-            if index < len(education_entries) - 1:
-                b.gap(SPACE_RECORD)
+            _place_education_record(
+                b, edu, L, W,
+                ink=C["ink"], muted=C["muted"], body=C["muted"], font=SANS,
+                degree_fs=10.2, degree_lh=13,
+                meta_fs=8.6, meta_lh=11.5,
+                body_fs=8.6, body_lh=11.5,
+                after_gap=SPACE_RECORD if index < len(education_entries) - 1 else None,
+            )
         close_section()
 
     if cv.get("skills") and "skills" not in sidebar_keys:

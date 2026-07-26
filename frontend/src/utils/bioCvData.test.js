@@ -21,6 +21,13 @@ test("builds a clean manual CV payload with structured entries", () => {
             period: "2024 – obecnie",
             description: "Strategia\nBadania",
         }],
+        education: [{
+            school: "Uniwersytet Warszawski",
+            city: "Warszawa",
+            degree: "Magister zarządzania",
+            period: "2017 – 2022",
+            description: "Specjalizacja: innowacje",
+        }],
         languages: [{ language: "Angielski", proficiency: "C1" }],
         custom_sections: [{
             title: "Certyfikaty",
@@ -35,6 +42,7 @@ test("builds a clean manual CV payload with structured entries", () => {
     assert.equal(result.name, "Anna Kowalska");
     assert.equal(result.location, "Warszawa");
     assert.deepEqual(result.experience[0].bullets, ["Strategia", "Badania"]);
+    assert.equal(result.education[0].city, "Warszawa");
     assert.deepEqual(result.languages, [{ name: "Angielski", level: "C1" }]);
     assert.deepEqual(result.custom_sections[0].items, ["PSM I"]);
 });

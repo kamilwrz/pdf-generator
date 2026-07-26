@@ -55,7 +55,7 @@ export function createExperience() {
 }
 
 export function createEducation() {
-    return { school: "", period: "", degree: "", description: "" };
+    return { school: "", city: "", period: "", degree: "", description: "" };
 }
 
 export function createLanguage() {
@@ -106,6 +106,7 @@ export function normalizeBioCvData(value) {
             .filter((entry) => entry && typeof entry === "object")
             .map((entry) => ({
                 school: clean(entry.school || entry.university),
+                city: clean(entry.city),
                 period: clean(entry.period || entry.date),
                 degree: clean(entry.degree || entry.diploma),
                 description: clean(entry.description || ""),
