@@ -1,18 +1,21 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import classes from "./Hero.module.css";
-import API_BASE_URL from "../../services/api";
+import { TEMPLATES } from "../../templates";
 
 const HEADING_TEXT = "Twórz piękne CV w kilka minut.";
 const ACCENT_WORD = "piękne";
 const TYPE_SPEED_MS = 55;
 
-const TEMPLATE_PREVIEWS = [
-    { id: "ledger", name: "Ledger", industry: "Finanse · Instytucjonalny", image: `${API_BASE_URL}/template-assets/ledger-finance-accent.png` },
-    { id: "vector", name: "Vector", industry: "IT · Sieci i platformy", image: `${API_BASE_URL}/template-assets/vector-it-network.png` },
-    { id: "quarry", name: "Quarry", industry: "Sidebar · Nocny system", image: `${API_BASE_URL}/template-assets/quarry-sidebar.png` },
-    { id: "garnet", name: "Garnet", industry: "Sidebar · Art déco executive", image: `${API_BASE_URL}/template-assets/garnet-sidebar.png` },
-];
+// Pre-rendered full-page crops in frontend/public/template-mockups/, one per
+// template id — bundled as static assets so this grid never depends on the
+// backend being reachable.
+const TEMPLATE_PREVIEWS = TEMPLATES.map((tpl) => ({
+    id: tpl.id,
+    name: tpl.name,
+    industry: tpl.industry,
+    image: `/template-mockups/${tpl.id}.png`,
+}));
 
 // Funkcje panels. Order + accent colour drive the bullet nav and each eyebrow.
 const PANELS = [

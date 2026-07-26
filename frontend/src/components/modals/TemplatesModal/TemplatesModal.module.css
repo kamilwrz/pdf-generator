@@ -68,94 +68,22 @@
     background: var(--chrome-accent);
 }
 
-/* ---- mini-mock preview ---- */
+/* ---- real screenshot preview ---- */
 .paper {
     width: 132px;
     height: 186px;
     background: #fff;
     box-shadow: 0 4px 14px rgba(30, 48, 78, .18);
     border-radius: 3px;
-    display: flex;
     overflow: hidden;
 }
 
-.col,
-.centerCol,
-.main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 12px;
-    gap: 4px;
-}
-
-.centerCol {
-    align-items: center;
-}
-
-.sidebar {
-    width: 42px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 10px 6px;
-    gap: 4px;
-}
-
-.main {
-    padding: 12px 10px;
-}
-
-.photo {
-    width: 26px;
-    height: 26px;
-    border-radius: 3px;
-    background: #14333D;
-    border: 1.5px solid #2BB3C0;
-    margin-bottom: 6px;
-}
-
-.bar {
-    height: 6px;
-    border-radius: 2px;
-}
-
-.barAccent {
-    height: 4px;
-    border-radius: 2px;
-}
-
-.barThin {
-    height: 3px;
-    border-radius: 2px;
-}
-
-.rule {
-    height: 1.5px;
+.previewImg {
     width: 100%;
-    border-radius: 1px;
-    margin: 2px 0;
-}
-
-.flank {
-    height: 1.5px;
-    width: 60%;
-    border-radius: 1px;
-    margin: 3px 0;
-}
-
-.line {
-    height: 3px;
-    width: 100%;
-    border-radius: 2px;
-    background: #DEE5EE;
-}
-
-.lineLight {
-    height: 3px;
-    width: 80%;
-    border-radius: 2px;
-    background: rgba(255, 255, 255, .35);
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+    display: block;
 }
 
 @media only screen and (max-width: 640px) {
