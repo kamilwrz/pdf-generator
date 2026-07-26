@@ -17,7 +17,7 @@ from app.services.layout_analysis import (
     resolve_restructure_section,
 )
 
-_MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.5")
+_MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.4-mini")
 _client = OpenAI(api_key=OPENAI_API_KEY)
 
 

@@ -536,7 +536,6 @@ export function useA4Elements(titleRef) {
     const dragged = moving
       ? elementsRef.current.find((element) => element.element_id === elementId)
       : null;
-    const replaceSelection = !!moving && !dragged?.isSelected;
 
     if (moving) {
       draggedElementIdsRef.current.delete(elementId);
@@ -577,8 +576,8 @@ export function useA4Elements(titleRef) {
     }
     setA4_Elements(prevState => prevState.map((element) => (
       element.element_id === elementId
-        ? { ...element, isSelected: moving ? true : element.isSelected, isMove: !!moving && !element.locked }
-        : { ...element, isSelected: replaceSelection ? false : element.isSelected, isMove: false }
+        ? { ...element, isMove: !!moving && !element.locked }
+        : { ...element, isMove: false }
     )));
   }, [])
 

@@ -52,9 +52,8 @@ PAGE_W, PAGE_H = 960, 540
 MAX_TEXT_CHARS = 60000
 MAX_SLIDES = 60
 
-# Planning model: newest reasoning-capable OpenAI model. Overridable via env
-# (DECK_PLAN_MODEL) so a newer model id can be adopted without a code change.
-PLAN_MODEL = os.getenv("DECK_PLAN_MODEL", "gpt-5.6")
+# Planning model. Overridable via env (DECK_PLAN_MODEL) for controlled rollout.
+PLAN_MODEL = os.getenv("DECK_PLAN_MODEL", "gpt-5.4-mini")
 
 # Inner slot of the image frame on image_right slides (frame 560,160 340×255, 12px inset)
 IMG_SLOT = {"left": 572, "top": 172, "w": 316, "h": 231}
@@ -156,7 +155,7 @@ def analyze_images(image_rows) -> dict:
                 b64 = base64.b64encode(f.read()).decode()
             mime = row.mime_type or "image/png"
             resp = _get_client().chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5.4-mini",
                 messages=[{"role": "user", "content": [
                     {"type": "text", "text":
                         "W JEDNYM zdaniu po polsku: co pokazuje ten obraz i jaki koncept "

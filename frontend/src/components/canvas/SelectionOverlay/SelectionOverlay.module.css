@@ -22,6 +22,15 @@
         0 0 0 4px rgba(62, 109, 181, 0.18);
 }
 
+.frameMoving {
+    border-color: #1f74b6;
+    border-width: 2px;
+    background: rgba(48, 143, 209, 0.08);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.96),
+        0 0 0 5px rgba(48, 143, 209, 0.22);
+}
+
 .groupFrame {
     position: absolute;
     box-sizing: border-box;
@@ -70,6 +79,19 @@
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.85);
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
+}
+
+.movingBadge {
+    position: absolute;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: #1f74b6;
+    color: #fff;
+    font: 700 10px/1 var(--font-body);
+    white-space: nowrap;
+    box-shadow: 0 8px 18px -10px rgba(31, 116, 182, 0.78);
+    transform: translateY(-100%);
+    margin-top: -8px;
 }
 
 .deltaBadge {

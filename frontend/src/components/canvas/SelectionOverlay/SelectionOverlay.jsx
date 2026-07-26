@@ -12,6 +12,20 @@ function frameForElement(element) {
     const top = Number(element.top) || 0;
     let { width, height } = getElementBounds(element);
 
+    // Single-line text often has no stored dimensions. Give it a predictable,
+    // comfortably visible selection target without changing its layout.
+    if (element.category === "text") {
+        const minWidth = Math.max(88, (Number(element.fontSize) || 12) * 5);
+        const minHeight = Math.max(22, (Number(element.fontSize) || 12) * 1.7);
+        const verticalInset = Math.max(0, (minHeight - height) / 2);
+        return {
+            left: left - PAD,
+            top: top - verticalInset - PAD,
+            width: Math.max(width, minWidth) + PAD * 2,
+            height: Math.max(height, minHeight) + PAD * 2,
+        };
+    }
+
     // Thin lines need a taller frame so selection stays readable on the canvas.
     if (element.category === "line" && height < MIN_LINE_FRAME) {
         const extra = (MIN_LINE_FRAME - height) / 2;
@@ -44,19 +58,19 @@ export default function SelectionOverlay({ elements, page }) {
         )),
         [canvasElements, displayedPage]
     );
-
-    const dragged = groupMoveDelta
-        ? canvasElements.find((element) => (
-            element.element_id === groupMoveDelta.elementId
+    const moving = useMemo(
+        () => canvasElements.filter((element) => (
+            element.isMove
+            && element.category !== "connector"
             && (element.page ?? 1) === displayedPage
-        ))
-        : null;
-    const displayed = selected.length > 0 ? selected : [dragged].filter(Boolean);
-
-    // Text uses its own light background highlight — framing it caused jitter.
-    const framed = displayed.filter((element) => element.category !== "text");
+        )),
+        [canvasElements, displayedPage]
+    );
+    const displayed = selected.length > 0 ? selected : moving;
+    const isMoving = displayed.some((element) => element.isMove);
+    const framed = displayed;
     const isMulti = displayed.length > 1;
-    if (displayed.length === 0 || (framed.length === 0 && !isMulti && !groupMoveDelta)) return null;
+    if (displayed.length === 0) return null;
     const frames = framed.map((element) => ({
         id: element.element_id,
         ...frameForElement(element),
@@ -83,7 +97,7 @@ export default function SelectionOverlay({ elements, page }) {
             {frames.map((frame) => (
                 <div
                     key={frame.id}
-                    className={`${classes.frame} ${isMulti ? classes.frameMulti : ""}`}
+                        className={`${classes.frame} ${isMulti ? classes.frameMulti : ""} ${isMoving ? classes.frameMoving : ""}`}
                     style={{
                         left: frame.left,
                         top: frame.top,
@@ -91,7 +105,7 @@ export default function SelectionOverlay({ elements, page }) {
                         height: frame.height,
                     }}
                 >
-                    {isMulti && (
+                        {(isMulti || isMoving) && (
                         <>
                             <span className={`${classes.corner} ${classes.tl}`} />
                             <span className={`${classes.corner} ${classes.tr}`} />
@@ -118,9 +132,17 @@ export default function SelectionOverlay({ elements, page }) {
                         style={{ left: groupBox.left, top: groupBox.top }}
                     >
                         <span className={classes.badgeDot} />
-                        {displayed.length} zaznaczone
+                        {isMoving ? `Przesuwanie · ${displayed.length}` : `${displayed.length} zaznaczone`}
                     </div>
                 </>
+            )}
+            {!isMulti && isMoving && (
+                <div
+                    className={classes.movingBadge}
+                    style={{ left: groupBox.left, top: groupBox.top }}
+                >
+                    Przesuwanie
+                </div>
             )}
             {groupMoveDelta && groupMoveDelta.page === displayedPage && (
                 <div
