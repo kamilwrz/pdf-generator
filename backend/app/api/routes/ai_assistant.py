@@ -25,6 +25,8 @@ class AssistantRequest(BaseModel):
     message: str = ""
     job_description: str = ""
     page_size: dict = {}
+    # Prior turns from the open editor session (role + content). Chat only.
+    history: list[dict] = []
 
 
 class AssistantResponse(BaseModel):
@@ -65,6 +67,7 @@ async def ai_assistant(
             message=request.message,
             job_description=request.job_description,
             page_size=request.page_size,
+            history=request.history,
         )
         return AssistantResponse(**result)
     except AIServiceError:

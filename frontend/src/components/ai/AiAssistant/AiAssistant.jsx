@@ -559,6 +559,15 @@ export default function AiAssistant() {
     const send = useCallback(async (action, userText) => {
         if (isLoading) return;
 
+        // Prior turns only — the current userText is sent as `message`.
+        const history = messages
+            .filter((m) => (m.role === "user" || m.role === "assistant") && m.text)
+            .slice(-12)
+            .map((m) => ({
+                role: m.role,
+                content: String(m.text).slice(0, 1500),
+            }));
+
         const userMsg = {
             id: nanoid(),
             role: "user",
@@ -577,6 +586,7 @@ export default function AiAssistant() {
                     message: action === "chat" ? userText : "",
                     job_description: action === "position_rating" ? jobDesc : "",
                     page_size: pageSize,
+                    history: action === "chat" ? history : [],
                 }),
                 "Asystent AI nie odpowiedział"
             );
@@ -611,7 +621,7 @@ export default function AiAssistant() {
         } finally {
             setIsLoading(false);
         }
-    }, [A4_Elements, api, isLoading, jobDesc, pageSize]);
+    }, [A4_Elements, api, isLoading, jobDesc, messages, pageSize]);
 
     const handleAction = useCallback((actionId) => {
         const meta = ACTIONS.find(a => a.id === actionId);

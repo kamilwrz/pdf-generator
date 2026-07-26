@@ -5,6 +5,59 @@ from app.services import ai_assistant_service
 
 
 class ChatCommandTests(unittest.TestCase):
+    def test_normalize_chat_history_keeps_recent_user_and_assistant_turns(self):
+        history = [
+            {"role": "system", "content": "ignore"},
+            {"role": "user", "content": "przenieś wykształcenie"},
+            {"role": "assistant", "content": "Przeniosłem sekcję."},
+            {"role": "user", "text": "teraz dopasuj kolor"},
+            {"role": "assistant", "content": ""},
+            {"role": "tool", "content": "nope"},
+        ]
+        normalized = ai_assistant_service._normalize_chat_history(history)
+        self.assertEqual(
+            normalized,
+            [
+                {"role": "user", "content": "przenieś wykształcenie"},
+                {"role": "assistant", "content": "Przeniosłem sekcję."},
+                {"role": "user", "content": "teraz dopasuj kolor"},
+            ],
+        )
+
+    def test_chat_prompt_includes_session_history_for_follow_ups(self):
+        elements = [
+            {
+                "element_id": "heading-1",
+                "category": "text",
+                "content": "WYKSZTAŁCENIE",
+                "fontSize": 16,
+                "color": "#13293D",
+                "left": 20, "top": 40, "width": 150, "height": 22, "page": 1,
+            },
+        ]
+
+        def fake_gpt(system, user):
+            self.assertIn("HISTORIA SESJI CZATU", user)
+            self.assertIn("przenieś wykształcenie do sidebara", user)
+            self.assertIn("historię bieżącej sesji", system)
+            return {
+                "message": "Dopasowuję kolor nagłówka do pozostałych sekcji sidebara.",
+                "corrections": [{"element_id": "heading-1", "color": "#37D1EE"}],
+            }
+
+        with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
+            result = ai_assistant_service.analyze_action(
+                action="chat",
+                elements=elements,
+                message="zmień kolor jak w innych sekcjach",
+                history=[
+                    {"role": "user", "content": "przenieś wykształcenie do sidebara"},
+                    {"role": "assistant", "content": "Przeniosłem WYKSZTAŁCENIE pod JĘZYKI."},
+                ],
+            )
+
+        self.assertEqual(result["corrections"], [{"element_id": "heading-1", "color": "#37D1EE"}])
+
     def test_dispatcher_gives_chat_structured_elements_and_filters_hallucinated_fields(self):
         elements = [
             {

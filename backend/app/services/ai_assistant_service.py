@@ -597,12 +597,43 @@ Zwróć JSON:
     return _safe_result(_gpt(system, user))
 
 
-def _chat(message: str, elements: list[dict], page_size: dict | None) -> dict:
+_MAX_CHAT_HISTORY = 12
+_MAX_HISTORY_CHARS = 1500
+
+
+def _normalize_chat_history(history: list | None) -> list[dict]:
+    """Keep a short, safe transcript of the current UI session for the model."""
+    if not isinstance(history, list):
+        return []
+    normalized: list[dict] = []
+    for item in history[-_MAX_CHAT_HISTORY:]:
+        if not isinstance(item, dict):
+            continue
+        role = item.get("role")
+        if role not in ("user", "assistant"):
+            continue
+        content = str(item.get("content") or item.get("text") or "").strip()
+        if not content:
+            continue
+        normalized.append({"role": role, "content": content[:_MAX_HISTORY_CHARS]})
+    return normalized
+
+
+def _chat(
+    message: str,
+    elements: list[dict],
+    page_size: dict | None,
+    history: list | None = None,
+) -> dict:
     structured = _extract_positional(elements)
+    session_history = _normalize_chat_history(history)
 
     system = (
         "Jesteś ekspertem i coachem CV. Masz pełną treść, styl i pozycję (px, 1:1 z PDF) "
-        "każdego elementu CV użytkownika jako kontekst. Wiadomość użytkownika może być:\n"
+        "każdego elementu CV użytkownika jako kontekst oraz historię bieżącej sesji czatu. "
+        "Gdy użytkownik odnosi się do wcześniejszej wiadomości („to”, „tamto”, „jak wcześniej”, "
+        "„co przed chwilą zmieniłeś”), użyj HISTORII SESJI. Aktualny stan płótna (ELEMENTY CV) "
+        "ma pierwszeństwo, jeśli rozmowa i płótno się rozjeżdżają. Wiadomość użytkownika może być:\n"
         "(1) PYTANIEM — odpowiedz konkretnie w message, zostaw corrections jako pustą listę "
         "i position_operation jako null.\n"
         "(2) POLECENIEM edycji treści lub stylu (np. \"zmień rozmiar czcionki nagłówków na 13px\", "
@@ -712,15 +743,23 @@ def _chat(message: str, elements: list[dict], page_size: dict | None) -> dict:
         "doprecyzowujące, zostaw corrections puste i position_operation jako null.\n"
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
+    history_block = (
+        json.dumps(session_history, ensure_ascii=False)
+        if session_history
+        else "[]"
+    )
     user = f"""ELEMENTY CV (id, typ, treść, styl, pozycja i rozmiar w px):
 {json.dumps(structured, ensure_ascii=False)}
 
-WIADOMOŚĆ UŻYTKOWNIKA:
+HISTORIA SESJI CZATU (od najstarszej; bez bieżącej wiadomości):
+{history_block}
+
+BIEŻĄCA WIADOMOŚĆ UŻYTKOWNIKA:
 {message}
 
 Zwróć JSON:
 {{
-  "message": "<Twoja odpowiedź — konkretna i oparta na powyższych elementach>",
+  "message": "<Twoja odpowiedź — konkretna, oparta na elementach i historii sesji>",
   "rating": null,
   "tips": ["<wskazówka lub osiągalna alternatywa, jeśli istotna>"],
   "corrections": [],
@@ -795,6 +834,7 @@ def analyze_action(
     message: str = "",
     job_description: str = "",
     page_size: dict | None = None,
+    history: list | None = None,
 ) -> dict:
     text = _extract_text(elements)
 
@@ -806,7 +846,7 @@ def analyze_action(
         "language":        lambda: _check_style(text, elements),
         "improve":         lambda: _improve_content(elements),
         "ats_score":       lambda: _ats_score(text),
-        "chat":            lambda: _chat(message, elements, page_size),
+        "chat":            lambda: _chat(message, elements, page_size, history),
         "layout":          lambda: _analyze_layout(elements, page_size),
     }
 
