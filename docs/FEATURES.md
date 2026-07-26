@@ -43,7 +43,7 @@ Pełna przestrzeń twórcza na A4 pion lub poziom — wiele stron, gdy historia 
 ### Pracuj jak projektant
 - Wielokrotne zaznaczenie Ctrl/Cmd, przesuwanie grupy, duplikowanie i usuwanie  
 - Prowadnice wyrównania podczas przeciągania; pomarańczowe markery pokazują dokładny odstęp w pikselach między krawędziami elementów  
-- Blokada elementów, których nie chcesz ruszać; przesuwanie treści poniżej przy zmianie Y  
+- Blokada elementów, których nie chcesz ruszać  
 - Kolejność warstw (z-index), wyrównanie do strony: lewo / środek / prawo  
 - Zoom 25%–300% do precyzyjnej pracy (eksport zostaje w rozmiarze dokumentu)  
 - Widok dwóch stron przy dłuższych CV  

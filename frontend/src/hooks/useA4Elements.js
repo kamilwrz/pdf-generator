@@ -1319,63 +1319,6 @@ export function useA4Elements(titleRef) {
     });
   }, []);
 
-  // Move an element to newTop and shift every element BELOW it (in absolute
-  // document order) by the same delta — opens/closes vertical space above the
-  // moved block while preserving spacing. Fully bidirectional: pushing down
-  // flows overflow onto the next page (creating it), pushing up pulls elements
-  // back from later pages and trims the now-empty trailing pages.
-  const handleMoveElementWithBelow = useCallback((elementId, newTop) => {
-    const PAGE_HEIGHT = pageSizeRef.current.height;
-    const elements = elementsRef.current;
-    const target = elements.find(el => el.element_id === elementId);
-    if (!target || target.locked) return;
-
-    // Work in absolute document Y (across all pages). This keeps the moved
-    // block rigid as it flows across page boundaries — measuring per-page and
-    // matching only the target's page collapses spacing the moment an element
-    // crosses onto the next page.
-    const absOf = (el) => ((el.page ?? 1) - 1) * PAGE_HEIGHT + el.top;
-    const oldAbs = absOf(target);
-    const newAbs = ((target.page ?? 1) - 1) * PAGE_HEIGHT + newTop;
-    const delta = newAbs - oldAbs;
-    if (delta === 0) return;
-
-    // Absolute Y -> { page, top }. Only wraps downward overflow; upward moves
-    // that pull an element to an earlier page resolve naturally too.
-    const toPageTop = (abs) => {
-      let a = abs;
-      let p = 1;
-      while (a >= PAGE_HEIGHT) { a -= PAGE_HEIGHT; p += 1; }
-      return { page: p, top: a };
-    };
-
-    let maxPage = 1;
-    const next = elements.map(el => {
-      let res = el;
-      if (el.element_id === elementId) {
-        const { page, top } = toPageTop(newAbs);
-        res = { ...el, page, top };
-      } else if (absOf(el) > oldAbs && !el.locked && !el.fixedToPage) {
-        // Every element below the target (in absolute terms) shifts by the
-        // same delta — spacing preserved across the page break.
-        // Skip page decorations (frames, sidebars, backgrounds).
-        const { page, top } = toPageTop(absOf(el) + delta);
-        res = { ...el, page, top };
-      }
-      if ((res.page ?? 1) > maxPage) maxPage = res.page ?? 1;
-      return res;
-    });
-
-    setA4_Elements(next);
-    // Set the page count to the furthest page that actually holds an element:
-    // grows as overflow flows down, shrinks when an upward push empties the
-    // trailing pages the overflow created. Empty pages between content are kept
-    // (maxPage tracks the highest OCCUPIED page). Clamp the view so it doesn't
-    // sit on a page that no longer exists.
-    setPageCount(maxPage);
-    setCurrentPage(cp => Math.min(cp, maxPage));
-  }, [])
-
   const handleAlignElements = useCallback((elementId, position, width, category) => {
     if (elementsRef.current.find((element) => element.element_id === elementId)?.locked) return;
     if (category === "text") {
@@ -1752,7 +1695,6 @@ export function useA4Elements(titleRef) {
     applyLayoutPatches,
     applyStructureOperation,
     applyDeleteOperation,
-    handleMoveElementWithBelow,
     A4ref,
     setPageCanvasRef,
     PDFTitle,

@@ -10,7 +10,7 @@ import { logEvent } from "../../../services/eventLog";
 function Preview({ id }) {
     /* ---- Finanse ---- */
     if (id === "ledger") {
-        // institutional navy masthead + KPI row
+        // institutional navy masthead + content column
         return (
             <div className={classes.paper} style={{ flexDirection: "column", background: "#F7F9FA" }}>
                 <div style={{ height: "28%", background: "#102A43", borderBottom: "3px solid #2E5E86", display: "flex", flexDirection: "column", justifyContent: "center", gap: "4px", padding: "0 10px" }}>
@@ -18,13 +18,6 @@ function Preview({ id }) {
                     <span className={classes.barThin} style={{ background: "#C7D7E2", width: "42%" }} />
                 </div>
                 <div className={classes.col} style={{ paddingTop: 8 }}>
-                    <div style={{ display: "flex", gap: "4px", marginBottom: "7px" }}>
-                        {[0, 1, 2].map((i) => (
-                            <span key={i} style={{ flex: 1, height: "18px", border: "1px solid #AEBECC", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <span style={{ width: "50%", height: "5px", background: "#102A43" }} />
-                            </span>
-                        ))}
-                    </div>
                     <span className={classes.barThin} style={{ background: "#2E5E86", width: "28%" }} />
                     <span className={classes.rule} style={{ background: "#AEBECC" }} />
                     <span className={classes.line} style={{ background: "#D5DEE6" }} /><span className={classes.line} style={{ background: "#D5DEE6" }} />

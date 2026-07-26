@@ -166,16 +166,32 @@ class DirectedOperationTests(unittest.TestCase):
         changed = {p["element_id"]: p["left"] for p in group["patches"]}
         self.assertEqual(changed, {"one": 20.0, "three": 20.0})
 
-    def test_distribute_equalizes_gaps_holding_ends_fixed(self):
+    def test_distribute_equalizes_y_gaps_using_available_page_space(self):
+        # Page content bottom = 100 - 12 = 88. Three 10px items → gap (88-30)/2 = 29.
         items = layout_analysis.extract_bounds([
             block("first", 0, 0, width=10, height=10),
             block("middle", 0, 15, width=10, height=10),
-            block("last", 0, 90, width=10, height=10),
+            block("last", 0, 50, width=10, height=10),
         ])
         group = layout_analysis.resolve_distribute(items, {"first", "middle", "last"}, "y", 100, 100)
         self.assertIsNotNone(group)
         changed = {p["element_id"]: p["top"] for p in group["patches"]}
-        self.assertEqual(changed, {"middle": 45.0})
+        self.assertEqual(changed, {"middle": 39.0, "last": 78.0})
+
+    def test_distribute_y_stops_before_next_content_in_column(self):
+        items = layout_analysis.extract_bounds([
+            block("first", 0, 0, width=10, height=10),
+            block("middle", 0, 15, width=10, height=10),
+            block("last", 0, 40, width=10, height=10),
+            block("education", 0, 70, width=10, height=10),
+        ])
+        group = layout_analysis.resolve_distribute(
+            items, {"first", "middle", "last"}, "y", 100, 100,
+        )
+        self.assertIsNotNone(group)
+        # Region ends at education.top - 8 = 62 → gap (62-30)/2 = 16.
+        changed = {p["element_id"]: p["top"] for p in group["patches"]}
+        self.assertEqual(changed, {"middle": 26.0, "last": 52.0})
 
     def test_distribute_requires_at_least_three_targets(self):
         items = layout_analysis.extract_bounds([
@@ -473,10 +489,11 @@ class DirectedOperationTests(unittest.TestCase):
         self.assertEqual(group, layout_analysis._NO_CHANGE)
 
     def test_distribute_reports_no_change_when_already_even(self):
+        # Already matches page-aware layout: tops 0 / 39 / 78 with gap 29 on a 100px page.
         items = layout_analysis.extract_bounds([
             block("first", 0, 0, width=10, height=10),
-            block("middle", 0, 45, width=10, height=10),
-            block("last", 0, 90, width=10, height=10),
+            block("middle", 0, 39, width=10, height=10),
+            block("last", 0, 78, width=10, height=10),
         ])
         group = layout_analysis.resolve_distribute(items, {"first", "middle", "last"}, "y", 100, 100)
         self.assertEqual(group, layout_analysis._NO_CHANGE)
@@ -547,8 +564,49 @@ class DirectedOperationTests(unittest.TestCase):
         )
         self.assertEqual(result["layout_issues"], [])
         self.assertEqual(len(result["layout_groups"]), 1)
+        # Page-aware: region to y=88, three 10px blocks → gap 29 → tops 0 / 39 / 78.
         changed = {p["element_id"]: p["top"] for p in result["layout_groups"][0]["patches"]}
-        self.assertEqual(changed, {"b-title": 25.0, "b-desc": 31.0})
+        self.assertEqual(
+            changed,
+            {
+                "b-title": 39.0,
+                "b-desc": 45.0,
+                "c-title": 78.0,
+                "c-desc": 84.0,
+            },
+        )
+
+    def test_target_groups_distribute_respects_following_section(self):
+        elements = [
+            block("a-title", 0, 0, width=20, height=5),
+            block("a-desc", 0, 6, width=20, height=4),
+            block("b-title", 0, 15, width=20, height=5),
+            block("b-desc", 0, 21, width=20, height=4),
+            block("c-title", 0, 40, width=20, height=5),
+            block("c-desc", 0, 46, width=20, height=4),
+            block("education", 0, 70, width=20, height=10),
+        ]
+        result = layout_analysis.resolve_directed_operation(
+            elements,
+            {
+                "type": "distribute",
+                "target_groups": [["a-title", "a-desc"], ["b-title", "b-desc"], ["c-title", "c-desc"]],
+                "axis": "y",
+            },
+            PAGE_SIZE,
+        )
+        self.assertEqual(result["layout_issues"], [])
+        changed = {p["element_id"]: p["top"] for p in result["layout_groups"][0]["patches"]}
+        # Region ends at 70 - 8 = 62 → gap 16 → tops 0 / 26 / 52.
+        self.assertEqual(
+            changed,
+            {
+                "b-title": 26.0,
+                "b-desc": 32.0,
+                "c-title": 52.0,
+                "c-desc": 58.0,
+            },
+        )
 
     def test_single_target_group_spaces_its_members_individually(self):
         elements = [

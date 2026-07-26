@@ -849,9 +849,6 @@ def _gen_ledger(cv: dict) -> list[dict]:
     L, W, SANS, SERIF = 52, 490, "Inter", "Times-Roman"
     lbl = _labels(cv)
 
-    metric_revenue = {**_rect(52, 180, 150, 62, STEEL, page=1), "id": "metric-revenue"}
-    metric_margin = {**_rect(222, 180, 150, 62, STEEL, page=1), "id": "metric-margin"}
-    metric_capital = {**_rect(392, 180, 150, 62, STEEL, page=1), "id": "metric-capital"}
     static = [
         _line(0, 0, 595, 146, NAVY, zIndex=0),
         _line(0, 146, 595, 5, BLUE, zIndex=1),
@@ -870,24 +867,11 @@ def _gen_ledger(cv: dict) -> list[dict]:
         _text(_compact_text(cv.get("name"), 30), 30, SERIF, "#FFFFFF", L, 58, zIndex=2, bold=True),
         _text(_compact_text(cv.get("title"), 52), 10, SANS, "#C7D7E2", L, 98, zIndex=2),
         _text(_compact_text(_contact_line(cv), 78), 8.8, SANS, "#C7D7E2", L, 120, zIndex=2),
-        metric_revenue,
-        metric_margin,
-        metric_capital,
-        {"category": "connector", "source_id": "metric-revenue", "target_id": "metric-margin",
-         "backgroundColor": BLUE, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
-        {"category": "connector", "source_id": "metric-margin", "target_id": "metric-capital",
-         "backgroundColor": BLUE, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
-        _text("PRZYCHODY", 7.5, SANS, SLATE, 66, 193, zIndex=3),
-        _text("WZROST", 20, SERIF, NAVY, 66, 208, zIndex=3, bold=True),
-        _text("MARŻA", 7.5, SANS, SLATE, 236, 193, zIndex=3),
-        _text("KONTROLA", 20, SERIF, NAVY, 236, 208, zIndex=3, bold=True),
-        _text("KAPITAŁ", 7.5, SANS, SLATE, 406, 193, zIndex=3),
-        _text("WARTOŚĆ", 20, SERIF, NAVY, 406, 208, zIndex=3, bold=True),
     ]
     static[6]["letterSpacing"] = 1.05
 
     SECTION_CHROME = 36
-    b = Builder(278)
+    b = Builder(180)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)

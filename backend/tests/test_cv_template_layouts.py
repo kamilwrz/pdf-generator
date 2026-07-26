@@ -571,7 +571,13 @@ class CvTemplateLayoutTests(unittest.TestCase):
         elements = generate_resume("ledger", LONG_CV)
         categories = {element["category"] for element in elements}
 
-        self.assertTrue({"text", "textarea", "line", "rectangle", "image", "connector"} <= categories)
+        self.assertTrue({"text", "textarea", "line", "rectangle", "image"} <= categories)
+        self.assertNotIn("connector", categories)
+        self.assertFalse(any(
+            element["category"] == "rectangle"
+            and element.get("id", "").startswith("metric-")
+            for element in elements
+        ))
         self.assertTrue(all(
             element.get("autoHeight") is True
             for element in elements

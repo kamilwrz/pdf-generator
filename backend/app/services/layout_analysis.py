@@ -377,10 +377,21 @@ def _spacing_groups(
 
             patches: list[dict[str, Any]] = []
             expected_top = column[0]["top"]
+            # Cascading normalize: each item is measured against the already-corrected
+            # previous top so a single outlier does not leave the rest of the column uneven.
             for previous, current in zip(column, column[1:]):
                 expected_top += previous["height"] + target_gap
+                # Prefer the patched previous top when we already adjusted it.
+                prev_patch = next(
+                    (p for p in patches if p["element_id"] == previous["element_id"]),
+                    None,
+                )
+                if prev_patch is not None:
+                    expected_top = prev_patch["top"] + previous["height"] + target_gap
                 distance = abs(current["top"] - expected_top)
-                if EPSILON < distance <= MAX_SAFE_SNAP_MOVE:
+                # Allow a larger correction than generic snaps — this is still a
+                # median-gap normalize within one column, not a free redesign.
+                if EPSILON < distance <= max(MAX_SAFE_SNAP_MOVE, target_gap):
                     patches.append({
                         "element_id": current["element_id"],
                         "left": round(current["left"], 2),
@@ -487,6 +498,70 @@ _VALID_OPERATIONS = {"shift", "align", "distribute", "space", "move_to_page", "m
 _VALID_AXES = {"x", "y"}
 _VALID_ANCHORS = {"start", "center", "end"}
 _NO_CHANGE = "no_change"
+# Match cv_generator bottom margin on A4; scale down for tiny test pages.
+_CONTENT_BOTTOM_MARGIN_A4 = 96.0
+# Soft breathing room before the next content block that ends the region.
+_DISTRIBUTE_BREATHING_Y = 8.0
+# Cap equal gaps so empty lower page does not explode CV rhythm.
+_MAX_DISTRIBUTE_GAP_Y = 56.0
+
+
+def _content_bottom(page_height: float) -> float:
+    """Bottom edge of usable content area for the given page height."""
+    margin = min(_CONTENT_BOTTOM_MARGIN_A4, max(4.0, page_height * 0.12))
+    return page_height - margin
+
+
+def _distribution_end_y(
+    ordered: list[dict[str, Any]],
+    context_items: list[dict[str, Any]],
+    page_width: float,
+    page_height: float,
+    exclude_ids: set[str],
+) -> float:
+    """Return the Y coordinate that ends the free vertical region for distribute.
+
+    Prefer the top of the next overlapping-column content item below the
+    selection; otherwise use the page content bottom. Large fixed frames and
+    decorations are ignored so sidebars/backgrounds do not steal the span.
+    """
+    page = ordered[0]["page"]
+    first_top = ordered[0]["top"]
+    last = ordered[-1]
+    last_bottom = last["top"] + last["height"]
+    lane_left = min(item["left"] for item in ordered)
+    lane_right = max(item["left"] + item["width"] for item in ordered)
+    page_end = _content_bottom(page_height)
+
+    blockers: list[float] = []
+    for item in context_items:
+        if item["element_id"] in exclude_ids:
+            continue
+        if item.get("page") != page:
+            continue
+        if item.get("fixedToPage") or item.get("locked"):
+            continue
+        category = item.get("category")
+        if category in DECORATIVE_CATEGORIES or category == "block":
+            # Ignore synthetic blocks and decorations; only real content
+            # (text/textarea/image) should close the distribution region.
+            continue
+        if category not in AUTO_LAYOUT_CATEGORIES:
+            continue
+        # Different column — do not treat as the vertical neighbor.
+        if item["left"] + item["width"] <= lane_left + EPSILON:
+            continue
+        if item["left"] >= lane_right - EPSILON:
+            continue
+        if item["top"] + item["height"] <= first_top + EPSILON:
+            continue
+        # Starts at or below the last target's bottom → content after selection.
+        if item["top"] >= last_bottom - EPSILON:
+            blockers.append(item["top"])
+
+    if blockers:
+        return min(blockers) - _DISTRIBUTE_BREATHING_Y
+    return page_end
 _STRUCTURE_ROLES = {"heading", "entry_title", "entry_meta", "body", "list"}
 _STRUCTURE_MAX_BLOCKS = 12
 _FLOWABLE_CATEGORIES = DIRECTED_POSITION_CATEGORIES
@@ -594,7 +669,18 @@ def resolve_distribute(
     axis: str,
     page_width: float,
     page_height: float,
+    *,
+    context_items: list[dict[str, Any]] | None = None,
+    exclude_ids: set[str] | None = None,
 ) -> dict[str, Any] | str | None:
+    """Equalize gaps along an axis.
+
+    For axis=x the classic first/last-fixed span is used.
+    For axis=y the first item stays put and equal gaps are computed from the
+    free vertical region: until the next content in the same column, or the
+    page content bottom. The last item may move. Gaps are capped so leftover
+    empty page does not create absurd spacing.
+    """
     targets = [item for item in items if item["element_id"] in target_ids]
     if len(targets) < _MIN_DISTRIBUTE_TARGETS:
         return None
@@ -602,27 +688,67 @@ def resolve_distribute(
     pos_key = "left" if axis == "x" else "top"
     size_key = "width" if axis == "x" else "height"
     ordered = sorted(targets, key=lambda item: item[pos_key])
-
-    first, last = ordered[0], ordered[-1]
-    total_span = (last[pos_key] + last[size_key]) - first[pos_key]
-    total_size = sum(item[size_key] for item in ordered)
     gap_count = len(ordered) - 1
-    gap = (total_span - total_size) / gap_count
+    total_size = sum(item[size_key] for item in ordered)
+    start = ordered[0][pos_key]
 
-    if gap < 0:
-        return None
+    if axis == "y":
+        context = context_items if context_items is not None else items
+        excluded = set(exclude_ids or ()) | {item["element_id"] for item in ordered}
+        region_end = _distribution_end_y(
+            ordered, context, page_width, page_height, excluded,
+        )
+        available = region_end - start
+        if available < total_size - EPSILON:
+            return None
+        gap = (available - total_size) / gap_count
+        if gap > _MAX_DISTRIBUTE_GAP_Y:
+            gap = _MAX_DISTRIBUTE_GAP_Y
+        if gap < 0:
+            return None
+        # Place every item from the first (inclusive); last may move.
+        place_slice = ordered
+        cursor = start
+    else:
+        # Horizontal: keep first and last fixed (standard distribute).
+        first, last = ordered[0], ordered[-1]
+        total_span = (last[pos_key] + last[size_key]) - first[pos_key]
+        gap = (total_span - total_size) / gap_count
+        if gap < 0:
+            return None
+        place_slice = ordered[1:-1]
+        cursor = first[pos_key] + first[size_key] + gap
 
     patches = []
-    cursor = first[pos_key] + first[size_key] + gap
-    for item in ordered[1:-1]:
-        new_pos = round(cursor, 2)
-        if abs(new_pos - item[pos_key]) > EPSILON:
-            patches.append({
-                "element_id": item["element_id"],
-                "left": new_pos if axis == "x" else round(item["left"], 2),
-                "top": new_pos if axis == "y" else round(item["top"], 2),
-            })
-        cursor += item[size_key] + gap
+    if axis == "y":
+        for index, item in enumerate(place_slice):
+            new_pos = round(cursor, 2)
+            if abs(new_pos - item[pos_key]) > EPSILON:
+                patches.append({
+                    "element_id": item["element_id"],
+                    "left": round(item["left"], 2),
+                    "top": new_pos,
+                })
+            if index < len(place_slice) - 1:
+                cursor = new_pos + item[size_key] + gap
+        # Safety: final bottom must stay inside the page content area.
+        last_item = ordered[-1]
+        last_top = next(
+            (p["top"] for p in patches if p["element_id"] == last_item["element_id"]),
+            last_item["top"],
+        )
+        if last_top + last_item["height"] > _content_bottom(page_height) + EPSILON:
+            return None
+    else:
+        for item in place_slice:
+            new_pos = round(cursor, 2)
+            if abs(new_pos - item[pos_key]) > EPSILON:
+                patches.append({
+                    "element_id": item["element_id"],
+                    "left": new_pos,
+                    "top": round(item["top"], 2),
+                })
+            cursor += item[size_key] + gap
 
     if not patches:
         return _NO_CHANGE
@@ -630,7 +756,12 @@ def resolve_distribute(
     return _group(
         group_id="directed-distribute",
         title=f"Rozłóż równomiernie {len(targets)} elementów",
-        reason="Bezpośrednie polecenie równomiernego rozłożenia odstępów.",
+        reason=(
+            "Równomierne odstępy pionowe w dostępnym miejscu na stronie "
+            "(do następnej treści lub dolnego marginesu)."
+            if axis == "y"
+            else "Bezpośrednie polecenie równomiernego rozłożenia odstępów."
+        ),
         severity="review",
         patches=patches,
         items=items,
@@ -1083,7 +1214,20 @@ def _resolve_block_operation(
         group = resolve_align(block_items, block_target_ids, axis, anchor, target, page_width, page_height)
     elif op_type == "distribute":
         axis = directive.get("axis") if directive.get("axis") in _VALID_AXES else "y"
-        group = resolve_distribute(block_items, block_target_ids, axis, page_width, page_height)
+        member_ids = {
+            member["element_id"]
+            for members in block_members.values()
+            for member in members
+        }
+        group = resolve_distribute(
+            block_items,
+            block_target_ids,
+            axis,
+            page_width,
+            page_height,
+            context_items=items,
+            exclude_ids=member_ids,
+        )
     else:
         axis = directive.get("axis") if directive.get("axis") in _VALID_AXES else "y"
         gap = _number(directive.get("gap"), -1.0)
