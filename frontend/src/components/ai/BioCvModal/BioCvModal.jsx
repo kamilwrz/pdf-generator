@@ -5,6 +5,7 @@ import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { TEMPLATES } from "../../../templates";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
+import { createSerialSaveQueue } from "../../../utils/serialSaveQueue";
 import {
     applyBioCvDraftUpdate,
     BIO_CV_STEPS,
@@ -92,27 +93,34 @@ export default function BioCvModal() {
     const profileRef = useRef(profile);
     const readyRef = useRef(false);
     const skipAutosaveRef = useRef(false);
+    const saveQueueRef = useRef(null);
+    if (saveQueueRef.current === null) {
+        saveQueueRef.current = createSerialSaveQueue((pending) => {
+            setIsSaving(pending > 0);
+        });
+    }
 
     useEffect(() => {
         profileRef.current = profile;
     }, [profile]);
 
     const saveDraft = useCallback(async (data = profileRef.current, { silent = false } = {}) => {
-        if (!readyRef.current) return;
-        setIsSaving(true);
-        if (!silent) setSaveError(null);
-        try {
-            await api.httpRequest(
-                ENDPOINTS.AI.BIO_CV_DRAFT,
-                "PUT",
-                JSON.stringify({ cv_data: buildBioCvPayload(data) }),
-                "Nie udało się zapisać szkicu.",
-            );
-        } catch (error) {
-            setSaveError(error.message || "Nie udało się zapisać szkicu.");
-        } finally {
-            setIsSaving(false);
-        }
+        if (!readyRef.current) return Promise.resolve();
+        const payload = buildBioCvPayload(data);
+
+        return saveQueueRef.current.enqueue(async () => {
+            if (!silent) setSaveError(null);
+            try {
+                await api.httpRequest(
+                    ENDPOINTS.AI.BIO_CV_DRAFT,
+                    "PUT",
+                    JSON.stringify({ cv_data: payload }),
+                    "Nie udało się zapisać szkicu.",
+                );
+            } catch (error) {
+                setSaveError(error.message || "Nie udało się zapisać szkicu.");
+            }
+        });
     }, [api]);
 
     useEffect(() => {
@@ -222,6 +230,11 @@ export default function BioCvModal() {
     const clearDraft = useCallback(async () => {
         if (!window.confirm("Wyczyścić wszystkie dane zapisane w szkicu CV?")) return;
         try {
+            if (saveTimer.current) {
+                clearTimeout(saveTimer.current);
+                saveTimer.current = null;
+            }
+            await saveQueueRef.current.whenIdle();
             await api.httpRequest(ENDPOINTS.AI.BIO_CV_DRAFT, "DELETE", null, "Nie udało się usunąć szkicu.");
             skipAutosaveRef.current = true;
             const emptyProfile = createEmptyBioCvData();
