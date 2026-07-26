@@ -626,8 +626,43 @@ class CvTemplateLayoutTests(unittest.TestCase):
             and element["page"] == education_heading["page"]
             and element["left"] == 52
             and abs(element["top"] - (education_heading["top"] + 5)) < 0.01
+            and element["height"] <= 40
             for element in elements
         ))
+
+    def test_nimbus_flow_keeps_margins_and_record_rhythm(self):
+        from app.services.cv_generator import SPACE_RECORD, SPACE_STACK
+
+        multi_page_cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 4,
+        }
+        elements = generate_resume("nimbus", multi_page_cv)
+        flow = [
+            element for element in elements
+            if element["category"] in {"text", "textarea"}
+            and not element.get("fixedToPage")
+        ]
+        page_two = [element for element in flow if element.get("page", 1) >= 2]
+        self.assertTrue(page_two)
+        self.assertGreaterEqual(min(element["top"] for element in page_two), 66)
+
+        for element in flow:
+            if element["category"] != "textarea":
+                continue
+            self.assertLessEqual(element["top"] + element["height"], 746)
+
+        titles = [
+            element for element in elements
+            if element["category"] == "textarea"
+            and element["content"] in {
+                job["title"] for job in multi_page_cv["experience"]
+            }
+        ]
+        self.assertGreaterEqual(len(titles), 2)
+        first, second = titles[0], titles[1]
+        if first["page"] == second["page"]:
+            self.assertGreaterEqual(second["top"] - first["top"], SPACE_RECORD + SPACE_STACK)
 
     def test_cinder_is_single_column_and_repeats_page_decorations(self):
         multi_page_cv = {
