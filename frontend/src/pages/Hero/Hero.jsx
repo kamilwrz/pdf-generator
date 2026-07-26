@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import classes from "./Hero.module.css";
 import API_BASE_URL from "../../services/api";
+
+const HEADING_TEXT = "Twórz piękne CV w kilka minut.";
+const ACCENT_WORD = "piękne";
+const TYPE_SPEED_MS = 55;
 
 const TEMPLATE_PREVIEWS = [
     { id: "ledger", name: "Ledger", industry: "Finanse · Instytucjonalny", image: `${API_BASE_URL}/template-assets/ledger-finance-accent.png` },
@@ -52,8 +56,40 @@ function FeatureCard({ stripe, tint, icon, title, text, span }) {
     );
 }
 
+// Types `text` out one character at a time. Starts fully typed when the user
+// prefers reduced motion, so there is no flash of an empty heading to animate away.
+function useTypewriter(text, speed) {
+    const [typedCount, setTypedCount] = useState(() => (
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches ? text.length : 0
+    ));
+
+    useEffect(() => {
+        if (typedCount >= text.length) return undefined;
+        const timer = setInterval(() => {
+            setTypedCount((count) => {
+                const next = count + 1;
+                if (next >= text.length) clearInterval(timer);
+                return Math.min(next, text.length);
+            });
+        }, speed);
+        return () => clearInterval(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once; re-keys on text/speed change only
+    }, [text, speed]);
+
+    return typedCount;
+}
+
 export default function Hero() {
     const [panel, setPanel] = useState(0);
+
+    const typedCount = useTypewriter(HEADING_TEXT, TYPE_SPEED_MS);
+    const typingDone = typedCount >= HEADING_TEXT.length;
+    const accentStart = HEADING_TEXT.indexOf(ACCENT_WORD);
+    const accentEnd = accentStart + ACCENT_WORD.length;
+    const revealed = HEADING_TEXT.slice(0, typedCount);
+    const preText = revealed.slice(0, Math.min(accentStart, typedCount));
+    const accentText = revealed.slice(Math.min(accentStart, typedCount), Math.min(accentEnd, typedCount));
+    const postText = revealed.slice(Math.min(accentEnd, typedCount));
 
     return (
         <div className={classes.page}>
@@ -77,14 +113,19 @@ export default function Hero() {
                 </nav>
 
                 <div className={classes.hero}>
-                    <div className={classes.heroCopy}>
-                        <h1 className={classes.heading}>
-                            Twórz <span className={classes.accentWord}>piękne</span> CV w kilka minut.
+                    <div className={classes.heroInner}>
+                        <h1 className={classes.heading} aria-label={HEADING_TEXT}>
+                            <span aria-hidden="true">
+                                {preText}
+                                <span className={classes.accentWord}>{accentText}</span>
+                                {postText}
+                                {!typingDone && <span className={classes.cursor}>|</span>}
+                            </span>
                         </h1>
-                        <p className={classes.subheading}>
-                            Wizualne płótno A4, 24 szablony branżowe i AI — od pomysłu do PDF gotowego do wysłania.
+                        <p className={`${classes.subheading} ${typingDone ? classes.revealed : ""}`}>
+                            Wizualne płótno A4, 24 szablony branżowe i AI — od pomysłu do CV gotowego do wysłania.
                         </p>
-                        <div className={classes.ctaRow}>
+                        <div className={`${classes.ctaRow} ${typingDone ? classes.revealed : ""}`}>
                             <Link to="/register" className={classes.primaryCta}>
                                 Zacznij projektować
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F1216" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
@@ -93,18 +134,6 @@ export default function Hero() {
                                 Zobacz, jak działa
                             </a>
                         </div>
-                    </div>
-
-                    <div className={classes.preview}>
-                        <img
-                            className={classes.mockup}
-                            src="/hero-mockup.png"
-                            alt="Edytor CV Kompoza — podgląd płótna z szablonem Relay"
-                            width={1600}
-                            height={1000}
-                            decoding="async"
-                            fetchPriority="high"
-                        />
                     </div>
                 </div>
             </div>
