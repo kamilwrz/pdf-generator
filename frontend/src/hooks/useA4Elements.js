@@ -1440,10 +1440,11 @@ export function useA4Elements(titleRef) {
     const MIN_HEIGHT = 10;
 
     // Under canvas zoom, a screen-pixel drag covers fewer canvas units. The
-    // rect is the SCALED #A4, so rect.width / pageWidth is exactly the zoom
-    // factor. Every resize branch below is driven by the horizontal delta.
+    // rect is the scaled A4, so rect.width / pageWidth is exactly the zoom
+    // factor.
     const zoom = A4_COORDS.width / A4_WIDTH || 1;
     const moveX = e.movementX / zoom;
+    const moveY = e.movementY / zoom;
 
     setA4_Elements((prevState) => {
       const newState = prevState.map((element) => {
@@ -1594,6 +1595,28 @@ export function useA4Elements(titleRef) {
               isSelected: false
             }
           }
+        }
+
+        if (direction === "center-bottom") {
+          if (element.element_id === elementId) {
+            const proposedHeight = Number(element.height) + moveY;
+            const newHeight = Math.max(
+              MIN_HEIGHT,
+              Math.min(A4_HEIGHT - Number(element.top), proposedHeight),
+            );
+            return { ...element, height: newHeight };
+          }
+          return { ...element, isSelected: false };
+        }
+
+        if (direction === "center-top") {
+          if (element.element_id === elementId) {
+            const bottomEdge = Number(element.top) + Number(element.height);
+            const proposedTop = Number(element.top) + moveY;
+            const newTop = Math.max(0, Math.min(bottomEdge - MIN_HEIGHT, proposedTop));
+            return { ...element, top: newTop, height: bottomEdge - newTop };
+          }
+          return { ...element, isSelected: false };
         }
 
       })

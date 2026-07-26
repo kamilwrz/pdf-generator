@@ -73,3 +73,17 @@
     transform: translateY(-50%);
     cursor: e-resize;
 }
+
+.roundCenterTop {
+    top: -42px;
+    left: 50%;
+    transform: translateX(-50%);
+    cursor: n-resize;
+}
+
+.roundCenterBottom {
+    bottom: -42px;
+    left: 50%;
+    transform: translateX(-50%);
+    cursor: s-resize;
+}

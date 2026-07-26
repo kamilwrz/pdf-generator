@@ -31,8 +31,8 @@ function Image({
 
     const image = useRef();
 
-    function handleIsResizeable() {
-        setIsResizeable(bool => !bool);
+    function handleIsResizeable(active) {
+        setIsResizeable(Boolean(active));
     }
 
     const style = {

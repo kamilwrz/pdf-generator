@@ -61,8 +61,8 @@ function Textarea({
     const [isResizeable, setIsResizeable] = useState(false);
     const blockRef = useRef(null);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
-    function handleIsResizeable() {
-        setIsResizeable((bool) => !bool);
+    function handleIsResizeable(active) {
+        setIsResizeable(Boolean(active));
     }
 
     // Box geometry and text styling are applied IDENTICALLY to the editing

@@ -21,8 +21,8 @@ function Line({
     const [isResizeable, setIsResizeable] = useState(false);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
 
-    function handleIsResizeable() {
-        setIsResizeable(bool => !bool);
+    function handleIsResizeable(active) {
+        setIsResizeable(Boolean(active));
     }
 
     const style = {

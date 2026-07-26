@@ -22,8 +22,8 @@ function Rectangle({
     const [isResizeable, setIsResizeable] = useState(false);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
 
-    function handleIsResizeable() {
-        setIsResizeable(bool => !bool);
+    function handleIsResizeable(active) {
+        setIsResizeable(Boolean(active));
     }
 
     // Outline only: the border colour reuses backgroundColor (same as the line),

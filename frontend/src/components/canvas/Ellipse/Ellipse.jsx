@@ -62,7 +62,7 @@ function Ellipse({
                 <Resize
                     selectedElement={selectedElement}
                     isResizeable={isResizeable}
-                    handleIsResizable={() => setIsResizeable((value) => !value)}
+                    handleIsResizable={(active) => setIsResizeable(Boolean(active))}
                     resizeElement={resizeElement}
                     category={category}
                     elementId={elementId}
