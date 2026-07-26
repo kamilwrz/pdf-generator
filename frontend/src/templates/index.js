@@ -14,6 +14,7 @@ import { quarryTemplate } from "./quarry";
 import { mossTemplate } from "./moss";
 import { garnetTemplate } from "./garnet";
 import { harborTemplate } from "./harbor";
+import { clearingTemplate, heraldTemplate, signalTemplate, vaultTemplate } from "./banking";
 
 export const TEMPLATES = [
     { id: "ledger",    name: "Ledger",    industry: "Finanse · Instytucjonalny",        accent: "#2E5E86", pageSize: "a4-portrait", elements: ledgerTemplate },
@@ -32,4 +33,8 @@ export const TEMPLATES = [
     { id: "moss",      name: "Moss",      industry: "Sidebar · Botaniczna elegancja",     accent: "#B99854", pageSize: "a4-portrait", elements: mossTemplate },
     { id: "garnet",    name: "Garnet",    industry: "Sidebar · Art déco executive",       accent: "#C7A66A", pageSize: "a4-portrait", elements: garnetTemplate },
     { id: "harbor",    name: "Harbor",    industry: "Sidebar · Morski minimalizm",        accent: "#B78355", pageSize: "a4-portrait", elements: harborTemplate },
+    { id: "vault",     name: "Vault",     industry: "Banking · Private banking",           accent: "#B79A56", pageSize: "a4-portrait", elements: vaultTemplate },
+    { id: "clearing",  name: "Clearing",  industry: "Banking · Operacje i płatności",      accent: "#48B8C8", pageSize: "a4-portrait", elements: clearingTemplate },
+    { id: "herald",    name: "Herald",    industry: "Banking · Wealth management",         accent: "#9D3341", pageSize: "a4-portrait", elements: heraldTemplate },
+    { id: "signal",    name: "Signal",    industry: "Banking · Ryzyko i treasury",         accent: "#3BD2C7", pageSize: "a4-portrait", elements: signalTemplate },
 ];

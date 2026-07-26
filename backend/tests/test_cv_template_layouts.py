@@ -484,6 +484,56 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 for element in elements
             ))
 
+    def test_banking_templates_are_distinct_multpage_canvas_layouts(self):
+        multi_page_cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 4,
+        }
+        expected_categories = {
+            "text", "textarea", "line", "rectangle", "circle", "ellipse", "connector",
+        }
+        expected_papers = {
+            "vault": "#F3F3ED",
+            "clearing": "#FBFCFE",
+            "herald": "#FCF8F0",
+            "signal": "#101C26",
+        }
+
+        for template_id, paper in expected_papers.items():
+            with self.subTest(template_id=template_id):
+                elements = generate_resume(template_id, multi_page_cv)
+                pages = {element.get("page", 1) for element in elements}
+                rendered_copy = " ".join(
+                    str(element.get("content", ""))
+                    for element in elements
+                    if element["category"] in {"text", "textarea"}
+                ).upper()
+
+                self.assertTrue(expected_categories <= {element["category"] for element in elements})
+                self.assertNotIn(template_id.upper(), rendered_copy)
+                self.assertGreater(max(pages), 1)
+                self.assertTrue(all(
+                    element.get("autoHeight") is True
+                    and 0 <= element["left"] <= 595
+                    and 0 <= element["top"] <= 842
+                    and element["left"] + element["width"] <= 595
+                    and element["top"] + element["height"] <= 842
+                    for element in elements
+                    if element["category"] == "textarea"
+                ))
+                for page in pages:
+                    self.assertTrue(any(
+                        element["category"] == "line"
+                        and element.get("page", 1) == page
+                        and element["left"] == 0
+                        and element["top"] == 0
+                        and element["width"] == 595
+                        and element["height"] == 842
+                        and element["backgroundColor"] == paper
+                        and element.get("fixedToPage") is True
+                        for element in elements
+                    ))
+
     def test_final_templates_keep_textareas_inside_page_bounds(self):
         for template_id in ("solstice", "mistral", "axiom", "vellum"):
             with self.subTest(template_id=template_id):
