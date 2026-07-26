@@ -84,7 +84,7 @@ export default function Guides({ page }) {
         (el) => el.element_id !== moving.element_id && onPage(el)
     );
 
-    // ---- Spacing distance guides (above / below), within 80px. ----
+    // ---- Spacing distance guides (above / below) for every element type. ----
     const spacing = findVerticalSpacingGuides(moving, others, getElementBounds);
 
     // ---- One vertical guide: the nearest x-alignment, drawn only across the

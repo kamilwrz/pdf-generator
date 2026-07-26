@@ -50,6 +50,7 @@ function Line({
                 />
 
                 <div
+                    id={elementId}
                     onDoubleClick={() => selectElement(elementId)}
                     onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
                     onPointerDown={(e) => {
@@ -68,6 +69,7 @@ function Line({
     else {
         return (
             <div
+                id={elementId}
                 onDoubleClick={() => selectElement(elementId)}
                 onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
                 onPointerDown={(e) => {

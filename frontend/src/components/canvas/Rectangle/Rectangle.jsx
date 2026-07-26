@@ -56,6 +56,7 @@ function Rectangle({
                 />
 
                 <div
+                    id={elementId}
                     onDoubleClick={() => selectElement(elementId)}
                     onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
                     onPointerDown={(e) => {
@@ -74,6 +75,7 @@ function Rectangle({
     else {
         return (
             <div
+                id={elementId}
                 onDoubleClick={() => selectElement(elementId)}
                 onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
                 onPointerDown={(e) => {

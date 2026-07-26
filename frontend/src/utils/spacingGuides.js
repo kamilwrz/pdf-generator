@@ -1,8 +1,8 @@
-// Vertical spacing guides shown while dragging. When the moving element is
-// within SPACING_THRESHOLD of a horizontally-overlapping neighbor above or
-// below, report the gap so the canvas can draw a labeled distance line.
+// Vertical spacing guides shown while dragging. Report the gap to the nearest
+// horizontally-overlapping neighbor above and below so the canvas can draw
+// labeled orange distance lines for every movable element type.
 
-export const SPACING_THRESHOLD = 80;
+export const SPACING_THRESHOLD = Infinity;
 
 function number(value, fallback = 0) {
   const parsed = Number(value);
@@ -14,16 +14,36 @@ function overlapsHorizontally(first, second) {
   return overlap > 0;
 }
 
-function toBox(element, sizeOf) {
+/**
+ * Resolve a usable box for spacing guides. Text often has no stored width;
+ * fall back to a content-length estimate so guides work without relying only
+ * on textarea dimensions.
+ */
+export function resolveSpacingBox(element, sizeOf) {
   const left = number(element.left);
   const top = number(element.top);
-  const { width, height } = sizeOf(element);
+  const measured = typeof sizeOf === "function" ? sizeOf(element) : null;
+  let width = Math.max(0, number(measured?.width, number(element.width)));
+  let height = Math.max(0, number(measured?.height, number(element.height)));
+
+  if (element.category === "text") {
+    const fontSize = Math.max(1, number(element.fontSize, 12));
+    if (width <= 0) {
+      width = Math.max(fontSize, String(element.content || "").length * fontSize * 0.56);
+    }
+    if (height <= 0) {
+      height = fontSize * 1.35;
+    }
+  }
+
   return {
     id: element.element_id,
     left,
     top,
-    right: left + Math.max(0, width),
-    bottom: top + Math.max(0, height),
+    right: left + width,
+    bottom: top + height,
+    width,
+    height,
     fixedToPage: Boolean(element.fixedToPage),
     category: element.category,
   };
@@ -31,8 +51,7 @@ function toBox(element, sizeOf) {
 
 /**
  * Returns the nearest above/below spacing gaps for a moving element.
- * Only considers same-page candidates that share horizontal overlap and are
- * within SPACING_THRESHOLD pixels.
+ * Considers same-page candidates that share horizontal overlap.
  */
 export function findVerticalSpacingGuides(
   movingElement,
@@ -44,8 +63,8 @@ export function findVerticalSpacingGuides(
     return { above: null, below: null };
   }
 
-  const moving = toBox(movingElement, sizeOf);
-  if (moving.right <= moving.left || moving.bottom <= moving.top) {
+  const moving = resolveSpacingBox(movingElement, sizeOf);
+  if (moving.width <= 0 || moving.height <= 0) {
     return { above: null, below: null };
   }
 
@@ -57,8 +76,8 @@ export function findVerticalSpacingGuides(
     if (candidate.fixedToPage) continue;
     if (candidate.category === "connector") continue;
 
-    const other = toBox(candidate, sizeOf);
-    if (other.right <= other.left || other.bottom <= other.top) continue;
+    const other = resolveSpacingBox(candidate, sizeOf);
+    if (other.width <= 0 || other.height <= 0) continue;
     if (!overlapsHorizontally(moving, other)) continue;
 
     if (other.bottom <= moving.top + 0.5) {

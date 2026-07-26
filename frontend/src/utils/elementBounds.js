@@ -18,10 +18,18 @@ export function getElementBounds(element) {
     }
   }
 
+  const fontSize = Number(element.fontSize) || 12;
+  if (element.category === "text") {
+    return {
+      width: parseFloat(element.width)
+        || Math.max(fontSize, String(element.content || "").length * fontSize * 0.56),
+      height: parseFloat(element.height) || fontSize * 1.35,
+    };
+  }
+
   return {
     width: parseFloat(element.width) || 0,
-    height: parseFloat(element.height)
-      || (element.category === "text" ? (element.fontSize || 12) * 1.35 : 0),
+    height: parseFloat(element.height) || 0,
   };
 }
 
