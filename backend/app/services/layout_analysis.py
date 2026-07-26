@@ -569,6 +569,110 @@ _NEARBY_DECORATION_CATEGORIES = {"line", "rectangle", "circle", "ellipse"}
 _DECORATION_LANE_TOLERANCE = 32.0
 
 
+def _rects_too_close(
+    first: dict[str, Any],
+    second: dict[str, Any],
+    gap: float = 4.0,
+) -> bool:
+    """True when boxes overlap or sit closer than ``gap`` on both axes."""
+    return (
+        first["left"] + first["width"] + gap > second["left"] + EPSILON
+        and second["left"] + second["width"] + gap > first["left"] + EPSILON
+        and first["top"] + first["height"] + gap > second["top"] + EPSILON
+        and second["top"] + second["height"] + gap > first["top"] + EPSILON
+    )
+
+
+def _shift_obstacles(
+    context_items: list[dict[str, Any]],
+    exclude_ids: set[str],
+) -> list[dict[str, Any]]:
+    """Content that must not be crushed by a directed shift."""
+    obstacles = []
+    for item in context_items:
+        if item["element_id"] in exclude_ids:
+            continue
+        if item.get("fixedToPage") or item.get("locked"):
+            continue
+        if item.get("category") not in AUTO_LAYOUT_CATEGORIES:
+            continue
+        obstacles.append(item)
+    return obstacles
+
+
+def _shift_scale_is_safe(
+    targets: list[dict[str, Any]],
+    obstacles: list[dict[str, Any]],
+    original_close: set[frozenset[str]],
+    dx: float,
+    dy: float,
+    scale: float,
+    page_width: float,
+    page_height: float,
+) -> bool:
+    sdx = dx * scale
+    sdy = dy * scale
+    for item in targets:
+        left = item["left"] + sdx
+        top = item["top"] + sdy
+        if (
+            left < -EPSILON
+            or top < -EPSILON
+            or left + item["width"] > page_width + EPSILON
+            or top + item["height"] > page_height + EPSILON
+        ):
+            return False
+        moved = {**item, "left": left, "top": top}
+        for other in obstacles:
+            if other["page"] != item["page"]:
+                continue
+            pair = frozenset((item["element_id"], other["element_id"]))
+            if pair in original_close:
+                continue
+            if _rects_too_close(moved, other):
+                return False
+    return True
+
+
+def _clamp_shift_offset(
+    targets: list[dict[str, Any]],
+    obstacles: list[dict[str, Any]],
+    dx: float,
+    dy: float,
+    page_width: float,
+    page_height: float,
+) -> tuple[float, float] | None:
+    """Shrink (dx, dy) along its direction until page-safe and non-colliding.
+
+    Returns None when even a tiny step would leave the page or crush content
+    that was intentionally left in place (e.g. „zachowaj górny akapit”).
+    """
+    original_close = {
+        frozenset((item["element_id"], other["element_id"]))
+        for item in targets
+        for other in obstacles
+        if item["page"] == other["page"] and _rects_too_close(item, other)
+    }
+    if _shift_scale_is_safe(
+        targets, obstacles, original_close, dx, dy, 1.0, page_width, page_height,
+    ):
+        return dx, dy
+
+    lo, hi = 0.0, 1.0
+    for _ in range(28):
+        mid = (lo + hi) / 2
+        if _shift_scale_is_safe(
+            targets, obstacles, original_close, dx, dy, mid, page_width, page_height,
+        ):
+            lo = mid
+        else:
+            hi = mid
+
+    if lo * max(abs(dx), abs(dy)) <= EPSILON:
+        return None
+    return dx * lo, dy * lo
+
+
 def resolve_shift(
     items: list[dict[str, Any]],
     target_ids: set[str],
@@ -576,10 +680,29 @@ def resolve_shift(
     dy: float,
     page_width: float,
     page_height: float,
+    *,
+    context_items: list[dict[str, Any]] | None = None,
+    exclude_ids: set[str] | None = None,
 ) -> dict[str, Any] | str | None:
+    """Translate targets by (dx, dy), clamping so they do not crush other content.
+
+    GPT often overshoots „przesuń do góry” — Python keeps the requested
+    direction but shortens the move until a ≥4px gap remains to stationary
+    text/images (and the page edges).
+    """
     targets = [item for item in items if item["element_id"] in target_ids]
     if not targets:
         return None
+    if abs(dx) <= EPSILON and abs(dy) <= EPSILON:
+        return _NO_CHANGE
+
+    context = context_items if context_items is not None else items
+    excluded = set(exclude_ids or ()) | {item["element_id"] for item in targets}
+    obstacles = _shift_obstacles(context, excluded)
+    clamped = _clamp_shift_offset(targets, obstacles, dx, dy, page_width, page_height)
+    if clamped is None:
+        return None
+    dx, dy = clamped
     if abs(dx) <= EPSILON and abs(dy) <= EPSILON:
         return _NO_CHANGE
 
@@ -594,7 +717,7 @@ def resolve_shift(
     return _group(
         group_id="directed-shift",
         title=f"Przesuń {len(targets)} {'element' if len(targets) == 1 else 'elementy'}",
-        reason="Bezpośrednie polecenie przesunięcia elementów.",
+        reason="Bezpośrednie polecenie przesunięcia elementów (ograniczone, by nie nachodzić na pozostałą treść).",
         severity="review",
         patches=patches,
         items=items,
@@ -1202,10 +1325,24 @@ def _resolve_block_operation(
         )
 
     block_target_ids = {b["element_id"] for b in block_items}
+    member_ids = {
+        member["element_id"]
+        for members in block_members.values()
+        for member in members
+    }
     if op_type == "shift":
         dx = _number(directive.get("dx"), 0.0)
         dy = _number(directive.get("dy"), 0.0)
-        group = resolve_shift(block_items, block_target_ids, dx, dy, page_width, page_height)
+        group = resolve_shift(
+            block_items,
+            block_target_ids,
+            dx,
+            dy,
+            page_width,
+            page_height,
+            context_items=items,
+            exclude_ids=member_ids,
+        )
     elif op_type == "align":
         axis = directive.get("axis") if directive.get("axis") in _VALID_AXES else "x"
         anchor = directive.get("anchor") if directive.get("anchor") in _VALID_ANCHORS else "start"
@@ -1214,11 +1351,6 @@ def _resolve_block_operation(
         group = resolve_align(block_items, block_target_ids, axis, anchor, target, page_width, page_height)
     elif op_type == "distribute":
         axis = directive.get("axis") if directive.get("axis") in _VALID_AXES else "y"
-        member_ids = {
-            member["element_id"]
-            for members in block_members.values()
-            for member in members
-        }
         group = resolve_distribute(
             block_items,
             block_target_ids,

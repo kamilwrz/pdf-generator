@@ -512,19 +512,34 @@ class DirectedOperationTests(unittest.TestCase):
         self.assertEqual(len(result["layout_issues"]), 1)
         self.assertEqual(result["layout_issues"][0]["severity"], "low")
 
-    def test_shift_allows_a_move_that_creates_a_new_overlap(self):
-        # Directed operations are an explicit instruction, not a guess — a
-        # user asking to move an element somewhere may mean for it to land
-        # on top of another element. Unlike the deterministic auto-scanner
-        # (see test_rejects_bound_correction_that_would_create_overlap),
-        # this is allowed as long as the result stays on the page.
+    def test_shift_clamps_a_move_that_would_crush_stationary_content(self):
+        # GPT often overshoots; Python shortens the vector so a ≥4px gap remains.
         items = layout_analysis.extract_bounds([
             block("moving", 10, 10, width=12, height=10),
             block("stationary", 30, 10, width=12, height=10),
         ])
         group = layout_analysis.resolve_shift(items, {"moving"}, 15.0, 0.0, 100, 100)
         self.assertIsNotNone(group)
-        self.assertEqual(group["patches"], [{"element_id": "moving", "left": 25.0, "top": 10.0}])
+        moved_left = group["patches"][0]["left"]
+        # Full dx=15 → left 25 overlaps stationary@30. Clamp keeps ≥4px gap.
+        self.assertLess(moved_left, 25.0)
+        self.assertGreaterEqual(30.0 - (moved_left + 12.0), 3.5)
+
+    def test_shift_up_stops_before_kept_paragraph(self):
+        items = layout_analysis.extract_bounds([
+            block("kept", 10, 20, width=40, height=16),
+            block("body", 10, 80, width=40, height=20),
+            block("skills", 10, 120, width=40, height=12),
+        ])
+        group = layout_analysis.resolve_shift(
+            items, {"body", "skills"}, 0.0, -100.0, 100, 200,
+        )
+        self.assertIsNotNone(group)
+        changed = {p["element_id"]: p["top"] for p in group["patches"]}
+        # kept bottom=36; requested dy=-100 would put body at -20 — must stop near 40.
+        self.assertGreaterEqual(changed["body"] - 36.0, 3.5)
+        self.assertLess(changed["body"], 80.0)
+        self.assertAlmostEqual(changed["skills"] - changed["body"], 40.0, places=1)
 
     def test_target_groups_shift_moves_a_block_as_one_rigid_unit(self):
         # PAGE_SIZE is 100x100 (this file's test convention) — widths must
