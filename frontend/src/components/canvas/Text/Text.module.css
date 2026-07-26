@@ -26,8 +26,6 @@
     border: none;
     border-radius: 0;
     outline: none;
-    outline: 1.5px solid var(--accent);
-    outline-offset: 4px;
     background: transparent;
     height: 1em;
     line-height: 1;

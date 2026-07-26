@@ -56,6 +56,7 @@ export default function SelectionOverlay({ elements, page }) {
     const selected = useMemo(
         () => canvasElements.filter((element) => (
             element.isSelected
+            && !element.isEditing
             && element.category !== "connector"
             && (element.page ?? 1) === displayedPage
         )),
