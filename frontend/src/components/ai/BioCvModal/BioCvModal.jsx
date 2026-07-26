@@ -5,6 +5,7 @@ import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { TEMPLATES } from "../../../templates";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import {
+    applyBioCvDraftUpdate,
     BIO_CV_STEPS,
     buildBioCvPayload,
     createCustomSection,
@@ -170,9 +171,7 @@ export default function BioCvModal() {
 
     const updateProfile = useCallback((updater) => {
         setStepError(null);
-        setProfile((current) => normalizeBioCvData(
-            typeof updater === "function" ? updater(current) : updater,
-        ));
+        setProfile((current) => applyBioCvDraftUpdate(current, updater));
     }, []);
 
     const updateListItem = useCallback((field, index, changes) => {

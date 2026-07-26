@@ -66,6 +66,12 @@ export function createCustomSection() {
     return { title: "", items: [], kind: "other", placement: "after_skills" };
 }
 
+// Keep raw input while the user is typing. Normalization intentionally trims
+// values and must run only when restoring, saving, validating, or generating.
+export function applyBioCvDraftUpdate(current, updater) {
+    return typeof updater === "function" ? updater(current) : updater;
+}
+
 export function parseList(value) {
     if (Array.isArray(value)) return uniqueStrings(value);
     return uniqueStrings(String(value || "").replace(/\r\n/g, "\n").split(/[\n,]/));

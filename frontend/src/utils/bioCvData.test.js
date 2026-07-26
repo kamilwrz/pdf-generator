@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+    applyBioCvDraftUpdate,
     buildBioCvPayload,
     createEmptyBioCvData,
     normalizeBioCvData,
@@ -53,4 +54,12 @@ test("validates only completed repeater cards and email syntax", () => {
 
 test("parses and deduplicates tag-list input", () => {
     assert.deepEqual(parseList("Figma, figma\nAnaliza danych\n"), ["Figma", "Analiza danych"]);
+});
+
+test("preserves spaces while a controlled wizard field is being edited", () => {
+    const current = { ...createEmptyBioCvData(), name: "Anna" };
+    const edited = applyBioCvDraftUpdate(current, { ...current, name: "Anna Kowalska " });
+
+    assert.equal(edited.name, "Anna Kowalska ");
+    assert.equal(buildBioCvPayload(edited).name, "Anna Kowalska");
 });
