@@ -4,7 +4,7 @@ import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import Resize from "../../common/Resize/Resize";
 import { measureNaturalScrollHeight } from "../../../utils/textareaHeight";
-import { isTextareaEditGesture } from "../../../utils/textareaEditing";
+import { deferTextareaEdit, isTextareaEditGesture } from "../../../utils/textareaEditing";
 
 // Normalize a bullet's whitespace and render the marker in a dedicated grid
 // column. The column's width is the actual rendered "• " width for the active
@@ -62,6 +62,7 @@ function Textarea({
     const [isResizeable, setIsResizeable] = useState(false);
     const blockRef = useRef(null);
     const editingRef = useRef(null);
+    const editFrameRef = useRef(null);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
     function handleIsResizeable(active) {
         setIsResizeable(Boolean(active));
@@ -135,10 +136,26 @@ function Textarea({
         return () => window.cancelAnimationFrame(focusFrame);
     }, [isEditing]);
 
+    useLayoutEffect(() => () => {
+        if (editFrameRef.current) {
+            window.cancelAnimationFrame(editFrameRef.current);
+        }
+    }, []);
+
     function startEditing(event) {
         event?.preventDefault();
         event?.stopPropagation();
-        setTextareaEditing(elementId, true);
+        // Finish the double-click event sequence before replacing its target
+        // with a native textarea. Entering edit state during pointerdown lets
+        // the remaining click steal focus from the new input.
+        deferTextareaEdit({
+            requestFrame: window.requestAnimationFrame,
+            cancelFrame: window.cancelAnimationFrame,
+            pendingFrame: editFrameRef,
+            startEditing: () => {
+                setTextareaEditing(elementId, true);
+            },
+        });
     }
 
     if (isEditing) {
