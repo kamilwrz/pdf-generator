@@ -81,91 +81,51 @@ export default function Hero() {
             <div className={`${classes.blob} ${classes.blobBlue}`} aria-hidden="true" />
             <div className={`${classes.blob} ${classes.blobAmber}`} aria-hidden="true" />
 
-            {/* ---- Nav ---- */}
-            <nav className={classes.nav}>
-                <div className={classes.brand}>
-                    <span className={classes.brandMark}><img src="/kompoza-logo.png" alt="" /></span>
-                    <span className={classes.brandName}>Kompoza</span>
-                </div>
-                <div className={classes.navLinks}>
-                    <a href="#funkcje" className={`${classes.navLink} ${classes.navLinkActive}`}>Funkcje</a>
-                    <a href="#cennik" className={classes.navLink}>Cennik</a>
-                    <a href="#szablony" className={classes.navLink}>Szablony</a>
-                    <Link to="/login" className={classes.navLink}>Zaloguj się</Link>
-                    <Link to="/register" className={classes.navCta}>Rozpocznij za darmo</Link>
-                </div>
-            </nav>
+            {/* First viewport: topbar + hero = 100vh */}
+            <div className={classes.heroStage}>
+                <nav className={classes.nav}>
+                    <div className={classes.brand}>
+                        <span className={classes.brandMark}><img src="/kompoza-logo.png" alt="" /></span>
+                        <span className={classes.brandName}>Kompoza</span>
+                    </div>
+                    <div className={classes.navLinks}>
+                        <a href="#funkcje" className={`${classes.navLink} ${classes.navLinkActive}`}>Funkcje</a>
+                        <a href="#cennik" className={classes.navLink}>Cennik</a>
+                        <a href="#szablony" className={classes.navLink}>Szablony</a>
+                        <Link to="/login" className={classes.navLink}>Zaloguj się</Link>
+                        <Link to="/register" className={classes.navCta}>Rozpocznij za darmo</Link>
+                    </div>
+                </nav>
 
-            {/* ---- Hero body ---- */}
-            <div className={classes.hero}>
-                <div className={classes.heroCopy}>
-                    <div className={classes.badge}>
-                        <span className={classes.badgeDot}><span /></span>
-                        <span>Bez umiejętności projektowania</span>
-                    </div>
-                    <h1 className={classes.heading}>
-                        Twórz <span className={classes.accentWord}>piękne</span> CV w kilka minut.
-                    </h1>
-                    <p className={classes.subheading}>
-                        Studio CV po polsku: wizualne płótno A4, 24 szablony dopasowane do branż
-                        oraz AI, które pomaga wypełnić, dopracować i wyeksportować PDF gotowy do wysłania.
-                    </p>
-                    <div className={classes.ctaRow}>
-                        <a href="#funkcje" className={classes.primaryCta}>
-                            Zacznij projektować
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F1216" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
-                        </a>
-                        <a href="#funkcje" className={classes.secondaryCta}>
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E5A65C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="6 4 20 12 6 20 6 4" /></svg>
-                            Zobacz, jak działa
-                        </a>
-                    </div>
-                    <div className={classes.social}>
-                        <div className={classes.avatars}>
-                            <span style={{ background: "#6C9BE6" }} />
-                            <span style={{ background: "#E88A73" }} />
-                            <span style={{ background: "#6FBF8E" }} />
+                <div className={classes.hero}>
+                    <div className={classes.heroCopy}>
+                        <h1 className={classes.heading}>
+                            Twórz <span className={classes.accentWord}>piękne</span> CV w kilka minut.
+                        </h1>
+                        <p className={classes.subheading}>
+                            Wizualne płótno A4, 24 szablony branżowe i AI — od pomysłu do PDF gotowego do wysłania.
+                        </p>
+                        <div className={classes.ctaRow}>
+                            <Link to="/register" className={classes.primaryCta}>
+                                Zacznij projektować
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F1216" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+                            </Link>
+                            <a href="#funkcje" className={classes.secondaryCta}>
+                                Zobacz, jak działa
+                            </a>
                         </div>
-                        <span className={classes.socialText}>Ponad 12 000 twórców nas poleca</span>
                     </div>
-                </div>
 
-                {/* ---- Product preview ---- */}
-                <div className={classes.preview}>
-                    <div className={classes.window}>
-                        <div className={classes.windowBar}>
-                            <span className={classes.dot} style={{ background: "#E88A73" }} />
-                            <span className={classes.dot} style={{ background: "#E5A65C" }} />
-                            <span className={classes.dot} style={{ background: "#6FBF8E" }} />
-                            <span className={classes.windowFile}>cv-anna-kowalska.pdf</span>
-                        </div>
-                        <div className={classes.windowBody}>
-                            <div className={classes.windowRail}>
-                                <span className={classes.railActive} />
-                                <span className={classes.railItem} />
-                                <span className={classes.railItem} />
-                                <span className={classes.railItem} />
-                            </div>
-                            <div className={classes.windowCanvas}>
-                                <div className={classes.miniPage}>
-                                    <div className={classes.miniBanner} />
-                                    <div className={classes.miniLine} style={{ width: "70%" }} />
-                                    <div className={classes.miniLineSm} style={{ width: "50%" }} />
-                                    <div className={classes.miniBar} style={{ width: "100%" }} />
-                                    <div className={classes.miniBar} style={{ width: "92%" }} />
-                                    <div className={classes.miniBar} style={{ width: "96%" }} />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className={classes.floatCard}>
-                        <span className={classes.floatIcon}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6FBF8E" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-                        </span>
-                        <div>
-                            <div className={classes.floatTitle}>PDF wyeksportowany</div>
-                            <div className={classes.floatSub}>w 1,4 sekundy</div>
-                        </div>
+                    <div className={classes.preview}>
+                        <img
+                            className={classes.mockup}
+                            src="/hero-mockup.png"
+                            alt="Edytor CV Kompoza — podgląd płótna z szablonem Nimbus"
+                            width={1600}
+                            height={1000}
+                            decoding="async"
+                            fetchPriority="high"
+                        />
                     </div>
                 </div>
             </div>
