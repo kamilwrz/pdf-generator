@@ -254,33 +254,38 @@ export function useA4Elements(titleRef) {
     const hit = elementAtPoint((clientX - rect.left) / zoom, (clientY - rect.top) / zoom, page);
     if (!hit) { setConnectMode(false); setConnectSourceId(null); return; }
 
-    setConnectSourceId((prevSource) => {
-      if (!prevSource) return hit.element_id;           // first pick
-      if (prevSource === hit.element_id) return prevSource; // ignore same element
-      const source = elementsRef.current.find((element) => element.element_id === prevSource);
-      // Connector paths are page-local. Keep the first endpoint selected when
-      // the second click lands on the opposite page instead of creating an
-      // invalid cross-page path.
-      if ((source?.page ?? 1) !== page) return prevSource;
-      const connector = {
-        element_id: nanoid(),
-        category: "connector",
-        source_id: prevSource,
-        target_id: hit.element_id,
-        backgroundColor: "#000000",
-        borderWidth: 1,
-        arrow: true,
-        isSelected: false,
-        isMove: false,
-        locked: false,
-        zIndex: 50,
-        page,
-      };
-      setA4_Elements((prev) => [...prev, connector]);
-      setConnectMode(false);
-      return null;
-    });
-  }, [canvasForPage, visibleCanvasEntries]);
+    // Side effects (setA4_Elements, setConnectMode) run here, outside any
+    // updater — React StrictMode double-invokes functional state updaters
+    // in dev, which previously caused a second click to create two
+    // connectors (each with its own nanoid()) from one click.
+    if (!connectSourceId) {
+      setConnectSourceId(hit.element_id);               // first pick
+      return;
+    }
+    if (connectSourceId === hit.element_id) return;      // ignore same element
+    const source = elementsRef.current.find((element) => element.element_id === connectSourceId);
+    // Connector paths are page-local. Keep the first endpoint selected when
+    // the second click lands on the opposite page instead of creating an
+    // invalid cross-page path.
+    if ((source?.page ?? 1) !== page) return;
+    const connector = {
+      element_id: nanoid(),
+      category: "connector",
+      source_id: connectSourceId,
+      target_id: hit.element_id,
+      backgroundColor: "#000000",
+      borderWidth: 1,
+      arrow: true,
+      isSelected: false,
+      isMove: false,
+      locked: false,
+      zIndex: 50,
+      page,
+    };
+    setA4_Elements((prev) => [...prev, connector]);
+    setConnectMode(false);
+    setConnectSourceId(null);
+  }, [canvasForPage, visibleCanvasEntries, connectSourceId]);
 
   const handleGoToPage = useCallback((page) => {
     setPageCount(count => {
@@ -305,30 +310,33 @@ export function useA4Elements(titleRef) {
   // any document type — it only touches the shared page model.
   const handleClonePage = useCallback(() => {
     const src = currentPageRef.current;
-    setPageCount(prevCount => {
-      setA4_Elements(prev => {
-        // make room: pages after the source shift one down
-        const shifted = prev.map(el => {
-          const p = el.page ?? 1;
-          return p > src ? { ...el, page: p + 1 } : el;
-        });
-        // duplicate the source page's elements onto the new page
-        const idMap = {};
-        const clones = prev
-          .filter(el => (el.page ?? 1) === src)
-          .map(el => {
-            const nid = nanoid();
-            idMap[el.element_id] = nid;
-            return { ...el, element_id: nid, page: src + 1, isSelected: false, isMove: false, isEditing: false };
-          })
-          .map(el => el.category === "connector"
-            ? { ...el, source_id: idMap[el.source_id] ?? el.source_id, target_id: idMap[el.target_id] ?? el.target_id }
-            : el);
-        return [...shifted, ...clones];
+    // setPageCount, setA4_Elements and setCurrentPage are all called
+    // independently here rather than nesting the latter two inside
+    // setPageCount's updater — React StrictMode double-invokes functional
+    // state updaters in dev, which previously caused a single click to
+    // clone the page's elements twice (each with fresh nanoid()s).
+    setA4_Elements(prev => {
+      // make room: pages after the source shift one down
+      const shifted = prev.map(el => {
+        const p = el.page ?? 1;
+        return p > src ? { ...el, page: p + 1 } : el;
       });
-      setCurrentPage(src + 1);   // land on the fresh copy
-      return prevCount + 1;
+      // duplicate the source page's elements onto the new page
+      const idMap = {};
+      const clones = prev
+        .filter(el => (el.page ?? 1) === src)
+        .map(el => {
+          const nid = nanoid();
+          idMap[el.element_id] = nid;
+          return { ...el, element_id: nid, page: src + 1, isSelected: false, isMove: false, isEditing: false };
+        })
+        .map(el => el.category === "connector"
+          ? { ...el, source_id: idMap[el.source_id] ?? el.source_id, target_id: idMap[el.target_id] ?? el.target_id }
+          : el);
+      return [...shifted, ...clones];
     });
+    setPageCount(pageCountRef.current + 1);
+    setCurrentPage(src + 1);   // land on the fresh copy
     clearSelection();
   }, [clearSelection]);
 

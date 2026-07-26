@@ -7,7 +7,7 @@ calls GPT, and returns a structured response the frontend can render
 """
 import json
 import os
-from openai import OpenAI, APIConnectionError, APIError, APITimeoutError, RateLimitError
+from openai import OpenAI, APIError
 from app.core.config import OPENAI_API_KEY
 from app.services.layout_analysis import (
     analyze_layout,
@@ -152,7 +152,9 @@ def _gpt(system: str, user: str) -> dict:
             reasoning_effort="medium",
             max_completion_tokens=16000,
         )
-    except (APITimeoutError, RateLimitError, APIConnectionError, APIError) as exc:
+    except APIError as exc:
+        # Covers APITimeoutError, RateLimitError, APIConnectionError, and any
+        # other openai SDK failure — all are subclasses of APIError.
         raise AIServiceError(f"OpenAI request failed: {type(exc).__name__}", original=exc) from exc
 
     content = resp.choices[0].message.content or ""

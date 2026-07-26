@@ -5,9 +5,9 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.security import verify_token
-from app.crud.user import get_user_by_username
 from app.dependencies import get_db
 from app.services.ai_assistant_service import AIServiceError, analyze_action
+from app.utils.metrics_logging import log_metric_event
 
 logger = logging.getLogger("ai_assistant")
 
@@ -41,20 +41,6 @@ class AssistantResponse(BaseModel):
     web_sources: list[str] = []
 
 
-def _log_ai_assistant_open(db: Session, payload: dict, action: str) -> None:
-    """Best-effort metric log for the AiAssistant open-rate success metric.
-    Logs the numeric user id (not the username in the JWT `sub` claim) to
-    avoid writing an identifiable handle into a persistent log. Never
-    allowed to affect the caller — a logging failure here must not break
-    the actual AI Assistant call it's measuring.
-    """
-    try:
-        user = get_user_by_username(db, username=payload.get("sub"))
-        logger.info("ai_assistant_call user_id=%s action=%s", user.id if user else None, action)
-    except Exception:
-        logger.debug("ai_assistant_call logging failed", exc_info=True)
-
-
 @router.post("/assistant", response_model=AssistantResponse, status_code=200)
 async def ai_assistant(
     request: AssistantRequest,
@@ -70,7 +56,7 @@ async def ai_assistant(
             detail="Pole job_description jest wymagane dla akcji position_rating.",
         )
 
-    _log_ai_assistant_open(db, payload, request.action)
+    log_metric_event("ai_assistant_call", db, payload, action=request.action)
 
     try:
         result = analyze_action(

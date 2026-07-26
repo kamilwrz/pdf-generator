@@ -1117,18 +1117,206 @@ finding 6) is now resolved, not dropped.
 
 ---
 
+# Implementation — Phase 1a (2026-07-26)
+
+Phase 1a (T1, T1b, T3, T4, T8) implemented and live-verified end to end
+against a local backend + a real registered test account — not just unit
+tests. Two real bugs surfaced only by live verification, both fixed:
+
+1. **`frontend/src/services/api.js` hardcoded the production backend URL**,
+   with no way to point the dev server at a local backend even though
+   `.env.example`/`.env.production` already documented a `VITE_API_URL`
+   convention that the code never actually read. Fixed: `API_BASE_URL` now
+   reads `import.meta.env.VITE_API_URL`, falling back to the production URL
+   so a fresh clone with no `.env` still works. Added `.env.development`
+   (gitignored) pointing at `http://localhost:8000`, matching the existing
+   `.env.example` convention.
+2. **Every `logger.info()`/`logger.error()` call in the app (including all
+   of T1b's and T8's new logging) was silently dropped** — the root logger
+   had no handler, so nothing reached stdout. `logging.basicConfig()` in
+   `main.py` needed `force=True` specifically because something importing
+   the module first (pytest's own logging plugin, confirmed) had already
+   attached a handler at a level above INFO, making a bare `basicConfig()`
+   call a no-op. Caught by grepping server output for the expected log line
+   after a live template-pick and finding nothing there.
+
+Live verification performed (local backend on a throwaway sqlite DB, real
+register → login → template-first modal flow):
+- T1: deck/article buttons and panels hidden; Cennik shows the static
+  coming-soon section (confirmed via screenshot, both on Hero and in-canvas)
+- T3: Topbar shows "Wypełnij z PDF"; AiAssistant FAB shows "Asystent AI"
+  label; Sidebar shows no "Plan darmowy" text (confirmed via screenshot)
+- T4: TemplatesModal auto-opened for a brand-new account with 0 saved PDFs;
+  dismissing it set the sessionStorage flag and did not re-open on reload
+  until the flag was cleared (confirmed via screenshot + sessionStorage read)
+- T1b: `POST /events/log` returned 200 for both `template_picked` and
+  `template_dismissed`, auth-rejected when unauthenticated (per Section 1's
+  fix); server log confirmed `user_id=1` (numeric), not the username —
+  proving outside-voice finding 7's fix works, not just compiles
+- T8/exception handling: proven by test (see below), and the AiAssistant
+  open-rate log line confirmed live: `ai_assistant_call user_id=1
+  action=rating`, numeric id, correct action
+
+Backend test suite: **87 passed** (76 pre-existing + 11 new: 5 for the
+exception-handler regression — including a test that was verified to
+actually fail when the old bug was temporarily reintroduced — 5 for the
+events endpoint auth/schema/logging behavior, 1 for the logging-config
+regression this live pass itself caught).
+
+Frontend: lint clean (zero new warnings/errors beyond pre-existing ones,
+confirmed by diffing against HEAD), `vite build` clean.
+
+**Not implemented this pass:** T5, T6, T7 (Phase 2, still gated on Phase 1
+usage data) and T2 (Phase 1b, the waitlist table — needs its own eng review).
+
+---
+
+# Second Eng Review — diff-based, shipped code (2026-07-26)
+
+`/plan-eng-review` re-invoked against the actual Phase 1a diff (not the plan
+text) — the CEO/eng-review skills' own rule is to review what shipped, not
+just what was proposed. Scoped to the 5 files this session actually authored
+(`ai_assistant_service.py`, `ai_assistant.py`, `events.py`, `PdfCanvas.jsx`,
+plus the new `metrics_logging.py`); `Sidebar.jsx` was excluded — concurrent
+unrelated sidebar-redesign work with `REPO_MODE: unknown`, flagged per
+"Repo Ownership — See Something, Say Something" rather than reviewed blind.
+
+**4 issues found, all accepted, all fixed:**
+1. **Auto-open race condition** — the templates-modal auto-open `useEffect`
+   in `PdfCanvas.jsx` didn't guard on `isTemplates`, so a manually-opened
+   TemplatesModal could get mislabeled `autoOpenedTemplates=true` if the
+   PDFs fetch resolved while it was already open. Fixed: added `isTemplates`
+   to the guard and dependency array.
+2. **Topbar "Szablony" toggle bypassed TemplatesModal's own close handler**
+   — closing an auto-opened modal that way skipped the dismiss log and left
+   `autoOpenedTemplates` stuck true. Fixed (see live-verification findings
+   below — this fix went through two more revisions before it was correct).
+3. **DRY violation** — identical user-id-resolution + best-effort-logging
+   logic duplicated between `ai_assistant.py` and `events.py`. Extracted to
+   `backend/app/utils/metrics_logging.py`.
+4. **Redundant exception tuple** — `except (APITimeoutError, RateLimitError,
+   APIConnectionError, APIError)` in `ai_assistant_service.py`; verified via
+   `issubclass()` that the first three are all `APIError` subclasses.
+   Simplified to `except APIError`.
+
+## Live verification surfaced 2 more real bugs in fix #2 itself
+
+Per this session's standing rule (live browser verification over trusting
+unit tests alone), fix #2 was re-verified end-to-end with a fresh 0-PDF test
+account rather than assumed correct because it compiled and passed review.
+That verification caught two further bugs, neither visible from reading the
+diff alone:
+
+**Bug A — impure React state updater.** The first version of fix #2 put
+side effects (`logEvent()` network call, `markTemplatesModalSeen()`
+sessionStorage write) inside a functional updater passed to
+`setIsTemplates(bool => {...})`. `frontend/src/main.jsx:7` wraps the app in
+`<React.StrictMode>`, which intentionally double-invokes functional state
+updaters in development specifically to catch this class of bug. Reproduced
+live: a single click on the Topbar "Szablony" button fired **two** identical
+`POST /events/log` `template_dismissed` requests (confirmed via network
+log). Fixed by reading `isTemplates` from the closure and running the side
+effects before a plain `setIsTemplates(next)` call, outside any updater.
+
+**Bug B — stale-state re-log, caught by Outside Voice, not by the first
+live-verification pass.** Re-running Outside Voice (Claude subagent
+fallback; Codex still not installed) against the Bug-A fix surfaced a
+second, more serious regression that manual testing had also missed:
+`TemplatesModal.jsx`'s own `handleClose()` and `handlePick()` each call
+`markTemplatesModalSeen()` (which calls `setAutoOpenedTemplates(false)`) and
+then unconditionally call `showTemplates()` — i.e. `handleShowTemplates` —
+as their last step. Because React state updates aren't visible synchronously
+within the same event-handler tick, `handleShowTemplates`'s own guard still
+read the *stale* `autoOpenedTemplates=true` and re-fired
+`logEvent("template_dismissed")`. Concretely: closing via backdrop/X
+double-logged `template_dismissed`, and **picking a template during
+onboarding logged a spurious `template_dismissed` alongside the correct
+`template_picked`** — silently corrupting the exact activation metric T1b
+exists to measure. Fixed by mirroring `autoOpenedTemplates` into a ref
+(`autoOpenedTemplatesRef`, kept in lockstep by a wrapped
+`setAutoOpenedTemplates`) so any caller that resolves the flag before
+calling `showTemplates()` leaves the ref already correct by the time
+`handleShowTemplates` reads it.
+
+All three close paths (backdrop/X, pick-a-template, Topbar-toggle bypass)
+were then re-verified live, each producing exactly one correctly-typed
+`POST /events/log` call.
+
+**Informational, not a bug:** the modal's backdrop overlay actually covers
+the Topbar (confirmed via `elementFromPoint` — the hit target at the
+"Szablony" button's coordinates resolves to the backdrop `<div>`, not the
+button), so a real mouse user cannot physically reach the bypass path while
+the modal is open. It remains reachable via keyboard (Tab + Enter doesn't
+require hit-testing) or programmatically, which is why the fix still matters
+despite being mouse-unreachable today.
+
+**Bug C — same pattern, different feature, fixed same session (owner
+opted in via AskUserQuestion).** Outside Voice swept the rest of
+`frontend/src` for the same impure-functional-updater pattern and found two
+more instances, unrelated to this onboarding flow: `pickConnectorAt` and
+`handleClonePage` in `frontend/src/hooks/useA4Elements.js`, both generating
+`nanoid()`-keyed elements as a side effect nested inside a `setState`
+updater (`setConnectSourceId`/`setPageCount` respectively), same
+StrictMode-double-invoke risk as Bugs A/B. Given the owner had just spent
+this session hunting the same bug class, they opted to fix both immediately
+rather than defer:
+- `pickConnectorAt`: moved the connector-creation side effects
+  (`setA4_Elements`, `setConnectMode`, `setConnectSourceId`) out of
+  `setConnectSourceId`'s updater, reading `connectSourceId` from the
+  component closure instead.
+- `handleClonePage`: un-nested `setA4_Elements`/`setCurrentPage` from
+  `setPageCount`'s updater, reading the previous count from the existing
+  `pageCountRef` mirror (already an established pattern in this file, e.g.
+  `currentPageRef`).
+
+Both re-verified live end-to-end (fresh account, real clicks via
+`pointerdown` dispatch with a real render cycle between the two connector
+clicks — a first same-tick synthetic-test attempt gave a false negative
+before this was corrected to match real click timing):
+- Clone-page: one click → exactly one new page, exactly one clean set of
+  cloned elements (`Strona 2 / 2`, 2 elements on the new page matching the
+  2 on the source page — not 3 pages / 4 elements, which the pre-fix
+  double-invocation would have produced).
+- Connector: two clicks (source element, then target element, on two
+  distinct shapes) → exactly one `<g>` connector element created in the
+  page's SVG layer, connect-mode cursor correctly cleared.
+
+**Shell-setup footgun found, not a code bug:** this session's shell had no
+`pytest` installed in `backend/.venv` and, without an explicit
+`DATABASE_URL` override, the app falls back to the real production Postgres
+connection string committed in `backend/.env`. Running the suite with no
+override would have pointed live tests at the production database. Always
+export `DATABASE_URL="sqlite:///./<throwaway>.db"` before running backend
+tests locally; this isn't enforced by a fixture/conftest today.
+
+Backend: **87/87 passed** (re-verified against local sqlite, unaffected by
+the frontend-only fixes above). Frontend: lint clean (identical pre-existing
+errors/warnings as HEAD in both touched files, zero new — confirmed via
+`git stash`-diffed eslint runs; one transient new warning from the
+ref-mirroring fix was caught and fixed by adding `setAutoOpenedTemplates`
+to the onboarding effect's dependency array), `vite build` clean, both
+after Bug C's fixes too.
+
+---
+
 ## GSTACK REVIEW REPORT
 
 | Review | Trigger | Why | Runs | Status | Findings |
 |--------|---------|-----|------|--------|----------|
 | CEO Review | `/plan-ceo-review` | Scope & strategy | 3 | CLEAR | Positioning reversed to CV-only (logged decision); Approach B selected; 7 scope proposals, 7 accepted, 1 deferred |
-| Codex Review | `/codex review` | Independent 2nd opinion | 2 | issues_found (claude fallback, both runs) | CEO-stage: 7 findings, 4 substantive, all accepted. Eng-stage: 7 findings, all verified against real code, all 7 accepted |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | CLEAR (Phase 1a only) | 5 findings (3 architecture, 1 code quality, 1 test-diagram gap) + 7 outside-voice findings, all 12 accepted; Phase 1b (T2) not yet reviewed |
+| Codex Review | `/codex review` | Independent 2nd opinion | 3 | issues_found (claude fallback, all runs) | CEO-stage: 7 findings, 4 substantive, all accepted. Eng-stage (plan): 7 findings, all accepted. Eng-stage (diff, round 2): 1 finding (Bug B, a real regression in this round's own fix #2, accepted+fixed) + 2 same-pattern instances elsewhere (Bug C, owner opted to fix immediately rather than defer) |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 2 | CLEAR (Phase 1a, shipped code) | Round 1 (plan): 5 findings + 7 outside-voice, 12 accepted. Round 2 (diff): 4 findings, all accepted+fixed; live verification of fix #2 surfaced 2 more real bugs (Bug A, Bug B), both fixed and re-verified live across all 3 code paths; Outside Voice then found the same bug class in 2 more places (Bug C), also fixed and live-verified. Phase 1b (T2) still not reviewed |
 | Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | Not run this session — recommended given significant UI scope in Phase 1a (T1, T3, T4) |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | Not run this session |
 
-**CODEX:** Codex CLI not installed — both CEO-stage and eng-stage outside voice ran via Claude subagent fallback with full repo access and instructions to verify every claim against real source rather than trust the plan's own description.
-**CROSS-MODEL:** No unresolved disagreement — eng-stage outside voice found 7 concrete, verified issues (including one CRITICAL bug: the exception_handler fix as originally scoped would not have fired) and all 7 were accepted without contest. The value here was catching under-specified or actually-broken fixes within this review's own output, not a genuine two-model disagreement.
-**VERDICT:** CEO CLEARED. Eng Review CLEAR for Phase 1a (T1, T1b, T3, T4, T8 — ~10 files after the outside-voice-corrected count) — ready to implement. Phase 1b (T2, waitlist table/endpoint) requires its own separate eng review before it ships; do not implement T2 against this report. Design review recommended but not blocking.
+**CODEX:** Codex CLI not installed — all outside-voice passes (CEO-stage, eng-stage plan, eng-stage diff) ran via Claude subagent fallback with full repo access and instructions to verify every claim against real source rather than trust the plan's own description.
+**CROSS-MODEL:** No unresolved disagreement across any round. Notably, this round's Outside Voice pass caught a real bug (Bug B) in a fix that had ALREADY been live-verified in a real browser and appeared correct — the manual verification exercised backdrop-close and Topbar-bypass but not the pick-a-template path, which is exactly where Bug B's spurious dismiss-log fired. This is the strongest evidence in this project so far that live verification and Outside Voice review catch different bug classes and neither substitutes for the other. Separately, live-verifying Bug C's fix itself required a second attempt: firing both connector clicks within one synchronous script produced a false negative (no render cycle between clicks, so both read the same stale closure) — a reminder that synthetic test scripts can introduce their own timing artifacts distinct from the app bug being tested.
+**VERDICT:** CEO CLEARED. Eng Review CLEAR for Phase 1a as shipped (T1, T1b, T3, T4, T8) — all 4 round-2 findings, the 2 live-verification-caught bugs (A, B), and the 2 Outside-Voice-found same-pattern bugs (C) are all fixed and re-verified (87/87 backend tests, 3/3 templates-modal close paths live, clone-page + connector-creation live, lint/build clean). Phase 1b (T2, waitlist table/endpoint) still requires its own separate eng review before it ships. Design review recommended but not blocking.
+
+### Unresolved Decisions (this round)
+None — the one open decision (whether to fix the 2 deferred
+`useA4Elements.js` impure-updater instances now or later) was put to the
+owner via AskUserQuestion; they chose "fix now," and both are fixed and
+live-verified above.
 
 NO UNRESOLVED DECISIONS

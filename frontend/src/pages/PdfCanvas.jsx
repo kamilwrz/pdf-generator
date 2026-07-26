@@ -26,6 +26,7 @@ import AiDeckPanel from '../components/ai/AiDeckPanel/AiDeckPanel';
 import AiArticlePanel from '../components/ai/AiArticlePanel/AiArticlePanel';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 import { FEATURES } from '../config/features';
+import { logEvent } from '../services/eventLog';
 import { previewStructureOperation } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
 
@@ -64,8 +65,18 @@ function PdfCanvas() {
   const [pdfsLoaded, setPdfsLoaded] = useState(false);
   // true only while the CURRENT open TemplatesModal instance is the one that
   // auto-opened for first-time onboarding (not a manual "Szablony" click) —
-  // used to scope the pick/dismiss metric to onboarding completion specifically
-  const [autoOpenedTemplates, setAutoOpenedTemplates] = useState(false);
+  // used to scope the pick/dismiss metric to onboarding completion specifically.
+  // Mirrored into a ref (kept in lockstep by setAutoOpenedTemplates below) so
+  // handleShowTemplates can read the up-to-date value synchronously when it's
+  // invoked immediately after markTemplatesModalSeen() within the same click
+  // handler (TemplatesModal's handlePick/handleClose both do this) — the
+  // state value itself wouldn't have re-rendered yet at that point.
+  const [autoOpenedTemplates, setAutoOpenedTemplatesState] = useState(false);
+  const autoOpenedTemplatesRef = useRef(false);
+  const setAutoOpenedTemplates = useCallback((value) => {
+    autoOpenedTemplatesRef.current = value;
+    setAutoOpenedTemplatesState(value);
+  }, []);
   //the title of the PDF, loadded when pdf loaded
   const titleRef = useRef();
 
@@ -312,29 +323,48 @@ function PdfCanvas() {
     setIsDropzone(boolDropzone => !boolDropzone);
   }, [])
 
-  const handleShowTemplates = useCallback(() => {
-    setIsTemplates(bool => !bool);
-  }, [])
-
-  // Template-first onboarding: auto-open the templates picker for a
-  // first-time user (no saved PDFs yet), once pdfsLoaded resolves so a
-  // returning user with saved PDFs never sees a false-positive flash while
-  // the fetch is still in flight. Fires at most once per browser session —
-  // see markTemplatesModalSeen.
-  useEffect(() => {
-    if (!pdfsLoaded || PDFs.length !== 0) return;
-    if (autoOpenedTemplates) return;
-    if (sessionStorage.getItem(TEMPLATES_MODAL_SEEN_KEY) === "1") return;
-    setAutoOpenedTemplates(true);
-    setIsTemplates(true);
-  }, [pdfsLoaded, PDFs.length, autoOpenedTemplates])
-
   // Called once the auto-opened templates modal is resolved (template
   // picked or dismissed) so it never re-triggers again this session.
   const markTemplatesModalSeen = useCallback(() => {
     sessionStorage.setItem(TEMPLATES_MODAL_SEEN_KEY, "1");
     setAutoOpenedTemplates(false);
-  }, [])
+  }, [setAutoOpenedTemplates])
+
+  const handleShowTemplates = useCallback(() => {
+    const next = !isTemplates;
+    // Closing an auto-opened modal via the Topbar "Szablony" toggle
+    // bypasses TemplatesModal's own handleClose (backdrop/X button) — log
+    // the dismiss and clear the seen-flag here too, so onboarding tracking
+    // stays consistent no matter which UI path closed the modal. Reads
+    // autoOpenedTemplatesRef (not the autoOpenedTemplates state value)
+    // because TemplatesModal's own handlePick/handleClose call
+    // markTemplatesModalSeen() then this function in the same synchronous
+    // handler — the state wouldn't have re-rendered yet, so reading state
+    // here double-logs (and mislogs a dismiss on every pick). The ref is
+    // updated synchronously by setAutoOpenedTemplates, so it's already
+    // correct by the time this runs.
+    if (!next && autoOpenedTemplatesRef.current) {
+      logEvent("template_dismissed");
+      markTemplatesModalSeen();
+    }
+    setIsTemplates(next);
+  }, [isTemplates, markTemplatesModalSeen])
+
+  // Template-first onboarding: auto-open the templates picker for a
+  // first-time user (no saved PDFs yet), once pdfsLoaded resolves so a
+  // returning user with saved PDFs never sees a false-positive flash while
+  // the fetch is still in flight. Guards on `isTemplates` so it never hijacks
+  // a modal the user already opened manually (e.g. clicked "Szablony" before
+  // the PDFs fetch resolved) — that would mislabel a manual browse as
+  // onboarding and burn the once-per-session auto-open on it. Fires at most
+  // once per browser session — see markTemplatesModalSeen.
+  useEffect(() => {
+    if (!pdfsLoaded || PDFs.length !== 0) return;
+    if (autoOpenedTemplates || isTemplates) return;
+    if (sessionStorage.getItem(TEMPLATES_MODAL_SEEN_KEY) === "1") return;
+    setAutoOpenedTemplates(true);
+    setIsTemplates(true);
+  }, [pdfsLoaded, PDFs.length, autoOpenedTemplates, isTemplates, setAutoOpenedTemplates])
 
   const handleShowAiPanel = useCallback(() => {
     setIsAiPanel(bool => !bool);
