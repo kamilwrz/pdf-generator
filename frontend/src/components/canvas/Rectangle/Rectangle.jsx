@@ -12,6 +12,7 @@ function Rectangle({
     left,
     top,
     isSelected,
+    isMove,
     category,
     elementId,
     zIndex }) {
@@ -40,7 +41,7 @@ function Rectangle({
         zIndex: zIndex
     }
 
-    if (isSelected && selectedCount === 1) {
+    if (isSelected && selectedCount === 1 && !isMove) {
         const selectedElement = A4_Elements.find(element => element.element_id === elementId);
 
         return (

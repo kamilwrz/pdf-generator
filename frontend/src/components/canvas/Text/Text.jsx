@@ -80,7 +80,7 @@ function Text({
         }}
         onPointerUp={() => selectMoveElement(elementId, false)}
         onPointerMove={(e) => moveElement(e, elementId)}
-        className={`${classes.textElement} ${isSelected ? classes.selectedElement : ""}`}
+        className={`${classes.textElement} ${isSelected && !isMove ? classes.selectedElement : ""} ${isMove ? classes.movingElement : ""}`}
         style={style}
     >
         {content}

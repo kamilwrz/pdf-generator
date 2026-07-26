@@ -11,6 +11,7 @@ function Ellipse({
     left,
     top,
     isSelected,
+    isMove,
     category,
     elementId,
     zIndex,
@@ -55,7 +56,7 @@ function Ellipse({
         />
     );
 
-    if (isSelected && selectedCount === 1 && selectedElement) {
+    if (isSelected && selectedCount === 1 && !isMove && selectedElement) {
         return (
             <>
                 <Resize

@@ -38,6 +38,7 @@ function Textarea({
     height,
     isSelected,
     isEditing,
+    isMove,
     bold,
     italic,
     underline,
@@ -175,7 +176,7 @@ function Textarea({
         </div>
     );
 
-    if (isSelected && selectedCount === 1) {
+    if (isSelected && selectedCount === 1 && !isMove) {
         const selectedElement = A4_Elements.find((el) => el.element_id === elementId);
         return (
             <>

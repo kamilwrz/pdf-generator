@@ -15,13 +15,14 @@ function frameForElement(element) {
     // Single-line text often has no stored dimensions. Give it a predictable,
     // comfortably visible selection target without changing its layout.
     if (element.category === "text") {
-        const minWidth = Math.max(88, (Number(element.fontSize) || 12) * 5);
+        const storedWidth = Number(element.width) || 0;
+        const minWidth = Math.max(120, (Number(element.fontSize) || 12) * 7);
         const minHeight = Math.max(22, (Number(element.fontSize) || 12) * 1.7);
         const verticalInset = Math.max(0, (minHeight - height) / 2);
         return {
             left: left - PAD,
             top: top - verticalInset - PAD,
-            width: Math.max(width, minWidth) + PAD * 2,
+            width: Math.max(width, storedWidth, minWidth) + PAD * 2,
             height: Math.max(height, minHeight) + PAD * 2,
         };
     }
@@ -105,14 +106,6 @@ export default function SelectionOverlay({ elements, page }) {
                         height: frame.height,
                     }}
                 >
-                        {(isMulti || isMoving) && (
-                        <>
-                            <span className={`${classes.corner} ${classes.tl}`} />
-                            <span className={`${classes.corner} ${classes.tr}`} />
-                            <span className={`${classes.corner} ${classes.bl}`} />
-                            <span className={`${classes.corner} ${classes.br}`} />
-                        </>
-                    )}
                 </div>
             ))}
 

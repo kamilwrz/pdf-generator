@@ -24,6 +24,7 @@ export default function CanvasElements({ elements }) {
             height={parseFloat(element.height)}
             isSelected={element.isSelected}
             isEditing={element.isEditing}
+            isMove={element.isMove}
             bold={element.bold}
             italic={element.italic}
             underline={element.underline}
@@ -49,6 +50,7 @@ export default function CanvasElements({ elements }) {
             height={element.height}
             isSelected={element.isSelected}
             isEditing={element.isEditing}
+            isMove={element.isMove}
             category={element.category}
             bold={element.bold}
             italic={element.italic}
@@ -69,6 +71,7 @@ export default function CanvasElements({ elements }) {
             left={element.left}
             top={element.top}
             isSelected={element.isSelected}
+            isMove={element.isMove}
             category={element.category}
             zIndex={element.zIndex}
           />
@@ -85,6 +88,7 @@ export default function CanvasElements({ elements }) {
             left={element.left}
             top={element.top}
             isSelected={element.isSelected}
+            isMove={element.isMove}
             category={element.category}
             zIndex={element.zIndex}
           />
@@ -102,6 +106,7 @@ export default function CanvasElements({ elements }) {
             left={element.left}
             top={element.top}
             isSelected={element.isSelected}
+            isMove={element.isMove}
             category={element.category}
             zIndex={element.zIndex}
           />
@@ -120,6 +125,7 @@ export default function CanvasElements({ elements }) {
             left={element.left}
             top={element.top}
             isSelected={element.isSelected}
+            isMove={element.isMove}
             category={element.category}
             zIndex={element.zIndex}
           />
