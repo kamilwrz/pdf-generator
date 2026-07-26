@@ -533,12 +533,16 @@ export function useA4Elements(titleRef) {
   // moment a pointerup is missed (e.g. the element remounts when selecting it
   // swaps in the <Resize>-wrapped branch and the pointer capture dies).
   const handleSelectMoveElement = useCallback((elementId, moving) => {
+    const dragged = moving
+      ? elementsRef.current.find((element) => element.element_id === elementId)
+      : null;
+    const replaceSelection = !!moving && !dragged?.isSelected;
+
     if (moving) {
       draggedElementIdsRef.current.delete(elementId);
       activeDragElementIdRef.current = elementId;
       crossPageDragRef.current = false;
       dragDimensionsRef.current = null;
-      const dragged = elementsRef.current.find((element) => element.element_id === elementId);
       const group = dragged?.isSelected
         ? elementsRef.current.filter((element) => (
           element.isSelected
@@ -573,8 +577,8 @@ export function useA4Elements(titleRef) {
     }
     setA4_Elements(prevState => prevState.map((element) => (
       element.element_id === elementId
-        ? { ...element, isMove: !!moving && !element.locked }
-        : { ...element, isMove: false }
+        ? { ...element, isSelected: moving ? true : element.isSelected, isMove: !!moving && !element.locked }
+        : { ...element, isSelected: replaceSelection ? false : element.isSelected, isMove: false }
     )));
   }, [])
 

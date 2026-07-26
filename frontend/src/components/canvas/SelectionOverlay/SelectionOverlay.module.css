@@ -22,6 +22,15 @@
         0 0 0 4px rgba(62, 109, 181, 0.18);
 }
 
+.groupFrame {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px dashed color-mix(in srgb, var(--accent) 80%, transparent);
+    border-radius: 4px;
+    background: rgba(62, 109, 181, 0.035);
+    box-shadow: 0 0 0 3px rgba(62, 109, 181, 0.08);
+}
+
 .corner {
     position: absolute;
     width: 8px;

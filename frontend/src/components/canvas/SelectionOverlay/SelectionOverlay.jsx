@@ -61,10 +61,10 @@ export default function SelectionOverlay({ elements, page }) {
         id: element.element_id,
         ...frameForElement(element),
     }));
-    const groupFrames = (frames.length > 0 ? frames : displayed.map((element) => ({
+    const groupFrames = displayed.map((element) => ({
         id: element.element_id,
         ...frameForElement(element),
-    })));
+    }));
 
     const groupBox = groupFrames.reduce((box, frame) => ({
         left: Math.min(box.left, frame.left),
@@ -103,13 +103,24 @@ export default function SelectionOverlay({ elements, page }) {
             ))}
 
             {isMulti && (
-                <div
-                    className={classes.badge}
-                    style={{ left: groupBox.left, top: groupBox.top }}
-                >
-                    <span className={classes.badgeDot} />
-                    {displayed.length} zaznaczone
-                </div>
+                <>
+                    <div
+                        className={classes.groupFrame}
+                        style={{
+                            left: groupBox.left,
+                            top: groupBox.top,
+                            width: groupBox.right - groupBox.left,
+                            height: groupBox.bottom - groupBox.top,
+                        }}
+                    />
+                    <div
+                        className={classes.badge}
+                        style={{ left: groupBox.left, top: groupBox.top }}
+                    >
+                        <span className={classes.badgeDot} />
+                        {displayed.length} zaznaczone
+                    </div>
+                </>
             )}
             {groupMoveDelta && groupMoveDelta.page === displayedPage && (
                 <div
