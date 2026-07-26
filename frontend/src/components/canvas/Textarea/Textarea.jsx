@@ -4,6 +4,7 @@ import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import Resize from "../../common/Resize/Resize";
 import { measureNaturalScrollHeight } from "../../../utils/textareaHeight";
+import { isTextareaEditGesture } from "../../../utils/textareaEditing";
 
 // Normalize a bullet's whitespace and render the marker in a dedicated grid
 // column. The column's width is the actual rendered "• " width for the active
@@ -60,6 +61,7 @@ function Textarea({
 
     const [isResizeable, setIsResizeable] = useState(false);
     const blockRef = useRef(null);
+    const editingRef = useRef(null);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
     function handleIsResizeable(active) {
         setIsResizeable(Boolean(active));
@@ -124,10 +126,26 @@ function Textarea({
         width,
     ]);
 
+    useLayoutEffect(() => {
+        if (!isEditing || !editingRef.current) return undefined;
+
+        const focusFrame = window.requestAnimationFrame(() => {
+            editingRef.current?.focus();
+        });
+        return () => window.cancelAnimationFrame(focusFrame);
+    }, [isEditing]);
+
+    function startEditing(event) {
+        event?.preventDefault();
+        event?.stopPropagation();
+        setTextareaEditing(elementId, true);
+    }
+
     if (isEditing) {
         return (
             <textarea
                 id={elementId}
+                ref={editingRef}
                 autoFocus
                 rows={1}
                 className={classes.editing}
@@ -163,8 +181,12 @@ function Textarea({
             className={`${classes.block} ${isSelected ? classes.selected : ""}`}
             style={{ ...boxStyle, ...textStyle }}
             onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
-            onDoubleClick={() => setTextareaEditing(elementId, true)}
+            onDoubleClick={startEditing}
             onPointerDown={(e) => {
+                if (isTextareaEditGesture(e)) {
+                    startEditing(e);
+                    return;
+                }
                 if (e.ctrlKey || e.metaKey) return;
                 e.currentTarget.setPointerCapture(e.pointerId);
                 selectMoveElement(elementId, true);
