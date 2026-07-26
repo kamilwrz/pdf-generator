@@ -4,7 +4,7 @@ import { PdfContext } from "../../../store/pdfgenerator-context";
 import { PAGE_PRESETS } from "../../../hooks/useA4Elements";
 import { LuLayoutTemplate } from "react-icons/lu";
 import { RiFileTextLine, RiDownload2Line } from "react-icons/ri";
-import { FiEdit3, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
+import { FiEdit3, FiSave, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { RiArrowGoBackLine, RiArrowGoForwardLine } from "react-icons/ri";
 import { TiPen } from "react-icons/ti";
 
@@ -131,8 +131,8 @@ export default function Topbar({ titleRef }) {
                     <span className={classes.label}>Pobierz</span>
                 </button>
                 <button type="button" className={classes.primary} onClick={createPdf} disabled={isPdfLoading}>
-                    <RiDownload2Line />
-                    <span className={classes.label}>Utwórz PDF</span>
+                    <FiSave />
+                    <span className={classes.label}>Zapisz PDF</span>
                 </button>
             </div>
         </header>
