@@ -4,6 +4,7 @@ import { PdfContext } from "../../../store/pdfgenerator-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { TEMPLATES } from "../../../templates";
 import DialogShell from "../../common/DialogShell/DialogShell";
+import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
 import {
     applyBioCvDraftUpdate,
     BIO_CV_STEPS,
@@ -18,7 +19,7 @@ import {
     validateBioCvStep,
 } from "../../../utils/bioCvData";
 
-const CV_TEMPLATES = TEMPLATES.filter((template) => template.category === "cv");
+const CV_TEMPLATES = selectCvTemplates(TEMPLATES);
 
 function ListTextarea({ items, onCommit, placeholder, label }) {
     const [raw, setRaw] = useState(items.join("\n"));
