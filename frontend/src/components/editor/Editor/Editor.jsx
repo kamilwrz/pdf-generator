@@ -231,13 +231,14 @@ export default function Editor() {
                 <div className={classes.headingLeft}>
                     <span className={`${classes.headingIcon} ${isMultiSelection ? classes.headingIconMulti : ""}`}>
                         {isMultiSelection ? selectedElements.length : (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5FA777" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7V5h16v2" /><path d="M12 5v14" /><path d="M9 19h6" /></svg>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5FA777" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7V5h16v2" /><path d="M12 5v14" /><path d="M9 19h6" /></svg>
                         )}
                     </span>
                     <p>{isMultiSelection ? `Zaznaczono: ${selectedElements.length}` : selectedElement?.category ? `Element: ${CATEGORY_LABELS[selectedElement.category] ?? selectedElement.category}` : "Właściwości elementu"}</p>
                 </div>
-                <CloseButton clickHandler={handleCloseEditor} right={10} top={7} />
+                <CloseButton clickHandler={handleCloseEditor} right={8} top={7} width={20} height={20} />
             </div>
+            <div className={classes.editorBody}>
             {isMultiSelection ? (
                 <BulkEditor
                     selectedElements={selectedElements}
@@ -254,117 +255,133 @@ export default function Editor() {
                 />
             ) : <>
             {selectedElement?.category === "text" && <>
-
-                <EditorControls labelText="Treść tekstu" type="text" inputValue={elementValues.content} onChangeFn={(e) => handleChangeValues(e, "content")} />
-                <div className={classes.elementSize}>
-                    <EditorControls labelText="Rozmiar czcionki" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
-                    <EditorControls labelText="Kolor tekstu" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
+                <div className={classes.propCard}>
+                    <EditorControls labelText="Treść tekstu" type="text" inputValue={elementValues.content} onChangeFn={(e) => handleChangeValues(e, "content")} />
                 </div>
-                <EditorControls labelText="Rodzina czcionki" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
-                <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
+                <div className={classes.propCard}>
+                    <div className={classes.elementSize}>
+                        <EditorControls labelText="Rozmiar czcionki" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
+                        <EditorControls labelText="Kolor tekstu" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
+                    </div>
+                    <EditorControls labelText="Rodzina czcionki" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
+                    <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
+                </div>
             </>}
             {selectedElement?.category === "textarea" && <>
-
-                <button type="button" className={classes.editTextBtn} onClick={() => setTextareaEditing(selectedElement.element_id, true)}>Edytuj tekst</button>
-                {/* Always mounted (never conditionally removed from the tree): if this
-                    were `isEditing && <button>`, clicking a LATER sibling (e.g. the
-                    hanging-indent checkbox below) blurs the textarea first, which flips
-                    isEditing and removes this button in the same click — shifting every
-                    sibling after it by one position and breaking that click's own
-                    onChange under React's positional reconciliation. Disabling instead
-                    of unmounting keeps sibling positions stable. */}
-                <button
-                    type="button"
-                    className={classes.editTextBtn}
-                    disabled={!selectedElement?.isEditing}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={insertBulletAtCurrentLine}
-                ><MdFormatListBulleted />Wstaw punktor</button>
-                <div className={classes.elementSize}>
-                    <EditorControls labelText="Rozmiar czcionki" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
-                    <EditorControls labelText="Kolor tekstu" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
+                <div className={classes.propCard}>
+                    <button type="button" className={classes.editTextBtn} onClick={() => setTextareaEditing(selectedElement.element_id, true)}>Edytuj tekst</button>
+                    {/* Always mounted (never conditionally removed from the tree): if this
+                        were `isEditing && <button>`, clicking a LATER sibling (e.g. the
+                        hanging-indent checkbox below) blurs the textarea first, which flips
+                        isEditing and removes this button in the same click — shifting every
+                        sibling after it by one position and breaking that click's own
+                        onChange under React's positional reconciliation. Disabling instead
+                        of unmounting keeps sibling positions stable. */}
+                    <button
+                        type="button"
+                        className={classes.editTextBtn}
+                        disabled={!selectedElement?.isEditing}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={insertBulletAtCurrentLine}
+                    ><MdFormatListBulleted />Wstaw punktor</button>
                 </div>
-                <EditorControls labelText="Rodzina czcionki" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
-                <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
-                <AlignToggles selectedElement={selectedElement} setAlign={setAlign} />
-                <label className={classes.pushToggle}>
-                    <input type="checkbox" checked={!!selectedElement?.bulletList} onChange={toggleBulletList} />
-                    <span>Lista punktowana (• w każdej linii)</span>
-                </label>
-                <div className={classes.elementSize}>
-                    <EditorControls labelText="Wysokość linii" type="number" inputValue={elementValues.lineHeight} onChangeFn={(e) => handleChangeValues(e, "lineHeight")} />
-                    <EditorControls labelText="Odstęp między literami" type="number" inputValue={elementValues.letterSpacing} onChangeFn={(e) => handleChangeValues(e, "letterSpacing")} />
-                </div>
-                <div className={classes.elementSize}>
-                    <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
-                    <EditorControls
-                        labelText={selectedElement.autoHeight ? "Wysokość (automatyczna)" : "Wysokość"}
-                        type="number"
-                        inputValue={elementValues.height}
-                        onChangeFn={(e) => handleChangeValues(e, "height")}
-                        isDisabled={!!selectedElement.autoHeight}
-                    />
+                <div className={classes.propCard}>
+                    <div className={classes.elementSize}>
+                        <EditorControls labelText="Rozmiar czcionki" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
+                        <EditorControls labelText="Kolor tekstu" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
+                    </div>
+                    <EditorControls labelText="Rodzina czcionki" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
+                    <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
+                    <AlignToggles selectedElement={selectedElement} setAlign={setAlign} />
+                    <label className={classes.pushToggle}>
+                        <input type="checkbox" checked={!!selectedElement?.bulletList} onChange={toggleBulletList} />
+                        <span>Lista punktowana (• w każdej linii)</span>
+                    </label>
+                    <div className={classes.elementSize}>
+                        <EditorControls labelText="Wysokość linii" type="number" inputValue={elementValues.lineHeight} onChangeFn={(e) => handleChangeValues(e, "lineHeight")} />
+                        <EditorControls labelText="Odstęp między literami" type="number" inputValue={elementValues.letterSpacing} onChangeFn={(e) => handleChangeValues(e, "letterSpacing")} />
+                    </div>
+                    <div className={classes.elementSize}>
+                        <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
+                        <EditorControls
+                            labelText={selectedElement.autoHeight ? "Wysokość (automatyczna)" : "Wysokość"}
+                            type="number"
+                            inputValue={elementValues.height}
+                            onChangeFn={(e) => handleChangeValues(e, "height")}
+                            isDisabled={!!selectedElement.autoHeight}
+                        />
+                    </div>
                 </div>
             </>}
             {selectedElement?.category === "line" && <>
-                <div className={classes.elementSize}>
-                <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
-                <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
+                <div className={classes.propCard}>
+                    <div className={classes.elementSize}>
+                        <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
+                        <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
+                    </div>
+                    <EditorControls labelText="Kolor tła" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
                 </div>
-                <EditorControls labelText="Kolor tła" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
             </>}
             {selectedElement?.category === "rectangle" && <>
-                <div className={classes.elementSize}>
-                <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
-                <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
-                </div>
-                <div className={classes.elementSize}>
-                <EditorControls labelText="Szerokość obramowania" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
-                <EditorControls labelText="Kolor obramowania" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
+                <div className={classes.propCard}>
+                    <div className={classes.elementSize}>
+                        <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
+                        <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
+                    </div>
+                    <div className={classes.elementSize}>
+                        <EditorControls labelText="Szerokość obramowania" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
+                        <EditorControls labelText="Kolor obramowania" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
+                    </div>
                 </div>
             </>}
             {(selectedElement?.category === "circle" || selectedElement?.category === "ellipse") && <>
-                <div className={classes.elementSize}>
-                    <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
-                    <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
-                </div>
-                <label className={classes.pushToggle}>
-                    <input type="checkbox" checked={!!selectedElement.filled} onChange={() => toggleStyle("filled")} />
-                    <span>Wypełniony kształt</span>
-                </label>
-                <div className={classes.elementSize}>
-                    {!selectedElement.filled && (
-                        <EditorControls labelText="Szerokość obramowania" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
-                    )}
-                    <EditorControls
-                        labelText={selectedElement.filled ? "Kolor wypełnienia" : "Kolor obramowania"}
-                        type="color"
-                        inputValue={elementValues.backgroundColor}
-                        onChangeFn={(e) => handleChangeValues(e, "backgroundColor")}
-                    />
+                <div className={classes.propCard}>
+                    <div className={classes.elementSize}>
+                        <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
+                        <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
+                    </div>
+                    <label className={classes.pushToggle}>
+                        <input type="checkbox" checked={!!selectedElement.filled} onChange={() => toggleStyle("filled")} />
+                        <span>Wypełniony kształt</span>
+                    </label>
+                    <div className={classes.elementSize}>
+                        {!selectedElement.filled && (
+                            <EditorControls labelText="Szerokość obramowania" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
+                        )}
+                        <EditorControls
+                            labelText={selectedElement.filled ? "Kolor wypełnienia" : "Kolor obramowania"}
+                            type="color"
+                            inputValue={elementValues.backgroundColor}
+                            onChangeFn={(e) => handleChangeValues(e, "backgroundColor")}
+                        />
+                    </div>
                 </div>
             </>}
 
             {selectedElement?.category === "image" && <>
-
-                <div className={classes.elementSize}>
-                    <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} isDisabled />
-                    <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
+                <div className={classes.propCard}>
+                    <div className={classes.elementSize}>
+                        <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} isDisabled />
+                        <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
+                    </div>
                 </div>
-
             </>}
 
             {selectedElement?.category === "connector" && <>
-                <div className={classes.elementSize}>
-                    <EditorControls labelText="Szerokość linii" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
-                    <EditorControls labelText="Kolor linii" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
+                <div className={classes.propCard}>
+                    <div className={classes.elementSize}>
+                        <EditorControls labelText="Szerokość linii" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
+                        <EditorControls labelText="Kolor linii" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
+                    </div>
+                    <label className={classes.pushToggle}>
+                        <input type="checkbox" checked={!!selectedElement?.arrow} onChange={() => toggleStyle("arrow")} />
+                        <span>Grot strzałki u celu</span>
+                    </label>
+                    <EditorControls labelText="Widoczność" type="number" inputValue={elementValues.zIndex} onChangeFn={(e) => handleChangeValues(e, "zIndex")} />
                 </div>
-                <label className={classes.pushToggle}>
-                    <input type="checkbox" checked={!!selectedElement?.arrow} onChange={() => toggleStyle("arrow")} />
-                    <span>Grot strzałki u celu</span>
-                </label>
-                <EditorControls labelText="Widoczność" type="number" inputValue={elementValues.zIndex} onChangeFn={(e) => handleChangeValues(e, "zIndex")} />
-                <button type="button" className={classes.btnDelete} onClick={() => deleteElement(selectedElement.element_id)}>Usuń łącznik<RiDeleteBin2Line /></button>
+                <div className={classes.actionRow}>
+                    <button type="button" className={classes.btnDelete} title="Usuń łącznik" aria-label="Usuń łącznik" onClick={() => deleteElement(selectedElement.element_id)}><RiDeleteBin2Line /></button>
+                </div>
             </>}
 
             <label className={classes.pushToggle}>
@@ -372,22 +389,26 @@ export default function Editor() {
                 <span>Zablokuj pozycję elementu</span>
             </label>
             {selectedElement?.category !== "connector" && <>
-                <EditorControls labelText="Widoczność" type="number" inputValue={elementValues.zIndex} onChangeFn={(e) => handleChangeValues(e, "zIndex")} />
-
-                <div className={classes.positionBtnsWrapper}>
-                    <button type="button" disabled={!!selectedElement.locked} onClick={() => alignElement(selectedElement.element_id, "LEFT", selectedElement.width, selectedElement.category)}><CiTextAlignLeft /></button>
-                    <button type="button" disabled={!!selectedElement.locked} onClick={() => alignElement(selectedElement.element_id, "CENTER", selectedElement.width, selectedElement.category)}><CiTextAlignCenter /></button>
-                    <button type="button" disabled={!!selectedElement.locked} onClick={() => alignElement(selectedElement.element_id, "RIGHT", selectedElement.width, selectedElement.category)}><CiTextAlignRight /></button>
+                <div className={classes.propCard}>
+                    <div className={classes.positionBtnsWrapper}>
+                        <button type="button" disabled={!!selectedElement.locked} onClick={() => alignElement(selectedElement.element_id, "LEFT", selectedElement.width, selectedElement.category)}><CiTextAlignLeft /></button>
+                        <button type="button" disabled={!!selectedElement.locked} onClick={() => alignElement(selectedElement.element_id, "CENTER", selectedElement.width, selectedElement.category)}><CiTextAlignCenter /></button>
+                        <button type="button" disabled={!!selectedElement.locked} onClick={() => alignElement(selectedElement.element_id, "RIGHT", selectedElement.width, selectedElement.category)}><CiTextAlignRight /></button>
+                    </div>
+                    <div className={classes.elementSize}>
+                        <EditorControls labelText="X (px)" type="number" inputValue={elementValues.left} onChangeFn={(e) => handleChangeValues(e, "left")} isDisabled={!!selectedElement.locked} />
+                        <EditorControls labelText="Y (px)" type="number" inputValue={elementValues.top} onChangeFn={(e) => handleChangeValues(e, "top")} isDisabled={!!selectedElement.locked} />
+                    </div>
+                    <EditorControls labelText="Widoczność" type="number" inputValue={elementValues.zIndex} onChangeFn={(e) => handleChangeValues(e, "zIndex")} />
                 </div>
-                <div className={classes.elementSize}>
-                    <EditorControls labelText="X (px)" type="number" inputValue={elementValues.left} onChangeFn={(e) => handleChangeValues(e, "left")} isDisabled={!!selectedElement.locked} />
-                    <EditorControls labelText="Y (px)" type="number" inputValue={elementValues.top} onChangeFn={(e) => handleChangeValues(e, "top")} isDisabled={!!selectedElement.locked} />
-                </div>
-                <button type="button" className={classes.btnDuplicate} onClick={() => duplicateElement(selectedElement.element_id)}>Duplikuj element<RiFileCopyLine /></button>
-                <button type="button" className={classes.btnDelete} onClick={() => deleteElement(selectedElement.element_id)}>Usuń element<RiDeleteBin2Line /></button>
 
+                <div className={classes.actionRow}>
+                    <button type="button" className={classes.btnDuplicate} title="Duplikuj element" aria-label="Duplikuj element" onClick={() => duplicateElement(selectedElement.element_id)}><RiFileCopyLine /></button>
+                    <button type="button" className={classes.btnDelete} title="Usuń element" aria-label="Usuń element" onClick={() => deleteElement(selectedElement.element_id)}><RiDeleteBin2Line /></button>
+                </div>
             </>}
             </>}
+            </div>
         </form>
     </motion.aside>}</AnimatePresence>
 }
@@ -418,6 +439,9 @@ function BulkEditor({
     const hasMixedValues = editableFields
         .filter(supportsField)
         .some(isValueMixed);
+    const hasStyleCard = hasTypography || supportsField("fontFamily") || hasTextStyle
+        || supportsField("align") || supportsField("lineHeight") || supportsField("letterSpacing");
+    const hasAppearanceCard = canEditSize || hasBorder || supportsField("filled");
 
     return (
         <div className={classes.bulkPanel}>
@@ -429,7 +453,7 @@ function BulkEditor({
                     Część wartości jest różna — kolejna zmiana ujednolici ją w całym zaznaczeniu.
                 </p>
             )}
-            <div className={classes.groupMove}>
+            <div className={classes.propCard}>
                 <p className={classes.groupMoveTitle}>Przesuń całą grupę</p>
                 <div className={classes.elementSize}>
                     <EditorControls
@@ -445,113 +469,129 @@ function BulkEditor({
                         onChangeFn={(e) => onGroupMoveValueChange(e, "y")}
                     />
                 </div>
+                {supportsField("zIndex") && (
+                    <EditorControls
+                        labelText="Widoczność"
+                        type="number"
+                        inputValue={valueForField("zIndex")}
+                        onChangeFn={(e) => onChangeValue(e, "zIndex")}
+                    />
+                )}
             </div>
-            {hasTypography && (
-                <div className={classes.elementSize}>
-                    {supportsField("fontSize") && (
+            {hasStyleCard && (
+                <div className={classes.propCard}>
+                    {hasTypography && (
+                        <div className={classes.elementSize}>
+                            {supportsField("fontSize") && (
+                                <EditorControls
+                                    labelText="Rozmiar czcionki"
+                                    type="number"
+                                    inputValue={valueForField("fontSize")}
+                                    onChangeFn={(e) => onChangeValue(e, "fontSize")}
+                                />
+                            )}
+                            {supportsField("color") && (
+                                <EditorControls
+                                    labelText="Kolor tekstu"
+                                    type="color"
+                                    inputValue={valueForField("color")}
+                                    onChangeFn={(e) => onChangeValue(e, "color")}
+                                />
+                            )}
+                        </div>
+                    )}
+                    {supportsField("fontFamily") && (
                         <EditorControls
-                            labelText="Rozmiar czcionki"
-                            type="number"
-                            inputValue={valueForField("fontSize")}
-                            onChangeFn={(e) => onChangeValue(e, "fontSize")}
+                            labelText="Rodzina czcionki"
+                            type="select"
+                            inputValue={valueForField("fontFamily")}
+                            onChangeFn={(e) => onChangeValue(e, "fontFamily")}
+                            isSelect
                         />
                     )}
-                    {supportsField("color") && (
-                        <EditorControls
-                            labelText="Kolor tekstu"
-                            type="color"
-                            inputValue={valueForField("color")}
-                            onChangeFn={(e) => onChangeValue(e, "color")}
+                    {hasTextStyle && (
+                        <BulkStyleToggles
+                            selectedElements={selectedElements}
+                            onToggleStyle={onToggleStyle}
                         />
                     )}
-                </div>
-            )}
-            {supportsField("fontFamily") && (
-                <EditorControls
-                    labelText="Rodzina czcionki"
-                    type="select"
-                    inputValue={valueForField("fontFamily")}
-                    onChangeFn={(e) => onChangeValue(e, "fontFamily")}
-                    isSelect
-                />
-            )}
-            {hasTextStyle && (
-                <BulkStyleToggles
-                    selectedElements={selectedElements}
-                    onToggleStyle={onToggleStyle}
-                />
-            )}
-            {supportsField("align") && (
-                <BulkAlignToggles
-                    value={isValueMixed("align") ? undefined : valueForField("align")}
-                    onSetAlign={onSetAlign}
-                />
-            )}
-            {(supportsField("lineHeight") || supportsField("letterSpacing")) && (
-                <div className={classes.elementSize}>
-                    {supportsField("lineHeight") && (
-                        <EditorControls
-                            labelText="Wysokość linii"
-                            type="number"
-                            inputValue={valueForField("lineHeight")}
-                            onChangeFn={(e) => onChangeValue(e, "lineHeight")}
+                    {supportsField("align") && (
+                        <BulkAlignToggles
+                            value={isValueMixed("align") ? undefined : valueForField("align")}
+                            onSetAlign={onSetAlign}
                         />
                     )}
-                    {supportsField("letterSpacing") && (
-                        <EditorControls
-                            labelText="Odstęp między literami"
-                            type="number"
-                            inputValue={valueForField("letterSpacing")}
-                            onChangeFn={(e) => onChangeValue(e, "letterSpacing")}
-                        />
-                    )}
-                </div>
-            )}
-            {canEditSize && (
-                <div className={classes.elementSize}>
-                    <EditorControls
-                        labelText="Szerokość"
-                        type="number"
-                        inputValue={valueForField("width")}
-                        onChangeFn={(e) => onChangeValue(e, "width")}
-                    />
-                    <EditorControls
-                        labelText="Wysokość"
-                        type="number"
-                        inputValue={valueForField("height")}
-                        onChangeFn={(e) => onChangeValue(e, "height")}
-                    />
-                </div>
-            )}
-            {hasBorder && (
-                <div className={classes.elementSize}>
-                    {supportsField("borderWidth") && (
-                        <EditorControls
-                            labelText="Szerokość obramowania"
-                            type="number"
-                            inputValue={valueForField("borderWidth")}
-                            onChangeFn={(e) => onChangeValue(e, "borderWidth")}
-                        />
-                    )}
-                    {supportsField("backgroundColor") && (
-                        <EditorControls
-                            labelText="Kolor obramowania"
-                            type="color"
-                            inputValue={valueForField("backgroundColor")}
-                            onChangeFn={(e) => onChangeValue(e, "backgroundColor")}
-                        />
+                    {(supportsField("lineHeight") || supportsField("letterSpacing")) && (
+                        <div className={classes.elementSize}>
+                            {supportsField("lineHeight") && (
+                                <EditorControls
+                                    labelText="Wysokość linii"
+                                    type="number"
+                                    inputValue={valueForField("lineHeight")}
+                                    onChangeFn={(e) => onChangeValue(e, "lineHeight")}
+                                />
+                            )}
+                            {supportsField("letterSpacing") && (
+                                <EditorControls
+                                    labelText="Odstęp między literami"
+                                    type="number"
+                                    inputValue={valueForField("letterSpacing")}
+                                    onChangeFn={(e) => onChangeValue(e, "letterSpacing")}
+                                />
+                            )}
+                        </div>
                     )}
                 </div>
             )}
-            {supportsField("filled") && (
-                <label className={classes.pushToggle}>
-                    <input
-                        type="checkbox"
-                        checked={!isValueMixed("filled") && !!valueForField("filled")}
-                        onChange={() => onToggleStyle("filled")}
-                    />
-                    <span>Wypełnione kształty</span>
-                </label>
+            {hasAppearanceCard && (
+                <div className={classes.propCard}>
+                    {canEditSize && (
+                        <div className={classes.elementSize}>
+                            <EditorControls
+                                labelText="Szerokość"
+                                type="number"
+                                inputValue={valueForField("width")}
+                                onChangeFn={(e) => onChangeValue(e, "width")}
+                            />
+                            <EditorControls
+                                labelText="Wysokość"
+                                type="number"
+                                inputValue={valueForField("height")}
+                                onChangeFn={(e) => onChangeValue(e, "height")}
+                            />
+                        </div>
+                    )}
+                    {hasBorder && (
+                        <div className={classes.elementSize}>
+                            {supportsField("borderWidth") && (
+                                <EditorControls
+                                    labelText="Szerokość obramowania"
+                                    type="number"
+                                    inputValue={valueForField("borderWidth")}
+                                    onChangeFn={(e) => onChangeValue(e, "borderWidth")}
+                                />
+                            )}
+                            {supportsField("backgroundColor") && (
+                                <EditorControls
+                                    labelText="Kolor obramowania"
+                                    type="color"
+                                    inputValue={valueForField("backgroundColor")}
+                                    onChangeFn={(e) => onChangeValue(e, "backgroundColor")}
+                                />
+                            )}
+                        </div>
+                    )}
+                    {supportsField("filled") && (
+                        <label className={classes.pushToggle}>
+                            <input
+                                type="checkbox"
+                                checked={!isValueMixed("filled") && !!valueForField("filled")}
+                                onChange={() => onToggleStyle("filled")}
+                            />
+                            <span>Wypełnione kształty</span>
+                        </label>
+                    )}
+                </div>
             )}
             {supportsField("locked") && (
                 <label className={classes.pushToggle}>
@@ -563,20 +603,22 @@ function BulkEditor({
                     <span>Zablokuj pozycję zaznaczonych</span>
                 </label>
             )}
-            {supportsField("zIndex") && (
-                <EditorControls
-                    labelText="Widoczność"
-                    type="number"
-                    inputValue={valueForField("zIndex")}
-                    onChangeFn={(e) => onChangeValue(e, "zIndex")}
-                />
-            )}
-            <button type="button" className={classes.btnDuplicate} onClick={onDuplicateSelected}>
-                Duplikuj zaznaczone ({selectedElements.length})<RiFileCopyLine />
-            </button>
-            <button type="button" className={classes.btnDelete} onClick={onDeleteSelected}>
-                Usuń zaznaczone ({selectedElements.length})<RiDeleteBin2Line />
-            </button>
+            <div className={classes.actionRow}>
+                <button
+                    type="button"
+                    className={classes.btnDuplicate}
+                    title={`Duplikuj zaznaczone (${selectedElements.length})`}
+                    aria-label={`Duplikuj zaznaczone (${selectedElements.length})`}
+                    onClick={onDuplicateSelected}
+                ><RiFileCopyLine /></button>
+                <button
+                    type="button"
+                    className={classes.btnDelete}
+                    title={`Usuń zaznaczone (${selectedElements.length})`}
+                    aria-label={`Usuń zaznaczone (${selectedElements.length})`}
+                    onClick={onDeleteSelected}
+                ><RiDeleteBin2Line /></button>
+            </div>
         </div>
     );
 }
@@ -669,4 +711,3 @@ function StyleToggles({ selectedElement, toggleStyle }) {
         </div>
     );
 }
-
