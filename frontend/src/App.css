@@ -159,3 +159,134 @@
     src: url("/fonts/Roboto-BoldItalic.ttf");
  }
 
+ /* Playfair Display — elegant high-contrast display serif for names/titles.
+    Real bold/italic cuts; the backend embeds the same files in the PDF. */
+ @font-face {
+    font-family: PlayfairDisplay;
+    font-weight: 400;
+    font-style: normal;
+    src: url("/fonts/PlayfairDisplay.ttf");
+ }
+ @font-face {
+    font-family: PlayfairDisplay;
+    font-weight: 700;
+    font-style: normal;
+    src: url("/fonts/PlayfairDisplay-Bold.ttf");
+ }
+ @font-face {
+    font-family: PlayfairDisplay;
+    font-weight: 400;
+    font-style: italic;
+    src: url("/fonts/PlayfairDisplay-Italic.ttf");
+ }
+ @font-face {
+    font-family: PlayfairDisplay;
+    font-weight: 700;
+    font-style: italic;
+    src: url("/fonts/PlayfairDisplay-BoldItalic.ttf");
+ }
+
+ /* Cormorant Garamond — refined old-style garalde serif, aristocratic and light. */
+ @font-face {
+    font-family: CormorantGaramond;
+    font-weight: 400;
+    font-style: normal;
+    src: url("/fonts/CormorantGaramond.ttf");
+ }
+ @font-face {
+    font-family: CormorantGaramond;
+    font-weight: 700;
+    font-style: normal;
+    src: url("/fonts/CormorantGaramond-Bold.ttf");
+ }
+ @font-face {
+    font-family: CormorantGaramond;
+    font-weight: 400;
+    font-style: italic;
+    src: url("/fonts/CormorantGaramond-Italic.ttf");
+ }
+ @font-face {
+    font-family: CormorantGaramond;
+    font-weight: 700;
+    font-style: italic;
+    src: url("/fonts/CormorantGaramond-BoldItalic.ttf");
+ }
+
+ /* Lora — warm contemporary serif with genuine, expressive italics. */
+ @font-face {
+    font-family: Lora;
+    font-weight: 400;
+    font-style: normal;
+    src: url("/fonts/Lora.ttf");
+ }
+ @font-face {
+    font-family: Lora;
+    font-weight: 700;
+    font-style: normal;
+    src: url("/fonts/Lora-Bold.ttf");
+ }
+ @font-face {
+    font-family: Lora;
+    font-weight: 400;
+    font-style: italic;
+    src: url("/fonts/Lora-Italic.ttf");
+ }
+ @font-face {
+    font-family: Lora;
+    font-weight: 700;
+    font-style: italic;
+    src: url("/fonts/Lora-BoldItalic.ttf");
+ }
+
+ /* Montserrat — geometric modern sans with a strong, designed silhouette. */
+ @font-face {
+    font-family: Montserrat;
+    font-weight: 400;
+    font-style: normal;
+    src: url("/fonts/Montserrat.ttf");
+ }
+ @font-face {
+    font-family: Montserrat;
+    font-weight: 700;
+    font-style: normal;
+    src: url("/fonts/Montserrat-Bold.ttf");
+ }
+ @font-face {
+    font-family: Montserrat;
+    font-weight: 400;
+    font-style: italic;
+    src: url("/fonts/Montserrat-Italic.ttf");
+ }
+ @font-face {
+    font-family: Montserrat;
+    font-weight: 700;
+    font-style: italic;
+    src: url("/fonts/Montserrat-BoldItalic.ttf");
+ }
+
+ /* JetBrains Mono — stylish monospace for IT/engineering-flavoured CVs. */
+ @font-face {
+    font-family: JetBrainsMono;
+    font-weight: 400;
+    font-style: normal;
+    src: url("/fonts/JetBrainsMono.ttf");
+ }
+ @font-face {
+    font-family: JetBrainsMono;
+    font-weight: 700;
+    font-style: normal;
+    src: url("/fonts/JetBrainsMono-Bold.ttf");
+ }
+ @font-face {
+    font-family: JetBrainsMono;
+    font-weight: 400;
+    font-style: italic;
+    src: url("/fonts/JetBrainsMono-Italic.ttf");
+ }
+ @font-face {
+    font-family: JetBrainsMono;
+    font-weight: 700;
+    font-style: italic;
+    src: url("/fonts/JetBrainsMono-BoldItalic.ttf");
+ }
+
