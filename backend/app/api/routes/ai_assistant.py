@@ -40,6 +40,8 @@ class AssistantResponse(BaseModel):
     structure_issues: list[dict] = []
     deletion_groups: list[dict] = []
     deletion_issues: list[dict] = []
+    clone_groups: list[dict] = []
+    clone_issues: list[dict] = []
     web_sources: list[str] = []
 
 

@@ -1173,6 +1173,85 @@ export function useA4Elements(titleRef) {
   // Applies one reviewed section restructure atomically. The backend owns the
   // proposed geometry; the client validates it again, records removals for
   // autosave, and creates any fixed page decorations needed by overflow.
+  // Additive-only clone apply for AI assistant (no removals). Supports the
+  // same visual categories the backend may copy from an existing source.
+  const applyCloneOperation = useCallback((group) => {
+    const additions = group?.add_elements;
+    if (!Array.isArray(additions) || additions.length === 0) return;
+
+    const additionIds = new Set();
+    const allowedCategories = new Set([
+      "text", "textarea", "line", "rectangle", "circle", "ellipse", "image",
+    ]);
+    const additionsAreSafe = additions.every((spec) => (
+      spec
+      && typeof spec.element_id === "string"
+      && !additionIds.has(spec.element_id)
+      && allowedCategories.has(spec.category)
+      && Number.isFinite(spec.left)
+      && Number.isFinite(spec.top)
+      && Number.isFinite(spec.width)
+      && Number.isFinite(spec.height)
+      && Number.isInteger(spec.page)
+      && spec.page > 0
+      && spec.left >= 0
+      && spec.top >= 0
+      && spec.width > 0
+      && spec.height > 0
+      && (additionIds.add(spec.element_id) || true)
+    ));
+    if (!additionsAreSafe) return;
+
+    setA4_Elements((prevState) => {
+      const existingIds = new Set(prevState.map((element) => element.element_id));
+      if (additions.some((addition) => existingIds.has(addition.element_id))) return prevState;
+
+      const { width: pageWidth, height: pageHeight } = pageSizeRef.current;
+      const geometryIsSafe = additions.every((item) => (
+        item.left + item.width <= pageWidth && item.top + item.height <= pageHeight
+      ));
+      if (!geometryIsSafe) return prevState;
+
+      const normalizedAdditions = additions.map((spec) => ({
+        ...spec,
+        isSelected: false,
+        isMove: false,
+        isEditing: false,
+        locked: false,
+        fixedToPage: false,
+        page: spec.page ?? 1,
+      }));
+
+      const documentElements = [
+        ...prevState.map((element) => ({
+          ...element,
+          isSelected: false,
+          isMove: false,
+          isEditing: false,
+        })),
+        ...normalizedAdditions,
+      ];
+      const existingMaxPage = Math.max(1, ...prevState.map((element) => element.page ?? 1));
+      const targetMaxPage = Math.max(
+        existingMaxPage,
+        ...documentElements.map((element) => element.page ?? 1),
+      );
+      const generatedDecorations = cloneFixedPageDecorations(
+        documentElements,
+        existingMaxPage + 1,
+        targetMaxPage,
+        nanoid,
+      );
+      const withDecorations = [...documentElements, ...generatedDecorations];
+      reflowPageCountRef.current = Math.max(
+        targetMaxPage,
+        ...withDecorations.map((element) => element.page ?? 1),
+      );
+      layoutTargetPageRef.current = normalizedAdditions[0]?.page ?? null;
+      return withDecorations;
+    });
+  }, []);
+
   const applyStructureOperation = useCallback((group) => {
     const removeIds = group?.remove_element_ids;
     const additions = group?.add_elements;
@@ -1694,6 +1773,7 @@ export function useA4Elements(titleRef) {
     fitTextareaToContent: handleFitTextareaToContent,
     applyLayoutPatches,
     applyStructureOperation,
+    applyCloneOperation,
     applyDeleteOperation,
     A4ref,
     setPageCanvasRef,

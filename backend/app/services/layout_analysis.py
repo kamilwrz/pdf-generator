@@ -1679,6 +1679,215 @@ def resolve_restructure_section(
     }
 
 
+_CLONEABLE_CATEGORIES = {"text", "textarea", "line", "rectangle", "circle", "ellipse", "image"}
+_CLONE_PLACEMENTS = {"below", "above", "right", "left", "offset"}
+_CLONE_ALIGN = {"start", "center", "end"}
+_CLONE_MATCH_SIZE = {"none", "width", "height", "both"}
+_CLONE_COPY_KEYS = (
+    "category", "content", "fontSize", "fontFamily", "color", "bold", "italic", "underline",
+    "align", "lineHeight", "letterSpacing", "width", "height", "backgroundColor", "borderWidth",
+    "filled", "src", "img_id", "zIndex", "bulletList", "autoHeight", "arrow",
+)
+_MAX_CLONES_PER_OPERATION = 20
+
+
+def _clone_align_x(reference: dict[str, Any], width: float, align: str) -> float:
+    if align == "center":
+        return reference["left"] + (reference["width"] - width) / 2
+    if align == "end":
+        return reference["left"] + reference["width"] - width
+    return reference["left"]
+
+
+def _clone_align_y(reference: dict[str, Any], height: float, align: str) -> float:
+    if align == "center":
+        return reference["top"] + (reference["height"] - height) / 2
+    if align == "end":
+        return reference["top"] + reference["height"] - height
+    return reference["top"]
+
+
+def _build_clone_element(
+    source_raw: dict[str, Any],
+    source_bounds: dict[str, Any],
+    *,
+    new_id: str,
+    left: float,
+    top: float,
+    page: int,
+    width: float,
+    height: float,
+) -> dict[str, Any]:
+    clone = {
+        key: source_raw[key]
+        for key in _CLONE_COPY_KEYS
+        if key in source_raw and source_raw[key] is not None
+    }
+    clone.update({
+        "element_id": new_id,
+        "category": source_bounds["category"],
+        "left": round(left, 2),
+        "top": round(top, 2),
+        "width": round(width, 2),
+        "height": round(height, 2),
+        "page": page,
+        "locked": False,
+        "fixedToPage": False,
+        "zIndex": int(_number(source_raw.get("zIndex"), source_bounds.get("zIndex", 2))),
+    })
+    return clone
+
+
+def resolve_clone_operation(
+    elements: list[dict[str, Any]],
+    directive: dict[str, Any],
+    page_size: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Clone existing canvas elements and place copies via abstract rules.
+
+    GPT never invents geometry or styles — it only names source ids and a
+    placement relative to an optional reference (below/above/left/right/offset).
+    Python copies the source fields and computes safe left/top/page.
+    """
+    page_size = page_size or {}
+    page_width = _number(page_size.get("width"), 595.0)
+    page_height = _number(page_size.get("height"), 842.0)
+    if page_width <= 0 or page_height <= 0:
+        return None
+    if (
+        not isinstance(directive, dict)
+        or directive.get("type") != "clone_elements"
+        or set(directive) - {"type", "clones"}
+    ):
+        return None
+
+    raw_clones = directive.get("clones")
+    if not isinstance(raw_clones, list) or not 1 <= len(raw_clones) <= _MAX_CLONES_PER_OPERATION:
+        return None
+
+    raw_by_id = {
+        str(element.get("element_id")): element
+        for element in elements
+        if element.get("element_id")
+    }
+    bounds_by_id = {item["element_id"]: item for item in extract_bounds(elements)}
+    existing_ids = set(raw_by_id)
+    additions: list[dict[str, Any]] = []
+
+    for index, raw in enumerate(raw_clones):
+        if not isinstance(raw, dict):
+            return None
+        allowed_keys = {
+            "source_element_id", "reference_element_id", "placement",
+            "gap", "dx", "dy", "align", "match_size",
+        }
+        if set(raw) - allowed_keys:
+            return None
+
+        source_id = str(raw.get("source_element_id") or "")
+        source_raw = raw_by_id.get(source_id)
+        source = bounds_by_id.get(source_id)
+        if (
+            source_raw is None
+            or source is None
+            or source["category"] not in _CLONEABLE_CATEGORIES
+            or source.get("locked")
+            or source.get("fixedToPage")
+            or source["category"] == "connector"
+        ):
+            return None
+
+        placement = raw.get("placement") if raw.get("placement") in _CLONE_PLACEMENTS else None
+        if placement is None:
+            return None
+        align = raw.get("align") if raw.get("align") in _CLONE_ALIGN else "start"
+        match_size = raw.get("match_size") if raw.get("match_size") in _CLONE_MATCH_SIZE else "none"
+        gap = max(0.0, _number(raw.get("gap"), 8.0))
+        dx = _number(raw.get("dx"), 15.0)
+        dy = _number(raw.get("dy"), 15.0)
+
+        reference_id = str(raw.get("reference_element_id") or "")
+        if placement == "offset":
+            reference = source
+        else:
+            if not reference_id:
+                return None
+            reference = bounds_by_id.get(reference_id)
+            if reference is None:
+                return None
+
+        width = source["width"]
+        height = source["height"]
+        if match_size in {"width", "both"}:
+            width = max(1.0, reference["width"])
+        if match_size in {"height", "both"}:
+            height = max(1.0, reference["height"])
+        if width > page_width or height > page_height:
+            return None
+
+        if placement == "offset":
+            left = source["left"] + dx
+            top = source["top"] + dy
+            page = int(source["page"])
+        elif placement == "below":
+            left = _clone_align_x(reference, width, align)
+            top = reference["top"] + reference["height"] + gap
+            page = int(reference["page"])
+        elif placement == "above":
+            left = _clone_align_x(reference, width, align)
+            top = reference["top"] - height - gap
+            page = int(reference["page"])
+        elif placement == "right":
+            left = reference["left"] + reference["width"] + gap
+            top = _clone_align_y(reference, height, align)
+            page = int(reference["page"])
+        else:  # left
+            left = reference["left"] - width - gap
+            top = _clone_align_y(reference, height, align)
+            page = int(reference["page"])
+
+        left = round(left, 2)
+        top = round(top, 2)
+        if (
+            left < -EPSILON
+            or top < -EPSILON
+            or left + width > page_width + EPSILON
+            or top + height > page_height + EPSILON
+        ):
+            return None
+
+        new_id = f"{source_id}__clone_{index}"
+        if new_id in existing_ids:
+            new_id = f"{source_id}__clone_{index}_{len(additions)}"
+        if new_id in existing_ids:
+            return None
+        existing_ids.add(new_id)
+        additions.append(_build_clone_element(
+            source_raw,
+            source,
+            new_id=new_id,
+            left=left,
+            top=top,
+            page=page,
+            width=width,
+            height=height,
+        ))
+
+    count = len(additions)
+    return {
+        "id": f"directed-clone-{additions[0]['element_id']}",
+        "title": f"Sklonuj {count} {'element' if count == 1 else 'elementy'}",
+        "reason": (
+            "Kopie dziedziczą styl i geometrię źródła; pozycja wynika z reguły "
+            "umieszczenia względem wskazanego elementu referencyjnego."
+        ),
+        "severity": "review",
+        "remove_element_ids": [],
+        "add_elements": additions,
+        "patches": [],
+    }
+
+
 def resolve_delete_operation(
     elements: list[dict[str, Any]],
     directive: dict[str, Any],

@@ -12,6 +12,7 @@ from app.core.config import OPENAI_API_KEY
 from app.services.layout_analysis import (
     analyze_layout,
     extract_bounds,
+    resolve_clone_operation,
     resolve_delete_operation,
     resolve_directed_operation,
     resolve_restructure_section,
@@ -733,6 +734,22 @@ def _chat(
         "  - NIGDY nie podawaj elementów z fixedToPage=true ani locked=true: są to chronione tła, "
         "stopki i pozycje użytkownika. Nie podawaj współrzędnych, stron, stylów ani nowych specyfikacji. "
         "Usunięcie zawsze wymaga osobnego zatwierdzenia użytkownika w UI.\n"
+        "(5b) POLECENIE klonowania elementów (np. „sklonuj tę linię i umieść pod nagłówkiem UMIEJĘTNOŚCI”, "
+        "„zrób kopię bloku obok”, „powiel dekorację pod nową sekcją”) zwraca clone_operation:\n"
+        "  {\"type\":\"clone_elements\", \"clones\":[{"
+        "\"source_element_id\":\"...\","
+        "\"reference_element_id\":\"...\" (wymagane gdy placement≠offset),"
+        "\"placement\":\"below\"|\"above\"|\"left\"|\"right\"|\"offset\","
+        "\"gap\":<px, domyślnie 8>, \"dx\":<px>, \"dy\":<px>,"
+        "\"align\":\"start\"|\"center\"|\"end\", \"match_size\":\"none\"|\"width\"|\"height\"|\"both\""
+        "}]}\n"
+        "  - source_element_id to ISTNIEJĄCY element (text, textarea, line, rectangle, circle, ellipse, image). "
+        "Python skopiuje jego styl i rozmiar — NIE podawaj left/top/color/width ręcznie.\n"
+        "  - placement below/above/left/right ustawia kopię względem reference_element_id z odstępem gap. "
+        "placement=offset robi klasyczny duplikat względem źródła o (dx, dy); wtedy reference pomiń.\n"
+        "  - align wyrównuje kopię do referencji na osi poprzecznej (np. below+start = ta sama lewa krawędź). "
+        "match_size=width przydaje się przy liniach pod nagłówkiem (szerokość linii = szerokość nagłówka).\n"
+        "  - Możesz podać wiele pozycji w clones (max 20). Nie klonuj fixedToPage ani locked.\n"
         "NIGDY sam nie podawaj wartości left/top — Python obliczy rzeczywiste współrzędne na "
         "podstawie bieżącej, aktualnej pozycji elementów i sam odrzuci operację, jeśli wyszłaby "
         "poza stronę.\n"
@@ -766,6 +783,7 @@ Zwróć JSON:
   "position_operation": null,
   "structure_operation": null,
   "delete_operation": null,
+  "clone_operation": null,
   "web_sources": []
 }}"""
     raw = _gpt(system, user)
@@ -817,6 +835,25 @@ Zwróć JSON:
     else:
         result["deletion_groups"] = []
         result["deletion_issues"] = []
+
+    clone_directive = raw.get("clone_operation")
+    if isinstance(clone_directive, dict):
+        clone_group = resolve_clone_operation(elements, clone_directive, page_size)
+        if clone_group is None:
+            result["clone_groups"] = []
+            result["clone_issues"] = [{
+                "severity": "warning",
+                "message": (
+                    "Nie można bezpiecznie sklonować wskazanych elementów — brak źródła, "
+                    "blokada, chronione tło albo pozycja wychodzi poza stronę."
+                ),
+            }]
+        else:
+            result["clone_groups"] = [clone_group]
+            result["clone_issues"] = []
+    else:
+        result["clone_groups"] = []
+        result["clone_issues"] = []
 
     return result
 

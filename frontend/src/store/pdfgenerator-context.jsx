@@ -44,6 +44,7 @@ export const PdfContext = createContext({
     editElementValues: () => {},
     editSelectedElementValues: () => {},
     applyStructureOperation: () => {},
+    applyCloneOperation: () => {},
     applyDeleteOperation: () => {},
     fitTextareaToContent: () => {},
     alignElement: () => {},

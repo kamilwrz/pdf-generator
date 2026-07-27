@@ -163,6 +163,49 @@ function StructureGroupCard({ msgId, group, structureStates, onPreview, onClearP
     );
 }
 
+function CloneGroupCard({ msgId, group, cloneStates, onPreview, onClearPreview, onAccept, onReject }) {
+    const key = `${msgId}_${group.id}`;
+    const state = cloneStates[key] || "pending";
+    const addedCount = group.add_elements?.length || 0;
+
+    return (
+        <div className={`${classes.structureCard} ${classes[`structure_${state}`]}`}>
+            <div className={classes.structureCardHeader}>
+                <span>Klonowanie</span>
+                <span>{addedCount} {addedCount === 1 ? "kopia" : "kopii"}</span>
+            </div>
+            <strong>{group.title}</strong>
+            <p>{group.reason}</p>
+            {state === "pending" && (
+                <div className={classes.layoutActions}>
+                    <button className={classes.layoutPreview} onClick={() => onPreview(msgId, group)}>
+                        Podgląd
+                    </button>
+                    <button className={classes.layoutAccept} onClick={() => onAccept(msgId, group)}>
+                        <MdCheckCircle /> Zastosuj
+                    </button>
+                    <button className={classes.layoutReject} onClick={() => onReject(msgId, group)}>
+                        <MdCancel /> Pomiń
+                    </button>
+                </div>
+            )}
+            {state === "preview" && (
+                <div className={classes.layoutActions}>
+                    <span className={classes.previewingLabel}>Podgląd aktywny na płótnie</span>
+                    <button className={classes.layoutAccept} onClick={() => onAccept(msgId, group)}>
+                        <MdCheckCircle /> Zastosuj
+                    </button>
+                    <button className={classes.layoutPreview} onClick={() => onClearPreview(msgId, group.id)}>
+                        Zatrzymaj podgląd
+                    </button>
+                </div>
+            )}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "#5FA777" }}>✓ Zastosowano</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "#9A8E7F" }}>✗ Pominięto</span>}
+        </div>
+    );
+}
+
 function DeletionGroupCard({ msgId, group, deletionStates, onPreview, onClearPreview, onAccept, onReject }) {
     const key = `${msgId}_${group.id}`;
     const state = deletionStates[key] || "pending";
@@ -212,6 +255,7 @@ function ChatMessage({
     layoutStates,
     structureStates,
     deletionStates,
+    cloneStates,
     onAccept,
     onReject,
     onApplyAll,
@@ -227,6 +271,10 @@ function ChatMessage({
     onClearDeletionPreview,
     onAcceptDeletion,
     onRejectDeletion,
+    onPreviewClone,
+    onClearClonePreview,
+    onAcceptClone,
+    onRejectClone,
     A4_Elements,
 }) {
     const isUser = msg.role === "user";
@@ -326,6 +374,26 @@ function ChatMessage({
                     </div>
                 )}
 
+                {msg.clone_groups?.length > 0 && (
+                    <div className={classes.layoutGroups}>
+                        <div className={classes.corrHeader}>
+                            <span>{msg.clone_groups.length} {msg.clone_groups.length === 1 ? "propozycja klonowania" : "propozycje klonowania"}</span>
+                        </div>
+                        {msg.clone_groups.map(group => (
+                            <CloneGroupCard
+                                key={group.id}
+                                msgId={msg.id}
+                                group={group}
+                                cloneStates={cloneStates}
+                                onPreview={onPreviewClone}
+                                onClearPreview={onClearClonePreview}
+                                onAccept={onAcceptClone}
+                                onReject={onRejectClone}
+                            />
+                        ))}
+                    </div>
+                )}
+
                 {msg.deletion_groups?.length > 0 && (
                     <div className={classes.layoutGroups}>
                         <div className={classes.corrHeader}>
@@ -386,6 +454,7 @@ export default function AiAssistant() {
         editElementValues,
         applyLayoutPatches,
         applyStructureOperation,
+        applyCloneOperation,
         applyDeleteOperation,
         setLayoutPreviewPatches,
         setStructurePreviewGroup,
@@ -404,6 +473,7 @@ export default function AiAssistant() {
     const [layoutStates, setLayoutStates] = useState({});
     const [structureStates, setStructureStates] = useState({});
     const [deletionStates, setDeletionStates] = useState({});
+    const [cloneStates, setCloneStates] = useState({});
 
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -484,6 +554,9 @@ export default function AiAssistant() {
     const previewStructureGroup = useCallback((msgId, group) => {
         setLayoutPreviewPatches([]);
         setDeletionPreviewIds([]);
+        setCloneStates((previous) => Object.fromEntries(
+            Object.entries(previous).map(([key, state]) => [key, state === "preview" ? "pending" : state]),
+        ));
         setLayoutStates((previous) => Object.fromEntries(
             Object.entries(previous).map(([key, state]) => [key, state === "preview" ? "pending" : state]),
         ));
@@ -522,6 +595,9 @@ export default function AiAssistant() {
     const previewDeletionGroup = useCallback((msgId, group) => {
         setLayoutPreviewPatches([]);
         setStructurePreviewGroup(null);
+        setCloneStates((previous) => Object.fromEntries(
+            Object.entries(previous).map(([key, state]) => [key, state === "preview" ? "pending" : state]),
+        ));
         setDeletionPreviewIds(group.remove_element_ids || []);
         if (Number.isInteger(group.target_page) && group.target_page > 0) setCurrentPage(group.target_page);
         setDeletionStates((previous) => {
@@ -553,6 +629,49 @@ export default function AiAssistant() {
         if (deletionStates[key] === "preview") setDeletionPreviewIds([]);
         setDeletionStates((previous) => ({ ...previous, [key]: "rejected" }));
     }, [deletionStates, setDeletionPreviewIds]);
+
+    // Clone preview reuses structurePreviewGroup (add_elements only, empty removes).
+    const previewCloneGroup = useCallback((msgId, group) => {
+        setLayoutPreviewPatches([]);
+        setDeletionPreviewIds([]);
+        setStructureStates((previous) => Object.fromEntries(
+            Object.entries(previous).map(([key, state]) => [key, state === "preview" ? "pending" : state]),
+        ));
+        setLayoutStates((previous) => Object.fromEntries(
+            Object.entries(previous).map(([key, state]) => [key, state === "preview" ? "pending" : state]),
+        ));
+        setStructurePreviewGroup(group);
+        const firstPage = group.add_elements?.[0]?.page;
+        if (Number.isInteger(firstPage) && firstPage > 0) setCurrentPage(firstPage);
+        setCloneStates((previous) => {
+            const next = { ...previous };
+            Object.keys(next).forEach((key) => {
+                if (next[key] === "preview") next[key] = "pending";
+            });
+            next[`${msgId}_${group.id}`] = "preview";
+            return next;
+        });
+    }, [setCurrentPage, setDeletionPreviewIds, setLayoutPreviewPatches, setStructurePreviewGroup]);
+
+    const clearClonePreview = useCallback((msgId, groupId) => {
+        setStructurePreviewGroup(null);
+        setCloneStates((previous) => {
+            const key = `${msgId}_${groupId}`;
+            return previous[key] === "preview" ? { ...previous, [key]: "pending" } : previous;
+        });
+    }, [setStructurePreviewGroup]);
+
+    const acceptCloneGroup = useCallback((msgId, group) => {
+        applyCloneOperation(group);
+        setStructurePreviewGroup(null);
+        setCloneStates((previous) => ({ ...previous, [`${msgId}_${group.id}`]: "accepted" }));
+    }, [applyCloneOperation, setStructurePreviewGroup]);
+
+    const rejectCloneGroup = useCallback((msgId, group) => {
+        const key = `${msgId}_${group.id}`;
+        if (cloneStates[key] === "preview") setStructurePreviewGroup(null);
+        setCloneStates((previous) => ({ ...previous, [key]: "rejected" }));
+    }, [cloneStates, setStructurePreviewGroup]);
 
     // ── send message to backend ──────────────────────────────────────────
 
@@ -604,6 +723,8 @@ export default function AiAssistant() {
                 structure_issues: res.structure_issues ?? [],
                 deletion_groups: res.deletion_groups ?? [],
                 deletion_issues: res.deletion_issues ?? [],
+                clone_groups: res.clone_groups ?? [],
+                clone_issues: res.clone_issues ?? [],
                 web_sources: res.web_sources ?? [],
                 actionLabel: actionMeta?.label,
                 actionColor: actionMeta?.color,
@@ -768,6 +889,7 @@ export default function AiAssistant() {
                                     layoutStates={layoutStates}
                                     structureStates={structureStates}
                                     deletionStates={deletionStates}
+                                    cloneStates={cloneStates}
                                     onAccept={acceptCorrection}
                                     onReject={rejectCorrection}
                                     onApplyAll={applyAll}
@@ -783,6 +905,10 @@ export default function AiAssistant() {
                                     onClearDeletionPreview={clearDeletionPreview}
                                     onAcceptDeletion={acceptDeletionGroup}
                                     onRejectDeletion={rejectDeletionGroup}
+                                    onPreviewClone={previewCloneGroup}
+                                    onClearClonePreview={clearClonePreview}
+                                    onAcceptClone={acceptCloneGroup}
+                                    onRejectClone={rejectCloneGroup}
                                     A4_Elements={A4_Elements}
                                 />
                             ))}
