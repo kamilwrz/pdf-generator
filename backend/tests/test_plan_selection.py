@@ -46,6 +46,14 @@ class PlanSelectionTests(unittest.TestCase):
             username="b", email="b@e.pl", password="pw", plan="premium"))
         self.assertEqual(self._plan_of("b"), "premium")
 
+    def test_register_with_premium_falls_back_to_free_when_unpaid_disabled(self):
+        # Patches the name bound in app.crud.user (imported by value at import
+        # time), NOT the env var / app.core.config — see the import-site comment.
+        with patch.object(user_crud, "ALLOW_UNPAID_PLAN_SELECTION", False):
+            user_crud.create_user(self.db, UserCreateRequest(
+                username="d", email="d@e.pl", password="pw", plan="premium"))
+        self.assertEqual(self._plan_of("d"), "free")
+
     def test_set_user_plan_rejects_unknown_slug(self):
         user_crud.create_user(self.db, UserCreateRequest(
             username="c", email="c@e.pl", password="pw"))

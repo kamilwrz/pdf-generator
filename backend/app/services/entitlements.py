@@ -314,13 +314,12 @@ def assert_can_export(db: Session, user: User) -> None:
         )
 
 
-def assert_can_use_ai_assistant(db: Session, user: User) -> None:
+def assert_has_ai_credits(db: Session, user: User) -> None:
+    """Block-at-zero gate shared by every metered AI action.
+
+    Unlimited plans (monthly_ai_credits is None) never block.
+    """
     entitlements = get_entitlements(db, user)
-    if not entitlements["ai_assistant"]:
-        raise PlanLimitError(
-            "plan_feature_ai_assistant",
-            "Asystent AI jest dostępny w planie Standard.",
-        )
     limit = entitlements["limits"]["monthly_ai_credits"]
     if limit is not None and entitlements["usage"]["ai_credits_used"] >= limit:
         raise PlanLimitError(
@@ -330,6 +329,16 @@ def assert_can_use_ai_assistant(db: Session, user: User) -> None:
         )
 
 
+def assert_can_use_ai_assistant(db: Session, user: User) -> None:
+    entitlements = get_entitlements(db, user)
+    if not entitlements["ai_assistant"]:
+        raise PlanLimitError(
+            "plan_feature_ai_assistant",
+            "Asystent AI jest dostępny w planie Standard.",
+        )
+    assert_has_ai_credits(db, user)
+
+
 def assert_can_extract_cv(db: Session, user: User) -> None:
     entitlements = get_entitlements(db, user)
     if not entitlements["extract_cv"]:
@@ -337,6 +346,7 @@ def assert_can_extract_cv(db: Session, user: User) -> None:
             "plan_feature_extract_cv",
             "Ekstrakcja CV z PDF jest dostępna w planie Standard.",
         )
+    assert_has_ai_credits(db, user)
 
 
 def assert_template_allowed(db: Session, user: User, template_id: str) -> None:

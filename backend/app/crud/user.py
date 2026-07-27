@@ -4,6 +4,10 @@ from app.schemas.user_schema import UserCreateRequest
 from datetime import datetime, timezone
 from app.core.security import hash_password, verify_password
 from app.services.entitlements import ensure_free_subscription, set_user_plan
+# Read once at import time (by value), so tests/ops must patch
+# `app.crud.user.ALLOW_UNPAID_PLAN_SELECTION` directly — setting the env var
+# or patching app.core.config after import has no effect on this module.
+from app.core.config import ALLOW_UNPAID_PLAN_SELECTION
 
 def get_user_by_username(db:Session, username: str):
     return db.query(User).filter(User.username == username).first()
@@ -21,6 +25,8 @@ def create_user(db:Session, user: UserCreateRequest):
     db.commit()
     db.refresh(db_user)
     requested = getattr(user, "plan", "free") or "free"
+    if requested != "free" and not ALLOW_UNPAID_PLAN_SELECTION:
+        requested = "free"
     try:
         set_user_plan(db, db_user.id, requested)
     except ValueError:
