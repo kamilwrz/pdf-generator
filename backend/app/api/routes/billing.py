@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+# Read once at import time (by value), so tests/ops must patch
+# `app.api.routes.billing.ALLOW_UNPAID_PLAN_SELECTION` directly — setting the
+# env var after import has no effect on this module.
 from app.core.config import ALLOW_UNPAID_PLAN_SELECTION
 from app.core.security import verify_token
 from app.crud.user import get_user_by_username
