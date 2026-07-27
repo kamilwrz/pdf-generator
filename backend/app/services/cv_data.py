@@ -95,8 +95,28 @@ def _normalize_education(value: Any) -> list[dict[str, str]]:
         city = _text(entry.get("city"))
         degree = _text(entry.get("degree") or entry.get("diploma"))
         period = _text(entry.get("period") or entry.get("date"))
-        description = _text(entry.get("description"))
+        description = _text(
+            entry.get("description")
+            or entry.get("details")
+            or entry.get("notes")
+        )
         legacy_detail = _text(entry.get("detail"))
+
+        # Older extract prompt returned only degree/period/detail. Recover a
+        # dedicated description when school/city are already present or when
+        # detail looks like "school · city · opis".
+        if not description and legacy_detail:
+            composed = " · ".join(part for part in (school, city) if part)
+            if composed and legacy_detail.startswith(composed):
+                remainder = legacy_detail[len(composed):].lstrip(" ·•|-–,;")
+                if remainder:
+                    description = remainder
+            elif school and legacy_detail not in {school, city, degree, period, composed}:
+                description = legacy_detail
+            elif not school and not city:
+                # Pure legacy payload: keep mashed detail for template meta.
+                pass
+
         detail = " · ".join(part for part in (school, city, description) if part) or legacy_detail
         normalized = {
             "school": school,

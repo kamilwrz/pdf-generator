@@ -43,7 +43,7 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 '  "name":"","title":"","email":"","phone":"","location":"",\n'
                 '  "summary":"",\n'
                 '  "experience":[{"title":"","company":"","period":"","bullets":[]}],\n'
-                '  "education":[{"degree":"","period":"","detail":""}],\n'
+                '  "education":[{"school":"","city":"","degree":"","period":"","description":""}],\n'
                 '  "skills":[],\n'
                 '  "language":"Polish",\n'
                 '  "labels":{"summary":"PODSUMOWANIE ZAWODOWE","experience":"DOŚWIADCZENIE ZAWODOWE","education":"WYKSZTAŁCENIE","skills":"UMIEJĘTNOŚCI"},\n'
@@ -51,6 +51,11 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 "}\n\n"
                 "Zasady:\n"
                 "- experience: WSZYSTKIE stanowiska od najnowszego; WSZYSTKIE punkty (bez limitu)\n"
+                "- education: WSZYSTKIE wpisy od najnowszego. Dla każdego wpisu:\n"
+                "  school = uczelnia/szkoła, city = miasto, degree = kierunek/tytuł/dyplom,\n"
+                "  period = lata, description = opis pod dyplomem (specjalizacja, praca dyplomowa,\n"
+                "  osiągnięcia, dodatkowy tekst — NIE wklejaj go do school/degree).\n"
+                "  Jeśli w CV nie ma opisu, description zostaw jako pusty string.\n"
                 "- language: główny język CV (np. 'Polish', 'English', 'German')\n"
                 "- labels: zawsze zwracaj cztery standardowe nagłówki po polsku, WIELKIMI LITERAMI:\n"
                 "  'PODSUMOWANIE ZAWODOWE', 'DOŚWIADCZENIE ZAWODOWE', 'WYKSZTAŁCENIE', 'UMIEJĘTNOŚCI'.\n"

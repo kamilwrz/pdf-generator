@@ -124,6 +124,34 @@ class CvDataNormalizationTests(unittest.TestCase):
         self.assertIn("Specjalizacja: innowacje", content)
         self.assertIn("Magister zarządzania", content)
 
+    def test_legacy_education_detail_recovers_description(self):
+        profile = normalize_cv_data({
+            "name": "Anna Kowalska",
+            "education": [{
+                "school": "Uniwersytet Warszawski",
+                "city": "Warszawa",
+                "degree": "Magister zarządzania",
+                "period": "2017 – 2022",
+                "detail": "Uniwersytet Warszawski · Warszawa · Specjalizacja: innowacje",
+            }],
+        })
+        self.assertEqual(profile["education"][0]["description"], "Specjalizacja: innowacje")
+
+    def test_legacy_extract_shape_keeps_mashed_detail_as_meta(self):
+        profile = normalize_cv_data({
+            "name": "Jan Nowak",
+            "education": [{
+                "degree": "Informatyka",
+                "period": "2018 – 2021",
+                "detail": "Politechnika Warszawska · Warszawa",
+            }],
+        })
+        self.assertEqual(profile["education"][0]["description"], "")
+        self.assertEqual(
+            profile["education"][0]["detail"],
+            "Politechnika Warszawska · Warszawa",
+        )
+
 
 class BioCvDraftCrudTests(unittest.TestCase):
     @patch("app.crud.bio_cv_drafts.get_bio_cv_draft", return_value=None)
