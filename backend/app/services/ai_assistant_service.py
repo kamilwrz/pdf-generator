@@ -740,7 +740,10 @@ def _chat(
         "w tej samej kolejności: nie skracaj, nie tłumacz i nie dodawaj słów.\n"
         "  - Użyj heading dla nazwy sekcji, entry_title dla tytułu wpisu, entry_meta dla dat lub "
         "instytucji, body dla opisu i list dla punktów. NIE podawaj nowych ID, kategorii canvas, "
-        "współrzędnych, stylów, stron ani rozmiarów — Python bezpiecznie wyliczy elementy i reflow.\n"
+        "współrzędnych, stylów, stron ani rozmiarów — Python bezpiecznie wyliczy elementy i reflow. "
+        "Jeśli po przebudowie zabraknie miejsca, Python sam odsunie treść poniżej sekcji o wymaganą "
+        "odległość (także na kolejne strony) — ciasny układ ani kolizja z treścią poniżej NIE są "
+        "powodem odmowy przebudowy.\n"
         "(5) POLECENIE usunięcia elementów (np. „usuń wszystkie elementy ze strony 2 oprócz tła”) "
         "zwraca delete_operation zamiast corrections, position_operation i structure_operation:\n"
         "  {\"type\":\"delete_elements\", \"target_element_ids\":[\"...\" ]}\n"
@@ -823,8 +826,8 @@ Zwróć JSON:
             result["structure_issues"] = [{
                 "severity": "warning",
                 "message": (
-                    "Nie można bezpiecznie przebudować tej sekcji — treść, blokada elementu, "
-                    "kolizja lub granice strony nie spełniają wymagań."
+                    "Nie można bezpiecznie przebudować tej sekcji — treść nie pokrywa się "
+                    "ze źródłem, koliduje z zablokowanym elementem albo nie mieści się na stronie."
                 ),
             }]
         else:

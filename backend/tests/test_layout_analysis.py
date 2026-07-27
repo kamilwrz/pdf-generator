@@ -747,6 +747,48 @@ class SectionRestructureTests(unittest.TestCase):
         self.assertTrue(any(element["page"] == 2 for element in result["add_elements"]))
         self.assertNotIn("background", {patch["element_id"] for patch in result["patches"]})
 
+    def test_restructure_pushes_colliding_following_content_down(self):
+        # Starts above the source's bottom edge, so the flow-delta reflow skips
+        # it — yet the taller rebuilt section grows into it. The resolver must
+        # push it down instead of refusing.
+        overlapping = block("overlap", 40, 170, width=260, height=18, category="textarea")
+        overlapping["content"] = "DOŚWIADCZENIE"
+        result = layout_analysis.resolve_restructure_section(
+            [self._source(), overlapping],
+            self._directive(),
+            {"width": 595, "height": 842},
+        )
+
+        self.assertIsNotNone(result)
+        pushed = next(patch for patch in result["patches"] if patch["element_id"] == "overlap")
+        self.assertGreater(pushed["top"], overlapping["top"])
+        # Pushed clear of every new element it could collide with.
+        for added in result["add_elements"]:
+            if added["page"] == pushed["page"]:
+                self.assertLessEqual(added["top"] + added["height"], pushed["top"] + layout_analysis.EPSILON)
+
+    def test_restructure_still_rejects_collision_with_locked_content(self):
+        pinned = block("pinned", 40, 170, width=260, height=18, locked=True)
+        self.assertIsNone(layout_analysis.resolve_restructure_section(
+            [self._source(), pinned], self._directive(), {"width": 595, "height": 842}
+        ))
+
+    def test_restructure_ignores_preexisting_overlaps_it_did_not_create(self):
+        # Two already-overlapping items in another column are the user's own
+        # layout; they must not block an unrelated section rebuild.
+        first = block("first", 400, 100, width=120, height=30, category="textarea")
+        second = block("second", 410, 110, width=120, height=30, category="textarea")
+        result = layout_analysis.resolve_restructure_section(
+            [self._source(), first, second],
+            self._directive(),
+            {"width": 595, "height": 842},
+        )
+
+        self.assertIsNotNone(result)
+        patched_ids = {patch["element_id"] for patch in result["patches"]}
+        self.assertNotIn("first", patched_ids)
+        self.assertNotIn("second", patched_ids)
+
     def test_delete_operation_accepts_explicit_content_and_rejects_protected_elements(self):
         content = block("content", 20, 60, width=180, height=30, page=2)
         fixed_background = block("background", 0, 0, width=100, height=100, page=2, category="image")

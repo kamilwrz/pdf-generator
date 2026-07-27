@@ -565,6 +565,12 @@ def _distribution_end_y(
 _STRUCTURE_ROLES = {"heading", "entry_title", "entry_meta", "body", "list"}
 _STRUCTURE_MAX_BLOCKS = 12
 _FLOWABLE_CATEGORIES = DIRECTED_POSITION_CATEGORIES
+# Vertical gap inserted when a rebuilt section must push colliding content
+# down, matching the structure's own inter-block rhythm.
+_STRUCTURE_FLOW_GAP = 6.0
+# Every push strictly lowers one element, so this cap only guards degenerate
+# canvases; ordinary cascades settle within a handful of passes.
+_STRUCTURE_COLLISION_PASSES = 48
 _NEARBY_DECORATION_CATEGORIES = {"line", "rectangle", "circle", "ellipse"}
 _DECORATION_LANE_TOLERANCE = 32.0
 
@@ -1642,6 +1648,68 @@ def resolve_restructure_section(
         "fixedToPage": False,
     } for addition in additions)
 
+    # Collisions the rebuild creates are resolved by pushing the colliding
+    # content further down (cascading, page-aware) instead of refusing. Only
+    # locked/fixed conflicts and content that cannot fit a page still refuse.
+    addition_ids = {addition["element_id"] for addition in additions}
+    moved_ids = {patch["element_id"] for patch in patches}
+
+    def _absolute_top(item: dict[str, Any]) -> float:
+        return (item["page"] - 1) * page_height + item["top"]
+
+    def _blocking_pair() -> tuple[dict[str, Any], dict[str, Any]] | None:
+        ordered = sorted(
+            proposed,
+            key=lambda it: (it["page"], it["top"], it["left"], it["element_id"]),
+        )
+        for index, first in enumerate(ordered):
+            if first.get("fixedToPage") or first["category"] in DECORATIVE_CATEGORIES:
+                continue
+            for second in ordered[index + 1:]:
+                if (
+                    second.get("fixedToPage")
+                    or second["category"] in DECORATIVE_CATEGORIES
+                    or first["page"] != second["page"]
+                    or not _rects_overlap(first, second)
+                ):
+                    continue
+                if not {first["element_id"], second["element_id"]} & (addition_ids | moved_ids):
+                    # A pre-existing overlap the rebuild did not create;
+                    # the user's own layout is not ours to police here.
+                    continue
+                return first, second
+        return None
+
+    def _movable(item: dict[str, Any]) -> bool:
+        return (
+            item["element_id"] not in addition_ids
+            and not item.get("locked")
+            and not item.get("fixedToPage")
+            and item["category"] in _FLOWABLE_CATEGORIES
+        )
+
+    for _ in range(_STRUCTURE_COLLISION_PASSES):
+        pair = _blocking_pair()
+        if pair is None:
+            break
+        upper, lower = sorted(pair, key=_absolute_top)
+        # New structure elements stay canonical; push the existing element,
+        # preferring the lower one so document order is preserved.
+        mover = lower if _movable(lower) else upper if _movable(upper) else None
+        if mover is None:
+            return None
+        other = upper if mover is lower else lower
+        page, top, _ = _structure_page_position(
+            _absolute_top(other) + other["height"] + _STRUCTURE_FLOW_GAP,
+            mover["height"],
+            page_height,
+        )
+        mover["top"] = top
+        mover["page"] = page
+        moved_ids.add(mover["element_id"])
+    if _blocking_pair() is not None:
+        return None
+
     for item in proposed:
         if (
             item["left"] < -EPSILON
@@ -1650,18 +1718,21 @@ def resolve_restructure_section(
             or item["top"] + item["height"] > page_height + EPSILON
         ):
             return None
-    for index, first in enumerate(proposed):
-        if first.get("fixedToPage") or first["category"] in DECORATIVE_CATEGORIES:
+
+    # Push-downs may have moved more items (or moved them further), so derive
+    # the final patch list from the proposal instead of the initial reflow.
+    patches = []
+    for item in proposed:
+        if item["element_id"] in addition_ids:
             continue
-        for second in proposed[index + 1:]:
-            if (
-                second.get("fixedToPage")
-                or second["category"] in DECORATIVE_CATEGORIES
-                or first["page"] != second["page"]
-                or not _rects_overlap(first, second)
-            ):
-                continue
-            return None
+        original = bounds_by_id[item["element_id"]]
+        if item["page"] != original["page"] or abs(item["top"] - original["top"]) > EPSILON:
+            patches.append({
+                "element_id": item["element_id"],
+                "left": round(original["left"], 2),
+                "top": round(item["top"], 2),
+                "page": item["page"],
+            })
 
     max_page = max(
         [source_page, *(addition["page"] for addition in additions), *(patch["page"] for patch in patches)]
