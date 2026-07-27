@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from app.api.routes import auth, pdf, images, ai, events
+from app.api.routes import auth, pdf, images, ai, events, billing
 from app.api.routes import ai_assistant
 from app.core.config import origins, IMAGES_UPLOAD_DIR, PDF_UPLOAD_DIR, TEMPLATE_ASSETS_DIR
 from app.models.database import SessionLocal
@@ -73,6 +73,7 @@ app.include_router(images.router)
 app.include_router(ai.router)
 app.include_router(ai_assistant.router)
 app.include_router(events.router)
+app.include_router(billing.router)
 
 if DIST_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(DIST_DIR / "assets")), name="frontend_assets")

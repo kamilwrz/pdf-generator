@@ -25,3 +25,8 @@ USE_S3 = bool(S3_BUCKET)
 
 OPENAI_API_KEY = os.getenv("API_GPT_KEY", "")
 
+# Pre-Stripe: allow choosing a paid plan without payment. Flip to False (or gate
+# standard/premium through Stripe checkout) when billing lands — this is the one
+# place that lets a user self-activate Standard/Premium for free.
+ALLOW_UNPAID_PLAN_SELECTION = os.getenv("ALLOW_UNPAID_PLAN_SELECTION", "true").lower() == "true"
+

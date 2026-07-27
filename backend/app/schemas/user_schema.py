@@ -5,6 +5,7 @@ class UserCreateRequest(BaseModel):
     username: str
     password: str
     email: str
+    plan: str = "free"
 
 
 

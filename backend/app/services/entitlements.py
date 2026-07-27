@@ -188,6 +188,23 @@ def get_or_create_subscription(db: Session, user_id: int) -> UserSubscription:
     return ensure_free_subscription(db, user_id)
 
 
+SELECTABLE_PLANS: frozenset[str] = frozenset({"free", "standard", "premium"})
+
+
+def set_user_plan(db: Session, user_id: int, plan_slug: str) -> UserSubscription:
+    """Activate `plan_slug` for a user (pre-Stripe, no payment). Idempotent."""
+    if plan_slug not in SELECTABLE_PLANS:
+        raise ValueError(f"Nieznany plan: {plan_slug}")
+    sub = get_or_create_subscription(db, user_id)
+    sub.plan_slug = plan_slug
+    sub.status = "active"
+    sub.updated_at = _utcnow()
+    db.add(sub)
+    db.commit()
+    db.refresh(sub)
+    return sub
+
+
 def get_plan(db: Session, plan_slug: str) -> Plan:
     plan = db.query(Plan).filter(Plan.slug == plan_slug, Plan.is_active.is_(True)).first()
     if plan is None:
