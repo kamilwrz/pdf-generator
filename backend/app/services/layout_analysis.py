@@ -1215,7 +1215,9 @@ def resolve_move_to_sidebar(
         return None
 
     ordered_targets = sorted(targets, key=lambda item: (item["top"], item["left"], item["element_id"]))
-    cursor = reference["top"] + reference["height"] + gap
+    # Stack the moved sections directly under the reference. Page-aware, so an
+    # unusually tall stack flows onto the next page instead of refusing.
+    absolute_cursor = (target_page - 1) * page_height + reference["top"] + reference["height"] + gap
     patches: list[dict[str, Any]] = []
     for index, item in enumerate(ordered_targets):
         height = (
@@ -1223,31 +1225,38 @@ def resolve_move_to_sidebar(
             if item["category"] == "textarea"
             else item["height"]
         )
+        page, top, resolved_absolute = _structure_page_position(absolute_cursor, height, page_height)
         patches.append({
             "element_id": item["element_id"],
             "left": round(reference["left"], 2),
-            "top": round(cursor, 2),
+            "top": round(top, 2),
             "width": round(sidebar_width, 2),
             "height": round(height, 2),
-            "page": target_page,
+            "page": page,
         })
-        cursor += height + (6 if index < len(ordered_targets) - 1 else 0)
+        absolute_cursor = resolved_absolute + height + (6 if index < len(ordered_targets) - 1 else 0)
 
+    # Existing content the incoming stack would overlap is pushed further down
+    # (cascading, onto later pages) so the move makes room instead of refusing.
+    # Only locked or page-fixed content in the way still blocks the operation.
+    moved_ids = set(target_ids)
     proposed = _apply_patches(items, patches)
-    proposed_by_id = {item["element_id"]: item for item in proposed}
-    for moved_id in target_ids:
-        moved = proposed_by_id[moved_id]
-        for other in proposed:
-            if (
-                other["element_id"] == moved_id
-                or other["element_id"] in target_ids
-                or other["page"] != moved["page"]
-                or other.get("fixedToPage")
-                or other["category"] in DECORATIVE_CATEGORIES
-            ):
-                continue
-            if _rects_overlap(moved, other):
-                return None
+    if not _reflow_collisions_downward(proposed, moved_ids, page_height):
+        return None
+
+    original_by_id = {item["element_id"]: item for item in items}
+    for item in proposed:
+        element_id = item["element_id"]
+        if element_id in moved_ids:
+            continue
+        original = original_by_id[element_id]
+        if item["page"] != original["page"] or abs(item["top"] - original["top"]) > EPSILON:
+            patches.append({
+                "element_id": element_id,
+                "left": round(original["left"], 2),
+                "top": round(item["top"], 2),
+                "page": item["page"],
+            })
 
     group = _group(
         group_id="directed-move-to-sidebar",
@@ -1459,6 +1468,81 @@ def _belongs_to_structure_lane(source: dict[str, Any], item: dict[str, Any]) -> 
     return horizontal_gap <= _DECORATION_LANE_TOLERANCE
 
 
+def _reflow_collisions_downward(
+    proposed: list[dict[str, Any]],
+    anchor_ids: set[str],
+    page_height: float,
+    *,
+    seed_moved_ids: set[str] | frozenset[str] = frozenset(),
+) -> bool:
+    """Resolve operation-caused overlaps by pushing movable elements downward.
+
+    ``anchor_ids`` are the elements the operation just placed — they never move;
+    any other element may be pushed further down (cascading, onto later pages)
+    to clear a collision with them. Only overlaps that involve an anchor or an
+    already-relocated element count as operation-caused; a pre-existing overlap
+    elsewhere on the canvas is the user's own layout and is left untouched.
+    Mutates the ``top``/``page`` of pushed items in place. Returns True once no
+    operation-caused overlap remains, or False when clearing one would require
+    moving a locked, page-fixed, or anchor element.
+    """
+    moved_ids = set(seed_moved_ids)
+
+    def _abs_top(item: dict[str, Any]) -> float:
+        return (item["page"] - 1) * page_height + item["top"]
+
+    def _blocking_pair() -> tuple[dict[str, Any], dict[str, Any]] | None:
+        ordered = sorted(
+            proposed,
+            key=lambda it: (it["page"], it["top"], it["left"], it["element_id"]),
+        )
+        for index, first in enumerate(ordered):
+            if first.get("fixedToPage") or first["category"] in DECORATIVE_CATEGORIES:
+                continue
+            for second in ordered[index + 1:]:
+                if (
+                    second.get("fixedToPage")
+                    or second["category"] in DECORATIVE_CATEGORIES
+                    or first["page"] != second["page"]
+                    or not _rects_overlap(first, second)
+                ):
+                    continue
+                if not {first["element_id"], second["element_id"]} & (anchor_ids | moved_ids):
+                    # A pre-existing overlap the operation did not create; the
+                    # user's own layout is not ours to police here.
+                    continue
+                return first, second
+        return None
+
+    def _movable(item: dict[str, Any]) -> bool:
+        return (
+            item["element_id"] not in anchor_ids
+            and not item.get("locked")
+            and not item.get("fixedToPage")
+            and item["category"] in _FLOWABLE_CATEGORIES
+        )
+
+    for _ in range(_STRUCTURE_COLLISION_PASSES):
+        pair = _blocking_pair()
+        if pair is None:
+            return True
+        upper, lower = sorted(pair, key=_abs_top)
+        # Prefer pushing the lower element so document order is preserved.
+        mover = lower if _movable(lower) else upper if _movable(upper) else None
+        if mover is None:
+            return False
+        other = upper if mover is lower else lower
+        page, top, _ = _structure_page_position(
+            _abs_top(other) + other["height"] + _STRUCTURE_FLOW_GAP,
+            mover["height"],
+            page_height,
+        )
+        mover["top"] = top
+        mover["page"] = page
+        moved_ids.add(mover["element_id"])
+    return _blocking_pair() is None
+
+
 def resolve_restructure_section(
     elements: list[dict[str, Any]],
     directive: dict[str, Any],
@@ -1651,63 +1735,15 @@ def resolve_restructure_section(
     # Collisions the rebuild creates are resolved by pushing the colliding
     # content further down (cascading, page-aware) instead of refusing. Only
     # locked/fixed conflicts and content that cannot fit a page still refuse.
+    # The new structure elements are the anchors that stay put; the reflowed
+    # patches are seeded as already-moved so their collisions count too.
     addition_ids = {addition["element_id"] for addition in additions}
-    moved_ids = {patch["element_id"] for patch in patches}
-
-    def _absolute_top(item: dict[str, Any]) -> float:
-        return (item["page"] - 1) * page_height + item["top"]
-
-    def _blocking_pair() -> tuple[dict[str, Any], dict[str, Any]] | None:
-        ordered = sorted(
-            proposed,
-            key=lambda it: (it["page"], it["top"], it["left"], it["element_id"]),
-        )
-        for index, first in enumerate(ordered):
-            if first.get("fixedToPage") or first["category"] in DECORATIVE_CATEGORIES:
-                continue
-            for second in ordered[index + 1:]:
-                if (
-                    second.get("fixedToPage")
-                    or second["category"] in DECORATIVE_CATEGORIES
-                    or first["page"] != second["page"]
-                    or not _rects_overlap(first, second)
-                ):
-                    continue
-                if not {first["element_id"], second["element_id"]} & (addition_ids | moved_ids):
-                    # A pre-existing overlap the rebuild did not create;
-                    # the user's own layout is not ours to police here.
-                    continue
-                return first, second
-        return None
-
-    def _movable(item: dict[str, Any]) -> bool:
-        return (
-            item["element_id"] not in addition_ids
-            and not item.get("locked")
-            and not item.get("fixedToPage")
-            and item["category"] in _FLOWABLE_CATEGORIES
-        )
-
-    for _ in range(_STRUCTURE_COLLISION_PASSES):
-        pair = _blocking_pair()
-        if pair is None:
-            break
-        upper, lower = sorted(pair, key=_absolute_top)
-        # New structure elements stay canonical; push the existing element,
-        # preferring the lower one so document order is preserved.
-        mover = lower if _movable(lower) else upper if _movable(upper) else None
-        if mover is None:
-            return None
-        other = upper if mover is lower else lower
-        page, top, _ = _structure_page_position(
-            _absolute_top(other) + other["height"] + _STRUCTURE_FLOW_GAP,
-            mover["height"],
-            page_height,
-        )
-        mover["top"] = top
-        mover["page"] = page
-        moved_ids.add(mover["element_id"])
-    if _blocking_pair() is not None:
+    if not _reflow_collisions_downward(
+        proposed,
+        addition_ids,
+        page_height,
+        seed_moved_ids={patch["element_id"] for patch in patches},
+    ):
         return None
 
     for item in proposed:
@@ -2092,8 +2128,8 @@ def resolve_directed_operation(
             )
             if group is None:
                 return _issue(
-                    "Nie można bezpiecznie umieścić tej sekcji pod wskazanym elementem sidebara — "
-                    "brakuje miejsca lub kolidowałaby z istniejącą treścią."
+                    "Nie można bezpiecznie umieścić tej sekcji w sidebarze — w miejscu docelowym "
+                    "jest zablokowany lub przypięty do strony element, którego nie wolno przesunąć."
                 )
             return {"layout_groups": [group], "layout_issues": []}
 

@@ -442,6 +442,88 @@ class DirectedOperationTests(unittest.TestCase):
             },
         ])
 
+    def test_move_to_sidebar_pushes_existing_sidebar_content_down_to_make_room(self):
+        # Reference sits in the sidebar with an existing item right below it,
+        # exactly where the incoming stack lands. The move must push that item
+        # down instead of refusing.
+        reference = block("areas", 24, 456, width=136, height=58, page=1, category="textarea")
+        reference["content"] = "Strategia\nBadania"
+        contact = block("contact", 24, 520, width=136, height=40, page=1, category="textarea")
+        contact["content"] = "email@example.com\n+48 600 000 000"
+        skills_heading = block("skills-heading", 220, 120, width=326, height=11, page=1, category="text")
+        skills_heading.update({"content": "UMIEJĘTNOŚCI", "fontSize": 8.4})
+        skills_body = block("skills-body", 220, 140, width=326, height=18, page=1, category="textarea")
+        skills_body.update({"content": "Python\nSQL\nZarządzanie", "fontSize": 9, "lineHeight": 12})
+
+        result = layout_analysis.resolve_directed_operation(
+            [reference, contact, skills_heading, skills_body],
+            {
+                "type": "move_to_sidebar",
+                "target_element_ids": ["skills-heading", "skills-body"],
+                "target_page": 1,
+                "reference_element_id": "areas",
+                "gap": 16,
+            },
+            {"width": 595, "height": 842},
+        )
+
+        self.assertEqual(result["layout_issues"], [])
+        patches = {p["element_id"]: p for p in result["layout_groups"][0]["patches"]}
+        # The pre-existing sidebar item was pushed down, not left overlapping.
+        self.assertIn("contact", patches)
+        self.assertGreater(patches["contact"]["top"], 520)
+        stack_bottom = max(
+            patches["skills-heading"]["top"] + patches["skills-heading"]["height"],
+            patches["skills-body"]["top"] + patches["skills-body"]["height"],
+        )
+        self.assertGreaterEqual(patches["contact"]["top"] + layout_analysis.EPSILON, stack_bottom)
+
+    def test_move_to_sidebar_refuses_when_a_locked_item_blocks_the_stack(self):
+        reference = block("areas", 24, 456, width=136, height=58, page=1, category="textarea")
+        # A locked item straddling the landing spot the short stack can't flow past.
+        locked_below = block("pinned", 24, 520, width=136, height=60, page=1, locked=True)
+        skills = block("skills", 220, 120, width=326, height=14, page=1, category="text")
+        skills["content"] = "UMIEJĘTNOŚCI"
+
+        result = layout_analysis.resolve_directed_operation(
+            [reference, locked_below, skills],
+            {
+                "type": "move_to_sidebar",
+                "target_element_ids": ["skills"],
+                "target_page": 1,
+                "reference_element_id": "areas",
+                "gap": 16,
+            },
+            {"width": 595, "height": 842},
+        )
+
+        self.assertEqual(result["layout_groups"], [])
+        self.assertEqual(len(result["layout_issues"]), 1)
+
+    def test_move_to_sidebar_ignores_unrelated_preexisting_overlap(self):
+        reference = block("areas", 24, 456, width=136, height=58, page=1, category="textarea")
+        overlap_a = block("overlap-a", 300, 100, width=120, height=40, page=1, category="textarea")
+        overlap_b = block("overlap-b", 310, 110, width=120, height=40, page=1, category="textarea")
+        skills = block("skills", 220, 640, width=326, height=14, page=1, category="text")
+        skills["content"] = "UMIEJĘTNOŚCI"
+
+        result = layout_analysis.resolve_directed_operation(
+            [reference, overlap_a, overlap_b, skills],
+            {
+                "type": "move_to_sidebar",
+                "target_element_ids": ["skills"],
+                "target_page": 1,
+                "reference_element_id": "areas",
+                "gap": 16,
+            },
+            {"width": 595, "height": 842},
+        )
+
+        self.assertEqual(result["layout_issues"], [])
+        patched = {p["element_id"] for p in result["layout_groups"][0]["patches"]}
+        self.assertNotIn("overlap-a", patched)
+        self.assertNotIn("overlap-b", patched)
+
     def test_move_to_page_rejects_when_destination_has_no_free_slot(self):
         result = layout_analysis.resolve_directed_operation(
             [
