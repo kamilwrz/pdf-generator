@@ -636,6 +636,27 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in elements
         ))
 
+    def test_signal_keeps_education_heading_with_body_on_page_break(self):
+        cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 2,
+        }
+        elements = generate_resume("signal", cv)
+        heading = next(
+            element
+            for element in elements
+            if element["category"] == "text" and "WYKSZTAŁCENIE" in str(element.get("content", ""))
+        )
+        body = next(
+            element
+            for element in elements
+            if element["category"] == "textarea"
+            and "Magister" in str(element.get("content", ""))
+        )
+        self.assertEqual(heading["page"], body["page"])
+        self.assertLess(heading["top"], body["top"])
+        self.assertGreaterEqual(heading["top"], 56)
+
     def test_nimbus_flow_keeps_margins_and_record_rhythm(self):
         from app.services.cv_generator import SPACE_RECORD, SPACE_STACK
 

@@ -4,6 +4,11 @@ const DECORATION_LANE_TOLERANCE = 32;
 // Matches backend SPACE_RECORD: used when reclaiming a page-break gap so later
 // blocks pack into freed space instead of keeping the empty page-bottom hole.
 const DEFAULT_PACK_GAP = 14;
+// Section labels / markers / rules are short. Keep them with following body
+// so a page break never leaves "WYKSZTAŁCENIE" stranded above the footer.
+const CHROME_MAX_HEIGHT = 40;
+const KEEP_WITH_NEXT_PX = 64;
+const CHROME_CLUSTER_Y_SPAN = 48;
 
 function number(value, fallback = 0) {
   const parsed = Number(value);
@@ -36,6 +41,12 @@ function elementHeight(element) {
       element.category === "text" ? number(element.fontSize, 12) * 1.35 : 0,
     ),
   );
+}
+
+function isChromeLike(element) {
+  if (element.category === "text") return true;
+  if (!NEARBY_DECORATION_CATEGORIES.has(element.category)) return false;
+  return elementHeight(element) <= CHROME_MAX_HEIGHT;
 }
 
 function overlapsHorizontally(first, second) {
@@ -82,6 +93,52 @@ function toPagePosition(absolute, height, pageHeight, pageTop, bottomMargin) {
 function packGapAfterPageBreak(current, pageTop) {
   const continuationInset = Math.max(0, number(current.top) - pageTop);
   return Math.min(DEFAULT_PACK_GAP, continuationInset || DEFAULT_PACK_GAP);
+}
+
+/**
+ * If `current` is section chrome and the following body cannot share this page,
+ * bump the chrome to the next page so headings are never orphaned above the footer.
+ */
+function avoidOrphanChrome(
+  lane,
+  index,
+  current,
+  top,
+  page,
+  pageHeight,
+  pageTop,
+  bottomMargin,
+) {
+  if (!isChromeLike(current)) return { page, top };
+
+  const currentAbs = absoluteTop(current, pageHeight);
+  let contentIndex = -1;
+  for (let i = index + 1; i < lane.length; i += 1) {
+    const candidate = lane[i];
+    if (!isChromeLike(candidate)) {
+      contentIndex = i;
+      break;
+    }
+    // Stop if decorations belong to a later section far below.
+    if (absoluteTop(candidate, pageHeight) - currentAbs > CHROME_CLUSTER_Y_SPAN) {
+      break;
+    }
+  }
+  if (contentIndex < 0) return { page, top };
+
+  const content = lane[contentIndex];
+  const contentHeight = elementHeight(content);
+  const authoredSpan = Math.max(
+    0,
+    absoluteTop(content, pageHeight) - currentAbs,
+  );
+  const keep = Math.min(Math.max(contentHeight, 1), KEEP_WITH_NEXT_PX);
+  const contentBottom = pageHeight - bottomMargin;
+  if (top + authoredSpan + keep <= contentBottom) {
+    return { page, top };
+  }
+
+  return { page: page + 1, top: pageTop };
 }
 
 /**
@@ -180,13 +237,23 @@ export function reflowTextareaHeight(
       );
     }
 
-    const { page, top } = toPagePosition(
+    let { page, top } = toPagePosition(
       nextAbsolute,
       height,
       safePageHeight,
       pageTop,
       bottomMargin,
     );
+    ({ page, top } = avoidOrphanChrome(
+      lane,
+      index,
+      current,
+      top,
+      page,
+      safePageHeight,
+      pageTop,
+      bottomMargin,
+    ));
     const nextElement = { ...current, page, top };
     placed.set(current.element_id, nextElement);
 

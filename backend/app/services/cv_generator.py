@@ -32,6 +32,11 @@ SPACE_SECTION = 18    # after a finished section before the next heading
 SPACE_AFTER_RULE = 12 # section heading rule → first content block
 
 
+def section_chrome_height(label_fs: float) -> float:
+    """Y advance for a typical section label + after-rule gap."""
+    return float(label_fs) * 1.35 + SPACE_AFTER_RULE
+
+
 # ── low-level element constructors ──────────────────────────────────────────
 
 def _text(content, fontSize, fontFamily, color, left, top, *,
@@ -94,6 +99,13 @@ class Builder:
         if self.y + h > CONTENT_BOTTOM:
             self.pg += 1
             self.y = float(PAGE_TOP)
+
+    def need_section(self, chrome_h: float, first_body_h: float = 0.0):
+        """
+        Reserve section chrome together with the first body block so a heading
+        is never stranded alone above the page footer.
+        """
+        self.need(float(chrome_h) + max(float(first_body_h), 0.0))
 
     def text(self, content, fs, fam, col, left, *, bold=False, italic=False) -> float:
         if not content:
@@ -213,7 +225,7 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
         body_height = b.measure_block(content, W, fs, lh, font_b, bulletList=True)
         # Reserve heading chrome + body together so custom sections do not leave
         # a title stranded above the page footer.
-        b.need(36 + body_height + SPACE_SECTION)
+        b.need_section(section_chrome_height(8.6), body_height + SPACE_SECTION)
         section_fn(title)
         b.block(content, L, W, fs, lh, C.get("body", "#2B2B2B"), font_b, bulletList=True)
         b.gap(SPACE_SECTION)
@@ -540,7 +552,7 @@ def _gen_finance(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, C, L, W, "Inter")
 
     if cv.get("education"):
-        b.need(50); section(lbl["education"])
+        b.need_section(section_chrome_height(12), 72); section(lbl["education"])
         for edu in cv["education"]:
             _place_education_record(
                 b, edu, L, W,
@@ -632,7 +644,10 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
 
     class BankingBuilder(Builder):
         def need(self, h: float):
-            if self.y + h > 768:
+            # Match canvas reflow (pageTop 66 / bottomMargin 96 → 746), not a
+            # deeper footer — otherwise headings land in the dead zone and
+            # orphan above content that reflow pushes to the next page.
+            if self.y + h > CONTENT_BOTTOM:
                 self.pg += 1
                 self.y = float(C["continuation"])
 
@@ -734,7 +749,7 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
         ]
         static[5]["letterSpacing"] = 1.35
 
-    SECTION_CHROME = 38
+    SECTION_CHROME = section_chrome_height(8.6)
     b = BankingBuilder(C["start"])
 
     def experience_height(job: dict) -> float:
@@ -768,14 +783,14 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10, 14.7, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.7, SANS) + SPACE_SECTION)
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10, 14.7, C["body"], SANS)
         close_section()
 
     if cv.get("experience"):
         jobs = cv["experience"]
-        b.need(SECTION_CHROME + experience_height(jobs[0]))
+        b.need_section(SECTION_CHROME, experience_height(jobs[0]))
         section(lbl["experience"])
         for index, job in enumerate(jobs):
             if index > 0:
@@ -794,7 +809,7 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
 
     if cv.get("education"):
         education_entries = cv["education"]
-        b.need(SECTION_CHROME + education_height(education_entries[0]))
+        b.need_section(SECTION_CHROME, education_height(education_entries[0]))
         section(lbl["education"])
         for index, edu in enumerate(education_entries):
             if index > 0:
@@ -810,7 +825,7 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need(SECTION_CHROME + b.measure_block("  ·  ".join(cv["skills"]), W, 9.2, 13.1, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.2, 13.1, SANS) + SPACE_SECTION)
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.2, 13.1, C["body"], SANS)
         close_section()
@@ -870,7 +885,7 @@ def _gen_ledger(cv: dict) -> list[dict]:
     ]
     static[6]["letterSpacing"] = 1.05
 
-    SECTION_CHROME = 36
+    SECTION_CHROME = section_chrome_height(8.4)
     b = Builder(180)
 
     def experience_height(job: dict) -> float:
@@ -903,14 +918,14 @@ def _gen_ledger(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10.2, 15, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.2, 15, SANS) + SPACE_SECTION)
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10.2, 15, INK, SANS)
         close_section()
 
     if cv.get("experience"):
         jobs = cv["experience"]
-        b.need(SECTION_CHROME + experience_height(jobs[0]))
+        b.need_section(SECTION_CHROME, experience_height(jobs[0]))
         section(lbl["experience"])
         for index, job in enumerate(jobs):
             if index > 0:
@@ -929,7 +944,7 @@ def _gen_ledger(cv: dict) -> list[dict]:
 
     if cv.get("education"):
         education_entries = cv["education"]
-        b.need(SECTION_CHROME + education_height(education_entries[0]))
+        b.need_section(SECTION_CHROME, education_height(education_entries[0]))
         section(lbl["education"])
         for index, edu in enumerate(education_entries):
             if index > 0:
@@ -945,7 +960,7 @@ def _gen_ledger(cv: dict) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need(SECTION_CHROME + b.measure_block("  ·  ".join(cv["skills"]), W, 9.8, 14, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.8, 14, SANS) + SPACE_SECTION)
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.8, 14, INK, SANS)
         close_section()
@@ -960,7 +975,7 @@ def _gen_nimbus(cv: dict) -> list[dict]:
     POWDER, SKY, CLOUD, SLATE = "#B9D2E5", "#DFEBF4", "#E9EEF1", "#72818C"
     L, W, SANS, SERIF = 80, 462, "Inter", "Times-Roman"
     CONTINUATION = 66
-    SECTION_CHROME = 36
+    SECTION_CHROME = section_chrome_height(8.4)
     lbl = _labels(cv)
 
     class NimbusBuilder(Builder):
@@ -1037,14 +1052,14 @@ def _gen_nimbus(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10.1, 15, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.1, 15, SANS) + SPACE_SECTION)
         section(lbl["summary"], decorated=False)
         b.block(cv["summary"], L, W, 10.1, 15, INK, SANS)
         close_section()
 
     if cv.get("experience"):
         jobs = cv["experience"]
-        b.need(SECTION_CHROME + experience_height(jobs[0]))
+        b.need_section(SECTION_CHROME, experience_height(jobs[0]))
         section(lbl["experience"])
         for index, job in enumerate(jobs):
             if index > 0:
@@ -1063,7 +1078,7 @@ def _gen_nimbus(cv: dict) -> list[dict]:
 
     if cv.get("education"):
         education_entries = cv["education"]
-        b.need(SECTION_CHROME + education_height(education_entries[0]))
+        b.need_section(SECTION_CHROME, education_height(education_entries[0]))
         section(lbl["education"])
         for index, edu in enumerate(education_entries):
             if index > 0:
@@ -1079,7 +1094,7 @@ def _gen_nimbus(cv: dict) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need(SECTION_CHROME + b.measure_block("  ·  ".join(cv["skills"]), W, 9.4, 13.5, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.4, 13.5, SANS) + SPACE_SECTION)
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.4, 13.5, INK, SANS)
         close_section()
@@ -1113,7 +1128,7 @@ def _gen_cinder(cv: dict) -> list[dict]:
          "backgroundColor": RED, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
     ]
     header[3]["letterSpacing"] = 1.65
-    SECTION_CHROME = 40
+    SECTION_CHROME = section_chrome_height(8.7)
     b = Builder(205)
 
     def experience_height(job: dict) -> float:
@@ -1147,14 +1162,14 @@ def _gen_cinder(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10.2, 15, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.2, 15, SANS) + SPACE_SECTION)
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10.2, 15, CHARCOAL, SANS)
         close_section()
 
     if cv.get("experience"):
         jobs = cv["experience"]
-        b.need(SECTION_CHROME + experience_height(jobs[0]))
+        b.need_section(SECTION_CHROME, experience_height(jobs[0]))
         section(lbl["experience"])
         for index, job in enumerate(jobs):
             if index > 0:
@@ -1173,7 +1188,7 @@ def _gen_cinder(cv: dict) -> list[dict]:
 
     if cv.get("education"):
         education_entries = cv["education"]
-        b.need(SECTION_CHROME + education_height(education_entries[0]))
+        b.need_section(SECTION_CHROME, education_height(education_entries[0]))
         section(lbl["education"])
         for index, edu in enumerate(education_entries):
             if index > 0:
@@ -1189,7 +1204,7 @@ def _gen_cinder(cv: dict) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need(SECTION_CHROME + b.measure_block("  ·  ".join(cv["skills"]), W, 9.4, 13.5, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.4, 13.5, SANS) + SPACE_SECTION)
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.4, 13.5, CHARCOAL, SANS)
         close_section()
@@ -1220,7 +1235,7 @@ def _gen_rift(cv: dict) -> list[dict]:
     class RiftBuilder(Builder):
         """Keep flowing copy inside the background's central quiet field."""
         def need(self, h: float):
-            if self.y + h > 745:
+            if self.y + h > CONTENT_BOTTOM:
                 self.pg += 1
                 self.y = 90.0
 
@@ -1240,7 +1255,7 @@ def _gen_rift(cv: dict) -> list[dict]:
          "backgroundColor": GRAPHITE, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
     ]
     header[1]["letterSpacing"] = 1.7
-    SECTION_CHROME = 40
+    SECTION_CHROME = section_chrome_height(8.7)
     b = RiftBuilder(202)
 
     def experience_height(job: dict) -> float:
@@ -1274,14 +1289,14 @@ def _gen_rift(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10, 14.5, BLACK, SANS)
         close_section()
 
     if cv.get("experience"):
         jobs = cv["experience"]
-        b.need(SECTION_CHROME + experience_height(jobs[0]))
+        b.need_section(SECTION_CHROME, experience_height(jobs[0]))
         section(lbl["experience"])
         for index, job in enumerate(jobs):
             if index > 0:
@@ -1300,7 +1315,7 @@ def _gen_rift(cv: dict) -> list[dict]:
 
     if cv.get("education"):
         education_entries = cv["education"]
-        b.need(SECTION_CHROME + education_height(education_entries[0]))
+        b.need_section(SECTION_CHROME, education_height(education_entries[0]))
         section(lbl["education"])
         for index, edu in enumerate(education_entries):
             if index > 0:
@@ -1316,7 +1331,7 @@ def _gen_rift(cv: dict) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need(SECTION_CHROME + b.measure_block("  ·  ".join(cv["skills"]), W, 9.2, 13.2, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.2, 13.2, SANS) + SPACE_SECTION)
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.2, 13.2, BLACK, SANS)
         close_section()
@@ -1473,7 +1488,7 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
         header[2]["letterSpacing"] = 0.1
         header[3]["letterSpacing"] = 1.35
 
-    SECTION_CHROME = 42
+    SECTION_CHROME = section_chrome_height(8.5)
     title_fs = 11 if theme != "relay" else 10.8
     meta_fs = 8.7 if theme != "relay" else 8.6
     body_fs = 9.4 if theme != "relay" else 9.2
@@ -1533,14 +1548,14 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10, 14.5, C["body"], SANS)
         close_section()
 
     if cv.get("experience"):
         jobs = cv["experience"]
-        b.need(SECTION_CHROME + experience_height(jobs[0]))
+        b.need_section(SECTION_CHROME, experience_height(jobs[0]))
         section(lbl["experience"])
         for index, job in enumerate(jobs):
             if index > 0:
@@ -1560,7 +1575,7 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
 
     if cv.get("education"):
         education_entries = cv["education"]
-        b.need(SECTION_CHROME + education_height(education_entries[0]))
+        b.need_section(SECTION_CHROME, education_height(education_entries[0]))
         section(lbl["education"])
         for index, edu in enumerate(education_entries):
             if index > 0:
@@ -1576,7 +1591,7 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need(SECTION_CHROME + b.measure_block("  ·  ".join(cv["skills"]), W, 9.3, 13.3, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.3, 13.3, SANS) + SPACE_SECTION)
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.3, 13.3, C["body"], SANS)
         close_section()
@@ -1767,7 +1782,7 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
 
     # Heading label + rule + after-rule gap. Callers reserve this together with
     # the first body block so section titles are never stranded above the footer.
-    SECTION_CHROME = 36
+    SECTION_CHROME = section_chrome_height(8.4)
 
     def section(label: str) -> None:
         marker_y = b.y + 1
@@ -1788,14 +1803,14 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10, 14.5, C["ink"], SANS)
         close_section()
 
     if cv.get("experience"):
         jobs = cv["experience"]
-        b.need(SECTION_CHROME + experience_height(jobs[0]))
+        b.need_section(SECTION_CHROME, experience_height(jobs[0]))
         section(lbl["experience"])
         for index, job in enumerate(jobs):
             # Keep title/meta/bullets as one record so page breaks never split
@@ -1817,7 +1832,7 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
 
     if cv.get("education"):
         education_entries = cv["education"]
-        b.need(SECTION_CHROME + education_height(education_entries[0]))
+        b.need_section(SECTION_CHROME, education_height(education_entries[0]))
         section(lbl["education"])
         for index, edu in enumerate(education_entries):
             if index > 0:
@@ -1833,7 +1848,7 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need(SECTION_CHROME + b.measure_block("  ·  ".join(cv["skills"]), W, 9.1, 13, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.1, 13, SANS) + SPACE_SECTION)
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.1, 13, C["ink"], SANS)
         close_section()
@@ -1941,7 +1956,7 @@ def _gen_nocturne(cv: dict) -> list[dict]:
     _extra_sections(b, cv, "after_skills", section, C, L, W, "Inter")
 
     if cv.get("education"):
-        b.need(50); section(lbl["education"])
+        b.need_section(section_chrome_height(12), 72); section(lbl["education"])
         for edu in cv["education"]:
             _place_education_record(
                 b, edu, L, W,
@@ -1991,7 +2006,7 @@ def _gen_ampersand(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, C, L, W, S, fs=10.5, lh=15)
 
     if cv.get("education"):
-        b.need(50); section(lbl["education"])
+        b.need_section(section_chrome_height(12), 72); section(lbl["education"])
         for edu in cv["education"]:
             _place_education_record(
                 b, edu, L, W,
@@ -2053,7 +2068,7 @@ def _gen_education(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, C, L, W, "Inter")
 
     if cv.get("education"):
-        b.need(50); section(lbl["education"])
+        b.need_section(section_chrome_height(12), 72); section(lbl["education"])
         for edu in cv["education"]:
             _place_education_record(
                 b, edu, L, W,
@@ -2131,7 +2146,7 @@ def _gen_it(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, C, ML, MW, "Inter")
 
     if cv.get("education"):
-        b.need(50); section(lbl["education"])
+        b.need_section(section_chrome_height(12), 72); section(lbl["education"])
         for edu in cv["education"]:
             _place_education_record(
                 b, edu, ML, W,
@@ -2191,7 +2206,7 @@ def _gen_blueprint(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, C, ML, MW, "Inter")
 
     if cv.get("education"):
-        b.need(50); section(lbl["education"])
+        b.need_section(section_chrome_height(12), 72); section(lbl["education"])
         for edu in cv["education"]:
             _place_education_record(
                 b, edu, ML, W,
@@ -2312,7 +2327,7 @@ def _gen_prism(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, {"body": GRAY}, L, W, "Inter")
 
     if cv.get("education"):
-        b.need(50); section(lbl["education"])
+        b.need_section(section_chrome_height(12), 72); section(lbl["education"])
         for edu in cv["education"]:
             _place_education_record(
                 b, edu, L, W,
@@ -2469,7 +2484,7 @@ def _gen_sterling(cv: dict) -> list[dict]:
 
     if cv.get("education"):
         education_entries = cv["education"]
-        b.need(50); section(lbl["education"])
+        b.need_section(section_chrome_height(12), 72); section(lbl["education"])
         for index, edu in enumerate(education_entries):
             _place_education_record(
                 b, edu, L, W,
@@ -2560,7 +2575,7 @@ def _gen_solstice(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, {"body": INK}, L, W, SANS)
 
     if cv.get("education"):
-        b.need(58); section(lbl["education"])
+        b.need_section(section_chrome_height(11), 72); section(lbl["education"])
         for edu in cv["education"]:
             _place_education_record(
                 b, edu, L, W,
@@ -2648,7 +2663,7 @@ def _gen_mistral(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, {"body": INK}, L, W, SANS)
 
     if cv.get("education"):
-        b.need(58); section(lbl["education"])
+        b.need_section(section_chrome_height(11), 72); section(lbl["education"])
         for edu in cv["education"]:
             _place_education_record(
                 b, edu, L, W,
@@ -2725,7 +2740,7 @@ def _gen_axiom(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, SANS, fs=9.8, lh=13.5)
 
     if cv.get("education"):
-        b.need(56); section(lbl["education"])
+        b.need_section(section_chrome_height(11), 72); section(lbl["education"])
         for edu in cv["education"]:
             _place_education_record(
                 b, edu, L, W,
@@ -2800,7 +2815,7 @@ def _gen_vellum(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, SANS, fs=9.8, lh=13.5)
 
     if cv.get("education"):
-        b.need(56); section(lbl["education"])
+        b.need_section(section_chrome_height(11), 72); section(lbl["education"])
         for edu in cv["education"]:
             _place_education_record(
                 b, edu, L, W,
@@ -2867,8 +2882,7 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
 
     class SidebarBuilder(Builder):
         def need(self, h: float):
-            # Leave clear space for the persistent footer on each page.
-            if self.y + h > 758:
+            if self.y + h > CONTENT_BOTTOM:
                 self.pg += 1
                 self.y = 56.0
 
@@ -2970,7 +2984,7 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
             body_fs=8.6, body_lh=11.5,
         )
 
-    SECTION_CHROME = 36
+    SECTION_CHROME = section_chrome_height(8.4)
 
     def section(label: str) -> None:
         marker_y = b.y + 1
@@ -2989,14 +3003,14 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10, 14.5, C["body"], SANS)
         close_section()
 
     if cv.get("experience"):
         jobs = cv["experience"]
-        b.need(SECTION_CHROME + experience_height(jobs[0]))
+        b.need_section(SECTION_CHROME, experience_height(jobs[0]))
         section(lbl["experience"])
         for index, job in enumerate(jobs):
             # Treat title, metadata and bullets as one visual record. This
@@ -3019,7 +3033,7 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
 
     if cv.get("education") and "education" not in sidebar_keys:
         education_entries = cv["education"]
-        b.need(SECTION_CHROME + education_height(education_entries[0]))
+        b.need_section(SECTION_CHROME, education_height(education_entries[0]))
         section(lbl["education"])
         for index, edu in enumerate(education_entries):
             if index > 0:
@@ -3035,7 +3049,7 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
         close_section()
 
     if cv.get("skills") and "skills" not in sidebar_keys:
-        b.need(SECTION_CHROME + b.measure_block("  ·  ".join(cv["skills"]), W, 9.3, 13.2, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.3, 13.2, SANS) + SPACE_SECTION)
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.3, 13.2, C["body"], SANS)
         close_section()
@@ -3154,7 +3168,7 @@ def _gen_obsidian(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, SANS, fs=9.4, lh=13.3)
 
     if cv.get("education"):
-        b.need(50)
+        b.need_section(section_chrome_height(12), 72)
         section(lbl["education"])
         for index, edu in enumerate(cv["education"]):
             _place_education_record(
@@ -3217,7 +3231,7 @@ def _gen_raven(cv: dict) -> list[dict]:
          "backgroundColor": TEAL, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
     ]
     header[4]["letterSpacing"] = 1.65
-    SECTION_CHROME = 40
+    SECTION_CHROME = section_chrome_height(8.7)
     b = Builder(205)
 
     def experience_height(job: dict) -> float:
@@ -3247,14 +3261,14 @@ def _gen_raven(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10.2, 15, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.2, 15, SANS) + SPACE_SECTION)
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10.2, 15, BODY, SANS)
         close_section()
 
     if cv.get("experience"):
         jobs = cv["experience"]
-        b.need(SECTION_CHROME + experience_height(jobs[0]))
+        b.need_section(SECTION_CHROME, experience_height(jobs[0]))
         section(lbl["experience"])
         for index, job in enumerate(jobs):
             if index > 0:
@@ -3273,7 +3287,7 @@ def _gen_raven(cv: dict) -> list[dict]:
 
     if cv.get("education"):
         education_entries = cv["education"]
-        b.need(SECTION_CHROME + education_height(education_entries[0]))
+        b.need_section(SECTION_CHROME, education_height(education_entries[0]))
         section(lbl["education"])
         for index, edu in enumerate(education_entries):
             if index > 0:
@@ -3287,7 +3301,7 @@ def _gen_raven(cv: dict) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need(SECTION_CHROME + b.measure_block("  ·  ".join(cv["skills"]), W, 9.4, 13.5, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.4, 13.5, SANS) + SPACE_SECTION)
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.4, 13.5, BODY, SANS)
         close_section()
@@ -3358,6 +3372,11 @@ def _gen_graphite(cv: dict) -> list[dict]:
 
     if cv.get("education"):
         education_entries = cv["education"]
+        b.need_section(section_chrome_height(9), _education_record_height(
+            b, education_entries[0], W, SANS,
+            degree_fs=10.5, degree_lh=14, meta_fs=9.3, meta_lh=12.5,
+            body_fs=9.3, body_lh=13.5,
+        ))
         section(lbl["education"])
         for index, edu in enumerate(education_entries):
             _place_education_record(
@@ -3470,7 +3489,7 @@ def _gen_onyx(cv: dict) -> list[dict]:
 
     if cv.get("education"):
         education_entries = cv["education"]
-        b.need(50); section(lbl["education"])
+        b.need_section(section_chrome_height(12), 72); section(lbl["education"])
         for index, edu in enumerate(education_entries):
             _place_education_record(
                 b, edu, L, W,

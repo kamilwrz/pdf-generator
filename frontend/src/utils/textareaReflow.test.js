@@ -164,20 +164,66 @@ test("does not shift a position-locked element during textarea reflow", () => {
   assert.equal(heading.top, 144);
 });
 
-test("reflows generated single-line text without a stored width", () => {
+test("keeps section heading with following body across a page break", () => {
   const result = reflowTextareaHeight([
-    textarea(),
     {
-      element_id: "generated-heading",
-      category: "text",
-      content: "WYKSZTAŁCENIE",
-      left: 40,
-      top: 144,
-      fontSize: 9,
+      element_id: "job",
+      category: "textarea",
+      left: 76,
+      top: 620,
+      width: 460,
+      height: 40,
+      page: 1,
+      autoHeight: true,
+    },
+    {
+      element_id: "edu-mark",
+      category: "circle",
+      left: 525,
+      top: 678,
+      width: 12,
+      height: 12,
       page: 1,
     },
-  ], "textarea", 44, 842);
+    {
+      element_id: "edu-heading",
+      category: "text",
+      content: "WYKSZTAŁCENIE",
+      left: 76,
+      top: 680,
+      fontSize: 8.6,
+      page: 1,
+    },
+    {
+      element_id: "edu-rule",
+      category: "line",
+      left: 76,
+      top: 692,
+      width: 460,
+      height: 1,
+      page: 1,
+    },
+    {
+      element_id: "edu-body",
+      category: "textarea",
+      left: 76,
+      top: 704,
+      width: 460,
+      height: 90,
+      page: 1,
+      autoHeight: true,
+    },
+  ], "job", 90, 842, { pageTop: 66, bottomMargin: 96 });
 
-  const heading = result.elements.find((element) => element.element_id === "generated-heading");
-  assert.equal(heading.top, 168);
+  const heading = result.elements.find((element) => element.element_id === "edu-heading");
+  const mark = result.elements.find((element) => element.element_id === "edu-mark");
+  const rule = result.elements.find((element) => element.element_id === "edu-rule");
+  const body = result.elements.find((element) => element.element_id === "edu-body");
+
+  assert.equal(heading.page, 2);
+  assert.equal(body.page, 2);
+  assert.equal(mark.page, 2);
+  assert.equal(rule.page, 2);
+  assert.ok(heading.top >= 66);
+  assert.ok(body.top > heading.top);
 });
