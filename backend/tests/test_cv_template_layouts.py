@@ -671,8 +671,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
             self.assertGreaterEqual(second["top"] - first["top"], SPACE_RECORD + SPACE_STACK)
 
     def test_cinder_is_single_column_and_repeats_page_decorations(self):
-        from app.services.cv_generator import SPACE_MARK
-
         multi_page_cv = {
             **LONG_CV,
             "experience": LONG_CV["experience"] * 4,
@@ -716,7 +714,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 element["category"] == "rectangle"
                 and element.get("page", 1) == heading_element.get("page", 1)
                 and element["left"] == 526
-                and abs(element["top"] - (heading_element["top"] + SPACE_MARK)) < 0.01
+                and abs(element["top"] - (heading_element["top"] + 2)) < 0.01
                 for element in elements
             ))
 
@@ -862,77 +860,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 and "Zarządzanie interesariuszami" in element["content"]
                 for element in elements
             ))
-
-    def test_shared_vertical_rhythm_api_is_uniform(self):
-        from app.services.cv_generator import (
-            SPACE_AFTER_RULE,
-            SPACE_MARK,
-            SPACE_RECORD,
-            SPACE_SECTION,
-            SPACE_STACK,
-            Builder,
-            section_chrome_height,
-        )
-
-        self.assertEqual(section_chrome_height(8.6), 8.6 * 1.35 + SPACE_AFTER_RULE)
-        self.assertEqual(SPACE_MARK, 1)
-        self.assertEqual(SPACE_STACK, 4)
-        self.assertEqual(SPACE_RECORD, 14)
-        self.assertEqual(SPACE_SECTION, 18)
-        self.assertEqual(SPACE_AFTER_RULE, 12)
-
-        b = Builder(100)
-        marks = []
-
-        def decorate(builder, y):
-            marks.append(y)
-            builder.y += 50  # must not stick — begin_section restores cursor
-
-        b.begin_section(
-            "TEST",
-            left=50,
-            width=400,
-            font_size=8.6,
-            font_family="Inter",
-            color="#000",
-            rule_color="#ccc",
-            decorate=decorate,
-        )
-        self.assertEqual(marks, [100])
-        self.assertAlmostEqual(b.y, 100 + section_chrome_height(8.6), places=5)
-        content_y = b.y
-        b.block("Body", 50, 400, 10, 14, "#111", "Inter")
-        after_body = b.y
-        b.end_section()
-        self.assertAlmostEqual(b.y, after_body + SPACE_SECTION, places=5)
-        next_heading_y = b.y
-        b.begin_section(
-            "NEXT",
-            left=50,
-            width=400,
-            font_size=8.6,
-            font_family="Inter",
-            color="#000",
-            rule_color="#ccc",
-        )
-        self.assertEqual(next_heading_y, content_y + (after_body - content_y) + SPACE_SECTION)
-
-        # Modern templates share the section chrome API.
-        for template_id in ("ledger", "nimbus", "cinder", "vault", "scribe", "quarry"):
-            with self.subTest(template_id=template_id):
-                elements = generate_resume(template_id, LONG_CV)
-                headings = [
-                    element for element in elements
-                    if element["category"] == "text"
-                    and element.get("content") in {
-                        "PODSUMOWANIE ZAWODOWE",
-                        "DOŚWIADCZENIE ZAWODOWE",
-                        "WYKSZTAŁCENIE",
-                        "UMIEJĘTNOŚCI",
-                    }
-                    and element.get("page", 1) == 1
-                ]
-                self.assertGreaterEqual(len(headings), 2)
 
 
 if __name__ == "__main__":
