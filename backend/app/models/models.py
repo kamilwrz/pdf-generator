@@ -1,5 +1,11 @@
+import logging
+import time
+
 from sqlalchemy import VARCHAR, Boolean, Column, DateTime, Integer, Float, String, ForeignKey, Text, JSON, inspect, text
 from .database import Base, engine
+
+logger = logging.getLogger(__name__)
+
 
 class User(Base):
     __tablename__ = "users"
@@ -9,9 +15,8 @@ class User(Base):
     email = Column(String, unique=True)
     hashed_password = Column(String)
     created_at = Column(DateTime)
-    is_active = Column (Boolean)
+    is_active = Column(Boolean)
 
-User.metadata.create_all(bind=engine)
 
 class Image(Base):
     __tablename__ = "images"
@@ -24,22 +29,20 @@ class Image(Base):
     uploaded_at = Column(DateTime)
     owner_id = Column(Integer, ForeignKey("users.id"))
 
-Image.metadata.create_all(bind=engine)
 
 class Pdf(Base):
     __tablename__ = "pdfs"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column (String)
-    file_path = Column (String, nullable=True)
-    created_at = Column (DateTime)
+    title = Column(String)
+    file_path = Column(String, nullable=True)
+    created_at = Column(DateTime)
     updated_at = Column(DateTime)
     owner_id = Column(Integer, ForeignKey("users.id"))
     pages = Column(Integer, default=1)
     page_width = Column(Float, default=595)
     page_height = Column(Float, default=842)
 
-Pdf.metadata.create_all(bind=engine)
 
 class PdfElements(Base):
     __tablename__ = "pdf_elements"
@@ -54,15 +57,13 @@ class PdfElements(Base):
     top = Column(Float)
     width = Column(VARCHAR, nullable=True)
     height = Column(VARCHAR, nullable=True)
-    content = Column (Text, nullable=True)
+    content = Column(Text, nullable=True)
     fontSize = Column(Float, nullable=True)
     fontFamily = Column(String, nullable=True)
-    color = Column (String, nullable=True)
+    color = Column(String, nullable=True)
     src = Column(String, nullable=True)
     backgroundColor = Column(String, nullable=True)
     extra_properties = Column(JSON, nullable=True)
-
-PdfElements.metadata.create_all(bind=engine)
 
 
 class MaintenanceMarker(Base):
@@ -75,9 +76,6 @@ class MaintenanceMarker(Base):
     completed_at = Column(DateTime, nullable=False)
 
 
-MaintenanceMarker.metadata.create_all(bind=engine)
-
-
 class BioCvDraft(Base):
     """One resumable, private CV-profile draft per user."""
 
@@ -88,9 +86,6 @@ class BioCvDraft(Base):
     cv_data = Column(JSON, nullable=False, default=dict)
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
-
-
-BioCvDraft.metadata.create_all(bind=engine)
 
 
 def _run_lightweight_migrations():
@@ -129,5 +124,28 @@ def _run_lightweight_migrations():
                 print(f"[migration] skipped '{statement}': {exc}")
 
 
-_run_lightweight_migrations()
+def init_db(*, attempts: int = 6, delay_seconds: float = 2.0) -> None:
+    """Create tables and run light migrations with retries.
 
+    Must not run at import time — Render Postgres often drops the first SSL
+    socket during deploy cold-start, which used to crash uvicorn before listen.
+    """
+    last_error: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            Base.metadata.create_all(bind=engine)
+            _run_lightweight_migrations()
+            if attempt > 1:
+                logger.info("Database ready after %s attempt(s).", attempt)
+            return
+        except Exception as exc:
+            last_error = exc
+            logger.warning(
+                "Database init attempt %s/%s failed: %s",
+                attempt,
+                attempts,
+                exc,
+            )
+            if attempt < attempts:
+                time.sleep(delay_seconds * attempt)
+    raise RuntimeError(f"Database init failed after {attempts} attempts") from last_error

@@ -8,6 +8,7 @@ from app.api.routes import auth, pdf, images, ai, events
 from app.api.routes import ai_assistant
 from app.core.config import origins, IMAGES_UPLOAD_DIR, PDF_UPLOAD_DIR, TEMPLATE_ASSETS_DIR
 from app.models.database import SessionLocal
+from app.models.models import init_db
 from app.services.ai_assistant_service import AIServiceError
 from app.services.legacy_document_cleanup import run_legacy_document_cleanup
 
@@ -28,8 +29,9 @@ app = FastAPI()
 
 
 @app.on_event("startup")
-def remove_retired_deck_and_article_documents() -> None:
-    """Run the explicitly approved destructive cleanup exactly once."""
+def on_startup() -> None:
+    """Connect to DB after the process is up; retry flaky Render SSL handshakes."""
+    init_db()
     db = SessionLocal()
     try:
         deleted = run_legacy_document_cleanup(db)
