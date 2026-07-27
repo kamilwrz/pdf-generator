@@ -140,18 +140,28 @@
     border-top: 1px solid var(--sidebar-border);
 }
 
+/* Fixed box the diagonal label is centered inside; the label's untransformed
+   width can exceed the 68px rail without disturbing layout because it's
+   absolutely positioned. */
+.planBadgeWrap {
+    position: relative;
+    width: 100%;
+    height: 56px;
+    overflow: visible;
+}
+
 .planBadge {
-    font: 700 9px var(--font-body);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    transform-origin: center;
+    font: 800 10px var(--font-display);
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--sidebar-muted);
-    border: 1px solid var(--sidebar-border);
-    border-radius: 999px;
-    padding: 3px 7px;
-    max-width: 100%;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    color: var(--sidebar-accent);
+    cursor: default;
 }
 
 .creditsBadge {

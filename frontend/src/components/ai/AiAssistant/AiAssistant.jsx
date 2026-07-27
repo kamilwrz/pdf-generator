@@ -462,6 +462,7 @@ export default function AiAssistant() {
         pageSize,
         setCurrentPage,
         entitlements,
+        refreshEntitlements,
     } = use(PdfContext);
 
     const [isOpen, setIsOpen] = useState(false);
@@ -745,6 +746,8 @@ export default function AiAssistant() {
                 actionColor: actionMeta?.color,
             };
             setMessages(prev => [...prev, assistantMsg]);
+            // A successful call consumed AI credits — refresh the visible balance.
+            refreshEntitlements?.();
         } catch (err) {
             setMessages(prev => [...prev, {
                 id: nanoid(),
@@ -757,7 +760,7 @@ export default function AiAssistant() {
         } finally {
             setIsLoading(false);
         }
-    }, [A4_Elements, api, isLoading, jobDesc, messages, pageSize]);
+    }, [A4_Elements, api, isLoading, jobDesc, messages, pageSize, refreshEntitlements]);
 
     const handleAction = useCallback((actionId) => {
         const meta = ACTIONS.find(a => a.id === actionId);

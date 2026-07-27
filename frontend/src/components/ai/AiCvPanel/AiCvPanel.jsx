@@ -21,7 +21,7 @@ const SparkIcon = () => (
 );
 
 export default function AiCvPanel() {
-    const { isAiPanel, showAiPanel, showBioCvModal, loadAiElements, entitlements } = use(PdfContext);
+    const { isAiPanel, showAiPanel, showBioCvModal, loadAiElements, entitlements, refreshEntitlements } = use(PdfContext);
 
     const fileRef = useRef(null);
     const [fileName, setFileName] = useState(null);
@@ -72,12 +72,14 @@ export default function AiCvPanel() {
                 });
             }
             setCvData(res.cv_data);
+            // Extraction consumed AI credits — refresh the visible balance.
+            refreshEntitlements?.();
         } catch (err) {
             setError(planErrorMessage(err, "Nie udało się wyodrębnić danych z CV."));
         } finally {
             setIsExtracting(false);
         }
-    }, [api, canExtract, fileData]);
+    }, [api, canExtract, fileData, refreshEntitlements]);
 
     const handleFill = useCallback(async (template) => {
         if (!cvData) return;

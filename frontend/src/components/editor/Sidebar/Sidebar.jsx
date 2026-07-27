@@ -69,6 +69,7 @@ export default function Sidebar({ children }) {
 
         <footer className={classes.sidebarFooter}>
             {entitlements?.plan_name ? (
+                <div className={classes.planBadgeWrap}>
                 <div
                     className={classes.planBadge}
                     title={[
@@ -82,6 +83,7 @@ export default function Sidebar({ children }) {
                     ].filter(Boolean).join(" · ")}
                 >
                     {entitlements.plan_name}
+                </div>
                 </div>
             ) : null}
             {entitlements?.limits?.monthly_ai_credits ? (
