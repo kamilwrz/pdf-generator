@@ -71,11 +71,15 @@ export default function Sidebar({ children }) {
             {entitlements?.plan_name ? (
                 <div
                     className={classes.planBadge}
-                    title={
+                    title={[
+                        entitlements.plan_name,
                         entitlements.remaining?.exports != null
                             ? `Eksporty: ${entitlements.usage?.exports_count ?? 0}/${entitlements.limits?.max_exports_per_month ?? "∞"}`
-                            : entitlements.plan_name
-                    }
+                            : null,
+                        entitlements.limits?.monthly_ai_credits != null
+                            ? `Kredyty AI: ${entitlements.usage?.ai_credits_used ?? 0}/${entitlements.limits.monthly_ai_credits}`
+                            : null,
+                    ].filter(Boolean).join(" · ")}
                 >
                     {entitlements.plan_name}
                 </div>
