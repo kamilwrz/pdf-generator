@@ -25,6 +25,8 @@ export const PAGE_PRESETS = {
 const ZOOM_MIN = 0.25;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.1;
+// < 1 slows pointer-follow while dragging (1 = 1:1 with the cursor).
+const DRAG_SPEED = 0.45;
 const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
 const stepZoom = (z, dir) => clampZoom(Math.round((z + dir * ZOOM_STEP) * 10) / 10);
 
@@ -423,11 +425,11 @@ export function useA4Elements(titleRef) {
         };
       }
     }
-    const { width, height } = dragDimensionsRef.current ?? getElementBounds(currentDragged);
-    const pointerX = (e.clientX - canvasRect.left) / scaleX;
-    const pointerY = (e.clientY - canvasRect.top) / scaleY;
-    const targetLeft = pointerX - width / 2;
-    const targetTop = pointerY - height / 2;
+    // Move by pointer delta (not snap-to-center) so the grab point stays under
+    // the cursor, then scale by DRAG_SPEED for a slower, more controlled feel.
+    const deltaX = (e.movementX / scaleX) * DRAG_SPEED;
+    const deltaY = (e.movementY / scaleY) * DRAG_SPEED;
+    if (!deltaX && !deltaY && targetPage === sourcePage) return;
     const selectedOnSamePage = currentElements.filter((element) => (
       element.isSelected
       && !element.locked
@@ -440,8 +442,8 @@ export function useA4Elements(titleRef) {
     const moveResult = moveElementsToPage(
       currentElements,
       movedIds,
-      targetLeft - currentDragged.left,
-      targetTop - currentDragged.top,
+      deltaX,
+      deltaY,
       targetPage,
       pageSizeRef.current,
     );
@@ -476,8 +478,8 @@ export function useA4Elements(titleRef) {
       const moved = moveElementsToPage(
         prevState,
         movedIds,
-        targetLeft - dragged.left,
-        targetTop - dragged.top,
+        deltaX,
+        deltaY,
         targetPage,
         pageSizeRef.current,
       );
