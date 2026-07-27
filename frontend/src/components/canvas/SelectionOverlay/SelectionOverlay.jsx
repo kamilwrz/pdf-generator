@@ -115,17 +115,9 @@ export default function SelectionOverlay({ elements, page }) {
                         style={{ left: groupBox.left, top: groupBox.top }}
                     >
                         <span className={classes.badgeDot} />
-                        {isMoving ? `Przesuwanie · ${displayed.length}` : `${displayed.length} zaznaczone`}
+                        {`${displayed.length} zaznaczone`}
                     </div>
                 </>
-            )}
-            {!isMulti && isMoving && (
-                <div
-                    className={classes.movingBadge}
-                    style={{ left: groupBox.left, top: groupBox.top }}
-                >
-                    Przesuwanie
-                </div>
             )}
             {groupMoveDelta && groupMoveDelta.page === displayedPage && (
                 <div
