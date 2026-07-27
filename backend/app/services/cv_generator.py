@@ -26,10 +26,23 @@ CONTENT_BOTTOM = A4_H - MARGIN_BOTTOM  # 746
 # Vertical rhythm for generated CVs. Every template should space content as:
 #   section → record (block) → stack (elements inside a record).
 # Keep these equal within each level so X/Y placement reads as one pattern.
+# Decorations hang off the section label top via SPACE_MARK; they must not
+# own the Y cursor — Builder.begin_section / end_section own the advance.
 SPACE_STACK = 4       # title → meta → body inside one record
 SPACE_RECORD = 14     # between records in the same section
 SPACE_SECTION = 18    # after a finished section before the next heading
 SPACE_AFTER_RULE = 12 # section heading rule → first content block
+SPACE_AFTER_RULE_COMPACT = 4  # narrow sidebars: same grammar, tighter chrome
+SPACE_MARK = 1        # decorative marker top relative to section label top
+
+
+def section_chrome_height(
+    label_fs: float,
+    *,
+    after_rule: float = SPACE_AFTER_RULE,
+) -> float:
+    """Y advance consumed by begin_section (label advance + after-rule gap)."""
+    return float(label_fs) * 1.35 + after_rule
 
 
 # ── low-level element constructors ──────────────────────────────────────────
@@ -138,6 +151,63 @@ class Builder:
     def gap(self, px: float):
         self.y += px
 
+    def stack(self) -> None:
+        """Uniform gap between stacked elements inside one record."""
+        self.gap(SPACE_STACK)
+
+    def record(self) -> None:
+        """Uniform gap between records inside one section."""
+        self.gap(SPACE_RECORD)
+
+    def end_section(self) -> None:
+        """Uniform gap after a finished section before the next heading."""
+        self.gap(SPACE_SECTION)
+
+    def begin_section(
+        self,
+        label: str,
+        *,
+        left: float,
+        width: float,
+        font_size: float,
+        font_family: str,
+        color: str,
+        rule_color: str | None = None,
+        rule_height: float = 1,
+        rule_width: float | None = None,
+        bold: bool = False,
+        letter_spacing: float | None = None,
+        decorate=None,
+        draw_rule=None,
+    ) -> None:
+        """
+        Place section chrome with the shared vertical rhythm:
+          markers (optional) at label top → label → rule → SPACE_AFTER_RULE.
+
+        `decorate(builder, chrome_y)` may append markers; it must not change
+        builder.y. Prefer chrome_y + SPACE_MARK for marker tops so every
+        header keeps the same distance to its decorations.
+        """
+        chrome_y = self.y
+        if decorate is not None:
+            decorate(self, chrome_y)
+            # Decorations are chrome, not content — never let them move the cursor.
+            self.y = chrome_y
+        if label:
+            self.text(label, font_size, font_family, color, left, bold=bold)
+            if letter_spacing is not None and self.els:
+                self.els[-1]["letterSpacing"] = letter_spacing
+        rule_y = self.y
+        if draw_rule is not None:
+            draw_rule(self, rule_y)
+            self.y = rule_y
+        elif rule_color is not None:
+            self.els.append(_line(
+                left, rule_y, rule_width if rule_width is not None else width,
+                rule_height, rule_color, page=self.pg,
+            ))
+        self.gap(SPACE_AFTER_RULE)
+
     def build(self) -> list[dict]:
         return self.els
 
@@ -212,11 +282,13 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
         content = "\n".join(f"• {item}" for item in items)
         body_height = b.measure_block(content, W, fs, lh, font_b, bulletList=True)
         # Reserve heading chrome + body together so custom sections do not leave
-        # a title stranded above the page footer.
-        b.need(36 + body_height + SPACE_SECTION)
+        # a title stranded above the page footer. Chrome height is measured from
+        # the shared rhythm (label advance + SPACE_AFTER_RULE), not a per-theme guess.
+        chrome = section_chrome_height(getattr(section_fn, "label_fs", 8.6))
+        b.need(chrome + body_height + SPACE_SECTION)
         section_fn(title)
         b.block(content, L, W, fs, lh, C.get("body", "#2B2B2B"), font_b, bulletList=True)
-        b.gap(SPACE_SECTION)
+        b.end_section()
 
 
 def _contact_line(cv: dict) -> str:
@@ -316,10 +388,12 @@ def _fit_sidebar_sections(
         for font_size in _SIDEBAR_FONT_SIZES:
             line_height = round(max(font_size * 1.45, 11.0), 2)
             body_height = _sidebar_wrapped_height(candidate["content"], width, font_size, line_height)
-            section_height = 10 + 5 + body_height + 18
+            chrome = section_chrome_height(8.0, after_rule=SPACE_AFTER_RULE_COMPACT)
+            section_height = chrome + body_height + SPACE_SECTION
             if section_height > _SIDEBAR_MAX_SECTION_HEIGHT:
                 continue
             if cursor + section_height <= bottom_y:
+                label_advance = 8.0 * 1.35
                 placed.append({
                     **candidate,
                     "left": 24,
@@ -327,7 +401,8 @@ def _fit_sidebar_sections(
                     "width": width,
                     "fontSize": font_size,
                     "lineHeight": line_height,
-                    "body_top": round(cursor + 15, 2),
+                    "rule_top": round(cursor + label_advance, 2),
+                    "body_top": round(cursor + chrome, 2),
                     "body_height": body_height,
                 })
                 placed_keys.add(candidate["key"])
@@ -441,12 +516,12 @@ def _place_education_record(
             placed = True
         if meta:
             if placed:
-                b.gap(SPACE_STACK)
+                b.stack()
             b.text(meta, meta_fs, font, muted, left)
             placed = True
         if description:
             if placed:
-                b.gap(SPACE_STACK)
+                b.stack()
             b.text(description, body_fs, font, body_color, left)
             placed = True
     else:
@@ -458,12 +533,12 @@ def _place_education_record(
             placed = True
         if meta:
             if placed:
-                b.gap(SPACE_STACK)
+                b.stack()
             b.block(meta, left, width, meta_fs, meta_lh, muted, font, min_h=12)
             placed = True
         if description:
             if placed:
-                b.gap(SPACE_STACK)
+                b.stack()
             b.block(
                 description, left, width, body_fs, body_lh, body_color, font, min_h=12
             )
@@ -471,6 +546,121 @@ def _place_education_record(
 
     if after_gap is not None and placed:
         b.gap(after_gap)
+
+
+def _experience_record_height(
+    b: "Builder",
+    job: dict,
+    width: float,
+    font: str,
+    *,
+    title_fs: float = 10.8,
+    title_lh: float = 13.5,
+    meta_fs: float = 8.7,
+    meta_lh: float = 11.5,
+    body_fs: float = 9.4,
+    body_lh: float = 13.1,
+) -> float:
+    """Measured height of one experience record (no trailing gap)."""
+    bullets = _bullets(job)
+    height = (
+        b.measure_block(job.get("title", ""), width, title_fs, title_lh, font, bold=True, min_h=15)
+        + SPACE_STACK
+        + b.measure_block(_company_period(job), width, meta_fs, meta_lh, font, min_h=12)
+    )
+    if bullets:
+        height += SPACE_STACK + b.measure_block(
+            bullets, width, body_fs, body_lh, font, bulletList=True
+        )
+    return height
+
+
+def _place_experience_record(
+    b: "Builder",
+    job: dict,
+    left: float,
+    width: float,
+    *,
+    ink: str,
+    muted: str,
+    body: str,
+    font: str,
+    title_fs: float = 10.8,
+    title_lh: float = 13.5,
+    meta_fs: float = 8.7,
+    meta_lh: float = 11.5,
+    body_fs: float = 9.4,
+    body_lh: float = 13.1,
+    mode: str = "block",
+    after_gap: float | None = None,
+) -> None:
+    """
+    Render one experience entry with the shared stack rhythm:
+      title → SPACE_STACK → company/period → SPACE_STACK → bullets.
+    """
+    bullets = _bullets(job)
+    if mode == "text":
+        b.text(job.get("title", ""), title_fs, font, ink, left, bold=True)
+        b.stack()
+        b.text(_company_period(job), meta_fs, font, muted, left)
+        if bullets:
+            b.stack()
+            b.block(bullets, left, width, body_fs, body_lh, body, font, bulletList=True)
+    else:
+        b.block(
+            job.get("title", ""), left, width, title_fs, title_lh, ink, font,
+            bold=True, min_h=15,
+        )
+        b.stack()
+        b.block(_company_period(job), left, width, meta_fs, meta_lh, muted, font, min_h=12)
+        if bullets:
+            b.stack()
+            b.block(bullets, left, width, body_fs, body_lh, body, font, bulletList=True)
+    if after_gap is not None:
+        b.gap(after_gap)
+
+
+def _make_section(
+    b: "Builder",
+    *,
+    left: float,
+    width: float,
+    font_size: float,
+    font_family: str,
+    color: str,
+    rule_color: str | None = None,
+    rule_height: float = 1,
+    rule_width: float | None = None,
+    bold: bool = False,
+    letter_spacing: float | None = None,
+    letter_spacing_for=None,
+    decorate=None,
+    draw_rule=None,
+):
+    """
+    Build a section() callable that always advances Y through begin_section.
+    Attach .label_fs so _extra_sections can reserve the correct chrome height.
+    """
+    def section(label: str, decorated: bool = True) -> None:
+        spacing = letter_spacing_for(label) if callable(letter_spacing_for) else letter_spacing
+        b.begin_section(
+            label,
+            left=left,
+            width=width,
+            font_size=font_size,
+            font_family=font_family,
+            color=color,
+            rule_color=rule_color,
+            rule_height=rule_height,
+            rule_width=rule_width,
+            bold=bold,
+            letter_spacing=spacing,
+            decorate=decorate if decorated else None,
+            draw_rule=draw_rule,
+        )
+
+    section.label_fs = font_size
+    return section
 
 
 def _education_sidebar_content(education: list[dict]) -> str:
@@ -519,40 +709,46 @@ def _gen_finance(cv: dict) -> list[dict]:
     b.text(_contact_line(cv), 9.5, "Inter", C["sub"], L); b.gap(8)
     b.line(L, W, 1.5, C["ink"]); b.gap(16)
 
-    def section(label):
-        b.text(label, 12, "Times-Roman", C["ink"], L, bold=True); b.gap(2)
-        b.line(L, 70, 2, C["gold"]); b.gap(10)
+    LABEL_FS = 12
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family="Times-Roman",
+        color=C["ink"], rule_color=C["gold"], rule_height=2, rule_width=70, bold=True,
+    )
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.5, 15, C["body"], "Inter"); b.gap(18)
+        b.block(cv["summary"], L, W, 10.5, 15, C["body"], "Inter"); b.end_section()
 
     if cv.get("experience"):
         section(lbl["experience"])
-        for job in cv["experience"]:
+        jobs = cv["experience"]
+        for index, job in enumerate(jobs):
             b.need(56)
-            b.text(job.get("title", ""), 11, "Inter", C["ink"], L, bold=True); b.gap(2)
-            b.text(_company_period(job), 9.5, "Inter", C["gray"], L); b.gap(2)
+            b.text(job.get("title", ""), 11, "Inter", C["ink"], L, bold=True); b.stack()
+            b.text(_company_period(job), 9.5, "Inter", C["gray"], L); b.stack()
             bul = _bullets(job)
             if bul:
                 b.block(bul, L, W, 10, 14, C["body"], "Inter", bulletList=True)
-            b.gap(12)
+            if index < len(jobs) - 1:
+                b.record()
+        b.end_section()
         _extra_sections(b, cv, "after_experience", section, C, L, W, "Inter")
 
     if cv.get("education"):
         b.need(50); section(lbl["education"])
-        for edu in cv["education"]:
+        _edus = cv["education"]
+        for index, edu in enumerate(_edus):
             _place_education_record(
                 b, edu, L, W,
                 ink=C["ink"], muted=C["gray"], body=C["gray"], font="Inter",
                 mode="text",
                 degree_fs=11, meta_fs=9.5, body_fs=9.5,
-                after_gap=10,
+                after_gap=SPACE_RECORD if index < len(_edus) - 1 else None,
             )
-
+        b.end_section()
     if cv.get("skills"):
         b.need(40); section(lbl["skills"])
-        b.block(" · ".join(cv["skills"]), L, W, 10, 15, C["body"], "Inter"); b.gap(14)
+        b.block(" · ".join(cv["skills"]), L, W, 10, 15, C["body"], "Inter"); b.end_section()
 
     _extra_sections(b, cv, "after_skills", section, C, L, W, "Inter")
 
@@ -734,21 +930,17 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
         ]
         static[5]["letterSpacing"] = 1.35
 
-    SECTION_CHROME = 38
+    LABEL_FS = 8.6
+    SECTION_CHROME = section_chrome_height(LABEL_FS)
     b = BankingBuilder(C["start"])
 
     def experience_height(job: dict) -> float:
-        bullets = _bullets(job)
-        height = (
-            b.measure_block(job.get("title", ""), W, 10.8, 13.4, SANS, bold=True, min_h=15)
-            + SPACE_STACK
-            + b.measure_block(_company_period(job), W, 8.7, 11.5, SANS, min_h=12)
+        return _experience_record_height(
+            b, job, W, SANS,
+            title_fs=10.8, title_lh=13.4,
+            meta_fs=8.7, meta_lh=11.5,
+            body_fs=9.4, body_lh=13.1,
         )
-        if bullets:
-            height += SPACE_STACK + b.measure_block(
-                bullets, W, 9.4, 13.1, SANS, bulletList=True
-            )
-        return height
 
     def education_height(education: dict) -> float:
         return _education_record_height(
@@ -758,14 +950,18 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
             body_fs=8.6, body_lh=11.5,
         )
 
-    def section(label: str) -> None:
-        b.els.append(_circle(C["mark_x"], b.y + 1, 12, C["accent"], borderWidth=1.1, zIndex=2, page=b.pg))
-        b.text(label, 8.6, SANS, C["accent"] if theme != "signal" else C["light"], L)
-        b.line(L, W, 1, C["rule"])
-        b.gap(SPACE_AFTER_RULE)
+    def _mark(builder: Builder, y: float) -> None:
+        builder.els.append(_circle(
+            C["mark_x"], y + SPACE_MARK, 12, C["accent"],
+            borderWidth=1.1, zIndex=2, page=builder.pg,
+        ))
 
-    def close_section() -> None:
-        b.gap(SPACE_SECTION)
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family=SANS,
+        color=C["accent"] if theme != "signal" else C["light"],
+        rule_color=C["rule"], decorate=_mark,
+    )
+    close_section = b.end_section
 
     if cv.get("summary"):
         b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10, 14.7, SANS) + SPACE_SECTION)
@@ -780,15 +976,14 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
         for index, job in enumerate(jobs):
             if index > 0:
                 b.need(experience_height(job))
-            b.block(job.get("title", ""), L, W, 10.8, 13.4, C["ink"], SANS, bold=True, min_h=15)
-            b.gap(SPACE_STACK)
-            b.block(_company_period(job), L, W, 8.7, 11.5, C["muted"], SANS, min_h=12)
-            bullets = _bullets(job)
-            if bullets:
-                b.gap(SPACE_STACK)
-                b.block(bullets, L, W, 9.4, 13.1, C["body"], SANS, bulletList=True)
-            if index < len(jobs) - 1:
-                b.gap(SPACE_RECORD)
+            _place_experience_record(
+                b, job, L, W,
+                ink=C["ink"], muted=C["muted"], body=C["body"], font=SANS,
+                title_fs=10.8, title_lh=13.4,
+                meta_fs=8.7, meta_lh=11.5,
+                body_fs=9.4, body_lh=13.1,
+                after_gap=SPACE_RECORD if index < len(jobs) - 1 else None,
+            )
         close_section()
         _extra_sections(b, cv, "after_experience", section, {"body": C["body"]}, L, W, SANS, fs=9.4, lh=13.1)
 
@@ -870,7 +1065,8 @@ def _gen_ledger(cv: dict) -> list[dict]:
     ]
     static[6]["letterSpacing"] = 1.05
 
-    SECTION_CHROME = 36
+    LABEL_FS = 9
+    SECTION_CHROME = section_chrome_height(LABEL_FS)
     b = Builder(180)
 
     def experience_height(job: dict) -> float:
@@ -894,13 +1090,11 @@ def _gen_ledger(cv: dict) -> list[dict]:
             body_fs=9, body_lh=11.5,
         )
 
-    def section(label: str) -> None:
-        b.text(label, 9, SANS, BLUE, L)
-        b.line(L, W, 1, STEEL)
-        b.gap(SPACE_AFTER_RULE)
-
-    def close_section() -> None:
-        b.gap(SPACE_SECTION)
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family=SANS,
+        color=BLUE, rule_color=STEEL,
+    )
+    close_section = b.end_section
 
     if cv.get("summary"):
         b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10.2, 15, SANS) + SPACE_SECTION)
@@ -960,7 +1154,8 @@ def _gen_nimbus(cv: dict) -> list[dict]:
     POWDER, SKY, CLOUD, SLATE = "#B9D2E5", "#DFEBF4", "#E9EEF1", "#72818C"
     L, W, SANS, SERIF = 80, 462, "Inter", "Times-Roman"
     CONTINUATION = 66
-    SECTION_CHROME = 36
+    LABEL_FS = 8.7
+    SECTION_CHROME = section_chrome_height(LABEL_FS)
     lbl = _labels(cv)
 
     class NimbusBuilder(Builder):
@@ -1023,18 +1218,17 @@ def _gen_nimbus(cv: dict) -> list[dict]:
             body_fs=8.7, body_lh=11.5,
         )
 
-    def section(label: str, decorated: bool = True) -> None:
-        if decorated:
-            # Short rail next to the heading only — a page-tall rail fought
-            # client reflow and made continuation pages look bottom-heavy.
-            b.els.append(_line(52, b.y + 5, 2, 28, SKY, page=b.pg))
-            b.els.append(_rect(45, b.y + 20, 16, 16, BLUE, zIndex=2, page=b.pg))
-        b.text(label, 8.7, SANS, BLUE, L)
-        b.line(L, W, 1, CLOUD)
-        b.gap(SPACE_AFTER_RULE)
+    def _nimbus_mark(builder: Builder, y: float) -> None:
+        # Short rail next to the heading only — a page-tall rail fought
+        # client reflow and made continuation pages look bottom-heavy.
+        builder.els.append(_line(52, y + SPACE_MARK + 4, 2, 28, SKY, page=builder.pg))
+        builder.els.append(_rect(45, y + SPACE_MARK + 19, 16, 16, BLUE, zIndex=2, page=builder.pg))
 
-    def close_section() -> None:
-        b.gap(SPACE_SECTION)
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family=SANS,
+        color=BLUE, rule_color=CLOUD, decorate=_nimbus_mark,
+    )
+    close_section = b.end_section
 
     if cv.get("summary"):
         b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10.1, 15, SANS) + SPACE_SECTION)
@@ -1113,7 +1307,8 @@ def _gen_cinder(cv: dict) -> list[dict]:
          "backgroundColor": RED, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
     ]
     header[3]["letterSpacing"] = 1.65
-    SECTION_CHROME = 40
+    LABEL_FS = 8.7
+    SECTION_CHROME = section_chrome_height(LABEL_FS)
     b = Builder(205)
 
     def experience_height(job: dict) -> float:
@@ -1137,14 +1332,14 @@ def _gen_cinder(cv: dict) -> list[dict]:
             body_fs=8.7, body_lh=11.5,
         )
 
-    def section(label: str) -> None:
-        b.els.append(_rect(526, b.y + 2, 16, 16, RED, 1.2, zIndex=2, page=b.pg))
-        b.text(label, 8.7, SANS, RED, L)
-        b.line(L, W, 1, ASH)
-        b.gap(SPACE_AFTER_RULE)
-
-    def close_section() -> None:
-        b.gap(SPACE_SECTION)
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family=SANS,
+        color=RED, rule_color=ASH,
+        decorate=lambda builder, y: builder.els.append(
+            _rect(526, y + SPACE_MARK, 16, 16, RED, 1.2, zIndex=2, page=builder.pg)
+        ),
+    )
+    close_section = b.end_section
 
     if cv.get("summary"):
         b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10.2, 15, SANS) + SPACE_SECTION)
@@ -1240,7 +1435,8 @@ def _gen_rift(cv: dict) -> list[dict]:
          "backgroundColor": GRAPHITE, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
     ]
     header[1]["letterSpacing"] = 1.7
-    SECTION_CHROME = 40
+    LABEL_FS = 8.5
+    SECTION_CHROME = section_chrome_height(LABEL_FS)
     b = RiftBuilder(202)
 
     def experience_height(job: dict) -> float:
@@ -1264,14 +1460,14 @@ def _gen_rift(cv: dict) -> list[dict]:
             body_fs=8.6, body_lh=11.5,
         )
 
-    def section(label: str) -> None:
-        b.els.append(_rect(510, b.y, 14, 14, RED, 1.2, zIndex=2, page=b.pg))
-        b.text(label, 8.5, SANS, RED, L)
-        b.line(L, W, 1, ASH)
-        b.gap(SPACE_AFTER_RULE)
-
-    def close_section() -> None:
-        b.gap(SPACE_SECTION)
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family=SANS,
+        color=RED, rule_color=ASH,
+        decorate=lambda builder, y: builder.els.append(
+            _rect(510, y + SPACE_MARK, 14, 14, RED, 1.2, zIndex=2, page=builder.pg)
+        ),
+    )
+    close_section = b.end_section
 
     if cv.get("summary"):
         b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
@@ -1473,7 +1669,8 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
         header[2]["letterSpacing"] = 0.1
         header[3]["letterSpacing"] = 1.35
 
-    SECTION_CHROME = 42
+    LABEL_FS = 8.5 if theme != "relay" else 8.3
+    SECTION_CHROME = section_chrome_height(LABEL_FS)
     title_fs = 11 if theme != "relay" else 10.8
     meta_fs = 8.7 if theme != "relay" else 8.6
     body_fs = 9.4 if theme != "relay" else 9.2
@@ -1501,36 +1698,37 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
             body_fs=8.7, body_lh=11.5,
         )
 
-    def section(label: str) -> None:
-        marker_y = b.y + 1
+    def _it_mark(builder: Builder, y: float) -> None:
+        marker_y = y + SPACE_MARK
         if theme == "vector":
-            b.els.extend([
-                _ellipse(L - 27, marker_y, 13, 13, C["accent"], borderWidth=1.2, zIndex=3, page=b.pg),
-                _circle(L - 23, marker_y + 4, 5, C["marker"], filled=True, zIndex=3, page=b.pg),
+            builder.els.extend([
+                _ellipse(L - 27, marker_y, 13, 13, C["accent"], borderWidth=1.2, zIndex=3, page=builder.pg),
+                _circle(L - 23, marker_y + 4, 5, C["marker"], filled=True, zIndex=3, page=builder.pg),
             ])
         elif theme == "kernel":
-            b.els.extend([
-                _circle(L - 24, marker_y + 1, 12, C["marker"], filled=True, zIndex=3, page=b.pg),
-                _line(L - 8, marker_y + 7, 11, 1, C["accent"], zIndex=3, page=b.pg),
+            builder.els.extend([
+                _circle(L - 24, marker_y + 1, 12, C["marker"], filled=True, zIndex=3, page=builder.pg),
+                _line(L - 8, marker_y + 7, 11, 1, C["accent"], zIndex=3, page=builder.pg),
             ])
         elif theme == "relay":
-            b.els.extend([
-                _circle(L - 31, marker_y, 18, C["marker"], borderWidth=1.2, zIndex=3, page=b.pg),
-                _rect(L - 25, marker_y + 6, 6, 6, C["accent"], 1, zIndex=3, page=b.pg),
+            builder.els.extend([
+                _circle(L - 31, marker_y, 18, C["marker"], borderWidth=1.2, zIndex=3, page=builder.pg),
+                _rect(L - 25, marker_y + 6, 6, 6, C["accent"], 1, zIndex=3, page=builder.pg),
             ])
         else:
-            b.els.extend([
-                _ellipse(L - 29, marker_y, 16, 16, "#8587D8", borderWidth=1.2, zIndex=3, page=b.pg),
-                _circle(L - 25, marker_y + 4, 8, C["marker"], filled=True, zIndex=3, page=b.pg),
+            builder.els.extend([
+                _ellipse(L - 29, marker_y, 16, 16, "#8587D8", borderWidth=1.2, zIndex=3, page=builder.pg),
+                _circle(L - 25, marker_y + 4, 8, C["marker"], filled=True, zIndex=3, page=builder.pg),
             ])
-        b.text(label, 8.5 if theme != "relay" else 8.3,
-               "Courier" if theme == "relay" else SANS, C["accent"], L)
-        b.els[-1]["letterSpacing"] = 1.55 if theme != "relay" else 1.1
-        b.line(L, W, 1, C["rule"])
-        b.gap(SPACE_AFTER_RULE)
 
-    def close_section() -> None:
-        b.gap(SPACE_SECTION)
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS,
+        font_family="Courier" if theme == "relay" else SANS,
+        color=C["accent"], rule_color=C["rule"],
+        letter_spacing=1.55 if theme != "relay" else 1.1,
+        decorate=_it_mark,
+    )
+    close_section = b.end_section
 
     if cv.get("summary"):
         b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
@@ -1765,27 +1963,27 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
             body_fs=8.5, body_lh=11.5,
         )
 
-    # Heading label + rule + after-rule gap. Callers reserve this together with
-    # the first body block so section titles are never stranded above the footer.
-    SECTION_CHROME = 36
+    LABEL_FS = 8.4
+    SECTION_CHROME = section_chrome_height(LABEL_FS)
 
-    def section(label: str) -> None:
-        marker_y = b.y + 1
+    def _classic_mark(builder: Builder, y: float) -> None:
+        marker_y = y + SPACE_MARK
         if theme == "scribe":
-            b.els.append(_circle(L - 22, marker_y + 1, 8, C["accent"], filled=True, zIndex=3, page=b.pg))
+            builder.els.append(_circle(L - 22, marker_y + 1, 8, C["accent"], filled=True, zIndex=3, page=builder.pg))
         elif theme == "regent":
-            b.els.append(_rect(L - 25, marker_y + 1, 8, 8, C["accent"], 0.9, zIndex=3, page=b.pg))
+            builder.els.append(_rect(L - 25, marker_y + 1, 8, 8, C["accent"], 0.9, zIndex=3, page=builder.pg))
         elif theme == "aldine":
-            b.els.append(_circle(L - 22, marker_y + 1, 7, C["accent"], filled=True, zIndex=3, page=b.pg))
+            builder.els.append(_circle(L - 22, marker_y + 1, 7, C["accent"], filled=True, zIndex=3, page=builder.pg))
         else:
-            b.els.append(_ellipse(L - 26, marker_y, 13, 13, C["accent"], borderWidth=0.9, zIndex=3, page=b.pg))
-        b.text(label, 8.4, SANS, C["accent"], L)
-        b.els[-1]["letterSpacing"] = 1.6 if label != lbl["skills"] else 1.35
-        b.line(L, W, 1, C["rule"])
-        b.gap(SPACE_AFTER_RULE)
+            builder.els.append(_ellipse(L - 26, marker_y, 13, 13, C["accent"], borderWidth=0.9, zIndex=3, page=builder.pg))
 
-    def close_section() -> None:
-        b.gap(SPACE_SECTION)
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family=SANS,
+        color=C["accent"], rule_color=C["rule"],
+        letter_spacing_for=lambda label: 1.6 if label != lbl["skills"] else 1.35,
+        decorate=_classic_mark,
+    )
+    close_section = b.end_section
 
     if cv.get("summary"):
         b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
@@ -1914,43 +2112,49 @@ def _gen_nocturne(cv: dict) -> list[dict]:
     ]
     b = Builder(192)
 
-    def section(label):
-        b.text(label, 12, "Inter", C["ink"], L, bold=True); b.gap(2)
-        b.line(L, 40, 2, C["coral"]); b.gap(10)
+    LABEL_FS = 12
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family="Inter",
+        color=C["ink"], rule_color=C["coral"], rule_height=2, rule_width=40, bold=True,
+    )
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.5, 15, C["body"], "Inter"); b.gap(18)
+        b.block(cv["summary"], L, W, 10.5, 15, C["body"], "Inter"); b.end_section()
 
     if cv.get("experience"):
         section(lbl["experience"])
-        for job in cv["experience"]:
+        _jobs = cv["experience"]
+        for index, job in enumerate(_jobs):
             b.need(56)
-            b.text(job.get("title", ""), 11, "Inter", C["ink"], L, bold=True); b.gap(2)
-            b.text(_company_period(job), 9.5, "Inter", C["gray"], L); b.gap(2)
+            b.text(job.get("title", ""), 11, "Inter", C["ink"], L, bold=True); b.stack()
+            b.text(_company_period(job), 9.5, "Inter", C["gray"], L); b.stack()
             bul = _bullets(job)
             if bul:
                 b.block(bul, L, W, 10, 14, C["body"], "Inter", bulletList=True)
-            b.gap(12)
+            if index < len(_jobs) - 1:
+                b.record()
+        b.end_section()
         _extra_sections(b, cv, "after_experience", section, C, L, W, "Inter")
 
     if cv.get("skills"):
         b.need(40); section(lbl["skills"])
-        b.block(" · ".join(cv["skills"]), L, W, 10, 15, C["body"], "Inter"); b.gap(14)
+        b.block(" · ".join(cv["skills"]), L, W, 10, 15, C["body"], "Inter"); b.end_section()
 
     _extra_sections(b, cv, "after_skills", section, C, L, W, "Inter")
 
     if cv.get("education"):
         b.need(50); section(lbl["education"])
-        for edu in cv["education"]:
+        _edus = cv["education"]
+        for index, edu in enumerate(_edus):
             _place_education_record(
                 b, edu, L, W,
                 ink=C["ink"], muted=C["gray"], body=C["gray"], font="Inter",
                 mode="text",
                 degree_fs=11, meta_fs=9.5, body_fs=9.5,
-                after_gap=10,
+                after_gap=SPACE_RECORD if index < len(_edus) - 1 else None,
             )
-
+        b.end_section()
     return static + b.build()
 
 
@@ -1969,41 +2173,48 @@ def _gen_ampersand(cv: dict) -> list[dict]:
     ]
     b = Builder(158)
 
-    def section(label):
-        b.text(label, 12, S, C["ink"], L, bold=True); b.gap(2)
+    LABEL_FS = 12
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family=S,
+        color=C["ink"], rule_color=None, bold=True,
+    )
 
     section(lbl["summary"])
-    b.block(cv.get("summary", ""), L, W, 11, 16, C["body"], S); b.gap(16)
+    b.block(cv.get("summary", ""), L, W, 11, 16, C["body"], S); b.end_section()
 
     if cv.get("experience"):
         section(lbl["experience"])
-        for job in cv["experience"]:
+        _jobs = cv["experience"]
+        for index, job in enumerate(_jobs):
             b.need(56)
-            b.text(job.get("title", ""), 11.5, S, C["ink"], L, bold=True); b.gap(2)
-            b.text(job.get("period", ""), 9.5, S, C["gray"], L, italic=True); b.gap(2)
+            b.text(job.get("title", ""), 11.5, S, C["ink"], L, bold=True); b.stack()
+            b.text(job.get("period", ""), 9.5, S, C["gray"], L, italic=True); b.stack()
             company = job.get("company", "")
             if company:
-                b.text(company, 9.5, S, C["gray"], L); b.gap(2)
+                b.text(company, 9.5, S, C["gray"], L); b.stack()
             bul = _bullets(job)
             if bul:
                 b.block(bul, L, W, 10.5, 15, C["body"], S, bulletList=True)
-            b.gap(12)
+            if index < len(_jobs) - 1:
+                b.record()
+        b.end_section()
         _extra_sections(b, cv, "after_experience", section, C, L, W, S, fs=10.5, lh=15)
 
     if cv.get("education"):
         b.need(50); section(lbl["education"])
-        for edu in cv["education"]:
+        _edus = cv["education"]
+        for index, edu in enumerate(_edus):
             _place_education_record(
                 b, edu, L, W,
                 ink=C["ink"], muted=C["gray"], body=C["gray"], font=S,
                 mode="text",
                 degree_fs=11, meta_fs=9.5, body_fs=9.5,
-                after_gap=10,
+                after_gap=SPACE_RECORD if index < len(_edus) - 1 else None,
             )
-
+        b.end_section()
     if cv.get("skills"):
         b.need(40); section(lbl["skills"])
-        b.block(" · ".join(cv["skills"]), L, W, 10.5, 15, C["body"], S); b.gap(14)
+        b.block(" · ".join(cv["skills"]), L, W, 10.5, 15, C["body"], S); b.end_section()
 
     _extra_sections(b, cv, "after_skills", section, C, L, W, S, fs=10.5, lh=15)
 
@@ -2028,44 +2239,51 @@ def _gen_education(cv: dict) -> list[dict]:
     ]
     b = Builder(158)
 
-    def section(label):
-        b.need(30)
-        b.text(label, 12, S, C["ink"], L, bold=True)
-        y_rule = b.y - 8
-        b.els.append(_line(90, y_rule, 150, 1, C["flank"], page=b.pg))
-        b.els.append(_line(355, y_rule, 150, 1, C["flank"], page=b.pg))
-        b.gap(4)
+    LABEL_FS = 12
+    def _edu_rules(builder: Builder, rule_y: float) -> None:
+        y_rule = rule_y - 8
+        builder.els.append(_line(90, y_rule, 150, 1, C["flank"], page=builder.pg))
+        builder.els.append(_line(355, y_rule, 150, 1, C["flank"], page=builder.pg))
+
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family=S,
+        color=C["ink"], bold=True, draw_rule=_edu_rules,
+    )
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.5, 15, C["body"], "Inter"); b.gap(16)
+        b.block(cv["summary"], L, W, 10.5, 15, C["body"], "Inter"); b.end_section()
 
     if cv.get("experience"):
         section(lbl["experience"])
-        for job in cv["experience"]:
+        _jobs = cv["experience"]
+        for index, job in enumerate(_jobs):
             b.need(56)
-            b.text(job.get("title", ""), 11, "Inter", C["ink"], L, bold=True); b.gap(2)
-            b.text(_company_period(job), 9.5, "Inter", C["gray"], L); b.gap(2)
+            b.text(job.get("title", ""), 11, "Inter", C["ink"], L, bold=True); b.stack()
+            b.text(_company_period(job), 9.5, "Inter", C["gray"], L); b.stack()
             bul = _bullets(job)
             if bul:
                 b.block(bul, L, W, 10, 14, C["body"], "Inter", bulletList=True)
-            b.gap(12)
+            if index < len(_jobs) - 1:
+                b.record()
+        b.end_section()
         _extra_sections(b, cv, "after_experience", section, C, L, W, "Inter")
 
     if cv.get("education"):
         b.need(50); section(lbl["education"])
-        for edu in cv["education"]:
+        _edus = cv["education"]
+        for index, edu in enumerate(_edus):
             _place_education_record(
                 b, edu, L, W,
                 ink=C["ink"], muted=C["gray"], body=C["gray"], font="Inter",
                 mode="text",
                 degree_fs=11, meta_fs=9.5, body_fs=9.5,
-                after_gap=10,
+                after_gap=SPACE_RECORD if index < len(_edus) - 1 else None,
             )
-
+        b.end_section()
     if cv.get("skills"):
         b.need(40); section(lbl["skills"])
-        b.block(" · ".join(cv["skills"]), L, W, 10, 15, C["body"], "Inter"); b.gap(14)
+        b.block(" · ".join(cv["skills"]), L, W, 10, 15, C["body"], "Inter"); b.end_section()
 
     _extra_sections(b, cv, "after_skills", section, C, L, W, "Inter")
 
@@ -2107,40 +2325,46 @@ def _gen_it(cv: dict) -> list[dict]:
 
     b = Builder(48)
 
-    def section(label):
-        b.need(30)
-        b.text(label, 12, "Inter", C["ink"], ML, bold=True); b.gap(2)
-        b.els[-1]["left"] = ML
-        b.els.append(_line(ML, b.y - 2, 60, 2, C["teal"], page=b.pg))
-        b.gap(10)
+    LABEL_FS = 12
+    def _it_side_rule(builder: Builder, rule_y: float) -> None:
+        builder.els.append(_line(ML, rule_y, 60, 2, C["teal"], page=builder.pg))
+
+    section = _make_section(
+        b, left=ML, width=MW, font_size=LABEL_FS, font_family="Inter",
+        color=C["ink"], bold=True, draw_rule=_it_side_rule,
+    )
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], ML, MW, 10.5, 15, C["body"], "Inter"); b.gap(16)
+        b.block(cv["summary"], ML, MW, 10.5, 15, C["body"], "Inter"); b.end_section()
 
     if cv.get("experience"):
         section(lbl["experience"])
-        for job in cv["experience"]:
+        _jobs = cv["experience"]
+        for index, job in enumerate(_jobs):
             b.need(56)
-            b.text(job.get("title", ""), 11, "Inter", C["ink"], ML, bold=True); b.gap(2)
-            b.text(_company_period(job), 9.5, "Inter", C["gray"], ML); b.gap(2)
+            b.text(job.get("title", ""), 11, "Inter", C["ink"], ML, bold=True); b.stack()
+            b.text(_company_period(job), 9.5, "Inter", C["gray"], ML); b.stack()
             bul = _bullets(job)
             if bul:
                 b.block(bul, ML, MW, 10, 14, C["body"], "Inter", bulletList=True)
-            b.gap(12)
+            if index < len(_jobs) - 1:
+                b.record()
+        b.end_section()
         _extra_sections(b, cv, "after_experience", section, C, ML, MW, "Inter")
 
     if cv.get("education"):
         b.need(50); section(lbl["education"])
-        for edu in cv["education"]:
+        _edus = cv["education"]
+        for index, edu in enumerate(_edus):
             _place_education_record(
-                b, edu, ML, W,
+                b, edu, ML, MW,
                 ink=C["ink"], muted=C["gray"], body=C["gray"], font="Inter",
                 mode="text",
                 degree_fs=11, meta_fs=9.5, body_fs=9.5,
-                after_gap=10,
+                after_gap=SPACE_RECORD if index < len(_edus) - 1 else None,
             )
-
+        b.end_section()
     _extra_sections(b, cv, "after_skills", section, C, ML, MW, "Inter")
 
     return static + b.build()
@@ -2174,33 +2398,39 @@ def _gen_blueprint(cv: dict) -> list[dict]:
 
     b = Builder(176)
 
-    def section(label):
-        b.need(30)
-        b.text(label, 10, "Courier", C["blue"], ML, bold=True); b.gap(10)
+    LABEL_FS = 10
+    section = _make_section(
+        b, left=ML, width=MW, font_size=LABEL_FS, font_family="Courier",
+        color=C["blue"], rule_color=None, bold=True,
+    )
 
     if cv.get("experience"):
         section(lbl["experience"])
-        for job in cv["experience"]:
+        _jobs = cv["experience"]
+        for index, job in enumerate(_jobs):
             b.need(56)
-            b.text(job.get("title", ""), 11, "Inter", C["ink"], ML, bold=True); b.gap(2)
-            b.text(_company_period(job), 9.5, "Inter", C["gray"], ML); b.gap(2)
+            b.text(job.get("title", ""), 11, "Inter", C["ink"], ML, bold=True); b.stack()
+            b.text(_company_period(job), 9.5, "Inter", C["gray"], ML); b.stack()
             bul = _bullets(job)
             if bul:
                 b.block(bul, ML, MW, 10, 14, C["body"], "Inter", bulletList=True)
-            b.gap(12)
+            if index < len(_jobs) - 1:
+                b.record()
+        b.end_section()
         _extra_sections(b, cv, "after_experience", section, C, ML, MW, "Inter")
 
     if cv.get("education"):
         b.need(50); section(lbl["education"])
-        for edu in cv["education"]:
+        _edus = cv["education"]
+        for index, edu in enumerate(_edus):
             _place_education_record(
-                b, edu, ML, W,
+                b, edu, ML, MW,
                 ink=C["ink"], muted=C["gray"], body=C["gray"], font="Inter",
                 mode="text",
                 degree_fs=11, meta_fs=9.5, body_fs=9.5,
-                after_gap=10,
+                after_gap=SPACE_RECORD if index < len(_edus) - 1 else None,
             )
-
+        b.end_section()
     _extra_sections(b, cv, "after_skills", section, C, ML, MW, "Inter")
 
     return static + b.build()
@@ -2218,46 +2448,51 @@ def _gen_monolith(cv: dict) -> list[dict]:
     b.text(_contact_line(cv), 9.5, "Inter", LG, L); b.gap(8)
     b.line(L, W, 0.5, "#444444"); b.gap(16)
 
-    def section(label):
-        b.need(30)
-        # 4 px black bar at current y — line doesn't advance b.y
-        b.els.append(_line(L, b.y, 4, 12, K, zIndex=2, page=b.pg))
-        b.text(label, 11, "Inter", K, 68, bold=True); b.gap(6)
+    LABEL_FS = 11
+    section = _make_section(
+        b, left=68, width=W, font_size=LABEL_FS, font_family="Inter",
+        color=K, rule_color=None, bold=True,
+        decorate=lambda builder, y: builder.els.append(_line(L, y + SPACE_MARK, 4, 12, K, zIndex=2, page=builder.pg)),
+    )
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.5, 15, MG, "Inter"); b.gap(14)
+        b.block(cv["summary"], L, W, 10.5, 15, MG, "Inter"); b.end_section()
 
     if cv.get("experience"):
         section(lbl["experience"])
-        for job in cv["experience"]:
+        _jobs = cv["experience"]
+        for index, job in enumerate(_jobs):
             b.need(56)
-            b.text(job.get("title", ""), 11, "Inter", K, L, bold=True); b.gap(2)
-            b.text(_company_period(job), 9.5, "Inter", MG, L); b.gap(2)
+            b.text(job.get("title", ""), 11, "Inter", K, L, bold=True); b.stack()
+            b.text(_company_period(job), 9.5, "Inter", MG, L); b.stack()
             bul = _bullets(job)
             if bul:
                 b.block(bul, L, W, 10, 14, MG, "Inter", bulletList=True)
-            b.gap(12)
+            if index < len(_jobs) - 1:
+                b.record()
+        b.end_section()
         _extra_sections(b, cv, "after_experience", section, {"body": MG}, L, W, "Inter", fs=10, lh=14)
 
     if cv.get("education"):
         b.need(50)
-        b.els.append(_line(L, b.y, W, 0.5, VLG, page=b.pg)); b.gap(14)
+        b.els.append(_line(L, b.y, W, 0.5, VLG, page=b.pg))
         section(lbl["education"])
-        for edu in cv["education"]:
+        _edus = cv["education"]
+        for index, edu in enumerate(_edus):
             _place_education_record(
                 b, edu, L, W,
                 ink=K, muted=MG, body=MG, font="Inter",
                 mode="text",
                 degree_fs=11, meta_fs=9.5, body_fs=9.5,
-                after_gap=10,
+                after_gap=SPACE_RECORD if index < len(_edus) - 1 else None,
             )
-
+        b.end_section()
     if cv.get("skills"):
         b.need(44)
-        b.els.append(_line(L, b.y, W, 0.5, VLG, page=b.pg)); b.gap(14)
+        b.els.append(_line(L, b.y, W, 0.5, VLG, page=b.pg))
         section(lbl["skills"])
-        b.block(" · ".join(cv["skills"]), L, W, 10, 15, MG, "Inter"); b.gap(14)
+        b.block(" · ".join(cv["skills"]), L, W, 10, 15, MG, "Inter"); b.end_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": MG}, L, W, "Inter", fs=10, lh=15)
     return b.build()
@@ -2285,46 +2520,53 @@ def _gen_prism(cv: dict) -> list[dict]:
     b = Builder(148)
     col = [0]   # mutable colour-cycle index
 
-    def section(label):
-        b.need(30)
+    LABEL_FS = 12
+    def _prism_mark(builder: Builder, y: float) -> None:
         c = COLORS[col[0] % len(COLORS)]; col[0] += 1
-        # coloured square at current y — does not advance b.y
-        b.els.append(_line(L, b.y + 1, 10, 10, c, zIndex=2, page=b.pg))
-        b.text(label, 12, "Inter", INK, 68, bold=True); b.gap(8)
+        builder.els.append(_line(L, y + SPACE_MARK, 10, 10, c, zIndex=2, page=builder.pg))
+
+    section = _make_section(
+        b, left=68, width=W, font_size=LABEL_FS, font_family="Inter",
+        color=INK, rule_color=None, bold=True, decorate=_prism_mark,
+    )
 
     b.text(_contact_line(cv), 9.5, "Inter", "#9CA3AF", L); b.gap(8)
     b.line(L, W, 1.5, ORANGE); b.gap(16)
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.5, 15, GRAY, "Inter"); b.gap(16)
+        b.block(cv["summary"], L, W, 10.5, 15, GRAY, "Inter"); b.end_section()
 
     if cv.get("experience"):
         section(lbl["experience"])
-        for job in cv["experience"]:
+        _jobs = cv["experience"]
+        for index, job in enumerate(_jobs):
             b.need(56)
-            b.text(job.get("title", ""), 11, "Inter", INK, L, bold=True); b.gap(2)
-            b.text(_company_period(job), 9.5, "Inter", GRAY, L); b.gap(2)
+            b.text(job.get("title", ""), 11, "Inter", INK, L, bold=True); b.stack()
+            b.text(_company_period(job), 9.5, "Inter", GRAY, L); b.stack()
             bul = _bullets(job)
             if bul:
                 b.block(bul, L, W, 10, 14, GRAY, "Inter", bulletList=True)
-            b.gap(12)
+            if index < len(_jobs) - 1:
+                b.record()
+        b.end_section()
         _extra_sections(b, cv, "after_experience", section, {"body": GRAY}, L, W, "Inter")
 
     if cv.get("education"):
         b.need(50); section(lbl["education"])
-        for edu in cv["education"]:
+        _edus = cv["education"]
+        for index, edu in enumerate(_edus):
             _place_education_record(
                 b, edu, L, W,
                 ink=INK, muted=GRAY, body=GRAY, font="Inter",
                 mode="text",
                 degree_fs=11, meta_fs=9.5, body_fs=9.5,
-                after_gap=10,
+                after_gap=SPACE_RECORD if index < len(_edus) - 1 else None,
             )
-
+        b.end_section()
     if cv.get("skills"):
         b.need(40); section(lbl["skills"])
-        b.block(" · ".join(cv["skills"]), L, W, 10, 15, GRAY, "Inter"); b.gap(14)
+        b.block(" · ".join(cv["skills"]), L, W, 10, 15, GRAY, "Inter"); b.end_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": GRAY}, L, W, "Inter")
     return static + b.build()
@@ -2345,42 +2587,46 @@ def _gen_aria(cv: dict) -> list[dict]:
     b.text(_contact_line(cv), 9, "Inter", MID, L); b.gap(10)
     b.line(L, W, 0.5, SOFT); b.gap(26)
 
-    def section(label):
-        b.need(40)
-        # very small heading, then a hairline rule below
-        b.text(label, 9, "Inter", MID, L); b.gap(2)
-        b.line(L, W, 0.5, SOFT); b.gap(14)
+    LABEL_FS = 9
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family="Inter",
+        color=MID, rule_color=SOFT, rule_height=0.5,
+    )
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.5, 16, MID, "Inter"); b.gap(24)
+        b.block(cv["summary"], L, W, 10.5, 16, MID, "Inter"); b.end_section()
 
     if cv.get("experience"):
         section(lbl["experience"])
-        for job in cv["experience"]:
+        jobs = cv["experience"]
+        for index, job in enumerate(jobs):
             b.need(60)
-            b.text(job.get("title", ""), 11, "Inter", INK, L, bold=True); b.gap(2)
-            b.text(_company_period(job), 9.5, "Inter", MID, L); b.gap(4)
+            b.text(job.get("title", ""), 11, "Inter", INK, L, bold=True); b.stack()
+            b.text(_company_period(job), 9.5, "Inter", MID, L); b.stack()
             bul = _bullets(job)
             if bul:
                 b.block(bul, L, W, 10.5, 16, MID, "Inter", bulletList=True)
-            b.gap(16)
+            if index < len(jobs) - 1:
+                b.record()
+        b.end_section()
         _extra_sections(b, cv, "after_experience", section, {"body": MID}, L, W, "Inter", fs=10.5, lh=16)
 
     if cv.get("education"):
-        b.gap(8); section(lbl["education"])
-        for edu in cv["education"]:
+        section(lbl["education"])
+        _edus = cv["education"]
+        for index, edu in enumerate(_edus):
             _place_education_record(
                 b, edu, L, W,
                 ink=INK, muted=MID, body=MID, font="Inter",
                 mode="text",
                 degree_fs=11, meta_fs=9.5, body_fs=9.5,
-                after_gap=10,
+                after_gap=SPACE_RECORD if index < len(_edus) - 1 else None,
             )
-
+        b.end_section()
     if cv.get("skills"):
-        b.gap(8); section(lbl["skills"])
-        b.block(" · ".join(cv["skills"]), L, W, 10.5, 16, MID, "Inter"); b.gap(14)
+        section(lbl["skills"])
+        b.block(" · ".join(cv["skills"]), L, W, 10.5, 16, MID, "Inter"); b.end_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": MID}, L, W, "Inter", fs=10.5, lh=16)
     return b.build()
@@ -2435,27 +2681,32 @@ def _gen_sterling(cv: dict) -> list[dict]:
     # ---- flowing sections ----
     b = Builder(244)
 
-    def section(label):
-        b.need(34)
-        b.els.append(_rect(L, b.y + 2, 9, 9, ACCENT, 1.5, zIndex=2, page=b.pg))
-        b.text(label, 11.5, S, NAVY, 72, bold=True)
-        b.els.append(_line(L, b.y - 2, W, 1, PALE, page=b.pg))
-        b.gap(8)
+    LABEL_FS = 11.5
+    section = _make_section(
+        b, left=72, width=W, font_size=LABEL_FS, font_family=S,
+        color=NAVY, rule_color=PALE, bold=True,
+        decorate=lambda builder, y: builder.els.append(
+            _rect(L, y + SPACE_MARK, 9, 9, ACCENT, 1.5, zIndex=2, page=builder.pg)
+        ),
+    )
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.5, 15, BODY, I); b.gap(16)
+        b.block(cv["summary"], L, W, 10.5, 15, BODY, I); b.end_section()
 
     if exp:
         section(lbl["experience"])
-        for job in exp:
+        _jobs = exp
+        for index, job in enumerate(_jobs):
             b.need(56)
-            b.text(job.get("title", ""), 11, I, NAVY, L, bold=True); b.gap(2)
-            b.text(_company_period(job), 9, I, GRAY, L); b.gap(2)
+            b.text(job.get("title", ""), 11, I, NAVY, L, bold=True); b.stack()
+            b.text(_company_period(job), 9, I, GRAY, L); b.stack()
             bul = _bullets(job)
             if bul:
                 b.block(bul, L, W, 10, 14, BODY, I, bulletList=True)
-            b.gap(12)
+            if index < len(_jobs) - 1:
+                b.record()
+        b.end_section()
         _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, I)
 
     if cv.get("education"):
@@ -2466,12 +2717,12 @@ def _gen_sterling(cv: dict) -> list[dict]:
                 ink=NAVY, muted=GRAY, body=GRAY, font=I,
                 mode="text",
                 degree_fs=10.5, meta_fs=9, body_fs=9,
-                after_gap=10,
+                after_gap=SPACE_RECORD,
             )
 
     if skills:
         b.need(40); section(lbl["skills"])
-        b.block(" · ".join(skills), L, W, 10, 15, BODY, I); b.gap(14)
+        b.block(" · ".join(skills), L, W, 10, 15, BODY, I); b.end_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, I)
 
@@ -2525,44 +2776,51 @@ def _gen_solstice(cv: dict) -> list[dict]:
     ]
     b = Builder(162)
 
-    def section(label):
-        b.need(34)
-        b.els.append(_line(L, b.y + 6, 32, 2, SUN, page=b.pg))
-        b.text(label, 11, SANS, MIDNIGHT, L + 42, bold=True)
-        b.els.append(_line(L + 42, b.y - 1, 274, 0.75, "#D8D1C5", page=b.pg))
-        b.gap(8)
+    LABEL_FS = 11
+    def _solstice_mark(builder: Builder, y: float) -> None:
+        builder.els.append(_line(L, y + SPACE_MARK + 5, 32, 2, SUN, page=builder.pg))
+
+    section = _make_section(
+        b, left=L + 42, width=274, font_size=LABEL_FS, font_family=SANS,
+        color=MIDNIGHT, rule_color="#D8D1C5", rule_height=0.75, bold=True,
+        decorate=_solstice_mark,
+    )
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.5, 15, MIST, SANS); b.gap(18)
+        b.block(cv["summary"], L, W, 10.5, 15, MIST, SANS); b.end_section()
 
     if cv.get("experience"):
         section(lbl["experience"])
-        for job in cv["experience"]:
+        _jobs = cv["experience"]
+        for index, job in enumerate(_jobs):
             b.need(80)
-            b.block(job.get("title", ""), L, W, 11.2, 14, INK, SANS, bold=True, min_h=16); b.gap(1)
-            b.block(_company_period(job), L, W, 9.2, 12, MIST, SANS, min_h=13); b.gap(3)
+            b.block(job.get("title", ""), L, W, 11.2, 14, INK, SANS, bold=True, min_h=16); b.stack()
+            b.block(_company_period(job), L, W, 9.2, 12, MIST, SANS, min_h=13); b.stack()
             bullets = _bullets(job)
             if bullets:
                 b.block(bullets, L, W, 10, 14, INK, SANS, bulletList=True)
-            b.gap(13)
+            if index < len(_jobs) - 1:
+                b.record()
+        b.end_section()
         _extra_sections(b, cv, "after_experience", section, {"body": INK}, L, W, SANS)
 
     if cv.get("education"):
         b.need(58); section(lbl["education"])
-        for edu in cv["education"]:
+        _edus = cv["education"]
+        for index, edu in enumerate(_edus):
             _place_education_record(
                 b, edu, L, W,
                 ink=INK, muted=MIST, body=MIST, font=SANS,
                 degree_fs=10.5, degree_lh=13,
                 meta_fs=9.2, meta_lh=12,
                 body_fs=9.2, body_lh=12,
-                after_gap=10,
+                after_gap=SPACE_RECORD if index < len(_edus) - 1 else None,
             )
-
+        b.end_section()
     if cv.get("skills"):
         b.need(42); section(lbl["skills"])
-        b.block(" · ".join(cv["skills"]), L, W, 10, 14, INK, SANS); b.gap(14)
+        b.block(" · ".join(cv["skills"]), L, W, 10, 14, INK, SANS); b.end_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": INK}, L, W, SANS)
     flow = b.build()
@@ -2613,44 +2871,51 @@ def _gen_mistral(cv: dict) -> list[dict]:
     ]
     b = Builder(194)
 
-    def section(label):
-        b.need(34)
-        b.els.append(_line(188, b.y + 4, 5, 16, SEA, zIndex=2, page=b.pg))
-        b.text(label, 10.5, SANS, DEEP, L, bold=True)
-        b.els.append(_line(L, b.y + 2, W, 0.75, "#D9E1DE", page=b.pg))
-        b.gap(10)
+    LABEL_FS = 10.5
+    def _mistral_mark(builder: Builder, y: float) -> None:
+        builder.els.append(_line(188, y + SPACE_MARK + 3, 5, 16, SEA, zIndex=2, page=builder.pg))
+
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family=SANS,
+        color=DEEP, rule_color="#D9E1DE", rule_height=0.75, bold=True,
+        decorate=_mistral_mark,
+    )
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10, 14, INK, SANS); b.gap(16)
+        b.block(cv["summary"], L, W, 10, 14, INK, SANS); b.end_section()
 
     if cv.get("experience"):
         section(lbl["experience"])
-        for job in cv["experience"]:
+        _jobs = cv["experience"]
+        for index, job in enumerate(_jobs):
             b.need(80)
-            b.block(job.get("title", ""), L, W, 11.2, 14, INK, SANS, bold=True, min_h=16); b.gap(1)
-            b.block(_company_period(job), L, W, 9.2, 12, DRIFT, SANS, min_h=13); b.gap(3)
+            b.block(job.get("title", ""), L, W, 11.2, 14, INK, SANS, bold=True, min_h=16); b.stack()
+            b.block(_company_period(job), L, W, 9.2, 12, DRIFT, SANS, min_h=13); b.stack()
             bullets = _bullets(job)
             if bullets:
                 b.block(bullets, L, W, 10, 14, INK, SANS, bulletList=True)
-            b.gap(13)
+            if index < len(_jobs) - 1:
+                b.record()
+        b.end_section()
         _extra_sections(b, cv, "after_experience", section, {"body": INK}, L, W, SANS)
 
     if cv.get("education"):
         b.need(58); section(lbl["education"])
-        for edu in cv["education"]:
+        _edus = cv["education"]
+        for index, edu in enumerate(_edus):
             _place_education_record(
                 b, edu, L, W,
                 ink=INK, muted=DRIFT, body=DRIFT, font=SANS,
                 degree_fs=10.5, degree_lh=13,
                 meta_fs=9.2, meta_lh=12,
                 body_fs=9.2, body_lh=12,
-                after_gap=10,
+                after_gap=SPACE_RECORD if index < len(_edus) - 1 else None,
             )
-
+        b.end_section()
     if cv.get("skills"):
         b.need(40); section(lbl["skills"])
-        b.block(" · ".join(cv["skills"]), L, W, 10, 14, INK, SANS); b.gap(14)
+        b.block(" · ".join(cv["skills"]), L, W, 10, 14, INK, SANS); b.end_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": INK}, L, W, SANS)
     flow = b.build()
@@ -2690,44 +2955,50 @@ def _gen_axiom(cv: dict) -> list[dict]:
     static[5]["letterSpacing"] = 1.35
     b = Builder(188)
 
-    def section(label):
-        b.need(34)
-        b.els.append(_rect(L, b.y + 1, 18, 18, ACCENT, 1.4, zIndex=1, page=b.pg))
-        b.text(label, 11, SANS, INK, L + 32, bold=True)
-        b.els.append(_line(L + 32, b.y - 1, W - 32, 0.75, PALE, page=b.pg))
-        b.gap(8)
+    LABEL_FS = 11
+    section = _make_section(
+        b, left=L + 32, width=W - 32, font_size=LABEL_FS, font_family=SANS,
+        color=INK, rule_color=PALE, rule_height=0.75, bold=True,
+        decorate=lambda builder, y: builder.els.append(
+            _rect(L, y + SPACE_MARK, 18, 18, ACCENT, 1.4, zIndex=1, page=builder.pg)
+        ),
+    )
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.4, 15, BODY, SANS); b.gap(16)
+        b.block(cv["summary"], L, W, 10.4, 15, BODY, SANS); b.end_section()
 
     if cv.get("experience"):
         section(lbl["experience"])
-        for job in cv["experience"]:
+        _jobs = cv["experience"]
+        for index, job in enumerate(_jobs):
             b.need(78)
-            b.block(job.get("title", ""), L, W, 11, 13.5, INK, SANS, bold=True, min_h=15); b.gap(1)
-            b.block(_company_period(job), L, W, 9, 11.5, SLATE, SANS, min_h=12); b.gap(3)
+            b.block(job.get("title", ""), L, W, 11, 13.5, INK, SANS, bold=True, min_h=15); b.stack()
+            b.block(_company_period(job), L, W, 9, 11.5, SLATE, SANS, min_h=12); b.stack()
             bullets = _bullets(job)
             if bullets:
                 b.block(bullets, L, W, 9.8, 13.5, BODY, SANS, bulletList=True)
-            b.gap(12)
+            if index < len(_jobs) - 1:
+                b.record()
+        b.end_section()
         _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, SANS, fs=9.8, lh=13.5)
 
     if cv.get("education"):
         b.need(56); section(lbl["education"])
-        for edu in cv["education"]:
+        _edus = cv["education"]
+        for index, edu in enumerate(_edus):
             _place_education_record(
                 b, edu, L, W,
                 ink=INK, muted=SLATE, body=SLATE, font=SANS,
                 degree_fs=10.6, degree_lh=13,
                 meta_fs=9, meta_lh=11.5,
                 body_fs=9, body_lh=11.5,
-                after_gap=10,
+                after_gap=SPACE_RECORD if index < len(_edus) - 1 else None,
             )
-
+        b.end_section()
     if cv.get("skills"):
         b.need(40); section(lbl["skills"])
-        b.block(" · ".join(cv["skills"]), L, W, 10, 15, BODY, SANS); b.gap(14)
+        b.block(" · ".join(cv["skills"]), L, W, 10, 15, BODY, SANS); b.end_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, SANS, fs=10, lh=15)
     flow = b.build()
@@ -2766,43 +3037,50 @@ def _gen_vellum(cv: dict) -> list[dict]:
     static[3]["letterSpacing"] = 1.45
     b = Builder(186)
 
-    def section(label):
-        b.need(40)
-        b.els.append(_rect(L, b.y, W, 26, CLAY, 1, zIndex=1, page=b.pg))
-        b.text(label, 11, SANS, WINE, L + 16, bold=True)
-        b.gap(14)
+    LABEL_FS = 11
+    section = _make_section(
+        b, left=L + 16, width=W - 16, font_size=LABEL_FS, font_family=SANS,
+        color=WINE, rule_color=None, bold=True,
+        decorate=lambda builder, y: builder.els.append(
+            _rect(L, y, W, 26, CLAY, 1, zIndex=1, page=builder.pg)
+        ),
+    )
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.3, 15, BODY, SANS); b.gap(18)
+        b.block(cv["summary"], L, W, 10.3, 15, BODY, SANS); b.end_section()
 
     if cv.get("experience"):
         section(lbl["experience"])
-        for job in cv["experience"]:
+        _jobs = cv["experience"]
+        for index, job in enumerate(_jobs):
             b.need(78)
-            b.block(job.get("title", ""), L, W, 11, 13.5, INK, SANS, bold=True, min_h=15); b.gap(1)
-            b.block(_company_period(job), L, W, 9, 11.5, GRAY, SANS, min_h=12); b.gap(3)
+            b.block(job.get("title", ""), L, W, 11, 13.5, INK, SANS, bold=True, min_h=15); b.stack()
+            b.block(_company_period(job), L, W, 9, 11.5, GRAY, SANS, min_h=12); b.stack()
             bullets = _bullets(job)
             if bullets:
                 b.block(bullets, L, W, 9.8, 13.5, BODY, SANS, bulletList=True)
-            b.gap(12)
+            if index < len(_jobs) - 1:
+                b.record()
+        b.end_section()
         _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, SANS, fs=9.8, lh=13.5)
 
     if cv.get("education"):
         b.need(56); section(lbl["education"])
-        for edu in cv["education"]:
+        _edus = cv["education"]
+        for index, edu in enumerate(_edus):
             _place_education_record(
                 b, edu, L, W,
                 ink=INK, muted=GRAY, body=GRAY, font=SANS,
                 degree_fs=10.6, degree_lh=13,
                 meta_fs=9, meta_lh=11.5,
                 body_fs=9, body_lh=11.5,
-                after_gap=10,
+                after_gap=SPACE_RECORD if index < len(_edus) - 1 else None,
             )
-
+        b.end_section()
     if cv.get("skills"):
         b.need(42); section(lbl["skills"])
-        b.block(" · ".join(cv["skills"]), L, W, 10, 15, BODY, SANS); b.gap(14)
+        b.block(" · ".join(cv["skills"]), L, W, 10, 15, BODY, SANS); b.end_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, SANS, fs=10, lh=15)
     flow = b.build()
@@ -2912,7 +3190,7 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
         section_label["letterSpacing"] = 1.2
         sidebar_static.extend([
             section_label,
-            _line(sidebar_left, section_data["top"] + 12, 44, 1, C["accent"], zIndex=3),
+            _line(sidebar_left, section_data.get("rule_top", section_data["top"] + 12), 44, 1, C["accent"], zIndex=3),
             _block(
                 section_data["content"], sidebar_left, section_data["body_top"],
                 sidebar_width, section_data["body_height"], section_data["fontSize"],
@@ -2959,23 +3237,25 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
             body_fs=8.6, body_lh=11.5,
         )
 
-    SECTION_CHROME = 36
+    LABEL_FS = 8.4
+    SECTION_CHROME = section_chrome_height(LABEL_FS)
 
-    def section(label: str) -> None:
-        marker_y = b.y + 1
+    def _sidebar_mark(builder: Builder, y: float) -> None:
+        marker_y = y + SPACE_MARK
         if C["section"] == "rectangle":
-            b.els.append(_rect(L - 22, marker_y, 9, 9, C["marker"], 1, zIndex=3, page=b.pg))
+            builder.els.append(_rect(L - 22, marker_y, 9, 9, C["marker"], 1, zIndex=3, page=builder.pg))
         elif C["section"] == "ellipse":
-            b.els.append(_ellipse(L - 23, marker_y, 12, 12, C["marker"], borderWidth=1, zIndex=3, page=b.pg))
+            builder.els.append(_ellipse(L - 23, marker_y, 12, 12, C["marker"], borderWidth=1, zIndex=3, page=builder.pg))
         else:
-            b.els.append(_circle(L - 22, marker_y + 1, 8, C["accent"], filled=True, zIndex=3, page=b.pg))
-        b.text(label, 8.4, SANS, C["marker"], L)
-        b.els[-1]["letterSpacing"] = 1.55 if label != lbl["skills"] else 1.3
-        b.line(L, W, 1, C["rule"])
-        b.gap(SPACE_AFTER_RULE)
+            builder.els.append(_circle(L - 22, marker_y + 1, 8, C["accent"], filled=True, zIndex=3, page=builder.pg))
 
-    def close_section() -> None:
-        b.gap(SPACE_SECTION)
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family=SANS,
+        color=C["marker"], rule_color=C["rule"],
+        letter_spacing_for=lambda label: 1.55 if label != lbl["skills"] else 1.3,
+        decorate=_sidebar_mark,
+    )
+    close_section = b.end_section
 
     if cv.get("summary"):
         b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
@@ -3110,15 +3390,15 @@ def _gen_obsidian(cv: dict) -> list[dict]:
 
     b = Builder(148)
 
-    def section(label: str) -> None:
-        b.need(34)
-        b.els.append(_circle(L - 18, b.y + 2, 7, GOLD, filled=True, zIndex=3, page=b.pg))
-        b.text(label, 8.6, SANS, INK, L, bold=True)
-        b.els.append(_line(L, b.y - 2, W, 1, RULE, page=b.pg))
-        b.gap(SPACE_AFTER_RULE)
-
-    def close_section() -> None:
-        b.gap(SPACE_SECTION)
+    LABEL_FS = 8.6
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family=SANS,
+        color=INK, rule_color=RULE, bold=True,
+        decorate=lambda builder, y: builder.els.append(
+            _circle(L - 18, y + SPACE_MARK, 7, GOLD, filled=True, zIndex=3, page=builder.pg)
+        ),
+    )
+    close_section = b.end_section
 
     if cv.get("summary"):
         section(lbl["summary"])
@@ -3143,16 +3423,17 @@ def _gen_obsidian(cv: dict) -> list[dict]:
         _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, SANS, fs=9.4, lh=13.3)
 
     if cv.get("education"):
+        education_entries = cv["education"]
         b.need(50)
         section(lbl["education"])
-        for index, edu in enumerate(cv["education"]):
+        for index, edu in enumerate(education_entries):
             _place_education_record(
                 b, edu, L, W,
                 ink=INK, muted=MUTED, body=BODY, font=SANS,
                 degree_fs=10.3, degree_lh=13,
                 meta_fs=8.7, meta_lh=11.5,
                 body_fs=8.7, body_lh=11.5,
-                after_gap=SPACE_RECORD,
+                after_gap=SPACE_RECORD if index < len(education_entries) - 1 else None,
             )
         close_section()
 
@@ -3206,7 +3487,8 @@ def _gen_raven(cv: dict) -> list[dict]:
          "backgroundColor": TEAL, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
     ]
     header[4]["letterSpacing"] = 1.65
-    SECTION_CHROME = 40
+    LABEL_FS = 8.7
+    SECTION_CHROME = section_chrome_height(LABEL_FS)
     b = Builder(205)
 
     def experience_height(job: dict) -> float:
@@ -3226,14 +3508,14 @@ def _gen_raven(cv: dict) -> list[dict]:
             degree_fs=10.3, degree_lh=13, meta_fs=8.7, meta_lh=11.5, body_fs=8.7, body_lh=11.5,
         )
 
-    def section(label: str) -> None:
-        b.els.append(_rect(526, b.y + 2, 16, 16, TEAL, 1.2, zIndex=2, page=b.pg))
-        b.text(label, 8.7, SANS, TEAL, L)
-        b.line(L, W, 1, RULE)
-        b.gap(SPACE_AFTER_RULE)
-
-    def close_section() -> None:
-        b.gap(SPACE_SECTION)
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family=SANS,
+        color=TEAL, rule_color=RULE,
+        decorate=lambda builder, y: builder.els.append(
+            _rect(526, y + SPACE_MARK, 16, 16, TEAL, 1.2, zIndex=2, page=builder.pg)
+        ),
+    )
+    close_section = b.end_section
 
     if cv.get("summary"):
         b.need(SECTION_CHROME + b.measure_block(cv["summary"], W, 10.2, 15, SANS) + SPACE_SECTION)
@@ -3314,16 +3596,12 @@ def _gen_graphite(cv: dict) -> list[dict]:
     b.text(_compact_text(_contact_line(cv), 82), 9, SANS, MUTED, L); b.gap(10)
     b.line(L, W, 0.5, HAIRLINE); b.gap(24)
 
-    def section(label: str) -> None:
-        b.need(38)
-        b.text(label, 9, SANS, SILVER, L)
-        b.els[-1]["letterSpacing"] = 1.6
-        b.gap(2)
-        b.line(L, W, 0.5, HAIRLINE)
-        b.gap(14)
-
-    def close_section() -> None:
-        b.gap(SPACE_SECTION)
+    LABEL_FS = 9
+    section = _make_section(
+        b, left=L, width=W, font_size=LABEL_FS, font_family=SANS,
+        color=SILVER, rule_color=HAIRLINE, rule_height=0.5, letter_spacing=1.6,
+    )
+    close_section = b.end_section
 
     if cv.get("summary"):
         section(lbl["summary"])
@@ -3335,8 +3613,8 @@ def _gen_graphite(cv: dict) -> list[dict]:
         section(lbl["experience"])
         for index, job in enumerate(jobs):
             b.need(56)
-            b.text(job.get("title", ""), 11, SANS, INK, L, bold=True); b.gap(2)
-            b.text(_company_period(job), 9.3, SANS, MUTED, L); b.gap(2)
+            b.text(job.get("title", ""), 11, SANS, INK, L, bold=True); b.stack()
+            b.text(_company_period(job), 9.3, SANS, MUTED, L); b.stack()
             bullets = _bullets(job)
             if bullets:
                 b.block(bullets, L, W, 10, 14.5, BODY, SANS, bulletList=True)
@@ -3422,27 +3700,32 @@ def _gen_onyx(cv: dict) -> list[dict]:
 
     b = Builder(244)
 
-    def section(label: str) -> None:
-        b.need(34)
-        b.els.append(_rect(L, b.y + 2, 9, 9, FRAME, 1.5, zIndex=2, page=b.pg))
-        b.text(label, 11.5, S, IVORY, 72, bold=True)
-        b.els.append(_line(L, b.y - 2, W, 1, RULE, page=b.pg))
-        b.gap(8)
+    LABEL_FS = 11.5
+    section = _make_section(
+        b, left=72, width=W, font_size=LABEL_FS, font_family=S,
+        color=IVORY, rule_color=RULE, bold=True,
+        decorate=lambda builder, y: builder.els.append(
+            _rect(L, y + SPACE_MARK, 9, 9, FRAME, 1.5, zIndex=2, page=builder.pg)
+        ),
+    )
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.5, 15, BODY, I); b.gap(16)
+        b.block(cv["summary"], L, W, 10.5, 15, BODY, I); b.end_section()
 
     if exp:
         section(lbl["experience"])
-        for job in exp:
+        _jobs = exp
+        for index, job in enumerate(_jobs):
             b.need(56)
-            b.text(job.get("title", ""), 11, I, IVORY, L, bold=True); b.gap(2)
-            b.text(_company_period(job), 9, I, MUTED, L); b.gap(2)
+            b.text(job.get("title", ""), 11, I, IVORY, L, bold=True); b.stack()
+            b.text(_company_period(job), 9, I, MUTED, L); b.stack()
             bul = _bullets(job)
             if bul:
                 b.block(bul, L, W, 10, 14, BODY, I, bulletList=True)
-            b.gap(12)
+            if index < len(_jobs) - 1:
+                b.record()
+        b.end_section()
         _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, I)
 
     if cv.get("education"):
@@ -3453,12 +3736,12 @@ def _gen_onyx(cv: dict) -> list[dict]:
                 ink=IVORY, muted=MUTED, body=BODY, font=I,
                 degree_fs=10.5, degree_lh=14, meta_fs=9, meta_lh=12.5,
                 body_fs=9, body_lh=13,
-                after_gap=10,
+                after_gap=SPACE_RECORD,
             )
 
     if skills:
         b.need(40); section(lbl["skills"])
-        b.block(" · ".join(skills), L, W, 10, 15, BODY, I); b.gap(14)
+        b.block(" · ".join(skills), L, W, 10, 15, BODY, I); b.end_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, I)
 
