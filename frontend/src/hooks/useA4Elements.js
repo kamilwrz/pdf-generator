@@ -25,8 +25,6 @@ export const PAGE_PRESETS = {
 const ZOOM_MIN = 0.25;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.1;
-// < 1 slows pointer-follow while dragging (1 = 1:1 with the cursor).
-const DRAG_SPEED = 0.45;
 const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
 const stepZoom = (z, dir) => clampZoom(Math.round((z + dir * ZOOM_STEP) * 10) / 10);
 
@@ -78,6 +76,7 @@ export function useA4Elements(titleRef) {
   const activeDragElementIdRef = useRef(null);
   const crossPageDragRef = useRef(false);
   const dragDimensionsRef = useRef(null);
+  const dragGrabOffsetRef = useRef(null);
   const groupDragRef = useRef(null);
   const reflowPageCountRef = useRef(null);
   const layoutTargetPageRef = useRef(null);
@@ -425,10 +424,20 @@ export function useA4Elements(titleRef) {
         };
       }
     }
-    // Move by pointer delta (not snap-to-center) so the grab point stays under
-    // the cursor, then scale by DRAG_SPEED for a slower, more controlled feel.
-    const deltaX = (e.movementX / scaleX) * DRAG_SPEED;
-    const deltaY = (e.movementY / scaleY) * DRAG_SPEED;
+    // Keep the original grab point under the cursor (1:1). Slowing the element
+    // relative to the pointer makes the cursor leave the element.
+    const pointerX = (e.clientX - canvasRect.left) / scaleX;
+    const pointerY = (e.clientY - canvasRect.top) / scaleY;
+    if (!dragGrabOffsetRef.current) {
+      dragGrabOffsetRef.current = {
+        x: pointerX - Number(currentDragged.left),
+        y: pointerY - Number(currentDragged.top),
+      };
+    }
+    const targetLeft = pointerX - dragGrabOffsetRef.current.x;
+    const targetTop = pointerY - dragGrabOffsetRef.current.y;
+    const deltaX = targetLeft - Number(currentDragged.left);
+    const deltaY = targetTop - Number(currentDragged.top);
     if (!deltaX && !deltaY && targetPage === sourcePage) return;
     const selectedOnSamePage = currentElements.filter((element) => (
       element.isSelected
@@ -542,6 +551,7 @@ export function useA4Elements(titleRef) {
       activeDragElementIdRef.current = elementId;
       crossPageDragRef.current = false;
       dragDimensionsRef.current = null;
+      dragGrabOffsetRef.current = null;
       const group = dragged?.isSelected
         ? elementsRef.current.filter((element) => (
           element.isSelected
@@ -571,6 +581,7 @@ export function useA4Elements(titleRef) {
       activeDragElementIdRef.current = null;
       crossPageDragRef.current = false;
       dragDimensionsRef.current = null;
+      dragGrabOffsetRef.current = null;
       groupDragRef.current = null;
       setGroupMoveDelta(null);
     }
@@ -588,6 +599,7 @@ export function useA4Elements(titleRef) {
       activeDragElementIdRef.current = null;
       crossPageDragRef.current = false;
       dragDimensionsRef.current = null;
+      dragGrabOffsetRef.current = null;
       groupDragRef.current = null;
       setGroupMoveDelta(null);
       setA4_Elements(prev => prev.some(e => e.isMove)
