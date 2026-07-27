@@ -1429,24 +1429,37 @@
 .finalCta {
     position: relative;
     z-index: 2;
-    max-width: 900px;
-    margin: 0 auto;
+    min-height: 100vh;
+    width: 100%;
+    margin: 0;
     padding: 90px 56px;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    background:
+        linear-gradient(180deg, rgba(15, 18, 22, .42) 0%, rgba(15, 18, 22, .55) 100%),
+        url("/women-job-call.png") center / cover no-repeat;
 }
 
 .finalCtaTitle {
     font: 800 36px/1.2 var(--display);
-    color: var(--ink);
+    color: #F7F4EF;
     margin: 0 0 16px;
     letter-spacing: -.01em;
     text-wrap: balance;
+    max-width: 720px;
+    text-shadow: 0 2px 18px rgba(15, 18, 22, .35);
 }
 
 .finalCtaText {
     font: 400 17px/1.6 var(--body);
-    color: var(--text);
+    color: rgba(247, 244, 239, .92);
     margin: 0 0 32px;
+    max-width: 520px;
+    text-shadow: 0 1px 12px rgba(15, 18, 22, .3);
 }
 
 .finalCtaBtn {
@@ -1593,7 +1606,7 @@
     .planFeatured { transform: none; }
     .templatesGrid { grid-template-columns: repeat(2, 1fr); }
     .testimonialsGrid { grid-template-columns: 1fr; gap: 20px; }
-    .finalCta { padding: 64px 24px; }
+    .finalCta { padding: 64px 24px; min-height: 100vh; }
     .finalCtaTitle { font-size: 30px; }
     .footerTop { padding: 36px 24px 28px; }
     .footerBottom { padding: 18px 24px; }
