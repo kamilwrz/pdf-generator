@@ -199,7 +199,7 @@ export default function AiCvPanel() {
                                         title={locked ? "Dostępne w planie Standard" : undefined}
                                     >
                                         <span className={classes.dot} style={{ background: t.accent }} />
-                                        <span className={classes.tName}>{t.name}{locked ? " · Standard" : ""}</span>
+                                        <span className={classes.tName}>{t.name}</span>
                                         {fillingId === t.id && <span className={classes.spinner} />}
                                     </button>
                                 );

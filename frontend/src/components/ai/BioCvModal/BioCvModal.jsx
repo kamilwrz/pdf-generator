@@ -479,7 +479,7 @@ export default function BioCvModal() {
                         >
                             <span className={classes.templateAccent} style={{ backgroundColor: template.accent }} />
                             <span className={classes.templateCopy}>
-                                <strong>{template.name}{locked ? " · Standard" : ""}</strong>
+                                <strong>{template.name}</strong>
                                 <small>{template.industry}</small>
                             </span>
                             <span className={classes.templateAction}>
