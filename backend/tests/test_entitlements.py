@@ -56,9 +56,9 @@ class EntitlementsTests(unittest.TestCase):
         self.db.refresh(pdf)
         return pdf
 
-    def test_seed_plans_creates_free_standard_pro(self):
+    def test_seed_plans_creates_free_standard_premium(self):
         slugs = {p.slug for p in self.db.query(ent.Plan).all()}
-        self.assertEqual(slugs, {"free", "standard", "pro"})
+        self.assertEqual(slugs, {"free", "standard", "premium"})
 
     def test_registration_assigns_free_subscription(self):
         user = self._make_user()
@@ -142,6 +142,46 @@ class EntitlementsTests(unittest.TestCase):
         ent.assert_template_allowed(self.db, user, "cinder")
         payload = ent.get_entitlements(self.db, user)
         self.assertIsNone(payload["allowed_template_ids"])
+
+
+class PlanSeedAndMigrationTests(unittest.TestCase):
+    def setUp(self):
+        self.engine = create_engine(
+            "sqlite:///:memory:", connect_args={"check_same_thread": False}
+        )
+        Base.metadata.create_all(bind=self.engine)
+        self.Session = sessionmaker(bind=self.engine)
+        self.db = self.Session()
+
+    def tearDown(self):
+        self.db.close()
+        self.engine.dispose()
+
+    def test_seed_credit_allowances_and_premium_slug(self):
+        ent.seed_plans(self.db)
+        from app.models.models import Plan
+        slugs = {p.slug: p for p in self.db.query(Plan).all()}
+        self.assertEqual(slugs["free"].max_ai_actions_per_month, 0)
+        self.assertEqual(slugs["standard"].max_ai_actions_per_month, 150)
+        self.assertEqual(slugs["premium"].max_ai_actions_per_month, 300)
+        self.assertEqual(slugs["premium"].name, "Premium")
+        self.assertNotIn("pro", slugs)
+
+    def test_migrate_pro_subscription_to_premium_is_idempotent(self):
+        from app.models.models import UserSubscription
+        now = datetime.now(timezone.utc)
+        self.db.add(UserSubscription(
+            user_id=1, plan_slug="pro", status="active",
+            current_period_start=now, updated_at=now,
+        ))
+        self.db.commit()
+        ent.seed_plans(self.db)
+        first = ent.migrate_pro_to_premium(self.db)
+        second = ent.migrate_pro_to_premium(self.db)
+        sub = self.db.query(UserSubscription).filter_by(user_id=1).first()
+        self.assertEqual(first, 1)
+        self.assertEqual(second, 0)
+        self.assertEqual(sub.plan_slug, "premium")
 
 
 if __name__ == "__main__":

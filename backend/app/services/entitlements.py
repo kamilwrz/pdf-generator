@@ -42,7 +42,7 @@ PLAN_SEEDS: list[dict[str, Any]] = [
         "name": "Standard",
         "max_projects": 10,
         "max_exports_per_month": 30,
-        "max_ai_actions_per_month": 40,
+        "max_ai_actions_per_month": 150,
         "ai_assistant": True,
         "extract_cv": True,
         "template_tier": "all",
@@ -50,11 +50,11 @@ PLAN_SEEDS: list[dict[str, Any]] = [
         "is_active": True,
     },
     {
-        "slug": "pro",
-        "name": "Pro",
+        "slug": "premium",
+        "name": "Premium",
         "max_projects": None,
         "max_exports_per_month": None,
-        "max_ai_actions_per_month": 500,
+        "max_ai_actions_per_month": 300,
         "ai_assistant": True,
         "extract_cv": True,
         "template_tier": "all",
@@ -88,7 +88,7 @@ def current_period_key(now: datetime | None = None) -> str:
 
 
 def seed_plans(db: Session) -> None:
-    """Upsert Free/Standard/Pro catalog rows (idempotent)."""
+    """Upsert Free/Standard/Premium catalog rows (idempotent)."""
     for seed in PLAN_SEEDS:
         existing = db.query(Plan).filter(Plan.slug == seed["slug"]).first()
         if existing is None:
@@ -99,6 +99,24 @@ def seed_plans(db: Session) -> None:
                 continue
             setattr(existing, key, value)
     db.commit()
+
+
+def migrate_pro_to_premium(db: Session) -> int:
+    """One-time, idempotent rename of legacy 'pro' subscriptions to 'premium'.
+
+    Also deactivates any stale 'pro' catalog row. Safe to run on every boot.
+    """
+    migrated = (
+        db.query(UserSubscription)
+        .filter(UserSubscription.plan_slug == "pro")
+        .update({UserSubscription.plan_slug: "premium"}, synchronize_session=False)
+    )
+    stale = db.query(Plan).filter(Plan.slug == "pro").first()
+    if stale is not None:
+        stale.is_active = False
+    if migrated or stale is not None:
+        db.commit()
+    return int(migrated)
 
 
 def ensure_free_subscription(db: Session, user_id: int) -> UserSubscription:
@@ -149,6 +167,7 @@ def backfill_free_subscriptions(db: Session) -> int:
 def bootstrap_billing(db: Session) -> None:
     """Called from app startup after create_all."""
     seed_plans(db)
+    migrate_pro_to_premium(db)
     backfill_free_subscriptions(db)
 
 
