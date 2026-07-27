@@ -434,8 +434,8 @@ export default function Hero() {
                                     <div className={classes.priceBody}>
                                         <span className={classes.priceEyebrow}>Plan Free</span>
                                         <div className={classes.priceValue}>0 zł</div>
-                                        <p className={classes.cardP}>Edytor, wybrane szablony i eksport PDF. AI Assistant — w planie Standard.</p>
-                                        <Link to="/register" className={classes.priceCta}>
+                                        <p className={classes.cardP}>Edytor, wybrane szablony i eksport PDF. Kredyty AI — w planach Standard i Premium.</p>
+                                        <Link to="/register?plan=free" className={classes.priceCta}>
                                             Rozpocznij za darmo
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F1216" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
                                         </Link>
@@ -518,6 +518,7 @@ export default function Hero() {
                     <p className={classes.cennikText}>
                         Zacznij za darmo. Odblokuj AI i pełną bibliotekę szablonów, gdy potrzebujesz więcej.
                     </p>
+                    <p className={classes.cennikText}>1 kredyt AI ≈ 5 gr — płacisz tylko za realne użycie.</p>
                 </div>
                 <div className={classes.pricingGrid}>
                     <div className={classes.planCard}>
@@ -533,7 +534,7 @@ export default function Hero() {
                             <li>1 projekt · 3 eksporty / mies.</li>
                             <li className={classes.planMuted}>Bez AI Assistant</li>
                         </ul>
-                        <Link to="/register" className={classes.planCtaSecondary}>Zacznij za darmo</Link>
+                        <Link to="/register?plan=free" className={classes.planCtaSecondary}>Zacznij za darmo</Link>
                     </div>
 
                     <div className={`${classes.planCard} ${classes.planFeatured}`}>
@@ -545,28 +546,28 @@ export default function Hero() {
                         </div>
                         <p className={classes.planPeriod}>miesięcznie · 279 zł / rok</p>
                         <ul className={classes.planFeatures}>
-                            <li>AI Assistant (40 akcji / mies.)</li>
+                            <li>Asystent AI — 150 kredytów / mies.</li>
                             <li>Wszystkie 24 szablony</li>
                             <li>Import z PDF i kreator bio</li>
                             <li>10 projektów · 30 eksportów / mies.</li>
                         </ul>
-                        <Link to="/register" className={classes.planCtaPrimary}>Wybierz Standard</Link>
+                        <Link to="/register?plan=standard" className={classes.planCtaPrimary}>Wybierz Standard</Link>
                     </div>
 
                     <div className={classes.planCard}>
-                        <div className={classes.planName}>Pro</div>
+                        <div className={classes.planName}>Premium</div>
                         <div className={classes.planPrice}>
                             <span className={classes.planAmount}>49</span>
                             <span className={classes.planCurrency}>zł</span>
                         </div>
                         <p className={classes.planPeriod}>miesięcznie · 469 zł / rok</p>
                         <ul className={classes.planFeatures}>
-                            <li>AI bez limitu stresu (wysoki limit)</li>
+                            <li>Asystent AI — 300 kredytów / mies.</li>
                             <li>Wszystkie 24 szablony</li>
                             <li>Bez limitu projektów i eksportów</li>
                             <li>Wiele wersji CV pod oferty</li>
                         </ul>
-                        <Link to="/register" className={classes.planCtaSecondary}>Wybierz Pro</Link>
+                        <Link to="/register?plan=premium" className={classes.planCtaSecondary}>Wybierz Premium</Link>
                     </div>
                 </div>
             </div>
