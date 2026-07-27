@@ -1,0 +1,40 @@
+.planSelector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.planOption {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 8px;
+    border: 1px solid #2A2F37;
+    border-radius: 10px;
+    background: transparent;
+    color: #C7CED8;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 120ms ease, background 120ms ease;
+}
+
+.planOption:hover:not(:disabled) {
+    border-color: #46617F;
+}
+
+.planOptionActive {
+    border-color: #6C9BE6;
+    background: rgba(108, 155, 230, 0.12);
+    color: #FFFFFF;
+}
+
+.planOptionName {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.planOptionNote {
+    font-size: 11px;
+    color: #97A1B0;
+}

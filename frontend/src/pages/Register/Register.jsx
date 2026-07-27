@@ -1,10 +1,12 @@
 import classes from "./Register.module.css";
+import planClasses from "./PlanSelector.module.css";
 
 import { ApiClient } from "../../services/api";
 import { ENDPOINTS } from "../../services/api";
 
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useState } from "react";
+import PlanSelector, { PLAN_SLUGS } from "./PlanSelector";
 
 const UserIcon = () => (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#97A1B0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 20a8 8 0 0 1 16 0" /></svg>
@@ -29,6 +31,12 @@ export default function Register() {
 
     const navigate = useNavigate();
 
+    const [searchParams] = useSearchParams();
+    const initialPlan = PLAN_SLUGS.includes(searchParams.get("plan"))
+        ? searchParams.get("plan")
+        : "free";
+    const [plan, setPlan] = useState(initialPlan);
+
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -40,7 +48,7 @@ export default function Register() {
         setError("");
 
         const api = new ApiClient();
-        api.httpRequest(ENDPOINTS.AUTH.REGISTER, "POST", JSON.stringify({ username, email, password }), "Rejestracja nie powiodła się")
+        api.httpRequest(ENDPOINTS.AUTH.REGISTER, "POST", JSON.stringify({ username, email, password, plan }), "Rejestracja nie powiodła się")
             .then(() => {
                 setIsLoading(true);
                 setTimeout(() => {
@@ -62,6 +70,10 @@ export default function Register() {
                 </div>
                 <h1 className={classes.mainHeading}>Utwórz konto</h1>
                 <p className={classes.subHeading}>Na zawsze za darmo. Karta nie jest wymagana.</p>
+                <div className={classes.control}>
+                    <label>Plan</label>
+                    <PlanSelector value={plan} onChange={setPlan} classes={planClasses} disabled={isLoading} />
+                </div>
                 <form onSubmit={handleSubmit} className={classes.form}>
                     <div className={classes.control}>
                         <label htmlFor="username">Nazwa użytkownika</label>
