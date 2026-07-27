@@ -84,6 +84,17 @@ export default function Sidebar({ children }) {
                     {entitlements.plan_name}
                 </div>
             ) : null}
+            {entitlements?.limits?.monthly_ai_credits ? (
+                <div
+                    className={classes.creditsBadge}
+                    title={`Kredyty AI: wykorzystano ${entitlements.usage?.ai_credits_used ?? 0} z ${entitlements.limits.monthly_ai_credits}`}
+                >
+                    <span className={classes.creditsBadgeValue}>
+                        {entitlements.remaining?.ai_credits ?? Math.max(0, entitlements.limits.monthly_ai_credits - (entitlements.usage?.ai_credits_used ?? 0))}
+                    </span>
+                    <span className={classes.creditsBadgeLabel}>AI</span>
+                </div>
+            ) : null}
             <button className={classes.logout} onClick={logout} aria-label="Wyloguj się" title="Wyloguj się">
                 <AiOutlineLogout />
             </button>

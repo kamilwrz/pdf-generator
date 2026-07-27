@@ -461,6 +461,7 @@ export default function AiAssistant() {
         setDeletionPreviewIds,
         pageSize,
         setCurrentPage,
+        entitlements,
     } = use(PdfContext);
 
     const [isOpen, setIsOpen] = useState(false);
@@ -820,14 +821,27 @@ export default function AiAssistant() {
                                     <div className={classes.headerSub}>Analizuj, poprawiaj i ulepszaj</div>
                                 </div>
                             </div>
-                            <button className={classes.closeBtn} onClick={() => {
-                                setLayoutPreviewPatches([]);
-                                setStructurePreviewGroup(null);
-                                setDeletionPreviewIds([]);
-                                setIsOpen(false);
-                            }}>
-                                <IoClose />
-                            </button>
+                            <div className={classes.headerRight}>
+                                {entitlements?.limits?.monthly_ai_credits != null && (
+                                    <div
+                                        className={classes.creditPill}
+                                        title={`Wykorzystano ${entitlements.usage?.ai_credits_used ?? 0} z ${entitlements.limits.monthly_ai_credits} kredytów AI w tym miesiącu`}
+                                    >
+                                        <span className={classes.creditPillValue}>
+                                            {entitlements.remaining?.ai_credits ?? Math.max(0, entitlements.limits.monthly_ai_credits - (entitlements.usage?.ai_credits_used ?? 0))}
+                                        </span>
+                                        <span className={classes.creditPillLabel}>kredytów AI</span>
+                                    </div>
+                                )}
+                                <button className={classes.closeBtn} onClick={() => {
+                                    setLayoutPreviewPatches([]);
+                                    setStructurePreviewGroup(null);
+                                    setDeletionPreviewIds([]);
+                                    setIsOpen(false);
+                                }}>
+                                    <IoClose />
+                                </button>
+                            </div>
                         </div>
 
                         {/* action buttons */}

@@ -104,6 +104,36 @@
 }
 .closeBtn:hover { color: var(--chrome-accent); background: var(--chrome-hover); }
 
+.headerRight {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.creditPill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 4px 10px;
+    border: 1px solid var(--chrome-border);
+    border-radius: 999px;
+    background: var(--chrome-control);
+    cursor: default;
+    white-space: nowrap;
+}
+
+.creditPillValue {
+    font: 700 12px var(--font-display);
+    color: var(--chrome-accent);
+}
+
+.creditPillLabel {
+    font: 600 8.5px var(--font-body);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--chrome-muted);
+}
+
 /* ── Quick Action Buttons ────────────────────────────────────────── */
 .actions {
     display: grid;

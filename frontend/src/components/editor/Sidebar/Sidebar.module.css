@@ -154,6 +154,30 @@
     text-overflow: ellipsis;
 }
 
+.creditsBadge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    line-height: 1;
+    padding: 4px 6px;
+    border: 1px solid var(--sidebar-border);
+    border-radius: 8px;
+    background: var(--sidebar-hover);
+    cursor: default;
+}
+
+.creditsBadgeValue {
+    font: 700 13px var(--font-display);
+    color: var(--sidebar-accent);
+}
+
+.creditsBadgeLabel {
+    font: 700 8px var(--font-body);
+    letter-spacing: 0.08em;
+    color: var(--sidebar-muted);
+}
+
 .createBtn {
     display: flex;
     align-items: center;
