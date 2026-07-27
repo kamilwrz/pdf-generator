@@ -5,6 +5,7 @@ and fill `Payment` / stripe_* columns. All gates already read subscription state
 """
 from __future__ import annotations
 
+import math
 from datetime import datetime, timezone
 from typing import Any
 
@@ -62,6 +63,18 @@ PLAN_SEEDS: list[dict[str, Any]] = [
         "is_active": True,
     },
 ]
+
+
+CREDIT_PLN = 0.05  # 1 AI credit = 5 groszy
+
+
+def credits_for_cost(cost_pln: float) -> int:
+    """Credit cost of one AI call, charged at real cost, minimum 1 per call."""
+    try:
+        cost = float(cost_pln)
+    except (TypeError, ValueError):
+        cost = 0.0
+    return max(1, math.ceil(cost / CREDIT_PLN))
 
 
 class PlanLimitError(HTTPException):
@@ -240,18 +253,18 @@ def get_entitlements(db: Session, user: User) -> dict[str, Any]:
         "limits": {
             "max_projects": max_projects,
             "max_exports_per_month": max_exports,
-            "max_ai_actions_per_month": max_ai,
+            "monthly_ai_credits": max_ai,
         },
         "usage": {
             "period_key": usage.period_key,
             "projects": project_count,
             "exports_count": usage.exports_count,
-            "ai_actions_count": usage.ai_actions_count,
+            "ai_credits_used": usage.ai_actions_count,
         },
         "remaining": {
             "projects": remaining(project_count, max_projects),
             "exports": remaining(usage.exports_count, max_exports),
-            "ai_actions": remaining(usage.ai_actions_count, max_ai),
+            "ai_credits": remaining(usage.ai_actions_count, max_ai),
         },
         "stripe_customer_id": sub.stripe_customer_id,
         "stripe_subscription_id": sub.stripe_subscription_id,
@@ -291,12 +304,12 @@ def assert_can_use_ai_assistant(db: Session, user: User) -> None:
             "plan_feature_ai_assistant",
             "Asystent AI jest dostępny w planie Standard.",
         )
-    limit = entitlements["limits"]["max_ai_actions_per_month"]
-    if limit is not None and entitlements["usage"]["ai_actions_count"] >= limit:
+    limit = entitlements["limits"]["monthly_ai_credits"]
+    if limit is not None and entitlements["usage"]["ai_credits_used"] >= limit:
         raise PlanLimitError(
-            "plan_limit_ai_actions",
-            f"Wykorzystano limit {limit} akcji AI w tym miesiącu.",
-            upgrade_required="pro" if entitlements["plan_slug"] == "standard" else "standard",
+            "plan_limit_ai_credits",
+            "Wykorzystano miesięczny limit kredytów AI.",
+            upgrade_required="premium" if entitlements["plan_slug"] == "standard" else "standard",
         )
 
 
@@ -330,9 +343,9 @@ def record_export(db: Session, user_id: int) -> UsageCounter:
     return row
 
 
-def record_ai_action(db: Session, user_id: int) -> UsageCounter:
+def charge_ai_credits(db: Session, user_id: int, cost_pln: float) -> UsageCounter:
     row = _usage_row(db, user_id)
-    row.ai_actions_count = int(row.ai_actions_count or 0) + 1
+    row.ai_actions_count = int(row.ai_actions_count or 0) + credits_for_cost(cost_pln)
     db.add(row)
     db.commit()
     db.refresh(row)

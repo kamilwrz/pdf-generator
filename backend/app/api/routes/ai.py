@@ -11,7 +11,7 @@ from app.services.ai_service import extract_cv_data, generate_resume
 from app.services.entitlements import (
     assert_can_extract_cv,
     assert_template_allowed,
-    record_ai_action,
+    charge_ai_credits,
 )
 
 router = APIRouter(prefix="/ai", tags=["ai"])
@@ -74,7 +74,7 @@ async def extract_cv(
         raise HTTPException(status_code=400, detail="Plik przekracza limit 10 MB.")
     try:
         cv_data, usage = extract_cv_data(data)
-        record_ai_action(db, user.id)
+        charge_ai_credits(db, user.id, usage.get("cost_pln_estimate", 0.0))
         return {"cv_data": cv_data, "usage": usage}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Nie udało się wyodrębnić danych z CV: {exc}")

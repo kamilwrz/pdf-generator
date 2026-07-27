@@ -8,7 +8,7 @@ from app.core.security import verify_token
 from app.crud.user import get_user_by_username
 from app.dependencies import get_db
 from app.services.ai_assistant_service import AIServiceError, analyze_action
-from app.services.entitlements import assert_can_use_ai_assistant, record_ai_action
+from app.services.entitlements import assert_can_use_ai_assistant, charge_ai_credits
 from app.utils.metrics_logging import log_metric_event
 
 logger = logging.getLogger("ai_assistant")
@@ -90,7 +90,7 @@ async def ai_assistant(
             page_size=request.page_size,
             history=request.history,
         )
-        record_ai_action(db, user.id)
+        charge_ai_credits(db, user.id, result.get("usage", {}).get("cost_pln_estimate", 0.0))
         return AssistantResponse(**result)
     except AIServiceError:
         # Handled by the app-level exception_handler in main.py, which logs

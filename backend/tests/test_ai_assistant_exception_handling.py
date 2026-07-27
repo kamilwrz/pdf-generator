@@ -55,7 +55,7 @@ class AiAssistantExceptionHandlingTests(unittest.TestCase):
             ai_assistant_route, "assert_can_use_ai_assistant", return_value=None
         )
         self._record_patch = patch.object(
-            ai_assistant_route, "record_ai_action", return_value=None
+            ai_assistant_route, "charge_ai_credits", return_value=None
         )
         self._user_patch.start()
         self._entitlement_patch.start()
