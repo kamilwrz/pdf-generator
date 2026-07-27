@@ -22,6 +22,7 @@ import { useEntitlements } from '../hooks/useEntitlements';
 import Guides from '../components/canvas/Guides/Guides';
 import Connectors from '../components/canvas/Connectors/Connectors';
 import TemplatesModal from '../components/modals/TemplatesModal/TemplatesModal';
+import PlanSelectModal from '../components/modals/PlanSelectModal/PlanSelectModal';
 import AiCvPanel from '../components/ai/AiCvPanel/AiCvPanel';
 import BioCvModal from '../components/ai/BioCvModal/BioCvModal';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
@@ -45,12 +46,13 @@ function PdfCanvas() {
   // with each other — opening one always closes whatever else was open.
   // Replaces 5 independent booleans that previously had no exclusivity at
   // all (e.g. Moje dokumenty + Szablony + Gallery could all be open together).
-  const [dialog, setDialog] = useState(null); // 'docs' | 'templates' | 'ai' | 'bioCv' | null
+  const [dialog, setDialog] = useState(null); // 'docs' | 'templates' | 'ai' | 'bioCv' | 'plan' | null
   const [panel, setPanel] = useState(null);   // 'upload' | 'gallery' | null
   const isModalPdfs = dialog === 'docs';
   const isTemplates = dialog === 'templates';
   const isAiPanel = dialog === 'ai';
   const isBioCvModal = dialog === 'bioCv';
+  const isPlanModal = dialog === 'plan';
   const isGallery = panel === 'gallery';
   const isDropzone = panel === 'upload';
   // Compatibility setter: ModalPdfs.jsx and Sidebar.jsx both call this as
@@ -433,6 +435,12 @@ function PdfCanvas() {
     if (next) setPanel(null);
   }, [dialog])
 
+  const handleShowPlanModal = useCallback(() => {
+    const next = dialog !== 'plan';
+    setDialog(next ? 'plan' : null);
+    if (next) setPanel(null);
+  }, [dialog])
+
   const handleShowGallery = useCallback(() => {
     const next = panel !== 'gallery';
     setPanel(next ? 'gallery' : null);
@@ -583,6 +591,8 @@ function PdfCanvas() {
     showAiPanel: handleShowAiPanel,
     isBioCvModal: isBioCvModal,
     showBioCvModal: handleShowBioCvModal,
+    isPlanModal: isPlanModal,
+    showPlanModal: handleShowPlanModal,
     //page geometry
     pageSize: pageSize,
     setPageSize: setPageSize,
@@ -655,7 +665,7 @@ function PdfCanvas() {
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     isTwoPageView, toggleTwoPageView,
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
-    isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen, isAiPanel, handleShowAiPanel, isBioCvModal, handleShowBioCvModal,
+    isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen, isAiPanel, handleShowAiPanel, isBioCvModal, handleShowBioCvModal, isPlanModal, handleShowPlanModal,
     pageSize, setPageSize, setPagePreset,
     zoom, zoomIn, zoomOut,
     undo, redo, canUndo, canRedo, resetHistory,
@@ -690,6 +700,7 @@ function PdfCanvas() {
       <PdfContext.Provider value={ctxValue}>
         <ModalPdfs title={titleRef}/>
         <TemplatesModal />
+        <PlanSelectModal />
         <AiCvPanel />
         <BioCvModal />
         <Sidebar>

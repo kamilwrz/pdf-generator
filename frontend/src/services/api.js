@@ -34,6 +34,10 @@ export const ENDPOINTS = {
     EVENTS: {
         LOG: "/events/log",
     },
+    BILLING: {
+        PLANS: "/billing/plans",
+        SELECT_PLAN: "/billing/select-plan",
+    },
 }
 
 export default API_BASE_URL;

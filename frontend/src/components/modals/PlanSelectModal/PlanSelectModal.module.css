@@ -1,0 +1,124 @@
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    padding: 4px 2px 8px;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid var(--chrome-border);
+    border-radius: 10px;
+    padding: 14px 14px 12px;
+    background: var(--primary-bg);
+}
+
+.cardActive {
+    border-color: var(--chrome-accent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--chrome-accent) 45%, transparent);
+}
+
+.cardHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.planName {
+    margin: 0;
+    font: 800 16px var(--font-display);
+    color: var(--chrome-ink);
+}
+
+.currentPill {
+    font: 700 9px var(--font-body);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #0F1216;
+    background: var(--accent-grad);
+    border-radius: 999px;
+    padding: 3px 7px;
+}
+
+.priceRow {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.price {
+    font: 800 28px/1 var(--font-display);
+    color: var(--chrome-ink);
+}
+
+.currency {
+    font: 600 12px var(--font-body);
+    color: var(--chrome-muted);
+}
+
+.blurb {
+    margin: 0;
+    font: 500 12.5px/1.45 var(--font-body);
+    color: var(--chrome-muted);
+    min-height: 2.9em;
+}
+
+.features {
+    margin: 0;
+    padding: 0 0 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.features li {
+    font: 500 12px/1.4 var(--font-body);
+    color: var(--chrome-ink);
+}
+
+.btnSelect,
+.btnCurrent {
+    width: 100%;
+    height: 34px;
+    border-radius: 8px;
+    font: 700 12px var(--font-body);
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.btnSelect {
+    background: var(--accent-grad);
+    color: #0F1216;
+}
+
+.btnSelect:hover:not(:disabled) {
+    filter: brightness(1.03);
+}
+
+.btnSelect:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.btnCurrent {
+    background: transparent;
+    color: var(--chrome-muted);
+    border-color: var(--chrome-border);
+    cursor: default;
+}
+
+.note {
+    margin: 10px 2px 0;
+    font: 500 11.5px/1.4 var(--font-body);
+    color: var(--chrome-muted);
+}
+
+@media only screen and (max-width: 720px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}

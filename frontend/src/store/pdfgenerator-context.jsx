@@ -19,6 +19,8 @@ export const PdfContext = createContext({
     addConnector: () => {},
     isBioCvModal: false,
     showBioCvModal: () => {},
+    isPlanModal: false,
+    showPlanModal: () => {},
     clonePage: () => {},
     movePage: () => {},
     undo: () => {},

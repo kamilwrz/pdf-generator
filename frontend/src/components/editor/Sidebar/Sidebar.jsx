@@ -29,6 +29,7 @@ export default function Sidebar({ children }) {
         logout,
         PDFs,
         entitlements,
+        showPlanModal,
     } = use(PdfContext);
 
     function showModalWithPDFs() {
@@ -70,9 +71,12 @@ export default function Sidebar({ children }) {
         <footer className={classes.sidebarFooter}>
             {entitlements?.plan_name ? (
                 <div className={classes.planBadgeWrap}>
-                <div
+                <button
+                    type="button"
                     className={classes.planBadge}
+                    onClick={() => showPlanModal?.()}
                     title={[
+                        "Zmień plan",
                         entitlements.plan_name,
                         entitlements.remaining?.exports != null
                             ? `Eksporty: ${entitlements.usage?.exports_count ?? 0}/${entitlements.limits?.max_exports_per_month ?? "∞"}`
@@ -83,7 +87,7 @@ export default function Sidebar({ children }) {
                     ].filter(Boolean).join(" · ")}
                 >
                     {entitlements.plan_name}
-                </div>
+                </button>
                 </div>
             ) : null}
             {entitlements?.limits?.monthly_ai_credits ? (

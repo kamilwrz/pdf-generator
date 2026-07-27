@@ -102,7 +102,10 @@ class SelectPlanEndpointTests(unittest.TestCase):
         self.assertEqual(self._plan_of("u1"), "free")
         response = self.client.post("/billing/select-plan", json={"plan_slug": "standard"})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"plan_slug": "standard"})
+        body = response.json()
+        self.assertEqual(body["plan_slug"], "standard")
+        self.assertFalse(body["payment_required"])
+        self.assertEqual(body["entitlements"]["plan_slug"], "standard")
         self.assertEqual(self._plan_of("u1"), "standard")
 
     def test_unknown_slug_returns_400(self):
@@ -114,7 +117,19 @@ class SelectPlanEndpointTests(unittest.TestCase):
         with patch.object(billing_route, "ALLOW_UNPAID_PLAN_SELECTION", False):
             response = self.client.post("/billing/select-plan", json={"plan_slug": "premium"})
         self.assertEqual(response.status_code, 402)
+        detail = response.json()["detail"]
+        self.assertEqual(detail["code"], "payment_required")
+        self.assertIsNone(detail["checkout_url"])
         self.assertEqual(self._plan_of("u1"), "free")
+
+    def test_list_plans_returns_catalog_and_current(self):
+        response = self.client.get("/billing/plans")
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["current_plan_slug"], "free")
+        slugs = [p["slug"] for p in body["plans"]]
+        self.assertEqual(slugs, ["free", "standard", "premium"])
+        self.assertTrue(body["allow_unpaid_selection"])
 
     def test_valid_token_for_missing_user_returns_401(self):
         # Valid token (verify_token succeeds) whose `sub` resolves to no user row.

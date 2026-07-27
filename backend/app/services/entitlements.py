@@ -190,6 +190,69 @@ def get_or_create_subscription(db: Session, user_id: int) -> UserSubscription:
 
 SELECTABLE_PLANS: frozenset[str] = frozenset({"free", "standard", "premium"})
 
+# Marketing prices (PLN / month) — Stripe will own real amounts later.
+PLAN_DISPLAY: dict[str, dict[str, Any]] = {
+    "free": {
+        "price_pln": 0,
+        "blurb": "Edytor, wybrane szablony i eksport PDF.",
+        "highlights": [
+            "8 szablonów startowych",
+            "1 projekt · 3 eksporty / mies.",
+            "Bez Asystenta AI",
+        ],
+    },
+    "standard": {
+        "price_pln": 29,
+        "blurb": "AI Assistant i pełna biblioteka szablonów.",
+        "highlights": [
+            "150 kredytów AI / mies.",
+            "Wszystkie 24 szablony",
+            "10 projektów · 30 eksportów / mies.",
+        ],
+    },
+    "premium": {
+        "price_pln": 49,
+        "blurb": "Więcej kredytów AI i bez limitów projektów.",
+        "highlights": [
+            "300 kredytów AI / mies.",
+            "Wszystkie 24 szablony",
+            "Bez limitu projektów i eksportów",
+        ],
+    },
+}
+
+
+def list_selectable_plans(db: Session) -> list[dict[str, Any]]:
+    """Active catalog rows enriched with display copy for the plan picker."""
+    rows = (
+        db.query(Plan)
+        .filter(Plan.slug.in_(SELECTABLE_PLANS), Plan.is_active.is_(True))
+        .all()
+    )
+    by_slug = {row.slug: row for row in rows}
+    ordered: list[dict[str, Any]] = []
+    for slug in ("free", "standard", "premium"):
+        row = by_slug.get(slug)
+        if row is None:
+            continue
+        display = PLAN_DISPLAY.get(slug, {})
+        ordered.append({
+            "slug": row.slug,
+            "name": row.name,
+            "price_pln": display.get("price_pln", 0),
+            "blurb": display.get("blurb", ""),
+            "highlights": display.get("highlights", []),
+            "max_projects": row.max_projects,
+            "max_exports_per_month": row.max_exports_per_month,
+            "monthly_ai_credits": row.max_ai_actions_per_month,
+            "ai_assistant": bool(row.ai_assistant),
+            "extract_cv": bool(row.extract_cv),
+            "template_tier": row.template_tier,
+            # Populated when Stripe products are wired.
+            "stripe_price_id_monthly": row.stripe_price_id_monthly,
+        })
+    return ordered
+
 
 def set_user_plan(db: Session, user_id: int, plan_slug: str) -> UserSubscription:
     """Activate `plan_slug` for a user (pre-Stripe, no payment). Idempotent."""

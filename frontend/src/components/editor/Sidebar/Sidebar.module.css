@@ -161,7 +161,14 @@
     text-transform: uppercase;
     white-space: nowrap;
     color: var(--sidebar-accent);
-    cursor: default;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.planBadge:hover {
+    color: var(--sidebar-ink);
 }
 
 .creditsBadge {
