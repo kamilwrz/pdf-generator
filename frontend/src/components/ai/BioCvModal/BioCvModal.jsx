@@ -5,6 +5,7 @@ import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { TEMPLATES } from "../../../templates";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
+import { isTemplateAllowed } from "../../../utils/entitlements";
 import { createSerialSaveQueue } from "../../../utils/serialSaveQueue";
 import {
     applyBioCvDraftUpdate,
@@ -22,8 +23,6 @@ import {
     parseList,
     validateBioCvStep,
 } from "../../../utils/bioCvData";
-
-const CV_TEMPLATES = selectCvTemplates(TEMPLATES);
 
 function ListTextarea({ items, onCommit, placeholder, label }) {
     const [raw, setRaw] = useState(items.join("\n"));
@@ -79,11 +78,13 @@ export default function BioCvModal() {
         isBioCvModal,
         showBioCvModal,
         loadAiElements,
+        entitlements,
     } = use(PdfContext);
     const api = useMemo(
         () => new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` }),
         [],
     );
+    const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
     const [profile, setProfile] = useState(createEmptyBioCvData);
     const [step, setStep] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
@@ -265,6 +266,10 @@ export default function BioCvModal() {
     }, [api]);
 
     const handleFill = useCallback(async (template) => {
+        if (!isTemplateAllowed(template, entitlements)) {
+            setSaveError("Ten szablon jest dostępny w planie Standard.");
+            return;
+        }
         const error = validateBioCvStep(0, profile);
         if (error) {
             setStep(0);
@@ -289,7 +294,7 @@ export default function BioCvModal() {
         } finally {
             setFillingId(null);
         }
-    }, [api, loadAiElements, profile, saveDraft, showBioCvModal]);
+    }, [api, entitlements, loadAiElements, profile, saveDraft, showBioCvModal]);
 
     const renderPersonal = () => (
         <div className={classes.formGrid}>
@@ -461,24 +466,28 @@ export default function BioCvModal() {
             </div>
             <p>Wybierz szablon. Dane pozostaną zapisane, więc możesz później wygenerować kolejny wariant CV.</p>
             <div className={classes.templateGrid}>
-                {CV_TEMPLATES.map((template) => (
-                    <button
-                        type="button"
-                        key={template.id}
-                        className={classes.templateCard}
-                        onClick={() => handleFill(template)}
-                        disabled={fillingId !== null}
-                    >
-                        <span className={classes.templateAccent} style={{ backgroundColor: template.accent }} />
-                        <span className={classes.templateCopy}>
-                            <strong>{template.name}</strong>
-                            <small>{template.industry}</small>
-                        </span>
-                        <span className={classes.templateAction}>
-                            {fillingId === template.id ? "Tworzenie…" : "Utwórz CV"}
-                        </span>
-                    </button>
-                ))}
+                {cvTemplates.map((template) => {
+                    const locked = !isTemplateAllowed(template, entitlements);
+                    return (
+                        <button
+                            type="button"
+                            key={template.id}
+                            className={classes.templateCard}
+                            onClick={() => handleFill(template)}
+                            disabled={fillingId !== null || locked}
+                            title={locked ? "Dostępne w planie Standard" : undefined}
+                        >
+                            <span className={classes.templateAccent} style={{ backgroundColor: template.accent }} />
+                            <span className={classes.templateCopy}>
+                                <strong>{template.name}{locked ? " · Standard" : ""}</strong>
+                                <small>{template.industry}</small>
+                            </span>
+                            <span className={classes.templateAction}>
+                                {fillingId === template.id ? "Tworzenie…" : (locked ? "Zablokowany" : "Utwórz CV")}
+                            </span>
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );

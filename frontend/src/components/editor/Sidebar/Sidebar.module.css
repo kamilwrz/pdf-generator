@@ -134,8 +134,24 @@
     margin-top: auto;
     padding-top: 10px;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
     border-top: 1px solid var(--sidebar-border);
+}
+
+.planBadge {
+    font: 700 9px var(--font-body);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sidebar-muted);
+    border: 1px solid var(--sidebar-border);
+    border-radius: 999px;
+    padding: 3px 7px;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .createBtn {

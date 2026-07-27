@@ -4,6 +4,7 @@ import { PdfContext } from "../../../store/pdfgenerator-context";
 import { TEMPLATES } from "../../../templates";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { logEvent } from "../../../services/eventLog";
+import { isTemplateAllowed } from "../../../utils/entitlements";
 
 // Real cropped screenshot of the template's own canvas data — see
 // frontend/public/template-mockups/. Card aspect ratio matches A4 portrait.
@@ -18,9 +19,18 @@ function Preview({ id, name }) {
 export default function TemplatesModal() {
     const {
         isTemplates, showTemplates, loadTemplate, A4_Elements,
-        autoOpenedTemplates, markTemplatesModalSeen,
+        autoOpenedTemplates, markTemplatesModalSeen, entitlements, pushToast,
     } = use(PdfContext);
+
     function handlePick(t) {
+        if (!isTemplateAllowed(t, entitlements)) {
+            pushToast?.({
+                title: "Szablon w planie Standard",
+                msg: "Ten szablon odblokujesz po ulepszeniu planu.",
+                variant: "error",
+            });
+            return;
+        }
         if (A4_Elements.length > 0 &&
             !window.confirm("Zastąpić bieżące płótno tym szablonem? Niezapisane elementy zostaną usunięte.")) {
             return;
@@ -46,6 +56,8 @@ export default function TemplatesModal() {
         showTemplates();
     }
 
+    const freeCount = TEMPLATES.filter((t) => isTemplateAllowed(t, entitlements)).length;
+
     return (
         <DialogShell
             open={isTemplates}
@@ -53,21 +65,35 @@ export default function TemplatesModal() {
             width={760}
             title="Szablony"
             subtitle="Wybierz układ — treść na płótnie zostanie zastąpiona."
-            footer={<span className={classes.countLabel}>{TEMPLATES.length} szablonów CV</span>}
+            footer={(
+                <span className={classes.countLabel}>
+                    {entitlements?.template_tier === "all"
+                        ? `${TEMPLATES.length} szablonów CV`
+                        : `${freeCount} z ${TEMPLATES.length} dostępnych na planie Free`}
+                </span>
+            )}
         >
             <div className={classes.grid}>
-                {TEMPLATES.map((t) => (
-                    <div key={t.id} className={classes.card}>
-                        <div className={classes.previewWrap}>
-                            <Preview id={t.id} name={t.name} />
+                {TEMPLATES.map((t) => {
+                    const locked = !isTemplateAllowed(t, entitlements);
+                    return (
+                        <div key={t.id} className={`${classes.card} ${locked ? classes.cardLocked : ""}`}>
+                            <div className={classes.previewWrap}>
+                                <Preview id={t.id} name={t.name} />
+                                {locked ? <span className={classes.lockBadge}>Standard</span> : null}
+                            </div>
+                            <div className={classes.cardName}>{t.name}</div>
+                            <div className={classes.cardIndustry}>{t.industry}</div>
+                            <button
+                                type="button"
+                                className={locked ? classes.lockedBtn : classes.useBtn}
+                                onClick={() => handlePick(t)}
+                            >
+                                {locked ? "Odblokuj w Standard" : "Użyj szablonu"}
+                            </button>
                         </div>
-                        <div className={classes.cardName}>{t.name}</div>
-                        <div className={classes.cardIndustry}>{t.industry}</div>
-                        <button type="button" className={classes.useBtn} onClick={() => handlePick(t)}>
-                            Użyj szablonu
-                        </button>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </DialogShell>
     );

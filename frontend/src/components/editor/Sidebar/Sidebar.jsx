@@ -28,6 +28,7 @@ export default function Sidebar({ children }) {
         setIsModalPdfs,
         logout,
         PDFs,
+        entitlements,
     } = use(PdfContext);
 
     function showModalWithPDFs() {
@@ -67,6 +68,18 @@ export default function Sidebar({ children }) {
         </div>
 
         <footer className={classes.sidebarFooter}>
+            {entitlements?.plan_name ? (
+                <div
+                    className={classes.planBadge}
+                    title={
+                        entitlements.remaining?.exports != null
+                            ? `Eksporty: ${entitlements.usage?.exports_count ?? 0}/${entitlements.limits?.max_exports_per_month ?? "∞"}`
+                            : entitlements.plan_name
+                    }
+                >
+                    {entitlements.plan_name}
+                </div>
+            ) : null}
             <button className={classes.logout} onClick={logout} aria-label="Wyloguj się" title="Wyloguj się">
                 <AiOutlineLogout />
             </button>

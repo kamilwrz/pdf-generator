@@ -3,6 +3,7 @@ from app.models.models import User
 from app.schemas.user_schema import UserCreateRequest
 from datetime import datetime, timezone
 from app.core.security import hash_password, verify_password
+from app.services.entitlements import ensure_free_subscription
 
 def get_user_by_username(db:Session, username: str):
     return db.query(User).filter(User.username == username).first()
@@ -18,6 +19,8 @@ def create_user(db:Session, user: UserCreateRequest):
         )
     db.add(db_user)
     db.commit()
+    db.refresh(db_user)
+    ensure_free_subscription(db, db_user.id)
     return "user registration complete"
 
 def authenticate_user(username: str, password: str, db: Session):

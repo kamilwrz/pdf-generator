@@ -4,9 +4,8 @@ import { PdfContext } from "../../../store/pdfgenerator-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { TEMPLATES } from "../../../templates";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
+import { isTemplateAllowed, planErrorMessage } from "../../../utils/entitlements";
 import DialogShell from "../../common/DialogShell/DialogShell";
-
-const CV_TEMPLATES = selectCvTemplates(TEMPLATES);
 
 const UploadIcon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -22,7 +21,7 @@ const SparkIcon = () => (
 );
 
 export default function AiCvPanel() {
-    const { isAiPanel, showAiPanel, showBioCvModal, loadAiElements } = use(PdfContext);
+    const { isAiPanel, showAiPanel, showBioCvModal, loadAiElements, entitlements } = use(PdfContext);
 
     const fileRef = useRef(null);
     const [fileName, setFileName] = useState(null);
@@ -31,6 +30,8 @@ export default function AiCvPanel() {
     const [isExtracting, setIsExtracting] = useState(false);
     const [fillingId, setFillingId] = useState(null);
     const [error, setError] = useState(null);
+    const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
+    const canExtract = Boolean(entitlements?.extract_cv);
 
     const api = useMemo(
         () => new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` }),
@@ -48,6 +49,10 @@ export default function AiCvPanel() {
 
     const handleExtract = useCallback(async () => {
         if (!fileData) return;
+        if (!canExtract) {
+            setError("Ekstrakcja CV z PDF jest dostępna w planie Standard.");
+            return;
+        }
         setIsExtracting(true);
         setError(null);
         try {
@@ -68,14 +73,18 @@ export default function AiCvPanel() {
             }
             setCvData(res.cv_data);
         } catch (err) {
-            setError(err.message || "Nie udało się wyodrębnić danych z CV.");
+            setError(planErrorMessage(err, "Nie udało się wyodrębnić danych z CV."));
         } finally {
             setIsExtracting(false);
         }
-    }, [api, fileData]);
+    }, [api, canExtract, fileData]);
 
     const handleFill = useCallback(async (template) => {
         if (!cvData) return;
+        if (!isTemplateAllowed(template, entitlements)) {
+            setError("Ten szablon jest dostępny w planie Standard.");
+            return;
+        }
         setFillingId(template.id);
         setError(null);
         try {
@@ -87,11 +96,11 @@ export default function AiCvPanel() {
             loadAiElements(res.elements, `CV ${template.name}`);
             showAiPanel();
         } catch (err) {
-            setError(err.message || "Nie udało się wygenerować szablonu.");
+            setError(planErrorMessage(err, "Nie udało się wygenerować szablonu."));
         } finally {
             setFillingId(null);
         }
-    }, [api, cvData, loadAiElements, showAiPanel]);
+    }, [api, cvData, entitlements, loadAiElements, showAiPanel]);
 
     const extracted = Boolean(cvData?.name);
 
@@ -111,12 +120,13 @@ export default function AiCvPanel() {
                             type="button"
                             className={classes.extractBtn}
                             onClick={handleExtract}
-                            disabled={!fileName || isExtracting}
+                            disabled={!fileName || isExtracting || !canExtract}
+                            title={!canExtract ? "Dostępne w planie Standard" : undefined}
                         >
                             {isExtracting ? (
                                 <><span className={classes.spinner} />Wyodrębnianie CV…</>
                             ) : (
-                                <><SparkIcon />Wyodrębnij dane CV</>
+                                <><SparkIcon />{canExtract ? "Wyodrębnij dane CV" : "Standard — ekstrakcja"}</>
                             )}
                         </button>
                     )}
@@ -148,6 +158,11 @@ export default function AiCvPanel() {
                         Nie masz gotowego PDF? Utwórz CV krok po kroku
                     </button>
                 )}
+                {!canExtract && !extracted && (
+                    <p className={classes.hint}>
+                        Ekstrakcja z PDF wymaga planu Standard. Kreator krok po kroku działa na Free.
+                    </p>
+                )}
             </div>
 
             {extracted && (
@@ -170,21 +185,25 @@ export default function AiCvPanel() {
             <div className={`${classes.section} ${!extracted ? classes.sectionDisabled : ""}`}>
                 <div className={classes.sectionLabel}>Krok 2 · Wybierz szablon do wypełnienia</div>
                 {extracted ? (
-                    CV_TEMPLATES.length > 0 ? <>
+                    cvTemplates.length > 0 ? <>
                         <div className={classes.templateGrid}>
-                            {CV_TEMPLATES.map(t => (
-                                <button
-                                    key={t.id}
-                                    type="button"
-                                    className={classes.templateCard}
-                                    onClick={() => handleFill(t)}
-                                    disabled={fillingId !== null}
-                                >
-                                    <span className={classes.dot} style={{ background: t.accent }} />
-                                    <span className={classes.tName}>{t.name}</span>
-                                    {fillingId === t.id && <span className={classes.spinner} />}
-                                </button>
-                            ))}
+                            {cvTemplates.map(t => {
+                                const locked = !isTemplateAllowed(t, entitlements);
+                                return (
+                                    <button
+                                        key={t.id}
+                                        type="button"
+                                        className={classes.templateCard}
+                                        onClick={() => handleFill(t)}
+                                        disabled={fillingId !== null || locked}
+                                        title={locked ? "Dostępne w planie Standard" : undefined}
+                                    >
+                                        <span className={classes.dot} style={{ background: t.accent }} />
+                                        <span className={classes.tName}>{t.name}{locked ? " · Standard" : ""}</span>
+                                        {fillingId === t.id && <span className={classes.spinner} />}
+                                    </button>
+                                );
+                            })}
                         </div>
                         <p className={classes.hint}>
                             Możesz wypełnić wiele szablonów bez ponownego przesyłania pliku.

@@ -1,7 +1,21 @@
 import logging
 import time
 
-from sqlalchemy import VARCHAR, Boolean, Column, DateTime, Integer, Float, String, ForeignKey, Text, JSON, inspect, text
+from sqlalchemy import (
+    VARCHAR,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    JSON,
+    String,
+    Text,
+    UniqueConstraint,
+    inspect,
+    text,
+)
 from .database import Base, engine
 
 logger = logging.getLogger(__name__)
@@ -88,6 +102,76 @@ class BioCvDraft(Base):
     updated_at = Column(DateTime, nullable=False)
 
 
+class Plan(Base):
+    """Catalog of subscription entitlements (Free / Standard / Pro)."""
+
+    __tablename__ = "plans"
+
+    slug = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    # None = unlimited
+    max_projects = Column(Integer, nullable=True)
+    max_exports_per_month = Column(Integer, nullable=True)
+    max_ai_actions_per_month = Column(Integer, nullable=True)
+    ai_assistant = Column(Boolean, nullable=False, default=False)
+    extract_cv = Column(Boolean, nullable=False, default=False)
+    # "starter" | "all"
+    template_tier = Column(String, nullable=False, default="starter")
+    # Filled when Stripe products are wired
+    stripe_price_id_monthly = Column(String, nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+
+
+class UserSubscription(Base):
+    """Current plan assignment for a user. Stripe fields stay null until billing lands."""
+
+    __tablename__ = "user_subscriptions"
+
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    plan_slug = Column(String, ForeignKey("plans.slug"), nullable=False, index=True)
+    # active | canceled | past_due | trialing (Stripe-ready)
+    status = Column(String, nullable=False, default="active")
+    current_period_start = Column(DateTime, nullable=True)
+    current_period_end = Column(DateTime, nullable=True)
+    stripe_customer_id = Column(String, nullable=True)
+    stripe_subscription_id = Column(String, nullable=True)
+    updated_at = Column(DateTime, nullable=False)
+
+
+class UsageCounter(Base):
+    """Per-user monthly meters for exports and AI actions."""
+
+    __tablename__ = "usage_counters"
+    __table_args__ = (
+        UniqueConstraint("user_id", "period_key", name="uq_usage_user_period"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    # YYYY-MM (UTC)
+    period_key = Column(String, nullable=False, index=True)
+    exports_count = Column(Integer, nullable=False, default=0)
+    ai_actions_count = Column(Integer, nullable=False, default=0)
+
+
+class Payment(Base):
+    """Ledger for future Stripe (and other) payment events."""
+
+    __tablename__ = "payments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    provider = Column(String, nullable=False, default="stripe")
+    provider_ref = Column(String, nullable=True, index=True)
+    plan_slug = Column(String, nullable=True)
+    amount_cents = Column(Integer, nullable=True)
+    currency = Column(String, nullable=False, default="pln")
+    # pending | succeeded | failed | refunded
+    status = Column(String, nullable=False, default="pending")
+    raw = Column(JSON, nullable=True)
+    created_at = Column(DateTime, nullable=False)
+
+
 def _run_lightweight_migrations():
     """Add multi-page columns to pre-existing tables.
 
@@ -135,6 +219,15 @@ def init_db(*, attempts: int = 6, delay_seconds: float = 2.0) -> None:
         try:
             Base.metadata.create_all(bind=engine)
             _run_lightweight_migrations()
+            # Seed plan catalog + Free subscriptions for existing users.
+            from app.models.database import SessionLocal
+            from app.services.entitlements import bootstrap_billing
+
+            db = SessionLocal()
+            try:
+                bootstrap_billing(db)
+            finally:
+                db.close()
             if attempt > 1:
                 logger.info("Database ready after %s attempt(s).", attempt)
             return

@@ -33,6 +33,7 @@
     width: 100%;
     display: flex;
     justify-content: center;
+    position: relative;
 }
 
 .cardName {
@@ -66,6 +67,44 @@
 
 .useBtn:hover {
     background: var(--chrome-accent);
+}
+
+.cardLocked {
+    opacity: 0.72;
+}
+
+.cardLocked:hover {
+    border-color: var(--chrome-border);
+    background: var(--primary-bg);
+}
+
+.lockBadge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: #1a1f27;
+    color: #f3f4f6;
+    font: 700 9px var(--font-body);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 3px 6px;
+    border-radius: 4px;
+}
+
+.lockedBtn {
+    width: 100%;
+    background: transparent;
+    color: var(--chrome-muted);
+    font: 600 10.5px var(--font-body);
+    border: 1px solid var(--chrome-border);
+    border-radius: 6px;
+    height: 26px;
+    cursor: pointer;
+}
+
+.lockedBtn:hover {
+    border-color: var(--chrome-accent);
+    color: var(--chrome-ink);
 }
 
 /* ---- real screenshot preview ---- */

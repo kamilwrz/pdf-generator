@@ -1,4 +1,5 @@
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -45,8 +46,25 @@ class AiAssistantExceptionHandlingTests(unittest.TestCase):
         app.dependency_overrides[verify_token] = _fake_verify_token
         app.dependency_overrides[get_db] = _fake_get_db
         self.client = TestClient(app)
+        self._user_patch = patch.object(
+            ai_assistant_route,
+            "get_user_by_username",
+            return_value=SimpleNamespace(id=1, username="testuser"),
+        )
+        self._entitlement_patch = patch.object(
+            ai_assistant_route, "assert_can_use_ai_assistant", return_value=None
+        )
+        self._record_patch = patch.object(
+            ai_assistant_route, "record_ai_action", return_value=None
+        )
+        self._user_patch.start()
+        self._entitlement_patch.start()
+        self._record_patch.start()
 
     def tearDown(self):
+        self._user_patch.stop()
+        self._entitlement_patch.stop()
+        self._record_patch.stop()
         app.dependency_overrides.clear()
 
     def _post(self):

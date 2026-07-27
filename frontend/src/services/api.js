@@ -22,7 +22,8 @@ export const ENDPOINTS = {
     AUTH: {
         LOGIN: "/auth/token",
         REGISTER: "/auth/register",
-        TOKEN: "/auth/verify-token/"
+        TOKEN: "/auth/verify-token/",
+        ENTITLEMENTS: "/auth/me/entitlements",
     },
     AI: {
         EXTRACT_CV: "/ai/extract_cv",
@@ -59,9 +60,26 @@ export class ApiClient {
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                const requestError = new Error(error.detail || fallbackMessage);
+                let payload = null;
+                try {
+                    payload = await response.json();
+                } catch {
+                    payload = null;
+                }
+                const detail = payload?.detail;
+                const message = typeof detail === "string"
+                    ? detail
+                    : (detail?.message || fallbackMessage);
+                const requestError = new Error(message);
                 requestError.status = response.status;
+                requestError.code = typeof detail === "object" && detail ? detail.code : undefined;
+                requestError.upgradeRequired = typeof detail === "object" && detail
+                    ? detail.upgrade_required
+                    : undefined;
+                requestError.planMessage = typeof detail === "object" && detail
+                    ? detail.message
+                    : undefined;
+                requestError.detail = detail;
                 throw requestError;
             }
             else{

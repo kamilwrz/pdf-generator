@@ -5,8 +5,10 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.security import verify_token
+from app.crud.user import get_user_by_username
 from app.dependencies import get_db
 from app.services.ai_assistant_service import AIServiceError, analyze_action
+from app.services.entitlements import assert_can_use_ai_assistant, record_ai_action
 from app.utils.metrics_logging import log_metric_event
 
 logger = logging.getLogger("ai_assistant")
@@ -72,6 +74,11 @@ async def ai_assistant(
             detail="Pole job_description jest wymagane dla akcji position_rating.",
         )
 
+    user = get_user_by_username(db, username=payload.get("sub"))
+    if user is None:
+        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+    assert_can_use_ai_assistant(db, user)
+
     log_metric_event("ai_assistant_call", db, payload, action=request.action)
 
     try:
@@ -83,6 +90,7 @@ async def ai_assistant(
             page_size=request.page_size,
             history=request.history,
         )
+        record_ai_action(db, user.id)
         return AssistantResponse(**result)
     except AIServiceError:
         # Handled by the app-level exception_handler in main.py, which logs

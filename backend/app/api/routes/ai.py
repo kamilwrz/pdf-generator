@@ -8,6 +8,11 @@ from app.dependencies import get_db
 from app.schemas.cv_data_schema import BioCvDraftRequest, BioCvDraftResponse
 from app.services.cv_data import CvDataValidationError, normalize_cv_data
 from app.services.ai_service import extract_cv_data, generate_resume
+from app.services.entitlements import (
+    assert_can_extract_cv,
+    assert_template_allowed,
+    record_ai_action,
+)
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -56,7 +61,12 @@ def _rebase_template_asset_urls(elements: list[dict], request: Request) -> list[
 async def extract_cv(
     file: UploadFile = File(...),
     payload: dict = Depends(verify_token),
+    db: Session = Depends(get_db),
 ):
+    user = get_user_by_username(db, username=payload.get("sub"))
+    if user is None:
+        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+    assert_can_extract_cv(db, user)
     if not (file.filename or "").lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Akceptowane są wyłącznie pliki PDF.")
     data = await file.read()
@@ -64,6 +74,7 @@ async def extract_cv(
         raise HTTPException(status_code=400, detail="Plik przekracza limit 10 MB.")
     try:
         cv_data, usage = extract_cv_data(data)
+        record_ai_action(db, user.id)
         return {"cv_data": cv_data, "usage": usage}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Nie udało się wyodrębnić danych z CV: {exc}")
@@ -114,7 +125,12 @@ async def fill_template(
     request: FillRequest,
     http_request: Request,
     payload: dict = Depends(verify_token),
+    db: Session = Depends(get_db),
 ):
+    user = get_user_by_username(db, username=payload.get("sub"))
+    if user is None:
+        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+    assert_template_allowed(db, user, request.template_id)
     try:
         cv_data = normalize_cv_data(request.cv_data, require_name=True)
         elements = generate_resume(request.template_id, cv_data)

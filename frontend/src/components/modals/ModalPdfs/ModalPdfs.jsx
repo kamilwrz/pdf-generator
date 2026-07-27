@@ -45,11 +45,12 @@ export default function ModalPdfs({ title }) {
         setPdfsLoaded,
         setPDFdownloadData,
         PDFdownloadData,
+        pushToast,
+        refreshEntitlements,
         setPageCount,
         setCurrentPage,
         setPageSize,
         resetHistory,
-        pushToast,
     } = use(PdfContext);
 
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
@@ -202,17 +203,22 @@ export default function ModalPdfs({ title }) {
 
 
   async function downloadPdf(id){
-    const response = await api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "POST", id, "Błąd pobierania");
-
-    const blob = (await fetch(response.url)).blob()
-    const urlBlob = URL.createObjectURL(await blob);
-
-    setPDFdownloadData({blob: urlBlob, title: response.title})
-
-    timeout.current = setTimeout(() => {
-      //  URL.revokeObjectURL(urlBlob);
-
-    },6000)
+    try {
+      const response = await api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "POST", id, "Błąd pobierania");
+      const blob = (await fetch(response.url)).blob()
+      const urlBlob = URL.createObjectURL(await blob);
+      setPDFdownloadData({blob: urlBlob, title: response.title})
+      refreshEntitlements?.();
+      timeout.current = setTimeout(() => {
+        //  URL.revokeObjectURL(urlBlob);
+      },6000)
+    } catch (error) {
+      pushToast?.({
+        title: error?.code?.startsWith?.("plan_") ? "Limit planu" : "Pobieranie nie powiodło się",
+        msg: error?.message || "Błąd pobierania",
+        variant: "error",
+      });
+    }
   }
 
   clearTimeout(timeout.current);

@@ -25,6 +25,7 @@ from app.utils.build_pdf import build_pdf_to_buffer
 from app.utils.image_src_to_path import image_src_to_local_path
 
 from app.core.config import USE_S3
+from app.services.entitlements import assert_can_create_project, assert_can_export, record_export
 
 if USE_S3:
     from app.services import s3_storage
@@ -56,6 +57,9 @@ async def create_user_pdf(
     username = payload.get("sub")
     #GET THE TABLE ROW WITH THE RIGHT USER
     db_user = get_user_by_username(db, username=username)
+    if db_user is None:
+        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+    assert_can_create_project(db, db_user)
 
     #WITHOUT load_dotenv() USE_S3 is True, when in the host(render) enviorment the variable is set. Otherwise it wont read from the .env file
     #CODE IS DEPLOYED ON RENDER -> VAR. IS SET USE_S3 WILL BE TRUE, SO THE "PROCESS" GOES OVER AWS S3_BUCKET
@@ -242,13 +246,18 @@ async def save_pdf_elements(
 @router.post("/download_pdf", status_code=status.HTTP_200_OK)
 async def download_pdf(db:Session = Depends(get_db), id = Body(), payload: dict = Depends(verify_token)):
     pdf_row = _require_owned_pdf(db, payload, id)
-    pdf_row = _require_owned_pdf(db, payload, id)
+    username = payload.get("sub")
+    db_user = get_user_by_username(db, username=username)
+    if db_user is None:
+        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+    assert_can_export(db, db_user)
     if USE_S3:
         key = s3_storage.key_from_file_path(pdf_row.file_path)
         download_url = s3_storage.generate_presigned_download_url(key)
+        record_export(db, db_user.id)
         return {"url": download_url, "title":pdf_row.title}
-    else:
-        return pdf_row
+    record_export(db, db_user.id)
+    return pdf_row
 
 
     

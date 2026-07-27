@@ -7,6 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.core.security import create_access_token, get_access_token_expire_minutes, verify_token
 from datetime import timedelta
 from app.dependencies import get_db
+from app.services.entitlements import get_entitlements
 
 router = APIRouter(
     prefix="/auth",
@@ -41,4 +42,16 @@ async def login_for_acess_token(form_data: OAuth2PasswordRequestForm = Depends()
 async def verify_user_token(token:str):
     verify_token(token=token)
     return {"message": "Token jest prawidłowy."}
+
+
+@router.get("/me/entitlements")
+async def me_entitlements(
+    payload: dict = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    username = payload.get("sub")
+    user = get_user_by_username(db, username=username)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+    return get_entitlements(db, user)
 

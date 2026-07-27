@@ -18,6 +18,7 @@ import Spinner from '../components/common/Spinner/Spinner';
 import PageControls from '../components/editor/PageControls/PageControls';
 import ToastStack from '../components/common/ToastStack/ToastStack';
 import { useToasts } from '../hooks/useToasts';
+import { useEntitlements } from '../hooks/useEntitlements';
 import Guides from '../components/canvas/Guides/Guides';
 import Connectors from '../components/canvas/Connectors/Connectors';
 import TemplatesModal from '../components/modals/TemplatesModal/TemplatesModal';
@@ -27,6 +28,7 @@ import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 import { logEvent } from '../services/eventLog';
 import { previewStructureOperation } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
+import { planErrorMessage } from '../utils/entitlements';
 
 // Session-scoped flag so the template-first onboarding modal (see
 // markTemplatesModalSeen below) never re-triggers after being resolved once.
@@ -87,6 +89,7 @@ function PdfCanvas() {
   const titleRef = useRef();
 
   const { toasts, pushToast, dismissToast } = useToasts();
+  const { entitlements, refresh: refreshEntitlements } = useEntitlements(true);
 
   const [PDFdownloadData, setPDFdownloadData] = useState([])
   // Layout suggestions are rendered here before acceptance, so previewing a
@@ -185,10 +188,16 @@ function PdfCanvas() {
       const urlBlob = URL.createObjectURL(blob);
       setPDFdownloadData({ blob: urlBlob, title: response.title });
       setTimeout(() => URL.revokeObjectURL(urlBlob), 6000);
+      refreshEntitlements();
     } catch (error) {
       console.error("Nie udało się przygotować pobierania PDF.", error);
+      pushToast({
+        title: error?.code?.startsWith?.("plan_") ? "Limit planu" : "Pobieranie nie powiodło się",
+        msg: planErrorMessage(error, "Nie udało się przygotować pobierania PDF."),
+        variant: "error",
+      });
     }
-  }, []);
+  }, [pushToast, refreshEntitlements]);
 
   // Fires exactly when the create/update spinner finishes (same timing the
   // old ModalPdfRequestStatus used), reading responsePDF fresh from this
@@ -196,7 +205,11 @@ function PdfCanvas() {
   useEffect(() => {
     if (wasPdfLoadingRef.current && !isPdfLoading) {
       if (responsePDF?.message) {
-        pushToast({ title: "Coś poszło nie tak", msg: responsePDF.message, variant: "error" });
+        pushToast({
+          title: responsePDF?.code?.startsWith?.("plan_") ? "Limit planu" : "Coś poszło nie tak",
+          msg: planErrorMessage(responsePDF, responsePDF.message),
+          variant: "error",
+        });
       } else if (responsePDF?.success) {
         const fileLabel = titleRef.current?.value ? `${titleRef.current.value}.pdf` : "CV";
         const isDownload = responsePDF.intent === "download";
@@ -611,6 +624,8 @@ function PdfCanvas() {
     handlePdfId: handlePdfId,
     //toasts
     pushToast: pushToast,
+    entitlements,
+    refreshEntitlements,
     //ELSE
     logout: handleLogout,
     PDFs: PDFs,
@@ -636,7 +651,7 @@ function PdfCanvas() {
     setValueImageUpload, setIsModalPdfs, handleResizeElement, 
     updatePdfWithElements, handlePdfId, 
     clearA4Fresh, discardActiveDocument, flushAutosave, loadTemplateFresh, loadTemplateWithFillFresh, loadAiElementsFresh,
-    pushToast, handleLogout, PDFs, setPDFs, pdfsLoaded, setPdfsLoaded,
+    pushToast, entitlements, refreshEntitlements, handleLogout, PDFs, setPDFs, pdfsLoaded, setPdfsLoaded,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     isTwoPageView, toggleTwoPageView,
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
@@ -710,7 +725,7 @@ function PdfCanvas() {
         </div>
        <PageControls />
        <Gallery />
-       <AiAssistant />
+       {entitlements?.ai_assistant ? <AiAssistant /> : null}
        <ToastStack toasts={displayToasts} onDismiss={dismissToast} offsetForGallery={isGallery} />
       </PdfContext.Provider>
     </main>
