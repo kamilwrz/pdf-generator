@@ -63,8 +63,8 @@ async def extract_cv(
     if len(data) > MAX_PDF_BYTES:
         raise HTTPException(status_code=400, detail="Plik przekracza limit 10 MB.")
     try:
-        cv_data = extract_cv_data(data)
-        return {"cv_data": cv_data}
+        cv_data, usage = extract_cv_data(data)
+        return {"cv_data": cv_data, "usage": usage}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Nie udało się wyodrębnić danych z CV: {exc}")
 

@@ -17,6 +17,7 @@ from app.services.layout_analysis import (
     resolve_directed_operation,
     resolve_restructure_section,
 )
+from app.services.openai_pricing import usage_from_response
 
 _MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.4-mini")
 _client = OpenAI(api_key=OPENAI_API_KEY)
@@ -148,7 +149,8 @@ def _extract_typography(elements: list[dict]) -> list[dict]:
     ]
 
 
-def _gpt(system: str, user: str) -> dict:
+def _gpt(system: str, user: str, *, action: str = "") -> tuple[dict, dict]:
+    """Call the assistant model and return (parsed_json, usage_cost)."""
     try:
         resp = _client.chat.completions.create(
             model=_MODEL,
@@ -162,6 +164,7 @@ def _gpt(system: str, user: str) -> dict:
         # other openai SDK failure — all are subclasses of APIError.
         raise AIServiceError(f"OpenAI request failed: {type(exc).__name__}", original=exc) from exc
 
+    usage = usage_from_response(resp, model=_MODEL, action=action)
     content = resp.choices[0].message.content or ""
     if not content.strip():
         raise AIServiceError(
@@ -174,9 +177,22 @@ def _gpt(system: str, user: str) -> dict:
             stripped = stripped[4:]
         stripped = stripped.rsplit("```", 1)[0].strip()
     try:
-        return json.loads(stripped)
+        return json.loads(stripped), usage
     except json.JSONDecodeError as exc:
         raise AIServiceError(f"OpenAI returned malformed JSON: {exc}", original=exc) from exc
+
+
+def _gpt_result(
+    system: str,
+    user: str,
+    *,
+    action: str = "",
+    allowed_fields: set | None = None,
+) -> dict:
+    raw, usage = _gpt(system, user, action=action)
+    result = _safe_result(raw, allowed_fields=allowed_fields or _ALLOWED_FIELDS)
+    result["usage"] = usage
+    return result
 
 
 def _ddg_search(query: str, max_results: int = 5) -> list[dict]:
@@ -274,7 +290,7 @@ Zwróć JSON (uwzględnij wyniki cząstkowe w wskazówkach):
   "corrections": [],
   "web_sources": []
 }}"""
-    return _safe_result(_gpt(system, user))
+    return _gpt_result(system, user, action="rating")
 
 
 def _rate_design(elements: list[dict]) -> dict:
@@ -332,7 +348,7 @@ Zwróć JSON:
   ],
   "web_sources": []
 }}"""
-    return _safe_result(_gpt(system, user), allowed_fields=_STYLE_FIELDS)
+    return _gpt_result(system, user, action="design_rating", allowed_fields=_STYLE_FIELDS)
 
 
 def _rate_position(text: str, job_description: str) -> dict:
@@ -399,7 +415,7 @@ Zwróć JSON:
   "corrections": [],
   "web_sources": {json.dumps(web_urls[:3])}
 }}"""
-    result = _safe_result(_gpt(system, user))
+    result = _gpt_result(system, user, action="position_rating")
     if not result["web_sources"] and web_urls:
         result["web_sources"] = web_urls[:3]
     return result
@@ -434,7 +450,7 @@ Zwróć JSON:
   ],
   "web_sources": []
 }}"""
-    return _safe_result(_gpt(system, user), allowed_fields=_CONTENT_FIELDS)
+    return _gpt_result(system, user, action="grammar", allowed_fields=_CONTENT_FIELDS)
 
 
 def _check_style(text: str, elements: list[dict]) -> dict:
@@ -489,7 +505,7 @@ Zwróć JSON:
   ],
   "web_sources": []
 }}"""
-    return _safe_result(_gpt(system, user), allowed_fields=_CONTENT_FIELDS)
+    return _gpt_result(system, user, action="language", allowed_fields=_CONTENT_FIELDS)
 
 
 def _improve_content(elements: list[dict]) -> dict:
@@ -537,7 +553,7 @@ Zwróć JSON:
   ],
   "web_sources": []
 }}"""
-    return _safe_result(_gpt(system, user), allowed_fields=_CONTENT_FIELDS)
+    return _gpt_result(system, user, action="improve", allowed_fields=_CONTENT_FIELDS)
 
 
 def _ats_score(text: str) -> dict:
@@ -595,7 +611,7 @@ Zwróć JSON:
   "corrections": [],
   "web_sources": []
 }}"""
-    return _safe_result(_gpt(system, user))
+    return _gpt_result(system, user, action="ats_score")
 
 
 _MAX_CHAT_HISTORY = 12
@@ -786,8 +802,9 @@ Zwróć JSON:
   "clone_operation": null,
   "web_sources": []
 }}"""
-    raw = _gpt(system, user)
+    raw, usage = _gpt(system, user, action="chat")
     result = _safe_result(raw)
+    result["usage"] = usage
 
     directive = raw.get("position_operation")
     if isinstance(directive, dict):
@@ -860,7 +877,18 @@ Zwróć JSON:
 
 def _analyze_layout(elements: list[dict], page_size: dict | None) -> dict:
     """Return deterministic layout proposals; GPT never chooses coordinates."""
-    return analyze_layout(elements, page_size)
+    result = analyze_layout(elements, page_size)
+    result["usage"] = {
+        "model": None,
+        "action": "layout",
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "cost_usd": 0.0,
+        "cost_pln_estimate": 0.0,
+        "rates_usd_per_1m": {"input": 0.0, "output": 0.0},
+    }
+    return result
 
 
 # ── public dispatcher ──────────────────────────────────────────────────────

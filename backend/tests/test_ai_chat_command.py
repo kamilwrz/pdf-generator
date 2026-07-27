@@ -36,14 +36,14 @@ class ChatCommandTests(unittest.TestCase):
             },
         ]
 
-        def fake_gpt(system, user):
+        def fake_gpt(system, user, **kwargs):
             self.assertIn("HISTORIA SESJI CZATU", user)
             self.assertIn("przenieś wykształcenie do sidebara", user)
             self.assertIn("historię bieżącej sesji", system)
             return {
                 "message": "Dopasowuję kolor nagłówka do pozostałych sekcji sidebara.",
                 "corrections": [{"element_id": "heading-1", "color": "#37D1EE"}],
-            }
+            }, {}
 
         with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
             result = ai_assistant_service.analyze_action(
@@ -72,7 +72,7 @@ class ChatCommandTests(unittest.TestCase):
             },
         ]
 
-        def fake_gpt(system, user):
+        def fake_gpt(system, user, **kwargs):
             # The prompt must carry structured per-element data (id + style),
             # not just the element's plain joined text. Position is now
             # intentionally included too (see _extract_positional) — the
@@ -85,7 +85,7 @@ class ChatCommandTests(unittest.TestCase):
                 "corrections": [
                     {"element_id": "heading-1", "fontSize": 13, "left": 999, "page": 2},
                 ],
-            }
+            }, {}
 
         with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
             result = ai_assistant_service.analyze_action(
@@ -112,7 +112,7 @@ class ChatCommandTests(unittest.TestCase):
             },
         ]
 
-        def fake_gpt(system, user):
+        def fake_gpt(system, user, **kwargs):
             self.assertIn('"left": 100.0', user)
             return {
                 "message": "Przesunąłem nagłówek o 50px w lewo.",
@@ -123,7 +123,7 @@ class ChatCommandTests(unittest.TestCase):
                     "dx": -50,
                     "dy": 0,
                 },
-            }
+            }, {}
 
         with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
             result = ai_assistant_service.analyze_action(
@@ -158,7 +158,7 @@ class ChatCommandTests(unittest.TestCase):
             },
         ]
 
-        def fake_gpt(system, user):
+        def fake_gpt(system, user, **kwargs):
             self.assertIn('"move_to_page"', system)
             self.assertIn('"target_page"', system)
             self.assertIn("ZAWSZE użyj tego powiązanego elementu", system)
@@ -175,7 +175,7 @@ class ChatCommandTests(unittest.TestCase):
                     "axis": "x",
                     "anchor": "start",
                 },
-            }
+            }, {}
 
         with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
             result = ai_assistant_service.analyze_action(
@@ -206,7 +206,7 @@ class ChatCommandTests(unittest.TestCase):
             },
         ]
 
-        def fake_gpt(system, user):
+        def fake_gpt(system, user, **kwargs):
             return {
                 "message": "Przesuwam nagłówek o 900px w lewo.",
                 "corrections": [],
@@ -216,7 +216,7 @@ class ChatCommandTests(unittest.TestCase):
                     "dx": -900,
                     "dy": 0,
                 },
-            }
+            }, {}
 
         with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
             result = ai_assistant_service.analyze_action(
@@ -348,7 +348,7 @@ class ChatCommandTests(unittest.TestCase):
             },
         ]
 
-        def fake_gpt(system, user):
+        def fake_gpt(system, user, **kwargs):
             return {
                 "message": "Przesunąłem cały wpis o pracę o 30px w dół.",
                 "corrections": [],
@@ -358,7 +358,7 @@ class ChatCommandTests(unittest.TestCase):
                     "dx": 0,
                     "dy": 30,
                 },
-            }
+            }, {}
 
         with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
             result = ai_assistant_service.analyze_action(
@@ -391,7 +391,7 @@ class ChatCommandTests(unittest.TestCase):
             },
         ]
 
-        def fake_gpt(system, user):
+        def fake_gpt(system, user, **kwargs):
             self.assertIn('"type": "shift"|"align"|"distribute"|"space"', system)
             self.assertIn("ustaw odstępy 10 px", system)
             return {
@@ -403,7 +403,7 @@ class ChatCommandTests(unittest.TestCase):
                     "axis": "y",
                     "gap": 10,
                 },
-            }
+            }, {}
 
         with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
             result = ai_assistant_service.analyze_action(
@@ -433,7 +433,7 @@ class ChatCommandTests(unittest.TestCase):
             "left": 40, "top": 100, "width": 260, "height": 76, "page": 1,
         }]
 
-        def fake_gpt(system, user):
+        def fake_gpt(system, user, **kwargs):
             self.assertIn("structure_operation", system)
             self.assertIn("NIE podawaj nowych ID", system)
             self.assertIn('"element_id": "education"', user)
@@ -451,7 +451,7 @@ class ChatCommandTests(unittest.TestCase):
                         {"role": "body", "content": "Specjalizacja: finanse przedsiębiorstw."},
                     ],
                 },
-            }
+            }, {}
 
         with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
             result = ai_assistant_service.analyze_action(
@@ -485,7 +485,7 @@ class ChatCommandTests(unittest.TestCase):
             },
         ]
 
-        def fake_gpt(system, user):
+        def fake_gpt(system, user, **kwargs):
             self.assertIn("delete_operation", system)
             self.assertIn("fixedToPage=true", system)
             self.assertIn('"page": 2', user)
@@ -498,7 +498,7 @@ class ChatCommandTests(unittest.TestCase):
                     "type": "delete_elements",
                     "target_element_ids": ["section-heading", "section-body"],
                 },
-            }
+            }, {}
 
         with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
             result = ai_assistant_service.analyze_action(

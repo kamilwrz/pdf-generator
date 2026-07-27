@@ -710,6 +710,19 @@ export default function AiAssistant() {
                 "Asystent AI nie odpowiedział"
             );
 
+            if (res.usage) {
+                console.log("[GPT API cost]", {
+                    action,
+                    model: res.usage.model,
+                    prompt_tokens: res.usage.prompt_tokens,
+                    completion_tokens: res.usage.completion_tokens,
+                    total_tokens: res.usage.total_tokens,
+                    cost_usd: res.usage.cost_usd,
+                    cost_pln_estimate: res.usage.cost_pln_estimate,
+                    rates_usd_per_1m: res.usage.rates_usd_per_1m,
+                });
+            }
+
             const assistantMsg = {
                 id: nanoid(),
                 role: "assistant",
@@ -726,6 +739,7 @@ export default function AiAssistant() {
                 clone_groups: res.clone_groups ?? [],
                 clone_issues: res.clone_issues ?? [],
                 web_sources: res.web_sources ?? [],
+                usage: res.usage ?? null,
                 actionLabel: actionMeta?.label,
                 actionColor: actionMeta?.color,
             };

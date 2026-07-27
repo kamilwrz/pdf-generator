@@ -104,7 +104,7 @@ class CloneOperationTests(unittest.TestCase):
             el("heading", "text", 40, 200, 160, 16, content="PROFIL"),
         ]
 
-        def fake_gpt(system, user):
+        def fake_gpt(system, user, **kwargs):
             self.assertIn("clone_operation", system)
             return {
                 "message": "Klonuję linię pod nagłówkiem.",
@@ -119,7 +119,7 @@ class CloneOperationTests(unittest.TestCase):
                         "align": "start",
                     }],
                 },
-            }
+            }, {}
 
         with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
             result = ai_assistant_service.analyze_action(

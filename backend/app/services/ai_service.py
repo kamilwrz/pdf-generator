@@ -5,8 +5,10 @@ import fitz
 from openai import OpenAI
 from app.core.config import OPENAI_API_KEY
 from app.services.cv_data import normalize_cv_data
+from app.services.openai_pricing import usage_from_response
 
 _client = OpenAI(api_key=OPENAI_API_KEY)
+_EXTRACT_MODEL = "gpt-4o"
 
 
 # ── PDF → images ──────────────────────────────────────────────────────────────
@@ -25,7 +27,8 @@ def _pdf_to_b64_images(pdf_bytes: bytes, max_pages: int = 3) -> list[str]:
 
 # ── CV data extraction ─────────────────────────────────────────────────────────
 
-def extract_cv_data(pdf_bytes: bytes) -> dict:
+def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
+    """Extract structured CV data. Returns (cv_data, usage_cost)."""
     images = _pdf_to_b64_images(pdf_bytes)
     if not images:
         raise ValueError("Nie udało się wyrenderować żadnej strony z przesłanego pliku PDF.")
@@ -70,13 +73,14 @@ def extract_cv_data(pdf_bytes: bytes) -> dict:
         )
 
     resp = _client.chat.completions.create(
-        model="gpt-4o",
+        model=_EXTRACT_MODEL,
         messages=[{"role": "user", "content": content}],
         max_tokens=3000,
         temperature=0.1,
         response_format={"type": "json_object"},
     )
-    return normalize_cv_data(json.loads(resp.choices[0].message.content))
+    usage = usage_from_response(resp, model=_EXTRACT_MODEL, action="extract_cv")
+    return normalize_cv_data(json.loads(resp.choices[0].message.content)), usage
 
 
 # ── Post-processing: fix textarea heights from actual content ─────────────────

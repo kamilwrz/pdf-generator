@@ -29,6 +29,17 @@ class AssistantRequest(BaseModel):
     history: list[dict] = []
 
 
+class TokenUsage(BaseModel):
+    model: str | None = None
+    action: str = ""
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    cost_usd: float = 0.0
+    cost_pln_estimate: float = 0.0
+    rates_usd_per_1m: dict[str, float] = {}
+
+
 class AssistantResponse(BaseModel):
     message: str
     rating: int | None = None
@@ -43,6 +54,7 @@ class AssistantResponse(BaseModel):
     clone_groups: list[dict] = []
     clone_issues: list[dict] = []
     web_sources: list[str] = []
+    usage: TokenUsage | None = None
 
 
 @router.post("/assistant", response_model=AssistantResponse, status_code=200)

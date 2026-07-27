@@ -54,6 +54,18 @@ export default function AiCvPanel() {
             const form = new FormData();
             form.append("file", fileData);
             const res = await api.httpRequest(ENDPOINTS.AI.EXTRACT_CV, "POST", form, "Ekstrakcja CV nie powiodła się");
+            if (res.usage) {
+                console.log("[GPT API cost]", {
+                    action: "extract_cv",
+                    model: res.usage.model,
+                    prompt_tokens: res.usage.prompt_tokens,
+                    completion_tokens: res.usage.completion_tokens,
+                    total_tokens: res.usage.total_tokens,
+                    cost_usd: res.usage.cost_usd,
+                    cost_pln_estimate: res.usage.cost_pln_estimate,
+                    rates_usd_per_1m: res.usage.rates_usd_per_1m,
+                });
+            }
             setCvData(res.cv_data);
         } catch (err) {
             setError(err.message || "Nie udało się wyodrębnić danych z CV.");
