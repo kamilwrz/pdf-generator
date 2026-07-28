@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import classes from "./Hero.module.css";
 import { TEMPLATES } from "../../templates";
 
-const HEADING_TEXT = "Twórz piękne CV w kilka minut.";
-const ACCENT_WORD = "piękne";
+const HEADING_TEXT = "CV, które zaprasza na rozmowę.";
+const ACCENT_WORD = "zaprasza na rozmowę";
 const TYPE_SPEED_MS = 55;
 
 // Pre-rendered full-page crops in frontend/public/template-mockups/, one per
@@ -126,7 +126,7 @@ export default function Hero() {
                             </span>
                         </h1>
                         <p className={`${classes.subheading} ${typingDone ? classes.revealed : ""}`}>
-                            Wizualne płótno A4, 24 szablony branżowe i AI — od pomysłu do CV gotowego do wysłania.
+                            Wizualne płótno A4, 24 branżowe szablony i AI, która dopracuje treść — piękne CV gotowe do wysłania w kilka minut. Bez grafika, bez Worda.
                         </p>
                         <div className={`${classes.ctaRow} ${typingDone ? classes.revealed : ""}`}>
                             <Link to="/register" className={classes.primaryCta}>
