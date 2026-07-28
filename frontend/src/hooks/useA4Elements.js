@@ -7,6 +7,7 @@ import { cloneFixedPageDecorations } from '../utils/structureOperation';
 import { findPageCanvasAtPoint } from '../utils/pageSpread';
 import { moveElementsByDelta, moveElementsToPage } from '../utils/pageDrag';
 import { sanitizeTextContent } from '../utils/sanitizeTextContent';
+import { markElementsEnter } from '../utils/canvasEnter';
 
 // Elements a connector can attach to — those with a real bounding box the
 // backend can reproduce for the PDF. Single-line text (no stored width/height)
@@ -332,6 +333,7 @@ export function useA4Elements(titleRef) {
         .map(el => el.category === "connector"
           ? { ...el, source_id: idMap[el.source_id] ?? el.source_id, target_id: idMap[el.target_id] ?? el.target_id }
           : el);
+      markElementsEnter(clones.map((el) => el.element_id));
       return [...shifted, ...clones];
     });
     setPageCount(pageCountRef.current + 1);
@@ -660,6 +662,7 @@ export function useA4Elements(titleRef) {
       zIndex: 3,
       page: currentPageRef.current,
     };
+    markElementsEnter(text.element_id);
     setA4_Elements(prevState => {
       return [...prevState, text];
     });
@@ -680,6 +683,7 @@ export function useA4Elements(titleRef) {
       zIndex: 2,
       page: currentPageRef.current,
     };
+    markElementsEnter(line.element_id);
     setA4_Elements(prevState => {
       return [...prevState, line];
     });
@@ -701,6 +705,7 @@ export function useA4Elements(titleRef) {
       zIndex: 2,
       page: currentPageRef.current,
     };
+    markElementsEnter(rectangle.element_id);
     setA4_Elements(prevState => {
       return [...prevState, rectangle];
     });
@@ -723,6 +728,7 @@ export function useA4Elements(titleRef) {
       zIndex: 2,
       page: currentPageRef.current,
     };
+    markElementsEnter(circle.element_id);
     setA4_Elements((prevState) => [...prevState, circle]);
   }, [])
 
@@ -743,6 +749,7 @@ export function useA4Elements(titleRef) {
       zIndex: 2,
       page: currentPageRef.current,
     };
+    markElementsEnter(ellipse.element_id);
     setA4_Elements((prevState) => [...prevState, ellipse]);
   }, [])
 
@@ -762,6 +769,7 @@ export function useA4Elements(titleRef) {
       img_id : e.target.id,
       page: currentPageRef.current,
     };
+    markElementsEnter(image.element_id);
     setA4_Elements(prevState => {
       return [...prevState, image];
     });
@@ -797,6 +805,7 @@ export function useA4Elements(titleRef) {
       page: currentPageRef.current,
     };
     // New box starts in edit mode; clear selection/editing on everything else.
+    markElementsEnter(textarea.element_id);
     setA4_Elements(prevState => [
       ...prevState.map(el => ({
         ...el,
@@ -851,6 +860,7 @@ export function useA4Elements(titleRef) {
         isEditing: false,       // textarea copies render as a block, not in edit mode
       };
 
+      markElementsEnter(copy.element_id);
       // Deselect everything else; the new copy is the only selected element.
       return [...prevState.map(el => ({ ...el, isSelected: false })), copy];
     });
@@ -907,6 +917,7 @@ export function useA4Elements(titleRef) {
         pageSizeRef.current,
       );
 
+      markElementsEnter(offsetCopies.map((element) => element.element_id));
       return [
         ...prevState.map((element) => ({
           ...element,
@@ -1261,6 +1272,10 @@ export function useA4Elements(titleRef) {
         nanoid,
       );
       const withDecorations = [...documentElements, ...generatedDecorations];
+      markElementsEnter([
+        ...normalizedAdditions.map((el) => el.element_id),
+        ...generatedDecorations.map((el) => el.element_id),
+      ]);
       reflowPageCountRef.current = Math.max(
         targetMaxPage,
         ...withDecorations.map((element) => element.page ?? 1),
@@ -1410,6 +1425,10 @@ export function useA4Elements(titleRef) {
         }
         return { ...element, page: connectorSource.page ?? 1 };
       });
+      markElementsEnter([
+        ...normalizedAdditions.map((el) => el.element_id),
+        ...generatedDecorations.map((el) => el.element_id),
+      ]);
       reflowPageCountRef.current = Math.max(targetMaxPage, ...reconciled.map((element) => element.page ?? 1));
       layoutTargetPageRef.current = normalizedAdditions[0]?.page ?? null;
       return reconciled;

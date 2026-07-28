@@ -1,0 +1,14 @@
+.enter {
+  animation: canvasElementEnter 280ms ease both;
+}
+
+@keyframes canvasElementEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter {
+    animation: none;
+  }
+}
