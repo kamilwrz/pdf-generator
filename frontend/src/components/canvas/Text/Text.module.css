@@ -1,7 +1,6 @@
-/* Display <p> and editing <input> share the same type metrics so entering
-   edit mode does not shift the glyph baseline. */
-.textElement,
-.editingInput {
+/* Single DOM node for display + edit (contentEditable). No <input> swap, so
+   the baseline never jumps and the selection frame keeps hugging the glyphs. */
+.textElement {
     display: inline-block;
     box-sizing: border-box;
     width: max-content;
@@ -12,14 +11,10 @@
     border-radius: 0;
     background: transparent;
     white-space: pre;
-    /* Match typical glyph box — avoids oversized selection fallbacks and
-       keeps <p>/<input> baselines aligned on edit. */
     line-height: 1;
     vertical-align: top;
-}
-
-.textElement {
     cursor: move;
+    outline: none;
 }
 
 .selectedElement {
@@ -30,17 +25,13 @@
     cursor: grabbing;
 }
 
-.editingInput {
-    appearance: none;
-    -webkit-appearance: none;
-    min-width: 1ch;
-    height: 1em;
-    outline: none;
-    caret-color: currentColor;
+.editing {
     cursor: text;
-    field-sizing: content;
+    caret-color: currentColor;
+    -webkit-user-select: text;
+    user-select: text;
 }
 
-.editingInput:focus {
+.editing:focus {
     outline: none;
 }

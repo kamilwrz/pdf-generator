@@ -8,8 +8,9 @@ function frameForElement(element) {
     const left = Number(element.left) || 0;
     const top = Number(element.top) || 0;
 
-    // Text: hug rendered glyphs so the frame does not include line-box leading.
-    // (Element-box measurement made the border look oversized while dragging.)
+    // Text: hug rendered glyphs. Use the live ink box (not the line box) so the
+    // frame stays tight while dragging. Do not pad with fontSize floors — that
+    // made the border taller than the letters.
     if (element.category === "text") {
         const {
             width,
@@ -17,12 +18,11 @@ function frameForElement(element) {
             left: contentLeft,
             top: contentTop,
         } = getTextContentBounds(element);
-        const fontSize = Number(element.fontSize) || 12;
         return {
             left: Number.isFinite(contentLeft) ? contentLeft : left,
             top: Number.isFinite(contentTop) ? contentTop : top,
-            width: Math.max(width, fontSize * 0.5, 1),
-            height: Math.max(height, fontSize * 0.8, 1),
+            width: Math.max(width, 1),
+            height: Math.max(height, 1),
         };
     }
 
@@ -43,7 +43,9 @@ export default function SelectionOverlay({ elements, page }) {
     const selected = useMemo(
         () => canvasElements.filter((element) => (
             element.isSelected
-            && !element.isEditing
+            // Keep the glyph frame while inline text is contentEditable; only
+            // textarea swaps to its own accent outline during edit.
+            && !(element.isEditing && element.category === "textarea")
             && element.category !== "connector"
             && (element.page ?? 1) === displayedPage
         )),

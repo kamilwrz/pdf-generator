@@ -23,7 +23,7 @@ export function getElementBounds(element) {
     return {
       width: parseFloat(element.width)
         || Math.max(fontSize, String(element.content || "").length * fontSize * 0.56),
-      height: parseFloat(element.height) || fontSize * 1.35,
+      height: parseFloat(element.height) || fontSize,
     };
   }
 
@@ -52,14 +52,40 @@ export function getTextContentBounds(element) {
       height: rect.height / scaleY,
     });
 
-    // Native inputs have no DOM text children — measure the control box so the
-    // selection frame stays stable while editing.
+    // Native inputs/textareas have no DOM text children — measure the control
+    // box. For everything else prefer ink bounds via Range.
     if (node.tagName === "INPUT" || node.tagName === "TEXTAREA") {
       const rect = node.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) return toCanvas(rect);
     } else if (node.ownerDocument?.createRange) {
       const range = node.ownerDocument.createRange();
       range.selectNodeContents(node);
+      // Prefer client rects: they track glyph ink more tightly than the
+      // aggregate bounding rect on some engines when line-boxes are involved.
+      const clientRects = range.getClientRects();
+      if (clientRects.length > 0) {
+        let leftEdge = Infinity;
+        let topEdge = Infinity;
+        let rightEdge = -Infinity;
+        let bottomEdge = -Infinity;
+        for (const rect of clientRects) {
+          if (rect.width <= 0 || rect.height <= 0) continue;
+          leftEdge = Math.min(leftEdge, rect.left);
+          topEdge = Math.min(topEdge, rect.top);
+          rightEdge = Math.max(rightEdge, rect.right);
+          bottomEdge = Math.max(bottomEdge, rect.bottom);
+        }
+        if (Number.isFinite(leftEdge) && rightEdge > leftEdge && bottomEdge > topEdge) {
+          return toCanvas({
+            left: leftEdge,
+            top: topEdge,
+            width: rightEdge - leftEdge,
+            height: bottomEdge - topEdge,
+            right: rightEdge,
+            bottom: bottomEdge,
+          });
+        }
+      }
       const rect = range.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) return toCanvas(rect);
     }
