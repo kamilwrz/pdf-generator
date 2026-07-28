@@ -256,7 +256,7 @@ export default function Editor() {
             ) : <>
             {selectedElement?.category === "text" && <>
                 <div className={classes.propCard}>
-                    <EditorControls labelText="Treść tekstu" type="text" inputValue={elementValues.content} onChangeFn={(e) => handleChangeValues(e, "content")} />
+                    <button type="button" className={classes.editTextBtn} onClick={() => setTextareaEditing(selectedElement.element_id, true)}>Edytuj tekst</button>
                 </div>
                 <div className={classes.propCard}>
                     <div className={classes.elementSize}>

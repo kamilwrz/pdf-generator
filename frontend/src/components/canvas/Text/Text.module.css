@@ -1,12 +1,26 @@
-.textElement{
+/* Display <p> and editing <input> share the same box + type metrics so
+   entering edit mode does not shift the glyph baseline or selection chrome. */
+.textElement,
+.editingInput {
     display: inline-block;
+    box-sizing: border-box;
     width: max-content;
+    max-width: none;
     margin: 0;
     padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
     white-space: pre;
+    line-height: 1.2;
+    vertical-align: top;
 }
 
-.selectedElement{
+.textElement {
+    cursor: move;
+}
+
+.selectedElement {
     /* Selection chrome is drawn by SelectionOverlay — keep text unstyled. */
 }
 
@@ -16,17 +30,14 @@
 
 .editingInput {
     appearance: none;
-    box-sizing: border-box;
-    min-width: 64px;
-    margin: 0;
-    padding: 0;
-    border: none;
-    border-radius: 0;
+    -webkit-appearance: none;
+    min-width: 1ch;
     outline: none;
-    background: transparent;
-    height: 1em;
-    line-height: 1;
     caret-color: currentColor;
-    transform: translateY(-0.18em);
-    white-space: pre;
+    cursor: text;
+    field-sizing: content;
+}
+
+.editingInput:focus {
+    outline: none;
 }

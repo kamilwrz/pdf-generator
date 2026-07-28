@@ -40,21 +40,28 @@ export function getTextContentBounds(element) {
   const node = typeof document !== "undefined"
     ? document.getElementById(element.element_id)
     : null;
-  if (node?.ownerDocument?.createRange) {
-    const range = node.ownerDocument.createRange();
-    range.selectNodeContents(node);
-    const rect = range.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0) {
-      const canvas = node.closest("[data-page-canvas]");
-      const canvasRect = canvas?.getBoundingClientRect();
-      const scaleX = canvasRect?.width / (canvas?.clientWidth || canvasRect?.width || 1);
-      const scaleY = canvasRect?.height / (canvas?.clientHeight || canvasRect?.height || 1);
-      return {
-        left: (rect.left - (canvasRect?.left ?? rect.left)) / scaleX,
-        top: (rect.top - (canvasRect?.top ?? rect.top)) / scaleY,
-        width: rect.width / scaleX,
-        height: rect.height / scaleY,
-      };
+  if (node) {
+    const canvas = node.closest("[data-page-canvas]");
+    const canvasRect = canvas?.getBoundingClientRect();
+    const scaleX = canvasRect?.width / (canvas?.clientWidth || canvasRect?.width || 1);
+    const scaleY = canvasRect?.height / (canvas?.clientHeight || canvasRect?.height || 1);
+    const toCanvas = (rect) => ({
+      left: (rect.left - (canvasRect?.left ?? rect.left)) / scaleX,
+      top: (rect.top - (canvasRect?.top ?? rect.top)) / scaleY,
+      width: rect.width / scaleX,
+      height: rect.height / scaleY,
+    });
+
+    // Native inputs have no DOM text children — measure the control box so the
+    // selection frame stays stable while editing.
+    if (node.tagName === "INPUT" || node.tagName === "TEXTAREA") {
+      const rect = node.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) return toCanvas(rect);
+    } else if (node.ownerDocument?.createRange) {
+      const range = node.ownerDocument.createRange();
+      range.selectNodeContents(node);
+      const rect = range.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) return toCanvas(rect);
     }
   }
 
