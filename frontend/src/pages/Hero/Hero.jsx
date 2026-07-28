@@ -4,7 +4,7 @@ import classes from "./Hero.module.css";
 import { TEMPLATES } from "../../templates";
 
 const HEADING_TEXT = "CV, które dobrze wygląda i jeszcze lepiej Cię przedstawia";
-const ACCENT_WORD = "zaprasza na rozmowę";
+const ACCENT_WORD = "jeszcze lepiej Cię przedstawia";
 const TYPE_SPEED_MS = 55;
 
 // Pre-rendered full-page crops in frontend/public/template-mockups/, one per
@@ -208,11 +208,18 @@ export default function Hero() {
     const typedCount = useTypewriter(HEADING_TEXT, TYPE_SPEED_MS);
     const typingDone = typedCount >= HEADING_TEXT.length;
     const accentStart = HEADING_TEXT.indexOf(ACCENT_WORD);
-    const accentEnd = accentStart + ACCENT_WORD.length;
     const revealed = HEADING_TEXT.slice(0, typedCount);
-    const preText = revealed.slice(0, Math.min(accentStart, typedCount));
-    const accentText = revealed.slice(Math.min(accentStart, typedCount), Math.min(accentEnd, typedCount));
-    const postText = revealed.slice(Math.min(accentEnd, typedCount));
+    const hasAccent = accentStart >= 0;
+    const accentEnd = hasAccent ? accentStart + ACCENT_WORD.length : -1;
+    const preText = hasAccent
+        ? revealed.slice(0, Math.min(accentStart, typedCount))
+        : revealed;
+    const accentText = hasAccent
+        ? revealed.slice(Math.min(accentStart, typedCount), Math.min(accentEnd, typedCount))
+        : "";
+    const postText = hasAccent
+        ? revealed.slice(Math.min(accentEnd, typedCount))
+        : "";
 
     return (
         <div className={classes.page}>
