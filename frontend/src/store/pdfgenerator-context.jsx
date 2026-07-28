@@ -36,6 +36,8 @@ export const PdfContext = createContext({
     moveElement: () => {},
     moveSelectedElements: () => {},
     selectMoveElement: () => {},
+    spacingHoldId: null,
+    setSpacingHoldId: () => {},
     isGallery: false,
     isDropzone: false,
     createPdf: () => {},

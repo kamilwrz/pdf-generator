@@ -152,8 +152,91 @@ function useShiftAltHeld() {
     return held;
 }
 
+function SpacingGuidesForElement({ focus, others, pageWidth, pageHeight, includeAlignment }) {
+    const spacingY = findVerticalSpacingGuides(focus, others, getVisualBounds);
+    const spacingX = findHorizontalSpacingGuides(focus, others, getVisualBounds);
+    const pageEdges = findPageEdgeGuides(focus, pageWidth, getVisualBounds);
+
+    const yGuides = [spacingY.above, spacingY.below].filter(Boolean);
+    const xGuides = [
+        spacingX.left,
+        spacingX.right,
+        pageEdges.left,
+        pageEdges.right,
+    ].filter(Boolean);
+    const layouts = resolveSpacingLabelLayouts({ y: yGuides, x: xGuides });
+
+    let vGuide = null;
+    let hGuide = null;
+    if (includeAlignment) {
+        const vx = closestCoord(xAnchors(focus), others, xAnchors);
+        if (vx !== null) {
+            const aligned = others.filter((el) =>
+                xAnchors(el).some((o) => Math.abs(o - vx) <= THRESHOLD)
+            );
+            const tops = [focus, ...aligned].flatMap(boundsY);
+            vGuide = {
+                x: clamp(Math.round(vx), pageWidth),
+                y1: clamp(Math.min(...tops) - PAD, pageHeight),
+                y2: clamp(Math.max(...tops) + PAD, pageHeight),
+            };
+        }
+
+        const hy = closestCoord(yAnchors(focus), others, yAnchors);
+        if (hy !== null) {
+            const aligned = others.filter((el) =>
+                yAnchors(el).some((o) => Math.abs(o - hy) <= THRESHOLD)
+            );
+            const sides = [focus, ...aligned].flatMap(boundsX);
+            hGuide = {
+                y: clamp(Math.round(hy), pageHeight),
+                x1: clamp(Math.min(...sides) - PAD, pageWidth),
+                x2: clamp(Math.max(...sides) + PAD, pageWidth),
+            };
+        }
+    }
+
+    const hasSpacing = yGuides.length > 0 || xGuides.length > 0;
+    if (!vGuide && !hGuide && !hasSpacing) return null;
+
+    return (
+        <>
+            {vGuide && (
+                <div
+                    className={classes.vLine}
+                    style={{ left: vGuide.x, top: vGuide.y1, height: vGuide.y2 - vGuide.y1 }}
+                />
+            )}
+            {hGuide && (
+                <div
+                    className={classes.hLine}
+                    style={{ top: hGuide.y, left: hGuide.x1, width: hGuide.x2 - hGuide.x1 }}
+                />
+            )}
+            {yGuides.map((guide) => (
+                <SpacingMarkerY
+                    key={`y-${guide.direction}-${guide.neighborId}`}
+                    guide={guide}
+                    pageWidth={pageWidth}
+                    pageHeight={pageHeight}
+                    layout={layouts.get(spacingGuideKey(guide, "y"))}
+                />
+            ))}
+            {xGuides.map((guide) => (
+                <SpacingMarkerX
+                    key={`x-${guide.direction}-${guide.neighborId}`}
+                    guide={guide}
+                    pageWidth={pageWidth}
+                    pageHeight={pageHeight}
+                    layout={layouts.get(spacingGuideKey(guide, "x"))}
+                />
+            ))}
+        </>
+    );
+}
+
 export default function Guides({ page }) {
-    const { A4_Elements, currentPage, pageSize } = use(PdfContext);
+    const { A4_Elements, currentPage, pageSize, spacingHoldId } = use(PdfContext);
     const inspectSpacing = useShiftAltHeld();
     const A4_WIDTH = pageSize?.width ?? 595;
     const A4_HEIGHT = pageSize?.height ?? 842;
@@ -162,6 +245,11 @@ export default function Guides({ page }) {
     const onPage = (el) => (el.page ?? 1) === displayedPage;
     const pageElements = A4_Elements.filter(onPage);
     const moving = pageElements.find((el) => el.isMove);
+    // Long-press on text: distance markers only (no isMove / alignment guides).
+    const held = !moving && spacingHoldId
+        ? pageElements.find((el) => el.element_id === spacingHoldId)
+        : null;
+    const focus = moving || held;
 
     // Shift+Alt: distance markers between every neighboring pair (Y orange, X green).
     if (inspectSpacing) {
@@ -193,91 +281,16 @@ export default function Guides({ page }) {
         );
     }
 
-    if (!moving) return null;
+    if (!focus) return null;
 
-    const others = pageElements.filter((el) => el.element_id !== moving.element_id);
-
-    // ---- Spacing distance guides for every element type. ----
-    // Text uses glyph bounds so the gap is between peak edges, not line boxes.
-    const spacingY = findVerticalSpacingGuides(moving, others, getVisualBounds);
-    const spacingX = findHorizontalSpacingGuides(moving, others, getVisualBounds);
-    const pageEdges = findPageEdgeGuides(moving, A4_WIDTH, getVisualBounds);
-
-    const yGuides = [spacingY.above, spacingY.below].filter(Boolean);
-    const xGuides = [
-        spacingX.left,
-        spacingX.right,
-        pageEdges.left,
-        pageEdges.right,
-    ].filter(Boolean);
-    const layouts = resolveSpacingLabelLayouts({ y: yGuides, x: xGuides });
-
-    // ---- One vertical guide: the nearest x-alignment, drawn only across the
-    // moving element and the elements it lines up with. ----
-    let vGuide = null;
-    const vx = closestCoord(xAnchors(moving), others, xAnchors);
-    if (vx !== null) {
-        const aligned = others.filter((el) =>
-            xAnchors(el).some((o) => Math.abs(o - vx) <= THRESHOLD)
-        );
-        const tops = [moving, ...aligned].flatMap(boundsY);
-        vGuide = {
-            x: clamp(Math.round(vx), A4_WIDTH),
-            y1: clamp(Math.min(...tops) - PAD, A4_HEIGHT),
-            y2: clamp(Math.max(...tops) + PAD, A4_HEIGHT),
-        };
-    }
-
-    // ---- One horizontal guide: the nearest y-alignment. ----
-    let hGuide = null;
-    const hy = closestCoord(yAnchors(moving), others, yAnchors);
-    if (hy !== null) {
-        const aligned = others.filter((el) =>
-            yAnchors(el).some((o) => Math.abs(o - hy) <= THRESHOLD)
-        );
-        const sides = [moving, ...aligned].flatMap(boundsX);
-        hGuide = {
-            y: clamp(Math.round(hy), A4_HEIGHT),
-            x1: clamp(Math.min(...sides) - PAD, A4_WIDTH),
-            x2: clamp(Math.max(...sides) + PAD, A4_WIDTH),
-        };
-    }
-
-    const hasSpacing = yGuides.length > 0 || xGuides.length > 0;
-    if (!vGuide && !hGuide && !hasSpacing) return null;
-
+    const others = pageElements.filter((el) => el.element_id !== focus.element_id);
     return (
-        <>
-            {vGuide && (
-                <div
-                    className={classes.vLine}
-                    style={{ left: vGuide.x, top: vGuide.y1, height: vGuide.y2 - vGuide.y1 }}
-                />
-            )}
-            {hGuide && (
-                <div
-                    className={classes.hLine}
-                    style={{ top: hGuide.y, left: hGuide.x1, width: hGuide.x2 - hGuide.x1 }}
-                />
-            )}
-            {yGuides.map((guide) => (
-                <SpacingMarkerY
-                    key={`y-${guide.direction}-${guide.neighborId}`}
-                    guide={guide}
-                    pageWidth={A4_WIDTH}
-                    pageHeight={A4_HEIGHT}
-                    layout={layouts.get(spacingGuideKey(guide, "y"))}
-                />
-            ))}
-            {xGuides.map((guide) => (
-                <SpacingMarkerX
-                    key={`x-${guide.direction}-${guide.neighborId}`}
-                    guide={guide}
-                    pageWidth={A4_WIDTH}
-                    pageHeight={A4_HEIGHT}
-                    layout={layouts.get(spacingGuideKey(guide, "x"))}
-                />
-            ))}
-        </>
+        <SpacingGuidesForElement
+            focus={focus}
+            others={others}
+            pageWidth={A4_WIDTH}
+            pageHeight={A4_HEIGHT}
+            includeAlignment={Boolean(moving)}
+        />
     );
 }

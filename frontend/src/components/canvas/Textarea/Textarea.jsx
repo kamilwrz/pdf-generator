@@ -6,6 +6,10 @@ import Resize from "../../common/Resize/Resize";
 import { measureNaturalScrollHeight } from "../../../utils/textareaHeight";
 import { deferTextareaEdit, hasTextareaDragIntent } from "../../../utils/textareaEditing";
 import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
+import {
+    endTextSpacingHold,
+    startTextSpacingHold,
+} from "../../../utils/textSpacingHold";
 
 // Normalize a bullet's whitespace and render the marker in a dedicated grid
 // column. The column's width is the actual rendered "• " width for the active
@@ -58,6 +62,7 @@ function Textarea({
         selectElement,
         setTextareaEditing,
         fitTextareaToContent,
+        setSpacingHoldId,
     } = use(PdfContext);
 
     const [isResizeable, setIsResizeable] = useState(false);
@@ -65,6 +70,7 @@ function Textarea({
     const editingRef = useRef(null);
     const editFrameRef = useRef(null);
     const pointerStartRef = useRef(null);
+    const spacingHoldTimerRef = useRef(null);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
     function handleIsResizeable(active) {
         setIsResizeable(Boolean(active));
@@ -142,11 +148,21 @@ function Textarea({
         if (editFrameRef.current) {
             window.cancelAnimationFrame(editFrameRef.current);
         }
-    }, []);
+        endTextSpacingHold({
+            timerRef: spacingHoldTimerRef,
+            elementId,
+            setSpacingHoldId,
+        });
+    }, [elementId, setSpacingHoldId]);
 
     function startEditing(event) {
         event?.preventDefault();
         event?.stopPropagation();
+        endTextSpacingHold({
+            timerRef: spacingHoldTimerRef,
+            elementId,
+            setSpacingHoldId,
+        });
         // Finish the double-click event sequence before replacing its target
         // with a native textarea. Entering edit state during pointerdown lets
         // the remaining click steal focus from the new input.
@@ -213,8 +229,18 @@ function Textarea({
                     clientY: e.clientY,
                     dragging: false,
                 };
+                startTextSpacingHold({
+                    timerRef: spacingHoldTimerRef,
+                    elementId,
+                    setSpacingHoldId,
+                });
             }}
             onPointerUp={(e) => {
+                endTextSpacingHold({
+                    timerRef: spacingHoldTimerRef,
+                    elementId,
+                    setSpacingHoldId,
+                });
                 if (pointerStartRef.current?.dragging) {
                     selectMoveElement(elementId, false);
                 }
@@ -224,6 +250,11 @@ function Textarea({
                 }
             }}
             onPointerCancel={() => {
+                endTextSpacingHold({
+                    timerRef: spacingHoldTimerRef,
+                    elementId,
+                    setSpacingHoldId,
+                });
                 if (pointerStartRef.current?.dragging) {
                     selectMoveElement(elementId, false);
                 }
@@ -235,6 +266,11 @@ function Textarea({
                 if (!pointerStart.dragging) {
                     if (!hasTextareaDragIntent(pointerStart, e)) return;
                     pointerStart.dragging = true;
+                    endTextSpacingHold({
+                        timerRef: spacingHoldTimerRef,
+                        elementId,
+                        setSpacingHoldId,
+                    });
                     selectMoveElement(elementId, true);
                 }
                 moveElement(e, elementId);

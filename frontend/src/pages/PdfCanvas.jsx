@@ -99,6 +99,8 @@ function PdfCanvas() {
   const [layoutPreviewPatches, setLayoutPreviewPatches] = useState([]);
   const [structurePreviewGroup, setStructurePreviewGroup] = useState(null);
   const [deletionPreviewIds, setDeletionPreviewIds] = useState([]);
+  // Text/textarea long-press (2s) — show spacing distance guides without isMove.
+  const [spacingHoldId, setSpacingHoldId] = useState(null);
 
 
   const {
@@ -557,6 +559,8 @@ function PdfCanvas() {
     moveElement: handleMoveElement,
     moveSelectedElements: handleMoveSelectedElements,
     selectMoveElement: handleSelectMoveElement,
+    spacingHoldId,
+    setSpacingHoldId,
     editElementValues: handleEditElementValues,
     editSelectedElementValues: handleEditSelectedElementValues,
     fitTextareaToContent: handleFitTextareaToContent,
@@ -666,6 +670,7 @@ function PdfCanvas() {
     zoom, zoomIn, zoomOut,
     undo, redo, canUndo, canRedo, resetHistory,
     deletionPreviewIds, layoutPreviewPatches, structurePreviewGroup,
+    spacingHoldId,
   ])
 
   // The PDF-ready toast's download link is sourced live from PDFdownloadData

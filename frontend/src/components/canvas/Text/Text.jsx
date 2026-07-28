@@ -4,6 +4,11 @@ import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { deferTextareaEdit, hasTextareaDragIntent } from "../../../utils/textareaEditing";
 import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
+import {
+    clearTextSpacingHoldTimer,
+    endTextSpacingHold,
+    startTextSpacingHold,
+} from "../../../utils/textSpacingHold";
 
 function Text({
     elementId,
@@ -27,11 +32,13 @@ function Text({
         selectMoveElement,
         editElementValues,
         setTextareaEditing,
+        setSpacingHoldId,
     } = use(PdfContext);
 
     const nodeRef = useRef(null);
     const editFrameRef = useRef(null);
     const pointerStartRef = useRef(null);
+    const spacingHoldTimerRef = useRef(null);
 
     const style = {
         fontSize: `${fontSize}px`,
@@ -50,7 +57,12 @@ function Text({
         if (editFrameRef.current) {
             window.cancelAnimationFrame(editFrameRef.current);
         }
-    }, []);
+        endTextSpacingHold({
+            timerRef: spacingHoldTimerRef,
+            elementId,
+            setSpacingHoldId,
+        });
+    }, [elementId, setSpacingHoldId]);
 
     // Keep the DOM text in sync when not editing. While contentEditable is on,
     // the browser owns the text node — React must not rewrite children.
@@ -67,6 +79,7 @@ function Text({
     useLayoutEffect(() => {
         const node = nodeRef.current;
         if (!isEditing || !node) return;
+        clearTextSpacingHoldTimer(spacingHoldTimerRef);
         node.focus({ preventScroll: true });
         const selection = window.getSelection();
         if (!selection) return;
@@ -80,6 +93,11 @@ function Text({
     function startEditing(event) {
         event?.preventDefault();
         event?.stopPropagation();
+        endTextSpacingHold({
+            timerRef: spacingHoldTimerRef,
+            elementId,
+            setSpacingHoldId,
+        });
         // Let the double-click finish before flipping contentEditable, otherwise
         // the leftover click can start a drag or steal the caret.
         deferTextareaEdit({
@@ -149,8 +167,18 @@ function Text({
                     clientY: e.clientY,
                     dragging: false,
                 };
+                startTextSpacingHold({
+                    timerRef: spacingHoldTimerRef,
+                    elementId,
+                    setSpacingHoldId,
+                });
             }}
             onPointerUp={(e) => {
+                endTextSpacingHold({
+                    timerRef: spacingHoldTimerRef,
+                    elementId,
+                    setSpacingHoldId,
+                });
                 if (pointerStartRef.current?.dragging) {
                     selectMoveElement(elementId, false);
                 }
@@ -160,6 +188,11 @@ function Text({
                 }
             }}
             onPointerCancel={() => {
+                endTextSpacingHold({
+                    timerRef: spacingHoldTimerRef,
+                    elementId,
+                    setSpacingHoldId,
+                });
                 if (pointerStartRef.current?.dragging) {
                     selectMoveElement(elementId, false);
                 }
@@ -172,6 +205,11 @@ function Text({
                 if (!pointerStart.dragging) {
                     if (!hasTextareaDragIntent(pointerStart, e)) return;
                     pointerStart.dragging = true;
+                    endTextSpacingHold({
+                        timerRef: spacingHoldTimerRef,
+                        elementId,
+                        setSpacingHoldId,
+                    });
                     selectMoveElement(elementId, true);
                 }
                 moveElement(e, elementId);
