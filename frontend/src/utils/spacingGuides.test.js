@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  findAllHorizontalSpacingGuides,
   findAllVerticalSpacingGuides,
+  findHorizontalSpacingGuides,
+  findPageEdgeGuides,
   findVerticalSpacingGuides,
   resolveSpacingBox,
 } from "./spacingGuides.js";
@@ -132,6 +135,87 @@ test("collects unique nearest-below gaps across all page elements", () => {
     [
       { gap: 20, neighborId: "b" },
       { gap: 40, neighborId: "c" },
+    ],
+  );
+});
+
+test("reports gaps to the nearest vertically-overlapping left/right neighbors", () => {
+  const moving = {
+    element_id: "m",
+    category: "textarea",
+    left: 200,
+    top: 100,
+    width: 120,
+    height: 40,
+  };
+  const result = findHorizontalSpacingGuides(moving, [
+    { element_id: "left", category: "rectangle", left: 40, top: 110, width: 80, height: 30 },
+    { element_id: "far-left", category: "line", left: 0, top: 110, width: 10, height: 20 },
+    { element_id: "right", category: "text", content: "R", left: 360, top: 105, width: 60, height: 20, fontSize: 12 },
+    { element_id: "other-row", category: "rectangle", left: 40, top: 300, width: 80, height: 30 },
+  ], sizeOf);
+
+  assert.equal(result.left.neighborId, "left");
+  assert.equal(result.left.gap, 80);
+  assert.equal(result.right.neighborId, "right");
+  assert.equal(result.right.gap, 40);
+  assert.equal(result.left.axis, "x");
+});
+
+test("shows page-edge margins only when closer than 100px", () => {
+  const far = findPageEdgeGuides(
+    { element_id: "f", left: 140, top: 200, width: 100, height: 40 },
+    595,
+    sizeOf,
+  );
+  assert.equal(far.left, null);
+  // right gap = 595 - 240 = 355 → too far, hidden
+  assert.equal(far.right, null);
+
+  const near = findPageEdgeGuides(
+    { element_id: "n", left: 80, top: 200, width: 100, height: 40 },
+    595,
+    sizeOf,
+  );
+  assert.equal(near.left.gap, 80);
+  assert.equal(near.left.x1, 0);
+  assert.equal(near.left.x2, 80);
+  assert.equal(near.left.direction, "page-left");
+  assert.equal(near.right, null);
+
+  const nearRight = findPageEdgeGuides(
+    { element_id: "r", left: 450, top: 200, width: 100, height: 40 },
+    595,
+    sizeOf,
+  );
+  assert.equal(nearRight.left, null);
+  assert.equal(nearRight.right.gap, 45);
+  assert.equal(nearRight.right.x1, 550);
+  assert.equal(nearRight.right.x2, 595);
+
+  const atThreshold = findPageEdgeGuides(
+    { element_id: "t", left: 100, top: 200, width: 100, height: 40 },
+    595,
+    sizeOf,
+  );
+  assert.equal(atThreshold.left, null);
+});
+
+test("collects unique nearest-right gaps across all page elements", () => {
+  const guides = findAllHorizontalSpacingGuides([
+    { element_id: "a", left: 40, top: 100, width: 60, height: 20 },
+    { element_id: "b", left: 140, top: 100, width: 60, height: 20 },
+    { element_id: "c", left: 260, top: 100, width: 60, height: 20 },
+    { element_id: "other-row", left: 40, top: 300, width: 60, height: 20 },
+    { element_id: "bg", left: 0, top: 0, width: 595, height: 842, fixedToPage: true },
+  ], sizeOf);
+
+  assert.equal(guides.length, 2);
+  assert.deepEqual(
+    guides.map((g) => ({ gap: g.gap, neighborId: g.neighborId })).sort((x, y) => x.gap - y.gap),
+    [
+      { gap: 40, neighborId: "b" },
+      { gap: 60, neighborId: "c" },
     ],
   );
 });
