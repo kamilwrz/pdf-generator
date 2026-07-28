@@ -61,28 +61,28 @@
 }
 
 .roundCenterLeft {
-    left: -42px;
+    left: -18px;
     top: 50%;
     transform: translateY(-50%);
     cursor: w-resize;
 }
 
 .roundCenterRight {
-    right: -42px;
+    right: -18px;
     top: 50%;
     transform: translateY(-50%);
     cursor: e-resize;
 }
 
 .roundCenterTop {
-    top: -42px;
+    top: -18px;
     left: 50%;
     transform: translateX(-50%);
     cursor: n-resize;
 }
 
 .roundCenterBottom {
-    bottom: -42px;
+    bottom: -18px;
     left: 50%;
     transform: translateX(-50%);
     cursor: s-resize;

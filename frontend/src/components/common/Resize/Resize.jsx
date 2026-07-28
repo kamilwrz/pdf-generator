@@ -60,14 +60,16 @@ export default function Resize({ selectedElement, isResizeable, handleIsResizabl
                 </>
             )}
 
-            {(selectedElement.category === "line" || selectedElement.category === "rectangle" || selectedElement.category === "ellipse") && (
+            {/* Mid-edge handles for box shapes — same set for line / rect / ellipse / circle. */}
+            {!isTextarea && (
+                selectedElement.category === "line"
+                || selectedElement.category === "rectangle"
+                || selectedElement.category === "ellipse"
+                || selectedElement.category === "circle"
+            ) && (
                 <>
                     {resizeHandle("center-left", classes.roundCenterLeft)}
                     {resizeHandle("center-right", classes.roundCenterRight)}
-                </>
-            )}
-            {(selectedElement.category === "line" || selectedElement.category === "ellipse") && (
-                <>
                     {resizeHandle("center-top", classes.roundCenterTop)}
                     {resizeHandle("center-bottom", classes.roundCenterBottom)}
                 </>

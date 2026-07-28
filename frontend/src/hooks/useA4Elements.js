@@ -1577,42 +1577,49 @@ export function useA4Elements(titleRef) {
         if (direction === "center-right") {
           if (element.element_id === elementId) {
             const proposedWidth = element.width + moveX;
-            const newWidth = Math.max(MIN_WIDTH, Math.min(A4_WIDTH - element.left, proposedWidth))
+            const newWidth = Math.max(MIN_WIDTH, Math.min(A4_WIDTH - element.left, proposedWidth));
+            if (category === "circle") {
+              const size = Math.max(
+                MIN_WIDTH,
+                Math.min(A4_WIDTH - element.left, A4_HEIGHT - element.top, newWidth),
+              );
+              return { ...element, width: size, height: size, left: element.left };
+            }
             return {
               ...element,
               width: newWidth,
-              left: element.left
-
-            }
+              left: element.left,
+            };
           }
-          else {
-            return {
-              ...element,
-              isSelected: false
-            }
-          }
+          return { ...element, isSelected: false };
         }
 
         if (direction === "center-left") {
-
           const rightEdge = element.left + element.width;
           const proposedLeft = element.left + moveX;
           const newLeft = Math.max(0, Math.min(rightEdge - MIN_WIDTH, proposedLeft));
           const newWidth = rightEdge - newLeft;
 
           if (element.element_id === elementId) {
+            if (category === "circle") {
+              const size = Math.max(
+                MIN_WIDTH,
+                Math.min(rightEdge, A4_HEIGHT - element.top, newWidth),
+              );
+              return {
+                ...element,
+                width: size,
+                height: size,
+                left: rightEdge - size,
+              };
+            }
             return {
               ...element,
               width: newWidth,
-              left: newLeft
-            }
+              left: newLeft,
+            };
           }
-          else {
-            return {
-              ...element,
-              isSelected: false
-            }
-          }
+          return { ...element, isSelected: false };
         }
 
         if (direction === "center-bottom") {
@@ -1622,6 +1629,13 @@ export function useA4Elements(titleRef) {
               MIN_HEIGHT,
               Math.min(A4_HEIGHT - Number(element.top), proposedHeight),
             );
+            if (category === "circle") {
+              const size = Math.max(
+                MIN_HEIGHT,
+                Math.min(A4_WIDTH - element.left, A4_HEIGHT - element.top, newHeight),
+              );
+              return { ...element, width: size, height: size };
+            }
             return { ...element, height: newHeight };
           }
           return { ...element, isSelected: false };
@@ -1632,7 +1646,20 @@ export function useA4Elements(titleRef) {
             const bottomEdge = Number(element.top) + Number(element.height);
             const proposedTop = Number(element.top) + moveY;
             const newTop = Math.max(0, Math.min(bottomEdge - MIN_HEIGHT, proposedTop));
-            return { ...element, top: newTop, height: bottomEdge - newTop };
+            const newHeight = bottomEdge - newTop;
+            if (category === "circle") {
+              const size = Math.max(
+                MIN_HEIGHT,
+                Math.min(A4_WIDTH - element.left, bottomEdge, newHeight),
+              );
+              return {
+                ...element,
+                width: size,
+                height: size,
+                top: bottomEdge - size,
+              };
+            }
+            return { ...element, top: newTop, height: newHeight };
           }
           return { ...element, isSelected: false };
         }
