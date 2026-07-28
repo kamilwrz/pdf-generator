@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import classes from "./Hero.module.css";
 import { TEMPLATES } from "../../templates";
@@ -177,6 +178,91 @@ function FeatureCard({ stripe, tint, icon, title, text, span }) {
     );
 }
 
+function TemplatePreviewModal({ template, onClose }) {
+    useEffect(() => {
+        const onKey = (event) => {
+            if (event.key === "Escape") onClose();
+        };
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        window.addEventListener("keydown", onKey);
+        return () => {
+            document.body.style.overflow = prevOverflow;
+            window.removeEventListener("keydown", onKey);
+        };
+    }, [onClose]);
+
+    if (!template) return null;
+
+    return createPortal(
+        <div
+            className={classes.previewBackdrop}
+            role="presentation"
+            onClick={onClose}
+        >
+            <div
+                className={classes.previewModal}
+                role="dialog"
+                aria-modal="true"
+                aria-label={`Podgląd szablonu ${template.name}`}
+                onClick={(event) => event.stopPropagation()}
+            >
+                <button
+                    type="button"
+                    className={classes.previewClose}
+                    onClick={onClose}
+                    aria-label="Zamknij podgląd"
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                </button>
+                <div className={classes.previewMeta}>
+                    <div>
+                        <div className={classes.previewName}>{template.name}</div>
+                        <div className={classes.previewIndustry}>{template.industry}</div>
+                    </div>
+                    <Link to="/register" className={classes.previewCta}>
+                        Użyj tego szablonu
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F1216" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+                    </Link>
+                </div>
+                <div className={classes.previewPaper}>
+                    <img src={template.image} alt={`Szablon ${template.name}`} />
+                </div>
+            </div>
+        </div>,
+        document.body,
+    );
+}
+
+function TemplatesMarquee({ templates, onSelect, paused }) {
+    const renderCards = (suffix) => templates.map((tpl) => (
+        <button
+            type="button"
+            key={`${tpl.id}-${suffix}`}
+            className={classes.templateCard}
+            onClick={() => onSelect(tpl)}
+            aria-label={`Podgląd szablonu ${tpl.name}`}
+        >
+            <div className={classes.templateThumb}>
+                <img src={tpl.image} alt="" loading="lazy" />
+            </div>
+            <div className={classes.templateInfo}>
+                <div className={classes.templateName}>{tpl.name}</div>
+                <div className={classes.templateMeta}>{tpl.industry}</div>
+            </div>
+        </button>
+    ));
+
+    return (
+        <div className={`${classes.marquee} ${paused ? classes.marqueePaused : ""}`}>
+            <div className={classes.marqueeTrack}>
+                <div className={classes.marqueeGroup}>{renderCards("a")}</div>
+                <div className={classes.marqueeGroup} aria-hidden="true">{renderCards("b")}</div>
+            </div>
+        </div>
+    );
+}
+
 // Types `text` out one character at a time. Starts fully typed when the user
 // prefers reduced motion, so there is no flash of an empty heading to animate away.
 function useTypewriter(text, speed) {
@@ -203,6 +289,7 @@ function useTypewriter(text, speed) {
 export default function Hero() {
     const [panel, setPanel] = useState(0);
     const [flipped, setFlipped] = useState({});
+    const [previewTemplate, setPreviewTemplate] = useState(null);
     const toggleFlip = (i) => setFlipped((f) => ({ ...f, [i]: !f[i] }));
 
     const typedCount = useTypewriter(HEADING_TEXT, TYPE_SPEED_MS);
@@ -561,26 +648,25 @@ export default function Hero() {
                 </div>
             </div>
 
-            {/* ---- Templates ---- */}
+            {/* ---- Templates: infinite RTL marquee + full-page preview modal ---- */}
             <div id="szablony" className={classes.templatesSection}>
                 <div className={classes.sectionHead}>
                     <span className={classes.eyebrow}>Szablony</span>
                     <h2 className={classes.sectionTitle}>Zacznij od gotowego, pięknego szablonu CV</h2>
                 </div>
-                <div className={classes.templatesGrid}>
-                    {TEMPLATE_PREVIEWS.map((tpl) => (
-                        <Link to="/register" className={classes.templateCard} key={tpl.id}>
-                            <div className={classes.templateThumb}>
-                                <img src={tpl.image} alt={tpl.name} />
-                            </div>
-                            <div className={classes.templateInfo}>
-                                <div className={classes.templateName}>{tpl.name}</div>
-                                <div className={classes.templateMeta}>{tpl.industry}</div>
-                            </div>
-                        </Link>
-                    ))}
-                </div>
+                <TemplatesMarquee
+                    templates={TEMPLATE_PREVIEWS}
+                    onSelect={setPreviewTemplate}
+                    paused={Boolean(previewTemplate)}
+                />
             </div>
+
+            {previewTemplate && (
+                <TemplatePreviewModal
+                    template={previewTemplate}
+                    onClose={() => setPreviewTemplate(null)}
+                />
+            )}
 
             {/* ---- Testimonials ---- */}
             <div className={classes.testimonialsBand}>
