@@ -1,4 +1,4 @@
-/* Kompoza landing — local tokens mirror the global dark app theme. */
+/* CV STUDIO landing — local tokens mirror the global dark app theme. */
 .page {
     --bg: #16181c;
     --bg-2: #131519;
@@ -154,9 +154,10 @@
 }
 
 .brandName {
-    font: 800 21px var(--display);
+    font: 800 18px var(--display);
     color: var(--ink);
-    letter-spacing: -.01em;
+    letter-spacing: .04em;
+    text-transform: uppercase;
 }
 
 .navLinks {
@@ -1954,8 +1955,10 @@
 }
 
 .footerBrandName {
-    font: 800 18px var(--display);
+    font: 800 16px var(--display);
     color: var(--ink);
+    letter-spacing: .04em;
+    text-transform: uppercase;
 }
 
 .footerLinks {

@@ -33,7 +33,7 @@ import { planErrorMessage } from '../utils/entitlements';
 
 // Session-scoped flag so the template-first onboarding modal (see
 // markTemplatesModalSeen below) never re-triggers after being resolved once.
-const TEMPLATES_MODAL_SEEN_KEY = "kompoza:templatesModalSeen";
+const TEMPLATES_MODAL_SEEN_KEY = "cv-studio:templatesModalSeen";
 
 function PdfCanvas() {
 

@@ -1,12 +1,12 @@
-# Kompoza — Funkcje
+# CV STUDIO — Funkcje
 
 **Twórz piękne CV w kilka minut.**
 
-Kompoza to studio CV po polsku: wizualne płótno A4, szablony dopasowane do branż oraz AI, które pomaga wypełnić, dopracować i wyeksportować PDF gotowy do wysłania. Bez studiów z designu — wystarczy Twoja historia, szablon i kilka kliknięć.
+CV STUDIO to studio CV po polsku: wizualne płótno A4, szablony dopasowane do branż oraz AI, które pomaga wypełnić, dopracować i wyeksportować PDF gotowy do wysłania. Bez studiów z designu — wystarczy Twoja historia, szablon i kilka kliknięć.
 
 ---
 
-## Dlaczego Kompoza
+## Dlaczego CV STUDIO
 
 | | |
 |---|---|
@@ -23,7 +23,7 @@ Kompoza to studio CV po polsku: wizualne płótno A4, szablony dopasowane do bra
 Otwórz bibliotekę, podejrzyj projekty oznaczone branżą i przenieś wybrany układ na płótno. Nowe konta trafiają tu od razu — nie zostajesz sam na pustej stronie.
 
 ### Wypełnij z PDF
-Prześlij istniejące CV. Kompoza wyciąga imię, stanowisko, doświadczenie, wykształcenie i umiejętności — a potem wlewa je do dowolnego szablonu. Te same dane możesz użyć w wielu wyglądach bez ponownego uploadu.
+Prześlij istniejące CV. CV STUDIO wyciąga imię, stanowisko, doświadczenie, wykształcenie i umiejętności — a potem wlewa je do dowolnego szablonu. Te same dane możesz użyć w wielu wyglądach bez ponownego uploadu.
 
 ### Stwórz krok po kroku
 Wolisz kreator? Przejdź dane osobowe, doświadczenie, wykształcenie, umiejętności, języki, własne sekcje i podsumowanie. Szkic zapisuje się automatycznie — możesz wyjść i wrócić. Gdy będziesz gotowy, wygeneruj CV w wybranym szablonie.
@@ -135,7 +135,7 @@ Plany płatne z dodatkowymi szablonami i limitami AI są na roadmapie („Już w
 
 ---
 
-## Kompoza w skrócie
+## CV STUDIO w skrócie
 
 | Możliwość | Co dostajesz |
 |---|---|
@@ -151,4 +151,4 @@ Plany płatne z dodatkowymi szablonami i limitami AI są na roadmapie („Już w
 
 ---
 
-*Kompoza — od pustej strony do PDF-a gotowego na rozmowę kwalifikacyjną.*
+*CV STUDIO — od pustej strony do PDF-a gotowego na rozmowę kwalifikacyjną.*

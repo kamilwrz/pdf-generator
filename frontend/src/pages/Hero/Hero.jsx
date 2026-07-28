@@ -323,7 +323,7 @@ export default function Hero() {
                 <nav className={classes.nav}>
                     <div className={classes.brand}>
                         <span className={classes.brandMark}><img src="/kompoza-logo2.png" alt="" /></span>
-                        <span className={classes.brandName}>Kompoza</span>
+                        <span className={classes.brandName}>CV STUDIO</span>
                     </div>
                     <div className={classes.navLinks}>
                         <a href="#funkcje" className={`${classes.navLink} ${classes.navLinkActive}`}>Funkcje</a>
@@ -495,7 +495,7 @@ export default function Hero() {
                                         stripe="#6C9BE6" tint="rgba(108,155,230,.14)"
                                         icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7BA6EA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>}
                                         title="Wypełnij z PDF"
-                                        text="Prześlij istniejące CV — Kompoza wyciąga imię, stanowisko, doświadczenie, wykształcenie i umiejętności, a potem wlewa je do dowolnego szablonu. Bez ponownego uploadu."
+                                        text="Prześlij istniejące CV — CV STUDIO wyciąga imię, stanowisko, doświadczenie, wykształcenie i umiejętności, a potem wlewa je do dowolnego szablonu. Bez ponownego uploadu."
                                     />
                                     <FeatureCard
                                         stripe="#E5A65C" tint="rgba(229,166,92,.14)"
@@ -530,7 +530,7 @@ export default function Hero() {
                                         <span className={classes.mockStripe} style={{ background: "linear-gradient(90deg,#E88A73,#6C9BE6)" }} />
                                         <div className={classes.chatHead}>
                                             <span className={classes.chatStatus} />
-                                            <span className={classes.chatTitle}>Asystent Kompoza</span>
+                                            <span className={classes.chatTitle}>Asystent CV STUDIO</span>
                                         </div>
                                         <div className={classes.chatBody}>
                                             <div className={classes.chatUser}>Skróć bullet points w ostatniej roli i wzmocnij czasowniki.</div>
@@ -678,7 +678,7 @@ export default function Hero() {
                 <div className={classes.testimonialsInner}>
                     <div className={classes.sectionHead}>
                         <span className={classes.eyebrow}>Opinie</span>
-                        <h2 className={classes.sectionTitle}>Ludzie, którzy znaleźli pracę z Kompozą</h2>
+                        <h2 className={classes.sectionTitle}>Ludzie, którzy znaleźli pracę z CV STUDIO</h2>
                     </div>
                     <div className={classes.testimonialsGrid}>
                         <div className={classes.testimonialCard}>
@@ -792,7 +792,7 @@ export default function Hero() {
                 <div className={classes.footerTop}>
                     <div className={classes.footerBrand}>
                         <span className={classes.footerBrandMark}><img src="/kompoza-logo2.png" alt="" /></span>
-                        <span className={classes.footerBrandName}>Kompoza</span>
+                        <span className={classes.footerBrandName}>CV STUDIO</span>
                     </div>
                     <div className={classes.footerLinks}>
                         <a href="#funkcje" className={classes.footerLink}>Funkcje</a>
@@ -802,7 +802,7 @@ export default function Hero() {
                         <Link to="/register" className={classes.footerLinkAccent}>Zarejestruj się</Link>
                     </div>
                 </div>
-                <div className={classes.footerBottom}>© 2026 Kompoza. Wszystkie prawa zastrzeżone.</div>
+                <div className={classes.footerBottom}>© 2026 CV STUDIO. Wszystkie prawa zastrzeżone.</div>
             </footer>
         </div>
     );
