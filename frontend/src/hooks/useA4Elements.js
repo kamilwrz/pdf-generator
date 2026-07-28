@@ -94,6 +94,26 @@ export function useA4Elements(titleRef) {
     A4ref.current = pageCanvasRefs.current.get(currentPage) ?? null;
   }, [currentPage]);
   useEffect(() => { elementsRef.current = A4_Elements; }, [A4_Elements]);
+  // Strip NULL/NBSP junk already sitting in open documents (loaded before
+  // sanitization existed, or pasted in). One pass; clean state is a no-op.
+  useEffect(() => {
+    const needsScrub = A4_Elements.some((element) => (
+      (element.category === "text" || element.category === "textarea")
+      && element.content != null
+      && sanitizeTextContent(element.content) !== element.content
+    ));
+    if (!needsScrub) return;
+    setA4_Elements((prev) => prev.map((element) => {
+      if (
+        (element.category !== "text" && element.category !== "textarea")
+        || element.content == null
+      ) {
+        return element;
+      }
+      const content = sanitizeTextContent(element.content);
+      return content === element.content ? element : { ...element, content };
+    }));
+  }, [A4_Elements]);
   useEffect(() => { pageCountRef.current = pageCount; }, [pageCount]);
   useEffect(() => {
     if (pageCount < 2) setIsTwoPageView(false);

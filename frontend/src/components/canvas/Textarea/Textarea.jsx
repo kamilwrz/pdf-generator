@@ -5,6 +5,7 @@ import { PdfContext } from "../../../store/pdfgenerator-context";
 import Resize from "../../common/Resize/Resize";
 import { measureNaturalScrollHeight } from "../../../utils/textareaHeight";
 import { deferTextareaEdit, hasTextareaDragIntent } from "../../../utils/textareaEditing";
+import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
 
 // Normalize a bullet's whitespace and render the marker in a dedicated grid
 // column. The column's width is the actual rendered "• " width for the active
@@ -159,6 +160,8 @@ function Textarea({
         });
     }
 
+    const cleanContent = sanitizeTextContent(content) ?? "";
+
     if (isEditing) {
         return (
             <textarea
@@ -168,17 +171,18 @@ function Textarea({
                 rows={1}
                 className={classes.editing}
                 style={{ ...boxStyle, ...textStyle }}
-                value={content ?? ""}
+                value={cleanContent}
                 placeholder="Wpisz swój tekst…"
                 onChange={(e) => {
                     const node = e.target;
                     const measuredHeight = measureNaturalScrollHeight(node);
                     node.style.height = `${measuredHeight}px`;
+                    const nextContent = sanitizeTextContent(node.value) ?? "";
                     if (autoHeight) {
-                        editElementValues({ content: node.value }, elementId);
+                        editElementValues({ content: nextContent }, elementId);
                         fitTextareaToContent(elementId, measuredHeight);
                     } else {
-                        editElementValues({ content: node.value, height: measuredHeight }, elementId);
+                        editElementValues({ content: nextContent, height: measuredHeight }, elementId);
                     }
                 }}
                 onBlur={() => setTextareaEditing(elementId, false)}
@@ -236,7 +240,7 @@ function Textarea({
                 moveElement(e, elementId);
             }}
         >
-            {bulletList && content ? renderBulletLines(content) : content}
+            {bulletList && cleanContent ? renderBulletLines(cleanContent) : cleanContent}
         </div>
     );
 

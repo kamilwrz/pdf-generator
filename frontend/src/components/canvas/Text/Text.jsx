@@ -3,6 +3,7 @@ import { memo, useLayoutEffect, useRef } from "react";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { deferTextareaEdit, hasTextareaDragIntent } from "../../../utils/textareaEditing";
+import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
 
 function Text({
     elementId,
@@ -53,10 +54,11 @@ function Text({
 
     // Keep the DOM text in sync when not editing. While contentEditable is on,
     // the browser owns the text node — React must not rewrite children.
+    // Paint the sanitized form so NULL/NBSP junk never shows as boxes.
     useLayoutEffect(() => {
         const node = nodeRef.current;
         if (!node || isEditing) return;
-        const next = content ?? "";
+        const next = sanitizeTextContent(content) ?? "";
         if (node.textContent !== next) {
             node.textContent = next;
         }
@@ -93,7 +95,7 @@ function Text({
     function finishEditing() {
         const node = nodeRef.current;
         if (node) {
-            const next = node.textContent ?? "";
+            const next = sanitizeTextContent(node.textContent ?? "") ?? "";
             if (next !== (content ?? "")) {
                 editElementValues({ content: next }, elementId);
             }
@@ -119,7 +121,10 @@ function Text({
                 selectElement(elementId, e.ctrlKey || e.metaKey);
             }}
             onInput={(e) => {
-                editElementValues({ content: e.currentTarget.textContent ?? "" }, elementId);
+                editElementValues(
+                    { content: sanitizeTextContent(e.currentTarget.textContent ?? "") ?? "" },
+                    elementId,
+                );
             }}
             onBlur={() => {
                 if (isEditing) finishEditing();

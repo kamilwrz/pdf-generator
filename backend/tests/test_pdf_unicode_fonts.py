@@ -51,6 +51,10 @@ class PdfUnicodeFontTests(unittest.TestCase):
             sanitize_pdf_text("line1\nline2\x00"),
             "line1\nline2",
         )
+        self.assertEqual(
+            sanitize_pdf_text("title\u200b\ufeff\ufffd"),
+            "title",
+        )
 
         output = io.BytesIO()
         generator = PDF_Generator(

@@ -9,18 +9,21 @@ from fontTools.ttLib import TTFont as _FTFont
 
 _BACKEND_DIR = Path(__file__).resolve().parent.parent.parent  # app -> backend
 
-# Strip control chars that become visible .notdef / "NBSP" boxes in PDF viewers,
-# and normalize exotic Unicode spaces to ordinary spaces.
-_PDF_CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+# Strip control / invisible chars that become .notdef / "NBSP" boxes in PDF
+# viewers, and normalize exotic Unicode spaces to ordinary spaces.
+_PDF_CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
 _PDF_ODD_SPACE_RE = re.compile(
-    r"[\u00a0\u1680\u2000-\u200b\u202f\u205f\u3000\ufeff]"
+    r"[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]"
+)
+_PDF_INVISIBLE_RE = re.compile(
+    r"[\u00ad\u200b-\u200f\u2028\u2029\u2060\ufeff\ufffc\ufffd]"
 )
 
 
 def sanitize_pdf_text(text) -> str:
     """Clean element content before drawing it into a PDF.
 
-    Null bytes and other C0 controls have no glyph in our fonts, so ReportLab
+    Null bytes and other controls have no glyph in our fonts, so ReportLab
     still emits a text run that Acrobat labels as NBSP/missing-glyph boxes.
     Non-breaking and other Unicode spaces are folded to regular spaces so
     wrapping and export match what users expect from the canvas.
@@ -29,6 +32,7 @@ def sanitize_pdf_text(text) -> str:
     if text is None:
         return ""
     cleaned = _PDF_CONTROL_RE.sub("", str(text))
+    cleaned = _PDF_INVISIBLE_RE.sub("", cleaned)
     cleaned = _PDF_ODD_SPACE_RE.sub(" ", cleaned)
     return cleaned
 
