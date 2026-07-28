@@ -315,6 +315,11 @@ export default function Hero() {
 
             {/* First viewport: topbar + hero = 100vh */}
             <div className={classes.heroStage}>
+                <div className={classes.heroPhoto} aria-hidden="true">
+                    <img src="/men.png" alt="" />
+                </div>
+                <div className={classes.heroScrim} aria-hidden="true" />
+
                 <nav className={classes.nav}>
                     <div className={classes.brand}>
                         <span className={classes.brandMark}><img src="/kompoza-logo2.png" alt="" /></span>
