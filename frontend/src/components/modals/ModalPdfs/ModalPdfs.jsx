@@ -9,6 +9,7 @@ import { CiClock1 } from "react-icons/ci";
 import { GrView } from "react-icons/gr";
 import { FiSearch, FiAlertTriangle } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
+import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
 
 import { ApiClient } from "../../../services/api";
 import { ENDPOINTS } from "../../../services/api";
@@ -84,6 +85,7 @@ export default function ModalPdfs({ title }) {
                 if (element.category === "textarea") {
                     return {
                         ...element,
+                        content: sanitizeTextContent(element.content),
                         zIndex: element.extra_properties.zIndex,
                         lineHeight: element.extra_properties.lineHeight,
                         letterSpacing: element.extra_properties.letterSpacing,
@@ -116,6 +118,7 @@ export default function ModalPdfs({ title }) {
                 }
                 return {
                     ...element,
+                    content: sanitizeTextContent(element.content),
                     zIndex: element.extra_properties.zIndex,
                     bold: element.extra_properties.bold,
                     italic: element.extra_properties.italic,

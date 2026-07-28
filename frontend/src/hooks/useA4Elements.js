@@ -6,6 +6,7 @@ import { reflowTextareaHeight } from '../utils/textareaReflow';
 import { cloneFixedPageDecorations } from '../utils/structureOperation';
 import { findPageCanvasAtPoint } from '../utils/pageSpread';
 import { moveElementsByDelta, moveElementsToPage } from '../utils/pageDrag';
+import { sanitizeTextContent } from '../utils/sanitizeTextContent';
 
 // Elements a connector can attach to — those with a real bounding box the
 // backend can reproduce for the PDF. Single-line text (no stored width/height)
@@ -1014,7 +1015,11 @@ export function useA4Elements(titleRef) {
           ) {
             return element;
           }
-          return { ...element, ...dataObject };
+          const next = { ...element, ...dataObject };
+          if ("content" in dataObject) {
+            next.content = sanitizeTextContent(dataObject.content);
+          }
+          return next;
         } else {
           return element;
         }
@@ -1691,13 +1696,16 @@ export function useA4Elements(titleRef) {
       const normalizedRest = rest.category === "circle"
         ? { ...rest, width: rest.width ?? rest.height ?? 80, height: rest.width ?? rest.height ?? 80 }
         : rest;
+      const withCleanContent = "content" in normalizedRest
+        ? { ...normalizedRest, content: sanitizeTextContent(normalizedRest.content) }
+        : normalizedRest;
       return {
         isSelected: false,
         isMove: false,
         isEditing: false,
-        locked: normalizedRest.locked ?? false,
-        ...normalizedRest,
-        page: normalizedRest.page ?? 1,
+        locked: withCleanContent.locked ?? false,
+        ...withCleanContent,
+        page: withCleanContent.page ?? 1,
         element_id: nid,
       };
     });

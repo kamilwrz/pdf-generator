@@ -9,6 +9,29 @@ from fontTools.ttLib import TTFont as _FTFont
 
 _BACKEND_DIR = Path(__file__).resolve().parent.parent.parent  # app -> backend
 
+# Strip control chars that become visible .notdef / "NBSP" boxes in PDF viewers,
+# and normalize exotic Unicode spaces to ordinary spaces.
+_PDF_CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+_PDF_ODD_SPACE_RE = re.compile(
+    r"[\u00a0\u1680\u2000-\u200b\u202f\u205f\u3000\ufeff]"
+)
+
+
+def sanitize_pdf_text(text) -> str:
+    """Clean element content before drawing it into a PDF.
+
+    Null bytes and other C0 controls have no glyph in our fonts, so ReportLab
+    still emits a text run that Acrobat labels as NBSP/missing-glyph boxes.
+    Non-breaking and other Unicode spaces are folded to regular spaces so
+    wrapping and export match what users expect from the canvas.
+    Newlines/tabs are preserved for textarea wrapping.
+    """
+    if text is None:
+        return ""
+    cleaned = _PDF_CONTROL_RE.sub("", str(text))
+    cleaned = _PDF_ODD_SPACE_RE.sub(" ", cleaned)
+    return cleaned
+
 FONT_PATH_INTER = _BACKEND_DIR / "fonts" / "Inter.ttf"
 FONT_PATH_ROBOTO = _BACKEND_DIR / "fonts" / "Roboto.ttf"
 FONT_PATH_TIMESROMAN = _BACKEND_DIR / "fonts" / "TimesRoman.ttf"
@@ -244,6 +267,7 @@ class PDF_Generator:
         (fill+stroke for bold, sheared matrix for italic) is the fallback for
         fonts without a registered variant. Underline is always a drawn rule.
         ``word_space`` adds extra width to each space char (used by justify)."""
+        text = sanitize_pdf_text(text)
         draw_font, faux_bold, faux_italic = self._resolve_font(font, bold, italic)
         if text:
             to = self.c.beginText()
@@ -301,7 +325,7 @@ class PDF_Generator:
         bullet_prefix). The is_last flag lets justify leave the final line of
         each paragraph left-aligned, matching CSS text-align: justify."""
         out = []
-        for paragraph in (text or "").split("\n"):
+        for paragraph in sanitize_pdf_text(text).split("\n"):
             if paragraph == "":
                 out.append(("", True, 0.0, ""))
                 continue
