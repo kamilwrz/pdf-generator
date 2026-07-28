@@ -26,10 +26,22 @@
 - klikniecie w bg element powoduje zly UX;trzeba dodac kategorie i "zablokowac" przed tym bg / selection
 - to samo z deko prostokatami, ktore tworza margin
 
-9. IMAGE UPLOAD
+9. IMAGE UPLOAD (FIXED)
 - upload paru images zle wyglada;pozycjowanie diagonalne!
 - modal jest zle polozony i przykrywa sidebar
 
 10. AI CHAT
 - tylko pytania odnosnie CV i taski odnosnie CV maja byc wykonane, reszta ma byc odmowiona ze wzgledu na
   nie ten scope
+
+11. 2-SITES MODAL DOWNLOAD
+- jak jest widok na 2 strony to tylko jedna jest blur i na jednej sie pokazuje modal
+
+12. LOADING BAR IMG UPLOAD
+- zle dziala dla wielu img
+- wspolnie ma liczyc i pokazywac progres, przy 2 > img, ma byc komunikat w liczbie mnogiej
+- komunikat ma byc po polsku
+
+13. SELECT - CZIONKI - EIDT PANEL
+- nowe czcionki pokazuja sie w orginalnym font
+- stare zwyklym, maja pokazywac sie w ich foncie
