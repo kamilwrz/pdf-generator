@@ -1,24 +1,37 @@
 import { useMemo } from "react";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { getElementBounds } from "../../../utils/elementBounds";
+import { getElementBounds, getTextContentBounds } from "../../../utils/elementBounds";
 import classes from "./SelectionOverlay.module.css";
 
 function frameForElement(element) {
     const left = Number(element.left) || 0;
     const top = Number(element.top) || 0;
 
-    // Use the element's own box for every category — including text — so the
-    // selection frame does not jump when a <p> swaps to an <input> on edit.
+    // Text: hug rendered glyphs so the frame does not include line-box leading.
+    // (Element-box measurement made the border look oversized while dragging.)
+    if (element.category === "text") {
+        const {
+            width,
+            height,
+            left: contentLeft,
+            top: contentTop,
+        } = getTextContentBounds(element);
+        const fontSize = Number(element.fontSize) || 12;
+        return {
+            left: Number.isFinite(contentLeft) ? contentLeft : left,
+            top: Number.isFinite(contentTop) ? contentTop : top,
+            width: Math.max(width, fontSize * 0.5, 1),
+            height: Math.max(height, fontSize * 0.8, 1),
+        };
+    }
+
     const { width, height } = getElementBounds(element);
-    const fontSize = Number(element.fontSize) || 12;
-    const minW = element.category === "text" ? fontSize * 0.5 : 1;
-    const minH = element.category === "text" ? fontSize * 0.8 : 1;
     return {
         left,
         top,
-        width: Math.max(width, minW, 1),
-        height: Math.max(height, minH, 1),
+        width: Math.max(width, 1),
+        height: Math.max(height, 1),
     };
 }
 
@@ -30,9 +43,7 @@ export default function SelectionOverlay({ elements, page }) {
     const selected = useMemo(
         () => canvasElements.filter((element) => (
             element.isSelected
-            // Textarea draws its own accent outline while editing; text keeps
-            // the shared selection frame so chrome does not jump on dbl-click.
-            && !(element.isEditing && element.category === "textarea")
+            && !element.isEditing
             && element.category !== "connector"
             && (element.page ?? 1) === displayedPage
         )),

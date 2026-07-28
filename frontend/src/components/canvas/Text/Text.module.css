@@ -1,5 +1,5 @@
-/* Display <p> and editing <input> share the same box + type metrics so
-   entering edit mode does not shift the glyph baseline or selection chrome. */
+/* Display <p> and editing <input> share the same type metrics so entering
+   edit mode does not shift the glyph baseline. */
 .textElement,
 .editingInput {
     display: inline-block;
@@ -12,7 +12,9 @@
     border-radius: 0;
     background: transparent;
     white-space: pre;
-    line-height: 1.2;
+    /* Match typical glyph box — avoids oversized selection fallbacks and
+       keeps <p>/<input> baselines aligned on edit. */
+    line-height: 1;
     vertical-align: top;
 }
 
@@ -32,6 +34,7 @@
     appearance: none;
     -webkit-appearance: none;
     min-width: 1ch;
+    height: 1em;
     outline: none;
     caret-color: currentColor;
     cursor: text;
