@@ -42,6 +42,6 @@
 - wspolnie ma liczyc i pokazywac progres, przy 2 > img, ma byc komunikat w liczbie mnogiej
 - komunikat ma byc po polsku
 
-13. SELECT - CZIONKI - EIDT PANEL
+13. SELECT - CZIONKI - EIDT PANEL (FIXED)
 - nowe czcionki pokazuja sie w orginalnym font
 - stare zwyklym, maja pokazywac sie w ich foncie

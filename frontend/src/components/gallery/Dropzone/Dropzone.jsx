@@ -1,6 +1,6 @@
 import classes from "./Dropzone.module.css";
 import { useDropzone } from "react-dropzone";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 import Progress from "../../common/Progress/Progress";
 
@@ -9,70 +9,87 @@ import { PdfContext } from "../../../store/pdfgenerator-context";
 
 import { ApiClient } from "../../../services/api";
 import { ENDPOINTS } from "../../../services/api";
+import {
+    polishUploadResultMessage,
+    polishUploadingMessage,
+} from "../../../utils/polishUploadMessage";
 
-const PROGRESS_MAX = 2000;
+const PROGRESS_MAX = 100;
 
 export default function Dropzone() {
     const { valueImageUpload, setValueImageUpload, isDropzone } = use(PdfContext);
     const [files, setFiles] = useState([]);
-    const [error, setError] = useState();
-    const [success, setSuccess] = useState();
-    const [duration, setDuration] = useState();
-
-    const api = new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+    const [status, setStatus] = useState("idle"); // idle | uploading | success | error
+    const [statusMessage, setStatusMessage] = useState("");
+    const uploadTokenRef = useRef(0);
 
     const onDrop = useCallback((acceptedFiles) => {
-        setFiles(acceptedFiles.map((file) => Object.assign(file, {
-            preview: URL.createObjectURL(file),
-        })));
+        if (!acceptedFiles?.length) return;
 
-        acceptedFiles.forEach((file) => {
+        const token = ++uploadTokenRef.current;
+        const batch = acceptedFiles.map((file) => Object.assign(file, {
+            preview: URL.createObjectURL(file),
+        }));
+
+        setFiles((prev) => {
+            prev.forEach((file) => URL.revokeObjectURL(file.preview));
+            return batch;
+        });
+        setStatus("uploading");
+        setStatusMessage(polishUploadingMessage(batch.length));
+        setValueImageUpload(0);
+
+        const api = new ApiClient({
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+        });
+
+        let completed = 0;
+        let succeeded = 0;
+        const total = batch.length;
+
+        const bumpProgress = () => {
+            if (token !== uploadTokenRef.current) return;
+            completed += 1;
+            setValueImageUpload(Math.round((completed / total) * PROGRESS_MAX));
+        };
+
+        Promise.all(batch.map(async (file) => {
             const formData = new FormData();
             formData.append("file", file);
-
-            const start = performance.now();
-            let interval;
-            let uploadDuration = 0;
-
-            api.httpRequest(ENDPOINTS.IMG.UPLOAD, "POST", formData, "Przesyłanie obrazu nie powiodło się!")
-                .then((data) => {
-                    uploadDuration = performance.now() - start;
-
-                    setDuration(uploadDuration);
-                    setTimeout(() => { setSuccess(data.message); }, uploadDuration + 100);
-
-                    const stepMs = 100;
-                    const stepValue = (PROGRESS_MAX / uploadDuration) * stepMs;
-                    let elapsed = 0;
-
-                    interval = setInterval(() => {
-                        elapsed += stepMs;
-                        setValueImageUpload((prev) => Math.min(prev + stepValue, PROGRESS_MAX));
-                        if (elapsed >= uploadDuration) {
-                            clearInterval(interval);
-                        }
-                    }, stepMs);
-                })
-                .catch((err) => { setError(err); })
-                .finally(() => {
-                    setTimeout(() => {
-                        if (interval) { clearInterval(interval); setSuccess(undefined); }
-                    }, uploadDuration + 50);
-                });
+            try {
+                await api.httpRequest(
+                    ENDPOINTS.IMG.UPLOAD,
+                    "POST",
+                    formData,
+                    "Przesyłanie obrazu nie powiodło się!",
+                );
+                succeeded += 1;
+            } catch {
+                // Counted in completed; final message covers failures.
+            } finally {
+                bumpProgress();
+            }
+        })).then(() => {
+            if (token !== uploadTokenRef.current) return;
+            const message = polishUploadResultMessage(succeeded, total);
+            setStatusMessage(message);
+            setStatus(succeeded === 0 ? "error" : "success");
+            setValueImageUpload(PROGRESS_MAX);
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- match prior upload behavior; token is read at call time
-    }, []);
+    }, [setValueImageUpload]);
 
     const { getRootProps, getInputProps } = useDropzone({
         accept: { "image/*": [] },
         maxFiles: 12,
+        disabled: status === "uploading",
         onDrop,
     });
 
-    useEffect(() => {
-        setValueImageUpload(0);
-        return () => files.forEach((file) => URL.revokeObjectURL(file.preview));
-    }, [files, setValueImageUpload]);
+    useEffect(() => () => {
+        files.forEach((file) => URL.revokeObjectURL(file.preview));
+    }, [files]);
+
+    const showProgress = status === "uploading" || status === "success" || status === "error";
 
     return (
         <section className={classes.dropzoneContainer}>
@@ -81,14 +98,20 @@ export default function Dropzone() {
                 <div className={classes.dropIcon}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 13v8" /><path d="m8 17 4-4 4 4" /><path d="M20 16.5A4.5 4.5 0 0 0 17 8h-1.3A7 7 0 1 0 5 15" /></svg>
                 </div>
-                <div className={classes.dropTitle}>Upuść obrazy tutaj</div>
-                <div className={classes.dropHint}>lub <span>przeglądaj pliki</span></div>
+                <div className={classes.dropTitle}>
+                    {status === "uploading" ? "Przesyłanie…" : "Upuść obrazy tutaj"}
+                </div>
+                <div className={classes.dropHint}>
+                    {status === "uploading"
+                        ? statusMessage
+                        : <>lub <span>przeglądaj pliki</span></>}
+                </div>
             </div>
 
             {isDropzone && files.length > 0 && (
                 <aside className={classes.thumbsWrap} aria-label="Podgląd przesłanych obrazów">
                     {files.map((file) => (
-                        <div className={classes.thumb} key={file.name}>
+                        <div className={classes.thumb} key={`${file.name}-${file.size}-${file.lastModified}`}>
                             <img
                                 src={file.preview}
                                 alt={file.name}
@@ -99,11 +122,22 @@ export default function Dropzone() {
                 </aside>
             )}
 
-            {isDropzone && (
+            {isDropzone && showProgress && (
                 <>
                     <Progress max={PROGRESS_MAX} value={valueImageUpload} />
-                    {success && <p className={classes.success}>{success}</p>}
-                    {error && <p className={classes.error}>{error.detail}</p>}
+                    {status === "uploading" && (
+                        <p className={classes.progressLabel}>
+                            {statusMessage}
+                            {" "}
+                            ({Math.round(valueImageUpload)}%)
+                        </p>
+                    )}
+                    {status === "success" && (
+                        <p className={classes.success}>{statusMessage}</p>
+                    )}
+                    {status === "error" && (
+                        <p className={classes.error}>{statusMessage}</p>
+                    )}
                 </>
             )}
         </section>

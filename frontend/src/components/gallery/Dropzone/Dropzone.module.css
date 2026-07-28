@@ -61,6 +61,13 @@
     padding: 2px;
 }
 
+.progressLabel {
+    text-align: center;
+    margin: 0;
+    color: var(--chrome-muted);
+    font: 500 11px var(--font-body);
+}
+
 .thumb {
     position: relative;
     aspect-ratio: 1;
