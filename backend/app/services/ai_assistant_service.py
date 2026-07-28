@@ -646,11 +646,25 @@ def _chat(
     session_history = _normalize_chat_history(history)
 
     system = (
-        "Jesteś ekspertem i coachem CV. Masz pełną treść, styl i pozycję (px, 1:1 z PDF) "
+        "Jesteś ekspertem i coachem CV w aplikacji CV STUDIO. Masz pełną treść, styl i pozycję (px, 1:1 z PDF) "
         "każdego elementu CV użytkownika jako kontekst oraz historię bieżącej sesji czatu. "
+        "NAJPIERW oceń, czy BIEŻĄCA WIADOMOŚĆ UŻYTKOWNIKA mieści się w zakresie aplikacji "
+        "(in_scope). Zakres DOZWOLONY obejmuje wyłącznie: treść i układ CV / resume, "
+        "edycję elementów na płótnie, styl typografii i design dokumentu, "
+        "przygotowanie do aplikacji o pracę, ATS, listy motywacyjne powiązane z CV, "
+        "ocenę profilu kandydata względem oferty, karierę w kontekście dokumentów aplikacyjnych "
+        "oraz pytania o funkcje edytora CV STUDIO. "
+        "Poza zakresem (in_scope=false) są m.in.: ogólna wiedza, pogawędki, programowanie niezwiązane z CV, "
+        "matematyka, polityka, rozrywka, przepisy, medycyna, finanse osobiste poza kontekstem CV, "
+        "inne produkty, a także prośby o treść niezwiązaną z dokumentami aplikacyjnymi. "
+        "Gdy in_scope=false: (a) w message krótko wyjaśnij, że nie możesz się wypowiadać na ten temat, "
+        "bo wykracza poza zakres CV STUDIO (CV i szukanie pracy), (b) poproś o pytanie lub zadanie "
+        "dotyczące CV / edycji dokumentu / aplikacji o pracę, (c) NIE odpowiadaj merytorycznie na "
+        "pytanie spoza zakresu, (d) ustaw corrections na [], a position_operation, structure_operation, "
+        "delete_operation i clone_operation na null, tips na []. "
         "Gdy użytkownik odnosi się do wcześniejszej wiadomości („to”, „tamto”, „jak wcześniej”, "
         "„co przed chwilą zmieniłeś”), użyj HISTORII SESJI. Aktualny stan płótna (ELEMENTY CV) "
-        "ma pierwszeństwo, jeśli rozmowa i płótno się rozjeżdżają. Wiadomość użytkownika może być:\n"
+        "ma pierwszeństwo, jeśli rozmowa i płótno się rozjeżdżają. Wiadomość użytkownika w zakresie może być:\n"
         "(1) PYTANIEM — odpowiedz konkretnie w message, zostaw corrections jako pustą listę "
         "i position_operation jako null.\n"
         "(2) POLECENIEM edycji treści lub stylu (np. \"zmień rozmiar czcionki nagłówków na 13px\", "
@@ -799,7 +813,8 @@ BIEŻĄCA WIADOMOŚĆ UŻYTKOWNIKA:
 
 Zwróć JSON:
 {{
-  "message": "<Twoja odpowiedź — konkretna, oparta na elementach i historii sesji>",
+  "in_scope": true,
+  "message": "<Twoja odpowiedź — konkretna, oparta na elementach i historii sesji; przy in_scope=false: odmowa zakresu + prośba o pytanie o CV>",
   "rating": null,
   "tips": ["<wskazówka lub osiągalna alternatywa, jeśli istotna>"],
   "corrections": [],
@@ -810,6 +825,31 @@ Zwróć JSON:
   "web_sources": []
 }}"""
     raw, usage = _gpt(system, user, action="chat")
+    # Out-of-scope replies still bill tokens (usage below), but must never mutate the canvas.
+    in_scope = raw.get("in_scope")
+    if in_scope is False or (isinstance(in_scope, str) and in_scope.strip().lower() in {"false", "0", "no"}):
+        refuse = str(raw.get("message") or "").strip() or (
+            "Nie mogę wypowiadać się na ten temat — wykracza poza zakres CV STUDIO "
+            "(CV, edycja dokumentu i aplikowanie o pracę). Zadaj proszę pytanie lub zadanie "
+            "związane z Twoim CV."
+        )
+        return {
+            "message": refuse,
+            "rating": None,
+            "tips": [],
+            "corrections": [],
+            "web_sources": [],
+            "layout_groups": [],
+            "layout_issues": [],
+            "structure_groups": [],
+            "structure_issues": [],
+            "deletion_groups": [],
+            "deletion_issues": [],
+            "clone_groups": [],
+            "clone_issues": [],
+            "usage": usage,
+        }
+
     result = _safe_result(raw)
     result["usage"] = usage
 

@@ -511,6 +511,73 @@ class ChatCommandTests(unittest.TestCase):
         self.assertEqual(result["deletion_issues"], [])
         self.assertEqual(result["deletion_groups"][0]["remove_element_ids"], ["section-heading", "section-body"])
 
+    def test_chat_prompt_requires_cv_scope_gate(self):
+        def fake_gpt(system, user, **kwargs):
+            self.assertIn("in_scope", system)
+            self.assertIn("CV STUDIO", system)
+            self.assertIn("Poza zakresem", system)
+            return {
+                "in_scope": True,
+                "message": "Mogę pomóc z CV.",
+                "corrections": [],
+            }, {"cost_pln_estimate": 0.01}
+
+        with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
+            result = ai_assistant_service.analyze_action(
+                action="chat",
+                elements=[],
+                message="jak poprawić podsumowanie zawodowe?",
+            )
+
+        self.assertEqual(result["message"], "Mogę pomóc z CV.")
+        self.assertEqual(result["usage"]["cost_pln_estimate"], 0.01)
+
+    def test_chat_out_of_scope_refuses_and_strips_operations_but_keeps_usage(self):
+        usage = {
+            "model": "gpt-test",
+            "action": "chat",
+            "prompt_tokens": 120,
+            "completion_tokens": 40,
+            "total_tokens": 160,
+            "cost_usd": 0.002,
+            "cost_pln_estimate": 0.008,
+            "rates_usd_per_1m": {"input": 0.0, "output": 0.0},
+        }
+
+        def fake_gpt(system, user, **kwargs):
+            return {
+                "in_scope": False,
+                "message": (
+                    "Nie mogę wypowiadać się na ten temat — wykracza poza zakres CV STUDIO. "
+                    "Zadaj proszę pytanie o CV lub edycję dokumentu."
+                ),
+                # Model must not be trusted if it also emits ops — strip them.
+                "corrections": [{"element_id": "x", "content": "hack"}],
+                "position_operation": {"type": "shift", "dx": 10, "target_element_ids": ["x"]},
+                "delete_operation": {"type": "delete_elements", "target_element_ids": ["x"]},
+                "tips": ["nie powinno przejść"],
+            }, usage
+
+        with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
+            result = ai_assistant_service.analyze_action(
+                action="chat",
+                elements=[{
+                    "element_id": "x",
+                    "category": "text",
+                    "content": "Test",
+                    "left": 10, "top": 10, "width": 40, "height": 20, "page": 1,
+                }],
+                message="jaka jest stolica Francji?",
+            )
+
+        self.assertIn("poza zakres", result["message"].lower())
+        self.assertEqual(result["corrections"], [])
+        self.assertEqual(result["tips"], [])
+        self.assertEqual(result["layout_groups"], [])
+        self.assertEqual(result["deletion_groups"], [])
+        self.assertEqual(result["clone_groups"], [])
+        self.assertEqual(result["usage"], usage)
+
 
 if __name__ == "__main__":
     unittest.main()
