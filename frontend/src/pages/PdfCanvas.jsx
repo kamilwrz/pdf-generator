@@ -155,8 +155,6 @@ function PdfCanvas() {
     clonePage,
     movePage,
     pageSize,
-    setPageSize,
-    setPagePreset,
     zoom,
     zoomIn,
     zoomOut,
@@ -595,8 +593,6 @@ function PdfCanvas() {
     showPlanModal: handleShowPlanModal,
     //page geometry
     pageSize: pageSize,
-    setPageSize: setPageSize,
-    setPagePreset: setPagePreset,
     //zoom (view-only)
     zoom: zoom,
     zoomIn: zoomIn,
@@ -666,7 +662,7 @@ function PdfCanvas() {
     isTwoPageView, toggleTwoPageView,
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
     isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen, isAiPanel, handleShowAiPanel, isBioCvModal, handleShowBioCvModal, isPlanModal, handleShowPlanModal,
-    pageSize, setPageSize, setPagePreset,
+    pageSize,
     zoom, zoomIn, zoomOut,
     undo, redo, canUndo, canRedo, resetHistory,
     deletionPreviewIds, layoutPreviewPatches, structurePreviewGroup,

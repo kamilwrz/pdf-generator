@@ -12,11 +12,9 @@ import { moveElementsByDelta, moveElementsToPage } from '../utils/pageDrag';
 // is intentionally excluded.
 const CONNECTABLE = new Set(["textarea", "rectangle", "circle", "ellipse", "image", "line"]);
 
-// Canvas size presets (pt = px, 1:1 with the PDF).
-export const PAGE_PRESETS = {
-  "a4-portrait":  { label: "A4 · Pion",       width: 595, height: 842 },
-  "a4-landscape": { label: "A4 · Poziom",     width: 842, height: 595 },
-};
+// Fixed A4 portrait page (pt = px, 1:1 with the PDF). Orientation is not
+// user-switchable — CV layouts are portrait-only.
+export const A4_PAGE_SIZE = Object.freeze({ width: 595, height: 842 });
 
 // Canvas zoom is view-only (never persisted or exported). Snap each step to
 // the 0.1 grid (not just +/- 0.1 from the current value) so levels are always
@@ -27,13 +25,6 @@ const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.1;
 const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
 const stepZoom = (z, dir) => clampZoom(Math.round((z + dir * ZOOM_STEP) * 10) / 10);
-
-// Match stored dimensions back to a preset id (loading a saved PDF).
-export function presetFromDims(width, height) {
-  const found = Object.entries(PAGE_PRESETS)
-    .find(([, p]) => p.width === width && p.height === height);
-  return found ? found[0] : "custom";
-}
 
 export function useA4Elements(titleRef) {
 
@@ -54,9 +45,8 @@ export function useA4Elements(titleRef) {
   const [currentPage, setCurrentPage] = useState(1);
   const [isTwoPageView, setIsTwoPageView] = useState(false);
 
-  // ---- Page geometry (preset-driven; default A4 portrait) ----
-  const [pageSize, setPageSize] = useState({ preset: "a4-portrait", ...PAGE_PRESETS["a4-portrait"] });
-
+  // ---- Page geometry: fixed A4 portrait ----
+  const pageSize = A4_PAGE_SIZE;
   // View-only zoom (not persisted, not in undo/redo — lives outside A4_Elements).
   const [zoom, setZoomState] = useState(1);
   const zoomIn = useCallback(() => setZoomState(z => stepZoom(z, 1)), []);
@@ -69,7 +59,7 @@ export function useA4Elements(titleRef) {
   // without being recreated on every page change.
   const currentPageRef = useRef(1);
   const elementsRef = useRef([]);
-  const pageSizeRef = useRef(pageSize);
+  const pageSizeRef = useRef(A4_PAGE_SIZE);
   const pageCountRef = useRef(1);
   const pageCanvasRefs = useRef(new Map());
   const draggedElementIdsRef = useRef(new Set());
@@ -103,7 +93,6 @@ export function useA4Elements(titleRef) {
     A4ref.current = pageCanvasRefs.current.get(currentPage) ?? null;
   }, [currentPage]);
   useEffect(() => { elementsRef.current = A4_Elements; }, [A4_Elements]);
-  useEffect(() => { pageSizeRef.current = pageSize; }, [pageSize]);
   useEffect(() => { pageCountRef.current = pageCount; }, [pageCount]);
   useEffect(() => {
     if (pageCount < 2) setIsTwoPageView(false);
@@ -136,8 +125,6 @@ export function useA4Elements(titleRef) {
   const buildSnapshot = () => ({
     elements: elementsRef.current.map(({ isSelected, isMove, isEditing, ...keep }) => keep),
     pageCount: pageCountRef.current,
-    pageWidth: pageSizeRef.current.width,
-    pageHeight: pageSizeRef.current.height,
   });
 
   const syncHistoryFlags = () => {
@@ -164,7 +151,7 @@ export function useA4Elements(titleRef) {
     clearTimeout(historyTimerRef.current);
     historyTimerRef.current = setTimeout(recordSnapshot, 350);
     return () => clearTimeout(historyTimerRef.current);
-  }, [A4_Elements, pageCount, pageSize]);
+  }, [A4_Elements, pageCount]);
 
   // Wipe history to a fresh baseline (loading a template / AI doc / saved PDF /
   // clearing) so you can't undo BACK into the previous document. The pending
@@ -179,9 +166,6 @@ export function useA4Elements(titleRef) {
     setA4_Elements(snap.elements.map(el => ({ ...el, isSelected: false, isMove: false, isEditing: false })));
     setPageCount(snap.pageCount);
     setCurrentPage(cp => Math.min(cp, snap.pageCount));
-    setPageSize(ps => (ps.width === snap.pageWidth && ps.height === snap.pageHeight)
-      ? ps
-      : { preset: presetFromDims(snap.pageWidth, snap.pageHeight), width: snap.pageWidth, height: snap.pageHeight });
   };
 
   const undo = useCallback(() => {
@@ -198,11 +182,6 @@ export function useA4Elements(titleRef) {
     h.index += 1;
     applySnapshot(h.stack[h.index]);
     syncHistoryFlags();
-  }, []);
-
-  const setPagePreset = useCallback((presetId) => {
-    const p = PAGE_PRESETS[presetId];
-    if (p) setPageSize({ preset: presetId, width: p.width, height: p.height });
   }, []);
 
   const clearSelection = useCallback(() => {
@@ -1700,9 +1679,8 @@ export function useA4Elements(titleRef) {
       : el);
   };
 
-  // Replace the canvas with generated/authored specs. `title` is used verbatim;
-  // `presetId` (optional) switches the page size before loading a template.
-  const handleLoadAiElements = useCallback((specs, title, presetId) => {
+  // Replace the canvas with generated/authored specs. `title` is used verbatim.
+  const handleLoadAiElements = useCallback((specs, title) => {
     resetHistory();
     const mapped = materializeSpecs(specs);
     const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
@@ -1710,11 +1688,10 @@ export function useA4Elements(titleRef) {
     setA4_Elements_deleted([]);
     setPageCount(maxPage);
     setCurrentPage(1);
-    if (presetId) setPagePreset(presetId);
     if (titleRef?.current && title) {
       titleRef.current.value = title;
     }
-  }, [setPagePreset])
+  }, [resetHistory])
 
   const handleLoadTemplateWithFill = useCallback((templateElements, templateName, fills) => {
     resetHistory();
@@ -1737,7 +1714,7 @@ export function useA4Elements(titleRef) {
     }
   }, [])
 
-  const handleLoadTemplate = useCallback((templateElements, title, presetId) => {
+  const handleLoadTemplate = useCallback((templateElements, title) => {
     resetHistory();
     const mapped = materializeSpecs(templateElements);
     const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
@@ -1745,11 +1722,10 @@ export function useA4Elements(titleRef) {
     setA4_Elements_deleted([]);
     setPageCount(maxPage);
     setCurrentPage(1);
-    if (presetId) setPagePreset(presetId);
     if (titleRef?.current && title) {
       titleRef.current.value = title;
     }
-  }, [setPagePreset, resetHistory])
+  }, [resetHistory])
 
 
   return {
@@ -1809,10 +1785,8 @@ export function useA4Elements(titleRef) {
     goToPage: handleGoToPage,
     clonePage: handleClonePage,
     movePage: handleMovePage,
-    // page geometry
+    // page geometry (fixed A4 portrait)
     pageSize,
-    setPageSize,
-    setPagePreset,
     // zoom (view-only; not persisted)
     zoom,
     zoomIn,

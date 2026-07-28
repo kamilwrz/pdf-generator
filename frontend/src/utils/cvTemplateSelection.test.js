@@ -5,8 +5,8 @@ import { selectCvTemplates } from "./cvTemplateSelection.js";
 
 test("keeps templates selectable after category metadata is removed", () => {
     const templates = [
-        { id: "ledger", pageSize: "a4-portrait" },
-        { id: "vector", pageSize: "a4-portrait" },
+        { id: "ledger" },
+        { id: "vector" },
     ];
 
     assert.equal(selectCvTemplates(templates), templates);

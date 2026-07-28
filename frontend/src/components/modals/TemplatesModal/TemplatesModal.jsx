@@ -36,7 +36,7 @@ export default function TemplatesModal() {
             return;
         }
         const title = `CV ${t.name}`;
-        loadTemplate(t.elements, title, t.pageSize);
+        loadTemplate(t.elements, title);
         if (autoOpenedTemplates) {
             logEvent("template_picked", t.id);
             markTemplatesModalSeen();

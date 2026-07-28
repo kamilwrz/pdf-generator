@@ -287,7 +287,7 @@ export default function BioCvModal() {
                 JSON.stringify({ cv_data: payload, template_id: template.id }),
                 "Nie udało się utworzyć CV.",
             );
-            await loadAiElements(response.elements, `CV ${template.name}`, template.pageSize);
+            await loadAiElements(response.elements, `CV ${template.name}`);
             showBioCvModal();
         } catch (error) {
             setSaveError(error.message || "Nie udało się utworzyć CV.");

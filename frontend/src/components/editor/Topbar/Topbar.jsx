@@ -1,7 +1,6 @@
 import classes from "./Topbar.module.css";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { PAGE_PRESETS } from "../../../hooks/useA4Elements";
 import { LuLayoutTemplate } from "react-icons/lu";
 import { RiFileTextLine, RiDownload2Line } from "react-icons/ri";
 import { FiEdit3, FiSave, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
@@ -18,8 +17,6 @@ export default function Topbar({ titleRef }) {
         clearA4,
         isPdfLoading,
         activePdfId,
-        pageSize,
-        setPagePreset,
         zoom,
         zoomIn,
         zoomOut,
@@ -77,19 +74,6 @@ export default function Topbar({ titleRef }) {
                         <TiPen />
                     </button>
                 </div>
-                <select
-                    className={classes.sizeSelect}
-                    aria-label="Rozmiar strony"
-                    value={pageSize?.preset ?? "a4-portrait"}
-                    onChange={(e) => setPagePreset(e.target.value)}
-                >
-                    {Object.entries(PAGE_PRESETS).map(([id, p]) => (
-                        <option key={id} value={id}>{p.label}</option>
-                    ))}
-                    {pageSize?.preset === "custom" && (
-                        <option value="custom">{`${pageSize.width}×${pageSize.height}`}</option>
-                    )}
-                </select>
                 <div className={classes.zoomCluster}>
                     <button
                         type="button"

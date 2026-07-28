@@ -100,28 +100,6 @@
     color: var(--topbar-accent);
 }
 
-/* ---- page size preset picker ---- */
-.sizeSelect {
-    height: 30px;
-    margin-left: 4px;
-    padding: 0 6px;
-    flex-shrink: 0;
-    background: var(--topbar-control);
-    border: 1px solid transparent;
-    border-radius: 6px;
-    font: 600 10.5px var(--font-body);
-    color: var(--topbar-muted);
-    outline: none;
-    cursor: pointer;
-    transition: border-color .15s, color .15s;
-}
-
-.sizeSelect:hover,
-.sizeSelect:focus {
-    border-color: var(--topbar-accent);
-    color: var(--topbar-ink);
-}
-
 /* shared button base */
 .feature,
 .ghost,
@@ -292,7 +270,6 @@
 }
 
 @media (max-width: 760px) {
-    .sizeSelect,
     .projectIcon,
     .rename {
         display: none;

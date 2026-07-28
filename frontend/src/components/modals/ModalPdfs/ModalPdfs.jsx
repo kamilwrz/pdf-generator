@@ -9,7 +9,6 @@ import { CiClock1 } from "react-icons/ci";
 import { GrView } from "react-icons/gr";
 import { FiSearch, FiAlertTriangle } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { presetFromDims } from "../../../hooks/useA4Elements";
 
 import { ApiClient } from "../../../services/api";
 import { ENDPOINTS } from "../../../services/api";
@@ -49,7 +48,6 @@ export default function ModalPdfs({ title }) {
         refreshEntitlements,
         setPageCount,
         setCurrentPage,
-        setPageSize,
         resetHistory,
     } = use(PdfContext);
 
@@ -126,15 +124,13 @@ export default function ModalPdfs({ title }) {
                 };
             });
 
-            // Restore the saved page count, geometry, title and content as one
-            // state transition, then make this loaded PDF autosave-active.
-            const pw = parseFloat(pdfCanvas?.page_width) || 595;
-            const ph = parseFloat(pdfCanvas?.page_height) || 842;
+            // Restore the saved page count, title and content as one state
+            // transition, then make this loaded PDF autosave-active.
+            // Page geometry is always A4 portrait.
             title.current.value = pdfCanvas?.title.split(".pdf")[0];
             resetHistory();
             setPageCount(pdfCanvas?.pages || 1);
             setCurrentPage(1);
-            setPageSize({ preset: presetFromDims(pw, ph), width: pw, height: ph });
             setA4_Elements_deleted([]);
             setA4_Elements(elementsData.filter(element => element.category !== "title"));
             handlePdfId(id);
