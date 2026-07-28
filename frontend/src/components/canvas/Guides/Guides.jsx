@@ -10,6 +10,10 @@ import {
     findPageEdgeGuides,
     findVerticalSpacingGuides,
 } from "../../../utils/spacingGuides";
+import {
+    resolveSpacingLabelLayouts,
+    spacingGuideKey,
+} from "../../../utils/spacingLabelLayout";
 
 const THRESHOLD = 4; // px — how close counts as "aligned"
 const PAD = 8;       // px — how far the guide extends past the outermost element
@@ -55,7 +59,7 @@ function closestCoord(movAnchors, others, anchorsOf) {
 }
 
 /** Orange vertical distance marker (Y gap between neighbors). */
-function SpacingMarkerY({ guide, pageWidth, pageHeight }) {
+function SpacingMarkerY({ guide, pageWidth, pageHeight, layout }) {
     if (!guide) return null;
 
     const x = clamp(Math.round(guide.x), pageWidth);
@@ -63,23 +67,31 @@ function SpacingMarkerY({ guide, pageWidth, pageHeight }) {
     const y2 = clamp(Math.round(guide.y2), pageHeight);
     const height = Math.max(0, y2 - y1);
     const label = `${Math.round(guide.gap)} px`;
+    const side = layout?.side || "right";
+    const nudge = layout?.nudge || 0;
 
     return (
         <div
             className={classes.spacingY}
             style={{ left: x, top: y1, height }}
             data-direction={guide.direction}
+            data-label-side={side}
         >
             <span className={classes.spacingCapYStart} />
             <span className={classes.spacingRailY} />
             <span className={classes.spacingCapYEnd} />
-            <span className={classes.spacingLabelY}>{label}</span>
+            <span
+                className={classes.spacingLabelY}
+                style={nudge ? { marginTop: nudge } : undefined}
+            >
+                {label}
+            </span>
         </div>
     );
 }
 
 /** Green horizontal distance marker (X gap between neighbors or page edge). */
-function SpacingMarkerX({ guide, pageWidth, pageHeight }) {
+function SpacingMarkerX({ guide, pageWidth, pageHeight, layout }) {
     if (!guide) return null;
 
     const y = clamp(Math.round(guide.y), pageHeight);
@@ -87,6 +99,8 @@ function SpacingMarkerX({ guide, pageWidth, pageHeight }) {
     const x2 = clamp(Math.round(guide.x2), pageWidth);
     const width = Math.max(0, x2 - x1);
     const label = `${Math.round(guide.gap)} px`;
+    const side = layout?.side || "below";
+    const nudge = layout?.nudge || 0;
 
     return (
         <div
@@ -94,11 +108,17 @@ function SpacingMarkerX({ guide, pageWidth, pageHeight }) {
             style={{ top: y, left: x1, width }}
             data-direction={guide.direction}
             data-kind={guide.kind || "neighbor"}
+            data-label-side={side}
         >
             <span className={classes.spacingCapXStart} />
             <span className={classes.spacingRailX} />
             <span className={classes.spacingCapXEnd} />
-            <span className={classes.spacingLabelX}>{label}</span>
+            <span
+                className={classes.spacingLabelX}
+                style={nudge ? { marginLeft: nudge } : undefined}
+            >
+                {label}
+            </span>
         </div>
     );
 }
@@ -148,6 +168,7 @@ export default function Guides({ page }) {
         const allY = findAllVerticalSpacingGuides(pageElements, getVisualBounds);
         const allX = findAllHorizontalSpacingGuides(pageElements, getVisualBounds);
         if (allY.length === 0 && allX.length === 0) return null;
+        const layouts = resolveSpacingLabelLayouts({ y: allY, x: allX });
         return (
             <>
                 {allY.map((guide) => (
@@ -156,6 +177,7 @@ export default function Guides({ page }) {
                         guide={guide}
                         pageWidth={A4_WIDTH}
                         pageHeight={A4_HEIGHT}
+                        layout={layouts.get(spacingGuideKey(guide, "y"))}
                     />
                 ))}
                 {allX.map((guide) => (
@@ -164,6 +186,7 @@ export default function Guides({ page }) {
                         guide={guide}
                         pageWidth={A4_WIDTH}
                         pageHeight={A4_HEIGHT}
+                        layout={layouts.get(spacingGuideKey(guide, "x"))}
                     />
                 ))}
             </>
@@ -179,6 +202,15 @@ export default function Guides({ page }) {
     const spacingY = findVerticalSpacingGuides(moving, others, getVisualBounds);
     const spacingX = findHorizontalSpacingGuides(moving, others, getVisualBounds);
     const pageEdges = findPageEdgeGuides(moving, A4_WIDTH, getVisualBounds);
+
+    const yGuides = [spacingY.above, spacingY.below].filter(Boolean);
+    const xGuides = [
+        spacingX.left,
+        spacingX.right,
+        pageEdges.left,
+        pageEdges.right,
+    ].filter(Boolean);
+    const layouts = resolveSpacingLabelLayouts({ y: yGuides, x: xGuides });
 
     // ---- One vertical guide: the nearest x-alignment, drawn only across the
     // moving element and the elements it lines up with. ----
@@ -211,11 +243,7 @@ export default function Guides({ page }) {
         };
     }
 
-    const hasSpacing = Boolean(
-        spacingY.above || spacingY.below
-        || spacingX.left || spacingX.right
-        || pageEdges.left || pageEdges.right
-    );
+    const hasSpacing = yGuides.length > 0 || xGuides.length > 0;
     if (!vGuide && !hGuide && !hasSpacing) return null;
 
     return (
@@ -232,12 +260,24 @@ export default function Guides({ page }) {
                     style={{ top: hGuide.y, left: hGuide.x1, width: hGuide.x2 - hGuide.x1 }}
                 />
             )}
-            <SpacingMarkerY guide={spacingY.above} pageWidth={A4_WIDTH} pageHeight={A4_HEIGHT} />
-            <SpacingMarkerY guide={spacingY.below} pageWidth={A4_WIDTH} pageHeight={A4_HEIGHT} />
-            <SpacingMarkerX guide={spacingX.left} pageWidth={A4_WIDTH} pageHeight={A4_HEIGHT} />
-            <SpacingMarkerX guide={spacingX.right} pageWidth={A4_WIDTH} pageHeight={A4_HEIGHT} />
-            <SpacingMarkerX guide={pageEdges.left} pageWidth={A4_WIDTH} pageHeight={A4_HEIGHT} />
-            <SpacingMarkerX guide={pageEdges.right} pageWidth={A4_WIDTH} pageHeight={A4_HEIGHT} />
+            {yGuides.map((guide) => (
+                <SpacingMarkerY
+                    key={`y-${guide.direction}-${guide.neighborId}`}
+                    guide={guide}
+                    pageWidth={A4_WIDTH}
+                    pageHeight={A4_HEIGHT}
+                    layout={layouts.get(spacingGuideKey(guide, "y"))}
+                />
+            ))}
+            {xGuides.map((guide) => (
+                <SpacingMarkerX
+                    key={`x-${guide.direction}-${guide.neighborId}`}
+                    guide={guide}
+                    pageWidth={A4_WIDTH}
+                    pageHeight={A4_HEIGHT}
+                    layout={layouts.get(spacingGuideKey(guide, "x"))}
+                />
+            ))}
         </>
     );
 }

@@ -37,13 +37,14 @@
     bottom: 0;
     width: 1px;
     background: #E4572E;
+    opacity: 0.9;
 }
 
 .spacingCapYStart,
 .spacingCapYEnd {
     position: absolute;
-    left: -5px;
-    width: 11px;
+    left: -3px;
+    width: 7px;
     height: 1px;
     background: #E4572E;
 }
@@ -53,16 +54,26 @@
 
 .spacingLabelY {
     position: absolute;
-    left: 8px;
     top: 50%;
-    transform: translateY(-50%);
-    padding: 1px 5px;
-    border-radius: 3px;
+    padding: 0 3px;
+    border-radius: 2px;
     background: #E4572E;
     color: #fff;
-    font: 700 10px/1.2 var(--font-body, "Segoe UI", sans-serif);
+    font: 700 8px/1.15 var(--font-body, "Segoe UI", sans-serif);
     white-space: nowrap;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.16);
+}
+
+.spacingY[data-label-side="right"] .spacingLabelY {
+    left: 5px;
+    right: auto;
+    transform: translateY(-50%);
+}
+
+.spacingY[data-label-side="left"] .spacingLabelY {
+    right: 5px;
+    left: auto;
+    transform: translateY(-50%);
 }
 
 /* Horizontal spacing markers (green): distance left / right / page edges. */
@@ -81,14 +92,15 @@
     right: 0;
     height: 1px;
     background: #2F9E44;
+    opacity: 0.9;
 }
 
 .spacingCapXStart,
 .spacingCapXEnd {
     position: absolute;
-    top: -5px;
+    top: -3px;
     width: 1px;
-    height: 11px;
+    height: 7px;
     background: #2F9E44;
 }
 
@@ -97,20 +109,24 @@
 
 .spacingLabelX {
     position: absolute;
-    top: 8px;
     left: 50%;
-    transform: translateX(-50%);
-    padding: 1px 5px;
-    border-radius: 3px;
+    padding: 0 3px;
+    border-radius: 2px;
     background: #2F9E44;
     color: #fff;
-    font: 700 10px/1.2 var(--font-body, "Segoe UI", sans-serif);
+    font: 700 8px/1.15 var(--font-body, "Segoe UI", sans-serif);
     white-space: nowrap;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.16);
 }
 
-/* Keep page-edge labels readable near the page border. */
-.spacingX[data-direction="page-left"] .spacingLabelX,
-.spacingX[data-direction="page-right"] .spacingLabelX {
-    top: -18px;
+.spacingX[data-label-side="below"] .spacingLabelX {
+    top: 5px;
+    bottom: auto;
+    transform: translateX(-50%);
+}
+
+.spacingX[data-label-side="above"] .spacingLabelX {
+    bottom: 5px;
+    top: auto;
+    transform: translateX(-50%);
 }
