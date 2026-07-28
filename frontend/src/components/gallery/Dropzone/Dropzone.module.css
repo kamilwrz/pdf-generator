@@ -1,46 +1,50 @@
 .dropzoneContainer {
     width: 100%;
-    height: 100%;
     padding: 16px;
     font-family: var(--font-body);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 320px;
 }
 
 .dropzone {
     border: 1px dashed var(--chrome-border);
     background: var(--chrome-control);
     border-radius: 8px;
-    padding: 22px 16px;
+    padding: 28px 16px;
     text-align: center;
-    margin-bottom: 12px;
     cursor: pointer;
-    transition: filter .15s;
+    transition: background .15s, border-color .15s;
+    flex-shrink: 0;
 }
 
 .dropzone:hover {
     background: var(--chrome-hover);
+    border-color: var(--chrome-accent);
 }
 
 .dropIcon {
-    width: 40px;
-    height: 40px;
-    border-radius: 7px;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
     background: var(--chrome-surface);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 9px;
+    margin: 0 auto 10px;
     border: 1px solid var(--chrome-border);
 }
 
 .dropTitle {
-    font: 600 12px var(--font-body);
+    font: 600 13px var(--font-body);
     color: var(--chrome-ink);
 }
 
 .dropHint {
-    font: 500 10.5px var(--font-body);
+    font: 500 11px var(--font-body);
     color: var(--chrome-muted);
-    margin-top: 2px;
+    margin-top: 3px;
 }
 
 .dropHint span {
@@ -48,22 +52,50 @@
 }
 
 .thumbsWrap {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    align-content: start;
+    max-height: 340px;
+    overflow-y: auto;
+    padding: 2px;
+}
+
+.thumb {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 7px;
+    overflow: hidden;
+    border: 1px solid var(--chrome-border);
+    background: var(--chrome-control);
+}
+
+.thumbImg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .error {
     text-align: center;
-    padding: .5rem;
+    margin: 0;
+    padding: .35rem;
     color: var(--danger);
     font: 600 11px var(--font-body);
 }
 
 .success {
     text-align: center;
-    padding: .5rem;
+    margin: 0;
+    padding: .35rem;
     color: var(--success);
     font: 600 11px var(--font-body);
+}
+
+@media only screen and (max-width: 520px) {
+    .thumbsWrap {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-height: 260px;
+    }
 }

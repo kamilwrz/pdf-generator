@@ -704,8 +704,8 @@ function PdfCanvas() {
         <PlanSelectModal />
         <AiCvPanel />
         <BioCvModal />
+        <DropzoneContainer />
         <Sidebar>
-          <DropzoneContainer />
           <Editor />
         </Sidebar>
         <div className="right-pane">

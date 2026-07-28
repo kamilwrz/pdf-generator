@@ -1,28 +1,20 @@
-import classes from "./DropzoneContainer.module.css";
 import Dropzone from "./Dropzone";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import PanelShell from "../../common/PanelShell/PanelShell";
+import DialogShell from "../../common/DialogShell/DialogShell";
 
 export default function DropzoneContainer() {
-
-    const { isDropzone, showDropzone } = use(PdfContext)
+    const { isDropzone, showDropzone } = use(PdfContext);
 
     return (
-        <PanelShell
+        <DialogShell
             open={isDropzone}
             onClose={showDropzone}
-            className={classes.dropzoneContainer}
-            motionProps={{
-                initial: { opacity: 0, x: -24 },
-                animate: { opacity: 1, x: 0 },
-                exit: { opacity: 0, x: -24 },
-                transition: { type: "spring", damping: 26, stiffness: 320 },
-            }}
+            width={640}
             title="Prześlij obrazy"
-            subtitle="Maks. 12 plików · JPG, PNG"
+            subtitle="Maks. 12 plików · JPG, PNG — miniatury w siatce 4 kolumn"
         >
             <Dropzone />
-        </PanelShell>
+        </DialogShell>
     );
 }

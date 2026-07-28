@@ -21,3 +21,15 @@
 
 7. LOGOWANIE
 - lag po kliknieciu;nie wiem dlaczego, ale czasami proces logowania nie nastepuje od razu
+
+8. BG-IMAGE / BG-RECT
+- klikniecie w bg element powoduje zly UX;trzeba dodac kategorie i "zablokowac" przed tym bg / selection
+- to samo z deko prostokatami, ktore tworza margin
+
+9. IMAGE UPLOAD
+- upload paru images zle wyglada;pozycjowanie diagonalne!
+- modal jest zle polozony i przykrywa sidebar
+
+10. AI CHAT
+- tylko pytania odnosnie CV i taski odnosnie CV maja byc wykonane, reszta ma byc odmowiona ze wzgledu na
+  nie ten scope
