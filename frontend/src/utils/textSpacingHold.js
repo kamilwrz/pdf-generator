@@ -1,5 +1,5 @@
-/** Delay before text/textarea long-press shows spacing distance guides. */
-export const TEXT_SPACING_HOLD_MS = 2000;
+/** Delay before text/textarea long-press shows spacing distance guides (ms). */
+export const TEXT_SPACING_HOLD_MS = 1200;
 
 /**
  * Start (or restart) a long-press timer that reveals spacing guides for a

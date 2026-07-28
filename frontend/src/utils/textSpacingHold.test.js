@@ -8,8 +8,8 @@ import {
 } from "./textSpacingHold.js";
 
 describe("textSpacingHold", () => {
-  it("exports a 2s delay", () => {
-    assert.equal(TEXT_SPACING_HOLD_MS, 2000);
+  it("exports a 1200ms delay", () => {
+    assert.equal(TEXT_SPACING_HOLD_MS, 1200);
   });
 
   it("fires setSpacingHoldId after the delay", () => {
@@ -21,11 +21,11 @@ describe("textSpacingHold", () => {
       timerRef,
       elementId: "t1",
       setSpacingHoldId,
-      delayMs: 2000,
+      delayMs: 1200,
     });
     assert.equal(setSpacingHoldId.mock.callCount(), 0);
 
-    mock.timers.tick(1999);
+    mock.timers.tick(1199);
     assert.equal(setSpacingHoldId.mock.callCount(), 0);
 
     mock.timers.tick(1);
@@ -48,11 +48,11 @@ describe("textSpacingHold", () => {
       timerRef,
       elementId: "t1",
       setSpacingHoldId,
-      delayMs: 2000,
+      delayMs: 1200,
     });
     endTextSpacingHold({ timerRef, elementId: "t1", setSpacingHoldId });
 
-    mock.timers.tick(2000);
+    mock.timers.tick(1200);
     assert.equal(setSpacingHoldId.mock.callCount(), 1); // only the end clear
     assert.equal(holdId, null);
     assert.equal(timerRef.current, null);
@@ -69,10 +69,10 @@ describe("textSpacingHold", () => {
       timerRef,
       elementId: "t1",
       setSpacingHoldId,
-      delayMs: 2000,
+      delayMs: 1200,
     });
     clearTextSpacingHoldTimer(timerRef);
-    mock.timers.tick(2000);
+    mock.timers.tick(1200);
     assert.equal(setSpacingHoldId.mock.callCount(), 0);
 
     mock.timers.reset();
