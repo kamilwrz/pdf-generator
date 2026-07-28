@@ -46,6 +46,124 @@ const ANALYSES = [
     { n: "08", title: "Układ", desc: "wyrównanie i odstępy" },
 ];
 
+// Płótno panel: headline stats strip.
+const CANVAS_STATS = [
+    { num: "1:1", label: "płótno = PDF", stripe: "linear-gradient(90deg,#6C9BE6,#E5A65C)" },
+    { num: "25–300%", label: "zoom bez utraty geometrii", stripe: "#6C9BE6" },
+    { num: "8", label: "typów elementów na stronie", stripe: "#E5A65C" },
+    { num: "0 kroków", label: "do stracenia — autozapis", stripe: "#6FBF8E" },
+];
+
+// Płótno panel: flip cards. Front = the feature; back ("Co dokładnie dostajesz")
+// = the concrete controls you actually get. Click or Enter/Space to flip.
+const CANVAS_CARDS = [
+    {
+        color: "#6C9BE6", tint: "rgba(108,155,230,.14)",
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7BA6EA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z" /><path d="M9 4v16" /></svg>,
+        title: "Tekst i akapity",
+        desc: "Jednoliniowe tytuły i wielowierszowe bloki, które same się przelewają przy zmianie szerokości.",
+        backTitle: "Typografia jak w studiu DTP",
+        bullets: ["Font, rozmiar i kolor tekstu", "Pogrubienie, kursywa, podkreślenie", "Wyrównanie, interlinia, odstępy liter", "Ten sam font w edytorze i w PDF"],
+        note: "Nagłówek sekcji ustawiasz raz — reszta CV trzyma rytm.",
+    },
+    {
+        color: "#E5A65C", tint: "rgba(229,166,92,.14)",
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E5A65C" strokeWidth="1.9"><ellipse cx="12" cy="12" rx="9" ry="5.5" /><rect x="7" y="7" width="10" height="10" /></svg>,
+        title: "Kształty, linie, łączniki",
+        desc: "Prostokąty, koła, elipsy i linie — wypełnienie albo obrys, z pełną kontrolą krawędzi.",
+        backTitle: "Własny system wizualny, nie szablon nr 3",
+        bullets: ["Wypełnienie lub obrys, grubość krawędzi", "Kolor krawędzi i wypełnienia", "Łączniki z opcjonalnymi strzałkami", "Akcenty redakcyjne: osie, ramki, podziały"],
+        note: "Kilka linii potrafi zrobić z CV dokument, który się zapamiętuje.",
+    },
+    {
+        color: "#7FB8C9", tint: "rgba(127,184,201,.14)",
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7FB8C9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>,
+        title: "Obrazy i galeria",
+        desc: "Wgraj zdjęcie i logo raz — używaj ich w każdym projekcie, bez ponownego uploadu.",
+        backTitle: "Zdjęcie dokładnie tam, gdzie chcesz",
+        bullets: ["Galeria obrazów przypisana do konta", "Proporcje zachowane przy skalowaniu", "Dowolna pozycja i warstwa na stronie", "Ten sam plik trafia do eksportu"],
+        note: "Jedno dobre zdjęcie działa w 24 szablonach.",
+    },
+    {
+        color: "#E88A73", tint: "rgba(232,138,115,.14)",
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E88A73" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>,
+        title: "Prowadnice co do piksela",
+        desc: "Pomarańczowe markery pokazują dokładny odstęp między krawędziami — koniec zgadywania.",
+        backTitle: "Układ, którego nie musisz zgadywać",
+        bullets: ["Prowadnice wyrównania podczas przeciągania", "Markery z odstępem w pikselach", "Wyrównanie do strony: lewo / środek / prawo", "Zoom 25–300% do pracy nad detalem"],
+        note: "Rekruter nie wie, czym jest kerning. Widzi tylko, że to porządny dokument.",
+    },
+    {
+        color: "#9C8FD6", tint: "rgba(156,143,214,.14)",
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9C8FD6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>,
+        title: "Pracuj jak projektant",
+        desc: "Zaznaczaj wiele elementów, przesuwaj grupę, duplikuj i blokuj to, co ma zostać na miejscu.",
+        backTitle: "Panujesz nad każdym blokiem",
+        bullets: ["Wielokrotne zaznaczenie Ctrl / Cmd", "Przesuwanie grupy, duplikowanie, usuwanie", "Blokada elementów, których nie ruszasz", "Kolejność warstw (z-index)"],
+        note: "Zmiana układu całej sekcji to jedno przeciągnięcie, nie godzina pracy.",
+    },
+    {
+        color: "#6FBF8E", tint: "rgba(111,191,142,.14)",
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6FBF8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>,
+        title: "Zachowaj rytm pracy",
+        desc: "Cofnij, ponów, autozapis. Wychodzisz w połowie zdania i wracasz do tego samego miejsca.",
+        backTitle: "Nic nie przepada",
+        bullets: ["Cofnij / ponów w ramach sesji", "Autozapis po chwili bez edycji", "Dodawanie, klonowanie i kolejność stron", "Powiadomienie, gdy PDF jest gotowy"],
+        note: "CV powstaje w przerwach — edytor to rozumie.",
+    },
+];
+
+function CanvasFlipCard({ card, flipped, onToggle }) {
+    const handleKeyDown = (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggle();
+        }
+    };
+    return (
+        <div
+            className={classes.flipCard}
+            role="button"
+            tabIndex={0}
+            aria-pressed={flipped}
+            aria-label={`${card.title} — odwróć kartę`}
+            onClick={onToggle}
+            onKeyDown={handleKeyDown}
+        >
+            <div className={`${classes.flipInner} ${flipped ? classes.flipped : ""}`}>
+                <div className={`${classes.flipFace} ${classes.flipFront}`}>
+                    <span className={classes.flipStripe} style={{ background: card.color }} />
+                    <div className={classes.flipBody}>
+                        <span className={classes.flipIcon} style={{ background: card.tint }}>{card.icon}</span>
+                        <h3 className={classes.flipH3}>{card.title}</h3>
+                        <p className={classes.flipDesc}>{card.desc}</p>
+                        <span className={classes.flipHint}>
+                            Odwróć kartę
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E7887" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+                        </span>
+                    </div>
+                </div>
+                <div className={`${classes.flipFace} ${classes.flipBack}`}>
+                    <span className={classes.flipStripe} style={{ background: card.color }} />
+                    <div className={classes.flipBackBody}>
+                        <span className={classes.flipEyebrow} style={{ color: card.color }}>Co dokładnie dostajesz</span>
+                        <h3 className={classes.flipBackH3}>{card.backTitle}</h3>
+                        <div className={classes.flipBullets}>
+                            {card.bullets.map((b) => (
+                                <span className={classes.flipBullet} key={b}>
+                                    <span className={classes.flipDot} style={{ background: card.color }} />
+                                    {b}
+                                </span>
+                            ))}
+                        </div>
+                        <span className={classes.flipNote}>{card.note}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function FeatureCard({ stripe, tint, icon, title, text, span }) {
     return (
         <div className={`${classes.card} ${span ? classes.cardSpan2 : ""}`}>
@@ -84,6 +202,8 @@ function useTypewriter(text, speed) {
 
 export default function Hero() {
     const [panel, setPanel] = useState(0);
+    const [flipped, setFlipped] = useState({});
+    const toggleFlip = (i) => setFlipped((f) => ({ ...f, [i]: !f[i] }));
 
     const typedCount = useTypewriter(HEADING_TEXT, TYPE_SPEED_MS);
     const typingDone = typedCount >= HEADING_TEXT.length;
@@ -172,59 +292,46 @@ export default function Hero() {
                             <div className={classes.panelHead}>
                                 <div className={classes.panelHeadCopy}>
                                     <span className={classes.eyebrowRow} style={{ color: "#7BA6EA" }}>01 — Wizualny edytor na płótnie</span>
-                                    <h2 className={classes.panelTitle}>Pełna przestrzeń twórcza na A4</h2>
-                                    <p className={classes.panelLead}>Pion lub poziom, wiele stron, zoom 25–300%. To, co widzisz na płótnie, trafia do eksportu — bez uproszczeń.</p>
+                                    <h2 className={classes.panelTitle}>Płótno, które robi to, co Word obiecywał</h2>
+                                    <p className={classes.panelLead}>Prawdziwa strona A4 — pion lub poziom, wiele stron, zoom 25–300%. Przeciągasz, wyrównujesz i stylizujesz każdy blok, a eksport wygląda dokładnie tak jak płótno. Odwróć kartę, żeby zobaczyć, co dokładnie dostajesz.</p>
                                 </div>
                                 <div className={classes.pills}>
                                     <span className={classes.pill}>A4 pion i poziom</span>
                                     <span className={classes.pill}>Wiele stron</span>
                                     <span className={classes.pill}>Zoom 25–300%</span>
+                                    <span className={classes.pill}>Widok dwóch stron</span>
                                 </div>
                             </div>
 
-                            <div className={classes.canvasRow}>
-                                <div className={classes.mockCard}>
-                                    <span className={classes.mockStripe} style={{ background: "linear-gradient(90deg,#6C9BE6,#E5A65C)" }} />
-                                    <div className={classes.mockHead}>
-                                        <span className={classes.mockHeadTitle}>Płótno · strona 1 z 2</span>
-                                        <span className={classes.mockHeadMeta}>100%</span>
+                            <div className={classes.canvasStats}>
+                                {CANVAS_STATS.map((stat) => (
+                                    <div className={classes.statCard} key={stat.label}>
+                                        <span className={classes.statStripe} style={{ background: stat.stripe }} />
+                                        <div className={classes.statBody}>
+                                            <div className={classes.statNum}>{stat.num}</div>
+                                            <div className={classes.statLabel}>{stat.label}</div>
+                                        </div>
                                     </div>
-                                    <div className={classes.canvasStage}>
-                                        <img
-                                            className={classes.canvasMockImg}
-                                            src="/hero-canvas-mockup.png"
-                                            alt="Edytor CV na płótnie A4 — zaznaczony tekst z prowadnicami wyrównania"
-                                            loading="lazy"
-                                        />
-                                    </div>
-                                </div>
+                                ))}
+                            </div>
 
-                                <div className={classes.featureGrid}>
-                                    <FeatureCard
-                                        stripe="#6C9BE6" tint="rgba(108,155,230,.14)"
-                                        icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7BA6EA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z" /><path d="M9 4v16" /></svg>}
-                                        title="Tekst i akapity"
-                                        text="Jednoliniowe tytuły i wieloliniowe bloki — font, rozmiar, kolor, pogrubienie, kursywa, podkreślenie, wyrównanie, interlinia i odstępy liter."
+                            <div className={classes.flipGrid}>
+                                {CANVAS_CARDS.map((card, i) => (
+                                    <CanvasFlipCard
+                                        key={card.title}
+                                        card={card}
+                                        flipped={!!flipped[i]}
+                                        onToggle={() => toggleFlip(i)}
                                     />
-                                    <FeatureCard
-                                        stripe="#E5A65C" tint="rgba(229,166,92,.14)"
-                                        icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E5A65C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>}
-                                        title="Kształty, linie, łączniki"
-                                        text="Prostokąty, koła, elipsy i linie — wypełnienie lub obrys, grubość i kolor krawędzi. Połącz elementy opcjonalnymi strzałkami."
-                                    />
-                                    <FeatureCard
-                                        stripe="#E88A73" tint="rgba(232,138,115,.14)"
-                                        icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E88A73" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>}
-                                        title="Pracuj jak projektant"
-                                        text="Zaznaczenie wielu elementów, prowadnice wyrównania i pomarańczowe markery z dokładnym odstępem w pikselach, blokada elementów, warstwy z-index."
-                                    />
-                                    <FeatureCard
-                                        stripe="#6FBF8E" tint="rgba(111,191,142,.14)"
-                                        icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6FBF8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
-                                        title="Zachowaj rytm pracy"
-                                        text="Cofnij i ponów w ramach sesji, autozapis po chwili bez edycji, dodawanie i klonowanie stron, widok dwóch stron, powiadomienie gdy PDF jest gotowy."
-                                    />
-                                </div>
+                                ))}
+                            </div>
+
+                            <div className={classes.canvasFooter}>
+                                <p className={classes.canvasFooterText}>To, co widzisz na płótnie, trafia do eksportu — bez uproszczeń, bez „prawie tak samo”.</p>
+                                <Link to="/register" className={classes.canvasFooterCta}>
+                                    Zacznij projektować
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F1216" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+                                </Link>
                             </div>
                         </div>
                     </section>

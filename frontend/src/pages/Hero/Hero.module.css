@@ -621,6 +621,222 @@
     gap: 18px;
 }
 
+/* ---- Płótno: stat strip ---- */
+.canvasStats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.statCard {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.statStripe {
+    display: block;
+    height: 3px;
+}
+
+.statBody {
+    padding: 18px 20px;
+}
+
+.statNum {
+    font: 800 34px/1 var(--display);
+    color: var(--ink);
+    letter-spacing: -.02em;
+}
+
+.statLabel {
+    font: 700 11px var(--body);
+    color: #6E7887;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-top: 7px;
+}
+
+/* ---- Płótno: flip cards ---- */
+.flipGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+}
+
+.flipCard {
+    perspective: 1500px;
+    height: 318px;
+    cursor: pointer;
+    outline: none;
+    border-radius: 16px;
+}
+
+.flipCard:focus-visible {
+    box-shadow: 0 0 0 2px var(--card), 0 0 0 4px #6C9BE6;
+}
+
+.flipInner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 620ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.flipped {
+    transform: rotateY(180deg);
+}
+
+.flipFace {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.flipFront {
+    background: var(--card);
+    border: 1px solid var(--line);
+}
+
+.flipBack {
+    transform: rotateY(180deg);
+    background: linear-gradient(160deg, var(--card-2), #1a1e24);
+    border: 1px solid #3A4048;
+}
+
+.flipStripe {
+    display: block;
+    height: 3px;
+}
+
+.flipBody {
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+
+.flipIcon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flipH3 {
+    font: 800 18px var(--display);
+    color: var(--ink);
+    margin: 4px 0 0;
+}
+
+.flipDesc {
+    font: 400 13.5px/1.6 var(--body);
+    color: var(--text);
+    margin: 0;
+}
+
+.flipHint {
+    margin-top: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font: 800 10.5px var(--body);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #6E7887;
+}
+
+.flipBackBody {
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+}
+
+.flipEyebrow {
+    font: 800 10.5px var(--body);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
+
+.flipBackH3 {
+    font: 800 17px/1.25 var(--display);
+    color: var(--ink);
+    margin: 0;
+}
+
+.flipBullets {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.flipBullet {
+    display: flex;
+    gap: 9px;
+    font: 500 12.5px/1.5 var(--body);
+    color: #C6CEDA;
+}
+
+.flipDot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    margin-top: 6px;
+    flex: none;
+}
+
+.flipNote {
+    margin-top: auto;
+    font: 600 11.5px/1.5 var(--body);
+    color: var(--text-2);
+}
+
+/* ---- Płótno: closing CTA bar ---- */
+.canvasFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-top: 26px;
+    padding: 20px 24px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+}
+
+.canvasFooterText {
+    font: 600 15px/1.55 var(--body);
+    color: #C6CEDA;
+    margin: 0;
+    max-width: 720px;
+}
+
+.canvasFooterCta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(150deg, #6C9BE6, #4A76BE);
+    color: #0F1216;
+    font: 800 14px var(--body);
+    padding: 12px 20px;
+    border-radius: 10px;
+    text-decoration: none;
+    box-shadow: 0 12px 24px -10px rgba(108, 155, 230, .45);
+}
+
 .canvasRow {
     display: flex;
     flex-wrap: wrap;
@@ -1606,6 +1822,8 @@
         margin-right: auto;
     }
     .planFeatured { transform: none; }
+    .canvasStats { grid-template-columns: repeat(2, 1fr); }
+    .flipGrid { grid-template-columns: repeat(2, 1fr); }
     .templatesGrid { grid-template-columns: repeat(2, 1fr); }
     .testimonialsGrid { grid-template-columns: 1fr; gap: 20px; }
     .finalCta { padding: 64px 24px; min-height: 100vh; }
@@ -1620,6 +1838,8 @@
     .subheading { font-size: 16px; }
     .sectionTitle { font-size: 28px; }
     .panelTitle { font-size: 28px; }
+    .canvasStats { grid-template-columns: 1fr; }
+    .flipGrid { grid-template-columns: 1fr; }
     .templatesGrid { grid-template-columns: 1fr; }
     .footerLink { display: none; }
 }
@@ -1631,4 +1851,5 @@
     .cursor { animation: none; opacity: 0; }
     .primaryCta:hover { animation: none; }
     .subheading, .ctaRow { transition: none; }
+    .flipInner { transition: none; }
 }
