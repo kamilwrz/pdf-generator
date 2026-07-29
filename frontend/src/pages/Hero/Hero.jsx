@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import classes from "./Hero.module.css";
@@ -114,6 +114,81 @@ const CANVAS_CARDS = [
         note: "CV powstaje w przerwach — edytor to rozumie.",
     },
 ];
+
+// Testimonials: bento grid. `span` = how many of the 6 grid columns the card
+// fills (2 or 3); `featured` swaps in the larger gradient card treatment.
+const TESTIMONIALS = [
+    { text: "„Zbudowałam CV w niecałe 20 minut i od razu widziałam, jak wygląda gotowy PDF. Dostałam odpowiedź z trzech firm w tym samym tygodniu.”", name: "Marta K.", role: "Specjalistka ds. marketingu", color: "#6C9BE6", span: 3, featured: true },
+    { text: "„Analiza CV wychwyciła braki, których sam bym nie zauważył — brakujące słowa kluczowe, za długie akapity. Poprawiłem i poczułem różnicę.”", name: "Tomasz W.", role: "Inżynier oprogramowania", color: "#E88A73", span: 3, featured: true },
+    { text: "„Wgrałam stare CV z Worda — AI w minutę wyciągnęło doświadczenie i wykształcenie, resztę tylko dopracowałam w nowym szablonie.”", name: "Katarzyna N.", role: "Kierowniczka projektu", color: "#E5A65C", span: 2, featured: false },
+    { text: "„Sprawdziłem wynik ATS przed wysłaniem zgłoszenia i podniosłem go z 62 do 91 punktów jednym kliknięciem.”", name: "Piotr Z.", role: "Analityk finansowy", color: "#7FB8C9", span: 2, featured: false },
+    { text: "„Kreator krok po kroku poprowadził mnie przez całe CV, a szkic zapisywał się sam — wróciłam do niego trzy dni później.”", name: "Julia S.", role: "Absolwentka studiów", color: "#9C8FD6", span: 2, featured: false },
+    { text: "„W końcu narzędzie, w którym CV wygląda równie dobrze na ekranie i po wydrukowaniu. Szablon Regent zrobił świetne wrażenie na rekrutacji.”", name: "Aleksandra P.", role: "Absolwentka prawa", color: "#6FBF8E", span: 3, featured: false },
+    { text: "„Prowadnice co do piksela sprawiły, że mój układ wygląda, jakby robiła go agencja graficzna, a nie ja sam.”", name: "Michał R.", role: "Projektant UX", color: "#6C9BE6", span: 3, featured: false },
+    { text: "„Wybrałam szablon z kolekcji Banking — pasował dokładnie do mojej branży i wyglądał poważnie od pierwszego wejrzenia.”", name: "Natalia K.", role: "Specjalistka ds. sprzedaży", color: "#E88A73", span: 3, featured: false },
+    { text: "„Zacząłem za darmo, bez karty. Cofnij, ponów i autozapis dały mi spokój — nic nie zniknęło w połowie edycji.”", name: "Dawid M.", role: "Specjalista obsługi klienta", color: "#6FBF8E", span: 3, featured: false },
+];
+
+// Reveals its element once it crosses 15% into the viewport, then stops
+// observing — matches the one-shot IntersectionObserver reveal pattern.
+function useInView(threshold = 0.15) {
+    const ref = useRef(null);
+    const [inView, setInView] = useState(false);
+
+    useEffect(() => {
+        const node = ref.current;
+        if (!node) return undefined;
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setInView(true);
+                    observer.unobserve(node);
+                }
+            },
+            { threshold },
+        );
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, [threshold]);
+
+    return [ref, inView];
+}
+
+function TestimonialCard({ item, index }) {
+    const [ref, inView] = useInView();
+    const quoteSize = item.featured ? 30 : 24;
+    const spanClass = item.span === 2 ? classes.tSpan2 : classes.tSpan3;
+    const cardClass = [
+        classes.testimonialCard,
+        item.featured ? classes.testimonialFeatured : "",
+        spanClass,
+        inView ? classes.testimonialCardVisible : "",
+    ].filter(Boolean).join(" ");
+
+    return (
+        <div ref={ref} className={cardClass} style={{ transitionDelay: `${index * 70}ms` }}>
+            <svg
+                className={classes.testimonialQuote}
+                width={quoteSize}
+                height={quoteSize}
+                viewBox="0 0 24 24"
+                fill={item.color}
+                opacity="0.9"
+                aria-hidden="true"
+            >
+                <path d="M9.5 6C6.5 6 4 8.7 4 12.2c0 3 1.9 5 4.4 5 1.9 0 3.4-1.4 3.4-3.3 0-1.8-1.3-3.1-3-3.1-.3 0-.6 0-.8.1.3-2 2-3.5 4.2-3.7L11.8 6H9.5zm10 0c-3 0-5.5 2.7-5.5 6.2 0 3 1.9 5 4.4 5 1.9 0 3.4-1.4 3.4-3.3 0-1.8-1.3-3.1-3-3.1-.3 0-.6 0-.8.1.3-2 2-3.5 4.2-3.7L21.8 6h-2.3z" />
+            </svg>
+            <p className={item.featured ? classes.testimonialTextFeatured : classes.testimonialText}>{item.text}</p>
+            <div className={classes.testimonialAuthor}>
+                <span className={classes.testimonialAvatar} style={{ background: item.color }} />
+                <div>
+                    <div className={classes.testimonialName}>{item.name}</div>
+                    <div className={classes.testimonialRole}>{item.role}</div>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 function CanvasFlipCard({ card, flipped, onToggle }) {
     const handleKeyDown = (e) => {
@@ -360,6 +435,51 @@ export default function Hero() {
                             <a href="#funkcje" className={classes.secondaryCta}>
                                 Zobacz, jak działa
                             </a>
+                        </div>
+                    </div>
+
+                    {/* Decorative product mockup filling the empty right-hand space */}
+                    <div className={classes.heroVisual} aria-hidden="true">
+                        <div className={classes.window}>
+                            <div className={classes.windowBar}>
+                                <span className={classes.dot} style={{ background: "#E88A73" }} />
+                                <span className={classes.dot} style={{ background: "#E5A65C" }} />
+                                <span className={classes.dot} style={{ background: "#6FBF8E" }} />
+                                <span className={classes.windowFile}>cv-regent.pdf</span>
+                            </div>
+                            <div className={classes.windowBody}>
+                                <div className={classes.windowRail}>
+                                    <div className={classes.railActive} />
+                                    <div className={classes.railItem} />
+                                    <div className={classes.railItem} />
+                                    <div className={classes.railItem} />
+                                </div>
+                                <div className={classes.windowCanvas}>
+                                    <div className={classes.miniPage}>
+                                        <div className={classes.miniBanner} />
+                                        <div className={classes.miniLine} style={{ width: "82%" }} />
+                                        <div className={classes.miniLineSm} style={{ width: "60%" }} />
+                                        <div className={classes.miniBar} style={{ width: "100%" }} />
+                                        <div className={classes.miniBar} style={{ width: "92%" }} />
+                                        <div className={classes.miniBar} style={{ width: "96%" }} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={classes.floatCard}>
+                            <span className={classes.floatIcon}>
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6FBF8E" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                            </span>
+                            <div>
+                                <div className={classes.floatTitle}>PDF gotowy</div>
+                                <div className={classes.floatSub}>248 kB · 2 strony</div>
+                            </div>
+                        </div>
+
+                        <div className={classes.floatBadge}>
+                            <span className={classes.floatBadgeDot} />
+                            <div className={classes.floatBadgeText}>Wynik ATS <span className={classes.floatBadgeNum}>94</span></div>
                         </div>
                     </div>
                 </div>
@@ -686,36 +806,9 @@ export default function Hero() {
                         <h2 className={classes.sectionTitle}>Ludzie, którzy znaleźli pracę z CV STUDIO</h2>
                     </div>
                     <div className={classes.testimonialsGrid}>
-                        <div className={classes.testimonialCard}>
-                            <p className={classes.testimonialText}>„Zbudowałam CV w niecałe 20 minut i od razu widziałam, jak wygląda gotowy PDF. Dostałam odpowiedź z trzech firm w tym samym tygodniu.”</p>
-                            <div className={classes.testimonialAuthor}>
-                                <span className={classes.testimonialAvatar} style={{ background: "#6C9BE6" }} />
-                                <div>
-                                    <div className={classes.testimonialName}>Marta K.</div>
-                                    <div className={classes.testimonialRole}>Specjalistka ds. marketingu</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className={classes.testimonialCard}>
-                            <p className={classes.testimonialText}>„Analiza CV wychwyciła braki, których sam bym nie zauważył — brakujące słowa kluczowe, za długie akapity. Poprawiłem i poczułem różnicę.”</p>
-                            <div className={classes.testimonialAuthor}>
-                                <span className={classes.testimonialAvatar} style={{ background: "#E88A73" }} />
-                                <div>
-                                    <div className={classes.testimonialName}>Tomasz W.</div>
-                                    <div className={classes.testimonialRole}>Inżynier oprogramowania</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className={classes.testimonialCard}>
-                            <p className={classes.testimonialText}>„W końcu narzędzie, w którym CV wygląda równie dobrze na ekranie i po wydrukowaniu. Szablon Regent zrobił świetne wrażenie na rekrutacji.”</p>
-                            <div className={classes.testimonialAuthor}>
-                                <span className={classes.testimonialAvatar} style={{ background: "#6FBF8E" }} />
-                                <div>
-                                    <div className={classes.testimonialName}>Aleksandra P.</div>
-                                    <div className={classes.testimonialRole}>Absolwentka prawa</div>
-                                </div>
-                            </div>
-                        </div>
+                        {TESTIMONIALS.map((item, index) => (
+                            <TestimonialCard key={item.name} item={item} index={index} />
+                        ))}
                     </div>
                 </div>
             </div>
