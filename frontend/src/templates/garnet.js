@@ -34,8 +34,16 @@ export const garnetTemplate = [
 
     tracked(text("KONTAKT", 8, SANS, "#F4DEDE", 24, 299, 3), 1.2),
     block("Kraków\njulia.nowak@email.com\n+48 600 000 000", 24, 321, 136, 42, 8, 12.5, "#FFF8F4", SANS),
-    tracked(text("OBSZARY", 8, SANS, "#F4DEDE", 24, 433, 3), 1.2),
-    block("Brand strategy\nCorporate narrative\nChange communication\nLeadership", 24, 455, 136, 58, 8.3, 13, "#FFF8F4", SANS),
+    tracked(text("OBSZARY", 8, SANS, "#F4DEDE", 24, 380, 3), 1.2),
+    bulleted(block("• Brand strategy\n• Corporate narrative\n• Change communication\n• Leadership", 24, 400, 136, 58, 8.3, 13, "#FFF8F4", SANS)),
+
+    tracked(text("JĘZYKI", 8, SANS, "#F4DEDE", 24, 474, 3), 1.2),
+    bulleted(block("• Polski — ojczysty\n• Angielski — C1\n• Francuski — B2", 24, 494, 136, 42, 8.3, 13, "#FFF8F4", SANS)),
+
+    tracked(text("WYKSZTAŁCENIE", 8, SANS, "#F4DEDE", 24, 559, 3), 1.2),
+    bold(block("Komunikacja i Media — 2011–2016", 24, 579, 136, 14, 8.6, 12, "#FFF8F4", SANS)),
+    block("Uniwersytet Warszawski, Warszawa", 24, 596, 136, 14, 7.9, 11, ROSE, SANS),
+    block("Narracja marki, reputacja, komunikacja zmiany.", 24, 612, 136, 26, 8, 12, "#FFF8F4", SANS),
 
     { ...rect(462, 52, 58, 54, GOLD, 0.8, 3), id: "garnet-frame" },
     { ...ellipse(472, 62, 35, 17, WINE, false, 1, 3), id: "garnet-arc" },
@@ -66,13 +74,6 @@ export const garnetTemplate = [
         "• Doradzała markom w budowaniu narracji i komunikacji interesariuszy.\n• Projektowała materiały dla kadry zarządzającej oraz zespołów.",
         242, 495, 304, 43, 9.1, 13, INK, SANS
     )),
-
-    { ...ellipse(218, 590, 13, 13, WINE, false, 1, 3), id: "garnet-education" },
-    tracked(text("EDUKACJA I KOMPETENCJE", 8.4, SANS, WINE, 242, 590, 3), 1.3),
-    line(242, 608, 304, 1, RULE, 2),
-    bold(text("Komunikacja i Media  /  UW", 10.1, SANS, INK, 242, 627, 3)),
-    text("2011 – 2016", 8.5, SANS, MUTE, 242, 645, 3),
-    block("Brand architecture  ·  Narrative design  ·  Reputation\nChange communication  ·  Executive counsel", 242, 679, 304, 31, 9, 13, INK, SANS),
 
     { ...line(220, 783, 326, 1, RULE, 2), fixedToPage: true },
     { ...circle(220, 796, 6, GOLD, true, 1, 3), fixedToPage: true },
