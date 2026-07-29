@@ -34,8 +34,16 @@ export const mossTemplate = [
 
     tracked(text("KONTAKT", 8, SANS, FOREST, 24, 308, 3), 1.2),
     block("Poznań\naleksandra.wisniewska@email.com\n+48 600 000 000", 24, 329, 136, 42, 8, 12.5, FOREST, SANS),
-    tracked(text("KOMPETENCJE", 8, SANS, FOREST, 24, 438, 3), 1.2),
-    block("Service design\nResearch\nFacilitation\nOperating models", 24, 459, 136, 58, 8.3, 13, FOREST, SANS),
+    tracked(text("KOMPETENCJE", 8, SANS, FOREST, 24, 388, 3), 1.2),
+    bulleted(block("• Service design\n• Research\n• Facilitation\n• Operating models", 24, 408, 136, 58, 8.3, 13, FOREST, SANS)),
+
+    tracked(text("JĘZYKI", 8, SANS, FOREST, 24, 482, 3), 1.2),
+    bulleted(block("• Polski — ojczysty\n• Angielski — C1\n• Hiszpański — B1", 24, 502, 136, 42, 8.3, 13, FOREST, SANS)),
+
+    tracked(text("WYKSZTAŁCENIE", 8, SANS, FOREST, 24, 567, 3), 1.2),
+    bold(block("Projektowanie Usług — 2011–2016", 24, 587, 136, 14, 8.6, 12, FOREST, SANS)),
+    block("SWPS, Poznań", 24, 604, 136, 14, 7.9, 11, MUTE, SANS),
+    block("Badania, service blueprints, facylitacja.", 24, 620, 136, 26, 8, 12, BODY, SANS),
 
     { ...rect(462, 52, 58, 54, GOLD, 0.8, 3), id: "moss-frame" },
     { ...ellipse(472, 62, 35, 17, SAGE, false, 1, 3), id: "moss-leaf" },
@@ -67,12 +75,6 @@ export const mossTemplate = [
         242, 495, 304, 43, 9.1, 13, BODY, SANS
     )),
 
-    { ...ellipse(218, 590, 13, 13, SAGE, false, 1, 3), id: "moss-education" },
-    tracked(text("EDUKACJA I KOMPETENCJE", 8.4, SANS, FOREST, 242, 590, 3), 1.3),
-    line(242, 608, 304, 1, RULE, 2),
-    bold(text("Projektowanie Usług  /  SWPS", 10.1, SANS, FOREST, 242, 627, 3)),
-    text("2011 – 2016", 8.5, SANS, MUTE, 242, 645, 3),
-    block("Research  ·  Service blueprints  ·  Journey mapping\nFacilitation  ·  Systems thinking", 242, 679, 304, 31, 9, 13, BODY, SANS),
 
     { ...line(220, 783, 326, 1, RULE, 2), fixedToPage: true },
     { ...circle(220, 796, 6, GOLD, true, 1, 3), fixedToPage: true },
