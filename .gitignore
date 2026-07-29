@@ -32,6 +32,10 @@ build/
 backend/static/
 backend/uploads/
 
+# Regeneratable intermediate for scripts/render_iconic_mockups.py — dumped
+# fresh from frontend/src/templates/iconic.js, never a source of truth.
+frontend/scripts/iconic-templates.json
+
 # Node / Frontend
 node_modules/
 frontend/node_modules/

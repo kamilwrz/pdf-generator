@@ -240,6 +240,15 @@ Tests:
 - `backend/tests/test_pdf_shapes.py`, lines 67–131 — optical alignment, explicit `alignWithText: false`, and alpha-mask regressions
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — Loom contact geometry
 
+**Regenerating Iconic mockups.** `frontend/public/template-mockups/{nova,ridge,loom,volt}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`) and the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js` changes, regenerate them:
+
+```bash
+node frontend/scripts/dump-iconic-templates.mjs   # dumps the 4 element arrays to frontend/scripts/iconic-templates.json
+python scripts/render_iconic_mockups.py           # renders each theme through ReportLab, rasterizes page 1 with PyMuPDF
+```
+
+The dump script (`frontend/scripts/dump-iconic-templates.mjs`) needs a small Node ESM loader (`frontend/scripts/resolve-js-ext-hook.mjs`, registered via `frontend/scripts/register-hook.mjs`) because `iconic.js` uses Vite-style extensionless imports (`from "../services/api"`) that plain Node cannot resolve; the hook also stubs `import.meta.env` so the module-level `API_BASE_URL` read does not throw outside Vite. The intermediate JSON is git-ignored — it is always regenerated from `iconic.js`, never edited by hand.
+
 ### PDF create / update / autosave / download
 
 Full render on create/update; autosave is elements-only.
@@ -744,6 +753,15 @@ Testy:
 - `frontend/src/utils/textareaReflow.test.js`, linie 83–262 — regresje nagłówka/ikony, szyny Ridge oraz dwukolumnowego Loom
 - `backend/tests/test_pdf_shapes.py`, linie 67–131 — wyrównanie optyczne, jawne `alignWithText: false` oraz maska alfa
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — geometria kontaktu Loom
+
+**Regenerowanie podglądów Iconic.** Pliki `frontend/public/template-mockups/{nova,ridge,loom,volt}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`) oraz w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js` należy je odtworzyć:
+
+```bash
+node frontend/scripts/dump-iconic-templates.mjs   # zrzuca 4 tablice elementów do frontend/scripts/iconic-templates.json
+python scripts/render_iconic_mockups.py           # renderuje każdy motyw przez ReportLab i rasteryzuje stronę 1 w PyMuPDF
+```
+
+Skrypt zrzutu (`frontend/scripts/dump-iconic-templates.mjs`) wymaga niewielkiego hooka ładującego moduły Node ESM (`frontend/scripts/resolve-js-ext-hook.mjs`, rejestrowanego przez `frontend/scripts/register-hook.mjs`), ponieważ `iconic.js` używa importów bez rozszerzenia w stylu Vite (`from "../services/api"`), których zwykły Node nie potrafi rozwiązać; hook podstawia też `import.meta.env`, żeby odczyt `API_BASE_URL` na poziomie modułu nie rzucał wyjątku poza Vite. Pośredni plik JSON jest w `.gitignore` — zawsze generowany na nowo z `iconic.js`, nigdy edytowany ręcznie.
 
 ### PDF create / update / autosave / download
 

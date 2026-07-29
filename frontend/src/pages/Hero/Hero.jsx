@@ -39,6 +39,7 @@ const COLLECTIONS = [
     { name: "Sidebar", color: "#6FBF8E", items: ["Quarry", "Moss", "Garnet", "Harbor"], character: "Nocny system, botanika, art déco, morski klimat." },
     { name: "Banking", color: "#9C8FD6", items: ["Vault", "Clearing", "Herald", "Signal"], character: "Private banking, operacje, wealth, ryzyko i treasury." },
     { name: "Dark", color: "#E88A73", items: ["Obsidian", "Raven", "Graphite", "Onyx"], character: "Panel boczny, pasek górny, minimal, rama dyplomatyczna." },
+    { name: "Iconic", color: "#C45C26", items: ["Nova", "Ridge", "Loom", "Volt"], character: "Ikona przy każdym kontakcie i sekcji, cztery odrębne systemy typograficzne." },
 ];
 
 const ANALYSES = [
@@ -88,7 +89,7 @@ const CANVAS_CARDS = [
         desc: "Wgraj zdjęcie i logo raz — używaj ich w każdym projekcie, bez ponownego uploadu.",
         backTitle: "Zdjęcie dokładnie tam, gdzie chcesz",
         bullets: ["Galeria obrazów przypisana do konta", "Proporcje zachowane przy skalowaniu", "Dowolna pozycja i warstwa na stronie", "Ten sam plik trafia do eksportu"],
-        note: "Jedno dobre zdjęcie działa w 24 szablonach.",
+        note: "Jedno dobre zdjęcie działa w 28 szablonach.",
     },
     {
         color: "#E88A73", tint: "rgba(232,138,115,.14)",
@@ -429,7 +430,7 @@ export default function Hero() {
                             </span>
                         </h1>
                         <p className={`${classes.subheading} ${typingDone ? classes.revealed : ""}`}>
-                            24 szablony branżowe, intuicyjny edytor A4 i AI, które pomoże Ci opisać doświadczenie. Od pustej strony do gotowej aplikacji.
+                            28 szablonów branżowych, intuicyjny edytor A4 i AI, które pomoże Ci opisać doświadczenie. Od pustej strony do gotowej aplikacji.
                         </p>
                         <div className={`${classes.ctaRow} ${typingDone ? classes.revealed : ""}`}>
                             <Link to="/register" className={classes.primaryCta}>
@@ -574,11 +575,11 @@ export default function Hero() {
                             <div className={classes.panelHead}>
                                 <div className={classes.panelHeadCopy}>
                                     <span className={classes.eyebrowRow} style={{ color: "#E5A65C" }}>02 — Biblioteka szablonów</span>
-                                    <h2 className={classes.panelTitle}>24 systemy CV, nie generyczne „CV nr 3”</h2>
+                                    <h2 className={classes.panelTitle}>28 systemów CV, nie generyczne „CV nr 3”</h2>
                                     <p className={classes.panelLead}>Każdy szablon to A4 pion i realna kariera. Wybierz wygląd pod rolę, na którą aplikujesz — i uczyń go swoim.</p>
                                 </div>
                                 <div className={classes.bigStat}>
-                                    <div className={classes.bigStatNum}>24</div>
+                                    <div className={classes.bigStatNum}>28</div>
                                     <div className={classes.bigStatLabel}>gotowe układy</div>
                                 </div>
                             </div>
@@ -837,7 +838,7 @@ export default function Hero() {
                         <p className={classes.planPeriod}>na zawsze · bez karty</p>
                         <ul className={classes.planFeatures}>
                             <li>Edytor A4 i eksport PDF</li>
-                            <li>8 szablonów startowych</li>
+                            <li>9 szablonów startowych</li>
                             <li>1 projekt · 3 eksporty / mies.</li>
                             <li className={classes.planMuted}>Bez AI Assistant</li>
                         </ul>
@@ -854,7 +855,7 @@ export default function Hero() {
                         <p className={classes.planPeriod}>miesięcznie · 279 zł / rok</p>
                         <ul className={classes.planFeatures}>
                             <li>Asystent AI — 150 kredytów / mies.</li>
-                            <li>Wszystkie 24 szablony</li>
+                            <li>Wszystkie 28 szablonów</li>
                             <li>Import z PDF i kreator bio</li>
                             <li>10 projektów · 30 eksportów / mies.</li>
                         </ul>
@@ -870,7 +871,7 @@ export default function Hero() {
                         <p className={classes.planPeriod}>miesięcznie · 469 zł / rok</p>
                         <ul className={classes.planFeatures}>
                             <li>Asystent AI — 300 kredytów / mies.</li>
-                            <li>Wszystkie 24 szablony</li>
+                            <li>Wszystkie 28 szablonów</li>
                             <li>Bez limitu projektów i eksportów</li>
                             <li>Wiele wersji CV pod oferty</li>
                         </ul>
