@@ -17,3 +17,7 @@ Key routing rules:
 - Save progress → invoke /context-save
 - Resume context → invoke /context-restore
 - Author a backlog-ready spec/issue → invoke /spec
+
+## Readme
+
+When you change the app logic or make any changes to the code document the changes in the README.md file

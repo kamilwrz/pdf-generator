@@ -73,6 +73,19 @@ def fold_section_label(value: object) -> str:
     )
 
 
+_GENERIC_SKILLS_LABELS = frozenset({
+    fold_section_label(DEFAULT_LABELS["skills"]),
+    "obszary",
+    "skills",
+})
+
+
+def is_generic_skills_label(title: object) -> bool:
+    """True for template defaults that should yield to a real CV heading."""
+    folded = fold_section_label(title)
+    return bool(folded) and folded in _GENERIC_SKILLS_LABELS
+
+
 def is_skills_like_title(title: object) -> bool:
     """True when a section heading is skills under another user-facing name."""
     folded = fold_section_label(title)
@@ -298,7 +311,11 @@ def _absorb_skills_alias_sections(
 
     merged_skills = _string_list([*skills, *absorbed]) if absorbed else list(skills)
     next_labels = dict(labels)
-    if alias_title and not labels_skills_explicit:
+    # Default extract labels ("UMIEJĘTNOŚCI" / "OBSZARY") must not block the
+    # real CV heading when a skills-like alias section is present.
+    if alias_title and (
+        not labels_skills_explicit or is_generic_skills_label(next_labels.get("skills"))
+    ):
         next_labels["skills"] = alias_title
     return merged_skills, kept, next_labels
 
@@ -332,7 +349,12 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
     )
 
     raw_labels = raw.get("labels") if isinstance(raw.get("labels"), Mapping) else {}
-    labels_skills_explicit = bool(_text(raw_labels.get("skills")))
+    labels_skills_from_payload = _text(raw_labels.get("skills"))
+    # "Explicit" means a non-generic heading (e.g. OBSŁUGA KOMPUTERA), not the
+    # forced extract default UMIEJĘTNOŚCI.
+    labels_skills_explicit = bool(labels_skills_from_payload) and not is_generic_skills_label(
+        labels_skills_from_payload
+    )
     labels = {
         key: _text(raw_labels.get(key)) or default
         for key, default in DEFAULT_LABELS.items()

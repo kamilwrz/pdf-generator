@@ -100,6 +100,42 @@ class CvDataNormalizationTests(unittest.TestCase):
         self.assertEqual(profile["labels"]["skills"], "STACK")
         self.assertEqual(profile["skills"], ["Python", "Docker"])
 
+    def test_default_umiejetnosci_label_yields_to_alias_section_title(self):
+        profile = normalize_cv_data({
+            "name": "Jan Nowak",
+            "skills": ["Excel"],
+            "labels": {"skills": "UMIEJĘTNOŚCI"},
+            "extra_sections": [{
+                "title": "Obsługa komputera",
+                "kind": "other",
+                "placement": "after_skills",
+                "items": ["Word"],
+            }],
+        })
+        self.assertEqual(profile["labels"]["skills"], "OBSŁUGA KOMPUTERA")
+        self.assertEqual(profile["skills"], ["Excel", "Word"])
+
+    def test_extract_style_skills_label_reaches_obsidian_sidebar(self):
+        profile = normalize_cv_data({
+            "name": "Anna Rojek",
+            "skills": ["biegła znajomość pakietu Excel, PowerPoint"],
+            "labels": {"skills": "OBSŁUGA KOMPUTERA"},
+            "extra_sections": [{
+                "title": "JĘZYKI",
+                "kind": "languages",
+                "items": ["angielski — dobry"],
+            }],
+        })
+        self.assertEqual(profile["labels"]["skills"], "OBSŁUGA KOMPUTERA")
+        elements = generate_resume("obsidian", profile)
+        sidebar_titles = {
+            element["content"]
+            for element in elements
+            if element["category"] == "text" and element["left"] == 24
+        }
+        self.assertIn("OBSŁUGA KOMPUTERA", sidebar_titles)
+        self.assertNotIn("UMIEJĘTNOŚCI", sidebar_titles)
+
     def test_legacy_extraction_derives_editable_languages_and_custom_sections(self):
         profile = normalize_cv_data({
             "name": "Jan Nowak",
