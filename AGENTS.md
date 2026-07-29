@@ -624,9 +624,864 @@ Before finishing any task that changes the repository, confirm that:
 Do not state that documentation has been updated unless the actual `README.md` file has been modified.
 
 
-## Comments
+## Code Comments and Inline Documentation
 
-- always comment the code in a very detailed way
-- provide the comments in english
+All code comments and inline documentation must be written in clear, professional English.
+
+Comments are part of the maintainability requirements of the project. Whenever code is created or modified, review the surrounding comments and update them so that they accurately describe the current implementation.
+
+Do not leave outdated, misleading, speculative, or incomplete comments in the codebase.
+
+---
+
+### 1. General commenting principles
+
+Write comments that explain:
+
+* why the code exists;
+* why a particular implementation was chosen;
+* how the logic works at a conceptual level;
+* what assumptions the code relies on;
+* which invariants must remain true;
+* which edge cases are handled;
+* which limitations are intentional;
+* what side effects occur;
+* how the code interacts with other parts of the system;
+* what could break if the implementation is changed incorrectly.
+
+Comments should provide information that cannot be understood immediately from the code alone.
+
+Prefer comments that explain intent and reasoning over comments that merely repeat syntax.
+
+Good example:
+
+```ts
+// Preserve the original page order because the PDF renderer uses array position
+// as the final document order. Sorting this collection here would change the
+// exported file even though the editor preview would still appear correct.
+const orderedPages = document.pages;
+```
+
+Poor example:
+
+```ts
+// Get the pages.
+const orderedPages = document.pages;
+```
+
+---
+
+### 2. Do not comment obvious syntax
+
+Do not add comments that simply translate code into English.
+
+Avoid comments such as:
+
+```ts
+// Increment the counter.
+counter++;
+
+// Set loading to true.
+setLoading(true);
+
+// Return the user.
+return user;
+```
+
+Such comments add noise without improving understanding.
+
+Instead, comment the reason or consequence:
+
+```ts
+// Keep the loading state active until both the document and its referenced
+// assets are available. Rendering earlier can produce an incomplete PDF.
+setLoading(true);
+```
+
+Detailed comments are required for complex or non-obvious logic, but obvious statements should remain self-explanatory through good naming and small functions.
+
+---
+
+### 3. Comment every non-trivial code path
+
+Add detailed comments for code involving:
+
+* business rules;
+* data transformations;
+* validation logic;
+* permission checks;
+* authentication and authorisation;
+* state synchronisation;
+* asynchronous workflows;
+* retries and backoff;
+* caching;
+* concurrency;
+* race-condition prevention;
+* database transactions;
+* external API integration;
+* file generation;
+* PDF rendering;
+* AI or model interactions;
+* parsing;
+* serialization;
+* migration logic;
+* fallback behaviour;
+* performance optimisations;
+* browser-specific workarounds;
+* security-sensitive operations;
+* complex regular expressions;
+* mathematical or financial calculations;
+* recursive algorithms;
+* unusual framework behaviour.
+
+For multi-step logic, describe the steps before the implementation.
+
+Example:
+
+```ts
+// The export process is intentionally divided into three stages:
+//
+// 1. Clone the current editor state so export-specific transformations do not
+//    mutate the state displayed to the user.
+// 2. Resolve dynamic assets such as profile images and custom fonts.
+// 3. Pass the fully resolved document to the renderer.
+//
+// Skipping the asset-resolution stage can result in valid PDFs with missing
+// images because the renderer does not wait for remote resources.
+```
+
+---
+
+### 4. Explain business rules precisely
+
+Whenever code implements a business rule, document the rule in plain English.
+
+The comment should explain:
+
+* what the rule is;
+* why it exists;
+* where it comes from;
+* what happens when the rule is not satisfied;
+* whether the behaviour is required by product, regulation, contract, or technical constraints.
+
+Example:
+
+```ts
+// A CV can be exported only when at least one section contains user-provided
+// content. This prevents users from consuming an export operation for a blank
+// template and matches the validation performed in the editor UI.
+```
+
+Do not use vague comments such as:
+
+```ts
+// Apply business logic.
+```
+
+---
+
+### 5. Document assumptions and invariants
+
+Explicitly document important assumptions that the implementation depends on.
+
+Examples include:
+
+* collection order is significant;
+* an identifier is globally unique;
+* a value is already normalised;
+* a function must be called only after authentication;
+* a database transaction must remain open;
+* input has already passed schema validation;
+* a third-party API returns values in a specific unit or timezone.
+
+Example:
+
+```ts
+// At this point, `templateId` has already been validated against the template
+// registry by `resolveTemplate`. Do not accept arbitrary file paths here,
+// because this value is later used to locate a server-side template file.
+```
+
+When appropriate, enforce the invariant in code instead of relying only on a comment.
+
+---
+
+### 6. Document edge cases and failure modes
+
+Explain non-obvious edge cases close to the relevant code.
+
+Include information about:
+
+* empty input;
+* partial data;
+* missing relations;
+* invalid values;
+* unsupported formats;
+* network failures;
+* timeouts;
+* duplicate requests;
+* stale state;
+* timezone differences;
+* encoding problems;
+* large input sizes;
+* third-party service limitations;
+* browser inconsistencies.
+
+Example:
+
+```ts
+// Some imported documents contain sections without stable identifiers.
+// Generate an identifier only when one is missing; replacing existing IDs
+// would break references used by the editor history and drag-and-drop state.
+```
+
+---
+
+### 7. Document side effects
+
+Comments must identify important side effects that are not obvious from the function name.
+
+Examples include:
+
+* database writes;
+* file-system changes;
+* network requests;
+* analytics events;
+* cache invalidation;
+* state mutation;
+* navigation;
+* logging;
+* email delivery;
+* background job creation.
+
+Example:
+
+```ts
+// Saving the document also invalidates the user's document-list cache.
+// Callers should not perform a second invalidation after this function returns.
+await documentRepository.save(document);
+```
+
+---
+
+### 8. Functions and methods
+
+Every non-trivial exported function, public method, service function, hook, controller, utility, and API handler should have documentation explaining:
+
+* its purpose;
+* parameters;
+* return value;
+* important side effects;
+* thrown errors or rejected conditions;
+* assumptions;
+* relevant usage constraints.
+
+Use the documentation format appropriate for the language, such as JSDoc, TSDoc, docstrings, JavaDoc, Rustdoc, or XML documentation comments.
+
+Example:
+
+```ts
+/**
+ * Builds a renderer-ready CV document from the current editor state.
+ *
+ * The function creates an isolated copy of the document, resolves referenced
+ * assets, normalises page dimensions, and removes editor-only metadata.
+ * It does not modify the original editor state.
+ *
+ * @param document - The validated document currently loaded in the editor.
+ * @param assetResolver - Service used to resolve image and font references.
+ * @returns A document that can be passed directly to the PDF renderer.
+ *
+ * @throws {AssetResolutionError}
+ * Thrown when a required image or font cannot be resolved.
+ */
+export async function prepareDocumentForExport(
+  document: CvDocument,
+  assetResolver: AssetResolver
+): Promise<RenderableDocument> {
+  // ...
+}
+```
+
+Do not document trivial private helpers when their name, types, and implementation are already fully self-explanatory.
+
+---
+
+### 9. Classes and components
+
+Document every non-trivial class, service, module, and reusable UI component.
+
+The documentation should explain:
+
+* its responsibility;
+* what it owns;
+* what it must not own;
+* its dependencies;
+* lifecycle considerations;
+* important state;
+* public interaction points;
+* architectural role.
+
+Example:
+
+```ts
+/**
+ * Coordinates PDF export from the editor.
+ *
+ * This service is responsible for preparing document data, resolving assets,
+ * invoking the renderer, and returning the generated file. It does not manage
+ * editor state or persist documents.
+ */
+export class PdfExportService {
+  // ...
+}
+```
+
+For UI components, document behaviour that is not apparent from the component name:
+
+```tsx
+/**
+ * Displays the live A4 preview of the current CV.
+ *
+ * The component scales the document visually but preserves physical A4
+ * proportions. The scaling affects only the preview; exported dimensions are
+ * calculated separately by the PDF renderer.
+ */
+export function DocumentPreview() {
+  // ...
+}
+```
+
+---
+
+### 10. Hooks and reactive logic
+
+For hooks, effects, subscriptions, observers, and reactive computations, explain:
+
+* what triggers the logic;
+* why each dependency is required;
+* why a dependency is intentionally excluded;
+* how cleanup works;
+* which stale-state or race-condition risks are handled.
+
+Example:
+
+```ts
+useEffect(() => {
+  // Rebuild the preview only when the serialised document content changes.
+  // UI-only state such as the selected element is intentionally excluded
+  // because it does not affect the rendered PDF output.
+  rebuildPreview(document);
+}, [document]);
+```
+
+Never silence linting rules without explaining the reason.
+
+Example:
+
+```ts
+// `renderer` is created once by the provider and is guaranteed to remain
+// referentially stable. Including it here would not change behaviour, but the
+// lint rule cannot infer the provider-level guarantee.
+// eslint-disable-next-line react-hooks/exhaustive-deps
+```
+
+Use lint suppressions only when the behaviour is correct and verified.
+
+---
+
+### 11. Database code
+
+Database-related comments should explain:
+
+* transaction boundaries;
+* locking behaviour;
+* consistency requirements;
+* relationship assumptions;
+* query-performance decisions;
+* index dependencies;
+* cascade behaviour;
+* migration intent;
+* data backfills;
+* compatibility constraints.
+
+Example:
+
+```ts
+// Keep the document update and revision insert in the same transaction.
+// A revision without the corresponding document state would make restore
+// operations inconsistent.
+await database.transaction(async (transaction) => {
+  // ...
+});
+```
+
+For migrations, explain both the forward change and any important rollback limitation.
+
+```ts
+/**
+ * Adds a normalised email column and backfills existing records.
+ *
+ * The migration preserves the original email value for display while using
+ * the normalised column for case-insensitive uniqueness checks.
+ *
+ * Rollback removes the new column but cannot restore records deleted manually
+ * after duplicate accounts were identified.
+ */
+```
+
+---
+
+### 12. Security-sensitive comments
+
+Security-related comments must be precise and must not create a false sense of safety.
+
+Explain:
+
+* the threat being addressed;
+* where validation occurs;
+* which inputs are trusted;
+* which inputs are untrusted;
+* why a sanitisation or escaping step is necessary;
+* why a permission check must occur at a specific layer.
+
+Example:
+
+```ts
+// Do not rely on the client-provided owner ID. The authenticated user ID is
+// taken from the server-side session to prevent users from creating documents
+// under another account.
+const ownerId = session.user.id;
+```
+
+Do not write unsupported comments such as:
+
+```ts
+// This is secure.
+```
+
+Describe the actual control instead.
+
+---
+
+### 13. External services and APIs
+
+When integrating with external services, document:
+
+* the service responsibility;
+* request and response assumptions;
+* timeout behaviour;
+* retry policy;
+* rate-limit handling;
+* idempotency;
+* authentication method;
+* expected error formats;
+* fallback behaviour.
+
+Example:
+
+```ts
+// The provider may return HTTP 200 with an error object in the response body.
+// Validate the payload before reading `result`, even when the transport-level
+// request succeeds.
+```
+
+Include links to official API documentation in the README rather than placing long URLs repeatedly inside source files.
+
+---
+
+### 14. Workarounds and unusual implementations
+
+Every workaround, compatibility fix, deliberate duplication, or unusual implementation must include a comment explaining:
+
+* the original problem;
+* why the obvious solution was not used;
+* the scope of the workaround;
+* when it can be removed;
+* a related issue, ticket, documentation page, or upstream bug when available.
+
+Use the following format when appropriate:
+
+```ts
+// WORKAROUND:
+// Chromium rounds transformed element dimensions differently during printing.
+// Apply the scale to the inner preview node instead of the page container to
+// keep exported A4 dimensions stable.
+//
+// Remove this workaround after the rendering engine no longer depends on
+// browser print layout. See: issue reference or upstream documentation.
+```
+
+Do not leave unexplained hacks.
+
+---
+
+### 15. TODO, FIXME, HACK, and NOTE comments
+
+Use structured comment labels consistently:
+
+* `TODO:` for clearly defined future work;
+* `FIXME:` for known incorrect behaviour;
+* `HACK:` for a temporary non-standard solution;
+* `NOTE:` for important contextual information;
+* `SECURITY:` for security-critical behaviour;
+* `PERFORMANCE:` for non-obvious performance decisions;
+* `COMPATIBILITY:` for environment or browser-specific logic.
+
+Every `TODO`, `FIXME`, or `HACK` must explain:
+
+* what must be changed;
+* why it has not been changed yet;
+* the expected correct behaviour;
+* relevant constraints;
+* an issue or ticket reference when available.
+
+Good example:
+
+```ts
+// TODO(CV-142):
+// Replace the in-memory export queue with the persistent job queue after the
+// worker service is deployed. The current implementation loses queued exports
+// when the server restarts.
+```
+
+Poor example:
+
+```ts
+// TODO: fix later
+```
+
+Do not add speculative TODO comments without a concrete action.
+
+---
+
+### 16. Comment complex conditions
+
+When a condition contains several business rules, extract it into a named variable or function and explain the rule.
+
+Preferred:
+
+```ts
+const canExportWithoutWatermark =
+  user.hasActiveSubscription && document.isOwnedBy(user.id);
+
+// Paid exports are available only for documents owned by the authenticated
+// user. Shared documents remain watermarked even for subscribed users.
+if (canExportWithoutWatermark) {
+  // ...
+}
+```
+
+Avoid long unexplained conditions:
+
+```ts
+if (user.plan === "pro" && user.id === document.userId && !document.shared) {
+  // ...
+}
+```
+
+---
+
+### 17. Comment units, formats, and conventions
+
+Whenever a value could be misinterpreted, document its unit or format.
+
+Examples:
+
+```ts
+// Duration in milliseconds.
+const exportTimeoutMs = 30_000;
+
+// Physical page width in millimetres.
+const pageWidthMm = 210;
+
+// ISO 8601 timestamp in UTC.
+const generatedAt = new Date().toISOString();
+```
+
+Prefer encoding units in variable names where practical.
+
+Document:
+
+* currencies;
+* timezones;
+* date formats;
+* coordinate systems;
+* measurement units;
+* character encodings;
+* page dimensions;
+* percentages;
+* decimal precision.
+
+---
+
+### 18. Regular expressions
+
+Every non-trivial regular expression must be documented.
+
+Explain:
+
+* what it accepts;
+* what it rejects;
+* important edge cases;
+* whether it is intended for validation or extraction.
+
+Example:
+
+```ts
+// Matches template variables in the form `{{ variableName }}`.
+// Variable names may contain letters, digits, underscores, and dots.
+// The expression is used for extraction only and is not a security boundary.
+const templateVariablePattern =
+  /\{\{\s*([A-Za-z_][A-Za-z0-9_.]*)\s*\}\}/g;
+```
+
+Prefer named helper functions over embedding complex regular expressions directly inside business logic.
+
+---
+
+### 19. Algorithm and performance documentation
+
+For non-trivial algorithms or performance-sensitive code, explain:
+
+* the algorithm;
+* its complexity where relevant;
+* why it was selected;
+* expected input size;
+* memory considerations;
+* trade-offs;
+* optimisation assumptions.
+
+Example:
+
+```ts
+// Build the lookup table once to avoid scanning all templates for every page.
+// This changes template resolution from O(p × t) to O(p + t), where `p` is the
+// number of pages and `t` is the number of registered templates.
+const templatesById = new Map(
+  templates.map((template) => [template.id, template])
+);
+```
+
+Do not claim an optimisation without evidence or a clear reason.
+
+---
+
+### 20. Tests
+
+Test comments should explain:
+
+* the behaviour being verified;
+* why the case is important;
+* what regression it prevents;
+* why unusual fixtures or mocks are needed.
+
+Avoid comments that merely repeat the test name.
+
+Good example:
+
+```ts
+// Simulate two export requests resolving out of order. The second request must
+// remain visible because it represents the most recent editor state.
+```
+
+Tests should remain readable through descriptive names and clear arrangement. Comments should supplement, not replace, good test structure.
+
+---
+
+### 21. Examples in comments
+
+Examples may be included when they clarify:
+
+* input and output formats;
+* transformation rules;
+* ordering;
+* fallback behaviour;
+* edge cases;
+* data relationships.
+
+Example:
+
+```ts
+// Example:
+// Input:  "Senior  AML   Analyst"
+// Output: "Senior AML Analyst"
+//
+// Internal whitespace is collapsed, but leading punctuation is preserved
+// because job titles may intentionally begin with symbols.
+```
+
+Keep examples short and synchronised with the implementation.
+
+---
+
+### 22. Keep comments close to the code they explain
+
+Place comments immediately above the relevant statement, block, function, or declaration.
+
+Avoid comments that describe code located far away unless they are module-level or architectural comments.
+
+When code is moved, review whether its comments must move with it.
+
+When code is deleted, remove comments that no longer apply.
+
+---
+
+### 23. Keep comments accurate
+
+Whenever implementation changes, update all related comments in the same task.
+
+Before completing a change, verify that:
+
+* function documentation matches the current signature;
+* described side effects still occur;
+* error documentation is accurate;
+* examples still produce the documented result;
+* file and symbol references still exist;
+* TODO comments are still relevant;
+* comments do not describe removed behaviour;
+* comments do not contradict tests or README documentation.
+
+An inaccurate comment is worse than no comment because it can cause incorrect maintenance decisions.
+
+---
+
+### 24. Language and style requirements
+
+All comments must:
+
+* be written in English;
+* use complete and grammatically correct sentences;
+* use professional, technically precise language;
+* avoid slang;
+* avoid sarcasm;
+* avoid blaming previous developers;
+* avoid emotional or subjective language;
+* use consistent terminology;
+* use the same names as the code and README;
+* explain acronyms when they first appear in a file or module.
+
+Prefer:
+
+```ts
+// Retry only transport-level failures. Validation errors are deterministic and
+// must be returned to the caller immediately.
+```
+
+Avoid:
+
+```ts
+// The API is weird, so try again when it explodes.
+```
+
+---
+
+### 25. Module-level documentation
+
+Important modules should begin with a short overview explaining:
+
+* the module's responsibility;
+* its main exports;
+* its dependencies;
+* how it fits into the architecture;
+* any important constraints.
+
+Example:
+
+```ts
+/**
+ * PDF export module.
+ *
+ * Converts validated CV documents into renderer-ready data and delegates final
+ * file generation to the configured PDF provider. This module does not read
+ * editor UI state directly; callers must provide a complete document snapshot.
+ */
+```
+
+Do not add large generic headers to every trivial file. Use module-level documentation when it provides meaningful architectural context.
+
+---
+
+### 26. Public types and interfaces
+
+Document public types and interfaces when field meaning is not fully obvious.
+
+Explain:
+
+* field purpose;
+* allowed values;
+* units;
+* optionality;
+* null behaviour;
+* relationships between fields;
+* compatibility requirements.
+
+Example:
+
+```ts
+/**
+ * Describes the physical page configuration used during PDF generation.
+ */
+export interface PageDimensions {
+  /** Page width in millimetres. */
+  widthMm: number;
+
+  /** Page height in millimetres. */
+  heightMm: number;
+
+  /**
+   * Additional printable margin in millimetres.
+   * This value is applied inside the page boundary.
+   */
+  marginMm: number;
+}
+```
+
+Do not document obvious properties with meaningless descriptions such as:
+
+```ts
+/** The width. */
+width: number;
+```
+
+---
+
+### 27. Generated code and third-party code
+
+Do not manually add or modify comments inside generated files unless the generation process explicitly supports it.
+
+Clearly identify generated files where appropriate:
+
+```ts
+// This file is generated. Do not edit it manually.
+// Run `npm run generate:types` to regenerate it.
+```
+
+Do not rewrite comments in vendored or third-party code unless the project owns and maintains that copy.
+
+---
+
+### 28. Comment review checklist
+
+Before completing any task that changes code, verify the following:
+
+1. New non-trivial logic has explanatory comments.
+2. Exported functions and public APIs have appropriate documentation.
+3. Business rules are documented.
+4. Assumptions and invariants are documented.
+5. Edge cases and failure modes are explained.
+6. Security-sensitive behaviour is documented precisely.
+7. Workarounds include their reason and removal condition.
+8. Complex regular expressions are explained.
+9. Units and formats are unambiguous.
+10. TODO and FIXME comments are actionable.
+11. Existing comments affected by the change have been updated.
+12. No comment merely repeats obvious syntax.
+13. All comments are written in professional English.
+14. Comments match the current implementation.
+15. README documentation remains consistent with the source code.
+
+A code change is not complete until its comments and related documentation accurately describe the final implementation.
+
 
 

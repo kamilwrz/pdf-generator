@@ -3,9 +3,14 @@ Dynamic CV layout engine.
 
 The AI (GPT-4o) extracts structured data from an uploaded PDF.
 This module generates the full canvas-element array from that data,
-using the visual style of the chosen template.  The number of
+using the visual style of the chosen template. The number of
 experience / education blocks matches the CV exactly — no slots, no
 truncation, multi-page when content overflows.
+
+Theme families share a flow helper (`_gen_banking_theme`, `_gen_it_theme`,
+`_gen_classic_theme`, `_gen_sidebar_theme`); thin `_gen_<id>` wrappers pick
+palette/geometry. Vertical rhythm constants (`SPACE_*`) keep section/record
+spacing consistent across families. Page chrome uses `fixedToPage=True`.
 """
 
 from __future__ import annotations
@@ -2725,6 +2730,7 @@ def _gen_onyx(cv: dict) -> list[dict]:
 # ── public API ───────────────────────────────────────────────────────────────
 
 _GENERATORS = {
+    # Must stay in sync with the frontend template registry (24 templates).
     "ledger":    _gen_ledger,
     "nimbus":    _gen_nimbus,
     "cinder":    _gen_cinder,
@@ -2753,10 +2759,11 @@ _GENERATORS = {
 
 
 def generate_resume(template_id: str, cv_data: dict) -> list[dict]:
-    """
-    Return the complete list of canvas elements for the given template
-    populated with the candidate's data.  One experience block per job,
-    page overflow handled automatically.
+    """Return a full canvas element list for `template_id` filled with `cv_data`.
+
+    Layout is deterministic Python (not LLM placement). One experience/education
+    block is emitted per record; page overflow is handled by each theme's Builder.
+    Raises ValueError for unknown template ids.
     """
     fn = _GENERATORS.get(template_id)
     if fn is None:

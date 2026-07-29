@@ -1,3 +1,14 @@
+"""
+Image upload, listing, and deletion for canvas assets.
+
+Files are stored either under a per-user local directory or in S3 when
+`USE_S3` is enabled. Database rows always record the resulting `file_path`
+so PDF elements can reference images by `img_id`.
+
+Deletion is ownership-checked (IDOR guard) and blocked while any PDF element
+still references the image, so exports cannot lose their bitmap mid-document.
+"""
+
 from fastapi import APIRouter, Depends, UploadFile, HTTPException, Body
 from sqlalchemy.orm import Session
 from starlette import status
@@ -18,52 +29,46 @@ router = APIRouter(
 )
 
 
-
 @router.post("/upload_image")
 async def create_upload_image(
     file: UploadFile,
     payload: dict = Depends(verify_token),
-    db:Session = Depends(get_db)):
+    db: Session = Depends(get_db),
+):
+    """Persist an uploaded image for the authenticated user.
 
-    #username from JWT Token
+    Side effects: writes bytes to S3 or the local uploads directory, then
+    inserts an `images` row. Filename collisions overwrite the object at the
+    same key/path; the DB still gets a new row unless callers reuse ids.
+    """
     username = payload.get("sub")
-    #this user row from table users
     db_user = get_user_by_username(db, username=username)
 
-    #AWS request, with helper function from s3_storage
     if USE_S3:
-        #CREATE A KEY (LIKE A PATH FOR S3_STORAGE)
         key = f"uploads/{username}/{file.filename}"
-        #READ THE FILE
         data = await file.read()
-        #RETURN THE PATH / URL IN THE S3_STORAGE FOR UPLOADING TO THE DATABASE
         file_path = s3_storage.upload_bytes(
             key, data, content_type=file.content_type or "application/octet-stream"
         )
-    
     else:
-        #UPLOAD TO DIRECOTY WITH UNIQUE USERNAME
         user_upload_dir = IMAGES_UPLOAD_DIR / username
-        #mkdir if not exist
         user_upload_dir.mkdir(parents=True, exist_ok=True)
-        #the Path
         file_path_str = str(user_upload_dir / file.filename)
-        #read and write (create) the file
         data = await file.read()
-        with open(file_path, "wb") as f:
+        with open(file_path_str, "wb") as f:
             f.write(data)
         file_path = file_path_str
-    #insert record to DB
+
     create_image(db=db, image=file, owner_id=db_user.id, file_path=file_path)
     return {"message": "Obraz został pomyślnie przesłany."}
-
 
 
 @router.get("/fetch_images", status_code=status.HTTP_200_OK)
 async def fetch_user_images(
     payload: dict = Depends(verify_token),
-    db:Session = Depends(get_db)
-    ):
+    db: Session = Depends(get_db),
+):
+    """List images owned by the caller, or 404 when the library is empty."""
     username = payload.get("sub")
     db_user = get_user_by_username(db, username=username)
     images = request_images_by_user_id(db, db_user.id)
@@ -75,12 +80,19 @@ async def fetch_user_images(
         )
     return images
 
+
 @router.delete("/delete_image", status_code=status.HTTP_202_ACCEPTED)
 async def delete_user_image(
     payload: dict = Depends(verify_token),
-    db:Session = Depends(get_db),
-    img_id = Body()):
+    db: Session = Depends(get_db),
+    img_id=Body(),
+):
+    """Delete an owned image when no PDF element still references it.
 
+    Returns a Polish guidance message (without deleting) when the image is
+    still used by a document. Storage cleanup best-effort ignores missing
+    files so stale DB rows can still be removed.
+    """
     image = request_image_by_id(db, img_id)
     if not image:
         raise HTTPException(status_code=404, detail="Nie znaleziono obrazu.")
@@ -88,13 +100,16 @@ async def delete_user_image(
     db_user = get_user_by_username(db, username=payload.get("sub"))
     if db_user is None or image.owner_id != db_user.id:
         raise HTTPException(status_code=403, detail="Ten obraz nie należy do Ciebie.")
-    pdf_element = db.query(PdfElements).filter(PdfElements.img_id==img_id).first()
+    pdf_element = db.query(PdfElements).filter(PdfElements.img_id == img_id).first()
     if pdf_element is not None:
         pdf_row = db.query(Pdf).filter(Pdf.id == pdf_element.pdf_id).first()
         return {
-            "message": f"Obraz jest używany w utworzonym pliku PDF. Aby usunąć obraz, najpierw usuń plik PDF „{pdf_row.title}” (utworzony: {pdf_row.created_at})."
+            "message": (
+                f"Obraz jest używany w utworzonym pliku PDF. Aby usunąć obraz, najpierw "
+                f"usuń plik PDF „{pdf_row.title}” (utworzony: {pdf_row.created_at})."
+            )
         }
-    db.query(Image).filter(Image.id==img_id).delete()
+    db.query(Image).filter(Image.id == img_id).delete()
     db.commit()
     if USE_S3:
         key = s3_storage.key_from_file_path(image.file_path)
@@ -102,12 +117,11 @@ async def delete_user_image(
             try:
                 s3_storage.delete_object(key)
             except Exception:
+                # DB row is already gone; orphaned S3 objects are cleaned operationally.
                 pass
     else:
-        try: 
+        try:
             os.remove(image.file_path)
         except FileNotFoundError:
             pass
     return {"deleted_image": img_id}
-
-

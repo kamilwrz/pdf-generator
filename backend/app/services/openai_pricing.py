@@ -23,6 +23,7 @@ def estimate_cost_usd(
     prompt_tokens: int,
     completion_tokens: int,
 ) -> float:
+    """Estimate USD cost from token counts using the local price sheet."""
     rates = _PRICE_PER_1M.get(model)
     if rates is None:
         # Unknown model: treat as gpt-5.4-mini so the UI still shows a number.

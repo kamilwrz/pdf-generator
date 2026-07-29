@@ -1,3 +1,12 @@
+"""
+Plan catalog and pre-Stripe plan activation.
+
+Until Checkout is wired, paid plans can be activated instantly when
+`ALLOW_UNPAID_PLAN_SELECTION` is true. That flag is read at import time, so
+tests must patch this module's binding rather than changing the env var after
+import.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -20,6 +29,8 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 
 class SelectPlanRequest(BaseModel):
+    """Requested plan slug: free | standard | premium (see SELECTABLE_PLANS)."""
+
     plan_slug: str
 
 

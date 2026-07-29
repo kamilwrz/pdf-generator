@@ -4,6 +4,13 @@ AI Assistant service — powers the floating AI chat panel.
 Each action receives the current canvas elements, builds a focused prompt,
 calls GPT, and returns a structured response the frontend can render
 (message text, rating, tips, element-level correction patches).
+
+Safety invariants:
+- Style/content corrections may only patch `_ALLOWED_FIELDS` (never left/top/
+  width/height/page). Positional edits go through layout_analysis review cards.
+- Template chrome (`fixedToPage` / `locked`) must not be rewritten by design
+  rating or destructive AI operations.
+- Provider failures raise `AIServiceError` for the app-level handler.
 """
 import json
 import os
@@ -255,6 +262,7 @@ def _safe_result(raw: dict, allowed_fields: set = _ALLOWED_FIELDS) -> dict:
 # ── action handlers ────────────────────────────────────────────────────────
 
 def _rate_cv(text: str, elements: list[dict]) -> dict:
+    """Overall CV quality rating (content-focused) with tips and optional patches."""
     structured = _extract_structured(elements)
     element_count = len(structured)
 
@@ -321,6 +329,7 @@ Zwróć JSON (uwzględnij wyniki cząstkowe w wskazówkach):
 
 
 def _rate_design(elements: list[dict]) -> dict:
+    """Typography/design rating that respects built-in template font systems."""
     typo = json.dumps(_extract_typography(elements), ensure_ascii=False)
     protected_ids = _protected_typography_ids(elements)
 
@@ -394,6 +403,7 @@ Zwróć JSON:
 
 
 def _rate_position(text: str, job_description: str) -> dict:
+    """Score CV fit against a job description, optionally using web context."""
     jd_preview = job_description[:120]
     sources = _ddg_search(f"{jd_preview} required skills qualifications job requirements 2025")
     web_ctx = "\n".join(
@@ -464,6 +474,7 @@ Zwróć JSON:
 
 
 def _fix_grammar(elements: list[dict]) -> dict:
+    """Propose content-only grammar/spelling corrections per text element."""
     structured = _extract_structured(elements)
 
     system = (
@@ -496,6 +507,7 @@ Zwróć JSON:
 
 
 def _check_style(text: str, elements: list[dict]) -> dict:
+    """Polish language/style review with content patches where safe."""
     structured = _extract_structured(elements)
 
     system = (
@@ -551,6 +563,7 @@ Zwróć JSON:
 
 
 def _improve_content(elements: list[dict]) -> dict:
+    """Suggest stronger CV wording without changing layout geometry."""
     structured = _extract_structured(elements)
 
     system = (
@@ -599,6 +612,7 @@ Zwróć JSON:
 
 
 def _ats_score(text: str) -> dict:
+    """Estimate ATS friendliness from plain CV text."""
     system = (
         "Jesteś ekspertem od ATS (systemów śledzenia kandydatów). "
         "Wiesz, jak Workday, Greenhouse, Lever i Taleo analizują CV. "
@@ -990,6 +1004,11 @@ def analyze_action(
     page_size: dict | None = None,
     history: list | None = None,
 ) -> dict:
+    """Dispatch one assistant button/chat action and return a UI-ready dict.
+
+    Unknown actions return an empty Polish error payload without calling GPT.
+    `AIServiceError` is re-raised with action/element context filled in for logs.
+    """
     text = _extract_text(elements)
 
     dispatchers = {

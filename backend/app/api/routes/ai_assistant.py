@@ -1,3 +1,12 @@
+"""
+Canvas AI assistant HTTP surface.
+
+Validates the requested action, enforces the AI-assistant entitlement, logs a
+product metric, dispatches to `analyze_action`, then charges AI credits from
+the model's estimated PLN cost. Provider failures bubble as `AIServiceError`
+and are mapped to a stable Polish 500 by the app-level handler in `main.py`.
+"""
+
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -22,6 +31,12 @@ VALID_ACTIONS = {
 
 
 class AssistantRequest(BaseModel):
+    """Body for POST /ai/assistant.
+
+    `elements` is the current canvas snapshot (client ids + style/geometry).
+    `history` is only meaningful for `chat` follow-ups in the open session.
+    """
+
     action: str
     elements: list[dict] = []
     message: str = ""
@@ -32,6 +47,8 @@ class AssistantRequest(BaseModel):
 
 
 class TokenUsage(BaseModel):
+    """Token and cost estimate returned for billing meters and UI display."""
+
     model: str | None = None
     action: str = ""
     prompt_tokens: int = 0
@@ -43,6 +60,12 @@ class TokenUsage(BaseModel):
 
 
 class AssistantResponse(BaseModel):
+    """Union response covering rating tips, style corrections, and layout groups.
+
+    Unused group lists stay empty depending on the action so the frontend can
+    render one message shape for all assistant buttons.
+    """
+
     message: str
     rating: int | None = None
     tips: list[str] = []
@@ -65,6 +88,12 @@ async def ai_assistant(
     payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
+    """Run one assistant action against the caller's canvas snapshot.
+
+    Side effects: metric log, OpenAI call, and AI credit charge on success.
+    Credits are charged only after a successful analysis so failed provider
+    calls do not consume the monthly budget.
+    """
     if request.action not in VALID_ACTIONS:
         raise HTTPException(status_code=400, detail=f"Nieznana akcja: {request.action}")
 

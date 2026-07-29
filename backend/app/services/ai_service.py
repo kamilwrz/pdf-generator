@@ -1,3 +1,11 @@
+"""
+PDF CV extraction via OpenAI vision and resume generation entrypoints.
+
+`extract_cv_data` rasterises the first pages of an uploaded PDF, sends them to
+gpt-4o, and normalises the JSON into the shared `cv_data` shape.
+`generate_resume` is re-exported from `cv_generator` for route convenience.
+"""
+
 import base64
 import json
 import math
@@ -14,6 +22,7 @@ _EXTRACT_MODEL = "gpt-4o"
 # ── PDF → images ──────────────────────────────────────────────────────────────
 
 def _pdf_to_b64_images(pdf_bytes: bytes, max_pages: int = 3) -> list[str]:
+    """Rasterise up to `max_pages` at 150 DPI for the vision extract prompt."""
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     out = []
     for i, page in enumerate(doc):

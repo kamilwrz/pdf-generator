@@ -352,6 +352,7 @@ def get_entitlements(db: Session, user: User) -> dict[str, Any]:
 
 
 def assert_can_create_project(db: Session, user: User) -> None:
+    """Raise PlanLimitError when the user already hit max_projects."""
     entitlements = get_entitlements(db, user)
     limit = entitlements["limits"]["max_projects"]
     if limit is None:
@@ -365,6 +366,7 @@ def assert_can_create_project(db: Session, user: User) -> None:
 
 
 def assert_can_export(db: Session, user: User) -> None:
+    """Raise PlanLimitError when monthly export quota is exhausted."""
     entitlements = get_entitlements(db, user)
     limit = entitlements["limits"]["max_exports_per_month"]
     if limit is None:
@@ -393,6 +395,7 @@ def assert_has_ai_credits(db: Session, user: User) -> None:
 
 
 def assert_can_use_ai_assistant(db: Session, user: User) -> None:
+    """Require ai_assistant feature flag plus remaining AI credits."""
     entitlements = get_entitlements(db, user)
     if not entitlements["ai_assistant"]:
         raise PlanLimitError(
@@ -403,6 +406,7 @@ def assert_can_use_ai_assistant(db: Session, user: User) -> None:
 
 
 def assert_can_extract_cv(db: Session, user: User) -> None:
+    """Require extract_cv feature flag plus remaining AI credits."""
     entitlements = get_entitlements(db, user)
     if not entitlements["extract_cv"]:
         raise PlanLimitError(
@@ -413,6 +417,7 @@ def assert_can_extract_cv(db: Session, user: User) -> None:
 
 
 def assert_template_allowed(db: Session, user: User, template_id: str) -> None:
+    """Block Free-tier users from non-starter templates."""
     entitlements = get_entitlements(db, user)
     allowed = entitlements["allowed_template_ids"]
     if allowed is None:
@@ -425,6 +430,7 @@ def assert_template_allowed(db: Session, user: User, template_id: str) -> None:
 
 
 def record_export(db: Session, user_id: int) -> UsageCounter:
+    """Increment this month's export counter after a successful download gate."""
     row = _usage_row(db, user_id)
     row.exports_count = int(row.exports_count or 0) + 1
     db.add(row)
@@ -434,6 +440,7 @@ def record_export(db: Session, user_id: int) -> UsageCounter:
 
 
 def charge_ai_credits(db: Session, user_id: int, cost_pln: float) -> UsageCounter:
+    """Add credit cost for one AI call to this month's usage meter and commit."""
     row = _usage_row(db, user_id)
     row.ai_actions_count = int(row.ai_actions_count or 0) + credits_for_cost(cost_pln)
     db.add(row)

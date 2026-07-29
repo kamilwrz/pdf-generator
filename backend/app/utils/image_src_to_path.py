@@ -1,11 +1,24 @@
+"""Resolve canvas image `src` values to local filesystem paths for ReportLab.
+
+Handles S3 HTTPS URLs (download to temp), absolute API URLs under
+`/uploads` or `/template-assets`, and already-local paths.
+"""
+
 from app.core.config import REPORTLAB_IMAGES_TEMP, IMAGES_UPLOAD_DIR, TEMPLATE_ASSETS_DIR
 from urllib.parse import unquote, urlparse
 from app.core.config import USE_S3
+
 if USE_S3:
     from app.services import s3_storage
 
+
 def image_src_to_local_path(src: str) -> str:
-    """Convert image src (URL or path) to a path ReportLab can use. For S3, download to temp."""
+    """Convert image src (URL or path) to a path ReportLab can open.
+
+    For S3 URLs, downloads into REPORTLAB_IMAGES_TEMP. Template assets are
+    resolved against TEMPLATE_ASSETS_DIR so deploys without user uploads still
+    render built-in sidebar art.
+    """
     if not src:
         return src
     if USE_S3 and src.startswith("https://") and ".amazonaws.com/" in src:
@@ -26,4 +39,3 @@ def image_src_to_local_path(src: str) -> str:
         local = (IMAGES_UPLOAD_DIR / decoded).resolve()
         return str(local)
     return src
-

@@ -1,3 +1,14 @@
+"""
+Authentication primitives: password hashing and JWT access tokens.
+
+Passwords are stored as bcrypt hashes. Bcrypt itself silently truncates input
+at 72 bytes, so this module truncates explicitly before hash/verify so login
+and registration always use the same byte prefix.
+
+Access tokens are JWTs whose `sub` claim is the username. Lifetime defaults to
+seven days and can be overridden with ACCESS_TOKEN_EXPIRE_MINUTES.
+"""
+
 from passlib.context import CryptContext
 import bcrypt as bcrypt_lib
 from fastapi import Depends, HTTPException
@@ -14,10 +25,11 @@ algorithm = os.getenv("ALGORITHM")
 DEFAULT_ACCESS_TOKEN_EXPIRE_MINUTES = 7 * 24 * 60
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Token URL matches the OAuth2 password form used by /auth/token.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 def get_access_token_expire_minutes() -> int:
-    """Return a safe, configurable lifetime for login access tokens."""
+    """Return a positive token lifetime in minutes, falling back to seven days."""
     try:
         lifetime = int(
             os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(DEFAULT_ACCESS_TOKEN_EXPIRE_MINUTES))
@@ -27,7 +39,12 @@ def get_access_token_expire_minutes() -> int:
 
     return lifetime if lifetime > 0 else DEFAULT_ACCESS_TOKEN_EXPIRE_MINUTES
 
-def create_access_token(data:dict, expires_delta: timedelta | None = None):
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    """Encode a JWT for the given claims, always setting an absolute `exp`.
+
+    Callers typically pass ``{"sub": username}``. The returned string is what
+    the frontend stores and sends as a Bearer token.
+    """
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -37,7 +54,13 @@ def create_access_token(data:dict, expires_delta: timedelta | None = None):
     encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=algorithm)
     return encoded_jwt
 
-def verify_token(token: str = Depends(oauth2_scheme)):
+def verify_token(token: str = Depends(oauth2_scheme)) -> dict:
+    """FastAPI dependency: require a valid Bearer JWT and return its payload.
+
+    Raises HTTP 403 with a Polish message when the token is missing, malformed,
+    expired, or lacks a `sub` claim. Routes that need the username should read
+    ``payload["sub"]``.
+    """
     try:
         payload = jwt.decode(token, secret_key, algorithms=[algorithm])
         username: str = payload.get("sub")

@@ -1,3 +1,13 @@
+"""
+FastAPI application entry point for CV Studio.
+
+Responsibilities:
+- Configure process logging so service loggers reach stdout (Render aggregation).
+- Start accepting HTTP before DB bootstrap finishes (cold-start friendly /health).
+- Mount static asset directories, API routers, and optional SPA fallback from frontend/dist.
+- Translate AI assistant failures into a stable Polish 500 response for the UI.
+"""
+
 import logging
 from contextlib import asynccontextmanager
 import asyncio
@@ -29,7 +39,13 @@ logger = logging.getLogger("ai_assistant")
 
 
 def _run_startup_work() -> None:
-    """DB bootstrap — runs after the process is already accepting HTTP."""
+    """Create/migrate tables and remove retired document types after listen starts.
+
+    Side effects: may write schema changes and delete legacy PDF rows.
+    Failures are logged but do not crash the process — the API stays up so
+    Render health checks and the frontend wake probe can succeed even when
+    Postgres is still reconnecting.
+    """
     try:
         init_db()
         db = SessionLocal()
@@ -45,7 +61,12 @@ def _run_startup_work() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Do not block listen on DB retries — /health must answer during Render cold start.
+    """Run DB bootstrap in a background thread so /health is not blocked.
+
+    Render free dynos sleep; the frontend wakes them with /health. If lifespan
+    waited on Postgres retries, that probe would hang and login would appear
+    broken even though the dyno process had already started.
+    """
     init_task = asyncio.create_task(asyncio.to_thread(_run_startup_work))
     try:
         yield
@@ -60,7 +81,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# CORS must wrap the app early so cross-origin login/health always get ACAO.
+# CORS must wrap the app early so cross-origin login/health always get ACAO
+# headers, including error responses from auth and AI routes.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -78,6 +100,11 @@ def health():
 
 @app.exception_handler(AIServiceError)
 async def ai_service_error_handler(request: Request, exc: AIServiceError):
+    """Map OpenAI/provider failures to a generic Polish message.
+
+    Internal details stay in server logs so users never see model or credential
+    errors, while the assistant UI can show a recoverable toast.
+    """
     logger.error(
         "AI assistant service error: action=%s elements_count=%s error_type=%s detail=%s",
         exc.action, exc.elements_count,
@@ -89,12 +116,12 @@ async def ai_service_error_handler(request: Request, exc: AIServiceError):
         content={"detail": "Asystent AI jest chwilowo niedostępny, spróbuj ponownie."},
     )
 
-# Ensure upload directories exist (e.g. on fresh deploy / Render)
+# Ensure upload directories exist (e.g. on fresh deploy / Render ephemeral disk).
 IMAGES_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 PDF_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 TEMPLATE_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Path to frontend build (adjust if your structure is different)
+# Optional same-origin SPA hosting when frontend/dist is present next to backend.
 DIST_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 print(DIST_DIR)
 
@@ -115,7 +142,11 @@ if DIST_DIR.exists():
 
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
-        """Serve index.html for all non-API, non-static paths so client-side routing works."""
+        """Serve index.html for client-side routes when the API is co-hosting the SPA.
+
+        API routers are registered first, so this catch-all only receives paths
+        that did not match /auth, /pdf, /ai, static mounts, etc.
+        """
         if full_path == "health":
             return {"status": "ok"}
         index_path = DIST_DIR / "index.html"

@@ -1,3 +1,18 @@
+"""
+ReportLab PDF renderer for CV Studio canvas documents.
+
+Coordinate system: the editor uses a top-left origin (CSS-like). ReportLab
+uses a bottom-left origin, so every draw call converts `top` into
+`page_height - top - glyph_offset` before stroking text or shapes.
+
+Fonts: bundled TTFs are registered at import time. Internal PostScript name
+collisions in bold/italic files are rewritten via fontTools so each variant
+actually renders (see `_register_ttf`).
+
+Callers pass an image resolver that turns canvas `src` values into local paths
+ReportLab can open (downloading from S3 when needed).
+"""
+
 from reportlab.lib.colors import HexColor
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -104,6 +119,12 @@ pdfmetrics.registerFontFamily(
 
 
 class PDF_Generator:
+    """Draws validated canvas elements onto an open ReportLab canvas.
+
+    Construct with the request payload (for page height) and a Canvas, then
+    call `render_elements` followed by `generatePDF` to finalize the file.
+    """
+
     def __init__(self, DATA, CANVAS):
         self.data = DATA
         self.c = CANVAS
@@ -112,9 +133,11 @@ class PDF_Generator:
         self.page_h = float(getattr(DATA, "page_height", 842) or 842)
 
     def setTitle(self, title):
+        """Set the PDF document title metadata shown in viewers."""
         self.c.setTitle(title)
 
     def renderImage(self, src, width, height, left, top):
+        """Draw a bitmap after flipping Y so `top` matches the editor."""
         corrected_y = self.page_h - top - height
         self.c.drawImage(src, left, corrected_y, width=width, height=height, mask=None)
 
@@ -462,6 +485,7 @@ class PDF_Generator:
             self._draw_text_line(x, y, line, fontFamily, fontSize, color, bold, italic, underline, letter_spacing, word_space)
 
     def generatePDF(self):
+        """Finalize the current page and write the PDF to the canvas destination."""
         self.c.showPage()
         self.c.save()
 

@@ -1,75 +1,88 @@
+"""
+Pydantic contracts for canvas PDF create/update payloads.
+
+Field names intentionally mirror the React canvas element shape (camelCase)
+so the frontend can POST its A4 state with minimal mapping. Units for
+geometry and typography are CSS pixels that map 1:1 to PDF points on A4.
+"""
+
 from typing import Optional
 from pydantic import BaseModel
 
-#PYDANTIC MODEL FOR CREATING A PDF VIA POST REQUEST
+
 class PdfElement(BaseModel):
-    #ELEMENT CATEGORY
+    """One canvas element as sent by the editor.
+
+    Not every field applies to every `category`; unused optionals stay null
+    and are ignored by the renderer. Style flags that lack dedicated DB
+    columns are later packed into `PdfElements.extra_properties`.
+    """
+
     category: Optional[str] = None
-    #PAGE THE ELEMENT BELONGS TO (1-based)
+    # 1-based page index matching the multi-page editor.
     page: Optional[int] = 1
-    #ELEMENT POSITION
+    # Top-left origin, same coordinate system as the React A4 canvas.
     left: Optional[float] = None
     top: Optional[float] = None
-    #TEXT ELEMENT
     fontFamily: Optional[str] = None
     fontSize: Optional[float] = None
     color: Optional[str] = None
     content: Optional[str] = None
-    #TEXTAREA ELEMENT (multi-line text box)
+    # textarea: leading and tracking in px.
     lineHeight: Optional[float] = None
     letterSpacing: Optional[float] = None
-    #TEXT STYLE TOGGLES (text + textarea)
     bold: Optional[bool] = False
     italic: Optional[bool] = False
     underline: Optional[bool] = False
-    #TEXTAREA TEXT ALIGNMENT: left | center | right | justify
+    # textarea: left | center | right | justify
     align: Optional[str] = "left"
-    #TEXTAREA HANGING INDENT FOR LINES STARTING WITH A BULLET (•)
+    # Hang indent for lines that start with a bullet marker.
     bulletList: Optional[bool] = False
-    #TEXTAREA TEMPLATE FIELD: height follows rendered content and reflows layout
+    # Template fields whose height follows content and participates in reflow.
     autoHeight: Optional[bool] = False
-    #PAGE DECORATION: remains anchored while auto-height content reflows
+    # Template chrome: backgrounds, frames, page numbers — not user chrome.
     fixedToPage: Optional[bool] = False
-    #POSITION LOCK: prevents user and AI layout operations from moving the element
+    # Blocks user and AI layout moves/edits when true.
     locked: Optional[bool] = False
-    #LINE / IMG ELEMENT
     width: Optional[float | str] = None
     height: Optional[float | str] = None
-    #SHAPES (backgroundColor = fill or stroke colour depending on the element)
+    # Fill or stroke colour depending on category (line/rect/ellipse).
     backgroundColor: Optional[str] = None
-    #RECTANGLE ELEMENT (outline only): border thickness in px
+    # Rectangle outline thickness in px.
     borderWidth: Optional[float] = None
-    #CIRCLE / ELLIPSE: solid fill when true, outline only when false
+    # Circle/ellipse: solid fill when true, outline when false.
     filled: Optional[bool] = False
-    #CONNECTOR ELEMENT: links two elements by their element_id, optional arrowhead
+    # Connector endpoints reference other elements by client element_id.
     source_id: Optional[str] = None
     target_id: Optional[str] = None
     arrow: Optional[bool] = False
-    #IMG ELEMENT
     src: Optional[str] = None
-    #NANO ID
-    element_id : Optional[str] = None
-    #PDF TITLE
+    # Client nanoid — stable across autosaves for upsert matching.
+    element_id: Optional[str] = None
     title: Optional[str] = None
-    #
     pdf_id: Optional[int] = None
-    #EXTRA PROPERTIES exp. zIndex, isSelected etc.
     zIndex: Optional[int] = None
-    isSelected : Optional[bool] = None
+    isSelected: Optional[bool] = None
     isMove: Optional[bool] = None
-    #
-    img_id : Optional[int] = None
+    img_id: Optional[int] = None
+    # When true on update, the element is omitted from the live set and deleted.
     deleted: Optional[bool] = None
 
+
 class PDFCreateRequest(BaseModel):
+    """Create payload: full element list plus title and page geometry."""
+
     root: list[PdfElement]
     pdf_title: str
     pages: int = 1
-    #PAGE GEOMETRY (pt): A4 portrait by default.
+    # Page size in pt; A4 portrait is the product default.
     page_width: float = 595
     page_height: float = 842
 
+
 class PDFUpdateRequest(BaseModel):
+    """Update/autosave payload including the existing document id."""
+
     pdf_id: int
     pdf_title: str
     root: list[PdfElement]

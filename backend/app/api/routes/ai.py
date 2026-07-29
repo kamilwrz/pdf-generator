@@ -1,3 +1,15 @@
+"""
+CV extract, bio-draft persistence, and deterministic template fill.
+
+These routes sit next to the conversational assistant but use different
+pipelines: PDF→structured `cv_data` via OpenAI extract, private draft CRUD,
+and Python layout generation in `cv_generator` (not LLM layout).
+
+Template asset URLs are rebased to the public API origin so canvases opened
+behind reverse proxies still load `/template-assets/...` from the same host
+the browser called.
+"""
+
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -20,11 +32,14 @@ MAX_PDF_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 class FillRequest(BaseModel):
+    """Normalized CV profile plus the template id to materialize on the canvas."""
+
     cv_data: dict
     template_id: str
 
 
 def _current_user_id(db: Session, payload: dict) -> int:
+    """Resolve JWT `sub` to a user id or raise 401."""
     user = get_user_by_username(db, username=payload.get("sub"))
     if user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
@@ -63,6 +78,11 @@ async def extract_cv(
     payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
+    """Extract structured CV fields from an uploaded PDF (entitlement-gated).
+
+    Side effects: OpenAI extract call and AI credit charge on success.
+    Rejects non-PDF filenames and bodies over 10 MB before contacting the model.
+    """
     user = get_user_by_username(db, username=payload.get("sub"))
     if user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
@@ -85,6 +105,7 @@ async def get_bio_cv_draft_route(
     payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
+    """Return the caller's private bio/CV draft, or an empty normalized profile."""
     draft = get_bio_cv_draft(db, _current_user_id(db, payload))
     if draft is None:
         return BioCvDraftResponse(cv_data=normalize_cv_data({}), updated_at=None)
@@ -100,6 +121,7 @@ async def upsert_bio_cv_draft_route(
     payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
+    """Create or replace the caller's bio/CV draft after schema normalisation."""
     try:
         cv_data = normalize_cv_data(request.cv_data)
     except CvDataValidationError as exc:
@@ -116,6 +138,7 @@ async def delete_bio_cv_draft_route(
     payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
+    """Delete the caller's draft if present; returns whether a row was removed."""
     deleted = delete_bio_cv_draft(db, _current_user_id(db, payload))
     return {"deleted": deleted}
 
@@ -127,6 +150,11 @@ async def fill_template(
     payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
+    """Materialize a template canvas from `cv_data` using deterministic Python layout.
+
+    Gated by template tier entitlements. Does not call the LLM for placement —
+    only validates/normalises profile data and runs `generate_resume`.
+    """
     user = get_user_by_username(db, username=payload.get("sub"))
     if user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")

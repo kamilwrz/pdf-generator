@@ -19,6 +19,8 @@ router = APIRouter(prefix="/events", tags=["events"])
 
 
 class EventLogRequest(BaseModel):
+    """Allowed template-picker events only — keeps the metric vocabulary small."""
+
     event_type: Literal["template_picked", "template_dismissed"]
     template_id: str | None = None
 
@@ -29,6 +31,10 @@ async def log_event(
     payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
+    """Append one validated product event to the metrics log stream.
+
+    Side effect: structured log line only — no durable events table.
+    """
     log_metric_event(
         "event", db, payload,
         type=request.event_type, template_id=request.template_id,

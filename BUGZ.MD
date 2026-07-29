@@ -48,6 +48,9 @@
 - stare zwyklym, maja pokazywac sie w ich foncie
 
 14. SZABLONY
-- niektore szablony sa malo czytelne()
+- niektore szablony sa malo czytelne:
+  - Latice - czcionka sie gubi na niebieskim tle...
+  - Quarry, Harber, Garner - SidebarIMG ma nieodpowiednie kolory. Teks nie jest na nich wyrazny.
 - niektore szablony sa "a lil bit too much"()
 - sidebarowe szablony maja byc na jedna strone;kategorie sidebar i main column;okreslic
+

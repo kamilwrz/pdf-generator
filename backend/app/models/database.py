@@ -1,3 +1,16 @@
+"""
+SQLAlchemy engine and session factory.
+
+DATABASE_URL defaults to a local SQLite file for development. Render/Heroku
+sometimes provide a `postgres://` URL; SQLAlchemy requires `postgresql://`,
+so that prefix is normalised here.
+
+SQLite needs `check_same_thread=False` because FastAPI may touch the same
+connection from different threads within a worker. Postgres uses
+`pool_pre_ping` and a short recycle window so idle SSL sockets dropped during
+Render cold starts do not poison the pool.
+"""
+
 import os
 from dotenv import load_dotenv
 load_dotenv()

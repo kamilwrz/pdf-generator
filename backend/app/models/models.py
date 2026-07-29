@@ -1,3 +1,15 @@
+"""
+ORM models and database bootstrap for CV Studio.
+
+Tables cover authenticated users, canvas documents (Pdf + PdfElements),
+uploaded images, resumable bio/CV drafts, and the billing entitlement catalog
+(plans, subscriptions, monthly usage, future payments).
+
+`init_db` must only run from the app lifespan (not at import time): Render
+Postgres often fails the first SSL handshake during cold start, and import-
+time create_all used to crash uvicorn before it could listen for /health.
+"""
+
 import logging
 import time
 
@@ -22,6 +34,8 @@ logger = logging.getLogger(__name__)
 
 
 class User(Base):
+    """Registered account used for auth, ownership, and plan entitlements."""
+
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -33,10 +47,13 @@ class User(Base):
 
 
 class Image(Base):
+    """Metadata for a user-uploaded image referenced by canvas image elements."""
+
     __tablename__ = "images"
 
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String)
+    # Local path or S3 key depending on USE_S3.
     file_path = Column(String)
     file_size = Column(Integer)
     mime_type = Column(String)
@@ -45,10 +62,17 @@ class Image(Base):
 
 
 class Pdf(Base):
+    """A saved CV canvas document owned by one user.
+
+    Page size defaults are A4 portrait in points (595×842), matching the
+    frontend canvas coordinate system 1:1.
+    """
+
     __tablename__ = "pdfs"
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
+    # Generated export path when present; canvas documents may omit it until export.
     file_path = Column(String, nullable=True)
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
@@ -59,16 +83,26 @@ class Pdf(Base):
 
 
 class PdfElements(Base):
+    """One canvas element belonging to a Pdf document.
+
+    Geometry (left/top/width/height) uses the same top-left origin as the
+    React canvas. Style flags that do not have dedicated columns (bold,
+    fixedToPage, connectors, etc.) live in `extra_properties` JSON so older
+    rows stay loadable without schema churn for every new editor field.
+    """
+
     __tablename__ = "pdf_elements"
 
     id = Column(Integer, primary_key=True, index=True)
     pdf_id = Column(Integer, ForeignKey("pdfs.id"))
     img_id = Column(Integer, ForeignKey("images.id"), nullable=True)
+    # Client-generated nanoid; stable across autosaves so the editor can match rows.
     element_id = Column(String)
     category = Column(String)
     page = Column(Integer, default=1)
     left = Column(Float)
     top = Column(Float)
+    # Stored as VARCHAR historically because the canvas sometimes sent CSS strings.
     width = Column(VARCHAR, nullable=True)
     height = Column(VARCHAR, nullable=True)
     content = Column(Text, nullable=True)

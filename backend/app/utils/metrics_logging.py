@@ -15,6 +15,10 @@ logger = logging.getLogger("metrics")
 
 
 def log_metric_event(message: str, db: Session, payload: dict, **fields) -> None:
+    """Emit one structured metrics log line keyed by numeric user id.
+
+    Never raises — logging failures must not break the measured user action.
+    """
     try:
         user = get_user_by_username(db, username=payload.get("sub"))
         field_str = " ".join(f"{key}={value}" for key, value in fields.items())
