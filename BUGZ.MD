@@ -30,14 +30,14 @@
 - upload paru images zle wyglada;pozycjowanie diagonalne!
 - modal jest zle polozony i przykrywa sidebar
 
-10. AI CHAT
+10. AI CHAT (FIXED)
 - tylko pytania odnosnie CV i taski odnosnie CV maja byc wykonane, reszta ma byc odmowiona ze wzgledu na
   nie ten scope
 
 11. 2-SITES MODAL DOWNLOAD
 - jak jest widok na 2 strony to tylko jedna jest blur i na jednej sie pokazuje modal
 
-12. LOADING BAR IMG UPLOAD
+12. LOADING BAR IMG UPLOAD (FIXED)
 - zle dziala dla wielu img
 - wspolnie ma liczyc i pokazywac progres, przy 2 > img, ma byc komunikat w liczbie mnogiej
 - komunikat ma byc po polsku
@@ -45,3 +45,8 @@
 13. SELECT - CZIONKI - EIDT PANEL (FIXED)
 - nowe czcionki pokazuja sie w orginalnym font
 - stare zwyklym, maja pokazywac sie w ich foncie
+
+14. SZABLONY
+- niektore szablony sa malo czytelne()
+- niektore szablony sa "a lil bit too much"()
+- sidebarowe szablony maja byc na jedna strone;kategorie sidebar i main column;okreslic
