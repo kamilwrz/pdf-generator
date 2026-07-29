@@ -1,7 +1,8 @@
 // Factory helpers for authoring CV templates as plain element specs.
 // The loader (useA4Elements.handleLoadTemplate) assigns element_id + page and
-// merges interaction defaults (isSelected/isMove/isEditing). Only fonts the
-// backend can render are used: Inter / Roboto / Times-Roman / Helvetica / Courier.
+// merges interaction defaults (isSelected/isMove/isEditing). Fonts the
+// backend can render: Inter / Roboto / Times-Roman / Helvetica / Courier plus
+// PlayfairDisplay, CormorantGaramond, Lora, Montserrat, JetBrainsMono.
 
 export const text = (content, fontSize, fontFamily, color, left, top, zIndex = 2) =>
     ({ category: "text", content, fontSize, fontFamily, color, left, top, zIndex });

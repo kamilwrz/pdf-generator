@@ -948,6 +948,83 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     self.assertTrue(element["autoHeight"])
                 self.assertGreater(max(element.get("page", 1) for element in elements), 1)
 
+    def test_iconic_templates_pair_contact_and_section_icons(self):
+        contact_keys = ("email", "phone", "location")
+        for template_id, theme in (
+            ("nova", "nova"),
+            ("ridge", "ridge"),
+            ("loom", "loom"),
+            ("volt", "volt"),
+        ):
+            with self.subTest(template_id=template_id):
+                multi_page_cv = {
+                    **LONG_CV,
+                    "experience": LONG_CV["experience"] * 3,
+                    "extra_sections": [
+                        {
+                            "title": "JĘZYKI",
+                            "kind": "languages",
+                            "placement": "after_skills",
+                            "items": ["Polski — ojczysty", "Angielski — C1"],
+                        },
+                        {
+                            "title": "ZAINTERESOWANIA",
+                            "kind": "interests",
+                            "placement": "after_skills",
+                            "items": ["Fotografia"],
+                        },
+                    ],
+                }
+                elements = generate_resume(template_id, multi_page_cv)
+                categories = {element["category"] for element in elements}
+                self.assertIn("image", categories)
+                self.assertNotIn("connector", categories)
+
+                icon_srcs = [
+                    element["src"]
+                    for element in elements
+                    if element["category"] == "image"
+                ]
+                self.assertTrue(icon_srcs)
+                self.assertTrue(all(f"/template-assets/iconic/" in src for src in icon_srcs))
+                if template_id == "loom":
+                    self.assertTrue(any("loom-light" in src for src in icon_srcs))
+                else:
+                    self.assertTrue(all(f"/iconic/{theme}/" in src for src in icon_srcs))
+
+                for key in contact_keys:
+                    self.assertTrue(
+                        any(src.endswith(f"/{key}.png") for src in icon_srcs),
+                        f"{template_id} missing contact icon {key}",
+                    )
+                for key in ("summary", "experience", "education"):
+                    self.assertTrue(
+                        any(f"/iconic/" in src and src.endswith(f"/{key}.png") for src in icon_srcs),
+                        f"{template_id} missing section icon {key}",
+                    )
+
+                for element in elements:
+                    if element["category"] != "image":
+                        continue
+                    local_path = Path(image_src_to_local_path(element["src"]))
+                    self.assertTrue(local_path.is_file(), local_path)
+
+                for element in elements:
+                    if element["category"] != "textarea":
+                        continue
+                    self.assertGreaterEqual(element["left"], 0)
+                    self.assertLessEqual(element["left"] + element["width"], 595)
+                    self.assertLessEqual(element["top"] + element["height"], 842)
+
+                self.assertGreater(max(element.get("page", 1) for element in elements), 1)
+                if template_id == "loom":
+                    # Skills live in the sidebar only — no second skills heading in main flow.
+                    skill_icons = [
+                        src for src in icon_srcs
+                        if src.endswith("/skills.png")
+                    ]
+                    self.assertTrue(any("loom-light" in src for src in skill_icons))
+
 
 if __name__ == "__main__":
     unittest.main()

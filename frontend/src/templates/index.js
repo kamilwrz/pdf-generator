@@ -24,6 +24,7 @@ import { obsidianTemplate } from "./obsidian";
 import { ravenTemplate } from "./raven";
 import { graphiteTemplate } from "./graphite";
 import { onyxTemplate } from "./onyx";
+import { loomTemplate, novaTemplate, ridgeTemplate, voltTemplate } from "./iconic";
 
 export const TEMPLATES = [
     { id: "ledger", tier: "free",    name: "Ledger",    industry: "Finanse · Instytucjonalny",        accent: "#2E5E86", elements: ledgerTemplate },
@@ -50,4 +51,8 @@ export const TEMPLATES = [
     { id: "raven", tier: "paid",     name: "Raven",     industry: "Darktheme · Pasek górny",             accent: "#3FBFA6", elements: ravenTemplate },
     { id: "graphite", tier: "free",  name: "Graphite",  industry: "Darktheme · Minimalistyczny",         accent: "#B7C3CC", elements: graphiteTemplate },
     { id: "onyx", tier: "paid",      name: "Onyx",      industry: "Darktheme · Rama dyplomatyczna",      accent: "#B08D57", elements: onyxTemplate },
+    { id: "nova", tier: "free",      name: "Nova",      industry: "Iconic · Redakcyjny masthead",        accent: "#C45C26", elements: novaTemplate },
+    { id: "ridge", tier: "paid",     name: "Ridge",     industry: "Iconic · Szyna ikon",                 accent: "#1F7A6C", elements: ridgeTemplate },
+    { id: "loom", tier: "paid",      name: "Loom",      industry: "Iconic · Sidebar rzemieślniczy",      accent: "#C4A35A", elements: loomTemplate },
+    { id: "volt", tier: "paid",      name: "Volt",      industry: "Iconic · Ciemny sygnał",              accent: "#E8A838", elements: voltTemplate },
 ];

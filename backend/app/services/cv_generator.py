@@ -2675,8 +2675,15 @@ def _gen_onyx(cv: dict) -> list[dict]:
 
 # ── public API ───────────────────────────────────────────────────────────────
 
+from app.services.cv_generator_iconic import (  # noqa: E402  — after helpers exist
+    _gen_loom,
+    _gen_nova,
+    _gen_ridge,
+    _gen_volt,
+)
+
 _GENERATORS = {
-    # Must stay in sync with the frontend template registry (24 templates).
+    # Must stay in sync with the frontend template registry.
     "ledger":    _gen_ledger,
     "nimbus":    _gen_nimbus,
     "cinder":    _gen_cinder,
@@ -2701,6 +2708,10 @@ _GENERATORS = {
     "raven":     _gen_raven,
     "graphite":  _gen_graphite,
     "onyx":      _gen_onyx,
+    "nova":      _gen_nova,
+    "ridge":     _gen_ridge,
+    "loom":      _gen_loom,
+    "volt":      _gen_volt,
 }
 
 
