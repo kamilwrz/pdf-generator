@@ -14,10 +14,12 @@ ReportLab can open (downloading from S3 when needed).
 """
 
 from reportlab.lib.colors import HexColor
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase.pdfmetrics import stringWidth, getAscentDescent
 from pathlib import Path
+from PIL import Image as PilImage
 import io
 import re
 from fontTools.ttLib import TTFont as _FTFont
@@ -137,9 +139,44 @@ class PDF_Generator:
         self.c.setTitle(title)
 
     def renderImage(self, src, width, height, left, top):
-        """Draw a bitmap after flipping Y so `top` matches the editor."""
+        """Draw a bitmap after flipping Y so `top` matches the editor.
+
+        PNG/RGBA icons must use ``mask='auto'`` — with ``mask=None`` ReportLab
+        paints transparent pixels as opaque black, which shows up as solid
+        squares around line-art template icons.
+        """
         corrected_y = self.page_h - top - height
-        self.c.drawImage(src, left, corrected_y, width=width, height=height, mask=None)
+        if not src:
+            return
+        try:
+            reader = self._image_reader_for_pdf(src)
+            self.c.drawImage(
+                reader,
+                left,
+                corrected_y,
+                width=width,
+                height=height,
+                mask="auto",
+            )
+        except Exception:
+            # Fall back for exotic paths / missing files — still request alpha.
+            self.c.drawImage(
+                src, left, corrected_y, width=width, height=height, mask="auto",
+            )
+
+    @staticmethod
+    def _image_reader_for_pdf(src):
+        """Load via PIL so palette/LA/RGBA icons keep a proper soft mask."""
+        path = Path(str(src))
+        if path.is_file():
+            with PilImage.open(path) as opened:
+                image = opened.convert("RGBA") if opened.mode in ("P", "LA", "L") else opened.copy()
+                if image.mode != "RGBA" and "A" in image.getbands():
+                    image = image.convert("RGBA")
+                elif image.mode not in ("RGB", "RGBA"):
+                    image = image.convert("RGBA")
+                return ImageReader(image)
+        return ImageReader(src)
 
     def renderLine(self, width, height, left, top, color):
         corrected_y = self.page_h - top - height
