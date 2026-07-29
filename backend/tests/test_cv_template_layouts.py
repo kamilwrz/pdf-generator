@@ -760,6 +760,50 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertLess(heading["top"], body["top"])
         self.assertGreaterEqual(heading["top"], 56)
 
+    def test_nova_keeps_skills_heading_with_body_near_page_break(self):
+        """Iconic Nova must not leave UMIEJĘTNOŚCI alone above the footer."""
+        cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 2,
+            "extra_sections": [
+                {
+                    "title": "PROJEKTY",
+                    "kind": "projects",
+                    "placement": "after_experience",
+                    "items": [
+                        "Lookbook kampanii seasonal",
+                        "Seria contentowa beauty",
+                        "Editorial fashion story",
+                        "Reels strategy dla marki lifestyle",
+                    ],
+                },
+                {
+                    "title": "ZAINTERESOWANIA",
+                    "kind": "interests",
+                    "placement": "after_skills",
+                    "items": ["Moda", "Fotografia", "Design"],
+                },
+            ],
+        }
+        elements = generate_resume("nova", cv)
+        heading = next(
+            element
+            for element in elements
+            if element["category"] == "text"
+            and "UMIEJĘTNOŚCI" in str(element.get("content", ""))
+        )
+        body = next(
+            element
+            for element in elements
+            if element["category"] == "textarea"
+            and "·" in str(element.get("content", ""))
+            and element["page"] == heading["page"]
+            and element["top"] > heading["top"]
+        )
+        self.assertEqual(heading["page"], body["page"])
+        self.assertLess(heading["top"], body["top"])
+        self.assertLessEqual(body["top"] + body["height"], 746)
+
     def test_nimbus_flow_keeps_margins_and_record_rhythm(self):
         from app.services.cv_generator import SPACE_RECORD, SPACE_STACK
 

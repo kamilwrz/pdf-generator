@@ -15,7 +15,7 @@ const DEFAULT_PACK_GAP = 14;
 // Section labels / markers / rules are short. Keep them with following body
 // so a page break never leaves "WYKSZTAŁCENIE" stranded above the footer.
 const CHROME_MAX_HEIGHT = 40;
-const KEEP_WITH_NEXT_PX = 64;
+// How far above a body block to look for its section icon/heading/rule cluster.
 const CHROME_CLUSTER_Y_SPAN = 48;
 
 function number(value, fallback = 0) {
@@ -126,6 +126,10 @@ function packGapAfterPageBreak(current, pageTop) {
 /**
  * If `current` is section chrome and the following body cannot share this page,
  * bump the chrome to the next page so headings are never orphaned above the footer.
+ *
+ * The full first body height is reserved (not a short keep-with-next sliver).
+ * Capping that height previously left headings on page N while the body alone
+ * overflowed to page N+1 — the common "UMIEJĘTNOŚCI" orphan.
  */
 function avoidOrphanChrome(
   lane,
@@ -155,18 +159,42 @@ function avoidOrphanChrome(
   if (contentIndex < 0) return { page, top };
 
   const content = lane[contentIndex];
-  const contentHeight = elementHeight(content);
+  const contentHeight = Math.max(elementHeight(content), 1);
   const authoredSpan = Math.max(
     0,
     absoluteTop(content, pageHeight) - currentAbs,
   );
-  const keep = Math.min(Math.max(contentHeight, 1), KEEP_WITH_NEXT_PX);
   const contentBottom = pageHeight - bottomMargin;
-  if (top + authoredSpan + keep <= contentBottom) {
+  if (top + authoredSpan + contentHeight <= contentBottom) {
     return { page, top };
   }
 
   return { page: page + 1, top: pageTop };
+}
+
+/**
+ * Section chrome (icon / heading / rule) sitting just above a body textarea.
+ * Used when the body itself jumps to the next page so the heading is not left
+ * alone in the footer.
+ */
+function precedingChromeCluster(elements, target, pageHeight) {
+  const targetAbs = absoluteTop(target, pageHeight);
+  return elements
+    .filter((element) => (
+      FLOWABLE_CATEGORIES.has(element.category)
+      && !element.fixedToPage
+      && !element.locked
+      && element.element_id !== target.element_id
+      && isChromeLike(element)
+      && belongsToFlowLane(target, element)
+      && absoluteTop(element, pageHeight) < targetAbs - 0.01
+      && targetAbs - absoluteTop(element, pageHeight) <= CHROME_CLUSTER_Y_SPAN
+    ))
+    .sort((left, right) => {
+      const topDelta = absoluteTop(left, pageHeight) - absoluteTop(right, pageHeight);
+      if (Math.abs(topDelta) > 0.01) return topDelta;
+      return String(left.element_id).localeCompare(String(right.element_id));
+    });
 }
 
 /**
@@ -197,8 +225,9 @@ export function reflowTextareaHeight(
   const safePageHeight = Math.max(1, number(pageHeight, 842));
   const oldTargetTop = absoluteTop(target, safePageHeight);
   const oldTargetBottom = oldTargetTop + oldHeight;
+  const originalTargetPage = pageOf(target);
 
-  let targetPage = pageOf(target);
+  let targetPage = originalTargetPage;
   let targetTop = number(target.top);
   if (
     nextHeight <= safePageHeight - pageTop - bottomMargin
@@ -206,6 +235,27 @@ export function reflowTextareaHeight(
   ) {
     targetPage += 1;
     targetTop = pageTop;
+  }
+
+  // When the measured body jumps to the next page, pull its preceding section
+  // chrome (icon/heading/rule) with it. Otherwise the heading stays orphaned
+  // in the previous page's footer while the skills/body list starts alone.
+  const chromeCluster = targetPage > originalTargetPage
+    ? precedingChromeCluster(elements, target, safePageHeight)
+    : [];
+  const chromeAnchor = chromeCluster[0] || null;
+  const chromeAnchorOffset = chromeAnchor
+    ? oldTargetTop - absoluteTop(chromeAnchor, safePageHeight)
+    : 0;
+
+  if (chromeAnchor) {
+    targetTop = pageTop + chromeAnchorOffset;
+    // If chrome + body still overflow the continuation page, pin the body
+    // under the chrome cluster instead of leaving a negative gap.
+    const maxBodyTop = safePageHeight - bottomMargin - nextHeight;
+    if (targetTop > maxBodyTop && maxBodyTop >= pageTop) {
+      targetTop = Math.max(pageTop, maxBodyTop);
+    }
   }
 
   const newTargetTop = (targetPage - 1) * safePageHeight + targetTop;
@@ -218,6 +268,7 @@ export function reflowTextareaHeight(
       && !element.locked
       && (
         element.element_id === elementId
+        || chromeCluster.some((chrome) => chrome.element_id === element.element_id)
         || (
           absoluteTop(element, safePageHeight) >= oldTargetBottom - 0.01
           && belongsToFlowLane(target, element)
@@ -236,6 +287,14 @@ export function reflowTextareaHeight(
   }
 
   const placed = new Map();
+  for (const chrome of chromeCluster) {
+    const chromeOffset = oldTargetTop - absoluteTop(chrome, safePageHeight);
+    placed.set(chrome.element_id, {
+      ...chrome,
+      page: targetPage,
+      top: targetTop - chromeOffset,
+    });
+  }
   placed.set(elementId, {
     ...target,
     height: nextHeight,
@@ -243,6 +302,7 @@ export function reflowTextareaHeight(
     top: targetTop,
   });
 
+  // Forward packing resumes after the body; chrome above was already moved.
   let previousOriginal = target;
   let previousPlacedTop = newTargetTop;
   let previousPlacedBottom = newTargetBottom;

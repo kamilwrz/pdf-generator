@@ -408,3 +408,117 @@ test("keeps section heading with following body across a page break", () => {
   assert.ok(heading.top >= 66);
   assert.ok(body.top > heading.top);
 });
+
+test("pulls preceding section chrome when the body textarea itself jumps page", () => {
+  // Skills body sits near the footer. Measuring it taller than the remaining
+  // space used to move only the textarea to page 2, orphaning UMIEJĘTNOŚCI.
+  const result = reflowTextareaHeight([
+    {
+      element_id: "skills-icon",
+      category: "image",
+      src: "/template-assets/iconic/nova/skills.png",
+      alignWithText: true,
+      left: 48,
+      top: 700,
+      width: 11,
+      height: 11,
+      page: 1,
+    },
+    {
+      element_id: "skills-heading",
+      category: "text",
+      content: "UMIEJĘTNOŚCI",
+      left: 66,
+      top: 700,
+      fontSize: 8.6,
+      page: 1,
+    },
+    {
+      element_id: "skills-rule",
+      category: "line",
+      left: 66,
+      top: 717,
+      width: 481,
+      height: 1,
+      page: 1,
+    },
+    {
+      element_id: "skills-body",
+      category: "textarea",
+      autoHeight: true,
+      left: 66,
+      top: 732,
+      width: 481,
+      height: 20,
+      page: 1,
+    },
+  ], "skills-body", 48, 842, { pageTop: 66, bottomMargin: 96 });
+
+  const icon = result.elements.find((element) => element.element_id === "skills-icon");
+  const heading = result.elements.find((element) => element.element_id === "skills-heading");
+  const rule = result.elements.find((element) => element.element_id === "skills-rule");
+  const body = result.elements.find((element) => element.element_id === "skills-body");
+
+  assert.equal(body.page, 2);
+  assert.equal(heading.page, 2);
+  assert.equal(icon.page, 2);
+  assert.equal(rule.page, 2);
+  assert.equal(heading.top, 66);
+  assert.equal(body.top, 98);
+  assert.ok(body.top > heading.top);
+});
+
+test("moves a heading when the full following body cannot fit beneath it", () => {
+  // A short keep-with-next window previously kept the heading while the full
+  // skills block overflowed alone.
+  const result = reflowTextareaHeight([
+    {
+      element_id: "projects",
+      category: "textarea",
+      autoHeight: true,
+      left: 66,
+      top: 560,
+      width: 481,
+      height: 40,
+      page: 1,
+    },
+    {
+      element_id: "skills-heading",
+      category: "text",
+      content: "UMIEJĘTNOŚCI",
+      left: 66,
+      top: 620,
+      fontSize: 8.6,
+      page: 1,
+    },
+    {
+      element_id: "skills-rule",
+      category: "line",
+      left: 66,
+      top: 637,
+      width: 481,
+      height: 1,
+      page: 1,
+    },
+    {
+      element_id: "skills-body",
+      category: "textarea",
+      left: 66,
+      top: 652,
+      width: 481,
+      height: 80,
+      page: 1,
+    },
+  ], "projects", 70, 842, { pageTop: 66, bottomMargin: 96 });
+
+  const heading = result.elements.find((element) => element.element_id === "skills-heading");
+  const body = result.elements.find((element) => element.element_id === "skills-body");
+
+  assert.equal(heading.page, body.page);
+  assert.ok(body.top > heading.top);
+  if (heading.page === 1) {
+    assert.ok(body.top + body.height <= 746);
+  } else {
+    assert.equal(heading.page, 2);
+  }
+});

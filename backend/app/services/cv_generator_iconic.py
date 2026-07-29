@@ -249,8 +249,10 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
     SECTION_CHROME = section_chrome_height(label_fs) + (volt_chip if C["layout"] == "volt" else 16)
 
     def section(label: str) -> None:
+        # Callers must reserve chrome + first body via need_section before this
+        # helper runs. A bare need(chrome) here used to keep the heading on the
+        # current page while the following body alone jumped to the next one.
         key = _icon_key_for_label(label)
-        b.need(SECTION_CHROME)
         y = b.y
         page = b.pg
         if C["layout"] == "volt":
@@ -317,7 +319,10 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
             if index < len(jobs) - 1:
                 b.gap(SPACE_RECORD)
         close_section()
-        _extra_sections(b, cv, "after_experience", section, {"body": C["body"]}, L, W, SANS, fs=9.4, lh=13.4)
+        _extra_sections(
+            b, cv, "after_experience", section, {"body": C["body"]}, L, W, SANS,
+            fs=9.4, lh=13.4, section_chrome_h=SECTION_CHROME,
+        )
 
     if cv.get("education"):
         education_entries = cv["education"]
@@ -351,6 +356,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
     _extra_sections(
         b, cv, "after_skills", section, {"body": C["body"]}, L, W, SANS,
         fs=9.3, lh=13.4, skip_indices=skip_sidebar_extras,
+        section_chrome_h=SECTION_CHROME,
     )
 
     flow = b.build()

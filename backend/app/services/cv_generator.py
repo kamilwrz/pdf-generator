@@ -203,7 +203,8 @@ def _labels(cv: dict) -> dict:
 def _extra_sections(b: Builder, cv: dict, placement: str,
                     section_fn, C: dict, L: int, W: int,
                     font_b: str, fs: float = 10, lh: float = 15,
-                    skip_indices: set[int] | None = None) -> None:
+                    skip_indices: set[int] | None = None,
+                    section_chrome_h: float | None = None) -> None:
     """
     Render extra (custom) sections found in the CV but not in the template.
 
@@ -211,7 +212,15 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
     placement='after_skills'     → called after the skills block
     Sections tagged with the requested placement are rendered; others are skipped
     here (they'll be picked up at their own placement call).
+
+    ``section_chrome_h`` should match the template's real heading/icon/rule
+    advance (Iconic is taller than the default label-only estimate).
     """
+    chrome_h = (
+        float(section_chrome_h)
+        if section_chrome_h is not None
+        else section_chrome_height(8.6)
+    )
     for index, sec in enumerate(cv.get("extra_sections") or []):
         if skip_indices and index in skip_indices:
             continue
@@ -225,7 +234,7 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
         body_height = b.measure_block(content, W, fs, lh, font_b, bulletList=True)
         # Reserve heading chrome + body together so custom sections do not leave
         # a title stranded above the page footer.
-        b.need_section(section_chrome_height(8.6), body_height + SPACE_SECTION)
+        b.need_section(chrome_h, body_height + SPACE_SECTION)
         section_fn(title)
         b.block(content, L, W, fs, lh, C.get("body", "#2B2B2B"), font_b, bulletList=True)
         b.gap(SPACE_SECTION)
