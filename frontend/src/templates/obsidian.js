@@ -42,7 +42,15 @@ export const obsidianTemplate = [
     tracked(text("KONTAKT", 8, SANS, GOLD, 24, 60, 3), 1.3),
     block("Warszawa\nkatarzyna.zielinska@email.com\n+48 600 000 000", 24, 80, 136, 46, 8, 12.5, BODY, SANS),
     tracked(text("OBSZARY", 8, SANS, GOLD, 24, 200, 3), 1.3),
-    block("Strategia operacyjna\nZarządzanie zmianą\nOptymalizacja procesów\nBudżetowanie\nPrzywództwo zespołowe", 24, 220, 136, 90, 8.2, 13, BODY, SANS),
+    bulleted(block("• Strategia operacyjna\n• Zarządzanie zmianą\n• Optymalizacja procesów\n• Budżetowanie\n• Przywództwo zespołowe", 24, 220, 136, 90, 8.2, 13, BODY, SANS)),
+
+    tracked(text("JĘZYKI", 8, SANS, GOLD, 24, 320, 3), 1.3),
+    bulleted(block("• Polski — ojczysty\n• Angielski — C1\n• Francuski — B2", 24, 340, 136, 42, 8.2, 13, BODY, SANS)),
+
+    tracked(text("WYKSZTAŁCENIE", 8, SANS, GOLD, 24, 405, 3), 1.3),
+    bold(block("MBA — 2013–2015", 24, 425, 136, 14, 8.6, 12, INK, SANS)),
+    block("Akademia Leona Koźmińskiego, Warszawa", 24, 442, 136, 24, 7.9, 11, MUTED, SANS),
+    block("Zarządzanie operacyjne i transformacja.", 24, 470, 136, 26, 8, 12, BODY, SANS),
 
     circle(L - 18, 152, 7, GOLD, true, 1, 3),
     tracked(text("PROFIL", 8.6, SANS, INK, L, 150, 3), 1.2),
@@ -69,16 +77,6 @@ export const obsidianTemplate = [
         "• Prowadziła program restrukturyzacji procesów operacyjnych.\n• Przygotowywała rekomendacje decyzyjne dla zarządu.",
         L, 437, W, 42, 9.4, 13.3, BODY, SANS
     )),
-
-    circle(L - 18, 505, 7, GOLD, true, 1, 3),
-    tracked(text("EDUKACJA I KOMPETENCJE", 8.6, SANS, INK, L, 503, 3), 1.2),
-    line(L, 519, W, 1, RULE, 2),
-    bold(text("MBA  /  Akademia Leona Koźmińskiego", 10.3, SANS, INK, L, 538, 2)),
-    text("2013 – 2015  ·  Warszawa", 8.7, SANS, MUTED, L, 556, 2),
-    block(
-        "Zarządzanie operacyjne  ·  Transformacja  ·  Lean  ·  Budżetowanie  ·  Przywództwo",
-        L, 591, W, 28, 9.4, 13.3, BODY, SANS
-    ),
 
     { ...line(L, 783, W, 1, RULE, 2), fixedToPage: true },
     { ...circle(L, 796, 6, GOLD, true, 1, 3), fixedToPage: true },
