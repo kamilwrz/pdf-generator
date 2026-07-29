@@ -35,8 +35,16 @@ export const harborTemplate = [
 
     tracked(text("KONTAKT", 8, SANS, "#EAF0F3", 24, 300, 3), 1.2),
     block("Gdańsk\ntomasz.kowalski@email.com\n+48 600 000 000", 24, 322, 136, 42, 8, 12.5, "#F7FAFB", SANS),
-    tracked(text("OBSZARY", 8, SANS, "#EAF0F3", 24, 434, 3), 1.2),
-    block("Programme design\nStrategy\nGovernance\nStakeholders", 24, 456, 136, 58, 8.3, 13, "#F7FAFB", SANS),
+    tracked(text("OBSZARY", 8, SANS, "#EAF0F3", 24, 378, 3), 1.2),
+    bulleted(block("• Programme design\n• Strategy\n• Governance\n• Stakeholders", 24, 398, 136, 58, 8.3, 12.5, "#F7FAFB", SANS)),
+
+    tracked(text("JĘZYKI", 8, SANS, "#EAF0F3", 24, 468, 3), 1.2),
+    bulleted(block("• Polski — ojczysty\n• Angielski — C1\n• Niemiecki — B1", 24, 488, 136, 40, 8.3, 12.5, "#F7FAFB", SANS)),
+
+    tracked(text("WYKSZTAŁCENIE", 8, SANS, "#EAF0F3", 24, 548, 3), 1.2),
+    bold(block("Zarządzanie — 2011–2016", 24, 568, 136, 14, 8.6, 12, "#F7FAFB", SANS)),
+    block("Uniwersytet Gdański, Gdańsk", 24, 584, 136, 14, 7.9, 11, RULE, SANS),
+    block("Zarządzanie programami i realizacja strategii.", 24, 600, 136, 26, 8, 12, "#F7FAFB", SANS),
 
     { ...rect(462, 52, 58, 54, COPPER, 0.8, 3), id: "harbor-frame" },
     { ...ellipse(472, 62, 35, 17, STEEL, false, 1, 3), id: "harbor-wave" },
@@ -67,13 +75,6 @@ export const harborTemplate = [
         "• Koordynował portfel inicjatyw i przygotowywał materiały dla zarządu.\n• Rozwijał standardy współpracy między zespołami i partnerami.",
         242, 495, 304, 43, 9.1, 13, NAVY, SANS
     )),
-
-    { ...ellipse(218, 590, 13, 13, STEEL, false, 1, 3), id: "harbor-education" },
-    tracked(text("EDUKACJA I KOMPETENCJE", 8.4, SANS, NAVY, 242, 590, 3), 1.3),
-    line(242, 608, 304, 1, RULE, 2),
-    bold(text("Zarządzanie  /  Uniwersytet Gdański", 10.1, SANS, NAVY, 242, 627, 3)),
-    text("2011 – 2016", 8.5, SANS, MUTE, 242, 645, 3),
-    block("Programme governance  ·  Strategy execution  ·  Planning\nStakeholder management  ·  Change delivery", 242, 679, 304, 31, 9, 13, NAVY, SANS),
 
     { ...line(220, 783, 326, 1, RULE, 2), fixedToPage: true },
     { ...circle(220, 796, 6, COPPER, true, 1, 3), fixedToPage: true },
