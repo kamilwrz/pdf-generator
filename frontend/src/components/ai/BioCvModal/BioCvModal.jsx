@@ -429,7 +429,12 @@ export default function BioCvModal() {
                             <span>Typ</span>
                             <select value={section.kind} onChange={(event) => updateListItem("custom_sections", index, { kind: event.target.value })}>
                                 <option value="other">Inna</option>
+                                <option value="projects">Projekty</option>
+                                <option value="references">Referencje</option>
                                 <option value="certifications">Certyfikaty</option>
+                                <option value="awards">Nagrody</option>
+                                <option value="publications">Publikacje</option>
+                                <option value="volunteering">Wolontariat</option>
                                 <option value="interests">Zainteresowania</option>
                             </select>
                         </label>
@@ -445,7 +450,7 @@ export default function BioCvModal() {
                                 label="Pozycje *"
                                 items={section.items}
                                 onCommit={(items) => updateListItem("custom_sections", index, { items })}
-                                placeholder={"Certyfikat Scrum Master\nKurs analizy danych"}
+                                placeholder={"Nazwa projektu — kontekst\nOpis punktu 1\nOpis punktu 2"}
                             />
                         </div>
                     </div>

@@ -19,6 +19,7 @@ from app.services.cv_generator import (
     _company_period,
     _education_record_height,
     _extra_sections,
+    _flatten_extra_items,
     _labels,
     _line,
     _place_education_record,
@@ -204,10 +205,11 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
             )
             side_label["letterSpacing"] = 1.2
             header.append(side_label)
+            flat_items = _flatten_extra_items(items)
             if kind == "references":
-                body = str(items[0]) if items else "Dostępne na życzenie"
+                body = flat_items[0] if flat_items else "Dostępne na życzenie"
             else:
-                body = "\n".join(f"• {item}" for item in items[:5])
+                body = "\n".join(f"• {item}" for item in flat_items[:5])
             header.append(_block(
                 body, 24, sidebar_y + 24, 132, 54, 7.8, 12, C["light"], SANS,
                 zIndex=3, bulletList=kind != "references",

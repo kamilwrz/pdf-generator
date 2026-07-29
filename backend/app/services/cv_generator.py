@@ -19,7 +19,13 @@ import re
 from datetime import datetime
 
 from app.core.config import BACKEND_URL
-from app.services.cv_data import fold_section_label, is_skills_like_title, normalize_cv_data
+from app.services.cv_data import (
+    fold_section_label,
+    group_flat_items_into_records,
+    is_record_section,
+    is_skills_like_title,
+    normalize_cv_data,
+)
 from app.services.pdf_generator import PDF_Generator
 
 A4_H = 842
@@ -177,7 +183,18 @@ def _fold_label(value: object) -> str:
 def _extra_section_kind(section: dict) -> str:
     """Return a supported semantic kind with a title-based legacy fallback."""
     declared = _fold_label(section.get("kind"))
-    if declared in {"languages", "certifications", "interests", "education", "skills"}:
+    if declared in {
+        "languages",
+        "certifications",
+        "interests",
+        "education",
+        "skills",
+        "projects",
+        "references",
+        "awards",
+        "publications",
+        "volunteering",
+    }:
         return declared
 
     title = _fold_label(section.get("title"))
@@ -189,6 +206,16 @@ def _extra_section_kind(section: dict) -> str:
         return "interests"
     if any(token in title for token in ("wyksztalc", "education")):
         return "education"
+    if any(token in title for token in ("projekt", "project", "portfolio")):
+        return "projects"
+    if any(token in title for token in ("referenc", "reference")):
+        return "references"
+    if any(token in title for token in ("nagrod", "award", "achiev")):
+        return "awards"
+    if any(token in title for token in ("publikac", "publication")):
+        return "publications"
+    if any(token in title for token in ("wolontar", "volunteer")):
+        return "volunteering"
     if is_skills_like_title(section.get("title")):
         return "skills"
     return "other"
@@ -198,6 +225,109 @@ def _labels(cv: dict) -> dict:
     """Return section headings in the CV's language (GPT-supplied), with Polish fallbacks."""
     raw = cv.get("labels") or {}
     return {k: (raw.get(k) or v).upper() for k, v in _LABEL_DEFAULTS.items()}
+
+
+def _flatten_extra_items(items: list) -> list[str]:
+    """Flatten structured records to strings for sidebar / compact consumers."""
+    flat: list[str] = []
+    for item in items or []:
+        if isinstance(item, dict):
+            title = str(item.get("title") or "").strip()
+            subtitle = str(item.get("subtitle") or "").strip()
+            bullets = [
+                str(bullet).strip()
+                for bullet in (item.get("bullets") or [])
+                if str(bullet).strip()
+            ]
+            if title and subtitle:
+                flat.append(f"{title} — {subtitle}")
+            elif title:
+                flat.append(title)
+            flat.extend(bullets)
+        else:
+            text = str(item or "").strip()
+            if text:
+                flat.append(text)
+    return flat
+
+
+def _measure_record_section_body(
+    b: Builder,
+    records: list[dict],
+    W: int,
+    font_b: str,
+    *,
+    title_fs: float,
+    title_lh: float,
+    body_fs: float,
+    body_lh: float,
+) -> float:
+    """Estimate stacked height for bold titles + optional nested bullet lists."""
+    total = 0.0
+    for index, record in enumerate(records):
+        title = str(record.get("title") or "").strip()
+        subtitle = str(record.get("subtitle") or "").strip()
+        bullets = [
+            str(bullet).strip()
+            for bullet in (record.get("bullets") or [])
+            if str(bullet).strip()
+        ]
+        if title:
+            total += b.measure_block(title, W, title_fs, title_lh, font_b)
+        if subtitle:
+            total += SPACE_STACK
+            total += b.measure_block(subtitle, W, body_fs * 0.92, body_lh * 0.9, font_b)
+        if bullets:
+            total += SPACE_STACK
+            content = "\n".join(f"• {bullet}" for bullet in bullets)
+            total += b.measure_block(content, W, body_fs, body_lh, font_b, bulletList=True)
+        if index < len(records) - 1:
+            total += SPACE_RECORD
+    return total
+
+
+def _render_record_section_body(
+    b: Builder,
+    records: list[dict],
+    L: int,
+    W: int,
+    C: dict,
+    font_b: str,
+    *,
+    title_fs: float,
+    title_lh: float,
+    body_fs: float,
+    body_lh: float,
+) -> None:
+    """
+    Render experience-like records: bold title, optional subtitle, nested bullets.
+
+    Used for projects, references, awards, and any other record-kind extras so
+    each template does not need a bespoke branch.
+    """
+    ink = C.get("body", "#2B2B2B")
+    muted = C.get("muted", C.get("slate", ink))
+    for index, record in enumerate(records):
+        title = str(record.get("title") or "").strip()
+        subtitle = str(record.get("subtitle") or "").strip()
+        bullets = [
+            str(bullet).strip()
+            for bullet in (record.get("bullets") or [])
+            if str(bullet).strip()
+        ]
+        if not title and not bullets:
+            continue
+        if title:
+            b.block(title, L, W, title_fs, title_lh, ink, font_b, bold=True, min_h=title_lh + 2)
+        if subtitle:
+            b.gap(SPACE_STACK)
+            b.block(subtitle, L, W, body_fs * 0.92, body_lh * 0.9, muted, font_b, min_h=body_lh)
+        if bullets:
+            b.gap(SPACE_STACK)
+            content = "\n".join(f"• {bullet}" for bullet in bullets)
+            b.block(content, L, W, body_fs, body_lh, ink, font_b, bulletList=True)
+        if index < len(records) - 1:
+            b.gap(SPACE_RECORD)
 
 
 def _extra_sections(b: Builder, cv: dict, placement: str,
@@ -213,6 +343,10 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
     Sections tagged with the requested placement are rendered; others are skipped
     here (they'll be picked up at their own placement call).
 
+    Flat-list kinds (interests, certifications, …) stay a single bullet block.
+    Record kinds (projects, references, …) render like experience: bold title
+    per entry, then a nested bullet list for the description.
+
     ``section_chrome_h`` should match the template's real heading/icon/rule
     advance (Iconic is taller than the default label-only estimate).
     """
@@ -221,14 +355,49 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
         if section_chrome_h is not None
         else section_chrome_height(8.6)
     )
+    title_fs = max(fs + 0.8, 10.5)
+    title_lh = max(lh, title_fs + 2.5)
+
     for index, sec in enumerate(cv.get("extra_sections") or []):
         if skip_indices and index in skip_indices:
             continue
         if sec.get("placement", "after_skills") != placement:
             continue
         title = (sec.get("title") or "").strip().upper()
-        items = [i for i in (sec.get("items") or []) if i and str(i).strip()]
-        if not title or not items:
+        raw_items = list(sec.get("items") or [])
+        if not title or not raw_items:
+            continue
+
+        use_records = is_record_section(sec.get("kind"), title) and any(
+            isinstance(item, dict) for item in raw_items
+        )
+        # When normalization left only flat strings but the kind/title still
+        # implies records, regroup here so older cached profiles still layout.
+        if is_record_section(sec.get("kind"), title) and not use_records:
+            flat = _flatten_extra_items(raw_items)
+            if len(flat) >= 2:
+                raw_items = group_flat_items_into_records(flat)
+                use_records = True
+
+        if use_records:
+            records = [item for item in raw_items if isinstance(item, dict) and item.get("title")]
+            if not records:
+                continue
+            body_height = _measure_record_section_body(
+                b, records, W, font_b,
+                title_fs=title_fs, title_lh=title_lh, body_fs=fs, body_lh=lh,
+            )
+            b.need_section(chrome_h, body_height + SPACE_SECTION)
+            section_fn(title)
+            _render_record_section_body(
+                b, records, L, W, C, font_b,
+                title_fs=title_fs, title_lh=title_lh, body_fs=fs, body_lh=lh,
+            )
+            b.gap(SPACE_SECTION)
+            continue
+
+        items = _flatten_extra_items(raw_items)
+        if not items:
             continue
         content = "\n".join(f"• {item}" for item in items)
         body_height = b.measure_block(content, W, fs, lh, font_b, bulletList=True)
@@ -288,7 +457,7 @@ def _sidebar_candidates(cv: dict, labels: dict) -> list[dict]:
         if kind not in _SIDEBAR_SECTION_ORDER:
             continue
         title = str(section.get("title") or "").strip().upper()
-        items = [str(item).strip() for item in (section.get("items") or []) if str(item).strip()]
+        items = _flatten_extra_items(section.get("items") or [])
         if title and items:
             candidates.append({
                 "key": f"extra:{index}",

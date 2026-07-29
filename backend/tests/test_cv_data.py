@@ -150,6 +150,95 @@ class CvDataNormalizationTests(unittest.TestCase):
         self.assertEqual(profile["languages"], [{"name": "Angielski", "level": "B2"}])
         self.assertEqual(profile["custom_sections"][0]["title"], "PROJEKTY")
         self.assertEqual(profile["extra_sections"][0]["title"], "PROJEKTY")
+        self.assertEqual(profile["extra_sections"][0]["kind"], "projects")
+        self.assertEqual(
+            profile["extra_sections"][0]["items"],
+            [{"title": "Platforma X", "bullets": []}],
+        )
+
+    def test_flat_projects_list_regroups_into_title_and_bullets(self):
+        profile = normalize_cv_data({
+            "name": "Ewa Nowak",
+            # after_experience extras only render when experience exists.
+            "experience": [{
+                "title": "Content Creator",
+                "company": "Studio",
+                "period": "2023 – obecnie",
+                "bullets": ["Kampanie social"],
+            }],
+            "extra_sections": [{
+                "title": "PROJEKTY",
+                "kind": "other",
+                "placement": "after_experience",
+                "items": [
+                    "Editorial Fashion Shoot — Personal Project",
+                    "Koncepcja kreatywna i moodboard",
+                    "Koordynacja stylizacji oraz estetyki sesji",
+                    "Produkcja contentu social media",
+                    "TikTok / Instagram Visual Series",
+                    "Kreacja short-form content fashion & lifestyle",
+                    "Budowanie spójnego visual identity",
+                ],
+            }],
+        })
+
+        projects = profile["extra_sections"][0]
+        self.assertEqual(projects["kind"], "projects")
+        self.assertEqual(len(projects["items"]), 2)
+        self.assertEqual(projects["items"][0]["title"], "Editorial Fashion Shoot — Personal Project")
+        self.assertEqual(
+            projects["items"][0]["bullets"],
+            [
+                "Koncepcja kreatywna i moodboard",
+                "Koordynacja stylizacji oraz estetyki sesji",
+                "Produkcja contentu social media",
+            ],
+        )
+        self.assertEqual(projects["items"][1]["title"], "TikTok / Instagram Visual Series")
+        self.assertEqual(
+            projects["items"][1]["bullets"],
+            [
+                "Kreacja short-form content fashion & lifestyle",
+                "Budowanie spójnego visual identity",
+            ],
+        )
+
+        elements = generate_resume("nova", profile)
+        title_el = next(
+            element
+            for element in elements
+            if element["category"] == "textarea"
+            and element.get("bold")
+            and "Editorial Fashion Shoot" in str(element.get("content", ""))
+        )
+        bullets_el = next(
+            element
+            for element in elements
+            if element["category"] == "textarea"
+            and element.get("bulletList")
+            and "Koncepcja kreatywna" in str(element.get("content", ""))
+        )
+        self.assertEqual(title_el["page"], bullets_el["page"])
+        self.assertLess(title_el["top"], bullets_el["top"])
+
+    def test_structured_project_records_pass_through(self):
+        profile = normalize_cv_data({
+            "name": "Ewa Nowak",
+            "custom_sections": [{
+                "title": "Projekty",
+                "kind": "projects",
+                "placement": "after_experience",
+                "items": [{
+                    "title": "Lookbook",
+                    "subtitle": "2024",
+                    "bullets": ["Kierunek artystyczny", "Produkcja"],
+                }],
+            }],
+        })
+        self.assertEqual(
+            profile["extra_sections"][0]["items"],
+            [{"title": "Lookbook", "bullets": ["Kierunek artystyczny", "Produkcja"], "subtitle": "2024"}],
+        )
 
     def test_explicit_empty_custom_sections_do_not_restore_stale_extra_sections(self):
         profile = normalize_cv_data({

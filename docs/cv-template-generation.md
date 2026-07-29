@@ -261,8 +261,14 @@ Dla quarry / moss / garnet / harbor działa wspólna logika:
 
 ### 6.7 Extra sections
 
-`_extra_sections(b, cv, placement, ...)` renderuje niestandardowe sekcje (projekty, certyfikaty, …) jako wypunktowane bloki w kolumnie głównej, w momencie wywołania (`after_experience` lub `after_skills`).  
-To most między swobodną strukturą CV z PDF a sztywnym szkieletem szablonu.
+`_extra_sections(b, cv, placement, ...)` renderuje niestandardowe sekcje w kolumnie głównej w momencie wywołania (`after_experience` lub `after_skills`).
+
+Dwa tryby treści (wybór po `kind` / tytule sekcji, patrz `cv_data.is_record_section`):
+
+1. **Lista płaska** (`languages`, `certifications`, `interests`, …) — jeden blok `bulletList`.
+2. **Rekordy** (`projects`, `references`, `awards`, `publications`, `volunteering`) — jak experience: pogrubiony `title`, opcjonalny `subtitle`, potem zagnieżdżone `bullets`.
+
+Normalizacja (`cv_data.normalize_cv_data`) przyjmuje już obiekty `{title, bullets[]}` z ekstrakcji oraz **grupuje płaskie listy** heurystycznie, gdy ekstraktor spłaszczył tytuł projektu i punkty opisu do jednego poziomu. To most między swobodną strukturą CV z PDF a sztywnym szkieletem szablonu — bez per-szablonowych gałęzi „Projekty”.
 
 ---
 
@@ -275,7 +281,9 @@ To most między swobodną strukturą CV z PDF a sztywnym szkieletem szablonu.
 | Ekstrakcja treści z PDF → JSON | `ai_service.extract_cv_data` | GPT-4o (vision na stronach) |
 | Asystent na canvasie (edycja, ATS, układ istniejących elementów) | `ai_assistant_service` | osobny tor, po wygenerowaniu CV |
 
-Przy ekstrakcji AI dostaje **instrukcję schematu JSON** (experience, education z `school/city/degree/...`, skills, labels PL, extra_sections z `kind` i `placement`). Temperatura niska (`0.1`), format `json_object`.
+Przy ekstrakcji AI dostaje **instrukcję schematu JSON** (experience, education z `school/city/degree/...`, skills, labels PL, `extra_sections` z `kind` / `placement` oraz **rekordowymi** `items` dla projektów/referencji). Temperatura niska (`0.1`), format `json_object`.
+
+Heurystyczna grupacja w Pythonie pokrywa typowe spłaszczenia; pełna decyzyjność przy niejednoznacznych listach to naturalne miejsce na opcjonalny drugi pass LLM (Standard/Premium, kredyty AI) **przed** `generate_resume`, bez zmiany geometrii szablonów.
 
 ### Czego AI **nie** robi (i świadomie nie powinno)
 

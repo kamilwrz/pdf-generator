@@ -81,6 +81,28 @@ export function parseList(value) {
     return uniqueStrings(String(value || "").replace(/\r\n/g, "\n").split(/[\n,]/));
 }
 
+/**
+ * Expand structured extra-section records into editable flat lines.
+ * Backend regroups title + following lines on generate for record kinds.
+ */
+export function parseSectionItems(value) {
+    if (!Array.isArray(value)) return parseList(value);
+    const lines = [];
+    for (const item of value) {
+        if (item && typeof item === "object" && !Array.isArray(item)) {
+            const title = clean(item.title || item.name || item.project || item.label);
+            const subtitle = clean(item.subtitle || item.role || item.period || item.meta);
+            const bullets = parseList(item.bullets?.length ? item.bullets : item.description);
+            if (title) lines.push(subtitle ? `${title} — ${subtitle}` : title);
+            lines.push(...bullets);
+            continue;
+        }
+        const text = clean(item);
+        if (text) lines.push(text);
+    }
+    return uniqueStrings(lines);
+}
+
 export function normalizeBioCvData(value) {
     const source = value && typeof value === "object" ? value : {};
     const fallback = createEmptyBioCvData();
@@ -126,8 +148,20 @@ export function normalizeBioCvData(value) {
             .filter((section) => section && typeof section === "object")
             .map((section) => ({
                 title: clean(section.title),
-                items: parseList(section.items || section.data),
-                kind: ["languages", "certifications", "interests", "other"].includes(section.kind)
+                // Wizard UI edits a flat line list; structured extract records
+                // are expanded to title + bullet lines and regrouped on generate.
+                items: parseSectionItems(section.items || section.data),
+                kind: [
+                    "languages",
+                    "certifications",
+                    "interests",
+                    "projects",
+                    "references",
+                    "awards",
+                    "publications",
+                    "volunteering",
+                    "other",
+                ].includes(section.kind)
                     ? section.kind
                     : "other",
                 placement: section.placement === "after_experience"

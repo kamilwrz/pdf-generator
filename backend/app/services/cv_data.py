@@ -15,8 +15,45 @@ DEFAULT_LABELS = {
     "skills": "UMIEJĘTNOŚCI",
 }
 
-ALLOWED_SECTION_KINDS = {"languages", "certifications", "interests", "other"}
+ALLOWED_SECTION_KINDS = {
+    "languages",
+    "certifications",
+    "interests",
+    "projects",
+    "references",
+    "awards",
+    "publications",
+    "volunteering",
+    "other",
+}
 ALLOWED_PLACEMENTS = {"after_experience", "after_skills"}
+
+# Sections whose items are title + nested bullets (like experience records),
+# not a flat chip/list of equal-weight lines.
+RECORD_SECTION_KINDS = {
+    "projects",
+    "references",
+    "awards",
+    "publications",
+    "volunteering",
+}
+
+# Title tokens (ASCII-folded) that imply record-style rendering even when
+# extractors omit or mis-set `kind`.
+_RECORD_TITLE_TOKENS = (
+    "projekt",
+    "project",
+    "referenc",
+    "reference",
+    "nagrod",
+    "award",
+    "achiev",
+    "publikac",
+    "publication",
+    "wolontar",
+    "volunteer",
+    "portfolio",
+)
 
 # Title tokens (ASCII-folded) that mean "skills" under another label.
 # Keep kind=skills layout, but preserve the user's heading on the canvas.
@@ -121,6 +158,7 @@ def _string_list(value: Any) -> list[str]:
 
 
 def _section_items(value: Any) -> list[str]:
+    """Flatten section items to strings (legacy / skills-absorb / sidebar)."""
     if isinstance(value, str):
         return _string_list(value)
     if not isinstance(value, list):
@@ -129,12 +167,191 @@ def _section_items(value: Any) -> list[str]:
     items: list[str] = []
     for item in value:
         if isinstance(item, Mapping):
-            name = _text(item.get("name") or item.get("label") or item.get("content"))
+            title = _text(
+                item.get("title")
+                or item.get("name")
+                or item.get("label")
+                or item.get("project")
+                or item.get("content")
+            )
             level = _text(item.get("level") or item.get("proficiency"))
-            items.extend(_string_list([f"{name} — {level}" if name and level else name]))
+            bullets = _string_list(
+                item.get("bullets") or item.get("description") or item.get("items")
+            )
+            subtitle = _text(
+                item.get("subtitle") or item.get("role") or item.get("period") or item.get("meta")
+            )
+            if title and bullets:
+                items.append(title)
+                if subtitle:
+                    items.append(subtitle)
+                items.extend(bullets)
+            elif title and level:
+                items.extend(_string_list([f"{title} — {level}"]))
+            elif title:
+                if subtitle:
+                    items.append(f"{title} — {subtitle}" if subtitle else title)
+                else:
+                    items.append(title)
+                items.extend(bullets)
+            else:
+                items.extend(bullets)
         else:
             items.extend(_string_list([item]))
     return items
+
+
+def is_record_section(kind: object, title: object = "") -> bool:
+    """True when a custom section should render as title + nested bullets."""
+    declared = _text(kind).casefold()
+    if declared in RECORD_SECTION_KINDS:
+        return True
+    folded = fold_section_label(title)
+    if not folded:
+        return False
+    return any(token in folded for token in _RECORD_TITLE_TOKENS)
+
+
+def group_flat_items_into_records(items: list[str]) -> list[dict[str, Any]]:
+    """
+    Turn a flat bullet dump into ``{title, bullets[]}`` records.
+
+    A new record starts on a title-like line (dash/slash separator, or a short
+    heading after an open record). Remaining lines append as nested bullets.
+    If no title-like boundary is found, returns a single record whose title is
+    the first line and the rest are bullets — still better than a flat list
+    when the section kind already implies records.
+    """
+    cleaned = [_text(item) for item in items if _text(item)]
+    if not cleaned:
+        return []
+
+    records: list[dict[str, Any]] = []
+    current: dict[str, Any] | None = None
+
+    for index, line in enumerate(cleaned):
+        start_new = False
+        if current is None:
+            start_new = True
+        elif any(sep in line for sep in (" — ", " – ", " - ", " / ")):
+            start_new = True
+        elif (
+            current.get("bullets")
+            and len(line) <= 55
+            and not line.endswith((".", "!", "?"))
+            and len(line.split()) <= 8
+            and index + 1 < len(cleaned)
+            and not any(sep in cleaned[index + 1] for sep in (" — ", " – ", " - ", " / "))
+            and len(cleaned[index + 1]) > len(line)
+        ):
+            # Short heading followed by a longer description line.
+            start_new = True
+
+        if start_new:
+            current = {"title": line, "bullets": []}
+            records.append(current)
+        elif current is not None:
+            current["bullets"].append(line)
+        else:
+            current = {"title": line, "bullets": []}
+            records.append(current)
+
+    # A single title with no bullets is still a valid one-line record.
+    return [record for record in records if record.get("title")]
+
+
+def _normalize_section_entry(item: Any) -> str | dict[str, Any] | None:
+    """
+    Normalize one custom-section item to either a plain string or a record.
+
+    Record shape: ``{"title": str, "bullets": list[str], "subtitle"?: str}``.
+    Language-style ``{name, level}`` maps stay as flat ``"Name — Level"`` strings.
+    """
+    if isinstance(item, Mapping):
+        title = _text(
+            item.get("title")
+            or item.get("project")
+            or item.get("label")
+        )
+        # Prefer explicit title; fall back to name only when not a language row.
+        name = _text(item.get("name") or item.get("language"))
+        level = _text(item.get("level") or item.get("proficiency"))
+        bullets = _string_list(
+            item.get("bullets") or item.get("description") or item.get("items")
+        )
+        subtitle = _text(
+            item.get("subtitle") or item.get("role") or item.get("period") or item.get("meta")
+        )
+        content = _text(item.get("content"))
+
+        if title or (name and bullets):
+            record_title = title or name
+            record: dict[str, Any] = {"title": record_title, "bullets": bullets}
+            if subtitle:
+                record["subtitle"] = subtitle
+            return record
+        if name and level and not bullets:
+            return f"{name} — {level}"
+        if name:
+            return name
+        if content:
+            return content
+        return None
+
+    text = _text(item)
+    return text or None
+
+
+def _normalize_section_items(
+    value: Any,
+    *,
+    kind: str,
+    title: str,
+) -> list[str | dict[str, Any]]:
+    """
+    Normalize custom-section items.
+
+    Flat list kinds (languages, interests, certifications) stay ``list[str]``.
+    Record kinds accept structured objects and, when only flat strings are
+    present, regroup them with ``_group_flat_items_into_records``.
+    """
+    if isinstance(value, str):
+        raw_list: list[Any] = _string_list(value)
+    elif isinstance(value, list):
+        raw_list = list(value)
+    else:
+        return []
+
+    if not is_record_section(kind, title):
+        return _section_items(raw_list)
+
+    entries: list[str | dict[str, Any]] = []
+    flat_only: list[str] = []
+    saw_structured = False
+
+    for item in raw_list:
+        normalized = _normalize_section_entry(item)
+        if normalized is None:
+            continue
+        if isinstance(normalized, dict):
+            saw_structured = True
+            entries.append(normalized)
+        else:
+            flat_only.append(normalized)
+            entries.append(normalized)
+
+    if saw_structured:
+        # Keep structured records; drop orphan flat strings that slipped in.
+        return [entry for entry in entries if isinstance(entry, dict)]
+
+    if not flat_only:
+        return []
+
+    # Extractors often emit projects as one flat bullet list. Regroup so the
+    # layout engine can bold titles and nest descriptions without an LLM.
+    if len(flat_only) >= 2:
+        return group_flat_items_into_records(flat_only)
+    return [{"title": flat_only[0], "bullets": []}]
 
 
 def _normalize_experience(value: Any) -> list[dict[str, Any]]:
@@ -232,6 +449,22 @@ def _normalize_languages(value: Any) -> list[dict[str, str]]:
     return result
 
 
+def _infer_record_kind_from_title(title: str) -> str:
+    """Map a heading like PROJEKTY to a concrete record kind."""
+    folded = fold_section_label(title)
+    if any(token in folded for token in ("projekt", "project", "portfolio")):
+        return "projects"
+    if any(token in folded for token in ("referenc", "reference")):
+        return "references"
+    if any(token in folded for token in ("nagrod", "award", "achiev")):
+        return "awards"
+    if any(token in folded for token in ("publikac", "publication")):
+        return "publications"
+    if any(token in folded for token in ("wolontar", "volunteer")):
+        return "volunteering"
+    return "other"
+
+
 def _normalize_custom_sections(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
@@ -241,13 +474,26 @@ def _normalize_custom_sections(value: Any) -> list[dict[str, Any]]:
         if not isinstance(section, Mapping):
             continue
         title = _text(section.get("title"))
-        items = _section_items(section.get("items") or section.get("data"))
         kind = _text(section.get("kind")).casefold() or "other"
         placement = _text(section.get("placement")) or "after_skills"
         if kind not in ALLOWED_SECTION_KINDS:
             kind = "other"
+        # Extractors often tag projects/references as generic "other". Upgrade
+        # from the heading so layout and regroup heuristics still apply.
+        if kind == "other" and is_record_section("other", title):
+            kind = _infer_record_kind_from_title(title)
         if placement not in ALLOWED_PLACEMENTS:
-            placement = "after_skills"
+            # Record-style sections read better after experience.
+            placement = (
+                "after_experience"
+                if is_record_section(kind, title)
+                else "after_skills"
+            )
+        items = _normalize_section_items(
+            section.get("items") or section.get("data"),
+            kind=kind,
+            title=title,
+        )
         if title and items:
             result.append({
                 "title": title.upper(),
@@ -270,14 +516,30 @@ def _derive_manual_sections(extra_sections: Any) -> tuple[list[dict[str, str]], 
         kind = _text(section.get("kind")).casefold() or "other"
         title = _text(section.get("title"))
         placement = _text(section.get("placement")) or "after_skills"
-        items = _section_items(section.get("items"))
         if kind == "languages":
+            items = _section_items(section.get("items"))
             languages.extend(_normalize_languages(items))
-        elif title and items:
+            continue
+        if kind not in ALLOWED_SECTION_KINDS:
+            kind = "other"
+        if kind == "other" and is_record_section("other", title):
+            kind = _infer_record_kind_from_title(title)
+        if placement not in ALLOWED_PLACEMENTS:
+            placement = (
+                "after_experience"
+                if is_record_section(kind, title)
+                else "after_skills"
+            )
+        items = _normalize_section_items(
+            section.get("items"),
+            kind=kind,
+            title=title,
+        )
+        if title and items:
             custom_sections.append({
                 "title": title,
-                "kind": kind if kind in ALLOWED_SECTION_KINDS else "other",
-                "placement": placement if placement in ALLOWED_PLACEMENTS else "after_skills",
+                "kind": kind,
+                "placement": placement,
                 "items": items,
             })
     return languages, custom_sections
@@ -307,7 +569,7 @@ def _absorb_skills_alias_sections(
         title = _text(section.get("title")).upper()
         if alias_title is None and title:
             alias_title = title
-        absorbed.extend(_string_list(section.get("items") or []))
+        absorbed.extend(_section_items(section.get("items") or []))
 
     merged_skills = _string_list([*skills, *absorbed]) if absorbed else list(skills)
     next_labels = dict(labels)

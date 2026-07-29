@@ -56,7 +56,7 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 '  "skills":[],\n'
                 '  "language":"Polish",\n'
                 '  "labels":{"summary":"PODSUMOWANIE ZAWODOWE","experience":"DOŚWIADCZENIE ZAWODOWE","education":"WYKSZTAŁCENIE","skills":"UMIEJĘTNOŚCI"},\n'
-                '  "extra_sections":[{"title":"","kind":"languages|certifications|interests|other","placement":"after_skills","items":[]}]\n'
+                '  "extra_sections":[{"title":"","kind":"languages|certifications|interests|projects|references|awards|publications|volunteering|other","placement":"after_skills","items":[]}]\n'
                 "}\n\n"
                 "Zasady:\n"
                 "- experience: WSZYSTKIE stanowiska od najnowszego; WSZYSTKIE punkty (bez limitu)\n"
@@ -78,11 +78,17 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 "  Przykłady: Certyfikaty, Języki, Projekty, Nagrody, Publikacje,\n"
                 "  Wolontariat, Zainteresowania, Referencje, Kursy, Szkolenia — tytuł po polsku, WIELKIMI LITERAMI.\n"
                 "  NIE duplikuj sekcji skills w extra_sections — skills idą do skills + labels.skills.\n"
-                "  kind: 'languages' dla sekcji języków, 'certifications' dla certyfikatów/licencji/kursów,\n"
-                "        'interests' dla zainteresowań/hobby, 'other' dla pozostałych sekcji.\n"
-                "  placement: 'after_experience' dla sekcji z punktami (projekty, nagrody, wolontariat);\n"
-                "             'after_skills' dla zwartych list (języki, certyfikaty, zainteresowania).\n"
-                "  items: płaska lista stringów (jeden element na string).\n"
+                "  kind: 'languages' | 'certifications' | 'interests' | 'projects' | 'references' |\n"
+                "        'awards' | 'publications' | 'volunteering' | 'other'.\n"
+                "  placement: 'after_experience' dla sekcji rekordowych (projekty, nagrody, wolontariat,\n"
+                "             referencje z opisem); 'after_skills' dla zwartych list (języki, certyfikaty,\n"
+                "             zainteresowania).\n"
+                "  items — ZALEŻY OD RODZAJU SEKCJI:\n"
+                "  * languages / certifications / interests / zwarte listy: płaska lista stringów.\n"
+                "  * projects / references / awards / publications / volunteering: lista OBIEKTÓW\n"
+                "    {\"title\":\"nazwa\",\"subtitle\":\"opcjonalnie\",\"bullets\":[\"punkt\",\"...\"]}.\n"
+                "    title = nazwa projektu/referencji (NIE wrzucaj tytułu jako zwykłego bulletu),\n"
+                "    bullets = punkty opisu pod tytułem. Nie spłaszczaj tytułu i opisu do jednej listy.\n"
                 "- Zachowaj oryginalny język treści CV, ale etykiety i tytuły dodatkowych sekcji zwracaj po polsku.\n"
                 "- Zwróć WYŁĄCZNIE poprawny JSON."
             ),
