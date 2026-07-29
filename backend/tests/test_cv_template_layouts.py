@@ -1125,6 +1125,92 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     for body in side_bodies:
                         self.assertEqual(body["width"], 120)
 
+    def test_iconic_experience_record_gap_matches_projects(self):
+        """Experience jobs must keep SPACE_RECORD (14) like project records."""
+        from app.services.cv_generator import SPACE_RECORD
+
+        cv = {
+            "name": "Anna Walczak",
+            "title": "Dyrektor",
+            "email": "anna@example.com",
+            "phone": "+48 600 000 000",
+            "location": "Warszawa",
+            "summary": "Krotkie podsumowanie.",
+            "experience": [
+                {
+                    "title": "Creative / Content Creator",
+                    "company": "Freelance",
+                    "period": "2023 – obecnie",
+                    "bullets": ["Punkt jeden", "Punkt dwa", "Punkt trzy"],
+                },
+                {
+                    "title": "Social Media Intern",
+                    "company": "Studio",
+                    "period": "2022 – 2023",
+                    "bullets": ["Punkt A", "Punkt B"],
+                },
+            ],
+            "extra_sections": [{
+                "title": "PROJEKTY",
+                "kind": "projects",
+                "placement": "after_experience",
+                "items": [
+                    {
+                        "title": "Editorial Fashion Shoot",
+                        "bullets": ["Koncepcja", "Koordynacja", "Produkcja"],
+                    },
+                    {
+                        "title": "TikTok Series",
+                        "bullets": ["Kreacja", "Identity"],
+                    },
+                ],
+            }],
+        }
+        for template_id in ("volt", "nova", "ridge", "loom"):
+            with self.subTest(template_id=template_id):
+                elements = generate_resume(template_id, cv)
+                job_titles = [
+                    element for element in elements
+                    if element["category"] == "textarea"
+                    and element.get("bold")
+                    and "Creative" in str(element.get("content", ""))
+                ]
+                job_two = next(
+                    element for element in elements
+                    if element["category"] == "textarea"
+                    and element.get("bold")
+                    and "Social Media" in str(element.get("content", ""))
+                )
+                job_one_bullets = next(
+                    element for element in elements
+                    if element["category"] == "textarea"
+                    and element.get("bulletList")
+                    and "Punkt jeden" in str(element.get("content", ""))
+                )
+                self.assertTrue(job_titles)
+                exp_gap = job_two["top"] - (
+                    job_one_bullets["top"] + job_one_bullets["height"]
+                )
+                self.assertAlmostEqual(exp_gap, SPACE_RECORD, places=1)
+
+                project_two = next(
+                    element for element in elements
+                    if element["category"] == "textarea"
+                    and element.get("bold")
+                    and "TikTok" in str(element.get("content", ""))
+                )
+                project_one_bullets = next(
+                    element for element in elements
+                    if element["category"] == "textarea"
+                    and element.get("bulletList")
+                    and "Koncepcja" in str(element.get("content", ""))
+                )
+                proj_gap = project_two["top"] - (
+                    project_one_bullets["top"] + project_one_bullets["height"]
+                )
+                self.assertAlmostEqual(proj_gap, SPACE_RECORD, places=1)
+                self.assertAlmostEqual(exp_gap, proj_gap, places=1)
+
 
 if __name__ == "__main__":
     unittest.main()

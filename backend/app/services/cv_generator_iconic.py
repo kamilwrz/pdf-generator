@@ -12,6 +12,7 @@ from app.services.cv_data import fold_section_label
 from app.services.cv_generator import (
     SPACE_RECORD,
     SPACE_SECTION,
+    SPACE_STACK,
     Builder,
     _block,
     _bullets,
@@ -299,17 +300,21 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     def experience_height(job: dict) -> float:
+        # Same stack as placement / project records: block title → meta → bullets
+        # with SPACE_STACK inside the record and SPACE_RECORD between records.
         bullets = _bullets(job)
+        meta_font = MONO if C["layout"] == "volt" else SANS
         height = (
             b.measure_block(job.get("title", ""), W, 11, 13.5, SANS, bold=True, min_h=15)
-            + 4
+            + SPACE_STACK
             + b.measure_block(
-                _company_period(job), W, 8.5, 11.5,
-                MONO if C["layout"] == "volt" else SANS, min_h=12,
+                _company_period(job), W, 8.5, 11.5, meta_font, min_h=12,
             )
         )
         if bullets:
-            height += 4 + b.measure_block(bullets, W, 9.4, 13.4, SANS, bulletList=True)
+            height += SPACE_STACK + b.measure_block(
+                bullets, W, 9.4, 13.4, SANS, bulletList=True,
+            )
         return height
 
     if cv.get("summary"):
@@ -325,15 +330,21 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         for index, job in enumerate(jobs):
             if index > 0:
                 b.need(experience_height(job))
-            b.text(job.get("title", ""), 11, SANS, C["ink"], L, bold=True)
-            b.gap(2)
-            b.text(
-                _company_period(job), 8.5,
-                MONO if C["layout"] == "volt" else SANS, C["mute"], L,
+            # Use textarea blocks (not bare text) so inter-job gaps stay
+            # SPACE_RECORD after canvas auto-height — same contract as projects.
+            b.block(
+                job.get("title", ""), L, W, 11, 13.5, C["ink"], SANS,
+                bold=True, min_h=15,
             )
-            b.gap(2)
+            b.gap(SPACE_STACK)
+            b.block(
+                _company_period(job), L, W, 8.5, 11.5,
+                C["mute"], MONO if C["layout"] == "volt" else SANS,
+                min_h=12,
+            )
             bullets = _bullets(job)
             if bullets:
+                b.gap(SPACE_STACK)
                 b.block(bullets, L, W, 9.4, 13.4, C["body"], SANS, bulletList=True)
             if index < len(jobs) - 1:
                 b.gap(SPACE_RECORD)
