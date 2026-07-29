@@ -35,7 +35,15 @@ export const quarryTemplate = [
     tracked(text("KONTAKT", 8, SANS, CYAN, 24, 73, 3), 1.3),
     block("Warszawa\nmartyna.rutkowska@email.com\n+48 600 000 000", 24, 93, 136, 42, 8.1, 12.5, INK, SANS),
     tracked(text("GŁÓWNE TECHNOLOGIE", 8, SANS, CYAN, 24, 205, 3), 1.3),
-    block("TypeScript\nGo\nKubernetes\nAWS\nPostgreSQL", 24, 225, 136, 70, 8.4, 13, INK, SANS),
+    bulleted(block("• TypeScript\n• Go\n• Kubernetes\n• AWS\n• PostgreSQL", 24, 225, 136, 70, 8.4, 13, INK, SANS)),
+
+    tracked(text("JĘZYKI", 8, SANS, CYAN, 24, 320, 3), 1.3),
+    bulleted(block("• Polski — ojczysty\n• Angielski — C1\n• Niemiecki — B1", 24, 340, 136, 42, 8.4, 13, INK, SANS)),
+
+    tracked(text("WYKSZTAŁCENIE", 8, SANS, CYAN, 24, 415, 3), 1.3),
+    bold(block("Informatyka — 2012–2017", 24, 435, 136, 14, 8.6, 12, INK, SANS)),
+    block("Politechnika Warszawska, Warszawa", 24, 452, 136, 14, 7.9, 11, RULE, SANS),
+    block("Systemy rozproszone, obserwowalność, SRE.", 24, 468, 136, 26, 8, 12, INK, SANS),
 
     { ...rect(462, 51, 59, 54, CYAN, 0.9, 3), id: "quarry-frame" },
     { ...ellipse(473, 61, 34, 16, CYAN, false, 1.1, 3), id: "quarry-orbit" },
@@ -66,13 +74,6 @@ export const quarryTemplate = [
         "• Rozwijała usługi API oraz pipeline’y danych dla produktu wielorynkowego.\n• Współtworzyła praktyki jakości i dokumentacji technicznej.",
         242, 495, 304, 43, 9.1, 13, NAVY, SANS
     )),
-
-    { ...ellipse(218, 590, 13, 13, CYAN, false, 1, 3), id: "quarry-education" },
-    tracked(text("EDUKACJA I KOMPETENCJE", 8.4, SANS, NAVY, 242, 590, 3), 1.3),
-    line(242, 608, 304, 1, RULE, 2),
-    bold(text("Informatyka  /  Politechnika Warszawska", 10.1, SANS, NAVY, 242, 627, 3)),
-    text("2012 – 2017", 8.5, SANS, SLATE, 242, 645, 3),
-    block("System design  ·  Event-driven architecture  ·  SRE\nCloud infrastructure  ·  Technical leadership", 242, 679, 304, 31, 9, 13, NAVY, SANS),
 
     { ...line(220, 783, 326, 1, RULE, 2), fixedToPage: true },
     { ...circle(220, 796, 6, LIME, true, 1, 3), fixedToPage: true },
