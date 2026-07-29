@@ -7,6 +7,7 @@
 const FLOWABLE_CATEGORIES = new Set(["text", "textarea", "line", "rectangle", "circle", "ellipse", "image"]);
 const NEARBY_DECORATION_CATEGORIES = new Set(["line", "rectangle", "circle", "ellipse"]);
 const DECORATION_LANE_TOLERANCE = 32;
+const TEXT_ALIGNED_IMAGE_LANE_TOLERANCE = 48;
 // Matches backend SPACE_RECORD: used when reclaiming a page-break gap so later
 // blocks pack into freed space instead of keeping the empty page-bottom hole.
 const DEFAULT_PACK_GAP = 14;
@@ -49,8 +50,17 @@ function elementHeight(element) {
   );
 }
 
+function isTextAlignedImage(element) {
+  if (element.category !== "image") return false;
+  if (element.alignWithText) return true;
+  // Backward compatibility for Iconic documents saved before alignWithText
+  // became part of the image spec.
+  return /\/template-assets\/iconic\//.test(String(element.src || ""));
+}
+
 function isChromeLike(element) {
   if (element.category === "text") return true;
+  if (isTextAlignedImage(element)) return true;
   if (!NEARBY_DECORATION_CATEGORIES.has(element.category)) return false;
   return elementHeight(element) <= CHROME_MAX_HEIGHT;
 }
@@ -66,7 +76,9 @@ function overlapsHorizontally(first, second) {
 
 function belongsToFlowLane(target, element) {
   if (overlapsHorizontally(target, element)) return true;
-  if (!NEARBY_DECORATION_CATEGORIES.has(element.category)) return false;
+  const isNearbyDecoration = NEARBY_DECORATION_CATEGORIES.has(element.category);
+  const isNearbyTextIcon = isTextAlignedImage(element);
+  if (!isNearbyDecoration && !isNearbyTextIcon) return false;
 
   const targetLeft = number(target.left);
   const targetRight = targetLeft + elementWidth(target);
@@ -77,7 +89,10 @@ function belongsToFlowLane(target, element) {
     elementLeft - targetRight,
     0,
   );
-  return horizontalGap <= DECORATION_LANE_TOLERANCE;
+  const tolerance = isNearbyTextIcon
+    ? TEXT_ALIGNED_IMAGE_LANE_TOLERANCE
+    : DECORATION_LANE_TOLERANCE;
+  return horizontalGap <= tolerance;
 }
 
 function toPagePosition(absolute, height, pageHeight, pageTop, bottomMargin) {

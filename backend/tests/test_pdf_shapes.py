@@ -64,9 +64,11 @@ class PdfShapeTests(unittest.TestCase):
         self.assertIn(("saveState",), self.generator.c.calls)
         self.assertIn(("restoreState",), self.generator.c.calls)
 
-    def test_iconic_images_are_optically_aligned_with_text_top(self):
+    def test_local_iconic_assets_are_optically_aligned_without_schema_flag(self):
         icon = Path(__file__).resolve().parents[1] / "template_assets" / "iconic" / "nova" / "email.png"
-        self.generator.renderImage(str(icon), 11, 11, 48, 200, align_with_text=True)
+        # API validation may omit the optional canvas-only flag. The resolved
+        # local asset path must still activate the same optical alignment.
+        self.generator.renderImage(str(icon), 11, 11, 48, 200)
 
         draw_calls = [call for call in self.generator.c.calls if call[0] == "drawImage"]
         self.assertEqual(len(draw_calls), 1)

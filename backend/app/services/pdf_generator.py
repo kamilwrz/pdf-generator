@@ -145,16 +145,21 @@ class PDF_Generator:
         paints transparent pixels as opaque black, which shows up as solid
         squares around line-art template icons.
 
-        ``align_with_text`` (or iconic template-asset URLs): ``top`` is the
-        companion text line's CSS top. ``renderText`` places cap centres ~1.2pt
-        above that top (baseline factor 0.34×fontSize + Montserrat ascent), so
-        the image is shifted to share that optical mid-line.
+        ``align_with_text`` (or an Iconic public/local asset path): ``top`` is
+        the companion text line's CSS top. ``renderText`` places cap centres
+        ~1.2pt above that top (baseline factor 0.34×fontSize + Montserrat
+        ascent), so the image is shifted to share that optical mid-line.
         """
         h = float(height)
         w = float(width)
         t = float(top)
         src_s = str(src or "")
-        align = bool(align_with_text) or ("/template-assets/iconic/" in src_s.replace("\\", "/"))
+        normalized_src = src_s.replace("\\", "/")
+        is_iconic_asset = (
+            "/template-assets/iconic/" in normalized_src
+            or "/template_assets/iconic/" in normalized_src
+        )
+        align = bool(align_with_text) or is_iconic_asset
         if align and h <= 32 and w <= 32:
             # Cap-centre of an ~8.5pt Montserrat label at the same authored top.
             text_cap_mid = t - 1.2

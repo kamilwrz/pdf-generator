@@ -80,6 +80,80 @@ test("same-page reflow keeps nearby section decorations aligned with content", (
   assert.equal(result.elements.find((element) => element.element_id === "next-heading").top, 140);
 });
 
+test("keeps an Iconic section icon grouped with its heading during reflow", () => {
+  const result = reflowTextareaHeight([
+    textarea({ left: 66, top: 200, width: 481, height: 44 }),
+    {
+      element_id: "section-icon",
+      category: "image",
+      src: "http://localhost:8000/template-assets/iconic/nova/experience.png",
+      alignWithText: true,
+      left: 48,
+      top: 269,
+      width: 11,
+      height: 11,
+      page: 1,
+    },
+    {
+      element_id: "section-heading",
+      category: "text",
+      content: "DOŚWIADCZENIE ZAWODOWE",
+      left: 66,
+      top: 269,
+      fontSize: 8.6,
+      page: 1,
+    },
+    {
+      element_id: "section-rule",
+      category: "line",
+      left: 66,
+      top: 286,
+      width: 481,
+      height: 1,
+      page: 1,
+    },
+  ], "textarea", 60, 842);
+
+  const icon = result.elements.find((element) => element.element_id === "section-icon");
+  const heading = result.elements.find((element) => element.element_id === "section-heading");
+  const rule = result.elements.find((element) => element.element_id === "section-rule");
+
+  assert.equal(icon.top, 285);
+  assert.equal(heading.top, 285);
+  assert.equal(rule.top, 302);
+  assert.equal(icon.page, heading.page);
+});
+
+test("keeps a Ridge rail icon in the main text lane", () => {
+  const result = reflowTextareaHeight([
+    textarea({ left: 56, top: 222, width: 483, height: 42 }),
+    {
+      element_id: "rail-icon",
+      category: "image",
+      src: "/template-assets/iconic/ridge/experience.png",
+      alignWithText: true,
+      left: 8,
+      top: 290,
+      width: 12,
+      height: 12,
+      page: 1,
+    },
+    {
+      element_id: "ridge-heading",
+      category: "text",
+      left: 56,
+      top: 290,
+      fontSize: 8.5,
+      page: 1,
+    },
+  ], "textarea", 58, 842);
+
+  const icon = result.elements.find((element) => element.element_id === "rail-icon");
+  const heading = result.elements.find((element) => element.element_id === "ridge-heading");
+  assert.equal(icon.top, 306);
+  assert.equal(heading.top, 306);
+});
+
 test("moves a reflowed element onto the next page when it no longer fits", () => {
   const result = reflowTextareaHeight([
     textarea({ top: 700 }),

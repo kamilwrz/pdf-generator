@@ -2,7 +2,7 @@
 
 # CV Studio
 
-CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 24 industry templates, PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
+CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 28 industry templates, PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
 
 This README is the technical entry point for developers. Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md). Template generation (AI extract vs Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md).
 
@@ -93,6 +93,10 @@ flowchart LR
 
 Canvas and stored geometry use **top-left** origin (CSS-like). ReportLab uses **bottom-left**; `PDF_Generator` flips `top` using `page_h` before drawing (`backend/app/services/pdf_generator.py`).
 
+### Auto-height reflow and aligned icons
+
+Template textareas start with authored placeholder heights and are measured after the browser loads their real fonts. `reflowTextareaHeight` then moves all following elements in the same visual lane by the measured delta. Text-aligned Iconic images (`alignWithText: true`, including backward-compatible `/template-assets/iconic/` URLs) are classified as section chrome and use a wider 48 px lane tolerance for Ridge's offset rail. Consequently, the section icon, heading, rule, and body remain one cluster after every measurement and page break; the saved geometry used by ReportLab is the same geometry visible on the canvas.
+
 ### Decorative chrome
 
 Elements with `fixedToPage: true` (backgrounds, frames, sidebars, page numbers) are cloned across pages and must not be selected/moved/deleted in the UI (`isDecorativeChrome` in `frontend/src/utils/elementInteraction.js`). Design rating prompts respect template typography.
@@ -139,7 +143,7 @@ pdf-generator/
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
 │   │   ├── services/         # ApiClient, eventLog
 │   │   ├── store/            # PdfContext
-│   │   ├── templates/        # 24 template specs + helpers
+│   │   ├── templates/        # 28 template specs + helpers
 │   │   └── utils/            # geometry, reflow, entitlements helpers
 │   ├── package.json
 │   └── .env.example
@@ -155,13 +159,13 @@ pdf-generator/
     │   ├── main.py
     │   └── dependencies.py
     ├── fonts/                # Bundled TTFs for PDF
-    ├── template_assets/      # Sidebar / IT artwork for templates
+    ├── template_assets/      # Sidebar, IT and Iconic artwork/icons
     ├── tests/
     ├── requirements.txt
     └── .env.example
 ```
 
-**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_generator.py` (24 ids). Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source.
+**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_generator.py` (28 ids). Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source.
 
 ---
 
@@ -214,6 +218,22 @@ Implementation:
 
 - `frontend/src/templates/index.js` — `TEMPLATES` registry
 - `frontend/src/hooks/useA4Elements.js`, `materializeSpecs` / `handleLoadTemplate` (approx. lines 1753–1820)
+
+### Iconic template family and icon reflow
+
+Nova, Ridge, Loom, and Volt provide four colour-matched layouts with contact and section icons. The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so Iconic icons are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
+
+Implementation:
+
+- `frontend/src/templates/iconic.js`, lines 1–368, exports `novaTemplate`, `ridgeTemplate`, `loomTemplate`, and `voltTemplate`
+- `backend/app/services/cv_generator_iconic.py`, lines 31–405, functions `_icon`, `_icon_beside`, `_gen_iconic_theme`, and four `_gen_*` entry points
+- `frontend/src/utils/textareaReflow.js`, lines 53–296, functions `isTextAlignedImage`, `belongsToFlowLane`, and `reflowTextareaHeight`
+- `backend/app/services/pdf_generator.py`, lines 141–187, method `PDF_Generator.renderImage`
+
+Tests:
+
+- `frontend/src/utils/textareaReflow.test.js`, lines 83–155 — Iconic heading/icon and Ridge rail grouping regressions
+- `backend/tests/test_pdf_shapes.py`, lines 67–120 — local-path optical alignment and alpha-mask regressions in ReportLab
 
 ### PDF create / update / autosave / download
 
@@ -405,7 +425,7 @@ Never commit real secrets.
 | Frontend build | `npm run build` | Output `frontend/dist` |
 | Frontend lint | `npm run lint` | ESLint |
 | Backend tests | `python -m unittest discover -s tests` | from `backend/` |
-| Frontend unit tests | — | No `npm test` script; some `*.test.js` exist for Node/vitest-style runners if added later |
+| Frontend unit tests | `node --test src/utils/textareaReflow.test.js` | From `frontend/`; verifies auto-height flow, page breaks and Iconic icon grouping |
 
 ### Troubleshooting
 
@@ -420,7 +440,7 @@ Never commit real secrets.
 - **Framework:** Python `unittest` under `backend/tests/` (164 tests at last local run).
 - **Coverage focus:** layout analysis safety, AI chat/command sanitisation, entitlements, PDF element upsert/`fixedToPage`, CV data normalisation, bullet layout, Unicode fonts.
 - **Run:** `cd backend && python -m unittest discover -s tests`.
-- **Frontend:** ESLint via `npm run lint`. Dedicated frontend test runner is not wired in `package.json`.
+- **Frontend:** ESLint via `npm run lint`; reflow regression tests run with Node's built-in runner: `cd frontend && node --test src/utils/textareaReflow.test.js`.
 
 ---
 
@@ -496,7 +516,7 @@ Notable product facts:
 
 # CV Studio
 
-CV Studio to polski edytor CV na A4: płótno WYSIWYG, 24 szablony branżowe, import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
+CV Studio to polski edytor CV na A4: płótno WYSIWYG, 28 szablonów branżowych, import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
 
 Ten README to wejście techniczne dla programistów. Opis produktowy funkcji: [`docs/FEATURES.md`](docs/FEATURES.md). Generowanie szablonów (AI extract vs layout w Pythonie): [`docs/cv-template-generation.md`](docs/cv-template-generation.md).
 
@@ -587,6 +607,10 @@ flowchart LR
 
 Kanwa: początek **lewy-górny**. ReportLab: **lewy-dolny**; `PDF_Generator` odwraca `top` przez `page_h`.
 
+### Reflow automatycznej wysokości i wyrównanie ikon
+
+Pola tekstowe szablonów zaczynają z projektową wysokością zastępczą, a po załadowaniu właściwych fontów przeglądarka mierzy ich naturalną wysokość. `reflowTextareaHeight` przesuwa następnie wszystkie dalsze elementy w tej samej kolumnie o zmierzoną różnicę. Obrazy Iconic wyrównane do tekstu (`alignWithText: true`, również starsze adresy `/template-assets/iconic/`) są traktowane jak część nagłówka sekcji; dla odsuniętej szyny Ridge obowiązuje tolerancja kolumny 48 px. Dzięki temu ikona, tytuł, linia i treść pozostają jednym klastrem po każdym pomiarze i podziale strony, a ReportLab otrzymuje tę samą geometrię, którą widać na kanwie.
+
 ### Dekoracje szablonu
 
 `fixedToPage: true` — tła, ramki, sidebary, numery stron — bez zaznaczania/przesuwania/usuwania w UI (`isDecorativeChrome`). Ocena „Projekt” respektuje typografię szablonu.
@@ -653,7 +677,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Zasady:** 24 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_generator.py`. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime.
+**Zasady:** 28 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_generator.py`. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime.
 
 ---
 
@@ -694,6 +718,22 @@ Opis produktowy: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 - `frontend/src/templates/index.js` — `TEMPLATES`
 - `useA4Elements`: `materializeSpecs` / `handleLoadTemplate` (ok. 1753–1820)
+
+### Rodzina Iconic i reflow ikon
+
+Nova, Ridge, Loom i Volt to cztery spójne kolorystycznie układy z ikonami kontaktu oraz sekcji. Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, ikony Iconic są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
+
+Implementacja:
+
+- `frontend/src/templates/iconic.js`, linie 1–368, eksporty `novaTemplate`, `ridgeTemplate`, `loomTemplate`, `voltTemplate`
+- `backend/app/services/cv_generator_iconic.py`, linie 31–405, funkcje `_icon`, `_icon_beside`, `_gen_iconic_theme` oraz cztery wejścia `_gen_*`
+- `frontend/src/utils/textareaReflow.js`, linie 53–296, funkcje `isTextAlignedImage`, `belongsToFlowLane`, `reflowTextareaHeight`
+- `backend/app/services/pdf_generator.py`, linie 141–187, metoda `PDF_Generator.renderImage`
+
+Testy:
+
+- `frontend/src/utils/textareaReflow.test.js`, linie 83–155 — regresje grupowania nagłówka z ikoną i szyny Ridge
+- `backend/tests/test_pdf_shapes.py`, linie 67–120 — regresje wyrównania lokalnej ścieżki i maski alfa w ReportLab
 
 ### PDF create / update / autosave / download
 
@@ -814,6 +854,7 @@ Frontend: `VITE_API_URL`.
 | Obszar | Komenda |
 |--------|---------|
 | Frontend | `npm run dev` / `build` / `lint` |
+| Test reflow frontendu | `node --test src/utils/textareaReflow.test.js` (z katalogu `frontend/`) |
 | Backend testy | `python -m unittest discover -s tests` (z katalogu `backend/`) |
 
 ### Rozwiązywanie problemów
@@ -828,7 +869,7 @@ Frontend: `VITE_API_URL`.
 
 - **Framework:** `unittest` w `backend/tests/` (ok. 164 testy przy ostatnim lokalnym uruchomieniu).
 - **Uruchomienie:** `cd backend && python -m unittest discover -s tests`.
-- **Frontend:** `npm run lint`; brak skryptu `npm test` w `package.json`.
+- **Frontend:** `npm run lint`; regresje reflow uruchamia wbudowany runner Node: `cd frontend && node --test src/utils/textareaReflow.test.js`.
 
 ---
 
