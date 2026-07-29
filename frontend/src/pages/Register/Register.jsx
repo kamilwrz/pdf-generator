@@ -1,11 +1,10 @@
 import classes from "./Register.module.css";
 import planClasses from "./PlanSelector.module.css";
 
-import { ApiClient } from "../../services/api";
-import { ENDPOINTS } from "../../services/api";
+import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
 
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PlanSelector, { PLAN_SLUGS } from "./PlanSelector";
 
 const UserIcon = () => (
@@ -43,18 +42,26 @@ export default function Register() {
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
+    useEffect(() => {
+        wakeBackend();
+    }, []);
+
     function handleSubmit(e) {
         e.preventDefault();
+        if (isLoading) return;
         setError("");
+        setIsLoading(true);
 
         const api = new ApiClient();
-        api.httpRequest(ENDPOINTS.AUTH.REGISTER, "POST", JSON.stringify({ username, email, password, plan }), "Rejestracja nie powiodła się")
+        api.httpRequest(
+            ENDPOINTS.AUTH.REGISTER,
+            "POST",
+            JSON.stringify({ username, email, password, plan }),
+            "Rejestracja nie powiodła się",
+            { timeoutMs: 120_000 },
+        )
             .then(() => {
-                setIsLoading(true);
-                setTimeout(() => {
-                    navigate("/login");
-                    setIsLoading(false);
-                }, 1500);
+                navigate("/login", { replace: true });
             })
             .catch((err) => {
                 setError(err.message);

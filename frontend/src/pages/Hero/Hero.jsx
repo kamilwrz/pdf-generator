@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import classes from "./Hero.module.css";
 import { TEMPLATES } from "../../templates";
+import { wakeBackend } from "../../services/api";
 
 const HEADING_TEXT = "CV, które dobrze wygląda i jeszcze lepiej Cię przedstawia";
 const ACCENT_WORD = "jeszcze lepiej Cię przedstawia";
@@ -291,6 +292,10 @@ export default function Hero() {
     const [flipped, setFlipped] = useState({});
     const [previewTemplate, setPreviewTemplate] = useState(null);
     const toggleFlip = (i) => setFlipped((f) => ({ ...f, [i]: !f[i] }));
+
+    useEffect(() => {
+        wakeBackend();
+    }, []);
 
     const typedCount = useTypewriter(HEADING_TEXT, TYPE_SPEED_MS);
     const typingDone = typedCount >= HEADING_TEXT.length;

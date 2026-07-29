@@ -42,6 +42,15 @@ export const ENDPOINTS = {
 
 export default API_BASE_URL;
 
+/** Fire-and-forget ping so a sleeping Render dyno starts before login/register. */
+export function wakeBackend() {
+    return fetch(`${API_BASE_URL}/health`, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+    }).catch(() => null);
+}
+
 export class ApiClient {
     constructor(headers) {
         this.baseUrl = API_BASE_URL,
@@ -49,18 +58,25 @@ export class ApiClient {
         this.DATA = []
     }
 
-    async httpRequest(endpoint, method, body, errorMessage) {
+    async httpRequest(endpoint, method, body, errorMessage, options = {}) {
 
         const fallbackMessage = errorMessage || "Wystąpił błąd podczas komunikacji z serwerem.";
         const headers = { ...this.headers };
         if (body instanceof FormData) delete headers['Content-Type'];
+
+        const timeoutMs = options.timeoutMs;
+        const controller = timeoutMs != null ? new AbortController() : null;
+        const timeoutId = controller
+            ? setTimeout(() => controller.abort(), timeoutMs)
+            : null;
 
         try {
             const response = await fetch(this.baseUrl + endpoint, {
                 method: method,
                 headers: headers,
                 body: body,
-                credentials: "include"
+                credentials: "include",
+                ...(controller ? { signal: controller.signal } : {}),
             });
 
             if (!response.ok) {
@@ -92,8 +108,13 @@ export class ApiClient {
             }
 
         } catch (error) {
+            if (error?.name === "AbortError") {
+                throw new Error("Serwer nie odpowiada. Odśwież stronę i spróbuj ponownie.");
+            }
             if (error instanceof Error) throw error;
             throw new Error(fallbackMessage);
+        } finally {
+            if (timeoutId) clearTimeout(timeoutId);
         }
     }
     

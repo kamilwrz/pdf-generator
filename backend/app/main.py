@@ -28,6 +28,12 @@ logger = logging.getLogger("ai_assistant")
 app = FastAPI()
 
 
+@app.get("/health")
+def health():
+    """Cheap liveness probe used by the frontend to wake a sleeping Render dyno."""
+    return {"status": "ok"}
+
+
 @app.on_event("startup")
 def on_startup() -> None:
     """Connect to DB after the process is up; retry flaky Render SSL handshakes."""

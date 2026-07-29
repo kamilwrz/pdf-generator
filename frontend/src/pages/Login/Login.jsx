@@ -1,10 +1,9 @@
 import classes from "./Login.module.css";
 
-import { ApiClient } from "../../services/api";
-import { ENDPOINTS } from "../../services/api";
+import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
 
 import { useNavigate, Link } from "react-router-dom"
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const UserIcon = () => (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#97A1B0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 20a8 8 0 0 1 16 0" /></svg>
@@ -18,32 +17,57 @@ export default function Login() {
 
     const navigate = useNavigate();
 
-    const [password, setPassword] = useState();
-    const [username, setUsername] = useState();
-    const [error, setError] = useState();
-    const [isLoading, setIsLoading] = useState();
+    const [password, setPassword] = useState("");
+    const [username, setUsername] = useState("");
+    const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [statusMessage, setStatusMessage] = useState("");
+    const hintTimerRef = useRef(null);
+
+    // Wake a sleeping Render free-tier dyno while the user types credentials.
+    useEffect(() => {
+        wakeBackend();
+        return () => {
+            if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+        };
+    }, []);
 
     function handleSubmit(e) {
         e.preventDefault();
+        if (isLoading) return;
+
+        setError("");
+        setIsLoading(true);
+        setStatusMessage("Logowanie…");
+
+        if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+        hintTimerRef.current = setTimeout(() => {
+            setStatusMessage("Budzenie serwera… to może potrwać do minuty przy pierwszym uruchomieniu.");
+        }, 6000);
 
         const formDetails = new URLSearchParams();
-        formDetails.append("username", username);
+        formDetails.append("username", username.trim());
         formDetails.append("password", password);
 
         const api = new ApiClient({ "Content-Type": "application/x-www-form-urlencoded" });
-        api.httpRequest(ENDPOINTS.AUTH.LOGIN, "POST", formDetails, "Logowanie nie powiodło się").
-        then((data) => {
-            setIsLoading(true);
-            localStorage.setItem("token", data.access_token);
-            setTimeout(() => {
-                navigate("/pdfcanvas");
+        api.httpRequest(
+            ENDPOINTS.AUTH.LOGIN,
+            "POST",
+            formDetails,
+            "Logowanie nie powiodło się",
+            { timeoutMs: 120_000 },
+        )
+            .then((data) => {
+                if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+                localStorage.setItem("token", data.access_token);
+                navigate("/pdfcanvas", { replace: true });
+            })
+            .catch((err) => {
+                if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+                setError(err.message);
+                setStatusMessage("");
                 setIsLoading(false);
-            }, 2000)
-        }).
-        catch((error) => {
-            setError(error.message);
-            setIsLoading(false);
-        })
+            });
     }
 
     function handleChangeUsername(e) {
@@ -72,7 +96,7 @@ export default function Login() {
                                 id="username"
                                 type="text"
                                 name="username"
-                                value={username ?? ""}
+                                value={username}
                                 onChange={handleChangeUsername}
                                 placeholder="Wpisz nazwę użytkownika"
                                 autoComplete="username"
@@ -88,7 +112,7 @@ export default function Login() {
                                 id="password"
                                 type="password"
                                 name="password"
-                                value={password ?? ""}
+                                value={password}
                                 onChange={handleChangePassword}
                                 placeholder="Wpisz hasło"
                                 autoComplete="current-password"
@@ -99,6 +123,11 @@ export default function Login() {
                     {error && (
                         <p className={classes.error} role="alert">
                             {error}
+                        </p>
+                    )}
+                    {isLoading && statusMessage && !error && (
+                        <p className={classes.status} role="status" aria-live="polite">
+                            {statusMessage}
                         </p>
                     )}
                     <button
