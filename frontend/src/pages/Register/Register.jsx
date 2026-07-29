@@ -1,7 +1,7 @@
 import classes from "./Register.module.css";
 import planClasses from "./PlanSelector.module.css";
 
-import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
+import { ApiClient, ENDPOINTS, waitForBackend, wakeBackend } from "../../services/api";
 
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -41,32 +41,53 @@ export default function Register() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [statusMessage, setStatusMessage] = useState("");
 
     useEffect(() => {
         wakeBackend();
     }, []);
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault();
         if (isLoading) return;
         setError("");
         setIsLoading(true);
+        setStatusMessage("Łączenie z serwerem…");
 
-        const api = new ApiClient();
-        api.httpRequest(
-            ENDPOINTS.AUTH.REGISTER,
-            "POST",
-            JSON.stringify({ username, email, password, plan }),
-            "Rejestracja nie powiodła się",
-            { timeoutMs: 120_000 },
-        )
-            .then(() => {
-                navigate("/login", { replace: true });
-            })
-            .catch((err) => {
-                setError(err.message);
-                setIsLoading(false);
+        try {
+            const ready = await waitForBackend({
+                timeoutMs: 100_000,
+                intervalMs: 2_500,
+                onProgress: () => {
+                    setStatusMessage("Budzenie serwera… to może potrwać do minuty przy pierwszym uruchomieniu.");
+                },
             });
+            if (!ready) {
+                throw new Error("Serwer nadal się uruchamia. Poczekaj chwilę i spróbuj ponownie.");
+            }
+
+            setStatusMessage("Tworzenie konta…");
+            const api = new ApiClient();
+            await api.httpRequest(
+                ENDPOINTS.AUTH.REGISTER,
+                "POST",
+                JSON.stringify({ username, email, password, plan }),
+                "Rejestracja nie powiodła się",
+                {
+                    timeoutMs: 45_000,
+                    retries: 5,
+                    retryDelayMs: 2_000,
+                    onRetry: (attempt) => {
+                        setStatusMessage(`Ponawianie rejestracji (${attempt}/5)… serwer właśnie wstaje.`);
+                    },
+                },
+            );
+            navigate("/login", { replace: true });
+        } catch (err) {
+            setError(err.message || "Rejestracja nie powiodła się");
+            setStatusMessage("");
+            setIsLoading(false);
+        }
     }
 
     return (
@@ -145,6 +166,11 @@ export default function Register() {
                     {error && (
                         <p className={classes.error} role="alert">
                             {error}
+                        </p>
+                    )}
+                    {isLoading && statusMessage && !error && (
+                        <p className={classes.status} role="status" aria-live="polite">
+                            {statusMessage}
                         </p>
                     )}
                     <button

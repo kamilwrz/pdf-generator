@@ -1,9 +1,9 @@
 import classes from "./Login.module.css";
 
-import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
+import { ApiClient, ENDPOINTS, waitForBackend, wakeBackend } from "../../services/api";
 
 import { useNavigate, Link } from "react-router-dom"
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 const UserIcon = () => (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#97A1B0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 20a8 8 0 0 1 16 0" /></svg>
@@ -22,52 +22,59 @@ export default function Login() {
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [statusMessage, setStatusMessage] = useState("");
-    const hintTimerRef = useRef(null);
 
-    // Wake a sleeping Render free-tier dyno while the user types credentials.
+    // Start waking a sleeping Render free-tier dyno while the user types.
     useEffect(() => {
         wakeBackend();
-        return () => {
-            if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-        };
     }, []);
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault();
         if (isLoading) return;
 
         setError("");
         setIsLoading(true);
-        setStatusMessage("Logowanie…");
+        setStatusMessage("Łączenie z serwerem…");
 
-        if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-        hintTimerRef.current = setTimeout(() => {
-            setStatusMessage("Budzenie serwera… to może potrwać do minuty przy pierwszym uruchomieniu.");
-        }, 6000);
-
-        const formDetails = new URLSearchParams();
-        formDetails.append("username", username.trim());
-        formDetails.append("password", password);
-
-        const api = new ApiClient({ "Content-Type": "application/x-www-form-urlencoded" });
-        api.httpRequest(
-            ENDPOINTS.AUTH.LOGIN,
-            "POST",
-            formDetails,
-            "Logowanie nie powiodło się",
-            { timeoutMs: 120_000 },
-        )
-            .then((data) => {
-                if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-                localStorage.setItem("token", data.access_token);
-                navigate("/pdfcanvas", { replace: true });
-            })
-            .catch((err) => {
-                if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-                setError(err.message);
-                setStatusMessage("");
-                setIsLoading(false);
+        try {
+            const ready = await waitForBackend({
+                timeoutMs: 100_000,
+                intervalMs: 2_500,
+                onProgress: () => {
+                    setStatusMessage("Budzenie serwera… to może potrwać do minuty przy pierwszym uruchomieniu.");
+                },
             });
+            if (!ready) {
+                throw new Error("Serwer nadal się uruchamia. Poczekaj chwilę i spróbuj ponownie.");
+            }
+
+            setStatusMessage("Logowanie…");
+            const formDetails = new URLSearchParams();
+            formDetails.append("username", username.trim());
+            formDetails.append("password", password);
+
+            const api = new ApiClient({ "Content-Type": "application/x-www-form-urlencoded" });
+            const data = await api.httpRequest(
+                ENDPOINTS.AUTH.LOGIN,
+                "POST",
+                formDetails,
+                "Logowanie nie powiodło się",
+                {
+                    timeoutMs: 45_000,
+                    retries: 5,
+                    retryDelayMs: 2_000,
+                    onRetry: (attempt) => {
+                        setStatusMessage(`Ponawianie logowania (${attempt}/5)… serwer właśnie wstaje.`);
+                    },
+                },
+            );
+            localStorage.setItem("token", data.access_token);
+            navigate("/pdfcanvas", { replace: true });
+        } catch (err) {
+            setError(err.message || "Logowanie nie powiodło się");
+            setStatusMessage("");
+            setIsLoading(false);
+        }
     }
 
     function handleChangeUsername(e) {

@@ -42,24 +42,118 @@ export const ENDPOINTS = {
 
 export default API_BASE_URL;
 
-/** Fire-and-forget ping so a sleeping Render dyno starts before login/register. */
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** True for cold-start / proxy blips browsers report as "Failed to fetch". */
+export function isTransientNetworkError(error) {
+    if (!error) return false;
+    if (error.name === "AbortError") return true;
+    if ([502, 503, 504].includes(error.status)) return true;
+    const message = String(error.message || "").toLowerCase();
+    return (
+        message.includes("failed to fetch")
+        || message.includes("networkerror")
+        || message.includes("network request failed")
+        || message.includes("load failed")
+        || message.includes("serwer nie odpowiada")
+        || message.includes("nie udało się połączyć")
+    );
+}
+
+function networkErrorMessage(fallbackMessage) {
+    return "Nie udało się połączyć z serwerem (trwa uruchamianie). Spróbuj ponownie za chwilę.";
+}
+
+/**
+ * Poll /health until the Render dyno accepts requests.
+ * Returns true when ready, false on timeout.
+ */
+export async function waitForBackend({
+    timeoutMs = 100_000,
+    intervalMs = 2_500,
+    onProgress,
+} = {}) {
+    const started = Date.now();
+    let attempt = 0;
+
+    while (Date.now() - started < timeoutMs) {
+        attempt += 1;
+        onProgress?.(attempt);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8_000);
+        try {
+            // omit credentials — cold-start error pages often lack CORS ACAO
+            const response = await fetch(`${API_BASE_URL}/health`, {
+                method: "GET",
+                cache: "no-store",
+                credentials: "omit",
+                signal: controller.signal,
+            });
+            if (response.ok) {
+                const contentType = response.headers.get("content-type") || "";
+                if (contentType.includes("application/json")) {
+                    const body = await response.json().catch(() => null);
+                    if (body?.status === "ok") return true;
+                }
+                // Any HTTP 200 means the process is listening (SPA fallback on older deploys).
+                return true;
+            }
+        } catch {
+            // Dyno still sleeping / starting — keep polling.
+        } finally {
+            clearTimeout(timeoutId);
+        }
+        await sleep(intervalMs);
+    }
+    return false;
+}
+
+/** Fire-and-forget warmup so a sleeping Render dyno starts before login/register. */
 export function wakeBackend() {
+    waitForBackend({ timeoutMs: 100_000 }).catch(() => null);
     return fetch(`${API_BASE_URL}/health`, {
         method: "GET",
-        credentials: "include",
+        credentials: "omit",
         cache: "no-store",
     }).catch(() => null);
 }
 
 export class ApiClient {
     constructor(headers) {
-        this.baseUrl = API_BASE_URL,
-        this.headers = { 'Content-Type': 'application/json', ...headers },
-        this.DATA = []
+        this.baseUrl = API_BASE_URL;
+        this.headers = { 'Content-Type': 'application/json', ...headers };
+        this.DATA = [];
     }
 
     async httpRequest(endpoint, method, body, errorMessage, options = {}) {
+        const retries = Math.max(0, options.retries ?? 0);
+        const retryDelayMs = options.retryDelayMs ?? 2_000;
+        let lastError = null;
 
+        for (let attempt = 0; attempt <= retries; attempt += 1) {
+            if (attempt > 0) {
+                options.onRetry?.(attempt);
+                await sleep(retryDelayMs * attempt);
+            }
+            try {
+                return await this._httpRequestOnce(endpoint, method, body, errorMessage, options);
+            } catch (error) {
+                lastError = error;
+                const retryable = isTransientNetworkError(error);
+                if (!retryable || attempt === retries) {
+                    if (isTransientNetworkError(error) && !error.status) {
+                        throw new Error(networkErrorMessage(errorMessage));
+                    }
+                    throw error;
+                }
+            }
+        }
+        throw lastError || new Error(errorMessage || "Wystąpił błąd podczas komunikacji z serwerem.");
+    }
+
+    async _httpRequestOnce(endpoint, method, body, errorMessage, options = {}) {
         const fallbackMessage = errorMessage || "Wystąpił błąd podczas komunikacji z serwerem.";
         const headers = { ...this.headers };
         if (body instanceof FormData) delete headers['Content-Type'];
@@ -102,14 +196,13 @@ export class ApiClient {
                 requestError.detail = detail;
                 throw requestError;
             }
-            else{
-                const data = await response.json();
-                return data;  
-            }
 
+            return await response.json();
         } catch (error) {
             if (error?.name === "AbortError") {
-                throw new Error("Serwer nie odpowiada. Odśwież stronę i spróbuj ponownie.");
+                const abortError = new Error("Serwer nie odpowiada. Odśwież stronę i spróbuj ponownie.");
+                abortError.name = "AbortError";
+                throw abortError;
             }
             if (error instanceof Error) throw error;
             throw new Error(fallbackMessage);
@@ -117,5 +210,4 @@ export class ApiClient {
             if (timeoutId) clearTimeout(timeoutId);
         }
     }
-    
 }
