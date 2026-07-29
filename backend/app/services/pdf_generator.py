@@ -138,31 +138,48 @@ class PDF_Generator:
         """Set the PDF document title metadata shown in viewers."""
         self.c.setTitle(title)
 
-    def renderImage(self, src, width, height, left, top):
+    def renderImage(self, src, width, height, left, top, align_with_text=False):
         """Draw a bitmap after flipping Y so `top` matches the editor.
 
         PNG/RGBA icons must use ``mask='auto'`` — with ``mask=None`` ReportLab
         paints transparent pixels as opaque black, which shows up as solid
         squares around line-art template icons.
+
+        ``align_with_text`` (or iconic template-asset URLs): ``top`` is the
+        companion text line's CSS top. ``renderText`` places cap centres ~1.2pt
+        above that top (baseline factor 0.34×fontSize + Montserrat ascent), so
+        the image is shifted to share that optical mid-line.
         """
-        corrected_y = self.page_h - top - height
-        if not src:
+        h = float(height)
+        w = float(width)
+        t = float(top)
+        src_s = str(src or "")
+        align = bool(align_with_text) or ("/template-assets/iconic/" in src_s.replace("\\", "/"))
+        if align and h <= 32 and w <= 32:
+            # Cap-centre of an ~8.5pt Montserrat label at the same authored top.
+            text_cap_mid = t - 1.2
+            t = text_cap_mid - h / 2
+        corrected_y = self.page_h - t - h
+        if not src_s:
             return
+        self.c.saveState()
         try:
-            reader = self._image_reader_for_pdf(src)
-            self.c.drawImage(
-                reader,
-                left,
-                corrected_y,
-                width=width,
-                height=height,
-                mask="auto",
-            )
-        except Exception:
-            # Fall back for exotic paths / missing files — still request alpha.
-            self.c.drawImage(
-                src, left, corrected_y, width=width, height=height, mask="auto",
-            )
+            try:
+                reader = self._image_reader_for_pdf(src_s)
+                self.c.drawImage(
+                    reader,
+                    left,
+                    corrected_y,
+                    width=w,
+                    height=h,
+                    mask="auto",
+                )
+            except Exception:
+                self.c.drawImage(
+                    src_s, left, corrected_y, width=w, height=h, mask="auto",
+                )
+        finally:
+            self.c.restoreState()
 
     @staticmethod
     def _image_reader_for_pdf(src):
@@ -583,7 +600,14 @@ class PDF_Generator:
                     if source is not None and target is not None:
                         self.renderConnector(source, target, element.backgroundColor, getattr(element, "borderWidth", 1), getattr(element, "arrow", False))
                 elif category == "image":
-                    self.renderImage(image_resolver(element.src or ""), float(element.width), float(element.height), element.left, element.top)
+                    self.renderImage(
+                        image_resolver(element.src or ""),
+                        float(element.width),
+                        float(element.height),
+                        element.left,
+                        element.top,
+                        align_with_text=bool(getattr(element, "alignWithText", False)),
+                    )
             self.c.showPage()
 
         self.c.save()

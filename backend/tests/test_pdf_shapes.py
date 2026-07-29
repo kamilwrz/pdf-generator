@@ -26,6 +26,12 @@ class RecordingCanvas:
     def drawImage(self, *args, **kwargs):
         self.calls.append(("drawImage", args, kwargs))
 
+    def saveState(self):
+        self.calls.append(("saveState",))
+
+    def restoreState(self):
+        self.calls.append(("restoreState",))
+
 
 class PdfShapeTests(unittest.TestCase):
     def setUp(self):
@@ -55,6 +61,19 @@ class PdfShapeTests(unittest.TestCase):
         self.assertEqual(len(draw_calls), 1)
         _, _args, kwargs = draw_calls[0]
         self.assertEqual(kwargs.get("mask"), "auto")
+        self.assertIn(("saveState",), self.generator.c.calls)
+        self.assertIn(("restoreState",), self.generator.c.calls)
+
+    def test_iconic_images_are_optically_aligned_with_text_top(self):
+        icon = Path(__file__).resolve().parents[1] / "template_assets" / "iconic" / "nova" / "email.png"
+        self.generator.renderImage(str(icon), 11, 11, 48, 200, align_with_text=True)
+
+        draw_calls = [call for call in self.generator.c.calls if call[0] == "drawImage"]
+        self.assertEqual(len(draw_calls), 1)
+        _name, args, _kwargs = draw_calls[0]
+        # text cap mid ≈ 200 - 1.2; image top = mid - h/2 = 193.3
+        # PDF y = page_h - top - h = 842 - 193.3 - 11 = 637.7
+        self.assertAlmostEqual(args[2], 637.7, places=1)
 
     def test_iconic_png_exports_without_opaque_black_squares(self):
         try:

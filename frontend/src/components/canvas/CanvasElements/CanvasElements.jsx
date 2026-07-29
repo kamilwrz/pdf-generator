@@ -84,6 +84,7 @@ export default function CanvasElements({ elements }) {
           category={element.category}
           zIndex={element.zIndex}
           fixedToPage={element.fixedToPage}
+          alignWithText={element.alignWithText}
         />
       );
     } else if (element.category === "line") {

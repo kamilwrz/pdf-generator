@@ -16,12 +16,14 @@ const icon = (theme, name, left, top, size = 11, zIndex = 3) => ({
     left,
     top,
     zIndex,
+    // `top` is the companion label's CSS top; canvas + PDF centre the glyph on that line.
+    alignWithText: true,
 });
 
 /**
  * Place an icon on the same row as a text label.
- * Uses the label top — never shifts the icon above the text box (that made
- * section marks look like they floated over the headings).
+ * Stores the label's `top` (not a pre-shifted image top) so PDF/canvas
+ * optical alignment can centre the glyph on the caps.
  */
 const iconBeside = (theme, name, left, textTop, _textFs, size = 11) =>
     icon(theme, name, left, textTop, size);
@@ -293,25 +295,24 @@ const chip = (left, top, w, h) => ({
 
 /**
  * One section mark: chip + icon + label on a single baseline.
- * Chip top == icon top == label top so nothing drifts toward body copy.
+ * Icon and label share the same logical `top` (text line); the chip frames them.
  */
 const voltSection = (name, label, y) => {
     const textTop = y + (VOLT_CHIP_SIZE - VOLT_HEAD_FS) / 2;
-    const iconPad = (VOLT_CHIP_SIZE - VOLT_ICON) / 2;
+    const iconLeft = 48 + (VOLT_CHIP_SIZE - VOLT_ICON) / 2;
     return [
         chip(48, y, VOLT_CHIP_SIZE, VOLT_CHIP_SIZE),
-        icon("volt", name, 48 + iconPad, y + iconPad, VOLT_ICON),
+        icon("volt", name, iconLeft, textTop, VOLT_ICON),
         tracked(text(label, VOLT_HEAD_FS, VOLT_SANS, VOLT_ACCENT, 78, textTop, 3), 1.35),
     ];
 };
 
 const voltContact = (name, chipLeft, y, chipW, label) => {
     const textTop = y + (VOLT_CHIP_SIZE - VOLT_CONTACT_FS) / 2;
-    const iconPad = (VOLT_CHIP_SIZE - VOLT_ICON) / 2;
     const iconLeft = chipLeft + 6;
     return [
         chip(chipLeft, y, chipW, VOLT_CHIP_SIZE),
-        icon("volt", name, iconLeft, y + iconPad, VOLT_ICON),
+        icon("volt", name, iconLeft, textTop, VOLT_ICON),
         text(label, VOLT_CONTACT_FS, VOLT_MONO, VOLT_BODY, iconLeft + VOLT_ICON + 6, textTop, 3),
     ];
 };

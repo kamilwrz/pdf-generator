@@ -39,16 +39,14 @@ def _icon(theme: str, name: str, left: float, top: float, size: float = 12, *,
         "height": size,
         "zIndex": zIndex,
         "page": page,
+        # `top` is the companion label's CSS top; PDF/canvas centre the glyph.
+        "alignWithText": True,
     }
 
 
 def _icon_beside(theme: str, name: str, left: float, text_top: float,
                  text_fs: float, size: float = 11, *, page: int = 1) -> dict:
-    """Place an icon on the same row as a text label (shared top edge).
-
-    Matching the frontend templates: never shift the icon above the label —
-    oversized icons used to float over headings on the canvas.
-    """
+    """Place an icon on the same row as a text label (shared logical top)."""
     del text_fs  # kept for call-site compatibility with older generators
     return _icon(theme, name, left, text_top, size, page=page)
 
@@ -231,10 +229,9 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         ):
             if not value:
                 continue
-            icon_pad = (chip_h - contact_icon) / 2
             text_top = chip_top + (chip_h - contact_fs) / 2
             header.append(_rect(x, chip_top, width, chip_h, C["chip"], 1, zIndex=1))
-            header.append(_icon(ICON, key, x + 6, chip_top + icon_pad, contact_icon))
+            header.append(_icon(ICON, key, x + 6, text_top, contact_icon))
             header.append(_text(
                 value, contact_fs, MONO, C["body"],
                 x + 6 + contact_icon + 6, text_top, zIndex=3,
@@ -255,14 +252,9 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         page = b.pg
         if C["layout"] == "volt":
             text_top = y + (volt_chip - label_fs) / 2
-            icon_pad = (volt_chip - section_icon) / 2
+            icon_left = C["icon_x"] + (volt_chip - section_icon) / 2
             b.els.append(_rect(C["icon_x"], y, volt_chip, volt_chip, C["chip"], 1, zIndex=1, page=page))
-            b.els.append(_icon(
-                ICON, key,
-                C["icon_x"] + icon_pad,
-                y + icon_pad,
-                section_icon, page=page,
-            ))
+            b.els.append(_icon(ICON, key, icon_left, text_top, section_icon, page=page))
             heading = _text(label, label_fs, SANS, C["accent"], 78, text_top, zIndex=3, page=page)
             heading["letterSpacing"] = 1.35
             b.els.append(heading)

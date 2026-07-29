@@ -2,6 +2,8 @@
  * Canvas image element with resize handles when selected.
  * Template-asset URLs are rewritten to the API origin outside localhost.
  * `fixedToPage` disables pointer events (sidebars/backgrounds).
+ * Iconic icons store `top` as the companion text line top; the draw offset
+ * centres the glyph on that line (mirrors PDF `align_with_text`).
  */
 import classes from "./Image.module.css";
 import { memo, useState } from 'react';
@@ -17,6 +19,18 @@ function resolveTemplateAssetSrc(src) {
     return assetPath && !isLocalFrontend ? `${API_BASE_URL}${assetPath}` : src;
 }
 
+function isTextAlignedIcon(src, alignWithText) {
+    if (alignWithText) return true;
+    return /\/template-assets\/iconic\//.test(String(src || ""));
+}
+
+/** CSS top so a square icon's centre matches an ~8.5pt label at `lineTop`. */
+function iconicDrawTop(lineTop, size) {
+    const h = Number(size) || 11;
+    const textCapMid = Number(lineTop) + Math.min(h, 12) * 0.35;
+    return textCapMid - h / 2;
+}
+
 function Image({
     src,
     width,
@@ -28,6 +42,7 @@ function Image({
     isMove,
     zIndex,
     fixedToPage,
+    alignWithText,
 }) {
 
     const { moveElement, selectElement, A4_Elements, selectMoveElement, resizeElement } = use(PdfContext)
@@ -35,6 +50,9 @@ function Image({
     const [isResizeable, setIsResizeable] = useState(false);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
     const displaySrc = resolveTemplateAssetSrc(src);
+    const drawTop = isTextAlignedIcon(src, alignWithText)
+        ? iconicDrawTop(top, height)
+        : top;
 
     const image = useRef();
 
@@ -46,9 +64,10 @@ function Image({
         width: width,
         height: height,
         left: left,
-        top: top,
+        top: drawTop,
         position: "absolute",
         zIndex: zIndex,
+        objectFit: "contain",
         ...(fixedToPage ? { pointerEvents: "none" } : {}),
     }
 
