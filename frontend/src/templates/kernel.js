@@ -13,9 +13,6 @@ const BACKGROUND = `${API_BASE_URL}/template-assets/kernel-it-architecture.png`;
 
 const bold = (element) => ({ ...element, bold: true });
 const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
-const connector = (source_id, target_id, color = BLUE) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 1, arrow: false, zIndex: 3 }
-);
 
 // Kernel — a bright blueprint composition. A technical rail supports the
 // hierarchy while warm circular markers make sections quick to scan.
@@ -38,8 +35,7 @@ export const kernelTemplate = [
     { ...ellipse(435, 54, 75, 34, TEAL, false, 1.2, 3), id: "kernel-orbit" },
     { ...circle(456, 64, 15, GOLD, true, 1, 3), id: "kernel-core" },
     { ...circle(494, 64, 15, BLUE, false, 1.2, 3), id: "kernel-node" },
-    connector("kernel-core", "kernel-node", GOLD),
-
+    line(471, 70, 23, 1, GOLD, 2),
     { ...circle(143, 185, 12, GOLD, true, 1, 3), id: "kernel-profile" },
     tracked(text("PROFIL", 8.5, SANS, INK, 167, 184, 3), 1.5),
     line(167, 203, 355, 1, "#ACC5D8", 2),

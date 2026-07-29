@@ -17,9 +17,6 @@ const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
     { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
 );
-const connector = (source_id, target_id, color = GOLD) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 0.8, arrow: false, zIndex: 3 }
-);
 
 // Garnet — formal art-deco framing with a deep burgundy sidebar image.
 export const garnetTemplate = [
@@ -48,9 +45,7 @@ export const garnetTemplate = [
     { ...rect(462, 52, 58, 54, GOLD, 0.8, 3), id: "garnet-frame" },
     { ...ellipse(472, 62, 35, 17, WINE, false, 1, 3), id: "garnet-arc" },
     { ...circle(484, 82, 11, ROSE, true, 1, 3), id: "garnet-seal" },
-    connector("garnet-frame", "garnet-arc", RULE),
-    connector("garnet-arc", "garnet-seal"),
-
+    line(528, 86, 14, 1, GOLD, 2),
     { ...circle(220, 184, 8, GOLD, true, 1, 3), id: "garnet-profile" },
     tracked(text("PROFIL", 8.4, SANS, WINE, 242, 182, 3), 1.55),
     line(242, 200, 304, 1, RULE, 2),

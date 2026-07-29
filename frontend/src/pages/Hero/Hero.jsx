@@ -75,10 +75,10 @@ const CANVAS_CARDS = [
     {
         color: "#E5A65C", tint: "rgba(229,166,92,.14)",
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E5A65C" strokeWidth="1.9"><ellipse cx="12" cy="12" rx="9" ry="5.5" /><rect x="7" y="7" width="10" height="10" /></svg>,
-        title: "Kształty, linie, łączniki",
+        title: "Kształty i linie",
         desc: "Prostokąty, koła, elipsy i linie — wypełnienie albo obrys, z pełną kontrolą krawędzi.",
         backTitle: "Własny system wizualny, nie szablon nr 3",
-        bullets: ["Wypełnienie lub obrys, grubość krawędzi", "Kolor krawędzi i wypełnienia", "Łączniki z opcjonalnymi strzałkami", "Akcenty redakcyjne: osie, ramki, podziały"],
+        bullets: ["Wypełnienie lub obrys, grubość krawędzi", "Kolor krawędzi i wypełnienia", "Subtelne akcenty: osie, ramki, podziały", "Precyzyjne wyrównanie na siatce A4"],
         note: "Kilka linii potrafi zrobić z CV dokument, który się zapamiętuje.",
     },
     {

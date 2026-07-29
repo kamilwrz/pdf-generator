@@ -20,9 +20,6 @@ const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
     { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
 );
-const connector = (source_id, target_id, color = GOLD) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 0.9, arrow: false, zIndex: 3 }
-);
 
 export const obsidianTemplate = [
     { ...line(0, 0, SIDE, 842, SIDEBAR_BG, 0), fixedToPage: true },
@@ -36,9 +33,7 @@ export const obsidianTemplate = [
     { ...rect(464, 50, 56, 52, GOLD, 1, 3), id: "obsidian-frame" },
     { ...ellipse(474, 60, 32, 15, GOLD, false, 1, 3), id: "obsidian-orbit" },
     { ...circle(484, 79, 11, GOLD, true, 1, 3), id: "obsidian-node" },
-    connector("obsidian-frame", "obsidian-orbit", RULE),
-    connector("obsidian-orbit", "obsidian-node"),
-
+    line(528, 74, 14, 1, GOLD, 2),
     tracked(text("KONTAKT", 8, SANS, GOLD, 24, 60, 3), 1.3),
     block("Warszawa\nkatarzyna.zielinska@email.com\n+48 600 000 000", 24, 80, 136, 46, 8, 12.5, BODY, SANS),
     tracked(text("OBSZARY", 8, SANS, GOLD, 24, 200, 3), 1.3),

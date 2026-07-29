@@ -10,7 +10,7 @@ import { ENDPOINTS } from "../services/api";
 export async function download(url) {
     const response = await fetch(url, {
         method: "POST",
-        credentials: "include",
+        credentials: "omit",
         body: 74,
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     });

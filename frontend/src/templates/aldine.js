@@ -14,9 +14,6 @@ const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
     { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
 );
-const connector = (source_id, target_id, color = FOREST) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 0.8, arrow: false, zIndex: 3 }
-);
 
 // Aldine — warm paper, elegant serif hierarchy and a quiet, old-world seal.
 // It is deliberately conventional in structure so it still reads like a
@@ -35,10 +32,8 @@ export const aldineTemplate = [
     { ...circle(446, 61, 48, FOREST, false, 1, 3), id: "aldine-seal" },
     { ...ellipse(458, 76, 24, 10, OLIVE, false, 0.9, 3), id: "aldine-lozenge" },
     { ...circle(465, 93, 10, FOREST, true, 1, 3), id: "aldine-core" },
+    line(508, 96, 14, 1, FOREST, 2),
     { ...rect(437, 52, 66, 66, SAND, 0.7, 3), id: "aldine-frame" },
-    connector("aldine-frame", "aldine-seal", SAND),
-    connector("aldine-lozenge", "aldine-core", FOREST),
-
     { ...circle(94, 195, 7, FOREST, true, 1, 3), id: "aldine-profile" },
     tracked(text("PROFIL", 8.4, SANS, FOREST, 116, 193, 3), 1.65),
     line(116, 211, 384, 1, SAND, 2),

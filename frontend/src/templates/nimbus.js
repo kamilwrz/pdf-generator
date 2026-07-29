@@ -18,9 +18,6 @@ const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
     { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
 );
-const connector = (source_id, target_id) => (
-    { category: "connector", source_id, target_id, backgroundColor: POWDER, borderWidth: 1, arrow: false, zIndex: 1 }
-);
 
 export const nimbusTemplate = [
     // A soft header composition: editable image, quiet rules and generous air.
@@ -45,13 +42,12 @@ export const nimbusTemplate = [
     ),
     text("anna.kowalska@email.com  /  +48 600 000 000  /  Warszawa", 8.7, SANS, SLATE, 80, 153, 2),
 
-    // Three outline marks and their connectors add an understated data rhythm.
+    // Three outline marks linked by hairlines add an understated data rhythm.
     { ...rect(80, 176, 14, 14, BLUE, 1.2, 2), id: "nimbus-mark-one" },
     { ...rect(114, 176, 14, 14, POWDER, 1.2, 2), id: "nimbus-mark-two" },
     { ...rect(148, 176, 14, 14, POWDER, 1.2, 2), id: "nimbus-mark-three" },
-    connector("nimbus-mark-one", "nimbus-mark-two"),
-    connector("nimbus-mark-two", "nimbus-mark-three"),
-
+    line(94, 182, 20, 1, POWDER, 1),
+    line(128, 182, 20, 1, POWDER, 1),
     tracked(text("PROFIL", 8.7, SANS, BLUE, 80, 248, 2), 1.4),
     line(80, 265, 306, 1, CLOUD, 1),
     block(

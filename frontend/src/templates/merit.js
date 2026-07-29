@@ -14,9 +14,6 @@ const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
     { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
 );
-const connector = (source_id, target_id, color = STEEL) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 0.8, arrow: false, zIndex: 3 }
-);
 
 // Merit — a cool, diplomatic document with a formal report-like cadence.
 // Pale outlines and small geometric cues are deliberately secondary to type.
@@ -32,11 +29,10 @@ export const meritTemplate = [
 
     { ...rect(452, 58, 67, 58, STEEL, 0.8, 3), id: "merit-panel" },
     { ...ellipse(462, 69, 47, 18, STEEL, false, 1, 3), id: "merit-capsule" },
+    line(522, 70, 14, 1, SILVER, 2),
     { ...circle(476, 93, 12, STEEL, true, 1, 3), id: "merit-dot-one" },
     { ...circle(497, 93, 12, BLUEGREY, false, 1, 3), id: "merit-dot-two" },
-    connector("merit-panel", "merit-capsule", SILVER),
-    connector("merit-dot-one", "merit-dot-two", STEEL),
-
+    line(488, 98, 9, 1, STEEL, 2),
     { ...ellipse(76, 194, 13, 13, STEEL, false, 0.9, 3), id: "merit-profile" },
     tracked(text("PROFIL", 8.4, SANS, STEEL, 102, 193, 3), 1.6),
     line(102, 211, 418, 1, SILVER, 2),

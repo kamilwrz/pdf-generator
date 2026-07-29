@@ -7,7 +7,6 @@ import SidebarControls from "../../common/SidebarControls/SidebarControls";
 import { FaRegImages } from "react-icons/fa";
 import { TfiLayoutLineSolid } from "react-icons/tfi";
 import { BiCircle, BiRectangle } from "react-icons/bi";
-import { TbTopologyStar3 } from "react-icons/tb";
 import { CiText } from "react-icons/ci";
 import { BsTextParagraph } from "react-icons/bs";
 import { LuImagePlus } from "react-icons/lu";
@@ -25,7 +24,6 @@ export default function Sidebar({ children }) {
         addRectangle,
         addCircle,
         addEllipse,
-        addConnector,
         addTextarea,
         showDropzone,
         showGallery,
@@ -61,7 +59,6 @@ export default function Sidebar({ children }) {
                     labelText="Dodaj elipsę"
                     sidebarEvent={addEllipse}
                 />
-                <SidebarControls icon={<TbTopologyStar3 />} labelText="Dodaj łącznik" sidebarEvent={addConnector} />
             </div>
         </div>
 

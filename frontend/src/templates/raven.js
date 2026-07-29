@@ -17,9 +17,6 @@ const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
     { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
 );
-const connector = (source_id, target_id, color = TEAL) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 1, arrow: false, zIndex: 2 }
-);
 
 export const ravenTemplate = [
     { ...line(0, 0, 595, 842, BODY_BG, 0), fixedToPage: true },
@@ -34,9 +31,7 @@ export const ravenTemplate = [
     { ...rect(425, 34, 72, 72, TEAL, 1.2, 3), id: "raven-frame-one" },
     { ...rect(455, 63, 78, 78, "#4C5760", 1, 3), id: "raven-frame-two" },
     { ...rect(482, 39, 12, 12, INK, 1, 3), id: "raven-node" },
-    connector("raven-frame-one", "raven-frame-two", "#4C5760"),
-    connector("raven-frame-one", "raven-node"),
-
+    line(497, 45, 18, 1, TEAL, 2),
     rect(526, 205, 16, 16, TEAL, 1.2, 2),
     tracked(text("PROFIL", 8.7, SANS, TEAL, 76, 207, 2), 1.55),
     line(76, 226, 466, 1, RULE, 1),

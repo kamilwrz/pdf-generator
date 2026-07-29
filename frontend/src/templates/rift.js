@@ -17,9 +17,6 @@ const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
     { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
 );
-const connector = (source_id, target_id, color = RED) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 1, arrow: false, zIndex: 2 }
-);
 
 export const riftTemplate = [
     {
@@ -44,9 +41,8 @@ export const riftTemplate = [
     { ...rect(194, 158, 13, 13, RED, 1.2, 3), id: "rift-node-one" },
     { ...rect(229, 158, 13, 13, GRAPHITE, 1, 3), id: "rift-node-two" },
     { ...rect(264, 158, 13, 13, ASH, 1, 3), id: "rift-node-three" },
-    connector("rift-node-one", "rift-node-two"),
-    connector("rift-node-two", "rift-node-three", GRAPHITE),
-
+    line(207, 163, 22, 1, RED, 2),
+    line(242, 163, 22, 1, GRAPHITE, 2),
     rect(510, 202, 14, 14, RED, 1.2, 2),
     tracked(text("PROFIL", 8.5, SANS, RED, 194, 203, 2), 1.55),
     line(194, 221, 330, 1, ASH, 1),

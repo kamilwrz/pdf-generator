@@ -14,9 +14,6 @@ const BACKGROUND = `${API_BASE_URL}/template-assets/lattice-it-cloud.png`;
 
 const bold = (element) => ({ ...element, bold: true });
 const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
-const connector = (source_id, target_id, color = INDIGO) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 1, arrow: false, zIndex: 3 }
-);
 
 // Lattice — a soft cloud-systems composition: airy editorial type on a quiet
 // paper field, with orbiting forms suggesting a connected product ecosystem.
@@ -39,9 +36,7 @@ export const latticeTemplate = [
     { ...ellipse(411, 50, 53, 28, VIOLET, false, 1.2, 3), id: "lattice-orbit-one" },
     { ...circle(434, 56, 16, CYAN, true, 1, 3), id: "lattice-orbit-two" },
     { ...circle(491, 56, 16, CORAL, true, 1, 3), id: "lattice-orbit-three" },
-    connector("lattice-orbit-one", "lattice-orbit-two", CYAN),
-    connector("lattice-orbit-two", "lattice-orbit-three", CORAL),
-
+    line(450, 63, 41, 1, CORAL, 2),
     { ...ellipse(74, 183, 16, 16, VIOLET, false, 1.2, 3), id: "lattice-profile" },
     tracked(text("PROFIL", 8.5, SANS, INDIGO, 103, 184, 3), 1.55),
     line(103, 203, 424, 1, "#B9C4DC", 2),

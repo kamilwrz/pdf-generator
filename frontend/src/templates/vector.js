@@ -12,9 +12,6 @@ const BACKGROUND = `${API_BASE_URL}/template-assets/vector-it-network.png`;
 
 const bold = (element) => ({ ...element, bold: true });
 const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
-const connector = (source_id, target_id, color = ELECTRIC) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 1, arrow: false, zIndex: 3 }
-);
 
 // Vector — an edge-lit circuit field. The image leaves the center quiet while
 // bright nodes and rules create a precise, high-contrast technical rhythm.
@@ -37,9 +34,8 @@ export const vectorTemplate = [
     { ...circle(430, 53, 18, LIME, true, 1, 3), id: "vector-node-one" },
     { ...ellipse(468, 54, 42, 18, ELECTRIC, false, 1.2, 3), id: "vector-node-two" },
     { ...circle(527, 53, 18, ELECTRIC, false, 1.2, 3), id: "vector-node-three" },
-    connector("vector-node-one", "vector-node-two", LIME),
-    connector("vector-node-two", "vector-node-three"),
-
+    line(448, 61, 20, 1, LIME, 2),
+    line(510, 62, 17, 1, ELECTRIC, 2),
     tracked(text("PROFIL", 8.5, SANS, LIME, 160, 180, 3), 1.7),
     line(160, 199, 365, 1, "#3C6682", 2),
     block(

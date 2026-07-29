@@ -559,7 +559,7 @@ function PdfCanvas() {
     addRectangle: handleAddRectangle,
     addCircle: handleAddCircle,
     addEllipse: handleAddEllipse,
-    addConnector: startConnecting,
+    addConnector: () => {},
     addTextarea: handleAddTextarea,
     markSelected: markSelected,
     setTextareaEditing: handleSetTextareaEditing,
@@ -696,15 +696,7 @@ function PdfCanvas() {
 
 
   return (
-    <main className='main-container' onMouseMove={throttledHandleIsActive} style={connectMode ? { cursor: "crosshair" } : undefined}>
-
-      {connectMode && (
-        <div style={{ position: "fixed", top: 62, left: "50%", transform: "translateX(-50%)", zIndex: 5000,
-                      background: "var(--accent)", color: "#fff", padding: "8px 16px", borderRadius: 999,
-                      font: "700 13px var(--font-body)", boxShadow: "var(--shadow-pop)", pointerEvents: "none" }}>
-          {connectSourceId ? "Kliknij element docelowy  ·  Esc anuluje" : "Kliknij element źródłowy  ·  Esc anuluje"}
-        </div>
-      )}
+    <main className='main-container' onMouseMove={throttledHandleIsActive}>
 
       <PdfContext.Provider value={ctxValue}>
         <ModalPdfs title={titleRef}/>

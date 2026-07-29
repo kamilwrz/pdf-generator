@@ -13,9 +13,6 @@ const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
     { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
 );
-const connector = (source_id, target_id, color = NAVY) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 0.8, arrow: false, zIndex: 3 }
-);
 
 // Scribe — a formal Word-style document with a restrained double keyline and
 // a precise blue-black typographic hierarchy.
@@ -32,9 +29,7 @@ export const scribeTemplate = [
     { ...rect(461, 60, 58, 58, NAVY, 0.9, 3), id: "scribe-frame" },
     { ...ellipse(473, 70, 34, 17, NAVY, false, 0.9, 3), id: "scribe-orbit" },
     { ...circle(484, 91, 11, NAVY, true, 1, 3), id: "scribe-seal" },
-    connector("scribe-frame", "scribe-orbit", STONE),
-    connector("scribe-orbit", "scribe-seal"),
-
+    line(528, 86, 14, 1, NAVY, 2),
     { ...circle(72, 196, 8, NAVY, true, 1, 3), id: "scribe-profile" },
     tracked(text("PROFIL", 8.4, SANS, NAVY, 94, 194, 3), 1.55),
     line(94, 212, 429, 1, STONE, 2),

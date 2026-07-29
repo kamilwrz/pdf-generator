@@ -14,9 +14,6 @@ const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
     { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
 );
-const connector = (source_id, target_id, color = WINE) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 0.8, arrow: false, zIndex: 3 }
-);
 
 // Regent — a measured executive document: oxblood accents, broad margins and
 // a discreet signet construction rather than a contemporary graphic header.
@@ -33,9 +30,7 @@ export const regentTemplate = [
     { ...rect(442, 57, 57, 57, WINE, 0.9, 3), id: "regent-square" },
     { ...circle(458, 73, 25, WINE, false, 1.1, 3), id: "regent-signet" },
     { ...ellipse(451, 91, 39, 13, CLAY, false, 0.8, 3), id: "regent-rule" },
-    connector("regent-square", "regent-signet", TAUPE),
-    connector("regent-signet", "regent-rule", CLAY),
-
+    line(508, 82, 16, 1, CLAY, 2),
     { ...rect(88, 194, 8, 8, WINE, 0.9, 3), id: "regent-profile" },
     tracked(text("PROFIL", 8.4, SANS, WINE, 113, 193, 3), 1.65),
     line(113, 211, 386, 1, TAUPE, 2),

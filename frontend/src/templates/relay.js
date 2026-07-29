@@ -16,9 +16,6 @@ const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
     { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
 );
-const connector = (source_id, target_id, color = RED) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 1, arrow: false, zIndex: 3 }
-);
 
 // Relay — a dark signal-routing poster. The type is deliberately compact and
 // laser-clear, framed by modular nodes that echo systems in transit.
@@ -41,9 +38,8 @@ export const relayTemplate = [
     { ...rect(428, 51, 18, 18, RED, 1.2, 3), id: "relay-module-one" },
     { ...circle(471, 52, 18, ORANGE, true, 1, 3), id: "relay-module-two" },
     { ...ellipse(511, 53, 28, 17, SILVER, false, 1.1, 3), id: "relay-module-three" },
-    connector("relay-module-one", "relay-module-two", ORANGE),
-    connector("relay-module-two", "relay-module-three", SILVER),
-
+    line(446, 59, 25, 1, ORANGE, 2),
+    line(489, 60, 22, 1, SILVER, 2),
     { ...rect(164, 181, 13, 13, RED, 1.2, 3), id: "relay-profile" },
     tracked(text("PROFIL", 8.3, MONO, ORANGE, 192, 181, 3), 1.1),
     line(192, 200, 340, 1, "#596065", 2),

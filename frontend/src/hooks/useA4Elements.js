@@ -225,11 +225,9 @@ export function useA4Elements(titleRef) {
   }, []);
 
   // Enter connector mode: next two element clicks pick source then target.
-  const startConnecting = useCallback(() => {
-    setConnectSourceId(null);
-    setConnectMode(true);
-    clearSelection();
-  }, [clearSelection]);
+  // Connectors are retired from the editor; keep a no-op so old context wiring
+  // does not throw. Legacy documents may still render existing connector rows.
+  const startConnecting = useCallback(() => {}, []);
 
   const cancelConnecting = useCallback(() => {
     setConnectMode(false);

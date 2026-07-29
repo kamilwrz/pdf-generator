@@ -17,9 +17,6 @@ const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
     { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
 );
-const connector = (source_id, target_id, color = CYAN) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 0.9, arrow: false, zIndex: 3 }
-);
 
 // Quarry — midnight network artwork contained entirely in a narrow sidebar.
 export const quarryTemplate = [
@@ -48,9 +45,7 @@ export const quarryTemplate = [
     { ...rect(462, 51, 59, 54, CYAN, 0.9, 3), id: "quarry-frame" },
     { ...ellipse(473, 61, 34, 16, CYAN, false, 1.1, 3), id: "quarry-orbit" },
     { ...circle(484, 81, 12, LIME, true, 1, 3), id: "quarry-node" },
-    connector("quarry-frame", "quarry-orbit", RULE),
-    connector("quarry-orbit", "quarry-node", LIME),
-
+    line(528, 85, 14, 1, LIME, 2),
     { ...circle(220, 184, 8, LIME, true, 1, 3), id: "quarry-profile" },
     tracked(text("PROFIL", 8.4, SANS, NAVY, 242, 182, 3), 1.55),
     line(242, 200, 304, 1, RULE, 2),

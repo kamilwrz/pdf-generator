@@ -17,9 +17,6 @@ const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
     { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
 );
-const connector = (source_id, target_id, color = RED) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 1, arrow: false, zIndex: 2 }
-);
 
 export const cinderTemplate = [
     { ...line(0, 0, 595, 842, PAPER, 0), fixedToPage: true },
@@ -35,9 +32,7 @@ export const cinderTemplate = [
     { ...rect(425, 34, 72, 72, RED, 1.2, 3), id: "cinder-frame-one" },
     { ...rect(455, 63, 78, 78, "#767B80", 1, 3), id: "cinder-frame-two" },
     { ...rect(482, 39, 12, 12, WHITE, 1, 3), id: "cinder-node" },
-    connector("cinder-frame-one", "cinder-frame-two", "#8B9094"),
-    connector("cinder-frame-one", "cinder-node"),
-
+    line(497, 45, 18, 1, RED, 2),
     rect(526, 205, 16, 16, RED, 1.2, 2),
     tracked(text("PROFIL", 8.7, SANS, RED, 76, 207, 2), 1.55),
     line(76, 226, 466, 1, ASH, 1),

@@ -17,9 +17,6 @@ const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
     { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
 );
-const connector = (source_id, target_id, color = COPPER) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 0.8, arrow: false, zIndex: 3 }
-);
 
 // Harbor — slate and copper contours, with the generated coastal artwork
 // repeated as a narrow sidebar on every page.
@@ -49,9 +46,7 @@ export const harborTemplate = [
     { ...rect(462, 52, 58, 54, COPPER, 0.8, 3), id: "harbor-frame" },
     { ...ellipse(472, 62, 35, 17, STEEL, false, 1, 3), id: "harbor-wave" },
     { ...circle(484, 82, 11, COPPER, true, 1, 3), id: "harbor-point" },
-    connector("harbor-frame", "harbor-wave", RULE),
-    connector("harbor-wave", "harbor-point"),
-
+    line(528, 86, 14, 1, COPPER, 2),
     { ...circle(220, 184, 8, COPPER, true, 1, 3), id: "harbor-profile" },
     tracked(text("PROFIL", 8.4, SANS, NAVY, 242, 182, 3), 1.55),
     line(242, 200, 304, 1, RULE, 2),

@@ -145,11 +145,13 @@ export class ApiClient {
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         try {
+            // omit credentials — auth is Bearer JWT in localStorage, not cookies.
+            // include + missing ACAO on cold-start error pages made login look broken.
             const response = await fetch(this.baseUrl + endpoint, {
                 method: method,
                 headers: headers,
                 body: body,
-                credentials: "include",
+                credentials: "omit",
                 signal: controller.signal,
             });
 

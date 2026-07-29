@@ -112,14 +112,16 @@ class CvTemplateLayoutTests(unittest.TestCase):
         }
         expected_categories = {
             "text", "textarea", "line", "rectangle", "circle", "ellipse",
-            "image", "connector",
+            "image",
         }
 
         for template_id, asset_name in assets.items():
             with self.subTest(template_id=template_id):
                 elements = generate_resume(template_id, multi_page_cv)
                 pages = {element.get("page", 1) for element in elements}
-                self.assertTrue(expected_categories <= {element["category"] for element in elements})
+                categories = {element["category"] for element in elements}
+                self.assertTrue(expected_categories <= categories)
+                self.assertNotIn("connector", categories)
                 self.assertGreater(max(pages), 1)
                 self.assertTrue(all(
                     element.get("autoHeight") is True
@@ -149,7 +151,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         }
         expected_categories = {
             "text", "textarea", "line", "rectangle", "circle", "ellipse",
-            "image", "connector",
+            "image",
         }
 
         for template_id, asset_name in assets.items():
@@ -157,7 +159,9 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 elements = generate_resume(template_id, multi_page_cv)
                 pages = {element.get("page", 1) for element in elements}
 
-                self.assertTrue(expected_categories <= {element["category"] for element in elements})
+                categories = {element["category"] for element in elements}
+                self.assertTrue(expected_categories <= categories)
+                self.assertNotIn("connector", categories)
                 self.assertGreater(max(pages), 1)
                 self.assertTrue(all(
                     element.get("autoHeight") is True
@@ -543,7 +547,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
         templates = ("scribe", "regent", "aldine", "merit")
         expected_categories = {
             "text", "textarea", "line", "rectangle", "circle", "ellipse",
-            "connector",
         }
 
         for template_id in templates:
@@ -556,7 +559,9 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     if element["category"] in {"text", "textarea"}
                 ).upper()
 
-                self.assertTrue(expected_categories <= {element["category"] for element in elements})
+                categories = {element["category"] for element in elements}
+                self.assertTrue(expected_categories <= categories)
+                self.assertNotIn("connector", categories)
                 self.assertNotIn("IMAGE", {element["category"] for element in elements})
                 self.assertNotIn(template_id.upper(), rendered_copy)
                 self.assertGreater(max(pages), 1)
@@ -695,7 +700,8 @@ class CvTemplateLayoutTests(unittest.TestCase):
             if element["category"] in {"text", "textarea"}
         ).upper()
 
-        self.assertTrue({"text", "textarea", "line", "rectangle", "image", "connector"} <= categories)
+        self.assertTrue({"text", "textarea", "line", "rectangle", "image"} <= categories)
+        self.assertNotIn("connector", categories)
         self.assertNotIn("NIMBUS", rendered_copy)
         self.assertTrue(any(
             element["category"] == "image"
@@ -802,7 +808,8 @@ class CvTemplateLayoutTests(unittest.TestCase):
             if element["category"] in {"text", "textarea"}
         ).upper()
 
-        self.assertTrue({"text", "textarea", "line", "rectangle", "connector"} <= categories)
+        self.assertTrue({"text", "textarea", "line", "rectangle"} <= categories)
+        self.assertNotIn("connector", categories)
         self.assertNotIn("CINDER", rendered_copy)
         self.assertGreater(max(pages), 1)
         self.assertTrue(all(
@@ -842,7 +849,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "experience": LONG_CV["experience"] * 4,
         }
         expected_categories = {
-            "text", "textarea", "line", "rectangle", "circle", "ellipse", "connector",
+            "text", "textarea", "line", "rectangle", "circle", "ellipse",
         }
         expected_papers = {
             "vault": "#F3F3ED",
@@ -861,7 +868,9 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     if element["category"] in {"text", "textarea"}
                 ).upper()
 
-                self.assertTrue(expected_categories <= {element["category"] for element in elements})
+                categories = {element["category"] for element in elements}
+                self.assertTrue(expected_categories <= categories)
+                self.assertNotIn("connector", categories)
                 self.assertNotIn(template_id.upper(), rendered_copy)
                 self.assertGreater(max(pages), 1)
                 self.assertTrue(all(

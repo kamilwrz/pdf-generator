@@ -17,9 +17,6 @@ const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
     { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
 );
-const connector = (source_id, target_id, color = GOLD) => (
-    { category: "connector", source_id, target_id, backgroundColor: color, borderWidth: 0.8, arrow: false, zIndex: 3 }
-);
 
 // Moss — a paper-and-sage sidebar built from a generated botanical fragment.
 export const mossTemplate = [
@@ -48,9 +45,7 @@ export const mossTemplate = [
     { ...rect(462, 52, 58, 54, GOLD, 0.8, 3), id: "moss-frame" },
     { ...ellipse(472, 62, 35, 17, SAGE, false, 1, 3), id: "moss-leaf" },
     { ...circle(484, 82, 11, GOLD, true, 1, 3), id: "moss-seed" },
-    connector("moss-frame", "moss-leaf", RULE),
-    connector("moss-leaf", "moss-seed"),
-
+    line(528, 86, 14, 1, GOLD, 2),
     { ...circle(220, 184, 8, GOLD, true, 1, 3), id: "moss-profile" },
     tracked(text("PROFIL", 8.4, SANS, FOREST, 242, 182, 3), 1.55),
     line(242, 200, 304, 1, RULE, 2),

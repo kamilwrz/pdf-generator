@@ -652,10 +652,8 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
             _text(_compact_text(cv.get("title"), 54), 9.3, SANS, C["light"], 54, 108, zIndex=2),
             _text(_compact_text(_contact_line(cv), 78), 8.7, SANS, C["light"], 54, 132, zIndex=2),
             node_a, node_b, node_c,
-            {"category": "connector", "source_id": "vault-marker-a", "target_id": "vault-marker-b",
-             "backgroundColor": C["accent"], "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
-            {"category": "connector", "source_id": "vault-marker-b", "target_id": "vault-marker-c",
-             "backgroundColor": C["accent"], "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
+            _line(197, 218, 29, 1, C["accent"], zIndex=2),
+            _line(369, 218, 29, 1, C["accent"], zIndex=2),
             _text("RYZYKO", 7.4, SANS, C["muted"], 67, 207, zIndex=3),
             _text("KONTROLA", 13, SERIF, C["ink"], 67, 221, zIndex=3, bold=True),
             _text("KAPITAŁ", 7.4, SANS, C["muted"], 239, 207, zIndex=3),
@@ -683,10 +681,8 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
             _text(_compact_text(cv.get("title"), 58), 9, SANS, "#24889A", 166, 99, zIndex=2),
             _block(_compact_text(_contact_line(cv), 78), 164, 127, 286, 30, 8.8, 12.5, C["muted"], SANS, zIndex=2),
             node_a, node_b, node_c,
-            {"category": "connector", "source_id": "clearing-node-a", "target_id": "clearing-node-b",
-             "backgroundColor": C["accent"], "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
-            {"category": "connector", "source_id": "clearing-node-b", "target_id": "clearing-node-c",
-             "backgroundColor": C["accent"], "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
+            _line(472, 67, 17, 1, C["accent"], zIndex=2),
+            _line(507, 67, 17, 1, C["accent"], zIndex=2),
         ]
         static[2]["letterSpacing"] = 1.5
         static[3]["letterSpacing"] = 1.5
@@ -705,10 +701,8 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
             _text(_compact_text(_contact_line(cv), 78), 8.6, SANS, C["muted"], 149, 218, zIndex=2),
             _line(54, 247, 487, 1, C["rule"]),
             node_a, node_b, node_c,
-            {"category": "connector", "source_id": "herald-seal-a", "target_id": "herald-seal-b",
-             "backgroundColor": C["rule"], "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
-            {"category": "connector", "source_id": "herald-seal-b", "target_id": "herald-seal-c",
-             "backgroundColor": C["rule"], "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
+            _line(192, 288, 70, 1, C["rule"], zIndex=2),
+            _line(332, 288, 70, 1, C["rule"], zIndex=2),
             _text("DYSKRECJA", 7.2, SANS, "#FFFFFF", 132, 283, zIndex=3),
             _text("STRATEGIA", 7.2, SANS, "#7A6045", 273, 283, zIndex=3),
             _text("PARTNERSTWO", 7.2, SANS, "#FFFFFF", 410, 283, zIndex=3),
@@ -727,10 +721,8 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
             _text(_compact_text(cv.get("title"), 54), 9.2, SANS, C["muted"], 78, 122, zIndex=2),
             _text(_compact_text(_contact_line(cv), 78), 8.6, SANS, C["muted"], 78, 145, zIndex=2),
             node_a, node_b, node_c,
-            {"category": "connector", "source_id": "signal-node-a", "target_id": "signal-node-b",
-             "backgroundColor": C["accent"], "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
-            {"category": "connector", "source_id": "signal-node-b", "target_id": "signal-node-c",
-             "backgroundColor": C["accent"], "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
+            _line(96, 205, 20, 1, C["accent"], zIndex=2),
+            _line(134, 205, 20, 1, C["accent"], zIndex=2),
             _rect(487, 181, 54, 22, C["rule"], 1, zIndex=2),
         ]
         static[5]["letterSpacing"] = 1.35
@@ -994,10 +986,8 @@ def _gen_nimbus(cv: dict) -> list[dict]:
         mark_one,
         mark_two,
         mark_three,
-        {"category": "connector", "source_id": "nimbus-mark-one", "target_id": "nimbus-mark-two",
-         "backgroundColor": POWDER, "borderWidth": 1, "arrow": False, "zIndex": 1, "page": 1},
-        {"category": "connector", "source_id": "nimbus-mark-two", "target_id": "nimbus-mark-three",
-         "backgroundColor": POWDER, "borderWidth": 1, "arrow": False, "zIndex": 1, "page": 1},
+        _line(94, 182, 20, 1, POWDER, zIndex=1),
+        _line(128, 182, 20, 1, POWDER, zIndex=1),
     ]
     static[6]["letterSpacing"] = 1.5
 
@@ -1108,10 +1098,7 @@ def _gen_cinder(cv: dict) -> list[dict]:
         frame_one,
         frame_two,
         node,
-        {"category": "connector", "source_id": "cinder-frame-one", "target_id": "cinder-frame-two",
-         "backgroundColor": "#8B9094", "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
-        {"category": "connector", "source_id": "cinder-frame-one", "target_id": "cinder-node",
-         "backgroundColor": RED, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
+        _line(497, 45, 18, 1, RED, zIndex=2),
     ]
     header[3]["letterSpacing"] = 1.65
     SECTION_CHROME = section_chrome_height(8.7)
@@ -1235,10 +1222,8 @@ def _gen_rift(cv: dict) -> list[dict]:
         node_one,
         node_two,
         node_three,
-        {"category": "connector", "source_id": "rift-node-one", "target_id": "rift-node-two",
-         "backgroundColor": RED, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
-        {"category": "connector", "source_id": "rift-node-two", "target_id": "rift-node-three",
-         "backgroundColor": GRAPHITE, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
+        _line(207, 163, 22, 1, RED, zIndex=2),
+        _line(242, 163, 22, 1, GRAPHITE, zIndex=2),
     ]
     header[1]["letterSpacing"] = 1.7
     SECTION_CHROME = section_chrome_height(8.7)
@@ -1393,17 +1378,6 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
                 self.pg += 1
                 self.y = float(C["continuation"])
 
-    def connector(source_id: str, target_id: str, color: str) -> dict:
-        return {
-            "category": "connector",
-            "source_id": source_id,
-            "target_id": target_id,
-            "backgroundColor": color,
-            "borderWidth": 1,
-            "arrow": False,
-            "zIndex": 3,
-            "page": 1,
-        }
 
     contact = _compact_text(_contact_line(cv), 78)
     name = _compact_text(cv.get("name"), 32)
@@ -1421,8 +1395,8 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
             _text(title, 9.2, SANS, C["accent"], L, 91, zIndex=3),
             _text(contact, 8.8, SANS, C["body"], L, 119, zIndex=3),
             node_one, node_two, node_three,
-            connector("vector-node-one", "vector-node-two", C["marker"]),
-            connector("vector-node-two", "vector-node-three", C["accent"]),
+            _line(448, 61, 20, 1, C["marker"], zIndex=2),
+            _line(510, 62, 17, 1, C["accent"], zIndex=2),
         ]
         header[2]["letterSpacing"] = 0.2
         header[3]["letterSpacing"] = 1.35
@@ -1437,7 +1411,7 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
             _text(title, 8.9, SANS, C["accent"], L, 94, zIndex=3),
             _text(contact, 8.7, SANS, C["muted"], L, 121, zIndex=3),
             orbit, core, node,
-            connector("kernel-core", "kernel-node", C["marker"]),
+            _line(471, 70, 23, 1, C["marker"], zIndex=2),
         ]
         header[2]["letterSpacing"] = 0.15
         header[3]["letterSpacing"] = 1.55
@@ -1452,8 +1426,8 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
             _text(title, 8.7, "Courier", C["accent"], L, 91, zIndex=3),
             _text(contact, 8.5, SANS, "#D6D9D9", L, 119, zIndex=3),
             module_one, module_two, module_three,
-            connector("relay-module-one", "relay-module-two", C["accent"]),
-            connector("relay-module-two", "relay-module-three", "#D6D9D9"),
+            _line(446, 59, 25, 1, C["accent"], zIndex=2),
+            _line(489, 60, 22, 1, "#D6D9D9", zIndex=2),
         ]
         header[2]["letterSpacing"] = 0.3
         header[3]["letterSpacing"] = 0.9
@@ -1468,8 +1442,7 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
             _text(title, 8.8, SANS, C["accent"], L, 93, zIndex=3),
             _text(contact, 8.6, SANS, C["muted"], L, 121, zIndex=3),
             orbit_one, orbit_two, orbit_three,
-            connector("lattice-orbit-one", "lattice-orbit-two", "#8DE6ED"),
-            connector("lattice-orbit-two", "lattice-orbit-three", C["marker"]),
+            _line(450, 63, 41, 1, C["marker"], zIndex=2),
         ]
         header[2]["letterSpacing"] = 0.1
         header[3]["letterSpacing"] = 1.35
@@ -1664,17 +1637,6 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
                 self.pg += 1
                 self.y = float(C["continuation"])
 
-    def connector(source_id: str, target_id: str, color: str | None = None) -> dict:
-        return {
-            "category": "connector",
-            "source_id": source_id,
-            "target_id": target_id,
-            "backgroundColor": color or C["accent"],
-            "borderWidth": 0.8,
-            "arrow": False,
-            "zIndex": 3,
-            "page": 1,
-        }
 
     name = _compact_text(cv.get("name"), 32)
     title = _compact_text(cv.get("title"), 52)
@@ -1690,8 +1652,7 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
             _text(contact, 8.6, SANS, C["muted"], 74, 132, zIndex=3),
             _line(72, 157, 451, 1, C["rule"], zIndex=2),
             frame, orbit, seal,
-            connector("scribe-frame", "scribe-orbit", C["rule"]),
-            connector("scribe-orbit", "scribe-seal"),
+            _line(528, 86, 14, 1, C["accent"], zIndex=2),
         ]
         header[0]["letterSpacing"] = 0.15
         header[1]["letterSpacing"] = 1.25
@@ -1705,8 +1666,7 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
             _text(contact, 8.6, SANS, C["muted"], 90, 133, zIndex=3),
             _line(88, 158, 411, 1, C["rule"], zIndex=2),
             square, signet, rule,
-            connector("regent-square", "regent-signet", C["rule"]),
-            connector("regent-signet", "regent-rule", "#A66B5B"),
+            _line(508, 82, 16, 1, "#A66B5B", zIndex=2),
         ]
         header[0]["letterSpacing"] = 0.1
         header[1]["letterSpacing"] = 1.45
@@ -1721,8 +1681,7 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
             _text(contact, 8.6, SANS, C["muted"], 94, 132, zIndex=3),
             _line(92, 157, 408, 1, C["rule"], zIndex=2),
             seal, lozenge, core, frame,
-            connector("aldine-frame", "aldine-seal", C["rule"]),
-            connector("aldine-lozenge", "aldine-core"),
+            _line(508, 96, 14, 1, C["accent"], zIndex=2),
         ]
         header[0]["letterSpacing"] = 0.1
         header[1]["letterSpacing"] = 1.4
@@ -1737,8 +1696,8 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
             _text(contact, 8.6, SANS, C["muted"], 79, 134, zIndex=3),
             _line(77, 159, 443, 1, C["rule"], zIndex=2),
             panel, capsule, dot_one, dot_two,
-            connector("merit-panel", "merit-capsule", C["rule"]),
-            connector("merit-dot-one", "merit-dot-two"),
+            _line(488, 98, 9, 1, C["accent"], zIndex=2),
+            _line(522, 70, 14, 1, C["rule"], zIndex=2),
         ]
         header[0]["letterSpacing"] = 0.1
         header[1]["letterSpacing"] = 1.45
@@ -1944,12 +1903,6 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
                 self.pg += 1
                 self.y = 56.0
 
-    def connector(source_id: str, target_id: str, color: str | None = None) -> dict:
-        return {
-            "category": "connector", "source_id": source_id, "target_id": target_id,
-            "backgroundColor": color or C["accent"], "borderWidth": 0.8,
-            "arrow": False, "zIndex": 3, "page": 1,
-        }
 
     sidebar_left, sidebar_width = 24, 136
     contact = "\n".join(filter(None, [
@@ -2011,8 +1964,7 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
         _line(L, 145, W, 1, C["rule"], zIndex=2),
         *sidebar_static,
         frame, orbit, node,
-        connector(f"{theme}-frame", f"{theme}-orbit", C["rule"]),
-        connector(f"{theme}-orbit", f"{theme}-node"),
+        _line(528, 85, 14, 1, C["accent"], zIndex=2),
     ]
     static[0]["letterSpacing"] = 0.1
     static[1]["letterSpacing"] = 1.45
@@ -2188,10 +2140,7 @@ def _gen_obsidian(cv: dict) -> list[dict]:
         _text(_compact_text(cv.get("title"), 46), 9, SANS, GOLD, L + 2, 92, zIndex=3),
         _line(L, 116, W, 1, RULE, zIndex=2),
         frame, orbit, node,
-        {"category": "connector", "source_id": "obsidian-frame", "target_id": "obsidian-orbit",
-         "backgroundColor": RULE, "borderWidth": 0.9, "arrow": False, "zIndex": 2, "page": 1},
-        {"category": "connector", "source_id": "obsidian-orbit", "target_id": "obsidian-node",
-         "backgroundColor": GOLD, "borderWidth": 0.9, "arrow": False, "zIndex": 2, "page": 1},
+        _line(528, 74, 14, 1, GOLD, zIndex=2),
         contact_label,
         _block(
             contact, SIDEBAR_L, 80, SIDEBAR_W, contact_height,
@@ -2429,10 +2378,7 @@ def _gen_raven(cv: dict) -> list[dict]:
         _text(_compact_text(cv.get("title"), 46), 9.5, SANS, TEAL, L + 2, 86, zIndex=3),
         _text(_compact_text(_contact_line(cv), 78), 8.7, SANS, MUTED, L + 2, 119, zIndex=3),
         frame_one, frame_two, node,
-        {"category": "connector", "source_id": "raven-frame-one", "target_id": "raven-frame-two",
-         "backgroundColor": "#4C5760", "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
-        {"category": "connector", "source_id": "raven-frame-one", "target_id": "raven-node",
-         "backgroundColor": TEAL, "borderWidth": 1, "arrow": False, "zIndex": 2, "page": 1},
+        _line(497, 45, 18, 1, TEAL, zIndex=2),
     ]
     header[4]["letterSpacing"] = 1.65
     SECTION_CHROME = section_chrome_height(8.7)

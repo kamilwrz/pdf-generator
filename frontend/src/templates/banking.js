@@ -9,9 +9,6 @@ const fixed = (element) => ({ ...element, fixedToPage: true });
 const rect = (left, top, width, height, backgroundColor, borderWidth = 1, zIndex = 1) => ({
     category: "rectangle", left, top, width, height, backgroundColor, borderWidth, zIndex,
 });
-const connector = (source_id, target_id, backgroundColor) => ({
-    category: "connector", source_id, target_id, backgroundColor, borderWidth: 1, arrow: false, zIndex: 2,
-});
 
 export const vaultTemplate = [
     fixed(line(0, 0, 595, 842, "#F3F3ED", 0)),
@@ -29,8 +26,8 @@ export const vaultTemplate = [
     { ...rect(54, 196, 143, 47, "#B79A56", 1, 1), id: "vault-marker-a" },
     { ...rect(226, 196, 143, 47, "#B79A56", 1, 1), id: "vault-marker-b" },
     { ...rect(398, 196, 143, 47, "#B79A56", 1, 1), id: "vault-marker-c" },
-    connector("vault-marker-a", "vault-marker-b", "#B79A56"),
-    connector("vault-marker-b", "vault-marker-c", "#B79A56"),
+    line(197, 218, 29, 1, "#B79A56", 2),
+    line(369, 218, 29, 1, "#B79A56", 2),
     tracked(text("RYZYKO", 7.4, SANS, "#718279", 67, 207, 3), 1),
     bold(text("KONTROLA", 13, SERIF, "#143A32", 67, 221, 3)),
     tracked(text("KAPITAŁ", 7.4, SANS, "#718279", 239, 207, 3), 1),
@@ -75,8 +72,8 @@ export const clearingTemplate = [
     { ...circle(454, 59, 18, "#48B8C8", false, 1.2, 2), id: "clearing-node-a" },
     { ...circle(489, 59, 18, "#173F67", false, 1.2, 2), id: "clearing-node-b" },
     { ...circle(524, 59, 18, "#48B8C8", false, 1.2, 2), id: "clearing-node-c" },
-    connector("clearing-node-a", "clearing-node-b", "#48B8C8"),
-    connector("clearing-node-b", "clearing-node-c", "#48B8C8"),
+    line(472, 67, 17, 1, "#48B8C8", 2),
+    line(507, 67, 17, 1, "#48B8C8", 2),
     tracked(text("PODSUMOWANIE", 8.6, SANS, "#24889A", 164, 202, 2), 1.4),
     line(164, 219, 377, 1, "#C8D6E1", 1),
     block("Prowadzę złożone operacje finansowe tak, aby precyzja procesu nie spowalniała decyzji. Buduję zespoły, które widzą ryzyko wcześniej i wdrażają zmianę spokojnie.", 164, 235, 377, 44, 10, 14.6, "#203342", SANS),
@@ -111,8 +108,8 @@ export const heraldTemplate = [
     { ...line(122, 271, 70, 38, "#9D3341", 2), id: "herald-seal-a" },
     { ...line(262, 271, 70, 38, "#CDBA97", 2), id: "herald-seal-b" },
     { ...line(402, 271, 70, 38, "#9D3341", 2), id: "herald-seal-c" },
-    connector("herald-seal-a", "herald-seal-b", "#CDBA97"),
-    connector("herald-seal-b", "herald-seal-c", "#CDBA97"),
+    line(192, 288, 70, 1, "#CDBA97", 2),
+    line(332, 288, 70, 1, "#CDBA97", 2),
     tracked(text("DYSKRECJA", 7.2, SANS, "#FFFFFF", 132, 283, 3), 1),
     tracked(text("STRATEGIA", 7.2, SANS, "#7A6045", 273, 283, 3), 1),
     tracked(text("PARTNERSTWO", 7.2, SANS, "#FFFFFF", 410, 283, 3), 1),
@@ -147,8 +144,8 @@ export const signalTemplate = [
     { ...circle(78, 197, 18, "#3BD2C7", false, 1.2, 2), id: "signal-node-a" },
     { ...circle(116, 197, 18, "#9DB7C3", false, 1.2, 2), id: "signal-node-b" },
     { ...circle(154, 197, 18, "#3BD2C7", false, 1.2, 2), id: "signal-node-c" },
-    connector("signal-node-a", "signal-node-b", "#3BD2C7"),
-    connector("signal-node-b", "signal-node-c", "#3BD2C7"),
+    line(96, 205, 20, 1, "#3BD2C7", 2),
+    line(134, 205, 20, 1, "#3BD2C7", 2),
     tracked(text("PODSUMOWANIE", 8.6, SANS, "#7BE1D9", 76, 251, 2), 1.5),
     line(76, 268, 465, 1, "#395263", 1),
     block("Prowadzę funkcje ryzyka tak, aby ochrona kapitału wspierała dobre decyzje biznesowe. Łączę nadzór, dane i partnerstwo z zespołami odpowiedzialnymi za wzrost.", 76, 284, 465, 43, 10, 14.7, "#E4EFEE", SANS),
