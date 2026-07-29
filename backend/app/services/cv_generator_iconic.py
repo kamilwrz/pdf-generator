@@ -42,6 +42,12 @@ def _icon(theme: str, name: str, left: float, top: float, size: float = 12, *,
     }
 
 
+def _icon_beside(theme: str, name: str, left: float, text_top: float,
+                 text_fs: float, size: float = 12, *, page: int = 1) -> dict:
+    """Vertically center an icon on a text line (matches frontend iconic.js)."""
+    return _icon(theme, name, left, text_top + (text_fs - size) / 2, size, page=page)
+
+
 def _icon_key_for_label(label: str) -> str:
     folded = fold_section_label(label)
     mapping = (
@@ -112,6 +118,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
     start_y = float(C["start"])
 
     if C["layout"] == "nova":
+        contact_fs, contact_icon = 8.4, 12.0
         header = [
             _text(name, 34, DISP, C["ink"], 48, 42, zIndex=3, bold=True),
             _text(title, 9.2, SANS, C["accent"], 50, 88, zIndex=3),
@@ -121,13 +128,14 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         for key, value in (("email", email), ("phone", phone), ("location", location)):
             if not value:
                 continue
-            header.append(_icon(ICON, key, x, 118, 11))
-            header.append(_text(value, 8.4, SANS, C["mute"], x + 16, 118, zIndex=3))
-            x += max(120.0, 16 + len(value) * 5.2)
+            header.append(_icon_beside(ICON, key, x, 118, contact_fs, contact_icon))
+            header.append(_text(value, contact_fs, SANS, C["mute"], x + 18, 118, zIndex=3))
+            x += max(120.0, 18 + len(value) * 5.2)
         header.append(_line(48, 144, 499, 1, C["rule"], zIndex=2))
         start_y = 200.0
 
     elif C["layout"] == "ridge":
+        contact_fs, contact_icon = 8.3, 12.0
         header = [
             _text(name, 30, DISP, C["ink"], 56, 40, zIndex=3, bold=True),
             _text(title, 8.8, SANS, C["accent"], 58, 82, zIndex=3),
@@ -137,13 +145,14 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         for key, value in (("email", email), ("phone", phone), ("location", location)):
             if not value:
                 continue
-            header.append(_icon(ICON, key, 56, y, 11))
-            header.append(_text(value, 8.3, SANS, C["mute"], 72, y, zIndex=3))
+            header.append(_icon_beside(ICON, key, 56, y, contact_fs, contact_icon))
+            header.append(_text(value, contact_fs, SANS, C["mute"], 74, y, zIndex=3))
             y += 18
         start_y = y + 24
 
     elif C["layout"] == "loom":
         light = "loom-light"
+        contact_fs, side_head_fs, side_icon = 7.6, 7.4, 12.0
         parts = (name or "").split(" ", 1)
         first = parts[0] if parts else name
         last = parts[1] if len(parts) > 1 else ""
@@ -157,16 +166,16 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         for key, value in (("email", email), ("phone", phone), ("location", location)):
             if not value:
                 continue
-            header.append(_icon(light, key, 24, y, 11))
+            header.append(_icon_beside(light, key, 24, y, contact_fs, side_icon))
             if key == "email":
-                header.append(_block(value, 42, y - 2, 118, 20, 7.6, 11, C["light"], SANS, zIndex=3))
+                header.append(_block(value, 42, y - 2, 118, 20, contact_fs, 11, C["light"], SANS, zIndex=3))
             else:
-                header.append(_text(value, 7.6, SANS, C["light"], 42, y, zIndex=3))
+                header.append(_text(value, contact_fs, SANS, C["light"], 42, y, zIndex=3))
             y += 28
         sidebar_y = max(y + 30, 250.0)
         if cv.get("skills"):
-            header.append(_icon(light, "skills", 24, sidebar_y, 12))
-            skills_label = _text(lbl["skills"], 7.4, SANS, C["accent"], 42, sidebar_y + 1, zIndex=3)
+            header.append(_icon_beside(light, "skills", 24, sidebar_y, side_head_fs, side_icon))
+            skills_label = _text(lbl["skills"], side_head_fs, SANS, C["accent"], 42, sidebar_y, zIndex=3)
             skills_label["letterSpacing"] = 1.2
             header.append(skills_label)
             skills_txt = "\n".join(f"• {s}" for s in cv["skills"][:6])
@@ -182,10 +191,10 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
             if kind not in {"languages", "references", "interests"} or not items:
                 continue
             key = _icon_key_for_label(sec.get("title") or kind)
-            header.append(_icon(light, key, 24, sidebar_y, 12))
+            header.append(_icon_beside(light, key, 24, sidebar_y, side_head_fs, side_icon))
             side_label = _text(
-                (sec.get("title") or kind).upper(), 7.4, SANS, C["accent"],
-                42, sidebar_y + 1, zIndex=3,
+                (sec.get("title") or kind).upper(), side_head_fs, SANS, C["accent"],
+                42, sidebar_y, zIndex=3,
             )
             side_label["letterSpacing"] = 1.2
             header.append(side_label)
@@ -202,12 +211,15 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         start_y = 80.0
 
     else:  # volt
+        chip_h, contact_icon, contact_fs = 28.0, 12.0, 7.8
         header = [
             _text(name, 32, SANS, C["ink"], 48, 36, zIndex=3, bold=True),
             _text(title, 9, MONO, C["accent"], 50, 78, zIndex=3),
         ]
         header[1]["letterSpacing"] = 1.2
         x = 48.0
+        chip_top = 108.0
+        mid = chip_top + chip_h / 2
         for key, value, width in (
             ("email", email, 168),
             ("phone", phone, 148),
@@ -215,15 +227,19 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         ):
             if not value:
                 continue
-            header.append(_rect(x, 108, width, 28, C["chip"], 1, zIndex=1))
-            header.append(_icon(ICON, key, x + 8, 115, 12))
-            header.append(_text(value, 7.8, MONO, C["body"], x + 26, 115, zIndex=3))
+            header.append(_rect(x, chip_top, width, chip_h, C["chip"], 1, zIndex=1))
+            header.append(_icon(ICON, key, x + 8, mid - contact_icon / 2, contact_icon))
+            header.append(_text(
+                value, contact_fs, MONO, C["body"],
+                x + 8 + contact_icon + 6, mid - contact_fs / 2, zIndex=3,
+            ))
             x += width + 8
         start_y = 198.0
 
     b = Builder(start_y)
     label_fs = 8.5 if C["layout"] != "volt" else 8.4
-    SECTION_CHROME = section_chrome_height(label_fs) + 18
+    section_icon = 14.0 if C["layout"] == "ridge" else (14.0 if C["layout"] == "volt" else 13.0)
+    SECTION_CHROME = section_chrome_height(label_fs) + (22 if C["layout"] == "volt" else 18)
 
     def section(label: str) -> None:
         key = _icon_key_for_label(label)
@@ -231,10 +247,20 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         y = b.y
         page = b.pg
         if C["layout"] == "volt":
-            b.els.append(_rect(C["icon_x"], y - 2, 28, 28, C["chip"], 1, zIndex=1, page=page))
-            b.els.append(_icon(ICON, key, C["icon_x"] + 6, y + 4, 14, page=page))
+            chip = 28.0
+            mid = y + label_fs / 2
+            chip_top = mid - chip / 2
+            b.els.append(_rect(C["icon_x"], chip_top, chip, chip, C["chip"], 1, zIndex=1, page=page))
+            b.els.append(_icon(
+                ICON, key,
+                C["icon_x"] + (chip - section_icon) / 2,
+                mid - section_icon / 2,
+                section_icon, page=page,
+            ))
         else:
-            b.els.append(_icon(ICON, key, C["icon_x"], y, 13 if C["layout"] != "ridge" else 14, page=page))
+            b.els.append(_icon_beside(
+                ICON, key, C["icon_x"], y, label_fs, section_icon, page=page,
+            ))
         heading = _text(label, label_fs, SANS, C["accent"], L, y, zIndex=3, page=page)
         heading["letterSpacing"] = 1.35 if C["layout"] == "volt" else 1.45
         b.els.append(heading)

@@ -1,7 +1,8 @@
-"""Generate line-art PNG icons for the Iconic template family.
+"""Generate optically-centered line-art PNG icons for the Iconic family.
 
-Each theme gets the same icon set tinted to its accent color so contact rows
-and section headings stay chromatically consistent with the layout.
+Each glyph is drawn, cropped to its ink bbox, scaled into a fixed content
+square, then pasted dead-center on a transparent 128×128 canvas so every icon
+shares the same visual weight and alignment at 12–16 px on the canvas.
 """
 from __future__ import annotations
 
@@ -11,162 +12,168 @@ from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1] / "backend" / "template_assets" / "iconic"
 
-# Theme accent colors (stroke). Icons are drawn on transparent canvas.
 THEMES = {
-    "nova": "#C45C26",   # clay / terracotta
-    "ridge": "#1F7A6C",  # deep teal
-    "loom": "#C4A35A",   # antique gold (on dark sidebar use light variant too)
-    "volt": "#E8A838",   # amber
+    "nova": "#C45C26",
+    "ridge": "#1F7A6C",
+    "loom": "#C4A35A",
+    "volt": "#E8A838",
 }
-
-# loom also needs a light ink variant for dark sidebar contact icons
 THEME_VARIANTS = {
     "loom-light": "#F3E6C8",
 }
 
 SIZE = 128
-STROKE = 7
-
-
-def _new() -> tuple[Image.Image, ImageDraw.ImageDraw]:
-    img = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    return img, ImageDraw.Draw(img)
+# Ink area inside the canvas — equal padding on every side after normalize.
+CONTENT = 88
+STROKE = 8
+DRAW = 160  # oversized draft canvas so strokes are not clipped before crop
 
 
 def _hex(color: str) -> tuple[int, int, int, int]:
     c = color.lstrip("#")
-    r, g, b = int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16)
-    return (r, g, b, 255)
+    return (int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16), 255)
+
+
+def _draft() -> tuple[Image.Image, ImageDraw.ImageDraw]:
+    img = Image.new("RGBA", (DRAW, DRAW), (0, 0, 0, 0))
+    return img, ImageDraw.Draw(img)
+
+
+def _normalize(img: Image.Image) -> Image.Image:
+    """Crop ink, fit into CONTENT×CONTENT, center on SIZE×SIZE."""
+    alpha = img.split()[-1]
+    bbox = alpha.getbbox()
+    if not bbox:
+        return Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
+
+    cropped = img.crop(bbox)
+    cw, ch = cropped.size
+    scale = min(CONTENT / cw, CONTENT / ch)
+    nw = max(1, int(round(cw * scale)))
+    nh = max(1, int(round(ch * scale)))
+    fitted = cropped.resize((nw, nh), Image.Resampling.LANCZOS)
+
+    out = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
+    out.paste(fitted, ((SIZE - nw) // 2, (SIZE - nh) // 2), fitted)
+    return out
 
 
 def draw_email(color: str) -> Image.Image:
-    img, d = _new()
+    img, d = _draft()
     col = _hex(color)
-    # Envelope body
-    d.rounded_rectangle((22, 38, 106, 96), radius=8, outline=col, width=STROKE)
-    # Flap
-    d.line([(22, 42), (64, 72), (106, 42)], fill=col, width=STROKE, joint="curve")
-    return img
+    d.rounded_rectangle((36, 48, 124, 112), radius=10, outline=col, width=STROKE)
+    d.line([(36, 54), (80, 88), (124, 54)], fill=col, width=STROKE)
+    return _normalize(img)
 
 
 def draw_phone(color: str) -> Image.Image:
-    img, d = _new()
+    img, d = _draft()
     col = _hex(color)
-    d.rounded_rectangle((44, 18, 84, 110), radius=12, outline=col, width=STROKE)
-    d.ellipse((56, 92, 72, 100), fill=col)
-    d.line([(54, 30), (74, 30)], fill=col, width=STROKE)
-    return img
+    d.rounded_rectangle((58, 28, 102, 132), radius=14, outline=col, width=STROKE)
+    d.rounded_rectangle((70, 40, 90, 48), radius=3, fill=col)
+    d.ellipse((72, 112, 88, 128), fill=col)
+    return _normalize(img)
 
 
 def draw_location(color: str) -> Image.Image:
-    img, d = _new()
+    img, d = _draft()
     col = _hex(color)
-    # Pin teardrop approximated with ellipse + triangle
-    d.ellipse((34, 18, 94, 78), outline=col, width=STROKE)
-    d.ellipse((52, 36, 76, 60), outline=col, width=STROKE - 1)
-    d.polygon([(64, 108), (40, 68), (88, 68)], outline=col)
-    # thicken pin point with lines
-    d.line([(40, 68), (64, 108), (88, 68)], fill=col, width=STROKE)
-    return img
+    d.ellipse((44, 28, 116, 100), outline=col, width=STROKE)
+    d.ellipse((66, 50, 94, 78), outline=col, width=STROKE - 1)
+    d.line([(52, 88), (80, 136), (108, 88)], fill=col, width=STROKE)
+    return _normalize(img)
 
 
 def draw_summary(color: str) -> Image.Image:
-    img, d = _new()
+    img, d = _draft()
     col = _hex(color)
-    d.rounded_rectangle((28, 24, 100, 104), radius=10, outline=col, width=STROKE)
-    for y in (48, 64, 80):
-        d.line([(44, y), (84, y)], fill=col, width=STROKE - 2)
-    return img
+    d.rounded_rectangle((44, 32, 116, 128), radius=12, outline=col, width=STROKE)
+    for y in (58, 78, 98):
+        d.line([(60, y), (100, y)], fill=col, width=STROKE - 1)
+    return _normalize(img)
 
 
 def draw_experience(color: str) -> Image.Image:
-    img, d = _new()
+    img, d = _draft()
     col = _hex(color)
-    # Briefcase
-    d.rounded_rectangle((24, 48, 104, 102), radius=8, outline=col, width=STROKE)
-    d.arc((48, 28, 80, 56), start=0, end=180, fill=col, width=STROKE)
-    d.line([(24, 70), (104, 70)], fill=col, width=STROKE - 1)
-    return img
+    d.rounded_rectangle((36, 64, 124, 124), radius=10, outline=col, width=STROKE)
+    d.arc((60, 36, 100, 76), start=0, end=180, fill=col, width=STROKE)
+    d.line([(36, 88), (124, 88)], fill=col, width=STROKE - 1)
+    return _normalize(img)
 
 
 def draw_education(color: str) -> Image.Image:
-    img, d = _new()
+    img, d = _draft()
     col = _hex(color)
-    # Graduation cap
-    d.polygon([(20, 56), (64, 32), (108, 56), (64, 80)], outline=col)
-    d.line([(20, 56), (64, 80), (108, 56)], fill=col, width=STROKE)
-    d.line([(64, 32), (64, 80)], fill=col, width=STROKE - 1)
-    d.line([(96, 62), (96, 92)], fill=col, width=STROKE - 1)
-    d.ellipse((90, 90, 102, 102), outline=col, width=STROKE - 2)
-    return img
+    # Cap diamond + tassel — closed strokes so small sizes stay readable.
+    d.line([(28, 72), (80, 40), (132, 72), (80, 104), (28, 72)], fill=col, width=STROKE)
+    d.line([(80, 40), (80, 104)], fill=col, width=STROKE - 1)
+    d.line([(118, 80), (118, 118)], fill=col, width=STROKE - 1)
+    d.ellipse((110, 114, 126, 130), outline=col, width=STROKE - 1)
+    return _normalize(img)
 
 
 def draw_skills(color: str) -> Image.Image:
-    img, d = _new()
+    img, d = _draft()
     col = _hex(color)
-    # Spark / star
     pts = [
-        (64, 18), (74, 50), (108, 50), (80, 70),
-        (92, 104), (64, 84), (36, 104), (48, 70),
-        (20, 50), (54, 50),
+        (80, 28), (92, 64), (128, 64), (100, 86),
+        (112, 122), (80, 100), (48, 122), (60, 86),
+        (32, 64), (68, 64),
     ]
-    d.line(pts + [pts[0]], fill=col, width=STROKE, joint="curve")
-    return img
+    d.line(pts + [pts[0]], fill=col, width=STROKE)
+    return _normalize(img)
 
 
 def draw_languages(color: str) -> Image.Image:
-    img, d = _new()
+    img, d = _draft()
     col = _hex(color)
-    # Globe
-    d.ellipse((24, 24, 104, 104), outline=col, width=STROKE)
-    d.ellipse((44, 24, 84, 104), outline=col, width=STROKE - 2)
-    d.arc((24, 44, 104, 84), start=0, end=180, fill=col, width=STROKE - 2)
-    d.arc((24, 44, 104, 84), start=180, end=360, fill=col, width=STROKE - 2)
-    return img
+    d.ellipse((36, 36, 124, 124), outline=col, width=STROKE)
+    d.ellipse((58, 36, 102, 124), outline=col, width=STROKE - 1)
+    d.arc((36, 58, 124, 102), start=0, end=180, fill=col, width=STROKE - 1)
+    d.arc((36, 58, 124, 102), start=180, end=360, fill=col, width=STROKE - 1)
+    return _normalize(img)
 
 
 def draw_interests(color: str) -> Image.Image:
-    img, d = _new()
+    img, d = _draft()
     col = _hex(color)
-    # Heart-ish: two circles + V
-    d.ellipse((28, 34, 64, 70), outline=col, width=STROKE)
-    d.ellipse((64, 34, 100, 70), outline=col, width=STROKE)
-    d.line([(32, 58), (64, 104), (96, 58)], fill=col, width=STROKE)
-    return img
+    d.ellipse((40, 44, 82, 86), outline=col, width=STROKE)
+    d.ellipse((78, 44, 120, 86), outline=col, width=STROKE)
+    d.line([(44, 74), (80, 128), (116, 74)], fill=col, width=STROKE)
+    return _normalize(img)
 
 
 def draw_references(color: str) -> Image.Image:
-    img, d = _new()
+    img, d = _draft()
     col = _hex(color)
-    # People / quote bubble
-    d.ellipse((40, 22, 72, 54), outline=col, width=STROKE)
-    d.arc((28, 54, 84, 100), start=0, end=180, fill=col, width=STROKE)
-    d.ellipse((74, 40, 98, 64), outline=col, width=STROKE - 1)
-    d.arc((66, 64, 108, 100), start=20, end=180, fill=col, width=STROKE - 1)
-    return img
+    d.ellipse((50, 30, 90, 70), outline=col, width=STROKE)
+    d.arc((36, 70, 104, 126), start=0, end=180, fill=col, width=STROKE)
+    d.ellipse((96, 52, 124, 80), outline=col, width=STROKE - 1)
+    d.arc((86, 80, 134, 126), start=20, end=180, fill=col, width=STROKE - 1)
+    return _normalize(img)
 
 
 def draw_certifications(color: str) -> Image.Image:
-    img, d = _new()
+    img, d = _draft()
     col = _hex(color)
     import math
     pts = []
     for i in range(6):
         a = math.radians(-90 + i * 60)
-        pts.append((64 + 40 * math.cos(a), 56 + 40 * math.sin(a)))
+        pts.append((80 + 42 * math.cos(a), 70 + 42 * math.sin(a)))
     d.line(pts + [pts[0]], fill=col, width=STROKE)
-    d.ellipse((52, 44, 76, 68), outline=col, width=STROKE - 1)
-    d.line([(56, 88), (64, 112), (72, 88)], fill=col, width=STROKE - 1)
-    return img
+    d.ellipse((66, 56, 94, 84), outline=col, width=STROKE - 1)
+    d.line([(70, 108), (80, 136), (90, 108)], fill=col, width=STROKE - 1)
+    return _normalize(img)
 
 
 def draw_other(color: str) -> Image.Image:
-    img, d = _new()
+    img, d = _draft()
     col = _hex(color)
-    # Grid / modules
-    for box in ((28, 28, 56, 56), (72, 28, 100, 56), (28, 72, 56, 100), (72, 72, 100, 100)):
-        d.rounded_rectangle(box, radius=6, outline=col, width=STROKE - 1)
-    return img
+    for box in ((40, 40, 74, 74), (86, 40, 120, 74), (40, 86, 74, 120), (86, 86, 120, 120)):
+        d.rounded_rectangle(box, radius=7, outline=col, width=STROKE - 1)
+    return _normalize(img)
 
 
 ICONS = {
