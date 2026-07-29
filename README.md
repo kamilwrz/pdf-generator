@@ -232,7 +232,7 @@ Implementation:
 - `frontend/src/templates/iconic.js`, lines 1–386, exports `novaTemplate`, `ridgeTemplate`, `loomTemplate`, `voltTemplate`, and `loomContact`
 - `backend/app/services/cv_generator_iconic.py`, lines 31–409, functions `_icon`, `_icon_beside`, `_gen_iconic_theme`, and four `_gen_*` entry points
 - `frontend/src/utils/textareaReflow.js`, lines 54–364, functions `isTextAlignedImage`, `belongsToFlowLane`, `avoidOrphanChrome`, `precedingChromeCluster`, and `reflowTextareaHeight`
-- `frontend/src/components/canvas/Image/Image.jsx`, lines 22–55, functions `isTextAlignedIcon`, `iconicDrawTop`
+- `frontend/src/components/canvas/Image/Image.jsx`, lines 22–76, functions `isTextAlignedIcon`, `iconicDrawTop`; canvas images use `object-fit: fill` so full-page backgrounds stretch like ReportLab `drawImage` (not `contain`, which letterboxed Lattice/Rift/Relay PNGs that are 1024×1536)
 - `backend/app/services/pdf_generator.py`, lines 141–193, method `PDF_Generator.renderImage`
 - `backend/app/crud/pdfs.py` / `backend/app/schemas/pdf_schema.py` — persist `alignWithText` in `extra_properties`
 
@@ -769,7 +769,7 @@ Implementacja:
 - `frontend/src/templates/iconic.js`, linie 1–386, eksporty `novaTemplate`, `ridgeTemplate`, `loomTemplate`, `voltTemplate`, `loomContact`
 - `backend/app/services/cv_generator_iconic.py`, linie 31–409, funkcje `_icon`, `_icon_beside`, `_gen_iconic_theme` oraz cztery wejścia `_gen_*`
 - `frontend/src/utils/textareaReflow.js`, linie 54–364, funkcje `isTextAlignedImage`, `belongsToFlowLane`, `avoidOrphanChrome`, `precedingChromeCluster`, `reflowTextareaHeight`
-- `frontend/src/components/canvas/Image/Image.jsx`, linie 22–55, funkcje `isTextAlignedIcon`, `iconicDrawTop`
+- `frontend/src/components/canvas/Image/Image.jsx`, linie 22–76, funkcje `isTextAlignedIcon`, `iconicDrawTop`; obrazy na kanwie używają `object-fit: fill`, żeby tła pełnostronicowe rozciągały się jak ReportLab `drawImage` (nie `contain`, które dawało białe paski przy PNG 1024×1536 w Lattice/Rift/Relay)
 - `backend/app/services/pdf_generator.py`, linie 141–193, metoda `PDF_Generator.renderImage`
 - `backend/app/crud/pdfs.py` / `backend/app/schemas/pdf_schema.py` — zapis `alignWithText` w `extra_properties`
 

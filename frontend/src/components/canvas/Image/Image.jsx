@@ -63,6 +63,9 @@ function Image({
         setIsResizeable(Boolean(active));
     }
 
+    // Stretch to the authored box (object-fit: fill). ReportLab's drawImage
+    // does the same. `contain` letterboxes full-page backgrounds whose PNG
+    // aspect ratio differs from A4 (e.g. 1024×1536 → white side gutters).
     const style = {
         width: width,
         height: height,
@@ -70,7 +73,7 @@ function Image({
         top: drawTop,
         position: "absolute",
         zIndex: zIndex,
-        objectFit: "contain",
+        objectFit: "fill",
         ...(fixedToPage ? { pointerEvents: "none" } : {}),
     }
 
