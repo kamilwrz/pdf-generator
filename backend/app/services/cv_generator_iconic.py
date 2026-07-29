@@ -156,9 +156,18 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
 
     elif C["layout"] == "loom":
         light = "loom-light"
-        # Match frontend loomContact: single-line text + geometrically centred
-        # 9px icons so the three contact rows share one rhythm.
-        contact_fs, side_head_fs, contact_icon, side_icon = 7.6, 7.4, 9.0, 11.0
+        # One sidebar column: icons at x=24, all labels/bodies at x=40.
+        # Geometric icon centring (alignWithText=False) matches contact rows so
+        # skills / interests / languages do not drift relative to each other.
+        contact_fs = 7.6
+        side_head_fs = 7.4
+        contact_icon = 9.0
+        side_icon = 11.0
+        side_text_x = 40.0
+        side_body_w = 120.0
+        side_body_fs = 7.8
+        side_body_lh = 12.0
+        side_section_gap = 16.0
         parts = (name or "").split(" ", 1)
         first = parts[0] if parts else name
         last = parts[1] if len(parts) > 1 else ""
@@ -174,23 +183,38 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
                 continue
             icon_top = y + (contact_fs - contact_icon) / 2.0
             contact_mark = _icon(light, key, 24, icon_top, contact_icon)
-            # Opt-out of the section-head optical shift used for larger labels.
             contact_mark["alignWithText"] = False
             header.append(contact_mark)
-            header.append(_text(value, contact_fs, SANS, C["light"], 40, y, zIndex=3))
+            header.append(_text(value, contact_fs, SANS, C["light"], side_text_x, y, zIndex=3))
             y += 22.0
-        sidebar_y = max(y + 30, 250.0)
-        if cv.get("skills"):
-            header.append(_icon_beside(light, "skills", 24, sidebar_y, side_head_fs, side_icon))
-            skills_label = _text(lbl["skills"], side_head_fs, SANS, C["accent"], 40, sidebar_y, zIndex=3)
-            skills_label["letterSpacing"] = 1.2
-            header.append(skills_label)
-            skills_txt = "\n".join(f"• {s}" for s in cv["skills"][:6])
+
+        def _loom_side_heading(icon_key: str, label: str, top: float) -> float:
+            icon_top = top + (side_head_fs - side_icon) / 2.0
+            mark = _icon(light, icon_key, 24, icon_top, side_icon)
+            mark["alignWithText"] = False
+            header.append(mark)
+            side_label = _text(label, side_head_fs, SANS, C["accent"], side_text_x, top, zIndex=3)
+            side_label["letterSpacing"] = 1.2
+            header.append(side_label)
+            return top + side_head_fs * 1.35 + 6.0
+
+        def _loom_side_body(content: str, top: float, *, bullet_list: bool) -> float:
+            height = Builder.measure_block(
+                content, side_body_w, side_body_fs, side_body_lh, SANS,
+                bulletList=bullet_list,
+            )
             header.append(_block(
-                skills_txt, 24, sidebar_y + 24, 132, 78, 7.8, 12, C["light"], SANS,
-                zIndex=3, bulletList=True,
+                content, side_text_x, top, side_body_w, height,
+                side_body_fs, side_body_lh, C["light"], SANS,
+                zIndex=3, bulletList=bullet_list,
             ))
-            sidebar_y += 110
+            return top + height + side_section_gap
+
+        sidebar_y = max(y + 28.0, 240.0)
+        if cv.get("skills"):
+            sidebar_y = _loom_side_heading("skills", lbl["skills"], sidebar_y)
+            skills_txt = "\n".join(f"• {s}" for s in cv["skills"][:6])
+            sidebar_y = _loom_side_body(skills_txt, sidebar_y, bullet_list=True)
         # Compact contact-adjacent extras stay in the sidebar (match frontend Loom).
         for index, sec in enumerate(cv.get("extra_sections") or []):
             kind = (sec.get("kind") or "").lower()
@@ -198,23 +222,16 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
             if kind not in {"languages", "references", "interests"} or not items:
                 continue
             key = _icon_key_for_label(sec.get("title") or kind)
-            header.append(_icon_beside(light, key, 24, sidebar_y, side_head_fs, side_icon))
-            side_label = _text(
-                (sec.get("title") or kind).upper(), side_head_fs, SANS, C["accent"],
-                40, sidebar_y, zIndex=3,
+            sidebar_y = _loom_side_heading(
+                key, (sec.get("title") or kind).upper(), sidebar_y,
             )
-            side_label["letterSpacing"] = 1.2
-            header.append(side_label)
             flat_items = _flatten_extra_items(items)
             if kind == "references":
                 body = flat_items[0] if flat_items else "Dostępne na życzenie"
+                sidebar_y = _loom_side_body(body, sidebar_y, bullet_list=False)
             else:
                 body = "\n".join(f"• {item}" for item in flat_items[:5])
-            header.append(_block(
-                body, 24, sidebar_y + 24, 132, 54, 7.8, 12, C["light"], SANS,
-                zIndex=3, bulletList=kind != "references",
-            ))
-            sidebar_y += 90
+                sidebar_y = _loom_side_body(body, sidebar_y, bullet_list=True)
             skip_sidebar_extras.add(index)
         start_y = 80.0
 

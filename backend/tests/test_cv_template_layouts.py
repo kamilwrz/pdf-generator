@@ -1091,6 +1091,39 @@ class CvTemplateLayoutTests(unittest.TestCase):
                         [],
                         "Loom contact email must be text, not an auto-height textarea",
                     )
+                    # Sidebar section chrome shares one text column (x=40) and
+                    # geometric icon alignment so skills/interests/languages stay even.
+                    side_heads = [
+                        element for element in elements
+                        if element["category"] == "text"
+                        and element.get("left") == 40
+                        and str(element.get("content", "")).upper() in {
+                            "UMIEJĘTNOŚCI", "JĘZYKI", "ZAINTERESOWANIA",
+                        }
+                    ]
+                    self.assertGreaterEqual(len(side_heads), 2)
+                    side_icons = [
+                        element for element in elements
+                        if element["category"] == "image"
+                        and "loom-light" in element["src"]
+                        and any(
+                            element["src"].endswith(f"/{key}.png")
+                            for key in ("skills", "languages", "interests")
+                        )
+                    ]
+                    self.assertGreaterEqual(len(side_icons), 2)
+                    for icon in side_icons:
+                        self.assertEqual(icon.get("alignWithText"), False)
+                        self.assertEqual(icon["left"], 24)
+                    side_bodies = [
+                        element for element in elements
+                        if element["category"] == "textarea"
+                        and element.get("left") == 40
+                        and element.get("bulletList")
+                    ]
+                    self.assertGreaterEqual(len(side_bodies), 2)
+                    for body in side_bodies:
+                        self.assertEqual(body["width"], 120)
 
 
 if __name__ == "__main__":

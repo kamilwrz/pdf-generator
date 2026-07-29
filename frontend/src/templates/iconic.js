@@ -196,6 +196,10 @@ const LOOM_ICON = 11;
 // label without the optical section-head shift (which overshoots small type).
 const LOOM_CONTACT_ICON = 9;
 
+const LOOM_SIDE_TEXT_X = 40;
+const LOOM_SIDE_BODY_W = 120;
+const LOOM_SIDE_SECTION_GAP = 16;
+
 /**
  * One Loom sidebar contact row: icon + single-line text on a shared baseline.
  * Uses geometric centring (`alignWithText: false`) so the three rows stay even.
@@ -211,7 +215,25 @@ const loomContact = (name, label, y) => [
         ),
         alignWithText: false,
     },
-    text(label, LOOM_CONTACT_FS, LOOM_SANS, LOOM_LIGHT, 40, y, 3),
+    text(label, LOOM_CONTACT_FS, LOOM_SANS, LOOM_LIGHT, LOOM_SIDE_TEXT_X, y, 3),
+];
+
+/**
+ * Sidebar section heading: same geometric icon alignment as contact rows, and
+ * the same text x as bodies so skills / interests / languages share one column.
+ */
+const loomSideHead = (name, label, y) => [
+    {
+        ...icon(
+            "loom-light",
+            name,
+            24,
+            y + (LOOM_SIDE_HEAD_FS - LOOM_ICON) / 2,
+            LOOM_ICON,
+        ),
+        alignWithText: false,
+    },
+    tracked(text(label, LOOM_SIDE_HEAD_FS, LOOM_SANS, LOOM_GOLD, LOOM_SIDE_TEXT_X, y, 3), 1.2),
 ];
 
 export const loomTemplate = [
@@ -229,20 +251,38 @@ export const loomTemplate = [
     ...loomContact("phone", "+48 600 000 000", 162),
     ...loomContact("location", "Poznań", 184),
 
-    iconBeside("loom-light", "skills", 24, 251, LOOM_SIDE_HEAD_FS, LOOM_ICON),
-    tracked(text("UMIEJĘTNOŚCI", LOOM_SIDE_HEAD_FS, LOOM_SANS, LOOM_GOLD, 40, 251, 3), 1.2),
-    bulleted(block(
-        "• Design systems\n• Facylitacja\n• Research\n• Prototypowanie\n• Leadership",
-        24, 274, 132, 78, 7.8, 12, LOOM_LIGHT, LOOM_SANS
-    )),
-
-    iconBeside("loom-light", "languages", 24, 381, LOOM_SIDE_HEAD_FS, LOOM_ICON),
-    tracked(text("JĘZYKI", LOOM_SIDE_HEAD_FS, LOOM_SANS, LOOM_GOLD, 40, 381, 3), 1.2),
-    bulleted(block("• Polski — ojczysty\n• Angielski — C1\n• Niemiecki — B1", 24, 404, 132, 48, 7.8, 12, LOOM_LIGHT, LOOM_SANS)),
-
-    iconBeside("loom-light", "references", 24, 481, LOOM_SIDE_HEAD_FS, LOOM_ICON),
-    tracked(text("REFERENCJE", LOOM_SIDE_HEAD_FS, LOOM_SANS, LOOM_GOLD, 40, 481, 3), 1.2),
-    block("Dostępne na życzenie", 24, 504, 132, 18, 7.8, 12, LOOM_LIGHT, LOOM_SANS),
+    // Packed sidebar stack: head → body → gap (same rhythm as the Python filler).
+    ...(() => {
+        const headAdvance = LOOM_SIDE_HEAD_FS * 1.35 + 6;
+        let y = 240;
+        const skillsHead = y;
+        const skillsBody = y + headAdvance;
+        const skillsH = 66;
+        y = skillsBody + skillsH + LOOM_SIDE_SECTION_GAP;
+        const langHead = y;
+        const langBody = y + headAdvance;
+        const langH = 42;
+        y = langBody + langH + LOOM_SIDE_SECTION_GAP;
+        const refHead = y;
+        const refBody = y + headAdvance;
+        return [
+            ...loomSideHead("skills", "UMIEJĘTNOŚCI", skillsHead),
+            bulleted(block(
+                "• Design systems\n• Facylitacja\n• Research\n• Prototypowanie\n• Leadership",
+                LOOM_SIDE_TEXT_X, skillsBody, LOOM_SIDE_BODY_W, skillsH, 7.8, 12, LOOM_LIGHT, LOOM_SANS,
+            )),
+            ...loomSideHead("languages", "JĘZYKI", langHead),
+            bulleted(block(
+                "• Polski — ojczysty\n• Angielski — C1\n• Niemiecki — B1",
+                LOOM_SIDE_TEXT_X, langBody, LOOM_SIDE_BODY_W, langH, 7.8, 12, LOOM_LIGHT, LOOM_SANS,
+            )),
+            ...loomSideHead("references", "REFERENCJE", refHead),
+            block(
+                "Dostępne na życzenie",
+                LOOM_SIDE_TEXT_X, refBody, LOOM_SIDE_BODY_W, 18, 7.8, 12, LOOM_LIGHT, LOOM_SANS,
+            ),
+        ];
+    })(),
 
     iconBeside("loom", "summary", 204, 49, LOOM_HEAD_FS, LOOM_ICON),
     tracked(text("PODSUMOWANIE ZAWODOWE", LOOM_HEAD_FS, LOOM_SANS, LOOM_GOLD, 222, 49, 3), 1.4),
