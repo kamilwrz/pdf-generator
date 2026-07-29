@@ -258,6 +258,79 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     self.assertNotIn(body, main_copy)
                 self.assertIn("• Platforma obsługi klienta", main_copy)
 
+    def test_obsidian_places_skills_languages_education_in_sidebar(self):
+        cv = {
+            **LONG_CV,
+            "skills": ["Strategia", "Badania"],
+            "education": [{
+                "degree": "MBA",
+                "school": "SGH",
+                "city": "Warszawa",
+                "period": "2020",
+                "description": "Zarządzanie strategiczne.",
+            }],
+            "extra_sections": [{
+                "title": "JĘZYKI",
+                "kind": "languages",
+                "placement": "after_skills",
+                "items": ["Polski — C2", "Angielski — C1"],
+            }],
+        }
+        elements = generate_resume("obsidian", cv)
+        sidebar_text = [
+            element for element in elements
+            if element["category"] in {"text", "textarea"} and element["left"] == 24
+        ]
+        sidebar_titles = {
+            element["content"] for element in sidebar_text if element["category"] == "text"
+        }
+        sidebar_bodies = [
+            element for element in sidebar_text if element["category"] == "textarea"
+        ]
+        main_copy = "\n".join(
+            element["content"]
+            for element in elements
+            if element["category"] == "textarea" and element["left"] == 222
+        )
+
+        self.assertTrue({"OBSZARY", "JĘZYKI", "WYKSZTAŁCENIE"} <= sidebar_titles)
+
+        skills_body = next(
+            element for element in sidebar_bodies
+            if "• Strategia" in element["content"]
+        )
+        self.assertTrue(skills_body.get("bulletList"))
+        self.assertIn("• Badania", skills_body["content"])
+
+        languages_body = next(
+            element for element in sidebar_bodies
+            if "• Polski — C2" in element["content"]
+        )
+        self.assertTrue(languages_body.get("bulletList"))
+        self.assertIn("• Angielski — C1", languages_body["content"])
+
+        self.assertTrue(any(
+            element["content"] == "MBA — 2020" and element.get("bold")
+            for element in sidebar_bodies
+        ))
+        self.assertTrue(any(
+            element["content"] == "SGH, Warszawa" for element in sidebar_bodies
+        ))
+        self.assertTrue(any(
+            element["content"] == "Zarządzanie strategiczne."
+            for element in sidebar_bodies
+        ))
+
+        self.assertNotIn("• Strategia", main_copy)
+        self.assertNotIn("MBA — 2020", main_copy)
+        self.assertNotIn("• Polski — C2", main_copy)
+        self.assertTrue(all(
+            element["page"] == 1
+            and element["width"] == 136
+            and element["top"] + element["height"] <= 758
+            for element in sidebar_bodies
+        ))
+
     def test_sidebar_templates_keep_oversized_sections_complete_in_main_column(self):
         skills = [f"Kompetencja strategiczna i operacyjna numer {index}" for index in range(1, 25)]
         languages = [f"Język zawodowy poziom zaawansowany numer {index}" for index in range(1, 25)]

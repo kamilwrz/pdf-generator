@@ -517,6 +517,53 @@ def _education_sidebar_content(education: list[dict]) -> str:
     return "\n\n".join(records)
 
 
+def _language_sidebar_lines(cv: dict) -> list[str]:
+    """Language lines for sidebar bullet lists (wizard field or extra_sections)."""
+    lines: list[str] = []
+    for entry in cv.get("languages") or []:
+        if isinstance(entry, dict):
+            name = str(entry.get("name") or "").strip()
+            level = str(entry.get("level") or "").strip()
+            if name:
+                lines.append(f"{name} — {level}" if level else name)
+        else:
+            text = str(entry or "").strip()
+            if text:
+                lines.append(text)
+    if lines:
+        return lines
+    for section in cv.get("extra_sections") or []:
+        if _extra_section_kind(section) != "languages":
+            continue
+        for item in section.get("items") or []:
+            text = str(item or "").strip()
+            if text:
+                lines.append(text)
+    return lines
+
+
+def _obsidian_education_parts(edu: dict) -> tuple[str, str, str]:
+    """
+    Obsidian sidebar education format:
+      1. Nazwa dyplomu — Data/Okres
+      2. Uczelnia, Miasto
+      3. Opis
+    """
+    degree = str(edu.get("degree") or "").strip()
+    period = str(edu.get("period") or "").strip()
+    school = str(edu.get("school") or "").strip()
+    city = str(edu.get("city") or "").strip()
+    description = _education_description(edu)
+    legacy_detail = str(edu.get("detail") or "").strip()
+
+    title = " — ".join(part for part in (degree, period) if part)
+    school_city = ", ".join(part for part in (school, city) if part)
+    if not school_city and legacy_detail:
+        if legacy_detail not in {degree, period, description, title}:
+            school_city = legacy_detail
+    return title, school_city, description
+
+
 # ── template generators ──────────────────────────────────────────────────────
 
 def _gen_finance(cv: dict) -> list[dict]:
@@ -3096,23 +3143,35 @@ def _gen_harbor(cv: dict) -> list[dict]:
 
 def _gen_obsidian(cv: dict) -> list[dict]:
     """Sidebar dark theme — a near-black sidecar beside a charcoal main field,
-    signed with a single warm-gold accent. Both panels stay dark on every page."""
+    signed with a single warm-gold accent. Both panels stay dark on every page.
+
+    Sidebar order: KONTAKT → OBSZARY (skills) → JĘZYKI → WYKSZTAŁCENIE.
+    Skills and languages are bullet lists; education uses diploma — period /
+    school, city / description.
+    """
     SIDEBAR_BG, MAIN_BG = "#0B0D10", "#15181C"
     GOLD, INK, MUTED, BODY, RULE = "#C9A24B", "#F4F1EA", "#9AA1AC", "#D7DAE0", "#33383F"
     SANS, SERIF = "Inter", "Times-Roman"
     SIDE, L, W = 184, 222, 337
+    SIDEBAR_L, SIDEBAR_W, SIDEBAR_BOTTOM = 24, 136, 758
     lbl = _labels(cv)
 
-    contact = _compact_lines(
-        [cv.get("email"), cv.get("phone"), cv.get("location")],
-        max_items=3, chars_per_item=26,
+    contact = "\n".join(filter(None, [
+        str(cv.get("location") or "").strip(),
+        str(cv.get("email") or "").strip(),
+        str(cv.get("phone") or "").strip(),
+    ]))
+    contact_fs, contact_lh = 8.0, 12.5
+    contact_height = _sidebar_wrapped_height(
+        contact or " ", SIDEBAR_W, contact_fs, contact_lh
     )
-    skills_preview = _compact_lines(cv.get("skills") or [], max_items=6, chars_per_item=20)
 
     frame = {**_rect(464, 50, 56, 52, GOLD, 1, zIndex=3), "id": "obsidian-frame"}
     orbit = {**_ellipse(474, 60, 32, 15, GOLD, borderWidth=1, zIndex=3), "id": "obsidian-orbit"}
     node = {**_circle(484, 79, 11, GOLD, filled=True, zIndex=3), "id": "obsidian-node"}
 
+    contact_label = _text("KONTAKT", 8, SANS, GOLD, SIDEBAR_L, 60, zIndex=3)
+    contact_label["letterSpacing"] = 1.3
     static = [
         _text(_compact_text(cv.get("name"), 28), 29, SERIF, INK, L, 52, zIndex=3, bold=True),
         _text(_compact_text(cv.get("title"), 46), 9, SANS, GOLD, L + 2, 92, zIndex=3),
@@ -3122,16 +3181,111 @@ def _gen_obsidian(cv: dict) -> list[dict]:
          "backgroundColor": RULE, "borderWidth": 0.9, "arrow": False, "zIndex": 2, "page": 1},
         {"category": "connector", "source_id": "obsidian-orbit", "target_id": "obsidian-node",
          "backgroundColor": GOLD, "borderWidth": 0.9, "arrow": False, "zIndex": 2, "page": 1},
-        _text("KONTAKT", 8, SANS, GOLD, 24, 60, zIndex=3),
-        _block(contact, 24, 80, 136, 46, 8, 12.5, BODY, SANS, zIndex=3),
+        contact_label,
+        _block(
+            contact, SIDEBAR_L, 80, SIDEBAR_W, contact_height,
+            contact_fs, contact_lh, BODY, SANS, zIndex=3,
+        ),
     ]
     static[1]["letterSpacing"] = 1.4
-    static[8]["letterSpacing"] = 1.3
-    if skills_preview:
-        skills_label = _text(lbl["skills"], 8, SANS, GOLD, 24, 200, zIndex=3)
-        skills_label["letterSpacing"] = 1.3
-        static.append(skills_label)
-        static.append(_block(skills_preview, 24, 220, 136, 90, 8.2, 13, BODY, SANS, zIndex=3))
+
+    cursor_y = 80 + contact_height + 18
+    placed_keys: set[str] = set()
+    sidebar_extra_indices: set[int] = set()
+
+    def place_bulleted_section(title: str, items: list[str], key: str) -> bool:
+        nonlocal cursor_y
+        if not items:
+            return False
+        content = "\n".join(f"• {item}" for item in items)
+        for font_size in _SIDEBAR_FONT_SIZES:
+            line_height = round(max(font_size * 1.45, 11.0), 2)
+            body_height = _sidebar_wrapped_height(content, SIDEBAR_W, font_size, line_height)
+            section_height = 15 + body_height + 18
+            if section_height > _SIDEBAR_MAX_SECTION_HEIGHT:
+                continue
+            if cursor_y + section_height > SIDEBAR_BOTTOM:
+                continue
+            label = _text(title, 8, SANS, GOLD, SIDEBAR_L, cursor_y, zIndex=3)
+            label["letterSpacing"] = 1.3
+            static.extend([
+                label,
+                _block(
+                    content, SIDEBAR_L, cursor_y + 15, SIDEBAR_W, body_height,
+                    font_size, line_height, BODY, SANS, zIndex=3, bulletList=True,
+                ),
+            ])
+            cursor_y += section_height
+            placed_keys.add(key)
+            return True
+        return False
+
+    skills = [str(skill).strip() for skill in (cv.get("skills") or []) if str(skill).strip()]
+    place_bulleted_section("OBSZARY", skills, "skills")
+
+    language_lines = _language_sidebar_lines(cv)
+    if place_bulleted_section("JĘZYKI", language_lines, "languages"):
+        for index, section in enumerate(cv.get("extra_sections") or []):
+            if _extra_section_kind(section) == "languages":
+                sidebar_extra_indices.add(index)
+
+    def education_record_height(edu: dict) -> float:
+        title, school_city, description = _obsidian_education_parts(edu)
+        height = 0.0
+        if title:
+            height += _sidebar_wrapped_height(title, SIDEBAR_W, 8.6, 12)
+        if school_city:
+            if height:
+                height += SPACE_STACK
+            height += _sidebar_wrapped_height(school_city, SIDEBAR_W, 7.9, 11)
+        if description:
+            if height:
+                height += SPACE_STACK
+            height += _sidebar_wrapped_height(description, SIDEBAR_W, 8.0, 12)
+        return height
+
+    education_entries = list(cv.get("education") or [])
+    if education_entries:
+        records_height = 0.0
+        for index, edu in enumerate(education_entries):
+            if index:
+                records_height += SPACE_RECORD
+            records_height += education_record_height(edu)
+        section_height = 15 + records_height + 18
+        if records_height > 0 and cursor_y + section_height <= SIDEBAR_BOTTOM:
+            edu_label = _text(lbl["education"], 8, SANS, GOLD, SIDEBAR_L, cursor_y, zIndex=3)
+            edu_label["letterSpacing"] = 1.3
+            static.append(edu_label)
+            cursor_y += 15
+            for index, edu in enumerate(education_entries):
+                if index:
+                    cursor_y += SPACE_RECORD
+                title, school_city, description = _obsidian_education_parts(edu)
+                if title:
+                    title_h = _sidebar_wrapped_height(title, SIDEBAR_W, 8.6, 12)
+                    static.append(_block(
+                        title, SIDEBAR_L, cursor_y, SIDEBAR_W, title_h,
+                        8.6, 12, INK, SANS, zIndex=3, bold=True,
+                    ))
+                    cursor_y += title_h
+                if school_city:
+                    cursor_y += SPACE_STACK
+                    meta_h = _sidebar_wrapped_height(school_city, SIDEBAR_W, 7.9, 11)
+                    static.append(_block(
+                        school_city, SIDEBAR_L, cursor_y, SIDEBAR_W, meta_h,
+                        7.9, 11, MUTED, SANS, zIndex=3,
+                    ))
+                    cursor_y += meta_h
+                if description:
+                    cursor_y += SPACE_STACK
+                    desc_h = _sidebar_wrapped_height(description, SIDEBAR_W, 8.0, 12)
+                    static.append(_block(
+                        description, SIDEBAR_L, cursor_y, SIDEBAR_W, desc_h,
+                        8.0, 12, BODY, SANS, zIndex=3,
+                    ))
+                    cursor_y += desc_h
+            cursor_y += 18
+            placed_keys.add("education")
 
     b = Builder(148)
 
@@ -3165,12 +3319,15 @@ def _gen_obsidian(cv: dict) -> list[dict]:
             if index < len(jobs) - 1:
                 b.gap(SPACE_RECORD)
         close_section()
-        _extra_sections(b, cv, "after_experience", section, {"body": BODY}, L, W, SANS, fs=9.4, lh=13.3)
+        _extra_sections(
+            b, cv, "after_experience", section, {"body": BODY}, L, W, SANS,
+            fs=9.4, lh=13.3, skip_indices=sidebar_extra_indices,
+        )
 
-    if cv.get("education"):
+    if education_entries and "education" not in placed_keys:
         b.need_section(section_chrome_height(12), 72)
         section(lbl["education"])
-        for index, edu in enumerate(cv["education"]):
+        for index, edu in enumerate(education_entries):
             _place_education_record(
                 b, edu, L, W,
                 ink=INK, muted=MUTED, body=BODY, font=SANS,
@@ -3181,12 +3338,15 @@ def _gen_obsidian(cv: dict) -> list[dict]:
             )
         close_section()
 
-    if cv.get("skills"):
+    if skills and "skills" not in placed_keys:
         section(lbl["skills"])
-        b.block("  ·  ".join(cv["skills"]), L, W, 9.4, 13.3, BODY, SANS)
+        b.block("  ·  ".join(skills), L, W, 9.4, 13.3, BODY, SANS)
         close_section()
 
-    _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, SANS, fs=9.4, lh=13.3)
+    _extra_sections(
+        b, cv, "after_skills", section, {"body": BODY}, L, W, SANS,
+        fs=9.4, lh=13.3, skip_indices=sidebar_extra_indices,
+    )
 
     flow = b.build()
     pages_used = max([element.get("page", 1) for element in static + flow] or [1])
