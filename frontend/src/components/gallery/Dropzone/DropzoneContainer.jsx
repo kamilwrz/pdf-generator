@@ -1,3 +1,6 @@
+/**
+ * Dialog wrapper that mounts Dropzone when the upload surface is open.
+ */
 import Dropzone from "./Dropzone";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";

@@ -1,3 +1,9 @@
+/**
+ * Group drag clamping and cross-page moves for canvas selections.
+ *
+ * Locked elements never move. Crossing pages drops connectors whose endpoints
+ * would land on different pages (PDF cannot draw those).
+ */
 import { getElementBounds } from "./elementBounds.js";
 import { crossPageConnectorIds } from "./pageSpread.js";
 

@@ -1,3 +1,9 @@
+/**
+ * Pointer helpers for textarea/text edit vs drag disambiguation.
+ *
+ * A small movement threshold starts a drag; double-click edit is deferred one
+ * animation frame so the leftover click cannot steal caret focus.
+ */
 export function hasTextareaDragIntent(start, event, threshold = 3) {
     if (!start || (event.buttons & 1) !== 1) return false;
     const deltaX = event.clientX - start.clientX;

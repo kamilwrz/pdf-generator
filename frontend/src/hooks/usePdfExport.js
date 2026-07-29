@@ -3,6 +3,19 @@ import { ApiClient } from "../services/api";
 import { ENDPOINTS } from "../services/api";
 import { sanitizeElementsContent } from "../utils/sanitizeTextContent";
 
+/**
+ * PDF create / update / autosave against the backend.
+ *
+ * Create and update trigger a full ReportLab render on the server.
+ * `saveElements` persists canvas rows only (debounced autosave) without
+ * regenerating the downloadable file.
+ *
+ * @param {Function} handlePdfId - Stores the active document id after create.
+ * @param {Function} handleShowModal - Opens the save/download result UI.
+ * @param {React.RefObject} titleRef - Title input; `.pdf` is appended for storage.
+ * @param {Array} A4_Elements_deleted - Soft-deleted rows still sent on update.
+ * @param {Function} setA4_Elements_deleted - Cleared after a successful write.
+ */
 export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements_deleted, setA4_Elements_deleted) {
 
   const [responsePDF, setResponsePDF] = useState();

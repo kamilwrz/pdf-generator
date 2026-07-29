@@ -1,3 +1,8 @@
+/**
+ * Multi-line textarea block with optional auto-height and bullet layout.
+ * Edit mode uses a native <textarea>; display mode mirrors PDF wrap metrics.
+ * `fixedToPage` renders as inert chrome.
+ */
 import classes from "./Textarea.module.css";
 import { memo, useLayoutEffect, useRef, useState } from "react";
 import { use } from "react";

@@ -1,3 +1,7 @@
+/**
+ * “Moje dokumenty” dialog: list, open, download, delete saved PDFs.
+ * Opening a doc hydrates canvas elements and restores fixedToPage/locked extras.
+ */
 import classes from "./ModalPdfs.module.css";
 
 import { createPortal } from "react-dom";

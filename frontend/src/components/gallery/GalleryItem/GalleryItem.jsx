@@ -1,3 +1,6 @@
+/**
+ * One gallery thumbnail: insert onto canvas or delete (when not in use).
+ */
 import classes from "./GalleryItem.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { AiFillDelete } from "react-icons/ai";

@@ -1,3 +1,8 @@
+/**
+ * Canvas image element with resize handles when selected.
+ * Template-asset URLs are rewritten to the API origin outside localhost.
+ * `fixedToPage` disables pointer events (sidebars/backgrounds).
+ */
 import classes from "./Image.module.css";
 import { memo, useState } from 'react';
 import { PdfContext } from "../../../store/pdfgenerator-context";

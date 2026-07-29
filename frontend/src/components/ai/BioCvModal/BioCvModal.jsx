@@ -1,3 +1,7 @@
+/**
+ * Guided bio/CV wizard with private draft autosave and template fill at the end.
+ * Draft writes are serialised so older responses cannot overwrite newer edits.
+ */
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import classes from "./BioCvModal.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";

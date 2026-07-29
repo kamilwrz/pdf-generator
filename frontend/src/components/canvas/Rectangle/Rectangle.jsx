@@ -1,3 +1,7 @@
+/**
+ * Outline-only rectangle (border colour via backgroundColor).
+ * Matches PDF inset stroke so canvas and export align.
+ */
 import classes from "./Rectangle.module.css";
 import { memo, useState } from 'react';
 import { PdfContext } from "../../../store/pdfgenerator-context";

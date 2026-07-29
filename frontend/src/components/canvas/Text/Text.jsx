@@ -1,3 +1,7 @@
+/**
+ * Single-line text element: select, drag, contentEditable edit.
+ * `fixedToPage` chrome (e.g. page numbers) is non-interactive.
+ */
 import classes from "./Text.module.css";
 import { memo, useLayoutEffect, useRef } from "react";
 import { use } from "react";

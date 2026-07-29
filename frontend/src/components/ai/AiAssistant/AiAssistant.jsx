@@ -1,3 +1,8 @@
+/**
+ * Floating AI assistant: quick actions + freeform chat against the canvas.
+ * Sends element snapshots to POST /ai/assistant; layout/structure results are
+ * previewable review cards before mutating PdfContext.
+ */
 import { useState, useRef, useEffect, useCallback, use } from "react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { nanoid } from "nanoid";

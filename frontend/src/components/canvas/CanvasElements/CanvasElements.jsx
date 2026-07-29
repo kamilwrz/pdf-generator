@@ -1,3 +1,8 @@
+/**
+ * Renders the live canvas element list by category.
+ * Passes `fixedToPage` so decorative chrome stays pointer-inert.
+ * Enter animations come from ids marked via `markElementsEnter`.
+ */
 import Text from '../Text/Text';
 import Image from '../Image/Image';
 import Line from '../Line/Line';

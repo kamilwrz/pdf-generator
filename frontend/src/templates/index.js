@@ -1,3 +1,8 @@
+/**
+ * Registry of built-in CV templates shown in pickers and Hero mockups.
+ * `tier` drives Free vs paid gating; `elements` are static specs materialized
+ * by useA4Elements.handleLoadTemplate (ids assigned at load time).
+ */
 import { ledgerTemplate } from "./ledger";
 import { nimbusTemplate } from "./nimbus";
 import { cinderTemplate } from "./cinder";

@@ -1,3 +1,7 @@
+/**
+ * Filled-rect “line” primitive used for rules, bands, and solid panels.
+ * `fixedToPage` chrome is pointer-inert.
+ */
 import classes from "./Line.module.css";
 import { memo } from 'react';
 import { PdfContext } from "../../../store/pdfgenerator-context";

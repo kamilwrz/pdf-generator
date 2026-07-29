@@ -1,3 +1,7 @@
+/**
+ * Editor chrome: title, save/download, templates/AI entry, undo/redo, zoom.
+ * Download/save go through PdfContext create/update (entitlement-gated upstream).
+ */
 import classes from "./Topbar.module.css";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";

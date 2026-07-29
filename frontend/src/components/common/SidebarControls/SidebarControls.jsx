@@ -1,3 +1,6 @@
+/**
+ * Icon tile button for the left Sidebar tool rail.
+ */
 import classes from "./SidebarControls.module.css";
 
 export default function SidebarControls({ icon, labelText, sidebarEvent, documents }) {

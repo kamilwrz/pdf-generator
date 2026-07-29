@@ -31,6 +31,14 @@ import { previewStructureOperation } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
 import { planErrorMessage } from '../utils/entitlements';
 
+/**
+ * Authenticated CV editor page: canvas, toolbars, dialogs, and autosave.
+ *
+ * Composes `useA4Elements` + `usePdfExport` into `PdfContext` for child UI.
+ * Dialog (`docs` / `templates` / AI / plan) and panel (`upload` / `gallery`)
+ * surfaces are mutually exclusive so only one overlay owns focus at a time.
+ */
+
 // Session-scoped flag so the template-first onboarding modal (see
 // markTemplatesModalSeen below) never re-triggers after being resolved once.
 const TEMPLATES_MODAL_SEEN_KEY = "cv-studio:templatesModalSeen";

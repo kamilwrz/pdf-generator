@@ -10,6 +10,17 @@ import { sanitizeTextContent } from '../utils/sanitizeTextContent';
 import { markElementsEnter } from '../utils/canvasEnter';
 import { isDecorativeChrome } from '../utils/elementInteraction';
 
+/**
+ * Core canvas state hook for the A4 CV editor.
+ *
+ * Owns element CRUD, selection/drag/resize, multi-page view, undo/redo history,
+ * connector draw mode, template/AI loaders, and zoom. Geometry uses A4 points
+ * (595×842) 1:1 with the PDF renderer. Decorative `fixedToPage` chrome is
+ * interaction-locked via `isDecorativeChrome`.
+ *
+ * @param {React.RefObject<HTMLInputElement|null>} titleRef - Document title input.
+ */
+
 // Elements a connector can attach to — those with a real bounding box the
 // backend can reproduce for the PDF. Single-line text (no stored width/height)
 // is intentionally excluded.

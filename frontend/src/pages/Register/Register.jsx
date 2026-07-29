@@ -1,3 +1,7 @@
+/**
+ * Registration with optional plan selection (pre-Stripe unpaid paid plans).
+ * Wakes the backend in the background like Login to survive Render cold start.
+ */
 import classes from "./Register.module.css";
 import planClasses from "./PlanSelector.module.css";
 

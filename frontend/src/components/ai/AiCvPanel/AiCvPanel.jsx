@@ -1,3 +1,7 @@
+/**
+ * “Import CV PDF → pick template” dialog.
+ * Extract is entitlement-gated; fill uses deterministic backend layout.
+ */
 import { useRef, useState, useCallback, use, useMemo } from "react";
 import classes from "./AiCvPanel.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";

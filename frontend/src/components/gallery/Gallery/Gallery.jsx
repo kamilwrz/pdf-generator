@@ -1,3 +1,6 @@
+/**
+ * User image library panel. Selecting an item inserts it onto the canvas via context.
+ */
 import classes from "./Gallery.module.css";
 
 import { useState, useEffect, use } from "react";

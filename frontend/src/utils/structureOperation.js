@@ -1,3 +1,11 @@
+/**
+ * AI structure-operation preview and fixed-page chrome cloning.
+ *
+ * `previewStructureOperation` applies a reviewed remove/add/patch group locally
+ * without committing, so the user can accept or reject the card.
+ * `cloneFixedPageDecorations` copies backgrounds/page numbers onto new pages
+ * when overflow creates them — page-number text is updated to the new index.
+ */
 export function previewStructureOperation(elements, group) {
   if (!group?.remove_element_ids || !group?.add_elements) return elements;
   const removedIds = new Set(group.remove_element_ids);

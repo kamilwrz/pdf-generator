@@ -1,3 +1,8 @@
+/**
+ * Property inspector for the current selection (single or multi).
+ * Field visibility follows category capabilities; bulk edits go through
+ * `editSelectedElementValues` so mixed selections stay consistent.
+ */
 import classes from "./Editor.module.css";
 import { useEffect, useState, useRef } from "react";
 import EditorControls from "../../common/EditorControls/EditorControls";

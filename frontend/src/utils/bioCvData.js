@@ -1,3 +1,7 @@
+/**
+ * Bio/CV wizard data helpers: empty state, step validation, payload build.
+ * Kept pure so the modal can autosave normalised drafts without layout logic.
+ */
 export const BIO_CV_STEPS = [
     "Dane osobowe",
     "Doświadczenie",

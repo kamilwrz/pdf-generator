@@ -1,11 +1,15 @@
+/**
+ * Default PdfContext shape for the CV canvas editor.
+ *
+ * PdfCanvas provides the real implementation via `PdfContext.Provider`.
+ * Canvas/editor children read handlers through `use(PdfContext)` so they stay
+ * decoupled from prop drilling. Default no-ops keep Storybook/tests from
+ * crashing when a provider is absent.
+ */
 import { createContext } from "react";
 
-//create the context value
-// value that is produced by createContext() will be an object that contains a React component
-// export = providing context to the APP, then wrap components (PdfGenerator Page) with PdfContext 
-
 export const PdfContext = createContext({
-    A4_Elements : [],
+    A4_Elements: [],
     groupMoveDelta: null,
     isTwoPageView: false,
     toggleTwoPageView: () => {},
@@ -41,7 +45,7 @@ export const PdfContext = createContext({
     isGallery: false,
     isDropzone: false,
     createPdf: () => {},
-    showDropzone:() => {},
+    showDropzone: () => {},
     showGallery: () => {},
     editElementValues: () => {},
     editSelectedElementValues: () => {},
@@ -70,11 +74,11 @@ export const PdfContext = createContext({
     refreshEntitlements: async () => null,
     logout: () => {},
     isPdfLoading: false,
-    setA4_Elements_deleted: () =>{},
+    setA4_Elements_deleted: () => {},
     structurePreviewGroup: null,
     setStructurePreviewGroup: () => {},
     deletionPreviewIds: [],
     setDeletionPreviewIds: () => {},
     setPDFdownloadData: () => {},
-    PDFdownloadData: []
+    PDFdownloadData: [],
 })

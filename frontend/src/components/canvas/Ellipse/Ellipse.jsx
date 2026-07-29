@@ -1,3 +1,6 @@
+/**
+ * Circle/ellipse shape; filled or stroked. Used for markers and chrome.
+ */
 import { memo, use, useState } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import Resize from "../../common/Resize/Resize";

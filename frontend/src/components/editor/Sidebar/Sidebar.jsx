@@ -1,3 +1,7 @@
+/**
+ * Left tool rail: add primitives, open docs/gallery/upload, logout.
+ * Children slot hosts docked panels (upload/gallery) when open.
+ */
 import classes from "./Sidebar.module.css";
 import SidebarControls from "../../common/SidebarControls/SidebarControls";
 import { FaRegImages } from "react-icons/fa";

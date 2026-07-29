@@ -1,3 +1,7 @@
+/**
+ * Alignment and spacing guide overlays while dragging or long-pressing text.
+ * Spacing maths live in utils/spacingGuides; this component only paints them.
+ */
 import { useEffect, useState } from "react";
 import classes from "./Guides.module.css";
 import { use } from "react";

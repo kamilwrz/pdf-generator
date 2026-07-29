@@ -1,3 +1,9 @@
+/**
+ * Load and refresh the signed-in user's plan entitlements.
+ *
+ * When `enabled` is false (e.g. logged out), state stays null and no request
+ * is made. Used to gate templates, AI actions, and export quotas in the UI.
+ */
 import { useCallback, useEffect, useState } from "react";
 import { ApiClient, ENDPOINTS } from "../services/api";
 

@@ -1,3 +1,9 @@
+/**
+ * Top-level router for CV Studio.
+ *
+ * Public: landing (`/`), login, register.
+ * Protected: the A4 editor at `/pdfcanvas` (requires a JWT in localStorage).
+ */
 import './App.css';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import ProtectedRoute from "./ProtectedRoute";

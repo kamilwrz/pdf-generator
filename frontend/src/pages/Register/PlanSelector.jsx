@@ -1,3 +1,6 @@
+/**
+ * Plan radio group used on the register form.
+ */
 const PLANS = [
     { slug: "free", name: "Free", note: "0 zł · bez kredytów AI" },
     { slug: "standard", name: "Standard", note: "29 zł · 150 kredytów AI" },

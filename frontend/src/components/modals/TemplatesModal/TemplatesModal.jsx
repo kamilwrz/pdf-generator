@@ -1,3 +1,7 @@
+/**
+ * Template picker. Free vs paid cards respect entitlements; picking logs a
+ * product metric and can warn before replacing a non-empty canvas.
+ */
 import { use, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiAlertTriangle } from "react-icons/fi";

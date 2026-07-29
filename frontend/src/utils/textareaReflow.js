@@ -1,3 +1,9 @@
+/**
+ * Reflow auto-height textareas and pack following content after height changes.
+ *
+ * Keeps section chrome with the next body block so page breaks never orphan
+ * headings in the footer margin. Matches backend SPACE_RECORD packing gaps.
+ */
 const FLOWABLE_CATEGORIES = new Set(["text", "textarea", "line", "rectangle", "circle", "ellipse", "image"]);
 const NEARBY_DECORATION_CATEGORIES = new Set(["line", "rectangle", "circle", "ellipse"]);
 const DECORATION_LANE_TOLERANCE = 32;

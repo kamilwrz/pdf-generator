@@ -1,3 +1,7 @@
+/**
+ * Login form. Does not gate on /health — cold starts use a long token timeout
+ * plus retries; wakeBackend runs in the background to warm the dyno.
+ */
 import classes from "./Login.module.css";
 
 import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";

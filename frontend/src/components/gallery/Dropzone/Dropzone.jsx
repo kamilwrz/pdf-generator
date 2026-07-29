@@ -1,3 +1,7 @@
+/**
+ * Image upload dropzone with shared Polish batch progress messaging.
+ * Uploads run sequentially so the progress bar reflects total files, not one.
+ */
 import classes from "./Dropzone.module.css";
 import { useDropzone } from "react-dropzone";
 import { useState, useEffect, useCallback, useRef } from "react";

@@ -1,3 +1,6 @@
+/**
+ * Stacked toast renderer for useToasts() notifications.
+ */
 import classes from "./ToastStack.module.css";
 import CloseButton from "../CloseButton/CloseButton";
 import { FiDownload } from "react-icons/fi";

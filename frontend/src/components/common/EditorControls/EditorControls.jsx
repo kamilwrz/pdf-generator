@@ -1,3 +1,7 @@
+/**
+ * Labeled control used by the property Editor (number/text/select/color).
+ * Font selects render each option in its own face for WYSIWYG picking.
+ */
 import classes from "./EditorControls.module.css";
 
 /** CSS font-family used to preview each option in the font picker. */

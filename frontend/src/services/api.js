@@ -1,9 +1,18 @@
+/**
+ * Backend HTTP client and route constants for CV Studio.
+ *
+ * VITE_API_URL overrides the default for local/prod builds. Falls back to the
+ * deployed Render backend so a fresh clone without `.env` still works.
+ *
+ * Auth calls should pass long timeouts and retries: free-tier dynos often need
+ * 30–60s on cold start; short aborts previously made login look broken.
+ */
 // VITE_API_URL overrides this for local dev (see .env.example / .env.development)
 // and for production builds (see .env.production). Falls back to the deployed
 // backend so a fresh clone with no .env file still works out of the box.
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://pdf-generator-07cb.onrender.com';
 
-//ENDPOINTS
+/** Path constants relative to API_BASE_URL (no trailing slash on base). */
 export const ENDPOINTS = {
     PDF: {
         CREATE: "/pdf/create_pdf",
@@ -80,12 +89,23 @@ export function wakeBackend() {
 }
 
 export class ApiClient {
+    /**
+     * @param {Record<string, string>} headers - Merged over JSON Content-Type
+     *   (e.g. `{ Authorization: "Bearer …" }`). FormData bodies drop Content-Type
+     *   so the browser can set the multipart boundary.
+     */
     constructor(headers) {
         this.baseUrl = API_BASE_URL;
         this.headers = { 'Content-Type': 'application/json', ...headers };
         this.DATA = [];
     }
 
+    /**
+     * Perform an HTTP call with optional retries on transient network errors.
+     *
+     * Side effects: network I/O only. Plan-limit responses attach `status`,
+     * `code`, and `upgradeRequired` on the thrown Error for UI upgrade prompts.
+     */
     async httpRequest(endpoint, method, body, errorMessage, options = {}) {
         const retries = Math.max(0, options.retries ?? 0);
         const retryDelayMs = options.retryDelayMs ?? 2_500;

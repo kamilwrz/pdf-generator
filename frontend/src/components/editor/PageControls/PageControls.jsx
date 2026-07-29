@@ -1,3 +1,6 @@
+/**
+ * Multi-page navigation and two-page spread toggle for the canvas.
+ */
 import classes from "./PageControls.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { use } from "react";

@@ -1,3 +1,7 @@
+/**
+ * Corner/edge resize handles for the currently selected element.
+ * Listens for global pointerup so a drag ending outside the handle still stops.
+ */
 import classes from "./Resize.module.css";
 import { useEffect } from "react";
 

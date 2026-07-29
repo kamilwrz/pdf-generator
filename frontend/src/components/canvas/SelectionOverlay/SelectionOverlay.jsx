@@ -1,3 +1,7 @@
+/**
+ * Selection frames drawn above elements (tight glyph bounds for single-line text).
+ * Keeps resize chrome off the element DOM so remounts do not break pointer capture.
+ */
 import { useMemo } from "react";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";

@@ -1,3 +1,7 @@
+/**
+ * Marketing landing page. Template mockups are static assets so the grid works
+ * even when the API is asleep. Soft-wakes the backend on mount for returning users.
+ */
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";

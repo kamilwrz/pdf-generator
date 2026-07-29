@@ -1,3 +1,8 @@
+/**
+ * One A4 page surface. Zoom scales visually while the wrapper reserves the
+ * scaled layout box so overflow scrolling matches what the user sees.
+ * `data-page-canvas` lets drag/hit-testing find the page under the pointer.
+ */
 import classes from "./A4.module.css";
 import { forwardRef } from "react";
 

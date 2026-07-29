@@ -1,3 +1,7 @@
+/**
+ * In-app plan picker. Activates plans via billing API when unpaid selection is
+ * allowed; otherwise surfaces payment_required for future Stripe Checkout.
+ */
 import { useCallback, useEffect, useMemo, useState, use } from "react";
 import classes from "./PlanSelectModal.module.css";
 import DialogShell from "../../common/DialogShell/DialogShell";
