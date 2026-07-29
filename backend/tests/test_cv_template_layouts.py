@@ -919,8 +919,8 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 for element in elements
             ))
 
-    def test_final_templates_keep_textareas_inside_page_bounds(self):
-        for template_id in ("solstice", "mistral", "axiom", "vellum"):
+    def test_active_templates_keep_textareas_inside_page_bounds(self):
+        for template_id in ("ledger", "vector", "scribe", "quarry", "obsidian", "onyx"):
             with self.subTest(template_id=template_id):
                 multi_page_cv = {
                     **LONG_CV,
@@ -936,46 +936,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     self.assertLessEqual(element["top"] + element["height"], 842)
                     self.assertTrue(element["autoHeight"])
                 self.assertGreater(max(element.get("page", 1) for element in elements), 1)
-
-    def test_mistral_keeps_main_flow_independent_from_sidebar_preview(self):
-        elements = generate_resume("mistral", LONG_CV)
-        summary_heading = next(
-            element
-            for element in elements
-            if element["category"] == "text"
-            and element["content"] == "PODSUMOWANIE ZAWODOWE"
-        )
-
-        self.assertEqual(summary_heading["left"], 204)
-        self.assertEqual(summary_heading["top"], 194.0)
-        self.assertTrue(any(
-            element["category"] == "textarea"
-            and element["left"] == 204
-            and "Zarządzanie interesariuszami" in element["content"]
-            for element in elements
-        ))
-
-    def test_side_panels_use_bounded_previews_without_dropping_main_skills(self):
-        solstice = generate_resume("solstice", LONG_CV)
-        mistral = generate_resume("mistral", LONG_CV)
-
-        self.assertTrue(all(
-            element["height"] <= 64
-            for element in solstice
-            if element["category"] == "textarea" and element["left"] == 36
-        ))
-        self.assertTrue(all(
-            element["height"] <= 92
-            for element in mistral
-            if element["category"] == "textarea" and element["left"] == 48
-        ))
-        for elements, left in ((solstice, 224), (mistral, 204)):
-            self.assertTrue(any(
-                element["category"] == "textarea"
-                and element["left"] == left
-                and "Zarządzanie interesariuszami" in element["content"]
-                for element in elements
-            ))
 
 
 if __name__ == "__main__":
