@@ -15,6 +15,7 @@ function Ellipse({
     category,
     elementId,
     zIndex,
+    fixedToPage,
 }) {
     const {
         moveElement,
@@ -38,7 +39,12 @@ function Ellipse({
         background: filled ? backgroundColor : "transparent",
         border: filled ? "none" : `${borderWidth || 1}px solid ${backgroundColor}`,
         zIndex,
+        ...(fixedToPage ? { pointerEvents: "none" } : {}),
     };
+
+    if (fixedToPage) {
+        return <div id={elementId} style={style} />;
+    }
 
     const shape = (
         <div

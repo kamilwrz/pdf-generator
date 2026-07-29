@@ -8,6 +8,7 @@ import { findPageCanvasAtPoint } from '../utils/pageSpread';
 import { moveElementsByDelta, moveElementsToPage } from '../utils/pageDrag';
 import { sanitizeTextContent } from '../utils/sanitizeTextContent';
 import { markElementsEnter } from '../utils/canvasEnter';
+import { isDecorativeChrome } from '../utils/elementInteraction';
 
 // Elements a connector can attach to — those with a real bounding box the
 // backend can reproduce for the PDF. Single-line text (no stored width/height)
@@ -548,6 +549,9 @@ export function useA4Elements(titleRef) {
       ? elementsRef.current.find((element) => element.element_id === elementId)
       : null;
 
+    // Decorative chrome (bg / frames / sidebars / page nums) is never draggable.
+    if (moving && isDecorativeChrome(dragged)) return;
+
     if (moving) {
       draggedElementIdsRef.current.delete(elementId);
       activeDragElementIdRef.current = elementId;
@@ -620,6 +624,10 @@ export function useA4Elements(titleRef) {
   // only that element, preserving the rest of the selection for bulk editing.
   const handleSelectElement = useCallback((elementId, additive = false) => {
     if (!additive && draggedElementIdsRef.current.delete(elementId)) return;
+
+    const target = elementsRef.current.find((element) => element.element_id === elementId);
+    // Decorative chrome must stay unselectable so it never steals clicks from content.
+    if (isDecorativeChrome(target)) return;
 
     setA4_Elements(prevState => {
       return prevState.map((element) => {
@@ -841,7 +849,7 @@ export function useA4Elements(titleRef) {
   const handleDuplicateElement = useCallback((elementId) => {
     setA4_Elements(prevState => {
       const original = prevState.find(el => el.element_id === elementId);
-      if (!original) return prevState;
+      if (!original || isDecorativeChrome(original)) return prevState;
 
       const { width: A4_WIDTH, height: A4_HEIGHT } = pageSizeRef.current;
       const OFFSET = 15;
@@ -871,7 +879,9 @@ export function useA4Elements(titleRef) {
   // group — are copied with their endpoints re-linked to the clones.
   const handleDuplicateSelectedElements = useCallback(() => {
     setA4_Elements((prevState) => {
-      const selected = prevState.filter((element) => element.isSelected);
+      const selected = prevState.filter((element) => (
+        element.isSelected && !isDecorativeChrome(element)
+      ));
       if (selected.length === 0) return prevState;
 
       const idMap = {};
@@ -932,6 +942,9 @@ export function useA4Elements(titleRef) {
 
   const handleDeleteElement = useCallback((elementId) => {
     setA4_Elements(prevState => {
+      const target = prevState.find((element) => element.element_id === elementId);
+      if (!target || isDecorativeChrome(target)) return prevState;
+
       // Remove the element plus any connector attached to it (no dangling lines).
       const removedIds = new Set([elementId]);
       prevState.forEach(el => {
@@ -958,7 +971,7 @@ export function useA4Elements(titleRef) {
     setA4_Elements((prevState) => {
       const removedIds = new Set(
         prevState
-          .filter((element) => element.isSelected)
+          .filter((element) => element.isSelected && !isDecorativeChrome(element))
           .map((element) => element.element_id)
       );
       if (removedIds.size === 0) return prevState;
@@ -1738,12 +1751,15 @@ export function useA4Elements(titleRef) {
       const withCleanContent = "content" in normalizedRest
         ? { ...normalizedRest, content: sanitizeTextContent(normalizedRest.content) }
         : normalizedRest;
+      const fixedToPage = Boolean(withCleanContent.fixedToPage);
       return {
         isSelected: false,
         isMove: false,
         isEditing: false,
-        locked: withCleanContent.locked ?? false,
         ...withCleanContent,
+        fixedToPage,
+        // Chrome stays interaction-locked even if a template omitted locked.
+        locked: withCleanContent.locked ?? fixedToPage,
         page: withCleanContent.page ?? 1,
         element_id: nid,
       };

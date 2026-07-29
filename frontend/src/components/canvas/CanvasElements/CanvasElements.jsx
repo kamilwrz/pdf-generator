@@ -38,6 +38,7 @@ export default function CanvasElements({ elements }) {
           bulletList={element.bulletList}
           autoHeight={element.autoHeight}
           zIndex={element.zIndex}
+          fixedToPage={element.fixedToPage}
         />
       );
     } else if (element.category === "text") {
@@ -60,6 +61,7 @@ export default function CanvasElements({ elements }) {
           italic={element.italic}
           underline={element.underline}
           zIndex={element.zIndex}
+          fixedToPage={element.fixedToPage}
         />
       );
     } else if (element.category === "image") {
@@ -76,6 +78,7 @@ export default function CanvasElements({ elements }) {
           isMove={element.isMove}
           category={element.category}
           zIndex={element.zIndex}
+          fixedToPage={element.fixedToPage}
         />
       );
     } else if (element.category === "line") {
@@ -91,6 +94,7 @@ export default function CanvasElements({ elements }) {
           isMove={element.isMove}
           category={element.category}
           zIndex={element.zIndex}
+          fixedToPage={element.fixedToPage}
         />
       );
     } else if (element.category === "rectangle") {
@@ -107,6 +111,7 @@ export default function CanvasElements({ elements }) {
           isMove={element.isMove}
           category={element.category}
           zIndex={element.zIndex}
+          fixedToPage={element.fixedToPage}
         />
       );
     } else if (element.category === "circle" || element.category === "ellipse") {
@@ -124,6 +129,7 @@ export default function CanvasElements({ elements }) {
           isMove={element.isMove}
           category={element.category}
           zIndex={element.zIndex}
+          fixedToPage={element.fixedToPage}
         />
       );
     }

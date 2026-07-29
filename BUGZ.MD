@@ -19,12 +19,13 @@
 6. DOCS SIE RESETUJE I CZASAMI SCIAGA ZLY PLIK
 - czasami my docs sie resetuje, niewiadommo dlaczego; sciaga nie ten plik mimo klikniecia w odpowiedni
 
-7. LOGOWANIE
+7. LOGOWANIE (FIXED - P = RENDER SUBSCRIPTION, serwer nie zawsze aktywny od razu)
 - lag po kliknieciu;nie wiem dlaczego, ale czasami proces logowania nie nastepuje od razu
 
-8. BG-IMAGE / BG-RECT
-- klikniecie w bg element powoduje zly UX;trzeba dodac kategorie i "zablokowac" przed tym bg / selection
+8. BG-IMAGE / BG-RECT (FIXED)
+- klikniecie w bg element (image lub linia) powoduje zly UX;trzeba dodac kategorie i "zablokowac" przed tym bg / selection
 - to samo z deko prostokatami, ktore tworza margin
+- oraz sidebary (image i linia)
 
 9. IMAGE UPLOAD (FIXED)
 - upload paru images zle wyglada;pozycjowanie diagonalne!

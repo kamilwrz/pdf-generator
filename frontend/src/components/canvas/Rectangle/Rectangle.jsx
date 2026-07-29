@@ -15,7 +15,9 @@ function Rectangle({
     isMove,
     category,
     elementId,
-    zIndex }) {
+    zIndex,
+    fixedToPage,
+}) {
 
     const { moveElement, selectElement, selectMoveElement, A4_Elements, resizeElement } = use(PdfContext);
 
@@ -38,7 +40,12 @@ function Rectangle({
         boxSizing: "border-box",
         background: "transparent",
         border: `${borderWidth || 1}px solid ${backgroundColor}`,
-        zIndex: zIndex
+        zIndex: zIndex,
+        ...(fixedToPage ? { pointerEvents: "none" } : {}),
+    }
+
+    if (fixedToPage) {
+        return <div id={elementId} style={style} />;
     }
 
     if (isSelected && selectedCount === 1 && !isMove) {

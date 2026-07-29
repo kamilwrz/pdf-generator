@@ -25,6 +25,7 @@ function Text({
     italic,
     underline,
     zIndex,
+    fixedToPage,
 }) {
     const {
         moveElement,
@@ -51,6 +52,7 @@ function Text({
         left,
         top,
         zIndex,
+        ...(fixedToPage ? { pointerEvents: "none" } : {}),
     };
 
     useLayoutEffect(() => () => {
@@ -125,13 +127,14 @@ function Text({
         <p
             id={elementId}
             ref={nodeRef}
-            contentEditable={isEditing}
+            contentEditable={isEditing && !fixedToPage}
             suppressContentEditableWarning
             spellCheck={false}
             className={`${classes.textElement} ${isEditing ? classes.editing : ""} ${isSelected && !isMove ? classes.selectedElement : ""} ${isMove ? classes.movingElement : ""}`}
             style={style}
-            onDoubleClick={isEditing ? undefined : startEditing}
+            onDoubleClick={isEditing || fixedToPage ? undefined : startEditing}
             onClick={(e) => {
+                if (fixedToPage) return;
                 if (isEditing) {
                     e.stopPropagation();
                     return;
@@ -139,6 +142,7 @@ function Text({
                 selectElement(elementId, e.ctrlKey || e.metaKey);
             }}
             onInput={(e) => {
+                if (fixedToPage) return;
                 editElementValues(
                     { content: sanitizeTextContent(e.currentTarget.textContent ?? "") ?? "" },
                     elementId,
@@ -155,6 +159,7 @@ function Text({
                 }
             }}
             onPointerDown={(e) => {
+                if (fixedToPage) return;
                 if (isEditing) {
                     e.stopPropagation();
                     return;
@@ -174,6 +179,7 @@ function Text({
                 });
             }}
             onPointerUp={(e) => {
+                if (fixedToPage) return;
                 endTextSpacingHold({
                     timerRef: spacingHoldTimerRef,
                     elementId,
@@ -188,6 +194,7 @@ function Text({
                 }
             }}
             onPointerCancel={() => {
+                if (fixedToPage) return;
                 endTextSpacingHold({
                     timerRef: spacingHoldTimerRef,
                     elementId,
@@ -199,7 +206,7 @@ function Text({
                 pointerStartRef.current = null;
             }}
             onPointerMove={(e) => {
-                if (isEditing) return;
+                if (fixedToPage || isEditing) return;
                 const pointerStart = pointerStartRef.current;
                 if (!pointerStart || pointerStart.pointerId !== e.pointerId) return;
                 if (!pointerStart.dragging) {

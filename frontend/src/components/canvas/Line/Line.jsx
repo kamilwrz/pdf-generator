@@ -14,7 +14,9 @@ function Line({
     isMove,
     category,
     elementId,
-    zIndex }) {
+    zIndex,
+    fixedToPage,
+}) {
 
     const { moveElement, selectElement, selectMoveElement, A4_Elements, resizeElement } = use(PdfContext);
 
@@ -32,7 +34,12 @@ function Line({
         left: left,
         top: top,
         position: "absolute",
-        zIndex: zIndex
+        zIndex: zIndex,
+        ...(fixedToPage ? { pointerEvents: "none" } : {}),
+    }
+
+    if (fixedToPage) {
+        return <div id={elementId} style={style} />;
     }
 
     if (isSelected && selectedCount === 1 && !isMove) {

@@ -52,6 +52,7 @@ function Textarea({
     bulletList,
     autoHeight,
     zIndex,
+    fixedToPage,
 }) {
     const {
         moveElement,
@@ -86,6 +87,7 @@ function Textarea({
         width,
         height,
         zIndex,
+        ...(fixedToPage ? { pointerEvents: "none" } : {}),
     };
     const textStyle = {
         fontFamily,
@@ -177,6 +179,19 @@ function Textarea({
     }
 
     const cleanContent = sanitizeTextContent(content) ?? "";
+
+    if (fixedToPage) {
+        return (
+            <div
+                id={elementId}
+                ref={blockRef}
+                className={classes.block}
+                style={{ ...boxStyle, ...textStyle }}
+            >
+                {bulletList && cleanContent ? renderBulletLines(cleanContent) : cleanContent}
+            </div>
+        );
+    }
 
     if (isEditing) {
         return (

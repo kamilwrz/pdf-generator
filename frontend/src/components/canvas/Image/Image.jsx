@@ -21,7 +21,9 @@ function Image({
     elementId,
     isSelected,
     isMove,
-    zIndex }) {
+    zIndex,
+    fixedToPage,
+}) {
 
     const { moveElement, selectElement, A4_Elements, selectMoveElement, resizeElement } = use(PdfContext)
 
@@ -41,9 +43,22 @@ function Image({
         left: left,
         top: top,
         position: "absolute",
-        zIndex: zIndex
+        zIndex: zIndex,
+        ...(fixedToPage ? { pointerEvents: "none" } : {}),
     }
 
+    if (fixedToPage) {
+        return (
+            <img
+                ref={image}
+                id={elementId}
+                draggable={false}
+                src={displaySrc}
+                style={style}
+                alt=""
+            />
+        );
+    }
 
     if (isSelected && selectedCount === 1 && !isMove) {
 
