@@ -259,9 +259,25 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 self.assertIn("• Platforma obsługi klienta", main_copy)
 
     def test_obsidian_places_skills_languages_education_in_sidebar(self):
+        # Tall skills used to exceed _SIDEBAR_MAX_SECTION_HEIGHT and fall into
+        # the main column while languages/education still occupied the sidebar.
+        skills = [
+            "Analiza AML/KYC",
+            "Transaction Monitoring",
+            "CDD / EDD",
+            "Analiza transakcji",
+            "Badania klientów",
+            "Microsoft Office",
+            "Compliance",
+            "Risk Assessment",
+            "Due Diligence",
+            "Raportowanie",
+            "Analiza danych",
+            "Przepisy AML",
+        ]
         cv = {
             **LONG_CV,
-            "skills": ["Strategia", "Badania"],
+            "skills": skills,
             "education": [{
                 "degree": "MBA",
                 "school": "SGH",
@@ -287,6 +303,11 @@ class CvTemplateLayoutTests(unittest.TestCase):
         sidebar_bodies = [
             element for element in sidebar_text if element["category"] == "textarea"
         ]
+        main_titles = {
+            element["content"]
+            for element in elements
+            if element["category"] == "text" and element["left"] == 222
+        }
         main_copy = "\n".join(
             element["content"]
             for element in elements
@@ -294,13 +315,14 @@ class CvTemplateLayoutTests(unittest.TestCase):
         )
 
         self.assertTrue({"OBSZARY", "JĘZYKI", "WYKSZTAŁCENIE"} <= sidebar_titles)
+        self.assertNotIn("UMIEJĘTNOŚCI", main_titles)
 
         skills_body = next(
             element for element in sidebar_bodies
-            if "• Strategia" in element["content"]
+            if "• Analiza AML/KYC" in element["content"]
         )
         self.assertTrue(skills_body.get("bulletList"))
-        self.assertIn("• Badania", skills_body["content"])
+        self.assertIn("• Przepisy AML", skills_body["content"])
 
         languages_body = next(
             element for element in sidebar_bodies
@@ -321,7 +343,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in sidebar_bodies
         ))
 
-        self.assertNotIn("• Strategia", main_copy)
+        self.assertNotIn("• Analiza AML/KYC", main_copy)
         self.assertNotIn("MBA — 2020", main_copy)
         self.assertNotIn("• Polski — C2", main_copy)
         self.assertTrue(all(

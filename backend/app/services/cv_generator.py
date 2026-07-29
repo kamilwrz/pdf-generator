@@ -3193,7 +3193,25 @@ def _gen_obsidian(cv: dict) -> list[dict]:
     placed_keys: set[str] = set()
     sidebar_extra_indices: set[int] = set()
 
-    def place_bulleted_section(title: str, items: list[str], key: str) -> bool:
+    def bulleted_section_height(items: list[str], font_size: float) -> float:
+        content = "\n".join(f"• {item}" for item in items)
+        line_height = round(max(font_size * 1.45, 11.0), 2)
+        body_height = _sidebar_wrapped_height(content, SIDEBAR_W, font_size, line_height)
+        return 15 + body_height + 18
+
+    def place_bulleted_section(
+        title: str,
+        items: list[str],
+        key: str,
+        *,
+        reserve: float = 0.0,
+    ) -> bool:
+        """Place a complete bulleted sidebar section when it fits below the cursor.
+
+        Obsidian deliberately ignores `_SIDEBAR_MAX_SECTION_HEIGHT` — skills lists
+        are often taller than that cap, and rejecting them dumps UMIEJĘTNOŚCI into
+        the main column while languages/education still fit.
+        """
         nonlocal cursor_y
         if not items:
             return False
@@ -3202,9 +3220,7 @@ def _gen_obsidian(cv: dict) -> list[dict]:
             line_height = round(max(font_size * 1.45, 11.0), 2)
             body_height = _sidebar_wrapped_height(content, SIDEBAR_W, font_size, line_height)
             section_height = 15 + body_height + 18
-            if section_height > _SIDEBAR_MAX_SECTION_HEIGHT:
-                continue
-            if cursor_y + section_height > SIDEBAR_BOTTOM:
+            if cursor_y + section_height + reserve > SIDEBAR_BOTTOM:
                 continue
             label = _text(title, 8, SANS, GOLD, SIDEBAR_L, cursor_y, zIndex=3)
             label["letterSpacing"] = 1.3
@@ -3219,15 +3235,6 @@ def _gen_obsidian(cv: dict) -> list[dict]:
             placed_keys.add(key)
             return True
         return False
-
-    skills = [str(skill).strip() for skill in (cv.get("skills") or []) if str(skill).strip()]
-    place_bulleted_section("OBSZARY", skills, "skills")
-
-    language_lines = _language_sidebar_lines(cv)
-    if place_bulleted_section("JĘZYKI", language_lines, "languages"):
-        for index, section in enumerate(cv.get("extra_sections") or []):
-            if _extra_section_kind(section) == "languages":
-                sidebar_extra_indices.add(index)
 
     def education_record_height(edu: dict) -> float:
         title, school_city, description = _obsidian_education_parts(edu)
@@ -3244,48 +3251,74 @@ def _gen_obsidian(cv: dict) -> list[dict]:
             height += _sidebar_wrapped_height(description, SIDEBAR_W, 8.0, 12)
         return height
 
+    skills = [str(skill).strip() for skill in (cv.get("skills") or []) if str(skill).strip()]
+    language_lines = _language_sidebar_lines(cv)
     education_entries = list(cv.get("education") or [])
+
+    language_reserve = (
+        bulleted_section_height(language_lines, _SIDEBAR_FONT_SIZES[-1])
+        if language_lines else 0.0
+    )
+    education_reserve = 0.0
     if education_entries:
         records_height = 0.0
         for index, edu in enumerate(education_entries):
             if index:
                 records_height += SPACE_RECORD
             records_height += education_record_height(edu)
-        section_height = 15 + records_height + 18
-        if records_height > 0 and cursor_y + section_height <= SIDEBAR_BOTTOM:
-            edu_label = _text(lbl["education"], 8, SANS, GOLD, SIDEBAR_L, cursor_y, zIndex=3)
-            edu_label["letterSpacing"] = 1.3
-            static.append(edu_label)
-            cursor_y += 15
-            for index, edu in enumerate(education_entries):
-                if index:
-                    cursor_y += SPACE_RECORD
-                title, school_city, description = _obsidian_education_parts(edu)
-                if title:
-                    title_h = _sidebar_wrapped_height(title, SIDEBAR_W, 8.6, 12)
-                    static.append(_block(
-                        title, SIDEBAR_L, cursor_y, SIDEBAR_W, title_h,
-                        8.6, 12, INK, SANS, zIndex=3, bold=True,
-                    ))
-                    cursor_y += title_h
-                if school_city:
-                    cursor_y += SPACE_STACK
-                    meta_h = _sidebar_wrapped_height(school_city, SIDEBAR_W, 7.9, 11)
-                    static.append(_block(
-                        school_city, SIDEBAR_L, cursor_y, SIDEBAR_W, meta_h,
-                        7.9, 11, MUTED, SANS, zIndex=3,
-                    ))
-                    cursor_y += meta_h
-                if description:
-                    cursor_y += SPACE_STACK
-                    desc_h = _sidebar_wrapped_height(description, SIDEBAR_W, 8.0, 12)
-                    static.append(_block(
-                        description, SIDEBAR_L, cursor_y, SIDEBAR_W, desc_h,
-                        8.0, 12, BODY, SANS, zIndex=3,
-                    ))
-                    cursor_y += desc_h
-            cursor_y += 18
-            placed_keys.add("education")
+        if records_height > 0:
+            education_reserve = 15 + records_height + 18
+
+    # Prefer KONTAKT → skills → languages → education. Reserve room so a tall
+    # skills list cannot push languages/education out of the sidebar.
+    place_bulleted_section(
+        "OBSZARY", skills, "skills",
+        reserve=language_reserve + education_reserve,
+    )
+
+    if place_bulleted_section("JĘZYKI", language_lines, "languages", reserve=education_reserve):
+        for index, section in enumerate(cv.get("extra_sections") or []):
+            if _extra_section_kind(section) == "languages":
+                sidebar_extra_indices.add(index)
+
+    if education_entries and education_reserve > 0 and cursor_y + education_reserve <= SIDEBAR_BOTTOM:
+        edu_label = _text(lbl["education"], 8, SANS, GOLD, SIDEBAR_L, cursor_y, zIndex=3)
+        edu_label["letterSpacing"] = 1.3
+        static.append(edu_label)
+        cursor_y += 15
+        for index, edu in enumerate(education_entries):
+            if index:
+                cursor_y += SPACE_RECORD
+            title, school_city, description = _obsidian_education_parts(edu)
+            if title:
+                title_h = _sidebar_wrapped_height(title, SIDEBAR_W, 8.6, 12)
+                static.append(_block(
+                    title, SIDEBAR_L, cursor_y, SIDEBAR_W, title_h,
+                    8.6, 12, INK, SANS, zIndex=3, bold=True,
+                ))
+                cursor_y += title_h
+            if school_city:
+                cursor_y += SPACE_STACK
+                meta_h = _sidebar_wrapped_height(school_city, SIDEBAR_W, 7.9, 11)
+                static.append(_block(
+                    school_city, SIDEBAR_L, cursor_y, SIDEBAR_W, meta_h,
+                    7.9, 11, MUTED, SANS, zIndex=3,
+                ))
+                cursor_y += meta_h
+            if description:
+                cursor_y += SPACE_STACK
+                desc_h = _sidebar_wrapped_height(description, SIDEBAR_W, 8.0, 12)
+                static.append(_block(
+                    description, SIDEBAR_L, cursor_y, SIDEBAR_W, desc_h,
+                    8.0, 12, BODY, SANS, zIndex=3,
+                ))
+                cursor_y += desc_h
+        cursor_y += 18
+        placed_keys.add("education")
+
+    # Last chance: leftover sidebar space after languages/education.
+    if "skills" not in placed_keys:
+        place_bulleted_section("OBSZARY", skills, "skills")
 
     b = Builder(148)
 
