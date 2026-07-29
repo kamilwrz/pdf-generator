@@ -50,6 +50,56 @@ class CvDataNormalizationTests(unittest.TestCase):
         self.assertEqual(profile["extra_sections"][0]["title"], "CERTYFIKATY")
         self.assertEqual(profile["extra_sections"][1]["items"], ["Angielski — C1"])
 
+    def test_skills_alias_section_keeps_user_title_and_uses_skills_slot(self):
+        profile = normalize_cv_data({
+            "name": "Jan Nowak",
+            "extra_sections": [{
+                "title": "Obsługa komputera",
+                "kind": "other",
+                "placement": "after_skills",
+                "items": ["Excel", "Word", "PowerPoint"],
+            }],
+        })
+
+        self.assertEqual(profile["skills"], ["Excel", "Word", "PowerPoint"])
+        self.assertEqual(profile["labels"]["skills"], "OBSŁUGA KOMPUTERA")
+        self.assertTrue(all(
+            section.get("title") != "OBSŁUGA KOMPUTERA"
+            for section in profile["extra_sections"]
+        ))
+
+        elements = generate_resume("obsidian", profile)
+        sidebar_titles = {
+            element["content"]
+            for element in elements
+            if element["category"] == "text" and element["left"] == 24
+        }
+        self.assertIn("OBSŁUGA KOMPUTERA", sidebar_titles)
+        self.assertNotIn("OBSZARY", sidebar_titles)
+        self.assertNotIn("UMIEJĘTNOŚCI", sidebar_titles)
+        self.assertTrue(any(
+            element["category"] == "textarea"
+            and element["left"] == 24
+            and element.get("bulletList")
+            and "• Excel" in element["content"]
+            for element in elements
+        ))
+
+    def test_explicit_skills_label_is_not_overwritten_by_alias_section(self):
+        profile = normalize_cv_data({
+            "name": "Jan Nowak",
+            "skills": ["Python"],
+            "labels": {"skills": "STACK"},
+            "custom_sections": [{
+                "title": "Technologie",
+                "kind": "other",
+                "items": ["Docker"],
+                "placement": "after_skills",
+            }],
+        })
+        self.assertEqual(profile["labels"]["skills"], "STACK")
+        self.assertEqual(profile["skills"], ["Python", "Docker"])
+
     def test_legacy_extraction_derives_editable_languages_and_custom_sections(self):
         profile = normalize_cv_data({
             "name": "Jan Nowak",

@@ -11,10 +11,10 @@ truncation, multi-page when content overflows.
 from __future__ import annotations
 import math
 import re
-import unicodedata
 from datetime import datetime
 
 from app.core.config import BACKEND_URL
+from app.services.cv_data import fold_section_label, is_skills_like_title, normalize_cv_data
 from app.services.pdf_generator import PDF_Generator
 
 A4_H = 842
@@ -166,12 +166,7 @@ _LABEL_DEFAULTS = {
 
 def _fold_label(value: object) -> str:
     """Normalize section titles so old and newly extracted CVs classify alike."""
-    return (
-        unicodedata.normalize("NFKD", str(value or ""))
-        .encode("ascii", "ignore")
-        .decode("ascii")
-        .casefold()
-    )
+    return fold_section_label(value)
 
 
 def _extra_section_kind(section: dict) -> str:
@@ -189,7 +184,7 @@ def _extra_section_kind(section: dict) -> str:
         return "interests"
     if any(token in title for token in ("wyksztalc", "education")):
         return "education"
-    if any(token in title for token in ("umiejet", "kompetenc", "skill")):
+    if is_skills_like_title(section.get("title")):
         return "skills"
     return "other"
 
@@ -270,7 +265,7 @@ def _sidebar_candidates(cv: dict, labels: dict) -> list[dict]:
         candidates.append({
             "key": "skills",
             "kind": "skills",
-            "title": "OBSZARY",
+            "title": labels["skills"],
             "content": "\n".join(skills),
         })
 
@@ -2156,7 +2151,7 @@ def _gen_obsidian(cv: dict) -> list[dict]:
     """Sidebar dark theme — a near-black sidecar beside a charcoal main field,
     signed with a single warm-gold accent. Both panels stay dark on every page.
 
-    Sidebar order: KONTAKT → OBSZARY (skills) → JĘZYKI → WYKSZTAŁCENIE.
+    Sidebar order: KONTAKT → skills (user/label title) → JĘZYKI → WYKSZTAŁCENIE.
     Skills and languages are bullet lists; education uses diploma — period /
     school, city / description.
     """
@@ -2283,7 +2278,7 @@ def _gen_obsidian(cv: dict) -> list[dict]:
     # Prefer KONTAKT → skills → languages → education. Reserve room so a tall
     # skills list cannot push languages/education out of the sidebar.
     place_bulleted_section(
-        "OBSZARY", skills, "skills",
+        lbl["skills"], skills, "skills",
         reserve=language_reserve + education_reserve,
     )
 
@@ -2329,7 +2324,7 @@ def _gen_obsidian(cv: dict) -> list[dict]:
 
     # Last chance: leftover sidebar space after languages/education.
     if "skills" not in placed_keys:
-        place_bulleted_section("OBSZARY", skills, "skills")
+        place_bulleted_section(lbl["skills"], skills, "skills")
 
     b = Builder(148)
 
@@ -2767,4 +2762,4 @@ def generate_resume(template_id: str, cv_data: dict) -> list[dict]:
     if fn is None:
         raise ValueError(f"Nieznany szablon '{template_id}'. "
                          f"Dostępne: {list(_GENERATORS)}")
-    return fn(cv_data)
+    return fn(normalize_cv_data(cv_data))

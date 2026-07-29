@@ -215,7 +215,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             ],
         }
         sidebar_titles = {
-            "OBSZARY", "JĘZYKI", "CERTYFIKATY", "ZAINTERESOWANIA", "WYKSZTAŁCENIE",
+            "UMIEJĘTNOŚCI", "JĘZYKI", "CERTYFIKATY", "ZAINTERESOWANIA", "WYKSZTAŁCENIE",
         }
         complete_sidebar_bodies = {
             "Strategia\nBadania",
@@ -314,7 +314,8 @@ class CvTemplateLayoutTests(unittest.TestCase):
             if element["category"] == "textarea" and element["left"] == 222
         )
 
-        self.assertTrue({"OBSZARY", "JĘZYKI", "WYKSZTAŁCENIE"} <= sidebar_titles)
+        self.assertTrue({"UMIEJĘTNOŚCI", "JĘZYKI", "WYKSZTAŁCENIE"} <= sidebar_titles)
+        self.assertNotIn("OBSZARY", sidebar_titles)
         self.assertNotIn("UMIEJĘTNOŚCI", main_titles)
 
         skills_body = next(
@@ -387,6 +388,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         ]
         main_copy = "\n".join(element["content"] for element in main_textareas)
 
+        self.assertNotIn("UMIEJĘTNOŚCI", {element["content"] for element in sidebar_text})
         self.assertNotIn("OBSZARY", {element["content"] for element in sidebar_text})
         self.assertNotIn("JĘZYKI", {element["content"] for element in sidebar_text})
         self.assertNotIn("WYKSZTAŁCENIE", {element["content"] for element in sidebar_text})

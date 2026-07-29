@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import unicodedata
 from collections.abc import Mapping
 from copy import deepcopy
 from typing import Any
@@ -17,6 +18,35 @@ DEFAULT_LABELS = {
 ALLOWED_SECTION_KINDS = {"languages", "certifications", "interests", "other"}
 ALLOWED_PLACEMENTS = {"after_experience", "after_skills"}
 
+# Title tokens (ASCII-folded) that mean "skills" under another label.
+# Keep kind=skills layout, but preserve the user's heading on the canvas.
+_SKILLS_TITLE_TOKENS = (
+    "umiejet",
+    "kompetenc",
+    "skill",
+    "obszar",
+    "obsluga komputer",
+    "obslugi komputer",
+    "obsluga it",
+    "znajomosc program",
+    "znajomosc narzed",
+    "znajomosc oprogram",
+    "technolog",
+    "narzedz",
+    "software",
+    "hard skill",
+    "soft skill",
+    "technical skill",
+    "computer skill",
+    "it skill",
+    "pakiet office",
+    "ms office",
+    "microsoft office",
+    "stack technologicz",
+    "tech stack",
+    "tools",
+)
+
 
 class CvDataValidationError(ValueError):
     """Raised when a profile cannot safely be used to generate a CV."""
@@ -24,6 +54,40 @@ class CvDataValidationError(ValueError):
 
 def _text(value: Any) -> str:
     return str(value or "").strip()
+
+
+def fold_section_label(value: object) -> str:
+    """Normalize headings so PL diacritics and casing do not block matching."""
+    # ł/Ł do not decompose under NFKD, so map Polish letters before ASCII fold.
+    translated = str(value or "").translate(str.maketrans({
+        "ą": "a", "ć": "c", "ę": "e", "ł": "l", "ń": "n",
+        "ó": "o", "ś": "s", "ź": "z", "ż": "z",
+        "Ą": "a", "Ć": "c", "Ę": "e", "Ł": "l", "Ń": "n",
+        "Ó": "o", "Ś": "s", "Ź": "z", "Ż": "z",
+    }))
+    return (
+        unicodedata.normalize("NFKD", translated)
+        .encode("ascii", "ignore")
+        .decode("ascii")
+        .casefold()
+    )
+
+
+def is_skills_like_title(title: object) -> bool:
+    """True when a section heading is skills under another user-facing name."""
+    folded = fold_section_label(title)
+    if not folded:
+        return False
+    return any(token in folded for token in _SKILLS_TITLE_TOKENS)
+
+
+def is_skills_like_section(section: Mapping[str, Any] | None) -> bool:
+    if not isinstance(section, Mapping):
+        return False
+    kind = _text(section.get("kind")).casefold()
+    if kind == "skills":
+        return True
+    return is_skills_like_title(section.get("title"))
 
 
 def _string_list(value: Any) -> list[str]:
@@ -206,6 +270,39 @@ def _derive_manual_sections(extra_sections: Any) -> tuple[list[dict[str, str]], 
     return languages, custom_sections
 
 
+def _absorb_skills_alias_sections(
+    skills: list[str],
+    sections: list[dict[str, Any]],
+    labels: dict[str, str],
+    *,
+    labels_skills_explicit: bool,
+) -> tuple[list[str], list[dict[str, Any]], dict[str, str]]:
+    """
+    Treat skills-like custom sections as the skills slot:
+    - keep the user's heading in labels['skills']
+    - merge items into cv['skills']
+    - drop the alias from extra_sections so it is not rendered twice
+    """
+    kept: list[dict[str, Any]] = []
+    alias_title: str | None = None
+    absorbed: list[str] = []
+
+    for section in sections:
+        if not is_skills_like_section(section):
+            kept.append(section)
+            continue
+        title = _text(section.get("title")).upper()
+        if alias_title is None and title:
+            alias_title = title
+        absorbed.extend(_string_list(section.get("items") or []))
+
+    merged_skills = _string_list([*skills, *absorbed]) if absorbed else list(skills)
+    next_labels = dict(labels)
+    if alias_title and not labels_skills_explicit:
+        next_labels["skills"] = alias_title
+    return merged_skills, kept, next_labels
+
+
 def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = False) -> dict[str, Any]:
     """
     Convert manual wizard input and legacy PDF-extraction output to one stable
@@ -234,6 +331,20 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
         else fallback_sections
     )
 
+    raw_labels = raw.get("labels") if isinstance(raw.get("labels"), Mapping) else {}
+    labels_skills_explicit = bool(_text(raw_labels.get("skills")))
+    labels = {
+        key: _text(raw_labels.get(key)) or default
+        for key, default in DEFAULT_LABELS.items()
+    }
+
+    skills, custom_sections, labels = _absorb_skills_alias_sections(
+        _string_list(raw.get("skills")),
+        custom_sections,
+        labels,
+        labels_skills_explicit=labels_skills_explicit,
+    )
+
     language_items = [
         f"{entry['name']} — {entry['level']}" if entry["level"] else entry["name"]
         for entry in languages
@@ -247,11 +358,6 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
             "items": language_items,
         })
 
-    raw_labels = raw.get("labels") if isinstance(raw.get("labels"), Mapping) else {}
-    labels = {
-        key: _text(raw_labels.get(key)) or default
-        for key, default in DEFAULT_LABELS.items()
-    }
     normalized = {
         "name": _text(raw.get("name")),
         "title": _text(raw.get("title") or raw.get("professional_title")),
@@ -262,7 +368,7 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
         "summary": _text(raw.get("summary")),
         "experience": _normalize_experience(raw.get("experience")),
         "education": _normalize_education(raw.get("education")),
-        "skills": _string_list(raw.get("skills")),
+        "skills": skills,
         "languages": languages,
         "custom_sections": custom_sections,
         "language": _text(raw.get("language")) or "Polish",
