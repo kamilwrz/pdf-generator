@@ -114,6 +114,8 @@ export default function ModalPdfs({ title }) {
                         zIndex: element.extra_properties.zIndex,
                         borderWidth: element.extra_properties.borderWidth,
                         filled: element.extra_properties.filled ?? false,
+                        // Preserve explicit false for geometrically centred Iconic contact icons.
+                        alignWithText: element.extra_properties.alignWithText,
                         fixedToPage,
                         locked,
                         source_id: element.extra_properties.source_id,

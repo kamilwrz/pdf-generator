@@ -192,6 +192,27 @@ const LOOM_CONTACT_FS = 7.6;
 const LOOM_SIDE_HEAD_FS = 7.4;
 const LOOM_HEAD_FS = 8.5;
 const LOOM_ICON = 11;
+// Contact lines are ~7.6pt; a 9px glyph centres cleanly on the same top as the
+// label without the optical section-head shift (which overshoots small type).
+const LOOM_CONTACT_ICON = 9;
+
+/**
+ * One Loom sidebar contact row: icon + single-line text on a shared baseline.
+ * Uses geometric centring (`alignWithText: false`) so the three rows stay even.
+ */
+const loomContact = (name, label, y) => [
+    {
+        ...icon(
+            "loom-light",
+            name,
+            24,
+            y + (LOOM_CONTACT_FS - LOOM_CONTACT_ICON) / 2,
+            LOOM_CONTACT_ICON,
+        ),
+        alignWithText: false,
+    },
+    text(label, LOOM_CONTACT_FS, LOOM_SANS, LOOM_LIGHT, 40, y, 3),
+];
 
 export const loomTemplate = [
     fixed(line(0, 0, 595, 842, LOOM_PAPER, 0)),
@@ -204,12 +225,9 @@ export const loomTemplate = [
     bold(text("KAMIŃSKA", 22, LOOM_DISP, LOOM_GOLD, 24, 68, 3)),
     tracked(text("PRODUCT DESIGN LEAD", 7.8, LOOM_SANS, LOOM_GOLD, 24, 104, 3), 1.3),
 
-    iconBeside("loom-light", "email", 24, 140, LOOM_CONTACT_FS, LOOM_ICON),
-    block("ewa.kaminska@email.com", 40, 138, 120, 20, LOOM_CONTACT_FS, 11, LOOM_LIGHT, LOOM_SANS),
-    iconBeside("loom-light", "phone", 24, 168, LOOM_CONTACT_FS, LOOM_ICON),
-    text("+48 600 000 000", LOOM_CONTACT_FS, LOOM_SANS, LOOM_LIGHT, 40, 168, 3),
-    iconBeside("loom-light", "location", 24, 196, LOOM_CONTACT_FS, LOOM_ICON),
-    text("Poznań", LOOM_CONTACT_FS, LOOM_SANS, LOOM_LIGHT, 40, 196, 3),
+    ...loomContact("email", "ewa.kaminska@email.com", 140),
+    ...loomContact("phone", "+48 600 000 000", 162),
+    ...loomContact("location", "Poznań", 184),
 
     iconBeside("loom-light", "skills", 24, 251, LOOM_SIDE_HEAD_FS, LOOM_ICON),
     tracked(text("UMIEJĘTNOŚCI", LOOM_SIDE_HEAD_FS, LOOM_SANS, LOOM_GOLD, 40, 251, 3), 1.2),

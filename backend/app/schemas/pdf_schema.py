@@ -40,6 +40,8 @@ class PdfElement(BaseModel):
     bulletList: Optional[bool] = False
     # Template fields whose height follows content and participates in reflow.
     autoHeight: Optional[bool] = False
+    # Iconic images: True = optical text alignment; False = authored top as-is.
+    alignWithText: Optional[bool] = None
     # Template chrome: backgrounds, frames, page numbers — not user chrome.
     fixedToPage: Optional[bool] = False
     # Blocks user and AI layout moves/edits when true.

@@ -1793,7 +1793,7 @@ _CLONE_MATCH_SIZE = {"none", "width", "height", "both"}
 _CLONE_COPY_KEYS = (
     "category", "content", "fontSize", "fontFamily", "color", "bold", "italic", "underline",
     "align", "lineHeight", "letterSpacing", "width", "height", "backgroundColor", "borderWidth",
-    "filled", "src", "img_id", "zIndex", "bulletList", "autoHeight", "arrow",
+    "filled", "src", "img_id", "zIndex", "bulletList", "autoHeight", "alignWithText", "arrow",
 )
 _MAX_CLONES_PER_OPERATION = 20
 

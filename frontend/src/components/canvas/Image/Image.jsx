@@ -20,7 +20,10 @@ function resolveTemplateAssetSrc(src) {
 }
 
 function isTextAlignedIcon(src, alignWithText) {
-    if (alignWithText) return true;
+    // Explicit false opts out (Loom contact uses geometric centring).
+    if (alignWithText === false) return false;
+    if (alignWithText === true) return true;
+    // Legacy Iconic docs saved without the flag still get optical alignment.
     return /\/template-assets\/iconic\//.test(String(src || ""));
 }
 

@@ -223,17 +223,22 @@ Implementation:
 
 Nova, Ridge, Loom, and Volt provide four colour-matched layouts with contact and section icons. The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so Iconic icons are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
 
+Loom contact rows are special-cased: three single-line `text` labels (not an auto-height email textarea) share a 22 px rhythm, with 9 px icons geometrically centred via `alignWithText: false`. Section headings still use optical alignment (`alignWithText: true`). The flag is stored in `extra_properties` and restored when a PDF is reopened.
+
 Implementation:
 
-- `frontend/src/templates/iconic.js`, lines 1–368, exports `novaTemplate`, `ridgeTemplate`, `loomTemplate`, and `voltTemplate`
-- `backend/app/services/cv_generator_iconic.py`, lines 31–405, functions `_icon`, `_icon_beside`, `_gen_iconic_theme`, and four `_gen_*` entry points
+- `frontend/src/templates/iconic.js`, lines 1–386, exports `novaTemplate`, `ridgeTemplate`, `loomTemplate`, `voltTemplate`, and `loomContact`
+- `backend/app/services/cv_generator_iconic.py`, lines 31–409, functions `_icon`, `_icon_beside`, `_gen_iconic_theme`, and four `_gen_*` entry points
 - `frontend/src/utils/textareaReflow.js`, lines 54–304, functions `isTextAlignedImage`, `belongsToFlowLane`, and `reflowTextareaHeight`
-- `backend/app/services/pdf_generator.py`, lines 141–187, method `PDF_Generator.renderImage`
+- `frontend/src/components/canvas/Image/Image.jsx`, lines 22–55, functions `isTextAlignedIcon`, `iconicDrawTop`
+- `backend/app/services/pdf_generator.py`, lines 141–193, method `PDF_Generator.renderImage`
+- `backend/app/crud/pdfs.py` / `backend/app/schemas/pdf_schema.py` — persist `alignWithText` in `extra_properties`
 
 Tests:
 
 - `frontend/src/utils/textareaReflow.test.js`, lines 83–262 — Iconic heading/icon, Ridge rail, and Loom two-column regressions
-- `backend/tests/test_pdf_shapes.py`, lines 67–120 — local-path optical alignment and alpha-mask regressions in ReportLab
+- `backend/tests/test_pdf_shapes.py`, lines 67–131 — optical alignment, explicit `alignWithText: false`, and alpha-mask regressions
+- `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — Loom contact geometry
 
 ### PDF create / update / autosave / download
 
@@ -723,17 +728,22 @@ Opis produktowy: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 Nova, Ridge, Loom i Volt to cztery spójne kolorystycznie układy z ikonami kontaktu oraz sekcji. Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, ikony Iconic są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
 
+Kontakt w Loom jest osobnym przypadkiem: trzy jednoliniowe etykiety `text` (bez auto-height textarea na e-mailu) mają rytm 22 px, a ikony 9 px są wyśrodkowane geometrycznie (`alignWithText: false`). Nagłówki sekcji nadal używają wyrównania optycznego (`alignWithText: true`). Flaga jest zapisywana w `extra_properties` i odtwarzana przy ponownym otwarciu PDF.
+
 Implementacja:
 
-- `frontend/src/templates/iconic.js`, linie 1–368, eksporty `novaTemplate`, `ridgeTemplate`, `loomTemplate`, `voltTemplate`
-- `backend/app/services/cv_generator_iconic.py`, linie 31–405, funkcje `_icon`, `_icon_beside`, `_gen_iconic_theme` oraz cztery wejścia `_gen_*`
+- `frontend/src/templates/iconic.js`, linie 1–386, eksporty `novaTemplate`, `ridgeTemplate`, `loomTemplate`, `voltTemplate`, `loomContact`
+- `backend/app/services/cv_generator_iconic.py`, linie 31–409, funkcje `_icon`, `_icon_beside`, `_gen_iconic_theme` oraz cztery wejścia `_gen_*`
 - `frontend/src/utils/textareaReflow.js`, linie 54–304, funkcje `isTextAlignedImage`, `belongsToFlowLane`, `reflowTextareaHeight`
-- `backend/app/services/pdf_generator.py`, linie 141–187, metoda `PDF_Generator.renderImage`
+- `frontend/src/components/canvas/Image/Image.jsx`, linie 22–55, funkcje `isTextAlignedIcon`, `iconicDrawTop`
+- `backend/app/services/pdf_generator.py`, linie 141–193, metoda `PDF_Generator.renderImage`
+- `backend/app/crud/pdfs.py` / `backend/app/schemas/pdf_schema.py` — zapis `alignWithText` w `extra_properties`
 
 Testy:
 
 - `frontend/src/utils/textareaReflow.test.js`, linie 83–262 — regresje nagłówka/ikony, szyny Ridge oraz dwukolumnowego Loom
-- `backend/tests/test_pdf_shapes.py`, linie 67–120 — regresje wyrównania lokalnej ścieżki i maski alfa w ReportLab
+- `backend/tests/test_pdf_shapes.py`, linie 67–131 — wyrównanie optyczne, jawne `alignWithText: false` oraz maska alfa
+- `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — geometria kontaktu Loom
 
 ### PDF create / update / autosave / download
 

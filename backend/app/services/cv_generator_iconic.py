@@ -155,7 +155,9 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
 
     elif C["layout"] == "loom":
         light = "loom-light"
-        contact_fs, side_head_fs, side_icon = 7.6, 7.4, 11.0
+        # Match frontend loomContact: single-line text + geometrically centred
+        # 9px icons so the three contact rows share one rhythm.
+        contact_fs, side_head_fs, contact_icon, side_icon = 7.6, 7.4, 9.0, 11.0
         parts = (name or "").split(" ", 1)
         first = parts[0] if parts else name
         last = parts[1] if len(parts) > 1 else ""
@@ -169,12 +171,13 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         for key, value in (("email", email), ("phone", phone), ("location", location)):
             if not value:
                 continue
-            header.append(_icon_beside(light, key, 24, y, contact_fs, side_icon))
-            if key == "email":
-                header.append(_block(value, 40, y - 2, 120, 20, contact_fs, 11, C["light"], SANS, zIndex=3))
-            else:
-                header.append(_text(value, contact_fs, SANS, C["light"], 40, y, zIndex=3))
-            y += 28
+            icon_top = y + (contact_fs - contact_icon) / 2.0
+            contact_mark = _icon(light, key, 24, icon_top, contact_icon)
+            # Opt-out of the section-head optical shift used for larger labels.
+            contact_mark["alignWithText"] = False
+            header.append(contact_mark)
+            header.append(_text(value, contact_fs, SANS, C["light"], 40, y, zIndex=3))
+            y += 22.0
         sidebar_y = max(y + 30, 250.0)
         if cv.get("skills"):
             header.append(_icon_beside(light, "skills", 24, sidebar_y, side_head_fs, side_icon))

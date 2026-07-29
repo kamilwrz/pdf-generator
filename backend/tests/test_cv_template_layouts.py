@@ -1024,6 +1024,29 @@ class CvTemplateLayoutTests(unittest.TestCase):
                         if src.endswith("/skills.png")
                     ]
                     self.assertTrue(any("loom-light" in src for src in skill_icons))
+                    # Contact rows are single-line text + geometrically centred icons.
+                    contact_icons = [
+                        element for element in elements
+                        if element["category"] == "image"
+                        and any(element["src"].endswith(f"/{key}.png") for key in contact_keys)
+                        and "loom-light" in element["src"]
+                    ]
+                    self.assertEqual(len(contact_icons), 3)
+                    for icon in contact_icons:
+                        self.assertEqual(icon.get("alignWithText"), False)
+                        self.assertEqual(icon["width"], 9)
+                        self.assertEqual(icon["height"], 9)
+                    email_textareas = [
+                        element for element in elements
+                        if element["category"] == "textarea"
+                        and "@" in str(element.get("content") or "")
+                        and element["left"] < 100
+                    ]
+                    self.assertEqual(
+                        email_textareas,
+                        [],
+                        "Loom contact email must be text, not an auto-height textarea",
+                    )
 
 
 if __name__ == "__main__":

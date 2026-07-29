@@ -138,17 +138,18 @@ class PDF_Generator:
         """Set the PDF document title metadata shown in viewers."""
         self.c.setTitle(title)
 
-    def renderImage(self, src, width, height, left, top, align_with_text=False):
+    def renderImage(self, src, width, height, left, top, align_with_text=None):
         """Draw a bitmap after flipping Y so `top` matches the editor.
 
         PNG/RGBA icons must use ``mask='auto'`` — with ``mask=None`` ReportLab
         paints transparent pixels as opaque black, which shows up as solid
         squares around line-art template icons.
 
-        ``align_with_text`` (or an Iconic public/local asset path): ``top`` is
-        the companion text line's CSS top. ``renderText`` places cap centres
-        ~1.2pt above that top (baseline factor 0.34×fontSize + Montserrat
-        ascent), so the image is shifted to share that optical mid-line.
+        ``align_with_text``:
+        - ``True`` — ``top`` is the companion label's CSS top; shift to the
+          optical cap mid-line used by ``renderText``.
+        - ``False`` — honour the authored ``top`` (geometric placement).
+        - ``None`` — legacy Iconic asset paths still get the optical shift.
         """
         h = float(height)
         w = float(width)
@@ -159,7 +160,12 @@ class PDF_Generator:
             "/template-assets/iconic/" in normalized_src
             or "/template_assets/iconic/" in normalized_src
         )
-        align = bool(align_with_text) or is_iconic_asset
+        if align_with_text is False:
+            align = False
+        elif align_with_text is True:
+            align = True
+        else:
+            align = is_iconic_asset
         if align and h <= 32 and w <= 32:
             # Cap-centre of an ~8.5pt Montserrat label at the same authored top.
             text_cap_mid = t - 1.2
@@ -611,7 +617,8 @@ class PDF_Generator:
                         float(element.height),
                         element.left,
                         element.top,
-                        align_with_text=bool(getattr(element, "alignWithText", False)),
+                        # Preserve explicit False (Loom contact); None → path heuristic.
+                        align_with_text=getattr(element, "alignWithText", None),
                     )
             self.c.showPage()
 
