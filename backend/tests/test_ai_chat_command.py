@@ -579,5 +579,85 @@ class ChatCommandTests(unittest.TestCase):
         self.assertEqual(result["usage"], usage)
 
 
+class DesignRatingTemplateRespectTests(unittest.TestCase):
+    def test_extract_typography_marks_fixed_and_locked_chrome(self):
+        items = ai_assistant_service._extract_typography([
+            {
+                "element_id": "page-num",
+                "category": "text",
+                "content": "01",
+                "fontSize": 8,
+                "fixedToPage": True,
+            },
+            {
+                "element_id": "sidebar-label",
+                "category": "text",
+                "content": "KONTAKT",
+                "fontSize": 8,
+                "locked": True,
+            },
+            {
+                "element_id": "body",
+                "category": "textarea",
+                "content": "Doświadczenie w SRE.",
+                "fontSize": 10,
+            },
+        ])
+        by_id = {item["element_id"]: item for item in items}
+        self.assertTrue(by_id["page-num"]["fixedToPage"])
+        self.assertTrue(by_id["sidebar-label"]["locked"])
+        self.assertNotIn("fixedToPage", by_id["body"])
+        self.assertNotIn("locked", by_id["body"])
+
+    def test_design_rating_prompt_rejects_absolute_font_size_critique(self):
+        elements = [
+            {
+                "element_id": "page-num",
+                "category": "text",
+                "content": "01",
+                "fontSize": 8,
+                "fixedToPage": True,
+            },
+            {
+                "element_id": "label",
+                "category": "text",
+                "content": "KONTAKT",
+                "fontSize": 8,
+            },
+            {
+                "element_id": "name",
+                "category": "text",
+                "content": "Jan Kowalski",
+                "fontSize": 24,
+                "bold": True,
+            },
+        ]
+
+        def fake_gpt(system, user, **kwargs):
+            self.assertIn("świadomym wyborem projektowym", system)
+            self.assertIn("Nie obniżaj oceny za „zbyt małą czcionkę”", user)
+            self.assertNotIn("tekst główny 10–12 px", user)
+            self.assertIn('"fixedToPage": true', user)
+            return {
+                "message": "Szablon jest spójny; etykiety 8 px są częścią systemu.",
+                "rating": 8,
+                "tips": ["Rozkład oceny: Hierarchia 3/3"],
+                "corrections": [
+                    {"element_id": "page-num", "fontSize": 12},
+                    {"element_id": "label", "bold": True},
+                ],
+            }, {"tokens": 1}
+
+        with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
+            result = ai_assistant_service.analyze_action(
+                action="design_rating",
+                elements=elements,
+                message="",
+            )
+
+        self.assertEqual(result["rating"], 8)
+        self.assertEqual(result["corrections"], [{"element_id": "label", "bold": True}])
+
+
 if __name__ == "__main__":
     unittest.main()

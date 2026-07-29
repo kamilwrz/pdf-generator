@@ -132,8 +132,11 @@ def _extract_positional(elements: list[dict]) -> list[dict]:
 
 def _extract_typography(elements: list[dict]) -> list[dict]:
     """Typography-only view — NO positional data, so GPT cannot misplace elements."""
-    return [
-        {
+    items = []
+    for el in elements:
+        if el.get("category") not in ("text", "textarea") or not el.get("content"):
+            continue
+        item = {
             "element_id": el.get("element_id"),
             "category": el.get("category"),
             "fontSize": el.get("fontSize"),
@@ -144,9 +147,33 @@ def _extract_typography(elements: list[dict]) -> list[dict]:
             "align": el.get("align"),
             "preview": (el.get("content") or "")[:60],
         }
+        if el.get("fixedToPage"):
+            item["fixedToPage"] = True
+        if el.get("locked"):
+            item["locked"] = True
+        items.append(item)
+    return items
+
+
+def _protected_typography_ids(elements: list[dict]) -> set[str]:
+    """Ids the design rater must never rewrite (template chrome / locked)."""
+    return {
+        el.get("element_id")
         for el in elements
-        if el.get("category") in ("text", "textarea") and el.get("content")
+        if el.get("element_id") and (el.get("fixedToPage") or el.get("locked"))
+    }
+
+
+def _strip_protected_corrections(result: dict, protected_ids: set[str]) -> dict:
+    if not protected_ids:
+        return result
+    corrections = [
+        patch for patch in result.get("corrections", [])
+        if isinstance(patch, dict) and patch.get("element_id") not in protected_ids
     ]
+    if corrections == result.get("corrections", []):
+        return result
+    return {**result, "corrections": corrections}
 
 
 def _gpt(system: str, user: str, *, action: str = "") -> tuple[dict, dict]:
@@ -295,11 +322,17 @@ Zwróć JSON (uwzględnij wyniki cząstkowe w wskazówkach):
 
 def _rate_design(elements: list[dict]) -> dict:
     typo = json.dumps(_extract_typography(elements), ensure_ascii=False)
+    protected_ids = _protected_typography_ids(elements)
 
     system = (
         "Jesteś ekspertem od typografii i projektowania wizualnego CV. "
+        "CV jest zbudowane na gotowym szablonie produktowym — jego rozmiary czcionek, "
+        "etykiety 8–9 px, metadane i numery stron są świadomym wyborem projektowym. "
         "Sugerujesz WYŁĄCZNIE zmiany rozmiaru i kroju czcionki, koloru, pogrubienia, kursywy oraz wyrównania tekstu. "
         "NIGDY nie zmieniasz pozycji elementów (left, top, width, height) — są ustalone przez szablon. "
+        "NIGDY nie krytykuj absolutnych rozmiarów czcionek szablonu ani nie proponuj ich powiększania "
+        "tylko dlatego, że są mniejsze niż w klasycznych CV. "
+        "NIGDY nie proponuj corrections dla elementów z fixedToPage=true ani locked=true. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
     user = f"""Przeanalizuj typografię i styl tekstu na tej kanwie CV.
@@ -308,18 +341,24 @@ DANE TYPOGRAFICZNE (bez pozycji — nie wyciągaj wniosków ani nie sugeruj zmia
 {typo}
 
 ════════════════════════════════════════
+KONTEKST PRODUKTOWY (OBOWIĄZKOWY):
+- To ocena CV w edytorze szablonów. Typografia startowa pochodzi z szablonu, nie z błędu użytkownika.
+- Małe czcionki (np. 8–9 px etykiet sidebara, kontaktu, „OBSZARY”, numerów stron) są normalne i poprawne.
+- Nie obniżaj oceny za „zbyt małą czcionkę”, jeśli rozmiary są spójne w ramach systemu szablonu.
+- Krytykuj wyłącznie niespójność: złamaną hierarchię, mieszane wyrównanie, odstające kolory, przypadkowe bold.
+- Elementy z fixedToPage=true / locked=true to chrome szablonu — pomiń je w message, tips i corrections.
+
 ETAPY ANALIZY:
 
-① HIERARCHIA ROZMIARÓW CZCIONKI
-   Czy występuje wyraźna progresja rozmiaru: imię i nazwisko (największe) > nagłówki sekcji > tekst główny?
-   Typowe dobre wartości: imię i nazwisko 22–28 px, nagłówki 14–16 px, tekst główny 10–12 px.
-   Wskaż elementy, które zaburzają tę hierarchię.
+① HIERARCHIA (względem siebie, nie względem uniwersalnych px)
+   Czy widać względną progresję: imię/nazwisko > nagłówki sekcji > tekst główny > etykiety meta?
+   Nie wymagaj konkretnych zakresów px. Wskaż tylko elementy, które ŁAMIĄ istniejącą hierarchię szablonu.
 
 ② POGRUBIENIE I WYRÓŻNIENIE
    Czy nagłówki są konsekwentnie pogrubione? Czy pogrubienie jest nadużywane (jeśli wszystko jest pogrubione, nic się nie wyróżnia)?
 
 ③ SPÓJNOŚĆ KOLORÓW
-   Czy kolory tekstu są używane konsekwentnie? Zidentyfikuj elementy o odstającym kolorze.
+   Czy kolory tekstu są używane konsekwentnie? Zidentyfikuj elementy o odstającym kolorze względem palety szablonu.
 
 ④ WYRÓWNANIE
    Czy tekst główny jest konsekwentnie wyrównany do lewej? Czy nagłówki są wyrównane konsekwentnie?
@@ -327,15 +366,17 @@ ETAPY ANALIZY:
 
 ⑤ OCENA OGÓLNA
    Na podstawie punktów ①–④ przyznaj ocenę projektu w skali 1–10.
+   Spójny szablon z małymi etykietami może dostać wysoką ocenę. Nie karaj za absolutny rozmiar czcionki.
 ════════════════════════════════════════
 
-Zwracaj poprawki WYŁĄCZNIE dla jednoznacznych ulepszeń typografii.
+Zwracaj poprawki WYŁĄCZNIE dla jednoznacznych niespójności względem reszty szablonu.
 Każda poprawka może zawierać WYŁĄCZNIE pola: fontSize, fontFamily, color, bold, italic, align.
+Nie proponuj zwiększania fontSize „dla czytelności”, jeśli element pasuje do peera w szablonie.
 Nie uwzględniaj wartości element_id z danych powyżej, jeśli nie masz pewności, że wymagają zmiany.
 
 Zwróć JSON:
 {{
-  "message": "<2–3 zdania: podaj ocenę i wskaż najważniejsze znalezione problemy typograficzne>",
+  "message": "<2–3 zdania: podaj ocenę i wskaż najważniejsze niespójności (nie absolutne rozmiary)>",
   "rating": <1-10>,
   "tips": [
     "Rozkład oceny: Hierarchia ①/3 + Wyróżnienie ②/2 + Kolor ③/2 + Wyrównanie ④/2 + Ocena ogólna ⑤/1",
@@ -343,12 +384,13 @@ Zwróć JSON:
     "<druga konkretna poprawka>"
   ],
   "corrections": [
-    {{"element_id": "<id>", "fontSize": 12}},
-    {{"element_id": "<id>", "bold": true}}
+    {{"element_id": "<id>", "bold": true}},
+    {{"element_id": "<id>", "align": "left"}}
   ],
   "web_sources": []
 }}"""
-    return _gpt_result(system, user, action="design_rating", allowed_fields=_STYLE_FIELDS)
+    result = _gpt_result(system, user, action="design_rating", allowed_fields=_STYLE_FIELDS)
+    return _strip_protected_corrections(result, protected_ids)
 
 
 def _rate_position(text: str, job_description: str) -> dict:
