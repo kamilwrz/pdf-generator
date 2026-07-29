@@ -7,7 +7,8 @@
 const FLOWABLE_CATEGORIES = new Set(["text", "textarea", "line", "rectangle", "circle", "ellipse", "image"]);
 const NEARBY_DECORATION_CATEGORIES = new Set(["line", "rectangle", "circle", "ellipse"]);
 const DECORATION_LANE_TOLERANCE = 32;
-const TEXT_ALIGNED_IMAGE_LANE_TOLERANCE = 48;
+// Ridge rail icons sit ~36px left of the main column; keep a little headroom.
+const TEXT_ALIGNED_IMAGE_LANE_TOLERANCE = 40;
 // Matches backend SPACE_RECORD: used when reclaiming a page-break gap so later
 // blocks pack into freed space instead of keeping the empty page-bottom hole.
 const DEFAULT_PACK_GAP = 14;
@@ -89,10 +90,16 @@ function belongsToFlowLane(target, element) {
     elementLeft - targetRight,
     0,
   );
-  const tolerance = isNearbyTextIcon
-    ? TEXT_ALIGNED_IMAGE_LANE_TOLERANCE
-    : DECORATION_LANE_TOLERANCE;
-  return horizontalGap <= tolerance;
+
+  // Iconic glyphs hang to the LEFT of their labels (Nova/Loom/Ridge rail).
+  // Never let a narrow left column (Loom sidebar) drag main-column icons that
+  // sit entirely to its right — that was the Loom heading/icon desync.
+  if (isNearbyTextIcon) {
+    if (elementLeft >= targetRight) return false;
+    return horizontalGap <= TEXT_ALIGNED_IMAGE_LANE_TOLERANCE;
+  }
+
+  return horizontalGap <= DECORATION_LANE_TOLERANCE;
 }
 
 function toPagePosition(absolute, height, pageHeight, pageTop, bottomMargin) {

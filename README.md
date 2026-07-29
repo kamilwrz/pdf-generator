@@ -95,7 +95,7 @@ Canvas and stored geometry use **top-left** origin (CSS-like). ReportLab uses **
 
 ### Auto-height reflow and aligned icons
 
-Template textareas start with authored placeholder heights and are measured after the browser loads their real fonts. `reflowTextareaHeight` then moves all following elements in the same visual lane by the measured delta. Text-aligned Iconic images (`alignWithText: true`, including backward-compatible `/template-assets/iconic/` URLs) are classified as section chrome and use a wider 48 px lane tolerance for Ridge's offset rail. Consequently, the section icon, heading, rule, and body remain one cluster after every measurement and page break; the saved geometry used by ReportLab is the same geometry visible on the canvas.
+Template textareas start with authored placeholder heights and are measured after the browser loads their real fonts. `reflowTextareaHeight` then moves all following elements in the same visual lane by the measured delta. Text-aligned Iconic images (`alignWithText: true`, including backward-compatible `/template-assets/iconic/` URLs) are classified as section chrome and may join a lane when they hang to the left of the column (Ridge rail, ~40 px). Icons that sit entirely to the right of a narrow column are excluded, so Loom's sidebar cannot drag main-column icons away from their headings. The section icon, heading, rule, and body remain one cluster after every measurement and page break; ReportLab receives the same geometry visible on the canvas.
 
 ### Decorative chrome
 
@@ -227,12 +227,12 @@ Implementation:
 
 - `frontend/src/templates/iconic.js`, lines 1–368, exports `novaTemplate`, `ridgeTemplate`, `loomTemplate`, and `voltTemplate`
 - `backend/app/services/cv_generator_iconic.py`, lines 31–405, functions `_icon`, `_icon_beside`, `_gen_iconic_theme`, and four `_gen_*` entry points
-- `frontend/src/utils/textareaReflow.js`, lines 53–296, functions `isTextAlignedImage`, `belongsToFlowLane`, and `reflowTextareaHeight`
+- `frontend/src/utils/textareaReflow.js`, lines 54–304, functions `isTextAlignedImage`, `belongsToFlowLane`, and `reflowTextareaHeight`
 - `backend/app/services/pdf_generator.py`, lines 141–187, method `PDF_Generator.renderImage`
 
 Tests:
 
-- `frontend/src/utils/textareaReflow.test.js`, lines 83–155 — Iconic heading/icon and Ridge rail grouping regressions
+- `frontend/src/utils/textareaReflow.test.js`, lines 83–262 — Iconic heading/icon, Ridge rail, and Loom two-column regressions
 - `backend/tests/test_pdf_shapes.py`, lines 67–120 — local-path optical alignment and alpha-mask regressions in ReportLab
 
 ### PDF create / update / autosave / download
@@ -609,7 +609,7 @@ Kanwa: początek **lewy-górny**. ReportLab: **lewy-dolny**; `PDF_Generator` odw
 
 ### Reflow automatycznej wysokości i wyrównanie ikon
 
-Pola tekstowe szablonów zaczynają z projektową wysokością zastępczą, a po załadowaniu właściwych fontów przeglądarka mierzy ich naturalną wysokość. `reflowTextareaHeight` przesuwa następnie wszystkie dalsze elementy w tej samej kolumnie o zmierzoną różnicę. Obrazy Iconic wyrównane do tekstu (`alignWithText: true`, również starsze adresy `/template-assets/iconic/`) są traktowane jak część nagłówka sekcji; dla odsuniętej szyny Ridge obowiązuje tolerancja kolumny 48 px. Dzięki temu ikona, tytuł, linia i treść pozostają jednym klastrem po każdym pomiarze i podziale strony, a ReportLab otrzymuje tę samą geometrię, którą widać na kanwie.
+Pola tekstowe szablonów zaczynają z projektową wysokością zastępczą, a po załadowaniu właściwych fontów przeglądarka mierzy ich naturalną wysokość. `reflowTextareaHeight` przesuwa następnie wszystkie dalsze elementy w tej samej kolumnie o zmierzoną różnicę. Obrazy Iconic wyrównane do tekstu (`alignWithText: true`, również starsze adresy `/template-assets/iconic/`) są traktowane jak część nagłówka sekcji i mogą dołączyć do kolumny, gdy wiszą po jej lewej stronie (szyna Ridge, ok. 40 px). Ikony leżące całkowicie na prawo od wąskiej kolumny są wykluczane, więc sidebar Loom nie odciąga ikon głównej kolumny od nagłówków. Ikona, tytuł, linia i treść pozostają jednym klastrem po każdym pomiarze i podziale strony; ReportLab dostaje tę samą geometrię, którą widać na kanwie.
 
 ### Dekoracje szablonu
 
@@ -727,12 +727,12 @@ Implementacja:
 
 - `frontend/src/templates/iconic.js`, linie 1–368, eksporty `novaTemplate`, `ridgeTemplate`, `loomTemplate`, `voltTemplate`
 - `backend/app/services/cv_generator_iconic.py`, linie 31–405, funkcje `_icon`, `_icon_beside`, `_gen_iconic_theme` oraz cztery wejścia `_gen_*`
-- `frontend/src/utils/textareaReflow.js`, linie 53–296, funkcje `isTextAlignedImage`, `belongsToFlowLane`, `reflowTextareaHeight`
+- `frontend/src/utils/textareaReflow.js`, linie 54–304, funkcje `isTextAlignedImage`, `belongsToFlowLane`, `reflowTextareaHeight`
 - `backend/app/services/pdf_generator.py`, linie 141–187, metoda `PDF_Generator.renderImage`
 
 Testy:
 
-- `frontend/src/utils/textareaReflow.test.js`, linie 83–155 — regresje grupowania nagłówka z ikoną i szyny Ridge
+- `frontend/src/utils/textareaReflow.test.js`, linie 83–262 — regresje nagłówka/ikony, szyny Ridge oraz dwukolumnowego Loom
 - `backend/tests/test_pdf_shapes.py`, linie 67–120 — regresje wyrównania lokalnej ścieżki i maski alfa w ReportLab
 
 ### PDF create / update / autosave / download
