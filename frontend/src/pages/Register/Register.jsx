@@ -1,10 +1,10 @@
 import classes from "./Register.module.css";
 import planClasses from "./PlanSelector.module.css";
 
-import { ApiClient, ENDPOINTS, waitForBackend, wakeBackend } from "../../services/api";
+import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
 
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PlanSelector, { PLAN_SLUGS } from "./PlanSelector";
 
 const UserIcon = () => (
@@ -42,9 +42,13 @@ export default function Register() {
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [statusMessage, setStatusMessage] = useState("");
+    const hintTimerRef = useRef(null);
 
     useEffect(() => {
         wakeBackend();
+        return () => {
+            if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+        };
     }, []);
 
     async function handleSubmit(e) {
@@ -52,21 +56,16 @@ export default function Register() {
         if (isLoading) return;
         setError("");
         setIsLoading(true);
-        setStatusMessage("Łączenie z serwerem…");
+        setStatusMessage("Tworzenie konta…");
+
+        if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+        hintTimerRef.current = setTimeout(() => {
+            setStatusMessage("Budzenie serwera… pierwsze uruchomienie może potrwać do minuty.");
+        }, 5000);
+
+        wakeBackend();
 
         try {
-            const ready = await waitForBackend({
-                timeoutMs: 100_000,
-                intervalMs: 2_500,
-                onProgress: () => {
-                    setStatusMessage("Budzenie serwera… to może potrwać do minuty przy pierwszym uruchomieniu.");
-                },
-            });
-            if (!ready) {
-                throw new Error("Serwer nadal się uruchamia. Poczekaj chwilę i spróbuj ponownie.");
-            }
-
-            setStatusMessage("Tworzenie konta…");
             const api = new ApiClient();
             await api.httpRequest(
                 ENDPOINTS.AUTH.REGISTER,
@@ -74,16 +73,18 @@ export default function Register() {
                 JSON.stringify({ username, email, password, plan }),
                 "Rejestracja nie powiodła się",
                 {
-                    timeoutMs: 45_000,
-                    retries: 5,
-                    retryDelayMs: 2_000,
+                    timeoutMs: 90_000,
+                    retries: 4,
+                    retryDelayMs: 3_000,
                     onRetry: (attempt) => {
-                        setStatusMessage(`Ponawianie rejestracji (${attempt}/5)… serwer właśnie wstaje.`);
+                        setStatusMessage(`Ponawianie rejestracji (${attempt}/4)… serwer właśnie wstaje.`);
                     },
                 },
             );
+            if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             navigate("/login", { replace: true });
         } catch (err) {
+            if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             setError(err.message || "Rejestracja nie powiodła się");
             setStatusMessage("");
             setIsLoading(false);

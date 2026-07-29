@@ -1,9 +1,9 @@
 import classes from "./Login.module.css";
 
-import { ApiClient, ENDPOINTS, waitForBackend, wakeBackend } from "../../services/api";
+import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
 
 import { useNavigate, Link } from "react-router-dom"
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const UserIcon = () => (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#97A1B0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 20a8 8 0 0 1 16 0" /></svg>
@@ -22,10 +22,14 @@ export default function Login() {
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [statusMessage, setStatusMessage] = useState("");
+    const hintTimerRef = useRef(null);
 
-    // Start waking a sleeping Render free-tier dyno while the user types.
+    // Kick Render cold start while the user types — do not gate login on this.
     useEffect(() => {
         wakeBackend();
+        return () => {
+            if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+        };
     }, []);
 
     async function handleSubmit(e) {
@@ -34,21 +38,17 @@ export default function Login() {
 
         setError("");
         setIsLoading(true);
-        setStatusMessage("Łączenie z serwerem…");
+        setStatusMessage("Logowanie…");
+
+        if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+        hintTimerRef.current = setTimeout(() => {
+            setStatusMessage("Budzenie serwera… pierwsze logowanie po przerwie może potrwać do minuty.");
+        }, 5000);
+
+        // Another wake in parallel with the login attempt itself.
+        wakeBackend();
 
         try {
-            const ready = await waitForBackend({
-                timeoutMs: 100_000,
-                intervalMs: 2_500,
-                onProgress: () => {
-                    setStatusMessage("Budzenie serwera… to może potrwać do minuty przy pierwszym uruchomieniu.");
-                },
-            });
-            if (!ready) {
-                throw new Error("Serwer nadal się uruchamia. Poczekaj chwilę i spróbuj ponownie.");
-            }
-
-            setStatusMessage("Logowanie…");
             const formDetails = new URLSearchParams();
             formDetails.append("username", username.trim());
             formDetails.append("password", password);
@@ -60,17 +60,20 @@ export default function Login() {
                 formDetails,
                 "Logowanie nie powiodło się",
                 {
-                    timeoutMs: 45_000,
-                    retries: 5,
-                    retryDelayMs: 2_000,
+                    // One attempt can wait out a full Render cold start.
+                    timeoutMs: 90_000,
+                    retries: 4,
+                    retryDelayMs: 3_000,
                     onRetry: (attempt) => {
-                        setStatusMessage(`Ponawianie logowania (${attempt}/5)… serwer właśnie wstaje.`);
+                        setStatusMessage(`Ponawianie logowania (${attempt}/4)… serwer właśnie wstaje.`);
                     },
                 },
             );
+            if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             localStorage.setItem("token", data.access_token);
             navigate("/pdfcanvas", { replace: true });
         } catch (err) {
+            if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             setError(err.message || "Logowanie nie powiodło się");
             setStatusMessage("");
             setIsLoading(false);

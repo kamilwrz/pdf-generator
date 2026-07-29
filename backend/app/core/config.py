@@ -2,7 +2,10 @@ from pathlib import Path
 import os, tempfile
 
 # CORS: one per env. Local = "http://localhost:5173", AWS = your frontend URL
-_raw = os.getenv("CORS_ORIGINS", "http://localhost:5173")
+_raw = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:5173,https://pdf-generator-react.onrender.com",
+)
 origins = [o.strip() for o in _raw.split(",") if o.strip()]
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")

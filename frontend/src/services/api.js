@@ -62,62 +62,21 @@ export function isTransientNetworkError(error) {
     );
 }
 
-function networkErrorMessage(fallbackMessage) {
-    return "Nie udało się połączyć z serwerem (trwa uruchamianie). Spróbuj ponownie za chwilę.";
-}
-
 /**
- * Poll /health until the Render dyno accepts requests.
- * Returns true when ready, false on timeout.
+ * Kick a sleeping Render dyno. Long timeout — free-tier cold start often
+ * needs 30–60s before the first byte; short aborts caused endless failures.
  */
-export async function waitForBackend({
-    timeoutMs = 100_000,
-    intervalMs = 2_500,
-    onProgress,
-} = {}) {
-    const started = Date.now();
-    let attempt = 0;
-
-    while (Date.now() - started < timeoutMs) {
-        attempt += 1;
-        onProgress?.(attempt);
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8_000);
-        try {
-            // omit credentials — cold-start error pages often lack CORS ACAO
-            const response = await fetch(`${API_BASE_URL}/health`, {
-                method: "GET",
-                cache: "no-store",
-                credentials: "omit",
-                signal: controller.signal,
-            });
-            if (response.ok) {
-                const contentType = response.headers.get("content-type") || "";
-                if (contentType.includes("application/json")) {
-                    const body = await response.json().catch(() => null);
-                    if (body?.status === "ok") return true;
-                }
-                // Any HTTP 200 means the process is listening (SPA fallback on older deploys).
-                return true;
-            }
-        } catch {
-            // Dyno still sleeping / starting — keep polling.
-        } finally {
-            clearTimeout(timeoutId);
-        }
-        await sleep(intervalMs);
-    }
-    return false;
-}
-
-/** Fire-and-forget warmup so a sleeping Render dyno starts before login/register. */
 export function wakeBackend() {
-    waitForBackend({ timeoutMs: 100_000 }).catch(() => null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90_000);
     return fetch(`${API_BASE_URL}/health`, {
         method: "GET",
-        credentials: "omit",
         cache: "no-store",
-    }).catch(() => null);
+        credentials: "omit",
+        signal: controller.signal,
+    })
+        .catch(() => null)
+        .finally(() => clearTimeout(timeoutId));
 }
 
 export class ApiClient {
@@ -129,13 +88,13 @@ export class ApiClient {
 
     async httpRequest(endpoint, method, body, errorMessage, options = {}) {
         const retries = Math.max(0, options.retries ?? 0);
-        const retryDelayMs = options.retryDelayMs ?? 2_000;
+        const retryDelayMs = options.retryDelayMs ?? 2_500;
         let lastError = null;
 
         for (let attempt = 0; attempt <= retries; attempt += 1) {
             if (attempt > 0) {
                 options.onRetry?.(attempt);
-                await sleep(retryDelayMs * attempt);
+                await sleep(retryDelayMs * Math.min(attempt, 4));
             }
             try {
                 return await this._httpRequestOnce(endpoint, method, body, errorMessage, options);
@@ -144,7 +103,9 @@ export class ApiClient {
                 const retryable = isTransientNetworkError(error);
                 if (!retryable || attempt === retries) {
                     if (isTransientNetworkError(error) && !error.status) {
-                        throw new Error(networkErrorMessage(errorMessage));
+                        throw new Error(
+                            "Nie udało się połączyć z serwerem (trwa uruchamianie). Spróbuj ponownie za chwilę.",
+                        );
                     }
                     throw error;
                 }
@@ -158,11 +119,10 @@ export class ApiClient {
         const headers = { ...this.headers };
         if (body instanceof FormData) delete headers['Content-Type'];
 
-        const timeoutMs = options.timeoutMs;
-        const controller = timeoutMs != null ? new AbortController() : null;
-        const timeoutId = controller
-            ? setTimeout(() => controller.abort(), timeoutMs)
-            : null;
+        // Cold start can exceed a minute; default high for auth-style calls.
+        const timeoutMs = options.timeoutMs ?? 90_000;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         try {
             const response = await fetch(this.baseUrl + endpoint, {
@@ -170,7 +130,7 @@ export class ApiClient {
                 headers: headers,
                 body: body,
                 credentials: "include",
-                ...(controller ? { signal: controller.signal } : {}),
+                signal: controller.signal,
             });
 
             if (!response.ok) {
@@ -207,7 +167,7 @@ export class ApiClient {
             if (error instanceof Error) throw error;
             throw new Error(fallbackMessage);
         } finally {
-            if (timeoutId) clearTimeout(timeoutId);
+            clearTimeout(timeoutId);
         }
     }
 }

@@ -1,4 +1,6 @@
 import logging
+from contextlib import asynccontextmanager
+import asyncio
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,26 +27,53 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 logger = logging.getLogger("ai_assistant")
 
-app = FastAPI()
+
+def _run_startup_work() -> None:
+    """DB bootstrap — runs after the process is already accepting HTTP."""
+    try:
+        init_db()
+        db = SessionLocal()
+        try:
+            deleted = run_legacy_document_cleanup(db)
+            if deleted:
+                logger.warning("Removed %s retired deck/article documents.", deleted)
+        finally:
+            db.close()
+    except Exception:
+        logger.exception("Startup database init failed; API is up but DB may be unavailable.")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Do not block listen on DB retries — /health must answer during Render cold start.
+    init_task = asyncio.create_task(asyncio.to_thread(_run_startup_work))
+    try:
+        yield
+    finally:
+        if not init_task.done():
+            init_task.cancel()
+            try:
+                await init_task
+            except asyncio.CancelledError:
+                pass
+
+
+app = FastAPI(lifespan=lifespan)
+
+# CORS must wrap the app early so cross-origin login/health always get ACAO.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")
 def health():
     """Cheap liveness probe used by the frontend to wake a sleeping Render dyno."""
     return {"status": "ok"}
-
-
-@app.on_event("startup")
-def on_startup() -> None:
-    """Connect to DB after the process is up; retry flaky Render SSL handshakes."""
-    init_db()
-    db = SessionLocal()
-    try:
-        deleted = run_legacy_document_cleanup(db)
-        if deleted:
-            logger.warning("Removed %s retired deck/article documents.", deleted)
-    finally:
-        db.close()
 
 
 @app.exception_handler(AIServiceError)
@@ -87,20 +116,9 @@ if DIST_DIR.exists():
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
         """Serve index.html for all non-API, non-static paths so client-side routing works."""
+        if full_path == "health":
+            return {"status": "ok"}
         index_path = DIST_DIR / "index.html"
         if index_path.exists():
             return FileResponse(str(index_path))
         raise HTTPException(status_code=404, detail="Nie znaleziono")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,  # Frontend origin
-    allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
-)
-
-
-
-    
-   
