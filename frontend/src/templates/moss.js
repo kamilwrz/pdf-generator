@@ -41,9 +41,9 @@ export const mossTemplate = [
     bulleted(block("• Polski — ojczysty\n• Angielski — C1\n• Hiszpański — B1", 24, 502, 136, 42, 8.3, 13, FOREST, SANS)),
 
     tracked(text("WYKSZTAŁCENIE", 8, SANS, FOREST, 24, 567, 3), 1.2),
-    bold(block("Projektowanie Usług — 2011–2016", 24, 587, 136, 14, 8.6, 12, FOREST, SANS)),
-    block("SWPS, Poznań", 24, 604, 136, 14, 7.9, 11, MUTE, SANS),
-    block("Badania, service blueprints, facylitacja.", 24, 620, 136, 26, 8, 12, BODY, SANS),
+    bold(block("Projektowanie Usług — 2011–2016", 24, 587, 136, 24, 8.4, 12, FOREST, SANS)),
+    block("SWPS, Poznań", 24, 611, 136, 14, 7.9, 11, MUTE, SANS),
+    block("Badania, service blueprints, facylitacja.", 24, 628, 136, 26, 8, 12, BODY, SANS),
 
     { ...rect(462, 52, 58, 54, GOLD, 0.8, 3), id: "moss-frame" },
     { ...ellipse(472, 62, 35, 17, SAGE, false, 1, 3), id: "moss-leaf" },
@@ -74,7 +74,6 @@ export const mossTemplate = [
         "• Projektowała procesy i narzędzia wspierające współpracę zespołów.\n• Moderowała warsztaty oraz przekładała obserwacje na działania.",
         242, 495, 304, 43, 9.1, 13, BODY, SANS
     )),
-
 
     { ...line(220, 783, 326, 1, RULE, 2), fixedToPage: true },
     { ...circle(220, 796, 6, GOLD, true, 1, 3), fixedToPage: true },

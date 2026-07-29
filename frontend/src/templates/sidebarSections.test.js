@@ -17,7 +17,11 @@ test("sidebar templates umieszczają Wykształcenie/Umiejętności/Języki w sid
             /EDUKACJA I KOMPETENCJE/,
             `${file}: pozostała sekcja "EDUKACJA I KOMPETENCJE" w kolumnie głównej`,
         );
-        // Sekcja umiejętności musi być listą wypunktowaną.
-        assert.match(source, /bulleted\(block\("•/, `${file}: umiejętności nie są listą wypunktowaną`);
+        // Umiejętności i języki muszą być listami wypunktowanymi (stąd co najmniej 2).
+        const bulletBlocks = source.match(/bulleted\(block\("•/g) || [];
+        assert.ok(
+            bulletBlocks.length >= 2,
+            `${file}: oczekiwano co najmniej 2 list wypunktowanych (umiejętności + języki), znaleziono ${bulletBlocks.length}`,
+        );
     }
 });
