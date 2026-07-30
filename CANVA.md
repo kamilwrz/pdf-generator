@@ -784,12 +784,12 @@ Komentarz w `ai_assistant_service.py` wyjaśnia powód: bezpośrednie współrz�
 1. Kliknięcie **Układ** włącza tryb (przycisk zostaje zaznaczony).
 2. Backend buduje `build_layout_snapshot` — wszystkie strony i elementy z
    `left`/`top`/`width`/`height`/`page`/`fontSize`/… oraz flagą `movable`.
-3. Snapshot zawiera `section_rhythm` z `primary_gap` (gdy jest kreska: linia→treść,
-   jak miarka „6 px”; inaczej nagłówek→treść), `comparison` i `outliers`. Pierwszy
-   wpis pod sekcją jest wybierany po `top` w kolumnie — **nie** po `left+width`,
-   bo freestyle często ma `width: 3` i dawniej skakało ~50 px do textarea.
-   Model nie może odpowiadać `body.top−header.top` ani icon.top−header.top.
-   Wywołanie: `AI_LAYOUT_MODEL` (domyślnie `gpt-5.6-sol`) + prompt korektora.
+3. Snapshot pozostaje surowy: Python nie grupuje sekcji ani nie wylicza
+   `section_rhythm`, ponieważ wymiary freestyle (np. `width: 3`) nie są
+   wystarczająco wiarygodne. `gpt-5.6-sol` z `reasoning_effort=high` sam rozpoznaje
+   nagłówek, linię i pierwszy wpis. Prompt każe podać top-to-top diagnostycznie,
+   ale korektę oprzeć na realnym odstępie krawędź→krawędź i porównać wszystkie
+   peery (np. DOŚWIADCZENIE/WYKSZTAŁCENIE 6 px vs pozostałe 14 px).
 4. GPT zwraca `status` + `summary` + opcjonalne `changes[]` (grupy logiczne z
    `before`/`after` lub wspólnym `delta`). Stary format `findings[].moves` też działa.
 5. Python (`compile_layout_gpt_response`) mapuje to na `layout_issues` + karty

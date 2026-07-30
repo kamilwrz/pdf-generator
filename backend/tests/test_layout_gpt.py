@@ -7,7 +7,6 @@ from app.services.layout_gpt import (
     MAX_LAYOUT_MOVE_PX,
     build_layout_snapshot,
     build_layout_user_prompt,
-    build_section_rhythm,
     compile_layout_gpt_response,
 )
 
@@ -52,69 +51,25 @@ class LayoutGptTests(unittest.TestCase):
         self.assertIn("changes", prompt)
         self.assertIn("no_changes", prompt)
         self.assertIn("gap = next.top", prompt)
-        self.assertIn("section_rhythm", prompt)
+        self.assertIn("real_gap", prompt)
+        self.assertIn("6 px", prompt)
+        self.assertIn("14 px", prompt)
+        self.assertIn("width≈0–3", prompt)
         self.assertTrue(LAYOUT_CORRECTOR_SYSTEM.startswith("Jesteś korektorem"))
         self.assertIn("rytm", DEFAULT_LAYOUT_QUESTION.lower())
 
-    def test_section_rhythm_flags_header_to_body_outliers(self):
-        # Two headers ~14–16 px to body; DOŚWIADCZENIE only ~8 px (user: 6 vs 14).
+    def test_snapshot_preserves_narrow_width_for_model_reasoning(self):
+        # GPT sees the raw width=3 title and must not discard it; Python no
+        # longer invents a section_rhythm metric from unreliable authoring width.
         elements = [
-            el("h1", 70, 180, height=16, category="text", content="PODSUMOWANIE ZAWODOWE", bold=True),
-            el("l1", 70, 198, width=400, height=2, category="line"),
-            el("b1", 70, 212, height=40, content="Aml analyst summary paragraph"),
-
-            el("h2", 70, 280, height=16, category="text", content="DOŚWIADCZENIE ZAWODOWE", bold=True),
-            el("l2", 70, 298, width=400, height=2, category="line"),
-            el("b2", 70, 304, height=20, content="Senior AML Analyst"),
-
-            el("h3", 70, 400, height=16, category="text", content="UMIEJĘTNOŚCI", bold=True),
-            el("l3", 70, 418, width=400, height=2, category="line"),
-            el("b3", 70, 432, height=20, content="Python and SQL skills"),
-        ]
-        snap = build_layout_snapshot(elements, PAGE)
-        rhythm = snap["section_rhythm"]
-        self.assertEqual(len(rhythm["sections"]), 3)
-        by_section = {row["section"]: row for row in rhythm["sections"]}
-        # With underlines, primary_gap is line→body (visual ruler under the rule).
-        self.assertEqual(by_section["DOŚWIADCZENIE ZAWODOWE"]["primary_metric"], "line_to_body_gap")
-        self.assertAlmostEqual(by_section["DOŚWIADCZENIE ZAWODOWE"]["primary_gap"], 4.0, places=1)
-        self.assertAlmostEqual(by_section["PODSUMOWANIE ZAWODOWE"]["primary_gap"], 12.0, places=1)
-        self.assertAlmostEqual(by_section["UMIEJĘTNOŚCI"]["primary_gap"], 12.0, places=1)
-        outlier_sections = {o["section"] for o in rhythm["outliers"]}
-        self.assertIn("DOŚWIADCZENIE ZAWODOWE", outlier_sections)
-        self.assertTrue(any(c["section"] == "DOŚWIADCZENIE ZAWODOWE" for c in rhythm["comparison"]))
-        self.assertEqual(
-            build_section_rhythm(snap["elements"])["median_primary_gap"],
-            rhythm["median_primary_gap"],
-        )
-
-    def test_section_rhythm_uses_narrow_width_job_title(self):
-        # Regression: freestyle titles often store width=3. Old filter used
-        # left+width and skipped them, then reported ~51 px to a wide textarea.
-        elements = [
-            el("h1", 70, 180, height=18, category="text", content="PODSUMOWANIE ZAWODOWE"),
-            el("l1", 70, 200, width=400, height=2, category="line"),
-            el("b1", 70, 214, width=400, height=40, content="Summary paragraph about aml"),
-
             el("h2", 70, 280, height=18, category="text", content="DOŚWIADCZENIE ZAWODOWE"),
             el("l2", 70, 300, width=400, height=2, category="line"),
-            # Title slightly left of header, tiny stored width (like the editor panel).
             el("title", 50, 306, width=3, height=14, category="text", content="Senior AML Analyst with German"),
-            el("desc", 50, 357, width=400, height=40, content="Long experience description textarea"),
-
-            el("h3", 70, 450, height=18, category="text", content="WYKSZTAŁCENIE"),
-            el("l3", 70, 470, width=400, height=2, category="line"),
-            el("edu", 50, 476, width=3, height=14, category="text", content="Bachelor of Laws"),
         ]
-        rhythm = build_section_rhythm(build_layout_snapshot(elements, PAGE)["elements"])
-        by_section = {row["section"]: row for row in rhythm["sections"]}
-        self.assertEqual(by_section["DOŚWIADCZENIE ZAWODOWE"]["body_element_id"], "title")
-        self.assertAlmostEqual(by_section["DOŚWIADCZENIE ZAWODOWE"]["primary_gap"], 4.0, places=1)
-        self.assertEqual(by_section["WYKSZTAŁCENIE"]["body_element_id"], "edu")
-        self.assertAlmostEqual(by_section["WYKSZTAŁCENIE"]["primary_gap"], 4.0, places=1)
-        self.assertAlmostEqual(by_section["PODSUMOWANIE ZAWODOWE"]["primary_gap"], 12.0, places=1)
-        # Must NOT invent a 51 px gap to the description.
-        self.assertLess(by_section["DOŚWIADCZENIE ZAWODOWE"]["primary_gap"], 20)
+        snap = build_layout_snapshot(elements, PAGE)
+        by_id = {item["element_id"]: item for item in snap["elements"]}
+        self.assertEqual(by_id["title"]["width"], 3)
+        self.assertNotIn("section_rhythm", snap)
 
     def test_compile_findings_to_layout_groups(self):
         elements = [

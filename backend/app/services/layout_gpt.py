@@ -32,19 +32,6 @@ _FROZEN_IDENTITY_ROLES_HINTS = (
     "PODSUMOWANIE", "DOŚWIADCZENIE", "WYKSZTAŁCENIE", "UMIEJĘTNOŚCI", "JĘZYKI",
     "SUMMARY", "EXPERIENCE", "EDUCATION", "SKILLS", "LANGUAGES",
 )
-_SECTION_HEADER_HINTS = (
-    "PODSUMOWANIE", "DOŚWIADCZENIE", "DOSWIADCZENIE", "WYKSZTAŁCENIE", "WYKSZTALCENIE",
-    "UMIEJĘTNOŚCI", "UMIEJETNOSCI", "JĘZYKI", "JEZYKI", "HOBBY", "CERTYFIKATY",
-    "SUMMARY", "EXPERIENCE", "EDUCATION", "SKILLS", "LANGUAGES", "CERTIFICATES",
-)
-# How far below a header we still look for its underline / first body peer.
-_SECTION_LOOKAHEAD_PX = 56.0
-# First body under a section rule should sit in this band (visual “6–22 px”).
-_SECTION_BODY_NEAR_PX = 48.0
-# Gaps that differ from the peer median by more than this are flagged.
-_SECTION_GAP_OUTLIER_PX = 3.0
-# Freestyle text often stores width≈0–3 in the element; treat that as unreliable.
-_MIN_RELIABLE_WIDTH_PX = 24.0
 
 DEFAULT_LAYOUT_QUESTION = (
     "Przeprowadź pełną korektę układu CV: rytm pionowych odstępów, odstępy między "
@@ -75,8 +62,9 @@ kolorów ani rozmiarów tekstu — chyba że użytkownik wyraźnie o to poprosi.
 
 Zachowujesz wizję użytkownika (freestyle). Preferujesz najmniejszą zmianę, która
 przywraca spójność względem dominującego rytmu peerów.
-Gdy w JSON jest `section_rhythm`, odpowiadasz metryką `primary_gap` / `comparison`
-(fakt z Pythona). Nie zastępujesz tego przez body.top−header.top ani icon.top−header.top.
+Samodzielnie grupujesz surowe elementy i liczysz geometrię z ich współrzędnych.
+Nie wolno zakładać, że width/height są idealne: porównuj także pozycje top peerów,
+fontSize, content i kolejność elementów, a wynik sprawdzaj wizualną logiką CV.
 Zwracasz WYŁĄCZNIE prawidłowy JSON (bez tekstu przed/po).
 """
 
@@ -142,7 +130,6 @@ def build_layout_snapshot(
 
     items.sort(key=lambda row: (row["page"], row["top"], row["left"], row["element_id"]))
     pages = sorted({item["page"] for item in items}) or [1]
-    section_rhythm = build_section_rhythm(items)
     return {
         "page": {
             "width": page_width,
@@ -155,8 +142,6 @@ def build_layout_snapshot(
         "element_count": len(items),
         "movable_count": sum(1 for row in items if row["movable"]),
         "elements": items,
-        # Precomputed peer gaps — GPT must trust these over hand-waved top-top diffs.
-        "section_rhythm": section_rhythm,
         "constraints": {
             "max_moves": MAX_LAYOUT_MOVES,
             "max_findings": MAX_LAYOUT_FINDINGS,
@@ -165,268 +150,6 @@ def build_layout_snapshot(
             "forbid_resize_unless_clipped": True,
             "preserve_user_vision": True,
         },
-    }
-
-
-def _is_section_header_item(item: dict[str, Any]) -> bool:
-    """True for short ALL-CAPS-ish section titles (not body text mentioning 'skills')."""
-    if item.get("category") not in {"text", "textarea"}:
-        return False
-    content = str(item.get("content") or "").strip()
-    if not content or len(content) > 48 or "\n" in content:
-        return False
-    letters = [ch for ch in content if ch.isalpha()]
-    # Body copy like "Summary body" / "Skills list" must not count as a section header.
-    if letters:
-        upper_ratio = sum(1 for ch in letters if ch.isupper()) / len(letters)
-        if upper_ratio < 0.7:
-            return False
-    upper = content.upper()
-    return any(
-        upper == hint or upper.startswith(hint + " ") or upper.startswith(hint + "\u00a0")
-        for hint in _SECTION_HEADER_HINTS
-    )
-
-
-def _is_section_rule_item(item: dict[str, Any]) -> bool:
-    """Thin wide horizontal rule — typical section underline."""
-    if item.get("category") != "line":
-        return False
-    return _number(item.get("height")) <= 4.0 + EPSILON and _number(item.get("width")) >= 24.0
-
-
-def _effective_width(item: dict[str, Any]) -> float:
-    """Width for geometry peers — never trust freestyle authoring width ≈ 0–3."""
-    stored = _number(item.get("width"))
-    if stored >= _MIN_RELIABLE_WIDTH_PX:
-        return stored
-    content = str(item.get("content") or "")
-    font = _number(item.get("fontSize"), 12.0)
-    # Rough glyph estimate; enough for column membership, not for typography.
-    estimated = max(40.0, min(320.0, len(content) * font * 0.52))
-    return max(stored, estimated)
-
-
-def _horizontal_overlap(a: dict[str, Any], b: dict[str, Any], *, min_ratio: float = 0.15) -> bool:
-    a_w = _effective_width(a)
-    b_w = _effective_width(b)
-    left = max(_number(a.get("left")), _number(b.get("left")))
-    right = min(_number(a.get("left")) + a_w, _number(b.get("left")) + b_w)
-    overlap = right - left
-    if overlap <= 0:
-        return False
-    shorter = min(a_w, b_w)
-    return overlap >= shorter * min_ratio
-
-
-def _is_main_column_body(header: dict[str, Any], item: dict[str, Any]) -> bool:
-    """True for first-entry titles under a section (not right-column dates).
-
-    ChatGPT succeeded by ordering on ``top``. We previously required
-    ``left + width`` to clear the header, which dropped freestyle titles with
-    stored ``width: 3`` and then jumped ~50 px to a wide textarea — hence the
-    bogus primary_gap of 51 px.
-    """
-    item_left = _number(item.get("left"))
-    header_left = _number(header.get("left"))
-    # Right date column on A4 freestyle CVs typically starts past ~360–400.
-    if item_left >= 360:
-        return False
-    # Allow titles a bit left of the section label (e.g. header 70, title 50).
-    if item_left < header_left - 48:
-        return False
-    if item_left > header_left + 140:
-        return False
-    return True
-
-
-def _median(values: list[float]) -> float | None:
-    if not values:
-        return None
-    ordered = sorted(values)
-    mid = len(ordered) // 2
-    if len(ordered) % 2:
-        return ordered[mid]
-    return (ordered[mid - 1] + ordered[mid]) / 2.0
-
-
-def build_section_rhythm(items: list[dict[str, Any]]) -> dict[str, Any]:
-    """Precompute header → underline → first-body gaps for section peers.
-
-    GPT previously mistook icon.top vs header.top (same row) for the vertical
-    spacing under a section. These numbers use bottom edges:
-    header_to_body = body.top − (header.top + header.height).
-    """
-    headers = [item for item in items if _is_section_header_item(item)]
-    rows: list[dict[str, Any]] = []
-
-    for header in headers:
-        header_bottom = _number(header["top"]) + _number(header["height"])
-        page = int(header.get("page") or 1)
-
-        line = None
-        line_gap = None
-        for item in items:
-            if item is header or int(item.get("page") or 1) != page:
-                continue
-            if not _is_section_rule_item(item):
-                continue
-            if _number(item["top"]) < header_bottom - EPSILON:
-                continue
-            if _number(item["top"]) > header_bottom + _SECTION_LOOKAHEAD_PX:
-                continue
-            if not _horizontal_overlap(header, item, min_ratio=0.2):
-                continue
-            gap = round(_number(item["top"]) - header_bottom, 2)
-            if line is None or _number(item["top"]) < _number(line["top"]):
-                line = item
-                line_gap = gap
-
-        body = None
-        body_from_header = None
-        body_from_line = None
-        search_after = header_bottom
-        if line is not None:
-            search_after = max(search_after, _number(line["top"]) + _number(line["height"]))
-
-        # Prefer the nearest main-column text under the rule (tight band first).
-        # Falling back to a wider band only if nothing sits in the visual gap zone.
-        candidates_near: list[dict[str, Any]] = []
-        candidates_far: list[dict[str, Any]] = []
-        for item in items:
-            if item is header or int(item.get("page") or 1) != page:
-                continue
-            if item.get("category") not in {"text", "textarea"}:
-                continue
-            if _is_section_header_item(item):
-                continue
-            top = _number(item["top"])
-            if top < search_after - EPSILON:
-                continue
-            if top > search_after + 120.0:
-                continue
-            if not _is_main_column_body(header, item):
-                continue
-            if top <= search_after + _SECTION_BODY_NEAR_PX:
-                candidates_near.append(item)
-            else:
-                candidates_far.append(item)
-
-        pool = candidates_near or candidates_far
-        if pool:
-            body = min(pool, key=lambda row: (_number(row["top"]), _number(row["left"]), row["element_id"]))
-
-        if body is not None:
-            body_from_header = round(_number(body["top"]) - header_bottom, 2)
-            if line is not None:
-                line_bottom = _number(line["top"]) + _number(line["height"])
-                body_from_line = round(_number(body["top"]) - line_bottom, 2)
-
-        # Visual gap under section chrome: prefer line→body when an underline exists
-        # (matches designer rulers like “6 px under the rule”). Else header→body.
-        if isinstance(body_from_line, (int, float)):
-            primary_gap = body_from_line
-            primary_metric = "line_to_body_gap"
-        else:
-            primary_gap = body_from_header
-            primary_metric = "header_to_body_gap"
-
-        rows.append({
-            "section": str(header.get("content") or "")[:48],
-            "header_element_id": header["element_id"],
-            "page": page,
-            "header_top": round(_number(header["top"]), 2),
-            "header_bottom": round(header_bottom, 2),
-            "header_left": round(_number(header["left"]), 2),
-            "line_element_id": line["element_id"] if line else None,
-            "header_to_line_gap": line_gap,
-            "body_element_id": body["element_id"] if body else None,
-            "body_top": round(_number(body["top"]), 2) if body else None,
-            "header_to_body_gap": body_from_header,
-            "line_to_body_gap": body_from_line,
-            "primary_gap": primary_gap,
-            "primary_metric": primary_metric,
-        })
-
-    primary_gaps = [
-        float(row["primary_gap"])
-        for row in rows
-        if isinstance(row.get("primary_gap"), (int, float))
-    ]
-    median_primary = _median(primary_gaps)
-
-    outliers: list[dict[str, Any]] = []
-    for row in rows:
-        gap = row.get("primary_gap")
-        if (
-            not isinstance(gap, (int, float))
-            or median_primary is None
-            or abs(float(gap) - median_primary) <= _SECTION_GAP_OUTLIER_PX
-        ):
-            continue
-        outliers.append({
-            "section": row["section"],
-            "metric": row.get("primary_metric") or "primary_gap",
-            "gap": gap,
-            "median": round(median_primary, 2),
-            "delta_vs_median": round(float(gap) - median_primary, 2),
-            "header_element_id": row["header_element_id"],
-            "line_element_id": row.get("line_element_id"),
-            "body_element_id": row["body_element_id"],
-            "target_body_top": (
-                round(_number(row["body_top"]) + (median_primary - float(gap)), 2)
-                if isinstance(row.get("body_top"), (int, float))
-                else None
-            ),
-            "hint": (
-                f"{row['section']}: odstęp pod sekcją {gap:g} px "
-                f"(metryka {row.get('primary_metric')}) vs mediana {median_primary:g} px. "
-                "Ujednolic: przesuń treść sekcji (pierwszy wpis + dalsze elementy bloku) "
-                f"o {(median_primary - float(gap)):.2f} px w pionie."
-            ),
-        })
-
-    comparison = [
-        {
-            "section": row["section"],
-            "primary_gap": row.get("primary_gap"),
-            "primary_metric": row.get("primary_metric"),
-            "header_to_body_gap": row.get("header_to_body_gap"),
-            "line_to_body_gap": row.get("line_to_body_gap"),
-            "body_element_id": row.get("body_element_id"),
-        }
-        for row in rows
-    ]
-
-    return {
-        "sections": rows,
-        "comparison": comparison,
-        "median_primary_gap": round(median_primary, 2) if median_primary is not None else None,
-        "median_header_to_body_gap": (
-            None
-            if (m := _median([
-                float(row["header_to_body_gap"])
-                for row in rows
-                if isinstance(row.get("header_to_body_gap"), (int, float))
-            ])) is None
-            else round(m, 2)
-        ),
-        "median_line_to_body_gap": (
-            None
-            if (m := _median([
-                float(row["line_to_body_gap"])
-                for row in rows
-                if isinstance(row.get("line_to_body_gap"), (int, float))
-            ])) is None
-            else round(m, 2)
-        ),
-        "outliers": outliers,
-        "note": (
-            "Główny metr wizualny = primary_gap (gdy jest linia: line_to_body_gap, inaczej "
-            "header_to_body_gap). To jest miarka jak „6 px pod kreską”, NIE body.top−header.top "
-            "i NIE icon.top−header.top. Przy pytaniu o odległość nagłówek↔pierwszy wpis "
-            "odpowiadaj comparison[] / primary_gap. Przy outliers zaproponuj changes."
-        ),
     }
 
 
@@ -450,37 +173,40 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
 {q}
 
 ## Zasady analizy
-1. Najpierw przeczytaj `section_rhythm.comparison` i `outliers` — to WYLICZONE przez
-   Pythona odstępy pod sekcjami. Główna liczba = `primary_gap` (zwykle line→body,
-   jak miarka „6 px pod kreską”). Gdy `outliers` nie jest puste, MUSISZ zaproponować
-   `changes` ujednolicające do `median_primary_gap` (przesuń treść sekcji o
-   `target_body_top` / delta z hint). Nie twierdź, że wszystko jest równe przy
-   rozjeździe np. 6 vs 14 px.
-2. Na pytanie „jaka odległość między nagłówkiem a pierwszym wpisem”:
-   odpowiedz `primary_gap` + porównaj WSZYSTKIE sekcje z `comparison`.
-   NIE zaczynaj od body.top − header.top (to daje mylące 22 px przy height≈19).
-   NIGDY nie używaj icon.top − header.top jako odstępu sekcji.
-3. Grupuj elementy logicznie (wpis doświadczenia: stanowisko + data + firma + opis).
-4. Porównuj peery: nagłówki, wpisy, daty, opisy, ikony/linie z nagłówkami.
-5. Gap pionowy między peerami:
+1. Najpierw rozpoznaj wszystkie sekcje i ich peery bez dodatkowych metryk z Pythona.
+   Dla każdej sekcji znajdź tekst nagłówka, ikonę, linię dekoracyjną i pierwszy
+   element treści. Element z width≈0–3 może być prawidłowym tytułem — nie odrzucaj
+   go tylko z powodu szerokości.
+2. Na pytanie o odstęp pod nagłówkiem policz DWA jawne wymiary:
+   a) top-to-top = first_body.top − header.top (tylko diagnostycznie),
+   b) real_gap = first_body.top − max(header.top + header.height,
+      line.top + line.height), jeśli linia jest częścią tego samego nagłówka.
+   Odpowiedź i korektę opieraj na real_gap. Porównaj real_gap wszystkich sekcji,
+   nie tylko pytanej. Przykład: DOŚWIADCZENIE 6 px i WYKSZTAŁCENIE 6 px vs
+   PODSUMOWANIE 14 px i UMIEJĘTNOŚCI 14 px → wykryj dwa odstające nagłówki.
+3. Linia sekcji zwykle leży w tym samym wierszu co tekst nagłówka i zaczyna się
+   po jego prawej stronie; nie musi nachodzić poziomo na tekst nagłówka.
+4. Grupuj elementy logicznie (wpis doświadczenia: stanowisko + data + firma + opis).
+5. Porównuj peery: nagłówki, wpisy, daty, opisy, ikony/linie z nagłówkami.
+6. Gap pionowy między peerami:
    gap = next.top − (prev.top + prev.height)
    Dla całego wpisu bierz dolną krawędź bloku (max top+height elementów wpisu).
-6. Nie przesuwaj bez potrzeby. Preferuj najmniejszą zmianę.
-7. Relacje w bloku: przesuwając treść pod sekcją, przesuń wszystkie elementy wpisu /
+7. Nie przesuwaj bez potrzeby. Preferuj najmniejszą zmianę.
+8. Relacje w bloku: przesuwając treść pod sekcją, przesuń wszystkie elementy wpisu /
    bloku o TEN SAM delta w jednej grupie `changes`.
-8. Preferuj tylko top/left. width/height tylko gdy konieczne (clipped textarea).
-9. Nie dopuszczaj nachodzenia. Nie zmieniaj content, page, category, fontów, kolorów.
-10. Pomiń movable=false / locked / fixedToPage. Nie ruszaj imienia i roli pod zdjęciem
+9. Preferuj tylko top/left. width/height tylko gdy konieczne (clipped textarea).
+10. Nie dopuszczaj nachodzenia. Nie zmieniaj content, page, category, fontów, kolorów.
+11. Pomiń movable=false / locked / fixedToPage. Nie ruszaj imienia i roli pod zdjęciem
     (keep_element_ids). Max ±{max_delta:g} px na element; max {max_moves} ruchów;
     max {max_findings} grup.
-11. Na czyste pytanie bez potrzeby patchy: status \"no_changes\", changes=[], summary po polsku.
-    Ale jeśli `section_rhythm.outliers` wskazuje rozjazd (np. 6 vs 14), to NIE jest no_changes.
+12. Na czyste pytanie bez potrzeby patchy: status \"no_changes\", changes=[], summary po polsku.
+    Jeśli real_gap peerów różni się istotnie (np. 6 vs 14 px), to NIE jest no_changes.
 
 ## Preferowane reguły (wskazówki, nie sztywne wartości)
 - Nagłówki tego samego poziomu: zbliżony left.
 - Ikona nagłówka wyrównana pionowo z tekstem nagłówka (osobna sprawa od rytmu pod sekcją).
 - Linia dekoracyjna na osi wizualnej nagłówka, bez przechodzenia przez tekst.
-- `header_to_body_gap` / `line_to_body_gap` ujednolicone do mediany z `section_rhythm`.
+- Realne odstępy pod nagłówkami ujednolicone do dominującej wartości peerów.
 - Daty doświadczenia w jednej prawej kolumnie; wysokość zbliżona do stanowiska.
 - Odstępy tytuł→firma, firma→opis, koniec wpisu→następny wpis: spójne w sekcji.
 - Odstęp nad nową sekcją większy niż odstępy wewnątrz wpisu.

@@ -204,12 +204,16 @@ def _strip_protected_corrections(result: dict, protected_ids: set[str]) -> dict:
 def _gpt(system: str, user: str, *, action: str = "") -> tuple[dict, dict]:
     """Call the assistant model and return (parsed_json, usage_cost)."""
     model = _model_for_action(action)
+    # Layout must infer logical blocks from imperfect freestyle geometry
+    # (for example text elements with authoring width=3), so give the dedicated
+    # gpt-5.6-sol route more reasoning budget than content/style actions.
+    reasoning_effort = "high" if action == "layout" else "medium"
     try:
         resp = _client.chat.completions.create(
             model=model,
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
             response_format={"type": "json_object"},
-            reasoning_effort="medium",
+            reasoning_effort=reasoning_effort,
             max_completion_tokens=16000,
         )
     except APIError as exc:

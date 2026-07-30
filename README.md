@@ -345,7 +345,7 @@ Implementation:
 
 Ratings, grammar, ATS, chat, and chat-driven position review cards.
 
-**Układ** is a toggleable GPT **geometry corrector**: while active, every question sends a **full multi-page A4 JSON** (`left`/`top`/`width`/`height`/`fontSize`/…). The model follows a peer-rhythm prompt (vertical gaps, section/entry spacing, header/date/icon alignment, column margins, overlaps) and must not change content, fonts, or colours. It returns `status` + Polish `summary` + optional `changes[]` (logical groups with `before`/`after` or shared `delta`), compiled to previewable `layout_groups`. Legacy `findings[].moves` still works. Deselect **Układ** to leave the mode. Chat `position_operation` resolvers remain for freeform edit commands. **Projekt** (`design_rating`) uses `summarize_geometry_issues` for geometry score caps.
+**Układ** is a toggleable GPT **geometry corrector**: while active, every question sends a **full multi-page A4 JSON** (`left`/`top`/`width`/`height`/`fontSize`/…). `gpt-5.6-sol` groups raw elements itself; Python does not precompute section gaps because freestyle authoring dimensions such as `width: 3` are not reliable enough for a deterministic grouping heuristic. The high-reasoning prompt requires explicit peer comparisons (for example 6 px vs 14 px), treats top-to-top only as a diagnostic, and bases corrections on the real bottom-edge gap. It returns `status` + Polish `summary` + optional `changes[]`, compiled to previewable `layout_groups`. Legacy `findings[].moves` still works. Deselect **Układ** to leave the mode. Chat `position_operation` resolvers remain for freeform edit commands. **Projekt** (`design_rating`) uses `summarize_geometry_issues` for geometry score caps.
 
 Layout calls use **`gpt-5.6-sol`** by default (`AI_LAYOUT_MODEL`); other assistant actions stay on **`gpt-5.4-mini`** (`AI_ASSISTANT_MODEL`). Costs come from `openai_pricing.py` (USD list prices → PLN via `USD_TO_PLN`, default 4.0). **1 AI credit = 5 groszy (0.05 PLN)**; each successful call charges `max(1, ceil(cost_pln / 0.05))` and returns `usage.credits_charged`.
 
@@ -355,7 +355,7 @@ Implementation:
 - `frontend/src/utils/elementBounds.js`, `measureElements` — `layout_bounds`, `content_height`, `clipped`, `bounds_estimated`
 - `backend/app/api/routes/ai_assistant.py`, `ai_assistant` (action `layout`), `TokenUsage`
 - `backend/app/services/ai_assistant_service.py`, `_layout_session`, `_model_for_action`, `_chat`, `_rate_design`
-- `backend/app/services/layout_gpt.py`, `LAYOUT_CORRECTOR_SYSTEM`, `build_layout_user_prompt`, `build_layout_snapshot`, `build_section_rhythm`, `compile_layout_gpt_response`
+- `backend/app/services/layout_gpt.py`, `LAYOUT_CORRECTOR_SYSTEM`, `build_layout_user_prompt`, `build_layout_snapshot`, `compile_layout_gpt_response`
 - `backend/app/services/layout_analysis.py`, `resolve_directed_operation`, `summarize_geometry_issues`
 - `backend/app/services/openai_pricing.py`, `usage_from_response`, `estimate_cost_usd`
 
@@ -922,7 +922,7 @@ Implementacja:
 
 Oceny, gramatyka, ATS, czat oraz karty pozycji z poleceń czatu.
 
-**Układ** to przełączany **korektor geometrii** GPT: gdy aktywny, każde pytanie dostaje **pełny JSON A4**. Prompt egzekwuje rytm odstępów, wyrównania nagłówków/dat/ikon, kolumny i kolizje — bez zmiany treści, fontów ani kolorów. Model zwraca `status` + `summary` + opcjonalne `changes[]` (grupy z `before`/`after` lub wspólnym `delta`) → karty `layout_groups`. Stary format `findings[].moves` nadal działa. Ponowne kliknięcie **Układ** wychodzi z trybu. Czatowe `position_operation` nadal działają. **Projekt** używa `summarize_geometry_issues` do limitu oceny przy kolizjach.
+**Układ** to przełączany **korektor geometrii** GPT: gdy aktywny, każde pytanie dostaje **pełny JSON A4**. `gpt-5.6-sol` sam grupuje surowe elementy; Python nie wylicza wcześniej odstępów sekcji, ponieważ wymiary freestyle, np. `width: 3`, są zbyt zawodne dla deterministycznej heurystyki. Prompt z wysokim reasoningiem wymaga jawnego porównania peerów (np. 6 px vs 14 px), traktuje top-to-top tylko diagnostycznie i opiera korektę na realnym odstępie między krawędziami. Model zwraca `status` + `summary` + opcjonalne `changes[]` → karty `layout_groups`. Stary format `findings[].moves` nadal działa. Ponowne kliknięcie **Układ** wychodzi z trybu. Czatowe `position_operation` nadal działają. **Projekt** używa `summarize_geometry_issues` do limitu oceny przy kolizjach.
 
 Układ domyślnie woła **`gpt-5.6-sol`** (`AI_LAYOUT_MODEL`); pozostałe akcje asystenta zostają na **`gpt-5.4-mini`** (`AI_ASSISTANT_MODEL`). Koszt liczy `openai_pricing.py` (cennik USD → PLN przez `USD_TO_PLN`, domyślnie 4.0). **1 kredyt AI = 5 groszy (0.05 PLN)**; udane wywołanie pobiera `max(1, ceil(cost_pln / 0.05))` i zwraca `usage.credits_charged`.
 
@@ -932,7 +932,7 @@ Implementacja:
 - `frontend/src/utils/elementBounds.js` — `measureElements`
 - `backend/app/api/routes/ai_assistant.py` — akcja `layout`, `TokenUsage`
 - `backend/app/services/ai_assistant_service.py` — `_layout_session`, `_model_for_action`
-- `backend/app/services/layout_gpt.py` — `LAYOUT_CORRECTOR_SYSTEM`, `build_layout_user_prompt`, `build_layout_snapshot`, `build_section_rhythm`, `compile_layout_gpt_response`
+- `backend/app/services/layout_gpt.py` — `LAYOUT_CORRECTOR_SYSTEM`, `build_layout_user_prompt`, `build_layout_snapshot`, `compile_layout_gpt_response`
 - `backend/app/services/layout_analysis.py` — `resolve_directed_operation`, `summarize_geometry_issues`
 - `backend/app/services/openai_pricing.py` — `usage_from_response`, `estimate_cost_usd`
 
