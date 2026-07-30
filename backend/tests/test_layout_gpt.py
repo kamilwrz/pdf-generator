@@ -32,8 +32,21 @@ def el(element_id, left, top, *, width=200, height=20, page=1, category="textare
 
 def inventory_for(elements, *, section="DOKUMENT"):
     """Complete one-block inventory for tests not concerned with semantics."""
+    ordered = sorted(
+        elements,
+        key=lambda element: (
+            element.get("page", 1),
+            element.get("top", 0),
+            element.get("left", 0),
+            element["element_id"],
+        ),
+    )
+    refs_by_id = {
+        element["element_id"]: f"e{index}"
+        for index, element in enumerate(ordered, start=1)
+    }
     members = [
-        {"element_id": element["element_id"], "role": "other"}
+        {"ref": refs_by_id[element["element_id"]], "role": "other"}
         for element in elements
         if element["category"] in {"text", "textarea"}
     ]
@@ -52,10 +65,15 @@ class LayoutGptTests(unittest.TestCase):
         ]
         snap = build_layout_snapshot(elements, PAGE)
         self.assertEqual(snap["page"]["page_count"], 2)
-        by_id = {item["element_id"]: item for item in snap["elements"]}
-        self.assertTrue(by_id["a"]["movable"])
-        self.assertFalse(by_id["bg"]["movable"])
-        self.assertIn("fontSize", by_id["a"])
+        by_content = {item["content"]: item for item in snap["elements"]}
+        self.assertTrue(by_content["PODSUMOWANIE"]["movable"])
+        self.assertFalse(by_content["[rectangle]"]["movable"])
+        self.assertIn("fontSize", by_content["PODSUMOWANIE"])
+        self.assertEqual(
+            [item["ref"] for item in snap["elements"]],
+            ["e1", "e2", "e3"],
+        )
+        self.assertTrue(all("element_id" not in item for item in snap["elements"]))
 
     def test_user_prompt_includes_corrector_contract(self):
         snap = build_layout_snapshot([el("a", 70, 100)], PAGE)
@@ -69,10 +87,12 @@ class LayoutGptTests(unittest.TestCase):
         self.assertIn("14 px", prompt)
         self.assertIn("width≈0–3", prompt)
         self.assertIn("section_inventory", prompt)
-        self.assertIn("text_element_ids", prompt)
+        self.assertIn("text_element_refs", prompt)
         self.assertIn("category=`textarea`", prompt)
         self.assertIn("move_scope", prompt)
         self.assertIn("affected_blocks", prompt)
+        self.assertIn("header.bottom", prompt)
+        self.assertIn("NIE licz ponownie", prompt)
         self.assertTrue(LAYOUT_CORRECTOR_SYSTEM.startswith("Jesteś korektorem"))
         self.assertIn("category=`textarea`", LAYOUT_CORRECTOR_SYSTEM)
         self.assertIn("rytm", DEFAULT_LAYOUT_QUESTION.lower())
@@ -86,8 +106,9 @@ class LayoutGptTests(unittest.TestCase):
             el("title", 50, 306, width=3, height=14, category="text", content="Senior AML Analyst with German"),
         ]
         snap = build_layout_snapshot(elements, PAGE)
-        by_id = {item["element_id"]: item for item in snap["elements"]}
-        self.assertEqual(by_id["title"]["width"], 3)
+        title = next(item for item in snap["elements"] if item["content"] == "Senior AML Analyst with German")
+        self.assertEqual(title["width"], 3)
+        self.assertEqual(title["bottom"], title["top"] + title["height"])
         self.assertNotIn("section_rhythm", snap)
 
     def test_snapshot_inventory_includes_experience_and_education_textareas(self):
@@ -104,13 +125,12 @@ class LayoutGptTests(unittest.TestCase):
         snap = build_layout_snapshot(elements, PAGE)
 
         self.assertEqual(snap["text_element_count"], len(elements))
-        self.assertEqual(set(snap["text_element_ids"]), {
-            "exp-heading", "exp-title", "exp-meta", "exp-body",
-            "edu-heading", "edu-title", "edu-body",
+        self.assertEqual(set(snap["text_element_refs"]), {
+            "e1", "e2", "e3", "e4", "e5", "e6", "e7",
         })
         self.assertEqual(
-            {item["element_id"] for item in snap["elements"]},
-            set(snap["text_element_ids"]),
+            {item["ref"] for item in snap["elements"]},
+            set(snap["text_element_refs"]),
         )
 
     def test_compile_findings_to_layout_groups(self):
@@ -151,12 +171,12 @@ class LayoutGptTests(unittest.TestCase):
                 "delta": {"top": 0, "left": -25},
                 "elements": [
                     {
-                        "element_id": "exp",
+                        "ref": "e2",
                         "before": {"top": 280, "left": 95},
                         "after": {"top": 280, "left": 70},
                     },
                     {
-                        "element_id": "exp-line",
+                        "ref": "e3",
                         "before": {"top": 295, "left": 70},
                         "after": {"top": 295, "left": 70},
                     },
@@ -187,9 +207,9 @@ class LayoutGptTests(unittest.TestCase):
                 "blocks": [{
                     "block_id": "experience-entry-1",
                     "members": [
-                        {"element_id": "title", "role": "entry_title"},
-                        {"element_id": "firm", "role": "entry_meta"},
-                        {"element_id": "desc", "role": "entry_body"},
+                        {"ref": "e1", "role": "entry_title"},
+                        {"ref": "e2", "role": "entry_meta"},
+                        {"ref": "e3", "role": "entry_body"},
                     ],
                 }],
             }],
@@ -203,9 +223,9 @@ class LayoutGptTests(unittest.TestCase):
                 }],
                 "delta": {"top": -5, "left": 0},
                 "elements": [
-                    {"element_id": "title"},
-                    {"element_id": "firm"},
-                    {"element_id": "desc"},
+                    {"ref": "e1"},
+                    {"ref": "e2"},
+                    {"ref": "e3"},
                 ],
             }],
         }
@@ -231,9 +251,9 @@ class LayoutGptTests(unittest.TestCase):
                 "blocks": [{
                     "block_id": "experience-entry-1",
                     "members": [
-                        {"element_id": "title", "role": "entry_title"},
-                        {"element_id": "firm", "role": "entry_meta"},
-                        {"element_id": "desc", "role": "entry_body"},
+                        {"ref": "e1", "role": "entry_title"},
+                        {"ref": "e2", "role": "entry_meta"},
+                        {"ref": "e3", "role": "entry_body"},
                     ],
                 }],
             }],
@@ -247,8 +267,8 @@ class LayoutGptTests(unittest.TestCase):
                 }],
                 "delta": {"top": -5, "left": 0},
                 "elements": [
-                    {"element_id": "title"},
-                    {"element_id": "firm"},
+                    {"ref": "e1"},
+                    {"ref": "e2"},
                 ],
             }],
         }
@@ -277,6 +297,28 @@ class LayoutGptTests(unittest.TestCase):
         self.assertEqual(groups, [])
         self.assertIn("pominięto 1", summary)
         self.assertTrue(any("kompletnego inwentarza" in issue["message"] for issue in issues))
+
+    def test_compile_rejects_unknown_compact_reference(self):
+        elements = [el("exp", 50, 260, content="Senior AML Analyst")]
+        gpt = {
+            "status": "no_changes",
+            "summary": "Układ jest spójny.",
+            "section_inventory": [{
+                "section": "DOŚWIADCZENIE",
+                "blocks": [{
+                    "block_id": "entry-1",
+                    "members": [{"ref": "e99", "role": "entry_title"}],
+                }],
+            }],
+            "changes": [],
+        }
+
+        groups, issues, summary, error = compile_layout_gpt_response(elements, gpt, PAGE)
+
+        self.assertEqual(error, "unknown_element_ref")
+        self.assertEqual(groups, [])
+        self.assertIn("nieznane referencje", summary)
+        self.assertTrue(any("nieznane referencje" in issue["message"] for issue in issues))
 
     def test_status_no_changes(self):
         elements = [el("a", 40, 200)]

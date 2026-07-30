@@ -7,6 +7,7 @@ and keeps patches on-page — it does not invent a second layout algorithm.
 """
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 import re
 from typing import Any
@@ -75,11 +76,11 @@ Zwracasz WYŁĄCZNIE prawidłowy JSON (bez tekstu przed/po).
 """
 
 
-def build_layout_snapshot(
+def _build_layout_snapshot_data(
     elements: list[dict[str, Any]],
     page_size: dict[str, Any] | None,
-) -> dict[str, Any]:
-    """Full multi-page canvas JSON for GPT layout analysis."""
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Build the model snapshot and its compact-ref to canvas-id mapping."""
     page_size = page_size or {}
     page_width = _number(page_size.get("width"), 595.0)
     page_height = _number(page_size.get("height"), float(A4_H))
@@ -103,14 +104,22 @@ def build_layout_snapshot(
             preview = content[:MAX_LAYOUT_CONTENT_CHARS]
 
         measured = element.get("layout_bounds") if isinstance(element.get("layout_bounds"), dict) else {}
+        left = round(_number(measured.get("left", element.get("left"))), 2)
+        top = round(_number(measured.get("top", element.get("top"))), 2)
+        width = round(_number(measured.get("width", element.get("width"))), 2)
+        height = round(_number(measured.get("height", element.get("height"))), 2)
         item: dict[str, Any] = {
             "element_id": element_id,
             "category": category,
             "page": int(_number(element.get("page"), 1)),
-            "left": round(_number(measured.get("left", element.get("left"))), 2),
-            "top": round(_number(measured.get("top", element.get("top"))), 2),
-            "width": round(_number(measured.get("width", element.get("width"))), 2),
-            "height": round(_number(measured.get("height", element.get("height"))), 2),
+            "left": left,
+            "top": top,
+            "width": width,
+            "height": height,
+            # Precomputed edges remove two arithmetic steps from each model
+            # comparison and keep gap calculations tied to measured bounds.
+            "right": round(left + width, 2),
+            "bottom": round(top + height, 2),
             "zIndex": int(_number(element.get("zIndex"), 1)),
             "movable": not locked,
             "locked": locked,
@@ -137,8 +146,14 @@ def build_layout_snapshot(
         items.append(item)
 
     items.sort(key=lambda row: (row["page"], row["top"], row["left"], row["element_id"]))
+    ref_to_element_id: dict[str, str] = {}
+    for index, item in enumerate(items, start=1):
+        ref = f"e{index}"
+        ref_to_element_id[ref] = str(item.pop("element_id"))
+        item["ref"] = ref
+
     pages = sorted({item["page"] for item in items}) or [1]
-    return {
+    snapshot = {
         "page": {
             "width": page_width,
             "height": page_height,
@@ -150,8 +165,8 @@ def build_layout_snapshot(
         "element_count": len(items),
         "movable_count": sum(1 for row in items if row["movable"]),
         "text_element_count": sum(1 for row in items if row["category"] in _TEXT_CATEGORIES),
-        "text_element_ids": [
-            row["element_id"] for row in items if row["category"] in _TEXT_CATEGORIES
+        "text_element_refs": [
+            row["ref"] for row in items if row["category"] in _TEXT_CATEGORIES
         ],
         "elements": items,
         "constraints": {
@@ -163,6 +178,16 @@ def build_layout_snapshot(
             "preserve_user_vision": True,
         },
     }
+    return snapshot, ref_to_element_id
+
+
+def build_layout_snapshot(
+    elements: list[dict[str, Any]],
+    page_size: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Return full multi-page canvas JSON with compact model-facing refs."""
+    snapshot, _ref_to_element_id = _build_layout_snapshot_data(elements, page_size)
+    return snapshot
 
 
 def build_layout_user_prompt(
@@ -186,21 +211,25 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
 
 ## Zasady analizy
 1. Traktuj KAŻDY element category=`text` lub category=`textarea` jako element
-   tekstowy. Najpierw rozlicz dokładnie `text_element_count` i wszystkie ID z
-   `text_element_ids`; żadnego ID nie wolno pominąć.
+   tekstowy. Najpierw rozlicz dokładnie `text_element_count` i wszystkie krótkie
+   referencje z `text_element_refs`; żadnej referencji nie wolno pominąć.
 2. Zanim zaproponujesz zmiany, zbuduj `section_inventory`. Każdy ID z
-   `text_element_ids` ma wystąpić DOKŁADNIE RAZ w `members` jednego logicznego
+   `text_element_refs` ma wystąpić DOKŁADNIE RAZ jako `ref` w `members` jednego logicznego
    bloku. Dotyczy to także kontaktu, nazw stanowisk, dat, firm, opisów, punktów,
    stopki i tekstów locked/fixedToPage. Element niepasujący do sekcji umieść w
    sekcji `INNE / NIEPRZYPISANE`; nadal nie wolno go pominąć.
+   W odpowiedzi używaj WYŁĄCZNIE `ref` (`e1`, `e2`, …). Nie twórz i nie zwracaj
+   własnych `element_id`; Python bezpiecznie zamieni krótkie referencje na ID płótna.
 3. Rozpoznaj wszystkie sekcje i ich peery bez dodatkowych metryk z Pythona.
    Dla każdej sekcji znajdź tekst nagłówka, ikonę, linię dekoracyjną i pierwszy
    element treści. Element z width≈0–3 może być prawidłowym tytułem — nie odrzucaj
    go tylko z powodu szerokości.
 4. Na pytanie o odstęp pod nagłówkiem policz DWA jawne wymiary:
    a) top-to-top = first_body.top − header.top (tylko diagnostycznie),
-   b) real_gap = first_body.top − max(header.top + header.height,
-      line.top + line.height), jeśli linia jest częścią tego samego nagłówka.
+   b) real_gap = first_body.top − max(header.bottom, line.bottom), jeśli linia
+      jest częścią tego samego nagłówka.
+   Pola `right` i `bottom` są już dokładnie wyliczone przez Python z mierzonej
+   geometrii. Używaj ich wprost; NIE licz ponownie left+width ani top+height.
    Odpowiedź i korektę opieraj na real_gap. Porównaj real_gap wszystkich sekcji,
    nie tylko pytanej. Przykład: DOŚWIADCZENIE 6 px i WYKSZTAŁCENIE 6 px vs
    PODSUMOWANIE 14 px i UMIEJĘTNOŚCI 14 px → wykryj dwa odstające nagłówki.
@@ -211,8 +240,8 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
    `block_id`, np. `experience-entry-1` albo `education-entry-2`.
 7. Porównuj peery: nagłówki, wpisy, daty, opisy, ikony/linie z nagłówkami.
 8. Gap pionowy między peerami:
-   gap = next.top − (prev.top + prev.height)
-   Dla całego wpisu bierz dolną krawędź bloku (max top+height elementów wpisu).
+   gap = next.top − prev.bottom
+   Dla całego wpisu bierz dolną krawędź bloku (max `bottom` elementów wpisu).
 9. Nie przesuwaj bez potrzeby. Preferuj najmniejszą zmianę.
 10. Relacje w bloku: jeśli zmiana przesuwa cały wpis/sekcję, ustaw
     `move_scope="blocks"`, wskaż jego `affected_blocks` i umieść w `elements`
@@ -222,7 +251,7 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
 11. Preferuj tylko top/left. width/height tylko gdy konieczne (clipped textarea).
 12. Nie dopuszczaj nachodzenia. Nie zmieniaj content, page, category, fontów, kolorów.
 13. Pomiń movable=false / locked / fixedToPage. Nie ruszaj imienia i roli pod zdjęciem
-    (keep_element_ids). Max ±{max_delta:g} px na element; max {max_moves} ruchów;
+    (`keep_element_refs`). Max ±{max_delta:g} px na element; max {max_moves} ruchów;
     max {max_findings} grup.
 14. Na czyste pytanie bez potrzeby patchy: status \"no_changes\", changes=[],
     pełny `section_inventory`, summary po polsku.
@@ -245,7 +274,7 @@ Python zbuduje karty Podgląd/Zastosuj z `changes`.
 {{
   "status": "corrected",
   "summary": "<odpowiedź po polsku: co znalazłeś / co proponujesz>",
-  "keep_element_ids": ["..."],
+  "keep_element_refs": ["e1"],
   "section_inventory": [
     {{
       "section": "DOŚWIADCZENIE ZAWODOWE",
@@ -253,10 +282,10 @@ Python zbuduje karty Podgląd/Zastosuj z `changes`.
         {{
           "block_id": "experience-entry-1",
           "members": [
-            {{"element_id": "...", "role": "entry_title"}},
-            {{"element_id": "...", "role": "entry_date"}},
-            {{"element_id": "...", "role": "entry_meta"}},
-            {{"element_id": "...", "role": "entry_body"}}
+            {{"ref": "e17", "role": "entry_title"}},
+            {{"ref": "e18", "role": "entry_date"}},
+            {{"ref": "e19", "role": "entry_meta"}},
+            {{"ref": "e20", "role": "entry_body"}}
           ]
         }}
       ]
@@ -265,7 +294,7 @@ Python zbuduje karty Podgląd/Zastosuj z `changes`.
   "changes": [
     {{
       "group": "DOŚWIADCZENIE — odstęp Citibank",
-      "reason": "Medtronic kończy się top+height≈443.7, Citibank top:462 → przerwa 18 px vs typowe 13 px.",
+      "reason": "Medtronic bottom:443.7, Citibank top:462 → przerwa 18.3 px vs typowe 13 px.",
       "severity": "high",
       "move_scope": "blocks",
       "affected_blocks": [
@@ -274,7 +303,7 @@ Python zbuduje karty Podgląd/Zastosuj z `changes`.
       "delta": {{"top": -5, "left": 0}},
       "elements": [
         {{
-          "element_id": "...",
+          "ref": "e24",
           "before": {{"top": 462, "left": 50}},
           "after": {{"top": 457, "left": 50}}
         }}
@@ -287,7 +316,7 @@ Gdy układ jest spójny lub pytanie nie wymaga ruchów:
 zwróć ten sam PEŁNY `section_inventory`, ale ustaw `status="no_changes"` i `changes=[]`.
 
 W `reason` cytuj konkretne left/top/gap jak w przykładach peerów.
-Liczby jako number, nie string. Zachowaj oryginalne element_id.
+Liczby jako number, nie string. Kopiuj `ref` dokładnie ze snapshotu.
 """
 
 
@@ -326,6 +355,75 @@ def _unwrap_payload(raw: dict[str, Any]) -> dict[str, Any]:
         ):
             return nested
     return raw
+
+
+def _resolve_model_references(
+    raw: dict[str, Any],
+    ref_to_element_id: dict[str, str],
+) -> tuple[dict[str, Any], set[str]]:
+    """Resolve compact model refs to private canvas ids without mutating input."""
+    normalized = deepcopy(raw)
+    payload = _unwrap_payload(normalized)
+    unknown_refs: set[str] = set()
+
+    def resolve_entry(entry: Any) -> None:
+        if not isinstance(entry, dict):
+            return
+        ref_value = entry.get("ref")
+        if ref_value is None:
+            candidate = str(entry.get("element_id") or "")
+            if candidate in ref_to_element_id:
+                ref_value = candidate
+        if ref_value is None:
+            return
+        ref = str(ref_value).strip()
+        element_id = ref_to_element_id.get(ref)
+        if element_id is None:
+            unknown_refs.add(ref or "<empty>")
+            entry["element_id"] = f"__unknown_ref__:{ref}"
+            return
+        entry["element_id"] = element_id
+
+    inventory = payload.get("section_inventory")
+    if isinstance(inventory, list):
+        for section_entry in inventory:
+            if not isinstance(section_entry, dict):
+                continue
+            for block_entry in section_entry.get("blocks") or []:
+                if not isinstance(block_entry, dict):
+                    continue
+                for member in block_entry.get("members") or []:
+                    resolve_entry(member)
+
+    keep_refs = payload.get("keep_element_refs")
+    if isinstance(keep_refs, list):
+        resolved_keep_ids: list[str] = []
+        for ref_value in keep_refs:
+            ref = str(ref_value).strip()
+            element_id = ref_to_element_id.get(ref)
+            if element_id is None:
+                unknown_refs.add(ref or "<empty>")
+                continue
+            resolved_keep_ids.append(element_id)
+        payload["keep_element_ids"] = resolved_keep_ids
+
+    for change in payload.get("changes") or []:
+        if not isinstance(change, dict):
+            continue
+        for entry in (change.get("elements") or change.get("moves") or []):
+            resolve_entry(entry)
+
+    # Legacy findings/moves can also use compact refs during a gradual rollout.
+    for finding in payload.get("findings") or []:
+        if not isinstance(finding, dict):
+            continue
+        for key in ("moves", "patches", "adjustments"):
+            for entry in finding.get(key) or []:
+                resolve_entry(entry)
+    for entry in payload.get("moves") or []:
+        resolve_entry(entry)
+
+    return normalized, unknown_refs
 
 
 def _normalize_summary(payload: dict[str, Any], raw: dict[str, Any]) -> str:
@@ -668,12 +766,27 @@ def compile_layout_gpt_response(
     if page_width <= 0 or page_height <= 0:
         return [], [], "", "invalid_page_size"
 
-    raw = gpt_raw if isinstance(gpt_raw, dict) else {}
+    source_raw = gpt_raw if isinstance(gpt_raw, dict) else {}
+    _snapshot, ref_to_element_id = _build_layout_snapshot_data(elements, page_size)
+    raw, unknown_refs = _resolve_model_references(source_raw, ref_to_element_id)
     payload = _unwrap_payload(raw)
     summary = _normalize_summary(payload, raw)
     status = str(payload.get("status") or raw.get("status") or "").strip().lower()
     findings = _extract_findings(raw)
     blocks_by_key: dict[tuple[str, str], set[str]] = {}
+
+    if unknown_refs:
+        message = (
+            "Model zwrócił nieznane referencje elementów "
+            f"({len(unknown_refs)}). Żadne przesunięcie nie zostało udostępnione."
+        )
+        reference_summary = f"{summary}\n\n{message}" if summary else message
+        return (
+            [],
+            [{"severity": "warning", "message": message}],
+            reference_summary,
+            "unknown_element_ref",
+        )
 
     # The modern changes contract must prove that the model accounted for every
     # text and textarea. Legacy findings/moves remain accepted for compatibility.

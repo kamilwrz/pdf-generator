@@ -1088,13 +1088,18 @@ def _layout_session(
             "usage": usage_payload,
         }
 
-    if error == "incomplete_text_inventory":
+    if error in {"incomplete_text_inventory", "unknown_element_ref"}:
+        retry_reason = (
+            "każdy element text i textarea"
+            if error == "incomplete_text_inventory"
+            else "wyłącznie referencje e1…eN przekazane w bieżącym snapshotcie"
+        )
         return {
             "message": summary,
             "rating": None,
             "tips": [
                 "Dla bezpieczeństwa odrzucono całą odpowiedź zamiast udostępniać częściowy ruch sekcji.",
-                "Uruchom Układ ponownie — model musi rozliczyć każdy element text i textarea.",
+                f"Uruchom Układ ponownie — model musi rozliczyć {retry_reason}.",
             ],
             "corrections": [],
             "layout_groups": [],
