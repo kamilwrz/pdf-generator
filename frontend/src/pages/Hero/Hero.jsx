@@ -134,6 +134,18 @@ const TESTIMONIALS = [
     { text: "„Zacząłem za darmo, bez karty. Cofnij, ponów i autozapis dały mi spokój — nic nie zniknęło w połowie edycji.”", name: "Dawid M.", role: "Specjalista obsługi klienta", color: "#6FBF8E", span: 3, featured: false },
 ];
 
+// "Dlaczego CV STUDIO" contrast rows: what the typical market approach gets
+// wrong (bad) vs. what CV STUDIO does instead (good). Colour drives the row
+// number, the checkmark icon, and nothing else — the "bad" icon stays neutral
+// on every row so the eye reads the good column as the throughline.
+const WHY_ROWS = [
+    { num: "01", color: "#7BA6EA", title: "Widzisz dokument, nie formularz", bad: "Wypełniasz pola i dopiero na końcu widzisz, czy „ładny PDF” się broni.", good: "Prawdziwe płótno A4 od pierwszego kliknięcia — projektujesz stronę, którą wyślesz." },
+    { num: "02", color: "#E5A65C", title: "AI do treści, silnik do geometrii", bad: "„AI ułoży całe CV” zwykle znaczy dobre zdania i krzywą siatkę.", good: "Deterministyczny silnik pilnuje układu — powtarzalny wynik przy każdych danych." },
+    { num: "03", color: "#E88A73", title: "Wolność tam, gdzie ma być wolność", bad: "Pełna swoboda graficzna kończy się przypadkiem zepsutym tłem albo słabym skanem ATS.", good: "Prowadnice co do piksela plus zablokowane dekoracje szablonu — nie zepsujesz designu przypadkiem." },
+    { num: "04", color: "#6FBF8E", title: "Eksport, któremu możesz zaufać", bad: "Podgląd i plik końcowy bywają dwoma światami — inne fonty, inne łamanie stron.", good: "PDF renderowany z tego samego modelu co płótno. Zero loterii przed deadline'em." },
+    { num: "05", color: "#9C8FD6", title: "Uczciwy start, nie pułapka na finiszu", bad: "„Darmowe CV” w wielu miejscach kończy się paywallem dokładnie przy przycisku Pobierz.", good: "Realny Free — edytor, szablony startowe, eksport w limicie. Płacisz, gdy naprawdę chcesz więcej." },
+];
+
 // Reveals its element once it crosses 15% into the viewport, then stops
 // observing — matches the one-shot IntersectionObserver reveal pattern.
 function useInView(threshold = 0.15) {
@@ -157,6 +169,32 @@ function useInView(threshold = 0.15) {
     }, [threshold]);
 
     return [ref, inView];
+}
+
+function WhyUsRow({ row, index }) {
+    const [ref, inView] = useInView();
+    return (
+        <div
+            ref={ref}
+            className={`${classes.whyUsRow} ${inView ? classes.whyUsRowVisible : ""}`}
+            style={{ transitionDelay: `${index * 70}ms` }}
+        >
+            <div>
+                <span className={classes.whyUsRowNum} style={{ color: row.color }}>{row.num}</span>
+                <h3 className={classes.whyUsRowTitle}>{row.title}</h3>
+            </div>
+            <div className={classes.whyUsCompare}>
+                <div className={classes.whyUsBad}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6E7887" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                    <p>{row.bad}</p>
+                </div>
+                <div className={classes.whyUsGood}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={row.color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
+                    <p>{row.good}</p>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 function TestimonialCard({ item, index }) {
@@ -780,6 +818,37 @@ export default function Hero() {
                             </div>
                         </div>
                     </section>
+                </div>
+            </div>
+
+            {/* ---- Dlaczego CV STUDIO: market-gap framing + bad/good contrast rows ---- */}
+            <div id="dlaczego-my" className={classes.whyUs}>
+                <div className={classes.sectionHead}>
+                    <span className={classes.eyebrow}>Dlaczego CV STUDIO</span>
+                    <h2 className={classes.sectionTitle}>Dobre CV to treść, układ i zaufanie do eksportu naraz</h2>
+                    <p className={classes.whyUsLead}>Nie sam formularz z ładną miniaturką. Na rynku zwykle dostajesz tylko jedno z trzech — u nas masz wszystko naraz.</p>
+                </div>
+
+                <div className={classes.whyUsGap}>
+                    <span className={classes.pill}>Formularze i szablony</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6E7887" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+                    <span className={classes.pill}>Narzędzia graficzne</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6E7887" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+                    <span className={classes.pill}>Skanery ATS</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7BA6EA" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: "0 4px" }} aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+                    <span className={classes.pillFinal}>Studio A4 + AI + eksport 1:1</span>
+                </div>
+
+                <div className={classes.whyUsRows}>
+                    {WHY_ROWS.map((row, i) => <WhyUsRow key={row.num} row={row} index={i} />)}
+                </div>
+
+                <div className={classes.canvasFooter} style={{ marginTop: "36px" }}>
+                    <p className={classes.canvasFooterText}>Od pustej strony do CV, które otwiera drzwi na rozmowę kwalifikacyjną — bez obawy, że przycisk Pobierz okaże się pułapką.</p>
+                    <Link to="/register" className={classes.canvasFooterCta}>
+                        Załóż konto za darmo
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F1216" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+                    </Link>
                 </div>
             </div>
 
