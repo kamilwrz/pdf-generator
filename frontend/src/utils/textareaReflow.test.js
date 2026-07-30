@@ -664,6 +664,47 @@ test("keeps Onyx section chrome top-to-top when an upstream textarea shrinks", (
   assert.equal(title.top - rule.top, 16);
 });
 
+test("does not stack a section heading under a grown textarea body", () => {
+  // Onyx builds job lines as category "text". If those (or following section
+  // labels) keep top-to-top rhythm after a bullet textarea grows, headings
+  // land inside the taller body — the page-2 overlap in CV Onyx.
+  const result = reflowTextareaHeight([
+    {
+      element_id: "bullets",
+      category: "textarea",
+      autoHeight: true,
+      left: 55,
+      top: 500,
+      width: 485,
+      height: 40,
+      fontSize: 10,
+      page: 1,
+    },
+    {
+      element_id: "edu-heading",
+      category: "text",
+      content: "WYKSZTAŁCENIE",
+      left: 72,
+      top: 558,
+      fontSize: 11.5,
+      page: 1,
+    },
+    {
+      element_id: "edu-rule",
+      category: "line",
+      left: 55,
+      top: 572,
+      width: 485,
+      height: 1,
+      page: 1,
+    },
+  ], "bullets", 100, 842, { pageTop: 66, bottomMargin: 96 });
+
+  const bullets = result.elements.find((element) => element.element_id === "bullets");
+  const heading = result.elements.find((element) => element.element_id === "edu-heading");
+  assert.ok(heading.top >= bullets.top + bullets.height + 4);
+});
+
 test("does not collapse SPACE_RECORD between consecutive bold titles", () => {
   // A previous bold&&same-size heuristic forced SPACE_STACK between every bold
   // textarea and the next line — that piled whole CV sections on top of each

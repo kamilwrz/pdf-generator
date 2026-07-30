@@ -62,7 +62,21 @@ function isTextAlignedImage(element) {
 }
 
 function isChromeLike(element) {
-  if (element.category === "text") return true;
+  if (isTextAlignedImage(element)) return true;
+  if (element.category === "text") {
+    // Section labels only — NOT long job titles / company lines from builders
+    // that also use category "text". Treating every text node as chrome forced
+    // top-to-top packing after textarea growth and stacked Onyx headings on
+    // top of their preceding body blocks.
+    const fontSize = number(element.fontSize, 12);
+    const content = String(element.content || "").trim();
+    return fontSize <= 12.5 && content.length <= 28;
+  }
+  if (!NEARBY_DECORATION_CATEGORIES.has(element.category)) return false;
+  return elementHeight(element) <= CHROME_MAX_HEIGHT;
+}
+
+function isSectionDecoration(element) {
   if (isTextAlignedImage(element)) return true;
   if (!NEARBY_DECORATION_CATEGORIES.has(element.category)) return false;
   return elementHeight(element) <= CHROME_MAX_HEIGHT;
@@ -425,20 +439,23 @@ export function reflowTextareaHeight(
     } else if (previousOriginal.element_id === elementId) {
       nextAbsolute = newTargetBottom + Math.max(0, currentOriginalTop - oldTargetBottom);
     } else {
-      // Prefer bottom + authored gap for nearby content textareas so a prior
-      // height settle cannot silently convert SPACE_STACK into SPACE_RECORD.
-      // Section chrome (heading / rule / marker) must keep top-to-top rhythm —
-      // bottom packing against estimated text line-boxes was crushing Onyx
-      // label→rule→body bands into uneven gaps after load reflow.
-      const preserveChromeRhythm = isChromeLike(previousOriginal) || isChromeLike(current);
-      if (
-        !preserveChromeRhythm
-        && (previousOriginal.category === "textarea" || previousOriginal.category === "text")
-        && (current.category === "textarea" || current.category === "text")
-        && authoredGap >= -0.5
-        && authoredGap <= DEFAULT_PACK_GAP
-      ) {
+      // Textareas can grow/shrink across independent settle passes. Always pack
+      // the next element from the previous placed BOTTOM + authored gap so a
+      // taller box cannot slide under a following heading (Onyx page-2 overlap).
+      // Pure chrome pairs and tall rails keep top-to-top rhythm (negative
+      // authored gaps are normal when a rail spans past a marker's top).
+      const chromePair = (
+        (isSectionDecoration(previousOriginal) || isChromeLike(previousOriginal))
+        && (isSectionDecoration(current) || isChromeLike(current))
+      );
+      if (previousOriginal.category === "textarea") {
         nextAbsolute = previousPlacedBottom + Math.max(0, authoredGap);
+      } else if (
+        !chromePair
+        && authoredGap >= -0.5
+        && authoredGap <= CHROME_CLUSTER_Y_SPAN
+      ) {
+        nextAbsolute = previousPlacedBottom + authoredGap;
       } else {
         nextAbsolute = previousPlacedTop + (currentOriginalTop - previousOriginalTop);
       }
