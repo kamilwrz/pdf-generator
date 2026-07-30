@@ -3,18 +3,20 @@ import {
   CANVAS_ENTER_FONT_WAIT_MS,
   CANVAS_ENTER_MS,
   clearEnteringIds,
+  endCanvasEnterReflowSuppress,
   takeEnteringIds,
 } from "../utils/canvasEnter";
 
 /**
  * Tracks canvas enter-fade state per element id.
  *
- * Returns `{ held, fading }`:
- * - `held` — opacity 0 while waiting for fonts (hides fallback→webfont swaps)
- * - `fading` — playing the opacity 0→1 animation
+ * Returns `{ heldIds, fadingIds }`:
+ * - `heldIds` — opacity 0 while waiting for fonts (hides fallback→webfont swaps)
+ * - `fadingIds` — playing the opacity 0→1 animation
  *
- * Ids are marked at creation / document-load time via `markElementsEnter` or
- * `markContentElementsEnter`.
+ * Reflow stays suppressed for the whole hold; it resumes when the fade starts
+ * so measurements use the real webfonts. Cleanup must not clear suppress
+ * (React Strict Mode remount would otherwise reopen reflow mid-hold).
  */
 export function useCanvasEnterIds(elements) {
   const idsKey = useMemo(
@@ -29,7 +31,6 @@ export function useCanvasEnterIds(elements) {
     const fresh = takeEnteringIds(ids);
     if (fresh.length === 0) return undefined;
 
-    // Hold at opacity 0 immediately so the first paint never flashes fallback fonts.
     setHeldIds((prev) => {
       const next = new Set(prev);
       for (const id of fresh) next.add(id);
@@ -38,9 +39,13 @@ export function useCanvasEnterIds(elements) {
 
     let cancelled = false;
     let fadeTimer = 0;
+    let fadeStarted = false;
 
     const startFade = () => {
-      if (cancelled) return;
+      if (cancelled || fadeStarted) return;
+      fadeStarted = true;
+      // Allow auto-height now that fonts should be ready, then fade in.
+      endCanvasEnterReflowSuppress();
       setFadingIds((prev) => {
         const next = new Set(prev);
         for (const id of fresh) next.add(id);

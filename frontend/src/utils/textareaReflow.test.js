@@ -600,6 +600,43 @@ test("keeps SPACE_RECORD between meta and the next record title", () => {
   assert.equal(nextDegree.top - (meta.top + meta.height), 14);
 });
 
+test("does not collapse SPACE_RECORD between consecutive bold titles", () => {
+  // A previous bold&&same-size heuristic forced SPACE_STACK between every bold
+  // textarea and the next line — that piled whole CV sections on top of each
+  // other during load reflow. Bold job titles separated by SPACE_RECORD must
+  // keep 14px.
+  const result = reflowTextareaHeight([
+    {
+      element_id: "title-a",
+      category: "textarea",
+      autoHeight: true,
+      left: 40,
+      top: 100,
+      width: 180,
+      height: 20,
+      fontSize: 11,
+      bold: true,
+      page: 1,
+    },
+    {
+      element_id: "title-b",
+      category: "textarea",
+      autoHeight: true,
+      left: 40,
+      top: 134, // 100 + 20 + 14
+      width: 180,
+      height: 20,
+      fontSize: 11,
+      bold: true,
+      page: 1,
+    },
+  ], "title-a", 24, 842);
+
+  const a = result.elements.find((element) => element.element_id === "title-a");
+  const b = result.elements.find((element) => element.element_id === "title-b");
+  assert.equal(b.top - (a.top + a.height), 14);
+});
+
 test("pulls a page-split meta back under its title with SPACE_STACK", () => {
   // Title stayed on page 1 while a prior pack parked meta at the next page
   // top. rawSamePageGap is negative there, so the old path used DEFAULT_PACK_GAP

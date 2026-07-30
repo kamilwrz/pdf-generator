@@ -15,6 +15,10 @@ import {
     endTextSpacingHold,
     startTextSpacingHold,
 } from "../../../utils/textSpacingHold";
+import {
+    isCanvasEnterReflowSuppressed,
+    onCanvasEnterReflowResume,
+} from "../../../utils/canvasEnter";
 
 // Normalize a bullet's whitespace and render the marker in a dedicated grid
 // column. The column's width is the actual rendered "• " width for the active
@@ -109,11 +113,14 @@ function Textarea({
     // scrollHeight is the browser's actual line layout for this exact font,
     // width, spacing, and bullet rendering. It is more accurate than the
     // authoring-time estimate carried by a template spec.
+    // While canvas enter holds content at opacity 0, reflow is suppressed —
+    // remasure as soon as that hold ends so webfont metrics drive packing.
     useLayoutEffect(() => {
         if (!autoHeight || isEditing) return undefined;
 
         let cancelled = false;
         const measure = () => {
+            if (cancelled || isCanvasEnterReflowSuppressed()) return;
             const measuredHeight = measureNaturalScrollHeight(blockRef.current);
             if (!cancelled && Number.isFinite(measuredHeight) && measuredHeight > 0) {
                 fitTextareaToContent(elementId, measuredHeight);
@@ -121,11 +128,13 @@ function Textarea({
         };
 
         measure();
+        const unsubscribeResume = onCanvasEnterReflowResume(measure);
         if (typeof document !== "undefined" && document.fonts?.ready) {
             document.fonts.ready.then(measure);
         }
         return () => {
             cancelled = true;
+            unsubscribeResume();
         };
     }, [
         autoHeight,

@@ -139,26 +139,34 @@ function rawSamePageGap(current, previousOriginal) {
 }
 
 /**
- * Intra-record stack gap (SPACE_STACK) for consecutive textareas that look like
- * title → meta/body: larger or bold line above a smaller line.
+ * Intra-record stack heal for title → meta/body textareas.
  *
- * Backend generators always author those pairs with SPACE_STACK (4). Independent
- * auto-height passes can inflate that to SPACE_RECORD (14) — either by treating
- * a stale page mismatch as a page-break seam, or by shrinking a title without
- * moving its meta and then preserving the inflated top-to-top distance. When
- * this helper returns a value, packing must use it from the previous placed
- * bottom and ignore the (possibly corrupted) authored gap.
- *
- * Meta → next title keeps SPACE_RECORD because the smaller line comes first.
+ * Backend authors those pairs with SPACE_STACK (4). Independent auto-height
+ * passes can inflate that to SPACE_RECORD (14). Only override when the pair
+ * clearly looks like title→meta (larger font above smaller) AND the gap has
+ * already been inflated — never force 4px onto healthy SPACE_RECORD seams
+ * (e.g. bold title → next bold title) or unrelated bold→body pairs.
  */
-function recordStackGap(previous, current) {
+function isTitleMetaPair(previous, current) {
   if (previous?.category !== "textarea" || current?.category !== "textarea") {
-    return null;
+    return false;
   }
   const prevFs = number(previous.fontSize);
   const currFs = number(current.fontSize);
-  if (prevFs > currFs + 0.5) return SPACE_STACK;
-  if (previous.bold && prevFs >= currFs - 0.01) return SPACE_STACK;
+  return prevFs > currFs + 0.5;
+}
+
+function inflatedStackGap(actualGap) {
+  return actualGap > SPACE_STACK + 0.5 && actualGap <= DEFAULT_PACK_GAP + 0.5;
+}
+
+/**
+ * Returns SPACE_STACK when this pair should be healed, otherwise null.
+ * `actualGap` is the current box gap (may use raw tops for stale-page pairs).
+ */
+function recordStackGap(previous, current, actualGap) {
+  if (!isTitleMetaPair(previous, current)) return null;
+  if (inflatedStackGap(actualGap)) return SPACE_STACK;
   return null;
 }
 
@@ -278,12 +286,11 @@ export function reflowTextareaHeight(
         absoluteTop(left, safePageHeight) - absoluteTop(right, safePageHeight)
       ));
     const nextInLane = following[0];
-    const stackGap = nextInLane ? recordStackGap(target, nextInLane) : null;
+    const actualGap = nextInLane
+      ? absoluteTop(nextInLane, safePageHeight) - oldTargetBottom
+      : -1;
+    const stackGap = nextInLane ? recordStackGap(target, nextInLane, actualGap) : null;
     if (stackGap == null) {
-      return { elements, pageCount: Math.max(1, ...elements.map(pageOf)), changed: false };
-    }
-    const actualGap = absoluteTop(nextInLane, safePageHeight) - oldTargetBottom;
-    if (Math.abs(actualGap - stackGap) < 0.5) {
       return { elements, pageCount: Math.max(1, ...elements.map(pageOf)), changed: false };
     }
     // Fall through and re-pack with an unchanged height to restore SPACE_STACK.
@@ -376,14 +383,32 @@ export function reflowTextareaHeight(
     const current = lane[index];
     const height = elementHeight(current);
     const currentOriginalTop = absoluteTop(current, safePageHeight);
+    const previousOriginalTop = absoluteTop(previousOriginal, safePageHeight);
     const crossedPage = pageOf(current) > pageOf(previousOriginal);
-    const stackGap = recordStackGap(previousOriginal, current);
+    const authoredGap = currentOriginalTop - (
+      previousOriginalTop + elementHeight(previousOriginal)
+    );
+    const rawGap = rawSamePageGap(current, previousOriginal);
+    // Prefer raw tops when page fields look stale but the pair was authored
+    // as a tight stack; otherwise use absolute gap for heal detection.
+    const healGapProbe = (
+      rawGap >= 0 && rawGap <= CHROME_CLUSTER_Y_SPAN
+        ? rawGap
+        : authoredGap
+    );
+    const stackGap = recordStackGap(previousOriginal, current, healGapProbe);
+    // Title→meta parked across a false page split (raw gap negative / huge):
+    // still snap back under the title instead of applying SPACE_RECORD.
+    const crossPageStackHeal = (
+      stackGap == null
+      && crossedPage
+      && isTitleMetaPair(previousOriginal, current)
+      && !(rawGap >= 0 && rawGap <= CHROME_CLUSTER_Y_SPAN)
+    );
 
     let nextAbsolute;
-    if (stackGap != null) {
-      // Title → meta/body inside one record: always SPACE_STACK from the
-      // previous placed bottom. Heals gaps already inflated to SPACE_RECORD.
-      nextAbsolute = previousPlacedBottom + stackGap;
+    if (stackGap != null || crossPageStackHeal) {
+      nextAbsolute = previousPlacedBottom + SPACE_STACK;
     } else if (crossedPage) {
       // `page` fields can go briefly out of sync across independent reflow
       // passes (each auto-height textarea measures and settles on its own).
@@ -392,10 +417,9 @@ export function reflowTextareaHeight(
       // that real gap instead of the generic page-break pack gap so a tightly
       // coupled record (e.g. a title and its meta line) never gets pried
       // apart by SPACE_RECORD-sized whitespace it never had.
-      const samePageGap = rawSamePageGap(current, previousOriginal);
       nextAbsolute = previousPlacedBottom + (
-        samePageGap >= 0 && samePageGap <= CHROME_CLUSTER_Y_SPAN
-          ? samePageGap
+        rawGap >= 0 && rawGap <= CHROME_CLUSTER_Y_SPAN
+          ? rawGap
           : packGapAfterPageBreak(current, pageTop)
       );
     } else if (previousOriginal.element_id === elementId) {
@@ -404,10 +428,6 @@ export function reflowTextareaHeight(
       // Prefer bottom + authored gap for nearby textareas so a prior height
       // settle cannot silently convert SPACE_STACK into SPACE_RECORD via
       // top-to-top packing. Keep top-to-top for larger spans / chrome rhythm.
-      const previousOriginalTop = absoluteTop(previousOriginal, safePageHeight);
-      const authoredGap = currentOriginalTop - (
-        previousOriginalTop + elementHeight(previousOriginal)
-      );
       if (
         (previousOriginal.category === "textarea" || previousOriginal.category === "text")
         && (current.category === "textarea" || current.category === "text")

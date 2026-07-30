@@ -7,7 +7,7 @@ import { cloneFixedPageDecorations } from '../utils/structureOperation';
 import { findPageCanvasAtPoint } from '../utils/pageSpread';
 import { moveElementsByDelta, moveElementsToPage } from '../utils/pageDrag';
 import { sanitizeTextContent } from '../utils/sanitizeTextContent';
-import { markContentElementsEnter, markElementsEnter } from '../utils/canvasEnter';
+import { markContentElementsEnter, markElementsEnter, isCanvasEnterReflowSuppressed, endCanvasEnterReflowSuppress } from '../utils/canvasEnter';
 import { isDecorativeChrome } from '../utils/elementInteraction';
 
 /**
@@ -1141,7 +1141,10 @@ export function useA4Elements(titleRef) {
   // rendered, its measured content height replaces the authored placeholder
   // height and every later element in the same visual lane keeps its gap.
   // Quiet history so this settle never becomes an Undo step of its own.
+  // Skip while canvas enter is holding opacity at 0 — fallback-font measures
+  // during that window were collapsing whole CV layouts on load.
   const handleFitTextareaToContent = useCallback((elementId, measuredHeight) => {
+    if (isCanvasEnterReflowSuppressed()) return;
     markHistoryQuiet();
     setA4_Elements((prevState) => {
       const result = reflowTextareaHeight(
@@ -1769,6 +1772,7 @@ export function useA4Elements(titleRef) {
   }, [canvasForPage])
 
   const handleClearA4 = useCallback(() => {
+      endCanvasEnterReflowSuppress();
       resetHistory();
       setA4_Elements([]);
       setA4_Elements_deleted([]);
