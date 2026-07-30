@@ -600,6 +600,70 @@ test("keeps SPACE_RECORD between meta and the next record title", () => {
   assert.equal(nextDegree.top - (meta.top + meta.height), 14);
 });
 
+test("keeps Onyx section chrome top-to-top when an upstream textarea shrinks", () => {
+  // Bottom-gap packing against estimated text line-boxes used to crush the
+  // label→rule→body band after load reflow. Chrome pairs must keep authored
+  // top deltas.
+  const result = reflowTextareaHeight([
+    {
+      element_id: "summary",
+      category: "textarea",
+      autoHeight: true,
+      left: 55,
+      top: 200,
+      width: 485,
+      height: 60,
+      fontSize: 10.5,
+      page: 1,
+    },
+    {
+      element_id: "exp-icon",
+      category: "rectangle",
+      left: 55,
+      top: 278,
+      width: 9,
+      height: 9,
+      page: 1,
+    },
+    {
+      element_id: "exp-heading",
+      category: "text",
+      content: "DOŚWIADCZENIE",
+      left: 72,
+      top: 276,
+      fontSize: 11.5,
+      page: 1,
+    },
+    {
+      element_id: "exp-rule",
+      category: "line",
+      left: 55,
+      top: 290,
+      width: 485,
+      height: 1,
+      page: 1,
+    },
+    {
+      element_id: "exp-title",
+      category: "textarea",
+      autoHeight: true,
+      left: 55,
+      top: 306,
+      width: 485,
+      height: 16,
+      fontSize: 11,
+      bold: true,
+      page: 1,
+    },
+  ], "summary", 40, 842, { pageTop: 66, bottomMargin: 96 });
+
+  const heading = result.elements.find((element) => element.element_id === "exp-heading");
+  const rule = result.elements.find((element) => element.element_id === "exp-rule");
+  const title = result.elements.find((element) => element.element_id === "exp-title");
+  assert.equal(rule.top - heading.top, 14);
+  assert.equal(title.top - rule.top, 16);
+});
+
 test("does not collapse SPACE_RECORD between consecutive bold titles", () => {
   // A previous bold&&same-size heuristic forced SPACE_STACK between every bold
   // textarea and the next line — that piled whole CV sections on top of each

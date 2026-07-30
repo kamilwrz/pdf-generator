@@ -974,6 +974,48 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 for element in elements
             ))
 
+    def test_onyx_section_chrome_matches_static_template_rhythm(self):
+        """Label → rule (+14) → body (+16) must match frontend/templates/onyx.js."""
+        elements = generate_resume("onyx", LONG_CV)
+        headings = [
+            element
+            for element in elements
+            if element["category"] == "text"
+            and element.get("bold")
+            and element.get("fontSize") == 11.5
+            and not element.get("fixedToPage")
+        ]
+        self.assertGreaterEqual(len(headings), 2)
+        for heading in headings:
+            page = heading.get("page", 1)
+            rules = [
+                element
+                for element in elements
+                if element["category"] == "line"
+                and element.get("page", 1) == page
+                and not element.get("fixedToPage")
+                and element.get("width", 0) >= 400
+                and abs(element["top"] - (heading["top"] + 14)) < 0.5
+            ]
+            self.assertEqual(
+                len(rules),
+                1,
+                f"onyx heading {heading.get('content')!r} needs a rule 14px below",
+            )
+            rule = rules[0]
+            bodies = [
+                element
+                for element in elements
+                if element["category"] in {"text", "textarea"}
+                and element.get("page", 1) == page
+                and not element.get("fixedToPage")
+                and element["top"] > rule["top"]
+                and abs(element.get("left", 0) - 55) < 1
+            ]
+            bodies.sort(key=lambda element: element["top"])
+            self.assertTrue(bodies, f"no body under {heading.get('content')!r}")
+            self.assertAlmostEqual(bodies[0]["top"] - rule["top"], 16, delta=0.5)
+
     def test_active_templates_keep_textareas_inside_page_bounds(self):
         for template_id in ("ledger", "vector", "scribe", "quarry", "obsidian", "onyx"):
             with self.subTest(template_id=template_id):

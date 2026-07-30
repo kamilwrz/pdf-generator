@@ -2791,11 +2791,20 @@ def _gen_onyx(cv: dict) -> list[dict]:
         return height
 
     def section(label: str) -> None:
-        b.need(34)
-        b.els.append(_rect(L, b.y + 2, 9, 9, FRAME, 1.5, zIndex=2, page=b.pg))
-        b.text(label, 11.5, S, IVORY, 72, bold=True)
-        b.els.append(_line(L, b.y - 2, W, 1, RULE, page=b.pg))
-        b.gap(8)
+        # Match frontend/src/templates/onyx.js chrome rhythm:
+        #   marker + label on one band, rule 14px below label top, then 16px to body.
+        # Using Builder.text() then line at y-2 put the rule inside the label's
+        # line-box leading (~2px under the glyphs) and only 8px before content —
+        # which made every AI-filled Onyx section look top-crushed.
+        b.need(40)
+        y0 = b.y
+        b.els.append(_rect(L, y0 + 2, 9, 9, FRAME, 1.5, zIndex=2, page=b.pg))
+        heading = _text(label, 11.5, S, IVORY, 72, y0, zIndex=2, page=b.pg, bold=True)
+        heading["letterSpacing"] = 1.4
+        b.els.append(heading)
+        b.y = y0 + 14
+        b.line(L, W, 1, RULE)
+        b.gap(16)
 
     if cv.get("summary"):
         section(lbl["summary"])

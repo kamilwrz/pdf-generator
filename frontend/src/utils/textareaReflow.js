@@ -425,11 +425,15 @@ export function reflowTextareaHeight(
     } else if (previousOriginal.element_id === elementId) {
       nextAbsolute = newTargetBottom + Math.max(0, currentOriginalTop - oldTargetBottom);
     } else {
-      // Prefer bottom + authored gap for nearby textareas so a prior height
-      // settle cannot silently convert SPACE_STACK into SPACE_RECORD via
-      // top-to-top packing. Keep top-to-top for larger spans / chrome rhythm.
+      // Prefer bottom + authored gap for nearby content textareas so a prior
+      // height settle cannot silently convert SPACE_STACK into SPACE_RECORD.
+      // Section chrome (heading / rule / marker) must keep top-to-top rhythm —
+      // bottom packing against estimated text line-boxes was crushing Onyx
+      // label→rule→body bands into uneven gaps after load reflow.
+      const preserveChromeRhythm = isChromeLike(previousOriginal) || isChromeLike(current);
       if (
-        (previousOriginal.category === "textarea" || previousOriginal.category === "text")
+        !preserveChromeRhythm
+        && (previousOriginal.category === "textarea" || previousOriginal.category === "text")
         && (current.category === "textarea" || current.category === "text")
         && authoredGap >= -0.5
         && authoredGap <= DEFAULT_PACK_GAP
