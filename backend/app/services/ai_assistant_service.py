@@ -1112,13 +1112,15 @@ ELEMENTY (kolejność od góry):
 Zasady:
 - Sekcje typowe: header, summary, experience, education, skills, languages, other.
 - Blok = jeden wpis (np. jedno stanowisko albo jedna szkoła).
-- Role elementów: heading, entry_title, entry_meta, body, list, contact, rule, other.
+- Role elementów: name, job_label, heading, entry_title, entry_meta, body, list, contact, rule, other.
+- Imię i nazwisko = role name. Stanowisko pod imieniem (np. „AML ANALYST”) = role job_label.
+- name i job_label OBOWIĄZKOWO dodaj też do ignored_element_ids (nie wolno ich przesuwać).
 - Nagłówek sekcji (np. „DOŚWIADCZENIE ZAWODOWE”) ma role=heading.
-- Stanowisko/tytuł wpisu = entry_title; firma/daty = entry_meta; opis = body lub list.
+- Stanowisko/tytuł wpisu doświadczenia = entry_title; firma/daty = entry_meta; opis = body lub list.
 - Linie-oddzielacze sekcji = rule (category line) w bloku z headingiem albo osobnym bloku.
 - Obrazy i elementy niepasujące do przepływu treści umieść w ignored_element_ids.
 - Nie wymyślaj element_id — używaj wyłącznie id z listy.
-- profile.content_left / content_width: opcjonalne (packer i tak zachowa left użytkownika).
+- Python i tak ogranicza każde przesunięcie do ±15 px i nie rusza name/job_label.
 - order: rosnąco od góry dokumentu.
 
 Zwróć JSON:
@@ -1181,14 +1183,14 @@ Zwróć JSON:
 
     return {
         "message": (
-            "Przygotowałem ujednolicenie odstępów na podstawie klasyfikacji sekcji i bloków. "
-            "Twój freestyle layout (left, szerokości) zostaje — ruszamy tylko top tam, gdzie trzeba."
+            "Przygotowałem delikatne ujednolicenie odstępów (±15 px). "
+            "Imię i rola zawodowa zostają w miejscu — nie przebudowuję Twojego layoutu."
         ),
         "rating": None,
         "tips": [
-            "GPT określił kategorie; Python tylko ustawił STACK/RECORD/SECTION między sąsiadami.",
-            "Zdjęcia, ikony i elementy spoza klasyfikacji nie są przesuwane w poziomie.",
-            "Po zastosowaniu możesz doprecyzować ręcznie lub uruchomić Układ dla drobnych wyrównań.",
+            "Każde przesunięcie jest ograniczone do max ±15 px względem Twojej pozycji.",
+            "Imię / stanowisko (np. AML ANALYST) są zamrożone i nie trafiają do patchy.",
+            "Left, szerokość i numer strony nie są zmieniane.",
         ],
         "corrections": [],
         "layout_groups": [group],

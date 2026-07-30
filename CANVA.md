@@ -811,9 +811,12 @@ Akcja `layout_rhythm` jest przeznaczona do freestyle CV (własny układ użytkow
 1. GPT otrzymuje listę elementów i zwraca wyłącznie semantykę:
    sekcje → bloki → role (`heading`, `entry_title`, `entry_meta`, `body`, …).
 2. Python (`layout_rhythm.pack_rhythm_classification`) **nie buduje nowego szablonu**.
-   Rusza tylko `top`/`page`, żeby odstępy między sąsiadami wynosiły:
-   `SPACE_STACK`, `SPACE_RECORD`, `SPACE_SECTION`, `SPACE_AFTER_RULE`.
-3. `left`, szerokość, wysokość oraz pozycja pierwszego elementu w łańcuchu zostają.
+   Rusza tylko `top` (ta sama strona), żeby zbliżyć odstępy do
+   `SPACE_STACK` / `SPACE_RECORD` / `SPACE_SECTION` / `SPACE_AFTER_RULE`.
+3. Twarde limity freestyle:
+   - każde przesunięcie max **±15 px**;
+   - **imię** i **rola zawodowa** (np. AML ANALYST) nigdy nie są ruszane;
+   - brak zmiany `left`, szerokości ani numeru strony.
 4. Wynik to karta podglądu `rhythm-reflow` — bez bezpośrednich współrzędnych z modelu.
 
 Stałe tła (`fixedToPage`), elementy zablokowane oraz pozycje spoza klasyfikacji pozostają nietknięte.

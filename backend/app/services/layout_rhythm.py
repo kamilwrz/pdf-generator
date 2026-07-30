@@ -37,6 +37,8 @@ VALID_ROLES = {
     "contact",
     "rule",
     "other",
+    "name",
+    "job_label",
 }
 _ROLE_ALIASES = {
     "title": "entry_title",
@@ -54,9 +56,17 @@ _ROLE_ALIASES = {
     "section_title": "heading",
     "header": "heading",
     "line": "rule",
+    "full_name": "name",
+    "candidate_name": "name",
+    "person_name": "name",
+    "headline": "job_label",
+    "professional_title": "job_label",
+    "job_headline": "job_label",
 }
 # Placement order inside one block: heading + rule, then title → meta → body.
 _ROLE_RANK = {
+    "name": -2,
+    "job_label": -1,
     "heading": 0,
     "rule": 1,
     "entry_title": 2,
@@ -67,6 +77,16 @@ _ROLE_RANK = {
     "other": 7,
 }
 _FLOW_CATEGORIES = {"text", "textarea", "line"}
+# Soft freestyle nudge: larger moves destroy the author's composition.
+MAX_RHYTHM_NUDGE_PX = 15.0
+_SECTION_HEADING_HINTS = (
+    "PODSUMOWANIE", "DOŚWIADCZENIE", "WYKSZTAŁCENIE", "UMIEJĘTNOŚCI", "JĘZYKI",
+    "SUMMARY", "EXPERIENCE", "EDUCATION", "SKILLS", "LANGUAGES", "PROJEKTY",
+    "PROJECTS", "KONTAKT", "CONTACT", "CERTYFIKAT", "CERTIFICATIONS", "HOBBY",
+)
+_FROZEN_IDENTITY_ROLES = {
+    "name", "identity", "job_label", "headline_role", "role_title", "full_name",
+}
 
 
 def _page_margins(page_height: float) -> tuple[float, float]:
@@ -277,26 +297,53 @@ def _document_top(item: dict[str, Any], page_height: float) -> float:
     return (item["page"] - 1) * page_height + item["top"]
 
 
-def _set_document_top(
+def _is_frozen_identity(
+    raw: dict[str, Any],
     item: dict[str, Any],
-    absolute_top: float,
-    height: float,
+    *,
+    role: str = "",
+) -> bool:
+    """Freeze the candidate name and professional role line — never nudge them."""
+    if role in _FROZEN_IDENTITY_ROLES:
+        return True
+    if item.get("category") not in {"text", "textarea"}:
+        return False
+    if int(item.get("page") or 1) != 1 or _number(item.get("top"), 999) > 240:
+        return False
+
+    font_size = _number(raw.get("fontSize"), item.get("fontSize", 12.0))
+    content = str(raw.get("content") or "").strip()
+    # Display name (large type near the top of page 1).
+    if font_size >= 18:
+        return True
+    # Role under the name: short uppercase label that is not a section heading.
+    if content and 10 <= font_size <= 16 and "\n" not in content and 3 <= len(content) <= 48:
+        upper = content.upper()
+        if content == upper and not any(hint in upper for hint in _SECTION_HEADING_HINTS):
+            return True
+    return False
+
+
+def _apply_clamped_nudge(
+    original: dict[str, Any],
+    current: dict[str, Any],
+    desired_abs: float,
     page_height: float,
-    page_top: float,
-    content_bottom: float,
+    max_nudge: float = MAX_RHYTHM_NUDGE_PX,
 ) -> None:
-    """Write page/top for an absolute Y, wrapping to the next page if needed."""
-    absolute_top = max(0.0, absolute_top)
-    page = int(absolute_top // page_height) + 1
-    top = absolute_top - (page - 1) * page_height
-    if height <= content_bottom - page_top and top + height > content_bottom + EPSILON:
-        page += 1
-        top = page_top
-    if top < page_top and page > 1:
-        # Keep continuations inside the content band.
-        top = page_top
-    item["page"] = page
-    item["top"] = round(top, 2)
+    """Move ``current`` toward ``desired_abs`` by at most ``max_nudge`` px, same page."""
+    orig_abs = _document_top(original, page_height)
+    delta = desired_abs - orig_abs
+    if abs(delta) <= EPSILON:
+        current["top"] = original["top"]
+        current["page"] = original["page"]
+        return
+    delta = max(-max_nudge, min(max_nudge, delta))
+    page = int(original["page"])
+    top = (orig_abs + delta) - (page - 1) * page_height
+    top = max(0.0, min(top, page_height - max(current["height"], 1.0)))
+    current["page"] = page
+    current["top"] = round(top, 2)
 
 
 def pack_rhythm_classification(
@@ -304,14 +351,11 @@ def pack_rhythm_classification(
     classification: dict[str, Any],
     page_size: dict[str, Any] | None,
 ) -> tuple[dict[str, Any] | None, str]:
-    """Unify vertical gaps only — preserve freestyle left/width/anchor.
+    """Unify vertical gaps softly — preserve freestyle composition.
 
-    GPT (or the heuristic fallback) supplies section/block/role membership.
-    Python nudges ``top``/``page`` just enough so consecutive pairs use
-    SPACE_STACK / SPACE_RECORD / SPACE_SECTION / SPACE_AFTER_RULE. ``left``,
-    ``width`` and ``height`` stay as the user authored them.
-
-    Returns ``(group, error_code)``. ``error_code`` is empty on success.
+    - Never moves candidate name / professional role (identity freeze).
+    - Each moved element may shift by at most ``MAX_RHYTHM_NUDGE_PX`` (±15).
+    - Never changes page, left, width, or height.
     """
     page_size = page_size or {}
     page_width = _number(page_size.get("width"), 595.0)
@@ -328,11 +372,12 @@ def pack_rhythm_classification(
         AUTO_LAYOUT_CATEGORIES | {"line", "rectangle", "circle", "ellipse"},
     )
     bounds_by_id = {item["element_id"]: item for item in all_bounds}
-    known_ids = {
-        str(element.get("element_id"))
+    raw_by_id = {
+        str(element.get("element_id")): element
         for element in elements
         if element.get("element_id")
     }
+    known_ids = set(raw_by_id)
     normalized = _normalize_classification(classification, known_ids)
     used_fallback = False
     if normalized is None:
@@ -341,52 +386,72 @@ def pack_rhythm_classification(
         if not normalized["sections"]:
             return None, "classification_empty"
 
+    # Role lookup for freeze decisions.
+    role_by_id: dict[str, str] = {}
+    for section in normalized["sections"]:
+        for block in section["blocks"]:
+            for member in block["elements"]:
+                role_by_id[member["element_id"]] = member["role"]
+
+    ignored = set(normalized.get("ignored_element_ids") or set())
     classified_ids: set[str] = set(normalized["classified_ids"])
+    frozen_ids: set[str] = set()
+    chain_ids: set[str] = set()
     movable_ids: set[str] = set()
-    for element_id in classified_ids:
+
+    for element_id in classified_ids | ignored:
         item = bounds_by_id.get(element_id)
-        raw = next((el for el in elements if str(el.get("element_id")) == element_id), None)
+        raw = raw_by_id.get(element_id)
         if item is None or raw is None:
-            continue
-        if raw.get("locked") or raw.get("fixedToPage"):
             continue
         if item.get("category") not in _FLOW_CATEGORIES:
             continue
-        movable_ids.add(element_id)
-    if len(movable_ids) < 2:
+        role = role_by_id.get(element_id, "")
+        if (
+            raw.get("locked")
+            or raw.get("fixedToPage")
+            or element_id in ignored
+            or _is_frozen_identity(raw, item, role=role)
+        ):
+            frozen_ids.add(element_id)
+            if element_id in classified_ids:
+                chain_ids.add(element_id)
+            continue
+        if element_id in classified_ids:
+            chain_ids.add(element_id)
+            movable_ids.add(element_id)
+
+    if len(movable_ids) < 1 or len(chain_ids) < 2:
         return None, "too_few_movable"
 
-    flow = _flatten_flow(normalized, movable_ids, bounds_by_id)
+    flow = _flatten_flow(normalized, chain_ids, bounds_by_id)
     if len(flow) < 2:
         return None, "too_few_movable"
 
-    # Working copy for every content/line id we may patch or validate against.
     working_by_id = {
         item["element_id"]: dict(item)
         for item in all_bounds
-        if item["category"] in AUTO_LAYOUT_CATEGORIES or item["element_id"] in movable_ids
+        if item["category"] in AUTO_LAYOUT_CATEGORIES or item["element_id"] in chain_ids
     }
 
-    # Anchor: keep the first flow item exactly where the user put it.
-    first_id = flow[0]["element_id"]
-    previous_item = working_by_id[first_id]
+    previous_item = working_by_id[flow[0]["element_id"]]
     previous_meta = flow[0]
 
     for current_meta in flow[1:]:
         element_id = current_meta["element_id"]
         current = working_by_id[element_id]
+        original = bounds_by_id[element_id]
         gap = _expected_gap(previous_meta, current_meta)
         prev_bottom = _document_top(previous_item, page_height) + previous_item["height"]
         desired_abs = prev_bottom + gap
-        _set_document_top(
-            current,
-            desired_abs,
-            current["height"],
-            page_height,
-            page_top,
-            content_bottom,
-        )
-        # left/width/height intentionally unchanged — only vertical rhythm.
+
+        if element_id in frozen_ids or element_id not in movable_ids:
+            # Identity / ignored: stay put; still act as the next gap anchor.
+            current["top"] = original["top"]
+            current["page"] = original["page"]
+        else:
+            _apply_clamped_nudge(original, current, desired_abs, page_height)
+
         previous_item = current
         previous_meta = current_meta
 
@@ -394,32 +459,57 @@ def pack_rhythm_classification(
     for element_id in movable_ids:
         original = bounds_by_id[element_id]
         proposed = working_by_id[element_id]
-        if (
-            abs(proposed["top"] - original["top"]) > EPSILON
-            or proposed["page"] != original["page"]
-        ):
-            patches.append({
-                "element_id": element_id,
-                "left": round(original["left"], 2),
-                "top": round(proposed["top"], 2),
-                "page": proposed["page"],
-            })
+        delta = abs(proposed["top"] - original["top"])
+        if delta <= EPSILON or proposed["page"] != original["page"]:
+            if proposed["page"] != original["page"]:
+                # Soft mode forbids page changes — discard.
+                proposed["page"] = original["page"]
+                proposed["top"] = original["top"]
+            if abs(proposed["top"] - original["top"]) <= EPSILON:
+                continue
+        # Enforce the hard cap again on the emitted patch.
+        delta = proposed["top"] - original["top"]
+        delta = max(-MAX_RHYTHM_NUDGE_PX, min(MAX_RHYTHM_NUDGE_PX, delta))
+        top = round(original["top"] + delta, 2)
+        if abs(top - original["top"]) <= EPSILON:
+            continue
+        patches.append({
+            "element_id": element_id,
+            "left": round(original["left"], 2),
+            "top": top,
+            "page": original["page"],
+        })
 
     if not patches:
         return None, "no_position_changes"
 
-    validation_items = list(working_by_id.values())
+    def _fits_page(item: dict[str, Any]) -> bool:
+        return (
+            item["left"] >= -EPSILON
+            and item["top"] >= -EPSILON
+            and item["left"] + item["width"] <= page_width + EPSILON
+            and item["top"] + item["height"] <= page_height + EPSILON
+        )
+
+    # Soft rhythm must not be blocked by pre-existing freestyle overflow
+    # (wide name blocks, decorative lines past the margin, etc.).
+    validation_items = []
+    for element_id, item in working_by_id.items():
+        original = bounds_by_id.get(element_id, item)
+        if element_id in movable_ids or _fits_page(original):
+            validation_items.append(item)
+    if not validation_items:
+        validation_items = [working_by_id[patch["element_id"]] for patch in patches]
     reason_suffix = (
         " Użyto zapasowej kolejności Y (GPT zwrócił nieparsowalną strukturę)."
         if used_fallback
         else ""
     )
-    title = "Ujednolić odstępy (zachowaj Twój układ)"
+    title = "Ujednolić odstępy (delikatnie, max ±15 px)"
     reason = (
-        "Przesunięto elementy tylko w pionie, żeby ujednolicić odstępy: "
-        f"STACK {SPACE_STACK}px w bloku, RECORD {SPACE_RECORD}px między wpisami, "
-        f"SECTION {SPACE_SECTION}px między sekcjami, AFTER_RULE {SPACE_AFTER_RULE}px po linii. "
-        "Left, szerokość i Twój ogólny układ freestyle zostają bez zmian."
+        "Tylko drobne korekty pionowe: STACK/RECORD/SECTION jako cel, "
+        f"ale każde przesunięcie jest ograniczone do ±{MAX_RHYTHM_NUDGE_PX:g} px. "
+        "Imię i rola zawodowa nie są ruszane. Left, szerokość i strona zostają."
         f"{reason_suffix}"
     )
 

@@ -27,7 +27,7 @@ const ACTIONS = [
     { id: "improve",         label: "Ulepsz",            icon: FaMagic,       color: CHROME_ACCENT, description: "Mocniejsze punkty z czasownikami akcji" },
     { id: "ats_score",       label: "Wynik ATS",         icon: FaRobot,       color: CHROME_ACCENT, description: "Sprawdzenie pod systemy rekrutacyjne ATS" },
     { id: "layout",          label: "Układ",             icon: FaArrowsAltH,  color: CHROME_ACCENT, description: "Napraw kolizje, ucięcia i granice strony; potem wyrównania" },
-    { id: "layout_rhythm",   label: "Rytm",              icon: FaLayerGroup,  color: CHROME_ACCENT, description: "Ujednolić odstępy SPACE_* bez przebudowy Twojego freestyle layoutu" },
+    { id: "layout_rhythm",   label: "Rytm",              icon: FaLayerGroup,  color: CHROME_ACCENT, description: "Delikatne ujednolicenie odstępów (max ±15 px); imię i rola bez zmian" },
 ];
 const SEVERITY_LABELS = {
     critical: "krytyczny",

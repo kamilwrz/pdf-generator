@@ -1,7 +1,11 @@
-"""Tests for freestyle vertical-gap unification (SPACE_* rhythm)."""
+"""Tests for soft freestyle vertical-gap unification (±15 px, frozen identity)."""
 import unittest
 
-from app.services.layout_rhythm import pack_rhythm_classification, _normalize_classification
+from app.services.layout_rhythm import (
+    MAX_RHYTHM_NUDGE_PX,
+    pack_rhythm_classification,
+    _normalize_classification,
+)
 
 
 PAGE = {"width": 595, "height": 842}
@@ -41,19 +45,81 @@ class LayoutRhythmTests(unittest.TestCase):
         }
         self.assertIsNone(_normalize_classification(raw, {"real"}))
 
-    def test_nudges_overlapping_jobs_with_record_gap_keeps_left(self):
+    def test_never_moves_name_or_job_label(self):
         elements = [
-            el("h-exp", 40, 200, height=16, category="text", content="DOSWIADCZENIE"),
+            el("name", 200, 40, height=28, category="text", fontSize=28, content="Kamil Wrzochalski"),
+            el("role", 200, 72, height=14, category="text", fontSize=12, content="AML ANALYST"),
+            el("sum-h", 40, 180, height=16, category="text", content="PODSUMOWANIE ZAWODOWE"),
+            el("sum-b", 40, 220, height=40, content="Summary text"),
+        ]
+        classification = {
+            "ignored_element_ids": ["name", "role"],
+            "sections": [
+                {
+                    "id": "header",
+                    "order": 0,
+                    "blocks": [{
+                        "id": "id",
+                        "order": 1,
+                        "elements": [
+                            {"element_id": "name", "role": "name"},
+                            {"element_id": "role", "role": "job_label"},
+                        ],
+                    }],
+                },
+                {
+                    "id": "summary",
+                    "order": 1,
+                    "blocks": [{
+                        "id": "s1",
+                        "order": 1,
+                        "elements": [
+                            {"element_id": "sum-h", "role": "heading"},
+                            {"element_id": "sum-b", "role": "body"},
+                        ],
+                    }],
+                },
+            ],
+        }
+        group, error = pack_rhythm_classification(elements, classification, PAGE)
+        self.assertEqual(error, "")
+        patched = {patch["element_id"] for patch in group["patches"]}
+        self.assertNotIn("name", patched)
+        self.assertNotIn("role", patched)
+
+    def test_caps_each_nudge_to_15px(self):
+        elements = [
+            el("a", 40, 100, height=20, content="first"),
+            el("b", 40, 300, height=20, content="far below"),  # wants ~138, delta >> 15
+        ]
+        classification = {
+            "sections": [{
+                "id": "content",
+                "order": 1,
+                "blocks": [
+                    {"id": "b1", "order": 1, "elements": [{"element_id": "a", "role": "body"}]},
+                    {"id": "b2", "order": 2, "elements": [{"element_id": "b", "role": "body"}]},
+                ],
+            }],
+        }
+        group, error = pack_rhythm_classification(elements, classification, PAGE)
+        self.assertEqual(error, "")
+        by_id = {patch["element_id"]: patch for patch in group["patches"]}
+        self.assertIn("b", by_id)
+        self.assertLessEqual(abs(by_id["b"]["top"] - 300), MAX_RHYTHM_NUDGE_PX + 0.01)
+        self.assertEqual(by_id["b"]["page"], 1)
+
+    def test_nudges_overlapping_jobs_within_cap(self):
+        elements = [
+            el("h-exp", 40, 200, height=16, category="text", content="DOSWIADCZENIE ZAWODOWE"),
             el("t1", 40, 240, height=18, content="Senior AML"),
-            el("m1", 42, 250, height=14, content="PwC"),  # slightly different left — keep it
+            el("m1", 42, 250, height=14, content="PwC"),
             el("b1", 40, 255, height=40, content="Opis 1"),
             el("t2", 41, 245, height=18, content="CSR"),
             el("m2", 40, 250, height=14, content="Amazon"),
             el("b2", 40, 252, height=40, content="Opis 2"),
         ]
         classification = {
-            "profile": {"content_left": 40, "content_width": 400},
-            "ignored_element_ids": [],
             "sections": [{
                 "id": "experience",
                 "order": 1,
@@ -80,84 +146,39 @@ class LayoutRhythmTests(unittest.TestCase):
                 ],
             }],
         }
-
         group, error = pack_rhythm_classification(elements, classification, PAGE)
         self.assertEqual(error, "")
-        self.assertIsNotNone(group)
-        self.assertEqual(group["id"], "rhythm-reflow")
         by_id = {patch["element_id"]: patch for patch in group["patches"]}
+        for element_id, patch in by_id.items():
+            original = next(e for e in elements if e["element_id"] == element_id)
+            self.assertLessEqual(abs(patch["top"] - original["top"]), MAX_RHYTHM_NUDGE_PX + 0.01)
+            self.assertEqual(patch["left"], original["left"])
 
-        # First classified item is the anchor — not moved.
-        self.assertNotIn("h-exp", by_id)
-
-        self.assertIn("t2", by_id)
-        self.assertIn("b1", by_id)
-        self.assertGreaterEqual(
-            by_id["t2"]["top"],
-            by_id["b1"]["top"] + 40 + 14 - 0.5,
-        )
-        # Freestyle left edges preserved on nudged items.
-        self.assertEqual(by_id["t2"]["left"], 41.0)
-        if "m2" in by_id:
-            self.assertEqual(by_id["m2"]["left"], 40.0)
-
-    def test_skips_locked_and_fixed_elements(self):
+    def test_freezes_large_font_name_by_heuristic(self):
         elements = [
-            el("locked-title", 40, 100, locked=True),
-            el("a", 40, 120),
-            el("b", 40, 160),
+            el("nm", 180, 50, height=30, category="text", fontSize=26, content="Anna Nowak"),
+            el("x", 40, 200, height=20, content="body a"),
+            el("y", 40, 230, height=20, content="body b"),
         ]
         classification = {
             "sections": [{
-                "id": "experience",
+                "id": "content",
                 "order": 1,
                 "blocks": [{
                     "id": "one",
                     "order": 1,
                     "elements": [
-                        {"element_id": "locked-title", "role": "entry_title"},
-                        {"element_id": "a", "role": "body"},
-                        {"element_id": "b", "role": "body"},
+                        {"element_id": "nm", "role": "other"},
+                        {"element_id": "x", "role": "body"},
+                        {"element_id": "y", "role": "body"},
                     ],
                 }],
             }],
         }
         group, error = pack_rhythm_classification(elements, classification, PAGE)
         self.assertEqual(error, "")
-        self.assertIsNotNone(group)
         patched = {patch["element_id"] for patch in group["patches"]}
-        self.assertNotIn("locked-title", patched)
-
-    def test_accepts_line_rules_in_validation(self):
-        elements = [
-            el("heading", 40, 200, height=16, category="text", content="EXPERIENCE"),
-            el("rule", 40, 220, width=72, height=1.5, category="line"),
-            el("body", 40, 250, height=40, content="Opis"),
-        ]
-        classification = {
-            "profile": {"content_left": 40, "content_width": 400},
-            "sections": [{
-                "id": "experience",
-                "order": 1,
-                "blocks": [{
-                    "id": "one",
-                    "order": 1,
-                    "elements": [
-                        {"element_id": "heading", "role": "heading"},
-                        {"element_id": "rule", "role": "rule"},
-                        {"element_id": "body", "role": "body"},
-                    ],
-                }],
-            }],
-        }
-        group, error = pack_rhythm_classification(elements, classification, PAGE)
-        self.assertEqual(error, "")
-        self.assertIsNotNone(group)
-        by_id = {patch["element_id"]: patch for patch in group["patches"]}
-        # body should sit AFTER_RULE below the rule (rule may stay put if already correct).
-        self.assertIn("body", by_id)
-        rule_bottom = (by_id["rule"]["top"] if "rule" in by_id else 220) + 1.5
-        self.assertAlmostEqual(by_id["body"]["top"], rule_bottom + 12, delta=0.6)
+        self.assertNotIn("nm", patched)
 
     def test_falls_back_when_gpt_json_is_empty(self):
         elements = [
@@ -168,48 +189,9 @@ class LayoutRhythmTests(unittest.TestCase):
         group, error = pack_rhythm_classification(elements, {"message": "oops"}, PAGE)
         self.assertEqual(error, "")
         self.assertIsNotNone(group)
-        by_id = {patch["element_id"]: patch for patch in group["patches"]}
-        # Preserve freestyle left on nudged items.
-        if "b" in by_id:
-            self.assertEqual(by_id["b"]["left"], 55.0)
-
-    def test_shrinks_oversized_gap_to_section_spacing(self):
-        elements = [
-            el("end-exp", 40, 100, height=20, content="last job"),
-            el("edu-h", 40, 300, height=16, category="text", content="EDU"),  # huge gap
-            el("edu-b", 40, 340, height=20, content="school"),
-        ]
-        classification = {
-            "sections": [
-                {
-                    "id": "experience",
-                    "order": 1,
-                    "blocks": [{
-                        "id": "j1",
-                        "order": 1,
-                        "elements": [{"element_id": "end-exp", "role": "body"}],
-                    }],
-                },
-                {
-                    "id": "education",
-                    "order": 2,
-                    "blocks": [{
-                        "id": "e1",
-                        "order": 1,
-                        "elements": [
-                            {"element_id": "edu-h", "role": "heading"},
-                            {"element_id": "edu-b", "role": "body"},
-                        ],
-                    }],
-                },
-            ],
-        }
-        group, error = pack_rhythm_classification(elements, classification, PAGE)
-        self.assertEqual(error, "")
-        by_id = {patch["element_id"]: patch for patch in group["patches"]}
-        self.assertIn("edu-h", by_id)
-        # 100+20+18 = 138 (SECTION), not 300.
-        self.assertAlmostEqual(by_id["edu-h"]["top"], 138.0, delta=0.6)
+        for patch in group["patches"]:
+            original = next(e for e in elements if e["element_id"] == patch["element_id"])
+            self.assertLessEqual(abs(patch["top"] - original["top"]), MAX_RHYTHM_NUDGE_PX + 0.01)
 
 
 if __name__ == "__main__":
