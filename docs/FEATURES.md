@@ -23,7 +23,7 @@ CV STUDIO to studio CV po polsku: wizualne płótno A4, szablony dopasowane do b
 Otwórz bibliotekę, podejrzyj projekty oznaczone branżą i przenieś wybrany układ na płótno. Nowe konta trafiają tu od razu — nie zostajesz sam na pustej stronie.
 
 ### Wypełnij z PDF
-Prześlij istniejące CV. CV STUDIO wyciąga imię, stanowisko, doświadczenie, wykształcenie i umiejętności — a potem wlewa je do dowolnego szablonu. Te same dane możesz użyć w wielu wyglądach bez ponownego uploadu. Przy wyborze szablonu zobaczysz mockup A4 na hover.
+Prześlij istniejące CV. CV STUDIO wyciąga imię, stanowisko, doświadczenie, wykształcenie i umiejętności — a potem wlewa je do dowolnego szablonu. Te same dane możesz użyć w wielu wyglądach bez ponownego uploadu. Przy wyborze szablonu zobaczysz mockup A4 na hover (to samo w kroku Podsumowanie kreatora bio).
 
 ### Stwórz krok po kroku
 Wolisz kreator? Przejdź dane osobowe, doświadczenie, wykształcenie, umiejętności, języki, własne sekcje i podsumowanie. Szkic zapisuje się automatycznie — możesz wyjść i wrócić. Gdy będziesz gotowy, wygeneruj CV w wybranym szablonie.

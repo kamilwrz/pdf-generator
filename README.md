@@ -304,14 +304,17 @@ Implementation:
 - `backend/app/api/routes/ai.py`, `extract_cv`
 - `backend/app/services/cv_data.py`, `normalize_cv_data` (line 585+)
 
-### Import CV panel — template hover mockups
+### Template hover mockups (import + bio wizard)
 
-After extract, step 2 of **Wypełnij z mojego CV** lists fillable templates. Hovering (or focusing) a template name shows that template’s A4 mockup on the **left**, vertically centered. Moving the pointer to another name fades the current mockup out (`opacity` 1→0), swaps `/template-mockups/{id}.png`, then fades in (0→1). Leaving the picker fades the preview out. The same PNG assets are used by the Hero gallery and `TemplatesModal`.
+After PDF extract (step 2 of **Wypełnij z mojego CV**) and on the bio wizard **Podsumowanie** step, hovering or focusing a template shows that template’s A4 mockup on the **left**, vertically centered. Moving to another template fades out (`opacity` 1→0), swaps `/template-mockups/{id}.png`, then fades in (0→1). Leaving the picker fades the preview out. Shared fade logic lives in one hook so both dialogs stay in sync. The same PNG assets are used by the Hero gallery and `TemplatesModal`.
 
 Implementation:
 
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 78–110, function `showTemplatePreview`; lines 266–310, step-2 `templatePicker` layout
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.module.css`, lines 166–198, `.templatePicker`, `.mockupFrame` / `.mockupFrameVisible` (180ms opacity transition)
+- `frontend/src/hooks/useTemplateMockupPreview.js`, `useTemplateMockupPreview` — shared opacity fade / swap
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — step-2 `templatePicker`
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.module.css`, `.templatePicker`, `.mockupFrame` / `.mockupFrameVisible`
+- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, `renderReview` — summary-step `templatePicker`
+- `frontend/src/components/ai/BioCvModal/BioCvModal.module.css`, `.templatePicker`, `.mockupFrame` / `.mockupFrameVisible`
 - Assets: `frontend/public/template-mockups/{id}.png`
 
 ### AI assistant
@@ -843,14 +846,17 @@ Testy:
 - `backend/app/api/routes/ai.py` — `extract_cv`
 - `backend/app/services/cv_data.py` — `normalize_cv_data` (ok. 585+)
 
-### Panel importu CV — podgląd szablonu na hover
+### Podgląd szablonu na hover (import + kreator bio)
 
-Po ekstrakcji krok 2 w **Wypełnij z mojego CV** listuje szablony do wypełnienia. Najazd (lub fokus) na nazwę pokazuje mockup A4 tego szablonu po **lewej**, wyśrodkowany w pionie. Przeniesienie kursora na inny szablon wygasza bieżący podgląd (`opacity` 1→0), podmienia `/template-mockups/{id}.png` i wygasza go z powrotem (0→1). Opuszczenie listy wygasza podgląd. Te same PNG-i używają Hero oraz `TemplatesModal`.
+Po ekstrakcji PDF (krok 2 w **Wypełnij z mojego CV**) oraz na kroku **Podsumowanie** kreatora bio najazd lub fokus na szablon pokazuje mockup A4 po **lewej**, wyśrodkowany w pionie. Zmiana szablonu: fade-out (`opacity` 1→0), podmiana `/template-mockups/{id}.png`, fade-in (0→1). Opuszczenie listy wygasza podgląd. Wspólna logika animacji jest w jednym hooku. Te same PNG-i używają Hero oraz `TemplatesModal`.
 
 Implementacja:
 
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 78–110, funkcja `showTemplatePreview`; linie 266–310, układ `templatePicker` w kroku 2
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.module.css`, linie 166–198, `.templatePicker`, `.mockupFrame` / `.mockupFrameVisible` (przejście opacity 180 ms)
+- `frontend/src/hooks/useTemplateMockupPreview.js` — `useTemplateMockupPreview`
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — `templatePicker` w kroku 2
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.module.css` — `.templatePicker`, `.mockupFrame` / `.mockupFrameVisible`
+- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` — `renderReview`, `templatePicker`
+- `frontend/src/components/ai/BioCvModal/BioCvModal.module.css` — `.templatePicker`, `.mockupFrame` / `.mockupFrameVisible`
 - Pliki: `frontend/public/template-mockups/{id}.png`
 
 ### Asystent AI

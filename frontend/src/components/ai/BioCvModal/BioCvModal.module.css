@@ -265,16 +265,79 @@
     font: 500 11px/1.45 var(--font-body);
 }
 
+/* Summary step: hover mockup (left) + template list (right) — same behaviour as AiCvPanel. */
+.templatePicker {
+    display: flex;
+    align-items: stretch;
+    gap: 16px;
+    min-height: 240px;
+}
+
+.mockupPane {
+    flex: 0 0 168px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    min-height: 240px;
+}
+
+.mockupFrame {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 180ms ease;
+}
+
+.mockupFrameVisible {
+    opacity: 1;
+}
+
+.mockupImg {
+    display: block;
+    width: 148px;
+    height: auto;
+    aspect-ratio: 210 / 297;
+    object-fit: cover;
+    object-position: top center;
+    border-radius: 4px;
+    border: 1px solid var(--chrome-border);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .28);
+    background: var(--chrome-control);
+}
+
+.mockupCaption {
+    font: 600 10.5px var(--font-body);
+    color: var(--chrome-muted);
+}
+
+.mockupPlaceholder {
+    margin: 0;
+    max-width: 140px;
+    text-align: center;
+    font: 500 10.5px var(--font-body);
+    color: var(--chrome-muted);
+    line-height: 1.4;
+}
+
 .templateGrid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
     gap: 7px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 2px;
 }
 
 .templateCard {
     display: flex;
     align-items: center;
     gap: 8px;
+    width: 100%;
     min-height: 51px;
     padding: 8px;
     border: 1px solid var(--chrome-border);
@@ -286,7 +349,8 @@
     transition: border-color .15s, background .15s;
 }
 
-.templateCard:hover:not(:disabled) {
+.templateCard:hover:not(:disabled),
+.templateCardHot:not(:disabled) {
     border-color: var(--chrome-accent);
     background: var(--chrome-hover);
 }
@@ -321,6 +385,18 @@
     color: var(--chrome-accent);
     font: 700 9px var(--font-body);
     white-space: nowrap;
+}
+
+.emptyTemplates {
+    margin: 0;
+    color: var(--chrome-muted);
+    font: 500 11px var(--font-body);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mockupFrame {
+        transition: none;
+    }
 }
 
 .footer {
@@ -389,8 +465,17 @@
 
 @media (max-width: 620px) {
     .progress { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .formGrid,
-    .templateGrid { grid-template-columns: 1fr; }
+    .formGrid { grid-template-columns: 1fr; }
+    .templatePicker {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .mockupPane {
+        flex-basis: auto;
+        min-height: 180px;
+        align-self: stretch;
+    }
+    .templateGrid { max-height: 240px; }
     .full { grid-column: auto; }
     .footer { align-items: flex-end; }
     .draftState { display: none; }

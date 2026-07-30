@@ -3,16 +3,15 @@
  * Extract is entitlement-gated; fill uses deterministic backend layout.
  * Step 2 shows a hover mockup of the pointed template (left, opacity fade).
  */
-import { useRef, useState, useCallback, use, useMemo, useEffect } from "react";
+import { useRef, useState, useCallback, use, useMemo } from "react";
 import classes from "./AiCvPanel.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { TEMPLATES } from "../../../templates";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
 import { isTemplateAllowed, planErrorMessage } from "../../../utils/entitlements";
+import { useTemplateMockupPreview } from "../../../hooks/useTemplateMockupPreview";
 import DialogShell from "../../common/DialogShell/DialogShell";
-
-const PREVIEW_FADE_MS = 180;
 
 const UploadIcon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -31,85 +30,24 @@ export default function AiCvPanel() {
     const { isAiPanel, showAiPanel, showBioCvModal, loadAiElements, entitlements, refreshEntitlements } = use(PdfContext);
 
     const fileRef = useRef(null);
-    const fadeTimerRef = useRef(null);
-    // Refs mirror preview state so rapid hover changes cancel cleanly mid-fade.
-    const previewIdRef = useRef(null);
-    const previewVisibleRef = useRef(false);
     const [fileName, setFileName] = useState(null);
     const [fileData, setFileData] = useState(null);
     const [cvData, setCvData] = useState(null);
     const [isExtracting, setIsExtracting] = useState(false);
     const [fillingId, setFillingId] = useState(null);
     const [error, setError] = useState(null);
-    // Hover mockup: id currently shown + whether it is faded in.
-    const [previewId, setPreviewId] = useState(null);
-    const [previewVisible, setPreviewVisible] = useState(false);
     const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
     const canExtract = Boolean(entitlements?.extract_cv);
+    const extracted = Boolean(cvData?.name);
+    const { previewId, previewVisible, showTemplatePreview } = useTemplateMockupPreview({
+        active: Boolean(isAiPanel && extracted),
+    });
+    const previewTemplate = cvTemplates.find((t) => t.id === previewId);
 
     const api = useMemo(
         () => new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` }),
         [],
     );
-
-    const setPreviewIdSync = useCallback((id) => {
-        previewIdRef.current = id;
-        setPreviewId(id);
-    }, []);
-
-    const setPreviewVisibleSync = useCallback((visible) => {
-        previewVisibleRef.current = visible;
-        setPreviewVisible(visible);
-    }, []);
-
-    useEffect(() => () => {
-        if (fadeTimerRef.current) window.clearTimeout(fadeTimerRef.current);
-    }, []);
-
-    // Reset hover preview when leaving the fill step or closing the dialog.
-    useEffect(() => {
-        if (!cvData?.name || !isAiPanel) {
-            if (fadeTimerRef.current) window.clearTimeout(fadeTimerRef.current);
-            setPreviewVisibleSync(false);
-            setPreviewIdSync(null);
-        }
-    }, [cvData?.name, isAiPanel, setPreviewIdSync, setPreviewVisibleSync]);
-
-    const showTemplatePreview = useCallback((templateId) => {
-        if (fadeTimerRef.current) {
-            window.clearTimeout(fadeTimerRef.current);
-            fadeTimerRef.current = null;
-        }
-        if (!templateId) {
-            setPreviewVisibleSync(false);
-            fadeTimerRef.current = window.setTimeout(() => {
-                setPreviewIdSync(null);
-                fadeTimerRef.current = null;
-            }, PREVIEW_FADE_MS);
-            return;
-        }
-        if (templateId === previewIdRef.current) {
-            setPreviewVisibleSync(true);
-            return;
-        }
-        // Fade out the current mockup, swap asset, fade in the next one.
-        if (previewIdRef.current && previewVisibleRef.current) {
-            setPreviewVisibleSync(false);
-            fadeTimerRef.current = window.setTimeout(() => {
-                setPreviewIdSync(templateId);
-                fadeTimerRef.current = window.setTimeout(() => {
-                    setPreviewVisibleSync(true);
-                    fadeTimerRef.current = null;
-                }, 16);
-            }, PREVIEW_FADE_MS);
-            return;
-        }
-        setPreviewIdSync(templateId);
-        fadeTimerRef.current = window.setTimeout(() => {
-            setPreviewVisibleSync(true);
-            fadeTimerRef.current = null;
-        }, 16);
-    }, [setPreviewIdSync, setPreviewVisibleSync]);
 
     function handleFilePick(e) {
         const f = e.target.files?.[0];
@@ -176,9 +114,6 @@ export default function AiCvPanel() {
             setFillingId(null);
         }
     }, [api, cvData, entitlements, loadAiElements, showAiPanel]);
-
-    const extracted = Boolean(cvData?.name);
-    const previewTemplate = cvTemplates.find((t) => t.id === previewId);
 
     return (
         <DialogShell
