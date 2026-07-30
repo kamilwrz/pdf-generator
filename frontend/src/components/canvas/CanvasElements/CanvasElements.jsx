@@ -49,6 +49,7 @@ export default function CanvasElements({ elements }) {
           align={element.align}
           bulletList={element.bulletList}
           autoHeight={element.autoHeight}
+          preserveInitialLayout={element.preserveInitialLayout}
           zIndex={element.zIndex}
           fixedToPage={element.fixedToPage}
         />

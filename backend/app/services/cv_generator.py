@@ -2852,11 +2852,27 @@ def _gen_onyx(cv: dict) -> list[dict]:
     # element as keep-with-next chrome and could move a heading behind its own
     # section content during independent auto-height passes.
     flow = [
-        {**element, "flowRole": element.get("flowRole", "content")}
+        {
+            **element,
+            "flowRole": element.get("flowRole", "content"),
+            **(
+                {"preserveInitialLayout": True}
+                if element.get("category") == "textarea"
+                else {}
+            ),
+        }
         for element in b.build()
     ]
     static = [
-        {**element, "flowRole": element.get("flowRole", "content")}
+        {
+            **element,
+            "flowRole": element.get("flowRole", "content"),
+            **(
+                {"preserveInitialLayout": True}
+                if element.get("category") == "textarea"
+                else {}
+            ),
+        }
         for element in static
     ]
     pages_used = max([e.get("page", 1) for e in static + flow] or [1])

@@ -88,6 +88,13 @@ const onyxElements = [
 // chrome. All remaining selectable Onyx elements are ordinary flow content.
 export const onyxTemplate = onyxElements.map((element) => (
     element.fixedToPage || element.flowRole
-        ? element
-        : { ...element, flowRole: "content" }
+        ? {
+            ...element,
+            ...(element.category === "textarea" ? { preserveInitialLayout: true } : {}),
+        }
+        : {
+            ...element,
+            flowRole: "content",
+            ...(element.category === "textarea" ? { preserveInitialLayout: true } : {}),
+        }
 ));

@@ -101,7 +101,7 @@ Undo/redo history treats that post-load reflow as part of the **baseline**, not 
 
 Every auto-height textarea measures twice — once immediately, once again after `document.fonts.ready` — and each measurement calls `reflowTextareaHeight` independently, so a later field can briefly carry a stale `page` number from an earlier pass. `rawSamePageGap` checks authored `top` values (ignoring `page`) before applying the generic page-break gap: a same-record pair with a stale page keeps its authored small gap, while a genuine cross-page seam still uses `DEFAULT_PACK_GAP` (14 px). The reflow intentionally does **not** infer title/meta relationships from font size or boldness; that heuristic distorted valid Onyx record spacing and compounded independent height deltas. Onyx instead carries an explicit `flowRole`: section marker/label/rule use `section-chrome`, and all ordinary records use `content`. Keep-with-next logic therefore cannot mistake a job title for a section heading and move the real heading behind its own content. Legacy templates without this property keep the category-based fallback.
 
-During the canvas enter hold, auto-height reflow is suppressed and resumes after fonts are ready. This prevents fallback-font measurements from mutating the document before the opacity fade starts. See `textareaReflow.test.js` cases `"preserves a small same-record gap…"`, `"keeps Onyx section chrome top-to-top…"`, `"does not stack a section heading…"`, and `"does not collapse SPACE_RECORD…"`.
+During the canvas enter hold, auto-height reflow is suppressed and resumes after fonts are ready. Onyx textareas additionally carry `preserveInitialLayout: true`, so their first mounted measurement is skipped entirely: the deterministic Python pagination remains authoritative instead of being independently recomputed once per textarea. Editing content or later changing typography/width still triggers normal auto-height reflow. See `textareaReflow.test.js` cases `"preserves a small same-record gap…"`, `"keeps Onyx section chrome top-to-top…"`, `"does not stack a section heading…"`, and `"does not collapse SPACE_RECORD…"`.
 
 Section headings are kept with their first body block across page breaks: `avoidOrphanChrome` reserves the full body height (not a short keep-with-next sliver), and when a measured body textarea itself jumps to the next page, `precedingChromeCluster` pulls the icon/heading/rule with it. That prevents orphans such as “UMIEJĘTNOŚCI” alone at the bottom of page 1. Backend generators use `Builder.need_section(chrome, body)` for the same rule before placing a heading. The section icon, heading, rule, and body therefore remain one cluster after every measurement and page break; ReportLab receives the same geometry visible on the canvas.
 
@@ -190,7 +190,7 @@ Schema is created by `init_db()` during app lifespan (not at import). Lightweigh
 | `users` | Accounts: username, email, bcrypt hash, `is_active`, timestamps |
 | `images` | Uploaded image metadata; `file_path` local or S3 URL; `owner_id` → users |
 | `pdfs` | CV documents: title, path, pages, page_width/height (default 595×842), owner |
-| `pdf_elements` | Canvas elements; geometry + style columns; extras in `extra_properties` JSON (`fixedToPage`, `locked`, `flowRole`, bold, connectors, …) |
+| `pdf_elements` | Canvas elements; geometry + style columns; extras in `extra_properties` JSON (`fixedToPage`, `locked`, `flowRole`, `preserveInitialLayout`, bold, connectors, …) |
 | `bio_cv_drafts` | One private JSON draft per user |
 | `plans` | Free / standard / premium limits and feature flags |
 | `user_subscriptions` | Current plan per user (Stripe columns ready, often null) |
@@ -231,7 +231,7 @@ Implementation:
 
 ### Canvas enter fade
 
-When a full document lands on the canvas (AI CV upload, bio wizard, or template pick), interactive content fades in from opacity 0→1. Elements are held invisible until `document.fonts.ready` (capped at 1000 ms) so fallback→webfont swaps stay hidden, then fade over 750 ms. Decorative chrome (`fixedToPage`, not selectable) appears immediately with no animation. Manual add/duplicate still uses the same fade for the new ids only. AI-filled **Onyx** section chrome (marker + label → rule 14px below → body +16px) matches `frontend/src/templates/onyx.js`; explicit `flowRole` values keep chrome and content in their proper order during post-font reflow.
+When a full document lands on the canvas (AI CV upload, bio wizard, or template pick), interactive content fades in from opacity 0→1. Elements are held invisible until `document.fonts.ready` (capped at 1000 ms) so fallback→webfont swaps stay hidden, then fade over 750 ms. Decorative chrome (`fixedToPage`, not selectable) appears immediately with no animation. Manual add/duplicate still uses the same fade for the new ids only. AI-filled **Onyx** section chrome (marker + label → rule 14px below → body +16px) matches `frontend/src/templates/onyx.js`; `flowRole` keeps chrome/content ordered, while `preserveInitialLayout` prevents the first browser measurement from repaginating the backend-authored document.
 
 Implementation:
 
@@ -239,8 +239,9 @@ Implementation:
 - `frontend/src/hooks/useCanvasEnterIds.js`, lines 1–80, `useCanvasEnterIds`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` + `CanvasElements.module.css`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadAiElements`, `handleLoadTemplate`, `handleLoadTemplateWithFill` call `markContentElementsEnter`
-- `backend/app/services/cv_generator.py`, lines 2740–2919, `_gen_onyx`; `frontend/src/templates/onyx.js`, lines 1–94 — assign Onyx `flowRole`
-- `backend/app/schemas/pdf_schema.py`, line 44; `backend/app/crud/pdfs.py`, lines 81, 186, 224; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, lines 104, 120, 137 — persist and restore `flowRole`
+- `backend/app/services/cv_generator.py`, lines 2740–2935, `_gen_onyx`; `frontend/src/templates/onyx.js`, lines 1–101 — assign Onyx `flowRole` and `preserveInitialLayout`
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 29–55; `frontend/src/components/canvas/Textarea/Textarea.jsx`, lines 42–164 — skip only the initial Onyx textarea measurement
+- `backend/app/schemas/pdf_schema.py`, lines 44–46; `backend/app/crud/pdfs.py`, lines 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, lines 104–105 — persist and restore the Onyx flow flags
 
 Tests:
 
@@ -690,7 +691,7 @@ Historia cofnij/ponów traktuje ten reflow po załadowaniu jako **stan bazowy**,
 
 Każde pole tekstowe z automatyczną wysokością mierzy się dwukrotnie — od razu i ponownie po `document.fonts.ready` — a każdy pomiar osobno wywołuje `reflowTextareaHeight`, więc późniejsze pole może chwilowo nosić nieaktualny numer `page` z wcześniejszego przebiegu. `rawSamePageGap` sprawdza projektowe wartości `top` (ignorując `page`) przed użyciem ogólnego odstępu page-break: para z jednego rekordu ze stale `page` zachowuje swój mały odstęp, a prawdziwy szew między stronami nadal używa `DEFAULT_PACK_GAP` (14 px). Reflow celowo **nie** zgaduje relacji tytuł/meta na podstawie rozmiaru lub pogrubienia fontu — ta heurystyka deformowała poprawny rytm rekordów Onyx i kumulowała delty niezależnych pomiarów. Onyx przenosi zamiast tego jawny `flowRole`: marker/etykieta/linia sekcji mają `section-chrome`, a zwykłe rekordy `content`. Logika keep-with-next nie może więc pomylić tytułu stanowiska z nagłówkiem sekcji i przenieść właściwego nagłówka za jego treść. Starsze szablony bez tej właściwości zachowują fallback oparty na kategorii.
 
-W czasie enter-hold reflow auto-height jest wstrzymany i wraca po gotowości fontów. Pomiary fallback-fontem nie modyfikują dokumentu przed rozpoczęciem fade. Zobacz przypadki w `textareaReflow.test.js`: `"preserves a small same-record gap…"`, `"keeps Onyx section chrome top-to-top…"`, `"does not stack a section heading…"`, `"does not collapse SPACE_RECORD…"`.
+W czasie enter-hold reflow auto-height jest wstrzymany i wraca po gotowości fontów. Textarea Onyx mają dodatkowo `preserveInitialLayout: true`, więc ich pierwszy pomiar po montażu jest całkowicie pomijany: autorytatywna zostaje deterministyczna paginacja z Pythona, zamiast niezależnego przeliczania jej dla każdej textarea. Edycja treści lub późniejsza zmiana typografii/szerokości nadal uruchamia normalny auto-height reflow. Zobacz przypadki w `textareaReflow.test.js`: `"preserves a small same-record gap…"`, `"keeps Onyx section chrome top-to-top…"`, `"does not stack a section heading…"`, `"does not collapse SPACE_RECORD…"`.
 
 Nagłówki sekcji zostają z pierwszym blokiem treści przy podziale strony: `avoidOrphanChrome` rezerwuje pełną wysokość treści (nie krótki „keep-with-next”), a gdy zmierzone pole treści samo skacze na następną stronę, `precedingChromeCluster` zabiera ze sobą ikonę, tytuł i linię. Dzięki temu nie powstają sieroty w stylu samego „UMIEJĘTNOŚCI” na dole strony 1. Generatory backendu stosują tę samą regułę przez `Builder.need_section(chrome, body)` przed umieszczeniem nagłówka. Ikona, tytuł, linia i treść pozostają jednym klastrem po każdym pomiarze i podziale strony; ReportLab dostaje tę samą geometrię, którą widać na kanwie.
 
@@ -775,7 +776,7 @@ pdf-generator/
 | `users` | Konta |
 | `images` | Metadane obrazów użytkownika |
 | `pdfs` | Dokumenty CV |
-| `pdf_elements` | Elementy kanwy (+ `extra_properties`, m.in. `fixedToPage`, `locked`, `flowRole`) |
+| `pdf_elements` | Elementy kanwy (+ `extra_properties`, m.in. `fixedToPage`, `locked`, `flowRole`, `preserveInitialLayout`) |
 | `bio_cv_drafts` | Jeden prywatny szkic bio / user |
 | `plans` | Limity Free / Standard / Premium |
 | `user_subscriptions` | Aktualny plan |
@@ -808,7 +809,7 @@ Płótno **A4 pion**, wiele stron, zaznaczanie / przeciąganie / zoom / prowadni
 
 ### Fade wejścia na kanwie
 
-Gdy pełny dokument ląduje na kanwie (upload CV AI, kreator bio lub wybór szablonu), interaktywna treść pojawia się fade’em opacity 0→1. Elementy są trzymane niewidoczne do `document.fonts.ready` (limit 1000 ms), żeby zmiana fontu zapasowy→webfont nie była widoczna, potem fade trwa 750 ms. Dekoracje (`fixedToPage`, bez zaznaczania) pojawiają się od razu bez animacji. Ręczne dodanie/duplikacja używa tego samego fade tylko dla nowych id. Chrome sekcji **Onyx** z AI (marker + etykieta → linia 14 px poniżej → treść +16 px) odpowiada `frontend/src/templates/onyx.js`; jawny `flowRole` utrzymuje chrome i treść we właściwej kolejności podczas reflow po załadowaniu fontów.
+Gdy pełny dokument ląduje na kanwie (upload CV AI, kreator bio lub wybór szablonu), interaktywna treść pojawia się fade’em opacity 0→1. Elementy są trzymane niewidoczne do `document.fonts.ready` (limit 1000 ms), żeby zmiana fontu zapasowy→webfont nie była widoczna, potem fade trwa 750 ms. Dekoracje (`fixedToPage`, bez zaznaczania) pojawiają się od razu bez animacji. Ręczne dodanie/duplikacja używa tego samego fade tylko dla nowych id. Chrome sekcji **Onyx** z AI (marker + etykieta → linia 14 px poniżej → treść +16 px) odpowiada `frontend/src/templates/onyx.js`; `flowRole` utrzymuje kolejność chrome/treści, a `preserveInitialLayout` zapobiega przepaginowaniu układu backendu przez pierwszy pomiar przeglądarki.
 
 Implementacja:
 
@@ -816,8 +817,9 @@ Implementacja:
 - `frontend/src/hooks/useCanvasEnterIds.js`, linie 1–80, `useCanvasEnterIds`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` + `CanvasElements.module.css`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadAiElements`, `handleLoadTemplate`, `handleLoadTemplateWithFill` wywołują `markContentElementsEnter`
-- `backend/app/services/cv_generator.py`, linie 2740–2919, `_gen_onyx`; `frontend/src/templates/onyx.js`, linie 1–94 — przypisanie `flowRole` Onyx
-- `backend/app/schemas/pdf_schema.py`, linia 44; `backend/app/crud/pdfs.py`, linie 81, 186, 224; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, linie 104, 120, 137 — zapis i odtwarzanie `flowRole`
+- `backend/app/services/cv_generator.py`, linie 2740–2935, `_gen_onyx`; `frontend/src/templates/onyx.js`, linie 1–101 — przypisanie `flowRole` i `preserveInitialLayout` Onyx
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 29–55; `frontend/src/components/canvas/Textarea/Textarea.jsx`, linie 42–164 — pominięcie wyłącznie pierwszego pomiaru textarea Onyx
+- `backend/app/schemas/pdf_schema.py`, linie 44–46; `backend/app/crud/pdfs.py`, linie 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, linie 104–105 — zapis i odtwarzanie flag przepływu Onyx
 
 Testy:
 

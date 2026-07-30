@@ -60,6 +60,7 @@ function Textarea({
     align,
     bulletList,
     autoHeight,
+    preserveInitialLayout,
     zIndex,
     fixedToPage,
 }) {
@@ -81,6 +82,7 @@ function Textarea({
     const editFrameRef = useRef(null);
     const pointerStartRef = useRef(null);
     const spacingHoldTimerRef = useRef(null);
+    const initialLayoutPreservedRef = useRef(false);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
     function handleIsResizeable(active) {
         setIsResizeable(Boolean(active));
@@ -115,8 +117,16 @@ function Textarea({
     // authoring-time estimate carried by a template spec.
     // While canvas enter holds content at opacity 0, reflow is suppressed —
     // remasure as soon as that hold ends so webfont metrics drive packing.
+    // Deterministically generated Onyx blocks skip this first mount pass:
+    // their backend-authored pagination is already complete, and independently
+    // reflowing every block can reorder cross-page section chrome. User edits
+    // and later font/width changes still run the normal measurement path.
     useLayoutEffect(() => {
         if (!autoHeight || isEditing) return undefined;
+        if (preserveInitialLayout && !initialLayoutPreservedRef.current) {
+            initialLayoutPreservedRef.current = true;
+            return undefined;
+        }
 
         let cancelled = false;
         const measure = () => {
@@ -148,6 +158,7 @@ function Textarea({
         isEditing,
         letterSpacing,
         lineHeight,
+        preserveInitialLayout,
         width,
     ]);
 

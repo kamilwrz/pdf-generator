@@ -1024,6 +1024,13 @@ class CvTemplateLayoutTests(unittest.TestCase):
         ]
         self.assertTrue(selectable)
         self.assertTrue(all(element.get("flowRole") for element in selectable))
+        textareas = [
+            element for element in selectable if element["category"] == "textarea"
+        ]
+        self.assertTrue(textareas)
+        self.assertTrue(
+            all(element.get("preserveInitialLayout") is True for element in textareas)
+        )
 
     def test_active_templates_keep_textareas_inside_page_bounds(self):
         for template_id in ("ledger", "vector", "scribe", "quarry", "obsidian", "onyx"):
