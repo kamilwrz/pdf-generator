@@ -24,9 +24,11 @@ from app.services.layout_analysis import (
 MAX_LAYOUT_MOVE_PX = 80.0
 MAX_LAYOUT_MOVES = 40
 MAX_LAYOUT_FINDINGS = 12
+MAX_LAYOUT_CONTENT_CHARS = 1200
 _SNAPSHOT_CATEGORIES = {
     "text", "textarea", "line", "image", "rectangle", "circle", "ellipse",
 }
+_TEXT_CATEGORIES = {"text", "textarea"}
 _VALID_SEVERITIES = {"critical", "high", "medium", "low", "review", "warning"}
 _FROZEN_IDENTITY_ROLES_HINTS = (
     "PODSUMOWANIE", "DOŚWIADCZENIE", "WYKSZTAŁCENIE", "UMIEJĘTNOŚCI", "JĘZYKI",
@@ -44,6 +46,10 @@ LAYOUT_CORRECTOR_SYSTEM = """\
 Jesteś korektorem układu freestyle CV na wielu stronach A4.
 Analizujesz JSON elementów (text, textarea, image, line, kształty) ze współrzędnymi
 left/top/width/height oraz page.
+
+WAŻNE: zarówno `text`, jak i `textarea` są elementami tekstowymi. Wygenerowane
+wpisy doświadczenia i wykształcenia (stanowiska, daty, firmy, opisy i punkty)
+często mają category=`textarea`; nie wolno ich pomijać ani traktować jak pustych pól.
 
 Twoim zadaniem jest wykrywanie i poprawianie WYŁĄCZNIE problemów geometrii:
 - rytm pionowych odstępów,
@@ -94,7 +100,7 @@ def build_layout_snapshot(
         elif category in {"line", "rectangle", "circle", "ellipse"}:
             preview = f"[{category}]"
         else:
-            preview = content[:280]
+            preview = content[:MAX_LAYOUT_CONTENT_CHARS]
 
         measured = element.get("layout_bounds") if isinstance(element.get("layout_bounds"), dict) else {}
         item: dict[str, Any] = {
@@ -111,6 +117,8 @@ def build_layout_snapshot(
             "fixedToPage": bool(element.get("fixedToPage")),
             "content": preview,
         }
+        if category in _TEXT_CATEGORIES:
+            item["content_truncated"] = len(content) > MAX_LAYOUT_CONTENT_CHARS
         if category in {"text", "textarea"}:
             item.update({
                 "fontSize": element.get("fontSize"),
@@ -141,6 +149,10 @@ def build_layout_snapshot(
         },
         "element_count": len(items),
         "movable_count": sum(1 for row in items if row["movable"]),
+        "text_element_count": sum(1 for row in items if row["category"] in _TEXT_CATEGORIES),
+        "text_element_ids": [
+            row["element_id"] for row in items if row["category"] in _TEXT_CATEGORIES
+        ],
         "elements": items,
         "constraints": {
             "max_moves": MAX_LAYOUT_MOVES,
@@ -173,33 +185,47 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
 {q}
 
 ## Zasady analizy
-1. Najpierw rozpoznaj wszystkie sekcje i ich peery bez dodatkowych metryk z Pythona.
+1. Traktuj KAŻDY element category=`text` lub category=`textarea` jako element
+   tekstowy. Najpierw rozlicz dokładnie `text_element_count` i wszystkie ID z
+   `text_element_ids`; żadnego ID nie wolno pominąć.
+2. Zanim zaproponujesz zmiany, zbuduj `section_inventory`. Każdy ID z
+   `text_element_ids` ma wystąpić DOKŁADNIE RAZ w `members` jednego logicznego
+   bloku. Dotyczy to także kontaktu, nazw stanowisk, dat, firm, opisów, punktów,
+   stopki i tekstów locked/fixedToPage. Element niepasujący do sekcji umieść w
+   sekcji `INNE / NIEPRZYPISANE`; nadal nie wolno go pominąć.
+3. Rozpoznaj wszystkie sekcje i ich peery bez dodatkowych metryk z Pythona.
    Dla każdej sekcji znajdź tekst nagłówka, ikonę, linię dekoracyjną i pierwszy
    element treści. Element z width≈0–3 może być prawidłowym tytułem — nie odrzucaj
    go tylko z powodu szerokości.
-2. Na pytanie o odstęp pod nagłówkiem policz DWA jawne wymiary:
+4. Na pytanie o odstęp pod nagłówkiem policz DWA jawne wymiary:
    a) top-to-top = first_body.top − header.top (tylko diagnostycznie),
    b) real_gap = first_body.top − max(header.top + header.height,
       line.top + line.height), jeśli linia jest częścią tego samego nagłówka.
    Odpowiedź i korektę opieraj na real_gap. Porównaj real_gap wszystkich sekcji,
    nie tylko pytanej. Przykład: DOŚWIADCZENIE 6 px i WYKSZTAŁCENIE 6 px vs
    PODSUMOWANIE 14 px i UMIEJĘTNOŚCI 14 px → wykryj dwa odstające nagłówki.
-3. Linia sekcji zwykle leży w tym samym wierszu co tekst nagłówka i zaczyna się
+5. Linia sekcji zwykle leży w tym samym wierszu co tekst nagłówka i zaczyna się
    po jego prawej stronie; nie musi nachodzić poziomo na tekst nagłówka.
-4. Grupuj elementy logicznie (wpis doświadczenia: stanowisko + data + firma + opis).
-5. Porównuj peery: nagłówki, wpisy, daty, opisy, ikony/linie z nagłówkami.
-6. Gap pionowy między peerami:
+6. Grupuj elementy logicznie (wpis doświadczenia: stanowisko + data + firma + opis).
+   W `section_inventory` nadaj takim wpisom stabilne w obrębie odpowiedzi
+   `block_id`, np. `experience-entry-1` albo `education-entry-2`.
+7. Porównuj peery: nagłówki, wpisy, daty, opisy, ikony/linie z nagłówkami.
+8. Gap pionowy między peerami:
    gap = next.top − (prev.top + prev.height)
    Dla całego wpisu bierz dolną krawędź bloku (max top+height elementów wpisu).
-7. Nie przesuwaj bez potrzeby. Preferuj najmniejszą zmianę.
-8. Relacje w bloku: przesuwając treść pod sekcją, przesuń wszystkie elementy wpisu /
-   bloku o TEN SAM delta w jednej grupie `changes`.
-9. Preferuj tylko top/left. width/height tylko gdy konieczne (clipped textarea).
-10. Nie dopuszczaj nachodzenia. Nie zmieniaj content, page, category, fontów, kolorów.
-11. Pomiń movable=false / locked / fixedToPage. Nie ruszaj imienia i roli pod zdjęciem
+9. Nie przesuwaj bez potrzeby. Preferuj najmniejszą zmianę.
+10. Relacje w bloku: jeśli zmiana przesuwa cały wpis/sekcję, ustaw
+    `move_scope="blocks"`, wskaż jego `affected_blocks` i umieść w `elements`
+    WSZYSTKIE tekstowe ID tych bloków z identycznym delta. Python odrzuci
+    niekompletny ruch. Dla lokalnego wyrównania pojedynczej daty/ikony ustaw
+    `move_scope="elements"` i nie deklaruj całego bloku.
+11. Preferuj tylko top/left. width/height tylko gdy konieczne (clipped textarea).
+12. Nie dopuszczaj nachodzenia. Nie zmieniaj content, page, category, fontów, kolorów.
+13. Pomiń movable=false / locked / fixedToPage. Nie ruszaj imienia i roli pod zdjęciem
     (keep_element_ids). Max ±{max_delta:g} px na element; max {max_moves} ruchów;
     max {max_findings} grup.
-12. Na czyste pytanie bez potrzeby patchy: status \"no_changes\", changes=[], summary po polsku.
+14. Na czyste pytanie bez potrzeby patchy: status \"no_changes\", changes=[],
+    pełny `section_inventory`, summary po polsku.
     Jeśli real_gap peerów różni się istotnie (np. 6 vs 14 px), to NIE jest no_changes.
 
 ## Preferowane reguły (wskazówki, nie sztywne wartości)
@@ -220,11 +246,31 @@ Python zbuduje karty Podgląd/Zastosuj z `changes`.
   "status": "corrected",
   "summary": "<odpowiedź po polsku: co znalazłeś / co proponujesz>",
   "keep_element_ids": ["..."],
+  "section_inventory": [
+    {{
+      "section": "DOŚWIADCZENIE ZAWODOWE",
+      "blocks": [
+        {{
+          "block_id": "experience-entry-1",
+          "members": [
+            {{"element_id": "...", "role": "entry_title"}},
+            {{"element_id": "...", "role": "entry_date"}},
+            {{"element_id": "...", "role": "entry_meta"}},
+            {{"element_id": "...", "role": "entry_body"}}
+          ]
+        }}
+      ]
+    }}
+  ],
   "changes": [
     {{
       "group": "DOŚWIADCZENIE — odstęp Citibank",
       "reason": "Medtronic kończy się top+height≈443.7, Citibank top:462 → przerwa 18 px vs typowe 13 px.",
       "severity": "high",
+      "move_scope": "blocks",
+      "affected_blocks": [
+        {{"section": "DOŚWIADCZENIE ZAWODOWE", "block_id": "experience-entry-2"}}
+      ],
       "delta": {{"top": -5, "left": 0}},
       "elements": [
         {{
@@ -238,7 +284,7 @@ Python zbuduje karty Podgląd/Zastosuj z `changes`.
 }}
 
 Gdy układ jest spójny lub pytanie nie wymaga ruchów:
-{{"status": "no_changes", "summary": "<odpowiedź po polsku>", "keep_element_ids": [], "changes": []}}
+zwróć ten sam PEŁNY `section_inventory`, ale ustaw `status="no_changes"` i `changes=[]`.
 
 W `reason` cytuj konkretne left/top/gap jak w przykładach peerów.
 Liczby jako number, nie string. Zachowaj oryginalne element_id.
@@ -375,6 +421,82 @@ def _move_from_change_element(
     return None
 
 
+def _parse_section_inventory(
+    payload: dict[str, Any],
+) -> tuple[dict[tuple[str, str], set[str]], set[str], set[str]]:
+    """Return inventory blocks, listed text ids, and ids listed more than once.
+
+    The model owns semantic grouping, while Python checks the mechanical
+    invariant that every textual canvas id was acknowledged exactly once.
+    """
+    blocks_by_key: dict[tuple[str, str], set[str]] = {}
+    occurrence_count: dict[str, int] = {}
+    inventory = payload.get("section_inventory")
+    if not isinstance(inventory, list):
+        return blocks_by_key, set(), set()
+
+    for section_entry in inventory:
+        if not isinstance(section_entry, dict):
+            continue
+        section = str(section_entry.get("section") or "").strip()
+        blocks = section_entry.get("blocks")
+        if not section or not isinstance(blocks, list):
+            continue
+        for block_entry in blocks:
+            if not isinstance(block_entry, dict):
+                continue
+            block_id = str(block_entry.get("block_id") or "").strip()
+            members = block_entry.get("members")
+            if not block_id or not isinstance(members, list):
+                continue
+
+            member_ids: set[str] = set()
+            for member in members:
+                if not isinstance(member, dict):
+                    continue
+                element_id = str(
+                    member.get("element_id") or member.get("id") or member.get("elementId") or ""
+                ).strip()
+                if not element_id:
+                    continue
+                occurrence_count[element_id] = occurrence_count.get(element_id, 0) + 1
+                member_ids.add(element_id)
+            blocks_by_key.setdefault((section, block_id), set()).update(member_ids)
+
+    listed_ids = set(occurrence_count)
+    duplicate_ids = {
+        element_id for element_id, count in occurrence_count.items() if count > 1
+    }
+    return blocks_by_key, listed_ids, duplicate_ids
+
+
+def _affected_text_ids(
+    finding: dict[str, Any],
+    blocks_by_key: dict[tuple[str, str], set[str]],
+) -> tuple[set[str], str]:
+    """Resolve text ids that must move together for a block-scoped finding."""
+    if str(finding.get("move_scope") or "elements").strip().lower() != "blocks":
+        return set(), ""
+
+    affected_blocks = finding.get("affected_blocks")
+    if not isinstance(affected_blocks, list) or not affected_blocks:
+        return set(), "missing_affected_blocks"
+
+    expected_ids: set[str] = set()
+    for reference in affected_blocks:
+        if not isinstance(reference, dict):
+            return set(), "invalid_affected_block"
+        section = str(reference.get("section") or "").strip()
+        block_id = str(reference.get("block_id") or "").strip()
+        block_ids = blocks_by_key.get((section, block_id))
+        if not section or not block_id or block_ids is None:
+            return set(), "unknown_affected_block"
+        expected_ids.update(block_ids)
+    if not expected_ids:
+        return set(), "empty_affected_block"
+    return expected_ids, ""
+
+
 def _changes_to_findings(changes: list[Any]) -> list[dict[str, Any]]:
     """Map corrector ``changes[]`` groups into internal findings with moves."""
     findings: list[dict[str, Any]] = []
@@ -424,6 +546,12 @@ def _changes_to_findings(changes: list[Any]) -> list[dict[str, Any]]:
             "severity": severity,
             "title": title,
             "analysis": reason or title,
+            "move_scope": str(change.get("move_scope") or "elements").strip().lower(),
+            "affected_blocks": (
+                change.get("affected_blocks")
+                if isinstance(change.get("affected_blocks"), list)
+                else []
+            ),
             "moves": moves,
         })
     return findings
@@ -545,6 +673,42 @@ def compile_layout_gpt_response(
     summary = _normalize_summary(payload, raw)
     status = str(payload.get("status") or raw.get("status") or "").strip().lower()
     findings = _extract_findings(raw)
+    blocks_by_key: dict[tuple[str, str], set[str]] = {}
+
+    # The modern changes contract must prove that the model accounted for every
+    # text and textarea. Legacy findings/moves remain accepted for compatibility.
+    if isinstance(payload.get("changes"), list):
+        expected_text_ids = {
+            str(element.get("element_id"))
+            for element in elements
+            if (
+                isinstance(element, dict)
+                and element.get("element_id")
+                and element.get("category") in _TEXT_CATEGORIES
+            )
+        }
+        blocks_by_key, inventoried_ids, duplicate_ids = _parse_section_inventory(payload)
+        missing_ids = expected_text_ids - inventoried_ids
+        unknown_ids = inventoried_ids - expected_text_ids
+        if missing_ids or unknown_ids or duplicate_ids:
+            details: list[str] = []
+            if missing_ids:
+                details.append(f"pominięto {len(missing_ids)}")
+            if unknown_ids:
+                details.append(f"nieznane ID: {len(unknown_ids)}")
+            if duplicate_ids:
+                details.append(f"powtórzone ID: {len(duplicate_ids)}")
+            message = (
+                "Model nie rozliczył kompletnego inwentarza elementów text/textarea "
+                f"({', '.join(details)}). Żadne przesunięcie nie zostało udostępnione."
+            )
+            inventory_summary = f"{summary}\n\n{message}" if summary else message
+            return (
+                [],
+                [{"severity": "warning", "message": message}],
+                inventory_summary,
+                "incomplete_text_inventory",
+            )
 
     if not findings:
         # Explicit no-op from the corrector or empty change lists.
@@ -598,18 +762,63 @@ def compile_layout_gpt_response(
         moves = _finding_moves(finding)
         if not moves or remaining <= 0:
             continue
+        expected_block_ids, block_error = _affected_text_ids(finding, blocks_by_key)
+        raw_move_ids = {
+            str(move.get("element_id") or move.get("id") or move.get("elementId") or "")
+            for move in moves
+            if isinstance(move, dict)
+        }
+        if block_error or (expected_block_ids and not expected_block_ids <= raw_move_ids):
+            missing_block_ids = expected_block_ids - raw_move_ids
+            detail = (
+                block_error
+                if block_error
+                else f"brakuje {len(missing_block_ids)} elementów tekstowych bloku"
+            )
+            issues.append({
+                "severity": "warning",
+                "message": (
+                    f"{title}: odrzucono niekompletne przesunięcie logicznego bloku "
+                    f"({detail})."
+                )[:700],
+            })
+            continue
+
+        # Validate against a copy so a rejected block cannot reserve ids and
+        # silently remove them from a later, otherwise valid suggestion.
+        candidate_used_ids = set(used_ids)
         patches = _validated_patches(
             moves,
             bounds_by_id=bounds_by_id,
             raw_by_id=raw_by_id,
             keep_ids=keep_ids,
-            used_ids=used_ids,
+            used_ids=candidate_used_ids,
             page_width=page_width,
             page_height=page_height,
             limit=remaining,
         )
         if not patches:
             continue
+        if expected_block_ids:
+            patch_ids = {patch["element_id"] for patch in patches}
+            block_deltas = {
+                (
+                    round(patch["left"] - bounds_by_id[patch["element_id"]]["left"], 2),
+                    round(patch["top"] - bounds_by_id[patch["element_id"]]["top"], 2),
+                )
+                for patch in patches
+                if patch["element_id"] in expected_block_ids
+            }
+            if not expected_block_ids <= patch_ids or len(block_deltas) != 1:
+                issues.append({
+                    "severity": "warning",
+                    "message": (
+                        f"{title}: odrzucono blok, ponieważ nie wszystkie jego elementy "
+                        "tekstowe otrzymały identyczne przesunięcie."
+                    )[:700],
+                })
+                continue
+        used_ids = candidate_used_ids
         remaining -= len(patches)
 
         working = {eid: dict(item) for eid, item in bounds_by_id.items()}

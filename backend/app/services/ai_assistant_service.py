@@ -1088,15 +1088,39 @@ def _layout_session(
             "usage": usage_payload,
         }
 
+    if error == "incomplete_text_inventory":
+        return {
+            "message": summary,
+            "rating": None,
+            "tips": [
+                "Dla bezpieczeństwa odrzucono całą odpowiedź zamiast udostępniać częściowy ruch sekcji.",
+                "Uruchom Układ ponownie — model musi rozliczyć każdy element text i textarea.",
+            ],
+            "corrections": [],
+            "layout_groups": [],
+            "layout_issues": issues,
+            "web_sources": [],
+            "usage": usage_payload,
+        }
+
     message_out = summary or (
         f"Przygotowałem {len(issues)} wniosków układu"
         + (f" i {sum(len(g.get('patches') or []) for g in groups)} propozycji przesunięć." if groups else ".")
     )
+    inventory = raw.get("section_inventory")
+    inventory_sections = len(inventory) if isinstance(inventory, list) else 0
     tips = [
         "Tryb Układ: korektor rytmu i wyrównań — możesz dopytywać; każde pytanie dostaje świeży JSON A4.",
+    ]
+    if inventory_sections:
+        tips.append(
+            f"Inwentarz analizy: {snapshot.get('text_element_count', 0)} elementów text/textarea "
+            f"przypisanych do {inventory_sections} sekcji."
+        )
+    tips.extend([
         f"Karty poniżej: Podgląd / Zastosuj (max ±{MAX_LAYOUT_MOVE_PX:g} px na element). Treść i fonty nie są zmieniane.",
         "Imię / rola zawodowa oraz elementy locked nie są ruszane.",
-    ]
+    ])
     return {
         "message": message_out,
         "rating": None,

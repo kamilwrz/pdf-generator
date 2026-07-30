@@ -30,6 +30,19 @@ def el(element_id, left, top, *, width=200, height=20, page=1, category="textare
     }
 
 
+def inventory_for(elements, *, section="DOKUMENT"):
+    """Complete one-block inventory for tests not concerned with semantics."""
+    members = [
+        {"element_id": element["element_id"], "role": "other"}
+        for element in elements
+        if element["category"] in {"text", "textarea"}
+    ]
+    return [{
+        "section": section,
+        "blocks": [{"block_id": "all-text", "members": members}],
+    }]
+
+
 class LayoutGptTests(unittest.TestCase):
     def test_snapshot_includes_geometry_and_pages(self):
         elements = [
@@ -55,7 +68,13 @@ class LayoutGptTests(unittest.TestCase):
         self.assertIn("6 px", prompt)
         self.assertIn("14 px", prompt)
         self.assertIn("width≈0–3", prompt)
+        self.assertIn("section_inventory", prompt)
+        self.assertIn("text_element_ids", prompt)
+        self.assertIn("category=`textarea`", prompt)
+        self.assertIn("move_scope", prompt)
+        self.assertIn("affected_blocks", prompt)
         self.assertTrue(LAYOUT_CORRECTOR_SYSTEM.startswith("Jesteś korektorem"))
+        self.assertIn("category=`textarea`", LAYOUT_CORRECTOR_SYSTEM)
         self.assertIn("rytm", DEFAULT_LAYOUT_QUESTION.lower())
 
     def test_snapshot_preserves_narrow_width_for_model_reasoning(self):
@@ -70,6 +89,29 @@ class LayoutGptTests(unittest.TestCase):
         by_id = {item["element_id"]: item for item in snap["elements"]}
         self.assertEqual(by_id["title"]["width"], 3)
         self.assertNotIn("section_rhythm", snap)
+
+    def test_snapshot_inventory_includes_experience_and_education_textareas(self):
+        elements = [
+            el("exp-heading", 50, 250, category="text", content="DOŚWIADCZENIE ZAWODOWE"),
+            el("exp-title", 50, 270, content="Senior AML Analyst"),
+            el("exp-meta", 50, 286, content="Bank · Warszawa · 2021–2024"),
+            el("exp-body", 50, 302, height=40, content="• Analiza AML\n• Raportowanie"),
+            el("edu-heading", 50, 370, category="text", content="WYKSZTAŁCENIE"),
+            el("edu-title", 50, 390, content="Bachelor of Laws"),
+            el("edu-body", 50, 406, content="Uniwersytet · 2020"),
+        ]
+
+        snap = build_layout_snapshot(elements, PAGE)
+
+        self.assertEqual(snap["text_element_count"], len(elements))
+        self.assertEqual(set(snap["text_element_ids"]), {
+            "exp-heading", "exp-title", "exp-meta", "exp-body",
+            "edu-heading", "edu-title", "edu-body",
+        })
+        self.assertEqual(
+            {item["element_id"] for item in snap["elements"]},
+            set(snap["text_element_ids"]),
+        )
 
     def test_compile_findings_to_layout_groups(self):
         elements = [
@@ -101,6 +143,7 @@ class LayoutGptTests(unittest.TestCase):
         gpt = {
             "status": "corrected",
             "summary": "Nagłówek DOŚWIADCZENIE odstaje o 25 px w prawo.",
+            "section_inventory": inventory_for(elements),
             "changes": [{
                 "group": "DOŚWIADCZENIE — left",
                 "reason": "PODSUMOWANIE left:70, DOŚWIADCZENIE left:95.",
@@ -139,9 +182,25 @@ class LayoutGptTests(unittest.TestCase):
         gpt = {
             "status": "corrected",
             "summary": "Citibank o 5 px za nisko.",
+            "section_inventory": [{
+                "section": "DOŚWIADCZENIE ZAWODOWE",
+                "blocks": [{
+                    "block_id": "experience-entry-1",
+                    "members": [
+                        {"element_id": "title", "role": "entry_title"},
+                        {"element_id": "firm", "role": "entry_meta"},
+                        {"element_id": "desc", "role": "entry_body"},
+                    ],
+                }],
+            }],
             "changes": [{
                 "group": "Citibank block",
                 "reason": "gap 18 vs 13",
+                "move_scope": "blocks",
+                "affected_blocks": [{
+                    "section": "DOŚWIADCZENIE ZAWODOWE",
+                    "block_id": "experience-entry-1",
+                }],
                 "delta": {"top": -5, "left": 0},
                 "elements": [
                     {"element_id": "title"},
@@ -158,11 +217,77 @@ class LayoutGptTests(unittest.TestCase):
         self.assertAlmostEqual(tops["firm"], 475, places=2)
         self.assertAlmostEqual(tops["desc"], 495, places=2)
 
+    def test_compile_rejects_incomplete_block_move(self):
+        elements = [
+            el("title", 50, 460, height=18),
+            el("firm", 50, 480, height=16),
+            el("desc", 50, 500, height=40),
+        ]
+        gpt = {
+            "status": "corrected",
+            "summary": "Przesuń cały wpis.",
+            "section_inventory": [{
+                "section": "DOŚWIADCZENIE ZAWODOWE",
+                "blocks": [{
+                    "block_id": "experience-entry-1",
+                    "members": [
+                        {"element_id": "title", "role": "entry_title"},
+                        {"element_id": "firm", "role": "entry_meta"},
+                        {"element_id": "desc", "role": "entry_body"},
+                    ],
+                }],
+            }],
+            "changes": [{
+                "group": "Niekompletny wpis",
+                "reason": "Model pominął opis.",
+                "move_scope": "blocks",
+                "affected_blocks": [{
+                    "section": "DOŚWIADCZENIE ZAWODOWE",
+                    "block_id": "experience-entry-1",
+                }],
+                "delta": {"top": -5, "left": 0},
+                "elements": [
+                    {"element_id": "title"},
+                    {"element_id": "firm"},
+                ],
+            }],
+        }
+
+        groups, issues, _summary, error = compile_layout_gpt_response(elements, gpt, PAGE)
+
+        self.assertEqual(error, "")
+        self.assertEqual(groups, [])
+        self.assertTrue(any("niekompletne" in issue["message"] for issue in issues))
+
+    def test_compile_rejects_incomplete_text_inventory(self):
+        elements = [
+            el("exp", 50, 260, content="Senior AML Analyst"),
+            el("edu", 50, 390, content="Bachelor of Laws"),
+        ]
+        gpt = {
+            "status": "no_changes",
+            "summary": "Układ jest spójny.",
+            "section_inventory": inventory_for(elements[:1]),
+            "changes": [],
+        }
+
+        groups, issues, summary, error = compile_layout_gpt_response(elements, gpt, PAGE)
+
+        self.assertEqual(error, "incomplete_text_inventory")
+        self.assertEqual(groups, [])
+        self.assertIn("pominięto 1", summary)
+        self.assertTrue(any("kompletnego inwentarza" in issue["message"] for issue in issues))
+
     def test_status_no_changes(self):
         elements = [el("a", 40, 200)]
         groups, issues, summary, error = compile_layout_gpt_response(
             elements,
-            {"status": "no_changes", "summary": "Wszystko spójne.", "changes": []},
+            {
+                "status": "no_changes",
+                "summary": "Wszystko spójne.",
+                "section_inventory": inventory_for(elements),
+                "changes": [],
+            },
             PAGE,
         )
         self.assertEqual(error, "")

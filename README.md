@@ -347,7 +347,7 @@ Ratings, grammar, ATS, chat, and chat-driven position review cards.
 
 The assistant opens as a responsive panel up to 430 px wide, with slightly enlarged interface text for readability. Its composer starts at two lines, grows with the prompt up to 136 px, and then scrolls internally so long commands do not push the conversation out of view.
 
-**Układ** is a toggleable GPT **geometry corrector**: while active, every question sends a **full multi-page A4 JSON** (`left`/`top`/`width`/`height`/`fontSize`/…). `gpt-5.6-sol` groups raw elements itself; Python does not precompute section gaps because freestyle authoring dimensions such as `width: 3` are not reliable enough for a deterministic grouping heuristic. The high-reasoning prompt requires explicit peer comparisons (for example 6 px vs 14 px), treats top-to-top only as a diagnostic, and bases corrections on the real bottom-edge gap. It returns `status` + Polish `summary` + optional `changes[]`, compiled to previewable `layout_groups`. Legacy `findings[].moves` still works. Deselect **Układ** to leave the mode. Chat `position_operation` resolvers remain for freeform edit commands. **Projekt** (`design_rating`) uses `summarize_geometry_issues` for geometry score caps.
+**Układ** is a toggleable GPT **geometry corrector**: while active, every question sends a **full multi-page A4 JSON** (`left`/`top`/`width`/`height`/`fontSize`/…). `gpt-5.6-sol` groups raw elements itself; Python does not precompute section gaps because freestyle authoring dimensions such as `width: 3` are not reliable enough for a deterministic grouping heuristic. Both `text` and `textarea` are explicitly textual—generated experience and education records commonly use `textarea`. Before proposing corrections, the model must return `section_inventory`, assigning every textual element ID exactly once to a section and logical block. Python rejects the complete modern response when an ID is missing, unknown, or duplicated. A block-scoped move is also rejected unless every textual member receives the same delta; this prevents a title/date from moving while its company, description, or bullets stay behind. The high-reasoning prompt requires explicit peer comparisons (for example 6 px vs 14 px), treats top-to-top only as a diagnostic, and bases corrections on the real bottom-edge gap. It returns `status` + Polish `summary` + optional `changes[]`, compiled to previewable `layout_groups`. Legacy `findings[].moves` still works without the new inventory contract. Deselect **Układ** to leave the mode. Chat `position_operation` resolvers remain for freeform edit commands. **Projekt** (`design_rating`) uses `summarize_geometry_issues` for geometry score caps.
 
 Layout calls use **`gpt-5.6-sol`** by default (`AI_LAYOUT_MODEL`); other assistant actions stay on **`gpt-5.4-mini`** (`AI_ASSISTANT_MODEL`). Costs come from `openai_pricing.py` (USD list prices → PLN via `USD_TO_PLN`, default 4.0). **1 AI credit = 5 groszy (0.05 PLN)**; each successful call charges `max(1, ceil(cost_pln / 0.05))` and returns `usage.credits_charged`.
 
@@ -358,12 +358,12 @@ Implementation:
 - `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, lines 42–186, 308–615, and 656–703 — responsive panel width, typography, and composer sizing
 - `frontend/src/utils/elementBounds.js`, `measureElements` — `layout_bounds`, `content_height`, `clipped`, `bounds_estimated`
 - `backend/app/api/routes/ai_assistant.py`, `ai_assistant` (action `layout`), `TokenUsage`
-- `backend/app/services/ai_assistant_service.py`, `_layout_session`, `_model_for_action`, `_chat`, `_rate_design`
-- `backend/app/services/layout_gpt.py`, `LAYOUT_CORRECTOR_SYSTEM`, `build_layout_user_prompt`, `build_layout_snapshot`, `compile_layout_gpt_response`
+- `backend/app/services/ai_assistant_service.py`, lines 1044–1137, `_layout_session`; plus `_model_for_action`, `_chat`, `_rate_design`
+- `backend/app/services/layout_gpt.py`, lines 78–293 (`build_layout_snapshot`, `build_layout_user_prompt`), 424–499 (`_parse_section_inventory`, `_affected_text_ids`), and 659–856 (`compile_layout_gpt_response`)
 - `backend/app/services/layout_analysis.py`, `resolve_directed_operation`, `summarize_geometry_issues`
 - `backend/app/services/openai_pricing.py`, `usage_from_response`, `estimate_cost_usd`
 
-Tests: `backend/tests/test_layout_gpt.py`, `test_openai_pricing.py`, `test_ai_credits.py`, `test_ai_chat_command.py`, `test_layout_analysis.py`, …
+Tests: `backend/tests/test_layout_gpt.py`, especially `test_snapshot_inventory_includes_experience_and_education_textareas`, `test_compile_rejects_incomplete_block_move`, and `test_compile_rejects_incomplete_text_inventory`; plus `test_openai_pricing.py`, `test_ai_credits.py`, `test_ai_chat_command.py`, `test_layout_analysis.py`, …
 
 ### Entitlements / plans
 
@@ -928,7 +928,7 @@ Oceny, gramatyka, ATS, czat oraz karty pozycji z poleceń czatu.
 
 Asystent otwiera się jako responsywny panel o szerokości do 430 px, z lekko powiększoną typografią interfejsu. Pole wpisywania ma początkowo wysokość dwóch wierszy, rośnie wraz z poleceniem do 136 px, a następnie przewija zawartość wewnętrznie, dzięki czemu długie polecenia nie wypychają rozmowy poza ekran.
 
-**Układ** to przełączany **korektor geometrii** GPT: gdy aktywny, każde pytanie dostaje **pełny JSON A4**. `gpt-5.6-sol` sam grupuje surowe elementy; Python nie wylicza wcześniej odstępów sekcji, ponieważ wymiary freestyle, np. `width: 3`, są zbyt zawodne dla deterministycznej heurystyki. Prompt z wysokim reasoningiem wymaga jawnego porównania peerów (np. 6 px vs 14 px), traktuje top-to-top tylko diagnostycznie i opiera korektę na realnym odstępie między krawędziami. Model zwraca `status` + `summary` + opcjonalne `changes[]` → karty `layout_groups`. Stary format `findings[].moves` nadal działa. Ponowne kliknięcie **Układ** wychodzi z trybu. Czatowe `position_operation` nadal działają. **Projekt** używa `summarize_geometry_issues` do limitu oceny przy kolizjach.
+**Układ** to przełączany **korektor geometrii** GPT: gdy aktywny, każde pytanie dostaje **pełny JSON A4**. `gpt-5.6-sol` sam grupuje surowe elementy; Python nie wylicza wcześniej odstępów sekcji, ponieważ wymiary freestyle, np. `width: 3`, są zbyt zawodne dla deterministycznej heurystyki. Zarówno `text`, jak i `textarea` są jawnie traktowane jako elementy tekstowe—wygenerowane wpisy doświadczenia i wykształcenia zwykle używają `textarea`. Przed zaproponowaniem korekty model musi zwrócić `section_inventory`, przypisując dokładnie raz każde tekstowe ID do sekcji i logicznego bloku. Python odrzuca całą nowoczesną odpowiedź, gdy ID brakuje, jest nieznane lub występuje wielokrotnie. Ruch całego bloku jest także odrzucany, jeśli wszystkie jego tekstowe elementy nie otrzymały identycznej delty; tytuł albo data nie mogą więc odjechać bez firmy, opisu lub punktów. Prompt z wysokim reasoningiem wymaga jawnego porównania peerów (np. 6 px vs 14 px), traktuje top-to-top tylko diagnostycznie i opiera korektę na realnym odstępie między krawędziami. Model zwraca `status` + `summary` + opcjonalne `changes[]` → karty `layout_groups`. Stary format `findings[].moves` nadal działa bez nowego kontraktu inwentarza. Ponowne kliknięcie **Układ** wychodzi z trybu. Czatowe `position_operation` nadal działają. **Projekt** używa `summarize_geometry_issues` do limitu oceny przy kolizjach.
 
 Układ domyślnie woła **`gpt-5.6-sol`** (`AI_LAYOUT_MODEL`); pozostałe akcje asystenta zostają na **`gpt-5.4-mini`** (`AI_ASSISTANT_MODEL`). Koszt liczy `openai_pricing.py` (cennik USD → PLN przez `USD_TO_PLN`, domyślnie 4.0). **1 kredyt AI = 5 groszy (0.05 PLN)**; udane wywołanie pobiera `max(1, ceil(cost_pln / 0.05))` i zwraca `usage.credits_charged`.
 
@@ -939,12 +939,12 @@ Implementacja:
 - `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, linie 42–186, 308–615 i 656–703 — responsywna szerokość panelu, typografia i rozmiar pola wpisywania
 - `frontend/src/utils/elementBounds.js` — `measureElements`
 - `backend/app/api/routes/ai_assistant.py` — akcja `layout`, `TokenUsage`
-- `backend/app/services/ai_assistant_service.py` — `_layout_session`, `_model_for_action`
-- `backend/app/services/layout_gpt.py` — `LAYOUT_CORRECTOR_SYSTEM`, `build_layout_user_prompt`, `build_layout_snapshot`, `compile_layout_gpt_response`
+- `backend/app/services/ai_assistant_service.py`, linie 1044–1137 — `_layout_session`; ponadto `_model_for_action`
+- `backend/app/services/layout_gpt.py`, linie 78–293 (`build_layout_snapshot`, `build_layout_user_prompt`), 424–499 (`_parse_section_inventory`, `_affected_text_ids`) i 659–856 (`compile_layout_gpt_response`)
 - `backend/app/services/layout_analysis.py` — `resolve_directed_operation`, `summarize_geometry_issues`
 - `backend/app/services/openai_pricing.py` — `usage_from_response`, `estimate_cost_usd`
 
-Testy: `backend/tests/test_layout_gpt.py`, `test_openai_pricing.py`, `test_ai_credits.py`, `test_ai_chat_command.py`, `test_layout_analysis.py`, …
+Testy: `backend/tests/test_layout_gpt.py`, szczególnie `test_snapshot_inventory_includes_experience_and_education_textareas`, `test_compile_rejects_incomplete_block_move` i `test_compile_rejects_incomplete_text_inventory`; ponadto `test_openai_pricing.py`, `test_ai_credits.py`, `test_ai_chat_command.py`, `test_layout_analysis.py`, …
 
 ### Entitlements / plany
 
