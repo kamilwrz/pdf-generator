@@ -25,6 +25,7 @@ from app.services.layout_analysis import (
     resolve_restructure_section,
     summarize_geometry_issues,
 )
+from app.services.layout_rhythm import pack_rhythm_classification
 from app.services.openai_pricing import usage_from_response
 
 _MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.4-mini")
@@ -1035,6 +1036,157 @@ def _analyze_layout(elements: list[dict], page_size: dict | None) -> dict:
     return result
 
 
+def _extract_rhythm_classify_payload(elements: list[dict]) -> list[dict]:
+    """Compact canvas snapshot for semantic classification (no style rewriting)."""
+    payload = []
+    for el in elements:
+        element_id = el.get("element_id")
+        category = el.get("category")
+        if not element_id or category not in {"text", "textarea", "line", "image"}:
+            continue
+        if el.get("fixedToPage") or el.get("locked"):
+            continue
+        item = {
+            "element_id": element_id,
+            "category": category,
+            "fontSize": el.get("fontSize"),
+            "bold": bool(el.get("bold")),
+            "left": el.get("left"),
+            "top": el.get("top"),
+            "width": el.get("width"),
+            "height": el.get("height"),
+            "page": el.get("page", 1),
+            "preview": (el.get("content") or "")[:120],
+        }
+        if category == "image":
+            item["preview"] = "[obraz]"
+        if category == "line":
+            item["preview"] = "[linia]"
+        payload.append(item)
+    # Prefer reading order so the model sees sections top-to-bottom.
+    payload.sort(key=lambda item: (
+        int(item.get("page") or 1),
+        float(item.get("top") or 0),
+        float(item.get("left") or 0),
+    ))
+    return payload
+
+
+def _normalize_layout_rhythm(elements: list[dict], page_size: dict | None) -> dict:
+    """GPT classifies structure; Python packs with cv_generator SPACE_* rhythm."""
+    classify_payload = _extract_rhythm_classify_payload(elements)
+    if len(classify_payload) < 2:
+        return {
+            "message": "Za mało edytowalnych elementów tekstu, aby ujednolicić rytm układu.",
+            "rating": None,
+            "tips": [],
+            "corrections": [],
+            "layout_groups": [],
+            "layout_issues": [],
+            "web_sources": [],
+            "usage": {
+                "model": None,
+                "action": "layout_rhythm",
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+                "cost_usd": 0.0,
+                "cost_pln_estimate": 0.0,
+                "rates_usd_per_1m": {"input": 0.0, "output": 0.0},
+            },
+        }
+
+    system = (
+        "Jesteś projektantem struktury CV. Klasyfikujesz istniejące elementy płótna "
+        "w sekcje i bloki. NIGDY nie podajesz left/top/width/height — tylko semantykę. "
+        "Zwracasz WYŁĄCZNIE prawidłowy JSON. "
+        "Wszystkie opisowe stringi (id sekcji) trzymaj po angielsku w snake_case."
+    )
+    user = f"""Użytkownik zbudował CV freestyle (bez szablonu). Odstępy są nierówne.
+Sklasyfikuj elementy, żeby Python mógł ułożyć je od nowa według rytmu szablonu.
+
+ELEMENTY (kolejność od góry):
+{json.dumps(classify_payload, ensure_ascii=False)}
+
+Zasady:
+- Sekcje typowe: header, summary, experience, education, skills, languages, other.
+- Blok = jeden wpis (np. jedno stanowisko albo jedna szkoła).
+- Role elementów: heading, entry_title, entry_meta, body, list, contact, rule, other.
+- Nagłówek sekcji (np. „DOŚWIADCZENIE ZAWODOWE”) ma role=heading.
+- Stanowisko/tytuł wpisu = entry_title; firma/daty = entry_meta; opis = body lub list.
+- Linie-oddzielacze sekcji = rule (category line) w bloku z headingiem albo osobnym bloku.
+- Obrazy i elementy niepasujące do przepływu treści umieść w ignored_element_ids.
+- Nie wymyślaj element_id — używaj wyłącznie id z listy.
+- profile.content_left / content_width: zaproponuj wspólną kolumnę treści (mediana freestyle).
+- order: rosnąco od góry dokumentu.
+
+Zwróć JSON:
+{{
+  "profile": {{"content_left": <liczba>, "content_width": <liczba>}},
+  "ignored_element_ids": ["..."],
+  "sections": [
+    {{
+      "id": "experience",
+      "order": 2,
+      "blocks": [
+        {{
+          "id": "job-1",
+          "order": 1,
+          "elements": [
+            {{"element_id": "...", "role": "entry_title"}},
+            {{"element_id": "...", "role": "entry_meta"}},
+            {{"element_id": "...", "role": "body"}}
+          ]
+        }}
+      ]
+    }}
+  ]
+}}"""
+
+    raw, usage = _gpt(system, user, action="layout_rhythm")
+    group = pack_rhythm_classification(elements, raw, page_size)
+    usage_payload = usage if isinstance(usage, dict) else {}
+
+    if group is None:
+        return {
+            "message": (
+                "Nie udało się zbudować bezpiecznego rytmu układu z klasyfikacji. "
+                "Spróbuj ponownie albo popraw ręcznie nachodzące bloki."
+            ),
+            "rating": None,
+            "tips": [
+                "Rytm wymaga poprawnej klasyfikacji sekcji/bloków — model nie przesuwa współrzędnych bezpośrednio.",
+                "Elementy fixedToPage / locked są pomijane.",
+            ],
+            "corrections": [],
+            "layout_groups": [],
+            "layout_issues": [{
+                "severity": "warning",
+                "message": "Klasyfikacja GPT nie przełożyła się na poprawny packer SPACE_*.",
+            }],
+            "web_sources": [],
+            "usage": usage_payload,
+        }
+
+    return {
+        "message": (
+            "Przygotowałem indywidualny rytm układu na podstawie klasyfikacji sekcji i bloków. "
+            "Podglądaj grupę przed zastosowaniem — Python ułożył elementy według STACK/RECORD/SECTION."
+        ),
+        "rating": None,
+        "tips": [
+            "GPT określił kategorie; współrzędne wyliczył Python (SPACE_STACK / SPACE_RECORD / SPACE_SECTION).",
+            "Zdjęcia i elementy spoza klasyfikacji pozostają na miejscu.",
+            "Po zastosowaniu możesz doprecyzować ręcznie lub uruchomić Układ dla drobnych wyrównań.",
+        ],
+        "corrections": [],
+        "layout_groups": [group],
+        "layout_issues": [],
+        "web_sources": [],
+        "usage": usage_payload,
+    }
+
+
 # ── public dispatcher ──────────────────────────────────────────────────────
 
 def analyze_action(
@@ -1062,6 +1214,7 @@ def analyze_action(
         "ats_score":       lambda: _ats_score(text),
         "chat":            lambda: _chat(message, elements, page_size, history),
         "layout":          lambda: _analyze_layout(elements, page_size),
+        "layout_rhythm":   lambda: _normalize_layout_rhythm(elements, page_size),
     }
 
     fn = dispatchers.get(action)

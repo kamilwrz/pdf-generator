@@ -7,7 +7,7 @@ import { useState, useRef, useEffect, useCallback, use } from "react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { nanoid } from "nanoid";
 import { BsStars } from "react-icons/bs";
-import { FaArrowsAltH, FaStar, FaPalette, FaBriefcase, FaFont, FaMagic, FaRobot } from "react-icons/fa";
+import { FaArrowsAltH, FaStar, FaPalette, FaBriefcase, FaFont, FaMagic, FaRobot, FaLayerGroup } from "react-icons/fa";
 import { RiEditLine } from "react-icons/ri";
 import { IoClose, IoSend } from "react-icons/io5";
 import { MdCheckCircle, MdCancel } from "react-icons/md";
@@ -27,6 +27,7 @@ const ACTIONS = [
     { id: "improve",         label: "Ulepsz",            icon: FaMagic,       color: CHROME_ACCENT, description: "Mocniejsze punkty z czasownikami akcji" },
     { id: "ats_score",       label: "Wynik ATS",         icon: FaRobot,       color: CHROME_ACCENT, description: "Sprawdzenie pod systemy rekrutacyjne ATS" },
     { id: "layout",          label: "Układ",             icon: FaArrowsAltH,  color: CHROME_ACCENT, description: "Napraw kolizje, ucięcia i granice strony; potem wyrównania" },
+    { id: "layout_rhythm",   label: "Rytm",              icon: FaLayerGroup,  color: CHROME_ACCENT, description: "GPT klasyfikuje sekcje/bloki; Python układa według SPACE_* jak w szablonie" },
 ];
 const SEVERITY_LABELS = {
     critical: "krytyczny",

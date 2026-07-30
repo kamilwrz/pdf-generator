@@ -804,6 +804,18 @@ Algorytm wykrywa:
 Następnie tworzy bezpieczne grupy poprawek, posortowane od krytycznych do kosmetycznych.
 Przy aktywnych kolizjach lub ucięciach wyrównania są pomijane, żeby nie zasłaniać naprawy czytelności.
 
+### 7.6a. Przycisk „Rytm” — klasyfikacja GPT + packer SPACE_*
+
+Akcja `layout_rhythm` jest przeznaczona do freestyle CV bez szablonu:
+
+1. GPT otrzymuje listę elementów (id, treść, przybliżona pozycja) i zwraca wyłącznie semantykę:
+   sekcje → bloki → role (`heading`, `entry_title`, `entry_meta`, `body`, …).
+2. Python (`layout_rhythm.pack_rhythm_classification`) układa elementy według tych samych stałych co generator szablonów:
+   `SPACE_STACK`, `SPACE_RECORD`, `SPACE_SECTION`, `SPACE_AFTER_RULE`.
+3. Wynik to jedna karta podglądu `rhythm-reflow` (krytyczna) — bez bezpośrednich współrzędnych z modelu.
+
+Stałe tła (`fixedToPage`), elementy zablokowane oraz pozycje spoza klasyfikacji pozostają nietknięte.
+
 ### 7.7. Polecenia tekstowe dotyczące pozycji
 
 W czacie GPT może zwrócić opis operacji:

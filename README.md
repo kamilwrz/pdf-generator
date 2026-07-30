@@ -345,17 +345,18 @@ Implementation:
 
 Ratings, grammar, ATS, chat, and deterministic layout analysis with review cards.
 
-**Układ** (`layout`) is Python-only (`analyze_layout`): critical groups first (clipped textareas, overlapping content stacks, out-of-bounds, section rules through text), then cosmetic alignment/spacing only when readability is clean. **Projekt** (`design_rating`) still rates typography via GPT, but `summarize_geometry_issues` injects overlap/clip/rule/out-of-bounds counts and hard-caps the score at 5 when those faults exist.
+**Układ** (`layout`) is Python-only (`analyze_layout`): critical groups first (clipped textareas, overlapping content stacks, out-of-bounds, section rules through text), then cosmetic alignment/spacing only when readability is clean. **Rytm** (`layout_rhythm`) asks GPT only for section/block/role classification; Python packs elements with `SPACE_STACK` / `SPACE_RECORD` / `SPACE_SECTION` / `SPACE_AFTER_RULE` from `cv_generator.py` into one previewable `rhythm-reflow` group. **Projekt** (`design_rating`) still rates typography via GPT, but `summarize_geometry_issues` injects overlap/clip/rule/out-of-bounds counts and hard-caps the score at 5 when those faults exist.
 
 Implementation:
 
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `ACTIONS` (lines 21–29), default export
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `ACTIONS` (lines 21–30), default export
 - `frontend/src/utils/elementBounds.js`, `measureElements` (line 120+) — `layout_bounds`, `content_height`, `clipped`, `bounds_estimated`
-- `backend/app/api/routes/ai_assistant.py`, `ai_assistant`
-- `backend/app/services/ai_assistant_service.py`, `analyze_action` (line 1040+), `_rate_design` (line 332+)
+- `backend/app/api/routes/ai_assistant.py`, `ai_assistant` — actions include `layout_rhythm`
+- `backend/app/services/ai_assistant_service.py`, `analyze_action` (line 1192+), `_rate_design` (line 332+), `_normalize_layout_rhythm` (line 1075+)
 - `backend/app/services/layout_analysis.py`, `analyze_layout` (line 923+), `_stack_resolve_overlap_groups` (line 618+), `_clip_groups` (line 690+), `summarize_geometry_issues` (line 867+)
+- `backend/app/services/layout_rhythm.py`, `pack_rhythm_classification` — SPACE_* packer
 
-Tests: `backend/tests/test_ai_chat_command.py`, `test_layout_analysis.py`, …
+Tests: `backend/tests/test_ai_chat_command.py`, `test_layout_analysis.py`, `test_layout_rhythm.py`, …
 
 ### Entitlements / plans
 
@@ -914,17 +915,18 @@ Implementacja:
 
 Oceny, gramatyka, ATS, czat oraz deterministyczna analiza układu z kartami do akceptacji.
 
-**Układ** (`layout`) to wyłącznie Python (`analyze_layout`): najpierw grupy krytyczne (ucięte textarea, nachodzące bloki, poza stroną, linie sekcji przez tekst), potem kosmetyczne wyrównania/odstępy tylko gdy czytelność jest w porządku. **Projekt** (`design_rating`) nadal ocenia typografię przez GPT, ale `summarize_geometry_issues` wstrzykuje liczbę kolizji/ucięć/linii/poza-stroną i twarde ogranicza ocenę do max 5 przy tych błędach.
+**Układ** (`layout`) to wyłącznie Python (`analyze_layout`): najpierw grupy krytyczne (ucięte textarea, nachodzące bloki, poza stroną, linie sekcji przez tekst), potem kosmetyczne wyrównania/odstępy tylko gdy czytelność jest w porządku. **Rytm** (`layout_rhythm`) — GPT tylko klasyfikuje sekcje/bloki/role; Python układa elementy według `SPACE_STACK` / `SPACE_RECORD` / `SPACE_SECTION` / `SPACE_AFTER_RULE` z `cv_generator.py` w jedną grupę podglądu `rhythm-reflow`. **Projekt** (`design_rating`) nadal ocenia typografię przez GPT, ale `summarize_geometry_issues` wstrzykuje liczbę kolizji/ucięć/linii/poza-stroną i twarde ogranicza ocenę do max 5 przy tych błędach.
 
 Implementacja:
 
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `ACTIONS` (linie 21–29), komponent główny
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `ACTIONS` (linie 21–30), komponent główny
 - `frontend/src/utils/elementBounds.js` — `measureElements` (linia 120+): `layout_bounds`, `content_height`, `clipped`, `bounds_estimated`
-- `backend/app/api/routes/ai_assistant.py` — `ai_assistant`
-- `backend/app/services/ai_assistant_service.py` — `analyze_action` (linia 1040+), `_rate_design` (linia 332+)
-- `backend/app/services/layout_analysis.py` — `analyze_layout` (linia 923+), `_stack_resolve_overlap_groups` (linia 618+), `_clip_groups` (linia 690+), `summarize_geometry_issues` (linia 867+)
+- `backend/app/api/routes/ai_assistant.py` — `ai_assistant` (akcja `layout_rhythm`)
+- `backend/app/services/ai_assistant_service.py` — `analyze_action`, `_rate_design`, `_normalize_layout_rhythm`
+- `backend/app/services/layout_analysis.py` — `analyze_layout`, stacking/clip
+- `backend/app/services/layout_rhythm.py` — `pack_rhythm_classification`
 
-Testy: `backend/tests/test_ai_chat_command.py`, `test_layout_analysis.py`, …
+Testy: `backend/tests/test_ai_chat_command.py`, `test_layout_analysis.py`, `test_layout_rhythm.py`, …
 
 ### Entitlements / plany
 
