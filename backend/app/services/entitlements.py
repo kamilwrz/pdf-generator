@@ -439,6 +439,16 @@ def record_export(db: Session, user_id: int) -> UsageCounter:
     return row
 
 
+def reset_ai_credits(db: Session, user_id: int) -> UsageCounter:
+    """Set this month's AI credit usage to zero (full plan allowance again)."""
+    row = _usage_row(db, user_id)
+    row.ai_actions_count = 0
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
 def charge_ai_credits(db: Session, user_id: int, cost_pln: float) -> UsageCounter:
     """Add credit cost for one AI call to this month's usage meter and commit."""
     row = _usage_row(db, user_id)

@@ -7,7 +7,10 @@ tests must patch this module's binding rather than changing the env var after
 import.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+import os
+import secrets
+
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -15,13 +18,15 @@ from sqlalchemy.orm import Session
 # `app.api.routes.billing.ALLOW_UNPAID_PLAN_SELECTION` directly — setting the
 # env var after import has no effect on this module.
 from app.core.config import ALLOW_UNPAID_PLAN_SELECTION
-from app.core.security import verify_token
+from app.core.security import secret_key, verify_token
 from app.crud.user import get_user_by_username
 from app.dependencies import get_db
+from app.models.models import User
 from app.services.entitlements import (
     SELECTABLE_PLANS,
     get_entitlements,
     list_selectable_plans,
+    reset_ai_credits,
     set_user_plan,
 )
 
@@ -84,4 +89,67 @@ async def select_plan(
         "payment_required": False,
         "checkout_url": None,
         "entitlements": get_entitlements(db, user),
+    }
+
+
+class ResetAiCreditsRequest(BaseModel):
+    """Ops helper: zero this month's AI usage so the plan allowance is full again."""
+
+    username: str
+
+
+def _admin_secret_ok(x_admin_secret: str | None) -> bool:
+    """Accept X-Admin-Secret equal to ADMIN_RESET_SECRET or SECRET_KEY."""
+    provided = (x_admin_secret or "").strip()
+    if not provided:
+        return False
+    candidates = [
+        (os.getenv("ADMIN_RESET_SECRET") or "").strip(),
+        (secret_key or "").strip(),
+    ]
+    return any(
+        candidate and secrets.compare_digest(provided, candidate)
+        for candidate in candidates
+    )
+
+
+@router.post("/admin/reset-ai-credits")
+async def admin_reset_ai_credits(
+    request: ResetAiCreditsRequest,
+    db: Session = Depends(get_db),
+    x_admin_secret: str | None = Header(default=None, alias="X-Admin-Secret"),
+):
+    """Reset monthly AI credit usage for a user (ops / local support).
+
+    Requires header ``X-Admin-Secret`` matching ``ADMIN_RESET_SECRET`` or
+    ``SECRET_KEY``. Used when the laptop cannot reach Render Postgres directly.
+    """
+    if not _admin_secret_ok(x_admin_secret):
+        raise HTTPException(status_code=403, detail="Forbidden.")
+    username = (request.username or "").strip()
+    if not username:
+        raise HTTPException(status_code=400, detail="username is required.")
+    user = (
+        db.query(User)
+        .filter(User.username.ilike(username))
+        .first()
+    )
+    if user is None:
+        # Fallback: substring match for support typos / display names.
+        user = (
+            db.query(User)
+            .filter(User.username.ilike(f"%{username}%"))
+            .order_by(User.id)
+            .first()
+        )
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found.")
+    reset_ai_credits(db, user.id)
+    ents = get_entitlements(db, user)
+    return {
+        "username": user.username,
+        "period_key": ents["usage"]["period_key"],
+        "ai_credits_used": ents["usage"]["ai_credits_used"],
+        "monthly_ai_credits": ents["limits"]["monthly_ai_credits"],
+        "ai_credits_remaining": ents["remaining"]["ai_credits"],
     }

@@ -493,6 +493,7 @@ App: `http://localhost:5173`.
 | `S3_BUCKET_NAME` | no | Enable S3 when set | bucket name |
 | `AWS_REGION` / keys | with S3 | AWS credentials | — |
 | `ALLOW_UNPAID_PLAN_SELECTION` | no | Allow activating paid plans without Stripe (`true` default) | `true` |
+| `ADMIN_RESET_SECRET` | no | Optional secret for `POST /billing/admin/reset-ai-credits` (falls back to `SECRET_KEY`) | long random string |
 
 #### Frontend
 
@@ -1022,7 +1023,7 @@ Aplikacja: `http://localhost:5173`.
 
 ### Zmienne środowiskowe
 
-Backend (m.in.): `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `DATABASE_URL`, `CORS_ORIGINS`, `BACKEND_URL`, `API_GPT_KEY`, `AI_ASSISTANT_MODEL`, `AI_LAYOUT_MODEL`, `USD_TO_PLN`, `S3_BUCKET_NAME`, `AWS_*`, `ALLOW_UNPAID_PLAN_SELECTION`.
+Backend (m.in.): `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `DATABASE_URL`, `CORS_ORIGINS`, `BACKEND_URL`, `API_GPT_KEY`, `AI_ASSISTANT_MODEL`, `AI_LAYOUT_MODEL`, `USD_TO_PLN`, `S3_BUCKET_NAME`, `AWS_*`, `ALLOW_UNPAID_PLAN_SELECTION`, `ADMIN_RESET_SECRET`.
 
 Frontend: `VITE_API_URL`.
 
