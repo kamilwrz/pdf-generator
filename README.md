@@ -345,17 +345,18 @@ Implementation:
 
 Ratings, grammar, ATS, chat, and chat-driven position review cards.
 
-The dedicated **Układ** / **Rytm** assistant buttons were removed (clean slate). Chat can still return `position_operation` directives resolved by `layout_analysis.resolve_directed_operation` into previewable `layout_groups`. **Projekt** (`design_rating`) rates typography via GPT; `summarize_geometry_issues` injects overlap/clip/rule/out-of-bounds counts and hard-caps the score at 5 when those faults exist.
+**Układ** is a toggleable GPT session: while active, every question sends a **full multi-page A4 JSON** (`left`/`top`/`width`/`height`/`fontSize`/…) and GPT returns Polish analysis plus optional `findings` → previewable `layout_groups` on the canvas. Deselect **Układ** to leave the mode. Chat `position_operation` resolvers remain for freeform edit commands. **Projekt** (`design_rating`) uses `summarize_geometry_issues` for geometry score caps.
 
 Implementation:
 
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `ACTIONS`, default export
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `ACTIONS` (`layout` toggle), default export
 - `frontend/src/utils/elementBounds.js`, `measureElements` — `layout_bounds`, `content_height`, `clipped`, `bounds_estimated`
-- `backend/app/api/routes/ai_assistant.py`, `ai_assistant`
-- `backend/app/services/ai_assistant_service.py`, `analyze_action`, `_rate_design`, `_chat`
+- `backend/app/api/routes/ai_assistant.py`, `ai_assistant` (action `layout`)
+- `backend/app/services/ai_assistant_service.py`, `_layout_session`, `_chat`, `_rate_design`
+- `backend/app/services/layout_gpt.py`, `build_layout_snapshot`, `compile_layout_gpt_response`
 - `backend/app/services/layout_analysis.py`, `resolve_directed_operation`, `summarize_geometry_issues`
 
-Tests: `backend/tests/test_ai_chat_command.py`, `test_layout_analysis.py`, …
+Tests: `backend/tests/test_layout_gpt.py`, `test_ai_chat_command.py`, `test_layout_analysis.py`, …
 
 ### Entitlements / plans
 
@@ -914,17 +915,18 @@ Implementacja:
 
 Oceny, gramatyka, ATS, czat oraz karty pozycji z poleceń czatu.
 
-Przyciski **Układ** / **Rytm** zostały usunięte (czysta karta). Czat nadal może zwracać `position_operation`, które Python rozwiązuje przez `layout_analysis.resolve_directed_operation` do kart `layout_groups`. **Projekt** (`design_rating`) nadal ocenia typografię przez GPT; `summarize_geometry_issues` wstrzykuje liczbę kolizji/ucięć/linii/poza-stroną i twarde ogranicza ocenę do max 5 przy tych błędach.
+**Układ** to przełączany tryb sesji GPT: gdy aktywny, każde pytanie dostaje **pełny JSON A4** (wszystkie strony: `left`/`top`/`width`/`height`/`fontSize`/…) i model zwraca analizę po polsku oraz opcjonalne `findings` → karty `layout_groups` na płótnie. Ponowne kliknięcie **Układ** wychodzi z trybu. Czatowe `position_operation` nadal działają. **Projekt** używa `summarize_geometry_issues` do limitu oceny przy kolizjach.
 
 Implementacja:
 
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `ACTIONS`, komponent główny
-- `frontend/src/utils/elementBounds.js` — `measureElements`: `layout_bounds`, `content_height`, `clipped`, `bounds_estimated`
-- `backend/app/api/routes/ai_assistant.py` — `ai_assistant`
-- `backend/app/services/ai_assistant_service.py` — `analyze_action`, `_rate_design`, `_chat`
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `ACTIONS` (toggle `layout`)
+- `frontend/src/utils/elementBounds.js` — `measureElements`
+- `backend/app/api/routes/ai_assistant.py` — akcja `layout`
+- `backend/app/services/ai_assistant_service.py` — `_layout_session`
+- `backend/app/services/layout_gpt.py` — `build_layout_snapshot`, `compile_layout_gpt_response`
 - `backend/app/services/layout_analysis.py` — `resolve_directed_operation`, `summarize_geometry_issues`
 
-Testy: `backend/tests/test_ai_chat_command.py`, `test_layout_analysis.py`, …
+Testy: `backend/tests/test_layout_gpt.py`, `test_ai_chat_command.py`, `test_layout_analysis.py`, …
 
 ### Entitlements / plany
 

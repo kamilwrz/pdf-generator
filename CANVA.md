@@ -773,11 +773,20 @@ Pola geometryczne są celowo wykluczone:
 
 Komentarz w `ai_assistant_service.py` wyjaśnia powód: bezpośrednie współrzędne modelu powodowały kolizje z ikonami i dekoracjami.
 
-### 7.6. Przyciski „Układ” i „Rytm” (usunięte)
+### 7.6. Przycisk „Układ” — tryb sesji GPT (pełny JSON A4)
 
-Dedicated assistant actions `layout` / `layout_rhythm` were removed so the freestyle
-spacing tools can be redesigned from scratch. Chat position commands
-(`position_operation` → `resolve_directed_operation`) remain available.
+1. Kliknięcie **Układ** włącza tryb (przycisk zostaje zaznaczony).
+2. Backend buduje `build_layout_snapshot` — wszystkie strony i elementy z
+   `left`/`top`/`width`/`height`/`page`/`fontSize`/… oraz flagą `movable`.
+3. GPT analizuje peery (nagłówki, linie, wpisy, kolumny) i zwraca `summary` +
+   `findings[]` z `analysis` (konkretne współrzędne) oraz opcjonalnymi `moves`.
+4. Python (`compile_layout_gpt_response`) mapuje to na `layout_issues` + karty
+   `layout_groups` (Podgląd / Zastosuj na płótnie).
+5. Dopóki tryb jest aktywny, kolejne pytania z inputu idą jako akcja `layout`
+   ze świeżym JSON-em i historią sesji.
+6. Ponowne kliknięcie **Układ** wyłącza tryb.
+
+Chatowe `position_operation` → `resolve_directed_operation` pozostają osobno.
 
 ### 7.7. Polecenia tekstowe dotyczące pozycji
 
@@ -1240,10 +1249,11 @@ Dla textarea porównuje `scrollHeight` z `clientHeight` (informacja o ucięciu t
 
 Backend preferuje `layout_bounds`, a przy ich braku stosuje zapisane wartości lub bezpieczne przybliżenie tekstu.
 
-### 13.2. Automatyczna analiza (usunięta)
+### 13.2. Analiza układu (GPT)
 
-Publiczna funkcja `analyze_layout` (przycisk „Układ”) została usunięta.
-Geometrię dla czatu nadal liczy `resolve_directed_operation` / powiązane resolvery.
+Przycisk **Układ** używa `layout_gpt.build_layout_snapshot` + sesji GPT
+(`_layout_session`). Geometrię dla zwykłych poleceń czatu nadal liczy
+`resolve_directed_operation`.
 
 ### 13.3. Granice bezpieczeństwa
 

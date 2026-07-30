@@ -100,9 +100,10 @@ Pływający asystent, który rozumie dokument, który właśnie edytujesz.
 5. **Styl** — ton i klarowność  
 6. **Ulepsz** — mocniejsze, bardziej „action” bullet points  
 7. **Wynik ATS** — sygnał czytelności dla systemów rekrutacyjnych  
+8. **Układ** — tryb sesji: GPT czyta pełny JSON A4 i odpowiada na pytania o geometrię; karty Podgląd/Zastosuj  
 
 ### Edycja w rozmowie
-Pisz naturalnym językiem. Akceptuj lub odrzucaj poprawki per element, podglądaj grupy przesunięć z poleceń czatu, przebudowuj strukturę albo usuwaj słabe bloki — z oznaczeniem istotności, żebyś Ty miał kontrolę.
+Pisz naturalnym językiem. W trybie Układ dopytuj o odstępy i wyrównania. Akceptuj lub odrzucaj poprawki per element, podglądaj grupy przesunięć, przebudowuj strukturę albo usuwaj słabe bloki — z oznaczeniem istotności, żebyś Ty miał kontrolę.
 
 ---
 

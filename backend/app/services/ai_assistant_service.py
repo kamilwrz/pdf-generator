@@ -24,6 +24,11 @@ from app.services.layout_analysis import (
     resolve_restructure_section,
     summarize_geometry_issues,
 )
+from app.services.layout_gpt import (
+    MAX_LAYOUT_MOVE_PX,
+    build_layout_snapshot,
+    compile_layout_gpt_response,
+)
 from app.services.openai_pricing import usage_from_response
 
 _MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.4-mini")
@@ -1018,6 +1023,126 @@ Zwróć JSON:
     return result
 
 
+def _layout_session(
+    message: str,
+    elements: list[dict],
+    page_size: dict | None,
+    history: list | None = None,
+) -> dict:
+    """GPT layout mode: full A4 JSON in, findings + canvas patches out."""
+    snapshot = build_layout_snapshot(elements, page_size)
+    if snapshot.get("movable_count", 0) < 1:
+        return {
+            "message": "Brak mierzalnych elementów na płótnie do analizy układu.",
+            "rating": None,
+            "tips": [],
+            "corrections": [],
+            "layout_groups": [],
+            "layout_issues": [],
+            "web_sources": [],
+            "usage": {
+                "model": None,
+                "action": "layout",
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+                "cost_usd": 0.0,
+                "cost_pln_estimate": 0.0,
+                "rates_usd_per_1m": {"input": 0.0, "output": 0.0},
+            },
+        }
+
+    question = (message or "").strip() or (
+        "Przeanalizuj cały układ CV na wszystkich stronach: odstępy między "
+        "wpisami, wyrównanie nagłówków sekcji, linie dekoracyjne przy nagłówkach, "
+        "kolumny i rytm doświadczenia. Zachowaj wizję użytkownika. "
+        "Wskaż problemy ze współrzędnymi i zaproponuj konkretne przesunięcia."
+    )
+    session_history = _normalize_chat_history(history)
+    history_block = ""
+    if session_history:
+        history_block = "HISTORIA SESJI UKŁADU:\n" + json.dumps(
+            session_history, ensure_ascii=False
+        ) + "\n\n"
+
+    system = (
+        "Jesteś analitykiem geometrii freestyle CV na wielu stronach A4. "
+        "Dostajesz KOMPLETNY JSON wszystkich elementów (left/top/width/height/page, "
+        "fontSize, content…). Porównujesz peery (nagłówki, linie, wpisy doświadczenia, "
+        "kolumny) i odpowiadasz jak designer z konkretnymi liczbami. "
+        "Zachowujesz wizję użytkownika — nie budujesz nowego szablonu. "
+        "Zwracasz WYŁĄCZNIE prawidłowy JSON."
+    )
+    user = f"""{history_block}STAN PŁÓTNA (wszystkie strony, px, origin = lewy górny róg strony):
+{json.dumps(snapshot, ensure_ascii=False)}
+
+PYTANIE / POLECENIE UŻYTKOWNIKA:
+{question}
+
+Zasady odpowiedzi:
+1. Analizuj cały CV (wszystkie page w JSON). Cytuj left/top i delty w analysis.
+2. Styl jak w przykładach: „Medtronic kończy się top:443.7, Citibank top:462 → przerwa 18 px vs typowe 13 px”.
+3. findings[] — osobny problem = osobna karta na froncie (max {snapshot["constraints"]["max_findings"]}).
+4. moves w findingach: absolute left/top (i opcjonalnie height tylko dla uciętych textarea).
+5. Max {snapshot["constraints"]["max_moves"]} ruchów łącznie; orientacyjnie ≤ ±{snapshot["constraints"]["max_delta_px"]} px.
+6. Nie ruszaj imienia i roli pod zdjęciem — keep_element_ids.
+7. movable=false / locked / fixedToPage pomiń. Nie zmieniaj page ani content.
+8. Na pytania bez potrzeby patchy: findings mogą być puste / bez moves, ale summary/message musi odpowiedzieć.
+9. Zachowaj freestyle: nie wyrównuj wszystkiego sztucznie do szablonu.
+
+Zwróć JSON:
+{{
+  "summary": "<odpowiedź po polsku na pytanie użytkownika>",
+  "keep_element_ids": ["..."],
+  "findings": [
+    {{
+      "id": "experience-heading-left",
+      "severity": "high",
+      "title": "DOŚWIADCZENIE — za daleko w prawo",
+      "analysis": "PODSUMOWANIE left:70, DOŚWIADCZENIE left:95 — odstaje o ~25 px.",
+      "moves": [
+        {{"element_id": "...", "left": 70, "top": 280, "reason": "wyrównanie do peerów"}}
+      ]
+    }}
+  ]
+}}"""
+
+    raw, usage = _gpt(system, user, action="layout")
+    usage_payload = usage if isinstance(usage, dict) else {}
+    groups, issues, summary, error = compile_layout_gpt_response(elements, raw, page_size)
+
+    if error == "empty_response":
+        return {
+            "message": "Model nie zwrócił użytecznej analizy układu. Spróbuj ponownie lub doprecyzuj pytanie.",
+            "rating": None,
+            "tips": ["Tryb Układ: GPT dostaje pełny JSON A4 przy każdym pytaniu."],
+            "corrections": [],
+            "layout_groups": [],
+            "layout_issues": [{"severity": "warning", "message": error}],
+            "web_sources": [],
+            "usage": usage_payload,
+        }
+
+    message_out = summary or (
+        f"Przygotowałem {len(issues)} wniosków układu"
+        + (f" i {sum(len(g.get('patches') or []) for g in groups)} propozycji przesunięć." if groups else ".")
+    )
+    tips = [
+        "Tryb Układ jest aktywny — możesz dopytywać (np. o konkretną sekcję); każde pytanie dostaje świeży JSON A4.",
+        f"Karty poniżej można podejrzeć i zastosować na płótnie (max ±{MAX_LAYOUT_MOVE_PX:g} px na element).",
+        "Imię / rola zawodowa oraz elementy locked nie są ruszane.",
+    ]
+    return {
+        "message": message_out,
+        "rating": None,
+        "tips": tips,
+        "corrections": [],
+        "layout_groups": groups,
+        "layout_issues": issues,
+        "web_sources": [],
+        "usage": usage_payload,
+    }
+
 
 # ── public dispatcher ──────────────────────────────────────────────────────
 
@@ -1045,6 +1170,7 @@ def analyze_action(
         "improve":         lambda: _improve_content(elements),
         "ats_score":       lambda: _ats_score(text),
         "chat":            lambda: _chat(message, elements, page_size, history),
+        "layout":          lambda: _layout_session(message, elements, page_size, history),
     }
 
     fn = dispatchers.get(action)

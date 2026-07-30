@@ -26,7 +26,7 @@ router = APIRouter(prefix="/ai", tags=["ai_assistant"])
 
 VALID_ACTIONS = {
     "rating", "design_rating", "position_rating",
-    "grammar", "language", "improve", "ats_score", "chat",
+    "grammar", "language", "improve", "ats_score", "layout", "chat",
 }
 
 
@@ -42,7 +42,7 @@ class AssistantRequest(BaseModel):
     message: str = ""
     job_description: str = ""
     page_size: dict = {}
-    # Prior turns from the open editor session (role + content). Chat only.
+    # Prior turns from the open editor session (role + content). Chat / layout.
     history: list[dict] = []
 
 

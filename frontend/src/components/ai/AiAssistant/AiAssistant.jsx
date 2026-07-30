@@ -7,7 +7,7 @@ import { useState, useRef, useEffect, useCallback, use } from "react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { nanoid } from "nanoid";
 import { BsStars } from "react-icons/bs";
-import { FaStar, FaPalette, FaBriefcase, FaFont, FaMagic, FaRobot } from "react-icons/fa";
+import { FaArrowsAltH, FaStar, FaPalette, FaBriefcase, FaFont, FaMagic, FaRobot } from "react-icons/fa";
 import { RiEditLine } from "react-icons/ri";
 import { IoClose, IoSend } from "react-icons/io5";
 import { MdCheckCircle, MdCancel } from "react-icons/md";
@@ -26,7 +26,20 @@ const ACTIONS = [
     { id: "language",        label: "Styl",              icon: FaFont,        color: CHROME_ACCENT, description: "Popraw ton i klarowność tekstu" },
     { id: "improve",         label: "Ulepsz",            icon: FaMagic,       color: CHROME_ACCENT, description: "Mocniejsze punkty z czasownikami akcji" },
     { id: "ats_score",       label: "Wynik ATS",         icon: FaRobot,       color: CHROME_ACCENT, description: "Sprawdzenie pod systemy rekrutacyjne ATS" },
+    {
+        id: "layout",
+        label: "Układ",
+        icon: FaArrowsAltH,
+        color: CHROME_ACCENT,
+        description: "Tryb układu: GPT analizuje pełny JSON A4; zadawaj pytania, aż odznaczysz Układ",
+        toggle: true,
+    },
 ];
+const LAYOUT_MODE_INTRO = (
+    "Przeanalizuj cały układ CV na wszystkich stronach: odstępy między wpisami, "
+    + "wyrównanie nagłówków sekcji, linie dekoracyjne, kolumny i rytm doświadczenia. "
+    + "Zachowaj wizję użytkownika. Podaj współrzędne i zaproponuj konkretne przesunięcia."
+);
 const SEVERITY_LABELS = {
     critical: "krytyczny",
     high: "wysoki",
@@ -470,6 +483,7 @@ export default function AiAssistant() {
     } = use(PdfContext);
 
     const [isOpen, setIsOpen] = useState(false);
+    const [layoutMode, setLayoutMode] = useState(false);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [jobDesc, setJobDesc] = useState("");
@@ -681,7 +695,7 @@ export default function AiAssistant() {
 
     // ── send message to backend ──────────────────────────────────────────
 
-    const send = useCallback(async (action, userText) => {
+    const send = useCallback(async (action, userText, options = {}) => {
         if (isLoading) return;
 
         // Prior turns only — the current userText is sent as `message`.
@@ -693,10 +707,11 @@ export default function AiAssistant() {
                 content: String(m.text).slice(0, 1500),
             }));
 
+        const usesMessage = action === "chat" || action === "layout";
         const userMsg = {
             id: nanoid(),
             role: "user",
-            text: userText,
+            text: options.displayText || userText,
         };
         setMessages(prev => [...prev, userMsg]);
         setIsLoading(true);
@@ -708,10 +723,10 @@ export default function AiAssistant() {
                 JSON.stringify({
                     action,
                     elements: measureElements(A4_Elements),
-                    message: action === "chat" ? userText : "",
+                    message: usesMessage ? userText : "",
                     job_description: action === "position_rating" ? jobDesc : "",
                     page_size: pageSize,
-                    history: action === "chat" ? history : [],
+                    history: usesMessage ? history : [],
                 }),
                 "Asystent AI nie odpowiedział"
             );
@@ -772,8 +787,30 @@ export default function AiAssistant() {
             setShowJobDesc(true);
             return;
         }
+        if (actionId === "layout") {
+            setIsOpen(true);
+            if (layoutMode) {
+                setLayoutMode(false);
+                setMessages(prev => [...prev, {
+                    id: nanoid(),
+                    role: "assistant",
+                    text: "Tryb Układ wyłączony. Wracasz do zwykłego czatu.",
+                    tips: [],
+                    corrections: [],
+                    layout_groups: [],
+                    layout_issues: [],
+                }]);
+                return;
+            }
+            setLayoutMode(true);
+            // UI shows a short label; the API message is the full analysis brief.
+            send("layout", LAYOUT_MODE_INTRO, {
+                displayText: "Tryb Układ włączony — przeanalizuj cały dokument",
+            });
+            return;
+        }
         send(actionId, meta?.label || actionId);
-    }, [send]);
+    }, [layoutMode, send]);
 
     const handleSend = useCallback(() => {
         const text = input.trim();
@@ -785,9 +822,9 @@ export default function AiAssistant() {
             setInput("");
             return;
         }
-        send("chat", text);
+        send(layoutMode ? "layout" : "chat", text);
         setInput("");
-    }, [input, isLoading, showJobDesc, jobDesc, send]);
+    }, [input, isLoading, showJobDesc, jobDesc, layoutMode, send]);
 
     const handleKey = (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
@@ -825,7 +862,9 @@ export default function AiAssistant() {
                                 <BsStars className={classes.headerIcon} />
                                 <div>
                                     <div className={classes.headerTitle}>Asystent AI</div>
-                                    <div className={classes.headerSub}>Analizuj, poprawiaj i ulepszaj</div>
+                                    <div className={classes.headerSub}>
+                                        {layoutMode ? "Tryb Układ aktywny — pytaj o geometrię CV" : "Analizuj, poprawiaj i ulepszaj"}
+                                    </div>
                                 </div>
                             </div>
                             <div className={classes.headerRight}>
@@ -856,17 +895,23 @@ export default function AiAssistant() {
                             {ACTIONS.map(action => (
                                 <button
                                     key={action.id}
-                                    className={classes.actionBtn}
+                                    className={`${classes.actionBtn} ${action.id === "layout" && layoutMode ? classes.actionBtnActive : ""}`}
                                     style={{ "--action-color": action.color }}
                                     onClick={() => handleAction(action.id)}
-                                    disabled={isLoading}
+                                    disabled={isLoading && action.id !== "layout"}
                                     title={action.description}
+                                    aria-pressed={action.id === "layout" ? layoutMode : undefined}
                                 >
                                     <action.icon className={classes.actionIcon} />
                                     <span>{action.label}</span>
                                 </button>
                             ))}
                         </div>
+                        {layoutMode && (
+                            <div className={classes.layoutModeBanner}>
+                                Układ włączony — każde pytanie dostaje pełny JSON A4. Kliknij Układ ponownie, aby wyjść.
+                            </div>
+                        )}
 
                         {/* job description input (for position fit) */}
                         <AnimatePresence>
@@ -965,7 +1010,9 @@ export default function AiAssistant() {
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
                                 onKeyDown={handleKey}
-                                placeholder="Zadaj pytanie lub wydaj polecenie…"
+                                placeholder={layoutMode
+                                    ? "np. Który nagłówek odstaje? Czy wpis Citibank jest za nisko?"
+                                    : "Zadaj pytanie lub wydaj polecenie…"}
                                 rows={1}
                                 disabled={isLoading || showJobDesc}
                             />
