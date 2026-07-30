@@ -785,8 +785,10 @@ Komentarz w `ai_assistant_service.py` wyjaśnia powód: bezpośrednie współrz�
 2. Backend buduje `build_layout_snapshot` — wszystkie strony i elementy z
    `left`/`top`/`width`/`height`/`page`/`fontSize`/… oraz flagą `movable`.
 3. Snapshot zawiera `section_rhythm` z `primary_gap` (gdy jest kreska: linia→treść,
-   jak miarka „6 px”; inaczej nagłówek→treść), `comparison` i `outliers`. Model
-   nie może odpowiadać `body.top−header.top` (mylące 22 px) ani icon.top−header.top.
+   jak miarka „6 px”; inaczej nagłówek→treść), `comparison` i `outliers`. Pierwszy
+   wpis pod sekcją jest wybierany po `top` w kolumnie — **nie** po `left+width`,
+   bo freestyle często ma `width: 3` i dawniej skakało ~50 px do textarea.
+   Model nie może odpowiadać `body.top−header.top` ani icon.top−header.top.
    Wywołanie: `AI_LAYOUT_MODEL` (domyślnie `gpt-5.6-sol`) + prompt korektora.
 4. GPT zwraca `status` + `summary` + opcjonalne `changes[]` (grupy logiczne z
    `before`/`after` lub wspólnym `delta`). Stary format `findings[].moves` też działa.

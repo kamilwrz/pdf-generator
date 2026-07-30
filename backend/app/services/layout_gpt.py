@@ -39,8 +39,12 @@ _SECTION_HEADER_HINTS = (
 )
 # How far below a header we still look for its underline / first body peer.
 _SECTION_LOOKAHEAD_PX = 56.0
+# First body under a section rule should sit in this band (visual “6–22 px”).
+_SECTION_BODY_NEAR_PX = 48.0
 # Gaps that differ from the peer median by more than this are flagged.
 _SECTION_GAP_OUTLIER_PX = 3.0
+# Freestyle text often stores width≈0–3 in the element; treat that as unreliable.
+_MIN_RELIABLE_WIDTH_PX = 24.0
 
 DEFAULT_LAYOUT_QUESTION = (
     "Przeprowadź pełną korektę układu CV: rytm pionowych odstępów, odstępy między "
@@ -191,17 +195,49 @@ def _is_section_rule_item(item: dict[str, Any]) -> bool:
     return _number(item.get("height")) <= 4.0 + EPSILON and _number(item.get("width")) >= 24.0
 
 
+def _effective_width(item: dict[str, Any]) -> float:
+    """Width for geometry peers — never trust freestyle authoring width ≈ 0–3."""
+    stored = _number(item.get("width"))
+    if stored >= _MIN_RELIABLE_WIDTH_PX:
+        return stored
+    content = str(item.get("content") or "")
+    font = _number(item.get("fontSize"), 12.0)
+    # Rough glyph estimate; enough for column membership, not for typography.
+    estimated = max(40.0, min(320.0, len(content) * font * 0.52))
+    return max(stored, estimated)
+
+
 def _horizontal_overlap(a: dict[str, Any], b: dict[str, Any], *, min_ratio: float = 0.15) -> bool:
+    a_w = _effective_width(a)
+    b_w = _effective_width(b)
     left = max(_number(a.get("left")), _number(b.get("left")))
-    right = min(
-        _number(a.get("left")) + _number(a.get("width")),
-        _number(b.get("left")) + _number(b.get("width")),
-    )
+    right = min(_number(a.get("left")) + a_w, _number(b.get("left")) + b_w)
     overlap = right - left
     if overlap <= 0:
         return False
-    shorter = min(_number(a.get("width"), 1.0), _number(b.get("width"), 1.0))
+    shorter = min(a_w, b_w)
     return overlap >= shorter * min_ratio
+
+
+def _is_main_column_body(header: dict[str, Any], item: dict[str, Any]) -> bool:
+    """True for first-entry titles under a section (not right-column dates).
+
+    ChatGPT succeeded by ordering on ``top``. We previously required
+    ``left + width`` to clear the header, which dropped freestyle titles with
+    stored ``width: 3`` and then jumped ~50 px to a wide textarea — hence the
+    bogus primary_gap of 51 px.
+    """
+    item_left = _number(item.get("left"))
+    header_left = _number(header.get("left"))
+    # Right date column on A4 freestyle CVs typically starts past ~360–400.
+    if item_left >= 360:
+        return False
+    # Allow titles a bit left of the section label (e.g. header 70, title 50).
+    if item_left < header_left - 48:
+        return False
+    if item_left > header_left + 140:
+        return False
+    return True
 
 
 def _median(values: list[float]) -> float | None:
@@ -253,6 +289,10 @@ def build_section_rhythm(items: list[dict[str, Any]]) -> dict[str, Any]:
         if line is not None:
             search_after = max(search_after, _number(line["top"]) + _number(line["height"]))
 
+        # Prefer the nearest main-column text under the rule (tight band first).
+        # Falling back to a wider band only if nothing sits in the visual gap zone.
+        candidates_near: list[dict[str, Any]] = []
+        candidates_far: list[dict[str, Any]] = []
         for item in items:
             if item is header or int(item.get("page") or 1) != page:
                 continue
@@ -260,18 +300,21 @@ def build_section_rhythm(items: list[dict[str, Any]]) -> dict[str, Any]:
                 continue
             if _is_section_header_item(item):
                 continue
-            if _number(item["top"]) < search_after - EPSILON:
+            top = _number(item["top"])
+            if top < search_after - EPSILON:
                 continue
-            if _number(item["top"]) > search_after + 120.0:
+            if top > search_after + 120.0:
                 continue
-            # Same main column: body starts near or to the right of header left,
-            # but not a far sidebar column.
-            if _number(item["left"]) + _number(item["width"]) < _number(header["left"]) - 8:
+            if not _is_main_column_body(header, item):
                 continue
-            if _number(item["left"]) > _number(header["left"]) + _number(header["width"]) + 40:
-                continue
-            if body is None or _number(item["top"]) < _number(body["top"]):
-                body = item
+            if top <= search_after + _SECTION_BODY_NEAR_PX:
+                candidates_near.append(item)
+            else:
+                candidates_far.append(item)
+
+        pool = candidates_near or candidates_far
+        if pool:
+            body = min(pool, key=lambda row: (_number(row["top"]), _number(row["left"]), row["element_id"]))
 
         if body is not None:
             body_from_header = round(_number(body["top"]) - header_bottom, 2)

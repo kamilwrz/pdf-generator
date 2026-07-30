@@ -88,6 +88,34 @@ class LayoutGptTests(unittest.TestCase):
             rhythm["median_primary_gap"],
         )
 
+    def test_section_rhythm_uses_narrow_width_job_title(self):
+        # Regression: freestyle titles often store width=3. Old filter used
+        # left+width and skipped them, then reported ~51 px to a wide textarea.
+        elements = [
+            el("h1", 70, 180, height=18, category="text", content="PODSUMOWANIE ZAWODOWE"),
+            el("l1", 70, 200, width=400, height=2, category="line"),
+            el("b1", 70, 214, width=400, height=40, content="Summary paragraph about aml"),
+
+            el("h2", 70, 280, height=18, category="text", content="DOŚWIADCZENIE ZAWODOWE"),
+            el("l2", 70, 300, width=400, height=2, category="line"),
+            # Title slightly left of header, tiny stored width (like the editor panel).
+            el("title", 50, 306, width=3, height=14, category="text", content="Senior AML Analyst with German"),
+            el("desc", 50, 357, width=400, height=40, content="Long experience description textarea"),
+
+            el("h3", 70, 450, height=18, category="text", content="WYKSZTAŁCENIE"),
+            el("l3", 70, 470, width=400, height=2, category="line"),
+            el("edu", 50, 476, width=3, height=14, category="text", content="Bachelor of Laws"),
+        ]
+        rhythm = build_section_rhythm(build_layout_snapshot(elements, PAGE)["elements"])
+        by_section = {row["section"]: row for row in rhythm["sections"]}
+        self.assertEqual(by_section["DOŚWIADCZENIE ZAWODOWE"]["body_element_id"], "title")
+        self.assertAlmostEqual(by_section["DOŚWIADCZENIE ZAWODOWE"]["primary_gap"], 4.0, places=1)
+        self.assertEqual(by_section["WYKSZTAŁCENIE"]["body_element_id"], "edu")
+        self.assertAlmostEqual(by_section["WYKSZTAŁCENIE"]["primary_gap"], 4.0, places=1)
+        self.assertAlmostEqual(by_section["PODSUMOWANIE ZAWODOWE"]["primary_gap"], 12.0, places=1)
+        # Must NOT invent a 51 px gap to the description.
+        self.assertLess(by_section["DOŚWIADCZENIE ZAWODOWE"]["primary_gap"], 20)
+
     def test_compile_findings_to_layout_groups(self):
         elements = [
             el("sum", 70, 200, category="text", content="PODSUMOWANIE ZAWODOWE"),
