@@ -1,7 +1,8 @@
 /**
  * Renders the live canvas element list by category.
  * Passes `fixedToPage` so decorative chrome stays pointer-inert.
- * Enter animations come from ids marked via `markElementsEnter`.
+ * Content enter fades come from ids marked via `markElementsEnter` /
+ * `markContentElementsEnter`; decorative chrome is never animated.
  */
 import Text from '../Text/Text';
 import Image from '../Image/Image';
@@ -12,11 +13,17 @@ import Ellipse from '../Ellipse/Ellipse';
 import { useCanvasEnterIds } from '../../../hooks/useCanvasEnterIds';
 import classes from './CanvasElements.module.css';
 
+function enterClassName(elementId, heldIds, fadingIds) {
+  if (fadingIds.has(elementId)) return classes.enter;
+  if (heldIds.has(elementId)) return classes.enterHeld;
+  return undefined;
+}
+
 export default function CanvasElements({ elements }) {
-  const enteringIds = useCanvasEnterIds(elements);
+  const { heldIds, fadingIds } = useCanvasEnterIds(elements);
 
   return elements.map((element) => {
-    const enterClass = enteringIds.has(element.element_id) ? classes.enter : undefined;
+    const enterClass = enterClassName(element.element_id, heldIds, fadingIds);
     let node = null;
 
     if (element.category === "textarea") {

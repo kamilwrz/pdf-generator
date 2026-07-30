@@ -7,7 +7,7 @@ import { cloneFixedPageDecorations } from '../utils/structureOperation';
 import { findPageCanvasAtPoint } from '../utils/pageSpread';
 import { moveElementsByDelta, moveElementsToPage } from '../utils/pageDrag';
 import { sanitizeTextContent } from '../utils/sanitizeTextContent';
-import { markElementsEnter } from '../utils/canvasEnter';
+import { markContentElementsEnter, markElementsEnter } from '../utils/canvasEnter';
 import { isDecorativeChrome } from '../utils/elementInteraction';
 
 /**
@@ -1332,10 +1332,8 @@ export function useA4Elements(titleRef) {
         nanoid,
       );
       const withDecorations = [...documentElements, ...generatedDecorations];
-      markElementsEnter([
-        ...normalizedAdditions.map((el) => el.element_id),
-        ...generatedDecorations.map((el) => el.element_id),
-      ]);
+      // Content only — cloned page chrome must appear instantly.
+      markContentElementsEnter(normalizedAdditions);
       reflowPageCountRef.current = Math.max(
         targetMaxPage,
         ...withDecorations.map((element) => element.page ?? 1),
@@ -1485,10 +1483,7 @@ export function useA4Elements(titleRef) {
         }
         return { ...element, page: connectorSource.page ?? 1 };
       });
-      markElementsEnter([
-        ...normalizedAdditions.map((el) => el.element_id),
-        ...generatedDecorations.map((el) => el.element_id),
-      ]);
+      markContentElementsEnter(normalizedAdditions);
       reflowPageCountRef.current = Math.max(targetMaxPage, ...reconciled.map((element) => element.page ?? 1));
       layoutTargetPageRef.current = normalizedAdditions[0]?.page ?? null;
       return reconciled;
@@ -1817,10 +1812,12 @@ export function useA4Elements(titleRef) {
   };
 
   // Replace the canvas with generated/authored specs. `title` is used verbatim.
+  // Content fades in after fonts settle; fixedToPage chrome appears immediately.
   const handleLoadAiElements = useCallback((specs, title) => {
     resetHistory();
     const mapped = materializeSpecs(specs);
     const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
+    markContentElementsEnter(mapped);
     setA4_Elements(mapped);
     setA4_Elements_deleted([]);
     setPageCount(maxPage);
@@ -1842,6 +1839,7 @@ export function useA4Elements(titleRef) {
     });
     const mapped = materializeSpecs(withContent);
     const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
+    markContentElementsEnter(mapped);
     setA4_Elements(mapped);
     setA4_Elements_deleted([]);
     setPageCount(maxPage);
@@ -1855,6 +1853,7 @@ export function useA4Elements(titleRef) {
     resetHistory();
     const mapped = materializeSpecs(templateElements);
     const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
+    markContentElementsEnter(mapped);
     setA4_Elements(mapped);
     setA4_Elements_deleted([]);
     setPageCount(maxPage);

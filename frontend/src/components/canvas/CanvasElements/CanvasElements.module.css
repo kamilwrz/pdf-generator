@@ -1,5 +1,11 @@
+/* Hold content at opacity 0 until fonts settle, then fade in. Decorative
+   chrome never receives these classes — it paints at full opacity immediately. */
+.enterHeld {
+  opacity: 0;
+}
+
 .enter {
-  animation: canvasElementEnter 280ms ease both;
+  animation: canvasElementEnter 750ms ease both;
 }
 
 @keyframes canvasElementEnter {
@@ -8,6 +14,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .enterHeld {
+    opacity: 1;
+  }
+
   .enter {
     animation: none;
   }
