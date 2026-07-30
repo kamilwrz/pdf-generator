@@ -502,6 +502,16 @@ export default function AiAssistant() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
+    useEffect(() => {
+        const textarea = inputRef.current;
+        if (!textarea) return;
+
+        // Keep short prompts comfortably two lines high and grow longer prompts
+        // only until the composer reaches its scrolling limit.
+        textarea.style.height = "auto";
+        textarea.style.height = `${Math.min(textarea.scrollHeight, 136)}px`;
+    }, [input]);
+
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
 
     // ── correction handlers ──────────────────────────────────────────────
@@ -1027,7 +1037,7 @@ export default function AiAssistant() {
                                 placeholder={layoutMode
                                     ? "np. Który nagłówek odstaje? Czy wpis Citibank jest za nisko?"
                                     : "Zadaj pytanie lub wydaj polecenie…"}
-                                rows={1}
+                                rows={2}
                                 disabled={isLoading || showJobDesc}
                             />
                             <button
