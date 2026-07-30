@@ -779,16 +779,19 @@ Pola geometryczne są celowo wykluczone:
 
 Komentarz w `ai_assistant_service.py` wyjaśnia powód: bezpośrednie współrzędne modelu powodowały kolizje z ikonami i dekoracjami.
 
-### 7.6. Przycisk „Układ” — tryb sesji GPT (pełny JSON A4)
+### 7.6. Przycisk „Układ” — korektor geometrii (pełny JSON A4)
 
 1. Kliknięcie **Układ** włącza tryb (przycisk zostaje zaznaczony).
 2. Backend buduje `build_layout_snapshot` — wszystkie strony i elementy z
    `left`/`top`/`width`/`height`/`page`/`fontSize`/… oraz flagą `movable`.
-3. Wywołanie idzie na model `AI_LAYOUT_MODEL` (domyślnie `gpt-5.6-sol`).
-4. GPT analizuje peery (nagłówki, linie, wpisy, kolumny) i zwraca `summary` +
-   `findings[]` z `analysis` (konkretne współrzędne) oraz opcjonalnymi `moves`.
+3. Wywołanie idzie na model `AI_LAYOUT_MODEL` (domyślnie `gpt-5.6-sol`) z promptem
+   korektora (`LAYOUT_CORRECTOR_SYSTEM` + `build_layout_user_prompt`): rytm odstępów,
+   wyrównania nagłówków/dat/ikon, kolumny, nachodzenia — bez zmiany treści/fontów.
+4. GPT zwraca `status` + `summary` + opcjonalne `changes[]` (grupy logiczne z
+   `before`/`after` lub wspólnym `delta`). Stary format `findings[].moves` też działa.
 5. Python (`compile_layout_gpt_response`) mapuje to na `layout_issues` + karty
-   `layout_groups` (Podgląd / Zastosuj na płótnie).
+   `layout_groups` (Podgląd / Zastosuj na płótnie). Pełnego dumpa `corrected_elements`
+   nie wymagamy (oszczędność tokenów).
 6. Dopóki tryb jest aktywny, kolejne pytania z inputu idą jako akcja `layout`
    ze świeżym JSON-em i historią sesji; każde udane wywołanie zużywa kredyty AI
    wg realnego kosztu sol (drożej niż mini).
@@ -1259,9 +1262,10 @@ Backend preferuje `layout_bounds`, a przy ich braku stosuje zapisane wartości l
 
 ### 13.2. Analiza układu (GPT)
 
-Przycisk **Układ** używa `layout_gpt.build_layout_snapshot` + sesji GPT
-(`_layout_session`). Geometrię dla zwykłych poleceń czatu nadal liczy
-`resolve_directed_operation`.
+Przycisk **Układ** używa `layout_gpt.build_layout_snapshot` + promptu korektora
+(`LAYOUT_CORRECTOR_SYSTEM` / `build_layout_user_prompt`) w `_layout_session`.
+Odpowiedź `changes[]` (lub legacy `findings`) trafia do `compile_layout_gpt_response`.
+Geometrię dla zwykłych poleceń czatu nadal liczy `resolve_directed_operation`.
 
 ### 13.3. Granice bezpieczeństwa
 

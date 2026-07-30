@@ -1,12 +1,14 @@
-"""GPT-owned freestyle layout session.
+"""GPT-owned freestyle layout session (geometry corrector).
 
 Builds a full multi-page A4 geometry snapshot for the model, then turns GPT
-``findings`` / ``moves`` into frontend ``layout_groups`` + ``layout_issues``.
-Python only validates ids, freezes locked chrome / identity, and keeps patches
-on-page — it does not invent a second layout algorithm.
+``changes`` / ``findings`` / ``moves`` into frontend ``layout_groups`` +
+``layout_issues``. Python only validates ids, freezes locked chrome / identity,
+and keeps patches on-page — it does not invent a second layout algorithm.
 """
 from __future__ import annotations
 
+import json
+import re
 from typing import Any
 
 from app.services.cv_generator import A4_H
@@ -30,6 +32,38 @@ _FROZEN_IDENTITY_ROLES_HINTS = (
     "PODSUMOWANIE", "DOŚWIADCZENIE", "WYKSZTAŁCENIE", "UMIEJĘTNOŚCI", "JĘZYKI",
     "SUMMARY", "EXPERIENCE", "EDUCATION", "SKILLS", "LANGUAGES",
 )
+
+DEFAULT_LAYOUT_QUESTION = (
+    "Przeprowadź pełną korektę układu CV: rytm pionowych odstępów, odstępy między "
+    "sekcjami i wpisami doświadczenia/wykształcenia, wyrównanie nagłówków, dat "
+    "względem stanowisk, ikon/linii przy nagłówkach, spójność lewych marginesów "
+    "i kolumn oraz nachodzenia. Zwróć grupy zmian tylko tam, gdzie trzeba."
+)
+
+LAYOUT_CORRECTOR_SYSTEM = """\
+Jesteś korektorem układu freestyle CV na wielu stronach A4.
+Analizujesz JSON elementów (text, textarea, image, line, kształty) ze współrzędnymi
+left/top/width/height oraz page.
+
+Twoim zadaniem jest wykrywanie i poprawianie WYŁĄCZNIE problemów geometrii:
+- rytm pionowych odstępów,
+- odstępy między sekcjami,
+- odstępy między wpisami w doświadczeniu i wykształceniu,
+- wyrównanie nagłówków,
+- wyrównanie dat względem stanowisk lub tytułów,
+- wyrównanie ikon, linii i tekstów należących do jednego nagłówka,
+- spójność marginesów lewych,
+- spójność odstępów pomiędzy kolumnami,
+- nachodzenie elementów,
+- zbyt małe lub zbyt duże przerwy.
+
+NIE poprawiasz treści CV, pisowni, nazw stanowisk/firm, dat jako tekstu, fontów,
+kolorów ani rozmiarów tekstu — chyba że użytkownik wyraźnie o to poprosi.
+
+Zachowujesz wizję użytkownika (freestyle). Preferujesz najmniejszą zmianę, która
+przywraca spójność względem dominującego rytmu peerów.
+Zwracasz WYŁĄCZNIE prawidłowy JSON (bez tekstu przed/po).
+"""
 
 
 def build_layout_snapshot(
@@ -116,6 +150,88 @@ def build_layout_snapshot(
     }
 
 
+def build_layout_user_prompt(
+    snapshot: dict[str, Any],
+    question: str,
+    history_block: str = "",
+) -> str:
+    """User message: canvas JSON + corrector rules + response contract."""
+    constraints = snapshot.get("constraints") or {}
+    max_findings = int(constraints.get("max_findings") or MAX_LAYOUT_FINDINGS)
+    max_moves = int(constraints.get("max_moves") or MAX_LAYOUT_MOVES)
+    max_delta = float(constraints.get("max_delta_px") or MAX_LAYOUT_MOVE_PX)
+    q = (question or "").strip() or DEFAULT_LAYOUT_QUESTION
+    history = history_block or ""
+
+    return f"""{history}STAN PŁÓTNA (wszystkie strony, px, origin = lewy górny róg strony):
+{json.dumps(snapshot, ensure_ascii=False)}
+
+POLECENIE / PYTANIE UŻYTKOWNIKA:
+{q}
+
+## Zasady analizy
+1. Najpierw rozpoznaj strukturę CV: nagłówek, kontakt, podsumowanie, doświadczenie,
+   wykształcenie, umiejętności, języki, inne sekcje. Strony traktuj osobno.
+2. Grupuj elementy logicznie (wpis doświadczenia: stanowisko + data + firma + opis).
+3. Porównuj peery: nagłówki z nagłówkami, wpisy z wpisami, daty z datami,
+   opisy z opisami, ikony/linie z ich nagłówkami.
+4. Ustal dominujący rytm z większości poprawnych elementów; odstający dopasuj do peerów.
+5. Gap pionowy między peerami:
+   gap = next.top − (prev.top + prev.height)
+   Nie licz „końca bloku” jako height samego tytułu, jeśli pod tytułem jest firma/opis —
+   bierz dolną krawędź całego logicznego wpisu (max top+height elementów wpisu).
+6. Nie przesuwaj bez potrzeby. Preferuj najmniejszą zmianę.
+7. Relacje w bloku: przesuwając cały wpis, zastosuj TEN SAM delta.top/left do wszystkich
+   jego elementów w jednej grupie `changes`.
+8. Preferuj tylko top/left. width/height tylko gdy konieczne (np. ucięty textarea: clipped).
+9. Nie dopuszczaj nachodzenia. Nie zmieniaj content, page, category, fontów, kolorów.
+10. Pomiń movable=false / locked / fixedToPage. Nie ruszaj imienia i roli pod zdjęciem
+    (keep_element_ids). Max ±{max_delta:g} px na element; max {max_moves} ruchów;
+    max {max_findings} grup.
+11. Na czyste pytanie bez potrzeby patchy: status \"no_changes\", changes=[], summary po polsku.
+
+## Preferowane reguły (wskazówki, nie sztywne wartości)
+- Nagłówki tego samego poziomu: zbliżony left.
+- Ikona nagłówka wyrównana pionowo z tekstem nagłówka.
+- Linia dekoracyjna na osi wizualnej nagłówka, bez przechodzenia przez tekst.
+- Daty doświadczenia w jednej prawej kolumnie; wysokość zbliżona do stanowiska.
+- Odstępy tytuł→firma, firma→opis, koniec wpisu→następny wpis: spójne w sekcji.
+- Odstęp nad nową sekcją większy niż odstępy wewnątrz wpisu.
+- Kolumny: spójne left i przerwy.
+
+## Format odpowiedzi (WYŁĄCZNIE JSON)
+NIE zwracaj pełnej tablicy corrected_elements (oszczędność tokenów).
+Python zbuduje karty Podgląd/Zastosuj z `changes`.
+
+{{
+  "status": "corrected",
+  "summary": "<odpowiedź po polsku: co znalazłeś / co proponujesz>",
+  "keep_element_ids": ["..."],
+  "changes": [
+    {{
+      "group": "DOŚWIADCZENIE — odstęp Citibank",
+      "reason": "Medtronic kończy się top+height≈443.7, Citibank top:462 → przerwa 18 px vs typowe 13 px.",
+      "severity": "high",
+      "delta": {{"top": -5, "left": 0}},
+      "elements": [
+        {{
+          "element_id": "...",
+          "before": {{"top": 462, "left": 50}},
+          "after": {{"top": 457, "left": 50}}
+        }}
+      ]
+    }}
+  ]
+}}
+
+Gdy układ jest spójny lub pytanie nie wymaga ruchów:
+{{"status": "no_changes", "summary": "<odpowiedź po polsku>", "keep_element_ids": [], "changes": []}}
+
+W `reason` cytuj konkretne left/top/gap jak w przykładach peerów.
+Liczby jako number, nie string. Zachowaj oryginalne element_id.
+"""
+
+
 def _is_frozen_identity(raw: dict[str, Any], item: dict[str, Any]) -> bool:
     """Freeze large name / short ALL-CAPS role under the photo on page 1."""
     if item.get("category") not in {"text", "textarea"}:
@@ -136,30 +252,189 @@ def _is_frozen_identity(raw: dict[str, Any], item: dict[str, Any]) -> bool:
 def _unwrap_payload(raw: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(raw, dict):
         return {}
-    if isinstance(raw.get("findings"), list) or isinstance(raw.get("moves"), list):
+    if (
+        isinstance(raw.get("findings"), list)
+        or isinstance(raw.get("moves"), list)
+        or isinstance(raw.get("changes"), list)
+    ):
         return raw
     for key in ("result", "data", "layout", "response", "proposal"):
         nested = raw.get(key)
         if isinstance(nested, dict) and (
-            isinstance(nested.get("findings"), list) or isinstance(nested.get("moves"), list)
+            isinstance(nested.get("findings"), list)
+            or isinstance(nested.get("moves"), list)
+            or isinstance(nested.get("changes"), list)
         ):
             return nested
     return raw
 
 
+def _normalize_summary(payload: dict[str, Any], raw: dict[str, Any]) -> str:
+    """Coerce summary/message (string or stats object) into Polish chat text."""
+    for source in (payload, raw):
+        value = source.get("summary")
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        if isinstance(value, dict):
+            parts: list[str] = []
+            text = str(value.get("text") or value.get("message") or "").strip()
+            if text:
+                parts.append(text)
+            issues = value.get("issues_found")
+            changed = value.get("elements_changed")
+            groups = value.get("groups_changed")
+            stats: list[str] = []
+            if isinstance(issues, (int, float)):
+                stats.append(f"problemy: {int(issues)}")
+            if isinstance(changed, (int, float)):
+                stats.append(f"elementy: {int(changed)}")
+            if isinstance(groups, (int, float)):
+                stats.append(f"grupy: {int(groups)}")
+            if stats:
+                parts.append("; ".join(stats))
+            if parts:
+                return " — ".join(parts)
+        message = source.get("message")
+        if isinstance(message, str) and message.strip():
+            return message.strip()
+    status = str(payload.get("status") or raw.get("status") or "").strip()
+    if status == "no_changes":
+        return "Układ wygląda spójnie — nie proponuję przesunięć."
+    return ""
+
+
+def _slug_group_id(name: str, index: int) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", (name or "").strip())[:40].strip("-")
+    return slug or f"change-{index + 1}"
+
+
+def _move_from_change_element(
+    entry: dict[str, Any],
+    *,
+    group_delta: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Build a move dict (absolute top/left) from a changes[].elements item."""
+    element_id = str(
+        entry.get("element_id") or entry.get("id") or entry.get("elementId") or ""
+    )
+    if not element_id:
+        return None
+
+    after = entry.get("after") if isinstance(entry.get("after"), dict) else {}
+    before = entry.get("before") if isinstance(entry.get("before"), dict) else {}
+    delta = entry.get("delta") if isinstance(entry.get("delta"), dict) else None
+    if delta is None and isinstance(group_delta, dict):
+        delta = group_delta
+
+    move: dict[str, Any] = {"element_id": element_id}
+
+    if "top" in after or "left" in after:
+        if "top" in after:
+            move["top"] = _number(after.get("top"))
+        if "left" in after:
+            move["left"] = _number(after.get("left"))
+        if "height" in after:
+            move["height"] = _number(after.get("height"))
+        if "width" in after:
+            move["width"] = _number(after.get("width"))
+        return move
+
+    # Apply delta to before (or let validator treat dx/dy against canvas bounds).
+    if isinstance(delta, dict) and ("top" in delta or "left" in delta or "dx" in delta or "dy" in delta):
+        if "top" in before or "left" in before:
+            base_top = _number(before.get("top"), 0.0)
+            base_left = _number(before.get("left"), 0.0)
+            move["top"] = base_top + _number(delta.get("top", delta.get("dy")), 0.0)
+            move["left"] = base_left + _number(delta.get("left", delta.get("dx")), 0.0)
+            return move
+        move["dy"] = _number(delta.get("top", delta.get("dy")), 0.0)
+        move["dx"] = _number(delta.get("left", delta.get("dx")), 0.0)
+        return move
+
+    # Bare top/left on the element entry.
+    if "top" in entry or "left" in entry:
+        if "top" in entry:
+            move["top"] = _number(entry.get("top"))
+        if "left" in entry:
+            move["left"] = _number(entry.get("left"))
+        return move
+
+    return None
+
+
+def _changes_to_findings(changes: list[Any]) -> list[dict[str, Any]]:
+    """Map corrector ``changes[]`` groups into internal findings with moves."""
+    findings: list[dict[str, Any]] = []
+    for index, change in enumerate(changes):
+        if not isinstance(change, dict):
+            continue
+        title = str(
+            change.get("group") or change.get("title") or change.get("heading") or f"Zmiana układu #{index + 1}"
+        ).strip()[:140]
+        reason = str(
+            change.get("reason") or change.get("analysis") or change.get("message") or ""
+        ).strip()
+        severity = str(change.get("severity") or "medium").strip().lower()
+        if severity not in _VALID_SEVERITIES:
+            severity = "medium"
+        group_delta = change.get("delta") if isinstance(change.get("delta"), dict) else None
+        elements = change.get("elements")
+        if not isinstance(elements, list):
+            elements = change.get("moves") if isinstance(change.get("moves"), list) else []
+
+        moves: list[dict[str, Any]] = []
+        for entry in elements:
+            if not isinstance(entry, dict):
+                continue
+            # Nested after/before shape, or already a flat move.
+            if "after" in entry or "before" in entry or "delta" in entry:
+                move = _move_from_change_element(entry, group_delta=group_delta)
+            elif "element_id" in entry or "id" in entry:
+                # Flat move; optional shared group delta when only ids listed.
+                if "top" not in entry and "left" not in entry and isinstance(group_delta, dict):
+                    move = {
+                        "element_id": str(entry.get("element_id") or entry.get("id") or ""),
+                        "dy": _number(group_delta.get("top", group_delta.get("dy")), 0.0),
+                        "dx": _number(group_delta.get("left", group_delta.get("dx")), 0.0),
+                    }
+                else:
+                    move = dict(entry)
+                    if "element_id" not in move and entry.get("id") is not None:
+                        move["element_id"] = str(entry.get("id"))
+            else:
+                move = _move_from_change_element(entry, group_delta=group_delta)
+            if move and move.get("element_id"):
+                moves.append(move)
+
+        findings.append({
+            "id": _slug_group_id(title, index),
+            "severity": severity,
+            "title": title,
+            "analysis": reason or title,
+            "moves": moves,
+        })
+    return findings
+
+
 def _extract_findings(raw: dict[str, Any]) -> list[dict[str, Any]]:
     payload = _unwrap_payload(raw)
+
+    changes = payload.get("changes")
+    if isinstance(changes, list) and changes:
+        return _changes_to_findings(changes)
+
     for key in ("findings", "issues", "problems"):
         value = payload.get(key)
         if isinstance(value, list) and value:
             return [item for item in value if isinstance(item, dict)]
+
     moves = payload.get("moves")
     if isinstance(moves, list) and moves:
         return [{
             "id": "layout-moves",
             "severity": "medium",
             "title": "Propozycje układu",
-            "analysis": str(payload.get("summary") or "").strip(),
+            "analysis": _normalize_summary(payload, raw if isinstance(raw, dict) else {}),
             "moves": moves,
         }]
     return []
@@ -254,17 +529,23 @@ def compile_layout_gpt_response(
 
     raw = gpt_raw if isinstance(gpt_raw, dict) else {}
     payload = _unwrap_payload(raw)
-    summary = str(payload.get("summary") or payload.get("message") or raw.get("summary") or "").strip()
+    summary = _normalize_summary(payload, raw)
+    status = str(payload.get("status") or raw.get("status") or "").strip().lower()
     findings = _extract_findings(raw)
 
     if not findings:
+        # Explicit no-op from the corrector or empty change lists.
+        if status == "no_changes":
+            return [], [], summary or "Układ wygląda spójnie — nie proponuję przesunięć.", ""
+        if isinstance(payload.get("changes"), list) and not payload["changes"]:
+            return [], [], summary, ""
         if isinstance(payload.get("findings"), list) and not payload["findings"]:
             return [], [], summary, ""
         if isinstance(payload.get("moves"), list) and not payload["moves"]:
             return [], [], summary, ""
         # Pure Q&A answer without geometry patches is still valid.
-        if summary or str(raw.get("message") or "").strip():
-            return [], [], summary or str(raw.get("message") or "").strip(), ""
+        if summary:
+            return [], [], summary, ""
         return [], [], "", "empty_response"
 
     keep_ids = {

@@ -25,8 +25,11 @@ from app.services.layout_analysis import (
     summarize_geometry_issues,
 )
 from app.services.layout_gpt import (
+    DEFAULT_LAYOUT_QUESTION,
+    LAYOUT_CORRECTOR_SYSTEM,
     MAX_LAYOUT_MOVE_PX,
     build_layout_snapshot,
+    build_layout_user_prompt,
     compile_layout_gpt_response,
 )
 from app.services.openai_pricing import empty_usage, usage_from_response
@@ -1040,7 +1043,7 @@ def _layout_session(
     page_size: dict | None,
     history: list | None = None,
 ) -> dict:
-    """GPT layout mode: full A4 JSON in, findings + canvas patches out."""
+    """GPT layout corrector: full A4 JSON in, changes → canvas review cards out."""
     snapshot = build_layout_snapshot(elements, page_size)
     if snapshot.get("movable_count", 0) < 1:
         return {
@@ -1054,12 +1057,7 @@ def _layout_session(
             "usage": empty_usage(model=_LAYOUT_MODEL, action="layout"),
         }
 
-    question = (message or "").strip() or (
-        "Przeanalizuj cały układ CV na wszystkich stronach: odstępy między "
-        "wpisami, wyrównanie nagłówków sekcji, linie dekoracyjne przy nagłówkach, "
-        "kolumny i rytm doświadczenia. Zachowaj wizję użytkownika. "
-        "Wskaż problemy ze współrzędnymi i zaproponuj konkretne przesunięcia."
-    )
+    question = (message or "").strip() or DEFAULT_LAYOUT_QUESTION
     session_history = _normalize_chat_history(history)
     history_block = ""
     if session_history:
@@ -1067,49 +1065,8 @@ def _layout_session(
             session_history, ensure_ascii=False
         ) + "\n\n"
 
-    system = (
-        "Jesteś analitykiem geometrii freestyle CV na wielu stronach A4. "
-        "Dostajesz KOMPLETNY JSON wszystkich elementów (left/top/width/height/page, "
-        "fontSize, content…). Porównujesz peery (nagłówki, linie, wpisy doświadczenia, "
-        "kolumny) i odpowiadasz jak designer z konkretnymi liczbami. "
-        "Zachowujesz wizję użytkownika — nie budujesz nowego szablonu. "
-        "Zwracasz WYŁĄCZNIE prawidłowy JSON."
-    )
-    user = f"""{history_block}STAN PŁÓTNA (wszystkie strony, px, origin = lewy górny róg strony):
-{json.dumps(snapshot, ensure_ascii=False)}
-
-PYTANIE / POLECENIE UŻYTKOWNIKA:
-{question}
-
-Zasady odpowiedzi:
-1. Analizuj cały CV (wszystkie page w JSON). Cytuj left/top i delty w analysis.
-2. Styl jak w przykładach: „Medtronic kończy się top:443.7, Citibank top:462 → przerwa 18 px vs typowe 13 px”.
-3. findings[] — osobny problem = osobna karta na froncie (max {snapshot["constraints"]["max_findings"]}).
-4. moves w findingach: absolute left/top (i opcjonalnie height tylko dla uciętych textarea).
-5. Max {snapshot["constraints"]["max_moves"]} ruchów łącznie; orientacyjnie ≤ ±{snapshot["constraints"]["max_delta_px"]} px.
-6. Nie ruszaj imienia i roli pod zdjęciem — keep_element_ids.
-7. movable=false / locked / fixedToPage pomiń. Nie zmieniaj page ani content.
-8. Na pytania bez potrzeby patchy: findings mogą być puste / bez moves, ale summary/message musi odpowiedzieć.
-9. Zachowaj freestyle: nie wyrównuj wszystkiego sztucznie do szablonu.
-
-Zwróć JSON:
-{{
-  "summary": "<odpowiedź po polsku na pytanie użytkownika>",
-  "keep_element_ids": ["..."],
-  "findings": [
-    {{
-      "id": "experience-heading-left",
-      "severity": "high",
-      "title": "DOŚWIADCZENIE — za daleko w prawo",
-      "analysis": "PODSUMOWANIE left:70, DOŚWIADCZENIE left:95 — odstaje o ~25 px.",
-      "moves": [
-        {{"element_id": "...", "left": 70, "top": 280, "reason": "wyrównanie do peerów"}}
-      ]
-    }}
-  ]
-}}"""
-
-    raw, usage = _gpt(system, user, action="layout")
+    user = build_layout_user_prompt(snapshot, question, history_block)
+    raw, usage = _gpt(LAYOUT_CORRECTOR_SYSTEM, user, action="layout")
     usage_payload = usage if isinstance(usage, dict) else {}
     groups, issues, summary, error = compile_layout_gpt_response(elements, raw, page_size)
 
@@ -1117,7 +1074,9 @@ Zwróć JSON:
         return {
             "message": "Model nie zwrócił użytecznej analizy układu. Spróbuj ponownie lub doprecyzuj pytanie.",
             "rating": None,
-            "tips": ["Tryb Układ: GPT dostaje pełny JSON A4 przy każdym pytaniu."],
+            "tips": [
+                "Tryb Układ: korektor geometrii dostaje pełny JSON A4 przy każdym pytaniu.",
+            ],
             "corrections": [],
             "layout_groups": [],
             "layout_issues": [{"severity": "warning", "message": error}],
@@ -1130,8 +1089,8 @@ Zwróć JSON:
         + (f" i {sum(len(g.get('patches') or []) for g in groups)} propozycji przesunięć." if groups else ".")
     )
     tips = [
-        "Tryb Układ jest aktywny — możesz dopytywać (np. o konkretną sekcję); każde pytanie dostaje świeży JSON A4.",
-        f"Karty poniżej można podejrzeć i zastosować na płótnie (max ±{MAX_LAYOUT_MOVE_PX:g} px na element).",
+        "Tryb Układ: korektor rytmu i wyrównań — możesz dopytywać; każde pytanie dostaje świeży JSON A4.",
+        f"Karty poniżej: Podgląd / Zastosuj (max ±{MAX_LAYOUT_MOVE_PX:g} px na element). Treść i fonty nie są zmieniane.",
         "Imię / rola zawodowa oraz elementy locked nie są ruszane.",
     ]
     return {
