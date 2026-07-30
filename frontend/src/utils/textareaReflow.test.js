@@ -345,6 +345,38 @@ test("does not shift a position-locked element during textarea reflow", () => {
   assert.equal(heading.top, 144);
 });
 
+test("uses explicit flow roles instead of treating Onyx record text as section chrome", () => {
+  const result = reflowTextareaHeight([
+    textarea({ top: 620, height: 40 }),
+    {
+      element_id: "record-title",
+      category: "text",
+      content: "Customer Service Specialist with German",
+      flowRole: "content",
+      left: 40,
+      top: 700,
+      width: 180,
+      fontSize: 11,
+      page: 1,
+    },
+    {
+      element_id: "record-body",
+      category: "textarea",
+      autoHeight: true,
+      flowRole: "content",
+      left: 40,
+      top: 720,
+      width: 180,
+      height: 40,
+      page: 1,
+    },
+  ], "textarea", 44, 842, { pageTop: 66, bottomMargin: 96 });
+
+  const title = result.elements.find((element) => element.element_id === "record-title");
+  assert.equal(title.page, 1);
+  assert.equal(title.top, 704);
+});
+
 test("keeps section heading with following body across a page break", () => {
   const result = reflowTextareaHeight([
     {

@@ -33,6 +33,7 @@ def element(element_id, *, deleted=False):
         align=None,
         bulletList=False,
         autoHeight=True,
+        flowRole="section-chrome",
         fixedToPage=True,
         locked=True,
         borderWidth=None,
@@ -66,6 +67,7 @@ class PdfElementUpdateTests(unittest.TestCase):
         self.assertEqual(keep_row.content, "Treść")
         self.assertEqual(keep_row.page, 1)
         self.assertTrue(keep_row.extra_properties["autoHeight"])
+        self.assertEqual(keep_row.extra_properties["flowRole"], "section-chrome")
         self.assertTrue(keep_row.extra_properties["fixedToPage"])
         self.assertTrue(keep_row.extra_properties["locked"])
         self.assertTrue(keep_row.extra_properties["filled"])

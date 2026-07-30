@@ -60,6 +60,13 @@ function isTextAlignedImage(element) {
 }
 
 function isChromeLike(element) {
+  // New generators can classify flow elements explicitly. This prevents
+  // ordinary `text` nodes (job titles, company lines) from being mistaken for
+  // section chrome and reordered by keep-with-next logic. Unclassified legacy
+  // templates retain the previous category-based fallback.
+  if (element?.flowRole) {
+    return element.flowRole === "section-chrome";
+  }
   if (element.category === "text") return true;
   if (isTextAlignedImage(element)) return true;
   if (!NEARBY_DECORATION_CATEGORIES.has(element.category)) return false;

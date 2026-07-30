@@ -2798,12 +2798,16 @@ def _gen_onyx(cv: dict) -> list[dict]:
         # which made every AI-filled Onyx section look top-crushed.
         b.need(40)
         y0 = b.y
-        b.els.append(_rect(L, y0 + 2, 9, 9, FRAME, 1.5, zIndex=2, page=b.pg))
+        marker = _rect(L, y0 + 2, 9, 9, FRAME, 1.5, zIndex=2, page=b.pg)
+        marker["flowRole"] = "section-chrome"
+        b.els.append(marker)
         heading = _text(label, 11.5, S, IVORY, 72, y0, zIndex=2, page=b.pg, bold=True)
         heading["letterSpacing"] = 1.4
+        heading["flowRole"] = "section-chrome"
         b.els.append(heading)
         b.y = y0 + 14
         b.line(L, W, 1, RULE)
+        b.els[-1]["flowRole"] = "section-chrome"
         b.gap(16)
 
     if cv.get("summary"):
@@ -2843,7 +2847,18 @@ def _gen_onyx(cv: dict) -> list[dict]:
 
     _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, I)
 
-    flow = b.build()
+    # Reflow must distinguish section chrome from ordinary `text` nodes such
+    # as job titles. Without an explicit role, the client treated every text
+    # element as keep-with-next chrome and could move a heading behind its own
+    # section content during independent auto-height passes.
+    flow = [
+        {**element, "flowRole": element.get("flowRole", "content")}
+        for element in b.build()
+    ]
+    static = [
+        {**element, "flowRole": element.get("flowRole", "content")}
+        for element in static
+    ]
     pages_used = max([e.get("page", 1) for e in static + flow] or [1])
     frames = []
     for p in range(1, pages_used + 1):

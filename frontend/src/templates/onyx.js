@@ -18,11 +18,12 @@ const W = 485;
 const bold = (element) => ({ ...element, bold: true });
 const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 const center = (element) => ({ ...element, align: "center" });
+const sectionChrome = (element) => ({ ...element, flowRole: "section-chrome" });
 const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
     { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
 );
 
-export const onyxTemplate = [
+const onyxElements = [
     { ...line(0, 0, 595, 842, BG, 0), fixedToPage: true },
     { ...rect(24, 24, 547, 794, FRAME, 1.5, 1), fixedToPage: true },
     { ...rect(29, 29, 537, 784, FRAME_INNER, 1, 1), fixedToPage: true },
@@ -44,17 +45,17 @@ export const onyxTemplate = [
     bold(center(block("9", 383, 168, 157, 18, 15, 18, IVORY, S))),
     tracked(center(block("KLUCZOWYCH KOMPETENCJI", 383, 190, 157, 12, 7.3, 10, MUTED, I)), 1),
 
-    rect(55, 246, 9, 9, FRAME, 1.5, 2),
-    tracked(text("PROFIL", 11.5, S, IVORY, 72, 244, 2), 1.4),
-    line(55, 258, 485, 1, RULE, 2),
+    sectionChrome(rect(55, 246, 9, 9, FRAME, 1.5, 2)),
+    sectionChrome(tracked(text("PROFIL", 11.5, S, IVORY, 72, 244, 2), 1.4)),
+    sectionChrome(line(55, 258, 485, 1, RULE, 2)),
     block(
         "Doradzam w transakcjach i sporach, w których precyzja prawna decyduje o wyniku biznesowym. Łączę dyskrecję, rygor analityczny i spokojne prowadzenie klienta przez złożone procesy.",
         55, 274, 485, 44, 10.5, 15, BODY, I
     ),
 
-    rect(55, 336, 9, 9, FRAME, 1.5, 2),
-    tracked(text("DOŚWIADCZENIE", 11.5, S, IVORY, 72, 334, 2), 1.4),
-    line(55, 348, 485, 1, RULE, 2),
+    sectionChrome(rect(55, 336, 9, 9, FRAME, 1.5, 2)),
+    sectionChrome(tracked(text("DOŚWIADCZENIE", 11.5, S, IVORY, 72, 334, 2), 1.4)),
+    sectionChrome(line(55, 348, 485, 1, RULE, 2)),
 
     bold(text("Partner  /  Wojciechowski i Wspólnicy", 11, I, IVORY, 55, 366, 2)),
     text("2016 – obecnie  ·  Warszawa", 9, I, MUTED, 55, 384, 2),
@@ -70,9 +71,9 @@ export const onyxTemplate = [
         55, 496, 485, 20, 10, 14, BODY, I
     )),
 
-    rect(55, 536, 9, 9, FRAME, 1.5, 2),
-    tracked(text("WYKSZTAŁCENIE I KOMPETENCJE", 11.5, S, IVORY, 72, 534, 2), 1.4),
-    line(55, 548, 485, 1, RULE, 2),
+    sectionChrome(rect(55, 536, 9, 9, FRAME, 1.5, 2)),
+    sectionChrome(tracked(text("WYKSZTAŁCENIE I KOMPETENCJE", 11.5, S, IVORY, 72, 534, 2), 1.4)),
+    sectionChrome(line(55, 548, 485, 1, RULE, 2)),
     bold(text("Magister Prawa  /  Uniwersytet Jagielloński", 10.5, I, IVORY, 55, 566, 2)),
     text("2005 – 2010  ·  Kraków", 9, I, MUTED, 55, 584, 2),
     block(
@@ -82,3 +83,11 @@ export const onyxTemplate = [
 
     { ...text("01", 8, I, MUTED, 522, 801, 2), fixedToPage: true },
 ];
+
+// Explicit roles let auto-height reflow apply keep-with-next only to section
+// chrome. All remaining selectable Onyx elements are ordinary flow content.
+export const onyxTemplate = onyxElements.map((element) => (
+    element.fixedToPage || element.flowRole
+        ? element
+        : { ...element, flowRole: "content" }
+));

@@ -987,6 +987,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         ]
         self.assertGreaterEqual(len(headings), 2)
         for heading in headings:
+            self.assertEqual(heading.get("flowRole"), "section-chrome")
             page = heading.get("page", 1)
             rules = [
                 element
@@ -1003,6 +1004,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 f"onyx heading {heading.get('content')!r} needs a rule 14px below",
             )
             rule = rules[0]
+            self.assertEqual(rule.get("flowRole"), "section-chrome")
             bodies = [
                 element
                 for element in elements
@@ -1014,7 +1016,14 @@ class CvTemplateLayoutTests(unittest.TestCase):
             ]
             bodies.sort(key=lambda element: element["top"])
             self.assertTrue(bodies, f"no body under {heading.get('content')!r}")
+            self.assertEqual(bodies[0].get("flowRole"), "content")
             self.assertAlmostEqual(bodies[0]["top"] - rule["top"], 16, delta=0.5)
+
+        selectable = [
+            element for element in elements if not element.get("fixedToPage")
+        ]
+        self.assertTrue(selectable)
+        self.assertTrue(all(element.get("flowRole") for element in selectable))
 
     def test_active_templates_keep_textareas_inside_page_bounds(self):
         for template_id in ("ledger", "vector", "scribe", "quarry", "obsidian", "onyx"):
