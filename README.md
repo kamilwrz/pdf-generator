@@ -97,6 +97,8 @@ Canvas and stored geometry use **top-left** origin (CSS-like). ReportLab uses **
 
 Template textareas start with authored placeholder heights and are measured after the browser loads their real fonts. `reflowTextareaHeight` then moves all following elements in the same visual lane by the measured delta. Text-aligned Iconic images (`alignWithText: true`, including backward-compatible `/template-assets/iconic/` URLs) are classified as section chrome and may join a lane when they hang to the left of the column (Ridge rail, ~40 px). Icons that sit entirely to the right of a narrow column are excluded, so Loom's sidebar cannot drag main-column icons away from their headings.
 
+Undo/redo history treats that post-load reflow as part of the **baseline**, not as a user edit: `markHistoryQuiet` in `useA4Elements` updates the current history entry in place so Cofnij stays disabled until the user actually changes the document. Otherwise Undo would restore pre-measure heights and revive uneven Y gaps (e.g. diploma → school in education records).
+
 Section headings are kept with their first body block across page breaks: `avoidOrphanChrome` reserves the full body height (not a short keep-with-next sliver), and when a measured body textarea itself jumps to the next page, `precedingChromeCluster` pulls the icon/heading/rule with it. That prevents orphans such as “UMIEJĘTNOŚCI” alone at the bottom of page 1. Backend generators use `Builder.need_section(chrome, body)` for the same rule before placing a heading. The section icon, heading, rule, and body therefore remain one cluster after every measurement and page break; ReportLab receives the same geometry visible on the canvas.
 
 ### Decorative chrome
@@ -204,12 +206,12 @@ Product narrative: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 ### A4 canvas editor
 
-Interactive multi-page **A4 portrait** canvas with selection, drag, resize, zoom, guides. Seven addable element types: text, textarea, line, rectangle, circle, ellipse, image (connectors are not offered in the sidebar). Ten bundled fonts shared by editor and PDF: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono.
+Interactive multi-page **A4 portrait** canvas with selection, drag, resize, zoom, guides. Seven addable element types: text, textarea, line, rectangle, circle, ellipse, image (connectors are not offered in the sidebar). Ten bundled fonts shared by editor and PDF: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono. Session undo/redo ignores post-load textarea reflow (`markHistoryQuiet`).
 
 Implementation:
 
 - `frontend/src/pages/PdfCanvas.jsx`, lines 46+, component `PdfCanvas`
-- `frontend/src/hooks/useA4Elements.js`, lines 43+, function `useA4Elements`
+- `frontend/src/hooks/useA4Elements.js`, lines 43+, function `useA4Elements` (incl. `markHistoryQuiet` / undo baseline)
 - `frontend/src/components/canvas/*`
 - `frontend/src/components/common/EditorControls/EditorControls.jsx`, `FONT_OPTIONS`
 - Marketing Funkcje panel: `frontend/src/pages/Hero/Hero.jsx` (`CANVAS_STATS`, `FONT_GROUPS`, `CANVAS_CARDS`)
@@ -663,6 +665,8 @@ Kanwa: początek **lewy-górny**. ReportLab: **lewy-dolny**; `PDF_Generator` odw
 
 Pola tekstowe szablonów zaczynają z projektową wysokością zastępczą, a po załadowaniu właściwych fontów przeglądarka mierzy ich naturalną wysokość. `reflowTextareaHeight` przesuwa następnie wszystkie dalsze elementy w tej samej kolumnie o zmierzoną różnicę. Obrazy Iconic wyrównane do tekstu (`alignWithText: true`, również starsze adresy `/template-assets/iconic/`) są traktowane jak część nagłówka sekcji i mogą dołączyć do kolumny, gdy wiszą po jej lewej stronie (szyna Ridge, ok. 40 px). Ikony leżące całkowicie na prawo od wąskiej kolumny są wykluczane, więc sidebar Loom nie odciąga ikon głównej kolumny od nagłówków.
 
+Historia cofnij/ponów traktuje ten reflow po załadowaniu jako **stan bazowy**, nie jako edycję użytkownika: `markHistoryQuiet` w `useA4Elements` aktualizuje bieżący wpis historii w miejscu, więc Cofnij pozostaje nieaktywne, dopóki użytkownik realnie nie zmieni dokumentu. Inaczej Undo przywracałoby wysokości sprzed pomiaru i nierówne odstępy Y (np. dyplom → uczelnia).
+
 Nagłówki sekcji zostają z pierwszym blokiem treści przy podziale strony: `avoidOrphanChrome` rezerwuje pełną wysokość treści (nie krótki „keep-with-next”), a gdy zmierzone pole treści samo skacze na następną stronę, `precedingChromeCluster` zabiera ze sobą ikonę, tytuł i linię. Dzięki temu nie powstają sieroty w stylu samego „UMIEJĘTNOŚCI” na dole strony 1. Generatory backendu stosują tę samą regułę przez `Builder.need_section(chrome, body)` przed umieszczeniem nagłówka. Ikona, tytuł, linia i treść pozostają jednym klastrem po każdym pomiarze i podziale strony; ReportLab dostaje tę samą geometrię, którą widać na kanwie.
 
 ### Dekoracje szablonu
@@ -764,10 +768,10 @@ Opis produktowy: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 ### Edytor A4
 
-Płótno **A4 pion**, wiele stron, zaznaczanie / przeciąganie / zoom / prowadnice. Siedem typów elementów do dodania: tekst, textarea, linia, prostokąt, koło, elipsa, obraz (łączniki nie są w sidebarze). Dziesięć czcionek wspólnych dla edytora i PDF: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono.
+Płótno **A4 pion**, wiele stron, zaznaczanie / przeciąganie / zoom / prowadnice. Siedem typów elementów do dodania: tekst, textarea, linia, prostokąt, koło, elipsa, obraz (łączniki nie są w sidebarze). Dziesięć czcionek wspólnych dla edytora i PDF: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono. Cofnij/ponów w sesji pomija reflow po załadowaniu (`markHistoryQuiet`).
 
 - `frontend/src/pages/PdfCanvas.jsx`, `PdfCanvas` (ok. linia 46+)
-- `frontend/src/hooks/useA4Elements.js`, `useA4Elements` (ok. linia 43+)
+- `frontend/src/hooks/useA4Elements.js`, `useA4Elements` (ok. linia 43+; w tym `markHistoryQuiet`)
 - `frontend/src/components/canvas/*`
 - `frontend/src/components/common/EditorControls/EditorControls.jsx`, `FONT_OPTIONS`
 - Panel Funkcje na Hero: `frontend/src/pages/Hero/Hero.jsx` (`CANVAS_STATS`, `FONT_GROUPS`, `CANVAS_CARDS`)

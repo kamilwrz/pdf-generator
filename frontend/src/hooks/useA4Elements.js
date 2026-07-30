@@ -150,9 +150,17 @@ export function useA4Elements(titleRef) {
   // step. History is never persisted — autosave persists the document; undo is
   // a session concept. Undo/redo apply by content-equality, so re-applying a
   // snapshot produces an identical snapshot the recorder skips (no flag needed).
+  //
+  // Textarea auto-height reflow after load is NOT a user edit. Without quiet
+  // mode it would push a second snapshot (authored heights → measured heights),
+  // enabling Undo with no user action and letting Undo restore uneven Y gaps.
+  // Quiet updates replace the current history entry in place instead.
   const HISTORY_LIMIT = 100;
+  const HISTORY_QUIET_MS = 500;
+  const HISTORY_LOAD_QUIET_MS = 1200;
   const historyRef = useRef({ stack: [], index: -1 });
   const historyTimerRef = useRef(null);
+  const historyQuietUntilRef = useRef(0);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
@@ -167,9 +175,30 @@ export function useA4Elements(titleRef) {
     setCanRedo(index < stack.length - 1);
   };
 
+  // Extend (never shorten) the quiet window so overlapping reflows stay quiet.
+  const markHistoryQuiet = useCallback((ms = HISTORY_QUIET_MS) => {
+    historyQuietUntilRef.current = Math.max(
+      historyQuietUntilRef.current,
+      Date.now() + ms,
+    );
+  }, []);
+
   const recordSnapshot = () => {
     const snap = buildSnapshot();
     const h = historyRef.current;
+    const quiet = Date.now() < historyQuietUntilRef.current;
+    if (quiet) {
+      // Reflow / load settle: keep a single mutable baseline (or refresh tip).
+      if (h.index < 0 || h.stack.length === 0) {
+        historyRef.current = { stack: [snap], index: 0 };
+      } else {
+        const stack = h.stack.slice(0, h.index + 1);
+        stack[h.index] = snap;
+        historyRef.current = { stack, index: h.index };
+      }
+      syncHistoryFlags();
+      return;
+    }
     const cur = h.stack[h.index];
     if (cur && JSON.stringify(cur) === JSON.stringify(snap)) return; // content unchanged (e.g. selection only)
     const next = h.stack.slice(0, h.index + 1);
@@ -181,22 +210,29 @@ export function useA4Elements(titleRef) {
   };
 
   // Debounced recorder: coalesces drag frames / keystrokes into a single step.
+  // While quiet (reflow settle), use a shorter delay so authored→measured height
+  // bursts collapse into one in-place baseline update.
   useEffect(() => {
     clearTimeout(historyTimerRef.current);
-    historyTimerRef.current = setTimeout(recordSnapshot, 350);
+    const quiet = Date.now() < historyQuietUntilRef.current;
+    historyTimerRef.current = setTimeout(recordSnapshot, quiet ? 80 : 350);
     return () => clearTimeout(historyTimerRef.current);
   }, [A4_Elements, pageCount]);
 
   // Wipe history to a fresh baseline (loading a template / AI doc / saved PDF /
-  // clearing) so you can't undo BACK into the previous document. The pending
-  // debounced recorder seeds the new baseline from current state.
+  // clearing) so you can't undo BACK into the previous document. Stay quiet
+  // long enough for canvas font measure + auto-height reflow to finish.
   const resetHistory = useCallback(() => {
     historyRef.current = { stack: [], index: -1 };
     setCanUndo(false);
     setCanRedo(false);
-  }, []);
+    markHistoryQuiet(HISTORY_LOAD_QUIET_MS);
+  }, [markHistoryQuiet]);
 
   const applySnapshot = (snap) => {
+    // Applying undo/redo can retrigger textarea measure; keep those adjustments
+    // on the restored entry instead of appending a new step.
+    markHistoryQuiet();
     setA4_Elements(snap.elements.map(el => ({ ...el, isSelected: false, isMove: false, isEditing: false })));
     setPageCount(snap.pageCount);
     setCurrentPage(cp => Math.min(cp, snap.pageCount));
@@ -208,7 +244,7 @@ export function useA4Elements(titleRef) {
     h.index -= 1;
     applySnapshot(h.stack[h.index]);
     syncHistoryFlags();
-  }, []);
+  }, [markHistoryQuiet]);
 
   const redo = useCallback(() => {
     const h = historyRef.current;
@@ -216,7 +252,7 @@ export function useA4Elements(titleRef) {
     h.index += 1;
     applySnapshot(h.stack[h.index]);
     syncHistoryFlags();
-  }, []);
+  }, [markHistoryQuiet]);
 
   const clearSelection = useCallback(() => {
     setA4_Elements(prev => prev.some(e => e.isSelected)
@@ -1104,7 +1140,9 @@ export function useA4Elements(titleRef) {
   // The canvas is the typography authority: after a template textarea has
   // rendered, its measured content height replaces the authored placeholder
   // height and every later element in the same visual lane keeps its gap.
+  // Quiet history so this settle never becomes an Undo step of its own.
   const handleFitTextareaToContent = useCallback((elementId, measuredHeight) => {
+    markHistoryQuiet();
     setA4_Elements((prevState) => {
       const result = reflowTextareaHeight(
         prevState,
@@ -1121,7 +1159,7 @@ export function useA4Elements(titleRef) {
       reflowPageCountRef.current = result.pageCount;
       return result.elements;
     });
-  }, []);
+  }, [markHistoryQuiet]);
 
   // Applies one reviewed layout group as a single state change. The backend
   // already validates proposals, but this client-side guard prevents stale or

@@ -569,18 +569,18 @@ def _education_record_height(
     degree = str(edu.get("degree") or "").strip()
     if degree:
         height += b.measure_block(
-            degree, width, degree_fs, degree_lh, font, bold=True, min_h=15
+            degree, width, degree_fs, degree_lh, font, bold=True, min_h=degree_lh
         )
     meta = _education_meta(edu)
     if meta:
         if height:
             height += SPACE_STACK
-        height += b.measure_block(meta, width, meta_fs, meta_lh, font, min_h=12)
+        height += b.measure_block(meta, width, meta_fs, meta_lh, font, min_h=meta_lh)
     description = _education_description(edu)
     if description:
         if height:
             height += SPACE_STACK
-        height += b.measure_block(description, width, body_fs, body_lh, font, min_h=12)
+        height += b.measure_block(description, width, body_fs, body_lh, font, min_h=body_lh)
     return height
 
 
@@ -633,19 +633,19 @@ def _place_education_record(
         if degree:
             b.block(
                 degree, left, width, degree_fs, degree_lh, ink, font,
-                bold=True, min_h=15,
+                bold=True, min_h=degree_lh,
             )
             placed = True
         if meta:
             if placed:
                 b.gap(SPACE_STACK)
-            b.block(meta, left, width, meta_fs, meta_lh, muted, font, min_h=12)
+            b.block(meta, left, width, meta_fs, meta_lh, muted, font, min_h=meta_lh)
             placed = True
         if description:
             if placed:
                 b.gap(SPACE_STACK)
             b.block(
-                description, left, width, body_fs, body_lh, body_color, font, min_h=12
+                description, left, width, body_fs, body_lh, body_color, font, min_h=body_lh
             )
             placed = True
 
