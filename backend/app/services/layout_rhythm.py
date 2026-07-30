@@ -39,6 +39,23 @@ VALID_ROLES = {
     "rule",
     "other",
 }
+_ROLE_ALIASES = {
+    "title": "entry_title",
+    "job_title": "entry_title",
+    "role": "entry_title",
+    "meta": "entry_meta",
+    "subtitle": "entry_meta",
+    "dates": "entry_meta",
+    "company": "entry_meta",
+    "description": "body",
+    "content": "body",
+    "bullet": "list",
+    "bullets": "list",
+    "section_heading": "heading",
+    "section_title": "heading",
+    "header": "heading",
+    "line": "rule",
+}
 # Placement order inside one block (title → meta → body).
 _ROLE_RANK = {
     "heading": 0,
@@ -71,7 +88,6 @@ def _estimate_height(item: dict[str, Any], width: float) -> float:
     content_height = _number(item.get("content_height"), 0.0)
     if content_height > item.get("height", 0) + EPSILON:
         return content_height
-    # Prefer measured/stored height; fall back to a wrap estimate.
     stored = _number(item.get("height"), 0.0)
     if stored > 0:
         return stored
@@ -85,10 +101,36 @@ def _estimate_height(item: dict[str, Any], width: float) -> float:
     return round(max(lines * line_height + 6, line_height + 6), 2)
 
 
+def _unwrap_classification(raw: dict[str, Any]) -> dict[str, Any]:
+    """Accept common GPT wrappers around the sections payload."""
+    if not isinstance(raw, dict):
+        return {}
+    if isinstance(raw.get("sections"), list):
+        return raw
+    for key in ("classification", "layout", "result", "data", "rhythm"):
+        nested = raw.get(key)
+        if isinstance(nested, dict) and isinstance(nested.get("sections"), list):
+            return nested
+    return raw
+
+
+def _canonical_role(value: object) -> str:
+    role = str(value or "other").strip().lower().replace(" ", "_").replace("-", "_")
+    role = _ROLE_ALIASES.get(role, role)
+    return role if role in VALID_ROLES else "other"
+
+
+def _block_elements(raw_block: dict[str, Any]) -> list[Any]:
+    for key in ("elements", "items", "members"):
+        value = raw_block.get(key)
+        if isinstance(value, list):
+            return value
+    return []
+
+
 def _normalize_classification(raw: dict[str, Any], known_ids: set[str]) -> dict[str, Any] | None:
     """Validate GPT output into a packable structure. Returns None if unusable."""
-    if not isinstance(raw, dict):
-        return None
+    raw = _unwrap_classification(raw if isinstance(raw, dict) else {})
     sections_raw = raw.get("sections")
     if not isinstance(sections_raw, list) or not sections_raw:
         return None
@@ -110,24 +152,30 @@ def _normalize_classification(raw: dict[str, Any], known_ids: set[str]) -> dict[
         section_id = str(section.get("id") or f"section-{section_index}")
         blocks_raw = section.get("blocks")
         if not isinstance(blocks_raw, list):
-            continue
+            blocks_raw = []
         blocks: list[dict[str, Any]] = []
         for block_index, block in enumerate(blocks_raw):
             if not isinstance(block, dict):
                 continue
-            elements_raw = block.get("elements")
-            if not isinstance(elements_raw, list) or not elements_raw:
+            elements_raw = _block_elements(block)
+            if not elements_raw:
                 continue
             members: list[dict[str, str]] = []
             for entry in elements_raw:
-                if not isinstance(entry, dict):
+                if isinstance(entry, str):
+                    element_id, role = entry, "other"
+                elif isinstance(entry, dict):
+                    element_id = str(
+                        entry.get("element_id")
+                        or entry.get("id")
+                        or entry.get("elementId")
+                        or ""
+                    )
+                    role = _canonical_role(entry.get("role") or entry.get("type"))
+                else:
                     continue
-                element_id = str(entry.get("element_id") or "")
-                role = str(entry.get("role") or "other")
                 if element_id not in known_ids or element_id in used_ids:
                     continue
-                if role not in VALID_ROLES:
-                    role = "other"
                 used_ids.add(element_id)
                 members.append({"element_id": element_id, "role": role})
             if not members:
@@ -138,7 +186,6 @@ def _normalize_classification(raw: dict[str, Any], known_ids: set[str]) -> dict[
                 "elements": members,
             })
         if not blocks:
-            # Allow a heading-only section expressed as a single synthetic block.
             heading_id = str(section.get("heading_element_id") or "")
             if heading_id in known_ids and heading_id not in used_ids:
                 used_ids.add(heading_id)
@@ -167,6 +214,40 @@ def _normalize_classification(raw: dict[str, Any], known_ids: set[str]) -> dict[
         "sections": sections,
         "ignored_element_ids": ignored,
         "classified_ids": used_ids,
+    }
+
+
+def _heuristic_classification(
+    elements: list[dict[str, Any]],
+    bounds_by_id: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Fallback when GPT JSON is unusable: one section, one element per block."""
+    flow = []
+    for el in elements:
+        element_id = str(el.get("element_id") or "")
+        item = bounds_by_id.get(element_id)
+        if not item or el.get("locked") or el.get("fixedToPage"):
+            continue
+        if item.get("category") not in {"text", "textarea"}:
+            continue
+        flow.append(item)
+    flow.sort(key=lambda item: (item["page"], item["top"], item["left"], item["element_id"]))
+    blocks = [
+        {
+            "id": f"auto-{index}",
+            "order": index,
+            "elements": [{
+                "element_id": item["element_id"],
+                "role": "heading" if item.get("category") == "text" and item.get("fontSize", 0) >= 12 else "body",
+            }],
+        }
+        for index, item in enumerate(flow)
+    ]
+    return {
+        "profile": {"content_left": 0.0, "content_width": 0.0},
+        "ignored_element_ids": set(),
+        "classified_ids": {item["element_id"] for item in flow},
+        "sections": [{"id": "content", "order": 1, "blocks": blocks}] if blocks else [],
     }
 
 
@@ -209,7 +290,6 @@ def _anchor_start_y(
         if element_id in classified_ids:
             continue
         if item.get("locked") or item.get("fixedToPage") or item.get("category") == "image":
-            # Only treat upper-page anchors as header chrome.
             if item["page"] == 1 and item["top"] < page_height * 0.28:
                 bottoms.append(item["top"] + item["height"])
     if not bottoms:
@@ -221,24 +301,22 @@ def pack_rhythm_classification(
     elements: list[dict[str, Any]],
     classification: dict[str, Any],
     page_size: dict[str, Any] | None,
-) -> dict[str, Any] | None:
+) -> tuple[dict[str, Any] | None, str]:
     """Pack GPT-classified elements into a single safe layout group.
 
-    Unclassified / ignored / locked / fixedToPage elements keep their geometry.
-    Classified flow elements receive new left/top/page (and width for textareas).
+    Returns ``(group, error_code)``. ``error_code`` is empty on success.
     """
     page_size = page_size or {}
     page_width = _number(page_size.get("width"), 595.0)
     page_height = _number(page_size.get("height"), float(A4_H))
     if page_width <= 0 or page_height <= 0:
-        return None
+        return None, "invalid_page_size"
 
     page_top, content_bottom = _page_margins(page_height)
     usable_height = content_bottom - page_top
     if usable_height < 80:
-        return None
+        return None, "page_too_small"
 
-    # Bounds for every positioned category we may move or treat as an anchor.
     all_bounds = extract_bounds(
         elements,
         AUTO_LAYOUT_CATEGORIES | {"line", "rectangle", "circle", "ellipse"},
@@ -250,11 +328,14 @@ def pack_rhythm_classification(
         if element.get("element_id")
     }
     normalized = _normalize_classification(classification, known_ids)
+    used_fallback = False
     if normalized is None:
-        return None
+        normalized = _heuristic_classification(elements, bounds_by_id)
+        used_fallback = True
+        if not normalized["sections"]:
+            return None, "classification_empty"
 
     classified_ids: set[str] = set(normalized["classified_ids"])
-    # Drop locked / fixed / non-flowable ids from the pack list.
     movable_ids: set[str] = set()
     for element_id in classified_ids:
         item = bounds_by_id.get(element_id)
@@ -267,7 +348,7 @@ def pack_rhythm_classification(
             continue
         movable_ids.add(element_id)
     if len(movable_ids) < 2:
-        return None
+        return None, "too_few_movable"
 
     content_left, content_width = _infer_column(
         bounds_by_id,
@@ -277,14 +358,13 @@ def pack_rhythm_classification(
         normalized["profile"]["content_width"],
     )
 
-    # Working geometry for collision validation includes non-moved content.
-    working = [dict(item) for item in all_bounds if item["category"] in AUTO_LAYOUT_CATEGORIES]
-    working_by_id = {item["element_id"]: item for item in working}
-    # Also track lines we move so patches can include them.
-    line_state = {
-        element_id: dict(bounds_by_id[element_id])
-        for element_id in movable_ids
-        if bounds_by_id.get(element_id, {}).get("category") == "line"
+    # Validation must include every patched id. Lines are flowable for rhythm
+    # but are outside AUTO_LAYOUT_CATEGORIES — omitting them made _is_safe_group
+    # reject every proposal that moved a section rule.
+    working_by_id = {
+        item["element_id"]: dict(item)
+        for item in all_bounds
+        if item["category"] in AUTO_LAYOUT_CATEGORIES or item["element_id"] in movable_ids
     }
 
     cursor_page = 1
@@ -302,18 +382,15 @@ def pack_rhythm_classification(
         source = bounds_by_id[element_id]
         height = _estimate_height(source, content_width)
         ensure_space(height)
-        left = content_left
         width = content_width
         if source["category"] == "line":
-            # Keep short accent rules rather than full column width.
             width = min(content_width, max(source["width"], 48.0))
         elif source["category"] == "text":
-            # Single-line labels keep a measured-ish width but share the column left.
             width = min(content_width, max(source["width"], 40.0))
 
         patch: dict[str, Any] = {
             "element_id": element_id,
-            "left": round(left, 2),
+            "left": round(content_left, 2),
             "top": round(cursor_y, 2),
             "page": cursor_page,
         }
@@ -341,23 +418,14 @@ def pack_rhythm_classification(
         if changed:
             patches.append(patch)
 
-        if element_id in working_by_id:
-            working_by_id[element_id].update({
-                "left": patch["left"],
-                "top": patch["top"],
-                "page": patch["page"],
-                **({"width": patch["width"]} if "width" in patch else {}),
-                **({"height": patch["height"]} if "height" in patch else {}),
-            })
-        elif element_id in line_state:
-            line_state[element_id].update({
-                "left": patch["left"],
-                "top": patch["top"],
-                "page": patch["page"],
-                "width": patch.get("width", line_state[element_id]["width"]),
-                "height": patch.get("height", line_state[element_id]["height"]),
-            })
-
+        target = working_by_id.setdefault(element_id, dict(source))
+        target.update({
+            "left": patch["left"],
+            "top": patch["top"],
+            "page": patch["page"],
+            **({"width": patch["width"]} if "width" in patch else {}),
+            **({"height": patch["height"]} if "height" in patch else {}),
+        })
         cursor_y += height + gap_after
 
     for section_index, section in enumerate(normalized["sections"]):
@@ -382,31 +450,34 @@ def pack_rhythm_classification(
                 is_last_block = block_index == len(blocks) - 1
                 role = member["role"]
                 if not is_last_in_block:
-                    # Inside a record: title → meta → body uses STACK.
-                    gap = SPACE_STACK
-                    if role == "heading":
-                        gap = SPACE_AFTER_RULE
+                    gap = SPACE_AFTER_RULE if role == "heading" else SPACE_STACK
                 elif not is_last_block:
                     gap = SPACE_RECORD
                 else:
-                    # End of section: larger break before the next section.
                     gap = SPACE_SECTION if section_index < len(normalized["sections"]) - 1 else 0.0
                 place(member["element_id"], gap_after=gap)
 
     if not patches:
-        return None
+        return None, "no_position_changes"
 
-    # Validate against content items (text/textarea/image). Line-only moves are
-    # included in patches but decorative collisions are intentionally soft.
     validation_items = list(working_by_id.values())
+    reason_suffix = (
+        " Użyto zapasowej klasyfikacji kolejności (GPT zwrócił nieparsowalną strukturę)."
+        if used_fallback
+        else ""
+    )
+    title = "Ujednolić rytm układu (indywidualny szablon)"
+    reason = (
+        "Elementy zostały sklasyfikowane semantycznie, a następnie ułożone "
+        f"według rytmu szablonu: STACK {SPACE_STACK}px, RECORD {SPACE_RECORD}px, "
+        f"SECTION {SPACE_SECTION}px. Stałe tła i elementy spoza klasyfikacji pozostają na miejscu."
+        f"{reason_suffix}"
+    )
+
     group = _group(
         group_id="rhythm-reflow",
-        title="Ujednolić rytm układu (indywidualny szablon)",
-        reason=(
-            "Elementy zostały sklasyfikowane semantycznie, a następnie ułożone "
-            f"według rytmu szablonu: STACK {SPACE_STACK}px, RECORD {SPACE_RECORD}px, "
-            f"SECTION {SPACE_SECTION}px. Stałe tła i elementy spoza klasyfikacji pozostają na miejscu."
-        ),
+        title=title,
+        reason=reason,
         severity="critical",
         patches=patches,
         items=validation_items,
@@ -415,17 +486,12 @@ def pack_rhythm_classification(
         allow_overlap=False,
     )
     if group is None:
-        # Freestyle chaos often already overlaps with images/anchors. Allow the
-        # packed column to resolve content-vs-content while still staying on-page;
-        # the preview card remains mandatory before apply.
         group = _group(
             group_id="rhythm-reflow",
-            title="Ujednolić rytm układu (indywidualny szablon)",
+            title=title,
             reason=(
-                "Elementy zostały sklasyfikowane semantycznie, a następnie ułożone "
-                f"według rytmu szablonu: STACK {SPACE_STACK}px, RECORD {SPACE_RECORD}px, "
-                f"SECTION {SPACE_SECTION}px. Podgląd jest wymagany — układ freestyle mógł "
-                "mieć wcześniejsze kolizje z obrazami lub kotwicami."
+                reason
+                + " Podgląd jest wymagany — freestyle mógł mieć wcześniejsze kolizje z obrazami."
             ),
             severity="critical",
             patches=patches,
@@ -434,10 +500,12 @@ def pack_rhythm_classification(
             page_height=page_height,
             allow_overlap=True,
         )
-    if group is not None:
-        group["target_page"] = min(patch.get("page", 1) for patch in patches)
-        group["page_count"] = max(
-            max((item.get("page") or 1) for item in elements if isinstance(item, dict)),
-            max(patch.get("page", 1) for patch in patches),
-        )
-    return group
+    if group is None:
+        return None, "safety_validation_failed"
+
+    group["target_page"] = min(patch.get("page", 1) for patch in patches)
+    group["page_count"] = max(
+        max((item.get("page") or 1) for item in elements if isinstance(item, dict)),
+        max(patch.get("page", 1) for patch in patches),
+    )
+    return group, ""

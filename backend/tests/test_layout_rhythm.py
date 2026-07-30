@@ -81,7 +81,8 @@ class LayoutRhythmTests(unittest.TestCase):
             }],
         }
 
-        group = pack_rhythm_classification(elements, classification, PAGE)
+        group, error = pack_rhythm_classification(elements, classification, PAGE)
+        self.assertEqual(error, "")
         self.assertIsNotNone(group)
         self.assertEqual(group["id"], "rhythm-reflow")
         self.assertEqual(group["severity"], "critical")
@@ -119,10 +120,51 @@ class LayoutRhythmTests(unittest.TestCase):
                 }],
             }],
         }
-        group = pack_rhythm_classification(elements, classification, PAGE)
+        group, error = pack_rhythm_classification(elements, classification, PAGE)
+        self.assertEqual(error, "")
         self.assertIsNotNone(group)
         patched = {patch["element_id"] for patch in group["patches"]}
         self.assertNotIn("locked-title", patched)
+
+    def test_accepts_line_rules_in_validation(self):
+        """Regression: line patches used to fail _is_safe_group id checks."""
+        elements = [
+            el("heading", 40, 200, height=16, category="text", content="EXPERIENCE"),
+            el("rule", 40, 220, width=72, height=1.5, category="line"),
+            el("body", 40, 230, height=40, content="Opis"),
+        ]
+        classification = {
+            "profile": {"content_left": 40, "content_width": 400},
+            "sections": [{
+                "id": "experience",
+                "order": 1,
+                "blocks": [{
+                    "id": "one",
+                    "order": 1,
+                    "elements": [
+                        {"element_id": "heading", "role": "heading"},
+                        {"element_id": "rule", "role": "rule"},
+                        {"element_id": "body", "role": "body"},
+                    ],
+                }],
+            }],
+        }
+        group, error = pack_rhythm_classification(elements, classification, PAGE)
+        self.assertEqual(error, "")
+        self.assertIsNotNone(group)
+        patched = {patch["element_id"] for patch in group["patches"]}
+        self.assertTrue({"heading", "rule", "body"} & patched)
+
+    def test_falls_back_when_gpt_json_is_empty(self):
+        elements = [
+            el("a", 40, 120),
+            el("b", 40, 200),
+            el("c", 40, 280),
+        ]
+        group, error = pack_rhythm_classification(elements, {"message": "oops"}, PAGE)
+        self.assertEqual(error, "")
+        self.assertIsNotNone(group)
+        self.assertGreaterEqual(len(group["patches"]), 1)
 
 
 if __name__ == "__main__":

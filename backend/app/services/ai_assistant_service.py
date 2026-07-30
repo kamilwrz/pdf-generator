@@ -1144,10 +1144,19 @@ Zwróć JSON:
 }}"""
 
     raw, usage = _gpt(system, user, action="layout_rhythm")
-    group = pack_rhythm_classification(elements, raw, page_size)
+    group, pack_error = pack_rhythm_classification(elements, raw, page_size)
     usage_payload = usage if isinstance(usage, dict) else {}
 
     if group is None:
+        error_hints = {
+            "classification_empty": "Model nie zwrócił żadnych sekcji z rozpoznawalnymi element_id.",
+            "too_few_movable": "Za mało ruchomych elementów tekstu po odfiltrowaniu locked/fixedToPage.",
+            "no_position_changes": "Klasyfikacja nie wymagała przesunięć — układ już wygląda na ułożony.",
+            "safety_validation_failed": "Patch rytmu nie przeszedł walidacji granic strony.",
+            "invalid_page_size": "Niepoprawny page_size z frontendu.",
+            "page_too_small": "Obszar treści na stronie jest zbyt mały.",
+        }
+        detail = error_hints.get(pack_error, "Klasyfikacja GPT nie przełożyła się na poprawny packer SPACE_*.")
         return {
             "message": (
                 "Nie udało się zbudować bezpiecznego rytmu układu z klasyfikacji. "
@@ -1155,14 +1164,15 @@ Zwróć JSON:
             ),
             "rating": None,
             "tips": [
-                "Rytm wymaga poprawnej klasyfikacji sekcji/bloków — model nie przesuwa współrzędnych bezpośrednio.",
+                "Rytm: GPT klasyfikuje sekcje/bloki; Python liczy współrzędne (SPACE_*).",
                 "Elementy fixedToPage / locked są pomijane.",
+                detail,
             ],
             "corrections": [],
             "layout_groups": [],
             "layout_issues": [{
                 "severity": "warning",
-                "message": "Klasyfikacja GPT nie przełożyła się na poprawny packer SPACE_*.",
+                "message": detail,
             }],
             "web_sources": [],
             "usage": usage_payload,
