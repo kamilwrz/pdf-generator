@@ -1,9 +1,9 @@
-"""Freestyle vertical-gap unification (adaptive SPACE_* rhythm).
+"""Freestyle rhythm: GPT proposes moves from a full A4 snapshot; Python validates.
 
-GPT classifies structure and may nominate a few gap pairs to fix. Python
-derives target gaps from the document's own majority (median per gap class),
-falling back to template ``SPACE_*`` only when there are too few samples.
-Only local outliers are nudged — never a full-column reflow.
+Primary path: the model receives the complete page JSON and returns a short
+list of ``moves`` (absolute left/top). Python freezes identity (name/role),
+clamps each axis to ±15 px, forbids page/size changes, and emits a preview
+group. Legacy classification packing remains as a fallback.
 """
 from __future__ import annotations
 
@@ -87,8 +87,13 @@ OVERLAP_GAP_PX = 2.0
 # Cap how many local pairs we touch in one suggestion (avoids mass reshuffles).
 MAX_AUTO_ADJUST_PAIRS = 8
 MAX_GPT_ADJUST_PAIRS = 8
+# Cap GPT-authored absolute moves in one suggestion.
+MAX_GPT_RHYTHM_MOVES = 12
 # Need enough clean samples before trusting the author's majority rhythm.
 MIN_GAP_SAMPLES = 3
+_SNAPSHOT_CATEGORIES = {
+    "text", "textarea", "line", "image", "rectangle", "circle", "ellipse",
+}
 _VALID_PAIR_ACTIONS = {"tighten", "loosen", "fix"}
 _GAP_KINDS = ("stack", "after_rule", "record", "section")
 _DEFAULT_GAP_PROFILE = {
@@ -837,6 +842,274 @@ def pack_rhythm_classification(
             title=title,
             reason=reason + " Podgląd wymagany — mogą pozostać kolizje z ikonami/obrazami.",
             severity=severity,
+            patches=patches,
+            items=validation_items,
+            page_width=page_width,
+            page_height=page_height,
+            allow_overlap=True,
+        )
+    if group is None:
+        return None, "safety_validation_failed"
+
+    group["target_page"] = min(patch.get("page", 1) for patch in patches)
+    group["page_count"] = max(
+        max((item.get("page") or 1) for item in elements if isinstance(item, dict)),
+        max(patch.get("page", 1) for patch in patches),
+    )
+    return group, ""
+
+
+def build_a4_canvas_snapshot(
+    elements: list[dict[str, Any]],
+    page_size: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Build the full A4 JSON handed to GPT for freestyle rhythm decisions."""
+    page_size = page_size or {}
+    page_width = _number(page_size.get("width"), 595.0)
+    page_height = _number(page_size.get("height"), float(A4_H))
+    items: list[dict[str, Any]] = []
+
+    for element in elements:
+        if not isinstance(element, dict):
+            continue
+        element_id = str(element.get("element_id") or "")
+        category = element.get("category")
+        if not element_id or category not in _SNAPSHOT_CATEGORIES:
+            continue
+
+        locked = bool(element.get("locked") or element.get("fixedToPage"))
+        content = str(element.get("content") or "")
+        if category == "image":
+            preview = "[image]"
+        elif category == "line":
+            preview = "[line]"
+        elif category in {"rectangle", "circle", "ellipse"}:
+            preview = f"[{category}]"
+        else:
+            preview = content[:240]
+
+        item: dict[str, Any] = {
+            "element_id": element_id,
+            "category": category,
+            "page": int(_number(element.get("page"), 1)),
+            "left": round(_number(element.get("left")), 2),
+            "top": round(_number(element.get("top")), 2),
+            "width": round(_number(element.get("width")), 2),
+            "height": round(_number(element.get("height")), 2),
+            "zIndex": int(_number(element.get("zIndex"), 1)),
+            "movable": not locked,
+            "locked": locked,
+            "fixedToPage": bool(element.get("fixedToPage")),
+            "content": preview,
+        }
+        if category in {"text", "textarea"}:
+            item["fontSize"] = element.get("fontSize")
+            item["fontFamily"] = element.get("fontFamily")
+            item["bold"] = bool(element.get("bold"))
+            item["italic"] = bool(element.get("italic"))
+            item["align"] = element.get("align")
+            item["color"] = element.get("color")
+            item["lineHeight"] = element.get("lineHeight")
+        if category == "line":
+            item["color"] = element.get("color")
+            item["strokeWidth"] = element.get("strokeWidth") or element.get("borderWidth")
+        items.append(item)
+
+    items.sort(key=lambda row: (row["page"], row["top"], row["left"], row["element_id"]))
+    movable_count = sum(1 for row in items if row["movable"])
+    return {
+        "page": {
+            "width": page_width,
+            "height": page_height,
+            "unit": "px",
+            "format": "A4",
+        },
+        "element_count": len(items),
+        "movable_count": movable_count,
+        "elements": items,
+        "constraints": {
+            "max_moves": MAX_GPT_RHYTHM_MOVES,
+            "max_delta_px": MAX_RHYTHM_NUDGE_PX,
+            "freeze_roles": ["name", "job_label"],
+            "forbid_page_change": True,
+            "forbid_resize": True,
+        },
+    }
+
+
+def _unwrap_moves_payload(raw: dict[str, Any]) -> dict[str, Any]:
+    """Accept common wrappers around a GPT moves payload."""
+    if not isinstance(raw, dict):
+        return {}
+    if isinstance(raw.get("moves"), list):
+        return raw
+    for key in ("result", "data", "rhythm", "layout", "proposal"):
+        nested = raw.get(key)
+        if isinstance(nested, dict) and isinstance(nested.get("moves"), list):
+            return nested
+    return raw
+
+
+def apply_gpt_rhythm_moves(
+    elements: list[dict[str, Any]],
+    gpt_raw: dict[str, Any],
+    page_size: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, str]:
+    """Validate GPT absolute moves and emit a soft freestyle preview group.
+
+    Safety rails (non-negotiable):
+    - only known element ids;
+    - name / job_label / large identity heuristics stay frozen;
+    - each left/top change clamped to ±``MAX_RHYTHM_NUDGE_PX``;
+    - page, width, and height never change;
+    - at most ``MAX_GPT_RHYTHM_MOVES`` patches.
+    """
+    page_size = page_size or {}
+    page_width = _number(page_size.get("width"), 595.0)
+    page_height = _number(page_size.get("height"), float(A4_H))
+    if page_width <= 0 or page_height <= 0:
+        return None, "invalid_page_size"
+
+    payload = _unwrap_moves_payload(gpt_raw if isinstance(gpt_raw, dict) else {})
+    moves_raw = payload.get("moves")
+    if not isinstance(moves_raw, list) or not moves_raw:
+        return None, "moves_empty"
+
+    keep_ids = {
+        str(element_id)
+        for element_id in (payload.get("keep_element_ids") or [])
+        if isinstance(element_id, str)
+    }
+    all_bounds = extract_bounds(
+        elements,
+        AUTO_LAYOUT_CATEGORIES | {"line", "rectangle", "circle", "ellipse"},
+    )
+    bounds_by_id = {item["element_id"]: item for item in all_bounds}
+    raw_by_id = {
+        str(element.get("element_id")): element
+        for element in elements
+        if isinstance(element, dict) and element.get("element_id")
+    }
+
+    patches: list[dict[str, Any]] = []
+    reasons: list[str] = []
+    used_ids: set[str] = set()
+    working_by_id = {item["element_id"]: dict(item) for item in all_bounds}
+
+    for entry in moves_raw:
+        if len(patches) >= MAX_GPT_RHYTHM_MOVES:
+            break
+        if not isinstance(entry, dict):
+            continue
+        element_id = str(
+            entry.get("element_id")
+            or entry.get("id")
+            or entry.get("elementId")
+            or ""
+        )
+        if not element_id or element_id in used_ids:
+            continue
+        original = bounds_by_id.get(element_id)
+        raw = raw_by_id.get(element_id)
+        if original is None or raw is None:
+            continue
+        if raw.get("locked") or raw.get("fixedToPage"):
+            continue
+        if element_id in keep_ids or _is_frozen_identity(raw, original):
+            continue
+
+        # Absolute targets preferred; relative dx/dy accepted as a fallback.
+        if "top" in entry or "left" in entry:
+            desired_left = _number(entry.get("left"), original["left"])
+            desired_top = _number(entry.get("top"), original["top"])
+        else:
+            desired_left = original["left"] + _number(entry.get("dx") or entry.get("delta_x"), 0.0)
+            desired_top = original["top"] + _number(entry.get("dy") or entry.get("delta_y"), 0.0)
+
+        delta_left = max(
+            -MAX_RHYTHM_NUDGE_PX,
+            min(MAX_RHYTHM_NUDGE_PX, desired_left - original["left"]),
+        )
+        delta_top = max(
+            -MAX_RHYTHM_NUDGE_PX,
+            min(MAX_RHYTHM_NUDGE_PX, desired_top - original["top"]),
+        )
+        new_left = round(original["left"] + delta_left, 2)
+        new_top = round(original["top"] + delta_top, 2)
+        # Keep the element on the same page and inside the canvas as much as possible.
+        new_top = max(0.0, min(new_top, page_height - max(original["height"], 1.0)))
+        new_left = max(0.0, min(new_left, page_width - max(original["width"] * 0.25, 1.0)))
+
+        if (
+            abs(new_left - original["left"]) <= EPSILON
+            and abs(new_top - original["top"]) <= EPSILON
+        ):
+            continue
+
+        used_ids.add(element_id)
+        patch = {
+            "element_id": element_id,
+            "left": new_left,
+            "top": new_top,
+            "page": original["page"],
+        }
+        patches.append(patch)
+        working = working_by_id[element_id]
+        working["left"] = new_left
+        working["top"] = new_top
+        reason = str(entry.get("reason") or entry.get("why") or "").strip()
+        if reason:
+            reasons.append(f"{element_id}: {reason[:120]}")
+
+    if not patches:
+        return None, "no_position_changes"
+
+    def _fits_page(item: dict[str, Any]) -> bool:
+        return (
+            item["left"] >= -EPSILON
+            and item["top"] >= -EPSILON
+            and item["left"] + item["width"] <= page_width + EPSILON
+            and item["top"] + item["height"] <= page_height + EPSILON
+        )
+
+    validation_items = []
+    patched_ids = {patch["element_id"] for patch in patches}
+    for element_id, item in working_by_id.items():
+        original = bounds_by_id.get(element_id, item)
+        if element_id in patched_ids or _fits_page(original):
+            validation_items.append(item)
+    if not validation_items:
+        validation_items = [working_by_id[patch["element_id"]] for patch in patches]
+
+    summary = str(payload.get("summary") or payload.get("message") or "").strip()
+    title = f"Korekty rytmu z GPT ({len(patches)}×, max ±15 px)"
+    reason_parts = [
+        "GPT wskazał elementy do przesunięcia na podstawie pełnego JSON A4. "
+        f"Python przyciął każde przesunięcie do ±{MAX_RHYTHM_NUDGE_PX:g} px "
+        "i zamroził imię/rolę. Szerokość, wysokość i strona bez zmian.",
+    ]
+    if summary:
+        reason_parts.append(summary[:240])
+    if reasons:
+        reason_parts.append(" ".join(reasons[:6]))
+
+    group = _group(
+        group_id="rhythm-reflow",
+        title=title,
+        reason=" ".join(reason_parts),
+        severity="medium",
+        patches=patches,
+        items=validation_items,
+        page_width=page_width,
+        page_height=page_height,
+        allow_overlap=False,
+    )
+    if group is None:
+        group = _group(
+            group_id="rhythm-reflow",
+            title=title,
+            reason=" ".join(reason_parts) + " Podgląd wymagany — mogą pozostać kolizje.",
+            severity="medium",
             patches=patches,
             items=validation_items,
             page_width=page_width,

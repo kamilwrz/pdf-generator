@@ -27,7 +27,7 @@ const ACTIONS = [
     { id: "improve",         label: "Ulepsz",            icon: FaMagic,       color: CHROME_ACCENT, description: "Mocniejsze punkty z czasownikami akcji" },
     { id: "ats_score",       label: "Wynik ATS",         icon: FaRobot,       color: CHROME_ACCENT, description: "Sprawdzenie pod systemy rekrutacyjne ATS" },
     { id: "layout",          label: "Układ",             icon: FaArrowsAltH,  color: CHROME_ACCENT, description: "Napraw kolizje, ucięcia i granice strony; potem wyrównania" },
-    { id: "layout_rhythm",   label: "Rytm",              icon: FaLayerGroup,  color: CHROME_ACCENT, description: "Lokalne poprawki odstępów (outliery, max ±15 px); imię i rola bez zmian" },
+    { id: "layout_rhythm",   label: "Rytm",              icon: FaLayerGroup,  color: CHROME_ACCENT, description: "GPT analizuje pełne A4 i wskazuje przesunięcia (max ±15 px); imię/rola bez zmian" },
 ];
 const SEVERITY_LABELS = {
     critical: "krytyczny",

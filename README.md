@@ -345,16 +345,16 @@ Implementation:
 
 Ratings, grammar, ATS, chat, and deterministic layout analysis with review cards.
 
-**Układ** (`layout`) is Python-only (`analyze_layout`): critical groups first (clipped textareas, overlapping content stacks, out-of-bounds, section rules through text), then cosmetic alignment/spacing only when readability is clean. **Rytm** (`layout_rhythm`) asks GPT for section/block/role classification plus optional `keep_element_ids` / `adjust_pairs`; Python **infers target gaps from the document majority** (median per stack/record/section, fallback to template `SPACE_*`) and **fixes only local outliers** (deadband ±6 px, no column cascade, hard cap **±15 px**, frozen name/role) while preserving freestyle `left`/width/page. **Projekt** (`design_rating`) still rates typography via GPT, but `summarize_geometry_issues` injects overlap/clip/rule/out-of-bounds counts and hard-caps the score at 5 when those faults exist.
+**Układ** (`layout`) is Python-only (`analyze_layout`): critical groups first (clipped textareas, overlapping content stacks, out-of-bounds, section rules through text), then cosmetic alignment/spacing only when readability is clean. **Rytm** (`layout_rhythm`) sends GPT a **full A4 JSON snapshot**; the model decides which elements to move and where (`moves` with absolute `left`/`top`). Python **only validates**: known ids, frozen name/role, hard cap **±15 px** per axis, no page/resize — preserving freestyle vision. Legacy classification packing remains a fallback. **Projekt** (`design_rating`) still rates typography via GPT, but `summarize_geometry_issues` injects overlap/clip/rule/out-of-bounds counts and hard-caps the score at 5 when those faults exist.
 
 Implementation:
 
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `ACTIONS` (lines 21–30), default export
 - `frontend/src/utils/elementBounds.js`, `measureElements` (line 120+) — `layout_bounds`, `content_height`, `clipped`, `bounds_estimated`
 - `backend/app/api/routes/ai_assistant.py`, `ai_assistant` — actions include `layout_rhythm`
-- `backend/app/services/ai_assistant_service.py`, `analyze_action` (line 1192+), `_rate_design` (line 332+), `_normalize_layout_rhythm` (line 1075+)
+- `backend/app/services/ai_assistant_service.py`, `analyze_action` (line 1167+), `_rate_design` (line 337+), `_normalize_layout_rhythm` (line 1043+)
 - `backend/app/services/layout_analysis.py`, `analyze_layout` (line 923+), `_stack_resolve_overlap_groups` (line 618+), `_clip_groups` (line 690+), `summarize_geometry_issues` (line 867+)
-- `backend/app/services/layout_rhythm.py`, `pack_rhythm_classification` — SPACE_* packer
+- `backend/app/services/layout_rhythm.py`, `build_a4_canvas_snapshot` (line 862+), `apply_gpt_rhythm_moves` (line 953+); `pack_rhythm_classification` (fallback, line 632+)
 
 Tests: `backend/tests/test_ai_chat_command.py`, `test_layout_analysis.py`, `test_layout_rhythm.py`, …
 
@@ -915,7 +915,7 @@ Implementacja:
 
 Oceny, gramatyka, ATS, czat oraz deterministyczna analiza układu z kartami do akceptacji.
 
-**Układ** (`layout`) to wyłącznie Python (`analyze_layout`): najpierw grupy krytyczne (ucięte textarea, nachodzące bloki, poza stroną, linie sekcji przez tekst), potem kosmetyczne wyrównania/odstępy tylko gdy czytelność jest w porządku. **Rytm** (`layout_rhythm`) — GPT klasyfikuje sekcje/bloki/role i może wskazać `keep_element_ids` / `adjust_pairs`; Python **wylicza cele z większości odstępów w CV** (mediana stack/record/section, fallback do szablonowych `SPACE_*`) i **poprawia tylko lokalne outliery** (deadband ±6 px, bez kaskady, limit **±15 px**, bez ruszania imienia/roli), zachowując freestyle `left`/szerokość/stronę. **Projekt** (`design_rating`) nadal ocenia typografię przez GPT, ale `summarize_geometry_issues` wstrzykuje liczbę kolizji/ucięć/linii/poza-stroną i twarde ogranicza ocenę do max 5 przy tych błędach.
+**Układ** (`layout`) to wyłącznie Python (`analyze_layout`): najpierw grupy krytyczne (ucięte textarea, nachodzące bloki, poza stroną, linie sekcji przez tekst), potem kosmetyczne wyrównania/odstępy tylko gdy czytelność jest w porządku. **Rytm** (`layout_rhythm`) — GPT dostaje **pełny JSON A4** i sam decyduje, które elementy jak/gdzie przesunąć (`moves` z `left`/`top`). Python **tylko waliduje**: znane id, zamrożone imię/rola, limit **±15 px** na oś, bez zmiany strony/rozmiaru — żeby zachować wizję freestyle. Stary packer klasyfikacji zostaje jako fallback. **Projekt** (`design_rating`) nadal ocenia typografię przez GPT, ale `summarize_geometry_issues` wstrzykuje liczbę kolizji/ucięć/linii/poza-stroną i twarde ogranicza ocenę do max 5 przy tych błędach.
 
 Implementacja:
 
@@ -924,7 +924,7 @@ Implementacja:
 - `backend/app/api/routes/ai_assistant.py` — `ai_assistant` (akcja `layout_rhythm`)
 - `backend/app/services/ai_assistant_service.py` — `analyze_action`, `_rate_design`, `_normalize_layout_rhythm`
 - `backend/app/services/layout_analysis.py` — `analyze_layout`, stacking/clip
-- `backend/app/services/layout_rhythm.py` — `pack_rhythm_classification`
+- `backend/app/services/layout_rhythm.py` — `build_a4_canvas_snapshot`, `apply_gpt_rhythm_moves`, `pack_rhythm_classification`
 
 Testy: `backend/tests/test_ai_chat_command.py`, `test_layout_analysis.py`, `test_layout_rhythm.py`, …
 

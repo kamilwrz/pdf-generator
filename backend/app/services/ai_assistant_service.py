@@ -25,7 +25,11 @@ from app.services.layout_analysis import (
     resolve_restructure_section,
     summarize_geometry_issues,
 )
-from app.services.layout_rhythm import pack_rhythm_classification
+from app.services.layout_rhythm import (
+    apply_gpt_rhythm_moves,
+    build_a4_canvas_snapshot,
+    pack_rhythm_classification,
+)
 from app.services.openai_pricing import usage_from_response
 
 _MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.4-mini")
@@ -1036,48 +1040,12 @@ def _analyze_layout(elements: list[dict], page_size: dict | None) -> dict:
     return result
 
 
-def _extract_rhythm_classify_payload(elements: list[dict]) -> list[dict]:
-    """Compact canvas snapshot for semantic classification (no style rewriting)."""
-    payload = []
-    for el in elements:
-        element_id = el.get("element_id")
-        category = el.get("category")
-        if not element_id or category not in {"text", "textarea", "line", "image"}:
-            continue
-        if el.get("fixedToPage") or el.get("locked"):
-            continue
-        item = {
-            "element_id": element_id,
-            "category": category,
-            "fontSize": el.get("fontSize"),
-            "bold": bool(el.get("bold")),
-            "left": el.get("left"),
-            "top": el.get("top"),
-            "width": el.get("width"),
-            "height": el.get("height"),
-            "page": el.get("page", 1),
-            "preview": (el.get("content") or "")[:120],
-        }
-        if category == "image":
-            item["preview"] = "[obraz]"
-        if category == "line":
-            item["preview"] = "[linia]"
-        payload.append(item)
-    # Prefer reading order so the model sees sections top-to-bottom.
-    payload.sort(key=lambda item: (
-        int(item.get("page") or 1),
-        float(item.get("top") or 0),
-        float(item.get("left") or 0),
-    ))
-    return payload
-
-
 def _normalize_layout_rhythm(elements: list[dict], page_size: dict | None) -> dict:
-    """GPT classifies structure; Python packs with cv_generator SPACE_* rhythm."""
-    classify_payload = _extract_rhythm_classify_payload(elements)
-    if len(classify_payload) < 2:
+    """GPT decides freestyle moves from a full A4 JSON; Python validates clamps."""
+    snapshot = build_a4_canvas_snapshot(elements, page_size)
+    if snapshot.get("movable_count", 0) < 2:
         return {
-            "message": "Za mało edytowalnych elementów tekstu, aby ujednolicić rytm układu.",
+            "message": "Za mało edytowalnych elementów na A4, aby poprawić rytm układu.",
             "rating": None,
             "tips": [],
             "corrections": [],
@@ -1097,88 +1065,71 @@ def _normalize_layout_rhythm(elements: list[dict], page_size: dict | None) -> di
         }
 
     system = (
-        "Jesteś projektantem freestyle CV. Klasyfikujesz strukturę i wskazujesz TYLKO "
-        "kilka lokalnych problemów z odstępami. NIGDY nie podajesz left/top/width/height. "
-        "Zwracasz WYŁĄCZNIE prawidłowy JSON. Id sekcji/bloków po angielsku w snake_case."
+        "Jesteś projektantem freestyle CV na płótnie A4. "
+        "Dostajesz PEŁNY JSON strony i sam decydujesz, które elementy lekko przesunąć. "
+        "Zachowujesz wizję użytkownika: nie przebudowujesz layoutu od zera. "
+        "Zwracasz WYŁĄCZNIE prawidłowy JSON."
     )
-    user = f"""Użytkownik zbudował CV freestyle. Większość układu ma zostać bez zmian.
-Python wyliczy docelowy rytm z większości ISTNIEJĄCYCH odstępów w CV (mediana per typ:
-stack/record/section) i poprawi TYLKO lokalne outliery — bez reflow całej kolumny,
-bez zmiany left/szerokości/strony, max ±15 px na element.
+    user = f"""Poniżej jest kompletny stan płótna A4 (współrzędne w px, origin lewy-górny róg strony).
 
-ELEMENTY (kolejność od góry, z left/top do analizy odstępów):
-{json.dumps(classify_payload, ensure_ascii=False)}
+{json.dumps(snapshot, ensure_ascii=False)}
 
-Zasady klasyfikacji:
-- Sekcje: header, summary, experience, education, skills, languages, other.
-- Blok = jeden wpis (stanowisko / szkoła).
-- Role: name, job_label, heading, entry_title, entry_meta, body, list, contact, rule, other.
-- Imię = name; stanowisko pod imieniem (np. „AML ANALYST”) = job_label — dodaj je do
-  ignored_element_ids ORAZ keep_element_ids.
-- Nagłówek sekcji = heading; tytuł wpisu = entry_title; firma/daty = entry_meta; opis = body/list.
-- Linie sekcji = rule. Obrazy i świadomie „osobne” elementy → ignored_element_ids + keep_element_ids.
-- Nie wymyślaj element_id.
-
-Selekcja poprawek (KLUCZOWE — nie układaj wszystkiego):
-- keep_element_ids: elementy, których NIE wolno ruszać (imię, rola, świadoma kompozycja).
-- adjust_pairs: 0–8 par {{before_id, after_id, action}} gdzie after_id to element do lekkiego
-  przesunięcia względem before_id. action = tighten | loosen | fix.
-- Wskazuj TYLKO realne problemy: nachodzenie, odstęp < ~2px, wyraźnie za ciasno/za luźno
-  względem typowego rytmu (stack≈4, record≈14, section≈18).
-- Pary już wyglądające dobrze POMIŃ. Nie dodawaj pary „na wszelki wypadek”.
-- Preferuj nachodzenia i dziury między sekcjami/wpisami; drobne nierówności bulletów na końcu.
-- Jeśli układ wygląda spójnie, zwróć adjust_pairs: [].
+Twoje zadanie:
+1. Przeanalizuj left/top/width/height/page oraz treść elementów.
+2. Wykryj realne problemy rytmu: nachodzenia, chaotyczne odstępy, oczywiste krzywe wyrównania
+   w tej samej kolumnie — ale NIE narzucaj szablonowego CV.
+3. Zdecyduj, które elementy PRZESUNĄĆ i gdzie (absolute left/top).
+4. Większość elementów ma zostać bez zmian. Max {snapshot["constraints"]["max_moves"]} ruchów.
+5. Każda zmiana powinna być drobna (orientacyjnie do ±{snapshot["constraints"]["max_delta_px"]} px);
+   Python i tak przytnie większe delty.
+6. NIGDY nie ruszaj imienia i roli zawodowej (np. duże imię + „AML ANALYST”) —
+   dodaj je do keep_element_ids.
+7. Nie zmieniaj page, width, height, content ani stylów. Nie wymyślaj nowych element_id.
+8. Elementy z movable=false / locked / fixedToPage pomiń.
+9. Jeśli układ jest spójny, zwróć moves: [].
 
 Zwróć JSON:
 {{
-  "profile": {{"content_left": <liczba>, "content_width": <liczba>}},
-  "ignored_element_ids": ["..."],
+  "summary": "<krótko po polsku: co poprawiasz i dlaczego>",
   "keep_element_ids": ["..."],
-  "adjust_pairs": [
-    {{"before_id": "...", "after_id": "...", "action": "tighten"}}
-  ],
-  "sections": [
+  "moves": [
     {{
-      "id": "experience",
-      "order": 2,
-      "blocks": [
-        {{
-          "id": "job-1",
-          "order": 1,
-          "elements": [
-            {{"element_id": "...", "role": "entry_title"}},
-            {{"element_id": "...", "role": "entry_meta"}},
-            {{"element_id": "...", "role": "body"}}
-          ]
-        }}
-      ]
+      "element_id": "...",
+      "left": <liczba>,
+      "top": <liczba>,
+      "reason": "<dlaczego ten ruch zachowuje wizję użytkownika>"
     }}
   ]
 }}"""
 
     raw, usage = _gpt(system, user, action="layout_rhythm")
-    group, pack_error = pack_rhythm_classification(elements, raw, page_size)
     usage_payload = usage if isinstance(usage, dict) else {}
+    group, pack_error = apply_gpt_rhythm_moves(elements, raw, page_size)
+
+    # Compatibility: older classification-only responses still pack via Python.
+    if group is None and isinstance(raw, dict) and isinstance(raw.get("sections"), list):
+        group, pack_error = pack_rhythm_classification(elements, raw, page_size)
 
     if group is None:
         error_hints = {
-            "classification_empty": "Model nie zwrócił żadnych sekcji z rozpoznawalnymi element_id.",
-            "too_few_movable": "Za mało ruchomych elementów tekstu po odfiltrowaniu locked/fixedToPage.",
-            "no_position_changes": "Klasyfikacja nie wymagała przesunięć — układ już wygląda na ułożony.",
+            "moves_empty": "Model nie zwrócił listy moves — spróbuj ponownie.",
+            "no_position_changes": "Propozycje GPT nie wymagały bezpiecznych przesunięć (układ OK lub wszystko zamrożone).",
+            "classification_empty": "Model nie zwrócił rozpoznawalnych elementów.",
+            "too_few_movable": "Za mało ruchomych elementów po odfiltrowaniu locked/fixedToPage.",
             "safety_validation_failed": "Patch rytmu nie przeszedł walidacji granic strony.",
             "invalid_page_size": "Niepoprawny page_size z frontendu.",
             "page_too_small": "Obszar treści na stronie jest zbyt mały.",
         }
-        detail = error_hints.get(pack_error, "Klasyfikacja GPT nie przełożyła się na lokalny packer SPACE_*.")
+        detail = error_hints.get(pack_error, "GPT nie zwrócił bezpiecznych przesunięć rytmu.")
         return {
             "message": (
-                "Nie udało się zbudować bezpiecznej lokalnej korekty odstępów. "
+                "Nie udało się zbudować bezpiecznej korekty rytmu z decyzji GPT. "
                 "Spróbuj ponownie albo popraw ręcznie nachodzące bloki."
             ),
             "rating": None,
             "tips": [
-                "Rytm: GPT wskazuje problematyczne pary; Python rusza tylko outliery (SPACE_*).",
-                "Pary w tolerancji (deadband) i imię/rola nie są ruszane.",
+                "Rytm: GPT analizuje pełny JSON A4 i proponuje moves; Python waliduje limity.",
+                "Imię/rola oraz delty > ±15 px są blokowane po stronie Pythona.",
                 detail,
             ],
             "corrections": [],
@@ -1194,14 +1145,14 @@ Zwróć JSON:
     patch_count = len(group.get("patches") or [])
     return {
         "message": (
-            f"Znalazłem {patch_count} lokalnych korekt odstępów (max ±15 px każda). "
-            "Reszta układu — w tym imię i rola — zostaje bez zmian."
+            f"GPT wskazał {patch_count} przesunięć na podstawie pełnego A4 "
+            "(każde max ±15 px po walidacji). Imię i rola zostają w miejscu."
         ),
         "rating": None,
         "tips": [
-            "Cel odstępów bierze się z większości w Twoim CV (mediana), nie ze sztywnego szablonu.",
-            "Poprawiane są tylko outliery względem tego rytmu — bez kaskady w dół kolumny.",
-            "Imię / stanowisko (np. AML ANALYST) są zamrożone. Left, szerokość i strona bez zmian.",
+            "Decyzje o tym, co ruszyć, podejmuje GPT na pełnym JSON strony.",
+            "Python tylko przycina delty (±15 px), zamraża imię/rolę i pilnuje granic.",
+            "Szerokość, wysokość i numer strony nie są zmieniane.",
         ],
         "corrections": [],
         "layout_groups": [group],

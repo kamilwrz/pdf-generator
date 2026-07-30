@@ -804,27 +804,26 @@ Algorytm wykrywa:
 Następnie tworzy bezpieczne grupy poprawek, posortowane od krytycznych do kosmetycznych.
 Przy aktywnych kolizjach lub ucięciach wyrównania są pomijane, żeby nie zasłaniać naprawy czytelności.
 
-### 7.6a. Przycisk „Rytm” — lokalne poprawki odstępów (GPT + Python)
+### 7.6a. Przycisk „Rytm” — pełny JSON A4 → decyzje GPT → walidacja Python
 
 Akcja `layout_rhythm` jest przeznaczona do freestyle CV (własny układ użytkownika):
 
-1. GPT zwraca semantykę (sekcje → bloki → role) oraz selekcję:
+1. Python buduje **pełny snapshot A4** (`build_a4_canvas_snapshot`): `page.width/height`
+   oraz wszystkie elementy z geometrią, typografią, treścią (skróconą) i flagą `movable`.
+2. GPT analizuje ten JSON i zwraca decyzje:
    - `keep_element_ids` — nie ruszać (imię, rola, świadoma kompozycja);
-   - `adjust_pairs` — 0–8 lokalnych par `{before_id, after_id, action}` do poprawy.
-2. Python (`layout_rhythm.pack_rhythm_classification`) **nie robi reflow całej kolumny**:
-   - wylicza cele `stack` / `record` / `section` / `after_rule` z **mediany istniejących**
-     odstępów w dokumencie (≥3 czyste próbki na klasę; inaczej fallback do `SPACE_*`);
-   - liczy odstępy względem **oryginalnych** sąsiadów (bez kaskady);
-   - pomija pary w **deadband** (±6 px od dynamicznego celu);
-   - jeśli GPT nie wskaże użytecznych par, wybiera max 8 największych outlierów;
-   - rusza tylko `top` wybranych elementów w kierunku wyliczonego rytmu.
-3. Twarde limity freestyle:
-   - każde przesunięcie max **±15 px**;
-   - **imię** i **rola zawodowa** (np. AML ANALYST) nigdy nie są ruszane;
-   - brak zmiany `left`, szerokości ani numeru strony.
-4. Wynik to karta podglądu `rhythm-reflow` — bez współrzędnych z modelu.
+   - `moves[]` — max 12 pozycji `{element_id, left, top, reason}`.
+3. Python (`apply_gpt_rhythm_moves`) **nie układa strony od zera** — tylko waliduje:
+   - znane `element_id`;
+   - zamrożenie imienia / roli;
+   - przycięcie każdej osi do **±15 px**;
+   - zakaz zmiany `page` / `width` / `height`.
+4. Gdy model zwróci stary format z `sections` (bez `moves`), działa fallback
+   `pack_rhythm_classification`.
+5. Wynik to karta podglądu `rhythm-reflow`.
 
-Stałe tła (`fixedToPage`), elementy zablokowane oraz pozycje spoza klasyfikacji pozostają nietknięte.
+Stałe tła (`fixedToPage`) i elementy `locked` są w snapshocie jako `movable: false`
+i nie trafiają do patchy.
 
 ### 7.7. Polecenia tekstowe dotyczące pozycji
 

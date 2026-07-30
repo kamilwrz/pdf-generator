@@ -1,4 +1,4 @@
-"""Tests for selective freestyle rhythm (deadband, local pairs, ±15 px)."""
+"""Tests for freestyle rhythm (GPT moves + legacy selective packer)."""
 import unittest
 
 from app.services.cv_generator import SPACE_STACK
@@ -6,6 +6,8 @@ from app.services.layout_rhythm import (
     MAX_RHYTHM_NUDGE_PX,
     MIN_GAP_SAMPLES,
     RHYTHM_DEADBAND_PX,
+    apply_gpt_rhythm_moves,
+    build_a4_canvas_snapshot,
     pack_rhythm_classification,
     _infer_gap_profile,
     _normalize_classification,
@@ -400,6 +402,52 @@ class LayoutRhythmTests(unittest.TestCase):
         profile, meta = _infer_gap_profile(flow, bounds, 842.0)
         self.assertFalse(meta["used_document_majority"])
         self.assertEqual(profile["stack"], float(SPACE_STACK))
+
+    def test_build_a4_snapshot_includes_page_and_movable_flags(self):
+        elements = [
+            el("a", 40, 100, content="Hello"),
+            el("bg", 0, 0, width=595, height=842, category="rectangle", fixedToPage=True),
+        ]
+        snapshot = build_a4_canvas_snapshot(elements, PAGE)
+        self.assertEqual(snapshot["page"]["width"], 595)
+        self.assertEqual(snapshot["page"]["height"], 842)
+        by_id = {item["element_id"]: item for item in snapshot["elements"]}
+        self.assertTrue(by_id["a"]["movable"])
+        self.assertFalse(by_id["bg"]["movable"])
+        self.assertIn("constraints", snapshot)
+
+    def test_apply_gpt_moves_clamps_and_freezes_name(self):
+        elements = [
+            el("name", 200, 40, height=28, category="text", fontSize=28, content="Kamil Wrzochalski"),
+            el("body", 40, 200, height=40, content="Summary"),
+        ]
+        gpt = {
+            "summary": "Wyrównuję treść",
+            "keep_element_ids": ["name"],
+            "moves": [
+                {"element_id": "name", "left": 10, "top": 10, "reason": "should be ignored"},
+                {"element_id": "body", "left": 40, "top": 260, "reason": "too far — clamp"},
+                {"element_id": "ghost", "left": 1, "top": 1, "reason": "unknown"},
+            ],
+        }
+        group, error = apply_gpt_rhythm_moves(elements, gpt, PAGE)
+        self.assertEqual(error, "")
+        by_id = {patch["element_id"]: patch for patch in group["patches"]}
+        self.assertNotIn("name", by_id)
+        self.assertIn("body", by_id)
+        self.assertEqual(by_id["body"]["left"], 40)
+        self.assertAlmostEqual(by_id["body"]["top"], 200 + MAX_RHYTHM_NUDGE_PX, places=1)
+
+    def test_apply_gpt_moves_accepts_relative_deltas(self):
+        elements = [el("a", 40, 200), el("b", 40, 240)]
+        gpt = {
+            "moves": [{"element_id": "b", "dx": 0, "dy": -8, "reason": "tighten"}],
+        }
+        group, error = apply_gpt_rhythm_moves(elements, gpt, PAGE)
+        self.assertEqual(error, "")
+        patch = group["patches"][0]
+        self.assertEqual(patch["element_id"], "b")
+        self.assertEqual(patch["top"], 232)
 
 
 if __name__ == "__main__":
