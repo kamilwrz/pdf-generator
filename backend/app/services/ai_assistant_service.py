@@ -1086,7 +1086,10 @@ Twoje zadanie:
    dodaj je do keep_element_ids.
 7. Nie zmieniaj page, width, height, content ani stylów. Nie wymyślaj nowych element_id.
 8. Elementy z movable=false / locked / fixedToPage pomiń.
-9. Jeśli układ jest spójny, zwróć moves: [].
+9. Pole ``moves`` jest OBOWIĄZKOWE (tablica). Jeśli naprawdę nie ma co ruszać, zwróć
+   moves: [] oraz krótkie summary — ale przy nachodzeniach / nierównych odstępach
+   ZAWSZE podaj konkretne moves (1–12).
+10. Używaj dokładnie klucza ``moves`` (nie ``patches`` / ``changes``).
 
 Zwróć JSON:
 {{
@@ -1110,10 +1113,38 @@ Zwróć JSON:
     if group is None and isinstance(raw, dict) and isinstance(raw.get("sections"), list):
         group, pack_error = pack_rhythm_classification(elements, raw, page_size)
 
+    if group is None and pack_error == "moves_none_needed":
+        summary = ""
+        if isinstance(raw, dict):
+            summary = str(raw.get("summary") or raw.get("message") or "").strip()
+        return {
+            "message": summary or (
+                "GPT uznał układ za spójny — nie zaproponował przesunięć. "
+                "Jeśli widzisz problem, popraw ręcznie albo uruchom Rytm ponownie."
+            ),
+            "rating": None,
+            "tips": [
+                "Pusta lista moves oznacza świadomą decyzję modelu, nie awarię walidacji.",
+                "Przy nachodzeniach spróbuj ponownie — model powinien wtedy zwrócić konkretne moves.",
+            ],
+            "corrections": [],
+            "layout_groups": [],
+            "layout_issues": [],
+            "web_sources": [],
+            "usage": usage_payload,
+        }
+
     if group is None:
         error_hints = {
+            "moves_missing": (
+                "Model nie zwrócił tablicy moves (zły kształt JSON). "
+                f"Klucze odpowiedzi: {sorted(raw.keys()) if isinstance(raw, dict) else []}."
+            ),
             "moves_empty": "Model nie zwrócił listy moves — spróbuj ponownie.",
-            "no_position_changes": "Propozycje GPT nie wymagały bezpiecznych przesunięć (układ OK lub wszystko zamrożone).",
+            "no_position_changes": (
+                "GPT podał moves, ale po walidacji (±15 px, zamrożone imię/rola) "
+                "nic bezpiecznego nie zostało do zastosowania."
+            ),
             "classification_empty": "Model nie zwrócił rozpoznawalnych elementów.",
             "too_few_movable": "Za mało ruchomych elementów po odfiltrowaniu locked/fixedToPage.",
             "safety_validation_failed": "Patch rytmu nie przeszedł walidacji granic strony.",

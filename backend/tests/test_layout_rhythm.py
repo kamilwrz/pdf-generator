@@ -449,6 +449,19 @@ class LayoutRhythmTests(unittest.TestCase):
         self.assertEqual(patch["element_id"], "b")
         self.assertEqual(patch["top"], 232)
 
+    def test_apply_gpt_moves_empty_list_is_none_needed(self):
+        elements = [el("a", 40, 200), el("b", 40, 240)]
+        group, error = apply_gpt_rhythm_moves(elements, {"moves": [], "summary": "OK"}, PAGE)
+        self.assertIsNone(group)
+        self.assertEqual(error, "moves_none_needed")
+
+    def test_apply_gpt_moves_accepts_patches_alias(self):
+        elements = [el("a", 40, 200), el("b", 40, 240)]
+        gpt = {"patches": [{"element_id": "b", "left": 40, "top": 232}]}
+        group, error = apply_gpt_rhythm_moves(elements, gpt, PAGE)
+        self.assertEqual(error, "")
+        self.assertEqual(group["patches"][0]["element_id"], "b")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -937,16 +937,59 @@ def build_a4_canvas_snapshot(
     }
 
 
+def _coerce_moves_list(value: object) -> list | None:
+    """Return a list when GPT used ``moves`` or a common alias."""
+    if isinstance(value, list):
+        return value
+    return None
+
+
 def _unwrap_moves_payload(raw: dict[str, Any]) -> dict[str, Any]:
-    """Accept common wrappers around a GPT moves payload."""
+    """Accept common wrappers / aliases around a GPT moves payload."""
     if not isinstance(raw, dict):
         return {}
-    if isinstance(raw.get("moves"), list):
-        return raw
-    for key in ("result", "data", "rhythm", "layout", "proposal"):
-        nested = raw.get(key)
-        if isinstance(nested, dict) and isinstance(nested.get("moves"), list):
-            return nested
+
+    move_keys = (
+        "moves", "patches", "adjustments", "shifts", "changes",
+        "repositions", "position_changes",
+    )
+
+    for key in move_keys:
+        moves = _coerce_moves_list(raw.get(key))
+        if moves is not None:
+            payload = dict(raw)
+            payload["moves"] = moves
+            return payload
+
+    for wrap_key in ("result", "data", "rhythm", "layout", "proposal", "response"):
+        nested = raw.get(wrap_key)
+        if not isinstance(nested, dict):
+            continue
+        for key in move_keys:
+            moves = _coerce_moves_list(nested.get(key))
+            if moves is not None:
+                payload = dict(nested)
+                payload["moves"] = moves
+                if isinstance(raw.get("keep_element_ids"), list) and "keep_element_ids" not in payload:
+                    payload["keep_element_ids"] = raw["keep_element_ids"]
+                if raw.get("summary") and not payload.get("summary"):
+                    payload["summary"] = raw["summary"]
+                return payload
+
+    # Corrections that already carry absolute geometry can act as moves.
+    corrections = raw.get("corrections")
+    if isinstance(corrections, list) and corrections:
+        geo_moves = [
+            item for item in corrections
+            if isinstance(item, dict)
+            and item.get("element_id")
+            and ("top" in item or "left" in item or "dy" in item or "dx" in item)
+        ]
+        if geo_moves:
+            payload = dict(raw)
+            payload["moves"] = geo_moves
+            return payload
+
     return raw
 
 
@@ -972,8 +1015,11 @@ def apply_gpt_rhythm_moves(
 
     payload = _unwrap_moves_payload(gpt_raw if isinstance(gpt_raw, dict) else {})
     moves_raw = payload.get("moves")
-    if not isinstance(moves_raw, list) or not moves_raw:
-        return None, "moves_empty"
+    if not isinstance(moves_raw, list):
+        return None, "moves_missing"
+    # Explicit empty list = model judged the freestyle layout already fine.
+    if not moves_raw:
+        return None, "moves_none_needed"
 
     keep_ids = {
         str(element_id)
