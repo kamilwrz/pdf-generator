@@ -17,19 +17,12 @@ import os
 from openai import OpenAI, APIError
 from app.core.config import OPENAI_API_KEY
 from app.services.layout_analysis import (
-    analyze_layout,
     extract_bounds,
     resolve_clone_operation,
     resolve_delete_operation,
     resolve_directed_operation,
     resolve_restructure_section,
     summarize_geometry_issues,
-)
-from app.services.layout_rhythm import (
-    MAX_RHYTHM_NUDGE_PX,
-    build_a4_canvas_snapshot,
-    compile_gpt_rhythm_response,
-    pack_rhythm_classification,
 )
 from app.services.openai_pricing import usage_from_response
 
@@ -1025,193 +1018,6 @@ Zwróć JSON:
     return result
 
 
-def _analyze_layout(elements: list[dict], page_size: dict | None) -> dict:
-    """Return deterministic layout proposals; GPT never chooses coordinates."""
-    result = analyze_layout(elements, page_size)
-    result["usage"] = {
-        "model": None,
-        "action": "layout",
-        "prompt_tokens": 0,
-        "completion_tokens": 0,
-        "total_tokens": 0,
-        "cost_usd": 0.0,
-        "cost_pln_estimate": 0.0,
-        "rates_usd_per_1m": {"input": 0.0, "output": 0.0},
-    }
-    return result
-
-
-def _normalize_layout_rhythm(elements: list[dict], page_size: dict | None) -> dict:
-    """GPT decides freestyle moves from a full A4 JSON; Python validates clamps."""
-    snapshot = build_a4_canvas_snapshot(elements, page_size)
-    if snapshot.get("movable_count", 0) < 2:
-        return {
-            "message": "Za mało edytowalnych elementów na A4, aby poprawić rytm układu.",
-            "rating": None,
-            "tips": [],
-            "corrections": [],
-            "layout_groups": [],
-            "layout_issues": [],
-            "web_sources": [],
-            "usage": {
-                "model": None,
-                "action": "layout_rhythm",
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "total_tokens": 0,
-                "cost_usd": 0.0,
-                "cost_pln_estimate": 0.0,
-                "rates_usd_per_1m": {"input": 0.0, "output": 0.0},
-            },
-        }
-
-    max_delta = snapshot["constraints"]["max_delta_px"]
-    system = (
-        "Jesteś analitykiem geometrii freestyle CV na A4. "
-        "Dostajesz PEŁNY JSON strony. Porównujesz współrzędne peerów (nagłówki, linie, "
-        "wpisy doświadczenia, kolumny) i wskazujesz konkretne problemy z liczbami. "
-        "Nie przebudowujesz layoutu od zera. Zwracasz WYŁĄCZNIE prawidłowy JSON."
-    )
-    user = f"""Poniżej jest kompletny stan płótna A4 (px, origin = lewy górny róg strony).
-
-{json.dumps(snapshot, ensure_ascii=False)}
-
-Zrób analizę jak człowiek-designer czytający współrzędne, np.:
-- „Nagłówek JĘZYKI top:162 i linia top:161 — odstęp ~1 px, za ciasno względem innych nagłówków.”
-- „DOŚWIADCZENIE left:95 vs PODSUMOWANIE left:70 — odstaje o ~25 px w prawo.”
-- „Citibank po Medtronic ma ~18 px, a pozostałe wpisy ~13 px — za duża przerwa.”
-
-Zasady:
-1. Porównuj elementy TEJ SAMEJ roli / sąsiadów (nagłówki sekcji, heading↔rule, job↔job).
-2. Podaj konkretne left/top i delty w polu analysis (po polsku).
-3. Dla każdego problemu dodaj moves z docelowym left/top (absolute).
-4. Max {snapshot["constraints"]["max_moves"]} ruchów łącznie, max 8 findings.
-5. Każdy ruch ≤ ±{max_delta} px (Python przytnie większe).
-6. NIGDY nie ruszaj imienia i roli zawodowej → keep_element_ids.
-7. Nie zmieniaj page/width/height/content. Nie wymyślaj element_id.
-8. movable=false / locked pomiń.
-9. findings jest OBOWIĄZKOWE. Jeśli brak problemów: findings: [] i krótkie summary.
-
-Zwróć JSON pod frontend (layout_issues + layout_groups):
-{{
-  "summary": "<krótko po polsku: najważniejsze wnioski>",
-  "keep_element_ids": ["..."],
-  "findings": [
-    {{
-      "id": "experience-heading-left",
-      "severity": "high",
-      "title": "DOŚWIADCZENIE ZAWODOWE — za daleko w prawo",
-      "analysis": "PODSUMOWANIE left:70, WYKSZTAŁCENIE left:71, DOŚWIADCZENIE left:95 — odstaje o ~24 px. Ustaw left≈70.",
-      "element_ids": ["..."],
-      "moves": [
-        {{
-          "element_id": "...",
-          "left": 70,
-          "top": 280,
-          "reason": "Wyrównanie do większości nagłówków sekcji"
-        }}
-      ]
-    }}
-  ]
-}}"""
-
-    raw, usage = _gpt(system, user, action="layout_rhythm")
-    usage_payload = usage if isinstance(usage, dict) else {}
-    groups, issues, pack_error = compile_gpt_rhythm_response(elements, raw, page_size)
-
-    # Compatibility: older classification-only responses still pack via Python.
-    if pack_error and isinstance(raw, dict) and isinstance(raw.get("sections"), list):
-        group, pack_error = pack_rhythm_classification(elements, raw, page_size)
-        groups = [group] if group else []
-        issues = issues or []
-
-    if pack_error == "moves_none_needed" or (
-        not pack_error and not groups and not issues and isinstance(raw, dict)
-        and isinstance(raw.get("findings"), list) and not raw.get("findings")
-    ):
-        summary = ""
-        if isinstance(raw, dict):
-            summary = str(raw.get("summary") or raw.get("message") or "").strip()
-        return {
-            "message": summary or (
-                "GPT nie znalazł istotnych problemów rytmu względem peerów. "
-                "Jeśli widzisz odstęp, uruchom Rytm ponownie albo popraw ręcznie."
-            ),
-            "rating": None,
-            "tips": [
-                "Pusta lista findings oznacza świadomą decyzję modelu.",
-                "Przy nachodzeniach / krzywych nagłówkach model powinien zwrócić findings z moves.",
-            ],
-            "corrections": [],
-            "layout_groups": [],
-            "layout_issues": [],
-            "web_sources": [],
-            "usage": usage_payload,
-        }
-
-    if pack_error and not groups and not issues:
-        error_hints = {
-            "moves_missing": (
-                "Model nie zwrócił findings/moves (zły kształt JSON). "
-                f"Klucze odpowiedzi: {sorted(raw.keys()) if isinstance(raw, dict) else []}."
-            ),
-            "moves_empty": "Model nie zwrócił findings — spróbuj ponownie.",
-            "no_position_changes": (
-                f"GPT podał findings, ale po walidacji (±{MAX_RHYTHM_NUDGE_PX:g} px, zamrożone imię/rola) "
-                "nic bezpiecznego nie zostało do zastosowania."
-            ),
-            "classification_empty": "Model nie zwrócił rozpoznawalnych elementów.",
-            "too_few_movable": "Za mało ruchomych elementów po odfiltrowaniu locked/fixedToPage.",
-            "safety_validation_failed": "Patch rytmu nie przeszedł walidacji granic strony.",
-            "invalid_page_size": "Niepoprawny page_size z frontendu.",
-            "page_too_small": "Obszar treści na stronie jest zbyt mały.",
-        }
-        detail = error_hints.get(pack_error, "GPT nie zwrócił bezpiecznej analizy rytmu.")
-        return {
-            "message": (
-                "Nie udało się zbudować bezpiecznej korekty rytmu z decyzji GPT. "
-                "Spróbuj ponownie albo popraw ręcznie nachodzące bloki."
-            ),
-            "rating": None,
-            "tips": [
-                "Rytm: GPT analizuje pełny JSON A4 (findings); Python buduje karty podglądu.",
-                f"Imię/rola oraz delty > ±{MAX_RHYTHM_NUDGE_PX:g} px są blokowane po stronie Pythona.",
-                detail,
-            ],
-            "corrections": [],
-            "layout_groups": [],
-            "layout_issues": [{
-                "severity": "warning",
-                "message": detail,
-            }],
-            "web_sources": [],
-            "usage": usage_payload,
-        }
-
-    summary = ""
-    if isinstance(raw, dict):
-        summary = str(raw.get("summary") or "").strip()
-    patch_count = sum(len(group.get("patches") or []) for group in groups)
-    message = summary or (
-        f"Znalazłem {len(issues) or len(groups)} problemów układu "
-        f"({patch_count} bezpiecznych przesunięć, max ±{MAX_RHYTHM_NUDGE_PX:g} px)."
-    )
-    tips = [
-        "Każda karta = jeden problem z analizą współrzędnych; Podgląd/Zastosuj rusza tylko te elementy.",
-        f"Python przycina delty do ±{MAX_RHYTHM_NUDGE_PX:g} px i zamraża imię/rolę.",
-        "Lista poniżej powtarza wnioski GPT (odstępy, wyrównania, porównania peerów).",
-    ]
-    return {
-        "message": message,
-        "rating": None,
-        "tips": tips,
-        "corrections": [],
-        "layout_groups": groups,
-        "layout_issues": issues,
-        "web_sources": [],
-        "usage": usage_payload,
-    }
-
 
 # ── public dispatcher ──────────────────────────────────────────────────────
 
@@ -1239,8 +1045,6 @@ def analyze_action(
         "improve":         lambda: _improve_content(elements),
         "ats_score":       lambda: _ats_score(text),
         "chat":            lambda: _chat(message, elements, page_size, history),
-        "layout":          lambda: _analyze_layout(elements, page_size),
-        "layout_rhythm":   lambda: _normalize_layout_rhythm(elements, page_size),
     }
 
     fn = dispatchers.get(action)

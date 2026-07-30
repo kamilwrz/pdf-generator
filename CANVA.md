@@ -773,57 +773,11 @@ Pola geometryczne są celowo wykluczone:
 
 Komentarz w `ai_assistant_service.py` wyjaśnia powód: bezpośrednie współrzędne modelu powodowały kolizje z ikonami i dekoracjami.
 
-### 7.6. Przycisk „Układ” nie wywołuje GPT
+### 7.6. Przyciski „Układ” i „Rytm” (usunięte)
 
-Akcja `layout` korzysta z:
-
-```python
-analyze_layout(elements, page_size)
-```
-
-Jest to algorytm Python. Odpowiedź ma:
-
-```json
-{
-  "model": null,
-  "prompt_tokens": 0,
-  "completion_tokens": 0,
-  "cost": 0
-}
-```
-
-Algorytm wykrywa:
-
-- ucięte pola textarea (`clipped` / `content_height`);
-- nachodzące bloki treści i proponuje ich rozsunięcie (grupa krytyczna);
-- linie sekcji przecinające tekst;
-- elementy poza stroną;
-- prawie wyrównane krawędzie (tylko gdy brak problemów czytelności);
-- niespójne odstępy (tylko gdy brak problemów czytelności).
-
-Następnie tworzy bezpieczne grupy poprawek, posortowane od krytycznych do kosmetycznych.
-Przy aktywnych kolizjach lub ucięciach wyrównania są pomijane, żeby nie zasłaniać naprawy czytelności.
-
-### 7.6a. Przycisk „Rytm” — pełny JSON A4 → findings GPT → parametry frontendu
-
-Akcja `layout_rhythm` jest przeznaczona do freestyle CV (własny układ użytkownika):
-
-1. Python buduje **pełny snapshot A4** (`build_a4_canvas_snapshot`): `page.width/height`
-   oraz wszystkie elementy z geometrią, typografią, treścią (skróconą) i flagą `movable`.
-2. GPT analizuje współrzędne względem peerów i zwraca:
-   - `summary` — krótkie podsumowanie po polsku;
-   - `keep_element_ids` — nie ruszać (imię, rola);
-   - `findings[]` — max 8 problemów w stylu: tytuł, severity, **analysis** z konkretnymi
-     `left`/`top`/deltami oraz opcjonalne `moves[{element_id,left,top,reason}]`.
-3. Python (`compile_gpt_rhythm_response`) mapuje to na parametry UI:
-   - `layout_issues[]` — treść analiz (jak w czacie o współrzędnych);
-   - `layout_groups[]` — osobna karta Podgląd/Zastosuj na każdy finding z ruchami;
-   - przycięcie każdej osi do **±28 px**, zamrożenie imienia/roli, bez zmiany `page`/rozmiaru.
-4. Gdy model zwróci stary format z `sections` (bez findings), działa fallback
-   `pack_rhythm_classification`.
-
-Stałe tła (`fixedToPage`) i elementy `locked` są w snapshocie jako `movable: false`
-i nie trafiają do patchy.
+Dedicated assistant actions `layout` / `layout_rhythm` were removed so the freestyle
+spacing tools can be redesigned from scratch. Chat position commands
+(`position_operation` → `resolve_directed_operation`) remain available.
 
 ### 7.7. Polecenia tekstowe dotyczące pozycji
 
@@ -1282,27 +1236,14 @@ Frontend nie wysyła wyłącznie zapisanych `width` i `height`.
 ```
 
 Dla elementów bez zamontowanego węzła DOM ustawia `bounds_estimated: true` (strony poza aktualnym widokiem).
-Dla textarea porównuje `scrollHeight` z `clientHeight`, żeby Układ mógł zaproponować powiększenie uciętego pola.
+Dla textarea porównuje `scrollHeight` z `clientHeight` (informacja o ucięciu treści).
 
 Backend preferuje `layout_bounds`, a przy ich braku stosuje zapisane wartości lub bezpieczne przybliżenie tekstu.
 
-### 13.2. Automatyczna analiza
+### 13.2. Automatyczna analiza (usunięta)
 
-`analyze_layout` bierze pod uwagę automatycznie:
-
-- `text`;
-- `textarea`;
-- `image`.
-
-Kolejność naprawy:
-
-1. ucięte textarea (`clip-expand-textareas`);
-2. nachodzące bloki treści (`stack-resolve-overlaps`);
-3. elementy poza stroną;
-4. treść przecięta linią sekcji (`decoration-clear-rules`);
-5. wyrównania i odstępy — tylko gdy nie ma problemów krytycznych/high.
-
-Dekoracyjne figury nie są automatycznie przesuwane; przy kolizji z linią sekcji przesuwana jest treść.
+Publiczna funkcja `analyze_layout` (przycisk „Układ”) została usunięta.
+Geometrię dla czatu nadal liczy `resolve_directed_operation` / powiązane resolvery.
 
 ### 13.3. Granice bezpieczeństwa
 
@@ -1809,8 +1750,8 @@ Dokument zapisany już z błędnymi współrzędnymi trzeba wygenerować ponowni
 | `backend/app/services/ai_service.py` | `extract_cv_data`, `generate_resume` | GPT-4o do ekstrakcji; przekazanie layoutu do Pythona. |
 | `backend/app/services/cv_generator.py` | `Builder`, `generate_resume`, `_gen_*` | Główny silnik geometrii CV. |
 | `backend/app/services/cv_generator_iconic.py` | `_gen_nova`, `_gen_ridge`, `_gen_loom`, `_gen_volt` | Generatory rodziny Iconic. |
-| `backend/app/services/ai_assistant_service.py` | `analyze_action`, `_chat`, `_analyze_layout` | Model AI, ograniczenia korekt i dispatcher. |
-| `backend/app/services/layout_analysis.py` | `analyze_layout`, `resolve_directed_operation` | Bezpieczne obliczanie patchy geometrycznych. |
+| `backend/app/services/ai_assistant_service.py` | `analyze_action`, `_chat` | Model AI, ograniczenia korekt i dispatcher. |
+| `backend/app/services/layout_analysis.py` | `resolve_directed_operation`, `summarize_geometry_issues` | Bezpieczne patchy z czatu + diagnostyka geometrii. |
 | `backend/app/services/pdf_generator.py` | `PDF_Generator`, `render_elements` | Odtworzenie canvasu w ReportLab. |
 | `backend/app/schemas/pdf_schema.py` | `PdfElement` | Kontrakt elementu frontend–backend. |
 | `backend/app/crud/pdfs.py` | `create_new_pdf`, `update_pdf_elements` | Trwały zapis geometrii i właściwości. |

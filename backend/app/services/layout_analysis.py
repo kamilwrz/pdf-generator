@@ -1,7 +1,8 @@
-"""Safe, deterministic layout analysis for canvas documents.
+"""Safe, deterministic geometry helpers for chat-directed canvas edits.
 
 The assistant may describe findings, but this module is the sole authority for
-layout coordinates. That prevents an LLM from inventing positions that cause
+layout coordinates used by chat ``position_operation`` / structure / clone /
+delete resolvers. That prevents an LLM from inventing positions that cause
 overlaps or break a template's decorative elements.
 """
 from __future__ import annotations
@@ -919,114 +920,6 @@ def summarize_geometry_issues(
         "out_of_bounds": out_of_bounds,
     }
 
-
-def analyze_layout(elements: list[dict[str, Any]], page_size: dict[str, Any] | None) -> dict[str, Any]:
-    """Return safe, reviewable correction groups and non-destructive findings."""
-    page_size = page_size or {}
-    page_width = _number(page_size.get("width"), 595.0)
-    page_height = _number(page_size.get("height"), 842.0)
-    if page_width <= 0 or page_height <= 0:
-        raise ValueError("page_size musi zawierać dodatnie wartości width i height.")
-
-    # User-locked items remain visible context, but automatic AI layout must
-    # never propose moving them.
-    items = [
-        item for item in extract_bounds(elements, AUTO_LAYOUT_CATEGORIES)
-        if not item.get("locked")
-    ]
-    if not items:
-        return {
-            "message": "Potrzebuję co najmniej jednego mierzalnego bloku tekstu lub obrazu, aby ocenić układ.",
-            "rating": None,
-            "tips": [],
-            "corrections": [],
-            "layout_groups": [],
-            "layout_issues": [],
-            "web_sources": [],
-        }
-
-    groups: list[dict[str, Any]] = []
-    changed_ids: set[str] = set()
-    issues: list[dict[str, str]] = []
-
-    # Each group is computed against the same snapshot so a single card remains
-    # independently applicable. Applying one card may stale the others until the
-    # user re-runs Układ — same pattern as the older alignment groups.
-
-    clip_groups, clip_ids, clip_issues = _clip_groups(items, page_width, page_height, changed_ids)
-    groups.extend(clip_groups)
-    changed_ids |= clip_ids
-    issues.extend(clip_issues)
-
-    stack_groups, stack_ids, stack_issues = _stack_resolve_overlap_groups(
-        items, page_width, page_height,
-    )
-    groups.extend(stack_groups)
-    changed_ids |= stack_ids
-    issues.extend(stack_issues)
-
-    bounds_groups, bounds_ids, bounds_issues = _bounds_groups(items, page_width, page_height)
-    groups.extend(bounds_groups)
-    changed_ids |= bounds_ids
-    issues.extend(bounds_issues)
-
-    deco_groups, deco_ids, deco_issues = _decoration_collision_groups(
-        items, elements, page_width, page_height, changed_ids,
-    )
-    groups.extend(deco_groups)
-    changed_ids |= deco_ids
-    issues.extend(deco_issues)
-
-    has_critical = any(group.get("severity") in {"critical", "high"} for group in groups)
-    # Cosmetic alignment/spacing only after readability is addressed.
-    if not has_critical:
-        groups.extend(_alignment_groups(items, changed_ids, page_width, page_height))
-        groups.extend(_spacing_groups(items, changed_ids, page_width, page_height))
-
-    issues.extend(_overlap_issues(items, unresolved_only=bool(stack_groups)))
-
-    groups.sort(key=lambda group: (
-        _SEVERITY_RANK.get(str(group.get("severity")), 9),
-        str(group.get("id") or ""),
-    ))
-
-    if groups:
-        n = len(groups)
-        critical_n = sum(1 for group in groups if group.get("severity") in {"critical", "high"})
-        if critical_n:
-            message = (
-                f"Znalazłem {critical_n} krytyczn{'ą' if critical_n == 1 else 'e'} "
-                f"grup{'ę' if critical_n == 1 else 'y'} naprawy czytelności"
-                + (f" oraz {n - critical_n} kosmetyczn{'ą' if n - critical_n == 1 else 'e'}." if n > critical_n else ".")
-                + " Podglądaj grupę przed zastosowaniem."
-            )
-        elif n == 1:
-            message = "Znalazłem 1 bezpieczną grupę korekty układu. Podglądaj grupę przed zastosowaniem."
-        elif 2 <= n <= 4:
-            message = f"Znalazłem {n} bezpieczne grupy korekty układu. Podglądaj grupę przed zastosowaniem."
-        else:
-            message = f"Znalazłem {n} bezpiecznych grup korekty układu. Podglądaj grupę przed zastosowaniem."
-    elif issues:
-        message = "Wykryto problemy z układem wymagające ręcznej weryfikacji; brak bezpiecznej automatycznej korekty."
-    else:
-        message = "Wymierzalna treść mieści się w granicach i jest spójnie wyrównana."
-
-    tips = [
-        "Najpierw stosuj grupy krytyczne (kolizje, ucięty tekst, linie przez treść); wyrównania to kosmetyka.",
-        "Korekty układu przesuwają treść; stałe tła i dekoracje przypięte do strony pozostają na miejscu.",
-    ]
-    if has_critical:
-        tips.insert(0, "Wykryto problemy czytelności — pominięto kosmetyczne wyrównania, dopóki kolizje nie zostaną naprawione.")
-
-    return {
-        "message": message,
-        "rating": None,
-        "tips": tips,
-        "corrections": [],
-        "layout_groups": groups,
-        "layout_issues": issues[:8],
-        "web_sources": [],
-    }
 
 
 # ── GPT-directed position operations ────────────────────────────────────────

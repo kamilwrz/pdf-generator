@@ -1,13 +1,13 @@
 /**
  * Floating AI assistant: quick actions + freeform chat against the canvas.
- * Sends element snapshots to POST /ai/assistant; layout/structure results are
- * previewable review cards before mutating PdfContext.
+ * Sends element snapshots to POST /ai/assistant; chat may return previewable
+ * position/structure/deletion/clone review cards before mutating PdfContext.
  */
 import { useState, useRef, useEffect, useCallback, use } from "react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { nanoid } from "nanoid";
 import { BsStars } from "react-icons/bs";
-import { FaArrowsAltH, FaStar, FaPalette, FaBriefcase, FaFont, FaMagic, FaRobot, FaLayerGroup } from "react-icons/fa";
+import { FaStar, FaPalette, FaBriefcase, FaFont, FaMagic, FaRobot } from "react-icons/fa";
 import { RiEditLine } from "react-icons/ri";
 import { IoClose, IoSend } from "react-icons/io5";
 import { MdCheckCircle, MdCancel } from "react-icons/md";
@@ -26,8 +26,6 @@ const ACTIONS = [
     { id: "language",        label: "Styl",              icon: FaFont,        color: CHROME_ACCENT, description: "Popraw ton i klarowność tekstu" },
     { id: "improve",         label: "Ulepsz",            icon: FaMagic,       color: CHROME_ACCENT, description: "Mocniejsze punkty z czasownikami akcji" },
     { id: "ats_score",       label: "Wynik ATS",         icon: FaRobot,       color: CHROME_ACCENT, description: "Sprawdzenie pod systemy rekrutacyjne ATS" },
-    { id: "layout",          label: "Układ",             icon: FaArrowsAltH,  color: CHROME_ACCENT, description: "Napraw kolizje, ucięcia i granice strony; potem wyrównania" },
-    { id: "layout_rhythm",   label: "Rytm",              icon: FaLayerGroup,  color: CHROME_ACCENT, description: "GPT analizuje współrzędne A4 (findings → karty); max ±28 px; imię/rola bez zmian" },
 ];
 const SEVERITY_LABELS = {
     critical: "krytyczny",

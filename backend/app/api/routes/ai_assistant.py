@@ -26,7 +26,7 @@ router = APIRouter(prefix="/ai", tags=["ai_assistant"])
 
 VALID_ACTIONS = {
     "rating", "design_rating", "position_rating",
-    "grammar", "language", "improve", "ats_score", "layout", "layout_rhythm", "chat",
+    "grammar", "language", "improve", "ats_score", "chat",
 }
 
 

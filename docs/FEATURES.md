@@ -100,10 +100,9 @@ Pływający asystent, który rozumie dokument, który właśnie edytujesz.
 5. **Styl** — ton i klarowność  
 6. **Ulepsz** — mocniejsze, bardziej „action” bullet points  
 7. **Wynik ATS** — sygnał czytelności dla systemów rekrutacyjnych  
-8. **Układ** — feedback o wyrównaniu i odstępach  
 
 ### Edycja w rozmowie
-Pisz naturalnym językiem. Akceptuj lub odrzucaj poprawki per element, podglądaj grupy przesunięć layoutu, przebudowuj strukturę albo usuwaj słabe bloki — z oznaczeniem istotności, żebyś Ty miał kontrolę.
+Pisz naturalnym językiem. Akceptuj lub odrzucaj poprawki per element, podglądaj grupy przesunięć z poleceń czatu, przebudowuj strukturę albo usuwaj słabe bloki — z oznaczeniem istotności, żebyś Ty miał kontrolę.
 
 ---
 
