@@ -242,7 +242,7 @@ Tests:
 - `backend/tests/test_pdf_shapes.py`, lines 67–131 — optical alignment, explicit `alignWithText: false`, and alpha-mask regressions
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — Loom contact geometry and sidebar column alignment
 
-**Regenerating Iconic mockups.** `frontend/public/template-mockups/{nova,ridge,loom,volt}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`) and the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js` changes, regenerate them:
+**Regenerating Iconic mockups.** `frontend/public/template-mockups/{nova,ridge,loom,volt}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js` changes, regenerate them:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs   # dumps the 4 element arrays to frontend/scripts/iconic-templates.json
@@ -301,6 +301,16 @@ Implementation:
 - `backend/app/services/ai_service.py`, `extract_cv_data` (line 39+)
 - `backend/app/api/routes/ai.py`, `extract_cv`
 - `backend/app/services/cv_data.py`, `normalize_cv_data` (line 585+)
+
+### Import CV panel — template hover mockups
+
+After extract, step 2 of **Wypełnij z mojego CV** lists fillable templates. Hovering (or focusing) a template name shows that template’s A4 mockup on the **left**, vertically centered. Moving the pointer to another name fades the current mockup out (`opacity` 1→0), swaps `/template-mockups/{id}.png`, then fades in (0→1). Leaving the picker fades the preview out. The same PNG assets are used by the Hero gallery and `TemplatesModal`.
+
+Implementation:
+
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 78–110, function `showTemplatePreview`; lines 266–310, step-2 `templatePicker` layout
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.module.css`, lines 166–198, `.templatePicker`, `.mockupFrame` / `.mockupFrameVisible` (180ms opacity transition)
+- Assets: `frontend/public/template-mockups/{id}.png`
 
 ### AI assistant
 
@@ -779,7 +789,7 @@ Testy:
 - `backend/tests/test_pdf_shapes.py`, linie 67–131 — wyrównanie optyczne, jawne `alignWithText: false` oraz maska alfa
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — geometria kontaktu Loom i wyrównanie kolumny sidebara
 
-**Regenerowanie podglądów Iconic.** Pliki `frontend/public/template-mockups/{nova,ridge,loom,volt}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`) oraz w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js` należy je odtworzyć:
+**Regenerowanie podglądów Iconic.** Pliki `frontend/public/template-mockups/{nova,ridge,loom,volt}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js` należy je odtworzyć:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs   # zrzuca 4 tablice elementów do frontend/scripts/iconic-templates.json
@@ -826,6 +836,16 @@ Testy:
 - `backend/app/services/ai_service.py` — `extract_cv_data` (linia 39+)
 - `backend/app/api/routes/ai.py` — `extract_cv`
 - `backend/app/services/cv_data.py` — `normalize_cv_data` (ok. 585+)
+
+### Panel importu CV — podgląd szablonu na hover
+
+Po ekstrakcji krok 2 w **Wypełnij z mojego CV** listuje szablony do wypełnienia. Najazd (lub fokus) na nazwę pokazuje mockup A4 tego szablonu po **lewej**, wyśrodkowany w pionie. Przeniesienie kursora na inny szablon wygasza bieżący podgląd (`opacity` 1→0), podmienia `/template-mockups/{id}.png` i wygasza go z powrotem (0→1). Opuszczenie listy wygasza podgląd. Te same PNG-i używają Hero oraz `TemplatesModal`.
+
+Implementacja:
+
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 78–110, funkcja `showTemplatePreview`; linie 266–310, układ `templatePicker` w kroku 2
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.module.css`, linie 166–198, `.templatePicker`, `.mockupFrame` / `.mockupFrameVisible` (przejście opacity 180 ms)
+- Pliki: `frontend/public/template-mockups/{id}.png`
 
 ### Asystent AI
 

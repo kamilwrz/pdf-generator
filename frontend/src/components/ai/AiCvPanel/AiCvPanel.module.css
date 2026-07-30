@@ -162,11 +162,72 @@
 }
 .reExtract:hover { text-decoration: underline; }
 
-/* Template grid */
+/* Step 2: hover mockup (left) + template list (right) */
+.templatePicker {
+    display: flex;
+    align-items: stretch;
+    gap: 16px;
+    min-height: 220px;
+}
+
+.mockupPane {
+    flex: 0 0 168px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    min-height: 220px;
+}
+
+.mockupFrame {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 180ms ease;
+}
+
+.mockupFrameVisible {
+    opacity: 1;
+}
+
+.mockupImg {
+    display: block;
+    width: 148px;
+    height: auto;
+    aspect-ratio: 210 / 297;
+    object-fit: cover;
+    object-position: top center;
+    border-radius: 4px;
+    border: 1px solid var(--chrome-border);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .28);
+    background: var(--chrome-control);
+}
+
+.mockupCaption {
+    font: 600 10.5px var(--font-body);
+    color: var(--chrome-muted);
+}
+
+.mockupPlaceholder {
+    margin: 0;
+    max-width: 140px;
+    text-align: center;
+    font: 500 10.5px var(--font-body);
+    color: var(--chrome-muted);
+    line-height: 1.4;
+}
+
 .templateGrid {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 6px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 2px;
 }
 
 .templateCard {
@@ -183,7 +244,8 @@
     transition: border-color .15s, background .15s;
 }
 
-.templateCard:hover:not(:disabled) {
+.templateCard:hover:not(:disabled),
+.templateCardHot:not(:disabled) {
     border-color: var(--chrome-accent);
     background: var(--chrome-hover);
 }
@@ -191,6 +253,12 @@
 .templateCard:disabled {
     opacity: .6;
     cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mockupFrame {
+        transition: none;
+    }
 }
 
 .dot {
