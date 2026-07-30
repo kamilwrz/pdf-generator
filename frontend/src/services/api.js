@@ -68,7 +68,17 @@ export function isTransientNetworkError(error) {
         || message.includes("load failed")
         || message.includes("serwer nie odpowiada")
         || message.includes("nie udało się połączyć")
+        || message.includes("przekroczono czas")
     );
+}
+
+/**
+ * Errors worth retrying. Client AbortError (our timeout) is excluded — a long
+ * AI call that already ran should not be billed/retried blindly.
+ */
+export function isRetryableNetworkError(error) {
+    if (!error || error.name === "AbortError") return false;
+    return isTransientNetworkError(error);
 }
 
 /**
@@ -120,8 +130,16 @@ export class ApiClient {
                 return await this._httpRequestOnce(endpoint, method, body, errorMessage, options);
             } catch (error) {
                 lastError = error;
-                const retryable = isTransientNetworkError(error);
+                // Auth keeps retrying AbortError (short cold-start waits). Long AI calls
+                // pass retryOnTimeout: false so a finished/hung model request is not re-billed.
+                const retryable = options.retryOnTimeout === false
+                    ? isRetryableNetworkError(error)
+                    : isTransientNetworkError(error);
                 if (!retryable || attempt === retries) {
+                    // Keep timeout wording; only map opaque fetch failures to cold-start copy.
+                    if (error?.name === "AbortError") {
+                        throw error;
+                    }
                     if (isTransientNetworkError(error) && !error.status) {
                         throw new Error(
                             "Nie udało się połączyć z serwerem (trwa uruchamianie). Spróbuj ponownie za chwilę.",
@@ -182,7 +200,10 @@ export class ApiClient {
             return await response.json();
         } catch (error) {
             if (error?.name === "AbortError") {
-                const abortError = new Error("Serwer nie odpowiada. Odśwież stronę i spróbuj ponownie.");
+                const seconds = Math.round(timeoutMs / 1000);
+                const abortError = new Error(
+                    `Przekroczono czas oczekiwania (${seconds} s). Serwer lub model AI nadal pracuje — spróbuj ponownie za chwilę.`,
+                );
                 abortError.name = "AbortError";
                 throw abortError;
             }

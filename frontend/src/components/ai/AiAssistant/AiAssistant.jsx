@@ -13,7 +13,7 @@ import { IoClose, IoSend } from "react-icons/io5";
 import { MdCheckCircle, MdCancel } from "react-icons/md";
 import classes from "./AiAssistant.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { ApiClient, ENDPOINTS } from "../../../services/api";
+import { ApiClient, ENDPOINTS, wakeBackend } from "../../../services/api";
 import { measureElements } from "../../../utils/elementBounds";
 
 // ── quick actions ─────────────────────────────────────────────────────────
@@ -717,7 +717,11 @@ export default function AiAssistant() {
         setIsLoading(true);
 
         try {
+            // Warm the Render dyno before a long GPT call (layout/sol especially).
+            wakeBackend();
             const actionMeta = ACTIONS.find(a => a.id === action);
+            // Layout + gpt-5.6-sol often exceeds the default 90s auth timeout.
+            const timeoutMs = action === "layout" ? 240_000 : 120_000;
             const res = await api.httpRequest(
                 ENDPOINTS.AI.ASSISTANT, "POST",
                 JSON.stringify({
@@ -728,7 +732,15 @@ export default function AiAssistant() {
                     page_size: pageSize,
                     history: usesMessage ? history : [],
                 }),
-                "Asystent AI nie odpowiedział"
+                "Asystent AI nie odpowiedział",
+                {
+                    timeoutMs,
+                    // Retry cold-start / proxy blips only — not client AbortError timeouts
+                    // (layout/sol can already take minutes and must not be re-billed blindly).
+                    retries: 3,
+                    retryDelayMs: 2_500,
+                    retryOnTimeout: false,
+                },
             );
 
             if (res.usage) {

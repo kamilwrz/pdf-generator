@@ -515,6 +515,7 @@ Never commit real secrets.
 ### Troubleshooting
 
 - **Login “Failed to fetch” on Render:** free dyno cold start. Frontend uses long timeouts + retries and `wakeBackend()`; `/health` must answer while DB init runs in background (`main.py` lifespan).
+- **Asystent AI / Układ “trwa uruchamianie” or timeout:** AI calls wake the dyno, retry network blips (not client timeouts), and use longer waits (`layout` up to 240s for `gpt-5.6-sol`). A timeout message means the client aborted — retry once; if it persists, check Render logs for OpenAI errors.
 - **AI 500 with Polish message:** check `API_GPT_KEY` and server logs (`AIServiceError` handler).
 - **Fonts look wrong in PDF:** bold/italic TTFs are remapped via fontTools in `pdf_generator.py` — do not replace fonts without re-testing Polish glyphs.
 
@@ -1036,6 +1037,7 @@ Frontend: `VITE_API_URL`.
 ### Rozwiązywanie problemów
 
 - Cold start Render: długie timeouty + `wakeBackend()`; `/health` bez blokady na DB.
+- Asystent / Układ: `wakeBackend` + retry sieci (bez ponawiania AbortError); `layout` ma timeout do 240 s pod `gpt-5.6-sol`.
 - Błędy AI: sprawdź `API_GPT_KEY` i logi.
 - Fonty PDF: nie wymieniaj TTF bez testu polskich znaków (remap fontTools).
 
