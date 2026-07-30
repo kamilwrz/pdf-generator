@@ -494,79 +494,6 @@ test("preserves a small same-record gap even if a lane element's stored page wen
   assert.equal(meta.top - (target.top + target.height), 4);
 });
 
-test("heals an inflated title→meta gap back to SPACE_STACK", () => {
-  // After a title shrinks without moving its meta (or a stale pack wrote
-  // SPACE_RECORD between them), the authored tops already encode a 14px gap.
-  // A later upstream reflow must not preserve that inflation — title→meta is
-  // always SPACE_STACK (4) in the generators.
-  const result = reflowTextareaHeight([
-    textarea({ element_id: "above", top: 50, height: 30 }),
-    {
-      element_id: "degree",
-      category: "textarea",
-      autoHeight: true,
-      left: 40,
-      top: 100,
-      width: 180,
-      height: 13,
-      fontSize: 10.4,
-      bold: true,
-      page: 1,
-    },
-    {
-      element_id: "meta",
-      category: "textarea",
-      autoHeight: true,
-      left: 40,
-      // 100 + 13 + 14 — inflated; correct stack would be 100 + 13 + 4 = 117
-      top: 127,
-      width: 180,
-      height: 12,
-      fontSize: 8.5,
-      page: 1,
-    },
-  ], "above", 20, 842);
-
-  const degree = result.elements.find((element) => element.element_id === "degree");
-  const meta = result.elements.find((element) => element.element_id === "meta");
-  assert.equal(meta.top - (degree.top + degree.height), 4);
-});
-
-test("heals inflated title→meta gap even when the title height is already settled", () => {
-  // Load/font remeasure often reports the same height already stored on the
-  // title. Without a height delta the old early-return left a 14px gap forever.
-  const result = reflowTextareaHeight([
-    {
-      element_id: "degree",
-      category: "textarea",
-      autoHeight: true,
-      left: 40,
-      top: 100,
-      width: 180,
-      height: 13,
-      fontSize: 10.4,
-      bold: true,
-      page: 1,
-    },
-    {
-      element_id: "meta",
-      category: "textarea",
-      autoHeight: true,
-      left: 40,
-      top: 127,
-      width: 180,
-      height: 12,
-      fontSize: 8.5,
-      page: 1,
-    },
-  ], "degree", 13, 842);
-
-  assert.equal(result.changed, true);
-  const degree = result.elements.find((element) => element.element_id === "degree");
-  const meta = result.elements.find((element) => element.element_id === "meta");
-  assert.equal(meta.top - (degree.top + degree.height), 4);
-});
-
 test("keeps SPACE_RECORD between meta and the next record title", () => {
   const result = reflowTextareaHeight([
     textarea({ element_id: "above", top: 50, height: 30 }),
@@ -740,42 +667,6 @@ test("does not collapse SPACE_RECORD between consecutive bold titles", () => {
   const a = result.elements.find((element) => element.element_id === "title-a");
   const b = result.elements.find((element) => element.element_id === "title-b");
   assert.equal(b.top - (a.top + a.height), 14);
-});
-
-test("pulls a page-split meta back under its title with SPACE_STACK", () => {
-  // Title stayed on page 1 while a prior pack parked meta at the next page
-  // top. rawSamePageGap is negative there, so the old path used DEFAULT_PACK_GAP
-  // (14). Record-stack detection must still restore SPACE_STACK under the title.
-  const result = reflowTextareaHeight([
-    {
-      element_id: "degree",
-      category: "textarea",
-      autoHeight: true,
-      left: 40,
-      top: 100,
-      width: 180,
-      height: 20,
-      fontSize: 10.4,
-      bold: true,
-      page: 1,
-    },
-    {
-      element_id: "meta",
-      category: "textarea",
-      autoHeight: true,
-      left: 40,
-      top: 66,
-      width: 180,
-      height: 12,
-      fontSize: 8.5,
-      page: 2,
-    },
-  ], "degree", 13, 842, { pageTop: 66, bottomMargin: 96 });
-
-  const degree = result.elements.find((element) => element.element_id === "degree");
-  const meta = result.elements.find((element) => element.element_id === "meta");
-  assert.equal(degree.page, meta.page);
-  assert.equal(meta.top - (degree.top + degree.height), 4);
 });
 
 test("moves a heading when the full following body cannot fit beneath it", () => {

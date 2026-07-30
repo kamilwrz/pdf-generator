@@ -99,12 +99,9 @@ Template textareas start with authored placeholder heights and are measured afte
 
 Undo/redo history treats that post-load reflow as part of the **baseline**, not as a user edit: `markHistoryQuiet` in `useA4Elements` updates the current history entry in place so Cofnij stays disabled until the user actually changes the document. Otherwise Undo would restore pre-measure heights and revive uneven Y gaps (e.g. diploma → school in education records).
 
-Every auto-height textarea measures twice — once immediately, once again after `document.fonts.ready` — and each measurement calls `reflowTextareaHeight` independently, so a record's later fields (e.g. an education entry's school/date line) can briefly carry a stale `page` number left over from an earlier, already-superseded pass while an earlier field (e.g. its degree title) is still catching up. `reflowTextareaHeight` used to trust that stored `page` number at face value: whenever it looked stale-mismatched, the function treated the pair as a genuine page-break seam and substituted the generic page-break pack gap (`DEFAULT_PACK_GAP`, 14 px) for whatever small gap (`SPACE_STACK`, 4 px) the two elements actually had — the diploma-to-school gap in one specific education record would balloon while every other, never-touched record stayed correct. Two safeguards now keep intra-record spacing at 4 px:
+Every auto-height textarea measures twice — once immediately, once again after `document.fonts.ready` — and each measurement calls `reflowTextareaHeight` independently, so a later field can briefly carry a stale `page` number from an earlier pass. `rawSamePageGap` checks authored `top` values (ignoring `page`) before applying the generic page-break gap: a same-record pair with a stale page keeps its authored small gap, while a genuine cross-page seam still uses `DEFAULT_PACK_GAP` (14 px). The reflow intentionally does **not** infer title/meta relationships from font size or boldness; that heuristic distorted valid Onyx record spacing and compounded independent height deltas. After moving the element directly below the resized textarea, all later lane elements preserve their authored top-to-top offsets, so section markers, labels, rules, record text, and page breaks move as one layout.
 
-1. `rawSamePageGap` checks the pair's authored `top` values (ignoring `page`) before falling back to the generic page-break gap: a genuine cross-page pair resolves to a negative or clearly-too-large raw gap, while a same-record pair whose `page` merely went stale still resolves to its real, small gap.
-2. `recordStackGap` heals title → meta/body pairs (larger font above smaller) only when the gap has already been inflated toward `SPACE_RECORD` (about 5–14 px), or when a false page-split parked meta away from its title. It does **not** force 4 px onto healthy record seams (e.g. consecutive bold titles). During the enter hold, textarea auto-height reflow is suppressed and resumes once fonts are ready so fallback-font measures cannot collapse the layout. Compact section labels stay chrome for orphan/keep-with-next; long job-title `text` nodes do not — after a textarea grows, packing uses the previous bottom so Onyx headings cannot land inside the body.
-
-See `textareaReflow.test.js` cases `"preserves a small same-record gap…"`, `"heals an inflated title→meta gap…"`, `"keeps SPACE_RECORD between meta…"`, and `"pulls a page-split meta back…"`.
+During the canvas enter hold, auto-height reflow is suppressed and resumes after fonts are ready. This prevents fallback-font measurements from mutating the document before the opacity fade starts. See `textareaReflow.test.js` cases `"preserves a small same-record gap…"`, `"keeps Onyx section chrome top-to-top…"`, `"does not stack a section heading…"`, and `"does not collapse SPACE_RECORD…"`.
 
 Section headings are kept with their first body block across page breaks: `avoidOrphanChrome` reserves the full body height (not a short keep-with-next sliver), and when a measured body textarea itself jumps to the next page, `precedingChromeCluster` pulls the icon/heading/rule with it. That prevents orphans such as “UMIEJĘTNOŚCI” alone at the bottom of page 1. Backend generators use `Builder.need_section(chrome, body)` for the same rule before placing a heading. The section icon, heading, rule, and body therefore remain one cluster after every measurement and page break; ReportLab receives the same geometry visible on the canvas.
 
@@ -257,14 +254,14 @@ Implementation:
 
 - `frontend/src/templates/iconic.js`, lines 1–386, exports `novaTemplate`, `ridgeTemplate`, `loomTemplate`, `voltTemplate`, and `loomContact`
 - `backend/app/services/cv_generator_iconic.py`, lines 31–409, functions `_icon`, `_icon_beside`, `_gen_iconic_theme`, and four `_gen_*` entry points
-- `frontend/src/utils/textareaReflow.js`, lines 56–459, functions `isTextAlignedImage`, `belongsToFlowLane`, `recordStackGap`, `avoidOrphanChrome`, `precedingChromeCluster`, and `reflowTextareaHeight`
+- `frontend/src/utils/textareaReflow.js`, lines 54–393, functions `isTextAlignedImage`, `belongsToFlowLane`, `rawSamePageGap`, `avoidOrphanChrome`, `precedingChromeCluster`, and `reflowTextareaHeight`
 - `frontend/src/components/canvas/Image/Image.jsx`, lines 22–76, functions `isTextAlignedIcon`, `iconicDrawTop`; canvas images use `object-fit: fill` so full-page backgrounds stretch like ReportLab `drawImage` (not `contain`, which letterboxed Lattice/Rift/Relay PNGs that are 1024×1536)
 - `backend/app/services/pdf_generator.py`, lines 141–193, method `PDF_Generator.renderImage`
 - `backend/app/crud/pdfs.py` / `backend/app/schemas/pdf_schema.py` — persist `alignWithText` in `extra_properties`
 
 Tests:
 
-- `frontend/src/utils/textareaReflow.test.js`, lines 83–693 — Iconic grouping, keep-heading-with-body, stale-page stack gaps, and inflated title→meta healing
+- `frontend/src/utils/textareaReflow.test.js`, lines 83–726 — Iconic grouping, keep-heading-with-body, stale-page gaps, Onyx chrome rhythm, and non-collapsing record spacing
 - `backend/tests/test_pdf_shapes.py`, lines 67–131 — optical alignment, explicit `alignWithText: false`, and alpha-mask regressions
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — Loom contact geometry and sidebar column alignment
 
@@ -689,12 +686,9 @@ Pola tekstowe szablonów zaczynają z projektową wysokością zastępczą, a po
 
 Historia cofnij/ponów traktuje ten reflow po załadowaniu jako **stan bazowy**, nie jako edycję użytkownika: `markHistoryQuiet` w `useA4Elements` aktualizuje bieżący wpis historii w miejscu, więc Cofnij pozostaje nieaktywne, dopóki użytkownik realnie nie zmieni dokumentu. Inaczej Undo przywracałoby wysokości sprzed pomiaru i nierówne odstępy Y (np. dyplom → uczelnia).
 
-Każde pole tekstowe z automatyczną wysokością mierzy się dwukrotnie — od razu i ponownie po `document.fonts.ready` — a każdy pomiar osobno wywołuje `reflowTextareaHeight`, więc późniejsze pole rekordu (np. linia uczelnia/data w wykształceniu) może chwilowo nosić nieaktualny numer `page` z wcześniejszego, już zastąpionego przebiegu, podczas gdy wcześniejsze pole tego samego rekordu (np. tytuł dyplomu) wciąż go dogania. `reflowTextareaHeight` wcześniej ufał zapisanemu numerowi `page` bezwarunkowo: gdy wyglądał na niespójny, funkcja traktowała parę jak prawdziwe miejsce podziału strony i podstawiała ogólny odstęp podziału strony (`DEFAULT_PACK_GAP`, 14 px) zamiast właściwego, małego odstępu (`SPACE_STACK`, 4 px) — odstęp dyplom → uczelnia w jednym konkretnym rekordzie wykształcenia nadmuchiwał się, podczas gdy każdy inny, nietknięty rekord pozostawał poprawny. Dwa zabezpieczenia utrzymują teraz odstęp wewnątrz rekordu na 4 px:
+Każde pole tekstowe z automatyczną wysokością mierzy się dwukrotnie — od razu i ponownie po `document.fonts.ready` — a każdy pomiar osobno wywołuje `reflowTextareaHeight`, więc późniejsze pole może chwilowo nosić nieaktualny numer `page` z wcześniejszego przebiegu. `rawSamePageGap` sprawdza projektowe wartości `top` (ignorując `page`) przed użyciem ogólnego odstępu page-break: para z jednego rekordu ze stale `page` zachowuje swój mały odstęp, a prawdziwy szew między stronami nadal używa `DEFAULT_PACK_GAP` (14 px). Reflow celowo **nie** zgaduje relacji tytuł/meta na podstawie rozmiaru lub pogrubienia fontu — ta heurystyka deformowała poprawny rytm rekordów Onyx i kumulowała delty niezależnych pomiarów. Po przesunięciu elementu bezpośrednio pod zmienioną textarea wszystkie dalsze elementy kolumny zachowują projektowe odległości top-to-top, więc markery, etykiety, linie, tekst rekordów i podziały stron przesuwają się jako jeden układ.
 
-1. `rawSamePageGap` sprawdza surowe wartości `top` (ignorując `page`), zanim sięgnie po odstęp page-break: prawdziwa para międzystronicowa daje ujemny lub wyraźnie zbyt duży surowy odstęp, a para z tego samego rekordu ze stale `page` wciąż daje swój mały odstęp.
-2. `recordStackGap` leczy pary tytuł → meta/treść (większa czcionka nad mniejszą) tylko gdy odstęp został już nadmuchany w stronę `SPACE_RECORD` (ok. 5–14 px) albo gdy fałszywy page-split odstawił meta od tytułu. **Nie** wymusza 4 px na zdrowych szwach między rekordami (np. kolejne pogrubione tytuły). W czasie enter-hold reflow auto-height jest wstrzymany i wraca po gotowości fontów, żeby pomiary fallback-fontem nie zawaliły układu. Krótkie etykiety sekcji zostają chrome (orphan/keep-with-next); długie tytuły stanowisk jako `text` — nie. Po urośnięciu textarea packing idzie od dolnej krawędzi, więc nagłówki Onyx nie wpadają w treść.
-
-Zobacz przypadki w `textareaReflow.test.js`: `"preserves a small same-record gap…"`, `"heals an inflated title→meta gap…"`, `"keeps SPACE_RECORD between meta…"`, `"pulls a page-split meta back…"`.
+W czasie enter-hold reflow auto-height jest wstrzymany i wraca po gotowości fontów. Pomiary fallback-fontem nie modyfikują dokumentu przed rozpoczęciem fade. Zobacz przypadki w `textareaReflow.test.js`: `"preserves a small same-record gap…"`, `"keeps Onyx section chrome top-to-top…"`, `"does not stack a section heading…"`, `"does not collapse SPACE_RECORD…"`.
 
 Nagłówki sekcji zostają z pierwszym blokiem treści przy podziale strony: `avoidOrphanChrome` rezerwuje pełną wysokość treści (nie krótki „keep-with-next”), a gdy zmierzone pole treści samo skacze na następną stronę, `precedingChromeCluster` zabiera ze sobą ikonę, tytuł i linię. Dzięki temu nie powstają sieroty w stylu samego „UMIEJĘTNOŚCI” na dole strony 1. Generatory backendu stosują tę samą regułę przez `Builder.need_section(chrome, body)` przed umieszczeniem nagłówka. Ikona, tytuł, linia i treść pozostają jednym klastrem po każdym pomiarze i podziale strony; ReportLab dostaje tę samą geometrię, którą widać na kanwie.
 
@@ -835,14 +829,14 @@ Implementacja:
 
 - `frontend/src/templates/iconic.js`, linie 1–386, eksporty `novaTemplate`, `ridgeTemplate`, `loomTemplate`, `voltTemplate`, `loomContact`
 - `backend/app/services/cv_generator_iconic.py`, linie 31–409, funkcje `_icon`, `_icon_beside`, `_gen_iconic_theme` oraz cztery wejścia `_gen_*`
-- `frontend/src/utils/textareaReflow.js`, linie 56–459, funkcje `isTextAlignedImage`, `belongsToFlowLane`, `recordStackGap`, `avoidOrphanChrome`, `precedingChromeCluster`, `reflowTextareaHeight`
+- `frontend/src/utils/textareaReflow.js`, linie 54–393, funkcje `isTextAlignedImage`, `belongsToFlowLane`, `rawSamePageGap`, `avoidOrphanChrome`, `precedingChromeCluster`, `reflowTextareaHeight`
 - `frontend/src/components/canvas/Image/Image.jsx`, linie 22–76, funkcje `isTextAlignedIcon`, `iconicDrawTop`; obrazy na kanwie używają `object-fit: fill`, żeby tła pełnostronicowe rozciągały się jak ReportLab `drawImage` (nie `contain`, które dawało białe paski przy PNG 1024×1536 w Lattice/Rift/Relay)
 - `backend/app/services/pdf_generator.py`, linie 141–193, metoda `PDF_Generator.renderImage`
 - `backend/app/crud/pdfs.py` / `backend/app/schemas/pdf_schema.py` — zapis `alignWithText` w `extra_properties`
 
 Testy:
 
-- `frontend/src/utils/textareaReflow.test.js`, linie 83–693 — grupowanie Iconic, keep-heading-with-body, stale-page stack gaps oraz leczenie nadmuchanego title→meta
+- `frontend/src/utils/textareaReflow.test.js`, linie 83–726 — grupowanie Iconic, keep-heading-with-body, stale-page gaps, rytm chrome Onyx oraz niekolidujące odstępy rekordów
 - `backend/tests/test_pdf_shapes.py`, linie 67–131 — wyrównanie optyczne, jawne `alignWithText: false` oraz maska alfa
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — geometria kontaktu Loom i wyrównanie kolumny sidebara
 
