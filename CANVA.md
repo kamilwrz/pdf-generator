@@ -444,7 +444,7 @@ Nazwa ścieżki zawiera `/ai`, ale sam endpoint nie uruchamia modelu językowego
 7. przekazuje gotową listę do `setA4_Elements`.
 
 ---
-
+\
 ## 6. Jak Python buduje układ CV
 
 ### 6.1. Dlaczego Python odpowiada za geometrię
@@ -794,12 +794,15 @@ Jest to algorytm Python. Odpowiedź ma:
 
 Algorytm wykrywa:
 
+- ucięte pola textarea (`clipped` / `content_height`);
+- nachodzące bloki treści i proponuje ich rozsunięcie (grupa krytyczna);
+- linie sekcji przecinające tekst;
 - elementy poza stroną;
-- prawie wyrównane krawędzie;
-- niespójne odstępy;
-- nakładanie.
+- prawie wyrównane krawędzie (tylko gdy brak problemów czytelności);
+- niespójne odstępy (tylko gdy brak problemów czytelności).
 
-Następnie tworzy bezpieczne grupy poprawek.
+Następnie tworzy bezpieczne grupy poprawek, posortowane od krytycznych do kosmetycznych.
+Przy aktywnych kolizjach lub ucięciach wyrównania są pomijane, żeby nie zasłaniać naprawy czytelności.
 
 ### 7.7. Polecenia tekstowe dotyczące pozycji
 
@@ -1250,9 +1253,15 @@ Frontend nie wysyła wyłącznie zapisanych `width` i `height`.
     "top": 200,
     "width": 485,
     "height": 42
-  }
+  },
+  "content_height": 68,
+  "clipped": true,
+  "bounds_estimated": false
 }
 ```
+
+Dla elementów bez zamontowanego węzła DOM ustawia `bounds_estimated: true` (strony poza aktualnym widokiem).
+Dla textarea porównuje `scrollHeight` z `clientHeight`, żeby Układ mógł zaproponować powiększenie uciętego pola.
 
 Backend preferuje `layout_bounds`, a przy ich braku stosuje zapisane wartości lub bezpieczne przybliżenie tekstu.
 
@@ -1264,7 +1273,15 @@ Backend preferuje `layout_bounds`, a przy ich braku stosuje zapisane wartości l
 - `textarea`;
 - `image`.
 
-Dekoracyjne figury nie są automatycznie przesuwane.
+Kolejność naprawy:
+
+1. ucięte textarea (`clip-expand-textareas`);
+2. nachodzące bloki treści (`stack-resolve-overlaps`);
+3. elementy poza stroną;
+4. treść przecięta linią sekcji (`decoration-clear-rules`);
+5. wyrównania i odstępy — tylko gdy nie ma problemów krytycznych/high.
+
+Dekoracyjne figury nie są automatycznie przesuwane; przy kolizji z linią sekcji przesuwana jest treść.
 
 ### 13.3. Granice bezpieczeństwa
 
@@ -1284,7 +1301,7 @@ Sprawdzane są również:
 - niepoprawne numery stron;
 - nowe kolizje.
 
-Automatyczna analiza nie może tworzyć nowego nakładania.
+Automatyczna analiza nie może tworzyć nowego nakładania treści. Rozsunięcie istniejących kolizji (`stack-resolve-overlaps`) jest dozwolone i ma priorytet krytyczny.
 
 ### 13.4. Limity ruchu
 

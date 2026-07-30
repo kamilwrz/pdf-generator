@@ -20,13 +20,13 @@ import { measureElements } from "../../../utils/elementBounds";
 const CHROME_ACCENT = "#466B82";
 const ACTIONS = [
     { id: "rating",          label: "Oceń CV",           icon: FaStar,        color: CHROME_ACCENT, description: "Ogólna ocena jakości CV w skali 1–10" },
-    { id: "design_rating",   label: "Projekt",           icon: FaPalette,     color: CHROME_ACCENT, description: "Ocena wyglądu i układu wizualnego" },
+    { id: "design_rating",   label: "Projekt",           icon: FaPalette,     color: CHROME_ACCENT, description: "Typografia oraz twarde błędy geometrii (kolizje, ucięcia)" },
     { id: "position_rating", label: "Dopasowanie",       icon: FaBriefcase,   color: CHROME_ACCENT, description: "Dopasowanie CV do opisu stanowiska" },
     { id: "grammar",         label: "Gramatyka",         icon: RiEditLine,    color: CHROME_ACCENT, description: "Znajdź i popraw błędy gramatyczne" },
     { id: "language",        label: "Styl",              icon: FaFont,        color: CHROME_ACCENT, description: "Popraw ton i klarowność tekstu" },
     { id: "improve",         label: "Ulepsz",            icon: FaMagic,       color: CHROME_ACCENT, description: "Mocniejsze punkty z czasownikami akcji" },
     { id: "ats_score",       label: "Wynik ATS",         icon: FaRobot,       color: CHROME_ACCENT, description: "Sprawdzenie pod systemy rekrutacyjne ATS" },
-    { id: "layout",          label: "Układ",             icon: FaArrowsAltH,  color: CHROME_ACCENT, description: "Sprawdź rozmieszczenie, wyrównanie i odstępy" },
+    { id: "layout",          label: "Układ",             icon: FaArrowsAltH,  color: CHROME_ACCENT, description: "Napraw kolizje, ucięcia i granice strony; potem wyrównania" },
 ];
 const SEVERITY_LABELS = {
     critical: "krytyczny",

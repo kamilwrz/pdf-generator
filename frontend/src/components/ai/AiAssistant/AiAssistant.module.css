@@ -516,6 +516,7 @@
 
 .severity_low { background: var(--accent-soft); color: var(--chrome-accent); }
 .severity_high { background: var(--danger-soft); color: var(--danger); }
+.severity_critical { background: var(--danger-soft); color: var(--danger); font-weight: 700; }
 .severity_warning { background: rgba(229, 166, 92, .18); color: var(--amber); }
 .severity_review { background: var(--accent-soft); color: var(--chrome-accent); }
 

@@ -124,6 +124,81 @@ class LayoutAnalysisTests(unittest.TestCase):
         }
         self.assertNotIn("header-band", patched_ids)
 
+    def test_stack_resolves_overlapping_content(self):
+        result = analyze_layout(
+            [
+                block("job-a", 10, 10, width=40, height=20),
+                block("job-b", 10, 18, width=40, height=20),
+            ],
+            PAGE_SIZE,
+        )
+
+        stack = next(
+            group for group in result["layout_groups"]
+            if group["id"] == "stack-resolve-overlaps"
+        )
+        self.assertEqual(stack["severity"], "critical")
+        by_id = {patch["element_id"]: patch for patch in stack["patches"]}
+        self.assertIn("job-b", by_id)
+        self.assertGreaterEqual(by_id["job-b"]["top"], 10 + 20 + 14 - 0.01)
+        # Cosmetic alignment must not outrank critical overlap repair.
+        self.assertFalse(
+            any(group["id"].startswith("alignment-") for group in result["layout_groups"])
+        )
+
+    def test_clip_expands_textarea_height(self):
+        result = analyze_layout(
+            [
+                {
+                    **block("clipped", 10, 10, width=40, height=12),
+                    "content": "A" * 120,
+                    "content_height": 36,
+                    "clipped": True,
+                    "fontSize": 10,
+                    "lineHeight": 14,
+                },
+                block("below", 10, 30, width=40, height=10),
+            ],
+            PAGE_SIZE,
+        )
+
+        clip = next(
+            group for group in result["layout_groups"]
+            if group["id"] == "clip-expand-textareas"
+        )
+        self.assertEqual(clip["severity"], "critical")
+        by_id = {patch["element_id"]: patch for patch in clip["patches"]}
+        self.assertEqual(by_id["clipped"]["height"], 36.0)
+        self.assertIn("below", by_id)
+        self.assertGreaterEqual(by_id["below"]["top"], 10 + 36 + 14 - 0.01)
+
+    def test_decoration_rule_through_heading_pushes_content(self):
+        result = analyze_layout(
+            [
+                block("heading", 10, 20, width=50, height=14, category="text"),
+                {
+                    "element_id": "rule",
+                    "category": "line",
+                    "left": 10,
+                    "top": 24,
+                    "width": 48,
+                    "height": 1.5,
+                    "page": 1,
+                    "zIndex": 1,
+                },
+            ],
+            PAGE_SIZE,
+        )
+
+        deco = next(
+            group for group in result["layout_groups"]
+            if group["id"] == "decoration-clear-rules"
+        )
+        self.assertEqual(deco["severity"], "high")
+        patch = deco["patches"][0]
+        self.assertEqual(patch["element_id"], "heading")
+        self.assertGreaterEqual(patch["top"], 24 + 1.5 + 4 + 14 - 0.01)
+
 
 class DirectedOperationTests(unittest.TestCase):
     def test_shift_moves_targets_by_relative_offset(self):

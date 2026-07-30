@@ -343,14 +343,17 @@ Implementation:
 
 ### AI assistant
 
-Ratings, grammar, ATS, chat, layout analysis with review cards.
+Ratings, grammar, ATS, chat, and deterministic layout analysis with review cards.
+
+**Układ** (`layout`) is Python-only (`analyze_layout`): critical groups first (clipped textareas, overlapping content stacks, out-of-bounds, section rules through text), then cosmetic alignment/spacing only when readability is clean. **Projekt** (`design_rating`) still rates typography via GPT, but `summarize_geometry_issues` injects overlap/clip/rule/out-of-bounds counts and hard-caps the score at 5 when those faults exist.
 
 Implementation:
 
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `ACTIONS` (line 21+), default export (line 456+)
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `ACTIONS` (lines 21–29), default export
+- `frontend/src/utils/elementBounds.js`, `measureElements` (line 120+) — `layout_bounds`, `content_height`, `clipped`, `bounds_estimated`
 - `backend/app/api/routes/ai_assistant.py`, `ai_assistant`
-- `backend/app/services/ai_assistant_service.py`, `analyze_action` (line 999+), `_rate_design` (line 331+)
-- `backend/app/services/layout_analysis.py` — coordinate authority for layout ops
+- `backend/app/services/ai_assistant_service.py`, `analyze_action` (line 1040+), `_rate_design` (line 332+)
+- `backend/app/services/layout_analysis.py`, `analyze_layout` (line 923+), `_stack_resolve_overlap_groups` (line 618+), `_clip_groups` (line 690+), `summarize_geometry_issues` (line 867+)
 
 Tests: `backend/tests/test_ai_chat_command.py`, `test_layout_analysis.py`, …
 
@@ -571,8 +574,8 @@ Notable product facts:
 
 - Stripe Checkout not fully wired; unpaid plan selection is a temporary gate.
 - Render free tier sleeps — expect cold starts.
-- Layout AI proposes; `layout_analysis` owns safe coordinates.
-- Design rating must not punish intentional small template fonts (prompt + filters in `_rate_design`).
+- Layout AI proposes; `layout_analysis` owns safe coordinates. Overlaps/clips produce critical repair groups before cosmetic alignment.
+- Design rating must not punish intentional small template fonts (prompt + filters in `_rate_design`), but must cap the score when geometry reports overlaps, clipped textareas, rules through text, or out-of-bounds boxes.
 
 ---
 
@@ -909,10 +912,17 @@ Implementacja:
 
 ### Asystent AI
 
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `ACTIONS`, komponent główny
+Oceny, gramatyka, ATS, czat oraz deterministyczna analiza układu z kartami do akceptacji.
+
+**Układ** (`layout`) to wyłącznie Python (`analyze_layout`): najpierw grupy krytyczne (ucięte textarea, nachodzące bloki, poza stroną, linie sekcji przez tekst), potem kosmetyczne wyrównania/odstępy tylko gdy czytelność jest w porządku. **Projekt** (`design_rating`) nadal ocenia typografię przez GPT, ale `summarize_geometry_issues` wstrzykuje liczbę kolizji/ucięć/linii/poza-stroną i twarde ogranicza ocenę do max 5 przy tych błędach.
+
+Implementacja:
+
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `ACTIONS` (linie 21–29), komponent główny
+- `frontend/src/utils/elementBounds.js` — `measureElements` (linia 120+): `layout_bounds`, `content_height`, `clipped`, `bounds_estimated`
 - `backend/app/api/routes/ai_assistant.py` — `ai_assistant`
-- `backend/app/services/ai_assistant_service.py` — `analyze_action`, `_rate_design`
-- `backend/app/services/layout_analysis.py`
+- `backend/app/services/ai_assistant_service.py` — `analyze_action` (linia 1040+), `_rate_design` (linia 332+)
+- `backend/app/services/layout_analysis.py` — `analyze_layout` (linia 923+), `_stack_resolve_overlap_groups` (linia 618+), `_clip_groups` (linia 690+), `summarize_geometry_issues` (linia 867+)
 
 Testy: `backend/tests/test_ai_chat_command.py`, `test_layout_analysis.py`, …
 
@@ -1065,8 +1075,8 @@ Zobacz [`BUGZ.MD`](BUGZ.MD) i [`TODOS.md`](TODOS.md).
 
 - Stripe Checkout nie jest domknięty.
 - Free Render usypia dyno.
-- Layout AI proponuje; współrzędne zatwierdza `layout_analysis`.
-- Ocena „Projekt” nie powinna karać celowo małych czcionek szablonu.
+- Layout AI proponuje; współrzędne zatwierdza `layout_analysis`. Kolizje/ucięcia dają grupy krytyczne przed kosmetycznym wyrównaniem.
+- Ocena „Projekt” nie powinna karać celowo małych czcionek szablonu, ale musi obniżyć wynik (max 5), gdy raport geometrii wykryje kolizje, ucięte textarea, linie przez tekst lub elementy poza stroną.
 
 ---
 

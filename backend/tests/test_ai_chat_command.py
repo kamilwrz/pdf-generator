@@ -617,12 +617,22 @@ class DesignRatingTemplateRespectTests(unittest.TestCase):
                 "content": "01",
                 "fontSize": 8,
                 "fixedToPage": True,
+                "left": 500,
+                "top": 800,
+                "width": 20,
+                "height": 10,
+                "page": 1,
             },
             {
                 "element_id": "label",
                 "category": "text",
                 "content": "KONTAKT",
                 "fontSize": 8,
+                "left": 40,
+                "top": 120,
+                "width": 80,
+                "height": 10,
+                "page": 1,
             },
             {
                 "element_id": "name",
@@ -630,6 +640,11 @@ class DesignRatingTemplateRespectTests(unittest.TestCase):
                 "content": "Jan Kowalski",
                 "fontSize": 24,
                 "bold": True,
+                "left": 40,
+                "top": 40,
+                "width": 200,
+                "height": 28,
+                "page": 1,
             },
         ]
 
@@ -638,6 +653,7 @@ class DesignRatingTemplateRespectTests(unittest.TestCase):
             self.assertIn("Nie obniżaj oceny za „zbyt małą czcionkę”", user)
             self.assertNotIn("tekst główny 10–12 px", user)
             self.assertIn('"fixedToPage": true', user)
+            self.assertIn("RAPORT GEOMETRII", user)
             return {
                 "message": "Szablon jest spójny; etykiety 8 px są częścią systemu.",
                 "rating": 8,
@@ -657,6 +673,54 @@ class DesignRatingTemplateRespectTests(unittest.TestCase):
 
         self.assertEqual(result["rating"], 8)
         self.assertEqual(result["corrections"], [{"element_id": "label", "bold": True}])
+
+    def test_design_rating_caps_score_when_elements_overlap(self):
+        elements = [
+            {
+                "element_id": "a",
+                "category": "textarea",
+                "content": "Pierwszy wpis",
+                "fontSize": 11,
+                "left": 10,
+                "top": 10,
+                "width": 40,
+                "height": 20,
+                "page": 1,
+            },
+            {
+                "element_id": "b",
+                "category": "textarea",
+                "content": "Drugi wpis",
+                "fontSize": 11,
+                "left": 10,
+                "top": 15,
+                "width": 40,
+                "height": 20,
+                "page": 1,
+            },
+        ]
+
+        def fake_gpt(system, user, **kwargs):
+            self.assertIn("nakładające się bloki treści: 1", user)
+            self.assertIn("rating MAX = 5", user)
+            return {
+                "message": "Typografia jest spójna.",
+                "rating": 9,
+                "tips": ["Hierarchia OK"],
+                "corrections": [],
+            }, {"tokens": 1}
+
+        with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
+            result = ai_assistant_service.analyze_action(
+                action="design_rating",
+                elements=elements,
+                message="",
+                page_size={"width": 100, "height": 100},
+            )
+
+        self.assertEqual(result["rating"], 5)
+        self.assertTrue(any("Geometria:" in tip for tip in result["tips"]))
+        self.assertIn("koliz", result["message"].lower())
 
 
 if __name__ == "__main__":

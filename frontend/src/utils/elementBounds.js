@@ -114,25 +114,49 @@ export function getVisualBounds(element) {
 
 // Attaches a real, DOM-measured layout_bounds to every element that's
 // currently mounted on screen (i.e. on the page currently being viewed).
-// Elements with no live DOM node are left unchanged — the backend's own
-// bounds fallback already handles a missing layout_bounds.
+// Elements with no live DOM node are marked bounds_estimated so the backend
+// can prefer content-based fallbacks instead of treating stale boxes as truth.
+// Textareas also report scrollHeight-based clipping for AI layout repair.
 export function measureElements(elements) {
   return elements.map(element => {
     const node = typeof document !== "undefined"
       ? document.getElementById(element.element_id)
       : null;
-    if (!node) return element;
+    if (!node) {
+      return {
+        ...element,
+        bounds_estimated: true,
+      };
+    }
 
     const rect = node.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return element;
+    if (rect.width <= 0 || rect.height <= 0) {
+      return {
+        ...element,
+        bounds_estimated: true,
+      };
+    }
 
     const canvas = node.closest("[data-page-canvas]");
     const canvasRect = canvas?.getBoundingClientRect();
     const scaleX = canvasRect?.width / (canvas?.clientWidth || canvasRect?.width || 1);
     const scaleY = canvasRect?.height / (canvas?.clientHeight || canvasRect?.height || 1);
 
+    // scrollHeight/clientHeight are in the element's CSS pixel space, which
+    // matches stored left/top/width/height (not the zoomed screen rect).
+    const isTextarea = node.tagName === "TEXTAREA" || element.category === "textarea";
+    const contentHeight = isTextarea
+      ? node.scrollHeight
+      : undefined;
+    const clipped = isTextarea
+      ? node.scrollHeight > node.clientHeight + 1
+      : undefined;
+
     return {
       ...element,
+      bounds_estimated: false,
+      ...(contentHeight !== undefined ? { content_height: contentHeight } : {}),
+      ...(clipped !== undefined ? { clipped } : {}),
       layout_bounds: {
         left: Number(element.left) || 0,
         top: Number(element.top) || 0,

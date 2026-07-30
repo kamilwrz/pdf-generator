@@ -24,6 +24,20 @@ MAX_SAFE_SNAP_MOVE = 18.0
 MAX_SAFE_BOUNDS_MOVE = 96.0
 MIN_CLUSTER_SIZE = 3
 EPSILON = 0.5
+# Match cv_generator SPACE_RECORD: gap inserted when unstacking overlapping content.
+STACK_CONTENT_GAP = 14.0
+# Match cv_generator SPACE_STACK: gap after a section rule before body text.
+STACK_CHROME_GAP = 4.0
+CLIP_HEIGHT_EPSILON = 1.0
+STACK_RESOLVE_PASSES = 64
+_SEVERITY_RANK = {
+    "critical": 0,
+    "high": 1,
+    "medium": 2,
+    "review": 3,
+    "low": 4,
+    "warning": 5,
+}
 
 
 def _number(value: Any, default: float = 0.0) -> float:
@@ -68,6 +82,38 @@ def _bounds_for(
     if not element_id:
         return None
 
+    # Prefer an explicit frontend measurement of scroll/content height. Do not
+    # invent clip findings from wrap estimates for every textarea — short boxes
+    # with short labels would otherwise always look "clipped" and suppress
+    # cosmetic alignment. Estimate only when the client marked the element as
+    # clipped/unmeasured or already provided content_height.
+    reported_content_height = _number(element.get("content_height"), 0.0)
+    clipped_flag = bool(element.get("clipped", False))
+    if (
+        category == "textarea"
+        and reported_content_height <= 0
+        and (clipped_flag or bool(element.get("bounds_estimated", False)))
+    ):
+        reported_content_height = _wrapped_textarea_height(
+            {
+                "fontSize": element.get("fontSize"),
+                "lineHeight": element.get("lineHeight"),
+                "content": element.get("content"),
+            },
+            width,
+        )
+    if (
+        not clipped_flag
+        and category == "textarea"
+        and reported_content_height > height + CLIP_HEIGHT_EPSILON
+        and (
+            element.get("content_height") is not None
+            or bool(element.get("clipped", False))
+            or bool(element.get("bounds_estimated", False))
+        )
+    ):
+        clipped_flag = True
+
     return {
         "element_id": str(element_id),
         "category": category,
@@ -77,10 +123,15 @@ def _bounds_for(
         "content": str(element.get("content") or ""),
         "fontSize": _number(element.get("fontSize"), 12.0),
         "lineHeight": _number(element.get("lineHeight"), _number(element.get("fontSize"), 12.0) * 1.35),
+        "zIndex": int(_number(element.get("zIndex"), 0)),
         "left": _number(measured.get("left", element.get("left"))),
         "top": _number(measured.get("top", element.get("top"))),
         "width": width,
         "height": height,
+        "content_height": reported_content_height,
+        "clipped": clipped_flag,
+        "bounds_estimated": bool(element.get("bounds_estimated", False)),
+        "flowRole": str(element.get("flowRole") or ""),
     }
 
 
@@ -415,19 +466,458 @@ def _spacing_groups(
     return groups
 
 
-def _overlap_issues(items: list[dict[str, Any]]) -> list[dict[str, str]]:
+def _same_column(first: dict[str, Any], second: dict[str, Any]) -> bool:
+    """True when two boxes share a horizontal lane (same column)."""
+    return (
+        first["left"] + first["width"] > second["left"] + EPSILON
+        and second["left"] + second["width"] > first["left"] + EPSILON
+    )
+
+
+def _document_top(item: dict[str, Any], page_height: float) -> float:
+    return (item["page"] - 1) * page_height + item["top"]
+
+
+def _stack_sort_key(item: dict[str, Any], page_height: float) -> tuple[float, int, str]:
+    # Document order: earlier top first; higher zIndex stays above on ties.
+    return (_document_top(item, page_height), -int(item.get("zIndex", 0)), str(item["element_id"]))
+
+
+def _is_movable_content(item: dict[str, Any]) -> bool:
+    return (
+        item.get("category") in AUTO_LAYOUT_CATEGORIES
+        and not item.get("locked")
+        and not item.get("fixedToPage")
+    )
+
+
+def _content_bottom_margin(page_height: float) -> float:
+    return page_height - _content_bottom(page_height)
+
+
+def _place_below(
+    upper: dict[str, Any],
+    mover: dict[str, Any],
+    page_height: float,
+    gap: float,
+) -> tuple[int, float]:
+    """Place ``mover`` just below ``upper`` with page-aware wrapping."""
+    absolute = _document_top(upper, page_height) + upper["height"] + gap
+    page, top, _ = _structure_page_position(
+        absolute,
+        mover["height"],
+        page_height,
+        page_top=36.0,
+        bottom_margin=_content_bottom_margin(page_height),
+    )
+    return page, top
+
+
+def _working_copy(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [dict(item) for item in items]
+
+
+def _patches_from_diff(
+    original: list[dict[str, Any]],
+    proposed: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    original_by_id = {item["element_id"]: item for item in original}
+    patches: list[dict[str, Any]] = []
+    for item in proposed:
+        source = original_by_id.get(item["element_id"])
+        if source is None:
+            continue
+        changed = (
+            abs(item["left"] - source["left"]) > EPSILON
+            or abs(item["top"] - source["top"]) > EPSILON
+            or abs(item["height"] - source["height"]) > EPSILON
+            or abs(item.get("width", source["width"]) - source["width"]) > EPSILON
+            or item["page"] != source["page"]
+        )
+        if not changed:
+            continue
+        patch: dict[str, Any] = {
+            "element_id": item["element_id"],
+            "left": round(item["left"], 2),
+            "top": round(item["top"], 2),
+        }
+        if abs(item["height"] - source["height"]) > EPSILON:
+            patch["height"] = round(item["height"], 2)
+        if abs(item.get("width", source["width"]) - source["width"]) > EPSILON:
+            patch["width"] = round(item["width"], 2)
+        if item["page"] != source["page"]:
+            patch["page"] = item["page"]
+        patches.append(patch)
+    return patches
+
+
+def _resolve_content_overlaps(
+    working: list[dict[str, Any]],
+    page_height: float,
+) -> bool:
+    """Push lower movable content below upper neighbors until overlaps clear.
+
+    Returns False when a remaining overlap involves only immovable elements.
+    """
+    for _ in range(STACK_RESOLVE_PASSES):
+        ordered = sorted(working, key=lambda item: _stack_sort_key(item, page_height))
+        blocking: tuple[dict[str, Any], dict[str, Any]] | None = None
+        for index, first in enumerate(ordered):
+            if first.get("category") not in AUTO_LAYOUT_CATEGORIES:
+                continue
+            for second in ordered[index + 1:]:
+                if second.get("category") not in AUTO_LAYOUT_CATEGORIES:
+                    continue
+                if first["page"] != second["page"] or not _rects_overlap(first, second):
+                    continue
+                if not _same_column(first, second):
+                    continue
+                blocking = (first, second)
+                break
+            if blocking is not None:
+                break
+        if blocking is None:
+            return True
+
+        upper, lower = sorted(blocking, key=lambda item: _stack_sort_key(item, page_height))
+        if _is_movable_content(lower):
+            mover = lower
+            anchor = upper
+        elif _is_movable_content(upper):
+            # Unusual: lower item is locked/fixed. Pull the upper block above it
+            # by stacking the movable one just above the immovable lower edge —
+            # still deterministic and better than leaving a crush.
+            mover = upper
+            target_abs = _document_top(lower, page_height) - mover["height"] - STACK_CONTENT_GAP
+            page, top, _ = _structure_page_position(
+                max(0.0, target_abs),
+                mover["height"],
+                page_height,
+                page_top=36.0,
+                bottom_margin=_content_bottom_margin(page_height),
+            )
+            if page == mover["page"] and abs(top - mover["top"]) <= EPSILON:
+                return False
+            mover["page"] = page
+            mover["top"] = top
+            continue
+        else:
+            return False
+
+        page, top = _place_below(anchor, mover, page_height, STACK_CONTENT_GAP)
+        if page == mover["page"] and abs(top - mover["top"]) <= EPSILON:
+            # Already at the required slot but still overlapping — grow gap once.
+            page, top = _place_below(anchor, mover, page_height, STACK_CONTENT_GAP + STACK_CHROME_GAP)
+            if page == mover["page"] and abs(top - mover["top"]) <= EPSILON:
+                return False
+        mover["page"] = page
+        mover["top"] = top
+    return False
+
+
+def _stack_resolve_overlap_groups(
+    items: list[dict[str, Any]],
+    page_width: float,
+    page_height: float,
+) -> tuple[list[dict[str, Any]], set[str], list[dict[str, str]]]:
+    """Critical groups that unstack overlapping content in document order."""
+    issues: list[dict[str, str]] = []
+    overlap_pairs = [
+        (first, second)
+        for index, first in enumerate(items)
+        for second in items[index + 1:]
+        if (
+            first["page"] == second["page"]
+            and _same_column(first, second)
+            and _rects_overlap(first, second)
+        )
+    ]
+    if not overlap_pairs:
+        return [], set(), issues
+
+    working = _working_copy(items)
+    resolved = _resolve_content_overlaps(working, page_height)
+    patches = _patches_from_diff(items, working)
+    if not patches:
+        for first, second in overlap_pairs:
+            issues.append({
+                "severity": "warning",
+                "message": (
+                    f"Dwa elementy treści nakładają się na stronie {first['page']} "
+                    f"({first['element_id']}, {second['element_id']}), ale nie można ich "
+                    "automatycznie rozsunąć — sprawdź elementy zablokowane lub przypięte do strony."
+                ),
+            })
+        return [], set(), issues
+
+    suggestion = _group(
+        group_id="stack-resolve-overlaps",
+        title="Rozsuń nachodzące bloki treści",
+        reason=(
+            "Elementy treści nachodzą na siebie. Zostaną ułożone w kolejności od góry "
+            f"z odstępem {STACK_CONTENT_GAP:g} px; w razie potrzeby treść przejdzie na następną stronę."
+        ),
+        severity="critical",
+        patches=patches,
+        items=items,
+        page_width=page_width,
+        page_height=page_height,
+    )
+    if suggestion is None:
+        for first, second in overlap_pairs:
+            issues.append({
+                "severity": "warning",
+                "message": (
+                    f"Dwa elementy treści nakładają się na stronie {first['page']}. "
+                    "Automatyczne rozsunięcie nie przeszło walidacji bezpieczeństwa."
+                ),
+            })
+        return [], set(), issues
+
+    if not resolved:
+        issues.append({
+            "severity": "warning",
+            "message": (
+                "Część kolizji treści została rozłożona, ale pozostały nakładania z elementami "
+                "zablokowanymi lub przypiętymi do strony — wymaga ręcznej korekty."
+            ),
+        })
+
+    changed = {patch["element_id"] for patch in patches}
+    return [suggestion], changed, issues
+
+
+def _clip_groups(
+    items: list[dict[str, Any]],
+    page_width: float,
+    page_height: float,
+    excluded_ids: set[str],
+) -> tuple[list[dict[str, Any]], set[str], list[dict[str, str]]]:
+    """Grow clipped textareas to content height and reflow neighbors below."""
+    groups: list[dict[str, Any]] = []
+    changed_ids: set[str] = set()
+    issues: list[dict[str, str]] = []
+
+    clipped = [
+        item for item in items
+        if (
+            item["element_id"] not in excluded_ids
+            and item.get("category") == "textarea"
+            and item.get("clipped")
+            and _is_movable_content(item)
+            and item.get("content_height", 0) > item["height"] + CLIP_HEIGHT_EPSILON
+        )
+    ]
+    if not clipped:
+        return groups, changed_ids, issues
+
+    working = _working_copy(items)
+    by_id = {item["element_id"]: item for item in working}
+    for item in clipped:
+        target = by_id[item["element_id"]]
+        new_height = round(min(item["content_height"], page_height - 36.0), 2)
+        if new_height <= target["height"] + CLIP_HEIGHT_EPSILON:
+            continue
+        # Reject growth that cannot fit on any single page.
+        if new_height > page_height - 36.0 - _content_bottom_margin(page_height):
+            issues.append({
+                "severity": "warning",
+                "message": (
+                    f"Pole tekstu „{(item.get('content') or '')[:40]}” jest ucięte, "
+                    "ale pełna treść nie mieści się na jednej stronie — skróć tekst lub podziel ręcznie."
+                ),
+            })
+            continue
+        target["height"] = new_height
+        # Keep the grown box on-page; if it overflows the bottom, wrap to next page.
+        page, top, _ = _structure_page_position(
+            _document_top(target, page_height),
+            target["height"],
+            page_height,
+            page_top=36.0,
+            bottom_margin=_content_bottom_margin(page_height),
+        )
+        target["page"] = page
+        target["top"] = top
+
+    _resolve_content_overlaps(working, page_height)
+    patches = _patches_from_diff(items, working)
+    if not patches:
+        return groups, changed_ids, issues
+
+    suggestion = _group(
+        group_id="clip-expand-textareas",
+        title="Dopasuj wysokość uciętych pól tekstu",
+        reason=(
+            "Treść w textarea jest wyższa niż zapisany prostokąt. "
+            "Pola zostaną powiększone, a sąsiedzi w kolumnie przesunięci w dół."
+        ),
+        severity="critical",
+        patches=patches,
+        items=items,
+        page_width=page_width,
+        page_height=page_height,
+    )
+    if suggestion:
+        groups.append(suggestion)
+        changed_ids.update(patch["element_id"] for patch in patches)
+    return groups, changed_ids, issues
+
+
+def _is_section_rule(item: dict[str, Any]) -> bool:
+    """Heuristic: thin, wide horizontal rules used as section underlines."""
+    if item.get("category") != "line":
+        return False
+    return item["height"] <= 4.0 + EPSILON and item["width"] >= 24.0
+
+
+def _decoration_collision_groups(
+    content_items: list[dict[str, Any]],
+    elements: list[dict[str, Any]],
+    page_width: float,
+    page_height: float,
+    excluded_ids: set[str],
+) -> tuple[list[dict[str, Any]], set[str], list[dict[str, str]]]:
+    """Push content below section rules that cut through text/headings."""
+    decorations = extract_bounds(elements, {"line", "rectangle"})
+    rules = [item for item in decorations if _is_section_rule(item)]
+    if not rules:
+        return [], set(), []
+
+    working = _working_copy(content_items)
+    moved_any = False
+
+    for rule in rules:
+        for item in working:
+            if item["element_id"] in excluded_ids or not _is_movable_content(item):
+                continue
+            if item["page"] != rule["page"] or not _rects_overlap(item, rule):
+                continue
+            if not _same_column(item, rule):
+                continue
+            # Content whose top is clearly above the rule and only grazes it can
+            # stay; rules cutting through the body/heading must clear below.
+            if item["top"] + STACK_CHROME_GAP < rule["top"] and item["top"] + item["height"] <= rule["top"] + rule["height"] + EPSILON:
+                continue
+            page, top = _place_below(rule, item, page_height, STACK_CHROME_GAP + STACK_CONTENT_GAP)
+            if page != item["page"] or abs(top - item["top"]) > EPSILON:
+                item["page"] = page
+                item["top"] = top
+                moved_any = True
+
+    if not moved_any:
+        return [], set(), []
+
+    _resolve_content_overlaps(working, page_height)
+    patches = _patches_from_diff(content_items, working)
+    if not patches:
+        return [], set(), []
+
+    suggestion = _group(
+        group_id="decoration-clear-rules",
+        title="Odsuń treść od linii sekcji",
+        reason=(
+            "Linia dekoracyjna przecina tekst lub nagłówek. "
+            "Treść zostanie przesunięta poniżej linii; stałe tła szablonu pozostają nietknięte."
+        ),
+        severity="high",
+        patches=patches,
+        items=content_items,
+        page_width=page_width,
+        page_height=page_height,
+    )
+    if suggestion is None:
+        return [], set(), [{
+            "severity": "warning",
+            "message": "Wykryto linię przecinającą treść, ale automatyczna korekta nie przeszła walidacji.",
+        }]
+    return [suggestion], {patch["element_id"] for patch in patches}, []
+
+
+def _overlap_issues(
+    items: list[dict[str, Any]],
+    *,
+    unresolved_only: bool = False,
+) -> list[dict[str, str]]:
     issues: list[dict[str, str]] = []
     for index, first in enumerate(items):
         for second in items[index + 1:]:
-            if first["page"] == second["page"] and _rects_overlap(first, second):
-                issues.append({
-                    "severity": "warning",
-                    "message": (
-                        f"Dwa elementy treści nakładają się na stronie {first['page']}. "
-                        "Ich zamierzona kolejność jest niejednoznaczna, dlatego nie zaproponowano automatycznego przesunięcia."
-                    ),
-                })
+            if first["page"] != second["page"] or not _rects_overlap(first, second):
+                continue
+            if not _same_column(first, second):
+                continue
+            if unresolved_only and (_is_movable_content(first) and _is_movable_content(second)):
+                # Movable pairs are handled by stack-resolve; only report leftovers.
+                continue
+            movable = _is_movable_content(first) and _is_movable_content(second)
+            issues.append({
+                "severity": "warning",
+                "message": (
+                    f"Dwa elementy treści nakładają się na stronie {first['page']}. "
+                    + (
+                        "Automatyczne rozsunięcie nie było możliwe."
+                        if not movable
+                        else "Sprawdź ręcznie, jeśli sugestia rozsunięcia nie wystarczy."
+                    )
+                ),
+            })
     return issues
+
+
+def summarize_geometry_issues(
+    elements: list[dict[str, Any]],
+    page_size: dict[str, Any] | None = None,
+) -> dict[str, int]:
+    """Count hard geometry problems for design rating caps and diagnostics."""
+    page_size = page_size or {}
+    page_width = _number(page_size.get("width"), 595.0)
+    page_height = _number(page_size.get("height"), 842.0)
+    content = extract_bounds(elements, AUTO_LAYOUT_CATEGORIES)
+    decorations = extract_bounds(elements, {"line", "rectangle"})
+    rules = [item for item in decorations if _is_section_rule(item)]
+
+    overlaps = 0
+    for index, first in enumerate(content):
+        for second in content[index + 1:]:
+            if (
+                first["page"] == second["page"]
+                and _same_column(first, second)
+                and _rects_overlap(first, second)
+            ):
+                overlaps += 1
+
+    clips = sum(1 for item in content if item.get("clipped"))
+    decoration_hits = 0
+    for rule in rules:
+        for item in content:
+            if (
+                item["page"] == rule["page"]
+                and _same_column(item, rule)
+                and _rects_overlap(item, rule)
+                and not (
+                    item["top"] + STACK_CHROME_GAP < rule["top"]
+                    and item["top"] + item["height"] <= rule["top"] + rule["height"] + EPSILON
+                )
+            ):
+                decoration_hits += 1
+                break
+
+    out_of_bounds = 0
+    for item in content:
+        if (
+            item["left"] < -EPSILON
+            or item["top"] < -EPSILON
+            or item["left"] + item["width"] > page_width + EPSILON
+            or item["top"] + item["height"] > page_height + EPSILON
+        ):
+            out_of_bounds += 1
+
+    return {
+        "overlaps": overlaps,
+        "clips": clips,
+        "decoration_hits": decoration_hits,
+        "out_of_bounds": out_of_bounds,
+    }
 
 
 def analyze_layout(elements: list[dict[str, Any]], page_size: dict[str, Any] | None) -> dict[str, Any]:
@@ -455,14 +945,62 @@ def analyze_layout(elements: list[dict[str, Any]], page_size: dict[str, Any] | N
             "web_sources": [],
         }
 
-    groups, changed_ids, issues = _bounds_groups(items, page_width, page_height)
-    groups.extend(_alignment_groups(items, changed_ids, page_width, page_height))
-    groups.extend(_spacing_groups(items, changed_ids, page_width, page_height))
-    issues.extend(_overlap_issues(items))
+    groups: list[dict[str, Any]] = []
+    changed_ids: set[str] = set()
+    issues: list[dict[str, str]] = []
+
+    # Each group is computed against the same snapshot so a single card remains
+    # independently applicable. Applying one card may stale the others until the
+    # user re-runs Układ — same pattern as the older alignment groups.
+
+    clip_groups, clip_ids, clip_issues = _clip_groups(items, page_width, page_height, changed_ids)
+    groups.extend(clip_groups)
+    changed_ids |= clip_ids
+    issues.extend(clip_issues)
+
+    stack_groups, stack_ids, stack_issues = _stack_resolve_overlap_groups(
+        items, page_width, page_height,
+    )
+    groups.extend(stack_groups)
+    changed_ids |= stack_ids
+    issues.extend(stack_issues)
+
+    bounds_groups, bounds_ids, bounds_issues = _bounds_groups(items, page_width, page_height)
+    groups.extend(bounds_groups)
+    changed_ids |= bounds_ids
+    issues.extend(bounds_issues)
+
+    deco_groups, deco_ids, deco_issues = _decoration_collision_groups(
+        items, elements, page_width, page_height, changed_ids,
+    )
+    groups.extend(deco_groups)
+    changed_ids |= deco_ids
+    issues.extend(deco_issues)
+
+    has_critical = any(group.get("severity") in {"critical", "high"} for group in groups)
+    # Cosmetic alignment/spacing only after readability is addressed.
+    if not has_critical:
+        groups.extend(_alignment_groups(items, changed_ids, page_width, page_height))
+        groups.extend(_spacing_groups(items, changed_ids, page_width, page_height))
+
+    issues.extend(_overlap_issues(items, unresolved_only=bool(stack_groups)))
+
+    groups.sort(key=lambda group: (
+        _SEVERITY_RANK.get(str(group.get("severity")), 9),
+        str(group.get("id") or ""),
+    ))
 
     if groups:
         n = len(groups)
-        if n == 1:
+        critical_n = sum(1 for group in groups if group.get("severity") in {"critical", "high"})
+        if critical_n:
+            message = (
+                f"Znalazłem {critical_n} krytyczn{'ą' if critical_n == 1 else 'e'} "
+                f"grup{'ę' if critical_n == 1 else 'y'} naprawy czytelności"
+                + (f" oraz {n - critical_n} kosmetyczn{'ą' if n - critical_n == 1 else 'e'}." if n > critical_n else ".")
+                + " Podglądaj grupę przed zastosowaniem."
+            )
+        elif n == 1:
             message = "Znalazłem 1 bezpieczną grupę korekty układu. Podglądaj grupę przed zastosowaniem."
         elif 2 <= n <= 4:
             message = f"Znalazłem {n} bezpieczne grupy korekty układu. Podglądaj grupę przed zastosowaniem."
@@ -473,13 +1011,17 @@ def analyze_layout(elements: list[dict[str, Any]], page_size: dict[str, Any] | N
     else:
         message = "Wymierzalna treść mieści się w granicach i jest spójnie wyrównana."
 
+    tips = [
+        "Najpierw stosuj grupy krytyczne (kolizje, ucięty tekst, linie przez treść); wyrównania to kosmetyka.",
+        "Korekty układu przesuwają treść; stałe tła i dekoracje przypięte do strony pozostają na miejscu.",
+    ]
+    if has_critical:
+        tips.insert(0, "Wykryto problemy czytelności — pominięto kosmetyczne wyrównania, dopóki kolizje nie zostaną naprawione.")
+
     return {
         "message": message,
         "rating": None,
-        "tips": [
-            "Korekty układu przesuwają tylko treść; dekoracyjne linie, prostokąty i łączniki pozostają na miejscu.",
-            "Nakładające się elementy o niejasnej intencji są zgłaszane do weryfikacji zamiast automatycznego przesuwania.",
-        ],
+        "tips": tips,
         "corrections": [],
         "layout_groups": groups,
         "layout_issues": issues[:8],

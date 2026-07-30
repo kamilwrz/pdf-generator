@@ -23,6 +23,7 @@ from app.services.layout_analysis import (
     resolve_delete_operation,
     resolve_directed_operation,
     resolve_restructure_section,
+    summarize_geometry_issues,
 )
 from app.services.openai_pricing import usage_from_response
 
@@ -328,10 +329,17 @@ Zwróć JSON (uwzględnij wyniki cząstkowe w wskazówkach):
     return _gpt_result(system, user, action="rating")
 
 
-def _rate_design(elements: list[dict]) -> dict:
-    """Typography/design rating that respects built-in template font systems."""
+def _rate_design(elements: list[dict], page_size: dict | None = None) -> dict:
+    """Typography/design rating that also caps score on hard geometry faults."""
     typo = json.dumps(_extract_typography(elements), ensure_ascii=False)
     protected_ids = _protected_typography_ids(elements)
+    geometry = summarize_geometry_issues(elements, page_size)
+    hard_faults = (
+        geometry["overlaps"]
+        + geometry["clips"]
+        + geometry["decoration_hits"]
+        + geometry["out_of_bounds"]
+    )
 
     system = (
         "Jesteś ekspertem od typografii i projektowania wizualnego CV. "
@@ -342,12 +350,22 @@ def _rate_design(elements: list[dict]) -> dict:
         "NIGDY nie krytykuj absolutnych rozmiarów czcionek szablonu ani nie proponuj ich powiększania "
         "tylko dlatego, że są mniejsze niż w klasycznych CV. "
         "NIGDY nie proponuj corrections dla elementów z fixedToPage=true ani locked=true. "
+        "Gdy raport geometrii zgłasza kolizje, ucięcia lub linie przez tekst, musisz to wymienić w message "
+        "i nie możesz przyznać oceny wyższej niż 5. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
     user = f"""Przeanalizuj typografię i styl tekstu na tej kanwie CV.
 
-DANE TYPOGRAFICZNE (bez pozycji — nie wyciągaj wniosków ani nie sugeruj zmian pozycji):
+DANE TYPOGRAFICZNE (bez pozycji — nie sugeruj zmian left/top/width/height):
 {typo}
+
+RAPORT GEOMETRII (deterministyczny, obowiązkowy):
+- nakładające się bloki treści: {geometry["overlaps"]}
+- ucięte pola textarea: {geometry["clips"]}
+- linie sekcji przecinające treść: {geometry["decoration_hits"]}
+- elementy poza stroną: {geometry["out_of_bounds"]}
+Suma twardych błędów geometrii: {hard_faults}.
+Jeśli suma > 0, rating MAX = 5 i tip musi wskazać „uruchom Układ”, zanim poprawisz typografię.
 
 ════════════════════════════════════════
 KONTEKST PRODUKTOWY (OBOWIĄZKOWY):
@@ -356,6 +374,7 @@ KONTEKST PRODUKTOWY (OBOWIĄZKOWY):
 - Nie obniżaj oceny za „zbyt małą czcionkę”, jeśli rozmiary są spójne w ramach systemu szablonu.
 - Krytykuj wyłącznie niespójność: złamaną hierarchię, mieszane wyrównanie, odstające kolory, przypadkowe bold.
 - Elementy z fixedToPage=true / locked=true to chrome szablonu — pomiń je w message, tips i corrections.
+- Twarde błędy geometrii z raportu powyżej mają pierwszeństwo przed pochwałami typografii.
 
 ETAPY ANALIZY:
 
@@ -374,8 +393,9 @@ ETAPY ANALIZY:
    Mieszane wyrównanie w jednej sekcji wygląda nieprofesjonalnie.
 
 ⑤ OCENA OGÓLNA
-   Na podstawie punktów ①–④ przyznaj ocenę projektu w skali 1–10.
-   Spójny szablon z małymi etykietami może dostać wysoką ocenę. Nie karaj za absolutny rozmiar czcionki.
+   Na podstawie punktów ①–④ oraz raportu geometrii przyznaj ocenę projektu w skali 1–10.
+   Spójny szablon z małymi etykietami może dostać wysoką ocenę TYLKO gdy hard_faults == 0.
+   Przy hard_faults > 0 ocena maksymalna to 5.
 ════════════════════════════════════════
 
 Zwracaj poprawki WYŁĄCZNIE dla jednoznacznych niespójności względem reszty szablonu.
@@ -385,11 +405,11 @@ Nie uwzględniaj wartości element_id z danych powyżej, jeśli nie masz pewnoś
 
 Zwróć JSON:
 {{
-  "message": "<2–3 zdania: podaj ocenę i wskaż najważniejsze niespójności (nie absolutne rozmiary)>",
+  "message": "<2–3 zdania: podaj ocenę; jeśli są błędy geometrii — wymień je; wskaż niespójności typografii>",
   "rating": <1-10>,
   "tips": [
     "Rozkład oceny: Hierarchia ①/3 + Wyróżnienie ②/2 + Kolor ③/2 + Wyrównanie ④/2 + Ocena ogólna ⑤/1",
-    "<konkretna poprawka typografii z podglądem elementu>",
+    "<konkretna poprawka typografii z podglądem elementu LUB wezwanie do Układu przy kolizjach>",
     "<druga konkretna poprawka>"
   ],
   "corrections": [
@@ -399,7 +419,28 @@ Zwróć JSON:
   "web_sources": []
 }}"""
     result = _gpt_result(system, user, action="design_rating", allowed_fields=_STYLE_FIELDS)
-    return _strip_protected_corrections(result, protected_ids)
+    result = _strip_protected_corrections(result, protected_ids)
+
+    # Hard cap regardless of model compliance: collisions/clips must not score 9/10.
+    if hard_faults > 0:
+        capped = min(int(result["rating"]) if isinstance(result.get("rating"), int) else 5, 5)
+        result["rating"] = max(1, capped)
+        geometry_tip = (
+            f"Geometria: {geometry['overlaps']} kolizji treści, {geometry['clips']} ucięć, "
+            f"{geometry['decoration_hits']} linii przez tekst, {geometry['out_of_bounds']} poza stroną — "
+            "najpierw uruchom Układ."
+        )
+        tips = [str(t) for t in result.get("tips", [])]
+        if geometry_tip not in tips:
+            tips = [geometry_tip, *tips][:8]
+        result["tips"] = tips
+        message = str(result.get("message") or "")
+        if "koliz" not in message.lower() and "ucię" not in message.lower() and "geometr" not in message.lower():
+            result["message"] = (
+                f"Ocena obniżona do {result['rating']}/10 z powodu błędów geometrii "
+                f"({geometry['overlaps']} kolizji, {geometry['clips']} ucięć). {message}"
+            ).strip()
+    return result
 
 
 def _rate_position(text: str, job_description: str) -> dict:
@@ -1013,7 +1054,7 @@ def analyze_action(
 
     dispatchers = {
         "rating":          lambda: _rate_cv(text, elements),
-        "design_rating":   lambda: _rate_design(elements),
+        "design_rating":   lambda: _rate_design(elements, page_size),
         "position_rating": lambda: _rate_position(text, job_description),
         "grammar":         lambda: _fix_grammar(elements),
         "language":        lambda: _check_style(text, elements),
