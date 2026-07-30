@@ -347,24 +347,27 @@ Ratings, grammar, ATS, chat, and chat-driven position review cards.
 
 **Układ** is a toggleable GPT session: while active, every question sends a **full multi-page A4 JSON** (`left`/`top`/`width`/`height`/`fontSize`/…) and GPT returns Polish analysis plus optional `findings` → previewable `layout_groups` on the canvas. Deselect **Układ** to leave the mode. Chat `position_operation` resolvers remain for freeform edit commands. **Projekt** (`design_rating`) uses `summarize_geometry_issues` for geometry score caps.
 
+Layout calls use **`gpt-5.6-sol`** by default (`AI_LAYOUT_MODEL`); other assistant actions stay on **`gpt-5.4-mini`** (`AI_ASSISTANT_MODEL`). Costs come from `openai_pricing.py` (USD list prices → PLN via `USD_TO_PLN`, default 4.0). **1 AI credit = 5 groszy (0.05 PLN)**; each successful call charges `max(1, ceil(cost_pln / 0.05))` and returns `usage.credits_charged`.
+
 Implementation:
 
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `ACTIONS` (`layout` toggle), default export
 - `frontend/src/utils/elementBounds.js`, `measureElements` — `layout_bounds`, `content_height`, `clipped`, `bounds_estimated`
-- `backend/app/api/routes/ai_assistant.py`, `ai_assistant` (action `layout`)
-- `backend/app/services/ai_assistant_service.py`, `_layout_session`, `_chat`, `_rate_design`
+- `backend/app/api/routes/ai_assistant.py`, `ai_assistant` (action `layout`), `TokenUsage`
+- `backend/app/services/ai_assistant_service.py`, `_layout_session`, `_model_for_action`, `_chat`, `_rate_design`
 - `backend/app/services/layout_gpt.py`, `build_layout_snapshot`, `compile_layout_gpt_response`
 - `backend/app/services/layout_analysis.py`, `resolve_directed_operation`, `summarize_geometry_issues`
+- `backend/app/services/openai_pricing.py`, `usage_from_response`, `estimate_cost_usd`
 
-Tests: `backend/tests/test_layout_gpt.py`, `test_ai_chat_command.py`, `test_layout_analysis.py`, …
+Tests: `backend/tests/test_layout_gpt.py`, `test_openai_pricing.py`, `test_ai_credits.py`, `test_ai_chat_command.py`, `test_layout_analysis.py`, …
 
 ### Entitlements / plans
 
-Gates projects, exports, AI, templates; AI credits from estimated PLN cost.
+Gates projects, exports, AI, templates. AI credits: **1 credit = 0.05 PLN (5 groszy)**; charged from each call’s `cost_pln_estimate`.
 
 Implementation:
 
-- `backend/app/services/entitlements.py`, `get_entitlements` (307+), `assert_can_export`, `charge_ai_credits` (442+)
+- `backend/app/services/entitlements.py`, `CREDIT_PLN`, `credits_for_cost`, `get_entitlements`, `assert_can_export`, `charge_ai_credits`
 - `backend/app/api/routes/billing.py`, `get_plans`, `select_plan`
 - `frontend/src/hooks/useEntitlements.js`
 
@@ -484,7 +487,9 @@ App: `http://localhost:5173`.
 | `CORS_ORIGINS` | no | Comma-separated origins | `http://localhost:5173` |
 | `BACKEND_URL` | no | Public API base for links | `http://localhost:8000` |
 | `API_GPT_KEY` | for AI | OpenAI API key | `sk-...` |
-| `AI_ASSISTANT_MODEL` | no | Assistant model id | `gpt-5.4-mini` |
+| `AI_ASSISTANT_MODEL` | no | Default assistant model (non-layout) | `gpt-5.4-mini` |
+| `AI_LAYOUT_MODEL` | no | Model for **Układ** (`action=layout`) | `gpt-5.6-sol` |
+| `USD_TO_PLN` | no | FX used for credit metering | `4.0` |
 | `S3_BUCKET_NAME` | no | Enable S3 when set | bucket name |
 | `AWS_REGION` / keys | with S3 | AWS credentials | — |
 | `ALLOW_UNPAID_PLAN_SELECTION` | no | Allow activating paid plans without Stripe (`true` default) | `true` |
@@ -917,20 +922,25 @@ Oceny, gramatyka, ATS, czat oraz karty pozycji z poleceń czatu.
 
 **Układ** to przełączany tryb sesji GPT: gdy aktywny, każde pytanie dostaje **pełny JSON A4** (wszystkie strony: `left`/`top`/`width`/`height`/`fontSize`/…) i model zwraca analizę po polsku oraz opcjonalne `findings` → karty `layout_groups` na płótnie. Ponowne kliknięcie **Układ** wychodzi z trybu. Czatowe `position_operation` nadal działają. **Projekt** używa `summarize_geometry_issues` do limitu oceny przy kolizjach.
 
+Układ domyślnie woła **`gpt-5.6-sol`** (`AI_LAYOUT_MODEL`); pozostałe akcje asystenta zostają na **`gpt-5.4-mini`** (`AI_ASSISTANT_MODEL`). Koszt liczy `openai_pricing.py` (cennik USD → PLN przez `USD_TO_PLN`, domyślnie 4.0). **1 kredyt AI = 5 groszy (0.05 PLN)**; udane wywołanie pobiera `max(1, ceil(cost_pln / 0.05))` i zwraca `usage.credits_charged`.
+
 Implementacja:
 
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `ACTIONS` (toggle `layout`)
 - `frontend/src/utils/elementBounds.js` — `measureElements`
-- `backend/app/api/routes/ai_assistant.py` — akcja `layout`
-- `backend/app/services/ai_assistant_service.py` — `_layout_session`
+- `backend/app/api/routes/ai_assistant.py` — akcja `layout`, `TokenUsage`
+- `backend/app/services/ai_assistant_service.py` — `_layout_session`, `_model_for_action`
 - `backend/app/services/layout_gpt.py` — `build_layout_snapshot`, `compile_layout_gpt_response`
 - `backend/app/services/layout_analysis.py` — `resolve_directed_operation`, `summarize_geometry_issues`
+- `backend/app/services/openai_pricing.py` — `usage_from_response`, `estimate_cost_usd`
 
-Testy: `backend/tests/test_layout_gpt.py`, `test_ai_chat_command.py`, `test_layout_analysis.py`, …
+Testy: `backend/tests/test_layout_gpt.py`, `test_openai_pricing.py`, `test_ai_credits.py`, `test_ai_chat_command.py`, `test_layout_analysis.py`, …
 
 ### Entitlements / plany
 
-- `backend/app/services/entitlements.py`
+**1 kredyt = 0.05 PLN (5 groszy)**; obciążenie z `cost_pln_estimate` wywołania.
+
+- `backend/app/services/entitlements.py` — `CREDIT_PLN`, `credits_for_cost`, `charge_ai_credits`
 - `backend/app/api/routes/billing.py`
 - `frontend/src/hooks/useEntitlements.js`
 
@@ -1011,7 +1021,7 @@ Aplikacja: `http://localhost:5173`.
 
 ### Zmienne środowiskowe
 
-Backend (m.in.): `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `DATABASE_URL`, `CORS_ORIGINS`, `BACKEND_URL`, `API_GPT_KEY`, `AI_ASSISTANT_MODEL`, `S3_BUCKET_NAME`, `AWS_*`, `ALLOW_UNPAID_PLAN_SELECTION`.
+Backend (m.in.): `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `DATABASE_URL`, `CORS_ORIGINS`, `BACKEND_URL`, `API_GPT_KEY`, `AI_ASSISTANT_MODEL`, `AI_LAYOUT_MODEL`, `USD_TO_PLN`, `S3_BUCKET_NAME`, `AWS_*`, `ALLOW_UNPAID_PLAN_SELECTION`.
 
 Frontend: `VITE_API_URL`.
 

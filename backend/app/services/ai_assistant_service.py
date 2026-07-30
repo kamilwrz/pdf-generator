@@ -29,10 +29,20 @@ from app.services.layout_gpt import (
     build_layout_snapshot,
     compile_layout_gpt_response,
 )
-from app.services.openai_pricing import usage_from_response
+from app.services.openai_pricing import empty_usage, usage_from_response
 
+# Default assistant model for ratings / chat / grammar / ATS / …
 _MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.4-mini")
+# Layout session needs stronger peer-geometry reasoning than mini.
+_LAYOUT_MODEL = os.getenv("AI_LAYOUT_MODEL", "gpt-5.6-sol")
 _client = OpenAI(api_key=OPENAI_API_KEY)
+
+
+def _model_for_action(action: str) -> str:
+    """Pick the OpenAI model id for this assistant action."""
+    if action == "layout":
+        return _LAYOUT_MODEL
+    return _MODEL
 
 
 class AIServiceError(Exception):
@@ -190,9 +200,10 @@ def _strip_protected_corrections(result: dict, protected_ids: set[str]) -> dict:
 
 def _gpt(system: str, user: str, *, action: str = "") -> tuple[dict, dict]:
     """Call the assistant model and return (parsed_json, usage_cost)."""
+    model = _model_for_action(action)
     try:
         resp = _client.chat.completions.create(
-            model=_MODEL,
+            model=model,
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
             response_format={"type": "json_object"},
             reasoning_effort="medium",
@@ -203,7 +214,7 @@ def _gpt(system: str, user: str, *, action: str = "") -> tuple[dict, dict]:
         # other openai SDK failure — all are subclasses of APIError.
         raise AIServiceError(f"OpenAI request failed: {type(exc).__name__}", original=exc) from exc
 
-    usage = usage_from_response(resp, model=_MODEL, action=action)
+    usage = usage_from_response(resp, model=model, action=action)
     content = resp.choices[0].message.content or ""
     if not content.strip():
         raise AIServiceError(
@@ -1040,16 +1051,7 @@ def _layout_session(
             "layout_groups": [],
             "layout_issues": [],
             "web_sources": [],
-            "usage": {
-                "model": None,
-                "action": "layout",
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "total_tokens": 0,
-                "cost_usd": 0.0,
-                "cost_pln_estimate": 0.0,
-                "rates_usd_per_1m": {"input": 0.0, "output": 0.0},
-            },
+            "usage": empty_usage(model=_LAYOUT_MODEL, action="layout"),
         }
 
     question = (message or "").strip() or (

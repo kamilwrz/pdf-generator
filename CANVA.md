@@ -732,15 +732,21 @@ Endpoint `/ai/fill_template`:
 
 Nie wykonuje wywołania LLM i nie nalicza kredytów za samo rozmieszczenie.
 
-### 7.4. GPT-5.4 mini w Asystencie AI
+### 7.4. Modele w Asystencie AI
 
-Asystent używa domyślnie modelu:
+Domyślne modele (nadpisywane zmiennymi środowiskowymi):
 
 ```text
-gpt-5.4-mini
+AI_ASSISTANT_MODEL = gpt-5.4-mini   # oceny, gramatyka, ATS, czat, …
+AI_LAYOUT_MODEL    = gpt-5.6-sol    # tylko akcja layout (Układ)
 ```
 
-Model może:
+Cennik listowy (USD / 1M tokenów) jest w `openai_pricing.py`. Koszt PLN =
+`cost_usd × USD_TO_PLN` (domyślnie 4.0). **1 kredyt AI = 5 groszy (0.05 PLN)**;
+obciążenie = `max(1, ceil(cost_pln / 0.05))` (`entitlements.credits_for_cost`).
+Odpowiedź zwraca `usage.credits_charged`.
+
+Model (mini / sol) może:
 
 - ocenić CV;
 - poprawić język;
@@ -778,13 +784,15 @@ Komentarz w `ai_assistant_service.py` wyjaśnia powód: bezpośrednie współrz�
 1. Kliknięcie **Układ** włącza tryb (przycisk zostaje zaznaczony).
 2. Backend buduje `build_layout_snapshot` — wszystkie strony i elementy z
    `left`/`top`/`width`/`height`/`page`/`fontSize`/… oraz flagą `movable`.
-3. GPT analizuje peery (nagłówki, linie, wpisy, kolumny) i zwraca `summary` +
+3. Wywołanie idzie na model `AI_LAYOUT_MODEL` (domyślnie `gpt-5.6-sol`).
+4. GPT analizuje peery (nagłówki, linie, wpisy, kolumny) i zwraca `summary` +
    `findings[]` z `analysis` (konkretne współrzędne) oraz opcjonalnymi `moves`.
-4. Python (`compile_layout_gpt_response`) mapuje to na `layout_issues` + karty
+5. Python (`compile_layout_gpt_response`) mapuje to na `layout_issues` + karty
    `layout_groups` (Podgląd / Zastosuj na płótnie).
-5. Dopóki tryb jest aktywny, kolejne pytania z inputu idą jako akcja `layout`
-   ze świeżym JSON-em i historią sesji.
-6. Ponowne kliknięcie **Układ** wyłącza tryb.
+6. Dopóki tryb jest aktywny, kolejne pytania z inputu idą jako akcja `layout`
+   ze świeżym JSON-em i historią sesji; każde udane wywołanie zużywa kredyty AI
+   wg realnego kosztu sol (drożej niż mini).
+7. Ponowne kliknięcie **Układ** wyłącza tryb.
 
 Chatowe `position_operation` → `resolve_directed_operation` pozostają osobno.
 

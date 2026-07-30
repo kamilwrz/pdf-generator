@@ -740,6 +740,8 @@ export default function AiAssistant() {
                     total_tokens: res.usage.total_tokens,
                     cost_usd: res.usage.cost_usd,
                     cost_pln_estimate: res.usage.cost_pln_estimate,
+                    credits_charged: res.usage.credits_charged,
+                    credit_pln: res.usage.credit_pln,
                     rates_usd_per_1m: res.usage.rates_usd_per_1m,
                 });
             }

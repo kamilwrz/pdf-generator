@@ -47,7 +47,11 @@ class AssistantRequest(BaseModel):
 
 
 class TokenUsage(BaseModel):
-    """Token and cost estimate returned for billing meters and UI display."""
+    """Token and cost estimate returned for billing meters and UI display.
+
+    Credit rule: 1 credit = 5 groszy (0.05 PLN). ``credits_charged`` mirrors
+    ``entitlements.credits_for_cost(cost_pln_estimate)`` for successful calls.
+    """
 
     model: str | None = None
     action: str = ""
@@ -56,6 +60,9 @@ class TokenUsage(BaseModel):
     total_tokens: int = 0
     cost_usd: float = 0.0
     cost_pln_estimate: float = 0.0
+    credits_charged: int = 0
+    credit_pln: float = 0.05
+    usd_to_pln: float = 4.0
     rates_usd_per_1m: dict[str, float] = {}
 
 
