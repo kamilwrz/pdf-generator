@@ -345,7 +345,7 @@ Implementation:
 
 Ratings, grammar, ATS, chat, and deterministic layout analysis with review cards.
 
-**Układ** (`layout`) is Python-only (`analyze_layout`): critical groups first (clipped textareas, overlapping content stacks, out-of-bounds, section rules through text), then cosmetic alignment/spacing only when readability is clean. **Rytm** (`layout_rhythm`) asks GPT only for section/block/role classification; Python **nudges vertical gaps only** (target `SPACE_*`, hard cap **±15 px**, frozen name/role) while preserving freestyle `left`/width/page — it does not rebuild a full template. **Projekt** (`design_rating`) still rates typography via GPT, but `summarize_geometry_issues` injects overlap/clip/rule/out-of-bounds counts and hard-caps the score at 5 when those faults exist.
+**Układ** (`layout`) is Python-only (`analyze_layout`): critical groups first (clipped textareas, overlapping content stacks, out-of-bounds, section rules through text), then cosmetic alignment/spacing only when readability is clean. **Rytm** (`layout_rhythm`) asks GPT for section/block/role classification plus optional `keep_element_ids` / `adjust_pairs`; Python **infers target gaps from the document majority** (median per stack/record/section, fallback to template `SPACE_*`) and **fixes only local outliers** (deadband ±6 px, no column cascade, hard cap **±15 px**, frozen name/role) while preserving freestyle `left`/width/page. **Projekt** (`design_rating`) still rates typography via GPT, but `summarize_geometry_issues` injects overlap/clip/rule/out-of-bounds counts and hard-caps the score at 5 when those faults exist.
 
 Implementation:
 
@@ -915,7 +915,7 @@ Implementacja:
 
 Oceny, gramatyka, ATS, czat oraz deterministyczna analiza układu z kartami do akceptacji.
 
-**Układ** (`layout`) to wyłącznie Python (`analyze_layout`): najpierw grupy krytyczne (ucięte textarea, nachodzące bloki, poza stroną, linie sekcji przez tekst), potem kosmetyczne wyrównania/odstępy tylko gdy czytelność jest w porządku. **Rytm** (`layout_rhythm`) — GPT tylko klasyfikuje sekcje/bloki/role; Python **tylko delikatnie ujednolica odstępy pionowe** (cel `SPACE_*`, limit **±15 px**, bez ruszania imienia/roli), zachowując freestyle `left`/szerokość/stronę — bez budowania nowego szablonu. **Projekt** (`design_rating`) nadal ocenia typografię przez GPT, ale `summarize_geometry_issues` wstrzykuje liczbę kolizji/ucięć/linii/poza-stroną i twarde ogranicza ocenę do max 5 przy tych błędach.
+**Układ** (`layout`) to wyłącznie Python (`analyze_layout`): najpierw grupy krytyczne (ucięte textarea, nachodzące bloki, poza stroną, linie sekcji przez tekst), potem kosmetyczne wyrównania/odstępy tylko gdy czytelność jest w porządku. **Rytm** (`layout_rhythm`) — GPT klasyfikuje sekcje/bloki/role i może wskazać `keep_element_ids` / `adjust_pairs`; Python **wylicza cele z większości odstępów w CV** (mediana stack/record/section, fallback do szablonowych `SPACE_*`) i **poprawia tylko lokalne outliery** (deadband ±6 px, bez kaskady, limit **±15 px**, bez ruszania imienia/roli), zachowując freestyle `left`/szerokość/stronę. **Projekt** (`design_rating`) nadal ocenia typografię przez GPT, ale `summarize_geometry_issues` wstrzykuje liczbę kolizji/ucięć/linii/poza-stroną i twarde ogranicza ocenę do max 5 przy tych błędach.
 
 Implementacja:
 

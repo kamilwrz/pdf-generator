@@ -804,20 +804,25 @@ Algorytm wykrywa:
 Następnie tworzy bezpieczne grupy poprawek, posortowane od krytycznych do kosmetycznych.
 Przy aktywnych kolizjach lub ucięciach wyrównania są pomijane, żeby nie zasłaniać naprawy czytelności.
 
-### 7.6a. Przycisk „Rytm” — klasyfikacja GPT + ujednolicenie odstępów
+### 7.6a. Przycisk „Rytm” — lokalne poprawki odstępów (GPT + Python)
 
 Akcja `layout_rhythm` jest przeznaczona do freestyle CV (własny układ użytkownika):
 
-1. GPT otrzymuje listę elementów i zwraca wyłącznie semantykę:
-   sekcje → bloki → role (`heading`, `entry_title`, `entry_meta`, `body`, …).
-2. Python (`layout_rhythm.pack_rhythm_classification`) **nie buduje nowego szablonu**.
-   Rusza tylko `top` (ta sama strona), żeby zbliżyć odstępy do
-   `SPACE_STACK` / `SPACE_RECORD` / `SPACE_SECTION` / `SPACE_AFTER_RULE`.
+1. GPT zwraca semantykę (sekcje → bloki → role) oraz selekcję:
+   - `keep_element_ids` — nie ruszać (imię, rola, świadoma kompozycja);
+   - `adjust_pairs` — 0–8 lokalnych par `{before_id, after_id, action}` do poprawy.
+2. Python (`layout_rhythm.pack_rhythm_classification`) **nie robi reflow całej kolumny**:
+   - wylicza cele `stack` / `record` / `section` / `after_rule` z **mediany istniejących**
+     odstępów w dokumencie (≥3 czyste próbki na klasę; inaczej fallback do `SPACE_*`);
+   - liczy odstępy względem **oryginalnych** sąsiadów (bez kaskady);
+   - pomija pary w **deadband** (±6 px od dynamicznego celu);
+   - jeśli GPT nie wskaże użytecznych par, wybiera max 8 największych outlierów;
+   - rusza tylko `top` wybranych elementów w kierunku wyliczonego rytmu.
 3. Twarde limity freestyle:
    - każde przesunięcie max **±15 px**;
    - **imię** i **rola zawodowa** (np. AML ANALYST) nigdy nie są ruszane;
    - brak zmiany `left`, szerokości ani numeru strony.
-4. Wynik to karta podglądu `rhythm-reflow` — bez bezpośrednich współrzędnych z modelu.
+4. Wynik to karta podglądu `rhythm-reflow` — bez współrzędnych z modelu.
 
 Stałe tła (`fixedToPage`), elementy zablokowane oraz pozycje spoza klasyfikacji pozostają nietknięte.
 

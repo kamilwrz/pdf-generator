@@ -1,12 +1,13 @@
-"""Freestyle vertical-gap unification (SPACE_* rhythm).
+"""Freestyle vertical-gap unification (adaptive SPACE_* rhythm).
 
-GPT classifies canvas text into sections / blocks / roles. This module only
-nudges ``top``/``page`` so consecutive pairs match ``cv_generator`` gaps
-(SPACE_STACK / SPACE_RECORD / SPACE_SECTION / SPACE_AFTER_RULE). User freestyle
-``left``/width/height and the first element's anchor stay intact.
+GPT classifies structure and may nominate a few gap pairs to fix. Python
+derives target gaps from the document's own majority (median per gap class),
+falling back to template ``SPACE_*`` only when there are too few samples.
+Only local outliers are nudged — never a full-column reflow.
 """
 from __future__ import annotations
 
+from statistics import median
 from typing import Any
 
 from app.services.cv_generator import (
@@ -79,6 +80,30 @@ _ROLE_RANK = {
 _FLOW_CATEGORIES = {"text", "textarea", "line"}
 # Soft freestyle nudge: larger moves destroy the author's composition.
 MAX_RHYTHM_NUDGE_PX = 15.0
+# Skip pairs already close enough to the (dynamic) target gap.
+RHYTHM_DEADBAND_PX = 6.0
+# Treat nearly-touching or overlapping content as the highest priority.
+OVERLAP_GAP_PX = 2.0
+# Cap how many local pairs we touch in one suggestion (avoids mass reshuffles).
+MAX_AUTO_ADJUST_PAIRS = 8
+MAX_GPT_ADJUST_PAIRS = 8
+# Need enough clean samples before trusting the author's majority rhythm.
+MIN_GAP_SAMPLES = 3
+_VALID_PAIR_ACTIONS = {"tighten", "loosen", "fix"}
+_GAP_KINDS = ("stack", "after_rule", "record", "section")
+_DEFAULT_GAP_PROFILE = {
+    "stack": float(SPACE_STACK),
+    "after_rule": float(SPACE_AFTER_RULE),
+    "record": float(SPACE_RECORD),
+    "section": float(SPACE_SECTION),
+}
+# Clamp inferred gaps so one extreme freestyle value cannot become the target.
+_GAP_CLAMP = {
+    "stack": (2.0, 20.0),
+    "after_rule": (4.0, 28.0),
+    "record": (6.0, 40.0),
+    "section": (10.0, 56.0),
+}
 _SECTION_HEADING_HINTS = (
     "PODSUMOWANIE", "DOŚWIADCZENIE", "WYKSZTAŁCENIE", "UMIEJĘTNOŚCI", "JĘZYKI",
     "SUMMARY", "EXPERIENCE", "EDUCATION", "SKILLS", "LANGUAGES", "PROJEKTY",
@@ -138,6 +163,14 @@ def _normalize_classification(raw: dict[str, Any], known_ids: set[str]) -> dict[
         for element_id in (raw.get("ignored_element_ids") or [])
         if isinstance(element_id, str) and element_id in known_ids
     }
+    keep_ids = {
+        str(element_id)
+        for element_id in (raw.get("keep_element_ids") or [])
+        if isinstance(element_id, str) and element_id in known_ids
+    }
+    # keep ⊆ freeze: intentional composition must not be nudged.
+    ignored |= keep_ids
+    adjust_pairs = _parse_adjust_pairs(raw.get("adjust_pairs"), known_ids)
     profile = raw.get("profile") if isinstance(raw.get("profile"), dict) else {}
     content_left = _number(profile.get("content_left"), 0.0)
     content_width = _number(profile.get("content_width"), 0.0)
@@ -211,8 +244,52 @@ def _normalize_classification(raw: dict[str, Any], known_ids: set[str]) -> dict[
         },
         "sections": sections,
         "ignored_element_ids": ignored,
+        "keep_element_ids": keep_ids,
+        "adjust_pairs": adjust_pairs,
         "classified_ids": used_ids,
     }
+
+
+def _parse_adjust_pairs(raw_pairs: object, known_ids: set[str]) -> list[dict[str, str]]:
+    """Parse GPT-nominated gap pairs; drop unknowns and duplicates."""
+    if not isinstance(raw_pairs, list):
+        return []
+    parsed: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for entry in raw_pairs:
+        if not isinstance(entry, dict):
+            continue
+        before_id = str(
+            entry.get("before_id")
+            or entry.get("before")
+            or entry.get("from_id")
+            or ""
+        )
+        after_id = str(
+            entry.get("after_id")
+            or entry.get("after")
+            or entry.get("to_id")
+            or ""
+        )
+        action = str(entry.get("action") or "fix").strip().lower()
+        if action not in _VALID_PAIR_ACTIONS:
+            action = "fix"
+        if before_id not in known_ids or after_id not in known_ids:
+            continue
+        if before_id == after_id:
+            continue
+        key = (before_id, after_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        parsed.append({
+            "before_id": before_id,
+            "after_id": after_id,
+            "action": action,
+        })
+        if len(parsed) >= MAX_GPT_ADJUST_PAIRS:
+            break
+    return parsed
 
 
 def _heuristic_classification(
@@ -244,6 +321,8 @@ def _heuristic_classification(
     return {
         "profile": {"content_left": 0.0, "content_width": 0.0},
         "ignored_element_ids": set(),
+        "keep_element_ids": set(),
+        "adjust_pairs": [],
         "classified_ids": {item["element_id"] for item in flow},
         "sections": [{"id": "content", "order": 1, "blocks": blocks}] if blocks else [],
     }
@@ -279,18 +358,78 @@ def _flatten_flow(
     return flow
 
 
-def _expected_gap(previous: dict[str, Any], current: dict[str, Any]) -> float:
-    """Return the template rhythm gap between two consecutive classified items."""
+def _gap_kind(previous: dict[str, Any], current: dict[str, Any]) -> str:
+    """Classify the semantic gap between two consecutive flow items."""
     if previous["section_id"] != current["section_id"]:
-        return float(SPACE_SECTION)
+        return "section"
     if previous["block_id"] != current["block_id"]:
-        return float(SPACE_RECORD)
+        return "record"
     prev_role = previous["role"]
     if prev_role == "heading" and current["role"] == "rule":
-        return float(SPACE_STACK)
+        return "stack"
     if prev_role in {"heading", "rule"}:
-        return float(SPACE_AFTER_RULE)
-    return float(SPACE_STACK)
+        return "after_rule"
+    return "stack"
+
+
+def _expected_gap(
+    previous: dict[str, Any],
+    current: dict[str, Any],
+    profile: dict[str, float] | None = None,
+) -> float:
+    """Return the target rhythm gap (document majority or template fallback)."""
+    gaps = profile or _DEFAULT_GAP_PROFILE
+    kind = _gap_kind(previous, current)
+    return float(gaps.get(kind, _DEFAULT_GAP_PROFILE[kind]))
+
+
+def _clamp_gap(kind: str, value: float) -> float:
+    low, high = _GAP_CLAMP.get(kind, (0.0, 80.0))
+    return max(low, min(high, value))
+
+
+def _infer_gap_profile(
+    flow: list[dict[str, Any]],
+    bounds_by_id: dict[str, dict[str, Any]],
+    page_height: float,
+) -> tuple[dict[str, float], dict[str, Any]]:
+    """Derive STACK/RECORD/SECTION targets from the majority of existing gaps.
+
+    Overlaps are excluded from the sample set so collisions do not pull the
+    median downward. Fewer than ``MIN_GAP_SAMPLES`` clean gaps for a class
+    keeps the template ``SPACE_*`` default for that class.
+    """
+    samples: dict[str, list[float]] = {kind: [] for kind in _GAP_KINDS}
+    for index in range(1, len(flow)):
+        previous_meta = flow[index - 1]
+        current_meta = flow[index]
+        before = bounds_by_id.get(previous_meta["element_id"])
+        after = bounds_by_id.get(current_meta["element_id"])
+        if before is None or after is None:
+            continue
+        actual = _actual_gap(before, after, page_height)
+        # Negative / near-zero gaps are defects, not the author's intended rhythm.
+        if actual < OVERLAP_GAP_PX:
+            continue
+        kind = _gap_kind(previous_meta, current_meta)
+        samples[kind].append(actual)
+
+    profile = dict(_DEFAULT_GAP_PROFILE)
+    derived_kinds: list[str] = []
+    sample_counts = {kind: len(values) for kind, values in samples.items()}
+    for kind, values in samples.items():
+        if len(values) < MIN_GAP_SAMPLES:
+            continue
+        inferred = _clamp_gap(kind, float(median(values)))
+        profile[kind] = round(inferred, 2)
+        derived_kinds.append(kind)
+
+    meta = {
+        "sample_counts": sample_counts,
+        "derived_kinds": derived_kinds,
+        "used_document_majority": bool(derived_kinds),
+    }
+    return profile, meta
 
 
 def _document_top(item: dict[str, Any], page_height: float) -> float:
@@ -324,26 +463,165 @@ def _is_frozen_identity(
     return False
 
 
-def _apply_clamped_nudge(
+def _clamped_top(
     original: dict[str, Any],
-    current: dict[str, Any],
     desired_abs: float,
     page_height: float,
     max_nudge: float = MAX_RHYTHM_NUDGE_PX,
-) -> None:
-    """Move ``current`` toward ``desired_abs`` by at most ``max_nudge`` px, same page."""
+) -> float | None:
+    """Return a same-page top clamped toward ``desired_abs``, or None if unchanged."""
     orig_abs = _document_top(original, page_height)
     delta = desired_abs - orig_abs
     if abs(delta) <= EPSILON:
-        current["top"] = original["top"]
-        current["page"] = original["page"]
-        return
+        return None
     delta = max(-max_nudge, min(max_nudge, delta))
     page = int(original["page"])
     top = (orig_abs + delta) - (page - 1) * page_height
-    top = max(0.0, min(top, page_height - max(current["height"], 1.0)))
-    current["page"] = page
-    current["top"] = round(top, 2)
+    top = max(0.0, min(top, page_height - max(original["height"], 1.0)))
+    top = round(top, 2)
+    if abs(top - original["top"]) <= EPSILON:
+        return None
+    return top
+
+
+def _actual_gap(
+    previous: dict[str, Any],
+    current: dict[str, Any],
+    page_height: float,
+) -> float:
+    """Vertical gap between original bottoms/tops in document space (may be negative)."""
+    prev_bottom = _document_top(previous, page_height) + previous["height"]
+    return _document_top(current, page_height) - prev_bottom
+
+
+def _pair_sort_key(
+    actual_gap: float,
+    expected: float,
+    *,
+    action: str = "fix",
+) -> tuple[int, float] | None:
+    """Priority for a gap pair. ``None`` means leave the pair alone (deadband).
+
+    Tier 0 = overlap / near-touch, 1 = too tight, 2 = too loose.
+    GPT ``tighten``/``loosen`` still respects deadband unless the direction matches.
+    """
+    error = actual_gap - expected
+    overlaps = actual_gap < OVERLAP_GAP_PX
+    if overlaps:
+        return (0, -actual_gap)
+
+    if action == "tighten":
+        # Close an oversized gap (move after upward toward the expected rhythm).
+        if error <= RHYTHM_DEADBAND_PX:
+            return None
+        return (2, abs(error))
+    if action == "loosen":
+        # Open a cramped gap (move after downward toward the expected rhythm).
+        if error >= -RHYTHM_DEADBAND_PX:
+            return None
+        return (1, abs(error))
+
+    if abs(error) <= RHYTHM_DEADBAND_PX:
+        return None
+    if error < 0:
+        return (1, abs(error))
+    return (2, abs(error))
+
+
+def _candidate_pairs_from_flow(
+    flow: list[dict[str, Any]],
+    bounds_by_id: dict[str, dict[str, Any]],
+    page_height: float,
+    movable_ids: set[str],
+    frozen_ids: set[str],
+    profile: dict[str, float],
+) -> list[dict[str, Any]]:
+    """Build consecutive reading-order gap candidates from the classified flow."""
+    candidates: list[dict[str, Any]] = []
+    for index in range(1, len(flow)):
+        previous_meta = flow[index - 1]
+        current_meta = flow[index]
+        after_id = current_meta["element_id"]
+        if after_id in frozen_ids or after_id not in movable_ids:
+            continue
+        before = bounds_by_id.get(previous_meta["element_id"])
+        after = bounds_by_id.get(after_id)
+        if before is None or after is None:
+            continue
+        expected = _expected_gap(previous_meta, current_meta, profile)
+        actual = _actual_gap(before, after, page_height)
+        sort_key = _pair_sort_key(actual, expected)
+        if sort_key is None:
+            continue
+        candidates.append({
+            "before_id": previous_meta["element_id"],
+            "after_id": after_id,
+            "expected": expected,
+            "actual": actual,
+            "action": "fix",
+            "sort_key": sort_key,
+            "gap_kind": _gap_kind(previous_meta, current_meta),
+        })
+    return candidates
+
+
+def _candidate_pairs_from_gpt(
+    adjust_pairs: list[dict[str, str]],
+    meta_by_id: dict[str, dict[str, Any]],
+    bounds_by_id: dict[str, dict[str, Any]],
+    page_height: float,
+    movable_ids: set[str],
+    frozen_ids: set[str],
+    profile: dict[str, float],
+) -> list[dict[str, Any]]:
+    """Resolve GPT-nominated pairs against original geometry and roles."""
+    candidates: list[dict[str, Any]] = []
+    for pair in adjust_pairs:
+        after_id = pair["after_id"]
+        before_id = pair["before_id"]
+        if after_id in frozen_ids or after_id not in movable_ids:
+            continue
+        before = bounds_by_id.get(before_id)
+        after = bounds_by_id.get(after_id)
+        prev_meta = meta_by_id.get(before_id)
+        curr_meta = meta_by_id.get(after_id)
+        if before is None or after is None or prev_meta is None or curr_meta is None:
+            continue
+        expected = _expected_gap(prev_meta, curr_meta, profile)
+        actual = _actual_gap(before, after, page_height)
+        sort_key = _pair_sort_key(actual, expected, action=pair["action"])
+        if sort_key is None:
+            continue
+        candidates.append({
+            "before_id": before_id,
+            "after_id": after_id,
+            "expected": expected,
+            "actual": actual,
+            "action": pair["action"],
+            "sort_key": sort_key,
+            "gap_kind": _gap_kind(prev_meta, curr_meta),
+        })
+    return candidates
+
+
+def _select_pairs(
+    candidates: list[dict[str, Any]],
+    *,
+    limit: int,
+) -> list[dict[str, Any]]:
+    """Keep the worst outliers; one patch per ``after_id`` (highest priority wins)."""
+    candidates = sorted(candidates, key=lambda item: item["sort_key"])
+    selected: list[dict[str, Any]] = []
+    used_after: set[str] = set()
+    for candidate in candidates:
+        after_id = candidate["after_id"]
+        if after_id in used_after:
+            continue
+        used_after.add(after_id)
+        selected.append(candidate)
+        if len(selected) >= limit:
+            break
+    return selected
 
 
 def pack_rhythm_classification(
@@ -351,10 +629,14 @@ def pack_rhythm_classification(
     classification: dict[str, Any],
     page_size: dict[str, Any] | None,
 ) -> tuple[dict[str, Any] | None, str]:
-    """Unify vertical gaps softly — preserve freestyle composition.
+    """Fix only local vertical-gap outliers — preserve freestyle composition.
 
+    - Infers STACK/RECORD/SECTION targets from the document's majority gaps.
     - Never moves candidate name / professional role (identity freeze).
-    - Each moved element may shift by at most ``MAX_RHYTHM_NUDGE_PX`` (±15).
+    - Skips pairs already within ``RHYTHM_DEADBAND_PX`` of the target gap.
+    - Nudges each selected element relative to the *original* neighbour (no cascade).
+    - Each move is capped at ``MAX_RHYTHM_NUDGE_PX`` (±15).
+    - Prefer GPT ``adjust_pairs`` when present; otherwise auto-pick top outliers.
     - Never changes page, left, width, or height.
     """
     page_size = page_size or {}
@@ -386,7 +668,6 @@ def pack_rhythm_classification(
         if not normalized["sections"]:
             return None, "classification_empty"
 
-    # Role lookup for freeze decisions.
     role_by_id: dict[str, str] = {}
     for section in normalized["sections"]:
         for block in section["blocks"]:
@@ -428,57 +709,69 @@ def pack_rhythm_classification(
     if len(flow) < 2:
         return None, "too_few_movable"
 
+    meta_by_id = {item["element_id"]: item for item in flow}
+    gap_profile, gap_meta = _infer_gap_profile(flow, bounds_by_id, page_height)
+    gpt_pairs = list(normalized.get("adjust_pairs") or [])
+    used_gpt_pairs = False
+    selected: list[dict[str, Any]] = []
+    if gpt_pairs:
+        gpt_candidates = _candidate_pairs_from_gpt(
+            gpt_pairs,
+            meta_by_id,
+            bounds_by_id,
+            page_height,
+            movable_ids,
+            frozen_ids,
+            gap_profile,
+        )
+        selected = _select_pairs(gpt_candidates, limit=MAX_GPT_ADJUST_PAIRS)
+        used_gpt_pairs = bool(selected)
+
+    if not selected:
+        # No usable GPT pairs (missing, already in deadband, or frozen) →
+        # fall back to the worst geometric outliers only.
+        auto_candidates = _candidate_pairs_from_flow(
+            flow,
+            bounds_by_id,
+            page_height,
+            movable_ids,
+            frozen_ids,
+            gap_profile,
+        )
+        selected = _select_pairs(auto_candidates, limit=MAX_AUTO_ADJUST_PAIRS)
+        used_gpt_pairs = False
+
+    if not selected:
+        return None, "no_position_changes"
+
+    patches: list[dict[str, Any]] = []
+    patched_ids: set[str] = set()
     working_by_id = {
         item["element_id"]: dict(item)
         for item in all_bounds
         if item["category"] in AUTO_LAYOUT_CATEGORIES or item["element_id"] in chain_ids
     }
 
-    previous_item = working_by_id[flow[0]["element_id"]]
-    previous_meta = flow[0]
-
-    for current_meta in flow[1:]:
-        element_id = current_meta["element_id"]
-        current = working_by_id[element_id]
-        original = bounds_by_id[element_id]
-        gap = _expected_gap(previous_meta, current_meta)
-        prev_bottom = _document_top(previous_item, page_height) + previous_item["height"]
-        desired_abs = prev_bottom + gap
-
-        if element_id in frozen_ids or element_id not in movable_ids:
-            # Identity / ignored: stay put; still act as the next gap anchor.
-            current["top"] = original["top"]
-            current["page"] = original["page"]
-        else:
-            _apply_clamped_nudge(original, current, desired_abs, page_height)
-
-        previous_item = current
-        previous_meta = current_meta
-
-    patches: list[dict[str, Any]] = []
-    for element_id in movable_ids:
-        original = bounds_by_id[element_id]
-        proposed = working_by_id[element_id]
-        delta = abs(proposed["top"] - original["top"])
-        if delta <= EPSILON or proposed["page"] != original["page"]:
-            if proposed["page"] != original["page"]:
-                # Soft mode forbids page changes — discard.
-                proposed["page"] = original["page"]
-                proposed["top"] = original["top"]
-            if abs(proposed["top"] - original["top"]) <= EPSILON:
-                continue
-        # Enforce the hard cap again on the emitted patch.
-        delta = proposed["top"] - original["top"]
-        delta = max(-MAX_RHYTHM_NUDGE_PX, min(MAX_RHYTHM_NUDGE_PX, delta))
-        top = round(original["top"] + delta, 2)
-        if abs(top - original["top"]) <= EPSILON:
+    for candidate in selected:
+        before = bounds_by_id[candidate["before_id"]]
+        after = bounds_by_id[candidate["after_id"]]
+        # Anchor exclusively on the original neighbour so fixing one pair cannot
+        # cascade into unrelated elements further down the column.
+        prev_bottom = _document_top(before, page_height) + before["height"]
+        desired_abs = prev_bottom + candidate["expected"]
+        new_top = _clamped_top(after, desired_abs, page_height)
+        if new_top is None:
             continue
         patches.append({
-            "element_id": element_id,
-            "left": round(original["left"], 2),
-            "top": top,
-            "page": original["page"],
+            "element_id": candidate["after_id"],
+            "left": round(after["left"], 2),
+            "top": new_top,
+            "page": after["page"],
         })
+        patched_ids.add(candidate["after_id"])
+        working = working_by_id[candidate["after_id"]]
+        working["top"] = new_top
+        working["page"] = after["page"]
 
     if not patches:
         return None, "no_position_changes"
@@ -496,28 +789,42 @@ def pack_rhythm_classification(
     validation_items = []
     for element_id, item in working_by_id.items():
         original = bounds_by_id.get(element_id, item)
-        if element_id in movable_ids or _fits_page(original):
+        if element_id in patched_ids or _fits_page(original):
             validation_items.append(item)
     if not validation_items:
         validation_items = [working_by_id[patch["element_id"]] for patch in patches]
-    reason_suffix = (
-        " Użyto zapasowej kolejności Y (GPT zwrócił nieparsowalną strukturę)."
-        if used_fallback
-        else ""
+
+    profile_bits = (
+        f"stack={gap_profile['stack']:g}, after_rule={gap_profile['after_rule']:g}, "
+        f"record={gap_profile['record']:g}, section={gap_profile['section']:g}"
     )
-    title = "Ujednolić odstępy (delikatnie, max ±15 px)"
-    reason = (
-        "Tylko drobne korekty pionowe: STACK/RECORD/SECTION jako cel, "
-        f"ale każde przesunięcie jest ograniczone do ±{MAX_RHYTHM_NUDGE_PX:g} px. "
-        "Imię i rola zawodowa nie są ruszane. Left, szerokość i strona zostają."
-        f"{reason_suffix}"
+    rhythm_source = (
+        "rytm z większości odstępów w CV"
+        if gap_meta.get("used_document_majority")
+        else "rytm szablonowy (za mało próbek w dokumencie)"
     )
+    reason_bits = [
+        f"Lokalne korekty odstępów (max {len(patches)} miejsc): {rhythm_source} "
+        f"[{profile_bits}], deadband ±{RHYTHM_DEADBAND_PX:g} px, "
+        f"przesunięcie max ±{MAX_RHYTHM_NUDGE_PX:g} px.",
+        "Imię i rola zawodowa nie są ruszane. Left, szerokość i strona zostają.",
+    ]
+    if used_gpt_pairs:
+        reason_bits.append("Priorytet par wskazanych przez GPT (adjust_pairs).")
+    else:
+        reason_bits.append("Wybrano największe outliery względem rytmu dokumentu.")
+    if used_fallback:
+        reason_bits.append("Użyto zapasowej kolejności Y (GPT zwrócił nieparsowalną strukturę).")
+
+    title = f"Popraw odstępy lokalnie ({len(patches)}×, max ±15 px)"
+    reason = " ".join(reason_bits)
+    severity = "high" if any(c["sort_key"][0] == 0 for c in selected) else "medium"
 
     group = _group(
         group_id="rhythm-reflow",
         title=title,
         reason=reason,
-        severity="high",
+        severity=severity,
         patches=patches,
         items=validation_items,
         page_width=page_width,
@@ -529,7 +836,7 @@ def pack_rhythm_classification(
             group_id="rhythm-reflow",
             title=title,
             reason=reason + " Podgląd wymagany — mogą pozostać kolizje z ikonami/obrazami.",
-            severity="high",
+            severity=severity,
             patches=patches,
             items=validation_items,
             page_width=page_width,

@@ -1097,36 +1097,46 @@ def _normalize_layout_rhythm(elements: list[dict], page_size: dict | None) -> di
         }
 
     system = (
-        "Jesteś projektantem struktury CV. Klasyfikujesz istniejące elementy płótna "
-        "w sekcje i bloki. NIGDY nie podajesz left/top/width/height — tylko semantykę. "
-        "Zwracasz WYŁĄCZNIE prawidłowy JSON. "
-        "Wszystkie opisowe stringi (id sekcji) trzymaj po angielsku w snake_case."
+        "Jesteś projektantem freestyle CV. Klasyfikujesz strukturę i wskazujesz TYLKO "
+        "kilka lokalnych problemów z odstępami. NIGDY nie podajesz left/top/width/height. "
+        "Zwracasz WYŁĄCZNIE prawidłowy JSON. Id sekcji/bloków po angielsku w snake_case."
     )
-    user = f"""Użytkownik zbudował CV freestyle (własny układ). Odstępy pionowe są nierówne.
-Sklasyfikuj elementy, żeby Python TYLKO ujednolicił odstępy (top), bez zmiany left/szerokości
-i bez budowania nowego szablonu od zera.
+    user = f"""Użytkownik zbudował CV freestyle. Większość układu ma zostać bez zmian.
+Python wyliczy docelowy rytm z większości ISTNIEJĄCYCH odstępów w CV (mediana per typ:
+stack/record/section) i poprawi TYLKO lokalne outliery — bez reflow całej kolumny,
+bez zmiany left/szerokości/strony, max ±15 px na element.
 
-ELEMENTY (kolejność od góry):
+ELEMENTY (kolejność od góry, z left/top do analizy odstępów):
 {json.dumps(classify_payload, ensure_ascii=False)}
 
-Zasady:
-- Sekcje typowe: header, summary, experience, education, skills, languages, other.
-- Blok = jeden wpis (np. jedno stanowisko albo jedna szkoła).
-- Role elementów: name, job_label, heading, entry_title, entry_meta, body, list, contact, rule, other.
-- Imię i nazwisko = role name. Stanowisko pod imieniem (np. „AML ANALYST”) = role job_label.
-- name i job_label OBOWIĄZKOWO dodaj też do ignored_element_ids (nie wolno ich przesuwać).
-- Nagłówek sekcji (np. „DOŚWIADCZENIE ZAWODOWE”) ma role=heading.
-- Stanowisko/tytuł wpisu doświadczenia = entry_title; firma/daty = entry_meta; opis = body lub list.
-- Linie-oddzielacze sekcji = rule (category line) w bloku z headingiem albo osobnym bloku.
-- Obrazy i elementy niepasujące do przepływu treści umieść w ignored_element_ids.
-- Nie wymyślaj element_id — używaj wyłącznie id z listy.
-- Python i tak ogranicza każde przesunięcie do ±15 px i nie rusza name/job_label.
-- order: rosnąco od góry dokumentu.
+Zasady klasyfikacji:
+- Sekcje: header, summary, experience, education, skills, languages, other.
+- Blok = jeden wpis (stanowisko / szkoła).
+- Role: name, job_label, heading, entry_title, entry_meta, body, list, contact, rule, other.
+- Imię = name; stanowisko pod imieniem (np. „AML ANALYST”) = job_label — dodaj je do
+  ignored_element_ids ORAZ keep_element_ids.
+- Nagłówek sekcji = heading; tytuł wpisu = entry_title; firma/daty = entry_meta; opis = body/list.
+- Linie sekcji = rule. Obrazy i świadomie „osobne” elementy → ignored_element_ids + keep_element_ids.
+- Nie wymyślaj element_id.
+
+Selekcja poprawek (KLUCZOWE — nie układaj wszystkiego):
+- keep_element_ids: elementy, których NIE wolno ruszać (imię, rola, świadoma kompozycja).
+- adjust_pairs: 0–8 par {{before_id, after_id, action}} gdzie after_id to element do lekkiego
+  przesunięcia względem before_id. action = tighten | loosen | fix.
+- Wskazuj TYLKO realne problemy: nachodzenie, odstęp < ~2px, wyraźnie za ciasno/za luźno
+  względem typowego rytmu (stack≈4, record≈14, section≈18).
+- Pary już wyglądające dobrze POMIŃ. Nie dodawaj pary „na wszelki wypadek”.
+- Preferuj nachodzenia i dziury między sekcjami/wpisami; drobne nierówności bulletów na końcu.
+- Jeśli układ wygląda spójnie, zwróć adjust_pairs: [].
 
 Zwróć JSON:
 {{
   "profile": {{"content_left": <liczba>, "content_width": <liczba>}},
   "ignored_element_ids": ["..."],
+  "keep_element_ids": ["..."],
+  "adjust_pairs": [
+    {{"before_id": "...", "after_id": "...", "action": "tighten"}}
+  ],
   "sections": [
     {{
       "id": "experience",
@@ -1159,16 +1169,16 @@ Zwróć JSON:
             "invalid_page_size": "Niepoprawny page_size z frontendu.",
             "page_too_small": "Obszar treści na stronie jest zbyt mały.",
         }
-        detail = error_hints.get(pack_error, "Klasyfikacja GPT nie przełożyła się na poprawny packer SPACE_*.")
+        detail = error_hints.get(pack_error, "Klasyfikacja GPT nie przełożyła się na lokalny packer SPACE_*.")
         return {
             "message": (
-                "Nie udało się zbudować bezpiecznego rytmu układu z klasyfikacji. "
+                "Nie udało się zbudować bezpiecznej lokalnej korekty odstępów. "
                 "Spróbuj ponownie albo popraw ręcznie nachodzące bloki."
             ),
             "rating": None,
             "tips": [
-                "Rytm: GPT klasyfikuje sekcje/bloki; Python liczy współrzędne (SPACE_*).",
-                "Elementy fixedToPage / locked są pomijane.",
+                "Rytm: GPT wskazuje problematyczne pary; Python rusza tylko outliery (SPACE_*).",
+                "Pary w tolerancji (deadband) i imię/rola nie są ruszane.",
                 detail,
             ],
             "corrections": [],
@@ -1181,16 +1191,17 @@ Zwróć JSON:
             "usage": usage_payload,
         }
 
+    patch_count = len(group.get("patches") or [])
     return {
         "message": (
-            "Przygotowałem delikatne ujednolicenie odstępów (±15 px). "
-            "Imię i rola zawodowa zostają w miejscu — nie przebudowuję Twojego layoutu."
+            f"Znalazłem {patch_count} lokalnych korekt odstępów (max ±15 px każda). "
+            "Reszta układu — w tym imię i rola — zostaje bez zmian."
         ),
         "rating": None,
         "tips": [
-            "Każde przesunięcie jest ograniczone do max ±15 px względem Twojej pozycji.",
-            "Imię / stanowisko (np. AML ANALYST) są zamrożone i nie trafiają do patchy.",
-            "Left, szerokość i numer strony nie są zmieniane.",
+            "Cel odstępów bierze się z większości w Twoim CV (mediana), nie ze sztywnego szablonu.",
+            "Poprawiane są tylko outliery względem tego rytmu — bez kaskady w dół kolumny.",
+            "Imię / stanowisko (np. AML ANALYST) są zamrożone. Left, szerokość i strona bez zmian.",
         ],
         "corrections": [],
         "layout_groups": [group],
