@@ -71,8 +71,8 @@ kolorów ani rozmiarów tekstu — chyba że użytkownik wyraźnie o to poprosi.
 
 Zachowujesz wizję użytkownika (freestyle). Preferujesz najmniejszą zmianę, która
 przywraca spójność względem dominującego rytmu peerów.
-Gdy w JSON jest `section_rhythm.outliers`, traktujesz te liczby jako fakt — nie
-zastępujesz ich różnicą icon.top − header.top.
+Gdy w JSON jest `section_rhythm`, odpowiadasz metryką `primary_gap` / `comparison`
+(fakt z Pythona). Nie zastępujesz tego przez body.top−header.top ani icon.top−header.top.
 Zwracasz WYŁĄCZNIE prawidłowy JSON (bez tekstu przed/po).
 """
 
@@ -279,6 +279,15 @@ def build_section_rhythm(items: list[dict[str, Any]]) -> dict[str, Any]:
                 line_bottom = _number(line["top"]) + _number(line["height"])
                 body_from_line = round(_number(body["top"]) - line_bottom, 2)
 
+        # Visual gap under section chrome: prefer line→body when an underline exists
+        # (matches designer rulers like “6 px under the rule”). Else header→body.
+        if isinstance(body_from_line, (int, float)):
+            primary_gap = body_from_line
+            primary_metric = "line_to_body_gap"
+        else:
+            primary_gap = body_from_header
+            primary_metric = "header_to_body_gap"
+
         rows.append({
             "section": str(header.get("content") or "")[:48],
             "header_element_id": header["element_id"],
@@ -290,75 +299,90 @@ def build_section_rhythm(items: list[dict[str, Any]]) -> dict[str, Any]:
             "header_to_line_gap": line_gap,
             "body_element_id": body["element_id"] if body else None,
             "body_top": round(_number(body["top"]), 2) if body else None,
-            # Primary metric users mean by “odstęp pod nagłówkiem sekcji”.
             "header_to_body_gap": body_from_header,
             "line_to_body_gap": body_from_line,
+            "primary_gap": primary_gap,
+            "primary_metric": primary_metric,
         })
 
-    header_body_gaps = [
-        row["header_to_body_gap"]
+    primary_gaps = [
+        float(row["primary_gap"])
         for row in rows
-        if isinstance(row.get("header_to_body_gap"), (int, float))
+        if isinstance(row.get("primary_gap"), (int, float))
     ]
-    line_body_gaps = [
-        row["line_to_body_gap"]
-        for row in rows
-        if isinstance(row.get("line_to_body_gap"), (int, float))
-    ]
-    median_header_body = _median([float(g) for g in header_body_gaps])
-    median_line_body = _median([float(g) for g in line_body_gaps])
+    median_primary = _median(primary_gaps)
 
     outliers: list[dict[str, Any]] = []
     for row in rows:
-        hb = row.get("header_to_body_gap")
+        gap = row.get("primary_gap")
         if (
-            isinstance(hb, (int, float))
-            and median_header_body is not None
-            and abs(float(hb) - median_header_body) > _SECTION_GAP_OUTLIER_PX
+            not isinstance(gap, (int, float))
+            or median_primary is None
+            or abs(float(gap) - median_primary) <= _SECTION_GAP_OUTLIER_PX
         ):
-            outliers.append({
-                "section": row["section"],
-                "metric": "header_to_body_gap",
-                "gap": hb,
-                "median": round(median_header_body, 2),
-                "delta_vs_median": round(float(hb) - median_header_body, 2),
-                "header_element_id": row["header_element_id"],
-                "body_element_id": row["body_element_id"],
-                "hint": (
-                    f"Odstęp nagłówek→treść {hb:g} px vs mediana {median_header_body:g} px — "
-                    "przesuń treść (i kolejne elementy sekcji) albo linię, żeby ujednolicić."
-                ),
-            })
-        lb = row.get("line_to_body_gap")
-        if (
-            isinstance(lb, (int, float))
-            and median_line_body is not None
-            and abs(float(lb) - median_line_body) > _SECTION_GAP_OUTLIER_PX
-        ):
-            outliers.append({
-                "section": row["section"],
-                "metric": "line_to_body_gap",
-                "gap": lb,
-                "median": round(median_line_body, 2),
-                "delta_vs_median": round(float(lb) - median_line_body, 2),
-                "header_element_id": row["header_element_id"],
-                "line_element_id": row["line_element_id"],
-                "body_element_id": row["body_element_id"],
-                "hint": (
-                    f"Odstęp linia→treść {lb:g} px vs mediana {median_line_body:g} px — "
-                    "to typowy rytm pod podkreśleniem sekcji."
-                ),
-            })
+            continue
+        outliers.append({
+            "section": row["section"],
+            "metric": row.get("primary_metric") or "primary_gap",
+            "gap": gap,
+            "median": round(median_primary, 2),
+            "delta_vs_median": round(float(gap) - median_primary, 2),
+            "header_element_id": row["header_element_id"],
+            "line_element_id": row.get("line_element_id"),
+            "body_element_id": row["body_element_id"],
+            "target_body_top": (
+                round(_number(row["body_top"]) + (median_primary - float(gap)), 2)
+                if isinstance(row.get("body_top"), (int, float))
+                else None
+            ),
+            "hint": (
+                f"{row['section']}: odstęp pod sekcją {gap:g} px "
+                f"(metryka {row.get('primary_metric')}) vs mediana {median_primary:g} px. "
+                "Ujednolic: przesuń treść sekcji (pierwszy wpis + dalsze elementy bloku) "
+                f"o {(median_primary - float(gap)):.2f} px w pionie."
+            ),
+        })
+
+    comparison = [
+        {
+            "section": row["section"],
+            "primary_gap": row.get("primary_gap"),
+            "primary_metric": row.get("primary_metric"),
+            "header_to_body_gap": row.get("header_to_body_gap"),
+            "line_to_body_gap": row.get("line_to_body_gap"),
+            "body_element_id": row.get("body_element_id"),
+        }
+        for row in rows
+    ]
 
     return {
         "sections": rows,
-        "median_header_to_body_gap": round(median_header_body, 2) if median_header_body is not None else None,
-        "median_line_to_body_gap": round(median_line_body, 2) if median_line_body is not None else None,
+        "comparison": comparison,
+        "median_primary_gap": round(median_primary, 2) if median_primary is not None else None,
+        "median_header_to_body_gap": (
+            None
+            if (m := _median([
+                float(row["header_to_body_gap"])
+                for row in rows
+                if isinstance(row.get("header_to_body_gap"), (int, float))
+            ])) is None
+            else round(m, 2)
+        ),
+        "median_line_to_body_gap": (
+            None
+            if (m := _median([
+                float(row["line_to_body_gap"])
+                for row in rows
+                if isinstance(row.get("line_to_body_gap"), (int, float))
+            ])) is None
+            else round(m, 2)
+        ),
         "outliers": outliers,
         "note": (
-            "Używaj header_to_body_gap / line_to_body_gap. "
-            "NIE traktuj różnicy icon.top − header.top jako odstępu sekcji "
-            "(to wyrównanie w jednym rzędzie, nie rytm pionowy pod nagłówkiem)."
+            "Główny metr wizualny = primary_gap (gdy jest linia: line_to_body_gap, inaczej "
+            "header_to_body_gap). To jest miarka jak „6 px pod kreską”, NIE body.top−header.top "
+            "i NIE icon.top−header.top. Przy pytaniu o odległość nagłówek↔pierwszy wpis "
+            "odpowiadaj comparison[] / primary_gap. Przy outliers zaproponuj changes."
         ),
     }
 
@@ -383,13 +407,16 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
 {q}
 
 ## Zasady analizy
-1. Najpierw przeczytaj `section_rhythm` w JSON — to WYLICZONE przez Pythona odstępy
-   pod nagłówkami sekcji. Gdy `outliers` nie jest puste, MUSISZ je adresować w `changes`
-   (albo wyjaśnić w summary, czemu użytkownik prosi o coś innego). Nie twierdź, że
-   wszystko jest równe, jeśli outliers pokazują np. 6 px vs 14 px.
-2. Odstęp pod nagłówkiem sekcji = `header_to_body_gap` albo `line_to_body_gap`
-   (bottom edge → top następnego elementu). NIGDY nie używaj icon.top − header.top
-   jako „odstępu sekcji” — to tylko wyrównanie w jednym rzędzie.
+1. Najpierw przeczytaj `section_rhythm.comparison` i `outliers` — to WYLICZONE przez
+   Pythona odstępy pod sekcjami. Główna liczba = `primary_gap` (zwykle line→body,
+   jak miarka „6 px pod kreską”). Gdy `outliers` nie jest puste, MUSISZ zaproponować
+   `changes` ujednolicające do `median_primary_gap` (przesuń treść sekcji o
+   `target_body_top` / delta z hint). Nie twierdź, że wszystko jest równe przy
+   rozjeździe np. 6 vs 14 px.
+2. Na pytanie „jaka odległość między nagłówkiem a pierwszym wpisem”:
+   odpowiedz `primary_gap` + porównaj WSZYSTKIE sekcje z `comparison`.
+   NIE zaczynaj od body.top − header.top (to daje mylące 22 px przy height≈19).
+   NIGDY nie używaj icon.top − header.top jako odstępu sekcji.
 3. Grupuj elementy logicznie (wpis doświadczenia: stanowisko + data + firma + opis).
 4. Porównuj peery: nagłówki, wpisy, daty, opisy, ikony/linie z nagłówkami.
 5. Gap pionowy między peerami:

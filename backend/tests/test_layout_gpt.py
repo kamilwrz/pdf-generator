@@ -75,14 +75,17 @@ class LayoutGptTests(unittest.TestCase):
         rhythm = snap["section_rhythm"]
         self.assertEqual(len(rhythm["sections"]), 3)
         by_section = {row["section"]: row for row in rhythm["sections"]}
-        self.assertAlmostEqual(by_section["DOŚWIADCZENIE ZAWODOWE"]["header_to_body_gap"], 8.0, places=1)
-        self.assertAlmostEqual(by_section["PODSUMOWANIE ZAWODOWE"]["header_to_body_gap"], 16.0, places=1)
-        self.assertAlmostEqual(by_section["UMIEJĘTNOŚCI"]["header_to_body_gap"], 16.0, places=1)
-        outlier_sections = {o["section"] for o in rhythm["outliers"] if o["metric"] == "header_to_body_gap"}
+        # With underlines, primary_gap is line→body (visual ruler under the rule).
+        self.assertEqual(by_section["DOŚWIADCZENIE ZAWODOWE"]["primary_metric"], "line_to_body_gap")
+        self.assertAlmostEqual(by_section["DOŚWIADCZENIE ZAWODOWE"]["primary_gap"], 4.0, places=1)
+        self.assertAlmostEqual(by_section["PODSUMOWANIE ZAWODOWE"]["primary_gap"], 12.0, places=1)
+        self.assertAlmostEqual(by_section["UMIEJĘTNOŚCI"]["primary_gap"], 12.0, places=1)
+        outlier_sections = {o["section"] for o in rhythm["outliers"]}
         self.assertIn("DOŚWIADCZENIE ZAWODOWE", outlier_sections)
+        self.assertTrue(any(c["section"] == "DOŚWIADCZENIE ZAWODOWE" for c in rhythm["comparison"]))
         self.assertEqual(
-            build_section_rhythm(snap["elements"])["median_header_to_body_gap"],
-            rhythm["median_header_to_body_gap"],
+            build_section_rhythm(snap["elements"])["median_primary_gap"],
+            rhythm["median_primary_gap"],
         )
 
     def test_compile_findings_to_layout_groups(self):
