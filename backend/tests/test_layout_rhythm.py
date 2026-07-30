@@ -8,6 +8,7 @@ from app.services.layout_rhythm import (
     RHYTHM_DEADBAND_PX,
     apply_gpt_rhythm_moves,
     build_a4_canvas_snapshot,
+    compile_gpt_rhythm_response,
     pack_rhythm_classification,
     _infer_gap_profile,
     _normalize_classification,
@@ -461,6 +462,65 @@ class LayoutRhythmTests(unittest.TestCase):
         group, error = apply_gpt_rhythm_moves(elements, gpt, PAGE)
         self.assertEqual(error, "")
         self.assertEqual(group["patches"][0]["element_id"], "b")
+
+    def test_compile_findings_to_frontend_groups_and_issues(self):
+        elements = [
+            el("sum", 70, 200, category="text", content="PODSUMOWANIE ZAWODOWE"),
+            el("exp", 95, 280, category="text", content="DOSWIADCZENIE ZAWODOWE"),
+            el("job", 70, 462, content="AML Analyst"),
+        ]
+        gpt = {
+            "summary": "Nagłówek doświadczenia odstaje w prawo; jeden wpis ma za dużą przerwę.",
+            "keep_element_ids": [],
+            "findings": [
+                {
+                    "id": "exp-heading",
+                    "severity": "high",
+                    "title": "DOŚWIADCZENIE — za daleko w prawo",
+                    "analysis": (
+                        "PODSUMOWANIE left:70, DOŚWIADCZENIE left:95 — odstaje o ~25 px. "
+                        "Ustaw left≈70."
+                    ),
+                    "moves": [
+                        {"element_id": "exp", "left": 70, "top": 280, "reason": "align headings"},
+                    ],
+                },
+                {
+                    "id": "job-gap",
+                    "severity": "medium",
+                    "title": "AML Analyst — za duża przerwa",
+                    "analysis": "Odstęp ~18 px vs typowe ~13 px. Przesuń wpis o ~5 px w górę.",
+                    "moves": [
+                        {"element_id": "job", "left": 70, "top": 457, "reason": "tighten record gap"},
+                    ],
+                },
+            ],
+        }
+        groups, issues, error = compile_gpt_rhythm_response(elements, gpt, PAGE)
+        self.assertEqual(error, "")
+        self.assertEqual(len(groups), 2)
+        self.assertEqual(len(issues), 2)
+        self.assertIn("left:70", issues[0]["message"])
+        self.assertEqual(groups[0]["severity"], "high")
+        self.assertEqual(groups[0]["patches"][0]["left"], 70)
+        self.assertEqual(groups[1]["patches"][0]["top"], 457)
+
+    def test_compile_analysis_only_finding_without_moves(self):
+        elements = [el("a", 40, 200), el("b", 40, 240)]
+        gpt = {
+            "findings": [{
+                "id": "note",
+                "severity": "review",
+                "title": "Kolumny nierówne",
+                "analysis": "Odstęp kolumn 14 px vs 8 px.",
+                "moves": [],
+            }],
+        }
+        groups, issues, error = compile_gpt_rhythm_response(elements, gpt, PAGE)
+        self.assertEqual(error, "")
+        self.assertEqual(groups, [])
+        self.assertEqual(len(issues), 1)
+        self.assertIn("14 px", issues[0]["message"])
 
 
 if __name__ == "__main__":

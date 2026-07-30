@@ -79,7 +79,8 @@ _ROLE_RANK = {
 }
 _FLOW_CATEGORIES = {"text", "textarea", "line"}
 # Soft freestyle nudge: larger moves destroy the author's composition.
-MAX_RHYTHM_NUDGE_PX = 15.0
+# 28 px covers typical section-heading alignment (≈10–24 px) without a full reflow.
+MAX_RHYTHM_NUDGE_PX = 28.0
 # Skip pairs already close enough to the (dynamic) target gap.
 RHYTHM_DEADBAND_PX = 6.0
 # Treat nearly-touching or overlapping content as the highest priority.
@@ -87,8 +88,10 @@ OVERLAP_GAP_PX = 2.0
 # Cap how many local pairs we touch in one suggestion (avoids mass reshuffles).
 MAX_AUTO_ADJUST_PAIRS = 8
 MAX_GPT_ADJUST_PAIRS = 8
-# Cap GPT-authored absolute moves in one suggestion.
-MAX_GPT_RHYTHM_MOVES = 12
+# Cap GPT-authored absolute moves across the whole suggestion set.
+MAX_GPT_RHYTHM_MOVES = 16
+MAX_GPT_FINDINGS = 8
+_VALID_FINDING_SEVERITIES = {"critical", "high", "medium", "low", "review", "warning"}
 # Need enough clean samples before trusting the author's majority rhythm.
 MIN_GAP_SAMPLES = 3
 _SNAPSHOT_CATEGORIES = {
@@ -929,10 +932,12 @@ def build_a4_canvas_snapshot(
         "elements": items,
         "constraints": {
             "max_moves": MAX_GPT_RHYTHM_MOVES,
+            "max_findings": MAX_GPT_FINDINGS,
             "max_delta_px": MAX_RHYTHM_NUDGE_PX,
             "freeze_roles": ["name", "job_label"],
             "forbid_page_change": True,
             "forbid_resize": True,
+            "response_shape": "findings",
         },
     }
 
@@ -993,60 +998,62 @@ def _unwrap_moves_payload(raw: dict[str, Any]) -> dict[str, Any]:
     return raw
 
 
-def apply_gpt_rhythm_moves(
-    elements: list[dict[str, Any]],
-    gpt_raw: dict[str, Any],
-    page_size: dict[str, Any] | None,
-) -> tuple[dict[str, Any] | None, str]:
-    """Validate GPT absolute moves and emit a soft freestyle preview group.
+def _extract_findings(raw: dict[str, Any]) -> list[dict[str, Any]]:
+    """Pull diagnostic findings from GPT JSON (or synthesize one from flat moves)."""
+    if not isinstance(raw, dict):
+        return []
 
-    Safety rails (non-negotiable):
-    - only known element ids;
-    - name / job_label / large identity heuristics stay frozen;
-    - each left/top change clamped to ±``MAX_RHYTHM_NUDGE_PX``;
-    - page, width, and height never change;
-    - at most ``MAX_GPT_RHYTHM_MOVES`` patches.
-    """
-    page_size = page_size or {}
-    page_width = _number(page_size.get("width"), 595.0)
-    page_height = _number(page_size.get("height"), float(A4_H))
-    if page_width <= 0 or page_height <= 0:
-        return None, "invalid_page_size"
+    for key in ("findings", "issues", "problems", "diagnoses", "analizy"):
+        value = raw.get(key)
+        if isinstance(value, list) and value:
+            return [item for item in value if isinstance(item, dict)]
 
-    payload = _unwrap_moves_payload(gpt_raw if isinstance(gpt_raw, dict) else {})
-    moves_raw = payload.get("moves")
-    if not isinstance(moves_raw, list):
-        return None, "moves_missing"
-    # Explicit empty list = model judged the freestyle layout already fine.
-    if not moves_raw:
-        return None, "moves_none_needed"
-
-    keep_ids = {
-        str(element_id)
-        for element_id in (payload.get("keep_element_ids") or [])
-        if isinstance(element_id, str)
-    }
-    all_bounds = extract_bounds(
-        elements,
-        AUTO_LAYOUT_CATEGORIES | {"line", "rectangle", "circle", "ellipse"},
-    )
-    bounds_by_id = {item["element_id"]: item for item in all_bounds}
-    raw_by_id = {
-        str(element.get("element_id")): element
-        for element in elements
-        if isinstance(element, dict) and element.get("element_id")
-    }
-
-    patches: list[dict[str, Any]] = []
-    reasons: list[str] = []
-    used_ids: set[str] = set()
-    working_by_id = {item["element_id"]: dict(item) for item in all_bounds}
-
-    for entry in moves_raw:
-        if len(patches) >= MAX_GPT_RHYTHM_MOVES:
-            break
-        if not isinstance(entry, dict):
+    for wrap_key in ("result", "data", "rhythm", "layout", "proposal", "response"):
+        nested = raw.get(wrap_key)
+        if not isinstance(nested, dict):
             continue
+        for key in ("findings", "issues", "problems"):
+            value = nested.get(key)
+            if isinstance(value, list) and value:
+                return [item for item in value if isinstance(item, dict)]
+
+    payload = _unwrap_moves_payload(raw)
+    moves = payload.get("moves")
+    if isinstance(moves, list) and moves:
+        return [{
+            "id": "rhythm-moves",
+            "severity": "medium",
+            "title": "Korekty rytmu układu",
+            "analysis": str(payload.get("summary") or payload.get("message") or "").strip(),
+            "moves": moves,
+        }]
+    return []
+
+
+def _finding_moves(finding: dict[str, Any]) -> list[dict[str, Any]]:
+    for key in ("moves", "patches", "adjustments", "shifts"):
+        value = finding.get(key)
+        if isinstance(value, list):
+            return [item for item in value if isinstance(item, dict)]
+    return []
+
+
+def _validated_patches_from_moves(
+    moves_raw: list[dict[str, Any]],
+    *,
+    bounds_by_id: dict[str, dict[str, Any]],
+    raw_by_id: dict[str, dict[str, Any]],
+    keep_ids: set[str],
+    used_ids: set[str],
+    page_width: float,
+    page_height: float,
+    limit: int,
+) -> list[dict[str, Any]]:
+    """Clamp GPT absolute/relative moves into safe same-page patches."""
+    patches: list[dict[str, Any]] = []
+    for entry in moves_raw:
+        if len(patches) >= limit:
+            break
         element_id = str(
             entry.get("element_id")
             or entry.get("id")
@@ -1064,7 +1071,6 @@ def apply_gpt_rhythm_moves(
         if element_id in keep_ids or _is_frozen_identity(raw, original):
             continue
 
-        # Absolute targets preferred; relative dx/dy accepted as a fallback.
         if "top" in entry or "left" in entry:
             desired_left = _number(entry.get("left"), original["left"])
             desired_top = _number(entry.get("top"), original["top"])
@@ -1082,7 +1088,6 @@ def apply_gpt_rhythm_moves(
         )
         new_left = round(original["left"] + delta_left, 2)
         new_top = round(original["top"] + delta_top, 2)
-        # Keep the element on the same page and inside the canvas as much as possible.
         new_top = max(0.0, min(new_top, page_height - max(original["height"], 1.0)))
         new_left = max(0.0, min(new_left, page_width - max(original["width"] * 0.25, 1.0)))
 
@@ -1093,22 +1098,35 @@ def apply_gpt_rhythm_moves(
             continue
 
         used_ids.add(element_id)
-        patch = {
+        patches.append({
             "element_id": element_id,
             "left": new_left,
             "top": new_top,
             "page": original["page"],
-        }
-        patches.append(patch)
-        working = working_by_id[element_id]
-        working["left"] = new_left
-        working["top"] = new_top
-        reason = str(entry.get("reason") or entry.get("why") or "").strip()
-        if reason:
-            reasons.append(f"{element_id}: {reason[:120]}")
+        })
+    return patches
 
-    if not patches:
-        return None, "no_position_changes"
+
+def _make_layout_group(
+    *,
+    group_id: str,
+    title: str,
+    reason: str,
+    severity: str,
+    patches: list[dict[str, Any]],
+    bounds_by_id: dict[str, dict[str, Any]],
+    page_width: float,
+    page_height: float,
+    elements: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    working_by_id = {element_id: dict(item) for element_id, item in bounds_by_id.items()}
+    for patch in patches:
+        working = working_by_id.get(patch["element_id"])
+        if working is None:
+            continue
+        working["left"] = patch["left"]
+        working["top"] = patch["top"]
+        working["page"] = patch["page"]
 
     def _fits_page(item: dict[str, Any]) -> bool:
         return (
@@ -1118,32 +1136,20 @@ def apply_gpt_rhythm_moves(
             and item["top"] + item["height"] <= page_height + EPSILON
         )
 
-    validation_items = []
     patched_ids = {patch["element_id"] for patch in patches}
+    validation_items = []
     for element_id, item in working_by_id.items():
         original = bounds_by_id.get(element_id, item)
         if element_id in patched_ids or _fits_page(original):
             validation_items.append(item)
     if not validation_items:
-        validation_items = [working_by_id[patch["element_id"]] for patch in patches]
-
-    summary = str(payload.get("summary") or payload.get("message") or "").strip()
-    title = f"Korekty rytmu z GPT ({len(patches)}×, max ±15 px)"
-    reason_parts = [
-        "GPT wskazał elementy do przesunięcia na podstawie pełnego JSON A4. "
-        f"Python przyciął każde przesunięcie do ±{MAX_RHYTHM_NUDGE_PX:g} px "
-        "i zamroził imię/rolę. Szerokość, wysokość i strona bez zmian.",
-    ]
-    if summary:
-        reason_parts.append(summary[:240])
-    if reasons:
-        reason_parts.append(" ".join(reasons[:6]))
+        validation_items = [working_by_id[patch["element_id"]] for patch in patches if patch["element_id"] in working_by_id]
 
     group = _group(
-        group_id="rhythm-reflow",
+        group_id=group_id,
         title=title,
-        reason=" ".join(reason_parts),
-        severity="medium",
+        reason=reason,
+        severity=severity,
         patches=patches,
         items=validation_items,
         page_width=page_width,
@@ -1152,10 +1158,10 @@ def apply_gpt_rhythm_moves(
     )
     if group is None:
         group = _group(
-            group_id="rhythm-reflow",
+            group_id=group_id,
             title=title,
-            reason=" ".join(reason_parts) + " Podgląd wymagany — mogą pozostać kolizje.",
-            severity="medium",
+            reason=reason + " Podgląd wymagany — mogą pozostać kolizje.",
+            severity=severity,
             patches=patches,
             items=validation_items,
             page_width=page_width,
@@ -1163,11 +1169,145 @@ def apply_gpt_rhythm_moves(
             allow_overlap=True,
         )
     if group is None:
-        return None, "safety_validation_failed"
+        return None
 
     group["target_page"] = min(patch.get("page", 1) for patch in patches)
     group["page_count"] = max(
         max((item.get("page") or 1) for item in elements if isinstance(item, dict)),
         max(patch.get("page", 1) for patch in patches),
     )
-    return group, ""
+    return group
+
+
+def apply_gpt_rhythm_moves(
+    elements: list[dict[str, Any]],
+    gpt_raw: dict[str, Any],
+    page_size: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, str]:
+    """Validate flat GPT moves into one preview group (legacy helper)."""
+    groups, _issues, error = compile_gpt_rhythm_response(elements, gpt_raw, page_size)
+    if error:
+        return None, error
+    if not groups:
+        return None, "no_position_changes"
+    return groups[0], ""
+
+
+def compile_gpt_rhythm_response(
+    elements: list[dict[str, Any]],
+    gpt_raw: dict[str, Any],
+    page_size: dict[str, Any] | None,
+) -> tuple[list[dict[str, Any]], list[dict[str, str]], str]:
+    """Turn GPT coordinate analysis into frontend ``layout_groups`` + ``layout_issues``.
+
+    Each finding becomes:
+    - a ``layout_issues`` row (Polish analysis with measured gaps / peers);
+    - optionally a ``layout_groups`` card with previewable patches when moves validate.
+    """
+    page_size = page_size or {}
+    page_width = _number(page_size.get("width"), 595.0)
+    page_height = _number(page_size.get("height"), float(A4_H))
+    if page_width <= 0 or page_height <= 0:
+        return [], [], "invalid_page_size"
+
+    raw = gpt_raw if isinstance(gpt_raw, dict) else {}
+    findings = _extract_findings(raw)
+    if not findings:
+        # Explicit empty findings/moves = model found nothing material.
+        if isinstance(raw.get("findings"), list) and not raw["findings"]:
+            return [], [], "moves_none_needed"
+        payload = _unwrap_moves_payload(raw)
+        if isinstance(payload.get("moves"), list) and not payload["moves"]:
+            return [], [], "moves_none_needed"
+        return [], [], "moves_missing"
+
+    keep_ids = {
+        str(element_id)
+        for element_id in (raw.get("keep_element_ids") or [])
+        if isinstance(element_id, str)
+    }
+    all_bounds = extract_bounds(
+        elements,
+        AUTO_LAYOUT_CATEGORIES | {"line", "rectangle", "circle", "ellipse"},
+    )
+    bounds_by_id = {item["element_id"]: item for item in all_bounds}
+    raw_by_id = {
+        str(element.get("element_id")): element
+        for element in elements
+        if isinstance(element, dict) and element.get("element_id")
+    }
+
+    groups: list[dict[str, Any]] = []
+    issues: list[dict[str, str]] = []
+    used_ids: set[str] = set()
+    remaining_moves = MAX_GPT_RHYTHM_MOVES
+
+    for index, finding in enumerate(findings[:MAX_GPT_FINDINGS]):
+        title = str(
+            finding.get("title")
+            or finding.get("heading")
+            or finding.get("name")
+            or f"Problem układu #{index + 1}"
+        ).strip()[:120]
+        analysis = str(
+            finding.get("analysis")
+            or finding.get("reason")
+            or finding.get("message")
+            or finding.get("description")
+            or ""
+        ).strip()
+        severity = str(finding.get("severity") or "medium").strip().lower()
+        if severity not in _VALID_FINDING_SEVERITIES:
+            severity = "medium"
+
+        issue_message = analysis or title
+        issues.append({
+            "severity": severity,
+            "message": issue_message[:600],
+        })
+
+        moves = _finding_moves(finding)
+        if not moves or remaining_moves <= 0:
+            continue
+
+        patches = _validated_patches_from_moves(
+            moves,
+            bounds_by_id=bounds_by_id,
+            raw_by_id=raw_by_id,
+            keep_ids=keep_ids,
+            used_ids=used_ids,
+            page_width=page_width,
+            page_height=page_height,
+            limit=remaining_moves,
+        )
+        if not patches:
+            continue
+
+        remaining_moves -= len(patches)
+        finding_id = str(finding.get("id") or f"finding-{index + 1}")
+        # Sanitize id for frontend keys.
+        finding_id = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in finding_id)[:48]
+        reason = analysis or (
+            f"Propozycja korekty (max ±{MAX_RHYTHM_NUDGE_PX:g} px na element). "
+            "Imię/rola zamrożone."
+        )
+        group = _make_layout_group(
+            group_id=f"rhythm-{finding_id}",
+            title=title,
+            reason=reason[:700],
+            severity=severity,
+            patches=patches,
+            bounds_by_id=bounds_by_id,
+            page_width=page_width,
+            page_height=page_height,
+            elements=elements,
+        )
+        if group is not None:
+            groups.append(group)
+
+    if not groups and not issues:
+        return [], [], "no_position_changes"
+    if not groups and issues:
+        # Analysis-only response still useful in the UI; not a hard failure.
+        return [], issues, ""
+    return groups, issues, ""

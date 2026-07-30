@@ -804,23 +804,23 @@ Algorytm wykrywa:
 Następnie tworzy bezpieczne grupy poprawek, posortowane od krytycznych do kosmetycznych.
 Przy aktywnych kolizjach lub ucięciach wyrównania są pomijane, żeby nie zasłaniać naprawy czytelności.
 
-### 7.6a. Przycisk „Rytm” — pełny JSON A4 → decyzje GPT → walidacja Python
+### 7.6a. Przycisk „Rytm” — pełny JSON A4 → findings GPT → parametry frontendu
 
 Akcja `layout_rhythm` jest przeznaczona do freestyle CV (własny układ użytkownika):
 
 1. Python buduje **pełny snapshot A4** (`build_a4_canvas_snapshot`): `page.width/height`
    oraz wszystkie elementy z geometrią, typografią, treścią (skróconą) i flagą `movable`.
-2. GPT analizuje ten JSON i zwraca decyzje:
-   - `keep_element_ids` — nie ruszać (imię, rola, świadoma kompozycja);
-   - `moves[]` — max 12 pozycji `{element_id, left, top, reason}`.
-3. Python (`apply_gpt_rhythm_moves`) **nie układa strony od zera** — tylko waliduje:
-   - znane `element_id`;
-   - zamrożenie imienia / roli;
-   - przycięcie każdej osi do **±15 px**;
-   - zakaz zmiany `page` / `width` / `height`.
-4. Gdy model zwróci stary format z `sections` (bez `moves`), działa fallback
+2. GPT analizuje współrzędne względem peerów i zwraca:
+   - `summary` — krótkie podsumowanie po polsku;
+   - `keep_element_ids` — nie ruszać (imię, rola);
+   - `findings[]` — max 8 problemów w stylu: tytuł, severity, **analysis** z konkretnymi
+     `left`/`top`/deltami oraz opcjonalne `moves[{element_id,left,top,reason}]`.
+3. Python (`compile_gpt_rhythm_response`) mapuje to na parametry UI:
+   - `layout_issues[]` — treść analiz (jak w czacie o współrzędnych);
+   - `layout_groups[]` — osobna karta Podgląd/Zastosuj na każdy finding z ruchami;
+   - przycięcie każdej osi do **±28 px**, zamrożenie imienia/roli, bez zmiany `page`/rozmiaru.
+4. Gdy model zwróci stary format z `sections` (bez findings), działa fallback
    `pack_rhythm_classification`.
-5. Wynik to karta podglądu `rhythm-reflow`.
 
 Stałe tła (`fixedToPage`) i elementy `locked` są w snapshocie jako `movable: false`
 i nie trafiają do patchy.

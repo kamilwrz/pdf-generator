@@ -1483,5 +1483,24 @@ Before completing any task that changes code, verify the following:
 
 A code change is not complete until its comments and related documentation accurately describe the final implementation.
 
+## Remove Code Made Obsolete by Changes
+
+Whenever you modify the codebase, identify any code that becomes unused, unreachable, redundant, or obsolete as a direct result of your changes, and remove it as part of the same task.
+
+This includes:
+
+Unused functions, methods, classes, components, and modules
+Unused imports, exports, variables, constants, parameters, and types
+Dead branches and unreachable code
+Superseded implementations and compatibility code that is no longer required
+Tests, fixtures, mocks, configuration, and documentation that only support removed behavior
+Empty files or directories left behind after cleanup
+
+Before deleting code, verify that it is not used through dynamic imports, reflection, dependency injection, configuration, scripts, external APIs, or other indirect references.
+
+Do not leave commented-out code, placeholder wrappers, or deprecated aliases unless they are explicitly required. Keep each change focused: remove code made obsolete by the current work, but do not perform unrelated large-scale cleanup.
+
+Afterward, run the relevant tests, type checks, linters, and build commands to confirm that the cleanup has not broken the project.
+
 
 

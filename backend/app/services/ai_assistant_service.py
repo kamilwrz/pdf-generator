@@ -26,8 +26,9 @@ from app.services.layout_analysis import (
     summarize_geometry_issues,
 )
 from app.services.layout_rhythm import (
-    apply_gpt_rhythm_moves,
+    MAX_RHYTHM_NUDGE_PX,
     build_a4_canvas_snapshot,
+    compile_gpt_rhythm_response,
     pack_rhythm_classification,
 )
 from app.services.openai_pricing import usage_from_response
@@ -1064,68 +1065,82 @@ def _normalize_layout_rhythm(elements: list[dict], page_size: dict | None) -> di
             },
         }
 
+    max_delta = snapshot["constraints"]["max_delta_px"]
     system = (
-        "Jesteś projektantem freestyle CV na płótnie A4. "
-        "Dostajesz PEŁNY JSON strony i sam decydujesz, które elementy lekko przesunąć. "
-        "Zachowujesz wizję użytkownika: nie przebudowujesz layoutu od zera. "
-        "Zwracasz WYŁĄCZNIE prawidłowy JSON."
+        "Jesteś analitykiem geometrii freestyle CV na A4. "
+        "Dostajesz PEŁNY JSON strony. Porównujesz współrzędne peerów (nagłówki, linie, "
+        "wpisy doświadczenia, kolumny) i wskazujesz konkretne problemy z liczbami. "
+        "Nie przebudowujesz layoutu od zera. Zwracasz WYŁĄCZNIE prawidłowy JSON."
     )
-    user = f"""Poniżej jest kompletny stan płótna A4 (współrzędne w px, origin lewy-górny róg strony).
+    user = f"""Poniżej jest kompletny stan płótna A4 (px, origin = lewy górny róg strony).
 
 {json.dumps(snapshot, ensure_ascii=False)}
 
-Twoje zadanie:
-1. Przeanalizuj left/top/width/height/page oraz treść elementów.
-2. Wykryj realne problemy rytmu: nachodzenia, chaotyczne odstępy, oczywiste krzywe wyrównania
-   w tej samej kolumnie — ale NIE narzucaj szablonowego CV.
-3. Zdecyduj, które elementy PRZESUNĄĆ i gdzie (absolute left/top).
-4. Większość elementów ma zostać bez zmian. Max {snapshot["constraints"]["max_moves"]} ruchów.
-5. Każda zmiana powinna być drobna (orientacyjnie do ±{snapshot["constraints"]["max_delta_px"]} px);
-   Python i tak przytnie większe delty.
-6. NIGDY nie ruszaj imienia i roli zawodowej (np. duże imię + „AML ANALYST”) —
-   dodaj je do keep_element_ids.
-7. Nie zmieniaj page, width, height, content ani stylów. Nie wymyślaj nowych element_id.
-8. Elementy z movable=false / locked / fixedToPage pomiń.
-9. Pole ``moves`` jest OBOWIĄZKOWE (tablica). Jeśli naprawdę nie ma co ruszać, zwróć
-   moves: [] oraz krótkie summary — ale przy nachodzeniach / nierównych odstępach
-   ZAWSZE podaj konkretne moves (1–12).
-10. Używaj dokładnie klucza ``moves`` (nie ``patches`` / ``changes``).
+Zrób analizę jak człowiek-designer czytający współrzędne, np.:
+- „Nagłówek JĘZYKI top:162 i linia top:161 — odstęp ~1 px, za ciasno względem innych nagłówków.”
+- „DOŚWIADCZENIE left:95 vs PODSUMOWANIE left:70 — odstaje o ~25 px w prawo.”
+- „Citibank po Medtronic ma ~18 px, a pozostałe wpisy ~13 px — za duża przerwa.”
 
-Zwróć JSON:
+Zasady:
+1. Porównuj elementy TEJ SAMEJ roli / sąsiadów (nagłówki sekcji, heading↔rule, job↔job).
+2. Podaj konkretne left/top i delty w polu analysis (po polsku).
+3. Dla każdego problemu dodaj moves z docelowym left/top (absolute).
+4. Max {snapshot["constraints"]["max_moves"]} ruchów łącznie, max 8 findings.
+5. Każdy ruch ≤ ±{max_delta} px (Python przytnie większe).
+6. NIGDY nie ruszaj imienia i roli zawodowej → keep_element_ids.
+7. Nie zmieniaj page/width/height/content. Nie wymyślaj element_id.
+8. movable=false / locked pomiń.
+9. findings jest OBOWIĄZKOWE. Jeśli brak problemów: findings: [] i krótkie summary.
+
+Zwróć JSON pod frontend (layout_issues + layout_groups):
 {{
-  "summary": "<krótko po polsku: co poprawiasz i dlaczego>",
+  "summary": "<krótko po polsku: najważniejsze wnioski>",
   "keep_element_ids": ["..."],
-  "moves": [
+  "findings": [
     {{
-      "element_id": "...",
-      "left": <liczba>,
-      "top": <liczba>,
-      "reason": "<dlaczego ten ruch zachowuje wizję użytkownika>"
+      "id": "experience-heading-left",
+      "severity": "high",
+      "title": "DOŚWIADCZENIE ZAWODOWE — za daleko w prawo",
+      "analysis": "PODSUMOWANIE left:70, WYKSZTAŁCENIE left:71, DOŚWIADCZENIE left:95 — odstaje o ~24 px. Ustaw left≈70.",
+      "element_ids": ["..."],
+      "moves": [
+        {{
+          "element_id": "...",
+          "left": 70,
+          "top": 280,
+          "reason": "Wyrównanie do większości nagłówków sekcji"
+        }}
+      ]
     }}
   ]
 }}"""
 
     raw, usage = _gpt(system, user, action="layout_rhythm")
     usage_payload = usage if isinstance(usage, dict) else {}
-    group, pack_error = apply_gpt_rhythm_moves(elements, raw, page_size)
+    groups, issues, pack_error = compile_gpt_rhythm_response(elements, raw, page_size)
 
     # Compatibility: older classification-only responses still pack via Python.
-    if group is None and isinstance(raw, dict) and isinstance(raw.get("sections"), list):
+    if pack_error and isinstance(raw, dict) and isinstance(raw.get("sections"), list):
         group, pack_error = pack_rhythm_classification(elements, raw, page_size)
+        groups = [group] if group else []
+        issues = issues or []
 
-    if group is None and pack_error == "moves_none_needed":
+    if pack_error == "moves_none_needed" or (
+        not pack_error and not groups and not issues and isinstance(raw, dict)
+        and isinstance(raw.get("findings"), list) and not raw.get("findings")
+    ):
         summary = ""
         if isinstance(raw, dict):
             summary = str(raw.get("summary") or raw.get("message") or "").strip()
         return {
             "message": summary or (
-                "GPT uznał układ za spójny — nie zaproponował przesunięć. "
-                "Jeśli widzisz problem, popraw ręcznie albo uruchom Rytm ponownie."
+                "GPT nie znalazł istotnych problemów rytmu względem peerów. "
+                "Jeśli widzisz odstęp, uruchom Rytm ponownie albo popraw ręcznie."
             ),
             "rating": None,
             "tips": [
-                "Pusta lista moves oznacza świadomą decyzję modelu, nie awarię walidacji.",
-                "Przy nachodzeniach spróbuj ponownie — model powinien wtedy zwrócić konkretne moves.",
+                "Pusta lista findings oznacza świadomą decyzję modelu.",
+                "Przy nachodzeniach / krzywych nagłówkach model powinien zwrócić findings z moves.",
             ],
             "corrections": [],
             "layout_groups": [],
@@ -1134,15 +1149,15 @@ Zwróć JSON:
             "usage": usage_payload,
         }
 
-    if group is None:
+    if pack_error and not groups and not issues:
         error_hints = {
             "moves_missing": (
-                "Model nie zwrócił tablicy moves (zły kształt JSON). "
+                "Model nie zwrócił findings/moves (zły kształt JSON). "
                 f"Klucze odpowiedzi: {sorted(raw.keys()) if isinstance(raw, dict) else []}."
             ),
-            "moves_empty": "Model nie zwrócił listy moves — spróbuj ponownie.",
+            "moves_empty": "Model nie zwrócił findings — spróbuj ponownie.",
             "no_position_changes": (
-                "GPT podał moves, ale po walidacji (±15 px, zamrożone imię/rola) "
+                f"GPT podał findings, ale po walidacji (±{MAX_RHYTHM_NUDGE_PX:g} px, zamrożone imię/rola) "
                 "nic bezpiecznego nie zostało do zastosowania."
             ),
             "classification_empty": "Model nie zwrócił rozpoznawalnych elementów.",
@@ -1151,7 +1166,7 @@ Zwróć JSON:
             "invalid_page_size": "Niepoprawny page_size z frontendu.",
             "page_too_small": "Obszar treści na stronie jest zbyt mały.",
         }
-        detail = error_hints.get(pack_error, "GPT nie zwrócił bezpiecznych przesunięć rytmu.")
+        detail = error_hints.get(pack_error, "GPT nie zwrócił bezpiecznej analizy rytmu.")
         return {
             "message": (
                 "Nie udało się zbudować bezpiecznej korekty rytmu z decyzji GPT. "
@@ -1159,8 +1174,8 @@ Zwróć JSON:
             ),
             "rating": None,
             "tips": [
-                "Rytm: GPT analizuje pełny JSON A4 i proponuje moves; Python waliduje limity.",
-                "Imię/rola oraz delty > ±15 px są blokowane po stronie Pythona.",
+                "Rytm: GPT analizuje pełny JSON A4 (findings); Python buduje karty podglądu.",
+                f"Imię/rola oraz delty > ±{MAX_RHYTHM_NUDGE_PX:g} px są blokowane po stronie Pythona.",
                 detail,
             ],
             "corrections": [],
@@ -1173,21 +1188,26 @@ Zwróć JSON:
             "usage": usage_payload,
         }
 
-    patch_count = len(group.get("patches") or [])
+    summary = ""
+    if isinstance(raw, dict):
+        summary = str(raw.get("summary") or "").strip()
+    patch_count = sum(len(group.get("patches") or []) for group in groups)
+    message = summary or (
+        f"Znalazłem {len(issues) or len(groups)} problemów układu "
+        f"({patch_count} bezpiecznych przesunięć, max ±{MAX_RHYTHM_NUDGE_PX:g} px)."
+    )
+    tips = [
+        "Każda karta = jeden problem z analizą współrzędnych; Podgląd/Zastosuj rusza tylko te elementy.",
+        f"Python przycina delty do ±{MAX_RHYTHM_NUDGE_PX:g} px i zamraża imię/rolę.",
+        "Lista poniżej powtarza wnioski GPT (odstępy, wyrównania, porównania peerów).",
+    ]
     return {
-        "message": (
-            f"GPT wskazał {patch_count} przesunięć na podstawie pełnego A4 "
-            "(każde max ±15 px po walidacji). Imię i rola zostają w miejscu."
-        ),
+        "message": message,
         "rating": None,
-        "tips": [
-            "Decyzje o tym, co ruszyć, podejmuje GPT na pełnym JSON strony.",
-            "Python tylko przycina delty (±15 px), zamraża imię/rolę i pilnuje granic.",
-            "Szerokość, wysokość i numer strony nie są zmieniane.",
-        ],
+        "tips": tips,
         "corrections": [],
-        "layout_groups": [group],
-        "layout_issues": [],
+        "layout_groups": groups,
+        "layout_issues": issues,
         "web_sources": [],
         "usage": usage_payload,
     }
