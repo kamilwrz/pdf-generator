@@ -468,6 +468,32 @@ test("pulls preceding section chrome when the body textarea itself jumps page", 
   assert.ok(body.top > heading.top);
 });
 
+test("preserves a small same-record gap even if a lane element's stored page went stale", () => {
+  // Each auto-height textarea measures and settles independently (once
+  // immediately, once again after webfonts finish loading), so a record's
+  // meta line can end up with a `page` number written by an earlier,
+  // now-superseded reflow pass while its title is still catching up. That
+  // page mismatch alone must not make the title/meta gap (~4px, SPACE_STACK)
+  // fall back to the much larger generic page-break pack gap (14px,
+  // SPACE_RECORD) — see the "Bachelor of Laws" education-record report.
+  const result = reflowTextareaHeight([
+    textarea({ top: 100, height: 20 }),
+    {
+      element_id: "meta",
+      category: "textarea",
+      left: 40,
+      top: 124, // 100 + 20 + 4 (SPACE_STACK), authored on the same page as "textarea"
+      width: 180,
+      height: 12,
+      page: 2, // stale — a prior, now-superseded pass already bumped this one
+    },
+  ], "textarea", 24, 842);
+
+  const target = result.elements.find((element) => element.element_id === "textarea");
+  const meta = result.elements.find((element) => element.element_id === "meta");
+  assert.equal(meta.top - (target.top + target.height), 4);
+});
+
 test("moves a heading when the full following body cannot fit beneath it", () => {
   // A short keep-with-next window previously kept the heading while the full
   // skills block overflowed alone.

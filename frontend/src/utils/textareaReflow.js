@@ -124,6 +124,19 @@ function packGapAfterPageBreak(current, pageTop) {
 }
 
 /**
+ * Gap between two lane elements if they had stayed on the same page, computed
+ * from their raw authored `top` values only (ignoring `page`). A genuine
+ * cross-page pair (one near a page bottom, one near the next page's top) has
+ * page-relative `top` values that make this come out negative or far larger
+ * than any real intra-record gap; a same-record pair that merely picked up
+ * mismatched `page` numbers from an earlier, independent reflow pass (e.g. a
+ * title and its meta line, ~4px apart) still has a small, sane result here.
+ */
+function rawSamePageGap(current, previousOriginal) {
+  return number(current.top) - (number(previousOriginal.top) + elementHeight(previousOriginal));
+}
+
+/**
  * If `current` is section chrome and the following body cannot share this page,
  * bump the chrome to the next page so headings are never orphaned above the footer.
  *
@@ -316,7 +329,19 @@ export function reflowTextareaHeight(
 
     let nextAbsolute;
     if (crossedPage) {
-      nextAbsolute = previousPlacedBottom + packGapAfterPageBreak(current, pageTop);
+      // `page` fields can go briefly out of sync across independent reflow
+      // passes (each auto-height textarea measures and settles on its own).
+      // Before treating this as a genuine page-break seam, check whether the
+      // pair was actually authored close together on one page — if so, honor
+      // that real gap instead of the generic page-break pack gap so a tightly
+      // coupled record (e.g. a title and its meta line) never gets pried
+      // apart by SPACE_RECORD-sized whitespace it never had.
+      const samePageGap = rawSamePageGap(current, previousOriginal);
+      nextAbsolute = previousPlacedBottom + (
+        samePageGap >= 0 && samePageGap <= CHROME_CLUSTER_Y_SPAN
+          ? samePageGap
+          : packGapAfterPageBreak(current, pageTop)
+      );
     } else if (previousOriginal.element_id === elementId) {
       nextAbsolute = newTargetBottom + Math.max(0, currentOriginalTop - oldTargetBottom);
     } else {
