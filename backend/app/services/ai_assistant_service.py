@@ -1102,8 +1102,9 @@ def _normalize_layout_rhythm(elements: list[dict], page_size: dict | None) -> di
         "Zwracasz WYŁĄCZNIE prawidłowy JSON. "
         "Wszystkie opisowe stringi (id sekcji) trzymaj po angielsku w snake_case."
     )
-    user = f"""Użytkownik zbudował CV freestyle (bez szablonu). Odstępy są nierówne.
-Sklasyfikuj elementy, żeby Python mógł ułożyć je od nowa według rytmu szablonu.
+    user = f"""Użytkownik zbudował CV freestyle (własny układ). Odstępy pionowe są nierówne.
+Sklasyfikuj elementy, żeby Python TYLKO ujednolicił odstępy (top), bez zmiany left/szerokości
+i bez budowania nowego szablonu od zera.
 
 ELEMENTY (kolejność od góry):
 {json.dumps(classify_payload, ensure_ascii=False)}
@@ -1117,7 +1118,7 @@ Zasady:
 - Linie-oddzielacze sekcji = rule (category line) w bloku z headingiem albo osobnym bloku.
 - Obrazy i elementy niepasujące do przepływu treści umieść w ignored_element_ids.
 - Nie wymyślaj element_id — używaj wyłącznie id z listy.
-- profile.content_left / content_width: zaproponuj wspólną kolumnę treści (mediana freestyle).
+- profile.content_left / content_width: opcjonalne (packer i tak zachowa left użytkownika).
 - order: rosnąco od góry dokumentu.
 
 Zwróć JSON:
@@ -1180,13 +1181,13 @@ Zwróć JSON:
 
     return {
         "message": (
-            "Przygotowałem indywidualny rytm układu na podstawie klasyfikacji sekcji i bloków. "
-            "Podglądaj grupę przed zastosowaniem — Python ułożył elementy według STACK/RECORD/SECTION."
+            "Przygotowałem ujednolicenie odstępów na podstawie klasyfikacji sekcji i bloków. "
+            "Twój freestyle layout (left, szerokości) zostaje — ruszamy tylko top tam, gdzie trzeba."
         ),
         "rating": None,
         "tips": [
-            "GPT określił kategorie; współrzędne wyliczył Python (SPACE_STACK / SPACE_RECORD / SPACE_SECTION).",
-            "Zdjęcia i elementy spoza klasyfikacji pozostają na miejscu.",
+            "GPT określił kategorie; Python tylko ustawił STACK/RECORD/SECTION między sąsiadami.",
+            "Zdjęcia, ikony i elementy spoza klasyfikacji nie są przesuwane w poziomie.",
             "Po zastosowaniu możesz doprecyzować ręcznie lub uruchomić Układ dla drobnych wyrównań.",
         ],
         "corrections": [],

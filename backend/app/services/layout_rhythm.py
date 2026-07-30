@@ -1,13 +1,12 @@
-"""Freestyle → template-rhythm reflow.
+"""Freestyle vertical-gap unification (SPACE_* rhythm).
 
-GPT classifies canvas text into sections / blocks / roles. This module is the
-sole authority for coordinates: it packs classified elements using the same
-vertical rhythm constants as `cv_generator` (SPACE_STACK / SPACE_RECORD /
-SPACE_SECTION / SPACE_AFTER_RULE) and returns one previewable layout group.
+GPT classifies canvas text into sections / blocks / roles. This module only
+nudges ``top``/``page`` so consecutive pairs match ``cv_generator`` gaps
+(SPACE_STACK / SPACE_RECORD / SPACE_SECTION / SPACE_AFTER_RULE). User freestyle
+``left``/width/height and the first element's anchor stay intact.
 """
 from __future__ import annotations
 
-import math
 from typing import Any
 
 from app.services.cv_generator import (
@@ -56,15 +55,15 @@ _ROLE_ALIASES = {
     "header": "heading",
     "line": "rule",
 }
-# Placement order inside one block (title → meta → body).
+# Placement order inside one block: heading + rule, then title → meta → body.
 _ROLE_RANK = {
     "heading": 0,
-    "entry_title": 1,
-    "entry_meta": 2,
-    "body": 3,
-    "list": 4,
-    "contact": 5,
-    "rule": 6,
+    "rule": 1,
+    "entry_title": 2,
+    "entry_meta": 3,
+    "body": 4,
+    "list": 5,
+    "contact": 6,
     "other": 7,
 }
 _FLOW_CATEGORIES = {"text", "textarea", "line"}
@@ -78,27 +77,6 @@ def _page_margins(page_height: float) -> tuple[float, float]:
     top = float(PAGE_TOP) * scale
     bottom = page_height - float(MARGIN_BOTTOM) * scale
     return top, max(top + 40.0, bottom)
-
-
-def _estimate_height(item: dict[str, Any], width: float) -> float:
-    if item.get("category") == "line":
-        return max(_number(item.get("height"), 1.5), 1.0)
-    if item.get("category") == "text":
-        return max(_number(item.get("height"), item.get("fontSize", 12) * 1.35), 8.0)
-    content_height = _number(item.get("content_height"), 0.0)
-    if content_height > item.get("height", 0) + EPSILON:
-        return content_height
-    stored = _number(item.get("height"), 0.0)
-    if stored > 0:
-        return stored
-    font_size = max(_number(item.get("fontSize"), 12.0), 1.0)
-    line_height = max(_number(item.get("lineHeight"), font_size * 1.35), 1.0)
-    chars_per_line = max(10, int(width / (font_size * 0.52)))
-    lines = sum(
-        max(1, math.ceil(len(line.strip()) / chars_per_line)) if line.strip() else 1
-        for line in str(item.get("content") or "").split("\n")
-    )
-    return round(max(lines * line_height + 6, line_height + 6), 2)
 
 
 def _unwrap_classification(raw: dict[str, Any]) -> dict[str, Any]:
@@ -251,50 +229,74 @@ def _heuristic_classification(
     }
 
 
-def _infer_column(
+def _flatten_flow(
+    normalized: dict[str, Any],
+    movable_ids: set[str],
     bounds_by_id: dict[str, dict[str, Any]],
-    classified_ids: set[str],
-    page_width: float,
-    profile_left: float,
-    profile_width: float,
-) -> tuple[float, float]:
-    samples = [
-        bounds_by_id[element_id]
-        for element_id in classified_ids
-        if element_id in bounds_by_id and bounds_by_id[element_id]["category"] in {"text", "textarea"}
-    ]
-    if profile_left > 0 and profile_width > 40:
-        left = profile_left
-        width = profile_width
-    elif samples:
-        lefts = sorted(item["left"] for item in samples)
-        widths = sorted(item["width"] for item in samples)
-        left = lefts[len(lefts) // 2]
-        width = widths[len(widths) // 2]
-    else:
-        left, width = 55.0, min(485.0, page_width - 70.0)
-    width = max(80.0, min(width, page_width - left - 8.0))
-    left = max(0.0, min(left, page_width - width))
-    return round(left, 2), round(width, 2)
+) -> list[dict[str, Any]]:
+    """Build the reading-order chain used for gap unification."""
+    flow: list[dict[str, Any]] = []
+    for section in normalized["sections"]:
+        for block in section["blocks"]:
+            members = [
+                member for member in block["elements"]
+                if member["element_id"] in movable_ids
+            ]
+            members.sort(
+                key=lambda member: (
+                    _ROLE_RANK.get(member["role"], 9),
+                    bounds_by_id[member["element_id"]]["top"],
+                    member["element_id"],
+                )
+            )
+            for member in members:
+                flow.append({
+                    "element_id": member["element_id"],
+                    "role": member["role"],
+                    "section_id": section["id"],
+                    "block_id": block["id"],
+                })
+    return flow
 
 
-def _anchor_start_y(
-    bounds_by_id: dict[str, dict[str, Any]],
-    classified_ids: set[str],
-    page_top: float,
+def _expected_gap(previous: dict[str, Any], current: dict[str, Any]) -> float:
+    """Return the template rhythm gap between two consecutive classified items."""
+    if previous["section_id"] != current["section_id"]:
+        return float(SPACE_SECTION)
+    if previous["block_id"] != current["block_id"]:
+        return float(SPACE_RECORD)
+    prev_role = previous["role"]
+    if prev_role == "heading" and current["role"] == "rule":
+        return float(SPACE_STACK)
+    if prev_role in {"heading", "rule"}:
+        return float(SPACE_AFTER_RULE)
+    return float(SPACE_STACK)
+
+
+def _document_top(item: dict[str, Any], page_height: float) -> float:
+    return (item["page"] - 1) * page_height + item["top"]
+
+
+def _set_document_top(
+    item: dict[str, Any],
+    absolute_top: float,
+    height: float,
     page_height: float,
-) -> float:
-    """Start the flow below header chrome that is not being reflowed."""
-    bottoms: list[float] = []
-    for element_id, item in bounds_by_id.items():
-        if element_id in classified_ids:
-            continue
-        if item.get("locked") or item.get("fixedToPage") or item.get("category") == "image":
-            if item["page"] == 1 and item["top"] < page_height * 0.28:
-                bottoms.append(item["top"] + item["height"])
-    if not bottoms:
-        return page_top
-    return max(page_top, max(bottoms) + SPACE_SECTION)
+    page_top: float,
+    content_bottom: float,
+) -> None:
+    """Write page/top for an absolute Y, wrapping to the next page if needed."""
+    absolute_top = max(0.0, absolute_top)
+    page = int(absolute_top // page_height) + 1
+    top = absolute_top - (page - 1) * page_height
+    if height <= content_bottom - page_top and top + height > content_bottom + EPSILON:
+        page += 1
+        top = page_top
+    if top < page_top and page > 1:
+        # Keep continuations inside the content band.
+        top = page_top
+    item["page"] = page
+    item["top"] = round(top, 2)
 
 
 def pack_rhythm_classification(
@@ -302,7 +304,12 @@ def pack_rhythm_classification(
     classification: dict[str, Any],
     page_size: dict[str, Any] | None,
 ) -> tuple[dict[str, Any] | None, str]:
-    """Pack GPT-classified elements into a single safe layout group.
+    """Unify vertical gaps only — preserve freestyle left/width/anchor.
+
+    GPT (or the heuristic fallback) supplies section/block/role membership.
+    Python nudges ``top``/``page`` just enough so consecutive pairs use
+    SPACE_STACK / SPACE_RECORD / SPACE_SECTION / SPACE_AFTER_RULE. ``left``,
+    ``width`` and ``height`` stay as the user authored them.
 
     Returns ``(group, error_code)``. ``error_code`` is empty on success.
     """
@@ -313,8 +320,7 @@ def pack_rhythm_classification(
         return None, "invalid_page_size"
 
     page_top, content_bottom = _page_margins(page_height)
-    usable_height = content_bottom - page_top
-    if usable_height < 80:
+    if content_bottom - page_top < 80:
         return None, "page_too_small"
 
     all_bounds = extract_bounds(
@@ -350,127 +356,70 @@ def pack_rhythm_classification(
     if len(movable_ids) < 2:
         return None, "too_few_movable"
 
-    content_left, content_width = _infer_column(
-        bounds_by_id,
-        movable_ids,
-        page_width,
-        normalized["profile"]["content_left"],
-        normalized["profile"]["content_width"],
-    )
+    flow = _flatten_flow(normalized, movable_ids, bounds_by_id)
+    if len(flow) < 2:
+        return None, "too_few_movable"
 
-    # Validation must include every patched id. Lines are flowable for rhythm
-    # but are outside AUTO_LAYOUT_CATEGORIES — omitting them made _is_safe_group
-    # reject every proposal that moved a section rule.
+    # Working copy for every content/line id we may patch or validate against.
     working_by_id = {
         item["element_id"]: dict(item)
         for item in all_bounds
         if item["category"] in AUTO_LAYOUT_CATEGORIES or item["element_id"] in movable_ids
     }
 
-    cursor_page = 1
-    cursor_y = _anchor_start_y(bounds_by_id, movable_ids, page_top, page_height)
-    patches: list[dict[str, Any]] = []
+    # Anchor: keep the first flow item exactly where the user put it.
+    first_id = flow[0]["element_id"]
+    previous_item = working_by_id[first_id]
+    previous_meta = flow[0]
 
-    def ensure_space(height: float) -> None:
-        nonlocal cursor_page, cursor_y
-        if cursor_y + height > content_bottom + EPSILON:
-            cursor_page += 1
-            cursor_y = page_top
-
-    def place(element_id: str, *, gap_after: float) -> None:
-        nonlocal cursor_y
-        source = bounds_by_id[element_id]
-        height = _estimate_height(source, content_width)
-        ensure_space(height)
-        width = content_width
-        if source["category"] == "line":
-            width = min(content_width, max(source["width"], 48.0))
-        elif source["category"] == "text":
-            width = min(content_width, max(source["width"], 40.0))
-
-        patch: dict[str, Any] = {
-            "element_id": element_id,
-            "left": round(content_left, 2),
-            "top": round(cursor_y, 2),
-            "page": cursor_page,
-        }
-        if source["category"] == "textarea":
-            patch["width"] = round(content_width, 2)
-            patch["height"] = round(height, 2)
-        elif source["category"] == "line":
-            patch["width"] = round(width, 2)
-            patch["height"] = round(height, 2)
-
-        original = bounds_by_id[element_id]
-        changed = (
-            abs(patch["left"] - original["left"]) > EPSILON
-            or abs(patch["top"] - original["top"]) > EPSILON
-            or patch["page"] != original["page"]
-            or (
-                "height" in patch
-                and abs(patch["height"] - original["height"]) > EPSILON
-            )
-            or (
-                "width" in patch
-                and abs(patch["width"] - original["width"]) > EPSILON
-            )
+    for current_meta in flow[1:]:
+        element_id = current_meta["element_id"]
+        current = working_by_id[element_id]
+        gap = _expected_gap(previous_meta, current_meta)
+        prev_bottom = _document_top(previous_item, page_height) + previous_item["height"]
+        desired_abs = prev_bottom + gap
+        _set_document_top(
+            current,
+            desired_abs,
+            current["height"],
+            page_height,
+            page_top,
+            content_bottom,
         )
-        if changed:
-            patches.append(patch)
+        # left/width/height intentionally unchanged — only vertical rhythm.
+        previous_item = current
+        previous_meta = current_meta
 
-        target = working_by_id.setdefault(element_id, dict(source))
-        target.update({
-            "left": patch["left"],
-            "top": patch["top"],
-            "page": patch["page"],
-            **({"width": patch["width"]} if "width" in patch else {}),
-            **({"height": patch["height"]} if "height" in patch else {}),
-        })
-        cursor_y += height + gap_after
-
-    for section_index, section in enumerate(normalized["sections"]):
-        blocks = section["blocks"]
-        for block_index, block in enumerate(blocks):
-            members = [
-                member for member in block["elements"]
-                if member["element_id"] in movable_ids
-            ]
-            members.sort(
-                key=lambda member: (
-                    _ROLE_RANK.get(member["role"], 9),
-                    bounds_by_id[member["element_id"]]["top"],
-                    member["element_id"],
-                )
-            )
-            if not members:
-                continue
-
-            for member_index, member in enumerate(members):
-                is_last_in_block = member_index == len(members) - 1
-                is_last_block = block_index == len(blocks) - 1
-                role = member["role"]
-                if not is_last_in_block:
-                    gap = SPACE_AFTER_RULE if role == "heading" else SPACE_STACK
-                elif not is_last_block:
-                    gap = SPACE_RECORD
-                else:
-                    gap = SPACE_SECTION if section_index < len(normalized["sections"]) - 1 else 0.0
-                place(member["element_id"], gap_after=gap)
+    patches: list[dict[str, Any]] = []
+    for element_id in movable_ids:
+        original = bounds_by_id[element_id]
+        proposed = working_by_id[element_id]
+        if (
+            abs(proposed["top"] - original["top"]) > EPSILON
+            or proposed["page"] != original["page"]
+        ):
+            patches.append({
+                "element_id": element_id,
+                "left": round(original["left"], 2),
+                "top": round(proposed["top"], 2),
+                "page": proposed["page"],
+            })
 
     if not patches:
         return None, "no_position_changes"
 
     validation_items = list(working_by_id.values())
     reason_suffix = (
-        " Użyto zapasowej klasyfikacji kolejności (GPT zwrócił nieparsowalną strukturę)."
+        " Użyto zapasowej kolejności Y (GPT zwrócił nieparsowalną strukturę)."
         if used_fallback
         else ""
     )
-    title = "Ujednolić rytm układu (indywidualny szablon)"
+    title = "Ujednolić odstępy (zachowaj Twój układ)"
     reason = (
-        "Elementy zostały sklasyfikowane semantycznie, a następnie ułożone "
-        f"według rytmu szablonu: STACK {SPACE_STACK}px, RECORD {SPACE_RECORD}px, "
-        f"SECTION {SPACE_SECTION}px. Stałe tła i elementy spoza klasyfikacji pozostają na miejscu."
+        "Przesunięto elementy tylko w pionie, żeby ujednolicić odstępy: "
+        f"STACK {SPACE_STACK}px w bloku, RECORD {SPACE_RECORD}px między wpisami, "
+        f"SECTION {SPACE_SECTION}px między sekcjami, AFTER_RULE {SPACE_AFTER_RULE}px po linii. "
+        "Left, szerokość i Twój ogólny układ freestyle zostają bez zmian."
         f"{reason_suffix}"
     )
 
@@ -478,7 +427,7 @@ def pack_rhythm_classification(
         group_id="rhythm-reflow",
         title=title,
         reason=reason,
-        severity="critical",
+        severity="high",
         patches=patches,
         items=validation_items,
         page_width=page_width,
@@ -489,11 +438,8 @@ def pack_rhythm_classification(
         group = _group(
             group_id="rhythm-reflow",
             title=title,
-            reason=(
-                reason
-                + " Podgląd jest wymagany — freestyle mógł mieć wcześniejsze kolizje z obrazami."
-            ),
-            severity="critical",
+            reason=reason + " Podgląd wymagany — mogą pozostać kolizje z ikonami/obrazami.",
+            severity="high",
             patches=patches,
             items=validation_items,
             page_width=page_width,

@@ -345,7 +345,7 @@ Implementation:
 
 Ratings, grammar, ATS, chat, and deterministic layout analysis with review cards.
 
-**Układ** (`layout`) is Python-only (`analyze_layout`): critical groups first (clipped textareas, overlapping content stacks, out-of-bounds, section rules through text), then cosmetic alignment/spacing only when readability is clean. **Rytm** (`layout_rhythm`) asks GPT only for section/block/role classification; Python packs elements with `SPACE_STACK` / `SPACE_RECORD` / `SPACE_SECTION` / `SPACE_AFTER_RULE` from `cv_generator.py` into one previewable `rhythm-reflow` group. **Projekt** (`design_rating`) still rates typography via GPT, but `summarize_geometry_issues` injects overlap/clip/rule/out-of-bounds counts and hard-caps the score at 5 when those faults exist.
+**Układ** (`layout`) is Python-only (`analyze_layout`): critical groups first (clipped textareas, overlapping content stacks, out-of-bounds, section rules through text), then cosmetic alignment/spacing only when readability is clean. **Rytm** (`layout_rhythm`) asks GPT only for section/block/role classification; Python **nudges vertical gaps only** (`SPACE_STACK` / `SPACE_RECORD` / `SPACE_SECTION` / `SPACE_AFTER_RULE`) while preserving freestyle `left`/width and the first element’s anchor — it does not rebuild a full template. **Projekt** (`design_rating`) still rates typography via GPT, but `summarize_geometry_issues` injects overlap/clip/rule/out-of-bounds counts and hard-caps the score at 5 when those faults exist.
 
 Implementation:
 
@@ -915,7 +915,7 @@ Implementacja:
 
 Oceny, gramatyka, ATS, czat oraz deterministyczna analiza układu z kartami do akceptacji.
 
-**Układ** (`layout`) to wyłącznie Python (`analyze_layout`): najpierw grupy krytyczne (ucięte textarea, nachodzące bloki, poza stroną, linie sekcji przez tekst), potem kosmetyczne wyrównania/odstępy tylko gdy czytelność jest w porządku. **Rytm** (`layout_rhythm`) — GPT tylko klasyfikuje sekcje/bloki/role; Python układa elementy według `SPACE_STACK` / `SPACE_RECORD` / `SPACE_SECTION` / `SPACE_AFTER_RULE` z `cv_generator.py` w jedną grupę podglądu `rhythm-reflow`. **Projekt** (`design_rating`) nadal ocenia typografię przez GPT, ale `summarize_geometry_issues` wstrzykuje liczbę kolizji/ucięć/linii/poza-stroną i twarde ogranicza ocenę do max 5 przy tych błędach.
+**Układ** (`layout`) to wyłącznie Python (`analyze_layout`): najpierw grupy krytyczne (ucięte textarea, nachodzące bloki, poza stroną, linie sekcji przez tekst), potem kosmetyczne wyrównania/odstępy tylko gdy czytelność jest w porządku. **Rytm** (`layout_rhythm`) — GPT tylko klasyfikuje sekcje/bloki/role; Python **tylko ujednolica odstępy pionowe** (`SPACE_STACK` / `SPACE_RECORD` / `SPACE_SECTION` / `SPACE_AFTER_RULE`), zachowując freestyle `left`/szerokość i kotwicę pierwszego elementu — bez budowania nowego szablonu. **Projekt** (`design_rating`) nadal ocenia typografię przez GPT, ale `summarize_geometry_issues` wstrzykuje liczbę kolizji/ucięć/linii/poza-stroną i twarde ogranicza ocenę do max 5 przy tych błędach.
 
 Implementacja:
 
