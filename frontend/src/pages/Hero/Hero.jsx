@@ -53,25 +53,67 @@ const ANALYSES = [
     { n: "08", title: "Układ", desc: "wyrównanie i odstępy" },
 ];
 
-// Płótno panel: headline stats strip.
+// Canvas element categories addable from the editor sidebar (connectors removed).
+const ELEMENT_TYPES = 7;
+
+// Fonts available in the picker and embedded in PDF — keep in sync with
+// EditorControls FONT_OPTIONS / App.css @font-face list.
+const FONT_GROUPS = [
+    {
+        label: "Sans",
+        items: [
+            { name: "Inter", family: "Inter, sans-serif" },
+            { name: "Roboto", family: "Roboto, sans-serif" },
+            { name: "Helvetica", family: "Helvetica, Arial, sans-serif" },
+            { name: "Montserrat", family: "Montserrat, sans-serif" },
+        ],
+    },
+    {
+        label: "Serif",
+        items: [
+            { name: "Times", family: "Times-Roman, 'Times New Roman', Times, serif" },
+            { name: "Playfair", family: "PlayfairDisplay, Georgia, serif" },
+            { name: "Cormorant", family: "CormorantGaramond, Georgia, serif" },
+            { name: "Lora", family: "Lora, Georgia, serif" },
+        ],
+    },
+    {
+        label: "Mono",
+        items: [
+            { name: "Courier", family: "Courier, 'Courier New', monospace" },
+            { name: "JetBrains", family: "JetBrainsMono, 'Courier New', monospace" },
+        ],
+    },
+];
+
+const FONT_COUNT = FONT_GROUPS.reduce((n, g) => n + g.items.length, 0);
+
+// Płótno panel: headline stats strip — one accent family for visual calm.
 const CANVAS_STATS = [
-    { num: "1:1", label: "płótno = PDF", stripe: "linear-gradient(90deg,#6C9BE6,#E5A65C)" },
+    { num: "1:1", label: "płótno = PDF", stripe: "#6C9BE6" },
     { num: "25–300%", label: "zoom bez utraty geometrii", stripe: "#6C9BE6" },
-    { num: "8", label: "typów elementów na stronie", stripe: "#E5A65C" },
-    { num: "0 kroków", label: "do stracenia — autozapis", stripe: "#6FBF8E" },
+    { num: String(ELEMENT_TYPES), label: "typów elementów na stronie", stripe: "#E5A65C" },
+    { num: String(FONT_COUNT), label: "czcionek w edytorze i PDF", stripe: "#6FBF8E" },
 ];
 
 // Płótno panel: flip cards. Front = the feature; back ("Co dokładnie dostajesz")
 // = the concrete controls you actually get. Click or Enter/Space to flip.
+// Accent cycle stays within the product palette (blue → amber → teal → coral →
+// violet → green) so the grid reads as one system, not six unrelated cards.
 const CANVAS_CARDS = [
     {
         color: "#6C9BE6", tint: "rgba(108,155,230,.14)",
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7BA6EA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z" /><path d="M9 4v16" /></svg>,
-        title: "Tekst i akapity",
-        desc: "Jednoliniowe tytuły i wielowierszowe bloki, które same się przelewają przy zmianie szerokości.",
+        title: "Tekst i typografia",
+        desc: "Tytuły i akapity z pełną kontrolą stylu — oraz biblioteką 10 czcionek zsynchronizowanych z PDF.",
         backTitle: "Typografia jak w studiu DTP",
-        bullets: ["Font, rozmiar i kolor tekstu", "Pogrubienie, kursywa, podkreślenie", "Wyrównanie, interlinia, odstępy liter", "Ten sam font w edytorze i w PDF"],
-        note: "Nagłówek sekcji ustawiasz raz — reszta CV trzyma rytm.",
+        bullets: [
+            "10 czcionek: Inter, Roboto, Helvetica, Montserrat, Times, Playfair, Cormorant, Lora, Courier, JetBrains Mono",
+            "Rozmiar, kolor, pogrubienie, kursywa, podkreślenie",
+            "Wyrównanie, interlinia, odstępy liter",
+            "Te same pliki fontów w edytorze i w eksporcie",
+        ],
+        note: "Nagłówek ustawiasz raz — reszta CV trzyma rytm.",
     },
     {
         color: "#E5A65C", tint: "rgba(229,166,92,.14)",
@@ -106,7 +148,7 @@ const CANVAS_CARDS = [
         title: "Pracuj jak projektant",
         desc: "Zaznaczaj wiele elementów, przesuwaj grupę, duplikuj i blokuj to, co ma zostać na miejscu.",
         backTitle: "Panujesz nad każdym blokiem",
-        bullets: ["Wielokrotne zaznaczenie Ctrl / Cmd", "Przesuwanie grupy, duplikowanie, usuwanie", "Blokada elementów, których nie ruszasz", "Kolejność warstw (z-index)"],
+        bullets: ["Wielokrotne zaznaczenie Ctrl / Cmd", "Przesuwanie grupy, duplikowanie, usuwanie", "Blokada elementów i dekoracji szablonu", "Kolejność warstw (z-index)"],
         note: "Zmiana układu całej sekcji to jedno przeciągnięcie, nie godzina pracy.",
     },
     {
@@ -289,7 +331,9 @@ function FeatureCard({ stripe, tint, icon, title, text, span }) {
         <div className={`${classes.card} ${span ? classes.cardSpan2 : ""}`}>
             <span className={classes.cardStripe} style={{ background: stripe }} />
             <div className={classes.cardBody}>
-                <span className={classes.cardIcon} style={{ background: tint }}>{icon}</span>
+                {icon ? (
+                    <span className={classes.cardIcon} style={{ background: tint }}>{icon}</span>
+                ) : null}
                 <h3 className={classes.cardH3}>{title}</h3>
                 <p className={classes.cardP}>{text}</p>
             </div>
@@ -560,10 +604,10 @@ export default function Hero() {
                                 <div className={classes.panelHeadCopy}>
                                     <span className={classes.eyebrowRow} style={{ color: "#7BA6EA" }}>01 — Wizualny edytor na płótnie</span>
                                     <h2 className={classes.panelTitle}>Płótno, które robi to, co Word obiecywał</h2>
-                                    <p className={classes.panelLead}>Prawdziwa strona A4 — pion lub poziom, wiele stron, zoom 25–300%. Przeciągasz, wyrównujesz i stylizujesz każdy blok, a eksport wygląda dokładnie tak jak płótno. Odwróć kartę, żeby zobaczyć, co dokładnie dostajesz.</p>
+                                    <p className={classes.panelLead}>Prawdziwa strona A4 pion, wiele stron, zoom 25–300%. Siedem typów elementów, dziesięć czcionek i prowadnice co do piksela — eksport wygląda dokładnie jak płótno. Odwróć kartę, żeby zobaczyć szczegóły.</p>
                                 </div>
                                 <div className={classes.pills}>
-                                    <span className={classes.pill}>A4 pion i poziom</span>
+                                    <span className={classes.pill}>A4 pion</span>
                                     <span className={classes.pill}>Wiele stron</span>
                                     <span className={classes.pill}>Zoom 25–300%</span>
                                     <span className={classes.pill}>Widok dwóch stron</span>
@@ -614,11 +658,18 @@ export default function Hero() {
                                 <div className={classes.panelHeadCopy}>
                                     <span className={classes.eyebrowRow} style={{ color: "#E5A65C" }}>02 — Biblioteka szablonów</span>
                                     <h2 className={classes.panelTitle}>28 systemów CV, nie generyczne „CV nr 3”</h2>
-                                    <p className={classes.panelLead}>Każdy szablon to A4 pion i realna kariera. Wybierz wygląd pod rolę, na którą aplikujesz — i uczyń go swoim.</p>
+                                    <p className={classes.panelLead}>Siedem kolekcji branżowych — każdy szablon to A4 pion i realna kariera. Wybierz wygląd pod rolę, na którą aplikujesz, i uczyń go swoim.</p>
                                 </div>
-                                <div className={classes.bigStat}>
-                                    <div className={classes.bigStatNum}>28</div>
-                                    <div className={classes.bigStatLabel}>gotowe układy</div>
+                                <div className={classes.panelHeadMeta}>
+                                    <div className={classes.bigStat}>
+                                        <div className={classes.bigStatNum}>28</div>
+                                        <div className={classes.bigStatLabel}>gotowe układy</div>
+                                    </div>
+                                    <div className={classes.pills}>
+                                        <span className={classes.pill}>7 kolekcji</span>
+                                        <span className={classes.pill}>A4 pion</span>
+                                        <span className={classes.pill}>Mockupy podglądu</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -651,27 +702,38 @@ export default function Hero() {
                         aria-hidden={panel !== 2}
                     >
                         <div className={classes.panelInner}>
-                            <div className={classes.panelHeadStack}>
-                                <span className={classes.eyebrowRow} style={{ color: "#E88A73" }}>03 — Asystent AI</span>
-                                <h2 className={classes.panelTitle}>Coach kariery na płótnie</h2>
-                                <p className={classes.panelLead}>Pływający asystent, który rozumie dokument, który właśnie edytujesz — od importu starego PDF po ocenę ATS.</p>
+                            <div className={classes.panelHead}>
+                                <div className={classes.panelHeadCopy}>
+                                    <span className={classes.eyebrowRow} style={{ color: "#E88A73" }}>03 — Asystent AI</span>
+                                    <h2 className={classes.panelTitle}>Coach kariery na płótnie</h2>
+                                    <p className={classes.panelLead}>Pływający asystent rozumie dokument, który edytujesz — od importu PDF i kreatora bio po osiem analiz i poprawki w rozmowie.</p>
+                                </div>
+                                <div className={classes.pills}>
+                                    <span className={classes.pill}>Import PDF</span>
+                                    <span className={classes.pill}>Kreator bio</span>
+                                    <span className={classes.pill}>8 analiz</span>
+                                    <span className={classes.pill}>Chat na płótnie</span>
+                                </div>
                             </div>
 
-                            <div className={classes.aiRow}>
-                                <div className={classes.aiLeft}>
+                            <div className={classes.aiStack}>
+                                <div className={classes.aiPaths}>
                                     <FeatureCard
-                                        stripe="#6C9BE6" tint="rgba(108,155,230,.14)"
-                                        icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7BA6EA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>}
+                                        stripe="#E88A73" tint="rgba(232,138,115,.14)"
+                                        icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E88A73" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>}
                                         title="Wypełnij z PDF"
-                                        text="Prześlij istniejące CV — CV STUDIO wyciąga imię, stanowisko, doświadczenie, wykształcenie i umiejętności, a potem wlewa je do dowolnego szablonu. Bez ponownego uploadu."
+                                        text="Prześlij istniejące CV — wyciągamy imię, stanowisko, doświadczenie, wykształcenie i umiejętności, potem wlewamy je do wybranego szablonu. Te same dane możesz użyć w wielu wyglądach."
                                     />
                                     <FeatureCard
-                                        stripe="#E5A65C" tint="rgba(229,166,92,.14)"
-                                        icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E5A65C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z" /><path d="M9 4v16" /></svg>}
+                                        stripe="#E88A73" tint="rgba(232,138,115,.14)"
+                                        icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E88A73" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z" /><path d="M9 4v16" /></svg>}
                                         title="Kreator krok po kroku"
                                         text="Dane osobowe, doświadczenie, wykształcenie, umiejętności, języki, własne sekcje i podsumowanie. Szkic zapisuje się automatycznie — wyjdź i wróć."
                                     />
-                                    <div className={`${classes.card} ${classes.cardSpan2}`}>
+                                </div>
+
+                                <div className={classes.aiMain}>
+                                    <div className={classes.card}>
                                         <span className={classes.cardStripe} style={{ background: "#E88A73" }} />
                                         <div className={classes.cardBody}>
                                             <div className={classes.analysesHead}>
@@ -691,39 +753,38 @@ export default function Hero() {
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className={classes.aiRight}>
-                                    <div className={classes.chatCard}>
-                                        <span className={classes.mockStripe} style={{ background: "linear-gradient(90deg,#E88A73,#6C9BE6)" }} />
-                                        <div className={classes.chatHead}>
-                                            <span className={classes.chatStatus} />
-                                            <span className={classes.chatTitle}>Asystent CV STUDIO</span>
-                                        </div>
-                                        <div className={classes.chatBody}>
-                                            <div className={classes.chatUser}>Skróć bullet points w ostatniej roli i wzmocnij czasowniki.</div>
-                                            <div className={classes.chatBot}>Proponuję 3 zmiany w sekcji <span className={classes.chatAccent}>Doświadczenie</span>. Zaakceptuj lub odrzuć każdą osobno.</div>
-                                            <div className={classes.chatActions}>
-                                                <div className={classes.chatRow}>
-                                                    <span className={classes.chatRowLabel}>Bullet 1 · wysoka istotność</span>
-                                                    <span className={classes.chatRowBtns}>
-                                                        <span className={classes.chatAccept}>Przyjmij</span>
-                                                        <span className={classes.chatReject}>Odrzuć</span>
-                                                    </span>
-                                                </div>
-                                                <div className={classes.chatRow}>
-                                                    <span className={classes.chatRowLabel}>Przesunięcie layoutu · 4 elementy</span>
-                                                    <span className={classes.chatPreview}>Podgląd</span>
+                                    <div className={classes.aiChatCol}>
+                                        <div className={classes.chatCard}>
+                                            <span className={classes.mockStripe} style={{ background: "#E88A73" }} />
+                                            <div className={classes.chatHead}>
+                                                <span className={classes.chatStatus} />
+                                                <span className={classes.chatTitle}>Asystent CV STUDIO</span>
+                                            </div>
+                                            <div className={classes.chatBody}>
+                                                <div className={classes.chatUser}>Skróć bullet points w ostatniej roli i wzmocnij czasowniki.</div>
+                                                <div className={classes.chatBot}>Proponuję 3 zmiany w sekcji <span className={classes.chatAccent}>Doświadczenie</span>. Zaakceptuj lub odrzuć każdą osobno.</div>
+                                                <div className={classes.chatActions}>
+                                                    <div className={classes.chatRow}>
+                                                        <span className={classes.chatRowLabel}>Bullet 1 · wysoka istotność</span>
+                                                        <span className={classes.chatRowBtns}>
+                                                            <span className={classes.chatAccept}>Przyjmij</span>
+                                                            <span className={classes.chatReject}>Odrzuć</span>
+                                                        </span>
+                                                    </div>
+                                                    <div className={classes.chatRow}>
+                                                        <span className={classes.chatRowLabel}>Przesunięcie layoutu · 4 elementy</span>
+                                                        <span className={classes.chatPreview}>Podgląd</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    <div className={classes.card}>
-                                        <span className={classes.cardStripe} style={{ background: "#6FBF8E" }} />
-                                        <div className={classes.cardBody}>
-                                            <h3 className={classes.cardH3}>Edycja w rozmowie</h3>
-                                            <p className={classes.cardP}>Pisz naturalnym językiem. Akceptuj lub odrzucaj poprawki per element, podglądaj grupy przesunięć layoutu, przebudowuj strukturę albo usuwaj słabe bloki — z oznaczeniem istotności, żebyś Ty miał kontrolę.</p>
+                                        <div className={classes.card}>
+                                            <span className={classes.cardStripe} style={{ background: "#E88A73" }} />
+                                            <div className={classes.cardBody}>
+                                                <h3 className={classes.cardH3}>Edycja w rozmowie</h3>
+                                                <p className={classes.cardP}>Pisz naturalnym językiem. Akceptuj lub odrzucaj poprawki per element, podglądaj grupy przesunięć layoutu — z oznaczeniem istotności, żebyś Ty miał kontrolę.</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -738,22 +799,30 @@ export default function Hero() {
                         aria-hidden={panel !== 3}
                     >
                         <div className={classes.panelInner}>
-                            <div className={classes.panelHeadStack}>
-                                <span className={classes.eyebrowRow} style={{ color: "#6FBF8E" }}>04 — Eksport wierny płótnu</span>
-                                <h2 className={classes.panelTitle}>PDF wygląda jak strona, którą zaprojektowałeś</h2>
-                                <p className={classes.panelLead}>Nie uproszczona kopia. Renderowanie po stronie serwera z dokładnego modelu elementów płótna.</p>
+                            <div className={classes.panelHead}>
+                                <div className={classes.panelHeadCopy}>
+                                    <span className={classes.eyebrowRow} style={{ color: "#6FBF8E" }}>04 — Eksport wierny płótnu</span>
+                                    <h2 className={classes.panelTitle}>PDF wygląda jak strona, którą zaprojektowałeś</h2>
+                                    <p className={classes.panelLead}>Nie uproszczona kopia. Serwer renderuje PDF z dokładnego modelu elementów — te same czcionki, ta sama geometria, ten sam układ stron.</p>
+                                </div>
+                                <div className={classes.pills}>
+                                    <span className={classes.pill}>Render 1:1</span>
+                                    <span className={classes.pill}>{FONT_COUNT} czcionek</span>
+                                    <span className={classes.pill}>Wiele stron</span>
+                                    <span className={classes.pill}>Pobierz od razu</span>
+                                </div>
                             </div>
 
                             <div className={classes.exportGrid}>
                                 <FeatureCard stripe="#6FBF8E" title="Serwerowy render" text="PDF z dokładnego modelu elementów — geometria jeden do jednego." />
-                                <FeatureCard stripe="#6C9BE6" title="Zsynchronizowane fonty" text="Inter, Roboto, Times, Helvetica i Courier — te same pliki w edytorze i w PDF." />
-                                <FeatureCard stripe="#E5A65C" title="Wiele stron" text="Zachowana liczba stron i rozmiar strony. Zoom nigdy nie zniekształca eksportu." />
-                                <FeatureCard stripe="#E88A73" title="Pobierz od razu" text="Z powiadomienia o sukcesie albo w każdej chwili z Moje dokumenty." />
+                                <FeatureCard stripe="#6FBF8E" title="Zsynchronizowane fonty" text={`${FONT_COUNT} czcionek z prawdziwymi odmianami bold/italic — te same pliki w edytorze i w PDF.`} />
+                                <FeatureCard stripe="#6FBF8E" title="Wiele stron" text="Zachowana liczba stron i rozmiar A4. Zoom nigdy nie zniekształca eksportu." />
+                                <FeatureCard stripe="#6FBF8E" title="Pobierz od razu" text="Z powiadomienia o sukcesie albo w każdej chwili z Moje dokumenty." />
                             </div>
 
                             <div className={classes.exportMocks}>
                                 <div className={classes.card}>
-                                    <span className={classes.cardStripe} style={{ background: "linear-gradient(90deg,#6FBF8E,#6C9BE6)" }} />
+                                    <span className={classes.cardStripe} style={{ background: "#6FBF8E" }} />
                                     <div className={classes.pdfRow}>
                                         <span className={classes.pdfThumb}><span>PDF</span></span>
                                         <div className={classes.pdfInfo}>
@@ -764,15 +833,31 @@ export default function Hero() {
                                         <span className={classes.pdfBtn}>Pobierz</span>
                                     </div>
                                 </div>
-                                <div className={classes.card}>
-                                    <span className={classes.cardStripe} style={{ background: "#6C9BE6" }} />
-                                    <div className={classes.fontsRow}>
-                                        <span className={classes.fontsLabel}>Fonty w pliku</span>
-                                        <span className={classes.fontSample} style={{ fontFamily: "Inter, sans-serif" }}>Inter</span>
-                                        <span className={classes.fontSample} style={{ fontFamily: "Roboto, sans-serif" }}>Roboto</span>
-                                        <span className={classes.fontSample} style={{ fontFamily: "Georgia, serif" }}>Times</span>
-                                        <span className={classes.fontSample} style={{ fontFamily: "Helvetica, Arial, sans-serif" }}>Helvetica</span>
-                                        <span className={classes.fontSample} style={{ fontFamily: "'Courier New', monospace" }}>Courier</span>
+                                <div className={`${classes.card} ${classes.fontsCard}`}>
+                                    <span className={classes.cardStripe} style={{ background: "#6FBF8E" }} />
+                                    <div className={classes.fontsShowcase}>
+                                        <div className={classes.fontsShowcaseHead}>
+                                            <span className={classes.fontsLabel}>Fonty w pliku</span>
+                                            <span className={classes.fontsCount}>{FONT_COUNT} zsynchronizowanych</span>
+                                        </div>
+                                        <div className={classes.fontsGroups}>
+                                            {FONT_GROUPS.map((group) => (
+                                                <div className={classes.fontsGroup} key={group.label}>
+                                                    <span className={classes.fontsGroupLabel}>{group.label}</span>
+                                                    <div className={classes.fontsGroupSamples}>
+                                                        {group.items.map((font) => (
+                                                            <span
+                                                                key={font.name}
+                                                                className={classes.fontSample}
+                                                                style={{ fontFamily: font.family }}
+                                                            >
+                                                                {font.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -786,29 +871,40 @@ export default function Hero() {
                         aria-hidden={panel !== 4}
                     >
                         <div className={classes.panelInner}>
-                            <div className={classes.panelHeadStack}>
-                                <span className={classes.eyebrowRow} style={{ color: "#7BA6EA" }}>05 — Konto, język i cennik</span>
-                                <h2 className={classes.panelTitle}>Za darmo na start, cały interfejs po polsku</h2>
-                                <p className={classes.panelLead}>Załóż konto, projektuj i pobieraj. Karta nie jest wymagana — AI i pełna biblioteka szablonów w planach płatnych.</p>
+                            <div className={classes.panelHead}>
+                                <div className={classes.panelHeadCopy}>
+                                    <span className={classes.eyebrowRow} style={{ color: "#7BA6EA" }}>05 — Konto, język i cennik</span>
+                                    <h2 className={classes.panelTitle}>Za darmo na start, cały interfejs po polsku</h2>
+                                    <p className={classes.panelLead}>Załóż konto, projektuj i pobieraj. Karta nie jest wymagana — AI i pełna biblioteka szablonów czekają w planach Standard i Premium.</p>
+                                </div>
+                                <div className={classes.pills}>
+                                    <span className={classes.pill}>Bez karty</span>
+                                    <span className={classes.pill}>Po polsku</span>
+                                    <span className={classes.pill}>Moje dokumenty</span>
+                                    <span className={classes.pill}>Galeria</span>
+                                </div>
                             </div>
 
                             <div className={classes.accountGrid}>
                                 <FeatureCard stripe="#6C9BE6" title="Rejestracja i logowanie" text="Login, e-mail i hasło. Na zawsze za darmo, bez karty. Bezpieczna sesja JWT — płótno jest dla zalogowanych twórców." />
-                                <FeatureCard stripe="#E5A65C" title="Moje dokumenty" text="Wyszukiwanie i sortowanie (najnowsze, najstarsze, A–Z), otwieranie, pobieranie i usuwanie projektów." />
-                                <FeatureCard stripe="#E88A73" title="Galeria obrazów" text="Wgraj obrazy raz i używaj ich w wielu projektach — z zachowaniem proporcji przy zmianie rozmiaru." />
-                                <div className={`${classes.card} ${classes.cardSpan2}`}>
-                                    <span className={classes.cardStripe} style={{ background: "linear-gradient(90deg,#6C9BE6,#E5A65C)" }} />
+                                <FeatureCard stripe="#6C9BE6" title="Moje dokumenty" text="Wyszukiwanie i sortowanie (najnowsze, najstarsze, A–Z), otwieranie, pobieranie i usuwanie projektów." />
+                                <FeatureCard stripe="#6C9BE6" title="Galeria obrazów" text="Wgraj obrazy raz i używaj ich w wielu projektach — z zachowaniem proporcji przy zmianie rozmiaru." />
+                            </div>
+
+                            <div className={classes.accountFooter}>
+                                <div className={classes.card}>
+                                    <span className={classes.cardStripe} style={{ background: "#6C9BE6" }} />
                                     <div className={classes.cardBody}>
                                         <h3 className={classes.cardH3}>Najpierw po polsku</h3>
-                                        <p className={classes.cardP} style={{ maxWidth: "640px" }}>Cały interfejs mówi po polsku: marketing, edytor, akcje AI, powiadomienia i modale. Zbudowane pod polski rynek pracy — z nagłówkami sekcji i copy, które brzmią naturalnie, a nie jak pośpieszne tłumaczenie.</p>
+                                        <p className={classes.cardP}>Cały interfejs mówi po polsku: marketing, edytor, akcje AI, powiadomienia i modale. Zbudowane pod polski rynek pracy — z nagłówkami sekcji i copy, które brzmią naturalnie.</p>
                                     </div>
                                 </div>
                                 <div className={`${classes.card} ${classes.priceCard}`}>
-                                    <span className={classes.cardStripe} style={{ background: "#6FBF8E" }} />
+                                    <span className={classes.cardStripe} style={{ background: "#6C9BE6" }} />
                                     <div className={classes.priceBody}>
                                         <span className={classes.priceEyebrow}>Plan Free</span>
                                         <div className={classes.priceValue}>0 zł</div>
-                                        <p className={classes.cardP}>Edytor, wybrane szablony i eksport PDF. Kredyty AI — w planach Standard i Premium.</p>
+                                        <p className={classes.cardP}>Edytor, 9 szablonów startowych i eksport PDF. Kredyty AI — w planach Standard i Premium.</p>
                                         <Link to="/register?plan=free" className={classes.priceCta}>
                                             Rozpocznij za darmo
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F1216" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>

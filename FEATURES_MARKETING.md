@@ -25,7 +25,7 @@ Dla każdej funkcji: **co to jest** → **co ułatwia użytkownikowi** → **dla
 
 ### 1.1. Edytor wizualny A4 (płótno WYSIWYG)
 
-**Co:** Prawdziwa strona A4 (595×842 pt), wiele stron, zaznaczanie, przeciąganie, zmiana rozmiaru, warstwy, zoom 25–300%.
+**Co:** Prawdziwa strona **A4 pion** (595×842 pt), wiele stron, **7 typów elementów** (tekst, textarea, linia, prostokąt, koło, elipsa, obraz), zaznaczanie, przeciąganie, zmiana rozmiaru, warstwy, zoom 25–300%. Łączniki nie są częścią produktu.
 
 **Ułatwia:** Projektowanie CV jak dokumentu, a nie jak formularza z „podglądem gdzieś z boku”. Widzisz ostateczny wygląd podczas edycji.
 
@@ -35,17 +35,17 @@ Dla każdej funkcji: **co to jest** → **co ułatwia użytkownikowi** → **dla
 
 ### 1.2. Typografia i bloki tekstu
 
-**Co:** Tytuły jednoliniowe i akapity wieloliniowe; font, rozmiar, kolor, pogrubienie, kursywa, podkreślenie, wyrównanie, interlinia, tracking; auto-height / reflow przy zmianie treści.
+**Co:** Tytuły jednoliniowe i akapity wieloliniowe; **10 czcionek** zsynchronizowanych z PDF (Inter, Roboto, Helvetica, Montserrat, Times, Playfair Display, Cormorant Garamond, Lora, Courier, JetBrains Mono); rozmiar, kolor, pogrubienie, kursywa, podkreślenie, wyrównanie, interlinia, tracking; auto-height / reflow.
 
-**Ułatwia:** Utrzymanie rytmu nagłówków i opisów bez ręcznego „przesuwania wszystkiego w dół” po dłuższej treści.
+**Ułatwia:** Dobór charakteru dokumentu (klasyczny serif vs nowoczesny sans vs mono) bez ryzyka, że PDF „podmieni” font.
 
-**Dlaczego dobre:** Spójna typografia = czytelność. Ten sam font w edytorze i w PDF eliminuje klasyczny problem „na ekranie ładnie, w PDFie inaczej”.
+**Dlaczego dobre:** Spójna typografia = czytelność. Te same pliki TTF w edytorze i w eksporcie eliminują klasyczny problem „na ekranie ładnie, w PDFie inaczej”.
 
 ---
 
 ### 1.3. Kształty, linie, akcenty wizualne
 
-**Co:** Prostokąty, koła, elipsy, linie; wypełnienie / obrys; kolor i grubość.
+**Co:** Prostokąty, koła, elipsy, linie; wypełnienie / obrys; kolor i grubość. (Bez łączników strzałkowych — usunięte z edytora.)
 
 **Ułatwia:** Budowanie własnego systemu wizualnego (pasek boczny, reguły sekcji, ramki) zamiast akceptowania jednego sztywnego „skina”.
 

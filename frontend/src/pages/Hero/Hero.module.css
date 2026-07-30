@@ -584,16 +584,20 @@
     }
 }
 
-.panelCanvas {
-    background: linear-gradient(180deg, #131519 0%, #171a1f 100%);
-}
-
-.panelAi {
-    background: linear-gradient(180deg, #131519 0%, #181419 100%);
-}
-
+/* Shared stage wash so panel switches feel like one section, not five pages. */
+.panelCanvas,
+.panelTemplates,
+.panelAi,
+.panelExport,
 .panelAccount {
     background: linear-gradient(180deg, #131519 0%, #171a1f 100%);
+}
+
+.panelHeadMeta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 14px;
 }
 
 .panelInner {
@@ -777,7 +781,7 @@
 
 .flipCard {
     perspective: 1500px;
-    height: 318px;
+    height: 340px;
     cursor: pointer;
     outline: none;
     border-radius: 16px;
@@ -1012,7 +1016,7 @@
 /* ---- Collections ---- */
 .collectionGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 18px;
 }
 
@@ -1049,25 +1053,30 @@
 }
 
 /* ---- AI panel ---- */
-.aiRow {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 22px;
-    align-items: stretch;
-}
-
-.aiLeft {
-    flex: 1 1 480px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 18px;
-}
-
-.aiRight {
-    flex: 1 1 320px;
+.aiStack {
     display: flex;
     flex-direction: column;
     gap: 18px;
+}
+
+.aiPaths {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+}
+
+.aiMain {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 18px;
+    align-items: stretch;
+}
+
+.aiChatCol {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
 }
 
 .analysesHead {
@@ -1235,15 +1244,68 @@
 /* ---- Export panel ---- */
 .exportGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 18px;
     margin-bottom: 18px;
 }
 
 .exportMocks {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.4fr);
     gap: 18px;
+    align-items: stretch;
+}
+
+.fontsCard {
+    min-width: 0;
+}
+
+.fontsShowcase {
+    padding: 20px 22px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.fontsShowcaseHead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.fontsCount {
+    font: 700 11px var(--body);
+    color: var(--text-3);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.fontsGroups {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px 20px;
+}
+
+.fontsGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.fontsGroupLabel {
+    font: 800 10.5px var(--body);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #6FBF8E;
+}
+
+.fontsGroupSamples {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .pdfRow {
@@ -1308,14 +1370,6 @@
     padding: 9px 14px;
 }
 
-.fontsRow {
-    padding: 20px 22px;
-    display: flex;
-    align-items: center;
-    gap: 22px;
-    flex-wrap: wrap;
-}
-
 .fontsLabel {
     font: 700 12px var(--body);
     color: #7C8593;
@@ -1324,15 +1378,27 @@
 }
 
 .fontSample {
-    font-size: 19px;
+    font-size: 20px;
+    line-height: 1.2;
     color: #DDE3EA;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ---- Account panel ---- */
 .accountGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 18px;
+    margin-bottom: 18px;
+}
+
+.accountFooter {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 18px;
+    align-items: stretch;
 }
 
 .priceCard {
@@ -2197,7 +2263,13 @@
 /* ---- Responsive ---- */
 @media only screen and (max-width: 1080px) {
     .cardSpan2 { grid-column: auto; }
-    .aiLeft { grid-template-columns: 1fr; }
+    .aiMain { grid-template-columns: 1fr; }
+    .exportGrid { grid-template-columns: repeat(2, 1fr); }
+    .exportMocks { grid-template-columns: 1fr; }
+    .accountGrid { grid-template-columns: 1fr; }
+    .accountFooter { grid-template-columns: 1fr; }
+    .collectionGrid { grid-template-columns: repeat(2, 1fr); }
+    .panelHeadMeta { align-items: flex-start; }
     .testimonialsGrid { grid-template-columns: repeat(2, 1fr); }
     .tSpan2, .tSpan3 { grid-column: span 1; }
 }
@@ -2273,6 +2345,10 @@
     .planFeatured { transform: none; }
     .canvasStats { grid-template-columns: repeat(2, 1fr); }
     .flipGrid { grid-template-columns: repeat(2, 1fr); }
+    .aiPaths { grid-template-columns: 1fr; }
+    .fontsGroups { grid-template-columns: 1fr; }
+    .collectionGrid { grid-template-columns: 1fr; }
+    .exportGrid { grid-template-columns: 1fr; }
     .testimonialsGrid { grid-template-columns: 1fr; gap: 20px; }
     .finalCta { padding: 64px 24px; min-height: 100vh; }
     .finalCtaTitle { font-size: 30px; }

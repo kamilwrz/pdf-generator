@@ -204,13 +204,15 @@ Product narrative: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 ### A4 canvas editor
 
-Interactive multi-page CV canvas with selection, drag, resize, zoom, guides.
+Interactive multi-page **A4 portrait** canvas with selection, drag, resize, zoom, guides. Seven addable element types: text, textarea, line, rectangle, circle, ellipse, image (connectors are not offered in the sidebar). Ten bundled fonts shared by editor and PDF: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono.
 
 Implementation:
 
 - `frontend/src/pages/PdfCanvas.jsx`, lines 46+, component `PdfCanvas`
 - `frontend/src/hooks/useA4Elements.js`, lines 43+, function `useA4Elements`
 - `frontend/src/components/canvas/*`
+- `frontend/src/components/common/EditorControls/EditorControls.jsx`, `FONT_OPTIONS`
+- Marketing Funkcje panel: `frontend/src/pages/Hero/Hero.jsx` (`CANVAS_STATS`, `FONT_GROUPS`, `CANVAS_CARDS`)
 
 ### Template load
 
@@ -759,9 +761,13 @@ Opis produktowy: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 ### Edytor A4
 
+Płótno **A4 pion**, wiele stron, zaznaczanie / przeciąganie / zoom / prowadnice. Siedem typów elementów do dodania: tekst, textarea, linia, prostokąt, koło, elipsa, obraz (łączniki nie są w sidebarze). Dziesięć czcionek wspólnych dla edytora i PDF: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono.
+
 - `frontend/src/pages/PdfCanvas.jsx`, `PdfCanvas` (ok. linia 46+)
 - `frontend/src/hooks/useA4Elements.js`, `useA4Elements` (ok. linia 43+)
 - `frontend/src/components/canvas/*`
+- `frontend/src/components/common/EditorControls/EditorControls.jsx`, `FONT_OPTIONS`
+- Panel Funkcje na Hero: `frontend/src/pages/Hero/Hero.jsx` (`CANVAS_STATS`, `FONT_GROUPS`, `CANVAS_CARDS`)
 
 ### Ładowanie szablonu
 

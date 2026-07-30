@@ -11,9 +11,9 @@ CV STUDIO to studio CV po polsku: wizualne płótno A4, szablony dopasowane do b
 | | |
 |---|---|
 | **Wizualnie, nie tylko formularze** | Przeciągaj, wyrównuj i stylizuj każdy blok na prawdziwej stronie — to, co widzisz, trafia do eksportu. |
-| **Szablony pod Twoją branżę** | Finanse, IT, bankowość, klasyka executive, sidebar i motywy ciemne — 24 gotowe układy. |
+| **Szablony pod Twoją branżę** | Finanse, IT, bankowość, klasyka, sidebar, motywy ciemne i Iconic — 28 gotowych układów. |
 | **AI, które bierze na siebie ciężką robotę** | Zaimportuj stare PDF, przejdź kreator bio albo porozmawiaj z asystentem o ocenach, ATS i poprawkach. |
-| **Za darmo na start** | Załóż konto, projektuj i pobieraj. Karta nie jest wymagana. Plany płatne pojawią się później. |
+| **Za darmo na start** | Załóż konto, projektuj i pobieraj. Karta nie jest wymagana. AI i pełna biblioteka — w planach Standard / Premium. |
 
 ---
 
@@ -23,7 +23,7 @@ CV STUDIO to studio CV po polsku: wizualne płótno A4, szablony dopasowane do b
 Otwórz bibliotekę, podejrzyj projekty oznaczone branżą i przenieś wybrany układ na płótno. Nowe konta trafiają tu od razu — nie zostajesz sam na pustej stronie.
 
 ### Wypełnij z PDF
-Prześlij istniejące CV. CV STUDIO wyciąga imię, stanowisko, doświadczenie, wykształcenie i umiejętności — a potem wlewa je do dowolnego szablonu. Te same dane możesz użyć w wielu wyglądach bez ponownego uploadu.
+Prześlij istniejące CV. CV STUDIO wyciąga imię, stanowisko, doświadczenie, wykształcenie i umiejętności — a potem wlewa je do dowolnego szablonu. Te same dane możesz użyć w wielu wyglądach bez ponownego uploadu. Przy wyborze szablonu zobaczysz mockup A4 na hover.
 
 ### Stwórz krok po kroku
 Wolisz kreator? Przejdź dane osobowe, doświadczenie, wykształcenie, umiejętności, języki, własne sekcje i podsumowanie. Szkic zapisuje się automatycznie — możesz wyjść i wrócić. Gdy będziesz gotowy, wygeneruj CV w wybranym szablonie.
@@ -32,20 +32,34 @@ Wolisz kreator? Przejdź dane osobowe, doświadczenie, wykształcenie, umiejętn
 
 ## Wizualny edytor na płótnie
 
-Pełna przestrzeń twórcza na A4 pion lub poziom — wiele stron, gdy historia tego potrzebuje.
+Pełna przestrzeń twórcza na **A4 pion** (595×842 pt) — wiele stron, gdy historia tego potrzebuje.
 
-### Buduj precyzyjnie
-- **Tekst i akapity** — jednoliniowe tytuły i wieloliniowe bloki z fontami, rozmiarem, kolorem, pogrubieniem, kursywą, podkreśleniem, wyrównaniem, interliną i odstępami liter  
-- **Kształty i linie** — prostokąty, koła, elipsy, linie; wypełnienie lub obrys, grubość i kolor krawędzi  
-- **Łączniki** — połącz elementy opcjonalnymi strzałkami w systemach akcentów redakcyjnych  
-- **Obrazy** — wgraj do galerii, umieść na stronie, zachowaj proporcje przy zmianie rozmiaru  
+### Siedem typów elementów
+- **Tekst** — jednoliniowe tytuły i etykiety  
+- **Pole tekstowe (textarea)** — wieloliniowe bloki z auto-height / reflow  
+- **Linia** — podziały i akcenty  
+- **Prostokąt · koło · elipsa** — wypełnienie lub obrys, grubość i kolor krawędzi  
+- **Obraz** — z galerii konta, ze skalowaniem proporcji  
+
+> Łączniki (connectors) zostały usunięte z edytora — nie są częścią aktualnej oferty.
+
+### Typografia — 10 czcionek
+Te same pliki w edytorze i w PDF (z prawdziwymi odmianami bold / italic):
+
+| Rodzina | Czcionki |
+|---|---|
+| **Sans** | Inter · Roboto · Helvetica · Montserrat |
+| **Serif** | Times · Playfair Display · Cormorant Garamond · Lora |
+| **Mono** | Courier · JetBrains Mono |
+
+Dodatkowo: rozmiar, kolor, pogrubienie, kursywa, podkreślenie, wyrównanie, interlinia, odstępy liter.
 
 ### Pracuj jak projektant
 - Wielokrotne zaznaczenie Ctrl/Cmd, przesuwanie grupy, duplikowanie i usuwanie  
-- Prowadnice wyrównania podczas przeciągania; pomarańczowe markery pokazują dokładny odstęp w pikselach między krawędziami elementów  
-- Blokada elementów, których nie chcesz ruszać  
+- Prowadnice wyrównania; pomarańczowe markery z odstępem w pikselach  
+- Blokada elementów oraz nienaruszalne dekoracje szablonu (`fixedToPage`)  
 - Kolejność warstw (z-index), wyrównanie do strony: lewo / środek / prawo  
-- Zoom 25%–300% do precyzyjnej pracy (eksport zostaje w rozmiarze dokumentu)  
+- Zoom 25%–300% (eksport zostaje w rozmiarze dokumentu)  
 - Widok dwóch stron przy dłuższych CV  
 - Dodawanie, klonowanie, zmiana kolejności i usuwanie stron  
 
@@ -56,7 +70,7 @@ Pełna przestrzeń twórcza na A4 pion lub poziom — wiele stron, gdy historia 
 
 ---
 
-## Biblioteka szablonów — 24 systemy CV
+## Biblioteka szablonów — 28 systemów CV
 
 Każdy szablon to A4 pion i realna kariera — nie generyczne „CV nr 3”.
 
@@ -68,6 +82,7 @@ Każdy szablon to A4 pion i realna kariera — nie generyczne „CV nr 3”.
 | **Sidebar** | Quarry · Moss · Garnet · Harbor | Nocny system, botanika, art déco, morski klimat |
 | **Banking** | Vault · Clearing · Herald · Signal | Private banking, operacje, wealth, ryzyko i treasury |
 | **Dark** | Obsidian · Raven · Graphite · Onyx | Panel boczny, pasek górny, minimal, rama dyplomatyczna |
+| **Iconic** | Nova · Ridge · Loom · Volt | Ikona przy kontakcie i sekcjach, cztery systemy typograficzne |
 
 Wybierz wygląd pod rolę, na którą aplikujesz — i uczyn go swoim.
 
@@ -95,8 +110,8 @@ Pisz naturalnym językiem. Akceptuj lub odrzucaj poprawki per element, podgląda
 ## Eksport wierny płótnu
 
 - PDF po stronie serwera z dokładnego modelu elementów  
-- Fonty zsynchronizowane między edytorem a plikiem (m.in. Inter, Roboto, Times, Helvetica, Courier)  
-- Zachowane wiele stron i rozmiar strony  
+- **10 czcionek** zsynchronizowanych między edytorem a plikiem  
+- Zachowane wiele stron i rozmiar A4 pion  
 - Pobierz z powiadomienia o sukcesie albo z **Moje dokumenty**  
 - Zoom nigdy nie zniekształca geometrii eksportu  
 
@@ -106,7 +121,7 @@ Twój PDF wygląda jak strona, którą zaprojektowałeś — nie jak uproszczona
 
 ## Konto i dokumenty
 
-- **Rejestracja / logowanie** loginem, e-mailem i hasłem — na zawsze za darmo, bez karty  
+- **Rejestracja / logowanie** loginem, e-mailem i hasłem — Free bez karty  
 - **Moje dokumenty** — wyszukiwanie, sortowanie (najnowsze, najstarsze, A–Z), otwieranie, pobieranie, usuwanie  
 - **Galeria** — wgraj obrazy raz, używaj w wielu projektach  
 - Bezpieczna sesja JWT; płótno jest dla zalogowanych twórców  
@@ -119,11 +134,15 @@ Cały interfejs mówi po polsku: marketing, edytor, akcje AI, powiadomienia i mo
 
 ---
 
-## Cennik dziś
+## Cennik
 
-**Twórz za darmo.** Projektuj CV, korzystaj z szablonów, uruchamiaj narzędzia AI i eksportuj PDF-y.
+| Plan | Co dostajesz |
+|---|---|
+| **Free** | Edytor A4, 9 szablonów startowych, limity projektów i eksportów; bez asystenta AI |
+| **Standard** | AI (kredyty), wszystkie 28 szablonów, import PDF + kreator bio, wyższe limity |
+| **Premium** | Więcej kredytów AI, bez limitu projektów i eksportów |
 
-Plany płatne z dodatkowymi szablonami i limitami AI są na roadmapie („Już wkrótce” w sekcji cennika). Do tego czasu zacznij za darmo i wyślij CV, które otwiera drzwi na rozmowę.
+Model kredytów: ok. 1 kredyt ≈ 5 gr — rozliczenie zbliżone do realnego użycia.
 
 ---
 
@@ -139,15 +158,16 @@ Plany płatne z dodatkowymi szablonami i limitami AI są na roadmapie („Już w
 
 | Możliwość | Co dostajesz |
 |---|---|
-| Płótno | Pełny edytor wizualny A4, wiele stron, zoom, prowadnice |
-| Szablony | 24 systemy CV dopasowane do branż |
+| Płótno | Edytor A4 pion, 7 typów elementów, wiele stron, zoom, prowadnice |
+| Typografia | 10 czcionek zsynchronizowanych z PDF |
+| Szablony | 28 systemów CV w 7 kolekcjach |
 | Import AI | Wypełnij dowolny szablon z przesłanego PDF |
-| Kreator AI | Bio krok po kroku z zapisem szkicu |
-| Coach AI | Oceny, ATS, gramatyka, styl, dopasowanie, poprawki układu |
+| Kreator | Bio krok po kroku z zapisem szkicu |
+| Coach AI | 8 analiz + chat z akceptacją poprawek |
 | Eksport | Wierny, wielostronicowy PDF |
-| Biblioteka | Zapisane projekty + galeria obrazów |
+| Biblioteka | Projekty + galeria obrazów |
 | Język | Interfejs po polsku |
-| Koszt | Za darmo na start · plany płatne wkrótce |
+| Koszt | Free na start · Standard / Premium z AI |
 
 ---
 
