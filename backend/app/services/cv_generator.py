@@ -30,7 +30,7 @@ from app.services.pdf_generator import PDF_Generator
 
 A4_H = 842
 # Match classic frames + frontend textarea reflow (pageTop 66 / bottomMargin 96).
-MARGIN_BOTTOM = 48
+MARGIN_BOTTOM = 24
 PAGE_TOP = 66
 CONTENT_BOTTOM = A4_H - MARGIN_BOTTOM  # 746
 
