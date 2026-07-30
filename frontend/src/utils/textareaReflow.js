@@ -9,6 +9,8 @@ const NEARBY_DECORATION_CATEGORIES = new Set(["line", "rectangle", "circle", "el
 const DECORATION_LANE_TOLERANCE = 32;
 // Ridge rail icons sit ~36px left of the main column; keep a little headroom.
 const TEXT_ALIGNED_IMAGE_LANE_TOLERANCE = 40;
+// Matches backend SPACE_STACK: title → meta / body inside one CV record.
+const SPACE_STACK = 4;
 // Matches backend SPACE_RECORD: used when reclaiming a page-break gap so later
 // blocks pack into freed space instead of keeping the empty page-bottom hole.
 const DEFAULT_PACK_GAP = 14;
@@ -137,6 +139,30 @@ function rawSamePageGap(current, previousOriginal) {
 }
 
 /**
+ * Intra-record stack gap (SPACE_STACK) for consecutive textareas that look like
+ * title → meta/body: larger or bold line above a smaller line.
+ *
+ * Backend generators always author those pairs with SPACE_STACK (4). Independent
+ * auto-height passes can inflate that to SPACE_RECORD (14) — either by treating
+ * a stale page mismatch as a page-break seam, or by shrinking a title without
+ * moving its meta and then preserving the inflated top-to-top distance. When
+ * this helper returns a value, packing must use it from the previous placed
+ * bottom and ignore the (possibly corrupted) authored gap.
+ *
+ * Meta → next title keeps SPACE_RECORD because the smaller line comes first.
+ */
+function recordStackGap(previous, current) {
+  if (previous?.category !== "textarea" || current?.category !== "textarea") {
+    return null;
+  }
+  const prevFs = number(previous.fontSize);
+  const currFs = number(current.fontSize);
+  if (prevFs > currFs + 0.5) return SPACE_STACK;
+  if (previous.bold && prevFs >= currFs - 0.01) return SPACE_STACK;
+  return null;
+}
+
+/**
  * If `current` is section chrome and the following body cannot share this page,
  * bump the chrome to the next page so headings are never orphaned above the footer.
  *
@@ -231,13 +257,38 @@ export function reflowTextareaHeight(
 
   const oldHeight = elementHeight(target);
   const delta = nextHeight - oldHeight;
-  if (Math.abs(delta) < 0.5) {
-    return { elements, pageCount: Math.max(1, ...elements.map(pageOf)), changed: false };
-  }
-
   const safePageHeight = Math.max(1, number(pageHeight, 842));
   const oldTargetTop = absoluteTop(target, safePageHeight);
   const oldTargetBottom = oldTargetTop + oldHeight;
+
+  // Even when this box's height is already correct, a following title→meta
+  // pair may still carry an inflated gap from an earlier settle. Detect that
+  // before bailing out so load/font passes can heal without a height delta.
+  if (Math.abs(delta) < 0.5) {
+    const following = elements
+      .filter((element) => (
+        FLOWABLE_CATEGORIES.has(element.category)
+        && !element.fixedToPage
+        && !element.locked
+        && element.element_id !== elementId
+        && absoluteTop(element, safePageHeight) >= oldTargetBottom - 0.01
+        && belongsToFlowLane(target, element)
+      ))
+      .sort((left, right) => (
+        absoluteTop(left, safePageHeight) - absoluteTop(right, safePageHeight)
+      ));
+    const nextInLane = following[0];
+    const stackGap = nextInLane ? recordStackGap(target, nextInLane) : null;
+    if (stackGap == null) {
+      return { elements, pageCount: Math.max(1, ...elements.map(pageOf)), changed: false };
+    }
+    const actualGap = absoluteTop(nextInLane, safePageHeight) - oldTargetBottom;
+    if (Math.abs(actualGap - stackGap) < 0.5) {
+      return { elements, pageCount: Math.max(1, ...elements.map(pageOf)), changed: false };
+    }
+    // Fall through and re-pack with an unchanged height to restore SPACE_STACK.
+  }
+
   const originalTargetPage = pageOf(target);
 
   let targetPage = originalTargetPage;
@@ -326,9 +377,14 @@ export function reflowTextareaHeight(
     const height = elementHeight(current);
     const currentOriginalTop = absoluteTop(current, safePageHeight);
     const crossedPage = pageOf(current) > pageOf(previousOriginal);
+    const stackGap = recordStackGap(previousOriginal, current);
 
     let nextAbsolute;
-    if (crossedPage) {
+    if (stackGap != null) {
+      // Title → meta/body inside one record: always SPACE_STACK from the
+      // previous placed bottom. Heals gaps already inflated to SPACE_RECORD.
+      nextAbsolute = previousPlacedBottom + stackGap;
+    } else if (crossedPage) {
       // `page` fields can go briefly out of sync across independent reflow
       // passes (each auto-height textarea measures and settles on its own).
       // Before treating this as a genuine page-break seam, check whether the
@@ -345,9 +401,23 @@ export function reflowTextareaHeight(
     } else if (previousOriginal.element_id === elementId) {
       nextAbsolute = newTargetBottom + Math.max(0, currentOriginalTop - oldTargetBottom);
     } else {
-      nextAbsolute = previousPlacedTop + (
-        currentOriginalTop - absoluteTop(previousOriginal, safePageHeight)
+      // Prefer bottom + authored gap for nearby textareas so a prior height
+      // settle cannot silently convert SPACE_STACK into SPACE_RECORD via
+      // top-to-top packing. Keep top-to-top for larger spans / chrome rhythm.
+      const previousOriginalTop = absoluteTop(previousOriginal, safePageHeight);
+      const authoredGap = currentOriginalTop - (
+        previousOriginalTop + elementHeight(previousOriginal)
       );
+      if (
+        (previousOriginal.category === "textarea" || previousOriginal.category === "text")
+        && (current.category === "textarea" || current.category === "text")
+        && authoredGap >= -0.5
+        && authoredGap <= DEFAULT_PACK_GAP
+      ) {
+        nextAbsolute = previousPlacedBottom + Math.max(0, authoredGap);
+      } else {
+        nextAbsolute = previousPlacedTop + (currentOriginalTop - previousOriginalTop);
+      }
     }
 
     let { page, top } = toPagePosition(
