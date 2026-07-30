@@ -355,7 +355,7 @@ Implementation:
 - `frontend/src/utils/elementBounds.js`, `measureElements` — `layout_bounds`, `content_height`, `clipped`, `bounds_estimated`
 - `backend/app/api/routes/ai_assistant.py`, `ai_assistant` (action `layout`), `TokenUsage`
 - `backend/app/services/ai_assistant_service.py`, `_layout_session`, `_model_for_action`, `_chat`, `_rate_design`
-- `backend/app/services/layout_gpt.py`, `LAYOUT_CORRECTOR_SYSTEM`, `build_layout_user_prompt`, `build_layout_snapshot`, `compile_layout_gpt_response`
+- `backend/app/services/layout_gpt.py`, `LAYOUT_CORRECTOR_SYSTEM`, `build_layout_user_prompt`, `build_layout_snapshot`, `build_section_rhythm`, `compile_layout_gpt_response`
 - `backend/app/services/layout_analysis.py`, `resolve_directed_operation`, `summarize_geometry_issues`
 - `backend/app/services/openai_pricing.py`, `usage_from_response`, `estimate_cost_usd`
 
@@ -932,7 +932,7 @@ Implementacja:
 - `frontend/src/utils/elementBounds.js` — `measureElements`
 - `backend/app/api/routes/ai_assistant.py` — akcja `layout`, `TokenUsage`
 - `backend/app/services/ai_assistant_service.py` — `_layout_session`, `_model_for_action`
-- `backend/app/services/layout_gpt.py` — `LAYOUT_CORRECTOR_SYSTEM`, `build_layout_user_prompt`, `build_layout_snapshot`, `compile_layout_gpt_response`
+- `backend/app/services/layout_gpt.py` — `LAYOUT_CORRECTOR_SYSTEM`, `build_layout_user_prompt`, `build_layout_snapshot`, `build_section_rhythm`, `compile_layout_gpt_response`
 - `backend/app/services/layout_analysis.py` — `resolve_directed_operation`, `summarize_geometry_issues`
 - `backend/app/services/openai_pricing.py` — `usage_from_response`, `estimate_cost_usd`
 

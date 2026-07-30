@@ -784,9 +784,11 @@ Komentarz w `ai_assistant_service.py` wyjaśnia powód: bezpośrednie współrz�
 1. Kliknięcie **Układ** włącza tryb (przycisk zostaje zaznaczony).
 2. Backend buduje `build_layout_snapshot` — wszystkie strony i elementy z
    `left`/`top`/`width`/`height`/`page`/`fontSize`/… oraz flagą `movable`.
-3. Wywołanie idzie na model `AI_LAYOUT_MODEL` (domyślnie `gpt-5.6-sol`) z promptem
-   korektora (`LAYOUT_CORRECTOR_SYSTEM` + `build_layout_user_prompt`): rytm odstępów,
-   wyrównania nagłówków/dat/ikon, kolumny, nachodzenia — bez zmiany treści/fontów.
+3. Snapshot zawiera też `section_rhythm` (Python liczy `header_to_body_gap` /
+   `line_to_body_gap` i `outliers`) — model nie może mylić tego z wyrównaniem
+   icon.top−header.top. Wywołanie idzie na `AI_LAYOUT_MODEL` (domyślnie
+   `gpt-5.6-sol`) z promptem korektora: rytm odstępów, wyrównania, kolumny,
+   nachodzenia — bez zmiany treści/fontów.
 4. GPT zwraca `status` + `summary` + opcjonalne `changes[]` (grupy logiczne z
    `before`/`after` lub wspólnym `delta`). Stary format `findings[].moves` też działa.
 5. Python (`compile_layout_gpt_response`) mapuje to na `layout_issues` + karty

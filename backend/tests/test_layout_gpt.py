@@ -7,6 +7,7 @@ from app.services.layout_gpt import (
     MAX_LAYOUT_MOVE_PX,
     build_layout_snapshot,
     build_layout_user_prompt,
+    build_section_rhythm,
     compile_layout_gpt_response,
 )
 
@@ -51,8 +52,38 @@ class LayoutGptTests(unittest.TestCase):
         self.assertIn("changes", prompt)
         self.assertIn("no_changes", prompt)
         self.assertIn("gap = next.top", prompt)
+        self.assertIn("section_rhythm", prompt)
         self.assertTrue(LAYOUT_CORRECTOR_SYSTEM.startswith("Jesteś korektorem"))
         self.assertIn("rytm", DEFAULT_LAYOUT_QUESTION.lower())
+
+    def test_section_rhythm_flags_header_to_body_outliers(self):
+        # Two headers ~14–16 px to body; DOŚWIADCZENIE only ~8 px (user: 6 vs 14).
+        elements = [
+            el("h1", 70, 180, height=16, category="text", content="PODSUMOWANIE ZAWODOWE", bold=True),
+            el("l1", 70, 198, width=400, height=2, category="line"),
+            el("b1", 70, 212, height=40, content="Aml analyst summary paragraph"),
+
+            el("h2", 70, 280, height=16, category="text", content="DOŚWIADCZENIE ZAWODOWE", bold=True),
+            el("l2", 70, 298, width=400, height=2, category="line"),
+            el("b2", 70, 304, height=20, content="Senior AML Analyst"),
+
+            el("h3", 70, 400, height=16, category="text", content="UMIEJĘTNOŚCI", bold=True),
+            el("l3", 70, 418, width=400, height=2, category="line"),
+            el("b3", 70, 432, height=20, content="Python and SQL skills"),
+        ]
+        snap = build_layout_snapshot(elements, PAGE)
+        rhythm = snap["section_rhythm"]
+        self.assertEqual(len(rhythm["sections"]), 3)
+        by_section = {row["section"]: row for row in rhythm["sections"]}
+        self.assertAlmostEqual(by_section["DOŚWIADCZENIE ZAWODOWE"]["header_to_body_gap"], 8.0, places=1)
+        self.assertAlmostEqual(by_section["PODSUMOWANIE ZAWODOWE"]["header_to_body_gap"], 16.0, places=1)
+        self.assertAlmostEqual(by_section["UMIEJĘTNOŚCI"]["header_to_body_gap"], 16.0, places=1)
+        outlier_sections = {o["section"] for o in rhythm["outliers"] if o["metric"] == "header_to_body_gap"}
+        self.assertIn("DOŚWIADCZENIE ZAWODOWE", outlier_sections)
+        self.assertEqual(
+            build_section_rhythm(snap["elements"])["median_header_to_body_gap"],
+            rhythm["median_header_to_body_gap"],
+        )
 
     def test_compile_findings_to_layout_groups(self):
         elements = [
