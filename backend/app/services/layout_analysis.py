@@ -865,16 +865,35 @@ def _overlap_issues(
     return issues
 
 
+def _is_static_template_chrome(item: dict[str, Any]) -> bool:
+    """Return whether an item is permanent template chrome, not CV content.
+
+    Full-page background images and fixed rules intentionally share space with
+    content. Counting them as a collision would make every decorated template
+    fail the design rating. Do not use z-index as a proxy here: editable user
+    images can also be behind text and must remain eligible for validation.
+    """
+    return bool(item.get("fixedToPage") or item.get("locked"))
+
+
 def summarize_geometry_issues(
     elements: list[dict[str, Any]],
     page_size: dict[str, Any] | None = None,
 ) -> dict[str, int]:
-    """Count hard geometry problems for design rating caps and diagnostics."""
+    """Count hard faults in editable CV content for design-score safety caps."""
     page_size = page_size or {}
     page_width = _number(page_size.get("width"), 595.0)
     page_height = _number(page_size.get("height"), 842.0)
-    content = extract_bounds(elements, AUTO_LAYOUT_CATEGORIES)
-    decorations = extract_bounds(elements, {"line", "rectangle"})
+    content = [
+        item
+        for item in extract_bounds(elements, AUTO_LAYOUT_CATEGORIES)
+        if not _is_static_template_chrome(item)
+    ]
+    decorations = [
+        item
+        for item in extract_bounds(elements, {"line", "rectangle"})
+        if not _is_static_template_chrome(item)
+    ]
     rules = [item for item in decorations if _is_section_rule(item)]
 
     overlaps = 0

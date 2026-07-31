@@ -723,6 +723,62 @@ class DesignRatingTemplateRespectTests(unittest.TestCase):
         self.assertFalse(any("Geometria:" in tip for tip in result["tips"]))
         self.assertNotIn("koliz", result["message"].lower())
 
+    def test_design_rating_ignores_fixed_template_backgrounds(self):
+        elements = [
+            {
+                "element_id": "background-image",
+                "category": "image",
+                "left": 0,
+                "top": 0,
+                "width": 100,
+                "height": 100,
+                "page": 1,
+                "zIndex": 0,
+                "fixedToPage": True,
+            },
+            {
+                "element_id": "background-rule",
+                "category": "line",
+                "left": 0,
+                "top": 15,
+                "width": 100,
+                "height": 1,
+                "page": 1,
+                "zIndex": 1,
+                "fixedToPage": True,
+            },
+            {
+                "element_id": "content",
+                "category": "textarea",
+                "content": "Treść doświadczenia zawodowego.",
+                "fontSize": 11,
+                "left": 10,
+                "top": 5,
+                "width": 60,
+                "height": 20,
+                "page": 1,
+                "zIndex": 3,
+            },
+        ]
+
+        def fake_gpt(system, user, **kwargs):
+            return {
+                "message": "Hierarchia i typografia są spójne.",
+                "rating": 9,
+                "tips": ["Hierarchia jest czytelna."],
+                "corrections": [],
+            }, {"tokens": 1}
+
+        with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
+            result = ai_assistant_service.analyze_action(
+                action="design_rating",
+                elements=elements,
+                message="",
+                page_size={"width": 100, "height": 100},
+            )
+
+        self.assertEqual(result["rating"], 9)
+
 
 if __name__ == "__main__":
     unittest.main()
