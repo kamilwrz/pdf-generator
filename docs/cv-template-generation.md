@@ -242,16 +242,16 @@ Liczba bloków doświadczenia = liczba wpisów w `cv_data["experience"]`. Jeśli
 | Motyw | Funkcja bazowa | Szablony |
 |---|---|---|
 | Banking | `_gen_banking_theme(cv, theme)` | vault, clearing, herald, signal |
-| IT | `_gen_it_theme(cv, theme)` | vector, kernel, relay, lattice |
+| IT | `_gen_it_theme(cv, theme)` | vector, kernel, relay |
 | Classic | `_gen_classic_theme(cv, theme)` | scribe, regent, aldine, merit |
-| Sidebar (jasne) | `_gen_sidebar_theme(cv, theme)` | quarry, moss, garnet, harbor |
+| Sidebar (jasne) | `_gen_moss(cv)` | moss |
 | Własne generatory | osobne `_gen_*` | ledger, nimbus, cinder, rift, obsidian, raven, graphite, onyx |
 
 Motyw współdzielony różnicuje głównie **paletę, asset PNG, kształt markera sekcji i detale headera**; algorytm flow (summary → experience → …) jest wspólny.
 
 ### 6.6 Sidebar: co trafia na lewy panel
 
-Dla quarry / moss / garnet / harbor działa wspólna logika:
+Dla moss działa wspólna logika:
 
 1. `_sidebar_candidates` — buduje kandydatów: skills, languages/certyfikaty/zainteresowania z `extra_sections`, education.
 2. `_fit_sidebar_sections` — wkłada na pierwszą stronę **tylko kompletne sekcje**, które mieszczą się w budżecie wysokości (z próbą mniejszych fontów). Sekcja za duża **nie jest ucinana** — spada do kolumny głównej.

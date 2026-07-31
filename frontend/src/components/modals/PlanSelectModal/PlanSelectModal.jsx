@@ -15,21 +15,21 @@ const FALLBACK_PLANS = [
         name: "Free",
         price_pln: 0,
         blurb: "Edytor, wybrane szablony i eksport PDF.",
-        highlights: ["8 szablonów startowych", "1 projekt · 3 eksporty / mies.", "Bez Asystenta AI"],
+        highlights: ["7 szablonów startowych", "1 projekt · 3 eksporty / mies.", "Bez Asystenta AI"],
     },
     {
         slug: "standard",
         name: "Standard",
         price_pln: 29,
         blurb: "Analizy AI treści i pełna biblioteka szablonów.",
-        highlights: ["150 kredytów AI / mies.", "CV, projekt, dopasowanie, gramatyka, styl i ATS", "Wszystkie 28 szablonów", "10 projektów · 30 eksportów / mies."],
+        highlights: ["150 kredytów AI / mies.", "CV, projekt, dopasowanie, gramatyka, styl i ATS", "Wszystkie 24 szablony", "10 projektów · 30 eksportów / mies."],
     },
     {
         slug: "premium",
         name: "Premium",
         price_pln: 49,
         blurb: "Tryb Układ AI i bez limitów projektów.",
-        highlights: ["300 kredytów AI / mies.", "Tryb Układ: geometria i propozycje zmian", "Wszystkie 28 szablonów", "Bez limitu projektów i eksportów"],
+        highlights: ["300 kredytów AI / mies.", "Tryb Układ: geometria i propozycje zmian", "Wszystkie 24 szablony", "Bez limitu projektów i eksportów"],
     },
 ];
 

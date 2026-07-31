@@ -7,10 +7,10 @@ using the visual style of the chosen template. The number of
 experience / education blocks matches the CV exactly — no slots, no
 truncation, multi-page when content overflows.
 
-Theme families share a flow helper (`_gen_banking_theme`, `_gen_it_theme`,
-`_gen_classic_theme`, `_gen_sidebar_theme`); thin `_gen_<id>` wrappers pick
-palette/geometry. Vertical rhythm constants (`SPACE_*`) keep section/record
-spacing consistent across families. Page chrome uses `fixedToPage=True`.
+Theme families share flow helpers (`_gen_banking_theme`, `_gen_it_theme`,
+`_gen_classic_theme`); the Moss sidebar has its own `_gen_moss` layout.
+Vertical rhythm constants (`SPACE_*`) keep section/record spacing consistent
+across families. Page chrome uses `fixedToPage=True`.
 """
 
 from __future__ import annotations
@@ -1514,7 +1514,7 @@ def _gen_rift(cv: dict) -> list[dict]:
 
 
 def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
-    """Four distinct IT CV systems with shared safe, multi-page content flow."""
+    """Three distinct IT CV systems with shared safe, multi-page content flow."""
     themes = {
         "vector": {
             "asset": "vector-it-network.png",
@@ -1536,13 +1536,6 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
             "ink": "#F7F6F1", "body": "#F7F6F1", "muted": "#92989C",
             "accent": "#F47B20", "marker": "#EE2525", "rule": "#596065",
             "font": "Inter", "display": "Inter",
-        },
-        "lattice": {
-            "asset": "lattice-it-cloud.png",
-            "left": 103, "width": 424, "start": 184, "continuation": 78,
-            "ink": "#26336D", "body": "#2C3852", "muted": "#64708A",
-            "accent": "#5B62BA", "marker": "#F37E71", "rule": "#B9C4DC",
-            "font": "Inter", "display": "Times-Roman",
         },
     }
     if theme not in themes:
@@ -1612,22 +1605,6 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
         ]
         header[2]["letterSpacing"] = 0.3
         header[3]["letterSpacing"] = 0.9
-    else:
-        orbit_one = {**_ellipse(411, 50, 53, 28, "#8587D8", borderWidth=1.2, zIndex=3), "id": "lattice-orbit-one"}
-        orbit_two = {**_circle(434, 56, 16, "#8DE6ED", filled=True, zIndex=3), "id": "lattice-orbit-two"}
-        orbit_three = {**_circle(491, 56, 16, C["marker"], filled=True, zIndex=3), "id": "lattice-orbit-three"}
-        header = [
-            _line(70, 44, 6, 112, C["ink"], zIndex=3),
-            _rect(402, 42, 129, 51, C["rule"], 0.8, zIndex=2),
-            _text(name, 29, DISPLAY, C["ink"], L, 50, zIndex=3, bold=True),
-            _text(title, 8.8, SANS, C["accent"], L, 93, zIndex=3),
-            _text(contact, 8.6, SANS, C["muted"], L, 121, zIndex=3),
-            orbit_one, orbit_two, orbit_three,
-            _line(450, 63, 41, 1, C["marker"], zIndex=2),
-        ]
-        header[2]["letterSpacing"] = 0.1
-        header[3]["letterSpacing"] = 1.35
-
     SECTION_CHROME = section_chrome_height(8.5)
     title_fs = 11 if theme != "relay" else 10.8
     meta_fs = 8.7 if theme != "relay" else 8.6
@@ -1672,11 +1649,6 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
             b.els.extend([
                 _circle(L - 31, marker_y, 18, C["marker"], borderWidth=1.2, zIndex=3, page=b.pg),
                 _rect(L - 25, marker_y + 6, 6, 6, C["accent"], 1, zIndex=3, page=b.pg),
-            ])
-        else:
-            b.els.extend([
-                _ellipse(L - 29, marker_y, 16, 16, "#8587D8", borderWidth=1.2, zIndex=3, page=b.pg),
-                _circle(L - 25, marker_y + 4, 8, C["marker"], filled=True, zIndex=3, page=b.pg),
             ])
         b.text(label, 8.5 if theme != "relay" else 8.3,
                "Courier" if theme == "relay" else SANS, C["accent"], L)
@@ -1774,10 +1746,6 @@ def _gen_kernel(cv: dict) -> list[dict]:
 
 def _gen_relay(cv: dict) -> list[dict]:
     return _gen_it_theme(cv, "relay")
-
-
-def _gen_lattice(cv: dict) -> list[dict]:
-    return _gen_it_theme(cv, "lattice")
 
 
 def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
@@ -2042,38 +2010,14 @@ def _gen_merit(cv: dict) -> list[dict]:
     return _gen_classic_theme(cv, "merit")
 
 
-def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
-    """Minimal, generated narrow-sidebars that repeat on every content page."""
-    themes = {
-        "quarry": {
-            "asset": "quarry-sidebar-v2.png", "paper": "#F7FAFC", "ink": "#13293D",
-            "body": "#13293D", "accent": "#37D1EE", "marker": "#B7D84B",
-            "muted": "#607384", "rule": "#C7D5DE", "side_text": "#F3F7FC",
-            "side_label": "#37D1EE", "section": "circle",
-        },
-        "moss": {
-            "asset": "moss-sidebar.png", "paper": "#FBFAF6", "ink": "#274232",
-            "body": "#344238", "accent": "#B99854", "marker": "#73856E",
-            "muted": "#798078", "rule": "#D5D0C2", "side_text": "#274232",
-            "side_label": "#274232", "section": "ellipse",
-        },
-        "garnet": {
-            "asset": "garnet-sidebar.png", "paper": "#FBF8F5", "ink": "#2A2023",
-            "body": "#2A2023", "accent": "#C7A66A", "marker": "#722E3C",
-            "muted": "#7D6D70", "rule": "#DFCFC7", "side_text": "#FFF8F4",
-            "side_label": "#F4DEDE", "section": "rectangle",
-        },
-        "harbor": {
-            "asset": "harbor-sidebar-v3.png", "paper": "#FAFBFB", "ink": "#1D3446",
-            "body": "#1D3446", "accent": "#B78355", "marker": "#527286",
-            "muted": "#6E7E88", "rule": "#CBD5D9", "side_text": "#F7FAFB",
-            "side_label": "#EAF0F3", "section": "circle",
-        },
+def _gen_moss(cv: dict) -> list[dict]:
+    """Generate the Moss narrow-sidebar layout on every content page."""
+    C = {
+        "asset": "moss-sidebar.png", "paper": "#FBFAF6", "ink": "#274232",
+        "body": "#344238", "accent": "#B99854", "marker": "#73856E",
+        "muted": "#798078", "rule": "#D5D0C2", "side_text": "#274232",
+        "side_label": "#274232",
     }
-    if theme not in themes:
-        raise ValueError(f"Nieznany motyw sidebara: {theme}")
-
-    C = themes[theme]
     SIDE, L, W = 184, 220, 326
     SANS, SERIF = "Inter", "Times-Roman"
     lbl = _labels(cv)
@@ -2111,9 +2055,9 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
     title = _compact_text(cv.get("title"), 54).upper()
     contact_line = _compact_text(_contact_line(cv), 78)
 
-    frame = {**_rect(462, 52, 58, 54, C["accent"], 0.85, zIndex=3), "id": f"{theme}-frame"}
-    orbit = {**_ellipse(472, 62, 35, 17, C["marker"], borderWidth=1, zIndex=3), "id": f"{theme}-orbit"}
-    node = {**_circle(484, 82, 11, C["accent"], filled=True, zIndex=3), "id": f"{theme}-node"}
+    frame = {**_rect(462, 52, 58, 54, C["accent"], 0.85, zIndex=3), "id": "moss-frame"}
+    orbit = {**_ellipse(472, 62, 35, 17, C["marker"], borderWidth=1, zIndex=3), "id": "moss-orbit"}
+    node = {**_circle(484, 82, 11, C["accent"], filled=True, zIndex=3), "id": "moss-node"}
     contact_label = _text("KONTAKT", 8, SANS, C["side_label"], sidebar_left, 300, zIndex=3)
     contact_rule = _line(sidebar_left, 312, 44, 1, C["accent"], zIndex=3)
     contact_body = _block(
@@ -2179,12 +2123,9 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
 
     def section(label: str) -> None:
         marker_y = b.y + 1
-        if C["section"] == "rectangle":
-            b.els.append(_rect(L - 22, marker_y, 9, 9, C["marker"], 1, zIndex=3, page=b.pg))
-        elif C["section"] == "ellipse":
-            b.els.append(_ellipse(L - 23, marker_y, 12, 12, C["marker"], borderWidth=1, zIndex=3, page=b.pg))
-        else:
-            b.els.append(_circle(L - 22, marker_y + 1, 8, C["accent"], filled=True, zIndex=3, page=b.pg))
+        b.els.append(
+            _ellipse(L - 23, marker_y, 12, 12, C["marker"], borderWidth=1, zIndex=3, page=b.pg)
+        )
         b.text(label, 8.4, SANS, C["marker"], L)
         b.els[-1]["letterSpacing"] = 1.55 if label != lbl["skills"] else 1.3
         b.line(L, W, 1, C["rule"])
@@ -2267,22 +2208,6 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
         )
     ]
     return page_decorations + static + flow
-
-
-def _gen_quarry(cv: dict) -> list[dict]:
-    return _gen_sidebar_theme(cv, "quarry")
-
-
-def _gen_moss(cv: dict) -> list[dict]:
-    return _gen_sidebar_theme(cv, "moss")
-
-
-def _gen_garnet(cv: dict) -> list[dict]:
-    return _gen_sidebar_theme(cv, "garnet")
-
-
-def _gen_harbor(cv: dict) -> list[dict]:
-    return _gen_sidebar_theme(cv, "harbor")
 
 
 def _gen_obsidian(cv: dict) -> list[dict]:
@@ -2916,15 +2841,11 @@ _GENERATORS = {
     "vector":    _gen_vector,
     "kernel":    _gen_kernel,
     "relay":     _gen_relay,
-    "lattice":   _gen_lattice,
     "scribe":    _gen_scribe,
     "regent":    _gen_regent,
     "aldine":    _gen_aldine,
     "merit":     _gen_merit,
-    "quarry":    _gen_quarry,
     "moss":      _gen_moss,
-    "garnet":    _gen_garnet,
-    "harbor":    _gen_harbor,
     "obsidian":  _gen_obsidian,
     "raven":     _gen_raven,
     "graphite":  _gen_graphite,

@@ -90,7 +90,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
     def test_template_images_resolve_to_versioned_local_assets(self):
         for template_id in (
             "ledger", "nimbus", "rift",
-            "vector", "kernel", "relay", "lattice",
+            "vector", "kernel", "relay",
         ):
             with self.subTest(template_id=template_id):
                 image = next(
@@ -110,7 +110,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "vector": "vector-it-network.png",
             "kernel": "kernel-it-architecture.png",
             "relay": "relay-it-signal.png",
-            "lattice": "lattice-it-cloud.png",
         }
         expected_categories = {
             "text", "textarea", "line", "rectangle", "circle", "ellipse",
@@ -146,10 +145,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "experience": LONG_CV["experience"] * 3,
         }
         assets = {
-            "quarry": "quarry-sidebar-v2.png",
             "moss": "moss-sidebar.png",
-            "garnet": "garnet-sidebar.png",
-            "harbor": "harbor-sidebar-v3.png",
         }
         expected_categories = {
             "text", "textarea", "line", "rectangle", "circle", "ellipse",
@@ -231,7 +227,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "MBA\nSGH\n2020",
         }
 
-        for template_id in ("quarry", "moss", "garnet", "harbor"):
+        for template_id in ("moss",):
             with self.subTest(template_id=template_id):
                 elements = generate_resume(template_id, cv)
                 sidebar_text = [
@@ -262,7 +258,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 ))
                 for body in complete_sidebar_bodies:
                     self.assertNotIn(body, main_copy)
-                self.assertIn("• Platforma obsługi klienta", main_copy)
+                self.assertIn("Platforma obsługi klienta", main_copy)
 
     def test_obsidian_places_skills_languages_education_in_sidebar(self):
         # Tall skills used to exceed _SIDEBAR_MAX_SECTION_HEIGHT and fall into
@@ -383,7 +379,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             }],
         }
 
-        elements = generate_resume("harbor", cv)
+        elements = generate_resume("moss", cv)
         sidebar_text = [
             element for element in elements
             if element["category"] in {"text", "textarea"} and element["left"] == 24
@@ -571,14 +567,14 @@ class CvTemplateLayoutTests(unittest.TestCase):
         affected_templates = (
             "vault", "clearing", "herald", "signal",
             "ledger", "nimbus", "cinder", "rift",
-            "vector", "kernel", "relay", "lattice",
+            "vector", "kernel", "relay",
             "scribe", "regent", "aldine", "merit",
-            "quarry", "moss", "garnet", "harbor",
+            "moss",
         )
 
         for template_id in affected_templates:
             with self.subTest(template_id=template_id):
-                if template_id in {"quarry", "moss", "garnet", "harbor"}:
+                if template_id == "moss":
                     with patch.object(cv_generator, "_fit_sidebar_sections", return_value=([], set())):
                         elements = generate_resume(template_id, cv)
                 else:
@@ -1095,7 +1091,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         )
 
     def test_active_templates_keep_textareas_inside_page_bounds(self):
-        for template_id in ("ledger", "vector", "scribe", "quarry", "obsidian", "onyx"):
+        for template_id in ("ledger", "vector", "scribe", "moss", "obsidian", "onyx"):
             with self.subTest(template_id=template_id):
                 multi_page_cv = {
                     **LONG_CV,

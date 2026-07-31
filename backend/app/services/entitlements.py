@@ -21,7 +21,6 @@ FREE_STARTER_TEMPLATE_IDS: tuple[str, ...] = (
     "kernel",
     "scribe",
     "regent",
-    "quarry",
     "graphite",
 )
 
@@ -201,7 +200,7 @@ PLAN_DISPLAY: dict[str, dict[str, Any]] = {
         "price_pln": 0,
         "blurb": "Edytor, wybrane szablony i eksport PDF.",
         "highlights": [
-            "8 szablonów startowych",
+            "7 szablonów startowych",
             "1 projekt · 3 eksporty / mies.",
             "Bez Asystenta AI",
         ],
