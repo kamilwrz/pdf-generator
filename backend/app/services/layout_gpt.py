@@ -26,11 +26,14 @@ MAX_LAYOUT_MOVE_PX = 80.0
 MAX_LAYOUT_MOVES = 40
 MAX_LAYOUT_FINDINGS = 12
 MAX_LAYOUT_CONTENT_CHARS = 1200
-# A non-negative gap of up to 8 px is deliberate breathing room, not a defect.
-# This guard preserves user-authored spacing and prevents the corrector from
-# collapsing every section body onto its heading's CSS line box.
-SAFE_SECTION_GAP_MIN_PX = 0.0
-SAFE_SECTION_GAP_MAX_PX = 8.0
+# Under-header body spacing: never target a flush 0 px line box. Peer headers
+# should share one positive rhythm; collapsing a larger gap down to 0 made the
+# WYKSZTAŁCENIE body sit on the heading and left other sections visually uneven.
+SECTION_HEADER_GAP_MIN_PX = 6.0
+SECTION_HEADER_GAP_TARGET_PX = 6.0
+SECTION_HEADER_GAP_MAX_PX = 10.0
+# Treat gaps that differ by more than this as inconsistent peers.
+SECTION_HEADER_GAP_PEER_TOLERANCE_PX = 2.0
 _SNAPSHOT_CATEGORIES = {
     "text", "textarea", "line", "image", "rectangle", "circle", "ellipse",
 }
@@ -320,9 +323,11 @@ def _build_layout_snapshot_data(
             "max_moves": MAX_LAYOUT_MOVES,
             "max_findings": MAX_LAYOUT_FINDINGS,
             "max_delta_px": MAX_LAYOUT_MOVE_PX,
-            "safe_section_gap_px": {
-                "min": SAFE_SECTION_GAP_MIN_PX,
-                "max": SAFE_SECTION_GAP_MAX_PX,
+            "section_header_gap_px": {
+                "min": SECTION_HEADER_GAP_MIN_PX,
+                "target": SECTION_HEADER_GAP_TARGET_PX,
+                "max": SECTION_HEADER_GAP_MAX_PX,
+                "peer_tolerance": SECTION_HEADER_GAP_PEER_TOLERANCE_PX,
             },
             "forbid_page_change": True,
             "forbid_resize_unless_clipped": True,
@@ -351,9 +356,18 @@ def build_layout_user_prompt(
     max_findings = int(constraints.get("max_findings") or MAX_LAYOUT_FINDINGS)
     max_moves = int(constraints.get("max_moves") or MAX_LAYOUT_MOVES)
     max_delta = float(constraints.get("max_delta_px") or MAX_LAYOUT_MOVE_PX)
-    safe_section_gap = constraints.get("safe_section_gap_px") or {}
-    safe_gap_min = _number(safe_section_gap.get("min"), SAFE_SECTION_GAP_MIN_PX)
-    safe_gap_max = _number(safe_section_gap.get("max"), SAFE_SECTION_GAP_MAX_PX)
+    section_header_gap = (
+        constraints.get("section_header_gap_px")
+        or constraints.get("safe_section_gap_px")
+        or {}
+    )
+    gap_min = _number(section_header_gap.get("min"), SECTION_HEADER_GAP_MIN_PX)
+    gap_target = _number(section_header_gap.get("target"), SECTION_HEADER_GAP_TARGET_PX)
+    gap_max = _number(section_header_gap.get("max"), SECTION_HEADER_GAP_MAX_PX)
+    gap_tolerance = _number(
+        section_header_gap.get("peer_tolerance"),
+        SECTION_HEADER_GAP_PEER_TOLERANCE_PX,
+    )
     q = (question or "").strip() or DEFAULT_LAYOUT_QUESTION
     history = history_block or ""
 
@@ -393,13 +407,16 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
    `measuredHeight` pokazuje surowy pomiar diagnostyczny. Używaj `bottom` wprost;
    NIE licz ponownie left+width ani top+height i nie używaj `measuredHeight`
    do obliczania odstępu.
-   Odpowiedź opieraj na real_gap i porównaj wszystkie sekcje, nie tylko pytaną.
-   real_gap od {safe_gap_min:g} do {safe_gap_max:g} px (włącznie) nie jest sam w sobie błędem:
-   to bezpieczny zakres oddechu typograficznego. Jeżeli nagłówek
-   i treść nie nachodzą na siebie, nie wolno przesuwać treści wyłącznie po to,
-   aby uzyskać 0 px. Różne wartości wewnątrz tego zakresu możesz opisać
-   diagnostycznie, ale nie twórz dla nich `changes`, chyba że użytkownik jawnie
-   poprosił o identyczny odstęp.
+   Odpowiedź i korektę opieraj na real_gap. Porównaj wszystkie sekcje, nie tylko
+   pytaną. Docelowy rytm pod nagłówkami sekcji: około {gap_target:g} px
+   (dopuszczalnie {gap_min:g}–{gap_max:g} px). real_gap ≈ 0 px oznacza, że treść
+   siedzi na dolnej krawędzi nagłówka — to za ciasno, nie jest „bezpieczne”.
+   Jeśli peery różnią się o więcej niż {gap_tolerance:g} px (np. 0 vs 5 vs 8),
+   ujednolić je do wspólnej wartości ≥ {gap_min:g} px. Preferuj dominującą
+   dodatnią wartość peerów albo {gap_target:g} px; NIGDY nie celuj w 0 px i
+   NIGDY nie twórz ujemnego real_gap. Gdy treść jest za blisko, przesuń ją w dół;
+   gdy odstęp jest za duży względem rytmu, możesz lekko podciągnąć, ale zostaw
+   co najmniej {gap_min:g} px.
 5. Linia sekcji zwykle leży w tym samym wierszu co tekst nagłówka i zaczyna się
    po jego prawej stronie; nie musi nachodzić poziomo na tekst nagłówka.
 6. Grupuj elementy logicznie (wpis doświadczenia: stanowisko + data + firma + opis).
@@ -418,11 +435,9 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
     niekompletny ruch. Dla lokalnego wyrównania pojedynczej daty/ikony ustaw
     `move_scope="elements"` i nie deklaruj całego bloku.
     Każda zmiana musi mieć `change_type`. Dla odstępu pod nagłówkiem użyj
-    `change_type="section_header_gap"` oraz podaj `real_gap_before`,
-    `real_gap_after` i `user_requested_exact_spacing`. Ostatnie pole może być
-    true wyłącznie wtedy, gdy użytkownik jawnie zażądał identycznych odstępów.
-    Python odrzuci automatyczne zwijanie bezpiecznego odstępu nawet wtedy, gdy
-    model omyłkowo utworzy taką zmianę.
+    `change_type="section_header_gap"` oraz podaj `real_gap_before` i
+    `real_gap_after`. Python odrzuci zmianę, która kończy się real_gap poniżej
+    {gap_min:g} px (np. zwijanie 8→0).
 11. Preferuj tylko top/left. width/height tylko gdy konieczne (clipped textarea).
 12. Nie dopuszczaj nachodzenia. Nie zmieniaj content, page, category, fontów, kolorów.
 13. Pomiń movable=false / locked / fixedToPage. Nie ruszaj imienia i roli pod zdjęciem
@@ -430,17 +445,16 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
     max {max_findings} grup.
 14. Na czyste pytanie bez potrzeby patchy: status \"no_changes\", changes=[],
     pełny `section_inventory`, summary po polsku.
-    Sama różnica real_gap nie wymusza korekty. Jeśli wszystkie porównywane
-    odstępy mieszczą się w bezpiecznym zakresie {safe_gap_min:g}–{safe_gap_max:g}
-    px, zwróć `no_changes`, chyba że użytkownik zażądał ścisłej standaryzacji.
-    Dla wartości poza zakresem zaproponuj ruch tylko wtedy, gdy wzorzec peerów
-    i widoczny rytm potwierdzają realny problem, a nie zamierzoną kompozycję.
+    Jeśli real_gap peerów różni się o więcej niż {gap_tolerance:g} px albo któryś
+    jest poniżej {gap_min:g} px, to NIE jest no_changes — zaproponuj
+    `section_header_gap` do wspólnego rytmu. Skarga użytkownika, że nagłówki
+    mają różne dolne odstępy, jest jawnym poleceniem standaryzacji.
 
 ## Preferowane reguły (wskazówki, nie sztywne wartości)
 - Nagłówki tego samego poziomu: zbliżony left.
 - Ikona nagłówka wyrównana pionowo z tekstem nagłówka (osobna sprawa od rytmu pod sekcją).
 - Linia dekoracyjna na osi wizualnej nagłówka, bez przechodzenia przez tekst.
-- Bezpieczne odstępy pod nagłówkami zachowane; nie sprowadzaj ich automatycznie do 0 px.
+- Realne odstępy pod nagłówkami ujednolicone do ~{gap_target:g} px; nie celuj w 0 px.
 - Daty doświadczenia w jednej prawej kolumnie; wysokość zbliżona do stanowiska.
 - Odstępy tytuł→firma, firma→opis, koniec wpisu→następny wpis: spójne w sekcji.
 - Odstęp nad nową sekcją większy niż odstępy wewnątrz wpisu.
@@ -827,7 +841,6 @@ def _changes_to_findings(changes: list[Any]) -> list[dict[str, Any]]:
             "change_type": str(change.get("change_type") or "").strip().lower(),
             "real_gap_before": change.get("real_gap_before"),
             "real_gap_after": change.get("real_gap_after"),
-            "user_requested_exact_spacing": change.get("user_requested_exact_spacing") is True,
             "move_scope": str(change.get("move_scope") or "elements").strip().lower(),
             "affected_blocks": (
                 change.get("affected_blocks")
@@ -871,26 +884,18 @@ def _finding_moves(finding: dict[str, Any]) -> list[dict[str, Any]]:
     return []
 
 
-def _collapses_safe_section_gap(finding: dict[str, Any]) -> bool:
-    """Block automatic normalization between two already safe gap values.
+def _collapses_below_min_section_gap(finding: dict[str, Any]) -> bool:
+    """Reject under-header moves that leave body text flush against the heading.
 
-    GPT still owns semantic grouping, but a structured section-gap change must
-    not collapse intentional whitespace solely because another section uses
-    zero pixels. An explicit user request remains an allowed override.
+    Peer standardization is allowed (0→6, 8→6, 5→6). Collapsing a positive gap
+    down to 0 px is not: that is the bug that made WYKSZTAŁCENIE look broken.
     """
     if str(finding.get("change_type") or "").strip().lower() != "section_header_gap":
         return False
-    if finding.get("user_requested_exact_spacing") is True:
+    if "real_gap_after" not in finding:
         return False
-
-    outside_safe_range = SAFE_SECTION_GAP_MAX_PX + 1.0
-    before = _number(finding.get("real_gap_before"), outside_safe_range)
-    after = _number(finding.get("real_gap_after"), outside_safe_range)
-    return (
-        SAFE_SECTION_GAP_MIN_PX <= before <= SAFE_SECTION_GAP_MAX_PX
-        and SAFE_SECTION_GAP_MIN_PX <= after <= SAFE_SECTION_GAP_MAX_PX
-        and abs(before - after) > EPSILON
-    )
+    after = _number(finding.get("real_gap_after"), SECTION_HEADER_GAP_TARGET_PX)
+    return after + EPSILON < SECTION_HEADER_GAP_MIN_PX
 
 
 def _validated_patches(
@@ -1077,7 +1082,7 @@ def compile_layout_gpt_response(
     issues: list[dict[str, str]] = []
     used_ids: set[str] = set()
     remaining = MAX_LAYOUT_MOVES
-    suppressed_safe_gap_changes = 0
+    suppressed_tight_gap_changes = 0
 
     for index, finding in enumerate(findings[:MAX_LAYOUT_FINDINGS]):
         title = str(finding.get("title") or finding.get("heading") or f"Problem układu #{index + 1}").strip()[:140]
@@ -1090,14 +1095,14 @@ def compile_layout_gpt_response(
         severity = str(finding.get("severity") or "medium").strip().lower()
         if severity not in _VALID_SEVERITIES:
             severity = "medium"
-        if _collapses_safe_section_gap(finding):
-            suppressed_safe_gap_changes += 1
+        if _collapses_below_min_section_gap(finding):
+            suppressed_tight_gap_changes += 1
             issues.append({
-                "severity": "review",
+                "severity": "warning",
                 "message": (
-                    f"{title}: pominięto automatyczne przesunięcie, ponieważ odstęp "
-                    f"pozostaje w bezpiecznym zakresie "
-                    f"{SAFE_SECTION_GAP_MIN_PX:g}–{SAFE_SECTION_GAP_MAX_PX:g} px."
+                    f"{title}: odrzucono przesunięcie, które zostawiłoby real_gap "
+                    f"poniżej {SECTION_HEADER_GAP_MIN_PX:g} px — treść nie może "
+                    "siadać na dolnej krawędzi nagłówka."
                 )[:700],
             })
             continue
@@ -1197,10 +1202,10 @@ def compile_layout_gpt_response(
         )
         groups.append(group)
 
-    if suppressed_safe_gap_changes and not groups:
+    if suppressed_tight_gap_changes and not groups:
         summary = (
-            f"Odstępy pod nagłówkami mieszczą się w bezpiecznym zakresie "
-            f"{SAFE_SECTION_GAP_MIN_PX:g}–{SAFE_SECTION_GAP_MAX_PX:g} px; "
-            "nie proponuję automatycznych przesunięć."
+            f"Odrzucono propozycje zwijające odstęp pod nagłówkiem poniżej "
+            f"{SECTION_HEADER_GAP_MIN_PX:g} px. Ujednolić do około "
+            f"{SECTION_HEADER_GAP_TARGET_PX:g} px, nie do 0 px."
         )
     return groups, issues, summary, ""

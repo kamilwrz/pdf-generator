@@ -83,8 +83,8 @@ class LayoutGptTests(unittest.TestCase):
         self.assertIn("no_changes", prompt)
         self.assertIn("gap = next_row.top", prompt)
         self.assertIn("real_gap", prompt)
-        self.assertIn("safe_section_gap_px", prompt)
-        self.assertIn("0 do 8 px", prompt)
+        self.assertIn("section_header_gap_px", prompt)
+        self.assertIn("około 6 px", prompt)
         self.assertIn("width≈0–3", prompt)
         self.assertIn("section_inventory", prompt)
         self.assertIn("text_element_refs", prompt)
@@ -100,17 +100,20 @@ class LayoutGptTests(unittest.TestCase):
         self.assertIn("category=`textarea`", LAYOUT_CORRECTOR_SYSTEM)
         self.assertIn("rytm", DEFAULT_LAYOUT_QUESTION.lower())
 
-    def test_user_prompt_preserves_safe_section_header_whitespace(self):
+    def test_user_prompt_standardizes_positive_section_header_gaps(self):
         snap = build_layout_snapshot([el("a", 70, 100)], PAGE)
         prompt = build_layout_user_prompt(snap, "Sprawdź odstępy pod nagłówkami.")
 
-        self.assertEqual(snap["constraints"]["safe_section_gap_px"], {"min": 0, "max": 8})
-        self.assertIn("real_gap od 0 do 8 px", prompt)
-        self.assertIn("nie jest sam w sobie błędem", prompt)
-        self.assertIn("nie wolno przesuwać treści wyłącznie po to", prompt)
-        self.assertIn("aby uzyskać 0 px", prompt)
+        self.assertEqual(
+            snap["constraints"]["section_header_gap_px"],
+            {"min": 6.0, "target": 6.0, "max": 10.0, "peer_tolerance": 2.0},
+        )
+        self.assertIn("około 6 px", prompt)
+        self.assertIn("NIGDY nie celuj w 0 px", prompt)
+        self.assertIn("za ciasno", prompt)
         self.assertIn('change_type="section_header_gap"', prompt)
         self.assertIn("real_gap_before", prompt)
+        self.assertIn("różne dolne odstępy", prompt)
 
     def test_snapshot_preserves_narrow_width_for_model_reasoning(self):
         # GPT sees the raw width=3 title and must not discard it; Python no
@@ -291,7 +294,7 @@ class LayoutGptTests(unittest.TestCase):
         # Unchanged after == before is skipped by validator.
         self.assertNotIn("exp-line", by_id)
 
-    def test_compile_rejects_collapsing_a_safe_section_header_gap(self):
+    def test_compile_rejects_collapsing_section_header_gap_to_zero(self):
         elements = [
             el(
                 "heading", 70, 614.2, width=130, height=14,
@@ -323,15 +326,44 @@ class LayoutGptTests(unittest.TestCase):
 
         self.assertEqual(error, "")
         self.assertEqual(groups, [])
-        self.assertTrue(any("bezpiecznym zakresie" in issue["message"] for issue in issues))
-        self.assertIn("nie proponuję automatycznych przesunięć", summary)
+        self.assertTrue(any("poniżej 6 px" in issue["message"] for issue in issues))
+        self.assertIn("nie do 0 px", summary)
 
-        gpt["changes"][0]["user_requested_exact_spacing"] = True
-        explicit_groups, _issues, _summary, explicit_error = compile_layout_gpt_response(
-            elements, gpt, PAGE
-        )
-        self.assertEqual(explicit_error, "")
-        self.assertEqual(len(explicit_groups), 1)
+    def test_compile_allows_standardizing_section_header_gap_to_target(self):
+        elements = [
+            el(
+                "heading", 70, 614.2, width=130, height=14,
+                category="text", content="WYKSZTAŁCENIE", fontSize=14,
+            ),
+            el(
+                "degree", 50, 628.2, width=180, height=12,
+                category="text", content="Bachelor of Laws", fontSize=12,
+            ),
+        ]
+        gpt = {
+            "status": "corrected",
+            "summary": "Ujednolić odstęp pod nagłówkiem do 6 px.",
+            "section_inventory": inventory_for(elements, section="WYKSZTAŁCENIE"),
+            "changes": [{
+                "group": "WYKSZTAŁCENIE — odstęp pod nagłówkiem",
+                "reason": "real_gap 0 px vs rytm 6 px.",
+                "severity": "medium",
+                "change_type": "section_header_gap",
+                "real_gap_before": 0,
+                "real_gap_after": 6,
+                "move_scope": "elements",
+                "delta": {"top": 6, "left": 0},
+                "elements": [{"ref": "e2"}],
+            }],
+        }
+
+        groups, issues, summary, error = compile_layout_gpt_response(elements, gpt, PAGE)
+
+        self.assertEqual(error, "")
+        self.assertEqual(len(groups), 1)
+        self.assertAlmostEqual(groups[0]["patches"][0]["top"], 634.2, places=2)
+        self.assertFalse(any("poniżej 6 px" in issue["message"] for issue in issues))
+        self.assertIn("6 px", summary)
 
     def test_compile_changes_shared_delta_on_ids(self):
         elements = [
