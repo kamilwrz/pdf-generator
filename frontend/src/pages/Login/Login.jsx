@@ -6,7 +6,7 @@ import classes from "./Login.module.css";
 
 import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
 
-import { useNavigate, Link } from "react-router-dom"
+import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { useEffect, useRef, useState } from "react";
 
 const UserIcon = () => (
@@ -20,6 +20,10 @@ const LockIcon = () => (
 export default function Login() {
 
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const startIntent = ["import", "wizard"].includes(searchParams.get("start"))
+        ? searchParams.get("start")
+        : null;
 
     const [password, setPassword] = useState("");
     const [username, setUsername] = useState("");
@@ -75,7 +79,10 @@ export default function Login() {
             );
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             localStorage.setItem("token", data.access_token);
-            navigate("/pdfcanvas", { replace: true });
+            // The landing CTA's chosen path remains intact for existing users
+            // and for users who registered immediately before signing in.
+            const editorPath = startIntent ? `/pdfcanvas?start=${startIntent}` : "/pdfcanvas";
+            navigate(editorPath, { replace: true });
         } catch (err) {
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             setError(err.message || "Logowanie nie powiodło się");
@@ -153,7 +160,7 @@ export default function Login() {
                     </button>
                 </form>
                 <p className={classes.linkWrapper}>
-                    Nowy użytkownik? <Link to="/register">Utwórz konto</Link>
+                    Nowy użytkownik? <Link to={startIntent ? `/register?start=${startIntent}` : "/register"}>Utwórz konto</Link>
                 </p>
             </div>
         </div>

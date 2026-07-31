@@ -10,7 +10,7 @@ import { useA4Elements } from "../hooks/useA4Elements";
 import { usePdfExport } from '../hooks/usePdfExport';
 import CanvasElements from "../components/canvas/CanvasElements/CanvasElements";
 import SelectionOverlay from "../components/canvas/SelectionOverlay/SelectionOverlay";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import ModalPdfs from '../components/modals/ModalPdfs/ModalPdfs';
 import { ApiClient } from '../services/api';
 import { ENDPOINTS } from '../services/api';
@@ -46,15 +46,28 @@ const TEMPLATES_MODAL_SEEN_KEY = "cv-studio:templatesModalSeen";
 function PdfCanvas() {
 
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const startIntent = searchParams.get("start");
+  // Read the landing intent only while this editor instance is created. It
+  // becomes the initial dialog state, which avoids a visual flash of the
+  // default template picker before the requested flow is visible.
+  const initialStartIntentRef = useRef(
+    startIntent === "import" || startIntent === "wizard" ? startIntent : null,
+  );
 
-  //state for checking user activity via MouseEven // not really a good idea
+  // Toggle this signal after a period of pointer activity so the session check
+  // below can detect an expired JWT without issuing a request for every move.
   const [checkActivity, setIsActive] = useState(false);
   // Unified surface state: `dialog` (centered, backdrop+Esc) and `panel`
   // (docked to sidebar) are each mutually exclusive within themselves AND
   // with each other — opening one always closes whatever else was open.
   // Replaces 5 independent booleans that previously had no exclusivity at
   // all (e.g. Moje dokumenty + Szablony + Gallery could all be open together).
-  const [dialog, setDialog] = useState(null); // 'docs' | 'templates' | 'ai' | 'bioCv' | 'plan' | null
+  const [dialog, setDialog] = useState(() => {
+    if (initialStartIntentRef.current === "import") return "ai";
+    if (initialStartIntentRef.current === "wizard") return "bioCv";
+    return null;
+  }); // 'docs' | 'templates' | 'ai' | 'bioCv' | 'plan' | null
   const [panel, setPanel] = useState(null);   // 'upload' | 'gallery' | null
   const isModalPdfs = dialog === 'docs';
   const isTemplates = dialog === 'templates';
@@ -243,7 +256,9 @@ function PdfCanvas() {
   }
 
 
-  //TOKEN EXPIRATION SINGLE PAGE APP PROBLEM (NO ROUTES)
+  // A single-page app does not naturally revisit a protected route while a
+  // user edits a document. Revalidate the token at most once per 30 seconds
+  // of pointer activity and return to the landing page if it has expired.
   const lastActivityCheckRef = useRef(0);
   const throttledHandleIsActive = useCallback(() => {
     const now = Date.now();
@@ -417,19 +432,20 @@ function PdfCanvas() {
   // Template-first onboarding: auto-open the templates picker for a
   // first-time user (no saved PDFs yet), once pdfsLoaded resolves so a
   // returning user with saved PDFs never sees a false-positive flash while
-  // the fetch is still in flight. Guards on `isTemplates` so it never hijacks
-  // a modal the user already opened manually (e.g. clicked "Szablony" before
-  // the PDFs fetch resolved) — that would mislabel a manual browse as
-  // onboarding and burn the once-per-session auto-open on it. Fires at most
+  // the fetch is still in flight. Guards on every open dialog so it never
+  // hijacks a manual action or an intent-aware landing flow. Fires at most
   // once per browser session — see markTemplatesModalSeen.
   useEffect(() => {
     if (!pdfsLoaded || PDFs.length !== 0) return;
-    if (autoOpenedTemplates || dialog === 'templates') return;
+    // A landing-page CTA has already chosen a concrete first action. Do not
+    // obscure it with the default template picker before the intent is handled.
+    if (startIntent === "import" || startIntent === "wizard") return;
+    if (autoOpenedTemplates || dialog !== null) return;
     if (sessionStorage.getItem(TEMPLATES_MODAL_SEEN_KEY) === "1") return;
     setAutoOpenedTemplates(true);
     setDialog('templates');
     setPanel(null);
-  }, [pdfsLoaded, PDFs.length, autoOpenedTemplates, dialog, setAutoOpenedTemplates])
+  }, [pdfsLoaded, PDFs.length, autoOpenedTemplates, dialog, setAutoOpenedTemplates, startIntent])
 
   const handleShowAiPanel = useCallback(() => {
     const next = dialog !== 'ai';
@@ -442,6 +458,15 @@ function PdfCanvas() {
     setDialog(next ? 'bioCv' : null);
     if (next) setPanel(null);
   }, [dialog])
+
+  useEffect(() => {
+    if (!initialStartIntentRef.current || !searchParams.has("start")) return;
+    // The initial state already opened the requested surface. Removing the
+    // parameter keeps a refresh from re-opening a dialog the user dismissed.
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("start");
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const handleShowPlanModal = useCallback(() => {
     const next = dialog !== 'plan';

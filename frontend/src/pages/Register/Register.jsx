@@ -38,6 +38,9 @@ export default function Register() {
     const initialPlan = PLAN_SLUGS.includes(searchParams.get("plan"))
         ? searchParams.get("plan")
         : "free";
+    const startIntent = ["import", "wizard"].includes(searchParams.get("start"))
+        ? searchParams.get("start")
+        : null;
     const [plan, setPlan] = useState(initialPlan);
 
     const [username, setUsername] = useState("");
@@ -86,7 +89,10 @@ export default function Register() {
                 },
             );
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-            navigate("/login", { replace: true });
+            // Preserve the landing-page choice through account creation so the
+            // first authenticated screen opens the import panel or CV wizard.
+            const loginPath = startIntent ? `/login?start=${startIntent}` : "/login";
+            navigate(loginPath, { replace: true });
         } catch (err) {
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             setError(err.message || "Rejestracja nie powiodła się");

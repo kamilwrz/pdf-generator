@@ -202,7 +202,7 @@ Plus chat naturalnym językiem i akceptacja / odrzucenie poprawek.
 
 | Plan | Istota |
 |------|--------|
-| **Free** | Edytor + eksport, 9 szablonów startowych, limity projektów/eksportów; bez asystenta AI |
+| **Free** | Edytor + eksport, 8 szablonów startowych, limity projektów/eksportów; bez asystenta AI |
 | **Standard** | AI (kredyty), wszystkie 28 szablonów, import PDF + kreator bio, wyższe limity |
 | **Premium** | Więcej kredytów AI, bez limitu projektów/eksportów |
 

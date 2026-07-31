@@ -42,13 +42,14 @@ Job seekers need CVs that look professional and export cleanly to PDF. Generic f
 
 ## Main user flows
 
-1. **Register / login** → JWT in `localStorage` → `/pdfcanvas`.
-2. **Pick a template** → `handleLoadTemplate` materializes specs → canvas.
-3. **Import PDF** → `POST /ai/extract_cv` → choose template → `POST /ai/fill_template` → Python layout in `cv_generator.generate_resume`.
-4. **Bio wizard** → draft CRUD on `/ai/bio_cv_draft` → fill template.
-5. **Edit** → drag/resize/style → debounced `PUT /pdf/save_elements`.
-6. **AI assistant** → `POST /ai/assistant` → tips / corrections / reviewable layout groups.
-7. **Export** → create/update PDF → `POST /pdf/download_pdf` (export quota charged).
+1. **Choose a landing-page start** → “Upload my CV” (`start=import`) or “Create a CV from scratch” (`start=wizard`).
+2. **Register / login** → JWT in `localStorage` → the selected `start` intent survives authentication and opens the matching editor dialog.
+3. **Pick a template** → `handleLoadTemplate` materializes specs → canvas.
+4. **Import PDF** → `POST /ai/extract_cv` → choose template → `POST /ai/fill_template` → Python layout in `cv_generator.generate_resume`.
+5. **Bio wizard** → draft CRUD on `/ai/bio_cv_draft` → fill template.
+6. **Edit** → drag/resize/style → debounced `PUT /pdf/save_elements`.
+7. **AI assistant** → `POST /ai/assistant` → tips / corrections / reviewable layout groups.
+8. **Export** → create/update PDF → `POST /pdf/download_pdf` (export quota charged).
 
 ```mermaid
 flowchart LR
@@ -218,7 +219,27 @@ Implementation:
 - `frontend/src/hooks/useA4Elements.js`, lines 43+, function `useA4Elements` (incl. `markHistoryQuiet` / undo baseline)
 - `frontend/src/components/canvas/*`
 - `frontend/src/components/common/EditorControls/EditorControls.jsx`, `FONT_OPTIONS`
-- Marketing Funkcje panel: `frontend/src/pages/Hero/Hero.jsx` (`CANVAS_STATS`, `FONT_GROUPS`, `CANVAS_CARDS`)
+- The outcome-focused landing references the editor canvas and exact-export behaviour without exposing implementation statistics: `frontend/src/pages/Hero/Hero.jsx`, lines 285–313, section `editorSection`
+
+### Outcome-focused landing and directed starts
+
+The landing page presents one outcome, an editable PDF-ready CV, and two ways to begin: importing an existing PDF or creating content in the guided wizard. It explains the shared four-step journey, before/after transformation, templates, editable A4 canvas, privacy scope, effect-oriented plans, and a non-guaranteed ATS explanation. It intentionally describes AI as an assistive mechanism: users review document content and layout suggestions before proceeding.
+
+The two primary CTAs carry `start=import` or `start=wizard`. Existing signed-in visitors go directly to `/pdfcanvas`; new visitors retain the choice through registration and login. `PdfCanvas` consumes the parameter once, opens either the import dialog or the bio wizard, and removes the parameter so a browser refresh does not re-open a dialog the user dismissed.
+
+Implementation:
+
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–445, component `Hero`; `buildStartUrl` (lines 91–96), `StartButton` (lines 98–108), and the landing sections (lines 155–442)
+- `frontend/src/pages/Hero/Hero.module.css` — responsive editorial layout and reduced-motion handling
+- `frontend/src/pages/Register/Register.jsx`, lines 37–44 and 92–95, preserves a valid start intent after registration
+- `frontend/src/pages/Login/Login.jsx`, lines 23–26 and 81–85, sends the signed-in user to the intended editor entry point
+- `frontend/src/pages/PdfCanvas.jsx`, lines 48–70 and 438–469, opens and then consumes the intended import/wizard dialog
+
+Limits:
+
+- PDF extraction and AI actions are entitlement-gated; the landing assigns the import start to Standard and the guided wizard to Free, which includes eight starter templates.
+- ATS feedback is guidance about document readability and content structure. It is not a promise of recruiter response or an ATS pass.
+- The privacy section describes implemented data use at a high level and does not claim unimplemented certifications or anonymisation.
 
 ### Template load
 
@@ -654,13 +675,14 @@ Kandydaci potrzebują CV, które wygląda profesjonalnie i eksportuje się do PD
 
 ## Główne przepływy użytkownika
 
-1. **Rejestracja / logowanie** → JWT w `localStorage` → `/pdfcanvas`.
-2. **Wybór szablonu** → `handleLoadTemplate` materializuje elementy → płótno.
-3. **Import PDF** → `POST /ai/extract_cv` → szablon → `POST /ai/fill_template` → layout w `cv_generator.generate_resume`.
-4. **Kreator bio** → CRUD `/ai/bio_cv_draft` → wypełnienie szablonu.
-5. **Edycja** → przeciąganie / styl → debounced `PUT /pdf/save_elements`.
-6. **Asystent AI** → `POST /ai/assistant` → wskazówki / poprawki / karty układu do akceptacji.
-7. **Eksport** → create/update PDF → `POST /pdf/download_pdf` (naliczany limit eksportów).
+1. **Wybór startu na stronie głównej** → „Wgraj moje CV” (`start=import`) albo „Stwórz CV od początku” (`start=wizard`).
+2. **Rejestracja / logowanie** → JWT w `localStorage` → wybrany parametr `start` przechodzi przez uwierzytelnienie i otwiera właściwy dialog edytora.
+3. **Wybór szablonu** → `handleLoadTemplate` materializuje elementy → płótno.
+4. **Import PDF** → `POST /ai/extract_cv` → szablon → `POST /ai/fill_template` → layout w `cv_generator.generate_resume`.
+5. **Kreator bio** → CRUD `/ai/bio_cv_draft` → wypełnienie szablonu.
+6. **Edycja** → przeciąganie / styl → debounced `PUT /pdf/save_elements`.
+7. **Asystent AI** → `POST /ai/assistant` → wskazówki / poprawki / karty układu do akceptacji.
+8. **Eksport** → create/update PDF → `POST /pdf/download_pdf` (naliczany limit eksportów).
 
 ```mermaid
 flowchart LR
@@ -822,7 +844,27 @@ Płótno **A4 pion**, wiele stron, zaznaczanie / przeciąganie / zoom / prowadni
 - `frontend/src/hooks/useA4Elements.js`, `useA4Elements` (ok. linia 43+; w tym `markHistoryQuiet`)
 - `frontend/src/components/canvas/*`
 - `frontend/src/components/common/EditorControls/EditorControls.jsx`, `FONT_OPTIONS`
-- Panel Funkcje na Hero: `frontend/src/pages/Hero/Hero.jsx` (`CANVAS_STATS`, `FONT_GROUPS`, `CANVAS_CARDS`)
+- Landing skupiony na rezultacie pokazuje płótno i wierność eksportu bez technicznych statystyk: `frontend/src/pages/Hero/Hero.jsx`, linie 285–313, sekcja `editorSection`
+
+### Landing skupiony na rezultacie i skierowane starty
+
+Strona główna przedstawia jeden rezultat, edytowalne CV gotowe do PDF, oraz dwa sposoby rozpoczęcia: import istniejącego PDF albo tworzenie treści w kreatorze krok po kroku. Opisuje wspólną czteroetapową drogę, transformację przed/po, szablony, płótno A4 do ręcznej edycji, zakres prywatności, plany opisane efektami oraz analizę ATS bez obietnic. AI jest przedstawiane jako mechanizm pomocniczy: użytkownik przegląda treść dokumentu i propozycje układu przed podjęciem decyzji.
+
+Dwa główne CTA przekazują `start=import` albo `start=wizard`. Zalogowany użytkownik przechodzi bezpośrednio do `/pdfcanvas`; nowy użytkownik zachowuje wybór po rejestracji i logowaniu. `PdfCanvas` odczytuje parametr tylko raz, otwiera import albo kreator bio i usuwa parametr, więc odświeżenie strony nie przywraca dialogu zamkniętego przez użytkownika.
+
+Implementacja:
+
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–445, komponent `Hero`; `buildStartUrl` (linie 91–96), `StartButton` (linie 98–108) i sekcje landing page (linie 155–442)
+- `frontend/src/pages/Hero/Hero.module.css` — responsywny, redakcyjny układ oraz obsługa `prefers-reduced-motion`
+- `frontend/src/pages/Register/Register.jsx`, linie 37–44 i 92–95, zachowanie prawidłowego intencji startu po rejestracji
+- `frontend/src/pages/Login/Login.jsx`, linie 23–26 i 81–85, przejście po logowaniu do wybranego wejścia edytora
+- `frontend/src/pages/PdfCanvas.jsx`, linie 48–70 i 438–469, otwarcie i jednorazowe zużycie importu albo kreatora
+
+Ograniczenia:
+
+- Ekstrakcja PDF i działania AI wymagają uprawnień planu; landing przypisuje import do Standard, a kreator krok po kroku do Free, który zawiera osiem szablonów startowych.
+- Wskazówki ATS dotyczą czytelności struktury i treści. Nie są gwarancją odpowiedzi rekrutera ani przejścia przez system ATS.
+- Sekcja prywatności opisuje ogólnie zaimplementowane użycie danych i nie deklaruje niezaimplementowanych certyfikatów ani anonimizacji.
 
 ### Ładowanie szablonu
 

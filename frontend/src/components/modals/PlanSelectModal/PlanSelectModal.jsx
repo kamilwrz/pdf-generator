@@ -15,7 +15,7 @@ const FALLBACK_PLANS = [
         name: "Free",
         price_pln: 0,
         blurb: "Edytor, wybrane szablony i eksport PDF.",
-        highlights: ["9 szablonów startowych", "1 projekt · 3 eksporty / mies.", "Bez Asystenta AI"],
+        highlights: ["8 szablonów startowych", "1 projekt · 3 eksporty / mies.", "Bez Asystenta AI"],
     },
     {
         slug: "standard",
