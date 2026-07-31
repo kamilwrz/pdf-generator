@@ -588,7 +588,7 @@ In `frontend/src/pages/Hero/Hero.jsx`, in the Cennik section:
                         <p className={classes.planPeriod}>miesięcznie · 469 zł / rok</p>
                         <ul className={classes.planFeatures}>
                             <li>Asystent AI — 300 kredytów / mies.</li>
-                            <li>Wszystkie 24 szablony</li>
+                            <li>Wszystkie 25 szablonów</li>
                             <li>Bez limitu projektów i eksportów</li>
                             <li>Wiele wersji CV pod oferty</li>
                         </ul>

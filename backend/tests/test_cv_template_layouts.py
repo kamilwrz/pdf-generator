@@ -569,7 +569,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "ledger", "nimbus", "cinder", "rift",
             "vector", "kernel", "relay",
             "scribe", "regent", "aldine", "merit",
-            "moss",
+            "moss", "monument",
         )
 
         for template_id in affected_templates:
@@ -643,6 +643,49 @@ class CvTemplateLayoutTests(unittest.TestCase):
                         and element.get("fixedToPage") is True
                         for element in elements
                     ))
+
+    def test_monument_is_monochrome_and_never_uses_text_below_ten_pixels(self):
+        elements = generate_resume("monument", {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 3,
+            "extra_sections": [{
+                "title": "Projekty strategiczne",
+                "kind": "projects",
+                "placement": "after_experience",
+                "items": [{
+                    "title": "System marki dla usług publicznych",
+                    "subtitle": "2025 · kierunek kreatywny",
+                    "bullets": ["Ujednolicono komunikację trzydziestu usług."],
+                }],
+            }],
+        })
+        text_elements = [
+            element
+            for element in elements
+            if element["category"] in {"text", "textarea"}
+        ]
+        colors = {
+            element[color_key].upper()
+            for element in elements
+            for color_key in ("color", "backgroundColor")
+            if element.get(color_key)
+        }
+
+        self.assertTrue(text_elements)
+        self.assertGreater(max(element.get("page", 1) for element in elements), 1)
+        self.assertGreaterEqual(min(element["fontSize"] for element in text_elements), 10)
+        self.assertTrue({"line", "rectangle"} <= {element["category"] for element in elements})
+        self.assertTrue(all(
+            len(color) == 7
+            and color[1:3] == color[3:5] == color[5:7]
+            for color in colors
+        ))
+        self.assertTrue(any(
+            element["category"] == "text"
+            and element.get("fontSize") == 13.5
+            and element.get("content") == "DOŚWIADCZENIE ZAWODOWE"
+            for element in elements
+        ))
 
     def test_classic_flow_keeps_clear_of_frame_and_continuation_inset(self):
         education = [

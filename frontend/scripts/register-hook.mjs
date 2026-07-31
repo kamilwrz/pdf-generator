@@ -1,4 +1,5 @@
 import { register } from "node:module";
-import { pathToFileURL } from "node:url";
 
-register("./resolve-js-ext-hook.mjs", pathToFileURL("./"));
+// Resolve from this module rather than the caller's working directory so the
+// documented command works consistently from the repository root.
+register(new URL("./resolve-js-ext-hook.mjs", import.meta.url));

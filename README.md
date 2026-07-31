@@ -2,7 +2,7 @@
 
 # CV Studio
 
-CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 24 industry templates, PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
+CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 25 industry templates, PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
 
 This README is the technical entry point for developers. A beginner-friendly deep guide to canvas coordinates, React interaction, deterministic Python layout, AI responsibilities, reflow, persistence, and ReportLab export lives in [`CANVA.md`](CANVA.md). Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md). Marketing brief for the website „Dlaczego CV STUDIO” section (features + competitive positioning, no competitor brand names in public copy) lives in [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Template generation (AI extract vs Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md).
 
@@ -152,7 +152,7 @@ pdf-generator/
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
 │   │   ├── services/         # ApiClient, eventLog
 │   │   ├── store/            # PdfContext
-│   │   ├── templates/        # 24 template specs + helpers
+│   │   ├── templates/        # 25 template specs + helpers
 │   │   └── utils/            # geometry, reflow, entitlements helpers
 │   ├── package.json
 │   └── .env.example
@@ -174,7 +174,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_generator.py` (24 ids). Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source.
+**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_generator.py` (25 ids). Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source.
 
 ---
 
@@ -287,13 +287,33 @@ Implementation:
 - `frontend/src/hooks/useCanvasEnterIds.js`, lines 1–80, `useCanvasEnterIds`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` + `CanvasElements.module.css`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadAiElements`, `handleLoadTemplate`, `handleLoadTemplateWithFill` call `markContentElementsEnter`
-- `backend/app/services/cv_generator.py`, lines 2668–2819, `_gen_onyx`; `frontend/src/templates/onyx.js`, lines 1–101 — assign Onyx `flowRole` and `preserveInitialLayout`
+- `backend/app/services/cv_generator.py`, lines 2842–2993, `_gen_onyx`; `frontend/src/templates/onyx.js`, lines 1–101 — assign Onyx `flowRole` and `preserveInitialLayout`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 29–55; `frontend/src/components/canvas/Textarea/Textarea.jsx`, lines 42–164 — skip only the initial Onyx textarea measurement
 - `backend/app/schemas/pdf_schema.py`, lines 44–46; `backend/app/crud/pdfs.py`, lines 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, lines 104–105 — persist and restore the Onyx flow flags
 
 Tests:
 
 - `frontend/src/utils/canvasEnter.test.js` — pending-id registry and chrome exclusion
+
+### Monument monochrome template
+
+Monument is a paid Classic template for users who want an elegant editorial result without colour. Its visual identity comes from numbered black rectangles, outlined heading frames, thin grey rules, and an asymmetric masthead. The smallest text is 10 px; body copy uses 10–11 px, record titles use 12 px, and section headings plus the job-position line use 13.5 px. Cormorant Garamond supplies the formal display voice, while Montserrat keeps dense CV content easy to scan.
+
+The frontend starter array and the deterministic Python generator use the same A4 geometry and grayscale palette. `_gen_monument` preserves complete experience and education records during page breaks, supports custom sections through `_extra_sections`, repeats the page frame and footer on every page, and never sends layout decisions to the AI model.
+
+Implementation:
+
+- `frontend/src/templates/monument.js`, lines 1–100, exported array `monumentTemplate`
+- `frontend/src/templates/index.js`, lines 24 and 51, registry entry `monument` (`tier: "paid"`)
+- `backend/app/services/cv_generator.py`, lines 2013–2184, function `_gen_monument`; line 3031, `_GENERATORS["monument"]`
+- `frontend/public/template-mockups/monument.png`, source-driven A4 preview
+
+Tests:
+
+- `frontend/src/templates/monument.test.js`, lines 6–32, starter-layout hierarchy and grayscale assertions
+- `backend/tests/test_cv_template_layouts.py`, lines 647–688, `test_monument_is_monochrome_and_never_uses_text_below_ten_pixels`
+
+Known limitation: long user-provided section names are shortened only inside the fixed decorative heading frame. Their section content remains complete.
 
 ### Iconic template family and icon reflow
 
@@ -316,10 +336,10 @@ Tests:
 - `backend/tests/test_pdf_shapes.py`, lines 67–131 — optical alignment, explicit `alignWithText: false`, and alpha-mask regressions
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — Loom contact geometry and sidebar column alignment
 
-**Regenerating Iconic mockups.** `frontend/public/template-mockups/{nova,ridge,loom,volt}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js` changes, regenerate them:
+**Regenerating source-driven mockups.** `frontend/public/template-mockups/{nova,ridge,loom,volt,monument}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js` or `frontend/src/templates/monument.js` changes, regenerate them:
 
 ```bash
-node frontend/scripts/dump-iconic-templates.mjs   # dumps the 4 element arrays to frontend/scripts/iconic-templates.json
+node --import ./frontend/scripts/register-hook.mjs ./frontend/scripts/dump-iconic-templates.mjs
 python scripts/render_iconic_mockups.py           # renders each theme through ReportLab, rasterizes page 1 with PyMuPDF
 ```
 
@@ -342,7 +362,7 @@ Python layout from normalised `cv_data` (not LLM placement). In every generated 
 
 Implementation:
 
-- `backend/app/services/cv_generator.py`, lines 587–656, `_place_education_record` — distinguishes education metadata from body text; `generate_resume` (line 2860+), class `Builder`
+- `backend/app/services/cv_generator.py`, lines 587–656, `_place_education_record` — distinguishes education metadata from body text; `generate_resume` (line 3035+), class `Builder`
 - `backend/app/api/routes/ai.py`, `fill_template`
 - Docs: [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
@@ -662,7 +682,7 @@ Notable product facts:
 
 # CV Studio
 
-CV Studio to polski edytor CV na A4: płótno WYSIWYG, 24 szablony branżowe, import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
+CV Studio to polski edytor CV na A4: płótno WYSIWYG, 25 szablonów branżowych, import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
 
 Ten README to wejście techniczne dla programistów. Obszerne, napisane dla początkujących wyjaśnienie współrzędnych canvasu, interakcji React, deterministycznego layoutu Python, roli AI, reflow, zapisu i eksportu ReportLab znajduje się w [`CANVA.md`](CANVA.md). Opis produktowy funkcji: [`docs/FEATURES.md`](docs/FEATURES.md). Brief marketingowy pod sekcję „Dlaczego CV STUDIO” na stronie (funkcje + pozycjonowanie względem rynku, bez nazw marek konkurencji w copy publicznym): [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Generowanie szablonów (AI extract vs layout w Pythonie): [`docs/cv-template-generation.md`](docs/cv-template-generation.md).
 
@@ -832,7 +852,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Zasady:** 24 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_generator.py`. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime.
+**Zasady:** 25 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_generator.py`. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime.
 
 ---
 
@@ -935,13 +955,33 @@ Implementacja:
 - `frontend/src/hooks/useCanvasEnterIds.js`, linie 1–80, `useCanvasEnterIds`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` + `CanvasElements.module.css`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadAiElements`, `handleLoadTemplate`, `handleLoadTemplateWithFill` wywołują `markContentElementsEnter`
-- `backend/app/services/cv_generator.py`, linie 2668–2819, `_gen_onyx`; `frontend/src/templates/onyx.js`, linie 1–101 — przypisanie `flowRole` i `preserveInitialLayout` Onyx
+- `backend/app/services/cv_generator.py`, linie 2842–2993, `_gen_onyx`; `frontend/src/templates/onyx.js`, linie 1–101 — przypisanie `flowRole` i `preserveInitialLayout` Onyx
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 29–55; `frontend/src/components/canvas/Textarea/Textarea.jsx`, linie 42–164 — pominięcie wyłącznie pierwszego pomiaru textarea Onyx
 - `backend/app/schemas/pdf_schema.py`, linie 44–46; `backend/app/crud/pdfs.py`, linie 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, linie 104–105 — zapis i odtwarzanie flag przepływu Onyx
 
 Testy:
 
 - `frontend/src/utils/canvasEnter.test.js` — rejestr id oraz wykluczenie chrome
+
+### Monochromatyczny szablon Monument
+
+Monument to płatny szablon z kolekcji Classic dla osób, które chcą eleganckiego, redakcyjnego efektu bez koloru. Jego charakter budują numerowane czarne prostokąty, konturowe ramki nagłówków, cienkie szare linie i asymetryczny masthead. Najmniejszy tekst ma 10 px; tekst główny używa 10–11 px, tytuły stanowisk 12 px, a nagłówki sekcji i linia stanowiska przy nazwisku 13,5 px. Cormorant Garamond odpowiada za formalny charakter display, a Montserrat utrzymuje czytelność gęstej treści CV.
+
+Startowa tablica frontendu oraz deterministyczny generator Python używają tej samej geometrii A4 i palety szarości. `_gen_monument` nie rozdziela wpisów doświadczenia ani edukacji przy zmianie strony, obsługuje sekcje własne przez `_extra_sections`, powtarza ramę i stopkę na każdej stronie oraz nie przekazuje decyzji o layoucie do modelu AI.
+
+Implementacja:
+
+- `frontend/src/templates/monument.js`, linie 1–100, eksportowana tablica `monumentTemplate`
+- `frontend/src/templates/index.js`, linie 24 i 51, wpis rejestru `monument` (`tier: "paid"`)
+- `backend/app/services/cv_generator.py`, linie 2013–2184, funkcja `_gen_monument`; linia 3031, `_GENERATORS["monument"]`
+- `frontend/public/template-mockups/monument.png`, podgląd A4 generowany ze źródła
+
+Testy:
+
+- `frontend/src/templates/monument.test.js`, linie 6–32, asercje hierarchii i palety szarości dla układu startowego
+- `backend/tests/test_cv_template_layouts.py`, linie 647–688, `test_monument_is_monochrome_and_never_uses_text_below_ten_pixels`
+
+Znane ograniczenie: długie nazwy sekcji podane przez użytkownika są skracane wyłącznie w stałej ramce dekoracyjnego nagłówka. Treść sekcji pozostaje kompletna.
 
 ### Rodzina Iconic i reflow ikon
 
@@ -964,10 +1004,10 @@ Testy:
 - `backend/tests/test_pdf_shapes.py`, linie 67–131 — wyrównanie optyczne, jawne `alignWithText: false` oraz maska alfa
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — geometria kontaktu Loom i wyrównanie kolumny sidebara
 
-**Regenerowanie podglądów Iconic.** Pliki `frontend/public/template-mockups/{nova,ridge,loom,volt}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js` należy je odtworzyć:
+**Regenerowanie podglądów opartych na kodzie źródłowym.** Pliki `frontend/public/template-mockups/{nova,ridge,loom,volt,monument}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js` lub `frontend/src/templates/monument.js` należy je odtworzyć:
 
 ```bash
-node frontend/scripts/dump-iconic-templates.mjs   # zrzuca 4 tablice elementów do frontend/scripts/iconic-templates.json
+node --import ./frontend/scripts/register-hook.mjs ./frontend/scripts/dump-iconic-templates.mjs
 python scripts/render_iconic_mockups.py           # renderuje każdy motyw przez ReportLab i rasteryzuje stronę 1 w PyMuPDF
 ```
 
@@ -984,7 +1024,7 @@ Skrypt zrzutu (`frontend/scripts/dump-iconic-templates.mjs`) wymaga niewielkiego
 
 Layout Python powstaje ze znormalizowanego `cv_data`, a nie z pozycji wymyślonych przez LLM. W każdym wygenerowanym szablonie wpis wykształcenia korzysta z tego samego systemu znaczenia kolorów co doświadczenie: kierunek ma podstawowy kolor tekstu, szkoła/miasto/okres mają stonowany kolor metadanych, a opcjonalny opis ma czytelny kolor treści. Zwarty wpis w sidebarze celowo używa własnej palety sidebara, ponieważ jest wyświetlany na innym panelu tła.
 
-- `backend/app/services/cv_generator.py`, linie 587–656 — `_place_education_record`, rozróżnia metadane wykształcenia od treści; `generate_resume` (ok. 2860+), `Builder`
+- `backend/app/services/cv_generator.py`, linie 587–656 — `_place_education_record`, rozróżnia metadane wykształcenia od treści; `generate_resume` (ok. 3035+), `Builder`
 - `backend/app/api/routes/ai.py` — `fill_template`
 - [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 

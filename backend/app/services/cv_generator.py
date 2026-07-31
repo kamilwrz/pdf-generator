@@ -2010,6 +2010,180 @@ def _gen_merit(cv: dict) -> list[dict]:
     return _gen_classic_theme(cv, "merit")
 
 
+def _gen_monument(cv: dict) -> list[dict]:
+    """
+    Generate the monochrome Monument editorial layout.
+
+    The font hierarchy deliberately bottoms out at 10 px. Section navigation
+    uses numbered filled rectangles paired with outlined title frames, while
+    all dynamic content remains in a single readable column that can reflow
+    across as many A4 pages as the CV requires.
+    """
+    C = {
+        "paper": "#F7F7F7",
+        "white": "#FFFFFF",
+        "ink": "#111111",
+        "body": "#343434",
+        "muted": "#6D6D6D",
+        "rule": "#C8C8C8",
+        "pale": "#E8E8E8",
+    }
+    L, W = 102, 427
+    DISPLAY, SANS = "CormorantGaramond", "Montserrat"
+    SECTION_CHROME = 40.0
+
+    class MonumentBuilder(Builder):
+        """Continue the editorial column below the repeated page frame."""
+
+        def need(self, h: float):
+            if self.y + h > CONTENT_BOTTOM:
+                self.pg += 1
+                self.y = 72.0
+
+    name = _compact_text(cv.get("name"), 32)
+    title = _compact_text(cv.get("title"), 52)
+    contact = _compact_text(_contact_line(cv), 82)
+    header = [
+        _text(name, 34, DISPLAY, C["ink"], 74, 59, zIndex=3, bold=True),
+        _block(title, 76, 104, 337, 20, 13.5, 17, C["body"], SANS, zIndex=3, bold=True),
+        _block(contact, 76, 136, 337, 16, 10, 13, C["muted"], SANS, zIndex=3),
+        {**_rect(425, 54, 84, 84, C["ink"], 1.5, zIndex=3), "id": "monument-masthead-frame"},
+        _line(441, 70, 52, 11, C["ink"], zIndex=3),
+        _line(441, 88, 34, 11, C["body"], zIndex=3),
+        _line(441, 106, 52, 11, C["rule"], zIndex=3),
+        _text("CV / 01", 10, SANS, C["muted"], 449, 145, zIndex=3),
+    ]
+    header[1]["letterSpacing"] = 1.1
+
+    b = MonumentBuilder(190)
+    section_number = 0
+
+    def section(label: str) -> None:
+        """
+        Draw one numbered heading unit and advance to its content baseline.
+
+        The fixed frame width keeps every section aligned. Long custom labels
+        are shortened only in this decorative slot; their content is preserved.
+        """
+        nonlocal section_number
+        section_number += 1
+        top = b.y
+        display_label = _compact_text(label, 31)
+        b.els.extend([
+            _line(66, top, 28, 28, C["ink"], zIndex=3, page=b.pg),
+            _text(f"{section_number:02d}", 10, SANS, C["white"], 73, top + 7,
+                  zIndex=4, page=b.pg, bold=True),
+            _rect(102, top, 255, 28, C["ink"], 1.2, zIndex=3, page=b.pg),
+            _text(display_label, 13.5, DISPLAY, C["ink"], 114, top + 5,
+                  zIndex=4, page=b.pg, bold=True),
+            _line(369, top + 13, 160, 2, C["rule"], zIndex=2, page=b.pg),
+        ])
+        b.els[-2]["letterSpacing"] = 0.35
+        b.y += SECTION_CHROME
+
+    def experience_height(job: dict) -> float:
+        height = (
+            b.measure_block(job.get("title", ""), W, 12, 15, SANS, bold=True, min_h=15)
+            + SPACE_STACK
+            + b.measure_block(_company_period(job), W, 10, 13, SANS, min_h=13)
+        )
+        bullets = _bullets(job)
+        if bullets:
+            height += SPACE_STACK + b.measure_block(
+                bullets, W, 10, 15, SANS, bulletList=True
+            )
+        return height
+
+    def education_height(education: dict) -> float:
+        return _education_record_height(
+            b, education, W, SANS,
+            degree_fs=11, degree_lh=14,
+            meta_fs=10, meta_lh=13,
+            body_fs=10, body_lh=15,
+        )
+
+    lbl = _labels(cv)
+
+    if cv.get("summary"):
+        summary_height = b.measure_block(cv["summary"], W, 11, 16, SANS)
+        b.need_section(SECTION_CHROME, summary_height + SPACE_SECTION)
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, 11, 16, C["body"], SANS)
+        b.gap(SPACE_SECTION)
+
+    if cv.get("experience"):
+        jobs = cv["experience"]
+        b.need_section(SECTION_CHROME, experience_height(jobs[0]))
+        section(lbl["experience"])
+        for index, job in enumerate(jobs):
+            if index > 0:
+                b.need(experience_height(job))
+            b.block(job.get("title", ""), L, W, 12, 15, C["ink"], SANS,
+                    bold=True, min_h=15)
+            b.gap(SPACE_STACK)
+            b.block(_company_period(job), L, W, 10, 13, C["muted"], SANS, min_h=13)
+            bullets = _bullets(job)
+            if bullets:
+                b.gap(SPACE_STACK)
+                b.block(bullets, L, W, 10, 15, C["body"], SANS, bulletList=True)
+            if index < len(jobs) - 1:
+                b.gap(SPACE_RECORD)
+        b.gap(SPACE_SECTION)
+
+    _extra_sections(
+        b, cv, "after_experience", section, C, L, W, SANS,
+        fs=11, lh=15, section_chrome_h=SECTION_CHROME,
+    )
+
+    if cv.get("education"):
+        entries = cv["education"]
+        b.need_section(SECTION_CHROME, education_height(entries[0]))
+        section(lbl["education"])
+        for index, education in enumerate(entries):
+            if index > 0:
+                b.need(education_height(education))
+            _place_education_record(
+                b, education, L, W,
+                ink=C["ink"], muted=C["muted"], body=C["body"], font=SANS,
+                degree_fs=11, degree_lh=14,
+                meta_fs=10, meta_lh=13,
+                body_fs=10, body_lh=15,
+                after_gap=SPACE_RECORD if index < len(entries) - 1 else None,
+            )
+        b.gap(SPACE_SECTION)
+
+    if cv.get("skills"):
+        skills = "  ·  ".join(cv["skills"])
+        skills_height = b.measure_block(skills, W, 10, 15, SANS)
+        b.need_section(SECTION_CHROME, skills_height + SPACE_SECTION)
+        section(lbl["skills"])
+        b.block(skills, L, W, 10, 15, C["body"], SANS)
+        b.gap(SPACE_SECTION)
+
+    _extra_sections(
+        b, cv, "after_skills", section, C, L, W, SANS,
+        fs=11, lh=15, section_chrome_h=SECTION_CHROME,
+    )
+
+    flow = b.build()
+    pages_used = max([element.get("page", 1) for element in header + flow] or [1])
+    page_decorations = [
+        decoration
+        for page in range(1, pages_used + 1)
+        for decoration in (
+            {**_line(0, 0, 595, 842, C["paper"], zIndex=0, page=page), "fixedToPage": True},
+            {**_rect(34, 32, 527, 778, C["rule"], 0.8, page=page), "fixedToPage": True},
+            {**_line(51, 54, 8, 111, C["ink"], zIndex=2, page=page), "fixedToPage": True},
+            {**_line(529, 54, 8, 111, C["pale"], zIndex=2, page=page), "fixedToPage": True},
+            {**_line(66, 779, 463, 1, C["rule"], zIndex=2, page=page), "fixedToPage": True},
+            {**_line(66, 792, 28, 8, C["ink"], zIndex=2, page=page), "fixedToPage": True},
+            {**_text(f"MONUMENT  /  {page:02d}", 10, SANS, C["muted"], 421, 787,
+                     zIndex=3, page=page), "fixedToPage": True},
+        )
+    ]
+    return page_decorations + header + flow
+
+
 def _gen_moss(cv: dict) -> list[dict]:
     """Generate the Moss narrow-sidebar layout on every content page."""
     C = {
@@ -2854,6 +3028,7 @@ _GENERATORS = {
     "ridge":     _gen_ridge,
     "loom":      _gen_loom,
     "volt":      _gen_volt,
+    "monument":  _gen_monument,
 }
 
 

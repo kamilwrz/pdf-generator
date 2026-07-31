@@ -315,7 +315,7 @@ export default function Hero() {
             <section id="szablony" className={classes.templatesSection}>
                 <div className={classes.templatesHeader}>
                     <div>
-                        <p className={classes.kicker}>24 szablony, 7 kolekcji</p>
+                        <p className={classes.kicker}>25 szablonów, 7 kolekcji</p>
                         <h2>Zobacz swoje CV,<br />nie przykładową historię kogoś innego.</h2>
                     </div>
                     <p>Po imporcie lub kreatorze możesz dobierać wygląd do roli, a nie zaczynać od budowania układu od podstaw.</p>
@@ -374,7 +374,7 @@ export default function Hero() {
                         <p className={classes.planSummary}>Dla osób, które chcą przenieść istniejące CV i dopracować je przed wysłaniem.</p>
                         <ul>
                             <li><CheckIcon />Import danych z PDF</li>
-                            <li><CheckIcon />Wszystkie 24 szablony</li>
+                            <li><CheckIcon />Wszystkie 25 szablonów</li>
                             <li><CheckIcon />Analizy AI: CV, projekt, dopasowanie, gramatyka, styl i ATS</li>
                             <li><CheckIcon />Do 10 projektów i 30 eksportów miesięcznie</li>
                         </ul>
@@ -386,7 +386,7 @@ export default function Hero() {
                         <p className={classes.planSummary}>Dla wielu wersji CV przygotowywanych pod różne role i oferty.</p>
                         <ul>
                             <li><CheckIcon />Tryb Układ AI: odstępy, wyrównanie i kolizje</li>
-                            <li><CheckIcon />Wszystkie 24 szablony</li>
+                            <li><CheckIcon />Wszystkie 25 szablonów</li>
                             <li><CheckIcon />Bez limitu projektów i eksportów</li>
                             <li><CheckIcon />Wiele wersji CV pod aplikacje</li>
                         </ul>

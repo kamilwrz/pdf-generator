@@ -78,7 +78,7 @@ Każdy szablon to A4 pion i realna kariera — nie generyczne „CV nr 3”.
 |---|---|---|
 | **Finanse** | Ledger · Nimbus · Cinder · Rift | Od instytucjonalnego spokoju po odważną redakcję |
 | **IT** | Vector · Kernel · Relay | Platformy, architektura i DevOps |
-| **Classic** | Scribe · Regent · Aldine · Merit | Formalny, executive, szlachetny papier, dyplomatyczny minimalizm |
+| **Classic** | Scribe · Regent · Aldine · Merit · Monument | Formalny, executive, szlachetny papier, dyplomatyczny minimalizm i monochromatyczny editorial |
 | **Sidebar** | Moss | Botaniczna elegancja |
 | **Banking** | Vault · Clearing · Herald · Signal | Private banking, operacje, wealth, ryzyko i treasury |
 | **Dark** | Obsidian · Raven · Graphite · Onyx | Panel boczny, pasek górny, minimal, rama dyplomatyczna |
@@ -141,7 +141,7 @@ Cały interfejs mówi po polsku: marketing, edytor, akcje AI, powiadomienia i mo
 | Plan | Co dostajesz |
 |---|---|
 | **Free** | Edytor A4, 7 szablonów startowych, limity projektów i eksportów; bez asystenta AI |
-| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 24 szablony oraz wyższe limity |
+| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 25 szablonów oraz wyższe limity |
 | **Premium** | Tryb Układ AI, więcej kredytów AI, bez limitu projektów i eksportów |
 
 Model kredytów: ok. 1 kredyt ≈ 5 gr — rozliczenie zbliżone do realnego użycia.

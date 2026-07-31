@@ -169,7 +169,7 @@ Generator **ufnie zakłada** ten schemat — nie odpytuje AI o brakujące pola.
 _GENERATORS = {
     "ledger": _gen_ledger,
     "nimbus": _gen_nimbus,
-    # ... 24 szablony = te same id co frontend/src/templates/index.js
+    # ... 25 szablonów = te same id co frontend/src/templates/index.js
 }
 
 def generate_resume(template_id: str, cv_data: dict) -> list[dict]:
@@ -245,7 +245,7 @@ Liczba bloków doświadczenia = liczba wpisów w `cv_data["experience"]`. Jeśli
 | IT | `_gen_it_theme(cv, theme)` | vector, kernel, relay |
 | Classic | `_gen_classic_theme(cv, theme)` | scribe, regent, aldine, merit |
 | Sidebar (jasne) | `_gen_moss(cv)` | moss |
-| Własne generatory | osobne `_gen_*` | ledger, nimbus, cinder, rift, obsidian, raven, graphite, onyx |
+| Własne generatory | osobne `_gen_*` | ledger, nimbus, cinder, rift, obsidian, raven, graphite, onyx, monument |
 
 Motyw współdzielony różnicuje głównie **paletę, asset PNG, kształt markera sekcji i detale headera**; algorytm flow (summary → experience → …) jest wspólny.
 
@@ -290,7 +290,7 @@ Heurystyczna grupacja w Pythonie pokrywa typowe spłaszczenia; pełna decyzyjno�
 - Nie wybiera `left` / `top` elementów szablonu przy fill.
 - Nie liczy wysokości textarea pod PDF.
 - Nie decyduje, czy education idzie do sidebara.
-- Nie generuje „24 wariantów layoutu” promptem — każdy szablon to **ręcznie napisany** kod Pythona odwzorowujący design z JS.
+- Nie generuje „25 wariantów layoutu” promptem — każdy szablon to **ręcznie napisany** kod Pythona odwzorowujący design z JS.
 
 ### Co robi Python (`cv_generator`)
 
@@ -367,7 +367,7 @@ Bez kroku 2–3 podgląd w bibliotece istnieje, ale **fill_template rzuci „Nie
 | `backend/app/services/pdf_generator.py` | Pomiar wysokości textarea + eksport PDF |
 | `backend/app/services/ai_assistant_service.py` | Asystent po wygenerowaniu (osobny tor AI) |
 | `frontend/src/templates/*.js` | Statyczne próbki designu |
-| `frontend/src/templates/index.js` | Katalog 24 szablonów (id muszą = `_GENERATORS`) |
+| `frontend/src/templates/index.js` | Katalog 25 szablonów (id muszą = `_GENERATORS`) |
 | `backend/tests/test_cv_template_layouts.py` | Strażnik zachowania layoutu |
 
 ---

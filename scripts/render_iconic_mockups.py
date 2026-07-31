@@ -1,17 +1,16 @@
-"""One-off dev utility: renders the four Iconic template starter layouts to
-PNG mockups for the marketing site (Hero) and the in-app template picker.
+"""Render selected frontend starter layouts to PNG template mockups.
 
 The element arrays are dumped from the frontend source of truth
-(frontend/src/templates/iconic.js, via frontend/scripts/dump-iconic-templates.mjs)
+(via frontend/scripts/dump-iconic-templates.mjs)
 so the mockup pixel-matches what a user sees when they pick the template in
 the editor. Rendering goes through the same ReportLab pipeline used for real
 exports (`build_pdf_to_buffer`), then PyMuPDF rasterizes page 1 to PNG at the
 595x842 (72 dpi) size used by every other template-mockups/*.png asset.
 
 Not part of the app build or test suite — run manually after editing
-frontend/src/templates/iconic.js:
+one of the arrays exported by the dump script:
 
-    node frontend/scripts/dump-iconic-templates.mjs
+    node --import ./frontend/scripts/register-hook.mjs ./frontend/scripts/dump-iconic-templates.mjs
     python scripts/render_iconic_mockups.py
 """
 
@@ -44,10 +43,10 @@ RENDER_SCALE = 3
 
 
 def render_theme(theme: str, elements_data: list[dict]) -> bytes:
-    """Render one Iconic theme's element list to PDF bytes via ReportLab."""
+    """Render one frontend template's element list to PDF bytes via ReportLab."""
     elements = [PdfElement(**el) for el in elements_data]
     pdf_data = types.SimpleNamespace(
-        pdf_title=f"iconic-mockup-{theme}",
+        pdf_title=f"template-mockup-{theme}",
         pages=1,
         page_width=PAGE_W_PT,
         page_height=PAGE_H_PT,

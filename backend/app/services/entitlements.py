@@ -211,7 +211,7 @@ PLAN_DISPLAY: dict[str, dict[str, Any]] = {
         "highlights": [
             "150 kredytów AI / mies.",
             "CV, projekt, dopasowanie, gramatyka, styl i ATS",
-            "Wszystkie 24 szablony",
+            "Wszystkie 25 szablonów",
             "10 projektów · 30 eksportów / mies.",
         ],
     },
@@ -221,7 +221,7 @@ PLAN_DISPLAY: dict[str, dict[str, Any]] = {
         "highlights": [
             "300 kredytów AI / mies.",
             "Tryb Układ: geometria i propozycje zmian",
-            "Wszystkie 24 szablony",
+            "Wszystkie 25 szablonów",
             "Bez limitu projektów i eksportów",
         ],
     },

@@ -21,6 +21,7 @@ import { ravenTemplate } from "./raven";
 import { graphiteTemplate } from "./graphite";
 import { onyxTemplate } from "./onyx";
 import { loomTemplate, novaTemplate, ridgeTemplate, voltTemplate } from "./iconic";
+import { monumentTemplate } from "./monument";
 
 export const TEMPLATES = [
     { id: "ledger", tier: "free",    name: "Ledger",    industry: "Finanse · Instytucjonalny",        accent: "#2E5E86", elements: ledgerTemplate },
@@ -47,4 +48,5 @@ export const TEMPLATES = [
     { id: "ridge", tier: "paid",     name: "Ridge",     industry: "Iconic · Szyna ikon",                 accent: "#1F7A6C", elements: ridgeTemplate },
     { id: "loom", tier: "paid",      name: "Loom",      industry: "Iconic · Sidebar rzemieślniczy",      accent: "#C4A35A", elements: loomTemplate },
     { id: "volt", tier: "paid",      name: "Volt",      industry: "Iconic · Ciemny sygnał",              accent: "#E8A838", elements: voltTemplate },
+    { id: "monument", tier: "paid",   name: "Monument",  industry: "Classic · Monochromatyczny editorial", accent: "#343434", elements: monumentTemplate },
 ];
