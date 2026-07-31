@@ -155,8 +155,39 @@ def _extract_positional(elements: list[dict]) -> list[dict]:
     return structured
 
 
+def _primary_identity_id(elements: list[dict]) -> str | None:
+    """Return the largest editable one-line text element used as template identity.
+
+    The bundled templates deliberately contrast the candidate's name with the
+    body typeface, commonly using a serif face for the name and a sans-serif
+    face elsewhere. This semantic marker prevents the design rater from
+    treating that intentional contrast as an inconsistent font choice.
+    """
+    candidates: list[tuple[float, str]] = []
+    for element in elements:
+        element_id = element.get("element_id")
+        if (
+            not element_id
+            or element.get("category") != "text"
+            or not str(element.get("content") or "").strip()
+            or "\n" in str(element.get("content") or "")
+            or element.get("fixedToPage")
+            or element.get("locked")
+        ):
+            continue
+        try:
+            font_size = float(element.get("fontSize") or 0)
+        except (TypeError, ValueError):
+            continue
+        if font_size >= 16:
+            candidates.append((font_size, str(element_id)))
+
+    return max(candidates, default=(0.0, ""))[1] or None
+
+
 def _extract_typography(elements: list[dict]) -> list[dict]:
-    """Typography-only view — NO positional data, so GPT cannot misplace elements."""
+    """Build a style-only view with the intentional primary identity marked."""
+    primary_identity_id = _primary_identity_id(elements)
     items = []
     for el in elements:
         if el.get("category") not in ("text", "textarea") or not el.get("content"):
@@ -176,17 +207,22 @@ def _extract_typography(elements: list[dict]) -> list[dict]:
             item["fixedToPage"] = True
         if el.get("locked"):
             item["locked"] = True
+        if el.get("element_id") == primary_identity_id:
+            item["templateRole"] = "primary_identity"
         items.append(item)
     return items
 
 
 def _protected_typography_ids(elements: list[dict]) -> set[str]:
-    """Ids the design rater must never rewrite (template chrome / locked)."""
-    return {
+    """Return template chrome, locked text, and the primary identity element."""
+    protected_ids = {
         el.get("element_id")
         for el in elements
         if el.get("element_id") and (el.get("fixedToPage") or el.get("locked"))
     }
+    if primary_identity_id := _primary_identity_id(elements):
+        protected_ids.add(primary_identity_id)
+    return protected_ids
 
 
 def _strip_protected_corrections(result: dict, protected_ids: set[str]) -> dict:
@@ -367,6 +403,8 @@ def _rate_design(elements: list[dict], page_size: dict | None = None) -> dict:
         "Jesteś ekspertem od typografii i projektowania wizualnego CV. "
         "CV jest zbudowane na gotowym szablonie produktowym — jego rozmiary czcionek, "
         "etykiety 8–9 px, metadane i numery stron są świadomym wyborem projektowym. "
+        "Kontrast kroju pomiędzy głównym imieniem i nazwiskiem a tekstem CV jest również "
+        "świadomym elementem szablonu, a nie niespójnością. "
         "Sugerujesz WYŁĄCZNIE zmiany rozmiaru i kroju czcionki, koloru, pogrubienia, kursywy oraz wyrównania tekstu. "
         "NIGDY nie zmieniasz pozycji elementów (left, top, width, height) — są ustalone przez szablon. "
         "NIGDY nie krytykuj absolutnych rozmiarów czcionek szablonu ani nie proponuj ich powiększania "
@@ -388,6 +426,12 @@ KONTEKST PRODUKTOWY (OBOWIĄZKOWY):
 - Nie obniżaj oceny za „zbyt małą czcionkę”, jeśli rozmiary są spójne w ramach systemu szablonu.
 - Krytykuj wyłącznie niespójność: złamaną hierarchię, mieszane wyrównanie, odstające kolory, przypadkowe bold.
 - Elementy z fixedToPage=true / locked=true to chrome szablonu — pomiń je w message, tips i corrections.
+- Element z templateRole="primary_identity" jest największym napisem tożsamościowym, zwykle imieniem i nazwiskiem.
+  Jego inny fontFamily, większy rozmiar i pogrubienie są celowym kontrastem szablonu: nie krytykuj ich, nie
+  proponuj dla niego corrections i nie obniżaj za nie oceny.
+- Ocena 8–10 oznacza spójny szablon bez jednoznacznej, możliwej do wskazania poprawki. Ocena 6–7 wymaga co
+  najmniej jednej konkretnej niespójności. Ocena 1–5 jest zarezerwowana dla wielu wyraźnych błędów typografii,
+  niezależnych od celowej różnicy kroju w nagłówku tożsamościowym.
 
 ETAPY ANALIZY:
 
@@ -431,6 +475,13 @@ Zwróć JSON:
 }}"""
     result = _gpt_result(system, user, action="design_rating", allowed_fields=_STYLE_FIELDS)
     result = _strip_protected_corrections(result, protected_ids)
+
+    # A low visual score must be supported by a concrete, editable discrepancy.
+    # Once template chrome and the intentional primary identity are excluded,
+    # an empty correction list means the model found no actionable inconsistency.
+    # Keep the baseline at 8 instead of returning an unsubstantiated low score.
+    if hard_faults == 0 and not result.get("corrections") and isinstance(result.get("rating"), int):
+        result["rating"] = max(result["rating"], 8)
 
     # Keep structural faults out of the design report, but never let a document
     # with unreadable or off-page content receive a high visual-design score.

@@ -779,6 +779,67 @@ class DesignRatingTemplateRespectTests(unittest.TestCase):
 
         self.assertEqual(result["rating"], 9)
 
+    def test_design_rating_preserves_intentional_identity_font_and_baseline(self):
+        elements = [
+            {
+                "element_id": "name",
+                "category": "text",
+                "content": "Eryk Kaczmarek",
+                "fontSize": 30,
+                "fontFamily": "Times-Roman",
+                "bold": True,
+                "left": 40,
+                "top": 40,
+                "width": 220,
+                "height": 36,
+                "page": 1,
+            },
+            {
+                "element_id": "role",
+                "category": "text",
+                "content": "Senior Full Stack Developer",
+                "fontSize": 9,
+                "fontFamily": "Inter",
+                "left": 40,
+                "top": 86,
+                "width": 180,
+                "height": 12,
+                "page": 1,
+            },
+            {
+                "element_id": "body",
+                "category": "textarea",
+                "content": "Tworzę niezawodne produkty cyfrowe.",
+                "fontSize": 10,
+                "fontFamily": "Inter",
+                "left": 40,
+                "top": 112,
+                "width": 300,
+                "height": 30,
+                "page": 1,
+            },
+        ]
+
+        def fake_gpt(system, user, **kwargs):
+            self.assertIn("świadomym elementem szablonu", system)
+            self.assertIn('"templateRole": "primary_identity"', user)
+            return {
+                "message": "Nazwa używa innego kroju niż reszta dokumentu.",
+                "rating": 5,
+                "tips": ["Ujednolić font imienia z tekstem głównym."],
+                "corrections": [{"element_id": "name", "fontFamily": "Inter"}],
+            }, {"tokens": 1}
+
+        with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
+            result = ai_assistant_service.analyze_action(
+                action="design_rating",
+                elements=elements,
+                message="",
+            )
+
+        self.assertEqual(result["corrections"], [])
+        self.assertEqual(result["rating"], 8)
+
 
 if __name__ == "__main__":
     unittest.main()
