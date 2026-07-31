@@ -653,7 +653,7 @@ class DesignRatingTemplateRespectTests(unittest.TestCase):
             self.assertIn("Nie obniżaj oceny za „zbyt małą czcionkę”", user)
             self.assertNotIn("tekst główny 10–12 px", user)
             self.assertIn('"fixedToPage": true', user)
-            self.assertIn("RAPORT GEOMETRII", user)
+            self.assertNotIn("RAPORT GEOMETRII", user)
             return {
                 "message": "Szablon jest spójny; etykiety 8 px są częścią systemu.",
                 "rating": 8,
@@ -701,8 +701,9 @@ class DesignRatingTemplateRespectTests(unittest.TestCase):
         ]
 
         def fake_gpt(system, user, **kwargs):
-            self.assertIn("nakładające się bloki treści: 1", user)
-            self.assertIn("rating MAX = 5", user)
+            self.assertNotIn("RAPORT GEOMETRII", user)
+            self.assertNotIn("nakładające się bloki treści", user)
+            self.assertNotIn("rating MAX = 5", user)
             return {
                 "message": "Typografia jest spójna.",
                 "rating": 9,
@@ -719,8 +720,8 @@ class DesignRatingTemplateRespectTests(unittest.TestCase):
             )
 
         self.assertEqual(result["rating"], 5)
-        self.assertTrue(any("Geometria:" in tip for tip in result["tips"]))
-        self.assertIn("koliz", result["message"].lower())
+        self.assertFalse(any("Geometria:" in tip for tip in result["tips"]))
+        self.assertNotIn("koliz", result["message"].lower())
 
 
 if __name__ == "__main__":
