@@ -47,6 +47,9 @@ export function useA4Elements(titleRef) {
   const [A4_Elements, setA4_Elements] = useState([]);
   const [A4_Elements_deleted, setA4_Elements_deleted] = useState([]);
   const [groupMoveDelta, setGroupMoveDelta] = useState(null);
+  // Last loaded template slug (e.g. "words"). Used by Layout AI for layout_contract
+  // hints; cleared for blank canvases and unknown freestyle loads.
+  const [activeTemplateId, setActiveTemplateId] = useState(null);
 
   // ---- Connector draw mode ----
   // connectMode: true while the user is picking the two elements to link.
@@ -1776,6 +1779,7 @@ export function useA4Elements(titleRef) {
       resetHistory();
       setA4_Elements([]);
       setA4_Elements_deleted([]);
+      setActiveTemplateId(null);
       setPageCount(1);
       setCurrentPage(1);
       titleRef.current.value = "";
@@ -1817,13 +1821,14 @@ export function useA4Elements(titleRef) {
 
   // Replace the canvas with generated/authored specs. `title` is used verbatim.
   // Content fades in after fonts settle; fixedToPage chrome appears immediately.
-  const handleLoadAiElements = useCallback((specs, title) => {
+  const handleLoadAiElements = useCallback((specs, title, templateId = null) => {
     resetHistory();
     const mapped = materializeSpecs(specs);
     const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
     markContentElementsEnter(mapped);
     setA4_Elements(mapped);
     setA4_Elements_deleted([]);
+    setActiveTemplateId(templateId || null);
     setPageCount(maxPage);
     setCurrentPage(1);
     if (titleRef?.current && title) {
@@ -1831,7 +1836,7 @@ export function useA4Elements(titleRef) {
     }
   }, [resetHistory])
 
-  const handleLoadTemplateWithFill = useCallback((templateElements, templateName, fills) => {
+  const handleLoadTemplateWithFill = useCallback((templateElements, templateName, fills, templateId = null) => {
     resetHistory();
     // fills use array index as id (String) — match by position, not by element_id
     const fillMap = Object.fromEntries((fills || []).map(f => [f.id, f.content]));
@@ -1846,6 +1851,7 @@ export function useA4Elements(titleRef) {
     markContentElementsEnter(mapped);
     setA4_Elements(mapped);
     setA4_Elements_deleted([]);
+    setActiveTemplateId(templateId || null);
     setPageCount(maxPage);
     setCurrentPage(1);
     if (titleRef?.current && templateName) {
@@ -1853,13 +1859,14 @@ export function useA4Elements(titleRef) {
     }
   }, [])
 
-  const handleLoadTemplate = useCallback((templateElements, title) => {
+  const handleLoadTemplate = useCallback((templateElements, title, templateId = null) => {
     resetHistory();
     const mapped = materializeSpecs(templateElements);
     const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
     markContentElementsEnter(mapped);
     setA4_Elements(mapped);
     setA4_Elements_deleted([]);
+    setActiveTemplateId(templateId || null);
     setPageCount(maxPage);
     setCurrentPage(1);
     if (titleRef?.current && title) {
@@ -1913,6 +1920,7 @@ export function useA4Elements(titleRef) {
     handleLoadTemplate,
     handleLoadTemplateWithFill,
     handleLoadAiElements,
+    activeTemplateId,
     // multi-page
     pageCount,
     setPageCount,

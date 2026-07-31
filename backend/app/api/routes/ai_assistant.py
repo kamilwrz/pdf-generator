@@ -44,6 +44,9 @@ class AssistantRequest(BaseModel):
     page_size: dict = {}
     # Prior turns from the open editor session (role + content). Chat / layout.
     history: list[dict] = []
+    # Optional template slug (e.g. "words", "monument") for layout_contract hints.
+    # Freestyle / saved documents may omit this; the layout session still works.
+    template_id: str | None = None
 
 
 class TokenUsage(BaseModel):
@@ -127,6 +130,7 @@ async def ai_assistant(
             job_description=request.job_description,
             page_size=request.page_size,
             history=request.history,
+            template_id=request.template_id,
         )
         charge_ai_credits(db, user.id, result.get("usage", {}).get("cost_pln_estimate", 0.0))
         return AssistantResponse(**result)

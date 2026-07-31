@@ -532,6 +532,7 @@ function ChatMessage({
 export default function AiAssistant() {
     const {
         A4_Elements,
+        activeTemplateId,
         editElementValues,
         applyLayoutPatches,
         applyStructureOperation,
@@ -819,6 +820,11 @@ export default function AiAssistant() {
                     job_description: action === "position_rating" ? jobDesc : "",
                     page_size: pageSize,
                     history: usesMessage ? history : [],
+                    // Layout AI uses the slug for layout_contract hints; other
+                    // actions ignore it. Freestyle / reopened docs may omit it.
+                    ...(action === "layout" && activeTemplateId
+                        ? { template_id: activeTemplateId }
+                        : {}),
                 }),
                 "Asystent AI nie odpowiedział",
                 {

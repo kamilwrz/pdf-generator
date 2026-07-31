@@ -107,7 +107,7 @@ export default function AiCvPanel() {
                 JSON.stringify({ cv_data: cvData, template_id: template.id }),
                 "Generowanie szablonu nie powiodło się"
             );
-            loadAiElements(res.elements, `CV ${template.name}`);
+            loadAiElements(res.elements, `CV ${template.name}`, template.id);
             showAiPanel();
         } catch (err) {
             setError(planErrorMessage(err, "Nie udało się wygenerować szablonu."));

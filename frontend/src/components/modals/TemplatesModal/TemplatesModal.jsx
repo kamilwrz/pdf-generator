@@ -32,7 +32,7 @@ export default function TemplatesModal() {
 
     function applyTemplate(t) {
         const title = `CV ${t.name}`;
-        loadTemplate(t.elements, title);
+        loadTemplate(t.elements, title, t.id);
         if (autoOpenedTemplates) {
             logEvent("template_picked", t.id);
             markTemplatesModalSeen();

@@ -1073,9 +1073,10 @@ def _layout_session(
     elements: list[dict],
     page_size: dict | None,
     history: list | None = None,
+    template_id: str | None = None,
 ) -> dict:
     """GPT layout corrector: full A4 JSON in, changes → canvas review cards out."""
-    snapshot = build_layout_snapshot(elements, page_size)
+    snapshot = build_layout_snapshot(elements, page_size, template_id=template_id)
     if snapshot.get("movable_count", 0) < 1:
         return {
             "message": "Brak mierzalnych elementów na płótnie do analizy układu.",
@@ -1175,6 +1176,7 @@ def analyze_action(
     job_description: str = "",
     page_size: dict | None = None,
     history: list | None = None,
+    template_id: str | None = None,
 ) -> dict:
     """Dispatch one assistant button/chat action and return a UI-ready dict.
 
@@ -1192,7 +1194,9 @@ def analyze_action(
         "improve":         lambda: _improve_content(elements),
         "ats_score":       lambda: _ats_score(text),
         "chat":            lambda: _chat(message, elements, page_size, history),
-        "layout":          lambda: _layout_session(message, elements, page_size, history),
+        "layout":          lambda: _layout_session(
+            message, elements, page_size, history, template_id=template_id
+        ),
     }
 
     fn = dispatchers.get(action)

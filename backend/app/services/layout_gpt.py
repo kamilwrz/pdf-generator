@@ -12,7 +12,13 @@ import json
 import re
 from typing import Any
 
-from app.services.cv_generator import A4_H
+from app.services.cv_generator import (
+    A4_H,
+    SPACE_AFTER_RULE,
+    SPACE_RECORD,
+    SPACE_SECTION,
+    SPACE_STACK,
+)
 from app.services.layout_analysis import (
     AUTO_LAYOUT_CATEGORIES,
     EPSILON,
@@ -175,6 +181,12 @@ WAŻNE: zarówno `text`, jak i `textarea` są elementami tekstowymi. Wygenerowan
 wpisy doświadczenia i wykształcenia (stanowiska, daty, firmy, opisy i punkty)
 często mają category=`textarea`; nie wolno ich pomijać ani traktować jak pustych pól.
 
+Snapshot zawiera `layout_contract` — kanoniczne wartości rytmu generatora CV
+(`SPACE_STACK`, `SPACE_RECORD`, `SPACE_SECTION`, `SPACE_AFTER_RULE`) oraz
+docelowy odstęp pod nagłówkami sekcji. Preferuj te wartości zamiast wymyślać
+własny rytm, o ile peery na płótnie nie narzucają innego, wyraźnie spójnego wzorca.
+Gdy element ma `flowRole`, używaj go jako wskazówki roli w przepływie sekcji.
+
 Twoim zadaniem jest wykrywanie i poprawianie WYŁĄCZNIE problemów geometrii:
 - rytm pionowych odstępów,
 - odstępy między sekcjami,
@@ -199,9 +211,84 @@ Zwracasz WYŁĄCZNIE prawidłowy JSON (bez tekstu przed/po).
 """
 
 
+def _normalize_template_id(template_id: str | None) -> str | None:
+    """Return a short safe template id, or None when unknown / freestyle."""
+    if template_id is None:
+        return None
+    normalized = str(template_id).strip().lower()
+    if not normalized or normalized in {"unknown", "none", "null"}:
+        return None
+    # Keep only slug-like ids so freestyle titles never leak into the snapshot.
+    if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", normalized):
+        return None
+    return normalized
+
+
+def _layout_hint_for_template(template_id: str | None) -> str:
+    """Short template-aware guidance for the model; never overrides peer rhythm."""
+    if not template_id:
+        return (
+            "Szablon nieznany lub dokument freestyle. Preferuj zmierzony rytm peerów "
+            "oraz wartości z layout_contract zamiast wymyślać nowe odstępy."
+        )
+    hints = {
+        "words": (
+            "Szablon Words: klasyczny układ Word-like, szara skala, linie i małe kółka. "
+            "Zachowuj równe odstępy wpisów i sekcji z layout_contract."
+        ),
+        "monument": (
+            "Szablon Monument: numerowane sekcje w ramkach. Trzymaj chrome nagłówka "
+            "(numer, ramka, etykieta, linia) razem z pierwszą treścią sekcji."
+        ),
+        "onyx": (
+            "Szablon Onyx: marker + etykieta → linia → treść. flowRole oznaczają rolę "
+            "chrome/treści; nie rozdzielaj pary nagłówkowej."
+        ),
+    }
+    return hints.get(
+        template_id,
+        (
+            f"Szablon `{template_id}`. Preferuj layout_contract (SPACE_* oraz "
+            "section_header_gap_px) zamiast inventowania nowego rytmu."
+        ),
+    )
+
+
+def _build_layout_contract(template_id: str | None = None) -> dict[str, Any]:
+    """Canonical generator rhythm exposed to the layout model."""
+    normalized_id = _normalize_template_id(template_id)
+    return {
+        "source": "cv_generator",
+        "unit": "px",
+        "template_id": normalized_id,
+        "hint": _layout_hint_for_template(normalized_id),
+        "spacing_px": {
+            # Matches deterministic Python pagination in cv_generator.py.
+            "stack": float(SPACE_STACK),
+            "record": float(SPACE_RECORD),
+            "section": float(SPACE_SECTION),
+            "after_rule": float(SPACE_AFTER_RULE),
+        },
+        "section_header_gap_px": {
+            "min": SECTION_HEADER_GAP_MIN_PX,
+            "target": SECTION_HEADER_GAP_TARGET_PX,
+            "max": SECTION_HEADER_GAP_MAX_PX,
+            "peer_tolerance": SECTION_HEADER_GAP_PEER_TOLERANCE_PX,
+        },
+        "roles": {
+            "stack": "title → meta → body inside one experience/education record",
+            "record": "gap between consecutive records in the same section",
+            "section": "gap after a finished section before the next heading",
+            "after_rule": "section heading rule → first content block",
+            "section_header_gap": "real bottom-edge gap under section chrome to first body",
+        },
+    }
+
+
 def _build_layout_snapshot_data(
     elements: list[dict[str, Any]],
     page_size: dict[str, Any] | None,
+    template_id: str | None = None,
 ) -> tuple[dict[str, Any], dict[str, str]]:
     """Build the model snapshot and its compact-ref to canvas-id mapping."""
     page_size = page_size or {}
@@ -261,6 +348,11 @@ def _build_layout_snapshot_data(
             "fixedToPage": bool(element.get("fixedToPage")),
             "content": preview,
         }
+        # flowRole is template/AI metadata that identifies section chrome vs
+        # body without requiring the model to re-infer roles from content alone.
+        flow_role = element.get("flowRole")
+        if isinstance(flow_role, str) and flow_role.strip():
+            item["flowRole"] = flow_role.strip()
         if category == "text":
             item["measuredHeight"] = measured_height
             item["heightSource"] = (
@@ -311,6 +403,7 @@ def _build_layout_snapshot_data(
 
     text_rows = _build_text_rows(items)
     pages = sorted({item["page"] for item in items}) or [1]
+    layout_contract = _build_layout_contract(template_id)
     snapshot = {
         "page": {
             "width": page_width,
@@ -328,16 +421,12 @@ def _build_layout_snapshot_data(
         ],
         "text_rows": text_rows,
         "elements": items,
+        "layout_contract": layout_contract,
         "constraints": {
             "max_moves": MAX_LAYOUT_MOVES,
             "max_findings": MAX_LAYOUT_FINDINGS,
             "max_delta_px": MAX_LAYOUT_MOVE_PX,
-            "section_header_gap_px": {
-                "min": SECTION_HEADER_GAP_MIN_PX,
-                "target": SECTION_HEADER_GAP_TARGET_PX,
-                "max": SECTION_HEADER_GAP_MAX_PX,
-                "peer_tolerance": SECTION_HEADER_GAP_PEER_TOLERANCE_PX,
-            },
+            "section_header_gap_px": layout_contract["section_header_gap_px"],
             "forbid_page_change": True,
             "forbid_resize_unless_clipped": True,
             "preserve_user_vision": True,
@@ -349,9 +438,14 @@ def _build_layout_snapshot_data(
 def build_layout_snapshot(
     elements: list[dict[str, Any]],
     page_size: dict[str, Any] | None,
+    template_id: str | None = None,
 ) -> dict[str, Any]:
     """Return full multi-page canvas JSON with compact model-facing refs."""
-    snapshot, _ref_to_element_id = _build_layout_snapshot_data(elements, page_size)
+    snapshot, _ref_to_element_id = _build_layout_snapshot_data(
+        elements,
+        page_size,
+        template_id=template_id,
+    )
     return snapshot
 
 
@@ -362,11 +456,14 @@ def build_layout_user_prompt(
 ) -> str:
     """User message: canvas JSON + corrector rules + response contract."""
     constraints = snapshot.get("constraints") or {}
+    layout_contract = snapshot.get("layout_contract") or {}
+    spacing = layout_contract.get("spacing_px") or {}
     max_findings = int(constraints.get("max_findings") or MAX_LAYOUT_FINDINGS)
     max_moves = int(constraints.get("max_moves") or MAX_LAYOUT_MOVES)
     max_delta = float(constraints.get("max_delta_px") or MAX_LAYOUT_MOVE_PX)
     section_header_gap = (
         constraints.get("section_header_gap_px")
+        or layout_contract.get("section_header_gap_px")
         or constraints.get("safe_section_gap_px")
         or {}
     )
@@ -377,6 +474,11 @@ def build_layout_user_prompt(
         section_header_gap.get("peer_tolerance"),
         SECTION_HEADER_GAP_PEER_TOLERANCE_PX,
     )
+    space_stack = _number(spacing.get("stack"), float(SPACE_STACK))
+    space_record = _number(spacing.get("record"), float(SPACE_RECORD))
+    space_section = _number(spacing.get("section"), float(SPACE_SECTION))
+    space_after_rule = _number(spacing.get("after_rule"), float(SPACE_AFTER_RULE))
+    contract_hint = str(layout_contract.get("hint") or "").strip()
     q = (question or "").strip() or DEFAULT_LAYOUT_QUESTION
     history = history_block or ""
 
@@ -387,6 +489,15 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
 {q}
 
 ## Zasady analizy
+0. `layout_contract` jest kanonicznym rytmem generatora CV. Preferuj:
+   stack={space_stack:g} px (tytuł→meta→opis w wpisie),
+   record={space_record:g} px (między wpisami),
+   section={space_section:g} px (po sekcji przed następnym nagłówkiem),
+   after_rule={space_after_rule:g} px (linia nagłówka→pierwsza treść),
+   oraz section_header_gap ≈ {gap_target:g} px.
+   Nie wymyślaj własnych „ładnych” odstępów, jeśli te wartości pasują do peerów.
+   Gdy element ma `flowRole`, używaj go przy grupowaniu chrome vs treść.
+   Wskazówka szablonu: {contract_hint or "brak"}.
 1. Traktuj KAŻDY element category=`text` lub category=`textarea` jako element
    tekstowy. Najpierw rozlicz dokładnie `text_element_count` i wszystkie krótkie
    referencje z `text_element_refs`; żadnej referencji nie wolno pominąć.
@@ -477,13 +588,15 @@ Pola `summary`, `group` i `reason` są wyświetlane osobie nietechnicznej.
   w polach technicznych JSON.
 
 ## Preferowane reguły (wskazówki, nie sztywne wartości)
+- Preferuj `layout_contract.spacing_px` przed inventowaniem rytmu: stack≈{space_stack:g},
+  record≈{space_record:g}, section≈{space_section:g}, after_rule≈{space_after_rule:g}.
 - Nagłówki tego samego poziomu: zbliżony left.
 - Ikona nagłówka wyrównana pionowo z tekstem nagłówka (osobna sprawa od rytmu pod sekcją).
 - Linia dekoracyjna na osi wizualnej nagłówka, bez przechodzenia przez tekst.
 - Realne odstępy pod nagłówkami ujednolicone do ~{gap_target:g} px; nie celuj w 0 px.
 - Daty doświadczenia w jednej prawej kolumnie; wysokość zbliżona do stanowiska.
-- Odstępy tytuł→firma, firma→opis, koniec wpisu→następny wpis: spójne w sekcji.
-- Odstęp nad nową sekcją większy niż odstępy wewnątrz wpisu.
+- Odstępy tytuł→firma, firma→opis ≈ stack; koniec wpisu→następny wpis ≈ record.
+- Odstęp nad nową sekcją ≈ section — większy niż odstępy wewnątrz wpisu.
 - Kolumny: spójne left i przerwy.
 
 ## Format odpowiedzi (WYŁĄCZNIE JSON)

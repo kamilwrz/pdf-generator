@@ -75,10 +75,43 @@ class LayoutGptTests(unittest.TestCase):
         )
         self.assertTrue(all("element_id" not in item for item in snap["elements"]))
 
+    def test_snapshot_includes_layout_contract_and_flow_role(self):
+        elements = [
+            el(
+                "h1", 50, 100, content="DOŚWIADCZENIE",
+                flowRole="section_heading",
+            ),
+            el("body", 50, 130, content="Opis", category="textarea", flowRole="entry_body"),
+        ]
+        snap = build_layout_snapshot(elements, PAGE, template_id="words")
+        contract = snap["layout_contract"]
+        self.assertEqual(contract["template_id"], "words")
+        self.assertEqual(contract["spacing_px"]["stack"], 4.0)
+        self.assertEqual(contract["spacing_px"]["record"], 14.0)
+        self.assertEqual(contract["spacing_px"]["section"], 18.0)
+        self.assertEqual(contract["spacing_px"]["after_rule"], 12.0)
+        self.assertEqual(
+            contract["section_header_gap_px"],
+            snap["constraints"]["section_header_gap_px"],
+        )
+        self.assertIn("Words", contract["hint"])
+        by_content = {item["content"]: item for item in snap["elements"]}
+        self.assertEqual(by_content["DOŚWIADCZENIE"]["flowRole"], "section_heading")
+        self.assertEqual(by_content["Opis"]["flowRole"], "entry_body")
+
+        unknown = build_layout_snapshot(elements, PAGE, template_id="!!!bad")
+        self.assertIsNone(unknown["layout_contract"]["template_id"])
+
     def test_user_prompt_includes_corrector_contract(self):
-        snap = build_layout_snapshot([el("a", 70, 100)], PAGE)
+        snap = build_layout_snapshot([el("a", 70, 100)], PAGE, template_id="monument")
         prompt = build_layout_user_prompt(snap, "Który nagłówek odstaje?")
         self.assertIn("Który nagłówek odstaje?", prompt)
+        self.assertIn("layout_contract", prompt)
+        self.assertIn("stack=4", prompt)
+        self.assertIn("record=14", prompt)
+        self.assertIn("section=18", prompt)
+        self.assertIn("after_rule=12", prompt)
+        self.assertIn("Monument", prompt)
         self.assertIn("changes", prompt)
         self.assertIn("no_changes", prompt)
         self.assertIn("gap = next_row.top", prompt)
@@ -100,6 +133,7 @@ class LayoutGptTests(unittest.TestCase):
         self.assertIn("Nigdy nie pokazuj referencji", prompt)
         self.assertTrue(LAYOUT_CORRECTOR_SYSTEM.startswith("Jesteś korektorem"))
         self.assertIn("category=`textarea`", LAYOUT_CORRECTOR_SYSTEM)
+        self.assertIn("layout_contract", LAYOUT_CORRECTOR_SYSTEM)
         self.assertIn("rytm", DEFAULT_LAYOUT_QUESTION.lower())
 
     def test_user_prompt_standardizes_positive_section_header_gaps(self):
