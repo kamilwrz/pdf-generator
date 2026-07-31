@@ -3,6 +3,59 @@
 // backend need the real rendered size of an element, not stale stored
 // values — especially for textareas, whose height depends on wrapped text.
 
+function getCanvasMeasurement(node) {
+  const canvas = node.closest("[data-page-canvas]");
+  const canvasRect = canvas?.getBoundingClientRect();
+  if (!canvas || !canvasRect) {
+    return { canvasRect: null, scaleX: 1, scaleY: 1 };
+  }
+
+  const layoutWidth = canvas.clientWidth || canvasRect.width || 1;
+  const layoutHeight = canvas.clientHeight || canvasRect.height || 1;
+  return {
+    canvasRect,
+    scaleX: canvasRect.width / layoutWidth || 1,
+    scaleY: canvasRect.height / layoutHeight || 1,
+  };
+}
+
+function getTextRangeRect(node) {
+  if (!node.ownerDocument?.createRange) return null;
+
+  // A collapsed CSS box can still contain visible glyphs. Range geometry is
+  // the browser's direct measurement of those glyphs and therefore provides a
+  // reliable fallback when getBoundingClientRect() reports a zero-size <p>.
+  const range = node.ownerDocument.createRange();
+  range.selectNodeContents(node);
+  const clientRects = range.getClientRects();
+  if (clientRects.length > 0) {
+    let left = Infinity;
+    let top = Infinity;
+    let right = -Infinity;
+    let bottom = -Infinity;
+    for (const rect of clientRects) {
+      if (rect.width <= 0 || rect.height <= 0) continue;
+      left = Math.min(left, rect.left);
+      top = Math.min(top, rect.top);
+      right = Math.max(right, rect.right);
+      bottom = Math.max(bottom, rect.bottom);
+    }
+    if (Number.isFinite(left) && right > left && bottom > top) {
+      return {
+        left,
+        top,
+        width: right - left,
+        height: bottom - top,
+        right,
+        bottom,
+      };
+    }
+  }
+
+  const rect = range.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0 ? rect : null;
+}
+
 export function getElementBounds(element) {
   const node = typeof document !== "undefined"
     ? document.getElementById(element.element_id)
@@ -10,10 +63,7 @@ export function getElementBounds(element) {
   if (node) {
     const rect = node.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) {
-      const canvas = node.closest("[data-page-canvas]");
-      const canvasRect = canvas?.getBoundingClientRect();
-      const scaleX = canvasRect?.width / (canvas?.clientWidth || canvasRect?.width || 1);
-      const scaleY = canvasRect?.height / (canvas?.clientHeight || canvasRect?.height || 1);
+      const { scaleX, scaleY } = getCanvasMeasurement(node);
       return { width: rect.width / scaleX, height: rect.height / scaleY };
     }
   }
@@ -41,10 +91,7 @@ export function getTextContentBounds(element) {
     ? document.getElementById(element.element_id)
     : null;
   if (node) {
-    const canvas = node.closest("[data-page-canvas]");
-    const canvasRect = canvas?.getBoundingClientRect();
-    const scaleX = canvasRect?.width / (canvas?.clientWidth || canvasRect?.width || 1);
-    const scaleY = canvasRect?.height / (canvas?.clientHeight || canvasRect?.height || 1);
+    const { canvasRect, scaleX, scaleY } = getCanvasMeasurement(node);
     const toCanvas = (rect) => ({
       left: (rect.left - (canvasRect?.left ?? rect.left)) / scaleX,
       top: (rect.top - (canvasRect?.top ?? rect.top)) / scaleY,
@@ -57,37 +104,9 @@ export function getTextContentBounds(element) {
     if (node.tagName === "INPUT" || node.tagName === "TEXTAREA") {
       const rect = node.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) return toCanvas(rect);
-    } else if (node.ownerDocument?.createRange) {
-      const range = node.ownerDocument.createRange();
-      range.selectNodeContents(node);
-      // Prefer client rects: they track glyph ink more tightly than the
-      // aggregate bounding rect on some engines when line-boxes are involved.
-      const clientRects = range.getClientRects();
-      if (clientRects.length > 0) {
-        let leftEdge = Infinity;
-        let topEdge = Infinity;
-        let rightEdge = -Infinity;
-        let bottomEdge = -Infinity;
-        for (const rect of clientRects) {
-          if (rect.width <= 0 || rect.height <= 0) continue;
-          leftEdge = Math.min(leftEdge, rect.left);
-          topEdge = Math.min(topEdge, rect.top);
-          rightEdge = Math.max(rightEdge, rect.right);
-          bottomEdge = Math.max(bottomEdge, rect.bottom);
-        }
-        if (Number.isFinite(leftEdge) && rightEdge > leftEdge && bottomEdge > topEdge) {
-          return toCanvas({
-            left: leftEdge,
-            top: topEdge,
-            width: rightEdge - leftEdge,
-            height: bottomEdge - topEdge,
-            right: rightEdge,
-            bottom: bottomEdge,
-          });
-        }
-      }
-      const rect = range.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) return toCanvas(rect);
+    } else {
+      const rangeRect = getTextRangeRect(node);
+      if (rangeRect) return toCanvas(rangeRect);
     }
   }
 
@@ -116,6 +135,7 @@ export function getVisualBounds(element) {
 // currently mounted on screen (i.e. on the page currently being viewed).
 // Elements with no live DOM node are marked bounds_estimated so the backend
 // can prefer content-based fallbacks instead of treating stale boxes as truth.
+// A visible text node with a collapsed box falls back to its Range geometry.
 // Textareas also report scrollHeight-based clipping for AI layout repair.
 export function measureElements(elements) {
   return elements.map(element => {
@@ -126,21 +146,39 @@ export function measureElements(elements) {
       return {
         ...element,
         bounds_estimated: true,
+        bounds_estimate_reason: "missing_dom_node",
       };
     }
 
-    const rect = node.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) {
+    const boxRect = node.getBoundingClientRect();
+    const { scaleX, scaleY } = getCanvasMeasurement(node);
+    let measuredWidth = boxRect.width / scaleX;
+    let measuredHeight = boxRect.height / scaleY;
+    let measurementSource = "dom_box";
+
+    if (
+      element.category === "text"
+      && (measuredWidth <= 0 || measuredHeight <= 0)
+    ) {
+      const rangeRect = getTextRangeRect(node);
+      if (rangeRect) {
+        const fontSize = Number(element.fontSize) || 12;
+        measuredWidth = rangeRect.width / scaleX;
+        // Text.jsx uses line-height: 1. Range height measures glyph ink, which
+        // can be shorter than the line box, so preserve at least one font-size
+        // line for backend bottom-edge and gap calculations.
+        measuredHeight = Math.max(rangeRect.height / scaleY, fontSize);
+        measurementSource = "text_range_line_box";
+      }
+    }
+
+    if (measuredWidth <= 0 || measuredHeight <= 0) {
       return {
         ...element,
         bounds_estimated: true,
+        bounds_estimate_reason: "zero_dom_rect",
       };
     }
-
-    const canvas = node.closest("[data-page-canvas]");
-    const canvasRect = canvas?.getBoundingClientRect();
-    const scaleX = canvasRect?.width / (canvas?.clientWidth || canvasRect?.width || 1);
-    const scaleY = canvasRect?.height / (canvas?.clientHeight || canvasRect?.height || 1);
 
     // scrollHeight/clientHeight are in the element's CSS pixel space, which
     // matches stored left/top/width/height (not the zoomed screen rect).
@@ -155,13 +193,14 @@ export function measureElements(elements) {
     return {
       ...element,
       bounds_estimated: false,
+      bounds_measurement_source: measurementSource,
       ...(contentHeight !== undefined ? { content_height: contentHeight } : {}),
       ...(clipped !== undefined ? { clipped } : {}),
       layout_bounds: {
         left: Number(element.left) || 0,
         top: Number(element.top) || 0,
-        width: rect.width / scaleX,
-        height: rect.height / scaleY,
+        width: measuredWidth,
+        height: measuredHeight,
       },
     };
   });

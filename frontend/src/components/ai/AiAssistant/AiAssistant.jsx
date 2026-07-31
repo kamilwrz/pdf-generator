@@ -3,7 +3,7 @@
  * Sends element snapshots to POST /ai/assistant; chat may return previewable
  * position/structure/deletion/clone review cards before mutating PdfContext.
  */
-import { useState, useRef, useEffect, useCallback, use } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, use } from "react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { nanoid } from "nanoid";
 import { BsStars } from "react-icons/bs";
@@ -497,6 +497,7 @@ export default function AiAssistant() {
 
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
+    const layoutHistoryStartRef = useRef(null);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -512,7 +513,12 @@ export default function AiAssistant() {
         textarea.style.height = `${Math.min(textarea.scrollHeight, 136)}px`;
     }, [input]);
 
-    const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
+    // Keep one client for the mounted assistant. Recreating it on every render
+    // would also recreate `send`, making the layout-session callbacks unstable.
+    const api = useMemo(
+        () => new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` }),
+        [],
+    );
 
     // ── correction handlers ──────────────────────────────────────────────
 
@@ -708,8 +714,15 @@ export default function AiAssistant() {
     const send = useCallback(async (action, userText, options = {}) => {
         if (isLoading) return;
 
-        // Prior turns only — the current userText is sent as `message`.
+        // A new layout session must reason from the current canvas rather than
+        // repeat conclusions from ordinary chat or an earlier layout run.
+        // Follow-up questions inside the active session still receive their
+        // own prior turns, which preserves conversational geometry analysis.
+        const historyStart = action === "layout" && Number.isInteger(layoutHistoryStartRef.current)
+            ? layoutHistoryStartRef.current
+            : 0;
         const history = messages
+            .slice(historyStart)
             .filter((m) => (m.role === "user" || m.role === "assistant") && m.text)
             .slice(-12)
             .map((m) => ({
@@ -815,6 +828,7 @@ export default function AiAssistant() {
             setIsOpen(true);
             if (layoutMode) {
                 setLayoutMode(false);
+                layoutHistoryStartRef.current = null;
                 setMessages(prev => [...prev, {
                     id: nanoid(),
                     role: "assistant",
@@ -826,6 +840,10 @@ export default function AiAssistant() {
                 }]);
                 return;
             }
+            // Capture the boundary before `send` reads the current message
+            // array. The first layout request therefore has empty history;
+            // later layout questions start at this session boundary.
+            layoutHistoryStartRef.current = messages.length;
             setLayoutMode(true);
             // UI shows a short label; the API message is the full analysis brief.
             send("layout", LAYOUT_MODE_INTRO, {
@@ -834,7 +852,7 @@ export default function AiAssistant() {
             return;
         }
         send(actionId, meta?.label || actionId);
-    }, [layoutMode, send]);
+    }, [layoutMode, messages.length, send]);
 
     const handleSend = useCallback(() => {
         const text = input.trim();
