@@ -748,6 +748,71 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertEqual(summary["fontSize"], body["fontSize"])
         self.assertEqual(summary["fontSize"], 9)
 
+    def test_record_extra_sections_start_on_page_one_when_first_entry_fits(self):
+        """
+        Projects must pack under experience when the first entry fits.
+
+        Requiring the whole projects block before page-breaking left a large
+        empty band on page 1 even though PROJEKTY would start cleanly there.
+        """
+        long_project_bullets = [
+            "Opis projektu obejmujący koncepcję, produkcję i dystrybucję materiałów.",
+            "Koordynacja zespołu zdjęciowego oraz dostawców zewnętrznych na potrzeby kampanii.",
+            "Przygotowanie wariantów layoutu i krótkich form wideo pod różne kanały.",
+        ]
+        elements = generate_resume("words", {
+            **LONG_CV,
+            "experience": LONG_CV["experience"][:2],
+            "education": [],
+            "skills": ["Art Direction", "Visual Storytelling", "Content Design"],
+            "extra_sections": [{
+                "title": "Projekty",
+                "kind": "projects",
+                "placement": "after_experience",
+                "items": [
+                    {
+                        "title": "Editorial Fashion Shoot",
+                        "subtitle": "Kampania lookbook",
+                        "bullets": long_project_bullets,
+                    },
+                    {
+                        "title": "TikTok / Instagram Visual Series",
+                        "subtitle": "Seria short-form",
+                        "bullets": long_project_bullets,
+                    },
+                ],
+            }],
+        })
+        projects_heading = next(
+            element for element in elements
+            if element.get("content") == "PROJEKTY"
+            and element.get("flowRole") == "section-chrome"
+        )
+        first_project = next(
+            element for element in elements
+            if element.get("content") == "Editorial Fashion Shoot"
+        )
+        content_before_projects = [
+            element for element in elements
+            if not element.get("fixedToPage")
+            and element.get("page", 1) == 1
+            and element.get("top", 0) < projects_heading["top"]
+            and element.get("category") in {"text", "textarea"}
+        ]
+        last_before = max(
+            content_before_projects,
+            key=lambda element: element["top"] + element.get("height", 0),
+        )
+        last_bottom = last_before["top"] + last_before.get("height", 0)
+
+        self.assertEqual(projects_heading.get("page", 1), 1)
+        self.assertEqual(first_project.get("page", 1), 1)
+        # Heading must sit directly under experience, not after a large dead band.
+        # SPACE_SECTION (18) is the intended rhythm; anything much larger means
+        # the section was incorrectly deferred as one oversized block.
+        gap = projects_heading["top"] - last_bottom
+        self.assertLess(gap, 40)
+
     def test_words_uses_word_document_rhythm_without_decorative_frames(self):
         elements = generate_resume("words", {
             **LONG_CV,

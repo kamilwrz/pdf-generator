@@ -251,6 +251,44 @@ def _flatten_extra_items(items: list) -> list[str]:
     return flat
 
 
+def _measure_one_record_height(
+    b: Builder,
+    record: dict,
+    W: int,
+    font_b: str,
+    *,
+    title_fs: float,
+    title_lh: float,
+    body_fs: float,
+    body_lh: float,
+) -> float:
+    """Estimate height for a single experience-like record."""
+    title = str(record.get("title") or "").strip()
+    subtitle = str(record.get("subtitle") or "").strip()
+    bullets = [
+        str(bullet).strip()
+        for bullet in (record.get("bullets") or [])
+        if str(bullet).strip()
+    ]
+    height = 0.0
+    if title:
+        height += b.measure_block(
+            title, W, title_fs, title_lh, font_b, bold=True, min_h=title_lh + 2
+        )
+    if subtitle:
+        if height:
+            height += SPACE_STACK
+        height += b.measure_block(
+            subtitle, W, body_fs * 0.92, body_lh * 0.9, font_b, min_h=body_lh
+        )
+    if bullets:
+        if height:
+            height += SPACE_STACK
+        content = "\n".join(f"• {bullet}" for bullet in bullets)
+        height += b.measure_block(content, W, body_fs, body_lh, font_b, bulletList=True)
+    return height
+
+
 def _measure_record_section_body(
     b: Builder,
     records: list[dict],
@@ -265,22 +303,10 @@ def _measure_record_section_body(
     """Estimate stacked height for bold titles + optional nested bullet lists."""
     total = 0.0
     for index, record in enumerate(records):
-        title = str(record.get("title") or "").strip()
-        subtitle = str(record.get("subtitle") or "").strip()
-        bullets = [
-            str(bullet).strip()
-            for bullet in (record.get("bullets") or [])
-            if str(bullet).strip()
-        ]
-        if title:
-            total += b.measure_block(title, W, title_fs, title_lh, font_b)
-        if subtitle:
-            total += SPACE_STACK
-            total += b.measure_block(subtitle, W, body_fs * 0.92, body_lh * 0.9, font_b)
-        if bullets:
-            total += SPACE_STACK
-            content = "\n".join(f"• {bullet}" for bullet in bullets)
-            total += b.measure_block(content, W, body_fs, body_lh, font_b, bulletList=True)
+        total += _measure_one_record_height(
+            b, record, W, font_b,
+            title_fs=title_fs, title_lh=title_lh, body_fs=body_fs, body_lh=body_lh,
+        )
         if index < len(records) - 1:
             total += SPACE_RECORD
     return total
@@ -303,7 +329,8 @@ def _render_record_section_body(
     Render experience-like records: bold title, optional subtitle, nested bullets.
 
     Used for projects, references, awards, and any other record-kind extras so
-    each template does not need a bespoke branch.
+    each template does not need a bespoke branch. Later records page-break
+    individually — the caller must only reserve chrome + the first record.
     """
     ink = C.get("body", "#2B2B2B")
     muted = C.get("muted", C.get("slate", ink))
@@ -317,6 +344,14 @@ def _render_record_section_body(
         ]
         if not title and not bullets:
             continue
+        # Match experience flow: only the first record was reserved with the
+        # section heading. Later records move alone so page 1 is not left empty
+        # when the whole section would not fit as one block.
+        if index > 0:
+            b.need(_measure_one_record_height(
+                b, record, W, font_b,
+                title_fs=title_fs, title_lh=title_lh, body_fs=body_fs, body_lh=body_lh,
+            ))
         if title:
             b.block(title, L, W, title_fs, title_lh, ink, font_b, bold=True, min_h=title_lh + 2)
         if subtitle:
@@ -383,11 +418,14 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
             records = [item for item in raw_items if isinstance(item, dict) and item.get("title")]
             if not records:
                 continue
-            body_height = _measure_record_section_body(
-                b, records, W, font_b,
+            # Reserve only chrome + the first record. Requiring the whole
+            # projects/references block to fit pushed entire sections onto the
+            # next page and left a large empty band under experience.
+            first_record_height = _measure_one_record_height(
+                b, records[0], W, font_b,
                 title_fs=title_fs, title_lh=title_lh, body_fs=fs, body_lh=lh,
             )
-            b.need_section(chrome_h, body_height + SPACE_SECTION)
+            b.need_section(chrome_h, first_record_height)
             section_fn(title)
             _render_record_section_body(
                 b, records, L, W, C, font_b,

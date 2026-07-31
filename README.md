@@ -392,7 +392,7 @@ Tests: `backend/tests/test_cv_template_layouts.py`, `test_education_description_
 
 ### Record-style extra sections (projects, references, …)
 
-Custom sections such as projects or references render like experience: a **bold title** per entry and a **nested bullet list** for the description. Flat chip-lists (interests, certifications, languages) stay a single bullet block.
+Custom sections such as projects or references render like experience: a **bold title** per entry and a **nested bullet list** for the description. Flat chip-lists (interests, certifications, languages) stay a single bullet block. Record extras page-break like experience: the generator reserves only the section heading plus the first entry, then moves later entries individually. Requiring the whole block before the break previously pushed projects onto page 2 and left a large empty band under experience.
 
 Normalization in `cv_data` accepts structured items `{title, subtitle?, bullets[]}`, upgrades headings like `PROJEKTY` even when extract sets `kind: "other"`, and regroups flat bullet dumps with a separator heuristic (`—`, `/`, short heading + longer follow-ups). `_extra_sections` is the shared renderer for every template.
 
@@ -401,7 +401,8 @@ Heuristic regroup is deterministic and imperfect; Standard/Premium already pay f
 Implementation:
 
 - `backend/app/services/cv_data.py`, lines 204–380+, `is_record_section`, `group_flat_items_into_records`, `_normalize_section_items`
-- `backend/app/services/cv_generator.py`, lines 289–380+, `_render_record_section_body`, `_extra_sections`
+- `backend/app/services/cv_generator.py`, `_measure_one_record_height`, `_render_record_section_body`, `_extra_sections`
+- `backend/tests/test_cv_template_layouts.py`, `test_record_extra_sections_start_on_page_one_when_first_entry_fits`
 - `backend/app/services/ai_service.py`, `extract_cv_data` (line 39+) — extract schema asks for record objects on projects/references
 - `frontend/src/utils/bioCvData.js`, `parseSectionItems` — expands records for the wizard textarea
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` — kind options include projects/references
@@ -1079,7 +1080,7 @@ Testy: `backend/tests/test_cv_template_layouts.py`, `test_education_description_
 
 ### Sekcje rekordowe (projekty, referencje, …)
 
-Sekcje własne takie jak projekty lub referencje renderują się jak doświadczenie: **pogrubiony tytuł** wpisu i **zagnieżdżona lista punktów** z opisem. Zwarte listy (zainteresowania, certyfikaty, języki) pozostają jednym blokiem bulletów.
+Sekcje własne takie jak projekty lub referencje renderują się jak doświadczenie: **pogrubiony tytuł** wpisu i **zagnieżdżona lista punktów** z opisem. Zwarte listy (zainteresowania, certyfikaty, języki) pozostają jednym blokiem bulletów. Sekcje rekordowe łamią stronę jak doświadczenie: generator rezerwuje tylko nagłówek sekcji i pierwszy wpis, a kolejne przenosi osobno. Wcześniejsze wymaganie całego bloku przed łamaniem wypychało projekty na stronę 2 i zostawiało dużą pustą przestrzeń pod doświadczeniem.
 
 Normalizacja w `cv_data` przyjmuje obiekty `{title, subtitle?, bullets[]}`, rozpoznaje nagłówki typu `PROJEKTY` nawet przy `kind: "other"` i grupuje płaskie listy heurystyką separatorów (`—`, `/`, krótki nagłówek + dłuższy opis). Wspólny renderer to `_extra_sections` we wszystkich szablonach.
 
@@ -1088,7 +1089,8 @@ Heurystyka jest deterministyczna i niedoskonała; plany Standard/Premium już ro
 Implementacja:
 
 - `backend/app/services/cv_data.py`, linie 204–380+, `is_record_section`, `group_flat_items_into_records`, `_normalize_section_items`
-- `backend/app/services/cv_generator.py`, linie 289–380+, `_render_record_section_body`, `_extra_sections`
+- `backend/app/services/cv_generator.py`, `_measure_one_record_height`, `_render_record_section_body`, `_extra_sections`
+- `backend/tests/test_cv_template_layouts.py`, `test_record_extra_sections_start_on_page_one_when_first_entry_fits`
 - `backend/app/services/ai_service.py`, `extract_cv_data` (linia 39+) — schemat ekstrakcji wymaga obiektów rekordów dla projektów/referencji
 - `frontend/src/utils/bioCvData.js`, `parseSectionItems`
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` — typy sekcji: projekty, referencje, …
