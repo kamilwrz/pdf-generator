@@ -32,11 +32,11 @@ const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
 const sectionChrome = (element) => ({ ...element, flowRole: "section-chrome" });
 
 const sectionHeading = (number, label, top, id) => [
-    sectionChrome(line(66, top, 28, 28, INK, 3)),
-    sectionChrome(bold(text(number, 10, SANS, WHITE, 73, top + 7, 4))),
-    sectionChrome({ ...rect(102, top, 255, 28, INK, 1.2, 3), id: `monument-${id}-frame` }),
-    sectionChrome(bold(tracked(text(label, 13.5, DISPLAY, INK, 114, top + 5, 4), 0.35))),
-    sectionChrome(line(369, top + 13, 160, 2, RULE, 2)),
+    sectionChrome(line(66, top, 32, 32, INK, 3)),
+    sectionChrome(bold(text(number, 10, SANS, WHITE, 75, top + 9, 4))),
+    sectionChrome({ ...rect(106, top, 251, 32, INK, 1.2, 3), id: `monument-${id}-frame` }),
+    sectionChrome(bold(tracked(text(label, 13.5, DISPLAY, INK, 118, top + 8, 4), 0.35))),
+    sectionChrome(line(369, top + 15, 160, 2, RULE, 2)),
 ];
 
 const monumentElements = [
@@ -86,7 +86,7 @@ const monumentElements = [
 
     { ...line(66, 779, 463, 1, RULE, 2), fixedToPage: true },
     { ...line(66, 792, 28, 8, INK, 2), fixedToPage: true },
-    { ...text("MONUMENT  /  01", 10, SANS, MUTED, 421, 787, 3), fixedToPage: true },
+    { ...text("01", 10, SANS, MUTED, 512, 787, 3), fixedToPage: true },
 ];
 
 export const monumentTemplate = monumentElements.map((element) => (

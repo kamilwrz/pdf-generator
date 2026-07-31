@@ -2030,7 +2030,7 @@ def _gen_monument(cv: dict) -> list[dict]:
     }
     L, W = 102, 427
     DISPLAY, SANS = "CormorantGaramond", "Montserrat"
-    SECTION_CHROME = 40.0
+    SECTION_CHROME = 44.0
 
     class MonumentBuilder(Builder):
         """Continue the editorial column below the repeated page frame."""
@@ -2070,13 +2070,13 @@ def _gen_monument(cv: dict) -> list[dict]:
         top = b.y
         display_label = _compact_text(label, 31)
         b.els.extend([
-            _line(66, top, 28, 28, C["ink"], zIndex=3, page=b.pg),
-            _text(f"{section_number:02d}", 10, SANS, C["white"], 73, top + 7,
+            _line(66, top, 32, 32, C["ink"], zIndex=3, page=b.pg),
+            _text(f"{section_number:02d}", 10, SANS, C["white"], 75, top + 9,
                   zIndex=4, page=b.pg, bold=True),
-            _rect(102, top, 255, 28, C["ink"], 1.2, zIndex=3, page=b.pg),
-            _text(display_label, 13.5, DISPLAY, C["ink"], 114, top + 5,
+            _rect(106, top, 251, 32, C["ink"], 1.2, zIndex=3, page=b.pg),
+            _text(display_label, 13.5, DISPLAY, C["ink"], 118, top + 8,
                   zIndex=4, page=b.pg, bold=True),
-            _line(369, top + 13, 160, 2, C["rule"], zIndex=2, page=b.pg),
+            _line(369, top + 15, 160, 2, C["rule"], zIndex=2, page=b.pg),
         ])
         b.els[-2]["letterSpacing"] = 0.35
         b.y += SECTION_CHROME
@@ -2177,7 +2177,7 @@ def _gen_monument(cv: dict) -> list[dict]:
             {**_line(529, 54, 8, 111, C["pale"], zIndex=2, page=page), "fixedToPage": True},
             {**_line(66, 779, 463, 1, C["rule"], zIndex=2, page=page), "fixedToPage": True},
             {**_line(66, 792, 28, 8, C["ink"], zIndex=2, page=page), "fixedToPage": True},
-            {**_text(f"MONUMENT  /  {page:02d}", 10, SANS, C["muted"], 421, 787,
+            {**_text(f"{page:02d}", 10, SANS, C["muted"], 512, 787,
                      zIndex=3, page=page), "fixedToPage": True},
         )
     ]
