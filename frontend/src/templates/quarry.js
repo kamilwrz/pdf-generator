@@ -39,7 +39,7 @@ export const quarryTemplate = [
 
     tracked(text("WYKSZTAŁCENIE", 8, SANS, CYAN, 24, 415, 3), 1.3),
     bold(block("Informatyka — 2012–2017", 24, 435, 136, 14, 8.6, 12, INK, SANS)),
-    block("Politechnika Warszawska, Warszawa", 24, 452, 136, 14, 7.9, 11, RULE, SANS),
+    block("Politechnika Warszawska, Warszawa", 24, 452, 136, 14, 7.9, 11, SLATE, SANS),
     block("Systemy rozproszone, obserwowalność, SRE.", 24, 468, 136, 26, 8, 12, INK, SANS),
 
     { ...rect(462, 51, 59, 54, CYAN, 0.9, 3), id: "quarry-frame" },

@@ -53,4 +53,5 @@
   - Quarry, Harber, Garner - SidebarIMG ma nieodpowiednie kolory. Teks nie jest na nich wyrazny.
 - niektore szablony sa "a lil bit too much"()
 - sidebarowe szablony maja byc na jedna strone;kategorie sidebar i main column;okreslic
+- w niektorych szablonach czcionka wyksztalcenie (tresc sekcji ma inny kolor)
 

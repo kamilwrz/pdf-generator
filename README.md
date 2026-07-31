@@ -290,13 +290,15 @@ Implementation:
 
 ### Deterministic template fill
 
-Python layout from normalised `cv_data` (not LLM placement).
+Python layout from normalised `cv_data` (not LLM placement). In every generated template, an education record uses the same semantic colour system as experience: degree in the primary ink, school/city/period in muted metadata colour, and an optional description in the readable body colour. Compact sidebar records intentionally use their own sidebar palette because they occupy a different background panel.
 
 Implementation:
 
-- `backend/app/services/cv_generator.py`, `generate_resume` (line 2896+), class `Builder`
+- `backend/app/services/cv_generator.py`, lines 587–656, `_place_education_record` — distinguishes education metadata from body text; `generate_resume` (line 2939+), class `Builder`
 - `backend/app/api/routes/ai.py`, `fill_template`
 - Docs: [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
+
+Tests: `backend/tests/test_cv_template_layouts.py`, `test_education_description_uses_the_experience_body_color` — verifies all 20 affected generated templates keep education descriptions aligned with the experience body colour.
 
 ### Record-style extra sections (projects, references, …)
 
@@ -884,9 +886,13 @@ Skrypt zrzutu (`frontend/scripts/dump-iconic-templates.mjs`) wymaga niewielkiego
 
 ### Deterministyczne wypełnianie szablonu
 
-- `backend/app/services/cv_generator.py` — `generate_resume` (ok. 2896+), `Builder`
+Layout Python powstaje ze znormalizowanego `cv_data`, a nie z pozycji wymyślonych przez LLM. W każdym wygenerowanym szablonie wpis wykształcenia korzysta z tego samego systemu znaczenia kolorów co doświadczenie: kierunek ma podstawowy kolor tekstu, szkoła/miasto/okres mają stonowany kolor metadanych, a opcjonalny opis ma czytelny kolor treści. Zwarty wpis w sidebarze celowo używa własnej palety sidebara, ponieważ jest wyświetlany na innym panelu tła.
+
+- `backend/app/services/cv_generator.py`, linie 587–656 — `_place_education_record`, rozróżnia metadane wykształcenia od treści; `generate_resume` (ok. 2939+), `Builder`
 - `backend/app/api/routes/ai.py` — `fill_template`
 - [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
+
+Testy: `backend/tests/test_cv_template_layouts.py`, `test_education_description_uses_the_experience_body_color` — sprawdza, czy wszystkie 20 dotkniętych wygenerowanych szablonów utrzymuje kolor opisu wykształcenia zgodny z treścią doświadczenia.
 
 ### Sekcje rekordowe (projekty, referencje, …)
 

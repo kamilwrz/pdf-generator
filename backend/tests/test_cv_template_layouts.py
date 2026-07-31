@@ -1,9 +1,11 @@
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from starlette.requests import Request
 
 from app.api.routes.ai import _rebase_template_asset_urls
+from app.services import cv_generator
 from app.services.cv_generator import generate_resume
 from app.utils.image_src_to_path import image_src_to_local_path
 
@@ -538,6 +540,66 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertIn("Uniwersytet Warszawski  ·  Warszawa", sidebar_block)
         self.assertIn("2017 – 2022", sidebar_block)
         self.assertIn("Specjalizacja: prawo europejskie", sidebar_block)
+
+    def test_education_description_uses_the_experience_body_color(self):
+        """Education descriptions must read like body content, not muted metadata."""
+        education_description = "Opis programu studiów."
+        experience_bullet = "Prowadzenie programu transformacji."
+        cv = {
+            "name": "Anna Kowalska",
+            "title": "Prawnik",
+            "experience": [{
+                "title": "Analityczka",
+                "company": "Przykładowa organizacja",
+                "period": "2020 – obecnie",
+                "bullets": [experience_bullet],
+            }],
+            "education": [{
+                "degree": "Magister prawa",
+                "school": "Uniwersytet Warszawski",
+                "city": "Warszawa",
+                "period": "2017 – 2022",
+                "description": education_description,
+            }],
+            "skills": [],
+            "extra_sections": [],
+        }
+        # These are every template id whose main-column education description
+        # previously inherited the muted metadata color. Sidebar templates are
+        # forced into the main column because their sidebar has a deliberately
+        # separate palette.
+        affected_templates = (
+            "vault", "clearing", "herald", "signal",
+            "ledger", "nimbus", "cinder", "rift",
+            "vector", "kernel", "relay", "lattice",
+            "scribe", "regent", "aldine", "merit",
+            "quarry", "moss", "garnet", "harbor",
+        )
+
+        for template_id in affected_templates:
+            with self.subTest(template_id=template_id):
+                if template_id in {"quarry", "moss", "garnet", "harbor"}:
+                    with patch.object(cv_generator, "_fit_sidebar_sections", return_value=([], set())):
+                        elements = generate_resume(template_id, cv)
+                else:
+                    elements = generate_resume(template_id, cv)
+
+                description = next(
+                    element for element in elements
+                    if element.get("content") == education_description
+                )
+                experience = next(
+                    element for element in elements
+                    if element.get("content") == f"• {experience_bullet}"
+                )
+                metadata = next(
+                    element for element in elements
+                    if element.get("content")
+                    == "Uniwersytet Warszawski   ·   Warszawa   ·   2017 – 2022"
+                )
+
+                self.assertEqual(description["color"], experience["color"])
+                self.assertNotEqual(description["color"], metadata["color"])
 
     def test_classic_templates_are_image_free_single_column_documents(self):
         multi_page_cv = {

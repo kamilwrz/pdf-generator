@@ -40,7 +40,7 @@ export const harborTemplate = [
 
     tracked(text("WYKSZTAŁCENIE", 8, SANS, "#EAF0F3", 24, 548, 3), 1.2),
     bold(block("Zarządzanie — 2011–2016", 24, 568, 136, 14, 8.6, 12, "#F7FAFB", SANS)),
-    block("Uniwersytet Gdański, Gdańsk", 24, 584, 136, 14, 7.9, 11, RULE, SANS),
+    block("Uniwersytet Gdański, Gdańsk", 24, 584, 136, 14, 7.9, 11, MUTE, SANS),
     block("Zarządzanie programami i realizacja strategii.", 24, 600, 136, 26, 8, 12, "#F7FAFB", SANS),
 
     { ...rect(462, 52, 58, 54, COPPER, 0.8, 3), id: "harbor-frame" },

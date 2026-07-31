@@ -612,7 +612,10 @@ def _place_education_record(
     degree = str(edu.get("degree") or "").strip()
     meta = _education_meta(edu)
     description = _education_description(edu)
-    body_color = body or muted
+    # The school/date line is metadata, while the optional description is
+    # readable content and must use the same ink as experience descriptions.
+    # Falling back to `muted` here makes the education body look disabled.
+    body_color = body if body is not None else ink
     placed = False
 
     if mode == "text":
@@ -972,7 +975,7 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
                 b.need(education_height(edu))
             _place_education_record(
                 b, edu, L, W,
-                ink=C["ink"], muted=C["muted"], body=C["muted"], font=SANS,
+                ink=C["ink"], muted=C["muted"], body=C["body"], font=SANS,
                 degree_fs=10.2, degree_lh=13,
                 meta_fs=8.6, meta_lh=11.5,
                 body_fs=8.6, body_lh=11.5,
@@ -1107,7 +1110,7 @@ def _gen_ledger(cv: dict) -> list[dict]:
                 b.need(education_height(edu))
             _place_education_record(
                 b, edu, L, W,
-                ink=NAVY, muted=SLATE, body=SLATE, font=SANS,
+                ink=NAVY, muted=SLATE, body=INK, font=SANS,
                 degree_fs=10.6, degree_lh=13,
                 meta_fs=9, meta_lh=11.5,
                 body_fs=9, body_lh=11.5,
@@ -1239,7 +1242,7 @@ def _gen_nimbus(cv: dict) -> list[dict]:
                 b.need(education_height(edu))
             _place_education_record(
                 b, edu, L, W,
-                ink=INK, muted=SLATE, body=SLATE, font=SANS,
+                ink=INK, muted=SLATE, body=INK, font=SANS,
                 degree_fs=10.3, degree_lh=13,
                 meta_fs=8.7, meta_lh=11.5,
                 body_fs=8.7, body_lh=11.5,
@@ -1346,7 +1349,7 @@ def _gen_cinder(cv: dict) -> list[dict]:
                 b.need(education_height(edu))
             _place_education_record(
                 b, edu, L, W,
-                ink=BLACK, muted=GRAPHITE, body=GRAPHITE, font=SANS,
+                ink=BLACK, muted=GRAPHITE, body=CHARCOAL, font=SANS,
                 degree_fs=10.3, degree_lh=13,
                 meta_fs=8.7, meta_lh=11.5,
                 body_fs=8.7, body_lh=11.5,
@@ -1471,7 +1474,7 @@ def _gen_rift(cv: dict) -> list[dict]:
                 b.need(education_height(edu))
             _place_education_record(
                 b, edu, L, W,
-                ink=BLACK, muted=GRAPHITE, body=GRAPHITE, font=SANS,
+                ink=BLACK, muted=GRAPHITE, body=BLACK, font=SANS,
                 degree_fs=10.2, degree_lh=13,
                 meta_fs=8.6, meta_lh=11.5,
                 body_fs=8.6, body_lh=11.5,
@@ -1719,7 +1722,7 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
                 b.need(education_height(edu))
             _place_education_record(
                 b, edu, L, W,
-                ink=C["ink"], muted=C["muted"], body=C["muted"], font=SANS,
+                ink=C["ink"], muted=C["muted"], body=C["body"], font=SANS,
                 degree_fs=10.4, degree_lh=13,
                 meta_fs=8.7, meta_lh=11.5,
                 body_fs=8.7, body_lh=11.5,
@@ -1962,7 +1965,7 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
                 b.need(education_height(edu))
             _place_education_record(
                 b, edu, L, W,
-                ink=C["ink"], muted=C["muted"], body=C["muted"], font=SANS,
+                ink=C["ink"], muted=C["muted"], body=C["ink"], font=SANS,
                 degree_fs=10.2, degree_lh=13,
                 meta_fs=8.5, meta_lh=11.5,
                 body_fs=8.5, body_lh=11.5,
@@ -2228,7 +2231,7 @@ def _gen_sidebar_theme(cv: dict, theme: str) -> list[dict]:
                 b.need(education_height(edu))
             _place_education_record(
                 b, edu, L, W,
-                ink=C["ink"], muted=C["muted"], body=C["muted"], font=SANS,
+                ink=C["ink"], muted=C["muted"], body=C["body"], font=SANS,
                 degree_fs=10.2, degree_lh=13,
                 meta_fs=8.6, meta_lh=11.5,
                 body_fs=8.6, body_lh=11.5,

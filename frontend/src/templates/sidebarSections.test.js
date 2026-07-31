@@ -25,3 +25,22 @@ test("sidebar templates umieszczają Wykształcenie/Umiejętności/Języki w sid
         );
     }
 });
+
+test("sidebarowe metadane wykształcenia używają koloru metadanych", async () => {
+    const expectedMetadataColors = [
+        ["quarry.js", "Politechnika Warszawska, Warszawa", "SLATE"],
+        ["garnet.js", "Uniwersytet Warszawski, Warszawa", "MUTE"],
+        ["harbor.js", "Uniwersytet Gdański, Gdańsk", "MUTE"],
+    ];
+
+    for (const [file, school, color] of expectedMetadataColors) {
+        const source = await read(file);
+        const schoolPattern = new RegExp(
+            `block\\("${school}",[^\\n]+, ${color}, SANS\\)`,
+        );
+
+        // The school line is metadata; it must not accidentally inherit the
+        // pale rule/accent color reserved for decorative canvas elements.
+        assert.match(source, schoolPattern, `${file}: nieprawidłowy kolor szkoły`);
+    }
+});

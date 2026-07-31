@@ -39,7 +39,7 @@ export const garnetTemplate = [
 
     tracked(text("WYKSZTAŁCENIE", 8, SANS, "#F4DEDE", 24, 559, 3), 1.2),
     bold(block("Komunikacja i Media — 2011–2016", 24, 579, 136, 24, 8.4, 12, "#FFF8F4", SANS)),
-    block("Uniwersytet Warszawski, Warszawa", 24, 603, 136, 14, 7.9, 11, ROSE, SANS),
+    block("Uniwersytet Warszawski, Warszawa", 24, 603, 136, 14, 7.9, 11, MUTE, SANS),
     block("Narracja marki, reputacja, komunikacja zmiany.", 24, 619, 136, 26, 8, 12, "#FFF8F4", SANS),
 
     { ...rect(462, 52, 58, 54, GOLD, 0.8, 3), id: "garnet-frame" },
