@@ -43,16 +43,16 @@ const HOW_IT_WORKS = [
 
 const EDITOR_CAPABILITIES = [
     {
-        title: "Treść pod Twoją kontrolą",
-        text: "Skracaj opisy, wzmacniaj czasowniki i akceptuj poprawki pojedynczo zamiast nadpisywać cały dokument.",
+        title: "Poprawki tekstu w Standard",
+        text: "Sprawdź gramatykę i styl, skróć opisy lub wzmocnij czasowniki. Każdą propozycję akceptujesz pojedynczo.",
     },
     {
-        title: "Korekta układu",
-        text: "Sprawdź propozycje dotyczące odstępów, wyrównania, kolizji i dat. Najpierw widzisz podgląd, potem decydujesz.",
+        title: "Analizy w Standard",
+        text: "Oceń CV, projekt, dopasowanie do oferty i podstawową czytelność ATS. To wskazówki do poprawy, nie automatyczna decyzja.",
     },
     {
-        title: "Wskazówki ATS bez obietnic",
-        text: "Oceń podstawową czytelność struktury, nagłówków i treści. To wskazówki do poprawy, nie gwarancja wyniku rekrutacji.",
+        title: "Korekta Układu w Premium",
+        text: "AI analizuje odstępy, wyrównanie i kolizje na całym CV, pokazuje podgląd zmian, a Ty wybierasz, które zastosować.",
     },
 ];
 
@@ -375,7 +375,7 @@ export default function Hero() {
                         <ul>
                             <li><CheckIcon />Import danych z PDF</li>
                             <li><CheckIcon />Wszystkie 28 szablonów</li>
-                            <li><CheckIcon />Pomoc AI przy treści i układzie</li>
+                            <li><CheckIcon />Analizy AI: CV, projekt, dopasowanie, gramatyka, styl i ATS</li>
                             <li><CheckIcon />Do 10 projektów i 30 eksportów miesięcznie</li>
                         </ul>
                         <StartButton start="import" plan="standard">Wgraj moje CV</StartButton>
@@ -385,7 +385,7 @@ export default function Hero() {
                         <p className={classes.planPrice}>49 <small>zł / mies.</small></p>
                         <p className={classes.planSummary}>Dla wielu wersji CV przygotowywanych pod różne role i oferty.</p>
                         <ul>
-                            <li><CheckIcon />Więcej analiz i pomocy AI</li>
+                            <li><CheckIcon />Tryb Układ AI: odstępy, wyrównanie i kolizje</li>
                             <li><CheckIcon />Wszystkie 28 szablonów</li>
                             <li><CheckIcon />Bez limitu projektów i eksportów</li>
                             <li><CheckIcon />Wiele wersji CV pod aplikacje</li>
@@ -404,6 +404,18 @@ export default function Hero() {
                     <details open>
                         <summary>Czy muszę przepisywać swoje obecne CV?</summary>
                         <p>Nie. W planie Standard możesz przesłać PDF, wyodrębnić jego dane i wypełnić nimi wybrany szablon. Po imporcie sprawdzasz i edytujesz wynik na płótnie A4.</p>
+                    </details>
+                    <details>
+                        <summary>Co dokładnie robi AI w planie Standard?</summary>
+                        <p>Standard obejmuje ocenę CV i projektu, dopasowanie do oferty, gramatykę, styl, ulepszanie opisów, wskazówki ATS oraz zwykły czat. AI pokazuje ocenę, wskazówki albo pojedyncze poprawki — treść dokumentu zmieniasz dopiero po ich zaakceptowaniu.</p>
+                    </details>
+                    <details>
+                        <summary>Co robi tryb „Układ” i dlaczego wymaga Premium?</summary>
+                        <p>Tryb Układ analizuje pełną geometrię wielostronicowego CV: odstępy, wyrównanie, kolizje i rytm sekcji. Pokazuje podgląd proponowanych przesunięć przed zastosowaniem zmian. To funkcja dostępna wyłącznie w Premium, ponieważ wykorzystuje oddzielną analizę całego płótna A4.</p>
+                    </details>
+                    <details>
+                        <summary>Czy AI samo zmienia moje CV?</summary>
+                        <p>Nie. Poprawki tekstu, sugestie struktury i propozycje Układu trafiają najpierw do podglądu lub karty decyzji. Możesz zastosować pojedynczą zmianę, odrzucić ją albo dalej edytować dokument ręcznie.</p>
                     </details>
                     <details>
                         <summary>Co jeśli nie mam jeszcze CV?</summary>

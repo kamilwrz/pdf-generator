@@ -143,6 +143,30 @@ class EntitlementsTests(unittest.TestCase):
         payload = ent.get_entitlements(self.db, user)
         self.assertIsNone(payload["allowed_template_ids"])
 
+    def test_standard_allows_regular_ai_actions_but_blocks_layout(self):
+        user = self._make_user("ai-standard")
+        sub = ent.get_or_create_subscription(self.db, user.id)
+        sub.plan_slug = "standard"
+        self.db.add(sub)
+        self.db.commit()
+
+        # Standard retains content-focused AI help; only the full-canvas
+        # geometry session is reserved for Premium.
+        ent.assert_can_use_ai_action(self.db, user, "grammar")
+        with self.assertRaises(ent.PlanLimitError) as ctx:
+            ent.assert_can_use_ai_action(self.db, user, "layout")
+        self.assertEqual(ctx.exception.detail["code"], "plan_feature_ai_layout")
+        self.assertEqual(ctx.exception.detail["upgrade_required"], "premium")
+
+    def test_premium_allows_layout_ai_action(self):
+        user = self._make_user("ai-premium")
+        sub = ent.get_or_create_subscription(self.db, user.id)
+        sub.plan_slug = "premium"
+        self.db.add(sub)
+        self.db.commit()
+
+        ent.assert_can_use_ai_action(self.db, user, "layout")
+
 
 class PlanSeedAndMigrationTests(unittest.TestCase):
     def setUp(self):

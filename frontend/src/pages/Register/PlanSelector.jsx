@@ -3,8 +3,8 @@
  */
 const PLANS = [
     { slug: "free", name: "Free", note: "0 zł · kreator i edytor" },
-    { slug: "standard", name: "Standard", note: "29 zł · import i pomoc AI" },
-    { slug: "premium", name: "Premium", note: "49 zł · wiele wersji CV" },
+    { slug: "standard", name: "Standard", note: "29 zł · import i analizy AI" },
+    { slug: "premium", name: "Premium", note: "49 zł · tryb Układ i wiele wersji CV" },
 ];
 
 export default function PlanSelector({ value, onChange, classes, disabled }) {

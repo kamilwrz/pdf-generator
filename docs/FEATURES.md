@@ -102,6 +102,8 @@ Pływający asystent, który rozumie dokument, który właśnie edytujesz.
 7. **Wynik ATS** — sygnał czytelności dla systemów rekrutacyjnych  
 8. **Układ** — tryb sesji: GPT czyta pełny JSON A4 i odpowiada na pytania o geometrię; karty Podgląd/Zastosuj  
 
+Pozycje 1–7 oraz zwykły czat są dostępne w Standard. **Układ** jest funkcją Premium: analizuje odstępy, wyrównanie i kolizje na całym płótnie, a przed zastosowaniem zmian pokazuje podgląd propozycji.
+
 ### Edycja w rozmowie
 Pisz naturalnym językiem. W trybie Układ dopytuj o odstępy i wyrównania. Akceptuj lub odrzucaj poprawki per element, podglądaj grupy przesunięć, przebudowuj strukturę albo usuwaj słabe bloki — z oznaczeniem istotności, żebyś Ty miał kontrolę.
 
@@ -139,8 +141,8 @@ Cały interfejs mówi po polsku: marketing, edytor, akcje AI, powiadomienia i mo
 | Plan | Co dostajesz |
 |---|---|
 | **Free** | Edytor A4, 8 szablonów startowych, limity projektów i eksportów; bez asystenta AI |
-| **Standard** | AI (kredyty), wszystkie 28 szablonów, import PDF + kreator bio, wyższe limity |
-| **Premium** | Więcej kredytów AI, bez limitu projektów i eksportów |
+| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 28 szablonów oraz wyższe limity |
+| **Premium** | Tryb Układ AI, więcej kredytów AI, bez limitu projektów i eksportów |
 
 Model kredytów: ok. 1 kredyt ≈ 5 gr — rozliczenie zbliżone do realnego użycia.
 
@@ -163,7 +165,7 @@ Model kredytów: ok. 1 kredyt ≈ 5 gr — rozliczenie zbliżone do realnego uż
 | Szablony | 28 systemów CV w 7 kolekcjach |
 | Import AI | Wypełnij dowolny szablon z przesłanego PDF |
 | Kreator | Bio krok po kroku z zapisem szkicu |
-| Coach AI | 8 analiz + chat z akceptacją poprawek |
+| Coach AI | 7 analiz + chat w Standard; Układ z podglądem geometrii w Premium |
 | Eksport | Wierny, wielostronicowy PDF |
 | Biblioteka | Projekty + galeria obrazów |
 | Język | Interfejs po polsku |

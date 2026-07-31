@@ -34,6 +34,7 @@ const ACTIONS = [
         icon: FaArrowsAltH,
         color: CHROME_ACCENT,
         description: "Tryb układu: GPT analizuje pełny JSON A4; zadawaj pytania, aż odznaczysz Układ",
+        premiumOnly: true,
         toggle: true,
     },
 ];
@@ -539,6 +540,7 @@ export default function AiAssistant() {
         setCurrentPage,
         entitlements,
         refreshEntitlements,
+        showPlanModal,
     } = use(PdfContext);
 
     const [isOpen, setIsOpen] = useState(false);
@@ -884,6 +886,12 @@ export default function AiAssistant() {
             return;
         }
         if (actionId === "layout") {
+            // Keep the client journey clear, while the API remains the source
+            // of truth for the Premium-only layout entitlement.
+            if (entitlements && entitlements.plan_slug !== "premium") {
+                showPlanModal?.();
+                return;
+            }
             setIsOpen(true);
             if (layoutMode) {
                 setLayoutMode(false);
@@ -911,7 +919,7 @@ export default function AiAssistant() {
             return;
         }
         send(actionId, meta?.label || actionId);
-    }, [layoutMode, messages.length, send]);
+    }, [entitlements, layoutMode, messages.length, send, showPlanModal]);
 
     const handleSend = useCallback(() => {
         const text = input.trim();
@@ -1000,11 +1008,13 @@ export default function AiAssistant() {
                                     style={{ "--action-color": action.color }}
                                     onClick={() => handleAction(action.id)}
                                     disabled={isLoading && action.id !== "layout"}
-                                    title={action.description}
+                                    title={action.premiumOnly && entitlements?.plan_slug !== "premium"
+                                        ? `${action.description}. Dostępne wyłącznie w Premium.`
+                                        : action.description}
                                     aria-pressed={action.id === "layout" ? layoutMode : undefined}
                                 >
                                     <action.icon className={classes.actionIcon} />
-                                    <span>{action.label}</span>
+                                    <span>{action.premiumOnly ? `${action.label} · Premium` : action.label}</span>
                                 </button>
                             ))}
                         </div>

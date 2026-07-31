@@ -67,6 +67,11 @@ PLAN_SEEDS: list[dict[str, Any]] = [
 
 CREDIT_PLN = 0.05  # 1 AI credit = 5 groszy
 
+# The layout session sends the complete multi-page canvas to the higher-cost
+# geometry model. Keep this explicit action-level gate separate from the
+# general AI-assistant flag so Standard retains its content-focused analyses.
+PREMIUM_ONLY_AI_ACTIONS: frozenset[str] = frozenset({"layout"})
+
 
 def credits_for_cost(cost_pln: float) -> int:
     """Credit cost of one AI call, charged at real cost, minimum 1 per call."""
@@ -203,18 +208,20 @@ PLAN_DISPLAY: dict[str, dict[str, Any]] = {
     },
     "standard": {
         "price_pln": 29,
-        "blurb": "AI Assistant i pełna biblioteka szablonów.",
+        "blurb": "Analizy AI treści i pełna biblioteka szablonów.",
         "highlights": [
             "150 kredytów AI / mies.",
+            "CV, projekt, dopasowanie, gramatyka, styl i ATS",
             "Wszystkie 24 szablony",
             "10 projektów · 30 eksportów / mies.",
         ],
     },
     "premium": {
         "price_pln": 49,
-        "blurb": "Więcej kredytów AI i bez limitów projektów.",
+        "blurb": "Tryb Układ AI i bez limitów projektów.",
         "highlights": [
             "300 kredytów AI / mies.",
+            "Tryb Układ: geometria i propozycje zmian",
             "Wszystkie 24 szablony",
             "Bez limitu projektów i eksportów",
         ],
@@ -403,6 +410,34 @@ def assert_can_use_ai_assistant(db: Session, user: User) -> None:
             "Asystent AI jest dostępny w planie Standard.",
         )
     assert_has_ai_credits(db, user)
+
+
+def assert_can_use_ai_action(db: Session, user: User, action: str) -> None:
+    """Require the plan entitlement for one requested AI-assistant action.
+
+    Standard includes the regular assistant actions: CV and design ratings,
+    role fit, grammar, style, improvement, ATS guidance, and ordinary chat.
+    ``layout`` is deliberately Premium-only because it performs a separate
+    full-canvas geometry session with the higher-cost layout model.
+
+    The plan check runs before the general assistant gate so users requesting
+    ``layout`` always receive the precise Premium upgrade message instead of
+    a generic Standard-assistant message.
+
+    @param db - Active database session used to resolve the subscription.
+    @param user - Authenticated user requesting the action.
+    @param action - Valid assistant action name, already checked by the route.
+    @raises PlanLimitError - When the selected plan cannot use the action or
+        has no remaining AI credits.
+    """
+    entitlements = get_entitlements(db, user)
+    if action in PREMIUM_ONLY_AI_ACTIONS and entitlements["plan_slug"] != "premium":
+        raise PlanLimitError(
+            "plan_feature_ai_layout",
+            "Tryb Układ jest dostępny wyłącznie w planie Premium.",
+            upgrade_required="premium",
+        )
+    assert_can_use_ai_assistant(db, user)
 
 
 def assert_can_extract_cv(db: Session, user: User) -> None:

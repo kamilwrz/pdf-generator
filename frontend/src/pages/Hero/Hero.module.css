@@ -1071,12 +1071,20 @@
     background: var(--paper-deep);
 }
 
+/* Reverse the editorial balance on wide screens: the questions lead from the
+   left, while the section heading becomes a quiet right-side signpost. The
+   source order stays heading-first for screen readers and narrow layouts. */
+.faqSection > :first-child {
+    order: 2;
+}
+
 .faqSection h2 {
     font-size: clamp(42px, 4vw, 63px);
     line-height: 1;
 }
 
 .faqList {
+    order: 1;
     border-top: 1px solid var(--line);
 }
 
@@ -1243,6 +1251,11 @@
     .privacySection,
     .faqSection {
         grid-template-columns: 1fr;
+    }
+
+    .faqSection > :first-child,
+    .faqList {
+        order: initial;
     }
 
     .sectionIntro,

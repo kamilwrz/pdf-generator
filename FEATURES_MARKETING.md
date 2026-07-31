@@ -166,9 +166,9 @@ Dla każdej funkcji: **co to jest** → **co ułatwia użytkownikowi** → **dla
 | Styl | Ton i klarowność |
 | Ulepsz | Mocniejsze bullet points (action verbs) |
 | Wynik ATS | Sygnał czytelności dla systemów ATS |
-| Układ | Wyrównania, odstępy, review cards do akceptacji |
+| Układ — Premium | Wyrównania, odstępy i review cards do akceptacji na całym płótnie |
 
-Plus chat naturalnym językiem i akceptacja / odrzucenie poprawek.
+Standard obejmuje siedem analiz z tabeli poza Układem oraz chat naturalnym językiem. Premium dodaje Układ; niezależnie od planu użytkownik akceptuje albo odrzuca każdą propozycję.
 
 **Ułatwia:** Dopracowanie treści i formy **w kontekście aktualnego dokumentu**, bez skakania między edytorem a osobnym „skanerem ATS”.
 
@@ -203,8 +203,8 @@ Plus chat naturalnym językiem i akceptacja / odrzucenie poprawek.
 | Plan | Istota |
 |------|--------|
 | **Free** | Edytor + eksport, 8 szablonów startowych, limity projektów/eksportów; bez asystenta AI |
-| **Standard** | AI (kredyty), wszystkie 28 szablonów, import PDF + kreator bio, wyższe limity |
-| **Premium** | Więcej kredytów AI, bez limitu projektów/eksportów |
+| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 28 szablonów oraz wyższe limity |
+| **Premium** | Tryb Układ AI, więcej kredytów AI, bez limitu projektów/eksportów |
 
 Model kredytów: ~1 kredyt ≈ 5 gr — rozliczenie zbliżone do realnego kosztu użycia.
 
