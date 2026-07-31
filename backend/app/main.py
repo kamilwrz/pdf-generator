@@ -100,10 +100,11 @@ def health():
 
 @app.exception_handler(AIServiceError)
 async def ai_service_error_handler(request: Request, exc: AIServiceError):
-    """Map OpenAI/provider failures to a generic Polish message.
+    """Map OpenAI/provider failures to a safe Polish message.
 
-    Internal details stay in server logs so users never see model or credential
-    errors, while the assistant UI can show a recoverable toast.
+    Internal details stay in server logs. Prefer ``exc.user_message`` when the
+    failure is actionable for the user (e.g. layout reasoning budget exhausted);
+    otherwise keep the generic temporarily-unavailable copy.
     """
     logger.error(
         "AI assistant service error: action=%s elements_count=%s error_type=%s detail=%s",
@@ -111,9 +112,14 @@ async def ai_service_error_handler(request: Request, exc: AIServiceError):
         type(exc.original).__name__ if exc.original else "unknown",
         str(exc),
     )
+    detail = (
+        exc.user_message
+        if isinstance(getattr(exc, "user_message", None), str) and exc.user_message.strip()
+        else "Asystent AI jest chwilowo niedostępny, spróbuj ponownie."
+    )
     return JSONResponse(
         status_code=500,
-        content={"detail": "Asystent AI jest chwilowo niedostępny, spróbuj ponownie."},
+        content={"detail": detail},
     )
 
 # Ensure upload directories exist (e.g. on fresh deploy / Render ephemeral disk).

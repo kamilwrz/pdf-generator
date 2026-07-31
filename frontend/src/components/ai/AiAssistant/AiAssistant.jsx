@@ -146,9 +146,10 @@ const LAYOUT_SUGGESTIONS = [
         prompt: (
             "Przeprowadź pełną korektę geometrii według layout_contract: odstępy pod "
             + "nagłówkami (~6 px), stack (~4), record (~14), section (~18), wyrównanie "
-            + "nagłówków i dat, spójność kolumn oraz nachodzenia. Zwróć tylko grupy "
-            + "tam, gdzie rytm peerów jest wyraźnie niespójny. Preferuj najmniejszą "
-            + "zmianę; nie wymyślaj nowego rytmu, jeśli peery już trzymają kontrakt."
+            + "nagłówków i dat, spójność kolumn oraz nachodzenia. Zwróć maksymalnie "
+            + "6 najważniejszych grup — tylko tam, gdzie rytm peerów jest wyraźnie "
+            + "niespójny. Preferuj najmniejszą zmianę. Jeśli układ już trzyma kontrakt, "
+            + "status=no_changes i krótki summary; nie wymyślaj nowego rytmu."
         ),
     },
 ];
@@ -988,6 +989,7 @@ export default function AiAssistant() {
                     credits_charged: res.usage.credits_charged,
                     credit_pln: res.usage.credit_pln,
                     rates_usd_per_1m: res.usage.rates_usd_per_1m,
+                    service_tier: res.usage.service_tier,
                 });
             }
 

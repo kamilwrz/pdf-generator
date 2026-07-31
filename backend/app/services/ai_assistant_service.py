@@ -39,7 +39,29 @@ _MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.4-mini")
 # Layout uses the cost-efficient GPT-5.6 Luna model. Operators can override
 # this default through AI_LAYOUT_MODEL without changing the action dispatcher.
 _LAYOUT_MODEL = os.getenv("AI_LAYOUT_MODEL", "gpt-5.6-luna")
+# Medium keeps geometry quality usable with layout_contract while cutting the
+# hidden reasoning that exhausted the old 16k completion budget on full A4.
+_LAYOUT_REASONING_EFFORT = (
+    os.getenv("AI_LAYOUT_REASONING_EFFORT", "medium").strip().lower() or "medium"
+)
+# Fast mode (service_tier fast/priority) ~2× Luna token price for lower latency.
+# Set AI_LAYOUT_SERVICE_TIER=default (or empty) to bill/run Standard processing.
+_LAYOUT_SERVICE_TIER_RAW = os.getenv("AI_LAYOUT_SERVICE_TIER", "fast").strip().lower()
+# Reasoning models spend completion budget on hidden thinking before any JSON
+# appears. OpenAI recommends ~25k+ headroom for reasoning + visible output;
+# full-canvas layout with effort=high regularly exhausted the old 16k cap and
+# returned empty content that the UI showed as "assistant unavailable".
+_DEFAULT_MAX_COMPLETION_TOKENS = 16_000
+_LAYOUT_MAX_COMPLETION_TOKENS = int(
+    os.getenv("AI_LAYOUT_MAX_COMPLETION_TOKENS", "48000")
+)
 _client = OpenAI(api_key=OPENAI_API_KEY)
+
+_EMPTY_REASONING_BUDGET_MESSAGE = (
+    "Analiza układu wyczerpała limit odpowiedzi modelu (zbyt dużo „myślenia” "
+    "przy pełnym JSON A4). Spróbuj węższego zlecenia — np. tylko odstępy pod "
+    "nagłówkami albo między wpisami — albo uruchom pełną korektę ponownie."
+)
 
 
 def _model_for_action(action: str) -> str:
@@ -49,17 +71,58 @@ def _model_for_action(action: str) -> str:
     return _MODEL
 
 
+def _max_completion_tokens_for_action(action: str) -> int:
+    """Completion budget including reasoning tokens for this action."""
+    if action == "layout":
+        return max(_LAYOUT_MAX_COMPLETION_TOKENS, _DEFAULT_MAX_COMPLETION_TOKENS)
+    return _DEFAULT_MAX_COMPLETION_TOKENS
+
+
+def _reasoning_effort_for_action(action: str) -> str:
+    """Pick reasoning effort. Layout defaults to medium for latency/budget."""
+    if action == "layout":
+        allowed = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
+        if _LAYOUT_REASONING_EFFORT in allowed:
+            return _LAYOUT_REASONING_EFFORT
+        return "medium"
+    return "medium"
+
+
+def _service_tier_for_action(action: str) -> str | None:
+    """Optional Fast mode tier for layout; None means Standard (omit param)."""
+    if action != "layout":
+        return None
+    raw = _LAYOUT_SERVICE_TIER_RAW
+    if raw in {"", "auto", "default", "standard", "none", "off"}:
+        return None
+    if raw in {"fast", "priority"}:
+        return raw
+    # Unknown override — keep Fast as the product default for Układ.
+    return "fast"
+
+
 class AIServiceError(Exception):
     """Raised when the AI Assistant's OpenAI call fails in an expected way
     (timeout, rate limit, connection error, malformed/empty response).
     Caught by the app-level exception_handler in main.py, which logs full
-    context server-side and returns a generic, non-leaking message."""
+    context server-side and returns a safe Polish message."""
 
-    def __init__(self, message: str, *, action: str = "", elements_count: int = 0, original: Exception | None = None):
+    def __init__(
+        self,
+        message: str,
+        *,
+        action: str = "",
+        elements_count: int = 0,
+        original: Exception | None = None,
+        user_message: str | None = None,
+    ):
         super().__init__(message)
         self.action = action
         self.elements_count = elements_count
         self.original = original
+        # Optional safe, user-facing Polish copy. When set, the HTTP handler
+        # returns it instead of the generic "temporarily unavailable" text.
+        self.user_message = user_message
 
 # Fields that corrections are ALLOWED to patch.
 # Positional fields (left, top, width, height, zIndex, page) are intentionally
@@ -241,28 +304,60 @@ def _strip_protected_corrections(result: dict, protected_ids: set[str]) -> dict:
 def _gpt(system: str, user: str, *, action: str = "") -> tuple[dict, dict]:
     """Call the assistant model and return (parsed_json, usage_cost)."""
     model = _model_for_action(action)
-    # Layout must infer logical blocks from imperfect freestyle geometry
-    # (for example text elements with authoring width=3), so give it more
-    # reasoning budget than content/style actions.
-    reasoning_effort = "high" if action == "layout" else "medium"
+    reasoning_effort = _reasoning_effort_for_action(action)
+    max_completion_tokens = _max_completion_tokens_for_action(action)
+    service_tier = _service_tier_for_action(action)
+    create_kwargs: dict = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        "response_format": {"type": "json_object"},
+        "reasoning_effort": reasoning_effort,
+        "max_completion_tokens": max_completion_tokens,
+    }
+    # Fast mode: lower latency at ~2× Luna token rates. Metering uses the same
+    # tier so credits stay aligned with OpenAI Fast mode pricing.
+    if service_tier:
+        create_kwargs["service_tier"] = service_tier
     try:
-        resp = _client.chat.completions.create(
-            model=model,
-            messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-            response_format={"type": "json_object"},
-            reasoning_effort=reasoning_effort,
-            max_completion_tokens=16000,
-        )
+        resp = _client.chat.completions.create(**create_kwargs)
     except APIError as exc:
         # Covers APITimeoutError, RateLimitError, APIConnectionError, and any
         # other openai SDK failure — all are subclasses of APIError.
         raise AIServiceError(f"OpenAI request failed: {type(exc).__name__}", original=exc) from exc
 
-    usage = usage_from_response(resp, model=model, action=action)
-    content = resp.choices[0].message.content or ""
+    usage = usage_from_response(
+        resp,
+        model=model,
+        action=action,
+        service_tier=service_tier,
+    )
+    choice = resp.choices[0]
+    content = choice.message.content or ""
+    finish_reason = getattr(choice, "finish_reason", None)
     if not content.strip():
+        # High-effort layout often burns the whole completion budget on hidden
+        # reasoning tokens and finishes with length + empty visible JSON.
+        # Surface a recoverable tip instead of the generic "unavailable" copy.
+        if finish_reason == "length" or action == "layout":
+            user_message = (
+                _EMPTY_REASONING_BUDGET_MESSAGE
+                if action == "layout"
+                else (
+                    "Model wyczerpał limit odpowiedzi. Spróbuj ponownie albo "
+                    "uprość polecenie."
+                )
+            )
+            raise AIServiceError(
+                f"Model returned empty content (finish_reason={finish_reason}, "
+                f"max_completion_tokens={max_completion_tokens})",
+                action=action,
+                user_message=user_message,
+            )
         raise AIServiceError(
-            f"Model returned empty content (finish_reason={resp.choices[0].finish_reason})"
+            f"Model returned empty content (finish_reason={finish_reason})"
         )
     stripped = content.strip()
     if stripped.startswith("```"):
@@ -1086,7 +1181,11 @@ def _layout_session(
             "layout_groups": [],
             "layout_issues": [],
             "web_sources": [],
-            "usage": empty_usage(model=_LAYOUT_MODEL, action="layout"),
+            "usage": empty_usage(
+                model=_LAYOUT_MODEL,
+                action="layout",
+                service_tier=_service_tier_for_action("layout"),
+            ),
         }
 
     question = (message or "").strip() or DEFAULT_LAYOUT_QUESTION
