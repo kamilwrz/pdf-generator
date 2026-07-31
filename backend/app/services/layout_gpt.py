@@ -43,6 +43,15 @@ _FROZEN_IDENTITY_ROLES_HINTS = (
     "PODSUMOWANIE", "DOŚWIADCZENIE", "WYKSZTAŁCENIE", "UMIEJĘTNOŚCI", "JĘZYKI",
     "SUMMARY", "EXPERIENCE", "EDUCATION", "SKILLS", "LANGUAGES",
 )
+# Internal geometry values are necessary for validation but make poor UI copy.
+# If a model leaks them into a visible title, reason, or summary, replace that
+# text with a short user-facing fallback instead of exposing implementation data.
+_USER_FACING_LAYOUT_TECHNICAL_PATTERN = re.compile(
+    r"\b(?:e\d+|element_id|real_gap|top-to-top|row_top|row_bottom|"
+    r"top|bottom|left|right|width|height|fontSize|lineHeight|"
+    r"text|textarea|category|px)\b|(?:\d+(?:[.,]\d+)?\s*(?:px|→))",
+    re.IGNORECASE,
+)
 # Recognises common year-bearing CV periods. This is a grouping hint, not input
 # validation, so deliberately avoid rejecting uncommon date formats.
 _YEAR_IN_TEXT = re.compile(r"\b(?:19|20)\d{2}\b")
@@ -386,8 +395,11 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
    bloku. Dotyczy to także kontaktu, nazw stanowisk, dat, firm, opisów, punktów,
    stopki i tekstów locked/fixedToPage. Element niepasujący do sekcji umieść w
    sekcji `INNE / NIEPRZYPISANE`; nadal nie wolno go pominąć.
-   W odpowiedzi używaj WYŁĄCZNIE `ref` (`e1`, `e2`, …). Nie twórz i nie zwracaj
-   własnych `element_id`; Python bezpiecznie zamieni krótkie referencje na ID płótna.
+   W polach technicznych JSON (`keep_element_refs`, `section_inventory.members`
+   i `changes.elements`) używaj WYŁĄCZNIE `ref` (`e1`, `e2`, …). Nie twórz i nie
+   zwracaj własnych `element_id`; Python bezpiecznie zamieni krótkie referencje
+   na ID płótna. Nigdy nie umieszczaj `e1`, `e2` ani innych referencji w polach
+   widocznych dla użytkownika: `summary`, `group` i `reason`.
 3. Rozpoznaj wszystkie sekcje i ich peery bez dodatkowych metryk z Pythona.
    Dla każdej sekcji znajdź tekst nagłówka, ikonę, linię dekoracyjną i pierwszy
    element treści. Element z width≈0–3 może być prawidłowym tytułem — nie odrzucaj
@@ -450,6 +462,20 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
     `section_header_gap` do wspólnego rytmu. Skarga użytkownika, że nagłówki
     mają różne dolne odstępy, jest jawnym poleceniem standaryzacji.
 
+## Język dla użytkownika
+Pola `summary`, `group` i `reason` są wyświetlane osobie nietechnicznej.
+- Pisz wyłącznie prostą polszczyzną, krótko i konkretnie.
+- `summary`: maksymalnie 3 krótkie zdania: co poprawisz i jaki będzie efekt.
+- `group`: opisowa nazwa, np. „DOŚWIADCZENIE — pierwszy wpis” albo
+  „PROJEKTY — wyrównanie ikony”.
+- `reason`: maksymalnie 2 zdania. Nazwij widoczny problem i efekt korekty, np.
+  „Opis drugiego projektu jest za daleko od jego tytułu. Zbliżę go, aby oba
+  projekty wyglądały spójnie.”
+- Nigdy nie pokazuj referencji (`e12`), identyfikatorów, współrzędnych, nazw
+  pól JSON, obliczeń, wartości `top`, `left`, `bottom`, `real_gap`,
+  „top-to-top”, ani angielskich nazw technicznych. Te dane zostają wyłącznie
+  w polach technicznych JSON.
+
 ## Preferowane reguły (wskazówki, nie sztywne wartości)
 - Nagłówki tego samego poziomu: zbliżony left.
 - Ikona nagłówka wyrównana pionowo z tekstem nagłówka (osobna sprawa od rytmu pod sekcją).
@@ -487,7 +513,7 @@ Python zbuduje karty Podgląd/Zastosuj z `changes`.
   "changes": [
     {{
       "group": "DOŚWIADCZENIE — odstęp Citibank",
-      "reason": "Medtronic bottom:443.7, Citibank top:462 → przerwa 18.3 px vs typowe 13 px.",
+      "reason": "Odstęp przed wpisem Citibank jest większy niż między pozostałymi wpisami. Wyrównam go, aby sekcja wyglądała spójnie.",
       "severity": "high",
       "change_type": "block_spacing",
       "move_scope": "blocks",
@@ -509,7 +535,8 @@ Python zbuduje karty Podgląd/Zastosuj z `changes`.
 Gdy układ jest spójny lub pytanie nie wymaga ruchów:
 zwróć ten sam PEŁNY `section_inventory`, ale ustaw `status="no_changes"` i `changes=[]`.
 
-W `reason` cytuj konkretne left/top/gap jak w przykładach peerów.
+W polach technicznych zachowaj dokładne dane potrzebne do ruchów, ale tekstów
+widocznych dla użytkownika nie uzasadniaj współrzędnymi ani nazwami technicznymi.
 Liczby jako number, nie string. Kopiuj `ref` dokładnie ze snapshotu.
 """
 
@@ -654,6 +681,73 @@ def _normalize_summary(payload: dict[str, Any], raw: dict[str, Any]) -> str:
     return ""
 
 
+def _layout_section_label(raw_title: str) -> str:
+    """Extract a safe, visible section label from a model-provided group title."""
+    candidate = re.split(r"\s*[—–-]\s*", raw_title, maxsplit=1)[0].strip()
+    if (
+        not candidate
+        or len(candidate) > 60
+        or _USER_FACING_LAYOUT_TECHNICAL_PATTERN.search(candidate)
+    ):
+        return "Układ CV"
+    return candidate
+
+
+def _layout_copy_fallback(
+    raw_title: str,
+    change_type: str,
+    *,
+    for_title: bool,
+) -> str:
+    """Return Polish fallback copy when a visible model field leaks internals."""
+    lowered_title = raw_title.lower()
+    section = _layout_section_label(raw_title)
+    if "ikon" in lowered_title:
+        label = "wyrównanie ikony"
+        reason = "Wyrównam ikonę z nagłówkiem, aby sekcja wyglądała schludniej."
+    elif "nachodz" in lowered_title or change_type == "overlap":
+        label = "uporządkowanie nakładających się elementów"
+        reason = "Rozdzielę elementy, które są zbyt blisko siebie, aby tekst był czytelny."
+    elif change_type == "section_header_gap":
+        label = "odstęp pod nagłówkiem"
+        reason = "Ujednolicę odstęp między nagłówkiem a pierwszą informacją w tej sekcji."
+    elif change_type == "block_spacing":
+        label = "odstępy między informacjami"
+        reason = "Dostosuję odstępy, aby informacje w tej sekcji układały się równo."
+    else:
+        label = "wyrównanie elementów"
+        reason = "Wyrównam elementy, aby ta część CV była bardziej czytelna."
+
+    return f"{section} — {label}" if for_title else reason
+
+
+def _user_facing_layout_copy(
+    value: Any,
+    fallback: str,
+    *,
+    limit: int,
+) -> str:
+    """Keep model copy concise and prevent geometry internals reaching the UI."""
+    text = " ".join(str(value or "").split()).strip()
+    if (
+        not text
+        or len(text) > limit
+        or _USER_FACING_LAYOUT_TECHNICAL_PATTERN.search(text)
+    ):
+        return fallback
+    return text
+
+
+def _layout_summary_fallback(group_count: int) -> str:
+    """Describe the result without leaking model inventory or geometry metrics."""
+    if group_count:
+        return (
+            "Przejrzałem układ CV i przygotowałem propozycje, które poprawią jego "
+            "czytelność. Każdą zmianę możesz obejrzeć przed zastosowaniem."
+        )
+    return "Układ CV wygląda spójnie — nie proponuję zmian."
+
+
 def _slug_group_id(name: str, index: int) -> str:
     slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", (name or "").strip())[:40].strip("-")
     return slug or f"change-{index + 1}"
@@ -795,12 +889,23 @@ def _changes_to_findings(changes: list[Any]) -> list[dict[str, Any]]:
     for index, change in enumerate(changes):
         if not isinstance(change, dict):
             continue
-        title = str(
+        raw_title = str(
             change.get("group") or change.get("title") or change.get("heading") or f"Zmiana układu #{index + 1}"
         ).strip()[:140]
-        reason = str(
+        change_type = str(change.get("change_type") or "").strip().lower()
+        title = _user_facing_layout_copy(
+            raw_title,
+            _layout_copy_fallback(raw_title, change_type, for_title=True),
+            limit=140,
+        )
+        raw_reason = str(
             change.get("reason") or change.get("analysis") or change.get("message") or ""
         ).strip()
+        reason = _user_facing_layout_copy(
+            raw_reason,
+            _layout_copy_fallback(raw_title, change_type, for_title=False),
+            limit=420,
+        )
         severity = str(change.get("severity") or "medium").strip().lower()
         if severity not in _VALID_SEVERITIES:
             severity = "medium"
@@ -838,7 +943,7 @@ def _changes_to_findings(changes: list[Any]) -> list[dict[str, Any]]:
             "severity": severity,
             "title": title,
             "analysis": reason or title,
-            "change_type": str(change.get("change_type") or "").strip().lower(),
+            "change_type": change_type,
             "real_gap_before": change.get("real_gap_before"),
             "real_gap_after": change.get("real_gap_after"),
             "move_scope": str(change.get("move_scope") or "elements").strip().lower(),
@@ -1050,16 +1155,36 @@ def compile_layout_gpt_response(
     if not findings:
         # Explicit no-op from the corrector or empty change lists.
         if status == "no_changes":
-            return [], [], summary or "Układ wygląda spójnie — nie proponuję przesunięć.", ""
+            return [], [], _user_facing_layout_copy(
+                summary,
+                _layout_summary_fallback(0),
+                limit=420,
+            ), ""
         if isinstance(payload.get("changes"), list) and not payload["changes"]:
-            return [], [], summary, ""
+            return [], [], _user_facing_layout_copy(
+                summary,
+                _layout_summary_fallback(0),
+                limit=420,
+            ), ""
         if isinstance(payload.get("findings"), list) and not payload["findings"]:
-            return [], [], summary, ""
+            return [], [], _user_facing_layout_copy(
+                summary,
+                _layout_summary_fallback(0),
+                limit=420,
+            ), ""
         if isinstance(payload.get("moves"), list) and not payload["moves"]:
-            return [], [], summary, ""
+            return [], [], _user_facing_layout_copy(
+                summary,
+                _layout_summary_fallback(0),
+                limit=420,
+            ), ""
         # Pure Q&A answer without geometry patches is still valid.
         if summary:
-            return [], [], summary, ""
+            return [], [], _user_facing_layout_copy(
+                summary,
+                _layout_summary_fallback(0),
+                limit=420,
+            ), ""
         return [], [], "", "empty_response"
 
     keep_ids = {
@@ -1085,13 +1210,26 @@ def compile_layout_gpt_response(
     suppressed_tight_gap_changes = 0
 
     for index, finding in enumerate(findings[:MAX_LAYOUT_FINDINGS]):
-        title = str(finding.get("title") or finding.get("heading") or f"Problem układu #{index + 1}").strip()[:140]
-        analysis = str(
+        raw_title = str(
+            finding.get("title") or finding.get("heading") or f"Problem układu #{index + 1}"
+        ).strip()[:140]
+        change_type = str(finding.get("change_type") or "").strip().lower()
+        title = _user_facing_layout_copy(
+            raw_title,
+            _layout_copy_fallback(raw_title, change_type, for_title=True),
+            limit=140,
+        )
+        raw_analysis = str(
             finding.get("analysis")
             or finding.get("reason")
             or finding.get("message")
             or ""
         ).strip()
+        analysis = _user_facing_layout_copy(
+            raw_analysis,
+            _layout_copy_fallback(raw_title, change_type, for_title=False),
+            limit=420,
+        )
         severity = str(finding.get("severity") or "medium").strip().lower()
         if severity not in _VALID_SEVERITIES:
             severity = "medium"
@@ -1100,13 +1238,11 @@ def compile_layout_gpt_response(
             issues.append({
                 "severity": "warning",
                 "message": (
-                    f"{title}: odrzucono przesunięcie, które zostawiłoby real_gap "
-                    f"poniżej {SECTION_HEADER_GAP_MIN_PX:g} px — treść nie może "
-                    "siadać na dolnej krawędzi nagłówka."
+                    f"{title}: nie zastosowano tej propozycji, ponieważ treść "
+                    "znalazłaby się zbyt blisko nagłówka."
                 )[:700],
             })
             continue
-        issues.append({"severity": severity, "message": (analysis or title)[:700]})
 
         moves = _finding_moves(finding)
         if not moves or remaining <= 0:
@@ -1204,8 +1340,11 @@ def compile_layout_gpt_response(
 
     if suppressed_tight_gap_changes and not groups:
         summary = (
-            f"Odrzucono propozycje zwijające odstęp pod nagłówkiem poniżej "
-            f"{SECTION_HEADER_GAP_MIN_PX:g} px. Ujednolić do około "
-            f"{SECTION_HEADER_GAP_TARGET_PX:g} px, nie do 0 px."
+            "Nie zastosowano propozycji, która zbyt mocno zmniejszałaby odstęp "
+            "pod nagłówkiem."
         )
-    return groups, issues, summary, ""
+    return groups, issues, _user_facing_layout_copy(
+        summary,
+        _layout_summary_fallback(len(groups)),
+        limit=420,
+    ), ""

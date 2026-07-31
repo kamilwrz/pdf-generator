@@ -1109,22 +1109,23 @@ def _layout_session(
         }
 
     message_out = summary or (
-        f"Przygotowałem {len(issues)} wniosków układu"
-        + (f" i {sum(len(g.get('patches') or []) for g in groups)} propozycji przesunięć." if groups else ".")
+        "Przygotowałem propozycje korekt układu. Każdą zmianę możesz obejrzeć "
+        "przed zastosowaniem."
+        if groups
+        else "Układ CV wygląda spójnie — nie proponuję zmian."
     )
     inventory = raw.get("section_inventory")
     inventory_sections = len(inventory) if isinstance(inventory, list) else 0
     tips = [
-        "Tryb Układ: korektor rytmu i wyrównań — możesz dopytywać; każde pytanie dostaje świeży JSON A4.",
+        "Możesz dopytać o dowolną sekcję lub obejrzeć podgląd przed zastosowaniem zmiany.",
     ]
     if inventory_sections:
         tips.append(
-            f"Inwentarz analizy: {snapshot.get('text_element_count', 0)} elementów text/textarea "
-            f"przypisanych do {inventory_sections} sekcji."
+            "Sprawdzono układ treści we wszystkich rozpoznanych sekcjach CV."
         )
     tips.extend([
-        f"Karty poniżej: Podgląd / Zastosuj (max ±{MAX_LAYOUT_MOVE_PX:g} px na element). Treść i fonty nie są zmieniane.",
-        "Imię / rola zawodowa oraz elementy locked nie są ruszane.",
+        "Karty poniżej pozwalają sprawdzić każdą zmianę przed jej zastosowaniem.",
+        "Treść, dane osobowe i zablokowane elementy pozostają bez zmian.",
     ])
     return {
         "message": message_out,

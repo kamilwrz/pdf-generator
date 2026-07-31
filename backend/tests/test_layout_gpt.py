@@ -96,6 +96,8 @@ class LayoutGptTests(unittest.TestCase):
         self.assertIn("text_rows", prompt)
         self.assertIn("row_top", prompt)
         self.assertIn("effectiveLineHeight", prompt)
+        self.assertIn("Język dla użytkownika", prompt)
+        self.assertIn("Nigdy nie pokazuj referencji", prompt)
         self.assertTrue(LAYOUT_CORRECTOR_SYSTEM.startswith("Jesteś korektorem"))
         self.assertIn("category=`textarea`", LAYOUT_CORRECTOR_SYSTEM)
         self.assertIn("rytm", DEFAULT_LAYOUT_QUESTION.lower())
@@ -251,8 +253,10 @@ class LayoutGptTests(unittest.TestCase):
         }
         groups, issues, summary, error = compile_layout_gpt_response(elements, gpt, PAGE)
         self.assertEqual(error, "")
-        self.assertIn("odstaje", summary.lower() + issues[0]["message"].lower())
+        self.assertIn("odstaje", summary.lower())
         self.assertEqual(len(groups), 1)
+        self.assertEqual(issues, [])
+        self.assertNotIn("left", groups[0]["reason"].lower())
         self.assertEqual(groups[0]["patches"][0]["left"], 70)
 
     def test_compile_changes_format_with_after(self):
@@ -286,13 +290,43 @@ class LayoutGptTests(unittest.TestCase):
         }
         groups, issues, summary, error = compile_layout_gpt_response(elements, gpt, PAGE)
         self.assertEqual(error, "")
-        self.assertIn("25", summary)
+        self.assertIn("Przejrzałem układ CV", summary)
         self.assertEqual(len(groups), 1)
-        self.assertEqual(len(issues), 1)
+        self.assertEqual(issues, [])
+        self.assertNotIn("left", groups[0]["reason"].lower())
         by_id = {p["element_id"]: p for p in groups[0]["patches"]}
         self.assertEqual(by_id["exp"]["left"], 70)
         # Unchanged after == before is skipped by validator.
         self.assertNotIn("exp-line", by_id)
+
+    def test_compile_replaces_technical_layout_copy_with_plain_polish(self):
+        elements = [
+            el("heading", 70, 200, category="text", content="DOŚWIADCZENIE"),
+            el("entry", 70, 230, category="text", content="Senior Analyst"),
+        ]
+        gpt = {
+            "status": "corrected",
+            "summary": "e2 ma real_gap 11 px; top-to-top wynosi 23 px.",
+            "section_inventory": inventory_for(elements, section="DOŚWIADCZENIE"),
+            "changes": [{
+                "group": "DOŚWIADCZENIE — e2",
+                "reason": "e2 top:230, bottom:241, left:70.",
+                "severity": "low",
+                "change_type": "section_header_gap",
+                "real_gap_before": 11,
+                "real_gap_after": 10,
+                "elements": [{"ref": "e2", "delta": {"top": -1, "left": 0}}],
+            }],
+        }
+
+        groups, issues, summary, error = compile_layout_gpt_response(elements, gpt, PAGE)
+
+        self.assertEqual(error, "")
+        self.assertEqual(issues, [])
+        self.assertEqual(len(groups), 1)
+        visible_copy = " ".join((summary, groups[0]["title"], groups[0]["reason"])).lower()
+        self.assertNotRegex(visible_copy, r"\be\d+\b|real_gap|top-to-top|\b(?:top|bottom|left|px)\b")
+        self.assertIn("odstęp pod nagłówkiem", groups[0]["title"].lower())
 
     def test_compile_rejects_collapsing_section_header_gap_to_zero(self):
         elements = [
@@ -326,8 +360,8 @@ class LayoutGptTests(unittest.TestCase):
 
         self.assertEqual(error, "")
         self.assertEqual(groups, [])
-        self.assertTrue(any("poniżej 6 px" in issue["message"] for issue in issues))
-        self.assertIn("nie do 0 px", summary)
+        self.assertTrue(any("zbyt blisko nagłówka" in issue["message"] for issue in issues))
+        self.assertIn("Nie zastosowano propozycji", summary)
 
     def test_compile_allows_standardizing_section_header_gap_to_target(self):
         elements = [
@@ -362,8 +396,8 @@ class LayoutGptTests(unittest.TestCase):
         self.assertEqual(error, "")
         self.assertEqual(len(groups), 1)
         self.assertAlmostEqual(groups[0]["patches"][0]["top"], 634.2, places=2)
-        self.assertFalse(any("poniżej 6 px" in issue["message"] for issue in issues))
-        self.assertIn("6 px", summary)
+        self.assertEqual(issues, [])
+        self.assertIn("Przejrzałem układ CV", summary)
 
     def test_compile_changes_shared_delta_on_ids(self):
         elements = [
