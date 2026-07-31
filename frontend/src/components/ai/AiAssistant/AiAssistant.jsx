@@ -39,13 +39,118 @@ const ACTIONS = [
     },
 ];
 const LAYOUT_MODE_GREETING = (
-    "Cześć! Tryb Układ jest aktywny. Opisz, co chcesz poprawić w rozmieszczeniu "
-    + "elementów. Analiza rozpocznie się dopiero po wysłaniu Twojej wiadomości."
+    "Cześć! Tryb Układ jest aktywny. Opisz zmianę geometrii albo wybierz jedną "
+    + "z propozycji poniżej. Analiza ruszy dopiero po wysłaniu zlecenia."
 );
-const LAYOUT_MODE_EXAMPLES = [
-    "Które elementy mojego CV są źle wyrównane?",
-    "Czy odstępy między wpisami doświadczenia są równe?",
-    "Sprawdź, czy nagłówki lub dekoracje nachodzą na tekst.",
+
+/**
+ * Short labels for the chat UI; fuller `prompt` text is what GPT receives.
+ * Keep prompts concrete and tied to layout_contract / real_gap vocabulary.
+ */
+const LAYOUT_SUGGESTIONS = [
+    {
+        id: "header-gaps",
+        label: "Ujednolić odstępy pod nagłówkami",
+        prompt: (
+            "Sprawdź real_gap pod każdym nagłówkiem sekcji (treść względem dolnej "
+            + "krawędzi nagłówka/linii). Ujednolić je do rytmu z layout_contract "
+            + "(ok. 6 px, zakres 6–10). Nie celuj w 0 px. Zaproponuj tylko grupy "
+            + "section_header_gap tam, gdzie peery różnią się wyraźnie."
+        ),
+    },
+    {
+        id: "record-gaps",
+        label: "Wyrównaj odstępy między wpisami",
+        prompt: (
+            "Porównaj odstępy między kolejnymi wpisami doświadczenia i wykształcenia "
+            + "(oraz podobnymi listami, np. projektami). Ujednolić je do "
+            + "layout_contract.spacing_px.record (ok. 14 px). Przesuwaj całe bloki "
+            + "wpisów (move_scope=blocks), nie pojedyncze tytuły bez daty/opisu."
+        ),
+    },
+    {
+        id: "section-gaps",
+        label: "Sprawdź odstępy między sekcjami",
+        prompt: (
+            "Sprawdź odstępy między końcem jednej sekcji a następnym nagłówkiem. "
+            + "Preferuj layout_contract.spacing_px.section (ok. 18 px). Odstęp między "
+            + "sekcjami ma być wyraźnie większy niż wewnątrz wpisu. Zaproponuj "
+            + "najmniejsze ruchy, które ujednolicą rytm."
+        ),
+    },
+    {
+        id: "stack-rhythm",
+        label: "Popraw rytm wewnątrz wpisów",
+        prompt: (
+            "We wpisach doświadczenia/wykształcenia sprawdź odstępy tytuł → meta/firma "
+            + "→ opis/punkty. Preferuj layout_contract.spacing_px.stack (ok. 4 px). "
+            + "Nie ruszaj całych sekcji — tylko niespójne elementy wewnątrz wpisów, "
+            + "zachowując wyrównanie dat względem tytułów."
+        ),
+    },
+    {
+        id: "date-column",
+        label: "Ustaw daty w jednej kolumnie",
+        prompt: (
+            "Wyrównaj daty doświadczenia i wykształcenia do jednej prawej kolumny "
+            + "(wspólne left/right peerów). Daty mają pozostać w tym samym wierszu "
+            + "co odpowiadający tytuł (text_rows). Nie zmieniaj treści ani kolejności "
+            + "wpisów — tylko geometrię."
+        ),
+    },
+    {
+        id: "left-margins",
+        label: "Wyrównaj lewe marginesy",
+        prompt: (
+            "Znajdź teksty tej samej roli (nagłówki sekcji, tytuły wpisów, opisy), "
+            + "które odstają leftem od dominującej kolumny. Ujednolić lewe krawędzie "
+            + "w ramach tej samej kolumny/sekcji najmniejszym ruchem. Nie ruszaj "
+            + "celowo dwukolumnowych układów ani chrome fixedToPage."
+        ),
+    },
+    {
+        id: "header-chrome",
+        label: "Dopasuj ikony i linie do nagłówków",
+        prompt: (
+            "Dla każdego nagłówka sekcji sprawdź ikonę/marker, tekst tytułu i linię "
+            + "dekoracyjną. Wyrównaj je wizualnie w jednym wierszu nagłówka; linia "
+            + "nie może przechodzić przez tekst. Gdy jest flowRole, użyj go do "
+            + "rozpoznania chrome. Preferuj after_rule z layout_contract przed "
+            + "pierwszą treścią sekcji."
+        ),
+    },
+    {
+        id: "columns",
+        label: "Wyrównaj kolumny treści",
+        prompt: (
+            "Sprawdź spójność kolumn: wspólne left dla lewej kolumny treści oraz "
+            + "stabilne przerwy między kolumnami (np. treść vs daty lub sidebar). "
+            + "Wyrównaj tylko elementy, które wyraźnie wypadają z siatki peerów. "
+            + "Nie zlewaj osobnych kolumn w jedną."
+        ),
+    },
+    {
+        id: "overlaps",
+        label: "Znajdź nachodzenia elementów",
+        prompt: (
+            "Wykryj nachodzenia tekstu na tekst, tekstu na linie/kształty oraz "
+            + "elementy wychodzące poza stronę. Zaproponuj najmniejsze bezpieczne "
+            + "przesunięcia (priorytet: critical/high). Nie zmieniaj fontów, kolorów "
+            + "ani treści. Pomiń locked/fixedToPage, chyba że blokują czytelność "
+            + "ruchomego tekstu — wtedy przesuń tekst."
+        ),
+    },
+    {
+        id: "full-rhythm",
+        label: "Pełna korekta rytmu układu",
+        prompt: (
+            "Przeprowadź pełną korektę geometrii według layout_contract: odstępy pod "
+            + "nagłówkami (~6 px), stack (~4), record (~14), section (~18), wyrównanie "
+            + "nagłówków i dat, spójność kolumn oraz nachodzenia. Zwróć tylko grupy "
+            + "tam, gdzie rytm peerów jest wyraźnie niespójny. Preferuj najmniejszą "
+            + "zmianę; nie wymyślaj nowego rytmu, jeśli peery już trzymają kontrakt."
+        ),
+    },
 ];
 const SEVERITY_LABELS = {
     critical: "krytyczny",
@@ -356,12 +461,17 @@ function ChatMessage({
     onClearClonePreview,
     onAcceptClone,
     onRejectClone,
+    onPickLayoutSuggestion,
+    suggestionsDisabled,
     A4_Elements,
 }) {
     const isUser = msg.role === "user";
     const pendingCount = (msg.corrections || []).filter(
         c => (correctionStates[`${msg.id}_${c.element_id}`] || "pending") === "pending"
     ).length;
+    // Suggestion chips may send a longer GPT prompt while the bubble shows a
+    // short label via displayText, so the user still sees what they commissioned.
+    const visibleText = msg.displayText || msg.text;
 
     return (
         <div className={`${classes.msgWrap} ${isUser ? classes.msgUser : classes.msgAssistant}`}>
@@ -380,13 +490,32 @@ function ChatMessage({
                 {typeof msg.rating === "number" && <RatingBadge value={msg.rating} />}
 
                 {/* main message text */}
-                <p className={classes.msgText}>{msg.text}</p>
+                <p className={classes.msgText}>{visibleText}</p>
 
                 {/* tips */}
                 {msg.tips?.length > 0 && (
                     <ul className={classes.tips}>
                         {msg.tips.map((tip, i) => <li key={i}>{tip}</li>)}
                     </ul>
+                )}
+
+                {msg.layoutSuggestions?.length > 0 && (
+                    <div className={classes.layoutSuggestions}>
+                        <span className={classes.layoutSuggestionsLabel}>Propozycje</span>
+                        <div className={classes.layoutSuggestionList} role="group" aria-label="Propozycje układu">
+                            {msg.layoutSuggestions.map((suggestion) => (
+                                <button
+                                    key={suggestion.id}
+                                    type="button"
+                                    className={classes.layoutSuggestion}
+                                    disabled={suggestionsDisabled}
+                                    onClick={() => onPickLayoutSuggestion?.(suggestion)}
+                                >
+                                    {suggestion.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 )}
 
                 {/* correction cards */}
@@ -797,10 +926,13 @@ export default function AiAssistant() {
             }));
 
         const usesMessage = action === "chat" || action === "layout";
+        // Keep the full prompt in `text` for session history / GPT follow-ups.
+        // `displayText` is only for the bubble when the user picked a short label.
         const userMsg = {
             id: nanoid(),
             role: "user",
-            text: options.displayText || userText,
+            text: userText,
+            ...(options.displayText ? { displayText: options.displayText } : {}),
         };
         setMessages(prev => [...prev, userMsg]);
         setIsLoading(true);
@@ -927,7 +1059,8 @@ export default function AiAssistant() {
                 id: nanoid(),
                 role: "assistant",
                 text: LAYOUT_MODE_GREETING,
-                tips: LAYOUT_MODE_EXAMPLES,
+                tips: [],
+                layoutSuggestions: LAYOUT_SUGGESTIONS,
                 corrections: [],
                 layout_groups: [],
                 layout_issues: [],
@@ -936,6 +1069,11 @@ export default function AiAssistant() {
         }
         send(actionId, meta?.label || actionId);
     }, [entitlements, layoutMode, messages.length, send, showPlanModal]);
+
+    const handleLayoutSuggestion = useCallback((suggestion) => {
+        if (!suggestion?.prompt || isLoading || !layoutMode) return;
+        send("layout", suggestion.prompt, { displayText: suggestion.label });
+    }, [isLoading, layoutMode, send]);
 
     const handleSend = useCallback(() => {
         const text = input.trim();
@@ -1116,6 +1254,8 @@ export default function AiAssistant() {
                                     onClearClonePreview={clearClonePreview}
                                     onAcceptClone={acceptCloneGroup}
                                     onRejectClone={rejectCloneGroup}
+                                    onPickLayoutSuggestion={handleLayoutSuggestion}
+                                    suggestionsDisabled={isLoading || !layoutMode}
                                     A4_Elements={A4_Elements}
                                 />
                             ))}

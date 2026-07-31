@@ -397,6 +397,59 @@
     list-style: disc;
 }
 
+/* Quiet starter chips under the layout-mode greeting — secondary to freeform chat. */
+.layoutSuggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin: 1px 0 0;
+    padding: 0 1px;
+}
+
+.layoutSuggestionsLabel {
+    font: 600 9px/1.2 var(--font-body);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--chrome-muted);
+    opacity: 0.72;
+}
+
+.layoutSuggestionList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.layoutSuggestion {
+    appearance: none;
+    margin: 0;
+    padding: 4px 8px;
+    border: 1px solid color-mix(in srgb, var(--chrome-border) 88%, transparent);
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--chrome-control) 70%, transparent);
+    color: var(--chrome-muted);
+    font: 500 10px/1.35 var(--font-body);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.layoutSuggestion:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--chrome-accent) 55%, var(--chrome-border));
+    color: var(--chrome-ink);
+    background: var(--accent-soft);
+}
+
+.layoutSuggestion:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--chrome-accent) 70%, transparent);
+    outline-offset: 1px;
+}
+
+.layoutSuggestion:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 /* ── Rating Badge ────────────────────────────────────────────────── */
 .ratingBadge {
     display: inline-flex;
