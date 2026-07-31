@@ -519,7 +519,7 @@ class LayoutGptTests(unittest.TestCase):
         self.assertEqual(groups, [])
         self.assertTrue(any("niekompletne" in issue["message"] for issue in issues))
 
-    def test_compile_rejects_incomplete_text_inventory(self):
+    def test_compile_soft_completes_incomplete_text_inventory_when_safe(self):
         elements = [
             el("exp", 50, 260, content="Senior AML Analyst"),
             el("edu", 50, 390, content="Bachelor of Laws"),
@@ -533,10 +533,85 @@ class LayoutGptTests(unittest.TestCase):
 
         groups, issues, summary, error = compile_layout_gpt_response(elements, gpt, PAGE)
 
+        # One omitted text that is not part of any move must not kill the reply.
+        self.assertEqual(error, "")
+        self.assertEqual(groups, [])
+        self.assertIn("spójny", summary.lower())
+        self.assertTrue(any("pominął drobny element" in issue["message"] for issue in issues))
+
+    def test_compile_keeps_changes_when_omitted_text_is_not_moved(self):
+        elements = [
+            el("title", 50, 260, height=18, width=220, content="Senior AML Analyst"),
+            el("date", 400, 260, height=14, width=120, content="2020-2024"),
+            el("footer", 50, 800, height=10, width=40, content="1"),
+        ]
+        gpt = {
+            "status": "corrected",
+            "summary": "Wyrównuję datę.",
+            "section_inventory": [{
+                "section": "DOŚWIADCZENIE",
+                "blocks": [{
+                    "block_id": "entry-1",
+                    "members": [
+                        {"ref": "e1", "role": "entry_title"},
+                        {"ref": "e2", "role": "entry_date"},
+                    ],
+                }],
+            }],
+            "changes": [{
+                "group": "Data",
+                "reason": "Data odstaje od tytułu.",
+                "change_type": "alignment",
+                "move_scope": "elements",
+                "delta": {"top": 0, "left": -4},
+                "elements": [
+                    {
+                        "ref": "e2",
+                        "before": {"top": 260, "left": 400},
+                        "after": {"top": 260, "left": 396},
+                    },
+                ],
+            }],
+        }
+
+        groups, issues, summary, error = compile_layout_gpt_response(elements, gpt, PAGE)
+
+        self.assertEqual(error, "")
+        self.assertEqual(len(groups), 1)
+        self.assertAlmostEqual(groups[0]["patches"][0]["left"], 396, places=2)
+        self.assertTrue(any("pominął drobny element" in issue["message"] for issue in issues))
+        self.assertIn("dat", summary.lower())
+
+    def test_compile_rejects_incomplete_inventory_when_omitted_text_is_moved(self):
+        elements = [
+            el("title", 50, 260, height=18, width=220, content="Senior AML Analyst"),
+            el("date", 400, 260, height=14, width=120, content="2020-2024"),
+        ]
+        gpt = {
+            "status": "corrected",
+            "summary": "Wyrównuję datę.",
+            # Inventory lists only the title, but the change moves the omitted date.
+            "section_inventory": inventory_for(elements[:1], section="DOŚWIADCZENIE"),
+            "changes": [{
+                "group": "Data",
+                "reason": "Data odstaje.",
+                "move_scope": "elements",
+                "elements": [
+                    {
+                        "ref": "e2",
+                        "before": {"top": 260, "left": 400},
+                        "after": {"top": 260, "left": 396},
+                    },
+                ],
+            }],
+        }
+
+        groups, issues, summary, error = compile_layout_gpt_response(elements, gpt, PAGE)
+
         self.assertEqual(error, "incomplete_text_inventory")
         self.assertEqual(groups, [])
-        self.assertIn("pominięto 1", summary)
-        self.assertTrue(any("kompletnego inwentarza" in issue["message"] for issue in issues))
+        self.assertIn("propozycji ruchu", summary)
+        self.assertTrue(any("propozycji ruchu" in issue["message"] for issue in issues))
 
     def test_compile_rejects_unknown_compact_reference(self):
         elements = [el("exp", 50, 260, content="Senior AML Analyst")]

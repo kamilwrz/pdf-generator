@@ -504,8 +504,12 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
 2. Zanim zaproponujesz zmiany, zbuduj `section_inventory`. Każda referencja z
    `text_element_refs` ma wystąpić DOKŁADNIE RAZ jako `ref` w `members` jednego logicznego
    bloku. Dotyczy to także kontaktu, nazw stanowisk, dat, firm, opisów, punktów,
-   stopki i tekstów locked/fixedToPage. Element niepasujący do sekcji umieść w
-   sekcji `INNE / NIEPRZYPISANE`; nadal nie wolno go pominąć.
+   placeholderów, numerów stron, stopki i tekstów locked/fixedToPage. Element
+   niepasujący do sekcji umieść w sekcji `INNE / NIEPRZYPISANE`
+   (block_id=`unassigned`); nadal nie wolno go pominąć. Przed wysłaniem JSON
+   policz długość `text_element_refs` i liczbę `members.ref` — muszą być równe.
+   Pominięcie tekstu, który jednocześnie pojawia się w `changes`, unieważnia
+   całą odpowiedź.
    W polach technicznych JSON (`keep_element_refs`, `section_inventory.members`
    i `changes.elements`) używaj WYŁĄCZNIE `ref` (`e1`, `e2`, …). Nie twórz i nie
    zwracaj własnych `element_id`; Python bezpiecznie zamieni krótkie referencje
@@ -969,6 +973,51 @@ def _parse_section_inventory(
     return blocks_by_key, listed_ids, duplicate_ids
 
 
+def _moved_element_ids_from_payload(payload: dict[str, Any]) -> set[str]:
+    """Collect canvas ids that appear in proposed geometry moves."""
+    moved_ids: set[str] = set()
+
+    def add_from_entries(entries: Any) -> None:
+        if not isinstance(entries, list):
+            return
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            element_id = str(
+                entry.get("element_id") or entry.get("id") or entry.get("elementId") or ""
+            ).strip()
+            if element_id and not element_id.startswith("__unknown_ref__:"):
+                moved_ids.add(element_id)
+
+    for change in payload.get("changes") or []:
+        if not isinstance(change, dict):
+            continue
+        add_from_entries(change.get("elements") or change.get("moves"))
+
+    for finding in payload.get("findings") or []:
+        if not isinstance(finding, dict):
+            continue
+        for key in ("moves", "patches", "adjustments"):
+            add_from_entries(finding.get(key))
+    add_from_entries(payload.get("moves"))
+    return moved_ids
+
+
+def _assign_missing_text_to_unassigned(
+    blocks_by_key: dict[tuple[str, str], set[str]],
+    missing_ids: set[str],
+) -> dict[tuple[str, str], set[str]]:
+    """Park omitted text ids in the catch-all inventory bucket the prompt allows."""
+    if not missing_ids:
+        return blocks_by_key
+    completed = {
+        key: set(member_ids) for key, member_ids in blocks_by_key.items()
+    }
+    orphan_key = ("INNE / NIEPRZYPISANE", "unassigned")
+    completed.setdefault(orphan_key, set()).update(missing_ids)
+    return completed
+
+
 def _affected_text_ids(
     finding: dict[str, Any],
     blocks_by_key: dict[tuple[str, str], set[str]],
@@ -1238,7 +1287,8 @@ def compile_layout_gpt_response(
         missing_ids = expected_text_ids - inventoried_ids
         unknown_ids = inventoried_ids - known_element_ids
         duplicate_text_ids = duplicate_ids & expected_text_ids
-        if missing_ids or unknown_ids or duplicate_text_ids:
+        inventory_soft_warnings: list[str] = []
+        if unknown_ids or duplicate_text_ids:
             details: list[str] = []
             if missing_ids:
                 details.append(f"pominięto {len(missing_ids)}")
@@ -1257,6 +1307,38 @@ def compile_layout_gpt_response(
                 inventory_summary,
                 "incomplete_text_inventory",
             )
+        if missing_ids:
+            # Luna occasionally drops one footer/placeholder from an otherwise
+            # valid inventory. Hard-reject only when an omitted text id is also
+            # part of a proposed move — that would risk splitting a logical block.
+            # Otherwise park orphans in INNE / NIEPRZYPISANE and keep the patches.
+            moved_ids = _moved_element_ids_from_payload(payload)
+            omitted_in_moves = missing_ids & moved_ids
+            if omitted_in_moves:
+                message = (
+                    "Model nie rozliczył kompletnego inwentarza elementów text/textarea "
+                    f"(pominięto {len(missing_ids)}, w tym elementy z propozycji ruchu). "
+                    "Żadne przesunięcie nie zostało udostępnione."
+                )
+                inventory_summary = f"{summary}\n\n{message}" if summary else message
+                return (
+                    [],
+                    [{"severity": "warning", "message": message}],
+                    inventory_summary,
+                    "incomplete_text_inventory",
+                )
+            blocks_by_key = _assign_missing_text_to_unassigned(blocks_by_key, missing_ids)
+            inventoried_ids = inventoried_ids | missing_ids
+            # Mild UI note — avoid leaking inventory/JSON vocabulary into chat.
+            inventory_soft_warnings.append(
+                "Model pominął drobny element tekstowy przy grupowaniu; "
+                "propozycje i tak przygotowano."
+                if len(missing_ids) == 1
+                else (
+                    f"Model pominął {len(missing_ids)} drobne elementy tekstowe przy "
+                    "grupowaniu; propozycje i tak przygotowano."
+                )
+            )
         # Decorative refs accidentally placed in members are known canvas
         # elements, but they must not widen the set required for a text-block
         # move. The prompt asks for related_refs; this filter is a safe fallback.
@@ -1264,41 +1346,48 @@ def compile_layout_gpt_response(
             key: member_ids & expected_text_ids
             for key, member_ids in blocks_by_key.items()
         }
+    else:
+        inventory_soft_warnings = []
+
+    soft_inventory_issues = [
+        {"severity": "warning", "message": message[:700]}
+        for message in inventory_soft_warnings
+    ]
 
     if not findings:
         # Explicit no-op from the corrector or empty change lists.
         if status == "no_changes":
-            return [], [], _user_facing_layout_copy(
+            return [], soft_inventory_issues, _user_facing_layout_copy(
                 summary,
                 _layout_summary_fallback(0),
                 limit=420,
             ), ""
         if isinstance(payload.get("changes"), list) and not payload["changes"]:
-            return [], [], _user_facing_layout_copy(
+            return [], soft_inventory_issues, _user_facing_layout_copy(
                 summary,
                 _layout_summary_fallback(0),
                 limit=420,
             ), ""
         if isinstance(payload.get("findings"), list) and not payload["findings"]:
-            return [], [], _user_facing_layout_copy(
+            return [], soft_inventory_issues, _user_facing_layout_copy(
                 summary,
                 _layout_summary_fallback(0),
                 limit=420,
             ), ""
         if isinstance(payload.get("moves"), list) and not payload["moves"]:
-            return [], [], _user_facing_layout_copy(
+            return [], soft_inventory_issues, _user_facing_layout_copy(
                 summary,
                 _layout_summary_fallback(0),
                 limit=420,
             ), ""
         # Pure Q&A answer without geometry patches is still valid.
         if summary:
-            return [], [], _user_facing_layout_copy(
+            return [], soft_inventory_issues, _user_facing_layout_copy(
                 summary,
                 _layout_summary_fallback(0),
                 limit=420,
             ), ""
-        return [], [], "", "empty_response"
+        return [], soft_inventory_issues, "", "empty_response"
 
     keep_ids = {
         str(element_id)
@@ -1317,7 +1406,7 @@ def compile_layout_gpt_response(
     }
 
     groups: list[dict[str, Any]] = []
-    issues: list[dict[str, str]] = []
+    issues: list[dict[str, str]] = list(soft_inventory_issues)
     used_ids: set[str] = set()
     remaining = MAX_LAYOUT_MOVES
     suppressed_tight_gap_changes = 0

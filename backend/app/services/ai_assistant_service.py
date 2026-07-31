@@ -39,10 +39,11 @@ _MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.4-mini")
 # Layout uses the cost-efficient GPT-5.6 Luna model. Operators can override
 # this default through AI_LAYOUT_MODEL without changing the action dispatcher.
 _LAYOUT_MODEL = os.getenv("AI_LAYOUT_MODEL", "gpt-5.6-luna")
-# Medium keeps geometry quality usable with layout_contract while cutting the
-# hidden reasoning that exhausted the old 16k completion budget on full A4.
+# Luna supports none/low/medium/high — use the ceiling by default for Układ.
+# Pair with AI_LAYOUT_MAX_COMPLETION_TOKENS (default 48k) so hidden reasoning
+# does not empty the visible JSON budget on full A4 snapshots.
 _LAYOUT_REASONING_EFFORT = (
-    os.getenv("AI_LAYOUT_REASONING_EFFORT", "medium").strip().lower() or "medium"
+    os.getenv("AI_LAYOUT_REASONING_EFFORT", "high").strip().lower() or "high"
 )
 # Fast mode (service_tier fast/priority) ~2× Luna token price for lower latency.
 # Set AI_LAYOUT_SERVICE_TIER=default (or empty) to bill/run Standard processing.
@@ -79,12 +80,14 @@ def _max_completion_tokens_for_action(action: str) -> int:
 
 
 def _reasoning_effort_for_action(action: str) -> str:
-    """Pick reasoning effort. Layout defaults to medium for latency/budget."""
+    """Pick reasoning effort. Layout defaults to high (Luna's maximum)."""
     if action == "layout":
+        # gpt-5.6-luna accepts none/low/medium/high. Keep xhigh/max in the
+        # allow-list for env overrides if the model id is swapped upward.
         allowed = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
         if _LAYOUT_REASONING_EFFORT in allowed:
             return _LAYOUT_REASONING_EFFORT
-        return "medium"
+        return "high"
     return "medium"
 
 

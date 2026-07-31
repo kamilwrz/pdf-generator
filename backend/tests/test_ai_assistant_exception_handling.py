@@ -168,12 +168,12 @@ class AiAssistantExceptionHandlingTests(unittest.TestCase):
         self.assertIn("węższego zlecenia", detail)
         self.assertNotIn("finish_reason", detail)
 
-    def test_layout_defaults_to_medium_reasoning_and_fast_service_tier(self):
-        self.assertEqual(ai_assistant_service._reasoning_effort_for_action("layout"), "medium")
+    def test_layout_defaults_to_high_reasoning_and_fast_service_tier(self):
+        self.assertEqual(ai_assistant_service._reasoning_effort_for_action("layout"), "high")
         self.assertEqual(ai_assistant_service._service_tier_for_action("layout"), "fast")
         self.assertIsNone(ai_assistant_service._service_tier_for_action("chat"))
 
-    def test_gpt_layout_passes_fast_tier_and_medium_effort(self):
+    def test_gpt_layout_passes_fast_tier_and_high_effort(self):
         captured = {}
 
         def fake_create(**kwargs):
@@ -194,7 +194,7 @@ class AiAssistantExceptionHandlingTests(unittest.TestCase):
         ):
             payload, usage = ai_assistant_service._gpt("system", "user", action="layout")
 
-        self.assertEqual(captured.get("reasoning_effort"), "medium")
+        self.assertEqual(captured.get("reasoning_effort"), "high")
         self.assertEqual(captured.get("service_tier"), "fast")
         self.assertEqual(payload.get("status"), "no_changes")
         self.assertEqual(usage["service_tier"], "priority")
