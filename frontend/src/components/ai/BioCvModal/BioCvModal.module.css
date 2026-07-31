@@ -44,7 +44,7 @@
 .progressStep.active span {
     border-color: var(--chrome-accent);
     background: var(--chrome-accent);
-    color: #fff;
+    color: #FFF8F1;
 }
 
 .progressStep.complete { color: var(--success); }
@@ -441,7 +441,7 @@
     border: 1px solid transparent;
     border-radius: 6px;
     background: var(--accent-grad);
-    color: #0F1216;
+    color: var(--on-accent);
     font: 700 10.5px var(--font-body);
     cursor: pointer;
 }

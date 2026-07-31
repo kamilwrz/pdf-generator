@@ -41,12 +41,12 @@
 
 .spreadActive {
     background: var(--accent-grad);
-    color: #0F1216;
+    color: var(--on-accent);
 }
 
 .spreadActive:hover:not(:disabled) {
     background: var(--chrome-accent);
-    color: #0F1216;
+    color: var(--on-accent);
 }
 
 .navBtn:disabled {
@@ -67,7 +67,7 @@
 }
 
 .sep {
-    color: #9aa7b0;
+    color: var(--chrome-muted);
 }
 
 .divider {
@@ -83,7 +83,7 @@
     gap: 5px;
     height: 28px;
     background: var(--accent-grad);
-    color: #0F1216;
+    color: var(--on-accent);
     font: 600 10.5px var(--font-body);
     border: none;
     padding: 0 10px;

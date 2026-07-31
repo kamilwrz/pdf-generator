@@ -10,7 +10,7 @@
     border: none;
     cursor: pointer;
     background: var(--accent-grad);
-    color: #0F1216;
+    color: var(--on-accent);
     font-size: 17px;
     display: flex;
     align-items: center;
@@ -235,7 +235,7 @@
     border: 1px solid #c75645;
     border-radius: 5px;
     background: #d2503c;
-    color: #fff;
+    color: #FFF8F1;
     font: 700 10px var(--font-body);
     cursor: pointer;
 }
@@ -297,7 +297,7 @@
     border-radius: 6px;
     background: var(--accent-grad);
     font: 600 10.5px var(--font-body);
-    color: #0F1216;
+    color: var(--on-accent);
     cursor: pointer;
     box-shadow: none;
     transition: transform .15s;
@@ -863,7 +863,7 @@
     border-radius: 7px;
     border: none;
     background: var(--accent-grad);
-    color: #0F1216;
+    color: var(--on-accent);
     font-size: 15px;
     display: flex;
     align-items: center;

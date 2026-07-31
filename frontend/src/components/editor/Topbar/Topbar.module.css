@@ -162,7 +162,7 @@
 /* ---- Create PDF (primary) ---- */
 .primary {
     background: var(--accent-grad);
-    color: #0F1216;
+    color: var(--on-accent);
 }
 .primary:hover:not(:disabled) {
     background: var(--chrome-accent);

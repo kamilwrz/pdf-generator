@@ -38,7 +38,7 @@
 
 .block:empty::before {
     content: "Double-click to edit";
-    color: #AEB7C4;
+    color: #8B8478;
 }
 
 .selected {
@@ -48,12 +48,12 @@
 .editing {
     resize: none;
     cursor: text;
-    outline: 2px solid var(--accent, #3E6DB5);
+    outline: 2px solid var(--accent, #DC6743);
     outline-offset: 2px;
     -webkit-user-select: text;
     user-select: text;
 }
 
 .editing::placeholder {
-    color: #AEB7C4;
+    color: #8B8478;
 }

@@ -113,7 +113,7 @@
     border-radius: 6px;
     border: 1px solid transparent;
     background: var(--accent-grad);
-    color: #0F1216;
+    color: var(--on-accent);
     font: 600 10.5px var(--font-body);
     cursor: pointer;
     transition: background .15s, opacity .2s;
@@ -286,7 +286,7 @@
     width: 14px;
     height: 14px;
     border: 2px solid rgba(15, 18, 22, .25);
-    border-top-color: #0F1216;
+    border-top-color: var(--on-accent);
     border-radius: 50%;
     animation: spin .7s linear infinite;
     flex-shrink: 0;

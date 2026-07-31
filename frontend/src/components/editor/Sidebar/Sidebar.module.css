@@ -201,7 +201,7 @@
     justify-content: center;
     gap: 10px;
     background: var(--accent-grad);
-    color: #0F1216;
+    color: var(--on-accent);
     font: 700 15px var(--font-body);
     padding: 10px;
     border: none;
