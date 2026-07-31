@@ -56,6 +56,11 @@
     overflow: hidden;
 }
 
+/* Let a hovered correction card peek left onto the canvas. */
+.panel:has(.corrCard:hover) {
+    overflow: visible;
+}
+
 /* ── Header ─────────────────────────────────────────────────────── */
 .header {
     display: flex;
@@ -316,6 +321,10 @@
     scroll-behavior: smooth;
 }
 
+.messages:has(.corrCard:hover) {
+    overflow: visible;
+}
+
 .emptyState {
     display: flex;
     flex-direction: column;
@@ -358,6 +367,13 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
+}
+
+.msgWrap:has(.corrCard:hover),
+.msgBubble:has(.corrCard:hover) {
+    overflow: visible;
+    position: relative;
+    z-index: 40;
 }
 
 .msgUser .msgBubble > .msgText {
@@ -416,6 +432,8 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    position: relative;
+    z-index: 1;
 }
 
 .corrHeader {
@@ -441,33 +459,181 @@
 .applyAll:hover { filter: brightness(.95); }
 
 .corrCard {
+    --corr-ease: cubic-bezier(.22, 1, .36, 1);
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    box-sizing: border-box;
     background: var(--chrome-surface);
     border: 1px solid var(--chrome-border);
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 7px 8px;
     display: flex;
     flex-direction: column;
     gap: 4px;
     font: 10.5px var(--font-body);
-    transition: border-color .15s;
+    transform-origin: right center;
+    transition:
+        transform .34s var(--corr-ease),
+        box-shadow .34s var(--corr-ease),
+        border-color .22s ease,
+        background-color .22s ease,
+        padding .34s var(--corr-ease),
+        width .34s var(--corr-ease),
+        margin .34s var(--corr-ease),
+        gap .28s var(--corr-ease);
+}
+.corrCard:hover {
+    z-index: 50;
+    width: calc(100% + 48px);
+    margin-left: -48px;
+    transform: translateX(-6px) scale(1.015);
+    padding: 12px 13px;
+    gap: 8px;
+    border-color: rgba(70, 107, 130, .34);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(247, 249, 251, .98));
+    box-shadow:
+        -20px 18px 42px -22px rgba(47, 67, 82, .42),
+        0 10px 28px -20px rgba(47, 67, 82, .28),
+        0 0 0 1px rgba(70, 107, 130, .08);
 }
 .corr_accepted { border-color: var(--success); background: var(--success-soft); }
+.corr_accepted:hover {
+    border-color: var(--success);
+    background: var(--success-soft);
+}
 .corr_rejected { opacity: .5; }
+.corr_rejected:hover {
+    opacity: .72;
+}
 
 .diffRow {
     display: flex;
-    align-items: flex-start;
-    gap: 6px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    min-width: 0;
 }
-.diffField { font-weight: 700; color: var(--chrome-muted); min-width: 54px; text-transform: uppercase; font-size: 9px; }
-.diffOld   { color: var(--danger); text-decoration: line-through; font-size: 10px; max-width: 110px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.diffArrow { color: var(--label-font); }
-.diffNew   { color: var(--success); font-size: 10px; max-width: 130px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.diffField {
+    font-weight: 700;
+    color: var(--chrome-muted);
+    text-transform: uppercase;
+    font-size: 9px;
+    letter-spacing: .05em;
+}
+
+.diffCompare {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 6px;
+    align-items: center;
+    min-width: 0;
+    transition: gap .28s var(--corr-ease);
+}
+.corrCard:hover .diffCompare {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.diffBlock {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-radius: 7px;
+    padding: 0;
+    border: 1px solid transparent;
+    transition:
+        padding .3s var(--corr-ease),
+        background-color .3s var(--corr-ease),
+        border-color .3s var(--corr-ease),
+        gap .3s var(--corr-ease);
+}
+.corrCard:hover .diffBlock {
+    gap: 4px;
+    padding: 8px 10px;
+}
+.corrCard:hover .diffBlock[data-side="old"] {
+    background: rgba(210, 80, 60, .08);
+    border-color: rgba(210, 80, 60, .16);
+}
+.corrCard:hover .diffBlock[data-side="new"] {
+    background: rgba(95, 167, 119, .1);
+    border-color: rgba(95, 167, 119, .18);
+}
+
+.diffLabel {
+    display: none;
+    font: 800 8.5px/1 var(--font-body);
+    letter-spacing: .07em;
+    text-transform: uppercase;
+}
+.corrCard:hover .diffLabel {
+    display: inline-flex;
+}
+.diffBlock[data-side="old"] .diffLabel { color: var(--danger); }
+.diffBlock[data-side="new"] .diffLabel { color: var(--success); }
+
+.diffOld,
+.diffNew {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 10px;
+    line-height: 1.35;
+    transition:
+        font-size .28s var(--corr-ease),
+        line-height .28s var(--corr-ease),
+        max-height .34s var(--corr-ease);
+}
+.diffOld {
+    color: var(--danger);
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+}
+.diffNew {
+    color: var(--success);
+    font-weight: 600;
+}
+.corrCard:hover .diffOld,
+.corrCard:hover .diffNew {
+    white-space: pre-wrap;
+    overflow: visible;
+    text-overflow: unset;
+    word-break: break-word;
+    font-size: 11.5px;
+    line-height: 1.5;
+}
+
+.diffArrow {
+    color: var(--label-font);
+    font-size: 11px;
+    line-height: 1;
+    transition:
+        opacity .2s ease,
+        transform .3s var(--corr-ease),
+        height .3s var(--corr-ease),
+        margin .3s var(--corr-ease);
+}
+.corrCard:hover .diffArrow {
+    opacity: 0;
+    height: 0;
+    margin: 0;
+    overflow: hidden;
+    transform: translateY(4px) rotate(90deg);
+}
 
 .corrActions {
     display: flex;
     gap: 6px;
+    transition: margin-top .28s var(--corr-ease);
+}
+.corrCard:hover .corrActions {
+    margin-top: 2px;
 }
 
 .corrAccept, .corrReject {
@@ -479,14 +645,30 @@
     font: 600 9.5px var(--font-body);
     cursor: pointer;
     border: none;
-    transition: filter .15s;
+    transition: filter .15s, transform .15s;
+}
+.corrCard:hover .corrAccept,
+.corrCard:hover .corrReject {
+    padding: 5px 9px;
 }
 .corrAccept { background: var(--success-soft); color: var(--success); }
-.corrAccept:hover { filter: brightness(.95); }
+.corrAccept:hover { filter: brightness(.95); transform: translateY(-1px); }
 .corrReject { background: var(--danger-soft); color: var(--danger); }
-.corrReject:hover { filter: brightness(.95); }
+.corrReject:hover { filter: brightness(.95); transform: translateY(-1px); }
 
 .corrBadge { font: 600 9.5px var(--font-body); align-self: flex-end; }
+
+@media (prefers-reduced-motion: reduce) {
+    .corrCard,
+    .diffCompare,
+    .diffBlock,
+    .diffOld,
+    .diffNew,
+    .diffArrow,
+    .corrActions {
+        transition-duration: .01ms;
+    }
+}
 
 /* ── Layout Review Cards ─────────────────────────────────────────── */
 .layoutGroups {

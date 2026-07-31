@@ -60,6 +60,16 @@ function RatingBadge({ value }) {
     );
 }
 
+function correctionFieldLabel(field) {
+    if (field === "content") return "treść";
+    return field;
+}
+
+/**
+ * Review card for grammar/style/improve patches.
+ * Collapsed by default; hover expands the card, stacks Przed/Po, and peeks
+ * slightly out of the chat so both versions stay readable.
+ */
 function CorrectionCard({ msgId, patch, correctionStates, onAccept, onReject, A4_Elements }) {
     const { element_id, ...fields } = patch;
     const el = A4_Elements.find(e => e.element_id === element_id);
@@ -67,14 +77,26 @@ function CorrectionCard({ msgId, patch, correctionStates, onAccept, onReject, A4
 
     return (
         <div className={`${classes.corrCard} ${classes[`corr_${state}`]}`}>
-            {Object.entries(fields).map(([field, newVal]) => (
-                <div key={field} className={classes.diffRow}>
-                    <span className={classes.diffField}>{field}</span>
-                    {el && <span className={classes.diffOld}>{String(el[field] ?? "–").slice(0, 50)}</span>}
-                    <span className={classes.diffArrow}>→</span>
-                    <span className={classes.diffNew}>{String(newVal).slice(0, 50)}</span>
-                </div>
-            ))}
+            {Object.entries(fields).map(([field, newVal]) => {
+                const oldVal = String(el?.[field] ?? "–");
+                const nextVal = String(newVal ?? "–");
+                return (
+                    <div key={field} className={classes.diffRow}>
+                        <span className={classes.diffField}>{correctionFieldLabel(field)}</span>
+                        <div className={classes.diffCompare}>
+                            <div className={classes.diffBlock} data-side="old">
+                                <span className={classes.diffLabel}>Przed</span>
+                                <span className={classes.diffOld} title={oldVal}>{oldVal}</span>
+                            </div>
+                            <span className={classes.diffArrow} aria-hidden="true">→</span>
+                            <div className={classes.diffBlock} data-side="new">
+                                <span className={classes.diffLabel}>Po</span>
+                                <span className={classes.diffNew} title={nextVal}>{nextVal}</span>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
             {state === "pending" && (
                 <div className={classes.corrActions}>
                     <button className={classes.corrAccept} onClick={() => onAccept(msgId, patch)} title="Zastosuj">
