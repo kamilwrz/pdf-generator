@@ -5,6 +5,7 @@
 import { writeFileSync } from "node:fs";
 import { loomTemplate, novaTemplate, ridgeTemplate, voltTemplate } from "../src/templates/iconic.js";
 import { monumentTemplate } from "../src/templates/monument.js";
+import { wordsTemplate } from "../src/templates/words.js";
 
 const out = {
     nova: novaTemplate,
@@ -12,6 +13,7 @@ const out = {
     loom: loomTemplate,
     volt: voltTemplate,
     monument: monumentTemplate,
+    words: wordsTemplate,
 };
 writeFileSync(new URL("./iconic-templates.json", import.meta.url), JSON.stringify(out, null, 2));
 console.log("wrote iconic-templates.json");

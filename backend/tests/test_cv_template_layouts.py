@@ -730,6 +730,76 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in elements
         ))
 
+    def test_words_uses_word_document_rhythm_without_decorative_frames(self):
+        elements = generate_resume("words", {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 3,
+            "extra_sections": [{
+                "title": "Certyfikaty",
+                "kind": "certifications",
+                "placement": "after_skills",
+                "items": ["PRINCE2 Practitioner", "AgilePM Foundation"],
+            }],
+        })
+        text_elements = [
+            element
+            for element in elements
+            if element["category"] in {"text", "textarea"}
+        ]
+        colors = {
+            element[color_key].upper()
+            for element in elements
+            for color_key in ("color", "backgroundColor")
+            if element.get(color_key)
+        }
+        section_headings = [
+            element
+            for element in elements
+            if element["category"] == "text"
+            and element.get("flowRole") == "section-chrome"
+        ]
+        circles = [
+            element for element in elements if element["category"] == "circle"
+        ]
+
+        self.assertGreater(max(element.get("page", 1) for element in elements), 1)
+        self.assertGreaterEqual(min(element["fontSize"] for element in text_elements), 10)
+        self.assertTrue(all(
+            element.get("fontFamily") == "Times-Roman"
+            for element in text_elements
+        ))
+        self.assertIn(
+            LONG_CV["name"],
+            [element.get("content") for element in text_elements],
+        )
+        self.assertTrue(all(
+            len(color) == 7
+            and color[1:3] == color[3:5] == color[5:7]
+            for color in colors
+        ))
+        self.assertFalse(any(
+            element["category"] in {"rectangle", "ellipse", "image"}
+            for element in elements
+        ))
+        self.assertTrue(section_headings)
+        self.assertTrue(all(
+            element.get("fontSize") == 12 for element in section_headings
+        ))
+        self.assertTrue(circles)
+        self.assertTrue(all(
+            element.get("width", 0) <= 7 and element.get("height", 0) <= 7
+            for element in circles
+        ))
+        selectable = [
+            element for element in elements if not element.get("fixedToPage")
+        ]
+        self.assertTrue(all(element.get("flowRole") for element in selectable))
+        self.assertTrue(all(
+            element.get("preserveInitialLayout") is True
+            for element in selectable
+            if element["category"] == "textarea"
+        ))
+
     def test_classic_flow_keeps_clear_of_frame_and_continuation_inset(self):
         education = [
             {
