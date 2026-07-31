@@ -141,12 +141,41 @@ class LayoutGptTests(unittest.TestCase):
         self.assertIn(title["ref"], date["row_peer_refs"])
         self.assertNotEqual(company["row_ref"], title["row_ref"])
         self.assertEqual(title["effectiveLineHeight"], 14)
-        self.assertEqual(title["lineHeightSource"], "measured_text_box")
+        self.assertEqual(title["lineHeightSource"], "text_css_line_height_1")
         shared_row = next(
             row for row in snap["text_rows"] if row["row_ref"] == title["row_ref"]
         )
         self.assertEqual(set(shared_row["member_refs"]), {title["ref"], date["ref"]})
         self.assertEqual(shared_row["bottom"], 274)
+
+    def test_snapshot_normalizes_near_zero_height_text_nodes(self):
+        elements = [
+            el(
+                "icon", 70, 614, width=8, height=0.2, category="text",
+                content="◆", fontSize=14, lineHeight=0,
+            ),
+            el(
+                "heading", 82, 614, width=145, height=0.2, category="text",
+                content="WYKSZTAŁCENIE", fontSize=14, lineHeight=0,
+            ),
+            el(
+                "degree", 70, 636, width=240, height=14,
+                content="Bachelor of Laws",
+            ),
+        ]
+
+        snap = build_layout_snapshot(elements, PAGE)
+        by_content = {item["content"]: item for item in snap["elements"]}
+        heading = by_content["WYKSZTAŁCENIE"]
+        icon = by_content["◆"]
+
+        self.assertEqual(heading["height"], 14)
+        self.assertEqual(heading["bottom"], 628)
+        self.assertEqual(icon["row_ref"], heading["row_ref"])
+        header_row = next(
+            row for row in snap["text_rows"] if row["row_ref"] == heading["row_ref"]
+        )
+        self.assertEqual(header_row["bottom"], 628)
 
     def test_snapshot_keeps_unrelated_columns_in_separate_rows(self):
         elements = [

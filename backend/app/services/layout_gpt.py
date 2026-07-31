@@ -213,7 +213,19 @@ def _build_layout_snapshot_data(
         left = round(_number(measured.get("left", element.get("left"))), 2)
         top = round(_number(measured.get("top", element.get("top"))), 2)
         width = round(_number(measured.get("width", element.get("width"))), 2)
-        height = round(_number(measured.get("height", element.get("height"))), 2)
+        measured_height = round(
+            _number(measured.get("height", element.get("height"))),
+            2,
+        )
+        height = measured_height
+        if category == "text":
+            # Text.jsx always renders a single `<p>` with CSS line-height: 1.
+            # Some stored/DOM snapshots nevertheless report a near-zero box
+            # (for example 0.2 px). A single-line text box cannot be shorter
+            # than its font size, otherwise `bottom` collapses onto `top` and
+            # every following vertical gap is overstated by one full line.
+            height = max(measured_height, _number(element.get("fontSize"), 12.0))
+            height = round(height, 2)
         item: dict[str, Any] = {
             "element_id": element_id,
             "category": category,
@@ -232,19 +244,26 @@ def _build_layout_snapshot_data(
             "fixedToPage": bool(element.get("fixedToPage")),
             "content": preview,
         }
+        if category == "text":
+            item["measuredHeight"] = measured_height
+            item["heightSource"] = (
+                "font_size_floor"
+                if height > measured_height + EPSILON
+                else "measured_box"
+            )
         if category in _TEXT_CATEGORIES:
             item["content_truncated"] = len(content) > MAX_LAYOUT_CONTENT_CHARS
         if category in {"text", "textarea"}:
             raw_line_height = _number(element.get("lineHeight"), 0.0)
             font_size = _number(element.get("fontSize"), 12.0)
-            if raw_line_height > EPSILON:
+            if category == "text":
+                # Text.jsx does not consume the stored lineHeight property; its
+                # `<p>` uses CSS line-height: 1, represented by the box height.
+                effective_line_height = height
+                line_height_source = "text_css_line_height_1"
+            elif raw_line_height > EPSILON:
                 effective_line_height = raw_line_height
                 line_height_source = "element"
-            elif category == "text":
-                # Text.jsx renders `<p>` with CSS line-height: 1. Its measured
-                # one-line box therefore supplies the effective line height.
-                effective_line_height = max(height, font_size)
-                line_height_source = "measured_text_box"
             else:
                 effective_line_height = max(font_size * 1.4, 1.0)
                 line_height_source = "font_fallback"
@@ -357,8 +376,11 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
    b) real_gap = first_body_row.top − max(header_row.bottom, line.bottom), jeśli
       linia jest częścią tego samego nagłówka. `header_row` obejmuje wszystkie
       sąsiadujące teksty nagłówka, np. osobny `<p>` ikony i osobny `<p>` tytułu.
-   Pola `right` i `bottom` są już dokładnie wyliczone przez Python z mierzonej
-   geometrii. Używaj ich wprost; NIE licz ponownie left+width ani top+height.
+   Pola `right` i `bottom` są już wyliczone przez Python. Dla `text` wysokość
+   ma minimum `fontSize`, zgodnie z renderowanym `<p>` i CSS `line-height: 1`;
+   `measuredHeight` pokazuje surowy pomiar diagnostyczny. Używaj `bottom` wprost;
+   NIE licz ponownie left+width ani top+height i nie używaj `measuredHeight`
+   do obliczania odstępu.
    Odpowiedź i korektę opieraj na real_gap. Porównaj real_gap wszystkich sekcji,
    nie tylko pytanej. Przykład: DOŚWIADCZENIE 6 px i WYKSZTAŁCENIE 6 px vs
    PODSUMOWANIE 14 px i UMIEJĘTNOŚCI 14 px → wykryj dwa odstające nagłówki.
