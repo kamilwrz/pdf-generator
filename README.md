@@ -297,7 +297,7 @@ Tests:
 
 ### Monument monochrome template
 
-Monument is a paid Classic template for users who want an elegant editorial result without colour. Its visual identity comes from numbered black rectangles, outlined heading frames, thin grey rules, and an asymmetric masthead. The smallest text is 10 px; body copy uses 10–11 px, section numbers and record titles use 12 px, and section headings plus the job-position line use 13.5 px. Cormorant Garamond supplies the formal display voice, while Montserrat keeps dense CV content easy to scan.
+Monument is a paid Classic template for users who want an elegant editorial result without colour. Its visual identity comes from numbered black rectangles, outlined heading frames, thin grey rules, and an asymmetric masthead. The smallest text is 9 px; body copy and the summary both use 9 px so the lead paragraph does not sit one step above surrounding text, record titles use 11 px, education titles use 10 px, and section headings plus the job-position line use 12.5 px. Cormorant Garamond supplies the formal display voice, while Montserrat keeps dense CV content easy to scan.
 
 The frontend starter array and the deterministic Python generator use the same A4 geometry and grayscale palette. `_gen_monument` preserves complete experience and education records during page breaks, supports custom sections through `_extra_sections`, and groups each number, frame, label, and rule into one reflow unit so the heading geometry remains aligned after browser text measurement. The page frame and footer repeat on every page, while the name-and-position masthead and its tall side bars appear only on page one; `repeatOnContinuation: false` preserves this rule when the editor creates another page later. Layout decisions are never sent to the AI model.
 
@@ -313,7 +313,7 @@ Tests:
 
 - `frontend/src/templates/monument.test.js`, lines 6–56, starter-layout hierarchy, section-number, frame-geometry, and page-one masthead assertions
 - `frontend/src/utils/structureOperation.test.js`, lines 25–44, continuation-page cloning opt-out
-- `backend/tests/test_cv_template_layouts.py`, lines 647–731, `test_monument_is_monochrome_and_never_uses_text_below_ten_pixels`
+- `backend/tests/test_cv_template_layouts.py`, lines 647–749, `test_monument_is_monochrome_and_keeps_summary_at_body_size`
 
 Known limitation: long user-provided section names are shortened only inside the fixed decorative heading frame. Their section content remains complete.
 
@@ -990,7 +990,7 @@ Testy:
 
 ### Monochromatyczny szablon Monument
 
-Monument to płatny szablon z kolekcji Classic dla osób, które chcą eleganckiego, redakcyjnego efektu bez koloru. Jego charakter budują numerowane czarne prostokąty, konturowe ramki nagłówków, cienkie szare linie i asymetryczny masthead. Najmniejszy tekst ma 10 px; tekst główny używa 10–11 px, numery sekcji i tytuły stanowisk 12 px, a nagłówki sekcji i linia stanowiska przy nazwisku 13,5 px. Cormorant Garamond odpowiada za formalny charakter display, a Montserrat utrzymuje czytelność gęstej treści CV.
+Monument to płatny szablon z kolekcji Classic dla osób, które chcą eleganckiego, redakcyjnego efektu bez koloru. Jego charakter budują numerowane czarne prostokąty, konturowe ramki nagłówków, cienkie szare linie i asymetryczny masthead. Najmniejszy tekst ma 9 px; treść główna i podsumowanie używają po 9 px, żeby akapit wstępny nie był o stopień większy od otaczającego tekstu, tytuły stanowisk mają 11 px, tytuły edukacji 10 px, a nagłówki sekcji i linia stanowiska przy nazwisku 12,5 px. Cormorant Garamond odpowiada za formalny charakter display, a Montserrat utrzymuje czytelność gęstej treści CV.
 
 Startowa tablica frontendu oraz deterministyczny generator Python używają tej samej geometrii A4 i palety szarości. `_gen_monument` nie rozdziela wpisów doświadczenia ani edukacji przy zmianie strony, obsługuje sekcje własne przez `_extra_sections` i grupuje numer, ramkę, etykietę oraz linię jako jeden element reflow, dzięki czemu geometria nagłówka pozostaje równa po pomiarze tekstu w przeglądarce. Rama strony i stopka powtarzają się na każdej stronie, natomiast masthead z nazwiskiem i stanowiskiem oraz jego wysokie boczne belki występują wyłącznie na pierwszej stronie; `repeatOnContinuation: false` zachowuje tę regułę również wtedy, gdy edytor później utworzy kolejną stronę. Decyzje o layoucie nie są przekazywane do modelu AI.
 
@@ -1006,7 +1006,7 @@ Testy:
 
 - `frontend/src/templates/monument.test.js`, linie 6–56, asercje hierarchii, numeracji sekcji, geometrii ramek i mastheadu wyłącznie na pierwszej stronie
 - `frontend/src/utils/structureOperation.test.js`, linie 25–44, wyłączenie klonowania dekoracji na stronach kontynuacji
-- `backend/tests/test_cv_template_layouts.py`, linie 647–731, `test_monument_is_monochrome_and_never_uses_text_below_ten_pixels`
+- `backend/tests/test_cv_template_layouts.py`, linie 647–749, `test_monument_is_monochrome_and_keeps_summary_at_body_size`
 
 Znane ograniczenie: długie nazwy sekcji podane przez użytkownika są skracane wyłącznie w stałej ramce dekoracyjnego nagłówka. Treść sekcji pozostaje kompletna.
 

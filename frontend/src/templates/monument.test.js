@@ -14,7 +14,7 @@ test("Monument keeps its text hierarchy readable and monochrome", () => {
     );
 
     assert.ok(textElements.length > 0);
-    assert.ok(textElements.every((element) => element.fontSize >= 10));
+    assert.ok(textElements.every((element) => element.fontSize >= 9));
     assert.ok([...colors].every((color) => (
         /^#[0-9A-F]{6}$/i.test(color)
         && color.slice(1, 3).toUpperCase() === color.slice(3, 5).toUpperCase()
@@ -24,14 +24,26 @@ test("Monument keeps its text hierarchy readable and monochrome", () => {
         (element) => element.category === "rectangle" && element.id === "monument-experience-frame",
     ));
     assert.ok(monumentTemplate.some(
-        (element) => element.content === "DYREKTORKA KREATYWNA" && element.fontSize === 13.5,
+        (element) => element.content === "DYREKTORKA KREATYWNA" && element.fontSize === 12.5,
     ));
     assert.ok(monumentTemplate.some(
-        (element) => element.content === "DOŚWIADCZENIE" && element.fontSize === 13.5,
+        (element) => element.content === "DOŚWIADCZENIE" && element.fontSize === 12.5,
     ));
+    // Summary must match body copy size, not sit one step above it.
+    const summary = monumentTemplate.find(
+        (element) => (
+            element.category === "textarea"
+            && String(element.content || "").includes("strategiczne myślenie")
+        ),
+    );
+    const body = monumentTemplate.find(
+        (element) => element.category === "textarea" && element.bulletList,
+    );
+    assert.equal(summary?.fontSize, body?.fontSize);
+    assert.equal(summary?.fontSize, 9);
     assert.deepEqual(
         monumentTemplate
-            .filter((element) => element.color === "#FFFFFF" && element.fontSize === 12)
+            .filter((element) => element.color === "#FFFFFF" && element.fontSize === 11)
             .map((element) => element.content),
         ["01", "02", "03"],
     );

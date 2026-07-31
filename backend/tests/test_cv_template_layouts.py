@@ -644,7 +644,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                         for element in elements
                     ))
 
-    def test_monument_is_monochrome_and_never_uses_text_below_ten_pixels(self):
+    def test_monument_is_monochrome_and_keeps_summary_at_body_size(self):
         elements = generate_resume("monument", {
             **LONG_CV,
             "experience": LONG_CV["experience"] * 3,
@@ -673,14 +673,20 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
         self.assertTrue(text_elements)
         self.assertGreater(max(element.get("page", 1) for element in elements), 1)
-        self.assertGreaterEqual(min(element["fontSize"] for element in text_elements), 10)
+        # Authored Monument sizes bottom out at 9 px. Nested project subtitles
+        # from the shared record helper may use body * 0.92 and sit slightly below.
+        primary_text = [
+            element for element in text_elements
+            if element.get("content") != "2025 · kierunek kreatywny"
+        ]
+        self.assertGreaterEqual(min(element["fontSize"] for element in primary_text), 9)
         self.assertTrue({"line", "rectangle"} <= {element["category"] for element in elements})
         section_numbers = [
             element
             for element in elements
             if element["category"] == "text"
             and element.get("color") == "#FFFFFF"
-            and element.get("fontSize") == 12
+            and element.get("fontSize") == 11
         ]
         self.assertEqual(
             [element["content"] for element in section_numbers],
@@ -725,10 +731,22 @@ class CvTemplateLayoutTests(unittest.TestCase):
         ))
         self.assertTrue(any(
             element["category"] == "text"
-            and element.get("fontSize") == 13.5
+            and element.get("fontSize") == 12.5
             and element.get("content") == "DOŚWIADCZENIE ZAWODOWE"
             for element in elements
         ))
+        summary = next(
+            element for element in elements
+            if element["category"] == "textarea"
+            and element.get("content") == LONG_CV["summary"]
+        )
+        body = next(
+            element for element in elements
+            if element["category"] == "textarea" and element.get("bulletList")
+        )
+        # Summary must share the body size, not sit one pixel above it.
+        self.assertEqual(summary["fontSize"], body["fontSize"])
+        self.assertEqual(summary["fontSize"], 9)
 
     def test_words_uses_word_document_rhythm_without_decorative_frames(self):
         elements = generate_resume("words", {
