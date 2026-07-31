@@ -33,16 +33,20 @@ const ACTIONS = [
         label: "Układ",
         icon: FaArrowsAltH,
         color: CHROME_ACCENT,
-        description: "Tryb układu: GPT analizuje pełny JSON A4; zadawaj pytania, aż odznaczysz Układ",
+        description: "Włącz tryb i opisz zmianę; GPT analizuje pełny JSON A4 dopiero po wysłaniu pytania",
         premiumOnly: true,
         toggle: true,
     },
 ];
-const LAYOUT_MODE_INTRO = (
-    "Przeanalizuj cały układ CV na wszystkich stronach: odstępy między wpisami, "
-    + "wyrównanie nagłówków sekcji, linie dekoracyjne, kolumny i rytm doświadczenia. "
-    + "Zachowaj wizję użytkownika. Podaj współrzędne i zaproponuj konkretne przesunięcia."
+const LAYOUT_MODE_GREETING = (
+    "Cześć! Tryb Układ jest aktywny. Opisz, co chcesz poprawić w rozmieszczeniu "
+    + "elementów. Analiza rozpocznie się dopiero po wysłaniu Twojej wiadomości."
 );
+const LAYOUT_MODE_EXAMPLES = [
+    "Które elementy mojego CV są źle wyrównane?",
+    "Czy odstępy między wpisami doświadczenia są równe?",
+    "Sprawdź, czy nagłówki lub dekoracje nachodzą na tekst.",
+];
 const SEVERITY_LABELS = {
     critical: "krytyczny",
     high: "wysoki",
@@ -907,15 +911,21 @@ export default function AiAssistant() {
                 }]);
                 return;
             }
-            // Capture the boundary before `send` reads the current message
-            // array. The first layout request therefore has empty history;
-            // later layout questions start at this session boundary.
-            layoutHistoryStartRef.current = messages.length;
+            // Enabling layout mode is intentionally local: it must not consume
+            // credits or upload the canvas before the user submits a request.
+            // Skip the local greeting in GPT history, while retaining later
+            // user/assistant turns from this layout session.
+            layoutHistoryStartRef.current = messages.length + 1;
             setLayoutMode(true);
-            // UI shows a short label; the API message is the full analysis brief.
-            send("layout", LAYOUT_MODE_INTRO, {
-                displayText: "Tryb Układ włączony — przeanalizuj cały dokument",
-            });
+            setMessages(prev => [...prev, {
+                id: nanoid(),
+                role: "assistant",
+                text: LAYOUT_MODE_GREETING,
+                tips: LAYOUT_MODE_EXAMPLES,
+                corrections: [],
+                layout_groups: [],
+                layout_issues: [],
+            }]);
             return;
         }
         send(actionId, meta?.label || actionId);
