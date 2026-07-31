@@ -1,40 +1,66 @@
 .planSelector {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-bottom: 4px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
 }
 
 .planOption {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 10px 8px;
-    border: 1px solid #2A2F37;
-    border-radius: 10px;
-    background: transparent;
-    color: #C7CED8;
+    gap: 5px;
+    min-height: 76px;
+    padding: 10px 9px;
+    border: 1px solid #b7b1a7;
+    border-radius: 0;
+    background: #fffdf8;
+    color: #24251f;
     cursor: pointer;
+    font-family: Montserrat, sans-serif;
     text-align: left;
-    transition: border-color 120ms ease, background 120ms ease;
+    transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
 
-.planOption:hover:not(:disabled) {
-    border-color: #46617F;
+.planOption:hover:not(:disabled),
+.planOption:focus-visible:not(:disabled) {
+    border-color: #a73e26;
+    outline: 0;
+    transform: translateY(-1px);
 }
 
 .planOptionActive {
-    border-color: #6C9BE6;
-    background: rgba(108, 155, 230, 0.12);
-    color: #FFFFFF;
+    border-color: #dc6743;
+    background: #f5e6db;
+    box-shadow: 3px 3px 0 #171812;
+}
+
+.planOption:disabled {
+    cursor: not-allowed;
+    opacity: .62;
 }
 
 .planOptionName {
-    font-weight: 600;
-    font-size: 14px;
+    font: 800 11px/1.2 Montserrat, sans-serif;
+    letter-spacing: .04em;
 }
 
 .planOptionNote {
-    font-size: 11px;
-    color: #97A1B0;
+    color: #66675f;
+    font: 600 8px/1.45 Montserrat, sans-serif;
+}
+
+.planOptionActive .planOptionNote {
+    color: #81402f;
+}
+
+@media (max-width: 430px) {
+    .planSelector {
+        grid-template-columns: 1fr;
+    }
+
+    .planOption {
+        min-height: 58px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
 }

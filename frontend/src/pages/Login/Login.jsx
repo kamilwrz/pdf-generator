@@ -99,70 +99,95 @@ export default function Login() {
         setPassword(e.target.value)
     }
 
+    const selectedStartLabel = startIntent === "import"
+        ? "Po zalogowaniu otworzymy import Twojego CV."
+        : startIntent === "wizard"
+            ? "Po zalogowaniu otworzymy kreator CV krok po kroku."
+            : "Wróć do swoich dokumentów i kontynuuj od miejsca, w którym skończyłeś.";
 
     return (
         <div className={classes.container}>
-            <div className={classes.loginCard}>
-                <div className={classes.logoBadge}>
-                    <img src="/kompoza-logo2.png" alt="CV STUDIO" />
+            <aside className={classes.storyPanel}>
+                <Link className={classes.backLink} to="/">
+                    <span aria-hidden="true">←</span>
+                    CV STUDIO
+                </Link>
+                <div className={classes.storyCopy}>
+                    <p className={classes.storyEyebrow}>Twoje CV. Twój następny krok.</p>
+                    <h2>Wróć do dokumentu, który nadal jest Twój.</h2>
+                    <p>Edytuj treść, sprawdzaj układ i pobieraj PDF dokładnie wtedy, gdy jest gotowy do wysłania.</p>
                 </div>
-                <h1 className={classes.mainHeading}>Witaj ponownie</h1>
-                <p className={classes.subHeading}>Zaloguj się, aby kontynuować projektowanie</p>
-                <form onSubmit={handleSubmit} className={classes.form}>
-                    <div className={classes.control}>
-                        <label htmlFor="username">Nazwa użytkownika</label>
-                        <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
-                            <UserIcon />
-                            <input
-                                id="username"
-                                type="text"
-                                name="username"
-                                value={username}
-                                onChange={handleChangeUsername}
-                                placeholder="Wpisz nazwę użytkownika"
-                                autoComplete="username"
-                                disabled={isLoading}
-                            />
-                        </div>
+                <div className={classes.storyPath}>
+                    <span>Kontynuacja pracy</span>
+                    <b>{selectedStartLabel}</b>
+                    <div><i /> Dokument → poprawki → PDF</div>
+                </div>
+            </aside>
+
+            <section className={classes.authColumn} aria-labelledby="login-title">
+                <div className={classes.loginCard}>
+                    <div className={classes.logoBadge}>
+                        <img src="/kompoza-logo2.png" alt="CV STUDIO" />
                     </div>
-                    <div className={classes.control}>
-                        <label htmlFor="password">Hasło</label>
-                        <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
-                            <LockIcon />
-                            <input
-                                id="password"
-                                type="password"
-                                name="password"
-                                value={password}
-                                onChange={handleChangePassword}
-                                placeholder="Wpisz hasło"
-                                autoComplete="current-password"
-                                disabled={isLoading}
-                            />
+                    <p className={classes.cardEyebrow}>Dostęp do Twoich dokumentów</p>
+                    <h1 id="login-title" className={classes.mainHeading}>Witaj ponownie</h1>
+                    <p className={classes.subHeading}>Zaloguj się, aby kontynuować projektowanie.</p>
+                    <form onSubmit={handleSubmit} className={classes.form}>
+                        <div className={classes.control}>
+                            <label htmlFor="username">Nazwa użytkownika</label>
+                            <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
+                                <UserIcon />
+                                <input
+                                    id="username"
+                                    type="text"
+                                    name="username"
+                                    value={username}
+                                    onChange={handleChangeUsername}
+                                    placeholder="Wpisz nazwę użytkownika"
+                                    autoComplete="username"
+                                    disabled={isLoading}
+                                />
+                            </div>
                         </div>
-                    </div>
-                    {error && (
-                        <p className={classes.error} role="alert">
-                            {error}
-                        </p>
-                    )}
-                    {isLoading && statusMessage && !error && (
-                        <p className={classes.status} role="status" aria-live="polite">
-                            {statusMessage}
-                        </p>
-                    )}
-                    <button
-                        type="submit"
-                        className={classes.authBtn}
-                        disabled={isLoading}
-                    >
-                        {isLoading ? "Logowanie…" : "Zaloguj się"}
-                    </button>
-                </form>
-                <p className={classes.linkWrapper}>
-                    Nowy użytkownik? <Link to={startIntent ? `/register?start=${startIntent}` : "/register"}>Utwórz konto</Link>
-                </p>
-            </div>
+                        <div className={classes.control}>
+                            <label htmlFor="password">Hasło</label>
+                            <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
+                                <LockIcon />
+                                <input
+                                    id="password"
+                                    type="password"
+                                    name="password"
+                                    value={password}
+                                    onChange={handleChangePassword}
+                                    placeholder="Wpisz hasło"
+                                    autoComplete="current-password"
+                                    disabled={isLoading}
+                                />
+                            </div>
+                        </div>
+                        {error && (
+                            <p className={classes.error} role="alert">
+                                {error}
+                            </p>
+                        )}
+                        {isLoading && statusMessage && !error && (
+                            <p className={classes.status} role="status" aria-live="polite">
+                                {statusMessage}
+                            </p>
+                        )}
+                        <button
+                            type="submit"
+                            className={classes.authBtn}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? "Logowanie…" : "Zaloguj się"}
+                        </button>
+                    </form>
+                    <p className={classes.linkWrapper}>
+                        Nowy użytkownik? <Link to={startIntent ? `/register?start=${startIntent}` : "/register"}>Utwórz konto</Link>
+                    </p>
+                </div>
+            </section>
         </div>
     )
 }

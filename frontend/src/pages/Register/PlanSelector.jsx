@@ -2,9 +2,9 @@
  * Plan radio group used on the register form.
  */
 const PLANS = [
-    { slug: "free", name: "Free", note: "0 zł · bez kredytów AI" },
-    { slug: "standard", name: "Standard", note: "29 zł · 150 kredytów AI" },
-    { slug: "premium", name: "Premium", note: "49 zł · 300 kredytów AI" },
+    { slug: "free", name: "Free", note: "0 zł · kreator i edytor" },
+    { slug: "standard", name: "Standard", note: "29 zł · import i pomoc AI" },
+    { slug: "premium", name: "Premium", note: "49 zł · wiele wersji CV" },
 ];
 
 export default function PlanSelector({ value, onChange, classes, disabled }) {

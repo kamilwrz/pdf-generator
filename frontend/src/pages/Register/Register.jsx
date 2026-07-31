@@ -101,101 +101,128 @@ export default function Register() {
         }
     }
 
+    const startNotice = startIntent === "import"
+        ? "Po utworzeniu konta otworzymy import PDF, aby przenieść Twoje dane do nowego szablonu."
+        : startIntent === "wizard"
+            ? "Po utworzeniu konta otworzymy kreator CV krok po kroku."
+            : "Wybierz plan, utwórz konto i zacznij od szablonu, importu PDF albo kreatora.";
+
     return (
         <div className={classes.container}>
-            <div className={classes.loginCard}>
-                <div className={classes.logoBadge}>
-                    <img src="/kompoza-logo2.png" alt="CV STUDIO" />
+            <aside className={classes.storyPanel}>
+                <Link className={classes.backLink} to="/">
+                    <span aria-hidden="true">←</span>
+                    CV STUDIO
+                </Link>
+                <div className={classes.storyCopy}>
+                    <p className={classes.storyEyebrow}>Jedno CV, dwa sposoby startu</p>
+                    <h2>Nie musisz zaczynać od pustej kartki.</h2>
+                    <p>Wgraj dotychczasowe CV albo ułóż pierwszą wersję w kreatorze. Później wybierzesz szablon i dopracujesz każdy szczegół.</p>
                 </div>
-                <h1 className={classes.mainHeading}>Utwórz konto</h1>
-                <p className={classes.subHeading}>Na zawsze za darmo. Karta nie jest wymagana.</p>
-                <div className={classes.control}>
-                    <label>Plan</label>
-                    <PlanSelector value={plan} onChange={setPlan} classes={planClasses} disabled={isLoading} />
-                </div>
-                <form onSubmit={handleSubmit} className={classes.form}>
-                    <div className={classes.control}>
-                        <label htmlFor="username">Nazwa użytkownika</label>
-                        <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
-                            <UserIcon />
-                            <input
-                                id="username"
-                                type="text"
-                                name="username"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                placeholder="Wpisz nazwę użytkownika"
-                                autoComplete="username"
-                                disabled={isLoading}
-                                required
-                            />
-                        </div>
+                <ol className={classes.storySteps}>
+                    <li><span>01</span><b>Wybierz start</b><p>Import PDF albo kreator.</p></li>
+                    <li><span>02</span><b>Wybierz wygląd</b><p>Porównaj szablony na własnych danych.</p></li>
+                    <li><span>03</span><b>Dopracuj i pobierz</b><p>Edytuj na A4, potem eksportuj PDF.</p></li>
+                </ol>
+            </aside>
+
+            <section className={classes.authColumn} aria-labelledby="register-title">
+                <div className={classes.loginCard}>
+                    <div className={classes.logoBadge}>
+                        <img src="/kompoza-logo2.png" alt="CV STUDIO" />
                     </div>
+                    <p className={classes.cardEyebrow}>Pierwsza wersja CV</p>
+                    <h1 id="register-title" className={classes.mainHeading}>Utwórz konto</h1>
+                    <p className={classes.subHeading}>Zacznij bez karty. Plan możesz zmienić później.</p>
+                    <p className={classes.intentNotice}>{startNotice}</p>
                     <div className={classes.control}>
-                        <label htmlFor="email">E-mail</label>
-                        <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
-                            <MailIcon />
-                            <input
-                                id="email"
-                                type="email"
-                                name="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="Wpisz adres e-mail"
-                                autoComplete="email"
-                                disabled={isLoading}
-                                required
-                            />
-                        </div>
+                        <label>Plan</label>
+                        <PlanSelector value={plan} onChange={setPlan} classes={planClasses} disabled={isLoading} />
                     </div>
-                    <div className={classes.control}>
-                        <label htmlFor="password">Hasło</label>
-                        <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
-                            <LockIcon />
-                            <input
-                                id="password"
-                                type="password"
-                                name="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Wpisz hasło"
-                                autoComplete="new-password"
-                                disabled={isLoading}
-                                required
-                            />
-                        </div>
-                        <div className={classes.strength} aria-hidden="true">
-                            {[0, 1, 2, 3].map((i) => (
-                                <span
-                                    key={i}
-                                    className={i < strength(password) ? classes.strengthOn : ""}
-                                    data-level={strength(password)}
+                    <form onSubmit={handleSubmit} className={classes.form}>
+                        <div className={classes.control}>
+                            <label htmlFor="username">Nazwa użytkownika</label>
+                            <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
+                                <UserIcon />
+                                <input
+                                    id="username"
+                                    type="text"
+                                    name="username"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    placeholder="Wpisz nazwę użytkownika"
+                                    autoComplete="username"
+                                    disabled={isLoading}
+                                    required
                                 />
-                            ))}
+                            </div>
                         </div>
-                    </div>
-                    {error && (
-                        <p className={classes.error} role="alert">
-                            {error}
-                        </p>
-                    )}
-                    {isLoading && statusMessage && !error && (
-                        <p className={classes.status} role="status" aria-live="polite">
-                            {statusMessage}
-                        </p>
-                    )}
-                    <button
-                        type="submit"
-                        className={classes.authBtn}
-                        disabled={isLoading}
-                    >
-                        {isLoading ? "Tworzenie konta…" : "Utwórz konto"}
-                    </button>
-                </form>
-                <p className={classes.linkWrapper}>
-                    Masz już konto? <Link to="/login">Zaloguj się</Link>
-                </p>
-            </div>
+                        <div className={classes.control}>
+                            <label htmlFor="email">E-mail</label>
+                            <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
+                                <MailIcon />
+                                <input
+                                    id="email"
+                                    type="email"
+                                    name="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="Wpisz adres e-mail"
+                                    autoComplete="email"
+                                    disabled={isLoading}
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div className={classes.control}>
+                            <label htmlFor="password">Hasło</label>
+                            <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
+                                <LockIcon />
+                                <input
+                                    id="password"
+                                    type="password"
+                                    name="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Wpisz hasło"
+                                    autoComplete="new-password"
+                                    disabled={isLoading}
+                                    required
+                                />
+                            </div>
+                            <div className={classes.strength} aria-hidden="true">
+                                {[0, 1, 2, 3].map((i) => (
+                                    <span
+                                        key={i}
+                                        className={i < strength(password) ? classes.strengthOn : ""}
+                                        data-level={strength(password)}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        {error && (
+                            <p className={classes.error} role="alert">
+                                {error}
+                            </p>
+                        )}
+                        {isLoading && statusMessage && !error && (
+                            <p className={classes.status} role="status" aria-live="polite">
+                                {statusMessage}
+                            </p>
+                        )}
+                        <button
+                            type="submit"
+                            className={classes.authBtn}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? "Tworzenie konta…" : "Utwórz konto"}
+                        </button>
+                    </form>
+                    <p className={classes.linkWrapper}>
+                        Masz już konto? <Link to={startIntent ? `/login?start=${startIntent}` : "/login"}>Zaloguj się</Link>
+                    </p>
+                </div>
+            </section>
         </div>
     );
 }
