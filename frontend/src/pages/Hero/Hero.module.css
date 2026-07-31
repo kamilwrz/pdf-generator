@@ -15,6 +15,10 @@
     --amber: #E5A65C;
     --green: #6FBF8E;
     --grad: linear-gradient(150deg, #6C9BE6, #4A76BE);
+    /* Minimal corner radius shared by the funkcje/testimonial/template card
+       family (design "Landing page redesign: Funkcje", cornerRadius default 4).
+       Pills stay fully round; pricing cards use a slightly larger 8px. */
+    --r: 4px;
     --display: 'Nunito', sans-serif;
     --body: 'Nunito Sans', sans-serif;
 
@@ -540,32 +544,27 @@
     color: var(--amber);
 }
 
-/* ---- Funkcje: tabbed panels via section bullets ---- */
+/* ---- Funkcje: one compact panel at a time, switched by a top pill nav ----
+   The section is a single flat band (not five full-height scroll pages); the
+   active panel renders at its natural height, centered in a 1240px column. */
 .funkcje {
     position: relative;
     z-index: 3;
     border-top: 1px solid var(--line-2);
     border-bottom: 1px solid var(--line-2);
     background: var(--bg-2);
-    min-height: 100vh;
-    min-height: 100dvh;
+    padding: 72px 56px 84px;
 }
 
 .panelStage {
     position: relative;
     width: 100%;
-    min-height: inherit;
 }
 
 .panel {
-    min-height: 100vh;
-    min-height: 100dvh;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding: 64px 96px 64px 72px;
     box-sizing: border-box;
-    background: var(--bg-2);
     animation: panelIn 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -584,107 +583,98 @@
     }
 }
 
-/* Shared stage wash so panel switches feel like one section, not five pages. */
-.panelCanvas,
-.panelTemplates,
-.panelAi,
-.panelExport,
-.panelAccount {
-    background: linear-gradient(180deg, #131519 0%, #171a1f 100%);
+/* ---- Funkcje: top-center pill navigation ---- */
+.panelNav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 40px;
 }
 
-.panelHeadMeta {
+.panelNavBar {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 14px;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px;
+}
+
+.panelPill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font: 700 13px var(--body);
+    background: transparent;
+    color: var(--text-2);
+    transition: background .18s, color .18s;
+}
+
+.panelPill:hover {
+    color: #C6CEDA;
+}
+
+.panelPillActive {
+    background: var(--card-2);
+    color: var(--ink);
+}
+
+.panelPillDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: block;
+    flex-shrink: 0;
+    background: #3A4048;
+    transition: background .18s;
 }
 
 .panelInner {
-    max-width: 1280px;
+    max-width: 1240px;
     margin: 0 auto;
     width: 100%;
 }
 
+/* Centered panel head: eyebrow + title + lead, one column (design). */
 .panelHead {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 32px;
-    flex-wrap: wrap;
-    margin-bottom: 30px;
-}
-
-.panelHeadCopy {
-    max-width: 660px;
-}
-
-.panelHeadStack {
     max-width: 680px;
-    margin-bottom: 30px;
+    margin: 0 auto 34px;
+    text-align: center;
 }
 
 .eyebrowRow {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
+    display: inline-block;
     font: 800 12px var(--body);
     letter-spacing: .14em;
     text-transform: uppercase;
 }
 
 .panelTitle {
-    font: 800 46px/1.1 var(--display);
+    font: 800 40px/1.15 var(--display);
     color: var(--ink);
     margin: 14px 0 12px;
-    letter-spacing: -.015em;
+    letter-spacing: -.01em;
     text-wrap: balance;
 }
 
 .panelLead {
-    font: 400 17px/1.6 var(--body);
+    font: 400 16px/1.6 var(--body);
     color: var(--text);
     margin: 0;
     text-wrap: pretty;
-}
-
-.pills {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.pill {
-    font: 700 12px var(--body);
-    color: #B9C2CE;
-    background: #20242a;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 8px 14px;
-}
-
-.bigStat {
-    text-align: right;
-}
-
-.bigStatNum {
-    font: 800 52px var(--display);
-    color: var(--amber);
-    line-height: 1;
-}
-
-.bigStatLabel {
-    font: 700 12px var(--body);
-    color: var(--text-3);
-    letter-spacing: .08em;
-    text-transform: uppercase;
 }
 
 /* ---- Cards (shared) ---- */
 .card {
     background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 16px;
+    border-radius: var(--r);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -745,8 +735,10 @@
 .statCard {
     background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 16px;
+    border-radius: var(--r);
     overflow: hidden;
+    /* Uniform stat-card height so the four-up strip reads as one aligned row. */
+    min-height: 104px;
 }
 
 .statStripe {
@@ -781,10 +773,10 @@
 
 .flipCard {
     perspective: 1500px;
-    height: 340px;
+    height: 300px;
     cursor: pointer;
     outline: none;
-    border-radius: 16px;
+    border-radius: var(--r);
 }
 
 .flipCard:focus-visible {
@@ -807,7 +799,7 @@
     position: absolute;
     inset: 0;
     backface-visibility: hidden;
-    border-radius: 16px;
+    border-radius: var(--r);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -916,40 +908,6 @@
     color: var(--text-2);
 }
 
-/* ---- Płótno: closing CTA bar ---- */
-.canvasFooter {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    flex-wrap: wrap;
-    margin-top: 26px;
-    padding: 20px 24px;
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-}
-
-.canvasFooterText {
-    font: 600 15px/1.55 var(--body);
-    color: #C6CEDA;
-    margin: 0;
-    max-width: 720px;
-}
-
-.canvasFooterCta {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    background: linear-gradient(150deg, #6C9BE6, #4A76BE);
-    color: #0F1216;
-    font: 800 14px var(--body);
-    padding: 12px 20px;
-    border-radius: 10px;
-    text-decoration: none;
-    box-shadow: 0 12px 24px -10px rgba(108, 155, 230, .45);
-}
-
 .canvasRow {
     display: flex;
     flex-wrap: wrap;
@@ -1020,6 +978,13 @@
     gap: 18px;
 }
 
+/* Uniform collection-card height keeps the 4-up grid on one baseline even
+   when "character" copy differs in length (min-height, not fixed, so longer
+   Polish strings never clip). */
+.collectionGrid > .card {
+    min-height: 230px;
+}
+
 .collectionTop {
     display: flex;
     align-items: center;
@@ -1042,7 +1007,7 @@
     color: #C6CEDA;
     background: var(--card-2);
     border: 1px solid var(--line);
-    border-radius: 8px;
+    border-radius: 6px;
     padding: 6px 10px;
 }
 
@@ -1063,6 +1028,14 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 18px;
+}
+
+/* Uniform feature-card height across the AI, Eksport and Konto grids so the
+   top row of each panel reads as one aligned band (design uniform sizing). */
+.aiPaths > .card,
+.exportGrid > .card,
+.accountGrid > .card {
+    min-height: 150px;
 }
 
 .aiMain {
@@ -1129,7 +1102,7 @@
     flex: 1;
     background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 16px;
+    border-radius: var(--r);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -1442,55 +1415,6 @@
     text-decoration: none;
 }
 
-/* ---- Section name / bullet navigation ---- */
-.dots {
-    position: absolute;
-    right: 26px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 6;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-end;
-}
-
-.dotNav {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    background: none;
-    border: none;
-    padding: 4px 0;
-}
-
-.dotLabel {
-    font: 700 11px var(--body);
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    color: var(--text-3);
-    transition: color .2s;
-}
-
-.dotNav:hover .dotLabel,
-.dotNavActive .dotLabel {
-    color: #C6CEDA;
-}
-
-.dotMark {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    display: block;
-    flex-shrink: 0;
-    transition: background .2s, box-shadow .2s;
-}
-
-.dotNavActive .dotMark {
-    box-shadow: 0 0 0 3px rgba(198, 206, 218, .12);
-}
-
 /* ---- Section scaffolding (shared) ---- */
 .sectionHead {
     text-align: center;
@@ -1525,32 +1449,6 @@
     padding: 88px 56px 96px;
 }
 
-.whyUsLead {
-    font: 400 17px/1.6 var(--body);
-    color: var(--text);
-    margin: 16px 0 0;
-    text-wrap: pretty;
-}
-
-.whyUsGap {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    max-width: 1120px;
-    margin: 0 auto 56px;
-}
-
-.pillFinal {
-    font: 800 13px var(--body);
-    color: #0F1216;
-    background: var(--grad);
-    border-radius: 999px;
-    padding: 11px 20px;
-    box-shadow: 0 12px 26px -10px rgba(108, 155, 230, .6);
-}
-
 .whyUsRows {
     display: flex;
     flex-direction: column;
@@ -1560,7 +1458,7 @@
 
 .whyUsRow {
     display: grid;
-    grid-template-columns: 240px 1fr;
+    grid-template-columns: 220px 1fr;
     gap: 32px;
     padding: 26px 0;
     border-bottom: 1px solid var(--line-2);
@@ -1624,14 +1522,11 @@
     position: relative;
     z-index: 2;
     box-sizing: border-box;
-    min-height: 100vh;
-    min-height: 100dvh;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     gap: 36px;
     width: 100%;
-    padding: 72px 0;
+    padding: 80px 0;
     scroll-margin-top: 0;
     overflow: hidden;
 }
@@ -1682,7 +1577,7 @@
     text-align: left;
     text-decoration: none;
     color: inherit;
-    border-radius: 14px;
+    border-radius: var(--r);
     overflow: hidden;
     background: var(--card);
     border: 1px solid var(--line);
@@ -1855,17 +1750,12 @@
     position: relative;
     z-index: 2;
     box-sizing: border-box;
-    min-height: 100vh;
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
     background:
-        linear-gradient(180deg, rgba(15, 18, 22, .28) 0%, rgba(15, 18, 22, .38) 100%),
+        linear-gradient(180deg, rgba(15, 18, 22, .55) 0%, rgba(15, 18, 22, .62) 100%),
         url("/offices.png") center / cover no-repeat;
     border-top: 1px solid var(--line-2);
     border-bottom: 1px solid var(--line-2);
-    padding: 72px 56px;
+    padding: 88px 56px;
     margin-top: 0;
 }
 
@@ -1875,25 +1765,23 @@
     margin: 0 auto;
 }
 
+/* Uniform equal-size testimonial grid (design redesign): three columns of
+   same-height cards instead of the previous bento spans. */
 .testimonialsGrid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 22px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
 }
-
-/* Bento spans — each testimonial picks how many of the 6 columns it fills. */
-.tSpan2 { grid-column: span 2; }
-.tSpan3 { grid-column: span 3; }
 
 .testimonialCard {
     background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 18px;
-    padding: 26px 24px;
-    min-height: 200px;
+    border-radius: var(--r);
+    padding: 24px;
+    min-height: 250px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     opacity: 0;
     transform: translateY(30px);
     transition: opacity 700ms cubic-bezier(.2, .8, .2, 1), transform 700ms cubic-bezier(.2, .8, .2, 1);
@@ -1904,28 +1792,20 @@
     transform: translateY(0);
 }
 
-.testimonialFeatured {
-    padding: 34px 32px;
-    gap: 20px;
-    min-height: 230px;
-    background: linear-gradient(160deg, var(--card-2), #1a1e24);
-    border-color: #3A4048;
-}
-
 .testimonialQuote {
     display: block;
 }
 
 .testimonialText {
-    font: 500 14.5px/1.62 var(--body);
+    font: 500 14px/1.6 var(--body);
     color: #C6CEDA;
     margin: 0;
-}
-
-.testimonialTextFeatured {
-    font: 500 18px/1.6 var(--body);
-    color: #C6CEDA;
-    margin: 0;
+    flex: 1;
+    /* Clamp long quotes so every card stays the same height in the grid. */
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
 }
 
 .testimonialAuthor {
@@ -1958,15 +1838,12 @@
     position: relative;
     z-index: 2;
     box-sizing: border-box;
-    min-height: 100vh;
-    min-height: 100dvh;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
     max-width: 1120px;
     margin: 0 auto;
-    padding: 72px 56px;
+    padding: 88px 56px;
     text-align: center;
     scroll-margin-top: 0;
 }
@@ -1995,7 +1872,7 @@
     padding: 28px 24px 24px;
     background: #1C1F24;
     border: 1px solid #2F343C;
-    border-radius: 16px;
+    border-radius: 8px;
     min-height: 100%;
 }
 
@@ -2127,10 +2004,9 @@
 .finalCta {
     position: relative;
     z-index: 2;
-    min-height: 100vh;
     width: 100%;
     margin: 0;
-    padding: 90px 56px;
+    padding: 96px 56px;
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -2269,9 +2145,7 @@
     .accountGrid { grid-template-columns: 1fr; }
     .accountFooter { grid-template-columns: 1fr; }
     .collectionGrid { grid-template-columns: repeat(2, 1fr); }
-    .panelHeadMeta { align-items: flex-start; }
     .testimonialsGrid { grid-template-columns: repeat(2, 1fr); }
-    .tSpan2, .tSpan3 { grid-column: span 1; }
 }
 
 @media only screen and (max-width: 900px) {
@@ -2299,26 +2173,10 @@
             );
     }
 
-    .funkcje { min-height: auto; }
-    .panel {
-        min-height: auto;
-        padding: 88px 24px 56px;
-    }
+    .funkcje { padding: 56px 24px 64px; }
     .panelTitle { font-size: 34px; }
-    .dots {
-        position: static;
-        transform: none;
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 8px 16px;
-        padding: 20px 24px 0;
-        align-items: center;
-    }
-    .dotNav { padding: 6px 0; }
 
     .whyUs { padding: 64px 24px 72px; }
-    .whyUsGap { margin-bottom: 40px; }
     .whyUsRow { grid-template-columns: 1fr; gap: 12px; }
     .whyUsCompare { grid-template-columns: 1fr; gap: 16px; }
 
@@ -2350,7 +2208,7 @@
     .collectionGrid { grid-template-columns: 1fr; }
     .exportGrid { grid-template-columns: 1fr; }
     .testimonialsGrid { grid-template-columns: 1fr; gap: 20px; }
-    .finalCta { padding: 64px 24px; min-height: 100vh; }
+    .finalCta { padding: 64px 24px; }
     .finalCtaTitle { font-size: 30px; }
     .footerTop { padding: 36px 24px 28px; }
     .footerBottom { padding: 18px 24px; }

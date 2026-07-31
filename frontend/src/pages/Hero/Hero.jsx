@@ -162,18 +162,19 @@ const CANVAS_CARDS = [
     },
 ];
 
-// Testimonials: bento grid. `span` = how many of the 6 grid columns the card
-// fills (2 or 3); `featured` swaps in the larger gradient card treatment.
+// Testimonials: uniform equal-size grid (design "Landing page redesign").
+// `color` drives the quote mark and the avatar dot; every card renders at the
+// same fixed height, so no per-item span/featured metadata is needed.
 const TESTIMONIALS = [
-    { text: "„Zbudowałam CV w niecałe 20 minut i od razu widziałam, jak wygląda gotowy PDF. Dostałam odpowiedź z trzech firm w tym samym tygodniu.”", name: "Marta K.", role: "Specjalistka ds. marketingu", color: "#6C9BE6", span: 3, featured: true },
-    { text: "„Analiza CV wychwyciła braki, których sam bym nie zauważył — brakujące słowa kluczowe, za długie akapity. Poprawiłem i poczułem różnicę.”", name: "Tomasz W.", role: "Inżynier oprogramowania", color: "#E88A73", span: 3, featured: true },
-    { text: "„Wgrałam stare CV z Worda — AI w minutę wyciągnęło doświadczenie i wykształcenie, resztę tylko dopracowałam w nowym szablonie.”", name: "Katarzyna N.", role: "Kierowniczka projektu", color: "#E5A65C", span: 2, featured: false },
-    { text: "„Sprawdziłem wynik ATS przed wysłaniem zgłoszenia i podniosłem go z 62 do 91 punktów jednym kliknięciem.”", name: "Piotr Z.", role: "Analityk finansowy", color: "#7FB8C9", span: 2, featured: false },
-    { text: "„Kreator krok po kroku poprowadził mnie przez całe CV, a szkic zapisywał się sam — wróciłam do niego trzy dni później.”", name: "Julia S.", role: "Absolwentka studiów", color: "#9C8FD6", span: 2, featured: false },
-    { text: "„W końcu narzędzie, w którym CV wygląda równie dobrze na ekranie i po wydrukowaniu. Szablon Regent zrobił świetne wrażenie na rekrutacji.”", name: "Aleksandra P.", role: "Absolwentka prawa", color: "#6FBF8E", span: 3, featured: false },
-    { text: "„Prowadnice co do piksela sprawiły, że mój układ wygląda, jakby robiła go agencja graficzna, a nie ja sam.”", name: "Michał R.", role: "Projektant UX", color: "#6C9BE6", span: 3, featured: false },
-    { text: "„Wybrałam szablon z kolekcji Banking — pasował dokładnie do mojej branży i wyglądał poważnie od pierwszego wejrzenia.”", name: "Natalia K.", role: "Specjalistka ds. sprzedaży", color: "#E88A73", span: 3, featured: false },
-    { text: "„Zacząłem za darmo, bez karty. Cofnij, ponów i autozapis dały mi spokój — nic nie zniknęło w połowie edycji.”", name: "Dawid M.", role: "Specjalista obsługi klienta", color: "#6FBF8E", span: 3, featured: false },
+    { text: "„Zbudowałam CV w niecałe 20 minut i od razu widziałam, jak wygląda gotowy PDF. Dostałam odpowiedź z trzech firm w tym samym tygodniu.”", name: "Marta K.", role: "Specjalistka ds. marketingu", color: "#6C9BE6" },
+    { text: "„Analiza CV wychwyciła braki, których sam bym nie zauważył — brakujące słowa kluczowe, za długie akapity. Poprawiłem i poczułem różnicę.”", name: "Tomasz W.", role: "Inżynier oprogramowania", color: "#E88A73" },
+    { text: "„Wgrałam stare CV z Worda — AI w minutę wyciągnęło doświadczenie i wykształcenie, resztę tylko dopracowałam w nowym szablonie.”", name: "Katarzyna N.", role: "Kierowniczka projektu", color: "#E5A65C" },
+    { text: "„Sprawdziłem wynik ATS przed wysłaniem zgłoszenia i podniosłem go z 62 do 91 punktów jednym kliknięciem.”", name: "Piotr Z.", role: "Analityk finansowy", color: "#7FB8C9" },
+    { text: "„Kreator krok po kroku poprowadził mnie przez całe CV, a szkic zapisywał się sam — wróciłam do niego trzy dni później.”", name: "Julia S.", role: "Absolwentka studiów", color: "#9C8FD6" },
+    { text: "„W końcu narzędzie, w którym CV wygląda równie dobrze na ekranie i po wydrukowaniu. Szablon Regent zrobił świetne wrażenie na rekrutacji.”", name: "Aleksandra P.", role: "Absolwentka prawa", color: "#6FBF8E" },
+    { text: "„Prowadnice co do piksela sprawiły, że mój układ wygląda, jakby robiła go agencja graficzna, a nie ja sam.”", name: "Michał R.", role: "Projektant UX", color: "#6C9BE6" },
+    { text: "„Wybrałam szablon z kolekcji Banking — pasował dokładnie do mojej branży i wyglądał poważnie od pierwszego wejrzenia.”", name: "Natalia K.", role: "Specjalistka ds. sprzedaży", color: "#E88A73" },
+    { text: "„Zacząłem za darmo, bez karty. Cofnij, ponów i autozapis dały mi spokój — nic nie zniknęło w połowie edycji.”", name: "Dawid M.", role: "Specjalista obsługi klienta", color: "#6FBF8E" },
 ];
 
 // "Dlaczego CV STUDIO" contrast rows: what the typical market approach gets
@@ -241,12 +242,8 @@ function WhyUsRow({ row, index }) {
 
 function TestimonialCard({ item, index }) {
     const [ref, inView] = useInView();
-    const quoteSize = item.featured ? 30 : 24;
-    const spanClass = item.span === 2 ? classes.tSpan2 : classes.tSpan3;
     const cardClass = [
         classes.testimonialCard,
-        item.featured ? classes.testimonialFeatured : "",
-        spanClass,
         inView ? classes.testimonialCardVisible : "",
     ].filter(Boolean).join(" ");
 
@@ -254,16 +251,16 @@ function TestimonialCard({ item, index }) {
         <div ref={ref} className={cardClass} style={{ transitionDelay: `${index * 70}ms` }}>
             <svg
                 className={classes.testimonialQuote}
-                width={quoteSize}
-                height={quoteSize}
+                width={22}
+                height={22}
                 viewBox="0 0 24 24"
                 fill={item.color}
                 opacity="0.9"
                 aria-hidden="true"
             >
                 <path d="M9.5 6C6.5 6 4 8.7 4 12.2c0 3 1.9 5 4.4 5 1.9 0 3.4-1.4 3.4-3.3 0-1.8-1.3-3.1-3-3.1-.3 0-.6 0-.8.1.3-2 2-3.5 4.2-3.7L11.8 6H9.5zm10 0c-3 0-5.5 2.7-5.5 6.2 0 3 1.9 5 4.4 5 1.9 0 3.4-1.4 3.4-3.3 0-1.8-1.3-3.1-3-3.1-.3 0-.6 0-.8.1.3-2 2-3.5 4.2-3.7L21.8 6h-2.3z" />
-    </svg>
-            <p className={item.featured ? classes.testimonialTextFeatured : classes.testimonialText}>{item.text}</p>
+            </svg>
+            <p className={classes.testimonialText}>{item.text}</p>
             <div className={classes.testimonialAuthor}>
                 <span className={classes.testimonialAvatar} style={{ background: item.color }} />
                 <div>
@@ -572,24 +569,26 @@ export default function Hero() {
                 </div>
             </div>
 
-            {/* ---- Funkcje: one panel at a time, switched by section bullets ---- */}
+            {/* ---- Funkcje: one compact panel at a time, switched by a top pill nav ---- */}
             <div id="funkcje" className={classes.funkcje}>
-                <nav className={classes.dots} aria-label="Sekcje funkcji">
-                    {PANELS.map((p, index) => (
-                        <button
-                            type="button"
-                            key={p.label}
-                            className={`${classes.dotNav} ${index === panel ? classes.dotNavActive : ""}`}
-                            onClick={() => setPanel(index)}
-                            aria-current={index === panel ? "true" : undefined}
-                        >
-                            <span className={classes.dotLabel}>{p.label}</span>
-                            <span
-                                className={classes.dotMark}
-                                style={{ background: index === panel ? p.color : "#3A4048" }}
-                            />
-                        </button>
-                    ))}
+                <nav className={classes.panelNav} aria-label="Sekcje funkcji">
+                    <div className={classes.panelNavBar}>
+                        {PANELS.map((p, index) => (
+                            <button
+                                type="button"
+                                key={p.label}
+                                className={`${classes.panelPill} ${index === panel ? classes.panelPillActive : ""}`}
+                                onClick={() => setPanel(index)}
+                                aria-current={index === panel ? "true" : undefined}
+                            >
+                                <span
+                                    className={classes.panelPillDot}
+                                    style={index === panel ? { background: p.color } : undefined}
+                                />
+                                {p.label}
+                            </button>
+                        ))}
+                    </div>
                 </nav>
 
                 <div className={classes.panelStage}>
@@ -601,17 +600,9 @@ export default function Hero() {
                     >
                         <div className={classes.panelInner}>
                             <div className={classes.panelHead}>
-                                <div className={classes.panelHeadCopy}>
-                                    <span className={classes.eyebrowRow} style={{ color: "#7BA6EA" }}>01 — Wizualny edytor na płótnie</span>
-                                    <h2 className={classes.panelTitle}>Płótno, które robi to, co Word obiecywał</h2>
-                                    <p className={classes.panelLead}>Prawdziwa strona A4 pion, wiele stron, zoom 25–300%. Siedem typów elementów, dziesięć czcionek i prowadnice co do piksela — eksport wygląda dokładnie jak płótno. Odwróć kartę, żeby zobaczyć szczegóły.</p>
-                                </div>
-                                <div className={classes.pills}>
-                                    <span className={classes.pill}>A4 pion</span>
-                                    <span className={classes.pill}>Wiele stron</span>
-                                    <span className={classes.pill}>Zoom 25–300%</span>
-                                    <span className={classes.pill}>Widok dwóch stron</span>
-                                </div>
+                                <span className={classes.eyebrowRow} style={{ color: "#7BA6EA" }}>01 — Wizualny edytor na płótnie</span>
+                                <h2 className={classes.panelTitle}>Płótno, które robi to, co Word obiecywał</h2>
+                                <p className={classes.panelLead}>Prawdziwa strona A4 pion, wiele stron, zoom 25–300%. Siedem typów elementów, dziesięć czcionek i prowadnice co do piksela — eksport wygląda dokładnie jak płótno. Odwróć kartę, żeby zobaczyć szczegóły.</p>
                             </div>
 
                             <div className={classes.canvasStats}>
@@ -636,14 +627,6 @@ export default function Hero() {
                                     />
                                 ))}
                             </div>
-
-                            <div className={classes.canvasFooter}>
-                                <p className={classes.canvasFooterText}>To, co widzisz na płótnie, trafia do eksportu — bez uproszczeń, bez „prawie tak samo”.</p>
-                                <Link to="/register" className={classes.canvasFooterCta}>
-                                    Zacznij projektować
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F1216" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
-                                </Link>
-                            </div>
                         </div>
                     </section>
 
@@ -655,22 +638,9 @@ export default function Hero() {
                     >
                         <div className={classes.panelInner}>
                             <div className={classes.panelHead}>
-                                <div className={classes.panelHeadCopy}>
-                                    <span className={classes.eyebrowRow} style={{ color: "#E5A65C" }}>02 — Biblioteka szablonów</span>
-                                    <h2 className={classes.panelTitle}>28 systemów CV, nie generyczne „CV nr 3”</h2>
-                                    <p className={classes.panelLead}>Siedem kolekcji branżowych — każdy szablon to A4 pion i realna kariera. Wybierz wygląd pod rolę, na którą aplikujesz, i uczyń go swoim.</p>
-                                </div>
-                                <div className={classes.panelHeadMeta}>
-                                    <div className={classes.bigStat}>
-                                        <div className={classes.bigStatNum}>28</div>
-                                        <div className={classes.bigStatLabel}>gotowe układy</div>
-                                    </div>
-                                    <div className={classes.pills}>
-                                        <span className={classes.pill}>7 kolekcji</span>
-                                        <span className={classes.pill}>A4 pion</span>
-                                        <span className={classes.pill}>Mockupy podglądu</span>
-                                    </div>
-                                </div>
+                                <span className={classes.eyebrowRow} style={{ color: "#E5A65C" }}>02 — Biblioteka szablonów</span>
+                                <h2 className={classes.panelTitle}>28 systemów CV, nie generyczne „CV nr 3”</h2>
+                                <p className={classes.panelLead}>Siedem kolekcji branżowych — każdy szablon to A4 pion i realna kariera. Wybierz wygląd pod rolę, na którą aplikujesz, i uczyń go swoim.</p>
                             </div>
 
                             <div className={classes.collectionGrid}>
@@ -703,17 +673,9 @@ export default function Hero() {
                     >
                         <div className={classes.panelInner}>
                             <div className={classes.panelHead}>
-                                <div className={classes.panelHeadCopy}>
-                                    <span className={classes.eyebrowRow} style={{ color: "#E88A73" }}>03 — Asystent AI</span>
-                                    <h2 className={classes.panelTitle}>Coach kariery na płótnie</h2>
-                                    <p className={classes.panelLead}>Pływający asystent rozumie dokument, który edytujesz — od importu PDF i kreatora bio po osiem analiz i poprawki w rozmowie.</p>
-                                </div>
-                                <div className={classes.pills}>
-                                    <span className={classes.pill}>Import PDF</span>
-                                    <span className={classes.pill}>Kreator bio</span>
-                                    <span className={classes.pill}>8 analiz</span>
-                                    <span className={classes.pill}>Chat na płótnie</span>
-                                </div>
+                                <span className={classes.eyebrowRow} style={{ color: "#E88A73" }}>03 — Asystent AI</span>
+                                <h2 className={classes.panelTitle}>Coach kariery na płótnie</h2>
+                                <p className={classes.panelLead}>Pływający asystent rozumie dokument, który edytujesz — od importu PDF i kreatora bio po osiem analiz i poprawki w rozmowie.</p>
                             </div>
 
                             <div className={classes.aiStack}>
@@ -800,17 +762,9 @@ export default function Hero() {
                     >
                         <div className={classes.panelInner}>
                             <div className={classes.panelHead}>
-                                <div className={classes.panelHeadCopy}>
-                                    <span className={classes.eyebrowRow} style={{ color: "#6FBF8E" }}>04 — Eksport wierny płótnu</span>
-                                    <h2 className={classes.panelTitle}>PDF wygląda jak strona, którą zaprojektowałeś</h2>
-                                    <p className={classes.panelLead}>Nie uproszczona kopia. Serwer renderuje PDF z dokładnego modelu elementów — te same czcionki, ta sama geometria, ten sam układ stron.</p>
-                                </div>
-                                <div className={classes.pills}>
-                                    <span className={classes.pill}>Render 1:1</span>
-                                    <span className={classes.pill}>{FONT_COUNT} czcionek</span>
-                                    <span className={classes.pill}>Wiele stron</span>
-                                    <span className={classes.pill}>Pobierz od razu</span>
-                                </div>
+                                <span className={classes.eyebrowRow} style={{ color: "#6FBF8E" }}>04 — Eksport wierny płótnu</span>
+                                <h2 className={classes.panelTitle}>PDF wygląda jak strona, którą zaprojektowałeś</h2>
+                                <p className={classes.panelLead}>Nie uproszczona kopia. Serwer renderuje PDF z dokładnego modelu elementów — te same czcionki, ta sama geometria, ten sam układ stron.</p>
                             </div>
 
                             <div className={classes.exportGrid}>
@@ -872,17 +826,9 @@ export default function Hero() {
                     >
                         <div className={classes.panelInner}>
                             <div className={classes.panelHead}>
-                                <div className={classes.panelHeadCopy}>
-                                    <span className={classes.eyebrowRow} style={{ color: "#7BA6EA" }}>05 — Konto, język i cennik</span>
-                                    <h2 className={classes.panelTitle}>Za darmo na start, cały interfejs po polsku</h2>
-                                    <p className={classes.panelLead}>Załóż konto, projektuj i pobieraj. Karta nie jest wymagana — AI i pełna biblioteka szablonów czekają w planach Standard i Premium.</p>
-                                </div>
-                                <div className={classes.pills}>
-                                    <span className={classes.pill}>Bez karty</span>
-                                    <span className={classes.pill}>Po polsku</span>
-                                    <span className={classes.pill}>Moje dokumenty</span>
-                                    <span className={classes.pill}>Galeria</span>
-                                </div>
+                                <span className={classes.eyebrowRow} style={{ color: "#7BA6EA" }}>05 — Konto, język i cennik</span>
+                                <h2 className={classes.panelTitle}>Za darmo na start, cały interfejs po polsku</h2>
+                                <p className={classes.panelLead}>Załóż konto, projektuj i pobieraj. Karta nie jest wymagana — AI i pełna biblioteka szablonów czekają w planach Standard i Premium.</p>
                             </div>
 
                             <div className={classes.accountGrid}>
@@ -922,29 +868,10 @@ export default function Hero() {
                 <div className={classes.sectionHead}>
                     <span className={classes.eyebrow}>Dlaczego CV STUDIO</span>
                     <h2 className={classes.sectionTitle}>Dobre CV to treść, układ i zaufanie do eksportu naraz</h2>
-                    <p className={classes.whyUsLead}>Nie sam formularz z ładną miniaturką. Na rynku zwykle dostajesz tylko jedno z trzech — u nas masz wszystko naraz.</p>
-                </div>
-
-                <div className={classes.whyUsGap}>
-                    <span className={classes.pill}>Formularze i szablony</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6E7887" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
-                    <span className={classes.pill}>Narzędzia graficzne</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6E7887" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
-                    <span className={classes.pill}>Skanery ATS</span>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7BA6EA" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: "0 4px" }} aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
-                    <span className={classes.pillFinal}>Studio A4 + AI + eksport 1:1</span>
                 </div>
 
                 <div className={classes.whyUsRows}>
                     {WHY_ROWS.map((row, i) => <WhyUsRow key={row.num} row={row} index={i} />)}
-                </div>
-
-                <div className={classes.canvasFooter} style={{ marginTop: "36px" }}>
-                    <p className={classes.canvasFooterText}>Od pustej strony do CV, które otwiera drzwi na rozmowę kwalifikacyjną — bez obawy, że przycisk Pobierz okaże się pułapką.</p>
-                    <Link to="/register" className={classes.canvasFooterCta}>
-                        Załóż konto za darmo
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F1216" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
-                    </Link>
                 </div>
             </div>
 
