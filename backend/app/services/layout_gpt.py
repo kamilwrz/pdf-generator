@@ -35,6 +35,112 @@ _FROZEN_IDENTITY_ROLES_HINTS = (
     "PODSUMOWANIE", "DOŚWIADCZENIE", "WYKSZTAŁCENIE", "UMIEJĘTNOŚCI", "JĘZYKI",
     "SUMMARY", "EXPERIENCE", "EDUCATION", "SKILLS", "LANGUAGES",
 )
+# Recognises common year-bearing CV periods. This is a grouping hint, not input
+# validation, so deliberately avoid rejecting uncommon date formats.
+_YEAR_IN_TEXT = re.compile(r"\b(?:19|20)\d{2}\b")
+
+
+def _can_share_text_row(item: dict[str, Any], row: dict[str, Any]) -> bool:
+    """Return whether a top-aligned item is plausibly part of the same block."""
+    for peer in row["_members"]:
+        horizontal_gap = max(
+            _number(item.get("left")) - _number(peer.get("right")),
+            _number(peer.get("left")) - _number(item.get("right")),
+            0.0,
+        )
+        nearby_inline_nodes = horizontal_gap <= 40.0
+        title_and_date = bool(
+            _YEAR_IN_TEXT.search(str(item.get("content") or ""))
+            or _YEAR_IN_TEXT.search(str(peer.get("content") or ""))
+        )
+        if nearby_inline_nodes or title_and_date:
+            return True
+    return False
+
+
+def _build_text_rows(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Annotate text items that share one visual row.
+
+    A generated record often renders its title and date as separate ``<p>``
+    nodes with the same top coordinate. Treating the right-hand date as the
+    next vertical item corrupts gap analysis, so the snapshot exposes this
+    renderer-level relationship explicitly.
+    """
+    rows: list[dict[str, Any]] = []
+    for item in items:
+        if item.get("category") not in _TEXT_CATEGORIES:
+            continue
+        item_top = _number(item.get("top"))
+        item_height = max(_number(item.get("height")), 1.0)
+        matching_row = None
+        for row in reversed(rows):
+            if row["page"] != item["page"]:
+                if row["page"] < item["page"]:
+                    break
+                continue
+            tolerance = min(
+                4.0,
+                max(2.0, min(item_height, row["_min_height"]) * 0.35),
+            )
+            if (
+                abs(item_top - row["_anchor_top"]) <= tolerance
+                and _can_share_text_row(item, row)
+            ):
+                matching_row = row
+                break
+
+        if matching_row is None:
+            page_row_number = 1 + sum(
+                1 for row in rows if row["page"] == item["page"]
+            )
+            matching_row = {
+                "row_ref": f"p{item['page']}-r{page_row_number}",
+                "page": item["page"],
+                "top": item_top,
+                "bottom": _number(item.get("bottom")),
+                "member_refs": [],
+                "_members": [],
+                "_anchor_top": item_top,
+                "_min_height": item_height,
+            }
+            rows.append(matching_row)
+
+        matching_row["top"] = min(matching_row["top"], item_top)
+        matching_row["bottom"] = max(
+            matching_row["bottom"],
+            _number(item.get("bottom")),
+        )
+        matching_row["_min_height"] = min(matching_row["_min_height"], item_height)
+        matching_row["member_refs"].append(item["ref"])
+        matching_row["_members"].append(item)
+
+    ref_to_row = {
+        member_ref: row
+        for row in rows
+        for member_ref in row["member_refs"]
+    }
+    for item in items:
+        row = ref_to_row.get(item.get("ref"))
+        if row is None:
+            continue
+        item["row_ref"] = row["row_ref"]
+        item["row_peer_refs"] = [
+            ref for ref in row["member_refs"] if ref != item["ref"]
+        ]
+        item["row_top"] = round(row["top"], 2)
+        item["row_bottom"] = round(row["bottom"], 2)
+
+    return [
+        {
+            "row_ref": row["row_ref"],
+            "page": row["page"],
+            "top": round(row["top"], 2),
+            "bottom": round(row["bottom"], 2),
+            "member_refs": row["member_refs"],
+        }
+        for row in rows
+    ]
+
 
 DEFAULT_LAYOUT_QUESTION = (
     "Przeprowadź pełną korektę układu CV: rytm pionowych odstępów, odstępy między "
@@ -129,6 +235,19 @@ def _build_layout_snapshot_data(
         if category in _TEXT_CATEGORIES:
             item["content_truncated"] = len(content) > MAX_LAYOUT_CONTENT_CHARS
         if category in {"text", "textarea"}:
+            raw_line_height = _number(element.get("lineHeight"), 0.0)
+            font_size = _number(element.get("fontSize"), 12.0)
+            if raw_line_height > EPSILON:
+                effective_line_height = raw_line_height
+                line_height_source = "element"
+            elif category == "text":
+                # Text.jsx renders `<p>` with CSS line-height: 1. Its measured
+                # one-line box therefore supplies the effective line height.
+                effective_line_height = max(height, font_size)
+                line_height_source = "measured_text_box"
+            else:
+                effective_line_height = max(font_size * 1.4, 1.0)
+                line_height_source = "font_fallback"
             item.update({
                 "fontSize": element.get("fontSize"),
                 "fontFamily": element.get("fontFamily"),
@@ -137,6 +256,8 @@ def _build_layout_snapshot_data(
                 "align": element.get("align"),
                 "color": element.get("color"),
                 "lineHeight": element.get("lineHeight"),
+                "effectiveLineHeight": round(effective_line_height, 2),
+                "lineHeightSource": line_height_source,
                 "content_height": element.get("content_height"),
                 "clipped": bool(element.get("clipped")),
             })
@@ -152,6 +273,7 @@ def _build_layout_snapshot_data(
         ref_to_element_id[ref] = str(item.pop("element_id"))
         item["ref"] = ref
 
+    text_rows = _build_text_rows(items)
     pages = sorted({item["page"] for item in items}) or [1]
     snapshot = {
         "page": {
@@ -168,6 +290,7 @@ def _build_layout_snapshot_data(
         "text_element_refs": [
             row["ref"] for row in items if row["category"] in _TEXT_CATEGORIES
         ],
+        "text_rows": text_rows,
         "elements": items,
         "constraints": {
             "max_moves": MAX_LAYOUT_MOVES,
@@ -213,7 +336,7 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
 1. Traktuj KAŻDY element category=`text` lub category=`textarea` jako element
    tekstowy. Najpierw rozlicz dokładnie `text_element_count` i wszystkie krótkie
    referencje z `text_element_refs`; żadnej referencji nie wolno pominąć.
-2. Zanim zaproponujesz zmiany, zbuduj `section_inventory`. Każdy ID z
+2. Zanim zaproponujesz zmiany, zbuduj `section_inventory`. Każda referencja z
    `text_element_refs` ma wystąpić DOKŁADNIE RAZ jako `ref` w `members` jednego logicznego
    bloku. Dotyczy to także kontaktu, nazw stanowisk, dat, firm, opisów, punktów,
    stopki i tekstów locked/fixedToPage. Element niepasujący do sekcji umieść w
@@ -224,10 +347,16 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
    Dla każdej sekcji znajdź tekst nagłówka, ikonę, linię dekoracyjną i pierwszy
    element treści. Element z width≈0–3 może być prawidłowym tytułem — nie odrzucaj
    go tylko z powodu szerokości.
+   `text_rows` jest autorytatywną mapą elementów leżących obok siebie. Referencje
+   w tym samym `row_ref` tworzą JEDEN poziomy wiersz, np. stanowisko po lewej i
+   data po prawej. Nie wolno traktować prawego `<p>` jako kolejnego elementu w pionie.
+   Dla takiego wiersza używaj `row_top`/`row_bottom`; `effectiveLineHeight` jest
+   rzeczywistą wysokością linii także wtedy, gdy surowe `lineHeight` jest null lub 0.
 4. Na pytanie o odstęp pod nagłówkiem policz DWA jawne wymiary:
-   a) top-to-top = first_body.top − header.top (tylko diagnostycznie),
-   b) real_gap = first_body.top − max(header.bottom, line.bottom), jeśli linia
-      jest częścią tego samego nagłówka.
+   a) top-to-top = first_body_row.top − header_row.top (tylko diagnostycznie),
+   b) real_gap = first_body_row.top − max(header_row.bottom, line.bottom), jeśli
+      linia jest częścią tego samego nagłówka. `header_row` obejmuje wszystkie
+      sąsiadujące teksty nagłówka, np. osobny `<p>` ikony i osobny `<p>` tytułu.
    Pola `right` i `bottom` są już dokładnie wyliczone przez Python z mierzonej
    geometrii. Używaj ich wprost; NIE licz ponownie left+width ani top+height.
    Odpowiedź i korektę opieraj na real_gap. Porównaj real_gap wszystkich sekcji,
@@ -238,14 +367,16 @@ POLECENIE / PYTANIE UŻYTKOWNIKA:
 6. Grupuj elementy logicznie (wpis doświadczenia: stanowisko + data + firma + opis).
    W `section_inventory` nadaj takim wpisom stabilne w obrębie odpowiedzi
    `block_id`, np. `experience-entry-1` albo `education-entry-2`.
+   W `members` umieszczaj tylko `text`/`textarea`. Linie, ikony, obrazy i kształty
+   możesz wskazać osobno w opcjonalnym `related_refs`; nie licz ich jako tekstu.
 7. Porównuj peery: nagłówki, wpisy, daty, opisy, ikony/linie z nagłówkami.
 8. Gap pionowy między peerami:
-   gap = next.top − prev.bottom
-   Dla całego wpisu bierz dolną krawędź bloku (max `bottom` elementów wpisu).
+   gap = next_row.top − prev_row.bottom
+   Dla całego wpisu bierz dolną krawędź bloku (max `row_bottom` jego wierszy).
 9. Nie przesuwaj bez potrzeby. Preferuj najmniejszą zmianę.
 10. Relacje w bloku: jeśli zmiana przesuwa cały wpis/sekcję, ustaw
     `move_scope="blocks"`, wskaż jego `affected_blocks` i umieść w `elements`
-    WSZYSTKIE tekstowe ID tych bloków z identycznym delta. Python odrzuci
+    WSZYSTKIE tekstowe referencje tych bloków z identycznym delta. Python odrzuci
     niekompletny ruch. Dla lokalnego wyrównania pojedynczej daty/ikony ustaw
     `move_scope="elements"` i nie deklaruj całego bloku.
 11. Preferuj tylko top/left. width/height tylko gdy konieczne (clipped textarea).
@@ -791,6 +922,11 @@ def compile_layout_gpt_response(
     # The modern changes contract must prove that the model accounted for every
     # text and textarea. Legacy findings/moves remain accepted for compatibility.
     if isinstance(payload.get("changes"), list):
+        known_element_ids = {
+            str(element.get("element_id"))
+            for element in elements
+            if isinstance(element, dict) and element.get("element_id")
+        }
         expected_text_ids = {
             str(element.get("element_id"))
             for element in elements
@@ -802,15 +938,16 @@ def compile_layout_gpt_response(
         }
         blocks_by_key, inventoried_ids, duplicate_ids = _parse_section_inventory(payload)
         missing_ids = expected_text_ids - inventoried_ids
-        unknown_ids = inventoried_ids - expected_text_ids
-        if missing_ids or unknown_ids or duplicate_ids:
+        unknown_ids = inventoried_ids - known_element_ids
+        duplicate_text_ids = duplicate_ids & expected_text_ids
+        if missing_ids or unknown_ids or duplicate_text_ids:
             details: list[str] = []
             if missing_ids:
                 details.append(f"pominięto {len(missing_ids)}")
             if unknown_ids:
                 details.append(f"nieznane ID: {len(unknown_ids)}")
-            if duplicate_ids:
-                details.append(f"powtórzone ID: {len(duplicate_ids)}")
+            if duplicate_text_ids:
+                details.append(f"powtórzone ID: {len(duplicate_text_ids)}")
             message = (
                 "Model nie rozliczył kompletnego inwentarza elementów text/textarea "
                 f"({', '.join(details)}). Żadne przesunięcie nie zostało udostępnione."
@@ -822,6 +959,13 @@ def compile_layout_gpt_response(
                 inventory_summary,
                 "incomplete_text_inventory",
             )
+        # Decorative refs accidentally placed in members are known canvas
+        # elements, but they must not widen the set required for a text-block
+        # move. The prompt asks for related_refs; this filter is a safe fallback.
+        blocks_by_key = {
+            key: member_ids & expected_text_ids
+            for key, member_ids in blocks_by_key.items()
+        }
 
     if not findings:
         # Explicit no-op from the corrector or empty change lists.

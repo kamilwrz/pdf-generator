@@ -81,7 +81,7 @@ class LayoutGptTests(unittest.TestCase):
         self.assertIn("Który nagłówek odstaje?", prompt)
         self.assertIn("changes", prompt)
         self.assertIn("no_changes", prompt)
-        self.assertIn("gap = next.top", prompt)
+        self.assertIn("gap = next_row.top", prompt)
         self.assertIn("real_gap", prompt)
         self.assertIn("6 px", prompt)
         self.assertIn("14 px", prompt)
@@ -91,8 +91,11 @@ class LayoutGptTests(unittest.TestCase):
         self.assertIn("category=`textarea`", prompt)
         self.assertIn("move_scope", prompt)
         self.assertIn("affected_blocks", prompt)
-        self.assertIn("header.bottom", prompt)
+        self.assertIn("header_row.bottom", prompt)
         self.assertIn("NIE licz ponownie", prompt)
+        self.assertIn("text_rows", prompt)
+        self.assertIn("row_top", prompt)
+        self.assertIn("effectiveLineHeight", prompt)
         self.assertTrue(LAYOUT_CORRECTOR_SYSTEM.startswith("Jesteś korektorem"))
         self.assertIn("category=`textarea`", LAYOUT_CORRECTOR_SYSTEM)
         self.assertIn("rytm", DEFAULT_LAYOUT_QUESTION.lower())
@@ -110,6 +113,60 @@ class LayoutGptTests(unittest.TestCase):
         self.assertEqual(title["width"], 3)
         self.assertEqual(title["bottom"], title["top"] + title["height"])
         self.assertNotIn("section_rhythm", snap)
+
+    def test_snapshot_groups_side_by_side_text_nodes_into_one_row(self):
+        elements = [
+            el(
+                "title", 50, 260, width=210, height=14, category="text",
+                content="Senior AML Analyst", fontSize=14, lineHeight=0,
+            ),
+            el(
+                "date", 430, 261, width=90, height=11, category="text",
+                content="2021–2024", fontSize=11,
+            ),
+            el(
+                "company", 50, 280, width=300, height=14,
+                content="Example Bank",
+            ),
+        ]
+
+        snap = build_layout_snapshot(elements, PAGE)
+        by_content = {item["content"]: item for item in snap["elements"]}
+        title = by_content["Senior AML Analyst"]
+        date = by_content["2021–2024"]
+        company = by_content["Example Bank"]
+
+        self.assertEqual(title["row_ref"], date["row_ref"])
+        self.assertIn(date["ref"], title["row_peer_refs"])
+        self.assertIn(title["ref"], date["row_peer_refs"])
+        self.assertNotEqual(company["row_ref"], title["row_ref"])
+        self.assertEqual(title["effectiveLineHeight"], 14)
+        self.assertEqual(title["lineHeightSource"], "measured_text_box")
+        shared_row = next(
+            row for row in snap["text_rows"] if row["row_ref"] == title["row_ref"]
+        )
+        self.assertEqual(set(shared_row["member_refs"]), {title["ref"], date["ref"]})
+        self.assertEqual(shared_row["bottom"], 274)
+
+    def test_snapshot_keeps_unrelated_columns_in_separate_rows(self):
+        elements = [
+            el(
+                "sidebar", 24, 260, width=136, height=14, category="text",
+                content="UMIEJĘTNOŚCI",
+            ),
+            el(
+                "main", 220, 260, width=300, height=14, category="text",
+                content="PODSUMOWANIE ZAWODOWE",
+            ),
+        ]
+
+        snap = build_layout_snapshot(elements, PAGE)
+        by_content = {item["content"]: item for item in snap["elements"]}
+
+        self.assertNotEqual(
+            by_content["UMIEJĘTNOŚCI"]["row_ref"],
+            by_content["PODSUMOWANIE ZAWODOWE"]["row_ref"],
+        )
 
     def test_snapshot_inventory_includes_experience_and_education_textareas(self):
         elements = [
@@ -319,6 +376,35 @@ class LayoutGptTests(unittest.TestCase):
         self.assertEqual(groups, [])
         self.assertIn("nieznane referencje", summary)
         self.assertTrue(any("nieznane referencje" in issue["message"] for issue in issues))
+
+    def test_compile_tolerates_known_decoration_in_text_inventory_members(self):
+        elements = [
+            el("heading", 50, 100, category="text", content="WYKSZTAŁCENIE"),
+            el("rule", 50, 120, width=300, height=2, category="line"),
+        ]
+        gpt = {
+            "status": "no_changes",
+            "summary": "Układ jest spójny.",
+            "section_inventory": [{
+                "section": "WYKSZTAŁCENIE",
+                "blocks": [{
+                    "block_id": "header",
+                    # e2 is a known line. It is tolerated but not counted as text.
+                    "members": [
+                        {"ref": "e1", "role": "section_header"},
+                        {"ref": "e2", "role": "decoration"},
+                    ],
+                }],
+            }],
+            "changes": [],
+        }
+
+        groups, issues, summary, error = compile_layout_gpt_response(elements, gpt, PAGE)
+
+        self.assertEqual(error, "")
+        self.assertEqual(groups, [])
+        self.assertEqual(issues, [])
+        self.assertEqual(summary, "Układ jest spójny.")
 
     def test_status_no_changes(self):
         elements = [el("a", 40, 200)]
