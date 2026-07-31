@@ -32,3 +32,12 @@ test("layout suggestions expose short labels and fuller GPT prompts", async () =
     assert.match(block, /layout_contract/);
     assert.match(block, /real_gap/);
 });
+
+test("assistant send blocks parallel requests before isLoading re-renders", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+
+    assert.match(source, /requestInFlightRef/);
+    assert.match(source, /if \(requestInFlightRef\.current \|\| isLoading\) return/);
+    assert.match(source, /requestInFlightRef\.current = true/);
+    assert.match(source, /requestInFlightRef\.current = false/);
+});

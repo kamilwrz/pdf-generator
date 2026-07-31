@@ -693,6 +693,9 @@ export default function AiAssistant() {
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
     const layoutHistoryStartRef = useRef(null);
+    // Synchronous in-flight guard: React state `isLoading` updates too late to
+    // block a double-click on suggestion chips before the next render.
+    const requestInFlightRef = useRef(false);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -907,7 +910,11 @@ export default function AiAssistant() {
     // ── send message to backend ──────────────────────────────────────────
 
     const send = useCallback(async (action, userText, options = {}) => {
-        if (isLoading) return;
+        // Prefer the ref over `isLoading` so a second chip click in the same
+        // frame cannot start a parallel request that fails after the first
+        // succeeds and leaves a confusing success+error pair in the chat.
+        if (requestInFlightRef.current || isLoading) return;
+        requestInFlightRef.current = true;
 
         // A new layout session must reason from the current canvas rather than
         // repeat conclusions from ordinary chat or an earlier layout run.
@@ -1005,8 +1012,13 @@ export default function AiAssistant() {
                 actionColor: actionMeta?.color,
             };
             setMessages(prev => [...prev, assistantMsg]);
-            // A successful call consumed AI credits — refresh the visible balance.
-            refreshEntitlements?.();
+            // Refresh balance outside the main try so a entitlements blip cannot
+            // append a fake "assistant unavailable" error under a good answer.
+            try {
+                await refreshEntitlements?.();
+            } catch {
+                /* ignore — credits UI can stay stale until the next refresh */
+            }
         } catch (err) {
             setMessages(prev => [...prev, {
                 id: nanoid(),
@@ -1017,9 +1029,10 @@ export default function AiAssistant() {
                 web_sources: [],
             }]);
         } finally {
+            requestInFlightRef.current = false;
             setIsLoading(false);
         }
-    }, [A4_Elements, api, isLoading, jobDesc, messages, pageSize, refreshEntitlements]);
+    }, [A4_Elements, activeTemplateId, api, isLoading, jobDesc, messages, pageSize, refreshEntitlements]);
 
     const handleAction = useCallback((actionId) => {
         const meta = ACTIONS.find(a => a.id === actionId);
@@ -1071,7 +1084,7 @@ export default function AiAssistant() {
     }, [entitlements, layoutMode, messages.length, send, showPlanModal]);
 
     const handleLayoutSuggestion = useCallback((suggestion) => {
-        if (!suggestion?.prompt || isLoading || !layoutMode) return;
+        if (!suggestion?.prompt || requestInFlightRef.current || isLoading || !layoutMode) return;
         send("layout", suggestion.prompt, { displayText: suggestion.label });
     }, [isLoading, layoutMode, send]);
 
