@@ -18,6 +18,10 @@ class OpenAIPricingTests(unittest.TestCase):
         # 1M in + 1M out = 5.00 + 30.00
         self.assertAlmostEqual(estimate_cost_usd("gpt-5.6-sol", 1_000_000, 1_000_000), 35.0)
 
+    def test_estimate_gpt_5_6_luna(self):
+        # Standard API short-context tier: 1M in + 1M out = 0.20 + 1.20.
+        self.assertAlmostEqual(estimate_cost_usd("gpt-5.6-luna", 1_000_000, 1_000_000), 1.4)
+
     def test_estimate_gpt_4o(self):
         self.assertAlmostEqual(estimate_cost_usd("gpt-4o", 1_000_000, 1_000_000), 12.5)
 
@@ -40,16 +44,18 @@ class OpenAIPricingTests(unittest.TestCase):
         self.assertEqual(usage["credit_pln"], 0.05)
         self.assertEqual(usage["credits_charged"], credits_for_cost(usage["cost_pln_estimate"]))
 
-    def test_layout_sol_usage_charges_more_credits_than_mini(self):
-        # Same token counts: sol is far more expensive → more credits.
+    def test_layout_luna_usage_uses_luna_rates_for_credit_metering(self):
+        # The layout action must use Luna's lower standard API rates, while
+        # credits still round the actual PLN cost up to the next 5-grosz unit.
         resp = SimpleNamespace(
             usage=SimpleNamespace(prompt_tokens=50_000, completion_tokens=4_000, total_tokens=54_000)
         )
-        mini = usage_from_response(resp, model="gpt-5.4-mini", action="chat")
-        sol = usage_from_response(resp, model="gpt-5.6-sol", action="layout")
-        self.assertGreater(sol["cost_usd"], mini["cost_usd"])
-        self.assertGreaterEqual(sol["credits_charged"], mini["credits_charged"])
-        self.assertEqual(sol["action"], "layout")
+        luna = usage_from_response(resp, model="gpt-5.6-luna", action="layout")
+        self.assertEqual(luna["action"], "layout")
+        self.assertEqual(luna["rates_usd_per_1m"], {"input": 0.20, "output": 1.20})
+        self.assertAlmostEqual(luna["cost_usd"], 0.0148, places=6)
+        self.assertAlmostEqual(luna["cost_pln_estimate"], 0.0592, places=4)
+        self.assertEqual(luna["credits_charged"], 2)
 
 
 if __name__ == "__main__":

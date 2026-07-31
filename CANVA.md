@@ -738,7 +738,7 @@ Domyślne modele (nadpisywane zmiennymi środowiskowymi):
 
 ```text
 AI_ASSISTANT_MODEL = gpt-5.4-mini   # oceny, gramatyka, ATS, czat, …
-AI_LAYOUT_MODEL    = gpt-5.6-sol    # tylko akcja layout (Układ)
+AI_LAYOUT_MODEL    = gpt-5.6-luna   # tylko akcja layout (Układ)
 ```
 
 Cennik listowy (USD / 1M tokenów) jest w `openai_pricing.py`. Koszt PLN =
@@ -746,7 +746,7 @@ Cennik listowy (USD / 1M tokenów) jest w `openai_pricing.py`. Koszt PLN =
 obciążenie = `max(1, ceil(cost_pln / 0.05))` (`entitlements.credits_for_cost`).
 Odpowiedź zwraca `usage.credits_charged`.
 
-Model (mini / sol) może:
+Model (mini / Luna) może:
 
 - ocenić CV;
 - poprawić język;
@@ -786,7 +786,7 @@ Komentarz w `ai_assistant_service.py` wyjaśnia powód: bezpośrednie współrz�
    `left`/`top`/`width`/`height`/`page`/`fontSize`/… oraz flagą `movable`.
 3. Snapshot pozostaje surowy: Python nie grupuje sekcji ani nie wylicza
    `section_rhythm`, ponieważ wymiary freestyle (np. `width: 3`) nie są
-   wystarczająco wiarygodne. `gpt-5.6-sol` z `reasoning_effort=high` sam rozpoznaje
+wystarczająco wiarygodne. `gpt-5.6-luna` z `reasoning_effort=high` sam rozpoznaje
    nagłówek, linię i pierwszy wpis. Prompt każe podać top-to-top diagnostycznie,
    ale korektę oprzeć na realnym odstępie krawędź→krawędź i porównać wszystkie
    peery (np. DOŚWIADCZENIE/WYKSZTAŁCENIE 6 px vs pozostałe 14 px).

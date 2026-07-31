@@ -66,7 +66,7 @@ PLAN_SEEDS: list[dict[str, Any]] = [
 
 CREDIT_PLN = 0.05  # 1 AI credit = 5 groszy
 
-# The layout session sends the complete multi-page canvas to the higher-cost
+# The layout session sends the complete multi-page canvas to the dedicated
 # geometry model. Keep this explicit action-level gate separate from the
 # general AI-assistant flag so Standard retains its content-focused analyses.
 PREMIUM_ONLY_AI_ACTIONS: frozenset[str] = frozenset({"layout"})

@@ -36,8 +36,9 @@ from app.services.openai_pricing import empty_usage, usage_from_response
 
 # Default assistant model for ratings / chat / grammar / ATS / …
 _MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.4-mini")
-# Layout session needs stronger peer-geometry reasoning than mini.
-_LAYOUT_MODEL = os.getenv("AI_LAYOUT_MODEL", "gpt-5.6-sol")
+# Layout uses the cost-efficient GPT-5.6 Luna model. Operators can override
+# this default through AI_LAYOUT_MODEL without changing the action dispatcher.
+_LAYOUT_MODEL = os.getenv("AI_LAYOUT_MODEL", "gpt-5.6-luna")
 _client = OpenAI(api_key=OPENAI_API_KEY)
 
 
@@ -241,8 +242,8 @@ def _gpt(system: str, user: str, *, action: str = "") -> tuple[dict, dict]:
     """Call the assistant model and return (parsed_json, usage_cost)."""
     model = _model_for_action(action)
     # Layout must infer logical blocks from imperfect freestyle geometry
-    # (for example text elements with authoring width=3), so give the dedicated
-    # gpt-5.6-sol route more reasoning budget than content/style actions.
+    # (for example text elements with authoring width=3), so give it more
+    # reasoning budget than content/style actions.
     reasoning_effort = "high" if action == "layout" else "medium"
     try:
         resp = _client.chat.completions.create(

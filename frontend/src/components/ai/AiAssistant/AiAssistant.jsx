@@ -801,10 +801,10 @@ export default function AiAssistant() {
         setIsLoading(true);
 
         try {
-            // Warm the Render dyno before a long GPT call (layout/sol especially).
+            // Warm the Render dyno before a long GPT call, especially a full-canvas layout analysis.
             wakeBackend();
             const actionMeta = ACTIONS.find(a => a.id === action);
-            // Layout + gpt-5.6-sol often exceeds the default 90s auth timeout.
+            // Full-canvas layout analysis can exceed the default 90s auth timeout.
             const timeoutMs = action === "layout" ? 240_000 : 120_000;
             const res = await api.httpRequest(
                 ENDPOINTS.AI.ASSISTANT, "POST",
@@ -820,7 +820,7 @@ export default function AiAssistant() {
                 {
                     timeoutMs,
                     // Retry cold-start / proxy blips only — not client AbortError timeouts
-                    // (layout/sol can already take minutes and must not be re-billed blindly).
+                    // (layout can already take minutes and must not be re-billed blindly).
                     retries: 3,
                     retryDelayMs: 2_500,
                     retryOnTimeout: false,
