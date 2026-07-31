@@ -32,18 +32,26 @@ const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
 const sectionChrome = (element) => ({ ...element, flowRole: "section-chrome" });
 
 const sectionHeading = (number, label, top, id) => [
-    sectionChrome(line(66, top, 32, 32, INK, 3)),
-    sectionChrome(bold(text(number, 10, SANS, WHITE, 75, top + 9, 4))),
-    sectionChrome({ ...rect(106, top, 251, 32, INK, 1.2, 3), id: `monument-${id}-frame` }),
-    sectionChrome(bold(tracked(text(label, 13.5, DISPLAY, INK, 118, top + 8, 4), 0.35))),
-    sectionChrome(line(369, top + 15, 160, 2, RULE, 2)),
+    sectionChrome(line(66, top, 32, 32, INK, 2)),
+    sectionChrome(bold(text(number, 12, SANS, WHITE, 74, top + 8, 5))),
+    sectionChrome({ ...rect(106, top, 251, 32, INK, 1.2, 2), id: `monument-${id}-frame` }),
+    sectionChrome(bold(tracked(text(label, 13.5, DISPLAY, INK, 118, top + 8, 5), 0.35))),
+    sectionChrome(line(369, top + 15, 160, 2, RULE, 1)),
 ];
 
 const monumentElements = [
     { ...line(0, 0, 595, 842, PAPER, 0), fixedToPage: true },
     { ...rect(34, 32, 527, 778, RULE, 0.8, 1), fixedToPage: true },
-    { ...line(51, 54, 8, 111, INK, 2), fixedToPage: true },
-    { ...line(529, 54, 8, 111, PALE, 2), fixedToPage: true },
+    {
+        ...line(51, 54, 8, 111, INK, 2),
+        fixedToPage: true,
+        repeatOnContinuation: false,
+    },
+    {
+        ...line(529, 54, 8, 111, PALE, 2),
+        fixedToPage: true,
+        repeatOnContinuation: false,
+    },
 
     bold(text("MARTA ZALEWSKA", 34, DISPLAY, INK, 74, 59, 3)),
     bold(tracked(text("DYREKTORKA KREATYWNA", 13.5, SANS, GRAPHITE, 76, 104, 3), 1.1)),

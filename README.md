@@ -108,7 +108,7 @@ Section headings are kept with their first body block across page breaks: `avoid
 
 ### Decorative chrome
 
-Elements with `fixedToPage: true` (backgrounds, frames, sidebars, page numbers) are cloned across pages and must not be selected/moved/deleted in the UI (`isDecorativeChrome` in `frontend/src/utils/elementInteraction.js`). Design rating prompts respect template typography.
+Elements with `fixedToPage: true` (backgrounds, frames, sidebars, page numbers) are cloned across pages by default and must not be selected/moved/deleted in the UI (`isDecorativeChrome` in `frontend/src/utils/elementInteraction.js`). First-page-only chrome sets `repeatOnContinuation: false`, which prevents `cloneFixedPageDecorations` from copying it when overflow creates another page. Design rating prompts respect template typography.
 
 ---
 
@@ -191,7 +191,7 @@ Schema is created by `init_db()` during app lifespan (not at import). Lightweigh
 | `users` | Accounts: username, email, bcrypt hash, `is_active`, timestamps |
 | `images` | Uploaded image metadata; `file_path` local or S3 URL; `owner_id` → users |
 | `pdfs` | CV documents: title, path, pages, page_width/height (default 595×842), owner |
-| `pdf_elements` | Canvas elements; geometry + style columns; extras in `extra_properties` JSON (`fixedToPage`, `locked`, `flowRole`, `preserveInitialLayout`, bold, connectors, …) |
+| `pdf_elements` | Canvas elements; geometry + style columns; extras in `extra_properties` JSON (`fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `preserveInitialLayout`, bold, connectors, …) |
 | `bio_cv_drafts` | One private JSON draft per user |
 | `plans` | Free / standard / premium limits and feature flags |
 | `user_subscriptions` | Current plan per user (Stripe columns ready, often null) |
@@ -287,7 +287,7 @@ Implementation:
 - `frontend/src/hooks/useCanvasEnterIds.js`, lines 1–80, `useCanvasEnterIds`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` + `CanvasElements.module.css`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadAiElements`, `handleLoadTemplate`, `handleLoadTemplateWithFill` call `markContentElementsEnter`
-- `backend/app/services/cv_generator.py`, lines 2842–2993, `_gen_onyx`; `frontend/src/templates/onyx.js`, lines 1–101 — assign Onyx `flowRole` and `preserveInitialLayout`
+- `backend/app/services/cv_generator.py`, lines 2871–3033, `_gen_onyx`; `frontend/src/templates/onyx.js`, lines 1–101 — assign Onyx `flowRole` and `preserveInitialLayout`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 29–55; `frontend/src/components/canvas/Textarea/Textarea.jsx`, lines 42–164 — skip only the initial Onyx textarea measurement
 - `backend/app/schemas/pdf_schema.py`, lines 44–46; `backend/app/crud/pdfs.py`, lines 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, lines 104–105 — persist and restore the Onyx flow flags
 
@@ -297,21 +297,23 @@ Tests:
 
 ### Monument monochrome template
 
-Monument is a paid Classic template for users who want an elegant editorial result without colour. Its visual identity comes from numbered black rectangles, outlined heading frames, thin grey rules, and an asymmetric masthead. The smallest text is 10 px; body copy uses 10–11 px, record titles use 12 px, and section headings plus the job-position line use 13.5 px. Cormorant Garamond supplies the formal display voice, while Montserrat keeps dense CV content easy to scan.
+Monument is a paid Classic template for users who want an elegant editorial result without colour. Its visual identity comes from numbered black rectangles, outlined heading frames, thin grey rules, and an asymmetric masthead. The smallest text is 10 px; body copy uses 10–11 px, section numbers and record titles use 12 px, and section headings plus the job-position line use 13.5 px. Cormorant Garamond supplies the formal display voice, while Montserrat keeps dense CV content easy to scan.
 
-The frontend starter array and the deterministic Python generator use the same A4 geometry and grayscale palette. `_gen_monument` preserves complete experience and education records during page breaks, supports custom sections through `_extra_sections`, repeats the page frame and footer on every page, and never sends layout decisions to the AI model.
+The frontend starter array and the deterministic Python generator use the same A4 geometry and grayscale palette. `_gen_monument` preserves complete experience and education records during page breaks, supports custom sections through `_extra_sections`, and groups each number, frame, label, and rule into one reflow unit so the heading geometry remains aligned after browser text measurement. The page frame and footer repeat on every page, while the name-and-position masthead and its tall side bars appear only on page one; `repeatOnContinuation: false` preserves this rule when the editor creates another page later. Layout decisions are never sent to the AI model.
 
 Implementation:
 
-- `frontend/src/templates/monument.js`, lines 1–100, exported array `monumentTemplate`
+- `frontend/src/templates/monument.js`, lines 1–108, exported array `monumentTemplate`
 - `frontend/src/templates/index.js`, lines 24 and 51, registry entry `monument` (`tier: "paid"`)
-- `backend/app/services/cv_generator.py`, lines 2013–2184, function `_gen_monument`; line 3031, `_GENERATORS["monument"]`
+- `backend/app/services/cv_generator.py`, lines 2013–2215, function `_gen_monument`; line 3060, `_GENERATORS["monument"]`
+- `frontend/src/utils/structureOperation.js`, lines 34–63, function `cloneFixedPageDecorations`
 - `frontend/public/template-mockups/monument.png`, source-driven A4 preview
 
 Tests:
 
-- `frontend/src/templates/monument.test.js`, lines 6–32, starter-layout hierarchy and grayscale assertions
-- `backend/tests/test_cv_template_layouts.py`, lines 647–688, `test_monument_is_monochrome_and_never_uses_text_below_ten_pixels`
+- `frontend/src/templates/monument.test.js`, lines 6–56, starter-layout hierarchy, section-number, frame-geometry, and page-one masthead assertions
+- `frontend/src/utils/structureOperation.test.js`, lines 25–44, continuation-page cloning opt-out
+- `backend/tests/test_cv_template_layouts.py`, lines 647–731, `test_monument_is_monochrome_and_never_uses_text_below_ten_pixels`
 
 Known limitation: long user-provided section names are shortened only inside the fixed decorative heading frame. Their section content remains complete.
 
@@ -362,7 +364,7 @@ Python layout from normalised `cv_data` (not LLM placement). In every generated 
 
 Implementation:
 
-- `backend/app/services/cv_generator.py`, lines 587–656, `_place_education_record` — distinguishes education metadata from body text; `generate_resume` (line 3035+), class `Builder`
+- `backend/app/services/cv_generator.py`, lines 587–656, `_place_education_record` — distinguishes education metadata from body text; `generate_resume` (line 3064+), class `Builder`
 - `backend/app/api/routes/ai.py`, `fill_template`
 - Docs: [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
@@ -791,7 +793,7 @@ Nagłówki sekcji zostają z pierwszym blokiem treści przy podziale strony: `av
 
 ### Dekoracje szablonu
 
-`fixedToPage: true` — tła, ramki, sidebary, numery stron — bez zaznaczania/przesuwania/usuwania w UI (`isDecorativeChrome`). Ocena „Projekt” respektuje typografię szablonu.
+Elementy z `fixedToPage: true` — tła, ramki, sidebary, numery stron — są domyślnie klonowane na kolejne strony i nie można ich zaznaczać, przesuwać ani usuwać w UI (`isDecorativeChrome`). Dekoracje przeznaczone wyłącznie dla pierwszej strony ustawiają `repeatOnContinuation: false`, dzięki czemu `cloneFixedPageDecorations` nie kopiuje ich po utworzeniu nowej strony przez overflow. Ocena „Projekt” respektuje typografię szablonu.
 
 ---
 
@@ -870,7 +872,7 @@ pdf-generator/
 | `users` | Konta |
 | `images` | Metadane obrazów użytkownika |
 | `pdfs` | Dokumenty CV |
-| `pdf_elements` | Elementy kanwy (+ `extra_properties`, m.in. `fixedToPage`, `locked`, `flowRole`, `preserveInitialLayout`) |
+| `pdf_elements` | Elementy kanwy (+ `extra_properties`, m.in. `fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `preserveInitialLayout`) |
 | `bio_cv_drafts` | Jeden prywatny szkic bio / user |
 | `plans` | Limity Free / Standard / Premium |
 | `user_subscriptions` | Aktualny plan |
@@ -958,7 +960,7 @@ Implementacja:
 - `frontend/src/hooks/useCanvasEnterIds.js`, linie 1–80, `useCanvasEnterIds`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` + `CanvasElements.module.css`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadAiElements`, `handleLoadTemplate`, `handleLoadTemplateWithFill` wywołują `markContentElementsEnter`
-- `backend/app/services/cv_generator.py`, linie 2842–2993, `_gen_onyx`; `frontend/src/templates/onyx.js`, linie 1–101 — przypisanie `flowRole` i `preserveInitialLayout` Onyx
+- `backend/app/services/cv_generator.py`, linie 2871–3033, `_gen_onyx`; `frontend/src/templates/onyx.js`, linie 1–101 — przypisanie `flowRole` i `preserveInitialLayout` Onyx
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 29–55; `frontend/src/components/canvas/Textarea/Textarea.jsx`, linie 42–164 — pominięcie wyłącznie pierwszego pomiaru textarea Onyx
 - `backend/app/schemas/pdf_schema.py`, linie 44–46; `backend/app/crud/pdfs.py`, linie 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, linie 104–105 — zapis i odtwarzanie flag przepływu Onyx
 
@@ -968,21 +970,23 @@ Testy:
 
 ### Monochromatyczny szablon Monument
 
-Monument to płatny szablon z kolekcji Classic dla osób, które chcą eleganckiego, redakcyjnego efektu bez koloru. Jego charakter budują numerowane czarne prostokąty, konturowe ramki nagłówków, cienkie szare linie i asymetryczny masthead. Najmniejszy tekst ma 10 px; tekst główny używa 10–11 px, tytuły stanowisk 12 px, a nagłówki sekcji i linia stanowiska przy nazwisku 13,5 px. Cormorant Garamond odpowiada za formalny charakter display, a Montserrat utrzymuje czytelność gęstej treści CV.
+Monument to płatny szablon z kolekcji Classic dla osób, które chcą eleganckiego, redakcyjnego efektu bez koloru. Jego charakter budują numerowane czarne prostokąty, konturowe ramki nagłówków, cienkie szare linie i asymetryczny masthead. Najmniejszy tekst ma 10 px; tekst główny używa 10–11 px, numery sekcji i tytuły stanowisk 12 px, a nagłówki sekcji i linia stanowiska przy nazwisku 13,5 px. Cormorant Garamond odpowiada za formalny charakter display, a Montserrat utrzymuje czytelność gęstej treści CV.
 
-Startowa tablica frontendu oraz deterministyczny generator Python używają tej samej geometrii A4 i palety szarości. `_gen_monument` nie rozdziela wpisów doświadczenia ani edukacji przy zmianie strony, obsługuje sekcje własne przez `_extra_sections`, powtarza ramę i stopkę na każdej stronie oraz nie przekazuje decyzji o layoucie do modelu AI.
+Startowa tablica frontendu oraz deterministyczny generator Python używają tej samej geometrii A4 i palety szarości. `_gen_monument` nie rozdziela wpisów doświadczenia ani edukacji przy zmianie strony, obsługuje sekcje własne przez `_extra_sections` i grupuje numer, ramkę, etykietę oraz linię jako jeden element reflow, dzięki czemu geometria nagłówka pozostaje równa po pomiarze tekstu w przeglądarce. Rama strony i stopka powtarzają się na każdej stronie, natomiast masthead z nazwiskiem i stanowiskiem oraz jego wysokie boczne belki występują wyłącznie na pierwszej stronie; `repeatOnContinuation: false` zachowuje tę regułę również wtedy, gdy edytor później utworzy kolejną stronę. Decyzje o layoucie nie są przekazywane do modelu AI.
 
 Implementacja:
 
-- `frontend/src/templates/monument.js`, linie 1–100, eksportowana tablica `monumentTemplate`
+- `frontend/src/templates/monument.js`, linie 1–108, eksportowana tablica `monumentTemplate`
 - `frontend/src/templates/index.js`, linie 24 i 51, wpis rejestru `monument` (`tier: "paid"`)
-- `backend/app/services/cv_generator.py`, linie 2013–2184, funkcja `_gen_monument`; linia 3031, `_GENERATORS["monument"]`
+- `backend/app/services/cv_generator.py`, linie 2013–2215, funkcja `_gen_monument`; linia 3060, `_GENERATORS["monument"]`
+- `frontend/src/utils/structureOperation.js`, linie 34–63, funkcja `cloneFixedPageDecorations`
 - `frontend/public/template-mockups/monument.png`, podgląd A4 generowany ze źródła
 
 Testy:
 
-- `frontend/src/templates/monument.test.js`, linie 6–32, asercje hierarchii i palety szarości dla układu startowego
-- `backend/tests/test_cv_template_layouts.py`, linie 647–688, `test_monument_is_monochrome_and_never_uses_text_below_ten_pixels`
+- `frontend/src/templates/monument.test.js`, linie 6–56, asercje hierarchii, numeracji sekcji, geometrii ramek i mastheadu wyłącznie na pierwszej stronie
+- `frontend/src/utils/structureOperation.test.js`, linie 25–44, wyłączenie klonowania dekoracji na stronach kontynuacji
+- `backend/tests/test_cv_template_layouts.py`, linie 647–731, `test_monument_is_monochrome_and_never_uses_text_below_ten_pixels`
 
 Znane ograniczenie: długie nazwy sekcji podane przez użytkownika są skracane wyłącznie w stałej ramce dekoracyjnego nagłówka. Treść sekcji pozostaje kompletna.
 
@@ -1027,7 +1031,7 @@ Skrypt zrzutu (`frontend/scripts/dump-iconic-templates.mjs`) wymaga niewielkiego
 
 Layout Python powstaje ze znormalizowanego `cv_data`, a nie z pozycji wymyślonych przez LLM. W każdym wygenerowanym szablonie wpis wykształcenia korzysta z tego samego systemu znaczenia kolorów co doświadczenie: kierunek ma podstawowy kolor tekstu, szkoła/miasto/okres mają stonowany kolor metadanych, a opcjonalny opis ma czytelny kolor treści. Zwarty wpis w sidebarze celowo używa własnej palety sidebara, ponieważ jest wyświetlany na innym panelu tła.
 
-- `backend/app/services/cv_generator.py`, linie 587–656 — `_place_education_record`, rozróżnia metadane wykształcenia od treści; `generate_resume` (ok. 3035+), `Builder`
+- `backend/app/services/cv_generator.py`, linie 587–656 — `_place_education_record`, rozróżnia metadane wykształcenia od treści; `generate_resume` (linia 3064+), `Builder`
 - `backend/app/api/routes/ai.py` — `fill_template`
 - [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 

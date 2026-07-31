@@ -2069,16 +2069,20 @@ def _gen_monument(cv: dict) -> list[dict]:
         section_number += 1
         top = b.y
         display_label = _compact_text(label, 31)
-        b.els.extend([
-            _line(66, top, 32, 32, C["ink"], zIndex=3, page=b.pg),
-            _text(f"{section_number:02d}", 10, SANS, C["white"], 75, top + 9,
-                  zIndex=4, page=b.pg, bold=True),
-            _rect(106, top, 251, 32, C["ink"], 1.2, zIndex=3, page=b.pg),
+        chrome = [
+            _line(66, top, 32, 32, C["ink"], zIndex=2, page=b.pg),
+            _text(f"{section_number:02d}", 12, SANS, C["white"], 74, top + 8,
+                  zIndex=5, page=b.pg, bold=True),
+            _rect(106, top, 251, 32, C["ink"], 1.2, zIndex=2, page=b.pg),
             _text(display_label, 13.5, DISPLAY, C["ink"], 118, top + 8,
-                  zIndex=4, page=b.pg, bold=True),
-            _line(369, top + 15, 160, 2, C["rule"], zIndex=2, page=b.pg),
-        ])
-        b.els[-2]["letterSpacing"] = 0.35
+                  zIndex=5, page=b.pg, bold=True),
+            _line(369, top + 15, 160, 2, C["rule"], zIndex=1, page=b.pg),
+        ]
+        chrome[-2]["letterSpacing"] = 0.35
+        # Keep the marker, number, title frame, label, and rule as one reflow
+        # cluster. Without explicit roles, the browser's legacy fallback treats
+        # text and shapes independently and can break the heading alignment.
+        b.els.extend({**element, "flowRole": "section-chrome"} for element in chrome)
         b.y += SECTION_CHROME
 
     def experience_height(job: dict) -> float:
@@ -2166,22 +2170,47 @@ def _gen_monument(cv: dict) -> list[dict]:
     )
 
     flow = b.build()
-    pages_used = max([element.get("page", 1) for element in header + flow] or [1])
-    page_decorations = [
-        decoration
-        for page in range(1, pages_used + 1)
-        for decoration in (
+    selectable = [
+        {
+            **element,
+            "flowRole": element.get("flowRole", "content"),
+            **(
+                {"preserveInitialLayout": True}
+                if element.get("category") == "textarea"
+                else {}
+            ),
+        }
+        for element in header + flow
+    ]
+    pages_used = max([element.get("page", 1) for element in selectable] or [1])
+    page_decorations = []
+    for page in range(1, pages_used + 1):
+        page_decorations.extend([
             {**_line(0, 0, 595, 842, C["paper"], zIndex=0, page=page), "fixedToPage": True},
             {**_rect(34, 32, 527, 778, C["rule"], 0.8, page=page), "fixedToPage": True},
-            {**_line(51, 54, 8, 111, C["ink"], zIndex=2, page=page), "fixedToPage": True},
-            {**_line(529, 54, 8, 111, C["pale"], zIndex=2, page=page), "fixedToPage": True},
+        ])
+        # The tall bars belong to the name-and-position masthead. Repeating
+        # them on continuation pages incorrectly suggests a missing header.
+        if page == 1:
+            page_decorations.extend([
+                {
+                    **_line(51, 54, 8, 111, C["ink"], zIndex=2, page=page),
+                    "fixedToPage": True,
+                    "repeatOnContinuation": False,
+                },
+                {
+                    **_line(529, 54, 8, 111, C["pale"], zIndex=2, page=page),
+                    "fixedToPage": True,
+                    "repeatOnContinuation": False,
+                },
+            ])
+        page_decorations.extend([
             {**_line(66, 779, 463, 1, C["rule"], zIndex=2, page=page), "fixedToPage": True},
             {**_line(66, 792, 28, 8, C["ink"], zIndex=2, page=page), "fixedToPage": True},
             {**_text(f"{page:02d}", 10, SANS, C["muted"], 512, 787,
                      zIndex=3, page=page), "fixedToPage": True},
-        )
-    ]
-    return page_decorations + header + flow
+        ])
+    return page_decorations + selectable
 
 
 def _gen_moss(cv: dict) -> list[dict]:

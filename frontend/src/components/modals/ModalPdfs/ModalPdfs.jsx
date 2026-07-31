@@ -87,6 +87,7 @@ export default function ModalPdfs({ title }) {
             const pdfCanvas = PDFs.find(element => element.id === id);
             const elementsData = data.map((element) => {
                 const fixedToPage = element.extra_properties.fixedToPage ?? false;
+                const repeatOnContinuation = element.extra_properties.repeatOnContinuation ?? true;
                 const locked = element.extra_properties.locked ?? fixedToPage;
                 if (element.category === "textarea") {
                     return {
@@ -104,6 +105,7 @@ export default function ModalPdfs({ title }) {
                         flowRole: element.extra_properties.flowRole,
                         preserveInitialLayout: element.extra_properties.preserveInitialLayout ?? false,
                         fixedToPage,
+                        repeatOnContinuation,
                         locked,
                         width: parseFloat(element.width),
                         height: parseFloat(element.height),
@@ -120,6 +122,7 @@ export default function ModalPdfs({ title }) {
                         alignWithText: element.extra_properties.alignWithText,
                         flowRole: element.extra_properties.flowRole,
                         fixedToPage,
+                        repeatOnContinuation,
                         locked,
                         source_id: element.extra_properties.source_id,
                         target_id: element.extra_properties.target_id,
@@ -137,6 +140,7 @@ export default function ModalPdfs({ title }) {
                     underline: element.extra_properties.underline,
                     flowRole: element.extra_properties.flowRole,
                     fixedToPage,
+                    repeatOnContinuation,
                     locked,
                 };
             });

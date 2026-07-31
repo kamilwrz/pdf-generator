@@ -29,4 +29,28 @@ test("Monument keeps its text hierarchy readable and monochrome", () => {
     assert.ok(monumentTemplate.some(
         (element) => element.content === "DOŚWIADCZENIE" && element.fontSize === 13.5,
     ));
+    assert.deepEqual(
+        monumentTemplate
+            .filter((element) => element.color === "#FFFFFF" && element.fontSize === 12)
+            .map((element) => element.content),
+        ["01", "02", "03"],
+    );
+    const sectionFrames = monumentTemplate.filter(
+        (element) => element.category === "rectangle" && element.left === 106,
+    );
+    assert.ok(sectionFrames.every(
+        (element) => (
+            element.left === 106
+            && element.width === 251
+            && element.height === 32
+            && element.flowRole === "section-chrome"
+        ),
+    ));
+    const mastheadRails = monumentTemplate.filter(
+        (element) => element.category === "line" && [51, 529].includes(element.left),
+    );
+    assert.equal(mastheadRails.length, 2);
+    assert.ok(mastheadRails.every(
+        (element) => element.repeatOnContinuation === false,
+    ));
 });

@@ -48,6 +48,8 @@ class PdfElement(BaseModel):
     alignWithText: Optional[bool] = None
     # Template chrome: backgrounds, frames, page numbers — not user chrome.
     fixedToPage: Optional[bool] = False
+    # False keeps first-page masthead chrome out of auto-created continuations.
+    repeatOnContinuation: Optional[bool] = True
     # Blocks user and AI layout moves/edits when true.
     locked: Optional[bool] = False
     width: Optional[float | str] = None

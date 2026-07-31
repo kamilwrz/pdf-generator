@@ -5,6 +5,7 @@
  * without committing, so the user can accept or reject the card.
  * `cloneFixedPageDecorations` copies backgrounds/page numbers onto new pages
  * when overflow creates them — page-number text is updated to the new index.
+ * Page-one-only masthead artwork opts out with `repeatOnContinuation: false`.
  */
 export function previewStructureOperation(elements, group) {
   if (!group?.remove_element_ids || !group?.add_elements) return elements;
@@ -44,6 +45,7 @@ export function cloneFixedPageDecorations(elements, firstNewPage, targetMaxPage,
         element.fixedToPage
         && (element.page ?? 1) === sourcePage
         && element.category !== "connector"
+        && element.repeatOnContinuation !== false
       ))
       .forEach((element) => {
         const isPageNumber = element.category === "text" && /^\s*\d+\s*$/.test(String(element.content || ""));

@@ -26,10 +26,18 @@ test("new continuation pages receive cloned fixed artwork and refreshed page num
   let count = 0;
   const clones = cloneFixedPageDecorations([
     { element_id: "background", category: "image", fixedToPage: true, page: 1, src: "/art.png" },
+    {
+      element_id: "masthead-rail",
+      category: "line",
+      fixedToPage: true,
+      repeatOnContinuation: false,
+      page: 1,
+    },
     { element_id: "page-number", category: "text", fixedToPage: true, page: 1, content: "1" },
   ], 2, 3, () => `clone-${++count}`);
 
   assert.equal(clones.length, 4);
+  assert.ok(clones.every((element) => element.category !== "line"));
   assert.deepEqual(clones.filter((element) => element.page === 2).map((element) => element.content), [undefined, "2"]);
   assert.deepEqual(clones.filter((element) => element.page === 3).map((element) => element.content), [undefined, "3"]);
   assert.equal(new Set(clones.map((element) => element.element_id)).size, 4);

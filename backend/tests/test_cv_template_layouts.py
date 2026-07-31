@@ -675,6 +675,49 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertGreater(max(element.get("page", 1) for element in elements), 1)
         self.assertGreaterEqual(min(element["fontSize"] for element in text_elements), 10)
         self.assertTrue({"line", "rectangle"} <= {element["category"] for element in elements})
+        section_numbers = [
+            element
+            for element in elements
+            if element["category"] == "text"
+            and element.get("color") == "#FFFFFF"
+            and element.get("fontSize") == 12
+        ]
+        self.assertEqual(
+            [element["content"] for element in section_numbers],
+            ["01", "02", "03", "04", "05"],
+        )
+        section_frames = [
+            element
+            for element in elements
+            if element["category"] == "rectangle"
+            and element.get("left") == 106
+            and element.get("width") == 251
+            and element.get("height") == 32
+        ]
+        self.assertEqual(len(section_frames), len(section_numbers))
+        self.assertTrue(all(
+            element.get("flowRole") == "section-chrome"
+            for element in section_frames + section_numbers
+        ))
+        masthead_rails = [
+            element
+            for element in elements
+            if element["category"] == "line"
+            and element.get("left") in {51, 529}
+            and element.get("height") == 111
+        ]
+        self.assertEqual({element.get("page", 1) for element in masthead_rails}, {1})
+        self.assertTrue(all(
+            element.get("repeatOnContinuation") is False
+            for element in masthead_rails
+        ))
+        selectable = [element for element in elements if not element.get("fixedToPage")]
+        self.assertTrue(all(element.get("flowRole") for element in selectable))
+        self.assertTrue(all(
+            element.get("preserveInitialLayout") is True
+            for element in selectable
+            if element["category"] == "textarea"
+        ))
         self.assertTrue(all(
             len(color) == 7
             and color[1:3] == color[3:5] == color[5:7]
