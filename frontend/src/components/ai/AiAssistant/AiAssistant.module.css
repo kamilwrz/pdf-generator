@@ -56,11 +56,6 @@
     overflow: hidden;
 }
 
-/* Let a hovered correction card peek left onto the canvas. */
-.panel:has(.corrCard:hover) {
-    overflow: visible;
-}
-
 /* ── Header ─────────────────────────────────────────────────────── */
 .header {
     display: flex;
@@ -321,10 +316,6 @@
     scroll-behavior: smooth;
 }
 
-.messages:has(.corrCard:hover) {
-    overflow: visible;
-}
-
 .emptyState {
     display: flex;
     flex-direction: column;
@@ -367,13 +358,6 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
-}
-
-.msgWrap:has(.corrCard:hover),
-.msgBubble:has(.corrCard:hover) {
-    overflow: visible;
-    position: relative;
-    z-index: 40;
 }
 
 .msgUser .msgBubble > .msgText {
@@ -464,6 +448,8 @@
     z-index: 1;
     width: 100%;
     box-sizing: border-box;
+    min-width: 0;
+    scroll-margin-block: 16px;
     background: var(--chrome-surface);
     border: 1px solid var(--chrome-border);
     border-radius: 8px;
@@ -483,11 +469,17 @@
         margin .34s var(--corr-ease),
         gap .28s var(--corr-ease);
 }
-.corrCard:hover {
+
+/*
+ * The expanded card stays in the message flow and inside `.messages`, which
+ * preserves its scroll container. Switching an ancestor to `overflow: visible`
+ * during hover makes the pointer target jump and lets the composer cover text.
+ */
+.corrCardExpanded {
     z-index: 50;
-    width: calc(100% + 48px);
-    margin-left: -48px;
-    transform: translateX(-6px) scale(1.015);
+    width: calc(100% + 14px);
+    margin-left: -14px;
+    transform: translateX(-2px) scale(1.01);
     padding: 12px 13px;
     gap: 8px;
     border-color: rgba(70, 107, 130, .34);
@@ -499,12 +491,12 @@
         0 0 0 1px rgba(70, 107, 130, .08);
 }
 .corr_accepted { border-color: var(--success); background: var(--success-soft); }
-.corr_accepted:hover {
+.corr_accepted.corrCardExpanded {
     border-color: var(--success);
     background: var(--success-soft);
 }
 .corr_rejected { opacity: .5; }
-.corr_rejected:hover {
+.corr_rejected.corrCardExpanded {
     opacity: .72;
 }
 
@@ -531,7 +523,7 @@
     min-width: 0;
     transition: gap .28s var(--corr-ease);
 }
-.corrCard:hover .diffCompare {
+.corrCardExpanded .diffCompare {
     grid-template-columns: 1fr;
     gap: 8px;
     align-items: stretch;
@@ -551,15 +543,15 @@
         border-color .3s var(--corr-ease),
         gap .3s var(--corr-ease);
 }
-.corrCard:hover .diffBlock {
+.corrCardExpanded .diffBlock {
     gap: 4px;
     padding: 8px 10px;
 }
-.corrCard:hover .diffBlock[data-side="old"] {
+.corrCardExpanded .diffBlock[data-side="old"] {
     background: rgba(210, 80, 60, .08);
     border-color: rgba(210, 80, 60, .16);
 }
-.corrCard:hover .diffBlock[data-side="new"] {
+.corrCardExpanded .diffBlock[data-side="new"] {
     background: rgba(95, 167, 119, .1);
     border-color: rgba(95, 167, 119, .18);
 }
@@ -570,7 +562,7 @@
     letter-spacing: .07em;
     text-transform: uppercase;
 }
-.corrCard:hover .diffLabel {
+.corrCardExpanded .diffLabel {
     display: inline-flex;
 }
 .diffBlock[data-side="old"] .diffLabel { color: var(--danger); }
@@ -599,8 +591,8 @@
     color: var(--success);
     font-weight: 600;
 }
-.corrCard:hover .diffOld,
-.corrCard:hover .diffNew {
+.corrCardExpanded .diffOld,
+.corrCardExpanded .diffNew {
     white-space: pre-wrap;
     overflow: visible;
     text-overflow: unset;
@@ -619,7 +611,7 @@
         height .3s var(--corr-ease),
         margin .3s var(--corr-ease);
 }
-.corrCard:hover .diffArrow {
+.corrCardExpanded .diffArrow {
     opacity: 0;
     height: 0;
     margin: 0;
@@ -632,7 +624,7 @@
     gap: 6px;
     transition: margin-top .28s var(--corr-ease);
 }
-.corrCard:hover .corrActions {
+.corrCardExpanded .corrActions {
     margin-top: 2px;
 }
 
@@ -647,8 +639,8 @@
     border: none;
     transition: filter .15s, transform .15s;
 }
-.corrCard:hover .corrAccept,
-.corrCard:hover .corrReject {
+.corrCardExpanded .corrAccept,
+.corrCardExpanded .corrReject {
     padding: 5px 9px;
 }
 .corrAccept { background: var(--success-soft); color: var(--success); }

@@ -67,16 +67,51 @@ function correctionFieldLabel(field) {
 
 /**
  * Review card for grammar/style/improve patches.
- * Collapsed by default; hover expands the card, stacks Przed/Po, and peeks
- * slightly out of the chat so both versions stay readable.
+ * Collapsed by default; pointer or keyboard focus expands the full Przed/Po
+ * comparison in the chat's scroll context, so the composer cannot cover it.
  */
 function CorrectionCard({ msgId, patch, correctionStates, onAccept, onReject, A4_Elements }) {
+    const cardRef = useRef(null);
+    const [isExpanded, setIsExpanded] = useState(false);
     const { element_id, ...fields } = patch;
     const el = A4_Elements.find(e => e.element_id === element_id);
     const state = correctionStates[`${msgId}_${element_id}`] || "pending";
 
+    const expandForPointer = () => {
+        setIsExpanded(true);
+
+        // Keep the expanded card inside the chat's scroll area rather than
+        // moving it into a detached overlay. Waiting for the next frame lets
+        // the browser calculate the full Przed/Po height before scrolling.
+        requestAnimationFrame(() => {
+            const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+            cardRef.current?.scrollIntoView({
+                block: "nearest",
+                inline: "nearest",
+                behavior: reduceMotion ? "auto" : "smooth",
+            });
+        });
+    };
+
+    const collapseAfterPointerLeaves = () => {
+        setIsExpanded(false);
+    };
+
+    const collapseAfterFocusLeaves = (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+            setIsExpanded(false);
+        }
+    };
+
     return (
-        <div className={`${classes.corrCard} ${classes[`corr_${state}`]}`}>
+        <div
+            ref={cardRef}
+            className={`${classes.corrCard} ${classes[`corr_${state}`]} ${isExpanded ? classes.corrCardExpanded : ""}`}
+            onPointerEnter={expandForPointer}
+            onPointerLeave={collapseAfterPointerLeaves}
+            onFocus={() => setIsExpanded(true)}
+            onBlur={collapseAfterFocusLeaves}
+        >
             {Object.entries(fields).map(([field, newVal]) => {
                 const oldVal = String(el?.[field] ?? "–");
                 const nextVal = String(newVal ?? "–");

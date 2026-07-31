@@ -262,7 +262,7 @@ function TestimonialCard({ item, index }) {
                 aria-hidden="true"
             >
                 <path d="M9.5 6C6.5 6 4 8.7 4 12.2c0 3 1.9 5 4.4 5 1.9 0 3.4-1.4 3.4-3.3 0-1.8-1.3-3.1-3-3.1-.3 0-.6 0-.8.1.3-2 2-3.5 4.2-3.7L11.8 6H9.5zm10 0c-3 0-5.5 2.7-5.5 6.2 0 3 1.9 5 4.4 5 1.9 0 3.4-1.4 3.4-3.3 0-1.8-1.3-3.1-3-3.1-.3 0-.6 0-.8.1.3-2 2-3.5 4.2-3.7L21.8 6h-2.3z" />
-            </svg>
+    </svg>
             <p className={item.featured ? classes.testimonialTextFeatured : classes.testimonialText}>{item.text}</p>
             <div className={classes.testimonialAuthor}>
                 <span className={classes.testimonialAvatar} style={{ background: item.color }} />
@@ -491,17 +491,17 @@ export default function Hero() {
                     <div className={classes.brand}>
                         <span className={classes.brandMark}><img src="/kompoza-logo2.png" alt="" /></span>
                         <span className={classes.brandName}>CV STUDIO</span>
-                    </div>
-                    <div className={classes.navLinks}>
+                </div>
+                <div className={classes.navLinks}>
                         <a href="#funkcje" className={`${classes.navLink} ${classes.navLinkActive}`}>Funkcje</a>
                         <a href="#cennik" className={classes.navLink}>Cennik</a>
                         <a href="#szablony" className={classes.navLink}>Szablony</a>
                         <Link to="/login" className={classes.navLink}>Zaloguj się</Link>
                         <Link to="/register" className={classes.navCta}>Rozpocznij za darmo</Link>
-                    </div>
-                </nav>
+                </div>
+            </nav>
 
-                <div className={classes.hero}>
+            <div className={classes.hero}>
                     <div className={classes.heroInner}>
                         <h1 className={classes.heading} aria-label={HEADING_TEXT}>
                             <span aria-hidden="true">
@@ -510,55 +510,55 @@ export default function Hero() {
                                 {postText}
                                 {!typingDone && <span className={classes.cursor}>|</span>}
                             </span>
-                        </h1>
+                    </h1>
                         <p className={`${classes.subheading} ${typingDone ? classes.revealed : ""}`}>
                             28 szablonów branżowych, intuicyjny edytor A4 i AI, które pomoże Ci opisać doświadczenie. Od pustej strony do gotowej aplikacji.
-                        </p>
+                    </p>
                         <div className={`${classes.ctaRow} ${typingDone ? classes.revealed : ""}`}>
-                            <Link to="/register" className={classes.primaryCta}>
+                        <Link to="/register" className={classes.primaryCta}>
                                 Zacznij projektować
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F1216" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
-                            </Link>
+                        </Link>
                             <a href="#funkcje" className={classes.secondaryCta}>
                                 Zobacz, jak działa
                             </a>
-                        </div>
                     </div>
+                </div>
 
                     {/* Decorative product mockup filling the empty right-hand space */}
                     <div className={classes.heroVisual} aria-hidden="true">
-                        <div className={classes.window}>
-                            <div className={classes.windowBar}>
+                    <div className={classes.window}>
+                        <div className={classes.windowBar}>
                                 <span className={classes.dot} style={{ background: "#E88A73" }} />
                                 <span className={classes.dot} style={{ background: "#E5A65C" }} />
                                 <span className={classes.dot} style={{ background: "#6FBF8E" }} />
                                 <span className={classes.windowFile}>cv-regent.pdf</span>
-                            </div>
-                            <div className={classes.windowBody}>
-                                <div className={classes.windowRail}>
+                        </div>
+                        <div className={classes.windowBody}>
+                            <div className={classes.windowRail}>
                                     <div className={classes.railActive} />
                                     <div className={classes.railItem} />
                                     <div className={classes.railItem} />
                                     <div className={classes.railItem} />
-                                </div>
-                                <div className={classes.windowCanvas}>
-                                    <div className={classes.miniPage}>
-                                        <div className={classes.miniBanner} />
+                            </div>
+                            <div className={classes.windowCanvas}>
+                                <div className={classes.miniPage}>
+                                    <div className={classes.miniBanner} />
                                         <div className={classes.miniLine} style={{ width: "82%" }} />
                                         <div className={classes.miniLineSm} style={{ width: "60%" }} />
-                                        <div className={classes.miniBar} style={{ width: "100%" }} />
-                                        <div className={classes.miniBar} style={{ width: "92%" }} />
-                                        <div className={classes.miniBar} style={{ width: "96%" }} />
-                                    </div>
+                                    <div className={classes.miniBar} style={{ width: "100%" }} />
+                                    <div className={classes.miniBar} style={{ width: "92%" }} />
+                                    <div className={classes.miniBar} style={{ width: "96%" }} />
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div className={classes.floatCard}>
-                            <span className={classes.floatIcon}>
+                    <div className={classes.floatCard}>
+                        <span className={classes.floatIcon}>
                                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6FBF8E" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-                            </span>
-                            <div>
+                        </span>
+                        <div>
                                 <div className={classes.floatTitle}>PDF gotowy</div>
                                 <div className={classes.floatSub}>248 kB · 2 strony</div>
                             </div>
