@@ -1184,6 +1184,40 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 for element in elements
             ))
 
+    def test_banded_mastheads_clear_first_section_heading(self):
+        """Body copy must start below solid header bands (Cinder/Raven/Ledger)."""
+        from app.services.cv_generator_primitives import SPACE_SECTION
+
+        cases = {
+            # template_id: (band_top, band_height) of the solid masthead fill
+            "cinder": (0, 170),
+            "raven": (0, 173),  # 170 band + 3px teal rule
+            "ledger": (0, 151),  # 146 navy + 5px accent
+        }
+        cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"][:1],
+        }
+        for template_id, (band_top, band_height) in cases.items():
+            with self.subTest(template_id=template_id):
+                elements = generate_resume(template_id, cv)
+                heading = next(
+                    element
+                    for element in elements
+                    if element.get("category") == "text"
+                    and element.get("content") == "PODSUMOWANIE ZAWODOWE"
+                    and element.get("page", 1) == 1
+                )
+                band_bottom = band_top + band_height
+                self.assertGreaterEqual(
+                    heading["top"],
+                    band_bottom + SPACE_SECTION - 0.01,
+                    msg=(
+                        f"{template_id}: first section at y={heading['top']} "
+                        f"overlaps masthead ending at y={band_bottom}"
+                    ),
+                )
+
     def test_signal_banking_template_is_multpage_canvas_layout(self):
         multi_page_cv = {
             **LONG_CV,

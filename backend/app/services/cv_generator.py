@@ -832,8 +832,8 @@ def _gen_ledger(cv: dict) -> list[dict]:
     static[6]["letterSpacing"] = 1.05
 
     SECTION_CHROME = section_chrome_height(8.4)
-    # Contact sits near y=120; start the first section soon after.
-    b = Builder(158)
+    # Navy band + accent rule end at y=151; clear before the first section.
+    b = Builder(151 + SPACE_SECTION)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -1072,8 +1072,9 @@ def _gen_cinder(cv: dict) -> list[dict]:
     ]
     header[3]["letterSpacing"] = 1.65
     SECTION_CHROME = section_chrome_height(8.7)
-    # Masthead band is 170px; start body just below it.
-    b = Builder(168)
+    # Black masthead band occupies y=0..170. Keep SPACE_SECTION clearance so the
+    # first heading never sits on the decorative edge (was 168 → overlap).
+    b = Builder(170 + SPACE_SECTION)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -1198,8 +1199,8 @@ def _gen_rift(cv: dict) -> list[dict]:
     ]
     header[1]["letterSpacing"] = 1.7
     SECTION_CHROME = section_chrome_height(8.7)
-    # Nodes sit near y=158–171; keep a short breath before body copy.
-    b = RiftBuilder(168)
+    # Accent nodes occupy y=158..171 in the content column — clear below them.
+    b = RiftBuilder(171 + SPACE_SECTION)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -1356,7 +1357,8 @@ def _gen_monument(cv: dict) -> list[dict]:
     ]
     header[1]["letterSpacing"] = 1.1
 
-    b = MonumentBuilder(162)
+    # Contact block ends near y=152; keep a section-sized breath before chrome.
+    b = MonumentBuilder(152 + SPACE_SECTION)
     section_number = 0
 
     def section(label: str) -> None:
@@ -1994,8 +1996,8 @@ def _gen_raven(cv: dict) -> list[dict]:
     ]
     header[4]["letterSpacing"] = 1.65
     SECTION_CHROME = section_chrome_height(8.7)
-    # Masthead band ends at 173; start body just below the teal rule.
-    b = Builder(168)
+    # Band y=0..170 + teal rule to 173. Clear the chrome before body copy.
+    b = Builder(173 + SPACE_SECTION)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
