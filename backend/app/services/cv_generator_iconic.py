@@ -10,6 +10,8 @@ from __future__ import annotations
 from app.core.config import BACKEND_URL
 from app.services.cv_data import fold_section_label
 from app.services.cv_generator import (
+    SPACE_AFTER_HEADER_RULE,
+    SPACE_AFTER_MASTHEAD,
     SPACE_AFTER_RULE,
     SPACE_RECORD,
     SPACE_SECTION,
@@ -138,7 +140,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
             header.append(_text(value, contact_fs, SANS, C["mute"], x + 16, 118, zIndex=3))
             x += max(120.0, 16 + len(value) * 5.2)
         header.append(_line(48, 144, 499, 1, C["rule"], zIndex=2))
-        start_y = 162.0
+        start_y = 145.0 + SPACE_AFTER_HEADER_RULE
 
     elif C["layout"] == "ridge":
         contact_fs, contact_icon = 8.3, 11.0
@@ -154,7 +156,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
             header.append(_icon_beside(ICON, key, 56, y, contact_fs, contact_icon))
             header.append(_text(value, contact_fs, SANS, C["mute"], 72, y, zIndex=3))
             y += 18
-        start_y = y + 14
+        start_y = y + SPACE_AFTER_MASTHEAD
 
     elif C["layout"] == "loom":
         light = "loom-light"
@@ -261,7 +263,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
                 x + 6 + contact_icon + 6, text_top, zIndex=3,
             ))
             x += width + 8
-        start_y = 155.0
+        start_y = chip_top + chip_h + SPACE_AFTER_MASTHEAD
 
     b = Builder(start_y)
     label_fs = 8.5 if C["layout"] != "volt" else 8.4

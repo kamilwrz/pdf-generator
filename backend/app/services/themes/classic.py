@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from app.services.cv_generator import (
     CONTENT_BOTTOM,
+    SPACE_AFTER_HEADER_RULE,
     SPACE_AFTER_RULE,
     SPACE_RECORD,
     SPACE_SECTION,
@@ -37,23 +38,23 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
         "scribe": {
             "paper": "#FBFAF6", "ink": "#1C2B3A", "accent": "#34516A",
             "muted": "#687782", "rule": "#C7CBC7",
-            # Header rule ~157; SPACE_SECTION clearance before first body heading.
-            "left": 94, "width": 429, "start": 157 + SPACE_SECTION, "continuation": 66,
+            # Header rule at y=157; masthead clearance before first body heading.
+            "left": 94, "width": 429, "start": 157 + SPACE_AFTER_HEADER_RULE, "continuation": 66,
         },
         "regent": {
             "paper": "#FCFBF8", "ink": "#24201E", "accent": "#733B43",
             "muted": "#756F6B", "rule": "#BFB4AA",
-            "left": 113, "width": 386, "start": 158 + SPACE_SECTION, "continuation": 66,
+            "left": 113, "width": 386, "start": 158 + SPACE_AFTER_HEADER_RULE, "continuation": 66,
         },
         "aldine": {
             "paper": "#F8F4EC", "ink": "#2A3028", "accent": "#486151",
             "muted": "#79776E", "rule": "#D7CCB8",
-            "left": 116, "width": 384, "start": 157 + SPACE_SECTION, "continuation": 66,
+            "left": 116, "width": 384, "start": 157 + SPACE_AFTER_HEADER_RULE, "continuation": 66,
         },
         "merit": {
             "paper": "#FAFAF8", "ink": "#262A31", "accent": "#4F6679",
             "muted": "#7F909C", "rule": "#CED4D5",
-            "left": 102, "width": 418, "start": 159 + SPACE_SECTION, "continuation": 66,
+            "left": 102, "width": 418, "start": 159 + SPACE_AFTER_HEADER_RULE, "continuation": 66,
         },
     }
     if theme not in themes:

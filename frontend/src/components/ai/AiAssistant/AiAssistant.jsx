@@ -73,7 +73,7 @@ const LAYOUT_SUGGESTIONS = [
         label: "Sprawdź odstępy między sekcjami",
         prompt: (
             "Sprawdź odstępy między końcem jednej sekcji a następnym nagłówkiem. "
-            + "Preferuj layout_contract.spacing_px.section (ok. 12 px). Odstęp między "
+            + "Preferuj layout_contract.spacing_px.section (ok. 15 px). Odstęp między "
             + "sekcjami ma być wyraźnie większy niż wewnątrz wpisu. Zaproponuj "
             + "najmniejsze ruchy, które ujednolicą rytm."
         ),

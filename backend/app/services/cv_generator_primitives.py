@@ -22,17 +22,19 @@ CONTENT_BOTTOM = A4_H - MARGIN_BOTTOM  # 746
 #   section → record (block) → stack (elements inside a record).
 # Keep these equal within each level so X/Y placement reads as one pattern.
 #
-# Tuned for denser one-page packing: the previous 14/18/12 trio left large
-# dead bands between sections so short extras (skills / languages) often
-# spilled onto a nearly empty page 2. Stack stays at 4 so record internals
-# remain readable.
+# Tuned for denser one-page packing than the old 14/18/12 trio, while keeping
+# section breaks readable. Canvas spacing guides measure glyph ink, not the
+# full textarea line-box — so SPACE_SECTION must be a few px above the target
+# visual gap (15 authored ≈ ~10px ink-to-ink on section boundaries).
 SPACE_STACK = 4       # title → meta → body inside one record
 SPACE_RECORD = 10     # between records in the same section
-SPACE_SECTION = 12    # after a finished section before the next heading
+SPACE_SECTION = 15    # after a finished section before the next heading
 SPACE_AFTER_RULE = 8  # section heading rule → first content block
-# Solid masthead bands (Cinder/Raven/Ledger) need more air than SPACE_SECTION:
-# a 12px gap under a 170px block reads as "crushed onto the chrome".
-SPACE_AFTER_MASTHEAD = 28
+# Clearance from masthead chrome to the first section heading. Authored box
+# gaps; canvas ink guides read a few px tighter. Keep every template in the
+# ~25–45 px visual band under the header (solid band vs thin divider).
+SPACE_AFTER_MASTHEAD = 32      # solid header bands (Cinder/Raven/Ledger/Rift)
+SPACE_AFTER_HEADER_RULE = 36   # thin divider under name/contact mastheads
 
 
 def section_chrome_height(label_fs: float) -> float:

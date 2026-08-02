@@ -808,10 +808,10 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertEqual(projects_heading.get("page", 1), 1)
         self.assertEqual(first_project.get("page", 1), 1)
         # Heading must sit directly under experience, not after a large dead band.
-        # SPACE_SECTION (12) is the intended rhythm; anything much larger means
+        # SPACE_SECTION (15) is the intended rhythm; anything much larger means
         # the section was incorrectly deferred as one oversized block.
         gap = projects_heading["top"] - last_bottom
-        self.assertLess(gap, 36)
+        self.assertLess(gap, 40)
 
     def test_words_uses_word_document_rhythm_without_decorative_frames(self):
         elements = generate_resume("words", {
@@ -1216,6 +1216,71 @@ class CvTemplateLayoutTests(unittest.TestCase):
                         f"{template_id}: first section at y={heading['top']} "
                         f"needs >= {SPACE_AFTER_MASTHEAD}px under masthead "
                         f"ending at y={band_bottom}"
+                    ),
+                )
+
+    def test_header_rule_mastheads_clear_first_section_heading(self):
+        """Thin masthead dividers leave 25–45 px before the first section."""
+        # template_id → y of the wide header divider (top of 1px rule)
+        cases = {
+            "nimbus": 207,
+            "scribe": 157,
+            "regent": 158,
+            "aldine": 157,
+            "merit": 159,
+            "moss": 145,
+            "nova": 144,
+            "obsidian": 116,
+            "graphite": None,  # hairline is measured from the generated layout
+            "words": None,
+        }
+        cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"][:1],
+        }
+        for template_id, rule_top in cases.items():
+            with self.subTest(template_id=template_id):
+                elements = generate_resume(template_id, cv)
+                heading = next(
+                    element
+                    for element in elements
+                    if element.get("category") == "text"
+                    and element.get("content") == "PODSUMOWANIE ZAWODOWE"
+                    and element.get("page", 1) == 1
+                )
+                if rule_top is None:
+                    divider = max(
+                        (
+                            float(element["top"]) + float(element.get("height", 0))
+                            for element in elements
+                            if element.get("category") == "line"
+                            and element.get("page", 1) == 1
+                            and float(element.get("width", 0)) >= 250
+                            and float(element.get("height", 0)) <= 1
+                            and float(element["top"]) < heading["top"]
+                            and float(element["top"]) > 40
+                        ),
+                        default=None,
+                    )
+                    self.assertIsNotNone(divider, msg=f"{template_id}: missing header rule")
+                    rule_bottom = divider
+                else:
+                    rule_bottom = rule_top + 1
+                gap = heading["top"] - rule_bottom
+                self.assertGreaterEqual(
+                    gap,
+                    25.0,
+                    msg=(
+                        f"{template_id}: gap {gap:.1f}px under header rule "
+                        f"ending at y={rule_bottom} is below the 25px band"
+                    ),
+                )
+                self.assertLessEqual(
+                    gap,
+                    45.0,
+                    msg=(
+                        f"{template_id}: gap {gap:.1f}px under header rule "
+                        "exceeds the 45px upper band"
                     ),
                 )
 

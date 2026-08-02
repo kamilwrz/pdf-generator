@@ -33,6 +33,7 @@ from app.services.cv_generator_primitives import (  # noqa: F401
     CONTENT_BOTTOM,
     MARGIN_BOTTOM,
     PAGE_TOP,
+    SPACE_AFTER_HEADER_RULE,
     SPACE_AFTER_MASTHEAD,
     SPACE_AFTER_RULE,
     SPACE_RECORD,
@@ -961,8 +962,8 @@ def _gen_nimbus(cv: dict) -> list[dict]:
     ]
     static[6]["letterSpacing"] = 1.5
 
-    # Header rail ends near y=207; keep a short breath before the first section.
-    b = NimbusBuilder(220)
+    # Header rail at y=207; masthead clearance before the first section heading.
+    b = NimbusBuilder(208 + SPACE_AFTER_HEADER_RULE)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -1358,8 +1359,8 @@ def _gen_monument(cv: dict) -> list[dict]:
     ]
     header[1]["letterSpacing"] = 1.1
 
-    # Contact block ends near y=152; keep a section-sized breath before chrome.
-    b = MonumentBuilder(152 + SPACE_SECTION)
+    # Contact block ends near y=152; masthead clearance before first chrome.
+    b = MonumentBuilder(152 + SPACE_AFTER_MASTHEAD)
     section_number = 0
 
     def section(label: str) -> None:
@@ -1604,8 +1605,8 @@ def _gen_moss(cv: dict) -> list[dict]:
     static[1]["letterSpacing"] = 1.45
     contact_label["letterSpacing"] = 1.2
 
-    # Header rule ends at 145; body starts immediately below.
-    b = SidebarBuilder(145)
+    # Header rule at y=145; body starts after masthead clearance.
+    b = SidebarBuilder(145 + SPACE_AFTER_HEADER_RULE)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -1895,7 +1896,8 @@ def _gen_obsidian(cv: dict) -> list[dict]:
     if "skills" not in placed_keys:
         place_bulleted_section(lbl["skills"], skills, "skills")
 
-    b = Builder(148)
+    # Main-column header rule ends at y=117; clear before first section.
+    b = Builder(117 + SPACE_AFTER_HEADER_RULE)
 
     def section(label: str) -> None:
         b.need(34)
@@ -2103,7 +2105,7 @@ def _gen_graphite(cv: dict) -> list[dict]:
     b.text(_compact_text(cv.get("name"), 34), 32, SERIF, INK, L, bold=True); b.gap(4)
     b.text(_compact_text(cv.get("title"), 52), 12, SANS, SILVER, L, italic=True); b.gap(4)
     b.text(_compact_text(_contact_line(cv), 82), 9, SANS, MUTED, L); b.gap(10)
-    b.line(L, W, 0.5, HAIRLINE); b.gap(24)
+    b.line(L, W, 0.5, HAIRLINE); b.gap(SPACE_AFTER_HEADER_RULE)
 
     def section(label: str) -> None:
         b.need(38)
@@ -2389,7 +2391,7 @@ def _gen_words(cv: dict) -> list[dict]:
         _line(94, divider_top, 429, 1, C["rule"], zIndex=2),
     ]
 
-    b = WordsBuilder(divider_top + 16)
+    b = WordsBuilder(divider_top + SPACE_AFTER_HEADER_RULE)
 
     def section(label: str) -> None:
         """

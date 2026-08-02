@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from app.core.config import BACKEND_URL
 from app.services.cv_generator import (
+    SPACE_AFTER_MASTHEAD,
     SPACE_AFTER_RULE,
     SPACE_RECORD,
     SPACE_SECTION,
@@ -37,22 +38,24 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
     themes = {
         "vector": {
             "asset": "vector-it-network.png",
-            # Contact ends ~y=131; SPACE_SECTION(12) → first heading at 143.
-            "left": 160, "width": 365, "start": 143, "continuation": 72,
+            # Contact ~y=119; accent rail ends ~148. Masthead air before body.
+            "left": 160, "width": 365, "start": 148 + SPACE_AFTER_MASTHEAD, "continuation": 72,
             "ink": "#FFFFFF", "body": "#DCEBFA", "muted": "#95AFC5",
             "accent": "#26D8FF", "marker": "#B8EF4A", "rule": "#3C6682",
             "font": "Inter", "display": "Times-Roman",
         },
         "kernel": {
             "asset": "kernel-it-architecture.png",
-            "left": 167, "width": 355, "start": 145, "continuation": 72,
+            # Accent rail ends ~152.
+            "left": 167, "width": 355, "start": 152 + SPACE_AFTER_MASTHEAD, "continuation": 72,
             "ink": "#173A76", "body": "#253D54", "muted": "#526A83",
             "accent": "#2462B7", "marker": "#D69B22", "rule": "#ACC5D8",
             "font": "Inter", "display": "Times-Roman",
         },
         "relay": {
             "asset": "relay-it-signal.png",
-            "left": 192, "width": 340, "start": 143, "continuation": 72,
+            # Accent rail ends ~149.
+            "left": 192, "width": 340, "start": 149 + SPACE_AFTER_MASTHEAD, "continuation": 72,
             "ink": "#F7F6F1", "body": "#F7F6F1", "muted": "#92989C",
             "accent": "#F47B20", "marker": "#EE2525", "rule": "#596065",
             "font": "Inter", "display": "Inter",
