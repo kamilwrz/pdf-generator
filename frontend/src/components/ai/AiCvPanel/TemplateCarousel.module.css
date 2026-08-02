@@ -1,0 +1,161 @@
+/*
+ * Endless-loop template gallery (see TemplateCarousel.jsx). Cards are plain
+ * flex items — the track intentionally has no `overflow: hidden` so the
+ * hover-scale growth on a card is never clipped by its neighbors; enter/exit
+ * animations fade+scale in place instead of sliding in from off-screen, so
+ * clipping was never needed for that either. `overflow-x: auto` on the track
+ * is a fallback only, for viewports too narrow to fit every visible card
+ * even at its minimum clamped width — the arrows remain the primary
+ * navigation.
+ */
+
+.carousel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.navBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 2px;
+    border: 1px solid var(--chrome-border);
+    background: var(--chrome-control);
+    color: var(--chrome-ink);
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+}
+
+.navBtn:hover {
+    background: var(--chrome-hover);
+    border-color: var(--chrome-accent);
+    color: var(--chrome-accent);
+}
+
+.track {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 24px;
+    padding: 6px 4px 14px;
+    overflow-x: auto;
+}
+
+.card {
+    flex: 0 0 auto;
+    width: clamp(130px, 16vw, 210px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.card:disabled {
+    cursor: not-allowed;
+}
+
+.imgWrap {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 210 / 297;
+    border-radius: 2px;
+    border: 1px solid var(--chrome-border);
+    overflow: hidden;
+    background: var(--chrome-control);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, .22);
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.card:hover:not(:disabled) .imgWrap,
+.card:focus-visible .imgWrap {
+    border-color: var(--chrome-accent);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, .32);
+}
+
+.card:disabled .imgWrap {
+    opacity: .5;
+}
+
+.img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+}
+
+.lockBadge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font: 700 9px var(--font-body);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--on-accent);
+    background: var(--accent-grad);
+    border-radius: 2px;
+    padding: 3px 6px;
+}
+
+.fillingOverlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 12, 16, .55);
+}
+
+/* `spin` is defined globally in src/index.css (Vite's CSS Modules setup does
+   not scope @keyframes names), matching every other spinner in this app. */
+.spinner {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    border: 2.5px solid rgba(255, 255, 255, .3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+}
+
+.label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.name {
+    font: 600 14px var(--font-body);
+    color: var(--chrome-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .imgWrap {
+        transition: none;
+    }
+}

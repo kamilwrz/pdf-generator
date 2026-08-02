@@ -11,13 +11,10 @@
  *
  * Layout: `.wrap` fills DialogShell's scrollable body (height: 100%) as a
  * single flex column. Step 1 (dropzone) and the extracted-CV summary keep
- * their natural height (`flex-shrink: 0`) and never scroll. Only the step-2
- * template area (`.sectionFlex`) grows to absorb the remaining space, and
- * inside it only `.templateGrid` scrolls internally (`overflow-y: auto` with
- * `min-height: 0`, the standard fix that lets a flex child shrink below its
- * content size instead of forcing its container to grow past the viewport).
- * This guarantees exactly one scrollbar — the template list — instead of an
- * outer dialog scroll stacked on top of the list's own inner scroll.
+ * their natural height (`flex-shrink: 0`) and never scroll. The step-2
+ * container (`.sectionFlex`) grows to absorb any remaining space around the
+ * template gallery (see TemplateCarousel.jsx / .module.css for the gallery
+ * itself, including its own endless-loop and hover-enlarge behavior).
  */
 
 .wrap {
@@ -61,9 +58,9 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    /* Default flex-item behavior is shrinkable; step 1 must keep its full
-       readable size even when step 2's template list is long, so it never
-       competes with .templateGrid for the space that should be scrolled. */
+    /* Default flex-item behavior is shrinkable; step 1 (dropzone) and the
+       extracted-CV summary must keep their full readable size regardless of
+       how much room the step-2 template gallery ends up needing. */
     flex-shrink: 0;
 }
 
@@ -208,132 +205,6 @@
 }
 .reExtract:hover { text-decoration: underline; }
 
-/*
- * Step 2: hover mockup (left) + template list (right). `.templatePicker`
- * fills whatever room `.sectionFlex` has left (flex: 1) instead of demanding
- * a fixed 360px — that fixed value was taller than many viewports could give
- * the whole dialog, forcing DialogShell's own body to scroll in addition to
- * `.templateGrid`'s internal scroll (two nested scrollbars). `.mockupPane`
- * has no min-height of its own: `align-self: center` plus its intrinsic
- * A4-ratio image content already gives it a natural floor (~340px) without
- * hard-coding one, so the fixed mockup and the scrollable list share space
- * correctly at any dialog height.
- */
-.templatePicker {
-    display: flex;
-    align-items: stretch;
-    gap: 28px;
-    flex: 1;
-    min-height: 0;
-}
-
-.mockupPane {
-    flex: 0 0 260px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    align-self: center;
-}
-
-.mockupFrame {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    opacity: 0;
-    transition: opacity 180ms ease;
-}
-
-.mockupFrameVisible {
-    opacity: 1;
-}
-
-.mockupImg {
-    display: block;
-    width: 226px;
-    height: auto;
-    aspect-ratio: 210 / 297;
-    object-fit: cover;
-    object-position: top center;
-    border-radius: 2px;
-    border: 1px solid var(--chrome-border);
-    box-shadow: 0 14px 36px rgba(0, 0, 0, .28);
-    background: var(--chrome-control);
-}
-
-.mockupCaption {
-    font: 600 13px var(--font-body);
-    color: var(--chrome-muted);
-}
-
-.mockupPlaceholder {
-    margin: 0;
-    max-width: 210px;
-    text-align: center;
-    font: 500 13px var(--font-body);
-    color: var(--chrome-muted);
-    line-height: 1.4;
-}
-
-.templateGrid {
-    flex: 1;
-    min-width: 0;
-    /* min-height: 0 overrides the flex-item default (min-height: auto),
-       which would otherwise refuse to shrink below the list's full content
-       height and defeat overflow-y: auto — this, not a fixed max-height, is
-       what makes the list (and only the list) the thing that scrolls. */
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    overflow-y: auto;
-    padding-right: 4px;
-}
-
-.templateCard {
-    display: flex;
-    align-items: center;
-    gap: 13px;
-    width: 100%;
-    padding: 14px 16px;
-    border: 1px solid var(--chrome-border);
-    border-radius: 2px;
-    background: var(--primary-bg);
-    cursor: pointer;
-    text-align: left;
-    transition: border-color .15s, background .15s;
-}
-
-.templateCard:hover:not(:disabled),
-.templateCardHot:not(:disabled) {
-    border-color: var(--chrome-accent);
-    background: var(--chrome-hover);
-}
-
-.templateCard:disabled {
-    opacity: .6;
-    cursor: not-allowed;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .mockupFrame {
-        transition: none;
-    }
-}
-
-.dot {
-    width: 11px;
-    height: 11px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.tName {
-    flex: 1;
-    font: 600 15px var(--font-body);
-    color: var(--chrome-ink);
-}
-
 .hint {
     font: 500 13px var(--font-body);
     color: var(--chrome-muted);
@@ -353,11 +224,6 @@
     flex-shrink: 0;
 }
 
-.templateCard .spinner {
-    border-color: rgba(28, 36, 48,.15);
-    border-top-color: var(--chrome-accent);
-}
-
 /* Error */
 .error {
     margin: 20px 32px;
@@ -367,22 +233,4 @@
     background: var(--danger-soft);
     border-radius: 2px;
     border: 1px solid rgba(232, 138, 115, .35);
-}
-
-/*
- * The dialog clamps to the viewport (max-width: 100%), so below ~1000px the
- * mockup + grid split no longer has room; stack them so the picker keeps its
- * scaled-up type instead of crushing into a narrow column.
- */
-@media only screen and (max-width: 1000px) {
-    .templatePicker {
-        flex-direction: column;
-        min-height: 0;
-    }
-
-    .mockupPane {
-        flex-basis: auto;
-        min-height: 0;
-        padding: 8px 0 4px;
-    }
 }

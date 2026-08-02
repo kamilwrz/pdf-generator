@@ -1,7 +1,8 @@
 /**
  * “Import CV PDF → pick template” dialog.
  * Extract is entitlement-gated; fill uses deterministic backend layout.
- * Step 2 shows a hover mockup of the pointed template (left, opacity fade).
+ * Step 2 is an endless-loop template gallery (TemplateCarousel) — hovering a
+ * card enlarges it in place rather than driving a separate preview pane.
  */
 import { useRef, useState, useCallback, use, useMemo } from "react";
 import classes from "./AiCvPanel.module.css";
@@ -10,8 +11,8 @@ import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { TEMPLATES } from "../../../templates";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
 import { isTemplateAllowed, planErrorMessage } from "../../../utils/entitlements";
-import { useTemplateMockupPreview } from "../../../hooks/useTemplateMockupPreview";
 import DialogShell from "../../common/DialogShell/DialogShell";
+import TemplateCarousel from "./TemplateCarousel";
 
 const UploadIcon = () => (
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-accent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -39,10 +40,6 @@ export default function AiCvPanel() {
     const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
     const canExtract = Boolean(entitlements?.extract_cv);
     const extracted = Boolean(cvData?.name);
-    const { previewId, previewVisible, showTemplatePreview } = useTemplateMockupPreview({
-        active: Boolean(isAiPanel && extracted),
-    });
-    const previewTemplate = cvTemplates.find((t) => t.id === previewId);
 
     const api = useMemo(
         () => new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` }),
@@ -210,52 +207,12 @@ export default function AiCvPanel() {
                 <div className={classes.sectionLabel}>Krok 2 · Wybierz szablon do wypełnienia</div>
                 {extracted ? (
                     cvTemplates.length > 0 ? <>
-                        <div
-                            className={classes.templatePicker}
-                            onMouseLeave={() => showTemplatePreview(null)}
-                        >
-                            <div className={classes.mockupPane} aria-hidden={!previewId}>
-                                {previewId ? (
-                                    <div
-                                        className={`${classes.mockupFrame} ${previewVisible ? classes.mockupFrameVisible : ""}`}
-                                    >
-                                        <img
-                                            key={previewId}
-                                            className={classes.mockupImg}
-                                            src={`/template-mockups/${previewId}.png`}
-                                            alt=""
-                                            loading="lazy"
-                                        />
-                                        {previewTemplate && (
-                                            <span className={classes.mockupCaption}>{previewTemplate.name}</span>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <p className={classes.mockupPlaceholder}>Najedź na szablon, aby zobaczyć podgląd</p>
-                                )}
-                            </div>
-                            <div className={classes.templateGrid}>
-                                {cvTemplates.map(t => {
-                                    const locked = !isTemplateAllowed(t, entitlements);
-                                    return (
-                                        <button
-                                            key={t.id}
-                                            type="button"
-                                            className={`${classes.templateCard} ${previewId === t.id ? classes.templateCardHot : ""}`}
-                                            onClick={() => handleFill(t)}
-                                            onMouseEnter={() => showTemplatePreview(t.id)}
-                                            onFocus={() => showTemplatePreview(t.id)}
-                                            disabled={fillingId !== null || locked}
-                                            title={locked ? "Dostępne w planie Standard" : undefined}
-                                        >
-                                            <span className={classes.dot} style={{ background: t.accent }} />
-                                            <span className={classes.tName}>{t.name}</span>
-                                            {fillingId === t.id && <span className={classes.spinner} />}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                        <TemplateCarousel
+                            templates={cvTemplates}
+                            entitlements={entitlements}
+                            fillingId={fillingId}
+                            onSelect={handleFill}
+                        />
                         <p className={classes.hint}>
                             Możesz wypełnić wiele szablonów bez ponownego przesyłania pliku.
                             Każdy otworzy się na płótnie do natychmiastowej edycji.

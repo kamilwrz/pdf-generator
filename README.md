@@ -459,17 +459,26 @@ Implementation:
 - `backend/app/api/routes/ai.py`, `extract_cv`
 - `backend/app/services/cv_data.py`, `normalize_cv_data` (line 585+)
 
-### Template hover mockups (import + bio wizard)
+### Template hover mockups (bio wizard)
 
-After PDF extract (step 2 of **Wypełnij z mojego CV**) and on the bio wizard **Podsumowanie** step, hovering or focusing a template shows that template’s A4 mockup on the **left**, vertically centered. Moving to another template fades out (`opacity` 1→0), swaps `/template-mockups/{id}.png`, then fades in (0→1). Leaving the picker fades the preview out. Shared fade logic lives in one hook so both dialogs stay in sync. The same PNG assets are used by the Hero gallery and `TemplatesModal`.
+On the bio wizard **Podsumowanie** step, hovering or focusing a template shows that template’s A4 mockup on the **left**, vertically centered. Moving to another template fades out (`opacity` 1→0), swaps `/template-mockups/{id}.png`, then fades in (0→1). Leaving the picker fades the preview out. The same PNG assets are used by the Hero gallery, `TemplatesModal`, and the AiCvPanel carousel below.
 
 Implementation:
 
-- `frontend/src/hooks/useTemplateMockupPreview.js`, `useTemplateMockupPreview` — shared opacity fade / swap
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — step-2 `templatePicker`
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.module.css`, `.templatePicker`, `.mockupFrame` / `.mockupFrameVisible`
+- `frontend/src/hooks/useTemplateMockupPreview.js`, `useTemplateMockupPreview` — opacity fade / swap
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, `renderReview` — summary-step `templatePicker`
 - `frontend/src/components/ai/BioCvModal/BioCvModal.module.css`, `.templatePicker`, `.mockupFrame` / `.mockupFrameVisible`
+- Assets: `frontend/public/template-mockups/{id}.png`
+
+### Template carousel (CV import)
+
+Step 2 of **Wypełnij z mojego CV** (after PDF extract) picks a template from an endless-loop gallery instead of a separate text list + hover preview pane. Each card shows the template’s A4 mockup directly; hovering or focusing a card enlarges it in place (`whileHover`/`whileFocus` scale via Framer Motion). Only `TemplateCarousel.VISIBLE_COUNT` (5) cards render at once, computed by indexing into the template array modulo its length, so the prev/next arrows above the gallery never hit an end — advancing past the last template wraps to the first. Continuing cards keep their React key and slide to their new slot via Framer Motion's `layout` animation; the card that scrolls off exits and the newly revealed one fades in — no manual pixel math or DOM-cloning. Locked (non-Standard) templates stay visible but show a **Standard** badge and reject clicks with a tooltip; the currently-filling template shows a spinner overlay.
+
+Implementation:
+
+- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — modulo-indexed visible window, arrows, hover-enlarge, `AnimatePresence`/`layout` slide animation
+- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.module.css`
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — renders `<TemplateCarousel>` in the step-2 section, passing `handleFill` as `onSelect`
 - Assets: `frontend/public/template-mockups/{id}.png`
 
 ### AI assistant
@@ -1194,17 +1203,26 @@ Testy:
 - `backend/app/api/routes/ai.py` — `extract_cv`
 - `backend/app/services/cv_data.py` — `normalize_cv_data` (ok. 585+)
 
-### Podgląd szablonu na hover (import + kreator bio)
+### Podgląd szablonu na hover (kreator bio)
 
-Po ekstrakcji PDF (krok 2 w **Wypełnij z mojego CV**) oraz na kroku **Podsumowanie** kreatora bio najazd lub fokus na szablon pokazuje mockup A4 po **lewej**, wyśrodkowany w pionie. Zmiana szablonu: fade-out (`opacity` 1→0), podmiana `/template-mockups/{id}.png`, fade-in (0→1). Opuszczenie listy wygasza podgląd. Wspólna logika animacji jest w jednym hooku. Te same PNG-i używają Hero oraz `TemplatesModal`.
+Na kroku **Podsumowanie** kreatora bio najazd lub fokus na szablon pokazuje mockup A4 po **lewej**, wyśrodkowany w pionie. Zmiana szablonu: fade-out (`opacity` 1→0), podmiana `/template-mockups/{id}.png`, fade-in (0→1). Opuszczenie listy wygasza podgląd. Te same PNG-i używają Hero, `TemplatesModal` oraz karuzela w AiCvPanel poniżej.
 
 Implementacja:
 
 - `frontend/src/hooks/useTemplateMockupPreview.js` — `useTemplateMockupPreview`
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — `templatePicker` w kroku 2
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.module.css` — `.templatePicker`, `.mockupFrame` / `.mockupFrameVisible`
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` — `renderReview`, `templatePicker`
 - `frontend/src/components/ai/BioCvModal/BioCvModal.module.css` — `.templatePicker`, `.mockupFrame` / `.mockupFrameVisible`
+- Pliki: `frontend/public/template-mockups/{id}.png`
+
+### Karuzela szablonów (import CV)
+
+Krok 2 w **Wypełnij z mojego CV** (po ekstrakcji PDF) wybiera szablon z nieskończonej karuzeli zamiast osobnej listy tekstowej z panelem podglądu na hover. Każda karta pokazuje bezpośrednio mockup A4 szablonu; najazd lub fokus powiększa kartę w miejscu (`whileHover`/`whileFocus` ze skalą przez Framer Motion). Renderowanych jest naraz tylko `TemplateCarousel.VISIBLE_COUNT` (5) kart, wyliczanych przez indeksowanie modulo długości tablicy szablonów, więc strzałki nawigacji nad karuzelą nigdy nie trafiają na koniec — przejście za ostatni szablon zawija do pierwszego. Karty, które zostają widoczne, zachowują swój klucz React i przesuwają się na nowe miejsce animacją `layout` z Framer Motion; karta, która wypada, znika, a nowo odsłonięta pojawia się z fade-in — bez ręcznej matematyki pikseli czy klonowania DOM. Zablokowane szablony (poza planem Standard) pozostają widoczne, ale mają plakietkę **Standard** i odrzucają kliknięcie z tooltipem; aktualnie wypełniany szablon pokazuje nakładkę ze spinnerem.
+
+Implementacja:
+
+- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — okno widoczności indeksowane modulo, strzałki, powiększanie na hover, animacja przesunięcia `AnimatePresence`/`layout`
+- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.module.css`
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — renderuje `<TemplateCarousel>` w sekcji kroku 2, przekazując `handleFill` jako `onSelect`
 - Pliki: `frontend/public/template-mockups/{id}.png`
 
 ### Asystent AI
