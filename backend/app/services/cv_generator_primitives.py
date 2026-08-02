@@ -30,6 +30,9 @@ SPACE_STACK = 4       # title → meta → body inside one record
 SPACE_RECORD = 10     # between records in the same section
 SPACE_SECTION = 12    # after a finished section before the next heading
 SPACE_AFTER_RULE = 8  # section heading rule → first content block
+# Solid masthead bands (Cinder/Raven/Ledger) need more air than SPACE_SECTION:
+# a 12px gap under a 170px block reads as "crushed onto the chrome".
+SPACE_AFTER_MASTHEAD = 28
 
 
 def section_chrome_height(label_fs: float) -> float:

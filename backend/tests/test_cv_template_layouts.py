@@ -1186,7 +1186,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
     def test_banded_mastheads_clear_first_section_heading(self):
         """Body copy must start below solid header bands (Cinder/Raven/Ledger)."""
-        from app.services.cv_generator_primitives import SPACE_SECTION
+        from app.services.cv_generator_primitives import SPACE_AFTER_MASTHEAD
 
         cases = {
             # template_id: (band_top, band_height) of the solid masthead fill
@@ -1211,10 +1211,11 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 band_bottom = band_top + band_height
                 self.assertGreaterEqual(
                     heading["top"],
-                    band_bottom + SPACE_SECTION - 0.01,
+                    band_bottom + SPACE_AFTER_MASTHEAD - 0.01,
                     msg=(
                         f"{template_id}: first section at y={heading['top']} "
-                        f"overlaps masthead ending at y={band_bottom}"
+                        f"needs >= {SPACE_AFTER_MASTHEAD}px under masthead "
+                        f"ending at y={band_bottom}"
                     ),
                 )
 

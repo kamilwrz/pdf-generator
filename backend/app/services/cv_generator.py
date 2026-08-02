@@ -33,6 +33,7 @@ from app.services.cv_generator_primitives import (  # noqa: F401
     CONTENT_BOTTOM,
     MARGIN_BOTTOM,
     PAGE_TOP,
+    SPACE_AFTER_MASTHEAD,
     SPACE_AFTER_RULE,
     SPACE_RECORD,
     SPACE_SECTION,
@@ -832,8 +833,8 @@ def _gen_ledger(cv: dict) -> list[dict]:
     static[6]["letterSpacing"] = 1.05
 
     SECTION_CHROME = section_chrome_height(8.4)
-    # Navy band + accent rule end at y=151; clear before the first section.
-    b = Builder(151 + SPACE_SECTION)
+    # Navy band + accent rule end at y=151; masthead air before first section.
+    b = Builder(151 + SPACE_AFTER_MASTHEAD)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -1072,9 +1073,9 @@ def _gen_cinder(cv: dict) -> list[dict]:
     ]
     header[3]["letterSpacing"] = 1.65
     SECTION_CHROME = section_chrome_height(8.7)
-    # Black masthead band occupies y=0..170. Keep SPACE_SECTION clearance so the
-    # first heading never sits on the decorative edge (was 168 → overlap).
-    b = Builder(170 + SPACE_SECTION)
+    # Black masthead band occupies y=0..170. Use masthead clearance (not the
+    # tighter SPACE_SECTION) so the first heading has visible breathing room.
+    b = Builder(170 + SPACE_AFTER_MASTHEAD)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -1200,7 +1201,7 @@ def _gen_rift(cv: dict) -> list[dict]:
     header[1]["letterSpacing"] = 1.7
     SECTION_CHROME = section_chrome_height(8.7)
     # Accent nodes occupy y=158..171 in the content column — clear below them.
-    b = RiftBuilder(171 + SPACE_SECTION)
+    b = RiftBuilder(171 + SPACE_AFTER_MASTHEAD)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -1996,8 +1997,8 @@ def _gen_raven(cv: dict) -> list[dict]:
     ]
     header[4]["letterSpacing"] = 1.65
     SECTION_CHROME = section_chrome_height(8.7)
-    # Band y=0..170 + teal rule to 173. Clear the chrome before body copy.
-    b = Builder(173 + SPACE_SECTION)
+    # Band y=0..170 + teal rule to 173. Masthead air before body copy.
+    b = Builder(173 + SPACE_AFTER_MASTHEAD)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
