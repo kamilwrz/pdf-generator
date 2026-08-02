@@ -104,7 +104,13 @@ export default function AiCvPanel() {
                 JSON.stringify({ cv_data: cvData, template_id: template.id }),
                 "Generowanie szablonu nie powiodło się"
             );
-            loadAiElements(res.elements, `CV ${template.name}`, template.id);
+            // Must be awaited: loadAiElements starts a fresh document, which
+            // asynchronously resets activeCvData to null (see
+            // startFreshDocument in PdfCanvas.jsx) after flushing the
+            // previous document's autosave. Setting activeCvData below
+            // without awaiting this would race that reset and could be
+            // clobbered back to null moments later.
+            await loadAiElements(res.elements, `CV ${template.name}`, template.id);
             // Keep the source data reachable after this modal closes, so the
             // Topbar "Zmień szablon" gallery can restyle this same CV later
             // without asking the user to re-upload or re-extract anything.
