@@ -14,14 +14,14 @@ import { useTemplateMockupPreview } from "../../../hooks/useTemplateMockupPrevie
 import DialogShell from "../../common/DialogShell/DialogShell";
 
 const UploadIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-accent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 13v8"/><path d="m8 17 4-4 4 4"/>
         <path d="M20 16.5A4.5 4.5 0 0 0 17 8h-1.3A7 7 0 1 0 5 15"/>
     </svg>
 );
 
 const SparkIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"/>
     </svg>
 );
@@ -120,7 +120,8 @@ export default function AiCvPanel() {
         <DialogShell
             open={isAiPanel}
             onClose={showAiPanel}
-            width={extracted ? 720 : 480}
+            width={extracted ? 1400 : 960}
+            radius={2}
             title="Wypełnij z mojego CV"
             subtitle="Prześlij PDF — AI wypełni dowolny szablon Twoimi danymi."
             footer={<>
@@ -154,7 +155,7 @@ export default function AiCvPanel() {
                     <input ref={fileRef} type="file" accept=".pdf" style={{ display: "none" }} onChange={handleFilePick} />
                     {fileName ? (
                         <>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             <span className={classes.dropFileName}>{fileName}</span>
                             <span className={classes.dropChange}>Zmień</span>
                         </>

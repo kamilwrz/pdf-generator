@@ -1,21 +1,33 @@
+/*
+ * Content for the "Wypełnij z mojego CV" dialog, which now opens at roughly
+ * double its previous width (see AiCvPanel.jsx DialogShell width={extracted ?
+ * 1400 : 960}). Every measurement below is scaled up to match — spacing,
+ * type, dropzone, and the step-2 template picker — so the enlarged frame
+ * reads as intentionally spacious rather than sparse content floating in
+ * empty space. Rectangular chrome (buttons, dropzone, cards, panels) is
+ * sharpened to near-zero radius to match the dialog's own radius={2}; the
+ * template color dot and loading spinner stay circular since their shape is
+ * semantic (a color swatch and a spinner), not a "rounded corner" choice.
+ */
+
 .stepLabel {
-    font: 500 10px var(--font-body);
+    font: 500 13px var(--font-body);
     color: var(--chrome-muted);
 }
 
 .footerActions {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
 }
 
 .cancelBtn {
-    height: 28px;
-    padding: 0 10px;
-    border-radius: 6px;
+    height: 44px;
+    padding: 0 20px;
+    border-radius: 2px;
     border: 1px solid var(--chrome-border);
     background: transparent;
-    font: 600 10.5px var(--font-body);
+    font: 600 13px var(--font-body);
     color: var(--chrome-ink);
     cursor: pointer;
 }
@@ -27,11 +39,11 @@
 }
 
 .section {
-    padding: 14px 16px;
+    padding: 26px 32px;
     border-bottom: 1px solid var(--chrome-border);
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 16px;
 }
 
 .sectionDisabled {
@@ -39,7 +51,7 @@
 }
 
 .sectionLabel {
-    font: 700 9.5px var(--font-body);
+    font: 700 12px var(--font-body);
     color: var(--chrome-muted);
     letter-spacing: .1em;
     text-transform: uppercase;
@@ -48,12 +60,12 @@
 /* Upload dropzone */
 .dropzone {
     border: 1px dashed var(--chrome-border);
-    border-radius: 8px;
-    padding: 20px 16px;
+    border-radius: 2px;
+    padding: 36px 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 16px;
     cursor: pointer;
     background: var(--chrome-control);
     transition: background .15s;
@@ -70,12 +82,12 @@
 }
 
 .dropText {
-    font: 600 11.5px var(--font-body);
+    font: 600 16px var(--font-body);
     color: var(--chrome-ink);
 }
 
 .dropFileName {
-    font: 600 11.5px var(--font-body);
+    font: 600 16px var(--font-body);
     color: var(--chrome-ink);
     flex: 1;
     min-width: 0;
@@ -85,7 +97,7 @@
 }
 
 .dropChange {
-    font: 600 11px var(--font-body);
+    font: 600 14px var(--font-body);
     color: var(--chrome-accent);
     cursor: pointer;
 }
@@ -96,7 +108,7 @@
     border: 0;
     background: transparent;
     color: var(--chrome-accent);
-    font: 600 10.5px var(--font-body);
+    font: 600 13px var(--font-body);
     cursor: pointer;
 }
 
@@ -107,14 +119,14 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    height: 28px;
-    padding: 0 12px;
-    border-radius: 6px;
+    gap: 8px;
+    height: 44px;
+    padding: 0 22px;
+    border-radius: 2px;
     border: 1px solid transparent;
     background: var(--accent-grad);
     color: var(--on-accent);
-    font: 600 10.5px var(--font-body);
+    font: 600 13px var(--font-body);
     cursor: pointer;
     transition: background .15s, opacity .2s;
 }
@@ -124,36 +136,36 @@
 
 /* Extraction preview */
 .preview {
-    padding: 12px 16px;
+    padding: 22px 32px;
     background: var(--chrome-control);
     border-bottom: 1px solid var(--chrome-border);
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
 }
 
 .previewName {
-    font: 700 14px var(--font-display);
+    font: 700 22px var(--font-display);
     color: var(--chrome-ink);
 }
 
 .previewMeta {
-    font: 600 11px var(--font-body);
+    font: 600 14px var(--font-body);
     color: var(--chrome-muted);
 }
 
 .previewStats {
     display: flex;
-    gap: 6px;
-    margin-top: 4px;
-    font: 600 10.5px var(--font-body);
+    gap: 10px;
+    margin-top: 6px;
+    font: 600 13px var(--font-body);
     color: var(--chrome-muted);
 }
 
 .reExtract {
     align-self: flex-start;
-    margin-top: 6px;
-    font: 600 11px var(--font-body);
+    margin-top: 8px;
+    font: 600 14px var(--font-body);
     color: var(--chrome-accent);
     background: transparent;
     border: none;
@@ -166,24 +178,24 @@
 .templatePicker {
     display: flex;
     align-items: stretch;
-    gap: 16px;
-    min-height: 220px;
+    gap: 28px;
+    min-height: 360px;
 }
 
 .mockupPane {
-    flex: 0 0 168px;
+    flex: 0 0 260px;
     display: flex;
     align-items: center;
     justify-content: center;
     align-self: center;
-    min-height: 220px;
+    min-height: 360px;
 }
 
 .mockupFrame {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     opacity: 0;
     transition: opacity 180ms ease;
 }
@@ -194,27 +206,27 @@
 
 .mockupImg {
     display: block;
-    width: 148px;
+    width: 226px;
     height: auto;
     aspect-ratio: 210 / 297;
     object-fit: cover;
     object-position: top center;
-    border-radius: 4px;
+    border-radius: 2px;
     border: 1px solid var(--chrome-border);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, .28);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, .28);
     background: var(--chrome-control);
 }
 
 .mockupCaption {
-    font: 600 10.5px var(--font-body);
+    font: 600 13px var(--font-body);
     color: var(--chrome-muted);
 }
 
 .mockupPlaceholder {
     margin: 0;
-    max-width: 140px;
+    max-width: 210px;
     text-align: center;
-    font: 500 10.5px var(--font-body);
+    font: 500 13px var(--font-body);
     color: var(--chrome-muted);
     line-height: 1.4;
 }
@@ -224,20 +236,20 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    max-height: 280px;
+    gap: 10px;
+    max-height: 440px;
     overflow-y: auto;
-    padding-right: 2px;
+    padding-right: 4px;
 }
 
 .templateCard {
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 13px;
     width: 100%;
-    padding: 9px 10px;
+    padding: 14px 16px;
     border: 1px solid var(--chrome-border);
-    border-radius: 6px;
+    border-radius: 2px;
     background: var(--primary-bg);
     cursor: pointer;
     text-align: left;
@@ -262,20 +274,20 @@
 }
 
 .dot {
-    width: 8px;
-    height: 8px;
+    width: 11px;
+    height: 11px;
     border-radius: 50%;
     flex-shrink: 0;
 }
 
 .tName {
     flex: 1;
-    font: 600 11.5px var(--font-body);
+    font: 600 15px var(--font-body);
     color: var(--chrome-ink);
 }
 
 .hint {
-    font: 500 10.5px var(--font-body);
+    font: 500 13px var(--font-body);
     color: var(--chrome-muted);
     margin: 0;
 }
@@ -283,8 +295,8 @@
 /* Spinner */
 .spinner {
     display: inline-block;
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
     border: 2px solid rgba(15, 18, 22, .25);
     border-top-color: var(--on-accent);
     border-radius: 50%;
@@ -299,11 +311,29 @@
 
 /* Error */
 .error {
-    margin: 12px 16px;
-    padding: 10px 12px;
-    font: 600 12px var(--font-body);
+    margin: 20px 32px;
+    padding: 16px 20px;
+    font: 600 15px var(--font-body);
     color: var(--danger);
     background: var(--danger-soft);
-    border-radius: 6px;
+    border-radius: 2px;
     border: 1px solid rgba(232, 138, 115, .35);
+}
+
+/*
+ * The dialog clamps to the viewport (max-width: 100%), so below ~1000px the
+ * mockup + grid split no longer has room; stack them so the picker keeps its
+ * scaled-up type instead of crushing into a narrow column.
+ */
+@media only screen and (max-width: 1000px) {
+    .templatePicker {
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .mockupPane {
+        flex-basis: auto;
+        min-height: 0;
+        padding: 8px 0 4px;
+    }
 }
