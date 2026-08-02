@@ -1,17 +1,24 @@
+/*
+ * Plan picker sits inside the enlarged (1280px) DialogShell. Sizing here is
+ * scaled up from the original compact card so the three plans fill the wider
+ * frame instead of floating in it, and every corner uses a near-zero radius to
+ * match the sharpened, editorial look requested for this modal.
+ */
+
 .grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    padding: 4px 2px 8px;
+    gap: 24px;
+    padding: 16px 8px 12px;
 }
 
 .card {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 16px;
     border: 1px solid var(--chrome-border);
-    border-radius: 10px;
-    padding: 14px 14px 12px;
+    border-radius: 2px;
+    padding: 28px 26px 26px;
     background: var(--primary-bg);
 }
 
@@ -24,68 +31,68 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 12px;
 }
 
 .planName {
     margin: 0;
-    font: 800 16px var(--font-display);
+    font: 800 24px var(--font-display);
     color: var(--chrome-ink);
 }
 
 .currentPill {
-    font: 700 9px var(--font-body);
-    letter-spacing: 0.06em;
+    font: 700 11px var(--font-body);
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--on-accent);
     background: var(--accent-grad);
-    border-radius: 999px;
-    padding: 3px 7px;
+    border-radius: 2px;
+    padding: 5px 10px;
 }
 
 .priceRow {
     display: flex;
     align-items: baseline;
-    gap: 6px;
+    gap: 8px;
 }
 
 .price {
-    font: 800 28px/1 var(--font-display);
+    font: 800 46px/1 var(--font-display);
     color: var(--chrome-ink);
 }
 
 .currency {
-    font: 600 12px var(--font-body);
+    font: 600 16px var(--font-body);
     color: var(--chrome-muted);
 }
 
 .blurb {
     margin: 0;
-    font: 500 12.5px/1.45 var(--font-body);
+    font: 500 15px/1.5 var(--font-body);
     color: var(--chrome-muted);
-    min-height: 2.9em;
+    min-height: 3em;
 }
 
 .features {
     margin: 0;
-    padding: 0 0 0 16px;
+    padding: 0 0 0 20px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 10px;
     flex: 1;
 }
 
 .features li {
-    font: 500 12px/1.4 var(--font-body);
+    font: 500 14.5px/1.5 var(--font-body);
     color: var(--chrome-ink);
 }
 
 .btnSelect,
 .btnCurrent {
     width: 100%;
-    height: 34px;
-    border-radius: 8px;
-    font: 700 12px var(--font-body);
+    height: 50px;
+    border-radius: 2px;
+    font: 700 15px var(--font-body);
     cursor: pointer;
     border: 1px solid transparent;
 }
@@ -112,12 +119,17 @@
 }
 
 .note {
-    margin: 10px 2px 0;
-    font: 500 11.5px/1.4 var(--font-body);
+    margin: 16px 8px 4px;
+    font: 500 14px/1.5 var(--font-body);
     color: var(--chrome-muted);
 }
 
-@media only screen and (max-width: 720px) {
+/*
+ * The dialog clamps to the viewport (max-width: 100%), so below ~900px the three
+ * columns no longer have room; drop to a single column so cards keep their
+ * scaled-up type instead of crushing.
+ */
+@media only screen and (max-width: 900px) {
     .grid {
         grid-template-columns: 1fr;
     }

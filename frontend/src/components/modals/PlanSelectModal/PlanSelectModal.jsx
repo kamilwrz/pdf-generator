@@ -121,7 +121,8 @@ export default function PlanSelectModal() {
         <DialogShell
             open={Boolean(isPlanModal)}
             onClose={() => showPlanModal?.()}
-            width={720}
+            width={1280}
+            radius={2}
             title="Twój plan"
             subtitle="Zmień pakiet w dowolnym momencie. Płatności Stripe dołączymy później — teraz aktywacja jest natychmiastowa."
         >

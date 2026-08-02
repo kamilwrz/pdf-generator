@@ -7,7 +7,12 @@ import CloseButton from "../CloseButton/CloseButton";
 // popIn animation, header (title+subtitle+close) and Escape-to-close so
 // every dialog gets identical dismiss behavior instead of each
 // re-implementing (or, as with the old ModalPdfs, omitting) it.
-export default function DialogShell({ open, onClose, width = 560, title, subtitle, footer, children }) {
+//
+// `radius` is an optional per-instance override for the dialog corner radius.
+// It is applied inline only when provided, so dialogs that omit it keep the
+// shared 8px radius from the stylesheet; the plan picker uses a near-zero value
+// for its sharper, editorial look without affecting any other dialog.
+export default function DialogShell({ open, onClose, width = 560, radius, title, subtitle, footer, children }) {
     useEffect(() => {
         if (!open) return;
         const onKey = (e) => {
@@ -21,7 +26,11 @@ export default function DialogShell({ open, onClose, width = 560, title, subtitl
 
     return createPortal(
         <div className={classes.backdrop} onClick={onClose}>
-            <div className={classes.dialog} style={{ width }} onClick={(e) => e.stopPropagation()}>
+            <div
+                className={classes.dialog}
+                style={{ width, ...(radius != null ? { borderRadius: radius } : {}) }}
+                onClick={(e) => e.stopPropagation()}
+            >
                 <div className={classes.header}>
                     <div>
                         <h2>{title}</h2>
