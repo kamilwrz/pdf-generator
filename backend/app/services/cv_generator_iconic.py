@@ -10,6 +10,7 @@ from __future__ import annotations
 from app.core.config import BACKEND_URL
 from app.services.cv_data import fold_section_label
 from app.services.cv_generator import (
+    SPACE_AFTER_RULE,
     SPACE_RECORD,
     SPACE_SECTION,
     SPACE_STACK,
@@ -78,14 +79,14 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
             "mute": "#7A6550", "body": "#2C241C", "rule": "#E0D2C0",
             "display": "PlayfairDisplay", "sans": "Montserrat", "mono": "Montserrat",
             "layout": "nova", "icon_theme": "nova",
-            "L": 68, "W": 479, "icon_x": 48, "start": 200,
+            "L": 68, "W": 479, "icon_x": 48, "start": 162,
         },
         "ridge": {
             "paper": "#F3F6F8", "ink": "#15202B", "accent": "#1F7A6C",
             "mute": "#5A6B75", "body": "#24323A", "rule": "#D0DADF",
             "display": "Lora", "sans": "Montserrat", "mono": "Montserrat",
             "layout": "ridge", "icon_theme": "ridge",
-            "L": 56, "W": 483, "icon_x": 8, "start": 222,
+            "L": 56, "W": 483, "icon_x": 8, "start": 188,
         },
         "loom": {
             "paper": "#FAF8F4", "ink": "#1C241E", "accent": "#C4A35A",
@@ -100,7 +101,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
             "mute": "#8B93A0", "body": "#C5CCD6", "rule": "#2A3140", "chip": "#1A2030",
             "display": "Montserrat", "sans": "Montserrat", "mono": "JetBrainsMono",
             "layout": "volt", "icon_theme": "volt",
-            "L": 78, "W": 469, "icon_x": 48, "start": 188,
+            "L": 78, "W": 469, "icon_x": 48, "start": 155,
         },
     }
     if theme not in themes:
@@ -137,7 +138,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
             header.append(_text(value, contact_fs, SANS, C["mute"], x + 16, 118, zIndex=3))
             x += max(120.0, 16 + len(value) * 5.2)
         header.append(_line(48, 144, 499, 1, C["rule"], zIndex=2))
-        start_y = 200.0
+        start_y = 162.0
 
     elif C["layout"] == "ridge":
         contact_fs, contact_icon = 8.3, 11.0
@@ -153,7 +154,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
             header.append(_icon_beside(ICON, key, 56, y, contact_fs, contact_icon))
             header.append(_text(value, contact_fs, SANS, C["mute"], 72, y, zIndex=3))
             y += 18
-        start_y = y + 24
+        start_y = y + 14
 
     elif C["layout"] == "loom":
         light = "loom-light"
@@ -168,7 +169,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         side_body_w = 120.0
         side_body_fs = 7.8
         side_body_lh = 12.0
-        side_section_gap = 16.0
+        side_section_gap = 12.0
         parts = (name or "").split(" ", 1)
         first = parts[0] if parts else name
         last = parts[1] if len(parts) > 1 else ""
@@ -260,7 +261,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
                 x + 6 + contact_icon + 6, text_top, zIndex=3,
             ))
             x += width + 8
-        start_y = 188.0
+        start_y = 155.0
 
     b = Builder(start_y)
     label_fs = 8.5 if C["layout"] != "volt" else 8.4
@@ -294,7 +295,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
             b.y = y + label_fs * 1.35
         b.gap(2)
         b.line(L, W, 1, C["rule"])
-        b.gap(14)
+        b.gap(SPACE_AFTER_RULE)
 
     def close_section() -> None:
         b.gap(SPACE_SECTION)
@@ -318,7 +319,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         return height
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.8, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.8, SANS))
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10, 14.8, C["body"], SANS)
         close_section()
@@ -377,7 +378,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         skills_fs = 9.3
         b.need_section(
             SECTION_CHROME,
-            b.measure_block("  ·  ".join(cv["skills"]), W, skills_fs, 13.4, SANS) + SPACE_SECTION,
+            b.measure_block("  ·  ".join(cv["skills"]), W, skills_fs, 13.4, SANS),
         )
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, skills_fs, 13.4, C["body"], SANS)

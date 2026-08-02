@@ -37,22 +37,22 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
         "scribe": {
             "paper": "#FBFAF6", "ink": "#1C2B3A", "accent": "#34516A",
             "muted": "#687782", "rule": "#C7CBC7",
-            "left": 94, "width": 429, "start": 194, "continuation": 66,
+            "left": 94, "width": 429, "start": 168, "continuation": 66,
         },
         "regent": {
             "paper": "#FCFBF8", "ink": "#24201E", "accent": "#733B43",
             "muted": "#756F6B", "rule": "#BFB4AA",
-            "left": 113, "width": 386, "start": 193, "continuation": 66,
+            "left": 113, "width": 386, "start": 168, "continuation": 66,
         },
         "aldine": {
             "paper": "#F8F4EC", "ink": "#2A3028", "accent": "#486151",
             "muted": "#79776E", "rule": "#D7CCB8",
-            "left": 116, "width": 384, "start": 193, "continuation": 66,
+            "left": 116, "width": 384, "start": 168, "continuation": 66,
         },
         "merit": {
             "paper": "#FAFAF8", "ink": "#262A31", "accent": "#4F6679",
             "muted": "#7F909C", "rule": "#CED4D5",
-            "left": 102, "width": 418, "start": 193, "continuation": 66,
+            "left": 102, "width": 418, "start": 168, "continuation": 66,
         },
     }
     if theme not in themes:
@@ -180,7 +180,7 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS))
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10, 14.5, C["ink"], SANS)
         close_section()
@@ -225,7 +225,7 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.1, 13, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.1, 13, SANS))
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.1, 13, C["ink"], SANS)
         close_section()

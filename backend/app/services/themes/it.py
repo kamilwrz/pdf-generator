@@ -37,21 +37,21 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
     themes = {
         "vector": {
             "asset": "vector-it-network.png",
-            "left": 160, "width": 365, "start": 180, "continuation": 82,
+            "left": 160, "width": 365, "start": 155, "continuation": 72,
             "ink": "#FFFFFF", "body": "#DCEBFA", "muted": "#95AFC5",
             "accent": "#26D8FF", "marker": "#B8EF4A", "rule": "#3C6682",
             "font": "Inter", "display": "Times-Roman",
         },
         "kernel": {
             "asset": "kernel-it-architecture.png",
-            "left": 167, "width": 355, "start": 184, "continuation": 78,
+            "left": 167, "width": 355, "start": 158, "continuation": 72,
             "ink": "#173A76", "body": "#253D54", "muted": "#526A83",
             "accent": "#2462B7", "marker": "#D69B22", "rule": "#ACC5D8",
             "font": "Inter", "display": "Times-Roman",
         },
         "relay": {
             "asset": "relay-it-signal.png",
-            "left": 192, "width": 340, "start": 181, "continuation": 82,
+            "left": 192, "width": 340, "start": 155, "continuation": 72,
             "ink": "#F7F6F1", "body": "#F7F6F1", "muted": "#92989C",
             "accent": "#F47B20", "marker": "#EE2525", "rule": "#596065",
             "font": "Inter", "display": "Inter",
@@ -179,7 +179,7 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS))
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10, 14.5, C["body"], SANS)
         close_section()
@@ -222,7 +222,7 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.3, 13.3, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.3, 13.3, SANS))
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.3, 13.3, C["body"], SANS)
         close_section()

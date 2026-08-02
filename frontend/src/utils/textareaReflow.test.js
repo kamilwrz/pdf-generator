@@ -49,8 +49,8 @@ test("shrinking page-one content reclaims the page-break hole for following bloc
 
   const heading = result.elements.find((element) => element.element_id === "page-two-heading");
   const body = result.elements.find((element) => element.element_id === "page-two-body");
-  // 660 + pack gap 14 → heading; preserve the original same-page gap to body.
-  assert.deepEqual({ page: heading.page, top: heading.top }, { page: 1, top: 674 });
+  // 660 + pack gap 10 → heading; preserve the original same-page gap to body.
+  assert.deepEqual({ page: heading.page, top: heading.top }, { page: 1, top: 670 });
   assert.equal(body.page, 1);
   assert.ok(body.top + body.height <= 746);
   assert.equal(result.pageCount, 1);
@@ -323,7 +323,7 @@ test("keeps page decorations fixed while text content reflows", () => {
   const section = result.elements.find((element) => element.element_id === "next-section");
   assert.deepEqual({ page: background.page, top: background.top }, { page: 2, top: 0 });
   // Cross-page dead space is reclaimed; the section packs under the taller box.
-  assert.deepEqual({ page: section.page, top: section.top }, { page: 1, top: 158 });
+  assert.deepEqual({ page: section.page, top: section.top }, { page: 1, top: 154 });
 });
 
 test("does not shift a position-locked element during textarea reflow", () => {
@@ -545,7 +545,7 @@ test("keeps SPACE_RECORD between meta and the next record title", () => {
       category: "textarea",
       autoHeight: true,
       left: 40,
-      top: 126, // 100 + 12 + 14 (SPACE_RECORD)
+      top: 122, // 100 + 12 + 10 (SPACE_RECORD)
       width: 180,
       height: 13,
       fontSize: 10.4,
@@ -556,7 +556,7 @@ test("keeps SPACE_RECORD between meta and the next record title", () => {
 
   const meta = result.elements.find((element) => element.element_id === "meta");
   const nextDegree = result.elements.find((element) => element.element_id === "next-degree");
-  assert.equal(nextDegree.top - (meta.top + meta.height), 14);
+  assert.equal(nextDegree.top - (meta.top + meta.height), 10);
 });
 
 test("keeps Onyx section chrome top-to-top when an upstream textarea shrinks", () => {
@@ -668,7 +668,7 @@ test("does not collapse SPACE_RECORD between consecutive bold titles", () => {
   // A previous bold&&same-size heuristic forced SPACE_STACK between every bold
   // textarea and the next line — that piled whole CV sections on top of each
   // other during load reflow. Bold job titles separated by SPACE_RECORD must
-  // keep 14px.
+  // keep 10px.
   const result = reflowTextareaHeight([
     {
       element_id: "title-a",
@@ -687,7 +687,7 @@ test("does not collapse SPACE_RECORD between consecutive bold titles", () => {
       category: "textarea",
       autoHeight: true,
       left: 40,
-      top: 134, // 100 + 20 + 14
+      top: 130, // 100 + 20 + 10
       width: 180,
       height: 20,
       fontSize: 11,
@@ -698,7 +698,7 @@ test("does not collapse SPACE_RECORD between consecutive bold titles", () => {
 
   const a = result.elements.find((element) => element.element_id === "title-a");
   const b = result.elements.find((element) => element.element_id === "title-b");
-  assert.equal(b.top - (a.top + a.height), 14);
+  assert.equal(b.top - (a.top + a.height), 10);
 });
 
 test("moves a heading when the full following body cannot fit beneath it", () => {

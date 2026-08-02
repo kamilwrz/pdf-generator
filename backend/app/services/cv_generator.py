@@ -323,7 +323,7 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
         body_height = b.measure_block(content, W, fs, lh, font_b, bulletList=True)
         # Reserve heading chrome + body together so custom sections do not leave
         # a title stranded above the page footer.
-        b.need_section(chrome_h, body_height + SPACE_SECTION)
+        b.need_section(chrome_h, body_height)
         section_fn(title)
         b.block(content, L, W, fs, lh, C.get("body", "#2B2B2B"), font_b, bulletList=True)
         b.gap(SPACE_SECTION)
@@ -662,7 +662,7 @@ _SIGNAL_THEME = {
     "paper": "#101C26", "ink": "#F2F7F6", "body": "#E4EFEE",
     "muted": "#9DB7C3", "accent": "#3BD2C7", "rule": "#395263",
     "light": "#7BE1D9", "left": 76, "width": 465,
-    "start": 251, "continuation": 66, "mark_x": 525,
+    "start": 222, "continuation": 66, "mark_x": 525,
 }
 
 
@@ -745,7 +745,7 @@ def _gen_signal(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.7, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.7, SANS))
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10, 14.7, C["body"], SANS)
         close_section()
@@ -787,7 +787,7 @@ def _gen_signal(cv: dict) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.2, 13.1, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.2, 13.1, SANS))
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.2, 13.1, C["body"], SANS)
         close_section()
@@ -832,7 +832,8 @@ def _gen_ledger(cv: dict) -> list[dict]:
     static[6]["letterSpacing"] = 1.05
 
     SECTION_CHROME = section_chrome_height(8.4)
-    b = Builder(180)
+    # Contact sits near y=120; start the first section soon after.
+    b = Builder(158)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -864,7 +865,7 @@ def _gen_ledger(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.2, 15, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.2, 15, SANS))
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10.2, 15, INK, SANS)
         close_section()
@@ -906,7 +907,7 @@ def _gen_ledger(cv: dict) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.8, 14, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.8, 14, SANS))
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.8, 14, INK, SANS)
         close_section()
@@ -959,7 +960,8 @@ def _gen_nimbus(cv: dict) -> list[dict]:
     ]
     static[6]["letterSpacing"] = 1.5
 
-    b = NimbusBuilder(248)
+    # Header rail ends near y=207; keep a short breath before the first section.
+    b = NimbusBuilder(220)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -996,7 +998,7 @@ def _gen_nimbus(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.1, 15, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.1, 15, SANS))
         section(lbl["summary"], decorated=False)
         b.block(cv["summary"], L, W, 10.1, 15, INK, SANS)
         close_section()
@@ -1038,7 +1040,7 @@ def _gen_nimbus(cv: dict) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.4, 13.5, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.4, 13.5, SANS))
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.4, 13.5, INK, SANS)
         close_section()
@@ -1070,7 +1072,8 @@ def _gen_cinder(cv: dict) -> list[dict]:
     ]
     header[3]["letterSpacing"] = 1.65
     SECTION_CHROME = section_chrome_height(8.7)
-    b = Builder(205)
+    # Masthead band is 170px; start body just below it.
+    b = Builder(168)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -1103,7 +1106,7 @@ def _gen_cinder(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.2, 15, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.2, 15, SANS))
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10.2, 15, CHARCOAL, SANS)
         close_section()
@@ -1145,7 +1148,7 @@ def _gen_cinder(cv: dict) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.4, 13.5, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.4, 13.5, SANS))
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.4, 13.5, CHARCOAL, SANS)
         close_section()
@@ -1195,7 +1198,8 @@ def _gen_rift(cv: dict) -> list[dict]:
     ]
     header[1]["letterSpacing"] = 1.7
     SECTION_CHROME = section_chrome_height(8.7)
-    b = RiftBuilder(202)
+    # Nodes sit near y=158–171; keep a short breath before body copy.
+    b = RiftBuilder(168)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -1228,7 +1232,7 @@ def _gen_rift(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS))
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10, 14.5, BLACK, SANS)
         close_section()
@@ -1270,7 +1274,7 @@ def _gen_rift(cv: dict) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.2, 13.2, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.2, 13.2, SANS))
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.2, 13.2, BLACK, SANS)
         close_section()
@@ -1352,7 +1356,7 @@ def _gen_monument(cv: dict) -> list[dict]:
     ]
     header[1]["letterSpacing"] = 1.1
 
-    b = MonumentBuilder(190)
+    b = MonumentBuilder(162)
     section_number = 0
 
     def section(label: str) -> None:
@@ -1409,7 +1413,7 @@ def _gen_monument(cv: dict) -> list[dict]:
         # Keep summary at BODY_FS. A larger lead paragraph would fight the
         # compact editorial hierarchy this template is built around.
         summary_height = b.measure_block(cv["summary"], W, BODY_FS, BODY_LH, SANS)
-        b.need_section(SECTION_CHROME, summary_height + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, summary_height)
         section(lbl["summary"])
         b.block(cv["summary"], L, W, BODY_FS, BODY_LH, C["body"], SANS)
         b.gap(SPACE_SECTION)
@@ -1458,7 +1462,7 @@ def _gen_monument(cv: dict) -> list[dict]:
     if cv.get("skills"):
         skills = "  ·  ".join(cv["skills"])
         skills_height = b.measure_block(skills, W, BODY_FS, BODY_LH, SANS)
-        b.need_section(SECTION_CHROME, skills_height + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, skills_height)
         section(lbl["skills"])
         b.block(skills, L, W, BODY_FS, BODY_LH, C["body"], SANS)
         b.gap(SPACE_SECTION)
@@ -1597,8 +1601,8 @@ def _gen_moss(cv: dict) -> list[dict]:
     static[1]["letterSpacing"] = 1.45
     contact_label["letterSpacing"] = 1.2
 
-    # Header rule ends at 145; keep the same section gap used between body sections.
-    b = SidebarBuilder(145 + SPACE_SECTION)
+    # Header rule ends at 145; body starts immediately below.
+    b = SidebarBuilder(145)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -1637,7 +1641,7 @@ def _gen_moss(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS))
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10, 14.5, C["body"], SANS)
         close_section()
@@ -1683,7 +1687,7 @@ def _gen_moss(cv: dict) -> list[dict]:
         close_section()
 
     if cv.get("skills") and "skills" not in sidebar_keys:
-        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.3, 13.2, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.3, 13.2, SANS))
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.3, 13.2, C["body"], SANS)
         close_section()
@@ -1990,7 +1994,8 @@ def _gen_raven(cv: dict) -> list[dict]:
     ]
     header[4]["letterSpacing"] = 1.65
     SECTION_CHROME = section_chrome_height(8.7)
-    b = Builder(205)
+    # Masthead band ends at 173; start body just below the teal rule.
+    b = Builder(168)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -2019,7 +2024,7 @@ def _gen_raven(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.2, 15, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.2, 15, SANS))
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10.2, 15, BODY, SANS)
         close_section()
@@ -2059,7 +2064,7 @@ def _gen_raven(cv: dict) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.4, 13.5, SANS) + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.4, 13.5, SANS))
         section(lbl["skills"])
         b.block("  ·  ".join(cv["skills"]), L, W, 9.4, 13.5, BODY, SANS)
         close_section()
@@ -2208,7 +2213,8 @@ def _gen_onyx(cv: dict) -> list[dict]:
         lab["letterSpacing"] = 1
         static.append(lab)
 
-    b = Builder(244)
+    # KPI cards end near y=212; start the first section shortly after.
+    b = Builder(220)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -2380,7 +2386,7 @@ def _gen_words(cv: dict) -> list[dict]:
         _line(94, divider_top, 429, 1, C["rule"], zIndex=2),
     ]
 
-    b = WordsBuilder(divider_top + 28)
+    b = WordsBuilder(divider_top + 16)
 
     def section(label: str) -> None:
         """
@@ -2424,7 +2430,7 @@ def _gen_words(cv: dict) -> list[dict]:
 
     if cv.get("summary"):
         summary_height = b.measure_block(cv["summary"], W, 10.5, 15, FONT)
-        b.need_section(SECTION_CHROME, summary_height + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, summary_height)
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10.5, 15, C["body"], FONT)
         b.gap(SPACE_SECTION)
@@ -2474,7 +2480,7 @@ def _gen_words(cv: dict) -> list[dict]:
     if cv.get("skills"):
         skills = "  •  ".join(cv["skills"])
         skills_height = b.measure_block(skills, W, 10.5, 15, FONT)
-        b.need_section(SECTION_CHROME, skills_height + SPACE_SECTION)
+        b.need_section(SECTION_CHROME, skills_height)
         section(lbl["skills"])
         b.block(skills, L, W, 10.5, 15, C["body"], FONT)
         b.gap(SPACE_SECTION)

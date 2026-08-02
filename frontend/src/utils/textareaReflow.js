@@ -11,7 +11,8 @@ const DECORATION_LANE_TOLERANCE = 32;
 const TEXT_ALIGNED_IMAGE_LANE_TOLERANCE = 40;
 // Matches backend SPACE_RECORD: used when reclaiming a page-break gap so later
 // blocks pack into freed space instead of keeping the empty page-bottom hole.
-const DEFAULT_PACK_GAP = 14;
+// Keep in sync with backend SPACE_RECORD (cv_generator_primitives.py).
+const DEFAULT_PACK_GAP = 10;
 // Section labels / markers / rules are short. Keep them with following body
 // so a page break never leaves "WYKSZTAŁCENIE" stranded above the footer.
 const CHROME_MAX_HEIGHT = 40;

@@ -21,10 +21,15 @@ CONTENT_BOTTOM = A4_H - MARGIN_BOTTOM  # 746
 # Vertical rhythm for generated CVs. Every template should space content as:
 #   section → record (block) → stack (elements inside a record).
 # Keep these equal within each level so X/Y placement reads as one pattern.
+#
+# Tuned for denser one-page packing: the previous 14/18/12 trio left large
+# dead bands between sections so short extras (skills / languages) often
+# spilled onto a nearly empty page 2. Stack stays at 4 so record internals
+# remain readable.
 SPACE_STACK = 4       # title → meta → body inside one record
-SPACE_RECORD = 14     # between records in the same section
-SPACE_SECTION = 18    # after a finished section before the next heading
-SPACE_AFTER_RULE = 12 # section heading rule → first content block
+SPACE_RECORD = 10     # between records in the same section
+SPACE_SECTION = 12    # after a finished section before the next heading
+SPACE_AFTER_RULE = 8  # section heading rule → first content block
 
 
 def section_chrome_height(label_fs: float) -> float:

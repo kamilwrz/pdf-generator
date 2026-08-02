@@ -87,9 +87,9 @@ class LayoutGptTests(unittest.TestCase):
         contract = snap["layout_contract"]
         self.assertEqual(contract["template_id"], "words")
         self.assertEqual(contract["spacing_px"]["stack"], 4.0)
-        self.assertEqual(contract["spacing_px"]["record"], 14.0)
-        self.assertEqual(contract["spacing_px"]["section"], 18.0)
-        self.assertEqual(contract["spacing_px"]["after_rule"], 12.0)
+        self.assertEqual(contract["spacing_px"]["record"], 10.0)
+        self.assertEqual(contract["spacing_px"]["section"], 12.0)
+        self.assertEqual(contract["spacing_px"]["after_rule"], 8.0)
         self.assertEqual(
             contract["section_header_gap_px"],
             snap["constraints"]["section_header_gap_px"],
@@ -108,9 +108,9 @@ class LayoutGptTests(unittest.TestCase):
         self.assertIn("Który nagłówek odstaje?", prompt)
         self.assertIn("layout_contract", prompt)
         self.assertIn("stack=4", prompt)
-        self.assertIn("record=14", prompt)
-        self.assertIn("section=18", prompt)
-        self.assertIn("after_rule=12", prompt)
+        self.assertIn("record=10", prompt)
+        self.assertIn("section=12", prompt)
+        self.assertIn("after_rule=8", prompt)
         self.assertIn("Monument", prompt)
         self.assertIn("changes", prompt)
         self.assertIn("no_changes", prompt)

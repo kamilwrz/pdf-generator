@@ -482,7 +482,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
         self.assertAlmostEqual(
             second_title["top"] - (first_bullets["top"] + first_bullets["height"]),
-            14,
+            10,
         )
 
         header_texts = [
@@ -808,10 +808,10 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertEqual(projects_heading.get("page", 1), 1)
         self.assertEqual(first_project.get("page", 1), 1)
         # Heading must sit directly under experience, not after a large dead band.
-        # SPACE_SECTION (18) is the intended rhythm; anything much larger means
+        # SPACE_SECTION (12) is the intended rhythm; anything much larger means
         # the section was incorrectly deferred as one oversized block.
         gap = projects_heading["top"] - last_bottom
-        self.assertLess(gap, 40)
+        self.assertLess(gap, 36)
 
     def test_words_uses_word_document_rhythm_without_decorative_frames(self):
         elements = generate_resume("words", {
@@ -1472,7 +1472,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                         self.assertEqual(body["width"], 120)
 
     def test_iconic_experience_record_gap_matches_projects(self):
-        """Experience jobs must keep SPACE_RECORD (14) like project records."""
+        """Experience jobs must keep SPACE_RECORD like project records."""
         from app.services.cv_generator import SPACE_RECORD
 
         cv = {
