@@ -21,7 +21,7 @@ import {
 import { materializeElementSpecs } from '../utils/materializeElementSpecs';
 import { useDocumentHistory } from './useDocumentHistory';
 import { useElementSelectionDrag } from './useElementSelectionDrag';
-import API_BASE_URL from '../services/api';
+import API_BASE_URL, { ENDPOINTS } from '../services/api';
 
 /**
  * Core canvas state hook for the A4 CV editor.
@@ -366,8 +366,99 @@ export function useA4Elements(titleRef) {
     });
   }, []);
 
+  // Sidebar / gallery add handlers. Factories own default geometry and category
+  // fields; these wrappers stamp a fresh id, the active page, and enter markers.
+  // Bodies were dropped during the selection-drag split while return exports
+  // stayed — that left "handleAddText is not defined" and crashed /pdfcanvas.
+  const handleAddText = useCallback(() => {
+    const text = createTextElement({
+      elementId: nanoid(),
+      page: currentPageRef.current,
+    });
+    markElementsEnter(text.element_id);
+    setA4_Elements((prev) => [...prev, text]);
+  }, []);
 
+  const handleAddLine = useCallback(() => {
+    const line = createLineElement({
+      elementId: nanoid(),
+      page: currentPageRef.current,
+    });
+    markElementsEnter(line.element_id);
+    setA4_Elements((prev) => [...prev, line]);
+  }, []);
 
+  const handleAddRectangle = useCallback(() => {
+    const rectangle = createRectangleElement({
+      elementId: nanoid(),
+      page: currentPageRef.current,
+    });
+    markElementsEnter(rectangle.element_id);
+    setA4_Elements((prev) => [...prev, rectangle]);
+  }, []);
+
+  const handleAddCircle = useCallback(() => {
+    const circle = createCircleElement({
+      elementId: nanoid(),
+      page: currentPageRef.current,
+    });
+    markElementsEnter(circle.element_id);
+    setA4_Elements((prev) => [...prev, circle]);
+  }, []);
+
+  const handleAddEllipse = useCallback(() => {
+    const ellipse = createEllipseElement({
+      elementId: nanoid(),
+      page: currentPageRef.current,
+    });
+    markElementsEnter(ellipse.element_id);
+    setA4_Elements((prev) => [...prev, ellipse]);
+  }, []);
+
+  /**
+   * Insert a library image onto the current page.
+   *
+   * GalleryItem passes `{ img_id, naturalWidth, naturalHeight }`. Persist a
+   * stable `/images/{id}/content` URL — not a short-lived blob preview — so
+   * save/export keep resolving after the gallery revokes object URLs.
+   *
+   * @param {{ img_id?: string|number, naturalWidth?: number, naturalHeight?: number, src?: string }|Event} payload
+   */
+  const handleAddImage = useCallback((payload) => {
+    const imgId = payload?.img_id ?? payload?.target?.id ?? null;
+    const naturalWidth = payload?.naturalWidth ?? payload?.target?.naturalWidth ?? 100;
+    const naturalHeight = payload?.naturalHeight ?? payload?.target?.naturalHeight ?? 100;
+    let src = payload?.src || "";
+    if (!src && imgId != null && imgId !== "") {
+      src = `${API_BASE_URL}${ENDPOINTS.IMG.CONTENT(imgId)}`;
+    } else if (!src) {
+      src = payload?.target?.src || "";
+    }
+    const image = createImageElement({
+      elementId: nanoid(),
+      src,
+      imgId,
+      naturalWidth,
+      naturalHeight,
+      page: currentPageRef.current,
+    });
+    markElementsEnter(image.element_id);
+    setA4_Elements((prev) => [...prev, image]);
+  }, []);
+
+  const handleAddTextarea = useCallback(() => {
+    const textarea = createTextareaElement({
+      elementId: nanoid(),
+      page: currentPageRef.current,
+    });
+    markElementsEnter(textarea.element_id);
+    // New textarea is selected + editing — clear other selection so typing
+    // does not apply to a previous multi-select group.
+    setA4_Elements((prev) => [
+      ...prev.map((el) => ({ ...el, isSelected: false, isEditing: false })),
+      textarea,
+    ]);
+  }, []);
 
   const handleSetTextareaEditing = useCallback((elementId, editing) => {
     setA4_Elements(prevState => prevState.map(el => {
