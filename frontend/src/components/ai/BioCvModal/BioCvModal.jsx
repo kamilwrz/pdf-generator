@@ -85,6 +85,7 @@ export default function BioCvModal() {
         showBioCvModal,
         loadAiElements,
         entitlements,
+        setActiveCvData,
     } = use(PdfContext);
     const api = useMemo(
         () => new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` }),
@@ -299,13 +300,17 @@ export default function BioCvModal() {
                 "Nie udało się utworzyć CV.",
             );
             await loadAiElements(response.elements, `CV ${template.name}`, template.id);
+            // Keep the source data reachable after this modal closes, so the
+            // Topbar "Zmień szablon" gallery can restyle this same CV later
+            // without redoing the wizard.
+            setActiveCvData(payload);
             showBioCvModal();
         } catch (error) {
             setSaveError(error.message || "Nie udało się utworzyć CV.");
         } finally {
             setFillingId(null);
         }
-    }, [api, entitlements, loadAiElements, profile, saveDraft, showBioCvModal]);
+    }, [api, entitlements, loadAiElements, profile, saveDraft, setActiveCvData, showBioCvModal]);
 
     const renderPersonal = () => (
         <div className={classes.formGrid}>

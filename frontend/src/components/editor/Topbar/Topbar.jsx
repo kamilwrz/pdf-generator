@@ -6,7 +6,7 @@ import classes from "./Topbar.module.css";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { LuLayoutTemplate } from "react-icons/lu";
-import { RiFileTextLine, RiDownload2Line } from "react-icons/ri";
+import { RiFileTextLine, RiDownload2Line, RiShuffleLine } from "react-icons/ri";
 import { FiEdit3, FiSave, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { RiArrowGoBackLine, RiArrowGoForwardLine } from "react-icons/ri";
 import { TiPen } from "react-icons/ti";
@@ -16,6 +16,8 @@ export default function Topbar({ titleRef }) {
         showTemplates,
         showAiPanel,
         showBioCvModal,
+        showChangeTemplateModal,
+        activeCvData,
         createPdf,
         updatePdf,
         clearA4,
@@ -45,6 +47,16 @@ export default function Topbar({ titleRef }) {
                 <button type="button" className={classes.feature} onClick={showBioCvModal}>
                     <FiEdit3 />
                     <span className={classes.label}>Utwórz CV krok po kroku</span>
+                </button>
+                <button
+                    type="button"
+                    className={classes.feature}
+                    onClick={showChangeTemplateModal}
+                    disabled={!activeCvData}
+                    title={activeCvData ? undefined : "Najpierw wypełnij CV z PDF albo kreatorem krok po kroku"}
+                >
+                    <RiShuffleLine />
+                    <span className={classes.label}>Zmień szablon</span>
                 </button>
                 <span className={classes.divider} aria-hidden="true" />
 

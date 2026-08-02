@@ -472,7 +472,7 @@ Implementation:
 
 ### Template carousel (CV import)
 
-Step 2 of **Wypełnij z mojego CV** (after PDF extract) picks a template from an endless-loop gallery instead of a separate text list + hover preview pane. Each card shows the template’s A4 mockup directly; hovering or focusing a card enlarges it in place (`whileHover`/`whileFocus` scale via Framer Motion). Only `TemplateCarousel.VISIBLE_COUNT` (5) cards render at once, computed by indexing into the template array modulo its length, so the prev/next arrows above the gallery never hit an end — advancing past the last template wraps to the first. Continuing cards keep their React key and slide to their new slot via Framer Motion's `layout` animation; the card that scrolls off exits and the newly revealed one fades in — no manual pixel math or DOM-cloning. Locked (non-Standard) templates stay visible but show a **Standard** badge and reject clicks with a tooltip; the currently-filling template shows a spinner overlay.
+Step 2 of **Wypełnij z mojego CV** (after PDF extract) picks a template from an endless-loop gallery instead of a separate text list + hover preview pane. Each card shows the template’s A4 mockup directly; hovering or focusing a card enlarges it in place (`whileHover`/`whileFocus` scale via Framer Motion). Only `TemplateCarousel.VISIBLE_COUNT` (5) cards render at once, computed by indexing into the template array modulo its length, so the prev/next arrows above the gallery never hit an end — advancing past the last template wraps to the first. Continuing cards keep their React key and slide to their new slot via Framer Motion's `layout` animation; the card that scrolls off exits and the newly revealed one fades in — no manual pixel math or DOM-cloning. Locked (non-Standard) templates stay visible but show a **Standard** badge and reject clicks with a tooltip; the currently-filling template shows a spinner overlay. The gallery track clips its own vertical overflow (`overflow-y: hidden` with generous padding) so the hover-scale growth never bleeds into — and never triggers — the dialog's own scrollbar.
 
 Implementation:
 
@@ -480,6 +480,23 @@ Implementation:
 - `frontend/src/components/ai/AiCvPanel/TemplateCarousel.module.css`
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — renders `<TemplateCarousel>` in the step-2 section, passing `handleFill` as `onSelect`
 - Assets: `frontend/public/template-mockups/{id}.png`
+
+### Change template on the current CV (Topbar)
+
+Once a CV has been filled at least once this session (via PDF import or the bio wizard), the Topbar's **Zmień szablon** button opens a dialog with the same `TemplateCarousel` gallery, so the user can restyle the document without re-uploading a PDF or redoing the wizard. It reuses the exact `cv_data` captured at the last successful fill (`PdfContext.activeCvData`) and calls the same `/ai/fill_template` endpoint.
+
+The important difference from the initial fill flows: this one applies the result through `replaceActiveElements` (the raw `handleLoadAiElements` from `useA4Elements`) instead of `loadAiElements`. `loadAiElements` is wrapped in `startFreshDocument`, which clears `pdfId` and starts a brand-new, unsaved project — correct for "create a CV," wrong for "restyle this one." `replaceActiveElements` swaps the canvas elements and template id but leaves `pdfId` and the project title untouched, so the very next autosave updates the *same* saved document instead of creating a duplicate.
+
+`activeCvData` is set only at the moment a fill succeeds (in `AiCvPanel.handleFill` and `BioCvModal.handleFill`) and is cleared whenever the canvas stops representing that data: starting any fresh document (`startFreshDocument` — covers clear/template/AI-load), discarding the active document, or opening a different saved PDF from **Moje dokumenty** (`ModalPdfs.showPDF`, which has no persisted `cv_data` to offer). The Topbar button is disabled with an explanatory tooltip whenever `activeCvData` is null.
+
+Implementation:
+
+- `frontend/src/store/pdfgenerator-context.jsx` — `activeCvData`, `setActiveCvData`, `replaceActiveElements`, `isChangeTemplateModal`, `showChangeTemplateModal` defaults
+- `frontend/src/pages/PdfCanvas.jsx` — owns `activeCvData` state and the `'changeTemplate'` dialog slot; `startFreshDocument`/`discardActiveDocument` clear it; exposes `replaceActiveElements: handleLoadAiElements` (raw, no `pdfId` reset)
+- `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx`, `.module.css` — identity summary + `TemplateCarousel`, `handleChangeTemplate`
+- `frontend/src/components/editor/Topbar/Topbar.jsx` — **Zmień szablon** button, disabled when `activeCvData` is null
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` — `setActiveCvData(...)` on successful fill
+- `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `showPDF` — `setActiveCvData(null)` when opening a different saved document
 
 ### AI assistant
 
@@ -1216,7 +1233,7 @@ Implementacja:
 
 ### Karuzela szablonów (import CV)
 
-Krok 2 w **Wypełnij z mojego CV** (po ekstrakcji PDF) wybiera szablon z nieskończonej karuzeli zamiast osobnej listy tekstowej z panelem podglądu na hover. Każda karta pokazuje bezpośrednio mockup A4 szablonu; najazd lub fokus powiększa kartę w miejscu (`whileHover`/`whileFocus` ze skalą przez Framer Motion). Renderowanych jest naraz tylko `TemplateCarousel.VISIBLE_COUNT` (5) kart, wyliczanych przez indeksowanie modulo długości tablicy szablonów, więc strzałki nawigacji nad karuzelą nigdy nie trafiają na koniec — przejście za ostatni szablon zawija do pierwszego. Karty, które zostają widoczne, zachowują swój klucz React i przesuwają się na nowe miejsce animacją `layout` z Framer Motion; karta, która wypada, znika, a nowo odsłonięta pojawia się z fade-in — bez ręcznej matematyki pikseli czy klonowania DOM. Zablokowane szablony (poza planem Standard) pozostają widoczne, ale mają plakietkę **Standard** i odrzucają kliknięcie z tooltipem; aktualnie wypełniany szablon pokazuje nakładkę ze spinnerem.
+Krok 2 w **Wypełnij z mojego CV** (po ekstrakcji PDF) wybiera szablon z nieskończonej karuzeli zamiast osobnej listy tekstowej z panelem podglądu na hover. Każda karta pokazuje bezpośrednio mockup A4 szablonu; najazd lub fokus powiększa kartę w miejscu (`whileHover`/`whileFocus` ze skalą przez Framer Motion). Renderowanych jest naraz tylko `TemplateCarousel.VISIBLE_COUNT` (5) kart, wyliczanych przez indeksowanie modulo długości tablicy szablonów, więc strzałki nawigacji nad karuzelą nigdy nie trafiają na koniec — przejście za ostatni szablon zawija do pierwszego. Karty, które zostają widoczne, zachowują swój klucz React i przesuwają się na nowe miejsce animacją `layout` z Framer Motion; karta, która wypada, znika, a nowo odsłonięta pojawia się z fade-in — bez ręcznej matematyki pikseli czy klonowania DOM. Zablokowane szablony (poza planem Standard) pozostają widoczne, ale mają plakietkę **Standard** i odrzucają kliknięcie z tooltipem; aktualnie wypełniany szablon pokazuje nakładkę ze spinnerem. Tor karuzeli przycina własny pionowy overflow (`overflow-y: hidden` z dużym paddingiem), żeby powiększenie na hover nigdy nie „wyciekało” do — i nie wywoływało — paska przewijania samego modala.
 
 Implementacja:
 
@@ -1224,6 +1241,23 @@ Implementacja:
 - `frontend/src/components/ai/AiCvPanel/TemplateCarousel.module.css`
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — renderuje `<TemplateCarousel>` w sekcji kroku 2, przekazując `handleFill` jako `onSelect`
 - Pliki: `frontend/public/template-mockups/{id}.png`
+
+### Zmiana szablonu na bieżącym CV (Topbar)
+
+Gdy CV zostało w tej sesji przynajmniej raz wypełnione (przez import PDF albo kreator bio), przycisk **Zmień szablon** w Topbarze otwiera dialog z tą samą galerią `TemplateCarousel`, więc użytkownik może przestylizować dokument bez ponownego przesyłania PDF-a czy przechodzenia kreatora od nowa. Wykorzystuje dokładnie te same dane `cv_data` zapisane przy ostatnim udanym wypełnieniu (`PdfContext.activeCvData`) i wywołuje ten sam endpoint `/ai/fill_template`.
+
+Kluczowa różnica względem początkowych ścieżek wypełniania: ta akcja aplikuje wynik przez `replaceActiveElements` (surowe `handleLoadAiElements` z `useA4Elements`), a nie przez `loadAiElements`. `loadAiElements` jest opakowane w `startFreshDocument`, które czyści `pdfId` i zaczyna zupełnie nowy, niezapisany projekt — poprawne dla „utwórz CV”, błędne dla „przestylizuj to CV”. `replaceActiveElements` podmienia elementy płótna i id szablonu, ale zostawia `pdfId` oraz tytuł projektu nietknięte, więc najbliższy autozapis aktualizuje *ten sam* zapisany dokument zamiast tworzyć duplikat.
+
+`activeCvData` jest ustawiane wyłącznie w momencie udanego wypełnienia (w `AiCvPanel.handleFill` i `BioCvModal.handleFill`) i czyszczone, gdy płótno przestaje reprezentować te dane: rozpoczęcie dowolnego nowego dokumentu (`startFreshDocument` — obejmuje czyszczenie/szablon/wczytanie AI), odrzucenie aktywnego dokumentu albo otwarcie innego zapisanego PDF-a z **Moje dokumenty** (`ModalPdfs.showPDF`, który nie ma trwałych danych `cv_data` do zaoferowania). Przycisk w Topbarze jest wyłączony z wyjaśniającym tooltipem, gdy `activeCvData` jest puste.
+
+Implementacja:
+
+- `frontend/src/store/pdfgenerator-context.jsx` — wartości domyślne `activeCvData`, `setActiveCvData`, `replaceActiveElements`, `isChangeTemplateModal`, `showChangeTemplateModal`
+- `frontend/src/pages/PdfCanvas.jsx` — trzyma stan `activeCvData` i slot dialogu `'changeTemplate'`; `startFreshDocument`/`discardActiveDocument` je czyszczą; wystawia `replaceActiveElements: handleLoadAiElements` (surowe, bez resetu `pdfId`)
+- `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx`, `.module.css` — podsumowanie tożsamości + `TemplateCarousel`, `handleChangeTemplate`
+- `frontend/src/components/editor/Topbar/Topbar.jsx` — przycisk **Zmień szablon**, wyłączony gdy `activeCvData` jest puste
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` — `setActiveCvData(...)` po udanym wypełnieniu
+- `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `showPDF` — `setActiveCvData(null)` przy otwieraniu innego zapisanego dokumentu
 
 ### Asystent AI
 

@@ -54,6 +54,7 @@ export default function ModalPdfs({ title }) {
         setPageCount,
         setCurrentPage,
         resetHistory,
+        setActiveCvData,
     } = use(PdfContext);
 
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
@@ -155,6 +156,11 @@ export default function ModalPdfs({ title }) {
             setA4_Elements_deleted([]);
             setA4_Elements(elementsData.filter(element => element.category !== "title"));
             handlePdfId(id);
+            // A reopened saved document has no persisted cv_data to reuse —
+            // clear any structured data left over from a previous fill so the
+            // Topbar "Zmień szablon" gallery doesn't offer to reapply an
+            // unrelated CV's content onto this document.
+            setActiveCvData(null);
             setIsModalPdfs(false);
         } catch (error) {
             setError(error);

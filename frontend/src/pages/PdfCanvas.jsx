@@ -25,6 +25,7 @@ import TemplatesModal from '../components/modals/TemplatesModal/TemplatesModal';
 import PlanSelectModal from '../components/modals/PlanSelectModal/PlanSelectModal';
 import AiCvPanel from '../components/ai/AiCvPanel/AiCvPanel';
 import BioCvModal from '../components/ai/BioCvModal/BioCvModal';
+import ChangeTemplateModal from '../components/editor/Topbar/ChangeTemplateModal';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 import { logEvent } from '../services/eventLog';
 import { previewStructureOperation } from '../utils/structureOperation';
@@ -67,13 +68,19 @@ function PdfCanvas() {
     if (initialStartIntentRef.current === "import") return "ai";
     if (initialStartIntentRef.current === "wizard") return "bioCv";
     return null;
-  }); // 'docs' | 'templates' | 'ai' | 'bioCv' | 'plan' | null
+  }); // 'docs' | 'templates' | 'ai' | 'bioCv' | 'plan' | 'changeTemplate' | null
   const [panel, setPanel] = useState(null);   // 'upload' | 'gallery' | null
   const isModalPdfs = dialog === 'docs';
   const isTemplates = dialog === 'templates';
   const isAiPanel = dialog === 'ai';
   const isBioCvModal = dialog === 'bioCv';
   const isPlanModal = dialog === 'plan';
+  const isChangeTemplateModal = dialog === 'changeTemplate';
+  // Structured cv_data behind the CV currently on the canvas. Set by
+  // AiCvPanel/BioCvModal when a fill succeeds; cleared whenever the canvas
+  // starts showing something else (fresh document, or a reopened saved PDF
+  // in ModalPdfs, which has no persisted cv_data to reuse).
+  const [activeCvData, setActiveCvData] = useState(null);
   const isGallery = panel === 'gallery';
   const isDropzone = panel === 'upload';
   // Compatibility setter: ModalPdfs.jsx and Sidebar.jsx both call this as
@@ -475,6 +482,12 @@ function PdfCanvas() {
     if (next) setPanel(null);
   }, [dialog])
 
+  const handleShowChangeTemplateModal = useCallback(() => {
+    const next = dialog !== 'changeTemplate';
+    setDialog(next ? 'changeTemplate' : null);
+    if (next) setPanel(null);
+  }, [dialog])
+
   const handleShowGallery = useCallback(() => {
     const next = panel !== 'gallery';
     setPanel(next ? 'gallery' : null);
@@ -541,6 +554,10 @@ function PdfCanvas() {
     try {
       await flushAutosave();
       setPdfId(null);
+      // A brand-new document has no known cv_data yet. AiCvPanel/BioCvModal
+      // set it again right after a successful fill; every other fresh-start
+      // path (blank template, cleared canvas) correctly leaves it cleared.
+      setActiveCvData(null);
       loadDocument();
     } catch (error) {
       console.error("Nie można rozpocząć nowego dokumentu: autozapis nie powiódł się.", error);
@@ -571,6 +588,7 @@ function PdfCanvas() {
       autosaveTimerRef.current = null;
     }
     setPdfId(null);
+    setActiveCvData(null);
     handleClearA4();
   }, [handleClearA4]);
 
@@ -622,7 +640,13 @@ function PdfCanvas() {
     loadTemplate: loadTemplateFresh,
     loadTemplateWithFill: loadTemplateWithFillFresh,
     loadAiElements: loadAiElementsFresh,
+    // Raw canvas replace (no pdfId/title reset) — used by the Topbar "Zmień
+    // szablon" flow to restyle the current document in place instead of
+    // starting a new one.
+    replaceActiveElements: handleLoadAiElements,
     activeTemplateId,
+    activeCvData,
+    setActiveCvData,
     //ai panel
     isAiPanel: isAiPanel,
     showAiPanel: handleShowAiPanel,
@@ -630,6 +654,8 @@ function PdfCanvas() {
     showBioCvModal: handleShowBioCvModal,
     isPlanModal: isPlanModal,
     showPlanModal: handleShowPlanModal,
+    isChangeTemplateModal: isChangeTemplateModal,
+    showChangeTemplateModal: handleShowChangeTemplateModal,
     //page geometry
     pageSize: pageSize,
     //zoom (view-only)
@@ -695,12 +721,14 @@ function PdfCanvas() {
     handleAlignElements, handleDeleteElement, handleDeleteSelectedElements, handleDuplicateSelectedElements, setA4_Elements,
     setValueImageUpload, setIsModalPdfs, handleResizeElement, 
     updatePdfWithElements, handlePdfId, 
-    clearA4Fresh, discardActiveDocument, flushAutosave, loadTemplateFresh, loadTemplateWithFillFresh, loadAiElementsFresh, activeTemplateId,
+    clearA4Fresh, discardActiveDocument, flushAutosave, loadTemplateFresh, loadTemplateWithFillFresh, loadAiElementsFresh, handleLoadAiElements, activeTemplateId,
+    activeCvData, setActiveCvData,
     pushToast, entitlements, refreshEntitlements, handleLogout, PDFs, setPDFs, pdfsLoaded, setPdfsLoaded,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     isTwoPageView, toggleTwoPageView,
     handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
     isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen, isAiPanel, handleShowAiPanel, isBioCvModal, handleShowBioCvModal, isPlanModal, handleShowPlanModal,
+    isChangeTemplateModal, handleShowChangeTemplateModal,
     pageSize,
     zoom, zoomIn, zoomOut,
     undo, redo, canUndo, canRedo, resetHistory,
@@ -731,6 +759,7 @@ function PdfCanvas() {
         <PlanSelectModal />
         <AiCvPanel />
         <BioCvModal />
+        <ChangeTemplateModal />
         <DropzoneContainer />
         <Sidebar>
           <Editor />

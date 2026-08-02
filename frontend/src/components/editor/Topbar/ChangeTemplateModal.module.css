@@ -1,0 +1,62 @@
+/*
+ * Content for the "Zmień szablon" dialog. Sizing mirrors AiCvPanel's
+ * extracted-state step 2 (same 1400px DialogShell width, same near-zero
+ * radius={2}) so this feels like the same family of dialog rather than a
+ * new visual language — it reuses TemplateCarousel outright.
+ */
+
+.wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.identity {
+    padding: 22px 32px;
+    background: var(--chrome-control);
+    border-bottom: 1px solid var(--chrome-border);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.identityName {
+    font: 700 22px var(--font-display);
+    color: var(--chrome-ink);
+}
+
+.identityMeta {
+    font: 600 14px var(--font-body);
+    color: var(--chrome-muted);
+}
+
+.identityStats {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+    font: 600 13px var(--font-body);
+    color: var(--chrome-muted);
+}
+
+/* Matches .identity's horizontal padding so the carousel's arrows/cards
+   align with the identity text above instead of sitting flush against the
+   dialog edge (TemplateCarousel itself only pads by its own 16px). */
+.carouselSection {
+    padding: 20px 32px 26px;
+}
+
+.hint {
+    margin: 0;
+    padding: 26px 32px;
+    font: 500 13px var(--font-body);
+    color: var(--chrome-muted);
+}
+
+.error {
+    margin: 20px 32px;
+    padding: 16px 20px;
+    font: 600 15px var(--font-body);
+    color: var(--danger);
+    background: var(--danger-soft);
+    border-radius: 2px;
+    border: 1px solid rgba(232, 138, 115, .35);
+}

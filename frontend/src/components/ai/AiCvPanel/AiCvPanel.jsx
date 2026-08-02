@@ -28,7 +28,7 @@ const SparkIcon = () => (
 );
 
 export default function AiCvPanel() {
-    const { isAiPanel, showAiPanel, showBioCvModal, loadAiElements, entitlements, refreshEntitlements } = use(PdfContext);
+    const { isAiPanel, showAiPanel, showBioCvModal, loadAiElements, entitlements, refreshEntitlements, setActiveCvData } = use(PdfContext);
 
     const fileRef = useRef(null);
     const [fileName, setFileName] = useState(null);
@@ -105,13 +105,17 @@ export default function AiCvPanel() {
                 "Generowanie szablonu nie powiodło się"
             );
             loadAiElements(res.elements, `CV ${template.name}`, template.id);
+            // Keep the source data reachable after this modal closes, so the
+            // Topbar "Zmień szablon" gallery can restyle this same CV later
+            // without asking the user to re-upload or re-extract anything.
+            setActiveCvData(cvData);
             showAiPanel();
         } catch (err) {
             setError(planErrorMessage(err, "Nie udało się wygenerować szablonu."));
         } finally {
             setFillingId(null);
         }
-    }, [api, cvData, entitlements, loadAiElements, showAiPanel]);
+    }, [api, cvData, entitlements, loadAiElements, setActiveCvData, showAiPanel]);
 
     return (
         <DialogShell

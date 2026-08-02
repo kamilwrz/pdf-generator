@@ -127,14 +127,18 @@
     flex-shrink: 0;
 }
 
-/* ---- CV Templates / Fill from my CV ---- */
+/* ---- CV Templates / Fill from my CV / Change template ---- */
 .feature {
     background: transparent;
     color: var(--topbar-muted);
 }
-.feature:hover {
+.feature:hover:not(:disabled) {
     background: var(--topbar-hover);
     color: var(--topbar-ink);
+}
+.feature:disabled {
+    opacity: .45;
+    cursor: not-allowed;
 }
 
 /* ---- Clear (destructive ghost) ---- */

@@ -81,4 +81,16 @@ export const PdfContext = createContext({
     setDeletionPreviewIds: () => {},
     setPDFdownloadData: () => {},
     PDFdownloadData: [],
+    // Structured cv_data behind the CV currently on the canvas (set by
+    // AiCvPanel/BioCvModal on a successful fill; null when the canvas has no
+    // known reusable source data — e.g. a blank template or a reopened saved
+    // document). Backs the Topbar "Zmień szablon" gallery.
+    activeCvData: null,
+    setActiveCvData: () => {},
+    isChangeTemplateModal: false,
+    showChangeTemplateModal: () => {},
+    // Raw canvas replace: swaps elements/template but — unlike `loadAiElements`
+    // — keeps the current pdfId and title, so it updates the existing saved
+    // document instead of starting a new one.
+    replaceActiveElements: () => {},
 })
