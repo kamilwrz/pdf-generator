@@ -48,8 +48,23 @@
     align-items: flex-start;
     justify-content: center;
     gap: 24px;
-    padding: 6px 4px 14px;
+    /* Vertical padding leaves room for the ~9% hover scale-up (roughly 15px
+       of growth on a full-height card) so hovering never visibly clips a
+       card against this container's own edge. */
+    padding: 20px 16px 24px;
     overflow-x: auto;
+    /* WORKAROUND: without this, the hover scale transform on .card (which is
+       paint-only and normally shouldn't affect layout) still gets counted
+       into DialogShell's .body scrollable area, because a transformed
+       descendant's post-transform bounds contribute to the *nearest*
+       ancestor's scrollable overflow unless something clips it first. That
+       made the outer dialog scrollbar appear/jump the instant a template was
+       hovered. overflow-y: hidden here — paired with the extra padding above
+       so the scaled card still renders in full — stops that bleed at this
+       track instead of letting it reach the dialog body.
+       Remove if a future layout change already isolates transform overflow
+       upstream (e.g. `contain: paint` becomes safe to add higher up). */
+    overflow-y: hidden;
 }
 
 .card {
