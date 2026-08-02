@@ -565,7 +565,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         # forced into the main column because their sidebar has a deliberately
         # separate palette.
         affected_templates = (
-            "vault", "clearing", "herald", "signal",
+            "signal",
             "ledger", "nimbus", "cinder", "rift",
             "vector", "kernel", "relay",
             "scribe", "regent", "aldine", "merit",
@@ -1184,7 +1184,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 for element in elements
             ))
 
-    def test_banking_templates_are_distinct_multpage_canvas_layouts(self):
+    def test_signal_banking_template_is_multpage_canvas_layout(self):
         multi_page_cv = {
             **LONG_CV,
             "experience": LONG_CV["experience"] * 4,
@@ -1192,49 +1192,40 @@ class CvTemplateLayoutTests(unittest.TestCase):
         expected_categories = {
             "text", "textarea", "line", "rectangle", "circle", "ellipse",
         }
-        expected_papers = {
-            "vault": "#F3F3ED",
-            "clearing": "#FBFCFE",
-            "herald": "#FCF8F0",
-            "signal": "#101C26",
-        }
+        elements = generate_resume("signal", multi_page_cv)
+        pages = {element.get("page", 1) for element in elements}
+        rendered_copy = " ".join(
+            str(element.get("content", ""))
+            for element in elements
+            if element["category"] in {"text", "textarea"}
+        ).upper()
 
-        for template_id, paper in expected_papers.items():
-            with self.subTest(template_id=template_id):
-                elements = generate_resume(template_id, multi_page_cv)
-                pages = {element.get("page", 1) for element in elements}
-                rendered_copy = " ".join(
-                    str(element.get("content", ""))
-                    for element in elements
-                    if element["category"] in {"text", "textarea"}
-                ).upper()
-
-                categories = {element["category"] for element in elements}
-                self.assertTrue(expected_categories <= categories)
-                self.assertNotIn("connector", categories)
-                self.assertNotIn(template_id.upper(), rendered_copy)
-                self.assertGreater(max(pages), 1)
-                self.assertTrue(all(
-                    element.get("autoHeight") is True
-                    and 0 <= element["left"] <= 595
-                    and 0 <= element["top"] <= 842
-                    and element["left"] + element["width"] <= 595
-                    and element["top"] + element["height"] <= 842
-                    for element in elements
-                    if element["category"] == "textarea"
-                ))
-                for page in pages:
-                    self.assertTrue(any(
-                        element["category"] == "line"
-                        and element.get("page", 1) == page
-                        and element["left"] == 0
-                        and element["top"] == 0
-                        and element["width"] == 595
-                        and element["height"] == 842
-                        and element["backgroundColor"] == paper
-                        and element.get("fixedToPage") is True
-                        for element in elements
-                    ))
+        categories = {element["category"] for element in elements}
+        self.assertTrue(expected_categories <= categories)
+        self.assertNotIn("connector", categories)
+        self.assertNotIn("SIGNAL", rendered_copy)
+        self.assertGreater(max(pages), 1)
+        self.assertTrue(all(
+            element.get("autoHeight") is True
+            and 0 <= element["left"] <= 595
+            and 0 <= element["top"] <= 842
+            and element["left"] + element["width"] <= 595
+            and element["top"] + element["height"] <= 842
+            for element in elements
+            if element["category"] == "textarea"
+        ))
+        for page in pages:
+            self.assertTrue(any(
+                element["category"] == "line"
+                and element.get("page", 1) == page
+                and element["left"] == 0
+                and element["top"] == 0
+                and element["width"] == 595
+                and element["height"] == 842
+                and element["backgroundColor"] == "#101C26"
+                and element.get("fixedToPage") is True
+                for element in elements
+            ))
 
     def test_onyx_page_frames_are_fixed_decorations(self):
         """Full-page bronze frames must not participate in textarea reflow."""

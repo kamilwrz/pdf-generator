@@ -11,7 +11,7 @@ CV STUDIO to studio CV po polsku: wizualne płótno A4, szablony dopasowane do b
 | | |
 |---|---|
 | **Wizualnie, nie tylko formularze** | Przeciągaj, wyrównuj i stylizuj każdy blok na prawdziwej stronie — to, co widzisz, trafia do eksportu. |
-| **Szablony pod Twoją branżę** | Finanse, IT, bankowość, klasyka, sidebar, motywy ciemne i Iconic — 26 gotowych układów. |
+| **Szablony pod Twoją branżę** | Finanse, IT, bankowość, klasyka, sidebar, motywy ciemne i Iconic — 23 gotowe układy. |
 | **AI, które bierze na siebie ciężką robotę** | Zaimportuj stare PDF, przejdź kreator bio albo porozmawiaj z asystentem o ocenach, ATS i poprawkach. |
 | **Za darmo na start** | Załóż konto, projektuj i pobieraj. Karta nie jest wymagana. AI i pełna biblioteka — w planach Standard / Premium. |
 
@@ -80,7 +80,7 @@ Każdy szablon to A4 pion i realna kariera — nie generyczne „CV nr 3”.
 | **IT** | Vector · Kernel · Relay | Platformy, architektura i DevOps |
 | **Classic** | Scribe · Regent · Aldine · Merit · Monument · Words | Formalny, executive, szlachetny papier, dyplomatyczny minimalizm, monochromatyczny editorial i układ dokumentu Word |
 | **Sidebar** | Moss | Botaniczna elegancja |
-| **Banking** | Vault · Clearing · Herald · Signal | Private banking, operacje, wealth, ryzyko i treasury |
+| **Banking** | Signal | Ryzyko i treasury |
 | **Dark** | Obsidian · Raven · Graphite · Onyx | Panel boczny, pasek górny, minimal, rama dyplomatyczna |
 | **Iconic** | Nova · Ridge · Loom · Volt | Ikona przy kontakcie i sekcjach, cztery systemy typograficzne |
 
@@ -141,7 +141,7 @@ Cały interfejs mówi po polsku: marketing, edytor, akcje AI, powiadomienia i mo
 | Plan | Co dostajesz |
 |---|---|
 | **Free** | Edytor A4, 7 szablonów startowych, limity projektów i eksportów; bez asystenta AI |
-| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 26 szablonów oraz wyższe limity |
+| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 23 szablony oraz wyższe limity |
 | **Premium** | Tryb Układ AI, więcej kredytów AI, bez limitu projektów i eksportów |
 
 Model kredytów: ok. 1 kredyt ≈ 5 gr — rozliczenie zbliżone do realnego użycia.
@@ -162,7 +162,7 @@ Model kredytów: ok. 1 kredyt ≈ 5 gr — rozliczenie zbliżone do realnego uż
 |---|---|
 | Płótno | Edytor A4 pion, 7 typów elementów, wiele stron, zoom, prowadnice |
 | Typografia | 10 czcionek zsynchronizowanych z PDF |
-| Szablony | 26 systemów CV w 7 kolekcjach |
+| Szablony | 23 systemy CV w 7 kolekcjach |
 | Import AI | Wypełnij dowolny szablon z przesłanego PDF |
 | Kreator | Bio krok po kroku z zapisem szkicu |
 | Coach AI | 7 analiz + chat w Standard; Układ z podglądem geometrii w Premium |

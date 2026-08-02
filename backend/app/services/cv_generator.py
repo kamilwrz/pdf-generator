@@ -7,7 +7,7 @@ using the visual style of the chosen template. The number of
 experience / education blocks matches the CV exactly — no slots, no
 truncation, multi-page when content overflows.
 
-Theme families share flow helpers (`_gen_banking_theme`, `_gen_it_theme`,
+Theme families share flow helpers (`_gen_signal`, `_gen_it_theme`,
 `_gen_classic_theme`); the Moss sidebar has its own `_gen_moss` layout.
 Vertical rhythm constants (`SPACE_*`) keep section/record spacing consistent
 across families. Page chrome uses `fixedToPage=True`.
@@ -776,73 +776,28 @@ def _obsidian_education_parts(edu: dict) -> tuple[str, str, str]:
 # ── template generators ──────────────────────────────────────────────────────
 
 
-_BANKING_THEMES = {
-    "vault": {
-        "paper": "#F3F3ED", "ink": "#143A32", "body": "#1E2A25",
-        "muted": "#718279", "accent": "#B79A56", "rule": "#B7C4BB",
-        "light": "#D7E2DB", "left": 54, "width": 487,
-        "start": 278, "continuation": 64, "mark_x": 525,
-    },
-    "clearing": {
-        "paper": "#FBFCFE", "ink": "#173F67", "body": "#203342",
-        "muted": "#71869A", "accent": "#48B8C8", "rule": "#C8D6E1",
-        "light": "#B9E8EB", "left": 164, "width": 377,
-        "start": 202, "continuation": 60, "mark_x": 150,
-    },
-    "herald": {
-        "paper": "#FCF8F0", "ink": "#312725", "body": "#312725",
-        "muted": "#71645B", "accent": "#9D3341", "rule": "#CDBA97",
-        "light": "#F6EBDC", "left": 70, "width": 455,
-        "start": 354, "continuation": 66, "mark_x": 510,
-    },
-    "signal": {
-        "paper": "#101C26", "ink": "#F2F7F6", "body": "#E4EFEE",
-        "muted": "#9DB7C3", "accent": "#3BD2C7", "rule": "#395263",
-        "light": "#7BE1D9", "left": 76, "width": 465,
-        "start": 251, "continuation": 66, "mark_x": 525,
-    },
+_SIGNAL_THEME = {
+    "paper": "#101C26", "ink": "#F2F7F6", "body": "#E4EFEE",
+    "muted": "#9DB7C3", "accent": "#3BD2C7", "rule": "#395263",
+    "light": "#7BE1D9", "left": 76, "width": 465,
+    "start": 251, "continuation": 66, "mark_x": 525,
 }
 
 
-def _banking_page_decorations(theme: str, page: int) -> list[dict]:
-    """Return fixed paper, rails, and folios for one banking-template page."""
-    C = _BANKING_THEMES[theme]
-    paper = {**_line(0, 0, 595, 842, C["paper"], zIndex=0, page=page), "fixedToPage": True}
-    footer = {**_text(f"{page:02d}", 8, "Inter", C["muted"], 522, 800, page=page), "fixedToPage": True}
-
-    if theme == "vault":
-        return [
-            paper,
-            {**_line(0, 0, 595, 12, C["ink"], page=page), "fixedToPage": True},
-            {**_line(54, 789, 487, 1, C["rule"], page=page), "fixedToPage": True},
-            footer,
-        ]
-    if theme == "clearing":
-        return [
-            paper,
-            {**_line(0, 0, 130, 842, C["ink"], page=page), "fixedToPage": True},
-            {**_line(130, 0, 4, 842, C["accent"], zIndex=2, page=page), "fixedToPage": True},
-            {**_line(164, 789, 377, 1, C["rule"], page=page), "fixedToPage": True},
-            footer,
-        ]
-    if theme == "herald":
-        return [
-            paper,
-            {**_rect(24, 24, 547, 794, C["accent"], 1.1, page=page), "fixedToPage": True},
-            {**_rect(31, 31, 533, 780, C["rule"], 0.8, page=page), "fixedToPage": True},
-            footer,
-        ]
+def _signal_page_decorations(page: int) -> list[dict]:
+    """Return fixed paper, rail, and folio for one Signal banking page."""
+    C = _SIGNAL_THEME
     return [
-        paper,
+        {**_line(0, 0, 595, 842, C["paper"], zIndex=0, page=page), "fixedToPage": True},
         {**_line(0, 0, 595, 5, C["accent"], page=page), "fixedToPage": True},
         {**_line(76, 789, 465, 1, C["rule"], page=page), "fixedToPage": True},
-        footer,
+        {**_text(f"{page:02d}", 8, "Inter", C["muted"], 522, 800, page=page), "fixedToPage": True},
     ]
 
 
-def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
-    """Generate a banking CV with a theme-specific header and resilient flow."""
-    C = _BANKING_THEMES[theme]
+def _gen_signal(cv: dict) -> list[dict]:
+    """Generate the Signal banking CV with a dark header and resilient flow."""
+    C = _SIGNAL_THEME
     L, W = C["left"], C["width"]
     SANS, SERIF = "Inter", "Times-Roman"
     lbl = _labels(cv)
@@ -856,95 +811,23 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
                 self.pg += 1
                 self.y = float(C["continuation"])
 
-    static: list[dict] = []
-    if theme == "vault":
-        node_a = {**_rect(54, 196, 143, 47, C["accent"], page=1), "id": "vault-marker-a"}
-        node_b = {**_rect(226, 196, 143, 47, C["accent"], page=1), "id": "vault-marker-b"}
-        node_c = {**_rect(398, 196, 143, 47, C["accent"], page=1), "id": "vault-marker-c"}
-        static = [
-            _line(0, 12, 595, 154, C["ink"], zIndex=1),
-            _line(0, 166, 595, 6, C["accent"], zIndex=2),
-            _rect(408, 34, 112, 104, C["accent"], 1.1, zIndex=3),
-            _circle(430, 50, 70, C["paper"], borderWidth=1.1, zIndex=2),
-            _ellipse(444, 72, 42, 26, C["accent"], filled=True, zIndex=2),
-            _text(_compact_text(cv.get("name"), 30), 29, SERIF, "#FFFFFF", 52, 65, zIndex=2, bold=True),
-            _text(_compact_text(cv.get("title"), 54), 9.3, SANS, C["light"], 54, 108, zIndex=2),
-            _text(_compact_text(_contact_line(cv), 78), 8.7, SANS, C["light"], 54, 132, zIndex=2),
-            node_a, node_b, node_c,
-            _line(197, 218, 29, 1, C["accent"], zIndex=2),
-            _line(369, 218, 29, 1, C["accent"], zIndex=2),
-            _text("RYZYKO", 7.4, SANS, C["muted"], 67, 207, zIndex=3),
-            _text("KONTROLA", 13, SERIF, C["ink"], 67, 221, zIndex=3, bold=True),
-            _text("KAPITAŁ", 7.4, SANS, C["muted"], 239, 207, zIndex=3),
-            _text("WARTOŚĆ", 13, SERIF, C["ink"], 239, 221, zIndex=3, bold=True),
-            _text("REPUTACJA", 7.4, SANS, C["muted"], 411, 207, zIndex=3),
-            _text("ZAUFANIE", 13, SERIF, C["ink"], 411, 221, zIndex=3, bold=True),
-        ]
-        static[6]["letterSpacing"] = 1.2
-    elif theme == "clearing":
-        node_a = {**_circle(454, 59, 18, C["accent"], borderWidth=1.2, zIndex=2, page=1), "id": "clearing-node-a"}
-        node_b = {**_circle(489, 59, 18, C["ink"], borderWidth=1.2, zIndex=2, page=1), "id": "clearing-node-b"}
-        node_c = {**_circle(524, 59, 18, C["accent"], borderWidth=1.2, zIndex=2, page=1), "id": "clearing-node-c"}
-        static = [
-            _circle(38, 42, 52, C["accent"], borderWidth=1.2, zIndex=2),
-            _ellipse(47, 57, 34, 18, C["accent"], filled=True, zIndex=2),
-            _text("BANK", 8, SANS, C["light"], 42, 125, zIndex=2),
-            _text("OPERACJE", 8, SANS, C["light"], 42, 144, zIndex=2),
-            _line(34, 174, 64, 1, "#5F89AF"),
-            _text("RYZYKO", 7.5, SANS, C["light"], 34, 202, zIndex=2),
-            _text("PŁATNOŚCI", 7.5, SANS, C["light"], 34, 222, zIndex=2),
-            _text("COMPLIANCE", 7.5, SANS, C["light"], 34, 242, zIndex=2),
-            _rect(34, 690, 62, 62, "#5F89AF", page=1, zIndex=2),
-            _circle(50, 706, 30, C["light"], borderWidth=1, zIndex=3),
-            _text(_compact_text(cv.get("name"), 30), 27, SERIF, C["ink"], 164, 56, zIndex=2, bold=True),
-            _text(_compact_text(cv.get("title"), 58), 9, SANS, "#24889A", 166, 99, zIndex=2),
-            _block(_compact_text(_contact_line(cv), 78), 164, 127, 286, 30, 8.8, 12.5, C["muted"], SANS, zIndex=2),
-            node_a, node_b, node_c,
-            _line(472, 67, 17, 1, C["accent"], zIndex=2),
-            _line(507, 67, 17, 1, C["accent"], zIndex=2),
-        ]
-        static[2]["letterSpacing"] = 1.5
-        static[3]["letterSpacing"] = 1.5
-        static[11]["letterSpacing"] = 1.4
-    elif theme == "herald":
-        node_a = {**_rect(122, 271, 70, 38, C["accent"], page=1, zIndex=2), "id": "herald-seal-a"}
-        node_b = {**_rect(262, 271, 70, 38, C["rule"], page=1, zIndex=2), "id": "herald-seal-b"}
-        node_c = {**_rect(402, 271, 70, 38, C["accent"], page=1, zIndex=2), "id": "herald-seal-c"}
-        static = [
-            _line(54, 52, 487, 3, C["accent"], zIndex=2),
-            _line(54, 60, 487, 1, C["rule"]),
-            _circle(267, 78, 60, C["accent"], borderWidth=1.1, zIndex=2),
-            _ellipse(280, 99, 34, 18, C["rule"], filled=True, zIndex=2),
-            _text(_compact_text(cv.get("name"), 30), 28, SERIF, C["ink"], 154, 152, zIndex=2, bold=True),
-            _text(_compact_text(cv.get("title"), 56), 8.7, SANS, C["accent"], 172, 194, zIndex=2),
-            _text(_compact_text(_contact_line(cv), 78), 8.6, SANS, C["muted"], 149, 218, zIndex=2),
-            _line(54, 247, 487, 1, C["rule"]),
-            node_a, node_b, node_c,
-            _line(192, 288, 70, 1, C["rule"], zIndex=2),
-            _line(332, 288, 70, 1, C["rule"], zIndex=2),
-            _text("DYSKRECJA", 7.2, SANS, "#FFFFFF", 132, 283, zIndex=3),
-            _text("STRATEGIA", 7.2, SANS, "#7A6045", 273, 283, zIndex=3),
-            _text("PARTNERSTWO", 7.2, SANS, "#FFFFFF", 410, 283, zIndex=3),
-        ]
-        static[5]["letterSpacing"] = 1.5
-    else:
-        node_a = {**_circle(78, 197, 18, C["accent"], borderWidth=1.2, zIndex=2, page=1), "id": "signal-node-a"}
-        node_b = {**_circle(116, 197, 18, C["muted"], borderWidth=1.2, zIndex=2, page=1), "id": "signal-node-b"}
-        node_c = {**_circle(154, 197, 18, C["accent"], borderWidth=1.2, zIndex=2, page=1), "id": "signal-node-c"}
-        static = [
-            _ellipse(392, 26, 164, 106, "#173545", borderWidth=1.2, zIndex=1),
-            _ellipse(427, 48, 94, 62, C["accent"], borderWidth=1, zIndex=1),
-            _circle(460, 65, 28, C["accent"], filled=True, zIndex=2),
-            _line(52, 42, 4, 118, C["accent"], zIndex=2),
-            _text(_compact_text(cv.get("name"), 30), 30, SERIF, C["ink"], 76, 77, zIndex=2, bold=True),
-            _text(_compact_text(cv.get("title"), 54), 9.2, SANS, C["muted"], 78, 122, zIndex=2),
-            _text(_compact_text(_contact_line(cv), 78), 8.6, SANS, C["muted"], 78, 145, zIndex=2),
-            node_a, node_b, node_c,
-            _line(96, 205, 20, 1, C["accent"], zIndex=2),
-            _line(134, 205, 20, 1, C["accent"], zIndex=2),
-            _rect(487, 181, 54, 22, C["rule"], 1, zIndex=2),
-        ]
-        static[5]["letterSpacing"] = 1.35
+    node_a = {**_circle(78, 197, 18, C["accent"], borderWidth=1.2, zIndex=2, page=1), "id": "signal-node-a"}
+    node_b = {**_circle(116, 197, 18, C["muted"], borderWidth=1.2, zIndex=2, page=1), "id": "signal-node-b"}
+    node_c = {**_circle(154, 197, 18, C["accent"], borderWidth=1.2, zIndex=2, page=1), "id": "signal-node-c"}
+    static = [
+        _ellipse(392, 26, 164, 106, "#173545", borderWidth=1.2, zIndex=1),
+        _ellipse(427, 48, 94, 62, C["accent"], borderWidth=1, zIndex=1),
+        _circle(460, 65, 28, C["accent"], filled=True, zIndex=2),
+        _line(52, 42, 4, 118, C["accent"], zIndex=2),
+        _text(_compact_text(cv.get("name"), 30), 30, SERIF, C["ink"], 76, 77, zIndex=2, bold=True),
+        _text(_compact_text(cv.get("title"), 54), 9.2, SANS, C["muted"], 78, 122, zIndex=2),
+        _text(_compact_text(_contact_line(cv), 78), 8.6, SANS, C["muted"], 78, 145, zIndex=2),
+        node_a, node_b, node_c,
+        _line(96, 205, 20, 1, C["accent"], zIndex=2),
+        _line(134, 205, 20, 1, C["accent"], zIndex=2),
+        _rect(487, 181, 54, 22, C["rule"], 1, zIndex=2),
+    ]
+    static[5]["letterSpacing"] = 1.35
 
     SECTION_CHROME = section_chrome_height(8.6)
     b = BankingBuilder(C["start"])
@@ -972,7 +855,7 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
 
     def section(label: str) -> None:
         b.els.append(_circle(C["mark_x"], b.y + 1, 12, C["accent"], borderWidth=1.1, zIndex=2, page=b.pg))
-        b.text(label, 8.6, SANS, C["accent"] if theme != "signal" else C["light"], L)
+        b.text(label, 8.6, SANS, C["light"], L)
         b.line(L, W, 1, C["rule"])
         b.gap(SPACE_AFTER_RULE)
 
@@ -1033,25 +916,9 @@ def _gen_banking_theme(cv: dict, theme: str) -> list[dict]:
     decorations = [
         element
         for page in range(1, pages_used + 1)
-        for element in _banking_page_decorations(theme, page)
+        for element in _signal_page_decorations(page)
     ]
     return decorations + static + flow
-
-
-def _gen_vault(cv: dict) -> list[dict]:
-    return _gen_banking_theme(cv, "vault")
-
-
-def _gen_clearing(cv: dict) -> list[dict]:
-    return _gen_banking_theme(cv, "clearing")
-
-
-def _gen_herald(cv: dict) -> list[dict]:
-    return _gen_banking_theme(cv, "herald")
-
-
-def _gen_signal(cv: dict) -> list[dict]:
-    return _gen_banking_theme(cv, "signal")
 
 
 def _gen_ledger(cv: dict) -> list[dict]:
@@ -3275,9 +3142,6 @@ _GENERATORS = {
     "nimbus":    _gen_nimbus,
     "cinder":    _gen_cinder,
     "rift":      _gen_rift,
-    "vault":     _gen_vault,
-    "clearing":  _gen_clearing,
-    "herald":    _gen_herald,
     "signal":    _gen_signal,
     "vector":    _gen_vector,
     "kernel":    _gen_kernel,

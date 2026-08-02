@@ -2,7 +2,7 @@
 
 **Cel pliku:** materiał wyjściowy do sekcji **„Dlaczego CV STUDIO”** na stronie (Hero / landing) oraz do copy produktowego.  
 **Źródło prawdy technicznej:** `README.md`, `docs/FEATURES.md`, kod produktu.  
-**Stan oferty:** edytor A4, 26 szablonów, import PDF → fill, kreator bio, asystent AI, plany Free / Standard / Premium, eksport PDF 1:1 z płótnem.
+**Stan oferty:** edytor A4, 23 szablony, import PDF → fill, kreator bio, asystent AI, plany Free / Standard / Premium, eksport PDF 1:1 z płótnem.
 
 > **Uwaga redakcyjna.** Sekcja „Dlaczego CV STUDIO” (na dole) **nie wymienia marek konkurencji**. Nazwy pojawiają się wyłącznie w wewnętrznej sekcji research — nie kopiuj ich do UI marketingowego.
 
@@ -93,9 +93,9 @@ Dla każdej funkcji: **co to jest** → **co ułatwia użytkownikowi** → **dla
 
 ---
 
-### 1.8. Biblioteka 26 szablonów branżowych
+### 1.8. Biblioteka 23 szablonów branżowych
 
-**Co:** Kolekcje m.in. Finanse, IT, Classic (w tym Words w stylu dokumentu Word), Sidebar, Banking, Dark + rodzina Iconic (Nova, Ridge, Loom, Volt). Mockupy A4 w galerii i przy wyborze po imporcie.
+**Co:** Kolekcje m.in. Finanse, IT, Classic (w tym Words w stylu dokumentu Word), Sidebar, Banking (Signal), Dark + rodzina Iconic (Nova, Ridge, Loom, Volt). Mockupy A4 w galerii i przy wyborze po imporcie.
 
 **Ułatwia:** Start od układu dopasowanego do roli (bankowość ≠ design ≠ IT), zamiast generycznego „CV nr 3”.
 
@@ -203,7 +203,7 @@ Standard obejmuje siedem analiz z tabeli poza Układem oraz chat naturalnym jęz
 | Plan | Istota |
 |------|--------|
 | **Free** | Edytor + eksport, 7 szablonów startowych, limity projektów/eksportów; bez asystenta AI |
-| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 26 szablonów oraz wyższe limity |
+| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 23 szablony oraz wyższe limity |
 | **Premium** | Tryb Układ AI, więcej kredytów AI, bez limitu projektów/eksportów |
 
 Model kredytów: ~1 kredyt ≈ 5 gr — rozliczenie zbliżone do realnego kosztu użycia.
@@ -338,7 +338,7 @@ Zaczynasz za darmo, po polsku, bez zgadywania, czy przycisk Pobierz jest pułapk
 | **Płótno, nie formularz** | Edytujesz prawdziwe A4. To, co widzisz, trafia do PDF. |
 | **AI + pewny układ** | Asystent poprawia treść i ATS; silnik układa szablon przewidywalnie. |
 | **Stare CV → nowy wygląd** | Wgraj PDF, wybierz szablon z podglądu, wypełnij — bez przepisywania. |
-| **26 szablonów branżowych** | Finanse, IT, banking, classic, dark… wygląd pod rolę, nie pod „uniwersalność”. |
+| **23 szablony branżowe** | Finanse, IT, banking, classic, dark… wygląd pod rolę, nie pod „uniwersalność”. |
 | **Precyzja co do piksela** | Prowadnice, odstępy, blokada dekoracji — wygląda na dopracowane. |
 | **Uczciwy start** | Free bez karty. AI i pełna biblioteka — gdy naprawdę ich potrzebujesz. |
 
@@ -359,7 +359,7 @@ Lead (1–2 zdania)
 (krótko powiąż z importem PDF, płótnem, eksportem 1:1)
 
 ## Co dostajesz w praktyce
-Mini-lista: asystent AI (8 akcji) · 26 szablonów · autozapis · Moje dokumenty
+Mini-lista: asystent AI (8 akcji) · 23 szablony · autozapis · Moje dokumenty
 
 ## CTA
 Załóż konto za darmo → /register
@@ -392,7 +392,7 @@ Każdy punkt domykaj benefitem CV STUDIO z §3.1.
 | Canvas A4 | Projektujesz dokument, nie wypełniasz ankiety. |
 | Prowadnice / px | Układ wygląda na dopracowany, bo jest dopracowany. |
 | Chrome lock | Nie zepsujesz szablonu przypadkiem. |
-| 26 szablonów | Wygląd pod branżę i rolę. |
+| 23 szablony | Wygląd pod branżę i rolę. |
 | Import PDF | Odśwież formę bez przepisywania życia. |
 | Hover mockup | Wybierasz szablon oczami, nie nazwą. |
 | Bio wizard | Struktura CV nawet bez gotowego pliku. |

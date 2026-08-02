@@ -22,14 +22,14 @@ const FALLBACK_PLANS = [
         name: "Standard",
         price_pln: 29,
         blurb: "Analizy AI treści i pełna biblioteka szablonów.",
-        highlights: ["150 kredytów AI / mies.", "CV, projekt, dopasowanie, gramatyka, styl i ATS", "Wszystkie 26 szablonów", "10 projektów · 30 eksportów / mies."],
+        highlights: ["150 kredytów AI / mies.", "CV, projekt, dopasowanie, gramatyka, styl i ATS", "Wszystkie 23 szablony", "10 projektów · 30 eksportów / mies."],
     },
     {
         slug: "premium",
         name: "Premium",
         price_pln: 49,
         blurb: "Tryb Układ AI i bez limitów projektów.",
-        highlights: ["300 kredytów AI / mies.", "Tryb Układ: geometria i propozycje zmian", "Wszystkie 26 szablonów", "Bez limitu projektów i eksportów"],
+        highlights: ["300 kredytów AI / mies.", "Tryb Układ: geometria i propozycje zmian", "Wszystkie 23 szablony", "Bez limitu projektów i eksportów"],
     },
 ];
 

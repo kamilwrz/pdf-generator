@@ -15,7 +15,7 @@ import { regentTemplate } from "./regent";
 import { aldineTemplate } from "./aldine";
 import { meritTemplate } from "./merit";
 import { mossTemplate } from "./moss";
-import { clearingTemplate, heraldTemplate, signalTemplate, vaultTemplate } from "./banking";
+import { signalTemplate } from "./banking";
 import { obsidianTemplate } from "./obsidian";
 import { ravenTemplate } from "./raven";
 import { graphiteTemplate } from "./graphite";
@@ -37,9 +37,6 @@ export const TEMPLATES = [
     { id: "aldine", tier: "paid",    name: "Aldine",    industry: "Classic · Szlachetny papier",        accent: "#486151", elements: aldineTemplate },
     { id: "merit", tier: "paid",     name: "Merit",     industry: "Classic · Dyplomatyczny minimalizm", accent: "#4F6679", elements: meritTemplate },
     { id: "moss", tier: "paid",      name: "Moss",      industry: "Sidebar · Botaniczna elegancja",     accent: "#B99854", elements: mossTemplate },
-    { id: "vault", tier: "paid",     name: "Vault",     industry: "Banking · Private banking",           accent: "#B79A56", elements: vaultTemplate },
-    { id: "clearing", tier: "paid",  name: "Clearing",  industry: "Banking · Operacje i płatności",      accent: "#48B8C8", elements: clearingTemplate },
-    { id: "herald", tier: "paid",    name: "Herald",    industry: "Banking · Wealth management",         accent: "#9D3341", elements: heraldTemplate },
     { id: "signal", tier: "paid",    name: "Signal",    industry: "Banking · Ryzyko i treasury",         accent: "#3BD2C7", elements: signalTemplate },
     { id: "obsidian", tier: "paid",  name: "Obsidian",  industry: "Darktheme · Panel boczny",            accent: "#C9A24B", elements: obsidianTemplate },
     { id: "raven", tier: "paid",     name: "Raven",     industry: "Darktheme · Pasek górny",             accent: "#3FBFA6", elements: ravenTemplate },

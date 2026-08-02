@@ -169,7 +169,7 @@ Generator **ufnie zakłada** ten schemat — nie odpytuje AI o brakujące pola.
 _GENERATORS = {
     "ledger": _gen_ledger,
     "nimbus": _gen_nimbus,
-    # ... 26 szablonów = te same id co frontend/src/templates/index.js
+    # ... 23 szablony = te same id co frontend/src/templates/index.js
 }
 
 def generate_resume(template_id: str, cv_data: dict) -> list[dict]:
@@ -192,12 +192,12 @@ helpery treści             _bullets, _company_period, _labels,
                            _place_education_record, _extra_sections,
                            logika sidebara
         │
-motywy współdzielone       _gen_banking_theme, _gen_it_theme,
-                           _gen_classic_theme, _gen_sidebar_theme
+motywy współdzielone       _gen_it_theme, _gen_classic_theme,
+                           _gen_sidebar_theme
         │
-cienkie wrappery           _gen_vault → banking("vault"), itd.
+cienkie wrappery           _gen_vector → it("vector"), itd.
         │
-wyjątki „pełne”            _gen_ledger, _gen_obsidian, _gen_raven, …
+wyjątki „pełne”            _gen_ledger, _gen_signal, _gen_obsidian, …
 ```
 
 ### 6.3 `Builder` — rytm pionowy i paginacja
@@ -241,7 +241,7 @@ Liczba bloków doświadczenia = liczba wpisów w `cv_data["experience"]`. Jeśli
 
 | Motyw | Funkcja bazowa | Szablony |
 |---|---|---|
-| Banking | `_gen_banking_theme(cv, theme)` | vault, clearing, herald, signal |
+| Banking | `_gen_signal(cv)` | signal |
 | IT | `_gen_it_theme(cv, theme)` | vector, kernel, relay |
 | Classic | `_gen_classic_theme(cv, theme)` | scribe, regent, aldine, merit |
 | Sidebar (jasne) | `_gen_moss(cv)` | moss |
@@ -367,7 +367,7 @@ Bez kroku 2–3 podgląd w bibliotece istnieje, ale **fill_template rzuci „Nie
 | `backend/app/services/pdf_generator.py` | Pomiar wysokości textarea + eksport PDF |
 | `backend/app/services/ai_assistant_service.py` | Asystent po wygenerowaniu (osobny tor AI) |
 | `frontend/src/templates/*.js` | Statyczne próbki designu |
-| `frontend/src/templates/index.js` | Katalog 26 szablonów (id muszą = `_GENERATORS`) |
+| `frontend/src/templates/index.js` | Katalog 23 szablonów (id muszą = `_GENERATORS`) |
 | `backend/tests/test_cv_template_layouts.py` | Strażnik zachowania layoutu |
 
 ---
