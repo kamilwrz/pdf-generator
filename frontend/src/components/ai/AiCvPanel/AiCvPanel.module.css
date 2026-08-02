@@ -8,7 +8,24 @@
  * sharpened to near-zero radius to match the dialog's own radius={2}; the
  * template color dot and loading spinner stay circular since their shape is
  * semantic (a color swatch and a spinner), not a "rounded corner" choice.
+ *
+ * Layout: `.wrap` fills DialogShell's scrollable body (height: 100%) as a
+ * single flex column. Step 1 (dropzone) and the extracted-CV summary keep
+ * their natural height (`flex-shrink: 0`) and never scroll. Only the step-2
+ * template area (`.sectionFlex`) grows to absorb the remaining space, and
+ * inside it only `.templateGrid` scrolls internally (`overflow-y: auto` with
+ * `min-height: 0`, the standard fix that lets a flex child shrink below its
+ * content size instead of forcing its container to grow past the viewport).
+ * This guarantees exactly one scrollbar — the template list — instead of an
+ * outer dialog scroll stacked on top of the list's own inner scroll.
  */
+
+.wrap {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
 
 .stepLabel {
     font: 500 13px var(--font-body);
@@ -44,6 +61,21 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+    /* Default flex-item behavior is shrinkable; step 1 must keep its full
+       readable size even when step 2's template list is long, so it never
+       competes with .templateGrid for the space that should be scrolled. */
+    flex-shrink: 0;
+}
+
+/* Applied together with .section only on the step-2 container. Declared
+   after .section so its flex-shrink: 1 (part of the flex: 1 shorthand) wins
+   the cascade for that element, letting step 2 — and only step 2 — grow and
+   shrink to fill whatever space step 1 and the CV summary do not need. */
+.sectionFlex {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .sectionDisabled {
@@ -55,6 +87,7 @@
     color: var(--chrome-muted);
     letter-spacing: .1em;
     text-transform: uppercase;
+    flex-shrink: 0;
 }
 
 /* Upload dropzone */
@@ -142,6 +175,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    flex-shrink: 0;
 }
 
 .previewName {
@@ -174,12 +208,23 @@
 }
 .reExtract:hover { text-decoration: underline; }
 
-/* Step 2: hover mockup (left) + template list (right) */
+/*
+ * Step 2: hover mockup (left) + template list (right). `.templatePicker`
+ * fills whatever room `.sectionFlex` has left (flex: 1) instead of demanding
+ * a fixed 360px — that fixed value was taller than many viewports could give
+ * the whole dialog, forcing DialogShell's own body to scroll in addition to
+ * `.templateGrid`'s internal scroll (two nested scrollbars). `.mockupPane`
+ * has no min-height of its own: `align-self: center` plus its intrinsic
+ * A4-ratio image content already gives it a natural floor (~340px) without
+ * hard-coding one, so the fixed mockup and the scrollable list share space
+ * correctly at any dialog height.
+ */
 .templatePicker {
     display: flex;
     align-items: stretch;
     gap: 28px;
-    min-height: 360px;
+    flex: 1;
+    min-height: 0;
 }
 
 .mockupPane {
@@ -188,7 +233,6 @@
     align-items: center;
     justify-content: center;
     align-self: center;
-    min-height: 360px;
 }
 
 .mockupFrame {
@@ -234,10 +278,14 @@
 .templateGrid {
     flex: 1;
     min-width: 0;
+    /* min-height: 0 overrides the flex-item default (min-height: auto),
+       which would otherwise refuse to shrink below the list's full content
+       height and defeat overflow-y: auto — this, not a fixed max-height, is
+       what makes the list (and only the list) the thing that scrolls. */
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    max-height: 440px;
     overflow-y: auto;
     padding-right: 4px;
 }
@@ -290,6 +338,7 @@
     font: 500 13px var(--font-body);
     color: var(--chrome-muted);
     margin: 0;
+    flex-shrink: 0;
 }
 
 /* Spinner */

@@ -146,6 +146,17 @@ export default function AiCvPanel() {
                 </div>
             </>}
         >
+            {/*
+              * Single flex column filling the dialog body's height. Step 1
+              * (dropzone) and the extracted-CV summary keep their natural
+              * size (flex-shrink: 0 in CSS); only the step-2 template area
+              * (.sectionFlex) grows to fill the remainder and scrolls its own
+              * list internally. This keeps the picker reachable without ever
+              * scrolling the whole modal — a fixed dropzone/summary height
+              * plus an independently scrolling template list, not two nested
+              * scrollbars fighting each other.
+              */}
+            <div className={classes.wrap}>
             <div className={classes.section}>
                 <div className={classes.sectionLabel}>Krok 1 · Prześlij swoje CV</div>
                 <div
@@ -195,7 +206,7 @@ export default function AiCvPanel() {
                 </div>
             )}
 
-            <div className={`${classes.section} ${!extracted ? classes.sectionDisabled : ""}`}>
+            <div className={`${classes.section} ${classes.sectionFlex} ${!extracted ? classes.sectionDisabled : ""}`}>
                 <div className={classes.sectionLabel}>Krok 2 · Wybierz szablon do wypełnienia</div>
                 {extracted ? (
                     cvTemplates.length > 0 ? <>
@@ -258,6 +269,7 @@ export default function AiCvPanel() {
             </div>
 
             {error && <div className={classes.error}>{error}</div>}
+            </div>
         </DialogShell>
     );
 }
