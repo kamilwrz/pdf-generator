@@ -114,7 +114,7 @@ async def create_user_pdf(
     pdf.setTitle(title)
     pdf.render_elements(elements, image_src_to_local_path, pdf_data.pages)
 
-    return {"created": "Utworzono plik PDF.", "link": BACKEND_URL / pdf_path.as_posix(), "pdf_id": pdf_id}
+    return {"created": "Utworzono plik PDF.", "link": f"{BACKEND_URL}/{pdf_path.as_posix()}", "pdf_id": pdf_id}
 
 
 @router.get("/fetch_pdfs", status_code=status.HTTP_200_OK)

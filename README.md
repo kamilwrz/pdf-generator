@@ -167,7 +167,7 @@ pdf-generator/
     │   ├── models/
     │   ├── schemas/
     │   ├── services/         # pdf, cv_generator, ai, entitlements, s3
-    │   ├── utils/
+    │   ├── utils/            # image_src_to_path, metrics_logging, upload_security
     │   ├── main.py
     │   └── dependencies.py
     ├── fonts/                # Bundled TTFs for PDF
@@ -395,6 +395,27 @@ Implementation:
 - `backend/app/services/pdf_generator.py`, class `PDF_Generator`, `render_elements` (line 492+)
 - `backend/app/crud/pdfs.py`, `create_new_pdf`, `update_pdf_elements`
 
+### Image upload (validated)
+
+Users upload images for canvas elements. The endpoint treats every part of the
+upload as untrusted: it verifies the real raster format from the file's leading
+bytes (PNG, JPEG, WEBP, GIF only — SVG is rejected as an inline-script vector),
+derives the stored name from a server-generated UUID (so a crafted filename
+cannot cause path traversal), caps the body size (bounding memory use), and
+enforces a per-user image count. The original filename is stored for display
+only and is never used to locate the object. Limits are configurable via
+`MAX_UPLOAD_BYTES` (default 8 MB) and `MAX_IMAGES_PER_USER` (default 200).
+
+Implementation:
+
+- `backend/app/utils/upload_security.py`, `sniff_image_type`, `safe_object_name`, `is_safe_path_segment`
+- `backend/app/api/routes/images.py`, `create_upload_image` (validation order: account → path-segment → count → size → format)
+- `backend/app/crud/images.py`, `create_image`, `count_images_by_user_id`
+- `backend/app/core/config.py`, `MAX_UPLOAD_BYTES`, `MAX_IMAGES_PER_USER`
+- Deletion is IDOR-checked and blocked while a PDF element still references the image (`delete_user_image`)
+
+Tests: `backend/tests/test_image_upload_security.py` — accepts a real PNG, rejects HTML disguised as PNG (415), neutralises traversal filenames, rejects oversize (413), enforces the per-user count (403).
+
 ### Deterministic template fill
 
 Python layout from normalised `cv_data` (not LLM placement). In every generated template, an education record uses the same semantic colour system as experience: degree in the primary ink, school/city/period in muted metadata colour, and an optional description in the readable body colour. Compact sidebar records intentionally use their own sidebar palette because they occupy a different background panel.
@@ -497,11 +518,16 @@ Implementation:
 
 ### Auth
 
-Register, OAuth2 password token, JWT Bearer, entitlements probe.
+Register, OAuth2 password token, JWT Bearer, entitlements probe. Registration
+rejects duplicate usernames and duplicate emails with an actionable HTTP 400
+(the email pre-check avoids a raw database uniqueness 500), and the email is
+format-checked and trimmed before it reaches the database.
 
 Implementation:
 
-- `backend/app/api/routes/auth.py`
+- `backend/app/api/routes/auth.py`, `register_user` — username + email uniqueness
+- `backend/app/schemas/user_schema.py`, `UserCreateRequest` — email format validator
+- `backend/app/crud/user.py`, `get_user_by_email`
 - `backend/app/core/security.py` — bcrypt 72-byte truncate, JWT
 
 ### Decorative chrome lock
@@ -621,6 +647,8 @@ App: `http://localhost:5173`.
 | `AWS_REGION` / keys | with S3 | AWS credentials | — |
 | `ALLOW_UNPAID_PLAN_SELECTION` | no | Allow activating paid plans without Stripe (`true` default) | `true` |
 | `ADMIN_RESET_SECRET` | no | Optional secret for `POST /billing/admin/reset-ai-credits` (falls back to `SECRET_KEY`) | long random string |
+| `MAX_UPLOAD_BYTES` | no | Max image upload size in bytes (default 8 MB) | `8388608` |
+| `MAX_IMAGES_PER_USER` | no | Max stored images per user (default 200) | `200` |
 
 #### Frontend
 
@@ -651,8 +679,8 @@ Never commit real secrets.
 
 ## Testing
 
-- **Framework:** Python `unittest` under `backend/tests/` (200 tests discovered at the latest local run; 195 pass and 5 pre-existing AI-assistant exception tests currently fail because they patch a removed `assert_can_use_ai_assistant` route symbol).
-- **Coverage focus:** layout analysis safety, AI chat/command sanitisation, entitlements, PDF element upsert/`fixedToPage`, CV data normalisation, bullet layout, Unicode fonts.
+- **Framework:** Python `unittest` under `backend/tests/` (214 tests, all passing at the latest local run).
+- **Coverage focus:** image upload security (format sniffing, traversal, size/count limits), layout analysis safety, AI chat/command sanitisation, entitlements, PDF element upsert/`fixedToPage`, CV data normalisation, bullet layout, Unicode fonts.
 - **Run:** `cd backend && python -m unittest discover -s tests`.
 - **Frontend:** ESLint via `npm run lint`; reflow regression tests run with Node's built-in runner: `cd frontend && node --test src/utils/textareaReflow.test.js`.
 
@@ -679,7 +707,8 @@ CI/CD: configure in your host (Render dashboards / GitHub Actions) — no commit
 - Sessions: JWT Bearer; username in `sub`.
 - Authorisation: ownership checks on PDF/image mutations; plan gates on create/export/AI/templates.
 - CORS: explicit origin allowlist (`CORS_ORIGINS`).
-- Uploads: images owned by user; delete blocked while referenced by a PDF element.
+- Uploads: format verified from file bytes (PNG/JPEG/WEBP/GIF; SVG rejected), stored under server-generated names (no path traversal), size-capped (`MAX_UPLOAD_BYTES`) and count-limited per user (`MAX_IMAGES_PER_USER`); images owned by user; delete blocked while referenced by a PDF element (`upload_security.py`, `images.py`).
+- Registration: duplicate username/email rejected with 400; email format-validated (`auth.py`, `user_schema.py`).
 - AI: provider errors mapped to generic Polish 500; details stay in logs.
 - Metrics: `/events/log` logs numeric `user_id`, not raw usernames (`metrics_logging.py`).
 - Secrets: env only; never in README or git.
@@ -893,7 +922,7 @@ pdf-generator/
     │   ├── models/
     │   ├── schemas/
     │   ├── services/
-    │   ├── utils/
+    │   ├── utils/            # image_src_to_path, metrics_logging, upload_security
     │   ├── main.py
     │   └── dependencies.py
     ├── fonts/
@@ -1107,6 +1136,27 @@ Skrypt zrzutu (`frontend/scripts/dump-iconic-templates.mjs`) wymaga niewielkiego
 - `backend/app/services/pdf_generator.py` — `PDF_Generator.render_elements` (ok. 492+)
 - `backend/app/crud/pdfs.py` — `create_new_pdf`, `update_pdf_elements`
 
+### Upload obrazów (walidowany)
+
+Użytkownik przesyła obrazy do elementów kanwy. Endpoint traktuje każdą część
+uploadu jako niezaufaną: weryfikuje rzeczywisty format rastrowy z początkowych
+bajtów pliku (tylko PNG, JPEG, WEBP, GIF — SVG jest odrzucany jako wektor
+skryptu), tworzy nazwę pliku z serwerowego UUID (spreparowana nazwa nie może
+wywołać path traversal), ogranicza rozmiar ciała (limit pamięci) oraz liczbę
+obrazów na użytkownika. Oryginalna nazwa jest zapisywana tylko do wyświetlania
+i nigdy nie służy do lokalizacji pliku. Limity konfiguruje `MAX_UPLOAD_BYTES`
+(domyślnie 8 MB) i `MAX_IMAGES_PER_USER` (domyślnie 200).
+
+Implementacja:
+
+- `backend/app/utils/upload_security.py` — `sniff_image_type`, `safe_object_name`, `is_safe_path_segment`
+- `backend/app/api/routes/images.py` — `create_upload_image` (kolejność walidacji: konto → segment ścieżki → liczba → rozmiar → format)
+- `backend/app/crud/images.py` — `create_image`, `count_images_by_user_id`
+- `backend/app/core/config.py` — `MAX_UPLOAD_BYTES`, `MAX_IMAGES_PER_USER`
+- Usuwanie jest chronione przed IDOR i blokowane, gdy element PDF nadal używa obrazu (`delete_user_image`)
+
+Testy: `backend/tests/test_image_upload_security.py` — akceptuje prawdziwy PNG, odrzuca HTML podszywający się pod PNG (415), neutralizuje nazwy z traversal, odrzuca zbyt duży plik (413), egzekwuje limit liczby obrazów (403).
+
 ### Deterministyczne wypełnianie szablonu
 
 Layout Python powstaje ze znormalizowanego `cv_data`, a nie z pozycji wymyślonych przez LLM. W każdym wygenerowanym szablonie wpis wykształcenia korzysta z tego samego systemu znaczenia kolorów co doświadczenie: kierunek ma podstawowy kolor tekstu, szkoła/miasto/okres mają stonowany kolor metadanych, a opcjonalny opis ma czytelny kolor treści. Zwarty wpis w sidebarze celowo używa własnej palety sidebara, ponieważ jest wyświetlany na innym panelu tła.
@@ -1201,8 +1251,15 @@ Standard udostępnia działania Asystenta AI skupione na treści, a `layout` wym
 
 ### Auth
 
-- `backend/app/api/routes/auth.py`
-- `backend/app/core/security.py`
+Rejestracja odrzuca zajętą nazwę użytkownika oraz zajęty e-mail komunikatem
+HTTP 400 (kontrola e-maila przed zapisem zamienia surowy błąd unikalności bazy,
+czyli 500, na czytelny komunikat), a adres e-mail jest walidowany formatem i
+przycinany przed zapisem.
+
+- `backend/app/api/routes/auth.py` — `register_user`, unikalność nazwy i e-maila
+- `backend/app/schemas/user_schema.py` — `UserCreateRequest`, walidator formatu e-maila
+- `backend/app/crud/user.py` — `get_user_by_email`
+- `backend/app/core/security.py` — bcrypt (72 bajty), JWT
 
 ### Blokada dekoracji
 
@@ -1276,7 +1333,7 @@ Aplikacja: `http://localhost:5173`.
 
 ### Zmienne środowiskowe
 
-Backend (m.in.): `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `DATABASE_URL`, `CORS_ORIGINS`, `BACKEND_URL`, `API_GPT_KEY`, `AI_ASSISTANT_MODEL`, `AI_LAYOUT_MODEL`, `AI_LAYOUT_REASONING_EFFORT`, `AI_LAYOUT_SERVICE_TIER`, `AI_LAYOUT_MAX_COMPLETION_TOKENS`, `USD_TO_PLN`, `S3_BUCKET_NAME`, `AWS_*`, `ALLOW_UNPAID_PLAN_SELECTION`, `ADMIN_RESET_SECRET`.
+Backend (m.in.): `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `DATABASE_URL`, `CORS_ORIGINS`, `BACKEND_URL`, `API_GPT_KEY`, `AI_ASSISTANT_MODEL`, `AI_LAYOUT_MODEL`, `AI_LAYOUT_REASONING_EFFORT`, `AI_LAYOUT_SERVICE_TIER`, `AI_LAYOUT_MAX_COMPLETION_TOKENS`, `USD_TO_PLN`, `S3_BUCKET_NAME`, `AWS_*`, `ALLOW_UNPAID_PLAN_SELECTION`, `ADMIN_RESET_SECRET`, `MAX_UPLOAD_BYTES` (domyślnie 8 MB), `MAX_IMAGES_PER_USER` (domyślnie 200).
 
 Frontend: `VITE_API_URL`.
 
@@ -1299,7 +1356,8 @@ Frontend: `VITE_API_URL`.
 
 ## Testy
 
-- **Framework:** `unittest` w `backend/tests/` (200 testów wykrytych przy ostatnim lokalnym uruchomieniu; 195 przechodzi, a 5 istniejących wcześniej testów wyjątków asystenta AI nie przechodzi, ponieważ próbują podmienić usunięty symbol trasy `assert_can_use_ai_assistant`).
+- **Framework:** `unittest` w `backend/tests/` (214 testów, wszystkie przechodzą przy ostatnim lokalnym uruchomieniu).
+- **Zakres:** bezpieczeństwo uploadu obrazów (rozpoznawanie formatu, path traversal, limity rozmiaru i liczby), bezpieczeństwo analizy układu, sanityzacja czatu/komend AI, entitlements, upsert elementów PDF, normalizacja `cv_data`, listy punktów, fonty Unicode.
 - **Uruchomienie:** `cd backend && python -m unittest discover -s tests`.
 - **Frontend:** `npm run lint`; regresje reflow uruchamia wbudowany runner Node: `cd frontend && node --test src/utils/textareaReflow.test.js`.
 
@@ -1322,6 +1380,8 @@ Migracje: `create_all` + lekkie ALTER przy starcie (bez Alembica w repo).
 - JWT Bearer; `sub` = username.
 - IDOR: właściciel PDF/obrazu; bramki planu na create/export/AI/szablony.
 - CORS z allowlistą.
+- Upload: format weryfikowany z bajtów pliku (PNG/JPEG/WEBP/GIF; SVG odrzucany), nazwy generowane po stronie serwera (brak path traversal), limit rozmiaru (`MAX_UPLOAD_BYTES`) i liczby obrazów na użytkownika (`MAX_IMAGES_PER_USER`); usuwanie blokowane, gdy obraz jest używany przez element PDF (`upload_security.py`, `images.py`).
+- Rejestracja: zajęta nazwa/e-mail odrzucane z 400; e-mail walidowany formatem (`auth.py`, `user_schema.py`).
 - Błędy AI bez wycieku szczegółów do klienta.
 - Metryki z `user_id`, nie raw username.
 - Sekrety tylko w env.

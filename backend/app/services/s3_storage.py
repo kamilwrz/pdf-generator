@@ -21,12 +21,6 @@ def upload_bytes(key: str, body: bytes, content_type: str = "application/octet-s
     return f"https://{S3_BUCKET}.s3.{AWS_REGION}.amazonaws.com/{key}"
 
 
-def upload_fileobj(key: str, file_obj, content_type: str) -> str:
-    """Stream a file-like object to S3 and return its HTTPS URL."""
-    get_client().upload_fileobj(file_obj, S3_BUCKET, key, ExtraArgs={"ContentType": content_type})
-    return f"https://{S3_BUCKET}.s3.{AWS_REGION}.amazonaws.com/{key}"
-
-
 def download_bytes(key: str) -> bytes:
     """Download an object body into memory."""
     resp = get_client().get_object(Bucket=S3_BUCKET, Key=key)

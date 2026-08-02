@@ -129,7 +129,6 @@ TEMPLATE_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Optional same-origin SPA hosting when frontend/dist is present next to backend.
 DIST_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
-print(DIST_DIR)
 
 app.mount("/uploads", StaticFiles(directory=str(IMAGES_UPLOAD_DIR)), name="uploads")
 app.mount("/template-assets", StaticFiles(directory=str(TEMPLATE_ASSETS_DIR)), name="template_assets")

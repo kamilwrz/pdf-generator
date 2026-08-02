@@ -9,6 +9,20 @@ side-effect light (no DB/network) aside from reading `os.environ`.
 from pathlib import Path
 import os, tempfile
 
+
+def _int_env(name: str, default: int) -> int:
+    """Read a positive integer from the environment, falling back on garbage.
+
+    Config must stay import-safe: a malformed override should not crash the
+    process at import time, so an unparseable or non-positive value returns the
+    default instead of raising.
+    """
+    try:
+        value = int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
 # Browser origins allowed to call the API with credentials.
 # Local Vite + production Render frontend are the safe defaults when unset.
 _raw = os.getenv(
@@ -46,3 +60,11 @@ OPENAI_API_KEY = os.getenv("API_GPT_KEY", "")
 # standard/premium through Stripe checkout) when billing lands — this is the one
 # place that lets a user self-activate Standard/Premium for free.
 ALLOW_UNPAID_PLAN_SELECTION = os.getenv("ALLOW_UNPAID_PLAN_SELECTION", "true").lower() == "true"
+
+# Image upload hard limits (see api/routes/images.py). The size cap bounds the
+# memory a single request can consume — the endpoint reads at most this many
+# bytes — and the per-user count is a coarse anti-abuse guard so one account
+# cannot exhaust storage. Per-plan quotas can layer on top later without
+# changing this boundary.
+MAX_UPLOAD_BYTES = _int_env("MAX_UPLOAD_BYTES", 8 * 1024 * 1024)  # 8 MB
+MAX_IMAGES_PER_USER = _int_env("MAX_IMAGES_PER_USER", 200)

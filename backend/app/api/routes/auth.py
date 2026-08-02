@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 from app.schemas.user_schema import UserCreateRequest
-from app.crud.user import get_user_by_username, create_user, authenticate_user
+from app.crud.user import get_user_by_username, get_user_by_email, create_user, authenticate_user
 from fastapi.security import OAuth2PasswordRequestForm
 from app.core.security import create_access_token, get_access_token_expire_minutes, verify_token
 from datetime import timedelta
@@ -25,15 +25,19 @@ router = APIRouter(
 
 @router.post("/register")
 async def register_user(user: UserCreateRequest, db: Session = Depends(get_db)):
-    """Create a new user when the username is unused.
+    """Create a new user when the username and email are both unused.
 
     Side effects: inserts a users row (and entitlements bootstrap may later
     attach a Free plan during DB init for existing users). Duplicate usernames
-    return HTTP 400 with a Polish message for the registration form.
+    or emails return HTTP 400 with a Polish message for the registration form.
+    The email pre-check turns what would otherwise be a database uniqueness
+    IntegrityError (surfacing as a 500) into an actionable validation message.
     """
     db_user = get_user_by_username(db, username=user.username)
     if db_user:
         raise HTTPException(status_code=400, detail="Nazwa użytkownika jest już zarejestrowana.")
+    if get_user_by_email(db, email=user.email):
+        raise HTTPException(status_code=400, detail="Ten adres e-mail jest już zarejestrowany.")
     return create_user(db=db, user=user)
 
 

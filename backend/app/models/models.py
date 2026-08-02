@@ -239,7 +239,7 @@ def _run_lightweight_migrations():
             try:
                 conn.execute(text(statement))
             except Exception as exc:  # pragma: no cover - defensive
-                print(f"[migration] skipped '{statement}': {exc}")
+                logger.warning("Migration skipped '%s': %s", statement, exc)
 
 
 def init_db(*, attempts: int = 6, delay_seconds: float = 2.0) -> None:

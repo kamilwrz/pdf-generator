@@ -23,6 +23,11 @@ def get_user_by_username(db: Session, username: str):
     return db.query(User).filter(User.username == username).first()
 
 
+def get_user_by_email(db: Session, email: str):
+    """Return the User row for `email`, or None (used for signup uniqueness)."""
+    return db.query(User).filter(User.email == email).first()
+
+
 def create_user(db: Session, user: UserCreateRequest) -> str:
     """Insert a hashed user and attach the requested (or Free) plan.
 
