@@ -78,7 +78,8 @@ export default function TemplatesModal() {
             <DialogShell
                 open={isTemplates}
                 onClose={handleClose}
-                width={760}
+                width={1280}
+                radius={2}
                 title="Szablony"
                 subtitle="Wybierz układ — treść na płótnie zostanie zastąpiona."
                 footer={(

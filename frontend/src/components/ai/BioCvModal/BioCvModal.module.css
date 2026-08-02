@@ -1,8 +1,15 @@
+/*
+ * Step-by-step CV wizard. Form steps use the same 1280px DialogShell as the
+ * plan/template pickers; the summary step widens to 1400px for TemplateCarousel.
+ * Rectangular chrome uses near-zero radius to match radius={2}; progress dots
+ * stay circular (semantic step markers, not "rounded corner" chrome).
+ */
+
 .progress {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 2px;
-    padding: 10px 16px;
+    gap: 4px;
+    padding: 14px 20px;
     border-bottom: 1px solid var(--chrome-border);
     background: var(--chrome-control);
 }
@@ -10,8 +17,8 @@
 .progressStep {
     display: grid;
     justify-items: center;
-    gap: 3px;
-    padding: 2px;
+    gap: 5px;
+    padding: 4px 2px;
     border: 0;
     color: var(--chrome-muted);
     background: transparent;
@@ -22,19 +29,19 @@
 
 .progressStep span {
     display: grid;
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
     place-items: center;
     border: 1px solid var(--chrome-border);
     border-radius: 50%;
-    font: 700 9px var(--font-body);
+    font: 700 10px var(--font-body);
 }
 
 .progressStep small {
     overflow: hidden;
     width: 100%;
     color: inherit;
-    font: 600 8px var(--font-body);
+    font: 600 9px var(--font-body);
     text-align: center;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -54,20 +61,20 @@
 }
 
 .body {
-    min-height: 330px;
-    padding: 16px;
+    min-height: 420px;
+    padding: 22px 24px 20px;
 }
 
 .sectionHeading {
     display: flex;
     align-items: baseline;
-    gap: 8px;
-    margin-bottom: 15px;
+    gap: 10px;
+    margin-bottom: 18px;
 }
 
 .sectionHeading span {
     color: var(--chrome-accent);
-    font: 700 9px var(--font-body);
+    font: 700 10px var(--font-body);
     letter-spacing: .1em;
     text-transform: uppercase;
 }
@@ -75,25 +82,25 @@
 .sectionHeading h3 {
     margin: 0;
     color: var(--chrome-ink);
-    font: 700 15px var(--font-display);
+    font: 700 18px var(--font-display);
 }
 
 .formGrid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 11px;
+    gap: 14px 16px;
 }
 
 .field {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 6px;
     min-width: 0;
 }
 
 .field > span {
     color: var(--chrome-muted);
-    font: 700 9.5px var(--font-body);
+    font: 700 10.5px var(--font-body);
     letter-spacing: .045em;
     text-transform: uppercase;
 }
@@ -104,24 +111,25 @@
     box-sizing: border-box;
     width: 100%;
     border: 1px solid var(--chrome-border);
-    border-radius: 6px;
+    border-radius: 2px;
     outline: none;
     background: var(--primary-bg);
     color: var(--chrome-ink);
-    font: 500 12px var(--font-body);
+    font: 500 13px var(--font-body);
     transition: border-color .15s, box-shadow .15s;
 }
 
 .field input,
 .field select {
-    height: 33px;
-    padding: 0 9px;
+    height: 38px;
+    padding: 0 12px;
 }
 
 .field textarea {
     resize: vertical;
-    padding: 8px 9px;
-    line-height: 1.42;
+    padding: 10px 12px;
+    line-height: 1.45;
+    min-height: 120px;
 }
 
 .field input:focus,
@@ -133,27 +141,27 @@
 
 .field small {
     color: var(--chrome-muted);
-    font: 500 9.5px var(--font-body);
+    font: 500 11px var(--font-body);
 }
 
 .full { grid-column: 1 / -1; }
 
 .intro {
-    margin: 0 0 12px;
+    margin: 0 0 14px;
     color: var(--chrome-muted);
-    font: 500 11.5px/1.48 var(--font-body);
+    font: 500 13px/1.5 var(--font-body);
 }
 
 .repeater {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
 .entryCard {
-    padding: 11px;
+    padding: 14px;
     border: 1px solid var(--chrome-border);
-    border-radius: 7px;
+    border-radius: 2px;
     background: var(--chrome-control);
 }
 
@@ -161,19 +169,19 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: 10px;
+    margin-bottom: 12px;
 }
 
 .cardHeader strong {
     color: var(--chrome-ink);
-    font: 700 11px var(--font-body);
+    font: 700 12px var(--font-body);
 }
 
 .cardActions {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
 }
 
 .cardActions button,
@@ -181,16 +189,16 @@
 .cancelBtn,
 .addBtn {
     border: 1px solid var(--chrome-border);
-    border-radius: 5px;
+    border-radius: 2px;
     background: var(--primary-bg);
     color: var(--chrome-ink);
-    font: 600 10px var(--font-body);
+    font: 600 11px var(--font-body);
     cursor: pointer;
 }
 
 .cardActions button {
-    width: 23px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
     padding: 0;
 }
 
@@ -201,13 +209,13 @@
 
 .cardActions .removeBtn {
     width: auto;
-    padding: 0 7px;
+    padding: 0 9px;
     color: var(--danger);
 }
 
 .addBtn {
     align-self: flex-start;
-    padding: 7px 9px;
+    padding: 9px 12px;
     color: var(--chrome-accent);
 }
 
@@ -219,50 +227,50 @@
     background: var(--chrome-hover);
 }
 
-.singleStep { max-width: 560px; }
+.singleStep { max-width: 720px; }
 
 .review {
     display: flex;
     flex-direction: column;
-    gap: 13px;
+    gap: 16px;
 }
 
 .reviewIdentity {
     display: flex;
     flex-direction: column;
-    padding-bottom: 12px;
+    padding-bottom: 14px;
     border-bottom: 1px solid var(--chrome-border);
 }
 
 .reviewIdentity strong {
     color: var(--chrome-ink);
-    font: 700 17px var(--font-display);
+    font: 700 20px var(--font-display);
 }
 
 .reviewIdentity span {
-    margin-top: 2px;
+    margin-top: 3px;
     color: var(--chrome-muted);
-    font: 600 11px var(--font-body);
+    font: 600 12px var(--font-body);
 }
 
 .reviewStats {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: 6px;
 }
 
 .reviewStats span {
-    padding: 4px 7px;
+    padding: 5px 9px;
     border: 1px solid var(--chrome-border);
-    border-radius: 12px;
+    border-radius: 2px;
     color: var(--chrome-muted);
-    font: 600 10px var(--font-body);
+    font: 600 11px var(--font-body);
 }
 
 .review > p {
     margin: -2px 0 0;
     color: var(--chrome-muted);
-    font: 500 11px/1.45 var(--font-body);
+    font: 500 12px/1.5 var(--font-body);
 }
 
 /* Summary step: same TemplateCarousel gallery as AiCvPanel / ChangeTemplate. */
@@ -273,7 +281,7 @@
 .emptyTemplates {
     margin: 0;
     color: var(--chrome-muted);
-    font: 500 11px var(--font-body);
+    font: 500 12px var(--font-body);
 }
 
 .footer {
@@ -281,30 +289,30 @@
     width: 100%;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 12px;
 }
 
 .draftState {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 2px;
     color: var(--chrome-muted);
-    font: 600 10px var(--font-body);
+    font: 600 11px var(--font-body);
 }
 
 .draftState em {
     color: var(--success);
-    font: 500 9px var(--font-body);
+    font: 500 10px var(--font-body);
     font-style: normal;
 }
 
-.footerActions { display: flex; gap: 6px; }
+.footerActions { display: flex; gap: 8px; }
 
 .clearBtn,
 .cancelBtn,
 .primaryBtn {
-    height: 29px;
-    padding: 0 10px;
+    height: 36px;
+    padding: 0 14px;
 }
 
 .clearBtn { color: var(--danger); }
@@ -316,31 +324,31 @@
 
 .primaryBtn {
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: 2px;
     background: var(--accent-grad);
     color: var(--on-accent);
-    font: 700 10.5px var(--font-body);
+    font: 700 12px var(--font-body);
     cursor: pointer;
 }
 
 .primaryBtn:hover { background: var(--chrome-accent); }
 
 .error {
-    margin-top: 13px;
-    padding: 9px 10px;
+    margin-top: 16px;
+    padding: 11px 12px;
     border: 1px solid rgba(232, 138, 115, .35);
-    border-radius: 6px;
+    border-radius: 2px;
     background: var(--danger-soft);
     color: var(--danger);
-    font: 600 11px var(--font-body);
+    font: 600 12px var(--font-body);
 }
 
 .loading {
     color: var(--chrome-muted);
-    font: 500 12px var(--font-body);
+    font: 500 13px var(--font-body);
 }
 
-@media (max-width: 620px) {
+@media (max-width: 900px) {
     .progress { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .formGrid { grid-template-columns: 1fr; }
     .full { grid-column: auto; }

@@ -757,7 +757,7 @@ This does not claim SOC2/compliance — it documents controls that exist in code
 
 ## Accessibility and UX
 
-- Dialogs use `DialogShell` (Escape to close, backdrop, titled header).
+- Dialogs use `DialogShell` (Escape to close, backdrop, titled header). Large surfaces (`PlanSelectModal`, `TemplatesModal`, `BioCvModal` form steps) share a 1280px shell with `radius={2}`; fill/summary galleries widen to 1400px (`AiCvPanel`, `BioCvModal` review, `ChangeTemplateModal`). Narrower dialogs (docs library, dropzone) keep compact widths and the default 8px radius.
 - Docked panels use `PanelShell`.
 - Forms expose labels/icons; plan radios use `role="radiogroup"`.
 - Loading: PDF spinner minimum display time; toasts via `useToasts` / `ToastStack`.
@@ -1466,7 +1466,7 @@ Migracje: `create_all` + Alembic (`backend/alembic/`) przy starcie.
 
 ## Dostępność i UX
 
-- `DialogShell` / `PanelShell` (Escape, nagłówki).
+- `DialogShell` / `PanelShell` (Escape, nagłówki). Duże powierzchnie (`PlanSelectModal`, `TemplatesModal`, kroki formularza `BioCvModal`) dzielą shell 1280px z `radius={2}`; galerie wypełniania/podsumowania rozszerzają się do 1400px (`AiCvPanel`, podsumowanie `BioCvModal`, `ChangeTemplateModal`). Węższe dialogi (biblioteka dokumentów, dropzone) zostają kompaktowe z domyślnym radiusem 8px.
 - Toasty i spinner PDF z minimalnym czasem widoczności.
 - Zoom tylko wizualny — eksport zostaje w rozmiarze dokumentu.
 - Brak pełnego audytu WCAG — kolejne poprawki mile widziane.

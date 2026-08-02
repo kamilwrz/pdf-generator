@@ -1,13 +1,19 @@
+/*
+ * Template picker uses the same enlarged (1280px) DialogShell as the plan
+ * picker. Card and preview sizes scale up from the compact 760px layout so the
+ * four-column grid fills the wider frame instead of floating in empty chrome.
+ */
+
 .countLabel {
-    font: 500 10px var(--font-body);
+    font: 500 11px var(--font-body);
     color: var(--chrome-muted);
 }
 
 .grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 10px;
-    padding: 12px 16px;
+    gap: 16px;
+    padding: 16px 20px 18px;
     align-content: start;
 }
 
@@ -15,10 +21,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     border: 1px solid var(--chrome-border);
-    border-radius: 6px;
-    padding: 10px;
+    border-radius: 2px;
+    padding: 14px 12px 12px;
     background: var(--primary-bg);
     cursor: pointer;
     transition: border-color .15s, background .15s;
@@ -37,15 +43,15 @@
 }
 
 .cardName {
-    font: 700 12px var(--font-display);
+    font: 700 14px var(--font-display);
     color: var(--chrome-ink);
     text-align: center;
 }
 
 .cardIndustry {
-    font: 500 9.5px var(--font-body);
+    font: 500 11px var(--font-body);
     color: var(--chrome-muted);
-    margin-top: 1px;
+    margin-top: 0;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
@@ -57,10 +63,10 @@
     width: 100%;
     background: var(--accent-grad);
     color: var(--on-accent);
-    font: 600 10.5px var(--font-body);
+    font: 600 12px var(--font-body);
     border: 1px solid transparent;
-    border-radius: 6px;
-    height: 26px;
+    border-radius: 2px;
+    height: 32px;
     cursor: pointer;
     transition: background .15s;
 }
@@ -80,25 +86,25 @@
 
 .lockBadge {
     position: absolute;
-    top: 6px;
-    right: 6px;
+    top: 8px;
+    right: 8px;
     background: #25241E;
     color: #F5F0E7;
-    font: 700 9px var(--font-body);
+    font: 700 10px var(--font-body);
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    padding: 3px 6px;
-    border-radius: 4px;
+    padding: 4px 7px;
+    border-radius: 2px;
 }
 
 .lockedBtn {
     width: 100%;
     background: transparent;
     color: var(--chrome-muted);
-    font: 600 10.5px var(--font-body);
+    font: 600 12px var(--font-body);
     border: 1px solid var(--chrome-border);
-    border-radius: 6px;
-    height: 26px;
+    border-radius: 2px;
+    height: 32px;
     cursor: pointer;
 }
 
@@ -107,13 +113,13 @@
     color: var(--chrome-ink);
 }
 
-/* ---- real screenshot preview ---- */
+/* A4 portrait mockup — larger than the compact picker so cards fill 1280px. */
 .paper {
-    width: 132px;
-    height: 186px;
+    width: 168px;
+    height: 237px;
     background: #fff;
     box-shadow: 0 4px 14px rgba(30, 48, 78, .18);
-    border-radius: 3px;
+    border-radius: 2px;
     overflow: hidden;
 }
 
@@ -125,8 +131,17 @@
     display: block;
 }
 
+/*
+ * Dialog clamps to viewport width, so below ~900px collapse the four-column
+ * gallery the same way PlanSelectModal collapses its three plan cards.
+ */
+@media only screen and (max-width: 900px) {
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media only screen and (max-width: 640px) {
     .grid { grid-template-columns: 1fr; }
+    .paper { width: 148px; height: 209px; }
 }
 
 /* ---- replace-canvas confirmation (matches ModalPdfs confirm) ---- */

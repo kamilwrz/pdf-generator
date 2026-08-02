@@ -510,7 +510,8 @@ export default function BioCvModal() {
         <DialogShell
             open={isBioCvModal}
             onClose={handleClose}
-            width={onSummaryStep ? 1400 : 760}
+            width={onSummaryStep ? 1400 : 1280}
+            radius={2}
             title="Utwórz CV krok po kroku"
             subtitle="Uzupełnij dane raz — później wygenerujesz CV w dowolnym szablonie."
             footer={
