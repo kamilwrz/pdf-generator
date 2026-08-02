@@ -1,18 +1,19 @@
 /**
  * Guided bio/CV wizard with private draft autosave and template fill at the end.
  * Draft writes are serialised so older responses cannot overwrite newer edits.
- * Summary step shows the same hover mockup picker as AiCvPanel (opacity fade).
+ * Summary step uses the same TemplateCarousel gallery as AiCvPanel / ChangeTemplate.
  */
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import classes from "./BioCvModal.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
+import { fillTemplate } from "../../../services/fillTemplate";
 import { TEMPLATES } from "../../../templates";
 import DialogShell from "../../common/DialogShell/DialogShell";
+import TemplateCarousel from "../AiCvPanel/TemplateCarousel";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
-import { isTemplateAllowed } from "../../../utils/entitlements";
+import { isTemplateAllowed, planErrorMessage } from "../../../utils/entitlements";
 import { createSerialSaveQueue } from "../../../utils/serialSaveQueue";
-import { useTemplateMockupPreview } from "../../../hooks/useTemplateMockupPreview";
 import {
     applyBioCvDraftUpdate,
     BIO_CV_STEPS,
@@ -101,10 +102,6 @@ export default function BioCvModal() {
     const [stepError, setStepError] = useState(null);
     const [fillingId, setFillingId] = useState(null);
     const onSummaryStep = step === BIO_CV_SUMMARY_STEP;
-    const { previewId, previewVisible, showTemplatePreview } = useTemplateMockupPreview({
-        active: Boolean(isBioCvModal && onSummaryStep),
-    });
-    const previewTemplate = cvTemplates.find((template) => template.id === previewId);
     const saveTimer = useRef(null);
     const profileRef = useRef(profile);
     const readyRef = useRef(false);
@@ -293,12 +290,10 @@ export default function BioCvModal() {
         try {
             const payload = buildBioCvPayload(profile);
             await saveDraft(payload, { silent: true });
-            const response = await api.httpRequest(
-                ENDPOINTS.AI.FILL_TEMPLATE,
-                "POST",
-                JSON.stringify({ cv_data: payload, template_id: template.id }),
-                "Nie udało się utworzyć CV.",
-            );
+            const response = await fillTemplate(payload, template.id, {
+                api,
+                errorMessage: "Nie udało się utworzyć CV.",
+            });
             await loadAiElements(response.elements, `CV ${template.name}`, template.id);
             // Keep the source data reachable after this modal closes, so the
             // Topbar "Zmień szablon" gallery can restyle this same CV later
@@ -306,7 +301,7 @@ export default function BioCvModal() {
             setActiveCvData(payload);
             showBioCvModal();
         } catch (error) {
-            setSaveError(error.message || "Nie udało się utworzyć CV.");
+            setSaveError(planErrorMessage(error, "Nie udało się utworzyć CV."));
         } finally {
             setFillingId(null);
         }
@@ -487,56 +482,13 @@ export default function BioCvModal() {
             </div>
             <p>Wybierz szablon. Dane pozostaną zapisane, więc możesz później wygenerować kolejny wariant CV.</p>
             {cvTemplates.length > 0 ? (
-                <div
-                    className={classes.templatePicker}
-                    onMouseLeave={() => showTemplatePreview(null)}
-                >
-                    <div className={classes.mockupPane} aria-hidden={!previewId}>
-                        {previewId ? (
-                            <div
-                                className={`${classes.mockupFrame} ${previewVisible ? classes.mockupFrameVisible : ""}`}
-                            >
-                                <img
-                                    key={previewId}
-                                    className={classes.mockupImg}
-                                    src={`/template-mockups/${previewId}.png`}
-                                    alt=""
-                                    loading="lazy"
-                                />
-                                {previewTemplate && (
-                                    <span className={classes.mockupCaption}>{previewTemplate.name}</span>
-                                )}
-                            </div>
-                        ) : (
-                            <p className={classes.mockupPlaceholder}>Najedź na szablon, aby zobaczyć podgląd</p>
-                        )}
-                    </div>
-                    <div className={classes.templateGrid}>
-                        {cvTemplates.map((template) => {
-                            const locked = !isTemplateAllowed(template, entitlements);
-                            return (
-                                <button
-                                    type="button"
-                                    key={template.id}
-                                    className={`${classes.templateCard} ${previewId === template.id ? classes.templateCardHot : ""}`}
-                                    onClick={() => handleFill(template)}
-                                    onMouseEnter={() => showTemplatePreview(template.id)}
-                                    onFocus={() => showTemplatePreview(template.id)}
-                                    disabled={fillingId !== null || locked}
-                                    title={locked ? "Dostępne w planie Standard" : undefined}
-                                >
-                                    <span className={classes.templateAccent} style={{ backgroundColor: template.accent }} />
-                                    <span className={classes.templateCopy}>
-                                        <strong>{template.name}</strong>
-                                        <small>{template.industry}</small>
-                                    </span>
-                                    <span className={classes.templateAction}>
-                                        {fillingId === template.id ? "Tworzenie…" : (locked ? "Zablokowany" : "Utwórz CV")}
-                                    </span>
-                                </button>
-                            );
-                        })}
-                    </div>
+                <div className={classes.carouselSection}>
+                    <TemplateCarousel
+                        templates={cvTemplates}
+                        entitlements={entitlements}
+                        fillingId={fillingId}
+                        onSelect={handleFill}
+                    />
                 </div>
             ) : (
                 <p className={classes.emptyTemplates}>Nie ma jeszcze dostępnych szablonów CV.</p>
@@ -558,7 +510,7 @@ export default function BioCvModal() {
         <DialogShell
             open={isBioCvModal}
             onClose={handleClose}
-            width={onSummaryStep ? 860 : 760}
+            width={onSummaryStep ? 1400 : 760}
             title="Utwórz CV krok po kroku"
             subtitle="Uzupełnij dane raz — później wygenerujesz CV w dowolnym szablonie."
             footer={

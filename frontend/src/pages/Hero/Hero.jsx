@@ -360,7 +360,7 @@ export default function Hero() {
                         <p className={classes.planSummary}>Dla pierwszej wersji CV i poznania edytora.</p>
                         <ul>
                             <li><CheckIcon />Edytor A4 i podgląd</li>
-                            <li><CheckIcon />7 szablonów startowych</li>
+                            <li><CheckIcon />8 szablonów startowych</li>
                             <li><CheckIcon />1 projekt i 3 eksporty miesięcznie</li>
                             <li><CheckIcon />Kreator CV krok po kroku</li>
                         </ul>

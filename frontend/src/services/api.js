@@ -27,6 +27,8 @@ export const ENDPOINTS = {
         UPLOAD: "/images/upload_image",
         FETCH: "/images/fetch_images",
         DELETE: "/images/delete_image",
+        /** Ownership-checked byte stream — replaces public /uploads URLs. */
+        CONTENT: (imgId) => `/images/${imgId}/content`,
     },
     AUTH: {
         LOGIN: "/auth/token",

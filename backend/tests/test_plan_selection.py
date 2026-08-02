@@ -18,6 +18,7 @@ from app.models.models import Base, UserSubscription
 from app.schemas.user_schema import UserCreateRequest
 from app.crud import user as user_crud
 from app.services import entitlements as ent
+from app.testing_support import ensure_test_auth_env
 
 
 class PlanSelectionTests(unittest.TestCase):
@@ -42,8 +43,10 @@ class PlanSelectionTests(unittest.TestCase):
         self.assertEqual(self._plan_of("a"), "free")
 
     def test_register_with_premium_activates_premium(self):
-        user_crud.create_user(self.db, UserCreateRequest(
-            username="b", email="b@e.pl", password="pw", plan="premium"))
+        # Paid self-activation is off by default; enable it for this pre-Stripe path.
+        with patch.object(user_crud, "ALLOW_UNPAID_PLAN_SELECTION", True):
+            user_crud.create_user(self.db, UserCreateRequest(
+                username="b", email="b@e.pl", password="pw", plan="premium"))
         self.assertEqual(self._plan_of("b"), "premium")
 
     def test_register_with_premium_falls_back_to_free_when_unpaid_disabled(self):
@@ -69,6 +72,7 @@ class SelectPlanEndpointTests(unittest.TestCase):
     """
 
     def setUp(self):
+        ensure_test_auth_env()
         # StaticPool + a single shared connection so the request runs (on the
         # TestClient's worker thread) see the same in-memory DB as this thread.
         self.engine = create_engine(
@@ -100,7 +104,8 @@ class SelectPlanEndpointTests(unittest.TestCase):
 
     def test_select_valid_plan_returns_200_and_changes_subscription(self):
         self.assertEqual(self._plan_of("u1"), "free")
-        response = self.client.post("/billing/select-plan", json={"plan_slug": "standard"})
+        with patch.object(billing_route, "ALLOW_UNPAID_PLAN_SELECTION", True):
+            response = self.client.post("/billing/select-plan", json={"plan_slug": "standard"})
         self.assertEqual(response.status_code, 200)
         body = response.json()
         self.assertEqual(body["plan_slug"], "standard")
@@ -129,7 +134,9 @@ class SelectPlanEndpointTests(unittest.TestCase):
         self.assertEqual(body["current_plan_slug"], "free")
         slugs = [p["slug"] for p in body["plans"]]
         self.assertEqual(slugs, ["free", "standard", "premium"])
-        self.assertTrue(body["allow_unpaid_selection"])
+        # Default config keeps unpaid selection off; the flag is still exposed.
+        self.assertIn("allow_unpaid_selection", body)
+        self.assertIsInstance(body["allow_unpaid_selection"], bool)
 
     def test_valid_token_for_missing_user_returns_401(self):
         # Valid token (verify_token succeeds) whose `sub` resolves to no user row.

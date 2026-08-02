@@ -395,7 +395,7 @@ block("JAN KOWALSKI", 50, 56, 495, 36, 27, 33, color, font)
 
 Liczby są zaprojektowanymi współrzędnymi.
 
-`handleLoadTemplate` przekazuje tablicę do `materializeSpecs`, które:
+`handleLoadTemplate` przekazuje tablicę do `materializeElementSpecs`, które:
 
 - nadaje świeże `element_id`;
 - ustawia domyślną stronę 1;
@@ -1520,7 +1520,7 @@ flowchart TD
     C --> D[normalize_cv_data]
     D --> E[Python generate_resume]
     E --> F[Lista elementów z geometrią]
-    F --> G[materializeSpecs: nowe element_id]
+    F --> G[materializeElementSpecs: nowe element_id]
     G --> H[React A4_Elements]
     H --> I[CanvasElements]
     I --> J[Widok A4]

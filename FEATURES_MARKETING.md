@@ -202,7 +202,7 @@ Standard obejmuje siedem analiz z tabeli poza Układem oraz chat naturalnym jęz
 
 | Plan | Istota |
 |------|--------|
-| **Free** | Edytor + eksport, 7 szablonów startowych, limity projektów/eksportów; bez asystenta AI |
+| **Free** | Edytor + eksport, 8 szablonów startowych, limity projektów/eksportów; bez asystenta AI |
 | **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 23 szablony oraz wyższe limity |
 | **Premium** | Tryb Układ AI, więcej kredytów AI, bez limitu projektów/eksportów |
 

@@ -5,10 +5,23 @@ import { measureTextareaHeight } from '../utils/textareaHeight';
 import { reflowTextareaHeight } from '../utils/textareaReflow';
 import { cloneFixedPageDecorations } from '../utils/structureOperation';
 import { findPageCanvasAtPoint } from '../utils/pageSpread';
-import { moveElementsByDelta, moveElementsToPage } from '../utils/pageDrag';
+import { moveElementsByDelta } from '../utils/pageDrag';
 import { sanitizeTextContent } from '../utils/sanitizeTextContent';
 import { markContentElementsEnter, markElementsEnter, isCanvasEnterReflowSuppressed, endCanvasEnterReflowSuppress } from '../utils/canvasEnter';
 import { isDecorativeChrome } from '../utils/elementInteraction';
+import {
+  createCircleElement,
+  createEllipseElement,
+  createImageElement,
+  createLineElement,
+  createRectangleElement,
+  createTextElement,
+  createTextareaElement,
+} from '../utils/a4ElementFactories';
+import { materializeElementSpecs } from '../utils/materializeElementSpecs';
+import { useDocumentHistory } from './useDocumentHistory';
+import { useElementSelectionDrag } from './useElementSelectionDrag';
+import API_BASE_URL from '../services/api';
 
 /**
  * Core canvas state hook for the A4 CV editor.
@@ -46,7 +59,6 @@ export function useA4Elements(titleRef) {
 
   const [A4_Elements, setA4_Elements] = useState([]);
   const [A4_Elements_deleted, setA4_Elements_deleted] = useState([]);
-  const [groupMoveDelta, setGroupMoveDelta] = useState(null);
   // Last loaded template slug (e.g. "words"). Used by Layout AI for layout_contract
   // hints; cleared for blank canvases and unknown freestyle loads.
   const [activeTemplateId, setActiveTemplateId] = useState(null);
@@ -79,12 +91,6 @@ export function useA4Elements(titleRef) {
   const pageSizeRef = useRef(A4_PAGE_SIZE);
   const pageCountRef = useRef(1);
   const pageCanvasRefs = useRef(new Map());
-  const draggedElementIdsRef = useRef(new Set());
-  const activeDragElementIdRef = useRef(null);
-  const crossPageDragRef = useRef(false);
-  const dragDimensionsRef = useRef(null);
-  const dragGrabOffsetRef = useRef(null);
-  const groupDragRef = useRef(null);
   const reflowPageCountRef = useRef(null);
   const layoutTargetPageRef = useRef(null);
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
@@ -145,123 +151,40 @@ export function useA4Elements(titleRef) {
     setCurrentPage((page) => targetPage ?? Math.min(page, nextPageCount));
   }, [A4_Elements]);
 
-  // ---- Undo / redo history (in-memory, session-scoped) ----
-  // A snapshot is the DOCUMENT: elements with the volatile UI flags stripped
-  // (isSelected/isMove/isEditing) + page geometry. Stripping those flags means
-  // selecting an element or a single drag FRAME is not an undo step. The
-  // recorder is debounced, so a whole drag or a typed burst collapses into ONE
-  // step. History is never persisted — autosave persists the document; undo is
-  // a session concept. Undo/redo apply by content-equality, so re-applying a
-  // snapshot produces an identical snapshot the recorder skips (no flag needed).
-  //
-  // Textarea auto-height reflow after load is NOT a user edit. Without quiet
-  // mode it would push a second snapshot (authored heights → measured heights),
-  // enabling Undo with no user action and letting Undo restore uneven Y gaps.
-  // Quiet updates replace the current history entry in place instead.
-  const HISTORY_LIMIT = 100;
-  const HISTORY_QUIET_MS = 500;
-  const HISTORY_LOAD_QUIET_MS = 1200;
-  const historyRef = useRef({ stack: [], index: -1 });
-  const historyTimerRef = useRef(null);
-  const historyQuietUntilRef = useRef(0);
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
-
-  const buildSnapshot = () => ({
-    elements: elementsRef.current.map(({ isSelected, isMove, isEditing, ...keep }) => keep),
-    pageCount: pageCountRef.current,
+  // Undo/redo lives in useDocumentHistory — session-scoped, never persisted.
+  const {
+    canUndo,
+    canRedo,
+    undo,
+    redo,
+    resetHistory,
+    markHistoryQuiet,
+  } = useDocumentHistory({
+    elements: A4_Elements,
+    pageCount,
+    elementsRef,
+    pageCountRef,
+    setElements: setA4_Elements,
+    setPageCount,
+    setCurrentPage,
   });
 
-  const syncHistoryFlags = () => {
-    const { stack, index } = historyRef.current;
-    setCanUndo(index > 0);
-    setCanRedo(index < stack.length - 1);
-  };
-
-  // Extend (never shorten) the quiet window so overlapping reflows stay quiet.
-  const markHistoryQuiet = useCallback((ms = HISTORY_QUIET_MS) => {
-    historyQuietUntilRef.current = Math.max(
-      historyQuietUntilRef.current,
-      Date.now() + ms,
-    );
-  }, []);
-
-  const recordSnapshot = () => {
-    const snap = buildSnapshot();
-    const h = historyRef.current;
-    const quiet = Date.now() < historyQuietUntilRef.current;
-    if (quiet) {
-      // Reflow / load settle: keep a single mutable baseline (or refresh tip).
-      if (h.index < 0 || h.stack.length === 0) {
-        historyRef.current = { stack: [snap], index: 0 };
-      } else {
-        const stack = h.stack.slice(0, h.index + 1);
-        stack[h.index] = snap;
-        historyRef.current = { stack, index: h.index };
-      }
-      syncHistoryFlags();
-      return;
-    }
-    const cur = h.stack[h.index];
-    if (cur && JSON.stringify(cur) === JSON.stringify(snap)) return; // content unchanged (e.g. selection only)
-    const next = h.stack.slice(0, h.index + 1);
-    next.push(snap);
-    const overflow = next.length - HISTORY_LIMIT;
-    const capped = overflow > 0 ? next.slice(overflow) : next;
-    historyRef.current = { stack: capped, index: capped.length - 1 };
-    syncHistoryFlags();
-  };
-
-  // Debounced recorder: coalesces drag frames / keystrokes into a single step.
-  // While quiet (reflow settle), use a shorter delay so authored→measured height
-  // bursts collapse into one in-place baseline update.
-  useEffect(() => {
-    clearTimeout(historyTimerRef.current);
-    const quiet = Date.now() < historyQuietUntilRef.current;
-    historyTimerRef.current = setTimeout(recordSnapshot, quiet ? 80 : 350);
-    return () => clearTimeout(historyTimerRef.current);
-  }, [A4_Elements, pageCount]);
-
-  // Wipe history to a fresh baseline (loading a template / AI doc / saved PDF /
-  // clearing) so you can't undo BACK into the previous document. Stay quiet
-  // long enough for canvas font measure + auto-height reflow to finish.
-  const resetHistory = useCallback(() => {
-    historyRef.current = { stack: [], index: -1 };
-    setCanUndo(false);
-    setCanRedo(false);
-    markHistoryQuiet(HISTORY_LOAD_QUIET_MS);
-  }, [markHistoryQuiet]);
-
-  const applySnapshot = (snap) => {
-    // Applying undo/redo can retrigger textarea measure; keep those adjustments
-    // on the restored entry instead of appending a new step.
-    markHistoryQuiet();
-    setA4_Elements(snap.elements.map(el => ({ ...el, isSelected: false, isMove: false, isEditing: false })));
-    setPageCount(snap.pageCount);
-    setCurrentPage(cp => Math.min(cp, snap.pageCount));
-  };
-
-  const undo = useCallback(() => {
-    const h = historyRef.current;
-    if (h.index <= 0) return;
-    h.index -= 1;
-    applySnapshot(h.stack[h.index]);
-    syncHistoryFlags();
-  }, [markHistoryQuiet]);
-
-  const redo = useCallback(() => {
-    const h = historyRef.current;
-    if (h.index >= h.stack.length - 1) return;
-    h.index += 1;
-    applySnapshot(h.stack[h.index]);
-    syncHistoryFlags();
-  }, [markHistoryQuiet]);
-
-  const clearSelection = useCallback(() => {
-    setA4_Elements(prev => prev.some(e => e.isSelected)
-      ? prev.map(e => (e.isSelected ? { ...e, isSelected: false } : e))
-      : prev);
-  }, []);
+  const {
+    groupMoveDelta,
+    clearSelection,
+    handleMoveElement,
+    handleMoveSelectedElements,
+    handleSelectMoveElement,
+    handleSelectElement,
+    markSelected,
+  } = useElementSelectionDrag({
+    elementsRef,
+    pageSizeRef,
+    canvasForPage,
+    visibleCanvasEntries,
+    setElements: setA4_Elements,
+    setDeletedElements: setA4_Elements_deleted,
+  });
 
   // Enter connector mode: next two element clicks pick source then target.
   // Connectors are retired from the editor; keep a no-op so old context wiring
@@ -445,438 +368,6 @@ export function useA4Elements(titleRef) {
 
 
 
-  const handleMoveElement = useCallback((e, elementId) => {
-    if ((e.buttons & 1) !== 1) return;
-    if (crossPageDragRef.current && e.currentTarget !== window) return;
-
-    const currentElements = elementsRef.current;
-    const currentDragged = currentElements.find((element) => element.element_id === elementId);
-    if (!currentDragged?.isMove || currentDragged.locked) return;
-    const sourcePage = currentDragged.page ?? 1;
-    const targetCanvas = findPageCanvasAtPoint(visibleCanvasEntries(), e.clientX, e.clientY);
-    const targetPage = targetCanvas?.page ?? sourcePage;
-    if (targetPage !== sourcePage) crossPageDragRef.current = true;
-    const canvas = targetCanvas?.node ?? canvasForPage(sourcePage);
-    const canvasRect = canvas?.getBoundingClientRect();
-    if (!canvasRect) return;
-    const scaleX = canvasRect.width / pageSizeRef.current.width;
-    const scaleY = canvasRect.height / pageSizeRef.current.height;
-    if (!scaleX || !scaleY) return;
-
-    const sourceCanvasRect = canvasForPage(sourcePage)?.getBoundingClientRect();
-    if (e.currentTarget && e.currentTarget !== window && sourceCanvasRect) {
-      const elementRect = e.currentTarget.getBoundingClientRect();
-      const sourceScaleX = sourceCanvasRect.width / pageSizeRef.current.width;
-      const sourceScaleY = sourceCanvasRect.height / pageSizeRef.current.height;
-      if (sourceScaleX && sourceScaleY) {
-        dragDimensionsRef.current = {
-          width: elementRect.width / sourceScaleX,
-          height: elementRect.height / sourceScaleY,
-        };
-      }
-    }
-    // Keep the original grab point under the cursor (1:1). Slowing the element
-    // relative to the pointer makes the cursor leave the element.
-    const pointerX = (e.clientX - canvasRect.left) / scaleX;
-    const pointerY = (e.clientY - canvasRect.top) / scaleY;
-    if (!dragGrabOffsetRef.current) {
-      dragGrabOffsetRef.current = {
-        x: pointerX - Number(currentDragged.left),
-        y: pointerY - Number(currentDragged.top),
-      };
-    }
-    const targetLeft = pointerX - dragGrabOffsetRef.current.x;
-    const targetTop = pointerY - dragGrabOffsetRef.current.y;
-    const deltaX = targetLeft - Number(currentDragged.left);
-    const deltaY = targetTop - Number(currentDragged.top);
-    if (!deltaX && !deltaY && targetPage === sourcePage) return;
-    const selectedOnSamePage = currentElements.filter((element) => (
-      element.isSelected
-      && !element.locked
-      && (element.page ?? 1) === sourcePage
-    ));
-    const movedElements = currentDragged.isSelected && selectedOnSamePage.length > 1
-      ? selectedOnSamePage
-      : [currentDragged];
-    const movedIds = new Set(movedElements.map((element) => element.element_id));
-    const moveResult = moveElementsToPage(
-      currentElements,
-      movedIds,
-      deltaX,
-      deltaY,
-      targetPage,
-      pageSizeRef.current,
-    );
-    const groupDrag = groupDragRef.current;
-    const origin = groupDrag?.origins.get(elementId);
-    if (groupDrag?.elementIds.has(elementId) && origin) {
-      setGroupMoveDelta({
-        x: Math.round((currentDragged.left + moveResult.deltaX - origin.left) * 10) / 10,
-        y: Math.round((currentDragged.top + moveResult.deltaY - origin.top) * 10) / 10,
-        count: groupDrag.elementIds.size,
-        elementId,
-        page: targetPage,
-        originPage: groupDrag.originPage,
-      });
-    }
-
-    setA4_Elements((prevState) => {
-      const dragged = prevState.find((element) => element.element_id === elementId);
-      if (!dragged?.isMove || dragged.locked) return prevState;
-      draggedElementIdsRef.current.add(elementId);
-
-      const selectedOnSamePage = prevState.filter((element) => (
-        element.isSelected
-        && !element.locked
-        && (element.page ?? 1) === sourcePage
-      ));
-      const movedElements = dragged.isSelected && selectedOnSamePage.length > 1
-        ? selectedOnSamePage
-        : [dragged];
-      const movedIds = new Set(movedElements.map((element) => element.element_id));
-
-      const moved = moveElementsToPage(
-        prevState,
-        movedIds,
-        deltaX,
-        deltaY,
-        targetPage,
-        pageSizeRef.current,
-      );
-      if (moved.removedConnectorIds.length > 0) {
-        const removed = prevState.filter((element) => moved.removedConnectorIds.includes(element.element_id));
-        setA4_Elements_deleted((previousDeleted) => {
-          const additions = removed
-            .filter((element) => !previousDeleted.some((deleted) => deleted.element_id === element.element_id))
-            .map((element) => ({ ...element, deleted: true }));
-          return additions.length > 0 ? [...previousDeleted, ...additions] : previousDeleted;
-        });
-      }
-      return moved.elements;
-    });
-  }, [canvasForPage, visibleCanvasEntries])
-
-  // Moving an element to the neighbour page remounts it in a different A4
-  // surface, which releases its original pointer capture. Continue listening
-  // from window for that one drag so the user can still position the element.
-  useEffect(() => {
-    const continueCrossPageDrag = (event) => {
-      const elementId = activeDragElementIdRef.current;
-      if (!crossPageDragRef.current || !elementId) return;
-      handleMoveElement(event, elementId);
-    };
-    window.addEventListener("pointermove", continueCrossPageDrag, true);
-    return () => window.removeEventListener("pointermove", continueCrossPageDrag, true);
-  }, [handleMoveElement]);
-
-  const handleMoveSelectedElements = useCallback((deltaX = 0, deltaY = 0) => {
-    if (!Number.isFinite(deltaX) || !Number.isFinite(deltaY)) return;
-
-    setA4_Elements((prevState) => {
-      const selectedIds = new Set(
-        prevState
-          .filter((element) => element.isSelected && !element.locked)
-          .map((element) => element.element_id)
-      );
-      return moveElementsByDelta(
-        prevState,
-        selectedIds,
-        deltaX,
-        deltaY,
-        pageSizeRef.current,
-      );
-    });
-  }, [])
-
-  // Explicit press/release drag state: pointerdown passes moving=true,
-  // pointerup moving=false. NEVER a toggle — a toggle inverts permanently the
-  // moment a pointerup is missed (e.g. the element remounts when selecting it
-  // swaps in the <Resize>-wrapped branch and the pointer capture dies).
-  const handleSelectMoveElement = useCallback((elementId, moving) => {
-    const dragged = moving
-      ? elementsRef.current.find((element) => element.element_id === elementId)
-      : null;
-
-    // Decorative chrome (bg / frames / sidebars / page nums) is never draggable.
-    if (moving && isDecorativeChrome(dragged)) return;
-
-    if (moving) {
-      draggedElementIdsRef.current.delete(elementId);
-      activeDragElementIdRef.current = elementId;
-      crossPageDragRef.current = false;
-      dragDimensionsRef.current = null;
-      dragGrabOffsetRef.current = null;
-      const group = dragged?.isSelected
-        ? elementsRef.current.filter((element) => (
-          element.isSelected
-          && !element.locked
-          && (element.page ?? 1) === (dragged.page ?? 1)
-        ))
-        : [dragged].filter(Boolean);
-      if (group.length > 0) {
-        groupDragRef.current = {
-          elementIds: new Set(group.map((element) => element.element_id)),
-          originPage: dragged?.page ?? 1,
-          origins: new Map(group.map((element) => [
-            element.element_id,
-            { left: Number(element.left) || 0, top: Number(element.top) || 0 },
-          ])),
-        };
-        setGroupMoveDelta({ x: 0, y: 0, count: group.length, elementId });
-      } else {
-        groupDragRef.current = null;
-        setGroupMoveDelta(null);
-      }
-    } else {
-      // Click follows pointerup in the same interaction. Delay cleanup by one
-      // task so handleSelectElement can recognise and ignore that post-drag
-      // click, preserving the current group selection.
-      window.setTimeout(() => draggedElementIdsRef.current.delete(elementId), 0);
-      activeDragElementIdRef.current = null;
-      crossPageDragRef.current = false;
-      dragDimensionsRef.current = null;
-      dragGrabOffsetRef.current = null;
-      groupDragRef.current = null;
-      setGroupMoveDelta(null);
-    }
-    setA4_Elements(prevState => prevState.map((element) => (
-      element.element_id === elementId
-        ? { ...element, isMove: !!moving && !element.locked }
-        : { ...element, isMove: false }
-    )));
-  }, [])
-
-  // Safety net: releasing the button ANYWHERE ends every drag, even when the
-  // dragged element lost its pointer capture and its own pointerup never fired.
-  useEffect(() => {
-    const endDrag = () => {
-      activeDragElementIdRef.current = null;
-      crossPageDragRef.current = false;
-      dragDimensionsRef.current = null;
-      dragGrabOffsetRef.current = null;
-      groupDragRef.current = null;
-      setGroupMoveDelta(null);
-      setA4_Elements(prev => prev.some(e => e.isMove)
-        ? prev.map(e => (e.isMove ? { ...e, isMove: false } : e))
-        : prev);
-    };
-    window.addEventListener("pointerup", endDrag);
-    window.addEventListener("pointercancel", endDrag);
-    return () => {
-      window.removeEventListener("pointerup", endDrag);
-      window.removeEventListener("pointercancel", endDrag);
-    };
-  }, [])
-
-  // Normal click makes one element the active selection. Ctrl/Cmd-click toggles
-  // only that element, preserving the rest of the selection for bulk editing.
-  const handleSelectElement = useCallback((elementId, additive = false) => {
-    if (!additive && draggedElementIdsRef.current.delete(elementId)) return;
-
-    const target = elementsRef.current.find((element) => element.element_id === elementId);
-    // Decorative chrome must stay unselectable so it never steals clicks from content.
-    if (isDecorativeChrome(target)) return;
-
-    setA4_Elements(prevState => {
-      return prevState.map((element) => {
-        if (element.element_id === elementId) {
-          return {
-            ...element,
-            isSelected: additive ? !element.isSelected : true,
-            isMove: false,
-            isEditing: element.category === "textarea" ? false : element.isEditing,
-          };
-        }
-        return additive
-          ? { ...element, isMove: false, isEditing: element.category === "textarea" ? false : element.isEditing }
-          : {
-              ...element,
-              isSelected: false,
-              isMove: false,
-              isEditing: element.category === "textarea" ? false : element.isEditing,
-            };
-      });
-    });
-  }, [])
-
-  const handleAddText = useCallback(() => {
-    const text = {
-      element_id: nanoid(),
-      content: "Przykładowy tekst…",
-      fontSize: 14,
-      fontFamily: "Inter",
-      color: "#000000",
-      left: 10,
-      top: 10,
-      isSelected: false,
-      isMove: false,
-      locked: false,
-      category: "text",
-      bold: false,
-      italic: false,
-      underline: false,
-      zIndex: 3,
-      page: currentPageRef.current,
-    };
-    markElementsEnter(text.element_id);
-    setA4_Elements(prevState => {
-      return [...prevState, text];
-    });
-  }, [])
-
-  const handleAddLine = useCallback(() => {
-    const line = {
-      element_id: nanoid(),
-      backgroundColor: "#000000",
-      left: 10,
-      width: 100,
-      height: 10,
-      top: 10,
-      isSelected: false,
-      isMove: false,
-      locked: false,
-      category: "line",
-      zIndex: 2,
-      page: currentPageRef.current,
-    };
-    markElementsEnter(line.element_id);
-    setA4_Elements(prevState => {
-      return [...prevState, line];
-    });
-  }, [])
-
-  const handleAddRectangle = useCallback(() => {
-    const rectangle = {
-      element_id: nanoid(),
-      backgroundColor: "#000000", // reused as the border (stroke) colour
-      borderWidth: 1,
-      left: 20,
-      top: 20,
-      width: 120,
-      height: 80,
-      isSelected: false,
-      isMove: false,
-      locked: false,
-      category: "rectangle",
-      zIndex: 2,
-      page: currentPageRef.current,
-    };
-    markElementsEnter(rectangle.element_id);
-    setA4_Elements(prevState => {
-      return [...prevState, rectangle];
-    });
-  }, [])
-
-  const handleAddCircle = useCallback(() => {
-    const circle = {
-      element_id: nanoid(),
-      backgroundColor: "#000000",
-      borderWidth: 1,
-      filled: false,
-      left: 20,
-      top: 20,
-      width: 80,
-      height: 80,
-      isSelected: false,
-      isMove: false,
-      locked: false,
-      category: "circle",
-      zIndex: 2,
-      page: currentPageRef.current,
-    };
-    markElementsEnter(circle.element_id);
-    setA4_Elements((prevState) => [...prevState, circle]);
-  }, [])
-
-  const handleAddEllipse = useCallback(() => {
-    const ellipse = {
-      element_id: nanoid(),
-      backgroundColor: "#000000",
-      borderWidth: 1,
-      filled: false,
-      left: 20,
-      top: 20,
-      width: 120,
-      height: 80,
-      isSelected: false,
-      isMove: false,
-      locked: false,
-      category: "ellipse",
-      zIndex: 2,
-      page: currentPageRef.current,
-    };
-    markElementsEnter(ellipse.element_id);
-    setA4_Elements((prevState) => [...prevState, ellipse]);
-  }, [])
-
-  const handleAddImage = useCallback((e) => {
-    const image = {
-      element_id: nanoid(),
-      src: e.target.src,
-      width: 100,
-      height: e.target.naturalHeight / e.target.naturalWidth * 100,
-      left: 10,
-      top: 10,
-      isSelected: false,
-      isMove: false,
-      locked: false,
-      category: "image",
-      zIndex: 1,
-      img_id : e.target.id,
-      page: currentPageRef.current,
-    };
-    markElementsEnter(image.element_id);
-    setA4_Elements(prevState => {
-      return [...prevState, image];
-    });
-  }, [])
-
-  const handleAddTextarea = useCallback(() => {
-    const fontSize = 14;
-    const lineHeight = Math.round(fontSize * 1.4);
-    const width = 260;
-    const textarea = {
-      element_id: nanoid(),
-      content: "",
-      fontSize,
-      fontFamily: "Inter",
-      color: "#000000",
-      lineHeight,
-      letterSpacing: 0,
-      left: 20,
-      top: 20,
-      width,
-      height: measureTextareaHeight("", width, fontSize, lineHeight),
-      isSelected: true,
-      isMove: false,
-      locked: false,
-      isEditing: true,
-      bold: false,
-      italic: false,
-      underline: false,
-      align: "left",
-      bulletList: false,
-      category: "textarea",
-      zIndex: 4,
-      page: currentPageRef.current,
-    };
-    // New box starts in edit mode; clear selection/editing on everything else.
-    markElementsEnter(textarea.element_id);
-    setA4_Elements(prevState => [
-      ...prevState.map(el => ({
-        ...el,
-        isSelected: false,
-        isEditing: el.category === "textarea" ? false : el.isEditing,
-      })),
-      textarea,
-    ]);
-  }, [])
-
-  // Select an element without toggling (used by the text box on single click)
-  // and leave edit mode on any other text box.
-  const markSelected = useCallback((elementId) => {
-    handleSelectElement(elementId);
-  }, [handleSelectElement])
 
   const handleSetTextareaEditing = useCallback((elementId, editing) => {
     setA4_Elements(prevState => prevState.map(el => {
@@ -1785,45 +1276,11 @@ export function useA4Elements(titleRef) {
       titleRef.current.value = "";
   }, [resetHistory])
 
-  // Assign fresh element_ids to a list of specs, honouring symbolic `id` keys:
-  // a template/AI spec may carry `id: "box1"` and a connector referencing it via
-  // source_id/target_id — those references are rewritten to the generated
-  // nanoids so connectors survive loading. Interaction flags default off.
-  const materializeSpecs = (specs) => {
-    const idMap = {};
-    const mapped = (specs || []).map(spec => {
-      const nid = nanoid();
-      if (spec.id != null) idMap[spec.id] = nid;
-      const { id, ...rest } = spec;
-      const normalizedRest = rest.category === "circle"
-        ? { ...rest, width: rest.width ?? rest.height ?? 80, height: rest.width ?? rest.height ?? 80 }
-        : rest;
-      const withCleanContent = "content" in normalizedRest
-        ? { ...normalizedRest, content: sanitizeTextContent(normalizedRest.content) }
-        : normalizedRest;
-      const fixedToPage = Boolean(withCleanContent.fixedToPage);
-      return {
-        isSelected: false,
-        isMove: false,
-        isEditing: false,
-        ...withCleanContent,
-        fixedToPage,
-        // Chrome stays interaction-locked even if a template omitted locked.
-        locked: withCleanContent.locked ?? fixedToPage,
-        page: withCleanContent.page ?? 1,
-        element_id: nid,
-      };
-    });
-    return mapped.map(el => el.category === "connector"
-      ? { ...el, source_id: idMap[el.source_id] ?? el.source_id, target_id: idMap[el.target_id] ?? el.target_id }
-      : el);
-  };
-
   // Replace the canvas with generated/authored specs. `title` is used verbatim.
   // Content fades in after fonts settle; fixedToPage chrome appears immediately.
   const handleLoadAiElements = useCallback((specs, title, templateId = null) => {
     resetHistory();
-    const mapped = materializeSpecs(specs);
+    const mapped = materializeElementSpecs(specs, nanoid);
     const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
     markContentElementsEnter(mapped);
     setA4_Elements(mapped);
@@ -1846,7 +1303,7 @@ export function useA4Elements(titleRef) {
         && aiContent !== undefined && aiContent !== "";
       return { ...spec, content: useAi ? aiContent : spec.content };
     });
-    const mapped = materializeSpecs(withContent);
+    const mapped = materializeElementSpecs(withContent, nanoid);
     const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
     markContentElementsEnter(mapped);
     setA4_Elements(mapped);
@@ -1861,7 +1318,7 @@ export function useA4Elements(titleRef) {
 
   const handleLoadTemplate = useCallback((templateElements, title, templateId = null) => {
     resetHistory();
-    const mapped = materializeSpecs(templateElements);
+    const mapped = materializeElementSpecs(templateElements, nanoid);
     const maxPage = mapped.reduce((m, el) => Math.max(m, el.page ?? 1), 1);
     markContentElementsEnter(mapped);
     setA4_Elements(mapped);

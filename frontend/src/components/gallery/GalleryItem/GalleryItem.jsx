@@ -1,18 +1,19 @@
 /**
  * One gallery thumbnail: insert onto canvas or delete (when not in use).
+ *
+ * Inserts via `{ img_id, naturalWidth, naturalHeight }` so the canvas stores a
+ * stable `/images/{id}/content` src instead of a short-lived blob preview URL.
  */
 import classes from "./GalleryItem.module.css";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
 import { AiFillDelete } from "react-icons/ai";
-import { use } from "react";
 
 import { ApiClient } from "../../../services/api";
 import { ENDPOINTS } from "../../../services/api";
-import API_BASE_URL from "../../../services/api";
 
 export default function GalleryItem({url, img_id, imageUsed}){
 
-    const {addImage}= use(PdfContext);
+    const { addImage } = useCanvasContext();
 
     function handleDeleteImage(){
         const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
@@ -20,8 +21,23 @@ export default function GalleryItem({url, img_id, imageUsed}){
         then((data) =>{imageUsed(data)}).catch((error) => console.log(error));
     }
 
+    function handleInsert(event) {
+        const img = event.currentTarget;
+        addImage({
+            img_id,
+            naturalWidth: img.naturalWidth || 100,
+            naturalHeight: img.naturalHeight || 100,
+        });
+    }
+
     return <div className={classes.imageWrapper}>
-        <img src={url} id={img_id} className={classes.image} onClick={addImage}/>
+        {url ? (
+            <img src={url} id={img_id} className={classes.image} onClick={handleInsert} alt="" />
+        ) : (
+            <button type="button" className={classes.image} onClick={() => addImage({ img_id })}>
+                Dodaj
+            </button>
+        )}
         <button onClick={handleDeleteImage}><AiFillDelete /></button>
     </div>
 }

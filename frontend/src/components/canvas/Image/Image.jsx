@@ -1,16 +1,22 @@
 /**
  * Canvas image element with resize handles when selected.
  * Template-asset URLs are rewritten to the API origin outside localhost.
+ * User library photos (`img_id` / `/images/{id}/content`) load via authenticated
+ * fetch + blob URL because <img> cannot send Authorization headers.
  * `fixedToPage` disables pointer events (sidebars/backgrounds).
  * Iconic icons store `top` as the companion text line top; the draw offset
  * centres the glyph on that line (mirrors PDF `align_with_text`).
  */
 import classes from "./Image.module.css";
-import { memo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { use, useRef } from "react";
 import Resize from "../../common/Resize/Resize";
 import API_BASE_URL from "../../../services/api";
+import {
+    fetchAuthenticatedImageObjectUrl,
+    isAuthenticatedImageSrc,
+} from "../../../services/authenticatedImage";
 
 function resolveTemplateAssetSrc(src) {
     const assetPath = String(src || "").match(/\/template-assets\/[^?#]+(?:[?#].*)?$/)?.[0];
@@ -41,6 +47,7 @@ function Image({
     left,
     top,
     elementId,
+    img_id,
     isSelected,
     isMove,
     zIndex,
@@ -51,13 +58,44 @@ function Image({
     const { moveElement, selectElement, A4_Elements, selectMoveElement, resizeElement } = use(PdfContext)
 
     const [isResizeable, setIsResizeable] = useState(false);
+    const [authDisplaySrc, setAuthDisplaySrc] = useState(null);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
-    const displaySrc = resolveTemplateAssetSrc(src);
+    const needsAuthFetch = Boolean(img_id) || isAuthenticatedImageSrc(src);
+    const displaySrc = needsAuthFetch
+        ? (authDisplaySrc || "")
+        : resolveTemplateAssetSrc(src);
     const drawTop = isTextAlignedIcon(src, alignWithText)
         ? iconicDrawTop(top, height)
         : top;
 
     const image = useRef();
+
+    useEffect(() => {
+        if (!needsAuthFetch) {
+            setAuthDisplaySrc(null);
+            return undefined;
+        }
+        let revoked = false;
+        let objectUrl = null;
+        const id = img_id || String(src || "").match(/\/images\/(\d+)\/content/)?.[1];
+        if (!id) return undefined;
+        fetchAuthenticatedImageObjectUrl(id)
+            .then((url) => {
+                if (revoked) {
+                    URL.revokeObjectURL(url);
+                    return;
+                }
+                objectUrl = url;
+                setAuthDisplaySrc(url);
+            })
+            .catch(() => {
+                if (!revoked) setAuthDisplaySrc(null);
+            });
+        return () => {
+            revoked = true;
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
+    }, [needsAuthFetch, img_id, src]);
 
     function handleIsResizeable(active) {
         setIsResizeable(Boolean(active));

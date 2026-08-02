@@ -2,8 +2,7 @@
  * Multi-page navigation and two-page spread toggle for the canvas.
  */
 import classes from "./PageControls.module.css";
-import { PdfContext } from "../../../store/pdfgenerator-context";
-import { use } from "react";
+import { useCanvasContext } from "../../../store/canvas-context";
 
 const Chevron = ({ dir }) => (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -15,7 +14,7 @@ export default function PageControls() {
     const {
         currentPage, pageCount, addPage, removePage, goToPage, clonePage, movePage,
         isTwoPageView, toggleTwoPageView,
-    } = use(PdfContext);
+    } = useCanvasContext();
 
     return (
         <div className={classes.wrapper}>

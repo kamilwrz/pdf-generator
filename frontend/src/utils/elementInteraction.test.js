@@ -1,10 +1,12 @@
-import { isDecorativeChrome } from "./elementInteraction";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import { isDecorativeChrome } from "./elementInteraction.js";
 
 describe("isDecorativeChrome", () => {
   it("treats fixedToPage as non-interactive chrome", () => {
-    expect(isDecorativeChrome({ fixedToPage: true })).toBe(true);
-    expect(isDecorativeChrome({ fixedToPage: false })).toBe(false);
-    expect(isDecorativeChrome({})).toBe(false);
-    expect(isDecorativeChrome(null)).toBe(false);
+    assert.equal(isDecorativeChrome({ fixedToPage: true }), true);
+    assert.equal(isDecorativeChrome({ fixedToPage: false }), false);
+    assert.equal(isDecorativeChrome({}), false);
+    assert.equal(isDecorativeChrome(null), false);
   });
 });

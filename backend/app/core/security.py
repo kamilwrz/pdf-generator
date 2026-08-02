@@ -20,9 +20,41 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-secret_key = os.getenv("SECRET_KEY")
-algorithm = os.getenv("ALGORITHM")
+# Known placeholders that must never ship as a production signing key.
+_WEAK_SECRET_KEYS = frozenset({
+    "",
+    "your-secret-key-here",
+    "changeme",
+    "secret",
+    "test",
+    "dev",
+    "development",
+})
+
+secret_key = (os.getenv("SECRET_KEY") or "").strip()
+algorithm = (os.getenv("ALGORITHM") or "HS256").strip()
 DEFAULT_ACCESS_TOKEN_EXPIRE_MINUTES = 7 * 24 * 60
+
+
+def assert_secret_key_configured() -> None:
+    """Fail fast when SECRET_KEY is missing or an obvious placeholder.
+
+    Called from the FastAPI lifespan so unit tests that never start the app
+    can still import modules. Re-reads the environment so TestClient setups
+    can set SECRET_KEY before creating the client. Set
+    ALLOW_INSECURE_SECRET=true only for local throwaway environments —
+    never in production.
+    """
+    key = (os.getenv("SECRET_KEY") or secret_key or "").strip()
+    if key and key.lower() not in _WEAK_SECRET_KEYS and len(key) >= 16:
+        return
+    if os.getenv("ALLOW_INSECURE_SECRET", "").lower() == "true":
+        return
+    raise RuntimeError(
+        "SECRET_KEY must be set to a strong value (at least 16 characters, "
+        "not a placeholder). For local throwaway runs only, set "
+        "ALLOW_INSECURE_SECRET=true."
+    )
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # Token URL matches the OAuth2 password form used by /auth/token.

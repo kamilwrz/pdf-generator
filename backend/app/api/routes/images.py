@@ -16,6 +16,7 @@ still references the image, so exports cannot lose their bitmap mid-document.
 """
 
 from fastapi import APIRouter, Depends, UploadFile, HTTPException, Body
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 from starlette import status
 from app.core.config import (
@@ -41,6 +42,7 @@ from app.utils.upload_security import (
     is_safe_path_segment,
 )
 import os
+from pathlib import Path
 
 if USE_S3:
     from app.services import s3_storage
@@ -105,8 +107,8 @@ async def create_upload_image(
 
     # Trust the bytes, not the client: derive the real format (and therefore the
     # stored extension and MIME) from the file signature. This rejects HTML/SVG
-    # payloads disguised as images, which would otherwise be served back from
-    # the /uploads mount and execute as stored XSS.
+    # payloads disguised as images. Bytes are only served through the ownership-
+    # checked `/images/{id}/content` route (the public `/uploads` mount is gone).
     sniffed = sniff_image_type(data[:IMAGE_SNIFF_BYTES])
     if sniffed is None:
         raise HTTPException(
@@ -122,8 +124,8 @@ async def create_upload_image(
     else:
         user_upload_dir = IMAGES_UPLOAD_DIR / username
         user_upload_dir.mkdir(parents=True, exist_ok=True)
-        # Stored path stays relative so the frontend can build the /uploads URL
-        # as `${API_BASE}/${file_path}` (see Gallery.jsx and image_src_to_path).
+        # Absolute local path for ReportLab / FileResponse; the browser never
+        # reads this path directly — it uses GET /images/{id}/content.
         file_path_str = str(user_upload_dir / object_name)
         with open(file_path_str, "wb") as f:
             f.write(data)
@@ -159,6 +161,43 @@ async def fetch_user_images(
             detail="Nie przesłano jeszcze żadnych obrazów.",
         )
     return images
+
+
+@router.get("/{img_id}/content")
+async def get_image_content(
+    img_id: int,
+    payload: dict = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    """Stream image bytes for an owned library row.
+
+    Replaces the former public ``/uploads`` StaticFiles mount. The gallery and
+    canvas fetch this URL with a Bearer token; ReportLab resolves the same path
+    pattern via ``document_service.resolve_image_src_for_pdf``.
+    """
+    image = request_image_by_id(db, img_id)
+    if not image:
+        raise HTTPException(status_code=404, detail="Nie znaleziono obrazu.")
+    db_user = get_user_by_username(db, username=payload.get("sub"))
+    if db_user is None or image.owner_id != db_user.id:
+        raise HTTPException(status_code=403, detail="Ten obraz nie należy do Ciebie.")
+
+    media_type = image.mime_type or "application/octet-stream"
+    if USE_S3 and str(image.file_path).startswith("https://"):
+        key = s3_storage.key_from_file_path(image.file_path)
+        if not key:
+            raise HTTPException(status_code=404, detail="Nie znaleziono pliku obrazu.")
+        try:
+            obj = s3_storage.get_client().get_object(Bucket=s3_storage.S3_BUCKET, Key=key)
+            body = obj["Body"].read()
+        except Exception:
+            raise HTTPException(status_code=404, detail="Nie znaleziono pliku obrazu.")
+        return Response(content=body, media_type=media_type)
+
+    path = Path(image.file_path)
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Nie znaleziono pliku obrazu.")
+    return FileResponse(path, media_type=media_type)
 
 
 @router.delete("/delete_image", status_code=status.HTTP_202_ACCEPTED)

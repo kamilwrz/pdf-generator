@@ -14,6 +14,8 @@ from sqlalchemy.orm import Session
 
 from app.models.models import Pdf, Plan, UsageCounter, User, UserSubscription
 
+# Must match frontend TEMPLATES entries with tier: "free" in
+# frontend/src/templates/index.js. Enforced by tests/test_template_registry_sync.py.
 FREE_STARTER_TEMPLATE_IDS: tuple[str, ...] = (
     "ledger",
     "nimbus",
@@ -22,6 +24,7 @@ FREE_STARTER_TEMPLATE_IDS: tuple[str, ...] = (
     "scribe",
     "regent",
     "graphite",
+    "nova",
 )
 
 PLAN_SEEDS: list[dict[str, Any]] = [
@@ -200,7 +203,7 @@ PLAN_DISPLAY: dict[str, dict[str, Any]] = {
         "price_pln": 0,
         "blurb": "Edytor, wybrane szablony i eksport PDF.",
         "highlights": [
-            "7 szablonów startowych",
+            "8 szablonów startowych",
             "1 projekt · 3 eksporty / mies.",
             "Bez Asystenta AI",
         ],

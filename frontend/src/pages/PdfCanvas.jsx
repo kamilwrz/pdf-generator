@@ -5,6 +5,9 @@ import Topbar from '../components/editor/Topbar/Topbar';
 import A4 from "../components/canvas/A4/A4";
 import Editor from '../components/editor/Editor/Editor';
 import { PdfContext } from '../store/pdfgenerator-context';
+import { CanvasContext } from '../store/canvas-context';
+import { UiSurfacesContext } from '../store/ui-surfaces-context';
+import { SessionContext } from '../store/session-context';
 import { useState, useEffect, useMemo, useCallback, useRef} from 'react';
 import { useA4Elements } from "../hooks/useA4Elements";
 import { usePdfExport } from '../hooks/usePdfExport';
@@ -35,7 +38,9 @@ import { planErrorMessage } from '../utils/entitlements';
 /**
  * Authenticated CV editor page: canvas, toolbars, dialogs, and autosave.
  *
- * Composes `useA4Elements` + `usePdfExport` into `PdfContext` for child UI.
+ * Composes `useA4Elements` + `usePdfExport` into focused contexts
+ * (Canvas / UiSurfaces / Session) plus a temporary merged `PdfContext` facade
+ * so existing `use(PdfContext)` consumers keep working during migration.
  * Dialog (`docs` / `templates` / AI / plan) and panel (`upload` / `gallery`)
  * surfaces are mutually exclusive so only one overlay owns focus at a time.
  */
@@ -592,11 +597,10 @@ function PdfCanvas() {
     handleClearA4();
   }, [handleClearA4]);
 
-  const ctxValue = useMemo(() => ({
-    //useA4Elements hook
-    A4_Elements: A4_Elements,
-    groupMoveDelta: groupMoveDelta,
-    setPageCanvasRef: setPageCanvasRef,
+  const canvasValue = useMemo(() => ({
+    A4_Elements,
+    groupMoveDelta,
+    setPageCanvasRef,
     addImage: handleAddImage,
     addText: handleAddText,
     addLine: handleAddLine,
@@ -605,7 +609,7 @@ function PdfCanvas() {
     addEllipse: handleAddEllipse,
     addConnector: () => {},
     addTextarea: handleAddTextarea,
-    markSelected: markSelected,
+    markSelected,
     setTextareaEditing: handleSetTextareaEditing,
     selectElement: handleSelectElement,
     moveElement: handleMoveElement,
@@ -616,125 +620,126 @@ function PdfCanvas() {
     editElementValues: handleEditElementValues,
     editSelectedElementValues: handleEditSelectedElementValues,
     fitTextareaToContent: handleFitTextareaToContent,
-    applyStructureOperation: applyStructureOperation,
-    applyCloneOperation: applyCloneOperation,
-    applyDeleteOperation: applyDeleteOperation,
-    applyLayoutPatches: applyLayoutPatches,
+    applyStructureOperation,
+    applyCloneOperation,
+    applyDeleteOperation,
+    applyLayoutPatches,
     alignElement: handleAlignElements,
     deleteElement: handleDeleteElement,
     deleteSelectedElements: handleDeleteSelectedElements,
     duplicateElement: handleDuplicateElement,
     duplicateSelectedElements: handleDuplicateSelectedElements,
     resizeElement: handleResizeElement,
-    setA4_Elements: setA4_Elements,
-    setA4_Elements_deleted: setA4_Elements_deleted,
+    setA4_Elements,
+    setA4_Elements_deleted,
     activePdfId: pdfId,
     flushAutosave,
     discardActiveDocument,
     clearA4: clearA4Fresh,
-    //templates
-    isTemplates: isTemplates,
-    showTemplates: handleShowTemplates,
-    autoOpenedTemplates: autoOpenedTemplates,
-    markTemplatesModalSeen: markTemplatesModalSeen,
     loadTemplate: loadTemplateFresh,
     loadTemplateWithFill: loadTemplateWithFillFresh,
     loadAiElements: loadAiElementsFresh,
-    // Raw canvas replace (no pdfId/title reset) — used by the Topbar "Zmień
-    // szablon" flow to restyle the current document in place instead of
-    // starting a new one.
+    // Raw canvas replace (no pdfId/title reset) — Topbar "Zmień szablon".
     replaceActiveElements: handleLoadAiElements,
     activeTemplateId,
     activeCvData,
     setActiveCvData,
-    //ai panel
-    isAiPanel: isAiPanel,
-    showAiPanel: handleShowAiPanel,
-    isBioCvModal: isBioCvModal,
-    showBioCvModal: handleShowBioCvModal,
-    isPlanModal: isPlanModal,
-    showPlanModal: handleShowPlanModal,
-    isChangeTemplateModal: isChangeTemplateModal,
-    showChangeTemplateModal: handleShowChangeTemplateModal,
-    //page geometry
-    pageSize: pageSize,
-    //zoom (view-only)
-    zoom: zoom,
-    zoomIn: zoomIn,
-    zoomOut: zoomOut,
-    //multi-page
-    pageCount: pageCount,
-    setPageCount: setPageCount,
-    currentPage: currentPage,
-    setCurrentPage: setCurrentPage,
-    isTwoPageView: isTwoPageView,
-    toggleTwoPageView: toggleTwoPageView,
-    addPage: addPage,
-    removePage: removePage,
-    goToPage: goToPage,
-    clonePage: clonePage,
-    movePage: movePage,
-    undo: undo,
-    redo: redo,
-    canUndo: canUndo,
-    canRedo: canRedo,
-    resetHistory: resetHistory,
-    //usePdfExport hook
+    pageSize,
+    zoom,
+    zoomIn,
+    zoomOut,
+    pageCount,
+    setPageCount,
+    currentPage,
+    setCurrentPage,
+    isTwoPageView,
+    toggleTwoPageView,
+    addPage,
+    removePage,
+    goToPage,
+    clonePage,
+    movePage,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    resetHistory,
     updatePdf: updatePdfWithElements,
     createPdf: createPdfWithElements,
-    isPdfLoading: isPdfLoading,
-    //state values defined in PdfCanvas.jsx
-    isGallery: isGallery,
+    isPdfLoading,
+    layoutPreviewPatches,
+    setLayoutPreviewPatches,
+    structurePreviewGroup,
+    setStructurePreviewGroup,
+    deletionPreviewIds,
+    setDeletionPreviewIds,
+  }), [
+    A4_Elements, groupMoveDelta, setPageCanvasRef, isPdfLoading, pdfId, setA4_Elements_deleted,
+    handleAddImage, handleAddText, handleAddLine, handleAddRectangle, handleAddCircle, handleAddEllipse,
+    handleSelectElement, handleMoveElement, handleMoveSelectedElements, handleSelectMoveElement,
+    createPdfWithElements, applyStructureOperation, applyCloneOperation, applyDeleteOperation,
+    handleEditElementValues, handleEditSelectedElementValues, handleFitTextareaToContent, applyLayoutPatches,
+    handleAlignElements, handleDeleteElement, handleDeleteSelectedElements, handleDuplicateSelectedElements,
+    setA4_Elements, handleResizeElement, updatePdfWithElements,
+    clearA4Fresh, discardActiveDocument, flushAutosave, loadTemplateFresh, loadTemplateWithFillFresh,
+    loadAiElementsFresh, handleLoadAiElements, activeTemplateId, activeCvData, setActiveCvData,
+    pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
+    isTwoPageView, toggleTwoPageView, handleAddTextarea, markSelected, handleSetTextareaEditing,
+    handleDuplicateElement, pageSize, zoom, zoomIn, zoomOut, undo, redo, canUndo, canRedo, resetHistory,
+    deletionPreviewIds, layoutPreviewPatches, structurePreviewGroup, spacingHoldId,
+  ]);
+
+  const uiValue = useMemo(() => ({
+    isTemplates,
+    showTemplates: handleShowTemplates,
+    autoOpenedTemplates,
+    markTemplatesModalSeen,
+    isAiPanel,
+    showAiPanel: handleShowAiPanel,
+    isBioCvModal,
+    showBioCvModal: handleShowBioCvModal,
+    isPlanModal,
+    showPlanModal: handleShowPlanModal,
+    isChangeTemplateModal,
+    showChangeTemplateModal: handleShowChangeTemplateModal,
+    isGallery,
     showGallery: handleShowGallery,
-    isDropzone: isDropzone,
+    isDropzone,
     showDropzone: handleShowDropzone,
-    valueImageUpload: valueImageUpload,
-    setValueImageUpload: setValueImageUpload,
-    isModalPdfs: isModalPdfs,
-    setIsModalPdfs: setIsModalPdfs,
-    handlePdfId: handlePdfId,
-    //toasts
-    pushToast: pushToast,
+    valueImageUpload,
+    setValueImageUpload,
+    isModalPdfs,
+    setIsModalPdfs,
+  }), [
+    isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen,
+    isAiPanel, handleShowAiPanel, isBioCvModal, handleShowBioCvModal,
+    isPlanModal, handleShowPlanModal, isChangeTemplateModal, handleShowChangeTemplateModal,
+    isGallery, handleShowGallery, isDropzone, handleShowDropzone,
+    valueImageUpload, setValueImageUpload, isModalPdfs, setIsModalPdfs,
+  ]);
+
+  const sessionValue = useMemo(() => ({
+    handlePdfId,
+    pushToast,
     entitlements,
     refreshEntitlements,
-    //ELSE
     logout: handleLogout,
-    PDFs: PDFs,
-    setPDFs: setPDFs,
-    pdfsLoaded: pdfsLoaded,
-    setPdfsLoaded: setPdfsLoaded,
-    setPDFdownloadData: setPDFdownloadData,
-    PDFdownloadData: PDFdownloadData,
-    layoutPreviewPatches: layoutPreviewPatches,
-    setLayoutPreviewPatches: setLayoutPreviewPatches,
-    structurePreviewGroup: structurePreviewGroup,
-    setStructurePreviewGroup: setStructurePreviewGroup,
-    deletionPreviewIds: deletionPreviewIds,
-    setDeletionPreviewIds: setDeletionPreviewIds,
+    PDFs,
+    setPDFs,
+    pdfsLoaded,
+    setPdfsLoaded,
+    PDFdownloadData,
+    setPDFdownloadData,
   }), [
-    A4_Elements, groupMoveDelta, setPageCanvasRef, PDFdownloadData, isPdfLoading, pdfId, setA4_Elements_deleted,
-    isGallery, isDropzone, valueImageUpload,
-    isModalPdfs, handleAddImage,
-    handleAddText, handleAddLine, handleAddRectangle, handleAddCircle, handleAddEllipse, startConnecting, handleSelectElement,
-    handleMoveElement, handleMoveSelectedElements, handleSelectMoveElement, createPdfWithElements, applyStructureOperation, applyCloneOperation, applyDeleteOperation,
-    handleShowDropzone, handleShowGallery, handleEditElementValues, handleEditSelectedElementValues, handleFitTextareaToContent, applyLayoutPatches,
-    handleAlignElements, handleDeleteElement, handleDeleteSelectedElements, handleDuplicateSelectedElements, setA4_Elements,
-    setValueImageUpload, setIsModalPdfs, handleResizeElement, 
-    updatePdfWithElements, handlePdfId, 
-    clearA4Fresh, discardActiveDocument, flushAutosave, loadTemplateFresh, loadTemplateWithFillFresh, loadAiElementsFresh, handleLoadAiElements, activeTemplateId,
-    activeCvData, setActiveCvData,
-    pushToast, entitlements, refreshEntitlements, handleLogout, PDFs, setPDFs, pdfsLoaded, setPdfsLoaded,
-    pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
-    isTwoPageView, toggleTwoPageView,
-    handleAddTextarea, markSelected, handleSetTextareaEditing, handleDuplicateElement,
-    isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen, isAiPanel, handleShowAiPanel, isBioCvModal, handleShowBioCvModal, isPlanModal, handleShowPlanModal,
-    isChangeTemplateModal, handleShowChangeTemplateModal,
-    pageSize,
-    zoom, zoomIn, zoomOut,
-    undo, redo, canUndo, canRedo, resetHistory,
-    deletionPreviewIds, layoutPreviewPatches, structurePreviewGroup,
-    spacingHoldId,
-  ])
+    handlePdfId, pushToast, entitlements, refreshEntitlements, handleLogout,
+    PDFs, setPDFs, pdfsLoaded, setPdfsLoaded, PDFdownloadData,
+  ]);
+
+  // Temporary facade — remove once all consumers use the focused hooks.
+  const ctxValue = useMemo(
+    () => ({ ...canvasValue, ...uiValue, ...sessionValue }),
+    [canvasValue, uiValue, sessionValue],
+  );
 
   // The PDF-ready toast's download link is sourced live from PDFdownloadData
   // (shared, single-slot context state — same pattern ModalPdfs already uses
@@ -746,56 +751,58 @@ function PdfCanvas() {
       : t
   )), [toasts, PDFdownloadData]);
 
-  console.log(A4_Elements);
-  console.log(A4_Elements_deleted);
-
-
   return (
     <main className='main-container' onMouseMove={throttledHandleIsActive}>
 
-      <PdfContext.Provider value={ctxValue}>
-        <ModalPdfs title={titleRef}/>
-        <TemplatesModal />
-        <PlanSelectModal />
-        <AiCvPanel />
-        <BioCvModal />
-        <ChangeTemplateModal />
-        <DropzoneContainer />
-        <Sidebar>
-          <Editor />
-        </Sidebar>
-        <div className="right-pane">
-          <Topbar titleRef={titleRef} />
-          <div className="canvas-area">
-            <div className={isTwoPageView ? "canvas-spread" : "canvas-single"}>
-              {visiblePages.map((page) => (
-                <A4
-                  key={page}
-                  page={page}
-                  width={`${pageSize.width}px`}
-                  height={`${pageSize.height}px`}
-                  zoom={isTwoPageView ? 1 : zoom}
-                  isSpread={isTwoPageView}
-                  ref={(node) => setPageCanvasRef(page, node)}
-                  onPointerDownCapture={(event) => handleCanvasPointerDownCapture(event, page)}
-                >
-                  {isPdfLoading && page === currentPage && <Spinner loading={isPdfLoading}/>}
-                  <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
-                    <CanvasElements elements={previewedElements.filter((element) => (element.page ?? 1) === page)} />
-                    <Connectors elements={previewedElements} page={page} />
-                    <SelectionOverlay elements={previewedElements} page={page} />
-                    <Guides page={page} />
+      <CanvasContext.Provider value={canvasValue}>
+        <UiSurfacesContext.Provider value={uiValue}>
+          <SessionContext.Provider value={sessionValue}>
+            <PdfContext.Provider value={ctxValue}>
+              <ModalPdfs title={titleRef}/>
+              <TemplatesModal />
+              <PlanSelectModal />
+              <AiCvPanel />
+              <BioCvModal />
+              <ChangeTemplateModal />
+              <DropzoneContainer />
+              <Sidebar>
+                <Editor />
+              </Sidebar>
+              <div className="right-pane">
+                <Topbar titleRef={titleRef} />
+                <div className="canvas-area">
+                  <div className={isTwoPageView ? "canvas-spread" : "canvas-single"}>
+                    {visiblePages.map((page) => (
+                      <A4
+                        key={page}
+                        page={page}
+                        width={`${pageSize.width}px`}
+                        height={`${pageSize.height}px`}
+                        zoom={isTwoPageView ? 1 : zoom}
+                        isSpread={isTwoPageView}
+                        ref={(node) => setPageCanvasRef(page, node)}
+                        onPointerDownCapture={(event) => handleCanvasPointerDownCapture(event, page)}
+                      >
+                        {isPdfLoading && page === currentPage && <Spinner loading={isPdfLoading}/>}
+                        <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
+                          <CanvasElements elements={previewedElements.filter((element) => (element.page ?? 1) === page)} />
+                          <Connectors elements={previewedElements} page={page} />
+                          <SelectionOverlay elements={previewedElements} page={page} />
+                          <Guides page={page} />
+                        </div>
+                      </A4>
+                    ))}
                   </div>
-                </A4>
-              ))}
-            </div>
-          </div>
-        </div>
-       <PageControls />
-       <Gallery />
-       {entitlements?.ai_assistant ? <AiAssistant /> : null}
-       <ToastStack toasts={displayToasts} onDismiss={dismissToast} offsetForGallery={isGallery} />
-      </PdfContext.Provider>
+                </div>
+              </div>
+              <PageControls />
+              <Gallery />
+              {entitlements?.ai_assistant ? <AiAssistant /> : null}
+              <ToastStack toasts={displayToasts} onDismiss={dismissToast} offsetForGallery={isGallery} />
+            </PdfContext.Provider>
+          </SessionContext.Provider>
+        </UiSurfacesContext.Provider>
+      </CanvasContext.Provider>
     </main>
   )
 }

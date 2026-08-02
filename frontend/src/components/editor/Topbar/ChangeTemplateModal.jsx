@@ -14,7 +14,8 @@ import classes from "./ChangeTemplateModal.module.css";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import TemplateCarousel from "../../ai/AiCvPanel/TemplateCarousel";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { ApiClient, ENDPOINTS } from "../../../services/api";
+import { ApiClient } from "../../../services/api";
+import { fillTemplate } from "../../../services/fillTemplate";
 import { TEMPLATES } from "../../../templates";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
 import { isTemplateAllowed, planErrorMessage } from "../../../utils/entitlements";
@@ -47,11 +48,10 @@ export default function ChangeTemplateModal() {
         setFillingId(template.id);
         setError(null);
         try {
-            const res = await api.httpRequest(
-                ENDPOINTS.AI.FILL_TEMPLATE, "POST",
-                JSON.stringify({ cv_data: activeCvData, template_id: template.id }),
-                "Zmiana szablonu nie powiodła się",
-            );
+            const res = await fillTemplate(activeCvData, template.id, {
+                api,
+                errorMessage: "Zmiana szablonu nie powiodła się",
+            });
             // No title argument: `replaceActiveElements` only overwrites the
             // title input when one is passed, so the project keeps whatever
             // name the user already gave it.

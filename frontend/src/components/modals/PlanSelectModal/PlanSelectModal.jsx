@@ -2,10 +2,11 @@
  * In-app plan picker. Activates plans via billing API when unpaid selection is
  * allowed; otherwise surfaces payment_required for future Stripe Checkout.
  */
-import { useCallback, useEffect, useMemo, useState, use } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import classes from "./PlanSelectModal.module.css";
 import DialogShell from "../../common/DialogShell/DialogShell";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useUiSurfaces } from "../../../store/ui-surfaces-context";
+import { useSession } from "../../../store/session-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { planErrorMessage } from "../../../utils/entitlements";
 
@@ -15,7 +16,7 @@ const FALLBACK_PLANS = [
         name: "Free",
         price_pln: 0,
         blurb: "Edytor, wybrane szablony i eksport PDF.",
-        highlights: ["7 szablonów startowych", "1 projekt · 3 eksporty / mies.", "Bez Asystenta AI"],
+        highlights: ["8 szablonów startowych", "1 projekt · 3 eksporty / mies.", "Bez Asystenta AI"],
     },
     {
         slug: "standard",
@@ -34,13 +35,8 @@ const FALLBACK_PLANS = [
 ];
 
 export default function PlanSelectModal() {
-    const {
-        isPlanModal,
-        showPlanModal,
-        entitlements,
-        refreshEntitlements,
-        pushToast,
-    } = use(PdfContext);
+    const { isPlanModal, showPlanModal } = useUiSurfaces();
+    const { entitlements, refreshEntitlements, pushToast } = useSession();
 
     const api = useMemo(
         () => new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` }),

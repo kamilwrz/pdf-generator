@@ -23,6 +23,7 @@ from app.core.security import verify_token
 from app.dependencies import get_db
 from app.main import app
 from app.models.models import Base, Image, User
+from app.testing_support import ensure_test_auth_env
 
 # Minimal byte payloads. Format sniffing only inspects the leading signature, so
 # a valid header followed by padding is enough — no decodable image is required.
@@ -32,6 +33,7 @@ _HTML_BYTES = b"<html><script>alert(1)</script></html>"
 
 class ImageUploadSecurityTests(unittest.TestCase):
     def setUp(self):
+        ensure_test_auth_env()
         # StaticPool + one shared connection so the request thread and this
         # thread see the same in-memory database.
         self.engine = create_engine(
@@ -125,6 +127,20 @@ class ImageUploadSecurityTests(unittest.TestCase):
         self.assertEqual(first.status_code, 200)
         self.assertEqual(second.status_code, 403)
         self.assertEqual(self.db.query(Image).count(), 1)
+
+    def test_image_content_requires_owner(self):
+        # Bytes are served only through the authenticated content route —
+        # not via a public StaticFiles mount.
+        self.assertEqual(self._upload("photo.png", _PNG_BYTES, "image/png").status_code, 200)
+        row = self.db.query(Image).filter(Image.owner_id == self._uid()).one()
+
+        ok = self.client.get(f"/images/{row.id}/content")
+        self.assertEqual(ok.status_code, 200)
+        self.assertEqual(ok.content[:8], _PNG_BYTES[:8])
+
+        app.dependency_overrides[verify_token] = lambda: {"sub": "other"}
+        denied = self.client.get(f"/images/{row.id}/content")
+        self.assertEqual(denied.status_code, 403)
 
 
 if __name__ == "__main__":

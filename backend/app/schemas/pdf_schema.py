@@ -4,21 +4,42 @@ Pydantic contracts for canvas PDF create/update payloads.
 Field names intentionally mirror the React canvas element shape (camelCase)
 so the frontend can POST its A4 state with minimal mapping. Units for
 geometry and typography are CSS pixels that map 1:1 to PDF points on A4.
+
+`PdfElement` is the single source of truth for the API boundary. Export JSON
+Schema via ``python -m app.schemas.export_pdf_element_schema`` (written to
+``shared/pdf-element.schema.json``) so the frontend can mirror the same
+category / identity rules without TypeScript.
 """
 
-from typing import Optional
-from pydantic import BaseModel
+from typing import Literal, Optional
+from pydantic import BaseModel, Field
+
+# Categories the ReportLab renderer and frontend factories understand.
+ElementCategory = Literal[
+    "text",
+    "textarea",
+    "line",
+    "rectangle",
+    "circle",
+    "ellipse",
+    "connector",
+    "image",
+]
 
 
 class PdfElement(BaseModel):
     """One canvas element as sent by the editor.
 
-    Not every field applies to every `category`; unused optionals stay null
-    and are ignored by the renderer. Style flags that lack dedicated DB
-    columns are later packed into `PdfElements.extra_properties`.
+    ``category`` and ``element_id`` are required so upserts and the PDF
+    renderer never receive anonymous rows. Other fields stay optional because
+    not every category uses every property; unused optionals stay null and are
+    ignored by the renderer. Style flags that lack dedicated DB columns are
+    later packed into ``PdfElements.extra_properties``.
     """
 
-    category: Optional[str] = None
+    category: ElementCategory
+    # Client nanoid — stable across autosaves for upsert matching.
+    element_id: str = Field(..., min_length=1)
     # 1-based page index matching the multi-page editor.
     page: Optional[int] = 1
     # Top-left origin, same coordinate system as the React A4 canvas.
@@ -65,8 +86,6 @@ class PdfElement(BaseModel):
     target_id: Optional[str] = None
     arrow: Optional[bool] = False
     src: Optional[str] = None
-    # Client nanoid — stable across autosaves for upsert matching.
-    element_id: Optional[str] = None
     title: Optional[str] = None
     pdf_id: Optional[int] = None
     zIndex: Optional[int] = None

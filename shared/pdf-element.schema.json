@@ -1,0 +1,480 @@
+{
+  "description": "One canvas element as sent by the editor.\n\n``category`` and ``element_id`` are required so upserts and the PDF\nrenderer never receive anonymous rows. Other fields stay optional because\nnot every category uses every property; unused optionals stay null and are\nignored by the renderer. Style flags that lack dedicated DB columns are\nlater packed into ``PdfElements.extra_properties``.",
+  "properties": {
+    "category": {
+      "enum": [
+        "text",
+        "textarea",
+        "line",
+        "rectangle",
+        "circle",
+        "ellipse",
+        "connector",
+        "image"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "element_id": {
+      "minLength": 1,
+      "title": "Element Id",
+      "type": "string"
+    },
+    "page": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": 1,
+      "title": "Page"
+    },
+    "left": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Left"
+    },
+    "top": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Top"
+    },
+    "fontFamily": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fontfamily"
+    },
+    "fontSize": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fontsize"
+    },
+    "color": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Color"
+    },
+    "content": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content"
+    },
+    "lineHeight": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lineheight"
+    },
+    "letterSpacing": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Letterspacing"
+    },
+    "bold": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": false,
+      "title": "Bold"
+    },
+    "italic": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": false,
+      "title": "Italic"
+    },
+    "underline": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": false,
+      "title": "Underline"
+    },
+    "align": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": "left",
+      "title": "Align"
+    },
+    "bulletList": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": false,
+      "title": "Bulletlist"
+    },
+    "autoHeight": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": false,
+      "title": "Autoheight"
+    },
+    "flowRole": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Flowrole"
+    },
+    "preserveInitialLayout": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": false,
+      "title": "Preserveinitiallayout"
+    },
+    "alignWithText": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Alignwithtext"
+    },
+    "fixedToPage": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": false,
+      "title": "Fixedtopage"
+    },
+    "repeatOnContinuation": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": true,
+      "title": "Repeatoncontinuation"
+    },
+    "locked": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": false,
+      "title": "Locked"
+    },
+    "width": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Width"
+    },
+    "height": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Height"
+    },
+    "backgroundColor": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Backgroundcolor"
+    },
+    "borderWidth": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Borderwidth"
+    },
+    "filled": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": false,
+      "title": "Filled"
+    },
+    "source_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Id"
+    },
+    "target_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Id"
+    },
+    "arrow": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": false,
+      "title": "Arrow"
+    },
+    "src": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Src"
+    },
+    "title": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Title"
+    },
+    "pdf_id": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pdf Id"
+    },
+    "zIndex": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Zindex"
+    },
+    "isSelected": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Isselected"
+    },
+    "isMove": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ismove"
+    },
+    "img_id": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Img Id"
+    },
+    "deleted": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Deleted"
+    }
+  },
+  "required": [
+    "category",
+    "element_id"
+  ],
+  "title": "PdfElement",
+  "type": "object"
+}

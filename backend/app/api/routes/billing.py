@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 # `app.api.routes.billing.ALLOW_UNPAID_PLAN_SELECTION` directly — setting the
 # env var after import has no effect on this module.
 from app.core.config import ALLOW_UNPAID_PLAN_SELECTION
-from app.core.security import secret_key, verify_token
+from app.core.security import verify_token
 from app.crud.user import get_user_by_username
 from app.dependencies import get_db
 from app.models.models import User
@@ -99,18 +99,17 @@ class ResetAiCreditsRequest(BaseModel):
 
 
 def _admin_secret_ok(x_admin_secret: str | None) -> bool:
-    """Accept X-Admin-Secret equal to ADMIN_RESET_SECRET or SECRET_KEY."""
+    """Accept X-Admin-Secret equal to ADMIN_RESET_SECRET only.
+
+    SECRET_KEY is intentionally not accepted: the JWT signing key must not
+    double as an ops credential. When ADMIN_RESET_SECRET is unset, the
+    endpoint stays closed.
+    """
     provided = (x_admin_secret or "").strip()
-    if not provided:
+    expected = (os.getenv("ADMIN_RESET_SECRET") or "").strip()
+    if not provided or not expected:
         return False
-    candidates = [
-        (os.getenv("ADMIN_RESET_SECRET") or "").strip(),
-        (secret_key or "").strip(),
-    ]
-    return any(
-        candidate and secrets.compare_digest(provided, candidate)
-        for candidate in candidates
-    )
+    return secrets.compare_digest(provided, expected)
 
 
 @router.post("/admin/reset-ai-credits")
@@ -121,8 +120,8 @@ async def admin_reset_ai_credits(
 ):
     """Reset monthly AI credit usage for a user (ops / local support).
 
-    Requires header ``X-Admin-Secret`` matching ``ADMIN_RESET_SECRET`` or
-    ``SECRET_KEY``. Used when the laptop cannot reach Render Postgres directly.
+    Requires header ``X-Admin-Secret`` matching ``ADMIN_RESET_SECRET``.
+    Used when the laptop cannot reach Render Postgres directly.
     """
     if not _admin_secret_ok(x_admin_secret):
         raise HTTPException(status_code=403, detail="Forbidden.")

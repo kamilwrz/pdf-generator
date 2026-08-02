@@ -56,10 +56,14 @@ USE_S3 = bool(S3_BUCKET)
 # OpenAI key for extract/fill/assistant. Empty disables AI routes at runtime.
 OPENAI_API_KEY = os.getenv("API_GPT_KEY", "")
 
-# Pre-Stripe: allow choosing a paid plan without payment. Flip to False (or gate
-# standard/premium through Stripe checkout) when billing lands — this is the one
-# place that lets a user self-activate Standard/Premium for free.
-ALLOW_UNPAID_PLAN_SELECTION = os.getenv("ALLOW_UNPAID_PLAN_SELECTION", "true").lower() == "true"
+# Pre-Stripe: allow choosing a paid plan without payment. Defaults to False so
+# production cannot self-activate Standard/Premium by accident. Local/dev
+# `.env` should set ALLOW_UNPAID_PLAN_SELECTION=true until Stripe Checkout lands.
+ALLOW_UNPAID_PLAN_SELECTION = os.getenv("ALLOW_UNPAID_PLAN_SELECTION", "false").lower() == "true"
+
+# Ops-only secret for POST /billing/admin/reset-ai-credits. Must not reuse
+# SECRET_KEY — set a dedicated random value when the admin endpoint is needed.
+ADMIN_RESET_SECRET = (os.getenv("ADMIN_RESET_SECRET") or "").strip()
 
 # Image upload hard limits (see api/routes/images.py). The size cap bounds the
 # memory a single request can consume — the endpoint reads at most this many

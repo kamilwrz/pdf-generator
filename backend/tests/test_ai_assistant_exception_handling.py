@@ -11,7 +11,7 @@ from app.dependencies import get_db
 from app.main import app
 from app.services import ai_assistant_service
 from app.services.ai_assistant_service import AIServiceError
-
+from app.testing_support import ensure_test_auth_env
 
 
 class _FakeQuery:
@@ -44,6 +44,7 @@ class AiAssistantExceptionHandlingTests(unittest.TestCase):
     """
 
     def setUp(self):
+        ensure_test_auth_env()
         app.dependency_overrides[verify_token] = _fake_verify_token
         app.dependency_overrides[get_db] = _fake_get_db
         self.client = TestClient(app)

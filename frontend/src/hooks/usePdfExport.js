@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { ApiClient } from "../services/api";
 import { ENDPOINTS } from "../services/api";
 import { sanitizeElementsContent } from "../utils/sanitizeTextContent";
+import { assertCanvasElementRoot } from "../utils/canvasElementSchema";
 
 /**
  * PDF create / update / autosave against the backend.
@@ -36,6 +37,14 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const sorted = sanitizeElementsContent(
       [...A4_Elements].sort((a, b) => a.zIndex - b.zIndex),
     );
+    try {
+      assertCanvasElementRoot(sorted);
+    } catch (error) {
+      setResponsePDF(error);
+      setIsPdfLoading(false);
+      handleShowModal();
+      return;
+    }
 
     const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
 
@@ -59,8 +68,15 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const sorted = sanitizeElementsContent(
       [...A4_Elements].sort((a, b) => a.zIndex - b.zIndex),
     );
-
     const elements = [...sorted, ...sanitizeElementsContent(A4_Elements_deleted)];
+    try {
+      assertCanvasElementRoot(elements);
+    } catch (error) {
+      setResponsePDF(error);
+      setIsPdfLoading(false);
+      handleShowModal();
+      return;
+    }
 
     const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
 
@@ -83,6 +99,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       [...A4_Elements].sort((a, b) => a.zIndex - b.zIndex),
     );
     const elements = [...sorted, ...sanitizeElementsContent(deleted || [])];
+    assertCanvasElementRoot(elements);
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
     await api.httpRequest(
       ENDPOINTS.PDF.SAVE_ELEMENTS, "PUT",

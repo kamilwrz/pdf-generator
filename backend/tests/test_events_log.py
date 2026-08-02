@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from app.core.security import verify_token
 from app.dependencies import get_db
 from app.main import app
+from app.testing_support import ensure_test_auth_env
 
 
 class _FakeQuery:
@@ -36,6 +37,7 @@ class EventsLogTests(unittest.TestCase):
     """
 
     def setUp(self):
+        ensure_test_auth_env()
         self.client = TestClient(app)
 
     def tearDown(self):

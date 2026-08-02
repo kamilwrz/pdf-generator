@@ -25,8 +25,6 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
-    inspect,
-    text,
 )
 from .database import Base, engine
 
@@ -206,44 +204,25 @@ class Payment(Base):
     created_at = Column(DateTime, nullable=False)
 
 
-def _run_lightweight_migrations():
-    """Add multi-page columns to pre-existing tables.
+def _run_alembic_upgrade() -> None:
+    """Apply Alembic revisions (idempotent ADD COLUMN for multi-page support).
 
-    SQLAlchemy's create_all() never ALTERs existing tables, so for databases
-    created before multi-page support we add the columns by hand. Idempotent
-    and DB-agnostic (the ADD COLUMN ... DEFAULT 1 syntax works on both SQLite
-    and PostgreSQL)."""
-    inspector = inspect(engine)
-    pending = []
-    existing_tables = inspector.get_table_names()
+    ``create_all`` still creates missing tables for fresh installs; Alembic
+    owns schema *changes* going forward. Config lives in ``backend/alembic.ini``.
+    """
+    from pathlib import Path
 
-    if "pdf_elements" in existing_tables:
-        cols = {c["name"] for c in inspector.get_columns("pdf_elements")}
-        if "page" not in cols:
-            pending.append("ALTER TABLE pdf_elements ADD COLUMN page INTEGER DEFAULT 1")
+    from alembic import command
+    from alembic.config import Config
 
-    if "pdfs" in existing_tables:
-        cols = {c["name"] for c in inspector.get_columns("pdfs")}
-        if "pages" not in cols:
-            pending.append("ALTER TABLE pdfs ADD COLUMN pages INTEGER DEFAULT 1")
-        if "page_width" not in cols:
-            pending.append("ALTER TABLE pdfs ADD COLUMN page_width FLOAT DEFAULT 595")
-        if "page_height" not in cols:
-            pending.append("ALTER TABLE pdfs ADD COLUMN page_height FLOAT DEFAULT 842")
-
-    if not pending:
-        return
-
-    with engine.begin() as conn:
-        for statement in pending:
-            try:
-                conn.execute(text(statement))
-            except Exception as exc:  # pragma: no cover - defensive
-                logger.warning("Migration skipped '%s': %s", statement, exc)
+    backend_root = Path(__file__).resolve().parents[2]
+    cfg = Config(str(backend_root / "alembic.ini"))
+    cfg.set_main_option("script_location", str(backend_root / "alembic"))
+    command.upgrade(cfg, "head")
 
 
 def init_db(*, attempts: int = 6, delay_seconds: float = 2.0) -> None:
-    """Create tables and run light migrations with retries.
+    """Create tables and run Alembic migrations with retries.
 
     Must not run at import time — Render Postgres often drops the first SSL
     socket during deploy cold-start, which used to crash uvicorn before listen.
@@ -252,7 +231,7 @@ def init_db(*, attempts: int = 6, delay_seconds: float = 2.0) -> None:
     for attempt in range(1, attempts + 1):
         try:
             Base.metadata.create_all(bind=engine)
-            _run_lightweight_migrations()
+            _run_alembic_upgrade()
             # Seed plan catalog + Free subscriptions for existing users.
             from app.models.database import SessionLocal
             from app.services.entitlements import bootstrap_billing

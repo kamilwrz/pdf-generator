@@ -8,6 +8,7 @@ import { useRef, useState, useCallback, use, useMemo } from "react";
 import classes from "./AiCvPanel.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
+import { fillTemplate } from "../../../services/fillTemplate";
 import { TEMPLATES } from "../../../templates";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
 import { isTemplateAllowed, planErrorMessage } from "../../../utils/entitlements";
@@ -99,11 +100,10 @@ export default function AiCvPanel() {
         setFillingId(template.id);
         setError(null);
         try {
-            const res = await api.httpRequest(
-                ENDPOINTS.AI.FILL_TEMPLATE, "POST",
-                JSON.stringify({ cv_data: cvData, template_id: template.id }),
-                "Generowanie szablonu nie powiodło się"
-            );
+            const res = await fillTemplate(cvData, template.id, {
+                api,
+                errorMessage: "Generowanie szablonu nie powiodło się",
+            });
             // Must be awaited: loadAiElements starts a fresh document, which
             // asynchronously resets activeCvData to null (see
             // startFreshDocument in PdfCanvas.jsx) after flushing the

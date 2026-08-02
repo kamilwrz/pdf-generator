@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.routes import auth, pdf, images, ai, events, billing
 from app.api.routes import ai_assistant
 from app.core.config import origins, IMAGES_UPLOAD_DIR, PDF_UPLOAD_DIR, TEMPLATE_ASSETS_DIR
+from app.core.security import assert_secret_key_configured
 from app.models.database import SessionLocal
 from app.models.models import init_db
 from app.services.ai_assistant_service import AIServiceError
@@ -67,6 +68,9 @@ async def lifespan(app: FastAPI):
     waited on Postgres retries, that probe would hang and login would appear
     broken even though the dyno process had already started.
     """
+    # Reject missing/placeholder JWT secrets before serving traffic. Unit tests
+    # that start TestClient must set SECRET_KEY or ALLOW_INSECURE_SECRET=true.
+    assert_secret_key_configured()
     init_task = asyncio.create_task(asyncio.to_thread(_run_startup_work))
     try:
         yield
@@ -130,7 +134,9 @@ TEMPLATE_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 # Optional same-origin SPA hosting when frontend/dist is present next to backend.
 DIST_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 
-app.mount("/uploads", StaticFiles(directory=str(IMAGES_UPLOAD_DIR)), name="uploads")
+# User uploads are no longer public StaticFiles — bytes are served only through
+# ownership-checked GET /images/{id}/content (see images.py). Template assets
+# and generated PDFs remain mountable for ReportLab/canvas template art.
 app.mount("/template-assets", StaticFiles(directory=str(TEMPLATE_ASSETS_DIR)), name="template_assets")
 app.mount("/static/generated", StaticFiles(directory=str(PDF_UPLOAD_DIR)), name="static")
 

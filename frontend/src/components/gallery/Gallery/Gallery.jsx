@@ -1,25 +1,29 @@
 /**
  * User image library panel. Selecting an item inserts it onto the canvas via context.
+ *
+ * Thumbnails load through the authenticated `/images/{id}/content` route (blob
+ * URLs) because user uploads are no longer publicly mounted at `/uploads`.
  */
 import classes from "./Gallery.module.css";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 
 import GalleryItem from "../GalleryItem/GalleryItem";
 
 import { ApiClient } from "../../../services/api";
 import { ENDPOINTS } from "../../../services/api";
-import API_BASE_URL from "../../../services/api";
+import { fetchAuthenticatedImageObjectUrl } from "../../../services/authenticatedImage";
 
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 import PanelShell from "../../common/PanelShell/PanelShell";
 
 
 export default function Gallery() {
 
-    const { isGallery, showGallery, isDropzone } = use(PdfContext)
+    const { isGallery, showGallery, isDropzone } = useUiSurfaces();
 
     const [images, setImages] = useState([]);
+    const [previewUrls, setPreviewUrls] = useState({});
     const [error, setError] = useState()
 
 
@@ -33,27 +37,46 @@ export default function Gallery() {
     }
 
     useEffect(() => {
-        if (isGallery) {
+        if (!isGallery) return undefined;
 
-            const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` })
-            api.httpRequest(ENDPOINTS.IMG.FETCH, "GET", null, "Pobieranie obrazów nie powiodło się!").
-                then((images) => {
-                    setImages(images);
-                    setError(null)
-                }).
-                catch((error) => setError(error));
-        }
+        let cancelled = false;
+        const objectUrls = [];
+        const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` })
+        api.httpRequest(ENDPOINTS.IMG.FETCH, "GET", null, "Pobieranie obrazów nie powiodło się!").
+            then(async (rows) => {
+                if (cancelled) return;
+                setImages(rows);
+                setError(null);
+                const next = {};
+                await Promise.all(rows.map(async (image) => {
+                    try {
+                        const url = await fetchAuthenticatedImageObjectUrl(image.id);
+                        objectUrls.push(url);
+                        next[image.id] = url;
+                    } catch {
+                        // Leave missing previews empty; insert still works via img_id.
+                    }
+                }));
+                if (!cancelled) setPreviewUrls(next);
+            }).
+            catch((err) => {
+                if (!cancelled) setError(err);
+            });
 
+        return () => {
+            cancelled = true;
+            objectUrls.forEach((url) => URL.revokeObjectURL(url));
+        };
     }, [isGallery, isDropzone])
 
-    const IMAGES = images.map((image) => {
-
-        const imageUrl = image.file_path.startsWith("http")
-            ? image.file_path
-            : `${API_BASE_URL}/${image.file_path}`;
-
-        return <GalleryItem url={imageUrl} key={image.id} img_id={image.id} imageUsed={handleImageUsedInPDF} />;
-    })
+    const IMAGES = images.map((image) => (
+        <GalleryItem
+            url={previewUrls[image.id] || ""}
+            key={image.id}
+            img_id={image.id}
+            imageUsed={handleImageUsedInPDF}
+        />
+    ));
 
     return (
         <PanelShell

@@ -140,7 +140,7 @@ Cały interfejs mówi po polsku: marketing, edytor, akcje AI, powiadomienia i mo
 
 | Plan | Co dostajesz |
 |---|---|
-| **Free** | Edytor A4, 7 szablonów startowych, limity projektów i eksportów; bez asystenta AI |
+| **Free** | Edytor A4, 8 szablonów startowych, limity projektów i eksportów; bez asystenta AI |
 | **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 23 szablony oraz wyższe limity |
 | **Premium** | Tryb Układ AI, więcej kredytów AI, bez limitu projektów i eksportów |
 

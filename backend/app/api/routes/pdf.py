@@ -5,7 +5,8 @@ Ownership is enforced via `_require_owned_pdf` on every by-id route to prevent
 IDOR across users. Creating and exporting are entitlement-gated.
 
 There are two persistence paths:
-- Full create/update also regenerates a ReportLab PDF file (local or S3).
+- Full create/update also regenerates a ReportLab PDF file (local or S3)
+  via ``document_service``.
 - `/save_elements` persists canvas rows only — used for debounced autosave
   without paying the cost of a full render on every keystroke.
 """
@@ -14,29 +15,20 @@ import datetime
 from fastapi import APIRouter, Body, Depends, HTTPException
 from starlette import status
 from sqlalchemy.orm import Session
-from app.services.pdf_generator import PDF_Generator
-from reportlab.pdfgen import canvas
-from app.core.config import PDF_UPLOAD_DIR
-from app.core.config import BACKEND_URL
 from app.core.security import verify_token
 from app.crud.user import get_user_by_username
 from app.schemas.pdf_schema import PDFCreateRequest, PDFUpdateRequest
 from app.dependencies import get_db
 
-from os import listdir
-from os.path import isfile, join
-
 from app.crud.pdfs import (
-    create_new_pdf, request_pdf_by_id, delete_pdf_by_id, request_pdf_by_id_show,
+    request_pdf_by_id, delete_pdf_by_id, request_pdf_by_id_show,
     request_pdf_elements_by_element_id, update_pdf_elements, request_pdfs_by_id
 )
 
-from app.utils.pdf_file_ops import delete_pdf_file, rename_pdf_file
-from app.utils.build_pdf import build_pdf_to_buffer
-from app.utils.image_src_to_path import image_src_to_local_path
-
+from app.utils.pdf_file_ops import delete_pdf_file
 from app.core.config import USE_S3
 from app.services.entitlements import assert_can_create_project, assert_can_export, record_export
+from app.services.document_service import create_pdf_document, update_pdf_document
 
 if USE_S3:
     from app.services import s3_storage
@@ -60,61 +52,12 @@ async def create_user_pdf(
     ReportLab render written to S3 or the local generated folder. Duplicate
     titles for the same user are rejected so download links stay stable.
     """
-    elements = pdf_data.root
-    title = pdf_data.pdf_title
-
-    if not elements:
-        raise HTTPException(status_code=400, detail="Brakuje części danych.")
-
     username = payload.get("sub")
     db_user = get_user_by_username(db, username=username)
     if db_user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
     assert_can_create_project(db, db_user)
-
-    if USE_S3:
-        key = f"pdfs/{username}/{title}"
-        try:
-            paginator = s3_storage.get_client().get_paginator("list_objects_v2")
-            for page in paginator.paginate(Bucket=s3_storage.S3_BUCKET, Prefix=f"pdfs/{username}/"):
-                for obj in page.get("Contents", []):
-                    if obj["Key"] == key:
-                        raise HTTPException(status_code=400, detail="Plik o tej nazwie już istnieje.")
-        except HTTPException:
-            raise
-        except Exception:
-            # Listing can fail transiently; proceed and let upload overwrite if needed.
-            pass
-        pdf_bytes = build_pdf_to_buffer(pdf_data, elements, image_src_to_local_path)
-        file_path = s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
-        pdf_id = create_new_pdf(
-            db, title, db_user.id, file_path, elements,
-            pdf_data.pages, pdf_data.page_width, pdf_data.page_height,
-        )
-        return {"created": "Utworzono plik PDF.", "link": file_path, "pdf_id": pdf_id}
-
-    user_upload_dir = PDF_UPLOAD_DIR / username
-    user_upload_dir.mkdir(parents=True, exist_ok=True)
-
-    files_in_user_folder = [f for f in listdir(user_upload_dir) if isfile(join(user_upload_dir, f))]
-    if title in files_in_user_folder:
-        raise HTTPException(status_code=400, detail="Plik o tej nazwie już istnieje.")
-
-    pdf_path = user_upload_dir / title
-
-    pdf_id = create_new_pdf(
-        db, title, db_user.id, pdf_path.as_posix(), elements,
-        pdf_data.pages, pdf_data.page_width, pdf_data.page_height,
-    )
-
-    pdf = PDF_Generator(
-        pdf_data,
-        canvas.Canvas(str(user_upload_dir / title), pagesize=(pdf_data.page_width, pdf_data.page_height)),
-    )
-    pdf.setTitle(title)
-    pdf.render_elements(elements, image_src_to_local_path, pdf_data.pages)
-
-    return {"created": "Utworzono plik PDF.", "link": f"{BACKEND_URL}/{pdf_path.as_posix()}", "pdf_id": pdf_id}
+    return create_pdf_document(db, user=db_user, username=username, pdf_data=pdf_data)
 
 
 @router.get("/fetch_pdfs", status_code=status.HTTP_200_OK)
@@ -202,44 +145,9 @@ async def update_user_pdf(
     Heavier than autosave: rewrites the file on disk/S3 and syncs PdfElements
     to the authoritative client list (including deletions).
     """
-    elements = pdf_data.root
-    pdf_id = pdf_data.pdf_id
-    title = pdf_data.pdf_title
-
     username = payload.get("sub")
-    pdf_row = _require_owned_pdf(db, payload, pdf_id)
-
-    if USE_S3:
-        key = f"pdfs/{username}/{title}"
-        pdf_bytes = build_pdf_to_buffer(pdf_data, elements, image_src_to_local_path)
-        s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
-        pdf_row.title = title
-        pdf_row.pages = pdf_data.pages
-        pdf_row.page_width = pdf_data.page_width
-        pdf_row.page_height = pdf_data.page_height
-        pdf_row.file_path = (
-            f"https://{s3_storage.S3_BUCKET}.s3.{s3_storage.AWS_REGION}.amazonaws.com/{key}"
-        )
-        link = pdf_row.file_path
-        id = pdf_row.id
-        existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
-        update_pdf_elements(db, elements, existing_by_id, pdf_id)
-        db.commit()
-        return {"updated": "Pomyślnie zaktualizowano plik PDF.", "link": link, "pdf_id": id}
-
-    new_file_path = rename_pdf_file(pdf_row, title)
-    pdf_row.pages = pdf_data.pages
-    pdf_row.page_width = pdf_data.page_width
-    pdf_row.page_height = pdf_data.page_height
-    db.add(pdf_row)
-    existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
-    update_pdf_elements(db, elements, existing_by_id, pdf_id)
-    c = canvas.Canvas(new_file_path, pagesize=(pdf_data.page_width, pdf_data.page_height))
-    pdf = PDF_Generator(pdf_data, c)
-    pdf.setTitle(pdf_row.title or "untitled")
-    pdf.render_elements(elements, image_src_to_local_path, pdf_data.pages)
-    db.commit()
-    return {"updated": "Pomyślnie zaktualizowano plik PDF.", "link": new_file_path, "pdf_id": pdf_row.id}
+    pdf_row = _require_owned_pdf(db, payload, pdf_data.pdf_id)
+    return update_pdf_document(db, pdf_row=pdf_row, username=username, pdf_data=pdf_data)
 
 
 @router.put("/save_elements", status_code=status.HTTP_200_OK)

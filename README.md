@@ -72,20 +72,20 @@ flowchart LR
 | Layer | Entry | Role |
 |--------|--------|------|
 | Frontend | `frontend/src/main.jsx` → `App.jsx` | Router: `/`, `/login`, `/register`, protected `/pdfcanvas` |
-| Editor page | `frontend/src/pages/PdfCanvas.jsx` (`PdfCanvas`) | Composes hooks into `PdfContext` |
+| Editor page | `frontend/src/pages/PdfCanvas.jsx` (`PdfCanvas`) | Composes hooks into Canvas / UiSurfaces / Session (+ `PdfContext` facade) |
 | Backend | `backend/app/main.py` | FastAPI app, CORS, `/health`, routers, optional SPA static |
 
 ### Frontend layers
 
 - **Pages** — marketing, auth, editor shell.
-- **Hooks** — `useA4Elements` owns canvas state; `usePdfExport` talks to PDF endpoints; `useEntitlements` loads plan limits.
-- **Context** — `store/pdfgenerator-context.jsx` default shape; real values from `PdfCanvas`.
-- **Services** — `ApiClient` (`services/api.js`) with long timeouts and retries for Render cold start.
+- **Hooks** — `useA4Elements` is the canvas facade; undo/redo in `useDocumentHistory`; selection/drag in `useElementSelectionDrag`; factories/materialize helpers are pure utils; `usePdfExport` talks to PDF endpoints; `useEntitlements` loads plan limits.
+- **Context** — nested `CanvasContext` / `UiSurfacesContext` / `SessionContext` from `PdfCanvas`, plus temporary merged `PdfContext` facade for remaining consumers.
+- **Services** — `ApiClient` (`services/api.js`) with long timeouts and retries for Render cold start; shared `fillTemplate` for `/ai/fill_template`; authenticated image blob helper for private library photos.
 - **Templates** — static element specs in `frontend/src/templates/`; registry in `templates/index.js`.
 
 ### Backend layers
 
-- **Routes** — thin HTTP in `app/api/routes/*`.
+- **Routes** — thin HTTP in `app/api/routes/*` (PDF create/update delegates to `document_service`).
 - **CRUD** — SQLAlchemy writes in `app/crud/*`.
 - **Services** — PDF render, CV layout, AI, entitlements, S3.
 - **Models** — `app/models/models.py`; engine in `app/models/database.py`.
@@ -151,33 +151,37 @@ pdf-generator/
 │   │   └── template-mockups/      # Static A4 preview PNGs
 │   ├── src/
 │   │   ├── components/       # canvas, editor, ai, modals, gallery, common
-│   │   ├── hooks/            # useA4Elements, usePdfExport, …
+│   │   ├── hooks/            # useA4Elements facade, useDocumentHistory, usePdfExport, …
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
-│   │   ├── services/         # ApiClient, eventLog
-│   │   ├── store/            # PdfContext
+│   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
+│   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
 │   │   ├── templates/        # 23 template specs + helpers
-│   │   └── utils/            # geometry, reflow, entitlements helpers
+│   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow
 │   ├── package.json
 │   └── .env.example
+├── shared/
+│   └── pdf-element.schema.json  # Exported from Pydantic PdfElement
 └── backend/
     ├── app/
     │   ├── api/routes/       # auth, pdf, images, ai, assistant, billing, events
     │   ├── core/             # config, security
     │   ├── crud/
     │   ├── models/
-    │   ├── schemas/
-    │   ├── services/         # pdf, cv_generator, ai, entitlements, s3
+    │   ├── schemas/          # PdfElement + JSON Schema export
+    │   ├── services/         # pdf, document_service, cv_generator, themes/, ai, entitlements
     │   ├── utils/            # image_src_to_path, metrics_logging, upload_security
     │   ├── main.py
     │   └── dependencies.py
+    ├── alembic/              # Schema migrations (replaces ad-hoc ALTER)
     ├── fonts/                # Bundled TTFs for PDF
     ├── template_assets/      # Sidebar, IT and Iconic artwork/icons
     ├── tests/
+    ├── alembic.ini
     ├── requirements.txt
     └── .env.example
 ```
 
-**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_generator.py` (23 ids). Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source.
+**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_generator.py` (23 ids). Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
 
 ---
 
@@ -185,7 +189,7 @@ pdf-generator/
 
 Configured by `DATABASE_URL` (`backend/app/models/database.py`). Default if unset: `sqlite:///./pdfgenerator.db`. `postgres://` URLs are rewritten to `postgresql://`. Postgres uses `pool_pre_ping` for Render cold starts.
 
-Schema is created by `init_db()` during app lifespan (not at import). Lightweight `ALTER TABLE` adds multi-page columns on old DBs. Billing catalog is seeded via `bootstrap_billing`.
+Schema is created by `init_db()` during app lifespan (not at import): `Base.metadata.create_all` for missing tables, then `alembic upgrade head` for schema changes (multi-page columns live in `backend/alembic/versions/`). Billing catalog is seeded via `bootstrap_billing`. Manual CLI: `cd backend && alembic upgrade head`.
 
 ### Tables (business purpose)
 
@@ -292,7 +296,8 @@ Loads static specs; assigns `element_id`, interaction flags, locks chrome.
 Implementation:
 
 - `frontend/src/templates/index.js` — `TEMPLATES` registry
-- `frontend/src/hooks/useA4Elements.js`, `materializeSpecs` / `handleLoadTemplate` (approx. lines 1753–1820)
+- `frontend/src/utils/materializeElementSpecs.js`, `materializeElementSpecs`
+- `frontend/src/hooks/useA4Elements.js`, `handleLoadTemplate` / `useDocumentHistory`
 
 ### Canvas enter fade
 
@@ -395,7 +400,7 @@ Implementation:
 - `backend/app/services/pdf_generator.py`, class `PDF_Generator`, `render_elements` (line 492+)
 - `backend/app/crud/pdfs.py`, `create_new_pdf`, `update_pdf_elements`
 
-### Image upload (validated)
+### Image upload (validated, private content)
 
 Users upload images for canvas elements. The endpoint treats every part of the
 upload as untrusted: it verifies the real raster format from the file's leading
@@ -406,15 +411,23 @@ enforces a per-user image count. The original filename is stored for display
 only and is never used to locate the object. Limits are configurable via
 `MAX_UPLOAD_BYTES` (default 8 MB) and `MAX_IMAGES_PER_USER` (default 200).
 
+Bytes are **not** served from a public `/uploads` StaticFiles mount. The gallery
+and canvas fetch `GET /images/{id}/content` with a Bearer token and display a
+blob URL. Canvas elements persist a stable `/images/{id}/content` `src` plus
+`img_id`; PDF export resolves that URL through `document_service.resolve_image_src_for_pdf`.
+
 Implementation:
 
 - `backend/app/utils/upload_security.py`, `sniff_image_type`, `safe_object_name`, `is_safe_path_segment`
-- `backend/app/api/routes/images.py`, `create_upload_image` (validation order: account → path-segment → count → size → format)
+- `backend/app/api/routes/images.py`, lines 57–143, `create_upload_image`; lines 167–199, `get_image_content`
+- `backend/app/services/document_service.py`, lines 39–66, `resolve_image_src_for_pdf` / `make_image_resolver`
+- `frontend/src/services/authenticatedImage.js`, `fetchAuthenticatedImageObjectUrl`
+- `frontend/src/components/gallery/Gallery/Gallery.jsx`, `GalleryItem.jsx`, `canvas/Image/Image.jsx`
 - `backend/app/crud/images.py`, `create_image`, `count_images_by_user_id`
 - `backend/app/core/config.py`, `MAX_UPLOAD_BYTES`, `MAX_IMAGES_PER_USER`
 - Deletion is IDOR-checked and blocked while a PDF element still references the image (`delete_user_image`)
 
-Tests: `backend/tests/test_image_upload_security.py` — accepts a real PNG, rejects HTML disguised as PNG (415), neutralises traversal filenames, rejects oversize (413), enforces the per-user count (403).
+Tests: `backend/tests/test_image_upload_security.py` — accepts a real PNG, rejects HTML disguised as PNG (415), neutralises traversal filenames, rejects oversize (413), enforces the per-user count (403), owner-only content GET; `backend/tests/test_document_service.py` — content URL → local path.
 
 ### Deterministic template fill
 
@@ -422,8 +435,10 @@ Python layout from normalised `cv_data` (not LLM placement). In every generated 
 
 Implementation:
 
-- `backend/app/services/cv_generator.py`, lines 587–656, `_place_education_record` — distinguishes education metadata from body text; `generate_resume` (line 3261+), class `Builder`
+- `backend/app/services/cv_generator_primitives.py`, lines 80–145, class `Builder` (re-exported from `cv_generator.py`)
+- `backend/app/services/cv_generator.py`, `_place_education_record` — distinguishes education metadata from body text; `generate_resume`
 - `backend/app/api/routes/ai.py`, `fill_template`
+- `backend/app/services/document_service.py`, lines 69–127, `create_pdf_document`; lines 129–165, `update_pdf_document`
 - Docs: [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
 Tests: `backend/tests/test_cv_template_layouts.py`, `test_education_description_uses_the_experience_body_color` — verifies all 14 affected generated templates keep education descriptions aligned with the experience body colour.
@@ -459,26 +474,17 @@ Implementation:
 - `backend/app/api/routes/ai.py`, `extract_cv`
 - `backend/app/services/cv_data.py`, `normalize_cv_data` (line 585+)
 
-### Template hover mockups (bio wizard)
+### Template carousel (import, bio wizard, change template)
 
-On the bio wizard **Podsumowanie** step, hovering or focusing a template shows that template’s A4 mockup on the **left**, vertically centered. Moving to another template fades out (`opacity` 1→0), swaps `/template-mockups/{id}.png`, then fades in (0→1). Leaving the picker fades the preview out. The same PNG assets are used by the Hero gallery, `TemplatesModal`, and the AiCvPanel carousel below.
-
-Implementation:
-
-- `frontend/src/hooks/useTemplateMockupPreview.js`, `useTemplateMockupPreview` — opacity fade / swap
-- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, `renderReview` — summary-step `templatePicker`
-- `frontend/src/components/ai/BioCvModal/BioCvModal.module.css`, `.templatePicker`, `.mockupFrame` / `.mockupFrameVisible`
-- Assets: `frontend/public/template-mockups/{id}.png`
-
-### Template carousel (CV import)
-
-Step 2 of **Wypełnij z mojego CV** (after PDF extract) picks a template from an endless-loop gallery instead of a separate text list + hover preview pane. Each card shows the template’s A4 mockup directly; hovering or focusing a card enlarges it in place (`whileHover`/`whileFocus` scale via Framer Motion). Only `TemplateCarousel.VISIBLE_COUNT` (5) cards render at once, computed by indexing into the template array modulo its length, so the prev/next arrows above the gallery never hit an end — advancing past the last template wraps to the first. Continuing cards keep their React key and slide to their new slot via Framer Motion's `layout` animation; the card that scrolls off exits and the newly revealed one fades in — no manual pixel math or DOM-cloning. Locked (non-Standard) templates stay visible but show a **Standard** badge and reject clicks with a tooltip; the currently-filling template shows a spinner overlay. The gallery track clips its own vertical overflow (`overflow-y: hidden` with generous padding) so the hover-scale growth never bleeds into — and never triggers — the dialog's own scrollbar.
+The same endless-loop `TemplateCarousel` gallery is used after PDF extract (**Wypełnij z mojego CV**), on the bio wizard **Podsumowanie** step, and in **Zmień szablon**. Each card shows the template’s A4 mockup; hovering or focusing enlarges it in place (`whileHover`/`whileFocus` via Framer Motion). Only `TemplateCarousel.VISIBLE_COUNT` (5) cards render at once (modulo indexing), so prev/next never hits an end. Locked (non-Standard) templates stay visible with a **Standard** badge; the currently-filling template shows a spinner. All three flows call the shared `fillTemplate(cvData, templateId)` helper (`POST /ai/fill_template`).
 
 Implementation:
 
-- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — modulo-indexed visible window, arrows, hover-enlarge, `AnimatePresence`/`layout` slide animation
-- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.module.css`
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — renders `<TemplateCarousel>` in the step-2 section, passing `handleFill` as `onSelect`
+- `frontend/src/services/fillTemplate.js`, lines 19–34, `fillTemplate`
+- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — modulo-indexed visible window, arrows, hover-enlarge
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — step-2 carousel + `handleFill`
+- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, lines 486–492, `renderReview` carousel
+- `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx` — restyle via `replaceActiveElements`
 - Assets: `frontend/public/template-mockups/{id}.png`
 
 ### Change template on the current CV (Topbar)
@@ -587,6 +593,7 @@ Base URL: `VITE_API_URL` (frontend) / deployed backend. Auth: `Authorization: Be
 | POST | `/pdf/download_pdf` | yes | Export URL/row + meter | `download_pdf` |
 | POST | `/images/upload_image` | yes | Multipart image | `create_upload_image` |
 | GET | `/images/fetch_images` | yes | List images | `fetch_user_images` |
+| GET | `/images/{img_id}/content` | yes | Private image bytes (owner only) | `get_image_content` |
 | DELETE | `/images/delete_image` | yes | Delete if unused | `delete_user_image` |
 | POST | `/ai/extract_cv` | yes | PDF → cv_data | `extract_cv` |
 | POST | `/ai/fill_template` | yes | cv_data + template → elements | `fill_template` |
@@ -671,8 +678,9 @@ App: `http://localhost:5173`.
 | `USD_TO_PLN` | no | FX used for credit metering | `4.0` |
 | `S3_BUCKET_NAME` | no | Enable S3 when set | bucket name |
 | `AWS_REGION` / keys | with S3 | AWS credentials | — |
-| `ALLOW_UNPAID_PLAN_SELECTION` | no | Allow activating paid plans without Stripe (`true` default) | `true` |
-| `ADMIN_RESET_SECRET` | no | Optional secret for `POST /billing/admin/reset-ai-credits` (falls back to `SECRET_KEY`) | long random string |
+| `ALLOW_UNPAID_PLAN_SELECTION` | no | Allow activating paid plans without Stripe (`false` default; set `true` locally pre-Stripe) | `true` (local) |
+| `ADMIN_RESET_SECRET` | for admin reset | Dedicated secret for `POST /billing/admin/reset-ai-credits` (does **not** fall back to `SECRET_KEY`) | long random string |
+| `ALLOW_INSECURE_SECRET` | no | Local throwaway only: skip strong `SECRET_KEY` boot check | `true` |
 | `MAX_UPLOAD_BYTES` | no | Max image upload size in bytes (default 8 MB) | `8388608` |
 | `MAX_IMAGES_PER_USER` | no | Max stored images per user (default 200) | `200` |
 
@@ -691,8 +699,11 @@ Never commit real secrets.
 | Frontend dev | `npm run dev` | Vite |
 | Frontend build | `npm run build` | Output `frontend/dist` |
 | Frontend lint | `npm run lint` | ESLint |
+| Frontend unit tests | `npm test` | From `frontend/`; Node built-in test runner |
 | Backend tests | `python -m unittest discover -s tests` | from `backend/` |
-| Frontend unit tests | `node --test src/utils/textareaReflow.test.js` | From `frontend/`; verifies auto-height flow, page breaks and Iconic icon grouping |
+| Export element schema | `python -m app.schemas.export_pdf_element_schema` | Writes `shared/pdf-element.schema.json` |
+| Alembic upgrade | `alembic upgrade head` | from `backend/` |
+| CI | GitHub Actions `.github/workflows/ci.yml` | Backend unittest + frontend `npm test` on PR/push |
 
 ### Troubleshooting
 
@@ -705,10 +716,11 @@ Never commit real secrets.
 
 ## Testing
 
-- **Framework:** Python `unittest` under `backend/tests/` (214 tests, all passing at the latest local run).
-- **Coverage focus:** image upload security (format sniffing, traversal, size/count limits), layout analysis safety, AI chat/command sanitisation, entitlements, PDF element upsert/`fixedToPage`, CV data normalisation, bullet layout, Unicode fonts.
+- **Framework:** Python `unittest` under `backend/tests/`.
+- **Coverage focus:** image upload security (format sniffing, traversal, size/count limits, owner-only content), PDF ownership IDOR, export metering HTTP, Free extract rejection, PdfElement schema contract (`shared/pdf-element.schema.json`), layout analysis safety, AI chat/command sanitisation, entitlements, template registry sync (frontend `TEMPLATES` ↔ `_GENERATORS` ↔ `FREE_STARTER_TEMPLATE_IDS`), PDF element upsert/`fixedToPage`, CV data normalisation, bullet layout, Unicode fonts.
 - **Run:** `cd backend && python -m unittest discover -s tests`.
-- **Frontend:** ESLint via `npm run lint`; reflow regression tests run with Node's built-in runner: `cd frontend && node --test src/utils/textareaReflow.test.js`.
+- **Frontend:** ESLint via `npm run lint`; unit tests via `cd frontend && npm test` (Node built-in runner).
+- **CI:** `.github/workflows/ci.yml` runs both suites on push/PR.
 
 ---
 
@@ -721,7 +733,7 @@ Typical production split (as used with Render):
 
 Cold-start behaviour is intentional: DB init is deferred so `/health` stays fast.
 
-Migrations: `create_all` + `_run_lightweight_migrations` on startup; no Alembic in-repo.
+Migrations: `create_all` + Alembic (`backend/alembic/`) on startup.
 
 CI/CD: configure in your host (Render dashboards / GitHub Actions) — no committed workflow is required by this README.
 
@@ -733,7 +745,7 @@ CI/CD: configure in your host (Render dashboards / GitHub Actions) — no commit
 - Sessions: JWT Bearer; username in `sub`.
 - Authorisation: ownership checks on PDF/image mutations; plan gates on create/export/AI/templates.
 - CORS: explicit origin allowlist (`CORS_ORIGINS`).
-- Uploads: format verified from file bytes (PNG/JPEG/WEBP/GIF; SVG rejected), stored under server-generated names (no path traversal), size-capped (`MAX_UPLOAD_BYTES`) and count-limited per user (`MAX_IMAGES_PER_USER`); images owned by user; delete blocked while referenced by a PDF element (`upload_security.py`, `images.py`).
+- Uploads: format verified from file bytes (PNG/JPEG/WEBP/GIF; SVG rejected), stored under server-generated names (no path traversal), size-capped (`MAX_UPLOAD_BYTES`) and count-limited per user (`MAX_IMAGES_PER_USER`); images owned by user; delete blocked while referenced by a PDF element; bytes served only via ownership-checked `GET /images/{id}/content` (no public `/uploads` mount) (`upload_security.py`, `images.py`).
 - Registration: duplicate username/email rejected with 400; email format-validated (`auth.py`, `user_schema.py`).
 - AI: provider errors mapped to generic Polish 500; details stay in logs.
 - Metrics: `/events/log` logs numeric `user_id`, not raw usernames (`metrics_logging.py`).
@@ -855,23 +867,23 @@ flowchart LR
 | Warstwa | Wejście | Rola |
 |---------|---------|------|
 | Frontend | `frontend/src/main.jsx` → `App.jsx` | Routing: `/`, `/login`, `/register`, chronione `/pdfcanvas` |
-| Edytor | `frontend/src/pages/PdfCanvas.jsx` (`PdfCanvas`) | Składa hooki w `PdfContext` |
+| Edytor | `frontend/src/pages/PdfCanvas.jsx` (`PdfCanvas`) | Canvas / UiSurfaces / Session (+ fasada `PdfContext`) |
 | Backend | `backend/app/main.py` | FastAPI, CORS, `/health`, routery, opcjonalny SPA |
 
 ### Warstwy frontendu
 
 - **Pages** — marketing, auth, edytor.
-- **Hooks** — `useA4Elements` (stan kanwy), `usePdfExport`, `useEntitlements`.
-- **Context** — `store/pdfgenerator-context.jsx`.
-- **Services** — `ApiClient` z długim timeoutem i retry (cold start Render).
+- **Hooks** — `useA4Elements` (fasada), `useDocumentHistory`, `useElementSelectionDrag`, `usePdfExport`, `useEntitlements`; fabryki / `materializeElementSpecs` / `canvasElementSchema` w utils.
+- **Context** — zagnieżdżone `CanvasContext` / `UiSurfacesContext` / `SessionContext` + tymczasowa fasada `PdfContext`.
+- **Services** — `ApiClient` z długim timeoutem i retry (cold start Render); `fillTemplate`; `authenticatedImage`.
 - **Templates** — specyfikacje w `frontend/src/templates/`.
 
 ### Warstwy backendu
 
-- **Routes** — `app/api/routes/*`
+- **Routes** — `app/api/routes/*` (PDF create/update przez `document_service`)
 - **CRUD** — `app/crud/*`
-- **Services** — PDF, layout CV, AI, entitlements, S3
-- **Models** — `app/models/models.py`
+- **Services** — PDF, `cv_generator` + `themes/`, AI, entitlements, S3
+- **Models** — `app/models/models.py`; migracje Alembic w `backend/alembic/`
 
 ### Współrzędne
 
@@ -931,34 +943,38 @@ pdf-generator/
 │   │   ├── cv-studio-mark.svg
 │   │   └── template-mockups/
 │   ├── src/
-│   │   ├── components/
-│   │   ├── hooks/
+│   │   ├── components/       # canvas, editor, ai, modals, gallery, common
+│   │   ├── hooks/            # useA4Elements, useDocumentHistory, useElementSelectionDrag, …
 │   │   ├── pages/
-│   │   ├── services/
-│   │   ├── store/
+│   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage
+│   │   ├── store/            # Canvas / UiSurfaces / Session + fasada PdfContext
 │   │   ├── templates/
-│   │   └── utils/
+│   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow
 │   ├── package.json
 │   └── .env.example
+├── shared/
+│   └── pdf-element.schema.json  # Eksport z Pydantic PdfElement
 └── backend/
     ├── app/
     │   ├── api/routes/
     │   ├── core/
     │   ├── crud/
     │   ├── models/
-    │   ├── schemas/
-    │   ├── services/
-    │   ├── utils/            # image_src_to_path, metrics_logging, upload_security
+    │   ├── schemas/          # PdfElement + eksport JSON Schema
+    │   ├── services/         # pdf, document_service, cv_generator, themes/, ai, …
+    │   ├── utils/
     │   ├── main.py
     │   └── dependencies.py
+    ├── alembic/              # Migracje schematu
     ├── fonts/
     ├── template_assets/
     ├── tests/
+    ├── alembic.ini
     ├── requirements.txt
     └── .env.example
 ```
 
-**Zasady:** 23 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_generator.py`. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime.
+**Zasady:** 23 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_generator.py`. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Bajty obrazów użytkownika nie są publicznie montowane — tylko przez `GET /images/{id}/content`.
 
 ---
 
@@ -966,7 +982,7 @@ pdf-generator/
 
 `DATABASE_URL` (`database.py`). Domyślnie SQLite. `postgres://` → `postgresql://`. Postgres: `pool_pre_ping`.
 
-`init_db()` w lifespanie aplikacji; lekkie migracje kolumn wielostronicowych; seed planów przez `bootstrap_billing`.
+`init_db()` w lifespanie: `create_all` + `alembic upgrade head` (kolumny wielostronicowe w `backend/alembic/versions/`); seed planów przez `bootstrap_billing`. CLI: `cd backend && alembic upgrade head`.
 
 | Tabela | Cel |
 |--------|-----|
@@ -1063,7 +1079,8 @@ Ograniczenia:
 ### Ładowanie szablonu
 
 - `frontend/src/templates/index.js` — `TEMPLATES`
-- `useA4Elements`: `materializeSpecs` / `handleLoadTemplate` (ok. 1753–1820)
+- `frontend/src/utils/materializeElementSpecs.js` — `materializeElementSpecs`
+- `frontend/src/hooks/useA4Elements.js` — `handleLoadTemplate` / `useDocumentHistory`
 
 ### Fade wejścia na kanwie
 
@@ -1162,7 +1179,7 @@ Skrypt zrzutu (`frontend/scripts/dump-iconic-templates.mjs`) wymaga niewielkiego
 - `backend/app/services/pdf_generator.py` — `PDF_Generator.render_elements` (ok. 492+)
 - `backend/app/crud/pdfs.py` — `create_new_pdf`, `update_pdf_elements`
 
-### Upload obrazów (walidowany)
+### Upload obrazów (walidowany, prywatna treść)
 
 Użytkownik przesyła obrazy do elementów kanwy. Endpoint traktuje każdą część
 uploadu jako niezaufaną: weryfikuje rzeczywisty format rastrowy z początkowych
@@ -1173,22 +1190,32 @@ obrazów na użytkownika. Oryginalna nazwa jest zapisywana tylko do wyświetlani
 i nigdy nie służy do lokalizacji pliku. Limity konfiguruje `MAX_UPLOAD_BYTES`
 (domyślnie 8 MB) i `MAX_IMAGES_PER_USER` (domyślnie 200).
 
+Bajty **nie** są serwowane z publicznego mountu `/uploads`. Galeria i kanwa
+pobierają `GET /images/{id}/content` z tokenem Bearer i pokazują blob URL.
+Elementy kanwy zapisują stabilne `src` `/images/{id}/content` oraz `img_id`;
+eksport PDF rozwiązuje ten URL przez `document_service.resolve_image_src_for_pdf`.
+
 Implementacja:
 
 - `backend/app/utils/upload_security.py` — `sniff_image_type`, `safe_object_name`, `is_safe_path_segment`
-- `backend/app/api/routes/images.py` — `create_upload_image` (kolejność walidacji: konto → segment ścieżki → liczba → rozmiar → format)
+- `backend/app/api/routes/images.py`, linie 57–143 — `create_upload_image`; linie 167–199 — `get_image_content`
+- `backend/app/services/document_service.py`, linie 39–66 — `resolve_image_src_for_pdf` / `make_image_resolver`
+- `frontend/src/services/authenticatedImage.js` — `fetchAuthenticatedImageObjectUrl`
+- `frontend/src/components/gallery/Gallery/Gallery.jsx`, `GalleryItem.jsx`, `canvas/Image/Image.jsx`
 - `backend/app/crud/images.py` — `create_image`, `count_images_by_user_id`
 - `backend/app/core/config.py` — `MAX_UPLOAD_BYTES`, `MAX_IMAGES_PER_USER`
 - Usuwanie jest chronione przed IDOR i blokowane, gdy element PDF nadal używa obrazu (`delete_user_image`)
 
-Testy: `backend/tests/test_image_upload_security.py` — akceptuje prawdziwy PNG, odrzuca HTML podszywający się pod PNG (415), neutralizuje nazwy z traversal, odrzuca zbyt duży plik (413), egzekwuje limit liczby obrazów (403).
+Testy: `backend/tests/test_image_upload_security.py` — PNG, HTML-as-PNG (415), traversal, oversize (413), limit liczby (403), content tylko dla właściciela; `backend/tests/test_document_service.py` — URL content → ścieżka lokalna.
 
 ### Deterministyczne wypełnianie szablonu
 
 Layout Python powstaje ze znormalizowanego `cv_data`, a nie z pozycji wymyślonych przez LLM. W każdym wygenerowanym szablonie wpis wykształcenia korzysta z tego samego systemu znaczenia kolorów co doświadczenie: kierunek ma podstawowy kolor tekstu, szkoła/miasto/okres mają stonowany kolor metadanych, a opcjonalny opis ma czytelny kolor treści. Zwarty wpis w sidebarze celowo używa własnej palety sidebara, ponieważ jest wyświetlany na innym panelu tła.
 
-- `backend/app/services/cv_generator.py`, linie 587–656 — `_place_education_record`, rozróżnia metadane wykształcenia od treści; `generate_resume` (linia 3261+), `Builder`
+- `backend/app/services/cv_generator_primitives.py`, linie 80–145 — klasa `Builder` (re-eksport z `cv_generator.py`)
+- `backend/app/services/cv_generator.py` — `_place_education_record`, `generate_resume`
 - `backend/app/api/routes/ai.py` — `fill_template`
+- `backend/app/services/document_service.py`, linie 69–127 — `create_pdf_document`; linie 129–165 — `update_pdf_document`
 - [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
 Testy: `backend/tests/test_cv_template_layouts.py`, `test_education_description_uses_the_experience_body_color` — sprawdza, czy wszystkie 14 dotkniętych wygenerowanych szablonów utrzymuje kolor opisu wykształcenia zgodny z treścią doświadczenia.
@@ -1220,26 +1247,17 @@ Testy:
 - `backend/app/api/routes/ai.py` — `extract_cv`
 - `backend/app/services/cv_data.py` — `normalize_cv_data` (ok. 585+)
 
-### Podgląd szablonu na hover (kreator bio)
+### Karuzela szablonów (import, kreator bio, zmiana szablonu)
 
-Na kroku **Podsumowanie** kreatora bio najazd lub fokus na szablon pokazuje mockup A4 po **lewej**, wyśrodkowany w pionie. Zmiana szablonu: fade-out (`opacity` 1→0), podmiana `/template-mockups/{id}.png`, fade-in (0→1). Opuszczenie listy wygasza podgląd. Te same PNG-i używają Hero, `TemplatesModal` oraz karuzela w AiCvPanel poniżej.
-
-Implementacja:
-
-- `frontend/src/hooks/useTemplateMockupPreview.js` — `useTemplateMockupPreview`
-- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` — `renderReview`, `templatePicker`
-- `frontend/src/components/ai/BioCvModal/BioCvModal.module.css` — `.templatePicker`, `.mockupFrame` / `.mockupFrameVisible`
-- Pliki: `frontend/public/template-mockups/{id}.png`
-
-### Karuzela szablonów (import CV)
-
-Krok 2 w **Wypełnij z mojego CV** (po ekstrakcji PDF) wybiera szablon z nieskończonej karuzeli zamiast osobnej listy tekstowej z panelem podglądu na hover. Każda karta pokazuje bezpośrednio mockup A4 szablonu; najazd lub fokus powiększa kartę w miejscu (`whileHover`/`whileFocus` ze skalą przez Framer Motion). Renderowanych jest naraz tylko `TemplateCarousel.VISIBLE_COUNT` (5) kart, wyliczanych przez indeksowanie modulo długości tablicy szablonów, więc strzałki nawigacji nad karuzelą nigdy nie trafiają na koniec — przejście za ostatni szablon zawija do pierwszego. Karty, które zostają widoczne, zachowują swój klucz React i przesuwają się na nowe miejsce animacją `layout` z Framer Motion; karta, która wypada, znika, a nowo odsłonięta pojawia się z fade-in — bez ręcznej matematyki pikseli czy klonowania DOM. Zablokowane szablony (poza planem Standard) pozostają widoczne, ale mają plakietkę **Standard** i odrzucają kliknięcie z tooltipem; aktualnie wypełniany szablon pokazuje nakładkę ze spinnerem. Tor karuzeli przycina własny pionowy overflow (`overflow-y: hidden` z dużym paddingiem), żeby powiększenie na hover nigdy nie „wyciekało” do — i nie wywoływało — paska przewijania samego modala.
+Ta sama nieskończona galeria `TemplateCarousel` jest używana po ekstrakcji PDF (**Wypełnij z mojego CV**), na kroku **Podsumowanie** kreatora bio oraz w **Zmień szablon**. Każda karta pokazuje mockup A4; najazd/fokus powiększa ją w miejscu. Renderowanych jest naraz `TemplateCarousel.VISIBLE_COUNT` (5) kart (indeksowanie modulo). Zablokowane szablony mają plakietkę **Standard**. Wszystkie trzy ścieżki wołają wspólny helper `fillTemplate(cvData, templateId)` (`POST /ai/fill_template`).
 
 Implementacja:
 
-- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — okno widoczności indeksowane modulo, strzałki, powiększanie na hover, animacja przesunięcia `AnimatePresence`/`layout`
-- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.module.css`
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — renderuje `<TemplateCarousel>` w sekcji kroku 2, przekazując `handleFill` jako `onSelect`
+- `frontend/src/services/fillTemplate.js`, linie 19–34 — `fillTemplate`
+- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx`
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — karuzela kroku 2 + `handleFill`
+- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, linie 486–492 — karuzela w `renderReview`
+- `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx` — restyl przez `replaceActiveElements`
 - Pliki: `frontend/public/template-mockups/{id}.png`
 
 ### Zmiana szablonu na bieżącym CV (Topbar)
@@ -1338,7 +1356,10 @@ URL bazowy: `VITE_API_URL`. Auth: `Authorization: Bearer <jwt>` (chyba że zazna
 | PUT | `/pdf/save_elements` | tak | Autozapis | `save_pdf_elements` |
 | DELETE | `/pdf/delete_pdf` | tak | Usuń | `delete_user_pdf` |
 | POST | `/pdf/download_pdf` | tak | Pobierz + licznik | `download_pdf` |
-| POST/GET/DELETE | `/images/*` | tak | Obrazy | routes/images |
+| POST | `/images/upload_image` | tak | Multipart obraz | `create_upload_image` |
+| GET | `/images/fetch_images` | tak | Lista obrazów | `fetch_user_images` |
+| GET | `/images/{img_id}/content` | tak | Bajty obrazu (tylko właściciel) | `get_image_content` |
+| DELETE | `/images/delete_image` | tak | Usuń nieużywany | `delete_user_image` |
 | POST | `/ai/extract_cv` | tak | Extract | `extract_cv` |
 | POST | `/ai/fill_template` | tak | Fill | `fill_template` |
 | GET/PUT/DELETE | `/ai/bio_cv_draft` | tak | Szkic bio | routes/ai |
@@ -1385,7 +1406,7 @@ Aplikacja: `http://localhost:5173`.
 
 ### Zmienne środowiskowe
 
-Backend (m.in.): `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `DATABASE_URL`, `CORS_ORIGINS`, `BACKEND_URL`, `API_GPT_KEY`, `AI_ASSISTANT_MODEL`, `AI_LAYOUT_MODEL`, `AI_LAYOUT_REASONING_EFFORT`, `AI_LAYOUT_SERVICE_TIER`, `AI_LAYOUT_MAX_COMPLETION_TOKENS`, `USD_TO_PLN`, `S3_BUCKET_NAME`, `AWS_*`, `ALLOW_UNPAID_PLAN_SELECTION`, `ADMIN_RESET_SECRET`, `MAX_UPLOAD_BYTES` (domyślnie 8 MB), `MAX_IMAGES_PER_USER` (domyślnie 200).
+Backend (m.in.): `SECRET_KEY` (min. 16 znaków, bez placeholderów; boot-check w lifespan), `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `DATABASE_URL`, `CORS_ORIGINS`, `BACKEND_URL`, `API_GPT_KEY`, `AI_ASSISTANT_MODEL`, `AI_LAYOUT_MODEL`, `AI_LAYOUT_REASONING_EFFORT`, `AI_LAYOUT_SERVICE_TIER`, `AI_LAYOUT_MAX_COMPLETION_TOKENS`, `USD_TO_PLN`, `S3_BUCKET_NAME`, `AWS_*`, `ALLOW_UNPAID_PLAN_SELECTION` (domyślnie `false`; lokalnie `true`), `ADMIN_RESET_SECRET` (osobny sekret ops, bez fallbacku do `SECRET_KEY`), `ALLOW_INSECURE_SECRET` (tylko lokalne throwaway), `MAX_UPLOAD_BYTES` (domyślnie 8 MB), `MAX_IMAGES_PER_USER` (domyślnie 200).
 
 Frontend: `VITE_API_URL`.
 
@@ -1393,9 +1414,11 @@ Frontend: `VITE_API_URL`.
 
 | Obszar | Komenda |
 |--------|---------|
-| Frontend | `npm run dev` / `build` / `lint` |
-| Test reflow frontendu | `node --test src/utils/textareaReflow.test.js` (z katalogu `frontend/`) |
+| Frontend | `npm run dev` / `build` / `lint` / `test` |
 | Backend testy | `python -m unittest discover -s tests` (z katalogu `backend/`) |
+| Eksport schematu elementów | `python -m app.schemas.export_pdf_element_schema` → `shared/pdf-element.schema.json` |
+| Alembic | `alembic upgrade head` (z `backend/`) |
+| CI | GitHub Actions `.github/workflows/ci.yml` |
 
 ### Rozwiązywanie problemów
 
@@ -1408,10 +1431,11 @@ Frontend: `VITE_API_URL`.
 
 ## Testy
 
-- **Framework:** `unittest` w `backend/tests/` (214 testów, wszystkie przechodzą przy ostatnim lokalnym uruchomieniu).
-- **Zakres:** bezpieczeństwo uploadu obrazów (rozpoznawanie formatu, path traversal, limity rozmiaru i liczby), bezpieczeństwo analizy układu, sanityzacja czatu/komend AI, entitlements, upsert elementów PDF, normalizacja `cv_data`, listy punktów, fonty Unicode.
+- **Framework:** `unittest` w `backend/tests/`.
+- **Zakres:** bezpieczeństwo uploadu (w tym content tylko dla właściciela), IDOR PDF, metering eksportów HTTP, reject extract na Free, kontrakt schematu `PdfElement` (`shared/pdf-element.schema.json`), analiza układu, sanityzacja AI, entitlements, synchronizacja rejestru szablonów, upsert elementów PDF, normalizacja `cv_data`, listy punktów, fonty Unicode.
 - **Uruchomienie:** `cd backend && python -m unittest discover -s tests`.
-- **Frontend:** `npm run lint`; regresje reflow uruchamia wbudowany runner Node: `cd frontend && node --test src/utils/textareaReflow.test.js`.
+- **Frontend:** `npm run lint` oraz `npm test`.
+- **CI:** `.github/workflows/ci.yml` uruchamia obie suity przy push/PR.
 
 ---
 
@@ -1422,7 +1446,7 @@ Typowy podział (Render):
 - Backend: Uvicorn/FastAPI + Postgres + env (+ opcjonalnie S3).
 - Frontend: `npm run build` → hosting `dist` (albo SPA z `main.py`, gdy `frontend/dist` jest dostępny).
 
-Migracje: `create_all` + lekkie ALTER przy starcie (bez Alembica w repo).
+Migracje: `create_all` + Alembic (`backend/alembic/`) przy starcie.
 
 ---
 
@@ -1432,7 +1456,7 @@ Migracje: `create_all` + lekkie ALTER przy starcie (bez Alembica w repo).
 - JWT Bearer; `sub` = username.
 - IDOR: właściciel PDF/obrazu; bramki planu na create/export/AI/szablony.
 - CORS z allowlistą.
-- Upload: format weryfikowany z bajtów pliku (PNG/JPEG/WEBP/GIF; SVG odrzucany), nazwy generowane po stronie serwera (brak path traversal), limit rozmiaru (`MAX_UPLOAD_BYTES`) i liczby obrazów na użytkownika (`MAX_IMAGES_PER_USER`); usuwanie blokowane, gdy obraz jest używany przez element PDF (`upload_security.py`, `images.py`).
+- Upload: format weryfikowany z bajtów pliku (PNG/JPEG/WEBP/GIF; SVG odrzucany), nazwy generowane po stronie serwera (brak path traversal), limit rozmiaru (`MAX_UPLOAD_BYTES`) i liczby obrazów na użytkownika (`MAX_IMAGES_PER_USER`); usuwanie blokowane, gdy obraz jest używany przez element PDF; bajty tylko przez `GET /images/{id}/content` z kontrolą właściciela (bez publicznego `/uploads`) (`upload_security.py`, `images.py`).
 - Rejestracja: zajęta nazwa/e-mail odrzucane z 400; e-mail walidowany formatem (`auth.py`, `user_schema.py`).
 - Błędy AI bez wycieku szczegółów do klienta.
 - Metryki z `user_id`, nie raw username.

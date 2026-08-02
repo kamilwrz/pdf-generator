@@ -2,12 +2,11 @@
  * Dialog wrapper that mounts Dropzone when the upload surface is open.
  */
 import Dropzone from "./Dropzone";
-import { use } from "react";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 import DialogShell from "../../common/DialogShell/DialogShell";
 
 export default function DropzoneContainer() {
-    const { isDropzone, showDropzone } = use(PdfContext);
+    const { isDropzone, showDropzone } = useUiSurfaces();
 
     return (
         <DialogShell
