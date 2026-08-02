@@ -140,8 +140,7 @@ export default function Hero() {
         <main className={classes.page}>
             <header className={classes.header}>
                 <a className={classes.brand} href="#top" aria-label="CV Studio — strona główna">
-                    <img src="/kompoza-logo2.png" alt="" />
-                    <span>CV STUDIO</span>
+                    <img src="/cv-studio-logo.svg" alt="" />
                 </a>
                 <nav className={classes.navigation} aria-label="Główna nawigacja">
                     <a href="#jak-to-dziala">Jak to działa</a>
@@ -440,9 +439,8 @@ export default function Hero() {
             </section>
 
             <footer className={classes.footer}>
-                <a className={classes.brand} href="#top">
-                    <img src="/kompoza-logo2.png" alt="" />
-                    <span>CV STUDIO</span>
+                <a className={classes.brand} href="#top" aria-label="CV Studio — strona główna">
+                    <img src="/cv-studio-logo.svg" alt="" />
                 </a>
                 <div>
                     <a href="#jak-to-dziala">Jak to działa</a>

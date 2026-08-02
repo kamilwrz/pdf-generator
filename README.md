@@ -145,7 +145,10 @@ pdf-generator/
 ├── README.md                 # This file
 ├── docs/                     # Product + design + deep-dive docs
 ├── frontend/
-│   ├── public/template-mockups/   # Static A4 preview PNGs
+│   ├── public/
+│   │   ├── cv-studio-logo.svg     # Full orange CV Studio logo
+│   │   ├── cv-studio-mark.svg     # Compact mark for favicon/editor rail
+│   │   └── template-mockups/      # Static A4 preview PNGs
 │   ├── src/
 │   │   ├── components/       # canvas, editor, ai, modals, gallery, common
 │   │   ├── hooks/            # useA4Elements, usePdfExport, …
@@ -236,6 +239,20 @@ Implementation:
 - `frontend/src/pages/Register/Register.jsx`, lines 37–44 and 92–95, preserves a valid start intent after registration
 - `frontend/src/pages/Login/Login.jsx`, lines 23–26 and 81–85, sends the signed-in user to the intended editor entry point
 - `frontend/src/pages/PdfCanvas.jsx`, lines 48–70 and 438–469, opens and then consumes the intended import/wizard dialog
+
+### Rust brand logo
+
+The application uses a transparent SVG brand system in the same rust accent as primary actions (`#DC6743`). The full logo combines a folded-document CV monogram with the **CV STUDIO** wordmark in Montserrat (with browser-safe sans-serif fallbacks), so it remains legible on both the dark landing header and warm-paper authentication screens. A compact version of the same mark is used where a wordmark would not fit: the editor tool rail and browser favicon. The former blue `kompoza-logo*.png` assets have been removed.
+
+Implementation:
+
+- `frontend/public/cv-studio-logo.svg`, lines 1–15 — full logo and wordmark
+- `frontend/public/cv-studio-mark.svg`, lines 1–8 — compact mark
+- `frontend/src/pages/Hero/Hero.jsx`, lines 141–145 and 442–445; `Hero.module.css`, lines 40–51 and 1173–1176 — landing header/footer lockup
+- `frontend/src/pages/Login/Login.jsx`, lines 127–131; `Login.module.css`, lines 184–195 — login lockup
+- `frontend/src/pages/Register/Register.jsx`, lines 129–133; `Register.module.css`, lines 180–191 — registration lockup
+- `frontend/src/components/editor/Sidebar/Sidebar.jsx`, lines 43–46 — compact editor mark
+- `frontend/index.html`, line 5 — SVG favicon
 
 ### Auth screens aligned with the landing
 
@@ -854,7 +871,10 @@ pdf-generator/
 ├── README.md
 ├── docs/
 ├── frontend/
-│   ├── public/template-mockups/
+│   ├── public/
+│   │   ├── cv-studio-logo.svg
+│   │   ├── cv-studio-mark.svg
+│   │   └── template-mockups/
 │   ├── src/
 │   │   ├── components/
 │   │   ├── hooks/
@@ -939,6 +959,20 @@ Implementacja:
 - `frontend/src/pages/Register/Register.jsx`, linie 37–44 i 92–95, zachowanie prawidłowego intencji startu po rejestracji
 - `frontend/src/pages/Login/Login.jsx`, linie 23–26 i 81–85, przejście po logowaniu do wybranego wejścia edytora
 - `frontend/src/pages/PdfCanvas.jsx`, linie 48–70 i 438–469, otwarcie i jednorazowe zużycie importu albo kreatora
+
+### Rdzawo-pomarańczowe logo marki
+
+Aplikacja używa przezroczystego systemu logo SVG w tym samym rdzawo-pomarańczowym akcencie co przyciski główne (`#DC6743`). Pełne logo łączy monogram CV w formie zagiętego dokumentu z napisem **CV STUDIO** w Montserrat (oraz bezpiecznymi fontami zastępczymi), dlatego pozostaje czytelne zarówno na ciemnym nagłówku strony głównej, jak i na papierowym tle ekranów uwierzytelniania. Krótsza wersja tego samego znaku działa tam, gdzie napis nie zmieściłby się dobrze: w pasku narzędzi edytora oraz jako favicon. Poprzednie niebieskie pliki `kompoza-logo*.png` zostały usunięte.
+
+Implementacja:
+
+- `frontend/public/cv-studio-logo.svg`, linie 1–15 — pełne logo z wordmarkiem
+- `frontend/public/cv-studio-mark.svg`, linie 1–8 — skrócony znak
+- `frontend/src/pages/Hero/Hero.jsx`, linie 141–145 i 442–445; `Hero.module.css`, linie 40–51 i 1173–1176 — lockup w nagłówku i stopce strony głównej
+- `frontend/src/pages/Login/Login.jsx`, linie 127–131; `Login.module.css`, linie 184–195 — logo logowania
+- `frontend/src/pages/Register/Register.jsx`, linie 129–133; `Register.module.css`, linie 180–191 — logo rejestracji
+- `frontend/src/components/editor/Sidebar/Sidebar.jsx`, linie 43–46 — skrócony znak w edytorze
+- `frontend/index.html`, linia 5 — favicon SVG
 
 ### Ekrany uwierzytelniania spójne z landing page
 

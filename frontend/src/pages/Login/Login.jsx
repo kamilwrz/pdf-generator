@@ -127,7 +127,7 @@ export default function Login() {
             <section className={classes.authColumn} aria-labelledby="login-title">
                 <div className={classes.loginCard}>
                     <div className={classes.logoBadge}>
-                        <img src="/kompoza-logo2.png" alt="CV STUDIO" />
+                        <img src="/cv-studio-logo.svg" alt="CV Studio" />
                     </div>
                     <p className={classes.cardEyebrow}>Dostęp do Twoich dokumentów</p>
                     <h1 id="login-title" className={classes.mainHeading}>Witaj ponownie</h1>

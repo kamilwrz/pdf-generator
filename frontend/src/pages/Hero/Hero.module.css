@@ -40,17 +40,14 @@
 .brand {
     display: inline-flex;
     align-items: center;
-    gap: 11px;
-    color: var(--paper);
-    font: 700 14px/1 var(--body);
-    letter-spacing: .14em;
     text-decoration: none;
+    line-height: 0;
 }
 
 .brand img {
-    width: 34px;
-    height: 34px;
-    object-fit: contain;
+    display: block;
+    width: 156px;
+    height: auto;
 }
 
 .navigation {
@@ -1174,8 +1171,8 @@
 }
 
 .footer .brand img {
-    width: 28px;
-    height: 28px;
+    width: 124px;
+    height: auto;
 }
 
 .footer > div {
@@ -1316,8 +1313,8 @@
         min-height: 70px;
     }
 
-    .brand span {
-        font-size: 11px;
+    .brand img {
+        width: 138px;
     }
 
     .navigation {
