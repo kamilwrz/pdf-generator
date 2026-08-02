@@ -58,11 +58,24 @@ export function resolveSpacingBox(element, boundsOf) {
   };
 }
 
-function isSpacingCandidate(candidate, movingId) {
+function isBaseSpacingCandidate(candidate, movingId) {
   if (!candidate || candidate.element_id === movingId) return false;
   if (candidate.fixedToPage) return false;
+  if (candidate.locked) return false;
   if (candidate.category === "connector") return false;
   return true;
+}
+
+function isVerticalSpacingCandidate(candidate, movingId) {
+  if (!isBaseSpacingCandidate(candidate, movingId)) return false;
+  // Section markers / rules sit beside headings. Measuring marker→marker
+  // reports a whole section body as a "gap" (e.g. 116px) even when the real
+  // text→text rhythm is SPACE_SECTION. Vertical rhythm is text-only.
+  return candidate.category === "text" || candidate.category === "textarea";
+}
+
+function isHorizontalSpacingCandidate(candidate, movingId) {
+  return isBaseSpacingCandidate(candidate, movingId);
 }
 
 /**
@@ -88,7 +101,7 @@ export function findVerticalSpacingGuides(
   let below = null;
 
   for (const candidate of candidates) {
-    if (!isSpacingCandidate(candidate, movingElement.element_id)) continue;
+    if (!isVerticalSpacingCandidate(candidate, movingElement.element_id)) continue;
 
     const other = resolveSpacingBox(candidate, boundsOf);
     if (other.width <= 0 || other.height <= 0) continue;
@@ -149,7 +162,7 @@ export function findHorizontalSpacingGuides(
   let right = null;
 
   for (const candidate of candidates) {
-    if (!isSpacingCandidate(candidate, movingElement.element_id)) continue;
+    if (!isHorizontalSpacingCandidate(candidate, movingElement.element_id)) continue;
 
     const other = resolveSpacingBox(candidate, boundsOf);
     if (other.width <= 0 || other.height <= 0) continue;

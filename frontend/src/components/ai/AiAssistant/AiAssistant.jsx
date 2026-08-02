@@ -64,7 +64,7 @@ const LAYOUT_SUGGESTIONS = [
         prompt: (
             "Porównaj odstępy między kolejnymi wpisami doświadczenia i wykształcenia "
             + "(oraz podobnymi listami, np. projektami). Ujednolić je do "
-            + "layout_contract.spacing_px.record (ok. 14 px). Przesuwaj całe bloki "
+            + "layout_contract.spacing_px.record (ok. 10 px). Przesuwaj całe bloki "
             + "wpisów (move_scope=blocks), nie pojedyncze tytuły bez daty/opisu."
         ),
     },
@@ -73,7 +73,7 @@ const LAYOUT_SUGGESTIONS = [
         label: "Sprawdź odstępy między sekcjami",
         prompt: (
             "Sprawdź odstępy między końcem jednej sekcji a następnym nagłówkiem. "
-            + "Preferuj layout_contract.spacing_px.section (ok. 18 px). Odstęp między "
+            + "Preferuj layout_contract.spacing_px.section (ok. 12 px). Odstęp między "
             + "sekcjami ma być wyraźnie większy niż wewnątrz wpisu. Zaproponuj "
             + "najmniejsze ruchy, które ujednolicą rytm."
         ),

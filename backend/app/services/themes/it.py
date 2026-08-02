@@ -37,21 +37,22 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
     themes = {
         "vector": {
             "asset": "vector-it-network.png",
-            "left": 160, "width": 365, "start": 155, "continuation": 72,
+            # Contact ends ~y=131; SPACE_SECTION(12) → first heading at 143.
+            "left": 160, "width": 365, "start": 143, "continuation": 72,
             "ink": "#FFFFFF", "body": "#DCEBFA", "muted": "#95AFC5",
             "accent": "#26D8FF", "marker": "#B8EF4A", "rule": "#3C6682",
             "font": "Inter", "display": "Times-Roman",
         },
         "kernel": {
             "asset": "kernel-it-architecture.png",
-            "left": 167, "width": 355, "start": 158, "continuation": 72,
+            "left": 167, "width": 355, "start": 145, "continuation": 72,
             "ink": "#173A76", "body": "#253D54", "muted": "#526A83",
             "accent": "#2462B7", "marker": "#D69B22", "rule": "#ACC5D8",
             "font": "Inter", "display": "Times-Roman",
         },
         "relay": {
             "asset": "relay-it-signal.png",
-            "left": 192, "width": 340, "start": 155, "continuation": 72,
+            "left": 192, "width": 340, "start": 143, "continuation": 72,
             "ink": "#F7F6F1", "body": "#F7F6F1", "muted": "#92989C",
             "accent": "#F47B20", "marker": "#EE2525", "rule": "#596065",
             "font": "Inter", "display": "Inter",
@@ -154,25 +155,35 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
 
     def section(label: str) -> None:
         marker_y = b.y + 1
+        markers: list[dict] = []
         if theme == "vector":
-            b.els.extend([
+            markers = [
                 _ellipse(L - 27, marker_y, 13, 13, C["accent"], borderWidth=1.2, zIndex=3, page=b.pg),
                 _circle(L - 23, marker_y + 4, 5, C["marker"], filled=True, zIndex=3, page=b.pg),
-            ])
+            ]
         elif theme == "kernel":
-            b.els.extend([
+            markers = [
                 _circle(L - 24, marker_y + 1, 12, C["marker"], filled=True, zIndex=3, page=b.pg),
                 _line(L - 8, marker_y + 7, 11, 1, C["accent"], zIndex=3, page=b.pg),
-            ])
+            ]
         elif theme == "relay":
-            b.els.extend([
+            markers = [
                 _circle(L - 31, marker_y, 18, C["marker"], borderWidth=1.2, zIndex=3, page=b.pg),
                 _rect(L - 25, marker_y + 6, 6, 6, C["accent"], 1, zIndex=3, page=b.pg),
-            ])
+            ]
+        # Lock decorative markers so spacing guides measure text→text rhythm,
+        # not marker→marker across an entire section body.
+        for mark in markers:
+            mark["locked"] = True
+            mark["flowRole"] = "section-chrome"
+        b.els.extend(markers)
         b.text(label, 8.5 if theme != "relay" else 8.3,
                "Courier" if theme == "relay" else SANS, C["accent"], L)
         b.els[-1]["letterSpacing"] = 1.55 if theme != "relay" else 1.1
+        b.els[-1]["flowRole"] = "section-chrome"
         b.line(L, W, 1, C["rule"])
+        b.els[-1]["locked"] = True
+        b.els[-1]["flowRole"] = "section-chrome"
         b.gap(SPACE_AFTER_RULE)
 
     def close_section() -> None:

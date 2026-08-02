@@ -89,9 +89,23 @@ test("measures text gaps from glyph bounds, not authored line boxes", () => {
 });
 
 test("still finds far neighbors when no distance threshold is applied", () => {
-  const moving = { element_id: "m", left: 100, top: 300, width: 180, height: 40 };
+  const moving = {
+    element_id: "m",
+    category: "textarea",
+    left: 100,
+    top: 300,
+    width: 180,
+    height: 40,
+  };
   const result = findVerticalSpacingGuides(moving, [
-    { element_id: "above", left: 100, top: 100, width: 180, height: 40 },
+    {
+      element_id: "above",
+      category: "textarea",
+      left: 100,
+      top: 100,
+      width: 180,
+      height: 40,
+    },
   ], sizeOf);
 
   assert.equal(result.above.neighborId, "above");
@@ -99,14 +113,73 @@ test("still finds far neighbors when no distance threshold is applied", () => {
 });
 
 test("ignores page decorations and connectors", () => {
-  const moving = { element_id: "m", left: 100, top: 200, width: 180, height: 40 };
+  const moving = {
+    element_id: "m",
+    category: "text",
+    content: "M",
+    left: 100,
+    top: 200,
+    width: 180,
+    height: 40,
+    fontSize: 12,
+  };
   const result = findVerticalSpacingGuides(moving, [
     { element_id: "bg", left: 0, top: 0, width: 595, height: 842, fixedToPage: true },
     { element_id: "link", left: 100, top: 140, width: 40, height: 40, category: "connector" },
-    { element_id: "above", left: 100, top: 150, width: 180, height: 30 },
+    {
+      element_id: "marker",
+      category: "circle",
+      left: 100,
+      top: 100,
+      width: 14,
+      height: 14,
+      locked: true,
+    },
+    {
+      element_id: "above",
+      category: "textarea",
+      left: 100,
+      top: 150,
+      width: 180,
+      height: 30,
+    },
   ], sizeOf);
 
   assert.equal(result.above.neighborId, "above");
+  assert.equal(result.above.gap, 20);
+});
+
+test("vertical guides ignore section marker shapes between text blocks", () => {
+  const moving = {
+    element_id: "heading",
+    category: "text",
+    content: "DOSWIADCZENIE",
+    left: 160,
+    top: 300,
+    width: 200,
+    height: 12,
+    fontSize: 9,
+  };
+  const result = findVerticalSpacingGuides(moving, [
+    {
+      element_id: "prev-marker",
+      category: "ellipse",
+      left: 133,
+      top: 200,
+      width: 13,
+      height: 13,
+    },
+    {
+      element_id: "summary-body",
+      category: "textarea",
+      left: 160,
+      top: 220,
+      width: 365,
+      height: 60,
+    },
+  ], sizeOf);
+
+  assert.equal(result.above.neighborId, "summary-body");
   assert.equal(result.above.gap, 20);
 });
 
@@ -122,10 +195,10 @@ test("estimates width for text elements without stored dimensions", () => {
 
 test("collects unique nearest-below gaps across all page elements", () => {
   const guides = findAllVerticalSpacingGuides([
-    { element_id: "a", left: 100, top: 40, width: 180, height: 20 },
-    { element_id: "b", left: 100, top: 80, width: 180, height: 20 },
-    { element_id: "c", left: 100, top: 140, width: 180, height: 20 },
-    { element_id: "side", left: 400, top: 60, width: 80, height: 20 },
+    { element_id: "a", category: "textarea", left: 100, top: 40, width: 180, height: 20 },
+    { element_id: "b", category: "textarea", left: 100, top: 80, width: 180, height: 20 },
+    { element_id: "c", category: "textarea", left: 100, top: 140, width: 180, height: 20 },
+    { element_id: "side", category: "textarea", left: 400, top: 60, width: 80, height: 20 },
     { element_id: "bg", left: 0, top: 0, width: 595, height: 842, fixedToPage: true },
   ], sizeOf);
 

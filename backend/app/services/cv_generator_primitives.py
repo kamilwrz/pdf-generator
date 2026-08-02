@@ -47,12 +47,17 @@ def _text(content, fontSize, fontFamily, color, left, top, *,
 
 def _block(content, left, top, width, height, fontSize, lineHeight, color, fontFamily, *,
            zIndex=2, page=1, bold=False, italic=False, align="left", bulletList=False):
+    # preserveInitialLayout: the generator already paginated with ReportLab
+    # metrics. Letting every textarea independently reflow on first canvas
+    # mount races and stretches section gaps unevenly (one block grows, the
+    # next has not measured yet). User edits still reflow normally.
     return {"category": "textarea", "content": str(content),
             "left": left, "top": top, "width": width, "height": height,
             "fontSize": fontSize, "lineHeight": lineHeight,
             "letterSpacing": 0, "color": color, "fontFamily": fontFamily,
             "zIndex": zIndex, "page": page, "bold": bold, "italic": italic,
-            "align": align, "bulletList": bulletList, "autoHeight": True}
+            "align": align, "bulletList": bulletList, "autoHeight": True,
+            "preserveInitialLayout": True}
 
 
 def _line(left, top, width, height, color, *, zIndex=1, page=1):
@@ -141,6 +146,9 @@ class Builder:
         return max(math.ceil(rendered_height), min_h)
 
     def line(self, left, width, height, col):
+        # Rule sits on the current cursor without advancing. Callers follow with
+        # SPACE_AFTER_RULE (or a template-specific gap) so under-header spacing
+        # stays explicit and matches static frontend chrome (e.g. Onyx +16).
         self.els.append(_line(left, self.y, width, height, col, page=self.pg))
 
     def gap(self, px: float):
