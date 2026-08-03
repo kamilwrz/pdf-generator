@@ -88,7 +88,7 @@ class LayoutGptTests(unittest.TestCase):
         self.assertEqual(contract["template_id"], "words")
         self.assertEqual(contract["spacing_px"]["stack"], 4.0)
         self.assertEqual(contract["spacing_px"]["record"], 10.0)
-        self.assertEqual(contract["spacing_px"]["section"], 15.0)
+        self.assertEqual(contract["spacing_px"]["section"], 21.0)
         self.assertEqual(contract["spacing_px"]["after_rule"], 8.0)
         self.assertEqual(
             contract["section_header_gap_px"],
@@ -109,7 +109,7 @@ class LayoutGptTests(unittest.TestCase):
         self.assertIn("layout_contract", prompt)
         self.assertIn("stack=4", prompt)
         self.assertIn("record=10", prompt)
-        self.assertIn("section=15", prompt)
+        self.assertIn("section=21", prompt)
         self.assertIn("after_rule=8", prompt)
         self.assertIn("Monument", prompt)
         self.assertIn("changes", prompt)

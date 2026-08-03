@@ -25,10 +25,10 @@ CONTENT_BOTTOM = A4_H - MARGIN_BOTTOM  # 746
 # Tuned for denser one-page packing than the old 14/18/12 trio, while keeping
 # section breaks readable. Canvas spacing guides measure glyph ink, not the
 # full textarea line-box — so SPACE_SECTION must be a few px above the target
-# visual gap (15 authored ≈ ~10px ink-to-ink on section boundaries).
+# visual gap (21 authored ≈ ~16px ink-to-ink on section boundaries).
 SPACE_STACK = 4       # title → meta → body inside one record
 SPACE_RECORD = 10     # between records in the same section
-SPACE_SECTION = 15    # after a finished section before the next heading
+SPACE_SECTION = 21    # after a finished section before the next heading
 SPACE_AFTER_RULE = 8  # section heading rule → first content block
 # Clearance from masthead chrome to the first section heading. Authored box
 # gaps; canvas ink guides read a few px tighter. Keep every template in the

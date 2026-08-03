@@ -808,10 +808,10 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertEqual(projects_heading.get("page", 1), 1)
         self.assertEqual(first_project.get("page", 1), 1)
         # Heading must sit directly under experience, not after a large dead band.
-        # SPACE_SECTION (15) is the intended rhythm; anything much larger means
+        # SPACE_SECTION (21) is the intended rhythm; anything much larger means
         # the section was incorrectly deferred as one oversized block.
         gap = projects_heading["top"] - last_bottom
-        self.assertLess(gap, 40)
+        self.assertLess(gap, 48)
 
     def test_words_uses_word_document_rhythm_without_decorative_frames(self):
         elements = generate_resume("words", {
