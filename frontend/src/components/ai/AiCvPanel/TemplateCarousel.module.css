@@ -15,11 +15,66 @@
     gap: 14px;
 }
 
+.toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.filterChip {
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--chrome-border);
+    border-radius: 2px;
+    background: var(--primary-bg);
+    color: var(--chrome-muted);
+    font: 600 11px var(--font-body);
+    cursor: pointer;
+    transition: border-color .15s, background .15s, color .15s;
+}
+
+.filterChip:hover {
+    border-color: var(--chrome-accent);
+    color: var(--chrome-ink);
+    background: var(--chrome-hover);
+}
+
+.filterChipActive {
+    border-color: var(--chrome-accent);
+    background: var(--chrome-accent);
+    color: #FFF8F1;
+}
+
+.filterChipActive:hover {
+    border-color: var(--chrome-accent);
+    background: var(--chrome-accent);
+    color: #FFF8F1;
+}
+
 .controls {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
+    margin-left: auto;
+}
+
+.emptyFilter {
+    margin: 0;
+    padding: 28px 12px;
+    text-align: center;
+    color: var(--chrome-muted);
+    font: 500 12px var(--font-body);
 }
 
 .navBtn {
@@ -149,12 +204,16 @@
 }
 
 .label {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 8px;
+    row-gap: 2px;
     align-items: center;
-    gap: 8px;
 }
 
 .dot {
+    grid-row: 1 / span 2;
     width: 9px;
     height: 9px;
     border-radius: 50%;
@@ -164,6 +223,14 @@
 .name {
     font: 600 14px var(--font-body);
     color: var(--chrome-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.collection {
+    font: 500 10.5px var(--font-body);
+    color: var(--chrome-muted);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

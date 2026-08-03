@@ -295,7 +295,7 @@ Loads static specs; assigns `element_id`, interaction flags, locks chrome.
 
 Implementation:
 
-- `frontend/src/templates/index.js` — `TEMPLATES` registry
+- `frontend/src/templates/index.js` — `TEMPLATES` registry (`collection` groups the seven product families)
 - `frontend/src/utils/materializeElementSpecs.js`, `materializeElementSpecs`
 - `frontend/src/hooks/useA4Elements.js`, `handleLoadTemplate` / `useDocumentHistory`
 
@@ -326,7 +326,7 @@ The frontend starter array and the deterministic Python generator use the same A
 Implementation:
 
 - `frontend/src/templates/monument.js`, lines 1–108, exported array `monumentTemplate`
-- `frontend/src/templates/index.js`, lines 24 and 52, registry entry `monument` (`tier: "paid"`)
+- `frontend/src/templates/index.js`, registry entry `monument` (`tier: "paid"`, `collection: "Classic"`)
 - `backend/app/services/cv_generator.py`, lines 2013–2215, function `_gen_monument`; line 3256, `_GENERATORS["monument"]`
 - `frontend/src/utils/structureOperation.js`, lines 34–63, function `cloneFixedPageDecorations`
 - `frontend/public/template-mockups/monument.png`, source-driven A4 preview
@@ -348,7 +348,7 @@ The frontend starter and `_gen_words` share the same A4 geometry. Long names, po
 Implementation:
 
 - `frontend/src/templates/words.js`, lines 1–123, exported array `wordsTemplate`
-- `frontend/src/templates/index.js`, lines 25 and 53, registry entry `words` (`tier: "paid"`)
+- `frontend/src/templates/index.js`, registry entry `words` (`tier: "paid"`, `collection: "Classic"`)
 - `backend/app/services/cv_generator.py`, lines 3025–3218, function `_gen_words`; line 3257, `_GENERATORS["words"]`
 - `frontend/public/template-mockups/words.png`, source-driven A4 preview
 
@@ -476,12 +476,14 @@ Implementation:
 
 ### Template carousel (import, bio wizard, change template)
 
-The same endless-loop `TemplateCarousel` gallery is used after PDF extract (**Wypełnij z mojego CV**), on the bio wizard **Podsumowanie** step, and in **Zmień szablon**. Each card shows the template’s A4 mockup; hovering or focusing enlarges it in place (`whileHover`/`whileFocus` via Framer Motion). Only `TemplateCarousel.VISIBLE_COUNT` (5) cards render at once (modulo indexing), so prev/next never hits an end. Locked (non-Standard) templates stay visible with a **Standard** badge; the currently-filling template shows a spinner. All three flows call the shared `fillTemplate(cvData, templateId)` helper (`POST /ai/fill_template`).
+The same endless-loop `TemplateCarousel` gallery is used after PDF extract (**Wypełnij z mojego CV**), on the bio wizard **Podsumowanie** step, and in **Zmień szablon**. Templates are sorted by the seven product collections (`collection` on each `TEMPLATES` entry; helpers in `templateCollections.js`). Collection chips filter the loop (Wszystkie / Finanse / IT / …). Each card shows the template’s A4 mockup and collection label; hovering or focusing enlarges it in place (`whileHover`/`whileFocus` via Framer Motion). Only five cards render at once (modulo indexing), so prev/next never hits an end. The **Szablony** modal (`TemplatesModal`) renders the same collections as headed grid sections. Locked (non-Standard) templates stay visible with a **Standard** badge; the currently-filling template shows a spinner. All three flows call the shared `fillTemplate(cvData, templateId)` helper (`POST /ai/fill_template`).
 
 Implementation:
 
 - `frontend/src/services/fillTemplate.js`, lines 19–34, `fillTemplate`
-- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — modulo-indexed visible window, arrows, hover-enlarge
+- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — collection chips, modulo-indexed visible window, arrows, hover-enlarge
+- `frontend/src/utils/templateCollections.js` — `groupTemplatesByCollection` / `sortTemplatesByCollection`
+- `frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx` — collection section headings + grid
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — step-2 carousel + `handleFill`
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, lines 486–492, `renderReview` carousel
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx` — restyle via `replaceActiveElements`
@@ -1078,7 +1080,7 @@ Ograniczenia:
 
 ### Ładowanie szablonu
 
-- `frontend/src/templates/index.js` — `TEMPLATES`
+- `frontend/src/templates/index.js` — `TEMPLATES` (`collection` grupuje 7 rodzin produktowych)
 - `frontend/src/utils/materializeElementSpecs.js` — `materializeElementSpecs`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadTemplate` / `useDocumentHistory`
 
@@ -1109,7 +1111,7 @@ Startowa tablica frontendu oraz deterministyczny generator Python używają tej 
 Implementacja:
 
 - `frontend/src/templates/monument.js`, linie 1–108, eksportowana tablica `monumentTemplate`
-- `frontend/src/templates/index.js`, linie 24 i 52, wpis rejestru `monument` (`tier: "paid"`)
+- `frontend/src/templates/index.js`, wpis rejestru `monument` (`tier: "paid"`, `collection: "Classic"`)
 - `backend/app/services/cv_generator.py`, linie 2013–2215, funkcja `_gen_monument`; linia 3256, `_GENERATORS["monument"]`
 - `frontend/src/utils/structureOperation.js`, linie 34–63, funkcja `cloneFixedPageDecorations`
 - `frontend/public/template-mockups/monument.png`, podgląd A4 generowany ze źródła
@@ -1131,7 +1133,7 @@ Startowy układ frontendu i `_gen_words` używają tej samej geometrii A4. Dług
 Implementacja:
 
 - `frontend/src/templates/words.js`, linie 1–123, eksportowana tablica `wordsTemplate`
-- `frontend/src/templates/index.js`, linie 25 i 53, wpis rejestru `words` (`tier: "paid"`)
+- `frontend/src/templates/index.js`, wpis rejestru `words` (`tier: "paid"`, `collection: "Classic"`)
 - `backend/app/services/cv_generator.py`, linie 3025–3218, funkcja `_gen_words`; linia 3257, `_GENERATORS["words"]`
 - `frontend/public/template-mockups/words.png`, podgląd A4 generowany ze źródła
 
@@ -1249,12 +1251,14 @@ Testy:
 
 ### Karuzela szablonów (import, kreator bio, zmiana szablonu)
 
-Ta sama nieskończona galeria `TemplateCarousel` jest używana po ekstrakcji PDF (**Wypełnij z mojego CV**), na kroku **Podsumowanie** kreatora bio oraz w **Zmień szablon**. Każda karta pokazuje mockup A4; najazd/fokus powiększa ją w miejscu. Renderowanych jest naraz `TemplateCarousel.VISIBLE_COUNT` (5) kart (indeksowanie modulo). Zablokowane szablony mają plakietkę **Standard**. Wszystkie trzy ścieżki wołają wspólny helper `fillTemplate(cvData, templateId)` (`POST /ai/fill_template`).
+Ta sama nieskończona galeria `TemplateCarousel` jest używana po ekstrakcji PDF (**Wypełnij z mojego CV**), na kroku **Podsumowanie** kreatora bio oraz w **Zmień szablon**. Szablony są posortowane według siedmiu kolekcji produktowych (`collection` w `TEMPLATES`; helpery w `templateCollections.js`). Chipy kolekcji filtrują pętlę (Wszystkie / Finanse / IT / …). Każda karta pokazuje mockup A4 i etykietę kolekcji; najazd/fokus powiększa ją w miejscu. Renderowanych jest naraz pięć kart (indeksowanie modulo). Modal **Szablony** (`TemplatesModal`) pokazuje te same kolekcje jako sekcje z nagłówkami. Zablokowane szablony mają plakietkę **Standard**. Wszystkie trzy ścieżki wołają wspólny helper `fillTemplate(cvData, templateId)` (`POST /ai/fill_template`).
 
 Implementacja:
 
 - `frontend/src/services/fillTemplate.js`, linie 19–34 — `fillTemplate`
-- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx`
+- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — chipy kolekcji, okno modulo, strzałki
+- `frontend/src/utils/templateCollections.js` — `groupTemplatesByCollection` / `sortTemplatesByCollection`
+- `frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx` — sekcje kolekcji + siatka
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — karuzela kroku 2 + `handleFill`
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, linie 486–492 — karuzela w `renderReview`
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx` — restyl przez `replaceActiveElements`

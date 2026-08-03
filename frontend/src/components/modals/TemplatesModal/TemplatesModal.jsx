@@ -1,8 +1,9 @@
 /**
  * Template picker. Free vs paid cards respect entitlements; picking logs a
  * product metric and can warn before replacing a non-empty canvas.
+ * Cards are grouped under the seven product collections (Finanse → Iconic).
  */
-import { use, useState } from "react";
+import { use, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiAlertTriangle } from "react-icons/fi";
 import classes from "./TemplatesModal.module.css";
@@ -11,6 +12,17 @@ import { TEMPLATES } from "../../../templates";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { logEvent } from "../../../services/eventLog";
 import { isTemplateAllowed } from "../../../utils/entitlements";
+import { groupTemplatesByCollection } from "../../../utils/templateCollections";
+
+function templateCountLabel(count) {
+    if (count === 1) return "1 szablon";
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
+        return `${count} szablony`;
+    }
+    return `${count} szablonów`;
+}
 
 // Real cropped screenshot of the template's own canvas data — see
 // frontend/public/template-mockups/. Card aspect ratio matches A4 portrait.
@@ -72,6 +84,7 @@ export default function TemplatesModal() {
     }
 
     const freeCount = TEMPLATES.filter((t) => isTemplateAllowed(t, entitlements)).length;
+    const templateGroups = useMemo(() => groupTemplatesByCollection(TEMPLATES), []);
 
     return (
         <>
@@ -85,32 +98,44 @@ export default function TemplatesModal() {
                 footer={(
                     <span className={classes.countLabel}>
                         {entitlements?.template_tier === "all"
-                            ? `${TEMPLATES.length} szablonów CV`
+                            ? `${TEMPLATES.length} szablonów CV · 7 kolekcji`
                             : `${freeCount} z ${TEMPLATES.length} dostępnych na planie Free`}
                     </span>
                 )}
             >
-                <div className={classes.grid}>
-                    {TEMPLATES.map((t) => {
-                        const locked = !isTemplateAllowed(t, entitlements);
-                        return (
-                            <div key={t.id} className={`${classes.card} ${locked ? classes.cardLocked : ""}`}>
-                                <div className={classes.previewWrap}>
-                                    <Preview id={t.id} name={t.name} />
-                                    {locked ? <span className={classes.lockBadge}>Standard</span> : null}
-                                </div>
-                                <div className={classes.cardName}>{t.name}</div>
-                                <div className={classes.cardIndustry}>{t.industry}</div>
-                                <button
-                                    type="button"
-                                    className={locked ? classes.lockedBtn : classes.useBtn}
-                                    onClick={() => handlePick(t)}
-                                >
-                                    {locked ? "Odblokuj w Standard" : "Użyj szablonu"}
-                                </button>
+                <div className={classes.groups}>
+                    {templateGroups.map((group) => (
+                        <section key={group.collection} className={classes.group}>
+                            <header className={classes.groupHeader}>
+                                <h3 className={classes.groupTitle}>{group.collection}</h3>
+                                <span className={classes.groupCount}>
+                                    {templateCountLabel(group.templates.length)}
+                                </span>
+                            </header>
+                            <div className={classes.grid}>
+                                {group.templates.map((t) => {
+                                    const locked = !isTemplateAllowed(t, entitlements);
+                                    return (
+                                        <div key={t.id} className={`${classes.card} ${locked ? classes.cardLocked : ""}`}>
+                                            <div className={classes.previewWrap}>
+                                                <Preview id={t.id} name={t.name} />
+                                                {locked ? <span className={classes.lockBadge}>Standard</span> : null}
+                                            </div>
+                                            <div className={classes.cardName}>{t.name}</div>
+                                            <div className={classes.cardIndustry}>{t.industry}</div>
+                                            <button
+                                                type="button"
+                                                className={locked ? classes.lockedBtn : classes.useBtn}
+                                                onClick={() => handlePick(t)}
+                                            >
+                                                {locked ? "Odblokuj w Standard" : "Użyj szablonu"}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        );
-                    })}
+                        </section>
+                    ))}
                 </div>
             </DialogShell>
 

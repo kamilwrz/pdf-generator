@@ -3,12 +3,15 @@ import test from "node:test";
 
 import { selectCvTemplates } from "./cvTemplateSelection.js";
 
-test("keeps templates selectable after category metadata is removed", () => {
-    const templates = [
-        { id: "ledger" },
-        { id: "vector" },
-    ];
+test("returns templates sorted by product collection", () => {
+  const templates = [
+    { id: "volt", collection: "Iconic" },
+    { id: "ledger", collection: "Finanse" },
+    { id: "vector", collection: "IT" },
+  ];
 
-    assert.equal(selectCvTemplates(templates), templates);
-    assert.equal(selectCvTemplates(templates).length, 2);
+  assert.deepEqual(
+    selectCvTemplates(templates).map((template) => template.id),
+    ["ledger", "vector", "volt"],
+  );
 });

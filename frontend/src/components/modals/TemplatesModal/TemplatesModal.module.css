@@ -9,11 +9,46 @@
     color: var(--chrome-muted);
 }
 
+.groups {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding: 12px 20px 18px;
+}
+
+.group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.groupHeader {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--chrome-border);
+}
+
+.groupTitle {
+    margin: 0;
+    font: 700 13px var(--font-display);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--chrome-ink);
+}
+
+.groupCount {
+    font: 500 11px var(--font-body);
+    color: var(--chrome-muted);
+    white-space: nowrap;
+}
+
 .grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
-    padding: 16px 20px 18px;
     align-content: start;
 }
 

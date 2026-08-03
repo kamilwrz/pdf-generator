@@ -1,3 +1,8 @@
-// The application is CV-only: every registered template belongs in the wizard.
-// Do not filter by the retired `category` property.
-export const selectCvTemplates = (templates) => templates;
+/**
+ * CV template list for wizards and change-template flows.
+ * Always returns templates sorted by the seven product collections so every
+ * picker (carousel, grid) shares the same Finanse → … → Iconic order.
+ */
+import { sortTemplatesByCollection } from "./templateCollections.js";
+
+export const selectCvTemplates = (templates) => sortTemplatesByCollection(templates);
