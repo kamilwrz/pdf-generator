@@ -2,7 +2,7 @@
 
 # CV Studio
 
-CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 23 industry templates, PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
+CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 24 industry templates, PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
 
 This README is the technical entry point for developers. A beginner-friendly deep guide to canvas coordinates, React interaction, deterministic Python layout, AI responsibilities, reflow, persistence, and ReportLab export lives in [`CANVA.md`](CANVA.md). Every live AI prompt (full text, variables, file/line references) is documented in [`PROMPTS.md`](PROMPTS.md). Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md). Marketing brief for the website „Dlaczego CV STUDIO” section (features + competitive positioning, no competitor brand names in public copy) lives in [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Template generation (AI extract vs Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md).
 
@@ -155,7 +155,7 @@ pdf-generator/
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
-│   │   ├── templates/        # 23 template specs + helpers
+│   │   ├── templates/        # 24 template specs + helpers
 │   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow
 │   ├── package.json
 │   └── .env.example
@@ -181,7 +181,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_generator.py` (23 ids). Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
+**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_generator.py` (24 ids). Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
 
 ---
 
@@ -359,6 +359,26 @@ Tests:
 
 Known limitation: Words reproduces the visual language of a carefully formatted Word document, but it does not create or import `.docx` files. Export remains PDF.
 
+### Cardinal noble-red template
+
+Cardinal is a paid Classic template for candidates who want a formal single-column document with one restrained accent of colour. It reserves a "noble red" (`#9E2532`) for typography only — the role line under the name and every section heading — while all ornament stays neutral grey (`#8A8A8A`): the generated line-art icons beside each section heading and contact detail, plus the decorative rules under the headings and along the header and footer. Body copy is dark grey (`#333333`); the name uses Times-Roman while labels, contact, dates, and body use Helvetica. It is the only Classic template that pairs generated icons with every heading and contact row (the Iconic family does this too, but in its own collection), which is what sets it apart from Scribe, Regent, Aldine, Merit, Monument, and Words.
+
+The grey glyphs come from a dedicated `cardinal` theme added to the shared icon pipeline (`scripts/generate_iconic_icons.py`, `THEMES["cardinal"] = "#8A8A8A"`), rendered to `backend/template_assets/iconic/cardinal/*.png` and served from the existing `/template-assets/` mount. The static editor preview and the deterministic AI fill share one visual identity because the backend generator reuses the same single-column icon machinery as the Iconic family, under its own layout branch so no red accent band is drawn.
+
+Implementation:
+
+- `frontend/src/templates/cardinal.js`, lines 1–158 — static starter spec; local `icon` helper (line 49), `sectionHead` (line 65), `contact` (line 76), and the `flowRole` mapping in `cardinalTemplate` (line 150)
+- `frontend/src/templates/index.js`, line 45, registry entry `cardinal` (`tier: "paid"`, `collection: "Classic"`, `accent: "#9E2532"`)
+- `backend/app/services/cv_generator_iconic.py`, `cardinal` theme (lines 117–122), header branch (lines 177–197), page-decoration branch (lines 463–467), `_gen_cardinal` (lines 498–499)
+- `backend/app/services/cv_generator.py`, line 2577, `_GENERATORS["cardinal"]`
+- `scripts/generate_iconic_icons.py`, line 23, grey `cardinal` icon theme
+- `frontend/public/template-mockups/cardinal.png`, source-driven A4 preview
+
+Tests:
+
+- `frontend/src/templates/cardinal.test.js`, lines 1–57 — single-column, red-headings-only, grey-icons/rules, dark-grey body, and serif-name assertions
+- `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — enforces the frontend/backend id parity that `cardinal` now participates in
+
 ### Iconic template family and icon reflow
 
 Nova, Ridge, Loom, and Volt provide four colour-matched layouts with contact and section icons. The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so Iconic icons are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
@@ -380,7 +400,7 @@ Tests:
 - `backend/tests/test_pdf_shapes.py`, lines 67–131 — optical alignment, explicit `alignWithText: false`, and alpha-mask regressions
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — Loom contact geometry and sidebar column alignment
 
-**Regenerating source-driven mockups.** `frontend/public/template-mockups/{nova,ridge,loom,volt,monument,words}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, or `frontend/src/templates/words.js` changes, regenerate them:
+**Regenerating source-driven mockups.** `frontend/public/template-mockups/{nova,ridge,loom,volt,monument,words,cardinal}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, or `frontend/src/templates/cardinal.js` changes, regenerate them:
 
 ```bash
 node --import ./frontend/scripts/register-hook.mjs ./frontend/scripts/dump-iconic-templates.mjs
@@ -799,7 +819,7 @@ Notable product facts:
 
 # CV Studio
 
-CV Studio to polski edytor CV na A4: płótno WYSIWYG, 23 szablonów branżowych, import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
+CV Studio to polski edytor CV na A4: płótno WYSIWYG, 24 szablony branżowe, import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
 
 Ten README to wejście techniczne dla programistów. Obszerne, napisane dla początkujących wyjaśnienie współrzędnych canvasu, interakcji React, deterministycznego layoutu Python, roli AI, reflow, zapisu i eksportu ReportLab znajduje się w [`CANVA.md`](CANVA.md). Wszystkie prompty AI (treść, zmienne, numery linii): [`PROMPTS.md`](PROMPTS.md). Opis produktowy funkcji: [`docs/FEATURES.md`](docs/FEATURES.md). Brief marketingowy pod sekcję „Dlaczego CV STUDIO” na stronie (funkcje + pozycjonowanie względem rynku, bez nazw marek konkurencji w copy publicznym): [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Generowanie szablonów (AI extract vs layout w Pythonie): [`docs/cv-template-generation.md`](docs/cv-template-generation.md).
 
@@ -976,7 +996,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Zasady:** 23 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_generator.py`. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Bajty obrazów użytkownika nie są publicznie montowane — tylko przez `GET /images/{id}/content`.
+**Zasady:** 24 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_generator.py`. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Bajty obrazów użytkownika nie są publicznie montowane — tylko przez `GET /images/{id}/content`.
 
 ---
 
@@ -1144,6 +1164,26 @@ Testy:
 
 Znane ograniczenie: Words odtwarza wizualny język starannie sformatowanego dokumentu Word, ale nie tworzy ani nie importuje plików `.docx`. Eksport pozostaje w formacie PDF.
 
+### Szablon Cardinal w szlachetnej czerwieni
+
+Cardinal to płatny szablon z kolekcji Classic dla osób, które chcą formalnego, jednokolumnowego dokumentu z jednym powściągliwym akcentem koloru. „Szlachetna czerwień” (`#9E2532`) jest zarezerwowana wyłącznie dla typografii — linii stanowiska pod nazwiskiem oraz każdego nagłówka sekcji — a cała dekoracja pozostaje neutralnie szara (`#8A8A8A`): generowane ikony line-art przy każdym nagłówku sekcji i elemencie kontaktu oraz dekoracyjne linie pod nagłówkami i wzdłuż nagłówka i stopki. Treść główna jest ciemnoszara (`#333333`); nazwisko używa Times-Roman, a etykiety, kontakt, daty i treść — Helvetica. To jedyny szablon Classic, który łączy generowane ikony z każdym nagłówkiem i wierszem kontaktu (rodzina Iconic robi to również, ale we własnej kolekcji), co odróżnia go od Scribe, Regent, Aldine, Merit, Monument i Words.
+
+Szare glify pochodzą z dedykowanego motywu `cardinal` dodanego do wspólnego potoku ikon (`scripts/generate_iconic_icons.py`, `THEMES["cardinal"] = "#8A8A8A"`), renderowane do `backend/template_assets/iconic/cardinal/*.png` i serwowane z istniejącego montowania `/template-assets/`. Statyczny podgląd w edytorze i deterministyczne wypełnianie AI mają jedną tożsamość wizualną, ponieważ generator backendu korzysta z tej samej jednokolumnowej maszynerii ikon co rodzina Iconic, w osobnej gałęzi układu, dzięki czemu nie jest rysowany żaden czerwony pas akcentu.
+
+Implementacja:
+
+- `frontend/src/templates/cardinal.js`, linie 1–158 — statyczna specyfikacja startowa; lokalny helper `icon` (linia 49), `sectionHead` (linia 65), `contact` (linia 76) oraz mapowanie `flowRole` w `cardinalTemplate` (linia 150)
+- `frontend/src/templates/index.js`, linia 45, wpis rejestru `cardinal` (`tier: "paid"`, `collection: "Classic"`, `accent: "#9E2532"`)
+- `backend/app/services/cv_generator_iconic.py`, motyw `cardinal` (linie 117–122), gałąź nagłówka (linie 177–197), gałąź dekoracji strony (linie 463–467), `_gen_cardinal` (linie 498–499)
+- `backend/app/services/cv_generator.py`, linia 2577, `_GENERATORS["cardinal"]`
+- `scripts/generate_iconic_icons.py`, linia 23, szary motyw ikon `cardinal`
+- `frontend/public/template-mockups/cardinal.png`, podgląd A4 generowany ze źródła
+
+Testy:
+
+- `frontend/src/templates/cardinal.test.js`, linie 1–57 — asercje jednej kolumny, czerwieni tylko w nagłówkach, szarych ikon/linii, ciemnoszarej treści i szeryfowego nazwiska
+- `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — wymusza parytet id frontend/backend, w którym `cardinal` teraz uczestniczy
+
 ### Rodzina Iconic i reflow ikon
 
 Nova, Ridge, Loom i Volt to cztery spójne kolorystycznie układy z ikonami kontaktu oraz sekcji. Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, ikony Iconic są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
@@ -1165,7 +1205,7 @@ Testy:
 - `backend/tests/test_pdf_shapes.py`, linie 67–131 — wyrównanie optyczne, jawne `alignWithText: false` oraz maska alfa
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — geometria kontaktu Loom i wyrównanie kolumny sidebara
 
-**Regenerowanie podglądów opartych na kodzie źródłowym.** Pliki `frontend/public/template-mockups/{nova,ridge,loom,volt,monument,words}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js` lub `frontend/src/templates/words.js` należy je odtworzyć:
+**Regenerowanie podglądów opartych na kodzie źródłowym.** Pliki `frontend/public/template-mockups/{nova,ridge,loom,volt,monument,words,cardinal}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js` lub `frontend/src/templates/cardinal.js` należy je odtworzyć:
 
 ```bash
 node --import ./frontend/scripts/register-hook.mjs ./frontend/scripts/dump-iconic-templates.mjs

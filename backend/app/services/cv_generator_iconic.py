@@ -1,8 +1,11 @@
-"""Iconic template family generators (Nova, Ridge, Loom, Volt).
+"""Icon-based template generators (Nova, Ridge, Loom, Volt, Cardinal).
 
-Each layout pairs contact + section headings with tinted line-art icons from
-``template_assets/iconic/<theme>/``. Fonts use the stylish OFL families already
-registered in ``pdf_generator`` (Playfair, Lora, Cormorant, Montserrat, JetBrains).
+Each layout pairs contact + section headings with line-art icons from
+``template_assets/iconic/<theme>/``. Nova/Ridge/Loom/Volt belong to the Iconic
+collection and use stylish OFL families (Playfair, Lora, Cormorant, Montserrat,
+JetBrains). Cardinal belongs to the Classic collection: it shares the same
+single-column icon machinery but uses Times-Roman/Helvetica, reserves a "noble
+red" for headings only, and renders its icons and rules in neutral grey.
 """
 
 from __future__ import annotations
@@ -105,6 +108,19 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
             "layout": "volt", "icon_theme": "volt",
             "L": 78, "W": 469, "icon_x": 48, "start": 155,
         },
+        # Cardinal (Classic collection): a single-column, Times/Helvetica document
+        # that keeps its "noble red" for typography only — the role line and every
+        # section heading. All ornament stays neutral grey: the generated icons
+        # (grey `cardinal` icon theme) and the decorative rules (`rule`). Body copy
+        # is dark grey. It reuses the Nova-style single column but has its own
+        # header and page-decoration branch so no red accent band is painted.
+        "cardinal": {
+            "paper": "#FCFBF9", "ink": "#24201E", "accent": "#9E2532",
+            "mute": "#6E6E6E", "body": "#333333", "rule": "#8A8A8A",
+            "display": "Times-Roman", "sans": "Helvetica", "mono": "Helvetica",
+            "layout": "cardinal", "icon_theme": "cardinal",
+            "L": 72, "W": 473, "icon_x": 50, "start": 162,
+        },
     }
     if theme not in themes:
         raise ValueError(f"Nieznany motyw Iconic: {theme}")
@@ -157,6 +173,27 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
             header.append(_text(value, contact_fs, SANS, C["mute"], 72, y, zIndex=3))
             y += 18
         start_y = y + SPACE_AFTER_MASTHEAD
+
+    elif C["layout"] == "cardinal":
+        # Serif name (non-bold, echoing the static template's refined masthead),
+        # cardinal-red tracked role line, and a single grey contact row whose
+        # icons come from the grey `cardinal` theme. No red band is drawn.
+        contact_fs, contact_icon = 8.6, 10.0
+        header = [
+            _text(name, 28, DISP, C["ink"], L, 52, zIndex=3),
+            _text(title, 9.4, SANS, C["accent"], L, 92, zIndex=3),
+        ]
+        header[0]["letterSpacing"] = 0.15
+        header[1]["letterSpacing"] = 1.55
+        x = float(C["icon_x"])
+        for key, value in (("email", email), ("phone", phone), ("location", location)):
+            if not value:
+                continue
+            header.append(_icon_beside(ICON, key, x, 118, contact_fs, contact_icon))
+            header.append(_text(value, contact_fs, SANS, C["body"], x + 16, 118, zIndex=3))
+            x += max(150.0, 16 + len(value) * 5.4)
+        header.append(_line(L, 142, W, 1, C["rule"], zIndex=2))
+        start_y = 143.0 + SPACE_AFTER_HEADER_RULE
 
     elif C["layout"] == "loom":
         light = "loom-light"
@@ -423,6 +460,14 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
                 {**_line(204, 800, 343, 1, C["rule"], page=page), "fixedToPage": True},
                 {**_text(f"{page:02d}", 8, SANS, C["mute"], 522, 808, page=page), "fixedToPage": True},
             ]
+        elif C["layout"] == "cardinal":
+            # Warm paper plus a single grey footer keyline and page number. The
+            # red is deliberately withheld here to keep it reserved for headings.
+            page_decorations += [
+                {**_line(0, 0, 595, 842, C["paper"], zIndex=0, page=page), "fixedToPage": True},
+                {**_line(72, 800, 473, 1, C["rule"], page=page), "fixedToPage": True},
+                {**_text(f"{page:02d}", 8, SANS, C["mute"], 522, 806, page=page), "fixedToPage": True},
+            ]
         else:
             page_decorations += [
                 {**_line(0, 0, 595, 842, C["paper"], zIndex=0, page=page), "fixedToPage": True},
@@ -448,3 +493,7 @@ def _gen_loom(cv: dict) -> list[dict]:
 
 def _gen_volt(cv: dict) -> list[dict]:
     return _gen_iconic_theme(cv, "volt")
+
+
+def _gen_cardinal(cv: dict) -> list[dict]:
+    return _gen_iconic_theme(cv, "cardinal")

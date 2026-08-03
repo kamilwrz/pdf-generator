@@ -2531,6 +2531,7 @@ def _gen_words(cv: dict) -> list[dict]:
 # ── public API ───────────────────────────────────────────────────────────────
 
 from app.services.cv_generator_iconic import (  # noqa: E402  — after helpers exist
+    _gen_cardinal,
     _gen_loom,
     _gen_nova,
     _gen_ridge,
@@ -2573,6 +2574,7 @@ _GENERATORS = {
     "volt":      _gen_volt,
     "monument":  _gen_monument,
     "words":     _gen_words,
+    "cardinal":  _gen_cardinal,
 }
 
 

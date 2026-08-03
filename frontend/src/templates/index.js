@@ -24,6 +24,7 @@ import { onyxTemplate } from "./onyx";
 import { loomTemplate, novaTemplate, ridgeTemplate, voltTemplate } from "./iconic";
 import { monumentTemplate } from "./monument";
 import { wordsTemplate } from "./words";
+import { cardinalTemplate } from "./cardinal";
 
 export { TEMPLATE_COLLECTION_ORDER } from "../utils/templateCollections";
 
@@ -41,6 +42,7 @@ export const TEMPLATES = [
     { id: "merit", tier: "paid", collection: "Classic", name: "Merit", industry: "Classic · Dyplomatyczny minimalizm", accent: "#4F6679", elements: meritTemplate },
     { id: "monument", tier: "paid", collection: "Classic", name: "Monument", industry: "Classic · Monochromatyczny editorial", accent: "#343434", elements: monumentTemplate },
     { id: "words", tier: "paid", collection: "Classic", name: "Words", industry: "Classic · Dokument Word", accent: "#555555", elements: wordsTemplate },
+    { id: "cardinal", tier: "paid", collection: "Classic", name: "Cardinal", industry: "Classic · Szlachetna czerwień", accent: "#9E2532", elements: cardinalTemplate },
     { id: "moss", tier: "paid", collection: "Sidebar", name: "Moss", industry: "Sidebar · Botaniczna elegancja", accent: "#B99854", elements: mossTemplate },
     { id: "signal", tier: "paid", collection: "Banking", name: "Signal", industry: "Banking · Ryzyko i treasury", accent: "#3BD2C7", elements: signalTemplate },
     { id: "obsidian", tier: "paid", collection: "Darktheme", name: "Obsidian", industry: "Darktheme · Panel boczny", accent: "#C9A24B", elements: obsidianTemplate },

@@ -44,7 +44,14 @@ RENDER_SCALE = 3
 
 def render_theme(theme: str, elements_data: list[dict]) -> bytes:
     """Render one frontend template's element list to PDF bytes via ReportLab."""
-    elements = [PdfElement(**el) for el in elements_data]
+    # The frontend template arrays are authored without `element_id` — the editor
+    # loader assigns those at load time. `PdfElement` requires the field, so
+    # synthesize a stable per-position id here. It only identifies elements for
+    # upserts and never affects the rendered geometry or colours.
+    elements = [
+        PdfElement(**{"element_id": f"{theme}-{index}", **el})
+        for index, el in enumerate(elements_data)
+    ]
     pdf_data = types.SimpleNamespace(
         pdf_title=f"template-mockup-{theme}",
         pages=1,

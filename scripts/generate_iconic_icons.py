@@ -17,6 +17,10 @@ THEMES = {
     "ridge": "#1F7A6C",
     "loom": "#C4A35A",
     "volt": "#E8A838",
+    # Cardinal (Classic collection): the layout keeps its "noble red" for text
+    # headings only. Its section and contact icons are deliberately neutral grey
+    # so the red stays reserved for typography, matching the template's design.
+    "cardinal": "#8A8A8A",
 }
 THEME_VARIANTS = {
     "loom-light": "#F3E6C8",
