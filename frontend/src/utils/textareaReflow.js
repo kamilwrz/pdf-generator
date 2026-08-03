@@ -2,7 +2,9 @@
  * Reflow auto-height textareas and pack following content after height changes.
  *
  * Keeps section chrome with the next body block so page breaks never orphan
- * headings in the footer margin. Matches backend SPACE_RECORD packing gaps.
+ * headings in the footer margin. Cross-page packing uses SPACE_RECORD for
+ * ordinary blocks and SPACE_SECTION for section chrome (keep in sync with
+ * `cv_generator_primitives.py`).
  */
 const FLOWABLE_CATEGORIES = new Set(["text", "textarea", "line", "rectangle", "circle", "ellipse", "image"]);
 const NEARBY_DECORATION_CATEGORIES = new Set(["line", "rectangle", "circle", "ellipse"]);
@@ -10,9 +12,12 @@ const DECORATION_LANE_TOLERANCE = 32;
 // Ridge rail icons sit ~36px left of the main column; keep a little headroom.
 const TEXT_ALIGNED_IMAGE_LANE_TOLERANCE = 40;
 // Matches backend SPACE_RECORD: used when reclaiming a page-break gap so later
-// blocks pack into freed space instead of keeping the empty page-bottom hole.
-// Keep in sync with backend SPACE_RECORD (cv_generator_primitives.py).
+// ordinary blocks pack into freed space instead of keeping the empty page-bottom hole.
 const DEFAULT_PACK_GAP = 10;
+// Matches backend SPACE_SECTION. Section headings pulled from a later page must
+// not inherit the tiny page-top inset (often 0–6 px) or they crush under the
+// previous section — the "WYKSZTAŁCENIE at 5 px" report.
+const SECTION_PACK_GAP = 21;
 // Section labels / markers / rules are short. Keep them with following body
 // so a page break never leaves "WYKSZTAŁCENIE" stranded above the footer.
 const CHROME_MAX_HEIGHT = 40;
@@ -74,6 +79,22 @@ function isChromeLike(element) {
   return elementHeight(element) <= CHROME_MAX_HEIGHT;
 }
 
+/**
+ * Whether reflow must leave this element's position untouched.
+ *
+ * IT templates mark section markers/rules `locked` so users cannot drag them
+ * and spacing guides ignore them — but those chrome pieces must still travel
+ * with their heading when a textarea shrinks and reclaim packs the section
+ * onto the previous page. Without this exception the heading moves and the
+ * decorative rule stays on page N+1 (missing underline under WYKSZTAŁCENIE).
+ * Only `flowRole: "section-chrome"` unlocks packing; other locked elements
+ * (page artwork, pinned user chrome) stay fixed.
+ */
+function isPositionLockedForReflow(element) {
+  if (!element?.locked) return false;
+  return element.flowRole !== "section-chrome";
+}
+
 function overlapsHorizontally(first, second) {
   const overlap = Math.min(
     number(first.left) + elementWidth(first),
@@ -127,6 +148,13 @@ function toPagePosition(absolute, height, pageHeight, pageTop, bottomMargin) {
 }
 
 function packGapAfterPageBreak(current, pageTop) {
+  // Section chrome that lived alone near the top of page N+1 carries a tiny
+  // `top - pageTop` inset (Vector education often starts at y=72 with pageTop
+  // 66 → 6 px). Using that inset as the pack gap crushed headings under the
+  // previous section. Always restore SPACE_SECTION for chrome.
+  if (isChromeLike(current)) {
+    return SECTION_PACK_GAP;
+  }
   const continuationInset = Math.max(0, number(current.top) - pageTop);
   return Math.min(DEFAULT_PACK_GAP, continuationInset || DEFAULT_PACK_GAP);
 }
@@ -204,7 +232,7 @@ function precedingChromeCluster(elements, target, pageHeight) {
     .filter((element) => (
       FLOWABLE_CATEGORIES.has(element.category)
       && !element.fixedToPage
-      && !element.locked
+      && !isPositionLockedForReflow(element)
       && element.element_id !== target.element_id
       && isChromeLike(element)
       && belongsToFlowLane(target, element)
@@ -286,7 +314,7 @@ export function reflowTextareaHeight(
     .filter((element) => (
       FLOWABLE_CATEGORIES.has(element.category)
       && !element.fixedToPage
-      && !element.locked
+      && !isPositionLockedForReflow(element)
       && (
         element.element_id === elementId
         || chromeCluster.some((chrome) => chrome.element_id === element.element_id)

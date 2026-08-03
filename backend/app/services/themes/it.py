@@ -174,8 +174,10 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
                 _circle(L - 31, marker_y, 18, C["marker"], borderWidth=1.2, zIndex=3, page=b.pg),
                 _rect(L - 25, marker_y + 6, 6, 6, C["accent"], 1, zIndex=3, page=b.pg),
             ]
-        # Lock decorative markers so spacing guides measure text→text rhythm,
-        # not marker→marker across an entire section body.
+        # Lock decorative markers/rules for drag + spacing guides (text→text
+        # rhythm). flowRole section-chrome still lets canvas reflow move them
+        # with the heading when a prior textarea shrinks — otherwise the rule
+        # stays on page N+1 while WYKSZTAŁCENIE packs onto page 1 alone.
         for mark in markers:
             mark["locked"] = True
             mark["flowRole"] = "section-chrome"

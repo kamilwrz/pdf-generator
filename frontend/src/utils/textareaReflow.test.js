@@ -49,11 +49,85 @@ test("shrinking page-one content reclaims the page-break hole for following bloc
 
   const heading = result.elements.find((element) => element.element_id === "page-two-heading");
   const body = result.elements.find((element) => element.element_id === "page-two-body");
-  // 660 + pack gap 10 → heading; preserve the original same-page gap to body.
-  assert.deepEqual({ page: heading.page, top: heading.top }, { page: 1, top: 670 });
+  // 660 + SPACE_SECTION (21) → heading; preserve the original same-page gap to body.
+  // Using the page-top inset (0) or SPACE_RECORD (10) crushed education headings.
+  assert.deepEqual({ page: heading.page, top: heading.top }, { page: 1, top: 681 });
   assert.equal(body.page, 1);
   assert.ok(body.top + body.height <= 746);
   assert.equal(result.pageCount, 1);
+});
+
+test("locked section-chrome rules reflow with their heading across a reclaimed page break", () => {
+  // Vector/Kernel/Relay lock decorative rules so users cannot drag them.
+  // Reflow must still move those rules with the heading — otherwise
+  // WYKSZTAŁCENIE lands on page 1 without its underline.
+  const result = reflowTextareaHeight([
+    textarea({ top: 600, height: 100 }),
+    {
+      element_id: "edu-heading",
+      category: "text",
+      content: "WYKSZTAŁCENIE",
+      flowRole: "section-chrome",
+      left: 76,
+      top: 72,
+      width: 180,
+      fontSize: 8.5,
+      page: 2,
+    },
+    {
+      element_id: "edu-rule",
+      category: "line",
+      flowRole: "section-chrome",
+      locked: true,
+      left: 76,
+      top: 83.5,
+      width: 400,
+      height: 1,
+      page: 2,
+    },
+    {
+      element_id: "edu-body",
+      category: "textarea",
+      left: 76,
+      top: 100,
+      width: 400,
+      height: 20,
+      page: 2,
+    },
+  ], "textarea", 40, 842, { pageTop: 66, bottomMargin: 96 });
+
+  const heading = result.elements.find((element) => element.element_id === "edu-heading");
+  const rule = result.elements.find((element) => element.element_id === "edu-rule");
+  const body = result.elements.find((element) => element.element_id === "edu-body");
+  assert.equal(heading.page, 1);
+  assert.equal(heading.top, 640 + 21); // shrunk bottom 640 + SPACE_SECTION
+  assert.equal(rule.page, 1);
+  // Authored rule sat 11.5 px below the heading — keep that rhythm.
+  assert.equal(rule.top, heading.top + 11.5);
+  assert.equal(body.page, 1);
+  assert.ok(body.top > rule.top);
+});
+
+test("cross-page pack does not use the tiny page-top inset for section chrome", () => {
+  // Education often starts at y=72 on page 2 while canvas pageTop is 66.
+  // min(DEFAULT_PACK_GAP, 72-66) used to yield 6 px → ~5 px on ink guides.
+  const result = reflowTextareaHeight([
+    textarea({ top: 620, height: 80 }),
+    {
+      element_id: "edu-heading",
+      category: "text",
+      content: "WYKSZTAŁCENIE",
+      flowRole: "section-chrome",
+      left: 76,
+      top: 72,
+      width: 180,
+      fontSize: 8.5,
+      page: 2,
+    },
+  ], "textarea", 40, 842, { pageTop: 66, bottomMargin: 96 });
+
+  const heading = result.elements.find((element) => element.element_id === "edu-heading");
+  assert.deepEqual({ page: heading.page, top: heading.top }, { page: 1, top: 681 });
 });
 
 test("overflowed blocks land on continuation inset, not page top 0", () => {
@@ -322,8 +396,8 @@ test("keeps page decorations fixed while text content reflows", () => {
   const background = result.elements.find((element) => element.element_id === "page-two-background");
   const section = result.elements.find((element) => element.element_id === "next-section");
   assert.deepEqual({ page: background.page, top: background.top }, { page: 2, top: 0 });
-  // Cross-page dead space is reclaimed; the section packs under the taller box.
-  assert.deepEqual({ page: section.page, top: section.top }, { page: 1, top: 154 });
+  // Cross-page dead space is reclaimed; section chrome packs with SPACE_SECTION (21).
+  assert.deepEqual({ page: section.page, top: section.top }, { page: 1, top: 165 });
 });
 
 test("does not shift a position-locked element during textarea reflow", () => {
