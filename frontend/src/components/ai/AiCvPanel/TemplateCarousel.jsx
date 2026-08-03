@@ -32,8 +32,9 @@ const ChevronRight = () => (
  * @param {object} props.entitlements
  * @param {string|null} props.fillingId
  * @param {(template: object) => void} props.onSelect
+ * @param {boolean} [props.fillHeight] - Stretch the gallery to fill a flex parent (AiCvPanel step 2).
  */
-export default function TemplateCarousel({ templates, entitlements, fillingId, onSelect }) {
+export default function TemplateCarousel({ templates, entitlements, fillingId, onSelect, fillHeight = false }) {
     const [collectionFilter, setCollectionFilter] = useState(ALL_COLLECTIONS);
     const [startIndex, setStartIndex] = useState(0);
 
@@ -73,7 +74,7 @@ export default function TemplateCarousel({ templates, entitlements, fillingId, o
     if (!templates?.length) return null;
 
     return (
-        <div className={classes.carousel}>
+        <div className={`${classes.carousel}${fillHeight ? ` ${classes.carouselFill}` : ""}`}>
             <div className={classes.toolbar}>
                 <div className={classes.filters} role="tablist" aria-label="Kolekcje szablonów">
                     <button
@@ -112,7 +113,7 @@ export default function TemplateCarousel({ templates, entitlements, fillingId, o
             {total === 0 ? (
                 <p className={classes.emptyFilter}>Brak szablonów w tej kolekcji.</p>
             ) : (
-                <div className={classes.track}>
+                <div className={`${classes.track}${fillHeight ? ` ${classes.trackFill}` : ""}`}>
                     <AnimatePresence mode="popLayout" initial={false}>
                         {visible.map((t) => {
                             const locked = !isTemplateAllowed(t, entitlements);

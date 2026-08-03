@@ -476,7 +476,7 @@ Implementation:
 
 ### Template carousel (import, bio wizard, change template)
 
-The same endless-loop `TemplateCarousel` gallery is used after PDF extract (**Wypełnij z mojego CV**), on the bio wizard **Podsumowanie** step, and in **Zmień szablon**. Templates are sorted by the seven product collections (`collection` on each `TEMPLATES` entry; helpers in `templateCollections.js`). Collection chips filter the loop (Wszystkie / Finanse / IT / …). Each card shows the template’s A4 mockup and collection label; hovering or focusing enlarges it in place (`whileHover`/`whileFocus` via Framer Motion). Only five cards render at once (modulo indexing), so prev/next never hits an end. The **Szablony** modal (`TemplatesModal`) renders the same collections as headed grid sections. Locked (non-Standard) templates stay visible with a **Standard** badge; the currently-filling template shows a spinner. All three flows call the shared `fillTemplate(cvData, templateId)` helper (`POST /ai/fill_template`).
+The same endless-loop `TemplateCarousel` gallery is used after PDF extract (**Wypełnij z mojego CV**), on the bio wizard **Podsumowanie** step, and in **Zmień szablon**. In **Wypełnij z mojego CV**, step 1 and step 2 are exclusive full-body panes (no stacked modal scrollbar); footer arrows between the step label and Anuluj switch steps. Templates are sorted by the seven product collections (`collection` on each `TEMPLATES` entry; helpers in `templateCollections.js`). Collection chips filter the loop (Wszystkie / Finanse / IT / …). Each card shows the template’s A4 mockup and collection label; hovering or focusing enlarges it in place (`whileHover`/`whileFocus` via Framer Motion). Only five cards render at once (modulo indexing), so prev/next never hits an end. The **Szablony** modal (`TemplatesModal`) renders the same collections as headed grid sections. Locked (non-Standard) templates stay visible with a **Standard** badge; the currently-filling template shows a spinner. All three flows call the shared `fillTemplate(cvData, templateId)` helper (`POST /ai/fill_template`).
 
 Implementation:
 
@@ -484,7 +484,7 @@ Implementation:
 - `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — collection chips, modulo-indexed visible window, arrows, hover-enlarge
 - `frontend/src/utils/templateCollections.js` — `groupTemplatesByCollection` / `sortTemplatesByCollection`
 - `frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx` — collection section headings + grid
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — step-2 carousel + `handleFill`
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — exclusive step panes (no modal scroll), footer step arrows between the step label and Anuluj, step-2 carousel + `handleFill`
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, lines 486–492, `renderReview` carousel
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx` — restyle via `replaceActiveElements`
 - Assets: `frontend/public/template-mockups/{id}.png`
@@ -1251,7 +1251,7 @@ Testy:
 
 ### Karuzela szablonów (import, kreator bio, zmiana szablonu)
 
-Ta sama nieskończona galeria `TemplateCarousel` jest używana po ekstrakcji PDF (**Wypełnij z mojego CV**), na kroku **Podsumowanie** kreatora bio oraz w **Zmień szablon**. Szablony są posortowane według siedmiu kolekcji produktowych (`collection` w `TEMPLATES`; helpery w `templateCollections.js`). Chipy kolekcji filtrują pętlę (Wszystkie / Finanse / IT / …). Każda karta pokazuje mockup A4 i etykietę kolekcji; najazd/fokus powiększa ją w miejscu. Renderowanych jest naraz pięć kart (indeksowanie modulo). Modal **Szablony** (`TemplatesModal`) pokazuje te same kolekcje jako sekcje z nagłówkami. Zablokowane szablony mają plakietkę **Standard**. Wszystkie trzy ścieżki wołają wspólny helper `fillTemplate(cvData, templateId)` (`POST /ai/fill_template`).
+Ta sama nieskończona galeria `TemplateCarousel` jest używana po ekstrakcji PDF (**Wypełnij z mojego CV**), na kroku **Podsumowanie** kreatora bio oraz w **Zmień szablon**. W **Wypełnij z mojego CV** kroki 1 i 2 to osobne pełne panele (bez scrolla całego modala); strzałki w stopce między etykietą kroku a Anuluj przełączają kroki. Szablony są posortowane według siedmiu kolekcji produktowych (`collection` w `TEMPLATES`; helpery w `templateCollections.js`). Chipy kolekcji filtrują pętlę (Wszystkie / Finanse / IT / …). Każda karta pokazuje mockup A4 i etykietę kolekcji; najazd/fokus powiększa ją w miejscu. Renderowanych jest naraz pięć kart (indeksowanie modulo). Modal **Szablony** (`TemplatesModal`) pokazuje te same kolekcje jako sekcje z nagłówkami. Zablokowane szablony mają plakietkę **Standard**. Wszystkie trzy ścieżki wołają wspólny helper `fillTemplate(cvData, templateId)` (`POST /ai/fill_template`).
 
 Implementacja:
 
@@ -1259,7 +1259,7 @@ Implementacja:
 - `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — chipy kolekcji, okno modulo, strzałki
 - `frontend/src/utils/templateCollections.js` — `groupTemplatesByCollection` / `sortTemplatesByCollection`
 - `frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx` — sekcje kolekcji + siatka
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — karuzela kroku 2 + `handleFill`
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — osobne panele kroków (bez scrolla modala), strzałki w stopce między etykietą kroku a Anuluj, karuzela kroku 2 + `handleFill`
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, linie 486–492 — karuzela w `renderReview`
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx` — restyl przez `replaceActiveElements`
 - Pliki: `frontend/public/template-mockups/{id}.png`

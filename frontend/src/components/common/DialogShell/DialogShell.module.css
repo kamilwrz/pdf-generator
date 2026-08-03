@@ -58,8 +58,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 12px;
     padding: 10px 16px;
     border-top: 1px solid var(--chrome-border);
     flex-shrink: 0;
+    /* Allow three-part footers (label | step arrows | actions) to share the row. */
+    flex-wrap: nowrap;
 }

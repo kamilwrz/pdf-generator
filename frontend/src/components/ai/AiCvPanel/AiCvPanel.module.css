@@ -1,38 +1,131 @@
 /*
- * Content for the "Wypełnij z mojego CV" dialog, which now opens at roughly
- * double its previous width (see AiCvPanel.jsx DialogShell width={extracted ?
- * 1400 : 960}). Every measurement below is scaled up to match — spacing,
- * type, dropzone, and the step-2 template picker — so the enlarged frame
- * reads as intentionally spacious rather than sparse content floating in
- * empty space. Rectangular chrome (buttons, dropzone, cards, panels) is
- * sharpened to near-zero radius to match the dialog's own radius={2}; the
- * template color dot and loading spinner stay circular since their shape is
- * semantic (a color swatch and a spinner), not a "rounded corner" choice.
- *
- * Layout: `.wrap` fills DialogShell's scrollable body (height: 100%) as a
- * single flex column. Step 1 (dropzone) and the extracted-CV summary keep
- * their natural height (`flex-shrink: 0`) and never scroll. The step-2
- * container (`.sectionFlex`) grows to absorb any remaining space around the
- * template gallery (see TemplateCarousel.jsx / .module.css for the gallery
- * itself, including its own endless-loop and hover-enlarge behavior).
+ * “Wypełnij z mojego CV” wizard. Step 1 and step 2 are exclusive full-body
+ * panes (no stacked scroll). DialogShell body overflow is turned off via
+ * `.dialogBody` so the gallery fits the 82vh shell without an inner scrollbar.
+ * Footer hosts step arrows between the step label and Anuluj.
  */
+
+.dialogBody {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
 
 .wrap {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
     min-height: 0;
+    height: 100%;
+}
+
+.wrapStep2 {
+    min-height: min(620px, 68vh);
+}
+
+.stepPane {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 26px 32px;
+    flex: 1;
+    min-height: 0;
+}
+
+.step2Pane {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px 28px 16px;
+    flex: 1;
+    min-height: 0;
+}
+
+.step2Header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
+.summaryLine {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 12px;
+    margin-top: 6px;
+}
+
+.summaryLine strong {
+    font: 700 18px var(--font-display);
+    color: var(--chrome-ink);
+}
+
+.summaryLine span {
+    font: 600 13px var(--font-body);
+    color: var(--chrome-muted);
+}
+
+.carouselFill {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.footerBar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
 }
 
 .stepLabel {
     font: 500 13px var(--font-body);
     color: var(--chrome-muted);
+    flex-shrink: 0;
+}
+
+.stepNav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.stepNavBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 2px;
+    border: 1px solid var(--chrome-border);
+    background: var(--chrome-control);
+    color: var(--chrome-ink);
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s, opacity .15s;
+}
+
+.stepNavBtn:hover:not(:disabled) {
+    background: var(--chrome-hover);
+    border-color: var(--chrome-accent);
+    color: var(--chrome-accent);
+}
+
+.stepNavBtn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
 }
 
 .footerActions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 10px;
+    flex-shrink: 0;
 }
 
 .cancelBtn {
@@ -52,33 +145,6 @@
     color: var(--chrome-accent);
 }
 
-.section {
-    padding: 26px 32px;
-    border-bottom: 1px solid var(--chrome-border);
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    /* Default flex-item behavior is shrinkable; step 1 (dropzone) and the
-       extracted-CV summary must keep their full readable size regardless of
-       how much room the step-2 template gallery ends up needing. */
-    flex-shrink: 0;
-}
-
-/* Applied together with .section only on the step-2 container. Declared
-   after .section so its flex-shrink: 1 (part of the flex: 1 shorthand) wins
-   the cascade for that element, letting step 2 — and only step 2 — grow and
-   shrink to fill whatever space step 1 and the CV summary do not need. */
-.sectionFlex {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.sectionDisabled {
-    opacity: .55;
-}
-
 .sectionLabel {
     font: 700 12px var(--font-body);
     color: var(--chrome-muted);
@@ -87,7 +153,6 @@
     flex-shrink: 0;
 }
 
-/* Upload dropzone */
 .dropzone {
     border: 1px dashed var(--chrome-border);
     border-radius: 2px;
@@ -144,7 +209,6 @@
 
 .guidedLink:hover { text-decoration: underline; }
 
-/* Extract button (footer) */
 .extractBtn {
     display: inline-flex;
     align-items: center;
@@ -164,11 +228,11 @@
 .extractBtn:hover:not(:disabled) { background: var(--chrome-accent); }
 .extractBtn:disabled { opacity: .55; cursor: not-allowed; }
 
-/* Extraction preview */
 .preview {
-    padding: 22px 32px;
+    padding: 18px 20px;
     background: var(--chrome-control);
-    border-bottom: 1px solid var(--chrome-border);
+    border: 1px solid var(--chrome-border);
+    border-radius: 2px;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -195,13 +259,14 @@
 
 .reExtract {
     align-self: flex-start;
-    margin-top: 8px;
+    margin-top: 4px;
     font: 600 14px var(--font-body);
     color: var(--chrome-accent);
     background: transparent;
     border: none;
     padding: 0;
     cursor: pointer;
+    flex-shrink: 0;
 }
 .reExtract:hover { text-decoration: underline; }
 
@@ -212,7 +277,6 @@
     flex-shrink: 0;
 }
 
-/* Spinner */
 .spinner {
     display: inline-block;
     width: 18px;
@@ -224,13 +288,13 @@
     flex-shrink: 0;
 }
 
-/* Error */
 .error {
-    margin: 20px 32px;
+    margin: 0 32px 20px;
     padding: 16px 20px;
     font: 600 15px var(--font-body);
     color: var(--danger);
     background: var(--danger-soft);
     border-radius: 2px;
     border: 1px solid rgba(232, 138, 115, .35);
+    flex-shrink: 0;
 }

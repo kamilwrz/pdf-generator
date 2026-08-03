@@ -1,10 +1,13 @@
 /**
  * “Import CV PDF → pick template” dialog.
  * Extract is entitlement-gated; fill uses deterministic backend layout.
- * Step 2 is an endless-loop template gallery (TemplateCarousel) — hovering a
- * card enlarges it in place rather than driving a separate preview pane.
+ *
+ * Two exclusive wizard steps fill the dialog body (no stacked scroll):
+ *   1) upload / extract
+ *   2) template gallery
+ * Footer arrows switch steps; they sit between the step label and Anuluj.
  */
-import { useRef, useState, useCallback, use, useMemo } from "react";
+import { useRef, useState, useCallback, use, useMemo, useEffect } from "react";
 import classes from "./AiCvPanel.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
@@ -28,6 +31,14 @@ const SparkIcon = () => (
     </svg>
 );
 
+const ChevronLeft = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+);
+
+const ChevronRight = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6 6-6" /></svg>
+);
+
 export default function AiCvPanel() {
     const { isAiPanel, showAiPanel, showBioCvModal, loadAiElements, entitlements, refreshEntitlements, setActiveCvData } = use(PdfContext);
 
@@ -35,12 +46,20 @@ export default function AiCvPanel() {
     const [fileName, setFileName] = useState(null);
     const [fileData, setFileData] = useState(null);
     const [cvData, setCvData] = useState(null);
+    const [wizardStep, setWizardStep] = useState(1);
     const [isExtracting, setIsExtracting] = useState(false);
     const [fillingId, setFillingId] = useState(null);
     const [error, setError] = useState(null);
     const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
     const canExtract = Boolean(entitlements?.extract_cv);
     const extracted = Boolean(cvData?.name);
+    const onStep2 = extracted && wizardStep === 2;
+
+    useEffect(() => {
+        if (!extracted && wizardStep !== 1) {
+            setWizardStep(1);
+        }
+    }, [extracted, wizardStep]);
 
     const api = useMemo(
         () => new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` }),
@@ -53,6 +72,7 @@ export default function AiCvPanel() {
         setFileName(f.name);
         setFileData(f);
         setCvData(null);
+        setWizardStep(1);
         setError(null);
     }
 
@@ -82,7 +102,7 @@ export default function AiCvPanel() {
                 });
             }
             setCvData(res.cv_data);
-            // Extraction consumed AI credits — refresh the visible balance.
+            setWizardStep(2);
             refreshEntitlements?.();
         } catch (err) {
             setError(planErrorMessage(err, "Nie udało się wyodrębnić danych z CV."));
@@ -104,16 +124,7 @@ export default function AiCvPanel() {
                 api,
                 errorMessage: "Generowanie szablonu nie powiodło się",
             });
-            // Must be awaited: loadAiElements starts a fresh document, which
-            // asynchronously resets activeCvData to null (see
-            // startFreshDocument in PdfCanvas.jsx) after flushing the
-            // previous document's autosave. Setting activeCvData below
-            // without awaiting this would race that reset and could be
-            // clobbered back to null moments later.
             await loadAiElements(res.elements, `CV ${template.name}`, template.id);
-            // Keep the source data reachable after this modal closes, so the
-            // Topbar "Zmień szablon" gallery can restyle this same CV later
-            // without asking the user to re-upload or re-extract anything.
             setActiveCvData(cvData);
             showAiPanel();
         } catch (err) {
@@ -123,119 +134,177 @@ export default function AiCvPanel() {
         }
     }, [api, cvData, entitlements, loadAiElements, setActiveCvData, showAiPanel]);
 
+    function goPrevStep() {
+        setWizardStep(1);
+        setError(null);
+    }
+
+    function goNextStep() {
+        if (!extracted) return;
+        setWizardStep(2);
+        setError(null);
+    }
+
     return (
         <DialogShell
             open={isAiPanel}
             onClose={showAiPanel}
-            width={extracted ? 1400 : 960}
+            width={onStep2 ? 1400 : 960}
             radius={2}
+            bodyClassName={classes.dialogBody}
             title="Wypełnij z mojego CV"
             subtitle="Prześlij PDF — AI wypełni dowolny szablon Twoimi danymi."
-            footer={<>
-                <span className={classes.stepLabel}>Krok {extracted ? "2" : "1"} z 2</span>
-                <div className={classes.footerActions}>
-                    <button type="button" className={classes.cancelBtn} onClick={showAiPanel}>Anuluj</button>
-                    {!extracted && (
+            footer={(
+                <div className={classes.footerBar}>
+                    <span className={classes.stepLabel}>
+                        Krok {onStep2 ? "2" : "1"}
+                        {" "}
+                        z 2
+                    </span>
+                    <div className={classes.stepNav} role="group" aria-label="Nawigacja kroków">
                         <button
                             type="button"
-                            className={classes.extractBtn}
-                            onClick={handleExtract}
-                            disabled={!fileName || isExtracting || !canExtract}
-                            title={!canExtract ? "Dostępne w planie Standard" : undefined}
+                            className={classes.stepNavBtn}
+                            onClick={goPrevStep}
+                            disabled={!onStep2}
+                            aria-label="Poprzedni krok"
                         >
-                            {isExtracting ? (
-                                <><span className={classes.spinner} />Wyodrębnianie CV…</>
-                            ) : (
-                                <><SparkIcon />{canExtract ? "Wyodrębnij dane CV" : "Standard — ekstrakcja"}</>
-                            )}
+                            <ChevronLeft />
                         </button>
-                    )}
-                </div>
-            </>}
-        >
-            {/*
-              * Single flex column filling the dialog body's height. Step 1
-              * (dropzone) and the extracted-CV summary keep their natural
-              * size (flex-shrink: 0 in CSS); only the step-2 template area
-              * (.sectionFlex) grows to fill the remainder and scrolls its own
-              * list internally. This keeps the picker reachable without ever
-              * scrolling the whole modal — a fixed dropzone/summary height
-              * plus an independently scrolling template list, not two nested
-              * scrollbars fighting each other.
-              */}
-            <div className={classes.wrap}>
-            <div className={classes.section}>
-                <div className={classes.sectionLabel}>Krok 1 · Prześlij swoje CV</div>
-                <div
-                    className={`${classes.dropzone} ${fileName ? classes.dropzoneDone : ""}`}
-                    onClick={() => fileRef.current?.click()}
-                >
-                    <input ref={fileRef} type="file" accept=".pdf" style={{ display: "none" }} onChange={handleFilePick} />
-                    {fileName ? (
-                        <>
-                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                            <span className={classes.dropFileName}>{fileName}</span>
-                            <span className={classes.dropChange}>Zmień</span>
-                        </>
-                    ) : (
-                        <>
-                            <UploadIcon />
-                            <span className={classes.dropText}>Upuść PDF tutaj lub kliknij, aby wybrać plik</span>
-                        </>
-                    )}
-                </div>
-                {!extracted && (
-                    <button type="button" className={classes.guidedLink} onClick={showBioCvModal}>
-                        Nie masz gotowego PDF? Utwórz CV krok po kroku
-                    </button>
-                )}
-                {!canExtract && !extracted && (
-                    <p className={classes.hint}>
-                        Ekstrakcja z PDF wymaga planu Standard. Kreator krok po kroku działa na Free.
-                    </p>
-                )}
-            </div>
-
-            {extracted && (
-                <div className={classes.preview}>
-                    <div className={classes.previewName}>{cvData.name}</div>
-                    <div className={classes.previewMeta}>{cvData.title}</div>
-                    <div className={classes.previewStats}>
-                        <span>{cvData.experience?.length ?? 0} {cvData.experience?.length === 1 ? "stanowisko" : "stanowisk"}</span>
-                        <span>·</span>
-                        <span>{cvData.education?.length ?? 0} {cvData.education?.length === 1 ? "wpis edukacyjny" : "wpisów edukacyjnych"}</span>
-                        <span>·</span>
-                        <span>{cvData.skills?.length ?? 0} {cvData.skills?.length === 1 ? "umiejętność" : "umiejętności"}</span>
+                        <button
+                            type="button"
+                            className={classes.stepNavBtn}
+                            onClick={goNextStep}
+                            disabled={!extracted || onStep2}
+                            aria-label="Następny krok"
+                            title={!extracted ? "Najpierw wyodrębnij dane z CV" : undefined}
+                        >
+                            <ChevronRight />
+                        </button>
                     </div>
-                    <button type="button" className={classes.reExtract} onClick={() => { setCvData(null); }}>
-                        Wyodrębnij ponownie
-                    </button>
+                    <div className={classes.footerActions}>
+                        <button type="button" className={classes.cancelBtn} onClick={showAiPanel}>Anuluj</button>
+                        {!onStep2 && (
+                            <button
+                                type="button"
+                                className={classes.extractBtn}
+                                onClick={handleExtract}
+                                disabled={!fileName || isExtracting || !canExtract}
+                                title={!canExtract ? "Dostępne w planie Standard" : undefined}
+                            >
+                                {isExtracting ? (
+                                    <><span className={classes.spinner} />Wyodrębnianie CV…</>
+                                ) : (
+                                    <><SparkIcon />{canExtract ? "Wyodrębnij dane CV" : "Standard — ekstrakcja"}</>
+                                )}
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
-
-            <div className={`${classes.section} ${classes.sectionFlex} ${!extracted ? classes.sectionDisabled : ""}`}>
-                <div className={classes.sectionLabel}>Krok 2 · Wybierz szablon do wypełnienia</div>
-                {extracted ? (
-                    cvTemplates.length > 0 ? <>
-                        <TemplateCarousel
-                            templates={cvTemplates}
-                            entitlements={entitlements}
-                            fillingId={fillingId}
-                            onSelect={handleFill}
-                        />
+        >
+            <div className={`${classes.wrap} ${onStep2 ? classes.wrapStep2 : ""}`}>
+                {!onStep2 ? (
+                    <div className={classes.stepPane}>
+                        <div className={classes.sectionLabel}>Krok 1 · Prześlij swoje CV</div>
+                        <div
+                            className={`${classes.dropzone} ${fileName ? classes.dropzoneDone : ""}`}
+                            onClick={() => fileRef.current?.click()}
+                        >
+                            <input ref={fileRef} type="file" accept=".pdf" style={{ display: "none" }} onChange={handleFilePick} />
+                            {fileName ? (
+                                <>
+                                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                                    <span className={classes.dropFileName}>{fileName}</span>
+                                    <span className={classes.dropChange}>Zmień</span>
+                                </>
+                            ) : (
+                                <>
+                                    <UploadIcon />
+                                    <span className={classes.dropText}>Upuść PDF tutaj lub kliknij, aby wybrać plik</span>
+                                </>
+                            )}
+                        </div>
+                        {extracted && (
+                            <div className={classes.preview}>
+                                <div className={classes.previewName}>{cvData.name}</div>
+                                <div className={classes.previewMeta}>{cvData.title}</div>
+                                <div className={classes.previewStats}>
+                                    <span>{cvData.experience?.length ?? 0} {cvData.experience?.length === 1 ? "stanowisko" : "stanowisk"}</span>
+                                    <span>·</span>
+                                    <span>{cvData.education?.length ?? 0} {cvData.education?.length === 1 ? "wpis edukacyjny" : "wpisów edukacyjnych"}</span>
+                                    <span>·</span>
+                                    <span>{cvData.skills?.length ?? 0} {cvData.skills?.length === 1 ? "umiejętność" : "umiejętności"}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    className={classes.reExtract}
+                                    onClick={() => { setCvData(null); setWizardStep(1); }}
+                                >
+                                    Wyodrębnij ponownie
+                                </button>
+                            </div>
+                        )}
+                        <button type="button" className={classes.guidedLink} onClick={showBioCvModal}>
+                            Nie masz gotowego PDF? Utwórz CV krok po kroku
+                        </button>
+                        {!canExtract && (
+                            <p className={classes.hint}>
+                                Ekstrakcja z PDF wymaga planu Standard. Kreator krok po kroku działa na Free.
+                            </p>
+                        )}
+                        {extracted && (
+                            <p className={classes.hint}>
+                                Dane są gotowe — strzałka w prawo w stopce przenosi do wyboru szablonu.
+                            </p>
+                        )}
+                    </div>
+                ) : (
+                    <div className={classes.step2Pane}>
+                        <div className={classes.step2Header}>
+                            <div>
+                                <div className={classes.sectionLabel}>Krok 2 · Wybierz szablon do wypełnienia</div>
+                                <div className={classes.summaryLine}>
+                                    <strong>{cvData.name}</strong>
+                                    <span>
+                                        {cvData.experience?.length ?? 0}
+                                        {" stanowisk · "}
+                                        {cvData.education?.length ?? 0}
+                                        {" edukacja · "}
+                                        {cvData.skills?.length ?? 0}
+                                        {" umiejętności"}
+                                    </span>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                className={classes.reExtract}
+                                onClick={() => { setCvData(null); setWizardStep(1); }}
+                            >
+                                Wyodrębnij ponownie
+                            </button>
+                        </div>
+                        {cvTemplates.length > 0 ? (
+                            <div className={classes.carouselFill}>
+                                <TemplateCarousel
+                                    templates={cvTemplates}
+                                    entitlements={entitlements}
+                                    fillingId={fillingId}
+                                    onSelect={handleFill}
+                                    fillHeight
+                                />
+                            </div>
+                        ) : (
+                            <p className={classes.hint}>Nie ma jeszcze dostępnych szablonów CV.</p>
+                        )}
                         <p className={classes.hint}>
                             Możesz wypełnić wiele szablonów bez ponownego przesyłania pliku.
                             Każdy otworzy się na płótnie do natychmiastowej edycji.
                         </p>
-                    </> : (
-                        <p className={classes.hint}>Nie ma jeszcze dostępnych szablonów CV.</p>
-                    )
-                ) : (
-                    <p className={classes.hint}>Dostępne po wyodrębnieniu danych z pliku.</p>
+                    </div>
                 )}
-            </div>
 
-            {error && <div className={classes.error}>{error}</div>}
+                {error && <div className={classes.error}>{error}</div>}
             </div>
         </DialogShell>
     );

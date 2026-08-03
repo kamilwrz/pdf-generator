@@ -13,7 +13,17 @@ import CloseButton from "../CloseButton/CloseButton";
 // shared 8px radius from the stylesheet. Large surfaces (plans, templates,
 // BioCv form steps) pass width={1280} and a near-zero radius; fill/summary
 // galleries use 1400px with the same sharper editorial look.
-export default function DialogShell({ open, onClose, width = 560, radius, title, subtitle, footer, children }) {
+export default function DialogShell({
+    open,
+    onClose,
+    width = 560,
+    radius,
+    title,
+    subtitle,
+    footer,
+    bodyClassName,
+    children,
+}) {
     useEffect(() => {
         if (!open) return;
         const onKey = (e) => {
@@ -39,7 +49,7 @@ export default function DialogShell({ open, onClose, width = 560, radius, title,
                     </div>
                     <CloseButton clickHandler={onClose} top={12} right={16} />
                 </div>
-                <div className={classes.body}>
+                <div className={`${classes.body}${bodyClassName ? ` ${bodyClassName}` : ""}`}>
                     {children}
                 </div>
                 {footer && <div className={classes.footer}>{footer}</div>}
