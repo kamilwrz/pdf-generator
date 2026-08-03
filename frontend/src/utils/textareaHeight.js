@@ -24,3 +24,19 @@ export function measureNaturalScrollHeight(node) {
 
   return Number.isFinite(measuredHeight) ? measuredHeight : 0;
 }
+
+/**
+ * Whether a preserveInitialLayout textarea should shrink to browser metrics.
+ *
+ * ReportLab-authored heights can overshoot the canvas scrollHeight, leaving
+ * empty space that inflates visual section gaps. Growing on first mount still
+ * races and stretches gaps, so the first pass is shrink-only.
+ */
+export function shouldShrinkPreservedLayout(authoredHeight, measuredHeight) {
+  const authored = Number(authoredHeight);
+  const measured = Number(measuredHeight);
+  if (!Number.isFinite(authored) || !Number.isFinite(measured) || measured <= 0) {
+    return false;
+  }
+  return measured < authored - 0.5;
+}

@@ -8,7 +8,10 @@ import { memo, useLayoutEffect, useRef, useState } from "react";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import Resize from "../../common/Resize/Resize";
-import { measureNaturalScrollHeight } from "../../../utils/textareaHeight";
+import {
+    measureNaturalScrollHeight,
+    shouldShrinkPreservedLayout,
+} from "../../../utils/textareaHeight";
 import { deferTextareaEdit, hasTextareaDragIntent } from "../../../utils/textareaEditing";
 import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
 import {
@@ -83,6 +86,10 @@ function Textarea({
     const pointerStartRef = useRef(null);
     const spacingHoldTimerRef = useRef(null);
     const initialLayoutPreservedRef = useRef(false);
+    // Keep the latest authored height for shrink comparisons without re-running
+    // the mount effect whenever fitTextareaToContent updates `height`.
+    const heightRef = useRef(height);
+    heightRef.current = height;
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
     function handleIsResizeable(active) {
         setIsResizeable(Boolean(active));
@@ -117,30 +124,48 @@ function Textarea({
     // authoring-time estimate carried by a template spec.
     // While canvas enter holds content at opacity 0, reflow is suppressed —
     // remasure as soon as that hold ends so webfont metrics drive packing.
-    // Deterministically generated Onyx blocks skip this first mount pass:
-    // their backend-authored pagination is already complete, and independently
-    // reflowing every block can reorder cross-page section chrome. User edits
-    // and later font/width changes still run the normal measurement path.
+    //
+    // preserveInitialLayout (generator-filled CVs): skip *growth* on the first
+    // mount so independent expands cannot race and stretch section gaps, but
+    // still shrink when ReportLab overshoots browser metrics. Empty slack at
+    // the bottom of a box makes SPACE_SECTION look uneven across templates.
+    // User edits and later font/width changes use the full measure path.
     useLayoutEffect(() => {
         if (!autoHeight || isEditing) return undefined;
-        if (preserveInitialLayout && !initialLayoutPreservedRef.current) {
-            initialLayoutPreservedRef.current = true;
-            return undefined;
-        }
 
         let cancelled = false;
-        const measure = () => {
+        const applyMeasuredHeight = (measuredHeight, { allowGrow }) => {
             if (cancelled || isCanvasEnterReflowSuppressed()) return;
-            const measuredHeight = measureNaturalScrollHeight(blockRef.current);
-            if (!cancelled && Number.isFinite(measuredHeight) && measuredHeight > 0) {
-                fitTextareaToContent(elementId, measuredHeight);
+            if (!Number.isFinite(measuredHeight) || measuredHeight <= 0) return;
+            if (
+                !allowGrow
+                && !shouldShrinkPreservedLayout(heightRef.current, measuredHeight)
+            ) {
+                return;
             }
+            fitTextareaToContent(elementId, measuredHeight);
         };
 
-        measure();
-        const unsubscribeResume = onCanvasEnterReflowResume(measure);
+        const measure = ({ allowGrow }) => {
+            applyMeasuredHeight(
+                measureNaturalScrollHeight(blockRef.current),
+                { allowGrow },
+            );
+        };
+
+        // First mount on generator-filled CVs: shrink-only for this effect's
+        // lifetime (including fonts.ready / enter-resume). Later content or
+        // typography changes remount the effect with allowGrow=true.
+        const shrinkOnlyFirstPass = preserveInitialLayout && !initialLayoutPreservedRef.current;
+        if (shrinkOnlyFirstPass) {
+            initialLayoutPreservedRef.current = true;
+        }
+        const allowGrow = !shrinkOnlyFirstPass;
+
+        measure({ allowGrow });
+        const unsubscribeResume = onCanvasEnterReflowResume(() => measure({ allowGrow }));
         if (typeof document !== "undefined" && document.fonts?.ready) {
-            document.fonts.ready.then(measure);
+            document.fonts.ready.then(() => measure({ allowGrow }));
         }
         return () => {
             cancelled = true;

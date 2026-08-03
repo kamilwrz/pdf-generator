@@ -53,9 +53,9 @@ def _text(content, fontSize, fontFamily, color, left, top, *,
 def _block(content, left, top, width, height, fontSize, lineHeight, color, fontFamily, *,
            zIndex=2, page=1, bold=False, italic=False, align="left", bulletList=False):
     # preserveInitialLayout: the generator already paginated with ReportLab
-    # metrics. Letting every textarea independently reflow on first canvas
-    # mount races and stretches section gaps unevenly (one block grows, the
-    # next has not measured yet). User edits still reflow normally.
+    # metrics. On first canvas mount the client may shrink boxes to browser
+    # scrollHeight (ReportLab can overshoot) but must not grow — independent
+    # growth races and stretches section gaps. User edits still reflow fully.
     return {"category": "textarea", "content": str(content),
             "left": left, "top": top, "width": width, "height": height,
             "fontSize": fontSize, "lineHeight": lineHeight,
