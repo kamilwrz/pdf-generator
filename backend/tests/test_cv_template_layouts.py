@@ -1184,6 +1184,57 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 for element in elements
             ))
 
+    def test_summary_matches_experience_body_type_size(self):
+        """Lead summary must use the same font as main-column experience body."""
+        from app.services.cv_generator import _GENERATORS
+
+        cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"][:1],
+        }
+        for template_id in sorted(_GENERATORS):
+            with self.subTest(template_id=template_id):
+                elements = generate_resume(template_id, cv)
+                summary = next(
+                    element
+                    for element in elements
+                    if element.get("category") == "textarea"
+                    and element.get("content") == cv["summary"]
+                    and element.get("page", 1) == 1
+                )
+                bullets = [
+                    element
+                    for element in elements
+                    if element.get("category") == "textarea"
+                    and element.get("bulletList")
+                    and element.get("page", 1) == 1
+                ]
+                self.assertTrue(bullets, msg=f"{template_id}: missing experience bullets")
+                # Prefer bullets in the same column as the summary (sidebar lists
+                # can be smaller and must not set the comparison baseline).
+                same_column = [
+                    bullet
+                    for bullet in bullets
+                    if abs(float(bullet.get("left", 0)) - float(summary.get("left", 0))) < 40
+                ] or bullets
+                body = same_column[0]
+                self.assertEqual(
+                    summary.get("fontSize"),
+                    body.get("fontSize"),
+                    msg=(
+                        f"{template_id}: summary fontSize {summary.get('fontSize')} "
+                        f"!= body {body.get('fontSize')}"
+                    ),
+                )
+                self.assertEqual(
+                    summary.get("lineHeight"),
+                    body.get("lineHeight"),
+                    msg=(
+                        f"{template_id}: summary lineHeight {summary.get('lineHeight')} "
+                        f"!= body {body.get('lineHeight')}"
+                    ),
+                )
+
     def test_banded_mastheads_clear_first_section_heading(self):
         """Body copy must start below solid header bands (Cinder/Raven/Ledger)."""
         from app.services.cv_generator_primitives import SPACE_AFTER_MASTHEAD

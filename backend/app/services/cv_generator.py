@@ -747,9 +747,9 @@ def _gen_signal(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.7, SANS))
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 9.4, 13.1, SANS))
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10, 14.7, C["body"], SANS)
+        b.block(cv["summary"], L, W, 9.4, 13.1, C["body"], SANS)
         close_section()
 
     if cv.get("experience"):
@@ -867,9 +867,9 @@ def _gen_ledger(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.2, 15, SANS))
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 9.6, 13.5, SANS))
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.2, 15, INK, SANS)
+        b.block(cv["summary"], L, W, 9.6, 13.5, INK, SANS)
         close_section()
 
     if cv.get("experience"):
@@ -1000,9 +1000,9 @@ def _gen_nimbus(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.1, 15, SANS))
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 9.5, 13.4, SANS))
         section(lbl["summary"], decorated=False)
-        b.block(cv["summary"], L, W, 10.1, 15, INK, SANS)
+        b.block(cv["summary"], L, W, 9.5, 13.4, INK, SANS)
         close_section()
 
     if cv.get("experience"):
@@ -1109,9 +1109,9 @@ def _gen_cinder(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.2, 15, SANS))
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 9.5, 13.4, SANS))
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.2, 15, CHARCOAL, SANS)
+        b.block(cv["summary"], L, W, 9.5, 13.4, CHARCOAL, SANS)
         close_section()
 
     if cv.get("experience"):
@@ -1235,9 +1235,9 @@ def _gen_rift(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS))
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 9.3, 13.2, SANS))
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10, 14.5, BLACK, SANS)
+        b.block(cv["summary"], L, W, 9.3, 13.2, BLACK, SANS)
         close_section()
 
     if cv.get("experience"):
@@ -1645,9 +1645,9 @@ def _gen_moss(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS))
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 9.3, 13.2, SANS))
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10, 14.5, C["body"], SANS)
+        b.block(cv["summary"], L, W, 9.3, 13.2, C["body"], SANS)
         close_section()
 
     if cv.get("experience"):
@@ -1911,7 +1911,7 @@ def _gen_obsidian(cv: dict) -> list[dict]:
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10, 15, BODY, SANS)
+        b.block(cv["summary"], L, W, 9.4, 13.3, BODY, SANS)
         close_section()
 
     if cv.get("experience"):
@@ -2029,9 +2029,9 @@ def _gen_raven(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10.2, 15, SANS))
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 9.5, 13.4, SANS))
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.2, 15, BODY, SANS)
+        b.block(cv["summary"], L, W, 9.5, 13.4, BODY, SANS)
         close_section()
 
     if cv.get("experience"):
@@ -2120,7 +2120,7 @@ def _gen_graphite(cv: dict) -> list[dict]:
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.5, 16, BODY, SANS)
+        b.block(cv["summary"], L, W, 10, 14.5, BODY, SANS)
         close_section()
 
     if cv.get("experience"):
@@ -2253,7 +2253,7 @@ def _gen_onyx(cv: dict) -> list[dict]:
 
     if cv.get("summary"):
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10.5, 15, BODY, I); b.gap(16)
+        b.block(cv["summary"], L, W, 10, 14, BODY, I); b.gap(16)
 
     if exp:
         section(lbl["experience"])

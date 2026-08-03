@@ -137,6 +137,9 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
         header[1]["letterSpacing"] = 1.45
 
     b = ClassicBuilder(C["start"])
+    # Summary uses the same type size as experience body/bullets so the lead
+    # paragraph does not read as a larger "intro" than the rest of the CV.
+    BODY_FS, BODY_LH = 9.3, 13.2
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
@@ -147,7 +150,7 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
         )
         if bullets:
             height += SPACE_STACK + b.measure_block(
-                bullets, W, 9.3, 13.2, SANS, bulletList=True
+                bullets, W, BODY_FS, BODY_LH, SANS, bulletList=True
             )
         return height
 
@@ -182,9 +185,9 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS))
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, BODY_FS, BODY_LH, SANS))
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10, 14.5, C["ink"], SANS)
+        b.block(cv["summary"], L, W, BODY_FS, BODY_LH, C["ink"], SANS)
         close_section()
 
     if cv.get("experience"):
@@ -202,12 +205,12 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
             bullets = _bullets(job)
             if bullets:
                 b.gap(SPACE_STACK)
-                b.block(bullets, L, W, 9.3, 13.2, C["ink"], SANS, bulletList=True)
+                b.block(bullets, L, W, BODY_FS, BODY_LH, C["ink"], SANS, bulletList=True)
             if index < len(jobs) - 1:
                 b.gap(SPACE_RECORD)
         close_section()
         _extra_sections(b, cv, "after_experience", section, {"body": C["ink"]},
-                        L, W, SANS, fs=9.3, lh=13.2)
+                        L, W, SANS, fs=BODY_FS, lh=BODY_LH)
 
     if cv.get("education"):
         education_entries = cv["education"]

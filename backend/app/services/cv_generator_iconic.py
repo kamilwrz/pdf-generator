@@ -302,6 +302,9 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
     def close_section() -> None:
         b.gap(SPACE_SECTION)
 
+    # Main-column body size (experience bullets). Sidebar list sizes differ.
+    BODY_FS, BODY_LH = 9.4, 13.4
+
     def experience_height(job: dict) -> float:
         # Same stack as placement / project records: block title → meta → bullets
         # with SPACE_STACK inside the record and SPACE_RECORD between records.
@@ -316,14 +319,14 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         )
         if bullets:
             height += SPACE_STACK + b.measure_block(
-                bullets, W, 9.4, 13.4, SANS, bulletList=True,
+                bullets, W, BODY_FS, BODY_LH, SANS, bulletList=True,
             )
         return height
 
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.8, SANS))
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, BODY_FS, BODY_LH, SANS))
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10, 14.8, C["body"], SANS)
+        b.block(cv["summary"], L, W, BODY_FS, BODY_LH, C["body"], SANS)
         close_section()
 
     if cv.get("experience"):
@@ -348,13 +351,13 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
             bullets = _bullets(job)
             if bullets:
                 b.gap(SPACE_STACK)
-                b.block(bullets, L, W, 9.4, 13.4, C["body"], SANS, bulletList=True)
+                b.block(bullets, L, W, BODY_FS, BODY_LH, C["body"], SANS, bulletList=True)
             if index < len(jobs) - 1:
                 b.gap(SPACE_RECORD)
         close_section()
         _extra_sections(
             b, cv, "after_experience", section, {"body": C["body"]}, L, W, SANS,
-            fs=9.4, lh=13.4, section_chrome_h=SECTION_CHROME,
+            fs=BODY_FS, lh=BODY_LH, section_chrome_h=SECTION_CHROME,
         )
 
     if cv.get("education"):

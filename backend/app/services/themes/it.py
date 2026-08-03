@@ -192,10 +192,11 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
     def close_section() -> None:
         b.gap(SPACE_SECTION)
 
+    # Match summary to experience body copy (not a larger lead paragraph).
     if cv.get("summary"):
-        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 10, 14.5, SANS))
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, body_fs, body_lh, SANS))
         section(lbl["summary"])
-        b.block(cv["summary"], L, W, 10, 14.5, C["body"], SANS)
+        b.block(cv["summary"], L, W, body_fs, body_lh, C["body"], SANS)
         close_section()
 
     if cv.get("experience"):
