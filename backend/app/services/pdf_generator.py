@@ -36,6 +36,13 @@ _PDF_INVISIBLE_RE = re.compile(
     r"[\u00ad\u200b-\u200f\u2028\u2029\u2060\ufeff\ufffc\ufffd]"
 )
 
+# ReportLab stringWidth and the browser's soft-wrap disagree by ~1–2 px on
+# Inter at CV body sizes when a line is packed to the box edge. Without this
+# slack the PDF wraps a final word (e.g. "korporacyjnych.") while the canvas
+# still shows it on the previous line. Prefer matching the canvas; a 2 px
+# overshoot is invisible and does not clip under overflow:hidden.
+WRAP_WIDTH_TOLERANCE_PX = 2.0
+
 
 def sanitize_pdf_text(text) -> str:
     """Clean element content before drawing it into a PDF.
@@ -400,6 +407,14 @@ class PDF_Generator:
         return stringWidth(text, font, size) + len(text) * letter_spacing
 
     @classmethod
+    def _fits_wrap_width(cls, text, font, size, letter_spacing, avail_width):
+        """True when ``text`` fits the wrap column, with canvas-matching slack."""
+        return (
+            cls._line_width(text, font, size, letter_spacing)
+            <= float(avail_width) + WRAP_WIDTH_TOLERANCE_PX
+        )
+
+    @classmethod
     def _wrap_textarea(cls, text, font, size, letter_spacing, max_width, bullet_list=False):
         """Reproduce the browser's soft-wrapping of a fixed-width text box.
 
@@ -432,7 +447,7 @@ class PDF_Generator:
             current = ""
             for word in body.split(" "):
                 candidate = word if current == "" else current + " " + word
-                if cls._line_width(candidate, font, size, letter_spacing) <= avail_width:
+                if cls._fits_wrap_width(candidate, font, size, letter_spacing, avail_width):
                     current = candidate
                     continue
 
@@ -441,10 +456,12 @@ class PDF_Generator:
                     current = ""
 
                 # A single word that overflows the box is hard-broken per char.
-                if cls._line_width(word, font, size, letter_spacing) > avail_width:
+                if not cls._fits_wrap_width(word, font, size, letter_spacing, avail_width):
                     chunk = ""
                     for ch in word:
-                        if chunk == "" or cls._line_width(chunk + ch, font, size, letter_spacing) <= avail_width:
+                        if chunk == "" or cls._fits_wrap_width(
+                            chunk + ch, font, size, letter_spacing, avail_width
+                        ):
                             chunk += ch
                         else:
                             para_lines.append(chunk)
