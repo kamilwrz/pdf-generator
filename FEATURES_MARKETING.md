@@ -2,7 +2,7 @@
 
 **Cel pliku:** materiał wyjściowy do sekcji **„Dlaczego CV STUDIO”** na stronie (Hero / landing) oraz do copy produktowego.  
 **Źródło prawdy technicznej:** `README.md`, `docs/FEATURES.md`, kod produktu.  
-**Stan oferty:** edytor A4, 17 szablonów, import PDF → fill, kreator bio, asystent AI, plany Free / Standard / Premium, eksport PDF 1:1 z płótnem.
+**Stan oferty:** edytor A4, 18 szablonów, import PDF → fill, kreator bio, asystent AI, plany Free / Standard / Premium, eksport PDF 1:1 z płótnem.
 
 > **Uwaga redakcyjna.** Sekcja „Dlaczego CV STUDIO” (na dole) **nie wymienia marek konkurencji**. Nazwy pojawiają się wyłącznie w wewnętrznej sekcji research — nie kopiuj ich do UI marketingowego.
 
@@ -203,7 +203,7 @@ Standard obejmuje siedem analiz z tabeli poza Układem oraz chat naturalnym jęz
 | Plan | Istota |
 |------|--------|
 | **Free** | Edytor + eksport, 5 szablonów startowych, limity projektów/eksportów; bez asystenta AI |
-| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 17 szablonów oraz wyższe limity |
+| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 18 szablonów oraz wyższe limity |
 | **Premium** | Tryb Układ AI, więcej kredytów AI, bez limitu projektów/eksportów |
 
 Model kredytów: ~1 kredyt ≈ 5 gr — rozliczenie zbliżone do realnego kosztu użycia.
@@ -359,7 +359,7 @@ Lead (1–2 zdania)
 (krótko powiąż z importem PDF, płótnem, eksportem 1:1)
 
 ## Co dostajesz w praktyce
-Mini-lista: asystent AI (8 akcji) · 17 szablonów · autozapis · Moje dokumenty
+Mini-lista: asystent AI (8 akcji) · 18 szablonów · autozapis · Moje dokumenty
 
 ## CTA
 Załóż konto za darmo → /register
@@ -392,7 +392,7 @@ Każdy punkt domykaj benefitem CV STUDIO z §3.1.
 | Canvas A4 | Projektujesz dokument, nie wypełniasz ankiety. |
 | Prowadnice / px | Układ wygląda na dopracowany, bo jest dopracowany. |
 | Chrome lock | Nie zepsujesz szablonu przypadkiem. |
-| 17 szablonów | Wygląd pod branżę i rolę. |
+| 18 szablonów | Wygląd pod branżę i rolę. |
 | Import PDF | Odśwież formę bez przepisywania życia. |
 | Hover mockup | Wybierasz szablon oczami, nie nazwą. |
 | Bio wizard | Struktura CV nawet bez gotowego pliku. |

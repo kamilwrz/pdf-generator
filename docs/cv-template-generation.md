@@ -169,7 +169,7 @@ Generator **ufnie zakłada** ten schemat — nie odpytuje AI o brakujące pola.
 _GENERATORS = {
     "ledger": _gen_ledger,
     "nimbus": _gen_nimbus,
-    # ... 17 szablonów = te same id co frontend/src/templates/index.js
+    # ... 18 szablonów = te same id co frontend/src/templates/index.js
 }
 
 def generate_resume(template_id: str, cv_data: dict) -> list[dict]:
@@ -235,13 +235,13 @@ Liczba bloków doświadczenia = liczba wpisów w `cv_data["experience"]`. Jeśli
 
 ### 6.5 Rodziny szablonów (tagi layoutu)
 
-Każdy z 17 szablonów ma osobny plik `cv_templates/templates/<id>.py` z funkcją `_gen_<id>`. Wspólna jest tylko warstwa helperów (`shared/records.py`, `shared/extras.py`, `shared/text.py`, `shared/icons.py`) oraz tagi w `TEMPLATE_LAYOUTS`:
+Każdy z 18 szablonów ma osobny plik `cv_templates/templates/<id>.py` z funkcją `_gen_<id>`. Wspólna jest tylko warstwa helperów (`shared/records.py`, `shared/extras.py`, `shared/text.py`, `shared/icons.py`) oraz tagi w `TEMPLATE_LAYOUTS`:
 
 | Tag layoutu | Szablony |
 |---|---|
 | `single` | ledger, nimbus, cinder, signal, kernel, regent, aldine, monument, words |
-| `icons` | cardinal, nova, ridge, volt (+ harbor, loom, tessera) |
-| `sidebar` | harbor, obsidian, loom, tessera |
+| `icons` | cardinal, nova, ridge, volt (+ harbor, loom, tessera, slate) |
+| `sidebar` | harbor, obsidian, loom, tessera, slate |
 | `dark` | obsidian, volt |
 
 Algorytm flow (summary → experience → …) jest wspólny koncepcyjnie; paleta, assety i chrome nagłówków są per szablon.
@@ -364,7 +364,7 @@ Bez kroku 2–3 podgląd w bibliotece istnieje, ale **fill_template rzuci „Nie
 | `backend/app/services/pdf_generator.py` | Pomiar wysokości textarea + eksport PDF |
 | `backend/app/services/ai_assistant_service.py` | Asystent po wygenerowaniu (osobny tor AI) |
 | `frontend/src/templates/*.js` | Statyczne próbki designu |
-| `frontend/src/templates/index.js` | Katalog 17 szablonów (id muszą = `_GENERATORS`) |
+| `frontend/src/templates/index.js` | Katalog 18 szablonów (id muszą = `_GENERATORS`) |
 | `backend/tests/test_cv_template_layouts.py` | Strażnik zachowania layoutu |
 
 ---

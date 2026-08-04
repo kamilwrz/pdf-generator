@@ -21,6 +21,7 @@ import { wordsTemplate } from "./words";
 import { cardinalTemplate } from "./cardinal";
 import { harborTemplate } from "./harbor";
 import { tesseraTemplate } from "./tessera";
+import { slateTemplate } from "./slate";
 
 export { TEMPLATE_LAYOUT_TAGS } from "../utils/templateLayouts";
 
@@ -42,4 +43,5 @@ export const TEMPLATES = [
     { id: "loom", tier: "paid", name: "Loom", description: "Sidebar rzemieślniczy z ikonami", layouts: ["sidebar", "icons"], accent: "#C4A35A", elements: loomTemplate },
     { id: "volt", tier: "paid", name: "Volt", description: "Ciemny sygnał, bursztynowe akcenty", layouts: ["icons", "dark"], accent: "#E8A838", elements: voltTemplate },
     { id: "tessera", tier: "paid", name: "Tessera", description: "Mozaikowy sidebar, prostokątne zdjęcie", layouts: ["sidebar", "icons"], accent: "#E15D4F", elements: tesseraTemplate },
+    { id: "slate", tier: "paid", name: "Slate", description: "Stalowy sidebar, siatka i prostokątne zdjęcie", layouts: ["sidebar", "icons"], accent: "#3E5C76", elements: slateTemplate },
 ];

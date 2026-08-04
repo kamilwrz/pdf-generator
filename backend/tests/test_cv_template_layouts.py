@@ -89,7 +89,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
     def test_template_images_resolve_to_versioned_local_assets(self):
         for template_id in (
-            "ledger", "nimbus", "kernel", "tessera",
+            "ledger", "nimbus", "kernel", "tessera", "slate",
         ):
             with self.subTest(template_id=template_id):
                 image = next(
@@ -208,6 +208,86 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in editable_sidebar
         ))
 
+    def test_slate_is_rectilinear_icon_sidebar_with_rectangular_photo(self):
+        """Slate keeps a rectilinear (no circle/ellipse) blueprint identity."""
+        multi_page_cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 3,
+        }
+        elements = generate_resume("slate", multi_page_cv)
+        categories = {element["category"] for element in elements}
+        pages = {element.get("page", 1) for element in elements}
+
+        # The rectilinear vocabulary is Slate's point of difference from Tessera:
+        # only filled/outlined rectangles, text, and icons — never circles or
+        # ellipses.
+        self.assertEqual(
+            categories,
+            {"text", "textarea", "line", "rectangle", "image"},
+        )
+        self.assertNotIn("circle", categories)
+        self.assertNotIn("ellipse", categories)
+        self.assertNotIn("connector", categories)
+        self.assertGreater(max(pages), 1)
+
+        photo_frame = next(
+            element
+            for element in elements
+            if element.get("id") == "slate-photo-frame"
+        )
+        self.assertEqual(photo_frame["category"], "rectangle")
+        self.assertEqual((photo_frame["width"], photo_frame["height"]), (112, 126))
+        self.assertGreater(photo_frame["height"], photo_frame["width"])
+        self.assertTrue(photo_frame.get("fixedToPage") is True)
+        self.assertTrue(photo_frame.get("locked") is True)
+
+        # Slate uses two icon colour variants: white glyphs for filled heading
+        # badges and accent glyphs for bare contact rows / the photo placeholder.
+        icons = [
+            element
+            for element in elements
+            if element["category"] == "image"
+            and "/template-assets/iconic/slate" in element["src"]
+        ]
+        self.assertGreaterEqual(len(icons), 8)
+        icon_themes = {
+            icon["src"].split("/iconic/")[1].split("/")[0] for icon in icons
+        }
+        self.assertEqual(icon_themes, {"slate", "slate-accent"})
+        self.assertTrue(any(icon["src"].endswith("/portrait.png") for icon in icons))
+        self.assertTrue(all(
+            Path(image_src_to_local_path(icon["src"])).is_file()
+            for icon in icons
+        ))
+
+        self.assertTrue(all(
+            element.get("autoHeight") is True
+            and element.get("preserveInitialLayout") is True
+            and element["top"] + element["height"] <= 770
+            for element in elements
+            if element["category"] == "textarea"
+        ))
+        self.assertTrue(any(
+            element.get("flowRole") == "section-chrome"
+            for element in elements
+        ))
+
+        # Sidebar contact/section bodies must remain editable; only the photo
+        # chrome and page rails are inert (fixedToPage).
+        side_width = 178
+        editable_sidebar = [
+            element for element in elements
+            if element.get("page", 1) == 1
+            and element["category"] in {"text", "textarea"}
+            and element["left"] < side_width
+            and not element.get("fixedToPage")
+        ]
+        self.assertGreaterEqual(len(editable_sidebar), 4)
+        self.assertTrue(all(
+            not element.get("locked")
+            for element in editable_sidebar
+        ))
+
     def test_sidebar_templates_repeat_panel_on_every_page(self):
         """Left-rail sidebars must repaint their panel chrome on every page."""
         multi_page_cv = {
@@ -218,6 +298,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         panels = {
             "obsidian": 184,
             "tessera": 178,
+            "slate": 178,
         }
 
         for template_id, panel_width in panels.items():

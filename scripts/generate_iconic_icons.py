@@ -248,6 +248,13 @@ EXTRA_ICONS = {
     "portrait": draw_portrait,
 }
 
+# Full glyph set shared by both Slate colour variants (see SUBSET_THEMES below).
+_SLATE_GLYPHS = [
+    "email", "phone", "github", "location", "calendar", "portrait",
+    "summary", "experience", "education", "skills", "languages",
+    "interests", "references", "certifications", "other",
+]
+
 # Harbor (Sidebar collection) uses two colour variants of a curated glyph subset:
 # slate-grey contact/meta/photo icons, and a single teal diamond for the tool
 # list bullets. Only these subsets are generated, so existing themes are
@@ -266,6 +273,16 @@ SUBSET_THEMES = {
             "interests", "references", "certifications", "other",
         ],
     ),
+    # Slate (Sidebar collection) uses two colour variants of the same glyph set,
+    # following the Harbor pattern:
+    #   * `slate`        — white glyphs meant to sit inside filled steel-blue
+    #                      section-heading badges (white-on-accent).
+    #   * `slate-accent` — steel-blue glyphs for bare contact rows and the
+    #                      rectangular photo placeholder (accent-on-paper).
+    # Both variants carry the full set so any section-heading key (white badge)
+    # or contact/photo role (accent) always resolves to an existing asset.
+    "slate": ("#FFFFFF", _SLATE_GLYPHS),
+    "slate-accent": ("#3E5C76", _SLATE_GLYPHS),
 }
 
 

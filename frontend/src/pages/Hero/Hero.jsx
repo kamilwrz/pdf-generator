@@ -373,7 +373,7 @@ export default function Hero() {
                         <p className={classes.planSummary}>Dla osób, które chcą przenieść istniejące CV i dopracować je przed wysłaniem.</p>
                         <ul>
                             <li><CheckIcon />Import danych z PDF</li>
-                            <li><CheckIcon />Wszystkie 17 szablonów</li>
+                            <li><CheckIcon />Wszystkie 18 szablonów</li>
                             <li><CheckIcon />Analizy AI: CV, projekt, dopasowanie, gramatyka, styl i ATS</li>
                             <li><CheckIcon />Do 10 projektów i 30 eksportów miesięcznie</li>
                         </ul>
@@ -385,7 +385,7 @@ export default function Hero() {
                         <p className={classes.planSummary}>Dla wielu wersji CV przygotowywanych pod różne role i oferty.</p>
                         <ul>
                             <li><CheckIcon />Tryb Układ AI: odstępy, wyrównanie i kolizje</li>
-                            <li><CheckIcon />Wszystkie 17 szablonów</li>
+                            <li><CheckIcon />Wszystkie 18 szablonów</li>
                             <li><CheckIcon />Bez limitu projektów i eksportów</li>
                             <li><CheckIcon />Wiele wersji CV pod aplikacje</li>
                         </ul>
