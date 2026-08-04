@@ -2,7 +2,7 @@
 
 **Twórz piękne CV w kilka minut.**
 
-CV STUDIO to studio CV po polsku: wizualne płótno A4, szablony dopasowane do branż oraz AI, które pomaga wypełnić, dopracować i wyeksportować PDF gotowy do wysłania. Bez studiów z designu — wystarczy Twoja historia, szablon i kilka kliknięć.
+CV STUDIO to studio CV po polsku: wizualne płótno A4, indywidualne szablony z własnym charakterem oraz AI, które pomaga wypełnić, dopracować i wyeksportować PDF gotowy do wysłania. Bez studiów z designu — wystarczy Twoja historia, szablon i kilka kliknięć.
 
 ---
 
@@ -11,7 +11,7 @@ CV STUDIO to studio CV po polsku: wizualne płótno A4, szablony dopasowane do b
 | | |
 |---|---|
 | **Wizualnie, nie tylko formularze** | Przeciągaj, wyrównuj i stylizuj każdy blok na prawdziwej stronie — to, co widzisz, trafia do eksportu. |
-| **Szablony pod Twoją branżę** | Finanse, IT, bankowość, klasyka, sidebar, motywy ciemne i Iconic — 23 gotowe układy. |
+| **25 indywidualnych szablonów** | Każdy z własną nazwą i krótkim opisem stylistycznym — bez kategorii branżowych. |
 | **AI, które bierze na siebie ciężką robotę** | Zaimportuj stare PDF, przejdź kreator bio albo porozmawiaj z asystentem o ocenach, ATS i poprawkach. |
 | **Za darmo na start** | Załóż konto, projektuj i pobieraj. Karta nie jest wymagana. AI i pełna biblioteka — w planach Standard / Premium. |
 
@@ -20,7 +20,7 @@ CV STUDIO to studio CV po polsku: wizualne płótno A4, szablony dopasowane do b
 ## Zacznij tak, jak Ci wygodnie
 
 ### Wybierz szablon
-Otwórz bibliotekę, podejrzyj projekty oznaczone branżą i przenieś wybrany układ na płótno. Nowe konta trafiają tu od razu — nie zostajesz sam na pustej stronie.
+Otwórz bibliotekę, porównaj indywidualne układy (nazwa + krótki opis stylu) i przenieś wybrany na płótno. Nowe konta trafiają tu od razu — nie zostajesz sam na pustej stronie.
 
 ### Wypełnij z PDF
 Prześlij istniejące CV. CV STUDIO wyciąga imię, stanowisko, doświadczenie, wykształcenie i umiejętności — a potem wlewa je do dowolnego szablonu. Te same dane możesz użyć w wielu wyglądach bez ponownego uploadu. Przy wyborze szablonu zobaczysz mockup A4 na hover (to samo w kroku Podsumowanie kreatora bio).
@@ -70,21 +70,39 @@ Dodatkowo: rozmiar, kolor, pogrubienie, kursywa, podkreślenie, wyrównanie, int
 
 ---
 
-## Biblioteka szablonów — 28 systemów CV
+## Biblioteka szablonów — 25 indywidualnych układów
 
-Każdy szablon to A4 pion i realna kariera — nie generyczne „CV nr 3”.
+Każdy szablon to osobny byt: własna nazwa i krótki opis stylistyczny. UI nie grupuje ich wedle branży ani stylu — w kodzie zostaje tylko podział strukturalny layoutu (`single` / `sidebar` / `icons` / `dark`) dla generatora.
 
-| Kolekcja | Szablony | Charakter |
-|---|---|---|
-| **Finanse** | Ledger · Nimbus · Cinder · Rift | Od instytucjonalnego spokoju po odważną redakcję |
-| **IT** | Vector · Kernel · Relay | Platformy, architektura i DevOps |
-| **Classic** | Scribe · Regent · Aldine · Merit · Monument · Words | Formalny, executive, szlachetny papier, dyplomatyczny minimalizm, monochromatyczny editorial i układ dokumentu Word |
-| **Sidebar** | Moss | Botaniczna elegancja |
-| **Banking** | Signal | Ryzyko i treasury |
-| **Dark** | Obsidian · Raven · Graphite · Onyx | Panel boczny, pasek górny, minimal, rama dyplomatyczna |
-| **Iconic** | Nova · Ridge · Loom · Volt | Ikona przy kontakcie i sekcjach, cztery systemy typograficzne |
+| Szablon | Opis |
+|---|---|
+| Ledger | Instytucjonalny, spokojna typografia |
+| Nimbus | Jasny i minimalistyczny |
+| Cinder | Ciemny i wyrazisty |
+| Rift | Abstrakcyjny i redakcyjny |
+| Vector | Sieci i platformy |
+| Kernel | Architektura systemów |
+| Relay | DevOps i niezawodność |
+| Scribe | Redakcyjny i formalny |
+| Regent | Executive, wyważona elegancja |
+| Aldine | Szlachetny papier |
+| Merit | Dyplomatyczny minimalizm |
+| Monument | Monochromatyczny editorial |
+| Words | Dokument w stylu Word |
+| Cardinal | Szlachetna czerwień, ikony przy sekcjach |
+| Moss | Botaniczna elegancja, wąski sidebar |
+| Harbor | Dwukolumnowy, ikony kontaktu |
+| Signal | Ryzyko i treasury |
+| Obsidian | Ciemny panel boczny |
+| Raven | Ciemny pasek górny |
+| Graphite | Minimalistyczny, chłodne srebro |
+| Onyx | Rama dyplomatyczna |
+| Nova | Redakcyjny masthead z ikonami |
+| Ridge | Szyna ikon przy nagłówkach |
+| Loom | Sidebar rzemieślniczy z ikonami |
+| Volt | Ciemny sygnał, bursztynowe akcenty |
 
-Wybierz wygląd pod rolę, na którą aplikujesz — i uczyn go swoim.
+Wybierz układ, który pasuje do dokumentu — i uczyn go swoim.
 
 ---
 

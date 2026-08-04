@@ -1,8 +1,11 @@
 /**
  * Registry of built-in CV templates shown in pickers and Hero mockups.
- * `tier` drives Free vs paid gating; `collection` groups pickers into the
- * seven product families; `elements` are static specs materialized by
- * useA4Elements.handleLoadTemplate (ids assigned at load time).
+ *
+ * Each entry is an individual product template: `name` + short stylistic
+ * `description` for the UI. `layouts` is code-only metadata so generators and
+ * reflow can share sidebar / icons / dark behaviour without industry or style
+ * collections. `tier` drives Free vs paid gating; `elements` are static specs
+ * materialized by useA4Elements.handleLoadTemplate (ids assigned at load time).
  */
 import { ledgerTemplate } from "./ledger";
 import { nimbusTemplate } from "./nimbus";
@@ -27,32 +30,32 @@ import { wordsTemplate } from "./words";
 import { cardinalTemplate } from "./cardinal";
 import { harborTemplate } from "./harbor";
 
-export { TEMPLATE_COLLECTION_ORDER } from "../utils/templateCollections";
+export { TEMPLATE_LAYOUT_TAGS } from "../utils/templateLayouts";
 
 export const TEMPLATES = [
-    { id: "ledger", tier: "free", collection: "Finanse", name: "Ledger", industry: "Finanse · Instytucjonalny", accent: "#2E5E86", elements: ledgerTemplate },
-    { id: "nimbus", tier: "free", collection: "Finanse", name: "Nimbus", industry: "Finanse · Jasny i minimalistyczny", accent: "#5F8EAD", elements: nimbusTemplate },
-    { id: "cinder", tier: "paid", collection: "Finanse", name: "Cinder", industry: "Finanse · Ciemny i wyrazisty", accent: "#C93F3F", elements: cinderTemplate },
-    { id: "rift", tier: "paid", collection: "Finanse", name: "Rift", industry: "Finanse · Abstrakcyjny i redakcyjny", accent: "#E21B1B", elements: riftTemplate },
-    { id: "vector", tier: "free", collection: "IT", name: "Vector", industry: "IT · Sieci i platformy", accent: "#26D8FF", elements: vectorTemplate },
-    { id: "kernel", tier: "free", collection: "IT", name: "Kernel", industry: "IT · Architektura systemów", accent: "#D69B22", elements: kernelTemplate },
-    { id: "relay", tier: "paid", collection: "IT", name: "Relay", industry: "IT · DevOps i niezawodność", accent: "#EE2525", elements: relayTemplate },
-    { id: "scribe", tier: "free", collection: "Classic", name: "Scribe", industry: "Classic · Redakcyjny i formalny", accent: "#34516A", elements: scribeTemplate },
-    { id: "regent", tier: "free", collection: "Classic", name: "Regent", industry: "Classic · Executive", accent: "#733B43", elements: regentTemplate },
-    { id: "aldine", tier: "paid", collection: "Classic", name: "Aldine", industry: "Classic · Szlachetny papier", accent: "#486151", elements: aldineTemplate },
-    { id: "merit", tier: "paid", collection: "Classic", name: "Merit", industry: "Classic · Dyplomatyczny minimalizm", accent: "#4F6679", elements: meritTemplate },
-    { id: "monument", tier: "paid", collection: "Classic", name: "Monument", industry: "Classic · Monochromatyczny editorial", accent: "#343434", elements: monumentTemplate },
-    { id: "words", tier: "paid", collection: "Classic", name: "Words", industry: "Classic · Dokument Word", accent: "#555555", elements: wordsTemplate },
-    { id: "cardinal", tier: "paid", collection: "Classic", name: "Cardinal", industry: "Classic · Szlachetna czerwień", accent: "#9E2532", elements: cardinalTemplate },
-    { id: "moss", tier: "paid", collection: "Sidebar", name: "Moss", industry: "Sidebar · Botaniczna elegancja", accent: "#B99854", elements: mossTemplate },
-    { id: "harbor", tier: "paid", collection: "Sidebar", name: "Harbor", industry: "Sidebar · Dwukolumnowy", accent: "#17A2B8", elements: harborTemplate },
-    { id: "signal", tier: "paid", collection: "Banking", name: "Signal", industry: "Banking · Ryzyko i treasury", accent: "#3BD2C7", elements: signalTemplate },
-    { id: "obsidian", tier: "paid", collection: "Darktheme", name: "Obsidian", industry: "Darktheme · Panel boczny", accent: "#C9A24B", elements: obsidianTemplate },
-    { id: "raven", tier: "paid", collection: "Darktheme", name: "Raven", industry: "Darktheme · Pasek górny", accent: "#3FBFA6", elements: ravenTemplate },
-    { id: "graphite", tier: "free", collection: "Darktheme", name: "Graphite", industry: "Darktheme · Minimalistyczny", accent: "#B7C3CC", elements: graphiteTemplate },
-    { id: "onyx", tier: "paid", collection: "Darktheme", name: "Onyx", industry: "Darktheme · Rama dyplomatyczna", accent: "#B08D57", elements: onyxTemplate },
-    { id: "nova", tier: "free", collection: "Iconic", name: "Nova", industry: "Iconic · Redakcyjny masthead", accent: "#C45C26", elements: novaTemplate },
-    { id: "ridge", tier: "paid", collection: "Iconic", name: "Ridge", industry: "Iconic · Szyna ikon", accent: "#1F7A6C", elements: ridgeTemplate },
-    { id: "loom", tier: "paid", collection: "Iconic", name: "Loom", industry: "Iconic · Sidebar rzemieślniczy", accent: "#C4A35A", elements: loomTemplate },
-    { id: "volt", tier: "paid", collection: "Iconic", name: "Volt", industry: "Iconic · Ciemny sygnał", accent: "#E8A838", elements: voltTemplate },
+    { id: "ledger", tier: "free", name: "Ledger", description: "Instytucjonalny, spokojna typografia", layouts: ["single"], accent: "#2E5E86", elements: ledgerTemplate },
+    { id: "nimbus", tier: "free", name: "Nimbus", description: "Jasny i minimalistyczny", layouts: ["single"], accent: "#5F8EAD", elements: nimbusTemplate },
+    { id: "cinder", tier: "paid", name: "Cinder", description: "Ciemny i wyrazisty", layouts: ["single"], accent: "#C93F3F", elements: cinderTemplate },
+    { id: "rift", tier: "paid", name: "Rift", description: "Abstrakcyjny i redakcyjny", layouts: ["single"], accent: "#E21B1B", elements: riftTemplate },
+    { id: "vector", tier: "free", name: "Vector", description: "Sieci i platformy", layouts: ["single"], accent: "#26D8FF", elements: vectorTemplate },
+    { id: "kernel", tier: "free", name: "Kernel", description: "Architektura systemów", layouts: ["single"], accent: "#D69B22", elements: kernelTemplate },
+    { id: "relay", tier: "paid", name: "Relay", description: "DevOps i niezawodność", layouts: ["single"], accent: "#EE2525", elements: relayTemplate },
+    { id: "scribe", tier: "free", name: "Scribe", description: "Redakcyjny i formalny", layouts: ["single"], accent: "#34516A", elements: scribeTemplate },
+    { id: "regent", tier: "free", name: "Regent", description: "Executive, wyważona elegancja", layouts: ["single"], accent: "#733B43", elements: regentTemplate },
+    { id: "aldine", tier: "paid", name: "Aldine", description: "Szlachetny papier", layouts: ["single"], accent: "#486151", elements: aldineTemplate },
+    { id: "merit", tier: "paid", name: "Merit", description: "Dyplomatyczny minimalizm", layouts: ["single"], accent: "#4F6679", elements: meritTemplate },
+    { id: "monument", tier: "paid", name: "Monument", description: "Monochromatyczny editorial", layouts: ["single"], accent: "#343434", elements: monumentTemplate },
+    { id: "words", tier: "paid", name: "Words", description: "Dokument w stylu Word", layouts: ["single"], accent: "#555555", elements: wordsTemplate },
+    { id: "cardinal", tier: "paid", name: "Cardinal", description: "Szlachetna czerwień, ikony przy sekcjach", layouts: ["icons"], accent: "#9E2532", elements: cardinalTemplate },
+    { id: "moss", tier: "paid", name: "Moss", description: "Botaniczna elegancja, wąski sidebar", layouts: ["sidebar"], accent: "#B99854", elements: mossTemplate },
+    { id: "harbor", tier: "paid", name: "Harbor", description: "Dwukolumnowy, ikony kontaktu", layouts: ["sidebar", "icons"], accent: "#17A2B8", elements: harborTemplate },
+    { id: "signal", tier: "paid", name: "Signal", description: "Ryzyko i treasury", layouts: ["single"], accent: "#3BD2C7", elements: signalTemplate },
+    { id: "obsidian", tier: "paid", name: "Obsidian", description: "Ciemny panel boczny", layouts: ["sidebar", "dark"], accent: "#C9A24B", elements: obsidianTemplate },
+    { id: "raven", tier: "paid", name: "Raven", description: "Ciemny pasek górny", layouts: ["dark"], accent: "#3FBFA6", elements: ravenTemplate },
+    { id: "graphite", tier: "free", name: "Graphite", description: "Minimalistyczny, chłodne srebro", layouts: ["dark"], accent: "#B7C3CC", elements: graphiteTemplate },
+    { id: "onyx", tier: "paid", name: "Onyx", description: "Rama dyplomatyczna", layouts: ["dark"], accent: "#B08D57", elements: onyxTemplate },
+    { id: "nova", tier: "free", name: "Nova", description: "Redakcyjny masthead z ikonami", layouts: ["icons"], accent: "#C45C26", elements: novaTemplate },
+    { id: "ridge", tier: "paid", name: "Ridge", description: "Szyna ikon przy nagłówkach", layouts: ["icons"], accent: "#1F7A6C", elements: ridgeTemplate },
+    { id: "loom", tier: "paid", name: "Loom", description: "Sidebar rzemieślniczy z ikonami", layouts: ["sidebar", "icons"], accent: "#C4A35A", elements: loomTemplate },
+    { id: "volt", tier: "paid", name: "Volt", description: "Ciemny sygnał, bursztynowe akcenty", layouts: ["icons", "dark"], accent: "#E8A838", elements: voltTemplate },
 ];

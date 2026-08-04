@@ -2794,6 +2794,38 @@ def _gen_harbor(cv: dict) -> list[dict]:
     return page_decorations + header + sidebar + flow
 
 
+# Structural layout tags for each template id. Product UI treats templates as
+# individual names; these tags only guide shared generator/reflow behaviour
+# (sidebar packing, icon chrome, dark page chrome). Keep in sync with
+# frontend/src/templates/index.js `layouts` arrays.
+TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
+    "ledger": frozenset({"single"}),
+    "nimbus": frozenset({"single"}),
+    "cinder": frozenset({"single"}),
+    "rift": frozenset({"single"}),
+    "signal": frozenset({"single"}),
+    "vector": frozenset({"single"}),
+    "kernel": frozenset({"single"}),
+    "relay": frozenset({"single"}),
+    "scribe": frozenset({"single"}),
+    "regent": frozenset({"single"}),
+    "aldine": frozenset({"single"}),
+    "merit": frozenset({"single"}),
+    "monument": frozenset({"single"}),
+    "words": frozenset({"single"}),
+    "cardinal": frozenset({"icons"}),
+    "moss": frozenset({"sidebar"}),
+    "harbor": frozenset({"sidebar", "icons"}),
+    "obsidian": frozenset({"sidebar", "dark"}),
+    "raven": frozenset({"dark"}),
+    "graphite": frozenset({"dark"}),
+    "onyx": frozenset({"dark"}),
+    "nova": frozenset({"icons"}),
+    "ridge": frozenset({"icons"}),
+    "loom": frozenset({"sidebar", "icons"}),
+    "volt": frozenset({"icons", "dark"}),
+}
+
 _GENERATORS = {
     # Must stay in sync with the frontend template registry.
     "ledger":    _gen_ledger,

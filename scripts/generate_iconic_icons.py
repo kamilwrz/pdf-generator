@@ -1,4 +1,4 @@
-"""Generate optically-centered line-art PNG icons for the Iconic family.
+"""Generate optically-centered line-art PNG icons for icon-tagged templates.
 
 Each glyph is drawn, cropped to its ink bbox, scaled into a fixed content
 square, then pasted dead-center on a transparent 128×128 canvas so every icon
@@ -228,7 +228,7 @@ ICONS = {
     "other": draw_other,
 }
 
-# Glyphs used only by the Harbor two-column template, not by the Iconic family.
+# Glyphs used only by the Harbor two-column template, not by other icon themes.
 # Kept out of the base ICONS set so regenerating does not add unused files to
 # the existing themes (nova/ridge/loom/volt/cardinal).
 EXTRA_ICONS = {

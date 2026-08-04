@@ -1,11 +1,11 @@
 """Icon-based template generators (Nova, Ridge, Loom, Volt, Cardinal).
 
+Shared layout engine for templates tagged ``icons`` in ``TEMPLATE_LAYOUTS``.
 Each layout pairs contact + section headings with line-art icons from
-``template_assets/iconic/<theme>/``. Nova/Ridge/Loom/Volt belong to the Iconic
-collection and use stylish OFL families (Playfair, Lora, Cormorant, Montserrat,
-JetBrains). Cardinal belongs to the Classic collection: it shares the same
-single-column icon machinery but uses Times-Roman/Helvetica, reserves a "noble
-red" for headings only, and renders its icons and rules in neutral grey.
+``template_assets/iconic/<theme>/``. Nova/Ridge/Loom/Volt use stylish OFL
+families (Playfair, Lora, Cormorant, Montserrat, JetBrains). Cardinal shares
+the same single-column icon machinery but uses Times-Roman/Helvetica, reserves
+a "noble red" for headings only, and renders its icons and rules in neutral grey.
 """
 
 from __future__ import annotations
@@ -108,7 +108,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
             "layout": "volt", "icon_theme": "volt",
             "L": 78, "W": 469, "icon_x": 48, "start": 155,
         },
-        # Cardinal (Classic collection): a single-column, Times/Helvetica document
+        # Cardinal: a single-column, Times/Helvetica document
         # that keeps its "noble red" for typography only — the role line and every
         # section heading. All ornament stays neutral grey: the generated icons
         # (grey `cardinal` icon theme) and the decorative rules (`rule`). Body copy

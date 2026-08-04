@@ -1,8 +1,8 @@
 import API_BASE_URL from "../services/api";
 import { block, bulleted, line, text } from "./helpers";
 
-// Nimbus: an airy, blue-grey editorial CV. The template name and its category
-// deliberately never appear on the page — only the candidate's information does.
+// Nimbus: an airy, blue-grey editorial CV. The template name deliberately never
+// appears on the page — only the candidate's information does.
 const INK = "#2B3D4C";
 const BLUE = "#5F8EAD";
 const POWDER = "#B9D2E5";

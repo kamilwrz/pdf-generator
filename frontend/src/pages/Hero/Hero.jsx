@@ -14,7 +14,7 @@ import { wakeBackend } from "../../services/api";
 const TEMPLATE_PREVIEWS = TEMPLATES.map((template) => ({
     id: template.id,
     name: template.name,
-    industry: template.industry,
+    description: template.description,
     image: `/template-mockups/${template.id}.png`,
 }));
 
@@ -314,7 +314,7 @@ export default function Hero() {
             <section id="szablony" className={classes.templatesSection}>
                 <div className={classes.templatesHeader}>
                     <div>
-                        <p className={classes.kicker}>23 szablony, 7 kolekcji</p>
+                        <p className={classes.kicker}>25 indywidualnych szablonów</p>
                         <h2>Zobacz swoje CV,<br />nie przykładową historię kogoś innego.</h2>
                     </div>
                     <p>Po imporcie lub kreatorze możesz dobierać wygląd do roli, a nie zaczynać od budowania układu od podstaw.</p>
@@ -323,7 +323,7 @@ export default function Hero() {
                     {TEMPLATE_PREVIEWS.slice(0, 8).map((template) => (
                         <Link key={template.id} to={wizardUrl} className={classes.templateCard}>
                             <img src={template.image} alt={`Szablon CV ${template.name}`} loading="lazy" />
-                            <span><b>{template.name}</b><small>{template.industry}</small></span>
+                            <span><b>{template.name}</b><small>{template.description}</small></span>
                         </Link>
                     ))}
                 </div>

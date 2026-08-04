@@ -1,8 +1,8 @@
 /**
  * CV template list for wizards and change-template flows.
- * Always returns templates sorted by the seven product collections so every
- * picker (carousel, grid) shares the same Finanse → … → Iconic order.
+ * Preserves registry order so every picker shows the same individual templates
+ * (no industry/style collections).
  */
-import { sortTemplatesByCollection } from "./templateCollections.js";
+import { listTemplatesInRegistryOrder } from "./templateLayouts.js";
 
-export const selectCvTemplates = (templates) => sortTemplatesByCollection(templates);
+export const selectCvTemplates = (templates) => listTemplatesInRegistryOrder(templates);

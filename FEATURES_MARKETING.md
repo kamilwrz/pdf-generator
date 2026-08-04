@@ -93,13 +93,13 @@ Dla każdej funkcji: **co to jest** → **co ułatwia użytkownikowi** → **dla
 
 ---
 
-### 1.8. Biblioteka 23 szablonów branżowych
+### 1.8. Biblioteka 25 indywidualnych szablonów
 
-**Co:** Kolekcje m.in. Finanse, IT, Classic (w tym Words w stylu dokumentu Word), Sidebar, Banking (Signal), Dark + rodzina Iconic (Nova, Ridge, Loom, Volt). Mockupy A4 w galerii i przy wyborze po imporcie.
+**Co:** Każdy szablon ma własną nazwę i krótki opis stylistyczny (np. Ledger, Harbor, Cardinal, Volt) — bez kategorii branżowych w UI. Mockupy A4 w galerii i przy wyborze po imporcie.
 
-**Ułatwia:** Start od układu dopasowanego do roli (bankowość ≠ design ≠ IT), zamiast generycznego „CV nr 3”.
+**Ułatwia:** Start od konkretnego charakteru dokumentu, zamiast generycznego „CV nr 3” albo koszyka „Finanse / IT”.
 
-**Dlaczego dobre:** Szablon to sygnał branżowy. Lepszy start = mniej czasu na „odbudowę” dokumentu od zera i większa pewność przy wysyłce.
+**Dlaczego dobre:** Szablon to sygnał wizualny. Lepszy start = mniej czasu na „odbudowę” dokumentu od zera i większa pewność przy wysyłce.
 
 ---
 
@@ -291,10 +291,10 @@ Sam wynik ATS albo lista fraz z generatora nie wystarczy, jeśli nie widzisz ich
 **CV STUDIO** łączy oceny, gramatykę, styl, dopasowanie do oferty i układ w asystencie osadzonym w edytorze — z akceptacją poprawek.  
 **Dlaczego lepiej:** krótsza pętla „zobacz → popraw → sprawdź ponownie”.
 
-### 5) Szablony branżowe, nie jedna uniwersalna skórka
-Generyczne biblioteki oferują dziesiątki „ładnych” layoutów bez kontekstu roli.  
-**CV STUDIO** grupuje 28 systemów CV pod finanse, IT, banking, classic, sidebar, dark i Iconic — startujesz bliżej oczekiwań branży.  
-**Dlaczego lepiej:** szybszy fit kulturowy dokumentu do oferty.
+### 5) Indywidualne szablony, nie jedna uniwersalna skórka
+Generyczne biblioteki oferują dziesiątki „ładnych” layoutów bez charakteru.  
+**CV STUDIO** daje 25 osobnych szablonów — każdy z nazwą i krótkim opisem stylistycznym, bez koszyków branżowych.  
+**Dlaczego lepiej:** szybszy wybór konkretnego charakteru dokumentu.
 
 ### 6) Precyzja jak w studiu, bezpieczeństwo jak w kreatorze
 Pełna swoboda graficzna często kończy się przypadkowym zepsuciem tła. Sztywne kreatory chronią layout, ale więżą Cię w ramce.  
@@ -338,7 +338,7 @@ Zaczynasz za darmo, po polsku, bez zgadywania, czy przycisk Pobierz jest pułapk
 | **Płótno, nie formularz** | Edytujesz prawdziwe A4. To, co widzisz, trafia do PDF. |
 | **AI + pewny układ** | Asystent poprawia treść i ATS; silnik układa szablon przewidywalnie. |
 | **Stare CV → nowy wygląd** | Wgraj PDF, wybierz szablon z podglądu, wypełnij — bez przepisywania. |
-| **23 szablony branżowe** | Finanse, IT, banking, classic, dark… wygląd pod rolę, nie pod „uniwersalność”. |
+| **25 indywidualnych szablonów** | Własna nazwa i opis stylu — wygląd z charakterem, nie „uniwersalność”. |
 | **Precyzja co do piksela** | Prowadnice, odstępy, blokada dekoracji — wygląda na dopracowane. |
 | **Uczciwy start** | Free bez karty. AI i pełna biblioteka — gdy naprawdę ich potrzebujesz. |
 

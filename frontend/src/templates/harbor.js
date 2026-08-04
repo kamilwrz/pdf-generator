@@ -1,5 +1,5 @@
 /**
- * Harbor template (Sidebar collection).
+ * Harbor template (`layouts: ["sidebar", "icons"]`).
  *
  * A two-column resume modelled on the popular "double column" layout: a wide
  * main column on the left (summary + experience) and a narrower sidebar on the

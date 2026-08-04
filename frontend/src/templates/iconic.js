@@ -1,6 +1,9 @@
 /**
- * Iconic family — four layouts that pair section/contact icons with distinct
- * typography and colour systems. Icons live in /template-assets/iconic/<theme>/.
+ * Icon-driven static layouts (Nova, Ridge, Loom, Volt).
+ *
+ * Shared frontend specs for templates tagged `layouts: ["icons", …]`. Icons
+ * live in /template-assets/iconic/<theme>/. Cardinal and Harbor keep their own
+ * files but reuse the same asset pipeline.
  *
  * Alignment rule: icons share the text line's top edge (never float above the
  * label). Icon size stays close to the label size so caps and glyphs read level.

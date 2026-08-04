@@ -2,7 +2,7 @@
 
 # CV Studio
 
-CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 25 industry templates, PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
+CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 25 individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
 
 This README is the technical entry point for developers. A beginner-friendly deep guide to canvas coordinates, React interaction, deterministic Python layout, AI responsibilities, reflow, persistence, and ReportLab export lives in [`CANVA.md`](CANVA.md). Every live AI prompt (full text, variables, file/line references) is documented in [`PROMPTS.md`](PROMPTS.md). Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md). Marketing brief for the website „Dlaczego CV STUDIO” section (features + competitive positioning, no competitor brand names in public copy) lives in [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Template generation (AI extract vs Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md).
 
@@ -295,7 +295,7 @@ Loads static specs; assigns `element_id`, interaction flags, locks chrome.
 
 Implementation:
 
-- `frontend/src/templates/index.js` — `TEMPLATES` registry (`collection` groups the seven product families)
+- `frontend/src/templates/index.js` — `TEMPLATES` registry (`name` + `description` for UI; `layouts` tags for generators)
 - `frontend/src/utils/materializeElementSpecs.js`, `materializeElementSpecs`
 - `frontend/src/hooks/useA4Elements.js`, `handleLoadTemplate` / `useDocumentHistory`
 
@@ -326,7 +326,7 @@ The frontend starter array and the deterministic Python generator use the same A
 Implementation:
 
 - `frontend/src/templates/monument.js`, lines 1–108, exported array `monumentTemplate`
-- `frontend/src/templates/index.js`, registry entry `monument` (`tier: "paid"`, `collection: "Classic"`)
+- `frontend/src/templates/index.js`, registry entry `monument` (`tier: "paid"`, `layouts: ["single"]`)
 - `backend/app/services/cv_generator.py`, lines 2013–2215, function `_gen_monument`; line 3256, `_GENERATORS["monument"]`
 - `frontend/src/utils/structureOperation.js`, lines 34–63, function `cloneFixedPageDecorations`
 - `frontend/public/template-mockups/monument.png`, source-driven A4 preview
@@ -348,7 +348,7 @@ The frontend starter and `_gen_words` share the same A4 geometry. Long names, po
 Implementation:
 
 - `frontend/src/templates/words.js`, lines 1–123, exported array `wordsTemplate`
-- `frontend/src/templates/index.js`, registry entry `words` (`tier: "paid"`, `collection: "Classic"`)
+- `frontend/src/templates/index.js`, registry entry `words` (`tier: "paid"`, `layouts: ["single"]`)
 - `backend/app/services/cv_generator.py`, lines 3025–3218, function `_gen_words`; line 3257, `_GENERATORS["words"]`
 - `frontend/public/template-mockups/words.png`, source-driven A4 preview
 
@@ -361,14 +361,14 @@ Known limitation: Words reproduces the visual language of a carefully formatted 
 
 ### Cardinal noble-red template
 
-Cardinal is a paid Classic template for candidates who want a formal single-column document with one restrained accent of colour. It reserves a "noble red" (`#9E2532`) for typography only — the role line under the name and every section heading — while all ornament stays neutral grey (`#8A8A8A`): the generated line-art icons beside each section heading and contact detail, plus the decorative rules under the headings and along the header and footer. Body copy is dark grey (`#333333`); the name uses Times-Roman while labels, contact, dates, and body use Helvetica. It is the only Classic template that pairs generated icons with every heading and contact row (the Iconic family does this too, but in its own collection), which is what sets it apart from Scribe, Regent, Aldine, Merit, Monument, and Words.
+Cardinal is a paid single-column template (`layouts: ["icons"]`) for candidates who want a formal document with one restrained accent of colour. It reserves a "noble red" (`#9E2532`) for typography only — the role line under the name and every section heading — while all ornament stays neutral grey (`#8A8A8A`): the generated line-art icons beside each section heading and contact detail, plus the decorative rules under the headings and along the header and footer. Body copy is dark grey (`#333333`); the name uses Times-Roman while labels, contact, dates, and body use Helvetica. Pairing generated icons with every heading and contact row is what sets it apart from Scribe, Regent, Aldine, Merit, Monument, and Words.
 
-The grey glyphs come from a dedicated `cardinal` theme added to the shared icon pipeline (`scripts/generate_iconic_icons.py`, `THEMES["cardinal"] = "#8A8A8A"`), rendered to `backend/template_assets/iconic/cardinal/*.png` and served from the existing `/template-assets/` mount. The static editor preview and the deterministic AI fill share one visual identity because the backend generator reuses the same single-column icon machinery as the Iconic family, under its own layout branch so no red accent band is drawn.
+The grey glyphs come from a dedicated `cardinal` theme added to the shared icon pipeline (`scripts/generate_iconic_icons.py`, `THEMES["cardinal"] = "#8A8A8A"`), rendered to `backend/template_assets/iconic/cardinal/*.png` and served from the existing `/template-assets/` mount. The static editor preview and the deterministic AI fill share one visual identity because the backend generator reuses the same single-column icon machinery as other icon-tagged templates, under its own layout branch so no red accent band is drawn.
 
 Implementation:
 
 - `frontend/src/templates/cardinal.js`, lines 1–158 — static starter spec; local `icon` helper (line 49), `sectionHead` (line 65), `contact` (line 76), and the `flowRole` mapping in `cardinalTemplate` (line 150)
-- `frontend/src/templates/index.js`, line 45, registry entry `cardinal` (`tier: "paid"`, `collection: "Classic"`, `accent: "#9E2532"`)
+- `frontend/src/templates/index.js`, registry entry `cardinal` (`tier: "paid"`, `layouts: ["icons"]`, `accent: "#9E2532"`)
 - `backend/app/services/cv_generator_iconic.py`, `cardinal` theme (lines 117–122), header branch (lines 177–197), page-decoration branch (lines 463–467), `_gen_cardinal` (lines 498–499)
 - `backend/app/services/cv_generator.py`, line 2577, `_GENERATORS["cardinal"]`
 - `scripts/generate_iconic_icons.py`, line 23, grey `cardinal` icon theme
@@ -381,7 +381,7 @@ Tests:
 
 ### Harbor two-column template
 
-Harbor is a paid Sidebar-collection template that reproduces the popular "double column" résumé: a wide main column on the left (summary + experience) and a narrower sidebar on the right (education, skills, languages, tools). A single teal accent (`#17A2B8`) carries the role line, company names, tool-list diamonds and filled proficiency dots; everything else is charcoal (`#2B2B2B`/`#3A3A3A`) on white, set in Inter. Grey contact and meta icons (phone, email, a `< >` code mark for a repository link, location, calendar) come from the `harbor` icon theme; the teal diamond bullet comes from the `harbor-accent` variant. A circular photo placeholder (a soft-grey disc plus a centred person glyph) sits in the top-right; users drop their own photo over it in the editor.
+Harbor is a paid two-column template (`layouts: ["sidebar", "icons"]`) that reproduces the popular "double column" résumé: a wide main column on the left (summary + experience) and a narrower sidebar on the right (education, skills, languages, tools). A single teal accent (`#17A2B8`) carries the role line, company names, tool-list diamonds and filled proficiency dots; everything else is charcoal (`#2B2B2B`/`#3A3A3A`) on white, set in Inter. Grey contact and meta icons (phone, email, a `< >` code mark for a repository link, location, calendar) come from the `harbor` icon theme; the teal diamond bullet comes from the `harbor-accent` variant. A circular photo placeholder (a soft-grey disc plus a centred person glyph) sits in the top-right; users drop their own photo over it in the editor.
 
 Harbor introduces three sidebar widgets not used elsewhere:
 
@@ -391,12 +391,12 @@ Harbor introduces three sidebar widgets not used elsewhere:
 
 The static editor preview and the deterministic AI fill share the same identity. Because the fill uses normalised CV data, generic "other" list sections are folded into `skills` (rendered as pills) while genuine custom sections (certifications, interests, projects) render as diamond lists; languages render as dot rows.
 
-New icon glyphs (`github`, `calendar`, `diamond`) are kept in a separate `EXTRA_ICONS` set and generated only for the two curated Harbor themes, so the Iconic family's assets are untouched.
+New icon glyphs (`github`, `calendar`, `diamond`) are kept in a separate `EXTRA_ICONS` set and generated only for the two curated Harbor themes, so other icon-theme asset folders stay untouched.
 
 Implementation:
 
 - `frontend/src/templates/harbor.js`, lines 1–251 — static starter spec; `rect` with `borderRadius` (line 48), `skillPills` packer (line 102), `languageRow` dots (line 124), `toolItem` diamonds (line 138), sidebar IIFE (line 144)
-- `frontend/src/templates/index.js`, line 48, registry entry `harbor` (`tier: "paid"`, `collection: "Sidebar"`, `accent: "#17A2B8"`)
+- `frontend/src/templates/index.js`, registry entry `harbor` (`tier: "paid"`, `layouts: ["sidebar", "icons"]`, `accent: "#17A2B8"`)
 - `backend/app/services/cv_generator.py`, `_gen_harbor` (line 2552), `_GENERATORS["harbor"]` (line 2823)
 - `scripts/generate_iconic_icons.py`, `draw_github`/`draw_calendar`/`draw_diamond` (lines 183–213), `EXTRA_ICONS` (line 234), `SUBSET_THEMES` (line 244)
 - `backend/app/schemas/pdf_schema.py`, line 85, `borderRadius` field
@@ -409,9 +409,9 @@ Tests:
 - `frontend/src/templates/harbor.test.js`, lines 1–67 — two-column origins, rounded pills, teal diamonds, grey icons, proficiency dots, photo placeholder, and Polish-headings assertions
 - `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — enforces the frontend/backend id parity that `harbor` now participates in
 
-### Iconic template family and icon reflow
+### Icon-tagged templates and icon reflow
 
-Nova, Ridge, Loom, and Volt provide four colour-matched layouts with contact and section icons. The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so Iconic icons are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
+Nova, Ridge, Loom, Volt, Cardinal, and Harbor are individual templates that share the `icons` layout tag (and optionally `sidebar` / `dark`). The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so icon images are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
 
 Loom contact rows are special-cased: three single-line `text` labels (not an auto-height email textarea) share a 22 px rhythm, with 9 px icons geometrically centred via `alignWithText: false`. The forest sidebar uses the same geometric icon alignment for skills / interests / languages (not the main-column optical shift), packs section bodies by measured height with a constant gap, and keeps every label and bullet list on one text column (`left: 40`). Main-column section headings still use optical alignment (`alignWithText: true`). Iconic experience entries use the same textarea-block stack as project records (`SPACE_STACK` inside a job, `SPACE_RECORD` / 10 px between jobs) so canvas spacing guides stay consistent. The flag is stored in `extra_properties` and restored when a PDF is reopened.
 
@@ -526,14 +526,14 @@ Implementation:
 
 ### Template carousel (import, bio wizard, change template)
 
-The same endless-loop `TemplateCarousel` gallery is used after PDF extract (**Wypełnij z mojego CV**), on the bio wizard **Podsumowanie** step, and in **Zmień szablon**. In **Wypełnij z mojego CV**, step 1 and step 2 are exclusive full-body panes (no stacked modal scrollbar); footer arrows between the step label and Anuluj switch steps. Templates are sorted by the seven product collections (`collection` on each `TEMPLATES` entry; helpers in `templateCollections.js`). Collection chips filter the loop (Wszystkie / Finanse / IT / …). Each card shows the template’s A4 mockup and collection label; hovering or focusing enlarges it in place (`whileHover`/`whileFocus` via Framer Motion). Only five cards render at once (modulo indexing), so prev/next never hits an end. The **Szablony** modal (`TemplatesModal`) renders the same collections as headed grid sections. Locked (non-Standard) templates stay visible with a **Standard** badge; the currently-filling template shows a spinner. All three flows call the shared `fillTemplate(cvData, templateId)` helper (`POST /ai/fill_template`).
+The same endless-loop `TemplateCarousel` gallery is used after PDF extract (**Wypełnij z mojego CV**), on the bio wizard **Podsumowanie** step, and in **Zmień szablon**. In **Wypełnij z mojego CV**, step 1 and step 2 are exclusive full-body panes (no stacked modal scrollbar); footer arrows between the step label and Anuluj switch steps. Templates appear as individual cards (`name` + short `description` from `TEMPLATES`; registry order via `templateLayouts.js`). There are no industry/style collection chips. Each card shows the template’s A4 mockup and description; hovering or focusing enlarges it in place (`whileHover`/`whileFocus` via Framer Motion). Only five cards render at once (modulo indexing), so prev/next never hits an end. The **Szablony** modal (`TemplatesModal`) renders the same flat grid. Locked (non-Standard) templates stay visible with a **Standard** badge; the currently-filling template shows a spinner. All three flows call the shared `fillTemplate(cvData, templateId)` helper (`POST /ai/fill_template`). Layout tags (`single` / `sidebar` / `icons` / `dark`) stay in code for generators and reflow — they are not product categories.
 
 Implementation:
 
 - `frontend/src/services/fillTemplate.js`, lines 19–34, `fillTemplate`
-- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — collection chips, modulo-indexed visible window, arrows, hover-enlarge
-- `frontend/src/utils/templateCollections.js` — `groupTemplatesByCollection` / `sortTemplatesByCollection`
-- `frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx` — collection section headings + grid
+- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — modulo-indexed visible window, arrows, hover-enlarge
+- `frontend/src/utils/templateLayouts.js` — registry order + `layouts` helpers
+- `frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx` — flat name/description grid
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — exclusive step panes (no modal scroll), footer step arrows between the step label and Anuluj, step-2 carousel + `handleFill`
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, lines 486–492, `renderReview` carousel
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx` — restyle via `replaceActiveElements`
@@ -849,7 +849,7 @@ Notable product facts:
 
 # CV Studio
 
-CV Studio to polski edytor CV na A4: płótno WYSIWYG, 25 szablonów branżowych, import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
+CV Studio to polski edytor CV na A4: płótno WYSIWYG, 25 indywidualnych szablonów (każdy z własną nazwą i krótkim opisem stylistycznym), import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
 
 Ten README to wejście techniczne dla programistów. Obszerne, napisane dla początkujących wyjaśnienie współrzędnych canvasu, interakcji React, deterministycznego layoutu Python, roli AI, reflow, zapisu i eksportu ReportLab znajduje się w [`CANVA.md`](CANVA.md). Wszystkie prompty AI (treść, zmienne, numery linii): [`PROMPTS.md`](PROMPTS.md). Opis produktowy funkcji: [`docs/FEATURES.md`](docs/FEATURES.md). Brief marketingowy pod sekcję „Dlaczego CV STUDIO” na stronie (funkcje + pozycjonowanie względem rynku, bez nazw marek konkurencji w copy publicznym): [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Generowanie szablonów (AI extract vs layout w Pythonie): [`docs/cv-template-generation.md`](docs/cv-template-generation.md).
 
@@ -1130,7 +1130,7 @@ Ograniczenia:
 
 ### Ładowanie szablonu
 
-- `frontend/src/templates/index.js` — `TEMPLATES` (`collection` grupuje 7 rodzin produktowych)
+- `frontend/src/templates/index.js` — `TEMPLATES` (`name` + `description` w UI; tagi `layouts` dla generatorów)
 - `frontend/src/utils/materializeElementSpecs.js` — `materializeElementSpecs`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadTemplate` / `useDocumentHistory`
 
@@ -1154,14 +1154,14 @@ Testy:
 
 ### Monochromatyczny szablon Monument
 
-Monument to płatny szablon z kolekcji Classic dla osób, które chcą eleganckiego, redakcyjnego efektu bez koloru. Jego charakter budują numerowane czarne prostokąty, konturowe ramki nagłówków, cienkie szare linie i asymetryczny masthead. Najmniejszy tekst ma 9 px; treść główna i podsumowanie używają po 9 px, żeby akapit wstępny nie był o stopień większy od otaczającego tekstu, tytuły stanowisk mają 11 px, tytuły edukacji 10 px, a nagłówki sekcji i linia stanowiska przy nazwisku 12,5 px. Cormorant Garamond odpowiada za formalny charakter display, a Montserrat utrzymuje czytelność gęstej treści CV. Ta sama zasada „podsumowanie = treść body” obowiązuje we wszystkich szablonach wypełnianych przez `generate_resume` (np. Regent/Scribe używają 9,3 px jak bulletów doświadczenia).
+Monument to płatny jednokolumnowy szablon (`layouts: ["single"]`) dla osób, które chcą eleganckiego, redakcyjnego efektu bez koloru. Jego charakter budują numerowane czarne prostokąty, konturowe ramki nagłówków, cienkie szare linie i asymetryczny masthead. Najmniejszy tekst ma 9 px; treść główna i podsumowanie używają po 9 px, żeby akapit wstępny nie był o stopień większy od otaczającego tekstu, tytuły stanowisk mają 11 px, tytuły edukacji 10 px, a nagłówki sekcji i linia stanowiska przy nazwisku 12,5 px. Cormorant Garamond odpowiada za formalny charakter display, a Montserrat utrzymuje czytelność gęstej treści CV. Ta sama zasada „podsumowanie = treść body” obowiązuje we wszystkich szablonach wypełnianych przez `generate_resume` (np. Regent/Scribe używają 9,3 px jak bulletów doświadczenia).
 
 Startowa tablica frontendu oraz deterministyczny generator Python używają tej samej geometrii A4 i palety szarości. `_gen_monument` nie rozdziela wpisów doświadczenia ani edukacji przy zmianie strony, obsługuje sekcje własne przez `_extra_sections` i grupuje numer, ramkę, etykietę oraz linię jako jeden element reflow, dzięki czemu geometria nagłówka pozostaje równa po pomiarze tekstu w przeglądarce. Rama strony i stopka powtarzają się na każdej stronie, natomiast masthead z nazwiskiem i stanowiskiem oraz jego wysokie boczne belki występują wyłącznie na pierwszej stronie; `repeatOnContinuation: false` zachowuje tę regułę również wtedy, gdy edytor później utworzy kolejną stronę. Decyzje o layoucie nie są przekazywane do modelu AI.
 
 Implementacja:
 
 - `frontend/src/templates/monument.js`, linie 1–108, eksportowana tablica `monumentTemplate`
-- `frontend/src/templates/index.js`, wpis rejestru `monument` (`tier: "paid"`, `collection: "Classic"`)
+- `frontend/src/templates/index.js`, wpis rejestru `monument` (`tier: "paid"`, `layouts: ["single"]`)
 - `backend/app/services/cv_generator.py`, linie 2013–2215, funkcja `_gen_monument`; linia 3256, `_GENERATORS["monument"]`
 - `frontend/src/utils/structureOperation.js`, linie 34–63, funkcja `cloneFixedPageDecorations`
 - `frontend/public/template-mockups/monument.png`, podgląd A4 generowany ze źródła
@@ -1176,14 +1176,14 @@ Znane ograniczenie: długie nazwy sekcji podane przez użytkownika są skracane 
 
 ### Szablon Words w stylu dokumentu Word
 
-Words to płatny szablon z kolekcji Classic dla osób, które chcą znajomego efektu dokumentu biurowego zamiast CV przypominającego plakat. Używa jednej kolumny Times-Roman na czysto białej stronie: nazwisko ma 29 px, stanowisko 13,5 px, nagłówki sekcji 12 px, a treść 10–11,5 px. Jedynymi dekoracjami są cienkie szare linie i kółka nie większe niż 7 px. Szablon nie zawiera prostokątów, paneli bocznych ani dekoracyjnych ramek udających dodatkowe marginesy.
+Words to płatny jednokolumnowy szablon (`layouts: ["single"]`) dla osób, które chcą znajomego efektu dokumentu biurowego zamiast CV przypominającego plakat. Używa jednej kolumny Times-Roman na czysto białej stronie: nazwisko ma 29 px, stanowisko 13,5 px, nagłówki sekcji 12 px, a treść 10–11,5 px. Jedynymi dekoracjami są cienkie szare linie i kółka nie większe niż 7 px. Szablon nie zawiera prostokątów, paneli bocznych ani dekoracyjnych ramek udających dodatkowe marginesy.
 
 Startowy układ frontendu i `_gen_words` używają tej samej geometrii A4. Długie imię, stanowisko i dane kontaktowe zawijają się zamiast być skracane, a pierwsza sekcja przesuwa się w dół o zmierzoną wysokość nagłówka. Generator Python nie rozdziela kompletnych wpisów doświadczenia ani edukacji, jeżeli mieszczą się razem, obsługuje sekcje własne przez `_extra_sections`, rozpoczyna treść kolejnej strony poniżej zwartego wcięcia 58 px i powtarza wyłącznie białe tło, linię stopki, małe kółko oraz numer strony. Jawne `flowRole` i `preserveInitialLayout` zapobiegają rozdzieleniu markerów od nagłówków oraz ponownemu przepaginowaniu początkowego układu przez pomiar tekstu w przeglądarce.
 
 Implementacja:
 
 - `frontend/src/templates/words.js`, linie 1–123, eksportowana tablica `wordsTemplate`
-- `frontend/src/templates/index.js`, wpis rejestru `words` (`tier: "paid"`, `collection: "Classic"`)
+- `frontend/src/templates/index.js`, wpis rejestru `words` (`tier: "paid"`, `layouts: ["single"]`)
 - `backend/app/services/cv_generator.py`, linie 3025–3218, funkcja `_gen_words`; linia 3257, `_GENERATORS["words"]`
 - `frontend/public/template-mockups/words.png`, podgląd A4 generowany ze źródła
 
@@ -1196,14 +1196,14 @@ Znane ograniczenie: Words odtwarza wizualny język starannie sformatowanego doku
 
 ### Szablon Cardinal w szlachetnej czerwieni
 
-Cardinal to płatny szablon z kolekcji Classic dla osób, które chcą formalnego, jednokolumnowego dokumentu z jednym powściągliwym akcentem koloru. „Szlachetna czerwień” (`#9E2532`) jest zarezerwowana wyłącznie dla typografii — linii stanowiska pod nazwiskiem oraz każdego nagłówka sekcji — a cała dekoracja pozostaje neutralnie szara (`#8A8A8A`): generowane ikony line-art przy każdym nagłówku sekcji i elemencie kontaktu oraz dekoracyjne linie pod nagłówkami i wzdłuż nagłówka i stopki. Treść główna jest ciemnoszara (`#333333`); nazwisko używa Times-Roman, a etykiety, kontakt, daty i treść — Helvetica. To jedyny szablon Classic, który łączy generowane ikony z każdym nagłówkiem i wierszem kontaktu (rodzina Iconic robi to również, ale we własnej kolekcji), co odróżnia go od Scribe, Regent, Aldine, Merit, Monument i Words.
+Cardinal to płatny jednokolumnowy szablon (`layouts: ["icons"]`) dla osób, które chcą formalnego dokumentu z jednym powściągliwym akcentem koloru. „Szlachetna czerwień” (`#9E2532`) jest zarezerwowana wyłącznie dla typografii — linii stanowiska pod nazwiskiem oraz każdego nagłówka sekcji — a cała dekoracja pozostaje neutralnie szara (`#8A8A8A`): generowane ikony line-art przy każdym nagłówku sekcji i elemencie kontaktu oraz dekoracyjne linie pod nagłówkami i wzdłuż nagłówka i stopki. Treść główna jest ciemnoszara (`#333333`); nazwisko używa Times-Roman, a etykiety, kontakt, daty i treść — Helvetica. Połączenie generowanych ikon z każdym nagłówkiem i wierszem kontaktu odróżnia go od Scribe, Regent, Aldine, Merit, Monument i Words.
 
-Szare glify pochodzą z dedykowanego motywu `cardinal` dodanego do wspólnego potoku ikon (`scripts/generate_iconic_icons.py`, `THEMES["cardinal"] = "#8A8A8A"`), renderowane do `backend/template_assets/iconic/cardinal/*.png` i serwowane z istniejącego montowania `/template-assets/`. Statyczny podgląd w edytorze i deterministyczne wypełnianie AI mają jedną tożsamość wizualną, ponieważ generator backendu korzysta z tej samej jednokolumnowej maszynerii ikon co rodzina Iconic, w osobnej gałęzi układu, dzięki czemu nie jest rysowany żaden czerwony pas akcentu.
+Szare glify pochodzą z dedykowanego motywu `cardinal` dodanego do wspólnego potoku ikon (`scripts/generate_iconic_icons.py`, `THEMES["cardinal"] = "#8A8A8A"`), renderowane do `backend/template_assets/iconic/cardinal/*.png` i serwowane z istniejącego montowania `/template-assets/`. Statyczny podgląd w edytorze i deterministyczne wypełnianie AI mają jedną tożsamość wizualną, ponieważ generator backendu korzysta z tej samej jednokolumnowej maszynerii ikon co inne szablony z tagiem `icons`, w osobnej gałęzi układu, dzięki czemu nie jest rysowany żaden czerwony pas akcentu.
 
 Implementacja:
 
 - `frontend/src/templates/cardinal.js`, linie 1–158 — statyczna specyfikacja startowa; lokalny helper `icon` (linia 49), `sectionHead` (linia 65), `contact` (linia 76) oraz mapowanie `flowRole` w `cardinalTemplate` (linia 150)
-- `frontend/src/templates/index.js`, linia 45, wpis rejestru `cardinal` (`tier: "paid"`, `collection: "Classic"`, `accent: "#9E2532"`)
+- `frontend/src/templates/index.js`, wpis rejestru `cardinal` (`tier: "paid"`, `layouts: ["icons"]`, `accent: "#9E2532"`)
 - `backend/app/services/cv_generator_iconic.py`, motyw `cardinal` (linie 117–122), gałąź nagłówka (linie 177–197), gałąź dekoracji strony (linie 463–467), `_gen_cardinal` (linie 498–499)
 - `backend/app/services/cv_generator.py`, linia 2577, `_GENERATORS["cardinal"]`
 - `scripts/generate_iconic_icons.py`, linia 23, szary motyw ikon `cardinal`
@@ -1216,7 +1216,7 @@ Testy:
 
 ### Szablon dwukolumnowy Harbor
 
-Harbor to płatny szablon z kolekcji Sidebar odtwarzający popularny układ „dwukolumnowy": szeroka kolumna główna po lewej (podsumowanie + doświadczenie) i węższy sidebar po prawej (edukacja, umiejętności, języki, narzędzia). Jeden akcent teal (`#17A2B8`) niesie linię stanowiska, nazwy firm, diamenty listy narzędzi oraz wypełnione kropki biegłości; reszta jest w grafitowej czerni (`#2B2B2B`/`#3A3A3A`) na bieli, złożona krojem Inter. Szare ikony kontaktu i metadanych (telefon, e-mail, znak `< >` dla linku do repozytorium, lokalizacja, kalendarz) pochodzą z motywu ikon `harbor`; teal diamentowy punktor pochodzi z wariantu `harbor-accent`. Okrągły placeholder zdjęcia (miękko-szary dysk z wyśrodkowanym glifem osoby) znajduje się w prawym górnym rogu; użytkownik nakłada na niego własne zdjęcie w edytorze.
+Harbor to płatny dwukolumnowy szablon (`layouts: ["sidebar", "icons"]`) odtwarzający popularny układ „dwukolumnowy": szeroka kolumna główna po lewej (podsumowanie + doświadczenie) i węższy sidebar po prawej (edukacja, umiejętności, języki, narzędzia). Jeden akcent teal (`#17A2B8`) niesie linię stanowiska, nazwy firm, diamenty listy narzędzi oraz wypełnione kropki biegłości; reszta jest w grafitowej czerni (`#2B2B2B`/`#3A3A3A`) na bieli, złożona krojem Inter. Szare ikony kontaktu i metadanych (telefon, e-mail, znak `< >` dla linku do repozytorium, lokalizacja, kalendarz) pochodzą z motywu ikon `harbor`; teal diamentowy punktor pochodzi z wariantu `harbor-accent`. Okrągły placeholder zdjęcia (miękko-szary dysk z wyśrodkowanym glifem osoby) znajduje się w prawym górnym rogu; użytkownik nakłada na niego własne zdjęcie w edytorze.
 
 Harbor wprowadza trzy widżety sidebara nieużywane w innych szablonach:
 
@@ -1226,12 +1226,12 @@ Harbor wprowadza trzy widżety sidebara nieużywane w innych szablonach:
 
 Statyczny podgląd w edytorze i deterministyczne wypełnianie AI mają tę samą tożsamość. Ponieważ wypełnianie korzysta ze znormalizowanych danych CV, ogólne sekcje listowe typu „other" są scalane do `skills` (renderowane jako pigułki), natomiast właściwe sekcje niestandardowe (certyfikaty, zainteresowania, projekty) renderują się jako listy diamentów; języki renderują się jako wiersze kropek.
 
-Nowe glify ikon (`github`, `calendar`, `diamond`) są trzymane w osobnym zbiorze `EXTRA_ICONS` i generowane tylko dla dwóch dedykowanych motywów Harbor, więc zasoby rodziny Iconic pozostają nietknięte.
+Nowe glify ikon (`github`, `calendar`, `diamond`) są trzymane w osobnym zbiorze `EXTRA_ICONS` i generowane tylko dla dwóch dedykowanych motywów Harbor, więc pozostałe foldery motywów ikon pozostają nietknięte.
 
 Implementacja:
 
 - `frontend/src/templates/harbor.js`, linie 1–251 — statyczna specyfikacja startowa; `rect` z `borderRadius` (linia 48), packer `skillPills` (linia 102), kropki `languageRow` (linia 124), diamenty `toolItem` (linia 138), IIFE sidebara (linia 144)
-- `frontend/src/templates/index.js`, linia 48, wpis rejestru `harbor` (`tier: "paid"`, `collection: "Sidebar"`, `accent: "#17A2B8"`)
+- `frontend/src/templates/index.js`, wpis rejestru `harbor` (`tier: "paid"`, `layouts: ["sidebar", "icons"]`, `accent: "#17A2B8"`)
 - `backend/app/services/cv_generator.py`, `_gen_harbor` (linia 2552), `_GENERATORS["harbor"]` (linia 2823)
 - `scripts/generate_iconic_icons.py`, `draw_github`/`draw_calendar`/`draw_diamond` (linie 183–213), `EXTRA_ICONS` (linia 234), `SUBSET_THEMES` (linia 244)
 - `backend/app/schemas/pdf_schema.py`, linia 85, pole `borderRadius`
@@ -1244,9 +1244,9 @@ Testy:
 - `frontend/src/templates/harbor.test.js`, linie 1–67 — asercje dwóch kolumn, zaokrąglonych pigułek, teal diamentów, szarych ikon, kropek biegłości, placeholdera zdjęcia oraz polskich nagłówków
 - `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — wymusza parytet id frontend/backend, w którym `harbor` teraz uczestniczy
 
-### Rodzina Iconic i reflow ikon
+### Szablony z tagiem `icons` i reflow ikon
 
-Nova, Ridge, Loom i Volt to cztery spójne kolorystycznie układy z ikonami kontaktu oraz sekcji. Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, ikony Iconic są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
+Nova, Ridge, Loom, Volt, Cardinal i Harbor to indywidualne szablony ze wspólnym tagiem layoutu `icons` (opcjonalnie też `sidebar` / `dark`). Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, obrazy ikon są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
 
 Kontakt w Loom jest osobnym przypadkiem: trzy jednoliniowe etykiety `text` (bez auto-height textarea na e-mailu) mają rytm 22 px, a ikony 9 px są wyśrodkowane geometrycznie (`alignWithText: false`). Sidebar (umiejętności / zainteresowania / języki) używa tego samego wyrównania geometrycznego ikon — nie optycznego przesunięcia z kolumny głównej — pakuje sekcje według zmierzonej wysokości ze stałym odstępem i trzyma etykiety oraz listy punktów w jednej kolumnie tekstu (`left: 40`). Nagłówki w kolumnie głównej nadal używają wyrównania optycznego (`alignWithText: true`). Wpisy doświadczenia w Iconic używają tego samego stosu bloków textarea co projekty (`SPACE_STACK` w środku wpisu, `SPACE_RECORD` / 10 px między wpisami), żeby prowadnice odstępów na kanwie były spójne. Flaga jest zapisywana w `extra_properties` i odtwarzana przy ponownym otwarciu PDF.
 
@@ -1351,14 +1351,14 @@ Testy:
 
 ### Karuzela szablonów (import, kreator bio, zmiana szablonu)
 
-Ta sama nieskończona galeria `TemplateCarousel` jest używana po ekstrakcji PDF (**Wypełnij z mojego CV**), na kroku **Podsumowanie** kreatora bio oraz w **Zmień szablon**. W **Wypełnij z mojego CV** kroki 1 i 2 to osobne pełne panele (bez scrolla całego modala); strzałki w stopce między etykietą kroku a Anuluj przełączają kroki. Szablony są posortowane według siedmiu kolekcji produktowych (`collection` w `TEMPLATES`; helpery w `templateCollections.js`). Chipy kolekcji filtrują pętlę (Wszystkie / Finanse / IT / …). Każda karta pokazuje mockup A4 i etykietę kolekcji; najazd/fokus powiększa ją w miejscu. Renderowanych jest naraz pięć kart (indeksowanie modulo). Modal **Szablony** (`TemplatesModal`) pokazuje te same kolekcje jako sekcje z nagłówkami. Zablokowane szablony mają plakietkę **Standard**. Wszystkie trzy ścieżki wołają wspólny helper `fillTemplate(cvData, templateId)` (`POST /ai/fill_template`).
+Ta sama nieskończona galeria `TemplateCarousel` jest używana po ekstrakcji PDF (**Wypełnij z mojego CV**), na kroku **Podsumowanie** kreatora bio oraz w **Zmień szablon**. W **Wypełnij z mojego CV** kroki 1 i 2 to osobne pełne panele (bez scrolla całego modala); strzałki w stopce między etykietą kroku a Anuluj przełączają kroki. Szablony pojawiają się jako indywidualne karty (`name` + krótki `description` z `TEMPLATES`; kolejność rejestru przez `templateLayouts.js`). Nie ma chipów kolekcji branżowych/stylistycznych. Każda karta pokazuje mockup A4 i opis; najazd/fokus powiększa ją w miejscu. Renderowanych jest naraz pięć kart (indeksowanie modulo). Modal **Szablony** (`TemplatesModal`) pokazuje tę samą płaską siatkę. Zablokowane szablony mają plakietkę **Standard**. Wszystkie trzy ścieżki wołają wspólny helper `fillTemplate(cvData, templateId)` (`POST /ai/fill_template`). Tagi layoutu (`single` / `sidebar` / `icons` / `dark`) zostają w kodzie dla generatorów i reflow — nie są kategoriami produktowymi.
 
 Implementacja:
 
 - `frontend/src/services/fillTemplate.js`, linie 19–34 — `fillTemplate`
-- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — chipy kolekcji, okno modulo, strzałki
-- `frontend/src/utils/templateCollections.js` — `groupTemplatesByCollection` / `sortTemplatesByCollection`
-- `frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx` — sekcje kolekcji + siatka
+- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — okno modulo, strzałki, powiększenie
+- `frontend/src/utils/templateLayouts.js` — kolejność rejestru + helpery `layouts`
+- `frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx` — płaska siatka nazwa/opis
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — osobne panele kroków (bez scrolla modala), strzałki w stopce między etykietą kroku a Anuluj, karuzela kroku 2 + `handleFill`
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, linie 486–492 — karuzela w `renderReview`
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx` — restyl przez `replaceActiveElements`

@@ -1,5 +1,5 @@
 /**
- * Cardinal template (Classic collection).
+ * Cardinal template (`layouts: ["icons"]`).
  *
  * A single-column, editorial CV that reserves a "noble red" (cardinal) purely
  * for typography — the name accent and every section heading — while all
@@ -7,11 +7,9 @@
  * each section heading and contact detail, plus the decorative rules under the
  * headings and the header/footer keylines. Body copy is dark grey.
  *
- * What makes it distinct within Classic: it is the only Classic layout that
- * pairs generated icons with every heading and contact row. The icon glyphs
- * come from the shared Iconic pipeline (`scripts/generate_iconic_icons.py`),
- * rendered in grey under the dedicated `cardinal` theme so the red is never
- * spent on ornament.
+ * Icon glyphs come from the shared icon pipeline
+ * (`scripts/generate_iconic_icons.py`), rendered in grey under the dedicated
+ * `cardinal` theme so the red is never spent on ornament.
  */
 import API_BASE_URL from "../services/api";
 import { block, bulleted, line, text } from "./helpers";
