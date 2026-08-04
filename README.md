@@ -383,15 +383,19 @@ Tests:
 
 Moss is a paid botanical sidebar template (`layouts: ["sidebar"]`). The gold-frame ornament (rectangle + ellipse + filled circle) is the photo placeholder at the top of the narrow left sidebar, aligned with the main-column name. Contact and fitted sidebar sections (skills, languages, interests, education) begin below that placeholder — not mid-page under empty vertical space. The main column keeps name / title / contact line without masthead decoration.
 
+Sidebar packing (`_fit_sidebar_sections`) accepts any complete section that still fits the remaining first-page height. An older per-section 160 px cap rejected ordinary wizard skill lists and long education records, so those sections appeared only in the main column after **Utwórz CV krok po kroku**, while shorter PDF-extracted lists stayed in the sidebar.
+
 Implementation:
 
 - `backend/app/services/cv_templates/templates/moss.py`, function `_gen_moss` (photo geometry and sidebar stack, lines 59–131)
+- `backend/app/services/cv_templates/shared/extras.py`, `_fit_sidebar_sections` — remaining-height budget only
 - `frontend/src/templates/moss.js`, lines 32–48 — static starter with the same sidebar photo + raised KONTAKT stack
 - `frontend/src/templates/index.js`, registry entry `moss`
 
 Tests:
 
-- `backend/tests/test_cv_template_layouts.py`, `test_moss_photo_placeholder_leads_sidebar_at_name_height`, lines 496–522
+- `backend/tests/test_cv_template_layouts.py`, `test_moss_photo_placeholder_leads_sidebar_at_name_height`, lines 582–608
+- `backend/tests/test_cv_template_layouts.py`, `test_moss_wizard_length_skills_and_education_stay_in_sidebar`, lines 358–429
 
 ### Harbor two-column template
 
@@ -1236,15 +1240,19 @@ Testy:
 
 Moss to płatny botaniczny szablon z sidebarem (`layouts: ["sidebar"]`). Złota ramka (prostokąt + elipsa + wypełnione koło) jest placeholdérem zdjęcia na górze wąskiego lewego sidebara, wyrównanym do imienia i nazwiska w kolumnie głównej. Kontakt oraz dopasowane sekcje sidebara (umiejętności, języki, zainteresowania, wykształcenie) zaczynają się pod tym placeholdérem — nie w połowie strony pod pustą przestrzenią. Kolumna główna zachowuje imię / stanowisko / linię kontaktu bez dekoracji w mastheadzie.
 
+Pakowanie sidebara (`_fit_sidebar_sections`) przyjmuje każdą kompletną sekcję, która jeszcze mieści się w pozostałej wysokości pierwszej strony. Starszy limit 160 px na sekcję odrzucał typowe listy z kreatora oraz dłuższe wpisy wykształcenia, więc po **Utwórz CV krok po kroku** lądowały w kolumnie głównej, podczas gdy krótsze listy z PDF zostawały w sidebarze.
+
 Implementacja:
 
 - `backend/app/services/cv_templates/templates/moss.py`, funkcja `_gen_moss` (geometria zdjęcia i stos sidebara, linie 59–131)
+- `backend/app/services/cv_templates/shared/extras.py`, `_fit_sidebar_sections` — tylko budżet pozostałej wysokości
 - `frontend/src/templates/moss.js`, linie 32–48 — statyczny starter z tym samym zdjęciem w sidebarze i podniesionym stosem KONTAKT
 - `frontend/src/templates/index.js`, wpis rejestru `moss`
 
 Testy:
 
-- `backend/tests/test_cv_template_layouts.py`, `test_moss_photo_placeholder_leads_sidebar_at_name_height`, linie 496–522
+- `backend/tests/test_cv_template_layouts.py`, `test_moss_photo_placeholder_leads_sidebar_at_name_height`, linie 582–608
+- `backend/tests/test_cv_template_layouts.py`, `test_moss_wizard_length_skills_and_education_stay_in_sidebar`, linie 358–429
 
 ### Szablon dwukolumnowy Harbor
 

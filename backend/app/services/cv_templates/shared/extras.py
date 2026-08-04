@@ -237,9 +237,6 @@ _SIDEBAR_SECTION_ORDER = ("skills", "languages", "certifications", "interests", 
 _SIDEBAR_FONT_SIZES = (8.3, 8.0, 7.5)
 
 
-_SIDEBAR_MAX_SECTION_HEIGHT = 160
-
-
 def _sidebar_wrapped_height(content: str, width: float, font_size: float, line_height: float) -> float:
     """Match Builder's text estimate for a narrow, auto-height sidebar block."""
     chars_per_line = max(10, int(width / (font_size * 0.52)))
@@ -297,7 +294,15 @@ def _fit_sidebar_sections(
     start_y: float,
     bottom_y: float,
 ) -> tuple[list[dict], set[str]]:
-    """Select only complete sections that fit the first-page sidebar budget."""
+    """Select only complete sections that fit the first-page sidebar budget.
+
+    The sole hard limit is remaining vertical space (``bottom_y - cursor``).
+    A previous per-section cap of 160 px rejected ordinary wizard skill lists
+    (~10–12 lines) and pushed them into the main column even when the sidebar
+    still had hundreds of free points — while shorter PDF-extracted lists fit.
+    Sections that cannot fit intact fall through to the main column instead of
+    being truncated.
+    """
     placed: list[dict] = []
     placed_keys: set[str] = set()
     cursor = float(start_y)
@@ -307,8 +312,6 @@ def _fit_sidebar_sections(
             line_height = round(max(font_size * 1.45, 11.0), 2)
             body_height = _sidebar_wrapped_height(candidate["content"], width, font_size, line_height)
             section_height = 10 + 5 + body_height + 18
-            if section_height > _SIDEBAR_MAX_SECTION_HEIGHT:
-                continue
             if cursor + section_height <= bottom_y:
                 placed.append({
                     **candidate,

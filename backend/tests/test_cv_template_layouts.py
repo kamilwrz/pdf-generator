@@ -261,8 +261,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 self.assertIn("Platforma obsługi klienta", main_copy)
 
     def test_obsidian_places_skills_languages_education_in_sidebar(self):
-        # Tall skills used to exceed _SIDEBAR_MAX_SECTION_HEIGHT and fall into
-        # the main column while languages/education still occupied the sidebar.
+        # Tall skills must still leave reserved room for languages/education.
         skills = [
             "Analiza AML/KYC",
             "Transaction Monitoring",
@@ -356,6 +355,78 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in sidebar_bodies
         ))
 
+    def test_moss_wizard_length_skills_and_education_stay_in_sidebar(self):
+        """Wizard profiles often have ~12 skills; those must not spill to main."""
+        skills = [
+            "Analiza AML/KYC",
+            "Transaction Monitoring",
+            "CDD / EDD",
+            "Analiza transakcji",
+            "Badania klientów",
+            "Microsoft Office",
+            "Compliance",
+            "Risk Assessment",
+            "Due Diligence",
+            "Raportowanie",
+            "Analiza danych",
+            "Przepisy AML",
+        ]
+        cv = {
+            "name": "Kamil Wrzochalski",
+            "title": "AML Analyst",
+            "email": "kamil@example.com",
+            "phone": "+48 600 000 000",
+            "location": "Warszawa",
+            "summary": "Specjalista AML.",
+            "skills": skills,
+            "education": [{
+                "degree": "Bachelor of Laws (LL.B.)",
+                "school": "Europa-Universität Viadrina",
+                "city": "Frankfurt (Oder)",
+                "period": "2018 – 2022",
+                "description": (
+                    "Studia prawnicze obejmujące prawo niemieckie i europejskie, "
+                    "ze szczególnym naciskiem na regulacje finansowe."
+                ),
+            }],
+            "experience": [{
+                "title": "AML Analyst",
+                "company": "Example Bank",
+                "period": "2022 – obecnie",
+                "bullets": ["Monitoring transakcji.", "Raportowanie SAR."],
+            }],
+            "extra_sections": [{
+                "title": "JĘZYKI",
+                "kind": "languages",
+                "placement": "after_skills",
+                "items": ["Polski — C2", "Angielski — B2"],
+            }],
+        }
+        elements = generate_resume("moss", cv)
+        sidebar_titles = {
+            element["content"]
+            for element in elements
+            if element["category"] == "text" and element.get("left") == 24
+        }
+        main_copy = "\n".join(
+            element["content"]
+            for element in elements
+            if element["category"] == "textarea" and element.get("left") == 220
+        )
+        self.assertTrue({"UMIEJĘTNOŚCI", "JĘZYKI", "WYKSZTAŁCENIE"} <= sidebar_titles)
+        self.assertIn(skills[0], "\n".join(
+            element["content"]
+            for element in elements
+            if element["category"] == "textarea" and element.get("left") == 24
+        ))
+        self.assertIn("Bachelor of Laws (LL.B.)", "\n".join(
+            element["content"]
+            for element in elements
+            if element["category"] == "textarea" and element.get("left") == 24
+        ))
+        self.assertNotIn(skills[0], main_copy)
+        self.assertNotIn("Bachelor of Laws (LL.B.)", main_copy)
+
     def test_sidebar_templates_keep_oversized_sections_complete_in_main_column(self):
         skills = [f"Kompetencja strategiczna i operacyjna numer {index}" for index in range(1, 25)]
         languages = [f"Język zawodowy poziom zaawansowany numer {index}" for index in range(1, 25)]
@@ -384,22 +455,37 @@ class CvTemplateLayoutTests(unittest.TestCase):
             element for element in elements
             if element["category"] in {"text", "textarea"} and element["left"] == 24
         ]
+        sidebar_titles = {
+            element["content"] for element in sidebar_text if element["category"] == "text"
+        }
+        sidebar_bodies = "\n".join(
+            element["content"]
+            for element in sidebar_text
+            if element["category"] == "textarea"
+        )
         main_textareas = [
             element for element in elements
             if element["category"] == "textarea" and element["left"] == 220
         ]
         main_copy = "\n".join(element["content"] for element in main_textareas)
 
-        self.assertNotIn("UMIEJĘTNOŚCI", {element["content"] for element in sidebar_text})
-        self.assertNotIn("OBSZARY", {element["content"] for element in sidebar_text})
-        self.assertNotIn("JĘZYKI", {element["content"] for element in sidebar_text})
-        self.assertNotIn("WYKSZTAŁCENIE", {element["content"] for element in sidebar_text})
+        # Skills/languages are far taller than the first-page sidebar budget, so
+        # they stay complete in the main column (never truncated in the sidebar).
+        self.assertNotIn("UMIEJĘTNOŚCI", sidebar_titles)
+        self.assertNotIn("JĘZYKI", sidebar_titles)
         self.assertIn(skills[0], main_copy)
         self.assertIn(skills[-1], main_copy)
         self.assertIn(f"• {languages[0]}", main_copy)
         self.assertIn(f"• {languages[-1]}", main_copy)
-        self.assertIn(education[0]["degree"], main_copy)
-        self.assertIn(education[-1]["degree"], main_copy)
+        # Education may still fit wholly in the sidebar at a smaller font; if so,
+        # every record must be present. Otherwise the full set is in the main column.
+        if "WYKSZTAŁCENIE" in sidebar_titles:
+            self.assertIn(education[0]["degree"], sidebar_bodies)
+            self.assertIn(education[-1]["degree"], sidebar_bodies)
+            self.assertNotIn(education[0]["degree"], main_copy)
+        else:
+            self.assertIn(education[0]["degree"], main_copy)
+            self.assertIn(education[-1]["degree"], main_copy)
 
     def test_sidebar_layout_uses_remaining_page_space_for_complete_experience_entry(self):
         fourth_job = {

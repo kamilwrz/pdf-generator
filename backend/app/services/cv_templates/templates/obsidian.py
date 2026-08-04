@@ -108,9 +108,8 @@ def _gen_obsidian(cv: dict) -> list[dict]:
     ) -> bool:
         """Place a complete bulleted sidebar section when it fits below the cursor.
 
-        Obsidian deliberately ignores `_SIDEBAR_MAX_SECTION_HEIGHT` — skills lists
-        are often taller than that cap, and rejecting them dumps UMIEJĘTNOŚCI into
-        the main column while languages/education still fit.
+        ``reserve`` keeps room for later sidebar sections (languages/education)
+        so a tall skills list cannot push them into the main column.
         """
         nonlocal cursor_y
         if not items:

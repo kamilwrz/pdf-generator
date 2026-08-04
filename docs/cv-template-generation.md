@@ -254,10 +254,10 @@ Motyw współdzielony różnicuje głównie **paletę, asset PNG, kształt marke
 Dla moss działa wspólna logika:
 
 1. `_sidebar_candidates` — buduje kandydatów: skills, languages/certyfikaty/zainteresowania z `extra_sections`, education.
-2. `_fit_sidebar_sections` — wkłada na pierwszą stronę **tylko kompletne sekcje**, które mieszczą się w budżecie wysokości (z próbą mniejszych fontów). Sekcja za duża **nie jest ucinana** — spada do kolumny głównej.
+2. `_fit_sidebar_sections` — wkłada na pierwszą stronę **tylko kompletne sekcje**, które mieszczą się w **pozostałym budżecie wysokości** sidebara (z próbą mniejszych fontów). Nie ma osobnego limitu „max 160 px na sekcję” — taki limit odrzucał typowe listy z kreatora bio (~10–12 umiejętności) mimo wolnego miejsca. Sekcja, która nie mieści się w całości, **nie jest ucinana** — spada do kolumny głównej.
 3. Indeksy `extra_sections` już umieszczonych w sidebarze są pomijane w `_extra_sections`, żeby nie dublować treści.
 
-**Obsidian** ma własną implementację sidebara w `_gen_obsidian` (kolejność KONTAKT → OBSZARY → JĘZYKI → WYKSZTAŁCENIE; umiejętności i języki jako bullet list; wykształcenie w formacie trójwierszowym). Nie korzysta z limitu `_SIDEBAR_MAX_SECTION_HEIGHT` w taki sam sposób jak jasne sidebary — właśnie dlatego długa lista umiejętności nie „wypada” do main column.
+**Obsidian** ma własną implementację sidebara w `_gen_obsidian` (kolejność KONTAKT → umiejętności → JĘZYKI → WYKSZTAŁCENIE; umiejętności i języki jako bullet list; wykształcenie w formacie trójwierszowym). Pakuje umiejętności z rezerwą miejsca na języki i edukację, żeby długa lista nie wypychała ich do main column.
 
 ### 6.7 Extra sections
 
