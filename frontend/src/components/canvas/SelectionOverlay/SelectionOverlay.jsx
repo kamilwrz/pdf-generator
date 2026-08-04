@@ -6,11 +6,14 @@ import { useMemo } from "react";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { getElementBounds, getTextContentBounds } from "../../../utils/elementBounds";
+import { imageDisplayTop } from "../../../utils/iconAlignment";
 import classes from "./SelectionOverlay.module.css";
 
 function frameForElement(element) {
     const left = Number(element.left) || 0;
-    const top = Number(element.top) || 0;
+    // Text-aligned icons render their glyph above the stored top, so the outline
+    // must hug the shifted glyph position (matches the <img> and resize handles).
+    const top = imageDisplayTop(element);
 
     // Text: hug rendered glyphs. Use the live ink box (not the line box) so the
     // frame stays tight while dragging. Do not pad with fontSize floors — that

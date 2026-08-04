@@ -5,8 +5,12 @@
 import classes from "./Resize.module.css";
 import { useEffect } from "react";
 
-export default function Resize({ selectedElement, isResizeable, handleIsResizable, resizeElement, category, elementId, elementRef }) {
+export default function Resize({ selectedElement, isResizeable, handleIsResizable, resizeElement, category, elementId, elementRef, displayTop }) {
     const isTextarea = selectedElement.category === "textarea";
+    // Text-aligned icons render their glyph above the stored top; the handles
+    // must follow that shifted position, not the logical top, or the resize box
+    // detaches from the icon.
+    const frameTop = displayTop ?? selectedElement.top;
     const stopResizing = () => handleIsResizable(false);
 
     useEffect(() => {
@@ -47,7 +51,7 @@ export default function Resize({ selectedElement, isResizeable, handleIsResizabl
             width: selectedElement.width,
             height: selectedElement.height,
             left: selectedElement.left,
-            top: selectedElement.top,
+            top: frameTop,
             position: "absolute",
         }}>
             {isTextarea ? (

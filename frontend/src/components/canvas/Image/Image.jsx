@@ -17,36 +17,13 @@ import {
     fetchAuthenticatedImageObjectUrl,
     isAuthenticatedImageSrc,
 } from "../../../services/authenticatedImage";
+import { iconicDrawTop, isTextAlignedIcon } from "../../../utils/iconAlignment";
 
 function resolveTemplateAssetSrc(src) {
     const assetPath = String(src || "").match(/\/template-assets\/[^?#]+(?:[?#].*)?$/)?.[0];
     const isLocalFrontend = typeof window !== "undefined"
         && ["localhost", "127.0.0.1"].includes(window.location.hostname);
     return assetPath && !isLocalFrontend ? `${API_BASE_URL}${assetPath}` : src;
-}
-
-function isTextAlignedIcon(src, alignWithText) {
-    // Explicit false opts out (Loom contact uses geometric centring).
-    if (alignWithText === false) return false;
-    if (alignWithText === true) return true;
-    // Legacy Iconic docs saved without the flag still get optical alignment.
-    return /\/template-assets\/iconic\//.test(String(src || ""));
-}
-
-/**
- * CSS top that centres a square icon on the companion label's optical cap
- * mid-line. `lineTop` is the label's stored top; the cap mid-line sits at
- * `lineTop - 1.2` (same anchor the PDF `renderImage` uses for ~8.5 pt labels),
- * so the icon reads level with the caps rather than floating below them.
- *
- * The anchor is deliberately independent of the icon size, so enlarging an icon
- * grows it evenly around the same mid-line instead of pushing it lower. This
- * mirrors the backend exactly, keeping the canvas and the exported PDF aligned.
- */
-function iconicDrawTop(lineTop, size) {
-    const h = Number(size) || 11;
-    const textCapMid = Number(lineTop) - 1.2;
-    return textCapMid - h / 2;
 }
 
 function Image({
@@ -151,6 +128,7 @@ function Image({
                 category={selectedElement.category}
                 elementId={elementId}
                 elementRef={image}
+                displayTop={drawTop}
             />
             <img
                 ref={image}
