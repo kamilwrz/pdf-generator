@@ -67,7 +67,7 @@ def _gen_signal(cv: dict) -> list[dict]:
     lbl = _labels(cv)
 
     class BankingBuilder(Builder):
-        # Match canvas reflow (pageTop 66 / bottomMargin 96 → 746). Keep the
+        # Match canvas reflow (pageTop 66 / bottomMargin 72 → 770). Keep the
         # shared need/keep_together path; only the continuation Y differs.
         def continuation_top(self) -> float:
             return float(C["continuation"])

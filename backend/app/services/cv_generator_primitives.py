@@ -15,10 +15,13 @@ from contextlib import contextmanager
 from app.services.pdf_generator import PDF_Generator
 
 A4_H = 842
-# Match classic frames + frontend textarea reflow (pageTop 66 / bottomMargin 96).
-MARGIN_BOTTOM = 96
+# Match classic/sidebar footer rules (~y=783) + frontend textarea reflow
+# (pageTop 66 / bottomMargin 72). The older 96 px margin left ~37 px of empty
+# band above the footer and made keep_together park the next experience
+# record on page N+1 even when the canvas later shrank earlier boxes.
+MARGIN_BOTTOM = 72
 PAGE_TOP = 66
-CONTENT_BOTTOM = A4_H - MARGIN_BOTTOM  # 746
+CONTENT_BOTTOM = A4_H - MARGIN_BOTTOM  # 770
 
 # Vertical rhythm for generated CVs. Every template should space content as:
 #   section → record (block) → stack (elements inside a record).

@@ -516,7 +516,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         )
         self.assertEqual(fourth_title["page"], 1)
         self.assertEqual(fourth_bullets["page"], 1)
-        self.assertLessEqual(fourth_bullets["top"] + fourth_bullets["height"], 758)
+        self.assertLessEqual(fourth_bullets["top"] + fourth_bullets["height"], 770)
 
     def test_sidebar_experience_entries_follow_one_alignment_and_spacing_pattern(self):
         jobs = [
@@ -1036,7 +1036,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         for element in flow:
             if element["category"] != "textarea":
                 continue
-            self.assertLessEqual(element["top"] + element["height"], 746)
+            self.assertLessEqual(element["top"] + element["height"], 770)
 
         first_degree = next(
             element for element in elements
@@ -1217,7 +1217,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         )
         self.assertEqual(heading["page"], body["page"])
         self.assertLess(heading["top"], body["top"])
-        self.assertLessEqual(body["top"] + body["height"], 746)
+        self.assertLessEqual(body["top"] + body["height"], 770)
 
     def test_nimbus_flow_keeps_margins_and_record_rhythm(self):
         from app.services.cv_generator import SPACE_RECORD, SPACE_STACK
@@ -1239,7 +1239,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         for element in flow:
             if element["category"] != "textarea":
                 continue
-            self.assertLessEqual(element["top"] + element["height"], 746)
+            self.assertLessEqual(element["top"] + element["height"], 770)
 
         titles = [
             element for element in elements

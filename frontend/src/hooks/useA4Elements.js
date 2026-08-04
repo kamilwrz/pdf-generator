@@ -738,9 +738,9 @@ export function useA4Elements(titleRef) {
         measuredHeight,
         pageSizeRef.current.height,
         // Framed classic/sidebar CVs reserve ~66px top and keep clear of the
-        // footer rule near y=783. Using those safe margins prevents canvas
-        // auto-height from packing into decorative chrome.
-        { pageTop: 66, bottomMargin: 96 },
+        // footer rule near y=783 (bottomMargin 72 → content bottom 770). Keep
+        // in sync with backend CONTENT_BOTTOM / MARGIN_BOTTOM.
+        { pageTop: 66, bottomMargin: 72 },
       );
       if (!result.changed) return prevState;
 

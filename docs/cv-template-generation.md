@@ -206,7 +206,7 @@ wyjątki „pełne”            _gen_ledger, _gen_signal, _gen_obsidian, …
 
 - `y` — aktualna pozycja od góry strony,
 - `pg` — numer strony,
-- `need(h)` — jeśli `y + h` przekracza `CONTENT_BOTTOM` (842 − 96 = **746**), skok na nową stronę i `y = PAGE_TOP` (66),
+- `need(h)` — jeśli `y + h` przekracza `CONTENT_BOTTOM` (842 − 72 = **770**), skok na nową stronę i `y = PAGE_TOP` (66),
 - `need_section(chrome, first_body)` — nagłówek sekcji **razem** z pierwszym blokiem treści (żeby nagłówek nie został sam na dole strony),
 - `text` / `block` / `gap` / `line` — dokładają elementy i przesuwają `y`,
 - `measure_block` — wysokość textarea liczona przez `PDF_Generator.measure_textarea_height` (metryki fontów zgodne z eksportem PDF).

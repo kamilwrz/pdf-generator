@@ -362,7 +362,7 @@ Geometria strony:
 
 - wysokość A4: `A4_H = 842`
 - góra treści po przełamaniu: `PAGE_TOP = 66`
-- dół treści: `CONTENT_BOTTOM = 746` (zapas na stopkę)
+- dół treści: `CONTENT_BOTTOM = 770` (zapas na stopkę ~y=783)
 
 ---
 

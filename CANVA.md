@@ -526,7 +526,7 @@ Wspólne granice generatora to:
 
 ```text
 PAGE_TOP       = 66
-CONTENT_BOTTOM = 746
+CONTENT_BOTTOM = 770
 ```
 
 Dolne 96 jednostek strony pozostaje zarezerwowane na stopkę i bezpieczny margines.

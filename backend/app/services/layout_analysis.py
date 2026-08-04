@@ -953,7 +953,7 @@ _VALID_AXES = {"x", "y"}
 _VALID_ANCHORS = {"start", "center", "end"}
 _NO_CHANGE = "no_change"
 # Match cv_generator bottom margin on A4; scale down for tiny test pages.
-_CONTENT_BOTTOM_MARGIN_A4 = 96.0
+_CONTENT_BOTTOM_MARGIN_A4 = 72.0
 # Soft breathing room before the next content block that ends the region.
 _DISTRIBUTE_BREATHING_Y = 8.0
 # Cap equal gaps so empty lower page does not explode CV rhythm.

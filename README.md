@@ -385,6 +385,8 @@ Moss is a paid botanical sidebar template (`layouts: ["sidebar"]`). The gold-fra
 
 Sidebar packing (`_fit_sidebar_sections`) accepts any complete section that still fits the remaining first-page height. An older per-section 160 px cap rejected ordinary wizard skill lists and long education records, so those sections appeared only in the main column after **Utwórz CV krok po kroku**, while shorter PDF-extracted lists stayed in the sidebar.
 
+Page packing uses `CONTENT_BOTTOM = 770` (72 px footer margin, shared by every template’s `Builder` and canvas reflow). When ReportLab overshoots browser wraps and parks the next experience record on page 2, canvas reflow pulls the whole `flowGroup` back once shrinks free room — so a large empty band under the last page-1 job does not remain.
+
 Implementation:
 
 - `backend/app/services/cv_templates/templates/moss.py`, function `_gen_moss` (photo geometry and sidebar stack, lines 59–131)
@@ -1241,6 +1243,8 @@ Testy:
 Moss to płatny botaniczny szablon z sidebarem (`layouts: ["sidebar"]`). Złota ramka (prostokąt + elipsa + wypełnione koło) jest placeholdérem zdjęcia na górze wąskiego lewego sidebara, wyrównanym do imienia i nazwiska w kolumnie głównej. Kontakt oraz dopasowane sekcje sidebara (umiejętności, języki, zainteresowania, wykształcenie) zaczynają się pod tym placeholdérem — nie w połowie strony pod pustą przestrzenią. Kolumna główna zachowuje imię / stanowisko / linię kontaktu bez dekoracji w mastheadzie.
 
 Pakowanie sidebara (`_fit_sidebar_sections`) przyjmuje każdą kompletną sekcję, która jeszcze mieści się w pozostałej wysokości pierwszej strony. Starszy limit 160 px na sekcję odrzucał typowe listy z kreatora oraz dłuższe wpisy wykształcenia, więc po **Utwórz CV krok po kroku** lądowały w kolumnie głównej, podczas gdy krótsze listy z PDF zostawały w sidebarze.
+
+Pakowanie stron używa `CONTENT_BOTTOM = 770` (72 px margines stopki — wspólne dla `Builder` i reflow na kanwie). Gdy ReportLab zawyży zawijanie i odłoży kolejny wpis doświadczenia na stronę 2, reflow ściąga cały `flowGroup` z powrotem, gdy skurczenie boxów zwolni miejsce — bez pustego pasa pod ostatnim wpisem na stronie 1.
 
 Implementacja:
 

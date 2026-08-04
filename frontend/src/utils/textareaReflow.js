@@ -310,6 +310,32 @@ function precedingChromeCluster(elements, target, pageHeight) {
 }
 
 /**
+ * Absolute bottom of the last flowable lane element on ``page`` that is not
+ * part of ``excludeGroup`` (and is not the target itself). Used to pull a
+ * keep-together record back onto the previous page after shrinks free room.
+ */
+function previousLaneContentBottom(
+  elements,
+  target,
+  pageHeight,
+  page,
+  excludeGroup,
+) {
+  let bottom = null;
+  for (const element of elements) {
+    if (!FLOWABLE_CATEGORIES.has(element.category)) continue;
+    if (element.fixedToPage || isPositionLockedForReflow(element)) continue;
+    if (element.element_id === target.element_id) continue;
+    if (pageOf(element) !== page) continue;
+    if (!belongsToFlowLane(target, element)) continue;
+    if (excludeGroup && flowGroupOf(element) === excludeGroup) continue;
+    const candidateBottom = absoluteTop(element, pageHeight) + elementHeight(element);
+    if (bottom == null || candidateBottom > bottom) bottom = candidateBottom;
+  }
+  return bottom;
+}
+
+/**
  * Title/meta siblings that share the target's keep-together record and sit
  * above it. When the measured body jumps pages, these must move with it.
  */
@@ -411,6 +437,35 @@ export function reflowTextareaHeight(
   ) {
     targetPage = pageOf(recordAnchor) + 1;
     recordTop = pageTop;
+  }
+
+  // Pull a keep-together record back onto the previous page when shrinks (this
+  // box or earlier ones already packed above) free enough room. ReportLab often
+  // overshoots browser line wraps, so generators park the next experience
+  // record on page N+1; without this step the canvas keeps a large empty band
+  // under the last page-N job even though the whole record now fits.
+  const recordGroup = flowGroupOf(target);
+  if (
+    recordHeight <= pageCapacity
+    && pageOf(recordAnchor) > 1
+  ) {
+    const prevPage = pageOf(recordAnchor) - 1;
+    const prevBottomAbs = previousLaneContentBottom(
+      elements,
+      target,
+      safePageHeight,
+      prevPage,
+      recordGroup,
+    );
+    if (prevBottomAbs != null) {
+      const packFrom = prevBottomAbs + DEFAULT_PACK_GAP;
+      const prevPageStart = (prevPage - 1) * safePageHeight;
+      const proposedTop = packFrom - prevPageStart;
+      if (proposedTop >= pageTop && proposedTop + recordHeight <= contentBottom) {
+        targetPage = prevPage;
+        recordTop = proposedTop;
+      }
+    }
   }
 
   // When the measured record jumps to the next page, pull its preceding section

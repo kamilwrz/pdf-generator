@@ -45,7 +45,7 @@ test("shrinking page-one content reclaims the page-break hole for following bloc
     textarea({ top: 620, height: 80 }),
     { element_id: "page-two-heading", category: "text", left: 40, top: 66, width: 180, fontSize: 12, page: 2 },
     { element_id: "page-two-body", category: "textarea", left: 40, top: 90, width: 180, height: 20, page: 2 },
-  ], "textarea", 40, 842, { pageTop: 66, bottomMargin: 96 });
+  ], "textarea", 40, 842, { pageTop: 66, bottomMargin: 72 });
 
   const heading = result.elements.find((element) => element.element_id === "page-two-heading");
   const body = result.elements.find((element) => element.element_id === "page-two-body");
@@ -53,8 +53,74 @@ test("shrinking page-one content reclaims the page-break hole for following bloc
   // Using the page-top inset (0) or SPACE_RECORD (10) crushed education headings.
   assert.deepEqual({ page: heading.page, top: heading.top }, { page: 1, top: 681 });
   assert.equal(body.page, 1);
-  assert.ok(body.top + body.height <= 746);
+  assert.ok(body.top + body.height <= 770);
   assert.equal(result.pageCount, 1);
+});
+
+test("pulls a keep-together experience record back when its body shrinks on page 2", () => {
+  // Generators park job 4 on page 2 when ReportLab overshoots earlier bullets.
+  // After the parked record's own body shrinks, the whole flowGroup must return
+  // to page 1 into the freed band — not stay under a large empty gap.
+  const result = reflowTextareaHeight([
+    {
+      element_id: "job3-bullets",
+      category: "textarea",
+      autoHeight: true,
+      flowGroup: "record-job3",
+      flowRole: "content",
+      left: 220,
+      top: 580,
+      width: 326,
+      height: 52,
+      page: 1,
+    },
+    {
+      element_id: "job4-title",
+      category: "textarea",
+      autoHeight: true,
+      flowGroup: "record-job4",
+      flowRole: "content",
+      left: 220,
+      top: 56,
+      width: 326,
+      height: 15,
+      page: 2,
+    },
+    {
+      element_id: "job4-meta",
+      category: "textarea",
+      autoHeight: true,
+      flowGroup: "record-job4",
+      flowRole: "content",
+      left: 220,
+      top: 75,
+      width: 326,
+      height: 12,
+      page: 2,
+    },
+    {
+      element_id: "job4-bullets",
+      category: "textarea",
+      autoHeight: true,
+      flowGroup: "record-job4",
+      flowRole: "content",
+      left: 220,
+      top: 91,
+      width: 326,
+      height: 93,
+      page: 2,
+    },
+  ], "job4-bullets", 55, 842, { pageTop: 66, bottomMargin: 72 });
+
+  const title = result.elements.find((element) => element.element_id === "job4-title");
+  const meta = result.elements.find((element) => element.element_id === "job4-meta");
+  const bullets = result.elements.find((element) => element.element_id === "job4-bullets");
+  assert.equal(title.page, 1);
+  assert.equal(meta.page, 1);
+  assert.equal(bullets.page, 1);
+  assert.equal(bullets.height, 55);
+  assert.ok(title.top >= 580 + 52 + 10 - 0.5);
+  assert.ok(bullets.top + bullets.height <= 770);
 });
 
 test("locked section-chrome rules reflow with their heading across a reclaimed page break", () => {
@@ -94,7 +160,7 @@ test("locked section-chrome rules reflow with their heading across a reclaimed p
       height: 20,
       page: 2,
     },
-  ], "textarea", 40, 842, { pageTop: 66, bottomMargin: 96 });
+  ], "textarea", 40, 842, { pageTop: 66, bottomMargin: 72 });
 
   const heading = result.elements.find((element) => element.element_id === "edu-heading");
   const rule = result.elements.find((element) => element.element_id === "edu-rule");
@@ -124,7 +190,7 @@ test("cross-page pack does not use the tiny page-top inset for section chrome", 
       fontSize: 8.5,
       page: 2,
     },
-  ], "textarea", 40, 842, { pageTop: 66, bottomMargin: 96 });
+  ], "textarea", 40, 842, { pageTop: 66, bottomMargin: 72 });
 
   const heading = result.elements.find((element) => element.element_id === "edu-heading");
   assert.deepEqual({ page: heading.page, top: heading.top }, { page: 1, top: 681 });
@@ -134,7 +200,7 @@ test("overflowed blocks land on continuation inset, not page top 0", () => {
   const result = reflowTextareaHeight([
     textarea({ top: 700, height: 20 }),
     { element_id: "next", category: "textarea", left: 40, top: 730, width: 180, height: 100, page: 1 },
-  ], "textarea", 40, 842, { pageTop: 66, bottomMargin: 96 });
+  ], "textarea", 40, 842, { pageTop: 66, bottomMargin: 72 });
 
   const next = result.elements.find((element) => element.element_id === "next");
   assert.equal(next.page, 2);
@@ -412,7 +478,7 @@ test("reclaim packing keeps a flowGroup education record whole", () => {
       height: 80,
       page: 2,
     },
-  ], "summary", 40, 842, { pageTop: 66, bottomMargin: 96 });
+  ], "summary", 40, 842, { pageTop: 66, bottomMargin: 72 });
 
   const heading = result.elements.find((element) => element.element_id === "edu-heading");
   const degree = result.elements.find((element) => element.element_id === "edu-degree");
@@ -464,7 +530,7 @@ test("growing a record body moves title/meta siblings with the same flowGroup", 
       height: 12,
       page: 1,
     },
-  ], "edu-desc", 40, 842, { pageTop: 66, bottomMargin: 96 });
+  ], "edu-desc", 40, 842, { pageTop: 66, bottomMargin: 72 });
 
   const degree = result.elements.find((element) => element.element_id === "edu-degree");
   const meta = result.elements.find((element) => element.element_id === "edu-meta");
@@ -562,7 +628,7 @@ test("uses explicit flow roles instead of treating Onyx record text as section c
       height: 40,
       page: 1,
     },
-  ], "textarea", 44, 842, { pageTop: 66, bottomMargin: 96 });
+  ], "textarea", 44, 842, { pageTop: 66, bottomMargin: 72 });
 
   const title = result.elements.find((element) => element.element_id === "record-title");
   assert.equal(title.page, 1);
@@ -618,7 +684,7 @@ test("keeps section heading with following body across a page break", () => {
       page: 1,
       autoHeight: true,
     },
-  ], "job", 90, 842, { pageTop: 66, bottomMargin: 96 });
+  ], "job", 90, 842, { pageTop: 66, bottomMargin: 72 });
 
   const heading = result.elements.find((element) => element.element_id === "edu-heading");
   const mark = result.elements.find((element) => element.element_id === "edu-mark");
@@ -676,7 +742,7 @@ test("pulls preceding section chrome when the body textarea itself jumps page", 
       height: 20,
       page: 1,
     },
-  ], "skills-body", 48, 842, { pageTop: 66, bottomMargin: 96 });
+  ], "skills-body", 48, 842, { pageTop: 66, bottomMargin: 72 });
 
   const icon = result.elements.find((element) => element.element_id === "skills-icon");
   const heading = result.elements.find((element) => element.element_id === "skills-heading");
@@ -806,7 +872,7 @@ test("keeps Onyx section chrome top-to-top when an upstream textarea shrinks", (
       bold: true,
       page: 1,
     },
-  ], "summary", 40, 842, { pageTop: 66, bottomMargin: 96 });
+  ], "summary", 40, 842, { pageTop: 66, bottomMargin: 72 });
 
   const heading = result.elements.find((element) => element.element_id === "exp-heading");
   const rule = result.elements.find((element) => element.element_id === "exp-rule");
@@ -849,7 +915,7 @@ test("does not stack a section heading under a grown textarea body", () => {
       height: 1,
       page: 1,
     },
-  ], "bullets", 100, 842, { pageTop: 66, bottomMargin: 96 });
+  ], "bullets", 100, 842, { pageTop: 66, bottomMargin: 72 });
 
   const bullets = result.elements.find((element) => element.element_id === "bullets");
   const heading = result.elements.find((element) => element.element_id === "edu-heading");
@@ -934,7 +1000,7 @@ test("moves a heading when the full following body cannot fit beneath it", () =>
       height: 80,
       page: 1,
     },
-  ], "projects", 70, 842, { pageTop: 66, bottomMargin: 96 });
+  ], "projects", 70, 842, { pageTop: 66, bottomMargin: 72 });
 
   const heading = result.elements.find((element) => element.element_id === "skills-heading");
   const body = result.elements.find((element) => element.element_id === "skills-body");
@@ -942,7 +1008,7 @@ test("moves a heading when the full following body cannot fit beneath it", () =>
   assert.equal(heading.page, body.page);
   assert.ok(body.top > heading.top);
   if (heading.page === 1) {
-    assert.ok(body.top + body.height <= 746);
+    assert.ok(body.top + body.height <= 770);
   } else {
     assert.equal(heading.page, 2);
   }
