@@ -29,6 +29,16 @@
     color: var(--chrome-muted);
 }
 
+.identityTemplate {
+    margin-top: 4px;
+    font: 500 13px var(--font-body);
+    color: var(--chrome-ink);
+}
+
+.identityTemplate strong {
+    font-weight: 700;
+}
+
 .identityStats {
     display: flex;
     gap: 10px;

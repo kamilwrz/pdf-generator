@@ -4,12 +4,18 @@
  * Templates are individual product entries (name + short description). Renders
  * a fixed-size window computed by modulo indexing into the registry-ordered
  * list, so the "prev"/"next" arrows never hit a dead end.
+ *
+ * When `selectedId` is set (e.g. the document's active template in
+ * "Zmień szablon"), browsing starts at that card and it is marked as current.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import classes from "./TemplateCarousel.module.css";
 import { isTemplateAllowed } from "../../../utils/entitlements";
-import { listTemplatesInRegistryOrder } from "../../../utils/templateLayouts";
+import {
+    listTemplatesInRegistryOrder,
+    startIndexForSelectedTemplate,
+} from "../../../utils/templateLayouts";
 
 const VISIBLE_COUNT = 5;
 
@@ -25,19 +31,39 @@ const ChevronRight = () => (
  * @param {Array<{id:string,name:string,description?:string,accent:string,tier:string,layouts?:string[]}>} props.templates
  * @param {object} props.entitlements
  * @param {string|null} props.fillingId
+ * @param {string|null} [props.selectedId] - Currently applied template (shown + start window)
  * @param {(template: object) => void} props.onSelect
  * @param {boolean} [props.fillHeight] - Stretch the gallery to fill a flex parent (AiCvPanel step 2).
  */
-export default function TemplateCarousel({ templates, entitlements, fillingId, onSelect, fillHeight = false }) {
-    const [startIndex, setStartIndex] = useState(0);
-
+export default function TemplateCarousel({
+    templates,
+    entitlements,
+    fillingId,
+    selectedId = null,
+    onSelect,
+    fillHeight = false,
+}) {
     const orderedTemplates = useMemo(
         () => listTemplatesInRegistryOrder(templates),
         [templates],
     );
 
+    const [startIndex, setStartIndex] = useState(() =>
+        startIndexForSelectedTemplate(orderedTemplates, selectedId),
+    );
+
+    // Remounts already reset state when the change-template dialog opens, but
+    // keep the window aligned if the active template changes while mounted
+    // (e.g. after a successful restyle before the dialog closes).
+    useEffect(() => {
+        setStartIndex(startIndexForSelectedTemplate(orderedTemplates, selectedId));
+    }, [orderedTemplates, selectedId]);
+
     const total = orderedTemplates.length;
     const canLoop = total > VISIBLE_COUNT;
+    const selectedTemplate = selectedId
+        ? orderedTemplates.find((template) => template.id === selectedId)
+        : null;
 
     const visible = useMemo(() => {
         const count = Math.min(VISIBLE_COUNT, total);
@@ -58,7 +84,9 @@ export default function TemplateCarousel({ templates, entitlements, fillingId, o
         <div className={`${classes.carousel}${fillHeight ? ` ${classes.carouselFill}` : ""}`}>
             <div className={classes.toolbar}>
                 <p className={classes.toolbarHint}>
-                    Każdy szablon ma własny styl — wybierz układ pasujący do dokumentu.
+                    {selectedTemplate
+                        ? `Aktualny szablon: ${selectedTemplate.name} — przeglądaj inne układy.`
+                        : "Każdy szablon ma własny styl — wybierz układ pasujący do dokumentu."}
                 </p>
                 {canLoop && (
                     <div className={classes.controls}>
@@ -76,6 +104,7 @@ export default function TemplateCarousel({ templates, entitlements, fillingId, o
                     {visible.map((t) => {
                         const locked = !isTemplateAllowed(t, entitlements);
                         const filling = fillingId === t.id;
+                        const selected = selectedId === t.id;
                         return (
                             <motion.button
                                 type="button"
@@ -84,17 +113,27 @@ export default function TemplateCarousel({ templates, entitlements, fillingId, o
                                 initial={{ opacity: 0, scale: 0.85 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.85 }}
-                                whileHover={locked ? undefined : { scale: 1.09, zIndex: 2 }}
-                                whileFocus={locked ? undefined : { scale: 1.09, zIndex: 2 }}
+                                whileHover={locked || selected ? undefined : { scale: 1.09, zIndex: 2 }}
+                                whileFocus={locked || selected ? undefined : { scale: 1.09, zIndex: 2 }}
                                 transition={{
                                     layout: { type: "spring", stiffness: 320, damping: 32 },
                                     opacity: { duration: 0.18 },
                                     scale: { duration: 0.18 },
                                 }}
-                                className={classes.card}
-                                onClick={() => onSelect(t)}
+                                className={`${classes.card}${selected ? ` ${classes.cardSelected}` : ""}`}
+                                onClick={() => {
+                                    if (selected || locked) return;
+                                    onSelect(t);
+                                }}
                                 disabled={fillingId !== null || locked}
-                                title={locked ? "Dostępne w planie Standard" : t.description}
+                                aria-current={selected ? "true" : undefined}
+                                title={
+                                    locked
+                                        ? "Dostępne w planie Standard"
+                                        : selected
+                                            ? `Aktualny szablon: ${t.name}`
+                                            : t.description
+                                }
                             >
                                 <span className={classes.imgWrap}>
                                     <img
@@ -104,6 +143,7 @@ export default function TemplateCarousel({ templates, entitlements, fillingId, o
                                         loading="lazy"
                                         draggable={false}
                                     />
+                                    {selected && <span className={classes.currentBadge}>Obecny</span>}
                                     {locked && <span className={classes.lockBadge}>Standard</span>}
                                     {filling && (
                                         <span className={classes.fillingOverlay}>

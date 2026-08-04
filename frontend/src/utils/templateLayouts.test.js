@@ -4,6 +4,7 @@ import {
   filterTemplatesByLayout,
   getTemplateLayouts,
   listTemplatesInRegistryOrder,
+  startIndexForSelectedTemplate,
   templateHasLayout,
 } from "./templateLayouts.js";
 
@@ -34,4 +35,10 @@ test("preserves registry order and filters by layout", () => {
     filterTemplatesByLayout(FIXTURES, "sidebar").map((template) => template.id),
     ["moss", "harbor"],
   );
+});
+
+test("carousel starts at the selected template", () => {
+  assert.equal(startIndexForSelectedTemplate(FIXTURES, null), 0);
+  assert.equal(startIndexForSelectedTemplate(FIXTURES, "harbor"), 4);
+  assert.equal(startIndexForSelectedTemplate(FIXTURES, "missing"), 0);
 });

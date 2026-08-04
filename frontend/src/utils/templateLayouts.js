@@ -54,3 +54,17 @@ export function filterTemplatesByLayout(templates, tag) {
     templateHasLayout(template, tag),
   );
 }
+
+/**
+ * Carousel window start for the currently applied template.
+ * Returns 0 when the id is missing or unknown so browsing still works.
+ *
+ * @param {Array<{id?: string}>} templates
+ * @param {string|null|undefined} selectedId
+ * @returns {number}
+ */
+export function startIndexForSelectedTemplate(templates, selectedId) {
+  if (!selectedId || !Array.isArray(templates) || templates.length === 0) return 0;
+  const index = templates.findIndex((template) => template.id === selectedId);
+  return index >= 0 ? index : 0;
+}

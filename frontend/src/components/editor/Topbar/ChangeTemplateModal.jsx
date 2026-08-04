@@ -25,6 +25,7 @@ export default function ChangeTemplateModal() {
         isChangeTemplateModal,
         showChangeTemplateModal,
         activeCvData,
+        activeTemplateId,
         entitlements,
         replaceActiveElements,
         pushToast,
@@ -33,6 +34,10 @@ export default function ChangeTemplateModal() {
     const [fillingId, setFillingId] = useState(null);
     const [error, setError] = useState(null);
     const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
+    const activeTemplate = useMemo(
+        () => cvTemplates.find((template) => template.id === activeTemplateId) || null,
+        [cvTemplates, activeTemplateId],
+    );
 
     const api = useMemo(
         () => new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` }),
@@ -84,6 +89,12 @@ export default function ChangeTemplateModal() {
                         <div className={classes.identity}>
                             <div className={classes.identityName}>{activeCvData.name || "Twoje CV"}</div>
                             {activeCvData.title && <div className={classes.identityMeta}>{activeCvData.title}</div>}
+                            {activeTemplate && (
+                                <div className={classes.identityTemplate}>
+                                    Aktualny szablon: <strong>{activeTemplate.name}</strong>
+                                    {activeTemplate.description ? ` · ${activeTemplate.description}` : ""}
+                                </div>
+                            )}
                             <div className={classes.identityStats}>
                                 <span>{activeCvData.experience?.length ?? 0} {activeCvData.experience?.length === 1 ? "stanowisko" : "stanowisk"}</span>
                                 <span>·</span>
@@ -98,6 +109,7 @@ export default function ChangeTemplateModal() {
                                     templates={cvTemplates}
                                     entitlements={entitlements}
                                     fillingId={fillingId}
+                                    selectedId={activeTemplateId}
                                     onSelect={handleChangeTemplate}
                                 />
                             </div>

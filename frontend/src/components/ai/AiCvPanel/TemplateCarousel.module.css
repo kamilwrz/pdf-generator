@@ -111,6 +111,10 @@
     cursor: not-allowed;
 }
 
+.cardSelected {
+    cursor: default;
+}
+
 .imgWrap {
     position: relative;
     display: block;
@@ -124,10 +128,15 @@
     transition: border-color .15s, box-shadow .15s;
 }
 
-.card:hover:not(:disabled) .imgWrap,
-.card:focus-visible .imgWrap {
+.card:hover:not(:disabled):not(.cardSelected) .imgWrap,
+.card:focus-visible:not(.cardSelected) .imgWrap {
     border-color: var(--chrome-accent);
     box-shadow: 0 16px 36px rgba(0, 0, 0, .32);
+}
+
+.cardSelected .imgWrap {
+    border-color: var(--chrome-accent);
+    box-shadow: 0 0 0 2px var(--chrome-accent), 0 12px 28px rgba(0, 0, 0, .24);
 }
 
 .card:disabled .imgWrap {
@@ -142,17 +151,26 @@
     object-position: top center;
 }
 
-.lockBadge {
+.lockBadge,
+.currentBadge {
     position: absolute;
     top: 8px;
     right: 8px;
     font: 700 9px var(--font-body);
     letter-spacing: .06em;
     text-transform: uppercase;
-    color: var(--on-accent);
-    background: var(--accent-grad);
     border-radius: 2px;
     padding: 3px 6px;
+}
+
+.lockBadge {
+    color: var(--on-accent);
+    background: var(--accent-grad);
+}
+
+.currentBadge {
+    color: #FFF8F1;
+    background: var(--chrome-ink);
 }
 
 .fillingOverlay {
