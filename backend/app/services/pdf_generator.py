@@ -218,16 +218,31 @@ class PDF_Generator:
         self.c.setFillColor(HexColor(color))
         self.c.rect(left, corrected_y, width=width, height=height, stroke=0, fill=1)
 
-    def renderRectangle(self, width, height, left, top, color, border_width):
+    def renderRectangle(self, width, height, left, top, color, border_width, border_radius=None):
         """Outline-only rectangle (no fill). ``color`` is the border colour
         (the element reuses backgroundColor for it, like the line). The stroke
         is inset by half its width so the outer edge lines up with the box —
-        matching the canvas's box-sizing: border-box."""
+        matching the canvas's box-sizing: border-box.
+
+        ``border_radius`` (px) draws rounded corners via ReportLab ``roundRect``;
+        the radius is clamped to half the inset box so a tall/thin pill cannot
+        request a corner larger than the shape. None or 0 keeps square corners.
+        """
         corrected_y = self.page_h - top - height
         bw = float(border_width) if border_width else 1.0
         self.c.setStrokeColor(HexColor(color or "#000000"))
         self.c.setLineWidth(bw)
-        self.c.rect(left + bw / 2, corrected_y + bw / 2, width=width - bw, height=height - bw, stroke=1, fill=0)
+        inset_w = width - bw
+        inset_h = height - bw
+        radius = float(border_radius) if border_radius else 0.0
+        if radius > 0:
+            # Match the frontend's border-box radius: clamp to half the inset box.
+            radius = min(radius, inset_w / 2, inset_h / 2)
+            self.c.roundRect(
+                left + bw / 2, corrected_y + bw / 2, inset_w, inset_h, radius, stroke=1, fill=0,
+            )
+        else:
+            self.c.rect(left + bw / 2, corrected_y + bw / 2, width=inset_w, height=inset_h, stroke=1, fill=0)
 
     def renderEllipse(self, width, height, left, top, color, border_width, filled):
         """Render a CSS border-box circle/ellipse with matching PDF bounds."""
@@ -611,7 +626,7 @@ class PDF_Generator:
                 elif category == "line":
                     self.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
                 elif category == "rectangle":
-                    self.renderRectangle(float(element.width), float(element.height), element.left, element.top, element.backgroundColor, getattr(element, "borderWidth", 1))
+                    self.renderRectangle(float(element.width), float(element.height), element.left, element.top, element.backgroundColor, getattr(element, "borderWidth", 1), getattr(element, "borderRadius", None))
                 elif category in {"circle", "ellipse"}:
                     self.renderEllipse(
                         float(element.width),

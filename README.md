@@ -2,7 +2,7 @@
 
 # CV Studio
 
-CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 24 industry templates, PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
+CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 25 industry templates, PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
 
 This README is the technical entry point for developers. A beginner-friendly deep guide to canvas coordinates, React interaction, deterministic Python layout, AI responsibilities, reflow, persistence, and ReportLab export lives in [`CANVA.md`](CANVA.md). Every live AI prompt (full text, variables, file/line references) is documented in [`PROMPTS.md`](PROMPTS.md). Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md). Marketing brief for the website „Dlaczego CV STUDIO” section (features + competitive positioning, no competitor brand names in public copy) lives in [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Template generation (AI extract vs Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md).
 
@@ -155,7 +155,7 @@ pdf-generator/
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
-│   │   ├── templates/        # 24 template specs + helpers
+│   │   ├── templates/        # 25 template specs + helpers
 │   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow
 │   ├── package.json
 │   └── .env.example
@@ -181,7 +181,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_generator.py` (24 ids). Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
+**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_generator.py` (25 ids). Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
 
 ---
 
@@ -379,6 +379,36 @@ Tests:
 - `frontend/src/templates/cardinal.test.js`, lines 1–57 — single-column, red-headings-only, grey-icons/rules, dark-grey body, and serif-name assertions
 - `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — enforces the frontend/backend id parity that `cardinal` now participates in
 
+### Harbor two-column template
+
+Harbor is a paid Sidebar-collection template that reproduces the popular "double column" résumé: a wide main column on the left (summary + experience) and a narrower sidebar on the right (education, skills, languages, tools). A single teal accent (`#17A2B8`) carries the role line, company names, tool-list diamonds and filled proficiency dots; everything else is charcoal (`#2B2B2B`/`#3A3A3A`) on white, set in Inter. Grey contact and meta icons (phone, email, a `< >` code mark for a repository link, location, calendar) come from the `harbor` icon theme; the teal diamond bullet comes from the `harbor-accent` variant. A circular photo placeholder (a soft-grey disc plus a centred person glyph) sits in the top-right; users drop their own photo over it in the editor.
+
+Harbor introduces three sidebar widgets not used elsewhere:
+
+- **Skill pills** — bordered rectangles with rounded corners. This required a new `borderRadius` field end-to-end: `PdfElement.borderRadius` (schema), a CSS `border-radius` on the canvas (`Rectangle.jsx`), and ReportLab `roundRect` in the PDF renderer (`renderRectangle`). None/0 keeps square corners, so every existing rectangle is unchanged.
+- **Language proficiency dots** — five `circle` primitives per row, filled teal up to the level and outlined grey for the remainder.
+- **Tools list** — teal diamond glyph bullets.
+
+The static editor preview and the deterministic AI fill share the same identity. Because the fill uses normalised CV data, generic "other" list sections are folded into `skills` (rendered as pills) while genuine custom sections (certifications, interests, projects) render as diamond lists; languages render as dot rows.
+
+New icon glyphs (`github`, `calendar`, `diamond`) are kept in a separate `EXTRA_ICONS` set and generated only for the two curated Harbor themes, so the Iconic family's assets are untouched.
+
+Implementation:
+
+- `frontend/src/templates/harbor.js`, lines 1–251 — static starter spec; `rect` with `borderRadius` (line 48), `skillPills` packer (line 102), `languageRow` dots (line 124), `toolItem` diamonds (line 138), sidebar IIFE (line 144)
+- `frontend/src/templates/index.js`, line 48, registry entry `harbor` (`tier: "paid"`, `collection: "Sidebar"`, `accent: "#17A2B8"`)
+- `backend/app/services/cv_generator.py`, `_gen_harbor` (line 2552), `_GENERATORS["harbor"]` (line 2823)
+- `scripts/generate_iconic_icons.py`, `draw_github`/`draw_calendar`/`draw_diamond` (lines 183–213), `EXTRA_ICONS` (line 234), `SUBSET_THEMES` (line 244)
+- `backend/app/schemas/pdf_schema.py`, line 85, `borderRadius` field
+- `backend/app/services/pdf_generator.py`, `renderRectangle` rounded-corner path (uses `roundRect`); dispatch at line 629
+- `frontend/src/components/canvas/Rectangle/Rectangle.jsx`, line 50; `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, line 122
+- `frontend/public/template-mockups/harbor.png`, source-driven A4 preview
+
+Tests:
+
+- `frontend/src/templates/harbor.test.js`, lines 1–67 — two-column origins, rounded pills, teal diamonds, grey icons, proficiency dots, photo placeholder, and Polish-headings assertions
+- `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — enforces the frontend/backend id parity that `harbor` now participates in
+
 ### Iconic template family and icon reflow
 
 Nova, Ridge, Loom, and Volt provide four colour-matched layouts with contact and section icons. The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so Iconic icons are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
@@ -400,7 +430,7 @@ Tests:
 - `backend/tests/test_pdf_shapes.py`, lines 67–131 — optical alignment, explicit `alignWithText: false`, and alpha-mask regressions
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — Loom contact geometry and sidebar column alignment
 
-**Regenerating source-driven mockups.** `frontend/public/template-mockups/{nova,ridge,loom,volt,monument,words,cardinal}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, or `frontend/src/templates/cardinal.js` changes, regenerate them:
+**Regenerating source-driven mockups.** `frontend/public/template-mockups/{nova,ridge,loom,volt,monument,words,cardinal,harbor}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, or `frontend/src/templates/harbor.js` changes, regenerate them:
 
 ```bash
 node --import ./frontend/scripts/register-hook.mjs ./frontend/scripts/dump-iconic-templates.mjs
@@ -819,7 +849,7 @@ Notable product facts:
 
 # CV Studio
 
-CV Studio to polski edytor CV na A4: płótno WYSIWYG, 24 szablony branżowe, import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
+CV Studio to polski edytor CV na A4: płótno WYSIWYG, 25 szablonów branżowych, import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
 
 Ten README to wejście techniczne dla programistów. Obszerne, napisane dla początkujących wyjaśnienie współrzędnych canvasu, interakcji React, deterministycznego layoutu Python, roli AI, reflow, zapisu i eksportu ReportLab znajduje się w [`CANVA.md`](CANVA.md). Wszystkie prompty AI (treść, zmienne, numery linii): [`PROMPTS.md`](PROMPTS.md). Opis produktowy funkcji: [`docs/FEATURES.md`](docs/FEATURES.md). Brief marketingowy pod sekcję „Dlaczego CV STUDIO” na stronie (funkcje + pozycjonowanie względem rynku, bez nazw marek konkurencji w copy publicznym): [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Generowanie szablonów (AI extract vs layout w Pythonie): [`docs/cv-template-generation.md`](docs/cv-template-generation.md).
 
@@ -996,7 +1026,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Zasady:** 24 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_generator.py`. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Bajty obrazów użytkownika nie są publicznie montowane — tylko przez `GET /images/{id}/content`.
+**Zasady:** 25 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_generator.py`. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Bajty obrazów użytkownika nie są publicznie montowane — tylko przez `GET /images/{id}/content`.
 
 ---
 
@@ -1184,6 +1214,36 @@ Testy:
 - `frontend/src/templates/cardinal.test.js`, linie 1–57 — asercje jednej kolumny, czerwieni tylko w nagłówkach, szarych ikon/linii, ciemnoszarej treści i szeryfowego nazwiska
 - `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — wymusza parytet id frontend/backend, w którym `cardinal` teraz uczestniczy
 
+### Szablon dwukolumnowy Harbor
+
+Harbor to płatny szablon z kolekcji Sidebar odtwarzający popularny układ „dwukolumnowy": szeroka kolumna główna po lewej (podsumowanie + doświadczenie) i węższy sidebar po prawej (edukacja, umiejętności, języki, narzędzia). Jeden akcent teal (`#17A2B8`) niesie linię stanowiska, nazwy firm, diamenty listy narzędzi oraz wypełnione kropki biegłości; reszta jest w grafitowej czerni (`#2B2B2B`/`#3A3A3A`) na bieli, złożona krojem Inter. Szare ikony kontaktu i metadanych (telefon, e-mail, znak `< >` dla linku do repozytorium, lokalizacja, kalendarz) pochodzą z motywu ikon `harbor`; teal diamentowy punktor pochodzi z wariantu `harbor-accent`. Okrągły placeholder zdjęcia (miękko-szary dysk z wyśrodkowanym glifem osoby) znajduje się w prawym górnym rogu; użytkownik nakłada na niego własne zdjęcie w edytorze.
+
+Harbor wprowadza trzy widżety sidebara nieużywane w innych szablonach:
+
+- **Pigułki umiejętności** — obramowane prostokąty z zaokrąglonymi rogami. Wymagało to nowego pola `borderRadius` w całym potoku: `PdfElement.borderRadius` (schemat), CSS `border-radius` na kanwie (`Rectangle.jsx`) oraz ReportLab `roundRect` w rendererze PDF (`renderRectangle`). Wartość None/0 zachowuje proste rogi, więc każdy istniejący prostokąt pozostaje bez zmian.
+- **Kropki biegłości językowej** — pięć prymitywów `circle` w wierszu, wypełnione teal do poziomu i obrysowane szarością dla reszty.
+- **Lista narzędzi** — punktory w postaci teal diamentów.
+
+Statyczny podgląd w edytorze i deterministyczne wypełnianie AI mają tę samą tożsamość. Ponieważ wypełnianie korzysta ze znormalizowanych danych CV, ogólne sekcje listowe typu „other" są scalane do `skills` (renderowane jako pigułki), natomiast właściwe sekcje niestandardowe (certyfikaty, zainteresowania, projekty) renderują się jako listy diamentów; języki renderują się jako wiersze kropek.
+
+Nowe glify ikon (`github`, `calendar`, `diamond`) są trzymane w osobnym zbiorze `EXTRA_ICONS` i generowane tylko dla dwóch dedykowanych motywów Harbor, więc zasoby rodziny Iconic pozostają nietknięte.
+
+Implementacja:
+
+- `frontend/src/templates/harbor.js`, linie 1–251 — statyczna specyfikacja startowa; `rect` z `borderRadius` (linia 48), packer `skillPills` (linia 102), kropki `languageRow` (linia 124), diamenty `toolItem` (linia 138), IIFE sidebara (linia 144)
+- `frontend/src/templates/index.js`, linia 48, wpis rejestru `harbor` (`tier: "paid"`, `collection: "Sidebar"`, `accent: "#17A2B8"`)
+- `backend/app/services/cv_generator.py`, `_gen_harbor` (linia 2552), `_GENERATORS["harbor"]` (linia 2823)
+- `scripts/generate_iconic_icons.py`, `draw_github`/`draw_calendar`/`draw_diamond` (linie 183–213), `EXTRA_ICONS` (linia 234), `SUBSET_THEMES` (linia 244)
+- `backend/app/schemas/pdf_schema.py`, linia 85, pole `borderRadius`
+- `backend/app/services/pdf_generator.py`, ścieżka zaokrąglonych rogów w `renderRectangle` (używa `roundRect`); wywołanie w linii 629
+- `frontend/src/components/canvas/Rectangle/Rectangle.jsx`, linia 50; `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linia 122
+- `frontend/public/template-mockups/harbor.png`, podgląd A4 generowany ze źródła
+
+Testy:
+
+- `frontend/src/templates/harbor.test.js`, linie 1–67 — asercje dwóch kolumn, zaokrąglonych pigułek, teal diamentów, szarych ikon, kropek biegłości, placeholdera zdjęcia oraz polskich nagłówków
+- `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — wymusza parytet id frontend/backend, w którym `harbor` teraz uczestniczy
+
 ### Rodzina Iconic i reflow ikon
 
 Nova, Ridge, Loom i Volt to cztery spójne kolorystycznie układy z ikonami kontaktu oraz sekcji. Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, ikony Iconic są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
@@ -1205,7 +1265,7 @@ Testy:
 - `backend/tests/test_pdf_shapes.py`, linie 67–131 — wyrównanie optyczne, jawne `alignWithText: false` oraz maska alfa
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — geometria kontaktu Loom i wyrównanie kolumny sidebara
 
-**Regenerowanie podglądów opartych na kodzie źródłowym.** Pliki `frontend/public/template-mockups/{nova,ridge,loom,volt,monument,words,cardinal}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js` lub `frontend/src/templates/cardinal.js` należy je odtworzyć:
+**Regenerowanie podglądów opartych na kodzie źródłowym.** Pliki `frontend/public/template-mockups/{nova,ridge,loom,volt,monument,words,cardinal,harbor}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js` lub `frontend/src/templates/harbor.js` należy je odtworzyć:
 
 ```bash
 node --import ./frontend/scripts/register-hook.mjs ./frontend/scripts/dump-iconic-templates.mjs

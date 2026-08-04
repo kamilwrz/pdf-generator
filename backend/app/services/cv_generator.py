@@ -2549,6 +2549,251 @@ from app.services.themes.classic import (  # noqa: E402
     _gen_scribe,
 )
 
+def _gen_harbor(cv: dict) -> list[dict]:
+    """Generate the Harbor two-column layout.
+
+    The main column (summary + experience) reflows across pages through a
+    ``Builder``; the right sidebar (education, skill pills, language dots, tool
+    diamonds) is painted once on page 1, mirroring the Moss sidebar model. A
+    single teal accent carries the role line, company names, tool diamonds and
+    filled proficiency dots; all other ink is charcoal on white.
+    """
+    C = {
+        "accent": "#17A2B8", "ink": "#2B2B2B", "body": "#3A3A3A",
+        "meta": "#7A7A7A", "rule": "#C4C9CE", "pill": "#CBD0D6", "photo": "#ECEEF1",
+    }
+    SANS = "Inter"
+    MAIN_X, MAIN_W = 44, 292
+    MAIN_R = MAIN_X + MAIN_W  # 336
+    SIDE_X, SIDE_W = 364, 187
+    lbl = _labels(cv)
+
+    def _hicon(name: str, left: float, top: float, size: float,
+               *, accent: bool = False, align: bool = True, page: int = 1) -> dict:
+        theme = "harbor-accent" if accent else "harbor"
+        return {
+            "category": "image",
+            "src": f"{BACKEND_URL}/template-assets/iconic/{theme}/{name}.png",
+            "left": left, "top": top, "width": size, "height": size,
+            "zIndex": 3, "page": page, "alignWithText": align,
+        }
+
+    def _dots_for_level(level: str) -> int:
+        low = (level or "").strip().casefold()
+        if any(token in low for token in ("c2", "ojczyst", "native", "bilingual", "rodzim")):
+            return 5
+        if "c1" in low or "b2" in low:
+            return 4
+        if "b1" in low:
+            return 3
+        if "a2" in low:
+            return 2
+        if "a1" in low:
+            return 1
+        return 3
+
+    # ── Header (spans both columns) ─────────────────────────────────────────
+    name = _compact_text(cv.get("name"), 32).upper()
+    title = _compact_text(cv.get("title"), 48)
+    header = [
+        {**_text(name, 23, SANS, C["ink"], MAIN_X, 44, zIndex=3, bold=True), "letterSpacing": 0.3},
+        _text(title, 11, SANS, C["accent"], MAIN_X, 80, zIndex=3),
+    ]
+    contacts = [
+        ("phone", _compact_text(cv.get("phone"), 24)),
+        ("email", _compact_text(cv.get("email"), 40)),
+        ("github", _compact_text(cv.get("github") or cv.get("website") or cv.get("link"), 36)),
+        ("location", _compact_text(cv.get("location"), 28)),
+    ]
+    # Single contact row that wraps to a second line when the values are long,
+    # so real data cannot overrun the right page margin.
+    cx, cy = float(MAIN_X), 104.0
+    for key, value in contacts:
+        if not value:
+            continue
+        advance = 15 + len(value) * 4.7 + 14
+        if cx > MAIN_X and cx + advance > 551:
+            cx, cy = float(MAIN_X), cy + 16
+        header.append(_hicon(key, cx, cy, 9))
+        header.append(_text(value, 8.4, SANS, C["body"], cx + 15, cy, zIndex=3))
+        cx += advance
+    # Circular photo placeholder: soft-grey disc + centred grey person glyph.
+    header.append(_circle(493, 36, 58, C["photo"], filled=True, zIndex=2))
+    header.append(_hicon("references", 507, 50, 30, align=False))
+    header_rule_y = cy + 22
+    header.append(_line(MAIN_X, header_rule_y, SIDE_X + SIDE_W - MAIN_X, 1, C["rule"], zIndex=2))
+    section_start = header_rule_y + 20
+
+    # ── Sidebar (static, page 1) ────────────────────────────────────────────
+    def _side_head(label: str, top: float) -> list[dict]:
+        head = _text(label, 8.8, SANS, C["ink"], SIDE_X, top, zIndex=3)
+        head["letterSpacing"] = 1.1
+        return [head, _line(SIDE_X, top + 13, SIDE_W, 1, C["rule"], zIndex=2)]
+
+    sidebar: list[dict] = []
+    sy = section_start
+
+    if cv.get("education"):
+        sidebar += _side_head(lbl["education"], sy)
+        sy += 24
+        for edu in cv["education"][:2]:
+            degree = _compact_text(edu.get("degree") or edu.get("title"), 40)
+            school = _compact_text(edu.get("school"), 40)
+            period = _compact_text(edu.get("period"), 24)
+            city = _compact_text(edu.get("city"), 26)
+            if degree:
+                sidebar.append(_text(degree, 10, SANS, C["ink"], SIDE_X, sy, zIndex=3, bold=True))
+                sy += 16
+            if school:
+                sidebar.append(_text(school, 9, SANS, C["accent"], SIDE_X, sy, zIndex=3))
+                sy += 16
+            if period:
+                sidebar.append(_hicon("calendar", SIDE_X, sy, 9))
+                sidebar.append(_text(period, 8.2, SANS, C["meta"], SIDE_X + 15, sy, zIndex=3))
+                sy += 15
+            if city:
+                sidebar.append(_hicon("location", SIDE_X, sy, 9))
+                sidebar.append(_text(city, 8.2, SANS, C["meta"], SIDE_X + 15, sy, zIndex=3))
+                sy += 15
+            sy += 6
+        sy += 12
+
+    if cv.get("skills"):
+        sidebar += _side_head(lbl["skills"], sy)
+        # Wrap skill pills greedily across the sidebar column. Widths are
+        # estimated from label length (no measurement pass) and over-provisioned
+        # slightly so labels never clip; the rounded rectangle reads as a tag.
+        pill_fs, pad_x, pill_h, gap_x, gap_y, char_w = 7.5, 7, 16, 5, 6, 4.4
+        px, py = float(SIDE_X), sy + 22
+        for skill in cv["skills"][:12]:
+            width = min(SIDE_W, round(len(skill) * char_w + pad_x * 2))
+            if px > SIDE_X and px + width > SIDE_X + SIDE_W:
+                px, py = float(SIDE_X), py + pill_h + gap_y
+            sidebar.append({**_rect(px, py, width, pill_h, C["pill"], 0.9, zIndex=1), "borderRadius": 5})
+            sidebar.append(_text(skill, pill_fs, SANS, C["ink"], px + pad_x, py + (pill_h - pill_fs) / 2, zIndex=3))
+            px += width + gap_x
+        sy = py + pill_h + 20
+
+    if cv.get("languages"):
+        sidebar += _side_head("JĘZYKI", sy)
+        ly = sy + 24
+        for language in cv["languages"][:6]:
+            lang_name = _compact_text(language.get("name"), 22)
+            level = _compact_text(language.get("level"), 12)
+            filled = _dots_for_level(level)
+            sidebar.append(_text(lang_name, 8.6, SANS, C["ink"], SIDE_X, ly, zIndex=3))
+            dot_d, dot_gap, dots, level_w = 5, 4, 5, 16
+            dots_width = dots * dot_d + (dots - 1) * dot_gap
+            dots_x = SIDE_X + SIDE_W - level_w - dots_width - 6
+            for i in range(dots):
+                dx = dots_x + i * (dot_d + dot_gap)
+                if i < filled:
+                    sidebar.append(_circle(dx, ly + 1, dot_d, C["accent"], filled=True, zIndex=3))
+                else:
+                    sidebar.append(_circle(dx, ly + 1, dot_d, C["pill"], borderWidth=1, zIndex=3))
+            if level:
+                sidebar.append(_text(level, 8.2, SANS, C["meta"], SIDE_X + SIDE_W - level_w, ly, zIndex=3))
+            ly += 18
+        sy = ly + 12
+
+    # Every remaining custom section becomes a teal-diamond bulleted list.
+    for custom in (cv.get("custom_sections") or [])[:3]:
+        items = _flatten_extra_items(custom.get("items"))
+        if not items:
+            continue
+        sidebar += _side_head(_compact_text(custom.get("title"), 30), sy)
+        iy = sy + 24
+        for item in items[:8]:
+            sidebar.append(_hicon("diamond", SIDE_X, iy, 9, accent=True))
+            sidebar.append(_text(_compact_text(item, 34), 8.6, SANS, C["ink"], SIDE_X + 16, iy, zIndex=3))
+            iy += 15
+        sy = iy + 12
+
+    # ── Main column (reflows across pages) ──────────────────────────────────
+    b = Builder(section_start)
+    SECTION_CHROME = section_chrome_height(8.8)
+
+    def section(label: str) -> None:
+        b.text(label, 8.8, SANS, C["ink"], MAIN_X)
+        b.els[-1]["letterSpacing"] = 1.1
+        b.line(MAIN_X, MAIN_W, 1, C["rule"])
+        b.gap(SPACE_AFTER_RULE)
+
+    def close_section() -> None:
+        b.gap(SPACE_SECTION)
+
+    def experience_height(job: dict) -> float:
+        bullets = _bullets(job)
+        height = (
+            b.measure_block(job.get("title", ""), MAIN_W, 10.5, 13.5, SANS, bold=True, min_h=15)
+            + SPACE_STACK
+            + b.measure_block(job.get("company", ""), MAIN_W - 150, 9.2, 12, SANS, min_h=12)
+        )
+        if bullets:
+            height += SPACE_STACK + b.measure_block(bullets, MAIN_W, 9, 13.4, SANS, bulletList=True)
+        return height
+
+    def job_meta(period: str, city: str, top: float, page: int) -> None:
+        # Right-aligned date + location on the company line. Positions are
+        # estimated from text length (there is no measurement pass here); the
+        # company block is capped narrow enough that the two never collide.
+        right = MAIN_R
+        if city:
+            cx_city = right - len(city) * 4.2
+            b.els.append(_text(city, 8.2, SANS, C["meta"], cx_city, top, zIndex=3, page=page))
+            b.els.append(_hicon("location", cx_city - 13, top, 9, page=page))
+            right = cx_city - 13 - 10
+        if period:
+            cx_period = right - len(period) * 4.2
+            b.els.append(_text(period, 8.2, SANS, C["meta"], cx_period, top, zIndex=3, page=page))
+            b.els.append(_hicon("calendar", cx_period - 13, top, 9, page=page))
+
+    if cv.get("summary"):
+        # Summary shares the experience-bullet type size (9 pt); the project-wide
+        # "summary equals body" rule keeps the lead paragraph from reading a step
+        # larger than the records beneath it.
+        b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], MAIN_W, 9, 13.4, SANS))
+        section(lbl["summary"])
+        b.block(cv["summary"], MAIN_X, MAIN_W, 9, 13.4, C["body"], SANS)
+        close_section()
+
+    if cv.get("experience"):
+        jobs = cv["experience"]
+        b.need_section(SECTION_CHROME, experience_height(jobs[0]))
+        section(lbl["experience"])
+        for index, job in enumerate(jobs):
+            if index > 0:
+                b.need(experience_height(job))
+            b.block(job.get("title", ""), MAIN_X, MAIN_W, 10.5, 13.5, C["ink"], SANS, bold=True, min_h=15)
+            b.gap(SPACE_STACK)
+            company_y, company_pg = b.y, b.pg
+            # Company is capped narrow so the right-aligned meta cannot overlap it.
+            b.block(job.get("company", ""), MAIN_X, MAIN_W - 150, 9.2, 12, C["accent"], SANS, min_h=12)
+            job_meta(job.get("period", ""), job.get("city", ""), company_y, company_pg)
+            bullets = _bullets(job)
+            if bullets:
+                b.gap(SPACE_STACK)
+                b.block(bullets, MAIN_X, MAIN_W, 9, 13.4, C["body"], SANS, bulletList=True)
+            if index < len(jobs) - 1:
+                b.gap(SPACE_RECORD)
+        close_section()
+
+    flow = b.build()
+    pages_used = max([element.get("page", 1) for element in header + sidebar + flow] or [1])
+
+    page_decorations = [
+        decoration
+        for page in range(1, pages_used + 1)
+        for decoration in (
+            {**_line(0, 0, 595, 842, "#FFFFFF", zIndex=0, page=page), "fixedToPage": True},
+            {**_line(MAIN_X, 806, SIDE_X + SIDE_W - MAIN_X, 1, C["rule"], zIndex=2, page=page), "fixedToPage": True},
+            {**_text(f"{page:02d}", 8, SANS, C["meta"], 535, 812, zIndex=3, page=page), "fixedToPage": True},
+        )
+    ]
+    # The sidebar only exists on page 1; keep it out of continuation pages.
+    return page_decorations + header + sidebar + flow
+
+
 _GENERATORS = {
     # Must stay in sync with the frontend template registry.
     "ledger":    _gen_ledger,
@@ -2575,6 +2820,7 @@ _GENERATORS = {
     "monument":  _gen_monument,
     "words":     _gen_words,
     "cardinal":  _gen_cardinal,
+    "harbor":    _gen_harbor,
 }
 
 

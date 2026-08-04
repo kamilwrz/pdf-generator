@@ -25,6 +25,7 @@ import { loomTemplate, novaTemplate, ridgeTemplate, voltTemplate } from "./iconi
 import { monumentTemplate } from "./monument";
 import { wordsTemplate } from "./words";
 import { cardinalTemplate } from "./cardinal";
+import { harborTemplate } from "./harbor";
 
 export { TEMPLATE_COLLECTION_ORDER } from "../utils/templateCollections";
 
@@ -44,6 +45,7 @@ export const TEMPLATES = [
     { id: "words", tier: "paid", collection: "Classic", name: "Words", industry: "Classic · Dokument Word", accent: "#555555", elements: wordsTemplate },
     { id: "cardinal", tier: "paid", collection: "Classic", name: "Cardinal", industry: "Classic · Szlachetna czerwień", accent: "#9E2532", elements: cardinalTemplate },
     { id: "moss", tier: "paid", collection: "Sidebar", name: "Moss", industry: "Sidebar · Botaniczna elegancja", accent: "#B99854", elements: mossTemplate },
+    { id: "harbor", tier: "paid", collection: "Sidebar", name: "Harbor", industry: "Sidebar · Dwukolumnowy", accent: "#17A2B8", elements: harborTemplate },
     { id: "signal", tier: "paid", collection: "Banking", name: "Signal", industry: "Banking · Ryzyko i treasury", accent: "#3BD2C7", elements: signalTemplate },
     { id: "obsidian", tier: "paid", collection: "Darktheme", name: "Obsidian", industry: "Darktheme · Panel boczny", accent: "#C9A24B", elements: obsidianTemplate },
     { id: "raven", tier: "paid", collection: "Darktheme", name: "Raven", industry: "Darktheme · Pasek górny", accent: "#3FBFA6", elements: ravenTemplate },

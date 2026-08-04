@@ -13,6 +13,7 @@ function Rectangle({
     height,
     backgroundColor,
     borderWidth,
+    borderRadius,
     left,
     top,
     isSelected,
@@ -44,6 +45,9 @@ function Rectangle({
         boxSizing: "border-box",
         background: "transparent",
         border: `${borderWidth || 1}px solid ${backgroundColor}`,
+        // Rounded pill/tag chrome (e.g. Harbor skill pills). Omitted when unset
+        // so ordinary rectangles keep square corners identical to the PDF.
+        ...(borderRadius ? { borderRadius: `${borderRadius}px` } : {}),
         zIndex: zIndex,
         ...(fixedToPage ? { pointerEvents: "none" } : {}),
     }

@@ -180,6 +180,39 @@ def draw_other(color: str) -> Image.Image:
     return _normalize(img)
 
 
+def draw_github(color: str) -> Image.Image:
+    """`< >` code mark — used for a code-host / repository profile link."""
+    img, d = _draft()
+    col = _hex(color)
+    d.line([(62, 48), (34, 84), (62, 120)], fill=col, width=STROKE)
+    d.line([(98, 48), (126, 84), (98, 120)], fill=col, width=STROKE)
+    return _normalize(img)
+
+
+def draw_calendar(color: str) -> Image.Image:
+    """Calendar icon for date ranges: framed body, header divider, binder tabs."""
+    img, d = _draft()
+    col = _hex(color)
+    d.rounded_rectangle((34, 46, 126, 122), radius=10, outline=col, width=STROKE)
+    d.line([(34, 68), (126, 68)], fill=col, width=STROKE - 1)
+    d.line([(58, 34), (58, 54)], fill=col, width=STROKE)
+    d.line([(102, 34), (102, 54)], fill=col, width=STROKE)
+    for cx in (58, 80, 102):
+        d.ellipse((cx - 5, 86, cx + 5, 96), fill=col)
+    return _normalize(img)
+
+
+def draw_diamond(color: str) -> Image.Image:
+    """Faceted gem bullet for the tools/systems list. Kept legible at ~9 px."""
+    img, d = _draft()
+    col = _hex(color)
+    d.line([(80, 30), (126, 72), (80, 130), (34, 72), (80, 30)], fill=col, width=STROKE)
+    d.line([(34, 72), (126, 72)], fill=col, width=STROKE - 2)
+    d.line([(56, 51), (72, 72)], fill=col, width=STROKE - 3)
+    d.line([(104, 51), (88, 72)], fill=col, width=STROKE - 3)
+    return _normalize(img)
+
+
 ICONS = {
     "email": draw_email,
     "phone": draw_phone,
@@ -195,15 +228,44 @@ ICONS = {
     "other": draw_other,
 }
 
+# Glyphs used only by the Harbor two-column template, not by the Iconic family.
+# Kept out of the base ICONS set so regenerating does not add unused files to
+# the existing themes (nova/ridge/loom/volt/cardinal).
+EXTRA_ICONS = {
+    "github": draw_github,
+    "calendar": draw_calendar,
+    "diamond": draw_diamond,
+}
+
+# Harbor (Sidebar collection) uses two colour variants of a curated glyph subset:
+# slate-grey contact/meta/photo icons, and a single teal diamond for the tool
+# list bullets. Only these subsets are generated, so existing themes are
+# untouched. Format: theme -> (colour, [icon names]).
+SUBSET_THEMES = {
+    "harbor": ("#5C6672", ["email", "phone", "github", "location", "calendar", "references"]),
+    "harbor-accent": ("#17A2B8", ["diamond"]),
+}
+
 
 def main() -> None:
-    all_themes = {**THEMES, **THEME_VARIANTS}
-    for theme, color in all_themes.items():
+    all_glyphs = {**ICONS, **EXTRA_ICONS}
+
+    # Full-set Iconic themes (and variants) get every base glyph.
+    for theme, color in {**THEMES, **THEME_VARIANTS}.items():
         out_dir = ROOT / theme
         out_dir.mkdir(parents=True, exist_ok=True)
         for name, fn in ICONS.items():
             path = out_dir / f"{name}.png"
             fn(color).save(path, "PNG")
+            print("wrote", path.relative_to(ROOT.parent))
+
+    # Curated subset themes (Harbor) get only the glyphs they reference.
+    for theme, (color, names) in SUBSET_THEMES.items():
+        out_dir = ROOT / theme
+        out_dir.mkdir(parents=True, exist_ok=True)
+        for name in names:
+            path = out_dir / f"{name}.png"
+            all_glyphs[name](color).save(path, "PNG")
             print("wrote", path.relative_to(ROOT.parent))
 
 

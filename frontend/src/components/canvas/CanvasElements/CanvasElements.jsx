@@ -119,6 +119,7 @@ export default function CanvasElements({ elements }) {
           height={parseFloat(element.height)}
           backgroundColor={element.backgroundColor}
           borderWidth={element.borderWidth}
+          borderRadius={element.borderRadius}
           left={element.left}
           top={element.top}
           isSelected={element.isSelected}

@@ -326,6 +326,18 @@
       "default": null,
       "title": "Borderwidth"
     },
+    "borderRadius": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Borderradius"
+    },
     "filled": {
       "anyOf": [
         {

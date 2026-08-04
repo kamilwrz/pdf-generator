@@ -79,6 +79,10 @@ class PdfElement(BaseModel):
     backgroundColor: Optional[str] = None
     # Rectangle outline thickness in px.
     borderWidth: Optional[float] = None
+    # Rectangle corner radius in px. None/0 renders square corners; a positive
+    # value draws a rounded outline (used by tag/pill chrome such as Harbor's
+    # skill pills). Ignored by non-rectangle categories.
+    borderRadius: Optional[float] = None
     # Circle/ellipse: solid fill when true, outline when false.
     filled: Optional[bool] = False
     # Connector endpoints reference other elements by client element_id.
