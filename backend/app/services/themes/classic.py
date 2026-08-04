@@ -6,24 +6,22 @@ Image-free single-column layouts. Helpers come from ``cv_generator``.
 from __future__ import annotations
 
 from app.services.cv_generator import (
-    CONTENT_BOTTOM,
     SPACE_AFTER_HEADER_RULE,
     SPACE_AFTER_RULE,
     SPACE_RECORD,
     SPACE_SECTION,
-    SPACE_STACK,
     Builder,
-    _bullets,
     _circle,
     _compact_text,
-    _company_period,
     _contact_line,
     _education_record_height,
     _ellipse,
+    _experience_record_height,
     _extra_sections,
     _labels,
     _line,
     _place_education_record,
+    _place_experience_record,
     _rect,
     _text,
     section_chrome_height,
@@ -66,10 +64,8 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
     lbl = _labels(cv)
 
     class ClassicBuilder(Builder):
-        def need(self, h: float):
-            if self.y + h > CONTENT_BOTTOM:
-                self.pg += 1
-                self.y = float(C["continuation"])
+        def continuation_top(self) -> float:
+            return float(C["continuation"])
 
 
     name = _compact_text(cv.get("name"), 32)
@@ -142,17 +138,12 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
     BODY_FS, BODY_LH = 9.3, 13.2
 
     def experience_height(job: dict) -> float:
-        bullets = _bullets(job)
-        height = (
-            b.measure_block(job.get("title", ""), W, 10.8, 13.5, SANS, bold=True, min_h=15)
-            + SPACE_STACK
-            + b.measure_block(_company_period(job), W, 8.6, 11.5, SANS, min_h=12)
+        return _experience_record_height(
+            b, job, W, SANS,
+            title_fs=10.8, title_lh=13.5,
+            meta_fs=8.6, meta_lh=11.5,
+            body_fs=BODY_FS, body_lh=BODY_LH,
         )
-        if bullets:
-            height += SPACE_STACK + b.measure_block(
-                bullets, W, BODY_FS, BODY_LH, SANS, bulletList=True
-            )
-        return height
 
     def education_height(education: dict) -> float:
         return _education_record_height(
@@ -195,19 +186,14 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
         b.need_section(SECTION_CHROME, experience_height(jobs[0]))
         section(lbl["experience"])
         for index, job in enumerate(jobs):
-            # Keep title/meta/bullets as one record so page breaks never split
-            # a role across the footer chrome.
-            if index > 0:
-                b.need(experience_height(job))
-            b.block(job.get("title", ""), L, W, 10.8, 13.5, C["ink"], SANS, bold=True, min_h=15)
-            b.gap(SPACE_STACK)
-            b.block(_company_period(job), L, W, 8.6, 11.5, C["muted"], SANS, min_h=12)
-            bullets = _bullets(job)
-            if bullets:
-                b.gap(SPACE_STACK)
-                b.block(bullets, L, W, BODY_FS, BODY_LH, C["ink"], SANS, bulletList=True)
-            if index < len(jobs) - 1:
-                b.gap(SPACE_RECORD)
+            _place_experience_record(
+                b, job, L, W,
+                ink=C["ink"], muted=C["muted"], body=C["ink"], font=SANS,
+                title_fs=10.8, title_lh=13.5,
+                meta_fs=8.6, meta_lh=11.5,
+                body_fs=BODY_FS, body_lh=BODY_LH,
+                after_gap=SPACE_RECORD if index < len(jobs) - 1 else None,
+            )
         close_section()
         _extra_sections(b, cv, "after_experience", section, {"body": C["ink"]},
                         L, W, SANS, fs=BODY_FS, lh=BODY_LH)
@@ -217,8 +203,6 @@ def _gen_classic_theme(cv: dict, theme: str) -> list[dict]:
         b.need_section(SECTION_CHROME, education_height(education_entries[0]))
         section(lbl["education"])
         for index, edu in enumerate(education_entries):
-            if index > 0:
-                b.need(education_height(edu))
             _place_education_record(
                 b, edu, L, W,
                 ink=C["ink"], muted=C["muted"], body=C["ink"], font=SANS,

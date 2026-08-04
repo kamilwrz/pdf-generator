@@ -13,19 +13,18 @@ from app.services.cv_generator import (
     SPACE_AFTER_RULE,
     SPACE_RECORD,
     SPACE_SECTION,
-    SPACE_STACK,
     Builder,
-    _bullets,
     _circle,
     _compact_text,
-    _company_period,
     _contact_line,
     _education_record_height,
     _ellipse,
+    _experience_record_height,
     _extra_sections,
     _labels,
     _line,
     _place_education_record,
+    _place_experience_record,
     _rect,
     _text,
     section_chrome_height,
@@ -70,10 +69,9 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
     lbl = _labels(cv)
 
     class TechBuilder(Builder):
-        def need(self, h: float):
-            if self.y + h > 746:
-                self.pg += 1
-                self.y = float(C["continuation"])
+        # Keep Builder.need / keep_together; only customise continuation Y.
+        def continuation_top(self) -> float:
+            return float(C["continuation"])
 
 
     contact = _compact_text(_contact_line(cv), 78)
@@ -136,17 +134,12 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
     b = TechBuilder(C["start"])
 
     def experience_height(job: dict) -> float:
-        bullets = _bullets(job)
-        height = (
-            b.measure_block(job.get("title", ""), W, title_fs, 13.5, SANS, bold=True, min_h=15)
-            + SPACE_STACK
-            + b.measure_block(_company_period(job), W, meta_fs, 11.5, SANS, min_h=12)
+        return _experience_record_height(
+            b, job, W, SANS,
+            title_fs=title_fs, title_lh=13.5,
+            meta_fs=meta_fs, meta_lh=11.5,
+            body_fs=body_fs, body_lh=body_lh,
         )
-        if bullets:
-            height += SPACE_STACK + b.measure_block(
-                bullets, W, body_fs, body_lh, SANS, bulletList=True
-            )
-        return height
 
     def education_height(education: dict) -> float:
         return _education_record_height(
@@ -206,17 +199,14 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
         b.need_section(SECTION_CHROME, experience_height(jobs[0]))
         section(lbl["experience"])
         for index, job in enumerate(jobs):
-            if index > 0:
-                b.need(experience_height(job))
-            b.block(job.get("title", ""), L, W, title_fs, 13.5, C["ink"], SANS, bold=True, min_h=15)
-            b.gap(SPACE_STACK)
-            b.block(_company_period(job), L, W, meta_fs, 11.5, C["muted"], SANS, min_h=12)
-            bullets = _bullets(job)
-            if bullets:
-                b.gap(SPACE_STACK)
-                b.block(bullets, L, W, body_fs, body_lh, C["body"], SANS, bulletList=True)
-            if index < len(jobs) - 1:
-                b.gap(SPACE_RECORD)
+            _place_experience_record(
+                b, job, L, W,
+                ink=C["ink"], muted=C["muted"], body=C["body"], font=SANS,
+                title_fs=title_fs, title_lh=13.5,
+                meta_fs=meta_fs, meta_lh=11.5,
+                body_fs=body_fs, body_lh=body_lh,
+                after_gap=SPACE_RECORD if index < len(jobs) - 1 else None,
+            )
         close_section()
         _extra_sections(b, cv, "after_experience", section, {"body": C["body"]},
                         L, W, SANS, fs=body_fs, lh=body_lh)
@@ -226,8 +216,6 @@ def _gen_it_theme(cv: dict, theme: str) -> list[dict]:
         b.need_section(SECTION_CHROME, education_height(education_entries[0]))
         section(lbl["education"])
         for index, edu in enumerate(education_entries):
-            if index > 0:
-                b.need(education_height(edu))
             _place_education_record(
                 b, edu, L, W,
                 ink=C["ink"], muted=C["muted"], body=C["body"], font=SANS,

@@ -9,6 +9,7 @@ symbols (often re-exported from ``cv_generator`` for backward compatibility).
 from __future__ import annotations
 
 import math
+from contextlib import contextmanager
 
 from app.services.pdf_generator import PDF_Generator
 
@@ -99,12 +100,21 @@ class Builder:
         self.els: list[dict] = []
         self.y = float(start_y)
         self.pg = 1
+        # When True, ``need`` will not open a new page. Used so a multi-element
+        # record (title + meta + bullets) cannot be split across the footer.
+        self._keep_together = False
+
+    def continuation_top(self) -> float:
+        """Y cursor after a page break. Themes override for custom mastheads."""
+        return float(PAGE_TOP)
 
     def need(self, h: float):
         """Advance to a new page if the next element wouldn't fit."""
+        if self._keep_together:
+            return
         if self.y + h > CONTENT_BOTTOM:
             self.pg += 1
-            self.y = float(PAGE_TOP)
+            self.y = self.continuation_top()
 
     def need_section(self, chrome_h: float, first_body_h: float = 0.0):
         """
@@ -112,6 +122,35 @@ class Builder:
         is never stranded alone above the page footer.
         """
         self.need(float(chrome_h) + max(float(first_body_h), 0.0))
+
+    @contextmanager
+    def keep_together(self, height: float):
+        """
+        Keep a logical record on one page.
+
+        Moves to the next page first when ``height`` does not fit at the current
+        cursor. While the context is active, nested ``need`` / ``block`` / ``text``
+        calls cannot open another page — so a title cannot be stranded above the
+        footer while its meta/body continue on page N+1.
+
+        Sections may still continue across pages; only the atomic record stays
+        whole. If a single record is taller than one content page, splitting is
+        allowed as a last resort so content is not painted past the footer.
+        """
+        reserved = max(float(height), 0.0)
+        self.need(reserved)
+        # After ``need``, ``self.y`` is the top of the page that will host the
+        # record. If it still cannot fit, allow normal per-element breaks.
+        page_capacity = CONTENT_BOTTOM - self.y
+        if reserved > page_capacity + 0.01:
+            yield
+            return
+        previous = self._keep_together
+        self._keep_together = True
+        try:
+            yield
+        finally:
+            self._keep_together = previous
 
     def text(self, content, fs, fam, col, left, *, bold=False, italic=False) -> float:
         if not content:

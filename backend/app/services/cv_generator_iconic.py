@@ -18,18 +18,17 @@ from app.services.cv_generator import (
     SPACE_AFTER_RULE,
     SPACE_RECORD,
     SPACE_SECTION,
-    SPACE_STACK,
     Builder,
     _block,
-    _bullets,
     _compact_text,
-    _company_period,
     _education_record_height,
+    _experience_record_height,
     _extra_sections,
     _flatten_extra_items,
     _labels,
     _line,
     _place_education_record,
+    _place_experience_record,
     _rect,
     _text,
     section_chrome_height,
@@ -343,22 +342,15 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
     BODY_FS, BODY_LH = 9.4, 13.4
 
     def experience_height(job: dict) -> float:
-        # Same stack as placement / project records: block title → meta → bullets
-        # with SPACE_STACK inside the record and SPACE_RECORD between records.
-        bullets = _bullets(job)
+        # Same stack as placement / project records: block title → meta → bullets.
         meta_font = MONO if C["layout"] == "volt" else SANS
-        height = (
-            b.measure_block(job.get("title", ""), W, 11, 13.5, SANS, bold=True, min_h=15)
-            + SPACE_STACK
-            + b.measure_block(
-                _company_period(job), W, 8.5, 11.5, meta_font, min_h=12,
-            )
+        return _experience_record_height(
+            b, job, W, SANS,
+            title_fs=11, title_lh=13.5,
+            meta_fs=8.5, meta_lh=11.5,
+            body_fs=BODY_FS, body_lh=BODY_LH,
+            meta_font=meta_font,
         )
-        if bullets:
-            height += SPACE_STACK + b.measure_block(
-                bullets, W, BODY_FS, BODY_LH, SANS, bulletList=True,
-            )
-        return height
 
     if cv.get("summary"):
         b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, BODY_FS, BODY_LH, SANS))
@@ -371,26 +363,18 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         b.need_section(SECTION_CHROME, experience_height(jobs[0]))
         section(lbl["experience"])
         for index, job in enumerate(jobs):
-            if index > 0:
-                b.need(experience_height(job))
-            # Use textarea blocks (not bare text) so inter-job gaps stay
-            # SPACE_RECORD after canvas auto-height — same contract as projects.
-            b.block(
-                job.get("title", ""), L, W, 11, 13.5, C["ink"], SANS,
-                bold=True, min_h=15,
+            # Textarea blocks keep inter-job gaps as SPACE_RECORD after canvas
+            # auto-height — same contract as projects. keep_together prevents a
+            # title from landing alone above the footer.
+            _place_experience_record(
+                b, job, L, W,
+                ink=C["ink"], muted=C["mute"], body=C["body"], font=SANS,
+                title_fs=11, title_lh=13.5,
+                meta_fs=8.5, meta_lh=11.5,
+                body_fs=BODY_FS, body_lh=BODY_LH,
+                meta_font=MONO if C["layout"] == "volt" else SANS,
+                after_gap=SPACE_RECORD if index < len(jobs) - 1 else None,
             )
-            b.gap(SPACE_STACK)
-            b.block(
-                _company_period(job), L, W, 8.5, 11.5,
-                C["mute"], MONO if C["layout"] == "volt" else SANS,
-                min_h=12,
-            )
-            bullets = _bullets(job)
-            if bullets:
-                b.gap(SPACE_STACK)
-                b.block(bullets, L, W, BODY_FS, BODY_LH, C["body"], SANS, bulletList=True)
-            if index < len(jobs) - 1:
-                b.gap(SPACE_RECORD)
         close_section()
         _extra_sections(
             b, cv, "after_experience", section, {"body": C["body"]}, L, W, SANS,
