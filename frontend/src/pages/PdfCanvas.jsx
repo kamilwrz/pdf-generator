@@ -29,11 +29,20 @@ import PlanSelectModal from '../components/modals/PlanSelectModal/PlanSelectModa
 import AiCvPanel from '../components/ai/AiCvPanel/AiCvPanel';
 import BioCvModal from '../components/ai/BioCvModal/BioCvModal';
 import ChangeTemplateModal from '../components/editor/Topbar/ChangeTemplateModal';
+import UnlockFreeformModal from '../components/editor/UnlockFreeformModal/UnlockFreeformModal';
+import SectionsPanel from '../components/editor/SectionsPanel/SectionsPanel';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 import { logEvent } from '../services/eventLog';
 import { previewStructureOperation } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
 import { planErrorMessage } from '../utils/entitlements';
+import {
+  EDITOR_MODE_FREEFORM,
+  EDITOR_MODE_TEMPLATE,
+  inferEditorMode,
+  normalizeEditorMode,
+} from '../utils/editorMode';
+import { nanoid } from 'nanoid';
 
 /**
  * Authenticated CV editor page: canvas, toolbars, dialogs, and autosave.
@@ -58,7 +67,12 @@ function PdfCanvas() {
   // becomes the initial dialog state, which avoids a visual flash of the
   // default template picker before the requested flow is visible.
   const initialStartIntentRef = useRef(
-    startIntent === "import" || startIntent === "wizard" ? startIntent : null,
+    startIntent === "import"
+      || startIntent === "wizard"
+      || startIntent === "templates"
+      || startIntent === "blank"
+      ? startIntent
+      : null,
   );
 
   // Toggle this signal after a period of pointer activity so the session check
@@ -72,15 +86,17 @@ function PdfCanvas() {
   const [dialog, setDialog] = useState(() => {
     if (initialStartIntentRef.current === "import") return "ai";
     if (initialStartIntentRef.current === "wizard") return "bioCv";
+    if (initialStartIntentRef.current === "templates") return "templates";
     return null;
-  }); // 'docs' | 'templates' | 'ai' | 'bioCv' | 'plan' | 'changeTemplate' | null
-  const [panel, setPanel] = useState(null);   // 'upload' | 'gallery' | null
+  }); // 'docs' | 'templates' | 'ai' | 'bioCv' | 'plan' | 'changeTemplate' | 'unlockFreeform' | null
+  const [panel, setPanel] = useState(null);   // 'upload' | 'gallery' | 'sections' | null
   const isModalPdfs = dialog === 'docs';
   const isTemplates = dialog === 'templates';
   const isAiPanel = dialog === 'ai';
   const isBioCvModal = dialog === 'bioCv';
   const isPlanModal = dialog === 'plan';
   const isChangeTemplateModal = dialog === 'changeTemplate';
+  const isUnlockFreeformModal = dialog === 'unlockFreeform';
   // Structured cv_data behind the CV currently on the canvas. Set by
   // AiCvPanel/BioCvModal when a fill succeeds; cleared whenever the canvas
   // starts showing something else (fresh document, or a reopened saved PDF
@@ -88,6 +104,7 @@ function PdfCanvas() {
   const [activeCvData, setActiveCvData] = useState(null);
   const isGallery = panel === 'gallery';
   const isDropzone = panel === 'upload';
+  const isSectionsPanel = panel === 'sections';
   // Compatibility setter: ModalPdfs.jsx and Sidebar.jsx both call this as
   // `setIsModalPdfs(bool => !bool)` / `setIsModalPdfs(false)`, matching
   // React's setState contract, so neither needed to change.
@@ -178,7 +195,11 @@ function PdfCanvas() {
     handleLoadTemplate,
     handleLoadTemplateWithFill,
     handleLoadAiElements,
+    handleUnlockFreeform,
     activeTemplateId,
+    setActiveTemplateId,
+    editorMode,
+    setEditorMode,
     pageCount,
     setPageCount,
     currentPage,
@@ -340,6 +361,10 @@ function PdfCanvas() {
         snapshot.deleted,
         snapshot.pageCount,
         snapshot.pageSize,
+        {
+          editorMode: snapshot.editorMode,
+          templateId: snapshot.templateId,
+        },
       );
 
       const savedDeletionIds = new Set(snapshot.deleted.map((element) => element.element_id));
@@ -370,10 +395,14 @@ function PdfCanvas() {
       deleted: A4_Elements_deleted,
       pageCount,
       pageSize,
+      editorMode,
+      templateId: activeTemplateId,
     });
   }, [
     A4_Elements,
     A4_Elements_deleted,
+    activeTemplateId,
+    editorMode,
     enqueueAutosave,
     isPdfLoading,
     pageCount,
@@ -391,6 +420,8 @@ function PdfCanvas() {
       deleted: A4_Elements_deleted,
       pageCount,
       pageSize,
+      editorMode,
+      templateId: activeTemplateId,
     };
     const timer = setTimeout(() => {
       autosaveTimerRef.current = null;
@@ -406,7 +437,17 @@ function PdfCanvas() {
         autosaveTimerRef.current = null;
       }
     };
-  }, [A4_Elements, A4_Elements_deleted, enqueueAutosave, isPdfLoading, pageCount, pageSize, pdfId])
+  }, [
+    A4_Elements,
+    A4_Elements_deleted,
+    activeTemplateId,
+    editorMode,
+    enqueueAutosave,
+    isPdfLoading,
+    pageCount,
+    pageSize,
+    pdfId,
+  ])
 
   const handleShowDropzone = useCallback(() => {
     const next = panel !== 'upload';
@@ -452,13 +493,31 @@ function PdfCanvas() {
     if (!pdfsLoaded || PDFs.length !== 0) return;
     // A landing-page CTA has already chosen a concrete first action. Do not
     // obscure it with the default template picker before the intent is handled.
-    if (startIntent === "import" || startIntent === "wizard") return;
+    if (
+      startIntent === "import"
+      || startIntent === "wizard"
+      || startIntent === "templates"
+      || startIntent === "blank"
+    ) {
+      return;
+    }
     if (autoOpenedTemplates || dialog !== null) return;
     if (sessionStorage.getItem(TEMPLATES_MODAL_SEEN_KEY) === "1") return;
     setAutoOpenedTemplates(true);
     setDialog('templates');
     setPanel(null);
   }, [pdfsLoaded, PDFs.length, autoOpenedTemplates, dialog, setAutoOpenedTemplates, startIntent])
+
+  // Blank freeform path: clear canvas once and skip the template picker.
+  const blankStartAppliedRef = useRef(false);
+  useEffect(() => {
+    if (initialStartIntentRef.current !== "blank" || blankStartAppliedRef.current) return;
+    blankStartAppliedRef.current = true;
+    setEditorMode(EDITOR_MODE_FREEFORM);
+    setActiveTemplateId(null);
+    handleClearA4();
+    markTemplatesModalSeen();
+  }, [handleClearA4, markTemplatesModalSeen, setActiveTemplateId, setEditorMode])
 
   const handleShowAiPanel = useCallback(() => {
     const next = dialog !== 'ai';
@@ -493,16 +552,30 @@ function PdfCanvas() {
     if (next) setPanel(null);
   }, [dialog])
 
+  const handleShowUnlockFreeform = useCallback(() => {
+    setDialog('unlockFreeform');
+    setPanel(null);
+  }, [])
+
   const handleShowGallery = useCallback(() => {
     const next = panel !== 'gallery';
     setPanel(next ? 'gallery' : null);
     if (next) setDialog(null);
   }, [panel])
 
+  const handleShowSections = useCallback(() => {
+    const next = panel !== 'sections';
+    setPanel(next ? 'sections' : null);
+    if (next) setDialog(null);
+  }, [panel])
+
 
   const createPdfWithElements = useCallback(() => {
-    createPdf(A4_Elements, titleRef, pageCount, pageSize);
-  }, [A4_Elements, createPdf, titleRef, pageCount, pageSize]);
+    createPdf(A4_Elements, titleRef, pageCount, pageSize, {
+      editorMode,
+      templateId: activeTemplateId,
+    });
+  }, [A4_Elements, activeTemplateId, createPdf, editorMode, titleRef, pageCount, pageSize]);
 
   const previewedElements = useMemo(() => {
     const structurallyPreviewed = structurePreviewGroup
@@ -546,8 +619,21 @@ function PdfCanvas() {
   );
 
   const updatePdfWithElements = useCallback(() => {
-    updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted, pageCount, pageSize);
-  }, [A4_Elements, pdfId, updatePdf, titleRef, A4_Elements_deleted, pageCount, pageSize]);
+    updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted, pageCount, pageSize, {
+      editorMode,
+      templateId: activeTemplateId,
+    });
+  }, [
+    A4_Elements,
+    activeTemplateId,
+    editorMode,
+    pdfId,
+    updatePdf,
+    titleRef,
+    A4_Elements_deleted,
+    pageCount,
+    pageSize,
+  ]);
 
   function handlePdfId(pdfId) {
     setPdfId(pdfId)
@@ -582,9 +668,73 @@ function PdfCanvas() {
     [handleLoadAiElements, startFreshDocument],
   );
   const clearA4Fresh = useCallback(
-    () => startFreshDocument(handleClearA4),
-    [handleClearA4, startFreshDocument],
+    () => {
+      if (editorMode === EDITOR_MODE_TEMPLATE) {
+        const leaveTemplate = window.confirm(
+          "Wyczyścić dokument?\n\nOK — zacznij pusty projekt własny.\nAnuluj — pozostaw bieżący szablon.",
+        );
+        if (!leaveTemplate) return;
+      }
+      startFreshDocument(handleClearA4);
+    },
+    [editorMode, handleClearA4, startFreshDocument],
   );
+
+  const confirmUnlockFreeform = useCallback(async () => {
+    try {
+      await flushAutosave();
+      const baseTitle = (titleRef.current?.value || "Projekt").trim() || "Projekt";
+      const copyTitle = `${baseTitle} (swobodny)`;
+      const cloned = A4_Elements.map((element) => ({
+        ...element,
+        element_id: nanoid(),
+        isSelected: false,
+        isMove: false,
+        isEditing: false,
+        preserveInitialLayout: false,
+      }));
+      setPdfId(null);
+      setActiveCvData(null);
+      resetHistory();
+      setA4_Elements(cloned);
+      setA4_Elements_deleted([]);
+      if (titleRef.current) titleRef.current.value = copyTitle;
+      handleUnlockFreeform();
+      setDialog(null);
+      pushToast?.({
+        title: "Projekt własny",
+        msg: "Utworzono kopię ze swobodną edycją.",
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Nie udało się odblokować swobodnej edycji.", error);
+      pushToast?.({
+        title: "Odblokowanie nie powiodło się",
+        msg: "Autozapis nie powiódł się — spróbuj ponownie.",
+        variant: "error",
+      });
+    }
+  }, [
+    A4_Elements,
+    flushAutosave,
+    handleUnlockFreeform,
+    pushToast,
+    resetHistory,
+    setA4_Elements,
+    setA4_Elements_deleted,
+  ]);
+
+  const hydrateDocumentMode = useCallback((elements, pdfMeta = {}) => {
+    const savedMode = pdfMeta.editor_mode ?? pdfMeta.editorMode;
+    const savedTemplate = pdfMeta.template_id ?? pdfMeta.templateId ?? null;
+    if (savedTemplate) setActiveTemplateId(savedTemplate);
+    else setActiveTemplateId(null);
+    if (savedMode) {
+      setEditorMode(normalizeEditorMode(savedMode));
+      return;
+    }
+    setEditorMode(inferEditorMode(elements, savedTemplate));
+  }, [setActiveTemplateId, setEditorMode]);
   // A successful delete must clear the local canvas without attempting to
   // autosave the PDF row that has just been removed from the server.
   const discardActiveDocument = useCallback(() => {
@@ -642,6 +792,12 @@ function PdfCanvas() {
     // Raw canvas replace (no pdfId/title reset) — Topbar "Zmień szablon".
     replaceActiveElements: handleLoadAiElements,
     activeTemplateId,
+    setActiveTemplateId,
+    editorMode,
+    setEditorMode,
+    hydrateDocumentMode,
+    showUnlockFreeform: handleShowUnlockFreeform,
+    unlockFreeform: handleUnlockFreeform,
     activeCvData,
     setActiveCvData,
     pageSize,
@@ -682,7 +838,9 @@ function PdfCanvas() {
     handleAlignElements, handleDeleteElement, handleDeleteSelectedElements, handleDuplicateSelectedElements,
     setA4_Elements, handleResizeElement, updatePdfWithElements,
     clearA4Fresh, discardActiveDocument, flushAutosave, loadTemplateFresh, loadTemplateWithFillFresh,
-    loadAiElementsFresh, handleLoadAiElements, activeTemplateId, activeCvData, setActiveCvData,
+    loadAiElementsFresh, handleLoadAiElements, activeTemplateId, setActiveTemplateId,
+    editorMode, setEditorMode, hydrateDocumentMode, handleShowUnlockFreeform, handleUnlockFreeform,
+    activeCvData, setActiveCvData,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     isTwoPageView, toggleTwoPageView, handleAddTextarea, markSelected, handleSetTextareaEditing,
     handleDuplicateElement, pageSize, zoom, zoomIn, zoomOut, undo, redo, canUndo, canRedo, resetHistory,
@@ -702,8 +860,11 @@ function PdfCanvas() {
     showPlanModal: handleShowPlanModal,
     isChangeTemplateModal,
     showChangeTemplateModal: handleShowChangeTemplateModal,
+    showUnlockFreeform: handleShowUnlockFreeform,
     isGallery,
     showGallery: handleShowGallery,
+    isSectionsPanel,
+    showSections: handleShowSections,
     isDropzone,
     showDropzone: handleShowDropzone,
     valueImageUpload,
@@ -714,7 +875,9 @@ function PdfCanvas() {
     isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen,
     isAiPanel, handleShowAiPanel, isBioCvModal, handleShowBioCvModal,
     isPlanModal, handleShowPlanModal, isChangeTemplateModal, handleShowChangeTemplateModal,
-    isGallery, handleShowGallery, isDropzone, handleShowDropzone,
+    handleShowUnlockFreeform,
+    isGallery, handleShowGallery, isSectionsPanel, handleShowSections,
+    isDropzone, handleShowDropzone,
     valueImageUpload, setValueImageUpload, isModalPdfs, setIsModalPdfs,
   ]);
 
@@ -764,9 +927,19 @@ function PdfCanvas() {
               <AiCvPanel />
               <BioCvModal />
               <ChangeTemplateModal />
+              <UnlockFreeformModal
+                open={isUnlockFreeformModal}
+                onCancel={() => setDialog(null)}
+                onConfirm={confirmUnlockFreeform}
+              />
               <DropzoneContainer />
               <Sidebar>
                 <Editor />
+                {isSectionsPanel ? (
+                  <div style={{ padding: "12px" }}>
+                    <SectionsPanel onClose={() => setPanel(null)} />
+                  </div>
+                ) : null}
               </Sidebar>
               <div className="right-pane">
                 <Topbar titleRef={titleRef} />

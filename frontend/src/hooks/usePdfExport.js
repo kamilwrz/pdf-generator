@@ -27,7 +27,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   const MIN_SPINNER_MS = 650;
 
 
-  const createPdf = useCallback((A4_Elements, titleRef, pages = 1, pageSize) => {
+  const createPdf = useCallback((A4_Elements, titleRef, pages = 1, pageSize, meta = {}) => {
 
     setIsPdfLoading(true);
     const startedAt = Date.now();
@@ -47,8 +47,18 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     }
 
     const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
+    const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
+    const template_id = meta.templateId || null;
 
-    api.httpRequest(ENDPOINTS.PDF.CREATE, "POST", JSON.stringify({root: sorted, pdf_title: titleRef.current.value + ".pdf", pages, page_width: pageSize?.width ?? 595, page_height: pageSize?.height ?? 842}), "Nie udało się utworzyć PDF!").
+    api.httpRequest(ENDPOINTS.PDF.CREATE, "POST", JSON.stringify({
+      root: sorted,
+      pdf_title: titleRef.current.value + ".pdf",
+      pages,
+      page_width: pageSize?.width ?? 595,
+      page_height: pageSize?.height ?? 842,
+      editor_mode,
+      template_id,
+    }), "Nie udało się utworzyć PDF!").
     then((data) => {handlePdfId(data.pdf_id); setResponsePDF({success: data.created, link:data.link, pdf_id:data.pdf_id, intent: "save"})}).
     catch((error) => setResponsePDF(error)).finally(() => {
       setTimeout(() => {
@@ -60,7 +70,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   }, [handlePdfId, handleShowModal, titleRef]);
 
   
-  const updatePdf = useCallback((A4_Elements, PDF_ID, titleRef, A4_Elements_deleted, pages = 1, pageSize) => {
+  const updatePdf = useCallback((A4_Elements, PDF_ID, titleRef, A4_Elements_deleted, pages = 1, pageSize, meta = {}) => {
 
     setIsPdfLoading(true);
     const startedAt = Date.now();
@@ -79,8 +89,19 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     }
 
     const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
+    const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
+    const template_id = meta.templateId || null;
 
-    api.httpRequest(ENDPOINTS.PDF.UPDATE, "PUT", JSON.stringify({root: elements, pdf_id: PDF_ID, pdf_title: titleRef.current.value +".pdf", pages, page_width: pageSize?.width ?? 595, page_height: pageSize?.height ?? 842}), "Nie udało się zaktualizować PDF!").
+    api.httpRequest(ENDPOINTS.PDF.UPDATE, "PUT", JSON.stringify({
+      root: elements,
+      pdf_id: PDF_ID,
+      pdf_title: titleRef.current.value +".pdf",
+      pages,
+      page_width: pageSize?.width ?? 595,
+      page_height: pageSize?.height ?? 842,
+      editor_mode,
+      template_id,
+    }), "Nie udało się zaktualizować PDF!").
     then((data) => {setResponsePDF({success: data.updated, link: data.link, pdf_id: data.pdf_id, intent: "download"})}).
     catch((error) => setResponsePDF(error)).finally(() => {
       setTimeout(() => {
@@ -94,18 +115,22 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
 
   // Lightweight autosave: persist canvas elements + geometry only (no PDF
   // render, no S3). Fire-and-report; caller debounces and gates on a saved id.
-  const saveElements = useCallback(async (A4_Elements, PDF_ID, titleRef, deleted, pages = 1, pageSize) => {
+  const saveElements = useCallback(async (A4_Elements, PDF_ID, titleRef, deleted, pages = 1, pageSize, meta = {}) => {
     const sorted = sanitizeElementsContent(
       [...A4_Elements].sort((a, b) => a.zIndex - b.zIndex),
     );
     const elements = [...sorted, ...sanitizeElementsContent(deleted || [])];
     assertCanvasElementRoot(elements);
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
+    const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
+    const template_id = meta.templateId || null;
     await api.httpRequest(
       ENDPOINTS.PDF.SAVE_ELEMENTS, "PUT",
       JSON.stringify({
         root: elements, pdf_id: PDF_ID, pdf_title: (titleRef.current?.value || "") + ".pdf",
         pages, page_width: pageSize?.width ?? 595, page_height: pageSize?.height ?? 842,
+        editor_mode,
+        template_id,
       }),
       "Autozapis nie powiódł się.");
   }, []);

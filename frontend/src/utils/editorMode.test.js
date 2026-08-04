@@ -1,0 +1,67 @@
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import {
+  EDITOR_MODE_FREEFORM,
+  EDITOR_MODE_TEMPLATE,
+  canFreePositionElement,
+  inferEditorMode,
+  normalizeEditorMode,
+} from "./editorMode.js";
+
+describe("normalizeEditorMode", () => {
+  it("accepts template and defaults everything else to freeform", () => {
+    assert.equal(normalizeEditorMode("template"), EDITOR_MODE_TEMPLATE);
+    assert.equal(normalizeEditorMode("freeform"), EDITOR_MODE_FREEFORM);
+    assert.equal(normalizeEditorMode(null), EDITOR_MODE_FREEFORM);
+    assert.equal(normalizeEditorMode("other"), EDITOR_MODE_FREEFORM);
+  });
+});
+
+describe("inferEditorMode", () => {
+  it("uses templateId when present", () => {
+    assert.equal(inferEditorMode([], "kernel"), EDITOR_MODE_TEMPLATE);
+  });
+
+  it("infers template from flow metadata density", () => {
+    const elements = [
+      { flowRole: "section-chrome", category: "text" },
+      { flowRole: "content", autoHeight: true, category: "textarea" },
+      { preserveInitialLayout: true, category: "textarea" },
+      { category: "rectangle", fixedToPage: true },
+    ];
+    assert.equal(inferEditorMode(elements), EDITOR_MODE_TEMPLATE);
+  });
+
+  it("infers freeform for plain authored shapes", () => {
+    const elements = [
+      { category: "text", content: "Hello" },
+      { category: "rectangle" },
+      { category: "image", src: "/uploads/x.png" },
+    ];
+    assert.equal(inferEditorMode(elements), EDITOR_MODE_FREEFORM);
+  });
+});
+
+describe("canFreePositionElement", () => {
+  it("blocks template flow content and allows freeform", () => {
+    const content = { category: "textarea", flowRole: "content", autoHeight: true };
+    assert.equal(canFreePositionElement(content, EDITOR_MODE_TEMPLATE), false);
+    assert.equal(canFreePositionElement(content, EDITOR_MODE_FREEFORM), true);
+  });
+
+  it("allows untagged images in template mode", () => {
+    const image = { category: "image", src: "/images/1/content" };
+    assert.equal(canFreePositionElement(image, EDITOR_MODE_TEMPLATE), true);
+  });
+
+  it("never allows locked or fixed chrome", () => {
+    assert.equal(
+      canFreePositionElement({ category: "rectangle", fixedToPage: true }, EDITOR_MODE_FREEFORM),
+      false,
+    );
+    assert.equal(
+      canFreePositionElement({ category: "text", locked: true }, EDITOR_MODE_FREEFORM),
+      false,
+    );
+  });
+});

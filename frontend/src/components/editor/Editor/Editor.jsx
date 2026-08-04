@@ -18,6 +18,7 @@ import { MdFormatListBulleted } from "react-icons/md";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { use } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { canFreePositionElement } from "../../../utils/editorMode";
 
 const CATEGORY_LABELS = {
     text: "Tekst",
@@ -51,12 +52,17 @@ export default function Editor() {
         setA4_Elements,
         setTextareaEditing,
         moveSelectedElements,
+        editorMode,
     } = use(PdfContext);
 
     const selectedElements = A4_Elements.filter(element => element.isSelected);
     const selectedElement = selectedElements[0];
     const someElementSelected = selectedElements.length > 0;
     const isMultiSelection = selectedElements.length > 1;
+    const positionLocked = Boolean(
+        selectedElement?.locked
+        || (selectedElement && !canFreePositionElement(selectedElement, editorMode)),
+    );
 
     const [elementValues, setElementValues] = useState({});
     const [groupMoveValues, setGroupMoveValues] = useState({ x: "0", y: "0" });
@@ -65,7 +71,12 @@ export default function Editor() {
 
     function handleChangeValues(e, identifier) {
 
-        if (selectedElement.locked && (identifier === "left" || identifier === "top")) return;
+        if (
+            (identifier === "left" || identifier === "top")
+            && (selectedElement.locked || !canFreePositionElement(selectedElement, editorMode))
+        ) {
+            return;
+        }
         const value = ["fontSize", "height", "width", "lineHeight", "letterSpacing", "left", "top", "borderWidth"].includes(identifier) ? Number(e.target.value) : e.target.value;
         let valueObject = { [identifier]: value }
 
@@ -396,13 +407,13 @@ export default function Editor() {
             {selectedElement?.category !== "connector" && <>
                 <div className={classes.propCard}>
                     <div className={classes.positionBtnsWrapper}>
-                        <button type="button" disabled={!!selectedElement.locked} onClick={() => alignElement(selectedElement.element_id, "LEFT", selectedElement.width, selectedElement.category)}><CiTextAlignLeft /></button>
-                        <button type="button" disabled={!!selectedElement.locked} onClick={() => alignElement(selectedElement.element_id, "CENTER", selectedElement.width, selectedElement.category)}><CiTextAlignCenter /></button>
-                        <button type="button" disabled={!!selectedElement.locked} onClick={() => alignElement(selectedElement.element_id, "RIGHT", selectedElement.width, selectedElement.category)}><CiTextAlignRight /></button>
+                        <button type="button" disabled={positionLocked} onClick={() => alignElement(selectedElement.element_id, "LEFT", selectedElement.width, selectedElement.category)}><CiTextAlignLeft /></button>
+                        <button type="button" disabled={positionLocked} onClick={() => alignElement(selectedElement.element_id, "CENTER", selectedElement.width, selectedElement.category)}><CiTextAlignCenter /></button>
+                        <button type="button" disabled={positionLocked} onClick={() => alignElement(selectedElement.element_id, "RIGHT", selectedElement.width, selectedElement.category)}><CiTextAlignRight /></button>
                     </div>
                     <div className={classes.elementSize}>
-                        <EditorControls labelText="X (px)" type="number" inputValue={elementValues.left} onChangeFn={(e) => handleChangeValues(e, "left")} isDisabled={!!selectedElement.locked} />
-                        <EditorControls labelText="Y (px)" type="number" inputValue={elementValues.top} onChangeFn={(e) => handleChangeValues(e, "top")} isDisabled={!!selectedElement.locked} />
+                        <EditorControls labelText="X (px)" type="number" inputValue={elementValues.left} onChangeFn={(e) => handleChangeValues(e, "left")} isDisabled={positionLocked} />
+                        <EditorControls labelText="Y (px)" type="number" inputValue={elementValues.top} onChangeFn={(e) => handleChangeValues(e, "top")} isDisabled={positionLocked} />
                     </div>
                     <EditorControls labelText="Widoczność" type="number" inputValue={elementValues.zIndex} onChangeFn={(e) => handleChangeValues(e, "zIndex")} />
                 </div>

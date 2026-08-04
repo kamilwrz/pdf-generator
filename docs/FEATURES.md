@@ -10,8 +10,9 @@ CV STUDIO to studio CV po polsku: wizualne płótno A4, indywidualne szablony z 
 
 | | |
 |---|---|
-| **Wizualnie, nie tylko formularze** | Przeciągaj, wyrównuj i stylizuj każdy blok na prawdziwej stronie — to, co widzisz, trafia do eksportu. |
-| **17 indywidualnych szablonów** | Każdy z własną nazwą i krótkim opisem stylistycznym — bez kategorii branżowych. |
+| **Wizualnie, nie tylko formularze** | Edytuj na prawdziwej stronie A4 — to, co widzisz, trafia do eksportu. |
+| **14 indywidualnych szablonów** | Każdy z własną nazwą i krótkim opisem stylistycznym — bez kategorii branżowych. |
+| **Dwa tryby edytora** | Szablon pilnuje układu; projekt własny daje pełny drag-and-drop. |
 | **AI, które bierze na siebie ciężką robotę** | Zaimportuj stare PDF, przejdź kreator bio albo porozmawiaj z asystentem o ocenach, ATS i poprawkach. |
 | **Za darmo na start** | Załóż konto, projektuj i pobieraj. Karta nie jest wymagana. AI i pełna biblioteka — w planach Standard / Premium. |
 
@@ -19,29 +20,39 @@ CV STUDIO to studio CV po polsku: wizualne płótno A4, indywidualne szablony z 
 
 ## Zacznij tak, jak Ci wygodnie
 
-### Wybierz szablon
-Otwórz bibliotekę, porównaj indywidualne układy (nazwa + krótki opis stylu) i przenieś wybrany na płótno. Nowe konta trafiają tu od razu — nie zostajesz sam na pustej stronie.
+### Utwórz z szablonu
+Wybierz wygląd, wypełnij dane i dopracuj treść. Tryb szablonu pilnuje układu: edytujesz treść i kolejność sekcji, bez przesuwania każdego pola o piksele.
 
-### Wypełnij z PDF
-Prześlij istniejące CV. CV STUDIO wyciąga imię, stanowisko, doświadczenie, wykształcenie i umiejętności — a potem wlewa je do dowolnego szablonu. Te same dane możesz użyć w wielu wyglądach bez ponownego uploadu. Przy wyborze szablonu zobaczysz mockup A4 na hover (to samo w kroku Podsumowanie kreatora bio).
+### Importuj CV
+Prześlij istniejące CV (PDF). CV STUDIO wyciąga imię, stanowisko, doświadczenie, wykształcenie i umiejętności — a potem wlewa je do wybranego szablonu. Te same dane możesz użyć w wielu wyglądach bez ponownego uploadu.
+
+### Projektuj od zera
+Osobna ścieżka (nie „kolejny szablon”): pusta strona A4 z tekstami, kształtami, obrazami i ikonami. Pełne pozycjonowanie, siatka i wyrównanie — Ty odpowiadasz za układ.
 
 ### Stwórz krok po kroku
-Wolisz kreator? Przejdź dane osobowe, doświadczenie, wykształcenie, umiejętności, języki, własne sekcje i podsumowanie. Szkic zapisuje się automatycznie — możesz wyjść i wrócić. Gdy będziesz gotowy, wygeneruj CV w wybranym szablonie.
+Kreator bio: dane osobowe, doświadczenie, wykształcenie, umiejętności, języki, własne sekcje i podsumowanie. Szkic zapisuje się automatycznie. Na końcu wybierasz szablon.
+
+### Most: Odblokuj swobodną edycję
+Z dokumentu szablonowego możesz utworzyć **kopię** w trybie projektu własnego. Auto-układ szablonu zostaje wyłączony; oryginał zostaje nietknięty.
 
 ---
 
 ## Wizualny edytor na płótnie
 
-Pełna przestrzeń twórcza na **A4 pion** (595×842 pt) — wiele stron, gdy historia tego potrzebuje.
+Pełna przestrzeń twórcza na **A4 pion** (595×842 pt) — wiele stron, gdy historia tego potrzebuje. Zakres narzędzi zależy od trybu.
 
-### Siedem typów elementów
-- **Tekst** — jednoliniowe tytuły i etykiety  
-- **Pole tekstowe (textarea)** — wieloliniowe bloki z auto-height / reflow  
-- **Linia** — podziały i akcenty  
-- **Prostokąt · koło · elipsa** — wypełnienie lub obrys, grubość i kolor krawędzi  
-- **Obraz** — z galerii konta, ze skalowaniem proporcji  
+### Tryb szablonu
+- Edycja treści, typografia, szerokość pól z auto-height / reflow  
+- Panel **Sekcje** — strukturalna zmiana kolejności  
+- Galeria: upuść jako zdjęcie profilowe albo przejdź do trybu swobodnego  
+- Brak swobodnego przeciągania bloków treści (układ pilnuje generator + reflow)  
 
-> Łączniki (connectors) zostały usunięte z edytora — nie są częścią aktualnej oferty.
+### Tryb projektu własnego (freeform)
+- **Tekst** / **textarea**, **linia**, **prostokąt · koło · elipsa**, **obraz**  
+- Swobodny drag, resize, prowadnice, wyrównanie  
+- Reflow wysokości bez „naprawy” układu między stronami  
+
+> Łączniki (connectors) nie są częścią aktualnej oferty.
 
 ### Typografia — 10 czcionek
 Te same pliki w edytorze i w PDF (z prawdziwymi odmianami bold / italic):
@@ -70,7 +81,7 @@ Dodatkowo: rozmiar, kolor, pogrubienie, kursywa, podkreślenie, wyrównanie, int
 
 ---
 
-## Biblioteka szablonów — 17 indywidualnych układów
+## Biblioteka szablonów — 14 indywidualnych układów
 
 Każdy szablon to osobny byt: własna nazwa i krótki opis stylistyczny. UI nie grupuje ich wedle branży ani stylu — w kodzie zostaje tylko podział strukturalny layoutu (`single` / `sidebar` / `icons` / `dark`) dla generatora.
 
@@ -157,7 +168,7 @@ Model kredytów: ok. 1 kredyt ≈ 5 gr — rozliczenie zbliżone do realnego uż
 
 ## W trzech krokach
 
-1. **Wybierz** — szablon, import z PDF albo kreator bio  
+1. **Wybierz** — szablon, import CV, projekt od zera albo kreator bio  
 2. **Dopracuj** — edytuj na płótnie z prowadnicami, stylami i AI  
 3. **Wyślij** — wyeksportuj dopracowany PDF i trzymaj go w Moje dokumenty  
 

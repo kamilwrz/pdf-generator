@@ -167,6 +167,10 @@ async def save_pdf_elements(
     pdf_row.pages = pdf_data.pages
     pdf_row.page_width = pdf_data.page_width
     pdf_row.page_height = pdf_data.page_height
+    pdf_row.editor_mode = (
+        "template" if getattr(pdf_data, "editor_mode", "freeform") == "template" else "freeform"
+    )
+    pdf_row.template_id = getattr(pdf_data, "template_id", None)
     pdf_row.updated_at = datetime.datetime.now(datetime.timezone.utc)
     db.add(pdf_row)
 

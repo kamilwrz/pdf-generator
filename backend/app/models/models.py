@@ -78,6 +78,10 @@ class Pdf(Base):
     pages = Column(Integer, default=1)
     page_width = Column(Float, default=595)
     page_height = Column(Float, default=842)
+    # "template" = constrained layout; "freeform" = free positioning.
+    editor_mode = Column(String, default="freeform")
+    # Originating template slug when known (may remain set after unlock).
+    template_id = Column(String, nullable=True)
 
 
 class PdfElements(Base):

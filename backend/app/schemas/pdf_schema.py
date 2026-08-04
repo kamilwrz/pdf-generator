@@ -103,6 +103,9 @@ class PdfElement(BaseModel):
     deleted: Optional[bool] = None
 
 
+EditorMode = Literal["template", "freeform"]
+
+
 class PDFCreateRequest(BaseModel):
     """Create payload: full element list plus title and page geometry."""
 
@@ -112,6 +115,10 @@ class PDFCreateRequest(BaseModel):
     # Page size in pt; A4 portrait is the product default.
     page_width: float = 595
     page_height: float = 842
+    # Constrained template edit vs freeform project.
+    editor_mode: EditorMode = "freeform"
+    # Originating template slug when the document came from a generator.
+    template_id: Optional[str] = None
 
 
 class PDFUpdateRequest(BaseModel):
@@ -123,3 +130,5 @@ class PDFUpdateRequest(BaseModel):
     pages: int = 1
     page_width: float = 595
     page_height: float = 842
+    editor_mode: EditorMode = "freeform"
+    template_id: Optional[str] = None

@@ -1,6 +1,7 @@
 /**
- * Left tool rail: add primitives, open docs/gallery/upload, logout.
- * Children slot hosts docked panels (upload/gallery) when open.
+ * Left tool rail: mode-aware tools, docs/gallery/upload, logout.
+ * Template mode hides freeform DTP primitives; freeform keeps full toolbox.
+ * Children slot hosts docked panels (upload/gallery/sections) when open.
  */
 import classes from "./Sidebar.module.css";
 import SidebarControls from "../../common/SidebarControls/SidebarControls";
@@ -9,11 +10,12 @@ import { TfiLayoutLineSolid } from "react-icons/tfi";
 import { BiCircle, BiRectangle } from "react-icons/bi";
 import { CiText } from "react-icons/ci";
 import { BsTextParagraph } from "react-icons/bs";
-import { LuImagePlus } from "react-icons/lu";
+import { LuImagePlus, LuListTree } from "react-icons/lu";
 import { AiOutlineLogout } from "react-icons/ai";
 import { FaRegFolderOpen } from "react-icons/fa";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { use } from "react";
+import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 
 
 export default function Sidebar({ children }) {
@@ -27,12 +29,16 @@ export default function Sidebar({ children }) {
         addTextarea,
         showDropzone,
         showGallery,
+        showSections,
+        editorMode,
         setIsModalPdfs,
         logout,
         PDFs,
         entitlements,
         showPlanModal,
     } = use(PdfContext);
+
+    const isTemplate = editorMode === EDITOR_MODE_TEMPLATE;
 
     function showModalWithPDFs() {
         setIsModalPdfs(bool => !bool);
@@ -44,21 +50,34 @@ export default function Sidebar({ children }) {
             <div className={classes.logoMark}>
                 <img src="/cv-studio-mark.svg" alt="CV Studio" />
             </div>
+            <span className={classes.modeBadge} title={isTemplate ? "Tryb szablonu" : "Projekt własny"}>
+                {isTemplate ? "S" : "P"}
+            </span>
         </div>
 
         <div className={classes.toolsContainer}>
             <div className={classes.toolsList}>
                 <SidebarControls icon={<LuImagePlus />} labelText="Galeria" sidebarEvent={showGallery} />
-                <SidebarControls icon={<CiText />} labelText="Dodaj tekst" sidebarEvent={addText} />
-                <SidebarControls icon={<BsTextParagraph />} labelText="Dodaj pole tekstowe" sidebarEvent={addTextarea} />
-                <SidebarControls icon={<TfiLayoutLineSolid />} labelText="Dodaj linię" sidebarEvent={addLine} />
-                <SidebarControls icon={<BiRectangle />} labelText="Dodaj prostokąt" sidebarEvent={addRectangle} />
-                <SidebarControls icon={<BiCircle />} labelText="Dodaj koło" sidebarEvent={addCircle} />
-                <SidebarControls
-                    icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="12" rx="9" ry="5.5" fill="none" stroke="currentColor" strokeWidth="1.7" /></svg>}
-                    labelText="Dodaj elipsę"
-                    sidebarEvent={addEllipse}
-                />
+                {isTemplate ? (
+                    <SidebarControls
+                        icon={<LuListTree />}
+                        labelText="Sekcje"
+                        sidebarEvent={showSections}
+                    />
+                ) : (
+                    <>
+                        <SidebarControls icon={<CiText />} labelText="Dodaj tekst" sidebarEvent={addText} />
+                        <SidebarControls icon={<BsTextParagraph />} labelText="Dodaj pole tekstowe" sidebarEvent={addTextarea} />
+                        <SidebarControls icon={<TfiLayoutLineSolid />} labelText="Dodaj linię" sidebarEvent={addLine} />
+                        <SidebarControls icon={<BiRectangle />} labelText="Dodaj prostokąt" sidebarEvent={addRectangle} />
+                        <SidebarControls icon={<BiCircle />} labelText="Dodaj koło" sidebarEvent={addCircle} />
+                        <SidebarControls
+                            icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="12" rx="9" ry="5.5" fill="none" stroke="currentColor" strokeWidth="1.7" /></svg>}
+                            labelText="Dodaj elipsę"
+                            sidebarEvent={addEllipse}
+                        />
+                    </>
+                )}
             </div>
         </div>
 

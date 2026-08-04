@@ -657,6 +657,37 @@ test("growing a record body moves title/meta siblings with the same flowGroup", 
   assert.ok(desc.top > meta.top);
 });
 
+test("freeform mode can disable reclaim packing", () => {
+  const result = reflowTextareaHeight([
+    {
+      element_id: "job",
+      category: "textarea",
+      autoHeight: true,
+      left: 40,
+      top: 640,
+      width: 200,
+      height: 40,
+      page: 1,
+    },
+    {
+      element_id: "parked",
+      category: "textarea",
+      autoHeight: true,
+      flowGroup: "record-x",
+      flowRole: "content",
+      left: 40,
+      top: 66,
+      width: 200,
+      height: 80,
+      page: 2,
+    },
+  ], "parked", 40, 842, { pageTop: 66, bottomMargin: 72, allowReclaim: false });
+
+  const parked = result.elements.find((element) => element.element_id === "parked");
+  assert.equal(parked.page, 2);
+  assert.equal(parked.height, 40);
+});
+
 test("Kernel page-2 education survives sequential font-measurement grows", () => {
   // Canvas measures each textarea independently after load. Reclaim used to
   // reserve only the grown degree line, pull it onto page 1 under the last

@@ -5,11 +5,12 @@
 import classes from "./Topbar.module.css";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { LuLayoutTemplate } from "react-icons/lu";
+import { LuLayoutTemplate, LuUnlock } from "react-icons/lu";
 import { RiFileTextLine, RiDownload2Line, RiShuffleLine } from "react-icons/ri";
 import { FiEdit3, FiSave, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { RiArrowGoBackLine, RiArrowGoForwardLine } from "react-icons/ri";
 import { TiPen } from "react-icons/ti";
+import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 
 export default function Topbar({ titleRef }) {
     const {
@@ -17,7 +18,9 @@ export default function Topbar({ titleRef }) {
         showAiPanel,
         showBioCvModal,
         showChangeTemplateModal,
+        showUnlockFreeform,
         activeCvData,
+        editorMode,
         createPdf,
         updatePdf,
         clearA4,
@@ -33,6 +36,8 @@ export default function Topbar({ titleRef }) {
         canRedo,
     } = use(PdfContext);
 
+    const isTemplate = editorMode === EDITOR_MODE_TEMPLATE;
+
     return (
         <header className={classes.topbar}>
             <div className={classes.group}>
@@ -42,7 +47,7 @@ export default function Topbar({ titleRef }) {
                 </button>
                 <button type="button" className={classes.feature} onClick={showAiPanel}>
                     <RiFileTextLine />
-                    <span className={classes.label}>Wypełnij z PDF</span>
+                    <span className={classes.label}>Importuj CV</span>
                 </button>
                 <button type="button" className={classes.feature} onClick={showBioCvModal}>
                     <FiEdit3 />
@@ -58,6 +63,17 @@ export default function Topbar({ titleRef }) {
                     <RiShuffleLine />
                     <span className={classes.label}>Zmień szablon</span>
                 </button>
+                {isTemplate ? (
+                    <button
+                        type="button"
+                        className={classes.feature}
+                        onClick={showUnlockFreeform}
+                        title="Utwórz kopię ze swobodnym pozycjonowaniem"
+                    >
+                        <LuUnlock />
+                        <span className={classes.label}>Odblokuj edycję</span>
+                    </button>
+                ) : null}
                 <span className={classes.divider} aria-hidden="true" />
 
                 <button type="button" className={classes.iconBtn} onClick={undo} disabled={!canUndo} aria-label="Cofnij" title="Cofnij (Ctrl+Z)">

@@ -10,6 +10,12 @@ import { sanitizeTextContent } from '../utils/sanitizeTextContent';
 import { markContentElementsEnter, markElementsEnter, isCanvasEnterReflowSuppressed, endCanvasEnterReflowSuppress } from '../utils/canvasEnter';
 import { isDecorativeChrome } from '../utils/elementInteraction';
 import {
+  EDITOR_MODE_FREEFORM,
+  EDITOR_MODE_TEMPLATE,
+  canFreePositionElement,
+  normalizeEditorMode,
+} from '../utils/editorMode';
+import {
   createCircleElement,
   createEllipseElement,
   createImageElement,
@@ -62,6 +68,14 @@ export function useA4Elements(titleRef) {
   // Last loaded template slug (e.g. "words"). Used by Layout AI for layout_contract
   // hints; cleared for blank canvases and unknown freestyle loads.
   const [activeTemplateId, setActiveTemplateId] = useState(null);
+  // Constrained template layout vs freeform project. Persisted with the Pdf row.
+  const [editorMode, setEditorModeState] = useState(EDITOR_MODE_FREEFORM);
+  const editorModeRef = useRef(EDITOR_MODE_FREEFORM);
+  const setEditorMode = useCallback((mode) => {
+    const next = normalizeEditorMode(mode);
+    editorModeRef.current = next;
+    setEditorModeState(next);
+  }, []);
 
   // ---- Connector draw mode ----
   // connectMode: true while the user is picking the two elements to link.
@@ -182,6 +196,7 @@ export function useA4Elements(titleRef) {
     pageSizeRef,
     canvasForPage,
     visibleCanvasEntries,
+    editorModeRef,
     setElements: setA4_Elements,
     setDeletedElements: setA4_Elements_deleted,
   });
@@ -740,7 +755,12 @@ export function useA4Elements(titleRef) {
         // Framed classic/sidebar CVs reserve ~66px top and keep clear of the
         // footer rule near y=783 (bottomMargin 72 → content bottom 770). Keep
         // in sync with backend CONTENT_BOTTOM / MARGIN_BOTTOM.
-        { pageTop: 66, bottomMargin: 72 },
+        // Freeform projects skip reclaim so hand-tuned page placement stays put.
+        {
+          pageTop: 66,
+          bottomMargin: 72,
+          allowReclaim: editorModeRef.current === EDITOR_MODE_TEMPLATE,
+        },
       );
       if (!result.changed) return prevState;
 
@@ -1079,7 +1099,9 @@ export function useA4Elements(titleRef) {
   }, []);
 
   const handleAlignElements = useCallback((elementId, position, width, category) => {
-    if (elementsRef.current.find((element) => element.element_id === elementId)?.locked) return;
+    const target = elementsRef.current.find((element) => element.element_id === elementId);
+    if (target?.locked) return;
+    if (!canFreePositionElement(target, editorModeRef.current)) return;
     if (category === "text") {
       const widthText = document.getElementById(elementId).clientWidth;
       width = widthText;
@@ -1130,6 +1152,14 @@ export function useA4Elements(titleRef) {
   const handleResizeElement = useCallback((e, direction, category, elementId, elementRef) => {
     const resizedElement = elementsRef.current.find((element) => element.element_id === elementId);
     if (resizedElement?.locked) return;
+    // Template mode owns block geometry; only freeform (and untagged images)
+    // may drag-resize. Textarea width is still allowed so wrap/reflow can run.
+    if (
+      category !== "textarea"
+      && !canFreePositionElement(resizedElement, editorModeRef.current)
+    ) {
+      return;
+    }
 
     let aspectRatio = 1;
     let heightFactor;
@@ -1362,10 +1392,11 @@ export function useA4Elements(titleRef) {
       setA4_Elements([]);
       setA4_Elements_deleted([]);
       setActiveTemplateId(null);
+      setEditorMode(EDITOR_MODE_FREEFORM);
       setPageCount(1);
       setCurrentPage(1);
       titleRef.current.value = "";
-  }, [resetHistory])
+  }, [resetHistory, setEditorMode])
 
   // Replace the canvas with generated/authored specs. `title` is used verbatim.
   // Content fades in after fonts settle; fixedToPage chrome appears immediately.
@@ -1377,12 +1408,13 @@ export function useA4Elements(titleRef) {
     setA4_Elements(mapped);
     setA4_Elements_deleted([]);
     setActiveTemplateId(templateId || null);
+    setEditorMode(EDITOR_MODE_TEMPLATE);
     setPageCount(maxPage);
     setCurrentPage(1);
     if (titleRef?.current && title) {
       titleRef.current.value = title;
     }
-  }, [resetHistory])
+  }, [resetHistory, setEditorMode])
 
   const handleLoadTemplateWithFill = useCallback((templateElements, templateName, fills, templateId = null) => {
     resetHistory();
@@ -1400,12 +1432,13 @@ export function useA4Elements(titleRef) {
     setA4_Elements(mapped);
     setA4_Elements_deleted([]);
     setActiveTemplateId(templateId || null);
+    setEditorMode(EDITOR_MODE_TEMPLATE);
     setPageCount(maxPage);
     setCurrentPage(1);
     if (titleRef?.current && templateName) {
       titleRef.current.value = `${templateName} CV`;
     }
-  }, [])
+  }, [setEditorMode])
 
   const handleLoadTemplate = useCallback((templateElements, title, templateId = null) => {
     resetHistory();
@@ -1415,12 +1448,27 @@ export function useA4Elements(titleRef) {
     setA4_Elements(mapped);
     setA4_Elements_deleted([]);
     setActiveTemplateId(templateId || null);
+    setEditorMode(EDITOR_MODE_TEMPLATE);
     setPageCount(maxPage);
     setCurrentPage(1);
     if (titleRef?.current && title) {
       titleRef.current.value = title;
     }
-  }, [resetHistory])
+  }, [resetHistory, setEditorMode])
+
+  /**
+   * Convert the current template document into a freeform project in place.
+   * Callers that need a safety copy should duplicate elements / clear pdfId
+   * before invoking this (see Topbar unlock flow).
+   */
+  const handleUnlockFreeform = useCallback(() => {
+    setEditorMode(EDITOR_MODE_FREEFORM);
+    setA4_Elements((prev) => prev.map((element) => (
+      element.preserveInitialLayout
+        ? { ...element, preserveInitialLayout: false }
+        : element
+    )));
+  }, [setEditorMode]);
 
 
   return {
@@ -1468,7 +1516,11 @@ export function useA4Elements(titleRef) {
     handleLoadTemplate,
     handleLoadTemplateWithFill,
     handleLoadAiElements,
+    handleUnlockFreeform,
     activeTemplateId,
+    setActiveTemplateId,
+    editorMode,
+    setEditorMode,
     // multi-page
     pageCount,
     setPageCount,

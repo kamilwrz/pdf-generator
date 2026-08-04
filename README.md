@@ -216,33 +216,38 @@ Models: `backend/app/models/models.py` (`User`, `Pdf`, `PdfElements`, …).
 
 Product narrative: [`docs/FEATURES.md`](docs/FEATURES.md).
 
-### A4 canvas editor
+### A4 canvas editor (template vs freeform)
 
-Interactive multi-page **A4 portrait** canvas with selection, drag, resize, zoom, guides. Seven addable element types: text, textarea, line, rectangle, circle, ellipse, image (connectors are not offered in the sidebar). Ten bundled fonts shared by editor and PDF: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono. Session undo/redo ignores post-load textarea reflow (`markHistoryQuiet`).
+Interactive multi-page **A4 portrait** canvas with two persisted editor modes on each `Pdf` row (`editor_mode`, `template_id`):
+
+- **template** — structural editing: content/chrome positions are layout-owned (no free X/Y drag), section reorder panel, gallery photo-slot targets, auto-height reflow with reclaim. Topbar **Odblokuj edycję** copies the document into freeform.
+- **freeform** — full toolbox (text, shapes, images), free drag/resize, and reflow without page-break reclaim so hand placement is preserved.
+
+Shared fonts: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono. Session undo/redo ignores post-load textarea reflow (`markHistoryQuiet`).
 
 Implementation:
 
-- `frontend/src/pages/PdfCanvas.jsx`, lines 46+, component `PdfCanvas`
-- `frontend/src/hooks/useA4Elements.js`, lines 43+, function `useA4Elements` (incl. `markHistoryQuiet` / undo baseline)
-- `frontend/src/components/canvas/*`
-- `frontend/src/components/common/EditorControls/EditorControls.jsx`, `FONT_OPTIONS`
-- The outcome-focused landing references the editor canvas and exact-export behaviour without exposing implementation statistics: `frontend/src/pages/Hero/Hero.jsx`, lines 285–313, section `editorSection`
+- `frontend/src/utils/editorMode.js` — `normalizeEditorMode`, `inferEditorMode`, `canFreePositionElement`
+- `frontend/src/utils/sectionStructure.js` — section list/reorder + profile photo slot
+- `frontend/src/pages/PdfCanvas.jsx`, component `PdfCanvas` (`start=templates|import|wizard|blank`, unlock copy)
+- `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`)
+- `frontend/src/components/editor/Sidebar/Sidebar.jsx`, `Topbar/Topbar.jsx`, `SectionsPanel/`, `UnlockFreeformModal/`
+- `backend/app/models/models.py` — `Pdf.editor_mode`, `Pdf.template_id`; Alembic `20260804_0002_editor_mode.py`
+- `frontend/src/utils/editorMode.test.js`, `sectionStructure.test.js`
 
 ### Outcome-focused landing and directed starts
 
-The landing page presents one outcome, an editable PDF-ready CV, and two ways to begin: importing an existing PDF or creating content in the guided wizard. It explains the shared four-step journey, before/after transformation, templates, editable A4 canvas, privacy scope, effect-oriented plans, and a non-guaranteed ATS explanation. It intentionally describes AI as an assistive mechanism: users review document content and layout suggestions before proceeding.
+The landing page presents one outcome — an editable PDF-ready CV — and **three** product paths: create from a template, import an existing CV, or design from a blank freeform page. It still explains the shared journey, templates, privacy, plans, and assistive AI review.
 
-The two primary CTAs carry `start=import` or `start=wizard`. Existing signed-in visitors go directly to `/pdfcanvas`; new visitors retain the choice through registration and login. `PdfCanvas` consumes the parameter once, opens either the import dialog or the bio wizard, and removes the parameter so a browser refresh does not re-open a dialog the user dismissed.
+Start intents: `start=templates`, `start=import`, `start=wizard`, `start=blank`. Signed-in visitors go to `/pdfcanvas`; new visitors keep the choice through registration and login. `PdfCanvas` opens the matching surface once (templates modal, import, wizard, or empty freeform) and strips the query param.
 
-Standard includes PDF import and content-focused AI: CV and design ratings, role fit, grammar, style, improvement, ATS guidance, and ordinary chat. The full-canvas **Układ** geometry session is Premium-only; its landing-page FAQ and plan cards explain that it proposes previewable spacing, alignment, and collision corrections rather than changing the document automatically.
+Topbar label **Importuj CV** replaces the older “Wypełnij z PDF” wording (same `AiCvPanel` flow).
 
 Implementation:
 
-- `frontend/src/pages/Hero/Hero.jsx`, component `Hero`; `buildStartUrl`, `StartButton`, plan cards, and the FAQ
-- `frontend/src/pages/Hero/Hero.module.css` — responsive editorial layout and reduced-motion handling
-- `frontend/src/pages/Register/Register.jsx`, lines 37–44 and 92–95, preserves a valid start intent after registration
-- `frontend/src/pages/Login/Login.jsx`, lines 23–26 and 81–85, sends the signed-in user to the intended editor entry point
-- `frontend/src/pages/PdfCanvas.jsx`, lines 48–70 and 438–469, opens and then consumes the intended import/wizard dialog
+- `frontend/src/pages/Hero/Hero.jsx`, component `Hero`; three `#start` path cards; `buildStartUrl`
+- `frontend/src/pages/Register/Register.jsx` / `Login/Login.jsx` — preserve `templates|import|wizard|blank`
+- `frontend/src/pages/PdfCanvas.jsx` — intent handling + mode hydration from saved PDFs
 
 ### Rust brand logo
 
@@ -1118,31 +1123,37 @@ Modele: `backend/app/models/models.py`.
 
 Opis produktowy: [`docs/FEATURES.md`](docs/FEATURES.md).
 
-### Edytor A4
+### Edytor A4 (tryb szablonu vs projekt własny)
 
-Płótno **A4 pion**, wiele stron, zaznaczanie / przeciąganie / zoom / prowadnice. Siedem typów elementów do dodania: tekst, textarea, linia, prostokąt, koło, elipsa, obraz (łączniki nie są w sidebarze). Dziesięć czcionek wspólnych dla edytora i PDF: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono. Cofnij/ponów w sesji pomija reflow po załadowaniu (`markHistoryQuiet`).
+Płótno **A4 pion** z dwoma trwałymi trybami na rekordzie `Pdf` (`editor_mode`, `template_id`):
 
-- `frontend/src/pages/PdfCanvas.jsx`, `PdfCanvas` (ok. linia 46+)
-- `frontend/src/hooks/useA4Elements.js`, `useA4Elements` (ok. linia 43+; w tym `markHistoryQuiet`)
-- `frontend/src/components/canvas/*`
-- `frontend/src/components/common/EditorControls/EditorControls.jsx`, `FONT_OPTIONS`
-- Landing skupiony na rezultacie pokazuje płótno i wierność eksportu bez technicznych statystyk: `frontend/src/pages/Hero/Hero.jsx`, linie 285–313, sekcja `editorSection`
+- **template** — edycja strukturalna: pozycje treści/chrome pilnuje układ (bez swobodnego przeciągania X/Y), panel kolejności sekcji, cele dropzone dla zdjęcia profilowego, reflow z reclaim. **Odblokuj edycję** tworzy kopię w trybie freeform.
+- **freeform** — pełny przybornik (tekst, kształty, obrazy), swobodny drag/resize oraz reflow bez reclaim między stronami.
 
-### Landing skupiony na rezultacie i skierowane starty
-
-Strona główna przedstawia jeden rezultat, edytowalne CV gotowe do PDF, oraz dwa sposoby rozpoczęcia: import istniejącego PDF albo tworzenie treści w kreatorze krok po kroku. Opisuje wspólną czteroetapową drogę, transformację przed/po, szablony, płótno A4 do ręcznej edycji, zakres prywatności, plany opisane efektami oraz analizę ATS bez obietnic. AI jest przedstawiane jako mechanizm pomocniczy: użytkownik przegląda treść dokumentu i propozycje układu przed podjęciem decyzji.
-
-Dwa główne CTA przekazują `start=import` albo `start=wizard`. Zalogowany użytkownik przechodzi bezpośrednio do `/pdfcanvas`; nowy użytkownik zachowuje wybór po rejestracji i logowaniu. `PdfCanvas` odczytuje parametr tylko raz, otwiera import albo kreator bio i usuwa parametr, więc odświeżenie strony nie przywraca dialogu zamkniętego przez użytkownika.
-
-Standard obejmuje import PDF oraz AI skoncentrowane na treści: oceny CV i projektu, dopasowanie do oferty, gramatykę, styl, ulepszanie opisów, wskazówki ATS i zwykły czat. Pełnopłótnowa sesja geometrii **Układ** jest dostępna wyłącznie w Premium; FAQ i karty planów wyjaśniają, że pokazuje ona podgląd propozycji odstępów, wyrównań i korekt kolizji, a nie zmienia dokumentu automatycznie.
+Wspólne czcionki: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono. Cofnij/ponów pomija reflow po załadowaniu (`markHistoryQuiet`).
 
 Implementacja:
 
-- `frontend/src/pages/Hero/Hero.jsx`, komponent `Hero`; `buildStartUrl`, `StartButton`, karty planów i FAQ
-- `frontend/src/pages/Hero/Hero.module.css` — responsywny, redakcyjny układ oraz obsługa `prefers-reduced-motion`
-- `frontend/src/pages/Register/Register.jsx`, linie 37–44 i 92–95, zachowanie prawidłowego intencji startu po rejestracji
-- `frontend/src/pages/Login/Login.jsx`, linie 23–26 i 81–85, przejście po logowaniu do wybranego wejścia edytora
-- `frontend/src/pages/PdfCanvas.jsx`, linie 48–70 i 438–469, otwarcie i jednorazowe zużycie importu albo kreatora
+- `frontend/src/utils/editorMode.js`, `sectionStructure.js`
+- `frontend/src/pages/PdfCanvas.jsx` — intencje `templates|import|wizard|blank`, unlock z kopią
+- `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`)
+- `frontend/src/components/editor/Sidebar/Sidebar.jsx`, `Topbar/Topbar.jsx`, `SectionsPanel/`, `UnlockFreeformModal/`
+- `backend/app/models/models.py` — `editor_mode`, `template_id`; migracja `20260804_0002_editor_mode.py`
+- testy: `editorMode.test.js`, `sectionStructure.test.js`
+
+### Landing skupiony na rezultacie i skierowane starty
+
+Strona główna pokazuje jeden rezultat — edytowalne CV do PDF — oraz **trzy** ścieżki: utwórz z szablonu, importuj CV, projektuj od zera. Opisuje wspólną drogę, szablony, prywatność, plany i AI jako pomoc (z przeglądem przed zastosowaniem).
+
+Intencje: `start=templates`, `start=import`, `start=wizard`, `start=blank`. Zalogowany użytkownik idzie do `/pdfcanvas`; nowy zachowuje wybór przez rejestrację i logowanie. `PdfCanvas` otwiera właściwą powierzchnię raz i usuwa parametr z URL.
+
+Etykieta topbara **Importuj CV** zastępuje starsze „Wypełnij z PDF” (ten sam `AiCvPanel`).
+
+Implementacja:
+
+- `frontend/src/pages/Hero/Hero.jsx` — trzy karty w `#start`
+- `frontend/src/pages/Register/Register.jsx` / `Login/Login.jsx` — `templates|import|wizard|blank`
+- `frontend/src/pages/PdfCanvas.jsx` — obsługa intencji i hydratacja trybu z zapisanych PDF
 
 ### Rdzawo-pomarańczowe logo marki
 

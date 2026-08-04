@@ -152,7 +152,7 @@ export default function AiCvPanel() {
             width={onStep2 ? 1400 : 960}
             radius={2}
             bodyClassName={classes.dialogBody}
-            title="Wypełnij z mojego CV"
+            title="Importuj CV"
             subtitle="Prześlij PDF — AI wypełni dowolny szablon Twoimi danymi."
             footer={(
                 <div className={classes.footerBar}>

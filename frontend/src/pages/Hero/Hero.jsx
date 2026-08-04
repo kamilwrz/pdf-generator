@@ -88,6 +88,22 @@ function WizardIcon() {
     );
 }
 
+function TemplateIcon() {
+    return (
+        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 5h16v4H4V5Zm0 7h7v7H4v-7Zm10 0h6v7h-6v-7Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
+function BlankIcon() {
+    return (
+        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 4h14v16H5V4Z M9 9h6M9 13h6M9 17h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
 function buildStartUrl(start, plan) {
     const registered = Boolean(window.localStorage.getItem("token"));
     if (registered) return `/pdfcanvas?start=${start}`;
@@ -194,31 +210,44 @@ export default function Hero() {
 
             <section id="start" className={classes.startSection}>
                 <div className={classes.sectionIntro}>
-                    <p className={classes.kicker}>Jeden rezultat, dwa wejścia</p>
+                    <p className={classes.kicker}>Jeden silnik, trzy ścieżki</p>
                     <h2>Zacznij tak,<br />jak Ci wygodnie.</h2>
-                    <p>Import oszczędza przepisywanie danych. Kreator pomaga pokonać pustą kartkę. Oba prowadzą do tego samego edytowalnego CV.</p>
+                    <p>
+                        Szybkie CV ze szablonu, import istniejącego dokumentu albo projekt własny
+                        od zera — ten sam renderer PDF, różne tryby pracy.
+                    </p>
                 </div>
                 <div className={classes.pathGrid}>
                     <PathCard
                         featured
-                        icon={<UploadIcon />}
-                        eyebrow="Mam już CV"
-                        title="Przenieś dane do nowego szablonu"
-                        text="Dodaj obecny PDF, odczytaj doświadczenie, edukację i umiejętności, a następnie pokaż je w wybranym układzie."
-                        bullets={["Nie zaczynasz od zera", "Ten sam zestaw danych w wielu szablonach", "Dalsza edycja na płótnie A4"]}
-                        start="import"
-                        plan="standard"
-                        cta="Wgraj moje CV"
+                        icon={<TemplateIcon />}
+                        eyebrow="Najszybsza opcja"
+                        title="Utwórz z szablonu"
+                        text="Wybierz wygląd, wpisz lub wklej dane i dopracuj treść. Szablon pilnuje układu — bez przesuwania każdego pola o piksele."
+                        bullets={["Gotowy układ od razu", "Edycja treści i sekcji", "Kolory, fonty i styl w edytorze"]}
+                        start="templates"
+                        plan="free"
+                        cta="Wybierz szablon"
                     />
                     <PathCard
-                        icon={<WizardIcon />}
-                        eyebrow="Nie mam jeszcze CV"
-                        title="Ułóż pierwszą wersję krok po kroku"
-                        text="Odpowiedz na proste pytania o doświadczenie, edukację i umiejętności. Szkic zapisuje się, gdy robisz przerwę."
-                        bullets={["Pomoc przy uporządkowaniu treści", "Działa także w planie Free", "Przejście do tego samego wyboru szablonów"]}
-                        start="wizard"
+                        icon={<UploadIcon />}
+                        eyebrow="Mam już CV"
+                        title="Importuj CV"
+                        text="Wczytaj PDF, przenieś doświadczenie, edukację i umiejętności do wybranego szablonu, potem dopracuj dokument."
+                        bullets={["Bez przepisywania od zera", "Ten sam zestaw danych w wielu szablonach", "Dalsza edycja na płótnie A4"]}
+                        start="import"
+                        plan="standard"
+                        cta="Importuj CV"
+                    />
+                    <PathCard
+                        icon={<BlankIcon />}
+                        eyebrow="Pełna swoboda"
+                        title="Projektuj od zera"
+                        text="Pusta strona A4 z tekstami, ikonami, zdjęciami i kształtami. Drag-and-drop oraz swobodne pozycjonowanie bez auto-układu szablonu."
+                        bullets={["Dowolne pola i kształty", "Obrazy z galerii i dropzone", "Siatka, wyrównanie, warstwy"]}
+                        start="blank"
                         plan="free"
-                        cta="Otwórz kreator CV"
+                        cta="Projektuj od zera"
                     />
                 </div>
             </section>

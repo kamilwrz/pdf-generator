@@ -96,6 +96,8 @@ def create_pdf_document(db: Session, *, user, username: str, pdf_data) -> dict:
         pdf_id = create_new_pdf(
             db, title, user.id, file_path, elements,
             pdf_data.pages, pdf_data.page_width, pdf_data.page_height,
+            getattr(pdf_data, "editor_mode", "freeform"),
+            getattr(pdf_data, "template_id", None),
         )
         return {"created": "Utworzono plik PDF.", "link": file_path, "pdf_id": pdf_id}
 
@@ -110,6 +112,8 @@ def create_pdf_document(db: Session, *, user, username: str, pdf_data) -> dict:
     pdf_id = create_new_pdf(
         db, title, user.id, pdf_path.as_posix(), elements,
         pdf_data.pages, pdf_data.page_width, pdf_data.page_height,
+        getattr(pdf_data, "editor_mode", "freeform"),
+        getattr(pdf_data, "template_id", None),
     )
 
     pdf = PDF_Generator(
@@ -141,6 +145,10 @@ def update_pdf_document(db: Session, *, pdf_row, username: str, pdf_data) -> dic
         pdf_row.pages = pdf_data.pages
         pdf_row.page_width = pdf_data.page_width
         pdf_row.page_height = pdf_data.page_height
+        pdf_row.editor_mode = (
+            "template" if getattr(pdf_data, "editor_mode", "freeform") == "template" else "freeform"
+        )
+        pdf_row.template_id = getattr(pdf_data, "template_id", None)
         pdf_row.file_path = (
             f"https://{s3_storage.S3_BUCKET}.s3.{s3_storage.AWS_REGION}.amazonaws.com/{key}"
         )
@@ -154,6 +162,10 @@ def update_pdf_document(db: Session, *, pdf_row, username: str, pdf_data) -> dic
     pdf_row.pages = pdf_data.pages
     pdf_row.page_width = pdf_data.page_width
     pdf_row.page_height = pdf_data.page_height
+    pdf_row.editor_mode = (
+        "template" if getattr(pdf_data, "editor_mode", "freeform") == "template" else "freeform"
+    )
+    pdf_row.template_id = getattr(pdf_data, "template_id", None)
     db.add(pdf_row)
     existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
     update_pdf_elements(db, elements, existing_by_id, pdf_id)

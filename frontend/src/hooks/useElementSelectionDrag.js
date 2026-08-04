@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { findPageCanvasAtPoint } from "../utils/pageSpread";
 import { moveElementsByDelta, moveElementsToPage } from "../utils/pageDrag";
 import { isDecorativeChrome } from "../utils/elementInteraction";
+import { canFreePositionElement } from "../utils/editorMode";
 
 /**
  * @param {object} options
@@ -16,6 +17,7 @@ import { isDecorativeChrome } from "../utils/elementInteraction";
  * @param {React.MutableRefObject<{width:number,height:number}>} options.pageSizeRef
  * @param {(page: number) => HTMLElement|null|undefined} options.canvasForPage
  * @param {() => {page:number,node:HTMLElement}[]} options.visibleCanvasEntries
+ * @param {React.MutableRefObject<string>} [options.editorModeRef]
  * @param {(updater: any) => void} options.setElements
  * @param {(updater: any) => void} options.setDeletedElements
  */
@@ -24,6 +26,7 @@ export function useElementSelectionDrag({
   pageSizeRef,
   canvasForPage,
   visibleCanvasEntries,
+  editorModeRef,
   setElements,
   setDeletedElements,
 }) {
@@ -48,6 +51,7 @@ export function useElementSelectionDrag({
     const currentElements = elementsRef.current;
     const currentDragged = currentElements.find((element) => element.element_id === elementId);
     if (!currentDragged?.isMove || currentDragged.locked) return;
+    if (!canFreePositionElement(currentDragged, editorModeRef?.current)) return;
     const sourcePage = currentDragged.page ?? 1;
     const targetCanvas = findPageCanvasAtPoint(visibleCanvasEntries(), e.clientX, e.clientY);
     const targetPage = targetCanvas?.page ?? sourcePage;
@@ -169,11 +173,17 @@ export function useElementSelectionDrag({
     if (!Number.isFinite(deltaX) || !Number.isFinite(deltaY)) return;
 
     setElements((prevState) => {
+      const mode = editorModeRef?.current;
       const selectedIds = new Set(
         prevState
-          .filter((element) => element.isSelected && !element.locked)
+          .filter((element) => (
+            element.isSelected
+            && !element.locked
+            && canFreePositionElement(element, mode)
+          ))
           .map((element) => element.element_id),
       );
+      if (selectedIds.size === 0) return prevState;
       return moveElementsByDelta(
         prevState,
         selectedIds,
@@ -182,7 +192,7 @@ export function useElementSelectionDrag({
         pageSizeRef.current,
       );
     });
-  }, [pageSizeRef, setElements]);
+  }, [editorModeRef, pageSizeRef, setElements]);
 
   // Explicit press/release drag state: pointerdown passes moving=true,
   // pointerup moving=false. NEVER a toggle — a toggle inverts permanently the
@@ -195,6 +205,8 @@ export function useElementSelectionDrag({
 
     // Decorative chrome (bg / frames / sidebars / page nums) is never draggable.
     if (moving && isDecorativeChrome(dragged)) return;
+    // Template mode keeps layout-owned content fixed; freeform allows drag.
+    if (moving && !canFreePositionElement(dragged, editorModeRef?.current)) return;
 
     if (moving) {
       draggedElementIdsRef.current.delete(elementId);
@@ -202,10 +214,12 @@ export function useElementSelectionDrag({
       crossPageDragRef.current = false;
       dragDimensionsRef.current = null;
       dragGrabOffsetRef.current = null;
+      const mode = editorModeRef?.current;
       const group = dragged?.isSelected
         ? elementsRef.current.filter((element) => (
           element.isSelected
           && !element.locked
+          && canFreePositionElement(element, mode)
           && (element.page ?? 1) === (dragged.page ?? 1)
         ))
         : [dragged].filter(Boolean);
@@ -237,10 +251,15 @@ export function useElementSelectionDrag({
     }
     setElements((prevState) => prevState.map((element) => (
       element.element_id === elementId
-        ? { ...element, isMove: !!moving && !element.locked }
+        ? {
+          ...element,
+          isMove: !!moving
+            && !element.locked
+            && canFreePositionElement(element, editorModeRef?.current),
+        }
         : { ...element, isMove: false }
     )));
-  }, [elementsRef, setElements]);
+  }, [editorModeRef, elementsRef, setElements]);
 
   // Safety net: releasing the button ANYWHERE ends every drag, even when the
   // dragged element lost its pointer capture and its own pointerup never fired.

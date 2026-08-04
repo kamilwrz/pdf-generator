@@ -502,7 +502,7 @@ export function reflowTextareaHeight(
   elementId,
   measuredHeight,
   pageHeight,
-  { pageTop = 0, bottomMargin = 0 } = {},
+  { pageTop = 0, bottomMargin = 0, allowReclaim = true } = {},
 ) {
   const target = elements.find((element) => element.element_id === elementId);
   const nextHeight = Math.max(0, Math.round(number(measuredHeight)));
@@ -565,8 +565,11 @@ export function reflowTextareaHeight(
     recordAnchor,
     safePageHeight,
   );
+  // Freeform projects own page placement; reclaim would "repair" a hand-tuned
+  // layout by pulling later blocks into earlier-page holes.
   if (
-    recordHeight <= pageCapacity
+    allowReclaim
+    && recordHeight <= pageCapacity
     && originalAnchorPage > 1
   ) {
     const prevPage = originalAnchorPage - 1;

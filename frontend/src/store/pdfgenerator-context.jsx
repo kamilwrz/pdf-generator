@@ -89,6 +89,16 @@ export const PdfContext = createContext({
     setActiveCvData: () => {},
     isChangeTemplateModal: false,
     showChangeTemplateModal: () => {},
+    // template = layout-owned; freeform = free positioning.
+    editorMode: "freeform",
+    setEditorMode: () => {},
+    activeTemplateId: null,
+    setActiveTemplateId: () => {},
+    hydrateDocumentMode: () => {},
+    showUnlockFreeform: () => {},
+    unlockFreeform: () => {},
+    showSections: () => {},
+    isSectionsPanel: false,
     // Raw canvas replace: swaps elements/template but — unlike `loadAiElements`
     // — keeps the current pdfId and title, so it updates the existing saved
     // document instead of starting a new one.

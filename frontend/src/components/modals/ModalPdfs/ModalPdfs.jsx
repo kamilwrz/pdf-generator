@@ -55,6 +55,7 @@ export default function ModalPdfs({ title }) {
         setCurrentPage,
         resetHistory,
         setActiveCvData,
+        hydrateDocumentMode,
     } = use(PdfContext);
 
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
@@ -157,7 +158,9 @@ export default function ModalPdfs({ title }) {
             setPageCount(pdfCanvas?.pages || 1);
             setCurrentPage(1);
             setA4_Elements_deleted([]);
-            setA4_Elements(elementsData.filter(element => element.category !== "title"));
+            const liveElements = elementsData.filter(element => element.category !== "title");
+            setA4_Elements(liveElements);
+            hydrateDocumentMode?.(liveElements, pdfCanvas || {});
             handlePdfId(id);
             // A reopened saved document has no persisted cv_data to reuse —
             // clear any structured data left over from a previous fill so the

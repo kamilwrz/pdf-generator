@@ -38,7 +38,7 @@ export default function Register() {
     const initialPlan = PLAN_SLUGS.includes(searchParams.get("plan"))
         ? searchParams.get("plan")
         : "free";
-    const startIntent = ["import", "wizard"].includes(searchParams.get("start"))
+    const startIntent = ["import", "wizard", "templates", "blank"].includes(searchParams.get("start"))
         ? searchParams.get("start")
         : null;
     const [plan, setPlan] = useState(initialPlan);
@@ -105,7 +105,11 @@ export default function Register() {
         ? "Po utworzeniu konta otworzymy import PDF, aby przenieść Twoje dane do nowego szablonu."
         : startIntent === "wizard"
             ? "Po utworzeniu konta otworzymy kreator CV krok po kroku."
-            : "Wybierz plan, utwórz konto i zacznij od szablonu, importu PDF albo kreatora.";
+            : startIntent === "templates"
+                ? "Po utworzeniu konta otworzymy wybór szablonów."
+                : startIntent === "blank"
+                    ? "Po utworzeniu konta otworzymy pusty projekt własny ze swobodną edycją."
+                    : "Wybierz plan, utwórz konto i zacznij od szablonu, importu PDF albo projektu własnego.";
 
     return (
         <div className={classes.container}>

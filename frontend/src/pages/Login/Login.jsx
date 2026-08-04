@@ -21,7 +21,7 @@ export default function Login() {
 
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const startIntent = ["import", "wizard"].includes(searchParams.get("start"))
+    const startIntent = ["import", "wizard", "templates", "blank"].includes(searchParams.get("start"))
         ? searchParams.get("start")
         : null;
 
@@ -103,7 +103,11 @@ export default function Login() {
         ? "Po zalogowaniu otworzymy import Twojego CV."
         : startIntent === "wizard"
             ? "Po zalogowaniu otworzymy kreator CV krok po kroku."
-            : "Wróć do swoich dokumentów i kontynuuj od miejsca, w którym skończyłeś.";
+            : startIntent === "templates"
+                ? "Po zalogowaniu otworzymy wybór szablonów."
+                : startIntent === "blank"
+                    ? "Po zalogowaniu otworzymy pusty projekt własny."
+                    : "Wróć do swoich dokumentów i kontynuuj od miejsca, w którym skończyłeś.";
 
     return (
         <div className={classes.container}>

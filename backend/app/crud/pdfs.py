@@ -24,6 +24,8 @@ def create_new_pdf(
     pages: int = 1,
     page_width: float = 595,
     page_height: float = 842,
+    editor_mode: str = "freeform",
+    template_id: str | None = None,
 ) -> int:
     """Insert a Pdf row plus one PdfElements row per canvas element.
 
@@ -31,6 +33,7 @@ def create_new_pdf(
     references are nulled so FK violations cannot abort the whole save.
     Returns the new document id for the create/update response.
     """
+    mode = "template" if editor_mode == "template" else "freeform"
     pdf_db = Pdf(
         title=title,
         file_path=file_path,
@@ -38,6 +41,8 @@ def create_new_pdf(
         pages=pages or 1,
         page_width=page_width or 595,
         page_height=page_height or 842,
+        editor_mode=mode,
+        template_id=template_id,
         created_at=datetime.datetime.now(timezone.utc),
         updated_at=datetime.datetime.now(timezone.utc),
     )
