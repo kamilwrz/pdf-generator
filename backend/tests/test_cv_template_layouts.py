@@ -196,6 +196,21 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in elements
             if element.get("id") == "tessera-photo-frame"
         ))
+        # Sidebar contact/section bodies must remain editable; only photo chrome
+        # and page rails are inert (`fixedToPage`).
+        side_width = 178
+        editable_sidebar = [
+            element for element in elements
+            if element.get("page", 1) == 1
+            and element["category"] in {"text", "textarea"}
+            and element["left"] < side_width
+            and not element.get("fixedToPage")
+        ]
+        self.assertGreaterEqual(len(editable_sidebar), 4)
+        self.assertTrue(all(
+            not element.get("locked")
+            for element in editable_sidebar
+        ))
 
     def test_sidebar_templates_repeat_narrow_artwork_on_every_page(self):
         multi_page_cv = {

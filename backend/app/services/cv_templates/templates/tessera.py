@@ -78,25 +78,37 @@ def _gen_tessera(cv: dict) -> list[dict]:
     # Rectangular photo placeholder with offset frame and orbit/node motif. The
     # image glyph is intentionally separate so a user photo can replace it
     # without removing the surrounding Tessera decoration.
+    #
+    # Only this decorative cluster is inert (`fixedToPage` + `locked`). Contact
+    # rows and fitted sidebar sections stay editable — unlike Loom, Tessera does
+    # not repeat personal sidebar data on continuation pages.
     photo_left, photo_top, photo_width, photo_height = 33, 40, 112, 126
+
+    def lock_chrome(element: dict) -> dict:
+        return {**element, "fixedToPage": True, "locked": True}
+
     photo = [
-        _ellipse(20, 25, 138, 80, colors["ochre"], borderWidth=1.1, zIndex=1),
-        _circle(136, 26, 19, colors["coral"], filled=True, zIndex=2),
-        _line(photo_left - 7, photo_top + 8, photo_width, photo_height, colors["tile"], zIndex=1),
-        {
+        lock_chrome(_ellipse(20, 25, 138, 80, colors["ochre"], borderWidth=1.1, zIndex=1)),
+        lock_chrome(_circle(136, 26, 19, colors["coral"], filled=True, zIndex=2)),
+        lock_chrome(_line(
+            photo_left - 7, photo_top + 8, photo_width, photo_height, colors["tile"], zIndex=1,
+        )),
+        lock_chrome({
             **_rect(
                 photo_left, photo_top, photo_width, photo_height,
                 colors["aubergine"], 1.2, zIndex=3,
             ),
             "id": "tessera-photo-frame",
-        },
-        sidebar_icon(
+        }),
+        lock_chrome(sidebar_icon(
             "portrait",
             photo_left + (photo_width - 48) / 2,
             photo_top + (photo_height - 48) / 2,
             48,
-        ),
-        _circle(photo_left - 5, photo_top + photo_height - 8, 12, colors["coral"], filled=True, zIndex=4),
+        )),
+        lock_chrome(_circle(
+            photo_left - 5, photo_top + photo_height - 8, 12, colors["coral"], filled=True, zIndex=4,
+        )),
     ]
 
     def sidebar_heading(label: str, icon_name: str, top: float) -> list[dict]:
@@ -357,12 +369,12 @@ def _gen_tessera(cv: dict) -> list[dict]:
             {**_ellipse(42, 797, 44, 10, colors["ochre"], borderWidth=1, zIndex=2, page=page), "fixedToPage": True},
         ])
 
-    fixed_sidebar = [
+    # Keep sidebar personal content interactive. Decorative page rails and the
+    # photo chrome already carry fixedToPage; do not blanket-lock the rail.
+    sidebar = [
         {
             **element,
             "page": 1,
-            "fixedToPage": True,
-            "locked": True,
             "flowRole": element.get("flowRole", "content"),
         }
         for element in sidebar_static
@@ -371,4 +383,4 @@ def _gen_tessera(cv: dict) -> list[dict]:
         {**element, "flowRole": element.get("flowRole", "content")}
         for element in header
     ]
-    return page_decorations + fixed_sidebar + header + flow
+    return page_decorations + sidebar + header + flow
