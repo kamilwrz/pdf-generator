@@ -9,6 +9,7 @@ symbols (often re-exported from ``cv_generator`` for backward compatibility).
 from __future__ import annotations
 
 import math
+import secrets
 from contextlib import contextmanager
 
 from app.services.pdf_generator import PDF_Generator
@@ -133,6 +134,12 @@ class Builder:
         calls cannot open another page — so a title cannot be stranded above the
         footer while its meta/body continue on page N+1.
 
+        Every element emitted inside the context is tagged with the same
+        ``flowGroup`` id so canvas auto-height reflow can keep the record whole
+        when browser measurement shrinks earlier blocks and reclaim-packs later
+        content (otherwise a degree/meta line can return to page N while the
+        description stays on N+1).
+
         Sections may still continue across pages; only the atomic record stays
         whole. If a single record is taller than one content page, splitting is
         allowed as a last resort so content is not painted past the footer.
@@ -142,15 +149,18 @@ class Builder:
         # After ``need``, ``self.y`` is the top of the page that will host the
         # record. If it still cannot fit, allow normal per-element breaks.
         page_capacity = CONTENT_BOTTOM - self.y
-        if reserved > page_capacity + 0.01:
-            yield
-            return
+        allow_split = reserved > page_capacity + 0.01
+        start = len(self.els)
+        group_id = f"record-{secrets.token_hex(6)}"
         previous = self._keep_together
-        self._keep_together = True
+        if not allow_split:
+            self._keep_together = True
         try:
             yield
         finally:
             self._keep_together = previous
+            for element in self.els[start:]:
+                element.setdefault("flowGroup", group_id)
 
     def text(self, content, fs, fam, col, left, *, bold=False, italic=False) -> float:
         if not content:

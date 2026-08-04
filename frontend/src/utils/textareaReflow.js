@@ -2,9 +2,11 @@
  * Reflow auto-height textareas and pack following content after height changes.
  *
  * Keeps section chrome with the next body block so page breaks never orphan
- * headings in the footer margin. Cross-page packing uses SPACE_RECORD for
- * ordinary blocks and SPACE_SECTION for section chrome (keep in sync with
- * `cv_generator_primitives.py`).
+ * headings in the footer margin. Multi-element records tagged with `flowGroup`
+ * (from Builder.keep_together) stay on one page when reclaim-packing pulls
+ * content upward after earlier boxes shrink. Cross-page packing uses
+ * SPACE_RECORD for ordinary blocks and SPACE_SECTION for section chrome
+ * (keep in sync with `cv_generator_primitives.py`).
  */
 const FLOWABLE_CATEGORIES = new Set(["text", "textarea", "line", "rectangle", "circle", "ellipse", "image"]);
 const NEARBY_DECORATION_CATEGORIES = new Set(["line", "rectangle", "circle", "ellipse"]);
@@ -23,6 +25,9 @@ const SECTION_PACK_GAP = 21;
 const CHROME_MAX_HEIGHT = 40;
 // How far above a body block to look for its section icon/heading/rule cluster.
 const CHROME_CLUSTER_Y_SPAN = 48;
+// Matches backend SPACE_STACK (4) with slack for browser vs ReportLab metrics.
+// Untagged legacy records use this to stay whole during reclaim packing.
+const RECORD_STACK_GAP = 8;
 
 function number(value, fallback = 0) {
   const parsed = Number(value);
@@ -55,6 +60,16 @@ function elementHeight(element) {
       element.category === "text" ? number(element.fontSize, 12) * 1.35 : 0,
     ),
   );
+}
+
+function flowGroupOf(element) {
+  const group = element?.flowGroup;
+  return typeof group === "string" && group.length > 0 ? group : null;
+}
+
+function heightFor(element, targetId, nextHeight) {
+  if (element.element_id === targetId) return nextHeight;
+  return elementHeight(element);
 }
 
 function isTextAlignedImage(element) {
@@ -173,12 +188,52 @@ function rawSamePageGap(current, previousOriginal) {
 }
 
 /**
- * If `current` is section chrome and the following body cannot share this page,
+ * Height of the keep-together record starting at `lane[index]`, including
+ * internal gaps. Prefers explicit `flowGroup`; falls back to tightly stacked
+ * non-chrome content for legacy layouts without tags.
+ */
+function remainingRecordHeight(lane, index, pageHeight, targetId, nextHeight) {
+  const start = lane[index];
+  if (!start || isChromeLike(start)) {
+    return Math.max(elementHeight(start), 1);
+  }
+
+  const group = flowGroupOf(start);
+  let total = heightFor(start, targetId, nextHeight);
+  let previous = start;
+
+  for (let i = index + 1; i < lane.length; i += 1) {
+    const candidate = lane[i];
+    if (isChromeLike(candidate)) break;
+
+    if (group) {
+      if (flowGroupOf(candidate) !== group) break;
+    } else {
+      if (flowGroupOf(candidate)) break;
+      const authoredGap = absoluteTop(candidate, pageHeight)
+        - (absoluteTop(previous, pageHeight) + elementHeight(previous));
+      if (authoredGap < -0.5 || authoredGap > RECORD_STACK_GAP) break;
+    }
+
+    const gap = Math.max(
+      0,
+      absoluteTop(candidate, pageHeight)
+        - (absoluteTop(previous, pageHeight) + elementHeight(previous)),
+    );
+    total += gap + heightFor(candidate, targetId, nextHeight);
+    previous = candidate;
+  }
+
+  return Math.max(total, 1);
+}
+
+/**
+ * If `current` is section chrome and the following record cannot share this page,
  * bump the chrome to the next page so headings are never orphaned above the footer.
  *
- * The full first body height is reserved (not a short keep-with-next sliver).
- * Capping that height previously left headings on page N while the body alone
- * overflowed to page N+1 — the common "UMIEJĘTNOŚCI" orphan.
+ * Reserves the full first keep-together record (degree + meta + description),
+ * not only the first textarea. Capping to the first body previously left
+ * "WYKSZTAŁCENIE" + Bachelor on page N while the description stayed on N+1.
  */
 function avoidOrphanChrome(
   lane,
@@ -189,6 +244,8 @@ function avoidOrphanChrome(
   pageHeight,
   pageTop,
   bottomMargin,
+  targetId = null,
+  nextHeight = 0,
 ) {
   if (!isChromeLike(current)) return { page, top };
 
@@ -208,7 +265,13 @@ function avoidOrphanChrome(
   if (contentIndex < 0) return { page, top };
 
   const content = lane[contentIndex];
-  const contentHeight = Math.max(elementHeight(content), 1);
+  const contentHeight = remainingRecordHeight(
+    lane,
+    contentIndex,
+    pageHeight,
+    targetId,
+    nextHeight,
+  );
   const authoredSpan = Math.max(
     0,
     absoluteTop(content, pageHeight) - currentAbs,
@@ -247,10 +310,60 @@ function precedingChromeCluster(elements, target, pageHeight) {
 }
 
 /**
+ * Title/meta siblings that share the target's keep-together record and sit
+ * above it. When the measured body jumps pages, these must move with it.
+ */
+function precedingRecordMates(elements, target, pageHeight) {
+  const group = flowGroupOf(target);
+  const targetAbs = absoluteTop(target, pageHeight);
+  const laneMates = elements.filter((element) => (
+    FLOWABLE_CATEGORIES.has(element.category)
+    && !element.fixedToPage
+    && !isPositionLockedForReflow(element)
+    && element.element_id !== target.element_id
+    && !isChromeLike(element)
+    && belongsToFlowLane(target, element)
+    && absoluteTop(element, pageHeight) < targetAbs - 0.01
+  ));
+
+  if (group) {
+    return laneMates
+      .filter((element) => flowGroupOf(element) === group)
+      .sort((left, right) => {
+        const topDelta = absoluteTop(left, pageHeight) - absoluteTop(right, pageHeight);
+        if (Math.abs(topDelta) > 0.01) return topDelta;
+        return String(left.element_id).localeCompare(String(right.element_id));
+      });
+  }
+
+  // Legacy: walk upward while authored gaps stay inside one record stack.
+  const sorted = [...laneMates].sort((left, right) => {
+    const topDelta = absoluteTop(right, pageHeight) - absoluteTop(left, pageHeight);
+    if (Math.abs(topDelta) > 0.01) return topDelta;
+    return String(left.element_id).localeCompare(String(right.element_id));
+  });
+  const mates = [];
+  let cursorAbs = targetAbs;
+  let cursorHeight = 0;
+  for (const candidate of sorted) {
+    const candidateBottom = absoluteTop(candidate, pageHeight) + elementHeight(candidate);
+    const gap = cursorAbs - candidateBottom;
+    if (gap < -0.5 || gap > RECORD_STACK_GAP) break;
+    if (flowGroupOf(candidate)) break;
+    mates.unshift(candidate);
+    cursorAbs = absoluteTop(candidate, pageHeight);
+    cursorHeight = elementHeight(candidate);
+    void cursorHeight;
+  }
+  return mates;
+}
+
+/**
  * Applies a measured textarea height and flows later elements in its lane.
  * Same-page items keep their top-to-top rhythm (so tall rails/markers stay
  * aligned). Page-break dead space is reclaimed so shrinks can pull later
- * blocks into freed room on the previous page.
+ * blocks into freed room on the previous page — but only when a whole
+ * keep-together record still fits.
  */
 export function reflowTextareaHeight(
   elements,
@@ -272,43 +385,80 @@ export function reflowTextareaHeight(
   }
 
   const safePageHeight = Math.max(1, number(pageHeight, 842));
+  const contentBottom = safePageHeight - bottomMargin;
+  const pageCapacity = Math.max(0, contentBottom - pageTop);
   const oldTargetTop = absoluteTop(target, safePageHeight);
   const oldTargetBottom = oldTargetTop + oldHeight;
   const originalTargetPage = pageOf(target);
 
+  const recordMates = precedingRecordMates(elements, target, safePageHeight);
+  const recordAnchor = recordMates[0] || target;
+  const oldRecordTop = absoluteTop(recordAnchor, safePageHeight);
+  const recordCluster = [...recordMates, target];
+  const recordHeight = remainingRecordHeight(
+    recordCluster,
+    0,
+    safePageHeight,
+    elementId,
+    nextHeight,
+  );
+
   let targetPage = originalTargetPage;
-  let targetTop = number(target.top);
+  let recordTop = number(recordAnchor.top);
   if (
-    nextHeight <= safePageHeight - pageTop - bottomMargin
-    && targetTop + nextHeight > safePageHeight - bottomMargin
+    recordHeight <= pageCapacity
+    && recordTop + recordHeight > contentBottom
   ) {
-    targetPage += 1;
-    targetTop = pageTop;
+    targetPage = pageOf(recordAnchor) + 1;
+    recordTop = pageTop;
   }
 
-  // When the measured body jumps to the next page, pull its preceding section
-  // chrome (icon/heading/rule) with it. Otherwise the heading stays orphaned
-  // in the previous page's footer while the skills/body list starts alone.
-  const chromeCluster = targetPage > originalTargetPage
-    ? precedingChromeCluster(elements, target, safePageHeight)
+  // When the measured record jumps to the next page, pull its preceding section
+  // chrome (icon/heading/rule) with the record anchor — not only with the body
+  // textarea — so degree/meta siblings are not left under an orphan heading.
+  const chromeCluster = targetPage > pageOf(recordAnchor)
+    ? precedingChromeCluster(elements, recordAnchor, safePageHeight)
     : [];
   const chromeAnchor = chromeCluster[0] || null;
   const chromeAnchorOffset = chromeAnchor
-    ? oldTargetTop - absoluteTop(chromeAnchor, safePageHeight)
+    ? oldRecordTop - absoluteTop(chromeAnchor, safePageHeight)
     : 0;
 
   if (chromeAnchor) {
-    targetTop = pageTop + chromeAnchorOffset;
-    // If chrome + body still overflow the continuation page, pin the body
-    // under the chrome cluster instead of leaving a negative gap.
-    const maxBodyTop = safePageHeight - bottomMargin - nextHeight;
-    if (targetTop > maxBodyTop && maxBodyTop >= pageTop) {
-      targetTop = Math.max(pageTop, maxBodyTop);
+    recordTop = pageTop + chromeAnchorOffset;
+    const maxRecordTop = contentBottom - recordHeight;
+    if (recordTop > maxRecordTop && maxRecordTop >= pageTop) {
+      recordTop = Math.max(pageTop, maxRecordTop);
     }
   }
 
-  const newTargetTop = (targetPage - 1) * safePageHeight + targetTop;
+  const placed = new Map();
+  for (const chrome of chromeCluster) {
+    const chromeOffset = oldRecordTop - absoluteTop(chrome, safePageHeight);
+    placed.set(chrome.element_id, {
+      ...chrome,
+      page: targetPage,
+      top: recordTop - chromeOffset,
+    });
+  }
+
+  for (const mate of recordCluster) {
+    const offset = absoluteTop(mate, safePageHeight) - oldRecordTop;
+    placed.set(mate.element_id, {
+      ...mate,
+      ...(mate.element_id === elementId ? { height: nextHeight } : {}),
+      page: targetPage,
+      top: recordTop + offset,
+    });
+  }
+
+  const placedTarget = placed.get(elementId);
+  const newTargetTop = (pageOf(placedTarget) - 1) * safePageHeight + number(placedTarget.top);
   const newTargetBottom = newTargetTop + nextHeight;
+  const oldClusterBottom = Math.max(
+    oldTargetBottom,
+    ...recordCluster.map((mate) => absoluteTop(mate, safePageHeight) + elementHeight(mate)),
+  );
 
   const lane = elements
     .filter((element) => (
@@ -316,10 +466,9 @@ export function reflowTextareaHeight(
       && !element.fixedToPage
       && !isPositionLockedForReflow(element)
       && (
-        element.element_id === elementId
-        || chromeCluster.some((chrome) => chrome.element_id === element.element_id)
+        placed.has(element.element_id)
         || (
-          absoluteTop(element, safePageHeight) >= oldTargetBottom - 0.01
+          absoluteTop(element, safePageHeight) >= oldClusterBottom - 0.01
           && belongsToFlowLane(target, element)
         )
       )
@@ -335,33 +484,48 @@ export function reflowTextareaHeight(
     return { elements, pageCount: Math.max(1, ...elements.map(pageOf)), changed: false };
   }
 
-  const placed = new Map();
-  for (const chrome of chromeCluster) {
-    const chromeOffset = oldTargetTop - absoluteTop(chrome, safePageHeight);
-    placed.set(chrome.element_id, {
-      ...chrome,
-      page: targetPage,
-      top: targetTop - chromeOffset,
-    });
-  }
-  placed.set(elementId, {
-    ...target,
-    height: nextHeight,
-    page: targetPage,
-    top: targetTop,
-  });
-
-  // Forward packing resumes after the body; chrome above was already moved.
+  // Forward packing resumes after the resized body; record mates / chrome above
+  // were already placed atomically.
   let previousOriginal = target;
   let previousPlacedTop = newTargetTop;
   let previousPlacedBottom = newTargetBottom;
   let maxPage = targetPage;
+  let activeGroupPage = null;
 
   for (let index = targetIndex + 1; index < lane.length; index += 1) {
     const current = lane[index];
+    if (placed.has(current.element_id)) {
+      const already = placed.get(current.element_id);
+      previousOriginal = current;
+      previousPlacedTop = (pageOf(already) - 1) * safePageHeight + number(already.top);
+      previousPlacedBottom = previousPlacedTop + heightFor(already, elementId, nextHeight);
+      maxPage = Math.max(maxPage, pageOf(already));
+      continue;
+    }
+
     const height = elementHeight(current);
     const currentOriginalTop = absoluteTop(current, safePageHeight);
     const crossedPage = pageOf(current) > pageOf(previousOriginal);
+    const group = flowGroupOf(current);
+    const previousGroup = flowGroupOf(previousOriginal);
+    const gapFromPrevious = rawSamePageGap(current, previousOriginal);
+    // Tagged records start whenever the flowGroup changes. Untagged legacy
+    // records start only under section chrome — a large gap after another
+    // content block is a new independent entry, not a keep-together stack.
+    const startsRecord = !isChromeLike(current) && (
+      (Boolean(group) && group !== previousGroup)
+      || (!group && isChromeLike(previousOriginal))
+    );
+    const continuesRecord = !isChromeLike(current) && !startsRecord && (
+      (Boolean(group) && group === previousGroup)
+      || (
+        !group
+        && !previousGroup
+        && !isChromeLike(previousOriginal)
+        && gapFromPrevious >= -0.5
+        && gapFromPrevious <= RECORD_STACK_GAP
+      )
+    );
 
     let nextAbsolute;
     if (crossedPage) {
@@ -390,13 +554,31 @@ export function reflowTextareaHeight(
       );
     }
 
+    const reservedHeight = startsRecord
+      ? remainingRecordHeight(lane, index, safePageHeight, elementId, nextHeight)
+      : height;
+
     let { page, top } = toPagePosition(
       nextAbsolute,
-      height,
+      reservedHeight,
       safePageHeight,
       pageTop,
       bottomMargin,
     );
+
+    // Mid-record pieces stay on the page chosen for the record start.
+    if (continuesRecord && activeGroupPage != null) {
+      page = activeGroupPage;
+      top = previousPlacedBottom - (page - 1) * safePageHeight
+        + Math.max(0, gapFromPrevious);
+      if (top + height > contentBottom && height <= pageCapacity) {
+        // Last resort for a record taller than one page.
+        page += 1;
+        top = pageTop;
+        activeGroupPage = page;
+      }
+    }
+
     ({ page, top } = avoidOrphanChrome(
       lane,
       index,
@@ -406,7 +588,16 @@ export function reflowTextareaHeight(
       safePageHeight,
       pageTop,
       bottomMargin,
+      elementId,
+      nextHeight,
     ));
+
+    if (startsRecord || (continuesRecord && activeGroupPage == null)) {
+      activeGroupPage = page;
+    } else if (isChromeLike(current)) {
+      activeGroupPage = null;
+    }
+
     const nextElement = { ...current, page, top };
     placed.set(current.element_id, nextElement);
 

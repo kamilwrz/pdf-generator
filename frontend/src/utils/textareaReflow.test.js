@@ -358,6 +358,124 @@ test("moves a textarea itself to the next page before its new height overflows",
   assert.deepEqual({ page: next.page, top: next.top }, { page: 2, top: 110 });
 });
 
+test("reclaim packing keeps a flowGroup education record whole", () => {
+  // Backend keep_together placed the education record on page 2. Shrinking an
+  // earlier page-1 box reclaims the footer hole — without flowGroup awareness
+  // the degree/meta returned to page 1 while the description stayed on page 2.
+  // A tall description ensures chrome+record cannot fit under the shrunk box.
+  const result = reflowTextareaHeight([
+    textarea({ element_id: "summary", top: 600, height: 120 }),
+    {
+      element_id: "edu-heading",
+      category: "text",
+      content: "WYKSZTAŁCENIE",
+      flowRole: "section-chrome",
+      left: 76,
+      top: 66,
+      width: 400,
+      fontSize: 8.6,
+      page: 2,
+    },
+    {
+      element_id: "edu-degree",
+      category: "textarea",
+      content: "Bachelor of Laws (LL.B.)",
+      flowGroup: "record-edu-1",
+      autoHeight: true,
+      left: 76,
+      top: 90,
+      width: 400,
+      height: 13,
+      page: 2,
+    },
+    {
+      element_id: "edu-meta",
+      category: "textarea",
+      content: "EU Viadrina · 2014 – 2018",
+      flowGroup: "record-edu-1",
+      autoHeight: true,
+      left: 76,
+      top: 107,
+      width: 400,
+      height: 12,
+      page: 2,
+    },
+    {
+      element_id: "edu-desc",
+      category: "textarea",
+      content: "Uzyskanie tytułu Bachelor of Laws z zakresu prawa niemieckiego.",
+      flowGroup: "record-edu-1",
+      autoHeight: true,
+      left: 76,
+      top: 123,
+      width: 400,
+      height: 80,
+      page: 2,
+    },
+  ], "summary", 40, 842, { pageTop: 66, bottomMargin: 96 });
+
+  const heading = result.elements.find((element) => element.element_id === "edu-heading");
+  const degree = result.elements.find((element) => element.element_id === "edu-degree");
+  const meta = result.elements.find((element) => element.element_id === "edu-meta");
+  const desc = result.elements.find((element) => element.element_id === "edu-desc");
+  assert.equal(degree.page, meta.page);
+  assert.equal(degree.page, desc.page);
+  assert.equal(heading.page, degree.page);
+  assert.equal(degree.page, 2);
+  assert.ok(desc.top > meta.top);
+  assert.ok(meta.top > degree.top);
+});
+
+test("growing a record body moves title/meta siblings with the same flowGroup", () => {
+  const result = reflowTextareaHeight([
+    {
+      element_id: "edu-degree",
+      category: "textarea",
+      content: "Bachelor of Laws (LL.B.)",
+      flowGroup: "record-edu-1",
+      autoHeight: true,
+      left: 76,
+      top: 700,
+      width: 400,
+      height: 13,
+      page: 1,
+    },
+    {
+      element_id: "edu-meta",
+      category: "textarea",
+      content: "EU Viadrina · 2014 – 2018",
+      flowGroup: "record-edu-1",
+      autoHeight: true,
+      left: 76,
+      top: 717,
+      width: 400,
+      height: 12,
+      page: 1,
+    },
+    {
+      element_id: "edu-desc",
+      category: "textarea",
+      content: "Uzyskanie tytułu Bachelor of Laws z zakresu prawa niemieckiego.",
+      flowGroup: "record-edu-1",
+      autoHeight: true,
+      left: 76,
+      top: 733,
+      width: 400,
+      height: 12,
+      page: 1,
+    },
+  ], "edu-desc", 40, 842, { pageTop: 66, bottomMargin: 96 });
+
+  const degree = result.elements.find((element) => element.element_id === "edu-degree");
+  const meta = result.elements.find((element) => element.element_id === "edu-meta");
+  const desc = result.elements.find((element) => element.element_id === "edu-desc");
+  assert.equal(degree.page, 2);
+  assert.equal(meta.page, 2);
+  assert.equal(desc.page, 2);
+  assert.ok(meta.top > degree.top);
+  assert.ok(desc.top > meta.top);
+});
+
 test("does not change ordinary manually sized textareas", () => {
   const result = reflowTextareaHeight([
     textarea({ autoHeight: false }),

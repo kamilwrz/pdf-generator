@@ -34,6 +34,7 @@ def element(element_id, *, deleted=False):
         bulletList=False,
         autoHeight=True,
         flowRole="section-chrome",
+        flowGroup="record-test",
         preserveInitialLayout=True,
         fixedToPage=True,
         repeatOnContinuation=False,
@@ -70,6 +71,7 @@ class PdfElementUpdateTests(unittest.TestCase):
         self.assertEqual(keep_row.page, 1)
         self.assertTrue(keep_row.extra_properties["autoHeight"])
         self.assertEqual(keep_row.extra_properties["flowRole"], "section-chrome")
+        self.assertEqual(keep_row.extra_properties["flowGroup"], "record-test")
         self.assertTrue(keep_row.extra_properties["preserveInitialLayout"])
         self.assertTrue(keep_row.extra_properties["fixedToPage"])
         self.assertFalse(keep_row.extra_properties["repeatOnContinuation"])

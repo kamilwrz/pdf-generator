@@ -104,6 +104,7 @@ export default function ModalPdfs({ title }) {
                         bulletList: element.extra_properties.bulletList ?? false,
                         autoHeight: element.extra_properties.autoHeight ?? false,
                         flowRole: element.extra_properties.flowRole,
+                        flowGroup: element.extra_properties.flowGroup,
                         preserveInitialLayout: element.extra_properties.preserveInitialLayout ?? false,
                         fixedToPage,
                         repeatOnContinuation,
@@ -122,6 +123,7 @@ export default function ModalPdfs({ title }) {
                         // Preserve explicit false for geometrically centred Iconic contact icons.
                         alignWithText: element.extra_properties.alignWithText,
                         flowRole: element.extra_properties.flowRole,
+                        flowGroup: element.extra_properties.flowGroup,
                         fixedToPage,
                         repeatOnContinuation,
                         locked,
@@ -140,6 +142,7 @@ export default function ModalPdfs({ title }) {
                     italic: element.extra_properties.italic,
                     underline: element.extra_properties.underline,
                     flowRole: element.extra_properties.flowRole,
+                    flowGroup: element.extra_properties.flowGroup,
                     fixedToPage,
                     repeatOnContinuation,
                     locked,

@@ -34,6 +34,9 @@ class BuilderKeepTogetherTests(unittest.TestCase):
         self.assertEqual(pages, {2})
         self.assertGreaterEqual(b.els[0]["top"], PAGE_TOP)
         self.assertLessEqual(b.els[-1]["top"] + b.els[-1]["height"], CONTENT_BOTTOM)
+        groups = {element.get("flowGroup") for element in b.els}
+        self.assertEqual(len(groups), 1)
+        self.assertTrue(all(element.get("flowGroup") for element in b.els))
 
     def test_vector_education_records_are_not_split_across_pages(self):
         cv = {

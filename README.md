@@ -104,7 +104,7 @@ Every auto-height textarea measures twice — once immediately, once again after
 
 During the canvas enter hold, auto-height reflow is suppressed and resumes after fonts are ready. Every textarea emitted by the Python generators carries `preserveInitialLayout: true` (via `_block` in `cv_generator_primitives.py`). On first mount the canvas may **shrink** a box to browser `scrollHeight` when ReportLab overshoots (so empty slack cannot inflate visual section gaps), but it will not **grow** — independent growth races still stretch gaps. Editing content or later changing typography/width still triggers normal auto-height reflow. See `textareaHeight.test.js` (`shouldShrinkPreservedLayout`) and `textareaReflow.test.js` packing cases.
 
-Section headings are kept with their first body block across page breaks: `avoidOrphanChrome` reserves the full body height (not a short keep-with-next sliver), and when a measured body textarea itself jumps to the next page, `precedingChromeCluster` pulls the icon/heading/rule with it. That prevents orphans such as “UMIEJĘTNOŚCI” alone at the bottom of page 1. Backend generators use `Builder.need_section(chrome, body)` for the same rule before placing a heading. Experience, education, and other record entries additionally use `Builder.keep_together(height)` so a title/meta/body record never splits across the footer — sections may continue on the next page, but each record stays whole. The section icon, heading, rule, and body therefore remain one cluster after every measurement and page break; ReportLab receives the same geometry visible on the canvas.
+Section headings are kept with their first body block across page breaks: `avoidOrphanChrome` reserves the full first keep-together record height (degree + meta + description, not only the first textarea), and when a measured body textarea itself jumps to the next page, `precedingRecordMates` + `precedingChromeCluster` pull title/meta siblings and the icon/heading/rule with it. That prevents orphans such as “UMIEJĘTNOŚCI” alone at the bottom of page 1, and the education split where Bachelor stayed on page 1 while its description moved to page 2. Backend generators use `Builder.need_section(chrome, body)` before placing a heading, and `Builder.keep_together(height)` for experience/education/other records — each emitted element is tagged with the same `flowGroup` id so canvas reclaim-packing (when earlier boxes shrink) cannot pull only part of a record back onto the previous page. Sections may continue on the next page, but each record stays whole. ReportLab receives the same geometry visible on the canvas.
 
 ### Decorative chrome
 
@@ -198,7 +198,7 @@ Schema is created by `init_db()` during app lifespan (not at import): `Base.meta
 | `users` | Accounts: username, email, bcrypt hash, `is_active`, timestamps |
 | `images` | Uploaded image metadata; `file_path` local or S3 URL; `owner_id` → users |
 | `pdfs` | CV documents: title, path, pages, page_width/height (default 595×842), owner |
-| `pdf_elements` | Canvas elements; geometry + style columns; extras in `extra_properties` JSON (`fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `preserveInitialLayout`, bold, connectors, …) |
+| `pdf_elements` | Canvas elements; geometry + style columns; extras in `extra_properties` JSON (`fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`, bold, connectors, …) |
 | `bio_cv_drafts` | One private JSON draft per user |
 | `plans` | Free / standard / premium limits and feature flags |
 | `user_subscriptions` | Current plan per user (Stripe columns ready, often null) |
@@ -419,7 +419,7 @@ Implementation:
 
 - `frontend/src/templates/iconic.js`, lines 1–386, exports `novaTemplate`, `ridgeTemplate`, `loomTemplate`, `voltTemplate`, and `loomContact`
 - `backend/app/services/cv_generator_iconic.py`, lines 31–409, functions `_icon`, `_icon_beside`, `_gen_iconic_theme`, and four `_gen_*` entry points
-- `frontend/src/utils/textareaReflow.js`, lines 60–430, functions `isTextAlignedImage`, `isPositionLockedForReflow`, `belongsToFlowLane`, `packGapAfterPageBreak`, `rawSamePageGap`, `avoidOrphanChrome`, `precedingChromeCluster`, and `reflowTextareaHeight`
+- `frontend/src/utils/textareaReflow.js`, functions `isTextAlignedImage`, `isPositionLockedForReflow`, `belongsToFlowLane`, `packGapAfterPageBreak`, `rawSamePageGap`, `remainingRecordHeight`, `avoidOrphanChrome`, `precedingChromeCluster`, `precedingRecordMates`, and `reflowTextareaHeight`
 - `frontend/src/components/canvas/Image/Image.jsx`, lines 22–76, functions `isTextAlignedIcon`, `iconicDrawTop`; canvas images use `object-fit: fill` so full-page backgrounds stretch like ReportLab `drawImage` (not `contain`, which letterboxed Rift/Relay PNGs that are 1024×1536)
 - `backend/app/services/pdf_generator.py`, lines 141–193, method `PDF_Generator.renderImage`
 - `backend/app/crud/pdfs.py` / `backend/app/schemas/pdf_schema.py` — persist `alignWithText` in `extra_properties`
@@ -485,8 +485,9 @@ Python layout from normalised `cv_data` (not LLM placement). In every generated 
 
 Implementation:
 
-- `backend/app/services/cv_generator_primitives.py`, class `Builder` — `need`, `need_section`, `keep_together` (re-exported from `cv_generator.py`)
+- `backend/app/services/cv_generator_primitives.py`, class `Builder` — `need`, `need_section`, `keep_together` (tags `flowGroup`; re-exported from `cv_generator.py`)
 - `backend/tests/test_builder_keep_together.py` — whole-record page-break regression
+- `frontend/src/utils/textareaReflow.test.js` — `flowGroup` reclaim / grow keep-together cases
 - `backend/app/services/cv_generator.py`, `_place_education_record` — distinguishes education metadata from body text; `generate_resume`
 - `backend/app/api/routes/ai.py`, `fill_template`
 - `backend/app/services/document_service.py`, lines 69–127, `create_pdf_document`; lines 129–165, `update_pdf_document`
@@ -953,7 +954,7 @@ Każde pole tekstowe z automatyczną wysokością mierzy się dwukrotnie — od 
 
 W czasie enter-hold reflow auto-height jest wstrzymany i wraca po gotowości fontów. Każda textarea z generatorów Pythona ma `preserveInitialLayout: true` (przez `_block` w `cv_generator_primitives.py`). Przy pierwszym montażu canvas może **zmniejszyć** box do `scrollHeight` przeglądarki, gdy ReportLab zawyży wysokość (żeby pusta przestrzeń nie psuła wizualnych odstępów sekcji), ale nie **powiększa** go — niezależny growth nadal psuje rytm. Edycja treści lub późniejsza zmiana typografii/szerokości nadal uruchamia normalny auto-height reflow. Zobacz `textareaHeight.test.js` (`shouldShrinkPreservedLayout`) oraz packing w `textareaReflow.test.js`.
 
-Nagłówki sekcji zostają z pierwszym blokiem treści przy podziale strony: `avoidOrphanChrome` rezerwuje pełną wysokość treści (nie krótki „keep-with-next”), a gdy zmierzone pole treści samo skacze na następną stronę, `precedingChromeCluster` zabiera ze sobą ikonę, tytuł i linię. Dzięki temu nie powstają sieroty w stylu samego „UMIEJĘTNOŚCI” na dole strony 1. Generatory backendu stosują tę samą regułę przez `Builder.need_section(chrome, body)` przed umieszczeniem nagłówka. Wpisy doświadczenia, edukacji i innych rekordów dodatkowo używają `Builder.keep_together(height)`, więc tytuł/meta/treść nie rozjeżdżają się przez stopkę — sekcja może iść na kolejną stronę, ale każdy rekord zostaje w całości. Ikona, tytuł, linia i treść pozostają jednym klastrem po każdym pomiarze i podziale strony; ReportLab dostaje tę samą geometrię, którą widać na kanwie.
+Nagłówki sekcji zostają z pierwszym blokiem treści przy podziale strony: `avoidOrphanChrome` rezerwuje pełną wysokość pierwszego rekordu keep-together (stopień + meta + opis, nie tylko pierwsze pole), a gdy zmierzone pole treści samo skacze na następną stronę, `precedingRecordMates` + `precedingChromeCluster` zabierają ze sobą rodzeństwo tytułu/meta oraz ikonę, nagłówek i linię. Dzięki temu nie powstają sieroty w stylu samego „UMIEJĘTNOŚCI” na dole strony 1 ani rozcięcie edukacji, gdzie Bachelor zostawał na stronie 1, a opis na stronie 2. Generatory backendu stosują `Builder.need_section(chrome, body)` przed nagłówkiem oraz `Builder.keep_together(height)` dla wpisów doświadczenia/edukacji — każdy element z kontekstu dostaje to samo `flowGroup`, żeby reclaim-packing na kanwie (gdy wcześniejsze boxy się kurczą) nie ściągał tylko części rekordu na poprzednią stronę. Sekcja może iść na kolejną stronę, ale każdy rekord zostaje w całości. ReportLab dostaje tę samą geometrię, którą widać na kanwie.
 
 ### Dekoracje szablonu
 
@@ -1043,7 +1044,7 @@ pdf-generator/
 | `users` | Konta |
 | `images` | Metadane obrazów użytkownika |
 | `pdfs` | Dokumenty CV |
-| `pdf_elements` | Elementy kanwy (+ `extra_properties`, m.in. `fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `preserveInitialLayout`) |
+| `pdf_elements` | Elementy kanwy (+ `extra_properties`, m.in. `fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`) |
 | `bio_cv_drafts` | Jeden prywatny szkic bio / user |
 | `plans` | Limity Free / Standard / Premium |
 | `user_subscriptions` | Aktualny plan |
@@ -1256,7 +1257,7 @@ Implementacja:
 
 - `frontend/src/templates/iconic.js`, linie 1–386, eksporty `novaTemplate`, `ridgeTemplate`, `loomTemplate`, `voltTemplate`, `loomContact`
 - `backend/app/services/cv_generator_iconic.py`, linie 31–409, funkcje `_icon`, `_icon_beside`, `_gen_iconic_theme` oraz cztery wejścia `_gen_*`
-- `frontend/src/utils/textareaReflow.js`, linie 60–430, funkcje `isTextAlignedImage`, `isPositionLockedForReflow`, `belongsToFlowLane`, `packGapAfterPageBreak`, `rawSamePageGap`, `avoidOrphanChrome`, `precedingChromeCluster`, `reflowTextareaHeight`
+- `frontend/src/utils/textareaReflow.js`, funkcje `isTextAlignedImage`, `isPositionLockedForReflow`, `belongsToFlowLane`, `packGapAfterPageBreak`, `rawSamePageGap`, `remainingRecordHeight`, `avoidOrphanChrome`, `precedingChromeCluster`, `precedingRecordMates`, `reflowTextareaHeight`
 - `frontend/src/components/canvas/Image/Image.jsx`, linie 22–76, funkcje `isTextAlignedIcon`, `iconicDrawTop`; obrazy na kanwie używają `object-fit: fill`, żeby tła pełnostronicowe rozciągały się jak ReportLab `drawImage` (nie `contain`, które dawało białe paski przy PNG 1024×1536 w Rift/Relay)
 - `backend/app/services/pdf_generator.py`, linie 141–193, metoda `PDF_Generator.renderImage`
 - `backend/app/crud/pdfs.py` / `backend/app/schemas/pdf_schema.py` — zapis `alignWithText` w `extra_properties`
@@ -1316,8 +1317,9 @@ Testy: `backend/tests/test_image_upload_security.py` — PNG, HTML-as-PNG (415),
 
 Layout Python powstaje ze znormalizowanego `cv_data`, a nie z pozycji wymyślonych przez LLM. W każdym wygenerowanym szablonie wpis wykształcenia korzysta z tego samego systemu znaczenia kolorów co doświadczenie: kierunek ma podstawowy kolor tekstu, szkoła/miasto/okres mają stonowany kolor metadanych, a opcjonalny opis ma czytelny kolor treści. Zwarty wpis w sidebarze celowo używa własnej palety sidebara, ponieważ jest wyświetlany na innym panelu tła.
 
-- `backend/app/services/cv_generator_primitives.py` — klasa `Builder` (`need`, `need_section`, `keep_together`; re-eksport z `cv_generator.py`)
+- `backend/app/services/cv_generator_primitives.py` — klasa `Builder` (`need`, `need_section`, `keep_together` z tagiem `flowGroup`; re-eksport z `cv_generator.py`)
 - `backend/tests/test_builder_keep_together.py` — regresja: rekord nie dzieli się między stronami
+- `frontend/src/utils/textareaReflow.test.js` — przypadki keep-together `flowGroup` przy reclaim/wzroście
 - `backend/app/services/cv_generator.py` — `_place_education_record`, `generate_resume`
 - `backend/app/api/routes/ai.py` — `fill_template`
 - `backend/app/services/document_service.py`, linie 69–127 — `create_pdf_document`; linie 129–165 — `update_pdf_document`
