@@ -4,11 +4,42 @@
  * Prefer explicit `flowRole: "section-chrome"` headings. For older / untagged
  * generators (e.g. Cinder), fall back to short label text sitting just above
  * a horizontal rule — the usual section chrome pattern.
+ *
+ * Reorder does not slide clusters by a raw absolute delta. Multi-page sections
+ * encode page-break dead space in their Y span; swapping that span overlaps
+ * later content and leaves holes. Instead: compact each section, pack in the
+ * new order from the flow start, then paginate with the same margins as
+ * `textareaReflow` (pageTop 66 / bottomMargin 72).
  */
+
+/** Keep in sync with `textareaReflow.js` / backend CONTENT margins. */
+const DEFAULT_PAGE_TOP = 66;
+const DEFAULT_BOTTOM_MARGIN = 72;
+/** Matches backend SPACE_SECTION / textareaReflow SECTION_PACK_GAP. */
+const SECTION_PACK_GAP = 21;
+/** Matches textareaReflow DEFAULT_PACK_GAP (SPACE_RECORD). */
+const RECORD_PACK_GAP = 10;
+/**
+ * Gaps larger than this between consecutive section members are treated as
+ * page-break waste (footer + next-page header) and collapsed while packing.
+ */
+const PAGE_BREAK_GAP_THRESHOLD = 40;
 
 function absoluteTop(element, pageHeight = 842) {
   const page = Math.max(1, Math.trunc(Number(element?.page) || 1));
   return (page - 1) * pageHeight + (Number(element?.top) || 0);
+}
+
+function elementHeight(element) {
+  const explicit = Number(element?.height);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  const fontSize = Number(element?.fontSize);
+  if (Number.isFinite(fontSize) && fontSize > 0) return fontSize * 1.35;
+  return 12;
+}
+
+function absoluteBottom(element, pageHeight = 842) {
+  return absoluteTop(element, pageHeight) + elementHeight(element);
 }
 
 function hasSectionRuleBelow(element, elements, pageHeight) {
@@ -102,53 +133,197 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
 }
 
 /**
- * Swap two adjacent sections by exchanging their absolute vertical spans.
+ * Collapse page-break dead space inside a section into a continuous strip.
+ * Preserves small authored gaps; replaces footer→next-page holes with a
+ * compact record/section gap so relocating the section cannot drag empty
+ * page margins into the middle of the document.
+ *
+ * @returns {{ element: object, relTop: number }[]}
+ */
+function compactSectionStrip(sectionElements, pageHeight) {
+  const sorted = [...sectionElements].sort((left, right) => {
+    const topDelta = absoluteTop(left, pageHeight) - absoluteTop(right, pageHeight);
+    if (Math.abs(topDelta) > 0.01) return topDelta;
+    return (Number(left.left) || 0) - (Number(right.left) || 0);
+  });
+  if (sorted.length === 0) return [];
+
+  const items = [];
+  for (let index = 0; index < sorted.length; index += 1) {
+    const element = sorted[index];
+    if (index === 0) {
+      items.push({ element, relTop: 0 });
+      continue;
+    }
+    const previous = items[index - 1];
+    const prevBottomAbs = absoluteBottom(previous.element, pageHeight);
+    const abs = absoluteTop(element, pageHeight);
+    let gap = abs - prevBottomAbs;
+    const crossedPage = Math.trunc(Number(element.page) || 1)
+      > Math.trunc(Number(previous.element.page) || 1);
+    // Large gaps are almost always the unused band between contentBottom and
+    // the next pageTop after an earlier reflow — not intentional section art.
+    if (crossedPage || gap > PAGE_BREAK_GAP_THRESHOLD) {
+      gap = RECORD_PACK_GAP;
+    }
+    gap = Math.max(0, gap);
+    items.push({
+      element,
+      relTop: previous.relTop + elementHeight(previous.element) + gap,
+    });
+  }
+  return items;
+}
+
+/**
+ * Map a flow cursor + height onto a page/top pair, bumping to the next page
+ * when the block would collide with the footer margin (same rule as reflow).
+ */
+function placeAtFlowCursor(cursorAbs, height, pageHeight, pageTop, bottomMargin) {
+  const contentBottom = pageHeight - bottomMargin;
+  const pageCapacity = Math.max(0, contentBottom - pageTop);
+  let page = Math.max(1, Math.floor(Math.max(0, cursorAbs) / pageHeight) + 1);
+  let top = Math.max(0, cursorAbs) - (page - 1) * pageHeight;
+
+  if (height <= pageCapacity && top + height > contentBottom) {
+    page += 1;
+    top = pageTop;
+  } else if (top < pageTop && page > 1) {
+    // Landed inside the previous page's top margin band after a naive abs map.
+    top = pageTop;
+  }
+
+  return {
+    page,
+    top,
+    abs: (page - 1) * pageHeight + top,
+    bottom: (page - 1) * pageHeight + top + height,
+  };
+}
+
+/**
+ * Pack sections in `orderedHeadingIds` from the document flow start.
+ * Non-section elements (masthead, fixed chrome) keep their positions.
+ *
+ * @param {object[]} elements
+ * @param {string[]} orderedHeadingIds
+ * @param {number} [pageHeight=842]
+ * @param {{ pageTop?: number, bottomMargin?: number, sectionGap?: number }} [options]
+ * @returns {object[]}
+ */
+export function packDocumentSections(
+  elements,
+  orderedHeadingIds,
+  pageHeight = 842,
+  {
+    pageTop = DEFAULT_PAGE_TOP,
+    bottomMargin = DEFAULT_BOTTOM_MARGIN,
+    sectionGap = SECTION_PACK_GAP,
+  } = {},
+) {
+  const list = elements || [];
+  const sections = listDocumentSections(list, pageHeight);
+  if (sections.length === 0 || !orderedHeadingIds?.length) return list;
+
+  const byHeading = new Map(sections.map((section) => [section.headingId, section]));
+  const order = orderedHeadingIds
+    .map((headingId) => byHeading.get(headingId))
+    .filter(Boolean);
+  if (order.length === 0) return list;
+
+  const flowStart = Math.min(...sections.map((section) => section.startAbs));
+  const memberIds = new Set();
+  const strips = order.map((section) => {
+    const ids = sectionElementIds(list, section.headingId, pageHeight);
+    ids.forEach((id) => memberIds.add(id));
+    const members = list.filter((element) => ids.has(element.element_id));
+    return compactSectionStrip(members, pageHeight);
+  });
+
+  const placedById = new Map();
+  let cursorAbs = flowStart;
+
+  strips.forEach((strip, stripIndex) => {
+    if (strip.length === 0) return;
+    if (stripIndex > 0) cursorAbs += sectionGap;
+
+    // Keep section chrome with the first body block: if the heading+rule band
+    // would fit in the footer but the following content would not, start the
+    // whole section on the next page (same orphan rule as textareaReflow).
+    let sectionCursor = cursorAbs;
+    if (strip.length >= 2) {
+      const clusterHeight = elementHeight(strip[0].element)
+        + RECORD_PACK_GAP
+        + elementHeight(strip[1].element);
+      sectionCursor = placeAtFlowCursor(
+        cursorAbs,
+        clusterHeight,
+        pageHeight,
+        pageTop,
+        bottomMargin,
+      ).abs;
+    }
+
+    let stripBottom = sectionCursor;
+    let previous = null;
+    for (const item of strip) {
+      const height = elementHeight(item.element);
+      let desiredAbs = sectionCursor;
+      if (previous) {
+        // Authored gap from the compacted strip (page-break waste already gone).
+        const gap = item.relTop
+          - (previous.item.relTop + elementHeight(previous.item.element));
+        desiredAbs = previous.placed.bottom + Math.max(0, gap);
+      }
+      const placed = placeAtFlowCursor(
+        desiredAbs,
+        height,
+        pageHeight,
+        pageTop,
+        bottomMargin,
+      );
+      placedById.set(item.element.element_id, {
+        ...item.element,
+        page: placed.page,
+        top: placed.top,
+      });
+      previous = { item, placed };
+      stripBottom = Math.max(stripBottom, placed.bottom);
+    }
+    cursorAbs = stripBottom;
+  });
+
+  return list.map((element) => {
+    if (!memberIds.has(element.element_id)) return element;
+    return placedById.get(element.element_id) || element;
+  });
+}
+
+/**
+ * Move a section up/down, then repack every section so page-break holes and
+ * following content reflow instead of overlapping.
+ *
  * @returns {object[]|null} new elements, or null if move is invalid
  */
-export function reorderSection(elements, headingId, direction, pageHeight = 842) {
+export function reorderSection(
+  elements,
+  headingId,
+  direction,
+  pageHeight = 842,
+  options = {},
+) {
   const sections = listDocumentSections(elements, pageHeight);
   const index = sections.findIndex((section) => section.headingId === headingId);
   if (index < 0) return null;
   const swapWith = direction === "up" ? index - 1 : index + 1;
   if (swapWith < 0 || swapWith >= sections.length) return null;
 
-  const a = sections[index];
-  const b = sections[swapWith];
-  const first = a.startAbs <= b.startAbs ? a : b;
-  const second = a.startAbs <= b.startAbs ? b : a;
-  const idsFirst = sectionElementIds(elements, first.headingId, pageHeight);
-  const idsSecond = sectionElementIds(elements, second.headingId, pageHeight);
-  const firstBottom = Math.max(
-    ...[...elements]
-      .filter((element) => idsFirst.has(element.element_id))
-      .map((element) => absoluteTop(element, pageHeight) + (Number(element.height) || Number(element.fontSize) || 12)),
-  );
-  const secondBottom = Math.max(
-    ...[...elements]
-      .filter((element) => idsSecond.has(element.element_id))
-      .map((element) => absoluteTop(element, pageHeight) + (Number(element.height) || Number(element.fontSize) || 12)),
-  );
-  const heightFirst = firstBottom - first.startAbs;
-  const heightSecond = secondBottom - second.startAbs;
-  const gap = second.startAbs - firstBottom;
-  const safeGap = Number.isFinite(gap) ? Math.max(0, gap) : 16;
+  const order = sections.map((section) => section.headingId);
+  const tmp = order[index];
+  order[index] = order[swapWith];
+  order[swapWith] = tmp;
 
-  // Place former-second at first.startAbs, former-first after it.
-  const deltaSecond = first.startAbs - second.startAbs;
-  const newFirstStart = first.startAbs + heightSecond + safeGap;
-  const deltaFirst = newFirstStart - first.startAbs;
-
-  return (elements || []).map((element) => {
-    let delta = 0;
-    if (idsFirst.has(element.element_id)) delta = deltaFirst;
-    else if (idsSecond.has(element.element_id)) delta = deltaSecond;
-    else return element;
-
-    const nextAbs = absoluteTop(element, pageHeight) + delta;
-    const page = Math.max(1, Math.floor(nextAbs / pageHeight) + 1);
-    const top = nextAbs - (page - 1) * pageHeight;
-    return { ...element, page, top };
-  });
+  return packDocumentSections(elements, order, pageHeight, options);
 }
 
 /**

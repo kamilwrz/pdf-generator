@@ -220,7 +220,7 @@ Product narrative: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 Interactive multi-page **A4 portrait** canvas with two persisted editor modes on each `Pdf` row (`editor_mode`, `template_id`):
 
-- **template** — structural editing: content/chrome positions are layout-owned (no free X/Y drag), **Sekcje** flyout docked beside the 68px tool rail (same geometry as the property editor), gallery photo-slot targets, auto-height reflow with reclaim. Topbar **Odblokuj edycję** copies the document into freeform.
+- **template** — structural editing: content/chrome positions are layout-owned (no free X/Y drag), **Sekcje** flyout docked beside the 68px tool rail (same geometry as the property editor; reorder compacts page-break holes and repacks/paginates all sections), gallery photo-slot targets, auto-height reflow with reclaim. Topbar **Odblokuj edycję** copies the document into freeform.
 - **freeform** — full toolbox (text, shapes, images), free drag/resize, and reflow without page-break reclaim so hand placement is preserved.
 
 Shared fonts: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono. Session undo/redo ignores post-load textarea reflow (`markHistoryQuiet`).
@@ -228,7 +228,7 @@ Shared fonts: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay
 Implementation:
 
 - `frontend/src/utils/editorMode.js` — `normalizeEditorMode`, `inferEditorMode`, `canFreePositionElement`
-- `frontend/src/utils/sectionStructure.js` — section list/reorder + profile photo slot
+- `frontend/src/utils/sectionStructure.js` — section list/reorder via `packDocumentSections` (compact page-break holes, paginate with reflow margins) + profile photo slot
 - `frontend/src/pages/PdfCanvas.jsx`, component `PdfCanvas` (`start=templates|import|wizard|blank`, unlock copy)
 - `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`)
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, `Topbar/Topbar.jsx`, `SectionsPanel/`, `UnlockFreeformModal/`
@@ -1127,14 +1127,14 @@ Opis produktowy: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 Płótno **A4 pion** z dwoma trwałymi trybami na rekordzie `Pdf` (`editor_mode`, `template_id`):
 
-- **template** — edycja strukturalna: pozycje treści/chrome pilnuje układ (bez swobodnego przeciągania X/Y), panel **Sekcje** dokowany obok szyny 68px (jak edytor właściwości), cele dropzone dla zdjęcia profilowego, reflow z reclaim. **Odblokuj edycję** tworzy kopię w trybie freeform.
+- **template** — edycja strukturalna: pozycje treści/chrome pilnuje układ (bez swobodnego przeciągania X/Y), panel **Sekcje** dokowany obok szyny 68px (jak edytor właściwości; zmiana kolejności kompresuje dziury na przełomie stron i pakuje/paginuje wszystkie sekcje), cele dropzone dla zdjęcia profilowego, reflow z reclaim. **Odblokuj edycję** tworzy kopię w trybie freeform.
 - **freeform** — pełny przybornik (tekst, kształty, obrazy), swobodny drag/resize oraz reflow bez reclaim między stronami.
 
 Wspólne czcionki: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono. Cofnij/ponów pomija reflow po załadowaniu (`markHistoryQuiet`).
 
 Implementacja:
 
-- `frontend/src/utils/editorMode.js`, `sectionStructure.js`
+- `frontend/src/utils/editorMode.js`, `sectionStructure.js` (`packDocumentSections` — kompresja dziur na przełomie stron + paginacja jak reflow)
 - `frontend/src/pages/PdfCanvas.jsx` — intencje `templates|import|wizard|blank`, unlock z kopią
 - `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`)
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, `Topbar/Topbar.jsx`, `SectionsPanel/`, `UnlockFreeformModal/`
