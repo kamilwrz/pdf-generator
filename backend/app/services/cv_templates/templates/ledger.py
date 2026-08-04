@@ -2,12 +2,9 @@ from __future__ import annotations
 
 from app.core.config import BACKEND_URL
 from app.services.cv_generator_primitives import (
+    get_spacing,
     SPACE_AFTER_HEADER_RULE,
     SPACE_AFTER_MASTHEAD,
-    SPACE_AFTER_RULE,
-    SPACE_RECORD,
-    SPACE_SECTION,
-    SPACE_STACK,
     Builder,
     _block,
     _circle,
@@ -78,11 +75,11 @@ def _gen_ledger(cv: dict) -> list[dict]:
         bullets = _bullets(job)
         height = (
             b.measure_block(job.get("title", ""), W, 11, 13.5, SANS, bold=True, min_h=15)
-            + SPACE_STACK
+            + get_spacing().stack
             + b.measure_block(_company_period(job), W, 9, 11.5, SANS, min_h=12)
         )
         if bullets:
-            height += SPACE_STACK + b.measure_block(
+            height += get_spacing().stack + b.measure_block(
                 bullets, W, 9.6, 13.5, SANS, bulletList=True
             )
         return height
@@ -100,10 +97,10 @@ def _gen_ledger(cv: dict) -> list[dict]:
         b.els[-1]["flowRole"] = "section-chrome"
         b.line(L, W, 1, STEEL)
         b.els[-1]["flowRole"] = "section-chrome"
-        b.gap(SPACE_AFTER_RULE)
+        b.gap(get_spacing().after_rule)
 
     def close_section() -> None:
-        b.gap(SPACE_SECTION)
+        b.gap(get_spacing().section)
 
     if cv.get("summary"):
         b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 9.6, 13.5, SANS))
@@ -118,14 +115,14 @@ def _gen_ledger(cv: dict) -> list[dict]:
         for index, job in enumerate(jobs):
             with b.keep_together(experience_height(job)):
                 b.block(job.get("title", ""), L, W, 11, 13.5, NAVY, SANS, bold=True, min_h=15)
-                b.gap(SPACE_STACK)
+                b.gap(get_spacing().stack)
                 b.block(_company_period(job), L, W, 9, 11.5, SLATE, SANS, min_h=12)
                 bullets = _bullets(job)
                 if bullets:
-                    b.gap(SPACE_STACK)
+                    b.gap(get_spacing().stack)
                     b.block(bullets, L, W, 9.6, 13.5, INK, SANS, bulletList=True)
             if index < len(jobs) - 1:
-                b.gap(SPACE_RECORD)
+                b.gap(get_spacing().record)
         close_section()
         _extra_sections(b, cv, "after_experience", section, {"body": INK}, L, W, SANS, fs=9.6, lh=13.5)
 
@@ -140,7 +137,7 @@ def _gen_ledger(cv: dict) -> list[dict]:
                 degree_fs=10.6, degree_lh=13,
                 meta_fs=9, meta_lh=11.5,
                 body_fs=9, body_lh=11.5,
-                after_gap=SPACE_RECORD if index < len(education_entries) - 1 else None,
+                after_gap=get_spacing().record if index < len(education_entries) - 1 else None,
             )
         close_section()
 

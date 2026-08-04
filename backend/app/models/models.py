@@ -82,6 +82,9 @@ class Pdf(Base):
     editor_mode = Column(String, default="freeform")
     # Originating template slug when known (may remain set after unlock).
     template_id = Column(String, nullable=True)
+    # Per-document vertical rhythm override ({stack,record,section,after_rule}).
+    # Null means generator/editor defaults (SPACE_* constants).
+    spacing_px = Column(JSON, nullable=True)
 
 
 class PdfElements(Base):

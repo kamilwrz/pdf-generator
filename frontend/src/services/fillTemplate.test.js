@@ -19,6 +19,18 @@ describe("fillTemplate", () => {
     assert.deepEqual(result.elements, [{ element_id: "a" }]);
   });
 
+  it("includes spacing_px when spacing is provided", async () => {
+    const httpRequest = mock.fn(async () => ({ elements: [] }));
+    await fillTemplate(
+      { name: "Anna" },
+      "ledger",
+      { api: { httpRequest }, spacing: { section: 40 } },
+    );
+    const body = JSON.parse(httpRequest.mock.calls[0].arguments[2]);
+    assert.equal(body.spacing_px.section, 40);
+    assert.equal(body.spacing_px.stack, 4);
+  });
+
   it("rejects missing cv data", async () => {
     await assert.rejects(
       () => fillTemplate(null, "ledger", { api: { httpRequest: async () => ({}) } }),

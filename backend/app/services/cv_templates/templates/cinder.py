@@ -2,12 +2,9 @@ from __future__ import annotations
 
 from app.core.config import BACKEND_URL
 from app.services.cv_generator_primitives import (
+    get_spacing,
     SPACE_AFTER_HEADER_RULE,
     SPACE_AFTER_MASTHEAD,
-    SPACE_AFTER_RULE,
-    SPACE_RECORD,
-    SPACE_SECTION,
-    SPACE_STACK,
     Builder,
     _block,
     _circle,
@@ -66,18 +63,18 @@ def _gen_cinder(cv: dict) -> list[dict]:
     header[3]["letterSpacing"] = 1.65
     SECTION_CHROME = section_chrome_height(8.7)
     # Black masthead band occupies y=0..170. Use masthead clearance (not the
-    # tighter SPACE_SECTION) so the first heading has visible breathing room.
+    # tighter get_spacing().section) so the first heading has visible breathing room.
     b = Builder(170 + SPACE_AFTER_MASTHEAD)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
         height = (
             b.measure_block(job.get("title", ""), W, 11, 13.5, SANS, bold=True, min_h=15)
-            + SPACE_STACK
+            + get_spacing().stack
             + b.measure_block(_company_period(job), W, 8.7, 11.5, SANS, min_h=12)
         )
         if bullets:
-            height += SPACE_STACK + b.measure_block(
+            height += get_spacing().stack + b.measure_block(
                 bullets, W, 9.5, 13.4, SANS, bulletList=True
             )
         return height
@@ -99,10 +96,10 @@ def _gen_cinder(cv: dict) -> list[dict]:
         b.els[-1]["flowRole"] = "section-chrome"
         b.line(L, W, 1, ASH)
         b.els[-1]["flowRole"] = "section-chrome"
-        b.gap(SPACE_AFTER_RULE)
+        b.gap(get_spacing().after_rule)
 
     def close_section() -> None:
-        b.gap(SPACE_SECTION)
+        b.gap(get_spacing().section)
 
     if cv.get("summary"):
         b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, 9.5, 13.4, SANS))
@@ -117,14 +114,14 @@ def _gen_cinder(cv: dict) -> list[dict]:
         for index, job in enumerate(jobs):
             with b.keep_together(experience_height(job)):
                 b.block(job.get("title", ""), L, W, 11, 13.5, BLACK, SANS, bold=True, min_h=15)
-                b.gap(SPACE_STACK)
+                b.gap(get_spacing().stack)
                 b.block(_company_period(job), L, W, 8.7, 11.5, GRAPHITE, SANS, min_h=12)
                 bullets = _bullets(job)
                 if bullets:
-                    b.gap(SPACE_STACK)
+                    b.gap(get_spacing().stack)
                     b.block(bullets, L, W, 9.5, 13.4, CHARCOAL, SANS, bulletList=True)
             if index < len(jobs) - 1:
-                b.gap(SPACE_RECORD)
+                b.gap(get_spacing().record)
         close_section()
         _extra_sections(b, cv, "after_experience", section, {"body": CHARCOAL}, L, W, SANS, fs=9.5, lh=13.4)
 
@@ -139,7 +136,7 @@ def _gen_cinder(cv: dict) -> list[dict]:
                 degree_fs=10.3, degree_lh=13,
                 meta_fs=8.7, meta_lh=11.5,
                 body_fs=8.7, body_lh=11.5,
-                after_gap=SPACE_RECORD if index < len(education_entries) - 1 else None,
+                after_gap=get_spacing().record if index < len(education_entries) - 1 else None,
             )
         close_section()
 

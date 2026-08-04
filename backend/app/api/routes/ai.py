@@ -10,6 +10,8 @@ behind reverse proxies still load `/template-assets/...` from the same host
 the browser called.
 """
 
+from typing import Any, Optional
+
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -20,6 +22,7 @@ from app.dependencies import get_db
 from app.schemas.cv_data_schema import BioCvDraftRequest, BioCvDraftResponse
 from app.services.cv_data import CvDataValidationError, normalize_cv_data
 from app.services.ai_service import extract_cv_data, generate_resume
+from app.services.cv_generator_primitives import use_spacing
 from app.services.entitlements import (
     assert_can_extract_cv,
     assert_template_allowed,
@@ -36,6 +39,8 @@ class FillRequest(BaseModel):
 
     cv_data: dict
     template_id: str
+    # Optional per-document rhythm from the Sections panel (stack/record/…).
+    spacing_px: Optional[dict[str, Any]] = None
 
 
 def _current_user_id(db: Session, payload: dict) -> int:
@@ -161,7 +166,8 @@ async def fill_template(
     assert_template_allowed(db, user, request.template_id)
     try:
         cv_data = normalize_cv_data(request.cv_data, require_name=True)
-        elements = generate_resume(request.template_id, cv_data)
+        with use_spacing(request.spacing_px):
+            elements = generate_resume(request.template_id, cv_data)
         return {"elements": _rebase_template_asset_urls(elements, http_request)}
     except CvDataValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc))

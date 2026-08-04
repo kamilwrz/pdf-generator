@@ -40,7 +40,16 @@ const ChevronRight = () => (
 );
 
 export default function AiCvPanel() {
-    const { isAiPanel, showAiPanel, showBioCvModal, loadAiElements, entitlements, refreshEntitlements, setActiveCvData } = use(PdfContext);
+    const {
+        isAiPanel,
+        showAiPanel,
+        showBioCvModal,
+        loadAiElements,
+        entitlements,
+        refreshEntitlements,
+        setActiveCvData,
+        flowSpacing,
+    } = use(PdfContext);
 
     const fileRef = useRef(null);
     const [fileName, setFileName] = useState(null);
@@ -123,6 +132,7 @@ export default function AiCvPanel() {
             const res = await fillTemplate(cvData, template.id, {
                 api,
                 errorMessage: "Generowanie szablonu nie powiodło się",
+                spacing: flowSpacing,
             });
             await loadAiElements(res.elements, `CV ${template.name}`, template.id);
             setActiveCvData(cvData);
@@ -132,7 +142,7 @@ export default function AiCvPanel() {
         } finally {
             setFillingId(null);
         }
-    }, [api, cvData, entitlements, loadAiElements, setActiveCvData, showAiPanel]);
+    }, [api, cvData, entitlements, flowSpacing, loadAiElements, setActiveCvData, showAiPanel]);
 
     function goPrevStep() {
         setWizardStep(1);

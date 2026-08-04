@@ -120,3 +120,83 @@
   opacity: 0.35;
   cursor: not-allowed;
 }
+
+.rhythm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 12px 16px;
+  border-top: 1px solid var(--chrome-border);
+  flex-shrink: 0;
+}
+
+.rhythmHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rhythmHeader h3 {
+  margin: 0;
+  font: 700 12px var(--font-display);
+  color: var(--chrome-ink);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.reset {
+  border: 1px solid var(--chrome-border);
+  border-radius: 6px;
+  background: var(--chrome-hover);
+  color: var(--chrome-muted);
+  font: 600 11px var(--font-body);
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.reset:hover {
+  color: var(--chrome-ink);
+  border-color: var(--chrome-accent);
+}
+
+.rhythmGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.rhythmField {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rhythmLabel {
+  font: 600 11px var(--font-body);
+  color: var(--chrome-ink);
+}
+
+.rhythmMeta {
+  font: 500 10px var(--font-body);
+  color: var(--chrome-muted);
+  line-height: 1.25;
+}
+
+.rhythmField input {
+  width: 100%;
+  margin-top: 2px;
+  box-sizing: border-box;
+  border: 1px solid var(--chrome-border);
+  border-radius: 6px;
+  background: var(--chrome-control);
+  color: var(--chrome-ink);
+  font: 600 12px var(--font-body);
+  padding: 6px 8px;
+}
+
+.rhythmField input:focus {
+  outline: 1px solid var(--chrome-accent);
+  border-color: var(--chrome-accent);
+}

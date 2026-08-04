@@ -2,11 +2,9 @@
 from __future__ import annotations
 
 from app.services.cv_generator_primitives import (
+    get_spacing,
     A4_H,
     SPACE_AFTER_HEADER_RULE,
-    SPACE_AFTER_RULE,
-    SPACE_RECORD,
-    SPACE_SECTION,
     Builder,
     _circle,
     _ellipse,
@@ -247,10 +245,10 @@ def _gen_tessera(cv: dict) -> list[dict]:
         builder.y = cursor + 21
         builder.line(main_left + 30, main_width - 30, 1, colors["rule"])
         builder.els[-1]["flowRole"] = "section-chrome"
-        builder.gap(SPACE_AFTER_RULE)
+        builder.gap(get_spacing().after_rule)
 
     def close_section() -> None:
-        builder.gap(SPACE_SECTION)
+        builder.gap(get_spacing().section)
 
     def experience_height(job: dict) -> float:
         return _experience_record_height(
@@ -297,7 +295,7 @@ def _gen_tessera(cv: dict) -> list[dict]:
                 meta_lh=11.4,
                 body_fs=body_fs,
                 body_lh=body_lh,
-                after_gap=SPACE_RECORD if index < len(jobs) - 1 else None,
+                after_gap=get_spacing().record if index < len(jobs) - 1 else None,
             )
         close_section()
         _extra_sections(
@@ -324,7 +322,7 @@ def _gen_tessera(cv: dict) -> list[dict]:
                 meta_lh=11.4,
                 body_fs=8.8,
                 body_lh=13,
-                after_gap=SPACE_RECORD if index < len(entries) - 1 else None,
+                after_gap=get_spacing().record if index < len(entries) - 1 else None,
             )
         close_section()
 

@@ -197,7 +197,7 @@ Schema is created by `init_db()` during app lifespan (not at import): `Base.meta
 |-------|---------|
 | `users` | Accounts: username, email, bcrypt hash, `is_active`, timestamps |
 | `images` | Uploaded image metadata; `file_path` local or S3 URL; `owner_id` → users |
-| `pdfs` | CV documents: title, path, pages, page_width/height (default 595×842), owner |
+| `pdfs` | CV documents: title, path, pages, page_width/height (default 595×842), owner, `editor_mode`, `template_id`, optional `spacing_px` rhythm JSON |
 | `pdf_elements` | Canvas elements; geometry + style columns; extras in `extra_properties` JSON (`fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`, bold, connectors, …) |
 | `bio_cv_drafts` | One private JSON draft per user |
 | `plans` | Free / standard / premium limits and feature flags |
@@ -218,22 +218,26 @@ Product narrative: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 ### A4 canvas editor (template vs freeform)
 
-Interactive multi-page **A4 portrait** canvas with two persisted editor modes on each `Pdf` row (`editor_mode`, `template_id`):
+Interactive multi-page **A4 portrait** canvas with two persisted editor modes on each `Pdf` row (`editor_mode`, `template_id`, optional `spacing_px`):
 
-- **template** — structural editing: content/chrome positions are layout-owned (no free X/Y drag), **Sekcje** flyout docked beside the 68px tool rail (same geometry as the property editor; reorder compacts page-break holes and repacks/paginates all sections), gallery photo-slot targets, auto-height reflow with reclaim. Topbar **Odblokuj edycję** copies the document into freeform.
+- **template** — structural editing: content/chrome positions are layout-owned (no free X/Y drag), **Sekcje** flyout docked beside the 68px tool rail (reorder + editable vertical rhythm `stack` / `record` / `section` / `after_rule`, defaults 4 / 10 / 21 / 8), gallery photo-slot targets, auto-height reflow with reclaim. Topbar **Odblokuj edycję** copies the document into freeform.
 - **freeform** — full toolbox (text, shapes, images), free drag/resize, and reflow without page-break reclaim so hand placement is preserved.
+
+`spacing_px` is persisted on the Pdf row, applied live via `applyFlowSpacing`, and sent to `POST /ai/fill_template` so change-template / import regeneration uses the same rhythm (`use_spacing` + `get_spacing()` in the Python generators).
 
 Shared fonts: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono. Session undo/redo ignores post-load textarea reflow (`markHistoryQuiet`).
 
 Implementation:
 
 - `frontend/src/utils/editorMode.js` — `normalizeEditorMode`, `inferEditorMode`, `canFreePositionElement`
-- `frontend/src/utils/sectionStructure.js` — section list/reorder via `packDocumentSections` (compact page-break holes, paginate with reflow margins) + profile photo slot
+- `frontend/src/utils/flowSpacing.js` — defaults + normalize for the Sections panel / save / fill
+- `frontend/src/utils/sectionStructure.js` — `packDocumentSections`, `applyFlowSpacing`, reorder
 - `frontend/src/pages/PdfCanvas.jsx`, component `PdfCanvas` (`start=templates|import|wizard|blank`, unlock copy)
-- `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`)
+- `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`, `spacing`)
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, `Topbar/Topbar.jsx`, `SectionsPanel/`, `UnlockFreeformModal/`
-- `backend/app/models/models.py` — `Pdf.editor_mode`, `Pdf.template_id`; Alembic `20260804_0002_editor_mode.py`
-- `frontend/src/utils/editorMode.test.js`, `sectionStructure.test.js`
+- `backend/app/services/cv_generator_primitives.py` — `FlowSpacing`, `get_spacing`, `use_spacing`
+- `backend/app/models/models.py` — `Pdf.editor_mode`, `Pdf.template_id`, `Pdf.spacing_px`; Alembic `20260804_0002_editor_mode.py`, `20260804_0003_spacing_px.py`
+- tests: `editorMode.test.js`, `sectionStructure.test.js`, `flowSpacing.test.js`, `test_flow_spacing.py`
 
 ### Outcome-focused landing and directed starts
 
@@ -1106,7 +1110,7 @@ pdf-generator/
 |--------|-----|
 | `users` | Konta |
 | `images` | Metadane obrazów użytkownika |
-| `pdfs` | Dokumenty CV |
+| `pdfs` | Dokumenty CV (`editor_mode`, `template_id`, opcjonalne `spacing_px`) |
 | `pdf_elements` | Elementy kanwy (+ `extra_properties`, m.in. `fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`) |
 | `bio_cv_drafts` | Jeden prywatny szkic bio / user |
 | `plans` | Limity Free / Standard / Premium |
@@ -1125,21 +1129,24 @@ Opis produktowy: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 ### Edytor A4 (tryb szablonu vs projekt własny)
 
-Płótno **A4 pion** z dwoma trwałymi trybami na rekordzie `Pdf` (`editor_mode`, `template_id`):
+Płótno **A4 pion** z dwoma trwałymi trybami na rekordzie `Pdf` (`editor_mode`, `template_id`, opcjonalne `spacing_px`):
 
-- **template** — edycja strukturalna: pozycje treści/chrome pilnuje układ (bez swobodnego przeciągania X/Y), panel **Sekcje** dokowany obok szyny 68px (jak edytor właściwości; zmiana kolejności kompresuje dziury na przełomie stron i pakuje/paginuje wszystkie sekcje), cele dropzone dla zdjęcia profilowego, reflow z reclaim. **Odblokuj edycję** tworzy kopię w trybie freeform.
+- **template** — edycja strukturalna: pozycje treści/chrome pilnuje układ (bez swobodnego przeciągania X/Y), panel **Sekcje** dokowany obok szyny 68px (kolejność + rytm `stack` / `record` / `section` / `after_rule`, domyślnie 4 / 10 / 21 / 8), cele dropzone dla zdjęcia profilowego, reflow z reclaim. **Odblokuj edycję** tworzy kopię w trybie freeform.
 - **freeform** — pełny przybornik (tekst, kształty, obrazy), swobodny drag/resize oraz reflow bez reclaim między stronami.
+
+`spacing_px` jest zapisywane na dokumencie, od razu pakuje canvas (`applyFlowSpacing`) i trafia do `POST /ai/fill_template` przy zmianie szablonu / imporcie (`use_spacing` + `get_spacing()` w generatorach Python).
 
 Wspólne czcionki: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono. Cofnij/ponów pomija reflow po załadowaniu (`markHistoryQuiet`).
 
 Implementacja:
 
-- `frontend/src/utils/editorMode.js`, `sectionStructure.js` (`packDocumentSections` — kompresja dziur na przełomie stron + paginacja jak reflow)
+- `frontend/src/utils/editorMode.js`, `flowSpacing.js`, `sectionStructure.js` (`packDocumentSections`, `applyFlowSpacing`)
 - `frontend/src/pages/PdfCanvas.jsx` — intencje `templates|import|wizard|blank`, unlock z kopią
-- `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`)
+- `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`, `spacing`)
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, `Topbar/Topbar.jsx`, `SectionsPanel/`, `UnlockFreeformModal/`
-- `backend/app/models/models.py` — `editor_mode`, `template_id`; migracja `20260804_0002_editor_mode.py`
-- testy: `editorMode.test.js`, `sectionStructure.test.js`
+- `backend/app/services/cv_generator_primitives.py` — `FlowSpacing`, `get_spacing`, `use_spacing`
+- `backend/app/models/models.py` — `editor_mode`, `template_id`, `spacing_px`; migracje `20260804_0002`, `20260804_0003_spacing_px.py`
+- testy: `editorMode.test.js`, `sectionStructure.test.js`, `flowSpacing.test.js`, `test_flow_spacing.py`
 
 ### Landing skupiony na rezultacie i skierowane starty
 

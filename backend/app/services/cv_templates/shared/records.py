@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 
-from app.services.cv_generator_primitives import SPACE_STACK, Builder
+from app.services.cv_generator_primitives import get_spacing, Builder
 from app.services.cv_templates.shared.text import (
     _bullet_list_content,
     _bullets,
@@ -108,19 +108,19 @@ def _education_record_height(
     school = _education_school(edu)
     if school:
         if height:
-            height += SPACE_STACK
+            height += get_spacing().stack
         # School uses the same size as the degree line so it reads as a peer
         # heading under the diploma, not as muted metadata.
         height += b.measure_block(school, width, degree_fs, degree_lh, font, min_h=degree_lh)
     meta = _education_meta(edu)
     if meta:
         if height:
-            height += SPACE_STACK
+            height += get_spacing().stack
         height += b.measure_block(meta, width, meta_fs, meta_lh, font, min_h=meta_lh)
     bullets = _education_bullets(edu)
     if bullets:
         if height:
-            height += SPACE_STACK
+            height += get_spacing().stack
         height += b.measure_block(
             bullets, width, body_fs, body_lh, font, bulletList=True, min_h=body_lh
         )
@@ -179,17 +179,17 @@ def _place_education_record(
                 placed = True
             if school:
                 if placed:
-                    b.gap(SPACE_STACK)
+                    b.gap(get_spacing().stack)
                 b.text(school, degree_fs, font, ink, left)
                 placed = True
             if meta:
                 if placed:
-                    b.gap(SPACE_STACK)
+                    b.gap(get_spacing().stack)
                 b.text(meta, meta_fs, font, muted, left)
                 placed = True
             if bullets:
                 if placed:
-                    b.gap(SPACE_STACK)
+                    b.gap(get_spacing().stack)
                 b.text(bullets, body_fs, font, body_color, left)
                 placed = True
         else:
@@ -201,7 +201,7 @@ def _place_education_record(
                 placed = True
             if school:
                 if placed:
-                    b.gap(SPACE_STACK)
+                    b.gap(get_spacing().stack)
                 b.block(
                     school, left, width, degree_fs, degree_lh, ink, font,
                     min_h=degree_lh,
@@ -209,12 +209,12 @@ def _place_education_record(
                 placed = True
             if meta:
                 if placed:
-                    b.gap(SPACE_STACK)
+                    b.gap(get_spacing().stack)
                 b.block(meta, left, width, meta_fs, meta_lh, muted, font, min_h=meta_lh)
                 placed = True
             if bullets:
                 if placed:
-                    b.gap(SPACE_STACK)
+                    b.gap(get_spacing().stack)
                 b.block(
                     bullets, left, width, body_fs, body_lh, body_color, font,
                     bulletList=True, min_h=body_lh,
@@ -249,13 +249,13 @@ def _experience_record_height(
             job.get("title", ""), width, title_fs, title_lh, font,
             bold=True, min_h=title_min_h,
         )
-        + SPACE_STACK
+        + get_spacing().stack
         + b.measure_block(
             _company_period(job), width, meta_fs, meta_lh, meta_fam, min_h=meta_min_h,
         )
     )
     if bullets:
-        height += SPACE_STACK + b.measure_block(
+        height += get_spacing().stack + b.measure_block(
             bullets, width, body_fs, body_lh, font, bulletList=True,
         )
     return height
@@ -300,14 +300,14 @@ def _place_experience_record(
             job.get("title", ""), left, width, title_fs, title_lh, ink, font,
             bold=True, min_h=title_min_h,
         )
-        b.gap(SPACE_STACK)
+        b.gap(get_spacing().stack)
         b.block(
             _company_period(job), left, width, meta_fs, meta_lh, muted, meta_fam,
             min_h=meta_min_h,
         )
         bullets = _bullets(job)
         if bullets:
-            b.gap(SPACE_STACK)
+            b.gap(get_spacing().stack)
             b.block(bullets, left, width, body_fs, body_lh, body, font, bulletList=True)
     if after_gap is not None:
         b.gap(after_gap)

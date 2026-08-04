@@ -5,9 +5,7 @@ import math
 
 from app.services.cv_data import group_flat_items_into_records, is_record_section
 from app.services.cv_generator_primitives import (
-    SPACE_RECORD,
-    SPACE_SECTION,
-    SPACE_STACK,
+    get_spacing,
     Builder,
     section_chrome_height,
 )
@@ -64,13 +62,13 @@ def _measure_one_record_height(
         )
     if subtitle:
         if height:
-            height += SPACE_STACK
+            height += get_spacing().stack
         height += b.measure_block(
             subtitle, W, body_fs * 0.92, body_lh * 0.9, font_b, min_h=body_lh
         )
     if bullets:
         if height:
-            height += SPACE_STACK
+            height += get_spacing().stack
         content = "\n".join(f"• {bullet}" for bullet in bullets)
         height += b.measure_block(content, W, body_fs, body_lh, font_b, bulletList=True)
     return height
@@ -95,7 +93,7 @@ def _measure_record_section_body(
             title_fs=title_fs, title_lh=title_lh, body_fs=body_fs, body_lh=body_lh,
         )
         if index < len(records) - 1:
-            total += SPACE_RECORD
+            total += get_spacing().record
     return total
 
 
@@ -139,14 +137,14 @@ def _render_record_section_body(
             if title:
                 b.block(title, L, W, title_fs, title_lh, ink, font_b, bold=True, min_h=title_lh + 2)
             if subtitle:
-                b.gap(SPACE_STACK)
+                b.gap(get_spacing().stack)
                 b.block(subtitle, L, W, body_fs * 0.92, body_lh * 0.9, muted, font_b, min_h=body_lh)
             if bullets:
-                b.gap(SPACE_STACK)
+                b.gap(get_spacing().stack)
                 content = "\n".join(f"• {bullet}" for bullet in bullets)
                 b.block(content, L, W, body_fs, body_lh, ink, font_b, bulletList=True)
         if index < len(records) - 1:
-            b.gap(SPACE_RECORD)
+            b.gap(get_spacing().record)
 
 
 def _extra_sections(b: Builder, cv: dict, placement: str,
@@ -215,7 +213,7 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
                 b, records, L, W, C, font_b,
                 title_fs=title_fs, title_lh=title_lh, body_fs=fs, body_lh=lh,
             )
-            b.gap(SPACE_SECTION)
+            b.gap(get_spacing().section)
             continue
 
         items = _flatten_extra_items(raw_items)
@@ -232,7 +230,7 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
         b.need_section(chrome_h, body_height)
         section_fn(title)
         b.block(content, L, W, fs, lh, C.get("body", "#2B2B2B"), font_b, bulletList=True)
-        b.gap(SPACE_SECTION)
+        b.gap(get_spacing().section)
 
 
 _SIDEBAR_SECTION_ORDER = ("skills", "languages", "certifications", "interests", "education")

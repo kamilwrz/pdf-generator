@@ -4,6 +4,7 @@
  * (loadAiElements vs replaceActiveElements).
  */
 import { ApiClient, ENDPOINTS } from "./api";
+import { flowSpacingToPayload } from "../utils/flowSpacing";
 
 /**
  * Request a deterministic Python layout for `cvData` + `templateId`.
@@ -14,6 +15,7 @@ import { ApiClient, ENDPOINTS } from "./api";
  * @param {ApiClient} [options.api] - Reuse an authenticated client when the
  *   caller already constructed one; otherwise a Bearer client is created.
  * @param {string} [options.errorMessage] - Fallback Polish message for ApiClient.
+ * @param {object} [options.spacing] - Optional SPACE_* rhythm override.
  * @returns {Promise<{elements: object[]}>}
  */
 export async function fillTemplate(cvData, templateId, options = {}) {
@@ -26,10 +28,14 @@ export async function fillTemplate(cvData, templateId, options = {}) {
   const api = options.api
     ?? new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` });
   const errorMessage = options.errorMessage || "Generowanie szablonu nie powiodło się";
+  const body = { cv_data: cvData, template_id: templateId };
+  if (options.spacing) {
+    body.spacing_px = flowSpacingToPayload(options.spacing);
+  }
   return api.httpRequest(
     ENDPOINTS.AI.FILL_TEMPLATE,
     "POST",
-    JSON.stringify({ cv_data: cvData, template_id: templateId }),
+    JSON.stringify(body),
     errorMessage,
   );
 }

@@ -15,6 +15,7 @@ import {
   canFreePositionElement,
   normalizeEditorMode,
 } from '../utils/editorMode';
+import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from '../utils/flowSpacing';
 import {
   createCircleElement,
   createEllipseElement,
@@ -75,6 +76,16 @@ export function useA4Elements(titleRef) {
     const next = normalizeEditorMode(mode);
     editorModeRef.current = next;
     setEditorModeState(next);
+  }, []);
+  // Per-document SPACE_* rhythm (Sections panel). Persisted as Pdf.spacing_px.
+  const [flowSpacing, setFlowSpacingState] = useState(() => ({ ...DEFAULT_FLOW_SPACING }));
+  const flowSpacingRef = useRef(flowSpacing);
+  const setFlowSpacing = useCallback((next) => {
+    const normalized = normalizeFlowSpacing(
+      typeof next === "function" ? next(flowSpacingRef.current) : next,
+    );
+    flowSpacingRef.current = normalized;
+    setFlowSpacingState(normalized);
   }, []);
 
   // ---- Connector draw mode ----
@@ -760,6 +771,7 @@ export function useA4Elements(titleRef) {
           pageTop: 66,
           bottomMargin: 72,
           allowReclaim: editorModeRef.current === EDITOR_MODE_TEMPLATE,
+          spacing: flowSpacingRef.current,
         },
       );
       if (!result.changed) return prevState;
@@ -1393,10 +1405,11 @@ export function useA4Elements(titleRef) {
       setA4_Elements_deleted([]);
       setActiveTemplateId(null);
       setEditorMode(EDITOR_MODE_FREEFORM);
+      setFlowSpacing(DEFAULT_FLOW_SPACING);
       setPageCount(1);
       setCurrentPage(1);
       titleRef.current.value = "";
-  }, [resetHistory, setEditorMode])
+  }, [resetHistory, setEditorMode, setFlowSpacing])
 
   // Replace the canvas with generated/authored specs. `title` is used verbatim.
   // Content fades in after fonts settle; fixedToPage chrome appears immediately.
@@ -1521,6 +1534,8 @@ export function useA4Elements(titleRef) {
     setActiveTemplateId,
     editorMode,
     setEditorMode,
+    flowSpacing,
+    setFlowSpacing,
     // multi-page
     pageCount,
     setPageCount,

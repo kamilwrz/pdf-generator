@@ -11,7 +11,7 @@ Schema via ``python -m app.schemas.export_pdf_element_schema`` (written to
 category / identity rules without TypeScript.
 """
 
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field
 
 # Categories the ReportLab renderer and frontend factories understand.
@@ -119,6 +119,8 @@ class PDFCreateRequest(BaseModel):
     editor_mode: EditorMode = "freeform"
     # Originating template slug when the document came from a generator.
     template_id: Optional[str] = None
+    # Optional vertical rhythm override (stack/record/section/after_rule px).
+    spacing_px: Optional[dict[str, Any]] = None
 
 
 class PDFUpdateRequest(BaseModel):
@@ -132,3 +134,4 @@ class PDFUpdateRequest(BaseModel):
     page_height: float = 842
     editor_mode: EditorMode = "freeform"
     template_id: Optional[str] = None
+    spacing_px: Optional[dict[str, Any]] = None

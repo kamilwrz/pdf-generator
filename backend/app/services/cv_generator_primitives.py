@@ -11,6 +11,9 @@ from __future__ import annotations
 import math
 import secrets
 from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
+from typing import Any, Iterator, Mapping
 
 from app.services.pdf_generator import PDF_Generator
 
@@ -31,6 +34,10 @@ CONTENT_BOTTOM = A4_H - MARGIN_BOTTOM  # 770
 # section breaks readable. Canvas spacing guides measure glyph ink, not the
 # full textarea line-box — so SPACE_SECTION must be a few px above the target
 # visual gap (21 authored ≈ ~16px ink-to-ink on section boundaries).
+#
+# These module constants are the defaults. Generators must read live values via
+# ``get_spacing()`` so per-document overrides from the Sections panel apply
+# during ``fill_template`` (import-time ``SPACE_*`` binding would ignore them).
 SPACE_STACK = 4       # title → meta → body inside one record
 SPACE_RECORD = 10     # between records in the same section
 SPACE_SECTION = 21    # after a finished section before the next heading
@@ -41,10 +48,92 @@ SPACE_AFTER_RULE = 8  # section heading rule → first content block
 SPACE_AFTER_MASTHEAD = 32      # solid header bands (Cinder/Ledger)
 SPACE_AFTER_HEADER_RULE = 36   # thin divider under name/contact mastheads
 
+_SPACING_MIN = 0.0
+_SPACING_MAX = 80.0
+
+
+@dataclass(frozen=True)
+class FlowSpacing:
+    """Per-document vertical rhythm (px). Masthead gaps stay global defaults."""
+
+    stack: float = SPACE_STACK
+    record: float = SPACE_RECORD
+    section: float = SPACE_SECTION
+    after_rule: float = SPACE_AFTER_RULE
+    after_masthead: float = SPACE_AFTER_MASTHEAD
+    after_header_rule: float = SPACE_AFTER_HEADER_RULE
+
+    def as_spacing_px(self) -> dict[str, float]:
+        """JSON shape persisted on ``Pdf.spacing_px`` / sent by the editor."""
+        return {
+            "stack": float(self.stack),
+            "record": float(self.record),
+            "section": float(self.section),
+            "after_rule": float(self.after_rule),
+        }
+
+
+DEFAULT_FLOW_SPACING = FlowSpacing()
+_flow_spacing: ContextVar[FlowSpacing] = ContextVar(
+    "cv_flow_spacing",
+    default=DEFAULT_FLOW_SPACING,
+)
+
+
+def _clamp_spacing(value: Any, default: float) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return float(default)
+    if not math.isfinite(parsed):
+        return float(default)
+    return max(_SPACING_MIN, min(_SPACING_MAX, parsed))
+
+
+def normalize_spacing_px(raw: Mapping[str, Any] | FlowSpacing | None) -> FlowSpacing:
+    """Merge partial overrides onto defaults; clamp to the editor-safe range."""
+    if isinstance(raw, FlowSpacing):
+        return FlowSpacing(
+            stack=_clamp_spacing(raw.stack, SPACE_STACK),
+            record=_clamp_spacing(raw.record, SPACE_RECORD),
+            section=_clamp_spacing(raw.section, SPACE_SECTION),
+            after_rule=_clamp_spacing(raw.after_rule, SPACE_AFTER_RULE),
+            after_masthead=_clamp_spacing(raw.after_masthead, SPACE_AFTER_MASTHEAD),
+            after_header_rule=_clamp_spacing(raw.after_header_rule, SPACE_AFTER_HEADER_RULE),
+        )
+    if not isinstance(raw, Mapping):
+        return DEFAULT_FLOW_SPACING
+    return FlowSpacing(
+        stack=_clamp_spacing(raw.get("stack"), SPACE_STACK),
+        record=_clamp_spacing(raw.get("record"), SPACE_RECORD),
+        section=_clamp_spacing(raw.get("section"), SPACE_SECTION),
+        after_rule=_clamp_spacing(raw.get("after_rule"), SPACE_AFTER_RULE),
+        after_masthead=_clamp_spacing(raw.get("after_masthead"), SPACE_AFTER_MASTHEAD),
+        after_header_rule=_clamp_spacing(
+            raw.get("after_header_rule"), SPACE_AFTER_HEADER_RULE
+        ),
+    )
+
+
+def get_spacing() -> FlowSpacing:
+    """Current generation rhythm (defaults unless ``use_spacing`` is active)."""
+    return _flow_spacing.get()
+
+
+@contextmanager
+def use_spacing(overrides: Mapping[str, Any] | FlowSpacing | None = None) -> Iterator[FlowSpacing]:
+    """Apply per-request / per-document spacing for the duration of generation."""
+    spacing = normalize_spacing_px(overrides)
+    token = _flow_spacing.set(spacing)
+    try:
+        yield spacing
+    finally:
+        _flow_spacing.reset(token)
+
 
 def section_chrome_height(label_fs: float) -> float:
     """Y advance for a typical section label + after-rule gap."""
-    return float(label_fs) * 1.35 + SPACE_AFTER_RULE
+    return float(label_fs) * 1.35 + get_spacing().after_rule
 
 
 def _text(content, fontSize, fontFamily, color, left, top, *,

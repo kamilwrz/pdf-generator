@@ -22,7 +22,8 @@ from app.dependencies import get_db
 
 from app.crud.pdfs import (
     request_pdf_by_id, delete_pdf_by_id, request_pdf_by_id_show,
-    request_pdf_elements_by_element_id, update_pdf_elements, request_pdfs_by_id
+    request_pdf_elements_by_element_id, update_pdf_elements, request_pdfs_by_id,
+    serialize_spacing_px,
 )
 
 from app.utils.pdf_file_ops import delete_pdf_file
@@ -171,6 +172,7 @@ async def save_pdf_elements(
         "template" if getattr(pdf_data, "editor_mode", "freeform") == "template" else "freeform"
     )
     pdf_row.template_id = getattr(pdf_data, "template_id", None)
+    pdf_row.spacing_px = serialize_spacing_px(getattr(pdf_data, "spacing_px", None))
     pdf_row.updated_at = datetime.datetime.now(datetime.timezone.utc)
     db.add(pdf_row)
 

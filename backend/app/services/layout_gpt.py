@@ -18,6 +18,7 @@ from app.services.cv_generator import (
     SPACE_RECORD,
     SPACE_SECTION,
     SPACE_STACK,
+    get_spacing,
 )
 from app.services.layout_analysis import (
     AUTO_LAYOUT_CATEGORIES,
@@ -259,11 +260,8 @@ def _build_layout_contract(template_id: str | None = None) -> dict[str, Any]:
         "template_id": normalized_id,
         "hint": _layout_hint_for_template(normalized_id),
         "spacing_px": {
-            # Matches deterministic Python pagination in cv_generator.py.
-            "stack": float(SPACE_STACK),
-            "record": float(SPACE_RECORD),
-            "section": float(SPACE_SECTION),
-            "after_rule": float(SPACE_AFTER_RULE),
+            # Live rhythm (defaults, or overrides active via use_spacing).
+            **get_spacing().as_spacing_px(),
         },
         "section_header_gap_px": {
             "min": SECTION_HEADER_GAP_MIN_PX,

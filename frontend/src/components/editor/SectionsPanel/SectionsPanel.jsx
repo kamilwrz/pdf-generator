@@ -1,17 +1,43 @@
 /**
- * Template-mode section list: reorder sections structurally (up/down).
+ * Template-mode section list: reorder sections structurally (up/down) and
+ * edit the document SPACE_* rhythm (stack / record / section / after_rule).
  *
  * Renders as a docked flyout to the right of the 68px sidebar rail (same
  * pattern as Editor). Embedding the list inside the rail collapses titles.
  */
 import { use, useEffect, useMemo } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { listDocumentSections, reorderSection } from "../../../utils/sectionStructure";
+import {
+  applyFlowSpacing,
+  listDocumentSections,
+  reorderSection,
+} from "../../../utils/sectionStructure";
+import {
+  DEFAULT_FLOW_SPACING,
+  normalizeFlowSpacing,
+} from "../../../utils/flowSpacing";
 import classes from "./SectionsPanel.module.css";
 
+const SPACING_FIELDS = [
+  { key: "stack", label: "W rekordzie", hint: "tytuł → meta → treść" },
+  { key: "record", label: "Między rekordami", hint: "kolejne wpisy w sekcji" },
+  { key: "section", label: "Między sekcjami", hint: "po sekcji przed nagłówkiem" },
+  { key: "after_rule", label: "Po linii nagłówka", hint: "reguła → pierwsza treść" },
+];
+
 export default function SectionsPanel({ onClose }) {
-  const { A4_Elements, setA4_Elements, pageSize } = use(PdfContext);
+  const {
+    A4_Elements,
+    setA4_Elements,
+    pageSize,
+    flowSpacing,
+    setFlowSpacing,
+  } = use(PdfContext);
   const pageHeight = pageSize?.height ?? 842;
+  const spacing = useMemo(
+    () => normalizeFlowSpacing(flowSpacing),
+    [flowSpacing],
+  );
   const sections = useMemo(
     () => listDocumentSections(A4_Elements, pageHeight),
     [A4_Elements, pageHeight],
@@ -27,8 +53,28 @@ export default function SectionsPanel({ onClose }) {
   }, [onClose]);
 
   function move(headingId, direction) {
-    const next = reorderSection(A4_Elements, headingId, direction, pageHeight);
+    const next = reorderSection(A4_Elements, headingId, direction, pageHeight, {
+      spacing,
+    });
     if (next) setA4_Elements(next);
+  }
+
+  function applySpacing(nextSpacing) {
+    const normalized = normalizeFlowSpacing(nextSpacing);
+    setFlowSpacing(normalized);
+    setA4_Elements((prev) => applyFlowSpacing(prev, normalized, pageHeight));
+  }
+
+  function handleSpacingChange(key, rawValue) {
+    const parsed = Number(rawValue);
+    applySpacing({
+      ...spacing,
+      [key]: Number.isFinite(parsed) ? parsed : spacing[key],
+    });
+  }
+
+  function handleResetSpacing() {
+    applySpacing(DEFAULT_FLOW_SPACING);
   }
 
   return (
@@ -71,6 +117,34 @@ export default function SectionsPanel({ onClose }) {
           ))}
         </ul>
       )}
+
+      <div className={classes.rhythm}>
+        <div className={classes.rhythmHeader}>
+          <h3>Rytm układu</h3>
+          <button type="button" className={classes.reset} onClick={handleResetSpacing}>
+            Reset
+          </button>
+        </div>
+        <p className={classes.hint}>
+          Odstępy w px (jak SPACE_* w generatorze). Zmiana od razu pakuje canvas i trafia do zapisu / zmiany szablonu.
+        </p>
+        <div className={classes.rhythmGrid}>
+          {SPACING_FIELDS.map((field) => (
+            <label key={field.key} className={classes.rhythmField}>
+              <span className={classes.rhythmLabel}>{field.label}</span>
+              <span className={classes.rhythmMeta}>{field.hint}</span>
+              <input
+                type="number"
+                min={0}
+                max={80}
+                step={1}
+                value={spacing[field.key]}
+                onChange={(event) => handleSpacingChange(field.key, event.target.value)}
+              />
+            </label>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

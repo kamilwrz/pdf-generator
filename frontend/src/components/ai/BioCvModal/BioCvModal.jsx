@@ -87,6 +87,7 @@ export default function BioCvModal() {
         loadAiElements,
         entitlements,
         setActiveCvData,
+        flowSpacing,
     } = use(PdfContext);
     const api = useMemo(
         () => new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` }),
@@ -293,6 +294,7 @@ export default function BioCvModal() {
             const response = await fillTemplate(payload, template.id, {
                 api,
                 errorMessage: "Nie udało się utworzyć CV.",
+                spacing: flowSpacing,
             });
             await loadAiElements(response.elements, `CV ${template.name}`, template.id);
             // Keep the source data reachable after this modal closes, so the
@@ -305,7 +307,7 @@ export default function BioCvModal() {
         } finally {
             setFillingId(null);
         }
-    }, [api, entitlements, loadAiElements, profile, saveDraft, setActiveCvData, showBioCvModal]);
+    }, [api, entitlements, flowSpacing, loadAiElements, profile, saveDraft, setActiveCvData, showBioCvModal]);
 
     const renderPersonal = () => (
         <div className={classes.formGrid}>

@@ -2,12 +2,9 @@ from __future__ import annotations
 
 from app.core.config import BACKEND_URL
 from app.services.cv_generator_primitives import (
+    get_spacing,
     SPACE_AFTER_HEADER_RULE,
     SPACE_AFTER_MASTHEAD,
-    SPACE_AFTER_RULE,
-    SPACE_RECORD,
-    SPACE_SECTION,
-    SPACE_STACK,
     Builder,
     _circle,
     _line,
@@ -184,20 +181,20 @@ def _gen_harbor(cv: dict) -> list[dict]:
         b.els[-1]["flowRole"] = "section-chrome"
         b.line(MAIN_X, MAIN_W, 1, C["rule"])
         b.els[-1]["flowRole"] = "section-chrome"
-        b.gap(SPACE_AFTER_RULE)
+        b.gap(get_spacing().after_rule)
 
     def close_section() -> None:
-        b.gap(SPACE_SECTION)
+        b.gap(get_spacing().section)
 
     def experience_height(job: dict) -> float:
         bullets = _bullets(job)
         height = (
             b.measure_block(job.get("title", ""), MAIN_W, 10.5, 13.5, SANS, bold=True, min_h=15)
-            + SPACE_STACK
+            + get_spacing().stack
             + b.measure_block(job.get("company", ""), MAIN_W - 150, 9.2, 12, SANS, min_h=12)
         )
         if bullets:
-            height += SPACE_STACK + b.measure_block(bullets, MAIN_W, 9, 13.4, SANS, bulletList=True)
+            height += get_spacing().stack + b.measure_block(bullets, MAIN_W, 9, 13.4, SANS, bulletList=True)
         return height
 
     def job_meta(period: str, city: str, top: float, page: int) -> None:
@@ -231,17 +228,17 @@ def _gen_harbor(cv: dict) -> list[dict]:
         for index, job in enumerate(jobs):
             with b.keep_together(experience_height(job)):
                 b.block(job.get("title", ""), MAIN_X, MAIN_W, 10.5, 13.5, C["ink"], SANS, bold=True, min_h=15)
-                b.gap(SPACE_STACK)
+                b.gap(get_spacing().stack)
                 company_y, company_pg = b.y, b.pg
                 # Company is capped narrow so the right-aligned meta cannot overlap it.
                 b.block(job.get("company", ""), MAIN_X, MAIN_W - 150, 9.2, 12, C["accent"], SANS, min_h=12)
                 job_meta(job.get("period", ""), job.get("city", ""), company_y, company_pg)
                 bullets = _bullets(job)
                 if bullets:
-                    b.gap(SPACE_STACK)
+                    b.gap(get_spacing().stack)
                     b.block(bullets, MAIN_X, MAIN_W, 9, 13.4, C["body"], SANS, bulletList=True)
             if index < len(jobs) - 1:
-                b.gap(SPACE_RECORD)
+                b.gap(get_spacing().record)
         close_section()
 
     flow = b.build()

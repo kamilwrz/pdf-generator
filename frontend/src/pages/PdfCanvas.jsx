@@ -42,6 +42,7 @@ import {
   inferEditorMode,
   normalizeEditorMode,
 } from '../utils/editorMode';
+import { DEFAULT_FLOW_SPACING } from '../utils/flowSpacing';
 import { nanoid } from 'nanoid';
 
 /**
@@ -200,6 +201,8 @@ function PdfCanvas() {
     setActiveTemplateId,
     editorMode,
     setEditorMode,
+    flowSpacing,
+    setFlowSpacing,
     pageCount,
     setPageCount,
     currentPage,
@@ -364,6 +367,7 @@ function PdfCanvas() {
         {
           editorMode: snapshot.editorMode,
           templateId: snapshot.templateId,
+          flowSpacing: snapshot.flowSpacing,
         },
       );
 
@@ -397,6 +401,7 @@ function PdfCanvas() {
       pageSize,
       editorMode,
       templateId: activeTemplateId,
+      flowSpacing,
     });
   }, [
     A4_Elements,
@@ -404,6 +409,7 @@ function PdfCanvas() {
     activeTemplateId,
     editorMode,
     enqueueAutosave,
+    flowSpacing,
     isPdfLoading,
     pageCount,
     pageSize,
@@ -422,6 +428,7 @@ function PdfCanvas() {
       pageSize,
       editorMode,
       templateId: activeTemplateId,
+      flowSpacing,
     };
     const timer = setTimeout(() => {
       autosaveTimerRef.current = null;
@@ -443,6 +450,7 @@ function PdfCanvas() {
     activeTemplateId,
     editorMode,
     enqueueAutosave,
+    flowSpacing,
     isPdfLoading,
     pageCount,
     pageSize,
@@ -574,8 +582,9 @@ function PdfCanvas() {
     createPdf(A4_Elements, titleRef, pageCount, pageSize, {
       editorMode,
       templateId: activeTemplateId,
+      flowSpacing,
     });
-  }, [A4_Elements, activeTemplateId, createPdf, editorMode, titleRef, pageCount, pageSize]);
+  }, [A4_Elements, activeTemplateId, createPdf, editorMode, flowSpacing, titleRef, pageCount, pageSize]);
 
   const previewedElements = useMemo(() => {
     const structurallyPreviewed = structurePreviewGroup
@@ -622,11 +631,13 @@ function PdfCanvas() {
     updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted, pageCount, pageSize, {
       editorMode,
       templateId: activeTemplateId,
+      flowSpacing,
     });
   }, [
     A4_Elements,
     activeTemplateId,
     editorMode,
+    flowSpacing,
     pdfId,
     updatePdf,
     titleRef,
@@ -727,6 +738,8 @@ function PdfCanvas() {
   const hydrateDocumentMode = useCallback((elements, pdfMeta = {}) => {
     const savedMode = pdfMeta.editor_mode ?? pdfMeta.editorMode;
     const savedTemplate = pdfMeta.template_id ?? pdfMeta.templateId ?? null;
+    const savedSpacing = pdfMeta.spacing_px ?? pdfMeta.spacingPx ?? pdfMeta.flowSpacing;
+    setFlowSpacing(savedSpacing || DEFAULT_FLOW_SPACING);
     if (savedTemplate) setActiveTemplateId(savedTemplate);
     else setActiveTemplateId(null);
     if (savedMode) {
@@ -734,7 +747,7 @@ function PdfCanvas() {
       return;
     }
     setEditorMode(inferEditorMode(elements, savedTemplate));
-  }, [setActiveTemplateId, setEditorMode]);
+  }, [setActiveTemplateId, setEditorMode, setFlowSpacing]);
   // A successful delete must clear the local canvas without attempting to
   // autosave the PDF row that has just been removed from the server.
   const discardActiveDocument = useCallback(() => {
@@ -795,6 +808,8 @@ function PdfCanvas() {
     setActiveTemplateId,
     editorMode,
     setEditorMode,
+    flowSpacing,
+    setFlowSpacing,
     hydrateDocumentMode,
     showUnlockFreeform: handleShowUnlockFreeform,
     unlockFreeform: handleUnlockFreeform,
@@ -839,7 +854,7 @@ function PdfCanvas() {
     setA4_Elements, handleResizeElement, updatePdfWithElements,
     clearA4Fresh, discardActiveDocument, flushAutosave, loadTemplateFresh, loadTemplateWithFillFresh,
     loadAiElementsFresh, handleLoadAiElements, activeTemplateId, setActiveTemplateId,
-    editorMode, setEditorMode, hydrateDocumentMode, handleShowUnlockFreeform, handleUnlockFreeform,
+    editorMode, setEditorMode, flowSpacing, setFlowSpacing, hydrateDocumentMode, handleShowUnlockFreeform, handleUnlockFreeform,
     activeCvData, setActiveCvData,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     isTwoPageView, toggleTwoPageView, handleAddTextarea, markSelected, handleSetTextareaEditing,

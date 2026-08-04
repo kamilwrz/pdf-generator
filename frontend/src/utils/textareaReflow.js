@@ -6,20 +6,15 @@
  * (from Builder.keep_together) stay on one page when reclaim-packing pulls
  * content upward after earlier boxes shrink. Cross-page packing uses
  * SPACE_RECORD for ordinary blocks and SPACE_SECTION for section chrome
- * (keep in sync with `cv_generator_primitives.py`).
+ * (keep in sync with `cv_generator_primitives.py` / `flowSpacing.js`).
  */
+import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
+
 const FLOWABLE_CATEGORIES = new Set(["text", "textarea", "line", "rectangle", "circle", "ellipse", "image"]);
 const NEARBY_DECORATION_CATEGORIES = new Set(["line", "rectangle", "circle", "ellipse"]);
 const DECORATION_LANE_TOLERANCE = 32;
 // Text-aligned section icons may hang a few dozen px left of the text column.
 const TEXT_ALIGNED_IMAGE_LANE_TOLERANCE = 40;
-// Matches backend SPACE_RECORD: used when reclaiming a page-break gap so later
-// ordinary blocks pack into freed space instead of keeping the empty page-bottom hole.
-const DEFAULT_PACK_GAP = 10;
-// Matches backend SPACE_SECTION. Section headings pulled from a later page must
-// not inherit the tiny page-top inset (often 0–6 px) or they crush under the
-// previous section — the "WYKSZTAŁCENIE at 5 px" report.
-const SECTION_PACK_GAP = 21;
 // Section labels / markers / rules are short. Keep them with following body
 // so a page break never leaves "WYKSZTAŁCENIE" stranded above the footer.
 const CHROME_MAX_HEIGHT = 40;
@@ -27,9 +22,8 @@ const CHROME_MAX_HEIGHT = 40;
 const CHROME_CLUSTER_Y_SPAN = 48;
 // Matches backend SPACE_STACK (4) with slack for browser vs ReportLab metrics.
 // Untagged legacy records use this to stay whole during reclaim packing.
+// Detection threshold — not the editable SPACE_STACK rhythm value.
 const RECORD_STACK_GAP = 8;
-// Authored gap between degree/school/meta lines inside a keep-together record.
-const SPACE_STACK = 4;
 
 function number(value, fallback = 0) {
   const parsed = Number(value);
@@ -163,16 +157,16 @@ function toPagePosition(absolute, height, pageHeight, pageTop, bottomMargin) {
   return { page, top };
 }
 
-function packGapAfterPageBreak(current, pageTop) {
+function packGapAfterPageBreak(current, pageTop, sectionPackGap, defaultPackGap) {
   // Section chrome that lived alone near the top of page N+1 carries a tiny
   // `top - pageTop` inset (Kernel education often starts at y=72 with pageTop
   // 66 → 6 px). Using that inset as the pack gap crushed headings under the
   // previous section. Always restore SPACE_SECTION for chrome.
   if (isChromeLike(current)) {
-    return SECTION_PACK_GAP;
+    return sectionPackGap;
   }
   const continuationInset = Math.max(0, number(current.top) - pageTop);
-  return Math.min(DEFAULT_PACK_GAP, continuationInset || DEFAULT_PACK_GAP);
+  return Math.min(defaultPackGap, continuationInset || defaultPackGap);
 }
 
 /**
@@ -468,6 +462,7 @@ function placeRecordCluster(
   targetId,
   nextHeight,
   pageHeight,
+  spaceStack = DEFAULT_FLOW_SPACING.stack,
 ) {
   let pageY = recordTop;
   for (let index = 0; index < cluster.length; index += 1) {
@@ -478,7 +473,7 @@ function placeRecordCluster(
         - (absoluteTop(previous, pageHeight) + elementHeight(previous));
       const gap = (authoredGap >= -0.5 && authoredGap <= RECORD_STACK_GAP)
         ? Math.max(0, authoredGap)
-        : SPACE_STACK;
+        : spaceStack;
       pageY += heightFor(previous, targetId, nextHeight) + gap;
     }
     placed.set(mate.element_id, {
@@ -502,7 +497,7 @@ export function reflowTextareaHeight(
   elementId,
   measuredHeight,
   pageHeight,
-  { pageTop = 0, bottomMargin = 0, allowReclaim = true } = {},
+  { pageTop = 0, bottomMargin = 0, allowReclaim = true, spacing } = {},
 ) {
   const target = elements.find((element) => element.element_id === elementId);
   const nextHeight = Math.max(0, Math.round(number(measuredHeight)));
@@ -515,6 +510,11 @@ export function reflowTextareaHeight(
   if (Math.abs(delta) < 0.5) {
     return { elements, pageCount: Math.max(1, ...elements.map(pageOf)), changed: false };
   }
+
+  const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
+  const sectionPackGap = rhythm.section;
+  const defaultPackGap = rhythm.record;
+  const spaceStack = rhythm.stack;
 
   const safePageHeight = Math.max(1, number(pageHeight, 842));
   const contentBottom = safePageHeight - bottomMargin;
@@ -581,7 +581,7 @@ export function reflowTextareaHeight(
       recordGroup,
     );
     if (prevBottomAbs != null) {
-      const packFrom = prevBottomAbs + DEFAULT_PACK_GAP;
+      const packFrom = prevBottomAbs + defaultPackGap;
       const prevPageStart = (prevPage - 1) * safePageHeight;
       const proposedTop = packFrom - prevPageStart;
       const reclaimExcludeIds = new Set([
@@ -652,6 +652,7 @@ export function reflowTextareaHeight(
     elementId,
     nextHeight,
     safePageHeight,
+    spaceStack,
   );
 
   const placedTarget = placed.get(elementId);
@@ -754,7 +755,7 @@ export function reflowTextareaHeight(
       nextAbsolute = previousPlacedBottom + (
         samePageGap >= 0 && samePageGap <= CHROME_CLUSTER_Y_SPAN
           ? samePageGap
-          : packGapAfterPageBreak(current, pageTop)
+          : packGapAfterPageBreak(current, pageTop, sectionPackGap, defaultPackGap)
       );
     } else if (previousOriginal.element_id === elementId) {
       nextAbsolute = newTargetBottom + Math.max(0, currentOriginalTop - oldTargetBottom);
@@ -790,7 +791,7 @@ export function reflowTextareaHeight(
         : previousPlacedBottom;
       const stackGap = (!isChromeLike(previousOriginal) && gapFromPrevious >= 0)
         ? gapFromPrevious
-        : SPACE_STACK;
+        : spaceStack;
       top = stackFrom - (page - 1) * safePageHeight + stackGap;
       if (top + height > contentBottom && height <= pageCapacity) {
         // Last resort for a record taller than one page.

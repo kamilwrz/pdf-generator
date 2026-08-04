@@ -12,7 +12,24 @@ from sqlalchemy.orm import Session
 from app.models.models import Pdf, PdfElements
 from datetime import timezone
 import datetime
+from typing import Any, Mapping
+
 from app.crud.images import request_image_by_id
+from app.services.cv_generator_primitives import (
+    DEFAULT_FLOW_SPACING,
+    normalize_spacing_px,
+)
+
+
+def serialize_spacing_px(raw: Mapping[str, Any] | None) -> dict[str, float] | None:
+    """Store normalized rhythm JSON, or None when it matches generator defaults."""
+    if raw is None:
+        return None
+    spacing = normalize_spacing_px(raw)
+    payload = spacing.as_spacing_px()
+    if payload == DEFAULT_FLOW_SPACING.as_spacing_px():
+        return None
+    return payload
 
 
 def create_new_pdf(
@@ -26,6 +43,7 @@ def create_new_pdf(
     page_height: float = 842,
     editor_mode: str = "freeform",
     template_id: str | None = None,
+    spacing_px: Mapping[str, Any] | None = None,
 ) -> int:
     """Insert a Pdf row plus one PdfElements row per canvas element.
 
@@ -43,6 +61,7 @@ def create_new_pdf(
         page_height=page_height or 842,
         editor_mode=mode,
         template_id=template_id,
+        spacing_px=serialize_spacing_px(spacing_px),
         created_at=datetime.datetime.now(timezone.utc),
         updated_at=datetime.datetime.now(timezone.utc),
     )

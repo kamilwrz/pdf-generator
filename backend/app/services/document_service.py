@@ -22,6 +22,7 @@ from app.crud.images import request_image_by_id
 from app.crud.pdfs import (
     create_new_pdf,
     request_pdf_elements_by_element_id,
+    serialize_spacing_px,
     update_pdf_elements,
 )
 from app.services.pdf_generator import PDF_Generator
@@ -98,6 +99,7 @@ def create_pdf_document(db: Session, *, user, username: str, pdf_data) -> dict:
             pdf_data.pages, pdf_data.page_width, pdf_data.page_height,
             getattr(pdf_data, "editor_mode", "freeform"),
             getattr(pdf_data, "template_id", None),
+            getattr(pdf_data, "spacing_px", None),
         )
         return {"created": "Utworzono plik PDF.", "link": file_path, "pdf_id": pdf_id}
 
@@ -114,6 +116,7 @@ def create_pdf_document(db: Session, *, user, username: str, pdf_data) -> dict:
         pdf_data.pages, pdf_data.page_width, pdf_data.page_height,
         getattr(pdf_data, "editor_mode", "freeform"),
         getattr(pdf_data, "template_id", None),
+        getattr(pdf_data, "spacing_px", None),
     )
 
     pdf = PDF_Generator(
@@ -149,6 +152,7 @@ def update_pdf_document(db: Session, *, pdf_row, username: str, pdf_data) -> dic
             "template" if getattr(pdf_data, "editor_mode", "freeform") == "template" else "freeform"
         )
         pdf_row.template_id = getattr(pdf_data, "template_id", None)
+        pdf_row.spacing_px = serialize_spacing_px(getattr(pdf_data, "spacing_px", None))
         pdf_row.file_path = (
             f"https://{s3_storage.S3_BUCKET}.s3.{s3_storage.AWS_REGION}.amazonaws.com/{key}"
         )
@@ -166,6 +170,7 @@ def update_pdf_document(db: Session, *, pdf_row, username: str, pdf_data) -> dic
         "template" if getattr(pdf_data, "editor_mode", "freeform") == "template" else "freeform"
     )
     pdf_row.template_id = getattr(pdf_data, "template_id", None)
+    pdf_row.spacing_px = serialize_spacing_px(getattr(pdf_data, "spacing_px", None))
     db.add(pdf_row)
     existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
     update_pdf_elements(db, elements, existing_by_id, pdf_id)

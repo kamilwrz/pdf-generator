@@ -11,6 +11,8 @@ from __future__ import annotations
 from app.services.cv_generator_primitives import (  # noqa: F401
     A4_H,
     CONTENT_BOTTOM,
+    DEFAULT_FLOW_SPACING,
+    FlowSpacing,
     MARGIN_BOTTOM,
     PAGE_TOP,
     SPACE_AFTER_HEADER_RULE,
@@ -26,7 +28,10 @@ from app.services.cv_generator_primitives import (  # noqa: F401
     _line,
     _rect,
     _text,
+    get_spacing,
+    normalize_spacing_px,
     section_chrome_height,
+    use_spacing,
 )
 from app.services.cv_templates.registry import (  # noqa: F401
     TEMPLATE_LAYOUTS,
@@ -58,6 +63,11 @@ __all__ = [
     "_GENERATORS",
     "generate_resume",
     "Builder",
+    "FlowSpacing",
+    "DEFAULT_FLOW_SPACING",
+    "get_spacing",
+    "normalize_spacing_px",
+    "use_spacing",
     "SPACE_STACK",
     "SPACE_RECORD",
     "SPACE_SECTION",

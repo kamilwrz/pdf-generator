@@ -92,6 +92,8 @@ export const PdfContext = createContext({
     // template = layout-owned; freeform = free positioning.
     editorMode: "freeform",
     setEditorMode: () => {},
+    flowSpacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
+    setFlowSpacing: () => {},
     activeTemplateId: null,
     setActiveTemplateId: () => {},
     hydrateDocumentMode: () => {},

@@ -2,12 +2,9 @@ from __future__ import annotations
 
 from app.core.config import BACKEND_URL
 from app.services.cv_generator_primitives import (
+    get_spacing,
     SPACE_AFTER_HEADER_RULE,
     SPACE_AFTER_MASTHEAD,
-    SPACE_AFTER_RULE,
-    SPACE_RECORD,
-    SPACE_SECTION,
-    SPACE_STACK,
     Builder,
     _block,
     _circle,
@@ -121,12 +118,12 @@ def _gen_words(cv: dict) -> list[dict]:
     def experience_height(job: dict) -> float:
         height = (
             b.measure_block(job.get("title", ""), W, 11.5, 15, FONT, bold=True, min_h=15)
-            + SPACE_STACK
+            + get_spacing().stack
             + b.measure_block(_company_period(job), W, 10, 13, FONT, italic=True, min_h=13)
         )
         bullets = _bullets(job)
         if bullets:
-            height += SPACE_STACK + b.measure_block(
+            height += get_spacing().stack + b.measure_block(
                 bullets, W, 10.5, 15, FONT, bulletList=True
             )
         return height
@@ -146,7 +143,7 @@ def _gen_words(cv: dict) -> list[dict]:
         b.need_section(SECTION_CHROME, summary_height)
         section(lbl["summary"])
         b.block(cv["summary"], L, W, 10.5, 15, C["body"], FONT)
-        b.gap(SPACE_SECTION)
+        b.gap(get_spacing().section)
 
     if cv.get("experience"):
         jobs = cv["experience"]
@@ -156,16 +153,16 @@ def _gen_words(cv: dict) -> list[dict]:
             with b.keep_together(experience_height(job)):
                 b.block(job.get("title", ""), L, W, 11.5, 15, C["ink"], FONT,
                         bold=True, min_h=15)
-                b.gap(SPACE_STACK)
+                b.gap(get_spacing().stack)
                 b.block(_company_period(job), L, W, 10, 13, C["muted"], FONT,
                         italic=True, min_h=13)
                 bullets = _bullets(job)
                 if bullets:
-                    b.gap(SPACE_STACK)
+                    b.gap(get_spacing().stack)
                     b.block(bullets, L, W, 10.5, 15, C["body"], FONT, bulletList=True)
             if index < len(jobs) - 1:
-                b.gap(SPACE_RECORD)
-        b.gap(SPACE_SECTION)
+                b.gap(get_spacing().record)
+        b.gap(get_spacing().section)
 
     _extra_sections(
         b, cv, "after_experience", section, C, L, W, FONT,
@@ -183,9 +180,9 @@ def _gen_words(cv: dict) -> list[dict]:
                 degree_fs=11, degree_lh=14,
                 meta_fs=10, meta_lh=13,
                 body_fs=10, body_lh=15,
-                after_gap=SPACE_RECORD if index < len(entries) - 1 else None,
+                after_gap=get_spacing().record if index < len(entries) - 1 else None,
             )
-        b.gap(SPACE_SECTION)
+        b.gap(get_spacing().section)
 
     if cv.get("skills"):
         skills = _skills_inline_content(cv["skills"])
@@ -193,7 +190,7 @@ def _gen_words(cv: dict) -> list[dict]:
         b.need_section(SECTION_CHROME, skills_height)
         section(lbl["skills"])
         b.block(skills, L, W, 10.5, 15, C["body"], FONT)
-        b.gap(SPACE_SECTION)
+        b.gap(get_spacing().section)
 
     _extra_sections(
         b, cv, "after_skills", section, C, L, W, FONT,

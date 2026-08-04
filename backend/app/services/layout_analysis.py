@@ -25,7 +25,7 @@ MAX_SAFE_SNAP_MOVE = 18.0
 MAX_SAFE_BOUNDS_MOVE = 96.0
 MIN_CLUSTER_SIZE = 3
 EPSILON = 0.5
-# Match cv_generator SPACE_RECORD: gap inserted when unstacking overlapping content.
+# Match cv_generator SPACE_RECORD (+ slack): gap when unstacking overlapping content.
 STACK_CONTENT_GAP = 14.0
 # Match cv_generator SPACE_STACK: gap after a section rule before body text.
 STACK_CHROME_GAP = 4.0

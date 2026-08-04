@@ -3,6 +3,7 @@ import { ApiClient } from "../services/api";
 import { ENDPOINTS } from "../services/api";
 import { sanitizeElementsContent } from "../utils/sanitizeTextContent";
 import { assertCanvasElementRoot } from "../utils/canvasElementSchema";
+import { flowSpacingToPayload } from "../utils/flowSpacing";
 
 /**
  * PDF create / update / autosave against the backend.
@@ -49,6 +50,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
     const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
     const template_id = meta.templateId || null;
+    const spacing_px = flowSpacingToPayload(meta.flowSpacing);
 
     api.httpRequest(ENDPOINTS.PDF.CREATE, "POST", JSON.stringify({
       root: sorted,
@@ -58,6 +60,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       page_height: pageSize?.height ?? 842,
       editor_mode,
       template_id,
+      spacing_px,
     }), "Nie udało się utworzyć PDF!").
     then((data) => {handlePdfId(data.pdf_id); setResponsePDF({success: data.created, link:data.link, pdf_id:data.pdf_id, intent: "save"})}).
     catch((error) => setResponsePDF(error)).finally(() => {
@@ -91,6 +94,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const api = new ApiClient({"Authorization" : `Bearer ${localStorage.getItem("token")}`})
     const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
     const template_id = meta.templateId || null;
+    const spacing_px = flowSpacingToPayload(meta.flowSpacing);
 
     api.httpRequest(ENDPOINTS.PDF.UPDATE, "PUT", JSON.stringify({
       root: elements,
@@ -101,6 +105,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       page_height: pageSize?.height ?? 842,
       editor_mode,
       template_id,
+      spacing_px,
     }), "Nie udało się zaktualizować PDF!").
     then((data) => {setResponsePDF({success: data.updated, link: data.link, pdf_id: data.pdf_id, intent: "download"})}).
     catch((error) => setResponsePDF(error)).finally(() => {
@@ -124,6 +129,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
     const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
     const template_id = meta.templateId || null;
+    const spacing_px = flowSpacingToPayload(meta.flowSpacing);
     await api.httpRequest(
       ENDPOINTS.PDF.SAVE_ELEMENTS, "PUT",
       JSON.stringify({
@@ -131,6 +137,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
         pages, page_width: pageSize?.width ?? 595, page_height: pageSize?.height ?? 842,
         editor_mode,
         template_id,
+        spacing_px,
       }),
       "Autozapis nie powiódł się.");
   }, []);

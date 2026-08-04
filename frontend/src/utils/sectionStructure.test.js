@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  applyFlowSpacing,
   findProfilePhotoSlot,
   listDocumentSections,
   packDocumentSections,
@@ -135,6 +136,22 @@ describe("packDocumentSections", () => {
     const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
     assert.equal(byId.h2.top, 100);
     assert.ok(byId.h1.top > byId.b1.top);
+  });
+});
+
+describe("applyFlowSpacing", () => {
+  it("widens section gaps when section rhythm increases", () => {
+    const elements = [
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "A", page: 1, top: 100, height: 14 },
+      { element_id: "a1", category: "textarea", flowRole: "content", autoHeight: true, page: 1, top: 122, height: 40 },
+      { element_id: "h2", category: "text", flowRole: "section-chrome", content: "B", page: 1, top: 183, height: 14 },
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true, page: 1, top: 205, height: 30 },
+    ];
+    const tight = applyFlowSpacing(elements, { section: 10 }, 842);
+    const loose = applyFlowSpacing(elements, { section: 40 }, 842);
+    const tightH2 = tight.find((element) => element.element_id === "h2");
+    const looseH2 = loose.find((element) => element.element_id === "h2");
+    assert.ok(looseH2.top > tightH2.top);
   });
 });
 

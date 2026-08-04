@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Nova CV template generator (icon single-column)."""
 
-from app.services.cv_generator_primitives import SPACE_AFTER_HEADER_RULE, SPACE_AFTER_RULE, SPACE_RECORD, SPACE_SECTION, Builder, _line, _text, section_chrome_height
+from app.services.cv_generator_primitives import get_spacing, SPACE_AFTER_HEADER_RULE, Builder, _line, _text, section_chrome_height
 from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.records import _education_record_height, _experience_record_height, _place_education_record, _place_experience_record
 from app.services.cv_templates.shared.text import _compact_text, _labels, _skills_inline_content
@@ -54,10 +54,10 @@ def _gen_nova(cv: dict) -> list[dict]:
         b.gap(2)
         b.line(L, W, 1, C['rule'])
         b.els[-1]['flowRole'] = 'section-chrome'
-        b.gap(SPACE_AFTER_RULE)
+        b.gap(get_spacing().after_rule)
 
     def close_section() -> None:
-        b.gap(SPACE_SECTION)
+        b.gap(get_spacing().section)
     BODY_FS, BODY_LH = (9.4, 13.4)
 
     def experience_height(job: dict) -> float:
@@ -73,7 +73,7 @@ def _gen_nova(cv: dict) -> list[dict]:
         b.need_section(SECTION_CHROME, experience_height(jobs[0]))
         section(lbl['experience'])
         for index, job in enumerate(jobs):
-            _place_experience_record(b, job, L, W, ink=C['ink'], muted=C['mute'], body=C['body'], font=SANS, title_fs=11, title_lh=13.5, meta_fs=8.5, meta_lh=11.5, body_fs=BODY_FS, body_lh=BODY_LH, meta_font=SANS, after_gap=SPACE_RECORD if index < len(jobs) - 1 else None)
+            _place_experience_record(b, job, L, W, ink=C['ink'], muted=C['mute'], body=C['body'], font=SANS, title_fs=11, title_lh=13.5, meta_fs=8.5, meta_lh=11.5, body_fs=BODY_FS, body_lh=BODY_LH, meta_font=SANS, after_gap=get_spacing().record if index < len(jobs) - 1 else None)
         close_section()
         _extra_sections(b, cv, 'after_experience', section, {'body': C['body']}, L, W, SANS, fs=BODY_FS, lh=BODY_LH, section_chrome_h=SECTION_CHROME)
     if cv.get('education'):
@@ -81,7 +81,7 @@ def _gen_nova(cv: dict) -> list[dict]:
         b.need_section(SECTION_CHROME, _education_record_height(b, education_entries[0], W, SANS, degree_fs=10.4, degree_lh=13, meta_fs=8.5, meta_lh=11.5, body_fs=9.2, body_lh=13.2))
         section(lbl['education'])
         for index, edu in enumerate(education_entries):
-            _place_education_record(b, edu, L, W, ink=C['ink'], muted=C['mute'], body=C['body'], font=SANS, degree_fs=10.4, degree_lh=13, meta_fs=8.5, meta_lh=11.5, body_fs=9.2, body_lh=13.2, after_gap=SPACE_RECORD if index < len(education_entries) - 1 else None)
+            _place_education_record(b, edu, L, W, ink=C['ink'], muted=C['mute'], body=C['body'], font=SANS, degree_fs=10.4, degree_lh=13, meta_fs=8.5, meta_lh=11.5, body_fs=9.2, body_lh=13.2, after_gap=get_spacing().record if index < len(education_entries) - 1 else None)
         close_section()
     if cv.get('skills'):
         skills_fs = 9.3

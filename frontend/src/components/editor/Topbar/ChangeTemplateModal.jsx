@@ -29,6 +29,7 @@ export default function ChangeTemplateModal() {
         entitlements,
         replaceActiveElements,
         pushToast,
+        flowSpacing,
     } = use(PdfContext);
 
     const [fillingId, setFillingId] = useState(null);
@@ -56,6 +57,7 @@ export default function ChangeTemplateModal() {
             const res = await fillTemplate(activeCvData, template.id, {
                 api,
                 errorMessage: "Zmiana szablonu nie powiodła się",
+                spacing: flowSpacing,
             });
             // No title argument: `replaceActiveElements` only overwrites the
             // title input when one is passed, so the project keeps whatever
@@ -72,7 +74,7 @@ export default function ChangeTemplateModal() {
         } finally {
             setFillingId(null);
         }
-    }, [activeCvData, api, entitlements, pushToast, replaceActiveElements, showChangeTemplateModal]);
+    }, [activeCvData, api, entitlements, flowSpacing, pushToast, replaceActiveElements, showChangeTemplateModal]);
 
     return (
         <DialogShell

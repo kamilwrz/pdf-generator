@@ -12,13 +12,11 @@
  * `textareaReflow` (pageTop 66 / bottomMargin 72).
  */
 
+import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
+
 /** Keep in sync with `textareaReflow.js` / backend CONTENT margins. */
 const DEFAULT_PAGE_TOP = 66;
 const DEFAULT_BOTTOM_MARGIN = 72;
-/** Matches backend SPACE_SECTION / textareaReflow SECTION_PACK_GAP. */
-const SECTION_PACK_GAP = 21;
-/** Matches textareaReflow DEFAULT_PACK_GAP (SPACE_RECORD). */
-const RECORD_PACK_GAP = 10;
 /**
  * Gaps larger than this between consecutive section members are treated as
  * page-break waste (footer + next-page header) and collapsed while packing.
@@ -132,15 +130,65 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
   return ids;
 }
 
+function isChromeLike(element) {
+  if (!element) return false;
+  if (element.flowRole === "section-chrome") return true;
+  if (element.category === "line") {
+    return (Number(element.height) || 0) <= 4;
+  }
+  if (element.category === "rectangle" || element.category === "circle") {
+    const width = Number(element.width) || 0;
+    const height = Number(element.height) || 0;
+    return height <= 40 && width <= 40;
+  }
+  if (element.category === "image") {
+    return Boolean(element.alignWithText)
+      || /\/template-assets\/iconic\//.test(String(element.src || ""));
+  }
+  return false;
+}
+
+/**
+ * Classify the gap between two consecutive members of the same section.
+ * @returns {"after_rule"|"stack"|"record"}
+ */
+function classifyIntraSectionGap(previous, next) {
+  const prevChrome = isChromeLike(previous);
+  const nextChrome = isChromeLike(next);
+  if (prevChrome && !nextChrome) return "after_rule";
+  if (prevChrome && nextChrome) return "stack";
+
+  const groupA = typeof previous.flowGroup === "string" ? previous.flowGroup : null;
+  const groupB = typeof next.flowGroup === "string" ? next.flowGroup : null;
+  if (groupA && groupB && groupA === groupB) return "stack";
+  if (groupA || groupB) return "record";
+
+  // Untagged legacy stacks (degree → school) stay tight; distinct blocks use record.
+  const prevH = elementHeight(previous);
+  const nextH = elementHeight(next);
+  if (prevH <= 22 && nextH <= 22 && !previous.autoHeight && !next.autoHeight) {
+    return "stack";
+  }
+  return "record";
+}
+
+function targetGap(kind, spacing) {
+  if (kind === "after_rule") return spacing.after_rule;
+  if (kind === "stack") return spacing.stack;
+  return spacing.record;
+}
+
 /**
  * Collapse page-break dead space inside a section into a continuous strip.
- * Preserves small authored gaps; replaces footer→next-page holes with a
- * compact record/section gap so relocating the section cannot drag empty
- * page margins into the middle of the document.
+ *
+ * When `forceTargets` is true, authored gaps are replaced with classified
+ * rhythm targets from `spacing` (Sections panel apply). Otherwise small
+ * authored gaps are preserved and only page-break holes collapse to `record`.
  *
  * @returns {{ element: object, relTop: number }[]}
  */
-function compactSectionStrip(sectionElements, pageHeight) {
+function compactSectionStrip(sectionElements, pageHeight, spacing, forceTargets = false) {
+  const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
   const sorted = [...sectionElements].sort((left, right) => {
     const topDelta = absoluteTop(left, pageHeight) - absoluteTop(right, pageHeight);
     if (Math.abs(topDelta) > 0.01) return topDelta;
@@ -161,10 +209,14 @@ function compactSectionStrip(sectionElements, pageHeight) {
     let gap = abs - prevBottomAbs;
     const crossedPage = Math.trunc(Number(element.page) || 1)
       > Math.trunc(Number(previous.element.page) || 1);
-    // Large gaps are almost always the unused band between contentBottom and
-    // the next pageTop after an earlier reflow — not intentional section art.
-    if (crossedPage || gap > PAGE_BREAK_GAP_THRESHOLD) {
-      gap = RECORD_PACK_GAP;
+    const kind = classifyIntraSectionGap(previous.element, element);
+
+    if (forceTargets) {
+      gap = targetGap(kind, rhythm);
+    } else if (crossedPage || gap > PAGE_BREAK_GAP_THRESHOLD) {
+      // Large gaps are almost always the unused band between contentBottom and
+      // the next pageTop — collapse using the record rhythm, not section.
+      gap = targetGap(kind === "after_rule" ? "after_rule" : "record", rhythm);
     }
     gap = Math.max(0, gap);
     items.push({
@@ -208,7 +260,7 @@ function placeAtFlowCursor(cursorAbs, height, pageHeight, pageTop, bottomMargin)
  * @param {object[]} elements
  * @param {string[]} orderedHeadingIds
  * @param {number} [pageHeight=842]
- * @param {{ pageTop?: number, bottomMargin?: number, sectionGap?: number }} [options]
+ * @param {{ pageTop?: number, bottomMargin?: number, sectionGap?: number, spacing?: object, forceTargets?: boolean }} [options]
  * @returns {object[]}
  */
 export function packDocumentSections(
@@ -218,9 +270,13 @@ export function packDocumentSections(
   {
     pageTop = DEFAULT_PAGE_TOP,
     bottomMargin = DEFAULT_BOTTOM_MARGIN,
-    sectionGap = SECTION_PACK_GAP,
+    sectionGap,
+    spacing,
+    forceTargets = false,
   } = {},
 ) {
+  const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
+  const resolvedSectionGap = Number.isFinite(sectionGap) ? sectionGap : rhythm.section;
   const list = elements || [];
   const sections = listDocumentSections(list, pageHeight);
   if (sections.length === 0 || !orderedHeadingIds?.length) return list;
@@ -237,7 +293,7 @@ export function packDocumentSections(
     const ids = sectionElementIds(list, section.headingId, pageHeight);
     ids.forEach((id) => memberIds.add(id));
     const members = list.filter((element) => ids.has(element.element_id));
-    return compactSectionStrip(members, pageHeight);
+    return compactSectionStrip(members, pageHeight, rhythm, forceTargets);
   });
 
   const placedById = new Map();
@@ -245,7 +301,7 @@ export function packDocumentSections(
 
   strips.forEach((strip, stripIndex) => {
     if (strip.length === 0) return;
-    if (stripIndex > 0) cursorAbs += sectionGap;
+    if (stripIndex > 0) cursorAbs += resolvedSectionGap;
 
     // Keep section chrome with the first body block: if the heading+rule band
     // would fit in the footer but the following content would not, start the
@@ -253,7 +309,7 @@ export function packDocumentSections(
     let sectionCursor = cursorAbs;
     if (strip.length >= 2) {
       const clusterHeight = elementHeight(strip[0].element)
-        + RECORD_PACK_GAP
+        + rhythm.record
         + elementHeight(strip[1].element);
       sectionCursor = placeAtFlowCursor(
         cursorAbs,
@@ -323,7 +379,39 @@ export function reorderSection(
   order[index] = order[swapWith];
   order[swapWith] = tmp;
 
-  return packDocumentSections(elements, order, pageHeight, options);
+  const rhythm = normalizeFlowSpacing(options.spacing || DEFAULT_FLOW_SPACING);
+  return packDocumentSections(elements, order, pageHeight, {
+    ...options,
+    spacing: rhythm,
+    sectionGap: options.sectionGap ?? rhythm.section,
+  });
+}
+
+/**
+ * Re-pack every section in current order using target rhythm values.
+ * Used when the Sections panel changes stack/record/section/after_rule.
+ *
+ * @param {object[]} elements
+ * @param {object} spacing
+ * @param {number} [pageHeight=842]
+ * @param {object} [options]
+ * @returns {object[]}
+ */
+export function applyFlowSpacing(elements, spacing, pageHeight = 842, options = {}) {
+  const rhythm = normalizeFlowSpacing(spacing);
+  const sections = listDocumentSections(elements, pageHeight);
+  if (sections.length === 0) return elements || [];
+  return packDocumentSections(
+    elements,
+    sections.map((section) => section.headingId),
+    pageHeight,
+    {
+      ...options,
+      spacing: rhythm,
+      sectionGap: rhythm.section,
+      forceTargets: true,
+    },
+  );
 }
 
 /**
