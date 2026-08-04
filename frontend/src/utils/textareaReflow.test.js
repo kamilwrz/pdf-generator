@@ -124,7 +124,7 @@ test("pulls a keep-together experience record back when its body shrinks on page
 });
 
 test("locked section-chrome rules reflow with their heading across a reclaimed page break", () => {
-  // Vector/Kernel/Relay lock decorative rules so users cannot drag them.
+  // Kernel locks decorative rules so users cannot drag them.
   // Reflow must still move those rules with the heading — otherwise
   // WYKSZTAŁCENIE lands on page 1 without its underline.
   const result = reflowTextareaHeight([
@@ -717,7 +717,7 @@ test("does not shift a position-locked element during textarea reflow", () => {
   assert.equal(heading.top, 144);
 });
 
-test("uses explicit flow roles instead of treating Onyx record text as section chrome", () => {
+test("uses explicit flow roles instead of treating record text as section chrome", () => {
   const result = reflowTextareaHeight([
     textarea({ top: 620, height: 40 }),
     {
@@ -931,7 +931,7 @@ test("keeps SPACE_RECORD between meta and the next record title", () => {
   assert.equal(nextDegree.top - (meta.top + meta.height), 10);
 });
 
-test("keeps Onyx section chrome top-to-top when an upstream textarea shrinks", () => {
+test("keeps section chrome top-to-top when an upstream textarea shrinks", () => {
   // Bottom-gap packing against estimated text line-boxes used to crush the
   // label→rule→body band after load reflow. Chrome pairs must keep authored
   // top deltas.
@@ -996,9 +996,9 @@ test("keeps Onyx section chrome top-to-top when an upstream textarea shrinks", (
 });
 
 test("does not stack a section heading under a grown textarea body", () => {
-  // Onyx builds job lines as category "text". If those (or following section
-  // labels) keep top-to-top rhythm after a bullet textarea grows, headings
-  // land inside the taller body — the page-2 overlap in CV Onyx.
+  // Some templates build job lines as category "text". If those (or following
+  // section labels) keep top-to-top rhythm after a bullet textarea grows,
+  // headings land inside the taller body and overlap on page 2.
   const result = reflowTextareaHeight([
     {
       element_id: "bullets",

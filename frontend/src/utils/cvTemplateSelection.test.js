@@ -6,10 +6,10 @@ test("returns templates in registry order", () => {
   const templates = [
     { id: "volt", layouts: ["icons", "dark"] },
     { id: "ledger", layouts: ["single"] },
-    { id: "vector", layouts: ["single"] },
+    { id: "kernel", layouts: ["single"] },
   ];
   assert.deepEqual(
     selectCvTemplates(templates).map((template) => template.id),
-    ["volt", "ledger", "vector"],
+    ["volt", "ledger", "kernel"],
   );
 });

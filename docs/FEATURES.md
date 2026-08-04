@@ -11,7 +11,7 @@ CV STUDIO to studio CV po polsku: wizualne płótno A4, indywidualne szablony z 
 | | |
 |---|---|
 | **Wizualnie, nie tylko formularze** | Przeciągaj, wyrównuj i stylizuj każdy blok na prawdziwej stronie — to, co widzisz, trafia do eksportu. |
-| **26 indywidualnych szablonów** | Każdy z własną nazwą i krótkim opisem stylistycznym — bez kategorii branżowych. |
+| **17 indywidualnych szablonów** | Każdy z własną nazwą i krótkim opisem stylistycznym — bez kategorii branżowych. |
 | **AI, które bierze na siebie ciężką robotę** | Zaimportuj stare PDF, przejdź kreator bio albo porozmawiaj z asystentem o ocenach, ATS i poprawkach. |
 | **Za darmo na start** | Załóż konto, projektuj i pobieraj. Karta nie jest wymagana. AI i pełna biblioteka — w planach Standard / Premium. |
 
@@ -70,7 +70,7 @@ Dodatkowo: rozmiar, kolor, pogrubienie, kursywa, podkreślenie, wyrównanie, int
 
 ---
 
-## Biblioteka szablonów — 26 indywidualnych układów
+## Biblioteka szablonów — 17 indywidualnych układów
 
 Każdy szablon to osobny byt: własna nazwa i krótki opis stylistyczny. UI nie grupuje ich wedle branży ani stylu — w kodzie zostaje tylko podział strukturalny layoutu (`single` / `sidebar` / `icons` / `dark`) dla generatora.
 
@@ -79,24 +79,15 @@ Każdy szablon to osobny byt: własna nazwa i krótki opis stylistyczny. UI nie 
 | Ledger | Instytucjonalny, spokojna typografia |
 | Nimbus | Jasny i minimalistyczny |
 | Cinder | Ciemny i wyrazisty |
-| Rift | Abstrakcyjny i redakcyjny |
-| Vector | Sieci i platformy |
 | Kernel | Architektura systemów |
-| Relay | DevOps i niezawodność |
-| Scribe | Redakcyjny i formalny |
 | Regent | Executive, wyważona elegancja |
 | Aldine | Szlachetny papier |
-| Merit | Dyplomatyczny minimalizm |
 | Monument | Monochromatyczny editorial |
 | Words | Dokument w stylu Word |
 | Cardinal | Szlachetna czerwień, ikony przy sekcjach |
-| Moss | Botaniczna elegancja, wąski sidebar |
 | Harbor | Dwukolumnowy, ikony kontaktu |
 | Signal | Ryzyko i treasury |
 | Obsidian | Ciemny panel boczny |
-| Raven | Ciemny pasek górny |
-| Graphite | Minimalistyczny, chłodne srebro |
-| Onyx | Rama dyplomatyczna |
 | Nova | Redakcyjny masthead z ikonami |
 | Ridge | Szyna ikon przy nagłówkach |
 | Loom | Sidebar rzemieślniczy z ikonami |
@@ -159,8 +150,8 @@ Cały interfejs mówi po polsku: marketing, edytor, akcje AI, powiadomienia i mo
 
 | Plan | Co dostajesz |
 |---|---|
-| **Free** | Edytor A4, 8 szablonów startowych, limity projektów i eksportów; bez asystenta AI |
-| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 26 szablonów oraz wyższe limity |
+| **Free** | Edytor A4, 5 szablonów startowych, limity projektów i eksportów; bez asystenta AI |
+| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 17 szablonów oraz wyższe limity |
 | **Premium** | Tryb Układ AI, więcej kredytów AI, bez limitu projektów i eksportów |
 
 Model kredytów: ok. 1 kredyt ≈ 5 gr — rozliczenie zbliżone do realnego użycia.
@@ -181,7 +172,7 @@ Model kredytów: ok. 1 kredyt ≈ 5 gr — rozliczenie zbliżone do realnego uż
 |---|---|
 | Płótno | Edytor A4 pion, 7 typów elementów, wiele stron, zoom, prowadnice |
 | Typografia | 10 czcionek zsynchronizowanych z PDF |
-| Szablony | 23 systemy CV w 7 kolekcjach |
+| Szablony | 17 indywidualnych układów |
 | Import AI | Wypełnij dowolny szablon z przesłanego PDF |
 | Kreator | Bio krok po kroku z zapisem szkicu |
 | Coach AI | 7 analiz + chat w Standard; Układ z podglądem geometrii w Premium |

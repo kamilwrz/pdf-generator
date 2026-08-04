@@ -269,7 +269,7 @@ class CvDataNormalizationTests(unittest.TestCase):
         """
         Clients often send `languages: []` while languages still live only in
         legacy `extra_sections` (PDF extract shape). Recover those languages so
-        IT templates (Kernel / Vector) do not drop JĘZYKI after a template change.
+        IT templates (Kernel) do not drop JĘZYKI after a template change.
         """
         profile = normalize_cv_data({
             "name": "Jan Nowak",

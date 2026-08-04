@@ -166,7 +166,7 @@ function toPagePosition(absolute, height, pageHeight, pageTop, bottomMargin) {
 
 function packGapAfterPageBreak(current, pageTop) {
   // Section chrome that lived alone near the top of page N+1 carries a tiny
-  // `top - pageTop` inset (Vector education often starts at y=72 with pageTop
+  // `top - pageTop` inset (Kernel education often starts at y=72 with pageTop
   // 66 → 6 px). Using that inset as the pack gap crushed headings under the
   // previous section. Always restore SPACE_SECTION for chrome.
   if (isChromeLike(current)) {
@@ -626,7 +626,7 @@ export function reflowTextareaHeight(
       // Once the directly following element has moved by the target's height
       // delta, keep every later element's authored top-to-top rhythm. Mixing
       // bottom gaps with independently measured text boxes compounds height
-      // deltas and distorts Onyx section chrome and page breaks.
+      // deltas and distorts section chrome rhythm and page breaks.
       nextAbsolute = previousPlacedTop + (
         currentOriginalTop - absoluteTop(previousOriginal, safePageHeight)
       );

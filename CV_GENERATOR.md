@@ -141,7 +141,7 @@ Po `normalize_cv_data` typowe pola:
 | `extra_sections` | Forma używana przez generator (m.in. języki jako sekcja po umiejętnościach) |
 | `language` | Język dokumentu (domyślnie Polish) |
 
-Normalizacja żyje w `backend/app/services/cv_data.py`, funkcja `normalize_cv_data` (ok. linie 620–716). Puste `languages: []` przy językach tylko w `extra_sections` jest odzyskiwane (chyba że jednocześnie `custom_sections: []` sygnalizuje świadome wyczyszczenie) — bez tego Kernel/Vector gubiły sekcję JĘZYKI przy zmianie szablonu.
+Normalizacja żyje w `backend/app/services/cv_data.py`, funkcja `normalize_cv_data` (ok. linie 620–716). Puste `languages: []` przy językach tylko w `extra_sections` jest odzyskiwane (chyba że jednocześnie `custom_sections: []` sygnalizuje świadome wyczyszczenie) — bez tego Kernel gubił sekcję JĘZYKI przy zmianie szablonu.
 
 ---
 
@@ -396,7 +396,7 @@ Uniwersalne — bez gałęzi `if template_id == …`. Re-eksportowane też z fas
 
 ---
 
-## 12. Pełna mapa `_GENERATORS` (26 szablonów)
+## 12. Pełna mapa `_GENERATORS` (17 szablonów)
 
 Każdy wpis to `cv_templates/templates/<template_id>.py` → funkcja `_gen_<template_id>`. Plik nie zawiera słownika `themes` ani `if theme == …` / `if C["layout"] == …` dla innych szablonów.
 
@@ -405,31 +405,22 @@ Każdy wpis to `cv_templates/templates/<template_id>.py` → funkcja `_gen_<temp
 | `ledger` | `_gen_ledger` | `templates/ledger.py` |
 | `nimbus` | `_gen_nimbus` | `templates/nimbus.py` |
 | `cinder` | `_gen_cinder` | `templates/cinder.py` |
-| `rift` | `_gen_rift` | `templates/rift.py` |
 | `signal` | `_gen_signal` | `templates/signal.py` |
-| `vector` | `_gen_vector` | `templates/vector.py` |
 | `kernel` | `_gen_kernel` | `templates/kernel.py` |
-| `relay` | `_gen_relay` | `templates/relay.py` |
-| `scribe` | `_gen_scribe` | `templates/scribe.py` |
 | `regent` | `_gen_regent` | `templates/regent.py` |
 | `aldine` | `_gen_aldine` | `templates/aldine.py` |
-| `merit` | `_gen_merit` | `templates/merit.py` |
-| `moss` | `_gen_moss` | `templates/moss.py` |
 | `harbor` | `_gen_harbor` | `templates/harbor.py` |
 | `obsidian` | `_gen_obsidian` | `templates/obsidian.py` |
-| `raven` | `_gen_raven` | `templates/raven.py` |
-| `graphite` | `_gen_graphite` | `templates/graphite.py` |
-| `onyx` | `_gen_onyx` | `templates/onyx.py` |
 | `nova` | `_gen_nova` | `templates/nova.py` |
 | `ridge` | `_gen_ridge` | `templates/ridge.py` |
 | `loom` | `_gen_loom` | `templates/loom.py` |
 | `volt` | `_gen_volt` | `templates/volt.py` |
-| `cardinal` | `_gen_cardinal` | `templates/cardinal.py` |
 | `monument` | `_gen_monument` | `templates/monument.py` |
 | `words` | `_gen_words` | `templates/words.py` |
+| `cardinal` | `_gen_cardinal` | `templates/cardinal.py` |
 | `tessera` | `_gen_tessera` | `templates/tessera.py` |
 
-**Starter Free** (typowo): `ledger`, `nimbus`, `vector`, `kernel`, `scribe`, `regent`, `graphite`, `nova` — lista musi być zsynchronizowana z `FREE_STARTER_TEMPLATE_IDS` w entitlements i testem `test_template_registry_sync.py`.
+**Starter Free** (5): `ledger`, `nimbus`, `kernel`, `regent`, `nova` — lista musi być zsynchronizowana z `FREE_STARTER_TEMPLATE_IDS` w entitlements i testem `test_template_registry_sync.py`.
 
 ---
 
@@ -522,7 +513,7 @@ Fill szablonu = **nowy układ z `cv_data`**. Układ AI = **poprawianie już leż
 ## 17. Podsumowanie dla laika
 
 1. Masz treść CV (z PDF albo z formularza).  
-2. Wybierasz wygląd (jeden z 26 szablonów).  
+2. Wybierasz wygląd (jeden z 17 szablonów).  
 3. Serwer **nie zgaduje** układu — **wylicza** go funkcją Pythona jak linijką na kartce.  
 4. Przeglądarka pokazuje wynik jako edytowalne klocki.  
 5. PDF eksportuje te same klocki.

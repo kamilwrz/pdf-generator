@@ -604,7 +604,7 @@ następne stanowisko
 
 1. normalizuje `cv_data`;
 2. znajduje funkcję generatora w `_GENERATORS`;
-3. wywołuje np. `_gen_onyx`, `_gen_nova` albo `_gen_ledger`;
+3. wywołuje np. `_gen_monument`, `_gen_nova` albo `_gen_ledger`;
 4. zwraca pełną listę elementów.
 
 Każdy generator definiuje:
@@ -635,9 +635,9 @@ Frontend automatycznie traktuje je jako:
 - wykluczone z normalnego reflow;
 - kopiowane na nowe strony, jeżeli wymaga tego operacja strukturalna.
 
-### 6.12. Przypadek Onyx
+### 6.12. `flowRole` i `preserveInitialLayout`
 
-Onyx używa dwóch dodatkowych informacji:
+Szablony z deterministyczną paginacją (np. Monument, Words, Tessera) emitują dodatkowe informacje:
 
 ```json
 {
@@ -659,7 +659,7 @@ Zwykła treść ma:
 }
 ```
 
-Wieloliniowe pola Onyx mają też:
+Wieloliniowe pola z gotową paginacją z Pythona mają też:
 
 ```json
 {
@@ -1151,7 +1151,7 @@ Dzięki temu reflow nie musi zgadywać roli na podstawie tego, że element jest 
 
 ### 11.9. `preserveInitialLayout`
 
-Onyx ma już kompletną paginację z Pythona. Dlatego pierwsze niezależne pomiary wielu pól mogłyby niepotrzebnie zmienić kolejność elementów między stronami.
+Szablony z `preserveInitialLayout` mają już kompletną paginację z Pythona. Dlatego pierwsze niezależne pomiary wielu pól mogłyby niepotrzebnie zmienić kolejność elementów między stronami.
 
 Flaga:
 
@@ -1653,7 +1653,7 @@ Wizualnie blok pozostaje 300 jednostek od góry strony.
 3. **`locked`** — chroni elementy przed ruchem.
 4. **`fixedToPage`** — chroni tło, ramy i stopki.
 5. **`flowRole`** — odróżnia treść od chrome sekcji.
-6. **`preserveInitialLayout`** — chroni gotową paginację Onyx przed pierwszym reflow DOM.
+6. **`preserveInitialLayout`** — chroni gotową paginację z Pythona przed pierwszym reflow DOM.
 7. **`need_section`** — zapobiega samotnym nagłówkom u dołu strony.
 8. **Walidacja patchy AI** — sprawdza granice i kolizje.
 9. **Podgląd przed akceptacją** — AI nie zmienia układu automatycznie.
@@ -1801,7 +1801,7 @@ Testy sprawdzają między innymi:
 - dekoracje;
 - chrome sekcji;
 - nieaktualny numer `page`;
-- rytm Onyx;
+- rytm chrome sekcji (`flowRole`);
 - brak zapadania odstępów rekordów.
 
 ### 23.2. Przeciąganie i strony
@@ -1827,7 +1827,7 @@ Testy kontrolują:
 - układ wielu stron;
 - geometrię szablonów;
 - nagłówki i ikony;
-- role Onyx;
+- role `flowRole` / `preserveInitialLayout`;
 - zachowanie początkowej paginacji.
 
 ### 23.4. Analiza layoutu

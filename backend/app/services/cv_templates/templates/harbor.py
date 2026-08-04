@@ -44,9 +44,9 @@ def _gen_harbor(cv: dict) -> list[dict]:
 
     The main column (summary + experience) reflows across pages through a
     ``Builder``; the right sidebar (education, skills, languages, tools as
-    teal-diamond bullet lists) is painted once on page 1, mirroring the Moss
-    sidebar model. A single teal accent carries the role line, company names
-    and diamond bullets; all other ink is charcoal on white.
+    teal-diamond bullet lists) is painted once on page 1 and does not repeat
+    on continuation pages. A single teal accent carries the role line, company
+    names and diamond bullets; all other ink is charcoal on white.
     """
     C = {
         "accent": "#17A2B8", "ink": "#2B2B2B", "body": "#3A3A3A",

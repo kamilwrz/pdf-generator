@@ -38,7 +38,7 @@ SPACE_AFTER_RULE = 8  # section heading rule → first content block
 # Clearance from masthead chrome to the first section heading. Authored box
 # gaps; canvas ink guides read a few px tighter. Keep every template in the
 # ~25–45 px visual band under the header (solid band vs thin divider).
-SPACE_AFTER_MASTHEAD = 32      # solid header bands (Cinder/Raven/Ledger/Rift)
+SPACE_AFTER_MASTHEAD = 32      # solid header bands (Cinder/Ledger)
 SPACE_AFTER_HEADER_RULE = 36   # thin divider under name/contact mastheads
 
 
@@ -205,7 +205,7 @@ class Builder:
     def line(self, left, width, height, col):
         # Rule sits on the current cursor without advancing. Callers follow with
         # SPACE_AFTER_RULE (or a template-specific gap) so under-header spacing
-        # stays explicit and matches static frontend chrome (e.g. Onyx +16).
+        # stays explicit and matches static frontend chrome (e.g. Monument rhythm).
         self.els.append(_line(left, self.y, width, height, col, page=self.pg))
 
     def gap(self, px: float):

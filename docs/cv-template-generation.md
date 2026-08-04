@@ -169,7 +169,7 @@ Generator **ufnie zakłada** ten schemat — nie odpytuje AI o brakujące pola.
 _GENERATORS = {
     "ledger": _gen_ledger,
     "nimbus": _gen_nimbus,
-    # ... 26 szablonów = te same id co frontend/src/templates/index.js
+    # ... 17 szablonów = te same id co frontend/src/templates/index.js
 }
 
 def generate_resume(template_id: str, cv_data: dict) -> list[dict]:
@@ -190,14 +190,10 @@ Builder                    śledzi y + page, mierzy wysokość textarea
         │
 helpery treści             _bullets, _company_period, _labels,
                            _place_education_record, _extra_sections,
-                           logika sidebara
+                           logika sidebara (`_fit_sidebar_sections`)
         │
-motywy współdzielone       _gen_it_theme, _gen_classic_theme,
-                           _gen_sidebar_theme
-        │
-cienkie wrappery           _gen_vector → it("vector"), itd.
-        │
-wyjątki „pełne”            _gen_ledger, _gen_signal, _gen_obsidian, …
+generatory per szablon     _gen_ledger, _gen_kernel, _gen_regent,
+                           _gen_harbor, _gen_tessera, …
 ```
 
 ### 6.3 `Builder` — rytm pionowy i paginacja
@@ -237,27 +233,28 @@ Dla większości szablonów wzorzec jest ten sam:
 
 Liczba bloków doświadczenia = liczba wpisów w `cv_data["experience"]`. Jeśli nie mieszczą się na jednej stronie A4, `Builder` tworzy kolejne strony.
 
-### 6.5 Rodziny szablonów (motywy współdzielone)
+### 6.5 Rodziny szablonów (tagi layoutu)
 
-| Motyw | Funkcja bazowa | Szablony |
-|---|---|---|
-| Banking | `_gen_signal(cv)` | signal |
-| IT | `_gen_it_theme(cv, theme)` | vector, kernel, relay |
-| Classic | `_gen_classic_theme(cv, theme)` | scribe, regent, aldine, merit |
-| Sidebar (jasne) | `_gen_moss(cv)` | moss |
-| Własne generatory | osobne `_gen_*` | ledger, nimbus, cinder, rift, obsidian, raven, graphite, onyx, monument, words |
+Każdy z 17 szablonów ma osobny plik `cv_templates/templates/<id>.py` z funkcją `_gen_<id>`. Wspólna jest tylko warstwa helperów (`shared/records.py`, `shared/extras.py`, `shared/text.py`, `shared/icons.py`) oraz tagi w `TEMPLATE_LAYOUTS`:
 
-Motyw współdzielony różnicuje głównie **paletę, asset PNG, kształt markera sekcji i detale headera**; algorytm flow (summary → experience → …) jest wspólny.
+| Tag layoutu | Szablony |
+|---|---|
+| `single` | ledger, nimbus, cinder, signal, kernel, regent, aldine, monument, words |
+| `icons` | cardinal, nova, ridge, volt (+ harbor, loom, tessera) |
+| `sidebar` | harbor, obsidian, loom, tessera |
+| `dark` | obsidian, volt |
+
+Algorytm flow (summary → experience → …) jest wspólny koncepcyjnie; paleta, assety i chrome nagłówków są per szablon.
 
 ### 6.6 Sidebar: co trafia na lewy panel
 
-Dla moss działa wspólna logika:
+Dla szablonów z tagiem `sidebar` działa wspólna logika w `shared/extras.py`:
 
 1. `_sidebar_candidates` — buduje kandydatów: skills, languages/certyfikaty/zainteresowania z `extra_sections`, education.
 2. `_fit_sidebar_sections` — wkłada na pierwszą stronę **tylko kompletne sekcje**, które mieszczą się w **pozostałym budżecie wysokości** sidebara (z próbą mniejszych fontów). Nie ma osobnego limitu „max 160 px na sekcję” — taki limit odrzucał typowe listy z kreatora bio (~10–12 umiejętności) mimo wolnego miejsca. Sekcja, która nie mieści się w całości, **nie jest ucinana** — spada do kolumny głównej.
 3. Indeksy `extra_sections` już umieszczonych w sidebarze są pomijane w `_extra_sections`, żeby nie dublować treści.
 
-**Obsidian** ma własną implementację sidebara w `_gen_obsidian` (kolejność KONTAKT → umiejętności → JĘZYKI → WYKSZTAŁCENIE; umiejętności i języki jako bullet list; wykształcenie w formacie trójwierszowym). Pakuje umiejętności z rezerwą miejsca na języki i edukację, żeby długa lista nie wypychała ich do main column.
+**Obsidian** ma własną implementację sidebara w `_gen_obsidian` (kolejność KONTAKT → umiejętności → JĘZYKI → WYKSZTAŁCENIE; umiejętności i języki jako bullet list; wykształcenie w formacie trójwierszowym). Pakuje umiejętności z rezerwą miejsca na języki i edukację, żeby długa lista nie wypychała ich do main column. Harbor, Loom i Tessera używają `_fit_sidebar_sections` (Loom z własnymi kandydatami `_loom_sidebar_candidates`).
 
 ### 6.7 Extra sections
 
@@ -290,7 +287,7 @@ Heurystyczna grupacja w Pythonie pokrywa typowe spłaszczenia; pełna decyzyjno�
 - Nie wybiera `left` / `top` elementów szablonu przy fill.
 - Nie liczy wysokości textarea pod PDF.
 - Nie decyduje, czy education idzie do sidebara.
-- Nie generuje „26 wariantów layoutu” promptem — każdy szablon to **ręcznie napisany** kod Pythona odwzorowujący design z JS.
+- Nie generuje „17 wariantów layoutu” promptem — każdy szablon to **ręcznie napisany** kod Pythona odwzorowujący design z JS.
 
 ### Co robi Python (`cv_generator`)
 
@@ -367,7 +364,7 @@ Bez kroku 2–3 podgląd w bibliotece istnieje, ale **fill_template rzuci „Nie
 | `backend/app/services/pdf_generator.py` | Pomiar wysokości textarea + eksport PDF |
 | `backend/app/services/ai_assistant_service.py` | Asystent po wygenerowaniu (osobny tor AI) |
 | `frontend/src/templates/*.js` | Statyczne próbki designu |
-| `frontend/src/templates/index.js` | Katalog 26 szablonów (id muszą = `_GENERATORS`) |
+| `frontend/src/templates/index.js` | Katalog 17 szablonów (id muszą = `_GENERATORS`) |
 | `backend/tests/test_cv_template_layouts.py` | Strażnik zachowania layoutu |
 
 ---

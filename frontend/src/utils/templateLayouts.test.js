@@ -12,9 +12,9 @@ const FIXTURES = [
   { id: "volt", layouts: ["icons", "dark"] },
   { id: "words", layouts: ["single"] },
   { id: "ledger", layouts: ["single"] },
-  { id: "moss", layouts: ["sidebar"] },
+  { id: "obsidian", layouts: ["sidebar", "dark"] },
   { id: "harbor", layouts: ["sidebar", "icons"] },
-  { id: "onyx", layouts: ["dark"] },
+  { id: "loom", layouts: ["sidebar", "icons"] },
 ];
 
 test("reads and filters known layout tags", () => {
@@ -29,11 +29,11 @@ test("reads and filters known layout tags", () => {
 test("preserves registry order and filters by layout", () => {
   assert.deepEqual(
     listTemplatesInRegistryOrder(FIXTURES).map((template) => template.id),
-    ["volt", "words", "ledger", "moss", "harbor", "onyx"],
+    ["volt", "words", "ledger", "obsidian", "harbor", "loom"],
   );
   assert.deepEqual(
     filterTemplatesByLayout(FIXTURES, "sidebar").map((template) => template.id),
-    ["moss", "harbor"],
+    ["obsidian", "harbor", "loom"],
   );
 });
 

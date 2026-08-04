@@ -2,7 +2,7 @@
 
 # CV Studio
 
-CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 26 individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
+CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 17 individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
 
 This README is the technical entry point for developers. A beginner-friendly deep guide to canvas coordinates, React interaction, deterministic Python layout, AI responsibilities, reflow, persistence, and ReportLab export lives in [`CANVA.md`](CANVA.md). Every live AI prompt (full text, variables, file/line references) is documented in [`PROMPTS.md`](PROMPTS.md). Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md). Marketing brief for the website „Dlaczego CV STUDIO” section (features + competitive positioning, no competitor brand names in public copy) lives in [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Template generation (AI extract vs Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md). A layperson-friendly end-to-end guide covering Frontend and Backend (flows, files, classes, functions) lives in [`CV_GENERATOR.md`](CV_GENERATOR.md).
 
@@ -100,7 +100,7 @@ Template textareas start with authored placeholder heights and are measured afte
 
 Undo/redo history treats that post-load reflow as part of the **baseline**, not as a user edit: `markHistoryQuiet` in `useA4Elements` updates the current history entry in place so Cofnij stays disabled until the user actually changes the document. Otherwise Undo would restore pre-measure heights and revive uneven Y gaps (e.g. diploma → school in education records).
 
-Every auto-height textarea measures twice — once immediately, once again after `document.fonts.ready` — and each measurement calls `reflowTextareaHeight` independently, so a later field can briefly carry a stale `page` number from an earlier pass. `rawSamePageGap` checks authored `top` values (ignoring `page`) before applying the generic page-break gap: a same-record pair with a stale page keeps its authored small gap, while a genuine cross-page seam uses `DEFAULT_PACK_GAP` (10 px, `SPACE_RECORD`) for ordinary blocks and `SECTION_PACK_GAP` (21 px, `SPACE_SECTION`) for section chrome. Using the leftover page-top inset (often 0–6 px when education starts near `pageTop` on page 2) crushed headings such as WYKSZTAŁCENIE under the previous section. IT templates mark section markers/rules `locked` for interaction and guides, but `flowRole: "section-chrome"` still lets them reflow with their heading so underlines do not stay stranded on the next page. The reflow intentionally does **not** infer title/meta relationships from font size or boldness; that heuristic distorted valid Onyx record spacing and compounded independent height deltas. Onyx and IT section marker/label/rule use `section-chrome`, and ordinary records use `content`. Keep-with-next logic therefore cannot mistake a job title for a section heading and move the real heading behind its own content. Legacy templates without this property keep the category-based fallback.
+Every auto-height textarea measures twice — once immediately, once again after `document.fonts.ready` — and each measurement calls `reflowTextareaHeight` independently, so a later field can briefly carry a stale `page` number from an earlier pass. `rawSamePageGap` checks authored `top` values (ignoring `page`) before applying the generic page-break gap: a same-record pair with a stale page keeps its authored small gap, while a genuine cross-page seam uses `DEFAULT_PACK_GAP` (10 px, `SPACE_RECORD`) for ordinary blocks and `SECTION_PACK_GAP` (21 px, `SPACE_SECTION`) for section chrome. Using the leftover page-top inset (often 0–6 px when education starts near `pageTop` on page 2) crushed headings such as WYKSZTAŁCENIE under the previous section. Templates such as Kernel mark section markers/rules `locked` for interaction and guides, but `flowRole: "section-chrome"` still lets them reflow with their heading so underlines do not stay stranded on the next page. The reflow intentionally does **not** infer title/meta relationships from font size or boldness; that heuristic distorted valid record spacing (for example Monument/Words chrome rhythm) and compounded independent height deltas. Section marker/label/rule use `section-chrome`, and ordinary records use `content`. Keep-with-next logic therefore cannot mistake a job title for a section heading and move the real heading behind its own content. Legacy templates without this property keep the category-based fallback.
 
 During the canvas enter hold, auto-height reflow is suppressed and resumes after fonts are ready. Every textarea emitted by the Python generators carries `preserveInitialLayout: true` (via `_block` in `cv_generator_primitives.py`). On first mount the canvas may **shrink** a box to browser `scrollHeight` when ReportLab overshoots (so empty slack cannot inflate visual section gaps), but it will not **grow** — independent growth races still stretch gaps. Editing content or later changing typography/width still triggers normal auto-height reflow. See `textareaHeight.test.js` (`shouldShrinkPreservedLayout`) and `textareaReflow.test.js` packing cases.
 
@@ -155,7 +155,7 @@ pdf-generator/
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
-│   │   ├── templates/        # 26 template specs + helpers
+│   │   ├── templates/        # 17 template specs + helpers
 │   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow
 │   ├── package.json
 │   └── .env.example
@@ -181,7 +181,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 26 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
+**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 17 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
 
 ---
 
@@ -285,7 +285,7 @@ Implementation:
 
 Limits:
 
-- PDF extraction and content-focused AI actions are entitlement-gated from Standard; the full-canvas `layout` action requires Premium. The landing assigns the import start to Standard and the guided wizard to Free, which includes eight starter templates.
+- PDF extraction and content-focused AI actions are entitlement-gated from Standard; the full-canvas `layout` action requires Premium. The landing assigns the import start to Standard and the guided wizard to Free, which includes five starter templates.
 - ATS feedback is guidance about document readability and content structure. It is not a promise of recruiter response or an ATS pass.
 - The privacy section describes implemented data use at a high level and does not claim unimplemented certifications or anonymisation.
 
@@ -301,7 +301,7 @@ Implementation:
 
 ### Canvas enter fade
 
-When a full document lands on the canvas (AI CV upload, bio wizard, or template pick), interactive content fades in from opacity 0→1. Elements are held invisible until `document.fonts.ready` (capped at 1000 ms) so fallback→webfont swaps stay hidden, then fade over 750 ms. Decorative chrome (`fixedToPage`, not selectable) appears immediately with no animation. Manual add/duplicate still uses the same fade for the new ids only. AI-filled **Onyx** section chrome (marker + label → rule 14px below → body +16px) matches `frontend/src/templates/onyx.js`; `flowRole` keeps chrome/content ordered, while `preserveInitialLayout` blocks first-mount growth (shrink-to-content is still allowed so box height matches glyphs).
+When a full document lands on the canvas (AI CV upload, bio wizard, or template pick), interactive content fades in from opacity 0→1. Elements are held invisible until `document.fonts.ready` (capped at 1000 ms) so fallback→webfont swaps stay hidden, then fade over 750 ms. Decorative chrome (`fixedToPage`, not selectable) appears immediately with no animation. Manual add/duplicate still uses the same fade for the new ids only. Generators that emit `flowRole` (section chrome vs content) and `preserveInitialLayout` — for example Monument, Words, and Tessera — keep chrome/content ordered during reflow, while `preserveInitialLayout` blocks first-mount growth (shrink-to-content is still allowed so box height matches glyphs).
 
 Implementation:
 
@@ -309,9 +309,8 @@ Implementation:
 - `frontend/src/hooks/useCanvasEnterIds.js`, lines 1–80, `useCanvasEnterIds`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` + `CanvasElements.module.css`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadAiElements`, `handleLoadTemplate`, `handleLoadTemplateWithFill` call `markContentElementsEnter`
-- `backend/app/services/cv_templates/templates/onyx.py`, `_gen_onyx`; `frontend/src/templates/onyx.js`, lines 1–101 — assign Onyx `flowRole` and `preserveInitialLayout`
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 29–55; `frontend/src/components/canvas/Textarea/Textarea.jsx`, lines 42–164 — skip only the initial Onyx textarea measurement
-- `backend/app/schemas/pdf_schema.py`, lines 44–46; `backend/app/crud/pdfs.py`, lines 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, lines 104–105 — persist and restore the Onyx flow flags
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 29–55; `frontend/src/components/canvas/Textarea/Textarea.jsx`, lines 42–164 — skip the initial textarea measurement when `preserveInitialLayout` is set
+- `backend/app/schemas/pdf_schema.py`, lines 44–46; `backend/app/crud/pdfs.py`, lines 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, lines 104–105 — persist and restore `flowRole` / `preserveInitialLayout`
 
 Tests:
 
@@ -319,7 +318,7 @@ Tests:
 
 ### Monument monochrome template
 
-Monument is a paid Classic template for users who want an elegant editorial result without colour. Its visual identity comes from numbered black rectangles, outlined heading frames, thin grey rules, and an asymmetric masthead. The smallest text is 9 px; body copy and the summary both use 9 px so the lead paragraph does not sit one step above surrounding text, record titles use 11 px, education titles use 10 px, and section headings plus the job-position line use 12.5 px. Cormorant Garamond supplies the formal display voice, while Montserrat keeps dense CV content easy to scan. The same summary-equals-body rule applies across every filled template in `generate_resume` (for example Regent/Scribe use 9.3 px to match experience bullets).
+Monument is a paid Classic template for users who want an elegant editorial result without colour. Its visual identity comes from numbered black rectangles, outlined heading frames, thin grey rules, and an asymmetric masthead. The smallest text is 9 px; body copy and the summary both use 9 px so the lead paragraph does not sit one step above surrounding text, record titles use 11 px, education titles use 10 px, and section headings plus the job-position line use 12.5 px. Cormorant Garamond supplies the formal display voice, while Montserrat keeps dense CV content easy to scan. The same summary-equals-body rule applies across every filled template in `generate_resume` (for example Regent uses 9.3 px to match experience bullets).
 
 The frontend starter array and the deterministic Python generator use the same A4 geometry and grayscale palette. `_gen_monument` preserves complete experience and education records during page breaks, supports custom sections through `_extra_sections`, and groups each number, frame, label, and rule into one reflow unit so the heading geometry remains aligned after browser text measurement. The page frame and footer repeat on every page, while the name-and-position masthead and its tall side bars appear only on page one; `repeatOnContinuation: false` preserves this rule when the editor creates another page later. Layout decisions are never sent to the AI model.
 
@@ -361,7 +360,7 @@ Known limitation: Words reproduces the visual language of a carefully formatted 
 
 ### Cardinal noble-red template
 
-Cardinal is a paid single-column template (`layouts: ["icons"]`) for candidates who want a formal document with one restrained accent of colour. It reserves a "noble red" (`#9E2532`) for typography only — the role line under the name and every section heading — while all ornament stays neutral grey (`#8A8A8A`): the generated line-art icons beside each section heading and contact detail, plus the decorative rules under the headings and along the header and footer. Body copy is dark grey (`#333333`); the name uses Times-Roman while labels, contact, dates, and body use Helvetica. Pairing generated icons with every heading and contact row is what sets it apart from Scribe, Regent, Aldine, Merit, Monument, and Words.
+Cardinal is a paid single-column template (`layouts: ["icons"]`) for candidates who want a formal document with one restrained accent of colour. It reserves a "noble red" (`#9E2532`) for typography only — the role line under the name and every section heading — while all ornament stays neutral grey (`#8A8A8A`): the generated line-art icons beside each section heading and contact detail, plus the decorative rules under the headings and along the header and footer. Body copy is dark grey (`#333333`); the name uses Times-Roman while labels, contact, dates, and body use Helvetica. Pairing generated icons with every heading and contact row is what sets it apart from Regent, Aldine, Monument, and Words.
 
 The grey glyphs come from a dedicated `cardinal` theme added to the shared icon pipeline (`scripts/generate_iconic_icons.py`, `THEMES["cardinal"] = "#8A8A8A"`), rendered to `backend/template_assets/iconic/cardinal/*.png` and served from the existing `/template-assets/` mount. The static editor preview and the deterministic AI fill share one visual identity because the backend generator reuses the same single-column icon machinery as other icon-tagged templates, under its own layout branch so no red accent band is drawn.
 
@@ -378,26 +377,6 @@ Tests:
 
 - `frontend/src/templates/cardinal.test.js`, lines 1–57 — single-column, red-headings-only, grey-icons/rules, dark-grey body, and serif-name assertions
 - `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — enforces the frontend/backend id parity that `cardinal` now participates in
-
-### Moss sidebar photo placeholder
-
-Moss is a paid botanical sidebar template (`layouts: ["sidebar"]`). The gold-frame ornament (rectangle + ellipse + filled circle) is the photo placeholder at the top of the narrow left sidebar, aligned with the main-column name. Contact and fitted sidebar sections (skills, languages, interests, education) begin below that placeholder — not mid-page under empty vertical space. The main column keeps name / title / contact line without masthead decoration.
-
-Sidebar packing (`_fit_sidebar_sections`) accepts any complete section that still fits the remaining first-page height. An older per-section 160 px cap rejected ordinary wizard skill lists and long education records, so those sections appeared only in the main column after **Utwórz CV krok po kroku**, while shorter PDF-extracted lists stayed in the sidebar.
-
-Page packing uses `CONTENT_BOTTOM = 770` (72 px footer margin, shared by every template’s `Builder` and canvas reflow). When ReportLab overshoots browser wraps and parks the next experience record on page 2, canvas reflow pulls the whole `flowGroup` back once shrinks free room — so a large empty band under the last page-1 job does not remain.
-
-Implementation:
-
-- `backend/app/services/cv_templates/templates/moss.py`, function `_gen_moss` (photo geometry and sidebar stack, lines 59–131)
-- `backend/app/services/cv_templates/shared/extras.py`, `_fit_sidebar_sections` — remaining-height budget only
-- `frontend/src/templates/moss.js`, lines 32–48 — static starter with the same sidebar photo + raised KONTAKT stack
-- `frontend/src/templates/index.js`, registry entry `moss`
-
-Tests:
-
-- `backend/tests/test_cv_template_layouts.py`, `test_moss_photo_placeholder_leads_sidebar_at_name_height`, lines 582–608
-- `backend/tests/test_cv_template_layouts.py`, `test_moss_wizard_length_skills_and_education_stay_in_sidebar`, lines 358–429
 
 ### Harbor two-column template
 
@@ -427,7 +406,7 @@ Tests:
 
 ### Tessera mosaic-sidebar template
 
-Tessera is a paid two-column template (`layouts: ["sidebar", "icons"]`) built around an independently designed mosaic language rather than a visual copy of another résumé. It keeps the useful information hierarchy of a narrow profile rail plus a wide narrative column, but changes the composition and identity: the sidebar is on warm blush paper, the main surface is cream, aubergine serif typography carries the masthead, and coral/ochre offset tiles frame every custom line-art icon. The palette (`#4A2347`, `#E15D4F`, `#DCA65A`, `#FCF8F2`) and asymmetric tile geometry distinguish it from the green rounded-card reference, Moss, Harbor, and Loom.
+Tessera is a paid two-column template (`layouts: ["sidebar", "icons"]`) built around an independently designed mosaic language rather than a visual copy of another résumé. It keeps the useful information hierarchy of a narrow profile rail plus a wide narrative column, but changes the composition and identity: the sidebar is on warm blush paper, the main surface is cream, aubergine serif typography carries the masthead, and coral/ochre offset tiles frame every custom line-art icon. The palette (`#4A2347`, `#E15D4F`, `#DCA65A`, `#FCF8F2`) and asymmetric tile geometry distinguish it from Harbor and Loom.
 
 The portrait area is a 112×126 px rectangle with an offset underlay, aubergine outline, ochre orbit, coral nodes, and a generated `portrait.png` glyph. It is a placeholder rather than a stored user image: the user may place an uploaded raster image over the frame in the editor. Only that decorative photo cluster plus the page rails/footer are `fixedToPage`/`locked`; contact rows and fitted sidebar sections remain selectable and editable. Contact, education, skills, languages, and supported extra sections are packed as complete blocks in the left rail. Tessera prioritises education before skill lists; anything that does not fit before the footer falls through to the main flow instead of being clipped. Summary, experience, fallback education/skills, and custom sections use `Builder`, `need_section`, and record `flowGroup` tags. Continuation pages retain the blush rail, coral divider, footer orbit, and page number without duplicating personal sidebar data.
 
@@ -465,13 +444,13 @@ Implementation:
 - `backend/app/services/cv_templates/shared/extras.py`, `_extra_sections` — flat lists via `_bullet_list_content`
 - `backend/app/services/cv_templates/templates/{nova,volt,cardinal}.py` — per-template `_gen_*` entry points
 - `frontend/src/utils/textareaReflow.js`, functions `isTextAlignedImage`, `isPositionLockedForReflow`, `belongsToFlowLane`, `packGapAfterPageBreak`, `rawSamePageGap`, `remainingRecordHeight`, `avoidOrphanChrome`, `precedingChromeCluster`, `precedingRecordMates`, and `reflowTextareaHeight`
-- `frontend/src/components/canvas/Image/Image.jsx`, lines 22–76, functions `isTextAlignedIcon`, `iconicDrawTop`; canvas images use `object-fit: fill` so full-page backgrounds stretch like ReportLab `drawImage` (not `contain`, which letterboxed Rift/Relay PNGs that are 1024×1536)
+- `frontend/src/components/canvas/Image/Image.jsx`, lines 22–76, functions `isTextAlignedIcon`, `iconicDrawTop`; canvas images use `object-fit: fill` so full-page backgrounds stretch like ReportLab `drawImage` (not `contain`, which letterboxed full-page background PNGs that are 1024×1536)
 - `backend/app/services/pdf_generator.py`, lines 141–193, method `PDF_Generator.renderImage`
 - `backend/app/crud/pdfs.py` / `backend/app/schemas/pdf_schema.py` — persist `alignWithText` in `extra_properties`
 
 Tests:
 
-- `frontend/src/utils/textareaReflow.test.js`, lines 83–758 — Iconic grouping, explicit Onyx flow roles, keep-heading-with-body, stale-page gaps, chrome rhythm, and non-collapsing record spacing
+- `frontend/src/utils/textareaReflow.test.js`, lines 83–758 — Iconic grouping, explicit `flowRole` values, keep-heading-with-body, stale-page gaps, chrome rhythm, and non-collapsing record spacing
 - `backend/tests/test_pdf_shapes.py`, lines 67–131 — optical alignment, explicit `alignWithText: false`, and alpha-mask regressions
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_loom_keeps_all_skills_and_repeats_sidebar_on_continuation`, `test_ridge_languages_use_consistent_bullet_list`
 
@@ -535,7 +514,7 @@ Python layout from normalised `cv_data` (not LLM placement). Every education rec
 
 Main-column skills render as a compact mid-dot row (`_skills_inline_content`). Vertical bullet lists (`_bullet_list_content`, `bulletList: true`) are reserved for sidebar skills and for other flat chip sections (languages, interests, certifications). Compact sidebar education blocks keep the diploma / school / meta / description structure; Harbor uses teal diamond glyphs for sidebar list lines.
 
-When a client sends `languages: []` but languages still exist only in legacy `extra_sections` (typical after PDF extract + template change), `normalize_cv_data` recovers them unless `custom_sections: []` was also sent as an intentional clear. Skills are scrubbed of bare list markers so Kernel / Vector / Relay never emit an empty UMIEJĘTNOŚCI heading, and those IT templates tag flow nodes with `flowRole: "content"`.
+When a client sends `languages: []` but languages still exist only in legacy `extra_sections` (typical after PDF extract + template change), `normalize_cv_data` recovers them unless `custom_sections: []` was also sent as an intentional clear. Skills are scrubbed of bare list markers so Kernel never emits an empty UMIEJĘTNOŚCI heading, and that template tags flow nodes with `flowRole: "content"`.
 
 Implementation:
 
@@ -547,12 +526,12 @@ Implementation:
 - `backend/app/services/cv_templates/shared/records.py`, `_place_education_record` — degree / school / meta / description bullets
 - `backend/app/services/cv_templates/shared/text.py`, `_skills_inline_content` — main-column skills mid-dot row; `_bullet_list_content` — sidebar skills and other flat lists
 - `backend/app/services/cv_data.py`, lines 165–183, `_skill_items`; lines 620–727, `normalize_cv_data` — language recovery + skills scrub
-- `backend/app/services/cv_templates/templates/kernel.py`, `vector.py`, `relay.py` — non-empty skills body + `flowRole: "content"`
+- `backend/app/services/cv_templates/templates/kernel.py` — non-empty skills body + `flowRole: "content"`
 - `backend/app/api/routes/ai.py`, `fill_template`
 - `backend/app/services/document_service.py`, lines 69–127, `create_pdf_document`; lines 129–165, `update_pdf_document`
 - Docs: [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
-Tests: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_kernel_and_vector_emit_skills_and_languages_bodies`; `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`.
+Tests: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_kernel_emits_skills_and_languages_bodies`; `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`.
 
 ### Record-style extra sections (projects, references, …)
 
@@ -911,7 +890,7 @@ Notable product facts:
 
 # CV Studio
 
-CV Studio to polski edytor CV na A4: płótno WYSIWYG, 26 indywidualnych szablonów (każdy z własną nazwą i krótkim opisem stylistycznym), import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
+CV Studio to polski edytor CV na A4: płótno WYSIWYG, 17 indywidualnych szablonów (każdy z własną nazwą i krótkim opisem stylistycznym), import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
 
 Ten README to wejście techniczne dla programistów. Obszerne, napisane dla początkujących wyjaśnienie współrzędnych canvasu, interakcji React, deterministycznego layoutu Python, roli AI, reflow, zapisu i eksportu ReportLab znajduje się w [`CANVA.md`](CANVA.md). Wszystkie prompty AI (treść, zmienne, numery linii): [`PROMPTS.md`](PROMPTS.md). Opis produktowy funkcji: [`docs/FEATURES.md`](docs/FEATURES.md). Brief marketingowy pod sekcję „Dlaczego CV STUDIO” na stronie (funkcje + pozycjonowanie względem rynku, bez nazw marek konkurencji w copy publicznym): [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Generowanie szablonów (AI extract vs layout w Pythonie): [`docs/cv-template-generation.md`](docs/cv-template-generation.md). Przystępny, kompletny przewodnik Frontend + Backend (ścieżki, pliki, klasy, funkcje): [`CV_GENERATOR.md`](CV_GENERATOR.md).
 
@@ -1009,7 +988,7 @@ Pola tekstowe szablonów zaczynają z projektową wysokością zastępczą, a po
 
 Historia cofnij/ponów traktuje ten reflow po załadowaniu jako **stan bazowy**, nie jako edycję użytkownika: `markHistoryQuiet` w `useA4Elements` aktualizuje bieżący wpis historii w miejscu, więc Cofnij pozostaje nieaktywne, dopóki użytkownik realnie nie zmieni dokumentu. Inaczej Undo przywracałoby wysokości sprzed pomiaru i nierówne odstępy Y (np. dyplom → uczelnia).
 
-Każde pole tekstowe z automatyczną wysokością mierzy się dwukrotnie — od razu i ponownie po `document.fonts.ready` — a każdy pomiar osobno wywołuje `reflowTextareaHeight`, więc późniejsze pole może chwilowo nosić nieaktualny numer `page` z wcześniejszego przebiegu. `rawSamePageGap` sprawdza projektowe wartości `top` (ignorując `page`) przed użyciem ogólnego odstępu page-break: para z jednego rekordu ze stale `page` zachowuje swój mały odstęp, a prawdziwy szew między stronami używa `DEFAULT_PACK_GAP` (10 px, `SPACE_RECORD`) dla zwykłych bloków oraz `SECTION_PACK_GAP` (21 px, `SPACE_SECTION`) dla chrome sekcji. Użycie pozostałego insetu od góry strony (często 0–6 px, gdy edukacja startuje blisko `pageTop` na stronie 2) zgniatało nagłówki takie jak WYKSZTAŁCENIE pod poprzednią sekcją. Szablony IT oznaczają markery/linie sekcji jako `locked` (interakcja i prowadnice), ale `flowRole: "section-chrome"` nadal pozwala im jechać z nagłówkiem w reflow, żeby podkreślenia nie zostawały na następnej stronie. Reflow celowo **nie** zgaduje relacji tytuł/meta na podstawie rozmiaru lub pogrubienia fontu — ta heurystyka deformowała poprawny rytm rekordów Onyx i kumulowała delty niezależnych pomiarów. Onyx i IT oznaczają marker/etykietę/linię sekcji jako `section-chrome`, a zwykłe rekordy jako `content`. Logika keep-with-next nie może więc pomylić tytułu stanowiska z nagłówkiem sekcji i przenieść właściwego nagłówka za jego treść. Starsze szablony bez tej właściwości zachowują fallback oparty na kategorii.
+Każde pole tekstowe z automatyczną wysokością mierzy się dwukrotnie — od razu i ponownie po `document.fonts.ready` — a każdy pomiar osobno wywołuje `reflowTextareaHeight`, więc późniejsze pole może chwilowo nosić nieaktualny numer `page` z wcześniejszego przebiegu. `rawSamePageGap` sprawdza projektowe wartości `top` (ignorując `page`) przed użyciem ogólnego odstępu page-break: para z jednego rekordu ze stale `page` zachowuje swój mały odstęp, a prawdziwy szew między stronami używa `DEFAULT_PACK_GAP` (10 px, `SPACE_RECORD`) dla zwykłych bloków oraz `SECTION_PACK_GAP` (21 px, `SPACE_SECTION`) dla chrome sekcji. Użycie pozostałego insetu od góry strony (często 0–6 px, gdy edukacja startuje blisko `pageTop` na stronie 2) zgniatało nagłówki takie jak WYKSZTAŁCENIE pod poprzednią sekcją. Szablony takie jak Kernel oznaczają markery/linie sekcji jako `locked` (interakcja i prowadnice), ale `flowRole: "section-chrome"` nadal pozwala im jechać z nagłówkiem w reflow, żeby podkreślenia nie zostawały na następnej stronie. Reflow celowo **nie** zgaduje relacji tytuł/meta na podstawie rozmiaru lub pogrubienia fontu — ta heurystyka deformowała poprawny rytm rekordów (np. chrome Monument/Words) i kumulowała delty niezależnych pomiarów. Marker/etykieta/linia sekcji mają `section-chrome`, a zwykłe rekordy `content`. Logika keep-with-next nie może więc pomylić tytułu stanowiska z nagłówkiem sekcji i przenieść właściwego nagłówka za jego treść. Starsze szablony bez tej właściwości zachowują fallback oparty na kategorii.
 
 W czasie enter-hold reflow auto-height jest wstrzymany i wraca po gotowości fontów. Każda textarea z generatorów Pythona ma `preserveInitialLayout: true` (przez `_block` w `cv_generator_primitives.py`). Przy pierwszym montażu canvas może **zmniejszyć** box do `scrollHeight` przeglądarki, gdy ReportLab zawyży wysokość (żeby pusta przestrzeń nie psuła wizualnych odstępów sekcji), ale nie **powiększa** go — niezależny growth nadal psuje rytm. Edycja treści lub późniejsza zmiana typografii/szerokości nadal uruchamia normalny auto-height reflow. Zobacz `textareaHeight.test.js` (`shouldShrinkPreservedLayout`) oraz packing w `textareaReflow.test.js`.
 
@@ -1062,7 +1041,7 @@ pdf-generator/
 │   │   ├── pages/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage
 │   │   ├── store/            # Canvas / UiSurfaces / Session + fasada PdfContext
-│   │   ├── templates/
+│   │   ├── templates/        # 17 specyfikacji szablonów + helpery
 │   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow
 │   ├── package.json
 │   └── .env.example
@@ -1088,7 +1067,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Zasady:** 26 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_templates/registry.py` (re-eksport z `cv_generator.py`). Każdy `cv_templates/templates/<id>.py` zawiera wyłącznie żywy generator tego szablonu — bez wspólnego silnika multi-theme i martwych gałęzi siblingów. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Bajty obrazów użytkownika nie są publicznie montowane — tylko przez `GET /images/{id}/content`.
+**Zasady:** 17 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_templates/registry.py` (re-eksport z `cv_generator.py`). Każdy `cv_templates/templates/<id>.py` zawiera wyłącznie żywy generator tego szablonu — bez wspólnego silnika multi-theme i martwych gałęzi siblingów. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Bajty obrazów użytkownika nie są publicznie montowane — tylko przez `GET /images/{id}/content`.
 
 ---
 
@@ -1186,7 +1165,7 @@ Implementacja:
 
 Ograniczenia:
 
-- Ekstrakcja PDF i działania AI skupione na treści wymagają planu Standard, natomiast pełnopłótnowa akcja `layout` wymaga Premium. Landing przypisuje import do Standard, a kreator krok po kroku do Free, który zawiera siedem szablonów startowych.
+- Ekstrakcja PDF i działania AI skupione na treści wymagają planu Standard, natomiast pełnopłótnowa akcja `layout` wymaga Premium. Landing przypisuje import do Standard, a kreator krok po kroku do Free, który zawiera pięć szablonów startowych.
 - Wskazówki ATS dotyczą czytelności struktury i treści. Nie są gwarancją odpowiedzi rekrutera ani przejścia przez system ATS.
 - Sekcja prywatności opisuje ogólnie zaimplementowane użycie danych i nie deklaruje niezaimplementowanych certyfikatów ani anonimizacji.
 
@@ -1198,7 +1177,7 @@ Ograniczenia:
 
 ### Fade wejścia na kanwie
 
-Gdy pełny dokument ląduje na kanwie (upload CV AI, kreator bio lub wybór szablonu), interaktywna treść pojawia się fade’em opacity 0→1. Elementy są trzymane niewidoczne do `document.fonts.ready` (limit 1000 ms), żeby zmiana fontu zapasowy→webfont nie była widoczna, potem fade trwa 750 ms. Dekoracje (`fixedToPage`, bez zaznaczania) pojawiają się od razu bez animacji. Ręczne dodanie/duplikacja używa tego samego fade tylko dla nowych id. Chrome sekcji **Onyx** z AI (marker + etykieta → linia 14 px poniżej → treść +16 px) odpowiada `frontend/src/templates/onyx.js`; `flowRole` utrzymuje kolejność chrome/treści, a `preserveInitialLayout` blokuje powiększanie przy pierwszym montażu (shrink-to-content nadal dopasowuje wysokość do glifów).
+Gdy pełny dokument ląduje na kanwie (upload CV AI, kreator bio lub wybór szablonu), interaktywna treść pojawia się fade’em opacity 0→1. Elementy są trzymane niewidoczne do `document.fonts.ready` (limit 1000 ms), żeby zmiana fontu zapasowy→webfont nie była widoczna, potem fade trwa 750 ms. Dekoracje (`fixedToPage`, bez zaznaczania) pojawiają się od razu bez animacji. Ręczne dodanie/duplikacja używa tego samego fade tylko dla nowych id. Generatory, które emitują `flowRole` (chrome sekcji vs treść) oraz `preserveInitialLayout` — na przykład Monument, Words i Tessera — utrzymują kolejność chrome/treści podczas reflow, a `preserveInitialLayout` blokuje powiększanie przy pierwszym montażu (shrink-to-content nadal dopasowuje wysokość do glifów).
 
 Implementacja:
 
@@ -1206,9 +1185,8 @@ Implementacja:
 - `frontend/src/hooks/useCanvasEnterIds.js`, linie 1–80, `useCanvasEnterIds`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` + `CanvasElements.module.css`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadAiElements`, `handleLoadTemplate`, `handleLoadTemplateWithFill` wywołują `markContentElementsEnter`
-- `backend/app/services/cv_templates/templates/onyx.py`, `_gen_onyx`; `frontend/src/templates/onyx.js`, linie 1–101 — przypisanie `flowRole` i `preserveInitialLayout` Onyx
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 29–55; `frontend/src/components/canvas/Textarea/Textarea.jsx`, linie 42–164 — pominięcie wyłącznie pierwszego pomiaru textarea Onyx
-- `backend/app/schemas/pdf_schema.py`, linie 44–46; `backend/app/crud/pdfs.py`, linie 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, linie 104–105 — zapis i odtwarzanie flag przepływu Onyx
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 29–55; `frontend/src/components/canvas/Textarea/Textarea.jsx`, linie 42–164 — pominięcie pierwszego pomiaru textarea, gdy ustawiono `preserveInitialLayout`
+- `backend/app/schemas/pdf_schema.py`, linie 44–46; `backend/app/crud/pdfs.py`, linie 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, linie 104–105 — zapis i odtwarzanie `flowRole` / `preserveInitialLayout`
 
 Testy:
 
@@ -1216,7 +1194,7 @@ Testy:
 
 ### Monochromatyczny szablon Monument
 
-Monument to płatny jednokolumnowy szablon (`layouts: ["single"]`) dla osób, które chcą eleganckiego, redakcyjnego efektu bez koloru. Jego charakter budują numerowane czarne prostokąty, konturowe ramki nagłówków, cienkie szare linie i asymetryczny masthead. Najmniejszy tekst ma 9 px; treść główna i podsumowanie używają po 9 px, żeby akapit wstępny nie był o stopień większy od otaczającego tekstu, tytuły stanowisk mają 11 px, tytuły edukacji 10 px, a nagłówki sekcji i linia stanowiska przy nazwisku 12,5 px. Cormorant Garamond odpowiada za formalny charakter display, a Montserrat utrzymuje czytelność gęstej treści CV. Ta sama zasada „podsumowanie = treść body” obowiązuje we wszystkich szablonach wypełnianych przez `generate_resume` (np. Regent/Scribe używają 9,3 px jak bulletów doświadczenia).
+Monument to płatny jednokolumnowy szablon (`layouts: ["single"]`) dla osób, które chcą eleganckiego, redakcyjnego efektu bez koloru. Jego charakter budują numerowane czarne prostokąty, konturowe ramki nagłówków, cienkie szare linie i asymetryczny masthead. Najmniejszy tekst ma 9 px; treść główna i podsumowanie używają po 9 px, żeby akapit wstępny nie był o stopień większy od otaczającego tekstu, tytuły stanowisk mają 11 px, tytuły edukacji 10 px, a nagłówki sekcji i linia stanowiska przy nazwisku 12,5 px. Cormorant Garamond odpowiada za formalny charakter display, a Montserrat utrzymuje czytelność gęstej treści CV. Ta sama zasada „podsumowanie = treść body” obowiązuje we wszystkich szablonach wypełnianych przez `generate_resume` (np. Regent używa 9,3 px jak bulletów doświadczenia).
 
 Startowa tablica frontendu oraz deterministyczny generator Python używają tej samej geometrii A4 i palety szarości. `_gen_monument` nie rozdziela wpisów doświadczenia ani edukacji przy zmianie strony, obsługuje sekcje własne przez `_extra_sections` i grupuje numer, ramkę, etykietę oraz linię jako jeden element reflow, dzięki czemu geometria nagłówka pozostaje równa po pomiarze tekstu w przeglądarce. Rama strony i stopka powtarzają się na każdej stronie, natomiast masthead z nazwiskiem i stanowiskiem oraz jego wysokie boczne belki występują wyłącznie na pierwszej stronie; `repeatOnContinuation: false` zachowuje tę regułę również wtedy, gdy edytor później utworzy kolejną stronę. Decyzje o layoucie nie są przekazywane do modelu AI.
 
@@ -1258,7 +1236,7 @@ Znane ograniczenie: Words odtwarza wizualny język starannie sformatowanego doku
 
 ### Szablon Cardinal w szlachetnej czerwieni
 
-Cardinal to płatny jednokolumnowy szablon (`layouts: ["icons"]`) dla osób, które chcą formalnego dokumentu z jednym powściągliwym akcentem koloru. „Szlachetna czerwień” (`#9E2532`) jest zarezerwowana wyłącznie dla typografii — linii stanowiska pod nazwiskiem oraz każdego nagłówka sekcji — a cała dekoracja pozostaje neutralnie szara (`#8A8A8A`): generowane ikony line-art przy każdym nagłówku sekcji i elemencie kontaktu oraz dekoracyjne linie pod nagłówkami i wzdłuż nagłówka i stopki. Treść główna jest ciemnoszara (`#333333`); nazwisko używa Times-Roman, a etykiety, kontakt, daty i treść — Helvetica. Połączenie generowanych ikon z każdym nagłówkiem i wierszem kontaktu odróżnia go od Scribe, Regent, Aldine, Merit, Monument i Words.
+Cardinal to płatny jednokolumnowy szablon (`layouts: ["icons"]`) dla osób, które chcą formalnego dokumentu z jednym powściągliwym akcentem koloru. „Szlachetna czerwień” (`#9E2532`) jest zarezerwowana wyłącznie dla typografii — linii stanowiska pod nazwiskiem oraz każdego nagłówka sekcji — a cała dekoracja pozostaje neutralnie szara (`#8A8A8A`): generowane ikony line-art przy każdym nagłówku sekcji i elemencie kontaktu oraz dekoracyjne linie pod nagłówkami i wzdłuż nagłówka i stopki. Treść główna jest ciemnoszara (`#333333`); nazwisko używa Times-Roman, a etykiety, kontakt, daty i treść — Helvetica. Połączenie generowanych ikon z każdym nagłówkiem i wierszem kontaktu odróżnia go od Regent, Aldine, Monument i Words.
 
 Szare glify pochodzą z dedykowanego motywu `cardinal` dodanego do wspólnego potoku ikon (`scripts/generate_iconic_icons.py`, `THEMES["cardinal"] = "#8A8A8A"`), renderowane do `backend/template_assets/iconic/cardinal/*.png` i serwowane z istniejącego montowania `/template-assets/`. Statyczny podgląd w edytorze i deterministyczne wypełnianie AI mają jedną tożsamość wizualną, ponieważ generator backendu korzysta z tej samej jednokolumnowej maszynerii ikon co inne szablony z tagiem `icons`, w osobnej gałęzi układu, dzięki czemu nie jest rysowany żaden czerwony pas akcentu.
 
@@ -1275,26 +1253,6 @@ Testy:
 
 - `frontend/src/templates/cardinal.test.js`, linie 1–57 — asercje jednej kolumny, czerwieni tylko w nagłówkach, szarych ikon/linii, ciemnoszarej treści i szeryfowego nazwiska
 - `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — wymusza parytet id frontend/backend, w którym `cardinal` teraz uczestniczy
-
-### Placeholder zdjęcia w sidebarze Moss
-
-Moss to płatny botaniczny szablon z sidebarem (`layouts: ["sidebar"]`). Złota ramka (prostokąt + elipsa + wypełnione koło) jest placeholdérem zdjęcia na górze wąskiego lewego sidebara, wyrównanym do imienia i nazwiska w kolumnie głównej. Kontakt oraz dopasowane sekcje sidebara (umiejętności, języki, zainteresowania, wykształcenie) zaczynają się pod tym placeholdérem — nie w połowie strony pod pustą przestrzenią. Kolumna główna zachowuje imię / stanowisko / linię kontaktu bez dekoracji w mastheadzie.
-
-Pakowanie sidebara (`_fit_sidebar_sections`) przyjmuje każdą kompletną sekcję, która jeszcze mieści się w pozostałej wysokości pierwszej strony. Starszy limit 160 px na sekcję odrzucał typowe listy z kreatora oraz dłuższe wpisy wykształcenia, więc po **Utwórz CV krok po kroku** lądowały w kolumnie głównej, podczas gdy krótsze listy z PDF zostawały w sidebarze.
-
-Pakowanie stron używa `CONTENT_BOTTOM = 770` (72 px margines stopki — wspólne dla `Builder` i reflow na kanwie). Gdy ReportLab zawyży zawijanie i odłoży kolejny wpis doświadczenia na stronę 2, reflow ściąga cały `flowGroup` z powrotem, gdy skurczenie boxów zwolni miejsce — bez pustego pasa pod ostatnim wpisem na stronie 1.
-
-Implementacja:
-
-- `backend/app/services/cv_templates/templates/moss.py`, funkcja `_gen_moss` (geometria zdjęcia i stos sidebara, linie 59–131)
-- `backend/app/services/cv_templates/shared/extras.py`, `_fit_sidebar_sections` — tylko budżet pozostałej wysokości
-- `frontend/src/templates/moss.js`, linie 32–48 — statyczny starter z tym samym zdjęciem w sidebarze i podniesionym stosem KONTAKT
-- `frontend/src/templates/index.js`, wpis rejestru `moss`
-
-Testy:
-
-- `backend/tests/test_cv_template_layouts.py`, `test_moss_photo_placeholder_leads_sidebar_at_name_height`, linie 582–608
-- `backend/tests/test_cv_template_layouts.py`, `test_moss_wizard_length_skills_and_education_stay_in_sidebar`, linie 358–429
 
 ### Szablon dwukolumnowy Harbor
 
@@ -1324,7 +1282,7 @@ Testy:
 
 ### Szablon Tessera z mozaikowym sidebarem
 
-Tessera to płatny szablon dwukolumnowy (`layouts: ["sidebar", "icons"]`) z niezależnie zaprojektowanym językiem mozaiki, a nie wizualną kopią innego CV. Zachowuje użyteczną hierarchię wąskiej szyny profilu i szerokiej kolumny narracyjnej, ale zmienia kompozycję oraz tożsamość: sidebar leży na ciepłym pudrowym tle, powierzchnia główna jest kremowa, masthead używa szeryfowej typografii w kolorze aubergine, a koralowo-ochrowe przesunięte kafle oprawiają każdą własną ikonę line-art. Paleta (`#4A2347`, `#E15D4F`, `#DCA65A`, `#FCF8F2`) i asymetryczna geometria kafli odróżniają ją od zielonego wzorca z zaokrąglonymi kartami oraz od Moss, Harbor i Loom.
+Tessera to płatny szablon dwukolumnowy (`layouts: ["sidebar", "icons"]`) z niezależnie zaprojektowanym językiem mozaiki, a nie wizualną kopią innego CV. Zachowuje użyteczną hierarchię wąskiej szyny profilu i szerokiej kolumny narracyjnej, ale zmienia kompozycję oraz tożsamość: sidebar leży na ciepłym pudrowym tle, powierzchnia główna jest kremowa, masthead używa szeryfowej typografii w kolorze aubergine, a koralowo-ochrowe przesunięte kafle oprawiają każdą własną ikonę line-art. Paleta (`#4A2347`, `#E15D4F`, `#DCA65A`, `#FCF8F2`) i asymetryczna geometria kafli odróżniają ją od Harbor i Loom.
 
 Obszar portretu jest prostokątem 112×126 px z przesuniętym podkładem, konturem aubergine, ochrową orbitą, koralowymi węzłami i generowanym glifem `portrait.png`. To placeholder, a nie zapisane zdjęcie użytkownika: w edytorze można położyć na ramie przesłany obraz rastrowy. Tylko ten dekoracyjny klaster zdjęcia oraz szyny/stopka strony mają `fixedToPage`/`locked`; wiersze kontaktu i dopasowane sekcje sidebara pozostają zaznaczalne i edytowalne. Kontakt, edukacja, umiejętności, języki i obsługiwane sekcje dodatkowe są pakowane w lewą szynę jako kompletne bloki. Tessera daje pierwszeństwo edukacji przed listami umiejętności; wszystko, co nie mieści się przed stopką, trafia do głównego flow zamiast zostać ucięte. Podsumowanie, doświadczenie, awaryjna edukacja/skills i sekcje własne używają `Builder`, `need_section` oraz tagów rekordów `flowGroup`. Kolejne strony zachowują pudrową szynę, koralowy separator, orbitę stopki i numer strony, ale nie duplikują prywatnych danych z sidebara.
 
@@ -1362,13 +1320,13 @@ Implementacja:
 - `backend/app/services/cv_templates/shared/extras.py`, `_extra_sections` — płaskie listy przez `_bullet_list_content`
 - `backend/app/services/cv_templates/templates/{nova,volt,cardinal}.py` — osobne wejścia `_gen_*`
 - `frontend/src/utils/textareaReflow.js`, funkcje `isTextAlignedImage`, `isPositionLockedForReflow`, `belongsToFlowLane`, `packGapAfterPageBreak`, `rawSamePageGap`, `remainingRecordHeight`, `avoidOrphanChrome`, `precedingChromeCluster`, `precedingRecordMates`, `reflowTextareaHeight`
-- `frontend/src/components/canvas/Image/Image.jsx`, linie 22–76, funkcje `isTextAlignedIcon`, `iconicDrawTop`; obrazy na kanwie używają `object-fit: fill`, żeby tła pełnostronicowe rozciągały się jak ReportLab `drawImage` (nie `contain`, które dawało białe paski przy PNG 1024×1536 w Rift/Relay)
+- `frontend/src/components/canvas/Image/Image.jsx`, linie 22–76, funkcje `isTextAlignedIcon`, `iconicDrawTop`; obrazy na kanwie używają `object-fit: fill`, żeby tła pełnostronicowe rozciągały się jak ReportLab `drawImage` (nie `contain`, które dawało białe paski przy pełnostronicowych PNG 1024×1536)
 - `backend/app/services/pdf_generator.py`, linie 141–193, metoda `PDF_Generator.renderImage`
 - `backend/app/crud/pdfs.py` / `backend/app/schemas/pdf_schema.py` — zapis `alignWithText` w `extra_properties`
 
 Testy:
 
-- `frontend/src/utils/textareaReflow.test.js`, linie 83–758 — grupowanie Iconic, jawne role przepływu Onyx, keep-heading-with-body, stale-page gaps, rytm chrome oraz niekolidujące odstępy rekordów
+- `frontend/src/utils/textareaReflow.test.js`, linie 83–758 — grupowanie Iconic, jawne wartości `flowRole`, keep-heading-with-body, stale-page gaps, rytm chrome oraz niekolidujące odstępy rekordów
 - `backend/tests/test_pdf_shapes.py`, linie 67–131 — wyrównanie optyczne, jawne `alignWithText: false` oraz maska alfa
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_loom_keeps_all_skills_and_repeats_sidebar_on_continuation`, `test_ridge_languages_use_consistent_bullet_list`
 
@@ -1428,7 +1386,7 @@ Layout Python powstaje ze znormalizowanego `cv_data`, a nie z pozycji wymyślony
 
 Umiejętności w kolumnie głównej renderują się jako zwarty wiersz ze środkowymi kropkami (`_skills_inline_content`). Pionowe listy punktów (`_bullet_list_content`, `bulletList: true`) są zarezerwowane dla skills w sidebarze oraz innych płaskich sekcji (języki, zainteresowania, certyfikaty). Harbor używa tealowych diamentów dla list w sidebarze.
 
-Gdy klient wyśle `languages: []`, a języki nadal są tylko w legacy `extra_sections` (typowy kształt po ekstrakcji PDF i zmianie szablonu), `normalize_cv_data` je odzyskuje — chyba że jednocześnie wysłano `custom_sections: []` jako świadome wyczyszczenie. Umiejętności są oczyszczane z samotnych markerów listy, żeby Kernel / Vector / Relay nie emitowały pustego nagłówka UMIEJĘTNOŚCI; te szablony IT oznaczają też węzły flow jako `flowRole: "content"`.
+Gdy klient wyśle `languages: []`, a języki nadal są tylko w legacy `extra_sections` (typowy kształt po ekstrakcji PDF i zmianie szablonu), `normalize_cv_data` je odzyskuje — chyba że jednocześnie wysłano `custom_sections: []` jako świadome wyczyszczenie. Umiejętności są oczyszczane z samotnych markerów listy, żeby Kernel nie emitował pustego nagłówka UMIEJĘTNOŚCI; ten szablon oznacza też węzły flow jako `flowRole: "content"`.
 
 - `backend/app/services/cv_generator_primitives.py` — klasa `Builder` (`need`, `need_section`, `keep_together` z tagiem `flowGroup`; re-eksport z `cv_generator.py`)
 - `backend/tests/test_builder_keep_together.py` — regresja: rekord nie dzieli się między stronami
@@ -1438,12 +1396,12 @@ Gdy klient wyśle `languages: []`, a języki nadal są tylko w legacy `extra_sec
 - `backend/app/services/cv_templates/shared/records.py` — `_place_education_record` (dyplom / uczelnia / meta / bullet opis)
 - `backend/app/services/cv_templates/shared/text.py` — `_skills_inline_content` (skills w main), `_bullet_list_content` (sidebar / inne listy)
 - `backend/app/services/cv_data.py`, linie 165–183 — `_skill_items`; linie 620–727 — `normalize_cv_data` (odzyskiwanie języków + czyszczenie skills)
-- `backend/app/services/cv_templates/templates/kernel.py`, `vector.py`, `relay.py` — niepusta treść skills + `flowRole: "content"`
+- `backend/app/services/cv_templates/templates/kernel.py` — niepusta treść skills + `flowRole: "content"`
 - `backend/app/api/routes/ai.py` — `fill_template`
 - `backend/app/services/document_service.py`, linie 69–127 — `create_pdf_document`; linie 129–165 — `update_pdf_document`
 - [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
-Testy: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_kernel_and_vector_emit_skills_and_languages_bodies`; `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`.
+Testy: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_kernel_emits_skills_and_languages_bodies`; `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`.
 
 ### Sekcje rekordowe (projekty, referencje, …)
 

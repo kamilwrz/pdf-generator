@@ -89,9 +89,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
     def test_template_images_resolve_to_versioned_local_assets(self):
         for template_id in (
-            "ledger", "nimbus", "rift",
-            "vector", "kernel", "relay",
-            "tessera",
+            "ledger", "nimbus", "kernel", "tessera",
         ):
             with self.subTest(template_id=template_id):
                 image = next(
@@ -108,9 +106,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "experience": LONG_CV["experience"] * 3,
         }
         assets = {
-            "vector": "vector-it-network.png",
             "kernel": "kernel-it-architecture.png",
-            "relay": "relay-it-signal.png",
         }
         expected_categories = {
             "text", "textarea", "line", "rectangle", "circle", "ellipse",
@@ -212,27 +208,22 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in editable_sidebar
         ))
 
-    def test_sidebar_templates_repeat_narrow_artwork_on_every_page(self):
+    def test_sidebar_templates_repeat_panel_on_every_page(self):
+        """Left-rail sidebars must repaint their panel chrome on every page."""
         multi_page_cv = {
             **LONG_CV,
             "experience": LONG_CV["experience"] * 3,
         }
-        assets = {
-            "moss": "moss-sidebar.png",
-        }
-        expected_categories = {
-            "text", "textarea", "line", "rectangle", "circle", "ellipse",
-            "image",
+        # template_id → expected fixed panel width at left=0
+        panels = {
+            "obsidian": 184,
+            "tessera": 178,
         }
 
-        for template_id, asset_name in assets.items():
+        for template_id, panel_width in panels.items():
             with self.subTest(template_id=template_id):
                 elements = generate_resume(template_id, multi_page_cv)
                 pages = {element.get("page", 1) for element in elements}
-
-                categories = {element["category"] for element in elements}
-                self.assertTrue(expected_categories <= categories)
-                self.assertNotIn("connector", categories)
                 self.assertGreater(max(pages), 1)
                 self.assertTrue(all(
                     element.get("autoHeight") is True
@@ -240,18 +231,16 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     if element["category"] == "textarea"
                 ))
                 for page in pages:
-                    sidebar_images = [
+                    sidebar_panels = [
                         element for element in elements
-                        if element["category"] == "image"
+                        if element["category"] == "line"
                         and element.get("page", 1) == page
-                        and element["src"].endswith(f"/template-assets/{asset_name}")
+                        and element.get("fixedToPage")
+                        and element.get("left", -1) == 0
+                        and element.get("width") == panel_width
+                        and element.get("height") == 842
                     ]
-                    self.assertEqual(len(sidebar_images), 1)
-                    self.assertEqual(sidebar_images[0]["left"], 0)
-                    self.assertEqual(sidebar_images[0]["width"], 184)
-                    self.assertEqual(sidebar_images[0]["height"], 842)
-                    self.assertTrue(sidebar_images[0]["fixedToPage"])
-                    self.assertTrue(Path(image_src_to_local_path(sidebar_images[0]["src"])).is_file())
+                    self.assertEqual(len(sidebar_panels), 1)
 
     def test_sidebar_templates_place_complete_compact_semantic_sections(self):
         cv = {
@@ -300,34 +289,36 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "MBA\nSGH\n2020",
         }
 
-        for template_id in ("moss",):
+        for template_id in ("tessera",):
             with self.subTest(template_id=template_id):
                 elements = generate_resume(template_id, cv)
-                sidebar_text = [
-                    element for element in elements
-                    if element["category"] in {"text", "textarea"} and element["left"] == 24
-                ]
+                # Tessera sidebar bodies sit at left=25; mosaic headings at 51.
                 sidebar_bodies = {
                     element["content"]
-                    for element in sidebar_text
-                    if element["category"] == "textarea"
+                    for element in elements
+                    if element["category"] == "textarea" and element["left"] == 25
+                }
+                sidebar_heading_copy = {
+                    element["content"]
+                    for element in elements
+                    if element["category"] == "text"
+                    and element.get("left") in {25, 51}
+                    and not element.get("fixedToPage")
                 }
                 main_copy = "\n".join(
                     element["content"]
                     for element in elements
-                    if element["category"] == "textarea" and element["left"] == 220
+                    if element["category"] == "textarea" and element["left"] == 218
                 )
 
-                self.assertTrue(sidebar_titles <= {
-                    element["content"] for element in sidebar_text if element["category"] == "text"
-                })
+                self.assertTrue(sidebar_titles <= sidebar_heading_copy)
                 self.assertTrue(complete_sidebar_bodies <= sidebar_bodies)
                 self.assertTrue(all(
                     element["page"] == 1
-                    and element["width"] == 136
-                    and element["top"] + element["height"] <= 758
-                    for element in sidebar_text
-                    if element["category"] == "textarea"
+                    and element["width"] == 128
+                    and element["top"] + element["height"] <= 770
+                    for element in elements
+                    if element["category"] == "textarea" and element["left"] == 25
                 ))
                 for body in complete_sidebar_bodies:
                     self.assertNotIn(body, main_copy)
@@ -431,7 +422,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in sidebar_bodies
         ))
 
-    def test_moss_wizard_length_skills_and_education_stay_in_sidebar(self):
+    def test_obsidian_wizard_length_skills_and_education_stay_in_sidebar(self):
         """Wizard profiles often have ~12 skills; those must not spill to main."""
         skills = [
             "Analiza AML/KYC",
@@ -478,7 +469,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 "items": ["Polski — C2", "Angielski — B2"],
             }],
         }
-        elements = generate_resume("moss", cv)
+        elements = generate_resume("obsidian", cv)
         sidebar_titles = {
             element["content"]
             for element in elements
@@ -487,7 +478,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         main_copy = "\n".join(
             element["content"]
             for element in elements
-            if element["category"] == "textarea" and element.get("left") == 220
+            if element["category"] == "textarea" and element.get("left") == 222
         )
         self.assertTrue({"UMIEJĘTNOŚCI", "JĘZYKI", "WYKSZTAŁCENIE"} <= sidebar_titles)
         self.assertIn(skills[0], "\n".join(
@@ -526,36 +517,36 @@ class CvTemplateLayoutTests(unittest.TestCase):
             }],
         }
 
-        elements = generate_resume("moss", cv)
-        sidebar_text = [
-            element for element in elements
-            if element["category"] in {"text", "textarea"} and element["left"] == 24
-        ]
-        sidebar_titles = {
-            element["content"] for element in sidebar_text if element["category"] == "text"
+        elements = generate_resume("tessera", cv)
+        sidebar_heading_copy = {
+            element["content"]
+            for element in elements
+            if element["category"] == "text"
+            and element.get("left") in {25, 51}
+            and not element.get("fixedToPage")
         }
         sidebar_bodies = "\n".join(
             element["content"]
-            for element in sidebar_text
-            if element["category"] == "textarea"
+            for element in elements
+            if element["category"] == "textarea" and element["left"] == 25
         )
         main_textareas = [
             element for element in elements
-            if element["category"] == "textarea" and element["left"] == 220
+            if element["category"] == "textarea" and element["left"] == 218
         ]
         main_copy = "\n".join(element["content"] for element in main_textareas)
 
         # Skills/languages are far taller than the first-page sidebar budget, so
         # they stay complete in the main column (never truncated in the sidebar).
-        self.assertNotIn("UMIEJĘTNOŚCI", sidebar_titles)
-        self.assertNotIn("JĘZYKI", sidebar_titles)
+        self.assertNotIn("UMIEJĘTNOŚCI", sidebar_heading_copy)
+        self.assertNotIn("JĘZYKI", sidebar_heading_copy)
         self.assertIn(skills[0], main_copy)
         self.assertIn(skills[-1], main_copy)
         self.assertIn(f"• {languages[0]}", main_copy)
         self.assertIn(f"• {languages[-1]}", main_copy)
         # Education may still fit wholly in the sidebar at a smaller font; if so,
         # every record must be present. Otherwise the full set is in the main column.
-        if "WYKSZTAŁCENIE" in sidebar_titles:
+        if "WYKSZTAŁCENIE" in sidebar_heading_copy:
             self.assertIn(education[0]["degree"], sidebar_bodies)
             self.assertIn(education[-1]["degree"], sidebar_bodies)
             self.assertNotIn(education[0]["degree"], main_copy)
@@ -619,8 +610,8 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "• Polski — C2\n• Niemiecki — C1\n• Angielski — B2",
         )
 
-    def test_kernel_and_vector_emit_skills_and_languages_bodies(self):
-        """Single-column IT templates must keep skills/languages after Moss-style data."""
+    def test_kernel_emits_skills_and_languages_bodies(self):
+        """Single-column Kernel must keep skills/languages after wizard-style data."""
         profile = {
             **LONG_CV,
             "languages": [
@@ -634,7 +625,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 "items": ["Polski — C2", "Niemiecki — C1"],
             }],
         }
-        for template_id in ("kernel", "vector"):
+        for template_id in ("kernel",):
             elements = generate_resume(template_id, profile)
             content = "\n".join(
                 str(element.get("content", ""))
@@ -666,7 +657,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 "Analiza jakości obsługi klienta oraz przygotowywanie raportów.",
             ],
         }
-        elements = generate_resume("moss", {
+        elements = generate_resume("obsidian", {
             **LONG_CV,
             "experience": [*LONG_CV["experience"], fourth_job],
         })
@@ -702,7 +693,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 "bullets": ["Weryfikacja klientów.", "Kontrola dokumentacji."],
             },
         ]
-        elements = generate_resume("moss", {
+        elements = generate_resume("obsidian", {
             "name": "Anna Kowalska",
             "title": "AML Analyst",
             "experience": jobs,
@@ -713,7 +704,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         textareas = {
             element["content"]: element
             for element in elements
-            if element["category"] == "textarea" and element["left"] == 220
+            if element["category"] == "textarea" and element["left"] == 222
         }
         first_title = textareas[jobs[0]["title"]]
         first_meta = textareas["Northbridge Bank   ·   Warszawa   ·   2021 – obecnie"]
@@ -727,8 +718,8 @@ class CvTemplateLayoutTests(unittest.TestCase):
         )
 
         for title, metadata, bullets in records:
-            self.assertEqual({title["left"], metadata["left"], bullets["left"]}, {220})
-            self.assertEqual({title["width"], metadata["width"], bullets["width"]}, {326})
+            self.assertEqual({title["left"], metadata["left"], bullets["left"]}, {222})
+            self.assertEqual({title["width"], metadata["width"], bullets["width"]}, {337})
             # Equal stack gap inside a record; equal record gap between jobs.
             self.assertAlmostEqual(metadata["top"] - (title["top"] + title["height"]), 4)
             self.assertAlmostEqual(bullets["top"] - (metadata["top"] + metadata["height"]), 4)
@@ -741,38 +732,12 @@ class CvTemplateLayoutTests(unittest.TestCase):
         header_texts = [
             element for element in elements
             if element["category"] == "text"
-            and element.get("content") in {"ANNA KOWALSKA", "AML ANALYST"}
+            and element.get("content") in {"Anna Kowalska", "AML Analyst"}
         ]
         self.assertTrue(header_texts)
-        self.assertEqual({element["left"] for element in header_texts}, {220})
-
-    def test_moss_photo_placeholder_leads_sidebar_at_name_height(self):
-        """Moss photo motif sits in the sidebar top; KONTAKT follows under it."""
-        elements = generate_resume("moss", {
-            "name": "Maja Zielińska",
-            "title": "Studentka",
-            "email": "maja@example.com",
-            "phone": "+48 600 000 000",
-            "location": "Warszawa",
-            "experience": [],
-            "education": [],
-            "skills": ["Marketing"],
-            "extra_sections": [],
-        })
-        name = next(
-            element for element in elements
-            if element["category"] == "text" and element["content"] == "MAJA ZIELIŃSKA"
-        )
-        frame = next(element for element in elements if element.get("id") == "moss-frame")
-        contact = next(
-            element for element in elements
-            if element["category"] == "text" and element["content"] == "KONTAKT"
-        )
-        # No masthead ornament to the right of the name.
-        self.assertLess(frame["left"] + frame["width"], 184)
-        self.assertAlmostEqual(frame["top"], name["top"])
-        self.assertGreater(contact["top"], frame["top"] + frame["height"])
-        self.assertLess(contact["top"], 200)
+        # Name sits on the main column; the role line is inset a couple of pixels.
+        self.assertTrue(all(element["left"] >= 222 for element in header_texts))
+        self.assertTrue(all(element["left"] < 230 for element in header_texts))
 
     def test_education_is_structured_in_main_column_and_sidebar(self):
         education = [{
@@ -782,7 +747,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "period": "2017 – 2022",
             "description": "Specjalizacja: prawo europejskie",
         }]
-        main = generate_resume("merit", {
+        main = generate_resume("regent", {
             "name": "Anna Kowalska",
             "title": "Prawnik",
             "education": education,
@@ -800,7 +765,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertIn("Warszawa   ·   2017 – 2022", main_copy)
         self.assertIn("• Specjalizacja: prawo europejskie", main_copy)
 
-        sidebar = generate_resume("moss", {
+        sidebar = generate_resume("obsidian", {
             "name": "Anna Kowalska",
             "title": "Prawnik",
             "education": education,
@@ -808,16 +773,15 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "skills": ["Analiza"],
             "extra_sections": [],
         })
-        sidebar_block = next(
+        sidebar_copy = "\n".join(
             element["content"]
             for element in sidebar
-            if element["category"] == "textarea"
-            and element.get("left") == 24
-            and "Magister prawa" in element["content"]
+            if element["category"] == "textarea" and element.get("left") == 24
         )
-        self.assertIn("Uniwersytet Warszawski", sidebar_block)
-        self.assertIn("Warszawa   ·   2017 – 2022", sidebar_block)
-        self.assertIn("• Specjalizacja: prawo europejskie", sidebar_block)
+        self.assertIn("Magister prawa", sidebar_copy)
+        self.assertIn("Uniwersytet Warszawski", sidebar_copy)
+        self.assertIn("Warszawa   ·   2017 – 2022", sidebar_copy)
+        self.assertIn("• Specjalizacja: prawo europejskie", sidebar_copy)
 
     def test_education_description_uses_the_experience_body_color(self):
         """Education descriptions must read like body content, not muted metadata."""
@@ -848,18 +812,18 @@ class CvTemplateLayoutTests(unittest.TestCase):
         # separate palette.
         affected_templates = (
             "signal",
-            "ledger", "nimbus", "cinder", "rift",
-            "vector", "kernel", "relay",
-            "scribe", "regent", "aldine", "merit",
-            "moss", "monument",
+            "ledger", "nimbus", "cinder",
+            "kernel",
+            "regent", "aldine",
+            "tessera", "monument",
         )
 
         for template_id in affected_templates:
             with self.subTest(template_id=template_id):
-                if template_id == "moss":
-                    # Moss imports the helper into its own module namespace.
+                if template_id == "tessera":
+                    # Tessera imports the helper into its own module namespace.
                     with patch(
-                        "app.services.cv_templates.templates.moss._fit_sidebar_sections",
+                        "app.services.cv_templates.templates.tessera._fit_sidebar_sections",
                         return_value=([], set()),
                     ):
                         elements = generate_resume(template_id, cv)
@@ -899,7 +863,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             **LONG_CV,
             "experience": LONG_CV["experience"] * 3,
         }
-        templates = ("scribe", "regent", "aldine", "merit")
+        templates = ("regent", "aldine")
         expected_categories = {
             "text", "textarea", "line", "rectangle", "circle", "ellipse",
         }
@@ -1244,32 +1208,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertLess(first_school["top"], first_meta["top"])
         self.assertLess(first_meta["top"], first_body["top"])
         self.assertTrue(first_body.get("bulletList"))
-
-    def test_rift_repeats_fixed_background_on_every_content_page(self):
-        multi_page_cv = {
-            **LONG_CV,
-            "experience": LONG_CV["experience"] * 4,
-        }
-        elements = generate_resume("rift", multi_page_cv)
-        pages = {element.get("page", 1) for element in elements}
-        content_pages = {
-            element.get("page", 1)
-            for element in elements
-            if element["category"] in {"text", "textarea"} and not element.get("fixedToPage")
-        }
-
-        self.assertGreater(max(pages), 1)
-        self.assertEqual(pages, content_pages)
-        for page in pages:
-            backgrounds = [
-                element
-                for element in elements
-                if element["category"] == "image"
-                and element.get("page", 1) == page
-                and element["src"].endswith("/template-assets/rift-cv-background.png")
-            ]
-            self.assertEqual(len(backgrounds), 1)
-            self.assertTrue(backgrounds[0]["fixedToPage"])
 
     def test_ledger_contains_every_canvas_element_category(self):
         elements = generate_resume("ledger", LONG_CV)
@@ -1654,13 +1592,12 @@ class CvTemplateLayoutTests(unittest.TestCase):
         ))
 
     def test_banded_mastheads_clear_first_section_heading(self):
-        """Body copy must start below solid header bands (Cinder/Raven/Ledger)."""
+        """Body copy must start below solid header bands (Cinder/Ledger)."""
         from app.services.cv_generator_primitives import SPACE_AFTER_MASTHEAD
 
         cases = {
             # template_id: (band_top, band_height) of the solid masthead fill
             "cinder": (0, 170),
-            "raven": (0, 173),  # 170 band + 3px teal rule
             "ledger": (0, 151),  # 146 navy + 5px accent
         }
         cv = {
@@ -1693,15 +1630,11 @@ class CvTemplateLayoutTests(unittest.TestCase):
         # template_id → y of the wide header divider (top of 1px rule)
         cases = {
             "nimbus": 207,
-            "scribe": 157,
             "regent": 158,
             "aldine": 157,
-            "merit": 159,
-            "moss": 145,
             "nova": 144,
             "obsidian": 116,
-            "graphite": None,  # hairline is measured from the generated layout
-            "words": None,
+            "words": None,  # hairline is measured from the generated layout
         }
         cv = {
             **LONG_CV,
@@ -1796,101 +1729,10 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 for element in elements
             ))
 
-    def test_onyx_page_frames_are_fixed_decorations(self):
-        """Full-page bronze frames must not participate in textarea reflow."""
-        multi_page_cv = {
-            **LONG_CV,
-            "experience": LONG_CV["experience"] * 4,
-        }
-        elements = generate_resume("onyx", multi_page_cv)
-        pages = {element.get("page", 1) for element in elements}
-        self.assertGreater(max(pages), 1)
-
-        frame_rects = [
-            element
-            for element in elements
-            if element["category"] == "rectangle"
-            and element.get("width", 0) >= 500
-            and element.get("height", 0) >= 700
-        ]
-        self.assertGreaterEqual(len(frame_rects), 2)
-        for frame in frame_rects:
-            self.assertTrue(
-                frame.get("fixedToPage") is True,
-                f"onyx frame on page {frame.get('page', 1)} must be fixedToPage",
-            )
-
-        for page in pages:
-            self.assertTrue(any(
-                element["category"] == "line"
-                and element.get("page", 1) == page
-                and element.get("fixedToPage") is True
-                and element["width"] == 595
-                and element["height"] == 842
-                and element["backgroundColor"] == "#0E0E10"
-                for element in elements
-            ))
-
-    def test_onyx_section_chrome_matches_static_template_rhythm(self):
-        """Label → rule (+14) → body (+16) must match frontend/templates/onyx.js."""
-        elements = generate_resume("onyx", LONG_CV)
-        headings = [
-            element
-            for element in elements
-            if element["category"] == "text"
-            and element.get("bold")
-            and element.get("fontSize") == 11.5
-            and not element.get("fixedToPage")
-        ]
-        self.assertGreaterEqual(len(headings), 2)
-        for heading in headings:
-            self.assertEqual(heading.get("flowRole"), "section-chrome")
-            page = heading.get("page", 1)
-            rules = [
-                element
-                for element in elements
-                if element["category"] == "line"
-                and element.get("page", 1) == page
-                and not element.get("fixedToPage")
-                and element.get("width", 0) >= 400
-                and abs(element["top"] - (heading["top"] + 14)) < 0.5
-            ]
-            self.assertEqual(
-                len(rules),
-                1,
-                f"onyx heading {heading.get('content')!r} needs a rule 14px below",
-            )
-            rule = rules[0]
-            self.assertEqual(rule.get("flowRole"), "section-chrome")
-            bodies = [
-                element
-                for element in elements
-                if element["category"] in {"text", "textarea"}
-                and element.get("page", 1) == page
-                and not element.get("fixedToPage")
-                and element["top"] > rule["top"]
-                and abs(element.get("left", 0) - 55) < 1
-            ]
-            bodies.sort(key=lambda element: element["top"])
-            self.assertTrue(bodies, f"no body under {heading.get('content')!r}")
-            self.assertEqual(bodies[0].get("flowRole"), "content")
-            self.assertAlmostEqual(bodies[0]["top"] - rule["top"], 16, delta=0.5)
-
-        selectable = [
-            element for element in elements if not element.get("fixedToPage")
-        ]
-        self.assertTrue(selectable)
-        self.assertTrue(all(element.get("flowRole") for element in selectable))
-        textareas = [
-            element for element in selectable if element["category"] == "textarea"
-        ]
-        self.assertTrue(textareas)
-        self.assertTrue(
-            all(element.get("preserveInitialLayout") is True for element in textareas)
-        )
-
     def test_active_templates_keep_textareas_inside_page_bounds(self):
-        for template_id in ("ledger", "vector", "scribe", "moss", "obsidian", "onyx"):
+        for template_id in (
+            "ledger", "kernel", "regent", "harbor", "obsidian", "tessera", "nova",
+        ):
             with self.subTest(template_id=template_id):
                 multi_page_cv = {
                     **LONG_CV,

@@ -19,11 +19,8 @@ from app.models.models import Pdf, Plan, UsageCounter, User, UserSubscription
 FREE_STARTER_TEMPLATE_IDS: tuple[str, ...] = (
     "ledger",
     "nimbus",
-    "vector",
     "kernel",
-    "scribe",
     "regent",
-    "graphite",
     "nova",
 )
 
@@ -203,7 +200,7 @@ PLAN_DISPLAY: dict[str, dict[str, Any]] = {
         "price_pln": 0,
         "blurb": "Edytor, wybrane szablony i eksport PDF.",
         "highlights": [
-            "8 szablonów startowych",
+            "5 szablonów startowych",
             "1 projekt · 3 eksporty / mies.",
             "Bez Asystenta AI",
         ],
@@ -214,7 +211,7 @@ PLAN_DISPLAY: dict[str, dict[str, Any]] = {
         "highlights": [
             "150 kredytów AI / mies.",
             "CV, projekt, dopasowanie, gramatyka, styl i ATS",
-            "Wszystkie 26 szablonów",
+            "Wszystkie 17 szablonów",
             "10 projektów · 30 eksportów / mies.",
         ],
     },
@@ -224,7 +221,7 @@ PLAN_DISPLAY: dict[str, dict[str, Any]] = {
         "highlights": [
             "300 kredytów AI / mies.",
             "Tryb Układ: geometria i propozycje zmian",
-            "Wszystkie 26 szablonów",
+            "Wszystkie 17 szablonów",
             "Bez limitu projektów i eksportów",
         ],
     },

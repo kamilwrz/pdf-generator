@@ -240,10 +240,6 @@ def _layout_hint_for_template(template_id: str | None) -> str:
             "Szablon Monument: numerowane sekcje w ramkach. Trzymaj chrome nagłówka "
             "(numer, ramka, etykieta, linia) razem z pierwszą treścią sekcji."
         ),
-        "onyx": (
-            "Szablon Onyx: marker + etykieta → linia → treść. flowRole oznaczają rolę "
-            "chrome/treści; nie rozdzielaj pary nagłówkowej."
-        ),
     }
     return hints.get(
         template_id,
