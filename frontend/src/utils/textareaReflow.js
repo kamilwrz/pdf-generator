@@ -28,6 +28,8 @@ const CHROME_CLUSTER_Y_SPAN = 48;
 // Matches backend SPACE_STACK (4) with slack for browser vs ReportLab metrics.
 // Untagged legacy records use this to stay whole during reclaim packing.
 const RECORD_STACK_GAP = 8;
+// Authored gap between degree/school/meta lines inside a keep-together record.
+const SPACE_STACK = 4;
 
 function number(value, fallback = 0) {
   const parsed = Number(value);
@@ -191,6 +193,10 @@ function rawSamePageGap(current, previousOriginal) {
  * Height of the keep-together record starting at `lane[index]`, including
  * internal gaps. Prefers explicit `flowGroup`; falls back to tightly stacked
  * non-chrome content for legacy layouts without tags.
+ *
+ * Decorative chrome that overlaps a record's Y band (Nimbus section chips sit
+ * on the degree line) is skipped — breaking here used to reserve only the
+ * first textarea and leave school/description on the next page.
  */
 function remainingRecordHeight(lane, index, pageHeight, targetId, nextHeight) {
   const start = lane[index];
@@ -204,7 +210,12 @@ function remainingRecordHeight(lane, index, pageHeight, targetId, nextHeight) {
 
   for (let i = index + 1; i < lane.length; i += 1) {
     const candidate = lane[i];
-    if (isChromeLike(candidate)) break;
+    if (isChromeLike(candidate)) {
+      // Tagged records may have section markers interleaved by Y-sort; keep
+      // scanning for the rest of the same flowGroup.
+      if (group) continue;
+      break;
+    }
 
     if (group) {
       if (flowGroupOf(candidate) !== group) break;
@@ -546,6 +557,11 @@ export function reflowTextareaHeight(
   let previousPlacedBottom = newTargetBottom;
   let maxPage = targetPage;
   let activeGroupPage = null;
+  // Content-only cursor for flowGroup continuity. Decorative chrome can sort
+  // between record mates by `top` (Nimbus chip on the degree line); comparing
+  // only against `previousOriginal` would treat the next mate as a new record.
+  let lastContentGroup = isChromeLike(target) ? null : flowGroupOf(target);
+  let lastContentPlacedBottom = isChromeLike(target) ? null : newTargetBottom;
 
   for (let index = targetIndex + 1; index < lane.length; index += 1) {
     const current = lane[index];
@@ -555,6 +571,10 @@ export function reflowTextareaHeight(
       previousPlacedTop = (pageOf(already) - 1) * safePageHeight + number(already.top);
       previousPlacedBottom = previousPlacedTop + heightFor(already, elementId, nextHeight);
       maxPage = Math.max(maxPage, pageOf(already));
+      if (!isChromeLike(current)) {
+        lastContentGroup = flowGroupOf(current);
+        lastContentPlacedBottom = previousPlacedBottom;
+      }
       continue;
     }
 
@@ -564,17 +584,20 @@ export function reflowTextareaHeight(
     const group = flowGroupOf(current);
     const previousGroup = flowGroupOf(previousOriginal);
     const gapFromPrevious = rawSamePageGap(current, previousOriginal);
-    // Tagged records start whenever the flowGroup changes. Untagged legacy
-    // records start only under section chrome — a large gap after another
-    // content block is a new independent entry, not a keep-together stack.
+    // Tagged records start whenever the flowGroup changes relative to the last
+    // content block (not relative to an interleaved decoration). Untagged
+    // legacy records start only under section chrome — a large gap after
+    // another content block is a new independent entry, not a keep-together
+    // stack.
     const startsRecord = !isChromeLike(current) && (
-      (Boolean(group) && group !== previousGroup)
-      || (!group && isChromeLike(previousOriginal))
+      (Boolean(group) && group !== lastContentGroup)
+      || (!group && isChromeLike(previousOriginal) && !lastContentGroup)
     );
     const continuesRecord = !isChromeLike(current) && !startsRecord && (
-      (Boolean(group) && group === previousGroup)
+      (Boolean(group) && group === lastContentGroup)
       || (
         !group
+        && !lastContentGroup
         && !previousGroup
         && !isChromeLike(previousOriginal)
         && gapFromPrevious >= -0.5
@@ -624,8 +647,15 @@ export function reflowTextareaHeight(
     // Mid-record pieces stay on the page chosen for the record start.
     if (continuesRecord && activeGroupPage != null) {
       page = activeGroupPage;
-      top = previousPlacedBottom - (page - 1) * safePageHeight
-        + Math.max(0, gapFromPrevious);
+      // Prefer the last content mate's bottom when chrome was interleaved —
+      // raw gap against a decoration that shares the degree line is often 0/neg.
+      const stackFrom = lastContentPlacedBottom != null
+        ? lastContentPlacedBottom
+        : previousPlacedBottom;
+      const stackGap = (!isChromeLike(previousOriginal) && gapFromPrevious >= 0)
+        ? gapFromPrevious
+        : SPACE_STACK;
+      top = stackFrom - (page - 1) * safePageHeight + stackGap;
       if (top + height > contentBottom && height <= pageCapacity) {
         // Last resort for a record taller than one page.
         page += 1;
@@ -650,7 +680,18 @@ export function reflowTextareaHeight(
     if (startsRecord || (continuesRecord && activeGroupPage == null)) {
       activeGroupPage = page;
     } else if (isChromeLike(current)) {
-      activeGroupPage = null;
+      // Clear only when this chrome opens a later section — not when a
+      // decoration is Y-sorted inside the active keep-together record.
+      let nextContentGroup = null;
+      for (let i = index + 1; i < lane.length; i += 1) {
+        if (!isChromeLike(lane[i])) {
+          nextContentGroup = flowGroupOf(lane[i]);
+          break;
+        }
+      }
+      if (nextContentGroup !== lastContentGroup || lastContentGroup == null) {
+        activeGroupPage = null;
+      }
     }
 
     const nextElement = { ...current, page, top };
@@ -660,6 +701,10 @@ export function reflowTextareaHeight(
     previousPlacedTop = (page - 1) * safePageHeight + top;
     previousPlacedBottom = previousPlacedTop + height;
     maxPage = Math.max(maxPage, page);
+    if (!isChromeLike(current)) {
+      lastContentGroup = group;
+      lastContentPlacedBottom = previousPlacedBottom;
+    }
   }
 
   const reflowed = elements.map((element) => {

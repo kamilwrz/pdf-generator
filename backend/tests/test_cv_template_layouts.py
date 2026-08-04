@@ -1252,20 +1252,97 @@ class CvTemplateLayoutTests(unittest.TestCase):
         )
 
         self.assertGreater(education_heading["page"], 1)
+        self.assertEqual(education_heading.get("flowRole"), "section-chrome")
+        # Chip/rail stay in the heading band (not on the first record line).
         self.assertTrue(any(
             element["category"] == "rectangle"
             and element["page"] == education_heading["page"]
             and element["left"] == 45
-            and abs(element["top"] - (education_heading["top"] + 20)) < 0.01
+            and abs(element["top"] - (education_heading["top"] + 1)) < 0.01
+            and element.get("flowRole") == "section-chrome"
             for element in elements
         ))
         self.assertTrue(any(
             element["category"] == "line"
             and element["page"] == education_heading["page"]
             and element["left"] == 52
-            and abs(element["top"] - (education_heading["top"] + 5)) < 0.01
-            and element["height"] <= 40
+            and abs(element["top"] - (education_heading["top"] + 2)) < 0.01
+            and element["height"] <= 16
+            and element.get("flowRole") == "section-chrome"
             for element in elements
+        ))
+
+    def test_nimbus_keeps_education_record_with_heading_near_page_break(self):
+        """Education chrome + first record must not leave only the degree on page 1."""
+        job = {
+            "title": "AML Analyst",
+            "company": "Financial Institution",
+            "city": "Warsaw",
+            "period": "2023 – Present",
+            "bullets": [
+                "Monitoring transakcji i analiza alertow AML/KYC zgodnie z procedura wewnetrzna banku.",
+                "Weryfikacja klientow w procesach onboarding i periodic review z ocena ryzyka.",
+                "Dokumentowanie ustalen oraz przygotowywanie rekomendacji eskalacyjnych dla compliance.",
+                "Wspolpraca z compliance przy przypadkach o podwyzszonym ryzyku i alertach SAR.",
+            ],
+        }
+        cv = {
+            **LONG_CV,
+            "experience": [dict(job, title=f"AML Analyst {index}") for index in range(3)],
+            "education": [
+                {
+                    "degree": "Bachelor of Laws (LL.B.)",
+                    "school": "European University Viadrina",
+                    "city": "Frankfurt (Oder)",
+                    "period": "2014 – 2018",
+                    "description": (
+                        "Uzyskanie tytułu Bachelor of Laws z zakresu prawa "
+                        "niemieckiego i europejskiego."
+                    ),
+                },
+            ],
+        }
+        elements = generate_resume("nimbus", cv)
+        heading = next(
+            element
+            for element in elements
+            if element["category"] == "text" and element["content"] == "WYKSZTAŁCENIE"
+        )
+        degree = next(
+            element
+            for element in elements
+            if element["category"] == "textarea"
+            and "Bachelor of Laws" in str(element.get("content", ""))
+        )
+        school = next(
+            element
+            for element in elements
+            if element["category"] == "textarea"
+            and "Viadrina" in str(element.get("content", ""))
+        )
+        description = next(
+            element
+            for element in elements
+            if element["category"] == "textarea"
+            and "Uzyskanie" in str(element.get("content", ""))
+        )
+        self.assertEqual(heading["page"], degree["page"])
+        self.assertEqual(degree["page"], school["page"])
+        self.assertEqual(degree["page"], description["page"])
+        self.assertEqual(
+            {degree.get("flowGroup"), school.get("flowGroup"), description.get("flowGroup")},
+            {degree.get("flowGroup")},
+        )
+        self.assertLess(heading["top"], degree["top"])
+        # Section markers must sit above the degree so reflow cannot insert
+        # chrome between flowGroup mates.
+        self.assertTrue(all(
+            element["top"] < degree["top"] - 0.01
+            for element in elements
+            if element.get("flowRole") == "section-chrome"
+            and element.get("page", 1) == heading["page"]
+            and element["category"] in {"line", "rectangle"}
+            and abs(element["top"] - heading["top"]) < 24
         ))
 
     def test_signal_keeps_education_heading_with_body_on_page_break(self):

@@ -48,7 +48,9 @@ def _gen_nimbus(cv: dict) -> list[dict]:
     POWDER, SKY, CLOUD, SLATE = "#B9D2E5", "#DFEBF4", "#E9EEF1", "#72818C"
     L, W, SANS, SERIF = 80, 462, "Inter", "Times-Roman"
     CONTINUATION = 66
-    SECTION_CHROME = section_chrome_height(8.4)
+    # Label + rule gap; decorated markers stay inside this band so their tops
+    # never sort between education/experience flowGroup mates during reflow.
+    SECTION_CHROME = section_chrome_height(8.7)
     lbl = _labels(cv)
 
     class NimbusBuilder(Builder):
@@ -110,12 +112,18 @@ def _gen_nimbus(cv: dict) -> list[dict]:
 
     def section(label: str, decorated: bool = True) -> None:
         if decorated:
-            # Short rail next to the heading only — a page-tall rail fought
-            # client reflow and made continuation pages look bottom-heavy.
-            b.els.append(_line(52, b.y + 5, 2, 28, SKY, page=b.pg))
-            b.els.append(_rect(45, b.y + 20, 16, 16, BLUE, zIndex=2, page=b.pg))
+            # Markers stay in the heading band (above the rule). A taller chip
+            # at y+20 previously sorted onto the first record line and made
+            # client reflow treat school/meta as a new record after the degree.
+            rail = _line(52, b.y + 2, 2, 12, SKY, page=b.pg)
+            chip = _rect(45, b.y + 1, 12, 12, BLUE, zIndex=2, page=b.pg)
+            rail["flowRole"] = "section-chrome"
+            chip["flowRole"] = "section-chrome"
+            b.els.extend((rail, chip))
         b.text(label, 8.7, SANS, BLUE, L)
+        b.els[-1]["flowRole"] = "section-chrome"
         b.line(L, W, 1, CLOUD)
+        b.els[-1]["flowRole"] = "section-chrome"
         b.gap(SPACE_AFTER_RULE)
 
     def close_section() -> None:
@@ -168,4 +176,10 @@ def _gen_nimbus(cv: dict) -> list[dict]:
         close_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": INK}, L, W, SANS, fs=9.4, lh=13.5)
-    return static + b.build()
+    # Tag ordinary flow nodes as content so reflow never promotes job titles
+    # or degree lines to keep-with-next section chrome.
+    flow = [
+        {**element, "flowRole": element.get("flowRole", "content")}
+        for element in b.build()
+    ]
+    return static + flow

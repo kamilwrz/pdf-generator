@@ -492,6 +492,120 @@ test("reclaim packing keeps a flowGroup education record whole", () => {
   assert.ok(meta.top > degree.top);
 });
 
+test("nimbus-style chrome on the degree line does not split a flowGroup record", () => {
+  // Nimbus used to place a section chip at the same Y as the degree. Y-sorted
+  // reflow then treated school/meta as a new record and left only "Bachelor…"
+  // on page 1 after reclaim.
+  const result = reflowTextareaHeight([
+    {
+      element_id: "job-bullets",
+      category: "textarea",
+      autoHeight: true,
+      left: 80,
+      top: 500,
+      width: 462,
+      height: 120,
+      page: 1,
+    },
+    {
+      element_id: "edu-heading",
+      category: "text",
+      content: "WYKSZTAŁCENIE",
+      flowRole: "section-chrome",
+      left: 80,
+      top: 66,
+      width: 200,
+      fontSize: 8.7,
+      page: 2,
+    },
+    {
+      element_id: "edu-rule",
+      category: "line",
+      flowRole: "section-chrome",
+      left: 80,
+      top: 78,
+      width: 462,
+      height: 1,
+      page: 2,
+    },
+    {
+      element_id: "edu-degree",
+      category: "textarea",
+      content: "Bachelor of Laws (LL.B.)",
+      flowGroup: "record-edu-1",
+      flowRole: "content",
+      autoHeight: true,
+      left: 80,
+      top: 86,
+      width: 462,
+      height: 13,
+      page: 2,
+    },
+    {
+      element_id: "edu-chip",
+      category: "rectangle",
+      flowRole: "section-chrome",
+      left: 45,
+      top: 86.3,
+      width: 16,
+      height: 16,
+      page: 2,
+    },
+    {
+      element_id: "edu-school",
+      category: "textarea",
+      content: "European University Viadrina",
+      flowGroup: "record-edu-1",
+      flowRole: "content",
+      autoHeight: true,
+      left: 80,
+      top: 103,
+      width: 462,
+      height: 13,
+      page: 2,
+    },
+    {
+      element_id: "edu-meta",
+      category: "textarea",
+      content: "Frankfurt (Oder)   ·   2014 – 2018",
+      flowGroup: "record-edu-1",
+      flowRole: "content",
+      autoHeight: true,
+      left: 80,
+      top: 120,
+      width: 462,
+      height: 12,
+      page: 2,
+    },
+    {
+      element_id: "edu-desc",
+      category: "textarea",
+      content: "Uzyskanie tytułu Bachelor of Laws z zakresu prawa niemieckiego.",
+      flowGroup: "record-edu-1",
+      flowRole: "content",
+      autoHeight: true,
+      left: 80,
+      top: 136,
+      width: 462,
+      height: 24,
+      page: 2,
+    },
+  ], "job-bullets", 40, 842, { pageTop: 66, bottomMargin: 72 });
+
+  const degree = result.elements.find((element) => element.element_id === "edu-degree");
+  const school = result.elements.find((element) => element.element_id === "edu-school");
+  const meta = result.elements.find((element) => element.element_id === "edu-meta");
+  const desc = result.elements.find((element) => element.element_id === "edu-desc");
+  const heading = result.elements.find((element) => element.element_id === "edu-heading");
+  assert.equal(degree.page, school.page);
+  assert.equal(degree.page, meta.page);
+  assert.equal(degree.page, desc.page);
+  assert.equal(heading.page, degree.page);
+  assert.ok(school.top > degree.top);
+  assert.ok(meta.top > school.top);
+  assert.ok(desc.top > meta.top);
+});
+
 test("growing a record body moves title/meta siblings with the same flowGroup", () => {
   const result = reflowTextareaHeight([
     {
