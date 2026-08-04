@@ -91,9 +91,14 @@ def _gen_cinder(cv: dict) -> list[dict]:
         )
 
     def section(label: str) -> None:
-        b.els.append(_rect(526, b.y + 2, 16, 16, RED, 1.2, zIndex=2, page=b.pg))
+        # Tag chrome so the canvas Sections panel can reorder whole blocks.
+        mark = _rect(526, b.y + 2, 16, 16, RED, 1.2, zIndex=2, page=b.pg)
+        mark["flowRole"] = "section-chrome"
+        b.els.append(mark)
         b.text(label, 8.7, SANS, RED, L)
+        b.els[-1]["flowRole"] = "section-chrome"
         b.line(L, W, 1, ASH)
+        b.els[-1]["flowRole"] = "section-chrome"
         b.gap(SPACE_AFTER_RULE)
 
     def close_section() -> None:
@@ -146,7 +151,10 @@ def _gen_cinder(cv: dict) -> list[dict]:
         close_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": CHARCOAL}, L, W, SANS, fs=9.4, lh=13.5)
-    flow = b.build()
+    flow = [
+        {**element, "flowRole": element.get("flowRole", "content")}
+        for element in b.build()
+    ]
     pages_used = max([element.get("page", 1) for element in header + flow] or [1])
     page_decorations = [
         decoration

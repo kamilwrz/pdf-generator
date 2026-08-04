@@ -33,17 +33,17 @@ export const cinderTemplate = [
     { ...rect(455, 63, 78, 78, "#767B80", 1, 3), id: "cinder-frame-two" },
     { ...rect(482, 39, 12, 12, WHITE, 1, 3), id: "cinder-node" },
     line(497, 45, 18, 1, RED, 2),
-    rect(526, 205, 16, 16, RED, 1.2, 2),
-    tracked(text("PROFIL", 8.7, SANS, RED, 76, 207, 2), 1.55),
-    line(76, 226, 466, 1, ASH, 1),
+    { ...rect(526, 205, 16, 16, RED, 1.2, 2), flowRole: "section-chrome" },
+    { ...tracked(text("PROFIL", 8.7, SANS, RED, 76, 207, 2), 1.55), flowRole: "section-chrome" },
+    { ...line(76, 226, 466, 1, ASH, 1), flowRole: "section-chrome" },
     block(
         "Liderka finansów łącząca dyscyplinę operacyjną, analizę i odważne decyzje kapitałowe. Buduję przejrzyste modele zarządzania wynikiem i przekładam dane na trwały wzrost biznesu.",
         76, 243, 466, 45, 10.2, 15, CHARCOAL, SANS
     ),
 
-    rect(526, 317, 16, 16, RED, 1.2, 2),
-    tracked(text("DOŚWIADCZENIE", 8.7, SANS, RED, 76, 319, 2), 1.55),
-    line(76, 338, 466, 1, ASH, 1),
+    { ...rect(526, 317, 16, 16, RED, 1.2, 2), flowRole: "section-chrome" },
+    { ...tracked(text("DOŚWIADCZENIE", 8.7, SANS, RED, 76, 319, 2), 1.55), flowRole: "section-chrome" },
+    { ...line(76, 338, 466, 1, ASH, 1), flowRole: "section-chrome" },
 
     bold(text("Dyrektorka Finansowa  /  Northbridge Partners", 11, SANS, BLACK, 76, 365, 2)),
     text("2021 – obecnie  ·  Warszawa", 8.7, SANS, GRAPHITE, 76, 383, 2),
@@ -59,9 +59,9 @@ export const cinderTemplate = [
         76, 525, 466, 42, 9.5, 13.4, CHARCOAL, SANS
     )),
 
-    rect(526, 620, 16, 16, RED, 1.2, 2),
-    tracked(text("EDUKACJA I KOMPETENCJE", 8.7, SANS, RED, 76, 622, 2), 1.55),
-    line(76, 641, 466, 1, ASH, 1),
+    { ...rect(526, 620, 16, 16, RED, 1.2, 2), flowRole: "section-chrome" },
+    { ...tracked(text("EDUKACJA I KOMPETENCJE", 8.7, SANS, RED, 76, 622, 2), 1.55), flowRole: "section-chrome" },
+    { ...line(76, 641, 466, 1, ASH, 1), flowRole: "section-chrome" },
     bold(text("Magister Finansów i Rachunkowości  /  SGH", 10.3, SANS, BLACK, 76, 660, 2)),
     text("2013 – 2015  ·  Warszawa", 8.7, SANS, GRAPHITE, 76, 678, 2),
     block(

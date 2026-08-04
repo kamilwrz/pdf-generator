@@ -97,7 +97,9 @@ def _gen_ledger(cv: dict) -> list[dict]:
 
     def section(label: str) -> None:
         b.text(label, 9, SANS, BLUE, L)
+        b.els[-1]["flowRole"] = "section-chrome"
         b.line(L, W, 1, STEEL)
+        b.els[-1]["flowRole"] = "section-chrome"
         b.gap(SPACE_AFTER_RULE)
 
     def close_section() -> None:

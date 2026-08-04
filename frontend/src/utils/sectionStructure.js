@@ -1,8 +1,9 @@
 /**
  * Structural section helpers for template-mode editing.
  *
- * Sections are detected from `flowRole: "section-chrome"` headings (text).
- * Reordering swaps absolute Y / page clusters without free pixel dragging.
+ * Prefer explicit `flowRole: "section-chrome"` headings. For older / untagged
+ * generators (e.g. Cinder), fall back to short label text sitting just above
+ * a horizontal rule — the usual section chrome pattern.
  */
 
 function absoluteTop(element, pageHeight = 842) {
@@ -10,26 +11,61 @@ function absoluteTop(element, pageHeight = 842) {
   return (page - 1) * pageHeight + (Number(element?.top) || 0);
 }
 
-function isSectionHeading(element) {
-  return (
-    element
-    && !element.fixedToPage
-    && element.flowRole === "section-chrome"
-    && (element.category === "text" || element.category === "textarea")
-    && String(element.content || "").trim().length > 0
-  );
+function hasSectionRuleBelow(element, elements, pageHeight) {
+  const abs = absoluteTop(element, pageHeight);
+  const left = Number(element.left) || 0;
+  return (elements || []).some((other) => {
+    if (!other || other.fixedToPage) return false;
+    if (other.category !== "line") return false;
+    const width = Number(other.width) || 0;
+    const height = Number(other.height) || 0;
+    // Section underlines are wide and thin; page frames are full-bleed tall.
+    if (width < 120 || height > 4) return false;
+    const otherAbs = absoluteTop(other, pageHeight);
+    const gap = otherAbs - abs;
+    if (gap < 1 || gap > 32) return false;
+    // Same visual column (Cinder rules start near the label left).
+    const otherLeft = Number(other.left) || 0;
+    return Math.abs(otherLeft - left) <= 40;
+  });
+}
+
+/**
+ * Whether this element is a section heading label.
+ * @param {object|null|undefined} element
+ * @param {object[]} [elements]
+ * @param {number} [pageHeight=842]
+ */
+export function isSectionHeading(element, elements = [], pageHeight = 842) {
+  if (!element || element.fixedToPage) return false;
+  if (element.category !== "text" && element.category !== "textarea") return false;
+  const content = String(element.content || "").trim();
+  if (!content) return false;
+
+  if (element.flowRole === "section-chrome") return true;
+  // Explicit body content is never a section title.
+  if (element.flowRole === "content") return false;
+  if (element.autoHeight || element.flowGroup) return false;
+  if (content.length > 56) return false;
+
+  const fontSize = Number(element.fontSize) || 12;
+  // Masthead names are larger; body copy is usually autoHeight textareas.
+  if (fontSize < 7 || fontSize > 11.5) return false;
+
+  return hasSectionRuleBelow(element, elements, pageHeight);
 }
 
 /**
  * List document sections in reading order.
  * @param {object[]} elements
  * @param {number} [pageHeight=842]
- * @returns {{ id: string, title: string, headingId: string, startAbs: number }[]}
+ * @returns {{ id: string, title: string, headingId: string, startAbs: number, index: number }[]}
  */
 export function listDocumentSections(elements, pageHeight = 842) {
-  const headings = (elements || [])
-    .filter(isSectionHeading)
-    .sort((a, b) => absoluteTop(a, pageHeight) - absoluteTop(b, pageHeight));
+  const list = elements || [];
+  const headings = list
+    .filter((element) => isSectionHeading(element, list, pageHeight))
+    .sort((left, right) => absoluteTop(left, pageHeight) - absoluteTop(right, pageHeight));
 
   return headings.map((heading, index) => ({
     id: heading.element_id,

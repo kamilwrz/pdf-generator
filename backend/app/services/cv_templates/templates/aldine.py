@@ -40,10 +40,14 @@ def _gen_aldine(cv: dict) -> list[dict]:
 
     def section(label: str) -> None:
         marker_y = b.y + 1
-        b.els.append(_circle(L - 22, marker_y + 1, 7, C['accent'], filled=True, zIndex=3, page=b.pg))
+        mark = _circle(L - 22, marker_y + 1, 7, C['accent'], filled=True, zIndex=3, page=b.pg)
+        mark['flowRole'] = 'section-chrome'
+        b.els.append(mark)
         b.text(label, 8.4, SANS, C['accent'], L)
         b.els[-1]['letterSpacing'] = 1.6 if label != lbl['skills'] else 1.35
+        b.els[-1]['flowRole'] = 'section-chrome'
         b.line(L, W, 1, C['rule'])
+        b.els[-1]['flowRole'] = 'section-chrome'
         b.gap(SPACE_AFTER_RULE)
 
     def close_section() -> None:

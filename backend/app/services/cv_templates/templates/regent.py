@@ -39,10 +39,14 @@ def _gen_regent(cv: dict) -> list[dict]:
 
     def section(label: str) -> None:
         marker_y = b.y + 1
-        b.els.append(_rect(L - 25, marker_y + 1, 8, 8, C['accent'], 0.9, zIndex=3, page=b.pg))
+        mark = _rect(L - 25, marker_y + 1, 8, 8, C['accent'], 0.9, zIndex=3, page=b.pg)
+        mark['flowRole'] = 'section-chrome'
+        b.els.append(mark)
         b.text(label, 8.4, SANS, C['accent'], L)
         b.els[-1]['letterSpacing'] = 1.6 if label != lbl['skills'] else 1.35
+        b.els[-1]['flowRole'] = 'section-chrome'
         b.line(L, W, 1, C['rule'])
+        b.els[-1]['flowRole'] = 'section-chrome'
         b.gap(SPACE_AFTER_RULE)
 
     def close_section() -> None:

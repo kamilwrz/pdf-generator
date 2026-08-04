@@ -48,14 +48,20 @@ def _gen_volt(cv: dict) -> list[dict]:
         page = b.pg
         text_top = y + (volt_chip - label_fs) / 2
         icon_left = C['icon_x'] + (volt_chip - section_icon) / 2
-        b.els.append(_rect(C['icon_x'], y, volt_chip, volt_chip, C['chip'], 1, zIndex=1, page=page))
-        b.els.append(_icon(ICON, key, icon_left, text_top, section_icon, page=page))
+        chip = _rect(C['icon_x'], y, volt_chip, volt_chip, C['chip'], 1, zIndex=1, page=page)
+        chip['flowRole'] = 'section-chrome'
+        b.els.append(chip)
+        icon = _icon(ICON, key, icon_left, text_top, section_icon, page=page)
+        icon['flowRole'] = 'section-chrome'
+        b.els.append(icon)
         heading = _text(label, label_fs, SANS, C['accent'], 78, text_top, zIndex=3, page=page)
         heading['letterSpacing'] = 1.35
+        heading['flowRole'] = 'section-chrome'
         b.els.append(heading)
         b.y = y + volt_chip
         b.gap(2)
         b.line(L, W, 1, C['rule'])
+        b.els[-1]['flowRole'] = 'section-chrome'
         b.gap(SPACE_AFTER_RULE)
 
     def close_section() -> None:

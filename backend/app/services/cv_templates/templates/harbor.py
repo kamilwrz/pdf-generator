@@ -181,7 +181,9 @@ def _gen_harbor(cv: dict) -> list[dict]:
     def section(label: str) -> None:
         b.text(label, 8.8, SANS, C["ink"], MAIN_X)
         b.els[-1]["letterSpacing"] = 1.1
+        b.els[-1]["flowRole"] = "section-chrome"
         b.line(MAIN_X, MAIN_W, 1, C["rule"])
+        b.els[-1]["flowRole"] = "section-chrome"
         b.gap(SPACE_AFTER_RULE)
 
     def close_section() -> None:

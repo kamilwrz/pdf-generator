@@ -44,13 +44,17 @@ def _gen_cardinal(cv: dict) -> list[dict]:
         key = _icon_key_for_label(label)
         y = b.y
         page = b.pg
-        b.els.append(_icon_beside(ICON, key, C['icon_x'], y, label_fs, section_icon, page=page))
+        icon = _icon_beside(ICON, key, C['icon_x'], y, label_fs, section_icon, page=page)
+        icon['flowRole'] = 'section-chrome'
+        b.els.append(icon)
         heading = _text(label, label_fs, SANS, C['accent'], L, y, zIndex=3, page=page)
         heading['letterSpacing'] = 1.45
+        heading['flowRole'] = 'section-chrome'
         b.els.append(heading)
         b.y = y + label_fs * 1.35
         b.gap(2)
         b.line(L, W, 1, C['rule'])
+        b.els[-1]['flowRole'] = 'section-chrome'
         b.gap(SPACE_AFTER_RULE)
 
     def close_section() -> None:

@@ -15,6 +15,60 @@ describe("listDocumentSections", () => {
     ]);
     assert.deepEqual(sections.map((section) => section.title), ["Experience", "Skills"]);
   });
+
+  it("detects untagged Cinder-style labels above a rule", () => {
+    const sections = listDocumentSections([
+      {
+        element_id: "job-title",
+        category: "text",
+        content: "DYREKTORKA FINANSOWA",
+        fontSize: 9.5,
+        left: 78,
+        top: 86,
+        page: 1,
+      },
+      {
+        element_id: "summary-h",
+        category: "text",
+        content: "PODSUMOWANIE ZAWODOWE",
+        fontSize: 8.7,
+        left: 76,
+        top: 207,
+        page: 1,
+      },
+      {
+        element_id: "summary-rule",
+        category: "line",
+        left: 76,
+        top: 226,
+        width: 466,
+        height: 1,
+        page: 1,
+      },
+      {
+        element_id: "exp-h",
+        category: "text",
+        content: "DOŚWIADCZENIE ZAWODOWE",
+        fontSize: 8.7,
+        left: 76,
+        top: 319,
+        page: 1,
+      },
+      {
+        element_id: "exp-rule",
+        category: "line",
+        left: 76,
+        top: 338,
+        width: 466,
+        height: 1,
+        page: 1,
+      },
+    ]);
+    assert.deepEqual(
+      sections.map((section) => section.title),
+      ["PODSUMOWANIE ZAWODOWE", "DOŚWIADCZENIE ZAWODOWE"],
+    );
+  });
 });
 
 describe("reorderSection", () => {
