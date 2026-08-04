@@ -29,6 +29,7 @@ from app.services.cv_templates.shared.records import (
 )
 from app.services.cv_templates.shared.text import (
     _bullet_list_content,
+    _skills_inline_content,
     _bullets,
     _compact_text,
     _company_period,
@@ -240,10 +241,10 @@ def _gen_moss(cv: dict) -> list[dict]:
         close_section()
 
     if cv.get("skills") and "skills" not in sidebar_keys:
-        skills = _bullet_list_content(cv["skills"])
-        b.need_section(SECTION_CHROME, b.measure_block(skills, W, 9.3, 13.2, SANS, bulletList=True))
+        skills = _skills_inline_content(cv["skills"])
+        b.need_section(SECTION_CHROME, b.measure_block(skills, W, 9.3, 13.2, SANS))
         section(lbl["skills"])
-        b.block(skills, L, W, 9.3, 13.2, C["body"], SANS, bulletList=True)
+        b.block(skills, L, W, 9.3, 13.2, C["body"], SANS)
         close_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": C["body"]},

@@ -230,7 +230,7 @@ Dla większości szablonów wzorzec jest ten sam:
    - summary,
    - experience (pętla po *wszystkich* jobach — bez limitu slotów),
    - education (strukturalnie: dyplom bold / uczelnia / miasto·okres / opis jako bullet list),
-   - skills (bullet list, nie wiersz ze środkowymi kropkami),
+   - skills w kolumnie głównej jako wiersz ze środkowymi kropkami (`_skills_inline_content`); bullet list tylko w sidebarze,
    - `extra_sections` w miejscach `after_experience` / `after_skills`.
 4. **`page_decorations`** — dla każdej użytej strony: tło, rail, stopka z numerem, często `fixedToPage: true` (dekoracja nie przesuwa się przy reflow textarea na froncie).
 5. Zwróć `page_decorations + static + flow`.

@@ -24,7 +24,12 @@ from app.services.cv_templates.shared.records import (
     _place_education_record,
     _place_experience_record,
 )
-from app.services.cv_templates.shared.text import _bullet_list_content, _compact_text, _labels
+from app.services.cv_templates.shared.text import (
+    _bullet_list_content,
+    _compact_text,
+    _labels,
+    _skills_inline_content,
+)
 
 
 def _loom_sidebar_candidates(cv: dict, labels: dict) -> list[dict]:
@@ -253,14 +258,14 @@ def _gen_loom(cv: dict) -> list[dict]:
 
     # Skills that did not fit the rail appear in the main column — never drop them.
     if "skills" not in placed_keys:
-        skills = _bullet_list_content(cv.get("skills"))
+        skills = _skills_inline_content(cv.get("skills"))
         if skills:
             b.need_section(
                 SECTION_CHROME,
-                b.measure_block(skills, W, 9.3, 13.4, SANS, bulletList=True),
+                b.measure_block(skills, W, 9.3, 13.4, SANS),
             )
             section(lbl["skills"])
-            b.block(skills, L, W, 9.3, 13.4, C["body"], SANS, bulletList=True)
+            b.block(skills, L, W, 9.3, 13.4, C["body"], SANS)
             close_section()
 
     _extra_sections(

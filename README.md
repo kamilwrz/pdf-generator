@@ -508,7 +508,7 @@ Python layout from normalised `cv_data` (not LLM placement). Every education rec
 3. **city · period** — muted metadata;
 4. **description** — bullet list in the readable body colour (`bulletList: true`).
 
-Skills, languages and other flat chip-style sections render as vertical bullet lists (`_bullet_list_content`) in the main column and in sidebars — not as mid-dot rows. Compact sidebar education blocks keep the same four-line structure; Harbor uses teal diamond glyphs for those list lines.
+Main-column skills render as a compact mid-dot row (`_skills_inline_content`). Vertical bullet lists (`_bullet_list_content`, `bulletList: true`) are reserved for sidebar skills and for other flat chip sections (languages, interests, certifications). Compact sidebar education blocks keep the diploma / school / meta / description structure; Harbor uses teal diamond glyphs for sidebar list lines.
 
 When a client sends `languages: []` but languages still exist only in legacy `extra_sections` (typical after PDF extract + template change), `normalize_cv_data` recovers them unless `custom_sections: []` was also sent as an intentional clear. Skills are scrubbed of bare list markers so Kernel / Vector / Relay never emit an empty UMIEJĘTNOŚCI heading, and those IT templates tag flow nodes with `flowRole: "content"`.
 
@@ -518,7 +518,7 @@ Implementation:
 - `backend/tests/test_builder_keep_together.py` — whole-record page-break regression
 - `frontend/src/utils/textareaReflow.test.js` — `flowGroup` reclaim / grow keep-together cases
 - `backend/app/services/cv_templates/shared/records.py`, `_place_education_record` — degree / school / meta / description bullets
-- `backend/app/services/cv_templates/shared/text.py`, `_bullet_list_content` — shared skills/languages list formatting
+- `backend/app/services/cv_templates/shared/text.py`, `_skills_inline_content` — main-column skills mid-dot row; `_bullet_list_content` — sidebar skills and other flat lists
 - `backend/app/services/cv_data.py`, lines 165–183, `_skill_items`; lines 620–727, `normalize_cv_data` — language recovery + skills scrub
 - `backend/app/services/cv_templates/templates/kernel.py`, `vector.py`, `relay.py` — non-empty skills body + `flowRole: "content"`
 - `backend/app/api/routes/ai.py`, `fill_template`
@@ -1374,7 +1374,7 @@ Layout Python powstaje ze znormalizowanego `cv_data`, a nie z pozycji wymyślony
 3. **miasto · okres** — stonowany kolor metadanych;
 4. **opis** — lista punktów w kolorze treści (`bulletList: true`).
 
-Umiejętności, języki i inne płaskie sekcje renderują się jako pionowe listy punktów (`_bullet_list_content`) w kolumnie głównej i w sidebarach — nie jako wiersze ze środkowymi kropkami. Harbor używa tealowych diamentów dla tych list.
+Umiejętności w kolumnie głównej renderują się jako zwarty wiersz ze środkowymi kropkami (`_skills_inline_content`). Pionowe listy punktów (`_bullet_list_content`, `bulletList: true`) są zarezerwowane dla skills w sidebarze oraz innych płaskich sekcji (języki, zainteresowania, certyfikaty). Harbor używa tealowych diamentów dla list w sidebarze.
 
 Gdy klient wyśle `languages: []`, a języki nadal są tylko w legacy `extra_sections` (typowy kształt po ekstrakcji PDF i zmianie szablonu), `normalize_cv_data` je odzyskuje — chyba że jednocześnie wysłano `custom_sections: []` jako świadome wyczyszczenie. Umiejętności są oczyszczane z samotnych markerów listy, żeby Kernel / Vector / Relay nie emitowały pustego nagłówka UMIEJĘTNOŚCI; te szablony IT oznaczają też węzły flow jako `flowRole: "content"`.
 
@@ -1382,7 +1382,7 @@ Gdy klient wyśle `languages: []`, a języki nadal są tylko w legacy `extra_sec
 - `backend/tests/test_builder_keep_together.py` — regresja: rekord nie dzieli się między stronami
 - `frontend/src/utils/textareaReflow.test.js` — przypadki keep-together `flowGroup` przy reclaim/wzroście
 - `backend/app/services/cv_templates/shared/records.py` — `_place_education_record` (dyplom / uczelnia / meta / bullet opis)
-- `backend/app/services/cv_templates/shared/text.py` — `_bullet_list_content`
+- `backend/app/services/cv_templates/shared/text.py` — `_skills_inline_content` (skills w main), `_bullet_list_content` (sidebar / inne listy)
 - `backend/app/services/cv_data.py`, linie 165–183 — `_skill_items`; linie 620–727 — `normalize_cv_data` (odzyskiwanie języków + czyszczenie skills)
 - `backend/app/services/cv_templates/templates/kernel.py`, `vector.py`, `relay.py` — niepusta treść skills + `flowRole: "content"`
 - `backend/app/api/routes/ai.py` — `fill_template`

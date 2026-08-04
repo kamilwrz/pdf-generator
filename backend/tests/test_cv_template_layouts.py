@@ -569,15 +569,16 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 if element.get("category") in {"text", "textarea"}
             )
             self.assertIn("UMIEJĘTNOŚCI", content, template_id)
-            self.assertIn("• Strategia produktowa", content, template_id)
+            self.assertIn("Strategia produktowa  ·  ", content, template_id)
             self.assertIn("JĘZYKI", content, template_id)
             self.assertIn("• Polski — C2", content, template_id)
             skills_body = next(
                 element for element in elements
                 if element.get("category") == "textarea"
-                and element.get("bulletList")
                 and "Strategia produktowa" in str(element.get("content", ""))
+                and " · " in str(element.get("content", ""))
             )
+            self.assertFalse(skills_body.get("bulletList"), template_id)
             self.assertEqual(skills_body.get("flowRole"), "content", template_id)
 
     def test_sidebar_layout_uses_remaining_page_space_for_complete_experience_entry(self):
@@ -1324,8 +1325,9 @@ class CvTemplateLayoutTests(unittest.TestCase):
             element
             for element in elements
             if element["category"] == "textarea"
-            and element.get("bulletList")
-            and "•" in str(element.get("content", ""))
+            and not element.get("bulletList")
+            and " · " in str(element.get("content", ""))
+            and LONG_CV["skills"][0] in str(element.get("content", ""))
             and element["page"] == heading["page"]
             and element["top"] > heading["top"]
         )

@@ -34,6 +34,7 @@ from app.services.cv_templates.shared.records import (
 )
 from app.services.cv_templates.shared.text import (
     _bullet_list_content,
+    _skills_inline_content,
     _bullets,
     _compact_text,
     _company_period,
@@ -117,8 +118,8 @@ def _gen_graphite(cv: dict) -> list[dict]:
 
     if cv.get("skills"):
         section(lbl["skills"])
-        skills = _bullet_list_content(cv["skills"])
-        b.block(skills, L, W, 10, 15, BODY, SANS, bulletList=True)
+        skills = _skills_inline_content(cv["skills"])
+        b.block(skills, L, W, 10, 15, BODY, SANS)
         close_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, SANS)

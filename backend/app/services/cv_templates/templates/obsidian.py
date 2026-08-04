@@ -37,6 +37,7 @@ from app.services.cv_templates.shared.records import (
 )
 from app.services.cv_templates.shared.text import (
     _bullet_list_content,
+    _skills_inline_content,
     _bullets,
     _compact_text,
     _company_period,
@@ -295,7 +296,7 @@ def _gen_obsidian(cv: dict) -> list[dict]:
     if skills and "skills" not in placed_keys:
         section(lbl["skills"])
         b.block(
-            _bullet_list_content(skills), L, W, 9.4, 13.3, BODY, SANS, bulletList=True,
+            _skills_inline_content(skills), L, W, 9.4, 13.3, BODY, SANS,
         )
         close_section()
 

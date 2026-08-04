@@ -388,7 +388,7 @@ Uniwersalne — bez gałęzi `if template_id == …`. Re-eksportowane też z fas
 
 | Moduł | Symbol (wybrane) | Rola |
 | --- | --- | --- |
-| `shared/text.py` | `_labels`, `_bullets`, `_bullet_list_content`, `_company_period`, `_contact_line`, `_compact_text` | Tekst i etykiety |
+| `shared/text.py` | `_labels`, `_bullets`, `_skills_inline_content` (skills w main), `_bullet_list_content` (sidebar / inne listy), `_company_period`, `_contact_line`, `_compact_text` | Tekst i etykiety |
 | `shared/records.py` | `_place_education_record` (dyplom/uczelnia/meta/bullets), `_place_experience_record`, heights | Rekordy jako atomy stron |
 | `shared/extras.py` | `_extra_sections`, `_render_record_section_body`, sidebar fit | Sekcje własne / sidebar packing |
 | `shared/icons.py` | `_icon`, `_icon_beside`, `_icon_key_for_label` | URL/pozycja PNG z `template_assets/iconic/<id>/` |

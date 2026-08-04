@@ -10,19 +10,34 @@ from app.services.cv_data import fold_section_label, is_skills_like_title
 _LEADING_BULLET = re.compile(r"^[\s]*[•\-–*—∙·]\s*")
 
 
+def _clean_list_items(items: list | tuple | None) -> list[str]:
+    """Strip leading markers and drop empty entries from a flat chip list."""
+    cleaned: list[str] = []
+    for item in items or []:
+        text = _LEADING_BULLET.sub("", str(item or "").strip())
+        if text:
+            cleaned.append(text)
+    return cleaned
+
+
 def _bullet_list_content(items: list | tuple | None) -> str:
     """
     Format flat strings as a ``bulletList`` textarea body.
 
-    Used for skills, languages, interests, and other chip-style sections so
-    every template renders the same vertical list instead of a mid-dot row.
+    Used in sidebars and for non-skills chip sections (languages, interests,
+    certifications). Main-column skills use ``_skills_inline_content`` instead.
     """
-    lines: list[str] = []
-    for item in items or []:
-        text = _LEADING_BULLET.sub("", str(item or "").strip())
-        if text:
-            lines.append(f"• {text}")
-    return "\n".join(lines)
+    return "\n".join(f"• {text}" for text in _clean_list_items(items))
+
+
+def _skills_inline_content(items: list | tuple | None) -> str:
+    """
+    Main-column skills as a compact mid-dot row.
+
+    Vertical ``bulletList`` formatting is reserved for sidebar skills so the
+    primary column stays dense and matches the pre-bulletList layout.
+    """
+    return "  ·  ".join(_clean_list_items(items))
 
 _LABEL_DEFAULTS = {
     "summary":    "PODSUMOWANIE ZAWODOWE",

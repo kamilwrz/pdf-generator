@@ -34,6 +34,7 @@ from app.services.cv_templates.shared.records import (
 )
 from app.services.cv_templates.shared.text import (
     _bullet_list_content,
+    _skills_inline_content,
     _bullets,
     _compact_text,
     _company_period,
@@ -187,11 +188,11 @@ def _gen_words(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if cv.get("skills"):
-        skills = _bullet_list_content(cv["skills"])
-        skills_height = b.measure_block(skills, W, 10.5, 15, FONT, bulletList=True)
+        skills = _skills_inline_content(cv["skills"])
+        skills_height = b.measure_block(skills, W, 10.5, 15, FONT)
         b.need_section(SECTION_CHROME, skills_height)
         section(lbl["skills"])
-        b.block(skills, L, W, 10.5, 15, C["body"], FONT, bulletList=True)
+        b.block(skills, L, W, 10.5, 15, C["body"], FONT)
         b.gap(SPACE_SECTION)
 
     _extra_sections(
