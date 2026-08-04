@@ -657,6 +657,182 @@ test("growing a record body moves title/meta siblings with the same flowGroup", 
   assert.ok(desc.top > meta.top);
 });
 
+test("Kernel page-2 education survives sequential font-measurement grows", () => {
+  // Canvas measures each textarea independently after load. Reclaim used to
+  // reserve only the grown degree line, pull it onto page 1 under the last
+  // experience job, and leave school/meta/body + WYKSZTAŁCENIE crushed on
+  // page 2 (Kernel continuation inset at y=72).
+  let elements = [
+    {
+      element_id: "job-last",
+      category: "textarea",
+      flowRole: "content",
+      flowGroup: "record-job",
+      autoHeight: true,
+      left: 167,
+      top: 640,
+      width: 355,
+      height: 80,
+      page: 1,
+    },
+    {
+      element_id: "edu-heading",
+      category: "text",
+      content: "WYKSZTAŁCENIE",
+      flowRole: "section-chrome",
+      left: 167,
+      top: 72,
+      width: 200,
+      fontSize: 8.5,
+      page: 2,
+    },
+    {
+      element_id: "edu-marker",
+      category: "circle",
+      flowRole: "section-chrome",
+      locked: true,
+      left: 143,
+      top: 74,
+      width: 12,
+      height: 12,
+      page: 2,
+    },
+    {
+      element_id: "edu-rule",
+      category: "line",
+      flowRole: "section-chrome",
+      locked: true,
+      left: 167,
+      top: 83.5,
+      width: 355,
+      height: 1,
+      page: 2,
+    },
+    {
+      element_id: "edu1-degree",
+      category: "textarea",
+      flowRole: "content",
+      flowGroup: "record-edu1",
+      autoHeight: true,
+      left: 167,
+      top: 91.5,
+      width: 355,
+      height: 13,
+      page: 2,
+    },
+    {
+      element_id: "edu1-school",
+      category: "textarea",
+      flowRole: "content",
+      flowGroup: "record-edu1",
+      autoHeight: true,
+      left: 167,
+      top: 108.5,
+      width: 355,
+      height: 13,
+      page: 2,
+    },
+    {
+      element_id: "edu1-meta",
+      category: "textarea",
+      flowRole: "content",
+      flowGroup: "record-edu1",
+      autoHeight: true,
+      left: 167,
+      top: 125.5,
+      width: 355,
+      height: 12,
+      page: 2,
+    },
+    {
+      element_id: "edu1-body",
+      category: "textarea",
+      flowRole: "content",
+      flowGroup: "record-edu1",
+      autoHeight: true,
+      left: 167,
+      top: 141.5,
+      width: 355,
+      height: 12,
+      page: 2,
+    },
+    {
+      element_id: "edu2-degree",
+      category: "textarea",
+      flowRole: "content",
+      flowGroup: "record-edu2",
+      autoHeight: true,
+      left: 167,
+      top: 163.5,
+      width: 355,
+      height: 13,
+      page: 2,
+    },
+    {
+      element_id: "edu2-school",
+      category: "textarea",
+      flowRole: "content",
+      flowGroup: "record-edu2",
+      autoHeight: true,
+      left: 167,
+      top: 180.5,
+      width: 355,
+      height: 13,
+      page: 2,
+    },
+    {
+      element_id: "skills-heading",
+      category: "text",
+      content: "UMIEJĘTNOŚCI",
+      flowRole: "section-chrome",
+      left: 167,
+      top: 220,
+      width: 200,
+      fontSize: 8.5,
+      page: 2,
+    },
+    {
+      element_id: "skills-body",
+      category: "textarea",
+      flowRole: "content",
+      autoHeight: true,
+      left: 167,
+      top: 240,
+      width: 355,
+      height: 14,
+      page: 2,
+    },
+  ];
+
+  for (const [id, height] of [
+    ["edu1-degree", 36],
+    ["edu1-school", 36],
+    ["edu1-meta", 28],
+    ["edu1-body", 48],
+    ["edu2-degree", 36],
+    ["edu2-school", 48],
+    ["skills-body", 40],
+  ]) {
+    elements = reflowTextareaHeight(elements, id, height, 842, {
+      pageTop: 66,
+      bottomMargin: 72,
+    }).elements;
+  }
+
+  const byId = Object.fromEntries(elements.map((element) => [element.element_id, element]));
+  assert.equal(byId["edu1-degree"].page, 2);
+  assert.equal(byId["edu1-school"].page, 2);
+  assert.equal(byId["edu2-degree"].page, 2);
+  assert.equal(byId["skills-body"].page, 2);
+  assert.ok(byId["edu-heading"].top < byId["edu1-degree"].top);
+  assert.ok(byId["edu1-school"].top >= byId["edu1-degree"].top + byId["edu1-degree"].height - 0.5);
+  assert.ok(byId["edu1-meta"].top >= byId["edu1-school"].top + byId["edu1-school"].height - 0.5);
+  assert.ok(byId["edu1-body"].top >= byId["edu1-meta"].top + byId["edu1-meta"].height - 0.5);
+  assert.ok(byId["edu2-degree"].top >= byId["edu1-body"].top + byId["edu1-body"].height - 0.5);
+  assert.ok(byId["skills-heading"].top > byId["edu2-school"].top);
+  assert.ok(byId["skills-body"].top > byId["skills-heading"].top);
+});
+
 test("does not change ordinary manually sized textareas", () => {
   const result = reflowTextareaHeight([
     textarea({ autoHeight: false }),
