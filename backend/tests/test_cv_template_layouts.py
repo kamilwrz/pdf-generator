@@ -1546,6 +1546,40 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     ),
                 )
 
+    def test_signal_clears_masthead_node_row_before_summary(self):
+        """Signal node ornaments must not overlap PODSUMOWANIE."""
+        from app.services.cv_generator_primitives import SPACE_AFTER_MASTHEAD
+        from app.services.cv_templates.templates.signal import _SIGNAL_MASTHEAD_BOTTOM
+
+        cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"][:1],
+        }
+        elements = generate_resume("signal", cv)
+        heading = next(
+            element
+            for element in elements
+            if element.get("category") == "text"
+            and element.get("content") == "PODSUMOWANIE ZAWODOWE"
+            and element.get("page", 1) == 1
+        )
+        self.assertGreaterEqual(
+            heading["top"],
+            _SIGNAL_MASTHEAD_BOTTOM + SPACE_AFTER_MASTHEAD - 0.01,
+            msg=(
+                f"signal: first section at y={heading['top']} needs "
+                f">= {SPACE_AFTER_MASTHEAD}px under masthead ornaments "
+                f"ending at y={_SIGNAL_MASTHEAD_BOTTOM}"
+            ),
+        )
+        # Decorative node circles stay above the summary heading.
+        self.assertTrue(all(
+            float(element["top"]) + float(element.get("height", 0))
+            <= heading["top"] - 0.01
+            for element in elements
+            if element.get("id") in {"signal-node-a", "signal-node-b", "signal-node-c"}
+        ))
+
     def test_banded_mastheads_clear_first_section_heading(self):
         """Body copy must start below solid header bands (Cinder/Raven/Ledger)."""
         from app.services.cv_generator_primitives import SPACE_AFTER_MASTHEAD

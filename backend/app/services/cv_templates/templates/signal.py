@@ -42,11 +42,18 @@ from app.services.cv_templates.shared.text import (
     _labels,
 )
 
+# Masthead node row: circles at y=197 with diameter 18 → bottom 215. First
+# section must clear that ornament band by SPACE_AFTER_MASTHEAD (not a thin
+# divider); start=222 previously parked PODSUMOWANIE on top of the nodes.
+_SIGNAL_MASTHEAD_BOTTOM = 215.0
+
 _SIGNAL_THEME = {
     "paper": "#101C26", "ink": "#F2F7F6", "body": "#E4EFEE",
     "muted": "#9DB7C3", "accent": "#3BD2C7", "rule": "#395263",
     "light": "#7BE1D9", "left": 76, "width": 465,
-    "start": 222, "continuation": 66, "mark_x": 525,
+    "start": _SIGNAL_MASTHEAD_BOTTOM + SPACE_AFTER_MASTHEAD,
+    "continuation": 66,
+    "mark_x": 525,
 }
 
 
