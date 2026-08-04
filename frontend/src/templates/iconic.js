@@ -43,7 +43,7 @@ const NOVA_DISP = "PlayfairDisplay";
 const NOVA_SANS = "Montserrat";
 const NOVA_CONTACT_FS = 8.4;
 const NOVA_HEAD_FS = 8.6;
-const NOVA_ICON = 11;
+const NOVA_ICON = 14;
 
 export const novaTemplate = [
     fixed(line(0, 0, 595, 842, NOVA_PAPER, 0)),
@@ -115,8 +115,8 @@ const RIDGE_DISP = "Lora";
 const RIDGE_SANS = "Montserrat";
 const RIDGE_CONTACT_FS = 8.3;
 const RIDGE_HEAD_FS = 8.5;
-const RIDGE_ICON = 11;
-const RIDGE_RAIL_ICON = 12;
+const RIDGE_ICON = 14;
+const RIDGE_RAIL_ICON = 15;
 
 export const ridgeTemplate = [
     fixed(line(0, 0, 595, 842, RIDGE_PAPER, 0)),
@@ -191,10 +191,10 @@ const LOOM_SANS = "Montserrat";
 const LOOM_CONTACT_FS = 7.6;
 const LOOM_SIDE_HEAD_FS = 7.4;
 const LOOM_HEAD_FS = 8.5;
-const LOOM_ICON = 11;
+const LOOM_ICON = 14;
 // Contact lines are ~7.6pt; a 9px glyph centres cleanly on the same top as the
 // label without the optical section-head shift (which overshoots small type).
-const LOOM_CONTACT_ICON = 9;
+const LOOM_CONTACT_ICON = 11;
 
 const LOOM_SIDE_TEXT_X = 40;
 const LOOM_SIDE_BODY_W = 120;
@@ -341,7 +341,7 @@ const VOLT_MONO = "JetBrainsMono";
 const VOLT_CONTACT_FS = 7.8;
 const VOLT_HEAD_FS = 8.4;
 const VOLT_CHIP_SIZE = 20;
-const VOLT_ICON = 12;
+const VOLT_ICON = 15;
 
 const chip = (left, top, w, h) => ({
     category: "rectangle",

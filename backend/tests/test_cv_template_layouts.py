@@ -1575,8 +1575,10 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     self.assertEqual(len(contact_icons), 3)
                     for icon in contact_icons:
                         self.assertEqual(icon.get("alignWithText"), False)
-                        self.assertEqual(icon["width"], 9)
-                        self.assertEqual(icon["height"], 9)
+                        # Loom sidebar contact icons use geometric centring at the
+                        # shared icon size (+25% from the original 9 px).
+                        self.assertEqual(icon["width"], 11)
+                        self.assertEqual(icon["height"], 11)
                     email_textareas = [
                         element for element in elements
                         if element["category"] == "textarea"

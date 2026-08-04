@@ -33,10 +33,19 @@ function isTextAlignedIcon(src, alignWithText) {
     return /\/template-assets\/iconic\//.test(String(src || ""));
 }
 
-/** CSS top so a square icon's centre matches an ~8.5pt label at `lineTop`. */
+/**
+ * CSS top that centres a square icon on the companion label's optical cap
+ * mid-line. `lineTop` is the label's stored top; the cap mid-line sits at
+ * `lineTop - 1.2` (same anchor the PDF `renderImage` uses for ~8.5 pt labels),
+ * so the icon reads level with the caps rather than floating below them.
+ *
+ * The anchor is deliberately independent of the icon size, so enlarging an icon
+ * grows it evenly around the same mid-line instead of pushing it lower. This
+ * mirrors the backend exactly, keeping the canvas and the exported PDF aligned.
+ */
 function iconicDrawTop(lineTop, size) {
     const h = Number(size) || 11;
-    const textCapMid = Number(lineTop) + Math.min(h, 12) * 0.35;
+    const textCapMid = Number(lineTop) - 1.2;
     return textCapMid - h / 2;
 }
 

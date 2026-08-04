@@ -32,8 +32,8 @@ const ICON_X = 50; // left gutter that carries every icon
 const TEXT_X = 72; // heading labels, rules and body share this left edge
 const RIGHT = 545; // content right edge (≈72 pt symmetric margins)
 const CONTENT_W = RIGHT - TEXT_X; // 473 pt usable text column
-const SECTION_ICON = 12; // section-heading glyph size
-const CONTACT_ICON = 10; // slightly smaller glyph for the contact row
+const SECTION_ICON = 15; // section-heading glyph size (+25% for optical weight)
+const CONTACT_ICON = 13; // slightly smaller glyph for the contact row
 const HEAD_FS = 8.8; // section-heading label size
 
 const bold = (element) => ({ ...element, bold: true });

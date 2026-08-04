@@ -2614,7 +2614,7 @@ def _gen_harbor(cv: dict) -> list[dict]:
         advance = 15 + len(value) * 4.7 + 14
         if cx > MAIN_X and cx + advance > 551:
             cx, cy = float(MAIN_X), cy + 16
-        header.append(_hicon(key, cx, cy, 9))
+        header.append(_hicon(key, cx, cy, 11))
         header.append(_text(value, 8.4, SANS, C["body"], cx + 15, cy, zIndex=3))
         cx += advance
     # Circular photo placeholder: soft-grey disc + centred grey person glyph.
@@ -2648,11 +2648,11 @@ def _gen_harbor(cv: dict) -> list[dict]:
                 sidebar.append(_text(school, 9, SANS, C["accent"], SIDE_X, sy, zIndex=3))
                 sy += 16
             if period:
-                sidebar.append(_hicon("calendar", SIDE_X, sy, 9))
+                sidebar.append(_hicon("calendar", SIDE_X, sy, 11))
                 sidebar.append(_text(period, 8.2, SANS, C["meta"], SIDE_X + 15, sy, zIndex=3))
                 sy += 15
             if city:
-                sidebar.append(_hicon("location", SIDE_X, sy, 9))
+                sidebar.append(_hicon("location", SIDE_X, sy, 11))
                 sidebar.append(_text(city, 8.2, SANS, C["meta"], SIDE_X + 15, sy, zIndex=3))
                 sy += 15
             sy += 6
@@ -2704,7 +2704,7 @@ def _gen_harbor(cv: dict) -> list[dict]:
         sidebar += _side_head(_compact_text(custom.get("title"), 30), sy)
         iy = sy + 24
         for item in items[:8]:
-            sidebar.append(_hicon("diamond", SIDE_X, iy, 9, accent=True))
+            sidebar.append(_hicon("diamond", SIDE_X, iy, 11, accent=True))
             sidebar.append(_text(_compact_text(item, 34), 8.6, SANS, C["ink"], SIDE_X + 16, iy, zIndex=3))
             iy += 15
         sy = iy + 12
@@ -2741,12 +2741,12 @@ def _gen_harbor(cv: dict) -> list[dict]:
         if city:
             cx_city = right - len(city) * 4.2
             b.els.append(_text(city, 8.2, SANS, C["meta"], cx_city, top, zIndex=3, page=page))
-            b.els.append(_hicon("location", cx_city - 13, top, 9, page=page))
+            b.els.append(_hicon("location", cx_city - 13, top, 11, page=page))
             right = cx_city - 13 - 10
         if period:
             cx_period = right - len(period) * 4.2
             b.els.append(_text(period, 8.2, SANS, C["meta"], cx_period, top, zIndex=3, page=page))
-            b.els.append(_hicon("calendar", cx_period - 13, top, 9, page=page))
+            b.els.append(_hicon("calendar", cx_period - 13, top, 11, page=page))
 
     if cv.get("summary"):
         # Summary shares the experience-bullet type size (9 pt); the project-wide

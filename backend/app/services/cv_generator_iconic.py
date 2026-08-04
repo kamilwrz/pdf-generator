@@ -142,7 +142,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
     start_y = float(C["start"])
 
     if C["layout"] == "nova":
-        contact_fs, contact_icon = 8.4, 11.0
+        contact_fs, contact_icon = 8.4, 14.0
         header = [
             _text(name, 34, DISP, C["ink"], 48, 42, zIndex=3, bold=True),
             _text(title, 9.2, SANS, C["accent"], 50, 88, zIndex=3),
@@ -159,7 +159,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         start_y = 145.0 + SPACE_AFTER_HEADER_RULE
 
     elif C["layout"] == "ridge":
-        contact_fs, contact_icon = 8.3, 11.0
+        contact_fs, contact_icon = 8.3, 14.0
         header = [
             _text(name, 30, DISP, C["ink"], 56, 40, zIndex=3, bold=True),
             _text(title, 8.8, SANS, C["accent"], 58, 82, zIndex=3),
@@ -178,7 +178,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         # Serif name (non-bold, echoing the static template's refined masthead),
         # cardinal-red tracked role line, and a single grey contact row whose
         # icons come from the grey `cardinal` theme. No red band is drawn.
-        contact_fs, contact_icon = 8.6, 10.0
+        contact_fs, contact_icon = 8.6, 13.0
         header = [
             _text(name, 28, DISP, C["ink"], L, 52, zIndex=3),
             _text(title, 9.4, SANS, C["accent"], L, 92, zIndex=3),
@@ -202,8 +202,8 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         # skills / interests / languages do not drift relative to each other.
         contact_fs = 7.6
         side_head_fs = 7.4
-        contact_icon = 9.0
-        side_icon = 11.0
+        contact_icon = 11.0
+        side_icon = 14.0
         side_text_x = 40.0
         side_body_w = 120.0
         side_body_fs = 7.8
@@ -277,7 +277,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
         start_y = 80.0
 
     else:  # volt
-        chip_h, contact_icon, contact_fs = 20.0, 12.0, 7.8
+        chip_h, contact_icon, contact_fs = 20.0, 15.0, 7.8
         header = [
             _text(name, 32, SANS, C["ink"], 48, 36, zIndex=3, bold=True),
             _text(title, 9, MONO, C["accent"], 50, 78, zIndex=3),
@@ -304,7 +304,7 @@ def _gen_iconic_theme(cv: dict, theme: str) -> list[dict]:
 
     b = Builder(start_y)
     label_fs = 8.5 if C["layout"] != "volt" else 8.4
-    section_icon = 12.0 if C["layout"] in {"ridge", "volt"} else 11.0
+    section_icon = 15.0 if C["layout"] in {"ridge", "volt"} else 14.0
     volt_chip = 20.0
     SECTION_CHROME = section_chrome_height(label_fs) + (volt_chip if C["layout"] == "volt" else 16)
 

@@ -75,7 +75,7 @@ const heading = (label, left, width, top) => [
 
 /** One header contact detail: grey icon + label on a shared text line. */
 const contact = (name, iconLeft, textLeft, label, top) => [
-    icon("harbor", name, iconLeft, top, 9),
+    icon("harbor", name, iconLeft, top, 11),
     text(label, 8.4, SANS, BODY, textLeft, top, 3),
 ];
 
@@ -84,9 +84,9 @@ const contact = (name, iconLeft, textLeft, label, top) => [
  * line. Both use grey meta icons so the row reads as secondary information.
  */
 const jobMeta = (date, place, top) => [
-    icon("harbor", "calendar", MAIN_R - 98, top, 9),
+    icon("harbor", "calendar", MAIN_R - 98, top, 11),
     text(date, 8.2, SANS, META, MAIN_R - 84, top, 3),
-    icon("harbor", "location", MAIN_R - 52, top, 9),
+    icon("harbor", "location", MAIN_R - 52, top, 11),
     text(place, 8.2, SANS, META, MAIN_R - 38, top, 3),
 ];
 
@@ -136,7 +136,7 @@ const languageRow = (name, filled, level, left, top, colWidth) => {
 
 /** One tools-list entry: teal diamond bullet + charcoal label. */
 const toolItem = (label, left, top) => [
-    icon("harbor-accent", "diamond", left, top, 9),
+    icon("harbor-accent", "diamond", left, top, 11),
     text(label, 8.6, SANS, INK, left + 16, top, 4),
 ];
 
