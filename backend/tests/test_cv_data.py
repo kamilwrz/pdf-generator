@@ -295,8 +295,9 @@ class CvDataNormalizationTests(unittest.TestCase):
             for element in generate_resume("ledger", profile)
         )
         self.assertIn("Kompoza   ·   Warszawa   ·   2023 – obecnie", content)
-        self.assertIn("Uniwersytet Warszawski   ·   Warszawa   ·   2017 – 2022", content)
-        self.assertIn("Specjalizacja: innowacje", content)
+        self.assertIn("Uniwersytet Warszawski", content)
+        self.assertIn("Warszawa   ·   2017 – 2022", content)
+        self.assertIn("• Specjalizacja: innowacje", content)
         self.assertIn("Magister zarządzania", content)
 
     def test_legacy_education_detail_recovers_description(self):

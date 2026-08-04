@@ -4,27 +4,24 @@
  * A two-column resume modelled on the popular "double column" layout: a wide
  * main column on the left (summary + experience) and a narrower sidebar on the
  * right (education, skills, languages, tools). A single teal accent carries the
- * role line, company names, tool-list diamonds and filled proficiency dots;
- * everything else is charcoal on white.
+ * role line, company names and teal diamond bullets; everything else is charcoal
+ * on white.
  *
- * The sidebar uses three widgets not found in other templates:
- *   - rounded skill pills (rectangles with `borderRadius`, wrapped by width),
- *   - language rows with five proficiency dots (filled = level, outline = rest),
- *   - a tools list bulleted with teal diamond glyphs.
- * Contact and meta icons come from the grey `harbor` icon theme; the diamond
- * comes from the teal `harbor-accent` variant (see scripts/generate_iconic_icons.py).
+ * Skills, languages, tools and education descriptions all use the same teal
+ * diamond bullet list. Contact and meta icons come from the grey `harbor` icon
+ * theme; the diamond comes from the teal `harbor-accent` variant
+ * (see scripts/generate_iconic_icons.py).
  */
 import API_BASE_URL from "../services/api";
 import { block, bulleted, circle, line, text } from "./helpers";
 
 // ── Colour system ───────────────────────────────────────────────────────────
 const PAPER = "#FFFFFF";
-const ACCENT = "#17A2B8"; // teal: role, company, diamonds, filled dots
+const ACCENT = "#17A2B8"; // teal: role, company, diamond bullets
 const INK = "#2B2B2B"; // name, section headings, titles
 const BODY = "#3A3A3A"; // body copy and bullets
 const META = "#7A7A7A"; // dates and locations
 const RULE = "#C4C9CE"; // heading underlines and header/footer keylines
-const PILL = "#CBD0D6"; // skill-pill borders + empty proficiency dots
 const PHOTO_BG = "#ECEEF1"; // circular photo placeholder fill
 const SANS = "Inter";
 
@@ -40,19 +37,6 @@ const PHOTO_Y = 36;
 
 const bold = (element) => ({ ...element, bold: true });
 const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
-
-/**
- * A bordered rectangle with optional rounded corners. `borderRadius` drives the
- * pill/tag shape on both the canvas (CSS) and the PDF (ReportLab roundRect).
- */
-const rect = (left, top, width, height, color, borderWidth = 0.9, borderRadius = 0, zIndex = 1) => ({
-    category: "rectangle",
-    left, top, width, height,
-    backgroundColor: color,
-    borderWidth,
-    borderRadius,
-    zIndex,
-});
 
 /**
  * A line-art glyph. `theme` is "harbor" (grey contact/meta) or "harbor-accent"
@@ -90,94 +74,48 @@ const jobMeta = (date, place, top) => [
     text(place, 8.2, SANS, META, MAIN_R - 38, top, 3),
 ];
 
-/**
- * Lay out skill pills, wrapping greedily within the sidebar column. Pill widths
- * are estimated from label length (there is no measurement pass for static
- * specs); the estimate slightly over-provisions so text never clips, and the
- * rounded rectangle plus centred label read as a tag.
- *
- * @returns {{ els: object[], bottom: number }} elements and the y just below
- *          the final pill row, so following sidebar sections can stack under it.
- */
-const skillPills = (skills, left, top, colWidth) => {
-    const els = [];
-    const fs = 7.5, padX = 7, pillH = 16, gapX = 5, gapY = 6, charW = 4.4;
-    let cx = left, cy = top;
-    for (const label of skills) {
-        const width = Math.min(colWidth, Math.round(label.length * charW + padX * 2));
-        // Wrap to the next row when this pill would cross the column's right edge.
-        if (cx + width > left + colWidth) {
-            cx = left;
-            cy += pillH + gapY;
-        }
-        els.push(rect(cx, cy, width, pillH, PILL, 0.9, 5, 4));
-        els.push(text(label, fs, SANS, INK, cx + padX, cy + (pillH - fs) / 2, 4));
-        cx += width + gapX;
-    }
-    return { els, bottom: cy + pillH };
-};
-
-/**
- * One language row: name on the left, five proficiency dots, level on the right.
- * Filled teal dots equal the level; the remainder are outlined grey.
- */
-const languageRow = (name, filled, level, left, top, colWidth) => {
-    const dotD = 5, dotGap = 4, dots = 5, levelW = 16;
-    const dotsWidth = dots * dotD + (dots - 1) * dotGap;
-    const dotsX = left + colWidth - levelW - dotsWidth - 6;
-    const els = [text(name, 8.6, SANS, INK, left, top, 4)];
-    for (let i = 0; i < dots; i += 1) {
-        const cx = dotsX + i * (dotD + dotGap);
-        els.push(circle(cx, top + 1, dotD, i < filled ? ACCENT : PILL, i < filled, 1, 4));
-    }
-    els.push(text(level, 8.2, SANS, META, left + colWidth - levelW, top, 4));
-    return els;
-};
-
-/** One tools-list entry: teal diamond bullet + charcoal label. */
-const toolItem = (label, left, top) => [
+/** Teal diamond bullet + charcoal label — skills, languages, tools, edu notes. */
+const diamondItem = (label, left, top) => [
     icon("harbor-accent", "diamond", left, top, 11),
     text(label, 8.6, SANS, INK, left + 16, top, 4),
 ];
 
-// ── Sidebar (built with a running cursor so pill wrapping cascades cleanly) ──
+// ── Sidebar (running cursor; diamond lists stack with a fixed 15 px rhythm) ──
 const sidebar = (() => {
     const els = [];
     let y = 146;
 
-    // Education
+    // Education: bold diploma, accent school, meta icons, diamond description.
     els.push(...heading("EDUKACJA", SIDE_X, SIDE_W, y));
     els.push(bold(text("Bachelor of Laws", 10, SANS, INK, SIDE_X, y + 24, 3)));
     els.push(text("EU Viadrina", 9, SANS, ACCENT, SIDE_X, y + 40, 3));
     els.push(...contact("calendar", SIDE_X, SIDE_X + 15, "2016 – 2019", y + 57));
     els.push(...contact("location", SIDE_X, SIDE_X + 15, "Frankfurt nad Odrą", y + 72));
+    els.push(...diamondItem("Specjalizacja: prawo europejskie", SIDE_X, y + 90));
 
-    // Skills as wrapped pills
-    y += 104;
+    const skills = [
+        "Analiza AML/KYC", "Transaction Monitoring", "CDD / EDD",
+        "Screening (PEP / sankcje)", "SAR Reporting", "Analityczne myślenie",
+        "Dbałość o szczegóły", "Praca zespołowa",
+    ];
+    y += 122;
     els.push(...heading("UMIEJĘTNOŚCI", SIDE_X, SIDE_W, y));
-    const packed = skillPills(
-        [
-            "Analiza AML/KYC", "Transaction Monitoring", "CDD / EDD",
-            "Screening (PEP / sankcje)", "SAR Reporting", "Analityczne myślenie",
-            "Dbałość o szczegóły", "Praca zespołowa",
-        ],
-        SIDE_X, y + 22, SIDE_W,
-    );
-    els.push(...packed.els);
+    skills.forEach((label, index) => {
+        els.push(...diamondItem(label, SIDE_X, y + 24 + index * 15));
+    });
 
-    // Languages with proficiency dots
-    y = packed.bottom + 20;
+    const languages = ["Polski — C2", "Niemiecki — C1", "Angielski — B2"];
+    y += 24 + skills.length * 15 + 20;
     els.push(...heading("JĘZYKI", SIDE_X, SIDE_W, y));
-    els.push(...languageRow("Polski", 5, "C2", SIDE_X, y + 24, SIDE_W));
-    els.push(...languageRow("Niemiecki", 4, "C1", SIDE_X, y + 42, SIDE_W));
-    els.push(...languageRow("Angielski", 4, "B2", SIDE_X, y + 60, SIDE_W));
+    languages.forEach((label, index) => {
+        els.push(...diamondItem(label, SIDE_X, y + 24 + index * 15));
+    });
 
-    // Tools / systems with diamond bullets
-    y += 82;
-    els.push(...heading("SYSTEMY I NARZĘDZIA", SIDE_X, SIDE_W, y));
     const tools = ["Actimize", "LexisNexis", "SAP / SAP CIC", "MS Office", "SQL", "Python"];
+    y += 24 + languages.length * 15 + 20;
+    els.push(...heading("SYSTEMY I NARZĘDZIA", SIDE_X, SIDE_W, y));
     tools.forEach((label, index) => {
-        els.push(...toolItem(label, SIDE_X, y + 24 + index * 15));
+        els.push(...diamondItem(label, SIDE_X, y + 24 + index * 15));
     });
 
     return els;

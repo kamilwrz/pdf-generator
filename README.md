@@ -401,21 +401,17 @@ Tests:
 
 ### Harbor two-column template
 
-Harbor is a paid two-column template (`layouts: ["sidebar", "icons"]`) that reproduces the popular "double column" résumé: a wide main column on the left (summary + experience) and a narrower sidebar on the right (education, skills, languages, tools). A single teal accent (`#17A2B8`) carries the role line, company names, tool-list diamonds and filled proficiency dots; everything else is charcoal (`#2B2B2B`/`#3A3A3A`) on white, set in Inter. Grey contact and meta icons (phone, email, a `< >` code mark for a repository link, location, calendar) come from the `harbor` icon theme; the teal diamond bullet comes from the `harbor-accent` variant. A circular photo placeholder (a soft-grey disc plus a centred person glyph) sits in the top-right; users drop their own photo over it in the editor.
+Harbor is a paid two-column template (`layouts: ["sidebar", "icons"]`) that reproduces the popular "double column" résumé: a wide main column on the left (summary + experience) and a narrower sidebar on the right (education, skills, languages, tools). A single teal accent (`#17A2B8`) carries the role line, company names and teal diamond bullets; everything else is charcoal (`#2B2B2B`/`#3A3A3A`) on white, set in Inter. Grey contact and meta icons (phone, email, a `< >` code mark for a repository link, location, calendar) come from the `harbor` icon theme; the teal diamond bullet comes from the `harbor-accent` variant. A circular photo placeholder (a soft-grey disc plus a centred person glyph) sits in the top-right; users drop their own photo over it in the editor.
 
-Harbor introduces three sidebar widgets not used elsewhere:
+Harbor sidebar lists (skills, languages, tools, education description bullets) all use the same teal diamond glyph. The canvas still supports `borderRadius` on rectangles (`PdfElement.borderRadius`, `Rectangle.jsx`, ReportLab `roundRect`) for freestyle authoring; Harbor’s starter no longer depends on skill pills or proficiency-dot rows.
 
-- **Skill pills** — bordered rectangles with rounded corners. This required a new `borderRadius` field end-to-end: `PdfElement.borderRadius` (schema), a CSS `border-radius` on the canvas (`Rectangle.jsx`), and ReportLab `roundRect` in the PDF renderer (`renderRectangle`). None/0 keeps square corners, so every existing rectangle is unchanged.
-- **Language proficiency dots** — five `circle` primitives per row, filled teal up to the level and outlined grey for the remainder.
-- **Tools list** — teal diamond glyph bullets.
-
-The static editor preview and the deterministic AI fill share the same identity. Because the fill uses normalised CV data, generic "other" list sections are folded into `skills` (rendered as pills) while genuine custom sections (certifications, interests, projects) render as diamond lists; languages render as dot rows.
+The static editor preview and the deterministic AI fill share the same identity. Generic "other" list sections are folded into `skills` and render as diamond bullets alongside certifications, interests and other flat lists.
 
 New icon glyphs (`github`, `calendar`, `diamond`) are kept in a separate `EXTRA_ICONS` set and generated only for the two curated Harbor themes, so other icon-theme asset folders stay untouched.
 
 Implementation:
 
-- `frontend/src/templates/harbor.js`, lines 1–251 — static starter spec; `rect` with `borderRadius` (line 48), `skillPills` packer (line 102), `languageRow` dots (line 124), `toolItem` diamonds (line 138), sidebar IIFE (line 144)
+- `frontend/src/templates/harbor.js` — static starter; `diamondItem` bullets for skills/languages/tools/education notes, sidebar IIFE
 - `frontend/src/templates/index.js`, registry entry `harbor` (`tier: "paid"`, `layouts: ["sidebar", "icons"]`, `accent: "#17A2B8"`)
 - `backend/app/services/cv_templates/templates/harbor.py`, `_gen_harbor`; `cv_templates/registry.py`, `_GENERATORS["harbor"]`
 - `scripts/generate_iconic_icons.py`, `draw_github`/`draw_calendar`/`draw_diamond` (lines 183–213), `EXTRA_ICONS` (line 234), `SUBSET_THEMES` (line 244)
@@ -426,7 +422,7 @@ Implementation:
 
 Tests:
 
-- `frontend/src/templates/harbor.test.js`, lines 1–67 — two-column origins, rounded pills, teal diamonds, grey icons, proficiency dots, photo placeholder, and Polish-headings assertions
+- `frontend/src/templates/harbor.test.js` — two-column origins, teal diamond counts, grey icons, photo placeholder, education diploma/school, Polish headings
 - `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — enforces the frontend/backend id parity that `harbor` now participates in
 
 ### Icon-tagged templates and icon reflow
@@ -502,19 +498,27 @@ Tests: `backend/tests/test_image_upload_security.py` — accepts a real PNG, rej
 
 ### Deterministic template fill
 
-Python layout from normalised `cv_data` (not LLM placement). In every generated template, an education record uses the same semantic colour system as experience: degree in the primary ink, school/city/period in muted metadata colour, and an optional description in the readable body colour. Compact sidebar records intentionally use their own sidebar palette because they occupy a different background panel.
+Python layout from normalised `cv_data` (not LLM placement). Every education record is structured like experience:
+
+1. **diploma / degree** — bold primary ink;
+2. **school / university** — primary ink, not bold (visually distinct from muted meta);
+3. **city · period** — muted metadata;
+4. **description** — bullet list in the readable body colour (`bulletList: true`).
+
+Skills, languages and other flat chip-style sections render as vertical bullet lists (`_bullet_list_content`) in the main column and in sidebars — not as mid-dot rows. Compact sidebar education blocks keep the same four-line structure; Harbor uses teal diamond glyphs for those list lines.
 
 Implementation:
 
 - `backend/app/services/cv_generator_primitives.py`, class `Builder` — `need`, `need_section`, `keep_together` (tags `flowGroup`; re-exported from `cv_generator.py`)
 - `backend/tests/test_builder_keep_together.py` — whole-record page-break regression
 - `frontend/src/utils/textareaReflow.test.js` — `flowGroup` reclaim / grow keep-together cases
-- `backend/app/services/cv_templates/shared/records.py`, `_place_education_record` — distinguishes education metadata from body text; `generate_resume` via `cv_generator` facade
+- `backend/app/services/cv_templates/shared/records.py`, `_place_education_record` — degree / school / meta / description bullets
+- `backend/app/services/cv_templates/shared/text.py`, `_bullet_list_content` — shared skills/languages list formatting
 - `backend/app/api/routes/ai.py`, `fill_template`
 - `backend/app/services/document_service.py`, lines 69–127, `create_pdf_document`; lines 129–165, `update_pdf_document`
 - Docs: [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
-Tests: `backend/tests/test_cv_template_layouts.py`, `test_education_description_uses_the_experience_body_color` — verifies all 14 affected generated templates keep education descriptions aligned with the experience body colour.
+Tests: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color` — structured education + body-colour bullets across generated templates.
 
 ### Record-style extra sections (projects, references, …)
 
@@ -1260,21 +1264,17 @@ Testy:
 
 ### Szablon dwukolumnowy Harbor
 
-Harbor to płatny dwukolumnowy szablon (`layouts: ["sidebar", "icons"]`) odtwarzający popularny układ „dwukolumnowy": szeroka kolumna główna po lewej (podsumowanie + doświadczenie) i węższy sidebar po prawej (edukacja, umiejętności, języki, narzędzia). Jeden akcent teal (`#17A2B8`) niesie linię stanowiska, nazwy firm, diamenty listy narzędzi oraz wypełnione kropki biegłości; reszta jest w grafitowej czerni (`#2B2B2B`/`#3A3A3A`) na bieli, złożona krojem Inter. Szare ikony kontaktu i metadanych (telefon, e-mail, znak `< >` dla linku do repozytorium, lokalizacja, kalendarz) pochodzą z motywu ikon `harbor`; teal diamentowy punktor pochodzi z wariantu `harbor-accent`. Okrągły placeholder zdjęcia (miękko-szary dysk z wyśrodkowanym glifem osoby) znajduje się w prawym górnym rogu; użytkownik nakłada na niego własne zdjęcie w edytorze.
+Harbor to płatny dwukolumnowy szablon (`layouts: ["sidebar", "icons"]`) odtwarzający popularny układ „dwukolumnowy": szeroka kolumna główna po lewej (podsumowanie + doświadczenie) i węższy sidebar po prawej (edukacja, umiejętności, języki, narzędzia). Jeden akcent teal (`#17A2B8`) niesie linię stanowiska, nazwy firm oraz tealowe diamentowe punktory; reszta jest w grafitowej czerni (`#2B2B2B`/`#3A3A3A`) na bieli, złożona krojem Inter. Szare ikony kontaktu i metadanych (telefon, e-mail, znak `< >` dla linku do repozytorium, lokalizacja, kalendarz) pochodzą z motywu ikon `harbor`; teal diamentowy punktor pochodzi z wariantu `harbor-accent`. Okrągły placeholder zdjęcia (miękko-szary dysk z wyśrodkowanym glifem osoby) znajduje się w prawym górnym rogu; użytkownik nakłada na niego własne zdjęcie w edytorze.
 
-Harbor wprowadza trzy widżety sidebara nieużywane w innych szablonach:
+Listy w sidebarze Harbor (umiejętności, języki, narzędzia, punkty opisu wykształcenia) używają tego samego tealowego diamentu. Kanwa nadal obsługuje `borderRadius` na prostokątach (`PdfElement.borderRadius`, `Rectangle.jsx`, ReportLab `roundRect`) do freestyle; starter Harbor nie zależy już od pigułek umiejętności ani wierszy kropek biegłości.
 
-- **Pigułki umiejętności** — obramowane prostokąty z zaokrąglonymi rogami. Wymagało to nowego pola `borderRadius` w całym potoku: `PdfElement.borderRadius` (schemat), CSS `border-radius` na kanwie (`Rectangle.jsx`) oraz ReportLab `roundRect` w rendererze PDF (`renderRectangle`). Wartość None/0 zachowuje proste rogi, więc każdy istniejący prostokąt pozostaje bez zmian.
-- **Kropki biegłości językowej** — pięć prymitywów `circle` w wierszu, wypełnione teal do poziomu i obrysowane szarością dla reszty.
-- **Lista narzędzi** — punktory w postaci teal diamentów.
-
-Statyczny podgląd w edytorze i deterministyczne wypełnianie AI mają tę samą tożsamość. Ponieważ wypełnianie korzysta ze znormalizowanych danych CV, ogólne sekcje listowe typu „other" są scalane do `skills` (renderowane jako pigułki), natomiast właściwe sekcje niestandardowe (certyfikaty, zainteresowania, projekty) renderują się jako listy diamentów; języki renderują się jako wiersze kropek.
+Statyczny podgląd w edytorze i deterministyczne wypełnianie AI mają tę samą tożsamość. Ogólne sekcje listowe typu „other" są scalane do `skills` i renderują się jako listy diamentów obok certyfikatów, zainteresowań i innych płaskich list.
 
 Nowe glify ikon (`github`, `calendar`, `diamond`) są trzymane w osobnym zbiorze `EXTRA_ICONS` i generowane tylko dla dwóch dedykowanych motywów Harbor, więc pozostałe foldery motywów ikon pozostają nietknięte.
 
 Implementacja:
 
-- `frontend/src/templates/harbor.js`, linie 1–251 — statyczna specyfikacja startowa; `rect` z `borderRadius` (linia 48), packer `skillPills` (linia 102), kropki `languageRow` (linia 124), diamenty `toolItem` (linia 138), IIFE sidebara (linia 144)
+- `frontend/src/templates/harbor.js` — starter; `diamondItem` dla skills/języków/narzędzi/opisów edukacji, IIFE sidebara
 - `frontend/src/templates/index.js`, wpis rejestru `harbor` (`tier: "paid"`, `layouts: ["sidebar", "icons"]`, `accent: "#17A2B8"`)
 - `backend/app/services/cv_templates/templates/harbor.py`, `_gen_harbor`; `cv_templates/registry.py`, `_GENERATORS["harbor"]`
 - `scripts/generate_iconic_icons.py`, `draw_github`/`draw_calendar`/`draw_diamond` (linie 183–213), `EXTRA_ICONS` (linia 234), `SUBSET_THEMES` (linia 244)
@@ -1285,7 +1285,7 @@ Implementacja:
 
 Testy:
 
-- `frontend/src/templates/harbor.test.js`, linie 1–67 — asercje dwóch kolumn, zaokrąglonych pigułek, teal diamentów, szarych ikon, kropek biegłości, placeholdera zdjęcia oraz polskich nagłówków
+- `frontend/src/templates/harbor.test.js` — dwie kolumny, liczba teal diamentów, szare ikony, placeholder zdjęcia, dyplom/uczelnia, polskie nagłówki
 - `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — wymusza parytet id frontend/backend, w którym `harbor` teraz uczestniczy
 
 ### Szablony z tagiem `icons` i reflow ikon
@@ -1357,17 +1357,25 @@ Testy: `backend/tests/test_image_upload_security.py` — PNG, HTML-as-PNG (415),
 
 ### Deterministyczne wypełnianie szablonu
 
-Layout Python powstaje ze znormalizowanego `cv_data`, a nie z pozycji wymyślonych przez LLM. W każdym wygenerowanym szablonie wpis wykształcenia korzysta z tego samego systemu znaczenia kolorów co doświadczenie: kierunek ma podstawowy kolor tekstu, szkoła/miasto/okres mają stonowany kolor metadanych, a opcjonalny opis ma czytelny kolor treści. Zwarty wpis w sidebarze celowo używa własnej palety sidebara, ponieważ jest wyświetlany na innym panelu tła.
+Layout Python powstaje ze znormalizowanego `cv_data`, a nie z pozycji wymyślonych przez LLM. Każdy wpis wykształcenia ma strukturę jak doświadczenie:
+
+1. **dyplom / kierunek** — pogrubiony kolor podstawowy;
+2. **uczelnia** — ten sam kolor, bez bold (wyraźnie odróżniona od metadanych);
+3. **miasto · okres** — stonowany kolor metadanych;
+4. **opis** — lista punktów w kolorze treści (`bulletList: true`).
+
+Umiejętności, języki i inne płaskie sekcje renderują się jako pionowe listy punktów (`_bullet_list_content`) w kolumnie głównej i w sidebarach — nie jako wiersze ze środkowymi kropkami. Harbor używa tealowych diamentów dla tych list.
 
 - `backend/app/services/cv_generator_primitives.py` — klasa `Builder` (`need`, `need_section`, `keep_together` z tagiem `flowGroup`; re-eksport z `cv_generator.py`)
 - `backend/tests/test_builder_keep_together.py` — regresja: rekord nie dzieli się między stronami
 - `frontend/src/utils/textareaReflow.test.js` — przypadki keep-together `flowGroup` przy reclaim/wzroście
-- `backend/app/services/cv_templates/shared/records.py` — `_place_education_record`; `generate_resume` przez fasadę `cv_generator`
+- `backend/app/services/cv_templates/shared/records.py` — `_place_education_record` (dyplom / uczelnia / meta / bullet opis)
+- `backend/app/services/cv_templates/shared/text.py` — `_bullet_list_content`
 - `backend/app/api/routes/ai.py` — `fill_template`
 - `backend/app/services/document_service.py`, linie 69–127 — `create_pdf_document`; linie 129–165 — `update_pdf_document`
 - [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
-Testy: `backend/tests/test_cv_template_layouts.py`, `test_education_description_uses_the_experience_body_color` — sprawdza, czy wszystkie 14 dotkniętych wygenerowanych szablonów utrzymuje kolor opisu wykształcenia zgodny z treścią doświadczenia.
+Testy: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`.
 
 ### Sekcje rekordowe (projekty, referencje, …)
 

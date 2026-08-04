@@ -220,10 +220,10 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "UMIEJĘTNOŚCI", "JĘZYKI", "CERTYFIKATY", "ZAINTERESOWANIA", "WYKSZTAŁCENIE",
         }
         complete_sidebar_bodies = {
-            "Strategia\nBadania",
-            "Polski — C2\nAngielski — C1",
-            "PMP\nICAgile",
-            "Fotografia\nŻeglarstwo",
+            "• Strategia\n• Badania",
+            "• Polski — C2\n• Angielski — C1",
+            "• PMP\n• ICAgile",
+            "• Fotografia\n• Żeglarstwo",
             "MBA\nSGH\n2020",
         }
 
@@ -334,14 +334,17 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertIn("• Angielski — C1", languages_body["content"])
 
         self.assertTrue(any(
-            element["content"] == "MBA — 2020" and element.get("bold")
+            element["content"] == "MBA" and element.get("bold")
             for element in sidebar_bodies
         ))
         self.assertTrue(any(
-            element["content"] == "SGH, Warszawa" for element in sidebar_bodies
+            element["content"] == "SGH" for element in sidebar_bodies
         ))
         self.assertTrue(any(
-            element["content"] == "Zarządzanie strategiczne."
+            element["content"] == "Warszawa   ·   2020" for element in sidebar_bodies
+        ))
+        self.assertTrue(any(
+            element["content"] == "• Zarządzanie strategiczne." and element.get("bulletList")
             for element in sidebar_bodies
         ))
 
@@ -629,8 +632,9 @@ class CvTemplateLayoutTests(unittest.TestCase):
             if element["category"] == "textarea" and element.get("left", 0) >= 100
         ]
         self.assertIn("Magister prawa", main_copy)
-        self.assertIn("Uniwersytet Warszawski   ·   Warszawa   ·   2017 – 2022", main_copy)
-        self.assertIn("Specjalizacja: prawo europejskie", main_copy)
+        self.assertIn("Uniwersytet Warszawski", main_copy)
+        self.assertIn("Warszawa   ·   2017 – 2022", main_copy)
+        self.assertIn("• Specjalizacja: prawo europejskie", main_copy)
 
         sidebar = generate_resume("moss", {
             "name": "Anna Kowalska",
@@ -647,9 +651,9 @@ class CvTemplateLayoutTests(unittest.TestCase):
             and element.get("left") == 24
             and "Magister prawa" in element["content"]
         )
-        self.assertIn("Uniwersytet Warszawski  ·  Warszawa", sidebar_block)
-        self.assertIn("2017 – 2022", sidebar_block)
-        self.assertIn("Specjalizacja: prawo europejskie", sidebar_block)
+        self.assertIn("Uniwersytet Warszawski", sidebar_block)
+        self.assertIn("Warszawa   ·   2017 – 2022", sidebar_block)
+        self.assertIn("• Specjalizacja: prawo europejskie", sidebar_block)
 
     def test_education_description_uses_the_experience_body_color(self):
         """Education descriptions must read like body content, not muted metadata."""
@@ -700,20 +704,31 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
                 description = next(
                     element for element in elements
-                    if element.get("content") == education_description
+                    if element.get("content") == f"• {education_description}"
                 )
                 experience = next(
                     element for element in elements
                     if element.get("content") == f"• {experience_bullet}"
                 )
+                school = next(
+                    element for element in elements
+                    if element.get("content") == "Uniwersytet Warszawski"
+                )
                 metadata = next(
                     element for element in elements
-                    if element.get("content")
-                    == "Uniwersytet Warszawski   ·   Warszawa   ·   2017 – 2022"
+                    if element.get("content") == "Warszawa   ·   2017 – 2022"
                 )
 
                 self.assertEqual(description["color"], experience["color"])
+                self.assertTrue(description.get("bulletList"))
+                # School uses ink (same family as the degree), not muted meta.
+                degree = next(
+                    element for element in elements
+                    if element.get("content") == "Magister prawa"
+                )
+                self.assertEqual(school["color"], degree["color"])
                 self.assertNotEqual(description["color"], metadata["color"])
+                self.assertNotEqual(school["color"], metadata["color"])
 
     def test_classic_templates_are_image_free_single_column_documents(self):
         multi_page_cv = {
@@ -1043,20 +1058,28 @@ class CvTemplateLayoutTests(unittest.TestCase):
             if element["category"] == "textarea"
             and element["content"] == education[0]["degree"]
         )
+        first_school = next(
+            element for element in elements
+            if element["category"] == "textarea"
+            and element["content"] == "EU Viadrina"
+        )
         first_meta = next(
             element for element in elements
             if element["category"] == "textarea"
-            and element["content"] == "EU Viadrina   ·   Frankfurt (Oder)   ·   03/2015"
+            and element["content"] == "Frankfurt (Oder)   ·   03/2015"
         )
         first_body = next(
             element for element in elements
             if element["category"] == "textarea"
-            and element["content"] == education[0]["description"]
+            and element["content"] == f"• {education[0]['description']}"
         )
+        self.assertEqual(first_degree["page"], first_school["page"])
         self.assertEqual(first_degree["page"], first_meta["page"])
         self.assertEqual(first_degree["page"], first_body["page"])
-        self.assertLess(first_degree["top"], first_meta["top"])
+        self.assertLess(first_degree["top"], first_school["top"])
+        self.assertLess(first_school["top"], first_meta["top"])
         self.assertLess(first_meta["top"], first_body["top"])
+        self.assertTrue(first_body.get("bulletList"))
 
     def test_rift_repeats_fixed_background_on_every_content_page(self):
         multi_page_cv = {
@@ -1211,7 +1234,8 @@ class CvTemplateLayoutTests(unittest.TestCase):
             element
             for element in elements
             if element["category"] == "textarea"
-            and "·" in str(element.get("content", ""))
+            and element.get("bulletList")
+            and "•" in str(element.get("content", ""))
             and element["page"] == heading["page"]
             and element["top"] > heading["top"]
         )

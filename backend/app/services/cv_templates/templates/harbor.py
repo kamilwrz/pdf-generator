@@ -9,11 +9,8 @@ from app.services.cv_generator_primitives import (
     SPACE_SECTION,
     SPACE_STACK,
     Builder,
-    _block,
     _circle,
-    _ellipse,
     _line,
-    _rect,
     _text,
     section_chrome_height,
 )
@@ -24,6 +21,7 @@ from app.services.cv_templates.shared.extras import (
     _sidebar_candidates,
 )
 from app.services.cv_templates.shared.records import (
+    _education_bullet_items,
     _education_record_height,
     _education_sidebar_content,
     _experience_record_height,
@@ -45,14 +43,14 @@ def _gen_harbor(cv: dict) -> list[dict]:
     """Generate the Harbor two-column layout.
 
     The main column (summary + experience) reflows across pages through a
-    ``Builder``; the right sidebar (education, skill pills, language dots, tool
-    diamonds) is painted once on page 1, mirroring the Moss sidebar model. A
-    single teal accent carries the role line, company names, tool diamonds and
-    filled proficiency dots; all other ink is charcoal on white.
+    ``Builder``; the right sidebar (education, skills, languages, tools as
+    teal-diamond bullet lists) is painted once on page 1, mirroring the Moss
+    sidebar model. A single teal accent carries the role line, company names
+    and diamond bullets; all other ink is charcoal on white.
     """
     C = {
         "accent": "#17A2B8", "ink": "#2B2B2B", "body": "#3A3A3A",
-        "meta": "#7A7A7A", "rule": "#C4C9CE", "pill": "#CBD0D6", "photo": "#ECEEF1",
+        "meta": "#7A7A7A", "rule": "#C4C9CE", "photo": "#ECEEF1",
     }
     SANS = "Inter"
     MAIN_X, MAIN_W = 44, 292
@@ -69,20 +67,6 @@ def _gen_harbor(cv: dict) -> list[dict]:
             "left": left, "top": top, "width": size, "height": size,
             "zIndex": 3, "page": page, "alignWithText": align,
         }
-
-    def _dots_for_level(level: str) -> int:
-        low = (level or "").strip().casefold()
-        if any(token in low for token in ("c2", "ojczyst", "native", "bilingual", "rodzim")):
-            return 5
-        if "c1" in low or "b2" in low:
-            return 4
-        if "b1" in low:
-            return 3
-        if "a2" in low:
-            return 2
-        if "a1" in low:
-            return 1
-        return 3
 
     # ── Header (spans both columns) ─────────────────────────────────────────
     name = _compact_text(cv.get("name"), 32).upper()
@@ -147,24 +131,21 @@ def _gen_harbor(cv: dict) -> list[dict]:
                 sidebar.append(_hicon("location", SIDE_X, sy, 11))
                 sidebar.append(_text(city, 8.2, SANS, C["meta"], SIDE_X + 15, sy, zIndex=3))
                 sy += 15
+            for item in _education_bullet_items(edu)[:4]:
+                sidebar.append(_hicon("diamond", SIDE_X, sy, 11, accent=True))
+                sidebar.append(_text(_compact_text(item, 34), 8.6, SANS, C["ink"], SIDE_X + 16, sy, zIndex=3))
+                sy += 15
             sy += 6
         sy += 12
 
     if cv.get("skills"):
         sidebar += _side_head(lbl["skills"], sy)
-        # Wrap skill pills greedily across the sidebar column. Widths are
-        # estimated from label length (no measurement pass) and over-provisioned
-        # slightly so labels never clip; the rounded rectangle reads as a tag.
-        pill_fs, pad_x, pill_h, gap_x, gap_y, char_w = 7.5, 7, 16, 5, 6, 4.4
-        px, py = float(SIDE_X), sy + 22
+        iy = sy + 24
         for skill in cv["skills"][:12]:
-            width = min(SIDE_W, round(len(skill) * char_w + pad_x * 2))
-            if px > SIDE_X and px + width > SIDE_X + SIDE_W:
-                px, py = float(SIDE_X), py + pill_h + gap_y
-            sidebar.append({**_rect(px, py, width, pill_h, C["pill"], 0.9, zIndex=1), "borderRadius": 5})
-            sidebar.append(_text(skill, pill_fs, SANS, C["ink"], px + pad_x, py + (pill_h - pill_fs) / 2, zIndex=3))
-            px += width + gap_x
-        sy = py + pill_h + 20
+            sidebar.append(_hicon("diamond", SIDE_X, iy, 11, accent=True))
+            sidebar.append(_text(_compact_text(skill, 34), 8.6, SANS, C["ink"], SIDE_X + 16, iy, zIndex=3))
+            iy += 15
+        sy = iy + 12
 
     if cv.get("languages"):
         sidebar += _side_head("JĘZYKI", sy)
@@ -172,20 +153,12 @@ def _gen_harbor(cv: dict) -> list[dict]:
         for language in cv["languages"][:6]:
             lang_name = _compact_text(language.get("name"), 22)
             level = _compact_text(language.get("level"), 12)
-            filled = _dots_for_level(level)
-            sidebar.append(_text(lang_name, 8.6, SANS, C["ink"], SIDE_X, ly, zIndex=3))
-            dot_d, dot_gap, dots, level_w = 5, 4, 5, 16
-            dots_width = dots * dot_d + (dots - 1) * dot_gap
-            dots_x = SIDE_X + SIDE_W - level_w - dots_width - 6
-            for i in range(dots):
-                dx = dots_x + i * (dot_d + dot_gap)
-                if i < filled:
-                    sidebar.append(_circle(dx, ly + 1, dot_d, C["accent"], filled=True, zIndex=3))
-                else:
-                    sidebar.append(_circle(dx, ly + 1, dot_d, C["pill"], borderWidth=1, zIndex=3))
-            if level:
-                sidebar.append(_text(level, 8.2, SANS, C["meta"], SIDE_X + SIDE_W - level_w, ly, zIndex=3))
-            ly += 18
+            line = f"{lang_name} — {level}" if lang_name and level else (lang_name or level)
+            if not line:
+                continue
+            sidebar.append(_hicon("diamond", SIDE_X, ly, 11, accent=True))
+            sidebar.append(_text(_compact_text(line, 34), 8.6, SANS, C["ink"], SIDE_X + 16, ly, zIndex=3))
+            ly += 15
         sy = ly + 12
 
     # Every remaining custom section becomes a teal-diamond bulleted list.

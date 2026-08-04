@@ -28,6 +28,7 @@ from app.services.cv_templates.shared.records import (
     _place_education_record,
 )
 from app.services.cv_templates.shared.text import (
+    _bullet_list_content,
     _bullets,
     _compact_text,
     _company_period,
@@ -142,6 +143,7 @@ def _gen_moss(cv: dict) -> list[dict]:
                 section_data["content"], sidebar_left, section_data["body_top"],
                 sidebar_width, section_data["body_height"], section_data["fontSize"],
                 section_data["lineHeight"], C["side_text"], SANS, zIndex=3,
+                bulletList=bool(section_data.get("bulletList")),
             ),
         ])
 
@@ -238,9 +240,10 @@ def _gen_moss(cv: dict) -> list[dict]:
         close_section()
 
     if cv.get("skills") and "skills" not in sidebar_keys:
-        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.3, 13.2, SANS))
+        skills = _bullet_list_content(cv["skills"])
+        b.need_section(SECTION_CHROME, b.measure_block(skills, W, 9.3, 13.2, SANS, bulletList=True))
         section(lbl["skills"])
-        b.block("  ·  ".join(cv["skills"]), L, W, 9.3, 13.2, C["body"], SANS)
+        b.block(skills, L, W, 9.3, 13.2, C["body"], SANS, bulletList=True)
         close_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": C["body"]},

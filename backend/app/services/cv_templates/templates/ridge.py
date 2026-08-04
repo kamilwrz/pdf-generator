@@ -5,7 +5,7 @@ from __future__ import annotations
 from app.services.cv_generator_primitives import SPACE_AFTER_MASTHEAD, SPACE_AFTER_RULE, SPACE_RECORD, SPACE_SECTION, Builder, _line, _text, section_chrome_height
 from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.records import _education_record_height, _experience_record_height, _place_education_record, _place_experience_record
-from app.services.cv_templates.shared.text import _compact_text, _labels
+from app.services.cv_templates.shared.text import _compact_text, _labels, _bullet_list_content
 from app.services.cv_templates.shared.icons import _icon_beside, _icon_key_for_label
 
 def _gen_ridge(cv: dict) -> list[dict]:
@@ -80,9 +80,10 @@ def _gen_ridge(cv: dict) -> list[dict]:
         close_section()
     if cv.get('skills'):
         skills_fs = 9.3
-        b.need_section(SECTION_CHROME, b.measure_block('  ·  '.join(cv['skills']), W, skills_fs, 13.4, SANS))
+        skills = _bullet_list_content(cv['skills'])
+        b.need_section(SECTION_CHROME, b.measure_block(skills, W, skills_fs, 13.4, SANS, bulletList=True))
         section(lbl['skills'])
-        b.block('  ·  '.join(cv['skills']), L, W, skills_fs, 13.4, C['body'], SANS)
+        b.block(skills, L, W, skills_fs, 13.4, C['body'], SANS, bulletList=True)
         close_section()
     _extra_sections(b, cv, 'after_skills', section, {'body': C['body']}, L, W, SANS, fs=9.3, lh=13.4, skip_indices=skip_sidebar_extras, section_chrome_h=SECTION_CHROME)
     flow = b.build()

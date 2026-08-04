@@ -6,7 +6,7 @@ from app.core.config import BACKEND_URL
 from app.services.cv_generator_primitives import SPACE_AFTER_MASTHEAD, SPACE_AFTER_RULE, SPACE_RECORD, SPACE_SECTION, Builder, _circle, _ellipse, _line, _rect, _text, section_chrome_height
 from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.records import _education_record_height, _experience_record_height, _place_education_record, _place_experience_record
-from app.services.cv_templates.shared.text import _compact_text, _contact_line, _labels
+from app.services.cv_templates.shared.text import _compact_text, _contact_line, _labels, _bullet_list_content
 
 def _gen_relay(cv: dict) -> list[dict]:
     C = {'asset': 'relay-it-signal.png', 'left': 192, 'width': 340, 'start': 149 + SPACE_AFTER_MASTHEAD, 'continuation': 72, 'ink': '#F7F6F1', 'body': '#F7F6F1', 'muted': '#92989C', 'accent': '#F47B20', 'marker': '#EE2525', 'rule': '#596065', 'font': 'Inter', 'display': 'Inter'}
@@ -80,9 +80,10 @@ def _gen_relay(cv: dict) -> list[dict]:
             _place_education_record(b, edu, L, W, ink=C['ink'], muted=C['muted'], body=C['body'], font=SANS, degree_fs=10.4, degree_lh=13, meta_fs=8.7, meta_lh=11.5, body_fs=8.7, body_lh=11.5, after_gap=SPACE_RECORD if index < len(education_entries) - 1 else None)
         close_section()
     if cv.get('skills'):
-        b.need_section(SECTION_CHROME, b.measure_block('  ·  '.join(cv['skills']), W, 9.3, 13.3, SANS))
+        skills = _bullet_list_content(cv['skills'])
+        b.need_section(SECTION_CHROME, b.measure_block(skills, W, 9.3, 13.3, SANS, bulletList=True))
         section(lbl['skills'])
-        b.block('  ·  '.join(cv['skills']), L, W, 9.3, 13.3, C['body'], SANS)
+        b.block(skills, L, W, 9.3, 13.3, C['body'], SANS, bulletList=True)
         close_section()
     _extra_sections(b, cv, 'after_skills', section, {'body': C['body']}, L, W, SANS, fs=9.3, lh=13.3)
     flow = b.build()

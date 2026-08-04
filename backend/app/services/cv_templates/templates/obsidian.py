@@ -36,6 +36,7 @@ from app.services.cv_templates.shared.records import (
     _place_experience_record,
 )
 from app.services.cv_templates.shared.text import (
+    _bullet_list_content,
     _bullets,
     _compact_text,
     _company_period,
@@ -136,18 +137,22 @@ def _gen_obsidian(cv: dict) -> list[dict]:
         return False
 
     def education_record_height(edu: dict) -> float:
-        title, school_city, description = _obsidian_education_parts(edu)
+        degree, school, meta, bullets = _obsidian_education_parts(edu)
         height = 0.0
-        if title:
-            height += _sidebar_wrapped_height(title, SIDEBAR_W, 8.6, 12)
-        if school_city:
+        if degree:
+            height += _sidebar_wrapped_height(degree, SIDEBAR_W, 8.6, 12)
+        if school:
             if height:
                 height += SPACE_STACK
-            height += _sidebar_wrapped_height(school_city, SIDEBAR_W, 7.9, 11)
-        if description:
+            height += _sidebar_wrapped_height(school, SIDEBAR_W, 8.4, 12)
+        if meta:
             if height:
                 height += SPACE_STACK
-            height += _sidebar_wrapped_height(description, SIDEBAR_W, 8.0, 12)
+            height += _sidebar_wrapped_height(meta, SIDEBAR_W, 7.9, 11)
+        if bullets:
+            if height:
+                height += SPACE_STACK
+            height += _sidebar_wrapped_height(bullets, SIDEBAR_W, 8.0, 12)
         return height
 
     skills = [str(skill).strip() for skill in (cv.get("skills") or []) if str(skill).strip()]
@@ -188,28 +193,36 @@ def _gen_obsidian(cv: dict) -> list[dict]:
         for index, edu in enumerate(education_entries):
             if index:
                 cursor_y += SPACE_RECORD
-            title, school_city, description = _obsidian_education_parts(edu)
-            if title:
-                title_h = _sidebar_wrapped_height(title, SIDEBAR_W, 8.6, 12)
+            degree, school, meta, bullets = _obsidian_education_parts(edu)
+            if degree:
+                title_h = _sidebar_wrapped_height(degree, SIDEBAR_W, 8.6, 12)
                 static.append(_block(
-                    title, SIDEBAR_L, cursor_y, SIDEBAR_W, title_h,
+                    degree, SIDEBAR_L, cursor_y, SIDEBAR_W, title_h,
                     8.6, 12, INK, SANS, zIndex=3, bold=True,
                 ))
                 cursor_y += title_h
-            if school_city:
+            if school:
                 cursor_y += SPACE_STACK
-                meta_h = _sidebar_wrapped_height(school_city, SIDEBAR_W, 7.9, 11)
+                school_h = _sidebar_wrapped_height(school, SIDEBAR_W, 8.4, 12)
                 static.append(_block(
-                    school_city, SIDEBAR_L, cursor_y, SIDEBAR_W, meta_h,
+                    school, SIDEBAR_L, cursor_y, SIDEBAR_W, school_h,
+                    8.4, 12, INK, SANS, zIndex=3,
+                ))
+                cursor_y += school_h
+            if meta:
+                cursor_y += SPACE_STACK
+                meta_h = _sidebar_wrapped_height(meta, SIDEBAR_W, 7.9, 11)
+                static.append(_block(
+                    meta, SIDEBAR_L, cursor_y, SIDEBAR_W, meta_h,
                     7.9, 11, MUTED, SANS, zIndex=3,
                 ))
                 cursor_y += meta_h
-            if description:
+            if bullets:
                 cursor_y += SPACE_STACK
-                desc_h = _sidebar_wrapped_height(description, SIDEBAR_W, 8.0, 12)
+                desc_h = _sidebar_wrapped_height(bullets, SIDEBAR_W, 8.0, 12)
                 static.append(_block(
-                    description, SIDEBAR_L, cursor_y, SIDEBAR_W, desc_h,
-                    8.0, 12, BODY, SANS, zIndex=3,
+                    bullets, SIDEBAR_L, cursor_y, SIDEBAR_W, desc_h,
+                    8.0, 12, BODY, SANS, zIndex=3, bulletList=True,
                 ))
                 cursor_y += desc_h
         cursor_y += 18
@@ -281,7 +294,9 @@ def _gen_obsidian(cv: dict) -> list[dict]:
 
     if skills and "skills" not in placed_keys:
         section(lbl["skills"])
-        b.block("  ·  ".join(skills), L, W, 9.4, 13.3, BODY, SANS)
+        b.block(
+            _bullet_list_content(skills), L, W, 9.4, 13.3, BODY, SANS, bulletList=True,
+        )
         close_section()
 
     _extra_sections(

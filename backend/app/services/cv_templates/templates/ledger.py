@@ -33,6 +33,7 @@ from app.services.cv_templates.shared.records import (
     _place_experience_record,
 )
 from app.services.cv_templates.shared.text import (
+    _bullet_list_content,
     _bullets,
     _compact_text,
     _company_period,
@@ -141,9 +142,10 @@ def _gen_ledger(cv: dict) -> list[dict]:
         close_section()
 
     if cv.get("skills"):
-        b.need_section(SECTION_CHROME, b.measure_block("  ·  ".join(cv["skills"]), W, 9.8, 14, SANS))
+        skills = _bullet_list_content(cv["skills"])
+        b.need_section(SECTION_CHROME, b.measure_block(skills, W, 9.8, 14, SANS, bulletList=True))
         section(lbl["skills"])
-        b.block("  ·  ".join(cv["skills"]), L, W, 9.8, 14, INK, SANS)
+        b.block(skills, L, W, 9.8, 14, INK, SANS, bulletList=True)
         close_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": INK}, L, W, SANS, fs=9.8, lh=14)

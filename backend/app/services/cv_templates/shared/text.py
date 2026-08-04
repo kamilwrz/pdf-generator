@@ -1,7 +1,28 @@
 """Shared text / label helpers for CV template generators."""
 from __future__ import annotations
 
+import re
+
 from app.services.cv_data import fold_section_label, is_skills_like_title
+
+# Strip leading glyph/dash markers so callers can pass already-bulleted lines
+# without producing "• • item" in the canvas bulletList renderer.
+_LEADING_BULLET = re.compile(r"^[\s]*[•\-–*—∙·]\s*")
+
+
+def _bullet_list_content(items: list | tuple | None) -> str:
+    """
+    Format flat strings as a ``bulletList`` textarea body.
+
+    Used for skills, languages, interests, and other chip-style sections so
+    every template renders the same vertical list instead of a mid-dot row.
+    """
+    lines: list[str] = []
+    for item in items or []:
+        text = _LEADING_BULLET.sub("", str(item or "").strip())
+        if text:
+            lines.append(f"• {text}")
+    return "\n".join(lines)
 
 _LABEL_DEFAULTS = {
     "summary":    "PODSUMOWANIE ZAWODOWE",

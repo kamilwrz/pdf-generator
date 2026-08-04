@@ -4,12 +4,11 @@ import test from "node:test";
 import { harborTemplate } from "./harbor.js";
 
 const ACCENT = "#17A2B8";
-const PILL = "#CBD0D6";
 const PHOTO_BG = "#ECEEF1";
 const MAIN_X = 44;
 const SIDE_X = 364;
 
-test("Harbor is a two-column layout with teal accent and sidebar widgets", () => {
+test("Harbor is a two-column layout with teal accent and diamond list widgets", () => {
     // ── Two columns: content anchored at both the main and sidebar origins ───
     assert.ok(harborTemplate.some((element) => element.left === MAIN_X), "no main-column content");
     assert.ok(harborTemplate.some((element) => element.left === SIDE_X), "no sidebar content");
@@ -25,18 +24,12 @@ test("Harbor is a two-column layout with teal accent and sidebar widgets", () =>
         assert.ok(labels.includes(label), `missing heading ${label}`);
     }
 
-    // ── Skill pills: rounded, grey-bordered rectangles, one per skill ────────
-    const pills = harborTemplate.filter(
-        (element) => element.category === "rectangle" && element.borderRadius > 0,
-    );
-    assert.equal(pills.length, 8);
-    assert.ok(pills.every((element) => element.backgroundColor === PILL));
-
-    // ── Tools list: teal diamond bullets ────────────────────────────────────
+    // ── Skills + languages + tools + education note: teal diamond bullets ────
+    // 8 skills + 3 languages + 6 tools + 1 education description = 18
     const diamonds = harborTemplate.filter(
         (element) => element.category === "image" && element.src.includes("/iconic/harbor-accent/diamond"),
     );
-    assert.equal(diamonds.length, 6);
+    assert.equal(diamonds.length, 18);
 
     // ── Grey contact + meta icons come from the harbor theme (not accent) ────
     const greyIcons = harborTemplate.filter(
@@ -45,14 +38,17 @@ test("Harbor is a two-column layout with teal accent and sidebar widgets", () =>
     assert.ok(greyIcons.length >= 12, `expected >=12 grey icons, got ${greyIcons.length}`);
     assert.ok(greyIcons.every((element) => element.alignWithText !== undefined));
 
-    // ── Language proficiency dots: filled teal for level, outline grey rest ──
-    const dots = harborTemplate.filter(
-        (element) => element.category === "circle" && element.width === 5,
+    // ── No leftover skill-pill rectangles or proficiency-dot circles ─────────
+    assert.equal(
+        harborTemplate.filter((element) => element.category === "rectangle").length,
+        0,
     );
-    const filledDots = dots.filter((element) => element.filled && element.backgroundColor === ACCENT);
-    const emptyDots = dots.filter((element) => !element.filled && element.backgroundColor === PILL);
-    assert.equal(filledDots.length, 13); // 5 + 4 + 4 across three languages
-    assert.equal(emptyDots.length, 2);
+    assert.ok(
+        harborTemplate.every(
+            (element) => !(element.category === "circle" && element.width === 5),
+        ),
+        "proficiency dots should not appear in the starter",
+    );
 
     // ── Circular photo placeholder (soft-grey filled disc) ───────────────────
     assert.ok(harborTemplate.some(
@@ -64,4 +60,10 @@ test("Harbor is a two-column layout with teal accent and sidebar widgets", () =>
         (element) => element.category === "text" && element.color === ACCENT,
     );
     assert.ok(tealText.length >= 4, `expected >=4 teal text runs, got ${tealText.length}`);
+
+    // ── Education structure: bold diploma + distinguished school ─────────────
+    const diploma = harborTemplate.find((element) => element.content === "Bachelor of Laws");
+    const school = harborTemplate.find((element) => element.content === "EU Viadrina");
+    assert.ok(diploma?.bold);
+    assert.equal(school?.color, ACCENT);
 });

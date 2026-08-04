@@ -12,7 +12,7 @@ from app.services.cv_generator_primitives import (
     section_chrome_height,
 )
 from app.services.cv_templates.shared.records import _education_sidebar_content
-from app.services.cv_templates.shared.text import _extra_section_kind
+from app.services.cv_templates.shared.text import _bullet_list_content, _extra_section_kind
 
 def _flatten_extra_items(items: list) -> list[str]:
     """Flatten structured records to strings for sidebar / compact consumers."""
@@ -256,7 +256,9 @@ def _sidebar_candidates(cv: dict, labels: dict) -> list[dict]:
             "key": "skills",
             "kind": "skills",
             "title": labels["skills"],
-            "content": "\n".join(skills),
+            # Vertical bullet list — matches main-column skills and languages.
+            "content": _bullet_list_content(skills),
+            "bulletList": True,
         })
 
     for index, section in enumerate(cv.get("extra_sections") or []):
@@ -270,7 +272,8 @@ def _sidebar_candidates(cv: dict, labels: dict) -> list[dict]:
                 "key": f"extra:{index}",
                 "kind": kind,
                 "title": title,
-                "content": "\n".join(items),
+                "content": _bullet_list_content(items),
+                "bulletList": True,
                 "extra_index": index,
             })
 
@@ -280,7 +283,10 @@ def _sidebar_candidates(cv: dict, labels: dict) -> list[dict]:
             "key": "education",
             "kind": "education",
             "title": labels["education"],
+            # Already includes • lines for descriptions; keep as plain wrap so
+            # diploma / school rows are not forced into the bullet glyph column.
             "content": education_content,
+            "bulletList": False,
         })
 
     order = {kind: index for index, kind in enumerate(_SIDEBAR_SECTION_ORDER)}

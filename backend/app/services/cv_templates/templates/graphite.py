@@ -33,6 +33,7 @@ from app.services.cv_templates.shared.records import (
     _place_experience_record,
 )
 from app.services.cv_templates.shared.text import (
+    _bullet_list_content,
     _bullets,
     _compact_text,
     _company_period,
@@ -116,7 +117,8 @@ def _gen_graphite(cv: dict) -> list[dict]:
 
     if cv.get("skills"):
         section(lbl["skills"])
-        b.block(" · ".join(cv["skills"]), L, W, 10, 15, BODY, SANS)
+        skills = _bullet_list_content(cv["skills"])
+        b.block(skills, L, W, 10, 15, BODY, SANS, bulletList=True)
         close_section()
 
     _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, SANS)

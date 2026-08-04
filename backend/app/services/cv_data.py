@@ -377,7 +377,7 @@ def _normalize_experience(value: Any) -> list[dict[str, Any]]:
     return result
 
 
-def _normalize_education(value: Any) -> list[dict[str, str]]:
+def _normalize_education(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
 
@@ -389,6 +389,7 @@ def _normalize_education(value: Any) -> list[dict[str, str]]:
         city = _text(entry.get("city"))
         degree = _text(entry.get("degree") or entry.get("diploma"))
         period = _text(entry.get("period") or entry.get("date"))
+        bullets = _string_list(entry.get("bullets") or entry.get("items"))
         description = _text(
             entry.get("description")
             or entry.get("details")
@@ -399,7 +400,7 @@ def _normalize_education(value: Any) -> list[dict[str, str]]:
         # Older extract prompt returned only degree/period/detail. Recover a
         # dedicated description when school/city are already present or when
         # detail looks like "school · city · opis".
-        if not description and legacy_detail:
+        if not description and not bullets and legacy_detail:
             composed = " · ".join(part for part in (school, city) if part)
             if composed and legacy_detail.startswith(composed):
                 remainder = legacy_detail[len(composed):].lstrip(" ·•|-–,;")
@@ -411,17 +412,26 @@ def _normalize_education(value: Any) -> list[dict[str, str]]:
                 # Pure legacy payload: keep mashed detail for template meta.
                 pass
 
+        # Multiline descriptions become explicit bullets so templates render a
+        # list without re-parsing at layout time. A single paragraph stays in
+        # `description` and is still drawn as one bullet by the record helper.
+        if not bullets and description and "\n" in description:
+            bullets = _string_list(description.splitlines())
+            if bullets:
+                description = "\n".join(bullets)
+
         detail = " · ".join(part for part in (school, city, description) if part) or legacy_detail
-        normalized = {
+        normalized: dict[str, Any] = {
             "school": school,
             "city": city,
             "degree": degree,
             "period": period,
             "description": description,
+            "bullets": bullets,
             # Existing template themes consume this legacy display field.
             "detail": detail,
         }
-        if any(normalized.values()):
+        if any(value for key, value in normalized.items() if key != "bullets") or bullets:
             result.append(normalized)
     return result
 

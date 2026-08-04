@@ -135,7 +135,7 @@ Zanim generator zobaczy dane, `normalize_cv_data` robi z nich stabilny profil:
   "location": "...",
   "summary": "...",
   "experience": [{ "title", "company", "city", "period", "bullets": [] }],
-  "education": [{ "school", "city", "degree", "period", "description", "detail" }],
+  "education": [{ "school", "city", "degree", "period", "description", "bullets", "detail" }],
   "skills": ["..."],
   "languages": [{ "name", "level" }],
   "custom_sections": [...],
@@ -229,8 +229,8 @@ Dla większości szablonów wzorzec jest ten sam:
 3. **`Builder(start_y)`** — przepływ treści w kolumnie głównej:
    - summary,
    - experience (pętla po *wszystkich* jobach — bez limitu slotów),
-   - education (strukturalnie: dyplom / szkoła·miasto·okres / opis),
-   - skills,
+   - education (strukturalnie: dyplom bold / uczelnia / miasto·okres / opis jako bullet list),
+   - skills (bullet list, nie wiersz ze środkowymi kropkami),
    - `extra_sections` w miejscach `after_experience` / `after_skills`.
 4. **`page_decorations`** — dla każdej użytej strony: tło, rail, stopka z numerem, często `fixedToPage: true` (dekoracja nie przesuwa się przy reflow textarea na froncie).
 5. Zwróć `page_decorations + static + flow`.

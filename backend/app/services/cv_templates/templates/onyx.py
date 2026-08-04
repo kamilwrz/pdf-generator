@@ -36,6 +36,7 @@ from app.services.cv_templates.shared.records import (
     _place_experience_record,
 )
 from app.services.cv_templates.shared.text import (
+    _bullet_list_content,
     _bullets,
     _compact_text,
     _company_period,
@@ -149,8 +150,12 @@ def _gen_onyx(cv: dict) -> list[dict]:
         b.gap(SPACE_SECTION)
 
     if skills:
-        b.need(40); section(lbl["skills"])
-        b.block(" · ".join(skills), L, W, 10, 15, BODY, I); b.gap(SPACE_SECTION)
+        skills_body = _bullet_list_content(skills)
+        skills_height = b.measure_block(skills_body, W, 10, 15, I, bulletList=True)
+        b.need_section(section_chrome_height(12), skills_height)
+        section(lbl["skills"])
+        b.block(skills_body, L, W, 10, 15, BODY, I, bulletList=True)
+        b.gap(SPACE_SECTION)
 
     _extra_sections(b, cv, "after_skills", section, {"body": BODY}, L, W, I)
 

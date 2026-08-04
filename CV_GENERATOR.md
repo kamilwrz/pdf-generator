@@ -133,8 +133,8 @@ Po `normalize_cv_data` typowe pola:
 | `email`, `phone`, `address` / `location` | Kontakt |
 | `summary` | Podsumowanie zawodowe |
 | `experience` | Lista stanowisk (tytuł, firma, daty, opis/bullety) |
-| `education` | Lista edukacji (kierunek, szkoła, daty, opis) |
-| `skills` | Lista umiejętności |
+| `education` | Lista edukacji (dyplom bold, uczelnia, miasto·okres, opis jako bullet list) |
+| `skills` | Lista umiejętności (renderowana jako bullet list) |
 | `languages` | Języki obce |
 | `custom_sections` | Sekcje własne (projekty, certyfikaty…) |
 | `labels` | Nagłówki sekcji (PL/EN), np. „DOŚWIADCZENIE ZAWODOWE” |
@@ -388,8 +388,8 @@ Uniwersalne — bez gałęzi `if template_id == …`. Re-eksportowane też z fas
 
 | Moduł | Symbol (wybrane) | Rola |
 | --- | --- | --- |
-| `shared/text.py` | `_labels`, `_bullets`, `_company_period`, `_contact_line`, `_compact_text` | Tekst i etykiety |
-| `shared/records.py` | `_place_education_record`, `_place_experience_record`, heights | Rekordy jako atomy stron |
+| `shared/text.py` | `_labels`, `_bullets`, `_bullet_list_content`, `_company_period`, `_contact_line`, `_compact_text` | Tekst i etykiety |
+| `shared/records.py` | `_place_education_record` (dyplom/uczelnia/meta/bullets), `_place_experience_record`, heights | Rekordy jako atomy stron |
 | `shared/extras.py` | `_extra_sections`, `_render_record_section_body`, sidebar fit | Sekcje własne / sidebar packing |
 | `shared/icons.py` | `_icon`, `_icon_beside`, `_icon_key_for_label` | URL/pozycja PNG z `template_assets/iconic/<id>/` |
 | `registry.py` | `TEMPLATE_LAYOUTS`, `_GENERATORS`, `generate_resume` | Rejestr i API |
