@@ -244,6 +244,179 @@ describe("applyFlowSpacing", () => {
     assert.ok(byId.r2.top > byId.h2.top, "rule stays under the heading");
     assert.ok(byId.b1.top > byId.r2.top, "body stays under the rule");
   });
+
+  it("preserves Cinder chrome rhythm instead of stacking heading/mark/rule with SPACE_STACK", () => {
+    // Authored Cinder geometry: mark overlaps the heading (+2), wide ash rule
+    // sits flush under the label (Builder.line does not advance before paint).
+    const elements = [
+      {
+        element_id: "h1",
+        category: "text",
+        flowRole: "section-chrome",
+        content: "PODSUMOWANIE ZAWODOWE",
+        page: 1,
+        top: 200,
+        height: 12,
+        fontSize: 8.7,
+        left: 76,
+      },
+      {
+        element_id: "mark1",
+        category: "rectangle",
+        flowRole: "section-chrome",
+        page: 1,
+        top: 202,
+        height: 16,
+        width: 16,
+        left: 526,
+      },
+      {
+        element_id: "r1",
+        category: "line",
+        flowRole: "section-chrome",
+        page: 1,
+        top: 212,
+        height: 1,
+        width: 466,
+        left: 76,
+      },
+      {
+        element_id: "a1",
+        category: "textarea",
+        flowRole: "content",
+        autoHeight: true,
+        page: 1,
+        top: 221,
+        height: 40,
+        left: 76,
+      },
+      {
+        element_id: "h2",
+        category: "text",
+        flowRole: "section-chrome",
+        content: "WYKSZTAŁCENIE",
+        page: 1,
+        top: 282,
+        height: 12,
+        fontSize: 8.7,
+        left: 76,
+      },
+      {
+        element_id: "mark2",
+        category: "rectangle",
+        flowRole: "section-chrome",
+        page: 1,
+        top: 284,
+        height: 16,
+        width: 16,
+        left: 526,
+      },
+      {
+        element_id: "r2",
+        category: "line",
+        flowRole: "section-chrome",
+        page: 1,
+        top: 294,
+        height: 1,
+        width: 466,
+        left: 76,
+      },
+      {
+        element_id: "b1",
+        category: "textarea",
+        flowRole: "content",
+        autoHeight: true,
+        page: 1,
+        top: 303,
+        height: 30,
+        left: 76,
+      },
+    ];
+
+    const packed = applyFlowSpacing(elements, {
+      stack: 4,
+      record: 10,
+      section: 21,
+      after_rule: 8,
+    }, 842);
+
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+    const markDelta = byId.mark1.top - byId.h1.top;
+    const ruleDelta = byId.r1.top - byId.h1.top;
+
+    assert.ok(markDelta >= 0 && markDelta <= 4, `mark should sit on the heading line, got Δ=${markDelta}`);
+    assert.ok(
+      Math.abs(ruleDelta - byId.h1.height) <= 2,
+      `rule should sit flush under the heading, got Δ=${ruleDelta} height=${byId.h1.height}`,
+    );
+    assert.ok(byId.a1.top >= byId.r1.top + 6, "body keeps after_rule breathing room");
+    // Mark must not be pushed into a vertical stack below the rule.
+    assert.ok(byId.mark1.top < byId.r1.top + 4, "mark stays in the heading band, not below the rule");
+  });
+
+  it("heals chrome that was previously torn apart by SPACE_STACK packing", () => {
+    // Simulate a document already corrupted by the old forceTargets path:
+    // heading → 4px → mark → 4px → rule (no overlap / flush).
+    const elements = [
+      {
+        element_id: "h1",
+        category: "text",
+        flowRole: "section-chrome",
+        content: "Skills",
+        page: 1,
+        top: 200,
+        height: 12,
+        left: 76,
+      },
+      {
+        element_id: "mark1",
+        category: "rectangle",
+        flowRole: "section-chrome",
+        page: 1,
+        top: 216,
+        height: 16,
+        width: 16,
+        left: 526,
+      },
+      {
+        element_id: "r1",
+        category: "line",
+        flowRole: "section-chrome",
+        page: 1,
+        top: 236,
+        height: 1,
+        width: 466,
+        left: 76,
+      },
+      {
+        element_id: "a1",
+        category: "textarea",
+        flowRole: "content",
+        autoHeight: true,
+        page: 1,
+        top: 245,
+        height: 40,
+        left: 76,
+      },
+    ];
+
+    const packed = applyFlowSpacing(elements, {
+      stack: 4,
+      record: 10,
+      section: 21,
+      after_rule: 8,
+    }, 842);
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+
+    assert.ok(
+      byId.mark1.top - byId.h1.top <= 4,
+      `corrupted mark stack should heal onto the heading, got Δ=${byId.mark1.top - byId.h1.top}`,
+    );
+    assert.ok(
+      Math.abs(byId.r1.top - (byId.h1.top + byId.h1.height)) <= 2,
+      "corrupted rule stack should heal flush under the heading",
+    );
+  });
 });
 
 describe("findProfilePhotoSlot", () => {

@@ -178,52 +178,213 @@ function targetGap(kind, spacing) {
   return spacing.record;
 }
 
+function sortByReadingOrder(elements, pageHeight) {
+  return [...elements].sort((left, right) => {
+    const topDelta = absoluteTop(left, pageHeight) - absoluteTop(right, pageHeight);
+    if (Math.abs(topDelta) > 0.01) return topDelta;
+    return (Number(left.left) || 0) - (Number(right.left) || 0);
+  });
+}
+
 /**
- * Collapse page-break dead space inside a section into a continuous strip.
+ * Whether chrome members still form an authored cluster (overlap / flush rule)
+ * rather than a corrupted vertical stack from an earlier forceTargets pack.
+ */
+function chromeClusterIsHealthy(chromeElements, pageHeight) {
+  if (chromeElements.length <= 1) return true;
+  const sorted = sortByReadingOrder(chromeElements, pageHeight);
+  for (let index = 1; index < sorted.length; index += 1) {
+    const gap = absoluteTop(sorted[index], pageHeight)
+      - absoluteBottom(sorted[index - 1], pageHeight);
+    // Template chrome overlaps (mark on heading) or sits flush (Builder.line).
+    // A strictly positive gap between every pair means SPACE_STACK tore it apart.
+    if (gap < 1) return true;
+  }
+  return false;
+}
+
+/**
+ * Rebuild heading / rule / marker into the classic tight band used by Cinder,
+ * Aldine, Regent, etc.: heading at 0, marks near +2, wide rule flush under label.
  *
- * When `forceTargets` is true, authored gaps are replaced with classified
- * rhythm targets from `spacing` (Sections panel apply). Otherwise small
- * authored gaps are preserved and only page-break holes collapse to `record`.
+ * @returns {{ element: object, relTop: number }[]}
+ */
+function rebuildTightChromeCluster(chromeElements) {
+  const heading = chromeElements.find((element) => (
+    element.category === "text" || element.category === "textarea"
+  )) || chromeElements[0];
+  const headingHeight = elementHeight(heading);
+  const items = [{ element: heading, relTop: 0 }];
+
+  for (const element of chromeElements) {
+    if (element === heading) continue;
+    const width = Number(element.width) || 0;
+    if (element.category === "line" && width >= 120) {
+      // Builder.line paints on the cursor without advancing — flush under label.
+      items.push({ element, relTop: headingHeight });
+    } else if (
+      element.category === "rectangle"
+      || element.category === "circle"
+      || element.category === "image"
+    ) {
+      items.push({ element, relTop: 2 });
+    } else if (element.category === "line") {
+      // Short accent rules belonging to the section chrome band.
+      items.push({ element, relTop: Math.max(0, headingHeight - 1) });
+    } else {
+      items.push({ element, relTop: headingHeight });
+    }
+  }
+
+  return items.sort((left, right) => left.relTop - right.relTop
+    || (Number(left.element.left) || 0) - (Number(right.element.left) || 0));
+}
+
+/**
+ * Rebuild the heading / rule / marker band.
+ *
+ * Decorative chrome must keep its authored mutual offsets (Cinder's mark sits
+ * on the heading line; the rule sits flush under the label). Forcing SPACE_STACK
+ * between chrome pieces — or sorting a previously orphaned rule by its bad Y —
+ * destroys that rhythm. Chrome is split out of the body; stranded or previously
+ * stack-corrupted pieces are healed into a tight cluster.
+ *
+ * @returns {{ element: object, relTop: number }[]}
+ */
+function compactChromeCluster(chromeElements, pageHeight) {
+  if (chromeElements.length === 0) return [];
+
+  const heading = chromeElements.find((element) => (
+    element.category === "text" || element.category === "textarea"
+  )) || chromeElements[0];
+  const headingAbs = absoluteTop(heading, pageHeight);
+
+  // Pieces far from the heading were stranded by an earlier footer pack.
+  const COHERENT_SPAN = 48;
+  const nearHeading = [];
+  const stranded = [];
+  for (const element of chromeElements) {
+    const delta = absoluteTop(element, pageHeight) - headingAbs;
+    if (Math.abs(delta) <= COHERENT_SPAN) nearHeading.push(element);
+    else stranded.push(element);
+  }
+
+  // Healthy authored geometry: preserve deltas. Corrupted stack or orphans: heal.
+  if (stranded.length === 0 && chromeClusterIsHealthy(nearHeading, pageHeight)) {
+    const items = nearHeading.map((element) => ({
+      element,
+      relTop: absoluteTop(element, pageHeight) - headingAbs,
+    }));
+    const minRel = items.reduce(
+      (min, item) => Math.min(min, item.relTop),
+      items[0]?.relTop ?? 0,
+    );
+    for (const item of items) item.relTop -= minRel;
+    return items.sort((left, right) => left.relTop - right.relTop
+      || (Number(left.element.left) || 0) - (Number(right.element.left) || 0));
+  }
+
+  return rebuildTightChromeCluster(chromeElements);
+}
+
+/**
+ * Heading labels count as chrome even when untagged (legacy rule-below heuristic).
+ */
+function isSectionChromeMember(element, sectionElements, pageHeight) {
+  if (isChromeLike(element)) return true;
+  return isSectionHeading(element, sectionElements, pageHeight);
+}
+
+/**
+ * Collapse a section into a continuous strip: chrome cluster first, then body.
+ *
+ * `forceTargets` only retargets chrome→body (`after_rule`) and body gaps
+ * (`stack` / `record`). Intra-chrome spacing is never replaced by SPACE_STACK.
  *
  * @returns {{ element: object, relTop: number }[]}
  */
 function compactSectionStrip(sectionElements, pageHeight, spacing, forceTargets = false) {
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
-  const sorted = [...sectionElements].sort((left, right) => {
-    const topDelta = absoluteTop(left, pageHeight) - absoluteTop(right, pageHeight);
-    if (Math.abs(topDelta) > 0.01) return topDelta;
-    return (Number(left.left) || 0) - (Number(right.left) || 0);
-  });
-  if (sorted.length === 0) return [];
+  if (!sectionElements.length) return [];
 
-  const items = [];
-  for (let index = 0; index < sorted.length; index += 1) {
-    const element = sorted[index];
-    if (index === 0) {
-      items.push({ element, relTop: 0 });
+  // Pull chrome ahead of body so a rule stranded at the page footer cannot sort
+  // into the middle of experience records.
+  const chrome = [];
+  const body = [];
+  for (const element of sectionElements) {
+    if (isSectionChromeMember(element, sectionElements, pageHeight)) {
+      chrome.push(element);
+    } else {
+      body.push(element);
+    }
+  }
+
+  const chromeItems = compactChromeCluster(chrome, pageHeight).map((item) => ({
+    ...item,
+    // Prefix marker so pagination can reserve the whole band even when a
+    // legacy heading is not isChromeLike (untagged short label).
+    leadingChrome: true,
+  }));
+  const items = [...chromeItems];
+  const bodySorted = sortByReadingOrder(body, pageHeight);
+  const chromeBottom = chromeItems.reduce(
+    (max, item) => Math.max(max, item.relTop + elementHeight(item.element)),
+    0,
+  );
+
+  for (let index = 0; index < bodySorted.length; index += 1) {
+    const element = bodySorted[index];
+    if (items.length === 0) {
+      items.push({ element, relTop: 0, leadingChrome: false });
       continue;
     }
-    const previous = items[index - 1];
-    const prevBottomAbs = absoluteBottom(previous.element, pageHeight);
-    const abs = absoluteTop(element, pageHeight);
-    let gap = abs - prevBottomAbs;
-    const crossedPage = Math.trunc(Number(element.page) || 1)
-      > Math.trunc(Number(previous.element.page) || 1);
-    const kind = classifyIntraSectionGap(previous.element, element);
 
+    // First body follows the full chrome band (not the last chrome piece alone),
+    // so an overlapping mark cannot push content down by its full height.
+    if (index === 0) {
+      let gap = targetGap("after_rule", rhythm);
+      if (!forceTargets && chrome.length > 0) {
+        const deepestChromeAbs = Math.max(
+          ...chrome.map((piece) => absoluteBottom(piece, pageHeight)),
+        );
+        const authored = absoluteTop(element, pageHeight) - deepestChromeAbs;
+        // Keep authored breathing room when it is still a normal under-rule gap.
+        if (authored >= 0 && authored <= PAGE_BREAK_GAP_THRESHOLD) {
+          gap = authored;
+        }
+      }
+      items.push({
+        element,
+        relTop: chromeBottom + gap,
+        leadingChrome: false,
+      });
+      continue;
+    }
+
+    const previous = items[items.length - 1];
+    const kind = classifyIntraSectionGap(previous.element, element);
+    let gap;
     if (forceTargets) {
       gap = targetGap(kind, rhythm);
-    } else if (crossedPage || gap > PAGE_BREAK_GAP_THRESHOLD) {
-      // Large gaps are almost always the unused band between contentBottom and
-      // the next pageTop — collapse using the record rhythm, not section.
-      gap = targetGap(kind === "after_rule" ? "after_rule" : "record", rhythm);
+    } else {
+      const prevBottomAbs = absoluteBottom(previous.element, pageHeight);
+      const abs = absoluteTop(element, pageHeight);
+      gap = abs - prevBottomAbs;
+      const crossedPage = Math.trunc(Number(element.page) || 1)
+        > Math.trunc(Number(previous.element.page) || 1);
+      if (crossedPage || gap > PAGE_BREAK_GAP_THRESHOLD) {
+        gap = targetGap(kind === "after_rule" ? "after_rule" : "record", rhythm);
+      }
+      gap = Math.max(0, gap);
     }
-    gap = Math.max(0, gap);
+
     items.push({
       element,
       relTop: previous.relTop + elementHeight(previous.element) + gap,
+      leadingChrome: false,
     });
   }
+
   return items;
 }
 
@@ -256,7 +417,7 @@ function placeAtFlowCursor(cursorAbs, height, pageHeight, pageTop, bottomMargin)
 /** Count leading section-chrome pieces (heading, rule, markers, icons). */
 function leadingChromeCount(strip) {
   let count = 0;
-  while (count < strip.length && isChromeLike(strip[count].element)) {
+  while (count < strip.length && strip[count].leadingChrome) {
     count += 1;
   }
   return count;
