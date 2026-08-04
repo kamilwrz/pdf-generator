@@ -5,7 +5,7 @@
 import classes from "./Topbar.module.css";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { LuLayoutTemplate, LuUnlock } from "react-icons/lu";
+import { LuLayoutTemplate, LuLockOpen } from "react-icons/lu";
 import { RiFileTextLine, RiDownload2Line, RiShuffleLine } from "react-icons/ri";
 import { FiEdit3, FiSave, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { RiArrowGoBackLine, RiArrowGoForwardLine } from "react-icons/ri";
@@ -70,7 +70,7 @@ export default function Topbar({ titleRef }) {
                         onClick={showUnlockFreeform}
                         title="Utwórz kopię ze swobodnym pozycjonowaniem"
                     >
-                        <LuUnlock />
+                        <LuLockOpen />
                         <span className={classes.label}>Odblokuj edycję</span>
                     </button>
                 ) : null}
