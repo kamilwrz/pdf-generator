@@ -42,13 +42,17 @@ def _gen_ridge(cv: dict) -> list[dict]:
         key = _icon_key_for_label(label)
         y = b.y
         page = b.pg
-        b.els.append(_icon_beside(ICON, key, C['icon_x'], y, label_fs, section_icon, page=page))
+        icon_el = _icon_beside(ICON, key, C['icon_x'], y, label_fs, section_icon, page=page)
+        icon_el['flowRole'] = 'section-chrome'
+        b.els.append(icon_el)
         heading = _text(label, label_fs, SANS, C['accent'], L, y, zIndex=3, page=page)
         heading['letterSpacing'] = 1.45
+        heading['flowRole'] = 'section-chrome'
         b.els.append(heading)
         b.y = y + label_fs * 1.35
         b.gap(2)
         b.line(L, W, 1, C['rule'])
+        b.els[-1]['flowRole'] = 'section-chrome'
         b.gap(SPACE_AFTER_RULE)
 
     def close_section() -> None:
@@ -78,15 +82,22 @@ def _gen_ridge(cv: dict) -> list[dict]:
         for index, edu in enumerate(education_entries):
             _place_education_record(b, edu, L, W, ink=C['ink'], muted=C['mute'], body=C['body'], font=SANS, degree_fs=10.4, degree_lh=13, meta_fs=8.5, meta_lh=11.5, body_fs=9.2, body_lh=13.2, after_gap=SPACE_RECORD if index < len(education_entries) - 1 else None)
         close_section()
-    if cv.get('skills'):
+    skills = _bullet_list_content(cv.get('skills'))
+    if skills:
         skills_fs = 9.3
-        skills = _bullet_list_content(cv['skills'])
         b.need_section(SECTION_CHROME, b.measure_block(skills, W, skills_fs, 13.4, SANS, bulletList=True))
         section(lbl['skills'])
         b.block(skills, L, W, skills_fs, 13.4, C['body'], SANS, bulletList=True)
         close_section()
     _extra_sections(b, cv, 'after_skills', section, {'body': C['body']}, L, W, SANS, fs=9.3, lh=13.4, skip_indices=skip_sidebar_extras, section_chrome_h=SECTION_CHROME)
-    flow = b.build()
+    flow = [
+        {**element, 'flowRole': element.get('flowRole', 'content')}
+        for element in b.build()
+    ]
+    header = [
+        {**element, 'flowRole': element.get('flowRole', 'content')}
+        for element in header
+    ]
     pages_used = max([element.get('page', 1) for element in header + flow] or [1])
     page_decorations: list[dict] = []
     for page in range(1, pages_used + 1):

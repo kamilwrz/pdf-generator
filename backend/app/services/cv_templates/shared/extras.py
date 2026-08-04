@@ -221,7 +221,11 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
         items = _flatten_extra_items(raw_items)
         if not items:
             continue
-        content = "\n".join(f"• {item}" for item in items)
+        # Shared formatter strips legacy leading markers so languages/skills
+        # never mix bare lines with "• • item" or hyphen-only rows.
+        content = _bullet_list_content(items)
+        if not content:
+            continue
         body_height = b.measure_block(content, W, fs, lh, font_b, bulletList=True)
         # Reserve heading chrome + body together so custom sections do not leave
         # a title stranded above the page footer.

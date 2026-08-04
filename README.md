@@ -429,13 +429,16 @@ Tests:
 
 Nova, Ridge, Loom, Volt, Cardinal, and Harbor are individual templates that share the `icons` layout tag (and optionally `sidebar` / `dark`). The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so icon images are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
 
-Loom contact rows are special-cased: three single-line `text` labels (not an auto-height email textarea) share a 22 px rhythm, with 9 px icons geometrically centred via `alignWithText: false`. The forest sidebar uses the same geometric icon alignment for skills / interests / languages (not the main-column optical shift), packs section bodies by measured height with a constant gap, and keeps every label and bullet list on one text column (`left: 40`). Main-column section headings still use optical alignment (`alignWithText: true`). Iconic experience entries use the same textarea-block stack as project records (`SPACE_STACK` inside a job, `SPACE_RECORD` / 10 px between jobs) so canvas spacing guides stay consistent. The flag is stored in `extra_properties` and restored when a PDF is reopened.
+Loom contact rows are special-cased: three single-line `text` labels (not an auto-height email textarea) share a 22 px rhythm, with 11 px icons geometrically centred via `alignWithText: false`. The forest sidebar fits complete skills / languages / interests / certifications sections (`_fit_sidebar_sections`); anything that does not fit spills into the main column instead of being truncated. The rail identity (name, contact, fitted sections) repeats on every page as `fixedToPage` so continuation pages never show a blank green column. Sidebar labels and bullet lists stay on one text column (`left: 40`). Main-column section headings still use optical alignment (`alignWithText: true`). Ridge keeps skills/languages in the main column and formats flat extras through `_bullet_list_content` so language rows stay consistent bullets. Iconic experience entries use the same textarea-block stack as project records (`SPACE_STACK` inside a job, `SPACE_RECORD` / 10 px between jobs) so canvas spacing guides stay consistent. The flag is stored in `extra_properties` and restored when a PDF is reopened.
 
 Implementation:
 
 - `frontend/src/templates/iconic.js`, lines 1–386, exports `novaTemplate`, `ridgeTemplate`, `loomTemplate`, `voltTemplate`, and `loomContact`
 - `backend/app/services/cv_templates/shared/icons.py` — `_icon`, `_icon_beside`, `_icon_key_for_label`
-- `backend/app/services/cv_templates/templates/{nova,ridge,loom,volt,cardinal}.py` — per-template `_gen_*` entry points
+- `backend/app/services/cv_templates/templates/loom.py`, `_loom_sidebar_candidates`, `_gen_loom` — fit/spill sidebar + per-page rail
+- `backend/app/services/cv_templates/templates/ridge.py`, `_gen_ridge` — main-column skills/languages + `flowRole`
+- `backend/app/services/cv_templates/shared/extras.py`, `_extra_sections` — flat lists via `_bullet_list_content`
+- `backend/app/services/cv_templates/templates/{nova,volt,cardinal}.py` — per-template `_gen_*` entry points
 - `frontend/src/utils/textareaReflow.js`, functions `isTextAlignedImage`, `isPositionLockedForReflow`, `belongsToFlowLane`, `packGapAfterPageBreak`, `rawSamePageGap`, `remainingRecordHeight`, `avoidOrphanChrome`, `precedingChromeCluster`, `precedingRecordMates`, and `reflowTextareaHeight`
 - `frontend/src/components/canvas/Image/Image.jsx`, lines 22–76, functions `isTextAlignedIcon`, `iconicDrawTop`; canvas images use `object-fit: fill` so full-page backgrounds stretch like ReportLab `drawImage` (not `contain`, which letterboxed Rift/Relay PNGs that are 1024×1536)
 - `backend/app/services/pdf_generator.py`, lines 141–193, method `PDF_Generator.renderImage`
@@ -445,7 +448,7 @@ Tests:
 
 - `frontend/src/utils/textareaReflow.test.js`, lines 83–758 — Iconic grouping, explicit Onyx flow roles, keep-heading-with-body, stale-page gaps, chrome rhythm, and non-collapsing record spacing
 - `backend/tests/test_pdf_shapes.py`, lines 67–131 — optical alignment, explicit `alignWithText: false`, and alpha-mask regressions
-- `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — Loom contact geometry and sidebar column alignment
+- `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_loom_keeps_all_skills_and_repeats_sidebar_on_continuation`, `test_ridge_languages_use_consistent_bullet_list`
 
 **Regenerating source-driven mockups.** `frontend/public/template-mockups/{nova,ridge,loom,volt,monument,words,cardinal,harbor}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, or `frontend/src/templates/harbor.js` changes, regenerate them:
 
@@ -1296,13 +1299,16 @@ Testy:
 
 Nova, Ridge, Loom, Volt, Cardinal i Harbor to indywidualne szablony ze wspólnym tagiem layoutu `icons` (opcjonalnie też `sidebar` / `dark`). Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, obrazy ikon są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
 
-Kontakt w Loom jest osobnym przypadkiem: trzy jednoliniowe etykiety `text` (bez auto-height textarea na e-mailu) mają rytm 22 px, a ikony 9 px są wyśrodkowane geometrycznie (`alignWithText: false`). Sidebar (umiejętności / zainteresowania / języki) używa tego samego wyrównania geometrycznego ikon — nie optycznego przesunięcia z kolumny głównej — pakuje sekcje według zmierzonej wysokości ze stałym odstępem i trzyma etykiety oraz listy punktów w jednej kolumnie tekstu (`left: 40`). Nagłówki w kolumnie głównej nadal używają wyrównania optycznego (`alignWithText: true`). Wpisy doświadczenia w Iconic używają tego samego stosu bloków textarea co projekty (`SPACE_STACK` w środku wpisu, `SPACE_RECORD` / 10 px między wpisami), żeby prowadnice odstępów na kanwie były spójne. Flaga jest zapisywana w `extra_properties` i odtwarzana przy ponownym otwarciu PDF.
+Kontakt w Loom jest osobnym przypadkiem: trzy jednoliniowe etykiety `text` (bez auto-height textarea na e-mailu) mają rytm 22 px, a ikony 11 px są wyśrodkowane geometrycznie (`alignWithText: false`). Leśny sidebar pakuje kompletne sekcje skills / languages / interests / certifications (`_fit_sidebar_sections`); to, co się nie mieści, trafia do kolumny głównej zamiast być ucinane. Tożsamość szyny (imię, kontakt, dopasowane sekcje) powtarza się na każdej stronie jako `fixedToPage`, żeby kolejne strony nie miały pustej zielonej kolumny. Etykiety i listy punktów sidebara zostają w jednej kolumnie tekstu (`left: 40`). Nagłówki w kolumnie głównej nadal używają wyrównania optycznego (`alignWithText: true`). Ridge trzyma skills/languages w kolumnie głównej, a płaskie extras formatuje przez `_bullet_list_content`, żeby wiersze języków miały spójne bullety. Wpisy doświadczenia w Iconic używają tego samego stosu bloków textarea co projekty (`SPACE_STACK` w środku wpisu, `SPACE_RECORD` / 10 px między wpisami). Flaga jest zapisywana w `extra_properties` i odtwarzana przy ponownym otwarciu PDF.
 
 Implementacja:
 
 - `frontend/src/templates/iconic.js`, linie 1–386, eksporty `novaTemplate`, `ridgeTemplate`, `loomTemplate`, `voltTemplate`, `loomContact`
 - `backend/app/services/cv_templates/shared/icons.py` — `_icon`, `_icon_beside`, `_icon_key_for_label`
-- `backend/app/services/cv_templates/templates/{nova,ridge,loom,volt,cardinal}.py` — osobne wejścia `_gen_*`
+- `backend/app/services/cv_templates/templates/loom.py`, `_loom_sidebar_candidates`, `_gen_loom` — fit/spill sidebara + szyna na każdej stronie
+- `backend/app/services/cv_templates/templates/ridge.py`, `_gen_ridge` — skills/languages w main + `flowRole`
+- `backend/app/services/cv_templates/shared/extras.py`, `_extra_sections` — płaskie listy przez `_bullet_list_content`
+- `backend/app/services/cv_templates/templates/{nova,volt,cardinal}.py` — osobne wejścia `_gen_*`
 - `frontend/src/utils/textareaReflow.js`, funkcje `isTextAlignedImage`, `isPositionLockedForReflow`, `belongsToFlowLane`, `packGapAfterPageBreak`, `rawSamePageGap`, `remainingRecordHeight`, `avoidOrphanChrome`, `precedingChromeCluster`, `precedingRecordMates`, `reflowTextareaHeight`
 - `frontend/src/components/canvas/Image/Image.jsx`, linie 22–76, funkcje `isTextAlignedIcon`, `iconicDrawTop`; obrazy na kanwie używają `object-fit: fill`, żeby tła pełnostronicowe rozciągały się jak ReportLab `drawImage` (nie `contain`, które dawało białe paski przy PNG 1024×1536 w Rift/Relay)
 - `backend/app/services/pdf_generator.py`, linie 141–193, metoda `PDF_Generator.renderImage`
@@ -1312,7 +1318,7 @@ Testy:
 
 - `frontend/src/utils/textareaReflow.test.js`, linie 83–758 — grupowanie Iconic, jawne role przepływu Onyx, keep-heading-with-body, stale-page gaps, rytm chrome oraz niekolidujące odstępy rekordów
 - `backend/tests/test_pdf_shapes.py`, linie 67–131 — wyrównanie optyczne, jawne `alignWithText: false` oraz maska alfa
-- `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons` — geometria kontaktu Loom i wyrównanie kolumny sidebara
+- `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_loom_keeps_all_skills_and_repeats_sidebar_on_continuation`, `test_ridge_languages_use_consistent_bullet_list`
 
 **Regenerowanie podglądów opartych na kodzie źródłowym.** Pliki `frontend/public/template-mockups/{nova,ridge,loom,volt,monument,words,cardinal,harbor}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js` lub `frontend/src/templates/harbor.js` należy je odtworzyć:
 

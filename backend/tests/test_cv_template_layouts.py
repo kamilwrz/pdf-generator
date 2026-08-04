@@ -490,6 +490,62 @@ class CvTemplateLayoutTests(unittest.TestCase):
             self.assertIn(education[0]["degree"], main_copy)
             self.assertIn(education[-1]["degree"], main_copy)
 
+    def test_loom_keeps_all_skills_and_repeats_sidebar_on_continuation(self):
+        """Loom must not truncate skills and must paint the rail on every page."""
+        skills = [f"Kompetencja numer {index}" for index in range(1, 16)]
+        profile = {
+            **LONG_CV,
+            "summary": LONG_CV["summary"] * 3,
+            "experience": LONG_CV["experience"] * 3,
+            "skills": skills,
+            "extra_sections": [{
+                "title": "JĘZYKI",
+                "kind": "languages",
+                "placement": "after_skills",
+                "items": ["Polski — C2", "Niemiecki — C1", "Angielski — B2"],
+            }],
+        }
+        elements = generate_resume("loom", profile)
+        pages_used = max(element.get("page", 1) for element in elements)
+        self.assertGreater(pages_used, 1)
+        content = "\n".join(str(element.get("content", "")) for element in elements)
+        self.assertIn(skills[0], content)
+        self.assertIn(skills[-1], content)
+        self.assertIn("• Polski — C2", content)
+        for page in range(1, pages_used + 1):
+            page_side_heads = [
+                element for element in elements
+                if element.get("page", 1) == page
+                and element.get("fixedToPage")
+                and element.get("category") == "text"
+                and str(element.get("content", "")).upper() == "UMIEJĘTNOŚCI"
+                and element.get("left") == 40
+            ]
+            self.assertTrue(page_side_heads, f"missing sidebar skills heading on page {page}")
+
+    def test_ridge_languages_use_consistent_bullet_list(self):
+        profile = {
+            **LONG_CV,
+            "extra_sections": [{
+                "title": "JĘZYKI",
+                "kind": "languages",
+                "placement": "after_skills",
+                "items": ["Polski — C2", "- Niemiecki — C1", "• Angielski — B2"],
+            }],
+        }
+        elements = generate_resume("ridge", profile)
+        languages_body = next(
+            element for element in elements
+            if element.get("category") == "textarea"
+            and "Polski" in str(element.get("content", ""))
+            and "Angielski" in str(element.get("content", ""))
+        )
+        self.assertTrue(languages_body.get("bulletList"))
+        self.assertEqual(
+            languages_body["content"],
+            "• Polski — C2\n• Niemiecki — C1\n• Angielski — B2",
+        )
+
     def test_kernel_and_vector_emit_skills_and_languages_bodies(self):
         """Single-column IT templates must keep skills/languages after Moss-style data."""
         profile = {
@@ -1733,24 +1789,28 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     self.assertLessEqual(element["left"] + element["width"], 595)
                     self.assertLessEqual(element["top"] + element["height"], 842)
 
-                self.assertGreater(max(element.get("page", 1) for element in elements), 1)
+                pages_used = max(element.get("page", 1) for element in elements)
+                self.assertGreater(pages_used, 1)
                 if template_id == "loom":
-                    # Skills live in the sidebar only — no second skills heading in main flow.
+                    # Skills prefer the forest rail; overflow can spill to main.
                     skill_icons = [
                         src for src in icon_srcs
                         if src.endswith("/skills.png")
                     ]
                     self.assertTrue(any("loom-light" in src for src in skill_icons))
                     # Contact rows are single-line text + geometrically centred icons.
+                    # The rail identity repeats on every page so continuation pages
+                    # do not show an empty green column.
                     contact_icons = [
                         element for element in elements
                         if element["category"] == "image"
                         and any(element["src"].endswith(f"/{key}.png") for key in contact_keys)
                         and "loom-light" in element["src"]
                     ]
-                    self.assertEqual(len(contact_icons), 3)
+                    self.assertEqual(len(contact_icons), 3 * pages_used)
                     for icon in contact_icons:
                         self.assertEqual(icon.get("alignWithText"), False)
+                        self.assertTrue(icon.get("fixedToPage"))
                         # Loom sidebar contact icons use geometric centring at the
                         # shared icon size (+25% from the original 9 px).
                         self.assertEqual(icon["width"], 11)
@@ -1776,7 +1836,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                             "UMIEJĘTNOŚCI", "JĘZYKI", "ZAINTERESOWANIA",
                         }
                     ]
-                    self.assertGreaterEqual(len(side_heads), 2)
+                    self.assertGreaterEqual(len(side_heads), 2 * pages_used)
                     side_icons = [
                         element for element in elements
                         if element["category"] == "image"
@@ -1786,19 +1846,21 @@ class CvTemplateLayoutTests(unittest.TestCase):
                             for key in ("skills", "languages", "interests")
                         )
                     ]
-                    self.assertGreaterEqual(len(side_icons), 2)
+                    self.assertGreaterEqual(len(side_icons), 2 * pages_used)
                     for icon in side_icons:
                         self.assertEqual(icon.get("alignWithText"), False)
                         self.assertEqual(icon["left"], 24)
+                        self.assertTrue(icon.get("fixedToPage"))
                     side_bodies = [
                         element for element in elements
                         if element["category"] == "textarea"
                         and element.get("left") == 40
                         and element.get("bulletList")
                     ]
-                    self.assertGreaterEqual(len(side_bodies), 2)
+                    self.assertGreaterEqual(len(side_bodies), 2 * pages_used)
                     for body in side_bodies:
                         self.assertEqual(body["width"], 120)
+                        self.assertTrue(body.get("fixedToPage"))
 
     def test_iconic_experience_record_gap_matches_projects(self):
         """Experience jobs must keep SPACE_RECORD like project records."""
