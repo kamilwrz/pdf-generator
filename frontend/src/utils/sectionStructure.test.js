@@ -153,6 +153,97 @@ describe("applyFlowSpacing", () => {
     const looseH2 = loose.find((element) => element.element_id === "h2");
     assert.ok(looseH2.top > tightH2.top);
   });
+
+  it("keeps section heading, rule, and body together instead of parking the rule in the footer", () => {
+    // Tall first section fills page 1 almost to contentBottom (770). The next
+    // section's 1px underline used to "fit" in the leftover footer band while
+    // the body jumped to page 2 — the Cinder decorative-line bug.
+    const elements = [
+      {
+        element_id: "h1",
+        category: "text",
+        flowRole: "section-chrome",
+        content: "Experience",
+        page: 1,
+        top: 200,
+        height: 14,
+        left: 76,
+      },
+      {
+        element_id: "r1",
+        category: "line",
+        flowRole: "section-chrome",
+        page: 1,
+        top: 214,
+        height: 1,
+        width: 466,
+        left: 76,
+      },
+      {
+        element_id: "a1",
+        category: "textarea",
+        flowRole: "content",
+        autoHeight: true,
+        page: 1,
+        top: 222,
+        height: 540,
+        left: 76,
+      },
+      {
+        element_id: "h2",
+        category: "text",
+        flowRole: "section-chrome",
+        content: "Education",
+        page: 1,
+        top: 780,
+        height: 14,
+        left: 76,
+      },
+      {
+        element_id: "mark2",
+        category: "rectangle",
+        flowRole: "section-chrome",
+        page: 1,
+        top: 782,
+        height: 16,
+        width: 16,
+        left: 526,
+      },
+      {
+        element_id: "r2",
+        category: "line",
+        flowRole: "section-chrome",
+        page: 1,
+        top: 794,
+        height: 1,
+        width: 466,
+        left: 76,
+      },
+      {
+        element_id: "b1",
+        category: "textarea",
+        flowRole: "content",
+        autoHeight: true,
+        page: 2,
+        top: 66,
+        height: 80,
+        left: 76,
+      },
+    ];
+    const packed = applyFlowSpacing(elements, {
+      stack: 4,
+      record: 10,
+      section: 21,
+      after_rule: 8,
+    }, 842, { pageTop: 66, bottomMargin: 72 });
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+
+    assert.equal(byId.h2.page, byId.r2.page, "heading and rule stay on the same page");
+    assert.equal(byId.h2.page, byId.b1.page, "heading and first body stay on the same page");
+    assert.ok(byId.r2.top < 700, `rule must not sit in the footer, got top=${byId.r2.top}`);
+    assert.ok(byId.r2.top > byId.h2.top, "rule stays under the heading");
+    assert.ok(byId.b1.top > byId.r2.top, "body stays under the rule");
+  });
 });
 
 describe("findProfilePhotoSlot", () => {

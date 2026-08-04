@@ -231,7 +231,7 @@ Implementation:
 
 - `frontend/src/utils/editorMode.js` — `normalizeEditorMode`, `inferEditorMode`, `canFreePositionElement`
 - `frontend/src/utils/flowSpacing.js` — defaults + normalize for the Sections panel / save / fill
-- `frontend/src/utils/sectionStructure.js` — `packDocumentSections`, `applyFlowSpacing`, reorder
+- `frontend/src/utils/sectionStructure.js` — `packDocumentSections`, `applyFlowSpacing`, reorder; leading section chrome (heading + rule + markers) reserved with the first body so thin underlines cannot park in the footer
 - `frontend/src/pages/PdfCanvas.jsx`, component `PdfCanvas` (`start=templates|import|wizard|blank`, unlock copy)
 - `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`, `spacing`)
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, `Topbar/Topbar.jsx`, `SectionsPanel/`, `UnlockFreeformModal/`
@@ -1140,7 +1140,7 @@ Wspólne czcionki: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDi
 
 Implementacja:
 
-- `frontend/src/utils/editorMode.js`, `flowSpacing.js`, `sectionStructure.js` (`packDocumentSections`, `applyFlowSpacing`)
+- `frontend/src/utils/editorMode.js`, `flowSpacing.js`, `sectionStructure.js` (`packDocumentSections`, `applyFlowSpacing`; chrome sekcji trzymany z pierwszym blokiem treści)
 - `frontend/src/pages/PdfCanvas.jsx` — intencje `templates|import|wizard|blank`, unlock z kopią
 - `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`, `spacing`)
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, `Topbar/Topbar.jsx`, `SectionsPanel/`, `UnlockFreeformModal/`

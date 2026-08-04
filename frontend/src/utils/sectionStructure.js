@@ -253,6 +253,27 @@ function placeAtFlowCursor(cursorAbs, height, pageHeight, pageTop, bottomMargin)
   };
 }
 
+/** Count leading section-chrome pieces (heading, rule, markers, icons). */
+function leadingChromeCount(strip) {
+  let count = 0;
+  while (count < strip.length && isChromeLike(strip[count].element)) {
+    count += 1;
+  }
+  return count;
+}
+
+/**
+ * Absolute page/top for an already-reserved strip origin + relTop.
+ * Used for leading chrome so a 1px rule cannot independently "fit" in the
+ * footer while the section body jumps to the next page.
+ */
+function pageTopFromOrigin(originAbs, relTop, pageHeight) {
+  const abs = originAbs + relTop;
+  const page = Math.max(1, Math.floor(Math.max(0, abs) / pageHeight) + 1);
+  const top = abs - (page - 1) * pageHeight;
+  return { page, top, abs, bottom: abs };
+}
+
 /**
  * Pack sections in `orderedHeadingIds` from the document flow start.
  * Non-section elements (masthead, fixed chrome) keep their positions.
@@ -303,41 +324,68 @@ export function packDocumentSections(
     if (strip.length === 0) return;
     if (stripIndex > 0) cursorAbs += resolvedSectionGap;
 
-    // Keep section chrome with the first body block: if the heading+rule band
-    // would fit in the footer but the following content would not, start the
-    // whole section on the next page (same orphan rule as textareaReflow).
-    let sectionCursor = cursorAbs;
-    if (strip.length >= 2) {
-      const clusterHeight = elementHeight(strip[0].element)
-        + rhythm.record
-        + elementHeight(strip[1].element);
-      sectionCursor = placeAtFlowCursor(
+    // Keep the full leading chrome band (heading + rule + markers) with the
+    // first body block. Checking only strip[0]+strip[1] left Cinder's 1px
+    // underlines stranded in the footer while body jumped to the next page.
+    const chromeCount = leadingChromeCount(strip);
+    const firstBody = chromeCount < strip.length ? strip[chromeCount] : null;
+    let reservedHeight = 0;
+    if (chromeCount > 0) {
+      const lastChrome = strip[chromeCount - 1];
+      reservedHeight = lastChrome.relTop + elementHeight(lastChrome.element);
+      if (firstBody) {
+        reservedHeight = firstBody.relTop + elementHeight(firstBody.element);
+      }
+    } else if (firstBody) {
+      reservedHeight = elementHeight(firstBody.element);
+    }
+
+    const sectionCursor = reservedHeight > 0
+      ? placeAtFlowCursor(
         cursorAbs,
-        clusterHeight,
+        reservedHeight,
         pageHeight,
         pageTop,
         bottomMargin,
-      ).abs;
-    }
+      ).abs
+      : cursorAbs;
 
     let stripBottom = sectionCursor;
     let previous = null;
-    for (const item of strip) {
+    for (let index = 0; index < strip.length; index += 1) {
+      const item = strip[index];
       const height = elementHeight(item.element);
-      let desiredAbs = sectionCursor;
-      if (previous) {
-        // Authored gap from the compacted strip (page-break waste already gone).
-        const gap = item.relTop
-          - (previous.item.relTop + elementHeight(previous.item.element));
-        desiredAbs = previous.placed.bottom + Math.max(0, gap);
+      const inLeadingChrome = index < chromeCount;
+
+      let placed;
+      if (inLeadingChrome) {
+        // Origin already reserved room for chrome+first body — place by
+        // relative offset so thin rules cannot park alone in the footer.
+        const at = pageTopFromOrigin(sectionCursor, item.relTop, pageHeight);
+        placed = {
+          page: at.page,
+          top: at.top,
+          abs: at.abs,
+          bottom: at.abs + height,
+        };
+      } else {
+        let desiredAbs = sectionCursor;
+        if (previous) {
+          const gap = item.relTop
+            - (previous.item.relTop + elementHeight(previous.item.element));
+          desiredAbs = previous.placed.bottom + Math.max(0, gap);
+        } else {
+          desiredAbs = sectionCursor + item.relTop;
+        }
+        placed = placeAtFlowCursor(
+          desiredAbs,
+          height,
+          pageHeight,
+          pageTop,
+          bottomMargin,
+        );
       }
-      const placed = placeAtFlowCursor(
-        desiredAbs,
-        height,
-        pageHeight,
-        pageTop,
-        bottomMargin,
-      );
+
       placedById.set(item.element.element_id, {
         ...item.element,
         page: placed.page,
