@@ -1,7 +1,8 @@
 /**
  * Left tool rail: mode-aware tools, docs/gallery/upload, logout.
  * Template mode hides freeform DTP primitives; freeform keeps full toolbox.
- * Children slot hosts docked panels (upload/gallery/sections) when open.
+ * Children slot hosts docked flyouts (Editor, SectionsPanel) that open
+ * beside the rail via absolute positioning (`left: 100%`).
  */
 import classes from "./Sidebar.module.css";
 import SidebarControls from "../../common/SidebarControls/SidebarControls";

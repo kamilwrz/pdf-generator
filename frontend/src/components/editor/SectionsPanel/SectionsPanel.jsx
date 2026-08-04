@@ -1,7 +1,10 @@
 /**
  * Template-mode section list: reorder sections structurally (up/down).
+ *
+ * Renders as a docked flyout to the right of the 68px sidebar rail (same
+ * pattern as Editor). Embedding the list inside the rail collapses titles.
  */
-import { use, useMemo } from "react";
+import { use, useEffect, useMemo } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { listDocumentSections, reorderSection } from "../../../utils/sectionStructure";
 import classes from "./SectionsPanel.module.css";
@@ -13,6 +16,15 @@ export default function SectionsPanel({ onClose }) {
     () => listDocumentSections(A4_Elements, pageHeight),
     [A4_Elements, pageHeight],
   );
+
+  useEffect(() => {
+    if (!onClose) return undefined;
+    const onKey = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   function move(headingId, direction) {
     const next = reorderSection(A4_Elements, headingId, direction, pageHeight);

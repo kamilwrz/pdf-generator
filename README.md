@@ -220,7 +220,7 @@ Product narrative: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 Interactive multi-page **A4 portrait** canvas with two persisted editor modes on each `Pdf` row (`editor_mode`, `template_id`):
 
-- **template** — structural editing: content/chrome positions are layout-owned (no free X/Y drag), section reorder panel, gallery photo-slot targets, auto-height reflow with reclaim. Topbar **Odblokuj edycję** copies the document into freeform.
+- **template** — structural editing: content/chrome positions are layout-owned (no free X/Y drag), **Sekcje** flyout docked beside the 68px tool rail (same geometry as the property editor), gallery photo-slot targets, auto-height reflow with reclaim. Topbar **Odblokuj edycję** copies the document into freeform.
 - **freeform** — full toolbox (text, shapes, images), free drag/resize, and reflow without page-break reclaim so hand placement is preserved.
 
 Shared fonts: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono. Session undo/redo ignores post-load textarea reflow (`markHistoryQuiet`).
@@ -1127,7 +1127,7 @@ Opis produktowy: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 Płótno **A4 pion** z dwoma trwałymi trybami na rekordzie `Pdf` (`editor_mode`, `template_id`):
 
-- **template** — edycja strukturalna: pozycje treści/chrome pilnuje układ (bez swobodnego przeciągania X/Y), panel kolejności sekcji, cele dropzone dla zdjęcia profilowego, reflow z reclaim. **Odblokuj edycję** tworzy kopię w trybie freeform.
+- **template** — edycja strukturalna: pozycje treści/chrome pilnuje układ (bez swobodnego przeciągania X/Y), panel **Sekcje** dokowany obok szyny 68px (jak edytor właściwości), cele dropzone dla zdjęcia profilowego, reflow z reclaim. **Odblokuj edycję** tworzy kopię w trybie freeform.
 - **freeform** — pełny przybornik (tekst, kształty, obrazy), swobodny drag/resize oraz reflow bez reclaim między stronami.
 
 Wspólne czcionki: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDisplay, CormorantGaramond, Lora, Courier, JetBrainsMono. Cofnij/ponów pomija reflow po załadowaniu (`markHistoryQuiet`).

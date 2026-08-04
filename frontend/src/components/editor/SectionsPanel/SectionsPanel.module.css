@@ -1,26 +1,39 @@
+/* Docks to the right of the 68px tool rail (same geometry as Editor).
+   Must not live inside the rail's content width — titles would collapse
+   to zero under overflow:hidden + nowrap and only ↑↓ buttons would show. */
 .panel {
+  position: absolute;
+  top: 44px;
+  bottom: 0;
+  left: 100%;
+  width: min(300px, calc(100vw - 68px));
+  z-index: 1200;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  width: min(320px, 100%);
-  padding: 16px;
-  background: #f7f4ef;
-  border: 1px solid rgba(22, 23, 18, 0.12);
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(17, 18, 15, 0.12);
+  gap: 0;
+  padding: 0;
+  background: var(--chrome-surface);
+  color: var(--chrome-ink);
+  border-right: 1px solid var(--chrome-border);
+  box-shadow: 8px 0 28px -18px rgba(0, 0, 0, 0.55);
+  font-family: var(--font-body);
+  overflow: hidden;
 }
 
 .header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--chrome-border);
+  flex-shrink: 0;
 }
 
 .header h2 {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 650;
+  font: 700 15px var(--font-display);
+  color: var(--chrome-ink);
 }
 
 .close {
@@ -29,24 +42,34 @@
   font-size: 1.35rem;
   line-height: 1;
   cursor: pointer;
-  color: inherit;
+  color: var(--chrome-muted);
+  padding: 0 2px;
+}
+
+.close:hover {
+  color: var(--chrome-ink);
 }
 
 .hint,
 .empty {
   margin: 0;
-  font-size: 0.82rem;
+  padding: 10px 14px 0;
+  font-size: 0.78rem;
   line-height: 1.4;
-  color: #55574e;
+  color: var(--chrome-muted);
+  flex-shrink: 0;
 }
 
 .list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 10px 12px 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .item {
@@ -55,14 +78,18 @@
   justify-content: space-between;
   gap: 10px;
   padding: 8px 10px;
-  background: #fff;
-  border: 1px solid rgba(22, 23, 18, 0.1);
+  background: var(--chrome-control);
+  border: 1px solid var(--chrome-border);
   border-radius: 8px;
+  min-width: 0;
 }
 
 .title {
+  flex: 1;
+  min-width: 0;
   font-size: 0.86rem;
   font-weight: 600;
+  color: var(--chrome-ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -71,15 +98,22 @@
 .actions {
   display: flex;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .actions button {
   width: 28px;
   height: 28px;
-  border: 1px solid rgba(22, 23, 18, 0.14);
+  border: 1px solid var(--chrome-border);
   border-radius: 6px;
-  background: #f5f0e7;
+  background: var(--chrome-hover);
+  color: var(--chrome-ink);
   cursor: pointer;
+}
+
+.actions button:hover:not(:disabled) {
+  border-color: var(--chrome-accent);
+  color: var(--chrome-accent);
 }
 
 .actions button:disabled {

@@ -43,7 +43,8 @@ Pełna przestrzeń twórcza na **A4 pion** (595×842 pt) — wiele stron, gdy hi
 
 ### Tryb szablonu
 - Edycja treści, typografia, szerokość pól z auto-height / reflow  
-- Panel **Sekcje** — strukturalna zmiana kolejności  
+- Panel **Sekcje** — dokowany obok szyny narzędzi; strukturalna zmiana kolejności  
+
 - Galeria: upuść jako zdjęcie profilowe albo przejdź do trybu swobodnego  
 - Brak swobodnego przeciągania bloków treści (układ pilnuje generator + reflow)  
 

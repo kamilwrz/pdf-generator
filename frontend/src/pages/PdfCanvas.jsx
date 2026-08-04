@@ -936,9 +936,7 @@ function PdfCanvas() {
               <Sidebar>
                 <Editor />
                 {isSectionsPanel ? (
-                  <div style={{ padding: "12px" }}>
-                    <SectionsPanel onClose={() => setPanel(null)} />
-                  </div>
+                  <SectionsPanel onClose={() => setPanel(null)} />
                 ) : null}
               </Sidebar>
               <div className="right-pane">
