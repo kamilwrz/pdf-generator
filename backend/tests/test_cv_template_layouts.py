@@ -493,6 +493,34 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertTrue(header_texts)
         self.assertEqual({element["left"] for element in header_texts}, {220})
 
+    def test_moss_photo_placeholder_leads_sidebar_at_name_height(self):
+        """Moss photo motif sits in the sidebar top; KONTAKT follows under it."""
+        elements = generate_resume("moss", {
+            "name": "Maja Zielińska",
+            "title": "Studentka",
+            "email": "maja@example.com",
+            "phone": "+48 600 000 000",
+            "location": "Warszawa",
+            "experience": [],
+            "education": [],
+            "skills": ["Marketing"],
+            "extra_sections": [],
+        })
+        name = next(
+            element for element in elements
+            if element["category"] == "text" and element["content"] == "MAJA ZIELIŃSKA"
+        )
+        frame = next(element for element in elements if element.get("id") == "moss-frame")
+        contact = next(
+            element for element in elements
+            if element["category"] == "text" and element["content"] == "KONTAKT"
+        )
+        # No masthead ornament to the right of the name.
+        self.assertLess(frame["left"] + frame["width"], 184)
+        self.assertAlmostEqual(frame["top"], name["top"])
+        self.assertGreater(contact["top"], frame["top"] + frame["height"])
+        self.assertLess(contact["top"], 200)
+
     def test_education_is_structured_in_main_column_and_sidebar(self):
         education = [{
             "degree": "Magister prawa",

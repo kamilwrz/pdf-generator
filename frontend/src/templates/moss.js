@@ -29,23 +29,25 @@ export const mossTemplate = [
     text("aleksandra.wisniewska@email.com  ·  +48 600 000 000", 8.4, SANS, MUTE, 222, 120, 3),
     line(220, 145, 326, 1, RULE, 2),
 
-    tracked(text("KONTAKT", 8, SANS, FOREST, 24, 308, 3), 1.2),
-    block("Poznań\naleksandra.wisniewska@email.com\n+48 600 000 000", 24, 329, 136, 42, 8, 12.5, FOREST, SANS),
-    tracked(text("KOMPETENCJE", 8, SANS, FOREST, 24, 388, 3), 1.2),
-    bulleted(block("• Service design\n• Research\n• Facilitation\n• Operating models", 24, 408, 136, 58, 8.3, 13, FOREST, SANS)),
+    // Photo placeholder at the sidebar top (aligned with the name), then contact
+    // and fitted sidebar sections — not mid-page under empty vertical space.
+    { ...rect(44, 52, 96, 90, GOLD, 0.85, 3), id: "moss-frame" },
+    { ...ellipse(60.6, 68.6, 57.9, 28.1, SAGE, false, 1, 3), id: "moss-orbit" },
+    { ...circle(80.4, 101.6, 18.2, GOLD, true, 1, 3), id: "moss-node" },
 
-    tracked(text("JĘZYKI", 8, SANS, FOREST, 24, 482, 3), 1.2),
-    bulleted(block("• Polski — ojczysty\n• Angielski — C1\n• Hiszpański — B1", 24, 502, 136, 42, 8.3, 13, FOREST, SANS)),
+    tracked(text("KONTAKT", 8, SANS, FOREST, 24, 160, 3), 1.2),
+    block("Poznań\naleksandra.wisniewska@email.com\n+48 600 000 000", 24, 182, 136, 42, 8, 12.5, FOREST, SANS),
+    tracked(text("KOMPETENCJE", 8, SANS, FOREST, 24, 242, 3), 1.2),
+    bulleted(block("• Service design\n• Research\n• Facilitation\n• Operating models", 24, 262, 136, 58, 8.3, 13, FOREST, SANS)),
 
-    tracked(text("WYKSZTAŁCENIE", 8, SANS, FOREST, 24, 567, 3), 1.2),
-    bold(block("Projektowanie Usług — 2011–2016", 24, 587, 136, 24, 8.4, 12, FOREST, SANS)),
-    block("SWPS, Poznań", 24, 611, 136, 14, 7.9, 11, MUTE, SANS),
-    block("Badania, service blueprints, facylitacja.", 24, 628, 136, 26, 8, 12, BODY, SANS),
+    tracked(text("JĘZYKI", 8, SANS, FOREST, 24, 336, 3), 1.2),
+    bulleted(block("• Polski — ojczysty\n• Angielski — C1\n• Hiszpański — B1", 24, 356, 136, 42, 8.3, 13, FOREST, SANS)),
 
-    { ...rect(462, 52, 58, 54, GOLD, 0.8, 3), id: "moss-frame" },
-    { ...ellipse(472, 62, 35, 17, SAGE, false, 1, 3), id: "moss-leaf" },
-    { ...circle(484, 82, 11, GOLD, true, 1, 3), id: "moss-seed" },
-    line(528, 86, 14, 1, GOLD, 2),
+    tracked(text("WYKSZTAŁCENIE", 8, SANS, FOREST, 24, 421, 3), 1.2),
+    bold(block("Projektowanie Usług — 2011–2016", 24, 441, 136, 24, 8.4, 12, FOREST, SANS)),
+    block("SWPS, Poznań", 24, 465, 136, 14, 7.9, 11, MUTE, SANS),
+    block("Badania, service blueprints, facylitacja.", 24, 482, 136, 26, 8, 12, BODY, SANS),
+
     { ...circle(220, 184, 8, GOLD, true, 1, 3), id: "moss-profile" },
     tracked(text("PROFIL", 8.4, SANS, FOREST, 242, 182, 3), 1.55),
     line(242, 200, 304, 1, RULE, 2),

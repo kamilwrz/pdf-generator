@@ -379,6 +379,20 @@ Tests:
 - `frontend/src/templates/cardinal.test.js`, lines 1–57 — single-column, red-headings-only, grey-icons/rules, dark-grey body, and serif-name assertions
 - `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — enforces the frontend/backend id parity that `cardinal` now participates in
 
+### Moss sidebar photo placeholder
+
+Moss is a paid botanical sidebar template (`layouts: ["sidebar"]`). The gold-frame ornament (rectangle + ellipse + filled circle) is the photo placeholder at the top of the narrow left sidebar, aligned with the main-column name. Contact and fitted sidebar sections (skills, languages, interests, education) begin below that placeholder — not mid-page under empty vertical space. The main column keeps name / title / contact line without masthead decoration.
+
+Implementation:
+
+- `backend/app/services/cv_templates/templates/moss.py`, function `_gen_moss` (photo geometry and sidebar stack, lines 59–131)
+- `frontend/src/templates/moss.js`, lines 32–48 — static starter with the same sidebar photo + raised KONTAKT stack
+- `frontend/src/templates/index.js`, registry entry `moss`
+
+Tests:
+
+- `backend/tests/test_cv_template_layouts.py`, `test_moss_photo_placeholder_leads_sidebar_at_name_height`, lines 496–522
+
 ### Harbor two-column template
 
 Harbor is a paid two-column template (`layouts: ["sidebar", "icons"]`) that reproduces the popular "double column" résumé: a wide main column on the left (summary + experience) and a narrower sidebar on the right (education, skills, languages, tools). A single teal accent (`#17A2B8`) carries the role line, company names, tool-list diamonds and filled proficiency dots; everything else is charcoal (`#2B2B2B`/`#3A3A3A`) on white, set in Inter. Grey contact and meta icons (phone, email, a `< >` code mark for a repository link, location, calendar) come from the `harbor` icon theme; the teal diamond bullet comes from the `harbor-accent` variant. A circular photo placeholder (a soft-grey disc plus a centred person glyph) sits in the top-right; users drop their own photo over it in the editor.
@@ -1217,6 +1231,20 @@ Testy:
 
 - `frontend/src/templates/cardinal.test.js`, linie 1–57 — asercje jednej kolumny, czerwieni tylko w nagłówkach, szarych ikon/linii, ciemnoszarej treści i szeryfowego nazwiska
 - `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — wymusza parytet id frontend/backend, w którym `cardinal` teraz uczestniczy
+
+### Placeholder zdjęcia w sidebarze Moss
+
+Moss to płatny botaniczny szablon z sidebarem (`layouts: ["sidebar"]`). Złota ramka (prostokąt + elipsa + wypełnione koło) jest placeholdérem zdjęcia na górze wąskiego lewego sidebara, wyrównanym do imienia i nazwiska w kolumnie głównej. Kontakt oraz dopasowane sekcje sidebara (umiejętności, języki, zainteresowania, wykształcenie) zaczynają się pod tym placeholdérem — nie w połowie strony pod pustą przestrzenią. Kolumna główna zachowuje imię / stanowisko / linię kontaktu bez dekoracji w mastheadzie.
+
+Implementacja:
+
+- `backend/app/services/cv_templates/templates/moss.py`, funkcja `_gen_moss` (geometria zdjęcia i stos sidebara, linie 59–131)
+- `frontend/src/templates/moss.js`, linie 32–48 — statyczny starter z tym samym zdjęciem w sidebarze i podniesionym stosem KONTAKT
+- `frontend/src/templates/index.js`, wpis rejestru `moss`
+
+Testy:
+
+- `backend/tests/test_cv_template_layouts.py`, `test_moss_photo_placeholder_leads_sidebar_at_name_height`, linie 496–522
 
 ### Szablon dwukolumnowy Harbor
 

@@ -47,7 +47,7 @@ export const TEMPLATES = [
     { id: "monument", tier: "paid", name: "Monument", description: "Monochromatyczny editorial", layouts: ["single"], accent: "#343434", elements: monumentTemplate },
     { id: "words", tier: "paid", name: "Words", description: "Dokument w stylu Word", layouts: ["single"], accent: "#555555", elements: wordsTemplate },
     { id: "cardinal", tier: "paid", name: "Cardinal", description: "Szlachetna czerwień, ikony przy sekcjach", layouts: ["icons"], accent: "#9E2532", elements: cardinalTemplate },
-    { id: "moss", tier: "paid", name: "Moss", description: "Botaniczna elegancja, wąski sidebar", layouts: ["sidebar"], accent: "#B99854", elements: mossTemplate },
+    { id: "moss", tier: "paid", name: "Moss", description: "Botaniczny sidebar ze zdjęciem", layouts: ["sidebar"], accent: "#B99854", elements: mossTemplate },
     { id: "harbor", tier: "paid", name: "Harbor", description: "Dwukolumnowy, ikony kontaktu", layouts: ["sidebar", "icons"], accent: "#17A2B8", elements: harborTemplate },
     { id: "signal", tier: "paid", name: "Signal", description: "Ryzyko i treasury", layouts: ["single"], accent: "#3BD2C7", elements: signalTemplate },
     { id: "obsidian", tier: "paid", name: "Obsidian", description: "Ciemny panel boczny", layouts: ["sidebar", "dark"], accent: "#C9A24B", elements: obsidianTemplate },

@@ -4,7 +4,6 @@ from app.core.config import BACKEND_URL
 from app.services.cv_generator_primitives import (
     A4_H,
     SPACE_AFTER_HEADER_RULE,
-    SPACE_AFTER_MASTHEAD,
     SPACE_AFTER_RULE,
     SPACE_RECORD,
     SPACE_SECTION,
@@ -21,18 +20,12 @@ from app.services.cv_generator_primitives import (
 from app.services.cv_templates.shared.extras import (
     _extra_sections,
     _fit_sidebar_sections,
-    _flatten_extra_items,
     _sidebar_candidates,
     _sidebar_wrapped_height,
 )
 from app.services.cv_templates.shared.records import (
     _education_record_height,
-    _education_sidebar_content,
-    _experience_record_height,
-    _language_sidebar_lines,
-    _obsidian_education_parts,
     _place_education_record,
-    _place_experience_record,
 )
 from app.services.cv_templates.shared.text import (
     _bullets,
@@ -60,6 +53,18 @@ def _gen_moss(cv: dict) -> list[dict]:
 
 
     sidebar_left, sidebar_width = 24, 136
+    # Align the sidebar stack with the main-column name top. The former
+    # masthead ornament (frame/orbit/node) is the photo placeholder and must
+    # sit first so KONTAKT and fitted sections begin below it, not mid-page.
+    name_top = 52.0
+    photo_w, photo_h = 96.0, 90.0
+    photo_left = sidebar_left + (sidebar_width - photo_w) / 2
+    photo_top = name_top
+    gap_after_photo = 18.0
+    contact_label_y = photo_top + photo_h + gap_after_photo
+    contact_rule_y = contact_label_y + 12
+    contact_body_y = contact_label_y + 22
+
     contact = "\n".join(filter(None, [
         str(cv.get("location") or "").strip(),
         str(cv.get("email") or "").strip(),
@@ -69,7 +74,7 @@ def _gen_moss(cv: dict) -> list[dict]:
     contact_height = _sidebar_wrapped_height(
         contact or " ", sidebar_width, contact_font_size, contact_line_height
     )
-    sidebar_start = 322 + contact_height + 18
+    sidebar_start = contact_body_y + contact_height + 18
     sidebar_sections, sidebar_keys = _fit_sidebar_sections(
         _sidebar_candidates(cv, lbl),
         width=sidebar_width,
@@ -85,16 +90,45 @@ def _gen_moss(cv: dict) -> list[dict]:
     title = _compact_text(cv.get("title"), 54).upper()
     contact_line = _compact_text(_contact_line(cv), 78)
 
-    frame = {**_rect(462, 52, 58, 54, C["accent"], 0.85, zIndex=3), "id": "moss-frame"}
-    orbit = {**_ellipse(472, 62, 35, 17, C["marker"], borderWidth=1, zIndex=3), "id": "moss-orbit"}
-    node = {**_circle(484, 82, 11, C["accent"], filled=True, zIndex=3), "id": "moss-node"}
-    contact_label = _text("KONTAKT", 8, SANS, C["side_label"], sidebar_left, 300, zIndex=3)
-    contact_rule = _line(sidebar_left, 312, 44, 1, C["accent"], zIndex=3)
+    # Photo placeholder: same gold-frame motif that used to sit beside the name.
+    # Scale is sized for the narrow sidebar so users can drop a portrait over it.
+    scale = photo_w / 58.0
+    frame = {
+        **_rect(photo_left, photo_top, photo_w, photo_h, C["accent"], 0.85, zIndex=3),
+        "id": "moss-frame",
+    }
+    orbit = {
+        **_ellipse(
+            photo_left + 10 * scale,
+            photo_top + 10 * scale,
+            35 * scale,
+            17 * scale,
+            C["marker"],
+            borderWidth=1,
+            zIndex=3,
+        ),
+        "id": "moss-orbit",
+    }
+    node = {
+        **_circle(
+            photo_left + 22 * scale,
+            photo_top + 30 * scale,
+            11 * scale,
+            C["accent"],
+            filled=True,
+            zIndex=3,
+        ),
+        "id": "moss-node",
+    }
+    contact_label = _text(
+        "KONTAKT", 8, SANS, C["side_label"], sidebar_left, contact_label_y, zIndex=3,
+    )
+    contact_rule = _line(sidebar_left, contact_rule_y, 44, 1, C["accent"], zIndex=3)
     contact_body = _block(
-        contact, sidebar_left, 322, sidebar_width, contact_height,
+        contact, sidebar_left, contact_body_y, sidebar_width, contact_height,
         contact_font_size, contact_line_height, C["side_text"], SANS, zIndex=3,
     )
-    sidebar_static = [contact_label, contact_rule, contact_body]
+    sidebar_static = [frame, orbit, node, contact_label, contact_rule, contact_body]
     for section_data in sidebar_sections:
         section_label = _text(
             section_data["title"], 8, SANS, C["side_label"],
@@ -112,14 +146,12 @@ def _gen_moss(cv: dict) -> list[dict]:
         ])
 
     static = [
-        _text(name, 29, SERIF, C["ink"], L, 52, zIndex=3, bold=True),
+        _text(name, 29, SERIF, C["ink"], L, name_top, zIndex=3, bold=True),
         # Keep the main-column X origin identical for header and body flow.
         _text(title, 8.8, SANS, C["marker"], L, 92, zIndex=3),
         _text(contact_line, 8.4, SANS, C["muted"], L, 120, zIndex=3),
         _line(L, 145, W, 1, C["rule"], zIndex=2),
         *sidebar_static,
-        frame, orbit, node,
-        _line(528, 85, 14, 1, C["accent"], zIndex=2),
     ]
     static[0]["letterSpacing"] = 0.1
     static[1]["letterSpacing"] = 1.45
