@@ -396,7 +396,7 @@ Uniwersalne — bez gałęzi `if template_id == …`. Re-eksportowane też z fas
 
 ---
 
-## 12. Pełna mapa `_GENERATORS` (25 szablonów)
+## 12. Pełna mapa `_GENERATORS` (26 szablonów)
 
 Każdy wpis to `cv_templates/templates/<template_id>.py` → funkcja `_gen_<template_id>`. Plik nie zawiera słownika `themes` ani `if theme == …` / `if C["layout"] == …` dla innych szablonów.
 
@@ -427,6 +427,7 @@ Każdy wpis to `cv_templates/templates/<template_id>.py` → funkcja `_gen_<temp
 | `cardinal` | `_gen_cardinal` | `templates/cardinal.py` |
 | `monument` | `_gen_monument` | `templates/monument.py` |
 | `words` | `_gen_words` | `templates/words.py` |
+| `tessera` | `_gen_tessera` | `templates/tessera.py` |
 
 **Starter Free** (typowo): `ledger`, `nimbus`, `vector`, `kernel`, `scribe`, `regent`, `graphite`, `nova` — lista musi być zsynchronizowana z `FREE_STARTER_TEMPLATE_IDS` w entitlements i testem `test_template_registry_sync.py`.
 
@@ -521,7 +522,7 @@ Fill szablonu = **nowy układ z `cv_data`**. Układ AI = **poprawianie już leż
 ## 17. Podsumowanie dla laika
 
 1. Masz treść CV (z PDF albo z formularza).  
-2. Wybierasz wygląd (jeden z 25 szablonów).  
+2. Wybierasz wygląd (jeden z 26 szablonów).  
 3. Serwer **nie zgaduje** układu — **wylicza** go funkcją Pythona jak linijką na kartce.  
 4. Przeglądarka pokazuje wynik jako edytowalne klocki.  
 5. PDF eksportuje te same klocki.

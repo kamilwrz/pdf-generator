@@ -45,3 +45,4 @@ mogły współdzielić zachowanie:
 23. Ridge — Szyna ikon przy nagłówkach
 24. Loom — Sidebar rzemieślniczy z ikonami
 25. Volt — Ciemny sygnał, bursztynowe akcenty
+26. Tessera — Mozaikowy sidebar, prostokątne zdjęcie

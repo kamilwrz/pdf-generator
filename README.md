@@ -2,7 +2,7 @@
 
 # CV Studio
 
-CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 25 individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
+CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 26 individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
 
 This README is the technical entry point for developers. A beginner-friendly deep guide to canvas coordinates, React interaction, deterministic Python layout, AI responsibilities, reflow, persistence, and ReportLab export lives in [`CANVA.md`](CANVA.md). Every live AI prompt (full text, variables, file/line references) is documented in [`PROMPTS.md`](PROMPTS.md). Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md). Marketing brief for the website „Dlaczego CV STUDIO” section (features + competitive positioning, no competitor brand names in public copy) lives in [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Template generation (AI extract vs Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md). A layperson-friendly end-to-end guide covering Frontend and Backend (flows, files, classes, functions) lives in [`CV_GENERATOR.md`](CV_GENERATOR.md).
 
@@ -155,7 +155,7 @@ pdf-generator/
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
-│   │   ├── templates/        # 25 template specs + helpers
+│   │   ├── templates/        # 26 template specs + helpers
 │   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow
 │   ├── package.json
 │   └── .env.example
@@ -181,7 +181,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 25 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
+**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 26 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
 
 ---
 
@@ -425,9 +425,34 @@ Tests:
 - `frontend/src/templates/harbor.test.js` — two-column origins, teal diamond counts, grey icons, photo placeholder, education diploma/school, Polish headings
 - `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — enforces the frontend/backend id parity that `harbor` now participates in
 
+### Tessera mosaic-sidebar template
+
+Tessera is a paid two-column template (`layouts: ["sidebar", "icons"]`) built around an independently designed mosaic language rather than a visual copy of another résumé. It keeps the useful information hierarchy of a narrow profile rail plus a wide narrative column, but changes the composition and identity: the sidebar is on warm blush paper, the main surface is cream, aubergine serif typography carries the masthead, and coral/ochre offset tiles frame every custom line-art icon. The palette (`#4A2347`, `#E15D4F`, `#DCA65A`, `#FCF8F2`) and asymmetric tile geometry distinguish it from the green rounded-card reference, Moss, Harbor, and Loom.
+
+The portrait area is a 112×126 px rectangle with an offset underlay, aubergine outline, ochre orbit, coral nodes, and a generated `portrait.png` glyph. It is a placeholder rather than a stored user image: the user may place an uploaded raster image over the frame in the editor. Contact, education, skills, languages, and supported extra sections are packed as complete blocks in the left rail. Tessera prioritises education before skill lists; anything that does not fit before the footer falls through to the main flow instead of being clipped. Summary, experience, fallback education/skills, and custom sections use `Builder`, `need_section`, and record `flowGroup` tags. Continuation pages retain the blush rail, coral divider, footer orbit, and page number without duplicating personal sidebar data.
+
+Tessera exercises every supported canvas primitive used by deterministic templates: `text`, auto-height `textarea`, filled `line`, outlined `rectangle`, `circle`, `ellipse`, and PNG `image`. It intentionally does not emit the obsolete `connector` category. Fifteen aubergine PNG glyphs are generated under `backend/template_assets/iconic/tessera/`, including contact, section, calendar, profile-link, and portrait symbols. Main section icons and their tile chrome use `flowRole: "section-chrome"`; ordinary records use `content`.
+
+Implementation:
+
+- `backend/app/services/cv_templates/templates/tessera.py`, lines 38–374, function `_gen_tessera` — dynamic sidebar fit/spill, rectangular portrait, main flow, continuation decorations
+- `frontend/src/templates/tessera.js`, lines 43–185 — icon/tile helpers, source-driven starter array, explicit reflow roles
+- `frontend/src/templates/index.js`, lines 32 and 62 — paid `tessera` registry entry
+- `backend/app/services/cv_templates/registry.py`, `_GENERATORS["tessera"]` and `TEMPLATE_LAYOUTS["tessera"]`
+- `scripts/generate_iconic_icons.py`, lines 216–272 — `draw_portrait` and curated `tessera` icon theme
+- `frontend/public/template-mockups/tessera.png` — ReportLab-rendered preview generated from the starter array
+
+Tests:
+
+- `frontend/src/templates/tessera.test.js`, lines 6–47 — every supported primitive, two-column origins, rectangular photo, icon assets, and reflow metadata
+- `backend/tests/test_cv_template_layouts.py`, function `test_tessera_is_original_icon_sidebar_with_rectangular_photo`
+- `backend/tests/test_template_registry_sync.py` — frontend/backend ID, layout-tag, and entitlement parity
+
+Known limitation: sidebar sections are atomic and remain on page 1. A section too tall for the remaining rail space moves to the main column; Tessera does not split one sidebar list across pages.
+
 ### Icon-tagged templates and icon reflow
 
-Nova, Ridge, Loom, Volt, Cardinal, and Harbor are individual templates that share the `icons` layout tag (and optionally `sidebar` / `dark`). The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so icon images are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
+Nova, Ridge, Loom, Volt, Cardinal, Harbor, and Tessera are individual templates that share the `icons` layout tag (and optionally `sidebar` / `dark`). The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so icon images are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
 
 Loom contact rows are special-cased: three single-line `text` labels (not an auto-height email textarea) share a 22 px rhythm, with 11 px icons geometrically centred via `alignWithText: false`. The forest sidebar fits complete skills / languages / interests / certifications sections (`_fit_sidebar_sections`); anything that does not fit spills into the main column instead of being truncated. The rail identity (name, contact, fitted sections) repeats on every page as `fixedToPage` so continuation pages never show a blank green column. Sidebar labels and bullet lists stay on one text column (`left: 40`). Main-column section headings still use optical alignment (`alignWithText: true`). Ridge keeps skills/languages in the main column and formats flat extras through `_bullet_list_content` so language rows stay consistent bullets. Iconic experience entries use the same textarea-block stack as project records (`SPACE_STACK` inside a job, `SPACE_RECORD` / 10 px between jobs) so canvas spacing guides stay consistent. The flag is stored in `extra_properties` and restored when a PDF is reopened.
 
@@ -450,14 +475,14 @@ Tests:
 - `backend/tests/test_pdf_shapes.py`, lines 67–131 — optical alignment, explicit `alignWithText: false`, and alpha-mask regressions
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_loom_keeps_all_skills_and_repeats_sidebar_on_continuation`, `test_ridge_languages_use_consistent_bullet_list`
 
-**Regenerating source-driven mockups.** `frontend/public/template-mockups/{nova,ridge,loom,volt,monument,words,cardinal,harbor}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, or `frontend/src/templates/harbor.js` changes, regenerate them:
+**Regenerating source-driven mockups.** `frontend/public/template-mockups/{nova,ridge,loom,volt,monument,words,cardinal,harbor,tessera}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, `frontend/src/templates/harbor.js`, or `frontend/src/templates/tessera.js` changes, regenerate them:
 
 ```bash
-node --import ./frontend/scripts/register-hook.mjs ./frontend/scripts/dump-iconic-templates.mjs
+node frontend/scripts/dump-iconic-templates.mjs
 python scripts/render_iconic_mockups.py           # renders each theme through ReportLab, rasterizes page 1 with PyMuPDF
 ```
 
-The dump script (`frontend/scripts/dump-iconic-templates.mjs`) needs a small Node ESM loader (`frontend/scripts/resolve-js-ext-hook.mjs`, registered via `frontend/scripts/register-hook.mjs`) because `iconic.js` uses Vite-style extensionless imports (`from "../services/api"`) that plain Node cannot resolve; the hook also stubs `import.meta.env` so the module-level `API_BASE_URL` read does not throw outside Vite. The intermediate JSON is git-ignored — it is always regenerated from `iconic.js`, never edited by hand.
+The starter modules use explicit `.js` import extensions, and `frontend/src/services/api.js` falls back safely when Vite's `import.meta.env` object is absent. The dump therefore runs directly in Node without a custom loader. The intermediate JSON is git-ignored — it is always regenerated from the starter modules, never edited by hand.
 
 ### PDF create / update / autosave / download
 
@@ -886,7 +911,7 @@ Notable product facts:
 
 # CV Studio
 
-CV Studio to polski edytor CV na A4: płótno WYSIWYG, 25 indywidualnych szablonów (każdy z własną nazwą i krótkim opisem stylistycznym), import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
+CV Studio to polski edytor CV na A4: płótno WYSIWYG, 26 indywidualnych szablonów (każdy z własną nazwą i krótkim opisem stylistycznym), import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
 
 Ten README to wejście techniczne dla programistów. Obszerne, napisane dla początkujących wyjaśnienie współrzędnych canvasu, interakcji React, deterministycznego layoutu Python, roli AI, reflow, zapisu i eksportu ReportLab znajduje się w [`CANVA.md`](CANVA.md). Wszystkie prompty AI (treść, zmienne, numery linii): [`PROMPTS.md`](PROMPTS.md). Opis produktowy funkcji: [`docs/FEATURES.md`](docs/FEATURES.md). Brief marketingowy pod sekcję „Dlaczego CV STUDIO” na stronie (funkcje + pozycjonowanie względem rynku, bez nazw marek konkurencji w copy publicznym): [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Generowanie szablonów (AI extract vs layout w Pythonie): [`docs/cv-template-generation.md`](docs/cv-template-generation.md). Przystępny, kompletny przewodnik Frontend + Backend (ścieżki, pliki, klasy, funkcje): [`CV_GENERATOR.md`](CV_GENERATOR.md).
 
@@ -1063,7 +1088,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Zasady:** 25 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_templates/registry.py` (re-eksport z `cv_generator.py`). Każdy `cv_templates/templates/<id>.py` zawiera wyłącznie żywy generator tego szablonu — bez wspólnego silnika multi-theme i martwych gałęzi siblingów. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Bajty obrazów użytkownika nie są publicznie montowane — tylko przez `GET /images/{id}/content`.
+**Zasady:** 26 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_templates/registry.py` (re-eksport z `cv_generator.py`). Każdy `cv_templates/templates/<id>.py` zawiera wyłącznie żywy generator tego szablonu — bez wspólnego silnika multi-theme i martwych gałęzi siblingów. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Bajty obrazów użytkownika nie są publicznie montowane — tylko przez `GET /images/{id}/content`.
 
 ---
 
@@ -1297,9 +1322,34 @@ Testy:
 - `frontend/src/templates/harbor.test.js` — dwie kolumny, liczba teal diamentów, szare ikony, placeholder zdjęcia, dyplom/uczelnia, polskie nagłówki
 - `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — wymusza parytet id frontend/backend, w którym `harbor` teraz uczestniczy
 
+### Szablon Tessera z mozaikowym sidebarem
+
+Tessera to płatny szablon dwukolumnowy (`layouts: ["sidebar", "icons"]`) z niezależnie zaprojektowanym językiem mozaiki, a nie wizualną kopią innego CV. Zachowuje użyteczną hierarchię wąskiej szyny profilu i szerokiej kolumny narracyjnej, ale zmienia kompozycję oraz tożsamość: sidebar leży na ciepłym pudrowym tle, powierzchnia główna jest kremowa, masthead używa szeryfowej typografii w kolorze aubergine, a koralowo-ochrowe przesunięte kafle oprawiają każdą własną ikonę line-art. Paleta (`#4A2347`, `#E15D4F`, `#DCA65A`, `#FCF8F2`) i asymetryczna geometria kafli odróżniają ją od zielonego wzorca z zaokrąglonymi kartami oraz od Moss, Harbor i Loom.
+
+Obszar portretu jest prostokątem 112×126 px z przesuniętym podkładem, konturem aubergine, ochrową orbitą, koralowymi węzłami i generowanym glifem `portrait.png`. To placeholder, a nie zapisane zdjęcie użytkownika: w edytorze można położyć na ramie przesłany obraz rastrowy. Kontakt, edukacja, umiejętności, języki i obsługiwane sekcje dodatkowe są pakowane w lewą szynę jako kompletne bloki. Tessera daje pierwszeństwo edukacji przed listami umiejętności; wszystko, co nie mieści się przed stopką, trafia do głównego flow zamiast zostać ucięte. Podsumowanie, doświadczenie, awaryjna edukacja/skills i sekcje własne używają `Builder`, `need_section` oraz tagów rekordów `flowGroup`. Kolejne strony zachowują pudrową szynę, koralowy separator, orbitę stopki i numer strony, ale nie duplikują prywatnych danych z sidebara.
+
+Tessera wykorzystuje każdy obsługiwany prymityw kanwy używany przez deterministyczne szablony: `text`, automatyczne `textarea`, wypełniony `line`, konturowy `rectangle`, `circle`, `ellipse` i obraz PNG `image`. Celowo nie emituje przestarzałej kategorii `connector`. Piętnaście glifów PNG w kolorze aubergine jest generowanych do `backend/template_assets/iconic/tessera/`, w tym ikony kontaktu, sekcji, kalendarza, linku profilowego i portretu. Ikony sekcji głównej oraz ich kafle mają `flowRole: "section-chrome"`; zwykłe rekordy mają rolę `content`.
+
+Implementacja:
+
+- `backend/app/services/cv_templates/templates/tessera.py`, linie 38–374, funkcja `_gen_tessera` — dynamiczne dopasowanie/przeniesienie sidebara, prostokątny portret, główny flow, dekoracje kolejnych stron
+- `frontend/src/templates/tessera.js`, linie 43–185 — helpery ikon/kafli, starter generujący podgląd, jawne role reflow
+- `frontend/src/templates/index.js`, linie 32 i 62 — płatny wpis rejestru `tessera`
+- `backend/app/services/cv_templates/registry.py`, `_GENERATORS["tessera"]` i `TEMPLATE_LAYOUTS["tessera"]`
+- `scripts/generate_iconic_icons.py`, linie 216–272 — `draw_portrait` i dedykowany motyw ikon `tessera`
+- `frontend/public/template-mockups/tessera.png` — podgląd ReportLab wygenerowany z tablicy startera
+
+Testy:
+
+- `frontend/src/templates/tessera.test.js`, linie 6–47 — wszystkie obsługiwane prymitywy, początki dwóch kolumn, prostokątne zdjęcie, assety ikon i metadane reflow
+- `backend/tests/test_cv_template_layouts.py`, funkcja `test_tessera_is_original_icon_sidebar_with_rectangular_photo`
+- `backend/tests/test_template_registry_sync.py` — parytet ID frontend/backend, tagów layoutu i uprawnień
+
+Znane ograniczenie: sekcje sidebara są atomowe i pozostają na stronie 1. Sekcja zbyt wysoka na pozostałe miejsce w szynie przechodzi do kolumny głównej; Tessera nie dzieli jednej listy sidebara między strony.
+
 ### Szablony z tagiem `icons` i reflow ikon
 
-Nova, Ridge, Loom, Volt, Cardinal i Harbor to indywidualne szablony ze wspólnym tagiem layoutu `icons` (opcjonalnie też `sidebar` / `dark`). Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, obrazy ikon są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
+Nova, Ridge, Loom, Volt, Cardinal, Harbor i Tessera to indywidualne szablony ze wspólnym tagiem layoutu `icons` (opcjonalnie też `sidebar` / `dark`). Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, obrazy ikon są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
 
 Kontakt w Loom jest osobnym przypadkiem: trzy jednoliniowe etykiety `text` (bez auto-height textarea na e-mailu) mają rytm 22 px, a ikony 11 px są wyśrodkowane geometrycznie (`alignWithText: false`). Leśny sidebar pakuje kompletne sekcje skills / languages / interests / certifications (`_fit_sidebar_sections`); to, co się nie mieści, trafia do kolumny głównej zamiast być ucinane. Tożsamość szyny (imię, kontakt, dopasowane sekcje) powtarza się na każdej stronie jako `fixedToPage`, żeby kolejne strony nie miały pustej zielonej kolumny. Etykiety i listy punktów sidebara zostają w jednej kolumnie tekstu (`left: 40`). Nagłówki w kolumnie głównej nadal używają wyrównania optycznego (`alignWithText: true`). Ridge trzyma skills/languages w kolumnie głównej, a płaskie extras formatuje przez `_bullet_list_content`, żeby wiersze języków miały spójne bullety. Wpisy doświadczenia w Iconic używają tego samego stosu bloków textarea co projekty (`SPACE_STACK` w środku wpisu, `SPACE_RECORD` / 10 px między wpisami). Flaga jest zapisywana w `extra_properties` i odtwarzana przy ponownym otwarciu PDF.
 
@@ -1322,14 +1372,14 @@ Testy:
 - `backend/tests/test_pdf_shapes.py`, linie 67–131 — wyrównanie optyczne, jawne `alignWithText: false` oraz maska alfa
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_loom_keeps_all_skills_and_repeats_sidebar_on_continuation`, `test_ridge_languages_use_consistent_bullet_list`
 
-**Regenerowanie podglądów opartych na kodzie źródłowym.** Pliki `frontend/public/template-mockups/{nova,ridge,loom,volt,monument,words,cardinal,harbor}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js` lub `frontend/src/templates/harbor.js` należy je odtworzyć:
+**Regenerowanie podglądów opartych na kodzie źródłowym.** Pliki `frontend/public/template-mockups/{nova,ridge,loom,volt,monument,words,cardinal,harbor,tessera}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, `frontend/src/templates/harbor.js` lub `frontend/src/templates/tessera.js` należy je odtworzyć:
 
 ```bash
-node --import ./frontend/scripts/register-hook.mjs ./frontend/scripts/dump-iconic-templates.mjs
+node frontend/scripts/dump-iconic-templates.mjs
 python scripts/render_iconic_mockups.py           # renderuje każdy motyw przez ReportLab i rasteryzuje stronę 1 w PyMuPDF
 ```
 
-Skrypt zrzutu (`frontend/scripts/dump-iconic-templates.mjs`) wymaga niewielkiego hooka ładującego moduły Node ESM (`frontend/scripts/resolve-js-ext-hook.mjs`, rejestrowanego przez `frontend/scripts/register-hook.mjs`), ponieważ `iconic.js` używa importów bez rozszerzenia w stylu Vite (`from "../services/api"`), których zwykły Node nie potrafi rozwiązać; hook podstawia też `import.meta.env`, żeby odczyt `API_BASE_URL` na poziomie modułu nie rzucał wyjątku poza Vite. Pośredni plik JSON jest w `.gitignore` — zawsze generowany na nowo z `iconic.js`, nigdy edytowany ręcznie.
+Moduły starterów używają jawnych rozszerzeń `.js` w importach, a `frontend/src/services/api.js` bezpiecznie korzysta z wartości domyślnej, gdy obiekt Vite `import.meta.env` nie istnieje. Dzięki temu zrzut działa bezpośrednio w Node bez własnego loadera. Pośredni plik JSON jest w `.gitignore` — zawsze generowany na nowo z modułów starterów, nigdy edytowany ręcznie.
 
 ### PDF create / update / autosave / download
 

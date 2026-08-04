@@ -6,7 +6,7 @@
  * rules, and small circular markers. It deliberately avoids frames, panels,
  * and decorative margins so the content remains the visual hierarchy.
  */
-import { block, bulleted, circle, line, text } from "./helpers";
+import { block, bulleted, circle, line, text } from "./helpers.js";
 
 const PAPER = "#FFFFFF";
 const INK = "#202020";

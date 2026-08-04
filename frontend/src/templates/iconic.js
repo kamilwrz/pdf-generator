@@ -8,8 +8,8 @@
  * Alignment rule: icons share the text line's top edge (never float above the
  * label). Icon size stays close to the label size so caps and glyphs read level.
  */
-import API_BASE_URL from "../services/api";
-import { block, bulleted, line, text } from "./helpers";
+import API_BASE_URL from "../services/api.js";
+import { block, bulleted, line, text } from "./helpers.js";
 
 const icon = (theme, name, left, top, size = 11, zIndex = 3) => ({
     category: "image",

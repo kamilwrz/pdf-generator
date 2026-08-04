@@ -213,6 +213,16 @@ def draw_diamond(color: str) -> Image.Image:
     return _normalize(img)
 
 
+def draw_portrait(color: str) -> Image.Image:
+    """Rectangular-photo placeholder glyph: geometric head and shoulder line."""
+    img, d = _draft()
+    col = _hex(color)
+    d.ellipse((58, 30, 102, 74), outline=col, width=STROKE)
+    d.arc((36, 66, 124, 132), start=180, end=360, fill=col, width=STROKE)
+    d.line([(44, 108), (44, 132), (116, 132), (116, 108)], fill=col, width=STROKE)
+    return _normalize(img)
+
+
 ICONS = {
     "email": draw_email,
     "phone": draw_phone,
@@ -235,6 +245,7 @@ EXTRA_ICONS = {
     "github": draw_github,
     "calendar": draw_calendar,
     "diamond": draw_diamond,
+    "portrait": draw_portrait,
 }
 
 # Harbor (Sidebar collection) uses two colour variants of a curated glyph subset:
@@ -244,6 +255,17 @@ EXTRA_ICONS = {
 SUBSET_THEMES = {
     "harbor": ("#5C6672", ["email", "phone", "github", "location", "calendar", "references"]),
     "harbor-accent": ("#17A2B8", ["diamond"]),
+    # Tessera uses aubergine line icons inside coral/cream mosaic tiles. The
+    # glyph set is intentionally broader than Harbor because contact, sidebar,
+    # section, date, profile-link, and photo-placeholder roles all use icons.
+    "tessera": (
+        "#4A2347",
+        [
+            "email", "phone", "github", "location", "calendar", "portrait",
+            "summary", "experience", "education", "skills", "languages",
+            "interests", "references", "certifications", "other",
+        ],
+    ),
 }
 
 

@@ -12,8 +12,8 @@
  * theme; the diamond comes from the teal `harbor-accent` variant
  * (see scripts/generate_iconic_icons.py).
  */
-import API_BASE_URL from "../services/api";
-import { block, bulleted, circle, line, text } from "./helpers";
+import API_BASE_URL from "../services/api.js";
+import { block, bulleted, circle, line, text } from "./helpers.js";
 
 // ── Colour system ───────────────────────────────────────────────────────────
 const PAPER = "#FFFFFF";

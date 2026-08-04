@@ -5,7 +5,7 @@
  * rectangular markers. Body copy bottoms out at 9 px; the summary uses the
  * same size as body text so it does not read as a larger paragraph.
  */
-import { block, bulleted, line, text } from "./helpers";
+import { block, bulleted, line, text } from "./helpers.js";
 
 const PAPER = "#F7F7F7";
 const WHITE = "#FFFFFF";

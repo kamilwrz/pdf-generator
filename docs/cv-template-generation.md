@@ -169,7 +169,7 @@ Generator **ufnie zakłada** ten schemat — nie odpytuje AI o brakujące pola.
 _GENERATORS = {
     "ledger": _gen_ledger,
     "nimbus": _gen_nimbus,
-    # ... 23 szablony = te same id co frontend/src/templates/index.js
+    # ... 26 szablonów = te same id co frontend/src/templates/index.js
 }
 
 def generate_resume(template_id: str, cv_data: dict) -> list[dict]:
@@ -367,7 +367,7 @@ Bez kroku 2–3 podgląd w bibliotece istnieje, ale **fill_template rzuci „Nie
 | `backend/app/services/pdf_generator.py` | Pomiar wysokości textarea + eksport PDF |
 | `backend/app/services/ai_assistant_service.py` | Asystent po wygenerowaniu (osobny tor AI) |
 | `frontend/src/templates/*.js` | Statyczne próbki designu |
-| `frontend/src/templates/index.js` | Katalog 23 szablonów (id muszą = `_GENERATORS`) |
+| `frontend/src/templates/index.js` | Katalog 26 szablonów (id muszą = `_GENERATORS`) |
 | `backend/tests/test_cv_template_layouts.py` | Strażnik zachowania layoutu |
 
 ---

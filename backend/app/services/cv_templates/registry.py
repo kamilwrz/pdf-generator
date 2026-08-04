@@ -27,6 +27,7 @@ from app.services.cv_templates.templates.volt import _gen_volt
 from app.services.cv_templates.templates.monument import _gen_monument
 from app.services.cv_templates.templates.words import _gen_words
 from app.services.cv_templates.templates.cardinal import _gen_cardinal
+from app.services.cv_templates.templates.tessera import _gen_tessera
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "ledger": frozenset({"single"}),
@@ -54,6 +55,7 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "ridge": frozenset({"icons"}),
     "loom": frozenset({"sidebar", "icons"}),
     "volt": frozenset({"icons", "dark"}),
+    "tessera": frozenset({"sidebar", "icons"}),
 }
 
 _GENERATORS = {
@@ -82,6 +84,7 @@ _GENERATORS = {
     "monument": _gen_monument,
     "words": _gen_words,
     "cardinal": _gen_cardinal,
+    "tessera": _gen_tessera,
 }
 
 

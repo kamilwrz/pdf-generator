@@ -10,7 +10,7 @@ exports (`build_pdf_to_buffer`), then PyMuPDF rasterizes page 1 to PNG at the
 Not part of the app build or test suite — run manually after editing
 one of the arrays exported by the dump script:
 
-    node --import ./frontend/scripts/register-hook.mjs ./frontend/scripts/dump-iconic-templates.mjs
+    node frontend/scripts/dump-iconic-templates.mjs
     python scripts/render_iconic_mockups.py
 """
 

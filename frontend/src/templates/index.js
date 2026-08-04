@@ -29,6 +29,7 @@ import { monumentTemplate } from "./monument";
 import { wordsTemplate } from "./words";
 import { cardinalTemplate } from "./cardinal";
 import { harborTemplate } from "./harbor";
+import { tesseraTemplate } from "./tessera";
 
 export { TEMPLATE_LAYOUT_TAGS } from "../utils/templateLayouts";
 
@@ -58,4 +59,5 @@ export const TEMPLATES = [
     { id: "ridge", tier: "paid", name: "Ridge", description: "Szyna ikon przy nagłówkach", layouts: ["icons"], accent: "#1F7A6C", elements: ridgeTemplate },
     { id: "loom", tier: "paid", name: "Loom", description: "Sidebar rzemieślniczy z ikonami", layouts: ["sidebar", "icons"], accent: "#C4A35A", elements: loomTemplate },
     { id: "volt", tier: "paid", name: "Volt", description: "Ciemny sygnał, bursztynowe akcenty", layouts: ["icons", "dark"], accent: "#E8A838", elements: voltTemplate },
+    { id: "tessera", tier: "paid", name: "Tessera", description: "Mozaikowy sidebar, prostokątne zdjęcie", layouts: ["sidebar", "icons"], accent: "#E15D4F", elements: tesseraTemplate },
 ];

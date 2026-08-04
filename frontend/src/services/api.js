@@ -10,7 +10,9 @@
 // VITE_API_URL overrides this for local dev (see .env.example / .env.development)
 // and for production builds (see .env.production). Falls back to the deployed
 // backend so a fresh clone with no .env file still works out of the box.
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://pdf-generator-07cb.onrender.com';
+// `import.meta.env` is injected by Vite but is absent when source-driven
+// template utilities import this module directly in Node.js.
+const API_BASE_URL = import.meta.env?.VITE_API_URL || 'https://pdf-generator-07cb.onrender.com';
 
 /** Path constants relative to API_BASE_URL (no trailing slash on base). */
 export const ENDPOINTS = {

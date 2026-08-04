@@ -11,8 +11,8 @@
  * (`scripts/generate_iconic_icons.py`), rendered in grey under the dedicated
  * `cardinal` theme so the red is never spent on ornament.
  */
-import API_BASE_URL from "../services/api";
-import { block, bulleted, line, text } from "./helpers";
+import API_BASE_URL from "../services/api.js";
+import { block, bulleted, line, text } from "./helpers.js";
 
 // ── Colour system ───────────────────────────────────────────────────────────
 const PAPER = "#FCFBF9"; // warm off-white document surface

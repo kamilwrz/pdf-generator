@@ -91,6 +91,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         for template_id in (
             "ledger", "nimbus", "rift",
             "vector", "kernel", "relay",
+            "tessera",
         ):
             with self.subTest(template_id=template_id):
                 image = next(
@@ -138,6 +139,63 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     ]
                     self.assertEqual(len(backgrounds), 1)
                     self.assertTrue(backgrounds[0]["fixedToPage"])
+
+    def test_tessera_is_original_icon_sidebar_with_rectangular_photo(self):
+        """Tessera must use every supported primitive and preserve complete flow."""
+        multi_page_cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 3,
+        }
+        elements = generate_resume("tessera", multi_page_cv)
+        categories = {element["category"] for element in elements}
+        pages = {element.get("page", 1) for element in elements}
+
+        self.assertEqual(
+            categories,
+            {"text", "textarea", "line", "rectangle", "circle", "ellipse", "image"},
+        )
+        self.assertNotIn("connector", categories)
+        self.assertGreater(max(pages), 1)
+
+        photo_frame = next(
+            element
+            for element in elements
+            if element.get("id") == "tessera-photo-frame"
+        )
+        self.assertEqual(photo_frame["category"], "rectangle")
+        self.assertEqual((photo_frame["width"], photo_frame["height"]), (112, 126))
+        self.assertGreater(photo_frame["height"], photo_frame["width"])
+
+        icons = [
+            element
+            for element in elements
+            if element["category"] == "image"
+            and "/template-assets/iconic/tessera/" in element["src"]
+        ]
+        self.assertGreaterEqual(len(icons), 8)
+        self.assertTrue(any(icon["src"].endswith("/portrait.png") for icon in icons))
+        self.assertTrue(all(
+            Path(image_src_to_local_path(icon["src"])).is_file()
+            for icon in icons
+        ))
+
+        self.assertTrue(all(
+            element.get("autoHeight") is True
+            and element.get("preserveInitialLayout") is True
+            and element["top"] + element["height"] <= 770
+            for element in elements
+            if element["category"] == "textarea"
+        ))
+        self.assertTrue(any(
+            element.get("flowRole") == "section-chrome"
+            for element in elements
+        ))
+        self.assertTrue(all(
+            element.get("fixedToPage") is True
+            and element.get("locked") is True
+            for element in elements
+            if element.get("id") == "tessera-photo-frame"
+        ))
 
     def test_sidebar_templates_repeat_narrow_artwork_on_every_page(self):
         multi_page_cv = {

@@ -11,7 +11,7 @@ CV STUDIO to studio CV po polsku: wizualne płótno A4, indywidualne szablony z 
 | | |
 |---|---|
 | **Wizualnie, nie tylko formularze** | Przeciągaj, wyrównuj i stylizuj każdy blok na prawdziwej stronie — to, co widzisz, trafia do eksportu. |
-| **25 indywidualnych szablonów** | Każdy z własną nazwą i krótkim opisem stylistycznym — bez kategorii branżowych. |
+| **26 indywidualnych szablonów** | Każdy z własną nazwą i krótkim opisem stylistycznym — bez kategorii branżowych. |
 | **AI, które bierze na siebie ciężką robotę** | Zaimportuj stare PDF, przejdź kreator bio albo porozmawiaj z asystentem o ocenach, ATS i poprawkach. |
 | **Za darmo na start** | Załóż konto, projektuj i pobieraj. Karta nie jest wymagana. AI i pełna biblioteka — w planach Standard / Premium. |
 
@@ -70,7 +70,7 @@ Dodatkowo: rozmiar, kolor, pogrubienie, kursywa, podkreślenie, wyrównanie, int
 
 ---
 
-## Biblioteka szablonów — 25 indywidualnych układów
+## Biblioteka szablonów — 26 indywidualnych układów
 
 Każdy szablon to osobny byt: własna nazwa i krótki opis stylistyczny. UI nie grupuje ich wedle branży ani stylu — w kodzie zostaje tylko podział strukturalny layoutu (`single` / `sidebar` / `icons` / `dark`) dla generatora.
 
@@ -101,6 +101,7 @@ Każdy szablon to osobny byt: własna nazwa i krótki opis stylistyczny. UI nie 
 | Ridge | Szyna ikon przy nagłówkach |
 | Loom | Sidebar rzemieślniczy z ikonami |
 | Volt | Ciemny sygnał, bursztynowe akcenty |
+| Tessera | Mozaikowy sidebar, prostokątne zdjęcie |
 
 Wybierz układ, który pasuje do dokumentu — i uczyn go swoim.
 
@@ -159,7 +160,7 @@ Cały interfejs mówi po polsku: marketing, edytor, akcje AI, powiadomienia i mo
 | Plan | Co dostajesz |
 |---|---|
 | **Free** | Edytor A4, 8 szablonów startowych, limity projektów i eksportów; bez asystenta AI |
-| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 23 szablony oraz wyższe limity |
+| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 26 szablonów oraz wyższe limity |
 | **Premium** | Tryb Układ AI, więcej kredytów AI, bez limitu projektów i eksportów |
 
 Model kredytów: ok. 1 kredyt ≈ 5 gr — rozliczenie zbliżone do realnego użycia.
