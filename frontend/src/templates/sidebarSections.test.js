@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const SIDEBAR_TEMPLATES = ["obsidian.js", "tessera.js"];
+const SIDEBAR_TEMPLATES = ["tessera.js", "slate.js"];
 
 const read = (file) => readFile(new URL(file, import.meta.url), "utf8");
 

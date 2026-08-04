@@ -78,8 +78,8 @@ class PdfShapeTests(unittest.TestCase):
         self.assertAlmostEqual(args[2], 637.7, places=1)
 
     def test_explicit_align_with_text_false_keeps_authored_image_top(self):
-        icon = Path(__file__).resolve().parents[1] / "template_assets" / "iconic" / "loom-light" / "email.png"
-        # Loom contact icons opt out of the section-head optical shift.
+        icon = Path(__file__).resolve().parents[1] / "template_assets" / "iconic" / "nova" / "email.png"
+        # Contact icons may opt out of the section-head optical shift.
         self.generator.renderImage(str(icon), 9, 9, 24, 140.7, align_with_text=False)
 
         draw_calls = [call for call in self.generator.c.calls if call[0] == "drawImage"]

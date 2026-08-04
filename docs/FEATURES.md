@@ -86,13 +86,10 @@ Każdy szablon to osobny byt: własna nazwa i krótki opis stylistyczny. UI nie 
 | Words | Dokument w stylu Word |
 | Cardinal | Szlachetna czerwień, ikony przy sekcjach |
 | Harbor | Dwukolumnowy, ikony kontaktu |
-| Signal | Ryzyko i treasury |
-| Obsidian | Ciemny panel boczny |
 | Nova | Redakcyjny masthead z ikonami |
-| Ridge | Szyna ikon przy nagłówkach |
-| Loom | Sidebar rzemieślniczy z ikonami |
 | Volt | Ciemny sygnał, bursztynowe akcenty |
 | Tessera | Mozaikowy sidebar, prostokątne zdjęcie |
+| Slate | Stalowy sidebar, siatka i prostokątne zdjęcie |
 
 Wybierz układ, który pasuje do dokumentu — i uczyn go swoim.
 
@@ -151,7 +148,7 @@ Cały interfejs mówi po polsku: marketing, edytor, akcje AI, powiadomienia i mo
 | Plan | Co dostajesz |
 |---|---|
 | **Free** | Edytor A4, 5 szablonów startowych, limity projektów i eksportów; bez asystenta AI |
-| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 18 szablonów oraz wyższe limity |
+| **Standard** | Import PDF, analizy AI treści (CV, projekt, dopasowanie, gramatyka, styl i ATS), wszystkie 14 szablonów oraz wyższe limity |
 | **Premium** | Tryb Układ AI, więcej kredytów AI, bez limitu projektów i eksportów |
 
 Model kredytów: ok. 1 kredyt ≈ 5 gr — rozliczenie zbliżone do realnego użycia.

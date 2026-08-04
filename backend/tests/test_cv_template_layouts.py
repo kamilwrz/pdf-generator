@@ -296,7 +296,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
         }
         # template_id → expected fixed panel width at left=0
         panels = {
-            "obsidian": 184,
             "tessera": 178,
             "slate": 178,
         }
@@ -405,175 +404,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     self.assertNotIn(body, main_copy)
                 self.assertIn("Platforma obsługi klienta", main_copy)
 
-    def test_obsidian_places_skills_languages_education_in_sidebar(self):
-        # Tall skills must still leave reserved room for languages/education.
-        skills = [
-            "Analiza AML/KYC",
-            "Transaction Monitoring",
-            "CDD / EDD",
-            "Analiza transakcji",
-            "Badania klientów",
-            "Microsoft Office",
-            "Compliance",
-            "Risk Assessment",
-            "Due Diligence",
-            "Raportowanie",
-            "Analiza danych",
-            "Przepisy AML",
-        ]
-        cv = {
-            **LONG_CV,
-            "skills": skills,
-            "education": [{
-                "degree": "MBA",
-                "school": "SGH",
-                "city": "Warszawa",
-                "period": "2020",
-                "description": "Zarządzanie strategiczne.",
-            }],
-            "extra_sections": [{
-                "title": "JĘZYKI",
-                "kind": "languages",
-                "placement": "after_skills",
-                "items": ["Polski — C2", "Angielski — C1"],
-            }],
-        }
-        elements = generate_resume("obsidian", cv)
-        sidebar_text = [
-            element for element in elements
-            if element["category"] in {"text", "textarea"} and element["left"] == 24
-        ]
-        sidebar_titles = {
-            element["content"] for element in sidebar_text if element["category"] == "text"
-        }
-        sidebar_bodies = [
-            element for element in sidebar_text if element["category"] == "textarea"
-        ]
-        main_titles = {
-            element["content"]
-            for element in elements
-            if element["category"] == "text" and element["left"] == 222
-        }
-        main_copy = "\n".join(
-            element["content"]
-            for element in elements
-            if element["category"] == "textarea" and element["left"] == 222
-        )
 
-        self.assertTrue({"UMIEJĘTNOŚCI", "JĘZYKI", "WYKSZTAŁCENIE"} <= sidebar_titles)
-        self.assertNotIn("OBSZARY", sidebar_titles)
-        self.assertNotIn("UMIEJĘTNOŚCI", main_titles)
-
-        skills_body = next(
-            element for element in sidebar_bodies
-            if "• Analiza AML/KYC" in element["content"]
-        )
-        self.assertTrue(skills_body.get("bulletList"))
-        self.assertIn("• Przepisy AML", skills_body["content"])
-
-        languages_body = next(
-            element for element in sidebar_bodies
-            if "• Polski — C2" in element["content"]
-        )
-        self.assertTrue(languages_body.get("bulletList"))
-        self.assertIn("• Angielski — C1", languages_body["content"])
-
-        self.assertTrue(any(
-            element["content"] == "MBA" and element.get("bold")
-            for element in sidebar_bodies
-        ))
-        self.assertTrue(any(
-            element["content"] == "SGH" for element in sidebar_bodies
-        ))
-        self.assertTrue(any(
-            element["content"] == "Warszawa   ·   2020" for element in sidebar_bodies
-        ))
-        self.assertTrue(any(
-            element["content"] == "• Zarządzanie strategiczne." and element.get("bulletList")
-            for element in sidebar_bodies
-        ))
-
-        self.assertNotIn("• Analiza AML/KYC", main_copy)
-        self.assertNotIn("MBA — 2020", main_copy)
-        self.assertNotIn("• Polski — C2", main_copy)
-        self.assertTrue(all(
-            element["page"] == 1
-            and element["width"] == 136
-            and element["top"] + element["height"] <= 758
-            for element in sidebar_bodies
-        ))
-
-    def test_obsidian_wizard_length_skills_and_education_stay_in_sidebar(self):
-        """Wizard profiles often have ~12 skills; those must not spill to main."""
-        skills = [
-            "Analiza AML/KYC",
-            "Transaction Monitoring",
-            "CDD / EDD",
-            "Analiza transakcji",
-            "Badania klientów",
-            "Microsoft Office",
-            "Compliance",
-            "Risk Assessment",
-            "Due Diligence",
-            "Raportowanie",
-            "Analiza danych",
-            "Przepisy AML",
-        ]
-        cv = {
-            "name": "Kamil Wrzochalski",
-            "title": "AML Analyst",
-            "email": "kamil@example.com",
-            "phone": "+48 600 000 000",
-            "location": "Warszawa",
-            "summary": "Specjalista AML.",
-            "skills": skills,
-            "education": [{
-                "degree": "Bachelor of Laws (LL.B.)",
-                "school": "Europa-Universität Viadrina",
-                "city": "Frankfurt (Oder)",
-                "period": "2018 – 2022",
-                "description": (
-                    "Studia prawnicze obejmujące prawo niemieckie i europejskie, "
-                    "ze szczególnym naciskiem na regulacje finansowe."
-                ),
-            }],
-            "experience": [{
-                "title": "AML Analyst",
-                "company": "Example Bank",
-                "period": "2022 – obecnie",
-                "bullets": ["Monitoring transakcji.", "Raportowanie SAR."],
-            }],
-            "extra_sections": [{
-                "title": "JĘZYKI",
-                "kind": "languages",
-                "placement": "after_skills",
-                "items": ["Polski — C2", "Angielski — B2"],
-            }],
-        }
-        elements = generate_resume("obsidian", cv)
-        sidebar_titles = {
-            element["content"]
-            for element in elements
-            if element["category"] == "text" and element.get("left") == 24
-        }
-        main_copy = "\n".join(
-            element["content"]
-            for element in elements
-            if element["category"] == "textarea" and element.get("left") == 222
-        )
-        self.assertTrue({"UMIEJĘTNOŚCI", "JĘZYKI", "WYKSZTAŁCENIE"} <= sidebar_titles)
-        self.assertIn(skills[0], "\n".join(
-            element["content"]
-            for element in elements
-            if element["category"] == "textarea" and element.get("left") == 24
-        ))
-        self.assertIn("Bachelor of Laws (LL.B.)", "\n".join(
-            element["content"]
-            for element in elements
-            if element["category"] == "textarea" and element.get("left") == 24
-        ))
-        self.assertNotIn(skills[0], main_copy)
-        self.assertNotIn("Bachelor of Laws (LL.B.)", main_copy)
 
     def test_sidebar_templates_keep_oversized_sections_complete_in_main_column(self):
         skills = [f"Kompetencja strategiczna i operacyjna numer {index}" for index in range(1, 25)]
@@ -635,61 +466,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             self.assertIn(education[0]["degree"], main_copy)
             self.assertIn(education[-1]["degree"], main_copy)
 
-    def test_loom_keeps_all_skills_and_repeats_sidebar_on_continuation(self):
-        """Loom must not truncate skills and must paint the rail on every page."""
-        skills = [f"Kompetencja numer {index}" for index in range(1, 16)]
-        profile = {
-            **LONG_CV,
-            "summary": LONG_CV["summary"] * 3,
-            "experience": LONG_CV["experience"] * 3,
-            "skills": skills,
-            "extra_sections": [{
-                "title": "JĘZYKI",
-                "kind": "languages",
-                "placement": "after_skills",
-                "items": ["Polski — C2", "Niemiecki — C1", "Angielski — B2"],
-            }],
-        }
-        elements = generate_resume("loom", profile)
-        pages_used = max(element.get("page", 1) for element in elements)
-        self.assertGreater(pages_used, 1)
-        content = "\n".join(str(element.get("content", "")) for element in elements)
-        self.assertIn(skills[0], content)
-        self.assertIn(skills[-1], content)
-        self.assertIn("• Polski — C2", content)
-        for page in range(1, pages_used + 1):
-            page_side_heads = [
-                element for element in elements
-                if element.get("page", 1) == page
-                and element.get("fixedToPage")
-                and element.get("category") == "text"
-                and str(element.get("content", "")).upper() == "UMIEJĘTNOŚCI"
-                and element.get("left") == 40
-            ]
-            self.assertTrue(page_side_heads, f"missing sidebar skills heading on page {page}")
 
-    def test_ridge_languages_use_consistent_bullet_list(self):
-        profile = {
-            **LONG_CV,
-            "extra_sections": [{
-                "title": "JĘZYKI",
-                "kind": "languages",
-                "placement": "after_skills",
-                "items": ["Polski — C2", "- Niemiecki — C1", "• Angielski — B2"],
-            }],
-        }
-        elements = generate_resume("ridge", profile)
-        languages_body = next(
-            element for element in elements
-            if element.get("category") == "textarea"
-            and "Polski" in str(element.get("content", ""))
-            and "Angielski" in str(element.get("content", ""))
-        )
-        self.assertTrue(languages_body.get("bulletList"))
-        self.assertEqual(
-            languages_body["content"],
-            "• Polski — C2\n• Niemiecki — C1\n• Angielski — B2",
-        )
 
     def test_kernel_emits_skills_and_languages_bodies(self):
         """Single-column Kernel must keep skills/languages after wizard-style data."""
@@ -738,7 +515,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 "Analiza jakości obsługi klienta oraz przygotowywanie raportów.",
             ],
         }
-        elements = generate_resume("obsidian", {
+        elements = generate_resume("tessera", {
             **LONG_CV,
             "experience": [*LONG_CV["experience"], fourth_job],
         })
@@ -774,7 +551,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 "bullets": ["Weryfikacja klientów.", "Kontrola dokumentacji."],
             },
         ]
-        elements = generate_resume("obsidian", {
+        elements = generate_resume("tessera", {
             "name": "Anna Kowalska",
             "title": "AML Analyst",
             "experience": jobs,
@@ -785,7 +562,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         textareas = {
             element["content"]: element
             for element in elements
-            if element["category"] == "textarea" and element["left"] == 222
+            if element["category"] == "textarea" and element["left"] == 218
         }
         first_title = textareas[jobs[0]["title"]]
         first_meta = textareas["Northbridge Bank   ·   Warszawa   ·   2021 – obecnie"]
@@ -799,8 +576,8 @@ class CvTemplateLayoutTests(unittest.TestCase):
         )
 
         for title, metadata, bullets in records:
-            self.assertEqual({title["left"], metadata["left"], bullets["left"]}, {222})
-            self.assertEqual({title["width"], metadata["width"], bullets["width"]}, {337})
+            self.assertEqual({title["left"], metadata["left"], bullets["left"]}, {218})
+            self.assertEqual({title["width"], metadata["width"], bullets["width"]}, {329})
             # Equal stack gap inside a record; equal record gap between jobs.
             self.assertAlmostEqual(metadata["top"] - (title["top"] + title["height"]), 4)
             self.assertAlmostEqual(bullets["top"] - (metadata["top"] + metadata["height"]), 4)
@@ -810,14 +587,15 @@ class CvTemplateLayoutTests(unittest.TestCase):
             10,
         )
 
+        # Tessera uppercases the masthead name and role.
         header_texts = [
             element for element in elements
             if element["category"] == "text"
-            and element.get("content") in {"Anna Kowalska", "AML Analyst"}
+            and element.get("content") in {"ANNA KOWALSKA", "AML ANALYST"}
         ]
         self.assertTrue(header_texts)
-        # Name sits on the main column; the role line is inset a couple of pixels.
-        self.assertTrue(all(element["left"] >= 222 for element in header_texts))
+        # Name sits on the main column; the role line sits on the coral title tile.
+        self.assertTrue(all(element["left"] >= 218 for element in header_texts))
         self.assertTrue(all(element["left"] < 230 for element in header_texts))
 
     def test_education_is_structured_in_main_column_and_sidebar(self):
@@ -846,7 +624,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertIn("Warszawa   ·   2017 – 2022", main_copy)
         self.assertIn("• Specjalizacja: prawo europejskie", main_copy)
 
-        sidebar = generate_resume("obsidian", {
+        sidebar = generate_resume("tessera", {
             "name": "Anna Kowalska",
             "title": "Prawnik",
             "education": education,
@@ -857,7 +635,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         sidebar_copy = "\n".join(
             element["content"]
             for element in sidebar
-            if element["category"] == "textarea" and element.get("left") == 24
+            if element["category"] == "textarea" and element.get("left") == 25
         )
         self.assertIn("Magister prawa", sidebar_copy)
         self.assertIn("Uniwersytet Warszawski", sidebar_copy)
@@ -892,7 +670,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
         # forced into the main column because their sidebar has a deliberately
         # separate palette.
         affected_templates = (
-            "signal",
             "ledger", "nimbus", "cinder",
             "kernel",
             "regent", "aldine",
@@ -1437,26 +1214,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
             and abs(element["top"] - heading["top"]) < 24
         ))
 
-    def test_signal_keeps_education_heading_with_body_on_page_break(self):
-        cv = {
-            **LONG_CV,
-            "experience": LONG_CV["experience"] * 2,
-        }
-        elements = generate_resume("signal", cv)
-        heading = next(
-            element
-            for element in elements
-            if element["category"] == "text" and "WYKSZTAŁCENIE" in str(element.get("content", ""))
-        )
-        body = next(
-            element
-            for element in elements
-            if element["category"] == "textarea"
-            and "Magister" in str(element.get("content", ""))
-        )
-        self.assertEqual(heading["page"], body["page"])
-        self.assertLess(heading["top"], body["top"])
-        self.assertGreaterEqual(heading["top"], 56)
 
     def test_nova_keeps_skills_heading_with_body_near_page_break(self):
         """Iconic Nova must not leave UMIEJĘTNOŚCI alone above the footer."""
@@ -1638,39 +1395,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     ),
                 )
 
-    def test_signal_clears_masthead_node_row_before_summary(self):
-        """Signal node ornaments must not overlap PODSUMOWANIE."""
-        from app.services.cv_generator_primitives import SPACE_AFTER_MASTHEAD
-        from app.services.cv_templates.templates.signal import _SIGNAL_MASTHEAD_BOTTOM
-
-        cv = {
-            **LONG_CV,
-            "experience": LONG_CV["experience"][:1],
-        }
-        elements = generate_resume("signal", cv)
-        heading = next(
-            element
-            for element in elements
-            if element.get("category") == "text"
-            and element.get("content") == "PODSUMOWANIE ZAWODOWE"
-            and element.get("page", 1) == 1
-        )
-        self.assertGreaterEqual(
-            heading["top"],
-            _SIGNAL_MASTHEAD_BOTTOM + SPACE_AFTER_MASTHEAD - 0.01,
-            msg=(
-                f"signal: first section at y={heading['top']} needs "
-                f">= {SPACE_AFTER_MASTHEAD}px under masthead ornaments "
-                f"ending at y={_SIGNAL_MASTHEAD_BOTTOM}"
-            ),
-        )
-        # Decorative node circles stay above the summary heading.
-        self.assertTrue(all(
-            float(element["top"]) + float(element.get("height", 0))
-            <= heading["top"] - 0.01
-            for element in elements
-            if element.get("id") in {"signal-node-a", "signal-node-b", "signal-node-c"}
-        ))
 
     def test_banded_mastheads_clear_first_section_heading(self):
         """Body copy must start below solid header bands (Cinder/Ledger)."""
@@ -1714,7 +1438,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "regent": 158,
             "aldine": 157,
             "nova": 144,
-            "obsidian": 116,
             "words": None,  # hairline is measured from the generated layout
         }
         cv = {
@@ -1767,52 +1490,10 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     ),
                 )
 
-    def test_signal_banking_template_is_multpage_canvas_layout(self):
-        multi_page_cv = {
-            **LONG_CV,
-            "experience": LONG_CV["experience"] * 4,
-        }
-        expected_categories = {
-            "text", "textarea", "line", "rectangle", "circle", "ellipse",
-        }
-        elements = generate_resume("signal", multi_page_cv)
-        pages = {element.get("page", 1) for element in elements}
-        rendered_copy = " ".join(
-            str(element.get("content", ""))
-            for element in elements
-            if element["category"] in {"text", "textarea"}
-        ).upper()
-
-        categories = {element["category"] for element in elements}
-        self.assertTrue(expected_categories <= categories)
-        self.assertNotIn("connector", categories)
-        self.assertNotIn("SIGNAL", rendered_copy)
-        self.assertGreater(max(pages), 1)
-        self.assertTrue(all(
-            element.get("autoHeight") is True
-            and 0 <= element["left"] <= 595
-            and 0 <= element["top"] <= 842
-            and element["left"] + element["width"] <= 595
-            and element["top"] + element["height"] <= 842
-            for element in elements
-            if element["category"] == "textarea"
-        ))
-        for page in pages:
-            self.assertTrue(any(
-                element["category"] == "line"
-                and element.get("page", 1) == page
-                and element["left"] == 0
-                and element["top"] == 0
-                and element["width"] == 595
-                and element["height"] == 842
-                and element["backgroundColor"] == "#101C26"
-                and element.get("fixedToPage") is True
-                for element in elements
-            ))
 
     def test_active_templates_keep_textareas_inside_page_bounds(self):
         for template_id in (
-            "ledger", "kernel", "regent", "harbor", "obsidian", "tessera", "nova",
+            "ledger", "kernel", "regent", "harbor", "tessera", "nova",
         ):
             with self.subTest(template_id=template_id):
                 multi_page_cv = {
@@ -1834,8 +1515,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
         contact_keys = ("email", "phone", "location")
         for template_id, theme in (
             ("nova", "nova"),
-            ("ridge", "ridge"),
-            ("loom", "loom"),
             ("volt", "volt"),
         ):
             with self.subTest(template_id=template_id):
@@ -1869,10 +1548,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 ]
                 self.assertTrue(icon_srcs)
                 self.assertTrue(all(f"/template-assets/iconic/" in src for src in icon_srcs))
-                if template_id == "loom":
-                    self.assertTrue(any("loom-light" in src for src in icon_srcs))
-                else:
-                    self.assertTrue(all(f"/iconic/{theme}/" in src for src in icon_srcs))
+                self.assertTrue(all(f"/iconic/{theme}/" in src for src in icon_srcs))
 
                 for key in contact_keys:
                     self.assertTrue(
@@ -1900,76 +1576,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
                 pages_used = max(element.get("page", 1) for element in elements)
                 self.assertGreater(pages_used, 1)
-                if template_id == "loom":
-                    # Skills prefer the forest rail; overflow can spill to main.
-                    skill_icons = [
-                        src for src in icon_srcs
-                        if src.endswith("/skills.png")
-                    ]
-                    self.assertTrue(any("loom-light" in src for src in skill_icons))
-                    # Contact rows are single-line text + geometrically centred icons.
-                    # The rail identity repeats on every page so continuation pages
-                    # do not show an empty green column.
-                    contact_icons = [
-                        element for element in elements
-                        if element["category"] == "image"
-                        and any(element["src"].endswith(f"/{key}.png") for key in contact_keys)
-                        and "loom-light" in element["src"]
-                    ]
-                    self.assertEqual(len(contact_icons), 3 * pages_used)
-                    for icon in contact_icons:
-                        self.assertEqual(icon.get("alignWithText"), False)
-                        self.assertTrue(icon.get("fixedToPage"))
-                        # Loom sidebar contact icons use geometric centring at the
-                        # shared icon size (+25% from the original 9 px).
-                        self.assertEqual(icon["width"], 11)
-                        self.assertEqual(icon["height"], 11)
-                    email_textareas = [
-                        element for element in elements
-                        if element["category"] == "textarea"
-                        and "@" in str(element.get("content") or "")
-                        and element["left"] < 100
-                    ]
-                    self.assertEqual(
-                        email_textareas,
-                        [],
-                        "Loom contact email must be text, not an auto-height textarea",
-                    )
-                    # Sidebar section chrome shares one text column (x=40) and
-                    # geometric icon alignment so skills/interests/languages stay even.
-                    side_heads = [
-                        element for element in elements
-                        if element["category"] == "text"
-                        and element.get("left") == 40
-                        and str(element.get("content", "")).upper() in {
-                            "UMIEJĘTNOŚCI", "JĘZYKI", "ZAINTERESOWANIA",
-                        }
-                    ]
-                    self.assertGreaterEqual(len(side_heads), 2 * pages_used)
-                    side_icons = [
-                        element for element in elements
-                        if element["category"] == "image"
-                        and "loom-light" in element["src"]
-                        and any(
-                            element["src"].endswith(f"/{key}.png")
-                            for key in ("skills", "languages", "interests")
-                        )
-                    ]
-                    self.assertGreaterEqual(len(side_icons), 2 * pages_used)
-                    for icon in side_icons:
-                        self.assertEqual(icon.get("alignWithText"), False)
-                        self.assertEqual(icon["left"], 24)
-                        self.assertTrue(icon.get("fixedToPage"))
-                    side_bodies = [
-                        element for element in elements
-                        if element["category"] == "textarea"
-                        and element.get("left") == 40
-                        and element.get("bulletList")
-                    ]
-                    self.assertGreaterEqual(len(side_bodies), 2 * pages_used)
-                    for body in side_bodies:
-                        self.assertEqual(body["width"], 120)
-                        self.assertTrue(body.get("fixedToPage"))
 
     def test_iconic_experience_record_gap_matches_projects(self):
         """Experience jobs must keep SPACE_RECORD like project records."""
@@ -2012,7 +1618,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 ],
             }],
         }
-        for template_id in ("volt", "nova", "ridge", "loom"):
+        for template_id in ("volt", "nova"):
             with self.subTest(template_id=template_id):
                 elements = generate_resume(template_id, cv)
                 job_titles = [

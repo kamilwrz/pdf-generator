@@ -396,7 +396,7 @@ Uniwersalne — bez gałęzi `if template_id == …`. Re-eksportowane też z fas
 
 ---
 
-## 12. Pełna mapa `_GENERATORS` (18 szablonów)
+## 12. Pełna mapa `_GENERATORS` (14 szablonów)
 
 Każdy wpis to `cv_templates/templates/<template_id>.py` → funkcja `_gen_<template_id>`. Plik nie zawiera słownika `themes` ani `if theme == …` / `if C["layout"] == …` dla innych szablonów.
 
@@ -405,15 +405,11 @@ Każdy wpis to `cv_templates/templates/<template_id>.py` → funkcja `_gen_<temp
 | `ledger` | `_gen_ledger` | `templates/ledger.py` |
 | `nimbus` | `_gen_nimbus` | `templates/nimbus.py` |
 | `cinder` | `_gen_cinder` | `templates/cinder.py` |
-| `signal` | `_gen_signal` | `templates/signal.py` |
 | `kernel` | `_gen_kernel` | `templates/kernel.py` |
 | `regent` | `_gen_regent` | `templates/regent.py` |
 | `aldine` | `_gen_aldine` | `templates/aldine.py` |
 | `harbor` | `_gen_harbor` | `templates/harbor.py` |
-| `obsidian` | `_gen_obsidian` | `templates/obsidian.py` |
 | `nova` | `_gen_nova` | `templates/nova.py` |
-| `ridge` | `_gen_ridge` | `templates/ridge.py` |
-| `loom` | `_gen_loom` | `templates/loom.py` |
 | `volt` | `_gen_volt` | `templates/volt.py` |
 | `monument` | `_gen_monument` | `templates/monument.py` |
 | `words` | `_gen_words` | `templates/words.py` |
@@ -514,7 +510,7 @@ Fill szablonu = **nowy układ z `cv_data`**. Układ AI = **poprawianie już leż
 ## 17. Podsumowanie dla laika
 
 1. Masz treść CV (z PDF albo z formularza).  
-2. Wybierasz wygląd (jeden z 18 szablonów).  
+2. Wybierasz wygląd (jeden z 14 szablonów).  
 3. Serwer **nie zgaduje** układu — **wylicza** go funkcją Pythona jak linijką na kartce.  
 4. Przeglądarka pokazuje wynik jako edytowalne klocki.  
 5. PDF eksportuje te same klocki.

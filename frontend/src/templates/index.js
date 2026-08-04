@@ -13,9 +13,7 @@ import { cinderTemplate } from "./cinder";
 import { kernelTemplate } from "./kernel";
 import { regentTemplate } from "./regent";
 import { aldineTemplate } from "./aldine";
-import { signalTemplate } from "./banking";
-import { obsidianTemplate } from "./obsidian";
-import { loomTemplate, novaTemplate, ridgeTemplate, voltTemplate } from "./iconic";
+import { novaTemplate, voltTemplate } from "./iconic";
 import { monumentTemplate } from "./monument";
 import { wordsTemplate } from "./words";
 import { cardinalTemplate } from "./cardinal";
@@ -36,11 +34,7 @@ export const TEMPLATES = [
     { id: "words", tier: "paid", name: "Words", description: "Dokument w stylu Word", layouts: ["single"], accent: "#555555", elements: wordsTemplate },
     { id: "cardinal", tier: "paid", name: "Cardinal", description: "Szlachetna czerwień, ikony przy sekcjach", layouts: ["icons"], accent: "#9E2532", elements: cardinalTemplate },
     { id: "harbor", tier: "paid", name: "Harbor", description: "Dwukolumnowy, ikony kontaktu", layouts: ["sidebar", "icons"], accent: "#17A2B8", elements: harborTemplate },
-    { id: "signal", tier: "paid", name: "Signal", description: "Ryzyko i treasury", layouts: ["single"], accent: "#3BD2C7", elements: signalTemplate },
-    { id: "obsidian", tier: "paid", name: "Obsidian", description: "Ciemny panel boczny", layouts: ["sidebar", "dark"], accent: "#C9A24B", elements: obsidianTemplate },
     { id: "nova", tier: "free", name: "Nova", description: "Redakcyjny masthead z ikonami", layouts: ["icons"], accent: "#C45C26", elements: novaTemplate },
-    { id: "ridge", tier: "paid", name: "Ridge", description: "Szyna ikon przy nagłówkach", layouts: ["icons"], accent: "#1F7A6C", elements: ridgeTemplate },
-    { id: "loom", tier: "paid", name: "Loom", description: "Sidebar rzemieślniczy z ikonami", layouts: ["sidebar", "icons"], accent: "#C4A35A", elements: loomTemplate },
     { id: "volt", tier: "paid", name: "Volt", description: "Ciemny sygnał, bursztynowe akcenty", layouts: ["icons", "dark"], accent: "#E8A838", elements: voltTemplate },
     { id: "tessera", tier: "paid", name: "Tessera", description: "Mozaikowy sidebar, prostokątne zdjęcie", layouts: ["sidebar", "icons"], accent: "#E15D4F", elements: tesseraTemplate },
     { id: "slate", tier: "paid", name: "Slate", description: "Stalowy sidebar, siatka i prostokątne zdjęcie", layouts: ["sidebar", "icons"], accent: "#3E5C76", elements: slateTemplate },

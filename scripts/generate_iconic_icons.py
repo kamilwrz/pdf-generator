@@ -14,17 +14,13 @@ ROOT = Path(__file__).resolve().parents[1] / "backend" / "template_assets" / "ic
 
 THEMES = {
     "nova": "#C45C26",
-    "ridge": "#1F7A6C",
-    "loom": "#C4A35A",
     "volt": "#E8A838",
     # Cardinal (Classic collection): the layout keeps its "noble red" for text
     # headings only. Its section and contact icons are deliberately neutral grey
     # so the red stays reserved for typography, matching the template's design.
     "cardinal": "#8A8A8A",
 }
-THEME_VARIANTS = {
-    "loom-light": "#F3E6C8",
-}
+THEME_VARIANTS = {}
 
 SIZE = 128
 # Ink area inside the canvas — equal padding on every side after normalize.
@@ -240,7 +236,7 @@ ICONS = {
 
 # Glyphs used only by the Harbor two-column template, not by other icon themes.
 # Kept out of the base ICONS set so regenerating does not add unused files to
-# the existing themes (nova/ridge/loom/volt/cardinal).
+# the existing themes (nova/volt/cardinal).
 EXTRA_ICONS = {
     "github": draw_github,
     "calendar": draw_calendar,

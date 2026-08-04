@@ -649,7 +649,7 @@ class PDF_Generator:
                         float(element.height),
                         element.left,
                         element.top,
-                        # Preserve explicit False (Loom contact); None → path heuristic.
+                        # Preserve explicit False (geometric contact icons); None → path heuristic.
                         align_with_text=getattr(element, "alignWithText", None),
                     )
             self.c.showPage()

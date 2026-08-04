@@ -5,15 +5,11 @@ from app.services.cv_data import normalize_cv_data
 from app.services.cv_templates.templates.ledger import _gen_ledger
 from app.services.cv_templates.templates.nimbus import _gen_nimbus
 from app.services.cv_templates.templates.cinder import _gen_cinder
-from app.services.cv_templates.templates.signal import _gen_signal
 from app.services.cv_templates.templates.kernel import _gen_kernel
 from app.services.cv_templates.templates.regent import _gen_regent
 from app.services.cv_templates.templates.aldine import _gen_aldine
 from app.services.cv_templates.templates.harbor import _gen_harbor
-from app.services.cv_templates.templates.obsidian import _gen_obsidian
 from app.services.cv_templates.templates.nova import _gen_nova
-from app.services.cv_templates.templates.ridge import _gen_ridge
-from app.services.cv_templates.templates.loom import _gen_loom
 from app.services.cv_templates.templates.volt import _gen_volt
 from app.services.cv_templates.templates.monument import _gen_monument
 from app.services.cv_templates.templates.words import _gen_words
@@ -25,7 +21,6 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "ledger": frozenset({"single"}),
     "nimbus": frozenset({"single"}),
     "cinder": frozenset({"single"}),
-    "signal": frozenset({"single"}),
     "kernel": frozenset({"single"}),
     "regent": frozenset({"single"}),
     "aldine": frozenset({"single"}),
@@ -33,10 +28,7 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "words": frozenset({"single"}),
     "cardinal": frozenset({"icons"}),
     "harbor": frozenset({"sidebar", "icons"}),
-    "obsidian": frozenset({"sidebar", "dark"}),
     "nova": frozenset({"icons"}),
-    "ridge": frozenset({"icons"}),
-    "loom": frozenset({"sidebar", "icons"}),
     "volt": frozenset({"icons", "dark"}),
     "tessera": frozenset({"sidebar", "icons"}),
     "slate": frozenset({"sidebar", "icons"}),
@@ -46,15 +38,11 @@ _GENERATORS = {
     "ledger": _gen_ledger,
     "nimbus": _gen_nimbus,
     "cinder": _gen_cinder,
-    "signal": _gen_signal,
     "kernel": _gen_kernel,
     "regent": _gen_regent,
     "aldine": _gen_aldine,
     "harbor": _gen_harbor,
-    "obsidian": _gen_obsidian,
     "nova": _gen_nova,
-    "ridge": _gen_ridge,
-    "loom": _gen_loom,
     "volt": _gen_volt,
     "monument": _gen_monument,
     "words": _gen_words,

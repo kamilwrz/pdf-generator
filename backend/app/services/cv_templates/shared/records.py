@@ -367,7 +367,7 @@ def _language_sidebar_lines(cv: dict) -> list[str]:
 
 def _obsidian_education_parts(edu: dict) -> tuple[str, str, str, str]:
     """
-    Obsidian sidebar education format:
+    Compact structured education parts (degree, school, meta, bullets):
       1. Nazwa dyplomu (bold)
       2. Uczelnia (distinguished)
       3. Miasto · okres (muted)

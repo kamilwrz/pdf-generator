@@ -117,7 +117,7 @@ Zarówno frontendowe próbki (`frontend/src/templates/*.js`), jak i backendowy g
 
 Wspólne pola pozycjonowania: `left`, `top`, `width`, `height`, `page`, `zIndex`, często `fixedToPage` dla dekoracji powtarzanych na każdej stronie.
 
-Frontendowe pliki JS (`obsidian.js`, `ledger.js`, …) to **statyczny mock** z przykładową karierą — służą do podglądu w bibliotece i jako wizualny „kontrakt” designu.  
+Frontendowe pliki JS (`ledger.js`, `tessera.js`, …) to **statyczny mock** z przykładową karierą — służą do podglądu w bibliotece i jako wizualny „kontrakt” designu.  
 **Wypełnienie realnym CV zawsze idzie przez Pythona**, nie przez podmianę stringów w pliku JS.
 
 ---
@@ -157,7 +157,7 @@ Ważne szczegóły:
 
 Generator **ufnie zakłada** ten schemat — nie odpytuje AI o brakujące pola.
 
-**Alias skills:** jeśli w `extra_sections` / `custom_sections` jest nagłówek w stylu „Obsługa komputera”, „Technologie”, „Narzędzia” itd., normalizacja rozpoznaje to bez AI jako slot skills: przenosi `items` do `skills`, zapisuje tytuł użytkownika w `labels.skills` i usuwa sekcję z `extra_sections`, żeby nie dublować treści. Generatory (w tym Obsidian / sidebar) biorą nagłówek z `labels.skills` zamiast hardcodowanego „OBSZARY”.
+**Alias skills:** jeśli w `extra_sections` / `custom_sections` jest nagłówek w stylu „Obsługa komputera”, „Technologie”, „Narzędzia” itd., normalizacja rozpoznaje to bez AI jako slot skills: przenosi `items` do `skills`, zapisuje tytuł użytkownika w `labels.skills` i usuwa sekcję z `extra_sections`, żeby nie dublować treści. Generatory sidebar (m.in. Tessera / Harbor) biorą nagłówek z `labels.skills` zamiast hardcodowanego „OBSZARY”.
 
 ---
 
@@ -169,7 +169,7 @@ Generator **ufnie zakłada** ten schemat — nie odpytuje AI o brakujące pola.
 _GENERATORS = {
     "ledger": _gen_ledger,
     "nimbus": _gen_nimbus,
-    # ... 18 szablonów = te same id co frontend/src/templates/index.js
+    # ... 14 szablonów = te same id co frontend/src/templates/index.js
 }
 
 def generate_resume(template_id: str, cv_data: dict) -> list[dict]:
@@ -235,14 +235,14 @@ Liczba bloków doświadczenia = liczba wpisów w `cv_data["experience"]`. Jeśli
 
 ### 6.5 Rodziny szablonów (tagi layoutu)
 
-Każdy z 18 szablonów ma osobny plik `cv_templates/templates/<id>.py` z funkcją `_gen_<id>`. Wspólna jest tylko warstwa helperów (`shared/records.py`, `shared/extras.py`, `shared/text.py`, `shared/icons.py`) oraz tagi w `TEMPLATE_LAYOUTS`:
+Każdy z 14 szablonów ma osobny plik `cv_templates/templates/<id>.py` z funkcją `_gen_<id>`. Wspólna jest tylko warstwa helperów (`shared/records.py`, `shared/extras.py`, `shared/text.py`, `shared/icons.py`) oraz tagi w `TEMPLATE_LAYOUTS`:
 
 | Tag layoutu | Szablony |
 |---|---|
-| `single` | ledger, nimbus, cinder, signal, kernel, regent, aldine, monument, words |
-| `icons` | cardinal, nova, ridge, volt (+ harbor, loom, tessera, slate) |
-| `sidebar` | harbor, obsidian, loom, tessera, slate |
-| `dark` | obsidian, volt |
+| `single` | ledger, nimbus, cinder, kernel, regent, aldine, monument, words |
+| `icons` | cardinal, nova, volt (+ harbor, tessera, slate) |
+| `sidebar` | harbor, tessera, slate |
+| `dark` | volt |
 
 Algorytm flow (summary → experience → …) jest wspólny koncepcyjnie; paleta, assety i chrome nagłówków są per szablon.
 
@@ -254,7 +254,7 @@ Dla szablonów z tagiem `sidebar` działa wspólna logika w `shared/extras.py`:
 2. `_fit_sidebar_sections` — wkłada na pierwszą stronę **tylko kompletne sekcje**, które mieszczą się w **pozostałym budżecie wysokości** sidebara (z próbą mniejszych fontów). Nie ma osobnego limitu „max 160 px na sekcję” — taki limit odrzucał typowe listy z kreatora bio (~10–12 umiejętności) mimo wolnego miejsca. Sekcja, która nie mieści się w całości, **nie jest ucinana** — spada do kolumny głównej.
 3. Indeksy `extra_sections` już umieszczonych w sidebarze są pomijane w `_extra_sections`, żeby nie dublować treści.
 
-**Obsidian** ma własną implementację sidebara w `_gen_obsidian` (kolejność KONTAKT → umiejętności → JĘZYKI → WYKSZTAŁCENIE; umiejętności i języki jako bullet list; wykształcenie w formacie trójwierszowym). Pakuje umiejętności z rezerwą miejsca na języki i edukację, żeby długa lista nie wypychała ich do main column. Harbor, Loom i Tessera używają `_fit_sidebar_sections` (Loom z własnymi kandydatami `_loom_sidebar_candidates`).
+Harbor, Tessera i Slate używają `_fit_sidebar_sections` ze wspólnymi kandydatami `_sidebar_candidates`. Tessera zmienia kolejność (education przed skills).
 
 ### 6.7 Extra sections
 
@@ -304,7 +304,7 @@ Dlaczego tak? Layout CV musi być przewidywalny, testowalny (`backend/tests/test
 
 ```
 Biblioteka szablonów
-   TEMPLATES[i].elements  ←  statyczny import z ledger.js / obsidian.js / …
+   TEMPLATES[i].elements  ←  statyczny import z ledger.js / tessera.js / …
    (przykładowa treść „Katarzyna Zielińska” itd.)
 
 Wybór „wypełnij z PDF / z wizarda”
@@ -313,7 +313,7 @@ Wybór „wypełnij z PDF / z wizarda”
    → stary mock znika; użytkownik edytuje wygenerowany dokument
 ```
 
-Pliki JS i funkcje `_gen_*` powinny wizualnie się zgadzać (kolory, szerokość sidebara 184, lewy tekst 24/136, itd.), ale **źródłem prawdy dla fill jest Python**. Gdy zmienia się layout fill (np. skills w sidebarze Obsidian), backend jest obowiązkowy; aktualizacja JS to spójność podglądu w bibliotece.
+Pliki JS i funkcje `_gen_*` powinny wizualnie się zgadzać (kolory, szerokość sidebara, lewy tekst, itd.), ale **źródłem prawdy dla fill jest Python**. Gdy zmienia się layout fill (np. skills w sidebarze Tessera), backend jest obowiązkowy; aktualizacja JS to spójność podglądu w bibliotece.
 
 ---
 
@@ -349,7 +349,7 @@ Bez kroku 2–3 podgląd w bibliotece istnieje, ale **fill_template rzuci „Nie
 | „W podglądzie biblioteki skills są w sidebarze, a po fill nie” | JS i `_gen_*` były niespójne — fill bierze tylko Pythona. |
 | „Endpoint `/ai/fill_template` używa GPT” | Nie — tylko deleguje do `cv_generator`. |
 | „Za dużo treści = ucięcie” | Zasadniczo nie: `Builder` dokłada strony. Wyjątek: sidebar może *odmówić* za dużej sekcji i przenieść ją do main (complete-section policy). |
-| „Zmieniłem tylko `obsidian.js`” | Zmienia podgląd; fill wymaga zmian w `_gen_obsidian`. |
+| „Zmieniłem tylko `tessera.js`” | Zmienia podgląd; fill wymaga zmian w `_gen_tessera`. |
 
 ---
 
@@ -364,11 +364,11 @@ Bez kroku 2–3 podgląd w bibliotece istnieje, ale **fill_template rzuci „Nie
 | `backend/app/services/pdf_generator.py` | Pomiar wysokości textarea + eksport PDF |
 | `backend/app/services/ai_assistant_service.py` | Asystent po wygenerowaniu (osobny tor AI) |
 | `frontend/src/templates/*.js` | Statyczne próbki designu |
-| `frontend/src/templates/index.js` | Katalog 18 szablonów (id muszą = `_GENERATORS`) |
+| `frontend/src/templates/index.js` | Katalog 14 szablonów (id muszą = `_GENERATORS`) |
 | `backend/tests/test_cv_template_layouts.py` | Strażnik zachowania layoutu |
 
 ---
 
 ## 13. Podsumowanie jednym akapitem
 
-CV STUDIO rozdziela odpowiedzialności celowo: **model językowy rozumie dokument i zwraca dane**, a **Python składa z tych danych gotowy, testowalny dokument canvas** według ręcznie zakodowanego designu szablonu. Dzięki temu ten sam profil można włożyć w Ledger, Obsidian albo Signal bez ponownego „projektowania” przez AI, a każda zmiana layoutu jest code review + testem — nie loterią promptu.
+CV STUDIO rozdziela odpowiedzialności celowo: **model językowy rozumie dokument i zwraca dane**, a **Python składa z tych danych gotowy, testowalny dokument canvas** według ręcznie zakodowanego designu szablonu. Dzięki temu ten sam profil można włożyć w Ledger, Tessera albo Nova bez ponownego „projektowania” przez AI, a każda zmiana layoutu jest code review + testem — nie loterią promptu.

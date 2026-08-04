@@ -1774,7 +1774,7 @@ Dokument zapisany już z błędnymi współrzędnymi trzeba wygenerować ponowni
 | `backend/app/api/routes/ai.py` | `extract_cv`, `fill_template` | Upload CV i deterministyczne wypełnienie szablonu. |
 | `backend/app/services/ai_service.py` | `extract_cv_data`, `generate_resume` | GPT-4o do ekstrakcji; przekazanie layoutu do Pythona. |
 | `backend/app/services/cv_generator.py` | `Builder`, `generate_resume`, `_gen_*` | Główny silnik geometrii CV. |
-| `backend/app/services/cv_templates/templates/*.py` | `_gen_<id>` | Jeden plik na `template_id` (Nova, Ridge, Loom, Volt, Cardinal i pozostałe). |
+| `backend/app/services/cv_templates/templates/*.py` | `_gen_<id>` | Jeden plik na `template_id` (Nova, Volt, Cardinal, Tessera i pozostałe). |
 | `backend/app/services/cv_templates/shared/` | records / extras / icons | Uniwersalne helpery generatorów. |
 | `backend/app/services/ai_assistant_service.py` | `analyze_action`, `_chat` | Model AI, ograniczenia korekt i dispatcher. |
 | `backend/app/services/layout_analysis.py` | `resolve_directed_operation`, `summarize_geometry_issues` | Bezpieczne patchy z czatu + diagnostyka geometrii. |

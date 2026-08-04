@@ -264,13 +264,14 @@ test("keeps an Iconic section icon grouped with its heading during reflow", () =
   assert.equal(icon.page, heading.page);
 });
 
-test("keeps a Ridge rail icon in the main text lane", () => {
+test("keeps a left-hanging section icon in the main text lane", () => {
+  // Icon sits ~48px left of the text column (within TEXT_ALIGNED_IMAGE_LANE_TOLERANCE).
   const result = reflowTextareaHeight([
     textarea({ left: 56, top: 222, width: 483, height: 42 }),
     {
       element_id: "rail-icon",
       category: "image",
-      src: "/template-assets/iconic/ridge/experience.png",
+      src: "/template-assets/iconic/nova/experience.png",
       alignWithText: true,
       left: 8,
       top: 290,
@@ -279,7 +280,7 @@ test("keeps a Ridge rail icon in the main text lane", () => {
       page: 1,
     },
     {
-      element_id: "ridge-heading",
+      element_id: "section-heading",
       category: "text",
       left: 56,
       top: 290,
@@ -289,13 +290,13 @@ test("keeps a Ridge rail icon in the main text lane", () => {
   ], "textarea", 58, 842);
 
   const icon = result.elements.find((element) => element.element_id === "rail-icon");
-  const heading = result.elements.find((element) => element.element_id === "ridge-heading");
+  const heading = result.elements.find((element) => element.element_id === "section-heading");
   assert.equal(icon.top, 306);
   assert.equal(heading.top, 306);
 });
 
-test("Loom sidebar reflow does not drag main-column section icons", () => {
-  // Loom sidebar ends at x=156; main icons sit at x=204 (gap 48). Those icons
+test("sidebar reflow does not drag main-column section icons", () => {
+  // Narrow sidebar ends at x=156; main icons sit at x=204 (gap 48). Those icons
   // sit below the sidebar skills block, so a naive lane check previously moved
   // them while leaving the main headings behind.
   const result = reflowTextareaHeight([
@@ -312,7 +313,7 @@ test("Loom sidebar reflow does not drag main-column section icons", () => {
     {
       element_id: "main-icon",
       category: "image",
-      src: "/template-assets/iconic/loom/education.png",
+      src: "/template-assets/iconic/nova/education.png",
       alignWithText: true,
       left: 204,
       top: 401,
@@ -349,7 +350,7 @@ test("Loom sidebar reflow does not drag main-column section icons", () => {
   assert.equal(body.top, 436);
 });
 
-test("Loom main-column reflow keeps section icon with its heading", () => {
+test("main-column reflow keeps section icon with its heading", () => {
   const result = reflowTextareaHeight([
     {
       element_id: "summary",
@@ -364,7 +365,7 @@ test("Loom main-column reflow keeps section icon with its heading", () => {
     {
       element_id: "main-icon",
       category: "image",
-      src: "/template-assets/iconic/loom/experience.png",
+      src: "/template-assets/iconic/nova/experience.png",
       alignWithText: true,
       left: 204,
       top: 153,

@@ -12,9 +12,8 @@ const FIXTURES = [
   { id: "volt", layouts: ["icons", "dark"] },
   { id: "words", layouts: ["single"] },
   { id: "ledger", layouts: ["single"] },
-  { id: "obsidian", layouts: ["sidebar", "dark"] },
   { id: "harbor", layouts: ["sidebar", "icons"] },
-  { id: "loom", layouts: ["sidebar", "icons"] },
+  { id: "tessera", layouts: ["sidebar", "icons"] },
 ];
 
 test("reads and filters known layout tags", () => {
@@ -22,23 +21,23 @@ test("reads and filters known layout tags", () => {
     "sidebar",
     "icons",
   ]);
-  assert.equal(templateHasLayout(FIXTURES[4], "icons"), true);
+  assert.equal(templateHasLayout(FIXTURES[3], "icons"), true);
   assert.equal(templateHasLayout(FIXTURES[2], "sidebar"), false);
 });
 
 test("preserves registry order and filters by layout", () => {
   assert.deepEqual(
     listTemplatesInRegistryOrder(FIXTURES).map((template) => template.id),
-    ["volt", "words", "ledger", "obsidian", "harbor", "loom"],
+    ["volt", "words", "ledger", "harbor", "tessera"],
   );
   assert.deepEqual(
     filterTemplatesByLayout(FIXTURES, "sidebar").map((template) => template.id),
-    ["obsidian", "harbor", "loom"],
+    ["harbor", "tessera"],
   );
 });
 
 test("carousel starts at the selected template", () => {
   assert.equal(startIndexForSelectedTemplate(FIXTURES, null), 0);
-  assert.equal(startIndexForSelectedTemplate(FIXTURES, "harbor"), 4);
+  assert.equal(startIndexForSelectedTemplate(FIXTURES, "harbor"), 3);
   assert.equal(startIndexForSelectedTemplate(FIXTURES, "missing"), 0);
 });

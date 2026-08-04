@@ -68,18 +68,19 @@ class CvDataNormalizationTests(unittest.TestCase):
             for section in profile["extra_sections"]
         ))
 
-        elements = generate_resume("obsidian", profile)
+        elements = generate_resume("tessera", profile)
+        # Tessera mosaic headings sit at left=51; sidebar bodies at left=25.
         sidebar_titles = {
             element["content"]
             for element in elements
-            if element["category"] == "text" and element["left"] == 24
+            if element["category"] == "text" and element["left"] in {25, 51}
         }
         self.assertIn("OBSŁUGA KOMPUTERA", sidebar_titles)
         self.assertNotIn("OBSZARY", sidebar_titles)
         self.assertNotIn("UMIEJĘTNOŚCI", sidebar_titles)
         self.assertTrue(any(
             element["category"] == "textarea"
-            and element["left"] == 24
+            and element["left"] == 25
             and element.get("bulletList")
             and "• Excel" in element["content"]
             for element in elements
@@ -115,7 +116,7 @@ class CvDataNormalizationTests(unittest.TestCase):
         self.assertEqual(profile["labels"]["skills"], "OBSŁUGA KOMPUTERA")
         self.assertEqual(profile["skills"], ["Excel", "Word"])
 
-    def test_extract_style_skills_label_reaches_obsidian_sidebar(self):
+    def test_extract_style_skills_label_reaches_tessera_sidebar(self):
         profile = normalize_cv_data({
             "name": "Anna Rojek",
             "skills": ["biegła znajomość pakietu Excel, PowerPoint"],
@@ -127,11 +128,11 @@ class CvDataNormalizationTests(unittest.TestCase):
             }],
         })
         self.assertEqual(profile["labels"]["skills"], "OBSŁUGA KOMPUTERA")
-        elements = generate_resume("obsidian", profile)
+        elements = generate_resume("tessera", profile)
         sidebar_titles = {
             element["content"]
             for element in elements
-            if element["category"] == "text" and element["left"] == 24
+            if element["category"] == "text" and element["left"] in {25, 51}
         }
         self.assertIn("OBSŁUGA KOMPUTERA", sidebar_titles)
         self.assertNotIn("UMIEJĘTNOŚCI", sidebar_titles)
@@ -298,7 +299,8 @@ class CvDataNormalizationTests(unittest.TestCase):
             str(element.get("content", ""))
             for element in generate_resume("kernel", profile)
         )
-        self.assertIn("• Analiza AML", content)
+        # Kernel renders skills as an inline · list, languages as bullets.
+        self.assertIn("Analiza AML", content)
         self.assertIn("• Polski — C2", content)
         self.assertIn("JĘZYKI", content)
 

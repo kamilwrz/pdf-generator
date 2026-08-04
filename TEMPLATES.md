@@ -30,10 +30,7 @@ mogły współdzielić zachowanie:
 8. Words — Dokument w stylu Word
 9. Cardinal — Szlachetna czerwień, ikony przy sekcjach
 10. Harbor — Dwukolumnowy, ikony kontaktu
-11. Signal — Ryzyko i treasury
-12. Obsidian — Ciemny panel boczny
-13. Nova — Redakcyjny masthead z ikonami
-14. Ridge — Szyna ikon przy nagłówkach
-15. Loom — Sidebar rzemieślniczy z ikonami
-16. Volt — Ciemny sygnał, bursztynowe akcenty
-17. Tessera — Mozaikowy sidebar, prostokątne zdjęcie
+11. Nova — Redakcyjny masthead z ikonami
+12. Volt — Ciemny sygnał, bursztynowe akcenty
+13. Tessera — Mozaikowy sidebar, prostokątne zdjęcie
+14. Slate — Stalowy sidebar, siatka i prostokątne zdjęcie

@@ -3,7 +3,7 @@
 // re-transcribing layout geometry. Not part of the app build — run manually
 // with `node frontend/scripts/dump-iconic-templates.mjs`.
 import { writeFileSync } from "node:fs";
-import { loomTemplate, novaTemplate, ridgeTemplate, voltTemplate } from "../src/templates/iconic.js";
+import { novaTemplate, voltTemplate } from "../src/templates/iconic.js";
 import { monumentTemplate } from "../src/templates/monument.js";
 import { wordsTemplate } from "../src/templates/words.js";
 import { cardinalTemplate } from "../src/templates/cardinal.js";
@@ -13,8 +13,6 @@ import { slateTemplate } from "../src/templates/slate.js";
 
 const out = {
     nova: novaTemplate,
-    ridge: ridgeTemplate,
-    loom: loomTemplate,
     volt: voltTemplate,
     monument: monumentTemplate,
     words: wordsTemplate,

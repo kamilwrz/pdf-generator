@@ -80,7 +80,7 @@ def _gen_tessera(cv: dict) -> list[dict]:
     # without removing the surrounding Tessera decoration.
     #
     # Only this decorative cluster is inert (`fixedToPage` + `locked`). Contact
-    # rows and fitted sidebar sections stay editable — unlike Loom, Tessera does
+    # rows and fitted sidebar sections stay editable — Tessera does
     # not repeat personal sidebar data on continuation pages.
     photo_left, photo_top, photo_width, photo_height = 33, 40, 112, 126
 
