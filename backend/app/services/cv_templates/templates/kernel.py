@@ -79,14 +79,26 @@ def _gen_kernel(cv: dict) -> list[dict]:
         for index, edu in enumerate(education_entries):
             _place_education_record(b, edu, L, W, ink=C['ink'], muted=C['muted'], body=C['body'], font=SANS, degree_fs=10.4, degree_lh=13, meta_fs=8.7, meta_lh=11.5, body_fs=8.7, body_lh=11.5, after_gap=SPACE_RECORD if index < len(education_entries) - 1 else None)
         close_section()
-    if cv.get('skills'):
-        skills = _bullet_list_content(cv['skills'])
+    # Only emit skills chrome when the bullet body is non-empty. Marker-only
+    # leftover items can keep cv['skills'] truthy while `_bullet_list_content`
+    # returns "", which previously stranded an empty UMIEJĘTNOŚCI heading.
+    skills = _bullet_list_content(cv.get('skills'))
+    if skills:
         b.need_section(SECTION_CHROME, b.measure_block(skills, W, 9.3, 13.3, SANS, bulletList=True))
         section(lbl['skills'])
         b.block(skills, L, W, 9.3, 13.3, C['body'], SANS, bulletList=True)
         close_section()
     _extra_sections(b, cv, 'after_skills', section, {'body': C['body']}, L, W, SANS, fs=9.3, lh=13.3)
-    flow = b.build()
+    # Tag ordinary text/textarea nodes as content so reflow never treats job
+    # titles or skill lines as keep-with-next section chrome.
+    flow = [
+        {**element, 'flowRole': element.get('flowRole', 'content')}
+        for element in b.build()
+    ]
+    header = [
+        {**element, 'flowRole': element.get('flowRole', 'content')}
+        for element in header
+    ]
     pages_used = max([element.get('page', 1) for element in header + flow] or [1])
     page_decorations = [decoration for page in range(1, pages_used + 1) for decoration in ({'category': 'image', 'src': f"{BACKEND_URL}/template-assets/{C['asset']}", 'width': 595, 'height': 842, 'left': 0, 'top': 0, 'zIndex': 0, 'page': page, 'fixedToPage': True}, {**_line(L, 784, W, 1, C['rule'], zIndex=2, page=page), 'fixedToPage': True}, {**_circle(L, 797, 7, C['marker'], filled=True, zIndex=3, page=page), 'fixedToPage': True}, {**_text(f'{page:02d}', 8, SANS, C['muted'], L + W - 15, 792, zIndex=3, page=page), 'fixedToPage': True})]
     return page_decorations + header + flow

@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import re
 import unicodedata
 from collections.abc import Mapping
 from copy import deepcopy
 from typing import Any
+
+# Strip leading list markers so skills stored as "• Foo" or bare "•" do not
+# produce an empty UMIEJĘTNOŚCI chrome block after `_bullet_list_content`.
+_LEADING_LIST_MARKER = re.compile(r"^[\s]*[•\-–*—∙·]\s*")
 
 
 DEFAULT_LABELS = {
@@ -155,6 +160,26 @@ def _string_list(value: Any) -> list[str]:
             result.append(cleaned)
             seen.add(key)
     return result
+
+
+def _skill_items(value: Any) -> list[str]:
+    """
+    Flatten skills to unique display strings.
+
+    Accepts plain strings and legacy ``{name|title|...}`` objects. Leading bullet
+    glyphs are removed so a bare ``"•"`` cannot keep ``skills`` truthy while
+    ``_bullet_list_content`` later produces an empty body.
+    """
+    flattened = _section_items(value)
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for item in flattened:
+        text = _LEADING_LIST_MARKER.sub("", item).strip()
+        key = text.casefold()
+        if text and key not in seen:
+            cleaned.append(text)
+            seen.add(key)
+    return cleaned
 
 
 def _section_items(value: Any) -> list[str]:
@@ -606,14 +631,26 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
     raw = deepcopy(dict(value))
     address = _text(raw.get("address") or raw.get("location"))
     fallback_languages, fallback_sections = _derive_manual_sections(raw.get("extra_sections"))
-    # An explicitly supplied empty list means the user deleted every item.
-    # Fall back to legacy `extra_sections` only when the editable field is
-    # absent, never when it is present and empty.
-    languages = (
-        _normalize_languages(raw.get("languages"))
-        if "languages" in raw
-        else fallback_languages
+    # Prefer the editable `languages` / `custom_sections` fields when present.
+    # An explicit empty `custom_sections: []` means the user cleared structured
+    # extras — do not resurrect stale `extra_sections` (including languages).
+    # An empty `languages: []` alone is not enough to drop languages that still
+    # exist only in legacy `extra_sections` (common after extract + client
+    # payloads that always send `languages: []`).
+    custom_sections_explicitly_cleared = (
+        "custom_sections" in raw and isinstance(raw.get("custom_sections"), list)
+        and len(raw.get("custom_sections") or []) == 0
     )
+    if "languages" in raw:
+        languages = _normalize_languages(raw.get("languages"))
+        if (
+            not languages
+            and fallback_languages
+            and not custom_sections_explicitly_cleared
+        ):
+            languages = fallback_languages
+    else:
+        languages = fallback_languages
     custom_sections = (
         _normalize_custom_sections(raw.get("custom_sections"))
         if "custom_sections" in raw
@@ -633,11 +670,13 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
     }
 
     skills, custom_sections, labels = _absorb_skills_alias_sections(
-        _string_list(raw.get("skills")),
+        _skill_items(raw.get("skills")),
         custom_sections,
         labels,
         labels_skills_explicit=labels_skills_explicit,
     )
+    # Absorb may reintroduce marker-only lines from alias sections — scrub again.
+    skills = _skill_items(skills)
 
     language_items = [
         f"{entry['name']} — {entry['level']}" if entry["level"] else entry["name"]

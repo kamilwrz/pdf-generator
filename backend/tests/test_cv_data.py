@@ -265,6 +265,43 @@ class CvDataNormalizationTests(unittest.TestCase):
         self.assertEqual(profile["languages"], [])
         self.assertEqual(profile["extra_sections"], [])
 
+    def test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared(self):
+        """
+        Clients often send `languages: []` while languages still live only in
+        legacy `extra_sections` (PDF extract shape). Recover those languages so
+        IT templates (Kernel / Vector) do not drop JĘZYKI after a template change.
+        """
+        profile = normalize_cv_data({
+            "name": "Jan Nowak",
+            "skills": ["Analiza AML", "•", "Transaction Monitoring"],
+            "languages": [],
+            "extra_sections": [
+                {
+                    "title": "JĘZYKI",
+                    "kind": "languages",
+                    "placement": "after_skills",
+                    "items": ["Polski — C2", "Niemiecki — C1"],
+                },
+            ],
+        })
+
+        self.assertEqual(
+            [(entry["name"], entry["level"]) for entry in profile["languages"]],
+            [("Polski", "C2"), ("Niemiecki", "C1")],
+        )
+        self.assertEqual(profile["skills"], ["Analiza AML", "Transaction Monitoring"])
+        self.assertTrue(
+            any(section.get("kind") == "languages" for section in profile["extra_sections"])
+        )
+
+        content = "\n".join(
+            str(element.get("content", ""))
+            for element in generate_resume("kernel", profile)
+        )
+        self.assertIn("• Analiza AML", content)
+        self.assertIn("• Polski — C2", content)
+        self.assertIn("JĘZYKI", content)
+
     def test_generation_requires_name_but_draft_data_can_stay_partial(self):
         self.assertEqual(normalize_cv_data({})["name"], "")
         with self.assertRaises(CvDataValidationError):

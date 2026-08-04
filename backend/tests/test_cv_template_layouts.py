@@ -490,6 +490,40 @@ class CvTemplateLayoutTests(unittest.TestCase):
             self.assertIn(education[0]["degree"], main_copy)
             self.assertIn(education[-1]["degree"], main_copy)
 
+    def test_kernel_and_vector_emit_skills_and_languages_bodies(self):
+        """Single-column IT templates must keep skills/languages after Moss-style data."""
+        profile = {
+            **LONG_CV,
+            "languages": [
+                {"name": "Polski", "level": "C2"},
+                {"name": "Niemiecki", "level": "C1"},
+            ],
+            "extra_sections": [{
+                "title": "JĘZYKI",
+                "kind": "languages",
+                "placement": "after_skills",
+                "items": ["Polski — C2", "Niemiecki — C1"],
+            }],
+        }
+        for template_id in ("kernel", "vector"):
+            elements = generate_resume(template_id, profile)
+            content = "\n".join(
+                str(element.get("content", ""))
+                for element in elements
+                if element.get("category") in {"text", "textarea"}
+            )
+            self.assertIn("UMIEJĘTNOŚCI", content, template_id)
+            self.assertIn("• Strategia produktowa", content, template_id)
+            self.assertIn("JĘZYKI", content, template_id)
+            self.assertIn("• Polski — C2", content, template_id)
+            skills_body = next(
+                element for element in elements
+                if element.get("category") == "textarea"
+                and element.get("bulletList")
+                and "Strategia produktowa" in str(element.get("content", ""))
+            )
+            self.assertEqual(skills_body.get("flowRole"), "content", template_id)
+
     def test_sidebar_layout_uses_remaining_page_space_for_complete_experience_entry(self):
         fourth_job = {
             "title": "Customer Service Specialist with German",

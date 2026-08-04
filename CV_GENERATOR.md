@@ -141,7 +141,7 @@ Po `normalize_cv_data` typowe pola:
 | `extra_sections` | Forma używana przez generator (m.in. języki jako sekcja po umiejętnościach) |
 | `language` | Język dokumentu (domyślnie Polish) |
 
-Normalizacja żyje w `backend/app/services/cv_data.py`, funkcja `normalize_cv_data` (ok. linie 585–667).
+Normalizacja żyje w `backend/app/services/cv_data.py`, funkcja `normalize_cv_data` (ok. linie 620–716). Puste `languages: []` przy językach tylko w `extra_sections` jest odzyskiwane (chyba że jednocześnie `custom_sections: []` sygnalizuje świadome wyczyszczenie) — bez tego Kernel/Vector gubiły sekcję JĘZYKI przy zmianie szablonu.
 
 ---
 

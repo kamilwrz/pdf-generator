@@ -507,6 +507,8 @@ Python layout from normalised `cv_data` (not LLM placement). Every education rec
 
 Skills, languages and other flat chip-style sections render as vertical bullet lists (`_bullet_list_content`) in the main column and in sidebars — not as mid-dot rows. Compact sidebar education blocks keep the same four-line structure; Harbor uses teal diamond glyphs for those list lines.
 
+When a client sends `languages: []` but languages still exist only in legacy `extra_sections` (typical after PDF extract + template change), `normalize_cv_data` recovers them unless `custom_sections: []` was also sent as an intentional clear. Skills are scrubbed of bare list markers so Kernel / Vector / Relay never emit an empty UMIEJĘTNOŚCI heading, and those IT templates tag flow nodes with `flowRole: "content"`.
+
 Implementation:
 
 - `backend/app/services/cv_generator_primitives.py`, class `Builder` — `need`, `need_section`, `keep_together` (tags `flowGroup`; re-exported from `cv_generator.py`)
@@ -514,11 +516,13 @@ Implementation:
 - `frontend/src/utils/textareaReflow.test.js` — `flowGroup` reclaim / grow keep-together cases
 - `backend/app/services/cv_templates/shared/records.py`, `_place_education_record` — degree / school / meta / description bullets
 - `backend/app/services/cv_templates/shared/text.py`, `_bullet_list_content` — shared skills/languages list formatting
+- `backend/app/services/cv_data.py`, lines 165–183, `_skill_items`; lines 620–727, `normalize_cv_data` — language recovery + skills scrub
+- `backend/app/services/cv_templates/templates/kernel.py`, `vector.py`, `relay.py` — non-empty skills body + `flowRole: "content"`
 - `backend/app/api/routes/ai.py`, `fill_template`
 - `backend/app/services/document_service.py`, lines 69–127, `create_pdf_document`; lines 129–165, `update_pdf_document`
 - Docs: [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
-Tests: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color` — structured education + body-colour bullets across generated templates.
+Tests: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_kernel_and_vector_emit_skills_and_languages_bodies`; `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`.
 
 ### Record-style extra sections (projects, references, …)
 
@@ -1366,16 +1370,20 @@ Layout Python powstaje ze znormalizowanego `cv_data`, a nie z pozycji wymyślony
 
 Umiejętności, języki i inne płaskie sekcje renderują się jako pionowe listy punktów (`_bullet_list_content`) w kolumnie głównej i w sidebarach — nie jako wiersze ze środkowymi kropkami. Harbor używa tealowych diamentów dla tych list.
 
+Gdy klient wyśle `languages: []`, a języki nadal są tylko w legacy `extra_sections` (typowy kształt po ekstrakcji PDF i zmianie szablonu), `normalize_cv_data` je odzyskuje — chyba że jednocześnie wysłano `custom_sections: []` jako świadome wyczyszczenie. Umiejętności są oczyszczane z samotnych markerów listy, żeby Kernel / Vector / Relay nie emitowały pustego nagłówka UMIEJĘTNOŚCI; te szablony IT oznaczają też węzły flow jako `flowRole: "content"`.
+
 - `backend/app/services/cv_generator_primitives.py` — klasa `Builder` (`need`, `need_section`, `keep_together` z tagiem `flowGroup`; re-eksport z `cv_generator.py`)
 - `backend/tests/test_builder_keep_together.py` — regresja: rekord nie dzieli się między stronami
 - `frontend/src/utils/textareaReflow.test.js` — przypadki keep-together `flowGroup` przy reclaim/wzroście
 - `backend/app/services/cv_templates/shared/records.py` — `_place_education_record` (dyplom / uczelnia / meta / bullet opis)
 - `backend/app/services/cv_templates/shared/text.py` — `_bullet_list_content`
+- `backend/app/services/cv_data.py`, linie 165–183 — `_skill_items`; linie 620–727 — `normalize_cv_data` (odzyskiwanie języków + czyszczenie skills)
+- `backend/app/services/cv_templates/templates/kernel.py`, `vector.py`, `relay.py` — niepusta treść skills + `flowRole: "content"`
 - `backend/app/api/routes/ai.py` — `fill_template`
 - `backend/app/services/document_service.py`, linie 69–127 — `create_pdf_document`; linie 129–165 — `update_pdf_document`
 - [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
-Testy: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`.
+Testy: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_kernel_and_vector_emit_skills_and_languages_bodies`; `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`.
 
 ### Sekcje rekordowe (projekty, referencje, …)
 
