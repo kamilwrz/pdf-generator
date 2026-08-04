@@ -575,7 +575,11 @@ class CvTemplateLayoutTests(unittest.TestCase):
         for template_id in affected_templates:
             with self.subTest(template_id=template_id):
                 if template_id == "moss":
-                    with patch.object(cv_generator, "_fit_sidebar_sections", return_value=([], set())):
+                    # Moss imports the helper into its own module namespace.
+                    with patch(
+                        "app.services.cv_templates.templates.moss._fit_sidebar_sections",
+                        return_value=([], set()),
+                    ):
                         elements = generate_resume(template_id, cv)
                 else:
                     elements = generate_resume(template_id, cv)

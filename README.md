@@ -4,7 +4,7 @@
 
 CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 25 individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
 
-This README is the technical entry point for developers. A beginner-friendly deep guide to canvas coordinates, React interaction, deterministic Python layout, AI responsibilities, reflow, persistence, and ReportLab export lives in [`CANVA.md`](CANVA.md). Every live AI prompt (full text, variables, file/line references) is documented in [`PROMPTS.md`](PROMPTS.md). Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md). Marketing brief for the website „Dlaczego CV STUDIO” section (features + competitive positioning, no competitor brand names in public copy) lives in [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Template generation (AI extract vs Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md).
+This README is the technical entry point for developers. A beginner-friendly deep guide to canvas coordinates, React interaction, deterministic Python layout, AI responsibilities, reflow, persistence, and ReportLab export lives in [`CANVA.md`](CANVA.md). Every live AI prompt (full text, variables, file/line references) is documented in [`PROMPTS.md`](PROMPTS.md). Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md). Marketing brief for the website „Dlaczego CV STUDIO” section (features + competitive positioning, no competitor brand names in public copy) lives in [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Template generation (AI extract vs Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md). A layperson-friendly end-to-end guide covering Frontend and Backend (flows, files, classes, functions) lives in [`CV_GENERATOR.md`](CV_GENERATOR.md).
 
 ---
 
@@ -168,7 +168,7 @@ pdf-generator/
     │   ├── crud/
     │   ├── models/
     │   ├── schemas/          # PdfElement + JSON Schema export
-    │   ├── services/         # pdf, document_service, cv_generator, themes/, ai, entitlements
+    │   ├── services/         # pdf, document_service, cv_generator (+ cv_templates/), ai, entitlements
     │   ├── utils/            # image_src_to_path, metrics_logging, upload_security
     │   ├── main.py
     │   └── dependencies.py
@@ -181,7 +181,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_generator.py` (25 ids). Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
+**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 25 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
 
 ---
 
@@ -309,7 +309,7 @@ Implementation:
 - `frontend/src/hooks/useCanvasEnterIds.js`, lines 1–80, `useCanvasEnterIds`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` + `CanvasElements.module.css`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadAiElements`, `handleLoadTemplate`, `handleLoadTemplateWithFill` call `markContentElementsEnter`
-- `backend/app/services/cv_generator.py`, lines 2871–3022, `_gen_onyx`; `frontend/src/templates/onyx.js`, lines 1–101 — assign Onyx `flowRole` and `preserveInitialLayout`
+- `backend/app/services/cv_templates/templates/onyx.py`, `_gen_onyx`; `frontend/src/templates/onyx.js`, lines 1–101 — assign Onyx `flowRole` and `preserveInitialLayout`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 29–55; `frontend/src/components/canvas/Textarea/Textarea.jsx`, lines 42–164 — skip only the initial Onyx textarea measurement
 - `backend/app/schemas/pdf_schema.py`, lines 44–46; `backend/app/crud/pdfs.py`, lines 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, lines 104–105 — persist and restore the Onyx flow flags
 
@@ -327,7 +327,7 @@ Implementation:
 
 - `frontend/src/templates/monument.js`, lines 1–108, exported array `monumentTemplate`
 - `frontend/src/templates/index.js`, registry entry `monument` (`tier: "paid"`, `layouts: ["single"]`)
-- `backend/app/services/cv_generator.py`, lines 2013–2215, function `_gen_monument`; line 3256, `_GENERATORS["monument"]`
+- `backend/app/services/cv_templates/templates/monument.py`, function `_gen_monument`; `cv_templates/registry.py`, `_GENERATORS["monument"]`
 - `frontend/src/utils/structureOperation.js`, lines 34–63, function `cloneFixedPageDecorations`
 - `frontend/public/template-mockups/monument.png`, source-driven A4 preview
 
@@ -349,7 +349,7 @@ Implementation:
 
 - `frontend/src/templates/words.js`, lines 1–123, exported array `wordsTemplate`
 - `frontend/src/templates/index.js`, registry entry `words` (`tier: "paid"`, `layouts: ["single"]`)
-- `backend/app/services/cv_generator.py`, lines 3025–3218, function `_gen_words`; line 3257, `_GENERATORS["words"]`
+- `backend/app/services/cv_templates/templates/words.py`, function `_gen_words`; `cv_templates/registry.py`, `_GENERATORS["words"]`
 - `frontend/public/template-mockups/words.png`, source-driven A4 preview
 
 Tests:
@@ -369,8 +369,8 @@ Implementation:
 
 - `frontend/src/templates/cardinal.js`, lines 1–158 — static starter spec; local `icon` helper (line 49), `sectionHead` (line 65), `contact` (line 76), and the `flowRole` mapping in `cardinalTemplate` (line 150)
 - `frontend/src/templates/index.js`, registry entry `cardinal` (`tier: "paid"`, `layouts: ["icons"]`, `accent: "#9E2532"`)
-- `backend/app/services/cv_generator_iconic.py`, `cardinal` theme (lines 117–122), header branch (lines 177–197), page-decoration branch (lines 463–467), `_gen_cardinal` (lines 498–499)
-- `backend/app/services/cv_generator.py`, line 2577, `_GENERATORS["cardinal"]`
+- `backend/app/services/cv_templates/templates/cardinal.py`, function `_gen_cardinal`
+- `backend/app/services/cv_templates/registry.py`, `_GENERATORS["cardinal"]`
 - `scripts/generate_iconic_icons.py`, line 23, grey `cardinal` icon theme
 - `frontend/public/template-mockups/cardinal.png`, source-driven A4 preview
 
@@ -397,7 +397,7 @@ Implementation:
 
 - `frontend/src/templates/harbor.js`, lines 1–251 — static starter spec; `rect` with `borderRadius` (line 48), `skillPills` packer (line 102), `languageRow` dots (line 124), `toolItem` diamonds (line 138), sidebar IIFE (line 144)
 - `frontend/src/templates/index.js`, registry entry `harbor` (`tier: "paid"`, `layouts: ["sidebar", "icons"]`, `accent: "#17A2B8"`)
-- `backend/app/services/cv_generator.py`, `_gen_harbor` (line 2552), `_GENERATORS["harbor"]` (line 2823)
+- `backend/app/services/cv_templates/templates/harbor.py`, `_gen_harbor`; `cv_templates/registry.py`, `_GENERATORS["harbor"]`
 - `scripts/generate_iconic_icons.py`, `draw_github`/`draw_calendar`/`draw_diamond` (lines 183–213), `EXTRA_ICONS` (line 234), `SUBSET_THEMES` (line 244)
 - `backend/app/schemas/pdf_schema.py`, line 85, `borderRadius` field
 - `backend/app/services/pdf_generator.py`, `renderRectangle` rounded-corner path (uses `roundRect`); dispatch at line 629
@@ -418,7 +418,8 @@ Loom contact rows are special-cased: three single-line `text` labels (not an aut
 Implementation:
 
 - `frontend/src/templates/iconic.js`, lines 1–386, exports `novaTemplate`, `ridgeTemplate`, `loomTemplate`, `voltTemplate`, and `loomContact`
-- `backend/app/services/cv_generator_iconic.py`, lines 31–409, functions `_icon`, `_icon_beside`, `_gen_iconic_theme`, and four `_gen_*` entry points
+- `backend/app/services/cv_templates/shared/icons.py` — `_icon`, `_icon_beside`, `_icon_key_for_label`
+- `backend/app/services/cv_templates/templates/{nova,ridge,loom,volt,cardinal}.py` — per-template `_gen_*` entry points
 - `frontend/src/utils/textareaReflow.js`, functions `isTextAlignedImage`, `isPositionLockedForReflow`, `belongsToFlowLane`, `packGapAfterPageBreak`, `rawSamePageGap`, `remainingRecordHeight`, `avoidOrphanChrome`, `precedingChromeCluster`, `precedingRecordMates`, and `reflowTextareaHeight`
 - `frontend/src/components/canvas/Image/Image.jsx`, lines 22–76, functions `isTextAlignedIcon`, `iconicDrawTop`; canvas images use `object-fit: fill` so full-page backgrounds stretch like ReportLab `drawImage` (not `contain`, which letterboxed Rift/Relay PNGs that are 1024×1536)
 - `backend/app/services/pdf_generator.py`, lines 141–193, method `PDF_Generator.renderImage`
@@ -488,7 +489,7 @@ Implementation:
 - `backend/app/services/cv_generator_primitives.py`, class `Builder` — `need`, `need_section`, `keep_together` (tags `flowGroup`; re-exported from `cv_generator.py`)
 - `backend/tests/test_builder_keep_together.py` — whole-record page-break regression
 - `frontend/src/utils/textareaReflow.test.js` — `flowGroup` reclaim / grow keep-together cases
-- `backend/app/services/cv_generator.py`, `_place_education_record` — distinguishes education metadata from body text; `generate_resume`
+- `backend/app/services/cv_templates/shared/records.py`, `_place_education_record` — distinguishes education metadata from body text; `generate_resume` via `cv_generator` facade
 - `backend/app/api/routes/ai.py`, `fill_template`
 - `backend/app/services/document_service.py`, lines 69–127, `create_pdf_document`; lines 129–165, `update_pdf_document`
 - Docs: [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
@@ -506,7 +507,7 @@ Heuristic regroup is deterministic and imperfect; Standard/Premium already pay f
 Implementation:
 
 - `backend/app/services/cv_data.py`, lines 204–380+, `is_record_section`, `group_flat_items_into_records`, `_normalize_section_items`
-- `backend/app/services/cv_generator.py`, `_measure_one_record_height`, `_render_record_section_body`, `_extra_sections`
+- `backend/app/services/cv_templates/shared/extras.py`, `_measure_one_record_height`, `_render_record_section_body`, `_extra_sections`
 - `backend/tests/test_cv_template_layouts.py`, `test_record_extra_sections_start_on_page_one_when_first_entry_fits`
 - `backend/app/services/ai_service.py`, `extract_cv_data` (line 39+) — extract schema asks for record objects on projects/references
 - `frontend/src/utils/bioCvData.js`, `parseSectionItems` — expands records for the wizard textarea
@@ -844,7 +845,7 @@ Notable product facts:
 - [ReportLab user guide](https://www.reportlab.com/docs/reportlab-userguide.pdf) — PDF canvas drawing.
 - [OpenAI platform docs](https://platform.openai.com/docs) — chat and vision APIs.
 - [Vite guide](https://vite.dev/guide/) — frontend tooling.
-- Project: [`CANVA.md`](CANVA.md), [`PROMPTS.md`](PROMPTS.md) (all AI prompts with line references), [`docs/cv-template-generation.md`](docs/cv-template-generation.md), [`docs/FEATURES.md`](docs/FEATURES.md), [`docs/designs/cv-only-ux-monetization.md`](docs/designs/cv-only-ux-monetization.md).
+- Project: [`CANVA.md`](CANVA.md), [`CV_GENERATOR.md`](CV_GENERATOR.md) (layperson CV generation guide), [`PROMPTS.md`](PROMPTS.md) (all AI prompts with line references), [`docs/cv-template-generation.md`](docs/cv-template-generation.md), [`docs/FEATURES.md`](docs/FEATURES.md), [`docs/designs/cv-only-ux-monetization.md`](docs/designs/cv-only-ux-monetization.md).
 
 ---
 
@@ -854,7 +855,7 @@ Notable product facts:
 
 CV Studio to polski edytor CV na A4: płótno WYSIWYG, 25 indywidualnych szablonów (każdy z własną nazwą i krótkim opisem stylistycznym), import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
 
-Ten README to wejście techniczne dla programistów. Obszerne, napisane dla początkujących wyjaśnienie współrzędnych canvasu, interakcji React, deterministycznego layoutu Python, roli AI, reflow, zapisu i eksportu ReportLab znajduje się w [`CANVA.md`](CANVA.md). Wszystkie prompty AI (treść, zmienne, numery linii): [`PROMPTS.md`](PROMPTS.md). Opis produktowy funkcji: [`docs/FEATURES.md`](docs/FEATURES.md). Brief marketingowy pod sekcję „Dlaczego CV STUDIO” na stronie (funkcje + pozycjonowanie względem rynku, bez nazw marek konkurencji w copy publicznym): [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Generowanie szablonów (AI extract vs layout w Pythonie): [`docs/cv-template-generation.md`](docs/cv-template-generation.md).
+Ten README to wejście techniczne dla programistów. Obszerne, napisane dla początkujących wyjaśnienie współrzędnych canvasu, interakcji React, deterministycznego layoutu Python, roli AI, reflow, zapisu i eksportu ReportLab znajduje się w [`CANVA.md`](CANVA.md). Wszystkie prompty AI (treść, zmienne, numery linii): [`PROMPTS.md`](PROMPTS.md). Opis produktowy funkcji: [`docs/FEATURES.md`](docs/FEATURES.md). Brief marketingowy pod sekcję „Dlaczego CV STUDIO” na stronie (funkcje + pozycjonowanie względem rynku, bez nazw marek konkurencji w copy publicznym): [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Generowanie szablonów (AI extract vs layout w Pythonie): [`docs/cv-template-generation.md`](docs/cv-template-generation.md). Przystępny, kompletny przewodnik Frontend + Backend (ścieżki, pliki, klasy, funkcje): [`CV_GENERATOR.md`](CV_GENERATOR.md).
 
 ---
 
@@ -937,7 +938,7 @@ flowchart LR
 
 - **Routes** — `app/api/routes/*` (PDF create/update przez `document_service`)
 - **CRUD** — `app/crud/*`
-- **Services** — PDF, `cv_generator` + `themes/`, AI, entitlements, S3
+- **Services** — PDF, `cv_generator` + `cv_templates/`, AI, entitlements, S3
 - **Models** — `app/models/models.py`; migracje Alembic w `backend/alembic/`
 
 ### Współrzędne
@@ -1016,7 +1017,7 @@ pdf-generator/
     │   ├── crud/
     │   ├── models/
     │   ├── schemas/          # PdfElement + eksport JSON Schema
-    │   ├── services/         # pdf, document_service, cv_generator, themes/, ai, …
+    │   ├── services/         # pdf, document_service, cv_generator (+ cv_templates/), ai, …
     │   ├── utils/
     │   ├── main.py
     │   └── dependencies.py
@@ -1029,7 +1030,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Zasady:** 25 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_generator.py`. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Bajty obrazów użytkownika nie są publicznie montowane — tylko przez `GET /images/{id}/content`.
+**Zasady:** 25 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_templates/registry.py` (re-eksport z `cv_generator.py`). Każdy `cv_templates/templates/<id>.py` zawiera wyłącznie żywy generator tego szablonu — bez wspólnego silnika multi-theme i martwych gałęzi siblingów. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Bajty obrazów użytkownika nie są publicznie montowane — tylko przez `GET /images/{id}/content`.
 
 ---
 
@@ -1147,7 +1148,7 @@ Implementacja:
 - `frontend/src/hooks/useCanvasEnterIds.js`, linie 1–80, `useCanvasEnterIds`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` + `CanvasElements.module.css`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadAiElements`, `handleLoadTemplate`, `handleLoadTemplateWithFill` wywołują `markContentElementsEnter`
-- `backend/app/services/cv_generator.py`, linie 2871–3022, `_gen_onyx`; `frontend/src/templates/onyx.js`, linie 1–101 — przypisanie `flowRole` i `preserveInitialLayout` Onyx
+- `backend/app/services/cv_templates/templates/onyx.py`, `_gen_onyx`; `frontend/src/templates/onyx.js`, linie 1–101 — przypisanie `flowRole` i `preserveInitialLayout` Onyx
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 29–55; `frontend/src/components/canvas/Textarea/Textarea.jsx`, linie 42–164 — pominięcie wyłącznie pierwszego pomiaru textarea Onyx
 - `backend/app/schemas/pdf_schema.py`, linie 44–46; `backend/app/crud/pdfs.py`, linie 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, linie 104–105 — zapis i odtwarzanie flag przepływu Onyx
 
@@ -1165,7 +1166,7 @@ Implementacja:
 
 - `frontend/src/templates/monument.js`, linie 1–108, eksportowana tablica `monumentTemplate`
 - `frontend/src/templates/index.js`, wpis rejestru `monument` (`tier: "paid"`, `layouts: ["single"]`)
-- `backend/app/services/cv_generator.py`, linie 2013–2215, funkcja `_gen_monument`; linia 3256, `_GENERATORS["monument"]`
+- `backend/app/services/cv_templates/templates/monument.py`, funkcja `_gen_monument`; `cv_templates/registry.py`, `_GENERATORS["monument"]`
 - `frontend/src/utils/structureOperation.js`, linie 34–63, funkcja `cloneFixedPageDecorations`
 - `frontend/public/template-mockups/monument.png`, podgląd A4 generowany ze źródła
 
@@ -1187,7 +1188,7 @@ Implementacja:
 
 - `frontend/src/templates/words.js`, linie 1–123, eksportowana tablica `wordsTemplate`
 - `frontend/src/templates/index.js`, wpis rejestru `words` (`tier: "paid"`, `layouts: ["single"]`)
-- `backend/app/services/cv_generator.py`, linie 3025–3218, funkcja `_gen_words`; linia 3257, `_GENERATORS["words"]`
+- `backend/app/services/cv_templates/templates/words.py`, funkcja `_gen_words`; `cv_templates/registry.py`, `_GENERATORS["words"]`
 - `frontend/public/template-mockups/words.png`, podgląd A4 generowany ze źródła
 
 Testy:
@@ -1207,8 +1208,8 @@ Implementacja:
 
 - `frontend/src/templates/cardinal.js`, linie 1–158 — statyczna specyfikacja startowa; lokalny helper `icon` (linia 49), `sectionHead` (linia 65), `contact` (linia 76) oraz mapowanie `flowRole` w `cardinalTemplate` (linia 150)
 - `frontend/src/templates/index.js`, wpis rejestru `cardinal` (`tier: "paid"`, `layouts: ["icons"]`, `accent: "#9E2532"`)
-- `backend/app/services/cv_generator_iconic.py`, motyw `cardinal` (linie 117–122), gałąź nagłówka (linie 177–197), gałąź dekoracji strony (linie 463–467), `_gen_cardinal` (linie 498–499)
-- `backend/app/services/cv_generator.py`, linia 2577, `_GENERATORS["cardinal"]`
+- `backend/app/services/cv_templates/templates/cardinal.py`, funkcja `_gen_cardinal`
+- `backend/app/services/cv_templates/registry.py`, `_GENERATORS["cardinal"]`
 - `scripts/generate_iconic_icons.py`, linia 23, szary motyw ikon `cardinal`
 - `frontend/public/template-mockups/cardinal.png`, podgląd A4 generowany ze źródła
 
@@ -1235,7 +1236,7 @@ Implementacja:
 
 - `frontend/src/templates/harbor.js`, linie 1–251 — statyczna specyfikacja startowa; `rect` z `borderRadius` (linia 48), packer `skillPills` (linia 102), kropki `languageRow` (linia 124), diamenty `toolItem` (linia 138), IIFE sidebara (linia 144)
 - `frontend/src/templates/index.js`, wpis rejestru `harbor` (`tier: "paid"`, `layouts: ["sidebar", "icons"]`, `accent: "#17A2B8"`)
-- `backend/app/services/cv_generator.py`, `_gen_harbor` (linia 2552), `_GENERATORS["harbor"]` (linia 2823)
+- `backend/app/services/cv_templates/templates/harbor.py`, `_gen_harbor`; `cv_templates/registry.py`, `_GENERATORS["harbor"]`
 - `scripts/generate_iconic_icons.py`, `draw_github`/`draw_calendar`/`draw_diamond` (linie 183–213), `EXTRA_ICONS` (linia 234), `SUBSET_THEMES` (linia 244)
 - `backend/app/schemas/pdf_schema.py`, linia 85, pole `borderRadius`
 - `backend/app/services/pdf_generator.py`, ścieżka zaokrąglonych rogów w `renderRectangle` (używa `roundRect`); wywołanie w linii 629
@@ -1256,7 +1257,8 @@ Kontakt w Loom jest osobnym przypadkiem: trzy jednoliniowe etykiety `text` (bez 
 Implementacja:
 
 - `frontend/src/templates/iconic.js`, linie 1–386, eksporty `novaTemplate`, `ridgeTemplate`, `loomTemplate`, `voltTemplate`, `loomContact`
-- `backend/app/services/cv_generator_iconic.py`, linie 31–409, funkcje `_icon`, `_icon_beside`, `_gen_iconic_theme` oraz cztery wejścia `_gen_*`
+- `backend/app/services/cv_templates/shared/icons.py` — `_icon`, `_icon_beside`, `_icon_key_for_label`
+- `backend/app/services/cv_templates/templates/{nova,ridge,loom,volt,cardinal}.py` — osobne wejścia `_gen_*`
 - `frontend/src/utils/textareaReflow.js`, funkcje `isTextAlignedImage`, `isPositionLockedForReflow`, `belongsToFlowLane`, `packGapAfterPageBreak`, `rawSamePageGap`, `remainingRecordHeight`, `avoidOrphanChrome`, `precedingChromeCluster`, `precedingRecordMates`, `reflowTextareaHeight`
 - `frontend/src/components/canvas/Image/Image.jsx`, linie 22–76, funkcje `isTextAlignedIcon`, `iconicDrawTop`; obrazy na kanwie używają `object-fit: fill`, żeby tła pełnostronicowe rozciągały się jak ReportLab `drawImage` (nie `contain`, które dawało białe paski przy PNG 1024×1536 w Rift/Relay)
 - `backend/app/services/pdf_generator.py`, linie 141–193, metoda `PDF_Generator.renderImage`
@@ -1320,7 +1322,7 @@ Layout Python powstaje ze znormalizowanego `cv_data`, a nie z pozycji wymyślony
 - `backend/app/services/cv_generator_primitives.py` — klasa `Builder` (`need`, `need_section`, `keep_together` z tagiem `flowGroup`; re-eksport z `cv_generator.py`)
 - `backend/tests/test_builder_keep_together.py` — regresja: rekord nie dzieli się między stronami
 - `frontend/src/utils/textareaReflow.test.js` — przypadki keep-together `flowGroup` przy reclaim/wzroście
-- `backend/app/services/cv_generator.py` — `_place_education_record`, `generate_resume`
+- `backend/app/services/cv_templates/shared/records.py` — `_place_education_record`; `generate_resume` przez fasadę `cv_generator`
 - `backend/app/api/routes/ai.py` — `fill_template`
 - `backend/app/services/document_service.py`, linie 69–127 — `create_pdf_document`; linie 129–165 — `update_pdf_document`
 - [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
@@ -1338,7 +1340,7 @@ Heurystyka jest deterministyczna i niedoskonała; plany Standard/Premium już ro
 Implementacja:
 
 - `backend/app/services/cv_data.py`, linie 204–380+, `is_record_section`, `group_flat_items_into_records`, `_normalize_section_items`
-- `backend/app/services/cv_generator.py`, `_measure_one_record_height`, `_render_record_section_body`, `_extra_sections`
+- `backend/app/services/cv_templates/shared/extras.py`, `_measure_one_record_height`, `_render_record_section_body`, `_extra_sections`
 - `backend/tests/test_cv_template_layouts.py`, `test_record_extra_sections_start_on_page_one_when_first_entry_fits`
 - `backend/app/services/ai_service.py`, `extract_cv_data` (linia 39+) — schemat ekstrakcji wymaga obiektów rekordów dla projektów/referencji
 - `frontend/src/utils/bioCvData.js`, `parseSectionItems`
@@ -1602,4 +1604,4 @@ Zobacz [`BUGZ.MD`](BUGZ.MD) i [`TODOS.md`](TODOS.md).
 - [ReportLab](https://www.reportlab.com/docs/reportlab-userguide.pdf)
 - [OpenAI](https://platform.openai.com/docs)
 - [Vite](https://vite.dev/guide/)
-- Projekt: [`CANVA.md`](CANVA.md), [`PROMPTS.md`](PROMPTS.md) (wszystkie prompty AI z referencjami linii), [`docs/cv-template-generation.md`](docs/cv-template-generation.md), [`docs/FEATURES.md`](docs/FEATURES.md), [`docs/designs/cv-only-ux-monetization.md`](docs/designs/cv-only-ux-monetization.md)
+- Projekt: [`CANVA.md`](CANVA.md), [`CV_GENERATOR.md`](CV_GENERATOR.md) (przewodnik generowania CV dla laików), [`PROMPTS.md`](PROMPTS.md) (wszystkie prompty AI z referencjami linii), [`docs/cv-template-generation.md`](docs/cv-template-generation.md), [`docs/FEATURES.md`](docs/FEATURES.md), [`docs/designs/cv-only-ux-monetization.md`](docs/designs/cv-only-ux-monetization.md)

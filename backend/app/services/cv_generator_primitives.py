@@ -2,8 +2,8 @@
 Low-level CV layout primitives shared by every template generator.
 
 Owns page geometry, vertical rhythm constants, element constructors, and the
-``Builder`` cursor. Theme generators and ``cv_generator_iconic`` import these
-symbols (often re-exported from ``cv_generator`` for backward compatibility).
+``Builder`` cursor. Individual generators under ``cv_templates.templates`` and
+shared helpers import these symbols (also re-exported from ``cv_generator``).
 """
 
 from __future__ import annotations
