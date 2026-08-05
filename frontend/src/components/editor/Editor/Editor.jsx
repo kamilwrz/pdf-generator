@@ -9,6 +9,9 @@ import { createPortal } from "react-dom";
 import { RiDeleteBin2Line, RiFileCopyLine } from "react-icons/ri";
 import { CiTextAlignLeft, CiTextAlignCenter, CiTextAlignRight, CiTextAlignJustify } from "react-icons/ci";
 import {
+  MdAlignHorizontalCenter,
+  MdAlignHorizontalLeft,
+  MdAlignHorizontalRight,
   MdFormatListBulleted,
   MdEdit,
   MdLock,
@@ -270,6 +273,7 @@ export default function Editor() {
         anchor,
         { width: panel.offsetWidth, height: panel.offsetHeight },
         { width: window.innerWidth, height: window.innerHeight },
+        { gap: 14, padding: 8 },
       );
       setPanelPosition((previous) => (
         previous.top === next.top && previous.left === next.left
@@ -341,49 +345,42 @@ export default function Editor() {
               <>
                 {(cat === "text" || cat === "textarea") && (
                   <>
-                    <Group>
+                    <Group label="Treść">
                       <IconBtn
                         label="Edytuj tekst"
                         onClick={() => setTextareaEditing(selectedElement.element_id, true)}
                       >
                         <MdEdit />
                       </IconBtn>
-                      {cat === "textarea" && (
-                        <IconBtn
-                          label="Wstaw punktor"
-                          disabled={!selectedElement?.isEditing}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={insertBulletAtCurrentLine}
-                        >
-                          <MdFormatListBulleted />
-                        </IconBtn>
-                      )}
                     </Group>
                     <Sep />
-                    <Group>
+                    <Group label="Typografia">
+                      <FontField
+                        value={elementValues.fontFamily}
+                        onChange={(e) => handleChangeValues(e, "fontFamily")}
+                      />
                       <NumField
                         label="Rozmiar czcionki"
                         icon={<MdFormatSize />}
                         value={elementValues.fontSize}
                         onChange={(e) => handleChangeValues(e, "fontSize")}
-                        width={40}
+                        width={34}
                       />
                       <ColorField
                         label="Kolor tekstu"
                         value={elementValues.color}
                         onChange={(e) => handleChangeValues(e, "color")}
                       />
-                      <FontField
-                        value={elementValues.fontFamily}
-                        onChange={(e) => handleChangeValues(e, "fontFamily")}
-                      />
-                    </Group>
-                    <Sep />
-                    <Group>
                       <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
-                      {cat === "textarea" && (
-                        <>
-                          <AlignToggles selectedElement={selectedElement} setAlign={setAlign} />
+                    </Group>
+                    {cat === "textarea" && (
+                      <>
+                        <Sep />
+                        <Group label="Akapit">
+                          <AlignToggles
+                            selectedElement={selectedElement}
+                            setAlign={setAlign}
+                          />
                           <IconBtn
                             label="Lista punktowana"
                             active={!!selectedElement?.bulletList}
@@ -391,26 +388,30 @@ export default function Editor() {
                           >
                             <MdFormatListBulleted />
                           </IconBtn>
-                        </>
-                      )}
-                    </Group>
-                    {cat === "textarea" && (
-                      <>
+                          <IconBtn
+                            label="Wstaw punktor w bieżącej linii"
+                            disabled={!selectedElement?.isEditing}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={insertBulletAtCurrentLine}
+                          >
+                            <span className={classes.insertBullet}>＋•</span>
+                          </IconBtn>
+                        </Group>
                         <Sep />
-                        <Group>
+                        <Group label="Odstępy i rozmiar">
                           <NumField
                             label="Wysokość linii"
                             icon={<MdFormatLineSpacing />}
                             value={elementValues.lineHeight}
                             onChange={(e) => handleChangeValues(e, "lineHeight")}
-                            width={40}
+                            width={34}
                           />
                           <NumField
                             label="Odstęp między literami"
                             icon={<RxLetterSpacing />}
                             value={elementValues.letterSpacing}
                             onChange={(e) => handleChangeValues(e, "letterSpacing")}
-                            width={36}
+                            width={32}
                             step={0.1}
                           />
                           <NumField
@@ -418,14 +419,14 @@ export default function Editor() {
                             icon={<RxWidth />}
                             value={elementValues.width}
                             onChange={(e) => handleChangeValues(e, "width")}
-                            width={44}
+                            width={36}
                           />
                           <NumField
                             label={selectedElement.autoHeight ? "Wysokość (automatyczna)" : "Wysokość"}
                             icon={<RxHeight />}
                             value={elementValues.height}
                             onChange={(e) => handleChangeValues(e, "height")}
-                            width={40}
+                            width={36}
                             disabled={!!selectedElement.autoHeight}
                           />
                         </Group>
@@ -435,26 +436,26 @@ export default function Editor() {
                 )}
 
                 {cat === "line" && (
-                  <Group>
-                    <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={40} />
-                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={44} />
+                  <Group label="Linia">
+                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
+                    <NumField label="Grubość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={32} />
                     <ColorField label="Kolor" value={elementValues.backgroundColor} onChange={(e) => handleChangeValues(e, "backgroundColor")} />
                   </Group>
                 )}
 
                 {cat === "rectangle" && (
-                  <Group>
-                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={44} />
-                    <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={40} />
-                    <NumField label="Obramowanie" icon={<MdFormatSize />} value={elementValues.borderWidth} onChange={(e) => handleChangeValues(e, "borderWidth")} width={36} />
+                  <Group label="Kształt">
+                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
+                    <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={36} />
+                    <NumField label="Obramowanie" icon={<MdFormatSize />} value={elementValues.borderWidth} onChange={(e) => handleChangeValues(e, "borderWidth")} width={32} />
                     <ColorField label="Kolor obramowania" value={elementValues.backgroundColor} onChange={(e) => handleChangeValues(e, "backgroundColor")} />
                   </Group>
                 )}
 
                 {(cat === "circle" || cat === "ellipse") && (
-                  <Group>
-                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={44} />
-                    <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={40} />
+                  <Group label="Kształt">
+                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
+                    <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={36} />
                     <IconBtn
                       label="Wypełniony kształt"
                       active={!!selectedElement.filled}
@@ -463,7 +464,7 @@ export default function Editor() {
                       ●
                     </IconBtn>
                     {!selectedElement.filled && (
-                      <NumField label="Obramowanie" icon={<MdFormatSize />} value={elementValues.borderWidth} onChange={(e) => handleChangeValues(e, "borderWidth")} width={36} />
+                      <NumField label="Obramowanie" icon={<MdFormatSize />} value={elementValues.borderWidth} onChange={(e) => handleChangeValues(e, "borderWidth")} width={32} />
                     )}
                     <ColorField
                       label={selectedElement.filled ? "Kolor wypełnienia" : "Kolor obramowania"}
@@ -474,27 +475,27 @@ export default function Editor() {
                 )}
 
                 {cat === "image" && (
-                  <Group>
-                    <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={40} disabled />
-                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={44} />
+                  <Group label="Obraz">
+                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
+                    <NumField label="Wysokość proporcjonalna" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={36} disabled />
                   </Group>
                 )}
 
                 {cat === "connector" && (
-                  <Group>
-                    <NumField label="Szerokość linii" icon={<RxWidth />} value={elementValues.borderWidth} onChange={(e) => handleChangeValues(e, "borderWidth")} width={36} />
+                  <Group label="Łącznik">
+                    <NumField label="Grubość linii" icon={<RxWidth />} value={elementValues.borderWidth} onChange={(e) => handleChangeValues(e, "borderWidth")} width={32} />
                     <ColorField label="Kolor linii" value={elementValues.backgroundColor} onChange={(e) => handleChangeValues(e, "backgroundColor")} />
                     <IconBtn label="Grot strzałki" active={!!selectedElement?.arrow} onClick={() => toggleStyle("arrow")}>
                       <TbArrowBigRightLines />
                     </IconBtn>
-                    <NumField label="Widoczność" icon={<RxLayers />} value={elementValues.zIndex} onChange={(e) => handleChangeValues(e, "zIndex")} width={32} />
+                    <NumField label="Warstwa" icon={<RxLayers />} value={elementValues.zIndex} onChange={(e) => handleChangeValues(e, "zIndex")} width={28} />
                   </Group>
                 )}
 
                 {cat !== "connector" && (
                   <>
                     <Sep />
-                    <Group>
+                    <Group label="Pozycja">
                       <IconBtn
                         label={selectedElement?.locked ? "Odblokuj pozycję" : "Zablokuj pozycję"}
                         active={!!selectedElement?.locked}
@@ -503,32 +504,32 @@ export default function Editor() {
                         {selectedElement?.locked ? <MdLock /> : <MdLockOpen />}
                       </IconBtn>
                       <IconBtn
-                        label="Wyrównaj do lewej"
+                        label="Wyrównaj element do lewej krawędzi strony"
                         disabled={positionLocked}
                         onClick={() => alignElement(selectedElement.element_id, "LEFT", selectedElement.width, selectedElement.category)}
                       >
-                        <CiTextAlignLeft />
+                        <MdAlignHorizontalLeft />
                       </IconBtn>
                       <IconBtn
-                        label="Wyśrodkuj"
+                        label="Wyśrodkuj element na stronie"
                         disabled={positionLocked}
                         onClick={() => alignElement(selectedElement.element_id, "CENTER", selectedElement.width, selectedElement.category)}
                       >
-                        <CiTextAlignCenter />
+                        <MdAlignHorizontalCenter />
                       </IconBtn>
                       <IconBtn
-                        label="Wyrównaj do prawej"
+                        label="Wyrównaj element do prawej krawędzi strony"
                         disabled={positionLocked}
                         onClick={() => alignElement(selectedElement.element_id, "RIGHT", selectedElement.width, selectedElement.category)}
                       >
-                        <CiTextAlignRight />
+                        <MdAlignHorizontalRight />
                       </IconBtn>
                       <NumField
                         label="X (px)"
                         icon={<span className={classes.axis}>X</span>}
                         value={elementValues.left}
                         onChange={(e) => handleChangeValues(e, "left")}
-                        width={44}
+                        width={34}
                         disabled={positionLocked}
                       />
                       <NumField
@@ -536,19 +537,19 @@ export default function Editor() {
                         icon={<span className={classes.axis}>Y</span>}
                         value={elementValues.top}
                         onChange={(e) => handleChangeValues(e, "top")}
-                        width={44}
+                        width={34}
                         disabled={positionLocked}
                       />
                       <NumField
-                        label="Widoczność"
+                        label="Warstwa"
                         icon={<RxLayers />}
                         value={elementValues.zIndex}
                         onChange={(e) => handleChangeValues(e, "zIndex")}
-                        width={32}
+                        width={28}
                       />
                     </Group>
                     <Sep />
-                    <Group>
+                    <Group label="Akcje">
                       <IconBtn label="Duplikuj" onClick={() => duplicateElement(selectedElement.element_id)}>
                         <RiFileCopyLine />
                       </IconBtn>
@@ -562,7 +563,7 @@ export default function Editor() {
                 {cat === "connector" && (
                   <>
                     <Sep />
-                    <Group>
+                    <Group label="Akcje">
                       <IconBtn label="Usuń łącznik" danger onClick={() => deleteElement(selectedElement.element_id)}>
                         <RiDeleteBin2Line />
                       </IconBtn>
@@ -586,8 +587,12 @@ export default function Editor() {
   return createPortal(panel, document.body);
 }
 
-function Group({ children }) {
-  return <div className={classes.group}>{children}</div>;
+function Group({ children, label }) {
+  return (
+    <div className={classes.group} role="group" aria-label={label}>
+      {children}
+    </div>
+  );
 }
 
 function Sep() {
@@ -714,34 +719,23 @@ function BulkToolbar({
   return (
     <>
       <span className={classes.bulkBadge} title={`${count} zaznaczonych`}>{count}</span>
-      <Sep />
-      <Group>
-        <NumField
-          label="Przesuń grupę X"
-          icon={<span className={classes.axis}>X</span>}
-          value={groupMoveValues.x}
-          onChange={(e) => onGroupMoveValueChange(e, "x")}
-          width={40}
-        />
-        <NumField
-          label="Przesuń grupę Y"
-          icon={<span className={classes.axis}>Y</span>}
-          value={groupMoveValues.y}
-          onChange={(e) => onGroupMoveValueChange(e, "y")}
-          width={40}
-        />
-      </Group>
       {(supportsField("fontSize") || supportsField("color") || supportsField("fontFamily")) && (
         <>
           <Sep />
-          <Group>
+          <Group label="Typografia zaznaczenia">
+            {supportsField("fontFamily") && (
+              <FontField
+                value={valueForField("fontFamily")}
+                onChange={(e) => onChangeValue(e, "fontFamily")}
+              />
+            )}
             {supportsField("fontSize") && (
               <NumField
                 label="Rozmiar czcionki"
                 icon={<MdFormatSize />}
                 value={valueForField("fontSize")}
                 onChange={(e) => onChangeValue(e, "fontSize")}
-                width={40}
+                width={34}
               />
             )}
             {supportsField("color") && (
@@ -751,19 +745,13 @@ function BulkToolbar({
                 onChange={(e) => onChangeValue(e, "color")}
               />
             )}
-            {supportsField("fontFamily") && (
-              <FontField
-                value={valueForField("fontFamily")}
-                onChange={(e) => onChangeValue(e, "fontFamily")}
-              />
-            )}
           </Group>
         </>
       )}
       {hasTextStyle && (
         <>
           <Sep />
-          <Group>
+          <Group label="Styl tekstu zaznaczenia">
             <IconBtn
               label="Pogrubienie"
               active={!isValueMixed("bold") && !!valueForField("bold")}
@@ -796,9 +784,23 @@ function BulkToolbar({
           </Group>
         </>
       )}
-      {supportsField("locked") && (
-        <>
-          <Sep />
+      <Sep />
+      <Group label="Pozycja zaznaczenia">
+        <NumField
+          label="Przesuń grupę X"
+          icon={<span className={classes.axis}>X</span>}
+          value={groupMoveValues.x}
+          onChange={(e) => onGroupMoveValueChange(e, "x")}
+          width={34}
+        />
+        <NumField
+          label="Przesuń grupę Y"
+          icon={<span className={classes.axis}>Y</span>}
+          value={groupMoveValues.y}
+          onChange={(e) => onGroupMoveValueChange(e, "y")}
+          width={34}
+        />
+        {supportsField("locked") && (
           <IconBtn
             label="Zablokuj pozycję zaznaczonych"
             active={!isValueMixed("locked") && !!valueForField("locked")}
@@ -806,10 +808,10 @@ function BulkToolbar({
           >
             {!isValueMixed("locked") && valueForField("locked") ? <MdLock /> : <MdLockOpen />}
           </IconBtn>
-        </>
-      )}
+        )}
+      </Group>
       <Sep />
-      <Group>
+      <Group label="Akcje zaznaczenia">
         <IconBtn label={`Duplikuj zaznaczone (${count})`} onClick={onDuplicateSelected}>
           <RiFileCopyLine />
         </IconBtn>
