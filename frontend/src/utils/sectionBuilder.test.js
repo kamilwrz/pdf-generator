@@ -48,28 +48,61 @@ describe("buildSectionElements", () => {
     assert.equal(body[0].width, 466);
   });
 
-  it("cc: one record of four content blocks sharing a flowGroup", () => {
+  it("cc-edu: one record of four content blocks sharing a flowGroup (degree/school/meta/description)", () => {
+    // Education has a distinct school line — matches the backend generator's
+    // `_place_education_record` (degree, school, city·period, bullets).
     const { elements, headingId } = buildSectionElements({
-      name: "Kursy", layout: SECTION_LAYOUTS.RECORD, style, idFactory: makeIdFactory(),
+      name: "Kursy", layout: SECTION_LAYOUTS.RECORD_EDUCATION, style, idFactory: makeIdFactory(),
     });
     const body = elements.filter((element) => element.flowRole === "content");
     assert.equal(body.length, 4);
     const groups = new Set(body.map((element) => element.flowGroup));
     assert.equal(groups.size, 1); // all four share one group
     assert.equal([...groups][0].startsWith(`section-${headingId}`), true);
-    assert.equal(body[0].bold, true);                 // title line
+    assert.equal(body[0].bold, true);                 // degree/title line
+    assert.equal(body[1].bold, false);                // school/subtitle line
     assert.equal(body[2].color, "#756F6B");           // meta uses muted color
     assert.equal(body[3].bulletList, true);           // description is a bullet list
   });
 
-  it("round-trips: built section is detectable and its body is collected", () => {
+  it("cc-exp: one record of three content blocks sharing a flowGroup (title/company·period/description) — no subtitle line", () => {
+    // Experience has NO distinct school/company line — company and period are
+    // one meta line, matching `_place_experience_record` (title, meta, bullets).
+    // Conflating this with the education shape (adding a phantom 4th line) was
+    // the original defect this two-layout split fixes.
     const { elements, headingId } = buildSectionElements({
-      name: "Umiejętności", layout: SECTION_LAYOUTS.RECORD, style, idFactory: makeIdFactory(),
+      name: "Praca", layout: SECTION_LAYOUTS.RECORD_EXPERIENCE, style, idFactory: makeIdFactory(),
+    });
+    const body = elements.filter((element) => element.flowRole === "content");
+    assert.equal(body.length, 3);
+    const groups = new Set(body.map((element) => element.flowGroup));
+    assert.equal(groups.size, 1);
+    assert.equal([...groups][0].startsWith(`section-${headingId}`), true);
+    assert.equal(body[0].bold, true);                 // title line
+    assert.equal(body[1].color, "#756F6B");           // company·period uses muted color
+    assert.equal(body[1].bold, false);
+    assert.equal(body[2].bulletList, true);           // description is a bullet list
+  });
+
+  it("round-trips (cc-edu): built section is detectable and its body is collected", () => {
+    const { elements, headingId } = buildSectionElements({
+      name: "Umiejętności", layout: SECTION_LAYOUTS.RECORD_EDUCATION, style, idFactory: makeIdFactory(),
     });
     const sections = listDocumentSections(elements);
     assert.deepEqual(sections.map((section) => section.title), ["Umiejętności"]);
     const ids = sectionElementIds(elements, headingId);
     // heading + rule + marker + 4 body blocks all belong to the section.
+    assert.equal(ids.size, elements.length);
+  });
+
+  it("round-trips (cc-exp): built section is detectable and its body is collected", () => {
+    const { elements, headingId } = buildSectionElements({
+      name: "Doświadczenie", layout: SECTION_LAYOUTS.RECORD_EXPERIENCE, style, idFactory: makeIdFactory(),
+    });
+    const sections = listDocumentSections(elements);
+    assert.deepEqual(sections.map((section) => section.title), ["Doświadczenie"]);
+    const ids = sectionElementIds(elements, headingId);
+    // heading + rule + marker + 3 body blocks all belong to the section.
     assert.equal(ids.size, elements.length);
   });
 
@@ -145,10 +178,10 @@ describe("build -> append -> reorder (composed production pipeline)", () => {
     assert.equal(style.recordWidth, 466);
     assert.ok(style.rule, "rule was sampled from the existing section, not defaulted to null");
 
-    // Step 2: build a new "cc" (RECORD) section from that sampled style.
+    // Step 2: build a new "cc-edu" (RECORD_EDUCATION) section from that sampled style.
     const { elements: newElements, headingId: newHeadingId } = buildSectionElements({
       name: "Kursy",
-      layout: SECTION_LAYOUTS.RECORD,
+      layout: SECTION_LAYOUTS.RECORD_EDUCATION,
       style,
       idFactory: makeIdFactory(),
     });

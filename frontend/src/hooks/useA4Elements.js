@@ -494,7 +494,7 @@ export function useA4Elements(titleRef) {
    * new one matches the template; the first editable body enters edit mode so
    * the user can type immediately.
    *
-   * @param {{ name: string, layout: "aa"|"cc" }} config
+   * @param {{ name: string, layout: "aa"|"cc-edu"|"cc-exp" }} config
    */
   const handleAddSection = useCallback(({ name, layout }) => {
     setA4_Elements((prev) => {

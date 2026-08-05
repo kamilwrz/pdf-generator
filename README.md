@@ -244,22 +244,22 @@ Implementation:
 
 Adds a new section to a **template-mode** CV from the Sections panel. The panel's "+ Dodaj sekcję" button opens a modal for the section name and a layout choice, then appends the section at the end of the document in the template's governing rhythm (`stack` / `record` / `section` / `after_rule`), styled to match the CV's existing sections.
 
-Two layouts ship: **"aa"** — heading + rule + one auto-height content textarea — and **"cc"** — heading + rule + an education/experience-style record (bold title, subtitle, muted meta line, bullet description) sharing one `flowGroup` so the four lines page-break as a unit. A third layout, columns ("bb"), is out of scope for this feature (it needs horizontal-row support in the packer) and is not offered in the modal.
+Three layouts ship: **"aa"** — heading + rule + one auto-height content textarea; **"cc-edu"** — heading + rule + an education-style record (bold degree/title, school subtitle, muted city·period meta, bullet description — 4 lines); and **"cc-exp"** — heading + rule + an experience-style record (bold role title, muted company·period meta, bullet description — 3 lines, no subtitle). Education and Experience are offered as distinct choices, not one merged "record" option, because their field structures genuinely differ in the backend generator: `_place_education_record` renders a dedicated school/university line that `_place_experience_record` does not — company and period there are a single meta line (`backend/app/services/cv_templates/shared/records.py`). Each record's lines share one `flowGroup` so they page-break as a unit. A fourth layout, columns ("bb"), is out of scope for this feature (it needs horizontal-row support in the packer) and is not offered in the modal.
 
 On confirm, the new section's visual style — heading font/color, rule width/color, optional decorative marker, body font/color, and a best-effort muted color for record meta lines — is sampled from the document's last existing section (`deriveSectionStyle`); a template-neutral default is used when no section can be detected (for example, an empty document). The section's elements are built (`buildSectionElements`) and placed one `SPACE_SECTION` gap below the deepest non-`fixedToPage` element without repacking existing sections (`appendSectionAtEnd`). The first editable body field is selected and enters edit mode immediately so the user can start typing.
 
 Implementation:
 
 - `frontend/src/utils/sectionStructure.js`, line 641+, function `appendSectionAtEnd`; line 757+, function `deriveSectionStyle` — style sampling and end-of-document placement, both built on the shared `placeStrip` helper (line 508) described above
-- `frontend/src/utils/sectionBuilder.js`, line 20, `SECTION_LAYOUTS`; line 115, function `buildSectionElements` — layout constructors for "aa" and "cc"
+- `frontend/src/utils/sectionBuilder.js`, line 30, `SECTION_LAYOUTS`; line 160, function `buildSectionElements` — layout constructors for "aa", "cc-edu", and "cc-exp" (the record field-line specs for the two "cc-*" layouts are factored into the private `recordLineSpecs` helper)
 - `frontend/src/hooks/useA4Elements.js`, line 499, function `handleAddSection` — orchestrates style sampling, construction, placement, and post-add selection; exposed through `PdfContext` as `addSection`
-- `frontend/src/components/editor/AddSectionModal/AddSectionModal.jsx`, line 25, component `AddSectionModal` — name input + "aa"/"cc" layout picker (`AddSectionModal.module.css` for styling)
+- `frontend/src/components/editor/AddSectionModal/AddSectionModal.jsx`, line 34, component `AddSectionModal` — name input + "aa"/"cc-edu"/"cc-exp" layout picker (`AddSectionModal.module.css` for styling)
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` — "+ Dodaj sekcję" entry point (line 110) and modal wiring (`addModalOpen` state, line 49; `handleConfirmAddSection`, line 76)
 
 Tests:
 
 - `frontend/src/utils/sectionStructure.test.js`, `describe("deriveSectionStyle", …)` and `describe("appendSectionAtEnd", …)`
-- `frontend/src/utils/sectionBuilder.test.js`, `describe("buildSectionElements", …)` (isolated construction) and `describe("build -> append -> reorder (composed production pipeline)", …)` — an integration test that chains the real `deriveSectionStyle` -> `buildSectionElements` -> `appendSectionAtEnd` -> `reorderSection` sequence exactly as `handleAddSection` uses it, and asserts the new record's four members remain one group after a reorder
+- `frontend/src/utils/sectionBuilder.test.js`, `describe("buildSectionElements", …)` — isolated construction, including separate assertions that "cc-edu" produces 4 record lines and "cc-exp" produces 3 (no subtitle line) — and `describe("build -> append -> reorder (composed production pipeline)", …)`, an integration test that chains the real `deriveSectionStyle` -> `buildSectionElements` -> `appendSectionAtEnd` -> `reorderSection` sequence exactly as `handleAddSection` uses it, asserting the new record's members remain one group after a reorder
 
 Known limitations:
 
@@ -1181,22 +1181,22 @@ Implementacja:
 
 Dodaje nową sekcję do CV w **trybie szablonu** z poziomu panelu Sekcje. Przycisk „+ Dodaj sekcję” otwiera modal z nazwą sekcji i wyborem układu, a po potwierdzeniu sekcja trafia na koniec dokumentu, w rytmie obowiązującym w danym szablonie (`stack` / `record` / `section` / `after_rule`), stylistycznie dopasowana do istniejących sekcji dokumentu.
 
-Dostępne są dwa układy: **„aa”** — nagłówek + linia + jedno pole tekstowe o automatycznej wysokości — oraz **„cc”** — nagłówek + linia + rekord w stylu edukacji/doświadczenia (pogrubiony tytuł, podtytuł, przygaszona linia meta, opis punktowany), którego cztery linie dzielą wspólne `flowGroup`, dzięki czemu łamią się na stronach jako jedna całość. Trzeci układ, kolumnowy („bb”), jest poza zakresem tej funkcji (wymaga obsługi wierszy poziomych w pakerze) i nie jest oferowany w modalu.
+Dostępne są trzy układy: **„aa”** — nagłówek + linia + jedno pole tekstowe o automatycznej wysokości; **„cc-edu”** — nagłówek + linia + rekord w stylu edukacji (pogrubiony dyplom/tytuł, podtytuł uczelni, przygaszona linia „miasto · okres”, opis punktowany — 4 linie); oraz **„cc-exp”** — nagłówek + linia + rekord w stylu doświadczenia (pogrubione stanowisko, przygaszona linia „firma · okres”, opis punktowany — 3 linie, bez podtytułu). Edukacja i Doświadczenie są dwoma osobnymi wyborami, a nie jednym wspólnym „rekordem”, ponieważ ich struktura pól realnie się różni w generatorze backendu: `_place_education_record` renderuje dedykowaną linię uczelni, której `_place_experience_record` nie ma — firma i okres są tam jedną, wspólną linią meta (`backend/app/services/cv_templates/shared/records.py`). Linie każdego rekordu dzielą wspólne `flowGroup`, dzięki czemu łamią się na stronach jako jedna całość. Czwarty układ, kolumnowy („bb”), jest poza zakresem tej funkcji (wymaga obsługi wierszy poziomych w pakerze) i nie jest oferowany w modalu.
 
 Po potwierdzeniu styl nowej sekcji — czcionka/kolor nagłówka, szerokość/kolor linii, opcjonalny znacznik dekoracyjny, czcionka/kolor treści oraz przygaszony kolor linii meta w rekordzie (dobierany w sposób najlepszy z możliwych) — jest próbkowany z ostatniej istniejącej sekcji dokumentu (`deriveSectionStyle`); gdy żadnej sekcji nie da się wykryć (np. pusty dokument), używany jest neutralny dla szablonu styl domyślny. Elementy sekcji są budowane (`buildSectionElements`) i umieszczane jeden odstęp `SPACE_SECTION` pod najgłębszym elementem bez `fixedToPage`, bez przepakowywania istniejących sekcji (`appendSectionAtEnd`). Pierwsze edytowalne pole treści jest od razu zaznaczane i przechodzi w tryb edycji, więc użytkownik może zacząć pisać natychmiast.
 
 Implementacja:
 
 - `frontend/src/utils/sectionStructure.js`, linia 641+, funkcja `appendSectionAtEnd`; linia 757+, funkcja `deriveSectionStyle` — próbkowanie stylu i umieszczanie na końcu dokumentu, oba oparte na wspólnym helperze `placeStrip` (linia 508) opisanym powyżej
-- `frontend/src/utils/sectionBuilder.js`, linia 20, `SECTION_LAYOUTS`; linia 115, funkcja `buildSectionElements` — konstruktory układów „aa” i „cc”
+- `frontend/src/utils/sectionBuilder.js`, linia 30, `SECTION_LAYOUTS`; linia 160, funkcja `buildSectionElements` — konstruktory układów „aa”, „cc-edu” i „cc-exp” (specyfikacje linii rekordu dla obu układów „cc-*” są wydzielone do prywatnego helpera `recordLineSpecs`)
 - `frontend/src/hooks/useA4Elements.js`, linia 499, funkcja `handleAddSection` — koordynuje próbkowanie stylu, budowę, umieszczenie i zaznaczenie po dodaniu; wystawiana przez `PdfContext` jako `addSection`
-- `frontend/src/components/editor/AddSectionModal/AddSectionModal.jsx`, linia 25, komponent `AddSectionModal` — pole nazwy + wybór układu „aa”/„cc” (stylowanie w `AddSectionModal.module.css`)
+- `frontend/src/components/editor/AddSectionModal/AddSectionModal.jsx`, linia 34, komponent `AddSectionModal` — pole nazwy + wybór układu „aa”/„cc-edu”/„cc-exp” (stylowanie w `AddSectionModal.module.css`)
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` — przycisk „+ Dodaj sekcję” (linia 110) i podpięcie modala (stan `addModalOpen`, linia 49; `handleConfirmAddSection`, linia 76)
 
 Testy:
 
 - `frontend/src/utils/sectionStructure.test.js`, `describe("deriveSectionStyle", …)` oraz `describe("appendSectionAtEnd", …)`
-- `frontend/src/utils/sectionBuilder.test.js`, `describe("buildSectionElements", …)` (izolowana budowa) oraz `describe("build -> append -> reorder (composed production pipeline)", …)` — test integracyjny łączący rzeczywisty ciąg `deriveSectionStyle` -> `buildSectionElements` -> `appendSectionAtEnd` -> `reorderSection` dokładnie tak, jak używa go `handleAddSection`, sprawdzający, że cztery elementy nowego rekordu pozostają jedną grupą po zmianie kolejności
+- `frontend/src/utils/sectionBuilder.test.js`, `describe("buildSectionElements", …)` — izolowana budowa, w tym osobne asercje sprawdzające, że „cc-edu” tworzy 4 linie rekordu, a „cc-exp” 3 (bez linii podtytułu) — oraz `describe("build -> append -> reorder (composed production pipeline)", …)`, test integracyjny łączący rzeczywisty ciąg `deriveSectionStyle` -> `buildSectionElements` -> `appendSectionAtEnd` -> `reorderSection` dokładnie tak, jak używa go `handleAddSection`, sprawdzający, że elementy nowego rekordu pozostają jedną grupą po zmianie kolejności
 
 Znane ograniczenia:
 

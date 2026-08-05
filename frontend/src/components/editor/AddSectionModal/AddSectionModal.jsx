@@ -1,6 +1,10 @@
 /**
  * Modal for adding a new template-mode section: a section name plus a layout
- * choice (single textarea, or an education/experience-style record). The column
+ * choice — a single textarea, an education-style record, or an
+ * experience-style record. Education and Experience are offered as distinct
+ * options (not one merged "record" choice) because their field structures
+ * differ: Education has a school/university line that Experience does not
+ * (see `sectionBuilder.js` for the underlying field-line specs). The column
  * layout ("bb") is intentionally absent — it requires horizontal-row packer
  * support and ships in a later iteration.
  */
@@ -16,9 +20,14 @@ const LAYOUT_OPTIONS = [
     description: "Nagłówek sekcji i jedno pole tekstowe (Textarea).",
   },
   {
-    value: SECTION_LAYOUTS.RECORD,
-    title: "Nagłówek + rekord",
-    description: "Układ jak w edukacji lub doświadczeniu (tytuł, podtytuł, meta, opis).",
+    value: SECTION_LAYOUTS.RECORD_EDUCATION,
+    title: "Nagłówek + rekord (jak Edukacja)",
+    description: "Dyplom, uczelnia, miasto · okres, opis.",
+  },
+  {
+    value: SECTION_LAYOUTS.RECORD_EXPERIENCE,
+    title: "Nagłówek + rekord (jak Doświadczenie)",
+    description: "Stanowisko, firma · okres, opis.",
   },
 ];
 

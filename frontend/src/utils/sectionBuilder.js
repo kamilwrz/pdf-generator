@@ -10,27 +10,72 @@
  *
  * Layouts:
  *  - "aa": heading + chrome + one auto-height content textarea.
- *  - "cc": heading + chrome + one education/experience-style record (title,
- *    subtitle, meta, bullet description). Per the editor spec, each line's
- *    placeholder text names the field it stands for.
+ *  - "cc-edu": heading + chrome + one education-style record — degree/diploma
+ *    title, school subtitle, city·period meta, bullet description (4 lines).
+ *    Mirrors the backend generator's `_place_education_record`
+ *    (backend/app/services/cv_templates/shared/records.py).
+ *  - "cc-exp": heading + chrome + one experience-style record — role title,
+ *    company·period meta, bullet description (3 lines, no subtitle line).
+ *    Mirrors `_place_experience_record` in the same module.
+ *
+ * Education and Experience are NOT interchangeable: Education carries a
+ * distinct school/university line that Experience's structure does not have
+ * (company and period are a single meta line there). Collapsing both into one
+ * generic 4-line "cc" record — as an earlier version of this module did —
+ * produces a phantom subtitle field on experience-style sections.
  */
 import { measureTextareaHeight } from "./textareaHeight.js";
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
 
 export const SECTION_LAYOUTS = Object.freeze({
   TEXTAREA: "aa",
-  RECORD: "cc",
+  RECORD_EDUCATION: "cc-edu",
+  RECORD_EXPERIENCE: "cc-exp",
 });
 
 /** Field-naming placeholder copy (Polish UI). */
 const PLACEHOLDER = Object.freeze({
   heading: "Nowa sekcja",
   textarea: "Treść sekcji…",
-  recordTitle: "Nazwa dyplomu / stanowisko",
-  recordSubtitle: "Uczelnia / firma",
-  recordMeta: "Miasto · okres",
-  recordDescription: "Opis…",
+  education: Object.freeze({
+    title: "Nazwa dyplomu",
+    subtitle: "Uczelnia",
+    meta: "Miasto · okres",
+    description: "Opis…",
+  }),
+  experience: Object.freeze({
+    title: "Stanowisko",
+    meta: "Firma · okres",
+    description: "Opis…",
+  }),
 });
+
+/**
+ * Field-naming placeholder lines for a record layout, styled from the sampled
+ * body/muted colors. Education and Experience have a different number of
+ * lines (see module doc) — this is the single place that encodes the split.
+ *
+ * @param {"cc-edu"|"cc-exp"} layout
+ * @param {object} style
+ * @returns {{ content: string, color: string, bold: boolean, bulletList?: boolean }[]}
+ */
+function recordLineSpecs(layout, style) {
+  if (layout === SECTION_LAYOUTS.RECORD_EDUCATION) {
+    const copy = PLACEHOLDER.education;
+    return [
+      { content: copy.title, color: style.body.color, bold: true },
+      { content: copy.subtitle, color: style.body.color, bold: false },
+      { content: copy.meta, color: style.mutedColor, bold: false },
+      { content: copy.description, color: style.body.color, bold: false, bulletList: true },
+    ];
+  }
+  const copy = PLACEHOLDER.experience;
+  return [
+    { content: copy.title, color: style.body.color, bold: true },
+    { content: copy.meta, color: style.mutedColor, bold: false },
+    { content: copy.description, color: style.body.color, bold: false, bulletList: true },
+  ];
+}
 
 /**
  * Build one auto-height content textarea matching the sampled body style.
@@ -109,7 +154,7 @@ function markerElement({ elementId, marker, left }) {
 /**
  * Build a new section's elements for the chosen layout.
  *
- * @param {{ name: string, layout: "aa"|"cc", style: object, spacing?: object, idFactory: () => string }} args
+ * @param {{ name: string, layout: "aa"|"cc-edu"|"cc-exp", style: object, spacing?: object, idFactory: () => string }} args
  * @returns {{ elements: object[], headingId: string, firstBodyId: string }}
  */
 export function buildSectionElements({ name, layout, style, spacing, idFactory }) {
@@ -174,14 +219,11 @@ export function buildSectionElements({ name, layout, style, spacing, idFactory }
   const bodyTop = style.heading.fontSize + 12;
   let firstBodyId = null;
 
-  if (layout === SECTION_LAYOUTS.RECORD) {
+  const isRecordLayout = layout === SECTION_LAYOUTS.RECORD_EDUCATION
+    || layout === SECTION_LAYOUTS.RECORD_EXPERIENCE;
+  if (isRecordLayout) {
     const group = `section-${headingId}-rec1`;
-    const lines = [
-      { content: PLACEHOLDER.recordTitle, color: style.body.color, bold: true },
-      { content: PLACEHOLDER.recordSubtitle, color: style.body.color, bold: false },
-      { content: PLACEHOLDER.recordMeta, color: style.mutedColor, bold: false },
-      { content: PLACEHOLDER.recordDescription, color: style.body.color, bold: false, bulletList: true },
-    ];
+    const lines = recordLineSpecs(layout, style);
     let top = bodyTop;
     lines.forEach((line, index) => {
       const elementId = idFactory();
