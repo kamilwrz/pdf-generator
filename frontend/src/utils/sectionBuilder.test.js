@@ -48,6 +48,24 @@ describe("buildSectionElements", () => {
     assert.equal(body[0].width, 466);
   });
 
+  it("places the rule at fontSize*1.35 below the heading, matching Builder.text()'s real cursor advance", () => {
+    // The backend's Builder.text() (cv_generator_primitives.py) advances the
+    // cursor by `fs * 1.35` after painting a heading — confirmed against the
+    // real Cinder generator output (heading.top=202, rule.top=213.745 for an
+    // 8.7px heading: 213.745-202 = 11.745 = 8.7*1.35). A rule placed at plain
+    // `fontSize` (8.7) instead of `fontSize*1.35` (11.745) sits ~3px too high,
+    // and — because the packer preserves an "authored" chrome cluster as-is
+    // when adjacent gaps are already flush/overlapping — that wrong offset
+    // survives repacking, widening the rule-to-body gap on the built section
+    // to ~10px instead of the configured `after_rule` (8px default).
+    const { elements, headingId } = buildSectionElements({
+      name: "Profil", layout: SECTION_LAYOUTS.TEXTAREA, style, idFactory: makeIdFactory(),
+    });
+    const heading = elements.find((element) => element.element_id === headingId);
+    const rule = elements.find((element) => element.category === "line" && element.width === style.rule.width);
+    assert.equal(rule.top - heading.top, style.heading.fontSize * 1.35);
+  });
+
   it("cc-edu: one record of four content blocks sharing a flowGroup (degree/school/meta/description)", () => {
     // Education has a distinct school line — matches the backend generator's
     // `_place_education_record` (degree, school, city·period, bullets).
@@ -303,5 +321,29 @@ describe("build -> append -> reorder (composed production pipeline)", () => {
         `record member ${id} must still belong to its section after reorder`,
       );
     }
+  });
+
+  it("packs the new section's rule-to-body gap at the configured after_rule rhythm, matching existing sections", () => {
+    // Regression for a rhythm mismatch: an added section's rule sat too high
+    // (built at fontSize instead of fontSize*1.35), so once packed its
+    // rule-to-body gap measured ~10px against a document configured for 8px —
+    // visibly different from every existing section's own rule-to-body gap.
+    const rhythm = { stack: 4, record: 10, section: 21, after_rule: 8 };
+    const doc = existingDoc();
+    const style = deriveSectionStyle(doc, pageHeight);
+    const { elements: newElements, firstBodyId } = buildSectionElements({
+      name: "Kursy", layout: SECTION_LAYOUTS.TEXTAREA, style, spacing: rhythm, idFactory: makeIdFactory(),
+    });
+    // Identify the new rule by id before appending (it's the only new "line"
+    // element for the TEXTAREA layout), so post-append lookups are unambiguous
+    // even though the existing doc's own rule shares the same sampled width.
+    const newRuleId = newElements.find((element) => element.category === "line").element_id;
+    const appended = appendSectionAtEnd(doc, newElements, pageHeight, { spacing: rhythm });
+
+    const newRule = appended.find((element) => element.element_id === newRuleId);
+    const newBody = appended.find((element) => element.element_id === firstBodyId);
+
+    const packedGap = newBody.top - (newRule.top + newRule.height);
+    assert.equal(packedGap, rhythm.after_rule);
   });
 });

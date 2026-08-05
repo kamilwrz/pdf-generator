@@ -27,6 +27,17 @@
 import { measureTextareaHeight } from "./textareaHeight.js";
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
 
+/**
+ * Backend `Builder.text()` (cv_generator_primitives.py) advances its cursor
+ * by `fontSize * 1.35` after painting any heading/label — confirmed against
+ * real generator output (Cinder: an 8.7px heading's rule sits 11.745px below
+ * it, 8.7*1.35). Chrome built here must use the same multiplier so a rule
+ * placed directly under a fresh heading lands where the backend would put
+ * it, instead of drifting a few px too high and widening the rule-to-body
+ * gap once the packer re-pins the strip.
+ */
+const TEXT_CURSOR_ADVANCE = 1.35;
+
 export const SECTION_LAYOUTS = Object.freeze({
   TEXTAREA: "aa",
   RECORD_EDUCATION: "cc-edu",
@@ -244,13 +255,14 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
   });
 
   if (style.rule) {
-    // Rule sits flush under the label (relTop ≈ heading height).
+    // Rule sits where the backend's Builder.text() cursor lands after the
+    // heading (fontSize * TEXT_CURSOR_ADVANCE), not at the raw fontSize.
     elements.push({
       element_id: idFactory(),
       category: "line",
       flowRole: "section-chrome",
       left,
-      top: style.heading.fontSize,
+      top: style.heading.fontSize * TEXT_CURSOR_ADVANCE,
       width: style.rule.width,
       height: style.rule.height,
       backgroundColor: style.rule.backgroundColor,
@@ -262,8 +274,10 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
     });
   }
 
-  // Body starts below the chrome band; exact offset is re-pinned on append.
-  const bodyTop = style.heading.fontSize + 12;
+  // Body starts below the chrome band, using the document's actual
+  // configured after_rule rhythm rather than a hardcoded gap; exact offset
+  // is re-pinned on append regardless (see appendSectionAtEnd/forceTargets).
+  const bodyTop = style.heading.fontSize * TEXT_CURSOR_ADVANCE + rhythm.after_rule;
   let firstBodyId = null;
 
   const isRecordLayout = layout === SECTION_LAYOUTS.RECORD_EDUCATION
