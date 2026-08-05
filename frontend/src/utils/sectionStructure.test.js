@@ -370,6 +370,46 @@ describe("applyFlowSpacing", () => {
     assert.ok(byId.b1.top > byId.r2.top, "body stays under the rule");
   });
 
+  it("heals a Monument accent rule that was built flush under the label", () => {
+    // Legacy add-section placed the accent at title+fs*1.35 (~17) instead of
+    // the authored mid-band title+7. The cluster still "looks healthy" (overlap
+    // with the tall badge), so packing must snap the rule back to badge+15.
+    const elements = [
+      {
+        element_id: "sq1", category: "line", flowRole: "section-chrome",
+        left: 66, top: 200, width: 32, height: 32, page: 1,
+      },
+      {
+        element_id: "num1", category: "text", flowRole: "section-chrome",
+        isDecorativeChromeText: true, content: "01",
+        left: 74, top: 208, fontSize: 11, page: 1,
+      },
+      {
+        element_id: "frame1", category: "rectangle", flowRole: "section-chrome",
+        left: 106, top: 200, width: 251, height: 32, page: 1,
+      },
+      {
+        element_id: "h1", category: "text", flowRole: "section-chrome", content: "NOWA",
+        left: 118, top: 208, fontSize: 12.5, bold: true, page: 1,
+      },
+      {
+        element_id: "r1", category: "line", flowRole: "section-chrome",
+        left: 369, top: 208 + 12.5 * 1.35, width: 160, height: 2, page: 1,
+      },
+      {
+        element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true,
+        left: 102, top: 250, width: 427, height: 14, fontSize: 9, lineHeight: 14,
+        content: "Body", page: 1,
+      },
+    ];
+    const packed = applyFlowSpacing(elements, {
+      stack: 4, record: 10, section: 21, after_rule: 8,
+    }, 842);
+    const square = packed.find((element) => element.element_id === "sq1");
+    const rule = packed.find((element) => element.element_id === "r1");
+    assert.equal(+(rule.top - square.top).toFixed(2), 15);
+  });
+
   it("preserves Monument title-inside-frame offsets across every section after pack", () => {
     // Authored: square/frame at T, title/ordinal at T+8, offset rule at T+15.
     // A full-document force-pack must keep that geometry on sections 1..n-1,
@@ -910,6 +950,8 @@ describe("deriveSectionStyle", () => {
     assert.ok(style.rule);
     assert.equal(style.rule.relLeft, 369 - 118);
     assert.equal(style.rule.width, 160);
+    // Accent rule at frame/badge top+15, title at +8 → relTop from title = 7.
+    assert.equal(style.rule.relTop, 515 - 508);
   });
 
   it("captures the decorative badge-number's style, separate from markers", () => {

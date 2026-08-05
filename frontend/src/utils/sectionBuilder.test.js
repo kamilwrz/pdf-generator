@@ -87,6 +87,38 @@ describe("buildSectionElements", () => {
     assert.equal(rule.top - heading.top, style.heading.fontSize * 1.35);
   });
 
+  it("places a sampled Monument accent rule at rule.relTop, not flush under the label", () => {
+    // Monument paints the grey accent at badge+15 / title+7. Using only
+    // fontSize*1.35 (~16.9) parks the line ~10px too low beside the frame.
+    const monumentStyle = {
+      ...style,
+      left: 118,
+      bodyLeft: 102,
+      heading: { ...style.heading, fontSize: 12.5, bold: true },
+      rule: {
+        width: 160, height: 2, backgroundColor: "#C8C8C8", relLeft: 251, relTop: 7,
+      },
+      markers: [
+        { category: "line", width: 32, height: 32, backgroundColor: "#111111", relLeft: -52, relTop: -8 },
+        {
+          category: "rectangle", width: 251, height: 32, backgroundColor: "#111111",
+          relLeft: -12, relTop: -8, borderWidth: 1.2,
+        },
+      ],
+    };
+    const { elements, headingId } = buildSectionElements({
+      name: "Nowa sekcja",
+      layout: SECTION_LAYOUTS.RECORD_EXPERIENCE,
+      style: monumentStyle,
+      idFactory: makeIdFactory(),
+    });
+    const heading = elements.find((element) => element.element_id === headingId);
+    const rule = elements.find((element) => element.category === "line" && element.width === 160);
+    const frame = elements.find((element) => element.category === "rectangle" && element.width === 251);
+    assert.equal(rule.top - heading.top, 7);
+    assert.equal(rule.top - frame.top, 15);
+  });
+
   it("cc-edu: one record of four content blocks sharing a flowGroup (degree/school/meta/description)", () => {
     // Education has a distinct school line — matches the backend generator's
     // `_place_education_record` (degree, school, city·period, bullets).

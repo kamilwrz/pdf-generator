@@ -284,9 +284,15 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
     page: 1,
   });
 
+  // Default rule top matches Builder.text() cursor advance (Cinder/Regent).
+  // Prefer a sampled `rule.relTop` when present — Monument's accent rule sits
+  // mid-band beside the title frame (~heading+7), not flush under the label.
+  const defaultRuleTop = style.heading.fontSize * TEXT_CURSOR_ADVANCE;
+  const ruleTop = style.rule && Number.isFinite(Number(style.rule.relTop))
+    ? Number(style.rule.relTop)
+    : defaultRuleTop;
+
   if (style.rule) {
-    // Rule sits where the backend's Builder.text() cursor lands after the
-    // heading (fontSize * TEXT_CURSOR_ADVANCE), not at the raw fontSize.
     // Horizontal offset may differ from the title (Monument rule at +251).
     const ruleRelLeft = Number.isFinite(Number(style.rule.relLeft))
       ? Number(style.rule.relLeft)
@@ -296,7 +302,7 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
       category: "line",
       flowRole: "section-chrome",
       left: left + ruleRelLeft,
-      top: style.heading.fontSize * TEXT_CURSOR_ADVANCE,
+      top: ruleTop,
       width: style.rule.width,
       height: style.rule.height,
       backgroundColor: style.rule.backgroundColor,
@@ -311,7 +317,14 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
   // Body starts below the chrome band, using the document's actual
   // configured after_rule rhythm rather than a hardcoded gap; exact offset
   // is re-pinned on append regardless (see appendSectionAtEnd/forceTargets).
-  const bodyTop = style.heading.fontSize * TEXT_CURSOR_ADVANCE + rhythm.after_rule;
+  const markerBottoms = (style.markers || []).map(
+    (shape) => (Number(shape.relTop) || 0) + (Number(shape.height) || 0),
+  );
+  const ruleBottom = style.rule
+    ? ruleTop + (Number(style.rule.height) || 1)
+    : 0;
+  const chromeBottom = Math.max(defaultRuleTop, ruleBottom, ...markerBottoms, 0);
+  const bodyTop = chromeBottom + rhythm.after_rule;
   let firstBodyId = null;
 
   const isRecordLayout = layout === SECTION_LAYOUTS.RECORD_EDUCATION

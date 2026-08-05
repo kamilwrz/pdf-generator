@@ -365,8 +365,18 @@ function rebuildTightChromeCluster(chromeElements) {
     if (element === heading) continue;
     const width = Number(element.width) || 0;
     if (element.category === "line" && width >= 120) {
-      // Builder.line paints on the cursor without advancing — flush under label.
-      items.push({ element, relTop: headingHeight });
+      // Builder.line paints flush under the label. Monument's accent rule is
+      // different: it sits mid-band beside a tall badge (~title+7), not under it.
+      const tallBadge = chromeElements.some((piece) => (
+        piece !== element
+        && piece.category === "line"
+        && (Number(piece.width) || 0) < 120
+        && elementHeight(piece) >= 20
+      ));
+      items.push({
+        element,
+        relTop: tallBadge ? 7 : headingHeight,
+      });
     } else if (
       element.category === "rectangle"
       || element.category === "circle"
@@ -441,6 +451,24 @@ function compactChromeCluster(chromeElements, pageHeight) {
       items[0]?.relTop ?? 0,
     );
     for (const item of items) item.relTop -= minRel;
+
+    // Heal Monument accent rules authored with Builder.line flush-under-label
+    // (legacy add-section bug): beside a 32px badge the rule belongs at
+    // badge+15 (vertically centered), not at title+fs*1.35 (~badge+25).
+    const tallBadgeItem = items.find((item) => (
+      item.element.category === "line"
+      && (Number(item.element.width) || 0) < 120
+      && elementHeight(item.element) >= 20
+    ));
+    const accentRuleItem = items.find((item) => (
+      item.element.category === "line"
+      && (Number(item.element.width) || 0) >= 120
+    ));
+    if (tallBadgeItem && accentRuleItem
+      && accentRuleItem.relTop - tallBadgeItem.relTop > 20) {
+      accentRuleItem.relTop = tallBadgeItem.relTop + 15;
+    }
+
     return items.sort((left, right) => left.relTop - right.relTop
       || (Number(left.element.left) || 0) - (Number(right.element.left) || 0));
   }
@@ -999,6 +1027,10 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
         height: Number(rule.height) || 1,
         backgroundColor: String(rule.backgroundColor || DEFAULT_SECTION_STYLE.rule.backgroundColor),
         relLeft: (Number(rule.left) || 0) - left,
+        // Vertical offset from the title baseline. Monument's accent rule sits
+        // mid-band (~+7), not flush under the label like Builder.line (~+fs*1.35).
+        // Without this, built sections park the rule ~10px too low beside the frame.
+        relTop: absoluteTop(rule, pageHeight) - absoluteTop(heading, pageHeight),
       }
       : null,
     markers: decorativeShapes.map((shape) => {
