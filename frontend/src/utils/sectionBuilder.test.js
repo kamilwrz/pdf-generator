@@ -20,7 +20,7 @@ const style = {
   recordWidth: 466,
   heading: { fontSize: 8.7, fontFamily: "Inter", color: "#733B43", letterSpacing: 1.5, bold: false },
   rule: { width: 466, height: 1, backgroundColor: "#cccccc" },
-  marker: { category: "rectangle", width: 8, height: 8, backgroundColor: "#733B43", relLeft: -25, relTop: 1 },
+  markers: [{ category: "rectangle", width: 8, height: 8, backgroundColor: "#733B43", relLeft: -25, relTop: 1 }],
   body: { fontSize: 9.3, fontFamily: "Inter", lineHeight: 13, color: "#222222" },
   mutedColor: "#756F6B",
 };
@@ -117,7 +117,7 @@ describe("buildSectionElements", () => {
   it("preserves a negative marker relTop instead of clamping to 0", () => {
     // deriveSectionStyle reports a negative relTop when the decorative mark
     // sits above the heading baseline; the builder must keep that offset.
-    const raisedMarker = { ...style, marker: { ...style.marker, relTop: -3 } };
+    const raisedMarker = { ...style, markers: [{ ...style.markers[0], relTop: -3 }] };
     const { elements } = buildSectionElements({
       name: "Profil", layout: SECTION_LAYOUTS.TEXTAREA, style: raisedMarker, idFactory: makeIdFactory(),
     });
@@ -125,10 +125,10 @@ describe("buildSectionElements", () => {
     assert.equal(marker.top, -3);
   });
 
-  it("omits the marker when the style has none", () => {
-    const withoutMarker = { ...style, marker: null };
+  it("omits decorative shapes when the style has none", () => {
+    const withoutMarkers = { ...style, markers: [] };
     const { elements, headingId, firstBodyId } = buildSectionElements({
-      name: "Profil", layout: SECTION_LAYOUTS.TEXTAREA, style: withoutMarker, idFactory: makeIdFactory(),
+      name: "Profil", layout: SECTION_LAYOUTS.TEXTAREA, style: withoutMarkers, idFactory: makeIdFactory(),
     });
     const chrome = elements.filter((element) => element.flowRole === "section-chrome");
     // Only the heading (text) and rule (line) remain as chrome; no shape marker.
@@ -137,6 +137,31 @@ describe("buildSectionElements", () => {
     assert.equal(typeof headingId, "string");
     assert.equal(typeof firstBodyId, "string");
     assert.equal(elements.some((element) => element.element_id === firstBodyId), true);
+  });
+
+  it("builds every sampled decorative shape, not just one (Monument-style badge square + frame)", () => {
+    const monumentStyle = {
+      ...style,
+      markers: [
+        { category: "line", width: 32, height: 32, backgroundColor: "#111111", relLeft: -10, relTop: -8 },
+        { category: "rectangle", width: 251, height: 32, backgroundColor: "#111111", relLeft: 30, relTop: -8, borderWidth: 1.2 },
+      ],
+    };
+    const { elements } = buildSectionElements({
+      name: "Języki", layout: SECTION_LAYOUTS.TEXTAREA, style: monumentStyle, idFactory: makeIdFactory(),
+    });
+    // Exclude the always-present rule (category "line", width 466 from the
+    // shared `style` fixture) so this only counts the two sampled shapes.
+    const shapes = elements.filter((element) => element.flowRole === "section-chrome"
+      && (element.category === "line" || element.category === "rectangle")
+      && element.width !== style.rule.width);
+    assert.equal(shapes.length, 2);
+    const badge = shapes.find((element) => element.category === "line");
+    assert.equal(badge.width, 32);
+    assert.equal(badge.height, 32);
+    const frame = shapes.find((element) => element.category === "rectangle");
+    assert.equal(frame.width, 251);
+    assert.equal(frame.borderWidth, 1.2);
   });
 
   it("aa round-trips: built section is detectable and its body is collected", () => {

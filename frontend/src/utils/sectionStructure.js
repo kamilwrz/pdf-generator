@@ -744,14 +744,25 @@ const DEFAULT_SECTION_STYLE = Object.freeze({
   recordWidth: 463,
   heading: { fontSize: 8.5, fontFamily: "Inter", color: "#24201E", letterSpacing: 1.4, bold: false },
   rule: { width: 463, height: 1, backgroundColor: "#BFB4AA" },
-  marker: null,
+  markers: [],
   body: { fontSize: 9.3, fontFamily: "Inter", lineHeight: 13, color: "#24201E" },
   mutedColor: "#756F6B",
 });
 
 /**
+ * Categories eligible to be replicated as a decorative shape alongside a
+ * section heading (rectangles, circles, filled "line" blocks used as badges,
+ * icons). Text is deliberately excluded — some templates (Monument) tag a
+ * decorative ordinal-number text as chrome, but the frontend has no access to
+ * the backend generator's per-section counter, so that number can never be
+ * faithfully reproduced on a new section. Skipping it (rather than guessing a
+ * number) matches the rest of that badge's shapes without an incorrect digit.
+ */
+const DECORATIVE_SHAPE_CATEGORIES = new Set(["rectangle", "circle", "ellipse", "line", "image"]);
+
+/**
  * Derive a style profile from the document's last section so a newly added
- * section matches the active template (heading font, rule, marker, body copy).
+ * section matches the active template (heading font, rule, decorative shapes, body copy).
  *
  * Sampling the LAST section keeps the new section visually consistent with the
  * content it will sit directly beneath. When no section exists, returns a copy
@@ -792,13 +803,18 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
       && (Number(element.height) || 0) <= 4)
     .sort((a, b) => (Number(b.width) || 0) - (Number(a.width) || 0))[0] || null;
 
-  // Small tagged shape offset from the label is the decorative marker.
-  const marker = members.find((element) => element.element_id !== last.headingId
+  // Every tagged shape offset from the label (marker, badge square, icon
+  // frame, accent tick, …) is a decorative shape to replicate. Size is not a
+  // filter here — templates range from an 8px marker dot (Regent) to a 32px
+  // badge block plus a 251px label frame (Monument). Only the identified rule
+  // and decorative text are excluded (see DECORATIVE_SHAPE_CATEGORIES doc).
+  const decorativeShapes = members.filter((element) => element.element_id !== last.headingId
+    && element.element_id !== rule?.element_id
     && element.flowRole === "section-chrome"
     && inHeadingColumn(element)
-    && (element.category === "rectangle" || element.category === "circle")
-    && (Number(element.width) || 0) <= 40
-    && (Number(element.height) || 0) <= 40) || null;
+    && DECORATIVE_SHAPE_CATEGORIES.has(element.category))
+    .sort((a, b) => absoluteTop(a, pageHeight) - absoluteTop(b, pageHeight)
+      || (Number(a.left) || 0) - (Number(b.left) || 0));
 
   // Body copy: non-chrome content elements, in reading order.
   const bodyElements = members
@@ -834,16 +850,23 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
         backgroundColor: String(rule.backgroundColor || DEFAULT_SECTION_STYLE.rule.backgroundColor),
       }
       : null,
-    marker: marker
-      ? {
-        category: marker.category,
-        width: Number(marker.width) || 8,
-        height: Number(marker.height) || 8,
-        backgroundColor: String(marker.backgroundColor || DEFAULT_SECTION_STYLE.heading.color),
-        relLeft: (Number(marker.left) || 0) - left,
-        relTop: absoluteTop(marker, pageHeight) - absoluteTop(heading, pageHeight),
+    markers: decorativeShapes.map((shape) => {
+      const built = {
+        category: shape.category,
+        width: Number(shape.width) || 8,
+        height: Number(shape.height) || 8,
+        backgroundColor: String(shape.backgroundColor || DEFAULT_SECTION_STYLE.heading.color),
+        relLeft: (Number(shape.left) || 0) - left,
+        relTop: absoluteTop(shape, pageHeight) - absoluteTop(heading, pageHeight),
+      };
+      if (shape.category === "rectangle" || shape.category === "circle" || shape.category === "ellipse") {
+        built.borderWidth = Number(shape.borderWidth) || 1;
       }
-      : null,
+      if (shape.category === "circle" || shape.category === "ellipse") {
+        built.filled = Boolean(shape.filled);
+      }
+      return built;
+    }),
     body: {
       fontSize: Number(body?.fontSize) || DEFAULT_SECTION_STYLE.body.fontSize,
       fontFamily: String(body?.fontFamily || DEFAULT_SECTION_STYLE.body.fontFamily),

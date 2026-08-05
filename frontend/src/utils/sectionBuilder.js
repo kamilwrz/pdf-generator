@@ -2,7 +2,7 @@
  * Structural section builder.
  *
  * Pure constructors for a new template-mode section: a section-chrome band
- * (heading + rule, optionally a marker) plus body content for the chosen
+ * (heading + rule, plus zero or more decorative shapes) plus body content for the chosen
  * layout. Geometry is authored relative to page 1 only so the chrome forms a
  * tight cluster and body reads top-to-bottom; `appendSectionAtEnd` repositions
  * the whole strip into the document flow, so absolute positions here are
@@ -119,35 +119,39 @@ function contentTextarea({
 }
 
 /**
- * Build a decorative section marker (small rect/circle) offset from the label.
+ * Build one decorative chrome shape (marker dot, badge square, icon frame,
+ * accent tick, …) offset from the heading. A section may sample zero, one, or
+ * several such shapes (Monument's numbered badge alone is two: a filled
+ * square block and a label frame) — each is replicated verbatim, including
+ * its category-specific `borderWidth`/`filled` fields where the sampled
+ * shape carried them.
  * @returns {object}
  */
-function markerElement({ elementId, marker, left }) {
+function decorativeShapeElement({ elementId, shape, left }) {
   const base = {
     element_id: elementId,
-    category: marker.category,
+    category: shape.category,
     flowRole: "section-chrome",
-    left: left + marker.relLeft,
+    left: left + shape.relLeft,
     // Preserve the sampled vertical offset verbatim, including negatives.
     // `deriveSectionStyle` reports a negative `relTop` when a template's
-    // decorative mark sits a few pixels above the heading baseline. The value
-    // is provisional: the packer's chrome-cluster normalization re-pins the
-    // whole strip on append and handles a negative authored top correctly, so
-    // clamping here would needlessly collapse a legitimate offset.
-    top: marker.relTop,
-    width: marker.width,
-    height: marker.height,
-    backgroundColor: marker.backgroundColor,
+    // decorative shape sits a few pixels above the heading baseline. The
+    // value is provisional: the packer's chrome-cluster normalization re-pins
+    // the whole strip on append and handles a negative authored top
+    // correctly, so clamping here would needlessly collapse a legitimate
+    // offset.
+    top: shape.relTop,
+    width: shape.width,
+    height: shape.height,
+    backgroundColor: shape.backgroundColor,
     isSelected: false,
     isMove: false,
     locked: false,
     zIndex: 3,
     page: 1,
   };
-  if (marker.category === "circle") {
-    base.borderWidth = 1;
-    base.filled = true;
-  }
+  if (shape.borderWidth != null) base.borderWidth = shape.borderWidth;
+  if (shape.filled != null) base.filled = shape.filled;
   return base;
 }
 
@@ -170,8 +174,8 @@ export function buildSectionElements({ name, layout, style, spacing, idFactory }
   const headingId = idFactory();
   const elements = [];
 
-  if (style.marker) {
-    elements.push(markerElement({ elementId: idFactory(), marker: style.marker, left }));
+  for (const shape of style.markers || []) {
+    elements.push(decorativeShapeElement({ elementId: idFactory(), shape, left }));
   }
 
   // Heading label (section title). Placed at relTop 0 so it anchors the chrome.

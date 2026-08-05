@@ -633,7 +633,7 @@ describe("findProfilePhotoSlot", () => {
 describe("deriveSectionStyle", () => {
   it("falls back to defaults when the document has no sections", () => {
     const style = deriveSectionStyle([]);
-    assert.equal(style.marker, null);
+    assert.deepEqual(style.markers, []);
     assert.ok(style.recordWidth > 0);
     assert.ok(style.heading.fontSize > 0);
     assert.equal(typeof style.body.color, "string");
@@ -665,7 +665,7 @@ describe("deriveSectionStyle", () => {
     assert.equal(style.body.fontSize, 9.1);
   });
 
-  it("captures a decorative marker offset from the heading", () => {
+  it("captures a decorative shape offset from the heading", () => {
     const elements = [
       { element_id: "m1", category: "rectangle", flowRole: "section-chrome",
         left: 51, top: 101, width: 8, height: 8, backgroundColor: "#733B43" },
@@ -678,17 +678,18 @@ describe("deriveSectionStyle", () => {
         lineHeight: 13, color: "#222222" },
     ];
     const style = deriveSectionStyle(elements);
-    assert.ok(style.marker);
-    assert.equal(style.marker.category, "rectangle");
-    assert.equal(style.marker.relLeft, -25); // 51 - 76
-    assert.equal(style.marker.width, 8);
+    assert.equal(style.markers.length, 1);
+    assert.equal(style.markers[0].category, "rectangle");
+    assert.equal(style.markers[0].relLeft, -25); // 51 - 76
+    assert.equal(style.markers[0].width, 8);
   });
 
-  it("does not adopt far-left sidebar chrome as the last section's marker", () => {
+  it("does not adopt far-left sidebar chrome as the last section's shape", () => {
     // Two-column templates: the last main-column section has no lower Y bound,
     // so a sidebar decoration sitting below the heading is a section member by
-    // Y alone. It lives in a different column and must not be sampled as the
-    // marker (that would produce a wildly wrong relLeft from another column).
+    // Y alone. It lives in a different column and must not be sampled as a
+    // decorative shape (that would produce a wildly wrong relLeft from another
+    // column).
     const elements = [
       { element_id: "h1", category: "text", flowRole: "section-chrome", content: "Doświadczenie",
         left: 76, top: 100, fontSize: 8.7, fontFamily: "Inter", color: "#111111", letterSpacing: 1.6 },
@@ -701,7 +702,65 @@ describe("deriveSectionStyle", () => {
         left: 8, top: 160, width: 8, height: 8, backgroundColor: "#733B43" },
     ];
     const style = deriveSectionStyle(elements);
-    assert.equal(style.marker, null); // sidebar rectangle at left 8 is out of the heading's column
+    assert.deepEqual(style.markers, []); // sidebar rectangle at left 8 is out of the heading's column
+  });
+
+  it("captures every decorative shape, not just one (Kernel-style circle + accent line)", () => {
+    // Kernel's section() pushes TWO decorative shapes per heading: a filled
+    // circle marker and a short accent line, distinct from the wide underline
+    // rule. A single-marker model would silently drop the second shape.
+    const elements = [
+      { element_id: "circle1", category: "circle", flowRole: "section-chrome",
+        left: 52, top: 101, width: 12, height: 12, backgroundColor: "#733B43", filled: true },
+      { element_id: "tick1", category: "line", flowRole: "section-chrome",
+        left: 68, top: 107, width: 11, height: 1, backgroundColor: "#A66B5B" },
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "Doświadczenie",
+        left: 76, top: 100, fontSize: 8.5, fontFamily: "Inter", color: "#733B43", letterSpacing: 1.55 },
+      { element_id: "r1", category: "line", flowRole: "section-chrome",
+        left: 76, top: 111, width: 466, height: 1, backgroundColor: "#cccccc" },
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true,
+        left: 76, top: 128, width: 466, height: 30, fontSize: 9.3, fontFamily: "Inter",
+        lineHeight: 13, color: "#222222" },
+    ];
+    const style = deriveSectionStyle(elements);
+    assert.equal(style.markers.length, 2);
+    const categories = style.markers.map((shape) => shape.category).sort();
+    assert.deepEqual(categories, ["circle", "line"]);
+    // The wide underline rule must not also appear as a decorative shape.
+    assert.ok(!style.markers.some((shape) => shape.width >= 120));
+  });
+
+  it("captures a large block shape as a decorative marker (Monument-style badge, not a rule)", () => {
+    // Monument's badge square is category "line" but height 32 (a filled
+    // block, not a thin underline) and its label frame is a 251-wide
+    // rectangle. Neither fits the old <=40px marker size cap. The decorative
+    // badge NUMBER text is intentionally excluded (never replicated) — only
+    // shapes (rectangle/circle/ellipse/line/image) are captured.
+    const elements = [
+      { element_id: "badge-sq", category: "line", flowRole: "section-chrome",
+        left: 66, top: 500, width: 32, height: 32, backgroundColor: "#111111" },
+      { element_id: "badge-num", category: "text", flowRole: "section-chrome",
+        isDecorativeChromeText: true, content: "05", left: 74, top: 508,
+        fontSize: 11, fontFamily: "Inter", color: "#ffffff" },
+      { element_id: "frame", category: "rectangle", flowRole: "section-chrome",
+        left: 106, top: 500, width: 251, height: 32, backgroundColor: "#111111", borderWidth: 1.2 },
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "Języki",
+        left: 118, top: 508, fontSize: 12.5, fontFamily: "Inter", color: "#111111" },
+      { element_id: "r1", category: "line", flowRole: "section-chrome",
+        left: 369, top: 515, width: 160, height: 2, backgroundColor: "#cccccc" },
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true,
+        left: 118, top: 540, width: 251, height: 30, fontSize: 9.3, fontFamily: "Inter",
+        lineHeight: 13, color: "#222222" },
+    ];
+    const style = deriveSectionStyle(elements);
+    assert.equal(style.markers.length, 2); // badge square + frame rect; number text excluded
+    const categories = style.markers.map((shape) => shape.category).sort();
+    assert.deepEqual(categories, ["line", "rectangle"]);
+    const bigLine = style.markers.find((shape) => shape.category === "line");
+    assert.equal(bigLine.width, 32);
+    assert.equal(bigLine.height, 32);
+    const rect = style.markers.find((shape) => shape.category === "rectangle");
+    assert.equal(rect.width, 251);
   });
 });
 
