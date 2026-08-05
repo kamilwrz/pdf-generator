@@ -4,12 +4,16 @@
  *
  * Timing: appear on pointer enter over the heading; stay while the pointer is
  * on the plus; only leaving the heading or the plus starts a 3s hide timer.
+ * Shares an exclusive visible slot with in-record plus controls. Size follows
+ * canvas zoom so 100% view stays compact.
  */
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { sectionSupportsRecordAdd } from "../../../utils/sectionRecord";
+import { useHoverPlusExclusive } from "../../../hooks/useHoverPlusExclusive";
+import { recordPlusLayoutSize } from "../recordPlusSize";
 import classes from "./SectionRecordAdd.module.css";
 
 /** Hide delay after the pointer leaves the heading or the plus. */
@@ -24,10 +28,15 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
     pageSize,
     editorMode,
     addSectionRecord,
+    zoom = 1,
   } = use(PdfContext);
 
   const [visible, setVisible] = useState(false);
   const hideTimerRef = useRef(null);
+  const exclusiveKey = `heading:${headingId}`;
+  const { isExclusiveActive, claimExclusive, releaseExclusive } = useHoverPlusExclusive(
+    exclusiveKey,
+  );
 
   const pageHeight = pageSize?.height ?? 842;
   const eligible = editorMode === EDITOR_MODE_TEMPLATE
@@ -43,21 +52,24 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
   const hide = useCallback(() => {
     clearHideTimer();
     setVisible(false);
-  }, [clearHideTimer]);
+    releaseExclusive();
+  }, [clearHideTimer, releaseExclusive]);
 
   const show = useCallback(() => {
     if (!eligible) return;
     clearHideTimer();
+    claimExclusive();
     setVisible(true);
-  }, [clearHideTimer, eligible]);
+  }, [claimExclusive, clearHideTimer, eligible]);
 
   const scheduleHide = useCallback(() => {
     clearHideTimer();
     hideTimerRef.current = window.setTimeout(() => {
       setVisible(false);
       hideTimerRef.current = null;
+      releaseExclusive();
     }, HIDE_AFTER_LEAVE_MS);
-  }, [clearHideTimer]);
+  }, [clearHideTimer, releaseExclusive]);
 
   useEffect(() => () => clearHideTimer(), [clearHideTimer]);
 
@@ -65,8 +77,13 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
     if (!eligible) hide();
   }, [eligible, hide]);
 
-  // Bind hover to the heading DOM node (`Text` sets id={elementId}) so the
-  // affordance does not intercept selection / edit on the label itself.
+  useEffect(() => {
+    if (!isExclusiveActive && visible) {
+      clearHideTimer();
+      setVisible(false);
+    }
+  }, [clearHideTimer, isExclusiveActive, visible]);
+
   useEffect(() => {
     if (!eligible) return undefined;
     const headingNode = document.getElementById(headingId);
@@ -89,28 +106,35 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
 
   if (!eligible) return null;
 
-  // Sit 5px left of the heading's left edge, vertically centred on the label.
-  // Text uses line-height: 1, so the painted height matches fontSize.
-  const buttonSize = 22;
+  const { buttonSize, iconSize, gap, radius } = recordPlusLayoutSize(zoom, fontSize);
   const headingHeight = Number(fontSize) || 10;
   const style = {
-    left: left - 5 - buttonSize,
+    left: left - gap - buttonSize,
     top: top + headingHeight / 2 - buttonSize / 2,
+  };
+  const buttonStyle = {
+    width: buttonSize,
+    height: buttonSize,
+    borderRadius: radius,
+  };
+  const iconStyle = {
+    width: iconSize,
+    height: iconSize,
   };
 
   return (
     <div className={classes.anchor} style={style}>
-      {visible ? (
+      {visible && isExclusiveActive ? (
         <button
           type="button"
           className={classes.plus}
+          style={buttonStyle}
           aria-label="Dodaj rekord w tej sekcji"
           title="Dodaj rekord"
           onPointerDown={(event) => {
             event.stopPropagation();
           }}
           onPointerEnter={() => {
-            // Keep the control alive while the pointer is on the plus itself.
             show();
           }}
           onPointerLeave={() => {
@@ -123,7 +147,7 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
             hide();
           }}
         >
-          <FiPlus />
+          <FiPlus style={iconStyle} />
         </button>
       ) : null}
     </div>

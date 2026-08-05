@@ -305,20 +305,22 @@ Known limitations:
 
 ### Add record block on upper-record hover
 
-In the same eligible multi-line sections, hovering the **upper part of a record** (title / school / meta — everything before the bullet description; if there is no bullet line, only the first title line) shows a **+** with the same leave timing as the heading affordance (**3 s** after leave; hovering the plus keeps it visible). Clicking inserts a **full placeholder record** (education or experience field shape with Polish generic copy such as „Stanowisko” / „Nazwa dyplomu”) immediately **below that record**, with a new `flowGroup`, then re-packs via `applyFlowSpacing` and opens the first new line for editing. The description body does not show **+**.
+In the same eligible multi-line sections, hovering the **upper part of a record** (title / school / meta — everything before the bullet description; if there is no bullet line, only the first title line) shows **one +** for that record (mounted on the title, listening to all upper lines) with the same leave timing as the heading affordance (**3 s** after leave; hovering the plus keeps it visible). At most one canvas **+** is visible at a time (`useHoverPlusExclusive`). Button size follows canvas zoom (`recordPlusLayoutSize` targets ~13px on screen) so 100% view stays compact. Clicking inserts a **full placeholder record** immediately **below that record**, with a new `flowGroup`, then re-packs via `applyFlowSpacing` and opens the first new line for editing. The description body does not show **+**.
 
 Hovering the first of two records inserts between them; hovering the last inserts after it. Heading **+** (append at section end) and upper-record **+** (insert under the hovered block) coexist.
 
 Implementation:
 
-- `frontend/src/utils/sectionRecord.js`, functions `listUpperRecordMembers`, `findRecordGroupForElement`, `elementSupportsRecordBlockAdd`, `listRecordBlockAddElementIds`, `insertRecordBlockAfterRecord` — upper-line eligibility, clone with placeholders under the anchor record, provisional in-band placement, then rhythm pack
+- `frontend/src/utils/sectionRecord.js`, functions `listUpperRecordMembers`, `listRecordBlockAddAnchors`, `insertRecordBlockAfterRecord` — one title anchor per record, clone with placeholders under the anchor, provisional in-band placement, then rhythm pack
 - `frontend/src/hooks/useA4Elements.js`, function `handleAddRecordBlock` — exposed through `PdfContext` as `addRecordBlock`
-- `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx`, component `RecordBlockAdd` — upper-line hover + plus linger / 3s leave hide (reuses `SectionRecordAdd.module.css`)
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `recordBlockElementIds` — mounts the affordance only on upper record lines
+- `frontend/src/hooks/useHoverPlusExclusive.js` — exclusive visible slot for heading / record plus controls
+- `frontend/src/components/canvas/recordPlusSize.js` — zoom-aware layout size
+- `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx` — title-mounted control, upper-line hover, exclusive + zoom size
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `recordBlockAnchorsById` — one affordance per record
 
 Tests:
 
-- `frontend/src/utils/sectionRecord.test.js` — upper vs description eligibility; full placeholder insert under education; insert between two experience records; description / aa / unknown id rejected
+- `frontend/src/utils/sectionRecord.test.js` — one anchor per record; upper vs description; full placeholder insert; insert between experience records
 
 ### Outcome-focused landing and directed starts
 
@@ -1294,20 +1296,22 @@ Znane ograniczenia:
 
 ### Dodawanie rekordu po najechaniu na górną część wpisu
 
-W tych samych kwalifikujących się sekcjach wieloliniowych najechanie na **górną część rekordu** (tytuł / uczelnia / meta — wszystko przed opisem punktowanym; gdy nie ma linii z `bulletList`, tylko pierwsza linia tytułu) pokazuje **+** z tym samym czasem ukrycia co affordance nagłówka (**3 s** po zejściu; najechanie na plus utrzymuje widoczność). Kliknięcie wstawia **pełny rekord z generyczną treścią** (kształt edukacji lub doświadczenia z polskimi placeholderami, np. „Stanowisko” / „Nazwa dyplomu”) bezpośrednio **pod tym wpisem**, z nowym `flowGroup`, potem `applyFlowSpacing` i otwarcie pierwszej nowej linii. Opis punktowany nie pokazuje **+**.
+W tych samych kwalifikujących się sekcjach wieloliniowych najechanie na **górną część rekordu** (tytuł / uczelnia / meta — wszystko przed opisem punktowanym; gdy nie ma linii z `bulletList`, tylko pierwsza linia tytułu) pokazuje **jeden +** dla tego wpisu (montowany przy tytule, nasłuchuje wszystkich górnych linii) z tym samym czasem ukrycia co affordance nagłówka (**3 s** po zejściu; najechanie na plus utrzymuje widoczność). Na canvasie jednocześnie widać co najwyżej jeden **+** (`useHoverPlusExclusive`). Rozmiar przycisku zależy od zoomu canvas (`recordPlusLayoutSize` celuje w ~13px na ekranie), żeby w 100% nie był za duży. Kliknięcie wstawia **pełny rekord z generyczną treścią** bezpośrednio **pod tym wpisem**, z nowym `flowGroup`, potem `applyFlowSpacing` i otwarcie pierwszej nowej linii. Opis punktowany nie pokazuje **+**.
 
 Najechanie na pierwszy z dwóch rekordów wstawia blok między nimi; na ostatni — pod nim. **+** na nagłówku (dokładanie na końcu sekcji) i **+** na górze wpisu (wstawienie pod wskazanym blokiem) współistnieją.
 
 Implementacja:
 
-- `frontend/src/utils/sectionRecord.js`, funkcje `listUpperRecordMembers`, `findRecordGroupForElement`, `elementSupportsRecordBlockAdd`, `listRecordBlockAddElementIds`, `insertRecordBlockAfterRecord` — kwalifikacja górnych linii, klon z placeholderami pod rekordem-kotwicą, prowizoryczne umieszczenie w paśmie, potem pack rytmu
+- `frontend/src/utils/sectionRecord.js`, funkcje `listUpperRecordMembers`, `listRecordBlockAddAnchors`, `insertRecordBlockAfterRecord` — jedna kotwica tytułu na rekord, klon z placeholderami pod kotwicą, prowizoryczne umieszczenie w paśmie, potem pack rytmu
 - `frontend/src/hooks/useA4Elements.js`, funkcja `handleAddRecordBlock` — wystawiana przez `PdfContext` jako `addRecordBlock`
-- `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx`, komponent `RecordBlockAdd` — hover na górnych liniach + utrzymanie przy plusie / ukrycie 3 s po zejściu (współdzieli `SectionRecordAdd.module.css`)
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `recordBlockElementIds` — montaż affordance tylko przy górnych liniach rekordu
+- `frontend/src/hooks/useHoverPlusExclusive.js` — wspólny slot widoczności dla plusów nagłówka / rekordu
+- `frontend/src/components/canvas/recordPlusSize.js` — rozmiar zależny od zoomu
+- `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx` — jeden plus na rekord, hover górnych linii, exclusive + zoom
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `recordBlockAnchorsById` — jeden affordance na rekord
 
 Testy:
 
-- `frontend/src/utils/sectionRecord.test.js` — górna część vs opis; pełny placeholder pod edukacją; wstawienie między dwoma rekordami doświadczenia; odrzucenie opisu / aa / nieznanego id
+- `frontend/src/utils/sectionRecord.test.js` — jedna kotwica na rekord; górna część vs opis; pełny placeholder; wstawienie między rekordami doświadczenia
 
 ### Landing skupiony na rezultacie i skierowane starty
 

@@ -6,8 +6,8 @@
  *
  * Template-mode section headings that own a multi-line record body also get a
  * `SectionRecordAdd` affordance (hover "+" → append a placeholder record).
- * Upper lines of those records also get `RecordBlockAdd` (hover "+" → insert a
- * full placeholder record below that block).
+ * Each multi-line record also gets one `RecordBlockAdd` on its title line
+ * (hover anywhere on the upper block → insert a full placeholder record below).
  */
 import { use, useMemo } from 'react';
 import Text from '../Text/Text';
@@ -23,7 +23,7 @@ import { PdfContext } from '../../../store/pdfgenerator-context';
 import { EDITOR_MODE_TEMPLATE } from '../../../utils/editorMode';
 import { listDocumentSections } from '../../../utils/sectionStructure';
 import {
-  listRecordBlockAddElementIds,
+  listRecordBlockAddAnchors,
   sectionSupportsRecordAdd,
 } from '../../../utils/sectionRecord';
 import classes from './CanvasElements.module.css';
@@ -50,15 +50,19 @@ export default function CanvasElements({ elements }) {
     return ids;
   }, [editorMode, elements, pageHeight]);
 
-  const recordBlockElementIds = useMemo(() => {
-    if (editorMode !== EDITOR_MODE_TEMPLATE) return new Set();
-    return listRecordBlockAddElementIds(elements, pageHeight);
+  const recordBlockAnchorsById = useMemo(() => {
+    const map = new Map();
+    if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
+    for (const anchor of listRecordBlockAddAnchors(elements, pageHeight)) {
+      map.set(anchor.elementId, anchor);
+    }
+    return map;
   }, [editorMode, elements, pageHeight]);
 
   return elements.map((element) => {
     const enterClass = enterClassName(element.element_id, heldIds, fadingIds);
     let node = null;
-    const showBlockAdd = recordBlockElementIds.has(element.element_id);
+    const blockAnchor = recordBlockAnchorsById.get(element.element_id);
 
     if (element.category === "textarea") {
       node = (
@@ -88,13 +92,14 @@ export default function CanvasElements({ elements }) {
             zIndex={element.zIndex}
             fixedToPage={element.fixedToPage}
           />
-          {showBlockAdd ? (
+          {blockAnchor ? (
             <RecordBlockAdd
-              elementId={element.element_id}
-              left={Number(element.left) || 0}
-              top={Number(element.top) || 0}
-              height={Number(element.height) || 0}
-              fontSize={Number(element.fontSize) || 10}
+              elementId={blockAnchor.elementId}
+              hoverIds={blockAnchor.hoverIds}
+              left={blockAnchor.left}
+              top={blockAnchor.top}
+              height={blockAnchor.height}
+              fontSize={blockAnchor.fontSize}
             />
           ) : null}
         </>
@@ -131,13 +136,14 @@ export default function CanvasElements({ elements }) {
               fontSize={Number(element.fontSize) || 10}
             />
           ) : null}
-          {showBlockAdd ? (
+          {blockAnchor ? (
             <RecordBlockAdd
-              elementId={element.element_id}
-              left={Number(element.left) || 0}
-              top={Number(element.top) || 0}
-              height={Number(element.height) || 0}
-              fontSize={Number(element.fontSize) || 10}
+              elementId={blockAnchor.elementId}
+              hoverIds={blockAnchor.hoverIds}
+              left={blockAnchor.left}
+              top={blockAnchor.top}
+              height={blockAnchor.height}
+              fontSize={blockAnchor.fontSize}
             />
           ) : null}
         </>

@@ -347,8 +347,7 @@ export function listUpperRecordMembers(group) {
 }
 
 /**
- * Whether a content element should offer the in-record "+" affordance.
- * Only the upper part of a multi-line record qualifies (not the description).
+ * Whether a content element may trigger the in-record "+" (upper lines only).
  *
  * @param {object[]} elements
  * @param {string} elementId
@@ -363,14 +362,15 @@ export function elementSupportsRecordBlockAdd(elements, elementId, pageHeight = 
 }
 
 /**
- * Content element ids that may show the in-record "+" control.
+ * One "+" anchor per record: mounted on the title line, listening to all upper
+ * lines (title / meta) so a single control covers the whole upper block.
  *
  * @param {object[]} elements
  * @param {number} [pageHeight=842]
- * @returns {Set<string>}
+ * @returns {{ elementId: string, hoverIds: string[], left: number, top: number, height: number, fontSize: number }[]}
  */
-export function listRecordBlockAddElementIds(elements, pageHeight = 842) {
-  const ids = new Set();
+export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
+  const anchors = [];
   const sections = listDocumentSections(elements, pageHeight);
   for (const section of sections) {
     if (!sectionSupportsRecordAdd(elements, section.headingId, pageHeight)) {
@@ -378,12 +378,33 @@ export function listRecordBlockAddElementIds(elements, pageHeight = 842) {
     }
     const body = listSectionContentElements(elements, section.headingId, pageHeight);
     for (const group of partitionSectionRecords(body)) {
-      for (const element of listUpperRecordMembers(group)) {
-        ids.add(element.element_id);
-      }
+      const upper = listUpperRecordMembers(group);
+      if (upper.length === 0) continue;
+      const title = upper[0];
+      anchors.push({
+        elementId: title.element_id,
+        hoverIds: upper.map((element) => element.element_id),
+        left: Number(title.left) || 0,
+        top: Number(title.top) || 0,
+        height: Number(title.height) || 0,
+        fontSize: Number(title.fontSize) || 10,
+      });
     }
   }
-  return ids;
+  return anchors;
+}
+
+/**
+ * Title-line ids that mount the in-record "+" control (one per record).
+ *
+ * @param {object[]} elements
+ * @param {number} [pageHeight=842]
+ * @returns {Set<string>}
+ */
+export function listRecordBlockAddElementIds(elements, pageHeight = 842) {
+  return new Set(
+    listRecordBlockAddAnchors(elements, pageHeight).map((anchor) => anchor.elementId),
+  );
 }
 
 /**

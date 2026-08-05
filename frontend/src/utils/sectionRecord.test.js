@@ -7,6 +7,7 @@ import {
   elementSupportsRecordBlockAdd,
   inferRecordLayout,
   insertRecordBlockAfterRecord,
+  listRecordBlockAddAnchors,
   listRecordBlockAddElementIds,
   listSectionContentElements,
   listUpperRecordMembers,
@@ -178,7 +179,13 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     assert.equal(elementSupportsRecordBlockAdd(elements, body[0].element_id), true);
     assert.equal(elementSupportsRecordBlockAdd(elements, body[1].element_id), true);
     assert.equal(elementSupportsRecordBlockAdd(elements, body[2].element_id), false);
-    assert.equal(listRecordBlockAddElementIds(elements).has(body[2].element_id), false);
+    // One mounted "+" per record (title), listening to title + meta.
+    const anchors = listRecordBlockAddAnchors(elements);
+    assert.equal(anchors.length, 1);
+    assert.equal(anchors[0].elementId, body[0].element_id);
+    assert.deepEqual(anchors[0].hoverIds, [body[0].element_id, body[1].element_id]);
+    assert.equal(listRecordBlockAddElementIds(elements).has(body[0].element_id), true);
+    assert.equal(listRecordBlockAddElementIds(elements).has(body[1].element_id), false);
   });
 
   it("inserts a full placeholder record under the hovered block", () => {
