@@ -29,6 +29,13 @@ test("Monument keeps its text hierarchy readable and monochrome", () => {
     assert.ok(monumentTemplate.some(
         (element) => element.content === "DOŚWIADCZENIE" && element.fontSize === 12.5,
     ));
+    // Ordinal badges must carry the decorative flag so they are never listed
+    // as their own sections beside the real title.
+    const ordinals = monumentTemplate.filter(
+        (element) => element.isDecorativeChromeText === true,
+    );
+    assert.ok(ordinals.length >= 3);
+    assert.ok(ordinals.every((element) => /^\d{2}$/.test(String(element.content || ""))));
     // Summary must match body copy size, not sit one step above it.
     const summary = monumentTemplate.find(
         (element) => (

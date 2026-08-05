@@ -240,7 +240,11 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
   // intentional (this util must not trust its caller), but if either default
   // string changes, update both so they do not silently diverge.
   const label = String(name || "").trim() || PLACEHOLDER.heading;
+  // Heading / chrome column (Monument title at 118) vs content column
+  // (Monument body at 102). Mixing them parks new record fields under the
+  // title instead of in the wizard's content gutter.
   const left = style.left;
+  const bodyLeft = Number.isFinite(Number(style.bodyLeft)) ? Number(style.bodyLeft) : left;
   const width = style.recordWidth;
   const headingId = idFactory();
   const elements = [];
@@ -283,11 +287,15 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
   if (style.rule) {
     // Rule sits where the backend's Builder.text() cursor lands after the
     // heading (fontSize * TEXT_CURSOR_ADVANCE), not at the raw fontSize.
+    // Horizontal offset may differ from the title (Monument rule at +251).
+    const ruleRelLeft = Number.isFinite(Number(style.rule.relLeft))
+      ? Number(style.rule.relLeft)
+      : 0;
     elements.push({
       element_id: idFactory(),
       category: "line",
       flowRole: "section-chrome",
-      left,
+      left: left + ruleRelLeft,
       top: style.heading.fontSize * TEXT_CURSOR_ADVANCE,
       width: style.rule.width,
       height: style.rule.height,
@@ -322,7 +330,7 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
       elements.push(contentTextarea({
         elementId,
         content: line.content,
-        left,
+        left: bodyLeft,
         top,
         width,
         fontSize: style.body.fontSize,
@@ -342,7 +350,7 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
     elements.push(contentTextarea({
       elementId: firstBodyId,
       content: PLACEHOLDER.textarea,
-      left,
+      left: bodyLeft,
       top: bodyTop,
       width,
       fontSize: style.body.fontSize,

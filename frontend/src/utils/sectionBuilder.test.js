@@ -17,9 +17,10 @@ function makeIdFactory() {
 
 const style = {
   left: 76,
+  bodyLeft: 76,
   recordWidth: 466,
   heading: { fontSize: 8.7, fontFamily: "Inter", color: "#733B43", letterSpacing: 1.5, bold: false },
-  rule: { width: 466, height: 1, backgroundColor: "#cccccc" },
+  rule: { width: 466, height: 1, backgroundColor: "#cccccc", relLeft: 0 },
   markers: [{ category: "rectangle", width: 8, height: 8, backgroundColor: "#733B43", relLeft: -25, relTop: 1 }],
   body: { fontSize: 9.3, fontFamily: "Inter", lineHeight: 13, color: "#222222" },
   mutedColor: "#756F6B",
@@ -46,6 +47,26 @@ describe("buildSectionElements", () => {
     assert.equal(body[0].category, "textarea");
     assert.equal(body[0].autoHeight, true);
     assert.equal(body[0].width, 466);
+  });
+
+  it("places record body on bodyLeft when it differs from the heading column (Monument gutter)", () => {
+    const monumentStyle = {
+      ...style,
+      left: 118,
+      bodyLeft: 102,
+      recordWidth: 427,
+      rule: { width: 160, height: 2, backgroundColor: "#C8C8C8", relLeft: 251 },
+      markers: [],
+    };
+    const { elements, firstBodyId } = buildSectionElements({
+      name: "Kursy", layout: SECTION_LAYOUTS.RECORD_EDUCATION, style: monumentStyle, idFactory: makeIdFactory(),
+    });
+    const heading = elements.find((element) => element.content === "Kursy");
+    const body = elements.find((element) => element.element_id === firstBodyId);
+    const rule = elements.find((element) => element.category === "line" && element.width === 160);
+    assert.equal(heading.left, 118);
+    assert.equal(body.left, 102);
+    assert.equal(rule.left, 118 + 251);
   });
 
   it("places the rule at fontSize*1.35 below the heading, matching Builder.text()'s real cursor advance", () => {

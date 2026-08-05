@@ -33,7 +33,13 @@ const sectionChrome = (element) => ({ ...element, flowRole: "section-chrome" });
 
 const sectionHeading = (number, label, top, id) => [
     sectionChrome(line(66, top, 32, 32, INK, 2)),
-    sectionChrome(bold(text(number, 11, SANS, WHITE, 74, top + 8, 5))),
+    // Ordinal badge digits are decorative chrome, not a section title — same
+    // flag the backend generator sets so the Sections panel / packer never
+    // lists "01" as its own section beside the real label.
+    sectionChrome({
+        ...bold(text(number, 11, SANS, WHITE, 74, top + 8, 5)),
+        isDecorativeChromeText: true,
+    }),
     sectionChrome({ ...rect(106, top, 251, 32, INK, 1.2, 2), id: `monument-${id}-frame` }),
     sectionChrome(bold(tracked(text(label, 12.5, DISPLAY, INK, 118, top + 8, 5), 0.35))),
     sectionChrome(line(369, top + 15, 160, 2, RULE, 1)),

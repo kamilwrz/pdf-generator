@@ -66,6 +66,51 @@ function hasSectionRuleBelow(element, elements, pageHeight) {
 }
 
 /**
+ * Whether this chrome text is a decorative ordinal badge ("01", "02", …),
+ * not the section's real title.
+ *
+ * Prefer the explicit `isDecorativeChromeText` flag (backend Monument /
+ * sectionBuilder). Also accept digit-only section-chrome labels as a safety
+ * net when the flag was stripped on an older save/load path — otherwise
+ * `listDocumentSections` treats every badge as its own section and
+ * `applyFlowSpacing` tears the numbered chrome band apart.
+ *
+ * @param {object|null|undefined} element
+ * @returns {boolean}
+ */
+export function isDecorativeOrdinalChrome(element) {
+  if (!element) return false;
+  if (element.isDecorativeChromeText) return true;
+  if (element.flowRole !== "section-chrome") return false;
+  if (element.category !== "text" && element.category !== "textarea") return false;
+  // Monument ordinals are one or two digits; reject longer numeric titles.
+  return /^\d{1,2}$/.test(String(element.content || "").trim());
+}
+
+/**
+ * Prefer the real section title inside a chrome cluster over a decorative
+ * ordinal badge that may sort first in document order.
+ * @param {object[]} chromeElements
+ * @returns {object|undefined}
+ */
+function chromeTitleAnchor(chromeElements) {
+  const titles = (chromeElements || []).filter((element) => (
+    (element.category === "text" || element.category === "textarea")
+    && !isDecorativeOrdinalChrome(element)
+  ));
+  if (titles.length === 0) {
+    return (chromeElements || []).find((element) => (
+      element.category === "text" || element.category === "textarea"
+    )) || chromeElements?.[0];
+  }
+  // When several non-ordinal chrome labels exist, the longest is the title
+  // (Monument: "WYKSZTAŁCENIE" vs a short accent word).
+  return [...titles].sort((left, right) => (
+    String(right.content || "").trim().length - String(left.content || "").trim().length
+  ))[0];
+}
+
+/**
  * Whether this element is a section heading label.
  * @param {object|null|undefined} element
  * @param {object[]} [elements]
@@ -79,11 +124,9 @@ export function isSectionHeading(element, elements = [], pageHeight = 842) {
 
   if (element.flowRole === "section-chrome") {
     // A template may tag more than one text element as chrome inside a single
-    // section (Monument's numbered badge alongside its real title). Only the
-    // element explicitly marked decorative-only is excluded here — every
-    // other chrome-tagged text keeps the existing fast path, so templates
-    // with a single chrome heading (the common case) are unaffected.
-    return !element.isDecorativeChromeText;
+    // section (Monument's numbered badge alongside its real title). Decorative
+    // ordinals must not become their own sections.
+    return !isDecorativeOrdinalChrome(element);
   }
   // Explicit body / masthead copy is never a section title.
   if (element.flowRole === "content" || element.flowRole === "masthead") return false;
@@ -279,9 +322,9 @@ function chromeClusterIsHealthy(chromeElements, pageHeight) {
  * @returns {{ element: object, relTop: number }[]}
  */
 function rebuildTightChromeCluster(chromeElements) {
-  const heading = chromeElements.find((element) => (
-    element.category === "text" || element.category === "textarea"
-  )) || chromeElements[0];
+  // Never anchor the band on a Monument ordinal badge — that parks the real
+  // title and the filled square below the digits and looks like a "reset 01".
+  const heading = chromeTitleAnchor(chromeElements);
   const headingHeight = elementHeight(heading);
   const items = [{ element: heading, relTop: 0 }];
 
@@ -298,8 +341,16 @@ function rebuildTightChromeCluster(chromeElements) {
     ) {
       items.push({ element, relTop: 2 });
     } else if (element.category === "line") {
-      // Short accent rules belonging to the section chrome band.
-      items.push({ element, relTop: Math.max(0, headingHeight - 1) });
+      // Short accent rules / filled badge squares belonging to the chrome band.
+      // Keep tall badge blocks overlapping the title (Monument 32px square).
+      const height = elementHeight(element);
+      items.push({
+        element,
+        relTop: height >= 20 ? Math.min(0, headingHeight - height + 8) : Math.max(0, headingHeight - 1),
+      });
+    } else if (isDecorativeOrdinalChrome(element)) {
+      // Digits sit on the badge square, level with the title baseline.
+      items.push({ element, relTop: 0 });
     } else {
       items.push({ element, relTop: headingHeight });
     }
@@ -323,9 +374,7 @@ function rebuildTightChromeCluster(chromeElements) {
 function compactChromeCluster(chromeElements, pageHeight) {
   if (chromeElements.length === 0) return [];
 
-  const heading = chromeElements.find((element) => (
-    element.category === "text" || element.category === "textarea"
-  )) || chromeElements[0];
+  const heading = chromeTitleAnchor(chromeElements);
   const headingAbs = absoluteTop(heading, pageHeight);
 
   // Pieces far from the heading were stranded by an earlier footer pack.
@@ -752,9 +801,11 @@ export function applyFlowSpacing(elements, spacing, pageHeight = 842, options = 
  */
 const DEFAULT_SECTION_STYLE = Object.freeze({
   left: 66,
+  /** Content column left — may differ from heading left (Monument: 102 vs 118). */
+  bodyLeft: 66,
   recordWidth: 463,
   heading: { fontSize: 8.5, fontFamily: "Inter", color: "#24201E", letterSpacing: 1.4, bold: false },
-  rule: { width: 463, height: 1, backgroundColor: "#BFB4AA" },
+  rule: { width: 463, height: 1, backgroundColor: "#BFB4AA", relLeft: 0 },
   markers: [],
   badgeNumber: null,
   body: { fontSize: 9.3, fontFamily: "Inter", lineHeight: 13, color: "#24201E" },
@@ -807,10 +858,12 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
   const left = Number.isFinite(headingLeft) ? headingLeft : DEFAULT_SECTION_STYLE.left;
   const inHeadingColumn = (element) => Math.abs((Number(element.left) || 0) - left) <= 60;
 
-  // Widest thin line in the section is the heading rule.
+  // Widest thin line in the section is the heading rule. Do not require the
+  // heading column — Monument's rule sits far right of the label (left≈369)
+  // while the title is at left≈118; an in-column filter would drop it and
+  // the built section would ship without an underline.
   const rule = members
     .filter((element) => element.category === "line"
-      && inHeadingColumn(element)
       && (Number(element.width) || 0) >= 120
       && (Number(element.height) || 0) <= 4)
     .sort((a, b) => (Number(b.width) || 0) - (Number(a.width) || 0))[0] || null;
@@ -852,9 +905,8 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
   // the caller can zero-pad the new ordinal to match ("04" -> 2 digits).
   const badgeNumberElement = members.find((element) => element.element_id !== last.headingId
     && element.flowRole === "section-chrome"
-    && element.isDecorativeChromeText
-    && (element.category === "text" || element.category === "textarea")
-    && inHeadingColumn(element)) || null;
+    && isDecorativeOrdinalChrome(element)
+    && (element.category === "text" || element.category === "textarea")) || null;
   const badgeNumber = badgeNumberElement
     ? {
       fontSize: Number(badgeNumberElement.fontSize) || DEFAULT_SECTION_STYLE.heading.fontSize,
@@ -877,6 +929,9 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
   const body = bodyElements[0] || null;
 
   const recordWidth = Number(body?.width) || Number(rule?.width) || DEFAULT_SECTION_STYLE.recordWidth;
+  // Content column may sit left of the title (Monument body at 102, title at 118).
+  const bodyLeftRaw = Number(body?.left);
+  const bodyLeft = Number.isFinite(bodyLeftRaw) ? bodyLeftRaw : left;
 
   // Muted color: a body line whose color differs from the main body color
   // (typically the meta line). Best-effort — falls back to the body color.
@@ -886,6 +941,7 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
 
   return {
     left,
+    bodyLeft,
     recordWidth,
     heading: {
       fontSize: Number(heading?.fontSize) || DEFAULT_SECTION_STYLE.heading.fontSize,
@@ -899,6 +955,7 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
         width: Number(rule.width) || recordWidth,
         height: Number(rule.height) || 1,
         backgroundColor: String(rule.backgroundColor || DEFAULT_SECTION_STYLE.rule.backgroundColor),
+        relLeft: (Number(rule.left) || 0) - left,
       }
       : null,
     markers: decorativeShapes.map((shape) => {

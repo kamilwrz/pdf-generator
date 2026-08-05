@@ -74,6 +74,21 @@ describe("listDocumentSections", () => {
     );
   });
 
+  it("does not list digit-only chrome as a section even when isDecorativeChromeText was stripped", () => {
+    // Older save/load paths dropped the flag; without the digit heuristic,
+    // "01"/"02" become phantom sections and packing tears Monument chrome apart.
+    const elements = [
+      { element_id: "num", category: "text", flowRole: "section-chrome", content: "03",
+        left: 74, top: 200, fontSize: 11, page: 1 },
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "WYKSZTAŁCENIE",
+        left: 118, top: 200, fontSize: 12.5, page: 1 },
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true,
+        left: 102, top: 240, width: 427, height: 20, page: 1 },
+    ];
+    const sections = listDocumentSections(elements);
+    assert.deepEqual(sections.map((section) => section.title), ["WYKSZTAŁCENIE"]);
+  });
+
   it("does not list a decorative numbered badge as its own section (Monument-style chrome)", () => {
     // Monument tags both the "05" ordinal badge text and the real "JĘZYKI"
     // label as flowRole: "section-chrome" (two _text() calls in one section()
@@ -776,7 +791,7 @@ describe("deriveSectionStyle", () => {
       { element_id: "r1", category: "line", flowRole: "section-chrome",
         left: 369, top: 515, width: 160, height: 2, backgroundColor: "#cccccc" },
       { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true,
-        left: 118, top: 540, width: 251, height: 30, fontSize: 9.3, fontFamily: "Inter",
+        left: 102, top: 540, width: 427, height: 30, fontSize: 9.3, fontFamily: "Inter",
         lineHeight: 13, color: "#222222" },
     ];
     const style = deriveSectionStyle(elements);
@@ -788,6 +803,12 @@ describe("deriveSectionStyle", () => {
     assert.equal(bigLine.height, 32);
     const rect = style.markers.find((shape) => shape.category === "rectangle");
     assert.equal(rect.width, 251);
+    // Content column (102) differs from heading column (118); rule is offset.
+    assert.equal(style.left, 118);
+    assert.equal(style.bodyLeft, 102);
+    assert.ok(style.rule);
+    assert.equal(style.rule.relLeft, 369 - 118);
+    assert.equal(style.rule.width, 160);
   });
 
   it("captures the decorative badge-number's style, separate from markers", () => {
