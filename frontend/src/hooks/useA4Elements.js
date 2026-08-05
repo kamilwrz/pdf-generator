@@ -16,7 +16,7 @@ import {
   normalizeEditorMode,
 } from '../utils/editorMode';
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from '../utils/flowSpacing';
-import { deriveSectionStyle, appendSectionAtEnd } from '../utils/sectionStructure';
+import { deriveSectionStyle, appendSectionAtEnd, listDocumentSections } from '../utils/sectionStructure';
 import { buildSectionElements } from '../utils/sectionBuilder';
 import {
   createCircleElement,
@@ -501,11 +501,16 @@ export function useA4Elements(titleRef) {
       const pageHeight = pageSizeRef.current?.height ?? 842;
       const spacing = flowSpacingRef.current;
       const style = deriveSectionStyle(prev, pageHeight);
+      // Templates with a decorative ordinal badge (Monument's "01"/"02"/…)
+      // number sections by their position in the document; the new section
+      // becomes the next one, one past every currently detected section.
+      const sectionOrdinal = listDocumentSections(prev, pageHeight).length + 1;
       const { elements, firstBodyId } = buildSectionElements({
         name,
         layout,
         style,
         spacing,
+        sectionOrdinal,
         idFactory: nanoid,
       });
       const next = appendSectionAtEnd(prev, elements, pageHeight, { spacing });

@@ -164,6 +164,59 @@ describe("buildSectionElements", () => {
     assert.equal(frame.borderWidth, 1.2);
   });
 
+  it("stamps the computed section ordinal into the badge-number style, zero-padded to match the sampled digit count", () => {
+    const styleWithBadge = {
+      ...style,
+      badgeNumber: { fontSize: 11, fontFamily: "Montserrat", color: "#ffffff", bold: true, digits: 2, relLeft: -44, relTop: 8 },
+    };
+    const { elements } = buildSectionElements({
+      name: "Certyfikaty", layout: SECTION_LAYOUTS.TEXTAREA, style: styleWithBadge,
+      sectionOrdinal: 5, idFactory: makeIdFactory(),
+    });
+    const badge = elements.find((element) => element.isDecorativeChromeText === true);
+    assert.ok(badge);
+    assert.equal(badge.content, "05");
+    assert.equal(badge.category, "text");
+    assert.equal(badge.flowRole, "section-chrome");
+    assert.equal(badge.color, "#ffffff");
+    assert.equal(badge.bold, true);
+  });
+
+  it("does not zero-pad past the sampled digit count when the ordinal is already wider", () => {
+    const styleWithBadge = {
+      ...style,
+      badgeNumber: { fontSize: 11, fontFamily: "Montserrat", color: "#ffffff", bold: true, digits: 1, relLeft: -20, relTop: 8 },
+    };
+    const { elements } = buildSectionElements({
+      name: "Certyfikaty", layout: SECTION_LAYOUTS.TEXTAREA, style: styleWithBadge,
+      sectionOrdinal: 12, idFactory: makeIdFactory(),
+    });
+    const badge = elements.find((element) => element.isDecorativeChromeText === true);
+    assert.equal(badge.content, "12"); // padStart never truncates
+  });
+
+  it("omits the badge-number element when the style has none", () => {
+    const { elements } = buildSectionElements({
+      name: "Profil", layout: SECTION_LAYOUTS.TEXTAREA, style, sectionOrdinal: 1, idFactory: makeIdFactory(),
+    });
+    assert.equal(elements.some((element) => element.isDecorativeChromeText), false);
+  });
+
+  it("round-trips: a built badge-number is not double-counted as its own section", () => {
+    const styleWithBadge = {
+      ...style,
+      badgeNumber: { fontSize: 11, fontFamily: "Montserrat", color: "#ffffff", bold: true, digits: 2, relLeft: -44, relTop: 8 },
+    };
+    const { elements, headingId } = buildSectionElements({
+      name: "Certyfikaty", layout: SECTION_LAYOUTS.TEXTAREA, style: styleWithBadge,
+      sectionOrdinal: 3, idFactory: makeIdFactory(),
+    });
+    const sections = listDocumentSections(elements);
+    assert.deepEqual(sections.map((section) => section.title), ["Certyfikaty"]); // badge not listed separately
+    const ids = sectionElementIds(elements, headingId);
+    assert.equal(ids.size, elements.length); // badge still collected as chrome
+  });
+
   it("aa round-trips: built section is detectable and its body is collected", () => {
     const { elements, headingId } = buildSectionElements({
       name: "Profil", layout: SECTION_LAYOUTS.TEXTAREA, style, idFactory: makeIdFactory(),

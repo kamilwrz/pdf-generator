@@ -745,6 +745,7 @@ const DEFAULT_SECTION_STYLE = Object.freeze({
   heading: { fontSize: 8.5, fontFamily: "Inter", color: "#24201E", letterSpacing: 1.4, bold: false },
   rule: { width: 463, height: 1, backgroundColor: "#BFB4AA" },
   markers: [],
+  badgeNumber: null,
   body: { fontSize: 9.3, fontFamily: "Inter", lineHeight: 13, color: "#24201E" },
   mutedColor: "#756F6B",
 });
@@ -833,6 +834,28 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
     .sort((a, b) => absoluteTop(a, pageHeight) - absoluteTop(b, pageHeight)
       || (Number(a.left) || 0) - (Number(b.left) || 0));
 
+  // Decorative ordinal badge (Monument's "01"/"02"/…): sample its styling so
+  // a new section can stamp its own computed position in the document, but
+  // never its sampled digits — those belong to the section it was copied
+  // from. `digits` records how many characters the sampled number had, so
+  // the caller can zero-pad the new ordinal to match ("04" -> 2 digits).
+  const badgeNumberElement = members.find((element) => element.element_id !== last.headingId
+    && element.flowRole === "section-chrome"
+    && element.isDecorativeChromeText
+    && (element.category === "text" || element.category === "textarea")
+    && inHeadingColumn(element)) || null;
+  const badgeNumber = badgeNumberElement
+    ? {
+      fontSize: Number(badgeNumberElement.fontSize) || DEFAULT_SECTION_STYLE.heading.fontSize,
+      fontFamily: String(badgeNumberElement.fontFamily || DEFAULT_SECTION_STYLE.heading.fontFamily),
+      color: String(badgeNumberElement.color || DEFAULT_SECTION_STYLE.heading.color),
+      bold: Boolean(badgeNumberElement.bold),
+      digits: String(badgeNumberElement.content || "").trim().length || 2,
+      relLeft: (Number(badgeNumberElement.left) || 0) - left,
+      relTop: absoluteTop(badgeNumberElement, pageHeight) - absoluteTop(heading, pageHeight),
+    }
+    : null;
+
   // Body copy: non-chrome content elements, in reading order.
   const bodyElements = members
     .filter((element) => element.element_id !== last.headingId
@@ -884,6 +907,7 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
       }
       return built;
     }),
+    badgeNumber,
     body: {
       fontSize: Number(body?.fontSize) || DEFAULT_SECTION_STYLE.body.fontSize,
       fontFamily: String(body?.fontFamily || DEFAULT_SECTION_STYLE.body.fontFamily),

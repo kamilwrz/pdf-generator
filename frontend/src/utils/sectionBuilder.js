@@ -156,12 +156,46 @@ function decorativeShapeElement({ elementId, shape, left }) {
 }
 
 /**
+ * Build the decorative ordinal-badge text for a Monument-style section
+ * ("01", "02", …). Only the digits are new — every other property is
+ * replicated from the sampled badge's own style. The new digits are the
+ * section's computed position in the document (see `sectionOrdinal` on
+ * `buildSectionElements`), zero-padded to the sampled digit count so a new
+ * section's badge matches its siblings' width ("5" -> "05" alongside "01").
+ * Tagged `isDecorativeChromeText` so `isSectionHeading` never mistakes it for
+ * the section's real title (see `sectionStructure.js`).
+ * @returns {object}
+ */
+function badgeNumberElement({ elementId, badgeNumber, sectionOrdinal, left }) {
+  return {
+    element_id: elementId,
+    category: "text",
+    content: String(sectionOrdinal).padStart(badgeNumber.digits, "0"),
+    flowRole: "section-chrome",
+    isDecorativeChromeText: true,
+    left: left + badgeNumber.relLeft,
+    top: badgeNumber.relTop,
+    fontSize: badgeNumber.fontSize,
+    fontFamily: badgeNumber.fontFamily,
+    color: badgeNumber.color,
+    bold: badgeNumber.bold,
+    italic: false,
+    underline: false,
+    isSelected: false,
+    isMove: false,
+    locked: false,
+    zIndex: 5,
+    page: 1,
+  };
+}
+
+/**
  * Build a new section's elements for the chosen layout.
  *
- * @param {{ name: string, layout: "aa"|"cc-edu"|"cc-exp", style: object, spacing?: object, idFactory: () => string }} args
+ * @param {{ name: string, layout: "aa"|"cc-edu"|"cc-exp", style: object, spacing?: object, sectionOrdinal?: number, idFactory: () => string }} args
  * @returns {{ elements: object[], headingId: string, firstBodyId: string }}
  */
-export function buildSectionElements({ name, layout, style, spacing, idFactory }) {
+export function buildSectionElements({ name, layout, style, spacing, sectionOrdinal, idFactory }) {
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
   // `PLACEHOLDER.heading` ("Nowa sekcja") is the authoritative default for a
   // blank section name. Callers such as AddSectionModal.handleConfirm also
@@ -176,6 +210,15 @@ export function buildSectionElements({ name, layout, style, spacing, idFactory }
 
   for (const shape of style.markers || []) {
     elements.push(decorativeShapeElement({ elementId: idFactory(), shape, left }));
+  }
+
+  if (style.badgeNumber) {
+    elements.push(badgeNumberElement({
+      elementId: idFactory(),
+      badgeNumber: style.badgeNumber,
+      sectionOrdinal: Number(sectionOrdinal) || 1,
+      left,
+    }));
   }
 
   // Heading label (section title). Placed at relTop 0 so it anchors the chrome.

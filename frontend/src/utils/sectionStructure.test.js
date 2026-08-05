@@ -760,8 +760,9 @@ describe("deriveSectionStyle", () => {
     // Monument's badge square is category "line" but height 32 (a filled
     // block, not a thin underline) and its label frame is a 251-wide
     // rectangle. Neither fits the old <=40px marker size cap. The decorative
-    // badge NUMBER text is intentionally excluded (never replicated) — only
-    // shapes (rectangle/circle/ellipse/line/image) are captured.
+    // badge NUMBER text is sampled separately (see `badgeNumber` tests below)
+    // — it never joins `markers`, since only shapes (rectangle/circle/
+    // ellipse/line/image) belong there.
     const elements = [
       { element_id: "badge-sq", category: "line", flowRole: "section-chrome",
         left: 66, top: 500, width: 32, height: 32, backgroundColor: "#111111" },
@@ -787,6 +788,50 @@ describe("deriveSectionStyle", () => {
     assert.equal(bigLine.height, 32);
     const rect = style.markers.find((shape) => shape.category === "rectangle");
     assert.equal(rect.width, 251);
+  });
+
+  it("captures the decorative badge-number's style, separate from markers", () => {
+    // The ordinal digits themselves ("04") belong to the SAMPLED section, not
+    // the new one — deriveSectionStyle captures only the badge's styling
+    // (font, color, offset, digit count for zero-padding); the actual number
+    // to stamp on a new section is computed by the caller (how many real
+    // sections already exist), not sampled here.
+    const elements = [
+      { element_id: "badge-num", category: "text", flowRole: "section-chrome",
+        isDecorativeChromeText: true, content: "04", left: 74, top: 508,
+        fontSize: 11, fontFamily: "Montserrat", color: "#ffffff", bold: true },
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "Umiejętności",
+        left: 118, top: 508, fontSize: 12.5, fontFamily: "CormorantGaramond", color: "#111111", bold: true },
+      { element_id: "r1", category: "line", flowRole: "section-chrome",
+        left: 369, top: 515, width: 160, height: 2, backgroundColor: "#cccccc" },
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true,
+        left: 118, top: 540, width: 251, height: 30, fontSize: 9, fontFamily: "Montserrat",
+        lineHeight: 14, color: "#343434" },
+    ];
+    const style = deriveSectionStyle(elements);
+    assert.ok(style.badgeNumber);
+    assert.equal(style.badgeNumber.fontSize, 11);
+    assert.equal(style.badgeNumber.fontFamily, "Montserrat");
+    assert.equal(style.badgeNumber.color, "#ffffff");
+    assert.equal(style.badgeNumber.bold, true);
+    assert.equal(style.badgeNumber.digits, 2); // "04".length, for zero-padding a new ordinal
+    assert.equal(style.badgeNumber.relLeft, 74 - 118); // -44
+    // The badge number text must never leak into `markers` (text is excluded there).
+    assert.equal(style.markers.some((shape) => shape.category === "text"), false);
+  });
+
+  it("has no badgeNumber when the section's chrome has no decorative ordinal text", () => {
+    const elements = [
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "Umiejętności",
+        left: 76, top: 100, fontSize: 8.7, fontFamily: "Inter", color: "#733B43" },
+      { element_id: "r1", category: "line", flowRole: "section-chrome",
+        left: 76, top: 111, width: 466, height: 1, backgroundColor: "#cccccc" },
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true,
+        left: 76, top: 128, width: 466, height: 30, fontSize: 9.3, fontFamily: "Inter",
+        lineHeight: 13, color: "#222222" },
+    ];
+    const style = deriveSectionStyle(elements);
+    assert.equal(style.badgeNumber, null);
   });
 });
 
