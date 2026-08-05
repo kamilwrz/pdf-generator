@@ -311,7 +311,7 @@ Hovering the first of two records inserts between them; hovering the last insert
 
 Implementation:
 
-- `frontend/src/utils/sectionRecord.js`, functions `listUpperRecordMembers`, `listRecordBlockAddAnchors`, `pickRecordTemplateGroup`, `ensureCanonicalRecordTemplate`, `insertRecordBlockAfterRecord` — one title anchor per record; clone the fullest edu/exp shape (pad short wizard entries to 4/3 lines); open a Y-hole under the anchor before pack so the new stack cannot interleave with the next title; then rhythm pack
+- `frontend/src/utils/sectionRecord.js`, functions `listUpperRecordMembers`, `listRecordBlockAddAnchors`, `pickRecordTemplateGroup`, `ensureCanonicalRecordTemplate`, `insertRecordBlockAfterRecord` — one title anchor per record; clone the fullest edu/exp shape (pad short wizard entries to 4/3 lines); open a document-wide Y-hole under the anchor (later section headings move too) so the new stack cannot interleave with the next title or leak under Skills; then rhythm pack
 - `frontend/src/hooks/useA4Elements.js`, function `handleAddRecordBlock` — exposed through `PdfContext` as `addRecordBlock`; skips canvas-enter hold (avoids opacity-0 until page remount) and jumps to the packed page when the insert lands off-screen
 - `frontend/src/hooks/useCanvasEnterIds.js` — prunes hold/fade when ids leave a page filter; re-queues cancelled enter ids so per-page `CanvasElements` cannot strand new content invisible
 - `frontend/src/hooks/useHoverPlusExclusive.js` — exclusive visible slot for heading / record plus controls
@@ -1303,7 +1303,7 @@ Najechanie na pierwszy z dwóch rekordów wstawia blok między nimi; na ostatni 
 
 Implementacja:
 
-- `frontend/src/utils/sectionRecord.js`, funkcje `listUpperRecordMembers`, `listRecordBlockAddAnchors`, `pickRecordTemplateGroup`, `ensureCanonicalRecordTemplate`, `insertRecordBlockAfterRecord` — jedna kotwica tytułu na rekord; klon pełnego kształtu edu/exp (krótkie wpisy z wizarda uzupełniane do 4/3 linii); dziura Y pod kotwicą przed packiem, żeby nowy stos nie mieszał się z kolejnym tytułem; potem pack rytmu
+- `frontend/src/utils/sectionRecord.js`, funkcje `listUpperRecordMembers`, `listRecordBlockAddAnchors`, `pickRecordTemplateGroup`, `ensureCanonicalRecordTemplate`, `insertRecordBlockAfterRecord` — jedna kotwica tytułu na rekord; klon pełnego kształtu edu/exp (krótkie wpisy z wizarda uzupełniane do 4/3 linii); dziura Y w całym dokumencie pod kotwicą (przesuwa też kolejne nagłówki sekcji), żeby nowy stos nie mieszał się z kolejnym tytułem ani nie wciekał pod Umiejętności; potem pack rytmu
 - `frontend/src/hooks/useA4Elements.js`, funkcja `handleAddRecordBlock` — wystawiana przez `PdfContext` jako `addRecordBlock`; bez hold canvas-enter (uniknięcie opacity 0 do remountu strony) oraz skok na stronę packa, gdy wstawka ląduje poza widokiem
 - `frontend/src/hooks/useCanvasEnterIds.js` — czyści hold/fade gdy id opuszcza filtr strony; wraca anulowane id do puli enter, żeby per-page `CanvasElements` nie zostawiał nowej treści niewidocznej
 - `frontend/src/hooks/useHoverPlusExclusive.js` — wspólny slot widoczności dla plusów nagłówka / rekordu

@@ -339,6 +339,58 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     assert.equal(groups[2][0].flowGroup, secondGroupId);
   });
 
+  it("moves later sections down so an education insert cannot leak under Skills", () => {
+    const pageHeight = 842;
+    const rhythm = { ...DEFAULT_FLOW_SPACING };
+    const edu = buildSectionElements({
+      name: "Wykształcenie",
+      layout: SECTION_LAYOUTS.RECORD_EDUCATION,
+      style,
+      idFactory: makeIdFactory("edu"),
+    });
+    let doc = appendSectionAtEnd([], edu.elements, pageHeight, { spacing: rhythm });
+    // Second education record so insert sits between two entries.
+    const second = appendRecordToSection(doc, edu.headingId, pageHeight, {
+      spacing: rhythm,
+      idFactory: makeIdFactory("edu2"),
+    });
+    assert.ok(second);
+    doc = second.elements;
+    const skills = buildSectionElements({
+      name: "Umiejętności",
+      layout: SECTION_LAYOUTS.TEXTAREA,
+      style: deriveSectionStyle(doc, pageHeight),
+      idFactory: makeIdFactory("sk"),
+    });
+    doc = appendSectionAtEnd(doc, skills.elements, pageHeight, { spacing: rhythm });
+
+    const eduBody = listSectionContentElements(doc, edu.headingId, pageHeight);
+    const result = insertRecordBlockAfterRecord(doc, eduBody[0].element_id, pageHeight, {
+      spacing: rhythm,
+      idFactory: makeIdFactory("mid"),
+    });
+    assert.ok(result);
+
+    const packedEdu = listSectionContentElements(result.elements, edu.headingId, pageHeight);
+    const packedSkills = listSectionContentElements(result.elements, skills.headingId, pageHeight);
+    // Education still owns every edu flowGroup line (none stolen by Skills).
+    for (const element of packedEdu) {
+      assert.ok(
+        !packedSkills.some((skill) => skill.element_id === element.element_id),
+        "education line must not appear in the skills section",
+      );
+    }
+    const skillsHeading = result.elements.find((element) => element.element_id === skills.headingId);
+    const lastEdu = packedEdu[packedEdu.length - 1];
+    const skillsAbs = (Number(skillsHeading.page) - 1) * pageHeight + Number(skillsHeading.top);
+    const eduBottom = (Number(lastEdu.page) - 1) * pageHeight
+      + Number(lastEdu.top) + Number(lastEdu.height);
+    assert.ok(
+      skillsAbs >= eduBottom - 0.5,
+      `skills heading (${skillsAbs}) must stay below education content (${eduBottom})`,
+    );
+  });
+
   it("keeps SPACE_RECORD between an inserted education block and the next title", () => {
     const pageHeight = 842;
     const rhythm = { ...DEFAULT_FLOW_SPACING };

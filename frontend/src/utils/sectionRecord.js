@@ -608,24 +608,22 @@ export function insertRecordBlockAfterRecord(
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
   const lastMate = group[group.length - 1];
   const anchorIds = new Set(group.map((element) => element.element_id));
-  const sectionIds = sectionElementIds(elements, headingId, pageHeight);
 
   const cloneStackHeight = clones.reduce((sum, element, index) => (
     sum + elementHeight(element) + (index > 0 ? rhythm.stack : 0)
   ), 0);
-  // Reserve the full insert height (+ record gap) so following titles are not
-  // still sitting inside the new stack's Y range when compactSectionStrip
-  // sorts by absoluteTop — that interleaving was merging "Uczelnia" into the
-  // next degree line before pack could separate flowGroups.
+  // Open a document-wide hole under the anchor. Shifting only this section's
+  // body (and leaving the next section heading put) pushed later education
+  // lines past UMIEJĘTNOŚCI — sectionElementIds then stole them into Skills.
   const hole = cloneStackHeight + rhythm.record;
   const thresholdAbs = absoluteBottom(lastMate, pageHeight);
 
   const list = (elements || []).map((element) => {
-    if (!element || !sectionIds.has(element.element_id)) return element;
+    if (!element || element.fixedToPage) return element;
     if (anchorIds.has(element.element_id)) return element;
-    if (element.flowRole === "section-chrome" || element.flowRole === "masthead") {
-      return element;
-    }
+    // Masthead stays; every later flow element (sibling records AND later
+    // section chrome/body) moves down by the reserved insert height.
+    if (element.flowRole === "masthead") return element;
     if (absoluteTop(element, pageHeight) + 0.01 < thresholdAbs) return element;
     const newAbs = absoluteTop(element, pageHeight) + hole;
     const page = Math.max(1, Math.floor(newAbs / pageHeight) + 1);
