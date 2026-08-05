@@ -259,7 +259,7 @@ Implementation:
 Tests:
 
 - `frontend/src/utils/sectionStructure.test.js`, `describe("deriveSectionStyle", …)` and `describe("appendSectionAtEnd", …)`
-- `frontend/src/utils/sectionBuilder.test.js`, `describe("buildSectionElements", …)`
+- `frontend/src/utils/sectionBuilder.test.js`, `describe("buildSectionElements", …)` (isolated construction) and `describe("build -> append -> reorder (composed production pipeline)", …)` — an integration test that chains the real `deriveSectionStyle` -> `buildSectionElements` -> `appendSectionAtEnd` -> `reorderSection` sequence exactly as `handleAddSection` uses it, and asserts the new record's four members remain one group after a reorder
 
 Known limitations:
 
@@ -1196,7 +1196,7 @@ Implementacja:
 Testy:
 
 - `frontend/src/utils/sectionStructure.test.js`, `describe("deriveSectionStyle", …)` oraz `describe("appendSectionAtEnd", …)`
-- `frontend/src/utils/sectionBuilder.test.js`, `describe("buildSectionElements", …)`
+- `frontend/src/utils/sectionBuilder.test.js`, `describe("buildSectionElements", …)` (izolowana budowa) oraz `describe("build -> append -> reorder (composed production pipeline)", …)` — test integracyjny łączący rzeczywisty ciąg `deriveSectionStyle` -> `buildSectionElements` -> `appendSectionAtEnd` -> `reorderSection` dokładnie tak, jak używa go `handleAddSection`, sprawdzający, że cztery elementy nowego rekordu pozostają jedną grupą po zmianie kolejności
 
 Znane ograniczenia:
 

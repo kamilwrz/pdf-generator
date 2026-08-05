@@ -1,7 +1,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { buildSectionElements, SECTION_LAYOUTS } from "./sectionBuilder.js";
-import { listDocumentSections, sectionElementIds } from "./sectionStructure.js";
+import {
+  appendSectionAtEnd,
+  deriveSectionStyle,
+  listDocumentSections,
+  reorderSection,
+  sectionElementIds,
+} from "./sectionStructure.js";
 
 // Deterministic ids so assertions are stable.
 function makeIdFactory() {
@@ -109,5 +115,82 @@ describe("buildSectionElements", () => {
     const ids = sectionElementIds(elements, headingId);
     // heading + rule + marker + 1 body block all belong to the section.
     assert.equal(ids.size, elements.length);
+  });
+});
+
+describe("build -> append -> reorder (composed production pipeline)", () => {
+  const pageHeight = 842;
+
+  // Minimal realistic document: one masthead line (flow content, excluded from
+  // section membership) plus one existing section (chrome heading + rule, one
+  // autoHeight content textarea). Mirrors the fixture shape already used by
+  // `appendSectionAtEnd`'s own tests in sectionStructure.test.js.
+  function existingDoc() {
+    return [
+      { element_id: "name", category: "text", flowRole: "masthead", content: "Jan Kowalski", left: 76, top: 60, fontSize: 20, height: 24, page: 1 },
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "Doświadczenie", left: 76, top: 120, fontSize: 8.7, height: 12, page: 1 },
+      { element_id: "r1", category: "line", flowRole: "section-chrome", left: 76, top: 132, width: 466, height: 1, page: 1 },
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true, left: 76, top: 150, width: 466, height: 60, fontSize: 9.3, page: 1 },
+    ];
+  }
+
+  it("chains deriveSectionStyle -> buildSectionElements -> appendSectionAtEnd -> reorderSection without scattering the new record", () => {
+    const doc = existingDoc();
+
+    // Step 1: sample a REAL style profile from the existing section instead of a
+    // hand-written fixture. This is the same seam `handleAddSection` uses so the
+    // new section matches the active template's heading/rule/body look.
+    const style = deriveSectionStyle(doc, pageHeight);
+    assert.equal(style.left, 76);
+    assert.equal(style.recordWidth, 466);
+    assert.ok(style.rule, "rule was sampled from the existing section, not defaulted to null");
+
+    // Step 2: build a new "cc" (RECORD) section from that sampled style.
+    const { elements: newElements, headingId: newHeadingId } = buildSectionElements({
+      name: "Kursy",
+      layout: SECTION_LAYOUTS.RECORD,
+      style,
+      idFactory: makeIdFactory(),
+    });
+    // Sanity: heading + rule + 4 content lines (the sampled style has no marker).
+    assert.equal(newElements.length, 6);
+    const newBodyIds = newElements
+      .filter((element) => element.flowRole === "content")
+      .map((element) => element.element_id);
+    assert.equal(newBodyIds.length, 4);
+
+    // Step 3: append the built strip into the real document flow.
+    const appended = appendSectionAtEnd(doc, newElements, pageHeight, {});
+
+    // Step 4: two sections now exist, in reading order — existing, then new.
+    const sectionsAfterAppend = listDocumentSections(appended, pageHeight);
+    assert.deepEqual(
+      sectionsAfterAppend.map((section) => section.title),
+      ["Doświadczenie", "Kursy"],
+    );
+
+    // Step 5: move the new section up, swapping it with the existing one — the
+    // same op the Sections panel triggers after a section is added at the end.
+    const reordered = reorderSection(appended, newHeadingId, "up", pageHeight);
+    assert.notEqual(reordered, null, "reorder must succeed for two adjacent sections");
+
+    const sectionsAfterReorder = listDocumentSections(reordered, pageHeight);
+    assert.deepEqual(
+      sectionsAfterReorder.map((section) => section.title),
+      ["Kursy", "Doświadczenie"],
+      "reorder swaps the two sections' reading order",
+    );
+
+    // Step 6: the record's 4 members must still be collected as one group under
+    // the new heading — proof the append + reorder/repack chain did not scatter
+    // the flowGroup while relocating the strip.
+    const reorderedIds = sectionElementIds(reordered, newHeadingId, pageHeight);
+    assert.equal(reorderedIds.size, 6, "heading + rule + 4 record lines stay together");
+    for (const id of newBodyIds) {
+      assert.ok(
+        reorderedIds.has(id),
+        `record member ${id} must still belong to its section after reorder`,
+      );
+    }
   });
 });

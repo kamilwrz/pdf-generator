@@ -114,6 +114,11 @@ function markerElement({ elementId, marker, left }) {
  */
 export function buildSectionElements({ name, layout, style, spacing, idFactory }) {
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
+  // `PLACEHOLDER.heading` ("Nowa sekcja") is the authoritative default for a
+  // blank section name. Callers such as AddSectionModal.handleConfirm also
+  // default defensively before invoking this builder — that duplication is
+  // intentional (this util must not trust its caller), but if either default
+  // string changes, update both so they do not silently diverge.
   const label = String(name || "").trim() || PLACEHOLDER.heading;
   const left = style.left;
   const width = style.recordWidth;
