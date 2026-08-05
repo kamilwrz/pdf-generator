@@ -312,7 +312,8 @@ Hovering the first of two records inserts between them; hovering the last insert
 Implementation:
 
 - `frontend/src/utils/sectionRecord.js`, functions `listUpperRecordMembers`, `listRecordBlockAddAnchors`, `insertRecordBlockAfterRecord` — one title anchor per record, clone with placeholders under the anchor, provisional in-band placement, then rhythm pack
-- `frontend/src/hooks/useA4Elements.js`, function `handleAddRecordBlock` — exposed through `PdfContext` as `addRecordBlock`
+- `frontend/src/hooks/useA4Elements.js`, function `handleAddRecordBlock` — exposed through `PdfContext` as `addRecordBlock`; skips canvas-enter hold (avoids opacity-0 until page remount) and jumps to the packed page when the insert lands off-screen
+- `frontend/src/hooks/useCanvasEnterIds.js` — prunes hold/fade when ids leave a page filter; re-queues cancelled enter ids so per-page `CanvasElements` cannot strand new content invisible
 - `frontend/src/hooks/useHoverPlusExclusive.js` — exclusive visible slot for heading / record plus controls
 - `frontend/src/components/canvas/recordPlusSize.js` — zoom-aware layout size
 - `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx` — title-mounted control, upper-line hover, exclusive + zoom size
@@ -1303,7 +1304,8 @@ Najechanie na pierwszy z dwóch rekordów wstawia blok między nimi; na ostatni 
 Implementacja:
 
 - `frontend/src/utils/sectionRecord.js`, funkcje `listUpperRecordMembers`, `listRecordBlockAddAnchors`, `insertRecordBlockAfterRecord` — jedna kotwica tytułu na rekord, klon z placeholderami pod kotwicą, prowizoryczne umieszczenie w paśmie, potem pack rytmu
-- `frontend/src/hooks/useA4Elements.js`, funkcja `handleAddRecordBlock` — wystawiana przez `PdfContext` jako `addRecordBlock`
+- `frontend/src/hooks/useA4Elements.js`, funkcja `handleAddRecordBlock` — wystawiana przez `PdfContext` jako `addRecordBlock`; bez hold canvas-enter (uniknięcie opacity 0 do remountu strony) oraz skok na stronę packa, gdy wstawka ląduje poza widokiem
+- `frontend/src/hooks/useCanvasEnterIds.js` — czyści hold/fade gdy id opuszcza filtr strony; wraca anulowane id do puli enter, żeby per-page `CanvasElements` nie zostawiał nowej treści niewidocznej
 - `frontend/src/hooks/useHoverPlusExclusive.js` — wspólny slot widoczności dla plusów nagłówka / rekordu
 - `frontend/src/components/canvas/recordPlusSize.js` — rozmiar zależny od zoomu
 - `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx` — jeden plus na rekord, hover górnych linii, exclusive + zoom

@@ -4,6 +4,7 @@ import { buildSectionElements, SECTION_LAYOUTS } from "./sectionBuilder.js";
 import { appendSectionAtEnd, deriveSectionStyle } from "./sectionStructure.js";
 import {
   appendRecordToSection,
+  buildRecordClone,
   elementSupportsRecordBlockAdd,
   inferRecordLayout,
   insertRecordBlockAfterRecord,
@@ -12,6 +13,7 @@ import {
   listSectionContentElements,
   listUpperRecordMembers,
   partitionSectionRecords,
+  pickRecordTemplateGroup,
   placeholderContentsForRecord,
   sectionSupportsRecordAdd,
 } from "./sectionRecord.js";
@@ -160,6 +162,52 @@ describe("appendRecordToSection", () => {
       idFactory: makeIdFactory(),
     });
     assert.equal(appendRecordToSection(elements, headingId), null);
+  });
+});
+
+describe("buildRecordClone / pickRecordTemplateGroup", () => {
+  it("preserves bold title, muted meta colour, and bullet body from the template", () => {
+    const clones = buildRecordClone([
+      {
+        category: "textarea", bold: true, color: "#0B1C2C", fontSize: 11,
+        lineHeight: 13.5, width: 400, left: 80, content: "Senior AML",
+      },
+      {
+        category: "textarea", bold: false, color: "#5A6A7A", fontSize: 8.7,
+        lineHeight: 11.5, width: 400, left: 80, content: "Bank · 2020",
+      },
+      {
+        category: "textarea", bold: false, color: "#243040", fontSize: 9.4,
+        lineHeight: 13.3, width: 400, left: 80, content: "Did things",
+        bulletList: true, height: 120,
+      },
+    ], makeIdFactory("c"));
+    assert.equal(clones.length, 3);
+    assert.equal(clones[0].content, "Stanowisko");
+    assert.equal(clones[0].bold, true);
+    assert.equal(clones[0].color, "#0B1C2C");
+    assert.equal(clones[1].content, "Firma · okres");
+    assert.equal(clones[1].bold, false);
+    assert.equal(clones[1].color, "#5A6A7A");
+    assert.equal(clones[2].content, "Opis…");
+    assert.equal(clones[2].bulletList, true);
+    assert.ok(clones[2].height < 80, "placeholder description should not keep tall source height");
+    assert.equal(clones[0].isEditing, false);
+    assert.equal(new Set(clones.map((element) => element.flowGroup)).size, 1);
+  });
+
+  it("prefers a bold-title template over a broken preferred group", () => {
+    const broken = [
+      { element_id: "a", bold: false, content: "x" },
+      { element_id: "b", bold: false, content: "y" },
+    ];
+    const healthy = [
+      { element_id: "t", bold: true, content: "Title" },
+      { element_id: "m", bold: false, content: "Meta" },
+      { element_id: "d", bold: false, bulletList: true, content: "Desc" },
+    ];
+    const picked = pickRecordTemplateGroup([broken, healthy], broken);
+    assert.equal(picked, healthy);
   });
 });
 

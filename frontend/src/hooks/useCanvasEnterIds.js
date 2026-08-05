@@ -4,6 +4,7 @@ import {
   CANVAS_ENTER_MS,
   clearEnteringIds,
   endCanvasEnterReflowSuppress,
+  markElementsEnter,
   takeEnteringIds,
 } from "../utils/canvasEnter";
 
@@ -14,9 +15,10 @@ import {
  * - `heldIds` — opacity 0 while waiting for fonts (hides fallback→webfont swaps)
  * - `fadingIds` — playing the opacity 0→1 animation
  *
- * Reflow stays suppressed for the whole hold; it resumes when the fade starts
- * so measurements use the real webfonts. Cleanup must not clear suppress
- * (React Strict Mode remount would otherwise reopen reflow mid-hold).
+ * Each page mounts its own `CanvasElements` with a filtered element list.
+ * When packing moves a freshly marked id onto another page before the fade
+ * starts, the hold must be pruned here and the id re-queued — otherwise the
+ * control stays at opacity 0 until a page / 2-page remount clears state.
  */
 export function useCanvasEnterIds(elements) {
   const idsKey = useMemo(
@@ -27,7 +29,30 @@ export function useCanvasEnterIds(elements) {
   const [fadingIds, setFadingIds] = useState(() => new Set());
 
   useLayoutEffect(() => {
-    const ids = idsKey ? idsKey.split("\0") : [];
+    const ids = idsKey ? idsKey.split("\0").filter(Boolean) : [];
+    const idSet = new Set(ids);
+
+    // Drop hold/fade for ids that left this page's filtered list (reflow /
+    // pack moved them, or the element was deleted).
+    setHeldIds((prev) => {
+      let changed = false;
+      const next = new Set();
+      for (const id of prev) {
+        if (idSet.has(id)) next.add(id);
+        else changed = true;
+      }
+      return changed ? next : prev;
+    });
+    setFadingIds((prev) => {
+      let changed = false;
+      const next = new Set();
+      for (const id of prev) {
+        if (idSet.has(id)) next.add(id);
+        else changed = true;
+      }
+      return changed ? next : prev;
+    });
+
     const fresh = takeEnteringIds(ids);
     if (fresh.length === 0) return undefined;
 
@@ -78,6 +103,11 @@ export function useCanvasEnterIds(elements) {
     return () => {
       cancelled = true;
       window.clearTimeout(fadeTimer);
+      // Effect re-ran (page filter / Strict Mode) before fade started — put the
+      // ids back so the next mount that still owns them can animate (or show).
+      if (!fadeStarted) {
+        markElementsEnter(fresh);
+      }
     };
   }, [idsKey]);
 

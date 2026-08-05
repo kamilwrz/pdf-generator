@@ -577,6 +577,7 @@ export function useA4Elements(titleRef) {
     // Record append is a template-flow operation — freeform keeps free positioning.
     if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return;
 
+    let jumpToPage = null;
     setA4_Elements((prev) => {
       const pageHeight = pageSizeRef.current?.height ?? 842;
       const spacing = flowSpacingRef.current;
@@ -587,11 +588,15 @@ export function useA4Elements(titleRef) {
       if (!result) return prev;
 
       const { elements: next, firstBodyId } = result;
-      // Fade in every new line of the appended record (ids exist only in `next`).
-      const addedIds = next
-        .filter((element) => !prev.some((old) => old.element_id === element.element_id))
-        .map((element) => element.element_id);
-      markElementsEnter(addedIds);
+      // Do not mark canvas-enter for structural inserts: each page filters
+      // elements, and a pack that moves new ids across pages can leave them
+      // stuck at opacity 0 until the page remounts (page change / 2-page view).
+
+      const packed = next.find((element) => element.element_id === firstBodyId);
+      if (packed) {
+        const page = Math.max(1, Math.trunc(Number(packed.page) || 1));
+        if (page !== currentPageRef.current) jumpToPage = page;
+      }
 
       return next.map((element) => {
         if (element.element_id === firstBodyId) {
@@ -603,6 +608,7 @@ export function useA4Elements(titleRef) {
         return element;
       });
     });
+    if (jumpToPage != null) setCurrentPage(jumpToPage);
   }, []);
 
   /**
@@ -615,6 +621,7 @@ export function useA4Elements(titleRef) {
     if (!afterElementId) return;
     if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return;
 
+    let jumpToPage = null;
     setA4_Elements((prev) => {
       const pageHeight = pageSizeRef.current?.height ?? 842;
       const spacing = flowSpacingRef.current;
@@ -627,10 +634,13 @@ export function useA4Elements(titleRef) {
       if (!result) return prev;
 
       const { elements: next, firstBodyId } = result;
-      const addedIds = next
-        .filter((element) => !prev.some((old) => old.element_id === element.element_id))
-        .map((element) => element.element_id);
-      markElementsEnter(addedIds);
+      // Immediate paint — see handleAddSectionRecord (no canvas-enter hold).
+
+      const packed = next.find((element) => element.element_id === firstBodyId);
+      if (packed) {
+        const page = Math.max(1, Math.trunc(Number(packed.page) || 1));
+        if (page !== currentPageRef.current) jumpToPage = page;
+      }
 
       return next.map((element) => {
         if (element.element_id === firstBodyId) {
@@ -642,6 +652,7 @@ export function useA4Elements(titleRef) {
         return element;
       });
     });
+    if (jumpToPage != null) setCurrentPage(jumpToPage);
   }, []);
 
   const handleSetTextareaEditing = useCallback((elementId, editing) => {

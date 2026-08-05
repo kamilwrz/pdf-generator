@@ -191,7 +191,48 @@ export function placeholderContentsForRecord(members) {
 }
 
 /**
+ * Rough line-box height matching `sectionBuilder` / ReportLab measure_block.
+ *
+ * @param {string} content
+ * @param {number} width
+ * @param {number} fontSize
+ * @param {number} lineHeight
+ * @returns {number}
+ */
+function measurePlaceholderHeight(content, width, fontSize, lineHeight) {
+  const lh = lineHeight || Math.round(fontSize * 1.4);
+  const cpl = Math.max(10, Math.floor(width / (fontSize * 0.52)));
+  let renderedLines = 0;
+  for (const seg of String(content || "").split("\n")) {
+    renderedLines += seg.trim() ? Math.max(1, Math.ceil(seg.length / cpl)) : 1;
+  }
+  return Math.max(lh, renderedLines * lh);
+}
+
+/**
+ * Prefer a multi-line group that still carries a bold title — avoids cloning a
+ * previously broken / partially styled insert as the structural template.
+ *
+ * @param {object[][]} groups
+ * @param {object[]|null} preferred
+ * @returns {object[]|null}
+ */
+export function pickRecordTemplateGroup(groups, preferred = null) {
+  const list = groups || [];
+  const hasBoldTitle = (group) => Boolean(group?.[0]?.bold);
+  if (preferred?.length >= 2 && hasBoldTitle(preferred)) return preferred;
+  const withBold = [...list].reverse().find((group) => group.length >= 2 && hasBoldTitle(group));
+  if (withBold) return withBold;
+  if (preferred?.length >= 2) return preferred;
+  return [...list].reverse().find((group) => group.length >= 2) || null;
+}
+
+/**
  * Build cloned record elements with new ids, a fresh flowGroup, and placeholders.
+ *
+ * Geometry/typography are taken from the template lines (bold title, muted meta,
+ * bullet description). Heights are re-measured for the placeholder copy so a
+ * tall source description does not inflate an empty "Opis…" line.
  *
  * @param {object[]} members last record members in reading order
  * @param {() => string} [idFactory]
@@ -203,20 +244,42 @@ export function buildRecordClone(members, idFactory = nanoid) {
   const placeholders = placeholderContentsForRecord(source);
   const group = `record-${idFactory()}`;
   return source.map((element, index) => {
+    const fontSize = Number(element.fontSize) || 9.3;
+    const lineHeight = Number(element.lineHeight) || Math.round(fontSize * 1.4);
+    const width = Number(element.width) || 466;
+    const content = placeholders[index] ?? PLACEHOLDER.generic;
+    // Explicit field copy — do not spread ephemeral UI flags (selection, move,
+    // editing) or stale page/top from the source record.
     const next = {
-      ...element,
       element_id: idFactory(),
-      content: placeholders[index] ?? PLACEHOLDER.generic,
-      flowGroup: group,
+      category: element.category === "text" ? "text" : "textarea",
+      content,
       flowRole: element.flowRole || "content",
+      flowGroup: group,
+      autoHeight: element.category === "text" ? Boolean(element.autoHeight) : true,
+      preserveInitialLayout: true,
+      left: Number(element.left) || 66,
+      top: 0,
+      width,
+      height: measurePlaceholderHeight(content, width, fontSize, lineHeight),
+      fontSize,
+      fontFamily: element.fontFamily || "Inter",
+      lineHeight,
+      letterSpacing: Number(element.letterSpacing) || 0,
+      color: element.color || "#24201E",
+      // Keep template emphasis: title bold, meta muted colour, bullet body.
+      bold: Boolean(element.bold),
+      italic: Boolean(element.italic),
+      underline: Boolean(element.underline),
+      align: element.align || "left",
+      bulletList: Boolean(element.bulletList),
       isSelected: false,
       isMove: false,
       isEditing: false,
+      locked: false,
+      zIndex: Number.isFinite(Number(element.zIndex)) ? Number(element.zIndex) : 4,
+      page: 1,
     };
-    // Fresh lines should shrink to measured content on mount like builder output.
-    if (next.category === "textarea") {
-      next.preserveInitialLayout = true;
-    }
     return next;
   });
 }
@@ -243,7 +306,7 @@ export function appendRecordToSection(
 
   const body = listSectionContentElements(elements, headingId, pageHeight);
   const groups = partitionSectionRecords(body);
-  const templateGroup = [...groups].reverse().find((group) => group.length >= 2);
+  const templateGroup = pickRecordTemplateGroup(groups);
   if (!templateGroup) return null;
 
   const clones = buildRecordClone(templateGroup, idFactory);
@@ -433,11 +496,9 @@ export function insertRecordBlockAfterRecord(
 
   const { headingId, group, body } = anchor;
   const groups = partitionSectionRecords(body);
-  // Prefer the hovered record's own field shape; fall back to any multi-line
-  // template in the section (e.g. after a previously inserted short block).
-  const templateGroup = (group.length >= 2 ? group : null)
-    || [...groups].reverse().find((candidate) => candidate.length >= 2)
-    || null;
+  // Prefer the hovered record when it still looks like a real edu/exp entry
+  // (bold title); otherwise clone the nearest healthy template in the section.
+  const templateGroup = pickRecordTemplateGroup(groups, group);
   if (!templateGroup) return null;
 
   const clones = buildRecordClone(templateGroup, idFactory);
