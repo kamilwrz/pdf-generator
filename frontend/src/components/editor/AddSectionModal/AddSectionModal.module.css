@@ -102,3 +102,52 @@
 .primary:hover {
   filter: brightness(1.05);
 }
+
+.iconFieldset {
+  margin-top: 14px;
+}
+
+.iconHint {
+  margin: 0 0 8px;
+  font: 500 11px/1.35 var(--font-body);
+  color: var(--chrome-muted);
+}
+
+.iconGallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: 6px;
+}
+
+.iconTile {
+  width: 100%;
+  aspect-ratio: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border: 1px solid var(--chrome-border);
+  border-radius: 7px;
+  background: var(--chrome-control);
+  cursor: pointer;
+  transition: border-color .12s, background .12s, box-shadow .12s;
+}
+
+.iconTile:hover {
+  border-color: var(--chrome-accent);
+  background: var(--chrome-hover);
+}
+
+.iconTileActive {
+  border-color: var(--chrome-accent);
+  box-shadow: inset 0 0 0 1px var(--chrome-accent);
+  background: color-mix(in srgb, var(--chrome-accent) 12%, var(--chrome-control));
+}
+
+.iconThumb {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}

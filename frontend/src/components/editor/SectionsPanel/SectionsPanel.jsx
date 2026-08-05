@@ -19,6 +19,7 @@ import {
   normalizeFlowSpacing,
 } from "../../../utils/flowSpacing";
 import AddSectionModal from "../AddSectionModal/AddSectionModal";
+import { listSectionIconOptions } from "../../../utils/sectionIcons";
 import classes from "./SectionsPanel.module.css";
 
 /** User-facing spacing knobs — keys stay aligned with SPACE_* in the generator. */
@@ -53,6 +54,7 @@ export default function SectionsPanel({ onClose }) {
     setFlowSpacing,
     baselineFlowSpacing,
     addSection,
+    activeTemplateId,
   } = use(PdfContext);
   const pageHeight = pageSize?.height ?? 842;
   const spacing = useMemo(
@@ -66,6 +68,15 @@ export default function SectionsPanel({ onClose }) {
   const sections = useMemo(
     () => listDocumentSections(A4_Elements, pageHeight),
     [A4_Elements, pageHeight],
+  );
+  // Icon gallery only for templates that decorate section headings with glyphs
+  // from `/template-assets/iconic/<theme>/`.
+  const iconOptions = useMemo(
+    () => listSectionIconOptions({
+      templateId: activeTemplateId,
+      elements: A4_Elements,
+    }),
+    [activeTemplateId, A4_Elements],
   );
   // Controls the "Dodaj sekcję" modal; kept local because the new section's
   // draft name/layout never need to be visible outside this panel.
@@ -97,8 +108,8 @@ export default function SectionsPanel({ onClose }) {
     setA4_Elements((prev) => applyFlowSpacing(prev, normalized, pageHeight));
   }
 
-  function handleConfirmAddSection({ name, layout }) {
-    addSection({ name, layout });
+  function handleConfirmAddSection({ name, layout, iconName }) {
+    addSection({ name, layout, iconName });
     setAddModalOpen(false);
   }
 
@@ -228,6 +239,7 @@ export default function SectionsPanel({ onClose }) {
         open={addModalOpen}
         onCancel={() => setAddModalOpen(false)}
         onConfirm={handleConfirmAddSection}
+        iconOptions={iconOptions}
       />
     </div>
   );

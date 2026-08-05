@@ -19,6 +19,7 @@ import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from '../utils/flowSpacing
 import { deriveSectionStyle, appendSectionAtEnd, listDocumentSections } from '../utils/sectionStructure';
 import { buildSectionElements } from '../utils/sectionBuilder';
 import { appendRecordToSection } from '../utils/sectionRecord';
+import { applySelectedSectionIcon } from '../utils/sectionIcons';
 import {
   createCircleElement,
   createEllipseElement,
@@ -520,13 +521,19 @@ export function useA4Elements(titleRef) {
    * new one matches the template; the first editable body enters edit mode so
    * the user can type immediately.
    *
-   * @param {{ name: string, layout: "aa"|"cc-edu"|"cc-exp" }} config
+   * @param {{ name: string, layout: "aa"|"cc-edu"|"cc-exp", iconName?: string|null }} config
    */
-  const handleAddSection = useCallback(({ name, layout }) => {
+  const handleAddSection = useCallback(({ name, layout, iconName = null }) => {
     setA4_Elements((prev) => {
       const pageHeight = pageSizeRef.current?.height ?? 842;
       const spacing = flowSpacingRef.current;
-      const style = deriveSectionStyle(prev, pageHeight);
+      let style = deriveSectionStyle(prev, pageHeight);
+      // Icon-tagged templates: swap/inject the section-heading glyph chosen in
+      // the Add Section gallery, keeping the sampled size and offset.
+      style = applySelectedSectionIcon(style, prev, pageHeight, {
+        templateId: activeTemplateId,
+        iconName,
+      });
       // Templates with a decorative ordinal badge (Monument's "01"/"02"/…)
       // number sections by their position in the document; the new section
       // becomes the next one, one past every currently detected section.
@@ -554,7 +561,7 @@ export function useA4Elements(titleRef) {
         return element;
       });
     });
-  }, []);
+  }, [activeTemplateId]);
 
   /**
    * Append one placeholder record inside an existing multi-line section

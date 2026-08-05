@@ -189,6 +189,12 @@ function decorativeShapeElement({ elementId, shape, left }) {
   };
   if (shape.borderWidth != null) base.borderWidth = shape.borderWidth;
   if (shape.filled != null) base.filled = shape.filled;
+  // Section-heading icons (Cardinal / Nova / Tessera / …) are image markers.
+  // Without src the canvas would render an empty chrome slot beside the title.
+  if (shape.category === "image") {
+    if (shape.src) base.src = shape.src;
+    if (shape.alignWithText) base.alignWithText = true;
+  }
   return base;
 }
 
@@ -231,6 +237,11 @@ function badgeNumberElement({ elementId, badgeNumber, sectionOrdinal, left }) {
  *
  * @param {{ name: string, layout: "aa"|"cc-edu"|"cc-exp", style: object, spacing?: object, sectionOrdinal?: number, idFactory: () => string }} args
  * @returns {{ elements: object[], headingId: string, firstBodyId: string }}
+ *
+ * Decorative markers (including iconic section images) come from `style.markers`.
+ * Callers that offer an icon gallery should run `applySelectedSectionIcon` on
+ * the style before invoking this builder so the chosen glyph lands at the same
+ * offset as sibling headings.
  */
 export function buildSectionElements({ name, layout, style, spacing, sectionOrdinal, idFactory }) {
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);

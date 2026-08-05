@@ -1,16 +1,14 @@
 /**
  * Modal for adding a new template-mode section: a section name plus a layout
  * choice — a single textarea, an education-style record, or an
- * experience-style record. Education and Experience are offered as distinct
- * options (not one merged "record" choice) because their field structures
- * differ: Education has a school/university line that Experience does not
- * (see `sectionBuilder.js` for the underlying field-line specs). The column
- * layout ("bb") is intentionally absent — it requires horizontal-row packer
- * support and ships in a later iteration.
+ * experience-style record. When the active template uses iconic section
+ * decorations, a small gallery lists every available glyph so the new heading
+ * gets an icon at the same offset as its siblings.
  */
 import { useState } from "react";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { SECTION_LAYOUTS } from "../../../utils/sectionBuilder";
+import { suggestSectionIconName } from "../../../utils/sectionIcons";
 import classes from "./AddSectionModal.module.css";
 
 const LAYOUT_OPTIONS = [
@@ -31,41 +29,78 @@ const LAYOUT_OPTIONS = [
   },
 ];
 
-export default function AddSectionModal({ open, onCancel, onConfirm }) {
+/**
+ * @param {{
+ *   open: boolean,
+ *   onCancel: () => void,
+ *   onConfirm: (payload: { name: string, layout: string, iconName: string|null }) => void,
+ *   iconOptions?: { name: string, src: string, label: string }[],
+ * }} props
+ */
+export default function AddSectionModal({
+  open,
+  onCancel,
+  onConfirm,
+  iconOptions = [],
+}) {
   const [name, setName] = useState("");
   const [layout, setLayout] = useState(SECTION_LAYOUTS.TEXTAREA);
+  const [iconName, setIconName] = useState(null);
   // Tracks the `open` value seen on the previous render so the block below can
   // detect a closed-to-open transition. State (not a ref) is required here:
   // the React Compiler's exhaustive lint rules forbid reading `ref.current`
   // during render, and React's own guidance for "adjusting state when a prop
-  // changes" (see https://react.dev/learn/you-might-not-need-an-effect
-  // #adjusting-some-state-when-a-prop-changes) uses state for exactly this
-  // "previous value" bookkeeping.
+  // changes" uses state for exactly this "previous value" bookkeeping.
   const [wasOpen, setWasOpen] = useState(open);
 
-  // Reset the form when the modal transitions from closed to open. Computed
-  // during render (not an effect) per React's guidance for adjusting state in
-  // response to a prop change — DialogShell unmounts its own content while
-  // closed, but this component instance persists, so state must be reset
-  // explicitly rather than relying on unmount/remount.
+  const hasIcons = Array.isArray(iconOptions) && iconOptions.length > 0;
+  const availableNames = hasIcons ? iconOptions.map((option) => option.name) : [];
+
+  // Reset the form when the modal transitions from closed to open.
   if (open && !wasOpen) {
     setName("");
     setLayout(SECTION_LAYOUTS.TEXTAREA);
+    setIconName(
+      hasIcons
+        ? (suggestSectionIconName("", availableNames) || iconOptions[0].name)
+        : null,
+    );
   }
   if (wasOpen !== open) {
     setWasOpen(open);
   }
 
+  function handleNameChange(event) {
+    const nextName = event.target.value;
+    setName(nextName);
+    // Keep the gallery selection in sync with the title while the user types,
+    // but only when the current pick is still the auto-suggestion for the
+    // previous title (or empty) — never override a deliberate manual choice.
+    if (!hasIcons) return;
+    const previousSuggestion = suggestSectionIconName(name, availableNames);
+    const nextSuggestion = suggestSectionIconName(nextName, availableNames);
+    if (
+      nextSuggestion
+      && (iconName == null || iconName === previousSuggestion || iconName === "other")
+    ) {
+      setIconName(nextSuggestion);
+    }
+  }
+
   function handleConfirm() {
     const trimmed = name.trim();
-    onConfirm({ name: trimmed || "Nowa sekcja", layout });
+    onConfirm({
+      name: trimmed || "Nowa sekcja",
+      layout,
+      iconName: hasIcons ? (iconName || iconOptions[0]?.name || null) : null,
+    });
   }
 
   return (
     <DialogShell
       open={open}
       onClose={onCancel}
-      width={440}
+      width={hasIcons ? 480 : 440}
       title="Dodaj sekcję"
       subtitle="Nowa sekcja pojawi się na końcu CV, w stylu obecnego szablonu"
       footer={(
@@ -86,7 +121,7 @@ export default function AddSectionModal({ open, onCancel, onConfirm }) {
           type="text"
           value={name}
           placeholder="np. Certyfikaty"
-          onChange={(event) => setName(event.target.value)}
+          onChange={handleNameChange}
           autoFocus
         />
       </label>
@@ -112,6 +147,34 @@ export default function AddSectionModal({ open, onCancel, onConfirm }) {
           </label>
         ))}
       </fieldset>
+
+      {hasIcons ? (
+        <fieldset className={`${classes.fieldset} ${classes.iconFieldset}`}>
+          <legend className={classes.label}>Ikona nagłówka</legend>
+          <p className={classes.iconHint}>
+            Wybierz ikonę — pojawi się obok tytułu, tak jak w innych sekcjach tego szablonu.
+          </p>
+          <div className={classes.iconGallery} role="listbox" aria-label="Ikony sekcji">
+            {iconOptions.map((option) => {
+              const selected = iconName === option.name;
+              return (
+                <button
+                  key={option.name}
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className={`${classes.iconTile}${selected ? ` ${classes.iconTileActive}` : ""}`}
+                  title={option.label}
+                  aria-label={option.label}
+                  onClick={() => setIconName(option.name)}
+                >
+                  <img src={option.src} alt="" className={classes.iconThumb} draggable={false} />
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+      ) : null}
     </DialogShell>
   );
 }

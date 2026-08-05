@@ -1048,6 +1048,12 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
       if (shape.category === "circle" || shape.category === "ellipse") {
         built.filled = Boolean(shape.filled);
       }
+      // Iconic section glyphs: keep the asset URL and text-alignment flag so
+      // buildSectionElements can place the same size/offset with a chosen icon.
+      if (shape.category === "image") {
+        built.src = String(shape.src || "");
+        built.alignWithText = Boolean(shape.alignWithText);
+      }
       return built;
     }),
     badgeNumber,
