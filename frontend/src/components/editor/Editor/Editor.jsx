@@ -1,23 +1,24 @@
 /**
- * Floating property inspector anchored above the current selection.
- *
- * Field visibility follows category capabilities (Text vs TextArea differ);
- * bulk edits go through `editSelectedElementValues` so mixed selections stay
- * consistent. Positioned in the viewport via selection DOM bboxes — not as a
- * slide-out beside the tool rail.
+ * Compact horizontal floating toolbar above the current selection
+ * (Enhancv-style form, CV STUDIO chrome). Icon-first controls; Text vs
+ * TextArea keep different field sets. Positioned via selection DOM bboxes.
  */
 import classes from "./Editor.module.css";
 import { useEffect, useLayoutEffect, useState, useRef, use } from "react";
 import { createPortal } from "react-dom";
-import EditorControls from "../../common/EditorControls/EditorControls";
-import CloseButton from "../../common/CloseButton/CloseButton";
-import { RiDeleteBin2Line } from "react-icons/ri";
-import { RiFileCopyLine } from "react-icons/ri";
-import { CiTextAlignLeft } from "react-icons/ci";
-import { CiTextAlignCenter } from "react-icons/ci";
-import { CiTextAlignRight } from "react-icons/ci";
-import { CiTextAlignJustify } from "react-icons/ci";
-import { MdFormatListBulleted } from "react-icons/md";
+import { RiDeleteBin2Line, RiFileCopyLine } from "react-icons/ri";
+import { CiTextAlignLeft, CiTextAlignCenter, CiTextAlignRight, CiTextAlignJustify } from "react-icons/ci";
+import {
+  MdFormatListBulleted,
+  MdEdit,
+  MdLock,
+  MdLockOpen,
+  MdClose,
+  MdFormatLineSpacing,
+  MdFormatSize,
+} from "react-icons/md";
+import { RxLetterSpacing, RxWidth, RxHeight, RxLayers } from "react-icons/rx";
+import { TbArrowBigRightLines } from "react-icons/tb";
 
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,812 +28,798 @@ import {
   unionRects,
 } from "../../../utils/floatingPanelPosition";
 
-const CATEGORY_LABELS = {
-    text: "Tekst",
-    textarea: "Pole tekstowe",
-    line: "Linia",
-    rectangle: "Prostokąt",
-    circle: "Koło",
-    ellipse: "Elipsa",
-    image: "Obraz",
-    connector: "Łącznik",
+const FONT_PREVIEW = {
+  "Times-Roman": "Times-Roman, 'Times New Roman', Times, serif",
+  Helvetica: "Helvetica, Arial, sans-serif",
+  Courier: "Courier, 'Courier New', monospace",
+  Inter: "Inter, sans-serif",
+  Roboto: "Roboto, sans-serif",
+  PlayfairDisplay: "PlayfairDisplay, serif",
+  CormorantGaramond: "CormorantGaramond, serif",
+  Lora: "Lora, serif",
+  Montserrat: "Montserrat, sans-serif",
+  JetBrainsMono: "JetBrainsMono, monospace",
 };
+
+const FONT_OPTIONS = [
+  { value: "Inter", label: "Inter" },
+  { value: "Roboto", label: "Roboto" },
+  { value: "Times-Roman", label: "Times" },
+  { value: "Helvetica", label: "Helvetica" },
+  { value: "Courier", label: "Courier" },
+  { value: "PlayfairDisplay", label: "Playfair" },
+  { value: "CormorantGaramond", label: "Cormorant" },
+  { value: "Lora", label: "Lora" },
+  { value: "Montserrat", label: "Montserrat" },
+  { value: "JetBrainsMono", label: "JetBrains" },
+];
 
 const BULLET_PREFIX_PATTERN = /^\s*•[ \t]*/;
 
 function canonicalBulletLine(line) {
-    return `• ${line.replace(BULLET_PREFIX_PATTERN, "").trimStart()}`;
+  return `• ${line.replace(BULLET_PREFIX_PATTERN, "").trimStart()}`;
 }
-
 
 export default function Editor() {
+  const {
+    A4_Elements,
+    editElementValues,
+    editSelectedElementValues,
+    alignElement,
+    deleteElement,
+    duplicateElement,
+    deleteSelectedElements,
+    duplicateSelectedElements,
+    setA4_Elements,
+    setTextareaEditing,
+    moveSelectedElements,
+    editorMode,
+    zoom,
+    isTwoPageView,
+    currentPage,
+  } = use(PdfContext);
 
-    const {
-        A4_Elements,
-        editElementValues,
-        editSelectedElementValues,
-        alignElement,
-        deleteElement,
-        duplicateElement,
-        deleteSelectedElements,
-        duplicateSelectedElements,
-        setA4_Elements,
-        setTextareaEditing,
-        moveSelectedElements,
-        editorMode,
-        zoom,
-        isTwoPageView,
-        currentPage,
-    } = use(PdfContext);
+  const selectedElements = A4_Elements.filter((element) => element.isSelected);
+  const selectedElement = selectedElements[0];
+  const someElementSelected = selectedElements.length > 0;
+  const isMultiSelection = selectedElements.length > 1;
+  const positionLocked = Boolean(
+    selectedElement?.locked
+    || (selectedElement && !canFreePositionElement(selectedElement, editorMode)),
+  );
 
-    const selectedElements = A4_Elements.filter(element => element.isSelected);
-    const selectedElement = selectedElements[0];
-    const someElementSelected = selectedElements.length > 0;
-    const isMultiSelection = selectedElements.length > 1;
-    const positionLocked = Boolean(
-        selectedElement?.locked
-        || (selectedElement && !canFreePositionElement(selectedElement, editorMode)),
-    );
+  const [elementValues, setElementValues] = useState({});
+  const [groupMoveValues, setGroupMoveValues] = useState({ x: "0", y: "0" });
+  const groupMoveOffsetRef = useRef({ x: 0, y: 0 });
+  const panelRef = useRef(null);
+  const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
+  const selectionKey = selectedElements.map((element) => element.element_id).join("|");
+  const selectionGeometryKey = selectedElements
+    .map((element) => [
+      element.element_id,
+      element.page ?? 1,
+      Math.round(Number(element.left) || 0),
+      Math.round(Number(element.top) || 0),
+      Math.round(Number(element.width) || 0),
+      Math.round(Number(element.height) || 0),
+    ].join(":"))
+    .join("|");
 
-    const [elementValues, setElementValues] = useState({});
-    const [groupMoveValues, setGroupMoveValues] = useState({ x: "0", y: "0" });
-    const groupMoveOffsetRef = useRef({ x: 0, y: 0 });
-    const panelRef = useRef(null);
-    const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
-    const selectionKey = selectedElements.map((element) => element.element_id).join("|");
-    // Geometry fingerprint so the panel re-anchors after drag / resize / reflow.
-    const selectionGeometryKey = selectedElements
-        .map((element) => [
-            element.element_id,
-            element.page ?? 1,
-            Math.round(Number(element.left) || 0),
-            Math.round(Number(element.top) || 0),
-            Math.round(Number(element.width) || 0),
-            Math.round(Number(element.height) || 0),
-        ].join(":"))
-        .join("|");
+  function handleChangeValues(e, identifier) {
+    if (
+      (identifier === "left" || identifier === "top")
+      && (selectedElement.locked || !canFreePositionElement(selectedElement, editorMode))
+    ) {
+      return;
+    }
+    const value = ["fontSize", "height", "width", "lineHeight", "letterSpacing", "left", "top", "borderWidth", "zIndex"].includes(identifier)
+      ? Number(e.target.value)
+      : e.target.value;
+    let valueObject = { [identifier]: value };
 
-    function handleChangeValues(e, identifier) {
+    if ((identifier === "width" || identifier === "height") && selectedElement.category === "circle") {
+      valueObject = { width: value, height: value };
+    } else if (identifier === "width" && selectedElement.category === "image") {
+      const image = document.getElementById(selectedElement.element_id);
+      const aspectRatio = image.naturalHeight / image.naturalWidth;
+      const newHeight = Math.round(value * aspectRatio);
+      valueObject = { height: newHeight, width: value };
+    }
+    editElementValues(valueObject, selectedElement.element_id);
+    setElementValues((prevData) => ({ ...prevData, [identifier]: e.target.value }));
+  }
 
-        if (
-            (identifier === "left" || identifier === "top")
-            && (selectedElement.locked || !canFreePositionElement(selectedElement, editorMode))
-        ) {
-            return;
+  function toggleStyle(key) {
+    editElementValues({ [key]: !selectedElement[key] }, selectedElement.element_id);
+  }
+
+  const supportsBulkField = (key) => selectedElements.every((element) => (
+    Object.prototype.hasOwnProperty.call(element, key)
+  ));
+  const bulkValue = (key) => selectedElements[0]?.[key] ?? "";
+  const isBulkValueMixed = (key) => selectedElements.some((element) => (
+    element[key] !== selectedElements[0]?.[key]
+  ));
+
+  function handleBulkChangeValues(e, identifier) {
+    const value = ["fontSize", "lineHeight", "letterSpacing", "borderWidth", "width", "height", "zIndex"].includes(identifier)
+      ? Number(e.target.value)
+      : e.target.value;
+    editSelectedElementValues({ [identifier]: value });
+    setElementValues((prevData) => ({ ...prevData, [identifier]: e.target.value }));
+  }
+
+  function toggleBulkStyle(key) {
+    const allEnabled = selectedElements.every((element) => Boolean(element[key]));
+    editSelectedElementValues({ [key]: !allEnabled });
+  }
+
+  function setBulkAlign(value) {
+    editSelectedElementValues({ align: value });
+  }
+
+  function handleGroupMoveValueChange(e, axis) {
+    const nextInputValue = e.target.value;
+    setGroupMoveValues((previous) => ({ ...previous, [axis]: nextInputValue }));
+    if (nextInputValue === "" || nextInputValue === "-") return;
+    const nextOffset = Number(nextInputValue);
+    if (!Number.isFinite(nextOffset)) return;
+    const delta = nextOffset - groupMoveOffsetRef.current[axis];
+    if (delta === 0) return;
+    moveSelectedElements(axis === "x" ? delta : 0, axis === "y" ? delta : 0);
+    groupMoveOffsetRef.current = { ...groupMoveOffsetRef.current, [axis]: nextOffset };
+  }
+
+  function insertBulletAtCurrentLine() {
+    const el = document.getElementById(selectedElement.element_id);
+    if (!el || typeof el.selectionStart !== "number") return;
+    const start = el.selectionStart;
+    const value = el.value;
+    const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+    const lineEnd = value.indexOf("\n", start);
+    const line = value.slice(lineStart, lineEnd === -1 ? value.length : lineEnd);
+    if (line.trimStart().startsWith("•")) return;
+    const leadingWhitespace = line.match(/^\s*/)[0].length;
+    const newLine = canonicalBulletLine(line);
+    const newValue = value.slice(0, lineStart) + newLine + value.slice(lineStart + line.length);
+    editElementValues({ content: newValue }, selectedElement.element_id);
+    const cursorPos = lineStart + 2 + Math.max(0, start - lineStart - leadingWhitespace);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(cursorPos, cursorPos);
+    });
+  }
+
+  function toggleBulletList() {
+    const turningOn = !selectedElement.bulletList;
+    const content = selectedElement.content ?? "";
+    const newContent = content
+      .split("\n")
+      .map((line) => {
+        if (turningOn) {
+          if (line.trim() === "") return line;
+          return canonicalBulletLine(line);
         }
-        const value = ["fontSize", "height", "width", "lineHeight", "letterSpacing", "left", "top", "borderWidth"].includes(identifier) ? Number(e.target.value) : e.target.value;
-        let valueObject = { [identifier]: value }
+        return line.replace(BULLET_PREFIX_PATTERN, "");
+      })
+      .join("\n");
+    editElementValues({ bulletList: turningOn, content: newContent }, selectedElement.element_id);
+  }
 
-        if ((identifier === "width" || identifier === "height") && selectedElement.category === "circle") {
-            valueObject = { width: value, height: value };
-        } else if (identifier === "width" && selectedElement.category === "image") {
-            const image = document.getElementById(selectedElement.element_id);
-            const aspectRatio = image.naturalHeight / image.naturalWidth;
-            const newHeight = Math.round(value * aspectRatio);
-            valueObject = { height: newHeight, width: value };
-        }
-        editElementValues(valueObject, selectedElement.element_id);
-        setElementValues(prevData => {
-            return { ...prevData, [identifier]: e.target.value };
-        });
+  function setAlign(value) {
+    editElementValues({ align: value }, selectedElement.element_id);
+  }
+
+  function handleCloseEditor() {
+    setA4_Elements((prevState) => prevState.map((element) => (
+      element.isSelected
+        ? { ...element, isSelected: false, isEditing: false }
+        : element
+    )));
+  }
+
+  useEffect(() => {
+    setElementValues({
+      element_id: selectedElement?.element_id,
+      content: selectedElement?.content,
+      color: selectedElement?.color,
+      backgroundColor: selectedElement?.backgroundColor,
+      fontSize: selectedElement?.fontSize,
+      fontFamily: selectedElement?.fontFamily,
+      lineHeight: selectedElement?.lineHeight,
+      letterSpacing: selectedElement?.letterSpacing,
+      left: selectedElement ? Math.round(selectedElement.left) : undefined,
+      top: selectedElement ? Math.round(selectedElement.top) : undefined,
+      width: selectedElement?.width,
+      height: selectedElement?.height,
+      borderWidth: selectedElement?.borderWidth,
+      filled: selectedElement?.filled,
+      locked: selectedElement?.locked ?? false,
+      category: selectedElement?.category,
+      zIndex: selectedElement?.zIndex,
+    });
+  }, [someElementSelected, selectedElement]);
+
+  useEffect(() => {
+    setGroupMoveValues({ x: "0", y: "0" });
+    groupMoveOffsetRef.current = { x: 0, y: 0 };
+  }, [selectionKey]);
+
+  useLayoutEffect(() => {
+    if (!someElementSelected) return undefined;
+
+    function readAnchorRect() {
+      const ids = selectionKey ? selectionKey.split("|").filter(Boolean) : [];
+      const rects = ids
+        .map((id) => document.getElementById(id)?.getBoundingClientRect())
+        .filter(Boolean)
+        .map((rect) => ({
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+        }));
+      return unionRects(rects);
     }
 
-    function toggleStyle(key) {
-        editElementValues({ [key]: !selectedElement[key] }, selectedElement.element_id);
+    function updatePosition() {
+      const panel = panelRef.current;
+      const anchor = readAnchorRect();
+      if (!panel || !anchor) return;
+      const next = computeFloatingPanelPosition(
+        anchor,
+        { width: panel.offsetWidth, height: panel.offsetHeight },
+        { width: window.innerWidth, height: window.innerHeight },
+      );
+      setPanelPosition((previous) => (
+        previous.top === next.top && previous.left === next.left
+          ? previous
+          : { top: next.top, left: next.left }
+      ));
     }
 
-    const supportsBulkField = (key) => selectedElements.every((element) =>
-        Object.prototype.hasOwnProperty.call(element, key)
-    );
+    updatePosition();
+    const panel = panelRef.current;
+    const resizeObserver = typeof ResizeObserver !== "undefined" && panel
+      ? new ResizeObserver(updatePosition)
+      : null;
+    if (resizeObserver && panel) resizeObserver.observe(panel);
+    const canvasArea = document.querySelector(".canvas-area");
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    canvasArea?.addEventListener("scroll", updatePosition, { passive: true });
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+      canvasArea?.removeEventListener("scroll", updatePosition);
+    };
+  }, [
+    someElementSelected,
+    selectionKey,
+    selectionGeometryKey,
+    zoom,
+    isTwoPageView,
+    currentPage,
+  ]);
 
-    const bulkValue = (key) => selectedElements[0]?.[key] ?? "";
+  const cat = selectedElement?.category;
 
-    const isBulkValueMixed = (key) => selectedElements.some((element) =>
-        element[key] !== selectedElements[0]?.[key]
-    );
-
-    function handleBulkChangeValues(e, identifier) {
-        const value = ["fontSize", "lineHeight", "letterSpacing", "borderWidth", "width", "height", "zIndex"].includes(identifier)
-            ? Number(e.target.value)
-            : e.target.value;
-        editSelectedElementValues({ [identifier]: value });
-        setElementValues((prevData) => ({ ...prevData, [identifier]: e.target.value }));
-    }
-
-    function toggleBulkStyle(key) {
-        const allEnabled = selectedElements.every((element) => Boolean(element[key]));
-        editSelectedElementValues({ [key]: !allEnabled });
-    }
-
-    function setBulkAlign(value) {
-        editSelectedElementValues({ align: value });
-    }
-
-    function handleGroupMoveValueChange(e, axis) {
-        const nextInputValue = e.target.value;
-        setGroupMoveValues((previous) => ({ ...previous, [axis]: nextInputValue }));
-
-        // Keep partially entered values such as "-" editable. A movement is
-        // applied as soon as the value represents a real numeric offset.
-        if (nextInputValue === "" || nextInputValue === "-") return;
-        const nextOffset = Number(nextInputValue);
-        if (!Number.isFinite(nextOffset)) return;
-
-        const delta = nextOffset - groupMoveOffsetRef.current[axis];
-        if (delta === 0) return;
-
-        moveSelectedElements(axis === "x" ? delta : 0, axis === "y" ? delta : 0);
-        groupMoveOffsetRef.current = {
-            ...groupMoveOffsetRef.current,
-            [axis]: nextOffset,
-        };
-    }
-
-    // Inserts a canonical "• " prefix at the current line. Canonicalizing
-    // removes indentation that would otherwise make one bullet body start
-    // farther right than the rest in the canvas or exported PDF.
-    function insertBulletAtCurrentLine() {
-        const el = document.getElementById(selectedElement.element_id);
-        if (!el || typeof el.selectionStart !== "number") return;
-
-        const start = el.selectionStart;
-        const value = el.value;
-        const lineStart = value.lastIndexOf("\n", start - 1) + 1;
-        const lineEnd = value.indexOf("\n", start);
-        const line = value.slice(lineStart, lineEnd === -1 ? value.length : lineEnd);
-        if (line.trimStart().startsWith("•")) return;
-
-        const leadingWhitespace = line.match(/^\s*/)[0].length;
-        const newLine = canonicalBulletLine(line);
-        const newValue = value.slice(0, lineStart) + newLine + value.slice(lineStart + line.length);
-        editElementValues({ content: newValue }, selectedElement.element_id);
-
-        const cursorPos = lineStart + 2 + Math.max(0, start - lineStart - leadingWhitespace);
-        requestAnimationFrame(() => {
-            el.focus();
-            el.setSelectionRange(cursorPos, cursorPos);
-        });
-    }
-
-    // Toggles canonical bullets for every non-empty line. A bullet's marker
-    // and one following space are the only prefix allowed, ensuring a shared
-    // text start in both rendering paths.
-    function toggleBulletList() {
-        const turningOn = !selectedElement.bulletList;
-        const content = selectedElement.content ?? "";
-        const newContent = content
-            .split("\n")
-            .map((line) => {
-                if (turningOn) {
-                    if (line.trim() === "") return line;
-                    return canonicalBulletLine(line);
-                }
-                return line.replace(BULLET_PREFIX_PATTERN, "");
-            })
-            .join("\n");
-        editElementValues({ bulletList: turningOn, content: newContent }, selectedElement.element_id);
-    }
-
-    function setAlign(value) {
-        editElementValues({ align: value }, selectedElement.element_id);
-    }
-
-    function handleCloseEditor() {
-        setA4_Elements(prevState => {
-            return prevState.map((element) => (
-                element.isSelected
-                    ? { ...element, isSelected: false, isEditing: false }
-                    : element
-            ));
-        });
-    }
-
-    useEffect(() => {
-        setElementValues(prevState => {
-            return {
-                ...prevState,
-                element_id: selectedElement?.element_id,
-                content: selectedElement?.content,
-                color: selectedElement?.color,
-                backgroundColor: selectedElement?.backgroundColor,
-                fontSize: selectedElement?.fontSize,
-                fontFamily: selectedElement?.fontFamily,
-                lineHeight: selectedElement?.lineHeight,
-                letterSpacing: selectedElement?.letterSpacing,
-                left: selectedElement ? Math.round(selectedElement.left) : undefined,
-                top: selectedElement ? Math.round(selectedElement.top) : undefined,
-                width: selectedElement?.width,
-                height: selectedElement?.height,
-                borderWidth: selectedElement?.borderWidth,
-                filled: selectedElement?.filled,
-                locked: selectedElement?.locked ?? false,
-                category: selectedElement?.category,
-                zIndex: selectedElement?.zIndex
-            };
-        });
-    }, [someElementSelected, selectedElement])
-
-    // Relative group offsets describe movement from the moment this collection
-    // was selected, so a different selection always starts at zero.
-    useEffect(() => {
-        setGroupMoveValues({ x: "0", y: "0" });
-        groupMoveOffsetRef.current = { x: 0, y: 0 };
-    }, [selectionKey]);
-
-    useLayoutEffect(() => {
-        if (!someElementSelected) return undefined;
-
-        function readAnchorRect() {
-            // Prefer selectionKey ids so this effect does not close over a fresh
-            // `selectedElements` array every render.
-            const ids = selectionKey ? selectionKey.split("|").filter(Boolean) : [];
-            const rects = ids
-                .map((id) => document.getElementById(id)?.getBoundingClientRect())
-                .filter(Boolean)
-                .map((rect) => ({
-                    left: rect.left,
-                    top: rect.top,
-                    width: rect.width,
-                    height: rect.height,
-                }));
-            return unionRects(rects);
-        }
-
-        function updatePosition() {
-            const panel = panelRef.current;
-            const anchor = readAnchorRect();
-            if (!panel || !anchor) return;
-            const panelSize = {
-                width: panel.offsetWidth,
-                height: panel.offsetHeight,
-            };
-            const next = computeFloatingPanelPosition(
-                anchor,
-                panelSize,
-                { width: window.innerWidth, height: window.innerHeight },
-            );
-            setPanelPosition((previous) => (
-                previous.top === next.top && previous.left === next.left
-                    ? previous
-                    : { top: next.top, left: next.left }
-            ));
-        }
-
-        updatePosition();
-
-        const panel = panelRef.current;
-        const resizeObserver = typeof ResizeObserver !== "undefined" && panel
-            ? new ResizeObserver(updatePosition)
-            : null;
-        if (resizeObserver && panel) resizeObserver.observe(panel);
-
-        const canvasArea = document.querySelector(".canvas-area");
-        window.addEventListener("resize", updatePosition);
-        // Capture scroll from nested canvas scrollers (zoom / multi-page).
-        window.addEventListener("scroll", updatePosition, true);
-        canvasArea?.addEventListener("scroll", updatePosition, { passive: true });
-
-        return () => {
-            resizeObserver?.disconnect();
-            window.removeEventListener("resize", updatePosition);
-            window.removeEventListener("scroll", updatePosition, true);
-            canvasArea?.removeEventListener("scroll", updatePosition);
-        };
-    // `selectionKey` / `selectionGeometryKey` capture id + geometry; do not
-    // depend on the `selectedElements` array identity (new each render).
-    }, [
-        someElementSelected,
-        selectionKey,
-        selectionGeometryKey,
-        zoom,
-        isTwoPageView,
-        currentPage,
-    ]);
-
-    const panel = (
-        <AnimatePresence>
-            {someElementSelected && (
-                <motion.aside
-                    ref={panelRef}
-                    className={classes.editor}
-                    role="dialog"
-                    aria-label="Właściwości elementu"
-                    style={{ top: panelPosition.top, left: panelPosition.left }}
-                    initial={{ opacity: 0, scale: 0.97, y: 4 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.97, y: 4 }}
-                    transition={{ duration: 0.16, ease: "easeOut" }}
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onMouseDown={(event) => event.stopPropagation()}
-                >
-        <form className={classes.editorForm} onSubmit={(event) => event.preventDefault()}>
-            <div className={classes.editorHeading}>
-                <div className={classes.headingLeft}>
-                    <span className={`${classes.headingIcon} ${isMultiSelection ? classes.headingIconMulti : ""}`}>
-                        {isMultiSelection ? selectedElements.length : (
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7V5h16v2" /><path d="M12 5v14" /><path d="M9 19h6" /></svg>
-                        )}
-                    </span>
-                    <p>{isMultiSelection ? `Zaznaczono: ${selectedElements.length}` : selectedElement?.category ? `Element: ${CATEGORY_LABELS[selectedElement.category] ?? selectedElement.category}` : "Właściwości elementu"}</p>
-                </div>
-                <CloseButton clickHandler={handleCloseEditor} right={8} top={7} width={20} height={20} />
-            </div>
-            <div className={classes.editorBody}>
+  const panel = (
+    <AnimatePresence>
+      {someElementSelected && (
+        <motion.aside
+          ref={panelRef}
+          className={classes.editor}
+          role="toolbar"
+          aria-label="Właściwości elementu"
+          style={{ top: panelPosition.top, left: panelPosition.left }}
+          initial={{ opacity: 0, y: 4, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 4, scale: 0.98 }}
+          transition={{ duration: 0.14, ease: "easeOut" }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <form className={classes.bar} onSubmit={(event) => event.preventDefault()}>
             {isMultiSelection ? (
-                <BulkEditor
-                    selectedElements={selectedElements}
-                    supportsField={supportsBulkField}
-                    valueForField={bulkValue}
-                    isValueMixed={isBulkValueMixed}
-                    onChangeValue={handleBulkChangeValues}
-                    onToggleStyle={toggleBulkStyle}
-                    onSetAlign={setBulkAlign}
-                    groupMoveValues={groupMoveValues}
-                    onGroupMoveValueChange={handleGroupMoveValueChange}
-                    onDuplicateSelected={duplicateSelectedElements}
-                    onDeleteSelected={deleteSelectedElements}
-                />
-            ) : <>
-            {selectedElement?.category === "text" && <>
-                <div className={classes.propCard}>
-                    <button type="button" className={classes.editTextBtn} onClick={() => setTextareaEditing(selectedElement.element_id, true)}>Edytuj tekst</button>
-                </div>
-                <div className={classes.propCard}>
-                    <div className={classes.elementSize}>
-                        <EditorControls labelText="Rozmiar czcionki" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
-                        <EditorControls labelText="Kolor tekstu" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
-                    </div>
-                    <EditorControls labelText="Rodzina czcionki" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
-                    <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
-                </div>
-            </>}
-            {selectedElement?.category === "textarea" && <>
-                <div className={classes.propCard}>
-                    <button type="button" className={classes.editTextBtn} onClick={() => setTextareaEditing(selectedElement.element_id, true)}>Edytuj tekst</button>
-                    {/* Always mounted (never conditionally removed from the tree): if this
-                        were `isEditing && <button>`, clicking a LATER sibling (e.g. the
-                        hanging-indent checkbox below) blurs the textarea first, which flips
-                        isEditing and removes this button in the same click — shifting every
-                        sibling after it by one position and breaking that click's own
-                        onChange under React's positional reconciliation. Disabling instead
-                        of unmounting keeps sibling positions stable. */}
-                    <button
-                        type="button"
-                        className={classes.editTextBtn}
-                        disabled={!selectedElement?.isEditing}
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={insertBulletAtCurrentLine}
-                    ><MdFormatListBulleted />Wstaw punktor</button>
-                </div>
-                <div className={classes.propCard}>
-                    <div className={classes.elementSize}>
-                        <EditorControls labelText="Rozmiar czcionki" type="number" inputValue={elementValues.fontSize} onChangeFn={(e) => handleChangeValues(e, "fontSize")} />
-                        <EditorControls labelText="Kolor tekstu" type="color" inputValue={elementValues.color} onChangeFn={(e) => handleChangeValues(e, "color")} />
-                    </div>
-                    <EditorControls labelText="Rodzina czcionki" type="select" inputValue={elementValues.fontFamily} onChangeFn={(e) => handleChangeValues(e, "fontFamily")} isSelect={true} />
-                    <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
-                    <AlignToggles selectedElement={selectedElement} setAlign={setAlign} />
-                    <label className={classes.pushToggle}>
-                        <input type="checkbox" checked={!!selectedElement?.bulletList} onChange={toggleBulletList} />
-                        <span>Lista punktowana (• w każdej linii)</span>
-                    </label>
-                    <div className={classes.elementSize}>
-                        <EditorControls labelText="Wysokość linii" type="number" inputValue={elementValues.lineHeight} onChangeFn={(e) => handleChangeValues(e, "lineHeight")} />
-                        <EditorControls labelText="Odstęp między literami" type="number" inputValue={elementValues.letterSpacing} onChangeFn={(e) => handleChangeValues(e, "letterSpacing")} />
-                    </div>
-                    <div className={classes.elementSize}>
-                        <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
-                        <EditorControls
-                            labelText={selectedElement.autoHeight ? "Wysokość (automatyczna)" : "Wysokość"}
-                            type="number"
-                            inputValue={elementValues.height}
-                            onChangeFn={(e) => handleChangeValues(e, "height")}
-                            isDisabled={!!selectedElement.autoHeight}
-                        />
-                    </div>
-                </div>
-            </>}
-            {selectedElement?.category === "line" && <>
-                <div className={classes.propCard}>
-                    <div className={classes.elementSize}>
-                        <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
-                        <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
-                    </div>
-                    <EditorControls labelText="Kolor tła" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
-                </div>
-            </>}
-            {selectedElement?.category === "rectangle" && <>
-                <div className={classes.propCard}>
-                    <div className={classes.elementSize}>
-                        <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
-                        <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
-                    </div>
-                    <div className={classes.elementSize}>
-                        <EditorControls labelText="Szerokość obramowania" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
-                        <EditorControls labelText="Kolor obramowania" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
-                    </div>
-                </div>
-            </>}
-            {(selectedElement?.category === "circle" || selectedElement?.category === "ellipse") && <>
-                <div className={classes.propCard}>
-                    <div className={classes.elementSize}>
-                        <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
-                        <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} />
-                    </div>
-                    <label className={classes.pushToggle}>
-                        <input type="checkbox" checked={!!selectedElement.filled} onChange={() => toggleStyle("filled")} />
-                        <span>Wypełniony kształt</span>
-                    </label>
-                    <div className={classes.elementSize}>
-                        {!selectedElement.filled && (
-                            <EditorControls labelText="Szerokość obramowania" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
-                        )}
-                        <EditorControls
-                            labelText={selectedElement.filled ? "Kolor wypełnienia" : "Kolor obramowania"}
-                            type="color"
-                            inputValue={elementValues.backgroundColor}
-                            onChangeFn={(e) => handleChangeValues(e, "backgroundColor")}
-                        />
-                    </div>
-                </div>
-            </>}
-
-            {selectedElement?.category === "image" && <>
-                <div className={classes.propCard}>
-                    <div className={classes.elementSize}>
-                        <EditorControls labelText="Wysokość" type="number" inputValue={elementValues.height} onChangeFn={(e) => handleChangeValues(e, "height")} isDisabled />
-                        <EditorControls labelText="Szerokość" type="number" inputValue={elementValues.width} onChangeFn={(e) => handleChangeValues(e, "width")} />
-                    </div>
-                </div>
-            </>}
-
-            {selectedElement?.category === "connector" && <>
-                <div className={classes.propCard}>
-                    <div className={classes.elementSize}>
-                        <EditorControls labelText="Szerokość linii" type="number" inputValue={elementValues.borderWidth} onChangeFn={(e) => handleChangeValues(e, "borderWidth")} />
-                        <EditorControls labelText="Kolor linii" type="color" inputValue={elementValues.backgroundColor} onChangeFn={(e) => handleChangeValues(e, "backgroundColor")} />
-                    </div>
-                    <label className={classes.pushToggle}>
-                        <input type="checkbox" checked={!!selectedElement?.arrow} onChange={() => toggleStyle("arrow")} />
-                        <span>Grot strzałki u celu</span>
-                    </label>
-                    <EditorControls labelText="Widoczność" type="number" inputValue={elementValues.zIndex} onChangeFn={(e) => handleChangeValues(e, "zIndex")} />
-                </div>
-                <div className={classes.actionRow}>
-                    <button type="button" className={classes.btnDelete} title="Usuń łącznik" aria-label="Usuń łącznik" onClick={() => deleteElement(selectedElement.element_id)}><RiDeleteBin2Line /></button>
-                </div>
-            </>}
-
-            <label className={classes.pushToggle}>
-                <input type="checkbox" checked={!!selectedElement?.locked} onChange={() => toggleStyle("locked")} />
-                <span>Zablokuj pozycję elementu</span>
-            </label>
-            {selectedElement?.category !== "connector" && <>
-                <div className={classes.propCard}>
-                    <div className={classes.positionBtnsWrapper}>
-                        <button type="button" disabled={positionLocked} onClick={() => alignElement(selectedElement.element_id, "LEFT", selectedElement.width, selectedElement.category)}><CiTextAlignLeft /></button>
-                        <button type="button" disabled={positionLocked} onClick={() => alignElement(selectedElement.element_id, "CENTER", selectedElement.width, selectedElement.category)}><CiTextAlignCenter /></button>
-                        <button type="button" disabled={positionLocked} onClick={() => alignElement(selectedElement.element_id, "RIGHT", selectedElement.width, selectedElement.category)}><CiTextAlignRight /></button>
-                    </div>
-                    <div className={classes.elementSize}>
-                        <EditorControls labelText="X (px)" type="number" inputValue={elementValues.left} onChangeFn={(e) => handleChangeValues(e, "left")} isDisabled={positionLocked} />
-                        <EditorControls labelText="Y (px)" type="number" inputValue={elementValues.top} onChangeFn={(e) => handleChangeValues(e, "top")} isDisabled={positionLocked} />
-                    </div>
-                    <EditorControls labelText="Widoczność" type="number" inputValue={elementValues.zIndex} onChangeFn={(e) => handleChangeValues(e, "zIndex")} />
-                </div>
-
-                <div className={classes.actionRow}>
-                    <button type="button" className={classes.btnDuplicate} title="Duplikuj element" aria-label="Duplikuj element" onClick={() => duplicateElement(selectedElement.element_id)}><RiFileCopyLine /></button>
-                    <button type="button" className={classes.btnDelete} title="Usuń element" aria-label="Usuń element" onClick={() => deleteElement(selectedElement.element_id)}><RiDeleteBin2Line /></button>
-                </div>
-            </>}
-            </>}
-            </div>
-        </form>
-                </motion.aside>
-            )}
-        </AnimatePresence>
-    );
-
-    if (typeof document === "undefined") return null;
-    return createPortal(panel, document.body);
-}
-
-function BulkEditor({
-    selectedElements,
-    supportsField,
-    valueForField,
-    isValueMixed,
-    onChangeValue,
-    onToggleStyle,
-    onSetAlign,
-    groupMoveValues,
-    onGroupMoveValueChange,
-    onDuplicateSelected,
-    onDeleteSelected,
-}) {
-    const hasTypography = supportsField("fontSize") || supportsField("color");
-    const hasTextStyle = ["bold", "italic", "underline"].every(supportsField);
-    const hasBorder = supportsField("borderWidth") || supportsField("backgroundColor");
-    const canEditSize = ["width", "height"].every(supportsField)
-        && !selectedElements.some((element) => element.category === "image");
-    const editableFields = [
-        "fontSize", "color", "fontFamily", "bold", "italic", "underline",
-        "align", "lineHeight", "letterSpacing", "width", "height",
-        "backgroundColor", "borderWidth", "filled", "locked", "zIndex",
-    ];
-    const hasMixedValues = editableFields
-        .filter(supportsField)
-        .some(isValueMixed);
-    const hasStyleCard = hasTypography || supportsField("fontFamily") || hasTextStyle
-        || supportsField("align") || supportsField("lineHeight") || supportsField("letterSpacing");
-    const hasAppearanceCard = canEditSize || hasBorder || supportsField("filled");
-
-    return (
-        <div className={classes.bulkPanel}>
-            <p className={classes.bulkDescription}>
-                Zmiany w tym panelu zostaną zastosowane do wszystkich {selectedElements.length} zaznaczonych elementów.
-            </p>
-            {hasMixedValues && (
-                <p className={classes.bulkHint}>
-                    Część wartości jest różna — kolejna zmiana ujednolici ją w całym zaznaczeniu.
-                </p>
-            )}
-            <div className={classes.propCard}>
-                <p className={classes.groupMoveTitle}>Przesuń całą grupę</p>
-                <div className={classes.elementSize}>
-                    <EditorControls
-                        labelText="X o (px)"
-                        type="number"
-                        inputValue={groupMoveValues.x}
-                        onChangeFn={(e) => onGroupMoveValueChange(e, "x")}
-                    />
-                    <EditorControls
-                        labelText="Y o (px)"
-                        type="number"
-                        inputValue={groupMoveValues.y}
-                        onChangeFn={(e) => onGroupMoveValueChange(e, "y")}
-                    />
-                </div>
-                {supportsField("zIndex") && (
-                    <EditorControls
-                        labelText="Widoczność"
-                        type="number"
-                        inputValue={valueForField("zIndex")}
-                        onChangeFn={(e) => onChangeValue(e, "zIndex")}
-                    />
+              <BulkToolbar
+                count={selectedElements.length}
+                supportsField={supportsBulkField}
+                valueForField={bulkValue}
+                isValueMixed={isBulkValueMixed}
+                onChangeValue={handleBulkChangeValues}
+                onToggleStyle={toggleBulkStyle}
+                onSetAlign={setBulkAlign}
+                groupMoveValues={groupMoveValues}
+                onGroupMoveValueChange={handleGroupMoveValueChange}
+                onDuplicateSelected={duplicateSelectedElements}
+                onDeleteSelected={deleteSelectedElements}
+                onClose={handleCloseEditor}
+              />
+            ) : (
+              <>
+                {(cat === "text" || cat === "textarea") && (
+                  <>
+                    <Group>
+                      <IconBtn
+                        label="Edytuj tekst"
+                        onClick={() => setTextareaEditing(selectedElement.element_id, true)}
+                      >
+                        <MdEdit />
+                      </IconBtn>
+                      {cat === "textarea" && (
+                        <IconBtn
+                          label="Wstaw punktor"
+                          disabled={!selectedElement?.isEditing}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={insertBulletAtCurrentLine}
+                        >
+                          <MdFormatListBulleted />
+                        </IconBtn>
+                      )}
+                    </Group>
+                    <Sep />
+                    <Group>
+                      <NumField
+                        label="Rozmiar czcionki"
+                        icon={<MdFormatSize />}
+                        value={elementValues.fontSize}
+                        onChange={(e) => handleChangeValues(e, "fontSize")}
+                        width={40}
+                      />
+                      <ColorField
+                        label="Kolor tekstu"
+                        value={elementValues.color}
+                        onChange={(e) => handleChangeValues(e, "color")}
+                      />
+                      <FontField
+                        value={elementValues.fontFamily}
+                        onChange={(e) => handleChangeValues(e, "fontFamily")}
+                      />
+                    </Group>
+                    <Sep />
+                    <Group>
+                      <StyleToggles selectedElement={selectedElement} toggleStyle={toggleStyle} />
+                      {cat === "textarea" && (
+                        <>
+                          <AlignToggles selectedElement={selectedElement} setAlign={setAlign} />
+                          <IconBtn
+                            label="Lista punktowana"
+                            active={!!selectedElement?.bulletList}
+                            onClick={toggleBulletList}
+                          >
+                            <MdFormatListBulleted />
+                          </IconBtn>
+                        </>
+                      )}
+                    </Group>
+                    {cat === "textarea" && (
+                      <>
+                        <Sep />
+                        <Group>
+                          <NumField
+                            label="Wysokość linii"
+                            icon={<MdFormatLineSpacing />}
+                            value={elementValues.lineHeight}
+                            onChange={(e) => handleChangeValues(e, "lineHeight")}
+                            width={40}
+                          />
+                          <NumField
+                            label="Odstęp między literami"
+                            icon={<RxLetterSpacing />}
+                            value={elementValues.letterSpacing}
+                            onChange={(e) => handleChangeValues(e, "letterSpacing")}
+                            width={36}
+                            step={0.1}
+                          />
+                          <NumField
+                            label="Szerokość"
+                            icon={<RxWidth />}
+                            value={elementValues.width}
+                            onChange={(e) => handleChangeValues(e, "width")}
+                            width={44}
+                          />
+                          <NumField
+                            label={selectedElement.autoHeight ? "Wysokość (automatyczna)" : "Wysokość"}
+                            icon={<RxHeight />}
+                            value={elementValues.height}
+                            onChange={(e) => handleChangeValues(e, "height")}
+                            width={40}
+                            disabled={!!selectedElement.autoHeight}
+                          />
+                        </Group>
+                      </>
+                    )}
+                  </>
                 )}
-            </div>
-            {hasStyleCard && (
-                <div className={classes.propCard}>
-                    {hasTypography && (
-                        <div className={classes.elementSize}>
-                            {supportsField("fontSize") && (
-                                <EditorControls
-                                    labelText="Rozmiar czcionki"
-                                    type="number"
-                                    inputValue={valueForField("fontSize")}
-                                    onChangeFn={(e) => onChangeValue(e, "fontSize")}
-                                />
-                            )}
-                            {supportsField("color") && (
-                                <EditorControls
-                                    labelText="Kolor tekstu"
-                                    type="color"
-                                    inputValue={valueForField("color")}
-                                    onChangeFn={(e) => onChangeValue(e, "color")}
-                                />
-                            )}
-                        </div>
+
+                {cat === "line" && (
+                  <Group>
+                    <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={40} />
+                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={44} />
+                    <ColorField label="Kolor" value={elementValues.backgroundColor} onChange={(e) => handleChangeValues(e, "backgroundColor")} />
+                  </Group>
+                )}
+
+                {cat === "rectangle" && (
+                  <Group>
+                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={44} />
+                    <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={40} />
+                    <NumField label="Obramowanie" icon={<MdFormatSize />} value={elementValues.borderWidth} onChange={(e) => handleChangeValues(e, "borderWidth")} width={36} />
+                    <ColorField label="Kolor obramowania" value={elementValues.backgroundColor} onChange={(e) => handleChangeValues(e, "backgroundColor")} />
+                  </Group>
+                )}
+
+                {(cat === "circle" || cat === "ellipse") && (
+                  <Group>
+                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={44} />
+                    <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={40} />
+                    <IconBtn
+                      label="Wypełniony kształt"
+                      active={!!selectedElement.filled}
+                      onClick={() => toggleStyle("filled")}
+                    >
+                      ●
+                    </IconBtn>
+                    {!selectedElement.filled && (
+                      <NumField label="Obramowanie" icon={<MdFormatSize />} value={elementValues.borderWidth} onChange={(e) => handleChangeValues(e, "borderWidth")} width={36} />
                     )}
-                    {supportsField("fontFamily") && (
-                        <EditorControls
-                            labelText="Rodzina czcionki"
-                            type="select"
-                            inputValue={valueForField("fontFamily")}
-                            onChangeFn={(e) => onChangeValue(e, "fontFamily")}
-                            isSelect
-                        />
-                    )}
-                    {hasTextStyle && (
-                        <BulkStyleToggles
-                            selectedElements={selectedElements}
-                            onToggleStyle={onToggleStyle}
-                        />
-                    )}
-                    {supportsField("align") && (
-                        <BulkAlignToggles
-                            value={isValueMixed("align") ? undefined : valueForField("align")}
-                            onSetAlign={onSetAlign}
-                        />
-                    )}
-                    {(supportsField("lineHeight") || supportsField("letterSpacing")) && (
-                        <div className={classes.elementSize}>
-                            {supportsField("lineHeight") && (
-                                <EditorControls
-                                    labelText="Wysokość linii"
-                                    type="number"
-                                    inputValue={valueForField("lineHeight")}
-                                    onChangeFn={(e) => onChangeValue(e, "lineHeight")}
-                                />
-                            )}
-                            {supportsField("letterSpacing") && (
-                                <EditorControls
-                                    labelText="Odstęp między literami"
-                                    type="number"
-                                    inputValue={valueForField("letterSpacing")}
-                                    onChangeFn={(e) => onChangeValue(e, "letterSpacing")}
-                                />
-                            )}
-                        </div>
-                    )}
-                </div>
-            )}
-            {hasAppearanceCard && (
-                <div className={classes.propCard}>
-                    {canEditSize && (
-                        <div className={classes.elementSize}>
-                            <EditorControls
-                                labelText="Szerokość"
-                                type="number"
-                                inputValue={valueForField("width")}
-                                onChangeFn={(e) => onChangeValue(e, "width")}
-                            />
-                            <EditorControls
-                                labelText="Wysokość"
-                                type="number"
-                                inputValue={valueForField("height")}
-                                onChangeFn={(e) => onChangeValue(e, "height")}
-                            />
-                        </div>
-                    )}
-                    {hasBorder && (
-                        <div className={classes.elementSize}>
-                            {supportsField("borderWidth") && (
-                                <EditorControls
-                                    labelText="Szerokość obramowania"
-                                    type="number"
-                                    inputValue={valueForField("borderWidth")}
-                                    onChangeFn={(e) => onChangeValue(e, "borderWidth")}
-                                />
-                            )}
-                            {supportsField("backgroundColor") && (
-                                <EditorControls
-                                    labelText="Kolor obramowania"
-                                    type="color"
-                                    inputValue={valueForField("backgroundColor")}
-                                    onChangeFn={(e) => onChangeValue(e, "backgroundColor")}
-                                />
-                            )}
-                        </div>
-                    )}
-                    {supportsField("filled") && (
-                        <label className={classes.pushToggle}>
-                            <input
-                                type="checkbox"
-                                checked={!isValueMixed("filled") && !!valueForField("filled")}
-                                onChange={() => onToggleStyle("filled")}
-                            />
-                            <span>Wypełnione kształty</span>
-                        </label>
-                    )}
-                </div>
-            )}
-            {supportsField("locked") && (
-                <label className={classes.pushToggle}>
-                    <input
-                        type="checkbox"
-                        checked={!isValueMixed("locked") && !!valueForField("locked")}
-                        onChange={() => onToggleStyle("locked")}
+                    <ColorField
+                      label={selectedElement.filled ? "Kolor wypełnienia" : "Kolor obramowania"}
+                      value={elementValues.backgroundColor}
+                      onChange={(e) => handleChangeValues(e, "backgroundColor")}
                     />
-                    <span>Zablokuj pozycję zaznaczonych</span>
-                </label>
+                  </Group>
+                )}
+
+                {cat === "image" && (
+                  <Group>
+                    <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={40} disabled />
+                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={44} />
+                  </Group>
+                )}
+
+                {cat === "connector" && (
+                  <Group>
+                    <NumField label="Szerokość linii" icon={<RxWidth />} value={elementValues.borderWidth} onChange={(e) => handleChangeValues(e, "borderWidth")} width={36} />
+                    <ColorField label="Kolor linii" value={elementValues.backgroundColor} onChange={(e) => handleChangeValues(e, "backgroundColor")} />
+                    <IconBtn label="Grot strzałki" active={!!selectedElement?.arrow} onClick={() => toggleStyle("arrow")}>
+                      <TbArrowBigRightLines />
+                    </IconBtn>
+                    <NumField label="Widoczność" icon={<RxLayers />} value={elementValues.zIndex} onChange={(e) => handleChangeValues(e, "zIndex")} width={32} />
+                  </Group>
+                )}
+
+                {cat !== "connector" && (
+                  <>
+                    <Sep />
+                    <Group>
+                      <IconBtn
+                        label={selectedElement?.locked ? "Odblokuj pozycję" : "Zablokuj pozycję"}
+                        active={!!selectedElement?.locked}
+                        onClick={() => toggleStyle("locked")}
+                      >
+                        {selectedElement?.locked ? <MdLock /> : <MdLockOpen />}
+                      </IconBtn>
+                      <IconBtn
+                        label="Wyrównaj do lewej"
+                        disabled={positionLocked}
+                        onClick={() => alignElement(selectedElement.element_id, "LEFT", selectedElement.width, selectedElement.category)}
+                      >
+                        <CiTextAlignLeft />
+                      </IconBtn>
+                      <IconBtn
+                        label="Wyśrodkuj"
+                        disabled={positionLocked}
+                        onClick={() => alignElement(selectedElement.element_id, "CENTER", selectedElement.width, selectedElement.category)}
+                      >
+                        <CiTextAlignCenter />
+                      </IconBtn>
+                      <IconBtn
+                        label="Wyrównaj do prawej"
+                        disabled={positionLocked}
+                        onClick={() => alignElement(selectedElement.element_id, "RIGHT", selectedElement.width, selectedElement.category)}
+                      >
+                        <CiTextAlignRight />
+                      </IconBtn>
+                      <NumField
+                        label="X (px)"
+                        icon={<span className={classes.axis}>X</span>}
+                        value={elementValues.left}
+                        onChange={(e) => handleChangeValues(e, "left")}
+                        width={44}
+                        disabled={positionLocked}
+                      />
+                      <NumField
+                        label="Y (px)"
+                        icon={<span className={classes.axis}>Y</span>}
+                        value={elementValues.top}
+                        onChange={(e) => handleChangeValues(e, "top")}
+                        width={44}
+                        disabled={positionLocked}
+                      />
+                      <NumField
+                        label="Widoczność"
+                        icon={<RxLayers />}
+                        value={elementValues.zIndex}
+                        onChange={(e) => handleChangeValues(e, "zIndex")}
+                        width={32}
+                      />
+                    </Group>
+                    <Sep />
+                    <Group>
+                      <IconBtn label="Duplikuj" onClick={() => duplicateElement(selectedElement.element_id)}>
+                        <RiFileCopyLine />
+                      </IconBtn>
+                      <IconBtn label="Usuń" danger onClick={() => deleteElement(selectedElement.element_id)}>
+                        <RiDeleteBin2Line />
+                      </IconBtn>
+                    </Group>
+                  </>
+                )}
+
+                {cat === "connector" && (
+                  <>
+                    <Sep />
+                    <Group>
+                      <IconBtn label="Usuń łącznik" danger onClick={() => deleteElement(selectedElement.element_id)}>
+                        <RiDeleteBin2Line />
+                      </IconBtn>
+                    </Group>
+                  </>
+                )}
+
+                <Sep />
+                <IconBtn label="Zamknij" onClick={handleCloseEditor}>
+                  <MdClose />
+                </IconBtn>
+              </>
             )}
-            <div className={classes.actionRow}>
-                <button
-                    type="button"
-                    className={classes.btnDuplicate}
-                    title={`Duplikuj zaznaczone (${selectedElements.length})`}
-                    aria-label={`Duplikuj zaznaczone (${selectedElements.length})`}
-                    onClick={onDuplicateSelected}
-                ><RiFileCopyLine /></button>
-                <button
-                    type="button"
-                    className={classes.btnDelete}
-                    title={`Usuń zaznaczone (${selectedElements.length})`}
-                    aria-label={`Usuń zaznaczone (${selectedElements.length})`}
-                    onClick={onDeleteSelected}
-                ><RiDeleteBin2Line /></button>
-            </div>
-        </div>
-    );
+          </form>
+        </motion.aside>
+      )}
+    </AnimatePresence>
+  );
+
+  if (typeof document === "undefined") return null;
+  return createPortal(panel, document.body);
 }
 
-function BulkStyleToggles({ selectedElements, onToggleStyle }) {
-    const isActive = (key) => selectedElements.every((element) => Boolean(element[key]));
-    const btn = (key, label, content, style) => (
-        <button
-            type="button"
-            className={isActive(key) ? classes.styleActive : ""}
-            style={style}
-            onClick={() => onToggleStyle(key)}
-            aria-label={label}
-        >{content}</button>
-    );
-
-    return (
-        <div className={classes.styleRow}>
-            {btn("bold", "Pogrubienie", "B", { fontWeight: 800 })}
-            {btn("italic", "Kursywa", "I", { fontStyle: "italic" })}
-            {btn("underline", "Podkreślenie", "U", { textDecoration: "underline" })}
-        </div>
-    );
+function Group({ children }) {
+  return <div className={classes.group}>{children}</div>;
 }
 
-function BulkAlignToggles({ value, onSetAlign }) {
-    const btn = (alignment, Icon, label) => (
-        <button
-            type="button"
-            className={value === alignment ? classes.styleActive : ""}
-            onClick={() => onSetAlign(alignment)}
-            aria-label={label}
-        ><Icon /></button>
-    );
-
-    return (
-        <div className={classes.styleRow}>
-            {btn("left", CiTextAlignLeft, "Wyrównaj tekst do lewej")}
-            {btn("center", CiTextAlignCenter, "Wyśrodkuj tekst")}
-            {btn("right", CiTextAlignRight, "Wyrównaj tekst do prawej")}
-            {btn("justify", CiTextAlignJustify, "Wyjustuj tekst")}
-        </div>
-    );
+function Sep() {
+  return <span className={classes.sep} aria-hidden="true" />;
 }
 
-function AlignToggles({ selectedElement, setAlign }) {
-    const current = selectedElement?.align || "left";
-    const btn = (value, Icon, label) => (
-        <button
-            type="button"
-            className={current === value ? classes.styleActive : ""}
-            onClick={() => setAlign(value)}
-            aria-label={label}
-        ><Icon /></button>
-    );
-    return (
-        <div className={classes.styleRow}>
-            {btn("left", CiTextAlignLeft, "Wyrównaj do lewej")}
-            {btn("center", CiTextAlignCenter, "Wyśrodkuj")}
-            {btn("right", CiTextAlignRight, "Wyrównaj do prawej")}
-            {btn("justify", CiTextAlignJustify, "Wyjustuj")}
-        </div>
-    );
+function IconBtn({
+  label, children, onClick, active, disabled, danger, onMouseDown,
+}) {
+  return (
+    <button
+      type="button"
+      className={`${classes.iconBtn} ${active ? classes.iconBtnActive : ""} ${danger ? classes.iconBtnDanger : ""}`}
+      title={label}
+      aria-label={label}
+      aria-pressed={active ? true : undefined}
+      disabled={disabled}
+      onClick={onClick}
+      onMouseDown={onMouseDown}
+    >
+      {children}
+    </button>
+  );
+}
+
+function NumField({
+  label, icon, value, onChange, width = 40, disabled, step,
+}) {
+  return (
+    <label className={classes.numField} title={label}>
+      {icon ? <span className={classes.numIcon} aria-hidden="true">{icon}</span> : null}
+      <input
+        type="number"
+        aria-label={label}
+        value={value ?? ""}
+        onChange={onChange}
+        disabled={disabled}
+        step={step}
+        style={{ width }}
+      />
+    </label>
+  );
+}
+
+function ColorField({ label, value, onChange }) {
+  return (
+    <label className={classes.colorField} title={label}>
+      <input type="color" aria-label={label} value={value || "#000000"} onChange={onChange} />
+    </label>
+  );
+}
+
+function FontField({ value, onChange }) {
+  const selectFont = FONT_PREVIEW[value] || undefined;
+  return (
+    <select
+      className={classes.fontSelect}
+      aria-label="Rodzina czcionki"
+      title="Rodzina czcionki"
+      value={value || "Inter"}
+      onChange={onChange}
+      style={selectFont ? { fontFamily: selectFont } : undefined}
+    >
+      {FONT_OPTIONS.map(({ value: fontValue, label }) => (
+        <option key={fontValue} value={fontValue} style={{ fontFamily: FONT_PREVIEW[fontValue] }}>
+          {label}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 function StyleToggles({ selectedElement, toggleStyle }) {
-    return (
-        <div className={classes.styleRow}>
-            <button
-                type="button"
-                className={selectedElement?.bold ? classes.styleActive : ""}
-                style={{ fontWeight: 800 }}
-                onClick={() => toggleStyle("bold")}
-                aria-label="Pogrubienie"
-            >B</button>
-            <button
-                type="button"
-                className={selectedElement?.italic ? classes.styleActive : ""}
-                style={{ fontStyle: "italic" }}
-                onClick={() => toggleStyle("italic")}
-                aria-label="Kursywa"
-            >I</button>
-            <button
-                type="button"
-                className={selectedElement?.underline ? classes.styleActive : ""}
-                style={{ textDecoration: "underline" }}
-                onClick={() => toggleStyle("underline")}
-                aria-label="Podkreślenie"
-            >U</button>
-        </div>
-    );
+  return (
+    <>
+      <IconBtn label="Pogrubienie" active={!!selectedElement?.bold} onClick={() => toggleStyle("bold")}>
+        <span className={classes.glyphBold}>B</span>
+      </IconBtn>
+      <IconBtn label="Kursywa" active={!!selectedElement?.italic} onClick={() => toggleStyle("italic")}>
+        <span className={classes.glyphItalic}>I</span>
+      </IconBtn>
+      <IconBtn label="Podkreślenie" active={!!selectedElement?.underline} onClick={() => toggleStyle("underline")}>
+        <span className={classes.glyphUnderline}>U</span>
+      </IconBtn>
+    </>
+  );
+}
+
+function AlignToggles({ selectedElement, setAlign }) {
+  const current = selectedElement?.align || "left";
+  return (
+    <>
+      <IconBtn label="Wyrównaj do lewej" active={current === "left"} onClick={() => setAlign("left")}>
+        <CiTextAlignLeft />
+      </IconBtn>
+      <IconBtn label="Wyśrodkuj" active={current === "center"} onClick={() => setAlign("center")}>
+        <CiTextAlignCenter />
+      </IconBtn>
+      <IconBtn label="Wyrównaj do prawej" active={current === "right"} onClick={() => setAlign("right")}>
+        <CiTextAlignRight />
+      </IconBtn>
+      <IconBtn label="Wyjustuj" active={current === "justify"} onClick={() => setAlign("justify")}>
+        <CiTextAlignJustify />
+      </IconBtn>
+    </>
+  );
+}
+
+function BulkToolbar({
+  count,
+  supportsField,
+  valueForField,
+  isValueMixed,
+  onChangeValue,
+  onToggleStyle,
+  onSetAlign,
+  groupMoveValues,
+  onGroupMoveValueChange,
+  onDuplicateSelected,
+  onDeleteSelected,
+  onClose,
+}) {
+  const hasTextStyle = ["bold", "italic", "underline"].every(supportsField);
+  return (
+    <>
+      <span className={classes.bulkBadge} title={`${count} zaznaczonych`}>{count}</span>
+      <Sep />
+      <Group>
+        <NumField
+          label="Przesuń grupę X"
+          icon={<span className={classes.axis}>X</span>}
+          value={groupMoveValues.x}
+          onChange={(e) => onGroupMoveValueChange(e, "x")}
+          width={40}
+        />
+        <NumField
+          label="Przesuń grupę Y"
+          icon={<span className={classes.axis}>Y</span>}
+          value={groupMoveValues.y}
+          onChange={(e) => onGroupMoveValueChange(e, "y")}
+          width={40}
+        />
+      </Group>
+      {(supportsField("fontSize") || supportsField("color") || supportsField("fontFamily")) && (
+        <>
+          <Sep />
+          <Group>
+            {supportsField("fontSize") && (
+              <NumField
+                label="Rozmiar czcionki"
+                icon={<MdFormatSize />}
+                value={valueForField("fontSize")}
+                onChange={(e) => onChangeValue(e, "fontSize")}
+                width={40}
+              />
+            )}
+            {supportsField("color") && (
+              <ColorField
+                label="Kolor tekstu"
+                value={valueForField("color")}
+                onChange={(e) => onChangeValue(e, "color")}
+              />
+            )}
+            {supportsField("fontFamily") && (
+              <FontField
+                value={valueForField("fontFamily")}
+                onChange={(e) => onChangeValue(e, "fontFamily")}
+              />
+            )}
+          </Group>
+        </>
+      )}
+      {hasTextStyle && (
+        <>
+          <Sep />
+          <Group>
+            <IconBtn
+              label="Pogrubienie"
+              active={!isValueMixed("bold") && !!valueForField("bold")}
+              onClick={() => onToggleStyle("bold")}
+            >
+              <span className={classes.glyphBold}>B</span>
+            </IconBtn>
+            <IconBtn
+              label="Kursywa"
+              active={!isValueMixed("italic") && !!valueForField("italic")}
+              onClick={() => onToggleStyle("italic")}
+            >
+              <span className={classes.glyphItalic}>I</span>
+            </IconBtn>
+            <IconBtn
+              label="Podkreślenie"
+              active={!isValueMixed("underline") && !!valueForField("underline")}
+              onClick={() => onToggleStyle("underline")}
+            >
+              <span className={classes.glyphUnderline}>U</span>
+            </IconBtn>
+            {supportsField("align") && (
+              <>
+                <IconBtn label="Do lewej" active={!isValueMixed("align") && valueForField("align") === "left"} onClick={() => onSetAlign("left")}><CiTextAlignLeft /></IconBtn>
+                <IconBtn label="Środek" active={!isValueMixed("align") && valueForField("align") === "center"} onClick={() => onSetAlign("center")}><CiTextAlignCenter /></IconBtn>
+                <IconBtn label="Do prawej" active={!isValueMixed("align") && valueForField("align") === "right"} onClick={() => onSetAlign("right")}><CiTextAlignRight /></IconBtn>
+                <IconBtn label="Wyjustuj" active={!isValueMixed("align") && valueForField("align") === "justify"} onClick={() => onSetAlign("justify")}><CiTextAlignJustify /></IconBtn>
+              </>
+            )}
+          </Group>
+        </>
+      )}
+      {supportsField("locked") && (
+        <>
+          <Sep />
+          <IconBtn
+            label="Zablokuj pozycję zaznaczonych"
+            active={!isValueMixed("locked") && !!valueForField("locked")}
+            onClick={() => onToggleStyle("locked")}
+          >
+            {!isValueMixed("locked") && valueForField("locked") ? <MdLock /> : <MdLockOpen />}
+          </IconBtn>
+        </>
+      )}
+      <Sep />
+      <Group>
+        <IconBtn label={`Duplikuj zaznaczone (${count})`} onClick={onDuplicateSelected}>
+          <RiFileCopyLine />
+        </IconBtn>
+        <IconBtn label={`Usuń zaznaczone (${count})`} danger onClick={onDeleteSelected}>
+          <RiDeleteBin2Line />
+        </IconBtn>
+        <IconBtn label="Zamknij" onClick={onClose}>
+          <MdClose />
+        </IconBtn>
+      </Group>
+    </>
+  );
 }

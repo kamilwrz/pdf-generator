@@ -1,279 +1,206 @@
-/* Floating inspector above the selection — glass panel, compact rhythm.
-   Mounted via portal (position: fixed); does not dock beside the tool rail. */
+/* Horizontal floating toolbar above the selection — CV STUDIO chrome,
+   Enhancv-like form (compact icon bar, not a tall property sheet). */
 
 .editor {
     position: fixed;
     z-index: 1250;
-    width: min(340px, calc(100vw - 16px));
-    max-height: min(70vh, 560px);
+    max-width: min(96vw, 920px);
     display: flex;
-    flex-direction: column;
-    background: color-mix(in srgb, var(--primary-bg) 88%, transparent);
-    color: var(--primary-font);
+    background: color-mix(in srgb, var(--chrome-surface, var(--primary-bg)) 92%, transparent);
+    color: var(--chrome-ink, var(--primary-font));
     font-family: var(--font-body);
-    border: 1px solid var(--border-soft);
-    border-radius: 10px;
+    border: 1px solid var(--chrome-border, var(--border-soft));
+    border-radius: 8px;
     box-shadow:
-        0 10px 28px rgba(0, 0, 0, 0.22),
+        0 8px 22px rgba(0, 0, 0, 0.28),
         0 1px 0 rgba(255, 255, 255, 0.04) inset;
-    backdrop-filter: blur(14px) saturate(1.15);
-    -webkit-backdrop-filter: blur(14px) saturate(1.15);
-    overflow: hidden;
+    backdrop-filter: blur(12px) saturate(1.1);
+    -webkit-backdrop-filter: blur(12px) saturate(1.1);
     pointer-events: auto;
-}
-
-.editorForm {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    min-height: 0;
-    flex: 1;
     overflow: hidden;
 }
 
-.editorHeading {
+.bar {
     display: flex;
-    justify-content: space-between;
+    flex-wrap: wrap;
     align-items: center;
-    padding: 6px 8px 6px 10px;
-    border-bottom: 1px solid var(--border-soft);
-    position: relative;
-    flex-shrink: 0;
-    background: color-mix(in srgb, var(--secondary-bg) 55%, transparent);
+    gap: 2px 4px;
+    padding: 4px 6px;
+    margin: 0;
+    max-width: 100%;
 }
 
-.headingLeft {
-    display: flex;
+.group {
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-}
-
-.headingIcon {
-    width: 16px;
-    height: 16px;
-    border-radius: 4px;
-    background: var(--success-soft);
-    color: var(--success, #5FA777);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    gap: 2px;
     flex-shrink: 0;
 }
 
-.headingIconMulti {
-    background: var(--accent-soft);
-    color: var(--accent);
-    font: 800 9px/1 var(--font-display);
-}
-
-.editorHeading p {
-    margin: 0;
-    font: 700 11px var(--font-display);
-    color: var(--primary-font);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.editorBody {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    padding: 7px 8px 8px;
-    overflow-x: hidden;
-    overflow-y: auto;
-    min-height: 0;
-    scrollbar-width: thin;
-}
-
-.propCard {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    background: color-mix(in srgb, var(--secondary-bg) 70%, transparent);
-    border: 1px solid var(--border-soft);
-    border-radius: 7px;
-    padding: 6px;
-}
-
-.bulkPanel {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.bulkDescription,
-.bulkHint {
-    margin: 0;
-    font: 600 10.5px/1.35 var(--font-body);
-}
-
-.bulkDescription {
-    color: var(--primary-font);
-}
-
-.bulkHint {
-    color: var(--muted-font);
-    background: color-mix(in srgb, var(--secondary-bg) 80%, transparent);
-    border-left: 2px solid var(--accent);
-    border-radius: 0 6px 6px 0;
-    padding: 5px 6px;
-}
-
-.groupMoveTitle {
-    margin: 0;
-    color: var(--primary-font);
-    font: 700 10px var(--font-body);
-}
-
-.positionBtnsWrapper {
-    display: flex;
-    gap: 3px;
-    background: color-mix(in srgb, var(--primary-bg) 80%, transparent);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 2px;
-}
-
-.positionBtnsWrapper button {
-    flex: 1;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: 4px;
-    background: transparent;
-    color: var(--muted-font);
-    cursor: pointer;
-    font-size: 0.78rem;
-    transition: background 0.15s, color 0.15s;
-}
-
-.positionBtnsWrapper button:hover:not(:disabled) {
-    background: var(--chrome-hover);
-    color: var(--accent);
-}
-
-.positionBtnsWrapper button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.elementSize {
-    display: flex;
-    gap: 5px;
-}
-
-.styleRow {
-    display: flex;
-    gap: 4px;
-}
-
-.styleRow button {
-    flex: 1;
-    height: 22px;
-    border: 1px solid var(--border);
-    background: color-mix(in srgb, var(--primary-bg) 85%, transparent);
-    color: var(--muted-font);
-    border-radius: 5px;
-    font: 700 11px var(--font-body);
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-
-.styleRow button:hover {
-    border-color: var(--accent-soft);
-}
-
-.styleActive {
-    background: var(--accent-soft) !important;
-    color: var(--accent) !important;
-    border-color: var(--accent) !important;
-}
-
-.pushToggle {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    font: 600 10.5px var(--font-body);
-    color: var(--muted-font);
-}
-
-.pushToggle input {
-    width: 12px;
-    height: 12px;
-    accent-color: var(--accent);
-    cursor: pointer;
+.sep {
+    width: 1px;
+    height: 18px;
+    margin: 0 3px;
+    background: var(--chrome-border, var(--border-soft));
     flex-shrink: 0;
+    align-self: center;
 }
 
-.editTextBtn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    font: 700 11px var(--font-body);
-    border: 1px solid var(--border);
-    background: color-mix(in srgb, var(--primary-bg) 80%, transparent);
-    color: var(--accent);
-    border-radius: 6px;
-    padding: 5px;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-}
-
-.editTextBtn:disabled {
-    cursor: default;
-    opacity: 0.5;
-}
-
-.editTextBtn:hover:not(:disabled) {
-    border-color: var(--accent);
-    background: var(--accent-soft);
-}
-
-.actionRow {
-    display: flex;
-    gap: 5px;
-}
-
-.btnDuplicate,
-.btnDelete {
-    flex: 1;
+.iconBtn {
+    width: 26px;
     height: 26px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 6px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s, color 0.15s, filter 0.15s;
-}
-
-.btnDuplicate {
-    border: 1px solid var(--border);
-    background: color-mix(in srgb, var(--secondary-bg) 75%, transparent);
-    color: var(--muted-font);
-}
-
-.btnDuplicate:hover {
-    border-color: var(--accent);
-    background: var(--accent-soft);
-    color: var(--accent);
-}
-
-.btnDelete {
     border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--chrome-muted, var(--muted-font));
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.iconBtn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.iconBtn:hover:not(:disabled) {
+    background: var(--chrome-hover, var(--secondary-bg));
+    color: var(--chrome-accent, var(--accent));
+}
+
+.iconBtn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.iconBtnActive {
+    background: var(--accent-soft) !important;
+    color: var(--chrome-accent, var(--accent)) !important;
+    border-color: color-mix(in srgb, var(--chrome-accent, var(--accent)) 45%, transparent);
+}
+
+.iconBtnDanger:hover:not(:disabled) {
     background: var(--danger-soft);
     color: var(--danger);
 }
 
-.btnDelete:hover {
-    filter: brightness(0.97);
+.numField {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 26px;
+    padding: 0 3px 0 4px;
+    border: 1px solid var(--chrome-border, var(--border));
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--primary-bg) 70%, transparent);
+}
+
+.numIcon {
+    display: inline-flex;
+    color: var(--chrome-muted, var(--muted-font));
+    font-size: 12px;
+    line-height: 1;
+}
+
+.numIcon svg {
+    width: 12px;
+    height: 12px;
+}
+
+.numField input {
+    height: 22px;
+    border: none;
+    background: transparent;
+    color: var(--chrome-ink, var(--primary-font));
+    font: 600 11px/1 var(--font-body);
+    padding: 0 2px;
+    outline: none;
+    -moz-appearance: textfield;
+}
+
+.numField input::-webkit-outer-spin-button,
+.numField input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.numField input:disabled {
+    opacity: 0.45;
+}
+
+.colorField {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--chrome-border, var(--border));
+    border-radius: 5px;
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--primary-bg);
+}
+
+.colorField input {
+    width: 32px;
+    height: 32px;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    background: transparent;
+}
+
+.fontSelect {
+    height: 26px;
+    max-width: 96px;
+    border: 1px solid var(--chrome-border, var(--border));
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--primary-bg) 70%, transparent);
+    color: var(--chrome-ink, var(--primary-font));
+    font: 600 10.5px/1 var(--font-body);
+    padding: 0 4px;
+    outline: none;
+    cursor: pointer;
+}
+
+.fontSelect:focus {
+    border-color: var(--chrome-accent, var(--accent));
+}
+
+.axis {
+    font: 800 9px/1 var(--font-display);
+    color: var(--chrome-muted, var(--muted-font));
+    min-width: 8px;
+    text-align: center;
+}
+
+.glyphBold {
+    font: 800 12px/1 var(--font-body);
+}
+
+.glyphItalic {
+    font: italic 700 12px/1 var(--font-body);
+}
+
+.glyphUnderline {
+    font: 700 12px/1 var(--font-body);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.bulkBadge {
+    min-width: 22px;
+    height: 22px;
+    padding: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    background: var(--accent-soft);
+    color: var(--chrome-accent, var(--accent));
+    font: 800 10px/1 var(--font-display);
 }
