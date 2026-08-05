@@ -6,6 +6,7 @@ import {
   appendRecordToSection,
   buildRecordClone,
   elementSupportsRecordBlockAdd,
+  ensureCanonicalRecordTemplate,
   inferRecordLayout,
   insertRecordBlockAfterRecord,
   listRecordBlockAddAnchors,
@@ -17,6 +18,7 @@ import {
   placeholderContentsForRecord,
   sectionSupportsRecordAdd,
 } from "./sectionRecord.js";
+import { DEFAULT_FLOW_SPACING } from "./flowSpacing.js";
 
 const style = {
   left: 66,
@@ -81,11 +83,23 @@ describe("placeholderContentsForRecord / inferRecordLayout", () => {
     ]);
   });
 
-  it("maps 3-line records to experience placeholders", () => {
-    assert.equal(inferRecordLayout([{}, {}, {}]), SECTION_LAYOUTS.RECORD_EXPERIENCE);
-    assert.deepEqual(placeholderContentsForRecord([{}, {}, {}]), [
+  it("maps 3-line records with bullets to experience placeholders", () => {
+    const exp = [{ bold: true }, {}, { bulletList: true }];
+    assert.equal(inferRecordLayout(exp), SECTION_LAYOUTS.RECORD_EXPERIENCE);
+    assert.deepEqual(placeholderContentsForRecord(exp), [
       "Stanowisko",
       "Firma · okres",
+      "Opis…",
+    ]);
+  });
+
+  it("maps 3-line records without bullets to education placeholders", () => {
+    const edu = [{ bold: true }, {}, {}];
+    assert.equal(inferRecordLayout(edu), SECTION_LAYOUTS.RECORD_EDUCATION);
+    assert.deepEqual(placeholderContentsForRecord(edu), [
+      "Nazwa dyplomu",
+      "Uczelnia",
+      "Miasto · okres",
       "Opis…",
     ]);
   });
@@ -196,18 +210,41 @@ describe("buildRecordClone / pickRecordTemplateGroup", () => {
     assert.equal(new Set(clones.map((element) => element.flowGroup)).size, 1);
   });
 
-  it("prefers a bold-title template over a broken preferred group", () => {
-    const broken = [
-      { element_id: "a", bold: false, content: "x" },
-      { element_id: "b", bold: false, content: "y" },
+  it("prefers the longest bold-title template over a short hovered group", () => {
+    const shortEdu = [
+      { element_id: "a", bold: true, content: "LL.B." },
+      { element_id: "b", bold: false, content: "School" },
     ];
-    const healthy = [
+    const fullEdu = [
       { element_id: "t", bold: true, content: "Title" },
+      { element_id: "s", bold: false, content: "School" },
       { element_id: "m", bold: false, content: "Meta" },
       { element_id: "d", bold: false, bulletList: true, content: "Desc" },
     ];
-    const picked = pickRecordTemplateGroup([broken, healthy], broken);
-    assert.equal(picked, healthy);
+    const picked = pickRecordTemplateGroup([shortEdu, fullEdu], shortEdu);
+    assert.equal(picked, fullEdu);
+  });
+
+  it("expands a 2-line education stack to four canonical fields", () => {
+    const shortEdu = [
+      {
+        element_id: "a", category: "textarea", bold: true, color: "#111",
+        fontSize: 10.4, lineHeight: 13, width: 400, left: 80,
+      },
+      {
+        element_id: "b", category: "textarea", bold: false, color: "#111",
+        fontSize: 10.4, lineHeight: 13, width: 400, left: 80,
+      },
+    ];
+    const expanded = ensureCanonicalRecordTemplate(shortEdu, [shortEdu]);
+    assert.equal(expanded.length, 4);
+    assert.equal(expanded[3].bulletList, true);
+    const clones = buildRecordClone(shortEdu, makeIdFactory("e"), [shortEdu]);
+    assert.equal(clones.length, 4);
+    assert.equal(clones[0].content, "Nazwa dyplomu");
+    assert.equal(clones[1].content, "Uczelnia");
+    assert.equal(clones[2].content, "Miasto · okres");
+    assert.equal(clones[3].content, "Opis…");
   });
 });
 
@@ -300,6 +337,70 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     assert.equal(groups[1][1].content, "Firma · okres");
     assert.equal(groups[1][2].content, "Opis…");
     assert.equal(groups[2][0].flowGroup, secondGroupId);
+  });
+
+  it("keeps SPACE_RECORD between an inserted education block and the next title", () => {
+    const pageHeight = 842;
+    const rhythm = { ...DEFAULT_FLOW_SPACING };
+    // Two short education records (degree + school only) — the bug case from Kernel.
+    function shortEdu(prefix, top) {
+      return [
+        {
+          element_id: `${prefix}-deg`, category: "textarea", flowRole: "content",
+          autoHeight: true, bold: true, flowGroup: `g-${prefix}`,
+          content: `${prefix} degree`, page: 1, top, left: 80, width: 400,
+          height: 13, fontSize: 10.4, lineHeight: 13, color: "#111",
+        },
+        {
+          element_id: `${prefix}-sch`, category: "textarea", flowRole: "content",
+          autoHeight: true, bold: false, flowGroup: `g-${prefix}`,
+          content: `${prefix} school`, page: 1, top: top + 17, left: 80, width: 400,
+          height: 13, fontSize: 10.4, lineHeight: 13, color: "#111",
+        },
+      ];
+    }
+    const { elements: chrome, headingId } = buildSectionElements({
+      name: "Wykształcenie",
+      layout: SECTION_LAYOUTS.TEXTAREA,
+      style,
+      idFactory: makeIdFactory("h"),
+    });
+    // Replace the aa body with two short edu records under the heading.
+    const heading = chrome.find((element) => element.element_id === headingId);
+    const withoutBody = chrome.filter((element) => element.flowRole !== "content");
+    let doc = [
+      ...withoutBody,
+      ...shortEdu("a", (heading?.top || 100) + 40),
+      ...shortEdu("b", (heading?.top || 100) + 100),
+    ];
+    doc = doc.map((element) => (
+      element.element_id === headingId
+        ? { ...element, flowRole: "section-chrome" }
+        : element
+    ));
+
+    const result = insertRecordBlockAfterRecord(doc, "a-deg", pageHeight, {
+      spacing: rhythm,
+      idFactory: makeIdFactory("ins"),
+    });
+    assert.ok(result);
+    const body = listSectionContentElements(result.elements, headingId, pageHeight);
+    const groups = partitionSectionRecords(body);
+    assert.ok(groups.length >= 3);
+    // Inserted block is full education (4 lines), not degree+school only.
+    assert.equal(groups[1].length, 4);
+    assert.equal(groups[1][0].content, "Nazwa dyplomu");
+    assert.equal(groups[1][3].content, "Opis…");
+
+    const lastInserted = groups[1][groups[1].length - 1];
+    const nextTitle = groups[2][0];
+    const gap = (Number(nextTitle.top) + (Number(nextTitle.page) - 1) * pageHeight)
+      - (Number(lastInserted.top) + (Number(lastInserted.page) - 1) * pageHeight
+        + Number(lastInserted.height));
+    assert.ok(
+      gap >= rhythm.record - 0.5,
+      `expected record gap >= ${rhythm.record}, got ${gap}`,
+    );
   });
 
   it("rejects description lines, aa sections, and unknown ids", () => {

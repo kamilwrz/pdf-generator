@@ -159,13 +159,24 @@ export function sectionSupportsRecordAdd(elements, headingId, pageHeight = 842) 
 /**
  * Infer placeholder layout from a record's line count / shape.
  *
+ * Education is degree + school + meta + optional bullets (3 lines without a
+ * bulletList still count as education — wizard often omits the description).
+ * Experience is title + company·period + bullets (the last line is a list).
+ *
  * @param {object[]} members
  * @returns {"cc-edu"|"cc-exp"|null}
  */
 export function inferRecordLayout(members) {
-  const count = (members || []).length;
+  const list = members || [];
+  const count = list.length;
   if (count >= 4) return SECTION_LAYOUTS.RECORD_EDUCATION;
-  if (count === 3) return SECTION_LAYOUTS.RECORD_EXPERIENCE;
+  if (count === 3) {
+    if (list.some((element) => element.bulletList)) {
+      return SECTION_LAYOUTS.RECORD_EXPERIENCE;
+    }
+    // degree / school / city·period without description
+    return SECTION_LAYOUTS.RECORD_EDUCATION;
+  }
   return null;
 }
 
@@ -210,21 +221,106 @@ function measurePlaceholderHeight(content, width, fontSize, lineHeight) {
 }
 
 /**
- * Prefer a multi-line group that still carries a bold title — avoids cloning a
- * previously broken / partially styled insert as the structural template.
+ * Prefer the fullest bold-title record in the section as the structural
+ * template. Hovering a short education entry (degree + school only) must still
+ * clone a sibling's complete 4-line shape — otherwise the insert misses meta /
+ * description and collapses into the next record's title.
  *
  * @param {object[][]} groups
  * @param {object[]|null} preferred
  * @returns {object[]|null}
  */
 export function pickRecordTemplateGroup(groups, preferred = null) {
-  const list = groups || [];
-  const hasBoldTitle = (group) => Boolean(group?.[0]?.bold);
-  if (preferred?.length >= 2 && hasBoldTitle(preferred)) return preferred;
-  const withBold = [...list].reverse().find((group) => group.length >= 2 && hasBoldTitle(group));
-  if (withBold) return withBold;
+  const list = (groups || []).filter((group) => group && group.length >= 2);
+  if (list.length === 0) return null;
+
+  const score = (group) => {
+    const bold = group[0]?.bold ? 100 : 0;
+    return bold + group.length;
+  };
+
+  const ranked = [...list].sort((left, right) => score(right) - score(left));
+  // Longest bold-title group wins (full edu/exp), even when `preferred` is a
+  // shorter hovered entry.
+  if (ranked[0][0]?.bold) return ranked[0];
+
   if (preferred?.length >= 2) return preferred;
-  return [...list].reverse().find((group) => group.length >= 2) || null;
+  return ranked[0];
+}
+
+/**
+ * Expand a short wizard education/experience stack to the canonical field
+ * count so placeholders and inter-record rhythm match the builder layouts.
+ *
+ * Education: degree + school + meta + bullets (4).
+ * Experience: title + company·period + bullets (3).
+ *
+ * @param {object[]} members
+ * @param {object[][]|null} [sectionGroups] other records in the section
+ * @returns {object[]}
+ */
+export function ensureCanonicalRecordTemplate(members, sectionGroups = null) {
+  const source = members || [];
+  if (source.length === 0) return source;
+
+  const layout = inferRecordLayout(source);
+  // Full experience (3 with bullets) — leave as-is.
+  if (layout === SECTION_LAYOUTS.RECORD_EXPERIENCE) return source;
+  // Education with 4 lines — leave as-is. 3-line edu (no bullets) still needs
+  // a description line so inserts keep SPACE_RECORD separation from the next title.
+  if (layout === SECTION_LAYOUTS.RECORD_EDUCATION && source.length >= 4) {
+    return source;
+  }
+
+  const title = source[0];
+  const second = source[1] || source[0];
+  if (!title?.bold) return source;
+
+  const fullest = sectionGroups
+    ? pickRecordTemplateGroup(sectionGroups, source)
+    : source;
+  const sectionLooksLikeExperience = Boolean(
+    fullest
+    && fullest.length === 3
+    && fullest.some((element) => element.bulletList),
+  );
+
+  const mutedColor = second.color && second.color !== title.color
+    ? second.color
+    : (title.color || "#24201E");
+  const metaFs = Math.min(Number(second.fontSize) || 8.7, 8.7);
+  const metaLh = Number(second.lineHeight) || Math.round(metaFs * 1.35);
+  const bodyFs = Number(second.fontSize) || 9;
+  const bodyLh = Number(second.lineHeight) || Math.round(bodyFs * 1.35);
+
+  const metaLine = {
+    ...second,
+    bold: false,
+    bulletList: false,
+    fontSize: metaFs,
+    lineHeight: metaLh,
+    color: mutedColor,
+    height: metaLh,
+  };
+  const bulletLine = {
+    ...second,
+    bold: false,
+    bulletList: true,
+    fontSize: bodyFs,
+    lineHeight: bodyLh,
+    height: bodyLh,
+  };
+
+  if (sectionLooksLikeExperience) {
+    if (source.length >= 3) return source;
+    return [title, second, bulletLine];
+  }
+
+  // Education (default for bold stacks without experience bullets).
+  if (source.length >= 4) return source;
+  if (source.length === 3) return [...source, bulletLine];
+  if (source.length === 2) return [title, second, metaLine, bulletLine];
+  return source;
 }
 
 /**
@@ -236,10 +332,11 @@ export function pickRecordTemplateGroup(groups, preferred = null) {
  *
  * @param {object[]} members last record members in reading order
  * @param {() => string} [idFactory]
+ * @param {object[][]|null} [sectionGroups]
  * @returns {object[]}
  */
-export function buildRecordClone(members, idFactory = nanoid) {
-  const source = members || [];
+export function buildRecordClone(members, idFactory = nanoid, sectionGroups = null) {
+  const source = ensureCanonicalRecordTemplate(members, sectionGroups);
   if (source.length === 0) return [];
   const placeholders = placeholderContentsForRecord(source);
   const group = `record-${idFactory()}`;
@@ -248,6 +345,11 @@ export function buildRecordClone(members, idFactory = nanoid) {
     const lineHeight = Number(element.lineHeight) || Math.round(fontSize * 1.4);
     const width = Number(element.width) || 466;
     const content = placeholders[index] ?? PLACEHOLDER.generic;
+    const measured = measurePlaceholderHeight(content, width, fontSize, lineHeight);
+    // Keep at least the template's single-line box so pack `record` gaps do not
+    // collapse before the browser remeasures; never inherit a tall bullet box.
+    const sourceH = elementHeight(element);
+    const height = Math.max(measured, lineHeight, Math.min(sourceH, lineHeight * 2.2));
     // Explicit field copy — do not spread ephemeral UI flags (selection, move,
     // editing) or stale page/top from the source record.
     const next = {
@@ -261,7 +363,7 @@ export function buildRecordClone(members, idFactory = nanoid) {
       left: Number(element.left) || 66,
       top: 0,
       width,
-      height: measurePlaceholderHeight(content, width, fontSize, lineHeight),
+      height,
       fontSize,
       fontFamily: element.fontFamily || "Inter",
       lineHeight,
@@ -309,7 +411,7 @@ export function appendRecordToSection(
   const templateGroup = pickRecordTemplateGroup(groups);
   if (!templateGroup) return null;
 
-  const clones = buildRecordClone(templateGroup, idFactory);
+  const clones = buildRecordClone(templateGroup, idFactory, groups);
   if (clones.length === 0) return null;
 
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
@@ -496,48 +598,50 @@ export function insertRecordBlockAfterRecord(
 
   const { headingId, group, body } = anchor;
   const groups = partitionSectionRecords(body);
-  // Prefer the hovered record when it still looks like a real edu/exp entry
-  // (bold title); otherwise clone the nearest healthy template in the section.
+  // Fullest bold-title sibling wins over a short hovered edu entry (2 lines).
   const templateGroup = pickRecordTemplateGroup(groups, group);
   if (!templateGroup) return null;
 
-  const clones = buildRecordClone(templateGroup, idFactory);
+  const clones = buildRecordClone(templateGroup, idFactory, groups);
   if (clones.length === 0) return null;
 
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
   const lastMate = group[group.length - 1];
+  const anchorIds = new Set(group.map((element) => element.element_id));
+  const sectionIds = sectionElementIds(elements, headingId, pageHeight);
 
-  const sections = listDocumentSections(elements, pageHeight);
-  const sectionIndex = sections.findIndex((section) => section.headingId === headingId);
-  const nextSectionStart = sectionIndex >= 0 && sectionIndex + 1 < sections.length
-    ? sections[sectionIndex + 1].startAbs
-    : Number.POSITIVE_INFINITY;
-  const bandCeiling = Number.isFinite(nextSectionStart)
-    ? nextSectionStart - 0.05
-    : null;
+  const cloneStackHeight = clones.reduce((sum, element, index) => (
+    sum + elementHeight(element) + (index > 0 ? rhythm.stack : 0)
+  ), 0);
+  // Reserve the full insert height (+ record gap) so following titles are not
+  // still sitting inside the new stack's Y range when compactSectionStrip
+  // sorts by absoluteTop — that interleaving was merging "Uczelnia" into the
+  // next degree line before pack could separate flowGroups.
+  const hole = cloneStackHeight + rhythm.record;
+  const thresholdAbs = absoluteBottom(lastMate, pageHeight);
 
-  // Keep provisional Y inside this section's band so membership is correct
-  // before applyFlowSpacing expands gaps and pushes following sections.
-  let cursorAbs = absoluteBottom(lastMate, pageHeight) + rhythm.record;
-  if (bandCeiling != null) {
-    cursorAbs = Math.min(cursorAbs, bandCeiling);
-  }
-
-  const placedClones = clones.map((element) => {
-    let abs = cursorAbs;
-    if (bandCeiling != null) {
-      abs = Math.min(abs, bandCeiling);
+  const list = (elements || []).map((element) => {
+    if (!element || !sectionIds.has(element.element_id)) return element;
+    if (anchorIds.has(element.element_id)) return element;
+    if (element.flowRole === "section-chrome" || element.flowRole === "masthead") {
+      return element;
     }
-    const page = Math.max(1, Math.floor(abs / pageHeight) + 1);
-    const top = abs - (page - 1) * pageHeight;
+    if (absoluteTop(element, pageHeight) + 0.01 < thresholdAbs) return element;
+    const newAbs = absoluteTop(element, pageHeight) + hole;
+    const page = Math.max(1, Math.floor(newAbs / pageHeight) + 1);
+    const top = newAbs - (page - 1) * pageHeight;
+    return { ...element, page, top };
+  });
+
+  let cursorAbs = thresholdAbs + rhythm.record;
+  const placedClones = clones.map((element) => {
+    const page = Math.max(1, Math.floor(cursorAbs / pageHeight) + 1);
+    const top = cursorAbs - (page - 1) * pageHeight;
     const placed = { ...element, page, top };
-    cursorAbs = bandCeiling != null
-      ? abs + 0.01
-      : abs + elementHeight(element) + rhythm.stack;
+    cursorAbs += elementHeight(element) + rhythm.stack;
     return placed;
   });
 
-  const list = elements || [];
   const mateIndex = list.findIndex((element) => element.element_id === lastMate.element_id);
   const withBlock = mateIndex >= 0
     ? [
