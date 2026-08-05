@@ -16,6 +16,8 @@ import {
   normalizeEditorMode,
 } from '../utils/editorMode';
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from '../utils/flowSpacing';
+import { deriveSectionStyle, appendSectionAtEnd } from '../utils/sectionStructure';
+import { buildSectionElements } from '../utils/sectionBuilder';
 import {
   createCircleElement,
   createEllipseElement,
@@ -484,6 +486,43 @@ export function useA4Elements(titleRef) {
       ...prev.map((el) => ({ ...el, isSelected: false, isEditing: false })),
       textarea,
     ]);
+  }, []);
+
+  /**
+   * Add a new template-mode section (heading + chrome + body) to the end of the
+   * document in the active rhythm. Style is sampled from the last section so the
+   * new one matches the template; the first editable body enters edit mode so
+   * the user can type immediately.
+   *
+   * @param {{ name: string, layout: "aa"|"cc" }} config
+   */
+  const handleAddSection = useCallback(({ name, layout }) => {
+    setA4_Elements((prev) => {
+      const pageHeight = pageSizeRef.current?.height ?? 842;
+      const spacing = flowSpacingRef.current;
+      const style = deriveSectionStyle(prev, pageHeight);
+      const { elements, firstBodyId } = buildSectionElements({
+        name,
+        layout,
+        style,
+        spacing,
+        idFactory: nanoid,
+      });
+      const next = appendSectionAtEnd(prev, elements, pageHeight, { spacing });
+      markElementsEnter(elements.map((element) => element.element_id));
+
+      // Select + open the first body for editing; clear any prior selection so
+      // typing does not apply to a previously selected element.
+      return next.map((element) => {
+        if (element.element_id === firstBodyId) {
+          return { ...element, isSelected: true, isEditing: true };
+        }
+        if (element.isSelected || element.isEditing) {
+          return { ...element, isSelected: false, isEditing: false };
+        }
+        return element;
+      });
+    });
   }, []);
 
   const handleSetTextareaEditing = useCallback((elementId, editing) => {
@@ -1501,6 +1540,7 @@ export function useA4Elements(titleRef) {
     handleAddEllipse,
     handleAddImage,
     handleAddTextarea,
+    handleAddSection,
     // connector mode
     connectMode,
     connectSourceId,
