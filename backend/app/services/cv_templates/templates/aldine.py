@@ -28,6 +28,8 @@ def _gen_aldine(cv: dict) -> list[dict]:
     header = [_text(name, 30, SERIF, C['ink'], 92, 66, zIndex=3, bold=True), _text(title, 8.9, SANS, C['accent'], 94, 106, zIndex=3), _text(contact, 8.6, SANS, C['muted'], 94, 132, zIndex=3), _line(92, 157, 408, 1, C['rule'], zIndex=2), seal, lozenge, core, frame, _line(508, 96, 14, 1, C['accent'], zIndex=2)]
     header[0]['letterSpacing'] = 0.1
     header[1]['letterSpacing'] = 1.4
+    # Keep masthead out of structural section packing (same issue as Regent).
+    header = [{**element, "flowRole": "masthead"} for element in header]
     b = ClassicBuilder(C['start'])
     BODY_FS, BODY_LH = (9.3, 13.2)
 
@@ -79,7 +81,10 @@ def _gen_aldine(cv: dict) -> list[dict]:
         b.block(skills, L, W, 9.1, 13, C['ink'], SANS)
         close_section()
     _extra_sections(b, cv, 'after_skills', section, {'body': C['ink']}, L, W, SANS, fs=9.1, lh=13)
-    flow = b.build()
+    flow = [
+        {**element, "flowRole": element.get("flowRole", "content")}
+        for element in b.build()
+    ]
     pages_used = max([element.get('page', 1) for element in header + flow] or [1])
 
     def page_frame(page: int) -> tuple[dict, ...]:

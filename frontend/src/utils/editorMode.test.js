@@ -49,6 +49,12 @@ describe("canFreePositionElement", () => {
     assert.equal(canFreePositionElement(content, EDITOR_MODE_FREEFORM), true);
   });
 
+  it("blocks masthead decorations in template mode", () => {
+    const signet = { category: "circle", flowRole: "masthead", width: 25, height: 25 };
+    assert.equal(canFreePositionElement(signet, EDITOR_MODE_TEMPLATE), false);
+    assert.equal(canFreePositionElement(signet, EDITOR_MODE_FREEFORM), true);
+  });
+
   it("allows untagged images in template mode", () => {
     const image = { category: "image", src: "/images/1/content" };
     assert.equal(canFreePositionElement(image, EDITOR_MODE_TEMPLATE), true);

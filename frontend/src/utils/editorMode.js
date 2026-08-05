@@ -53,8 +53,12 @@ export function canFreePositionElement(element, editorMode) {
   if (!element) return false;
   if (element.fixedToPage || element.locked) return false;
   if (normalizeEditorMode(editorMode) !== EDITOR_MODE_TEMPLATE) return true;
-  // Template mode: layout owns positions for flow content and section chrome.
-  if (element.flowRole === "section-chrome" || element.flowRole === "content") {
+  // Template mode: layout owns masthead, section chrome, and flow content.
+  if (
+    element.flowRole === "section-chrome"
+    || element.flowRole === "content"
+    || element.flowRole === "masthead"
+  ) {
     return false;
   }
   if (element.autoHeight || element.preserveInitialLayout || element.flowGroup) {

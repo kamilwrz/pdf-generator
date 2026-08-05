@@ -231,7 +231,7 @@ Implementation:
 
 - `frontend/src/utils/editorMode.js` — `normalizeEditorMode`, `inferEditorMode`, `canFreePositionElement`
 - `frontend/src/utils/flowSpacing.js` — defaults + normalize for the Sections panel / save / fill
-- `frontend/src/utils/sectionStructure.js` — `packDocumentSections`, `applyFlowSpacing`, reorder; leading section chrome (heading + rule + markers) reserved with the first body so thin underlines cannot park in the footer; intra-chrome offsets are preserved (or healed) and never replaced by `SPACE_STACK`
+- `frontend/src/utils/sectionStructure.js` — `packDocumentSections`, `applyFlowSpacing`, reorder; leading section chrome reserved with the first body; intra-chrome offsets preserved (never `SPACE_STACK`); flow start anchored under the masthead so Regent/Aldine header rules are not absorbed into sections
 - `frontend/src/pages/PdfCanvas.jsx`, component `PdfCanvas` (`start=templates|import|wizard|blank`, unlock copy)
 - `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`, `spacing`)
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, `Topbar/Topbar.jsx`, `SectionsPanel/`, `UnlockFreeformModal/`
@@ -1140,7 +1140,7 @@ Wspólne czcionki: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDi
 
 Implementacja:
 
-- `frontend/src/utils/editorMode.js`, `flowSpacing.js`, `sectionStructure.js` (`packDocumentSections`, `applyFlowSpacing`; chrome sekcji trzymany z pierwszym blokiem treści; rytm nagłówek/linia/marker nie jest nadpisywany przez `SPACE_STACK`)
+- `frontend/src/utils/editorMode.js`, `flowSpacing.js`, `sectionStructure.js` (`packDocumentSections`, `applyFlowSpacing`; chrome sekcji z pierwszym blokiem treści; kotwica pod mastheadem dla Regent/Aldine)
 - `frontend/src/pages/PdfCanvas.jsx` — intencje `templates|import|wizard|blank`, unlock z kopią
 - `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`, `spacing`)
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, `Topbar/Topbar.jsx`, `SectionsPanel/`, `UnlockFreeformModal/`

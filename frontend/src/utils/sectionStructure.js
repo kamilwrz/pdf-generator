@@ -22,6 +22,12 @@ const DEFAULT_BOTTOM_MARGIN = 72;
  * page-break waste (footer + next-page header) and collapsed while packing.
  */
 const PAGE_BREAK_GAP_THRESHOLD = 40;
+/**
+ * Fallback clearance under the masthead divider when the authored
+ * heading gap has been corrupted by an earlier pack (Regent uses 36,
+ * solid-band templates like Cinder use ~32 — both sit in this band).
+ */
+const DEFAULT_MASTHEAD_CLEARANCE = 36;
 
 function absoluteTop(element, pageHeight = 842) {
   const page = Math.max(1, Math.trunc(Number(element?.page) || 1));
@@ -72,10 +78,15 @@ export function isSectionHeading(element, elements = [], pageHeight = 842) {
   if (!content) return false;
 
   if (element.flowRole === "section-chrome") return true;
-  // Explicit body content is never a section title.
-  if (element.flowRole === "content") return false;
+  // Explicit body / masthead copy is never a section title.
+  if (element.flowRole === "content" || element.flowRole === "masthead") return false;
   if (element.autoHeight || element.flowGroup) return false;
   if (content.length > 56) return false;
+
+  // Contact lines sit just above the Regent/Aldine header rule and match the
+  // legacy "short label + rule below" heuristic — reject them explicitly.
+  if (content.includes("@")) return false;
+  if ((content.match(/·/g) || []).length >= 1 && /\d/.test(content)) return false;
 
   const fontSize = Number(element.fontSize) || 12;
   // Masthead names are larger; body copy is usually autoHeight textareas.
@@ -106,6 +117,27 @@ export function listDocumentSections(elements, pageHeight = 842) {
 }
 
 /**
+ * Small marks/icons that may sit a few px above the heading baseline.
+ * Wide untagged rules are NOT included — those are masthead dividers
+ * (Regent/Aldine) and absorbing them into the section chrome cluster
+ * pushes the heading down on the next pack.
+ */
+function isLeadingSectionMark(element) {
+  if (!element) return false;
+  if (element.flowRole === "section-chrome") return true;
+  if (element.category === "rectangle" || element.category === "circle") {
+    const width = Number(element.width) || 0;
+    const height = Number(element.height) || 0;
+    return height <= 40 && width <= 40;
+  }
+  if (element.category === "image") {
+    return Boolean(element.alignWithText)
+      || /\/template-assets\/iconic\//.test(String(element.src || ""));
+  }
+  return false;
+}
+
+/**
  * Collect element ids belonging to the section that starts at `headingId`
  * (heading + chrome nearby + content until the next section heading).
  */
@@ -121,13 +153,43 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
   const ids = new Set();
   for (const element of elements || []) {
     if (element.fixedToPage) continue;
+    if (element.flowRole === "masthead") continue;
     const abs = absoluteTop(element, pageHeight);
-    // Include chrome a few px above the heading (icon/rule band).
-    if (abs >= start - 24 && abs < end - 0.01) {
+    if (abs >= start && abs < end - 0.01) {
+      ids.add(element.element_id);
+      continue;
+    }
+    // Only tagged chrome / small marks may sit slightly above the heading.
+    // Never pull the wide masthead divider into the section strip.
+    if (abs >= start - 24 && abs < start && isLeadingSectionMark(element)) {
       ids.add(element.element_id);
     }
   }
   return ids;
+}
+
+/**
+ * Absolute Y where the first flow section should start, anchored under the
+ * masthead so corrupted heading positions cannot open a large white gap
+ * (Regent) or climb into the header band.
+ */
+function resolveFlowStart(elements, sections, pageHeight) {
+  const headingStart = Math.min(...sections.map((section) => section.startAbs));
+  let mastheadBottom = 0;
+  for (const element of elements || []) {
+    if (!element || element.fixedToPage) continue;
+    if (element.flowRole === "section-chrome") continue;
+    const abs = absoluteTop(element, pageHeight);
+    if (abs >= headingStart - 0.01) continue;
+    mastheadBottom = Math.max(mastheadBottom, absoluteBottom(element, pageHeight));
+  }
+  if (mastheadBottom <= 0) return headingStart;
+
+  const authoredGap = headingStart - mastheadBottom;
+  const clearance = (authoredGap >= 20 && authoredGap <= 56)
+    ? authoredGap
+    : DEFAULT_MASTHEAD_CLEARANCE;
+  return mastheadBottom + clearance;
 }
 
 function isChromeLike(element) {
@@ -469,7 +531,7 @@ export function packDocumentSections(
     .filter(Boolean);
   if (order.length === 0) return list;
 
-  const flowStart = Math.min(...sections.map((section) => section.startAbs));
+  const flowStart = resolveFlowStart(list, sections, pageHeight);
   const memberIds = new Set();
   const strips = order.map((section) => {
     const ids = sectionElementIds(list, section.headingId, pageHeight);

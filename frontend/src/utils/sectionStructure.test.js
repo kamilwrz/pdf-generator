@@ -354,6 +354,163 @@ describe("applyFlowSpacing", () => {
     assert.ok(byId.mark1.top < byId.r1.top + 4, "mark stays in the heading band, not below the rule");
   });
 
+  it("does not treat masthead contact lines as section headings", () => {
+    const elements = [
+      {
+        element_id: "contact",
+        category: "text",
+        content: "kamil@example.com · +48 600 000 000 · Warszawa",
+        page: 1,
+        top: 133,
+        left: 90,
+        fontSize: 8.6,
+        height: 12,
+      },
+      {
+        element_id: "masthead-rule",
+        category: "line",
+        page: 1,
+        top: 158,
+        left: 88,
+        width: 411,
+        height: 1,
+      },
+      {
+        element_id: "h1",
+        category: "text",
+        flowRole: "section-chrome",
+        content: "PODSUMOWANIE ZAWODOWE",
+        page: 1,
+        top: 194,
+        left: 113,
+        fontSize: 8.4,
+        height: 12,
+      },
+      {
+        element_id: "r1",
+        category: "line",
+        flowRole: "section-chrome",
+        page: 1,
+        top: 206,
+        left: 113,
+        width: 386,
+        height: 1,
+      },
+      {
+        element_id: "a1",
+        category: "textarea",
+        flowRole: "content",
+        autoHeight: true,
+        page: 1,
+        top: 215,
+        height: 40,
+        left: 113,
+      },
+    ];
+    const sections = listDocumentSections(elements);
+    assert.deepEqual(sections.map((section) => section.title), ["PODSUMOWANIE ZAWODOWE"]);
+  });
+
+  it("keeps Regent masthead clearance when packing after a corrupted heading gap", () => {
+    // Masthead rule stays at 158; a prior pack pushed the first heading to 280
+    // and opened a large white band. Packing must re-anchor under the masthead
+    // (~158 + 36) instead of preserving the corrupted 280 start.
+    const elements = [
+      {
+        element_id: "name",
+        category: "text",
+        flowRole: "masthead",
+        content: "Kamil Wrzochalski",
+        page: 1,
+        top: 67,
+        fontSize: 29,
+        height: 39,
+        left: 88,
+      },
+      {
+        element_id: "contact",
+        category: "text",
+        flowRole: "masthead",
+        content: "kamil@example.com · +48 600 000 000 · Warszawa",
+        page: 1,
+        top: 133,
+        fontSize: 8.6,
+        height: 12,
+        left: 90,
+      },
+      {
+        element_id: "masthead-rule",
+        category: "line",
+        flowRole: "masthead",
+        page: 1,
+        top: 158,
+        left: 88,
+        width: 411,
+        height: 1,
+      },
+      {
+        element_id: "h1",
+        category: "text",
+        flowRole: "section-chrome",
+        content: "PODSUMOWANIE ZAWODOWE",
+        page: 1,
+        top: 280,
+        left: 113,
+        fontSize: 8.4,
+        height: 12,
+      },
+      {
+        element_id: "m1",
+        category: "rectangle",
+        flowRole: "section-chrome",
+        page: 1,
+        top: 282,
+        left: 88,
+        width: 8,
+        height: 8,
+      },
+      {
+        element_id: "r1",
+        category: "line",
+        flowRole: "section-chrome",
+        page: 1,
+        top: 292,
+        left: 113,
+        width: 386,
+        height: 1,
+      },
+      {
+        element_id: "a1",
+        category: "textarea",
+        flowRole: "content",
+        autoHeight: true,
+        page: 1,
+        top: 301,
+        height: 40,
+        left: 113,
+      },
+    ];
+
+    const packed = applyFlowSpacing(elements, {
+      stack: 15,
+      record: 10,
+      section: 21,
+      after_rule: 8,
+    }, 842);
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+
+    assert.equal(byId["masthead-rule"].top, 158, "masthead rule must not move");
+    assert.ok(
+      byId.h1.top >= 190 && byId.h1.top <= 210,
+      `first heading should sit under the masthead clearance, got top=${byId.h1.top}`,
+    );
+    assert.ok(
+      byId.h1.top - byId["masthead-rule"].top <= 56,
+      "white gap under masthead must close",
+    );
+    assert.ok(byId.m1.top - byId.h1.top <= 4, "section mark stays on the heading line");
+  });
+
   it("heals chrome that was previously torn apart by SPACE_STACK packing", () => {
     // Simulate a document already corrupted by the old forceTargets path:
     // heading → 4px → mark → 4px → rule (no overlap / flush).
