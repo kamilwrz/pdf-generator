@@ -81,6 +81,12 @@ describe("buildSectionElements", () => {
     assert.equal(body[1].bold, false);                // school/subtitle line
     assert.equal(body[2].color, "#756F6B");           // meta uses muted color
     assert.equal(body[3].bulletList, true);           // description is a bullet list
+    // Generator-matched box height (lineHeight, not the +6 canvas heuristic)
+    // plus preserveInitialLayout so mount shrink cannot loosen SPACE_STACK.
+    for (const line of body) {
+      assert.equal(line.height, style.body.lineHeight);
+      assert.equal(line.preserveInitialLayout, true);
+    }
   });
 
   it("cc-exp: one record of three content blocks sharing a flowGroup (title/company·period/description) — no subtitle line", () => {
@@ -342,8 +348,13 @@ describe("build -> append -> reorder (composed production pipeline)", () => {
 
     const newRule = appended.find((element) => element.element_id === newRuleId);
     const newBody = appended.find((element) => element.element_id === firstBodyId);
+    const existingRule = appended.find((element) => element.element_id === "r1");
+    const existingBody = appended.find((element) => element.element_id === "b1");
 
     const packedGap = newBody.top - (newRule.top + newRule.height);
+    const existingGap = existingBody.top - (existingRule.top + existingRule.height);
     assert.equal(packedGap, rhythm.after_rule);
+    // appendSectionAtEnd also retargets wizard sections so both share the knob.
+    assert.equal(existingGap, rhythm.after_rule);
   });
 });

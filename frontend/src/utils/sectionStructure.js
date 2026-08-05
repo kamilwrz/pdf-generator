@@ -632,10 +632,15 @@ export function packDocumentSections(
 
 /**
  * Append a freshly built section's elements at the end of the document flow,
- * in the document's governing rhythm, without repacking existing sections.
+ * then retarget every section to the document's governing rhythm.
  *
- * The new strip is placed below the deepest existing non-fixed element plus one
- * SPACE_SECTION gap and paginated with the same margins as `packDocumentSections`.
+ * The new strip is first placed below the deepest existing non-fixed element
+ * plus one SPACE_SECTION gap (so `listDocumentSections` sees it last), then
+ * `applyFlowSpacing` force-packs the whole document. Without that second pass,
+ * wizard-authored under-rule / inter-section gaps (often ~7px / ~14–18px from
+ * ReportLab) stay put while the new strip alone snaps to the panel knobs —
+ * the visible "added section rhythm differs from wizard sections" bug.
+ *
  * `fixedToPage` decorations (page frames, footers) are excluded from the flow
  * bottom so the section follows real content rather than the page border.
  *
@@ -672,7 +677,13 @@ export function appendSectionAtEnd(
   const placedAdditions = additions.map(
     (element) => placedById.get(element.element_id) || element,
   );
-  return [...list, ...placedAdditions];
+  // Unify wizard + new strip onto one SPACE_* rhythm (see JSDoc above).
+  return applyFlowSpacing(
+    [...list, ...placedAdditions],
+    rhythm,
+    pageHeight,
+    { pageTop, bottomMargin },
+  );
 }
 
 /**

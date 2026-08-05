@@ -24,7 +24,6 @@
  * generic 4-line "cc" record — as an earlier version of this module did —
  * produces a phantom subtitle field on experience-style sections.
  */
-import { measureTextareaHeight } from "./textareaHeight.js";
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
 
 /**
@@ -37,6 +36,30 @@ import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
  * gap once the packer re-pins the strip.
  */
 const TEXT_CURSOR_ADVANCE = 1.35;
+
+/**
+ * Height of one record/textarea line, matching backend
+ * `PDF_Generator.measure_textarea_height` + `Builder.measure_block(..., min_h=lh)`:
+ * `lines * lineHeight`, floored at one line. Deliberately omits the `+ 6`
+ * canvas heuristic in `measureTextareaHeight` — that overshoot makes added
+ * record stacks sit ~6px taller per line than wizard-generated peers, so the
+ * same SPACE_STACK gap looks like a looser rhythm.
+ *
+ * @param {string} content
+ * @param {number} width
+ * @param {number} fontSize
+ * @param {number} lineHeight
+ * @returns {number}
+ */
+function measureGeneratorBlockHeight(content, width, fontSize, lineHeight) {
+  const lh = lineHeight || Math.round(fontSize * 1.4);
+  const cpl = Math.max(10, Math.floor(width / (fontSize * 0.52)));
+  let renderedLines = 0;
+  for (const seg of (content || "").split("\n")) {
+    renderedLines += seg.trim() ? Math.max(1, Math.ceil(seg.length / cpl)) : 1;
+  }
+  return Math.max(lh, renderedLines * lh);
+}
 
 export const SECTION_LAYOUTS = Object.freeze({
   TEXTAREA: "aa",
@@ -104,10 +127,13 @@ function contentTextarea({
     content,
     flowRole: "content",
     autoHeight: true,
+    // Match fill_template textareas: shrink-only on first mount so browser
+    // metrics cannot inflate the generator-matched stack before the user edits.
+    preserveInitialLayout: true,
     left,
     top,
     width,
-    height: measureTextareaHeight(content, width, fontSize, lh),
+    height: measureGeneratorBlockHeight(content, width, fontSize, lh),
     fontSize,
     fontFamily,
     lineHeight: lh,
@@ -289,6 +315,10 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
     lines.forEach((line, index) => {
       const elementId = idFactory();
       if (index === 0) firstBodyId = elementId;
+      const lineHeight = style.body.lineHeight;
+      const height = measureGeneratorBlockHeight(
+        line.content, width, style.body.fontSize, lineHeight,
+      );
       elements.push(contentTextarea({
         elementId,
         content: line.content,
@@ -297,13 +327,15 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
         width,
         fontSize: style.body.fontSize,
         fontFamily: style.body.fontFamily,
-        lineHeight: style.body.lineHeight,
+        lineHeight,
         color: line.color,
         bold: line.bold,
         bulletList: Boolean(line.bulletList),
         flowGroup: group,
       }));
-      top += style.body.lineHeight + rhythm.stack;
+      // Advance by the real box height (not bare lineHeight) so authored
+      // intra-record gaps stay non-negative before forceTargets re-pins them.
+      top += height + rhythm.stack;
     });
   } else {
     firstBodyId = idFactory();

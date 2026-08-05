@@ -850,29 +850,45 @@ describe("appendSectionAtEnd", () => {
   }
 
   function newSection() {
+    // Rule flush under the heading box — same geometry sectionBuilder produces
+    // (fontSize*1.35 ≈ height 12 here). A rule authored above the heading
+    // bottom would make rule→body measure larger than after_rule when the
+    // packer anchors the first body to the full chrome band.
     return [
       { element_id: "h2", category: "text", flowRole: "section-chrome", content: "Umiejętności", left: 76, top: 0, fontSize: 8.7, height: 12, page: 1 },
-      { element_id: "r2", category: "line", flowRole: "section-chrome", left: 76, top: 8.7, width: 466, height: 1, page: 1 },
+      { element_id: "r2", category: "line", flowRole: "section-chrome", left: 76, top: 12, width: 466, height: 1, page: 1 },
       { element_id: "b2", category: "textarea", flowRole: "content", autoHeight: true, left: 76, top: 30, width: 466, height: 40, fontSize: 9.3, page: 1 },
     ];
   }
 
-  it("keeps existing elements untouched and appends the new ones", () => {
-    const doc = sampleDoc();
-    const result = appendSectionAtEnd(doc, newSection(), pageHeight, { spacing: { stack: 4, record: 10, section: 21, after_rule: 8 } });
-    // Original four elements are byte-stable (same order, same positions).
-    for (let i = 0; i < doc.length; i += 1) {
-      assert.deepEqual(result[i], doc[i]);
-    }
+  it("appends the new section and retargets every section onto the document rhythm", () => {
+    // Wizard-authored under-rule gaps often measure ~7px even when the panel
+    // knobs say 8. Appending used to pin only the new strip, leaving wizard
+    // sections on their authored rhythm — the visible mismatch in the editor.
+    const rhythm = { stack: 4, record: 10, section: 21, after_rule: 8 };
+    const doc = [
+      { element_id: "name", category: "text", flowRole: "masthead", content: "Jan Kowalski", left: 76, top: 60, fontSize: 20, height: 24, page: 1 },
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "Doświadczenie", left: 76, top: 120, fontSize: 8.7, height: 12, page: 1 },
+      { element_id: "r1", category: "line", flowRole: "section-chrome", left: 76, top: 132, width: 466, height: 1, page: 1 },
+      // Authored after_rule = 7 (140 - 133), not the panel's 8.
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true, left: 76, top: 140, width: 466, height: 60, fontSize: 9.3, page: 1 },
+    ];
+    const result = appendSectionAtEnd(doc, newSection(), pageHeight, { spacing: rhythm });
     assert.equal(result.length, doc.length + 3);
+
+    const byId = Object.fromEntries(result.map((element) => [element.element_id, element]));
+    const wizardGap = byId.b1.top - (byId.r1.top + byId.r1.height);
+    const addedGap = byId.b2.top - (byId.r2.top + byId.r2.height);
+    assert.equal(wizardGap, rhythm.after_rule);
+    assert.equal(addedGap, rhythm.after_rule);
   });
 
   it("places the new heading below the previous section's body", () => {
     const doc = sampleDoc();
     const result = appendSectionAtEnd(doc, newSection(), pageHeight, { spacing: { stack: 4, record: 10, section: 21, after_rule: 8 } });
-    const newHeading = result.find((element) => element.element_id === "h2");
-    const prevBodyBottom = 150 + 60; // b1 top + height
-    const newHeadingAbs = (newHeading.page - 1) * pageHeight + newHeading.top;
+    const byId = Object.fromEntries(result.map((element) => [element.element_id, element]));
+    const prevBodyBottom = (byId.b1.page - 1) * pageHeight + byId.b1.top + byId.b1.height;
+    const newHeadingAbs = (byId.h2.page - 1) * pageHeight + byId.h2.top;
     assert.ok(newHeadingAbs >= prevBodyBottom, `expected ${newHeadingAbs} >= ${prevBodyBottom}`);
   });
 
