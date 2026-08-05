@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   applyFlowSpacing,
+  deriveSectionStyle,
   findProfilePhotoSlot,
   listDocumentSections,
   packDocumentSections,
@@ -584,5 +585,60 @@ describe("findProfilePhotoSlot", () => {
       { element_id: "logo", category: "image", src: "/images/3/content", width: 40, height: 20, top: 400 },
     ]);
     assert.equal(slot.element_id, "photo");
+  });
+});
+
+describe("deriveSectionStyle", () => {
+  it("falls back to defaults when the document has no sections", () => {
+    const style = deriveSectionStyle([]);
+    assert.equal(style.marker, null);
+    assert.ok(style.recordWidth > 0);
+    assert.ok(style.heading.fontSize > 0);
+    assert.equal(typeof style.body.color, "string");
+  });
+
+  it("samples the last section's heading, rule and body", () => {
+    const elements = [
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "Doświadczenie",
+        left: 76, top: 100, fontSize: 8.7, fontFamily: "Inter", color: "#111111", letterSpacing: 1.6 },
+      { element_id: "r1", category: "line", flowRole: "section-chrome",
+        left: 76, top: 112, width: 466, height: 1, backgroundColor: "#cccccc" },
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true,
+        left: 76, top: 130, width: 466, height: 40, fontSize: 9.3, fontFamily: "Inter",
+        lineHeight: 13, color: "#222222" },
+      { element_id: "h2", category: "text", flowRole: "section-chrome", content: "Umiejętności",
+        left: 76, top: 260, fontSize: 8.7, fontFamily: "Inter", color: "#733B43", letterSpacing: 1.35 },
+      { element_id: "r2", category: "line", flowRole: "section-chrome",
+        left: 76, top: 272, width: 466, height: 1, backgroundColor: "#bbbbbb" },
+      { element_id: "b2", category: "textarea", flowRole: "content", autoHeight: true,
+        left: 76, top: 290, width: 466, height: 20, fontSize: 9.1, fontFamily: "Inter",
+        lineHeight: 13, color: "#222222" },
+    ];
+    const style = deriveSectionStyle(elements);
+    assert.equal(style.left, 76);
+    assert.equal(style.recordWidth, 466);
+    assert.equal(style.heading.color, "#733B43"); // from the LAST section (Umiejętności)
+    assert.equal(style.heading.letterSpacing, 1.35);
+    assert.equal(style.rule.backgroundColor, "#bbbbbb");
+    assert.equal(style.body.fontSize, 9.1);
+  });
+
+  it("captures a decorative marker offset from the heading", () => {
+    const elements = [
+      { element_id: "m1", category: "rectangle", flowRole: "section-chrome",
+        left: 51, top: 101, width: 8, height: 8, backgroundColor: "#733B43" },
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "Profil",
+        left: 76, top: 100, fontSize: 8.4, fontFamily: "Inter", color: "#733B43", letterSpacing: 1.6 },
+      { element_id: "r1", category: "line", flowRole: "section-chrome",
+        left: 76, top: 111, width: 466, height: 1, backgroundColor: "#cccccc" },
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true,
+        left: 76, top: 128, width: 466, height: 30, fontSize: 9.3, fontFamily: "Inter",
+        lineHeight: 13, color: "#222222" },
+    ];
+    const style = deriveSectionStyle(elements);
+    assert.ok(style.marker);
+    assert.equal(style.marker.category, "rectangle");
+    assert.equal(style.marker.relLeft, -25); // 51 - 76
+    assert.equal(style.marker.width, 8);
   });
 });

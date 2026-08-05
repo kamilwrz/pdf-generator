@@ -686,6 +686,114 @@ export function applyFlowSpacing(elements, spacing, pageHeight = 842, options = 
 }
 
 /**
+ * Template-neutral fallback used when a document has no detectable sections
+ * (rare — the structural editor runs in template mode). Values mirror a mid
+ * single-column CV: a thin ruled heading over ~9px body copy.
+ */
+const DEFAULT_SECTION_STYLE = Object.freeze({
+  left: 66,
+  recordWidth: 463,
+  heading: { fontSize: 8.5, fontFamily: "Inter", color: "#24201E", letterSpacing: 1.4, bold: false },
+  rule: { width: 463, height: 1, backgroundColor: "#BFB4AA" },
+  marker: null,
+  body: { fontSize: 9.3, fontFamily: "Inter", lineHeight: 13, color: "#24201E" },
+  mutedColor: "#756F6B",
+});
+
+/**
+ * Derive a style profile from the document's last section so a newly added
+ * section matches the active template (heading font, rule, marker, body copy).
+ *
+ * Sampling the LAST section keeps the new section visually consistent with the
+ * content it will sit directly beneath. When no section exists, returns a copy
+ * of the template-neutral defaults.
+ *
+ * @param {object[]} elements
+ * @param {number} [pageHeight=842]
+ * @returns {object} style profile (see plan `SectionStyle`)
+ */
+export function deriveSectionStyle(elements, pageHeight = 842) {
+  const list = elements || [];
+  const sections = listDocumentSections(list, pageHeight);
+  if (sections.length === 0) {
+    return JSON.parse(JSON.stringify(DEFAULT_SECTION_STYLE));
+  }
+
+  const last = sections[sections.length - 1];
+  const heading = list.find((element) => element.element_id === last.headingId) || null;
+  const memberIds = sectionElementIds(list, last.headingId, pageHeight);
+  const members = list.filter((element) => memberIds.has(element.element_id));
+
+  // Widest thin line in the section is the heading rule.
+  const rule = members
+    .filter((element) => element.category === "line"
+      && (Number(element.width) || 0) >= 120
+      && (Number(element.height) || 0) <= 4)
+    .sort((a, b) => (Number(b.width) || 0) - (Number(a.width) || 0))[0] || null;
+
+  // Small tagged shape offset from the label is the decorative marker.
+  const marker = members.find((element) => element.element_id !== last.headingId
+    && element.flowRole === "section-chrome"
+    && (element.category === "rectangle" || element.category === "circle")
+    && (Number(element.width) || 0) <= 40
+    && (Number(element.height) || 0) <= 40) || null;
+
+  // Body copy: non-chrome content elements, in reading order.
+  const bodyElements = members
+    .filter((element) => element.element_id !== last.headingId
+      && element.flowRole !== "section-chrome"
+      && element.category !== "line")
+    .sort((a, b) => absoluteTop(a, pageHeight) - absoluteTop(b, pageHeight));
+  const body = bodyElements[0] || null;
+
+  const headingLeft = Number(heading?.left);
+  const left = Number.isFinite(headingLeft) ? headingLeft : DEFAULT_SECTION_STYLE.left;
+  const recordWidth = Number(body?.width) || Number(rule?.width) || DEFAULT_SECTION_STYLE.recordWidth;
+
+  // Muted color: a body line whose color differs from the main body color
+  // (typically the meta line). Best-effort — falls back to the body color.
+  const bodyColor = String(body?.color || DEFAULT_SECTION_STYLE.body.color);
+  const mutedElement = bodyElements.find((element) => String(element.color || "") && String(element.color) !== bodyColor);
+  const mutedColor = mutedElement ? String(mutedElement.color) : DEFAULT_SECTION_STYLE.mutedColor;
+
+  return {
+    left,
+    recordWidth,
+    heading: {
+      fontSize: Number(heading?.fontSize) || DEFAULT_SECTION_STYLE.heading.fontSize,
+      fontFamily: String(heading?.fontFamily || DEFAULT_SECTION_STYLE.heading.fontFamily),
+      color: String(heading?.color || DEFAULT_SECTION_STYLE.heading.color),
+      letterSpacing: Number(heading?.letterSpacing) || 0,
+      bold: Boolean(heading?.bold),
+    },
+    rule: rule
+      ? {
+        width: Number(rule.width) || recordWidth,
+        height: Number(rule.height) || 1,
+        backgroundColor: String(rule.backgroundColor || DEFAULT_SECTION_STYLE.rule.backgroundColor),
+      }
+      : null,
+    marker: marker
+      ? {
+        category: marker.category,
+        width: Number(marker.width) || 8,
+        height: Number(marker.height) || 8,
+        backgroundColor: String(marker.backgroundColor || DEFAULT_SECTION_STYLE.heading.color),
+        relLeft: (Number(marker.left) || 0) - left,
+        relTop: absoluteTop(marker, pageHeight) - absoluteTop(heading, pageHeight),
+      }
+      : null,
+    body: {
+      fontSize: Number(body?.fontSize) || DEFAULT_SECTION_STYLE.body.fontSize,
+      fontFamily: String(body?.fontFamily || DEFAULT_SECTION_STYLE.body.fontFamily),
+      lineHeight: Number(body?.lineHeight) || Math.round((Number(body?.fontSize) || DEFAULT_SECTION_STYLE.body.fontSize) * 1.4),
+      color: bodyColor,
+    },
+    mutedColor,
+  };
+}
+
+/**
  * Find a likely profile-photo image slot for template drop targets.
  */
 export function findProfilePhotoSlot(elements) {
