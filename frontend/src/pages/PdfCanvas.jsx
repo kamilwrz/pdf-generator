@@ -204,6 +204,8 @@ function PdfCanvas() {
     setEditorMode,
     flowSpacing,
     setFlowSpacing,
+    baselineFlowSpacing,
+    adoptDocumentFlowSpacing,
     pageCount,
     setPageCount,
     currentPage,
@@ -740,7 +742,8 @@ function PdfCanvas() {
     const savedMode = pdfMeta.editor_mode ?? pdfMeta.editorMode;
     const savedTemplate = pdfMeta.template_id ?? pdfMeta.templateId ?? null;
     const savedSpacing = pdfMeta.spacing_px ?? pdfMeta.spacingPx ?? pdfMeta.flowSpacing;
-    setFlowSpacing(savedSpacing || DEFAULT_FLOW_SPACING);
+    // Pin Reset to the loaded document's rhythm (or generator defaults).
+    adoptDocumentFlowSpacing(savedSpacing || DEFAULT_FLOW_SPACING);
     if (savedTemplate) setActiveTemplateId(savedTemplate);
     else setActiveTemplateId(null);
     if (savedMode) {
@@ -748,7 +751,7 @@ function PdfCanvas() {
       return;
     }
     setEditorMode(inferEditorMode(elements, savedTemplate));
-  }, [setActiveTemplateId, setEditorMode, setFlowSpacing]);
+  }, [adoptDocumentFlowSpacing, setActiveTemplateId, setEditorMode]);
   // A successful delete must clear the local canvas without attempting to
   // autosave the PDF row that has just been removed from the server.
   const discardActiveDocument = useCallback(() => {
@@ -812,6 +815,7 @@ function PdfCanvas() {
     setEditorMode,
     flowSpacing,
     setFlowSpacing,
+    baselineFlowSpacing,
     hydrateDocumentMode,
     showUnlockFreeform: handleShowUnlockFreeform,
     unlockFreeform: handleUnlockFreeform,
@@ -856,7 +860,7 @@ function PdfCanvas() {
     setA4_Elements, handleResizeElement, updatePdfWithElements,
     clearA4Fresh, discardActiveDocument, flushAutosave, loadTemplateFresh, loadTemplateWithFillFresh,
     loadAiElementsFresh, handleLoadAiElements, activeTemplateId, setActiveTemplateId,
-    editorMode, setEditorMode, flowSpacing, setFlowSpacing, hydrateDocumentMode, handleShowUnlockFreeform, handleUnlockFreeform,
+    editorMode, setEditorMode, flowSpacing, setFlowSpacing, baselineFlowSpacing, hydrateDocumentMode, handleShowUnlockFreeform, handleUnlockFreeform,
     activeCvData, setActiveCvData,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, markSelected, handleSetTextareaEditing,

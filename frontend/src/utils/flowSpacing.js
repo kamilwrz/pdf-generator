@@ -44,14 +44,22 @@ export function flowSpacingToPayload(spacing) {
 }
 
 /**
+ * True when two spacing objects normalize to the same rhythm knobs.
+ */
+export function flowSpacingEquals(left, right) {
+  const a = normalizeFlowSpacing(left);
+  const b = normalizeFlowSpacing(right);
+  return (
+    a.stack === b.stack
+    && a.record === b.record
+    && a.section === b.section
+    && a.after_rule === b.after_rule
+  );
+}
+
+/**
  * True when every key matches the generator defaults.
  */
 export function isDefaultFlowSpacing(spacing) {
-  const normalized = normalizeFlowSpacing(spacing);
-  return (
-    normalized.stack === DEFAULT_FLOW_SPACING.stack
-    && normalized.record === DEFAULT_FLOW_SPACING.record
-    && normalized.section === DEFAULT_FLOW_SPACING.section
-    && normalized.after_rule === DEFAULT_FLOW_SPACING.after_rule
-  );
+  return flowSpacingEquals(spacing, DEFAULT_FLOW_SPACING);
 }

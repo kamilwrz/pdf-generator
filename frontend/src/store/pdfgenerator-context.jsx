@@ -94,6 +94,8 @@ export const PdfContext = createContext({
     setEditorMode: () => {},
     flowSpacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
     setFlowSpacing: () => {},
+    // Rhythm knobs from the last render / document load (Sections panel Reset).
+    baselineFlowSpacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
     activeTemplateId: null,
     setActiveTemplateId: () => {},
     hydrateDocumentMode: () => {},

@@ -82,12 +82,37 @@ export function useA4Elements(titleRef) {
   // Per-document SPACE_* rhythm (Sections panel). Persisted as Pdf.spacing_px.
   const [flowSpacing, setFlowSpacingState] = useState(() => ({ ...DEFAULT_FLOW_SPACING }));
   const flowSpacingRef = useRef(flowSpacing);
+  // Rhythm knobs captured when the CV was rendered / loaded. Reset restores
+  // these — not a blind re-pack to DEFAULT while the knobs are already there
+  // (force-packing generator geometry changes pagination, e.g. Regent education).
+  const [baselineFlowSpacing, setBaselineFlowSpacingState] = useState(() => ({
+    ...DEFAULT_FLOW_SPACING,
+  }));
   const setFlowSpacing = useCallback((next) => {
     const normalized = normalizeFlowSpacing(
       typeof next === "function" ? next(flowSpacingRef.current) : next,
     );
     flowSpacingRef.current = normalized;
     setFlowSpacingState(normalized);
+  }, []);
+  const setBaselineFlowSpacing = useCallback((next) => {
+    setBaselineFlowSpacingState(normalizeFlowSpacing(next));
+  }, []);
+  /**
+   * Adopt spacing for a newly loaded / rendered document and pin Reset to it.
+   */
+  const adoptDocumentFlowSpacing = useCallback((next) => {
+    const normalized = normalizeFlowSpacing(next ?? DEFAULT_FLOW_SPACING);
+    flowSpacingRef.current = normalized;
+    setFlowSpacingState(normalized);
+    setBaselineFlowSpacingState(normalized);
+  }, []);
+  /**
+   * After a fresh generator fill that used the live knobs, pin Reset to those
+   * knobs without rewriting them (fill already sent flowSpacing to the API).
+   */
+  const pinFlowSpacingBaseline = useCallback(() => {
+    setBaselineFlowSpacingState(normalizeFlowSpacing(flowSpacingRef.current));
   }, []);
 
   // ---- Connector draw mode ----
@@ -1449,11 +1474,11 @@ export function useA4Elements(titleRef) {
       setA4_Elements_deleted([]);
       setActiveTemplateId(null);
       setEditorMode(EDITOR_MODE_FREEFORM);
-      setFlowSpacing(DEFAULT_FLOW_SPACING);
+      adoptDocumentFlowSpacing(DEFAULT_FLOW_SPACING);
       setPageCount(1);
       setCurrentPage(1);
       titleRef.current.value = "";
-  }, [resetHistory, setEditorMode, setFlowSpacing])
+  }, [adoptDocumentFlowSpacing, resetHistory, setEditorMode])
 
   // Replace the canvas with generated/authored specs. `title` is used verbatim.
   // Content fades in after fonts settle; fixedToPage chrome appears immediately.
@@ -1466,12 +1491,14 @@ export function useA4Elements(titleRef) {
     setA4_Elements_deleted([]);
     setActiveTemplateId(templateId || null);
     setEditorMode(EDITOR_MODE_TEMPLATE);
+    // Fill used the live knobs — Reset must return to those, not re-pack.
+    pinFlowSpacingBaseline();
     setPageCount(maxPage);
     setCurrentPage(1);
     if (titleRef?.current && title) {
       titleRef.current.value = title;
     }
-  }, [resetHistory, setEditorMode])
+  }, [pinFlowSpacingBaseline, resetHistory, setEditorMode])
 
   const handleLoadTemplateWithFill = useCallback((templateElements, templateName, fills, templateId = null) => {
     resetHistory();
@@ -1490,12 +1517,13 @@ export function useA4Elements(titleRef) {
     setA4_Elements_deleted([]);
     setActiveTemplateId(templateId || null);
     setEditorMode(EDITOR_MODE_TEMPLATE);
+    pinFlowSpacingBaseline();
     setPageCount(maxPage);
     setCurrentPage(1);
     if (titleRef?.current && templateName) {
       titleRef.current.value = `${templateName} CV`;
     }
-  }, [setEditorMode])
+  }, [pinFlowSpacingBaseline, setEditorMode])
 
   const handleLoadTemplate = useCallback((templateElements, title, templateId = null) => {
     resetHistory();
@@ -1506,12 +1534,13 @@ export function useA4Elements(titleRef) {
     setA4_Elements_deleted([]);
     setActiveTemplateId(templateId || null);
     setEditorMode(EDITOR_MODE_TEMPLATE);
+    pinFlowSpacingBaseline();
     setPageCount(maxPage);
     setCurrentPage(1);
     if (titleRef?.current && title) {
       titleRef.current.value = title;
     }
-  }, [resetHistory, setEditorMode])
+  }, [pinFlowSpacingBaseline, resetHistory, setEditorMode])
 
   /**
    * Convert the current template document into a freeform project in place.
@@ -1581,6 +1610,10 @@ export function useA4Elements(titleRef) {
     setEditorMode,
     flowSpacing,
     setFlowSpacing,
+    baselineFlowSpacing,
+    setBaselineFlowSpacing,
+    adoptDocumentFlowSpacing,
+    pinFlowSpacingBaseline,
     // multi-page
     pageCount,
     setPageCount,

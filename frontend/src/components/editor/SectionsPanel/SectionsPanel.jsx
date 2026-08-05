@@ -14,6 +14,7 @@ import {
 } from "../../../utils/sectionStructure";
 import {
   DEFAULT_FLOW_SPACING,
+  flowSpacingEquals,
   normalizeFlowSpacing,
 } from "../../../utils/flowSpacing";
 import AddSectionModal from "../AddSectionModal/AddSectionModal";
@@ -33,12 +34,17 @@ export default function SectionsPanel({ onClose }) {
     pageSize,
     flowSpacing,
     setFlowSpacing,
+    baselineFlowSpacing,
     addSection,
   } = use(PdfContext);
   const pageHeight = pageSize?.height ?? 842;
   const spacing = useMemo(
     () => normalizeFlowSpacing(flowSpacing),
     [flowSpacing],
+  );
+  const baselineSpacing = useMemo(
+    () => normalizeFlowSpacing(baselineFlowSpacing ?? DEFAULT_FLOW_SPACING),
+    [baselineFlowSpacing],
   );
   const sections = useMemo(
     () => listDocumentSections(A4_Elements, pageHeight),
@@ -66,6 +72,11 @@ export default function SectionsPanel({ onClose }) {
 
   function applySpacing(nextSpacing) {
     const normalized = normalizeFlowSpacing(nextSpacing);
+    // Same knobs → do not force-pack. Generator / ReportLab geometry is not
+    // byte-identical to a forceTargets pack at SPACE_* (especially under-rule
+    // and masthead clearance). Re-packing on a no-op Reset pulls later
+    // sections onto page 1 on every template that uses the shared packer.
+    if (flowSpacingEquals(spacing, normalized)) return;
     setFlowSpacing(normalized);
     setA4_Elements((prev) => applyFlowSpacing(prev, normalized, pageHeight));
   }
@@ -87,7 +98,9 @@ export default function SectionsPanel({ onClose }) {
   }
 
   function handleResetSpacing() {
-    applySpacing(DEFAULT_FLOW_SPACING);
+    // Restore the rhythm captured when this CV was rendered / loaded — not a
+    // hardcoded DEFAULT when the document already sits on those knobs.
+    applySpacing(baselineSpacing);
   }
 
   return (
@@ -149,6 +162,7 @@ export default function SectionsPanel({ onClose }) {
         </div>
         <p className={classes.hint}>
           Odstępy w px (jak SPACE_* w generatorze). Zmiana od razu pakuje canvas i trafia do zapisu / zmiany szablonu.
+          Reset przywraca wartości z momentu renderu / wczytania CV — bez ponownego pakowania, gdy nic się nie zmieniło.
         </p>
         <div className={classes.rhythmGrid}>
           {SPACING_FIELDS.map((field) => (
