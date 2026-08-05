@@ -724,9 +724,21 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
   const memberIds = sectionElementIds(list, last.headingId, pageHeight);
   const members = list.filter((element) => memberIds.has(element.element_id));
 
+  // Resolve the heading's left edge before sampling so candidates can be
+  // constrained to the heading's column. The LAST section has no lower Y bound,
+  // so on sidebar / two-column templates `members` may include sidebar chrome
+  // sitting below the heading. Sampling those elements would yield a wrong
+  // marker offset (`relLeft`) or body/rule color. The left-proximity band
+  // mirrors the same-column check in `hasSectionRuleBelow` (widened from 40 to
+  // 60 so an offset marker at roughly -25px and normal body copy stay in scope).
+  const headingLeft = Number(heading?.left);
+  const left = Number.isFinite(headingLeft) ? headingLeft : DEFAULT_SECTION_STYLE.left;
+  const inHeadingColumn = (element) => Math.abs((Number(element.left) || 0) - left) <= 60;
+
   // Widest thin line in the section is the heading rule.
   const rule = members
     .filter((element) => element.category === "line"
+      && inHeadingColumn(element)
       && (Number(element.width) || 0) >= 120
       && (Number(element.height) || 0) <= 4)
     .sort((a, b) => (Number(b.width) || 0) - (Number(a.width) || 0))[0] || null;
@@ -734,6 +746,7 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
   // Small tagged shape offset from the label is the decorative marker.
   const marker = members.find((element) => element.element_id !== last.headingId
     && element.flowRole === "section-chrome"
+    && inHeadingColumn(element)
     && (element.category === "rectangle" || element.category === "circle")
     && (Number(element.width) || 0) <= 40
     && (Number(element.height) || 0) <= 40) || null;
@@ -742,12 +755,11 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
   const bodyElements = members
     .filter((element) => element.element_id !== last.headingId
       && element.flowRole !== "section-chrome"
+      && inHeadingColumn(element)
       && element.category !== "line")
     .sort((a, b) => absoluteTop(a, pageHeight) - absoluteTop(b, pageHeight));
   const body = bodyElements[0] || null;
 
-  const headingLeft = Number(heading?.left);
-  const left = Number.isFinite(headingLeft) ? headingLeft : DEFAULT_SECTION_STYLE.left;
   const recordWidth = Number(body?.width) || Number(rule?.width) || DEFAULT_SECTION_STYLE.recordWidth;
 
   // Muted color: a body line whose color differs from the main body color

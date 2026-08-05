@@ -641,4 +641,24 @@ describe("deriveSectionStyle", () => {
     assert.equal(style.marker.relLeft, -25); // 51 - 76
     assert.equal(style.marker.width, 8);
   });
+
+  it("does not adopt far-left sidebar chrome as the last section's marker", () => {
+    // Two-column templates: the last main-column section has no lower Y bound,
+    // so a sidebar decoration sitting below the heading is a section member by
+    // Y alone. It lives in a different column and must not be sampled as the
+    // marker (that would produce a wildly wrong relLeft from another column).
+    const elements = [
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "Doświadczenie",
+        left: 76, top: 100, fontSize: 8.7, fontFamily: "Inter", color: "#111111", letterSpacing: 1.6 },
+      { element_id: "r1", category: "line", flowRole: "section-chrome",
+        left: 76, top: 112, width: 466, height: 1, backgroundColor: "#cccccc" },
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true,
+        left: 76, top: 130, width: 466, height: 40, fontSize: 9.3, fontFamily: "Inter",
+        lineHeight: 13, color: "#222222" },
+      { element_id: "side", category: "rectangle", flowRole: "section-chrome",
+        left: 8, top: 160, width: 8, height: 8, backgroundColor: "#733B43" },
+    ];
+    const style = deriveSectionStyle(elements);
+    assert.equal(style.marker, null); // sidebar rectangle at left 8 is out of the heading's column
+  });
 });
