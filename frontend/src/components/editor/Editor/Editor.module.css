@@ -1,36 +1,45 @@
+/* Floating inspector above the selection — glass panel, compact rhythm.
+   Mounted via portal (position: fixed); does not dock beside the tool rail. */
+
 .editor {
-    position: absolute;
-    /* The topbar overlays the right pane at z-index 1400. Start below its
-       44px height so the editor header and close control stay accessible. */
-    top: 44px;
-    bottom: 0;
-    left: 100%;
-    width: min(236px, calc(100vw - 68px));
-    z-index: 1200;
-    background: var(--primary-bg);
-    color: var(--primary-font);
-    font-family: var(--font-body);
-    border-right: 1px solid var(--border-soft);
-    overflow-y: auto;
-    overflow-x: hidden;
+    position: fixed;
+    z-index: 1250;
+    width: min(340px, calc(100vw - 16px));
+    max-height: min(70vh, 560px);
     display: flex;
     flex-direction: column;
+    background: color-mix(in srgb, var(--primary-bg) 88%, transparent);
+    color: var(--primary-font);
+    font-family: var(--font-body);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.22),
+        0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    backdrop-filter: blur(14px) saturate(1.15);
+    -webkit-backdrop-filter: blur(14px) saturate(1.15);
+    overflow: hidden;
+    pointer-events: auto;
 }
 
 .editorForm {
     display: flex;
     flex-direction: column;
     width: 100%;
+    min-height: 0;
     flex: 1;
+    overflow: hidden;
 }
 
 .editorHeading {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 10px;
+    padding: 6px 8px 6px 10px;
     border-bottom: 1px solid var(--border-soft);
     position: relative;
+    flex-shrink: 0;
+    background: color-mix(in srgb, var(--secondary-bg) 55%, transparent);
 }
 
 .headingLeft {
@@ -43,10 +52,11 @@
 }
 
 .headingIcon {
-    width: 18px;
-    height: 18px;
-    border-radius: 5px;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
     background: var(--success-soft);
+    color: var(--success, #5FA777);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -56,48 +66,49 @@
 .headingIconMulti {
     background: var(--accent-soft);
     color: var(--accent);
-    font: 800 10px/1 var(--font-display);
+    font: 800 9px/1 var(--font-display);
 }
 
 .editorHeading p {
     margin: 0;
-    font: 800 11.5px var(--font-display);
+    font: 700 11px var(--font-display);
     color: var(--primary-font);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* Body wrapper: everything below the heading, grouped into compact cards
-   with a shared gutter + vertical rhythm (matches the topbar/sidebar
-   control sizing this panel was shrunk to line up with). */
 .editorBody {
     display: flex;
     flex-direction: column;
-    gap: 7px;
-    padding: 8px 10px;
+    gap: 5px;
+    padding: 7px 8px 8px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 0;
+    scrollbar-width: thin;
 }
 
 .propCard {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    background: var(--secondary-bg);
+    gap: 5px;
+    background: color-mix(in srgb, var(--secondary-bg) 70%, transparent);
     border: 1px solid var(--border-soft);
-    border-radius: var(--r-sm);
-    padding: 7px;
+    border-radius: 7px;
+    padding: 6px;
 }
 
 .bulkPanel {
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 5px;
 }
 
 .bulkDescription,
 .bulkHint {
     margin: 0;
-    font: 600 11px/1.4 var(--font-body);
+    font: 600 10.5px/1.35 var(--font-body);
 }
 
 .bulkDescription {
@@ -106,24 +117,24 @@
 
 .bulkHint {
     color: var(--muted-font);
-    background: var(--secondary-bg);
-    border-left: 3px solid var(--accent);
-    border-radius: 0 7px 7px 0;
-    padding: 6px 7px;
+    background: color-mix(in srgb, var(--secondary-bg) 80%, transparent);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    padding: 5px 6px;
 }
 
 .groupMoveTitle {
     margin: 0;
     color: var(--primary-font);
-    font: 700 10.5px var(--font-body);
+    font: 700 10px var(--font-body);
 }
 
 .positionBtnsWrapper {
     display: flex;
-    gap: 4px;
-    background: var(--primary-bg);
+    gap: 3px;
+    background: color-mix(in srgb, var(--primary-bg) 80%, transparent);
     border: 1px solid var(--border);
-    border-radius: 7px;
+    border-radius: 6px;
     padding: 2px;
 }
 
@@ -134,12 +145,12 @@
     align-items: center;
     justify-content: center;
     border: none;
-    border-radius: 5px;
+    border-radius: 4px;
     background: transparent;
     color: var(--muted-font);
     cursor: pointer;
-    font-size: .8rem;
-    transition: background .15s, color .15s;
+    font-size: 0.78rem;
+    transition: background 0.15s, color 0.15s;
 }
 
 .positionBtnsWrapper button:hover:not(:disabled) {
@@ -148,30 +159,30 @@
 }
 
 .positionBtnsWrapper button:disabled {
-    opacity: .4;
+    opacity: 0.4;
     cursor: not-allowed;
 }
 
 .elementSize {
     display: flex;
-    gap: 7px;
+    gap: 5px;
 }
 
 .styleRow {
     display: flex;
-    gap: 5px;
+    gap: 4px;
 }
 
 .styleRow button {
     flex: 1;
-    height: 24px;
+    height: 22px;
     border: 1px solid var(--border);
-    background: var(--primary-bg);
+    background: color-mix(in srgb, var(--primary-bg) 85%, transparent);
     color: var(--muted-font);
-    border-radius: 6px;
-    font: 700 12px var(--font-body);
+    border-radius: 5px;
+    font: 700 11px var(--font-body);
     cursor: pointer;
-    transition: background .15s, color .15s, border-color .15s;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .styleRow button:hover {
@@ -189,13 +200,13 @@
     align-items: center;
     gap: 6px;
     cursor: pointer;
-    font: 600 11px var(--font-body);
+    font: 600 10.5px var(--font-body);
     color: var(--muted-font);
 }
 
 .pushToggle input {
-    width: 13px;
-    height: 13px;
+    width: 12px;
+    height: 12px;
     accent-color: var(--accent);
     cursor: pointer;
     flex-shrink: 0;
@@ -206,20 +217,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    font: 700 11.5px var(--font-body);
+    gap: 5px;
+    font: 700 11px var(--font-body);
     border: 1px solid var(--border);
-    background: var(--primary-bg);
+    background: color-mix(in srgb, var(--primary-bg) 80%, transparent);
     color: var(--accent);
-    border-radius: 7px;
-    padding: 6px;
+    border-radius: 6px;
+    padding: 5px;
     cursor: pointer;
-    transition: border-color .15s, background .15s;
+    transition: border-color 0.15s, background 0.15s;
 }
 
 .editTextBtn:disabled {
     cursor: default;
-    opacity: .5;
+    opacity: 0.5;
 }
 
 .editTextBtn:hover:not(:disabled) {
@@ -227,28 +238,27 @@
     background: var(--accent-soft);
 }
 
-/* Duplicate/delete: icon-only, matching Topbar's 28px iconBtn sizing. */
 .actionRow {
     display: flex;
-    gap: 6px;
+    gap: 5px;
 }
 
 .btnDuplicate,
 .btnDelete {
     flex: 1;
-    height: 28px;
+    height: 26px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 12px;
     cursor: pointer;
-    transition: border-color .15s, background .15s, color .15s, filter .15s;
+    transition: border-color 0.15s, background 0.15s, color 0.15s, filter 0.15s;
 }
 
 .btnDuplicate {
     border: 1px solid var(--border);
-    background: var(--secondary-bg);
+    background: color-mix(in srgb, var(--secondary-bg) 75%, transparent);
     color: var(--muted-font);
 }
 
@@ -265,5 +275,5 @@
 }
 
 .btnDelete:hover {
-    filter: brightness(.97);
+    filter: brightness(0.97);
 }

@@ -1,10 +1,14 @@
 /**
- * Property inspector for the current selection (single or multi).
- * Field visibility follows category capabilities; bulk edits go through
- * `editSelectedElementValues` so mixed selections stay consistent.
+ * Floating property inspector anchored above the current selection.
+ *
+ * Field visibility follows category capabilities (Text vs TextArea differ);
+ * bulk edits go through `editSelectedElementValues` so mixed selections stay
+ * consistent. Positioned in the viewport via selection DOM bboxes — not as a
+ * slide-out beside the tool rail.
  */
 import classes from "./Editor.module.css";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useLayoutEffect, useState, useRef, use } from "react";
+import { createPortal } from "react-dom";
 import EditorControls from "../../common/EditorControls/EditorControls";
 import CloseButton from "../../common/CloseButton/CloseButton";
 import { RiDeleteBin2Line } from "react-icons/ri";
@@ -16,9 +20,12 @@ import { CiTextAlignJustify } from "react-icons/ci";
 import { MdFormatListBulleted } from "react-icons/md";
 
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { use } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { canFreePositionElement } from "../../../utils/editorMode";
+import {
+  computeFloatingPanelPosition,
+  unionRects,
+} from "../../../utils/floatingPanelPosition";
 
 const CATEGORY_LABELS = {
     text: "Tekst",
@@ -53,6 +60,9 @@ export default function Editor() {
         setTextareaEditing,
         moveSelectedElements,
         editorMode,
+        zoom,
+        isTwoPageView,
+        currentPage,
     } = use(PdfContext);
 
     const selectedElements = A4_Elements.filter(element => element.isSelected);
@@ -67,7 +77,20 @@ export default function Editor() {
     const [elementValues, setElementValues] = useState({});
     const [groupMoveValues, setGroupMoveValues] = useState({ x: "0", y: "0" });
     const groupMoveOffsetRef = useRef({ x: 0, y: 0 });
+    const panelRef = useRef(null);
+    const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
     const selectionKey = selectedElements.map((element) => element.element_id).join("|");
+    // Geometry fingerprint so the panel re-anchors after drag / resize / reflow.
+    const selectionGeometryKey = selectedElements
+        .map((element) => [
+            element.element_id,
+            element.page ?? 1,
+            Math.round(Number(element.left) || 0),
+            Math.round(Number(element.top) || 0),
+            Math.round(Number(element.width) || 0),
+            Math.round(Number(element.height) || 0),
+        ].join(":"))
+        .join("|");
 
     function handleChangeValues(e, identifier) {
 
@@ -236,18 +259,98 @@ export default function Editor() {
         groupMoveOffsetRef.current = { x: 0, y: 0 };
     }, [selectionKey]);
 
-    return <AnimatePresence>{someElementSelected && <motion.aside className={classes.editor}
-        initial={{ x: "-100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "-100%" }}
-        transition={{ type: "spring", damping: 28, stiffness: 320 }}>
+    useLayoutEffect(() => {
+        if (!someElementSelected) return undefined;
 
-        <form className={classes.editorForm}>
+        function readAnchorRect() {
+            // Prefer selectionKey ids so this effect does not close over a fresh
+            // `selectedElements` array every render.
+            const ids = selectionKey ? selectionKey.split("|").filter(Boolean) : [];
+            const rects = ids
+                .map((id) => document.getElementById(id)?.getBoundingClientRect())
+                .filter(Boolean)
+                .map((rect) => ({
+                    left: rect.left,
+                    top: rect.top,
+                    width: rect.width,
+                    height: rect.height,
+                }));
+            return unionRects(rects);
+        }
+
+        function updatePosition() {
+            const panel = panelRef.current;
+            const anchor = readAnchorRect();
+            if (!panel || !anchor) return;
+            const panelSize = {
+                width: panel.offsetWidth,
+                height: panel.offsetHeight,
+            };
+            const next = computeFloatingPanelPosition(
+                anchor,
+                panelSize,
+                { width: window.innerWidth, height: window.innerHeight },
+            );
+            setPanelPosition((previous) => (
+                previous.top === next.top && previous.left === next.left
+                    ? previous
+                    : { top: next.top, left: next.left }
+            ));
+        }
+
+        updatePosition();
+
+        const panel = panelRef.current;
+        const resizeObserver = typeof ResizeObserver !== "undefined" && panel
+            ? new ResizeObserver(updatePosition)
+            : null;
+        if (resizeObserver && panel) resizeObserver.observe(panel);
+
+        const canvasArea = document.querySelector(".canvas-area");
+        window.addEventListener("resize", updatePosition);
+        // Capture scroll from nested canvas scrollers (zoom / multi-page).
+        window.addEventListener("scroll", updatePosition, true);
+        canvasArea?.addEventListener("scroll", updatePosition, { passive: true });
+
+        return () => {
+            resizeObserver?.disconnect();
+            window.removeEventListener("resize", updatePosition);
+            window.removeEventListener("scroll", updatePosition, true);
+            canvasArea?.removeEventListener("scroll", updatePosition);
+        };
+    // `selectionKey` / `selectionGeometryKey` capture id + geometry; do not
+    // depend on the `selectedElements` array identity (new each render).
+    }, [
+        someElementSelected,
+        selectionKey,
+        selectionGeometryKey,
+        zoom,
+        isTwoPageView,
+        currentPage,
+    ]);
+
+    const panel = (
+        <AnimatePresence>
+            {someElementSelected && (
+                <motion.aside
+                    ref={panelRef}
+                    className={classes.editor}
+                    role="dialog"
+                    aria-label="Właściwości elementu"
+                    style={{ top: panelPosition.top, left: panelPosition.left }}
+                    initial={{ opacity: 0, scale: 0.97, y: 4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.97, y: 4 }}
+                    transition={{ duration: 0.16, ease: "easeOut" }}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onMouseDown={(event) => event.stopPropagation()}
+                >
+        <form className={classes.editorForm} onSubmit={(event) => event.preventDefault()}>
             <div className={classes.editorHeading}>
                 <div className={classes.headingLeft}>
                     <span className={`${classes.headingIcon} ${isMultiSelection ? classes.headingIconMulti : ""}`}>
                         {isMultiSelection ? selectedElements.length : (
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5FA777" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7V5h16v2" /><path d="M12 5v14" /><path d="M9 19h6" /></svg>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7V5h16v2" /><path d="M12 5v14" /><path d="M9 19h6" /></svg>
                         )}
                     </span>
                     <p>{isMultiSelection ? `Zaznaczono: ${selectedElements.length}` : selectedElement?.category ? `Element: ${CATEGORY_LABELS[selectedElement.category] ?? selectedElement.category}` : "Właściwości elementu"}</p>
@@ -426,7 +529,13 @@ export default function Editor() {
             </>}
             </div>
         </form>
-    </motion.aside>}</AnimatePresence>
+                </motion.aside>
+            )}
+        </AnimatePresence>
+    );
+
+    if (typeof document === "undefined") return null;
+    return createPortal(panel, document.body);
 }
 
 function BulkEditor({

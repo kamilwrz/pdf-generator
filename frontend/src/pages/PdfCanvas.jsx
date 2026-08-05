@@ -955,11 +955,12 @@ function PdfCanvas() {
               />
               <DropzoneContainer />
               <Sidebar>
-                <Editor />
                 {isSectionsPanel ? (
                   <SectionsPanel onClose={() => setPanel(null)} />
                 ) : null}
               </Sidebar>
+              {/* Floating property inspector (portal); not docked to the tool rail. */}
+              <Editor />
               <div className="right-pane">
                 <Topbar titleRef={titleRef} />
                 <div className="canvas-area">
