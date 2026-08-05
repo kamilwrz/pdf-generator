@@ -231,7 +231,7 @@ Implementation:
 
 - `frontend/src/utils/editorMode.js` — `normalizeEditorMode`, `inferEditorMode`, `canFreePositionElement`
 - `frontend/src/utils/flowSpacing.js` — defaults + normalize for the Sections panel / save / fill
-- `frontend/src/utils/sectionStructure.js` — `packDocumentSections`, `applyFlowSpacing`, reorder; leading section chrome reserved with the first body; intra-chrome offsets preserved (never `SPACE_STACK`); flow start anchored under the masthead so Regent/Aldine header rules are not absorbed into sections
+- `frontend/src/utils/sectionStructure.js` — `packDocumentSections`, `applyFlowSpacing`, reorder; leading section chrome reserved with the first body; intra-chrome offsets preserved (never `SPACE_STACK`); flow start anchored under the masthead so Regent/Aldine header rules are not absorbed into sections. Per-strip placement (chrome + first body reserved together, then remaining body laid out against the flow cursor) is factored into the private `placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin)` helper, reused by `packDocumentSections` and by `appendSectionAtEnd(elements, newElements, pageHeight, options)` — a placement primitive that drops a freshly built section's elements at the end of the document flow, one `SPACE_SECTION` gap below the deepest non-`fixedToPage` element, without repacking existing sections. `appendSectionAtEnd` is not yet wired to a UI action; it is a building block for the upcoming "add section" flow.
 - `frontend/src/pages/PdfCanvas.jsx`, component `PdfCanvas` (`start=templates|import|wizard|blank`, unlock copy)
 - `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`, `spacing`)
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, `Topbar/Topbar.jsx`, `SectionsPanel/`, `UnlockFreeformModal/`
@@ -1140,7 +1140,7 @@ Wspólne czcionki: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDi
 
 Implementacja:
 
-- `frontend/src/utils/editorMode.js`, `flowSpacing.js`, `sectionStructure.js` (`packDocumentSections`, `applyFlowSpacing`; chrome sekcji z pierwszym blokiem treści; kotwica pod mastheadem dla Regent/Aldine)
+- `frontend/src/utils/editorMode.js`, `flowSpacing.js`, `sectionStructure.js` (`packDocumentSections`, `applyFlowSpacing`; chrome sekcji z pierwszym blokiem treści; kotwica pod mastheadem dla Regent/Aldine). Logika rozmieszczania pojedynczego paska (chrome + pierwszy blok treści rezerwowane razem, reszta treści układana względem kursora przepływu) jest wydzielona do prywatnej funkcji `placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin)`, używanej zarówno przez `packDocumentSections`, jak i przez `appendSectionAtEnd(elements, newElements, pageHeight, options)` — prymityw dokładający elementy nowo zbudowanej sekcji na końcu dokumentu, jeden odstęp `SPACE_SECTION` pod najgłębszym elementem bez `fixedToPage`, bez przepakowywania istniejących sekcji. `appendSectionAtEnd` nie jest jeszcze podpięte pod żadną akcję UI — to element składowy nadchodzącego przepływu „dodaj sekcję”.
 - `frontend/src/pages/PdfCanvas.jsx` — intencje `templates|import|wizard|blank`, unlock z kopią
 - `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`, `spacing`)
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, `Topbar/Topbar.jsx`, `SectionsPanel/`, `UnlockFreeformModal/`

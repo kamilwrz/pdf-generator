@@ -498,6 +498,70 @@ function pageTopFromOrigin(originAbs, relTop, pageHeight) {
 }
 
 /**
+ * Place one compacted strip starting at `cursorAbs`. The leading chrome band
+ * (heading + rule + markers) is reserved together with the first body block so
+ * a 1px rule can never independently "fit" in the footer while the body jumps
+ * to the next page.
+ *
+ * @returns {{ placedById: Map<string, object>, bottomAbs: number }}
+ */
+function placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin) {
+  const placedById = new Map();
+  if (strip.length === 0) return { placedById, bottomAbs: cursorAbs };
+
+  const chromeCount = leadingChromeCount(strip);
+  const firstBody = chromeCount < strip.length ? strip[chromeCount] : null;
+  let reservedHeight = 0;
+  if (chromeCount > 0) {
+    const lastChrome = strip[chromeCount - 1];
+    reservedHeight = lastChrome.relTop + elementHeight(lastChrome.element);
+    if (firstBody) {
+      reservedHeight = firstBody.relTop + elementHeight(firstBody.element);
+    }
+  } else if (firstBody) {
+    reservedHeight = elementHeight(firstBody.element);
+  }
+
+  const sectionCursor = reservedHeight > 0
+    ? placeAtFlowCursor(cursorAbs, reservedHeight, pageHeight, pageTop, bottomMargin).abs
+    : cursorAbs;
+
+  let stripBottom = sectionCursor;
+  let previous = null;
+  for (let index = 0; index < strip.length; index += 1) {
+    const item = strip[index];
+    const height = elementHeight(item.element);
+    const inLeadingChrome = index < chromeCount;
+
+    let placed;
+    if (inLeadingChrome) {
+      const at = pageTopFromOrigin(sectionCursor, item.relTop, pageHeight);
+      placed = { page: at.page, top: at.top, abs: at.abs, bottom: at.abs + height };
+    } else {
+      let desiredAbs = sectionCursor;
+      if (previous) {
+        const gap = item.relTop
+          - (previous.item.relTop + elementHeight(previous.item.element));
+        desiredAbs = previous.placed.bottom + Math.max(0, gap);
+      } else {
+        desiredAbs = sectionCursor + item.relTop;
+      }
+      placed = placeAtFlowCursor(desiredAbs, height, pageHeight, pageTop, bottomMargin);
+    }
+
+    placedById.set(item.element.element_id, {
+      ...item.element,
+      page: placed.page,
+      top: placed.top,
+    });
+    previous = { item, placed };
+    stripBottom = Math.max(stripBottom, placed.bottom);
+  }
+
+  return { placedById, bottomAbs: stripBottom };
+}
+
+/**
  * Pack sections in `orderedHeadingIds` from the document flow start.
  * Non-section elements (masthead, fixed chrome) keep their positions.
  *
@@ -546,84 +610,62 @@ export function packDocumentSections(
   strips.forEach((strip, stripIndex) => {
     if (strip.length === 0) return;
     if (stripIndex > 0) cursorAbs += resolvedSectionGap;
-
-    // Keep the full leading chrome band (heading + rule + markers) with the
-    // first body block. Checking only strip[0]+strip[1] left Cinder's 1px
-    // underlines stranded in the footer while body jumped to the next page.
-    const chromeCount = leadingChromeCount(strip);
-    const firstBody = chromeCount < strip.length ? strip[chromeCount] : null;
-    let reservedHeight = 0;
-    if (chromeCount > 0) {
-      const lastChrome = strip[chromeCount - 1];
-      reservedHeight = lastChrome.relTop + elementHeight(lastChrome.element);
-      if (firstBody) {
-        reservedHeight = firstBody.relTop + elementHeight(firstBody.element);
-      }
-    } else if (firstBody) {
-      reservedHeight = elementHeight(firstBody.element);
-    }
-
-    const sectionCursor = reservedHeight > 0
-      ? placeAtFlowCursor(
-        cursorAbs,
-        reservedHeight,
-        pageHeight,
-        pageTop,
-        bottomMargin,
-      ).abs
-      : cursorAbs;
-
-    let stripBottom = sectionCursor;
-    let previous = null;
-    for (let index = 0; index < strip.length; index += 1) {
-      const item = strip[index];
-      const height = elementHeight(item.element);
-      const inLeadingChrome = index < chromeCount;
-
-      let placed;
-      if (inLeadingChrome) {
-        // Origin already reserved room for chrome+first body — place by
-        // relative offset so thin rules cannot park alone in the footer.
-        const at = pageTopFromOrigin(sectionCursor, item.relTop, pageHeight);
-        placed = {
-          page: at.page,
-          top: at.top,
-          abs: at.abs,
-          bottom: at.abs + height,
-        };
-      } else {
-        let desiredAbs = sectionCursor;
-        if (previous) {
-          const gap = item.relTop
-            - (previous.item.relTop + elementHeight(previous.item.element));
-          desiredAbs = previous.placed.bottom + Math.max(0, gap);
-        } else {
-          desiredAbs = sectionCursor + item.relTop;
-        }
-        placed = placeAtFlowCursor(
-          desiredAbs,
-          height,
-          pageHeight,
-          pageTop,
-          bottomMargin,
-        );
-      }
-
-      placedById.set(item.element.element_id, {
-        ...item.element,
-        page: placed.page,
-        top: placed.top,
-      });
-      previous = { item, placed };
-      stripBottom = Math.max(stripBottom, placed.bottom);
-    }
-    cursorAbs = stripBottom;
+    const { placedById: stripPlaced, bottomAbs } = placeStrip(
+      strip, cursorAbs, pageHeight, pageTop, bottomMargin,
+    );
+    for (const [id, element] of stripPlaced) placedById.set(id, element);
+    cursorAbs = bottomAbs;
   });
 
   return list.map((element) => {
     if (!memberIds.has(element.element_id)) return element;
     return placedById.get(element.element_id) || element;
   });
+}
+
+/**
+ * Append a freshly built section's elements at the end of the document flow,
+ * in the document's governing rhythm, without repacking existing sections.
+ *
+ * The new strip is placed below the deepest existing non-fixed element plus one
+ * SPACE_SECTION gap and paginated with the same margins as `packDocumentSections`.
+ * `fixedToPage` decorations (page frames, footers) are excluded from the flow
+ * bottom so the section follows real content rather than the page border.
+ *
+ * @param {object[]} elements current document elements
+ * @param {object[]} newElements the section's chrome + body (unplaced)
+ * @param {number} [pageHeight=842]
+ * @param {{ spacing?: object, pageTop?: number, bottomMargin?: number }} [options]
+ * @returns {object[]} elements with the new section appended and positioned
+ */
+export function appendSectionAtEnd(
+  elements,
+  newElements,
+  pageHeight = 842,
+  { spacing, pageTop = DEFAULT_PAGE_TOP, bottomMargin = DEFAULT_BOTTOM_MARGIN } = {},
+) {
+  const list = elements || [];
+  const additions = newElements || [];
+  if (additions.length === 0) return list;
+
+  const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
+
+  let flowBottom = 0;
+  for (const element of list) {
+    if (!element || element.fixedToPage) continue;
+    flowBottom = Math.max(flowBottom, absoluteBottom(element, pageHeight));
+  }
+  const cursorAbs = flowBottom > 0 ? flowBottom + rhythm.section : pageTop;
+
+  // forceTargets: the strip was authored with placeholder gaps, so pin it to the
+  // document's exact SPACE_* rhythm on the way in.
+  const strip = compactSectionStrip(additions, pageHeight, rhythm, true);
+  const { placedById } = placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin);
+
+  const placedAdditions = additions.map(
+    (element) => placedById.get(element.element_id) || element,
+  );
+  return [...list, ...placedAdditions];
 }
 
 /**

@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  appendSectionAtEnd,
   applyFlowSpacing,
   deriveSectionStyle,
   findProfilePhotoSlot,
@@ -660,5 +661,58 @@ describe("deriveSectionStyle", () => {
     ];
     const style = deriveSectionStyle(elements);
     assert.equal(style.marker, null); // sidebar rectangle at left 8 is out of the heading's column
+  });
+});
+
+describe("appendSectionAtEnd", () => {
+  const pageHeight = 842;
+
+  function sampleDoc() {
+    return [
+      // masthead (excluded from section packing but counts as flow content)
+      { element_id: "name", category: "text", flowRole: "masthead", content: "Jan Kowalski", left: 76, top: 60, fontSize: 20, height: 24, page: 1 },
+      // one existing section
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "Doświadczenie", left: 76, top: 120, fontSize: 8.7, height: 12, page: 1 },
+      { element_id: "r1", category: "line", flowRole: "section-chrome", left: 76, top: 132, width: 466, height: 1, page: 1 },
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true, left: 76, top: 150, width: 466, height: 60, fontSize: 9.3, page: 1 },
+    ];
+  }
+
+  function newSection() {
+    return [
+      { element_id: "h2", category: "text", flowRole: "section-chrome", content: "Umiejętności", left: 76, top: 0, fontSize: 8.7, height: 12, page: 1 },
+      { element_id: "r2", category: "line", flowRole: "section-chrome", left: 76, top: 8.7, width: 466, height: 1, page: 1 },
+      { element_id: "b2", category: "textarea", flowRole: "content", autoHeight: true, left: 76, top: 30, width: 466, height: 40, fontSize: 9.3, page: 1 },
+    ];
+  }
+
+  it("keeps existing elements untouched and appends the new ones", () => {
+    const doc = sampleDoc();
+    const result = appendSectionAtEnd(doc, newSection(), pageHeight, { spacing: { stack: 4, record: 10, section: 21, after_rule: 8 } });
+    // Original four elements are byte-stable (same order, same positions).
+    for (let i = 0; i < doc.length; i += 1) {
+      assert.deepEqual(result[i], doc[i]);
+    }
+    assert.equal(result.length, doc.length + 3);
+  });
+
+  it("places the new heading below the previous section's body", () => {
+    const doc = sampleDoc();
+    const result = appendSectionAtEnd(doc, newSection(), pageHeight, { spacing: { stack: 4, record: 10, section: 21, after_rule: 8 } });
+    const newHeading = result.find((element) => element.element_id === "h2");
+    const prevBodyBottom = 150 + 60; // b1 top + height
+    const newHeadingAbs = (newHeading.page - 1) * pageHeight + newHeading.top;
+    assert.ok(newHeadingAbs >= prevBodyBottom, `expected ${newHeadingAbs} >= ${prevBodyBottom}`);
+  });
+
+  it("produces a section detectable by listDocumentSections", () => {
+    const result = appendSectionAtEnd(sampleDoc(), newSection(), pageHeight, {});
+    const titles = listDocumentSections(result, pageHeight).map((section) => section.title);
+    assert.deepEqual(titles, ["Doświadczenie", "Umiejętności"]);
+  });
+
+  it("returns the original list unchanged when there is nothing to add", () => {
+    const doc = sampleDoc();
+    assert.equal(appendSectionAtEnd(doc, [], pageHeight, {}), doc);
   });
 });
