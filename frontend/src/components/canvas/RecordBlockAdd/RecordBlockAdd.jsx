@@ -1,9 +1,9 @@
 /**
- * Hover affordance on a template-mode record line: a "+" that inserts a
- * single generic text block (`Tekst…`) immediately below that record.
+ * Hover affordance on the upper part of a template-mode record (title / meta):
+ * a "+" that inserts a full placeholder record below that block.
  *
- * Timing matches `SectionRecordAdd`: visible on pointer enter, stays clickable
- * for 2 seconds after leave, then hides unless the user clicks.
+ * Timing: appear on pointer enter over an upper line; stay while the pointer
+ * is on the plus; only leaving the trigger or the plus starts a 3s hide timer.
  */
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus } from "react-icons/fi";
@@ -12,8 +12,8 @@ import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { elementSupportsRecordBlockAdd } from "../../../utils/sectionRecord";
 import classes from "../SectionRecordAdd/SectionRecordAdd.module.css";
 
-/** Click window after hover, in milliseconds. */
-const CLICK_WINDOW_MS = 2000;
+/** Hide delay after the pointer leaves the trigger or the plus. */
+const HIDE_AFTER_LEAVE_MS = 3000;
 
 /**
  * @param {{
@@ -57,16 +57,19 @@ export default function RecordBlockAdd({
     setVisible(false);
   }, [clearHideTimer]);
 
-  const showWithDeadline = useCallback(() => {
+  const show = useCallback(() => {
     if (!eligible) return;
-    setVisible(true);
     clearHideTimer();
-    // Stay visible after leave so the user can move to the plus and click.
+    setVisible(true);
+  }, [clearHideTimer, eligible]);
+
+  const scheduleHide = useCallback(() => {
+    clearHideTimer();
     hideTimerRef.current = window.setTimeout(() => {
       setVisible(false);
       hideTimerRef.current = null;
-    }, CLICK_WINDOW_MS);
-  }, [clearHideTimer, eligible]);
+    }, HIDE_AFTER_LEAVE_MS);
+  }, [clearHideTimer]);
 
   useEffect(() => () => clearHideTimer(), [clearHideTimer]);
 
@@ -81,14 +84,19 @@ export default function RecordBlockAdd({
     if (!node) return undefined;
 
     const onEnter = () => {
-      showWithDeadline();
+      show();
+    };
+    const onLeave = () => {
+      scheduleHide();
     };
 
     node.addEventListener("pointerenter", onEnter);
+    node.addEventListener("pointerleave", onLeave);
     return () => {
       node.removeEventListener("pointerenter", onEnter);
+      node.removeEventListener("pointerleave", onLeave);
     };
-  }, [eligible, elementId, showWithDeadline]);
+  }, [eligible, elementId, scheduleHide, show]);
 
   if (!eligible) return null;
 
@@ -107,10 +115,17 @@ export default function RecordBlockAdd({
         <button
           type="button"
           className={classes.plus}
-          aria-label="Dodaj blok tekstu pod tym wpisem"
-          title="Dodaj blok tekstu"
+          aria-label="Dodaj rekord pod tym wpisem"
+          title="Dodaj rekord"
           onPointerDown={(event) => {
             event.stopPropagation();
+          }}
+          onPointerEnter={() => {
+            // Keep the control alive while the pointer is on the plus itself.
+            show();
+          }}
+          onPointerLeave={() => {
+            scheduleHide();
           }}
           onClick={(event) => {
             event.stopPropagation();

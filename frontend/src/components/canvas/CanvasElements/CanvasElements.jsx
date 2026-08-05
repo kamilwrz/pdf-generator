@@ -6,8 +6,8 @@
  *
  * Template-mode section headings that own a multi-line record body also get a
  * `SectionRecordAdd` affordance (hover "+" → append a placeholder record).
- * Each line of those records also gets `RecordBlockAdd` (hover "+" → insert a
- * generic text block below that record).
+ * Upper lines of those records also get `RecordBlockAdd` (hover "+" → insert a
+ * full placeholder record below that block).
  */
 import { use, useMemo } from 'react';
 import Text from '../Text/Text';

@@ -2,10 +2,8 @@
  * Hover affordance on a template-mode section heading: a "+" that adds another
  * record (education / experience structure) with generic placeholder copy.
  *
- * Timing: the control appears when the pointer enters the heading and stays
- * clickable for 2 seconds even after the pointer leaves the heading. Without a
- * click it hides when that window ends. Leaving the heading does not cancel
- * the window — only the timer or a successful click does.
+ * Timing: appear on pointer enter over the heading; stay while the pointer is
+ * on the plus; only leaving the heading or the plus starts a 3s hide timer.
  */
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus } from "react-icons/fi";
@@ -14,8 +12,8 @@ import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { sectionSupportsRecordAdd } from "../../../utils/sectionRecord";
 import classes from "./SectionRecordAdd.module.css";
 
-/** Click window after hover, in milliseconds. */
-const CLICK_WINDOW_MS = 2000;
+/** Hide delay after the pointer leaves the heading or the plus. */
+const HIDE_AFTER_LEAVE_MS = 3000;
 
 /**
  * @param {{ headingId: string, left: number, top: number, fontSize?: number }} props
@@ -47,17 +45,19 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
     setVisible(false);
   }, [clearHideTimer]);
 
-  const showWithDeadline = useCallback(() => {
+  const show = useCallback(() => {
     if (!eligible) return;
-    setVisible(true);
     clearHideTimer();
-    // Stay visible for this window after hover so the user can leave the
-    // heading and still click the plus. Pointer leave must not hide it.
+    setVisible(true);
+  }, [clearHideTimer, eligible]);
+
+  const scheduleHide = useCallback(() => {
+    clearHideTimer();
     hideTimerRef.current = window.setTimeout(() => {
       setVisible(false);
       hideTimerRef.current = null;
-    }, CLICK_WINDOW_MS);
-  }, [clearHideTimer, eligible]);
+    }, HIDE_AFTER_LEAVE_MS);
+  }, [clearHideTimer]);
 
   useEffect(() => () => clearHideTimer(), [clearHideTimer]);
 
@@ -73,14 +73,19 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
     if (!headingNode) return undefined;
 
     const onEnter = () => {
-      showWithDeadline();
+      show();
+    };
+    const onLeave = () => {
+      scheduleHide();
     };
 
     headingNode.addEventListener("pointerenter", onEnter);
+    headingNode.addEventListener("pointerleave", onLeave);
     return () => {
       headingNode.removeEventListener("pointerenter", onEnter);
+      headingNode.removeEventListener("pointerleave", onLeave);
     };
-  }, [eligible, headingId, showWithDeadline]);
+  }, [eligible, headingId, scheduleHide, show]);
 
   if (!eligible) return null;
 
@@ -103,6 +108,13 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
           title="Dodaj rekord"
           onPointerDown={(event) => {
             event.stopPropagation();
+          }}
+          onPointerEnter={() => {
+            // Keep the control alive while the pointer is on the plus itself.
+            show();
+          }}
+          onPointerLeave={() => {
+            scheduleHide();
           }}
           onClick={(event) => {
             event.stopPropagation();

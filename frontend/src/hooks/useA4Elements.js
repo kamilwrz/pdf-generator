@@ -20,7 +20,7 @@ import { deriveSectionStyle, appendSectionAtEnd, listDocumentSections } from '..
 import { buildSectionElements } from '../utils/sectionBuilder';
 import {
   appendRecordToSection,
-  insertGenericBlockAfterRecord,
+  insertRecordBlockAfterRecord,
 } from '../utils/sectionRecord';
 import { applySelectedSectionIcon } from '../utils/sectionIcons';
 import {
@@ -606,8 +606,8 @@ export function useA4Elements(titleRef) {
   }, []);
 
   /**
-   * Insert one generic text block (`Tekst…`) below the record that owns
-   * `afterElementId`. Used by the in-record hover "+" control — not a clone.
+   * Insert a full placeholder record (edu/exp shape with generic copy) below
+   * the record that owns `afterElementId`. Used by the upper-line hover "+".
    *
    * @param {string} afterElementId
    */
@@ -618,7 +618,7 @@ export function useA4Elements(titleRef) {
     setA4_Elements((prev) => {
       const pageHeight = pageSizeRef.current?.height ?? 842;
       const spacing = flowSpacingRef.current;
-      const result = insertGenericBlockAfterRecord(
+      const result = insertRecordBlockAfterRecord(
         prev,
         afterElementId,
         pageHeight,
@@ -627,7 +627,10 @@ export function useA4Elements(titleRef) {
       if (!result) return prev;
 
       const { elements: next, firstBodyId } = result;
-      if (firstBodyId) markElementsEnter([firstBodyId]);
+      const addedIds = next
+        .filter((element) => !prev.some((old) => old.element_id === element.element_id))
+        .map((element) => element.element_id);
+      markElementsEnter(addedIds);
 
       return next.map((element) => {
         if (element.element_id === firstBodyId) {
