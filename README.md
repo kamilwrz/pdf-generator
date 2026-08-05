@@ -151,12 +151,13 @@ pdf-generator/
 │   │   └── template-mockups/      # Static A4 preview PNGs
 │   ├── src/
 │   │   ├── components/       # canvas, editor, ai, modals, gallery, common
+│   │   │   └── editor/AddSectionModal/   # "+ Dodaj sekcję" modal (name + aa/cc layout picker)
 │   │   ├── hooks/            # useA4Elements facade, useDocumentHistory, usePdfExport, …
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
 │   │   ├── templates/        # 14 template specs + helpers
-│   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow
+│   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow, sectionBuilder
 │   ├── package.json
 │   └── .env.example
 ├── shared/
@@ -231,13 +232,40 @@ Implementation:
 
 - `frontend/src/utils/editorMode.js` — `normalizeEditorMode`, `inferEditorMode`, `canFreePositionElement`
 - `frontend/src/utils/flowSpacing.js` — defaults + normalize for the Sections panel / save / fill
-- `frontend/src/utils/sectionStructure.js` — `packDocumentSections`, `applyFlowSpacing`, reorder; leading section chrome reserved with the first body; intra-chrome offsets preserved (never `SPACE_STACK`); flow start anchored under the masthead so Regent/Aldine header rules are not absorbed into sections. Per-strip placement (chrome + first body reserved together, then remaining body laid out against the flow cursor) is factored into the private `placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin)` helper, reused by `packDocumentSections` and by `appendSectionAtEnd(elements, newElements, pageHeight, options)` — a placement primitive that drops a freshly built section's elements at the end of the document flow, one `SPACE_SECTION` gap below the deepest non-`fixedToPage` element, without repacking existing sections. `appendSectionAtEnd` is not yet wired to a UI action; it is a building block for the upcoming "add section" flow.
+- `frontend/src/utils/sectionStructure.js` — `packDocumentSections`, `applyFlowSpacing`, reorder; leading section chrome reserved with the first body; intra-chrome offsets preserved (never `SPACE_STACK`); flow start anchored under the masthead so Regent/Aldine header rules are not absorbed into sections. Per-strip placement (chrome + first body reserved together, then remaining body laid out against the flow cursor) is factored into the private `placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin)` helper, reused by `packDocumentSections` and by `appendSectionAtEnd(elements, newElements, pageHeight, options)` — a placement primitive that drops a freshly built section's elements at the end of the document flow, one `SPACE_SECTION` gap below the deepest non-`fixedToPage` element, without repacking existing sections. `appendSectionAtEnd` is wired to the Sections panel's "+ Dodaj sekcję" button — see [Add Section (structural editor)](#add-section-structural-editor) below for the end-to-end flow and its own file/symbol references.
 - `frontend/src/pages/PdfCanvas.jsx`, component `PdfCanvas` (`start=templates|import|wizard|blank`, unlock copy)
 - `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`, `spacing`)
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, `Topbar/Topbar.jsx`, `SectionsPanel/`, `UnlockFreeformModal/`
 - `backend/app/services/cv_generator_primitives.py` — `FlowSpacing`, `get_spacing`, `use_spacing`
 - `backend/app/models/models.py` — `Pdf.editor_mode`, `Pdf.template_id`, `Pdf.spacing_px`; Alembic `20260804_0002_editor_mode.py`, `20260804_0003_spacing_px.py`
 - tests: `editorMode.test.js`, `sectionStructure.test.js`, `flowSpacing.test.js`, `test_flow_spacing.py`
+
+### Add Section (structural editor)
+
+Adds a new section to a **template-mode** CV from the Sections panel. The panel's "+ Dodaj sekcję" button opens a modal for the section name and a layout choice, then appends the section at the end of the document in the template's governing rhythm (`stack` / `record` / `section` / `after_rule`), styled to match the CV's existing sections.
+
+Two layouts ship: **"aa"** — heading + rule + one auto-height content textarea — and **"cc"** — heading + rule + an education/experience-style record (bold title, subtitle, muted meta line, bullet description) sharing one `flowGroup` so the four lines page-break as a unit. A third layout, columns ("bb"), is out of scope for this feature (it needs horizontal-row support in the packer) and is not offered in the modal.
+
+On confirm, the new section's visual style — heading font/color, rule width/color, optional decorative marker, body font/color, and a best-effort muted color for record meta lines — is sampled from the document's last existing section (`deriveSectionStyle`); a template-neutral default is used when no section can be detected (for example, an empty document). The section's elements are built (`buildSectionElements`) and placed one `SPACE_SECTION` gap below the deepest non-`fixedToPage` element without repacking existing sections (`appendSectionAtEnd`). The first editable body field is selected and enters edit mode immediately so the user can start typing.
+
+Implementation:
+
+- `frontend/src/utils/sectionStructure.js`, line 641+, function `appendSectionAtEnd`; line 757+, function `deriveSectionStyle` — style sampling and end-of-document placement, both built on the shared `placeStrip` helper (line 508) described above
+- `frontend/src/utils/sectionBuilder.js`, line 20, `SECTION_LAYOUTS`; line 115, function `buildSectionElements` — layout constructors for "aa" and "cc"
+- `frontend/src/hooks/useA4Elements.js`, line 499, function `handleAddSection` — orchestrates style sampling, construction, placement, and post-add selection; exposed through `PdfContext` as `addSection`
+- `frontend/src/components/editor/AddSectionModal/AddSectionModal.jsx`, line 25, component `AddSectionModal` — name input + "aa"/"cc" layout picker (`AddSectionModal.module.css` for styling)
+- `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` — "+ Dodaj sekcję" entry point (line 110) and modal wiring (`addModalOpen` state, line 49; `handleConfirmAddSection`, line 76)
+
+Tests:
+
+- `frontend/src/utils/sectionStructure.test.js`, `describe("deriveSectionStyle", …)` and `describe("appendSectionAtEnd", …)`
+- `frontend/src/utils/sectionBuilder.test.js`, `describe("buildSectionElements", …)`
+
+Known limitations:
+
+- The columns layout ("bb") is not available from this flow; it requires horizontal-row packer support and is planned as a follow-up.
+- The muted color used for a record's meta line is best-effort: it is sampled from an existing meta line when one can be identified, otherwise it falls back to the body color.
+- Style sampling only looks at the document's last detected section; a template with no detectable section (or an empty document) falls back to a template-neutral default rather than matching a specific visual identity.
 
 ### Outcome-focused landing and directed starts
 
@@ -1066,12 +1094,13 @@ pdf-generator/
 │   │   └── template-mockups/
 │   ├── src/
 │   │   ├── components/       # canvas, editor, ai, modals, gallery, common
+│   │   │   └── editor/AddSectionModal/   # modal „+ Dodaj sekcję” (nazwa + wybór układu aa/cc)
 │   │   ├── hooks/            # useA4Elements, useDocumentHistory, useElementSelectionDrag, …
 │   │   ├── pages/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage
 │   │   ├── store/            # Canvas / UiSurfaces / Session + fasada PdfContext
 │   │   ├── templates/        # 14 specyfikacji szablonów + helpery
-│   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow
+│   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow, sectionBuilder
 │   ├── package.json
 │   └── .env.example
 ├── shared/
@@ -1140,13 +1169,40 @@ Wspólne czcionki: Inter, Roboto, Helvetica, Montserrat, Times-Roman, PlayfairDi
 
 Implementacja:
 
-- `frontend/src/utils/editorMode.js`, `flowSpacing.js`, `sectionStructure.js` (`packDocumentSections`, `applyFlowSpacing`; chrome sekcji z pierwszym blokiem treści; kotwica pod mastheadem dla Regent/Aldine). Logika rozmieszczania pojedynczego paska (chrome + pierwszy blok treści rezerwowane razem, reszta treści układana względem kursora przepływu) jest wydzielona do prywatnej funkcji `placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin)`, używanej zarówno przez `packDocumentSections`, jak i przez `appendSectionAtEnd(elements, newElements, pageHeight, options)` — prymityw dokładający elementy nowo zbudowanej sekcji na końcu dokumentu, jeden odstęp `SPACE_SECTION` pod najgłębszym elementem bez `fixedToPage`, bez przepakowywania istniejących sekcji. `appendSectionAtEnd` nie jest jeszcze podpięte pod żadną akcję UI — to element składowy nadchodzącego przepływu „dodaj sekcję”.
+- `frontend/src/utils/editorMode.js`, `flowSpacing.js`, `sectionStructure.js` (`packDocumentSections`, `applyFlowSpacing`; chrome sekcji z pierwszym blokiem treści; kotwica pod mastheadem dla Regent/Aldine). Logika rozmieszczania pojedynczego paska (chrome + pierwszy blok treści rezerwowane razem, reszta treści układana względem kursora przepływu) jest wydzielona do prywatnej funkcji `placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin)`, używanej zarówno przez `packDocumentSections`, jak i przez `appendSectionAtEnd(elements, newElements, pageHeight, options)` — prymityw dokładający elementy nowo zbudowanej sekcji na końcu dokumentu, jeden odstęp `SPACE_SECTION` pod najgłębszym elementem bez `fixedToPage`, bez przepakowywania istniejących sekcji. `appendSectionAtEnd` jest podpięte pod przycisk „+ Dodaj sekcję” w panelu Sekcje — pełny przepływ i własne odwołania do plików/symboli opisuje [Dodawanie sekcji (edytor strukturalny)](#dodawanie-sekcji-edytor-strukturalny) poniżej.
 - `frontend/src/pages/PdfCanvas.jsx` — intencje `templates|import|wizard|blank`, unlock z kopią
 - `frontend/src/hooks/useA4Elements.js`, `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`, `spacing`)
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, `Topbar/Topbar.jsx`, `SectionsPanel/`, `UnlockFreeformModal/`
 - `backend/app/services/cv_generator_primitives.py` — `FlowSpacing`, `get_spacing`, `use_spacing`
 - `backend/app/models/models.py` — `editor_mode`, `template_id`, `spacing_px`; migracje `20260804_0002`, `20260804_0003_spacing_px.py`
 - testy: `editorMode.test.js`, `sectionStructure.test.js`, `flowSpacing.test.js`, `test_flow_spacing.py`
+
+### Dodawanie sekcji (edytor strukturalny)
+
+Dodaje nową sekcję do CV w **trybie szablonu** z poziomu panelu Sekcje. Przycisk „+ Dodaj sekcję” otwiera modal z nazwą sekcji i wyborem układu, a po potwierdzeniu sekcja trafia na koniec dokumentu, w rytmie obowiązującym w danym szablonie (`stack` / `record` / `section` / `after_rule`), stylistycznie dopasowana do istniejących sekcji dokumentu.
+
+Dostępne są dwa układy: **„aa”** — nagłówek + linia + jedno pole tekstowe o automatycznej wysokości — oraz **„cc”** — nagłówek + linia + rekord w stylu edukacji/doświadczenia (pogrubiony tytuł, podtytuł, przygaszona linia meta, opis punktowany), którego cztery linie dzielą wspólne `flowGroup`, dzięki czemu łamią się na stronach jako jedna całość. Trzeci układ, kolumnowy („bb”), jest poza zakresem tej funkcji (wymaga obsługi wierszy poziomych w pakerze) i nie jest oferowany w modalu.
+
+Po potwierdzeniu styl nowej sekcji — czcionka/kolor nagłówka, szerokość/kolor linii, opcjonalny znacznik dekoracyjny, czcionka/kolor treści oraz przygaszony kolor linii meta w rekordzie (dobierany w sposób najlepszy z możliwych) — jest próbkowany z ostatniej istniejącej sekcji dokumentu (`deriveSectionStyle`); gdy żadnej sekcji nie da się wykryć (np. pusty dokument), używany jest neutralny dla szablonu styl domyślny. Elementy sekcji są budowane (`buildSectionElements`) i umieszczane jeden odstęp `SPACE_SECTION` pod najgłębszym elementem bez `fixedToPage`, bez przepakowywania istniejących sekcji (`appendSectionAtEnd`). Pierwsze edytowalne pole treści jest od razu zaznaczane i przechodzi w tryb edycji, więc użytkownik może zacząć pisać natychmiast.
+
+Implementacja:
+
+- `frontend/src/utils/sectionStructure.js`, linia 641+, funkcja `appendSectionAtEnd`; linia 757+, funkcja `deriveSectionStyle` — próbkowanie stylu i umieszczanie na końcu dokumentu, oba oparte na wspólnym helperze `placeStrip` (linia 508) opisanym powyżej
+- `frontend/src/utils/sectionBuilder.js`, linia 20, `SECTION_LAYOUTS`; linia 115, funkcja `buildSectionElements` — konstruktory układów „aa” i „cc”
+- `frontend/src/hooks/useA4Elements.js`, linia 499, funkcja `handleAddSection` — koordynuje próbkowanie stylu, budowę, umieszczenie i zaznaczenie po dodaniu; wystawiana przez `PdfContext` jako `addSection`
+- `frontend/src/components/editor/AddSectionModal/AddSectionModal.jsx`, linia 25, komponent `AddSectionModal` — pole nazwy + wybór układu „aa”/„cc” (stylowanie w `AddSectionModal.module.css`)
+- `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` — przycisk „+ Dodaj sekcję” (linia 110) i podpięcie modala (stan `addModalOpen`, linia 49; `handleConfirmAddSection`, linia 76)
+
+Testy:
+
+- `frontend/src/utils/sectionStructure.test.js`, `describe("deriveSectionStyle", …)` oraz `describe("appendSectionAtEnd", …)`
+- `frontend/src/utils/sectionBuilder.test.js`, `describe("buildSectionElements", …)`
+
+Znane ograniczenia:
+
+- Układ kolumnowy („bb”) nie jest dostępny w tym przepływie; wymaga obsługi wierszy poziomych w pakerze i jest planowany jako kolejny krok.
+- Przygaszony kolor linii meta w rekordzie jest dobierany w sposób najlepszy z możliwych: próbkowany z istniejącej linii meta, jeśli da się ją zidentyfikować, w przeciwnym razie stosowany jest kolor treści głównej.
+- Próbkowanie stylu bierze pod uwagę wyłącznie ostatnią wykrytą sekcję dokumentu; szablon bez wykrywalnej sekcji (lub pusty dokument) korzysta z neutralnego stylu domyślnego zamiast dopasowania do konkretnej tożsamości wizualnej.
 
 ### Landing skupiony na rezultacie i skierowane starty
 
