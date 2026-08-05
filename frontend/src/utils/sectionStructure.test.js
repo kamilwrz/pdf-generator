@@ -370,6 +370,119 @@ describe("applyFlowSpacing", () => {
     assert.ok(byId.b1.top > byId.r2.top, "body stays under the rule");
   });
 
+  it("keeps section chrome with the full first flowGroup record, not only the first line", () => {
+    // Tall page-1 section leaves ~90px before contentBottom (770). Chrome +
+    // degree would "fit", but school/meta/description would spill — structural
+    // packing must bump the whole heading band with the education record.
+    const elements = [
+      {
+        element_id: "h1", category: "text", flowRole: "section-chrome",
+        content: "Summary", page: 1, top: 100, height: 14, left: 76,
+      },
+      {
+        element_id: "r1", category: "line", flowRole: "section-chrome",
+        page: 1, top: 114, height: 1, width: 466, left: 76,
+      },
+      {
+        element_id: "s1", category: "textarea", flowRole: "content", autoHeight: true,
+        page: 1, top: 122, height: 560, left: 76,
+      },
+      {
+        element_id: "h2", category: "text", flowRole: "section-chrome",
+        content: "Education", page: 1, top: 700, height: 14, left: 76,
+      },
+      {
+        element_id: "r2", category: "line", flowRole: "section-chrome",
+        page: 1, top: 714, height: 1, width: 466, left: 76,
+      },
+      {
+        element_id: "deg", category: "textarea", flowRole: "content", autoHeight: true,
+        flowGroup: "record-edu-1", bold: true,
+        page: 1, top: 722, height: 16, left: 76,
+      },
+      {
+        element_id: "sch", category: "textarea", flowRole: "content", autoHeight: true,
+        flowGroup: "record-edu-1",
+        page: 1, top: 742, height: 14, left: 76,
+      },
+      {
+        element_id: "meta", category: "textarea", flowRole: "content", autoHeight: true,
+        flowGroup: "record-edu-1",
+        page: 1, top: 760, height: 12, left: 76,
+      },
+      {
+        element_id: "desc", category: "textarea", flowRole: "content", autoHeight: true,
+        flowGroup: "record-edu-1", bulletList: true,
+        page: 1, top: 776, height: 40, left: 76,
+      },
+    ];
+    const packed = applyFlowSpacing(elements, {
+      stack: 4, record: 10, section: 21, after_rule: 8,
+    }, 842, { pageTop: 66, bottomMargin: 72 });
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+
+    assert.equal(byId.h2.page, byId.deg.page);
+    assert.equal(byId.deg.page, byId.sch.page);
+    assert.equal(byId.deg.page, byId.meta.page);
+    assert.equal(byId.deg.page, byId.desc.page);
+    assert.equal(byId.h2.page, 2, "full record forces the section onto page 2");
+  });
+
+  it("does not split a later experience flowGroup across a page break while packing", () => {
+    // First experience record fills most of page 1. The second record's title
+    // would fit in the footer leftover while company/description jumped —
+    // placeStrip must keep the whole second flowGroup together.
+    const elements = [
+      {
+        element_id: "h1", category: "text", flowRole: "section-chrome",
+        content: "Experience", page: 1, top: 100, height: 14, left: 76,
+      },
+      {
+        element_id: "r1", category: "line", flowRole: "section-chrome",
+        page: 1, top: 114, height: 1, width: 466, left: 76,
+      },
+      {
+        element_id: "t1", category: "textarea", flowRole: "content", autoHeight: true,
+        flowGroup: "record-job-1", bold: true,
+        page: 1, top: 122, height: 16, left: 76,
+      },
+      {
+        element_id: "c1", category: "textarea", flowRole: "content", autoHeight: true,
+        flowGroup: "record-job-1",
+        page: 1, top: 142, height: 14, left: 76,
+      },
+      {
+        element_id: "d1", category: "textarea", flowRole: "content", autoHeight: true,
+        flowGroup: "record-job-1", bulletList: true,
+        page: 1, top: 160, height: 520, left: 76,
+      },
+      {
+        element_id: "t2", category: "textarea", flowRole: "content", autoHeight: true,
+        flowGroup: "record-job-2", bold: true,
+        page: 1, top: 690, height: 16, left: 76,
+      },
+      {
+        element_id: "c2", category: "textarea", flowRole: "content", autoHeight: true,
+        flowGroup: "record-job-2",
+        page: 1, top: 710, height: 14, left: 76,
+      },
+      {
+        element_id: "d2", category: "textarea", flowRole: "content", autoHeight: true,
+        flowGroup: "record-job-2", bulletList: true,
+        page: 1, top: 728, height: 60, left: 76,
+      },
+    ];
+    const packed = applyFlowSpacing(elements, {
+      stack: 4, record: 10, section: 21, after_rule: 8,
+    }, 842, { pageTop: 66, bottomMargin: 72 });
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+
+    assert.equal(byId.t2.page, byId.c2.page, "title and company stay together");
+    assert.equal(byId.t2.page, byId.d2.page, "title and description stay together");
+    assert.equal(byId.t1.page, 1);
+    assert.equal(byId.t2.page, 2, "second record moves as a unit onto page 2");
+  });
+
   it("heals a Monument accent rule that was built flush under the label", () => {
     // Legacy add-section placed the accent at title+fs*1.35 (~17) instead of
     // the authored mid-band title+7. The cluster still "looks healthy" (overlap

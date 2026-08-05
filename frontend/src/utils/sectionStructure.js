@@ -10,6 +10,11 @@
  * later content and leaves holes. Instead: compact each section, pack in the
  * new order from the flow start, then paginate with the same margins as
  * `textareaReflow` (pageTop 66 / bottomMargin 72).
+ *
+ * Structural packing (`placeStrip`) mirrors reflow keep-together rules:
+ * section chrome is reserved with the full first `flowGroup` record (not only
+ * the first body line), and later education/experience records tagged with
+ * `flowGroup` never split across a page break during add/reorder/spacing.
  */
 
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
@@ -613,6 +618,60 @@ function leadingChromeCount(strip) {
 }
 
 /**
+ * Keep-together record id from Builder / sectionBuilder / sectionRecord.
+ * @param {object|null|undefined} element
+ * @returns {string|null}
+ */
+function flowGroupOf(element) {
+  const group = element?.flowGroup;
+  return typeof group === "string" && group ? group : null;
+}
+
+/**
+ * Last strip index that still belongs to the keep-together record starting at
+ * `startIndex`. Untagged body lines are treated as a single-element record.
+ *
+ * @param {{ element: object, leadingChrome?: boolean }[]} strip
+ * @param {number} startIndex
+ * @returns {number}
+ */
+function flowGroupEndIndex(strip, startIndex) {
+  const start = strip[startIndex];
+  if (!start || start.leadingChrome) return startIndex;
+  const group = flowGroupOf(start.element);
+  if (!group) return startIndex;
+
+  let endIndex = startIndex;
+  for (let index = startIndex + 1; index < strip.length; index += 1) {
+    const item = strip[index];
+    // Leading chrome is always prefix; body mates may only follow.
+    if (item.leadingChrome) break;
+    if (flowGroupOf(item.element) !== group) break;
+    endIndex = index;
+  }
+  return endIndex;
+}
+
+/**
+ * Height from `startIndex` through its keep-together mates, using compacted
+ * `relTop` gaps so page-break reservation matches the packed strip geometry.
+ *
+ * @param {{ element: object, relTop: number, leadingChrome?: boolean }[]} strip
+ * @param {number} startIndex
+ * @returns {number}
+ */
+function remainingStripRecordHeight(strip, startIndex) {
+  const start = strip[startIndex];
+  if (!start) return 1;
+  const endIndex = flowGroupEndIndex(strip, startIndex);
+  const end = strip[endIndex];
+  return Math.max(
+    1,
+    (end.relTop - start.relTop) + elementHeight(end.element),
+  );
+}
+
+/**
  * Absolute page/top for an already-reserved strip origin + relTop.
  * Used for leading chrome so a 1px rule cannot independently "fit" in the
  * footer while the section body jumps to the next page.
@@ -625,10 +684,14 @@ function pageTopFromOrigin(originAbs, relTop, pageHeight) {
 }
 
 /**
- * Place one compacted strip starting at `cursorAbs`. The leading chrome band
- * (heading + rule + markers) is reserved together with the first body block so
- * a 1px rule can never independently "fit" in the footer while the body jumps
- * to the next page.
+ * Place one compacted strip starting at `cursorAbs`.
+ *
+ * Leading chrome (heading + rule + markers) is reserved together with the
+ * **full first keep-together record** (`flowGroup` mates), matching
+ * `textareaReflow.avoidOrphanChrome` / backend `need_section`. Later body
+ * records use the same atomic reservation so education/experience stacks
+ * never leave degree on page N and school/meta/description on N+1 after
+ * structural edits (add section, add record, reorder, rhythm knobs).
  *
  * @returns {{ placedById: Map<string, object>, bottomAbs: number }}
  */
@@ -637,16 +700,18 @@ function placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin) {
   if (strip.length === 0) return { placedById, bottomAbs: cursorAbs };
 
   const chromeCount = leadingChromeCount(strip);
-  const firstBody = chromeCount < strip.length ? strip[chromeCount] : null;
   let reservedHeight = 0;
   if (chromeCount > 0) {
     const lastChrome = strip[chromeCount - 1];
     reservedHeight = lastChrome.relTop + elementHeight(lastChrome.element);
-    if (firstBody) {
-      reservedHeight = firstBody.relTop + elementHeight(firstBody.element);
+    if (chromeCount < strip.length) {
+      // Chrome through the end of the first body record (not only first line).
+      const recordEnd = flowGroupEndIndex(strip, chromeCount);
+      reservedHeight = strip[recordEnd].relTop + elementHeight(strip[recordEnd].element);
     }
-  } else if (firstBody) {
-    reservedHeight = elementHeight(firstBody.element);
+  } else if (strip.length > 0) {
+    const recordEnd = flowGroupEndIndex(strip, 0);
+    reservedHeight = strip[recordEnd].relTop + elementHeight(strip[recordEnd].element);
   }
 
   const sectionCursor = reservedHeight > 0
@@ -655,6 +720,11 @@ function placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin) {
 
   let stripBottom = sectionCursor;
   let previous = null;
+  // Track the active keep-together record so continuation mates stay on the
+  // page chosen when the record started (same contract as textareaReflow).
+  let activeGroup = null;
+  let activeGroupPage = null;
+
   for (let index = 0; index < strip.length; index += 1) {
     const item = strip[index];
     const height = elementHeight(item.element);
@@ -673,7 +743,46 @@ function placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin) {
       } else {
         desiredAbs = sectionCursor + item.relTop;
       }
-      placed = placeAtFlowCursor(desiredAbs, height, pageHeight, pageTop, bottomMargin);
+
+      const group = flowGroupOf(item.element);
+      const startsRecord = Boolean(group) && group !== activeGroup;
+      const continuesRecord = Boolean(group) && group === activeGroup;
+
+      if (continuesRecord && activeGroupPage != null) {
+        // Already reserved with the record start — keep mates on that page.
+        // Independent placeAtFlowCursor(height) could still bump a tall last
+        // line alone if the first-line reservation used a shorter measure.
+        const page = activeGroupPage;
+        let top = desiredAbs - (page - 1) * pageHeight;
+        if (top < pageTop && page > 1) top = pageTop;
+        const abs = (page - 1) * pageHeight + top;
+        placed = { page, top, abs, bottom: abs + height };
+      } else {
+        // New flowGroup (or untagged line): reserve the whole remaining record
+        // height before accepting this page, then place only this element's box.
+        const reserveHeight = startsRecord
+          ? remainingStripRecordHeight(strip, index)
+          : height;
+        const at = placeAtFlowCursor(
+          desiredAbs, reserveHeight, pageHeight, pageTop, bottomMargin,
+        );
+        placed = {
+          page: at.page,
+          top: at.top,
+          abs: at.abs,
+          bottom: at.abs + height,
+        };
+      }
+
+      if (group) {
+        if (startsRecord || !activeGroup) {
+          activeGroup = group;
+          activeGroupPage = placed.page;
+        }
+      } else {
+        activeGroup = null;
+        activeGroupPage = null;
+      }
     }
 
     placedById.set(item.element.element_id, {
