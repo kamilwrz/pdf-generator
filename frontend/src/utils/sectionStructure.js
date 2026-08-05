@@ -916,6 +916,96 @@ export function appendSectionAtEnd(
 }
 
 /**
+ * Insert a freshly built section immediately below the section owned by
+ * `afterHeadingId`, then retarget every section to the governing rhythm.
+ *
+ * Opens a document-wide Y-hole under the anchor section (later headings move
+ * too) so the new strip cannot land inside the next section's band. Falls back
+ * to `appendSectionAtEnd` when the anchor heading is missing.
+ *
+ * @param {object[]} elements
+ * @param {object[]} newElements
+ * @param {string} afterHeadingId
+ * @param {number} [pageHeight=842]
+ * @param {{ spacing?: object, pageTop?: number, bottomMargin?: number }} [options]
+ * @returns {object[]}
+ */
+export function insertSectionAfter(
+  elements,
+  newElements,
+  afterHeadingId,
+  pageHeight = 842,
+  { spacing, pageTop = DEFAULT_PAGE_TOP, bottomMargin = DEFAULT_BOTTOM_MARGIN } = {},
+) {
+  const list = elements || [];
+  const additions = newElements || [];
+  if (additions.length === 0) return list;
+  if (!afterHeadingId) {
+    return appendSectionAtEnd(list, additions, pageHeight, { spacing, pageTop, bottomMargin });
+  }
+
+  const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
+  const sections = listDocumentSections(list, pageHeight);
+  const index = sections.findIndex((section) => section.headingId === afterHeadingId);
+  if (index < 0) {
+    return appendSectionAtEnd(list, additions, pageHeight, { spacing, pageTop, bottomMargin });
+  }
+
+  const anchorIds = sectionElementIds(list, afterHeadingId, pageHeight);
+  let sectionBottom = sections[index].startAbs;
+  for (const element of list) {
+    if (!element || !anchorIds.has(element.element_id)) continue;
+    sectionBottom = Math.max(sectionBottom, absoluteBottom(element, pageHeight));
+  }
+
+  const cursorAbs = sectionBottom + rhythm.section;
+  const strip = compactSectionStrip(additions, pageHeight, rhythm, true);
+  const { placedById, bottomAbs } = placeStrip(
+    strip, cursorAbs, pageHeight, pageTop, bottomMargin,
+  );
+  const placedAdditions = additions.map(
+    (element) => placedById.get(element.element_id) || element,
+  );
+
+  // Everything that currently starts at or below the insert point (sibling
+  // content after the anchor, and later section chrome/body) moves down so
+  // section membership stays correct before applyFlowSpacing.
+  const hole = Math.max(0, bottomAbs + rhythm.section - cursorAbs);
+  const shifted = list.map((element) => {
+    if (!element || element.fixedToPage) return element;
+    if (anchorIds.has(element.element_id)) return element;
+    if (element.flowRole === "masthead") return element;
+    if (absoluteTop(element, pageHeight) + 0.01 < sectionBottom) return element;
+    const newAbs = absoluteTop(element, pageHeight) + hole;
+    const page = Math.max(1, Math.floor(newAbs / pageHeight) + 1);
+    const top = newAbs - (page - 1) * pageHeight;
+    return { ...element, page, top };
+  });
+
+  const mateBottomId = [...anchorIds].reduce((bestId, id) => {
+    const element = shifted.find((item) => item.element_id === id);
+    if (!element) return bestId;
+    if (!bestId) return id;
+    const best = shifted.find((item) => item.element_id === bestId);
+    return absoluteBottom(element, pageHeight) >= absoluteBottom(best, pageHeight)
+      ? id
+      : bestId;
+  }, null);
+  const mateIndex = mateBottomId
+    ? shifted.findIndex((element) => element.element_id === mateBottomId)
+    : -1;
+  const withBlock = mateIndex >= 0
+    ? [
+      ...shifted.slice(0, mateIndex + 1),
+      ...placedAdditions,
+      ...shifted.slice(mateIndex + 1),
+    ]
+    : [...shifted, ...placedAdditions];
+
+  return applyFlowSpacing(withBlock, rhythm, pageHeight, { pageTop, bottomMargin });
+}
+
+/**
  * Move a section up/down, then repack every section so page-break holes and
  * following content reflow instead of overlapping.
  *
@@ -1013,18 +1103,21 @@ const DECORATIVE_SHAPE_CATEGORIES = new Set(["rectangle", "circle", "ellipse", "
  *
  * @param {object[]} elements
  * @param {number} [pageHeight=842]
+ * @param {string|null} [fromHeadingId] sample this section instead of the last one
  * @returns {object} style profile (see plan `SectionStyle`)
  */
-export function deriveSectionStyle(elements, pageHeight = 842) {
+export function deriveSectionStyle(elements, pageHeight = 842, fromHeadingId = null) {
   const list = elements || [];
   const sections = listDocumentSections(list, pageHeight);
   if (sections.length === 0) {
     return JSON.parse(JSON.stringify(DEFAULT_SECTION_STYLE));
   }
 
-  const last = sections[sections.length - 1];
-  const heading = list.find((element) => element.element_id === last.headingId) || null;
-  const memberIds = sectionElementIds(list, last.headingId, pageHeight);
+  const target = (fromHeadingId
+    && sections.find((section) => section.headingId === fromHeadingId))
+    || sections[sections.length - 1];
+  const heading = list.find((element) => element.element_id === target.headingId) || null;
+  const memberIds = sectionElementIds(list, target.headingId, pageHeight);
   const members = list.filter((element) => memberIds.has(element.element_id));
 
   // Resolve the heading's left edge before sampling so candidates can be
@@ -1070,7 +1163,7 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
   // filter here — templates range from an 8px marker dot (Regent) to a 32px
   // badge block plus a 251px label frame (Monument). Only the identified rule
   // and decorative text are excluded (see DECORATIVE_SHAPE_CATEGORIES doc).
-  const decorativeShapes = members.filter((element) => element.element_id !== last.headingId
+  const decorativeShapes = members.filter((element) => element.element_id !== target.headingId
     && element.element_id !== rule?.element_id
     && element.flowRole === "section-chrome"
     && inDecorativeShapeColumn(element)
@@ -1083,7 +1176,7 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
   // never its sampled digits — those belong to the section it was copied
   // from. `digits` records how many characters the sampled number had, so
   // the caller can zero-pad the new ordinal to match ("04" -> 2 digits).
-  const badgeNumberElement = members.find((element) => element.element_id !== last.headingId
+  const badgeNumberElement = members.find((element) => element.element_id !== target.headingId
     && element.flowRole === "section-chrome"
     && isDecorativeOrdinalChrome(element)
     && (element.category === "text" || element.category === "textarea")) || null;
@@ -1101,7 +1194,7 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
 
   // Body copy: non-chrome content elements, in reading order.
   const bodyElements = members
-    .filter((element) => element.element_id !== last.headingId
+    .filter((element) => element.element_id !== target.headingId
       && element.flowRole !== "section-chrome"
       && inHeadingColumn(element)
       && element.category !== "line")

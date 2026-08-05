@@ -1,6 +1,7 @@
 /**
- * Hover affordance on a template-mode section heading: a "+" that adds another
- * record (education / experience structure) with generic placeholder copy.
+ * Hover affordance on a template-mode section heading: a "+" that opens the
+ * "Dodaj sekcję" modal. The new section is inserted immediately below the
+ * section that owns this heading (`afterHeadingId`).
  *
  * Timing: appear on pointer enter over the heading; stay while the pointer is
  * on the plus; only leaving the heading or the plus starts a 3s hide timer.
@@ -11,7 +12,6 @@ import { use, useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
-import { sectionSupportsRecordAdd } from "../../../utils/sectionRecord";
 import { useHoverPlusExclusive } from "../../../hooks/useHoverPlusExclusive";
 import { recordPlusLayoutSize } from "../recordPlusSize";
 import classes from "./SectionRecordAdd.module.css";
@@ -24,10 +24,8 @@ const HIDE_AFTER_LEAVE_MS = 3000;
  */
 export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }) {
   const {
-    A4_Elements,
-    pageSize,
     editorMode,
-    addSectionRecord,
+    openAddSectionModal,
     zoom = 1,
   } = use(PdfContext);
 
@@ -38,9 +36,7 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
     exclusiveKey,
   );
 
-  const pageHeight = pageSize?.height ?? 842;
-  const eligible = editorMode === EDITOR_MODE_TEMPLATE
-    && sectionSupportsRecordAdd(A4_Elements, headingId, pageHeight);
+  const eligible = editorMode === EDITOR_MODE_TEMPLATE;
 
   const clearHideTimer = useCallback(() => {
     if (hideTimerRef.current != null) {
@@ -129,8 +125,8 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
           type="button"
           className={classes.plus}
           style={buttonStyle}
-          aria-label="Dodaj rekord w tej sekcji"
-          title="Dodaj rekord"
+          aria-label="Dodaj sekcję pod tą sekcją"
+          title="Dodaj sekcję"
           onPointerDown={(event) => {
             event.stopPropagation();
           }}
@@ -143,7 +139,7 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
           onClick={(event) => {
             event.stopPropagation();
             event.preventDefault();
-            addSectionRecord?.(headingId);
+            openAddSectionModal?.(headingId);
             hide();
           }}
         >

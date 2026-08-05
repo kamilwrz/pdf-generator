@@ -31,6 +31,7 @@ import BioCvModal from '../components/ai/BioCvModal/BioCvModal';
 import ChangeTemplateModal from '../components/editor/Topbar/ChangeTemplateModal';
 import UnlockFreeformModal from '../components/editor/UnlockFreeformModal/UnlockFreeformModal';
 import SectionsPanel from '../components/editor/SectionsPanel/SectionsPanel';
+import AddSectionModal from '../components/editor/AddSectionModal/AddSectionModal';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 import { logEvent } from '../services/eventLog';
 import { previewStructureOperation } from '../utils/structureOperation';
@@ -43,6 +44,7 @@ import {
   normalizeEditorMode,
 } from '../utils/editorMode';
 import { DEFAULT_FLOW_SPACING } from '../utils/flowSpacing';
+import { listSectionIconOptions } from '../utils/sectionIcons';
 import { nanoid } from 'nanoid';
 
 /**
@@ -106,6 +108,22 @@ function PdfCanvas() {
   const isGallery = panel === 'gallery';
   const isDropzone = panel === 'upload';
   const isSectionsPanel = panel === 'sections';
+  // "Dodaj sekcję" lives on PdfCanvas so the canvas heading "+" can open it
+  // even when the Sections panel is closed. `afterHeadingId` inserts under
+  // that section; null appends at the end (panel button).
+  const [addSectionModal, setAddSectionModal] = useState({
+    open: false,
+    afterHeadingId: null,
+  });
+  const openAddSectionModal = useCallback((afterHeadingId = null) => {
+    setAddSectionModal({
+      open: true,
+      afterHeadingId: afterHeadingId || null,
+    });
+  }, []);
+  const closeAddSectionModal = useCallback(() => {
+    setAddSectionModal({ open: false, afterHeadingId: null });
+  }, []);
   // Compatibility setter: ModalPdfs.jsx and Sidebar.jsx both call this as
   // `setIsModalPdfs(bool => !bool)` / `setIsModalPdfs(false)`, matching
   // React's setState contract, so neither needed to change.
@@ -230,7 +248,25 @@ function PdfCanvas() {
     resetHistory
   } = useA4Elements(titleRef)
 
+  const handleConfirmAddSection = useCallback(({ name, layout, iconName }) => {
+    handleAddSection({
+      name,
+      layout,
+      iconName,
+      afterHeadingId: addSectionModal.afterHeadingId,
+    });
+    setAddSectionModal({ open: false, afterHeadingId: null });
+  }, [addSectionModal.afterHeadingId, handleAddSection]);
 
+  // Icon gallery for iconic templates; computed here because AddSectionModal
+  // is owned by PdfCanvas (not only SectionsPanel).
+  const addSectionIconOptions = useMemo(
+    () => listSectionIconOptions({
+      templateId: activeTemplateId,
+      elements: A4_Elements,
+    }),
+    [activeTemplateId, A4_Elements],
+  );
 
   // usePdfExport's callback param only ever signals "the min-spinner delay
   // has elapsed, react now" — the actual toast trigger lives in the
@@ -779,6 +815,7 @@ function PdfCanvas() {
     addConnector: () => {},
     addTextarea: handleAddTextarea,
     addSection: handleAddSection,
+    openAddSectionModal,
     addSectionRecord: handleAddSectionRecord,
     addRecordBlock: handleAddRecordBlock,
     markSelected,
@@ -867,7 +904,7 @@ function PdfCanvas() {
     editorMode, setEditorMode, flowSpacing, setFlowSpacing, baselineFlowSpacing, hydrateDocumentMode, handleShowUnlockFreeform, handleUnlockFreeform,
     activeCvData, setActiveCvData,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
-    isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, handleAddSectionRecord, handleAddRecordBlock, markSelected, handleSetTextareaEditing,
+    isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, openAddSectionModal, handleAddSectionRecord, handleAddRecordBlock, markSelected, handleSetTextareaEditing,
     handleDuplicateElement, pageSize, zoom, zoomIn, zoomOut, undo, redo, canUndo, canRedo, resetHistory,
     deletionPreviewIds, layoutPreviewPatches, structurePreviewGroup, spacingHoldId,
   ]);
@@ -956,6 +993,13 @@ function PdfCanvas() {
                 open={isUnlockFreeformModal}
                 onCancel={() => setDialog(null)}
                 onConfirm={confirmUnlockFreeform}
+              />
+              <AddSectionModal
+                open={addSectionModal.open}
+                onCancel={closeAddSectionModal}
+                onConfirm={handleConfirmAddSection}
+                iconOptions={addSectionIconOptions}
+                insertAfterHeading={Boolean(addSectionModal.afterHeadingId)}
               />
               <DropzoneContainer />
               <Sidebar>

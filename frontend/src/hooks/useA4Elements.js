@@ -16,7 +16,12 @@ import {
   normalizeEditorMode,
 } from '../utils/editorMode';
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from '../utils/flowSpacing';
-import { deriveSectionStyle, appendSectionAtEnd, listDocumentSections } from '../utils/sectionStructure';
+import {
+  deriveSectionStyle,
+  appendSectionAtEnd,
+  insertSectionAfter,
+  listDocumentSections,
+} from '../utils/sectionStructure';
 import { buildSectionElements } from '../utils/sectionBuilder';
 import {
   appendRecordToSection,
@@ -519,28 +524,47 @@ export function useA4Elements(titleRef) {
   }, []);
 
   /**
-   * Add a new template-mode section (heading + chrome + body) to the end of the
-   * document in the active rhythm. Style is sampled from the last section so the
-   * new one matches the template; the first editable body enters edit mode so
-   * the user can type immediately.
+   * Add a new template-mode section (heading + chrome + body) in the active
+   * rhythm. When `afterHeadingId` is set, the section is inserted immediately
+   * below that section; otherwise it is appended at the end. Style is sampled
+   * from the anchor section (or the last section when appending).
    *
-   * @param {{ name: string, layout: "aa"|"cc-edu"|"cc-exp", iconName?: string|null }} config
+   * @param {{
+   *   name: string,
+   *   layout: "aa"|"cc-edu"|"cc-exp",
+   *   iconName?: string|null,
+   *   afterHeadingId?: string|null,
+   * }} config
    */
-  const handleAddSection = useCallback(({ name, layout, iconName = null }) => {
+  const handleAddSection = useCallback(({
+    name,
+    layout,
+    iconName = null,
+    afterHeadingId = null,
+  }) => {
     setA4_Elements((prev) => {
       const pageHeight = pageSizeRef.current?.height ?? 842;
       const spacing = flowSpacingRef.current;
-      let style = deriveSectionStyle(prev, pageHeight);
+      const sections = listDocumentSections(prev, pageHeight);
+      const afterIndex = afterHeadingId
+        ? sections.findIndex((section) => section.headingId === afterHeadingId)
+        : -1;
+      let style = deriveSectionStyle(
+        prev,
+        pageHeight,
+        afterIndex >= 0 ? afterHeadingId : null,
+      );
       // Icon-tagged templates: swap/inject the section-heading glyph chosen in
       // the Add Section gallery, keeping the sampled size and offset.
       style = applySelectedSectionIcon(style, prev, pageHeight, {
         templateId: activeTemplateId,
         iconName,
       });
-      // Templates with a decorative ordinal badge (Monument's "01"/"02"/…)
-      // number sections by their position in the document; the new section
-      // becomes the next one, one past every currently detected section.
-      const sectionOrdinal = listDocumentSections(prev, pageHeight).length + 1;
+      // Monument-style ordinals: insert after index i → new position i+1 →
+      // ordinal i+2; append at end → one past every detected section.
+      const sectionOrdinal = afterIndex >= 0
+        ? afterIndex + 2
+        : sections.length + 1;
       const { elements, firstBodyId } = buildSectionElements({
         name,
         layout,
@@ -549,7 +573,9 @@ export function useA4Elements(titleRef) {
         sectionOrdinal,
         idFactory: nanoid,
       });
-      const next = appendSectionAtEnd(prev, elements, pageHeight, { spacing });
+      const next = afterIndex >= 0
+        ? insertSectionAfter(prev, elements, afterHeadingId, pageHeight, { spacing })
+        : appendSectionAtEnd(prev, elements, pageHeight, { spacing });
       markElementsEnter(elements.map((element) => element.element_id));
 
       // Select + open the first body for editing; clear any prior selection so

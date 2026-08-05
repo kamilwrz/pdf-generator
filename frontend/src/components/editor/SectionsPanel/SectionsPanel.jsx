@@ -5,7 +5,7 @@
  * Renders as a docked flyout to the right of the 72px sidebar rail.
  * Embedding the list inside the rail collapses titles.
  */
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo } from "react";
 import { FiChevronDown, FiChevronUp, FiPlus, FiX } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import {
@@ -18,8 +18,6 @@ import {
   flowSpacingEquals,
   normalizeFlowSpacing,
 } from "../../../utils/flowSpacing";
-import AddSectionModal from "../AddSectionModal/AddSectionModal";
-import { listSectionIconOptions } from "../../../utils/sectionIcons";
 import classes from "./SectionsPanel.module.css";
 
 /** User-facing spacing knobs — keys stay aligned with SPACE_* in the generator. */
@@ -53,8 +51,7 @@ export default function SectionsPanel({ onClose }) {
     flowSpacing,
     setFlowSpacing,
     baselineFlowSpacing,
-    addSection,
-    activeTemplateId,
+    openAddSectionModal,
   } = use(PdfContext);
   const pageHeight = pageSize?.height ?? 842;
   const spacing = useMemo(
@@ -69,18 +66,6 @@ export default function SectionsPanel({ onClose }) {
     () => listDocumentSections(A4_Elements, pageHeight),
     [A4_Elements, pageHeight],
   );
-  // Icon gallery only for templates that decorate section headings with glyphs
-  // from `/template-assets/iconic/<theme>/`.
-  const iconOptions = useMemo(
-    () => listSectionIconOptions({
-      templateId: activeTemplateId,
-      elements: A4_Elements,
-    }),
-    [activeTemplateId, A4_Elements],
-  );
-  // Controls the "Dodaj sekcję" modal; kept local because the new section's
-  // draft name/layout never need to be visible outside this panel.
-  const [addModalOpen, setAddModalOpen] = useState(false);
 
   useEffect(() => {
     if (!onClose) return undefined;
@@ -106,11 +91,6 @@ export default function SectionsPanel({ onClose }) {
     if (flowSpacingEquals(spacing, normalized)) return;
     setFlowSpacing(normalized);
     setA4_Elements((prev) => applyFlowSpacing(prev, normalized, pageHeight));
-  }
-
-  function handleConfirmAddSection({ name, layout, iconName }) {
-    addSection({ name, layout, iconName });
-    setAddModalOpen(false);
   }
 
   function handleSpacingChange(key, rawValue) {
@@ -145,7 +125,7 @@ export default function SectionsPanel({ onClose }) {
         <button
           type="button"
           className={classes.addButton}
-          onClick={() => setAddModalOpen(true)}
+          onClick={() => openAddSectionModal?.()}
         >
           <FiPlus aria-hidden="true" />
           Dodaj sekcję
@@ -234,13 +214,6 @@ export default function SectionsPanel({ onClose }) {
           ))}
         </div>
       </div>
-
-      <AddSectionModal
-        open={addModalOpen}
-        onCancel={() => setAddModalOpen(false)}
-        onConfirm={handleConfirmAddSection}
-        iconOptions={iconOptions}
-      />
     </div>
   );
 }

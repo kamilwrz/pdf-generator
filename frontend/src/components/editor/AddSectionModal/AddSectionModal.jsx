@@ -35,6 +35,7 @@ const LAYOUT_OPTIONS = [
  *   onCancel: () => void,
  *   onConfirm: (payload: { name: string, layout: string, iconName: string|null }) => void,
  *   iconOptions?: { name: string, src: string, label: string }[],
+ *   insertAfterHeading?: boolean,
  * }} props
  */
 export default function AddSectionModal({
@@ -42,6 +43,7 @@ export default function AddSectionModal({
   onCancel,
   onConfirm,
   iconOptions = [],
+  insertAfterHeading = false,
 }) {
   const [name, setName] = useState("");
   const [layout, setLayout] = useState(SECTION_LAYOUTS.TEXTAREA);
@@ -102,7 +104,9 @@ export default function AddSectionModal({
       onClose={onCancel}
       width={hasIcons ? 480 : 440}
       title="Dodaj sekcję"
-      subtitle="Nowa sekcja pojawi się na końcu CV, w stylu obecnego szablonu"
+      subtitle={insertAfterHeading
+        ? "Nowa sekcja pojawi się bezpośrednio pod wybraną sekcją, w stylu obecnego szablonu"
+        : "Nowa sekcja pojawi się na końcu CV, w stylu obecnego szablonu"}
       footer={(
         <div className={classes.actions}>
           <button type="button" className={classes.ghost} onClick={onCancel}>

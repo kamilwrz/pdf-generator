@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   appendSectionAtEnd,
+  insertSectionAfter,
   applyFlowSpacing,
   deriveSectionStyle,
   findProfilePhotoSlot,
@@ -1178,5 +1179,76 @@ describe("appendSectionAtEnd", () => {
   it("returns the original list unchanged when there is nothing to add", () => {
     const doc = sampleDoc();
     assert.equal(appendSectionAtEnd(doc, [], pageHeight, {}), doc);
+  });
+});
+
+describe("insertSectionAfter", () => {
+  const pageHeight = 842;
+  const rhythm = { stack: 4, record: 10, section: 21, after_rule: 8 };
+
+  function twoSectionDoc() {
+    return [
+      { element_id: "name", category: "text", flowRole: "masthead", content: "Jan Kowalski", left: 76, top: 60, fontSize: 20, height: 24, page: 1 },
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "Doświadczenie", left: 76, top: 120, fontSize: 8.7, height: 12, page: 1 },
+      { element_id: "r1", category: "line", flowRole: "section-chrome", left: 76, top: 132, width: 466, height: 1, page: 1 },
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true, left: 76, top: 140, width: 466, height: 60, fontSize: 9.3, page: 1 },
+      { element_id: "h2", category: "text", flowRole: "section-chrome", content: "Umiejętności", left: 76, top: 221, fontSize: 8.7, height: 12, page: 1 },
+      { element_id: "r2", category: "line", flowRole: "section-chrome", left: 76, top: 233, width: 466, height: 1, page: 1 },
+      { element_id: "b2", category: "textarea", flowRole: "content", autoHeight: true, left: 76, top: 241, width: 466, height: 40, fontSize: 9.3, page: 1 },
+    ];
+  }
+
+  function middleSection() {
+    return [
+      { element_id: "h3", category: "text", flowRole: "section-chrome", content: "Projekty", left: 76, top: 0, fontSize: 8.7, height: 12, page: 1 },
+      { element_id: "r3", category: "line", flowRole: "section-chrome", left: 76, top: 12, width: 466, height: 1, page: 1 },
+      { element_id: "b3", category: "textarea", flowRole: "content", autoHeight: true, left: 76, top: 30, width: 466, height: 40, fontSize: 9.3, page: 1 },
+    ];
+  }
+
+  it("places the new section between the anchor and the following section", () => {
+    const result = insertSectionAfter(
+      twoSectionDoc(),
+      middleSection(),
+      "h1",
+      pageHeight,
+      { spacing: rhythm },
+    );
+    const titles = listDocumentSections(result, pageHeight).map((section) => section.title);
+    assert.deepEqual(titles, ["Doświadczenie", "Projekty", "Umiejętności"]);
+
+    const byId = Object.fromEntries(result.map((element) => [element.element_id, element]));
+    const abs = (element) => (element.page - 1) * pageHeight + element.top;
+    assert.ok(abs(byId.h3) > abs(byId.b1), "new heading below experience body");
+    assert.ok(abs(byId.h2) > abs(byId.b3), "skills heading below new body");
+  });
+
+  it("falls back to append when the anchor heading is missing", () => {
+    const result = insertSectionAfter(
+      twoSectionDoc(),
+      middleSection(),
+      "missing-heading",
+      pageHeight,
+      { spacing: rhythm },
+    );
+    const titles = listDocumentSections(result, pageHeight).map((section) => section.title);
+    assert.deepEqual(titles, ["Doświadczenie", "Umiejętności", "Projekty"]);
+  });
+
+  it("samples style from the anchor section when deriveSectionStyle is given its id", () => {
+    const doc = [
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "A", left: 76, top: 100, fontSize: 10, height: 12, color: "#111111", page: 1 },
+      { element_id: "r1", category: "line", flowRole: "section-chrome", left: 76, top: 112, width: 400, height: 1, page: 1 },
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true, left: 76, top: 120, width: 400, height: 40, fontSize: 9, color: "#222222", page: 1 },
+      { element_id: "h2", category: "text", flowRole: "section-chrome", content: "B", left: 90, top: 200, fontSize: 14, height: 16, color: "#abcdef", page: 1 },
+      { element_id: "r2", category: "line", flowRole: "section-chrome", left: 90, top: 216, width: 300, height: 1, page: 1 },
+      { element_id: "b2", category: "textarea", flowRole: "content", autoHeight: true, left: 90, top: 224, width: 300, height: 40, fontSize: 11, color: "#fedcba", page: 1 },
+    ];
+    const fromFirst = deriveSectionStyle(doc, pageHeight, "h1");
+    const fromLast = deriveSectionStyle(doc, pageHeight);
+    assert.equal(fromFirst.heading.fontSize, 10);
+    assert.equal(fromFirst.heading.color, "#111111");
+    assert.equal(fromLast.heading.fontSize, 14);
+    assert.equal(fromLast.heading.color, "#abcdef");
   });
 });

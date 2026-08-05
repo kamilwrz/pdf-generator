@@ -4,8 +4,8 @@
  * Content enter fades come from ids marked via `markElementsEnter` /
  * `markContentElementsEnter`; decorative chrome is never animated.
  *
- * Template-mode section headings that own a multi-line record body also get a
- * `SectionRecordAdd` affordance (hover "+" → append a placeholder record).
+ * Template-mode section headings get a `SectionRecordAdd` affordance
+ * (hover "+" → open "Dodaj sekcję" and insert under that section).
  * Each multi-line record also gets one `RecordBlockAdd` on its title line
  * (hover anywhere on the upper block → insert a full placeholder record below).
  */
@@ -22,10 +22,7 @@ import { useCanvasEnterIds } from '../../../hooks/useCanvasEnterIds';
 import { PdfContext } from '../../../store/pdfgenerator-context';
 import { EDITOR_MODE_TEMPLATE } from '../../../utils/editorMode';
 import { listDocumentSections } from '../../../utils/sectionStructure';
-import {
-  listRecordBlockAddAnchors,
-  sectionSupportsRecordAdd,
-} from '../../../utils/sectionRecord';
+import { listRecordBlockAddAnchors } from '../../../utils/sectionRecord';
 import classes from './CanvasElements.module.css';
 
 function enterClassName(elementId, heldIds, fadingIds) {
@@ -39,15 +36,12 @@ export default function CanvasElements({ elements }) {
   const { editorMode, pageSize } = use(PdfContext);
   const pageHeight = pageSize?.height ?? 842;
 
-  const recordHeadingIds = useMemo(() => {
+  // Every detected template-mode section heading can open "Dodaj sekcję".
+  const sectionHeadingIds = useMemo(() => {
     if (editorMode !== EDITOR_MODE_TEMPLATE) return new Set();
-    const ids = new Set();
-    for (const section of listDocumentSections(elements, pageHeight)) {
-      if (sectionSupportsRecordAdd(elements, section.headingId, pageHeight)) {
-        ids.add(section.headingId);
-      }
-    }
-    return ids;
+    return new Set(
+      listDocumentSections(elements, pageHeight).map((section) => section.headingId),
+    );
   }, [editorMode, elements, pageHeight]);
 
   const recordBlockAnchorsById = useMemo(() => {
@@ -105,7 +99,7 @@ export default function CanvasElements({ elements }) {
         </>
       );
     } else if (element.category === "text") {
-      const showRecordAdd = recordHeadingIds.has(element.element_id);
+      const showSectionAdd = sectionHeadingIds.has(element.element_id);
       node = (
         <>
           <Text
@@ -128,7 +122,7 @@ export default function CanvasElements({ elements }) {
             zIndex={element.zIndex}
             fixedToPage={element.fixedToPage}
           />
-          {showRecordAdd ? (
+          {showSectionAdd ? (
             <SectionRecordAdd
               headingId={element.element_id}
               left={Number(element.left) || 0}
