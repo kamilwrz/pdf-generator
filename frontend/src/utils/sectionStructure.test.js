@@ -8,7 +8,41 @@ import {
   listDocumentSections,
   packDocumentSections,
   reorderSection,
+  sectionElementIds,
 } from "./sectionStructure.js";
+
+/** Monument-style chrome band: badge + frame sit 8px above the title baseline. */
+function monumentSection(n, title, bandTop) {
+  const num = String(n).padStart(2, "0");
+  return [
+    {
+      element_id: `sq${n}`, category: "line", flowRole: "section-chrome",
+      left: 66, top: bandTop, width: 32, height: 32, page: 1,
+    },
+    {
+      element_id: `num${n}`, category: "text", flowRole: "section-chrome",
+      isDecorativeChromeText: true, content: num,
+      left: 74, top: bandTop + 8, fontSize: 11, page: 1,
+    },
+    {
+      element_id: `frame${n}`, category: "rectangle", flowRole: "section-chrome",
+      left: 106, top: bandTop, width: 251, height: 32, page: 1,
+    },
+    {
+      element_id: `h${n}`, category: "text", flowRole: "section-chrome", content: title,
+      left: 118, top: bandTop + 8, fontSize: 12.5, bold: true, page: 1,
+    },
+    {
+      element_id: `r${n}`, category: "line", flowRole: "section-chrome",
+      left: 369, top: bandTop + 15, width: 160, height: 2, page: 1,
+    },
+    {
+      element_id: `b${n}`, category: "textarea", flowRole: "content", autoHeight: true,
+      left: 102, top: bandTop + 44, width: 427, height: 14,
+      fontSize: 9, lineHeight: 14, content: "Body", page: 1,
+    },
+  ];
+}
 
 describe("listDocumentSections", () => {
   it("returns chrome headings in reading order", () => {
@@ -128,6 +162,39 @@ describe("listDocumentSections", () => {
       },
     ]);
     assert.deepEqual(sections.map((section) => section.title), ["JĘZYKI"]);
+  });
+
+  it("starts a Monument section at the badge/frame band, not the title baseline", () => {
+    // Badge square and title frame sit 8px above the heading. Boundaries must
+    // use that band start so the next section's chrome is not stolen.
+    const elements = [
+      ...monumentSection(1, "PODSUMOWANIE", 168),
+      ...monumentSection(2, "DOŚWIADCZENIE", 250),
+    ];
+    const sections = listDocumentSections(elements);
+    assert.equal(sections[0].startAbs, 168);
+    assert.equal(sections[1].startAbs, 250);
+  });
+});
+
+describe("sectionElementIds", () => {
+  it("does not absorb the next Monument badge/frame into the previous section", () => {
+    // Regression: previous section end was the next heading baseline, so the
+    // next badge/frame at heading−8 fell into [start, end) and packing rebuilt
+    // chrome — titles left their decorative frames.
+    const elements = [
+      ...monumentSection(1, "PODSUMOWANIE", 168),
+      ...monumentSection(2, "DOŚWIADCZENIE", 250),
+      ...monumentSection(3, "WYKSZTAŁCENIE", 360),
+    ];
+    const ids1 = sectionElementIds(elements, "h1");
+    const ids2 = sectionElementIds(elements, "h2");
+    assert.equal(ids1.has("sq1"), true);
+    assert.equal(ids1.has("frame1"), true);
+    assert.equal(ids1.has("sq2"), false, "next badge must not belong to section 1");
+    assert.equal(ids1.has("frame2"), false, "next frame must not belong to section 1");
+    assert.equal(ids2.has("sq2"), true);
+    assert.equal(ids2.has("sq3"), false);
   });
 });
 
@@ -301,6 +368,40 @@ describe("applyFlowSpacing", () => {
     assert.ok(byId.r2.top < 700, `rule must not sit in the footer, got top=${byId.r2.top}`);
     assert.ok(byId.r2.top > byId.h2.top, "rule stays under the heading");
     assert.ok(byId.b1.top > byId.r2.top, "body stays under the rule");
+  });
+
+  it("preserves Monument title-inside-frame offsets across every section after pack", () => {
+    // Authored: square/frame at T, title/ordinal at T+8, offset rule at T+15.
+    // A full-document force-pack must keep that geometry on sections 1..n-1,
+    // not only on the last section (which never had a following band to steal).
+    const elements = [
+      {
+        element_id: "name", category: "text", flowRole: "masthead",
+        content: "Kamil", left: 74, top: 59, fontSize: 33, height: 40, page: 1,
+      },
+      ...monumentSection(1, "PODSUMOWANIE", 168),
+      ...monumentSection(2, "DOŚWIADCZENIE", 250),
+      ...monumentSection(3, "WYKSZTAŁCENIE", 360),
+      ...monumentSection(4, "UMIEJĘTNOŚCI", 470),
+      ...monumentSection(5, "JĘZYKI", 580),
+    ];
+    const packed = applyFlowSpacing(elements, {
+      stack: 4, record: 10, section: 21, after_rule: 8,
+    }, 842);
+    for (const n of [1, 2, 3, 4, 5]) {
+      const title = packed.find((element) => element.element_id === `h${n}`);
+      const frame = packed.find((element) => element.element_id === `frame${n}`);
+      const square = packed.find((element) => element.element_id === `sq${n}`);
+      const rule = packed.find((element) => element.element_id === `r${n}`);
+      assert.ok(title && frame && square && rule, `section ${n} chrome present`);
+      assert.equal(
+        +(title.top - frame.top).toFixed(2),
+        8,
+        `section ${n}: title must stay 8px below frame top (inside the frame)`,
+      );
+      assert.equal(+(title.top - square.top).toFixed(2), 8, `section ${n}: title vs badge`);
+      assert.equal(+(rule.top - square.top).toFixed(2), 15, `section ${n}: authored rule offset`);
+    }
   });
 
   it("preserves Cinder chrome rhythm instead of stacking heading/mark/rule with SPACE_STACK", () => {

@@ -146,6 +146,38 @@ export function isSectionHeading(element, elements = [], pageHeight = 842) {
 }
 
 /**
+ * Absolute Y where a section's chrome band begins.
+ *
+ * Monument (and similar templates) place the badge square / title frame a few
+ * pixels ABOVE the heading baseline. Using the heading top alone as the
+ * section boundary lets the *next* section's pre-heading chrome fall into the
+ * previous section's `[start, end)` range. Packing then treats those pieces as
+ * stranded orphans and `rebuildTightChromeCluster` tears the authored title /
+ * frame / badge offsets apart — titles appear to "leave" their decorative
+ * frames after any full-document pack (`applyFlowSpacing`, add section, …).
+ *
+ * @param {object[]} elements
+ * @param {object} heading
+ * @param {number} pageHeight
+ * @returns {number}
+ */
+function resolveSectionChromeBandStart(elements, heading, pageHeight) {
+  const headingAbs = absoluteTop(heading, pageHeight);
+  let bandStart = headingAbs;
+  for (const element of elements || []) {
+    if (!element || element.fixedToPage) continue;
+    if (element.element_id === heading.element_id) continue;
+    if (!isLeadingSectionMark(element)) continue;
+    const abs = absoluteTop(element, pageHeight);
+    // Same window as the leading-mark pull in `sectionElementIds`.
+    if (abs >= headingAbs - 24 && abs < headingAbs - 0.01) {
+      bandStart = Math.min(bandStart, abs);
+    }
+  }
+  return bandStart;
+}
+
+/**
  * List document sections in reading order.
  * @param {object[]} elements
  * @param {number} [pageHeight=842]
@@ -161,7 +193,8 @@ export function listDocumentSections(elements, pageHeight = 842) {
     id: heading.element_id,
     title: String(heading.content || "").trim(),
     headingId: heading.element_id,
-    startAbs: absoluteTop(heading, pageHeight),
+    // Band start (not heading baseline) so pre-heading chrome belongs here.
+    startAbs: resolveSectionChromeBandStart(list, heading, pageHeight),
     index,
   }));
 }
@@ -339,7 +372,17 @@ function rebuildTightChromeCluster(chromeElements) {
       || element.category === "circle"
       || element.category === "image"
     ) {
-      items.push({ element, relTop: 2 });
+      const height = elementHeight(element);
+      // Wide title frames (Monument ~251×32) share the badge band above the
+      // label — not the +2 mark offset used for small Cinder/Regent dots.
+      if (width > 40 && height >= 20) {
+        items.push({
+          element,
+          relTop: Math.min(0, headingHeight - height + 8),
+        });
+      } else {
+        items.push({ element, relTop: 2 });
+      }
     } else if (element.category === "line") {
       // Short accent rules / filled badge squares belonging to the chrome band.
       // Keep tall badge blocks overlapping the title (Monument 32px square).
