@@ -123,6 +123,67 @@ test("pulls a keep-together experience record back when its body shrinks on page
   assert.ok(bullets.top + bullets.height <= 770);
 });
 
+test("does not reclaim a page-2 section when chrome plus grown body do not fit", () => {
+  // A newly added section is packed onto page 2 because heading+rule+body do
+  // not fit under the last page-1 job. Growing the body with empty lines must
+  // not pull it back: reclaim used to measure body-only height (and SPACE_RECORD
+  // instead of SPACE_SECTION), so a medium grow still "fit" the footer hole.
+  const result = reflowTextareaHeight([
+    {
+      element_id: "job",
+      category: "textarea",
+      autoHeight: true,
+      flowRole: "content",
+      left: 76,
+      top: 640,
+      width: 460,
+      height: 40,
+      page: 1,
+    },
+    {
+      element_id: "new-heading",
+      category: "text",
+      content: "Nowa sekcja",
+      flowRole: "section-chrome",
+      left: 76,
+      top: 66,
+      width: 200,
+      fontSize: 10,
+      height: 12,
+      page: 2,
+    },
+    {
+      element_id: "new-rule",
+      category: "line",
+      flowRole: "section-chrome",
+      left: 76,
+      top: 80,
+      width: 460,
+      height: 1,
+      page: 2,
+    },
+    {
+      element_id: "new-body",
+      category: "textarea",
+      autoHeight: true,
+      flowRole: "content",
+      left: 76,
+      top: 96,
+      width: 460,
+      height: 40,
+      page: 2,
+    },
+  ], "new-body", 50, 842, { pageTop: 66, bottomMargin: 72 });
+
+  const heading = result.elements.find((element) => element.element_id === "new-heading");
+  const rule = result.elements.find((element) => element.element_id === "new-rule");
+  const body = result.elements.find((element) => element.element_id === "new-body");
+  assert.equal(heading.page, 2);
+  assert.equal(rule.page, 2);
+  assert.equal(body.page, 2);
+  assert.equal(body.height, 50);
+});
+
 test("locked section-chrome rules reflow with their heading across a reclaimed page break", () => {
   // Kernel locks decorative rules so users cannot drag them.
   // Reflow must still move those rules with the heading — otherwise

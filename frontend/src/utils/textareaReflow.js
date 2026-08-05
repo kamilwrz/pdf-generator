@@ -559,12 +559,20 @@ export function reflowTextareaHeight(
   // Only reclaim across an empty page-break hole. If education (or any other
   // lane content) already sits between the previous page's last job and this
   // record, pulling skills/meta back would skip that band and crush page 2.
+  //
+  // When the record carries preceding section chrome (heading/rule/icon), the
+  // fit check must reserve that span and pack from SPACE_SECTION — body-only
+  // + SPACE_RECORD let a grown "Nowa sekcja" snap back into the page-1 footer
+  // even though heading+rule+body no longer fit.
   const recordGroup = flowGroupOf(target);
   const chromeBesideRecord = precedingChromeCluster(
     elements,
     recordAnchor,
     safePageHeight,
   );
+  const chromeSpan = chromeBesideRecord.length > 0
+    ? Math.max(0, oldRecordTop - absoluteTop(chromeBesideRecord[0], safePageHeight))
+    : 0;
   // Freeform projects own page placement; reclaim would "repair" a hand-tuned
   // layout by pulling later blocks into earlier-page holes.
   if (
@@ -581,9 +589,13 @@ export function reflowTextareaHeight(
       recordGroup,
     );
     if (prevBottomAbs != null) {
-      const packFrom = prevBottomAbs + defaultPackGap;
+      // Section chrome after a prior content block uses SPACE_SECTION; bare
+      // record-to-record reclaim keeps SPACE_RECORD.
+      const packGap = chromeSpan > 0 ? sectionPackGap : defaultPackGap;
+      const packFrom = prevBottomAbs + packGap;
       const prevPageStart = (prevPage - 1) * safePageHeight;
-      const proposedTop = packFrom - prevPageStart;
+      const proposedChromeTop = packFrom - prevPageStart;
+      const proposedRecordTop = proposedChromeTop + chromeSpan;
       const reclaimExcludeIds = new Set([
         ...fullRecordCluster.map((mate) => mate.element_id),
         ...chromeBesideRecord.map((chrome) => chrome.element_id),
@@ -598,11 +610,11 @@ export function reflowTextareaHeight(
       );
       if (
         !blockedByIntervening
-        && proposedTop >= pageTop
-        && proposedTop + recordHeight <= contentBottom
+        && proposedChromeTop >= pageTop
+        && proposedRecordTop + recordHeight <= contentBottom
       ) {
         targetPage = prevPage;
-        recordTop = proposedTop;
+        recordTop = proposedRecordTop;
       }
     }
   }
