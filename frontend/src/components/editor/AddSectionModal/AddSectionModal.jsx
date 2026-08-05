@@ -16,18 +16,18 @@ import classes from "./AddSectionModal.module.css";
 const LAYOUT_OPTIONS = [
   {
     value: SECTION_LAYOUTS.TEXTAREA,
-    title: "Nagłówek + treść",
-    description: "Nagłówek sekcji i jedno pole tekstowe (Textarea).",
+    title: "Prosta treść",
+    description: "Tytuł sekcji i jedno pole na dłuższy tekst — np. podsumowanie.",
   },
   {
     value: SECTION_LAYOUTS.RECORD_EDUCATION,
-    title: "Nagłówek + rekord (jak Edukacja)",
-    description: "Dyplom, uczelnia, miasto · okres, opis.",
+    title: "Jak wykształcenie",
+    description: "Dyplom, uczelnia, miasto i okres oraz opis.",
   },
   {
     value: SECTION_LAYOUTS.RECORD_EXPERIENCE,
-    title: "Nagłówek + rekord (jak Doświadczenie)",
-    description: "Stanowisko, firma · okres, opis.",
+    title: "Jak doświadczenie",
+    description: "Stanowisko, firma i okres oraz opis.",
   },
 ];
 
@@ -67,7 +67,7 @@ export default function AddSectionModal({ open, onCancel, onConfirm }) {
       onClose={onCancel}
       width={440}
       title="Dodaj sekcję"
-      subtitle="Nowa sekcja trafi na koniec dokumentu w rytmie szablonu"
+      subtitle="Nowa sekcja pojawi się na końcu CV, w stylu obecnego szablonu"
       footer={(
         <div className={classes.actions}>
           <button type="button" className={classes.ghost} onClick={onCancel}>
@@ -92,7 +92,7 @@ export default function AddSectionModal({ open, onCancel, onConfirm }) {
       </label>
 
       <fieldset className={classes.fieldset}>
-        <legend className={classes.label}>Układ sekcji</legend>
+        <legend className={classes.label}>Rodzaj sekcji</legend>
         {LAYOUT_OPTIONS.map((option) => (
           <label
             key={option.value}
