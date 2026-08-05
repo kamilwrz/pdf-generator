@@ -23,6 +23,7 @@ class BulletLayoutTests(unittest.TestCase):
         ])
 
     def test_auto_height_pdf_textarea_draws_all_wrapped_lines(self):
+        """Stub canvas height (pre-measure) still expands so lines are not lost."""
         generator = PDF_Generator.__new__(PDF_Generator)
         generator.page_h = 842
         drawn = []
@@ -35,6 +36,27 @@ class BulletLayoutTests(unittest.TestCase):
         )
 
         self.assertEqual([text for _, text in drawn], ["Pierwsza linia", "Druga linia"])
+
+    def test_auto_height_honours_measured_canvas_height_for_rhythm(self):
+        """After a font change the canvas packs tops from measured heights.
+
+        PDF must clip to that box instead of growing from its own wrap count,
+        or following blocks keep canvas tops while this box draws taller and
+        the vertical rhythm diverges.
+        """
+        generator = PDF_Generator.__new__(PDF_Generator)
+        generator.page_h = 842
+        drawn = []
+        generator._draw_text_line = lambda x, y, text, *args: drawn.append((x, text))
+
+        # Stored height fits only the first line (14px); three explicit lines.
+        generator.renderTextarea(
+            40, 100, 180, 14, "Helvetica", 12, "#000000",
+            "Pierwsza linia\nDruga linia\nTrzecia linia", 14, 0,
+            autoHeight=True,
+        )
+
+        self.assertEqual([text for _, text in drawn], ["Pierwsza linia"])
 
     def test_tight_bullet_line_keeps_final_word_with_canvas(self):
         """Kernel-width Inter body: browser fits the last word; PDF must too.

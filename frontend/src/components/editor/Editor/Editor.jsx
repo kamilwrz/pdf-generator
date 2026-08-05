@@ -30,19 +30,9 @@ import {
   computeFloatingPanelPosition,
   unionRects,
 } from "../../../utils/floatingPanelPosition";
+import { CANVAS_FONT_STACKS } from "../../../utils/canvasFont";
 
-const FONT_PREVIEW = {
-  "Times-Roman": "Times-Roman, 'Times New Roman', Times, serif",
-  Helvetica: "Helvetica, Arial, sans-serif",
-  Courier: "Courier, 'Courier New', monospace",
-  Inter: "Inter, sans-serif",
-  Roboto: "Roboto, sans-serif",
-  PlayfairDisplay: "PlayfairDisplay, serif",
-  CormorantGaramond: "CormorantGaramond, serif",
-  Lora: "Lora, serif",
-  Montserrat: "Montserrat, sans-serif",
-  JetBrainsMono: "JetBrainsMono, monospace",
-};
+const FONT_PREVIEW = CANVAS_FONT_STACKS;
 
 const FONT_OPTIONS = [
   { value: "Inter", label: "Inter" },

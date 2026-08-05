@@ -92,7 +92,7 @@ flowchart LR
 
 ### Coordinate system
 
-Canvas and stored geometry use **top-left** origin (CSS-like). ReportLab uses **bottom-left**; `PDF_Generator` flips `top` using `page_h` before drawing (`backend/app/services/pdf_generator.py`). Textarea soft-wrap uses the same word-break rules as the canvas, plus a 2 px `WRAP_WIDTH_TOLERANCE_PX` so borderline last words (tight Inter body lines) stay on the same line in the PDF as on the canvas — see `tests/test_pdf_bullet_layout.py`.
+Canvas and stored geometry use **top-left** origin (CSS-like). ReportLab uses **bottom-left**; `PDF_Generator` flips `top` using `page_h` before drawing (`backend/app/services/pdf_generator.py`). Textarea soft-wrap uses the same word-break rules as the canvas, plus a 2 px `WRAP_WIDTH_TOLERANCE_PX` so borderline last words (tight Inter body lines) stay on the same line in the PDF as on the canvas — see `tests/test_pdf_bullet_layout.py`. After a font change the canvas reflows measured `height` / following `top` values; auto-height PDF export **honours those stored heights** (clipping overflow) instead of recomputing box height from PDF wrap alone — recomputing used to open fake gaps or draw through the next block so Canvas≠PDF rhythm while the editor still looked correct. Stub heights from a pre-measure export still expand. Canvas painting maps Helvetica/Courier → Inter via `canvasFontFamily` to match the PDF Unicode aliases.
 
 ### Auto-height reflow and aligned icons
 
@@ -159,7 +159,7 @@ pdf-generator/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
 │   │   ├── templates/        # 14 template specs + helpers
-│   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons
+│   │   └── utils/            # a4ElementFactories, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons
 │   ├── package.json
 │   └── .env.example
 ├── shared/
@@ -1083,7 +1083,7 @@ flowchart LR
 
 ### Współrzędne
 
-Kanwa: początek **lewy-górny**. ReportLab: **lewy-dolny**; `PDF_Generator` odwraca `top` przez `page_h`. Soft-wrap textarea używa tych samych reguł łamania co kanwa oraz 2 px `WRAP_WIDTH_TOLERANCE_PX`, żeby graniczne ostatnie słowa (ciasne linie Inter) zostawały w PDF w tej samej linii co na kanwie — zob. `tests/test_pdf_bullet_layout.py`.
+Kanwa: początek **lewy-górny**. ReportLab: **lewy-dolny**; `PDF_Generator` odwraca `top` przez `page_h`. Soft-wrap textarea używa tych samych reguł łamania co kanwa oraz 2 px `WRAP_WIDTH_TOLERANCE_PX`, żeby graniczne ostatnie słowa (ciasne linie Inter) zostawały w PDF w tej samej linii co na kanwie — zob. `tests/test_pdf_bullet_layout.py`. Po zmianie czcionki kanwa przepakowuje zmierzone `height` / kolejne `top`; eksport auto-height **respektuje te zapisane wysokości** (przycinając overflow) zamiast przeliczać wysokość boxa wyłącznie z zawijania PDF — przeliczanie otwierało sztuczne luki albo rysowało przez następny blok, więc rytm Canvas≠PDF przy poprawnym wyglądzie edytora. Stub wysokości sprzed pierwszego pomiaru nadal się rozszerza. Malowanie na kanwie mapuje Helvetica/Courier → Inter przez `canvasFontFamily`, zgodnie z aliasami Unicode w PDF.
 
 ### Reflow automatycznej wysokości i wyrównanie ikon
 
@@ -1148,7 +1148,7 @@ pdf-generator/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage
 │   │   ├── store/            # Canvas / UiSurfaces / Session + fasada PdfContext
 │   │   ├── templates/        # 14 specyfikacji szablonów + helpery
-│   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons
+│   │   └── utils/            # a4ElementFactories, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons
 │   ├── package.json
 │   └── .env.example
 ├── shared/

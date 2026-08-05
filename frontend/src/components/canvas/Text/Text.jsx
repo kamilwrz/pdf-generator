@@ -8,6 +8,7 @@ import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { deferTextareaEdit, hasTextareaDragIntent } from "../../../utils/textareaEditing";
 import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
+import { canvasFontFamily } from "../../../utils/canvasFont";
 import {
     clearTextSpacingHoldTimer,
     endTextSpacingHold,
@@ -48,7 +49,8 @@ function Text({
     const style = {
         fontSize: `${fontSize}px`,
         color,
-        fontFamily,
+        // Resolve Helvetica/Courier → Inter so wrap matches the PDF alias.
+        fontFamily: canvasFontFamily(fontFamily),
         fontWeight: bold ? 700 : 400,
         fontStyle: italic ? "italic" : "normal",
         textDecoration: underline ? "underline" : "none",

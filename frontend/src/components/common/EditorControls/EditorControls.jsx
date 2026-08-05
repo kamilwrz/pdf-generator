@@ -3,20 +3,10 @@
  * Font selects render each option in its own face for WYSIWYG picking.
  */
 import classes from "./EditorControls.module.css";
+import { CANVAS_FONT_STACKS } from "../../../utils/canvasFont";
 
 /** CSS font-family used to preview each option in the font picker. */
-const FONT_PREVIEW = {
-    "Times-Roman": "Times-Roman, 'Times New Roman', Times, serif",
-    Helvetica: "Helvetica, Arial, sans-serif",
-    Courier: "Courier, 'Courier New', monospace",
-    Inter: "Inter, sans-serif",
-    Roboto: "Roboto, sans-serif",
-    PlayfairDisplay: "PlayfairDisplay, serif",
-    CormorantGaramond: "CormorantGaramond, serif",
-    Lora: "Lora, serif",
-    Montserrat: "Montserrat, sans-serif",
-    JetBrainsMono: "JetBrainsMono, monospace",
-};
+const FONT_PREVIEW = CANVAS_FONT_STACKS;
 
 const FONT_OPTIONS = [
     { value: "Inter", label: "Inter" },

@@ -542,10 +542,19 @@ class PDF_Generator:
 
         lines = self._wrap_textarea(content, measure_font, fontSize, letter_spacing, width, bulletList)
         if autoHeight:
-            # A template's canvas height is measured from its rendered content.
-            # Recompute from the same wrapped lines here so exporting before the
-            # browser's next paint cannot silently clip a line from the PDF.
-            height = len(lines) * line_height
+            # The canvas is the typography authority: after fonts load / the user
+            # changes a face, `reflowTextareaHeight` stores measured heights and
+            # packs following tops. Recomputing height from PDF wrap here used
+            # to ignore that box — shorter wrap opened fake gaps, longer wrap
+            # drew through the next block — so Canvas≠PDF rhythm after a font
+            # change even when the editor looked correct.
+            #
+            # Only expand when the payload still carries a stub height (export
+            # before the first browser measure); otherwise honour the stored
+            # box and clip overflow like the canvas `overflow: hidden`.
+            computed_height = len(lines) * line_height
+            if height < line_height * 0.5:
+                height = computed_height
 
         for i, (line, is_last, indent_px, bullet_prefix) in enumerate(lines):
             line_top = i * line_height

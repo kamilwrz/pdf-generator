@@ -14,6 +14,7 @@ import {
 } from "../../../utils/textareaHeight";
 import { deferTextareaEdit, hasTextareaDragIntent } from "../../../utils/textareaEditing";
 import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
+import { canvasFontFamily } from "../../../utils/canvasFont";
 import {
     endTextSpacingHold,
     startTextSpacingHold,
@@ -108,7 +109,8 @@ function Textarea({
         ...(fixedToPage ? { pointerEvents: "none" } : {}),
     };
     const textStyle = {
-        fontFamily,
+        // Same face the PDF embeds (Helvetica/Courier → Inter).
+        fontFamily: canvasFontFamily(fontFamily),
         fontSize: `${fontSize}px`,
         lineHeight: `${lineHeight}px`,
         letterSpacing: `${letterSpacing}px`,
