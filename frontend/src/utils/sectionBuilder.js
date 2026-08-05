@@ -83,7 +83,13 @@ function markerElement({ elementId, marker, left }) {
     category: marker.category,
     flowRole: "section-chrome",
     left: left + marker.relLeft,
-    top: Math.max(0, marker.relTop),
+    // Preserve the sampled vertical offset verbatim, including negatives.
+    // `deriveSectionStyle` reports a negative `relTop` when a template's
+    // decorative mark sits a few pixels above the heading baseline. The value
+    // is provisional: the packer's chrome-cluster normalization re-pins the
+    // whole strip on append and handles a negative authored top correctly, so
+    // clamping here would needlessly collapse a legitimate offset.
+    top: marker.relTop,
     width: marker.width,
     height: marker.height,
     backgroundColor: marker.backgroundColor,

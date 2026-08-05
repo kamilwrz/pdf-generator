@@ -74,4 +74,40 @@ describe("buildSectionElements", () => {
     const heading = elements.find((element) => element.element_id === headingId);
     assert.equal(heading.content, "Nowa sekcja");
   });
+
+  it("preserves a negative marker relTop instead of clamping to 0", () => {
+    // deriveSectionStyle reports a negative relTop when the decorative mark
+    // sits above the heading baseline; the builder must keep that offset.
+    const raisedMarker = { ...style, marker: { ...style.marker, relTop: -3 } };
+    const { elements } = buildSectionElements({
+      name: "Profil", layout: SECTION_LAYOUTS.TEXTAREA, style: raisedMarker, idFactory: makeIdFactory(),
+    });
+    const marker = elements.find((element) => element.category === "rectangle");
+    assert.equal(marker.top, -3);
+  });
+
+  it("omits the marker when the style has none", () => {
+    const withoutMarker = { ...style, marker: null };
+    const { elements, headingId, firstBodyId } = buildSectionElements({
+      name: "Profil", layout: SECTION_LAYOUTS.TEXTAREA, style: withoutMarker, idFactory: makeIdFactory(),
+    });
+    const chrome = elements.filter((element) => element.flowRole === "section-chrome");
+    // Only the heading (text) and rule (line) remain as chrome; no shape marker.
+    assert.equal(chrome.some((element) => element.category === "rectangle" || element.category === "circle"), false);
+    assert.equal(elements.find((element) => element.element_id === headingId).category, "text");
+    assert.equal(typeof headingId, "string");
+    assert.equal(typeof firstBodyId, "string");
+    assert.equal(elements.some((element) => element.element_id === firstBodyId), true);
+  });
+
+  it("aa round-trips: built section is detectable and its body is collected", () => {
+    const { elements, headingId } = buildSectionElements({
+      name: "Profil", layout: SECTION_LAYOUTS.TEXTAREA, style, idFactory: makeIdFactory(),
+    });
+    const sections = listDocumentSections(elements);
+    assert.deepEqual(sections.map((section) => section.title), ["Profil"]);
+    const ids = sectionElementIds(elements, headingId);
+    // heading + rule + marker + 1 body block all belong to the section.
+    assert.equal(ids.size, elements.length);
+  });
 });
