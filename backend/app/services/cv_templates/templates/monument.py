@@ -99,10 +99,19 @@ def _gen_monument(cv: dict) -> list[dict]:
         section_number += 1
         top = b.y
         display_label = _compact_text(label, 31)
+        # The ordinal badge ("01", "02", …) is decorative chrome, not the
+        # section's title — the frontend's structural editor (Sections panel)
+        # must not list it as its own section alongside the real label. Tag it
+        # `isDecorativeChromeText` so `isSectionHeading` (sectionStructure.js)
+        # can tell the two chrome-tagged text elements apart.
+        number_badge = {
+            **_text(f"{section_number:02d}", 11, SANS, C["white"], 74, top + 8,
+                    zIndex=5, page=b.pg, bold=True),
+            "isDecorativeChromeText": True,
+        }
         chrome = [
             _line(66, top, 32, 32, C["ink"], zIndex=2, page=b.pg),
-            _text(f"{section_number:02d}", 11, SANS, C["white"], 74, top + 8,
-                  zIndex=5, page=b.pg, bold=True),
+            number_badge,
             _rect(106, top, 251, 32, C["ink"], 1.2, zIndex=2, page=b.pg),
             _text(display_label, 12.5, DISPLAY, C["ink"], 118, top + 8,
                   zIndex=5, page=b.pg, bold=True),

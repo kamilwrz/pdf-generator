@@ -73,6 +73,47 @@ describe("listDocumentSections", () => {
       ["PODSUMOWANIE ZAWODOWE", "DOŚWIADCZENIE ZAWODOWE"],
     );
   });
+
+  it("does not list a decorative numbered badge as its own section (Monument-style chrome)", () => {
+    // Monument tags both the "05" ordinal badge text and the real "JĘZYKI"
+    // label as flowRole: "section-chrome" (two _text() calls in one section()
+    // call). Only the label is a real heading; the badge must be excluded via
+    // its isDecorativeChromeText flag.
+    const sections = listDocumentSections([
+      {
+        element_id: "badge-05",
+        category: "text",
+        flowRole: "section-chrome",
+        isDecorativeChromeText: true,
+        content: "05",
+        fontSize: 11,
+        left: 74,
+        top: 508,
+        page: 1,
+      },
+      {
+        element_id: "label-jezyki",
+        category: "text",
+        flowRole: "section-chrome",
+        content: "JĘZYKI",
+        fontSize: 12.5,
+        left: 118,
+        top: 508,
+        page: 1,
+      },
+      {
+        element_id: "jezyki-rule",
+        category: "line",
+        flowRole: "section-chrome",
+        left: 369,
+        top: 523,
+        width: 160,
+        height: 2,
+        page: 1,
+      },
+    ]);
+    assert.deepEqual(sections.map((section) => section.title), ["JĘZYKI"]);
+  });
 });
 
 describe("reorderSection", () => {

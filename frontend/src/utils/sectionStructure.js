@@ -77,7 +77,14 @@ export function isSectionHeading(element, elements = [], pageHeight = 842) {
   const content = String(element.content || "").trim();
   if (!content) return false;
 
-  if (element.flowRole === "section-chrome") return true;
+  if (element.flowRole === "section-chrome") {
+    // A template may tag more than one text element as chrome inside a single
+    // section (Monument's numbered badge alongside its real title). Only the
+    // element explicitly marked decorative-only is excluded here — every
+    // other chrome-tagged text keeps the existing fast path, so templates
+    // with a single chrome heading (the common case) are unaffected.
+    return !element.isDecorativeChromeText;
+  }
   // Explicit body / masthead copy is never a section title.
   if (element.flowRole === "content" || element.flowRole === "masthead") return false;
   if (element.autoHeight || element.flowGroup) return false;
