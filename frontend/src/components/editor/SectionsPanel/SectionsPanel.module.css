@@ -200,3 +200,24 @@
   outline: 1px solid var(--chrome-accent);
   border-color: var(--chrome-accent);
 }
+
+.addRow {
+  padding: 10px 14px 0;
+  flex-shrink: 0;
+}
+
+.addButton {
+  width: 100%;
+  border: 1px dashed var(--chrome-border);
+  border-radius: 8px;
+  background: var(--chrome-control);
+  color: var(--chrome-ink);
+  font: 600 12px var(--font-body);
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+.addButton:hover {
+  border-color: var(--chrome-accent);
+  color: var(--chrome-accent);
+}

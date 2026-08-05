@@ -5,7 +5,7 @@
  * Renders as a docked flyout to the right of the 68px sidebar rail (same
  * pattern as Editor). Embedding the list inside the rail collapses titles.
  */
-import { use, useEffect, useMemo } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import {
   applyFlowSpacing,
@@ -16,6 +16,7 @@ import {
   DEFAULT_FLOW_SPACING,
   normalizeFlowSpacing,
 } from "../../../utils/flowSpacing";
+import AddSectionModal from "../AddSectionModal/AddSectionModal";
 import classes from "./SectionsPanel.module.css";
 
 const SPACING_FIELDS = [
@@ -32,6 +33,7 @@ export default function SectionsPanel({ onClose }) {
     pageSize,
     flowSpacing,
     setFlowSpacing,
+    addSection,
   } = use(PdfContext);
   const pageHeight = pageSize?.height ?? 842;
   const spacing = useMemo(
@@ -42,6 +44,9 @@ export default function SectionsPanel({ onClose }) {
     () => listDocumentSections(A4_Elements, pageHeight),
     [A4_Elements, pageHeight],
   );
+  // Controls the "Dodaj sekcję" modal; kept local because the new section's
+  // draft name/layout never need to be visible outside this panel.
+  const [addModalOpen, setAddModalOpen] = useState(false);
 
   useEffect(() => {
     if (!onClose) return undefined;
@@ -63,6 +68,14 @@ export default function SectionsPanel({ onClose }) {
     const normalized = normalizeFlowSpacing(nextSpacing);
     setFlowSpacing(normalized);
     setA4_Elements((prev) => applyFlowSpacing(prev, normalized, pageHeight));
+  }
+
+  // Appends the new section via the context's addSection (Task 4) and closes
+  // the modal. The modal itself resets its form on next open, so no cleanup
+  // of `name`/`layout` is needed here.
+  function handleConfirmAddSection({ name, layout }) {
+    addSection({ name, layout });
+    setAddModalOpen(false);
   }
 
   function handleSpacingChange(key, rawValue) {
@@ -88,6 +101,15 @@ export default function SectionsPanel({ onClose }) {
       <p className={classes.hint}>
         Zmień kolejność całych sekcji. W trybie szablonu nie przesuwasz pojedynczych pól.
       </p>
+      <div className={classes.addRow}>
+        <button
+          type="button"
+          className={classes.addButton}
+          onClick={() => setAddModalOpen(true)}
+        >
+          + Dodaj sekcję
+        </button>
+      </div>
       {sections.length === 0 ? (
         <p className={classes.empty}>Brak wykrytych sekcji w tym dokumencie.</p>
       ) : (
@@ -145,6 +167,12 @@ export default function SectionsPanel({ onClose }) {
           ))}
         </div>
       </div>
+
+      <AddSectionModal
+        open={addModalOpen}
+        onCancel={() => setAddModalOpen(false)}
+        onConfirm={handleConfirmAddSection}
+      />
     </div>
   );
 }
