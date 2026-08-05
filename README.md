@@ -279,7 +279,7 @@ Known limitations:
 
 In **template mode**, when a section’s body is more than a single content textarea (education / experience stacks, custom **cc-edu** / **cc-exp** sections, or wizard-filled records sharing a `flowGroup`), hovering the section heading shows a compact **+** control. Clicking it appends another record that clones the last record’s field structure and styling, filled with generic Polish placeholders (e.g. „Nazwa dyplomu” / „Stanowisko”), assigns a new `flowGroup`, re-packs the document with `applyFlowSpacing`, and opens the first new line for editing.
 
-Timing: the **+** appears on pointer enter over the heading and remains clickable for **2 seconds**; without a click it hides (even if the pointer stays on the heading). Moving from the heading onto the button keeps the same click window. Single-textarea sections (**aa** / summary-style) do not show the control.
+Timing: the **+** appears on pointer enter over the heading and remains clickable for **2 seconds** even after the pointer leaves the heading; without a click it hides when that window ends (leaving the heading does not cancel it). Re-hovering the heading restarts the window. Single-textarea sections (**aa** / summary-style) do not show the control.
 
 Implementation:
 
@@ -1245,7 +1245,7 @@ Znane ograniczenia:
 
 W **trybie szablonu**, gdy treść sekcji to więcej niż jedno pole textarea (stosy edukacji / doświadczenia, własne sekcje **cc-edu** / **cc-exp** albo rekordy z wizarda ze wspólnym `flowGroup`), najechanie na nagłówek sekcji pokazuje kompaktowy przycisk **+**. Kliknięcie dokłada kolejny rekord: klonuje strukturę i styl ostatniego rekordu, wypełnia go generycznymi polskimi placeholderami (np. „Nazwa dyplomu” / „Stanowisko”), nadaje nowe `flowGroup`, przepakowuje dokument przez `applyFlowSpacing` i otwiera pierwszą nową linię do edycji.
 
-Czasowanie: **+** pojawia się przy `pointerenter` na nagłówku i jest klikalny przez **2 sekundy**; bez kliknięcia znika (nawet gdy kursor nadal jest na nagłówku). Przejście z nagłówka na przycisk zachowuje to samo okno kliknięcia. Sekcje z jednym textarea (**aa** / podsumowanie) nie pokazują kontrolki.
+Czasowanie: **+** pojawia się przy `pointerenter` na nagłówku i jest klikalny przez **2 sekundy** także po zejściu z nagłówka; bez kliknięcia znika dopiero po upływie tego okna (zejście z nagłówka go nie anuluje). Ponowne najechanie restartuje okno. Sekcje z jednym textarea (**aa** / podsumowanie) nie pokazują kontrolki.
 
 Implementacja:
 

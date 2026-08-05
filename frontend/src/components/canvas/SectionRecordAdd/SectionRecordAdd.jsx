@@ -3,8 +3,9 @@
  * record (education / experience structure) with generic placeholder copy.
  *
  * Timing: the control appears when the pointer enters the heading and stays
- * clickable for 2 seconds. Without a click it hides (even if still hovering).
- * Leaving toward the plus keeps it visible for the remainder of that window.
+ * clickable for 2 seconds even after the pointer leaves the heading. Without a
+ * click it hides when that window ends. Leaving the heading does not cancel
+ * the window — only the timer or a successful click does.
  */
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus } from "react-icons/fi";
@@ -29,7 +30,6 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
 
   const [visible, setVisible] = useState(false);
   const hideTimerRef = useRef(null);
-  const plusRef = useRef(null);
 
   const pageHeight = pageSize?.height ?? 842;
   const eligible = editorMode === EDITOR_MODE_TEMPLATE
@@ -51,7 +51,8 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
     if (!eligible) return;
     setVisible(true);
     clearHideTimer();
-    // The plus waits this long for a click after hover, then disappears.
+    // Stay visible for this window after hover so the user can leave the
+    // heading and still click the plus. Pointer leave must not hide it.
     hideTimerRef.current = window.setTimeout(() => {
       setVisible(false);
       hideTimerRef.current = null;
@@ -75,48 +76,33 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
       showWithDeadline();
     };
 
-    const onLeave = (event) => {
-      const next = event.relatedTarget;
-      if (next && plusRef.current?.contains(next)) {
-        // Pointer moved onto the plus — keep the click window running.
-        return;
-      }
-      hide();
-    };
-
     headingNode.addEventListener("pointerenter", onEnter);
-    headingNode.addEventListener("pointerleave", onLeave);
     return () => {
       headingNode.removeEventListener("pointerenter", onEnter);
-      headingNode.removeEventListener("pointerleave", onLeave);
     };
-  }, [eligible, headingId, hide, showWithDeadline]);
+  }, [eligible, headingId, showWithDeadline]);
 
   if (!eligible) return null;
 
+  // Sit 5px left of the heading's left edge, vertically centred on the label.
+  // Text uses line-height: 1, so the painted height matches fontSize.
   const buttonSize = 22;
+  const headingHeight = Number(fontSize) || 10;
   const style = {
-    left: left + Math.max(56, (fontSize || 10) * 9),
-    top: top + (fontSize || 10) / 2 - buttonSize / 2,
+    left: left - 5 - buttonSize,
+    top: top + headingHeight / 2 - buttonSize / 2,
   };
 
   return (
     <div className={classes.anchor} style={style}>
       {visible ? (
         <button
-          ref={plusRef}
           type="button"
           className={classes.plus}
           aria-label="Dodaj rekord w tej sekcji"
           title="Dodaj rekord"
           onPointerDown={(event) => {
             event.stopPropagation();
-          }}
-          onPointerLeave={(event) => {
-            const next = event.relatedTarget;
-            const headingNode = document.getElementById(headingId);
-            if (next && headingNode?.contains(next)) return;
-            hide();
           }}
           onClick={(event) => {
             event.stopPropagation();
