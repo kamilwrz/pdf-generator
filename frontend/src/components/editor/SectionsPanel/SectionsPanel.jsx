@@ -2,7 +2,7 @@
  * Template-mode section list: reorder sections structurally (up/down) and
  * edit the document SPACE_* rhythm (stack / record / section / after_rule).
  *
- * Renders as a docked flyout to the right of the 68px sidebar rail (same
+ * Renders as a docked flyout to the right of the 72px sidebar rail (same
  * pattern as Editor). Embedding the list inside the rail collapses titles.
  */
 import { use, useEffect, useMemo, useState } from "react";

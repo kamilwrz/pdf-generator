@@ -221,10 +221,10 @@ Product narrative: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 Interactive multi-page **A4 portrait** canvas with two persisted editor modes on each `Pdf` row (`editor_mode`, `template_id`, optional `spacing_px`):
 
-- **template** — structural editing: content/chrome positions are layout-owned (no free X/Y drag), **Sekcje** flyout docked beside the 68px tool rail (reorder + editable vertical rhythm `stack` / `record` / `section` / `after_rule`, defaults 4 / 10 / 21 / 8), gallery photo-slot targets, auto-height reflow with reclaim. Topbar **Odblokuj edycję** copies the document into freeform.
+- **template** — structural editing: content/chrome positions are layout-owned (no free X/Y drag), **Sekcje** flyout docked beside the 72px tool rail (reorder + editable vertical rhythm `stack` / `record` / `section` / `after_rule`, defaults 4 / 10 / 21 / 8), gallery photo-slot targets, auto-height reflow with reclaim. Topbar **Odblokuj edycję** (icon + tooltip) copies the document into freeform.
 - **freeform** — full toolbox (text, shapes, images), free drag/resize, and reflow without page-break reclaim so hand placement is preserved.
 
-Element properties open as a **compact horizontal floating toolbar** anchored above the selection (`Editor` via `createPortal`) — icon-first controls in CV STUDIO chrome (not a tall labeled sheet). **Text** and **TextArea** still differ (TextArea adds bullets, text align, line height / letter spacing, width / height); tooltips carry the former label text. Placement uses selection DOM bboxes (`floatingPanelPosition.js`: prefer above, flip below, clamp to the viewport). The 68px tool rail remains for tools / documents / logout; only **Sekcje** still docks as a flyout next to that rail.
+Element properties open as a **compact horizontal floating toolbar** anchored above the selection (`Editor` via `createPortal`) — icon-first controls in CV STUDIO chrome (not a tall labeled sheet). **Text** and **TextArea** still differ (TextArea adds bullets, text align, line height / letter spacing, width / height); tooltips carry the former label text. Placement uses selection DOM bboxes (`floatingPanelPosition.js`: prefer above, flip below, clamp to the viewport). The editor **Topbar** is icon-only (Szablony, Importuj CV, kreator, Zmień szablon, Odblokuj edycję, Wyczyść, Pobierz, Zapisz PDF) with the former labels as `title` / `aria-label` tooltips and ~18px icons in a 48px bar; the left tool rail is **72px** with larger 20px tool icons. Only **Sekcje** still docks as a flyout next to that rail.
 
 `spacing_px` is persisted on the Pdf row, applied live via `applyFlowSpacing`, and sent to `POST /ai/fill_template` so change-template / import regeneration uses the same rhythm (`use_spacing` + `get_spacing()` in the Python generators).
 
@@ -280,7 +280,7 @@ The landing page presents one outcome — an editable PDF-ready CV — and **thr
 
 Start intents: `start=templates`, `start=import`, `start=wizard`, `start=blank`. Signed-in visitors go to `/pdfcanvas`; new visitors keep the choice through registration and login. `PdfCanvas` opens the matching surface once (templates modal, import, wizard, or empty freeform) and strips the query param.
 
-Topbar label **Importuj CV** replaces the older “Wypełnij z PDF” wording (same `AiCvPanel` flow).
+Topbar tooltip / `aria-label` **Importuj CV** replaces the older “Wypełnij z PDF” wording (same `AiCvPanel` flow); the control is icon-only.
 
 Implementation:
 
@@ -1167,10 +1167,10 @@ Opis produktowy: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 Płótno **A4 pion** z dwoma trwałymi trybami na rekordzie `Pdf` (`editor_mode`, `template_id`, opcjonalne `spacing_px`):
 
-- **template** — edycja strukturalna: pozycje treści/chrome pilnuje układ (bez swobodnego przeciągania X/Y), panel **Sekcje** dokowany obok szyny 68px (kolejność + rytm `stack` / `record` / `section` / `after_rule`, domyślnie 4 / 10 / 21 / 8), cele dropzone dla zdjęcia profilowego, reflow z reclaim. **Odblokuj edycję** tworzy kopię w trybie freeform.
+- **template** — edycja strukturalna: pozycje treści/chrome pilnuje układ (bez swobodnego przeciągania X/Y), panel **Sekcje** dokowany obok szyny 72px (kolejność + rytm `stack` / `record` / `section` / `after_rule`, domyślnie 4 / 10 / 21 / 8), cele dropzone dla zdjęcia profilowego, reflow z reclaim. **Odblokuj edycję** (ikona + tooltip) tworzy kopię w trybie freeform.
 - **freeform** — pełny przybornik (tekst, kształty, obrazy), swobodny drag/resize oraz reflow bez reclaim między stronami.
 
-Właściwości elementu otwierają się jako **kompaktowy poziomy pasek narzędzi** nad zaznaczeniem (`Editor` przez `createPortal`) — najpierw ikony, styl CV STUDIO (nie wysoki arkusz z etykietami). **Text** i **TextArea** nadal się różnią (TextArea: punktory, wyrównanie tekstu, wysokość linii / tracking, szerokość / wysokość); dawne etykiety są w tooltipach. Pozycja liczy bbox DOM zaznaczenia (`floatingPanelPosition.js`: preferuj nad, flip pod, clamp do viewport). Szyna 68px zostaje dla narzędzi / dokumentów / wylogowania; tylko **Sekcje** nadal dokują się jako flyout obok tej szyny.
+Właściwości elementu otwierają się jako **kompaktowy poziomy pasek narzędzi** nad zaznaczeniem (`Editor` przez `createPortal`) — najpierw ikony, styl CV STUDIO (nie wysoki arkusz z etykietami). **Text** i **TextArea** nadal się różnią (TextArea: punktory, wyrównanie tekstu, wysokość linii / tracking, szerokość / wysokość); dawne etykiety są w tooltipach. Pozycja liczy bbox DOM zaznaczenia (`floatingPanelPosition.js`: preferuj nad, flip pod, clamp do viewport). **Topbar** edytora jest ikonowy (Szablony, Importuj CV, kreator, Zmień szablon, Odblokuj edycję, Wyczyść, Pobierz, Zapisz PDF) — dawne etykiety w `title` / `aria-label`, ikony ~18px w pasku 48px; lewa szyna narzędzi ma **72px** i większe ikony 20px. Tylko **Sekcje** nadal dokują się jako flyout obok tej szyny.
 
 `spacing_px` jest zapisywane na dokumencie, od razu pakuje canvas (`applyFlowSpacing`) i trafia do `POST /ai/fill_template` przy zmianie szablonu / imporcie (`use_spacing` + `get_spacing()` w generatorach Python).
 
@@ -1223,7 +1223,7 @@ Strona główna pokazuje jeden rezultat — edytowalne CV do PDF — oraz **trzy
 
 Intencje: `start=templates`, `start=import`, `start=wizard`, `start=blank`. Zalogowany użytkownik idzie do `/pdfcanvas`; nowy zachowuje wybór przez rejestrację i logowanie. `PdfCanvas` otwiera właściwą powierzchnię raz i usuwa parametr z URL.
 
-Etykieta topbara **Importuj CV** zastępuje starsze „Wypełnij z PDF” (ten sam `AiCvPanel`).
+Tooltip / `aria-label` topbara **Importuj CV** zastępuje starsze „Wypełnij z PDF” (ten sam `AiCvPanel`); kontrolka jest tylko ikoną.
 
 Implementacja:
 

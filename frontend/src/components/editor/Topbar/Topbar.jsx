@@ -1,5 +1,6 @@
 /**
  * Editor chrome: title, save/download, templates/AI entry, undo/redo, zoom.
+ * Action buttons are icon-only with tooltips (title + aria-label).
  * Download/save go through PdfContext create/update (entitlement-gated upstream).
  */
 import classes from "./Topbar.module.css";
@@ -41,37 +42,54 @@ export default function Topbar({ titleRef }) {
     return (
         <header className={classes.topbar}>
             <div className={classes.group}>
-                <button type="button" className={classes.feature} onClick={showTemplates}>
+                <button
+                    type="button"
+                    className={classes.feature}
+                    onClick={showTemplates}
+                    aria-label="Szablony"
+                    title="Szablony"
+                >
                     <LuLayoutTemplate />
-                    <span className={classes.label}>Szablony</span>
                 </button>
-                <button type="button" className={classes.feature} onClick={showAiPanel}>
+                <button
+                    type="button"
+                    className={classes.feature}
+                    onClick={showAiPanel}
+                    aria-label="Importuj CV"
+                    title="Importuj CV"
+                >
                     <RiFileTextLine />
-                    <span className={classes.label}>Importuj CV</span>
                 </button>
-                <button type="button" className={classes.feature} onClick={showBioCvModal}>
+                <button
+                    type="button"
+                    className={classes.feature}
+                    onClick={showBioCvModal}
+                    aria-label="Utwórz CV krok po kroku"
+                    title="Utwórz CV krok po kroku"
+                >
                     <FiEdit3 />
-                    <span className={classes.label}>Utwórz CV krok po kroku</span>
                 </button>
                 <button
                     type="button"
                     className={classes.feature}
                     onClick={showChangeTemplateModal}
                     disabled={!activeCvData}
-                    title={activeCvData ? undefined : "Najpierw wypełnij CV z PDF albo kreatorem krok po kroku"}
+                    aria-label="Zmień szablon"
+                    title={activeCvData
+                        ? "Zmień szablon"
+                        : "Najpierw wypełnij CV z PDF albo kreatorem krok po kroku"}
                 >
                     <RiShuffleLine />
-                    <span className={classes.label}>Zmień szablon</span>
                 </button>
                 {isTemplate ? (
                     <button
                         type="button"
                         className={classes.feature}
                         onClick={showUnlockFreeform}
-                        title="Utwórz kopię ze swobodnym pozycjonowaniem"
+                        aria-label="Odblokuj edycję"
+                        title="Odblokuj edycję — utwórz kopię ze swobodnym pozycjonowaniem"
                     >
                         <LuLockOpen />
-                        <span className={classes.label}>Odblokuj edycję</span>
                     </button>
                 ) : null}
                 <span className={classes.divider} aria-hidden="true" />
@@ -87,7 +105,7 @@ export default function Topbar({ titleRef }) {
             <div className={classes.center}>
                 <div className={classes.projectField}>
                     <span className={classes.projectIcon} aria-hidden="true">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
                     </span>
                     <input
                         type="text"
@@ -101,6 +119,7 @@ export default function Topbar({ titleRef }) {
                         type="button"
                         className={classes.rename}
                         aria-label="Zmień nazwę projektu"
+                        title="Zmień nazwę projektu"
                         onClick={() => titleRef?.current?.focus()}
                     >
                         <TiPen />
@@ -132,23 +151,34 @@ export default function Topbar({ titleRef }) {
             </div>
 
             <div className={classes.group}>
-                <button type="button" className={classes.ghost} onClick={clearA4}>
+                <button
+                    type="button"
+                    className={classes.ghost}
+                    onClick={clearA4}
+                    aria-label="Wyczyść"
+                    title="Wyczyść"
+                >
                     <FiTrash2 />
-                    <span className={classes.label}>Wyczyść</span>
                 </button>
                 <button
                     type="button"
                     className={classes.secondary}
                     onClick={updatePdf}
                     disabled={isPdfLoading || activePdfId == null}
+                    aria-label="Pobierz PDF"
                     title={activePdfId == null ? "Najpierw utwórz PDF" : "Pobierz PDF"}
                 >
                     <RiDownload2Line />
-                    <span className={classes.label}>Pobierz</span>
                 </button>
-                <button type="button" className={classes.primary} onClick={createPdf} disabled={isPdfLoading}>
+                <button
+                    type="button"
+                    className={classes.primary}
+                    onClick={createPdf}
+                    disabled={isPdfLoading}
+                    aria-label="Zapisz PDF"
+                    title="Zapisz PDF"
+                >
                     <FiSave />
-                    <span className={classes.label}>Zapisz PDF</span>
                 </button>
             </div>
         </header>

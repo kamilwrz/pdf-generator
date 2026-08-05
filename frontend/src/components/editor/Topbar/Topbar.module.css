@@ -6,7 +6,7 @@
     --topbar-control: var(--chrome-control);
     --topbar-hover: var(--chrome-hover);
     --topbar-accent: var(--chrome-accent);
-    height: 44px;
+    height: 48px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -23,7 +23,7 @@
 .group {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     flex-shrink: 0;
 }
 
@@ -35,6 +35,7 @@
     justify-content: center;
     align-items: center;
     padding: 0 4px;
+    gap: 8px;
 }
 
 .projectField {
@@ -42,8 +43,8 @@
     align-items: center;
     gap: 5px;
     width: 100%;
-    max-width: 230px;
-    height: 30px;
+    max-width: 240px;
+    height: 32px;
     padding: 0 4px 0 9px;
     background: transparent;
     border: 1px solid transparent;
@@ -83,14 +84,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
     flex-shrink: 0;
     border: none;
     border-radius: 5px;
     background: transparent;
     color: var(--topbar-muted);
-    font-size: 13px;
+    font-size: 15px;
     cursor: pointer;
     transition: background .15s, color .15s;
 }
@@ -100,34 +101,35 @@
     color: var(--topbar-accent);
 }
 
-/* shared button base */
+/* Icon-only action buttons (labels live in title / aria-label). */
 .feature,
 .ghost,
 .secondary,
 .primary {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    height: 30px;
-    padding: 0 9px;
-    border-radius: 6px;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 7px;
     border: 1px solid transparent;
-    font: 600 11px var(--font-body);
-    line-height: 1;
     cursor: pointer;
-    white-space: nowrap;
+    flex-shrink: 0;
     transition: background .15s, border-color .15s, color .15s;
 }
 
 .feature svg,
 .ghost svg,
 .secondary svg,
-.primary svg {
-    font-size: 13px;
+.primary svg,
+.iconBtn svg,
+.zoomBtn svg {
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
 }
 
-/* ---- CV Templates / Fill from my CV / Change template ---- */
 .feature {
     background: transparent;
     color: var(--topbar-muted);
@@ -141,7 +143,6 @@
     cursor: not-allowed;
 }
 
-/* ---- Clear (destructive ghost) ---- */
 .ghost {
     background: transparent;
     color: var(--topbar-muted);
@@ -151,7 +152,6 @@
     color: var(--danger);
 }
 
-/* ---- Update ---- */
 .secondary {
     background: transparent;
     border-color: var(--topbar-border);
@@ -163,7 +163,6 @@
     color: var(--topbar-accent);
 }
 
-/* ---- Create PDF (primary) ---- */
 .primary {
     background: var(--accent-grad);
     color: var(--on-accent);
@@ -178,26 +177,11 @@
     cursor: not-allowed;
 }
 
-/* Collapse to icon-only before the controls can crowd the project field. */
-@media (max-width: 1120px) {
-    .label {
-        display: none;
-    }
-    .feature,
-    .ghost,
-    .secondary,
-    .primary {
-        padding: 0 8px;
-    }
-
-}
-
-/* ---- undo/redo ---- */
 .divider {
     width: 1px;
-    height: 18px;
+    height: 20px;
     background: var(--topbar-border);
-    margin: 0 2px;
+    margin: 0 3px;
     flex-shrink: 0;
 }
 
@@ -205,14 +189,13 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 34px;
+    height: 34px;
     flex-shrink: 0;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: 7px;
     background: transparent;
     color: var(--topbar-muted);
-    font-size: 13px;
     cursor: pointer;
     transition: background .15s, border-color .15s, color .15s, opacity .15s;
 }
@@ -227,16 +210,14 @@
     cursor: not-allowed;
 }
 
-/* ---- zoom control ---- */
 .zoomCluster {
     display: inline-flex;
     align-items: center;
     gap: 1px;
-    margin-left: 4px;
-    height: 30px;
+    height: 32px;
     padding: 0 2px;
     background: var(--topbar-control);
-    border-radius: 6px;
+    border-radius: 7px;
     flex-shrink: 0;
 }
 
@@ -244,13 +225,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border: 0;
-    border-radius: 5px;
+    border-radius: 6px;
     background: transparent;
     color: var(--topbar-muted);
-    font-size: 12px;
     cursor: pointer;
     transition: background .15s, border-color .15s, color .15s, opacity .15s;
 }
@@ -266,9 +246,9 @@
 }
 
 .zoomValue {
-    min-width: 35px;
+    min-width: 38px;
     text-align: center;
-    font: 600 10px var(--font-body);
+    font: 600 11px var(--font-body);
     color: var(--topbar-muted);
     user-select: none;
 }
@@ -280,8 +260,7 @@
     }
 
     .projectField {
-        max-width: 150px;
+        max-width: 140px;
         padding: 0 4px;
     }
 }
-

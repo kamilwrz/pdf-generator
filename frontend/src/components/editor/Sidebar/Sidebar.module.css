@@ -5,8 +5,8 @@
     --sidebar-surface: var(--chrome-surface);
     --sidebar-hover: var(--chrome-hover);
     --sidebar-accent: var(--chrome-accent);
-    width: 68px;
-    min-width: 68px;
+    width: 72px;
+    min-width: 72px;
     height: 100%;
     flex-shrink: 0;
     background: var(--sidebar-surface);
@@ -15,7 +15,7 @@
     z-index: 1000;
     display: flex;
     flex-direction: column;
-    padding: 10px 8px;
+    padding: 10px 12px;
     font-family: var(--font-body);
     color: var(--sidebar-ink);
     overflow: visible;
@@ -41,9 +41,9 @@
 }
 
 .logoMark {
-    width: 28px;
-    height: 28px;
-    border-radius: 5px;
+    width: 34px;
+    height: 34px;
+    border-radius: 6px;
     background: transparent;
     display: flex;
     align-items: center;
@@ -53,8 +53,8 @@
 
 .logoMark img {
     display: block;
-    width: 28px;
-    height: 28px;
+    width: 34px;
+    height: 34px;
     object-fit: contain;
 }
 
@@ -150,7 +150,7 @@
 }
 
 /* Fixed box the diagonal label is centered inside; the label's untransformed
-   width can exceed the 68px rail without disturbing layout because it's
+   width can exceed the 72px rail without disturbing layout because it's
    absolutely positioned. */
 .planBadgeWrap {
     position: relative;
@@ -258,18 +258,23 @@
 }
 
 .logout {
-    width: 34px;
-    height: 34px;
-    border-radius: 6px;
+    width: 40px;
+    height: 40px;
+    border-radius: 7px;
     background: transparent;
     border: 1px solid transparent;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--sidebar-muted);
-    font-size: 13px;
+    font-size: 16px;
     cursor: pointer;
     transition: color .15s, border-color .15s;
+}
+
+.logout svg {
+    width: 18px;
+    height: 18px;
 }
 
 .logout:hover {
