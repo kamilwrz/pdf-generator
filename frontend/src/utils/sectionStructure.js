@@ -803,6 +803,23 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
       && (Number(element.height) || 0) <= 4)
     .sort((a, b) => (Number(b.width) || 0) - (Number(a.width) || 0))[0] || null;
 
+  // Decorative shapes cluster near the heading's own left edge in most
+  // templates (Regent, Aldine, Kernel, Monument, …), but Cinder places its
+  // mark at the FAR RIGHT end of the underline rule instead (16px square at
+  // left=526, heading at left=76, rule spanning 76..542) — ~450px from the
+  // heading, well outside the heading-only column band. Once the rule is
+  // known, its own span is an equally valid "same column" region: a shape
+  // near either end of the rule the section actually draws is part of this
+  // section, not a different column's sidebar chrome.
+  const inDecorativeShapeColumn = (element) => {
+    const elementLeft = Number(element.left) || 0;
+    if (inHeadingColumn(element)) return true;
+    if (!rule) return false;
+    const ruleLeft = Number(rule.left) || left;
+    const ruleRight = ruleLeft + (Number(rule.width) || 0);
+    return elementLeft >= ruleLeft - 60 && elementLeft <= ruleRight + 60;
+  };
+
   // Every tagged shape offset from the label (marker, badge square, icon
   // frame, accent tick, …) is a decorative shape to replicate. Size is not a
   // filter here — templates range from an 8px marker dot (Regent) to a 32px
@@ -811,7 +828,7 @@ export function deriveSectionStyle(elements, pageHeight = 842) {
   const decorativeShapes = members.filter((element) => element.element_id !== last.headingId
     && element.element_id !== rule?.element_id
     && element.flowRole === "section-chrome"
-    && inHeadingColumn(element)
+    && inDecorativeShapeColumn(element)
     && DECORATIVE_SHAPE_CATEGORIES.has(element.category))
     .sort((a, b) => absoluteTop(a, pageHeight) - absoluteTop(b, pageHeight)
       || (Number(a.left) || 0) - (Number(b.left) || 0));

@@ -730,6 +730,32 @@ describe("deriveSectionStyle", () => {
     assert.ok(!style.markers.some((shape) => shape.width >= 120));
   });
 
+  it("captures a marker sampled at the rule's far end (Cinder-style, not left of the heading)", () => {
+    // Cinder's per-section mark is a 16x16 rect at left=526 — near the RIGHT
+    // end of the underline rule (heading left=76, rule width=466, so the rule
+    // spans 76..542) — not near the heading's own left edge like every other
+    // template's marker. The heading-only ±60px column check must not reject
+    // it as cross-column sidebar contamination (real distance from heading:
+    // |526-76|=450, far outside that band; the fix widens the check to also
+    // accept shapes within ±60px of the identified rule's own span).
+    const elements = [
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "Doświadczenie",
+        left: 76, top: 100, fontSize: 8.7, fontFamily: "Inter", color: "#C93F3F" },
+      { element_id: "r1", category: "line", flowRole: "section-chrome",
+        left: 76, top: 111, width: 466, height: 1, backgroundColor: "#D5D6D6" },
+      { element_id: "mark", category: "rectangle", flowRole: "section-chrome",
+        left: 526, top: 102, width: 16, height: 16, backgroundColor: "#C93F3F", borderWidth: 1.2 },
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true,
+        left: 76, top: 128, width: 466, height: 30, fontSize: 9.5, fontFamily: "Inter",
+        lineHeight: 13, color: "#292D31" },
+    ];
+    const style = deriveSectionStyle(elements);
+    assert.equal(style.markers.length, 1);
+    assert.equal(style.markers[0].category, "rectangle");
+    assert.equal(style.markers[0].relLeft, 450); // 526 - 76
+    assert.equal(style.markers[0].width, 16);
+  });
+
   it("captures a large block shape as a decorative marker (Monument-style badge, not a rule)", () => {
     // Monument's badge square is category "line" but height 32 (a filled
     // block, not a thin underline) and its label frame is a 251-wide
