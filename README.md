@@ -152,6 +152,7 @@ pdf-generator/
 │   ├── src/
 │   │   ├── components/       # canvas, editor, ai, modals, gallery, common
 │   │   │   ├── canvas/SectionRecordAdd/  # Hover "+" on record-section headings
+│   │   │   ├── canvas/RecordBlockAdd/    # Hover "+" on record lines → generic text block
 │   │   │   └── editor/AddSectionModal/   # "+ Dodaj sekcję" modal (name + aa/cc layout picker)
 │   │   ├── hooks/            # useA4Elements facade, useDocumentHistory, usePdfExport, …
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
@@ -301,6 +302,23 @@ Known limitations:
 
 - Eligibility requires a multi-line record group (typically `flowGroup` with ≥2 lines, or a bold-title partitioned legacy stack). A lone body textarea never offers **+**.
 - Placeholder copy follows 4-line education / 3-line experience inference from the cloned record’s line count; other shapes use generic „Tekst…”.
+
+### Add generic text block on record-line hover
+
+In the same eligible multi-line sections, hovering **any line of a record** (degree, school, meta, description, …) shows a **+** control with the same 2-second click window as the heading affordance. Clicking it inserts a **single generic textarea** with content „Tekst…” immediately **below that record** (not a structural clone of education/experience fields). Style is sampled from a non-bold body line of the anchor record when possible; the new block gets its own `flowGroup`, the document is re-packed with `applyFlowSpacing`, and the new field opens for editing.
+
+Hovering a line in the first of two records inserts between them; hovering a line in the last record inserts after it. Heading **+** (structured clone at end) and line **+** (generic block under the hovered record) coexist.
+
+Implementation:
+
+- `frontend/src/utils/sectionRecord.js`, function `findRecordGroupForElement`; `elementSupportsRecordBlockAdd`; `listRecordBlockAddElementIds`; `buildGenericTextBlock`; `insertGenericBlockAfterRecord` — locate anchor record, build one placeholder textarea, provisional in-band placement, then rhythm pack
+- `frontend/src/hooks/useA4Elements.js`, function `handleAddRecordBlock` — exposed through `PdfContext` as `addRecordBlock`
+- `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx`, component `RecordBlockAdd` — element hover listeners + 2s window (reuses `SectionRecordAdd.module.css`)
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `recordBlockElementIds` — mounts the affordance next to eligible record lines (textareas / body text)
+
+Tests:
+
+- `frontend/src/utils/sectionRecord.test.js` — generic insert under education record; insert between two experience records; aa / unknown id rejected
 
 ### Outcome-focused landing and directed starts
 
@@ -1130,6 +1148,7 @@ pdf-generator/
 │   ├── src/
 │   │   ├── components/       # canvas, editor, ai, modals, gallery, common
 │   │   │   ├── canvas/SectionRecordAdd/  # „+” po najechaniu na nagłówek sekcji-rekordu
+│   │   │   ├── canvas/RecordBlockAdd/    # „+” na linii rekordu → generyczny blok tekstu
 │   │   │   └── editor/AddSectionModal/   # modal „+ Dodaj sekcję” (nazwa + wybór układu aa/cc)
 │   │   ├── hooks/            # useA4Elements, useDocumentHistory, useElementSelectionDrag, …
 │   │   ├── pages/
@@ -1272,6 +1291,23 @@ Znane ograniczenia:
 
 - Kwalifikacja wymaga wieloliniowej grupy rekordu (zwykle `flowGroup` z ≥2 liniami albo legacy stos dzielony po pogrubionym tytule). Samotne textarea treści nigdy nie oferuje **+**.
 - Placeholdery wynikają z inferencji 4-liniowej edukacji / 3-liniowego doświadczenia na podstawie liczby linii klonowanego rekordu; inne kształty dostają generyczne „Tekst…”.
+
+### Dodawanie generycznego bloku tekstu po najechaniu na linię rekordu
+
+W tych samych kwalifikujących się sekcjach wieloliniowych najechanie na **dowolną linię rekordu** (dyplom, uczelnia, meta, opis, …) pokazuje **+** z tym samym oknem kliknięcia 2 s co affordance nagłówka. Kliknięcie wstawia **jedno generyczne textarea** z treścią „Tekst…” bezpośrednio **pod tym rekordem** (to nie jest klon struktury edukacji/doświadczenia). Styl jest próbkowany z niepogrubionej linii treści rekordu-kotwicy, gdy to możliwe; nowy blok dostaje własne `flowGroup`, dokument jest przepakowywany przez `applyFlowSpacing`, a nowe pole otwiera się do edycji.
+
+Najechanie na linię pierwszego z dwóch rekordów wstawia blok między nimi; najechanie na ostatni rekord — pod nim. **+** na nagłówku (klon strukturalny na końcu) i **+** na linii (generyczny blok pod wskazanym rekordem) współistnieją.
+
+Implementacja:
+
+- `frontend/src/utils/sectionRecord.js`, funkcje `findRecordGroupForElement`, `elementSupportsRecordBlockAdd`, `listRecordBlockAddElementIds`, `buildGenericTextBlock`, `insertGenericBlockAfterRecord` — lokalizacja rekordu-kotwicy, jedno placeholderowe textarea, prowizoryczne umieszczenie w paśmie, potem pack rytmu
+- `frontend/src/hooks/useA4Elements.js`, funkcja `handleAddRecordBlock` — wystawiana przez `PdfContext` jako `addRecordBlock`
+- `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx`, komponent `RecordBlockAdd` — nasłuch hover na elemencie + okno 2 s (współdzieli `SectionRecordAdd.module.css`)
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `recordBlockElementIds` — montaż affordance przy kwalifikujących się liniach rekordu
+
+Testy:
+
+- `frontend/src/utils/sectionRecord.test.js` — wstawienie generycznego bloku pod rekordem edukacji; wstawienie między dwoma rekordami doświadczenia; odrzucenie aa / nieznanego id
 
 ### Landing skupiony na rezultacie i skierowane starty
 

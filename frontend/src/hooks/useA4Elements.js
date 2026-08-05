@@ -18,7 +18,10 @@ import {
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from '../utils/flowSpacing';
 import { deriveSectionStyle, appendSectionAtEnd, listDocumentSections } from '../utils/sectionStructure';
 import { buildSectionElements } from '../utils/sectionBuilder';
-import { appendRecordToSection } from '../utils/sectionRecord';
+import {
+  appendRecordToSection,
+  insertGenericBlockAfterRecord,
+} from '../utils/sectionRecord';
 import { applySelectedSectionIcon } from '../utils/sectionIcons';
 import {
   createCircleElement,
@@ -589,6 +592,42 @@ export function useA4Elements(titleRef) {
         .filter((element) => !prev.some((old) => old.element_id === element.element_id))
         .map((element) => element.element_id);
       markElementsEnter(addedIds);
+
+      return next.map((element) => {
+        if (element.element_id === firstBodyId) {
+          return { ...element, isSelected: true, isEditing: true };
+        }
+        if (element.isSelected || element.isEditing) {
+          return { ...element, isSelected: false, isEditing: false };
+        }
+        return element;
+      });
+    });
+  }, []);
+
+  /**
+   * Insert one generic text block (`Tekst…`) below the record that owns
+   * `afterElementId`. Used by the in-record hover "+" control — not a clone.
+   *
+   * @param {string} afterElementId
+   */
+  const handleAddRecordBlock = useCallback((afterElementId) => {
+    if (!afterElementId) return;
+    if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return;
+
+    setA4_Elements((prev) => {
+      const pageHeight = pageSizeRef.current?.height ?? 842;
+      const spacing = flowSpacingRef.current;
+      const result = insertGenericBlockAfterRecord(
+        prev,
+        afterElementId,
+        pageHeight,
+        { spacing, idFactory: nanoid },
+      );
+      if (!result) return prev;
+
+      const { elements: next, firstBodyId } = result;
+      if (firstBodyId) markElementsEnter([firstBodyId]);
 
       return next.map((element) => {
         if (element.element_id === firstBodyId) {
@@ -1623,6 +1662,7 @@ export function useA4Elements(titleRef) {
     handleAddTextarea,
     handleAddSection,
     handleAddSectionRecord,
+    handleAddRecordBlock,
     // connector mode
     connectMode,
     connectSourceId,

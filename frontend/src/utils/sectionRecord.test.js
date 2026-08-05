@@ -4,7 +4,11 @@ import { buildSectionElements, SECTION_LAYOUTS } from "./sectionBuilder.js";
 import { appendSectionAtEnd, deriveSectionStyle } from "./sectionStructure.js";
 import {
   appendRecordToSection,
+  buildGenericTextBlock,
+  elementSupportsRecordBlockAdd,
   inferRecordLayout,
+  insertGenericBlockAfterRecord,
+  listRecordBlockAddElementIds,
   listSectionContentElements,
   partitionSectionRecords,
   placeholderContentsForRecord,
@@ -155,5 +159,100 @@ describe("appendRecordToSection", () => {
       idFactory: makeIdFactory(),
     });
     assert.equal(appendRecordToSection(elements, headingId), null);
+  });
+});
+
+describe("insertGenericBlockAfterRecord", () => {
+  it("inserts a single Tekst… block under the hovered record, not a structural clone", () => {
+    const pageHeight = 842;
+    const { elements: built, headingId } = buildSectionElements({
+      name: "Wykształcenie",
+      layout: SECTION_LAYOUTS.RECORD_EDUCATION,
+      style,
+      idFactory: makeIdFactory("edu"),
+    });
+    const doc = appendSectionAtEnd([], built, pageHeight, {});
+    const before = listSectionContentElements(doc, headingId, pageHeight);
+    assert.equal(before.length, 4);
+
+    // Hover the school line (index 1) — insert still goes under the whole record.
+    let seq = 0;
+    const result = insertGenericBlockAfterRecord(doc, before[1].element_id, pageHeight, {
+      idFactory: () => `gen-${++seq}`,
+    });
+    assert.ok(result);
+    const after = listSectionContentElements(result.elements, headingId, pageHeight);
+    assert.equal(after.length, 5);
+    assert.equal(after[4].content, "Tekst…");
+    assert.equal(after[4].bold, false);
+    assert.equal(after[4].bulletList, false);
+    assert.equal(after[4].category, "textarea");
+    assert.ok(after[4].flowGroup);
+    assert.notEqual(after[4].flowGroup, before[0].flowGroup);
+    assert.equal(result.firstBodyId, after[4].element_id);
+
+    // Original education lines stay a single keep-together group above the new block.
+    const groups = partitionSectionRecords(after);
+    assert.equal(groups.length, 2);
+    assert.equal(groups[0].length, 4);
+    assert.equal(groups[1].length, 1);
+    assert.equal(groups[1][0].content, "Tekst…");
+  });
+
+  it("inserts between two experience records when the first record is the anchor", () => {
+    const pageHeight = 842;
+    const { elements: built, headingId } = buildSectionElements({
+      name: "Doświadczenie",
+      layout: SECTION_LAYOUTS.RECORD_EXPERIENCE,
+      style,
+      idFactory: makeIdFactory("exp"),
+    });
+    let doc = appendSectionAtEnd([], built, pageHeight, {});
+    const first = appendRecordToSection(doc, headingId, pageHeight, {
+      idFactory: makeIdFactory("rec2"),
+    });
+    assert.ok(first);
+    doc = first.elements;
+    const body = listSectionContentElements(doc, headingId, pageHeight);
+    assert.equal(body.length, 6);
+    // Anchor on first record's title — generic block must land before second record.
+    const result = insertGenericBlockAfterRecord(doc, body[0].element_id, pageHeight, {
+      idFactory: makeIdFactory("mid"),
+    });
+    assert.ok(result);
+    const after = listSectionContentElements(result.elements, headingId, pageHeight);
+    assert.equal(after.length, 7);
+    assert.equal(after[3].content, "Tekst…");
+    assert.equal(after[4].content, "Stanowisko");
+  });
+
+  it("returns null for aa sections / unknown ids", () => {
+    const { elements, headingId } = buildSectionElements({
+      name: "Skills",
+      layout: SECTION_LAYOUTS.TEXTAREA,
+      style,
+      idFactory: makeIdFactory(),
+    });
+    const body = listSectionContentElements(elements, headingId);
+    assert.equal(elementSupportsRecordBlockAdd(elements, body[0].element_id), false);
+    assert.equal(listRecordBlockAddElementIds(elements).size, 0);
+    assert.equal(insertGenericBlockAfterRecord(elements, body[0].element_id), null);
+    assert.equal(insertGenericBlockAfterRecord(elements, "missing"), null);
+  });
+
+  it("buildGenericTextBlock uses body styling, not bold title weight", () => {
+    const block = buildGenericTextBlock({
+      fontSize: 9.3,
+      fontFamily: "Inter",
+      lineHeight: 13,
+      color: "#24201E",
+      left: 66,
+      width: 466,
+      bold: true,
+      bulletList: true,
+    }, makeIdFactory("g"));
+    assert.equal(block.content, "Tekst…");
+    assert.equal(block.bold, false);
+    assert.equal(block.bulletList, false);
   });
 });
