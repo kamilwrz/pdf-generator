@@ -21,6 +21,8 @@ export const PdfContext = createContext({
     addCircle: () => {},
     addEllipse: () => {},
     addConnector: () => {},
+    addSection: () => {},
+    addSectionRecord: () => {},
     isBioCvModal: false,
     showBioCvModal: () => {},
     isPlanModal: false,

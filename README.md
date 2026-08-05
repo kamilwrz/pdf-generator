@@ -151,13 +151,14 @@ pdf-generator/
 │   │   └── template-mockups/      # Static A4 preview PNGs
 │   ├── src/
 │   │   ├── components/       # canvas, editor, ai, modals, gallery, common
+│   │   │   ├── canvas/SectionRecordAdd/  # Hover "+" on record-section headings
 │   │   │   └── editor/AddSectionModal/   # "+ Dodaj sekcję" modal (name + aa/cc layout picker)
 │   │   ├── hooks/            # useA4Elements facade, useDocumentHistory, usePdfExport, …
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
 │   │   ├── templates/        # 14 template specs + helpers
-│   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow, sectionBuilder
+│   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord
 │   ├── package.json
 │   └── .env.example
 ├── shared/
@@ -274,6 +275,28 @@ Known limitations:
 - The muted color used for a record's meta line is best-effort: it is sampled from an existing meta line when one can be identified, otherwise it falls back to the body color.
 - Style sampling only looks at the document's last detected section; a template with no detectable section (or an empty document) falls back to a template-neutral default rather than matching a specific visual identity.
 
+### Add record on section heading hover
+
+In **template mode**, when a section’s body is more than a single content textarea (education / experience stacks, custom **cc-edu** / **cc-exp** sections, or wizard-filled records sharing a `flowGroup`), hovering the section heading shows a compact **+** control. Clicking it appends another record that clones the last record’s field structure and styling, filled with generic Polish placeholders (e.g. „Nazwa dyplomu” / „Stanowisko”), assigns a new `flowGroup`, re-packs the document with `applyFlowSpacing`, and opens the first new line for editing.
+
+Timing: the **+** appears on pointer enter over the heading and remains clickable for **2 seconds**; without a click it hides (even if the pointer stays on the heading). Moving from the heading onto the button keeps the same click window. Single-textarea sections (**aa** / summary-style) do not show the control.
+
+Implementation:
+
+- `frontend/src/utils/sectionRecord.js`, lines 65–97, `listSectionContentElements`; lines 103–140, `partitionSectionRecords`; lines 153–158, `sectionSupportsRecordAdd`; lines 201–227, `buildRecordClone`; lines 235–301, `appendRecordToSection` — eligibility, clone with placeholders, in-band provisional placement, then full-document rhythm pack
+- `frontend/src/hooks/useA4Elements.js`, lines 565–596, function `handleAddSectionRecord` — exposed through `PdfContext` as `addSectionRecord`
+- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, lines 22–133, component `SectionRecordAdd` — heading hover listeners + 2s click window (`SectionRecordAdd.module.css`)
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 36–45, `recordHeadingIds`; lines 80–110 — mounts the affordance next to eligible headings
+
+Tests:
+
+- `frontend/src/utils/sectionRecord.test.js` — aa rejected; cc-edu / cc-exp accepted; second education/experience record gets placeholders and a distinct `flowGroup`
+
+Known limitations:
+
+- Eligibility requires a multi-line record group (typically `flowGroup` with ≥2 lines, or a bold-title partitioned legacy stack). A lone body textarea never offers **+**.
+- Placeholder copy follows 4-line education / 3-line experience inference from the cloned record’s line count; other shapes use generic „Tekst…”.
+
 ### Outcome-focused landing and directed starts
 
 The landing page presents one outcome — an editable PDF-ready CV — and **three** product paths: create from a template, import an existing CV, or design from a blank freeform page. It still explains the shared journey, templates, privacy, plans, and assistive AI review.
@@ -353,7 +376,7 @@ Implementation:
 - `frontend/src/hooks/useCanvasEnterIds.js`, lines 1–80, `useCanvasEnterIds`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` + `CanvasElements.module.css`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadAiElements`, `handleLoadTemplate`, `handleLoadTemplateWithFill` call `markContentElementsEnter`
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 29–55; `frontend/src/components/canvas/Textarea/Textarea.jsx`, lines 42–164 — skip the initial textarea measurement when `preserveInitialLayout` is set
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 51–78; `frontend/src/components/canvas/Textarea/Textarea.jsx`, lines 42–164 — skip the initial textarea measurement when `preserveInitialLayout` is set
 - `backend/app/schemas/pdf_schema.py`, lines 44–46; `backend/app/crud/pdfs.py`, lines 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, lines 104–105 — persist and restore `flowRole` / `preserveInitialLayout`
 
 Tests:
@@ -440,7 +463,7 @@ Implementation:
 - `scripts/generate_iconic_icons.py`, `draw_github`/`draw_calendar`/`draw_diamond` (lines 183–213), `EXTRA_ICONS` (line 234), `SUBSET_THEMES` (line 244)
 - `backend/app/schemas/pdf_schema.py`, line 85, `borderRadius` field
 - `backend/app/services/pdf_generator.py`, `renderRectangle` rounded-corner path (uses `roundRect`); dispatch at line 629
-- `frontend/src/components/canvas/Rectangle/Rectangle.jsx`, line 50; `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, line 122
+- `frontend/src/components/canvas/Rectangle/Rectangle.jsx`, line 50; `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, line 155
 - `frontend/public/template-mockups/harbor.png`, source-driven A4 preview
 
 Tests:
@@ -1101,13 +1124,14 @@ pdf-generator/
 │   │   └── template-mockups/
 │   ├── src/
 │   │   ├── components/       # canvas, editor, ai, modals, gallery, common
+│   │   │   ├── canvas/SectionRecordAdd/  # „+” po najechaniu na nagłówek sekcji-rekordu
 │   │   │   └── editor/AddSectionModal/   # modal „+ Dodaj sekcję” (nazwa + wybór układu aa/cc)
 │   │   ├── hooks/            # useA4Elements, useDocumentHistory, useElementSelectionDrag, …
 │   │   ├── pages/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage
 │   │   ├── store/            # Canvas / UiSurfaces / Session + fasada PdfContext
 │   │   ├── templates/        # 14 specyfikacji szablonów + helpery
-│   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow, sectionBuilder
+│   │   └── utils/            # a4ElementFactories, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord
 │   ├── package.json
 │   └── .env.example
 ├── shared/
@@ -1217,6 +1241,28 @@ Znane ograniczenia:
 - Przygaszony kolor linii meta w rekordzie jest dobierany w sposób najlepszy z możliwych: próbkowany z istniejącej linii meta, jeśli da się ją zidentyfikować, w przeciwnym razie stosowany jest kolor treści głównej.
 - Próbkowanie stylu bierze pod uwagę wyłącznie ostatnią wykrytą sekcję dokumentu; szablon bez wykrywalnej sekcji (lub pusty dokument) korzysta z neutralnego stylu domyślnego zamiast dopasowania do konkretnej tożsamości wizualnej.
 
+### Dodawanie rekordu po najechaniu na nagłówek sekcji
+
+W **trybie szablonu**, gdy treść sekcji to więcej niż jedno pole textarea (stosy edukacji / doświadczenia, własne sekcje **cc-edu** / **cc-exp** albo rekordy z wizarda ze wspólnym `flowGroup`), najechanie na nagłówek sekcji pokazuje kompaktowy przycisk **+**. Kliknięcie dokłada kolejny rekord: klonuje strukturę i styl ostatniego rekordu, wypełnia go generycznymi polskimi placeholderami (np. „Nazwa dyplomu” / „Stanowisko”), nadaje nowe `flowGroup`, przepakowuje dokument przez `applyFlowSpacing` i otwiera pierwszą nową linię do edycji.
+
+Czasowanie: **+** pojawia się przy `pointerenter` na nagłówku i jest klikalny przez **2 sekundy**; bez kliknięcia znika (nawet gdy kursor nadal jest na nagłówku). Przejście z nagłówka na przycisk zachowuje to samo okno kliknięcia. Sekcje z jednym textarea (**aa** / podsumowanie) nie pokazują kontrolki.
+
+Implementacja:
+
+- `frontend/src/utils/sectionRecord.js`, linie 65–97, `listSectionContentElements`; linie 103–140, `partitionSectionRecords`; linie 153–158, `sectionSupportsRecordAdd`; linie 201–227, `buildRecordClone`; linie 235–301, `appendRecordToSection` — kwalifikacja, klon z placeholderami, prowizoryczne umieszczenie w paśmie sekcji, potem pełne przepakowanie rytmu
+- `frontend/src/hooks/useA4Elements.js`, linie 565–596, funkcja `handleAddSectionRecord` — wystawiana przez `PdfContext` jako `addSectionRecord`
+- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, linie 22–133, komponent `SectionRecordAdd` — nasłuch hover na nagłówku + okno 2 s (`SectionRecordAdd.module.css`)
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 36–45, `recordHeadingIds`; linie 80–110 — montaż affordance przy kwalifikujących się nagłówkach
+
+Testy:
+
+- `frontend/src/utils/sectionRecord.test.js` — odrzucenie aa; akceptacja cc-edu / cc-exp; drugi rekord edukacji/doświadczenia dostaje placeholdery i osobne `flowGroup`
+
+Znane ograniczenia:
+
+- Kwalifikacja wymaga wieloliniowej grupy rekordu (zwykle `flowGroup` z ≥2 liniami albo legacy stos dzielony po pogrubionym tytule). Samotne textarea treści nigdy nie oferuje **+**.
+- Placeholdery wynikają z inferencji 4-liniowej edukacji / 3-liniowego doświadczenia na podstawie liczby linii klonowanego rekordu; inne kształty dostają generyczne „Tekst…”.
+
 ### Landing skupiony na rezultacie i skierowane starty
 
 Strona główna pokazuje jeden rezultat — edytowalne CV do PDF — oraz **trzy** ścieżki: utwórz z szablonu, importuj CV, projektuj od zera. Opisuje wspólną drogę, szablony, prywatność, plany i AI jako pomoc (z przeglądem przed zastosowaniem).
@@ -1292,7 +1338,7 @@ Implementacja:
 - `frontend/src/hooks/useCanvasEnterIds.js`, linie 1–80, `useCanvasEnterIds`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` + `CanvasElements.module.css`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadAiElements`, `handleLoadTemplate`, `handleLoadTemplateWithFill` wywołują `markContentElementsEnter`
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 29–55; `frontend/src/components/canvas/Textarea/Textarea.jsx`, linie 42–164 — pominięcie pierwszego pomiaru textarea, gdy ustawiono `preserveInitialLayout`
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 51–78; `frontend/src/components/canvas/Textarea/Textarea.jsx`, linie 42–164 — pominięcie pierwszego pomiaru textarea, gdy ustawiono `preserveInitialLayout`
 - `backend/app/schemas/pdf_schema.py`, linie 44–46; `backend/app/crud/pdfs.py`, linie 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, linie 104–105 — zapis i odtwarzanie `flowRole` / `preserveInitialLayout`
 
 Testy:
@@ -1379,7 +1425,7 @@ Implementacja:
 - `scripts/generate_iconic_icons.py`, `draw_github`/`draw_calendar`/`draw_diamond` (linie 183–213), `EXTRA_ICONS` (linia 234), `SUBSET_THEMES` (linia 244)
 - `backend/app/schemas/pdf_schema.py`, linia 85, pole `borderRadius`
 - `backend/app/services/pdf_generator.py`, ścieżka zaokrąglonych rogów w `renderRectangle` (używa `roundRect`); wywołanie w linii 629
-- `frontend/src/components/canvas/Rectangle/Rectangle.jsx`, linia 50; `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linia 122
+- `frontend/src/components/canvas/Rectangle/Rectangle.jsx`, linia 50; `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linia 155
 - `frontend/public/template-mockups/harbor.png`, podgląd A4 generowany ze źródła
 
 Testy:

@@ -18,6 +18,7 @@ import {
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from '../utils/flowSpacing';
 import { deriveSectionStyle, appendSectionAtEnd, listDocumentSections } from '../utils/sectionStructure';
 import { buildSectionElements } from '../utils/sectionBuilder';
+import { appendRecordToSection } from '../utils/sectionRecord';
 import {
   createCircleElement,
   createEllipseElement,
@@ -543,6 +544,45 @@ export function useA4Elements(titleRef) {
 
       // Select + open the first body for editing; clear any prior selection so
       // typing does not apply to a previously selected element.
+      return next.map((element) => {
+        if (element.element_id === firstBodyId) {
+          return { ...element, isSelected: true, isEditing: true };
+        }
+        if (element.isSelected || element.isEditing) {
+          return { ...element, isSelected: false, isEditing: false };
+        }
+        return element;
+      });
+    });
+  }, []);
+
+  /**
+   * Append one placeholder record inside an existing multi-line section
+   * (education / experience structure). Used by the heading hover "+" control.
+   *
+   * @param {string} headingId
+   */
+  const handleAddSectionRecord = useCallback((headingId) => {
+    if (!headingId) return;
+    // Record append is a template-flow operation — freeform keeps free positioning.
+    if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return;
+
+    setA4_Elements((prev) => {
+      const pageHeight = pageSizeRef.current?.height ?? 842;
+      const spacing = flowSpacingRef.current;
+      const result = appendRecordToSection(prev, headingId, pageHeight, {
+        spacing,
+        idFactory: nanoid,
+      });
+      if (!result) return prev;
+
+      const { elements: next, firstBodyId } = result;
+      // Fade in every new line of the appended record (ids exist only in `next`).
+      const addedIds = next
+        .filter((element) => !prev.some((old) => old.element_id === element.element_id))
+        .map((element) => element.element_id);
+      markElementsEnter(addedIds);
+
       return next.map((element) => {
         if (element.element_id === firstBodyId) {
           return { ...element, isSelected: true, isEditing: true };
@@ -1575,6 +1615,7 @@ export function useA4Elements(titleRef) {
     handleAddImage,
     handleAddTextarea,
     handleAddSection,
+    handleAddSectionRecord,
     // connector mode
     connectMode,
     connectSourceId,
