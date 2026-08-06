@@ -226,11 +226,50 @@ function isLeadingSectionMark(element) {
 }
 
 /**
+ * Two-column templates (Tessera, Slate — `layouts: ["sidebar", …]`) place a
+ * narrow sidebar rail far to the LEFT of the main content column's heading
+ * (`side_left` ≈ 25-51 vs `main_left` ≈ 218-248 — a ~170-220px gap). Sidebar
+ * headings are emitted with `flowRole` defaulting to `"content"` (see e.g.
+ * `tessera.py` / `slate.py` `sidebar_heading()`), so `isSectionHeading` never
+ * recognizes them as sections — but without this check, every Y-only sweep
+ * below (section membership, masthead-bottom detection, flow-bottom
+ * detection, insert "hole" shifting) would silently absorb sidebar elements
+ * into whichever main-column section shared their Y band.
+ * `packDocumentSections`'s single shared vertical cursor would then linearly
+ * restack those captured sidebar elements into the main flow, scrambling the
+ * two-column layout on every add-section / rhythm-change.
+ *
+ * The check is intentionally one-directional: reject a candidate only when
+ * it sits well to the LEFT of the section's own heading, never when it sits
+ * to the right. Single-column templates park chrome far to the RIGHT of a
+ * narrow-left heading routinely (Cinder's marker at left=526 vs heading
+ * left=76; Monument's accent rule at left=369 vs heading left=118) — a
+ * symmetric/bidirectional column split misclassifies those as a second
+ * column and tears the chrome cluster apart. Leftward chrome belonging to
+ * the SAME section (Monument's badge/frame sit up to ~50px left of the
+ * title) never approaches the real sidebar gap, so `SIDEBAR_LEFT_GAP` clears
+ * both cases with comfortable margin.
+ */
+const SIDEBAR_LEFT_GAP = 150;
+
+/**
+ * Predicate for "not a different (sidebar) column from `headingLeft`".
+ * @param {number} headingLeft
+ * @returns {(left: number) => boolean}
+ */
+function sameColumnAsHeading(headingLeft) {
+  return (left) => headingLeft - left <= SIDEBAR_LEFT_GAP;
+}
+
+/**
  * Collect element ids belonging to the section that starts at `headingId`
  * (heading + chrome nearby + content until the next section heading).
+ * Cross-column elements (a sidebar rail sharing the same Y band as a
+ * main-column section) are excluded — see the column-detection doc above.
  */
 export function sectionElementIds(elements, headingId, pageHeight = 842) {
-  const sections = listDocumentSections(elements, pageHeight);
+  const list = elements || [];
+  const sections = listDocumentSections(list, pageHeight);
   const index = sections.findIndex((section) => section.headingId === headingId);
   if (index < 0) return new Set();
   const start = sections[index].startAbs;
@@ -238,10 +277,14 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
     ? sections[index + 1].startAbs
     : Number.POSITIVE_INFINITY;
 
+  const heading = list.find((element) => element.element_id === headingId);
+  const isSameColumn = sameColumnAsHeading(Number(heading?.left) || 0);
+
   const ids = new Set();
-  for (const element of elements || []) {
+  for (const element of list) {
     if (element.fixedToPage) continue;
     if (element.flowRole === "masthead") continue;
+    if (!isSameColumn(Number(element.left) || 0)) continue;
     const abs = absoluteTop(element, pageHeight);
     if (abs >= start && abs < end - 0.01) {
       ids.add(element.element_id);
@@ -262,11 +305,15 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
  * (Regent) or climb into the header band.
  */
 function resolveFlowStart(elements, sections, pageHeight) {
+  const list = elements || [];
   const headingStart = Math.min(...sections.map((section) => section.startAbs));
+  const firstHeading = list.find((element) => element.element_id === sections[0]?.headingId);
+  const isSameColumn = sameColumnAsHeading(Number(firstHeading?.left) || 0);
   let mastheadBottom = 0;
-  for (const element of elements || []) {
+  for (const element of list) {
     if (!element || element.fixedToPage) continue;
     if (element.flowRole === "section-chrome") continue;
+    if (!isSameColumn(Number(element.left) || 0)) continue;
     const abs = absoluteTop(element, pageHeight);
     if (abs >= headingStart - 0.01) continue;
     mastheadBottom = Math.max(mastheadBottom, absoluteBottom(element, pageHeight));
@@ -871,7 +918,11 @@ export function packDocumentSections(
  * the visible "added section rhythm differs from wizard sections" bug.
  *
  * `fixedToPage` decorations (page frames, footers) are excluded from the flow
- * bottom so the section follows real content rather than the page border.
+ * bottom so the section follows real content rather than the page border. On
+ * two-column templates (Tessera, Slate) the sidebar rail is also excluded —
+ * see the column-detection doc above `sectionElementIds` — otherwise a deep
+ * sidebar list (e.g. education fit to the rail) would push the new section
+ * far below the actual (shorter) main-column content instead of right after it.
  *
  * @param {object[]} elements current document elements
  * @param {object[]} newElements the section's chrome + body (unplaced)
@@ -891,9 +942,18 @@ export function appendSectionAtEnd(
 
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
 
+  const sections = listDocumentSections(list, pageHeight);
+  const firstHeading = sections.length
+    ? list.find((element) => element.element_id === sections[0].headingId)
+    : null;
+  const isSameColumn = firstHeading
+    ? sameColumnAsHeading(Number(firstHeading.left) || 0)
+    : () => true;
+
   let flowBottom = 0;
   for (const element of list) {
     if (!element || element.fixedToPage) continue;
+    if (!isSameColumn(Number(element.left) || 0)) continue;
     flowBottom = Math.max(flowBottom, absoluteBottom(element, pageHeight));
   }
   const cursorAbs = flowBottom > 0 ? flowBottom + rhythm.section : pageTop;
@@ -920,8 +980,11 @@ export function appendSectionAtEnd(
  * `afterHeadingId`, then retarget every section to the governing rhythm.
  *
  * Opens a document-wide Y-hole under the anchor section (later headings move
- * too) so the new strip cannot land inside the next section's band. Falls back
- * to `appendSectionAtEnd` when the anchor heading is missing.
+ * too) so the new strip cannot land inside the next section's band. The hole
+ * shift is scoped to the anchor's own column (see the column-detection doc
+ * above `sectionElementIds`) so inserting under a main-column heading cannot
+ * also drag a two-column template's sidebar rail down by the same amount.
+ * Falls back to `appendSectionAtEnd` when the anchor heading is missing.
  *
  * @param {object[]} elements
  * @param {object[]} newElements
@@ -971,10 +1034,13 @@ export function insertSectionAfter(
   // content after the anchor, and later section chrome/body) moves down so
   // section membership stays correct before applyFlowSpacing.
   const hole = Math.max(0, bottomAbs + rhythm.section - cursorAbs);
+  const anchorHeading = list.find((element) => element.element_id === afterHeadingId);
+  const isSameColumn = sameColumnAsHeading(Number(anchorHeading?.left) || 0);
   const shifted = list.map((element) => {
     if (!element || element.fixedToPage) return element;
     if (anchorIds.has(element.element_id)) return element;
     if (element.flowRole === "masthead") return element;
+    if (!isSameColumn(Number(element.left) || 0)) return element;
     if (absoluteTop(element, pageHeight) + 0.01 < sectionBottom) return element;
     const newAbs = absoluteTop(element, pageHeight) + hole;
     const page = Math.max(1, Math.floor(newAbs / pageHeight) + 1);

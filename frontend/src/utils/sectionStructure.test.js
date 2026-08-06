@@ -12,6 +12,51 @@ import {
   sectionElementIds,
 } from "./sectionStructure.js";
 
+/**
+ * Two-column sidebar fixture modeled on Tessera/Slate's real geometry
+ * (`side_left=25`, `main_left=218`). Sidebar headings are emitted with
+ * `flowRole: "content"` (never "section-chrome" — see `tessera.py` /
+ * `slate.py` `sidebar_heading()`), so they are structurally invisible to
+ * `listDocumentSections`; only the main-column headings are real "sections".
+ */
+function twoColumnFixture() {
+  return [
+    // --- sidebar rail (left 25/51) ---
+    { element_id: "sb-kontakt-head", category: "text", content: "KONTAKT", flowRole: "content",
+      left: 51, top: 194, fontSize: 7.6 },
+    { element_id: "sb-kontakt-rule", category: "line", flowRole: "content",
+      left: 51, top: 207, width: 50, height: 1 },
+    { element_id: "sb-phone", category: "text", content: "+48792575970", flowRole: "content",
+      left: 25, top: 222, fontSize: 7.3 },
+    { element_id: "sb-email", category: "text", content: "kwrzochalski@gmail.com", flowRole: "content",
+      left: 25, top: 241, fontSize: 7.3 },
+    { element_id: "sb-edu-head", category: "text", content: "WYKSZTAŁCENIE", flowRole: "content",
+      left: 51, top: 340, fontSize: 7.6 },
+    { element_id: "sb-edu-rule", category: "line", flowRole: "content",
+      left: 51, top: 353, width: 50, height: 1 },
+    { element_id: "sb-edu-body", category: "textarea", content: "Bachelor of Laws (LL.B.)", flowRole: "content",
+      autoHeight: true, left: 25, top: 365, width: 128, height: 120, fontSize: 6.6, lineHeight: 9 },
+
+    // --- main column (left 218/248), properly tagged section-chrome ---
+    { element_id: "m-summary-head", category: "text", content: "PODSUMOWANIE ZAWODOWE", flowRole: "section-chrome",
+      left: 248, top: 199, fontSize: 8.1 },
+    { element_id: "m-summary-rule", category: "line", flowRole: "section-chrome",
+      left: 248, top: 220, width: 299, height: 1 },
+    { element_id: "m-summary-body", category: "textarea", content: "Starszy Analityk AML/KYC…", flowRole: "content",
+      autoHeight: true, left: 218, top: 231, width: 329, height: 65, fontSize: 9.0, lineHeight: 13.2 },
+    { element_id: "m-exp-head", category: "text", content: "DOŚWIADCZENIE ZAWODOWE", flowRole: "section-chrome",
+      left: 248, top: 317, fontSize: 8.1 },
+    { element_id: "m-exp-rule", category: "line", flowRole: "section-chrome",
+      left: 248, top: 338, width: 299, height: 1 },
+    { element_id: "m-exp-title", category: "text", content: "Senior AML Analyst", flowRole: "content",
+      flowGroup: "job-0", left: 218, top: 349, fontSize: 10.4, bold: true },
+    { element_id: "m-exp-meta", category: "text", content: "PwC Polska · 2020 - obecnie", flowRole: "content",
+      flowGroup: "job-0", left: 218, top: 366, fontSize: 8.3 },
+    { element_id: "m-exp-body", category: "textarea", content: "- Transaction monitoring…", flowRole: "content",
+      flowGroup: "job-0", autoHeight: true, left: 218, top: 380, width: 329, height: 60, fontSize: 9.0, lineHeight: 13.2 },
+  ];
+}
+
 /** Monument-style chrome band: badge + frame sit 8px above the title baseline. */
 function monumentSection(n, title, bandTop) {
   const num = String(n).padStart(2, "0");
@@ -196,6 +241,26 @@ describe("sectionElementIds", () => {
     assert.equal(ids1.has("frame2"), false, "next frame must not belong to section 1");
     assert.equal(ids2.has("sq2"), true);
     assert.equal(ids2.has("sq3"), false);
+  });
+
+  it("excludes the sidebar rail from a two-column template's main-section membership", () => {
+    // Regression: Tessera/Slate sidebar headings carry flowRole "content" (not
+    // "section-chrome"), so they were structurally invisible as headings but
+    // still swept into the nearest main-column section by Y alone — dragging
+    // the sidebar into the main flow on every repack.
+    const elements = twoColumnFixture();
+    const summaryIds = sectionElementIds(elements, "m-summary-head");
+    const expIds = sectionElementIds(elements, "m-exp-head");
+    for (const sidebarId of ["sb-kontakt-head", "sb-kontakt-rule", "sb-phone", "sb-email"]) {
+      assert.equal(summaryIds.has(sidebarId), false, `${sidebarId} must not join PODSUMOWANIE`);
+    }
+    for (const sidebarId of ["sb-edu-head", "sb-edu-rule", "sb-edu-body"]) {
+      assert.equal(expIds.has(sidebarId), false, `${sidebarId} must not join DOŚWIADCZENIE`);
+    }
+    // Main-column members are still captured correctly.
+    assert.equal(expIds.has("m-exp-title"), true);
+    assert.equal(expIds.has("m-exp-meta"), true);
+    assert.equal(expIds.has("m-exp-body"), true);
   });
 });
 
@@ -887,6 +952,31 @@ describe("applyFlowSpacing", () => {
       "corrupted rule stack should heal flush under the heading",
     );
   });
+
+  it("leaves a two-column template's sidebar rail untouched when repacking rhythm (Sections panel Odstępy)", () => {
+    // Regression: this is the exact call the Sections panel's spacing knobs
+    // trigger. Before the column fix, sidebar elements got vacuumed into
+    // whichever main section shared their Y band, then linearly restacked
+    // into the main flow — scrambling the two-column layout on every knob
+    // change (reported live on the Tessera template).
+    const elements = twoColumnFixture();
+    const before = new Map(elements.map((element) => [element.element_id, { left: element.left, top: element.top }]));
+    const packed = applyFlowSpacing(elements, {
+      stack: 4, record: 10, section: 21, after_rule: 8,
+    }, 842);
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+
+    for (const sidebarId of [
+      "sb-kontakt-head", "sb-kontakt-rule", "sb-phone", "sb-email",
+      "sb-edu-head", "sb-edu-rule", "sb-edu-body",
+    ]) {
+      const original = before.get(sidebarId);
+      assert.equal(byId[sidebarId].left, original.left, `${sidebarId} left must be untouched`);
+      assert.equal(byId[sidebarId].top, original.top, `${sidebarId} top must be untouched`);
+    }
+    // The main column is still genuinely repacked (not a no-op fix).
+    assert.notEqual(byId["m-exp-head"].top, before.get("m-exp-head").top);
+  });
 });
 
 describe("findProfilePhotoSlot", () => {
@@ -1179,6 +1269,30 @@ describe("appendSectionAtEnd", () => {
   it("returns the original list unchanged when there is nothing to add", () => {
     const doc = sampleDoc();
     assert.equal(appendSectionAtEnd(doc, [], pageHeight, {}), doc);
+  });
+
+  it("appends after the main column's own content, ignoring a deeper sidebar rail", () => {
+    // Regression: appendSectionAtEnd used to take the deepest non-fixed
+    // element in the WHOLE document as the flow bottom. On Tessera/Slate the
+    // sidebar rail (education/skills fit into the rail) commonly extends
+    // deeper than a short main column, so a new section landed far below the
+    // real main-column content instead of right after it.
+    const doc = twoColumnFixture();
+    const mainBottomBefore = Math.max(
+      doc.find((e) => e.element_id === "m-exp-body").top + doc.find((e) => e.element_id === "m-exp-body").height,
+    );
+    const sidebarBottomBefore = doc.find((e) => e.element_id === "sb-edu-body").top
+      + doc.find((e) => e.element_id === "sb-edu-body").height; // 365 + 120 = 485, deeper than main
+    assert.ok(sidebarBottomBefore > mainBottomBefore, "fixture must actually exercise the deeper-sidebar case");
+
+    const result = appendSectionAtEnd(doc, newSection(), pageHeight, {
+      spacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
+    });
+    const h2 = result.find((element) => element.element_id === "h2");
+    assert.ok(
+      h2.top < sidebarBottomBefore,
+      `new section (top=${h2.top}) should follow the main column (bottom=${mainBottomBefore}), not the deeper sidebar (bottom=${sidebarBottomBefore})`,
+    );
   });
 });
 
