@@ -47,7 +47,7 @@ export default function DialogShell({
                         <h2>{title}</h2>
                         {subtitle && <p>{subtitle}</p>}
                     </div>
-                    <CloseButton clickHandler={onClose} top={12} right={16} />
+                    <CloseButton clickHandler={onClose} top={18} right={28} width={32} height={32} radius={2} />
                 </div>
                 <div className={`${classes.body}${bodyClassName ? ` ${bodyClassName}` : ""}`}>
                     {children}

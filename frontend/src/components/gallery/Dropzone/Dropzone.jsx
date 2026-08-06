@@ -20,12 +20,20 @@ import {
 
 const PROGRESS_MAX = 100;
 
-export default function Dropzone() {
+export default function Dropzone({ onCountChange }) {
     const { valueImageUpload, setValueImageUpload, isDropzone } = use(PdfContext);
     const [files, setFiles] = useState([]);
     const [status, setStatus] = useState("idle"); // idle | uploading | success | error
     const [statusMessage, setStatusMessage] = useState("");
     const uploadTokenRef = useRef(0);
+
+    // Reports the current batch size to DropzoneContainer, which renders it in
+    // the unified DialogShell footer ("X z 12 przesłanych obrazów") — the
+    // footer lives outside this component so DialogShell owns one consistent
+    // footer bar across every dialog instead of each body reimplementing it.
+    useEffect(() => {
+        onCountChange?.(files.length);
+    }, [files.length, onCountChange]);
 
     const onDrop = useCallback((acceptedFiles) => {
         if (!acceptedFiles?.length) return;
@@ -100,7 +108,7 @@ export default function Dropzone() {
             <div {...getRootProps({ className: classes.dropzone })}>
                 <input {...getInputProps()} />
                 <div className={classes.dropIcon}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 13v8" /><path d="m8 17 4-4 4 4" /><path d="M20 16.5A4.5 4.5 0 0 0 17 8h-1.3A7 7 0 1 0 5 15" /></svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 13v8" /><path d="m8 17 4-4 4 4" /><path d="M20 16.5A4.5 4.5 0 0 0 17 8h-1.3A7 7 0 1 0 5 15" /></svg>
                 </div>
                 <div className={classes.dropTitle}>
                     {status === "uploading" ? "Przesyłanie…" : "Upuść obrazy tutaj"}
@@ -113,17 +121,24 @@ export default function Dropzone() {
             </div>
 
             {isDropzone && files.length > 0 && (
-                <aside className={classes.thumbsWrap} aria-label="Podgląd przesłanych obrazów">
-                    {files.map((file) => (
-                        <div className={classes.thumb} key={`${file.name}-${file.size}-${file.lastModified}`}>
-                            <img
-                                src={file.preview}
-                                alt={file.name}
-                                className={classes.thumbImg}
-                            />
-                        </div>
-                    ))}
-                </aside>
+                <>
+                    <div className={classes.divider}>
+                        <span className={classes.dividerLine} />
+                        <span className={classes.dividerLabel}>Przesłane obrazy trafią do galerii</span>
+                        <span className={classes.dividerLine} />
+                    </div>
+                    <aside className={classes.thumbsWrap} aria-label="Podgląd przesłanych obrazów">
+                        {files.map((file) => (
+                            <div className={classes.thumb} key={`${file.name}-${file.size}-${file.lastModified}`}>
+                                <img
+                                    src={file.preview}
+                                    alt={file.name}
+                                    className={classes.thumbImg}
+                                />
+                            </div>
+                        ))}
+                    </aside>
+                </>
             )}
 
             {isDropzone && showProgress && (

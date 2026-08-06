@@ -98,63 +98,79 @@ export default function AddSectionModal({
     });
   }
 
+  const selectedIconLabel = hasIcons
+    ? (iconOptions.find((option) => option.name === iconName)?.label || "—")
+    : null;
+
   return (
     <DialogShell
       open={open}
       onClose={onCancel}
-      width={hasIcons ? 480 : 440}
+      width={hasIcons ? 1280 : 560}
+      radius={2}
       title="Dodaj sekcję"
       subtitle={insertAfterHeading
-        ? "Nowa sekcja pojawi się bezpośrednio pod wybraną sekcją, w stylu obecnego szablonu"
-        : "Nowa sekcja pojawi się na końcu CV, w stylu obecnego szablonu"}
+        ? "Nowa sekcja pojawi się bezpośrednio pod wybraną sekcją, w stylu obecnego szablonu."
+        : "Nowa sekcja pojawi się na końcu CV, w stylu obecnego szablonu."}
+      bodyClassName={hasIcons ? classes.bodyTwoCol : classes.bodyOneCol}
       footer={(
-        <div className={classes.actions}>
-          <button type="button" className={classes.ghost} onClick={onCancel}>
-            Anuluj
-          </button>
-          <button type="button" className={classes.primary} onClick={handleConfirm}>
-            Dodaj sekcję
-          </button>
-        </div>
+        <>
+          <span className={classes.footerHint}>Sekcję możesz później zmienić lub usunąć w panelu sekcji.</span>
+          <div className={classes.actions}>
+            <button type="button" className={classes.ghost} onClick={onCancel}>
+              Anuluj
+            </button>
+            <button type="button" className={classes.primary} onClick={handleConfirm}>
+              Dodaj sekcję
+            </button>
+          </div>
+        </>
       )}
     >
-      <label className={classes.field}>
-        <span className={classes.label}>Nazwa sekcji</span>
-        <input
-          className={classes.input}
-          type="text"
-          value={name}
-          placeholder="np. Certyfikaty"
-          onChange={handleNameChange}
-          autoFocus
-        />
-      </label>
+      <div className={classes.leftCol}>
+        <label className={classes.field}>
+          <span className={classes.label}>Nazwa sekcji</span>
+          <input
+            className={classes.input}
+            type="text"
+            value={name}
+            placeholder="np. Certyfikaty"
+            onChange={handleNameChange}
+            autoFocus
+          />
+        </label>
 
-      <fieldset className={classes.fieldset}>
-        <legend className={classes.label}>Rodzaj sekcji</legend>
-        {LAYOUT_OPTIONS.map((option) => (
-          <label
-            key={option.value}
-            className={`${classes.option}${layout === option.value ? ` ${classes.optionActive}` : ""}`}
-          >
-            <input
-              type="radio"
-              name="section-layout"
-              value={option.value}
-              checked={layout === option.value}
-              onChange={() => setLayout(option.value)}
-            />
-            <span className={classes.optionText}>
-              <span className={classes.optionTitle}>{option.title}</span>
-              <span className={classes.optionDesc}>{option.description}</span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
+        <fieldset className={classes.fieldset}>
+          <legend className={classes.label}>Rodzaj sekcji</legend>
+          {LAYOUT_OPTIONS.map((option) => {
+            const active = layout === option.value;
+            return (
+              <label
+                key={option.value}
+                className={`${classes.option}${active ? ` ${classes.optionActive}` : ""}`}
+              >
+                <input
+                  className={classes.radioInput}
+                  type="radio"
+                  name="section-layout"
+                  value={option.value}
+                  checked={active}
+                  onChange={() => setLayout(option.value)}
+                />
+                <span className={`${classes.dot}${active ? ` ${classes.dotActive}` : ""}`} aria-hidden="true" />
+                <span className={classes.optionText}>
+                  <span className={classes.optionTitle}>{option.title}</span>
+                  <span className={classes.optionDesc}>{option.description}</span>
+                </span>
+              </label>
+            );
+          })}
+        </fieldset>
+      </div>
 
       {hasIcons ? (
-        <fieldset className={`${classes.fieldset} ${classes.iconFieldset}`}>
-          <legend className={classes.label}>Ikona nagłówka</legend>
+        <div className={classes.rightCol}>
+          <span className={classes.label}>Ikona nagłówka</span>
           <p className={classes.iconHint}>
             Wybierz ikonę — pojawi się obok tytułu, tak jak w innych sekcjach tego szablonu.
           </p>
@@ -177,7 +193,10 @@ export default function AddSectionModal({
               );
             })}
           </div>
-        </fieldset>
+          <p className={classes.selectedIconLabel}>
+            Wybrana ikona: <span>{selectedIconLabel}</span>
+          </p>
+        </div>
       ) : null}
     </DialogShell>
   );

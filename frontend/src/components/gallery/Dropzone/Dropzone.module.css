@@ -1,18 +1,18 @@
 .dropzoneContainer {
     width: 100%;
-    padding: 16px;
+    padding: 24px 28px;
     font-family: var(--font-body);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
     min-height: 320px;
 }
 
 .dropzone {
     border: 1px dashed var(--chrome-border);
-    background: var(--chrome-control);
-    border-radius: 8px;
-    padding: 28px 16px;
+    background: var(--primary-bg);
+    border-radius: 2px;
+    padding: 52px 24px;
     text-align: center;
     cursor: pointer;
     transition: background .15s, border-color .15s;
@@ -25,35 +25,55 @@
 }
 
 .dropIcon {
-    width: 44px;
-    height: 44px;
-    border-radius: 8px;
+    width: 48px;
+    height: 48px;
+    border-radius: 2px;
     background: var(--chrome-surface);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 10px;
+    margin: 0 auto 12px;
     border: 1px solid var(--chrome-border);
 }
 
 .dropTitle {
-    font: 600 13px var(--font-body);
+    font: 700 15px var(--font-body);
     color: var(--chrome-ink);
 }
 
 .dropHint {
-    font: 500 11px var(--font-body);
+    font: 500 12.5px var(--font-body);
     color: var(--chrome-muted);
-    margin-top: 3px;
+    margin-top: 4px;
 }
 
 .dropHint span {
     color: var(--chrome-accent);
+    font-weight: 600;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dividerLine {
+    flex: 1;
+    height: 1px;
+    background: var(--border-soft);
+}
+
+.dividerLabel {
+    font: 600 11px var(--font-body);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--label-font);
 }
 
 .thumbsWrap {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(8, minmax(0, 1fr));
     gap: 10px;
     align-content: start;
     max-height: 340px;
@@ -71,7 +91,7 @@
 .thumb {
     position: relative;
     aspect-ratio: 1;
-    border-radius: 7px;
+    border-radius: 2px;
     overflow: hidden;
     border: 1px solid var(--chrome-border);
     background: var(--chrome-control);
@@ -98,6 +118,13 @@
     padding: .35rem;
     color: var(--success);
     font: 600 11px var(--font-body);
+}
+
+@media only screen and (max-width: 760px) {
+    .thumbsWrap {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        max-height: 260px;
+    }
 }
 
 @media only screen and (max-width: 520px) {

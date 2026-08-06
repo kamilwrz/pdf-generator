@@ -1,0 +1,25 @@
+/*
+ * Footer chrome for the unified "Prześlij obrazy" DialogShell — matches the
+ * count-label + close-button pattern used by ModalPdfs/TemplatesModal.
+ */
+
+.countLabel {
+    font: 500 12px var(--font-body);
+    color: var(--label-font);
+}
+
+.closeFooterBtn {
+    height: 38px;
+    padding: 0 18px;
+    border-radius: 2px;
+    border: 1px solid var(--chrome-border);
+    background: transparent;
+    font: 600 13px var(--font-body);
+    color: var(--chrome-ink);
+    cursor: pointer;
+}
+
+.closeFooterBtn:hover {
+    background: var(--chrome-hover);
+    color: var(--chrome-accent);
+}

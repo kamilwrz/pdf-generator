@@ -1,15 +1,15 @@
 .countLabel {
-    font: 500 10px var(--font-body);
-    color: var(--chrome-muted);
+    font: 500 12px var(--font-body);
+    color: var(--label-font);
 }
 
 .closeFooterBtn {
-    height: 28px;
-    padding: 0 10px;
-    border-radius: 6px;
+    height: 38px;
+    padding: 0 18px;
+    border-radius: 2px;
     border: 1px solid var(--chrome-border);
     background: transparent;
-    font: 600 10.5px var(--font-body);
+    font: 600 13px var(--font-body);
     color: var(--chrome-ink);
     cursor: pointer;
 }
@@ -23,9 +23,9 @@
 .toolbar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--chrome-border);
+    gap: 10px;
+    padding: 12px 28px;
+    border-bottom: 1px solid var(--border-soft);
     flex-shrink: 0;
 }
 
@@ -34,13 +34,13 @@
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 6px;
-    height: 30px;
-    padding: 0 9px;
+    gap: 8px;
+    height: 38px;
+    padding: 0 12px;
     background: var(--primary-bg);
     border: 1px solid var(--chrome-border);
-    border-radius: 6px;
-    color: var(--chrome-muted);
+    border-radius: 2px;
+    color: var(--label-font);
 }
 
 .searchField input {
@@ -49,18 +49,18 @@
     border: none;
     outline: none;
     background: transparent;
-    font: 500 11.5px var(--font-body);
+    font: 500 13px var(--font-body);
     color: var(--chrome-ink);
 }
 
 .sortSelect {
-    height: 30px;
-    padding: 0 6px;
+    height: 38px;
+    padding: 0 10px;
     flex-shrink: 0;
     background: var(--chrome-control);
-    border: 1px solid transparent;
-    border-radius: 6px;
-    font: 600 10.5px var(--font-body);
+    border: 1px solid var(--chrome-border);
+    border-radius: 2px;
+    font: 600 12.5px var(--font-body);
     color: var(--chrome-muted);
     outline: none;
     cursor: pointer;
@@ -68,33 +68,32 @@
 
 .modalBody {
     overflow-y: auto;
-    padding: 10px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    padding: 16px 28px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    align-content: start;
+}
+
+.errorSpan {
+    grid-column: 1 / -1;
 }
 
 /* ---- loading skeleton ---- */
-.skeletonList {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
 .skeletonRow {
     display: flex;
     align-items: center;
     gap: 9px;
-    padding: 8px;
+    padding: 12px 14px;
     border: 1px solid var(--chrome-border);
-    border-radius: 6px;
+    border-radius: 2px;
     background: var(--primary-bg);
 }
 
 .skeletonThumb {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: 40px;
+    height: 40px;
+    border-radius: 2px;
     background: var(--chrome-hover);
     flex-shrink: 0;
 }
@@ -125,18 +124,19 @@
 
 /* ---- empty state ---- */
 .emptyState {
+    grid-column: 1 / -1;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 4px;
-    padding: 46px 20px;
+    gap: 5px;
+    padding: 52px 20px;
 }
 
 .emptyIcon {
-    width: 44px;
-    height: 44px;
-    border-radius: 8px;
+    width: 48px;
+    height: 48px;
+    border-radius: 2px;
     background: var(--chrome-control);
     border: 1px solid var(--chrome-border);
     display: flex;
@@ -148,14 +148,14 @@
 }
 
 .emptyTitle {
-    font: 700 13px var(--font-display);
+    font: 700 14px var(--font-display);
     color: var(--chrome-ink);
 }
 
 .emptyHint {
-    font: 500 11px var(--font-body);
+    font: 500 12px var(--font-body);
     color: var(--chrome-muted);
-    max-width: 280px;
+    max-width: 320px;
 }
 
 /* ---- delete confirmation ---- */
@@ -167,18 +167,18 @@
     align-items: center;
     justify-content: center;
     padding: 1rem;
-    background: rgba(28, 36, 48, .42);
+    background: rgba(8, 10, 14, .5);
     backdrop-filter: blur(2px);
     animation: fadeIn .16s ease both;
 }
 
 .confirmDialog {
-    width: 380px;
+    width: 420px;
     max-width: 100%;
     background: var(--chrome-surface);
     border: 1px solid var(--chrome-border);
-    border-radius: 8px;
-    box-shadow: 0 24px 54px -28px rgba(47, 67, 82, .55);
+    border-radius: 2px;
+    box-shadow: 0 24px 54px -28px rgba(0, 0, 0, .6);
     overflow: hidden;
     animation: popIn .18s cubic-bezier(.2, .8, .3, 1) both;
     font-family: var(--font-body);
@@ -187,14 +187,14 @@
 .confirmHeader {
     display: flex;
     align-items: flex-start;
-    gap: 11px;
-    padding: 14px 16px;
+    gap: 12px;
+    padding: 18px 20px;
 }
 
 .confirmIcon {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    border-radius: 2px;
     background: var(--danger-soft);
     color: var(--danger);
     display: flex;
@@ -205,13 +205,13 @@
 
 .confirmHeader h2 {
     margin: 0;
-    font: 700 14px var(--font-display);
+    font: 800 15px var(--font-display);
     color: var(--chrome-ink);
 }
 
 .confirmHeader p {
-    margin: 3px 0 0;
-    font: 500 11px/1.5 var(--font-body);
+    margin: 4px 0 0;
+    font: 500 12px/1.5 var(--font-body);
     color: var(--chrome-muted);
 }
 
@@ -219,19 +219,19 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 6px;
-    padding: 10px 16px;
+    gap: 8px;
+    padding: 12px 20px;
     border-top: 1px solid var(--chrome-border);
-    background: var(--chrome-control);
+    background: var(--surface-2);
 }
 
 .confirmCancel {
-    height: 28px;
-    padding: 0 12px;
-    border-radius: 6px;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 2px;
     border: 1px solid var(--chrome-border);
-    background: var(--primary-bg);
-    font: 600 10.5px var(--font-body);
+    background: transparent;
+    font: 600 12px var(--font-body);
     color: var(--chrome-ink);
     cursor: pointer;
 }
@@ -241,49 +241,49 @@
 }
 
 .confirmDelete {
-    height: 28px;
-    padding: 0 12px;
-    border-radius: 6px;
-    border: 1px solid transparent;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 2px;
+    border: none;
     background: var(--danger);
-    color: #FFF8F1;
-    font: 600 10.5px var(--font-body);
+    color: var(--chrome-surface);
+    font: 700 12px var(--font-body);
     cursor: pointer;
 }
 
 .confirmDelete:hover {
     background: #bb4331;
+    color: var(--on-accent);
 }
 
 .pdfItem {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    padding: 8px;
+    gap: 12px;
+    padding: 12px 14px;
     border: 1px solid var(--chrome-border);
-    border-radius: 6px;
-    background: var(--chrome-surface);
-    transition: border-color .15s, box-shadow .15s;
+    border-radius: 2px;
+    background: var(--primary-bg);
+    transition: border-color .15s, background .15s;
 }
 
 .pdfItem:hover {
-    border-color: var(--chrome-border);
+    border-color: #4A4A40;
     background: var(--chrome-control);
-    box-shadow: none;
 }
 
 .wrapperIconTitleDate {
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 12px;
     min-width: 0;
 }
 
 .wrapperPDFIcon {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: 40px;
+    height: 40px;
+    border-radius: 2px;
     background: var(--accent-soft);
     display: flex;
     align-items: center;
@@ -292,7 +292,7 @@
 }
 
 .pdfIcon {
-    font-size: 15px;
+    font-size: 18px;
     color: var(--chrome-accent);
 }
 
@@ -302,7 +302,7 @@
 
 .title {
     margin: 0;
-    font: 600 12px var(--font-body);
+    font: 700 13.5px var(--font-body);
     color: var(--chrome-ink);
     white-space: nowrap;
     overflow: hidden;
@@ -313,9 +313,9 @@
     display: flex;
     align-items: center;
     gap: 5px;
-    font: 500 9.5px var(--font-body);
+    font: 500 11px var(--font-body);
     color: var(--chrome-muted);
-    margin-top: 1px;
+    margin-top: 2px;
 }
 
 .date label {
@@ -325,7 +325,7 @@
 .modalControls {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     flex-shrink: 0;
 }
 
@@ -338,45 +338,58 @@
 }
 
 .showPdfBtn {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    border-radius: 2px;
     background: var(--chrome-control);
     border: 1px solid var(--chrome-border) !important;
     color: var(--chrome-muted);
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .showPdfBtn:hover {
     color: var(--chrome-accent);
+    border-color: var(--chrome-accent) !important;
 }
 
 .downloadPdfBtn {
     background: var(--accent-grad);
     color: var(--on-accent);
-    font: 600 10.5px var(--font-body);
-    padding: 7px 10px;
-    border-radius: 6px;
+    font: 600 12px var(--font-body);
+    padding: 0 12px;
+    height: 32px;
+    border-radius: 2px;
     box-shadow: none;
+}
+
+.downloadPdfBtn:hover {
+    filter: brightness(1.07);
 }
 
 .downloadPdfBtn a {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     color: var(--on-accent);
     text-decoration: none;
 }
 
 .deletePdfBtn {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    border-radius: 2px;
     background: var(--danger-soft);
     color: var(--danger);
-    font-size: 12px;
+    font-size: 14px;
+    border: 1px solid transparent !important;
 }
 
-.modalFooter {
-    height: 2px;
+.deletePdfBtn:hover {
+    border-color: var(--danger) !important;
+}
+
+@media only screen and (max-width: 760px) {
+    .modalBody {
+        grid-template-columns: 1fr;
+    }
 }

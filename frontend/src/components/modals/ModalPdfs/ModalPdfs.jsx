@@ -271,7 +271,8 @@ export default function ModalPdfs({ title }) {
         <DialogShell
             open={isModalPdfs}
             onClose={closeDialog}
-            width={560}
+            width={1280}
+            radius={2}
             title="Moje dokumenty"
             subtitle="Otwieraj, pobieraj i usuwaj zapisane projekty."
             footer={<>
@@ -300,21 +301,21 @@ export default function ModalPdfs({ title }) {
             </div>
 
             <div className={classes.modalBody}>
-                {error && <Error title="Brak zapisanych PDF!" message={error?.message || error} />}
-
-                {!error && loading && (
-                    <div className={classes.skeletonList}>
-                        {[0, 1, 2, 3, 4].map((i) => (
-                            <div className={classes.skeletonRow} key={i}>
-                                <div className={classes.skeletonThumb} />
-                                <div className={classes.skeletonLines}>
-                                    <span className={classes.skeletonBar} />
-                                    <span className={classes.skeletonBarThin} />
-                                </div>
-                            </div>
-                        ))}
+                {error && (
+                    <div className={classes.errorSpan}>
+                        <Error title="Brak zapisanych PDF!" message={error?.message || error} />
                     </div>
                 )}
+
+                {!error && loading && [0, 1, 2, 3, 4].map((i) => (
+                    <div className={classes.skeletonRow} key={i}>
+                        <div className={classes.skeletonThumb} />
+                        <div className={classes.skeletonLines}>
+                            <span className={classes.skeletonBar} />
+                            <span className={classes.skeletonBarThin} />
+                        </div>
+                    </div>
+                ))}
 
                 {!error && !loading && visiblePDFs.map((PDF) => {
                     const date = PDF.created_at.split(".")[0].split("T").join(" : ");
@@ -331,8 +332,8 @@ export default function ModalPdfs({ title }) {
                         <div className={classes.modalControls}>
                             <button className={classes.downloadPdfBtn} onMouseEnter={() => downloadPdf(PDF.id)}><a href={PDFdownloadData.blob} download={PDFdownloadData.title}>
                             Pobierz <IoMdDownload /></a></button>
+                            <button className={classes.showPdfBtn} onClick={() => showPDF(PDF.id)} disabled={isOpening} title="Otwórz na płótnie" aria-label="Otwórz na płótnie"><GrView /></button>
                             <button className={classes.deletePdfBtn} onClick={() => askDelete(PDF.id)} title="Usuń dokument" aria-label="Usuń dokument"><MdDelete /></button>
-                            <button className={classes.showPdfBtn} onClick={() => showPDF(PDF.id)} disabled={isOpening}><GrView /></button>
                         </div>
 
                     </div>;
