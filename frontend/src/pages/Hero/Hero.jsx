@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import classes from "./Hero.module.css";
 import { TEMPLATES } from "../../templates";
 import { wakeBackend } from "../../services/api";
+import { queueGuestEvent } from "../../utils/guestEvents";
 
 const TEMPLATE_PREVIEWS = TEMPLATES.map((template) => ({
     id: template.id,
@@ -104,11 +105,18 @@ function BlankIcon() {
     );
 }
 
+// "import" costs a paid OpenAI call (POST /ai/extract_cv) and stays gated
+// behind registration — Etap 1 deliberately does not open it to anonymous
+// visitors (see docs/superpowers/specs/2026-08-07-onboarding-monetization-design.md
+// §4.5). Every other start intent is frontend-only / zero-cost, so it goes
+// straight into guest mode regardless of auth state.
 function buildStartUrl(start, plan) {
-    const registered = Boolean(window.localStorage.getItem("token"));
-    if (registered) return `/pdfcanvas?start=${start}`;
-
-    return `/register?start=${start}&plan=${plan}`;
+    if (start === "import") {
+        const registered = Boolean(window.localStorage.getItem("token"));
+        if (registered) return `/pdfcanvas?start=${start}`;
+        return `/register?start=${start}&plan=${plan}`;
+    }
+    return `/pdfcanvas?start=${start}`;
 }
 
 function StartButton({ start, plan, children, secondary = false }) {
@@ -116,6 +124,9 @@ function StartButton({ start, plan, children, secondary = false }) {
         <Link
             to={buildStartUrl(start, plan)}
             className={secondary ? classes.buttonSecondary : classes.buttonPrimary}
+            onClick={() => {
+                if (start !== "import") queueGuestEvent("landing_cta_clicked");
+            }}
         >
             {children}
             <ArrowIcon />
@@ -177,10 +188,22 @@ export default function Hero() {
                     </p>
                     <div className={classes.heroActions}>
                         <Link className={classes.buttonPrimary} to={importUrl}>Wgraj moje CV<ArrowIcon /></Link>
-                        <Link className={classes.buttonSecondary} to={wizardUrl}>Stwórz CV od początku<ArrowIcon /></Link>
+                        <Link
+                            className={classes.buttonSecondary}
+                            to={wizardUrl}
+                            onClick={() => queueGuestEvent("landing_cta_clicked")}
+                        >
+                            Stwórz CV od początku<ArrowIcon />
+                        </Link>
                     </div>
                     <p className={classes.heroNote}>
-                        <span>01</span> Bez przepisywania danych. <span>02</span> Pełna kontrola nad dokumentem.
+                        Bez karty • Zacznij bez konta •{" "}
+                        <Link
+                            to="/pdfcanvas?start=demo"
+                            onClick={() => queueGuestEvent("landing_cta_clicked")}
+                        >
+                            Zobacz edytor
+                        </Link>
                     </p>
                 </div>
 
