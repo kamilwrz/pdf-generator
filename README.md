@@ -49,7 +49,7 @@ Forcing registration before a visitor had seen the editor used to be the largest
 3. **Register / login only when it matters** → clicking “Zapisz PDF” / “Pobierz PDF” as a guest opens `SaveGateModal` instead of calling the backend. Registering or logging in preserves the selected `start` intent and, if a guest document exists, claims it automatically — the visitor never re-enters anything.
 4. **Pick a template** → `handleLoadTemplate` materializes specs → canvas.
 5. **Import PDF** (account required) → `POST /ai/extract_cv` → choose template → `POST /ai/fill_template` → Python layout in `cv_generator.generate_resume`.
-6. **Bio wizard** → draft CRUD on `/ai/bio_cv_draft` for authenticated users; for guests the wizard runs entirely in local React state (no draft endpoint calls) → fill template.
+6. **Bio wizard** → draft CRUD on `/ai/bio_cv_draft` for authenticated users; for guests the wizard runs entirely in local React state (no draft endpoint calls) → `POST /ai/fill_template` (anonymous Free starter templates allowed).
 7. **Edit** → drag/resize/style → debounced `PUT /pdf/save_elements` once authenticated, or a debounced `localStorage` write (`guestDocument.js`) as a guest.
 8. **AI assistant** → `POST /ai/assistant` → tips / corrections / reviewable layout groups (account required — every assistant action is entitlement-gated).
 9. **Export** → create/update PDF → `POST /pdf/download_pdf` (export quota charged; requires an account, reached through the save-gate for guests).
@@ -338,18 +338,19 @@ Implementation:
 
 **How it works.** `frontend/src/App.jsx` no longer wraps `/pdfcanvas` in a `ProtectedRoute` (that component was deleted from the repo); the route is public, and `PdfCanvas` branches on `localStorage.getItem("token")` wherever a call would otherwise 401:
 
-- **Token verification** — the mount effect that revalidates a JWT against `GET /auth/verify-token/{token}` is skipped entirely for guests, so an anonymous visit never triggers the 401 branch that used to redirect back to `/`.
+- **Token verification** — the mount effect that revalidates a JWT against `GET /auth/verify-token/{token}` is skipped entirely for guests. When a leftover JWT is expired or invalid, the token is cleared and the visitor **stays** on `/pdfcanvas` as a guest (the old redirect to `/` belonged to the pre-guest-mode era when the editor required auth).
 - **Guest autosave** — a 2-second-debounce effect persists the canvas (elements, deleted ids, title, page count, editor mode, template id, spacing, and whether the content is still the demo CV) to `localStorage` via `guestDocument.js`, instead of the authenticated `PUT /pdf/save_elements` autosave effect that runs once a real `pdfId` exists.
 - **Save-gate** — `handleSaveClick` (wired to the Topbar's “Zapisz PDF” / “Pobierz PDF”) checks for a token first; a guest sees `SaveGateModal` (“Mam już konto” → `/login`, “Utwórz konto” → `/register`) instead of firing `POST /pdf/create_pdf`.
 - **Claim on login/registration** — once a JWT exists, a one-shot effect loads any buffered guest document, replaces the canvas with it via the same primitive `ModalPdfs` uses to reopen a saved PDF (`hydrateDocumentMode`, not `handleLoadTemplate` / `handleLoadAiElements` — those re-materialize elements and mint new ids, which would silently break connectors saved by `saveGuestDocument`), calls `POST /pdf/create_pdf` to persist it for real, clears the guest buffer, and flushes any buffered guest analytics events through the normal authenticated `logEvent`.
 - **Demo entry point** — `?start=demo` loads a static example CV (`demoCvTemplate`) and shows a persistent `DemoBanner` (“Użyj własnych danych” opens the bio wizard in place; “Zacznij od zera” discards the demo content and switches to a blank freeform document).
-- **Guarded authenticated surfaces** — “Moje dokumenty” (`ModalPdfs`), the bio wizard's draft persistence (`BioCvModal`), and the image gallery/upload (`Gallery`, `Dropzone`) all check for a token before firing a request that would otherwise 401; guests see the same “loaded, empty” state (or a short Polish explanation) instead of a raw auth error.
+- **Anonymous template fill** — finishing the bio wizard (or restyling via `fillTemplate`) calls `POST /ai/fill_template` without a JWT. The backend uses optional auth (`verify_token_optional`) and allows only Free starter templates for guests — the same allowlist as the Free plan. This path is deterministic Python layout (no OpenAI cost). The frontend never sends `Authorization: Bearer null`.
+- **Guarded authenticated surfaces** — “Moje dokumenty” (`ModalPdfs`), the bio wizard's draft persistence (`BioCvModal`), and the image gallery/upload (`Gallery`, `Dropzone`) all check for a token before firing a request that would otherwise 401; guests see the same “loaded, empty” state (or a short Polish explanation) instead of a raw auth error. If a stale JWT still triggers 401/403 on a draft call, `BioCvModal` clears the token and continues as a guest instead of showing “Token jest nieprawidłowy lub wygasł”.
 - **Funnel analytics** — `POST /events/log` requires a JWT (it is the sole signal gating further monetization decisions), so anonymous funnel events queue client-side in `guestEvents.js` (capped at 50 entries, oldest dropped first) and are flushed once a token exists, in the claim effect above.
 
 Implementation:
 
 - `frontend/src/App.jsx`, lines 1–20 — `/pdfcanvas` route with no `ProtectedRoute` wrapper (component deleted)
-- `frontend/src/pages/PdfCanvas.jsx`, lines 356–372 — guest-skipped token verification
+- `frontend/src/pages/PdfCanvas.jsx`, lines 356–373 — guest-skipped token verification; expired JWT cleared without redirect
 - `frontend/src/pages/PdfCanvas.jsx`, lines 512–563 — guest autosave effect (`guestFirstEditLoggedRef`, `guestEditorOpenedLoggedRef`)
 - `frontend/src/pages/PdfCanvas.jsx`, lines 707–717, function `handleSaveClick` — save-gate branch
 - `frontend/src/pages/PdfCanvas.jsx`, lines 883–959 — claim effect (`claimAttemptedRef`)
@@ -361,16 +362,20 @@ Implementation:
 - `frontend/src/components/editor/DemoBanner/DemoBanner.jsx` + `.module.css`
 - `frontend/src/pages/Hero/Hero.jsx`, lines 112–139 — `buildStartUrl` / `StartButton` guest-first CTA routing
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, lines 211–221 — guest guard on the “Moje dokumenty” fetch
-- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, lines 121–128 (`saveDraft`), 160–172 (mount effect), 277–298 (`clearDraft`) — guest guards on all three draft endpoints
+- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, lines 95–98 (`createApi`), 124–154 (`saveDraft`), 174–211 (mount effect), 294–344 (`clearDraft`), 346–379 (`handleFill`) — guest guards + stale-JWT recovery on draft endpoints; fill uses live `fillTemplate` client
+- `frontend/src/services/fillTemplate.js`, lines 21–46, function `fillTemplate` — omits Bearer header when no JWT
 - `frontend/src/components/gallery/Gallery/Gallery.jsx`, lines 39–54 — guest guard on the image-library fetch
 - `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, lines 38–53 — guest guard on image upload
 - `frontend/src/services/eventLog.js` — `logEvent`, the authenticated sink guest events are flushed through
+- `backend/app/core/security.py`, lines 64–65 and 109–123, `oauth2_scheme_optional` / `verify_token_optional`
+- `backend/app/api/routes/ai.py`, lines 153–191, function `fill_template` — optional auth; Free starter allowlist for guests
 - `backend/app/api/routes/events.py`, lines 30–40, `EventLogRequest.event_type` — widened with `landing_cta_clicked`, `guest_editor_opened`, `guest_demo_loaded`, `guest_first_edit`, `save_gate_shown`, `register_completed`, `guest_doc_claimed`
 
 Tests:
 
 - `frontend/src/utils/guestDocument.test.js` — round-trip persistence, null on empty/corrupt storage, `hasGuestDocument` requires a non-deleted element
 - `frontend/src/utils/guestEvents.test.js` — append with timestamp, ordering, empty/corrupt storage, 50-entry cap
+- `backend/tests/test_fill_template_guest.py` — anonymous Free fill succeeds; Standard template rejected; stale Bearer treated as guest
 
 Dependencies: `localStorage` (no server round trip until claim); the claim effect depends on `hydrateDocumentMode` (shared with `ModalPdfs.showPDF`) and the existing `POST /pdf/create_pdf` endpoint — no new backend PDF-creation path was added.
 
@@ -906,7 +911,7 @@ Base URL: `VITE_API_URL` (frontend) / deployed backend. Auth: `Authorization: Be
 | GET | `/images/{img_id}/content` | yes | Private image bytes (owner only) | `get_image_content` |
 | DELETE | `/images/delete_image` | yes | Delete if unused | `delete_user_image` |
 | POST | `/ai/extract_cv` | yes | PDF → cv_data | `extract_cv` |
-| POST | `/ai/fill_template` | yes | cv_data + template → elements | `fill_template` |
+| POST | `/ai/fill_template` | optional | cv_data + template → elements (guests: Free starter templates only) | `fill_template` |
 | GET/PUT/DELETE | `/ai/bio_cv_draft` | yes | Private draft | bio draft routes |
 | POST | `/ai/assistant` | yes | Assistant actions | `ai_assistant` |
 | GET | `/billing/plans` | yes | Plan catalog | `get_plans` |
@@ -1157,7 +1162,7 @@ Wymuszanie rejestracji zanim odwiedzający zobaczył edytor było dotąd najwię
 3. **Rejestracja / logowanie tylko wtedy, gdy to ma znaczenie** → kliknięcie „Zapisz PDF” / „Pobierz PDF” jako gość otwiera `SaveGateModal` zamiast wywoływać backend. Rejestracja lub logowanie zachowuje wybrany parametr `start`, a jeśli istnieje bufor dokumentu gościa — przejmuje go automatycznie, bez ponownego wprowadzania czegokolwiek.
 4. **Wybór szablonu** → `handleLoadTemplate` materializuje elementy → płótno.
 5. **Import PDF** (wymaga konta) → `POST /ai/extract_cv` → szablon → `POST /ai/fill_template` → layout w `cv_generator.generate_resume`.
-6. **Kreator bio** → CRUD `/ai/bio_cv_draft` dla zalogowanych; dla gości kreator działa wyłącznie w lokalnym stanie React (bez wywołań endpointu szkicu) → wypełnienie szablonu.
+6. **Kreator bio** → CRUD `/ai/bio_cv_draft` dla zalogowanych; dla gości kreator działa wyłącznie w lokalnym stanie React (bez wywołań endpointu szkicu) → `POST /ai/fill_template` (anonimowo dozwolone szablony Free starter).
 7. **Edycja** → przeciąganie / styl → debounced `PUT /pdf/save_elements` po zalogowaniu, albo debounced zapis do `localStorage` (`guestDocument.js`) jako gość.
 8. **Asystent AI** → `POST /ai/assistant` → wskazówki / poprawki / karty układu do akceptacji (wymaga konta — każde działanie asystenta jest objęte entitlements).
 9. **Eksport** → create/update PDF → `POST /pdf/download_pdf` (naliczany limit eksportów; wymaga konta, dla gości osiąganego przez save-gate).
@@ -1437,18 +1442,19 @@ Implementacja:
 
 **Jak to działa.** `frontend/src/App.jsx` nie owija już `/pdfcanvas` w `ProtectedRoute` (ten komponent został usunięty z repozytorium); trasa jest publiczna, a `PdfCanvas` rozgałęzia się na `localStorage.getItem("token")` wszędzie tam, gdzie wywołanie skończyłoby się błędem 401:
 
-- **Weryfikacja tokenu** — efekt montowania, który sprawdza JWT przez `GET /auth/verify-token/{token}`, jest całkowicie pomijany dla gości, więc anonimowa wizyta nigdy nie trafia w gałąź 401, która wcześniej przekierowywała z powrotem na `/`.
+- **Weryfikacja tokenu** — efekt montowania, który sprawdza JWT przez `GET /auth/verify-token/{token}`, jest całkowicie pomijany dla gości. Gdy w `localStorage` zostanie wygasły lub nieprawidłowy JWT, token jest usuwany, a odwiedzający **zostaje** na `/pdfcanvas` jako gość (stare przekierowanie na `/` pochodziło z ery sprzed trybu gościa, gdy edytor wymagał logowania).
 - **Autozapis gościa** — efekt z debounce 2 sekund zapisuje płótno (elementy, usunięte id, tytuł, liczbę stron, tryb edytora, id szablonu, odstępy oraz informację, czy treść to nadal CV demo) do `localStorage` przez `guestDocument.js`, zamiast uwierzytelnionego efektu autozapisu `PUT /pdf/save_elements`, który działa dopiero po powstaniu prawdziwego `pdfId`.
 - **Save-gate** — `handleSaveClick` (podpięty pod „Zapisz PDF” / „Pobierz PDF” w Topbarze) najpierw sprawdza token; gość widzi `SaveGateModal` („Mam już konto” → `/login`, „Utwórz konto” → `/register`) zamiast wywołania `POST /pdf/create_pdf`.
 - **Przejęcie po logowaniu/rejestracji** — gdy tylko istnieje JWT, jednorazowy efekt wczytuje zbuforowany dokument gościa, podmienia płótno tym samym prymitywem, którego `ModalPdfs` używa do ponownego otwarcia zapisanego PDF (`hydrateDocumentMode`, nie `handleLoadTemplate` / `handleLoadAiElements` — te ponownie materializują elementy i nadają nowe id, co po cichu zepsułoby konektory zapisane przez `saveGuestDocument`), wywołuje `POST /pdf/create_pdf`, żeby zapisać dokument naprawdę, czyści bufor gościa i wysyła zbuforowane zdarzenia analityczne przez zwykły, uwierzytelniony `logEvent`.
 - **Punkt wejścia demo** — `?start=demo` wczytuje statyczne przykładowe CV (`demoCvTemplate`) i pokazuje trwały baner `DemoBanner` („Użyj własnych danych” otwiera kreator bio w miejscu; „Zacznij od zera” odrzuca treść demo i przełącza na pusty projekt własny).
-- **Zabezpieczone powierzchnie wymagające konta** — „Moje dokumenty” (`ModalPdfs`), zapis szkicu kreatora bio (`BioCvModal`) oraz galeria/upload obrazów (`Gallery`, `Dropzone`) sprawdzają token przed wywołaniem, które inaczej skończyłoby się błędem 401; gość widzi ten sam stan „załadowano, pusto” (albo krótkie polskie wyjaśnienie) zamiast surowego błędu autoryzacji.
+- **Anonimowe wypełnianie szablonu** — zakończenie kreatora bio (albo zmiana stylu przez `fillTemplate`) wywołuje `POST /ai/fill_template` bez JWT. Backend używa opcjonalnej autoryzacji (`verify_token_optional`) i dla gości zezwala wyłącznie na szablony Free starter — ta sama lista co w planie Free. Ścieżka to deterministyczny layout w Pythonie (bez kosztu OpenAI). Frontend nigdy nie wysyła `Authorization: Bearer null`.
+- **Zabezpieczone powierzchnie wymagające konta** — „Moje dokumenty” (`ModalPdfs`), zapis szkicu kreatora bio (`BioCvModal`) oraz galeria/upload obrazów (`Gallery`, `Dropzone`) sprawdzają token przed wywołaniem, które inaczej skończyłoby się błędem 401; gość widzi ten sam stan „załadowano, pusto” (albo krótkie polskie wyjaśnienie) zamiast surowego błędu autoryzacji. Jeśli przestarzały JWT i tak zwróci 401/403 na szkicu, `BioCvModal` czyści token i kontynuuje jako gość zamiast pokazywać „Token jest nieprawidłowy lub wygasł”.
 - **Analityka lejka** — `POST /events/log` wymaga JWT (to jedyny sygnał decydujący o dalszych decyzjach monetyzacyjnych), więc anonimowe zdarzenia lejka buforują się po stronie klienta w `guestEvents.js` (limit 50 wpisów, najstarsze usuwane pierwsze) i są wysyłane, gdy tylko pojawi się token, w opisanym wyżej efekcie przejęcia.
 
 Implementacja:
 
 - `frontend/src/App.jsx`, linie 1–20 — trasa `/pdfcanvas` bez owijki `ProtectedRoute` (komponent usunięty)
-- `frontend/src/pages/PdfCanvas.jsx`, linie 356–372 — pominięta dla gości weryfikacja tokenu
+- `frontend/src/pages/PdfCanvas.jsx`, linie 356–373 — pominięta dla gości weryfikacja tokenu; wygasły JWT czyszczony bez przekierowania
 - `frontend/src/pages/PdfCanvas.jsx`, linie 512–563 — efekt autozapisu gościa (`guestFirstEditLoggedRef`, `guestEditorOpenedLoggedRef`)
 - `frontend/src/pages/PdfCanvas.jsx`, linie 707–717, funkcja `handleSaveClick` — gałąź save-gate
 - `frontend/src/pages/PdfCanvas.jsx`, linie 883–959 — efekt przejęcia (`claimAttemptedRef`)
@@ -1460,16 +1466,20 @@ Implementacja:
 - `frontend/src/components/editor/DemoBanner/DemoBanner.jsx` + `.module.css`
 - `frontend/src/pages/Hero/Hero.jsx`, linie 112–139 — `buildStartUrl` / `StartButton`, routing CTA priorytetowo do trybu gościa
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, linie 211–221 — zabezpieczenie fetcha „Moje dokumenty” dla gości
-- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, linie 121–128 (`saveDraft`), 160–172 (efekt montowania), 277–298 (`clearDraft`) — zabezpieczenia gościa na wszystkich trzech endpointach szkicu
+- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, linie 95–98 (`createApi`), 124–154 (`saveDraft`), 174–211 (efekt montowania), 294–344 (`clearDraft`), 346–379 (`handleFill`) — zabezpieczenia gościa + odzyskiwanie po wygasłym JWT; fill przez żywy klient `fillTemplate`
+- `frontend/src/services/fillTemplate.js`, linie 21–46, funkcja `fillTemplate` — pomija nagłówek Bearer, gdy brak JWT
 - `frontend/src/components/gallery/Gallery/Gallery.jsx`, linie 39–54 — zabezpieczenie fetcha biblioteki obrazów dla gości
 - `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, linie 38–53 — zabezpieczenie uploadu obrazów dla gości
 - `frontend/src/services/eventLog.js` — `logEvent`, uwierzytelniony odbiornik, przez który przechodzą zbuforowane zdarzenia gościa
+- `backend/app/core/security.py`, linie 64–65 oraz 109–123, `oauth2_scheme_optional` / `verify_token_optional`
+- `backend/app/api/routes/ai.py`, linie 153–191, funkcja `fill_template` — opcjonalna autoryzacja; lista Free starter dla gości
 - `backend/app/api/routes/events.py`, linie 30–40, `EventLogRequest.event_type` — rozszerzony o `landing_cta_clicked`, `guest_editor_opened`, `guest_demo_loaded`, `guest_first_edit`, `save_gate_shown`, `register_completed`, `guest_doc_claimed`
 
 Testy:
 
 - `frontend/src/utils/guestDocument.test.js` — round-trip zapisu/odczytu, `null` dla pustego/uszkodzonego magazynu, `hasGuestDocument` wymaga co najmniej jednego nieusuniętego elementu
 - `frontend/src/utils/guestEvents.test.js` — dodawanie ze znacznikiem czasu, kolejność, pusty/uszkodzony magazyn, limit 50 wpisów
+- `backend/tests/test_fill_template_guest.py` — anonimowy fill Free działa; szablon Standard odrzucony; przestarzały Bearer traktowany jak gość
 
 Zależności: `localStorage` (brak zapytania do serwera aż do przejęcia); efekt przejęcia zależy od `hydrateDocumentMode` (współdzielonego z `ModalPdfs.showPDF`) oraz istniejącego endpointu `POST /pdf/create_pdf` — nie dodano żadnej nowej ścieżki tworzenia PDF po stronie backendu.
 
@@ -1984,7 +1994,7 @@ URL bazowy: `VITE_API_URL`. Auth: `Authorization: Bearer <jwt>` (chyba że zazna
 | GET | `/images/{img_id}/content` | tak | Bajty obrazu (tylko właściciel) | `get_image_content` |
 | DELETE | `/images/delete_image` | tak | Usuń nieużywany | `delete_user_image` |
 | POST | `/ai/extract_cv` | tak | Extract | `extract_cv` |
-| POST | `/ai/fill_template` | tak | Fill | `fill_template` |
+| POST | `/ai/fill_template` | opcjonalnie | Fill (goście: tylko szablony Free starter) | `fill_template` |
 | GET/PUT/DELETE | `/ai/bio_cv_draft` | tak | Szkic bio | routes/ai |
 | POST | `/ai/assistant` | tak | Asystent | `ai_assistant` |
 | GET/POST | `/billing/*` | tak | Plany | billing |

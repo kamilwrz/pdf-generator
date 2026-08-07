@@ -12,8 +12,8 @@ import { flowSpacingToPayload } from "../utils/flowSpacing";
  * @param {object} cvData - Normalised CV payload for the backend generator.
  * @param {string} templateId - Registry id (must exist in `_GENERATORS`).
  * @param {object} [options]
- * @param {ApiClient} [options.api] - Reuse an authenticated client when the
- *   caller already constructed one; otherwise a Bearer client is created.
+ * @param {ApiClient} [options.api] - Reuse a caller-built client when provided;
+ *   otherwise a client is created with a Bearer header only when a JWT exists.
  * @param {string} [options.errorMessage] - Fallback Polish message for ApiClient.
  * @param {object} [options.spacing] - Optional SPACE_* rhythm override.
  * @returns {Promise<{elements: object[]}>}
@@ -25,8 +25,13 @@ export async function fillTemplate(cvData, templateId, options = {}) {
   if (!templateId) {
     throw new Error("Nie wybrano szablonu.");
   }
+  // Guests call the same endpoint without a Bearer header. Sending
+  // `Authorization: Bearer null` would look like a malformed JWT and used to
+  // surface "Token jest nieprawidłowy lub wygasł" even though the route now
+  // accepts anonymous Free-tier fills.
+  const token = typeof localStorage !== "undefined" ? localStorage.getItem("token") : null;
   const api = options.api
-    ?? new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+    ?? new ApiClient(token ? { Authorization: `Bearer ${token}` } : {});
   const errorMessage = options.errorMessage || "Generowanie szablonu nie powiodło się";
   const body = { cv_data: cvData, template_id: templateId };
   if (options.spacing) {

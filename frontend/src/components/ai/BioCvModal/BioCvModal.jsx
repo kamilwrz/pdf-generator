@@ -89,10 +89,13 @@ export default function BioCvModal() {
         setActiveCvData,
         flowSpacing,
     } = use(PdfContext);
-    const api = useMemo(
-        () => new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` }),
-        [],
-    );
+    // Build the client per call site from the current token. Capturing
+    // `Bearer ${null}` once in a mount-time useMemo used to send a literal
+    // "null" JWT on guest fills and surface a false "token expired" error.
+    const createApi = useCallback(() => {
+        const token = localStorage.getItem("token");
+        return new ApiClient(token ? { Authorization: `Bearer ${token}` } : {});
+    }, []);
     const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
     const [profile, setProfile] = useState(createEmptyBioCvData);
     const [step, setStep] = useState(0);
@@ -131,17 +134,24 @@ export default function BioCvModal() {
         return saveQueueRef.current.enqueue(async () => {
             if (!silent) setSaveError(null);
             try {
-                await api.httpRequest(
+                await createApi().httpRequest(
                     ENDPOINTS.AI.BIO_CV_DRAFT,
                     "PUT",
                     JSON.stringify({ cv_data: payload }),
                     "Nie udało się zapisać szkicu.",
                 );
             } catch (error) {
+                // Stale JWT mid-session: drop it and keep editing as a guest
+                // instead of pinning a "token expired" banner on every keystroke.
+                if (error.status === 401 || error.status === 403) {
+                    localStorage.removeItem("token");
+                    setSaveError(null);
+                    return;
+                }
                 setSaveError(error.message || "Nie udało się zapisać szkicu.");
             }
         });
-    }, [api]);
+    }, [createApi]);
 
     useEffect(() => {
         if (!isBioCvModal) {
@@ -171,7 +181,7 @@ export default function BioCvModal() {
             };
         }
 
-        api.httpRequest(ENDPOINTS.AI.BIO_CV_DRAFT, "GET", null, "Nie udało się pobrać szkicu.")
+        createApi().httpRequest(ENDPOINTS.AI.BIO_CV_DRAFT, "GET", null, "Nie udało się pobrać szkicu.")
             .then((response) => {
                 if (!active) return;
                 setProfile(normalizeBioCvData(response?.cv_data));
@@ -180,7 +190,14 @@ export default function BioCvModal() {
             })
             .catch((error) => {
                 if (!active) return;
-                setSaveError(error.message || "Nie udało się pobrać szkicu.");
+                // Expired/invalid JWT must not block the wizard with a red
+                // "token expired" banner — clear it and continue as a guest.
+                if (error.status === 401 || error.status === 403) {
+                    localStorage.removeItem("token");
+                    setSaveError(null);
+                } else {
+                    setSaveError(error.message || "Nie udało się pobrać szkicu.");
+                }
                 readyRef.current = true;
                 setIsReady(true);
             })
@@ -191,7 +208,7 @@ export default function BioCvModal() {
         return () => {
             active = false;
         };
-    }, [api, isBioCvModal]);
+    }, [createApi, isBioCvModal]);
 
     useEffect(() => {
         if (!isReady || !isBioCvModal) return undefined;
@@ -302,7 +319,7 @@ export default function BioCvModal() {
                 saveTimer.current = null;
             }
             await saveQueueRef.current.whenIdle();
-            await api.httpRequest(ENDPOINTS.AI.BIO_CV_DRAFT, "DELETE", null, "Nie udało się usunąć szkicu.");
+            await createApi().httpRequest(ENDPOINTS.AI.BIO_CV_DRAFT, "DELETE", null, "Nie udało się usunąć szkicu.");
             skipAutosaveRef.current = true;
             const emptyProfile = createEmptyBioCvData();
             profileRef.current = emptyProfile;
@@ -311,9 +328,20 @@ export default function BioCvModal() {
             setStepError(null);
             setSaveError(null);
         } catch (error) {
+            if (error.status === 401 || error.status === 403) {
+                localStorage.removeItem("token");
+                skipAutosaveRef.current = true;
+                const emptyProfile = createEmptyBioCvData();
+                profileRef.current = emptyProfile;
+                setProfile(emptyProfile);
+                setStep(0);
+                setStepError(null);
+                setSaveError(null);
+                return;
+            }
             setSaveError(error.message || "Nie udało się usunąć szkicu.");
         }
-    }, [api]);
+    }, [createApi]);
 
     const handleFill = useCallback(async (template) => {
         if (!isTemplateAllowed(template, entitlements)) {
@@ -331,8 +359,9 @@ export default function BioCvModal() {
         try {
             const payload = buildBioCvPayload(profile);
             await saveDraft(payload, { silent: true });
+            // Let fillTemplate build its own client from the live token so a
+            // guest never inherits a stale `Bearer null` header from mount.
             const response = await fillTemplate(payload, template.id, {
-                api,
                 errorMessage: "Nie udało się utworzyć CV.",
                 spacing: flowSpacing,
             });
@@ -347,7 +376,7 @@ export default function BioCvModal() {
         } finally {
             setFillingId(null);
         }
-    }, [api, entitlements, flowSpacing, loadAiElements, profile, saveDraft, setActiveCvData, showBioCvModal]);
+    }, [entitlements, flowSpacing, loadAiElements, profile, saveDraft, setActiveCvData, showBioCvModal]);
 
     const renderPersonal = () => (
         <div className={classes.formGrid}>

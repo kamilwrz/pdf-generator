@@ -355,7 +355,9 @@ function PdfCanvas() {
 
   // Guests (no token) are the default state here now, not an expired
   // session — skip verification entirely so a guest visit never triggers
-  // the 401 branch below and bounces back to "/".
+  // a needless network call. When a leftover JWT is expired, clear it and
+  // stay on /pdfcanvas as a guest instead of bouncing to "/" (that redirect
+  // was from the pre-guest-mode era when the editor required auth).
   useEffect(() => {
     if (!localStorage.getItem("token")) return;
 
@@ -365,11 +367,10 @@ function PdfCanvas() {
         console.log(error);
         if (error.status === 401 || error.status === 403) {
           localStorage.removeItem("token");
-          navigate("/");
         }
       })
 
-  }, [checkActivity, navigate])
+  }, [checkActivity])
 
 
   // Each visible page receives this capture handler, allowing connector source

@@ -15,7 +15,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from app.core.security import verify_token
+from app.core.security import verify_token, verify_token_optional
 from app.crud.bio_cv_drafts import delete_bio_cv_draft, get_bio_cv_draft, upsert_bio_cv_draft
 from app.crud.user import get_user_by_username
 from app.dependencies import get_db
@@ -24,6 +24,8 @@ from app.services.cv_data import CvDataValidationError, normalize_cv_data
 from app.services.ai_service import extract_cv_data, generate_resume
 from app.services.cv_generator_primitives import use_spacing
 from app.services.entitlements import (
+    FREE_STARTER_TEMPLATE_IDS,
+    PlanLimitError,
     assert_can_extract_cv,
     assert_template_allowed,
     charge_ai_credits,
@@ -152,18 +154,30 @@ async def delete_bio_cv_draft_route(
 async def fill_template(
     request: FillRequest,
     http_request: Request,
-    payload: dict = Depends(verify_token),
+    payload: dict | None = Depends(verify_token_optional),
     db: Session = Depends(get_db),
 ):
     """Materialize a template canvas from `cv_data` using deterministic Python layout.
 
-    Gated by template tier entitlements. Does not call the LLM for placement —
-    only validates/normalises profile data and runs `generate_resume`.
+    Authenticated callers are gated by their plan's template tier. Anonymous
+    guests (no JWT, or a stale/invalid Bearer) may only fill Free starter
+    templates — the same allowlist as the Free plan. Does not call the LLM for
+    placement; only validates/normalises profile data and runs `generate_resume`.
     """
-    user = get_user_by_username(db, username=payload.get("sub"))
-    if user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
-    assert_template_allowed(db, user, request.template_id)
+    # Guest path: optional auth returned None (missing, expired, or malformed
+    # JWT). Enforce the Free starter allowlist so anonymous traffic cannot
+    # bypass Standard-tier template locks, then run the same layout pipeline.
+    if payload is None:
+        if request.template_id not in FREE_STARTER_TEMPLATE_IDS:
+            raise PlanLimitError(
+                "plan_feature_template",
+                "Ten szablon jest dostępny w planie Standard.",
+            )
+    else:
+        user = get_user_by_username(db, username=payload.get("sub"))
+        if user is None:
+            raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        assert_template_allowed(db, user, request.template_id)
     try:
         cv_data = normalize_cv_data(request.cv_data, require_name=True)
         with use_spacing(request.spacing_px):

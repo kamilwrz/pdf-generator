@@ -59,6 +59,9 @@ def assert_secret_key_configured() -> None:
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # Token URL matches the OAuth2 password form used by /auth/token.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+# Optional Bearer for routes that also serve anonymous guests (e.g. fill_template).
+# Missing Authorization yields ``None`` instead of HTTP 403.
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="auth/token", auto_error=False)
 
 def get_access_token_expire_minutes() -> int:
     """Return a positive token lifetime in minutes, falling back to seven days."""
@@ -101,6 +104,25 @@ def verify_token(token: str = Depends(oauth2_scheme)) -> dict:
         return payload
     except JWTError:
         raise HTTPException(status_code=403, detail="Token jest nieprawidłowy lub wygasł")
+
+
+def verify_token_optional(token: str | None = Depends(oauth2_scheme_optional)) -> dict | None:
+    """Return a JWT payload when a valid Bearer token is present, else ``None``.
+
+    Used by guest-capable routes such as ``POST /ai/fill_template``. A missing,
+    malformed, or expired token is treated as an anonymous guest rather than a
+    hard 403 — the route itself decides Free-tier limits for that case.
+    """
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, secret_key, algorithms=[algorithm])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+        return payload
+    except JWTError:
+        return None
 
 def _password_to_72_bytes(password: str | bytes | None) -> bytes:
     """Bcrypt accepts at most 72 bytes. Return password as bytes, never longer than 72."""

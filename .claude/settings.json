@@ -1,7 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(python -m unittest tests.test_events_log -v)",
+      "Bash(python -m unittest discover -s tests)",
+      "Bash(node --import ./scripts/register-hook.mjs --test src/utils/guestDocument.test.js)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(bash /c/Users/Kamil/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development/scripts/review-package docs/superpowers/plans/2026-08-07-guest-mode-onboarding.md 1ab39b032760c4099bfd97e5bf96c189f13f5b21 HEAD)",
+      "Bash(node --import ./scripts/register-hook.mjs --test src/utils/guestEvents.test.js)",
+      "Bash(bash __TRACKED_VAR__/scripts/task-brief docs/superpowers/plans/2026-08-07-guest-mode-onboarding.md 4)",
+      "Bash(node --import ./scripts/register-hook.mjs -e \"import\\('./src/templates/demoCv.js'\\).then\\(m => console.log\\('✓ Module loaded successfully, array length:', m.demoCvTemplate.length, 'elements'\\)\\)\")",
+      "Bash(git commit *)",
+      "Bash('C:\\\\Users\\\\Kamil/.claude/skills/gstack/browse/dist/browse' click *)",
+      "Bash('C:\\\\Users\\\\Kamil/.claude/skills/gstack/browse/dist/browse' js *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Kamil\\.gstack\\projects\\kamilwrz-pdf-generator\\ceo-plans"
