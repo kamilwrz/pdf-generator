@@ -34,6 +34,8 @@ import SectionsPanel from '../components/editor/SectionsPanel/SectionsPanel';
 import AddSectionModal from '../components/editor/AddSectionModal/AddSectionModal';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 import { logEvent } from '../services/eventLog';
+import { saveGuestDocument } from '../utils/guestDocument';
+import { queueGuestEvent } from '../utils/guestEvents';
 import { previewStructureOperation } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
 import { planErrorMessage } from '../utils/entitlements';
@@ -501,6 +503,57 @@ function PdfCanvas() {
     pageSize,
     pdfId,
   ])
+
+  // Guest-mode autosave: no token yet, so persist to localStorage instead of
+  // the backend (which would 401). Same 2s settle debounce as the
+  // authenticated path above, but writes via guestDocument instead of
+  // calling saveElements. Skipped once a real pdfId exists — from that point
+  // the authenticated effect above is the source of truth.
+  const isDemoContentRef = useRef(false);
+  const guestFirstEditLoggedRef = useRef(false);
+  const guestEditorOpenedLoggedRef = useRef(false);
+  useEffect(() => {
+    if (localStorage.getItem("token") || pdfId != null) return undefined;
+
+    if (!guestEditorOpenedLoggedRef.current) {
+      guestEditorOpenedLoggedRef.current = true;
+      queueGuestEvent("guest_editor_opened");
+    }
+
+    const hasContent = A4_Elements.some(
+      (el) => !(el.category === "text" || el.category === "textarea") || (el.content || "").trim() !== ""
+    );
+    if (!hasContent) return undefined;
+
+    const timer = setTimeout(() => {
+      saveGuestDocument({
+        elements: A4_Elements,
+        deletedIds: A4_Elements_deleted.map((el) => el.element_id),
+        title: titleRef.current?.value || "",
+        pageCount,
+        editorMode,
+        templateId: activeTemplateId,
+        spacingPx: flowSpacing,
+        isDemoContent: isDemoContentRef.current,
+        updatedAt: Date.now(),
+      });
+      if (!guestFirstEditLoggedRef.current) {
+        guestFirstEditLoggedRef.current = true;
+        queueGuestEvent("guest_first_edit");
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [
+    A4_Elements,
+    A4_Elements_deleted,
+    activeTemplateId,
+    editorMode,
+    flowSpacing,
+    pageCount,
+    pdfId,
+    titleRef,
+  ]);
 
   const handleShowDropzone = useCallback(() => {
     const next = panel !== 'upload';
