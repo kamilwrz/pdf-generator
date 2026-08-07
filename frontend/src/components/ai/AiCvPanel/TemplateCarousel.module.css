@@ -227,6 +227,15 @@
     white-space: nowrap;
 }
 
+.actionLabel {
+    grid-column: 2;
+    margin-top: 2px;
+    font: 700 10px var(--font-body);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--chrome-accent);
+}
+
 @media (prefers-reduced-motion: reduce) {
     .imgWrap {
         transition: none;

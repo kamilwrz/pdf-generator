@@ -3,13 +3,25 @@
  * Kept pure so the modal can autosave normalised drafts without layout logic.
  */
 export const BIO_CV_STEPS = [
-    "Dane osobowe",
+    "Podstawowe dane",
     "Doświadczenie",
     "Wykształcenie",
-    "Umiejętności",
-    "Języki",
-    "Sekcje własne",
-    "Podsumowanie",
+    "Umiejętności i dodatki",
+    "Wybierz wygląd",
+];
+
+/**
+ * Preset chips for the custom-section type picker in the wizard.
+ * `kind` is stored on the section; `title` is a sensible default the user can edit.
+ */
+export const CUSTOM_SECTION_PRESETS = [
+    { kind: "projects", title: "Projekty" },
+    { kind: "certifications", title: "Certyfikaty" },
+    { kind: "other", title: "Kursy" },
+    { kind: "volunteering", title: "Wolontariat" },
+    { kind: "publications", title: "Publikacje" },
+    { kind: "interests", title: "Zainteresowania" },
+    { kind: "other", title: "Inna sekcja" },
 ];
 
 const DEFAULT_LABELS = {
@@ -68,6 +80,37 @@ export function createLanguage() {
 
 export function createCustomSection() {
     return { title: "", items: [], kind: "other", placement: "after_skills" };
+}
+
+/**
+ * Build a custom section from a type-picker preset.
+ * Placement stays at the backend-friendly default; the wizard no longer asks for it.
+ *
+ * @param {{ kind: string, title: string }} preset
+ */
+export function createCustomSectionFromPreset(preset) {
+    const kind = preset?.kind || "other";
+    const title = kind === "other" && preset?.title === "Inna sekcja"
+        ? ""
+        : String(preset?.title || "").trim();
+    return {
+        title,
+        items: [],
+        kind: [
+            "languages",
+            "certifications",
+            "interests",
+            "projects",
+            "references",
+            "awards",
+            "publications",
+            "volunteering",
+            "other",
+        ].includes(kind)
+            ? kind
+            : "other",
+        placement: "after_skills",
+    };
 }
 
 // Keep raw input while the user is typing. Normalization intentionally trims
@@ -193,13 +236,14 @@ export function validateBioCvStep(step, data) {
         const invalid = profile.education.find((entry) => hasValues(entry) && (!entry.school || !entry.degree));
         if (invalid) return "Przy każdej edukacji podaj uczelnię i dyplom lub kierunek.";
     }
-    if (step === 4) {
-        const invalid = profile.languages.find((entry) => entry.level && !entry.name);
-        if (invalid) return "Wpisz język albo usuń pusty wiersz.";
-    }
-    if (step === 5) {
-        const invalid = profile.custom_sections.find((section) => hasValues(section) && (!section.title || !section.items.length));
-        if (invalid) return "Sekcja własna potrzebuje tytułu i co najmniej jednej pozycji.";
+    // Step 3 merges skills + languages + custom sections.
+    if (step === 3) {
+        const invalidLanguage = profile.languages.find((entry) => entry.level && !entry.name);
+        if (invalidLanguage) return "Wpisz język albo usuń pusty wiersz.";
+        const invalidCustom = profile.custom_sections.find((section) => (
+            hasValues(section) && (!section.title || !section.items.length)
+        ));
+        if (invalidCustom) return "Sekcja własna potrzebuje tytułu i co najmniej jednej pozycji.";
     }
     return null;
 }

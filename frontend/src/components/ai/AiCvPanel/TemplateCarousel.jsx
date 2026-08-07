@@ -17,7 +17,7 @@ import {
     startIndexForSelectedTemplate,
 } from "../../../utils/templateLayouts";
 
-const VISIBLE_COUNT = 5;
+const DEFAULT_VISIBLE_COUNT = 5;
 
 const ChevronLeft = () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
@@ -34,6 +34,8 @@ const ChevronRight = () => (
  * @param {string|null} [props.selectedId] - Currently applied template (shown + start window)
  * @param {(template: object) => void} props.onSelect
  * @param {boolean} [props.fillHeight] - Stretch the gallery to fill a flex parent (AiCvPanel step 2).
+ * @param {number} [props.visibleCount] - How many cards to show in the browsing window.
+ * @param {string} [props.actionLabel] - Optional CTA label under each selectable card.
  */
 export default function TemplateCarousel({
     templates,
@@ -42,7 +44,10 @@ export default function TemplateCarousel({
     selectedId = null,
     onSelect,
     fillHeight = false,
+    visibleCount = DEFAULT_VISIBLE_COUNT,
+    actionLabel = null,
 }) {
+    const windowCount = Math.max(1, Number(visibleCount) || DEFAULT_VISIBLE_COUNT);
     const orderedTemplates = useMemo(
         () => listTemplatesInRegistryOrder(templates),
         [templates],
@@ -60,16 +65,16 @@ export default function TemplateCarousel({
     }, [orderedTemplates, selectedId]);
 
     const total = orderedTemplates.length;
-    const canLoop = total > VISIBLE_COUNT;
+    const canLoop = total > windowCount;
     const selectedTemplate = selectedId
         ? orderedTemplates.find((template) => template.id === selectedId)
         : null;
 
     const visible = useMemo(() => {
-        const count = Math.min(VISIBLE_COUNT, total);
+        const count = Math.min(windowCount, total);
         if (count === 0) return [];
         return Array.from({ length: count }, (_, i) => orderedTemplates[(startIndex + i) % total]);
-    }, [orderedTemplates, startIndex, total]);
+    }, [orderedTemplates, startIndex, total, windowCount]);
 
     function prev() {
         setStartIndex((s) => (s - 1 + total) % total);
@@ -155,6 +160,9 @@ export default function TemplateCarousel({
                                     <span className={classes.dot} style={{ background: t.accent }} />
                                     <span className={classes.name}>{t.name}</span>
                                     <span className={classes.description}>{t.description}</span>
+                                    {actionLabel && !locked && !selected && (
+                                        <span className={classes.actionLabel}>{actionLabel}</span>
+                                    )}
                                 </span>
                             </motion.button>
                         );

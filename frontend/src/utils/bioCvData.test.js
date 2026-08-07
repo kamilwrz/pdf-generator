@@ -60,6 +60,16 @@ test("validates only completed repeater cards and email syntax", () => {
     );
     assert.equal(validateBioCvStep(0, { ...createEmptyBioCvData(), name: "Anna", email: "bad" }), "Podaj poprawny adres e-mail.");
     assert.equal(validateBioCvStep(0, { ...createEmptyBioCvData(), name: "Anna", email: "anna@example.com" }), null);
+
+    const incompleteExtras = normalizeBioCvData({
+        name: "Anna",
+        custom_sections: [{ title: "Projekty", items: [], kind: "projects", placement: "after_skills" }],
+    });
+    assert.equal(
+        validateBioCvStep(3, incompleteExtras),
+        "Sekcja własna potrzebuje tytułu i co najmniej jednej pozycji.",
+    );
+    assert.equal(validateBioCvStep(3, { ...createEmptyBioCvData(), name: "Anna" }), null);
 });
 
 test("allows jumping to summary when required personal fields are filled", () => {

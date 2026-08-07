@@ -1,68 +1,84 @@
 /*
- * Step-by-step CV wizard. Form steps use the same 1280px DialogShell as the
- * plan/template pickers; the summary step widens to 1400px for TemplateCarousel.
- * Rectangular chrome uses near-zero radius to match radius={2}; progress dots
- * stay circular (semantic step markers, not "rounded corner" chrome).
+ * Fullscreen guided CV wizard. Content is capped around 920px so the form
+ * reads as a creator flow, not a wide admin panel. Progress uses a bar instead
+ * of seven step dots.
  */
 
-.progress {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 4px;
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--chrome-border);
-    background: var(--chrome-control);
+.wizardInner {
+    max-width: 920px;
+    margin: 0 auto;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
-.progressStep {
-    display: grid;
-    justify-items: center;
-    gap: 5px;
-    padding: 4px 2px;
-    border: 0;
+.progressBlock {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 16px 8px 12px;
+    border-bottom: 1px solid var(--chrome-border);
+    background: var(--chrome-surface);
+}
+
+.progressMeta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
     color: var(--chrome-muted);
+    font: 600 12px var(--font-body);
+}
+
+.progressLabels {
+    display: none;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.progressLabel {
+    border: 0;
+    padding: 0;
     background: transparent;
+    color: var(--chrome-muted);
+    font: 600 11px var(--font-body);
     cursor: default;
 }
 
-.progressStep:not(:disabled) { cursor: pointer; }
-
-.progressStep span {
-    display: grid;
-    width: 22px;
-    height: 22px;
-    place-items: center;
-    border: 1px solid var(--chrome-border);
-    border-radius: 50%;
-    font: 700 10px var(--font-body);
+.progressLabel:not(:disabled) {
+    cursor: pointer;
 }
 
-.progressStep small {
+.progressLabel:disabled {
+    opacity: 0.45;
+}
+
+.activeLabel {
+    color: var(--chrome-accent);
+}
+
+.completeLabel {
+    color: var(--success);
+}
+
+.progressTrack {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--chrome-control);
     overflow: hidden;
-    width: 100%;
-    color: inherit;
-    font: 600 9px var(--font-body);
-    text-align: center;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
-.progressStep.active { color: var(--chrome-accent); }
-.progressStep.active span {
-    border-color: var(--chrome-accent);
+.progressFill {
+    height: 100%;
+    border-radius: inherit;
     background: var(--chrome-accent);
-    color: #FFF8F1;
-}
-
-.progressStep.complete { color: var(--success); }
-.progressStep.complete span {
-    border-color: var(--success);
-    background: var(--success-soft);
+    transition: width 0.2s ease;
 }
 
 .body {
-    min-height: 420px;
-    padding: 22px 24px 20px;
+    flex: 1;
+    min-height: 0;
+    padding: 22px 8px 28px;
 }
 
 .sectionHeading {
@@ -82,7 +98,7 @@
 .sectionHeading h3 {
     margin: 0;
     color: var(--chrome-ink);
-    font: 700 18px var(--font-display);
+    font: 700 22px var(--font-display);
 }
 
 .formGrid {
@@ -129,7 +145,7 @@
     resize: vertical;
     padding: 10px 12px;
     line-height: 1.45;
-    min-height: 120px;
+    min-height: 100px;
 }
 
 .field input:focus,
@@ -155,7 +171,7 @@
 .repeater {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
 }
 
 .entryCard {
@@ -163,6 +179,44 @@
     border: 1px solid var(--chrome-border);
     border-radius: 2px;
     background: var(--chrome-control);
+}
+
+.compactCard {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--chrome-border);
+    border-radius: 2px;
+    background: var(--chrome-control);
+}
+
+.compactBody {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.compactBody strong {
+    color: var(--chrome-ink);
+    font: 700 13px var(--font-body);
+}
+
+.compactBody span,
+.compactBody em {
+    color: var(--chrome-muted);
+    font: 500 12px var(--font-body);
+    font-style: normal;
+}
+
+.compactActions,
+.cardActions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
 }
 
 .cardHeader {
@@ -178,16 +232,13 @@
     font: 700 12px var(--font-body);
 }
 
-.cardActions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
 .cardActions button,
+.compactActions button,
 .clearBtn,
 .cancelBtn,
-.addBtn {
+.addBtn,
+.menuBtn,
+.editBtn {
     border: 1px solid var(--chrome-border);
     border-radius: 2px;
     background: var(--primary-bg);
@@ -196,20 +247,27 @@
     cursor: pointer;
 }
 
-.cardActions button {
+.cardActions button,
+.compactActions button:not(.editBtn):not(.removeBtn) {
     width: 28px;
     height: 28px;
     padding: 0;
 }
 
-.cardActions button:disabled {
+.cardActions button:disabled,
+.compactActions button:disabled {
     cursor: default;
     opacity: .35;
 }
 
-.cardActions .removeBtn {
+.editBtn,
+.removeBtn {
     width: auto;
+    height: 28px;
     padding: 0 9px;
+}
+
+.removeBtn {
     color: var(--danger);
 }
 
@@ -222,12 +280,105 @@
 .addBtn:hover,
 .clearBtn:hover,
 .cancelBtn:hover,
-.cardActions button:hover:not(:disabled) {
+.menuBtn:hover,
+.editBtn:hover,
+.cardActions button:hover:not(:disabled),
+.compactActions button:hover:not(:disabled) {
     border-color: var(--chrome-accent);
     background: var(--chrome-hover);
 }
 
-.singleStep { max-width: 720px; }
+.extrasStep {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.extrasBlock h4 {
+    margin: 0 0 6px;
+    color: var(--chrome-ink);
+    font: 700 15px var(--font-display);
+}
+
+.typePicker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.typeChip {
+    border: 1px solid var(--chrome-border);
+    border-radius: 2px;
+    background: var(--primary-bg);
+    color: var(--chrome-ink);
+    font: 600 12px var(--font-body);
+    padding: 10px 12px;
+    cursor: pointer;
+}
+
+.typeChip:hover {
+    border-color: var(--chrome-accent);
+    background: var(--chrome-hover);
+}
+
+.inlineHint {
+    display: block;
+    margin-top: 4px;
+    color: var(--chrome-muted);
+    font: 500 11px var(--font-body);
+}
+
+.textLink,
+.textLinkBtn {
+    align-self: flex-start;
+    margin-top: 4px;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--chrome-accent);
+    font: 600 12px var(--font-body);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.textLinkBtn {
+    height: 36px;
+    padding: 0 8px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+}
+
+.textLinkBtn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.resumePanel {
+    max-width: 560px;
+    margin: 12vh auto 0;
+    padding: 8px;
+}
+
+.resumePanel h3 {
+    margin: 0 0 8px;
+    color: var(--chrome-ink);
+    font: 700 24px var(--font-display);
+}
+
+.resumePanel p {
+    margin: 0 0 20px;
+    color: var(--chrome-muted);
+    font: 500 14px/1.5 var(--font-body);
+}
+
+.resumeActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
 
 .review {
     display: flex;
@@ -244,7 +395,7 @@
 
 .reviewIdentity strong {
     color: var(--chrome-ink);
-    font: 700 20px var(--font-display);
+    font: 700 22px var(--font-display);
 }
 
 .reviewIdentity span {
@@ -273,9 +424,8 @@
     font: 500 12px/1.5 var(--font-body);
 }
 
-/* Summary step: same TemplateCarousel gallery as AiCvPanel / ChangeTemplate. */
 .carouselSection {
-    margin: 0 -4px;
+    margin: 0;
 }
 
 .emptyTemplates {
@@ -287,6 +437,8 @@
 .footer {
     display: flex;
     width: 100%;
+    max-width: 920px;
+    margin: 0 auto;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
@@ -306,16 +458,56 @@
     font-style: normal;
 }
 
-.footerActions { display: flex; gap: 8px; }
+.footerActions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
 
-.clearBtn,
+.menuWrap {
+    position: relative;
+}
+
+.menuBtn {
+    width: 36px;
+    height: 36px;
+    letter-spacing: 0.08em;
+}
+
+.menuDropdown {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 6px);
+    min-width: 200px;
+    padding: 6px;
+    border: 1px solid var(--chrome-border);
+    border-radius: 2px;
+    background: var(--chrome-surface);
+    box-shadow: 0 12px 28px -16px rgba(0, 0, 0, 0.45);
+    z-index: 2;
+}
+
+.menuDanger {
+    width: 100%;
+    border: 0;
+    border-radius: 2px;
+    background: transparent;
+    color: var(--danger);
+    font: 600 12px var(--font-body);
+    text-align: left;
+    padding: 10px 12px;
+    cursor: pointer;
+}
+
+.menuDanger:hover {
+    background: var(--danger-soft);
+}
+
 .cancelBtn,
 .primaryBtn {
     height: 36px;
     padding: 0 14px;
 }
-
-.clearBtn { color: var(--danger); }
 
 .cancelBtn:disabled {
     opacity: 0.45;
@@ -333,6 +525,11 @@
 
 .primaryBtn:hover { background: var(--chrome-accent); }
 
+.primaryBtn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 .error {
     margin-top: 16px;
     padding: 11px 12px;
@@ -348,10 +545,19 @@
     font: 500 13px var(--font-body);
 }
 
+@media (min-width: 901px) {
+    .progressLabels {
+        display: flex;
+    }
+}
+
 @media (max-width: 900px) {
-    .progress { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .formGrid { grid-template-columns: 1fr; }
     .full { grid-column: auto; }
     .footer { align-items: flex-end; }
     .draftState { display: none; }
+    .compactCard {
+        flex-direction: column;
+        align-items: stretch;
+    }
 }

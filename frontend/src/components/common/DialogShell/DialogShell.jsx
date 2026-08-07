@@ -3,16 +3,16 @@ import { createPortal } from "react-dom";
 import classes from "./DialogShell.module.css";
 import CloseButton from "../CloseButton/CloseButton";
 
-// Shared centered-modal shell for Docs/Templates/Plans/AI. Owns the backdrop,
+// Shared modal shell for Docs/Templates/Plans/AI. Owns the backdrop,
 // popIn animation, header (title+subtitle+close) and Escape-to-close so
-// every dialog gets identical dismiss behavior instead of each
-// re-implementing (or, as with the old ModalPdfs, omitting) it.
+// every dialog gets identical dismiss behavior.
+//
+// `variant="fullscreen"` is used by the bio/CV wizard: edge-to-edge overlay
+// with a single scroll surface (body), sticky header/footer, and no floating
+// card over the editor. Other dialogs keep the default centered card.
 //
 // `radius` is an optional per-instance override for the dialog corner radius.
-// It is applied inline only when provided, so dialogs that omit it keep the
-// shared 8px radius from the stylesheet. Large surfaces (plans, templates,
-// BioCv form steps) pass width={1280} and a near-zero radius; fill/summary
-// galleries use 1400px with the same sharper editorial look.
+// It is applied inline only when provided (ignored for fullscreen).
 export default function DialogShell({
     open,
     onClose,
@@ -22,8 +22,11 @@ export default function DialogShell({
     subtitle,
     footer,
     bodyClassName,
+    variant = "modal",
     children,
 }) {
+    const isFullscreen = variant === "fullscreen";
+
     useEffect(() => {
         if (!open) return;
         const onKey = (e) => {
@@ -33,13 +36,27 @@ export default function DialogShell({
         return () => window.removeEventListener("keydown", onKey);
     }, [open, onClose]);
 
+    useEffect(() => {
+        if (!open || !isFullscreen) return undefined;
+        const previous = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+            document.body.style.overflow = previous;
+        };
+    }, [open, isFullscreen]);
+
     if (!open) return null;
 
     return createPortal(
-        <div className={classes.backdrop} onClick={onClose}>
+        <div
+            className={`${classes.backdrop}${isFullscreen ? ` ${classes.backdropFullscreen}` : ""}`}
+            onClick={onClose}
+        >
             <div
-                className={classes.dialog}
-                style={{ width, ...(radius != null ? { borderRadius: radius } : {}) }}
+                className={`${classes.dialog}${isFullscreen ? ` ${classes.dialogFullscreen}` : ""}`}
+                style={isFullscreen
+                    ? undefined
+                    : { width, ...(radius != null ? { borderRadius: radius } : {}) }}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className={classes.header}>
