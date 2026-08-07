@@ -409,9 +409,24 @@ class PDF_Generator:
             self.c.setStrokeColor(HexColor(color))
             self.c.line(x, uy, x + width, uy)
 
-    def renderText(self, left, top, fontFamily, fontSize, color, content, bold=False, italic=False, underline=False):
+    def renderText(self, left, top, fontFamily, fontSize, color, content, bold=False, italic=False, underline=False, runs=None):
         corrected_y = self.page_h - top - fontSize * 0.34
-        self._draw_text_line(left, corrected_y, content, fontFamily, fontSize, color, bold, italic, underline)
+        prepared = self._prepare_styled(content, runs, bold, italic, underline, color)
+        if prepared is None:
+            # Fast path: uniform single-line text, byte-identical to before runs.
+            self._draw_text_line(left, corrected_y, content, fontFamily, fontSize, color, bold, italic, underline)
+            return
+        # Single line: no wrapping, just draw each styled piece left-to-right,
+        # advancing x by the piece's rendered width.
+        clean, clean_styles = prepared
+        piece_x = left
+        for text, (piece_bold, piece_italic, piece_underline, piece_color) in self._line_to_pieces(clean, clean_styles):
+            self._draw_text_line(
+                piece_x, corrected_y, text, fontFamily, fontSize,
+                piece_color or color, piece_bold, piece_italic, piece_underline,
+            )
+            piece_font, _, _ = self._resolve_font(fontFamily, piece_bold, piece_italic)
+            piece_x += self._line_width(text, piece_font, fontSize, 0.0)
 
     @staticmethod
     def _line_width(text, font, size, letter_spacing):
@@ -492,6 +507,268 @@ class PDF_Generator:
                 out.append((ln, i == len(para_lines) - 1, para_indent, bullet_prefix if i == 0 else ""))
         return out
 
+    # ------------------------------------------------------------------
+    # Inline decoration (``runs``) support.
+    #
+    # These helpers are the run-aware counterpart to the single-font wrap
+    # engine above. They are entered ONLY when an element carries non-empty,
+    # non-no-op ``runs``; every other element falls through to the original
+    # ``_wrap_textarea`` / ``_draw_text_line`` path unchanged, preserving the
+    # byte-for-byte Canvas↔PDF output that predates this feature.
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _normalize_runs(runs):
+        """Coerce incoming ``runs`` (pydantic ``TextRun`` models or plain dicts,
+        as stored in ``extra_properties``) into validated dicts.
+
+        Drops spans with a non-positive length or non-integer offsets. Returns
+        None when nothing usable remains, which signals callers to take the
+        plain single-font path."""
+        if not runs:
+            return None
+        out = []
+        for run in runs:
+            if hasattr(run, "model_dump"):
+                data = run.model_dump()
+            elif isinstance(run, dict):
+                data = run
+            else:
+                data = {k: getattr(run, k, None)
+                        for k in ("start", "end", "bold", "italic", "underline", "color")}
+            try:
+                start = int(data.get("start"))
+                end = int(data.get("end"))
+            except (TypeError, ValueError):
+                continue
+            if end <= start:
+                continue
+            out.append({
+                "start": start,
+                "end": end,
+                "bold": data.get("bold"),
+                "italic": data.get("italic"),
+                "underline": data.get("underline"),
+                "color": data.get("color"),
+            })
+        return out or None
+
+    @staticmethod
+    def _build_char_styles(content, runs, base_bold, base_italic, base_underline, base_color):
+        """Return a per-character list of ``(bold, italic, underline, color)``
+        for ``content``. Each character starts at the element base style; every
+        run overlays only the marks it declares over its ``[start, end)`` span."""
+        base = (bool(base_bold), bool(base_italic), bool(base_underline), base_color)
+        styles = [base] * len(content)
+        for run in runs:
+            start = max(0, run["start"])
+            end = min(len(content), run["end"])
+            for i in range(start, end):
+                b, it, u, c = styles[i]
+                styles[i] = (
+                    run["bold"] if run["bold"] is not None else b,
+                    run["italic"] if run["italic"] is not None else it,
+                    run["underline"] if run["underline"] is not None else u,
+                    run["color"] if run["color"] is not None else c,
+                )
+        return styles
+
+    @staticmethod
+    def _sanitize_with_styles(text, char_styles):
+        """``sanitize_pdf_text`` applied in lockstep with the parallel style
+        list: every character the sanitizer would drop also drops its style
+        entry, so run offsets stay aligned with the cleaned text. Exotic spaces
+        fold to a normal space (length preserved), matching the plain path."""
+        out_chars = []
+        out_styles = []
+        for ch, style in zip(str(text), char_styles):
+            if _PDF_CONTROL_RE.match(ch) or _PDF_INVISIBLE_RE.match(ch):
+                continue
+            if _PDF_ODD_SPACE_RE.match(ch):
+                ch = " "
+            out_chars.append(ch)
+            out_styles.append(style)
+        return "".join(out_chars), out_styles
+
+    def _prepare_styled(self, content, runs, base_bold, base_italic, base_underline, base_color):
+        """Build the sanitized text + per-character styles for a run-aware draw.
+
+        Returns None (take the plain path) when there are no runs, or when the
+        runs resolve to nothing different from the element base style — that
+        defensive check keeps unformatted content byte-identical to the old
+        output even if an empty/no-op ``runs`` array is sent."""
+        normalized = self._normalize_runs(runs)
+        if not normalized:
+            return None
+        raw = "" if content is None else str(content)
+        styles = self._build_char_styles(
+            raw, normalized, base_bold, base_italic, base_underline, base_color,
+        )
+        clean, clean_styles = self._sanitize_with_styles(raw, styles)
+        base = (bool(base_bold), bool(base_italic), bool(base_underline), base_color)
+        if all(style == base for style in clean_styles):
+            return None
+        return clean, clean_styles
+
+    def _styled_run_width(self, text, styles, family, size, letter_spacing):
+        """Width of a styled substring: the sum of maximal same-draw-font
+        segments. Only the resolved draw font affects advance width (faux bold
+        stroke and faux italic shear do not), so segmenting by draw font gives
+        the exact rendered width; underline and colour are ignored here."""
+        if not text:
+            return 0.0
+        total = 0.0
+        seg = text[0]
+        cur_font, _, _ = self._resolve_font(family, styles[0][0], styles[0][1])
+        for i in range(1, len(text)):
+            font, _, _ = self._resolve_font(family, styles[i][0], styles[i][1])
+            if font == cur_font:
+                seg += text[i]
+                continue
+            total += stringWidth(seg, cur_font, size) + len(seg) * letter_spacing
+            seg = text[i]
+            cur_font = font
+        total += stringWidth(seg, cur_font, size) + len(seg) * letter_spacing
+        return total
+
+    def _styled_fits(self, text, styles, family, size, letter_spacing, avail_width):
+        """Run-aware analogue of ``_fits_wrap_width`` using the same slack."""
+        return (
+            self._styled_run_width(text, styles, family, size, letter_spacing)
+            <= float(avail_width) + WRAP_WIDTH_TOLERANCE_PX
+        )
+
+    @staticmethod
+    def _line_to_pieces(text, styles):
+        """Split a wrapped line into maximal same-style pieces for drawing.
+        Grouping uses the FULL style tuple (including underline and colour) so
+        each piece can be drawn with a single ``_draw_text_line`` call."""
+        pieces = []
+        if not text:
+            return pieces
+        seg = text[0]
+        cur = styles[0]
+        for i in range(1, len(text)):
+            if styles[i] == cur:
+                seg += text[i]
+                continue
+            pieces.append((seg, cur))
+            seg = text[i]
+            cur = styles[i]
+        pieces.append((seg, cur))
+        return pieces
+
+    def _wrap_textarea_styled(self, content, styles, family, size, letter_spacing,
+                              max_width, base_style, bullet_list=False):
+        """Run-aware reimplementation of ``_wrap_textarea``.
+
+        Mirrors the plain word-wrap (explicit newlines, break on spaces, hard
+        break over-wide words) but tracks each character's style so line width
+        is measured with the font each span actually draws in — the same files
+        the canvas ``@font-face``s, so wrap points match the browser even with
+        mixed bold/italic runs.
+
+        Returns tuples of ``(pieces, is_last_of_paragraph, indent_px,
+        bullet_prefix)`` where ``pieces`` is a list of ``(text, style)``."""
+        out = []
+        cursor = 0  # running offset into `content`, incl. the "\n" separators
+        paragraphs = content.split("\n")
+        for paragraph in paragraphs:
+            p_len = len(paragraph)
+            p_styles = styles[cursor:cursor + p_len]
+            cursor += p_len + 1  # skip the newline that split() removed
+
+            if paragraph == "":
+                out.append(([], True, 0.0, ""))
+                continue
+
+            is_bullet = bullet_list and bool(re.match(r"^\s*•", paragraph))
+            bullet_prefix = "• " if is_bullet else ""
+            if is_bullet:
+                match = re.match(r"^\s*•[ \t]*", paragraph)
+                strip = match.end()
+                body = paragraph[strip:]
+                body_styles = p_styles[strip:]
+            else:
+                body = paragraph
+                body_styles = p_styles
+
+            # The bullet marker is drawn in the element base style, so its width
+            # (the hanging indent) uses the base-resolved font like the plain path.
+            bullet_font, _, _ = self._resolve_font(family, base_style[0], base_style[1])
+            para_indent = self._line_width(bullet_prefix, bullet_font, size, letter_spacing)
+            avail_width = max_width - para_indent
+
+            # Split the body into words with parallel styles, reproducing
+            # str.split(" ") semantics (consecutive spaces yield empty words).
+            words = []          # list of (text, styles)
+            sep_styles = []     # style of the space preceding words[k] (k >= 1)
+            word_text = ""
+            word_styles = []
+            for ch, style in zip(body, body_styles):
+                if ch == " ":
+                    words.append((word_text, word_styles))
+                    sep_styles.append(style)
+                    word_text = ""
+                    word_styles = []
+                else:
+                    word_text += ch
+                    word_styles.append(style)
+            words.append((word_text, word_styles))
+
+            para_lines = []  # list of (text, styles)
+            cur_text = ""
+            cur_styles = []
+            for k, (w_text, w_styles) in enumerate(words):
+                if cur_text == "":
+                    cand_text = w_text
+                    cand_styles = list(w_styles)
+                else:
+                    sep_style = sep_styles[k - 1]
+                    cand_text = cur_text + " " + w_text
+                    cand_styles = cur_styles + [sep_style] + w_styles
+
+                if self._styled_fits(cand_text, cand_styles, family, size, letter_spacing, avail_width):
+                    cur_text = cand_text
+                    cur_styles = cand_styles
+                    continue
+
+                if cur_text:
+                    para_lines.append((cur_text, cur_styles))
+                    cur_text = ""
+                    cur_styles = []
+
+                # A single word wider than the box is hard-broken per character.
+                if not self._styled_fits(w_text, w_styles, family, size, letter_spacing, avail_width):
+                    chunk_text = ""
+                    chunk_styles = []
+                    for ch, style in zip(w_text, w_styles):
+                        if chunk_text == "" or self._styled_fits(
+                            chunk_text + ch, chunk_styles + [style],
+                            family, size, letter_spacing, avail_width,
+                        ):
+                            chunk_text += ch
+                            chunk_styles.append(style)
+                        else:
+                            para_lines.append((chunk_text, chunk_styles))
+                            chunk_text = ch
+                            chunk_styles = [style]
+                    cur_text = chunk_text
+                    cur_styles = chunk_styles
+                else:
+                    cur_text = w_text
+                    cur_styles = list(w_styles)
+
+            para_lines.append((cur_text, cur_styles))
+            for i, (line_text, line_styles) in enumerate(para_lines):
+                out.append((
+                    self._line_to_pieces(line_text, line_styles),
+                    i == len(para_lines) - 1,
+                    para_indent,
+                    bullet_prefix if i == 0 else "",
+                ))
+        return out
+
     @classmethod
     def measure_textarea_height(
         cls,
@@ -505,8 +782,23 @@ class PDF_Generator:
         italic=False,
         letter_spacing=0.0,
         bullet_list=False,
+        runs=None,
     ):
-        """Measure wrapped copy with the exact metrics used by PDF rendering."""
+        """Measure wrapped copy with the exact metrics used by PDF rendering.
+
+        When ``runs`` are present the run-aware wrapper drives the line count so
+        mixed bold/italic spans (which shift wrap points) reflow to the same
+        height the styled draw produces; otherwise the plain path is used."""
+        instance = cls.__new__(cls)  # width-only measurement needs no canvas
+        prepared = instance._prepare_styled(content, runs, bold, italic, False, None)
+        if prepared is not None:
+            clean, clean_styles = prepared
+            base_style = (bool(bold), bool(italic), False, None)
+            styled_lines = instance._wrap_textarea_styled(
+                clean, clean_styles, font_family, float(font_size),
+                float(letter_spacing or 0), float(width), base_style, bullet_list,
+            )
+            return len(styled_lines) * float(line_height)
         measure_font, _, _ = cls._resolve_font(font_family, bold, italic)
         lines = cls._wrap_textarea(
             content,
@@ -518,11 +810,16 @@ class PDF_Generator:
         )
         return len(lines) * float(line_height)
 
-    def renderTextarea(self, left, top, width, height, fontFamily, fontSize, color, content, lineHeight, letterSpacing, bold=False, italic=False, underline=False, align="left", bulletList=False, autoHeight=False):
+    def renderTextarea(self, left, top, width, height, fontFamily, fontSize, color, content, lineHeight, letterSpacing, bold=False, italic=False, underline=False, align="left", bulletList=False, autoHeight=False, runs=None):
         """Render a multi-line text box so it matches the on-canvas edit-mode
         box: same wrap, line-height, letter-spacing and font metrics. Lines
         whose top falls outside the box height are clipped (mirrors the
-        textarea's overflow:hidden)."""
+        textarea's overflow:hidden).
+
+        When ``runs`` carry inline decoration the styled path draws each line as
+        a sequence of per-span pieces; otherwise the original single-font path
+        runs unchanged. Justify combined with inline runs degrades to left in
+        v1 (mixed-font word-space stretching is out of scope)."""
         width = float(width)
         height = float(height)
         fontSize = float(fontSize)
@@ -535,60 +832,117 @@ class PDF_Generator:
         measure_font, _, _ = self._resolve_font(fontFamily, bold, italic)
 
         # CSS centres the text within each line box via half-leading; the
-        # first baseline sits at half_leading + ascent below the box top.
+        # first baseline sits at half_leading + ascent below the box top. Line
+        # box height is the explicit px line-height regardless of per-span font,
+        # so the element base metrics drive vertical placement in both paths.
         ascent, descent = getAscentDescent(measure_font, fontSize)  # ascent>0, descent<0
         font_height = ascent - descent
         half_leading = (line_height - font_height) / 2.0
 
-        lines = self._wrap_textarea(content, measure_font, fontSize, letter_spacing, width, bulletList)
+        prepared = self._prepare_styled(content, runs, bold, italic, underline, color)
+
+        if prepared is None:
+            # Fast path: uniform styling, byte-identical to the pre-runs renderer.
+            lines = self._wrap_textarea(content, measure_font, fontSize, letter_spacing, width, bulletList)
+            if autoHeight:
+                # The canvas is the typography authority: after fonts load / the user
+                # changes a face, `reflowTextareaHeight` stores measured heights and
+                # packs following tops. Recomputing height from PDF wrap here used
+                # to ignore that box — shorter wrap opened fake gaps, longer wrap
+                # drew through the next block — so Canvas≠PDF rhythm after a font
+                # change even when the editor looked correct.
+                #
+                # Only expand when the payload still carries a stub height (export
+                # before the first browser measure); otherwise honour the stored
+                # box and clip overflow like the canvas `overflow: hidden`.
+                computed_height = len(lines) * line_height
+                if height < line_height * 0.5:
+                    height = computed_height
+
+            for i, (line, is_last, indent_px, bullet_prefix) in enumerate(lines):
+                line_top = i * line_height
+                if line_top >= height:  # clipped by the box
+                    break
+                baseline_from_top = line_top + half_leading + ascent
+                y = self.page_h - top - baseline_from_top
+
+                # Alignment: offset each line by its measured width (same width the
+                # browser computes, since both use the same font). Justify fills the
+                # box by stretching the spaces, leaving each paragraph's last line
+                # left-aligned (CSS behaviour). A hanging-indent line shifts its
+                # whole effective box right by indent_px.
+                eff_left = left + indent_px
+                eff_width = width - indent_px
+                x = eff_left
+                word_space = 0.0
+                if line:
+                    line_w = self._line_width(line, measure_font, fontSize, letter_spacing)
+                    if align == "right":
+                        x = eff_left + (eff_width - line_w)
+                    elif align == "center":
+                        x = eff_left + (eff_width - line_w) / 2.0
+                    elif align == "justify" and not is_last:
+                        spaces = line.count(" ")
+                        if spaces > 0 and line_w < eff_width:
+                            word_space = (eff_width - line_w) / spaces
+
+                if bullet_prefix:
+                    self._draw_text_line(
+                        left, y, bullet_prefix, fontFamily, fontSize, color,
+                        bold, italic, underline, letter_spacing,
+                    )
+                self._draw_text_line(x, y, line, fontFamily, fontSize, color, bold, italic, underline, letter_spacing, word_space)
+            return
+
+        # Styled path: run-aware wrap, then draw each line's pieces in sequence.
+        clean, clean_styles = prepared
+        base_style = (bool(bold), bool(italic), bool(underline), color)
+        lines = self._wrap_textarea_styled(
+            clean, clean_styles, fontFamily, fontSize, letter_spacing,
+            width, base_style, bulletList,
+        )
         if autoHeight:
-            # The canvas is the typography authority: after fonts load / the user
-            # changes a face, `reflowTextareaHeight` stores measured heights and
-            # packs following tops. Recomputing height from PDF wrap here used
-            # to ignore that box — shorter wrap opened fake gaps, longer wrap
-            # drew through the next block — so Canvas≠PDF rhythm after a font
-            # change even when the editor looked correct.
-            #
-            # Only expand when the payload still carries a stub height (export
-            # before the first browser measure); otherwise honour the stored
-            # box and clip overflow like the canvas `overflow: hidden`.
             computed_height = len(lines) * line_height
             if height < line_height * 0.5:
                 height = computed_height
 
-        for i, (line, is_last, indent_px, bullet_prefix) in enumerate(lines):
+        for i, (pieces, is_last, indent_px, bullet_prefix) in enumerate(lines):
             line_top = i * line_height
             if line_top >= height:  # clipped by the box
                 break
             baseline_from_top = line_top + half_leading + ascent
             y = self.page_h - top - baseline_from_top
 
-            # Alignment: offset each line by its measured width (same width the
-            # browser computes, since both use the same font). Justify fills the
-            # box by stretching the spaces, leaving each paragraph's last line
-            # left-aligned (CSS behaviour). A hanging-indent line shifts its
-            # whole effective box right by indent_px.
             eff_left = left + indent_px
             eff_width = width - indent_px
             x = eff_left
-            word_space = 0.0
-            if line:
-                line_w = self._line_width(line, measure_font, fontSize, letter_spacing)
+            if pieces:
+                # Total line width sums the pieces, each measured with the font
+                # its span actually draws in. Justify is not applied for styled
+                # lines (v1 degradation): right/center still offset, else left.
+                line_w = 0.0
+                for text, (pb, pit, _pu, _pc) in pieces:
+                    piece_font, _, _ = self._resolve_font(fontFamily, pb, pit)
+                    line_w += self._line_width(text, piece_font, fontSize, letter_spacing)
                 if align == "right":
                     x = eff_left + (eff_width - line_w)
                 elif align == "center":
                     x = eff_left + (eff_width - line_w) / 2.0
-                elif align == "justify" and not is_last:
-                    spaces = line.count(" ")
-                    if spaces > 0 and line_w < eff_width:
-                        word_space = (eff_width - line_w) / spaces
 
             if bullet_prefix:
                 self._draw_text_line(
                     left, y, bullet_prefix, fontFamily, fontSize, color,
                     bold, italic, underline, letter_spacing,
                 )
-            self._draw_text_line(x, y, line, fontFamily, fontSize, color, bold, italic, underline, letter_spacing, word_space)
+
+            piece_x = x
+            for text, (pb, pit, pu, pc) in pieces:
+                self._draw_text_line(
+                    piece_x, y, text, fontFamily, fontSize, pc or color,
+                    pb, pit, pu, letter_spacing,
+                )
+                piece_font, _, _ = self._resolve_font(fontFamily, pb, pit)
+                piece_x += self._line_width(text, piece_font, fontSize, letter_spacing)
 
     def generatePDF(self):
         """Finalize the current page and write the PDF to the canvas destination."""
@@ -621,6 +975,7 @@ class PDF_Generator:
                     self.renderText(
                         element.left, element.top, element.fontFamily, element.fontSize, element.color, element.content,
                         getattr(element, "bold", False), getattr(element, "italic", False), getattr(element, "underline", False),
+                        getattr(element, "runs", None),
                     )
                 elif category == "textarea":
                     self.renderTextarea(
@@ -631,6 +986,7 @@ class PDF_Generator:
                         getattr(element, "align", "left") or "left",
                         getattr(element, "bulletList", False),
                         getattr(element, "autoHeight", False),
+                        getattr(element, "runs", None),
                     )
                 elif category == "line":
                     self.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)

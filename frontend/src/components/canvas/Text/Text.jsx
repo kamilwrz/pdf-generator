@@ -9,6 +9,9 @@ import { PdfContext } from "../../../store/pdfgenerator-context";
 import { deferTextareaEdit, hasTextareaDragIntent } from "../../../utils/textareaEditing";
 import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
 import { canvasFontFamily } from "../../../utils/canvasFont";
+import { hasRuns } from "../../../utils/textRuns";
+import { runsToHtml, serializeEditable } from "../../../utils/editableSerialize";
+import InlineFormatToolbar from "../InlineFormatToolbar/InlineFormatToolbar";
 import {
     clearTextSpacingHoldTimer,
     endTextSpacingHold,
@@ -29,6 +32,7 @@ function Text({
     bold,
     italic,
     underline,
+    runs,
     zIndex,
     fixedToPage,
 }) {
@@ -72,17 +76,24 @@ function Text({
         });
     }, [elementId, setSpacingHoldId]);
 
-    // Keep the DOM text in sync when not editing. While contentEditable is on,
-    // the browser owns the text node — React must not rewrite children.
-    // Paint the sanitized form so NULL/NBSP junk never shows as boxes.
+    // Keep the DOM in sync when not editing. While contentEditable is on, the
+    // browser owns the node — React must not rewrite children.
+    // With inline runs the node is painted as styled spans (innerHTML); without
+    // runs it stays a plain text node, byte-identical to the pre-feature path.
+    // Either way the sanitized form is used so NULL/NBSP junk never shows.
     useLayoutEffect(() => {
         const node = nodeRef.current;
         if (!node || isEditing) return;
         const next = sanitizeTextContent(content) ?? "";
-        if (node.textContent !== next) {
+        if (hasRuns(runs)) {
+            const html = runsToHtml(next, runs);
+            if (node.innerHTML !== html) {
+                node.innerHTML = html;
+            }
+        } else if (node.textContent !== next) {
             node.textContent = next;
         }
-    }, [content, isEditing]);
+    }, [content, runs, isEditing]);
 
     useLayoutEffect(() => {
         const node = nodeRef.current;
@@ -121,15 +132,22 @@ function Text({
     function finishEditing() {
         const node = nodeRef.current;
         if (node) {
-            const next = sanitizeTextContent(node.textContent ?? "") ?? "";
-            if (next !== (content ?? "")) {
-                editElementValues({ content: next }, elementId);
-            }
+            // Serialize captures both the text and any inline decoration spans.
+            const { content: next, runs: nextRuns } = serializeEditable(node);
+            editElementValues({ content: next, runs: nextRuns }, elementId);
         }
         setTextareaEditing(elementId, false);
     }
 
     return (
+        <>
+        {isEditing && !fixedToPage ? (
+            <InlineFormatToolbar
+                nodeRef={nodeRef}
+                isEditing={isEditing}
+                onApply={(next, nextRuns) => editElementValues({ content: next, runs: nextRuns }, elementId)}
+            />
+        ) : null}
         <p
             id={elementId}
             ref={nodeRef}
@@ -149,10 +167,8 @@ function Text({
             }}
             onInput={(e) => {
                 if (fixedToPage) return;
-                editElementValues(
-                    { content: sanitizeTextContent(e.currentTarget.textContent ?? "") ?? "" },
-                    elementId,
-                );
+                const { content: next, runs: nextRuns } = serializeEditable(e.currentTarget);
+                editElementValues({ content: next, runs: nextRuns }, elementId);
             }}
             onBlur={() => {
                 if (isEditing) finishEditing();
@@ -228,6 +244,7 @@ function Text({
                 moveElement(e, elementId);
             }}
         />
+        </>
     );
 }
 

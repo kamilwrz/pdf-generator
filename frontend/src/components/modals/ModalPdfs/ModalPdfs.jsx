@@ -101,6 +101,8 @@ export default function ModalPdfs({ title }) {
                         bold: element.extra_properties.bold,
                         italic: element.extra_properties.italic,
                         underline: element.extra_properties.underline,
+                        // Inline decoration overlay; null keeps the plain fast path.
+                        runs: element.extra_properties.runs ?? null,
                         align: element.extra_properties.align,
                         bulletList: element.extra_properties.bulletList ?? false,
                         autoHeight: element.extra_properties.autoHeight ?? false,
@@ -143,6 +145,8 @@ export default function ModalPdfs({ title }) {
                     bold: element.extra_properties.bold,
                     italic: element.extra_properties.italic,
                     underline: element.extra_properties.underline,
+                    // Inline decoration overlay; null keeps the plain fast path.
+                    runs: element.extra_properties.runs ?? null,
                     flowRole: element.extra_properties.flowRole,
                     flowGroup: element.extra_properties.flowGroup,
                     isDecorativeChromeText: element.extra_properties.isDecorativeChromeText ?? false,

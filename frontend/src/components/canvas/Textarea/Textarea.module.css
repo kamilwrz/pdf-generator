@@ -57,3 +57,12 @@
 .editing::placeholder {
     color: #8B8478;
 }
+
+/* The edit surface is now a contentEditable div (to host inline decoration),
+   which has no native placeholder. Show the authored hint via data-placeholder
+   only while the box is empty. */
+.editing:empty::before {
+    content: attr(data-placeholder);
+    color: #8B8478;
+    pointer-events: none;
+}

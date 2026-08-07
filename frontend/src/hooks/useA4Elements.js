@@ -913,6 +913,14 @@ export function useA4Elements(titleRef) {
           const next = { ...element, ...dataObject };
           if ("content" in dataObject) {
             next.content = sanitizeTextContent(dataObject.content);
+            // Inline `runs` are addressed by character offset, so any content
+            // change that does not carry its own runs (AI correction, bullet
+            // toggle, properties-panel edit) would leave stale offsets. Clear
+            // them here. The inline editors always send content AND runs
+            // together, so live formatting is never dropped by this rule.
+            if (!("runs" in dataObject)) {
+              next.runs = null;
+            }
           }
           return next;
         } else {

@@ -15,6 +15,10 @@ import {
 import { deferTextareaEdit, hasTextareaDragIntent } from "../../../utils/textareaEditing";
 import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
 import { canvasFontFamily } from "../../../utils/canvasFont";
+import { hasRuns, sliceRuns } from "../../../utils/textRuns";
+import { renderStyledText } from "../../../utils/renderStyledText";
+import { runsToHtml, serializeEditable } from "../../../utils/editableSerialize";
+import InlineFormatToolbar from "../InlineFormatToolbar/InlineFormatToolbar";
 import {
     endTextSpacingHold,
     startTextSpacingHold,
@@ -27,20 +31,42 @@ import {
 // Normalize a bullet's whitespace and render the marker in a dedicated grid
 // column. The column's width is the actual rendered "• " width for the active
 // font, so every bullet body and continuation line starts at one exact x value.
-function renderBulletLines(content) {
+//
+// `runs` are global character offsets over the whole content; each line slices
+// the runs to its own window (and the bullet body to the post-marker window) so
+// inline decoration is preserved per line. With no runs each line body renders
+// as a plain string, identical to the pre-feature output.
+function renderBulletLines(content, runs) {
+    let offset = 0;
     return content.split("\n").map((line, i) => {
+        const lineStart = offset;
+        // Advance past this line plus the "\n" that split() removed.
+        offset += line.length + 1;
+
         const bulletMatch = line.match(/^\s*•[ \t]*/);
         if (!bulletMatch) {
-            return <div key={i}>{line}</div>;
+            const lineRuns = sliceRuns(runs, lineStart, lineStart + line.length);
+            return <div key={i}>{renderStyledText(line, lineRuns)}</div>;
         }
 
+        const bodyStart = lineStart + bulletMatch[0].length;
+        const body = line.slice(bulletMatch[0].length);
+        const bodyRuns = sliceRuns(runs, bodyStart, lineStart + line.length);
         return (
             <div key={i} className={classes.bulletLine}>
                 <span className={classes.bulletMarker}>• </span>
-                <span className={classes.bulletBody}>{line.slice(bulletMatch[0].length)}</span>
+                <span className={classes.bulletBody}>{renderStyledText(body, bodyRuns)}</span>
             </div>
         );
     });
+}
+
+// Choose display children for a textarea box: bullet layout, styled spans, or
+// (fast path) the raw sanitized string when the element carries no inline runs.
+function renderTextareaBody(content, runs, bulletList) {
+    if (bulletList && content) return renderBulletLines(content, runs);
+    if (hasRuns(runs)) return renderStyledText(content, runs);
+    return content;
 }
 
 function Textarea({
@@ -61,6 +87,7 @@ function Textarea({
     bold,
     italic,
     underline,
+    runs,
     align,
     bulletList,
     autoHeight,
@@ -189,13 +216,39 @@ function Textarea({
         width,
     ]);
 
+    // Seed the contentEditable edit surface with the current content, then
+    // focus it with the caret at the end. Plain content is written as a text
+    // node (byte-identical editing to the former <textarea>); decorated content
+    // is written as styled spans so inline marks are visible and editable.
+    // The DOM is authoritative while editing; React must not re-render children
+    // of the editable, so this runs once per edit-enter.
     useLayoutEffect(() => {
         if (!isEditing || !editingRef.current) return undefined;
 
+        const node = editingRef.current;
+        const seeded = sanitizeTextContent(content) ?? "";
+        if (hasRuns(runs)) {
+            node.innerHTML = runsToHtml(seeded, runs);
+        } else {
+            node.textContent = seeded;
+        }
+
         const focusFrame = window.requestAnimationFrame(() => {
-            editingRef.current?.focus();
+            const target = editingRef.current;
+            if (!target) return;
+            target.focus({ preventScroll: true });
+            const selection = window.getSelection();
+            if (!selection) return;
+            const range = document.createRange();
+            range.selectNodeContents(target);
+            range.collapse(false); // caret at end, matching the old textarea
+            selection.removeAllRanges();
+            selection.addRange(range);
         });
         return () => window.cancelAnimationFrame(focusFrame);
+        // Seed only when entering edit; content/runs changes during editing come
+        // from the DOM itself, so they must not re-seed and move the caret.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isEditing]);
 
     useLayoutEffect(() => () => {
@@ -240,42 +293,56 @@ function Textarea({
                 className={classes.block}
                 style={{ ...boxStyle, ...textStyle }}
             >
-                {bulletList && cleanContent ? renderBulletLines(cleanContent) : cleanContent}
+                {renderTextareaBody(cleanContent, runs, bulletList)}
             </div>
         );
     }
 
     if (isEditing) {
+        // Commit the edit surface's DOM as { content, runs } and keep the box
+        // height in sync. Extracted so both typing and toolbar mark changes
+        // (which can shift wrap width) run the identical measure + commit path.
+        const commitEditable = (node) => {
+            const measuredHeight = measureNaturalScrollHeight(node);
+            node.style.height = `${measuredHeight}px`;
+            const { content: nextContent, runs: nextRuns } = serializeEditable(node);
+            if (autoHeight) {
+                editElementValues({ content: nextContent, runs: nextRuns }, elementId);
+                fitTextareaToContent(elementId, measuredHeight);
+            } else {
+                editElementValues({ content: nextContent, runs: nextRuns, height: measuredHeight }, elementId);
+            }
+        };
         return (
-            <textarea
-                id={elementId}
-                ref={editingRef}
-                autoFocus
-                rows={1}
-                className={classes.editing}
-                style={{ ...boxStyle, ...textStyle }}
-                value={cleanContent}
-                placeholder="Wpisz swój tekst…"
-                onChange={(e) => {
-                    const node = e.target;
-                    const measuredHeight = measureNaturalScrollHeight(node);
-                    node.style.height = `${measuredHeight}px`;
-                    const nextContent = sanitizeTextContent(node.value) ?? "";
-                    if (autoHeight) {
-                        editElementValues({ content: nextContent }, elementId);
-                        fitTextareaToContent(elementId, measuredHeight);
-                    } else {
-                        editElementValues({ content: nextContent, height: measuredHeight }, elementId);
-                    }
-                }}
-                onBlur={() => setTextareaEditing(elementId, false)}
-                onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                        e.preventDefault();
-                        e.currentTarget.blur();
-                    }
-                }}
-            />
+            <>
+                <InlineFormatToolbar
+                    nodeRef={editingRef}
+                    isEditing={isEditing}
+                    onApply={() => {
+                        // The toolbar has already rewritten the DOM; re-measure
+                        // and commit so the run change is persisted with height.
+                        if (editingRef.current) commitEditable(editingRef.current);
+                    }}
+                />
+                <div
+                    id={elementId}
+                    ref={editingRef}
+                    className={classes.editing}
+                    style={{ ...boxStyle, ...textStyle }}
+                    contentEditable
+                    suppressContentEditableWarning
+                    spellCheck={false}
+                    data-placeholder="Wpisz swój tekst…"
+                    onInput={(e) => commitEditable(e.currentTarget)}
+                    onBlur={() => setTextareaEditing(elementId, false)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                            e.preventDefault();
+                            e.currentTarget.blur();
+                        }
+                    }}
+                />
+            </>
         );
     }
 
@@ -343,7 +410,7 @@ function Textarea({
                 moveElement(e, elementId);
             }}
         >
-            {bulletList && cleanContent ? renderBulletLines(cleanContent) : cleanContent}
+            {renderTextareaBody(cleanContent, runs, bulletList)}
         </div>
     );
 

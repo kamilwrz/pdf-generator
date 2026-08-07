@@ -201,7 +201,7 @@ Schema is created by `init_db()` during app lifespan (not at import): `Base.meta
 | `users` | Accounts: username, email, bcrypt hash, `is_active`, timestamps |
 | `images` | Uploaded image metadata; `file_path` local or S3 URL; `owner_id` → users |
 | `pdfs` | CV documents: title, path, pages, page_width/height (default 595×842), owner, `editor_mode`, `template_id`, optional `spacing_px` rhythm JSON |
-| `pdf_elements` | Canvas elements; geometry + style columns; extras in `extra_properties` JSON (`fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`, bold, connectors, …) |
+| `pdf_elements` | Canvas elements; geometry + style columns; extras in `extra_properties` JSON (`fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`, bold, `runs` inline-decoration overlay, connectors, …) |
 | `bio_cv_drafts` | One private JSON draft per user |
 | `plans` | Free / standard / premium limits and feature flags |
 | `user_subscriptions` | Current plan per user (Stripe columns ready, often null) |
@@ -769,6 +769,67 @@ Implementation:
 
 ---
 
+### Inline text decoration (runs)
+
+Bold, italic, underline and text colour can be applied to a **selection inside**
+a `text` or `textarea` element (for example, bolding a phrase in a summary
+paragraph), not just to the whole element. A small floating toolbar
+(`InlineFormatToolbar`) appears only while a text element is in edit mode and a
+non-collapsed selection exists — selecting text was previously inert, so the
+feature is purely additive and does not change any existing behaviour.
+
+Data model. The plain `content` string stays the source of truth; decoration is
+an **overlay of "runs"** addressed by character offset:
+`{ start, end, bold?, italic?, underline?, color? }`. A run overrides only the
+marks it declares over its `[start, end)` span; absent marks fall through to the
+element base style. When an element has no runs, every canvas and PDF code path
+takes the original single-font **fast path**, so unformatted documents render
+byte-for-byte as before. `runs` is persisted in the existing `extra_properties`
+JSON (no database migration).
+
+Canvas↔PDF parity. Inline decoration breaks the "one font per element"
+assumption the 1:1 export relies on, because real bold/italic variants have
+different glyph metrics. Both sides therefore became run-aware while keeping the
+old path untouched: the browser wraps inline styled spans natively, and the PDF
+renderer sums per-run widths (each measured with the font that span draws in) so
+wrap points still match. Justify combined with runs degrades to left in v1;
+per-run font-family/size and hyperlinks are out of scope.
+
+Implementation:
+
+- Data model / contract: `backend/app/schemas/pdf_schema.py` — `TextRun`,
+  `PdfElement.runs`; regenerated `shared/pdf-element.schema.json`.
+- Persistence: `backend/app/crud/pdfs.py` — `serialize_runs`, `"runs"` in the
+  three `extra_properties` writers; hydration read-back in
+  `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`.
+- PDF rendering: `backend/app/services/pdf_generator.py` — `_prepare_styled`,
+  `_build_char_styles`, `_sanitize_with_styles`, `_styled_run_width`,
+  `_wrap_textarea_styled`, and the styled branches of `renderText`,
+  `renderTextarea`, `measure_textarea_height`.
+- Frontend model + serialization: `frontend/src/utils/textRuns.js`
+  (`normalizeRuns`, `applyMark`, `rangeHasMark`, `sliceRuns`, `styledSegments`),
+  `frontend/src/utils/editableSerialize.js` (`serializeEditable`, `runsToHtml`,
+  `getSelectionOffsets`, `setSelectionOffsets`), `sanitizeChar` in
+  `frontend/src/utils/sanitizeTextContent.js`,
+  `frontend/src/utils/renderStyledText.jsx`.
+- Editing surfaces + toolbar:
+  `frontend/src/components/canvas/InlineFormatToolbar/InlineFormatToolbar.jsx`,
+  `frontend/src/components/canvas/Text/Text.jsx`,
+  `frontend/src/components/canvas/Textarea/Textarea.jsx` (edit mode is now a
+  `contentEditable` div so inline marks can be authored). Any content change that
+  does not carry its own runs clears them (`handleEditElementValues` in
+  `frontend/src/hooks/useA4Elements.js`) so offsets can never go stale.
+
+Tests:
+
+- `backend/tests/test_pdf_inline_runs.py` — no-run identity, style-neutral wrap
+  parity, bold-run piece splitting, draw offsets.
+- `frontend/src/utils/textRuns.test.js`,
+  `frontend/src/utils/editableSerialize.test.js` — normalization, mark toggling,
+  run slicing, DOM serialization round-trip.
+
+---
+
 ## API
 
 Base URL: `VITE_API_URL` (frontend) / deployed backend. Auth: `Authorization: Bearer <jwt>` unless noted. Polish `detail` strings are returned to the UI.
@@ -1188,7 +1249,7 @@ pdf-generator/
 | `users` | Konta |
 | `images` | Metadane obrazów użytkownika |
 | `pdfs` | Dokumenty CV (`editor_mode`, `template_id`, opcjonalne `spacing_px`) |
-| `pdf_elements` | Elementy kanwy (+ `extra_properties`, m.in. `fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`) |
+| `pdf_elements` | Elementy kanwy (+ `extra_properties`, m.in. `fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`, `runs` — nakładka dekoracji inline) |
 | `bio_cv_drafts` | Jeden prywatny szkic bio / user |
 | `plans` | Limity Free / Standard / Premium |
 | `user_subscriptions` | Aktualny plan |
@@ -1726,6 +1787,68 @@ przycinany przed zapisem.
 
 - `frontend/src/utils/elementInteraction.js` — `isDecorativeChrome`
 - Guardy w `useA4Elements` + `pointer-events: none` na chrome
+
+---
+
+### Dekoracja tekstu inline (runs)
+
+Pogrubienie, kursywę, podkreślenie i kolor tekstu można nałożyć na **zaznaczenie
+wewnątrz** elementu `text` lub `textarea` (np. pogrubić frazę w akapicie
+podsumowania), a nie tylko na cały element. Mały pływający pasek narzędzi
+(`InlineFormatToolbar`) pojawia się wyłącznie w trybie edycji, gdy istnieje
+niepuste zaznaczenie — wcześniej zaznaczenie nic nie robiło, więc funkcja jest
+czysto addytywna i nie zmienia żadnego istniejącego zachowania.
+
+Model danych. Zwykły string `content` pozostaje źródłem prawdy; dekoracja to
+**nakładka „runs”** adresowana offsetem znaku:
+`{ start, end, bold?, italic?, underline?, color? }`. Run nadpisuje tylko
+zadeklarowane marki na swoim zakresie `[start, end)`; brakujące marki spadają do
+stylu bazowego elementu. Gdy element nie ma runów, każda ścieżka kodu na kanwie i
+w PDF idzie oryginalną **szybką ścieżką** jedno-fontową, więc niesformatowane
+dokumenty renderują się bajt-w-bajt jak wcześniej. `runs` zapisywane jest w
+istniejącym JSON-ie `extra_properties` (bez migracji bazy).
+
+Parytet Canvas↔PDF. Dekoracja inline łamie założenie „jeden font na element”, na
+którym opiera się eksport 1:1, bo realne warianty bold/italic mają inne metryki
+glifów. Obie strony stały się więc świadome runów, nie ruszając starej ścieżki:
+przeglądarka zawija stylowane spany inline natywnie, a renderer PDF sumuje
+szerokości poszczególnych runów (każdy mierzony fontem, którym się rysuje), więc
+punkty zawijania nadal się zgadzają. Justowanie łączone z runami degraduje się w
+v1 do wyrównania do lewej; font/rozmiar per-run oraz hiperłącza są poza zakresem.
+
+Implementacja:
+
+- Model danych / kontrakt: `backend/app/schemas/pdf_schema.py` — `TextRun`,
+  `PdfElement.runs`; wygenerowany ponownie `shared/pdf-element.schema.json`.
+- Trwałość: `backend/app/crud/pdfs.py` — `serialize_runs`, `"runs"` w trzech
+  miejscach zapisujących `extra_properties`; odczyt przy hydratacji w
+  `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`.
+- Render PDF: `backend/app/services/pdf_generator.py` — `_prepare_styled`,
+  `_build_char_styles`, `_sanitize_with_styles`, `_styled_run_width`,
+  `_wrap_textarea_styled` oraz stylowane gałęzie `renderText`, `renderTextarea`,
+  `measure_textarea_height`.
+- Model + serializacja na froncie: `frontend/src/utils/textRuns.js`
+  (`normalizeRuns`, `applyMark`, `rangeHasMark`, `sliceRuns`, `styledSegments`),
+  `frontend/src/utils/editableSerialize.js` (`serializeEditable`, `runsToHtml`,
+  `getSelectionOffsets`, `setSelectionOffsets`), `sanitizeChar` w
+  `frontend/src/utils/sanitizeTextContent.js`,
+  `frontend/src/utils/renderStyledText.jsx`.
+- Powierzchnie edycji + pasek:
+  `frontend/src/components/canvas/InlineFormatToolbar/InlineFormatToolbar.jsx`,
+  `frontend/src/components/canvas/Text/Text.jsx`,
+  `frontend/src/components/canvas/Textarea/Textarea.jsx` (tryb edycji to teraz
+  `contentEditable`, aby dało się autorować marki inline). Każda zmiana treści,
+  która nie niesie własnych runów, czyści je (`handleEditElementValues` w
+  `frontend/src/hooks/useA4Elements.js`), więc offsety nie mogą się rozjechać.
+
+Testy:
+
+- `backend/tests/test_pdf_inline_runs.py` — tożsamość bez runów, parytet
+  zawijania dla runów neutralnych stylowo, podział na kawałki dla runu bold,
+  offsety rysowania.
+- `frontend/src/utils/textRuns.test.js`,
+  `frontend/src/utils/editableSerialize.test.js` — normalizacja, przełączanie
+  marek, cięcie runów, round-trip serializacji DOM.
 
 ---
 

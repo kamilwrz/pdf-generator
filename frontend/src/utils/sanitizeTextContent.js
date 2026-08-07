@@ -15,6 +15,26 @@ export function sanitizeTextContent(value) {
     .replace(ODD_SPACE_RE, " ");
 }
 
+// Single-character (non-global) forms of the classes above, built from the same
+// sources so they can never drift. A non-global copy is required because a
+// shared /g regex carries lastIndex state across .test() calls.
+const CONTROL_RE_CHAR = new RegExp(CONTROL_RE.source);
+const ODD_SPACE_RE_CHAR = new RegExp(ODD_SPACE_RE.source);
+const INVISIBLE_RE_CHAR = new RegExp(INVISIBLE_RE.source);
+
+/**
+ * Sanitize a single character the same way {@link sanitizeTextContent} treats
+ * the whole string: control/invisible characters return "" (dropped), exotic
+ * spaces fold to a regular space, everything else is returned unchanged. This
+ * lets a caller sanitize text while keeping a parallel per-character array
+ * (e.g. inline-run styles) aligned — every dropped character drops its entry.
+ */
+export function sanitizeChar(ch) {
+  if (CONTROL_RE_CHAR.test(ch) || INVISIBLE_RE_CHAR.test(ch)) return "";
+  if (ODD_SPACE_RE_CHAR.test(ch)) return " ";
+  return ch;
+}
+
 /** Clean `content` on every text-bearing canvas element before export/save. */
 export function sanitizeElementsContent(elements) {
   if (!Array.isArray(elements)) return elements;

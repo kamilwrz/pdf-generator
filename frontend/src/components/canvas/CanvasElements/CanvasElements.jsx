@@ -79,6 +79,7 @@ export default function CanvasElements({ elements }) {
             bold={element.bold}
             italic={element.italic}
             underline={element.underline}
+            runs={element.runs}
             align={element.align}
             bulletList={element.bulletList}
             autoHeight={element.autoHeight}
@@ -119,6 +120,7 @@ export default function CanvasElements({ elements }) {
             bold={element.bold}
             italic={element.italic}
             underline={element.underline}
+            runs={element.runs}
             zIndex={element.zIndex}
             fixedToPage={element.fixedToPage}
           />

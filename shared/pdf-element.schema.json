@@ -1,4 +1,75 @@
 {
+  "$defs": {
+    "TextRun": {
+      "description": "One inline-formatted span inside a ``text`` / ``textarea`` element.\n\nA run is a style overlay addressed by character offset into ``content``;\n``content`` itself stays plain text. Offsets are half-open ``[start, end)``\nover the sanitized content string. Only the marks a run declares override\nthe element's base style — an absent mark falls through to the element-level\n``bold`` / ``italic`` / ``underline`` / ``color``.\n\nRuns are normalized before persistence: non-overlapping, sorted, clamped to\nthe content length, with empty spans dropped and adjacent equal spans merged.\nWhen an element carries no runs, every renderer path takes the original\nsingle-font fast path, so unformatted documents are byte-for-byte unchanged.",
+      "properties": {
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        },
+        "bold": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bold"
+        },
+        "italic": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Italic"
+        },
+        "underline": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Underline"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "TextRun",
+      "type": "object"
+    }
+  },
   "description": "One canvas element as sent by the editor.\n\n``category`` and ``element_id`` are required so upserts and the PDF\nrenderer never receive anonymous rows. Other fields stay optional because\nnot every category uses every property; unused optionals stay null and are\nignored by the renderer. Style flags that lack dedicated DB columns are\nlater packed into ``PdfElements.extra_properties``.",
   "properties": {
     "category": {
@@ -164,6 +235,21 @@
       "default": false,
       "title": "Underline"
     },
+    "runs": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/TextRun"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Runs"
+    },
     "align": {
       "anyOf": [
         {
@@ -211,6 +297,30 @@
       ],
       "default": null,
       "title": "Flowrole"
+    },
+    "flowGroup": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Flowgroup"
+    },
+    "isDecorativeChromeText": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": false,
+      "title": "Isdecorativechrometext"
     },
     "preserveInitialLayout": {
       "anyOf": [

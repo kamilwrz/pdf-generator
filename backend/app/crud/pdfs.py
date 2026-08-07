@@ -21,6 +21,22 @@ from app.services.cv_generator_primitives import (
 )
 
 
+def serialize_runs(element) -> list[dict[str, Any]] | None:
+    """Convert an element's inline ``runs`` into JSON-safe dicts for storage.
+
+    ``runs`` carries per-span decoration (bold/italic/underline/color) addressed
+    by character offset. It is packed into ``extra_properties`` like other style
+    flags, so no dedicated column or migration is needed. Returns None when the
+    element has no runs, keeping the stored payload identical to pre-feature rows.
+    """
+    runs = getattr(element, "runs", None)
+    if not runs:
+        return None
+    # Drop marks left at their None default so stored spans stay compact and the
+    # hydrated element only carries the overrides the author actually applied.
+    return [run.model_dump(exclude_none=True) for run in runs]
+
+
 def serialize_spacing_px(raw: Mapping[str, Any] | None) -> dict[str, float] | None:
     """Store normalized rhythm JSON, or None when it matches generator defaults."""
     if raw is None:
@@ -99,6 +115,7 @@ def create_new_pdf(
                 "bold": element.bold,
                 "italic": element.italic,
                 "underline": element.underline,
+                "runs": serialize_runs(element),
                 "align": element.align,
                 "bulletList": element.bulletList,
                 "autoHeight": element.autoHeight,
@@ -208,6 +225,7 @@ def update_pdf_elements(db: Session, elements: list, existing_elements: dict, pd
                     "bold": element.bold,
                     "italic": element.italic,
                     "underline": element.underline,
+                    "runs": serialize_runs(element),
                     "align": element.align,
                     "bulletList": element.bulletList,
                     "autoHeight": element.autoHeight,
@@ -250,6 +268,7 @@ def update_pdf_elements(db: Session, elements: list, existing_elements: dict, pd
                 "bold": element.bold,
                 "italic": element.italic,
                 "underline": element.underline,
+                "runs": serialize_runs(element),
                 "align": element.align,
                 "bulletList": element.bulletList,
                 "autoHeight": element.autoHeight,

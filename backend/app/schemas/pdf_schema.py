@@ -27,6 +27,30 @@ ElementCategory = Literal[
 ]
 
 
+class TextRun(BaseModel):
+    """One inline-formatted span inside a ``text`` / ``textarea`` element.
+
+    A run is a style overlay addressed by character offset into ``content``;
+    ``content`` itself stays plain text. Offsets are half-open ``[start, end)``
+    over the sanitized content string. Only the marks a run declares override
+    the element's base style — an absent mark falls through to the element-level
+    ``bold`` / ``italic`` / ``underline`` / ``color``.
+
+    Runs are normalized before persistence: non-overlapping, sorted, clamped to
+    the content length, with empty spans dropped and adjacent equal spans merged.
+    When an element carries no runs, every renderer path takes the original
+    single-font fast path, so unformatted documents are byte-for-byte unchanged.
+    """
+
+    start: int = Field(..., ge=0)
+    end: int = Field(..., ge=0)
+    bold: Optional[bool] = None
+    italic: Optional[bool] = None
+    underline: Optional[bool] = None
+    # Hex colour; overrides the element base colour for this span only.
+    color: Optional[str] = None
+
+
 class PdfElement(BaseModel):
     """One canvas element as sent by the editor.
 
@@ -55,6 +79,10 @@ class PdfElement(BaseModel):
     bold: Optional[bool] = False
     italic: Optional[bool] = False
     underline: Optional[bool] = False
+    # Inline decoration overlay. Empty/None keeps the element on the uniform
+    # single-font fast path (identical Canvas↔PDF wrapping as before this field
+    # existed). Populated only for text/textarea that carry mixed styling.
+    runs: Optional[list[TextRun]] = None
     # textarea: left | center | right | justify
     align: Optional[str] = "left"
     # Hang indent for lines that start with a bullet marker.
