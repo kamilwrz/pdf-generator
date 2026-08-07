@@ -209,6 +209,17 @@ export default function ModalPdfs({ title }) {
     }
 
     useEffect(() => {
+        // Guests have no saved documents yet by definition — skip the
+        // request entirely (it would 401) and report the same "loaded,
+        // empty" state an authenticated user with zero PDFs gets, so the
+        // template-first onboarding auto-open gate in PdfCanvas.jsx still
+        // works without waiting on a call that can never succeed.
+        if (!localStorage.getItem("token")) {
+            setPDFs([]);
+            setPdfsLoaded(true);
+            return;
+        }
+
         // Must fetch on mount regardless of isModalPdfs (not just when the
         // dialog is open) — pdfsLoaded/PDFs.length here is what the
         // template-first onboarding auto-open effect in PdfCanvas.jsx waits
