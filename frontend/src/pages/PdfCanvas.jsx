@@ -30,6 +30,7 @@ import AiCvPanel from '../components/ai/AiCvPanel/AiCvPanel';
 import BioCvModal from '../components/ai/BioCvModal/BioCvModal';
 import ChangeTemplateModal from '../components/editor/Topbar/ChangeTemplateModal';
 import UnlockFreeformModal from '../components/editor/UnlockFreeformModal/UnlockFreeformModal';
+import SaveGateModal from '../components/editor/SaveGateModal/SaveGateModal';
 import SectionsPanel from '../components/editor/SectionsPanel/SectionsPanel';
 import AddSectionModal from '../components/editor/AddSectionModal/AddSectionModal';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
@@ -102,6 +103,7 @@ function PdfCanvas() {
   const isPlanModal = dialog === 'plan';
   const isChangeTemplateModal = dialog === 'changeTemplate';
   const isUnlockFreeformModal = dialog === 'unlockFreeform';
+  const isSaveGateModal = dialog === 'saveGate';
   // Structured cv_data behind the CV currently on the canvas. Set by
   // AiCvPanel/BioCvModal when a fill succeeds; cleared whenever the canvas
   // starts showing something else (fresh document, or a reopened saved PDF
@@ -684,6 +686,18 @@ function PdfCanvas() {
     });
   }, [A4_Elements, activeTemplateId, createPdf, editorMode, flowSpacing, titleRef, pageCount, pageSize]);
 
+  // Guests have no backend document to create yet — show the save-gate
+  // instead of firing the API call, which would 401. Authenticated users
+  // are unaffected: same createPdfWithElements() call as before this change.
+  const handleSaveClick = useCallback(() => {
+    if (!localStorage.getItem("token")) {
+      queueGuestEvent("save_gate_shown");
+      setDialog('saveGate');
+      return;
+    }
+    createPdfWithElements();
+  }, [createPdfWithElements]);
+
   const previewedElements = useMemo(() => {
     const structurallyPreviewed = structurePreviewGroup
       ? previewStructureOperation(A4_Elements, structurePreviewGroup)
@@ -940,7 +954,7 @@ function PdfCanvas() {
     canRedo,
     resetHistory,
     updatePdf: updatePdfWithElements,
-    createPdf: createPdfWithElements,
+    createPdf: handleSaveClick,
     isPdfLoading,
     layoutPreviewPatches,
     setLayoutPreviewPatches,
@@ -952,7 +966,7 @@ function PdfCanvas() {
     A4_Elements, groupMoveDelta, setPageCanvasRef, isPdfLoading, pdfId, setA4_Elements_deleted,
     handleAddImage, handleAddText, handleAddLine, handleAddRectangle, handleAddCircle, handleAddEllipse,
     handleSelectElement, handleMoveElement, handleMoveSelectedElements, handleSelectMoveElement,
-    createPdfWithElements, applyStructureOperation, applyCloneOperation, applyDeleteOperation,
+    handleSaveClick, applyStructureOperation, applyCloneOperation, applyDeleteOperation,
     handleEditElementValues, handleEditSelectedElementValues, handleFitTextareaToContent, applyLayoutPatches,
     handleAlignElements, handleDeleteElement, handleDeleteSelectedElements, handleDuplicateSelectedElements,
     setA4_Elements, handleResizeElement, updatePdfWithElements,
@@ -1050,6 +1064,10 @@ function PdfCanvas() {
                 open={isUnlockFreeformModal}
                 onCancel={() => setDialog(null)}
                 onConfirm={confirmUnlockFreeform}
+              />
+              <SaveGateModal
+                open={isSaveGateModal}
+                onCancel={() => setDialog(null)}
               />
               <AddSectionModal
                 open={addSectionModal.open}
