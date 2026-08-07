@@ -360,6 +360,17 @@ function Textarea({
                     }}
                 />
                 <div
+                    // Distinct key from the display block below. The edit surface
+                    // and the display block are both <div id={elementId}> at the
+                    // same fragment position, so without different keys React
+                    // reuses ONE DOM node across the edit↔display transition. The
+                    // edit box is seeded imperatively (node.textContent / innerHTML),
+                    // content React does not track; on exit React would append the
+                    // display grid WITHOUT removing that orphaned text node, leaving
+                    // the content — and the measured height — doubled. Distinct keys
+                    // force a clean unmount/remount, matching the old <textarea>
+                    // (whose element-type change did this implicitly).
+                    key="textarea-edit"
                     id={elementId}
                     ref={editingRef}
                     className={classes.editing}
@@ -404,6 +415,10 @@ function Textarea({
 
     const block = (
         <div
+            // Distinct key from the edit surface — see the note on the edit
+            // <div> above. Prevents React from reusing the contentEditable DOM
+            // node (with its imperatively-seeded, untracked text) as this block.
+            key="textarea-display"
             id={elementId}
             ref={blockRef}
             className={`${classes.block} ${isSelected ? classes.selected : ""}`}
