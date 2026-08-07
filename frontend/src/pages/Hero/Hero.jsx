@@ -1,9 +1,13 @@
 /**
  * Outcome-focused marketing landing page for CV Studio.
  *
- * It presents PDF import and the guided wizard as two entry points that lead
- * to the same editable, exportable CV. The query parameter in each CTA keeps
- * the visitor's chosen start path through registration and login.
+ * It presents PDF import, the guided wizard, blank canvas, template picker,
+ * and a live demo as entry points that lead to the same editable, exportable
+ * CV. Only the "import" CTA still detours through registration and login —
+ * it keeps its start-intent query param through that flow because it calls a
+ * paid OpenAI endpoint. Every other CTA (wizard, blank, templates, demo)
+ * goes straight to `/pdfcanvas?start=...` for guests and authenticated
+ * visitors alike, with no registration step in between.
  */
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
