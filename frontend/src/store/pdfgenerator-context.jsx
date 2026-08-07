@@ -28,6 +28,7 @@ export const PdfContext = createContext({
     removeSection: () => {},
     removeRecordBlock: () => {},
     reorderRecordBlock: () => {},
+    reorderSection: () => {},
     isBioCvModal: false,
     showBioCvModal: () => {},
     cancelBioCvModal: () => {},

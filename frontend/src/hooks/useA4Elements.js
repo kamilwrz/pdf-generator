@@ -25,6 +25,7 @@ import {
   insertSectionAfter,
   listDocumentSections,
   removeSection,
+  reorderSection,
 } from '../utils/sectionStructure';
 import { buildSectionElements } from '../utils/sectionBuilder';
 import {
@@ -820,6 +821,35 @@ export function useA4Elements(titleRef) {
         ...result.elements.map((element) => element.page ?? 1),
       );
       return result.elements;
+    });
+  }, []);
+
+  /**
+   * Move a whole template-mode section up/down via the heading hover arrows,
+   * then re-pack so later sections keep template rhythm.
+   *
+   * @param {string} headingId
+   * @param {"up"|"down"} direction
+   */
+  const handleReorderSection = useCallback((headingId, direction) => {
+    if (!headingId) return;
+    if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return;
+
+    setA4_Elements((prev) => {
+      const pageHeight = pageSizeRef.current?.height ?? 842;
+      const next = reorderSection(
+        prev,
+        headingId,
+        direction,
+        pageHeight,
+        { spacing: flowSpacingRef.current },
+      );
+      if (!next) return prev;
+      reflowPageCountRef.current = Math.max(
+        1,
+        ...next.map((element) => element.page ?? 1),
+      );
+      return next;
     });
   }, []);
 
@@ -1858,6 +1888,7 @@ export function useA4Elements(titleRef) {
     handleRemoveSection,
     handleRemoveRecordBlock,
     handleReorderRecordBlock,
+    handleReorderSection,
     // connector mode
     connectMode,
     connectSourceId,

@@ -41,8 +41,9 @@ DONE 6) nie pokazywac wartosci do edycji w panelu, jezeli nie ma to wplywu (+ br
   aa) zmiana kolejnosci recordu w sekcji inne niz wyksztalcenie / edukacja (strzalki po prawej, wys. kosz/+)
   DONE bb) zmiana kolejnosci recordow w edu / exp (strzalki po prawej, wys. kosz/+)
   DONE cc) kasowanie bloku / sekcji (hover kosz obok + na naglowku sekcji / rekordu)
-  dd) dodawanie rekoru w sekcji innej niz edu/exp
-  ee) zmienic UX / DESIGN
+  dd) dodawanie rekordu w sekcji innej niz edu/exp? 
+  DONE ee) zmienic UX / DESIGN
+  DONE ff) zmiana kolejnosci sekcji (strzalki po prawej naglowka, jak przy rekordach)
 8) Dodac: Firma . Okres > Firma . Miejsce.  Okres; to samo z edu
 9) masthead / topbar mozna ruszac dragiem w edycji strukturalnej.... ewentulanie inne elementy
 DONE 10) Uzytkownika zawsze ma zaczynac od zooma 130% nie 100%

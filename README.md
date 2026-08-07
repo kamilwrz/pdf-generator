@@ -154,7 +154,7 @@ pdf-generator/
 │   │   └── template-mockups/      # Static A4 preview PNGs
 │   ├── src/
 │   │   ├── components/       # canvas, editor, ai, modals, gallery, common
-│   │   │   ├── canvas/SectionRecordAdd/  # Hover "+" / trash on section headings → add or delete section
+│   │   │   ├── canvas/SectionRecordAdd/  # Hover trash/+ (left) and reorder arrows (right) on section headings
 │   │   │   ├── canvas/RecordBlockAdd/    # Hover trash/+ (left) and reorder arrows (right) on records
 │   │   │   ├── editor/AddSectionModal/   # "+ Dodaj sekcję" modal (name + aa/cc layout picker)
 │   │   │   ├── editor/SaveGateModal/     # "Create an account to save" modal shown to guests
@@ -275,8 +275,8 @@ Implementation:
 - `frontend/src/pages/PdfCanvas.jsx` — owns `AddSectionModal` + `openAddSectionModal` so the canvas heading **+** works even when the Sections panel is closed
 - `frontend/src/components/editor/AddSectionModal/AddSectionModal.jsx` — name + layout picker + optional icon gallery; subtitle differs for insert-under vs append-end
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` — "+ Dodaj sekcję" calls `openAddSectionModal()`; user-facing labels in `SPACING_FIELDS` / `displaySectionTitle`
-- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, lines 27–, component `SectionRecordAdd` — heading hover **+** / trash cluster (add section under heading, or delete this section)
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 40–47, `sectionHeadingIds` — mounts the affordance on every template-mode section heading
+- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, lines 35–, component `SectionRecordAdd` — heading hover **trash + +** (left) and **↑ ↓** (right): add section under heading, delete this section, or reorder sections
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 41–, `sectionAnchorsById` — mounts the affordance on every template-mode section heading with `canMoveUp` / `canMoveDown`
 
 Tests:
 
@@ -290,15 +290,17 @@ Known limitations:
 - The muted color used for a record's meta line is best-effort: it is sampled from an existing meta line when one can be identified, otherwise it falls back to the body color.
 - When appending from the panel, style sampling looks at the document's last detected section; when inserting under a heading, it samples that section. A template with no detectable section (or an empty document) falls back to a template-neutral default rather than matching a specific visual identity.
 
-### Add section from heading hover
+### Add / reorder section from heading hover
 
-In **template mode**, hovering any detected section heading shows a control cluster: **trash** (left) and **+** (right of trash), rendered as bare icons — no chip background, border, or shadow — colored directly against the white page (muted red `#C0563F` for trash, dark grey `#5B5B55` for +, both darkening on hover) so they read as part of the document rather than editor UI. Clicking **+** opens the **Dodaj sekcję** modal; on confirm the new section is inserted immediately **under that section** (`insertSectionAfter` / `afterHeadingId`), not appended at the document end. Clicking trash deletes the whole hovered section (`removeSection`) and re-packs remaining sections under the active rhythm so later content closes the hole. Timing: appear on pointer enter, stay while on the heading or cluster, hide **3 s** after leave. At most one canvas heading/record cluster is visible at a time (`useHoverPlusExclusive`).
+In **template mode**, hovering any detected section heading shows two control clusters at the same vertical height, matching the record affordance: **trash + +** to the left of the heading, and **↑ ↓** reorder arrows to the right (disabled on the first/last section). Controls are bare icons — no chip background, border, or shadow — colored directly against the white page (muted red `#C0563F` for trash, dark grey `#5B5B55` for +/arrows, both darkening on hover) so they read as part of the document rather than editor UI. Clicking **+** opens the **Dodaj sekcję** modal; on confirm the new section is inserted immediately **under that section** (`insertSectionAfter` / `afterHeadingId`), not appended at the document end. Clicking trash deletes the whole hovered section (`removeSection`) and re-packs remaining sections under the active rhythm so later content closes the hole. Clicking ↑/↓ swaps with the previous/next section (`reorderSection` via `handleReorderSection`) and re-packs. Timing: appear on pointer enter, stay while on the heading or either cluster, hide **3 s** after leave. At most one canvas heading/record cluster is visible at a time (`useHoverPlusExclusive`).
 
 Implementation:
 
-- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx` — heading hover listeners; calls `openAddSectionModal(headingId)` or `removeSection(headingId)`
-- `frontend/src/pages/PdfCanvas.jsx` — modal state + confirm wiring into `handleAddSection({ …, afterHeadingId })`; exposes `removeSection`
-- `frontend/src/utils/sectionStructure.js`, functions `insertSectionAfter`, `removeSection` (lines 1121–)
+- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx` — heading hover listeners; calls `openAddSectionModal(headingId)`, `removeSection(headingId)`, or `reorderSection(headingId, direction)`
+- `frontend/src/hooks/useA4Elements.js`, function `handleReorderSection` (lines 834–) — exposed through `PdfContext` as `reorderSection`
+- `frontend/src/pages/PdfCanvas.jsx` — modal state + confirm wiring into `handleAddSection({ …, afterHeadingId })`; exposes `removeSection` / `reorderSection`
+- `frontend/src/utils/sectionStructure.js`, functions `insertSectionAfter`, `removeSection` (lines 1121–), `reorderSection` (lines 1080–)
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `sectionAnchorsById` — passes `canMoveUp` / `canMoveDown` from document section order
 
 ### Delete section / record with rhythm reflow
 
@@ -320,7 +322,7 @@ Tests:
 
 In eligible multi-line sections (education / experience stacks, custom **cc-edu** / **cc-exp**, or wizard-filled records sharing a `flowGroup`), hovering the **upper part of a record** (title / school / meta — everything before the bullet description; if there is no bullet line, only the first title line) shows two clusters at the same vertical height: **trash + +** to the left of the title, and **↑ ↓** reorder arrows to the right of the title (disabled at the first/last record). Leave timing matches the heading affordance (**3 s** after leave; hovering either cluster keeps it visible). At most one canvas record/heading affordance is visible at a time (`useHoverPlusExclusive`). All canvas hover controls (section and record clusters alike) share one bare-icon style — same colors and hover behavior as the section heading cluster above, no background chip — sized from `recordPlusLayoutSize` (~19px icon on screen at any zoom, the button's hit target equal to the icon itself since there is no surrounding padding). Clicking **+** inserts a **full placeholder record** immediately **below that record**, with a new `flowGroup`, then re-packs via `applyFlowSpacing` and opens the first new line for editing. Clicking trash deletes that record and re-packs. Clicking ↑/↓ swaps with the previous/next sibling (`reorderRecordBlock`) and re-packs. The description body does not show the clusters.
 
-Hovering the first of two records inserts between them; hovering the last inserts after it. Heading cluster (add/delete *section*) and upper-record clusters (add/delete/reorder *record*) coexist. Programmatic `addSectionRecord` / `appendRecordToSection` remain available for appending a record at a section end, but the heading **+** UI no longer calls them.
+Hovering the first of two records inserts between them; hovering the last inserts after it. Heading clusters (add/delete/reorder *section*) and upper-record clusters (add/delete/reorder *record*) coexist. Programmatic `addSectionRecord` / `appendRecordToSection` remain available for appending a record at a section end, but the heading **+** UI no longer calls them.
 
 Implementation:
 
@@ -1318,7 +1320,7 @@ pdf-generator/
 │   │   └── template-mockups/
 │   ├── src/
 │   │   ├── components/       # canvas, editor, ai, modals, gallery, common
-│   │   │   ├── canvas/SectionRecordAdd/  # „+” / kosz na nagłówku sekcji → dodaj lub usuń sekcję
+│   │   │   ├── canvas/SectionRecordAdd/  # kosz/+ (lewo) i strzałki kolejności (prawo) na nagłówkach sekcji
 │   │   │   ├── canvas/RecordBlockAdd/    # kosz/+ (lewo) i strzałki kolejności (prawo) na rekordach
 │   │   │   ├── editor/AddSectionModal/   # modal „+ Dodaj sekcję” (nazwa + wybór układu aa/cc)
 │   │   │   ├── editor/SaveGateModal/     # modal „załóż konto, aby zapisać” pokazywany gościom
@@ -1431,8 +1433,8 @@ Implementacja:
 - `frontend/src/pages/PdfCanvas.jsx` — właściciel `AddSectionModal` + `openAddSectionModal`, żeby **+** na canvasie działał także przy zamkniętym panelu Sekcje
 - `frontend/src/components/editor/AddSectionModal/AddSectionModal.jsx` — nazwa + wybór układu + opcjonalna galeria ikon; inny podtytuł dla wstawienia pod sekcją vs doklejenia na końcu
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` — „+ Dodaj sekcję” woła `openAddSectionModal()`; etykiety UI w `SPACING_FIELDS` / `displaySectionTitle`
-- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, linie 27–, komponent `SectionRecordAdd` — klaster hover **+** / kosz na nagłówku (dodaj sekcję pod nagłówkiem albo usuń tę sekcję)
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 40–47, `sectionHeadingIds` — montaż affordance przy każdym nagłówku sekcji w trybie szablonu
+- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, linie 35–, komponent `SectionRecordAdd` — klaster hover **kosz + +** (lewo) i **↑ ↓** (prawo): dodaj sekcję pod nagłówkiem, usuń tę sekcję albo zmień kolejność sekcji
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 41–, `sectionAnchorsById` — montaż affordance przy każdym nagłówku sekcji w trybie szablonu z `canMoveUp` / `canMoveDown`
 
 Testy:
 
@@ -1446,15 +1448,17 @@ Znane ograniczenia:
 - Przygaszony kolor linii meta w rekordzie jest dobierany w sposób najlepszy z możliwych: próbkowany z istniejącej linii meta, jeśli da się ją zidentyfikować, w przeciwnym razie stosowany jest kolor treści głównej.
 - Przy doklejaniu z panelu próbkowanie stylu bierze ostatnią wykrytą sekcję; przy wstawianiu pod nagłówkiem — tę sekcję. Szablon bez wykrywalnej sekcji (lub pusty dokument) korzysta z neutralnego stylu domyślnego.
 
-### Dodawanie sekcji po najechaniu na nagłówek
+### Dodawanie / zmiana kolejności sekcji po najechaniu na nagłówek
 
-W **trybie szablonu** najechanie na dowolny wykryty nagłówek sekcji pokazuje klaster: **kosz** (po lewej) i **+** (obok kosza), renderowane jako gołe ikony — bez tła, obramowania czy cienia — kolorowane bezpośrednio na tle białej strony (przygaszona czerwień `#C0563F` dla kosza, ciemny szary `#5B5B55` dla +, oba ciemnieją przy hover), żeby wyglądały jak część dokumentu, a nie UI edytora. Kliknięcie **+** otwiera modal **Dodaj sekcję**; po potwierdzeniu nowa sekcja trafia bezpośrednio **pod tą sekcją** (`insertSectionAfter` / `afterHeadingId`), a nie na koniec dokumentu. Kliknięcie kosza usuwa całą najechaną sekcję (`removeSection`) i przepakowuje pozostałe sekcje w aktywnym rytmie, żeby późniejsza treść domknęła dziurę. Czasowanie: pojawienie przy `pointerenter`, utrzymanie na nagłówku lub klastrze, ukrycie **3 s** po zejściu. Na canvasie jednocześnie widać co najwyżej jeden klaster nagłówka/rekordu (`useHoverPlusExclusive`).
+W **trybie szablonu** najechanie na dowolny wykryty nagłówek sekcji pokazuje dwa klastry na tej samej wysokości pionowej, jak przy rekordach: **kosz + +** na lewo od nagłówka oraz strzałki **↑ ↓** na prawo (wyłączone na pierwszej/ostatniej sekcji). Kontrolki to gołe ikony — bez tła, obramowania czy cienia — kolorowane bezpośrednio na tle białej strony (przygaszona czerwień `#C0563F` dla kosza, ciemny szary `#5B5B55` dla +/strzałek, oba ciemnieją przy hover), żeby wyglądały jak część dokumentu, a nie UI edytora. Kliknięcie **+** otwiera modal **Dodaj sekcję**; po potwierdzeniu nowa sekcja trafia bezpośrednio **pod tą sekcją** (`insertSectionAfter` / `afterHeadingId`), a nie na koniec dokumentu. Kliknięcie kosza usuwa całą najechaną sekcję (`removeSection`) i przepakowuje pozostałe sekcje w aktywnym rytmie, żeby późniejsza treść domknęła dziurę. Kliknięcie ↑/↓ zamienia sekcję z poprzednią/następną (`reorderSection` przez `handleReorderSection`) i przepakowuje. Czasowanie: pojawienie przy `pointerenter`, utrzymanie na nagłówku lub dowolnym klastrze, ukrycie **3 s** po zejściu. Na canvasie jednocześnie widać co najwyżej jeden klaster nagłówka/rekordu (`useHoverPlusExclusive`).
 
 Implementacja:
 
-- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx` — nasłuch hover na nagłówku; woła `openAddSectionModal(headingId)` albo `removeSection(headingId)`
-- `frontend/src/pages/PdfCanvas.jsx` — stan modala + potwierdzenie do `handleAddSection({ …, afterHeadingId })`; wystawia `removeSection`
-- `frontend/src/utils/sectionStructure.js`, funkcje `insertSectionAfter`, `removeSection` (linie 1121–)
+- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx` — nasłuch hover na nagłówku; woła `openAddSectionModal(headingId)`, `removeSection(headingId)` albo `reorderSection(headingId, direction)`
+- `frontend/src/hooks/useA4Elements.js`, funkcja `handleReorderSection` (linie 834–) — wystawiana przez `PdfContext` jako `reorderSection`
+- `frontend/src/pages/PdfCanvas.jsx` — stan modala + potwierdzenie do `handleAddSection({ …, afterHeadingId })`; wystawia `removeSection` / `reorderSection`
+- `frontend/src/utils/sectionStructure.js`, funkcje `insertSectionAfter`, `removeSection` (linie 1121–), `reorderSection` (linie 1080–)
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `sectionAnchorsById` — przekazuje `canMoveUp` / `canMoveDown` z kolejności sekcji w dokumencie
 
 ### Usuwanie sekcji / rekordu z reflow rytmu
 
@@ -1476,7 +1480,7 @@ Testy:
 
 W kwalifikujących się sekcjach wieloliniowych (stosy edukacji / doświadczenia, własne **cc-edu** / **cc-exp**, rekordy z wizarda ze wspólnym `flowGroup`) najechanie na **górną część rekordu** (tytuł / uczelnia / meta — wszystko przed opisem punktowanym; gdy nie ma linii z `bulletList`, tylko pierwsza linia tytułu) pokazuje dwa klastry na tej samej wysokości pionowej: **kosz + +** na lewo od tytułu oraz strzałki **↑ ↓** na prawo od tytułu (wyłączone na pierwszym/ostatnim rekordzie). Czas ukrycia jak przy nagłówku (**3 s** po zejściu; najechanie na dowolny klaster utrzymuje widoczność). Na canvasie jednocześnie widać co najwyżej jeden affordance nagłówka/rekordu (`useHoverPlusExclusive`). Wszystkie klastry hover na canvasie (nagłówka i rekordu) dzielą jeden goły styl ikon — te same kolory i zachowanie hover co klaster nagłówka sekcji wyżej, bez tła — rozmiar z `recordPlusLayoutSize` (~19px ikony na ekranie przy dowolnym zoomie; przycisk to dokładnie rozmiar ikony, bez dodatkowego paddingu). Kliknięcie **+** wstawia **pełny rekord z generyczną treścią** bezpośrednio **pod tym wpisem**, z nowym `flowGroup`, potem `applyFlowSpacing` i otwarcie pierwszej nowej linii. Kliknięcie kosza usuwa ten rekord i przepakowuje. Kliknięcie ↑/↓ zamienia rekord z sąsiadem (`reorderRecordBlock`) i przepakowuje. Opis punktowany nie pokazuje klastrów.
 
-Najechanie na pierwszy z dwóch rekordów wstawia blok między nimi; na ostatni — pod nim. Klaster nagłówka (dodaj/usuń *sekcję*) i klastry górnej części wpisu (dodaj/usuń/przestaw *rekord*) współistnieją. Programatyczne `addSectionRecord` / `appendRecordToSection` nadal dokładają rekord na końcu sekcji, ale UI **+** na nagłówku ich już nie wywołuje.
+Najechanie na pierwszy z dwóch rekordów wstawia blok między nimi; na ostatni — pod nim. Klastry nagłówka (dodaj/usuń/przestaw *sekcję*) i klastry górnej części wpisu (dodaj/usuń/przestaw *rekord*) współistnieją. Programatyczne `addSectionRecord` / `appendRecordToSection` nadal dokładają rekord na końcu sekcji, ale UI **+** na nagłówku ich już nie wywołuje.
 
 Implementacja:
 

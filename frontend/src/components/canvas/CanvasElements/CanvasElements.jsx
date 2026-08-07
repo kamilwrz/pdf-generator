@@ -5,9 +5,10 @@
  * `markContentElementsEnter`; decorative chrome is never animated.
  *
  * Template-mode section headings get a `SectionRecordAdd` affordance
- * (hover "+" / trash → open "Dodaj sekcję" or delete the section and re-pack).
- * Each multi-line record also gets one `RecordBlockAdd` on its title line
- * (hover anywhere on the upper block → insert or delete a record, then re-pack).
+ * (hover trash/+ left, reorder arrows right → add/delete/reorder section and
+ * re-pack). Each multi-line record also gets one `RecordBlockAdd` on its title
+ * line (hover anywhere on the upper block → insert, delete, or reorder a
+ * record, then re-pack).
  */
 import { use, useMemo } from 'react';
 import Text from '../Text/Text';
@@ -36,12 +37,18 @@ export default function CanvasElements({ elements }) {
   const { editorMode, pageSize } = use(PdfContext);
   const pageHeight = pageSize?.height ?? 842;
 
-  // Every detected template-mode section heading can open "Dodaj sekcję".
-  const sectionHeadingIds = useMemo(() => {
-    if (editorMode !== EDITOR_MODE_TEMPLATE) return new Set();
-    return new Set(
-      listDocumentSections(elements, pageHeight).map((section) => section.headingId),
-    );
+  // Heading id → reorder flags for the section hover affordance.
+  const sectionAnchorsById = useMemo(() => {
+    const map = new Map();
+    if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
+    const sections = listDocumentSections(elements, pageHeight);
+    sections.forEach((section, index) => {
+      map.set(section.headingId, {
+        canMoveUp: index > 0,
+        canMoveDown: index < sections.length - 1,
+      });
+    });
+    return map;
   }, [editorMode, elements, pageHeight]);
 
   const recordBlockAnchorsById = useMemo(() => {
@@ -103,7 +110,7 @@ export default function CanvasElements({ elements }) {
         </>
       );
     } else if (element.category === "text") {
-      const showSectionAdd = sectionHeadingIds.has(element.element_id);
+      const sectionAnchor = sectionAnchorsById.get(element.element_id);
       node = (
         <>
           <Text
@@ -127,12 +134,15 @@ export default function CanvasElements({ elements }) {
             zIndex={element.zIndex}
             fixedToPage={element.fixedToPage}
           />
-          {showSectionAdd ? (
+          {sectionAnchor ? (
             <SectionRecordAdd
               headingId={element.element_id}
               left={Number(element.left) || 0}
               top={Number(element.top) || 0}
+              width={Number(element.width) || 0}
               fontSize={Number(element.fontSize) || 10}
+              canMoveUp={sectionAnchor.canMoveUp}
+              canMoveDown={sectionAnchor.canMoveDown}
             />
           ) : null}
           {blockAnchor ? (
