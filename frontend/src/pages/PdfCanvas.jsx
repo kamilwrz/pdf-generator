@@ -32,6 +32,7 @@ import BioCvModal from '../components/ai/BioCvModal/BioCvModal';
 import ChangeTemplateModal from '../components/editor/Topbar/ChangeTemplateModal';
 import UnlockFreeformModal from '../components/editor/UnlockFreeformModal/UnlockFreeformModal';
 import SaveGateModal from '../components/editor/SaveGateModal/SaveGateModal';
+import ClaimGuestDocumentModal from '../components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal';
 import SectionsPanel from '../components/editor/SectionsPanel/SectionsPanel';
 import AddSectionModal from '../components/editor/AddSectionModal/AddSectionModal';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
@@ -107,6 +108,7 @@ function PdfCanvas() {
   const isChangeTemplateModal = dialog === 'changeTemplate';
   const isUnlockFreeformModal = dialog === 'unlockFreeform';
   const isSaveGateModal = dialog === 'saveGate';
+  const isClaimGuestModal = dialog === 'claimGuest';
   // Structured cv_data behind the CV currently on the canvas. Set by
   // AiCvPanel/BioCvModal when a fill succeeds; cleared whenever the canvas
   // starts showing something else (fresh document, or a reopened saved PDF
@@ -652,11 +654,32 @@ function PdfCanvas() {
     if (next) setPanel(null);
   }, [dialog])
 
+  // A guest who arrives via the landing page's "Stwórz CV od początku"
+  // (`?start=wizard`) never sees the editor first — the wizard is the very
+  // first thing that opens. Closing it without filling anything used to just
+  // clear the dialog, stranding them on an empty freeform canvas with no
+  // explanation of what happened or how to get back. This only redirects the
+  // very first time that specific entry wizard is closed with nothing filled
+  // yet (`A4_Elements` still empty) — reopening the wizard later from the
+  // Topbar, or closing it after a template swap already added content, just
+  // closes the dialog as it always has.
+  const wizardEntryNavigatedRef = useRef(false);
   const handleShowBioCvModal = useCallback(() => {
-    const next = dialog !== 'bioCv';
+    const isClosing = dialog === 'bioCv';
+    if (
+      isClosing
+      && initialStartIntentRef.current === 'wizard'
+      && !wizardEntryNavigatedRef.current
+      && A4_Elements.length === 0
+    ) {
+      wizardEntryNavigatedRef.current = true;
+      navigate('/');
+      return;
+    }
+    const next = !isClosing;
     setDialog(next ? 'bioCv' : null);
     if (next) setPanel(null);
-  }, [dialog])
+  }, [dialog, A4_Elements, navigate])
 
   useEffect(() => {
     if (!initialStartIntentRef.current || !searchParams.has("start")) return;
@@ -791,6 +814,13 @@ function PdfCanvas() {
       // set it again right after a successful fill; every other fresh-start
       // path (blank template, cleared canvas) correctly leaves it cleared.
       setActiveCvData(null);
+      // The canvas is about to hold something other than the demo CV — clear
+      // the flag here, once content is actually replacing it, rather than at
+      // the moment the user merely clicks "Użyj własnych danych". Clearing it
+      // on click (before the wizard runs) left the demo content on screen
+      // with no banner if the wizard was then cancelled, since this is the
+      // only path that actually swaps canvas content.
+      setIsDemoContent(false);
       loadDocument();
     } catch (error) {
       console.error("Nie można rozpocząć nowego dokumentu: autozapis nie powiódł się.", error);
@@ -881,18 +911,40 @@ function PdfCanvas() {
     setEditorMode(inferEditorMode(elements, savedTemplate));
   }, [adoptDocumentFlowSpacing, setActiveTemplateId, setEditorMode]);
 
-  // Claim a buffered guest document once a JWT exists — covers both the
-  // save-gate's register/login round trip and simply reloading the page
+  // Offer to claim a buffered guest document once a JWT exists — covers both
+  // the save-gate's register/login round trip and simply reloading the page
   // with a token already present and a leftover guest doc (e.g. the browser
   // was closed mid-edit before registering). Runs once per mount; guarded so
-  // a stray second render cannot double-claim.
+  // a stray second render cannot re-offer.
+  //
+  // A guest document is scoped to the BROWSER, not to any identity — it has
+  // no relationship to whoever happens to authenticate next. Auto-claiming it
+  // silently used to hand one person's draft CV (potentially containing real
+  // personal data) to a completely unrelated account the moment they logged
+  // into the same browser. Requiring an explicit "yes, that's mine" via
+  // ClaimGuestDocumentModal below closes that leak while still supporting the
+  // legitimate case: the same visitor who edited as a guest and later signs
+  // in themselves.
   //
   // Deliberately placed after `hydrateDocumentMode` (rather than immediately
-  // next to the Task 7 guest-autosave effect above) because its dependency
-  // array references `hydrateDocumentMode`, which is declared via `useCallback`
-  // just above this line — referencing it earlier in the component body would
-  // hit the temporal-dead-zone for that `const` binding.
-  //
+  // next to the Task 7 guest-autosave effect above) because the confirm
+  // handler references `hydrateDocumentMode`, which is declared via
+  // `useCallback` just above this line — referencing it earlier in the
+  // component body would hit the temporal-dead-zone for that `const` binding.
+  const claimOfferedRef = useRef(false);
+  const pendingGuestDocRef = useRef(null);
+  useEffect(() => {
+    if (claimOfferedRef.current) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const guestDoc = loadGuestDocument();
+    if (!guestDoc || !Array.isArray(guestDoc.elements) || guestDoc.elements.length === 0) return;
+
+    claimOfferedRef.current = true;
+    pendingGuestDocRef.current = guestDoc;
+    setDialog('claimGuest');
+  }, []);
+
   // This intentionally sets `A4_Elements` directly and restores document mode
   // via `hydrateDocumentMode` instead of routing through `handleLoadTemplate`/
   // `handleLoadAiElements`. Both of those call `materializeElementSpecs`,
@@ -903,15 +955,11 @@ function PdfCanvas() {
   // break every connector on the canvas. `hydrateDocumentMode` is the same
   // primitive `ModalPdfs.showPDF` already uses to restore a reopened saved
   // document without re-materializing its elements.
-  const claimAttemptedRef = useRef(false);
-  useEffect(() => {
-    if (claimAttemptedRef.current) return;
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    const guestDoc = loadGuestDocument();
-    if (!guestDoc || !Array.isArray(guestDoc.elements) || guestDoc.elements.length === 0) return;
-
-    claimAttemptedRef.current = true;
+  const handleClaimGuestDocumentConfirm = useCallback(() => {
+    const guestDoc = pendingGuestDocRef.current;
+    pendingGuestDocRef.current = null;
+    setDialog(null);
+    if (!guestDoc) return;
 
     // Flush anything queued while anonymous — including this claim, queued
     // just below — through the normal authenticated event log.
@@ -959,6 +1007,17 @@ function PdfCanvas() {
     titleRef,
   ]);
 
+  // Declining discards the buffered draft outright rather than leaving it to
+  // be re-offered to the next person who logs in on this browser — the same
+  // ownership ambiguity that makes auto-claiming unsafe would make a silent
+  // "keep asking" retry just as unsafe.
+  const handleClaimGuestDocumentDecline = useCallback(() => {
+    pendingGuestDocRef.current = null;
+    clearGuestDocument();
+    clearGuestEvents();
+    setDialog(null);
+  }, []);
+
   // A successful delete must clear the local canvas without attempting to
   // autosave the PDF row that has just been removed from the server.
   const discardActiveDocument = useCallback(() => {
@@ -972,11 +1031,14 @@ function PdfCanvas() {
   }, [handleClearA4]);
 
   // Demo-banner actions: both leave demo mode. "Use own data" keeps the
-  // demo content on screen and opens the bio-CV wizard so the visitor can
-  // replace it in place; "Start blank" discards the demo content entirely,
-  // mirroring the blank-start effect above.
+  // demo content AND banner on screen and opens the bio-CV wizard so the
+  // visitor can replace it in place; the demo flag itself is only cleared in
+  // `startFreshDocument`, once the wizard actually fills a real document —
+  // if the visitor cancels the wizard, the demo CV and its banner are still
+  // there, exactly as before the click. "Start blank" discards the demo
+  // content immediately since it is not a two-step flow that can be
+  // cancelled, mirroring the blank-start effect above.
   const handleDemoUseOwnData = useCallback(() => {
-    setIsDemoContent(false);
     setDialog('bioCv');
   }, []);
 
@@ -1128,12 +1190,19 @@ function PdfCanvas() {
     valueImageUpload, setValueImageUpload, isModalPdfs, setIsModalPdfs,
   ]);
 
+  // Guest visits never carry a token, and every transition into an
+  // authenticated session (login/register redirect, or a fresh reload with
+  // an existing token) remounts PdfCanvas — so a plain read here is already
+  // correct for the whole mount; it does not need to be state.
+  const isGuest = !localStorage.getItem("token");
+
   const sessionValue = useMemo(() => ({
     handlePdfId,
     pushToast,
     entitlements,
     refreshEntitlements,
     logout: handleLogout,
+    isGuest,
     PDFs,
     setPDFs,
     pdfsLoaded,
@@ -1141,7 +1210,7 @@ function PdfCanvas() {
     PDFdownloadData,
     setPDFdownloadData,
   }), [
-    handlePdfId, pushToast, entitlements, refreshEntitlements, handleLogout,
+    handlePdfId, pushToast, entitlements, refreshEntitlements, handleLogout, isGuest,
     PDFs, setPDFs, pdfsLoaded, setPdfsLoaded, PDFdownloadData,
   ]);
 
@@ -1182,6 +1251,12 @@ function PdfCanvas() {
               <SaveGateModal
                 open={isSaveGateModal}
                 onCancel={() => setDialog(null)}
+              />
+              <ClaimGuestDocumentModal
+                open={isClaimGuestModal}
+                title={pendingGuestDocRef.current?.title || null}
+                onConfirm={handleClaimGuestDocumentConfirm}
+                onDecline={handleClaimGuestDocumentDecline}
               />
               <AddSectionModal
                 open={addSectionModal.open}

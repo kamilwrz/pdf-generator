@@ -35,6 +35,7 @@ export default function Sidebar({ children }) {
         editorMode,
         setIsModalPdfs,
         logout,
+        isGuest,
         PDFs,
         entitlements,
         showPlanModal,
@@ -123,9 +124,11 @@ export default function Sidebar({ children }) {
                     <span className={classes.creditsBadgeLabel}>AI</span>
                 </div>
             ) : null}
-            <button className={classes.logout} onClick={logout} aria-label="Wyloguj się" title="Wyloguj się">
-                <AiOutlineLogout />
-            </button>
+            {isGuest ? null : (
+                <button className={classes.logout} onClick={logout} aria-label="Wyloguj się" title="Wyloguj się">
+                    <AiOutlineLogout />
+                </button>
+            )}
         </footer>
 
         {children}
