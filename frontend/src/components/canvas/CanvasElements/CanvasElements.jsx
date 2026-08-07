@@ -34,14 +34,17 @@ function enterClassName(elementId, heldIds, fadingIds) {
 
 export default function CanvasElements({ elements }) {
   const { heldIds, fadingIds } = useCanvasEnterIds(elements);
-  const { editorMode, pageSize } = use(PdfContext);
+  // `elements` is page-filtered by PdfCanvas. Reorder ↑/↓ must use the full
+  // document so a heading/record on page 2 still sees neighbours on page 1.
+  const { editorMode, pageSize, A4_Elements } = use(PdfContext);
   const pageHeight = pageSize?.height ?? 842;
+  const documentElements = A4_Elements?.length ? A4_Elements : elements;
 
   // Heading id → reorder flags for the section hover affordance.
   const sectionAnchorsById = useMemo(() => {
     const map = new Map();
     if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
-    const sections = listDocumentSections(elements, pageHeight);
+    const sections = listDocumentSections(documentElements, pageHeight);
     sections.forEach((section, index) => {
       map.set(section.headingId, {
         canMoveUp: index > 0,
@@ -49,16 +52,16 @@ export default function CanvasElements({ elements }) {
       });
     });
     return map;
-  }, [editorMode, elements, pageHeight]);
+  }, [editorMode, documentElements, pageHeight]);
 
   const recordBlockAnchorsById = useMemo(() => {
     const map = new Map();
     if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
-    for (const anchor of listRecordBlockAddAnchors(elements, pageHeight)) {
+    for (const anchor of listRecordBlockAddAnchors(documentElements, pageHeight)) {
       map.set(anchor.elementId, anchor);
     }
     return map;
-  }, [editorMode, elements, pageHeight]);
+  }, [editorMode, documentElements, pageHeight]);
 
   return elements.map((element) => {
     const enterClass = enterClassName(element.element_id, heldIds, fadingIds);

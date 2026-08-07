@@ -276,7 +276,7 @@ Implementation:
 - `frontend/src/components/editor/AddSectionModal/AddSectionModal.jsx` — name + layout picker + optional icon gallery; subtitle differs for insert-under vs append-end
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` — "+ Dodaj sekcję" calls `openAddSectionModal()`; user-facing labels in `SPACING_FIELDS` / `displaySectionTitle`
 - `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, lines 35–, component `SectionRecordAdd` — heading hover **trash + +** (left) and **↑ ↓** (right): add section under heading, delete this section, or reorder sections
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 41–, `sectionAnchorsById` — mounts the affordance on every template-mode section heading with `canMoveUp` / `canMoveDown`
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 41–, `sectionAnchorsById` — mounts the affordance on every template-mode section heading with `canMoveUp` / `canMoveDown` computed from the **full** `A4_Elements` document (not the per-page filtered list), so cross-page neighbours stay enabled
 
 Tests:
 
@@ -300,7 +300,7 @@ Implementation:
 - `frontend/src/hooks/useA4Elements.js`, function `handleReorderSection` (lines 834–) — exposed through `PdfContext` as `reorderSection`
 - `frontend/src/pages/PdfCanvas.jsx` — modal state + confirm wiring into `handleAddSection({ …, afterHeadingId })`; exposes `removeSection` / `reorderSection`
 - `frontend/src/utils/sectionStructure.js`, functions `insertSectionAfter`, `removeSection` (lines 1121–), `reorderSection` (lines 1080–)
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `sectionAnchorsById` — passes `canMoveUp` / `canMoveDown` from document section order
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `sectionAnchorsById` — passes `canMoveUp` / `canMoveDown` from full-document section order (each page mounts its own `CanvasElements` with a page filter; flags must not use that filtered list or cross-page moves stay disabled)
 
 ### Delete section / record with rhythm reflow
 
@@ -1434,7 +1434,7 @@ Implementacja:
 - `frontend/src/components/editor/AddSectionModal/AddSectionModal.jsx` — nazwa + wybór układu + opcjonalna galeria ikon; inny podtytuł dla wstawienia pod sekcją vs doklejenia na końcu
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` — „+ Dodaj sekcję” woła `openAddSectionModal()`; etykiety UI w `SPACING_FIELDS` / `displaySectionTitle`
 - `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, linie 35–, komponent `SectionRecordAdd` — klaster hover **kosz + +** (lewo) i **↑ ↓** (prawo): dodaj sekcję pod nagłówkiem, usuń tę sekcję albo zmień kolejność sekcji
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 41–, `sectionAnchorsById` — montaż affordance przy każdym nagłówku sekcji w trybie szablonu z `canMoveUp` / `canMoveDown`
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 41–, `sectionAnchorsById` — montaż affordance przy każdym nagłówku sekcji w trybie szablonu z `canMoveUp` / `canMoveDown` liczonymi z **pełnego** dokumentu `A4_Elements` (nie z listy odfiltrowanej per strona), żeby sąsiedzi między stronami pozostali aktywni
 
 Testy:
 
@@ -1458,7 +1458,7 @@ Implementacja:
 - `frontend/src/hooks/useA4Elements.js`, funkcja `handleReorderSection` (linie 834–) — wystawiana przez `PdfContext` jako `reorderSection`
 - `frontend/src/pages/PdfCanvas.jsx` — stan modala + potwierdzenie do `handleAddSection({ …, afterHeadingId })`; wystawia `removeSection` / `reorderSection`
 - `frontend/src/utils/sectionStructure.js`, funkcje `insertSectionAfter`, `removeSection` (linie 1121–), `reorderSection` (linie 1080–)
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `sectionAnchorsById` — przekazuje `canMoveUp` / `canMoveDown` z kolejności sekcji w dokumencie
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `sectionAnchorsById` — przekazuje `canMoveUp` / `canMoveDown` z kolejności sekcji w całym dokumencie (każda strona montuje własny `CanvasElements` z filtrem strony; flagi nie mogą używać tej przefiltrowanej listy, bo wtedy przesunięcia między stronami zostają wyłączone)
 
 ### Usuwanie sekcji / rekordu z reflow rytmu
 
