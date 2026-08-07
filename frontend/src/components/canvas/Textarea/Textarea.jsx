@@ -69,6 +69,39 @@ function renderTextareaBody(content, runs, bulletList) {
     return content;
 }
 
+// Measure the true rendered height of the edit box's CONTENT, independent of the
+// live contentEditable DOM.
+//
+// A contentEditable div can accumulate browser-inserted block wrappers (e.g. on
+// Enter or paste). Under white-space: pre-wrap those wrappers coexist with the
+// original "\n" text nodes, so every line is counted twice and the element's own
+// scrollHeight returns roughly double the real height. Measuring a detached
+// mirror that holds exactly the serialized content (flat text + inline run spans,
+// never block wrappers) yields the same height the display <div> and the former
+// <textarea> produced. The mirror is cloned from the live node so it inherits the
+// identical box width and typography, then sized to content.
+function measureEditableContentHeight(node, content, runs) {
+    if (!node?.cloneNode || typeof document === "undefined") {
+        return measureNaturalScrollHeight(node);
+    }
+    const mirror = node.cloneNode(false);
+    mirror.removeAttribute("id");
+    mirror.contentEditable = "false";
+    mirror.style.height = "auto";
+    mirror.style.visibility = "hidden";
+    mirror.style.position = "absolute";
+    mirror.style.left = "-99999px";
+    mirror.style.top = "0";
+    // runsToHtml produces the same flat structure the edit surface should hold.
+    mirror.innerHTML = runsToHtml(content, runs);
+    // Append inside the same parent so inherited styles and the containing block
+    // width match the live edit box exactly.
+    (node.parentNode ?? document.body).appendChild(mirror);
+    const height = mirror.scrollHeight;
+    mirror.remove();
+    return Number.isFinite(height) && height > 0 ? height : measureNaturalScrollHeight(node);
+}
+
 function Textarea({
     elementId,
     content,
@@ -303,9 +336,11 @@ function Textarea({
         // height in sync. Extracted so both typing and toolbar mark changes
         // (which can shift wrap width) run the identical measure + commit path.
         const commitEditable = (node) => {
-            const measuredHeight = measureNaturalScrollHeight(node);
-            node.style.height = `${measuredHeight}px`;
             const { content: nextContent, runs: nextRuns } = serializeEditable(node);
+            // Measure from the serialized content, not the live editable DOM, so
+            // browser-inserted block wrappers cannot inflate the stored height.
+            const measuredHeight = measureEditableContentHeight(node, nextContent, nextRuns);
+            node.style.height = `${measuredHeight}px`;
             if (autoHeight) {
                 editElementValues({ content: nextContent, runs: nextRuns }, elementId);
                 fitTextareaToContent(elementId, measuredHeight);
@@ -339,7 +374,28 @@ function Textarea({
                         if (e.key === "Escape") {
                             e.preventDefault();
                             e.currentTarget.blur();
+                            return;
                         }
+                        // Insert newlines as a plain "\n" text character instead of
+                        // letting the browser wrap lines in <div> blocks. Under
+                        // white-space: pre-wrap a block wrapper leaves the original
+                        // "\n" text node in place, so each line is counted twice and
+                        // measureNaturalScrollHeight returns ~2x the real height. A
+                        // flat "\n"-only structure keeps the edit surface as reliable
+                        // to measure as the former <textarea>. insertText fires a
+                        // native input event, so commitEditable still runs.
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            document.execCommand("insertText", false, "\n");
+                        }
+                    }}
+                    onPaste={(e) => {
+                        // Paste as plain text so clipboard HTML cannot introduce the
+                        // block wrappers that corrupt height measurement (and would
+                        // also carry foreign inline styles into the content).
+                        e.preventDefault();
+                        const text = e.clipboardData?.getData("text/plain") ?? "";
+                        document.execCommand("insertText", false, text);
                     }}
                 />
             </>

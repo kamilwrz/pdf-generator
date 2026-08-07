@@ -45,6 +45,21 @@ test("serializeEditable folds <br> and block boundaries to newlines", () => {
   assert.equal(content, "Line one\nLine two");
 });
 
+test("serializeEditable does not double lines when block wrappers coexist with newline text", () => {
+  // Reproduces the contentEditable pollution that inflated textarea height: the
+  // browser wraps lines in <div> blocks but leaves the original "\n" text nodes
+  // in place. Serialization must collapse each boundary to a single "\n".
+  const node = root([
+    element("DIV", [textNode("Line1")]),
+    textNode("\n"),
+    element("DIV", [textNode("Line2")]),
+    textNode("\n"),
+    element("DIV", [textNode("Line3")]),
+  ]);
+  const { content } = serializeEditable(node);
+  assert.equal(content, "Line1\nLine2\nLine3");
+});
+
 test("serializeEditable drops control chars while keeping run offsets aligned", () => {
   const nul = String.fromCharCode(0);
   const node = root([
