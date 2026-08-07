@@ -8,6 +8,7 @@ import {
   findProfilePhotoSlot,
   listDocumentSections,
   packDocumentSections,
+  removeSection,
   reorderSection,
   sectionElementIds,
 } from "./sectionStructure.js";
@@ -327,6 +328,37 @@ describe("packDocumentSections", () => {
     const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
     assert.equal(byId.h2.top, 100);
     assert.ok(byId.h1.top > byId.b1.top);
+  });
+});
+
+describe("removeSection", () => {
+  it("deletes a middle section and re-packs the following section upward", () => {
+    const elements = [
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "A", page: 1, top: 100, height: 14 },
+      { element_id: "a1", category: "textarea", flowRole: "content", autoHeight: true, page: 1, top: 122, height: 40 },
+      { element_id: "h2", category: "text", flowRole: "section-chrome", content: "B", page: 1, top: 183, height: 14 },
+      { element_id: "b1", category: "textarea", flowRole: "content", autoHeight: true, page: 1, top: 205, height: 80 },
+      { element_id: "h3", category: "text", flowRole: "section-chrome", content: "C", page: 1, top: 306, height: 14 },
+      { element_id: "c1", category: "textarea", flowRole: "content", autoHeight: true, page: 1, top: 328, height: 30 },
+    ];
+    const beforeC = elements.find((element) => element.element_id === "h3").top;
+    const result = removeSection(elements, "h2", 842, {
+      spacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
+    });
+    assert.ok(result);
+    const ids = new Set(result.elements.map((element) => element.element_id));
+    assert.equal(ids.has("h2"), false);
+    assert.equal(ids.has("b1"), false);
+    assert.ok(ids.has("h1"));
+    assert.ok(ids.has("h3"));
+    assert.ok(result.removedIds.has("h2"));
+    assert.ok(result.removedIds.has("b1"));
+    const afterC = result.elements.find((element) => element.element_id === "h3");
+    assert.ok(afterC.top < beforeC, "section C must close the hole left by B");
+  });
+
+  it("returns null for an unknown heading", () => {
+    assert.equal(removeSection([], "missing"), null);
   });
 });
 

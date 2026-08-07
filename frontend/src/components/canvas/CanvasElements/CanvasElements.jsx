@@ -5,9 +5,9 @@
  * `markContentElementsEnter`; decorative chrome is never animated.
  *
  * Template-mode section headings get a `SectionRecordAdd` affordance
- * (hover "+" → open "Dodaj sekcję" and insert under that section).
+ * (hover "+" / trash → open "Dodaj sekcję" or delete the section and re-pack).
  * Each multi-line record also gets one `RecordBlockAdd` on its title line
- * (hover anywhere on the upper block → insert a full placeholder record below).
+ * (hover anywhere on the upper block → insert or delete a record, then re-pack).
  */
 import { use, useMemo } from 'react';
 import Text from '../Text/Text';

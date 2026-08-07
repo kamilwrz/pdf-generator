@@ -6,10 +6,20 @@
     pointer-events: none;
 }
 
-.plus {
+.cluster {
     position: absolute;
     left: 0;
     top: 0;
+    display: inline-flex;
+    align-items: center;
+    /* Gap comes from inline styles (zoom-aware). */
+    gap: 4px;
+    pointer-events: auto;
+}
+
+.plus,
+.trash {
+    position: relative;
     /* Width / height / radius come from inline styles (zoom-aware). */
     width: 13px;
     height: 13px;
@@ -27,7 +37,8 @@
     transition: background .12s, color .12s, border-color .12s;
 }
 
-.plus svg {
+.plus svg,
+.trash svg {
     width: 9px;
     height: 9px;
     flex-shrink: 0;
@@ -37,4 +48,14 @@
     background: var(--chrome-hover, #2a2a2a);
     border-color: var(--chrome-accent, #f5a623);
     color: var(--chrome-ink, #fff);
+}
+
+.trash {
+    color: #d97777;
+}
+
+.trash:hover {
+    background: var(--chrome-hover, #2a2a2a);
+    border-color: #d97777;
+    color: #ffb4b4;
 }

@@ -1,12 +1,13 @@
 /**
- * Append / insert records inside an existing template-mode section.
+ * Append / insert / remove records inside an existing template-mode section.
  *
  * Heading hover "+" appends a structured education/experience record that
  * clones the last multi-line group's field shape with Polish placeholders.
  *
  * Hovering the upper part of an existing record (title / meta, not the bullet
- * description) shows a second "+" that inserts another full placeholder record
- * immediately below that record. Both paths re-pack with `applyFlowSpacing`.
+ * description) shows "+" / trash controls that insert another full placeholder
+ * record immediately below that record, or delete the hovered record. Insert
+ * and delete both re-pack with `applyFlowSpacing`.
  */
 
 import { nanoid } from "nanoid";
@@ -660,5 +661,48 @@ export function insertRecordBlockAfterRecord(
   return {
     elements: next,
     firstBodyId,
+  };
+}
+
+/**
+ * Remove one multi-line record (every mate in its `flowGroup` / bold-title
+ * group) from a template-mode section, then re-pack with `applyFlowSpacing` so
+ * sibling records and later sections close the hole under the template rhythm.
+ *
+ * Only upper-line anchors are accepted — the same eligibility as the hover
+ * trash / "+" controls (`listUpperRecordMembers`).
+ *
+ * @param {object[]} elements
+ * @param {string} elementId any upper-line member of the record to delete
+ * @param {number} [pageHeight=842]
+ * @param {{ spacing?: object }} [options]
+ * @returns {{ elements: object[], removedIds: Set<string> }|null}
+ */
+export function removeRecordBlock(
+  elements,
+  elementId,
+  pageHeight = 842,
+  { spacing } = {},
+) {
+  const anchor = findRecordGroupForElement(elements, elementId, pageHeight);
+  if (!anchor) return null;
+
+  // Match the in-record "+" / trash UI: only upper title/meta lines may delete.
+  if (!listUpperRecordMembers(anchor.group).some((member) => member.element_id === elementId)) {
+    return null;
+  }
+
+  const removedIds = new Set(anchor.group.map((element) => element.element_id));
+  if (removedIds.size === 0) return null;
+
+  const remaining = (elements || []).filter(
+    (element) => !removedIds.has(element.element_id),
+  );
+  const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
+  const next = applyFlowSpacing(remaining, rhythm, pageHeight);
+
+  return {
+    elements: next,
+    removedIds,
   };
 }

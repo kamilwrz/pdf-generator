@@ -21,11 +21,13 @@ import {
   appendSectionAtEnd,
   insertSectionAfter,
   listDocumentSections,
+  removeSection,
 } from '../utils/sectionStructure';
 import { buildSectionElements } from '../utils/sectionBuilder';
 import {
   appendRecordToSection,
   insertRecordBlockAfterRecord,
+  removeRecordBlock,
 } from '../utils/sectionRecord';
 import { applySelectedSectionIcon } from '../utils/sectionIcons';
 import {
@@ -680,6 +682,83 @@ export function useA4Elements(titleRef) {
     });
     if (jumpToPage != null) setCurrentPage(jumpToPage);
   }, []);
+
+  /**
+   * Queue removed canvas elements for autosave tombstones (same contract as
+   * bulk selection delete).
+   *
+   * @param {object[]} previousElements
+   * @param {Set<string>} removedIds
+   */
+  const rememberDeletedElements = useCallback((previousElements, removedIds) => {
+    if (!removedIds || removedIds.size === 0) return;
+    const removedElements = previousElements.filter((element) => (
+      removedIds.has(element.element_id)
+    ));
+    if (removedElements.length === 0) return;
+
+    setA4_Elements_deleted((previousDeleted) => {
+      const additions = removedElements.filter((element) => (
+        !previousDeleted.some((deleted) => (
+          deleted.element_id === element.element_id && deleted.pdf_id !== undefined
+        ))
+      )).map((element) => ({ ...element, deleted: true }));
+      return additions.length ? [...previousDeleted, ...additions] : previousDeleted;
+    });
+  }, []);
+
+  /**
+   * Delete a whole template-mode section from the heading hover trash, then
+   * re-pack remaining sections so the canvas closes the hole under rhythm.
+   *
+   * @param {string} headingId
+   */
+  const handleRemoveSection = useCallback((headingId) => {
+    if (!headingId) return;
+    if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return;
+
+    setA4_Elements((prev) => {
+      const pageHeight = pageSizeRef.current?.height ?? 842;
+      const result = removeSection(prev, headingId, pageHeight, {
+        spacing: flowSpacingRef.current,
+      });
+      if (!result) return prev;
+
+      rememberDeletedElements(prev, result.removedIds);
+      // Collapse empty trailing pages after packing pulls content upward.
+      reflowPageCountRef.current = Math.max(
+        1,
+        ...result.elements.map((element) => element.page ?? 1),
+      );
+      return result.elements;
+    });
+  }, [rememberDeletedElements]);
+
+  /**
+   * Delete one multi-line record from the upper-line hover trash, then re-pack
+   * so sibling records and later sections close the gap.
+   *
+   * @param {string} elementId
+   */
+  const handleRemoveRecordBlock = useCallback((elementId) => {
+    if (!elementId) return;
+    if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return;
+
+    setA4_Elements((prev) => {
+      const pageHeight = pageSizeRef.current?.height ?? 842;
+      const result = removeRecordBlock(prev, elementId, pageHeight, {
+        spacing: flowSpacingRef.current,
+      });
+      if (!result) return prev;
+
+      rememberDeletedElements(prev, result.removedIds);
+      reflowPageCountRef.current = Math.max(
+        1,
+        ...result.elements.map((element) => element.page ?? 1),
+      );
+      return result.elements;
+    });
+  }, [rememberDeletedElements]);
 
   const handleSetTextareaEditing = useCallback((elementId, editing) => {
     setA4_Elements(prevState => prevState.map(el => {
@@ -1711,6 +1790,8 @@ export function useA4Elements(titleRef) {
     handleAddSection,
     handleAddSectionRecord,
     handleAddRecordBlock,
+    handleRemoveSection,
+    handleRemoveRecordBlock,
     // connector mode
     connectMode,
     connectSourceId,

@@ -16,6 +16,7 @@ import {
   partitionSectionRecords,
   pickRecordTemplateGroup,
   placeholderContentsForRecord,
+  removeRecordBlock,
   sectionSupportsRecordAdd,
 } from "./sectionRecord.js";
 import { DEFAULT_FLOW_SPACING } from "./flowSpacing.js";
@@ -480,5 +481,54 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     assert.equal(listRecordBlockAddElementIds(aa).size, 0);
     assert.equal(insertRecordBlockAfterRecord(aa, aaBody[0].element_id), null);
     assert.equal(insertRecordBlockAfterRecord(doc, "missing"), null);
+  });
+});
+
+describe("removeRecordBlock", () => {
+  it("deletes one experience record and re-packs the next record upward", () => {
+    const pageHeight = 842;
+    const rhythm = { ...DEFAULT_FLOW_SPACING };
+    const { elements: built, headingId } = buildSectionElements({
+      name: "Doświadczenie",
+      layout: SECTION_LAYOUTS.RECORD_EXPERIENCE,
+      style,
+      idFactory: makeIdFactory("exp"),
+    });
+    let doc = appendSectionAtEnd([], built, pageHeight, { spacing: rhythm });
+    const appended = appendRecordToSection(doc, headingId, pageHeight, {
+      spacing: rhythm,
+      idFactory: makeIdFactory("rec2"),
+    });
+    assert.ok(appended);
+    doc = appended.elements;
+
+    const before = listSectionContentElements(doc, headingId, pageHeight);
+    assert.equal(before.length, 6);
+    const firstGroupId = before[0].flowGroup;
+    const secondTopBefore = before[3].top;
+
+    const result = removeRecordBlock(doc, before[0].element_id, pageHeight, {
+      spacing: rhythm,
+    });
+    assert.ok(result);
+    const after = listSectionContentElements(result.elements, headingId, pageHeight);
+    assert.equal(after.length, 3);
+    assert.notEqual(after[0].flowGroup, firstGroupId);
+    assert.ok(result.removedIds.has(before[0].element_id));
+    assert.ok(after[0].top < secondTopBefore, "remaining record must close the hole");
+  });
+
+  it("returns null for bullet description and unknown ids", () => {
+    const { elements, headingId } = buildSectionElements({
+      name: "Doświadczenie",
+      layout: SECTION_LAYOUTS.RECORD_EXPERIENCE,
+      style,
+      idFactory: makeIdFactory("exp"),
+    });
+    const body = listSectionContentElements(elements, headingId);
+    const description = body.find((element) => element.bulletList);
+    assert.ok(description);
+    assert.equal(removeRecordBlock(elements, description.element_id), null);
+    assert.equal(removeRecordBlock(elements, "missing"), null);
   });
 });

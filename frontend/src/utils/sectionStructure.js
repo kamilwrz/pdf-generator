@@ -1104,6 +1104,57 @@ export function reorderSection(
 }
 
 /**
+ * Remove one template-mode section (heading + chrome + body), then re-pack the
+ * remaining sections in document order so later content closes the hole under
+ * the template rhythm (`stack` / `record` / `section` / `after_rule`).
+ *
+ * Masthead and fixed-to-page chrome are never removed. Sidebar rails that are
+ * not members of the main-column section strip stay put (same column filter as
+ * `sectionElementIds`).
+ *
+ * @param {object[]} elements
+ * @param {string} headingId
+ * @param {number} [pageHeight=842]
+ * @param {{ spacing?: object, pageTop?: number, bottomMargin?: number, sectionGap?: number }} [options]
+ * @returns {{ elements: object[], removedIds: Set<string> }|null}
+ */
+export function removeSection(
+  elements,
+  headingId,
+  pageHeight = 842,
+  options = {},
+) {
+  if (!headingId) return null;
+  const list = elements || [];
+  const sections = listDocumentSections(list, pageHeight);
+  const index = sections.findIndex((section) => section.headingId === headingId);
+  if (index < 0) return null;
+
+  const removedIds = sectionElementIds(list, headingId, pageHeight);
+  if (removedIds.size === 0) return null;
+
+  const remaining = list.filter((element) => !removedIds.has(element.element_id));
+  const order = sections
+    .filter((section) => section.headingId !== headingId)
+    .map((section) => section.headingId);
+
+  // No remaining packable sections — return the trimmed document as-is
+  // (masthead / sidebar / free elements may still be present).
+  if (order.length === 0) {
+    return { elements: remaining, removedIds };
+  }
+
+  const rhythm = normalizeFlowSpacing(options.spacing || DEFAULT_FLOW_SPACING);
+  const packed = packDocumentSections(remaining, order, pageHeight, {
+    ...options,
+    spacing: rhythm,
+    sectionGap: options.sectionGap ?? rhythm.section,
+    forceTargets: true,
+  });
+  return { elements: packed, removedIds };
+}
+
+/**
  * Re-pack every section in current order using target rhythm values.
  * Used when the Sections panel changes stack/record/section/after_rule.
  *

@@ -25,6 +25,8 @@ export const PdfContext = createContext({
     openAddSectionModal: () => {},
     addSectionRecord: () => {},
     addRecordBlock: () => {},
+    removeSection: () => {},
+    removeRecordBlock: () => {},
     isBioCvModal: false,
     showBioCvModal: () => {},
     cancelBioCvModal: () => {},

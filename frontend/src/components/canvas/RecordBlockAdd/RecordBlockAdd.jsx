@@ -1,13 +1,16 @@
 /**
  * Hover affordance on the upper part of a template-mode record (title / meta):
- * a single "+" that inserts a full placeholder record below that block.
+ * a "+" that inserts a full placeholder record below that block, and a trash
+ * control that deletes the hovered record. Deletion re-packs the section under
+ * the active template rhythm.
  *
  * One instance is mounted per record (on the title). Hovering any upper line
- * shows that same control. Only one canvas "+" is exclusive-visible at a time.
- * Size follows canvas zoom so 100% view stays compact.
+ * shows that same control cluster. Only one canvas affordance is
+ * exclusive-visible at a time. Size follows canvas zoom so 100% view stays
+ * compact.
  */
 import { use, useCallback, useEffect, useRef, useState } from "react";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { elementSupportsRecordBlockAdd } from "../../../utils/sectionRecord";
@@ -15,7 +18,7 @@ import { useHoverPlusExclusive } from "../../../hooks/useHoverPlusExclusive";
 import { recordPlusLayoutSize } from "../recordPlusSize";
 import classes from "../SectionRecordAdd/SectionRecordAdd.module.css";
 
-/** Hide delay after the pointer leaves the trigger or the plus. */
+/** Hide delay after the pointer leaves the trigger or the control cluster. */
 const HIDE_AFTER_LEAVE_MS = 3000;
 
 /**
@@ -41,6 +44,7 @@ export default function RecordBlockAdd({
     pageSize,
     editorMode,
     addRecordBlock,
+    removeRecordBlock,
     zoom = 1,
   } = use(PdfContext);
 
@@ -131,9 +135,14 @@ export default function RecordBlockAdd({
   const boxHeight = Number.isFinite(Number(height)) && Number(height) > 0
     ? Number(height)
     : (Number(fontSize) || 10);
+  // Trash sits to the left of plus; cluster right edge stays `gap` from title.
+  const clusterWidth = buttonSize * 2 + gap;
   const style = {
-    left: left - gap - buttonSize,
+    left: left - gap - clusterWidth,
     top: top + boxHeight / 2 - buttonSize / 2,
+  };
+  const clusterStyle = {
+    gap,
   };
   const buttonStyle = {
     width: buttonSize,
@@ -148,30 +157,53 @@ export default function RecordBlockAdd({
   return (
     <div className={classes.anchor} style={style}>
       {visible && isExclusiveActive ? (
-        <button
-          type="button"
-          className={classes.plus}
-          style={buttonStyle}
-          aria-label="Dodaj rekord pod tym wpisem"
-          title="Dodaj rekord"
-          onPointerDown={(event) => {
-            event.stopPropagation();
-          }}
+        <div
+          className={classes.cluster}
+          style={clusterStyle}
           onPointerEnter={() => {
             show();
           }}
           onPointerLeave={() => {
             scheduleHide();
           }}
-          onClick={(event) => {
-            event.stopPropagation();
-            event.preventDefault();
-            addRecordBlock?.(elementId);
-            hide();
-          }}
         >
-          <FiPlus style={iconStyle} />
-        </button>
+          <button
+            type="button"
+            className={classes.trash}
+            style={buttonStyle}
+            aria-label="Usuń ten rekord"
+            title="Usuń rekord"
+            onPointerDown={(event) => {
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              event.preventDefault();
+              removeRecordBlock?.(elementId);
+              hide();
+            }}
+          >
+            <FiTrash2 style={iconStyle} />
+          </button>
+          <button
+            type="button"
+            className={classes.plus}
+            style={buttonStyle}
+            aria-label="Dodaj rekord pod tym wpisem"
+            title="Dodaj rekord"
+            onPointerDown={(event) => {
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              event.preventDefault();
+              addRecordBlock?.(elementId);
+              hide();
+            }}
+          >
+            <FiPlus style={iconStyle} />
+          </button>
+        </div>
       ) : null}
     </div>
   );

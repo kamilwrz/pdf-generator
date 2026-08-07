@@ -1,22 +1,24 @@
 /**
  * Hover affordance on a template-mode section heading: a "+" that opens the
- * "Dodaj sekcję" modal. The new section is inserted immediately below the
- * section that owns this heading (`afterHeadingId`).
+ * "Dodaj sekcję" modal and a trash control that deletes the whole section.
+ * The new section is inserted immediately below the section that owns this
+ * heading (`afterHeadingId`). Deletion re-packs remaining sections under the
+ * active template rhythm.
  *
  * Timing: appear on pointer enter over the heading; stay while the pointer is
- * on the plus; only leaving the heading or the plus starts a 3s hide timer.
- * Shares an exclusive visible slot with in-record plus controls. Size follows
- * canvas zoom so 100% view stays compact.
+ * on the cluster; only leaving the heading or the cluster starts a 3s hide
+ * timer. Shares an exclusive visible slot with in-record plus controls. Size
+ * follows canvas zoom so 100% view stays compact.
  */
 import { use, useCallback, useEffect, useRef, useState } from "react";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { useHoverPlusExclusive } from "../../../hooks/useHoverPlusExclusive";
 import { recordPlusLayoutSize } from "../recordPlusSize";
 import classes from "./SectionRecordAdd.module.css";
 
-/** Hide delay after the pointer leaves the heading or the plus. */
+/** Hide delay after the pointer leaves the heading or the control cluster. */
 const HIDE_AFTER_LEAVE_MS = 3000;
 
 /**
@@ -26,6 +28,7 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
   const {
     editorMode,
     openAddSectionModal,
+    removeSection,
     zoom = 1,
   } = use(PdfContext);
 
@@ -104,9 +107,14 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
 
   const { buttonSize, iconSize, gap, radius } = recordPlusLayoutSize(zoom, fontSize);
   const headingHeight = Number(fontSize) || 10;
+  // Trash sits to the left of plus; cluster right edge stays `gap` from heading.
+  const clusterWidth = buttonSize * 2 + gap;
   const style = {
-    left: left - gap - buttonSize,
+    left: left - gap - clusterWidth,
     top: top + headingHeight / 2 - buttonSize / 2,
+  };
+  const clusterStyle = {
+    gap,
   };
   const buttonStyle = {
     width: buttonSize,
@@ -121,30 +129,53 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
   return (
     <div className={classes.anchor} style={style}>
       {visible && isExclusiveActive ? (
-        <button
-          type="button"
-          className={classes.plus}
-          style={buttonStyle}
-          aria-label="Dodaj sekcję pod tą sekcją"
-          title="Dodaj sekcję"
-          onPointerDown={(event) => {
-            event.stopPropagation();
-          }}
+        <div
+          className={classes.cluster}
+          style={clusterStyle}
           onPointerEnter={() => {
             show();
           }}
           onPointerLeave={() => {
             scheduleHide();
           }}
-          onClick={(event) => {
-            event.stopPropagation();
-            event.preventDefault();
-            openAddSectionModal?.(headingId);
-            hide();
-          }}
         >
-          <FiPlus style={iconStyle} />
-        </button>
+          <button
+            type="button"
+            className={classes.trash}
+            style={buttonStyle}
+            aria-label="Usuń tę sekcję"
+            title="Usuń sekcję"
+            onPointerDown={(event) => {
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              event.preventDefault();
+              removeSection?.(headingId);
+              hide();
+            }}
+          >
+            <FiTrash2 style={iconStyle} />
+          </button>
+          <button
+            type="button"
+            className={classes.plus}
+            style={buttonStyle}
+            aria-label="Dodaj sekcję pod tą sekcją"
+            title="Dodaj sekcję"
+            onPointerDown={(event) => {
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              event.preventDefault();
+              openAddSectionModal?.(headingId);
+              hide();
+            }}
+          >
+            <FiPlus style={iconStyle} />
+          </button>
+        </div>
       ) : null}
     </div>
   );
