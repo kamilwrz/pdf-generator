@@ -12,7 +12,7 @@ seven days and can be overridden with ACCESS_TOKEN_EXPIRE_MINUTES.
 from passlib.context import CryptContext
 import bcrypt as bcrypt_lib
 from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordBearer
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 import os
@@ -59,9 +59,11 @@ def assert_secret_key_configured() -> None:
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # Token URL matches the OAuth2 password form used by /auth/token.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
-# Optional Bearer for routes that also serve anonymous guests (e.g. fill_template).
-# Missing Authorization yields ``None`` instead of HTTP 403.
-oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="auth/token", auto_error=False)
+# Optional Bearer for guest-capable routes (e.g. fill_template). Prefer
+# HTTPBearer over a second OAuth2PasswordBearer so OpenAPI does not mark the
+# route as requiring the password flow, and missing credentials yield None
+# instead of FastAPI's English "Not authenticated" 401.
+optional_bearer = HTTPBearer(auto_error=False)
 
 def get_access_token_expire_minutes() -> int:
     """Return a positive token lifetime in minutes, falling back to seven days."""
@@ -106,15 +108,18 @@ def verify_token(token: str = Depends(oauth2_scheme)) -> dict:
         raise HTTPException(status_code=403, detail="Token jest nieprawidłowy lub wygasł")
 
 
-def verify_token_optional(token: str | None = Depends(oauth2_scheme_optional)) -> dict | None:
+def verify_token_optional(
+    credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer),
+) -> dict | None:
     """Return a JWT payload when a valid Bearer token is present, else ``None``.
 
     Used by guest-capable routes such as ``POST /ai/fill_template``. A missing,
     malformed, or expired token is treated as an anonymous guest rather than a
-    hard 403 — the route itself decides Free-tier limits for that case.
+    hard 401/403 — the route itself decides Free-tier limits for that case.
     """
-    if not token:
+    if credentials is None or not credentials.credentials:
         return None
+    token = credentials.credentials
     try:
         payload = jwt.decode(token, secret_key, algorithms=[algorithm])
         username: str = payload.get("sub")

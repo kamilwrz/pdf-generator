@@ -185,9 +185,18 @@ export class ApiClient {
                     payload = null;
                 }
                 const detail = payload?.detail;
-                const message = typeof detail === "string"
+                let message = typeof detail === "string"
                     ? detail
                     : (detail?.message || fallbackMessage);
+                // FastAPI's OAuth2PasswordBearer default English detail should
+                // never reach the Polish guest/editor UI as-is.
+                if (
+                    (response.status === 401 || response.status === 403)
+                    && typeof message === "string"
+                    && message.toLowerCase() === "not authenticated"
+                ) {
+                    message = "Token jest nieprawidłowy lub wygasł";
+                }
                 const requestError = new Error(message);
                 requestError.status = response.status;
                 requestError.code = typeof detail === "object" && detail ? detail.code : undefined;

@@ -11,6 +11,11 @@ import { fillTemplate } from "../../../services/fillTemplate";
 import { TEMPLATES } from "../../../templates";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import TemplateCarousel from "../AiCvPanel/TemplateCarousel";
+import {
+    clearAccessToken,
+    getAccessToken,
+    isAuthFailure,
+} from "../../../utils/authSession";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
 import { isTemplateAllowed, planErrorMessage } from "../../../utils/entitlements";
 import { createSerialSaveQueue } from "../../../utils/serialSaveQueue";
@@ -91,9 +96,9 @@ export default function BioCvModal() {
     } = use(PdfContext);
     // Build the client per call site from the current token. Capturing
     // `Bearer ${null}` once in a mount-time useMemo used to send a literal
-    // "null" JWT on guest fills and surface a false "token expired" error.
+    // "null" JWT on guest fills and surface a false auth error.
     const createApi = useCallback(() => {
-        const token = localStorage.getItem("token");
+        const token = getAccessToken();
         return new ApiClient(token ? { Authorization: `Bearer ${token}` } : {});
     }, []);
     const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
@@ -128,7 +133,7 @@ export default function BioCvModal() {
         // which point they go through the normal fill flow, not this draft
         // endpoint. Skip silently; do not surface an error for an expected,
         // permanent state.
-        if (!localStorage.getItem("token")) return Promise.resolve();
+        if (!getAccessToken()) return Promise.resolve();
         const payload = buildBioCvPayload(data);
 
         return saveQueueRef.current.enqueue(async () => {
@@ -142,9 +147,9 @@ export default function BioCvModal() {
                 );
             } catch (error) {
                 // Stale JWT mid-session: drop it and keep editing as a guest
-                // instead of pinning a "token expired" banner on every keystroke.
-                if (error.status === 401 || error.status === 403) {
-                    localStorage.removeItem("token");
+                // instead of pinning a FastAPI "Not authenticated" banner.
+                if (isAuthFailure(error)) {
+                    clearAccessToken();
                     setSaveError(null);
                     return;
                 }
@@ -172,7 +177,7 @@ export default function BioCvModal() {
         // set above and let the wizard become interactive immediately;
         // saveDraft() below independently no-ops for guests, so nothing
         // tries to persist this session until an account exists.
-        if (!localStorage.getItem("token")) {
+        if (!getAccessToken()) {
             readyRef.current = true;
             setIsReady(true);
             setIsLoading(false);
@@ -190,10 +195,11 @@ export default function BioCvModal() {
             })
             .catch((error) => {
                 if (!active) return;
-                // Expired/invalid JWT must not block the wizard with a red
-                // "token expired" banner — clear it and continue as a guest.
-                if (error.status === 401 || error.status === 403) {
-                    localStorage.removeItem("token");
+                // Expired/invalid JWT (including FastAPI's English
+                // "Not authenticated") must not block the wizard — clear it
+                // and continue as a guest with an empty profile.
+                if (isAuthFailure(error)) {
+                    clearAccessToken();
                     setSaveError(null);
                 } else {
                     setSaveError(error.message || "Nie udało się pobrać szkicu.");
@@ -299,7 +305,7 @@ export default function BioCvModal() {
         // thinking their session broke. "Clearing the draft" for a guest
         // simply means resetting the wizard's own React state, mirroring the
         // local-reset steps performed after a successful DELETE below.
-        if (!localStorage.getItem("token")) {
+        if (!getAccessToken()) {
             if (saveTimer.current) {
                 clearTimeout(saveTimer.current);
                 saveTimer.current = null;
@@ -328,8 +334,8 @@ export default function BioCvModal() {
             setStepError(null);
             setSaveError(null);
         } catch (error) {
-            if (error.status === 401 || error.status === 403) {
-                localStorage.removeItem("token");
+            if (isAuthFailure(error)) {
+                clearAccessToken();
                 skipAutosaveRef.current = true;
                 const emptyProfile = createEmptyBioCvData();
                 profileRef.current = emptyProfile;
@@ -360,11 +366,23 @@ export default function BioCvModal() {
             const payload = buildBioCvPayload(profile);
             await saveDraft(payload, { silent: true });
             // Let fillTemplate build its own client from the live token so a
-            // guest never inherits a stale `Bearer null` header from mount.
-            const response = await fillTemplate(payload, template.id, {
-                errorMessage: "Nie udało się utworzyć CV.",
-                spacing: flowSpacing,
-            });
+            // guest never inherits a stale Bearer header from mount.
+            let response;
+            try {
+                response = await fillTemplate(payload, template.id, {
+                    errorMessage: "Nie udało się utworzyć CV.",
+                    spacing: flowSpacing,
+                });
+            } catch (fillError) {
+                // Stale JWT on fill: drop it and retry once as an anonymous
+                // Free-tier guest instead of showing "Not authenticated".
+                if (!isAuthFailure(fillError)) throw fillError;
+                clearAccessToken();
+                response = await fillTemplate(payload, template.id, {
+                    errorMessage: "Nie udało się utworzyć CV.",
+                    spacing: flowSpacing,
+                });
+            }
             await loadAiElements(response.elements, `CV ${template.name}`, template.id);
             // Keep the source data reachable after this modal closes, so the
             // Topbar "Zmień szablon" gallery can restyle this same CV later
@@ -372,6 +390,11 @@ export default function BioCvModal() {
             setActiveCvData(payload);
             showBioCvModal();
         } catch (error) {
+            if (isAuthFailure(error)) {
+                clearAccessToken();
+                setSaveError(null);
+                return;
+            }
             setSaveError(planErrorMessage(error, "Nie udało się utworzyć CV."));
         } finally {
             setFillingId(null);

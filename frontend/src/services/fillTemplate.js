@@ -4,6 +4,7 @@
  * (loadAiElements vs replaceActiveElements).
  */
 import { ApiClient, ENDPOINTS } from "./api";
+import { getAccessToken } from "../utils/authSession";
 import { flowSpacingToPayload } from "../utils/flowSpacing";
 
 /**
@@ -26,10 +27,9 @@ export async function fillTemplate(cvData, templateId, options = {}) {
     throw new Error("Nie wybrano szablonu.");
   }
   // Guests call the same endpoint without a Bearer header. Sending
-  // `Authorization: Bearer null` would look like a malformed JWT and used to
-  // surface "Token jest nieprawidłowy lub wygasł" even though the route now
-  // accepts anonymous Free-tier fills.
-  const token = typeof localStorage !== "undefined" ? localStorage.getItem("token") : null;
+  // `Authorization: Bearer null` looks like a malformed JWT and surfaces a
+  // false auth error even though the route accepts anonymous Free-tier fills.
+  const token = getAccessToken();
   const api = options.api
     ?? new ApiClient(token ? { Authorization: `Bearer ${token}` } : {});
   const errorMessage = options.errorMessage || "Generowanie szablonu nie powiodło się";

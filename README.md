@@ -367,7 +367,8 @@ Implementation:
 - `frontend/src/components/gallery/Gallery/Gallery.jsx`, lines 39–54 — guest guard on the image-library fetch
 - `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, lines 38–53 — guest guard on image upload
 - `frontend/src/services/eventLog.js` — `logEvent`, the authenticated sink guest events are flushed through
-- `backend/app/core/security.py`, lines 64–65 and 109–123, `oauth2_scheme_optional` / `verify_token_optional`
+- `backend/app/core/security.py`, lines 64–66 and 109–128, `optional_bearer` / `verify_token_optional`
+- `frontend/src/utils/authSession.js` — `getAccessToken`, `clearAccessToken`, `isAuthFailure` (guest recovery from stale JWTs / FastAPI "Not authenticated")
 - `backend/app/api/routes/ai.py`, lines 153–191, function `fill_template` — optional auth; Free starter allowlist for guests
 - `backend/app/api/routes/events.py`, lines 30–40, `EventLogRequest.event_type` — widened with `landing_cta_clicked`, `guest_editor_opened`, `guest_demo_loaded`, `guest_first_edit`, `save_gate_shown`, `register_completed`, `guest_doc_claimed`
 
@@ -376,6 +377,7 @@ Tests:
 - `frontend/src/utils/guestDocument.test.js` — round-trip persistence, null on empty/corrupt storage, `hasGuestDocument` requires a non-deleted element
 - `frontend/src/utils/guestEvents.test.js` — append with timestamp, ordering, empty/corrupt storage, 50-entry cap
 - `backend/tests/test_fill_template_guest.py` — anonymous Free fill succeeds; Standard template rejected; stale Bearer treated as guest
+- `frontend/src/utils/authSession.test.js` — placeholder token rejection and auth-failure detection
 
 Dependencies: `localStorage` (no server round trip until claim); the claim effect depends on `hydrateDocumentMode` (shared with `ModalPdfs.showPDF`) and the existing `POST /pdf/create_pdf` endpoint — no new backend PDF-creation path was added.
 
@@ -1471,7 +1473,8 @@ Implementacja:
 - `frontend/src/components/gallery/Gallery/Gallery.jsx`, linie 39–54 — zabezpieczenie fetcha biblioteki obrazów dla gości
 - `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, linie 38–53 — zabezpieczenie uploadu obrazów dla gości
 - `frontend/src/services/eventLog.js` — `logEvent`, uwierzytelniony odbiornik, przez który przechodzą zbuforowane zdarzenia gościa
-- `backend/app/core/security.py`, linie 64–65 oraz 109–123, `oauth2_scheme_optional` / `verify_token_optional`
+- `backend/app/core/security.py`, linie 64–66 oraz 109–128, `optional_bearer` / `verify_token_optional`
+- `frontend/src/utils/authSession.js` — `getAccessToken`, `clearAccessToken`, `isAuthFailure` (odzyskiwanie gościa po wygasłym JWT / FastAPI „Not authenticated”)
 - `backend/app/api/routes/ai.py`, linie 153–191, funkcja `fill_template` — opcjonalna autoryzacja; lista Free starter dla gości
 - `backend/app/api/routes/events.py`, linie 30–40, `EventLogRequest.event_type` — rozszerzony o `landing_cta_clicked`, `guest_editor_opened`, `guest_demo_loaded`, `guest_first_edit`, `save_gate_shown`, `register_completed`, `guest_doc_claimed`
 
@@ -1480,6 +1483,7 @@ Testy:
 - `frontend/src/utils/guestDocument.test.js` — round-trip zapisu/odczytu, `null` dla pustego/uszkodzonego magazynu, `hasGuestDocument` wymaga co najmniej jednego nieusuniętego elementu
 - `frontend/src/utils/guestEvents.test.js` — dodawanie ze znacznikiem czasu, kolejność, pusty/uszkodzony magazyn, limit 50 wpisów
 - `backend/tests/test_fill_template_guest.py` — anonimowy fill Free działa; szablon Standard odrzucony; przestarzały Bearer traktowany jak gość
+- `frontend/src/utils/authSession.test.js` — odrzucanie placeholderów tokena i wykrywanie błędów auth
 
 Zależności: `localStorage` (brak zapytania do serwera aż do przejęcia); efekt przejęcia zależy od `hydrateDocumentMode` (współdzielonego z `ModalPdfs.showPDF`) oraz istniejącego endpointu `POST /pdf/create_pdf` — nie dodano żadnej nowej ścieżki tworzenia PDF po stronie backendu.
 
