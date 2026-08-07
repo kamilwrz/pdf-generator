@@ -1,7 +1,8 @@
 /**
  * Multi-line textarea block with optional auto-height and bullet layout.
- * Edit mode uses a native <textarea>; display mode mirrors PDF wrap metrics.
- * `fixedToPage` renders as inert chrome.
+ * Edit mode uses a contentEditable surface; display mode mirrors PDF wrap
+ * metrics. Trailing blank / bare-bullet rows are trimmed so they cannot
+ * inflate measured height or section rhythm. `fixedToPage` is inert chrome.
  */
 import classes from "./Textarea.module.css";
 import { memo, useLayoutEffect, useRef, useState } from "react";
@@ -11,6 +12,7 @@ import Resize from "../../common/Resize/Resize";
 import {
     measureNaturalScrollHeight,
     shouldShrinkPreservedLayout,
+    trimTrailingEmptyTextareaPayload,
 } from "../../../utils/textareaHeight";
 import { deferTextareaEdit, hasTextareaDragIntent } from "../../../utils/textareaEditing";
 import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
@@ -259,9 +261,16 @@ function Textarea({
         if (!isEditing || !editingRef.current) return undefined;
 
         const node = editingRef.current;
-        const seeded = sanitizeTextContent(content) ?? "";
-        if (hasRuns(runs)) {
-            node.innerHTML = runsToHtml(seeded, runs);
+        // Enter edit on already-trimmed copy so a prior session's trailing
+        // empties cannot reopen a tall orange outline on the first paint.
+        const seededPayload = trimTrailingEmptyTextareaPayload(
+            sanitizeTextContent(content) ?? "",
+            runs,
+            { bulletList: !!bulletList },
+        );
+        const seeded = seededPayload.content;
+        if (hasRuns(seededPayload.runs)) {
+            node.innerHTML = runsToHtml(seeded, seededPayload.runs);
         } else {
             node.textContent = seeded;
         }
@@ -316,7 +325,16 @@ function Textarea({
         });
     }
 
-    const cleanContent = sanitizeTextContent(content) ?? "";
+    // Display never paints trailing blank / bare-bullet rows — those inflate
+    // scrollHeight and break template rhythm under the next record.
+    const {
+        content: cleanContent,
+        runs: cleanRuns,
+    } = trimTrailingEmptyTextareaPayload(
+        sanitizeTextContent(content) ?? "",
+        runs,
+        { bulletList: !!bulletList },
+    );
 
     if (fixedToPage) {
         return (
@@ -326,7 +344,7 @@ function Textarea({
                 className={classes.block}
                 style={{ ...boxStyle, ...textStyle }}
             >
-                {renderTextareaBody(cleanContent, runs, bulletList)}
+                {renderTextareaBody(cleanContent, cleanRuns, bulletList)}
             </div>
         );
     }
@@ -335,10 +353,41 @@ function Textarea({
         // Commit the edit surface's DOM as { content, runs } and keep the box
         // height in sync. Extracted so both typing and toolbar mark changes
         // (which can shift wrap width) run the identical measure + commit path.
-        const commitEditable = (node) => {
-            const { content: nextContent, runs: nextRuns } = serializeEditable(node);
-            // Measure from the serialized content, not the live editable DOM, so
-            // browser-inserted block wrappers cannot inflate the stored height.
+        //
+        // Trailing empties: while typing keep at most one blank row (room for
+        // the next bullet after Enter). On blur drop every trailing empty so
+        // stored height matches visible copy.
+        const commitEditable = (node, { finalize = false } = {}) => {
+            const serialized = serializeEditable(node);
+            const { content: nextContent, runs: nextRuns } = trimTrailingEmptyTextareaPayload(
+                serialized.content,
+                serialized.runs,
+                {
+                    bulletList: !!bulletList,
+                    keepTrailingEmptyLines: finalize ? 0 : 1,
+                },
+            );
+
+            // Collapse surplus trailing empties in the live DOM so the caret
+            // cannot sit below the measured (trimmed) height with overflow hidden.
+            if (nextContent !== serialized.content) {
+                if (hasRuns(nextRuns)) {
+                    node.innerHTML = runsToHtml(nextContent, nextRuns);
+                } else {
+                    node.textContent = nextContent;
+                }
+                const selection = window.getSelection();
+                if (selection) {
+                    const range = document.createRange();
+                    range.selectNodeContents(node);
+                    range.collapse(false);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+            }
+
+            // Measure from the serialized/trimmed content, not the live editable
+            // DOM, so browser-inserted block wrappers cannot inflate height.
             const measuredHeight = measureEditableContentHeight(node, nextContent, nextRuns);
             node.style.height = `${measuredHeight}px`;
             if (autoHeight) {
@@ -380,7 +429,12 @@ function Textarea({
                     spellCheck={false}
                     data-placeholder="Wpisz swój tekst…"
                     onInput={(e) => commitEditable(e.currentTarget)}
-                    onBlur={() => setTextareaEditing(elementId, false)}
+                    onBlur={() => {
+                        if (editingRef.current) {
+                            commitEditable(editingRef.current, { finalize: true });
+                        }
+                        setTextareaEditing(elementId, false);
+                    }}
                     onKeyDown={(e) => {
                         if (e.key === "Escape") {
                             e.preventDefault();
@@ -481,7 +535,7 @@ function Textarea({
                 moveElement(e, elementId);
             }}
         >
-            {renderTextareaBody(cleanContent, runs, bulletList)}
+            {renderTextareaBody(cleanContent, cleanRuns, bulletList)}
         </div>
     );
 

@@ -7,6 +7,7 @@ import { cloneFixedPageDecorations } from '../utils/structureOperation';
 import { findPageCanvasAtPoint } from '../utils/pageSpread';
 import { moveElementsByDelta } from '../utils/pageDrag';
 import { sanitizeTextContent } from '../utils/sanitizeTextContent';
+import { trimTrailingEmptyTextareaPayload } from '../utils/textareaHeight';
 import { markContentElementsEnter, markElementsEnter, isCanvasEnterReflowSuppressed, endCanvasEnterReflowSuppress } from '../utils/canvasEnter';
 import { isDecorativeChrome } from '../utils/elementInteraction';
 import {
@@ -182,14 +183,28 @@ export function useA4Elements(titleRef) {
     A4ref.current = pageCanvasRefs.current.get(currentPage) ?? null;
   }, [currentPage]);
   useEffect(() => { elementsRef.current = A4_Elements; }, [A4_Elements]);
-  // Strip NULL/NBSP junk already sitting in open documents (loaded before
-  // sanitization existed, or pasted in). One pass; clean state is a no-op.
+  // Strip NULL/NBSP junk and trailing empty textarea rows already sitting in
+  // open documents (loaded before sanitization existed, or left after edit).
+  // One pass; clean state is a no-op.
   useEffect(() => {
-    const needsScrub = A4_Elements.some((element) => (
-      (element.category === "text" || element.category === "textarea")
-      && element.content != null
-      && sanitizeTextContent(element.content) !== element.content
-    ));
+    const needsScrub = A4_Elements.some((element) => {
+      if (
+        (element.category !== "text" && element.category !== "textarea")
+        || element.content == null
+      ) {
+        return false;
+      }
+      const sanitized = sanitizeTextContent(element.content);
+      if (element.category === "textarea") {
+        const trimmed = trimTrailingEmptyTextareaPayload(
+          sanitized,
+          element.runs,
+          { bulletList: !!element.bulletList },
+        );
+        return trimmed.content !== element.content;
+      }
+      return sanitized !== element.content;
+    });
     if (!needsScrub) return;
     setA4_Elements((prev) => prev.map((element) => {
       if (
@@ -198,8 +213,21 @@ export function useA4Elements(titleRef) {
       ) {
         return element;
       }
-      const content = sanitizeTextContent(element.content);
-      return content === element.content ? element : { ...element, content };
+      const sanitized = sanitizeTextContent(element.content);
+      if (element.category === "textarea") {
+        const trimmed = trimTrailingEmptyTextareaPayload(
+          sanitized,
+          element.runs,
+          { bulletList: !!element.bulletList },
+        );
+        if (trimmed.content === element.content) return element;
+        return {
+          ...element,
+          content: trimmed.content,
+          runs: trimmed.runs,
+        };
+      }
+      return sanitized === element.content ? element : { ...element, content: sanitized };
     }));
   }, [A4_Elements]);
   useEffect(() => { pageCountRef.current = pageCount; }, [pageCount]);

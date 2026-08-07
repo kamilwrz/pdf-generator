@@ -6,6 +6,7 @@
 - rozmiar nie dopasowuje sie w kazdej sytuacji do tekstu; dopiero po wpisaniu czegos recznie dopasowuje sie
   do wysokosci
 - AI zmienia wielkosc czcionki i jest brak dopasowania obramowania do tekstu
+FIXED (bulletlist trailing empty) - puste linie / bare „•” na końcu zawyzały wysokość w edycji i poza nią
 
 3. PRZEMIESZCZANIE MIEDZY STRONAMI
 - czasami nie chce przerzucic elementu na druga strone; pomaga zamkniecie panelu edytujacego
