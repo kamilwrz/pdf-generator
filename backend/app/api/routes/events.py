@@ -19,9 +19,25 @@ router = APIRouter(prefix="/events", tags=["events"])
 
 
 class EventLogRequest(BaseModel):
-    """Allowed template-picker events only — keeps the metric vocabulary small."""
+    """Allowed product-metric events only — keeps the metric vocabulary small.
 
-    event_type: Literal["template_picked", "template_dismissed"]
+    Guest-funnel events (landing_cta_clicked .. guest_doc_claimed) are queued
+    client-side while anonymous (see frontend/src/utils/guestEvents.js) and
+    flushed through this same authenticated endpoint once the visitor has a
+    JWT — this endpoint itself never accepts unauthenticated requests.
+    """
+
+    event_type: Literal[
+        "template_picked",
+        "template_dismissed",
+        "landing_cta_clicked",
+        "guest_editor_opened",
+        "guest_demo_loaded",
+        "guest_first_edit",
+        "save_gate_shown",
+        "register_completed",
+        "guest_doc_claimed",
+    ]
     template_id: str | None = None
 
 
