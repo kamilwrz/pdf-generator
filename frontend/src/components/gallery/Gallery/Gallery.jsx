@@ -39,6 +39,20 @@ export default function Gallery() {
     useEffect(() => {
         if (!isGallery) return undefined;
 
+        // Guests have no image library yet — the fetch below would 401
+        // (Authorization: Bearer null) because there is no account to own
+        // any uploaded images. Skip the request and report the same
+        // "loaded, empty" terminal state a real fetch failure would produce,
+        // but with a friendly explanation instead of the raw auth error.
+        // Mirrors the guest guard already applied to ModalPdfs.jsx's
+        // "Moje dokumenty" fetch and BioCvModal.jsx's wizard draft calls.
+        if (!localStorage.getItem("token")) {
+            setImages([]);
+            setPreviewUrls({});
+            setError({ message: "Załóż konto, aby zapisywać i przeglądać własne obrazy w galerii." });
+            return undefined;
+        }
+
         let cancelled = false;
         const objectUrls = [];
         const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` })

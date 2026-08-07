@@ -38,6 +38,20 @@ export default function Dropzone({ onCountChange }) {
     const onDrop = useCallback((acceptedFiles) => {
         if (!acceptedFiles?.length) return;
 
+        // Image upload has nowhere to persist for a guest — there is no
+        // account yet to own the uploaded file, the same situation as the
+        // BioCvModal wizard draft (see BioCvModal.jsx's saveDraft guard).
+        // Skip the network attempt entirely instead of firing one doomed
+        // `Authorization: Bearer null` request per dropped file; those would
+        // all 401 and land in the empty `catch` below, leaving the guest
+        // with an unexplained "upload failed" result and nothing to show
+        // for it.
+        if (!localStorage.getItem("token")) {
+            setStatus("error");
+            setStatusMessage("Załóż konto, aby przesyłać obrazy do galerii.");
+            return;
+        }
+
         const token = ++uploadTokenRef.current;
         const batch = acceptedFiles.map((file) => Object.assign(file, {
             preview: URL.createObjectURL(file),
