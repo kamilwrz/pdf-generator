@@ -10,6 +10,7 @@ import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import PlanSelector, { PLAN_SLUGS } from "./PlanSelector";
+import { queueGuestEvent } from "../../utils/guestEvents";
 
 const UserIcon = () => (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#97A1B0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 20a8 8 0 0 1 16 0" /></svg>
@@ -89,6 +90,7 @@ export default function Register() {
                 },
             );
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+            queueGuestEvent("register_completed");
             // Preserve the landing-page choice through account creation so the
             // first authenticated screen opens the import panel or CV wizard.
             const loginPath = startIntent ? `/login?start=${startIntent}` : "/login";

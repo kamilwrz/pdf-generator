@@ -35,8 +35,8 @@ import SectionsPanel from '../components/editor/SectionsPanel/SectionsPanel';
 import AddSectionModal from '../components/editor/AddSectionModal/AddSectionModal';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 import { logEvent } from '../services/eventLog';
-import { saveGuestDocument } from '../utils/guestDocument';
-import { queueGuestEvent } from '../utils/guestEvents';
+import { saveGuestDocument, loadGuestDocument, clearGuestDocument } from '../utils/guestDocument';
+import { queueGuestEvent, loadGuestEvents, clearGuestEvents } from '../utils/guestEvents';
 import { previewStructureOperation } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
 import { planErrorMessage } from '../utils/entitlements';
@@ -861,6 +861,85 @@ function PdfCanvas() {
     }
     setEditorMode(inferEditorMode(elements, savedTemplate));
   }, [adoptDocumentFlowSpacing, setActiveTemplateId, setEditorMode]);
+
+  // Claim a buffered guest document once a JWT exists — covers both the
+  // save-gate's register/login round trip and simply reloading the page
+  // with a token already present and a leftover guest doc (e.g. the browser
+  // was closed mid-edit before registering). Runs once per mount; guarded so
+  // a stray second render cannot double-claim.
+  //
+  // Deliberately placed after `hydrateDocumentMode` (rather than immediately
+  // next to the Task 7 guest-autosave effect above) because its dependency
+  // array references `hydrateDocumentMode`, which is declared via `useCallback`
+  // just above this line — referencing it earlier in the component body would
+  // hit the temporal-dead-zone for that `const` binding.
+  //
+  // This intentionally sets `A4_Elements` directly and restores document mode
+  // via `hydrateDocumentMode` instead of routing through `handleLoadTemplate`/
+  // `handleLoadAiElements`. Both of those call `materializeElementSpecs`,
+  // which always mints fresh `element_id`s and remaps connector
+  // `source_id`/`target_id` through a symbolic `spec.id` field that raw,
+  // already-materialized canvas elements (as saved by `saveGuestDocument`)
+  // do not carry — running a guest document back through it would silently
+  // break every connector on the canvas. `hydrateDocumentMode` is the same
+  // primitive `ModalPdfs.showPDF` already uses to restore a reopened saved
+  // document without re-materializing its elements.
+  const claimAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (claimAttemptedRef.current) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const guestDoc = loadGuestDocument();
+    if (!guestDoc || !Array.isArray(guestDoc.elements) || guestDoc.elements.length === 0) return;
+
+    claimAttemptedRef.current = true;
+
+    // Flush anything queued while anonymous — including this claim, queued
+    // just below — through the normal authenticated event log.
+    queueGuestEvent("guest_doc_claimed");
+    const buffered = loadGuestEvents();
+    buffered.forEach((event) => logEvent(event.eventType));
+    clearGuestEvents();
+
+    setA4_Elements(guestDoc.elements);
+    setA4_Elements_deleted([]);
+    resetHistory();
+    hydrateDocumentMode(guestDoc.elements, {
+      editorMode: guestDoc.editorMode,
+      templateId: guestDoc.templateId,
+      spacingPx: guestDoc.spacingPx,
+    });
+    setPageCount(guestDoc.pageCount || 1);
+    setCurrentPage(1);
+    if (titleRef.current && guestDoc.title) {
+      titleRef.current.value = guestDoc.title;
+    }
+
+    createPdf(guestDoc.elements, titleRef, guestDoc.pageCount || 1, pageSize, {
+      editorMode: guestDoc.editorMode,
+      templateId: guestDoc.templateId,
+      flowSpacing: guestDoc.spacingPx,
+    });
+    clearGuestDocument();
+
+    pushToast({
+      title: "CV zapisane",
+      msg: "Twój dokument został zapisany na koncie.",
+      variant: "success",
+    });
+  }, [
+    createPdf,
+    hydrateDocumentMode,
+    pageSize,
+    pushToast,
+    resetHistory,
+    setA4_Elements,
+    setA4_Elements_deleted,
+    setCurrentPage,
+    setPageCount,
+    titleRef,
+  ]);
+
   // A successful delete must clear the local canvas without attempting to
   // autosave the PDF row that has just been removed from the server.
   const discardActiveDocument = useCallback(() => {
