@@ -1,13 +1,13 @@
 .container {
-    --ink: #171812;
-    --night: #11120f;
-    --paper: #f5f0e7;
-    --paper-deep: #e9e0d1;
-    --rust: #dc6743;
-    --rust-deep: #a73e26;
-    --gold: #caa66b;
-    --line-dark: rgba(245, 240, 231, .2);
-    --line-light: rgba(23, 24, 18, .17);
+    --ink: #1A2433;
+    --night: #1A2B3F;
+    --paper: #F6F7F9;
+    --paper-deep: #E8ECF1;
+    --rust: #2F5F8F;
+    --rust-deep: #1F456C;
+    --gold: #B8954A;
+    --line-dark: rgba(246, 247, 249, .2);
+    --line-light: rgba(26, 36, 51, .17);
     --display: PlayfairDisplay, Georgia, serif;
     --body: Montserrat, sans-serif;
 
@@ -31,7 +31,7 @@
     padding: clamp(28px, 5.4vw, 80px);
     overflow: hidden;
     background:
-        linear-gradient(145deg, rgba(17, 18, 15, .96), rgba(17, 18, 15, .82)),
+        linear-gradient(145deg, rgba(26, 43, 63, .96), rgba(26, 43, 63, .82)),
         url("/women-job-call.png") center / cover;
     color: var(--paper);
 }
@@ -43,7 +43,7 @@
     left: -94px;
     width: min(31vw, 430px);
     aspect-ratio: 1;
-    border: 1px solid rgba(220, 103, 67, .42);
+    border: 1px solid rgba(47, 95, 143, .42);
     border-radius: 50%;
 }
 
@@ -109,7 +109,7 @@
 .storyCopy > p:last-child {
     max-width: 405px;
     margin: 24px 0 0;
-    color: rgba(245, 240, 231, .7);
+    color: rgba(246, 247, 249, .7);
     font: 500 14px/1.75 var(--body);
 }
 
@@ -138,7 +138,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: rgba(245, 240, 231, .56);
+    color: rgba(246, 247, 249, .56);
     font: 600 9px/1.4 var(--body);
     letter-spacing: .08em;
     text-transform: uppercase;
@@ -156,8 +156,8 @@
     place-items: center;
     padding: clamp(30px, 7vw, 100px);
     background:
-        linear-gradient(90deg, rgba(220, 103, 67, .08) 0 1px, transparent 1px) 0 0 / 40px 40px,
-        linear-gradient(rgba(220, 103, 67, .08) 0 1px, transparent 1px) 0 0 / 40px 40px,
+        linear-gradient(90deg, rgba(47, 95, 143, .08) 0 1px, transparent 1px) 0 0 / 40px 40px,
+        linear-gradient(rgba(47, 95, 143, .08) 0 1px, transparent 1px) 0 0 / 40px 40px,
         var(--paper);
 }
 
@@ -165,7 +165,7 @@
     width: min(100%, 445px);
     padding: clamp(31px, 4.4vw, 58px);
     border: 1px solid var(--ink);
-    background: rgba(245, 240, 231, .94);
+    background: rgba(246, 247, 249, .94);
     box-shadow: 12px 12px 0 var(--rust);
     animation: cardEnter 530ms cubic-bezier(.2, .8, .2, 1) both;
 }
@@ -247,7 +247,7 @@
 .field:focus-within {
     border-color: var(--rust);
     background: #fff;
-    box-shadow: 4px 4px 0 rgba(220, 103, 67, .17);
+    box-shadow: 4px 4px 0 rgba(47, 95, 143, .17);
 }
 
 .field input {
@@ -278,7 +278,7 @@
     border-radius: 0;
     background: var(--rust);
     box-shadow: 5px 5px 0 var(--ink);
-    color: #fffaf5;
+    color: #FFFFFF;
     cursor: pointer;
     font: 700 12px/1.3 var(--body);
     letter-spacing: .02em;
@@ -287,7 +287,7 @@
 
 .authBtn:hover:not(:disabled),
 .authBtn:focus-visible:not(:disabled) {
-    background: #e67553;
+    background: #3A6FA3;
     box-shadow: 8px 8px 0 var(--ink);
     transform: translate(-2px, -2px);
 }

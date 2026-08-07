@@ -252,7 +252,7 @@
 }
 
 .confirmDelete:hover {
-    background: #bb4331;
+    background: #C0563F;
     color: var(--on-accent);
 }
 
@@ -269,7 +269,7 @@
 }
 
 .pdfItem:hover {
-    border-color: #4A4A40;
+    border-color: #D5DCE5;
     background: var(--chrome-control);
 }
 

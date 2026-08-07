@@ -25,7 +25,7 @@ import { applyMark, rangeHasMark } from "../../../utils/textRuns";
 
 // A compact palette that covers the common CV accent needs. The first entry is
 // the default body colour so a user can also revert a coloured span.
-const PALETTE = ["#111827", "#DC6743", "#2563EB", "#059669", "#DB2777", "#7C3AED"];
+const PALETTE = ["#1A2433", "#2F5F8F", "#B8954A", "#059669", "#C0563F", "#5A86B5"];
 
 function activeMarks(content, runs, start, end) {
   return {

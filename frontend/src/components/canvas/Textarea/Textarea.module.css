@@ -48,7 +48,7 @@
 .editing {
     resize: none;
     cursor: text;
-    outline: 2px solid var(--accent, #DC6743);
+    outline: 2px solid var(--accent, #2F5F8F);
     outline-offset: 2px;
     -webkit-user-select: text;
     user-select: text;

@@ -9,9 +9,9 @@
    -webkit-font-smoothing: antialiased;
    text-rendering: optimizeLegibility;
    background:
-     radial-gradient(620px 620px at 85% 10%, rgba(220, 103, 67, .13), transparent 62%),
-     radial-gradient(520px 520px at 0% 70%, rgba(202, 166, 107, .08), transparent 62%),
-     linear-gradient(180deg, #171812 0%, #10110e 100%);
+     radial-gradient(620px 620px at 85% 10%, rgba(47, 95, 143, .10), transparent 62%),
+     radial-gradient(520px 520px at 0% 70%, rgba(184, 149, 74, .08), transparent 62%),
+     linear-gradient(180deg, #F7F8FA 0%, #EEF1F5 100%);
    background-attachment: fixed;
    overflow-x: hidden;
    min-height: 100vh;

@@ -420,9 +420,9 @@ Limitations:
 - The guest event buffer is capped at 50 entries — a tab left open through an unusually long anonymous session drops its oldest funnel events first.
 - No entitlement, billing, watermarking, or Stripe changes are part of guest mode; a claimed document becomes an ordinary Free-plan document like any other.
 
-### Rust brand logo
+### Brand logo
 
-The application uses a transparent SVG brand system in the same rust accent as primary actions (`#DC6743`). The full logo combines a folded-document CV monogram with the **CV STUDIO** wordmark in Montserrat (with browser-safe sans-serif fallbacks), so it remains legible on both the dark landing header and warm-paper authentication screens. A compact version of the same mark is used where a wordmark would not fit: the editor tool rail and browser favicon. The former blue `kompoza-logo*.png` assets have been removed.
+The application uses a transparent SVG brand system in the same navy-blue accent as primary actions (`#2F5F8F`). The full logo combines a folded-document CV monogram with the **CV STUDIO** wordmark in Montserrat (with browser-safe sans-serif fallbacks), so it remains legible on the light landing header and cool-paper authentication screens. A compact version of the same mark is used where a wordmark would not fit: the editor tool rail and browser favicon.
 
 Implementation:
 
@@ -436,7 +436,7 @@ Implementation:
 
 ### Auth screens aligned with the landing
 
-Login and registration continue the landing page’s editorial “document transformation” visual language instead of switching to the former generic dark cards. Both views use a responsive split layout: an explanatory story panel on the left and a paper-like form panel with the rust action accent on the right. On small screens, the story panel becomes a compact header above the form.
+Login and registration continue the landing page’s editorial “document transformation” visual language. Both views use a responsive split layout: an explanatory story panel on the left (deep navy `#1A2B3F`) and a cool-paper form panel with the navy-blue action accent on the right. On small screens, the story panel becomes a compact header above the form.
 
 The intent-aware copy remains functional. Login confirms whether it will open PDF import or the guided wizard after authentication; registration confirms the selected path before account creation. Registration no longer asks the visitor to choose a plan — every new account is created on Free by default (`Register.jsx`'s request body is `{ username, email, password }` only; the former `PlanSelector.jsx` component was deleted). Prices and entitlement gates are unchanged.
 
@@ -445,18 +445,20 @@ Implementation:
 - `frontend/src/pages/Login/Login.jsx`, lines 102–192; `frontend/src/pages/Login/Login.module.css`
 - `frontend/src/pages/Register/Register.jsx`, lines 111–224; `frontend/src/pages/Register/Register.module.css`
 
-### Unified dark application palette
+### Unified light application palette
 
-The editor keeps its near-black background as the dominant surface, while using the same rust action colour (`#DC6743`), deep rust pressed state (`#A73E26`), gold detail (`#CAA66B`), and warm-paper text family as the landing and auth screens. A shared warm `--on-accent` token keeps text legible on rust buttons. Shared controls, focus outlines, selection chrome, AI quick actions, page controls, and the PDF-rendering loader therefore no longer introduce a separate blue visual language. Control corners are deliberately tighter to make dark editor forms feel related to the paper-like landing forms without reducing their density.
+The product UI uses a light gray / blue / gold / white system. Cool gray surfaces (`#F4F6F8` / `#FFFFFF`) dominate the editor chrome; navy blue (`#2F5F8F`, pressed `#1F456C`) is the primary action colour; gold (`#B8954A`) is reserved for decorative detail; ink is deep slate-blue (`#1A2433`). Layout, spacing, radii, and component structure are unchanged — only colour tokens and matching hard-coded accents were retuned. Shared `--on-accent` white keeps text legible on blue buttons. Landing, auth, editor chrome, selection outlines, AI quick actions, page controls, and the PDF-rendering loader share this palette.
 
-White remains intentionally reserved for the editable A4 document and its template preview because it represents the exported page; editor chrome uses warm off-white instead. Green success and red destructive states remain semantic status colours rather than becoming brand accents.
+White remains intentionally reserved for the editable A4 document and its template preview because it represents the exported page. Green success and red destructive states remain semantic status colours rather than brand accents.
 
 Implementation:
 
-- `frontend/src/index.css`, lines 1–77, root palette tokens, warm text colours, on-accent text, and shared control radius scale
-- `frontend/src/App.css`, lines 5–18, charcoal application background with rust and gold ambient gradients
-- `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.module.css`, lines 8–90, rust selection and movement chrome
-- `frontend/src/components/common/Spinner/Spinner.module.css`, lines 7–167, dark overlay and paper-like export-status card
+- `frontend/src/index.css`, lines 1–77, root palette tokens (surfaces, chrome, accent, gold, text, shadows)
+- `frontend/src/App.css`, lines 5–18, light application background with blue and gold ambient gradients
+- `frontend/src/pages/Hero/Hero.module.css`, `Login.module.css`, `Register.module.css` — page-local tokens remapped to the same light system
+- `frontend/public/cv-studio-logo.svg`, `cv-studio-mark.svg` — brand mark in navy blue
+- `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.module.css` — cool blue-gray selection chrome
+- `frontend/src/components/common/Spinner/Spinner.module.css` — frosted light overlay and export-status card
 
 Limits:
 
@@ -1578,9 +1580,9 @@ Ograniczenia:
 - Bufor zdarzeń gościa ma limit 50 wpisów — karta pozostawiona otwarta przez wyjątkowo długą anonimową sesję traci najpierw najstarsze zdarzenia lejka.
 - Tryb gościa nie wprowadza żadnych zmian w entitlements, rozliczeniach, znakach wodnych ani Stripe; przejęty dokument staje się zwykłym dokumentem na planie Free, jak każdy inny.
 
-### Rdzawo-pomarańczowe logo marki
+### Logo marki
 
-Aplikacja używa przezroczystego systemu logo SVG w tym samym rdzawo-pomarańczowym akcencie co przyciski główne (`#DC6743`). Pełne logo łączy monogram CV w formie zagiętego dokumentu z napisem **CV STUDIO** w Montserrat (oraz bezpiecznymi fontami zastępczymi), dlatego pozostaje czytelne zarówno na ciemnym nagłówku strony głównej, jak i na papierowym tle ekranów uwierzytelniania. Krótsza wersja tego samego znaku działa tam, gdzie napis nie zmieściłby się dobrze: w pasku narzędzi edytora oraz jako favicon. Poprzednie niebieskie pliki `kompoza-logo*.png` zostały usunięte.
+Aplikacja używa przezroczystego systemu logo SVG w tym samym granatowo-niebieskim akcencie co przyciski główne (`#2F5F8F`). Pełne logo łączy monogram CV w formie zagiętego dokumentu z napisem **CV STUDIO** w Montserrat (oraz bezpiecznymi fontami zastępczymi), dlatego pozostaje czytelne na jasnym nagłówku strony głównej i chłodnym papierowym tle ekranów uwierzytelniania. Krótsza wersja tego samego znaku działa tam, gdzie napis nie zmieściłby się dobrze: w pasku narzędzi edytora oraz jako favicon.
 
 Implementacja:
 
@@ -1594,7 +1596,7 @@ Implementacja:
 
 ### Ekrany uwierzytelniania spójne z landing page
 
-Logowanie i rejestracja kontynuują redakcyjny język wizualny „transformacji dokumentu” ze strony głównej zamiast poprzednich, generycznych ciemnych kart. Oba widoki mają responsywny układ dzielony: po lewej znajduje się panel wyjaśniający proces, a po prawej karta formularza przypominająca papier z rdzawym akcentem akcji. Na małych ekranach panel staje się krótkim nagłówkiem nad formularzem.
+Logowanie i rejestracja kontynuują redakcyjny język wizualny „transformacji dokumentu” ze strony głównej. Oba widoki mają responsywny układ dzielony: po lewej panel wyjaśniający (głęboki granat `#1A2B3F`), po prawej chłodna papierowa karta formularza z granatowo-niebieskim akcentem akcji. Na małych ekranach panel staje się krótkim nagłówkiem nad formularzem.
 
 Treść zależna od intencji nadal działa. Login potwierdza, czy po uwierzytelnieniu otworzy import PDF, czy kreator krok po kroku; rejestracja pokazuje tę ścieżkę jeszcze przed utworzeniem konta. Rejestracja nie pyta już o wybór planu — każde nowe konto powstaje domyślnie na planie Free (treść żądania w `Register.jsx` to wyłącznie `{ username, email, password }`; dawny komponent `PlanSelector.jsx` został usunięty). Ceny i bramki uprawnień nie uległy zmianie.
 
@@ -1603,18 +1605,20 @@ Implementacja:
 - `frontend/src/pages/Login/Login.jsx`, linie 102–192; `frontend/src/pages/Login/Login.module.css`
 - `frontend/src/pages/Register/Register.jsx`, linie 111–224; `frontend/src/pages/Register/Register.module.css`
 
-### Spójna ciemna paleta aplikacji
+### Spójna jasna paleta aplikacji
 
-Edytor zachowuje niemal czarne tło jako dominującą powierzchnię, a jednocześnie korzysta z tego samego rdzawego koloru akcji (`#DC6743`), ciemnej rdzy dla stanu wciśniętego (`#A73E26`), złotego detalu (`#CAA66B`) i ciepłej rodziny bieli co landing oraz ekrany uwierzytelniania. Wspólny token `--on-accent` zapewnia czytelny, ciepły tekst na rdzawych przyciskach. Wspólne kontrolki, obramowania fokusu, zaznaczenie na płótnie, szybkie akcje AI, sterowanie stronami i ekran generowania PDF nie wprowadzają już oddzielnego, niebieskiego języka wizualnego. Narożniki kontrolek są celowo mniej zaokrąglone, aby ciemne formularze edytora nawiązywały do papierowych formularzy landingu bez zmniejszania ich gęstości.
+UI produktu używa systemu szarości / niebieskiego / złota / bieli. Chłodne szare powierzchnie (`#F4F6F8` / `#FFFFFF`) dominują chrome edytora; granatowy niebieski (`#2F5F8F`, wciśnięty `#1F456C`) jest kolorem akcji; złoto (`#B8954A`) służy detalom dekoracyjnym; atrament to głęboki slate-blue (`#1A2433`). Układ, odstępy, promienie i struktura komponentów pozostają bez zmian — przemapowano wyłącznie tokeny kolorów i odpowiadające im hardcodowane akcenty. Wspólny `--on-accent` (biały) zapewnia czytelny tekst na niebieskich przyciskach. Landing, auth, chrome edytora, obramowania zaznaczenia, szybkie akcje AI, sterowanie stronami i ekran generowania PDF dzielą tę samą paletę.
 
-Biel pozostaje celowo zarezerwowana dla edytowalnej strony A4 i podglądu szablonu, ponieważ reprezentuje wynikowy dokument. Chrome edytora używa zamiast niej ciepłej złamanej bieli. Zielony sukces i czerwone działania destrukcyjne pozostają kolorami stanów semantycznych, a nie akcentami marki.
+Biel pozostaje celowo zarezerwowana dla edytowalnej strony A4 i podglądu szablonu, ponieważ reprezentuje wynikowy dokument. Zielony sukces i czerwone działania destrukcyjne pozostają kolorami stanów semantycznych, a nie akcentami marki.
 
 Implementacja:
 
-- `frontend/src/index.css`, linie 1–77, tokeny głównej palety, ciepłe kolory tekstu, tekst na akcencie i wspólna skala promieni kontrolek
-- `frontend/src/App.css`, linie 5–18, grafitowe tło aplikacji z rdzawymi i złotymi gradientami otoczenia
-- `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.module.css`, linie 8–90, rdzawe zaznaczenie i chrome przesuwania
-- `frontend/src/components/common/Spinner/Spinner.module.css`, linie 7–167, ciemna warstwa tła i karta statusu eksportu przypominająca papier
+- `frontend/src/index.css`, linie 1–77, tokeny głównej palety (powierzchnie, chrome, akcent, złoto, tekst, cienie)
+- `frontend/src/App.css`, linie 5–18, jasne tło aplikacji z niebieskimi i złotymi gradientami otoczenia
+- `frontend/src/pages/Hero/Hero.module.css`, `Login.module.css`, `Register.module.css` — lokalne tokeny stron przemapowane na ten sam jasny system
+- `frontend/public/cv-studio-logo.svg`, `cv-studio-mark.svg` — znak marki w granatowym niebieskim
+- `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.module.css` — chłodny niebiesko-szary chrome zaznaczenia
+- `frontend/src/components/common/Spinner/Spinner.module.css` — matowa jasna warstwa i karta statusu eksportu
 
 Ograniczenia:
 

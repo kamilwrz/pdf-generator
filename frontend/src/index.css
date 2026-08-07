@@ -1,59 +1,59 @@
 :root {
-    /* Dark editor chrome uses the landing page's charcoal, warm-paper, and
-       rust palette. Black surfaces remain dominant; colour is reserved for
-       primary actions, selected controls, and focused fields. */
+    /* Light editor chrome: cool gray surfaces, navy-blue actions, gold detail,
+       and white paper. Layout and control geometry stay unchanged — only the
+       colour system moves from the former charcoal/rust theme. */
 
     /* ---- Surfaces & backgrounds ---- */
-    --primary-bg: #171812;
-    --secondary-bg: #1E1F1A;
-    --surface-2: #10110E;
-    --bg-cream: #141510;
+    --primary-bg: #F4F6F8;
+    --secondary-bg: #FFFFFF;
+    --surface-2: #EEF1F5;
+    --bg-cream: #F8F9FB;
 
     /* ---- Shared editor chrome (topbar, sidebar, panels, modals) ---- */
-    --chrome-ink: #F5F0E7;
-    --chrome-muted: #B5AD9F;
-    --chrome-border: #393930;
-    --chrome-surface: #171812;
-    --chrome-control: #20211C;
-    --chrome-hover: #2A2A23;
-    --chrome-accent: #DC6743;
-    --chrome-accent-strong: #A73E26;
-    --chrome-shadow: 0 14px 34px -18px rgba(0, 0, 0, .65);
+    --chrome-ink: #1A2433;
+    --chrome-muted: #5C6B7A;
+    --chrome-border: #D5DCE5;
+    --chrome-surface: #FFFFFF;
+    --chrome-control: #F4F6F8;
+    --chrome-hover: #E8EEF5;
+    --chrome-accent: #2F5F8F;
+    --chrome-accent-strong: #1F456C;
+    --chrome-shadow: 0 14px 34px -18px rgba(26, 36, 51, .18);
 
-    /* ---- Brand accent (landing rust) ---- */
-    --accent: #DC6743;
-    --accent-strong: #A73E26;
-    --accent-soft: rgba(220, 103, 67, .16);
-    --accent-grad: linear-gradient(135deg, #DC6743, #A73E26);
-    --on-accent: #FFF8F1;
+    /* ---- Brand accent (navy blue) ---- */
+    --accent: #2F5F8F;
+    --accent-strong: #1F456C;
+    --accent-soft: rgba(47, 95, 143, .12);
+    --accent-grad: linear-gradient(135deg, #3A6FA3, #2F5F8F);
+    --on-accent: #FFFFFF;
 
-    /* Secondary accents from Hero */
-    --amber: #CAA66B;
-    --green: #6FBF8E;
+    /* Secondary accents */
+    --amber: #B8954A;
+    --green: #3F9A6F;
 
     /* ---- Buttons ---- */
     --primary-btn: var(--accent);
-    --secondary-btn: #20211C;
-    --close-btn: #2A2A23;
+    --secondary-btn: #EEF1F5;
+    --close-btn: #E8EEF5;
 
     /* ---- Text ---- */
-    --primary-font: #F5F0E7;
-    --ink-2: #F5F0E7;
-    --secondary-font: #B5AD9F;
-    --muted-font: #989083;
-    --label-font: #746F65;
-    --deco-font: #CAA66B;
+    --primary-font: #1A2433;
+    --ink-2: #1A2433;
+    --secondary-font: #5C6B7A;
+    --muted-font: #7A8794;
+    --label-font: #8A96A3;
+    --deco-font: #B8954A;
 
     /* ---- Lines & borders ---- */
-    --border: #393930;
-    --border-soft: #2B2B24;
-    --border-line: #393930;
+    --border: #D5DCE5;
+    --border-soft: #E4E9EF;
+    --border-line: #D5DCE5;
 
     /* ---- Status ---- */
-    --success: #6FBF8E;
-    --success-soft: rgba(111, 191, 142, .16);
-    --danger: #E88A73;
-    --danger-soft: rgba(232, 138, 115, .16);
+    --success: #3F9A6F;
+    --success-soft: rgba(63, 154, 111, .14);
+    --danger: #C0563F;
+    --danger-soft: rgba(192, 86, 63, .12);
 
     /* ---- Radius scale ---- */
     --r-xl: 12px;
@@ -62,9 +62,9 @@
     --r-sm: 3px;
 
     /* ---- Elevation ---- */
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, .25), 0 26px 60px -28px rgba(0, 0, 0, .55);
-    --shadow-pop: 0 18px 44px -16px rgba(0, 0, 0, .55);
-    --shadow-accent: 0 12px 24px -10px rgba(220, 103, 67, .45);
+    --shadow-card: 0 1px 2px rgba(26, 36, 51, .06), 0 18px 40px -24px rgba(26, 36, 51, .22);
+    --shadow-pop: 0 18px 44px -16px rgba(26, 36, 51, .18);
+    --shadow-accent: 0 12px 24px -10px rgba(47, 95, 143, .35);
 
     /* ---- Typography ---- */
     --font-display: 'Nunito', sans-serif;

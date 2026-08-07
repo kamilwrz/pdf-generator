@@ -27,7 +27,7 @@ g) Przykladow CV nie trzyma rytmu przy wklejaniu recordow/ Sekcji nie da rady wk
 3. KWESTIE DO ZMIANY / POPRAWY / IMPLEMENTACJI
 
 1) A4 PREVIEW W WIZZARDZIE
-2) KOLOR NA LIGHT THEME (GRAY, BLUE, WHITE THEME)
+DONE 2) KOLOR NA LIGHT THEME (GRAY, BLUE, GOLD, WHITE THEME)
 3) DOPRACOWANIE SZABLONOW:
   aa) SIDEBAR -> nie dzialaja sekcje oraz import skilli / sekcji na sidebar
   bb) Monument -> bug w iteracji przy imporcie sekcji
