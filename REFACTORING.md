@@ -22,6 +22,7 @@ FIXED c) zacznij od zera - uzyj wlasnych danych - powrot, powoduje znikniecie te
 d) po kliknieciu na "stworz cv od poczatku" w sekcji 1, zamkniecie kreatora wywala uzytkownika do freeform, bez informacji. Zamkniecie kreatora, powinno przekierowywac do sekcji 1
 e) Po zaladowaniu CV przez wizarda, dane sie kasuja z local storage. Powinny byc w wizzardzie, w razie jakby uzytkownik chcial wygenerowac zmodyfikowane CV
 f) Bulletlist - Textarea - nie radzi sobie z empty space. Zapamietuje w edycji. Poza edycja zaburza wysokosc uwzgledniajac content hight (niby DONE, ale teraz nie mozna dawac empty space'ow)
+g) Przykladow CV nie trzyma rytmu przy wklejaniu recordow/ Sekcji nie da rady wkleic
 
 3. KWESTIE DO ZMIANY / POPRAWY / IMPLEMENTACJI
 
@@ -37,12 +38,14 @@ f) Bulletlist - Textarea - nie radzi sobie z empty space. Zapamietuje w edycji. 
 DONE 5) pokazywanie "Resizera" podczas edycji strukturalnej wylaczyc (drag + pola W/H w panelu)
 DONE 6) nie pokazywac wartosci do edycji w panelu, jezeli nie ma to wplywu (+ brak klonuj/usun w edycji strukturalnej)
 7)  strzalki w a4:
-  DONE aa) zmiana kolejnosci recordu w sekcji inne niz wyksztalcenie / edukacja (strzalki po prawej, wys. kosz/+)
+  aa) zmiana kolejnosci recordu w sekcji inne niz wyksztalcenie / edukacja (strzalki po prawej, wys. kosz/+)
   DONE bb) zmiana kolejnosci recordow w edu / exp (strzalki po prawej, wys. kosz/+)
   DONE cc) kasowanie bloku / sekcji (hover kosz obok + na naglowku sekcji / rekordu)
   dd) dodawanie rekoru w sekcji innej niz edu/exp
   ee) zmienic UX / DESIGN
 8) Dodac: Firma . Okres > Firma . Miejsce.  Okres; to samo z edu
 9) masthead / topbar mozna ruszac dragiem w edycji strukturalnej.... ewentulanie inne elementy
+DONE 10) Uzytkownika zawsze ma zaczynac od zooma 130% nie 100%
+11) SZABLONY - LANDING PAGE - zmienic na CV WIZZARD? SZABLONY - nei dziala rytm....
 
 4. AI - zastanowic sie i zmodyfikowac / reImplement

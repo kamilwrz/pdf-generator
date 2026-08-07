@@ -105,7 +105,7 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
 
   if (!eligible) return null;
 
-  const { buttonSize, iconSize, gap, radius } = recordPlusLayoutSize(zoom, fontSize);
+  const { buttonSize, iconSize, gap } = recordPlusLayoutSize(zoom, fontSize);
   const headingHeight = Number(fontSize) || 10;
   // Trash sits to the left of plus; cluster right edge stays `gap` from heading.
   const clusterWidth = buttonSize * 2 + gap;
@@ -119,7 +119,6 @@ export default function SectionRecordAdd({ headingId, left, top, fontSize = 10 }
   const buttonStyle = {
     width: buttonSize,
     height: buttonSize,
-    borderRadius: radius,
   };
   const iconStyle = {
     width: iconSize,

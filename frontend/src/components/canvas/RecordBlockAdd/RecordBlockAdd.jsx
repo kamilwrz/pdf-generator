@@ -137,7 +137,7 @@ export default function RecordBlockAdd({
 
   if (!eligible) return null;
 
-  const { buttonSize, iconSize, gap, radius } = recordPlusLayoutSize(zoom, fontSize);
+  const { buttonSize, iconSize, gap } = recordPlusLayoutSize(zoom, fontSize);
   const boxHeight = Number.isFinite(Number(height)) && Number(height) > 0
     ? Number(height)
     : (Number(fontSize) || 10);
@@ -167,7 +167,6 @@ export default function RecordBlockAdd({
   const buttonStyle = {
     width: buttonSize,
     height: buttonSize,
-    borderRadius: radius,
   };
   const iconStyle = {
     width: iconSize,
