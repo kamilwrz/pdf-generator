@@ -1,9 +1,30 @@
+/*
+ * `.right-pane` (frontend/src/App.css) is a flex column with `overflow:
+ * hidden`: the DemoBanner is the first child, followed by the Topbar
+ * (flex-shrink: 0, z-index: 1400 — see Topbar.module.css) and then
+ * `.canvas-area` (flex: 1). The banner used to be `position: absolute`
+ * pinned to `top: 0`, which placed it directly underneath the Topbar in the
+ * same top-left corner; because Topbar has an opaque background and a much
+ * higher z-index (1400 vs. the banner's old 40), Topbar painted completely
+ * over the banner and made it invisible even though it was present and
+ * correctly populated in the DOM (confirmed via Task 15's browser QA pass).
+ *
+ * The fix keeps the banner in normal document flow instead of taking it out
+ * of flow with `position: absolute`. As the first flex child of
+ * `.right-pane`, it now occupies its own row above the Topbar and pushes the
+ * Topbar (and everything below it) down by its own height, so the two
+ * elements' bounding boxes never overlap. `flex-shrink: 0` prevents the
+ * flex container from squeezing the banner to zero height when content
+ * below it (the canvas) is tall enough to fill the remaining space.
+ * `position: relative` plus a z-index above Topbar's 1400 is kept as a
+ * defensive belt-and-braces measure only — normal flow already prevents the
+ * overlap, but this guarantees the banner still wins a stacking conflict if
+ * a future change reintroduces overlapping positioned ancestors.
+ */
 .banner {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 40;
+  position: relative;
+  z-index: 1500;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
