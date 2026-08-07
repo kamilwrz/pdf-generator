@@ -2,6 +2,7 @@ import DropzoneContainer from '../components/gallery/Dropzone/DropzoneContainer'
 import Gallery from '../components/gallery/Gallery/Gallery';
 import Sidebar from '../components/editor/Sidebar/Sidebar';
 import Topbar from '../components/editor/Topbar/Topbar';
+import DemoBanner from '../components/editor/DemoBanner/DemoBanner';
 import A4 from "../components/canvas/A4/A4";
 import Editor from '../components/editor/Editor/Editor';
 import { PdfContext } from '../store/pdfgenerator-context';
@@ -48,6 +49,7 @@ import {
 } from '../utils/editorMode';
 import { DEFAULT_FLOW_SPACING } from '../utils/flowSpacing';
 import { listSectionIconOptions } from '../utils/sectionIcons';
+import { demoCvTemplate } from '../templates/demoCv';
 import { nanoid } from 'nanoid';
 
 /**
@@ -77,6 +79,7 @@ function PdfCanvas() {
       || startIntent === "wizard"
       || startIntent === "templates"
       || startIntent === "blank"
+      || startIntent === "demo"
       ? startIntent
       : null,
   );
@@ -511,7 +514,9 @@ function PdfCanvas() {
   // authenticated path above, but writes via guestDocument instead of
   // calling saveElements. Skipped once a real pdfId exists — from that point
   // the authenticated effect above is the source of truth.
-  const isDemoContentRef = useRef(false);
+  const [isDemoContent, setIsDemoContent] = useState(startIntent === "demo");
+  const isDemoContentRef = useRef(isDemoContent);
+  isDemoContentRef.current = isDemoContent;
   const guestFirstEditLoggedRef = useRef(false);
   const guestEditorOpenedLoggedRef = useRef(false);
   useEffect(() => {
@@ -606,6 +611,7 @@ function PdfCanvas() {
       || startIntent === "wizard"
       || startIntent === "templates"
       || startIntent === "blank"
+      || startIntent === "demo"
     ) {
       return;
     }
@@ -626,6 +632,18 @@ function PdfCanvas() {
     handleClearA4();
     markTemplatesModalSeen();
   }, [handleClearA4, markTemplatesModalSeen, setActiveTemplateId, setEditorMode])
+
+  // Demo path: load the canned CV once, no dialog, so the visitor lands
+  // directly on an editable document instead of a template picker.
+  const demoStartAppliedRef = useRef(false);
+  useEffect(() => {
+    if (initialStartIntentRef.current !== "demo" || demoStartAppliedRef.current) return;
+    demoStartAppliedRef.current = true;
+    handleLoadTemplate(demoCvTemplate, "Przykładowe CV", null);
+    setIsDemoContent(true);
+    queueGuestEvent("guest_demo_loaded");
+    markTemplatesModalSeen();
+  }, [handleLoadTemplate, markTemplatesModalSeen]);
 
   const handleShowAiPanel = useCallback(() => {
     const next = dialog !== 'ai';
@@ -952,6 +970,22 @@ function PdfCanvas() {
     handleClearA4();
   }, [handleClearA4]);
 
+  // Demo-banner actions: both leave demo mode. "Use own data" keeps the
+  // demo content on screen and opens the bio-CV wizard so the visitor can
+  // replace it in place; "Start blank" discards the demo content entirely,
+  // mirroring the blank-start effect above.
+  const handleDemoUseOwnData = useCallback(() => {
+    setIsDemoContent(false);
+    setDialog('bioCv');
+  }, []);
+
+  const handleDemoStartBlank = useCallback(() => {
+    setIsDemoContent(false);
+    setEditorMode(EDITOR_MODE_FREEFORM);
+    setActiveTemplateId(null);
+    handleClearA4();
+  }, [handleClearA4, setActiveTemplateId, setEditorMode]);
+
   const canvasValue = useMemo(() => ({
     A4_Elements,
     groupMoveDelta,
@@ -1164,6 +1198,9 @@ function PdfCanvas() {
               {/* Floating property inspector (portal); not docked to the tool rail. */}
               <Editor />
               <div className="right-pane">
+                {isDemoContent ? (
+                  <DemoBanner onUseOwnData={handleDemoUseOwnData} onStartBlank={handleDemoStartBlank} />
+                ) : null}
                 <Topbar titleRef={titleRef} />
                 <div className="canvas-area">
                   <div className={isTwoPageView ? "canvas-spread" : "canvas-single"}>

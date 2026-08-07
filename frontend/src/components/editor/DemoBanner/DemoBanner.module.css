@@ -1,0 +1,35 @@
+.banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #fff3e6;
+  border-bottom: 1px solid #f0c896;
+  font-size: 0.85rem;
+  color: #6b4a1f;
+}
+
+.text {
+  font-weight: 500;
+}
+
+.link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #dc6743;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.sep {
+  color: #d8b98a;
+}
