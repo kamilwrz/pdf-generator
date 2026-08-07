@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 import {
   EDITOR_MODE_FREEFORM,
   EDITOR_MODE_TEMPLATE,
+  canCloneOrDeleteElements,
+  canEditElementPosition,
+  canEditElementSizeField,
   canFreePositionElement,
+  canToggleElementLock,
   inferEditorMode,
   normalizeEditorMode,
 } from "./editorMode.js";
@@ -68,6 +72,44 @@ describe("canFreePositionElement", () => {
     assert.equal(
       canFreePositionElement({ category: "text", locked: true }, EDITOR_MODE_FREEFORM),
       false,
+    );
+  });
+});
+
+describe("inspector field gates", () => {
+  it("hides position controls for layout-owned template content", () => {
+    const content = { category: "textarea", flowRole: "content", autoHeight: true };
+    assert.equal(canEditElementPosition(content, EDITOR_MODE_TEMPLATE), false);
+    assert.equal(canToggleElementLock(content, EDITOR_MODE_TEMPLATE), false);
+  });
+
+  it("keeps lock toggle for freeform locked text so the user can unlock", () => {
+    const locked = { category: "text", locked: true };
+    assert.equal(canEditElementPosition(locked, EDITOR_MODE_FREEFORM), false);
+    assert.equal(canToggleElementLock(locked, EDITOR_MODE_FREEFORM), true);
+  });
+
+  it("disables clone/delete only in template mode", () => {
+    assert.equal(canCloneOrDeleteElements(EDITOR_MODE_TEMPLATE), false);
+    assert.equal(canCloneOrDeleteElements(EDITOR_MODE_FREEFORM), true);
+  });
+
+  it("hides auto-height and image proportional height fields", () => {
+    assert.equal(
+      canEditElementSizeField({ category: "textarea", autoHeight: true }, "height"),
+      false,
+    );
+    assert.equal(
+      canEditElementSizeField({ category: "textarea", autoHeight: true }, "width"),
+      true,
+    );
+    assert.equal(
+      canEditElementSizeField({ category: "image" }, "height"),
+      false,
+    );
+    assert.equal(
+      canEditElementSizeField({ category: "image" }, "width"),
+      true,
     );
   });
 });

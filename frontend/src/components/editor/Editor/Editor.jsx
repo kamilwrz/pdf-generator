@@ -2,6 +2,10 @@
  * Compact horizontal floating toolbar above the current selection
  * (Enhancv-style form, CV STUDIO chrome). Icon-first controls; Text vs
  * TextArea keep different field sets. Positioned via selection DOM bboxes.
+ *
+ * In template (structural) mode the bar hides controls that cannot affect the
+ * selection (layout-owned X/Y / align / lock, auto-height) and omits clone /
+ * delete — those actions use section/record canvas affordances instead.
  */
 import classes from "./Editor.module.css";
 import { useEffect, useLayoutEffect, useState, useRef, use } from "react";
@@ -25,7 +29,13 @@ import { TbArrowBigRightLines } from "react-icons/tb";
 
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { motion, AnimatePresence } from "framer-motion";
-import { canFreePositionElement } from "../../../utils/editorMode";
+import {
+  canCloneOrDeleteElements,
+  canEditElementPosition,
+  canEditElementSizeField,
+  canFreePositionElement,
+  canToggleElementLock,
+} from "../../../utils/editorMode";
 import {
   computeFloatingPanelPosition,
   unionRects,
@@ -80,6 +90,21 @@ export default function Editor() {
     selectedElement?.locked
     || (selectedElement && !canFreePositionElement(selectedElement, editorMode)),
   );
+  // Hide no-op geometry / structure actions instead of showing disabled chrome.
+  const showPositionFields = Boolean(
+    selectedElement && canEditElementPosition(selectedElement, editorMode),
+  );
+  const showLockToggle = Boolean(
+    selectedElement && canToggleElementLock(selectedElement, editorMode),
+  );
+  const allowCloneOrDelete = canCloneOrDeleteElements(editorMode);
+  const showPositionGroup = showPositionFields || showLockToggle || Boolean(selectedElement);
+  const bulkAllowGroupMove = selectedElements.every((element) => (
+    canEditElementPosition(element, editorMode)
+  ));
+  const bulkAllowLock = selectedElements.every((element) => (
+    canToggleElementLock(element, editorMode)
+  ));
 
   const [elementValues, setElementValues] = useState({});
   const [groupMoveValues, setGroupMoveValues] = useState({ x: "0", y: "0" });
@@ -327,6 +352,9 @@ export default function Editor() {
                 onSetAlign={setBulkAlign}
                 groupMoveValues={groupMoveValues}
                 onGroupMoveValueChange={handleGroupMoveValueChange}
+                allowGroupMove={bulkAllowGroupMove}
+                allowLock={bulkAllowLock}
+                allowCloneOrDelete={allowCloneOrDelete}
                 onDuplicateSelected={duplicateSelectedElements}
                 onDeleteSelected={deleteSelectedElements}
                 onClose={handleCloseEditor}
@@ -404,21 +432,24 @@ export default function Editor() {
                             width={32}
                             step={0.1}
                           />
-                          <NumField
-                            label="Szerokość"
-                            icon={<RxWidth />}
-                            value={elementValues.width}
-                            onChange={(e) => handleChangeValues(e, "width")}
-                            width={36}
-                          />
-                          <NumField
-                            label={selectedElement.autoHeight ? "Wysokość (automatyczna)" : "Wysokość"}
-                            icon={<RxHeight />}
-                            value={elementValues.height}
-                            onChange={(e) => handleChangeValues(e, "height")}
-                            width={36}
-                            disabled={!!selectedElement.autoHeight}
-                          />
+                          {canEditElementSizeField(selectedElement, "width") && (
+                            <NumField
+                              label="Szerokość"
+                              icon={<RxWidth />}
+                              value={elementValues.width}
+                              onChange={(e) => handleChangeValues(e, "width")}
+                              width={36}
+                            />
+                          )}
+                          {canEditElementSizeField(selectedElement, "height") && (
+                            <NumField
+                              label="Wysokość"
+                              icon={<RxHeight />}
+                              value={elementValues.height}
+                              onChange={(e) => handleChangeValues(e, "height")}
+                              width={36}
+                            />
+                          )}
                         </Group>
                       </>
                     )}
@@ -427,16 +458,24 @@ export default function Editor() {
 
                 {cat === "line" && (
                   <Group label="Linia">
-                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
-                    <NumField label="Grubość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={32} />
+                    {canEditElementSizeField(selectedElement, "width") && (
+                      <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
+                    )}
+                    {canEditElementSizeField(selectedElement, "height") && (
+                      <NumField label="Grubość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={32} />
+                    )}
                     <ColorField label="Kolor" value={elementValues.backgroundColor} onChange={(e) => handleChangeValues(e, "backgroundColor")} />
                   </Group>
                 )}
 
                 {cat === "rectangle" && (
                   <Group label="Kształt">
-                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
-                    <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={36} />
+                    {canEditElementSizeField(selectedElement, "width") && (
+                      <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
+                    )}
+                    {canEditElementSizeField(selectedElement, "height") && (
+                      <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={36} />
+                    )}
                     <NumField label="Obramowanie" icon={<MdFormatSize />} value={elementValues.borderWidth} onChange={(e) => handleChangeValues(e, "borderWidth")} width={32} />
                     <ColorField label="Kolor obramowania" value={elementValues.backgroundColor} onChange={(e) => handleChangeValues(e, "backgroundColor")} />
                   </Group>
@@ -444,8 +483,12 @@ export default function Editor() {
 
                 {(cat === "circle" || cat === "ellipse") && (
                   <Group label="Kształt">
-                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
-                    <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={36} />
+                    {canEditElementSizeField(selectedElement, "width") && (
+                      <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
+                    )}
+                    {canEditElementSizeField(selectedElement, "height") && (
+                      <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={36} />
+                    )}
                     <IconBtn
                       label="Wypełniony kształt"
                       active={!!selectedElement.filled}
@@ -464,10 +507,9 @@ export default function Editor() {
                   </Group>
                 )}
 
-                {cat === "image" && (
+                {cat === "image" && canEditElementSizeField(selectedElement, "width") && (
                   <Group label="Obraz">
                     <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
-                    <NumField label="Wysokość proporcjonalna" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={36} disabled />
                   </Group>
                 )}
 
@@ -482,54 +524,55 @@ export default function Editor() {
                   </Group>
                 )}
 
-                {cat !== "connector" && (
+                {cat !== "connector" && showPositionGroup && (
                   <>
                     <Sep />
                     <Group label="Pozycja">
-                      <IconBtn
-                        label={selectedElement?.locked ? "Odblokuj pozycję" : "Zablokuj pozycję"}
-                        active={!!selectedElement?.locked}
-                        onClick={() => toggleStyle("locked")}
-                      >
-                        {selectedElement?.locked ? <MdLock /> : <MdLockOpen />}
-                      </IconBtn>
-                      <IconBtn
-                        label="Wyrównaj element do lewej krawędzi strony"
-                        disabled={positionLocked}
-                        onClick={() => alignElement(selectedElement.element_id, "LEFT", selectedElement.width, selectedElement.category)}
-                      >
-                        <MdAlignHorizontalLeft />
-                      </IconBtn>
-                      <IconBtn
-                        label="Wyśrodkuj element na stronie"
-                        disabled={positionLocked}
-                        onClick={() => alignElement(selectedElement.element_id, "CENTER", selectedElement.width, selectedElement.category)}
-                      >
-                        <MdAlignHorizontalCenter />
-                      </IconBtn>
-                      <IconBtn
-                        label="Wyrównaj element do prawej krawędzi strony"
-                        disabled={positionLocked}
-                        onClick={() => alignElement(selectedElement.element_id, "RIGHT", selectedElement.width, selectedElement.category)}
-                      >
-                        <MdAlignHorizontalRight />
-                      </IconBtn>
-                      <NumField
-                        label="X (px)"
-                        icon={<span className={classes.axis}>X</span>}
-                        value={elementValues.left}
-                        onChange={(e) => handleChangeValues(e, "left")}
-                        width={34}
-                        disabled={positionLocked}
-                      />
-                      <NumField
-                        label="Y (px)"
-                        icon={<span className={classes.axis}>Y</span>}
-                        value={elementValues.top}
-                        onChange={(e) => handleChangeValues(e, "top")}
-                        width={34}
-                        disabled={positionLocked}
-                      />
+                      {showLockToggle && (
+                        <IconBtn
+                          label={selectedElement?.locked ? "Odblokuj pozycję" : "Zablokuj pozycję"}
+                          active={!!selectedElement?.locked}
+                          onClick={() => toggleStyle("locked")}
+                        >
+                          {selectedElement?.locked ? <MdLock /> : <MdLockOpen />}
+                        </IconBtn>
+                      )}
+                      {showPositionFields && (
+                        <>
+                          <IconBtn
+                            label="Wyrównaj element do lewej krawędzi strony"
+                            onClick={() => alignElement(selectedElement.element_id, "LEFT", selectedElement.width, selectedElement.category)}
+                          >
+                            <MdAlignHorizontalLeft />
+                          </IconBtn>
+                          <IconBtn
+                            label="Wyśrodkuj element na stronie"
+                            onClick={() => alignElement(selectedElement.element_id, "CENTER", selectedElement.width, selectedElement.category)}
+                          >
+                            <MdAlignHorizontalCenter />
+                          </IconBtn>
+                          <IconBtn
+                            label="Wyrównaj element do prawej krawędzi strony"
+                            onClick={() => alignElement(selectedElement.element_id, "RIGHT", selectedElement.width, selectedElement.category)}
+                          >
+                            <MdAlignHorizontalRight />
+                          </IconBtn>
+                          <NumField
+                            label="X (px)"
+                            icon={<span className={classes.axis}>X</span>}
+                            value={elementValues.left}
+                            onChange={(e) => handleChangeValues(e, "left")}
+                            width={34}
+                          />
+                          <NumField
+                            label="Y (px)"
+                            icon={<span className={classes.axis}>Y</span>}
+                            value={elementValues.top}
+                            onChange={(e) => handleChangeValues(e, "top")}
+                            width={34}
+                          />
+                        </>
+                      )}
                       <NumField
                         label="Warstwa"
                         icon={<RxLayers />}
@@ -538,6 +581,11 @@ export default function Editor() {
                         width={28}
                       />
                     </Group>
+                  </>
+                )}
+
+                {allowCloneOrDelete && cat !== "connector" && (
+                  <>
                     <Sep />
                     <Group label="Akcje">
                       <IconBtn label="Duplikuj" onClick={() => duplicateElement(selectedElement.element_id)}>
@@ -550,7 +598,7 @@ export default function Editor() {
                   </>
                 )}
 
-                {cat === "connector" && (
+                {allowCloneOrDelete && cat === "connector" && (
                   <>
                     <Sep />
                     <Group label="Akcje">
@@ -701,11 +749,15 @@ function BulkToolbar({
   onSetAlign,
   groupMoveValues,
   onGroupMoveValueChange,
+  allowGroupMove = true,
+  allowLock = true,
+  allowCloneOrDelete = true,
   onDuplicateSelected,
   onDeleteSelected,
   onClose,
 }) {
   const hasTextStyle = ["bold", "italic", "underline"].every(supportsField);
+  const showBulkPosition = allowGroupMove || (allowLock && supportsField("locked"));
   return (
     <>
       <span className={classes.bulkBadge} title={`${count} zaznaczonych`}>{count}</span>
@@ -774,40 +826,52 @@ function BulkToolbar({
           </Group>
         </>
       )}
-      <Sep />
-      <Group label="Pozycja zaznaczenia">
-        <NumField
-          label="Przesuń grupę X"
-          icon={<span className={classes.axis}>X</span>}
-          value={groupMoveValues.x}
-          onChange={(e) => onGroupMoveValueChange(e, "x")}
-          width={34}
-        />
-        <NumField
-          label="Przesuń grupę Y"
-          icon={<span className={classes.axis}>Y</span>}
-          value={groupMoveValues.y}
-          onChange={(e) => onGroupMoveValueChange(e, "y")}
-          width={34}
-        />
-        {supportsField("locked") && (
-          <IconBtn
-            label="Zablokuj pozycję zaznaczonych"
-            active={!isValueMixed("locked") && !!valueForField("locked")}
-            onClick={() => onToggleStyle("locked")}
-          >
-            {!isValueMixed("locked") && valueForField("locked") ? <MdLock /> : <MdLockOpen />}
-          </IconBtn>
-        )}
-      </Group>
+      {showBulkPosition && (
+        <>
+          <Sep />
+          <Group label="Pozycja zaznaczenia">
+            {allowGroupMove && (
+              <>
+                <NumField
+                  label="Przesuń grupę X"
+                  icon={<span className={classes.axis}>X</span>}
+                  value={groupMoveValues.x}
+                  onChange={(e) => onGroupMoveValueChange(e, "x")}
+                  width={34}
+                />
+                <NumField
+                  label="Przesuń grupę Y"
+                  icon={<span className={classes.axis}>Y</span>}
+                  value={groupMoveValues.y}
+                  onChange={(e) => onGroupMoveValueChange(e, "y")}
+                  width={34}
+                />
+              </>
+            )}
+            {allowLock && supportsField("locked") && (
+              <IconBtn
+                label="Zablokuj pozycję zaznaczonych"
+                active={!isValueMixed("locked") && !!valueForField("locked")}
+                onClick={() => onToggleStyle("locked")}
+              >
+                {!isValueMixed("locked") && valueForField("locked") ? <MdLock /> : <MdLockOpen />}
+              </IconBtn>
+            )}
+          </Group>
+        </>
+      )}
       <Sep />
       <Group label="Akcje zaznaczenia">
-        <IconBtn label={`Duplikuj zaznaczone (${count})`} onClick={onDuplicateSelected}>
-          <RiFileCopyLine />
-        </IconBtn>
-        <IconBtn label={`Usuń zaznaczone (${count})`} danger onClick={onDeleteSelected}>
-          <RiDeleteBin2Line />
-        </IconBtn>
+        {allowCloneOrDelete && (
+          <>
+            <IconBtn label={`Duplikuj zaznaczone (${count})`} onClick={onDuplicateSelected}>
+              <RiFileCopyLine />
+            </IconBtn>
+            <IconBtn label={`Usuń zaznaczone (${count})`} danger onClick={onDeleteSelected}>
+              <RiDeleteBin2Line />
+            </IconBtn>
+          </>
+        )}
         <IconBtn label="Zamknij" onClick={onClose}>
           <MdClose />
         </IconBtn>

@@ -12,6 +12,7 @@ import { isDecorativeChrome } from '../utils/elementInteraction';
 import {
   EDITOR_MODE_FREEFORM,
   EDITOR_MODE_TEMPLATE,
+  canCloneOrDeleteElements,
   canFreePositionElement,
   normalizeEditorMode,
 } from '../utils/editorMode';
@@ -776,7 +777,9 @@ export function useA4Elements(titleRef) {
   
   // Clone the selected element: same size/text/colors/font/page, new id,
   // nudged 15px down-right so the copy is visibly distinct, then selected.
+  // Template mode uses section/record affordances — panel clone is disabled.
   const handleDuplicateElement = useCallback((elementId) => {
+    if (!canCloneOrDeleteElements(editorModeRef.current)) return;
     setA4_Elements(prevState => {
       const original = prevState.find(el => el.element_id === elementId);
       if (!original || isDecorativeChrome(original)) return prevState;
@@ -807,7 +810,9 @@ export function useA4Elements(titleRef) {
   // Clone the entire current selection as one group. Connectors explicitly
   // selected by the user — plus connectors whose two endpoints are in the
   // group — are copied with their endpoints re-linked to the clones.
+  // Template mode uses section/record affordances — panel clone is disabled.
   const handleDuplicateSelectedElements = useCallback(() => {
+    if (!canCloneOrDeleteElements(editorModeRef.current)) return;
     setA4_Elements((prevState) => {
       const selected = prevState.filter((element) => (
         element.isSelected && !isDecorativeChrome(element)
@@ -870,7 +875,10 @@ export function useA4Elements(titleRef) {
     });
   }, []);
 
+  // Single-element delete from the floating inspector. Template mode deletes
+  // whole sections/records via canvas trash instead of orphaning one line.
   const handleDeleteElement = useCallback((elementId) => {
+    if (!canCloneOrDeleteElements(editorModeRef.current)) return;
     setA4_Elements(prevState => {
       const target = prevState.find((element) => element.element_id === elementId);
       if (!target || isDecorativeChrome(target)) return prevState;
@@ -898,6 +906,7 @@ export function useA4Elements(titleRef) {
   }, []);
 
   const handleDeleteSelectedElements = useCallback(() => {
+    if (!canCloneOrDeleteElements(editorModeRef.current)) return;
     setA4_Elements((prevState) => {
       const removedIds = new Set(
         prevState
