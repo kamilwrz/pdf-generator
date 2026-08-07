@@ -27,6 +27,7 @@ export const PdfContext = createContext({
     addRecordBlock: () => {},
     isBioCvModal: false,
     showBioCvModal: () => {},
+    cancelBioCvModal: () => {},
     isPlanModal: false,
     showPlanModal: () => {},
     clonePage: () => {},

@@ -654,21 +654,39 @@ function PdfCanvas() {
     if (next) setPanel(null);
   }, [dialog])
 
+  // Plain open/close toggle — used to OPEN the wizard (Topbar, AiCvPanel) and
+  // to CLOSE it after a successful fill (BioCvModal.handleFill). The success
+  // path must never redirect to landing, so the wizard-entry redirect below
+  // deliberately lives in a separate function that only the user's own
+  // Cancel/X action calls — see `handleCancelBioCvModal`.
+  const handleShowBioCvModal = useCallback(() => {
+    const next = dialog !== 'bioCv';
+    setDialog(next ? 'bioCv' : null);
+    if (next) setPanel(null);
+  }, [dialog])
+
   // A guest who arrives via the landing page's "Stwórz CV od początku"
   // (`?start=wizard`) never sees the editor first — the wizard is the very
-  // first thing that opens. Closing it without filling anything used to just
-  // clear the dialog, stranding them on an empty freeform canvas with no
-  // explanation of what happened or how to get back. This only redirects the
-  // very first time that specific entry wizard is closed with nothing filled
-  // yet (`A4_Elements` still empty) — reopening the wizard later from the
-  // Topbar, or closing it after a template swap already added content, just
-  // closes the dialog as it always has.
+  // first thing that opens. Cancelling it without filling anything used to
+  // just clear the dialog, stranding them on an empty freeform canvas with no
+  // explanation of what happened or how to get back.
+  //
+  // This is a dedicated action (not folded into `handleShowBioCvModal` above)
+  // because that toggle is also how `BioCvModal.handleFill` closes the dialog
+  // on a SUCCESSFUL fill — and `handleFill`'s closure over `showBioCvModal`
+  // is captured at wizard-open time, before any canvas content exists, so an
+  // `A4_Elements`-based check inside the shared toggle cannot tell a
+  // just-succeeded fill apart from a genuine cancel: it always sees the
+  // stale, still-empty snapshot from when the wizard opened. Routing only the
+  // real Cancel/X button (`BioCvModal.handleClose`) through this separate,
+  // synchronously-invoked handler avoids that stale-closure trap entirely.
+  // Only the very first cancel of this specific entry wizard redirects;
+  // reopening the wizard later from the Topbar, or cancelling after content
+  // already exists, just closes the dialog as it always has.
   const wizardEntryNavigatedRef = useRef(false);
-  const handleShowBioCvModal = useCallback(() => {
-    const isClosing = dialog === 'bioCv';
+  const handleCancelBioCvModal = useCallback(() => {
     if (
-      isClosing
-      && initialStartIntentRef.current === 'wizard'
+      initialStartIntentRef.current === 'wizard'
       && !wizardEntryNavigatedRef.current
       && A4_Elements.length === 0
     ) {
@@ -676,10 +694,8 @@ function PdfCanvas() {
       navigate('/');
       return;
     }
-    const next = !isClosing;
-    setDialog(next ? 'bioCv' : null);
-    if (next) setPanel(null);
-  }, [dialog, A4_Elements, navigate])
+    setDialog(null);
+  }, [A4_Elements, navigate])
 
   useEffect(() => {
     if (!initialStartIntentRef.current || !searchParams.has("start")) return;
@@ -1165,6 +1181,7 @@ function PdfCanvas() {
     showAiPanel: handleShowAiPanel,
     isBioCvModal,
     showBioCvModal: handleShowBioCvModal,
+    cancelBioCvModal: handleCancelBioCvModal,
     isPlanModal,
     showPlanModal: handleShowPlanModal,
     isChangeTemplateModal,
@@ -1182,7 +1199,7 @@ function PdfCanvas() {
     setIsModalPdfs,
   }), [
     isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen,
-    isAiPanel, handleShowAiPanel, isBioCvModal, handleShowBioCvModal,
+    isAiPanel, handleShowAiPanel, isBioCvModal, handleShowBioCvModal, handleCancelBioCvModal,
     isPlanModal, handleShowPlanModal, isChangeTemplateModal, handleShowChangeTemplateModal,
     handleShowUnlockFreeform,
     isGallery, handleShowGallery, isSectionsPanel, handleShowSections,

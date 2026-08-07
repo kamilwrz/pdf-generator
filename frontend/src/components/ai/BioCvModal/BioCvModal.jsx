@@ -121,6 +121,7 @@ export default function BioCvModal() {
     const {
         isBioCvModal,
         showBioCvModal,
+        cancelBioCvModal,
         loadAiElements,
         entitlements,
         setActiveCvData,
@@ -489,8 +490,13 @@ export default function BioCvModal() {
         if (readyRef.current && !resumeDraft) {
             await saveDraft(profileRef.current, { silent: true });
         }
-        showBioCvModal();
-    }, [resumeDraft, saveDraft, showBioCvModal]);
+        // Distinct from the plain open/close toggle: this is the user's own
+        // Cancel/X action, so it is the only path allowed to redirect a guest
+        // back to the landing page when the wizard was their direct entry
+        // point and nothing has been filled yet — see `handleCancelBioCvModal`
+        // in PdfCanvas.jsx for why a successful fill must never go through it.
+        cancelBioCvModal();
+    }, [resumeDraft, saveDraft, cancelBioCvModal]);
 
     const clearDraft = useCallback(async () => {
         if (!window.confirm("Wyczyścić wszystkie dane zapisane w szkicu CV?")) return;
