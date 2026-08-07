@@ -1,5 +1,6 @@
 /**
- * Registration with optional plan selection (pre-Stripe unpaid paid plans).
+ * Registration form. Every new account is created on the Free plan by
+ * default (the backend applies this default; no plan is sent from here).
  * Wakes the backend in the background like Login to survive Render cold start.
  */
 import classes from "./Register.module.css";
