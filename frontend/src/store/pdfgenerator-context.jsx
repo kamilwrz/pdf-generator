@@ -44,7 +44,7 @@ export const PdfContext = createContext({
     flushAutosave: async () => {},
     discardActiveDocument: () => {},
     pageSize: { width: 595, height: 842 },
-    zoom: 1,
+    zoom: 1.3,
     zoomIn: () => {},
     zoomOut: () => {},
     selectElement: () => {},

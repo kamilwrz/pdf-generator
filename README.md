@@ -1132,7 +1132,7 @@ This does not claim SOC2/compliance — it documents controls that exist in code
 - Forms expose labels/icons; plan radios use `role="radiogroup"`.
 - Loading: PDF spinner minimum display time; toasts via `useToasts` / `ToastStack`.
 - Empty docs library returns a clear Polish 404 message prompting create.
-- Canvas zoom is view-only so export size stays document-true.
+- Canvas zoom is view-only so export size stays document-true. The editor opens at **130%** by default (`ZOOM_DEFAULT` in `useA4Elements`); two-page view still forces 100% while active.
 
 Gaps: not a full WCAG audit; continue improving focus traps and contrast where needed.
 
@@ -2208,7 +2208,7 @@ Migracje: `create_all` + Alembic (`backend/alembic/`) przy starcie.
 
 - Wszystkie okna dialogowe aplikacji dzielą jeden ujednolicony wygląd `DialogShell` (Escape do zamknięcia, tło, animacja `popIn`, nagłówek 800/19px tytuł + 12.5px podtytuł z ostrym `CloseButton` 32×32 o `radius={2}`, stopka w kolorze `--surface-2`). Większość dialogów ma szerokość 1280px i narożnik `radius={2}`: `PlanSelectModal`, `TemplatesModal`, `AddSectionModal`, `ModalPdfs` („Moje dokumenty”) oraz `DropzoneContainer` („Prześlij obrazy”); galerie wypełniania/podsumowania rozszerzają się dalej do 1400px (`AiCvPanel`, `ChangeTemplateModal`). Kreator bio (`BioCvModal`) używa `DialogShell` `variant="fullscreen"` z kolumną treści ~920px, lepkim paskiem postępu i lepką stopką zamiast pływającej wycentrowanej karty. `AddSectionModal` dzieli treść na dwie kolumny (nazwa + radiowe wybory układu po lewej, galeria ikon po prawej) z ręcznie stylizowanymi kropkami radio (cienki pierścień domyślnie, gruby pierścień w akcencie wokół ciemnego środka po zaznaczeniu) zamiast natywnego radio przeglądarki. `ModalPdfs` wyświetla zapisane dokumenty w siatce kart 2-kolumnowej; potwierdzenie usunięcia to mniejszy dialog 420px z `radius={2}` w tym samym stylu nagłówka/stopki. `Dropzone` zgłasza swój bieżący rozmiar partii do `DropzoneContainer` przez callback `onCountChange`, dzięki czemu wspólna stopka może pokazać „X z 12 przesłanych obrazów” bez przenoszenia stanu uploadu do kontenera.
 - Toasty i spinner PDF z minimalnym czasem widoczności.
-- Zoom tylko wizualny — eksport zostaje w rozmiarze dokumentu.
+- Zoom tylko wizualny — eksport zostaje w rozmiarze dokumentu. Edytor otwiera się domyślnie na **130%** (`ZOOM_DEFAULT` w `useA4Elements`); widok dwóch stron nadal wymusza 100% na czas trwania.
 - Brak pełnego audytu WCAG — kolejne poprawki mile widziane.
 
 ---

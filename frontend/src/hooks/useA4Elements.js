@@ -75,6 +75,9 @@ export const A4_PAGE_SIZE = Object.freeze({ width: 595, height: 842 });
 const ZOOM_MIN = 0.25;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.1;
+// Opening the editor always starts at 130% so the A4 page is readable without
+// an immediate zoom-in. Zoom remains view-only (not persisted or exported).
+const ZOOM_DEFAULT = 1.3;
 const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
 const stepZoom = (z, dir) => clampZoom(Math.round((z + dir * ZOOM_STEP) * 10) / 10);
 
@@ -145,7 +148,7 @@ export function useA4Elements(titleRef) {
   // ---- Page geometry: fixed A4 portrait ----
   const pageSize = A4_PAGE_SIZE;
   // View-only zoom (not persisted, not in undo/redo — lives outside A4_Elements).
-  const [zoom, setZoomState] = useState(1);
+  const [zoom, setZoomState] = useState(ZOOM_DEFAULT);
   const zoomIn = useCallback(() => setZoomState(z => stepZoom(z, 1)), []);
   const zoomOut = useCallback(() => setZoomState(z => stepZoom(z, -1)), []);
   const toggleTwoPageView = useCallback(() => {
