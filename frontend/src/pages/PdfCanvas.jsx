@@ -346,7 +346,11 @@ function PdfCanvas() {
     }
   }, []);
 
+  // Guests (no token) are the default state here now, not an expired
+  // session — skip verification entirely so a guest visit never triggers
+  // the 401 branch below and bounces back to "/".
   useEffect(() => {
+    if (!localStorage.getItem("token")) return;
 
     const api = new ApiClient();
     api.httpRequest(ENDPOINTS.AUTH.TOKEN + localStorage.getItem("token"), "GET", null, "Weryfikacja tokenu nie powiodła się!").
