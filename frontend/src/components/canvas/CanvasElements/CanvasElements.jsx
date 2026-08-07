@@ -94,7 +94,10 @@ export default function CanvasElements({ elements }) {
               left={blockAnchor.left}
               top={blockAnchor.top}
               height={blockAnchor.height}
+              width={blockAnchor.width}
               fontSize={blockAnchor.fontSize}
+              canMoveUp={blockAnchor.canMoveUp}
+              canMoveDown={blockAnchor.canMoveDown}
             />
           ) : null}
         </>
@@ -139,7 +142,10 @@ export default function CanvasElements({ elements }) {
               left={blockAnchor.left}
               top={blockAnchor.top}
               height={blockAnchor.height}
+              width={blockAnchor.width}
               fontSize={blockAnchor.fontSize}
+              canMoveUp={blockAnchor.canMoveUp}
+              canMoveDown={blockAnchor.canMoveDown}
             />
           ) : null}
         </>

@@ -17,6 +17,7 @@ import {
   pickRecordTemplateGroup,
   placeholderContentsForRecord,
   removeRecordBlock,
+  reorderRecordBlock,
   sectionSupportsRecordAdd,
 } from "./sectionRecord.js";
 import { DEFAULT_FLOW_SPACING } from "./flowSpacing.js";
@@ -481,6 +482,54 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     assert.equal(listRecordBlockAddElementIds(aa).size, 0);
     assert.equal(insertRecordBlockAfterRecord(aa, aaBody[0].element_id), null);
     assert.equal(insertRecordBlockAfterRecord(doc, "missing"), null);
+  });
+});
+
+describe("reorderRecordBlock", () => {
+  it("moves the second experience record above the first and re-packs", () => {
+    const pageHeight = 842;
+    const rhythm = { ...DEFAULT_FLOW_SPACING };
+    const { elements: built, headingId } = buildSectionElements({
+      name: "Doświadczenie",
+      layout: SECTION_LAYOUTS.RECORD_EXPERIENCE,
+      style,
+      idFactory: makeIdFactory("exp"),
+    });
+    let doc = appendSectionAtEnd([], built, pageHeight, { spacing: rhythm });
+    const appended = appendRecordToSection(doc, headingId, pageHeight, {
+      spacing: rhythm,
+      idFactory: makeIdFactory("rec2"),
+    });
+    assert.ok(appended);
+    doc = appended.elements;
+
+    const before = listSectionContentElements(doc, headingId, pageHeight);
+    assert.equal(before.length, 6);
+    const firstTitle = before[0].content;
+    const secondTitleId = before[3].element_id;
+
+    const result = reorderRecordBlock(doc, secondTitleId, "up", pageHeight, {
+      spacing: rhythm,
+    });
+    assert.ok(result);
+    const after = listSectionContentElements(result.elements, headingId, pageHeight);
+    assert.equal(after.length, 6);
+    assert.equal(after[0].element_id, secondTitleId);
+    assert.equal(after[3].content, firstTitle);
+    assert.ok(after[0].top < after[3].top);
+  });
+
+  it("returns null at the ends of the section and for invalid direction", () => {
+    const { elements, headingId } = buildSectionElements({
+      name: "Doświadczenie",
+      layout: SECTION_LAYOUTS.RECORD_EXPERIENCE,
+      style,
+      idFactory: makeIdFactory("exp"),
+    });
+    const body = listSectionContentElements(elements, headingId);
+    assert.equal(reorderRecordBlock(elements, body[0].element_id, "up"), null);
+    assert.equal(reorderRecordBlock(elements, body[0].element_id, "down"), null);
+    assert.equal(reorderRecordBlock(elements, body[0].element_id, "sideways"), null);
   });
 });
 

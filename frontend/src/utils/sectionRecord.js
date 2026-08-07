@@ -1,13 +1,13 @@
 /**
- * Append / insert / remove records inside an existing template-mode section.
+ * Append / insert / remove / reorder records inside an existing template-mode
+ * section.
  *
  * Heading hover "+" appends a structured education/experience record that
  * clones the last multi-line group's field shape with Polish placeholders.
  *
  * Hovering the upper part of an existing record (title / meta, not the bullet
- * description) shows "+" / trash controls that insert another full placeholder
- * record immediately below that record, or delete the hovered record. Insert
- * and delete both re-pack with `applyFlowSpacing`.
+ * description) shows "+" / trash on the left and up/down arrows on the right.
+ * Insert, delete, and reorder all re-pack with `applyFlowSpacing`.
  */
 
 import { nanoid } from "nanoid";
@@ -528,12 +528,23 @@ export function elementSupportsRecordBlockAdd(elements, elementId, pageHeight = 
 }
 
 /**
- * One "+" anchor per record: mounted on the title line, listening to all upper
- * lines (title / meta) so a single control covers the whole upper block.
+ * One affordance anchor per record: mounted on the title line, listening to all
+ * upper lines (title / meta) so a single control cluster covers the whole upper
+ * block. Includes reorder flags when the section has sibling records.
  *
  * @param {object[]} elements
  * @param {number} [pageHeight=842]
- * @returns {{ elementId: string, hoverIds: string[], left: number, top: number, height: number, fontSize: number }[]}
+ * @returns {{
+ *   elementId: string,
+ *   hoverIds: string[],
+ *   left: number,
+ *   top: number,
+ *   height: number,
+ *   width: number,
+ *   fontSize: number,
+ *   canMoveUp: boolean,
+ *   canMoveDown: boolean,
+ * }[]}
  */
 export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
   const anchors = [];
@@ -543,9 +554,10 @@ export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
       continue;
     }
     const body = listSectionContentElements(elements, section.headingId, pageHeight);
-    for (const group of partitionSectionRecords(body)) {
+    const groups = partitionSectionRecords(body);
+    groups.forEach((group, groupIndex) => {
       const upper = listUpperRecordMembers(group);
-      if (upper.length === 0) continue;
+      if (upper.length === 0) return;
       const title = upper[0];
       anchors.push({
         elementId: title.element_id,
@@ -553,9 +565,12 @@ export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
         left: Number(title.left) || 0,
         top: Number(title.top) || 0,
         height: Number(title.height) || 0,
+        width: Number(title.width) || 0,
         fontSize: Number(title.fontSize) || 10,
+        canMoveUp: groupIndex > 0,
+        canMoveDown: groupIndex < groups.length - 1,
       });
-    }
+    });
   }
   return anchors;
 }
@@ -705,4 +720,74 @@ export function removeRecordBlock(
     elements: next,
     removedIds,
   };
+}
+
+/**
+ * Swap one multi-line record with its previous/next sibling in the same section,
+ * then re-pack with `applyFlowSpacing` so the whole document keeps template rhythm.
+ *
+ * Only upper-line anchors are accepted (same eligibility as trash / "+" / arrows).
+ *
+ * @param {object[]} elements
+ * @param {string} elementId any upper-line member of the record to move
+ * @param {"up"|"down"} direction
+ * @param {number} [pageHeight=842]
+ * @param {{ spacing?: object }} [options]
+ * @returns {{ elements: object[] }|null}
+ */
+export function reorderRecordBlock(
+  elements,
+  elementId,
+  direction,
+  pageHeight = 842,
+  { spacing } = {},
+) {
+  if (direction !== "up" && direction !== "down") return null;
+
+  const anchor = findRecordGroupForElement(elements, elementId, pageHeight);
+  if (!anchor) return null;
+  if (!listUpperRecordMembers(anchor.group).some((member) => member.element_id === elementId)) {
+    return null;
+  }
+
+  const body = listSectionContentElements(elements, anchor.headingId, pageHeight);
+  const groups = partitionSectionRecords(body);
+  const index = groups.findIndex((group) => (
+    group.some((member) => member.element_id === elementId)
+  ));
+  if (index < 0) return null;
+
+  const swapWith = direction === "up" ? index - 1 : index + 1;
+  if (swapWith < 0 || swapWith >= groups.length) return null;
+
+  const order = groups.slice();
+  const tmp = order[index];
+  order[index] = order[swapWith];
+  order[swapWith] = tmp;
+
+  const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
+  const bodyIds = new Set(body.map((element) => element.element_id));
+  const nonBody = (elements || []).filter((element) => !bodyIds.has(element.element_id));
+
+  // Stack relocated records from the original first-record top so they stay
+  // inside this section's Y band; applyFlowSpacing retargets real gaps.
+  let cursorAbs = Math.min(
+    ...groups.map((group) => absoluteTop(group[0], pageHeight)),
+  );
+  const relocated = [];
+  for (let groupIndex = 0; groupIndex < order.length; groupIndex += 1) {
+    if (groupIndex > 0) cursorAbs += rhythm.record;
+    const group = order[groupIndex];
+    for (let lineIndex = 0; lineIndex < group.length; lineIndex += 1) {
+      const element = group[lineIndex];
+      if (lineIndex > 0) cursorAbs += rhythm.stack;
+      const page = Math.max(1, Math.floor(cursorAbs / pageHeight) + 1);
+      const top = cursorAbs - (page - 1) * pageHeight;
+      relocated.push({ ...element, page, top });
+      cursorAbs += elementHeight(element);
+    }
+  }
+
+  const next = applyFlowSpacing([...nonBody, ...relocated], rhythm, pageHeight);
+  return { elements: next };
 }

@@ -155,7 +155,7 @@ pdf-generator/
 │   ├── src/
 │   │   ├── components/       # canvas, editor, ai, modals, gallery, common
 │   │   │   ├── canvas/SectionRecordAdd/  # Hover "+" / trash on section headings → add or delete section
-│   │   │   ├── canvas/RecordBlockAdd/    # Hover "+" / trash on upper record → add or delete record
+│   │   │   ├── canvas/RecordBlockAdd/    # Hover trash/+ (left) and reorder arrows (right) on records
 │   │   │   ├── editor/AddSectionModal/   # "+ Dodaj sekcję" modal (name + aa/cc layout picker)
 │   │   │   ├── editor/SaveGateModal/     # "Create an account to save" modal shown to guests
 │   │   │   └── editor/DemoBanner/        # Persistent banner while the guest-mode demo CV is on canvas
@@ -318,23 +318,23 @@ Tests:
 
 ### Add record block on upper-record hover
 
-In eligible multi-line sections (education / experience stacks, custom **cc-edu** / **cc-exp**, or wizard-filled records sharing a `flowGroup`), hovering the **upper part of a record** (title / school / meta — everything before the bullet description; if there is no bullet line, only the first title line) shows **trash + +** for that record (mounted on the title, listening to all upper lines) with the same leave timing as the heading affordance (**3 s** after leave; hovering the cluster keeps it visible). At most one canvas cluster is visible at a time (`useHoverPlusExclusive`). Button size follows canvas zoom (`recordPlusLayoutSize` targets ~13px on screen) so 100% view stays compact. Clicking **+** inserts a **full placeholder record** immediately **below that record**, with a new `flowGroup`, then re-packs via `applyFlowSpacing` and opens the first new line for editing. Clicking trash deletes that record and re-packs. The description body does not show the cluster.
+In eligible multi-line sections (education / experience stacks, custom **cc-edu** / **cc-exp**, or wizard-filled records sharing a `flowGroup`), hovering the **upper part of a record** (title / school / meta — everything before the bullet description; if there is no bullet line, only the first title line) shows two clusters at the same vertical height: **trash + +** to the left of the title, and **↑ ↓** reorder arrows to the right of the title (disabled at the first/last record). Leave timing matches the heading affordance (**3 s** after leave; hovering either cluster keeps it visible). At most one canvas record/heading affordance is visible at a time (`useHoverPlusExclusive`). Button size follows canvas zoom (`recordPlusLayoutSize` targets ~13px on screen) so 100% view stays compact. Clicking **+** inserts a **full placeholder record** immediately **below that record**, with a new `flowGroup`, then re-packs via `applyFlowSpacing` and opens the first new line for editing. Clicking trash deletes that record and re-packs. Clicking ↑/↓ swaps with the previous/next sibling (`reorderRecordBlock`) and re-packs. The description body does not show the clusters.
 
-Hovering the first of two records inserts between them; hovering the last inserts after it. Heading cluster (add/delete *section*) and upper-record cluster (add/delete *record*) coexist. Programmatic `addSectionRecord` / `appendRecordToSection` remain available for appending a record at a section end, but the heading **+** UI no longer calls them.
+Hovering the first of two records inserts between them; hovering the last inserts after it. Heading cluster (add/delete *section*) and upper-record clusters (add/delete/reorder *record*) coexist. Programmatic `addSectionRecord` / `appendRecordToSection` remain available for appending a record at a section end, but the heading **+** UI no longer calls them.
 
 Implementation:
 
-- `frontend/src/utils/sectionRecord.js`, functions `listUpperRecordMembers`, `listRecordBlockAddAnchors`, `pickRecordTemplateGroup`, `ensureCanonicalRecordTemplate`, `insertRecordBlockAfterRecord`, `removeRecordBlock` — one title anchor per record; clone the fullest edu/exp shape (pad short wizard entries to 4/3 lines); open a document-wide Y-hole under the anchor (later section headings move too) so the new stack cannot interleave with the next title or leak under Skills; delete removes the whole group then rhythm pack
-- `frontend/src/hooks/useA4Elements.js`, function `handleAddRecordBlock` — exposed through `PdfContext` as `addRecordBlock`; skips canvas-enter hold (avoids opacity-0 until page remount) and jumps to the packed page when the insert lands off-screen; `handleRemoveRecordBlock` for trash
+- `frontend/src/utils/sectionRecord.js`, functions `listUpperRecordMembers`, `listRecordBlockAddAnchors`, `pickRecordTemplateGroup`, `ensureCanonicalRecordTemplate`, `insertRecordBlockAfterRecord`, `removeRecordBlock`, `reorderRecordBlock` — one title anchor per record (with `canMoveUp` / `canMoveDown` / `width`); clone the fullest edu/exp shape; open a document-wide Y-hole under the anchor on insert; delete/reorder then rhythm pack
+- `frontend/src/hooks/useA4Elements.js`, functions `handleAddRecordBlock`, `handleRemoveRecordBlock`, `handleReorderRecordBlock` — exposed through `PdfContext` as `addRecordBlock` / `removeRecordBlock` / `reorderRecordBlock`
 - `frontend/src/hooks/useCanvasEnterIds.js` — prunes hold/fade when ids leave a page filter; re-queues cancelled enter ids so per-page `CanvasElements` cannot strand new content invisible
 - `frontend/src/hooks/useHoverPlusExclusive.js` — exclusive visible slot for heading / record plus controls
 - `frontend/src/components/canvas/recordPlusSize.js` — zoom-aware layout size
-- `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx` — title-mounted **trash + +** cluster, upper-line hover, exclusive + zoom size
+- `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx` — left **trash + +** and right **↑ ↓** clusters, upper-line hover, exclusive + zoom size
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `recordBlockAnchorsById` — one affordance per record
 
 Tests:
 
-- `frontend/src/utils/sectionRecord.test.js` — one anchor per record; upper vs description; full placeholder insert; insert between experience records; `removeRecordBlock`
+- `frontend/src/utils/sectionRecord.test.js` — one anchor per record; upper vs description; full placeholder insert; insert between experience records; `removeRecordBlock`; `reorderRecordBlock`
 
 ### Outcome-focused landing and directed starts
 
@@ -1319,7 +1319,7 @@ pdf-generator/
 │   ├── src/
 │   │   ├── components/       # canvas, editor, ai, modals, gallery, common
 │   │   │   ├── canvas/SectionRecordAdd/  # „+” / kosz na nagłówku sekcji → dodaj lub usuń sekcję
-│   │   │   ├── canvas/RecordBlockAdd/    # „+” / kosz na górze wpisu → dodaj lub usuń rekord
+│   │   │   ├── canvas/RecordBlockAdd/    # kosz/+ (lewo) i strzałki kolejności (prawo) na rekordach
 │   │   │   ├── editor/AddSectionModal/   # modal „+ Dodaj sekcję” (nazwa + wybór układu aa/cc)
 │   │   │   ├── editor/SaveGateModal/     # modal „załóż konto, aby zapisać” pokazywany gościom
 │   │   │   └── editor/DemoBanner/        # baner widoczny, gdy na płótnie jest przykładowe CV gościa
@@ -1474,23 +1474,23 @@ Testy:
 
 ### Dodawanie rekordu po najechaniu na górną część wpisu
 
-W kwalifikujących się sekcjach wieloliniowych (stosy edukacji / doświadczenia, własne **cc-edu** / **cc-exp**, rekordy z wizarda ze wspólnym `flowGroup`) najechanie na **górną część rekordu** (tytuł / uczelnia / meta — wszystko przed opisem punktowanym; gdy nie ma linii z `bulletList`, tylko pierwsza linia tytułu) pokazuje **kosz + +** dla tego wpisu (montowany przy tytule, nasłuchuje wszystkich górnych linii) z tym samym czasem ukrycia co affordance nagłówka (**3 s** po zejściu; najechanie na klaster utrzymuje widoczność). Na canvasie jednocześnie widać co najwyżej jeden klaster (`useHoverPlusExclusive`). Rozmiar przycisku zależy od zoomu canvas (`recordPlusLayoutSize` celuje w ~13px na ekranie), żeby w 100% nie był za duży. Kliknięcie **+** wstawia **pełny rekord z generyczną treścią** bezpośrednio **pod tym wpisem**, z nowym `flowGroup`, potem `applyFlowSpacing` i otwarcie pierwszej nowej linii. Kliknięcie kosza usuwa ten rekord i przepakowuje. Opis punktowany nie pokazuje klastra.
+W kwalifikujących się sekcjach wieloliniowych (stosy edukacji / doświadczenia, własne **cc-edu** / **cc-exp**, rekordy z wizarda ze wspólnym `flowGroup`) najechanie na **górną część rekordu** (tytuł / uczelnia / meta — wszystko przed opisem punktowanym; gdy nie ma linii z `bulletList`, tylko pierwsza linia tytułu) pokazuje dwa klastry na tej samej wysokości pionowej: **kosz + +** na lewo od tytułu oraz strzałki **↑ ↓** na prawo od tytułu (wyłączone na pierwszym/ostatnim rekordzie). Czas ukrycia jak przy nagłówku (**3 s** po zejściu; najechanie na dowolny klaster utrzymuje widoczność). Na canvasie jednocześnie widać co najwyżej jeden affordance nagłówka/rekordu (`useHoverPlusExclusive`). Rozmiar przycisku zależy od zoomu canvas (`recordPlusLayoutSize` celuje w ~13px na ekranie), żeby w 100% nie był za duży. Kliknięcie **+** wstawia **pełny rekord z generyczną treścią** bezpośrednio **pod tym wpisem**, z nowym `flowGroup`, potem `applyFlowSpacing` i otwarcie pierwszej nowej linii. Kliknięcie kosza usuwa ten rekord i przepakowuje. Kliknięcie ↑/↓ zamienia rekord z sąsiadem (`reorderRecordBlock`) i przepakowuje. Opis punktowany nie pokazuje klastrów.
 
-Najechanie na pierwszy z dwóch rekordów wstawia blok między nimi; na ostatni — pod nim. Klaster nagłówka (dodaj/usuń *sekcję*) i klaster górnej części wpisu (dodaj/usuń *rekord*) współistnieją. Programatyczne `addSectionRecord` / `appendRecordToSection` nadal dokładają rekord na końcu sekcji, ale UI **+** na nagłówku ich już nie wywołuje.
+Najechanie na pierwszy z dwóch rekordów wstawia blok między nimi; na ostatni — pod nim. Klaster nagłówka (dodaj/usuń *sekcję*) i klastry górnej części wpisu (dodaj/usuń/przestaw *rekord*) współistnieją. Programatyczne `addSectionRecord` / `appendRecordToSection` nadal dokładają rekord na końcu sekcji, ale UI **+** na nagłówku ich już nie wywołuje.
 
 Implementacja:
 
-- `frontend/src/utils/sectionRecord.js`, funkcje `listUpperRecordMembers`, `listRecordBlockAddAnchors`, `pickRecordTemplateGroup`, `ensureCanonicalRecordTemplate`, `insertRecordBlockAfterRecord`, `removeRecordBlock` — jedna kotwica tytułu na rekord; klon pełnego kształtu edu/exp (krótkie wpisy z wizarda uzupełniane do 4/3 linii); dziura Y w całym dokumencie pod kotwicą (przesuwa też kolejne nagłówki sekcji), żeby nowy stos nie mieszał się z kolejnym tytułem ani nie wciekał pod Umiejętności; usunięcie kasuje całą grupę, potem pack rytmu
-- `frontend/src/hooks/useA4Elements.js`, funkcja `handleAddRecordBlock` — wystawiana przez `PdfContext` jako `addRecordBlock`; bez hold canvas-enter (uniknięcie opacity 0 do remountu strony) oraz skok na stronę packa, gdy wstawka ląduje poza widokiem; `handleRemoveRecordBlock` dla kosza
+- `frontend/src/utils/sectionRecord.js`, funkcje `listUpperRecordMembers`, `listRecordBlockAddAnchors`, `pickRecordTemplateGroup`, `ensureCanonicalRecordTemplate`, `insertRecordBlockAfterRecord`, `removeRecordBlock`, `reorderRecordBlock` — jedna kotwica tytułu na rekord (z `canMoveUp` / `canMoveDown` / `width`); klon pełnego kształtu edu/exp; dziura Y przy wstawieniu; usunięcie/przestawienie, potem pack rytmu
+- `frontend/src/hooks/useA4Elements.js`, funkcje `handleAddRecordBlock`, `handleRemoveRecordBlock`, `handleReorderRecordBlock` — wystawiane przez `PdfContext` jako `addRecordBlock` / `removeRecordBlock` / `reorderRecordBlock`
 - `frontend/src/hooks/useCanvasEnterIds.js` — czyści hold/fade gdy id opuszcza filtr strony; wraca anulowane id do puli enter, żeby per-page `CanvasElements` nie zostawiał nowej treści niewidocznej
 - `frontend/src/hooks/useHoverPlusExclusive.js` — wspólny slot widoczności dla plusów nagłówka / rekordu
 - `frontend/src/components/canvas/recordPlusSize.js` — rozmiar zależny od zoomu
-- `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx` — klaster **kosz + +** na rekord, hover górnych linii, exclusive + zoom
+- `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx` — lewy klaster **kosz + +** i prawy **↑ ↓**, hover górnych linii, exclusive + zoom
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `recordBlockAnchorsById` — jeden affordance na rekord
 
 Testy:
 
-- `frontend/src/utils/sectionRecord.test.js` — jedna kotwica na rekord; górna część vs opis; pełny placeholder; wstawienie między rekordami doświadczenia; `removeRecordBlock`
+- `frontend/src/utils/sectionRecord.test.js` — jedna kotwica na rekord; górna część vs opis; pełny placeholder; wstawienie między rekordami doświadczenia; `removeRecordBlock`; `reorderRecordBlock`
 
 ### Landing skupiony na rezultacie i skierowane starty
 

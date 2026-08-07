@@ -31,6 +31,7 @@ import {
   appendRecordToSection,
   insertRecordBlockAfterRecord,
   removeRecordBlock,
+  reorderRecordBlock,
 } from '../utils/sectionRecord';
 import { applySelectedSectionIcon } from '../utils/sectionIcons';
 import {
@@ -789,6 +790,35 @@ export function useA4Elements(titleRef) {
       return result.elements;
     });
   }, [rememberDeletedElements]);
+
+  /**
+   * Move a multi-line record up/down via the hover arrows, then re-pack so the
+   * section keeps template rhythm.
+   *
+   * @param {string} elementId
+   * @param {"up"|"down"} direction
+   */
+  const handleReorderRecordBlock = useCallback((elementId, direction) => {
+    if (!elementId) return;
+    if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return;
+
+    setA4_Elements((prev) => {
+      const pageHeight = pageSizeRef.current?.height ?? 842;
+      const result = reorderRecordBlock(
+        prev,
+        elementId,
+        direction,
+        pageHeight,
+        { spacing: flowSpacingRef.current },
+      );
+      if (!result) return prev;
+      reflowPageCountRef.current = Math.max(
+        1,
+        ...result.elements.map((element) => element.page ?? 1),
+      );
+      return result.elements;
+    });
+  }, []);
 
   const handleSetTextareaEditing = useCallback((elementId, editing) => {
     setA4_Elements(prevState => prevState.map(el => {
@@ -1824,6 +1854,7 @@ export function useA4Elements(titleRef) {
     handleAddRecordBlock,
     handleRemoveSection,
     handleRemoveRecordBlock,
+    handleReorderRecordBlock,
     // connector mode
     connectMode,
     connectSourceId,

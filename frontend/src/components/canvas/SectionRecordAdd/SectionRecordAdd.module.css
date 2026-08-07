@@ -18,7 +18,8 @@
 }
 
 .plus,
-.trash {
+.trash,
+.arrow {
     position: relative;
     /* Width / height / radius come from inline styles (zoom-aware). */
     width: 13px;
@@ -38,13 +39,15 @@
 }
 
 .plus svg,
-.trash svg {
+.trash svg,
+.arrow svg {
     width: 9px;
     height: 9px;
     flex-shrink: 0;
 }
 
-.plus:hover {
+.plus:hover,
+.arrow:hover:not(:disabled) {
     background: var(--chrome-hover, #2a2a2a);
     border-color: var(--chrome-accent, #f5a623);
     color: var(--chrome-ink, #fff);
@@ -58,4 +61,9 @@
     background: var(--chrome-hover, #2a2a2a);
     border-color: #d97777;
     color: #ffb4b4;
+}
+
+.arrow:disabled {
+    opacity: 0.35;
+    cursor: default;
 }
