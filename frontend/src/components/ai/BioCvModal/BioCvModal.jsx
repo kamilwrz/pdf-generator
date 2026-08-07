@@ -276,6 +276,26 @@ export default function BioCvModal() {
 
     const clearDraft = useCallback(async () => {
         if (!window.confirm("Wyczyścić wszystkie dane zapisane w szkicu CV?")) return;
+        // Guests have no account yet, so there is no server-side draft to
+        // delete — the backend would reject an unauthenticated DELETE with a
+        // 403 "invalid token" error, which would confuse a guest into
+        // thinking their session broke. "Clearing the draft" for a guest
+        // simply means resetting the wizard's own React state, mirroring the
+        // local-reset steps performed after a successful DELETE below.
+        if (!localStorage.getItem("token")) {
+            if (saveTimer.current) {
+                clearTimeout(saveTimer.current);
+                saveTimer.current = null;
+            }
+            skipAutosaveRef.current = true;
+            const emptyProfile = createEmptyBioCvData();
+            profileRef.current = emptyProfile;
+            setProfile(emptyProfile);
+            setStep(0);
+            setStepError(null);
+            setSaveError(null);
+            return;
+        }
         try {
             if (saveTimer.current) {
                 clearTimeout(saveTimer.current);
