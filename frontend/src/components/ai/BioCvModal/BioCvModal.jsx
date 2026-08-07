@@ -120,6 +120,12 @@ export default function BioCvModal() {
 
     const saveDraft = useCallback(async (data = profileRef.current, { silent = false } = {}) => {
         if (!readyRef.current) return Promise.resolve();
+        // Guests have nowhere to persist a draft yet — the wizard's own
+        // React state (`profile`) is the only copy until they register, at
+        // which point they go through the normal fill flow, not this draft
+        // endpoint. Skip silently; do not surface an error for an expected,
+        // permanent state.
+        if (!localStorage.getItem("token")) return Promise.resolve();
         const payload = buildBioCvPayload(data);
 
         return saveQueueRef.current.enqueue(async () => {
@@ -150,6 +156,20 @@ export default function BioCvModal() {
         setStepError(null);
         setStep(0);
         setProfile(createEmptyBioCvData());
+
+        // Guests have no account yet, so there is no draft to restore — and
+        // no draft endpoint to call. Start from the empty profile already
+        // set above and let the wizard become interactive immediately;
+        // saveDraft() below independently no-ops for guests, so nothing
+        // tries to persist this session until an account exists.
+        if (!localStorage.getItem("token")) {
+            readyRef.current = true;
+            setIsReady(true);
+            setIsLoading(false);
+            return () => {
+                active = false;
+            };
+        }
 
         api.httpRequest(ENDPOINTS.AI.BIO_CV_DRAFT, "GET", null, "Nie udało się pobrać szkicu.")
             .then((response) => {
