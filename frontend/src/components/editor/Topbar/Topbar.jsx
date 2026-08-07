@@ -1,12 +1,14 @@
 /**
- * Editor chrome: title, save/download, templates/AI entry, undo/redo, zoom.
+ * Editor chrome: title, save/download, import/wizard/AI entry, undo/redo, zoom.
  * Action buttons are icon-only with tooltips (title + aria-label).
  * Download/save go through PdfContext create/update (entitlement-gated upstream).
+ * Template browsing is not a topbar entry — style is chosen in the wizard /
+ * import funnel, then optionally via "Zmień szablon" after data exists.
  */
 import classes from "./Topbar.module.css";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { LuLayoutTemplate, LuLockOpen } from "react-icons/lu";
+import { LuLockOpen } from "react-icons/lu";
 import { RiFileTextLine, RiDownload2Line, RiShuffleLine } from "react-icons/ri";
 import { FiEdit3, FiSave, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { RiArrowGoBackLine, RiArrowGoForwardLine } from "react-icons/ri";
@@ -15,7 +17,6 @@ import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 
 export default function Topbar({ titleRef }) {
     const {
-        showTemplates,
         showAiPanel,
         showBioCvModal,
         showChangeTemplateModal,
@@ -42,15 +43,6 @@ export default function Topbar({ titleRef }) {
     return (
         <header className={classes.topbar}>
             <div className={classes.group}>
-                <button
-                    type="button"
-                    className={classes.feature}
-                    onClick={showTemplates}
-                    aria-label="Szablony"
-                    title="Szablony"
-                >
-                    <LuLayoutTemplate />
-                </button>
                 <button
                     type="button"
                     className={classes.feature}

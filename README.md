@@ -44,7 +44,7 @@ Forcing registration before a visitor had seen the editor used to be the largest
 
 ## Main user flows
 
-1. **Choose a landing-page start** → “Wybierz szablon” (`start=templates`), “Stwórz CV od początku” (`start=wizard`), “Projektuj od zera” (`start=blank`), and “Zobacz edytor” (`start=demo`) all go straight to `/pdfcanvas` as a guest, no account required. Only “Wgraj moje CV” (`start=import`) still detours through registration/login first, because it calls the paid `POST /ai/extract_cv` endpoint.
+1. **Choose a landing-page start** → primary funnels are data-first: “Stwórz CV od początku” (`start=wizard`) and “Wgraj moje CV” / “Importuj CV” (`start=import`) collect content, then pick a template, then open the editor. “Zobacz edytor na przykładzie” (`start=demo`) opens a sample document. Wizard and demo go straight to `/pdfcanvas` as a guest; import still detours through registration/login first because it calls the paid `POST /ai/extract_cv` endpoint. The lower template gallery is inspiration only and links into the wizard — not a blank placeholder canvas. The editor topbar no longer has a “Szablony” button; style changes after data exist use “Zmień szablon”.
 2. **Edit as a guest** → full canvas access (templates, wizard, freeform, undo/redo) with the document persisted to `localStorage` instead of the backend — see [Guest mode](#guest-mode-editor-without-an-account).
 3. **Register / login only when it matters** → clicking “Zapisz PDF” / “Pobierz PDF” as a guest opens `SaveGateModal` instead of calling the backend. Registering or logging in preserves the selected `start` intent, and if a guest document exists, `ClaimGuestDocumentModal` asks the now-authenticated visitor to confirm it is theirs before claiming it — a guest document belongs to the browser, not to any identity, so silently attaching it to whoever happens to log in next would leak one person's draft into an unrelated account.
 4. **Pick a template** → `handleLoadTemplate` materializes specs → canvas.
@@ -342,9 +342,9 @@ Tests:
 
 The landing page presents one outcome — an editable PDF-ready CV — and **three** product paths: create from a template, import an existing CV, or design from a blank freeform page, plus a direct “Zobacz edytor” link into a static demo document. It still explains the shared journey, templates, privacy, plans, and assistive AI review.
 
-Start intents: `start=templates`, `start=import`, `start=wizard`, `start=blank`, `start=demo`. Every intent except `import` routes straight to `/pdfcanvas?start=...` as a guest (`buildStartUrl` in `Hero.jsx`) — see [Guest mode](#guest-mode-editor-without-an-account) below for why. `import` still detours through `/register` (or straight to `/pdfcanvas` if already authenticated) because it calls the paid `POST /ai/extract_cv` endpoint. `PdfCanvas` opens the matching surface once (templates modal, import, wizard, empty freeform, or the loaded demo CV) and strips the query param.
+Landing start intents used in the hero: `start=wizard`, `start=import`, `start=demo`. Legacy deep links `start=templates` and `start=blank` still work in `PdfCanvas` but are no longer offered on the landing. Every intent except `import` routes straight to `/pdfcanvas?start=...` as a guest (`buildStartUrl` in `Hero.jsx`) — see [Guest mode](#guest-mode-editor-without-an-account) below for why. `import` still detours through `/register` (or straight to `/pdfcanvas` if already authenticated) because it calls the paid `POST /ai/extract_cv` endpoint. `PdfCanvas` opens the matching surface once and strips the query param.
 
-Topbar tooltip / `aria-label` **Importuj CV** replaces the older “Wypełnij z PDF” wording (same `AiCvPanel` flow); the control is icon-only.
+Topbar entry points are **Importuj CV**, **Utwórz CV krok po kroku**, and **Zmień szablon** (enabled after a successful fill). There is no topbar “Szablony” browser — choosing a style belongs to the wizard / import funnel.
 
 Implementation:
 
@@ -1214,7 +1214,7 @@ Wymuszanie rejestracji zanim odwiedzający zobaczył edytor było dotąd najwię
 
 ## Główne przepływy użytkownika
 
-1. **Wybór startu na stronie głównej** → „Wybierz szablon” (`start=templates`), „Stwórz CV od początku” (`start=wizard`), „Projektuj od zera” (`start=blank`) i „Zobacz edytor” (`start=demo`) prowadzą wprost do `/pdfcanvas` jako gość, bez konta. Tylko „Wgraj moje CV” (`start=import`) nadal wymaga najpierw rejestracji/logowania, bo wywołuje płatny endpoint `POST /ai/extract_cv`.
+1. **Wybór startu na stronie głównej** → główne ścieżki są data-first: „Stwórz CV od początku” (`start=wizard`) oraz „Wgraj moje CV” / „Importuj CV” (`start=import`) zbierają treść, potem wybór szablonu, potem edytor. „Zobacz edytor na przykładzie” (`start=demo`) otwiera przykładowy dokument. Kreator i demo idą wprost do `/pdfcanvas` jako gość; import nadal wymaga rejestracji/logowania, bo wywołuje płatny `POST /ai/extract_cv`. Dolna galeria szablonów to inspiracja i prowadzi do kreatora — nie na pusty canvas. W topbarze edytora nie ma już przycisku „Szablony”; po zebraniu danych styl zmienia „Zmień szablon”.
 2. **Edycja jako gość** → pełny dostęp do płótna (szablony, kreator, tryb swobodny, undo/redo) z dokumentem zapisywanym w `localStorage` zamiast w backendzie — zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta).
 3. **Rejestracja / logowanie tylko wtedy, gdy to ma znaczenie** → kliknięcie „Zapisz PDF” / „Pobierz PDF” jako gość otwiera `SaveGateModal` zamiast wywoływać backend. Rejestracja lub logowanie zachowuje wybrany parametr `start`, a jeśli istnieje bufor dokumentu gościa, `ClaimGuestDocumentModal` prosi świeżo zalogowaną osobę o potwierdzenie, że to jej dokument, zanim zostanie przejęty — dokument gościa należy do przeglądarki, nie do tożsamości, więc ciche przypisanie go komukolwiek, kto akurat się zaloguje, ujawniłoby czyjś szkic na niepowiązanym koncie.
 4. **Wybór szablonu** → `handleLoadTemplate` materializuje elementy → płótno.
@@ -1502,7 +1502,9 @@ Testy:
 
 Strona główna pokazuje jeden rezultat — edytowalne CV do PDF — oraz **trzy** ścieżki: utwórz z szablonu, importuj CV, projektuj od zera, a dodatkowo bezpośredni link „Zobacz edytor” do statycznego dokumentu demo. Opisuje wspólną drogę, szablony, prywatność, plany i AI jako pomoc (z przeglądem przed zastosowaniem).
 
-Intencje: `start=templates`, `start=import`, `start=wizard`, `start=blank`, `start=demo`. Każda intencja poza `import` prowadzi wprost do `/pdfcanvas?start=...` jako gość (`buildStartUrl` w `Hero.jsx`) — zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta) poniżej. `import` nadal kieruje przez `/register` (albo od razu do `/pdfcanvas`, jeśli użytkownik jest już zalogowany), ponieważ wywołuje płatny endpoint `POST /ai/extract_cv`. `PdfCanvas` otwiera właściwą powierzchnię raz (modal szablonów, import, kreator, pusty projekt własny albo wczytane CV demo) i usuwa parametr z URL.
+Intencje startu używane na hero: `start=wizard`, `start=import`, `start=demo`. Legacy deep linki `start=templates` i `start=blank` nadal działają w `PdfCanvas`, ale nie są oferowane na landingu. Każda intencja poza `import` prowadzi wprost do `/pdfcanvas?start=...` jako gość (`buildStartUrl` w `Hero.jsx`) — zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta) poniżej. `import` nadal kieruje przez `/register` (albo od razu do `/pdfcanvas`, jeśli użytkownik jest już zalogowany), bo wywołuje płatny `POST /ai/extract_cv`. `PdfCanvas` otwiera właściwą powierzchnię raz i usuwa parametr z URL.
+
+Wejścia w topbarze to **Importuj CV**, **Utwórz CV krok po kroku** oraz **Zmień szablon** (aktywny po udanym fillu). Nie ma już przeglądarki „Szablony” w topbarze — wybór stylu należy do lejka kreatora / importu.
 
 Tooltip / `aria-label` topbara **Importuj CV** zastępuje starsze „Wypełnij z PDF” (ten sam `AiCvPanel`); kontrolka jest tylko ikoną.
 

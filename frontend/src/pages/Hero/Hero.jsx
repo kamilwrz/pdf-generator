@@ -1,13 +1,15 @@
 /**
  * Outcome-focused marketing landing page for CV Studio.
  *
- * It presents PDF import, the guided wizard, blank canvas, template picker,
- * and a live demo as entry points that lead to the same editable, exportable
- * CV. Only the "import" CTA still detours through registration and login —
- * it keeps its start-intent query param through that flow because it calls a
- * paid OpenAI endpoint. Every other CTA (wizard, blank, templates, demo)
- * goes straight to `/pdfcanvas?start=...` for guests and authenticated
- * visitors alike, with no registration step in between.
+ * Primary funnels are data-first, then style:
+ *   - Wizard → enter data → pick template → editor
+ *   - Import → extract data → pick template → editor
+ *
+ * The hero also offers a live demo ("Zobacz edytor na przykładzie"). The
+ * lower template gallery is inspiration only — each card opens the wizard,
+ * never a blank placeholder canvas. Only the "import" CTA still detours
+ * through registration/login (paid OpenAI extract). Wizard and demo go
+ * straight to `/pdfcanvas?start=...` for guests and authenticated visitors.
  */
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
@@ -93,18 +95,11 @@ function WizardIcon() {
     );
 }
 
-function TemplateIcon() {
+function DemoIcon() {
     return (
         <svg width="25" height="25" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M4 5h16v4H4V5Zm0 7h7v7H4v-7Zm10 0h6v7h-6v-7Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-        </svg>
-    );
-}
-
-function BlankIcon() {
-    return (
-        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M5 4h14v16H5V4Z M9 9h6M9 13h6M9 17h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+            <circle cx="12" cy="12" r="2.6" stroke="currentColor" strokeWidth="1.8" />
         </svg>
     );
 }
@@ -187,8 +182,8 @@ export default function Hero() {
                     <p className={classes.kicker}>CV Studio / dokument, który nadal jest Twój</p>
                     <h1>Masz już CV?<br /><em>Wgraj je.</em> Nie masz?<br />Stwórz je krok po kroku.</h1>
                     <p className={classes.heroLead}>
-                        Wybierz punkt startu, a potem przejdź ten sam proces: dobierz szablon,
-                        dopracuj treść w edytorze A4 i pobierz PDF zgodny z podglądem.
+                        Zacznij od danych — wgraj PDF albo wypełnij kreator — potem wybierz
+                        wygląd, dopracuj treść w edytorze A4 i pobierz PDF zgodny z podglądem.
                     </p>
                     <div className={classes.heroActions}>
                         <Link className={classes.buttonPrimary} to={importUrl}>Wgraj moje CV<ArrowIcon /></Link>
@@ -206,7 +201,7 @@ export default function Hero() {
                             to="/pdfcanvas?start=demo"
                             onClick={() => queueGuestEvent("landing_cta_clicked")}
                         >
-                            Zobacz edytor
+                            Zobacz edytor na przykładzie
                         </Link>
                     </p>
                 </div>
@@ -215,7 +210,7 @@ export default function Hero() {
                     <div className={classes.visualOrbit} aria-hidden="true" />
                     <div className={classes.workflowTag}>
                         <span>Twój proces</span>
-                        <b>PDF → szablon → edycja → PDF</b>
+                        <b>Dane → szablon → edycja → PDF</b>
                     </div>
                     <div className={classes.editorFrame}>
                         <div className={classes.editorTopbar}>
@@ -237,44 +232,44 @@ export default function Hero() {
 
             <section id="start" className={classes.startSection}>
                 <div className={classes.sectionIntro}>
-                    <p className={classes.kicker}>Jeden silnik, trzy ścieżki</p>
+                    <p className={classes.kicker}>Najpierw dane, potem wygląd</p>
                     <h2>Zacznij tak,<br />jak Ci wygodnie.</h2>
                     <p>
-                        Szybkie CV ze szablonu, import istniejącego dokumentu albo projekt własny
-                        od zera — ten sam renderer PDF, różne tryby pracy.
+                        Kreator albo import PDF — w obu ścieżkach najpierw zbierasz treść,
+                        potem wybierasz szablon i wchodzisz do tego samego edytora A4.
                     </p>
                 </div>
                 <div className={classes.pathGrid}>
                     <PathCard
                         featured
-                        icon={<TemplateIcon />}
-                        eyebrow="Najszybsza opcja"
-                        title="Utwórz z szablonu"
-                        text="Wybierz wygląd, wpisz lub wklej dane i dopracuj treść. Szablon pilnuje układu — bez przesuwania każdego pola o piksele."
-                        bullets={["Gotowy układ od razu", "Edycja treści i sekcji", "Kolory, fonty i styl w edytorze"]}
-                        start="templates"
+                        icon={<WizardIcon />}
+                        eyebrow="Od zera, krok po kroku"
+                        title="Kreator CV"
+                        text="Odpowiedz na kilka pytań o doświadczeniu, edukacji i umiejętnościach, wybierz wygląd i dopracuj dokument w edytorze."
+                        bullets={["Dane przed wyborem stylu", "Szablon dopasowany do Twojej treści", "Edycja na płótnie A4"]}
+                        start="wizard"
                         plan="free"
-                        cta="Wybierz szablon"
+                        cta="Stwórz CV od początku"
                     />
                     <PathCard
                         icon={<UploadIcon />}
                         eyebrow="Mam już CV"
                         title="Importuj CV"
-                        text="Wczytaj PDF, przenieś doświadczenie, edukację i umiejętności do wybranego szablonu, potem dopracuj dokument."
-                        bullets={["Bez przepisywania od zera", "Ten sam zestaw danych w wielu szablonach", "Dalsza edycja na płótnie A4"]}
+                        text="Wczytaj PDF, przenieś doświadczenie, edukację i umiejętności, wybierz szablon i dopracuj dokument."
+                        bullets={["Bez przepisywania od zera", "Dane → wybór szablonu → edytor", "Dalsza edycja na płótnie A4"]}
                         start="import"
                         plan="standard"
                         cta="Importuj CV"
                     />
                     <PathCard
-                        icon={<BlankIcon />}
-                        eyebrow="Pełna swoboda"
-                        title="Projektuj od zera"
-                        text="Pusta strona A4 z tekstami, ikonami, zdjęciami i kształtami. Drag-and-drop oraz swobodne pozycjonowanie bez auto-układu szablonu."
-                        bullets={["Dowolne pola i kształty", "Obrazy z galerii i dropzone", "Siatka, wyrównanie, warstwy"]}
-                        start="blank"
+                        icon={<DemoIcon />}
+                        eyebrow="Bez zobowiązań"
+                        title="Zobacz edytor na przykładzie"
+                        text="Otwórz przykładowe CV w pełnym edytorze A4 i sprawdź, jak wygląda praca z dokumentem — zanim zaczniesz od własnych danych."
+                        bullets={["Gotowy przykład od razu", "Ten sam edytor co po kreatorze", "Bez rejestracji na start"]}
+                        start="demo"
                         plan="free"
-                        cta="Projektuj od zera"
+                        cta="Zobacz edytor na przykładzie"
                     />
                 </div>
             </section>
@@ -370,20 +365,34 @@ export default function Hero() {
             <section id="szablony" className={classes.templatesSection}>
                 <div className={classes.templatesHeader}>
                     <div>
-                        <p className={classes.kicker}>17 indywidualnych szablonów</p>
-                        <h2>Zobacz swoje CV,<br />nie przykładową historię kogoś innego.</h2>
+                        <p className={classes.kicker}>Inspiracja wyglądem</p>
+                        <h2>Wybierz styl,<br />który pasuje do Twojej roli.</h2>
                     </div>
-                    <p>Po imporcie lub kreatorze możesz dobierać wygląd do roli, a nie zaczynać od budowania układu od podstaw.</p>
+                    <p>
+                        Galeria pokazuje dostępne układy. Kliknięcie otwiera kreator — najpierw
+                        podajesz dane, potem zatwierdzasz wybrany wygląd w edytorze.
+                    </p>
                 </div>
                 <div className={classes.templateGrid}>
                     {TEMPLATE_PREVIEWS.slice(0, 8).map((template) => (
-                        <Link key={template.id} to={wizardUrl} className={classes.templateCard}>
+                        <Link
+                            key={template.id}
+                            to={wizardUrl}
+                            className={classes.templateCard}
+                            onClick={() => queueGuestEvent("landing_cta_clicked")}
+                        >
                             <img src={template.image} alt={`Szablon CV ${template.name}`} loading="lazy" />
                             <span><b>{template.name}</b><small>{template.description}</small></span>
                         </Link>
                     ))}
                 </div>
-                <Link className={classes.templateLink} to={wizardUrl}>Zobacz szablony w edytorze <ArrowIcon /></Link>
+                <Link
+                    className={classes.templateLink}
+                    to={wizardUrl}
+                    onClick={() => queueGuestEvent("landing_cta_clicked")}
+                >
+                    Zacznij od kreatora i wybierz styl <ArrowIcon />
+                </Link>
             </section>
 
             <section className={classes.privacySection}>

@@ -1,18 +1,9 @@
 1. LEPSZY ONBOARDING
 
-a) I. SEKCJA NA HERO
- Sa 3 opcje:
- aa) WGRAJ CV (POTRZEBA REJESTRACJI)
- bb) CV WIZZARD
- cc) PRZYKLADOWE CV I POKAZ EDYTORA
-
-b) II. SEKCJA NA HERO
-Tez 3 opcje:
-aa) SZABLONY - trzeba skasowac, albo dopracowac
-bb) WGRACJ CV (POTRZEBA REJESTRACJI)
-cc) FREEFORM
-
-I i II SEKCJA "nie sa zgrane", szablony sa bez sensu w obecnym stanie. Freeform jest bardziej dodatkiem, a nie glowna usluga do sprzedania. Konieczna poprawa.
+DONE a) Hero path cards: Kreator / Import / Zobacz edytor na przykładzie
+DONE b) Galeria szablonow zostaje jako inspiracja → kreator (nie pusty canvas)
+DONE c) Topbar: usunieto przycisk Szablony (zostaje Zmiana szablonu po danych)
+Funnel: Kreator|Import → dane → wybor szablonu → edytor
 
 2. BUGZ po OSTATNIM REFACTORINGU
 
