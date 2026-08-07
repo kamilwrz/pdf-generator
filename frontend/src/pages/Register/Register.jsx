@@ -3,13 +3,11 @@
  * Wakes the backend in the background like Login to survive Render cold start.
  */
 import classes from "./Register.module.css";
-import planClasses from "./PlanSelector.module.css";
 
 import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
 
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import PlanSelector, { PLAN_SLUGS } from "./PlanSelector";
 import { queueGuestEvent } from "../../utils/guestEvents";
 
 const UserIcon = () => (
@@ -36,13 +34,9 @@ export default function Register() {
     const navigate = useNavigate();
 
     const [searchParams] = useSearchParams();
-    const initialPlan = PLAN_SLUGS.includes(searchParams.get("plan"))
-        ? searchParams.get("plan")
-        : "free";
     const startIntent = ["import", "wizard", "templates", "blank"].includes(searchParams.get("start"))
         ? searchParams.get("start")
         : null;
-    const [plan, setPlan] = useState(initialPlan);
 
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
@@ -78,7 +72,7 @@ export default function Register() {
             await api.httpRequest(
                 ENDPOINTS.AUTH.REGISTER,
                 "POST",
-                JSON.stringify({ username, email, password, plan }),
+                JSON.stringify({ username, email, password }),
                 "Rejestracja nie powiodła się",
                 {
                     timeoutMs: 90_000,
@@ -139,12 +133,8 @@ export default function Register() {
                     </div>
                     <p className={classes.cardEyebrow}>Pierwsza wersja CV</p>
                     <h1 id="register-title" className={classes.mainHeading}>Utwórz konto</h1>
-                    <p className={classes.subHeading}>Zacznij bez karty. Plan możesz zmienić później.</p>
+                    <p className={classes.subHeading}>Zacznij bez karty i bez zobowiązań.</p>
                     <p className={classes.intentNotice}>{startNotice}</p>
-                    <div className={classes.control}>
-                        <label>Plan</label>
-                        <PlanSelector value={plan} onChange={setPlan} classes={planClasses} disabled={isLoading} />
-                    </div>
                     <form onSubmit={handleSubmit} className={classes.form}>
                         <div className={classes.control}>
                             <label htmlFor="username">Nazwa użytkownika</label>
