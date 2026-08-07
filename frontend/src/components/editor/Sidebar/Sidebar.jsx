@@ -17,6 +17,7 @@ import { AiOutlineLogout } from "react-icons/ai";
 import { FaRegFolderOpen } from "react-icons/fa";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { use } from "react";
+import { Link } from "react-router-dom";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 
 
@@ -50,12 +51,14 @@ export default function Sidebar({ children }) {
     return <aside className={classes.sidebar}>
 
         <div className={classes.logoContainer}>
-            <div className={classes.logoMark}>
-                <img src="/cv-studio-mark.svg" alt="CV Studio" />
-            </div>
-            <span className={classes.modeBadge} title={isTemplate ? "Tryb szablonu" : "Projekt własny"}>
-                {isTemplate ? "S" : "P"}
-            </span>
+            <Link
+                to="/"
+                className={classes.logoMark}
+                aria-label="CV Studio — strona główna"
+                title="Strona główna"
+            >
+                <img src="/cv-studio-mark.svg" alt="" />
+            </Link>
         </div>
 
         <div className={classes.toolsContainer}>

@@ -27,17 +27,9 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
     min-height: 37px;
     padding: 0 0 9px;
     border-bottom: 1px solid var(--sidebar-border);
-}
-
-.modeBadge {
-    font: 700 9px/1 var(--font-body);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--sidebar-muted);
 }
 
 .logoMark {
@@ -49,6 +41,15 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    text-decoration: none;
+    color: inherit;
+    transition: opacity .12s ease;
+}
+
+.logoMark:hover,
+.logoMark:focus-visible {
+    opacity: 0.82;
+    outline: none;
 }
 
 .logoMark img {

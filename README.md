@@ -431,7 +431,7 @@ Implementation:
 - `frontend/src/pages/Hero/Hero.jsx`, lines 172–175 and 497–500; `Hero.module.css`, lines 40–51 and 1173–1176 — landing header/footer lockup
 - `frontend/src/pages/Login/Login.jsx`, lines 127–131; `Login.module.css`, lines 184–195 — login lockup
 - `frontend/src/pages/Register/Register.jsx`, lines 132–134; `Register.module.css`, lines 180–191 — registration lockup
-- `frontend/src/components/editor/Sidebar/Sidebar.jsx`, lines 43–46 — compact editor mark
+- `frontend/src/components/editor/Sidebar/Sidebar.jsx` — compact editor mark; clicking it navigates to the landing page (`/`)
 - `frontend/index.html`, line 5 — SVG favicon
 
 ### Auth screens aligned with the landing
@@ -1591,7 +1591,7 @@ Implementacja:
 - `frontend/src/pages/Hero/Hero.jsx`, linie 172–175 i 497–500; `Hero.module.css`, linie 40–51 i 1173–1176 — lockup w nagłówku i stopce strony głównej
 - `frontend/src/pages/Login/Login.jsx`, linie 127–131; `Login.module.css`, linie 184–195 — logo logowania
 - `frontend/src/pages/Register/Register.jsx`, linie 132–134; `Register.module.css`, linie 180–191 — logo rejestracji
-- `frontend/src/components/editor/Sidebar/Sidebar.jsx`, linie 43–46 — skrócony znak w edytorze
+- `frontend/src/components/editor/Sidebar/Sidebar.jsx` — skrócony znak w edytorze; kliknięcie prowadzi na landing (`/`)
 - `frontend/index.html`, linia 5 — favicon SVG
 
 ### Ekrany uwierzytelniania spójne z landing page
