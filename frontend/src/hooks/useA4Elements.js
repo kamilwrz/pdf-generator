@@ -14,6 +14,7 @@ import {
   EDITOR_MODE_TEMPLATE,
   canCloneOrDeleteElements,
   canFreePositionElement,
+  canResizeElement,
   normalizeEditorMode,
 } from '../utils/editorMode';
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from '../utils/flowSpacing';
@@ -1455,14 +1456,8 @@ export function useA4Elements(titleRef) {
   const handleResizeElement = useCallback((e, direction, category, elementId, elementRef) => {
     const resizedElement = elementsRef.current.find((element) => element.element_id === elementId);
     if (resizedElement?.locked) return;
-    // Template mode owns block geometry; only freeform (and untagged images)
-    // may drag-resize. Textarea width is still allowed so wrap/reflow can run.
-    if (
-      category !== "textarea"
-      && !canFreePositionElement(resizedElement, editorModeRef.current)
-    ) {
-      return;
-    }
+    // Structural editing never drag-resizes — width/height stay layout-owned.
+    if (!canResizeElement(resizedElement, editorModeRef.current)) return;
 
     let aspectRatio = 1;
     let heightFactor;

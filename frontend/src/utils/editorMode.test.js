@@ -7,6 +7,7 @@ import {
   canEditElementPosition,
   canEditElementSizeField,
   canFreePositionElement,
+  canResizeElement,
   canToggleElementLock,
   inferEditorMode,
   normalizeEditorMode,
@@ -94,21 +95,31 @@ describe("inspector field gates", () => {
     assert.equal(canCloneOrDeleteElements(EDITOR_MODE_FREEFORM), true);
   });
 
-  it("hides auto-height and image proportional height fields", () => {
+  it("disables drag-resize and size fields in template mode", () => {
+    const image = { category: "image", src: "/images/1/content" };
+    const box = { category: "textarea", autoHeight: true, flowRole: "content" };
+    assert.equal(canResizeElement(image, EDITOR_MODE_TEMPLATE), false);
+    assert.equal(canResizeElement(box, EDITOR_MODE_TEMPLATE), false);
+    assert.equal(canResizeElement(image, EDITOR_MODE_FREEFORM), true);
+    assert.equal(canEditElementSizeField(image, "width", EDITOR_MODE_TEMPLATE), false);
+    assert.equal(canEditElementSizeField(box, "width", EDITOR_MODE_TEMPLATE), false);
+  });
+
+  it("hides auto-height and image proportional height fields in freeform", () => {
     assert.equal(
-      canEditElementSizeField({ category: "textarea", autoHeight: true }, "height"),
+      canEditElementSizeField({ category: "textarea", autoHeight: true }, "height", EDITOR_MODE_FREEFORM),
       false,
     );
     assert.equal(
-      canEditElementSizeField({ category: "textarea", autoHeight: true }, "width"),
+      canEditElementSizeField({ category: "textarea", autoHeight: true }, "width", EDITOR_MODE_FREEFORM),
       true,
     );
     assert.equal(
-      canEditElementSizeField({ category: "image" }, "height"),
+      canEditElementSizeField({ category: "image" }, "height", EDITOR_MODE_FREEFORM),
       false,
     );
     assert.equal(
-      canEditElementSizeField({ category: "image" }, "width"),
+      canEditElementSizeField({ category: "image" }, "width", EDITOR_MODE_FREEFORM),
       true,
     );
   });

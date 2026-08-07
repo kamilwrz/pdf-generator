@@ -33,7 +33,7 @@ e) Po zaladowaniu CV przez wizarda, dane sie kasuja z local storage. Powinny byc
   dd) wylapac ewentualne bugi i dopracowac...
   ee) ewentualnie nowe lub skopiowane szablony i dopracowac, moze byc mniej niz 14
 4) IMAGE -> edytor sturkturalny ma uploadowac zdjecie w odpowiednich rozmiarach w odpowiednie miejsce
-5) pokazywanie "Resizera" podczas edycji strukturalnej wylaczyc
+DONE 5) pokazywanie "Resizera" podczas edycji strukturalnej wylaczyc (drag + pola W/H w panelu)
 DONE 6) nie pokazywac wartosci do edycji w panelu, jezeli nie ma to wplywu (+ brak klonuj/usun w edycji strukturalnej)
 DONE 7) kasowanie bloku, ewentualnie elementu lub sekcji ma aktywowas reFlow i podciagac dolne elementy wedle rytmu szablonu
 8)  strzalki w a4:

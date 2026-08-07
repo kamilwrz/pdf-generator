@@ -1,11 +1,16 @@
 /**
  * Corner/edge resize handles for the currently selected element.
  * Listens for global pointerup so a drag ending outside the handle still stops.
+ * Hidden entirely in template (structural) mode — layout owns width/height.
  */
 import classes from "./Resize.module.css";
-import { useEffect } from "react";
+import { use, useEffect } from "react";
+import { PdfContext } from "../../../store/pdfgenerator-context";
+import { canResizeElement } from "../../../utils/editorMode";
 
 export default function Resize({ selectedElement, isResizeable, handleIsResizable, resizeElement, category, elementId, elementRef, displayTop }) {
+    const { editorMode } = use(PdfContext);
+    const allowResize = canResizeElement(selectedElement, editorMode);
     const isTextarea = selectedElement.category === "textarea";
     // Text-aligned icons render their glyph above the stored top; the handles
     // must follow that shifted position, not the logical top, or the resize box
@@ -14,13 +19,16 @@ export default function Resize({ selectedElement, isResizeable, handleIsResizabl
     const stopResizing = () => handleIsResizable(false);
 
     useEffect(() => {
+        if (!allowResize) return undefined;
         window.addEventListener("pointerup", stopResizing);
         window.addEventListener("pointercancel", stopResizing);
         return () => {
             window.removeEventListener("pointerup", stopResizing);
             window.removeEventListener("pointercancel", stopResizing);
         };
-    }, [handleIsResizable]);
+    }, [allowResize, handleIsResizable]);
+
+    if (!allowResize) return null;
 
     const resizeHandle = (direction, className) => (
         <button

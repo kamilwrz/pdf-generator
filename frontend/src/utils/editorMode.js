@@ -115,15 +115,34 @@ export function canCloneOrDeleteElements(editorMode) {
 }
 
 /**
+ * Whether drag-resize handles may appear for this element.
+ * Structural (template) mode never exposes resize — geometry belongs to the
+ * layout rhythm. Freeform keeps resize for unlocked, non-fixed elements.
+ *
+ * @param {object|null|undefined} element
+ * @param {"template"|"freeform"|null|undefined} editorMode
+ * @returns {boolean}
+ */
+export function canResizeElement(element, editorMode) {
+  if (!element) return false;
+  if (normalizeEditorMode(editorMode) === EDITOR_MODE_TEMPLATE) return false;
+  if (element.fixedToPage || element.locked) return false;
+  return true;
+}
+
+/**
  * Whether a geometry size field should appear in the inspector.
- * Auto-height and read-only proportional fields have no editable effect.
+ * Template mode hides width/height entirely (same contract as drag-resize).
+ * Freeform still hides auto-height and read-only proportional image height.
  *
  * @param {object|null|undefined} element
  * @param {"width"|"height"} dimension
+ * @param {"template"|"freeform"|null|undefined} [editorMode]
  * @returns {boolean}
  */
-export function canEditElementSizeField(element, dimension) {
+export function canEditElementSizeField(element, dimension, editorMode) {
   if (!element) return false;
+  if (!canResizeElement(element, editorMode)) return false;
   if (dimension === "height" && element.autoHeight) return false;
   // Image height is derived from width — the panel field is display-only.
   if (dimension === "height" && element.category === "image") return false;

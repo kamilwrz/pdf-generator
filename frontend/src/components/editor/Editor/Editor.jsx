@@ -4,8 +4,9 @@
  * TextArea keep different field sets. Positioned via selection DOM bboxes.
  *
  * In template (structural) mode the bar hides controls that cannot affect the
- * selection (layout-owned X/Y / align / lock, auto-height) and omits clone /
- * delete — those actions use section/record canvas affordances instead.
+ * selection (layout-owned X/Y / align / lock, all width/height size fields)
+ * and omits clone / delete — those actions use section/record canvas
+ * affordances instead. Drag-resize handles are also suppressed in template mode.
  */
 import classes from "./Editor.module.css";
 import { useEffect, useLayoutEffect, useState, useRef, use } from "react";
@@ -34,6 +35,7 @@ import {
   canEditElementPosition,
   canEditElementSizeField,
   canFreePositionElement,
+  canResizeElement,
   canToggleElementLock,
 } from "../../../utils/editorMode";
 import {
@@ -127,6 +129,13 @@ export default function Editor() {
     if (
       (identifier === "left" || identifier === "top")
       && (selectedElement.locked || !canFreePositionElement(selectedElement, editorMode))
+    ) {
+      return;
+    }
+    // Structural mode: width/height are layout-owned (same as drag-resize).
+    if (
+      (identifier === "width" || identifier === "height")
+      && !canResizeElement(selectedElement, editorMode)
     ) {
       return;
     }
@@ -432,7 +441,7 @@ export default function Editor() {
                             width={32}
                             step={0.1}
                           />
-                          {canEditElementSizeField(selectedElement, "width") && (
+                          {canEditElementSizeField(selectedElement, "width", editorMode) && (
                             <NumField
                               label="Szerokość"
                               icon={<RxWidth />}
@@ -441,7 +450,7 @@ export default function Editor() {
                               width={36}
                             />
                           )}
-                          {canEditElementSizeField(selectedElement, "height") && (
+                          {canEditElementSizeField(selectedElement, "height", editorMode) && (
                             <NumField
                               label="Wysokość"
                               icon={<RxHeight />}
@@ -458,10 +467,10 @@ export default function Editor() {
 
                 {cat === "line" && (
                   <Group label="Linia">
-                    {canEditElementSizeField(selectedElement, "width") && (
+                    {canEditElementSizeField(selectedElement, "width", editorMode) && (
                       <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
                     )}
-                    {canEditElementSizeField(selectedElement, "height") && (
+                    {canEditElementSizeField(selectedElement, "height", editorMode) && (
                       <NumField label="Grubość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={32} />
                     )}
                     <ColorField label="Kolor" value={elementValues.backgroundColor} onChange={(e) => handleChangeValues(e, "backgroundColor")} />
@@ -470,10 +479,10 @@ export default function Editor() {
 
                 {cat === "rectangle" && (
                   <Group label="Kształt">
-                    {canEditElementSizeField(selectedElement, "width") && (
+                    {canEditElementSizeField(selectedElement, "width", editorMode) && (
                       <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
                     )}
-                    {canEditElementSizeField(selectedElement, "height") && (
+                    {canEditElementSizeField(selectedElement, "height", editorMode) && (
                       <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={36} />
                     )}
                     <NumField label="Obramowanie" icon={<MdFormatSize />} value={elementValues.borderWidth} onChange={(e) => handleChangeValues(e, "borderWidth")} width={32} />
@@ -483,10 +492,10 @@ export default function Editor() {
 
                 {(cat === "circle" || cat === "ellipse") && (
                   <Group label="Kształt">
-                    {canEditElementSizeField(selectedElement, "width") && (
+                    {canEditElementSizeField(selectedElement, "width", editorMode) && (
                       <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
                     )}
-                    {canEditElementSizeField(selectedElement, "height") && (
+                    {canEditElementSizeField(selectedElement, "height", editorMode) && (
                       <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={36} />
                     )}
                     <IconBtn
@@ -507,7 +516,7 @@ export default function Editor() {
                   </Group>
                 )}
 
-                {cat === "image" && canEditElementSizeField(selectedElement, "width") && (
+                {cat === "image" && canEditElementSizeField(selectedElement, "width", editorMode) && (
                   <Group label="Obraz">
                     <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
                   </Group>
