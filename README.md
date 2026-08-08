@@ -884,6 +884,40 @@ Implementation:
 - `backend/app/api/routes/billing.py`, `get_plans`, `select_plan`
 - `frontend/src/hooks/useEntitlements.js`
 
+### Free-plan watermark and one lifetime free CV import
+
+**Problem this solves.** Guest mode (see [Guest mode](#guest-mode-editor-without-an-account)) fixed the funnel-entry problem, but once a guest claims a document into a Free account, nothing signals that upgrading buys anything: Free already got 3 real, clean PDF exports per month, and CV import was hard-blocked for Free outright — a new user who wanted to try importing their own CV hit an unconditional wall with zero trial. This closes both gaps **without** restructuring plans, pricing, or template access (that stays Free/Standard/Premium exactly as-is; a Free→Pro plan collapse is a separate, not-yet-scheduled slice).
+
+**Watermark.** Every Free-plan PDF export carries a diagonal, low-opacity "CV STUDIO — WERSJA DARMOWA" stamp, repeated three times down the page. Standard/Premium exports are byte-for-byte unaffected — the watermark code path only runs when `watermark=True` is explicitly passed, and every existing call site defaults to `False`. `Pdf.watermarked` records what is *currently baked into* the stored file (not the account's plan); `POST /pdf/download_pdf` compares that against the account's *live* plan on every request and only re-renders when they disagree — the common case (no plan change since the last save) is an unmodified, cheap static-file serve, exactly as before this feature. The one time they disagree is right after a plan change, so upgrading from Free instantly unlocks a clean re-download of an already-exported document, with no need to reopen the editor and save again.
+
+Re-rendering from stored state (rather than the live editor payload) required a new reconstruction step: `PdfElements` rows keep most style information (bold, inline `runs`, connectors, `flowRole`, `borderRadius`, …) packed inside an `extra_properties` JSON column, and — until this feature — nothing on the backend ever unpacked that back into a renderable shape (only the frontend's own save/load hydration did). `elements_from_rows` fills that gap: it is the inverse of `crud/pdfs.py`'s existing `extra_properties` packing, producing full `PdfElement` objects a re-render can use exactly as if the client had just sent them.
+
+**One lifetime free import.** `POST /ai/extract_cv` (CV import) still requires an account for every plan — importing calls a paid OpenAI vision endpoint — but a Free account now gets exactly **one** successful import for free before the existing "available in Standard" gate applies. The trial is tracked as a single boolean (`UserSubscription.free_import_used`), not a monthly counter — `assert_can_extract_cv` only lets a Free account through once, and only a **successful** `extract_cv_data()` call consumes it; a transient OpenAI error or an unreadable PDF never burns the one try.
+
+Implementation:
+
+- `backend/alembic/versions/20260809_0004_watermark_free_import.py` — adds `pdfs.watermarked` and `user_subscriptions.free_import_used` (both `bool`, default `false`)
+- `backend/app/services/entitlements.py`, line 337 (`get_entitlements` exposes `free_import_used`), lines 443–465 (`assert_can_extract_cv` — Free's one-trial branch), lines 467–478 (`mark_free_import_used`, no-op unless Free and unused)
+- `backend/app/api/routes/ai.py`, line 106, function `extract_cv` — calls `mark_free_import_used(db, user.id)` strictly after a successful `extract_cv_data()`, inside the same `try` block, so a raised exception never reaches it
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, line 63 (`canExtract` now also true for `plan_slug === "free" && !free_import_used`), line 94 (distinct "already used" copy vs. the generic Standard-upgrade message)
+- `backend/app/services/pdf_generator.py`, lines 954–978, method `_draw_watermark` (diagonal overlay, isolated via `saveState`/`restoreState` so it cannot leak fill/alpha/font state); line 980, `render_elements(..., watermark=False)` — opt-in 4th parameter, drawn once per page immediately before `showPage()`
+- `backend/app/crud/pdfs.py`, line 41, function `elements_from_rows` — reconstructs full `PdfElement` objects (including `runs`, connectors, `flowRole`, `borderRadius`, …) from stored rows, the inverse of this file's existing `extra_properties` packing in `create_new_pdf` / `update_pdf_elements`
+- `backend/app/services/document_service.py`, line 73, `create_pdf_document`; line 146, `update_pdf_document` (now takes a `user` parameter) — both compute `watermark = get_entitlements(db, user)["plan_slug"] == "free"` and set `Pdf.watermarked` to match what was actually rendered; line 202, `render_pdf_for_download(db, pdf_row, watermark)` — re-renders a stored document in place (local disk: overwrite; S3: re-upload to the same key) and updates `pdf_row.watermarked`
+- `backend/app/api/routes/pdf.py`, line 143, `update_user_pdf` (now fetches the owning `User` row, matching the pattern already used by `create_user_pdf`/`download_pdf`); lines 193–222, `download_pdf` — computes `watermark_required` from the live plan and only calls `render_pdf_for_download` when it disagrees with `pdf_row.watermarked`
+
+Tests:
+
+- `backend/tests/test_extract_cv_rejection.py` — first Free import succeeds and consumes the trial; second is rejected; a failed extraction does not consume it
+- `backend/tests/test_pdf_watermark.py` — `_draw_watermark` rotates/lowers alpha and stays balanced (`saveState`/`restoreState` counts match, verified with a stack-depth walk so a dropped `restoreState` cannot pass silently); `render_elements` skips the overlay by default and draws it only when asked
+- `backend/tests/test_elements_from_rows.py` — round-trips every field `create_new_pdf` packs into `extra_properties` (including `runs`, connectors, `borderRadius`, and editor-only fields `zIndex`/`isSelected`/`isMove`) through a real save → DB → reconstruct cycle, not a hand-built fixture
+- `backend/tests/test_download_watermark.py` — a Free-plan download re-renders and marks the file watermarked; an already-matching state skips the re-render; upgrading and re-downloading produces a clean file
+- `backend/tests/test_export_metering.py` — updated fixture (temp directory instead of a hardcoded path) since a local-disk download can now genuinely write a file
+
+Known limitations:
+
+- The watermark's exact wording and layout are fixed (no per-plan customization beyond on/off).
+- There is no bulk "re-render all my old exports" action — the self-heal only fires the next time each individual document is downloaded.
+
 ### Auth
 
 Register, OAuth2 password token, JWT Bearer, entitlements probe. Registration
@@ -2053,6 +2087,40 @@ Standard udostępnia działania Asystenta AI skupione na treści, a `layout` wym
 - `backend/app/services/entitlements.py` — `CREDIT_PLN`, `PREMIUM_ONLY_AI_ACTIONS`, `assert_can_use_ai_action`, `credits_for_cost`, `charge_ai_credits`
 - `backend/app/api/routes/billing.py`
 - `frontend/src/hooks/useEntitlements.js`
+
+### Znak wodny na planie Free i jeden darmowy import CV na zawsze
+
+**Jaki problem to rozwiązuje.** Tryb gościa (zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta)) naprawił problem wejścia do lejka, ale gdy gość przejmie dokument na konto Free, nic nie sygnalizuje, że ulepszenie planu coś daje: Free i tak dostawał 3 realne, czyste eksporty PDF miesięcznie, a import CV był całkowicie zablokowany — nowy użytkownik, który chciał tylko wypróbować import własnego CV, trafiał na bezwarunkową ścianę bez żadnej próby. To domyka obie luki **bez** przebudowy planów, cennika czy dostępu do szablonów (Free/Standard/Premium zostają dokładnie takie jak są; połączenie Free→Pro w jeden plan to osobny, jeszcze nie zaplanowany etap).
+
+**Znak wodny.** Każdy eksport PDF na planie Free ma ukośny, półprzezroczysty napis „CV STUDIO — WERSJA DARMOWA”, powtórzony trzykrotnie w dół strony. Eksporty Standard/Premium są nietknięte bajt w bajt — ścieżka kodu ze znakiem wodnym uruchamia się wyłącznie, gdy jawnie przekazano `watermark=True`, a każde dotychczasowe wywołanie domyślnie ma `False`. `Pdf.watermarked` zapisuje, co jest *aktualnie* zapisane w pliku (nie plan konta); `POST /pdf/download_pdf` porównuje to z *bieżącym* planem konta przy każdym żądaniu i przerenderowuje tylko wtedy, gdy się różnią — typowy przypadek (brak zmiany planu od ostatniego zapisu) to niezmieniony, tani odczyt statycznego pliku, dokładnie jak przed tą funkcją. Różnią się tylko tuż po zmianie planu, więc ulepszenie z Free natychmiast odblokowuje czyste pobranie już wyeksportowanego dokumentu, bez konieczności ponownego otwierania edytora i zapisu.
+
+Przerenderowanie z zapisanego stanu (zamiast z żywego payloadu edytora) wymagało nowego kroku rekonstrukcji: wiersze `PdfElements` trzymają większość informacji o stylu (pogrubienie, inline `runs`, konektory, `flowRole`, `borderRadius`, …) spakowaną w kolumnie JSON `extra_properties`, a do tej funkcji nic po stronie backendu nigdy nie rozpakowywało tego z powrotem do renderowalnej postaci (robiła to tylko hydratacja zapisu/odczytu na froncie). `elements_from_rows` domyka tę lukę: to odwrotność istniejącego pakowania `extra_properties` w `crud/pdfs.py`, produkująca pełne obiekty `PdfElement`, których przerenderowanie może użyć dokładnie tak, jakby klient właśnie je wysłał.
+
+**Jeden darmowy import na zawsze.** `POST /ai/extract_cv` (import CV) nadal wymaga konta na każdym planie — import wywołuje płatny endpoint OpenAI vision — ale konto Free dostaje teraz dokładnie **jeden** udany import za darmo, zanim zadziała dotychczasowa bramka „dostępne w Standard”. Próba jest śledzona jako pojedynczy boolean (`UserSubscription.free_import_used`), nie licznik miesięczny — `assert_can_extract_cv` wpuszcza konto Free tylko raz, a zużywa próbę wyłącznie **udane** wywołanie `extract_cv_data()`; przejściowy błąd OpenAI albo nieczytelny PDF nigdy nie spala jedynej szansy.
+
+Implementacja:
+
+- `backend/alembic/versions/20260809_0004_watermark_free_import.py` — dodaje `pdfs.watermarked` i `user_subscriptions.free_import_used` (oba `bool`, domyślnie `false`)
+- `backend/app/services/entitlements.py`, linia 337 (`get_entitlements` udostępnia `free_import_used`), linie 443–465 (`assert_can_extract_cv` — gałąź jednej próby dla Free), linie 467–478 (`mark_free_import_used`, no-op poza kontem Free z niewykorzystaną próbą)
+- `backend/app/api/routes/ai.py`, linia 106, funkcja `extract_cv` — woła `mark_free_import_used(db, user.id)` wyłącznie po udanym `extract_cv_data()`, w tym samym bloku `try`, więc wyjątek nigdy tam nie dotrze
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linia 63 (`canExtract` jest teraz też `true` dla `plan_slug === "free" && !free_import_used`), linia 94 (osobny komunikat „już wykorzystano” zamiast ogólnego o Standard)
+- `backend/app/services/pdf_generator.py`, linie 954–978, metoda `_draw_watermark` (ukośna nakładka, izolowana przez `saveState`/`restoreState`, więc nie może wyciec kolor wypełnienia/przezroczystości/fontu); linia 980, `render_elements(..., watermark=False)` — opcjonalny 4. parametr, rysowany raz na stronę tuż przed `showPage()`
+- `backend/app/crud/pdfs.py`, linia 41, funkcja `elements_from_rows` — rekonstruuje pełne obiekty `PdfElement` (w tym `runs`, konektory, `flowRole`, `borderRadius`, …) z zapisanych wierszy, odwrotność istniejącego pakowania `extra_properties` w `create_new_pdf` / `update_pdf_elements`
+- `backend/app/services/document_service.py`, linia 73, `create_pdf_document`; linia 146, `update_pdf_document` (przyjmuje teraz parametr `user`) — oba liczą `watermark = get_entitlements(db, user)["plan_slug"] == "free"` i ustawiają `Pdf.watermarked` zgodnie z tym, co faktycznie wyrenderowano; linia 202, `render_pdf_for_download(db, pdf_row, watermark)` — przerenderowuje zapisany dokument w miejscu (dysk lokalny: nadpisanie; S3: ponowny upload pod ten sam klucz) i aktualizuje `pdf_row.watermarked`
+- `backend/app/api/routes/pdf.py`, linia 143, `update_user_pdf` (pobiera teraz właściciela — wiersz `User` — zgodnie ze wzorcem już używanym przez `create_user_pdf`/`download_pdf`); linie 193–222, `download_pdf` — liczy `watermark_required` z bieżącego planu i woła `render_pdf_for_download` tylko wtedy, gdy różni się od `pdf_row.watermarked`
+
+Testy:
+
+- `backend/tests/test_extract_cv_rejection.py` — pierwszy import Free się udaje i zużywa próbę; drugi jest odrzucony; nieudana ekstrakcja jej nie zużywa
+- `backend/tests/test_pdf_watermark.py` — `_draw_watermark` obraca/obniża przezroczystość i pozostaje zbalansowany (liczby `saveState`/`restoreState` się zgadzają, weryfikowane przejściem po stosie głębokości, więc zgubione `restoreState` nie przejdzie po cichu); `render_elements` domyślnie pomija nakładkę i rysuje ją tylko na żądanie
+- `backend/tests/test_elements_from_rows.py` — odtwarza każde pole, które `create_new_pdf` pakuje do `extra_properties` (w tym `runs`, konektory, `borderRadius` oraz pola tylko-edytorowe `zIndex`/`isSelected`/`isMove`) przez prawdziwy cykl zapis → baza → rekonstrukcja, nie ręcznie zbudowaną fikstrę
+- `backend/tests/test_download_watermark.py` — pobranie na planie Free przerenderowuje i oznacza plik jako ze znakiem wodnym; już zgodny stan pomija przerenderowanie; ulepszenie planu i ponowne pobranie daje czysty plik
+- `backend/tests/test_export_metering.py` — zaktualizowana fikstura (katalog tymczasowy zamiast twardej ścieżki), bo pobranie lokalne może teraz naprawdę zapisać plik
+
+Znane ograniczenia:
+
+- Treść i układ znaku wodnego są stałe (brak personalizacji poza włącz/wyłącz).
+- Nie ma zbiorczej akcji „przerenderuj wszystkie moje stare eksporty” — samonaprawa uruchamia się dopiero przy kolejnym pobraniu każdego dokumentu z osobna.
 
 ### Auth
 
