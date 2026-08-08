@@ -321,12 +321,12 @@
     background: var(--sage);
 }
 
-.editorFrame img {
+.editorFramePlaceholder {
     display: block;
     width: 100%;
     aspect-ratio: 1.62;
-    object-fit: cover;
-    object-position: center;
+    background:
+        linear-gradient(180deg, #24374F 0%, #1A2B3F 48%, #152433 100%);
 }
 
 .layoutSuggestion {
@@ -734,10 +734,13 @@
     text-transform: uppercase;
 }
 
-.editorScreenshot > img {
+.editorScreenshotPlaceholder {
     display: block;
     width: 100%;
+    aspect-ratio: 4 / 3;
     border: 1px solid rgba(246, 247, 249, .21);
+    background:
+        linear-gradient(160deg, #24374F 0%, #1A2B3F 55%, #152433 100%);
     box-shadow: 13px 13px 0 rgba(47, 95, 143, .75);
 }
 

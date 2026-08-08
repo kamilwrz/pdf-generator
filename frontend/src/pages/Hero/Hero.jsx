@@ -220,7 +220,7 @@ export default function Hero() {
                             <span>CV / wersja poprawiona</span>
                             <span>100%</span>
                         </div>
-                        <img src="/hero-canvas-mockup.png" alt="Edytor CV z dokumentem A4" />
+                        <div className={classes.editorFramePlaceholder} aria-hidden="true" />
                     </div>
                     <div className={classes.layoutSuggestion}>
                         <span className={classes.suggestionMark}>✦</span>
@@ -337,7 +337,7 @@ export default function Hero() {
             <section className={classes.editorSection}>
                 <div className={classes.editorScreenshot}>
                     <div className={classes.editorCaption}>Edytor CV / A4</div>
-                    <img src="/hero-mockup.png" alt="Edytor CV Studio z narzędziami i dokumentem A4" loading="lazy" />
+                    <div className={classes.editorScreenshotPlaceholder} aria-hidden="true" />
                     <div className={classes.editorPdfBadge}>
                         <CheckIcon />
                         <span><b>Podgląd i PDF</b> korzystają z tej samej geometrii dokumentu.</span>

@@ -343,7 +343,7 @@ Tests:
 
 ### Outcome-focused landing and directed starts
 
-The landing page presents one outcome — an editable PDF-ready CV — and **three** product paths: create from a template, import an existing CV, or design from a blank freeform page, plus a direct “Zobacz edytor” link into a static demo document. It still explains the shared journey, templates, privacy, plans, and assistive AI review.
+The landing page presents one outcome — an editable PDF-ready CV — and **three** product paths: create from a template, import an existing CV, or design from a blank freeform page, plus a direct “Zobacz edytor” link into a static demo document. It still explains the shared journey, templates, privacy, plans, and assistive AI review. The hero editor chrome and the “Po imporcie albo kreatorze” screenshot frame keep their layout placeholders; the outdated product PNGs (`hero-canvas-mockup.png`, `hero-mockup.png`) are no longer shipped.
 
 Landing start intents used in the hero: `start=wizard`, `start=import`, `start=demo`. Legacy deep links `start=templates` and `start=blank` still work in `PdfCanvas` but are no longer offered on the landing. Every intent except `import` routes straight to `/pdfcanvas?start=...` as a guest (`buildStartUrl` in `Hero.jsx`) — see [Guest mode](#guest-mode-editor-without-an-account) below for why. `import` still detours through `/register` (or straight to `/pdfcanvas` if already authenticated) because it calls the paid `POST /ai/extract_cv` endpoint. `PdfCanvas` opens the matching surface once and strips the query param.
 
@@ -1610,7 +1610,7 @@ Testy:
 
 ### Landing skupiony na rezultacie i skierowane starty
 
-Strona główna pokazuje jeden rezultat — edytowalne CV do PDF — oraz **trzy** ścieżki: utwórz z szablonu, importuj CV, projektuj od zera, a dodatkowo bezpośredni link „Zobacz edytor” do statycznego dokumentu demo. Opisuje wspólną drogę, szablony, prywatność, plany i AI jako pomoc (z przeglądem przed zastosowaniem).
+Strona główna pokazuje jeden rezultat — edytowalne CV do PDF — oraz **trzy** ścieżki: utwórz z szablonu, importuj CV, projektuj od zera, a dodatkowo bezpośredni link „Zobacz edytor” do statycznego dokumentu demo. Opisuje wspólną drogę, szablony, prywatność, plany i AI jako pomoc (z przeglądem przed zastosowaniem). Ramki hero i sekcji „Po imporcie albo kreatorze” zostają jako placeholdery layoutu; nieaktualne PNG produktu (`hero-canvas-mockup.png`, `hero-mockup.png`) nie są już dostarczane.
 
 Intencje startu używane na hero: `start=wizard`, `start=import`, `start=demo`. Legacy deep linki `start=templates` i `start=blank` nadal działają w `PdfCanvas`, ale nie są oferowane na landingu. Każda intencja poza `import` prowadzi wprost do `/pdfcanvas?start=...` jako gość (`buildStartUrl` w `Hero.jsx`) — zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta) poniżej. `import` nadal kieruje przez `/register` (albo od razu do `/pdfcanvas`, jeśli użytkownik jest już zalogowany), bo wywołuje płatny `POST /ai/extract_cv`. `PdfCanvas` otwiera właściwą powierzchnię raz i usuwa parametr z URL.
 
