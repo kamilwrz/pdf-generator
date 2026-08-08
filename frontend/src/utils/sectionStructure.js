@@ -312,171 +312,80 @@ function sameColumnAsHeading(headingLeft) {
 }
 
 /**
- * Assign every flow element to exactly one section by reading order.
- *
- * Pure Y-interval membership breaks when two headings stack on a continuation
- * page (Obsługa chrome, then Języki chrome, then Obsługa body): the body falls
- * into the later section and packing emits heading A → heading B → body A.
- *
- * Chrome/marks go to the closest heading. Body lines fill the earliest
- * still-empty section when several headings opened without bodies between them
- * and enough trailing bodies remain; otherwise they stay with the latest
- * heading (so a deliberately empty section does not steal the next body).
- *
- * @param {object[]} elements
- * @param {number} pageHeight
- * @returns {Map<string, Set<string>>} headingId → member element ids
+ * True when an element is section body (not heading / chrome / masthead).
  */
-function partitionSectionMembers(elements, pageHeight) {
+function isSectionBodyElement(element, elements, pageHeight) {
+  if (!element || element.fixedToPage) return false;
+  if (element.flowRole === "masthead") return false;
+  if (isSectionHeading(element, elements, pageHeight)) return false;
+  if (element.flowRole === "section-chrome") return false;
+  if (isChromeLike(element)) return false;
+  return true;
+}
+
+/**
+ * When two headings stack on a continuation page with no body between them,
+ * the later section's Y-interval swallows the earlier body. Move the first
+ * surplus body group (and any chrome closer to the earlier heading) back.
+ *
+ * Only runs when the earlier section is chrome-only and the later one has at
+ * least two bodies — a deliberately empty section with one following body is
+ * left alone.
+ */
+function healStackedSectionBodies(elements, sections, membersByHeading, pageHeight) {
   const list = elements || [];
-  const sections = listDocumentSections(list, pageHeight);
-  const membersByHeading = new Map(
-    sections.map((section) => [section.headingId, new Set([section.headingId])]),
-  );
-  if (sections.length === 0) return membersByHeading;
+  for (let index = 0; index < sections.length - 1; index += 1) {
+    const current = sections[index];
+    const next = sections[index + 1];
+    const heading = list.find((element) => element.element_id === current.headingId);
+    const nextHeading = list.find((element) => element.element_id === next.headingId);
+    if (!heading || !nextHeading) continue;
 
-  const headingById = new Map(
-    sections.map((section) => {
-      const heading = list.find((element) => element.element_id === section.headingId);
-      return [section.headingId, heading];
-    }),
-  );
+    const headingGap = absoluteTop(nextHeading, pageHeight) - absoluteTop(heading, pageHeight);
+    if (headingGap > 48) continue;
 
-  const flow = sortByReadingOrder(
-    list.filter((element) => {
-      if (!element || element.fixedToPage) return false;
-      if (element.flowRole === "masthead") return false;
-      return true;
-    }),
-    pageHeight,
-  );
+    const currentIds = membersByHeading.get(current.headingId);
+    const nextIds = membersByHeading.get(next.headingId);
+    if (!currentIds || !nextIds) continue;
 
-  const openHeadingIds = [];
-  const bodyCountByHeading = new Map(sections.map((section) => [section.headingId, 0]));
+    const currentBodies = [...currentIds]
+      .map((id) => list.find((element) => element.element_id === id))
+      .filter((element) => isSectionBodyElement(element, list, pageHeight));
+    if (currentBodies.length > 0) continue;
 
-  const remainingBodiesFrom = (startIndex) => {
-    let count = 0;
-    for (let index = startIndex; index < flow.length; index += 1) {
-      const element = flow[index];
+    const nextBodies = [...nextIds]
+      .map((id) => list.find((element) => element.element_id === id))
+      .filter((element) => isSectionBodyElement(element, list, pageHeight))
+      .sort((left, right) => absoluteTop(left, pageHeight) - absoluteTop(right, pageHeight));
+    if (nextBodies.length < 2) continue;
+
+    const firstBody = nextBodies[0];
+    const group = typeof firstBody.flowGroup === "string" ? firstBody.flowGroup : null;
+    const movedBodies = group
+      ? nextBodies.filter((element) => element.flowGroup === group)
+      : [firstBody];
+    for (const element of movedBodies) {
+      nextIds.delete(element.element_id);
+      currentIds.add(element.element_id);
+    }
+
+    // Reclaim underline / chip / icon that sit closer to the earlier heading.
+    const headingAbs = absoluteTop(heading, pageHeight);
+    const nextAbs = absoluteTop(nextHeading, pageHeight);
+    for (const id of [...nextIds]) {
+      const element = list.find((item) => item.element_id === id);
+      if (!element || element.element_id === next.headingId) continue;
+      if (!isLeadingSectionMark(element) && element.flowRole !== "section-chrome") {
+        continue;
+      }
       if (isSectionHeading(element, list, pageHeight)) continue;
-      if (isSectionChromeMember(element, list, pageHeight)) continue;
-      const ownerLeft = Number(headingById.get(openHeadingIds[openHeadingIds.length - 1] || "")?.left) || 0;
-      if (!sameColumnAsHeading(ownerLeft)(Number(element.left) || 0)) continue;
-      count += 1;
-    }
-    return count;
-  };
-
-  const closestOpenHeadingId = (element) => {
-    const abs = absoluteTop(element, pageHeight);
-    let bestId = openHeadingIds[openHeadingIds.length - 1];
-    let bestDist = Number.POSITIVE_INFINITY;
-    for (const headingId of openHeadingIds) {
-      const heading = headingById.get(headingId);
-      if (!heading) continue;
-      if (!sameColumnAsHeading(Number(heading.left) || 0)(Number(element.left) || 0)) {
-        continue;
-      }
-      const dist = Math.abs(absoluteTop(heading, pageHeight) - abs);
-      if (dist < bestDist) {
-        bestDist = dist;
-        bestId = headingId;
-      }
-    }
-    return bestId;
-  };
-
-  for (let index = 0; index < flow.length; index += 1) {
-    const element = flow[index];
-    if (isSectionHeading(element, list, pageHeight)) {
-      if (!membersByHeading.has(element.element_id)) continue;
-      openHeadingIds.push(element.element_id);
-      continue;
-    }
-
-    if (openHeadingIds.length === 0) continue;
-
-    if (isSectionChromeMember(element, list, pageHeight)) {
-      const ownerId = closestOpenHeadingId(element);
-      const owner = headingById.get(ownerId);
-      if (!owner) continue;
-      if (!sameColumnAsHeading(Number(owner.left) || 0)(Number(element.left) || 0)) {
-        continue;
-      }
-      // Never let another section's heading id join this membership set.
-      if (
-        isSectionHeading(element, list, pageHeight)
-        && element.element_id !== ownerId
-      ) {
-        continue;
-      }
-      membersByHeading.get(ownerId)?.add(element.element_id);
-      continue;
-    }
-
-    const lastId = openHeadingIds[openHeadingIds.length - 1];
-    const lastHeading = headingById.get(lastId);
-    if (!lastHeading) continue;
-    if (!sameColumnAsHeading(Number(lastHeading.left) || 0)(Number(element.left) || 0)) {
-      continue;
-    }
-
-    const needyIds = openHeadingIds.filter((headingId) => (
-      (bodyCountByHeading.get(headingId) || 0) === 0
-    ));
-    let ownerId = lastId;
-    // Stacked headings (Obsługa then Języki with no body between) + enough
-    // trailing bodies → fill the earliest empty section first.
-    if (needyIds.length >= 2 && remainingBodiesFrom(index) >= needyIds.length) {
-      ownerId = needyIds[0];
-    }
-    membersByHeading.get(ownerId)?.add(element.element_id);
-    bodyCountByHeading.set(ownerId, (bodyCountByHeading.get(ownerId) || 0) + 1);
-  }
-
-  // Pull leading marks that sit just above a heading band (Monument badge /
-  // title frame) even when the walk already passed them with a prior owner.
-  // Wide underlines are excluded — they belong to the heading above them and
-  // must not migrate into the next stacked title's membership.
-  for (const section of sections) {
-    const heading = headingById.get(section.headingId);
-    if (!heading) continue;
-    const isSameColumn = sameColumnAsHeading(Number(heading.left) || 0);
-    const start = section.startAbs;
-    const ids = membersByHeading.get(section.headingId);
-    for (const element of list) {
-      if (!element || element.fixedToPage) continue;
-      if (element.flowRole === "masthead") continue;
-      if (!isSameColumn(Number(element.left) || 0)) continue;
-      if (!isLeadingSectionMark(element)) continue;
-      if (isSectionHeading(element, list, pageHeight)) continue;
-      if (element.category === "line" && (Number(element.width) || 0) >= 120) {
-        continue;
-      }
       const abs = absoluteTop(element, pageHeight);
-      if (abs >= start - 24 && abs < start + 0.01) {
-        // Only claim the mark when this heading is the closest title.
-        let closestId = section.headingId;
-        let closestDist = Math.abs(absoluteTop(heading, pageHeight) - abs);
-        for (const other of sections) {
-          const otherHeading = headingById.get(other.headingId);
-          if (!otherHeading) continue;
-          const dist = Math.abs(absoluteTop(otherHeading, pageHeight) - abs);
-          if (dist < closestDist - 0.01) {
-            closestDist = dist;
-            closestId = other.headingId;
-          }
-        }
-        if (closestId !== section.headingId) continue;
-        for (const [, otherIds] of membersByHeading) {
-          if (otherIds !== ids) otherIds.delete(element.element_id);
-        }
-        ids.add(element.element_id);
+      if (Math.abs(abs - headingAbs) + 0.01 < Math.abs(abs - nextAbs)) {
+        nextIds.delete(id);
+        currentIds.add(id);
       }
     }
   }
-
-  return membersByHeading;
 }
 
 /**
@@ -486,8 +395,59 @@ function partitionSectionMembers(elements, pageHeight) {
  * main-column section) are excluded — see the column-detection doc above.
  */
 export function sectionElementIds(elements, headingId, pageHeight = 842) {
-  const partitioned = partitionSectionMembers(elements, pageHeight);
-  return partitioned.get(headingId) || new Set();
+  const list = elements || [];
+  const sections = listDocumentSections(list, pageHeight);
+  const index = sections.findIndex((section) => section.headingId === headingId);
+  if (index < 0) return new Set();
+
+  // Build every section's membership once so stacked-heading healing can move
+  // bodies between neighbours without a second inconsistent Y sweep.
+  const membersByHeading = new Map(
+    sections.map((section) => [section.headingId, new Set()]),
+  );
+
+  for (let sectionIndex = 0; sectionIndex < sections.length; sectionIndex += 1) {
+    const section = sections[sectionIndex];
+    const start = section.startAbs;
+    const end = sectionIndex + 1 < sections.length
+      ? sections[sectionIndex + 1].startAbs
+      : Number.POSITIVE_INFINITY;
+    const heading = list.find((element) => element.element_id === section.headingId);
+    const isSameColumn = sameColumnAsHeading(Number(heading?.left) || 0);
+    const ids = membersByHeading.get(section.headingId);
+
+    for (const element of list) {
+      if (element.fixedToPage) continue;
+      if (element.flowRole === "masthead") continue;
+      if (!isSameColumn(Number(element.left) || 0)) continue;
+      // Another section's title must never join this strip — that is what made
+      // Volt chips from a later band attach to an earlier heading and explode
+      // chrome relTop across a whole page.
+      if (
+        isSectionHeading(element, list, pageHeight)
+        && element.element_id !== section.headingId
+      ) {
+        continue;
+      }
+
+      const abs = absoluteTop(element, pageHeight);
+      if (abs >= start && abs < end - 0.01) {
+        ids.add(element.element_id);
+        continue;
+      }
+      // Only tagged chrome / small marks may sit slightly above the heading.
+      // Never pull the wide previous-section underline into this band.
+      if (abs >= start - 24 && abs < start && isLeadingSectionMark(element)) {
+        if (element.category === "line" && (Number(element.width) || 0) >= 120) {
+          continue;
+        }
+        ids.add(element.element_id);
+      }
+    }
+  }
+
+  healStackedSectionBodies(list, sections, membersByHeading, pageHeight);
+  return membersByHeading.get(headingId) || new Set();
 }
 
 /**
