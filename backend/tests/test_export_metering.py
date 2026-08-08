@@ -1,8 +1,10 @@
 """Free-plan export quota: three downloads succeed, the fourth is blocked."""
 from __future__ import annotations
 
+import tempfile
 import unittest
 from datetime import datetime, timezone
+from pathlib import Path
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -15,8 +17,9 @@ from app.core.security import verify_token
 from app.crud import user as user_crud
 from app.dependencies import get_db
 from app.main import app
-from app.models.models import Base, Pdf, UsageCounter, User
+from app.models.models import Base, Pdf, PdfElements, UsageCounter, User
 from app.schemas.user_schema import UserCreateRequest
+from app.services import document_service as doc_service
 from app.services import entitlements as ent
 from app.testing_support import ensure_test_auth_env
 
@@ -46,10 +49,17 @@ class ExportMeteringTests(unittest.TestCase):
             username="u1", email="u1@e.pl", password="pw"))
         self.user = self.db.query(User).filter(User.username == "u1").one()
 
+        # Use a writable temp path rather than a hardcoded "/tmp/..." string: the
+        # first download in this test now self-heals the watermark (a fresh row
+        # defaults `watermarked=False` while a Free account requires `True`), so
+        # the local export branch actually writes this file to disk.
+        self.tmpdir = tempfile.mkdtemp()
+        self.file_path = str(Path(self.tmpdir) / "export-cv.pdf")
+
         now = datetime.now(timezone.utc)
         pdf = Pdf(
             title="export-cv",
-            file_path="/tmp/export-cv.pdf",
+            file_path=self.file_path,
             owner_id=self.user.id,
             pages=1,
             page_width=595.0,
@@ -61,6 +71,15 @@ class ExportMeteringTests(unittest.TestCase):
         self.db.commit()
         self.db.refresh(pdf)
         self.pdf_id = pdf.id
+        # Give the self-heal re-render a real element to draw; the metering
+        # contract is unaffected, but this keeps the exercised render path
+        # representative rather than an empty document.
+        self.db.add(PdfElements(
+            pdf_id=self.pdf_id, element_id="e1", category="text", page=1,
+            left=10, top=10, content="hi", fontFamily="Inter", fontSize=12,
+            color="#000000", extra_properties={},
+        ))
+        self.db.commit()
 
         def _override_db():
             yield self.db
@@ -68,6 +87,15 @@ class ExportMeteringTests(unittest.TestCase):
         app.dependency_overrides[get_db] = _override_db
         app.dependency_overrides[verify_token] = lambda: {"sub": "u1"}
         self.client = TestClient(app)
+
+        # Pin the export re-render to the local filesystem branch so this test is
+        # hermetic even when the developer's `.env` sets S3_BUCKET_NAME (which
+        # flips `document_service.USE_S3` to True). Without this the first
+        # download would upload to a real bucket. Mirrors the route-level
+        # `patch(pdf_route.USE_S3, False)` used inside the test body.
+        s3_patch = patch.object(doc_service, "USE_S3", False)
+        s3_patch.start()
+        self.addCleanup(s3_patch.stop)
 
     def tearDown(self):
         app.dependency_overrides.clear()

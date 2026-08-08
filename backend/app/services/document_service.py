@@ -12,6 +12,7 @@ import re
 from os import listdir
 from os.path import isfile, join
 from pathlib import Path
+from types import SimpleNamespace
 
 from fastapi import HTTPException
 from reportlab.pdfgen import canvas
@@ -21,6 +22,7 @@ from app.core.config import BACKEND_URL, PDF_UPLOAD_DIR, USE_S3
 from app.crud.images import request_image_by_id
 from app.crud.pdfs import (
     create_new_pdf,
+    elements_from_rows,
     request_pdf_elements_by_element_id,
     serialize_spacing_px,
     update_pdf_elements,
@@ -195,3 +197,52 @@ def update_pdf_document(db: Session, *, pdf_row, user, username: str, pdf_data) 
     pdf_row.watermarked = watermark
     db.commit()
     return {"updated": "Pomyślnie zaktualizowano plik PDF.", "link": new_file_path, "pdf_id": pdf_row.id}
+
+
+def render_pdf_for_download(db: Session, pdf_row, watermark: bool) -> None:
+    """Re-render ``pdf_row``'s stored file in place, matching ``watermark``.
+
+    Called only when the file's current ``watermarked`` state no longer matches
+    the account's live plan (see ``download_pdf``) — a plan upgrade or downgrade
+    is the only time this runs; an unchanged plan never re-renders on download.
+    This keeps the common download path free of a full ReportLab render.
+
+    The document is rebuilt from persisted ``PdfElements`` rows rather than the
+    live editor state, because a download can happen long after the editor
+    session ended. ``elements_from_rows`` reconstructs full ``PdfElement``
+    objects (runs, bold, connectors, etc.) from the stored rows.
+
+    Side effects:
+    - Local deployments overwrite the file at ``pdf_row.file_path``.
+    - S3 deployments re-upload to the existing key.
+    - Sets ``pdf_row.watermarked = watermark`` on the ORM instance.
+
+    The caller is responsible for committing the session.
+    """
+    rows = request_pdf_elements_by_element_id(db, pdf_row.id)
+    elements = elements_from_rows(list(rows.values()))
+    resolver = make_image_resolver(db)
+    # PDF_Generator / build_pdf_to_buffer read only these fields off the render
+    # data object, so a lightweight namespace stands in for the editor request
+    # schema used by create/update. `pages` defaults to 1 for legacy rows that
+    # predate the column being populated.
+    render_data = SimpleNamespace(
+        page_width=pdf_row.page_width,
+        page_height=pdf_row.page_height,
+        pdf_title=pdf_row.title,
+        pages=pdf_row.pages or 1,
+    )
+
+    if USE_S3:
+        key = s3_storage.key_from_file_path(pdf_row.file_path)
+        pdf_bytes = build_pdf_to_buffer(render_data, elements, resolver, watermark=watermark)
+        s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
+    else:
+        c = canvas.Canvas(
+            pdf_row.file_path, pagesize=(pdf_row.page_width, pdf_row.page_height),
+        )
+        pdf = PDF_Generator(render_data, c)
+        pdf.setTitle(pdf_row.title or "untitled")
+        pdf.render_elements(elements, resolver, pdf_row.pages or 1, watermark=watermark)
+
+    pdf_row.watermarked = watermark

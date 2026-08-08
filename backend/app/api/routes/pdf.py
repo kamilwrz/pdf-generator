@@ -28,8 +28,12 @@ from app.crud.pdfs import (
 
 from app.utils.pdf_file_ops import delete_pdf_file
 from app.core.config import USE_S3
-from app.services.entitlements import assert_can_create_project, assert_can_export, record_export
-from app.services.document_service import create_pdf_document, update_pdf_document
+from app.services.entitlements import (
+    assert_can_create_project, assert_can_export, get_entitlements, record_export,
+)
+from app.services.document_service import (
+    create_pdf_document, update_pdf_document, render_pdf_for_download,
+)
 
 if USE_S3:
     from app.services import s3_storage
@@ -193,8 +197,11 @@ async def download_pdf(
 ):
     """Return a download URL or row for an owned PDF after export entitlement check.
 
-    Side effect: increments the monthly export counter via `record_export`.
-    S3 deployments return a short-lived presigned URL; local returns the Pdf row.
+    Side effects: increments the monthly export counter via `record_export`.
+    Re-renders the stored file in place when its watermark state no longer
+    matches the account's current plan (e.g. right after an upgrade) — an
+    unchanged plan never pays that cost. S3 deployments return a short-lived
+    presigned URL; local returns the Pdf row.
     """
     pdf_row = _require_owned_pdf(db, payload, id)
     username = payload.get("sub")
@@ -202,6 +209,15 @@ async def download_pdf(
     if db_user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
     assert_can_export(db, db_user)
+    # Self-heal a stale export: the stored file was rendered for whatever plan
+    # was active at its last save. If the account's plan changed since then, the
+    # watermark on disk is wrong (a Free->Standard upgrade leaves a watermarked
+    # file; a downgrade leaves a clean one). Re-render only on that mismatch so
+    # the common no-change download stays a cheap row/URL lookup.
+    watermark_required = get_entitlements(db, db_user)["plan_slug"] == "free"
+    if bool(pdf_row.watermarked) != watermark_required:
+        render_pdf_for_download(db, pdf_row, watermark_required)
+        db.commit()
     if USE_S3:
         key = s3_storage.key_from_file_path(pdf_row.file_path)
         download_url = s3_storage.generate_presigned_download_url(key)
