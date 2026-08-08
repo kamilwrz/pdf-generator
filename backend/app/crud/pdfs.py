@@ -122,6 +122,7 @@ def create_new_pdf(
     editor_mode: str = "freeform",
     template_id: str | None = None,
     spacing_px: Mapping[str, Any] | None = None,
+    watermarked: bool = False,
 ) -> int:
     """Insert a Pdf row plus one PdfElements row per canvas element.
 
@@ -140,6 +141,7 @@ def create_new_pdf(
         editor_mode=mode,
         template_id=template_id,
         spacing_px=serialize_spacing_px(spacing_px),
+        watermarked=watermarked,
         created_at=datetime.datetime.now(timezone.utc),
         updated_at=datetime.datetime.now(timezone.utc),
     )

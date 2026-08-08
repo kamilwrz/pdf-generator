@@ -25,6 +25,7 @@ from app.crud.pdfs import (
     serialize_spacing_px,
     update_pdf_elements,
 )
+from app.services.entitlements import get_entitlements
 from app.services.pdf_generator import PDF_Generator
 from app.utils.build_pdf import build_pdf_to_buffer
 from app.utils.image_src_to_path import image_src_to_local_path
@@ -78,6 +79,11 @@ def create_pdf_document(db: Session, *, user, username: str, pdf_data) -> dict:
         raise HTTPException(status_code=400, detail="Brakuje części danych.")
 
     resolver = make_image_resolver(db)
+    # Free-plan accounts get a diagonal watermark stamped onto every rendered
+    # page; Standard/Premium exports stay clean. The plan is read fresh here
+    # (rather than cached on the user object) so an upgrade mid-session takes
+    # effect on the very next save.
+    watermark = get_entitlements(db, user)["plan_slug"] == "free"
 
     if USE_S3:
         key = f"pdfs/{username}/{title}"
@@ -92,7 +98,7 @@ def create_pdf_document(db: Session, *, user, username: str, pdf_data) -> dict:
         except Exception:
             # Listing can fail transiently; proceed and let upload overwrite if needed.
             pass
-        pdf_bytes = build_pdf_to_buffer(pdf_data, elements, resolver)
+        pdf_bytes = build_pdf_to_buffer(pdf_data, elements, resolver, watermark=watermark)
         file_path = s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
         pdf_id = create_new_pdf(
             db, title, user.id, file_path, elements,
@@ -100,6 +106,7 @@ def create_pdf_document(db: Session, *, user, username: str, pdf_data) -> dict:
             getattr(pdf_data, "editor_mode", "freeform"),
             getattr(pdf_data, "template_id", None),
             getattr(pdf_data, "spacing_px", None),
+            watermarked=watermark,
         )
         return {"created": "Utworzono plik PDF.", "link": file_path, "pdf_id": pdf_id}
 
@@ -117,6 +124,7 @@ def create_pdf_document(db: Session, *, user, username: str, pdf_data) -> dict:
         getattr(pdf_data, "editor_mode", "freeform"),
         getattr(pdf_data, "template_id", None),
         getattr(pdf_data, "spacing_px", None),
+        watermarked=watermark,
     )
 
     pdf = PDF_Generator(
@@ -124,7 +132,7 @@ def create_pdf_document(db: Session, *, user, username: str, pdf_data) -> dict:
         canvas.Canvas(str(user_upload_dir / title), pagesize=(pdf_data.page_width, pdf_data.page_height)),
     )
     pdf.setTitle(title)
-    pdf.render_elements(elements, resolver, pdf_data.pages)
+    pdf.render_elements(elements, resolver, pdf_data.pages, watermark=watermark)
 
     return {
         "created": "Utworzono plik PDF.",
@@ -133,16 +141,21 @@ def create_pdf_document(db: Session, *, user, username: str, pdf_data) -> dict:
     }
 
 
-def update_pdf_document(db: Session, *, pdf_row, username: str, pdf_data) -> dict:
+def update_pdf_document(db: Session, *, pdf_row, user, username: str, pdf_data) -> dict:
     """Regenerate the downloadable PDF and sync PdfElements for an owned row."""
     elements = pdf_data.root
     title = pdf_data.pdf_title
     pdf_id = pdf_data.pdf_id
     resolver = make_image_resolver(db)
+    # Re-derive the watermark flag from the account's CURRENT plan on every
+    # update, not just at creation time — a Free-plan document must regain the
+    # watermark on save even if it was first created while on a paid plan
+    # (e.g. after a downgrade), and a paid-plan resave must clear it.
+    watermark = get_entitlements(db, user)["plan_slug"] == "free"
 
     if USE_S3:
         key = f"pdfs/{username}/{title}"
-        pdf_bytes = build_pdf_to_buffer(pdf_data, elements, resolver)
+        pdf_bytes = build_pdf_to_buffer(pdf_data, elements, resolver, watermark=watermark)
         s3_storage.upload_bytes(key, pdf_bytes, content_type="application/pdf")
         pdf_row.title = title
         pdf_row.pages = pdf_data.pages
@@ -156,6 +169,7 @@ def update_pdf_document(db: Session, *, pdf_row, username: str, pdf_data) -> dic
         pdf_row.file_path = (
             f"https://{s3_storage.S3_BUCKET}.s3.{s3_storage.AWS_REGION}.amazonaws.com/{key}"
         )
+        pdf_row.watermarked = watermark
         link = pdf_row.file_path
         existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
         update_pdf_elements(db, elements, existing_by_id, pdf_id)
@@ -177,6 +191,7 @@ def update_pdf_document(db: Session, *, pdf_row, username: str, pdf_data) -> dic
     c = canvas.Canvas(new_file_path, pagesize=(pdf_data.page_width, pdf_data.page_height))
     pdf = PDF_Generator(pdf_data, c)
     pdf.setTitle(pdf_row.title or "untitled")
-    pdf.render_elements(elements, resolver, pdf_data.pages)
+    pdf.render_elements(elements, resolver, pdf_data.pages, watermark=watermark)
+    pdf_row.watermarked = watermark
     db.commit()
     return {"updated": "Pomyślnie zaktualizowano plik PDF.", "link": new_file_path, "pdf_id": pdf_row.id}

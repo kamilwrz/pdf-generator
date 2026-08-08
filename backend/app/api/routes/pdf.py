@@ -147,8 +147,11 @@ async def update_user_pdf(
     to the authoritative client list (including deletions).
     """
     username = payload.get("sub")
+    db_user = get_user_by_username(db, username=username)
+    if db_user is None:
+        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
     pdf_row = _require_owned_pdf(db, payload, pdf_data.pdf_id)
-    return update_pdf_document(db, pdf_row=pdf_row, username=username, pdf_data=pdf_data)
+    return update_pdf_document(db, pdf_row=pdf_row, user=db_user, username=username, pdf_data=pdf_data)
 
 
 @router.put("/save_elements", status_code=status.HTTP_200_OK)
