@@ -43,6 +43,13 @@ import {
   unionRects,
 } from "../../../utils/floatingPanelPosition";
 import { CANVAS_FONT_STACKS } from "../../../utils/canvasFont";
+import {
+  getSelectionOffsets,
+  runsToHtml,
+  serializeEditable,
+  setSelectionOffsets,
+} from "../../../utils/editableSerialize";
+import { hasRuns, normalizeRuns, runsToPerChar } from "../../../utils/textRuns";
 
 const FONT_PREVIEW = CANVAS_FONT_STACKS;
 
@@ -199,35 +206,72 @@ export default function Editor() {
 
   function insertBulletAtCurrentLine() {
     const el = document.getElementById(selectedElement.element_id);
-    if (!el || typeof el.selectionStart !== "number") return;
-    const start = el.selectionStart;
-    const value = el.value;
-    const lineStart = value.lastIndexOf("\n", start - 1) + 1;
-    const lineEnd = value.indexOf("\n", start);
-    const line = value.slice(lineStart, lineEnd === -1 ? value.length : lineEnd);
+    if (!el?.isContentEditable) return;
+
+    // Read from the live edit surface — while editing, the DOM is authoritative
+    // and React will not re-seed children from store updates.
+    const serialized = serializeEditable(el);
+    const content = serialized.content;
+    const selection = getSelectionOffsets(el);
+    const caret = selection?.start ?? content.length;
+    const lineStart = content.lastIndexOf("\n", caret - 1) + 1;
+    const lineEndIdx = content.indexOf("\n", caret);
+    const lineEnd = lineEndIdx === -1 ? content.length : lineEndIdx;
+    const line = content.slice(lineStart, lineEnd);
     if (line.trimStart().startsWith("•")) return;
-    const leadingWhitespace = line.match(/^\s*/)[0].length;
+
+    // Locate the body start after any existing bullet prefix / leading spaces
+    // so inline runs stay aligned when "• " is prepended.
+    const withoutBullet = line.replace(BULLET_PREFIX_PATTERN, "");
+    const leadWs = (withoutBullet.match(/^\s*/) || [""])[0].length;
+    const bodyStart = lineStart + (line.length - withoutBullet.length) + leadWs;
     const newLine = canonicalBulletLine(line);
-    const newValue = value.slice(0, lineStart) + newLine + value.slice(lineStart + line.length);
-    editElementValues({ content: newValue }, selectedElement.element_id);
-    const cursorPos = lineStart + 2 + Math.max(0, start - lineStart - leadingWhitespace);
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(cursorPos, cursorPos);
-    });
+    const newContent = content.slice(0, lineStart) + newLine + content.slice(lineEnd);
+
+    // Rebuild runs: bullet marker is unstyled; body keeps its previous marks.
+    const perChar = runsToPerChar(content, serialized.runs);
+    const nextPerChar = [
+      ...perChar.slice(0, lineStart),
+      null,
+      null,
+      ...perChar.slice(bodyStart, lineEnd),
+      ...perChar.slice(lineEnd),
+    ];
+    const rawRuns = [];
+    for (let i = 0; i < nextPerChar.length; i += 1) {
+      const marks = nextPerChar[i];
+      if (!marks) continue;
+      rawRuns.push({ start: i, end: i + 1, ...marks });
+    }
+    const nextRuns = normalizeRuns(newContent, rawRuns);
+
+    if (hasRuns(nextRuns)) {
+      el.innerHTML = runsToHtml(newContent, nextRuns);
+    } else {
+      el.textContent = newContent;
+    }
+    const cursorPos = lineStart + 2 + Math.max(0, caret - bodyStart);
+    setSelectionOffsets(el, cursorPos, cursorPos);
+    // Let Textarea.commitEditable persist content/runs + remeasure height.
+    el.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
   function toggleBulletList() {
     const turningOn = !selectedElement.bulletList;
     const content = selectedElement.content ?? "";
-    const newContent = content
-      .split("\n")
-      .map((line) => {
-        if (turningOn) {
-          if (line.trim() === "") return line;
-          return canonicalBulletLine(line);
-        }
-        return line.replace(BULLET_PREFIX_PATTERN, "");
+    const lines = content.split("\n");
+    // When enabling bullets on a box that already has a blank paragraph,
+    // treat lines above the first blank as intro/heading and only bullet the
+    // listed points below — matches regular sections like "Języki" + items.
+    const firstBlank = turningOn
+      ? lines.findIndex((line) => line.trim() === "")
+      : -1;
+    const newContent = lines
+      .map((line, index) => {
+        if (!turningOn) return line.replace(BULLET_PREFIX_PATTERN, "");
+        if (line.trim() === "") return line;
+        if (firstBlank >= 0 && index < firstBlank) return line;
+        return canonicalBulletLine(line);
       })
       .join("\n");
     editElementValues({ bulletList: turningOn, content: newContent }, selectedElement.element_id);

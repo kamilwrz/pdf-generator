@@ -1,8 +1,9 @@
 /**
  * Multi-line textarea block with optional auto-height and bullet layout.
  * Edit mode uses a contentEditable surface; display mode mirrors PDF wrap
- * metrics. Trailing blank / bare-bullet rows are trimmed so they cannot
- * inflate measured height or section rhythm. `fixedToPage` is inert chrome.
+ * metrics. Trailing blank / bare-bullet rows are trimmed on blur / display so
+ * they cannot inflate measured height or section rhythm; blank paragraphs
+ * between real content are kept. `fixedToPage` is inert chrome.
  */
 import classes from "./Textarea.module.css";
 import { memo, useLayoutEffect, useRef, useState } from "react";
@@ -19,7 +20,12 @@ import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
 import { canvasFontFamily } from "../../../utils/canvasFont";
 import { hasRuns, sliceRuns } from "../../../utils/textRuns";
 import { renderStyledText } from "../../../utils/renderStyledText";
-import { runsToHtml, serializeEditable } from "../../../utils/editableSerialize";
+import {
+    getSelectionOffsets,
+    runsToHtml,
+    serializeEditable,
+    setSelectionOffsets,
+} from "../../../utils/editableSerialize";
 import InlineFormatToolbar from "../InlineFormatToolbar/InlineFormatToolbar";
 import {
     endTextSpacingHold,
@@ -47,6 +53,12 @@ function renderBulletLines(content, runs) {
 
         const bulletMatch = line.match(/^\s*•[ \t]*/);
         if (!bulletMatch) {
+            // Intentional blank paragraphs (e.g. between a heading line and a
+            // following bullet group) must keep one line box. An empty <div>
+            // collapses to 0 height and eats the gap the user typed.
+            if (line.length === 0) {
+                return <div key={i}>{"\u00A0"}</div>;
+            }
             const lineRuns = sliceRuns(runs, lineStart, lineStart + line.length);
             return <div key={i}>{renderStyledText(line, lineRuns)}</div>;
         }
@@ -354,40 +366,34 @@ function Textarea({
         // height in sync. Extracted so both typing and toolbar mark changes
         // (which can shift wrap width) run the identical measure + commit path.
         //
-        // Trailing empties: while typing keep at most one blank row (room for
-        // the next bullet after Enter). On blur drop every trailing empty so
-        // stored height matches visible copy.
+        // Trailing empties: while typing, keep them so Enter can open a blank
+        // paragraph (and a second bullet group under a heading line). On blur,
+        // drop only trailing empties — mid-content blank lines stay — so
+        // stored height matches visible copy and section rhythm is preserved.
         const commitEditable = (node, { finalize = false } = {}) => {
             const serialized = serializeEditable(node);
-            const { content: nextContent, runs: nextRuns } = trimTrailingEmptyTextareaPayload(
-                serialized.content,
-                serialized.runs,
-                {
-                    bulletList: !!bulletList,
-                    keepTrailingEmptyLines: finalize ? 0 : 1,
-                },
-            );
+            const { content: nextContent, runs: nextRuns } = finalize
+                ? trimTrailingEmptyTextareaPayload(
+                    serialized.content,
+                    serialized.runs,
+                    { bulletList: !!bulletList },
+                )
+                : { content: serialized.content, runs: serialized.runs };
 
-            // Collapse surplus trailing empties in the live DOM so the caret
-            // cannot sit below the measured (trimmed) height with overflow hidden.
-            if (nextContent !== serialized.content) {
+            // On blur, collapse trailing empties in the live DOM before exit so
+            // the last paint matches the stored (trimmed) height. Mid-edit we
+            // never rewrite the DOM here — that used to steal caret position
+            // and made a second Enter feel like a no-op.
+            if (finalize && nextContent !== serialized.content) {
                 if (hasRuns(nextRuns)) {
                     node.innerHTML = runsToHtml(nextContent, nextRuns);
                 } else {
                     node.textContent = nextContent;
                 }
-                const selection = window.getSelection();
-                if (selection) {
-                    const range = document.createRange();
-                    range.selectNodeContents(node);
-                    range.collapse(false);
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-                }
             }
 
-            // Measure from the serialized/trimmed content, not the live editable
-            // DOM, so browser-inserted block wrappers cannot inflate height.
+            // Measure from the serialized content, not the live editable DOM,
+            // so browser-inserted block wrappers cannot inflate height.
             const measuredHeight = measureEditableContentHeight(node, nextContent, nextRuns);
             node.style.height = `${measuredHeight}px`;
             if (autoHeight) {
@@ -449,8 +455,35 @@ function Textarea({
                         // flat "\n"-only structure keeps the edit surface as reliable
                         // to measure as the former <textarea>. insertText fires a
                         // native input event, so commitEditable still runs.
+                        //
+                        // Bullet lists: Enter after a filled item continues with
+                        // "• "; Enter on a bare "•" clears the marker into a blank
+                        // paragraph so the user can start a new non-list block
+                        // (e.g. a heading line above another bullet group).
                         if (e.key === "Enter") {
                             e.preventDefault();
+                            if (!bulletList) {
+                                document.execCommand("insertText", false, "\n");
+                                return;
+                            }
+                            const node = e.currentTarget;
+                            const { content: liveContent } = serializeEditable(node);
+                            const selection = getSelectionOffsets(node);
+                            const caret = selection?.start ?? liveContent.length;
+                            const lineStart = liveContent.lastIndexOf("\n", caret - 1) + 1;
+                            const lineEndIdx = liveContent.indexOf("\n", caret);
+                            const lineEnd = lineEndIdx === -1 ? liveContent.length : lineEndIdx;
+                            const line = liveContent.slice(lineStart, lineEnd);
+                            if (/^\s*•\s*$/.test(line)) {
+                                const marker = line.match(/^\s*•[ \t]*/)?.[0] ?? "";
+                                setSelectionOffsets(node, lineStart, lineStart + marker.length);
+                                document.execCommand("insertText", false, "");
+                                return;
+                            }
+                            if (/^\s*•/.test(line)) {
+                                document.execCommand("insertText", false, "\n• ");
+                                return;
+                            }
                             document.execCommand("insertText", false, "\n");
                         }
                     }}

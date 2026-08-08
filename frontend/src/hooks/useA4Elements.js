@@ -190,12 +190,15 @@ export function useA4Elements(titleRef) {
   useEffect(() => { elementsRef.current = A4_Elements; }, [A4_Elements]);
   // Strip NULL/NBSP junk and trailing empty textarea rows already sitting in
   // open documents (loaded before sanitization existed, or left after edit).
+  // Skip the element currently being edited — live typing keeps trailing
+  // blanks so Enter can open a new paragraph; Textarea trims them on blur.
   // One pass; clean state is a no-op.
   useEffect(() => {
     const needsScrub = A4_Elements.some((element) => {
       if (
         (element.category !== "text" && element.category !== "textarea")
         || element.content == null
+        || element.isEditing
       ) {
         return false;
       }
@@ -215,6 +218,7 @@ export function useA4Elements(titleRef) {
       if (
         (element.category !== "text" && element.category !== "textarea")
         || element.content == null
+        || element.isEditing
       ) {
         return element;
       }

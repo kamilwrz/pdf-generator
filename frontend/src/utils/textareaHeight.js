@@ -25,6 +25,9 @@ export function isEmptyTextareaLine(line, bulletList = false) {
  * outline and the display box grew past the visible copy and broke section
  * rhythm after reflow.
  *
+ * Only *trailing* empties are removed. Blank lines between real content
+ * (paragraph breaks, a heading line above a bullet group) are preserved.
+ *
  * @param {string|null|undefined} content
  * @param {{ bulletList?: boolean, keepTrailingEmptyLines?: number }} [options]
  * @returns {string}

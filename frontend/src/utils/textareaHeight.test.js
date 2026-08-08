@@ -56,6 +56,21 @@ test("trims trailing empties from plain textareas without touching mid gaps", ()
   );
 });
 
+test("preserves blank paragraphs between a heading line and a bullet group", () => {
+  assert.equal(
+    trimTrailingEmptyTextareaLines("Języki\n\n• Polski\n• Angielski\n\n", {
+      bulletList: true,
+    }),
+    "Języki\n\n• Polski\n• Angielski",
+  );
+  assert.equal(
+    trimTrailingEmptyTextareaLines("Intro\n\n• one\n\n• two\n• three", {
+      bulletList: true,
+    }),
+    "Intro\n\n• one\n\n• two\n• three",
+  );
+});
+
 test("re-bases runs when trailing empties are removed", () => {
   const runs = [{ start: 0, end: 3, bold: true }, { start: 10, end: 12, italic: true }];
   const result = trimTrailingEmptyTextareaPayload("abc\n\n\n", runs);

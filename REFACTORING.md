@@ -12,7 +12,7 @@ FIXED b) Po zalogowaniu, jako inny uzytkownik generowane jest CV stworzone w gue
 FIXED c) zacznij od zera - uzyj wlasnych danych - powrot, powoduje znikniecie tego "mode"
 d) po kliknieciu na "stworz cv od poczatku" w sekcji 1, zamkniecie kreatora wywala uzytkownika do freeform, bez informacji. Zamkniecie kreatora, powinno przekierowywac do sekcji 1
 e) Po zaladowaniu CV przez wizarda, dane sie kasuja z local storage. Powinny byc w wizzardzie, w razie jakby uzytkownik chcial wygenerowac zmodyfikowane CV
-f) Bulletlist - Textarea - nie radzi sobie z empty space. Zapamietuje w edycji. Poza edycja zaburza wysokosc uwzgledniajac content hight (niby DONE, ale teraz nie mozna dawac empty space'ow)
+FIXED f) Bulletlist - Textarea - nie radzi sobie z empty space. Zapamietuje w edycji. Poza edycja zaburza wysokosc uwzgledniajac content hight (niby DONE, ale teraz nie mozna dawac empty space'ow) — przywrócono puste akapity w edycji; trim tylko trailing na blur/display
 g) Przykladow CV nie trzyma rytmu przy wklejaniu recordow/ Sekcji nie da rady wkleic
 
 3. KWESTIE DO ZMIANY / POPRAWY / IMPLEMENTACJI
@@ -41,5 +41,6 @@ DONE 10) Uzytkownika zawsze ma zaczynac od zooma 130% nie 100%
 11) SZABLONY - LANDING PAGE - zmienic na CV WIZZARD? SZABLONY - nei dziala rytm....
 12) Zwiekszyc roznorodnosc layoutu sekcji / podobnie jak w enhancecv
 DONE 13) Scroll - Page Change
+13) Po zmianie parametrow SPACE_ przez Sekcje, wartosci przy zmianie szablonu sie nie resetuja. Maja sie resetowac
 
 4. AI - zastanowic sie i zmodyfikowac / reImplement
