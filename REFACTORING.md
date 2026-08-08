@@ -38,10 +38,10 @@ DONE 6) nie pokazywac wartosci do edycji w panelu, jezeli nie ma to wplywu (+ br
 8) Dodac: Firma . Okres > Firma . Miejsce.  Okres; to samo z edu
 DONE 9) masthead / ikony / dekoracje nie ruszaja sie w edycji strukturalnej (canFreePosition + tagging)
 DONE 10) Uzytkownika zawsze ma zaczynac od zooma 130% nie 100%
-11) SZABLONY - LANDING PAGE - zmienic na CV WIZZARD? SZABLONY - nei dziala rytm....
+DONE 11) SZABLONY - LANDING PAGE - zmienic na CV WIZZARD? SZABLONY - nei dziala rytm....
 12) Zwiekszyc roznorodnosc layoutu sekcji / podobnie jak w enhancecv
 DONE 13) Scroll - Page Change
 14) Po zmianie parametrow SPACE_ przez Sekcje, wartosci przy zmianie szablonu sie nie resetuja. Maja sie resetowac
-niby DONE 15) Dane uzytkownika w CV WIZZARD powinny przetrwac do WIZARDA po Rejestracji i Logowaniu - (P) GENERUJE CV, a moze powinien poprostu wczytac dane JSON do CANVAS?
+DONE 15) Dane uzytkownika w CV WIZZARD powinny przetrwac do WIZARDA po Rejestracji i Logowaniu - (P) GENERUJE CV, a moze powinien poprostu wczytac dane JSON do CANVAS?
 
 4. AI - zastanowic sie i zmodyfikowac / reImplement

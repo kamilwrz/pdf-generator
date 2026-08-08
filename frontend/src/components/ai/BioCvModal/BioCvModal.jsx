@@ -27,6 +27,7 @@ import {
     loadGuestWizardDraft,
     saveGuestWizardDraft,
 } from "../../../utils/guestWizardDraft";
+import { loadGuestDocument, saveGuestDocument } from "../../../utils/guestDocument";
 import { createSerialSaveQueue } from "../../../utils/serialSaveQueue";
 import {
     applyBioCvDraftUpdate,
@@ -654,6 +655,19 @@ export default function BioCvModal() {
                     profile: payload,
                     selectedTemplateId: template.id,
                 });
+                // Persist cvData immediately (do not wait for the 2s canvas
+                // autosave). Register/login remounts PdfCanvas and would
+                // otherwise leave "Zmień szablon" disabled until claim can
+                // rebuild activeCvData from this snapshot / wizard / API.
+                const guestDoc = loadGuestDocument();
+                if (guestDoc && Array.isArray(guestDoc.elements)) {
+                    saveGuestDocument({
+                        ...guestDoc,
+                        cvData: payload,
+                        templateId: template.id,
+                        updatedAt: Date.now(),
+                    });
+                }
             }
             // Toggle closes the wizard after a successful fill (see PdfCanvas).
             showBioCvModal();

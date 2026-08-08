@@ -41,6 +41,7 @@ import { saveGuestDocument, loadGuestDocument, clearGuestDocument } from '../uti
 import { queueGuestEvent, loadGuestEvents, clearGuestEvents } from '../utils/guestEvents';
 import { hasGuestWizardDraft } from '../utils/guestWizardDraft';
 import { adoptGuestWizardDraftForAccount } from '../utils/claimGuestWizardDraft';
+import { resolveActiveCvData } from '../utils/resolveActiveCvData';
 import { previewStructureOperation } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
 import { planErrorMessage } from '../utils/entitlements';
@@ -532,6 +533,8 @@ function PdfCanvas() {
   const [isDemoContent, setIsDemoContent] = useState(startIntent === "demo");
   const isDemoContentRef = useRef(isDemoContent);
   isDemoContentRef.current = isDemoContent;
+  const activeCvDataRef = useRef(activeCvData);
+  activeCvDataRef.current = activeCvData;
   const guestFirstEditLoggedRef = useRef(false);
   const guestEditorOpenedLoggedRef = useRef(false);
   useEffect(() => {
@@ -557,6 +560,9 @@ function PdfCanvas() {
         templateId: activeTemplateId,
         spacingPx: flowSpacing,
         isDemoContent: isDemoContentRef.current,
+        // Keep wizard/import profile next to the canvas JSON so "Zmień szablon"
+        // can be re-enabled after register/login (React state does not survive).
+        cvData: activeCvDataRef.current,
         updatedAt: Date.now(),
       });
       if (!guestFirstEditLoggedRef.current) {
@@ -569,6 +575,7 @@ function PdfCanvas() {
   }, [
     A4_Elements,
     A4_Elements_deleted,
+    activeCvData,
     activeTemplateId,
     editorMode,
     flowSpacing,
@@ -1030,7 +1037,6 @@ function PdfCanvas() {
 
     // Unsaved editor document: authenticated autosave waits for a real pdfId.
     setPdfId(null);
-    setActiveCvData(null);
     setA4_Elements(guestDoc.elements);
     setA4_Elements_deleted([]);
     resetHistory();
@@ -1046,6 +1052,21 @@ function PdfCanvas() {
     }
     setIsDemoContent(Boolean(guestDoc.isDemoContent));
     clearGuestDocument();
+
+    // Re-enable Topbar "Zmień szablon": fill set `activeCvData` in the guest
+    // session, but register/login remounts PdfCanvas and drops that state.
+    // Rebuild from guest snapshot → wizard draft → account bio draft.
+    const token = localStorage.getItem("token");
+    resolveActiveCvData({
+      guestCvData: guestDoc.cvData,
+      api: token
+        ? new ApiClient({ Authorization: `Bearer ${token}` })
+        : null,
+    }).then((cvData) => {
+      setActiveCvData(cvData);
+    }).catch(() => {
+      setActiveCvData(null);
+    });
 
     pushToast({
       title: "Szkic wczytany",

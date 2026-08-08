@@ -19,8 +19,13 @@ const STORAGE_KEY = "cvstudio.guest.doc";
  *   templateId: string|null,
  *   spacingPx: object|null,
  *   isDemoContent: boolean,
+ *   cvData?: object|null,
  *   updatedAt: number,
  * }} snapshot
+ *
+ * `cvData` is the structured bio/wizard profile used by Topbar
+ * "Zmień szablon" (`activeCvData`). Persisting it here survives the
+ * register/login navigation that otherwise clears React state.
  */
 export function saveGuestDocument(snapshot) {
   try {
