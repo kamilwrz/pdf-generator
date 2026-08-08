@@ -40,6 +40,6 @@ DONE 9) masthead / ikony / dekoracje nie ruszaja sie w edycji strukturalnej (can
 DONE 10) Uzytkownika zawsze ma zaczynac od zooma 130% nie 100%
 11) SZABLONY - LANDING PAGE - zmienic na CV WIZZARD? SZABLONY - nei dziala rytm....
 12) Zwiekszyc roznorodnosc layoutu sekcji / podobnie jak w enhancecv
-13) Scroll - Page Change
+DONE 13) Scroll - Page Change
 
 4. AI - zastanowic sie i zmodyfikowac / reImplement

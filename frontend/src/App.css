@@ -36,13 +36,68 @@
  }
 
  /* The A4 lives here and scrolls INSIDE this area (not the page) when taller
-    than the viewport. */
+    than the viewport. Custom scrollbar is scoped here only — a cool-ink track
+    with a navy thumb and a gold leading edge so the rail reads as editor chrome,
+    not a browser default. */
  .canvas-area {
     flex: 1;
     min-width: 0;
     min-height: 0;
     overflow: auto;
     padding: 8px 0;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: #2F5F8F #D8DEE7;
+ }
+
+ .canvas-area::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+ }
+
+ .canvas-area::-webkit-scrollbar-track {
+    margin: 10px 0;
+    background:
+      linear-gradient(180deg, rgba(47, 95, 143, .06), rgba(26, 36, 51, .04)),
+      #E4E9F0;
+    border-left: 1px solid rgba(26, 36, 51, .08);
+    box-shadow: inset 1px 0 0 rgba(255, 255, 255, .55);
+ }
+
+ .canvas-area::-webkit-scrollbar-thumb {
+    /* Gold rail on the inner edge + navy fill; 2px transparent border creates
+       a gutter against the track without shrinking the hit target too far. */
+    background: linear-gradient(180deg, #3A6FA3 0%, #2F5F8F 45%, #1F456C 100%);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    border-radius: 3px;
+    box-shadow:
+      inset 3px 0 0 #B8954A,
+      inset 0 1px 0 rgba(255, 255, 255, .2),
+      0 1px 2px rgba(26, 36, 51, .18);
+    min-height: 48px;
+ }
+
+ .canvas-area::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #4A7FB5 0%, #2F5F8F 42%, #183652 100%);
+    background-clip: padding-box;
+    box-shadow:
+      inset 3px 0 0 #C9A65A,
+      inset 0 1px 0 rgba(255, 255, 255, .28),
+      0 0 0 1px rgba(184, 149, 74, .4),
+      0 4px 12px -4px rgba(47, 95, 143, .45);
+ }
+
+ .canvas-area::-webkit-scrollbar-thumb:active {
+    background: linear-gradient(180deg, #1F456C 0%, #16324F 100%);
+    background-clip: padding-box;
+    box-shadow:
+      inset 3px 0 0 #B8954A,
+      inset 0 0 0 1px rgba(26, 36, 51, .25);
+ }
+
+ .canvas-area::-webkit-scrollbar-corner {
+    background: transparent;
  }
 
 .canvas-single {
