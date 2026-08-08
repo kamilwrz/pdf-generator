@@ -346,6 +346,42 @@
       "default": null,
       "title": "Alignwithtext"
     },
+    "id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Id"
+    },
+    "photoSlot": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Photoslot"
+    },
+    "photoShape": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Photoshape"
+    },
     "fixedToPage": {
       "anyOf": [
         {
