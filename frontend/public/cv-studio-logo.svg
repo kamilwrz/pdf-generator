@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="245" height="72" viewBox="0 0 245 72" role="img" aria-labelledby="title description">
   <title id="title">CV Studio</title>
-  <desc id="description">Blue document mark with the CV Studio wordmark.</desc>
-  <g fill="#2F5F8F">
+  <desc id="description">Black document mark with the CV Studio wordmark and a gold underline.</desc>
+  <g fill="#171717">
     <path d="M7 14.5C7 8.7 11.7 4 17.5 4h27.2L65 24.3v31.2C65 61.3 60.3 66 54.5 66h-37C11.7 66 7 61.3 7 55.5v-41Z"/>
-    <path d="M44.7 4v14.8c0 3.1 2.5 5.5 5.5 5.5H65L44.7 4Z" fill="#1F456C"/>
+    <path d="M44.7 4v14.8c0 3.1 2.5 5.5 5.5 5.5H65L44.7 4Z" fill="#000000"/>
   </g>
   <path d="M20 30.5c0-3.6 2.9-6.5 6.5-6.5h9.7c1.7 0 3 1.3 3 3s-1.3 3-3 3h-9.7a.5.5 0 0 0-.5.5v9c0 .3.2.5.5.5h9.7c1.7 0 3 1.3 3 3s-1.3 3-3 3h-9.7a6.5 6.5 0 0 1-6.5-6.5v-9Z" fill="#FFFFFF"/>
   <path d="m45.1 29.2 4 13.1c.5 1.7-.4 3.5-2.1 4-1.6.5-3.4-.4-3.9-2.1L40 34.1l-3.1 10.1c-.5 1.7-2.3 2.6-3.9 2.1-1.7-.5-2.6-2.3-2.1-4l4-13.1a5.5 5.5 0 0 1 10.2 0Z" fill="#FFFFFF"/>
-  <g fill="#2F5F8F" font-family="Montserrat, Avenir Next, Segoe UI, sans-serif">
+  <g fill="#171717" font-family="Montserrat, Avenir Next, Segoe UI, sans-serif">
     <text x="85" y="31" font-size="18" font-weight="700" letter-spacing="5.2">CV</text>
     <text x="84" y="55" font-size="27" font-weight="700" letter-spacing="1.8">STUDIO</text>
   </g>
-  <path d="M86 64h150" stroke="#2F5F8F" stroke-width="2" stroke-linecap="round"/>
+  <path d="M86 64h150" stroke="#B8954A" stroke-width="2" stroke-linecap="round"/>
 </svg>

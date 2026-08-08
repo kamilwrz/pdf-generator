@@ -432,9 +432,7 @@ Limitations:
 
 ### Brand logo
 
-The application uses a transparent SVG brand system. The full logo combines a folded-document CV monogram with the **CV STUDIO** wordmark in Montserrat (with browser-safe sans-serif fallbacks), so it remains legible on the white landing header and warm-paper authentication screens. A compact version of the same mark is used where a wordmark would not fit: the editor tool rail and browser favicon.
-
-Known limitation: the SVG mark files (`cv-studio-logo.svg`, `cv-studio-mark.svg`) still render in the older navy-blue accent (`#2F5F8F`) and were not recoloured as part of the Quiet Luxury palette pass below — recolouring the mark itself is a brand-asset edit, not a CSS token change, and is tracked separately.
+The application uses a transparent SVG brand system in the same black accent as primary actions (`#171717`), with a gold (`#B8954A`) underline beneath the wordmark in the full logo. The full logo combines a folded-document CV monogram with the **CV STUDIO** wordmark in Montserrat (with browser-safe sans-serif fallbacks), so it remains legible on the white landing header and warm-paper authentication screens. A compact version of the same mark is used where a wordmark would not fit: the editor tool rail and browser favicon.
 
 Implementation:
 
@@ -470,7 +468,7 @@ Implementation:
 - `frontend/src/index.css`, lines 1–77, root palette tokens (surfaces, chrome, accent, gold, text, shadows)
 - `frontend/src/App.css`, lines 5–18 (ambient background gradients) and lines 38–97 (canvas scrollbar) — warm-white application background with gold and black ambient gradients, and a black-to-gold canvas scrollbar
 - `frontend/src/pages/Hero/Hero.module.css`, `Login.module.css`, `Register.module.css` — page-local tokens remapped to the same white/black/gold system
-- `frontend/public/cv-studio-logo.svg`, `cv-studio-mark.svg` — brand mark; still navy blue, not yet recoloured (see "Brand logo" above)
+- `frontend/public/cv-studio-logo.svg`, `cv-studio-mark.svg` — brand mark recoloured to black, with a gold underline on the full wordmark logo
 - `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.module.css` — already fully tokenised via `index.css`, recolours automatically
 - `frontend/src/components/common/Spinner/Spinner.module.css` — frosted overlay with a gold ambient glow and export-status card
 - `frontend/src/components/canvas/InlineFormatToolbar/InlineFormatToolbar.jsx`, line 28 — the CV text-colour picker's default swatch was updated to match the new ink token (`#171717`); its other five swatches (navy, gold, green, red, light blue) are independent colour choices for the user's own document content and were intentionally left unchanged
@@ -1708,9 +1706,7 @@ Ograniczenia:
 
 ### Logo marki
 
-Aplikacja używa przezroczystego systemu logo SVG. Pełne logo łączy monogram CV w formie zagiętego dokumentu z napisem **CV STUDIO** w Montserrat (oraz bezpiecznymi fontami zastępczymi), dlatego pozostaje czytelne na białym nagłówku strony głównej i ciepłym papierowym tle ekranów uwierzytelniania. Krótsza wersja tego samego znaku działa tam, gdzie napis nie zmieściłby się dobrze: w pasku narzędzi edytora oraz jako favicon.
-
-Znane ograniczenie: pliki znaku SVG (`cv-studio-logo.svg`, `cv-studio-mark.svg`) nadal renderują się w dawnym granatowo-niebieskim akcencie (`#2F5F8F`) i nie zostały przekolorowane w ramach poniższej zmiany palety „Quiet Luxury” — przekolorowanie samego znaku to edycja zasobu marki, a nie zmiana tokenu CSS, i jest śledzone osobno.
+Aplikacja używa przezroczystego systemu logo SVG w tym samym czarnym akcencie co przyciski główne (`#171717`), ze złotym (`#B8954A`) podkreśleniem pod napisem w pełnym logo. Pełne logo łączy monogram CV w formie zagiętego dokumentu z napisem **CV STUDIO** w Montserrat (oraz bezpiecznymi fontami zastępczymi), dlatego pozostaje czytelne na białym nagłówku strony głównej i ciepłym papierowym tle ekranów uwierzytelniania. Krótsza wersja tego samego znaku działa tam, gdzie napis nie zmieściłby się dobrze: w pasku narzędzi edytora oraz jako favicon.
 
 Implementacja:
 
@@ -1746,7 +1742,7 @@ Implementacja:
 - `frontend/src/index.css`, linie 1–77, tokeny głównej palety (powierzchnie, chrome, akcent, złoto, tekst, cienie)
 - `frontend/src/App.css`, linie 5–18 (gradienty tła otoczenia) i linie 38–97 (pasek przewijania płótna) — ciepłobiałe tło aplikacji ze złotymi i czarnymi gradientami otoczenia oraz czarno-złotym paskiem przewijania
 - `frontend/src/pages/Hero/Hero.module.css`, `Login.module.css`, `Register.module.css` — lokalne tokeny stron przemapowane na ten sam system biel/czerń/złoto
-- `frontend/public/cv-studio-logo.svg`, `cv-studio-mark.svg` — znak marki; nadal granatowy niebieski, jeszcze nieprzekolorowany (patrz „Logo marki” wyżej)
+- `frontend/public/cv-studio-logo.svg`, `cv-studio-mark.svg` — znak marki przekolorowany na czarny, z złotym podkreśleniem w pełnym logo z wordmarkiem
 - `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.module.css` — już w pełni stokenizowany przez `index.css`, przekolorowuje się automatycznie
 - `frontend/src/components/common/Spinner/Spinner.module.css` — matowa warstwa ze złotą poświatą otoczenia i karta statusu eksportu
 - `frontend/src/components/canvas/InlineFormatToolbar/InlineFormatToolbar.jsx`, linia 28 — domyślna próbka w palecie kolorów tekstu CV zaktualizowana do nowego tokenu atramentu (`#171717`); pozostałych pięć próbek (granat, złoto, zieleń, czerwień, jasny niebieski) to niezależne wybory kolorów dla treści dokumentu użytkownika i zostały celowo pozostawione bez zmian
