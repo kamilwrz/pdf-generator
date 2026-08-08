@@ -467,17 +467,31 @@ def assert_can_extract_cv(db: Session, user: User) -> None:
 def mark_free_import_used(db: Session, user_id: int) -> None:
     """Consume the Free plan's one lifetime `extract_cv` trial.
 
-    Safe to call unconditionally after ANY successful extraction — it is a
-    no-op for accounts that are not on Free, or that have already used it.
-    Callers must only invoke this after `extract_cv_data()` succeeds; a
+    Uses a conditional UPDATE (not read-then-write) so two concurrent
+    successful extractions from the same account cannot both consume the
+    trial. `assert_can_extract_cv` reads `free_import_used` and this function
+    writes it only after the OpenAI call succeeds (see the `/ai/extract_cv`
+    route); if two requests both read `False` before either write lands, a
+    naive read-then-write would let both proceed. Binding the
+    `free_import_used = False` check directly into the UPDATE's WHERE clause
+    makes the database — not application code — enforce the single
+    free-to-used transition, closing that race.
+
+    The WHERE clause already encodes both of the old early-return conditions
+    (wrong plan, or already used) as "zero rows match" cases, so no prior
+    read via `get_or_create_subscription` is needed: a mismatch simply
+    updates nothing and the function returns normally either way.
+
+    Safe to call unconditionally after ANY successful extraction. Callers
+    must only invoke this after `extract_cv_data()` succeeds; a
     failed/errored extraction must never consume the free try (see
     `assert_can_extract_cv` for the corresponding gate).
     """
-    sub = get_or_create_subscription(db, user_id)
-    if sub.plan_slug != "free" or sub.free_import_used:
-        return
-    sub.free_import_used = True
-    db.add(sub)
+    db.query(UserSubscription).filter(
+        UserSubscription.user_id == user_id,
+        UserSubscription.plan_slug == "free",
+        UserSubscription.free_import_used.is_(False),
+    ).update({UserSubscription.free_import_used: True}, synchronize_session=False)
     db.commit()
 
 
