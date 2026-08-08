@@ -1,12 +1,21 @@
 /**
  * Wheel on `.canvas-area` advances/retreats the active page at scroll edges.
  * PageControls stays in sync because it reads the same `currentPage` state.
+ * After a step, scroll position eases to the top so the page swap does not
+ * hard-snap the overflow viewport.
  */
 import { useEffect, useRef } from "react";
 import {
   PAGE_WHEEL_COOLDOWN_MS,
   resolvePageWheelDelta,
 } from "../utils/canvasPageWheel";
+
+function prefersReducedMotion() {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 /**
  * @param {React.RefObject<HTMLElement|null>} containerRef
@@ -42,8 +51,15 @@ export function useCanvasPageWheel(containerRef, { currentPage, pageCount, goToP
 
       latestRef.current.lastChangeAt = now;
       go(page + step);
-      // New page starts from the top; keeps the PageControls label and view aligned.
-      el.scrollTop = 0;
+      // Ease to the top of the new page instead of a hard scrollTop jump.
+      if (typeof el.scrollTo === "function") {
+        el.scrollTo({
+          top: 0,
+          behavior: prefersReducedMotion() ? "auto" : "smooth",
+        });
+      } else {
+        el.scrollTop = 0;
+      }
     };
 
     el.addEventListener("wheel", onWheel, { passive: false });

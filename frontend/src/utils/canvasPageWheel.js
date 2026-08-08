@@ -9,8 +9,10 @@
 /** Ignore residual scrollTop noise near edges (CSS pixels). */
 export const PAGE_WHEEL_EDGE_EPS = 2;
 
-/** Absorb rapid wheel ticks after a page change so one flick ≠ many pages. */
-export const PAGE_WHEEL_COOLDOWN_MS = 380;
+/** Absorb rapid wheel ticks after a page change so one flick ≠ many pages.
+ * Slightly longer than the ~320 ms page-stage transition so inertia cannot
+ * skip pages mid-animation. */
+export const PAGE_WHEEL_COOLDOWN_MS = 420;
 
 /**
  * @param {WheelEvent} event

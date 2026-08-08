@@ -4,6 +4,7 @@ import Sidebar from '../components/editor/Sidebar/Sidebar';
 import Topbar from '../components/editor/Topbar/Topbar';
 import DemoBanner from '../components/editor/DemoBanner/DemoBanner';
 import A4 from "../components/canvas/A4/A4";
+import CanvasPageStage from "../components/canvas/CanvasPageStage/CanvasPageStage";
 import Editor from '../components/editor/Editor/Editor';
 import { PdfContext } from '../store/pdfgenerator-context';
 import { CanvasContext } from '../store/canvas-context';
@@ -269,6 +270,16 @@ function PdfCanvas() {
   // currentPage so PageControls ("Strona N / M") stays in sync.
   const canvasAreaRef = useRef(null);
   useCanvasPageWheel(canvasAreaRef, { currentPage, pageCount, goToPage });
+
+  // Direction for CanvasPageStage slide (next = +1, previous = -1).
+  // Adjusted during render so enter/exit share the same step direction.
+  const [pageNav, setPageNav] = useState({ page: currentPage, direction: 1 });
+  if (currentPage !== pageNav.page) {
+    setPageNav({
+      page: currentPage,
+      direction: currentPage > pageNav.page ? 1 : -1,
+    });
+  }
 
   const handleConfirmAddSection = useCallback(({ name, layout, iconName }) => {
     handleAddSection({
@@ -1364,26 +1375,55 @@ function PdfCanvas() {
                 <Topbar titleRef={titleRef} />
                 <div className="canvas-area" ref={canvasAreaRef}>
                   <div className={isTwoPageView ? "canvas-spread" : "canvas-single"}>
-                    {visiblePages.map((page) => (
-                      <A4
-                        key={page}
-                        page={page}
-                        width={`${pageSize.width}px`}
-                        height={`${pageSize.height}px`}
-                        zoom={isTwoPageView ? 1 : zoom}
-                        isSpread={isTwoPageView}
-                        ref={(node) => setPageCanvasRef(page, node)}
-                        onPointerDownCapture={(event) => handleCanvasPointerDownCapture(event, page)}
+                    {isTwoPageView ? (
+                      visiblePages.map((page) => (
+                        <A4
+                          key={page}
+                          page={page}
+                          width={`${pageSize.width}px`}
+                          height={`${pageSize.height}px`}
+                          zoom={1}
+                          isSpread
+                          ref={(node) => setPageCanvasRef(page, node)}
+                          onPointerDownCapture={(event) => handleCanvasPointerDownCapture(event, page)}
+                        >
+                          {isPdfLoading && page === currentPage && <Spinner loading={isPdfLoading}/>}
+                          <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
+                            <CanvasElements elements={previewedElements.filter((element) => (element.page ?? 1) === page)} />
+                            <Connectors elements={previewedElements} page={page} />
+                            <SelectionOverlay elements={previewedElements} page={page} />
+                            <Guides page={page} />
+                          </div>
+                        </A4>
+                      ))
+                    ) : (
+                      <CanvasPageStage
+                        pageKey={visiblePages[0] ?? currentPage}
+                        direction={pageNav.direction}
+                        animate
                       >
-                        {isPdfLoading && page === currentPage && <Spinner loading={isPdfLoading}/>}
-                        <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
-                          <CanvasElements elements={previewedElements.filter((element) => (element.page ?? 1) === page)} />
-                          <Connectors elements={previewedElements} page={page} />
-                          <SelectionOverlay elements={previewedElements} page={page} />
-                          <Guides page={page} />
-                        </div>
-                      </A4>
-                    ))}
+                        {visiblePages.map((page) => (
+                          <A4
+                            key={page}
+                            page={page}
+                            width={`${pageSize.width}px`}
+                            height={`${pageSize.height}px`}
+                            zoom={zoom}
+                            isSpread={false}
+                            ref={(node) => setPageCanvasRef(page, node)}
+                            onPointerDownCapture={(event) => handleCanvasPointerDownCapture(event, page)}
+                          >
+                            {isPdfLoading && page === currentPage && <Spinner loading={isPdfLoading}/>}
+                            <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
+                              <CanvasElements elements={previewedElements.filter((element) => (element.page ?? 1) === page)} />
+                              <Connectors elements={previewedElements} page={page} />
+                              <SelectionOverlay elements={previewedElements} page={page} />
+                              <Guides page={page} />
+                            </div>
+                          </A4>
+                        ))}
+                      </CanvasPageStage>
+                    )}
                   </div>
                 </div>
               </div>
