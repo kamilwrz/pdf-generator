@@ -8,9 +8,9 @@
  * (including zero-padded Nova-style "01" / "02").
  * Page-one-only masthead artwork opts out with `repeatOnContinuation: false`.
  *
- * `reconcileDocumentPages` is the single entry for keep-in-sync page chrome:
- * ensure decorations exist through a target page count, drop chrome-only
- * trailing pages when content collapses, and renumber page labels.
+ * `reconcileDocumentPages` only touches fixed page chrome and `pageCount`.
+ * It must never rewrite content geometry (left/top/page of flow elements) —
+ * packing / reflow own those positions.
  */
 
 /** True when fixed text looks like a page index ("1", "01", " 2 "). */
@@ -52,20 +52,25 @@ export function contentMaxPage(elements) {
 
 /**
  * Rewrite fixed page-number labels so each page shows its own index.
+ * Preserves object identity when a label does not change.
  *
  * @param {object[]} elements
- * @returns {object[]}
+ * @returns {{ elements: object[], changed: boolean }}
  */
 export function renumberFixedPageNumbers(elements) {
-  return (elements || []).map((element) => {
+  let changed = false;
+  const next = (elements || []).map((element) => {
     if (!element?.fixedToPage) return element;
     if (element.category !== "text" || !isPageNumberContent(element.content)) {
       return element;
     }
     const page = Math.max(1, Math.trunc(element.page ?? 1));
-    const next = formatContinuationPageNumber(element.content, page);
-    return next === element.content ? element : { ...element, content: next };
+    const content = formatContinuationPageNumber(element.content, page);
+    if (content === element.content) return element;
+    changed = true;
+    return { ...element, content };
   });
+  return { elements: changed ? next : elements, changed };
 }
 
 export function previewStructureOperation(elements, group) {
@@ -129,6 +134,10 @@ export function cloneFixedPageDecorations(elements, firstNewPage, targetMaxPage,
 /**
  * Keep page chrome aligned with content (and optional explicit blank pages).
  *
+ * Never modifies content element geometry. Returns the original `elements`
+ * array reference when chrome / pageCount need no change — callers that pack
+ * rhythm must not churn identities and re-trigger textarea reflow.
+ *
  * @param {object[]} elements
  * @param {() => string} createId
  * @param {{
@@ -144,10 +153,12 @@ export function reconcileDocumentPages(elements, createId, options = {}) {
   const minPageCount = Math.max(1, Math.trunc(options.minPageCount ?? 1));
   const list = Array.isArray(elements) ? elements : [];
   const contentMax = contentMaxPage(list);
-  const existingMax = Math.max(
-    1,
-    ...list.map((element) => Math.max(1, Math.trunc(element.page ?? 1))),
-  );
+  const existingMax = list.length === 0
+    ? 1
+    : Math.max(
+      1,
+      ...list.map((element) => Math.max(1, Math.trunc(element.page ?? 1))),
+    );
 
   // When collapsing, trailing chrome-only pages disappear. When not, keep any
   // intentionally blank pages the user just added (minPageCount / existing).
@@ -155,10 +166,29 @@ export function reconcileDocumentPages(elements, createId, options = {}) {
     ? Math.max(contentMax, minPageCount)
     : Math.max(contentMax, minPageCount, existingMax);
 
-  let next = list.filter((element) => Math.max(1, Math.trunc(element.page ?? 1)) <= pageCount);
-  const generated = cloneFixedPageDecorations(next, 1, pageCount, createId);
-  if (generated.length) next = [...next, ...generated];
-  next = renumberFixedPageNumbers(next);
+  // Only drop fixed chrome on pages beyond pageCount — never drop content.
+  let droppedChrome = false;
+  const withoutOrphanChrome = [];
+  for (const element of list) {
+    const page = Math.max(1, Math.trunc(element.page ?? 1));
+    if (page > pageCount && element.fixedToPage) {
+      droppedChrome = true;
+      continue;
+    }
+    withoutOrphanChrome.push(element);
+  }
 
-  return { elements: next, pageCount };
+  const base = droppedChrome ? withoutOrphanChrome : list;
+  // Page-1 chrome is authored by the template. Only fill gaps on continuations.
+  const generated = pageCount >= 2
+    ? cloneFixedPageDecorations(base, 2, pageCount, createId)
+    : [];
+
+  const withClones = generated.length ? [...base, ...generated] : base;
+  const renumbered = renumberFixedPageNumbers(withClones);
+
+  if (!droppedChrome && generated.length === 0 && !renumbered.changed) {
+    return { elements: list, pageCount };
+  }
+  return { elements: renumbered.elements, pageCount };
 }

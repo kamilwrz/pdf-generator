@@ -364,15 +364,19 @@ export function useA4Elements(titleRef) {
   }, [canvasForPage, visibleCanvasEntries, connectSourceId]);
 
   /**
-   * After content/page edits, clone template chrome onto new pages, drop
-   * chrome-only trailing pages, and keep page-number labels in sync.
+   * Sync fixed page chrome / pageCount only. Never rewrites content geometry —
+   * packing and textarea reflow own Y positions. Returns the same array
+   * reference when chrome does not need to change.
    *
    * @param {object[]} elements
    * @param {{ minPageCount?: number, collapseEmpty?: boolean }} [options]
    * @returns {object[]}
    */
   const finalizeDocumentPages = useCallback((elements, options = {}) => {
-    const reconciled = reconcileDocumentPages(elements, nanoid, options);
+    const reconciled = reconcileDocumentPages(elements, nanoid, {
+      collapseEmpty: true,
+      ...options,
+    });
     reflowPageCountRef.current = reconciled.pageCount;
     return reconciled.elements;
   }, []);

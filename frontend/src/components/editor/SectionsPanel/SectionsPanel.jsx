@@ -79,19 +79,21 @@ export default function SectionsPanel({ onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  function commitPackedElements(packed) {
-    const reconciled = reconcileDocumentPages(packed, nanoid, {
-      collapseEmpty: true,
-    });
-    setPageCount(reconciled.pageCount);
-    setA4_Elements(reconciled.elements);
-  }
-
   function move(headingId, direction) {
-    const next = reorderSection(A4_Elements, headingId, direction, pageHeight, {
-      spacing,
+    let nextCount = null;
+    setA4_Elements((prev) => {
+      const next = reorderSection(prev, headingId, direction, pageHeight, {
+        spacing,
+      });
+      if (!next) return prev;
+      // Chrome sync only — packed content tops must stay as reorder left them.
+      const reconciled = reconcileDocumentPages(next, nanoid, {
+        collapseEmpty: true,
+      });
+      nextCount = reconciled.pageCount;
+      return reconciled.elements;
     });
-    if (next) commitPackedElements(next);
+    if (nextCount != null) setPageCount(nextCount);
   }
 
   function applySpacing(nextSpacing) {
@@ -101,7 +103,17 @@ export default function SectionsPanel({ onClose }) {
     // sections onto page 1.
     if (flowSpacingEquals(spacing, normalized)) return;
     setFlowSpacing(normalized);
-    commitPackedElements(applyFlowSpacing(A4_Elements, normalized, pageHeight));
+    let nextCount = null;
+    setA4_Elements((prev) => {
+      const packed = applyFlowSpacing(prev, normalized, pageHeight);
+      // Do not re-pack after this — only add/drop fixed continuation chrome.
+      const reconciled = reconcileDocumentPages(packed, nanoid, {
+        collapseEmpty: true,
+      });
+      nextCount = reconciled.pageCount;
+      return reconciled.elements;
+    });
+    if (nextCount != null) setPageCount(nextCount);
   }
 
   function handleSpacingChange(key, rawValue) {

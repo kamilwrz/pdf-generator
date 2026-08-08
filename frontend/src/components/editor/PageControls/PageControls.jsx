@@ -37,11 +37,8 @@ export default function PageControls() {
                     type="button"
                     className={classes.navBtn}
                     onClick={() => goToPage(currentPage + 1)}
-                    // At the last page, Next creates a fresh continuation with
-                    // template chrome (same as Dodaj stronę for one step).
-                    disabled={currentPage >= 20}
-                    aria-label={currentPage >= pageCount ? "Dodaj następną stronę" : "Następna strona"}
-                    title={currentPage >= pageCount ? "Dodaj następną stronę" : "Następna strona"}
+                    disabled={currentPage >= pageCount}
+                    aria-label="Następna strona"
                 >
                     <Chevron dir="right" />
                 </button>
