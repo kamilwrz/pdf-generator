@@ -123,9 +123,14 @@ export default function ModalPdfs({ title }) {
                         ...element,
                         zIndex: element.extra_properties.zIndex,
                         borderWidth: element.extra_properties.borderWidth,
+                        borderRadius: element.extra_properties.borderRadius,
                         filled: element.extra_properties.filled ?? false,
                         // Preserve explicit false for geometrically centred Iconic contact icons.
                         alignWithText: element.extra_properties.alignWithText,
+                        // Template semantic key + profile-photo slot contract.
+                        id: element.extra_properties.id,
+                        photoSlot: element.extra_properties.photoSlot,
+                        photoShape: element.extra_properties.photoShape,
                         flowRole: element.extra_properties.flowRole,
                         flowGroup: element.extra_properties.flowGroup,
                         fixedToPage,

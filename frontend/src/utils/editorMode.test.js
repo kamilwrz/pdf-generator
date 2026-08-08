@@ -65,6 +65,16 @@ describe("canFreePositionElement", () => {
     assert.equal(canFreePositionElement(image, EDITOR_MODE_TEMPLATE), true);
   });
 
+  it("blocks fitted profile-photo slots in template mode", () => {
+    const fitted = {
+      category: "image",
+      src: "/images/1/content",
+      photoSlot: "image",
+      id: "profile-photo",
+    };
+    assert.equal(canFreePositionElement(fitted, EDITOR_MODE_TEMPLATE), false);
+  });
+
   it("blocks untagged template icons and accent artwork in template mode", () => {
     const contactIcon = {
       category: "image",

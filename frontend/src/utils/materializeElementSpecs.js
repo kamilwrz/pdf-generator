@@ -29,6 +29,9 @@ export function materializeElementSpecs(specs, createId) {
       isMove: false,
       isEditing: false,
       ...withCleanContent,
+      // Keep the template semantic key (e.g. slate-photo-frame) alongside the
+      // runtime nanoid so photo slots and chrome can be resolved after load.
+      ...(id != null ? { id } : {}),
       fixedToPage,
       // Chrome stays interaction-locked even if a template omitted locked.
       locked: withCleanContent.locked ?? fixedToPage,

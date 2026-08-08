@@ -112,13 +112,18 @@ def _gen_slate(cv: dict) -> list[dict]:
                 colors["ink"], 1.3, zIndex=3,
             ),
             "id": "slate-photo-frame",
+            "photoSlot": "frame",
         }),
-        lock_chrome(fixed_icon(
-            icon_theme_accent, "portrait",
-            photo_left + (photo_width - portrait_size) / 2,
-            photo_top + (photo_height - portrait_size) / 2,
-            portrait_size,
-        )),
+        lock_chrome({
+            **fixed_icon(
+                icon_theme_accent, "portrait",
+                photo_left + (photo_width - portrait_size) / 2,
+                photo_top + (photo_height - portrait_size) / 2,
+                portrait_size,
+            ),
+            "id": "slate-photo-glyph",
+            "photoSlot": "glyph",
+        }),
         lock_chrome(_line(photo_left - 4, photo_top - 4, 9, 9, colors["accent"], zIndex=4)),
         lock_chrome(_line(
             photo_left + photo_width - 5, photo_top + photo_height - 5, 9, 9,

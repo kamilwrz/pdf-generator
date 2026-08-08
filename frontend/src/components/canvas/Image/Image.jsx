@@ -39,6 +39,7 @@ function Image({
     zIndex,
     fixedToPage,
     alignWithText,
+    borderRadius,
 }) {
 
     const { moveElement, selectElement, A4_Elements, selectMoveElement, resizeElement } = use(PdfContext)
@@ -98,6 +99,9 @@ function Image({
         position: "absolute",
         zIndex: zIndex,
         objectFit: "fill",
+        // Circular profile slots (Harbor) clip the raster on canvas; PDF export
+        // still draws the full box, which covers the underlying disc.
+        ...(borderRadius ? { borderRadius: `${borderRadius}px` } : {}),
         ...(fixedToPage ? { pointerEvents: "none" } : {}),
     }
 

@@ -1386,23 +1386,7 @@ export function deriveSectionStyle(elements, pageHeight = 842, fromHeadingId = n
   };
 }
 
-/**
- * Find a likely profile-photo image slot for template drop targets.
- */
-export function findProfilePhotoSlot(elements) {
-  const images = (elements || []).filter((element) => (
-    element.category === "image"
-    && !element.fixedToPage
-    && !/template-assets\/iconic\//.test(String(element.src || ""))
-  ));
-  if (images.length === 0) return null;
-  // Prefer larger near-top images (typical headshot placement).
-  return [...images].sort((a, b) => {
-    const score = (element) => {
-      const area = (Number(element.width) || 0) * (Number(element.height) || 0);
-      const top = Number(element.top) || 0;
-      return area - top * 2;
-    };
-    return score(b) - score(a);
-  })[0];
-}
+// Profile-photo slot detection lives in `profilePhoto.js` (frame/glyph/ornament
+// contract for Slate, Tessera, Aldine, Harbor). Re-exported here so existing
+// imports keep working.
+export { findProfilePhotoSlot, applyProfilePhoto, hasProfilePhotoSlot } from "./profilePhoto.js";

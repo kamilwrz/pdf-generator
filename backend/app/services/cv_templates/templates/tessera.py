@@ -97,13 +97,18 @@ def _gen_tessera(cv: dict) -> list[dict]:
                 colors["aubergine"], 1.2, zIndex=3,
             ),
             "id": "tessera-photo-frame",
+            "photoSlot": "frame",
         }),
-        lock_chrome(sidebar_icon(
-            "portrait",
-            photo_left + (photo_width - 48) / 2,
-            photo_top + (photo_height - 48) / 2,
-            48,
-        )),
+        lock_chrome({
+            **sidebar_icon(
+                "portrait",
+                photo_left + (photo_width - 48) / 2,
+                photo_top + (photo_height - 48) / 2,
+                48,
+            ),
+            "id": "tessera-photo-glyph",
+            "photoSlot": "glyph",
+        }),
         lock_chrome(_circle(
             photo_left - 5, photo_top + photo_height - 8, 12, colors["coral"], filled=True, zIndex=4,
         )),

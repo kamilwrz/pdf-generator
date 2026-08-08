@@ -179,6 +179,7 @@ export default function CanvasElements({ elements }) {
           zIndex={element.zIndex}
           fixedToPage={element.fixedToPage}
           alignWithText={element.alignWithText}
+          borderRadius={element.borderRadius}
         />
       );
     } else if (element.category === "line") {

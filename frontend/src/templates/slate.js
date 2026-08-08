@@ -92,10 +92,12 @@ const starter = [
     fixed(line(178, 0, 2, 842, ACCENT, 2)),
 
     // Rectangular photo placeholder with drafting-style decoration.
+    // `photoSlot` marks the frame/glyph so gallery upload can fit a user photo
+    // inside the outline without removing the drafting chrome.
     line(33, 40, 112, 126, PHOTO_BG, 1),
     rect(39, 46, 112, 126, HAIRLINE, 0.9, 1),
-    { ...rect(33, 40, 112, 126, INK, 1.3, 3), id: "slate-photo-frame" },
-    icon(ICON_ACCENT, "portrait", 66, 80, 46),
+    { ...rect(33, 40, 112, 126, INK, 1.3, 3), id: "slate-photo-frame", photoSlot: "frame" },
+    { ...icon(ICON_ACCENT, "portrait", 66, 80, 46), id: "slate-photo-glyph", photoSlot: "glyph" },
     line(29, 36, 9, 9, ACCENT, 4),
     line(140, 161, 9, 9, ACCENT, 4),
     line(33, 170, 112, 4, ACCENT, 2),

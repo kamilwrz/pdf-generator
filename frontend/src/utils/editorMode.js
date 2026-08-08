@@ -27,6 +27,14 @@ const TEMPLATE_SHAPE_CATEGORIES = new Set([
  */
 function isLayoutOwnedTemplateImage(element) {
   if (element.category !== "image") return false;
+  // Fitted profile photos and portrait glyphs stay in their template slot.
+  if (
+    element.photoSlot === "image"
+    || element.photoSlot === "glyph"
+    || element.id === "profile-photo"
+  ) {
+    return true;
+  }
   if (isTextAlignedIcon(element.src, element.alignWithText)) return true;
   return /\/template-assets\//.test(String(element.src || ""));
 }

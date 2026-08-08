@@ -84,11 +84,13 @@ const starter = [
     fixed(line(178, 0, 4, 842, CORAL, 2)),
 
     // Rectangular portrait placeholder and offset geometric frame.
+    // `photoSlot` marks the frame/glyph so gallery upload can fit a user photo
+    // inside the outline without removing the mosaic chrome.
     ellipse(20, 25, 138, 80, OCHRE, false, 1.1, 1),
     circle(136, 26, 19, CORAL, true, 1, 2),
     line(26, 48, 112, 126, TILE, 1),
-    { ...rect(33, 40, 112, 126, AUBERGINE, 1.2, 3), id: "tessera-photo-frame" },
-    icon("portrait", 65, 79, 48),
+    { ...rect(33, 40, 112, 126, AUBERGINE, 1.2, 3), id: "tessera-photo-frame", photoSlot: "frame" },
+    { ...icon("portrait", 65, 79, 48), id: "tessera-photo-glyph", photoSlot: "glyph" },
     circle(28, 158, 12, CORAL, true, 1, 4),
 
     // Main masthead: serif name + compact coral role tile.

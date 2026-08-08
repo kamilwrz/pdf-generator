@@ -3,7 +3,8 @@
  *
  * Inserts via `{ img_id, naturalWidth, naturalHeight }` so the canvas stores a
  * stable `/images/{id}/content` src instead of a short-lived blob preview URL.
- * In template mode, offers replacing the profile-photo slot when one exists.
+ * In template mode, offers replacing the profile-photo slot when one exists
+ * (Slate/Tessera frames, Aldine ornament, Harbor circle, or legacy image).
  */
 import classes from "./GalleryItem.module.css";
 import { useCanvasContext } from "../../../store/canvas-context";
@@ -11,14 +12,14 @@ import { AiFillDelete } from "react-icons/ai";
 
 import API_BASE_URL, { ApiClient, ENDPOINTS } from "../../../services/api";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
-import { findProfilePhotoSlot } from "../../../utils/sectionStructure";
+import { applyProfilePhoto, findProfilePhotoSlot } from "../../../utils/profilePhoto";
 
 export default function GalleryItem({url, img_id, imageUsed}){
 
     const {
         addImage,
         A4_Elements,
-        editElementValues,
+        setA4_Elements,
         editorMode,
         showUnlockFreeform,
     } = useCanvasContext();
@@ -33,6 +34,7 @@ export default function GalleryItem({url, img_id, imageUsed}){
         const img = event.currentTarget;
         const naturalWidth = img.naturalWidth || 100;
         const naturalHeight = img.naturalHeight || 100;
+        const src = `${API_BASE_URL}${ENDPOINTS.IMG.CONTENT(img_id)}`;
 
         if (editorMode === EDITOR_MODE_TEMPLATE) {
             const slot = findProfilePhotoSlot(A4_Elements);
@@ -47,13 +49,9 @@ export default function GalleryItem({url, img_id, imageUsed}){
             );
             if (choice == null) return;
             if (choice.trim() === "1" && slot) {
-                editElementValues(
-                    {
-                        src: `${API_BASE_URL}${ENDPOINTS.IMG.CONTENT(img_id)}`,
-                        img_id,
-                    },
-                    slot.element_id,
-                );
+                // Fit into the template frame/glyph (cover ornaments on Aldine;
+                // fill the rectangular slot on Slate/Tessera).
+                setA4_Elements((prev) => applyProfilePhoto(prev, { src, img_id }));
                 return;
             }
             if (choice.trim() === "2") {

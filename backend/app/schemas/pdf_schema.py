@@ -101,6 +101,13 @@ class PdfElement(BaseModel):
     preserveInitialLayout: Optional[bool] = False
     # Iconic images: True = optical text alignment; False = authored top as-is.
     alignWithText: Optional[bool] = None
+    # Stable template semantic key (e.g. "slate-photo-frame"). Distinct from
+    # the client nanoid in ``element_id``.
+    id: Optional[str] = None
+    # Profile-photo contract: "frame" | "glyph" | "ornament" | "image".
+    photoSlot: Optional[str] = None
+    # Optional shape hint for photo fitting: "circle" | "ornament-frame".
+    photoShape: Optional[str] = None
     # Template chrome: backgrounds, frames, page numbers — not user chrome.
     fixedToPage: Optional[bool] = False
     # False keeps first-page masthead chrome out of auto-created continuations.

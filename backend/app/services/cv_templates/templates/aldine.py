@@ -21,10 +21,29 @@ def _gen_aldine(cv: dict) -> list[dict]:
     name = _compact_text(cv.get('name'), 32)
     title = _compact_text(cv.get('title'), 52)
     contact = _compact_text(_contact_line(cv), 78)
-    seal = {**_circle(446, 61, 48, C['accent'], borderWidth=1, zIndex=3), 'id': 'aldine-seal'}
-    lozenge = {**_ellipse(458, 76, 24, 10, '#788068', borderWidth=0.9, zIndex=3), 'id': 'aldine-lozenge'}
-    core = {**_circle(465, 93, 10, C['accent'], filled=True, zIndex=3), 'id': 'aldine-core'}
-    frame = {**_rect(437, 52, 66, 66, C['rule'], 0.7, zIndex=3), 'id': 'aldine-frame'}
+    # Masthead ornament is also the profile-photo slot: gallery upload covers
+    # seal/lozenge/core while the sand frame remains as the border chrome.
+    seal = {
+        **_circle(446, 61, 48, C['accent'], borderWidth=1, zIndex=3),
+        'id': 'aldine-seal',
+        'photoSlot': 'ornament',
+    }
+    lozenge = {
+        **_ellipse(458, 76, 24, 10, '#788068', borderWidth=0.9, zIndex=3),
+        'id': 'aldine-lozenge',
+        'photoSlot': 'ornament',
+    }
+    core = {
+        **_circle(465, 93, 10, C['accent'], filled=True, zIndex=3),
+        'id': 'aldine-core',
+        'photoSlot': 'ornament',
+    }
+    frame = {
+        **_rect(437, 52, 66, 66, C['rule'], 0.7, zIndex=3),
+        'id': 'aldine-frame',
+        'photoSlot': 'frame',
+        'photoShape': 'ornament-frame',
+    }
     header = [_text(name, 30, SERIF, C['ink'], 92, 66, zIndex=3, bold=True), _text(title, 8.9, SANS, C['accent'], 94, 106, zIndex=3), _text(contact, 8.6, SANS, C['muted'], 94, 132, zIndex=3), _line(92, 157, 408, 1, C['rule'], zIndex=2), seal, lozenge, core, frame, _line(508, 96, 14, 1, C['accent'], zIndex=2)]
     header[0]['letterSpacing'] = 0.1
     header[1]['letterSpacing'] = 1.4

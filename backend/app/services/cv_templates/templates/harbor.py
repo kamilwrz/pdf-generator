@@ -94,8 +94,19 @@ def _gen_harbor(cv: dict) -> list[dict]:
         header.append(_text(value, 8.4, SANS, C["body"], cx + 15, cy, zIndex=3))
         cx += advance
     # Circular photo placeholder: soft-grey disc + centred grey person glyph.
-    header.append({**_circle(493, 36, 58, C["photo"], filled=True, zIndex=2), "flowRole": "masthead"})
-    header.append(_hicon("references", 507, 50, 30, align=False))
+    # photoSlot lets the editor gallery fit a user photo over this cluster.
+    header.append({
+        **_circle(493, 36, 58, C["photo"], filled=True, zIndex=2),
+        "flowRole": "masthead",
+        "id": "harbor-photo-frame",
+        "photoSlot": "frame",
+        "photoShape": "circle",
+    })
+    header.append({
+        **_hicon("references", 507, 50, 30, align=False),
+        "id": "harbor-photo-glyph",
+        "photoSlot": "glyph",
+    })
     header_rule_y = cy + 22
     header.append({
         **_line(MAIN_X, header_rule_y, SIDE_X + SIDE_W - MAIN_X, 1, C["rule"], zIndex=2),

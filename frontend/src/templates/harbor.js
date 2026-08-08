@@ -134,8 +134,18 @@ export const harborTemplate = [
     ...contact("location", 470, 485, "Warszawa", 104),
 
     // Circular photo placeholder: soft-grey disc + centred grey person glyph.
-    circle(PHOTO_X, PHOTO_Y, PHOTO_D, PHOTO_BG, true, 1, 2),
-    icon("harbor", "references", PHOTO_X + (PHOTO_D - 30) / 2, PHOTO_Y + (PHOTO_D - 30) / 2, 30, false),
+    // `photoSlot` lets gallery upload replace the glyph and cover the disc.
+    {
+        ...circle(PHOTO_X, PHOTO_Y, PHOTO_D, PHOTO_BG, true, 1, 2),
+        id: "harbor-photo-frame",
+        photoSlot: "frame",
+        photoShape: "circle",
+    },
+    {
+        ...icon("harbor", "references", PHOTO_X + (PHOTO_D - 30) / 2, PHOTO_Y + (PHOTO_D - 30) / 2, 30, false),
+        id: "harbor-photo-glyph",
+        photoSlot: "glyph",
+    },
 
     { ...line(MAIN_X, 126, SIDE_X + SIDE_W - MAIN_X, 1, RULE, 2) },
 
