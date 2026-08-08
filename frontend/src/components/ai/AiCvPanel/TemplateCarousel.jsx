@@ -134,7 +134,7 @@ export default function TemplateCarousel({
                                 aria-current={selected ? "true" : undefined}
                                 title={
                                     locked
-                                        ? "Dostępne w planie Standard"
+                                        ? "Dostępne w planie Pro"
                                         : selected
                                             ? `Aktualny szablon: ${t.name}`
                                             : t.description
@@ -149,7 +149,7 @@ export default function TemplateCarousel({
                                         draggable={false}
                                     />
                                     {selected && <span className={classes.currentBadge}>Obecny</span>}
-                                    {locked && <span className={classes.lockBadge}>Standard</span>}
+                                    {locked && <span className={classes.lockBadge}>Pro</span>}
                                     {filling && (
                                         <span className={classes.fillingOverlay}>
                                             <span className={classes.spinner} />

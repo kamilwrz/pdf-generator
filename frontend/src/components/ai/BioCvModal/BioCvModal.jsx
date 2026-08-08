@@ -602,7 +602,7 @@ export default function BioCvModal() {
 
     const handleFill = useCallback(async (template) => {
         if (!isTemplateAllowed(template, entitlements)) {
-            setSaveError("Ten szablon jest dostępny w planie Standard.");
+            setSaveError("Ten szablon jest dostępny w planie Pro.");
             return;
         }
         const error = validateBioCvStep(0, profile);

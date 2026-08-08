@@ -48,7 +48,7 @@ export default function ChangeTemplateModal() {
     const handleChangeTemplate = useCallback(async (template) => {
         if (!activeCvData) return;
         if (!isTemplateAllowed(template, entitlements)) {
-            setError("Ten szablon jest dostępny w planie Standard.");
+            setError("Ten szablon jest dostępny w planie Pro.");
             return;
         }
         setFillingId(template.id);

@@ -45,7 +45,7 @@ export default function TemplatesModal() {
     function handlePick(t) {
         if (!isTemplateAllowed(t, entitlements)) {
             pushToast?.({
-                title: "Szablon w planie Standard",
+                title: "Szablon w planie Pro",
                 msg: "Ten szablon odblokujesz po ulepszeniu planu.",
                 variant: "error",
             });
@@ -99,7 +99,7 @@ export default function TemplatesModal() {
                                 <div key={t.id} className={`${classes.card} ${locked ? classes.cardLocked : ""}`}>
                                     <div className={classes.previewWrap}>
                                         <Preview id={t.id} name={t.name} />
-                                        {locked ? <span className={classes.lockBadge}>Standard</span> : null}
+                                        {locked ? <span className={classes.lockBadge}>Pro</span> : null}
                                     </div>
                                     <div className={classes.cardName}>{t.name}</div>
                                     <div className={classes.cardDescription}>{t.description}</div>
@@ -108,7 +108,7 @@ export default function TemplatesModal() {
                                         className={locked ? classes.lockedBtn : classes.useBtn}
                                         onClick={() => handlePick(t)}
                                     >
-                                        {locked ? "Odblokuj w Standard" : "Użyj szablonu"}
+                                        {locked ? "Odblokuj w Pro" : "Użyj szablonu"}
                                     </button>
                                 </div>
                             );

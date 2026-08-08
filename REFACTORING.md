@@ -44,4 +44,6 @@ DONE 13) Scroll - Page Change
 14) Po zmianie parametrow SPACE_ przez Sekcje, wartosci przy zmianie szablonu sie nie resetuja. Maja sie resetowac
 DONE 15) Dane uzytkownika w CV WIZZARD powinny przetrwac do WIZARDA po Rejestracji i Logowaniu - (P) GENERUJE CV, a moze powinien poprostu wczytac dane JSON do CANVAS?
 
+16) SEKCJA Umiejetnosci, wedle 2 lub 3 kolumn, jak jest podzial w CV na podsekcje (AI)
+
 4. AI - zastanowic sie i zmodyfikowac / reImplement

@@ -114,7 +114,7 @@ class DownloadWatermarkTests(unittest.TestCase):
     def test_upgrade_triggers_clean_rerender(self):
         self._pdf_row().watermarked = True  # stale from before the upgrade
         self.db.commit()
-        ent.set_user_plan(self.db, self.user.id, "standard")
+        ent.set_user_plan(self.db, self.user.id, "pro")
 
         with patch.object(pdf_route, "USE_S3", False):
             response = self.client.post("/pdf/download_pdf", json=self.pdf_id)

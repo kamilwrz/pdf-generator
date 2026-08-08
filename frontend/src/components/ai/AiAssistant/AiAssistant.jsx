@@ -34,7 +34,7 @@ const ACTIONS = [
         icon: FaArrowsAltH,
         color: CHROME_ACCENT,
         description: "Włącz tryb i opisz zmianę; GPT analizuje pełny JSON A4 dopiero po wysłaniu pytania",
-        premiumOnly: true,
+        proOnly: true,
         toggle: true,
     },
 ];
@@ -1043,9 +1043,9 @@ export default function AiAssistant() {
             return;
         }
         if (actionId === "layout") {
-            // Keep the client journey clear, while the API remains the source
-            // of truth for the Premium-only layout entitlement.
-            if (entitlements && entitlements.plan_slug !== "premium") {
+            // Keep the client journey clear; the API remains the source of
+            // truth for the Pro layout entitlement.
+            if (entitlements && entitlements.plan_slug !== "pro") {
                 showPlanModal?.();
                 return;
             }
@@ -1177,13 +1177,17 @@ export default function AiAssistant() {
                                     style={{ "--action-color": action.color }}
                                     onClick={() => handleAction(action.id)}
                                     disabled={isLoading && action.id !== "layout"}
-                                    title={action.premiumOnly && entitlements?.plan_slug !== "premium"
-                                        ? `${action.description}. Dostępne wyłącznie w Premium.`
+                                    title={action.proOnly && entitlements?.plan_slug !== "pro"
+                                        ? `${action.description}. Dostępne w planie Pro.`
                                         : action.description}
                                     aria-pressed={action.id === "layout" ? layoutMode : undefined}
                                 >
                                     <action.icon className={classes.actionIcon} />
-                                    <span>{action.premiumOnly ? `${action.label} · Premium` : action.label}</span>
+                                    <span>
+                                        {action.proOnly && entitlements?.plan_slug !== "pro"
+                                            ? `${action.label} · Pro`
+                                            : action.label}
+                                    </span>
                                 </button>
                             ))}
                         </div>

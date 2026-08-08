@@ -2,8 +2,8 @@
 
 Guest mode lets visitors finish the bio wizard without an account. The fill
 endpoint is deterministic Python layout (no OpenAI cost), so anonymous callers
-are allowed for Free starter templates and rejected for Standard-tier ones —
-the same allowlist as the Free plan.
+are allowed for Free starter templates and rejected for Pro-tier ones —
+the same allowlist as the Free (Darmowy) plan.
 """
 from __future__ import annotations
 

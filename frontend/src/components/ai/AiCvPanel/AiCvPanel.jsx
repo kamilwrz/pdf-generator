@@ -91,8 +91,8 @@ export default function AiCvPanel() {
         if (!canExtract) {
             setError(
                 entitlements?.plan_slug === "free"
-                    ? "Wykorzystano już darmowy import CV. Ulepsz plan do Standard, aby importować więcej dokumentów."
-                    : "Ekstrakcja CV z PDF jest dostępna w planie Standard.",
+                    ? "Wykorzystano już darmowy import CV. Odblokuj Pro, aby importować więcej dokumentów."
+                    : "Ekstrakcja CV z PDF jest dostępna w planie Pro.",
             );
             return;
         }
@@ -128,7 +128,7 @@ export default function AiCvPanel() {
     const handleFill = useCallback(async (template) => {
         if (!cvData) return;
         if (!isTemplateAllowed(template, entitlements)) {
-            setError("Ten szablon jest dostępny w planie Standard.");
+            setError("Ten szablon jest dostępny w planie Pro.");
             return;
         }
         setFillingId(template.id);
@@ -205,12 +205,12 @@ export default function AiCvPanel() {
                                 className={classes.extractBtn}
                                 onClick={handleExtract}
                                 disabled={!fileName || isExtracting || !canExtract}
-                                title={!canExtract ? "Dostępne w planie Standard" : undefined}
+                                title={!canExtract ? "Dostępne w planie Pro" : undefined}
                             >
                                 {isExtracting ? (
                                     <><span className={classes.spinner} />Wyodrębnianie CV…</>
                                 ) : (
-                                    <><SparkIcon />{canExtract ? "Wyodrębnij dane CV" : "Standard — ekstrakcja"}</>
+                                    <><SparkIcon />{canExtract ? "Wyodrębnij dane CV" : "Pro — ekstrakcja"}</>
                                 )}
                             </button>
                         )}
@@ -265,7 +265,7 @@ export default function AiCvPanel() {
                         </button>
                         {!canExtract && (
                             <p className={classes.hint}>
-                                Ekstrakcja z PDF wymaga planu Standard. Kreator krok po kroku działa na Free.
+                                Wykorzystano darmowy import albo wymagany jest Pro. Kreator krok po kroku działa na planie Darmowy.
                             </p>
                         )}
                         {extracted && (

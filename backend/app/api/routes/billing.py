@@ -26,6 +26,7 @@ from app.services.entitlements import (
     SELECTABLE_PLANS,
     get_entitlements,
     list_selectable_plans,
+    normalize_plan_slug,
     reset_ai_credits,
     set_user_plan,
 )
@@ -34,7 +35,7 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 
 class SelectPlanRequest(BaseModel):
-    """Requested plan slug: free | standard | premium (see SELECTABLE_PLANS)."""
+    """Requested plan slug: free | pro (legacy standard/premium remap to pro)."""
 
     plan_slug: str
 
@@ -64,26 +65,27 @@ async def select_plan(
     """Activate a plan instantly (pre-Stripe) or signal that Checkout is required.
 
     Stripe seam: when `ALLOW_UNPAID_PLAN_SELECTION` is False and the user picks
-    standard/premium, return 402 with `code=payment_required`. Later this branch
-    creates a Checkout Session and returns `checkout_url` instead of activating.
+    Pro, return 402 with `code=payment_required`. Later this branch creates a
+    Checkout Session and returns `checkout_url` instead of activating.
     """
     user = get_user_by_username(db, username=payload.get("sub"))
     if user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
-    if request.plan_slug not in SELECTABLE_PLANS:
+    plan_slug = normalize_plan_slug(request.plan_slug)
+    if plan_slug not in SELECTABLE_PLANS:
         raise HTTPException(status_code=400, detail="Nieznany plan.")
-    if request.plan_slug != "free" and not ALLOW_UNPAID_PLAN_SELECTION:
+    if plan_slug != "free" and not ALLOW_UNPAID_PLAN_SELECTION:
         # Stripe later: create Checkout Session here and return checkout_url.
         raise HTTPException(
             status_code=402,
             detail={
                 "code": "payment_required",
                 "message": "Ten plan wymaga płatności.",
-                "plan_slug": request.plan_slug,
+                "plan_slug": plan_slug,
                 "checkout_url": None,
             },
         )
-    sub = set_user_plan(db, user.id, request.plan_slug)
+    sub = set_user_plan(db, user.id, plan_slug)
     return {
         "plan_slug": sub.plan_slug,
         "payment_required": False,

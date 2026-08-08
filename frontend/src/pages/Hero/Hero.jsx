@@ -50,15 +50,15 @@ const HOW_IT_WORKS = [
 
 const EDITOR_CAPABILITIES = [
     {
-        title: "Poprawki tekstu w Standard",
+        title: "Poprawki tekstu w Pro",
         text: "Sprawdź gramatykę i styl, skróć opisy lub wzmocnij czasowniki. Każdą propozycję akceptujesz pojedynczo.",
     },
     {
-        title: "Analizy w Standard",
+        title: "Analizy i ATS w Pro",
         text: "Oceń CV, projekt, dopasowanie do oferty i podstawową czytelność ATS. To wskazówki do poprawy, nie automatyczna decyzja.",
     },
     {
-        title: "Korekta Układu w Premium",
+        title: "Korekta układu w Pro",
         text: "AI analizuje odstępy, wyrównanie i kolizje na całym CV, pokazuje podgląd zmian, a Ty wybierasz, które zastosować.",
     },
 ];
@@ -159,8 +159,10 @@ export default function Hero() {
         wakeBackend();
     }, []);
 
-    const importUrl = buildStartUrl("import", "standard");
+    // Free includes one lifetime import; Pro unlocks more imports + clean PDF + AI.
+    const importUrl = buildStartUrl("import", "free");
     const wizardUrl = buildStartUrl("wizard", "free");
+    const proRegisterUrl = "/register?plan=pro";
 
     return (
         <main className={classes.page}>
@@ -258,7 +260,7 @@ export default function Hero() {
                         text="Wczytaj PDF, przenieś doświadczenie, edukację i umiejętności, wybierz szablon i dopracuj dokument."
                         bullets={["Bez przepisywania od zera", "Dane → wybór szablonu → edytor", "Dalsza edycja na płótnie A4"]}
                         start="import"
-                        plan="standard"
+                        plan="free"
                         cta="Importuj CV"
                     />
                     <PathCard
@@ -407,7 +409,7 @@ export default function Hero() {
                     </p>
                     <ul>
                         <li><CheckIcon />Możesz nadal ręcznie poprawiać każdy element dokumentu.</li>
-                        <li><CheckIcon />Import PDF i funkcje AI są oznaczone jako działania wymagające planu Standard.</li>
+                        <li><CheckIcon />Darmowy obejmuje 1 import CV; kolejne importy i AI wymagają planu Pro.</li>
                         <li><CheckIcon />Zasady konta, przechowywania danych i zabezpieczeń opisujemy w aplikacji, bez deklarowania certyfikatów, których nie posiadamy.</li>
                     </ul>
                 </div>
@@ -416,45 +418,39 @@ export default function Hero() {
             <section id="cennik" className={classes.pricingSection}>
                 <div className={classes.pricingHeading}>
                     <p className={classes.kicker}>Cennik oparty na efekcie</p>
-                    <h2>Wybierz sposób pracy, nie liczbę technicznych kredytów.</h2>
+                    <h2>Stwórz CV za darmo. Pro — gotowe do wysłania.</h2>
                 </div>
                 <div className={classes.pricingGrid}>
                     <article className={classes.priceCard}>
-                        <p className={classes.planName}>Free</p>
+                        <p className={classes.planName}>Darmowy</p>
                         <p className={classes.planPrice}>0 <small>zł</small></p>
-                        <p className={classes.planSummary}>Dla pierwszej wersji CV i poznania edytora.</p>
+                        <p className={classes.planSummary}>Stwórz i sprawdź swoje CV.</p>
                         <ul>
-                            <li><CheckIcon />Edytor A4 i podgląd</li>
-                            <li><CheckIcon />5 szablonów startowych</li>
-                            <li><CheckIcon />1 projekt i 3 eksporty miesięcznie</li>
-                            <li><CheckIcon />Kreator CV krok po kroku</li>
+                            <li><CheckIcon />Kreator i pełna edycja A4</li>
+                            <li><CheckIcon />5 podstawowych szablonów</li>
+                            <li><CheckIcon />1 darmowy import CV</li>
+                            <li><CheckIcon />PDF ze znakiem CV Studio</li>
+                            <li><CheckIcon />1 dokument · 3 eksporty / mies.</li>
                         </ul>
                         <StartButton start="wizard" plan="free" secondary>Stwórz CV za darmo</StartButton>
+                        <p className={classes.planFootnote}>Bez karty. Bez zobowiązań.</p>
                     </article>
                     <article className={`${classes.priceCard} ${classes.priceFeatured}`}>
-                        <span className={classes.popularTag}>Najlepszy do modernizacji CV</span>
-                        <p className={classes.planName}>Standard</p>
-                        <p className={classes.planPrice}>29 <small>zł / mies.</small></p>
-                        <p className={classes.planSummary}>Dla osób, które chcą przenieść istniejące CV i dopracować je przed wysłaniem.</p>
+                        <span className={classes.popularTag}>Najlepszy wybór do szukania pracy</span>
+                        <p className={classes.planName}>Pro</p>
+                        <p className={classes.planPrice}>39 <small>zł / 30 dni</small></p>
+                        <p className={classes.planSummary}>Gotowe CV do wysłania.</p>
                         <ul>
-                            <li><CheckIcon />Import danych z PDF</li>
-                            <li><CheckIcon />Wszystkie 18 szablonów</li>
-                            <li><CheckIcon />Analizy AI: CV, projekt, dopasowanie, gramatyka, styl i ATS</li>
-                            <li><CheckIcon />Do 10 projektów i 30 eksportów miesięcznie</li>
+                            <li><CheckIcon />PDF bez znaku wodnego</li>
+                            <li><CheckIcon />Wszystkie 14 szablonów</li>
+                            <li><CheckIcon />Import kolejnych CV</li>
+                            <li><CheckIcon />AI do treści, ATS i układu</li>
+                            <li><CheckIcon />Wiele wersji CV · wysoki limit eksportów</li>
                         </ul>
-                        <StartButton start="import" plan="standard">Wgraj moje CV</StartButton>
-                    </article>
-                    <article className={classes.priceCard}>
-                        <p className={classes.planName}>Premium</p>
-                        <p className={classes.planPrice}>49 <small>zł / mies.</small></p>
-                        <p className={classes.planSummary}>Dla wielu wersji CV przygotowywanych pod różne role i oferty.</p>
-                        <ul>
-                            <li><CheckIcon />Tryb Układ AI: odstępy, wyrównanie i kolizje</li>
-                            <li><CheckIcon />Wszystkie 18 szablonów</li>
-                            <li><CheckIcon />Bez limitu projektów i eksportów</li>
-                            <li><CheckIcon />Wiele wersji CV pod aplikacje</li>
-                        </ul>
-                        <Link className={classes.buttonSecondary} to="/register?plan=premium">Wybierz Premium <ArrowIcon /></Link>
+                        <Link className={classes.buttonPrimary} to={proRegisterUrl}>
+                            Odblokuj Pro <ArrowIcon />
+                        </Link>
+                        <p className={classes.planFootnote}>Jedna płatność · Bez automatycznego odnawiania</p>
                     </article>
                 </div>
             </section>
@@ -467,15 +463,19 @@ export default function Hero() {
                 <div className={classes.faqList}>
                     <details open>
                         <summary>Czy muszę przepisywać swoje obecne CV?</summary>
-                        <p>Nie. W planie Standard możesz przesłać PDF, wyodrębnić jego dane i wypełnić nimi wybrany szablon. Po imporcie sprawdzasz i edytujesz wynik na płótnie A4.</p>
+                        <p>Nie. Na planie Darmowym masz 1 darmowy import PDF; w Pro możesz importować kolejne CV. Po ekstrakcji wybierasz szablon i edytujesz wynik na płótnie A4.</p>
                     </details>
                     <details>
-                        <summary>Co dokładnie robi AI w planie Standard?</summary>
-                        <p>Standard obejmuje ocenę CV i projektu, dopasowanie do oferty, gramatykę, styl, ulepszanie opisów, wskazówki ATS oraz zwykły czat. AI pokazuje ocenę, wskazówki albo pojedyncze poprawki — treść dokumentu zmieniasz dopiero po ich zaakceptowaniu.</p>
+                        <summary>Co dokładnie robi AI w planie Pro?</summary>
+                        <p>Pro obejmuje ocenę CV i projektu, dopasowanie do oferty, gramatykę, styl, ulepszanie opisów, wskazówki ATS, zwykły czat oraz tryb Układ. AI pokazuje ocenę, wskazówki albo poprawki — treść i geometrię zmieniasz dopiero po ich zaakceptowaniu. Limit kredytów AI chroni komfortową pracę bez „nielimitowanego” zużycia.</p>
                     </details>
                     <details>
-                        <summary>Co robi tryb „Układ” i dlaczego wymaga Premium?</summary>
-                        <p>Tryb Układ analizuje pełną geometrię wielostronicowego CV: odstępy, wyrównanie, kolizje i rytm sekcji. Pokazuje podgląd proponowanych przesunięć przed zastosowaniem zmian. To funkcja dostępna wyłącznie w Premium, ponieważ wykorzystuje oddzielną analizę całego płótna A4.</p>
+                        <summary>Co robi tryb „Układ”?</summary>
+                        <p>Tryb Układ analizuje pełną geometrię wielostronicowego CV: odstępy, wyrównanie, kolizje i rytm sekcji. Pokazuje podgląd proponowanych przesunięć przed zastosowaniem zmian. Jest dostępny w Pro i rozliczany z tej samej puli kredytów AI co pozostałe działania.</p>
+                    </details>
+                    <details>
+                        <summary>Czy Pro odnawia się automatycznie?</summary>
+                        <p>Nie. Pro to jedna płatność za 30 dni dostępu. Po wygaśnięciu dokumenty zostają — wracasz do planu Darmowy (eksport ze znakiem wodnego, AI zablokowane). Możesz odnowić Pro, gdy znów potrzebujesz czystych PDF i AI.</p>
                     </details>
                     <details>
                         <summary>Czy AI samo zmienia moje CV?</summary>

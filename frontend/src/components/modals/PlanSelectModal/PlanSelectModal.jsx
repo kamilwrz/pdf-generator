@@ -1,6 +1,9 @@
 /**
  * In-app plan picker. Activates plans via billing API when unpaid selection is
  * allowed; otherwise surfaces payment_required for future Stripe Checkout.
+ *
+ * Catalog is Free + Pro (30-day pass). Legacy Standard/Premium slugs are
+ * remapped to Pro on the backend.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import classes from "./PlanSelectModal.module.css";
@@ -13,24 +16,36 @@ import { planErrorMessage } from "../../../utils/entitlements";
 const FALLBACK_PLANS = [
     {
         slug: "free",
-        name: "Free",
+        name: "Darmowy",
         price_pln: 0,
-        blurb: "Edytor, wybrane szablony i eksport PDF.",
-        highlights: ["5 szablonów startowych", "1 projekt · 3 eksporty / mies.", "Bez Asystenta AI"],
+        price_label: "0 zł",
+        blurb: "Stwórz i sprawdź swoje CV.",
+        highlights: [
+            "Kreator i pełna edycja A4",
+            "5 podstawowych szablonów",
+            "1 darmowy import CV",
+            "PDF ze znakiem CV Studio",
+            "1 zapisany dokument · 3 eksporty / mies.",
+        ],
+        period_note: "Bez karty. Bez zobowiązań.",
+        cta: "Stwórz CV za darmo",
     },
     {
-        slug: "standard",
-        name: "Standard",
-        price_pln: 29,
-        blurb: "Analizy AI treści i pełna biblioteka szablonów.",
-        highlights: ["150 kredytów AI / mies.", "CV, projekt, dopasowanie, gramatyka, styl i ATS", "Wszystkie 18 szablonów", "10 projektów · 30 eksportów / mies."],
-    },
-    {
-        slug: "premium",
-        name: "Premium",
-        price_pln: 49,
-        blurb: "Tryb Układ AI i bez limitów projektów.",
-        highlights: ["300 kredytów AI / mies.", "Tryb Układ: geometria i propozycje zmian", "Wszystkie 18 szablonów", "Bez limitu projektów i eksportów"],
+        slug: "pro",
+        name: "Pro",
+        price_pln: 39,
+        price_label: "39 zł / 30 dni",
+        blurb: "Gotowe CV do wysłania.",
+        highlights: [
+            "PDF bez znaku wodnego",
+            "Wszystkie 14 szablonów",
+            "Import kolejnych CV",
+            "AI do treści, ATS i układu",
+            "200 kredytów AI · wiele wersji CV",
+        ],
+        period_note: "Jedna płatność · Bez automatycznego odnawiania",
+        badge: "Najlepszy wybór do szukania pracy",
+        cta: "Odblokuj Pro",
     },
 ];
 
@@ -117,15 +132,16 @@ export default function PlanSelectModal() {
         <DialogShell
             open={Boolean(isPlanModal)}
             onClose={() => showPlanModal?.()}
-            width={1280}
+            width={960}
             radius={2}
             title="Twój plan"
-            subtitle="Zmień pakiet w dowolnym momencie. Płatności Stripe dołączymy później — teraz aktywacja jest natychmiastowa."
+            subtitle="Darmowy do stworzenia i sprawdzenia CV. Pro — gotowe CV do wysłania (30 dni, jedna płatność)."
         >
             <div className={classes.grid}>
                 {plans.map((plan) => {
                     const active = plan.slug === currentSlug;
                     const busy = pendingSlug === plan.slug;
+                    const priceUnit = plan.slug === "pro" ? "zł / 30 dni" : "zł";
                     return (
                         <article
                             key={plan.slug}
@@ -134,10 +150,13 @@ export default function PlanSelectModal() {
                             <header className={classes.cardHead}>
                                 <h3 className={classes.planName}>{plan.name}</h3>
                                 {active ? <span className={classes.currentPill}>Aktualny</span> : null}
+                                {!active && plan.badge ? (
+                                    <span className={classes.badgePill}>{plan.badge}</span>
+                                ) : null}
                             </header>
                             <div className={classes.priceRow}>
                                 <span className={classes.price}>{plan.price_pln ?? 0}</span>
-                                <span className={classes.currency}>zł / mies.</span>
+                                <span className={classes.currency}>{priceUnit}</span>
                             </div>
                             <p className={classes.blurb}>{plan.blurb}</p>
                             <ul className={classes.features}>
@@ -145,19 +164,29 @@ export default function PlanSelectModal() {
                                     <li key={item}>{item}</li>
                                 ))}
                             </ul>
+                            {plan.period_note ? (
+                                <p className={classes.periodNote}>{plan.period_note}</p>
+                            ) : null}
                             <button
                                 type="button"
                                 className={active ? classes.btnCurrent : classes.btnSelect}
                                 disabled={active || Boolean(pendingSlug) || loadingCatalog}
                                 onClick={() => handleSelect(plan.slug)}
                             >
-                                {busy ? "Aktywuję…" : (active ? "Twój plan" : `Wybierz ${plan.name}`)}
+                                {busy
+                                    ? "Aktywuję…"
+                                    : (active
+                                        ? "Twój plan"
+                                        : (plan.cta || `Wybierz ${plan.name}`))}
                             </button>
                         </article>
                     );
                 })}
             </div>
-            <p className={classes.note}>1 kredyt AI ≈ 5 gr. Limity odświeżają się co miesiąc kalendarzowy.</p>
+            <p className={classes.note}>
+                1 kredyt AI ≈ 5 gr. Pro ma miesięczny limit kredytów do komfortowej pracy
+                nad CV (fair use). Limity odświeżają się z okresem planu.
+            </p>
         </DialogShell>
     );
 }

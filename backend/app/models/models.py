@@ -147,7 +147,7 @@ class BioCvDraft(Base):
 
 
 class Plan(Base):
-    """Catalog of subscription entitlements (Free / Standard / Pro)."""
+    """Catalog of subscription entitlements (Free / Pro)."""
 
     __tablename__ = "plans"
 

@@ -1,8 +1,8 @@
-"""Free-plan entitlement enforcement and billing foundation."""
+"""Free/Pro entitlement enforcement and billing foundation."""
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -56,9 +56,9 @@ class EntitlementsTests(unittest.TestCase):
         self.db.refresh(pdf)
         return pdf
 
-    def test_seed_plans_creates_free_standard_premium(self):
-        slugs = {p.slug for p in self.db.query(ent.Plan).all()}
-        self.assertEqual(slugs, {"free", "standard", "premium"})
+    def test_seed_plans_creates_free_and_pro(self):
+        slugs = {p.slug for p in self.db.query(ent.Plan).filter_by(is_active=True).all()}
+        self.assertEqual(slugs, {"free", "pro"})
 
     def test_registration_assigns_free_subscription(self):
         user = self._make_user()
@@ -68,7 +68,6 @@ class EntitlementsTests(unittest.TestCase):
         self.assertEqual(sub.status, "active")
 
     def test_backfill_assigns_free_to_users_without_subscription(self):
-        # Insert user without going through create_user (no auto-sub).
         raw = User(
             username="orphan",
             email="orphan@example.com",
@@ -92,7 +91,6 @@ class EntitlementsTests(unittest.TestCase):
 
     def test_free_allows_first_project(self):
         user = self._make_user()
-        # No existing projects — should not raise
         ent.assert_can_create_project(self.db, user)
 
     def test_free_export_limit(self):
@@ -111,9 +109,6 @@ class EntitlementsTests(unittest.TestCase):
         self.assertEqual(ctx.exception.detail["code"], "plan_feature_ai_assistant")
 
     def test_free_allows_one_lifetime_extract_then_blocks(self):
-        # Free accounts get exactly one lifetime free `extract_cv` call before
-        # this gate blocks them — see `mark_free_import_used`. The first call
-        # must not raise; only after the trial is consumed does the gate fire.
         user = self._make_user()
         ent.assert_can_extract_cv(self.db, user)
         ent.mark_free_import_used(self.db, user.id)
@@ -139,41 +134,31 @@ class EntitlementsTests(unittest.TestCase):
         self.assertEqual(payload["limits"]["max_projects"], 1)
         self.assertEqual(payload["limits"]["max_exports_per_month"], 3)
 
-    def test_standard_allows_ai_and_all_templates(self):
+    def test_pro_allows_ai_layout_and_all_templates(self):
         user = self._make_user("bob")
-        sub = ent.get_or_create_subscription(self.db, user.id)
-        sub.plan_slug = "standard"
-        self.db.add(sub)
-        self.db.commit()
+        ent.set_user_plan(self.db, user.id, "pro")
         ent.assert_can_use_ai_assistant(self.db, user)
+        ent.assert_can_use_ai_action(self.db, user, "grammar")
+        ent.assert_can_use_ai_action(self.db, user, "layout")
         ent.assert_can_extract_cv(self.db, user)
         ent.assert_template_allowed(self.db, user, "cinder")
         payload = ent.get_entitlements(self.db, user)
+        self.assertEqual(payload["plan_slug"], "pro")
         self.assertIsNone(payload["allowed_template_ids"])
+        self.assertEqual(payload["limits"]["monthly_ai_credits"], 200)
+        self.assertIsNotNone(payload["current_period_end"])
 
-    def test_standard_allows_regular_ai_actions_but_blocks_layout(self):
-        user = self._make_user("ai-standard")
+    def test_expired_pro_falls_back_to_free(self):
+        user = self._make_user("expired")
+        ent.set_user_plan(self.db, user.id, "pro")
         sub = ent.get_or_create_subscription(self.db, user.id)
-        sub.plan_slug = "standard"
+        sub.current_period_end = datetime.now(timezone.utc) - timedelta(days=1)
         self.db.add(sub)
         self.db.commit()
-
-        # Standard retains content-focused AI help; only the full-canvas
-        # geometry session is reserved for Premium.
-        ent.assert_can_use_ai_action(self.db, user, "grammar")
-        with self.assertRaises(ent.PlanLimitError) as ctx:
-            ent.assert_can_use_ai_action(self.db, user, "layout")
-        self.assertEqual(ctx.exception.detail["code"], "plan_feature_ai_layout")
-        self.assertEqual(ctx.exception.detail["upgrade_required"], "premium")
-
-    def test_premium_allows_layout_ai_action(self):
-        user = self._make_user("ai-premium")
-        sub = ent.get_or_create_subscription(self.db, user.id)
-        sub.plan_slug = "premium"
-        self.db.add(sub)
-        self.db.commit()
-
-        ent.assert_can_use_ai_action(self.db, user, "layout")
+        payload = ent.get_entitlements(self.db, user)
+        self.assertEqual(payload["plan_slug"], "free")
+        with self.assertRaises(ent.PlanLimitError):
+            ent.assert_can_use_ai_assistant(self.db, user)
 
 
 class PlanSeedAndMigrationTests(unittest.TestCase):
@@ -189,31 +174,45 @@ class PlanSeedAndMigrationTests(unittest.TestCase):
         self.db.close()
         self.engine.dispose()
 
-    def test_seed_credit_allowances_and_premium_slug(self):
+    def test_seed_credit_allowances_and_pro_slug(self):
         ent.seed_plans(self.db)
         from app.models.models import Plan
-        slugs = {p.slug: p for p in self.db.query(Plan).all()}
-        self.assertEqual(slugs["free"].max_ai_actions_per_month, 0)
-        self.assertEqual(slugs["standard"].max_ai_actions_per_month, 150)
-        self.assertEqual(slugs["premium"].max_ai_actions_per_month, 300)
-        self.assertEqual(slugs["premium"].name, "Premium")
-        self.assertNotIn("pro", slugs)
+        active = {p.slug: p for p in self.db.query(Plan).filter_by(is_active=True).all()}
+        self.assertEqual(active["free"].max_ai_actions_per_month, 0)
+        self.assertEqual(active["pro"].max_ai_actions_per_month, 200)
+        self.assertEqual(active["pro"].name, "Pro")
+        self.assertNotIn("standard", active)
+        self.assertNotIn("premium", active)
 
-    def test_migrate_pro_subscription_to_premium_is_idempotent(self):
+    def test_migrate_legacy_paid_slugs_to_pro(self):
         from app.models.models import UserSubscription
         now = datetime.now(timezone.utc)
         self.db.add(UserSubscription(
-            user_id=1, plan_slug="pro", status="active",
+            user_id=1, plan_slug="standard", status="active",
+            current_period_start=now, updated_at=now,
+        ))
+        self.db.add(UserSubscription(
+            user_id=2, plan_slug="premium", status="active",
             current_period_start=now, updated_at=now,
         ))
         self.db.commit()
         ent.seed_plans(self.db)
-        first = ent.migrate_pro_to_premium(self.db)
-        second = ent.migrate_pro_to_premium(self.db)
-        sub = self.db.query(UserSubscription).filter_by(user_id=1).first()
-        self.assertEqual(first, 1)
+        first = ent.migrate_legacy_plans_to_pro(self.db)
+        second = ent.migrate_legacy_plans_to_pro(self.db)
+        self.assertEqual(first, 2)
         self.assertEqual(second, 0)
-        self.assertEqual(sub.plan_slug, "premium")
+        slugs = {
+            row.user_id: row.plan_slug
+            for row in self.db.query(UserSubscription).all()
+        }
+        self.assertEqual(slugs[1], "pro")
+        self.assertEqual(slugs[2], "pro")
+
+    def test_normalize_plan_slug_aliases(self):
+        self.assertEqual(ent.normalize_plan_slug("standard"), "pro")
+        self.assertEqual(ent.normalize_plan_slug("premium"), "pro")
+        self.assertEqual(ent.normalize_plan_slug("pro"), "pro")
+        self.assertEqual(ent.normalize_plan_slug("free"), "free")
 
 
 if __name__ == "__main__":

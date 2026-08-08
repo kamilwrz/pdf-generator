@@ -1,13 +1,11 @@
 /*
- * Plan picker sits inside the enlarged (1280px) DialogShell. Sizing here is
- * scaled up from the original compact card so the three plans fill the wider
- * frame instead of floating in it, and every corner uses a near-zero radius to
- * match the sharpened, editorial look requested for this modal.
+ * Plan picker sits inside DialogShell. Two columns (Darmowy + Pro) fill the
+ * frame; every corner uses a near-zero radius for the editorial modal look.
  */
 
 .grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px;
     padding: 16px 8px 12px;
 }
@@ -66,11 +64,30 @@
     color: var(--chrome-muted);
 }
 
+.badgePill {
+    font: 700 10px var(--font-body);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--on-accent);
+    background: var(--accent-grad);
+    border-radius: 2px;
+    padding: 5px 9px;
+    max-width: 14rem;
+    text-align: center;
+    line-height: 1.25;
+}
+
 .blurb {
     margin: 0;
     font: 500 15px/1.5 var(--font-body);
     color: var(--chrome-muted);
     min-height: 3em;
+}
+
+.periodNote {
+    margin: 0;
+    font: 600 13px/1.4 var(--font-body);
+    color: var(--chrome-muted);
 }
 
 .features {
@@ -124,12 +141,7 @@
     color: var(--chrome-muted);
 }
 
-/*
- * The dialog clamps to the viewport (max-width: 100%), so below ~900px the three
- * columns no longer have room; drop to a single column so cards keep their
- * scaled-up type instead of crushing.
- */
-@media only screen and (max-width: 900px) {
+@media only screen and (max-width: 720px) {
     .grid {
         grid-template-columns: 1fr;
     }

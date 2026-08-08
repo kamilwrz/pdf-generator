@@ -11,7 +11,7 @@ from app.models.models import Base, User, UserSubscription
 from app.services import entitlements as ent
 
 
-def _make_user(db, username="u", plan="standard"):
+def _make_user(db, username="u", plan="pro"):
     now = datetime.now(timezone.utc)
     user = User(username=username, email=f"{username}@e.pl",
                 hashed_password="x", created_at=now, is_active=True)
@@ -48,8 +48,8 @@ class CreditMeteringTests(unittest.TestCase):
         ent.charge_ai_credits(self.db, user.id, 0.15)  # 3 credits
         ents = ent.get_entitlements(self.db, user)
         self.assertEqual(ents["usage"]["ai_credits_used"], 3)
-        self.assertEqual(ents["limits"]["monthly_ai_credits"], 150)
-        self.assertEqual(ents["remaining"]["ai_credits"], 147)
+        self.assertEqual(ents["limits"]["monthly_ai_credits"], 200)
+        self.assertEqual(ents["remaining"]["ai_credits"], 197)
 
     def test_free_user_is_blocked(self):
         user = _make_user(self.db, username="f", plan="free")
@@ -58,13 +58,13 @@ class CreditMeteringTests(unittest.TestCase):
 
     def test_block_when_credits_exhausted(self):
         user = _make_user(self.db)
-        ent.charge_ai_credits(self.db, user.id, 150 * 0.05)  # exactly 150 credits
+        ent.charge_ai_credits(self.db, user.id, 200 * 0.05)  # exactly 200 credits
         with self.assertRaises(ent.PlanLimitError):
             ent.assert_can_use_ai_assistant(self.db, user)
 
     def test_extract_cv_blocked_when_credits_exhausted(self):
         user = _make_user(self.db)
-        ent.charge_ai_credits(self.db, user.id, 150 * 0.05)  # exactly 150 credits
+        ent.charge_ai_credits(self.db, user.id, 200 * 0.05)  # exactly 200 credits
         with self.assertRaises(ent.PlanLimitError):
             ent.assert_can_use_ai_assistant(self.db, user)
         with self.assertRaises(ent.PlanLimitError):
@@ -72,5 +72,5 @@ class CreditMeteringTests(unittest.TestCase):
 
     def test_extract_cv_allowed_with_credits_remaining(self):
         user = _make_user(self.db)
-        ent.charge_ai_credits(self.db, user.id, 10 * 0.05)  # 10 of 150 credits used
+        ent.charge_ai_credits(self.db, user.id, 10 * 0.05)  # 10 of 200 credits used
         ent.assert_can_extract_cv(self.db, user)  # should not raise

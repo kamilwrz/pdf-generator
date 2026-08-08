@@ -38,6 +38,10 @@ export default function Register() {
     const startIntent = ["import", "wizard", "templates", "blank"].includes(searchParams.get("start"))
         ? searchParams.get("start")
         : null;
+    // Landing CTAs may pass ?plan=pro (legacy standard/premium remap on backend).
+    const requestedPlan = ["free", "pro", "standard", "premium"].includes(searchParams.get("plan"))
+        ? searchParams.get("plan")
+        : "free";
 
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
@@ -73,7 +77,7 @@ export default function Register() {
             await api.httpRequest(
                 ENDPOINTS.AUTH.REGISTER,
                 "POST",
-                JSON.stringify({ username, email, password }),
+                JSON.stringify({ username, email, password, plan: requestedPlan }),
                 "Rejestracja nie powiodła się",
                 {
                     timeoutMs: 90_000,
@@ -106,7 +110,9 @@ export default function Register() {
                 ? "Po utworzeniu konta otworzymy wybór szablonów."
                 : startIntent === "blank"
                     ? "Po utworzeniu konta otworzymy pusty projekt własny ze swobodną edycją."
-                    : "Wybierz plan, utwórz konto i zacznij od szablonu, importu PDF albo projektu własnego.";
+                    : requestedPlan === "pro" || requestedPlan === "standard" || requestedPlan === "premium"
+                        ? "Konto z dostępem Pro (gdy aktywacja bez płatności jest włączona) — czysty PDF, wszystkie szablony i AI."
+                        : "Utwórz darmowe konto i zacznij od szablonu, importu PDF albo projektu własnego.";
 
     return (
         <div className={classes.container}>
@@ -134,7 +140,11 @@ export default function Register() {
                     </div>
                     <p className={classes.cardEyebrow}>Pierwsza wersja CV</p>
                     <h1 id="register-title" className={classes.mainHeading}>Utwórz konto</h1>
-                    <p className={classes.subHeading}>Zacznij bez karty i bez zobowiązań.</p>
+                    <p className={classes.subHeading}>
+                        {requestedPlan === "pro" || requestedPlan === "standard" || requestedPlan === "premium"
+                            ? "Pro — 39 zł / 30 dni. Jedna płatność, bez automatycznego odnawiania (Stripe wkrótce)."
+                            : "Zacznij bez karty i bez zobowiązań."}
+                    </p>
                     <p className={classes.intentNotice}>{startNotice}</p>
                     <form onSubmit={handleSubmit} className={classes.form}>
                         <div className={classes.control}>

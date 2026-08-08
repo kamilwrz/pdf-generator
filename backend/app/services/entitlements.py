@@ -1,4 +1,9 @@
-"""Plan entitlements, usage meters, and Free-tier enforcement.
+"""Plan entitlements, usage meters, and Free/Pro enforcement.
+
+Product catalog is two tiers:
+- Free (Darmowy) — create and preview a CV (watermarked export, starter templates).
+- Pro — clean PDF + full templates + AI, activated as a 30-day pass (not an
+  auto-renewing subscription). Fair-use AI budget is 200 credits / period.
 
 Stripe checkout/webhooks come later — they will flip `UserSubscription.plan_slug`
 and fill `Payment` / stripe_* columns. All gates already read subscription state.
@@ -6,7 +11,7 @@ and fill `Payment` / stripe_* columns. All gates already read subscription state
 from __future__ import annotations
 
 import math
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import HTTPException
@@ -24,10 +29,13 @@ FREE_STARTER_TEMPLATE_IDS: tuple[str, ...] = (
     "nova",
 )
 
+# Length of a paid Pro activation window (one-shot pass, not auto-renew).
+PRO_PASS_DAYS = 30
+
 PLAN_SEEDS: list[dict[str, Any]] = [
     {
         "slug": "free",
-        "name": "Free",
+        "name": "Darmowy",
         "max_projects": 1,
         "max_exports_per_month": 3,
         "max_ai_actions_per_month": 0,
@@ -38,23 +46,11 @@ PLAN_SEEDS: list[dict[str, Any]] = [
         "is_active": True,
     },
     {
-        "slug": "standard",
-        "name": "Standard",
-        "max_projects": 10,
-        "max_exports_per_month": 30,
-        "max_ai_actions_per_month": 150,
-        "ai_assistant": True,
-        "extract_cv": True,
-        "template_tier": "all",
-        "stripe_price_id_monthly": None,
-        "is_active": True,
-    },
-    {
-        "slug": "premium",
-        "name": "Premium",
+        "slug": "pro",
+        "name": "Pro",
         "max_projects": None,
         "max_exports_per_month": None,
-        "max_ai_actions_per_month": 300,
+        "max_ai_actions_per_month": 200,
         "ai_assistant": True,
         "extract_cv": True,
         "template_tier": "all",
@@ -63,13 +59,23 @@ PLAN_SEEDS: list[dict[str, Any]] = [
     },
 ]
 
+# Legacy three-tier slugs accepted at registration / select-plan and remapped.
+LEGACY_PLAN_ALIASES: dict[str, str] = {
+    "standard": "pro",
+    "premium": "pro",
+}
 
 CREDIT_PLN = 0.05  # 1 AI credit = 5 groszy
 
-# The layout session sends the complete multi-page canvas to the dedicated
-# geometry model. Keep this explicit action-level gate separate from the
-# general AI-assistant flag so Standard retains its content-focused analyses.
-PREMIUM_ONLY_AI_ACTIONS: frozenset[str] = frozenset({"layout"})
+# Layout is included in Pro (no separate Premium tier). Kept as an empty set so
+# action-level gates stay structured if a future exclusive action appears.
+PRO_ONLY_AI_ACTIONS: frozenset[str] = frozenset()
+
+
+def normalize_plan_slug(plan_slug: str | None) -> str:
+    """Map legacy Standard/Premium labels onto the live Free/Pro catalog."""
+    slug = (plan_slug or "free").strip().lower() or "free"
+    return LEGACY_PLAN_ALIASES.get(slug, slug)
 
 
 def credits_for_cost(cost_pln: float) -> int:
@@ -84,7 +90,7 @@ def credits_for_cost(cost_pln: float) -> int:
 class PlanLimitError(HTTPException):
     """403 with a structured detail payload for frontend upgrade UX."""
 
-    def __init__(self, code: str, message: str, *, upgrade_required: str = "standard"):
+    def __init__(self, code: str, message: str, *, upgrade_required: str = "pro"):
         super().__init__(
             status_code=403,
             detail={
@@ -99,13 +105,21 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
 def current_period_key(now: datetime | None = None) -> str:
     moment = now or _utcnow()
     return f"{moment.year:04d}-{moment.month:02d}"
 
 
 def seed_plans(db: Session) -> None:
-    """Upsert Free/Standard/Premium catalog rows (idempotent)."""
+    """Upsert Free/Pro catalog rows and deactivate retired Standard/Premium."""
     for seed in PLAN_SEEDS:
         existing = db.query(Plan).filter(Plan.slug == seed["slug"]).first()
         if existing is None:
@@ -115,25 +129,45 @@ def seed_plans(db: Session) -> None:
             if key == "slug":
                 continue
             setattr(existing, key, value)
+    for stale_slug in ("standard", "premium"):
+        stale = db.query(Plan).filter(Plan.slug == stale_slug).first()
+        if stale is not None:
+            stale.is_active = False
     db.commit()
 
 
-def migrate_pro_to_premium(db: Session) -> int:
-    """One-time, idempotent rename of legacy 'pro' subscriptions to 'premium'.
+def migrate_legacy_plans_to_pro(db: Session) -> int:
+    """Idempotent remap of legacy paid slugs onto `pro`.
 
-    Also deactivates any stale 'pro' catalog row. Safe to run on every boot.
+    Covers historical `pro` rows (pre-Premium rename), `standard`, and
+    `premium`. Deactivates any leftover `standard` / `premium` / orphan
+    `pro` catalog confusion after `seed_plans` has written the live Pro row.
     """
-    migrated = (
-        db.query(UserSubscription)
-        .filter(UserSubscription.plan_slug == "pro")
-        .update({UserSubscription.plan_slug: "premium"}, synchronize_session=False)
-    )
-    stale = db.query(Plan).filter(Plan.slug == "pro").first()
-    if stale is not None:
-        stale.is_active = False
-    if migrated or stale is not None:
+    migrated = 0
+    for legacy in ("standard", "premium"):
+        migrated += (
+            db.query(UserSubscription)
+            .filter(UserSubscription.plan_slug == legacy)
+            .update({UserSubscription.plan_slug: "pro"}, synchronize_session=False)
+        )
+    # Older installs used slug `pro` before it was renamed to premium; those
+    # rows are already on the target slug. Ensure the live `pro` Plan row is
+    # active (seed_plans) and retire any accidental inactive duplicate.
+    for stale_slug in ("standard", "premium"):
+        stale = db.query(Plan).filter(Plan.slug == stale_slug).first()
+        if stale is not None:
+            stale.is_active = False
+    if migrated:
+        db.commit()
+    else:
         db.commit()
     return int(migrated)
+
+
+# Back-compat name used by older tests / docs.
+def migrate_pro_to_premium(db: Session) -> int:
+    """Deprecated alias — forwards to Free/Pro migration."""
+    return migrate_legacy_plans_to_pro(db)
 
 
 def ensure_free_subscription(db: Session, user_id: int) -> UserSubscription:
@@ -184,7 +218,7 @@ def backfill_free_subscriptions(db: Session) -> int:
 def bootstrap_billing(db: Session) -> None:
     """Called from app startup after create_all."""
     seed_plans(db)
-    migrate_pro_to_premium(db)
+    migrate_legacy_plans_to_pro(db)
     backfill_free_subscriptions(db)
 
 
@@ -192,38 +226,39 @@ def get_or_create_subscription(db: Session, user_id: int) -> UserSubscription:
     return ensure_free_subscription(db, user_id)
 
 
-SELECTABLE_PLANS: frozenset[str] = frozenset({"free", "standard", "premium"})
+SELECTABLE_PLANS: frozenset[str] = frozenset({"free", "pro"})
 
-# Marketing prices (PLN / month) — Stripe will own real amounts later.
+# Marketing prices — Stripe will own real amounts later. Pro is a 30-day pass.
 PLAN_DISPLAY: dict[str, dict[str, Any]] = {
     "free": {
         "price_pln": 0,
-        "blurb": "Edytor, wybrane szablony i eksport PDF.",
+        "price_label": "0 zł",
+        "blurb": "Stwórz i sprawdź swoje CV.",
         "highlights": [
-            "5 szablonów startowych",
-            "1 projekt · 3 eksporty / mies.",
-            "Bez Asystenta AI",
+            "Kreator i pełna edycja A4",
+            "5 podstawowych szablonów",
+            "1 darmowy import CV",
+            "PDF ze znakiem CV Studio",
+            "1 zapisany dokument · 3 eksporty / mies.",
         ],
+        "cta": "Stwórz CV za darmo",
+        "badge": None,
+        "period_note": "Bez karty. Bez zobowiązań.",
     },
-    "standard": {
-        "price_pln": 29,
-        "blurb": "Analizy AI treści i pełna biblioteka szablonów.",
+    "pro": {
+        "price_pln": 39,
+        "price_label": "39 zł / 30 dni",
+        "blurb": "Gotowe CV do wysłania.",
         "highlights": [
-            "150 kredytów AI / mies.",
-            "CV, projekt, dopasowanie, gramatyka, styl i ATS",
+            "PDF bez znaku wodnego",
             "Wszystkie 14 szablonów",
-            "10 projektów · 30 eksportów / mies.",
+            "Import kolejnych CV",
+            "AI do treści, ATS i układu",
+            "200 kredytów AI · wiele wersji CV",
         ],
-    },
-    "premium": {
-        "price_pln": 49,
-        "blurb": "Tryb Układ AI i bez limitów projektów.",
-        "highlights": [
-            "300 kredytów AI / mies.",
-            "Tryb Układ: geometria i propozycje zmian",
-            "Wszystkie 14 szablonów",
-            "Bez limitu projektów i eksportów",
-        ],
+        "cta": "Odblokuj Pro",
+        "badge": "Najlepszy wybór do szukania pracy",
+        "period_note": "Jedna płatność · Bez automatycznego odnawiania",
     },
 }
 
@@ -237,7 +272,7 @@ def list_selectable_plans(db: Session) -> list[dict[str, Any]]:
     )
     by_slug = {row.slug: row for row in rows}
     ordered: list[dict[str, Any]] = []
-    for slug in ("free", "standard", "premium"):
+    for slug in ("free", "pro"):
         row = by_slug.get(slug)
         if row is None:
             continue
@@ -246,28 +281,61 @@ def list_selectable_plans(db: Session) -> list[dict[str, Any]]:
             "slug": row.slug,
             "name": row.name,
             "price_pln": display.get("price_pln", 0),
+            "price_label": display.get("price_label", f"{display.get('price_pln', 0)} zł"),
             "blurb": display.get("blurb", ""),
             "highlights": display.get("highlights", []),
+            "cta": display.get("cta"),
+            "badge": display.get("badge"),
+            "period_note": display.get("period_note"),
             "max_projects": row.max_projects,
             "max_exports_per_month": row.max_exports_per_month,
             "monthly_ai_credits": row.max_ai_actions_per_month,
             "ai_assistant": bool(row.ai_assistant),
             "extract_cv": bool(row.extract_cv),
             "template_tier": row.template_tier,
-            # Populated when Stripe products are wired.
             "stripe_price_id_monthly": row.stripe_price_id_monthly,
         })
     return ordered
 
 
 def set_user_plan(db: Session, user_id: int, plan_slug: str) -> UserSubscription:
-    """Activate `plan_slug` for a user (pre-Stripe, no payment). Idempotent."""
+    """Activate `plan_slug` for a user (pre-Stripe, no payment). Idempotent.
+
+    Pro starts a fresh 30-day pass and resets the AI credit meter so the new
+    window always begins with the full 200-credit allowance.
+    """
+    plan_slug = normalize_plan_slug(plan_slug)
     if plan_slug not in SELECTABLE_PLANS:
         raise ValueError(f"Nieznany plan: {plan_slug}")
     sub = get_or_create_subscription(db, user_id)
+    now = _utcnow()
     sub.plan_slug = plan_slug
     sub.status = "active"
+    sub.current_period_start = now
+    if plan_slug == "pro":
+        sub.current_period_end = now + timedelta(days=PRO_PASS_DAYS)
+    else:
+        sub.current_period_end = None
+    sub.updated_at = now
+    db.add(sub)
+    db.commit()
+    db.refresh(sub)
+    if plan_slug == "pro":
+        reset_ai_credits(db, user_id)
+    return sub
+
+
+def _expire_pro_if_needed(db: Session, sub: UserSubscription) -> UserSubscription:
+    """Downgrade an expired Pro pass to Free. Documents stay; clean export/AI stop."""
+    if sub.plan_slug != "pro":
+        return sub
+    end = _as_utc(sub.current_period_end)
+    if end is None or end > _utcnow():
+        return sub
+    sub.plan_slug = "free"
+    sub.status = "active"
     sub.updated_at = _utcnow()
+    # Keep period_end as the historical expiry timestamp for support/debug.
     db.add(sub)
     db.commit()
     db.refresh(sub)
@@ -275,9 +343,9 @@ def set_user_plan(db: Session, user_id: int, plan_slug: str) -> UserSubscription
 
 
 def get_plan(db: Session, plan_slug: str) -> Plan:
+    plan_slug = normalize_plan_slug(plan_slug)
     plan = db.query(Plan).filter(Plan.slug == plan_slug, Plan.is_active.is_(True)).first()
     if plan is None:
-        # Fall back to free if catalog is missing/corrupt
         plan = db.query(Plan).filter(Plan.slug == "free").first()
     if plan is None:
         raise RuntimeError("Plan catalog is empty — seed_plans() did not run.")
@@ -312,6 +380,7 @@ def allowed_template_ids(plan: Plan) -> list[str]:
 
 def get_entitlements(db: Session, user: User) -> dict[str, Any]:
     sub = get_or_create_subscription(db, user.id)
+    sub = _expire_pro_if_needed(db, sub)
     plan = get_plan(db, sub.plan_slug)
     usage = _usage_row(db, user.id)
     project_count = db.query(Pdf).filter(Pdf.owner_id == user.id).count()
@@ -327,6 +396,7 @@ def get_entitlements(db: Session, user: User) -> dict[str, Any]:
 
     starter_ids = list(FREE_STARTER_TEMPLATE_IDS)
     template_ids = starter_ids if plan.template_tier == "starter" else None
+    period_end = _as_utc(sub.current_period_end)
 
     return {
         "plan_slug": plan.slug,
@@ -337,6 +407,10 @@ def get_entitlements(db: Session, user: User) -> dict[str, Any]:
         "free_import_used": bool(sub.free_import_used),
         "template_tier": plan.template_tier,
         "allowed_template_ids": template_ids,
+        "current_period_start": (
+            _as_utc(sub.current_period_start).isoformat() if sub.current_period_start else None
+        ),
+        "current_period_end": period_end.isoformat() if period_end else None,
         "limits": {
             "max_projects": max_projects,
             "max_exports_per_month": max_exports,
@@ -368,7 +442,7 @@ def assert_can_create_project(db: Session, user: User) -> None:
         raise PlanLimitError(
             "plan_limit_projects",
             f"Plan {entitlements['plan_name']} pozwala na maksymalnie {limit} projekt(y). "
-            "Ulepsz plan, aby dodać kolejny.",
+            "Odblokuj Pro, aby dodać kolejny.",
         )
 
 
@@ -382,7 +456,7 @@ def assert_can_export(db: Session, user: User) -> None:
         raise PlanLimitError(
             "plan_limit_exports",
             f"Wykorzystano limit {limit} eksportów w tym miesiącu na planie "
-            f"{entitlements['plan_name']}. Ulepsz plan, aby pobrać więcej PDF.",
+            f"{entitlements['plan_name']}. Odblokuj Pro, aby pobrać więcej PDF.",
         )
 
 
@@ -396,8 +470,9 @@ def assert_has_ai_credits(db: Session, user: User) -> None:
     if limit is not None and entitlements["usage"]["ai_credits_used"] >= limit:
         raise PlanLimitError(
             "plan_limit_ai_credits",
-            "Wykorzystano miesięczny limit kredytów AI.",
-            upgrade_required="premium" if entitlements["plan_slug"] == "standard" else "standard",
+            "Wykorzystano miesięczny limit kredytów AI. Odblokuj lub odnów Pro, "
+            "aby kontynuować.",
+            upgrade_required="pro",
         )
 
 
@@ -407,7 +482,7 @@ def assert_can_use_ai_assistant(db: Session, user: User) -> None:
     if not entitlements["ai_assistant"]:
         raise PlanLimitError(
             "plan_feature_ai_assistant",
-            "Asystent AI jest dostępny w planie Standard.",
+            "Asystent AI jest dostępny w planie Pro.",
         )
     assert_has_ai_credits(db, user)
 
@@ -415,14 +490,9 @@ def assert_can_use_ai_assistant(db: Session, user: User) -> None:
 def assert_can_use_ai_action(db: Session, user: User, action: str) -> None:
     """Require the plan entitlement for one requested AI-assistant action.
 
-    Standard includes the regular assistant actions: CV and design ratings,
-    role fit, grammar, style, improvement, ATS guidance, and ordinary chat.
-    ``layout`` is deliberately Premium-only because it performs a separate
-    full-canvas geometry session with the higher-cost layout model.
-
-    The plan check runs before the general assistant gate so users requesting
-    ``layout`` always receive the precise Premium upgrade message instead of
-    a generic Standard-assistant message.
+    Pro includes content AI (ratings, role fit, grammar, style, ATS, chat) and
+    the full-canvas Layout session. Free has no AI assistant (except the one
+    lifetime extract_cv trial handled separately).
 
     @param db - Active database session used to resolve the subscription.
     @param user - Authenticated user requesting the action.
@@ -431,11 +501,11 @@ def assert_can_use_ai_action(db: Session, user: User, action: str) -> None:
         has no remaining AI credits.
     """
     entitlements = get_entitlements(db, user)
-    if action in PREMIUM_ONLY_AI_ACTIONS and entitlements["plan_slug"] != "premium":
+    if action in PRO_ONLY_AI_ACTIONS and entitlements["plan_slug"] != "pro":
         raise PlanLimitError(
             "plan_feature_ai_layout",
-            "Tryb Układ jest dostępny wyłącznie w planie Premium.",
-            upgrade_required="premium",
+            "Tryb Układ jest dostępny w planie Pro.",
+            upgrade_required="pro",
         )
     assert_can_use_ai_assistant(db, user)
 
@@ -454,12 +524,12 @@ def assert_can_extract_cv(db: Session, user: User) -> None:
         if entitlements["plan_slug"] == "free":
             raise PlanLimitError(
                 "plan_feature_extract_cv",
-                "Wykorzystano już darmowy import CV. Ulepsz plan do Standard, "
+                "Wykorzystano już darmowy import CV. Odblokuj Pro, "
                 "aby importować więcej dokumentów.",
             )
         raise PlanLimitError(
             "plan_feature_extract_cv",
-            "Ekstrakcja CV z PDF jest dostępna w planie Standard.",
+            "Ekstrakcja CV z PDF jest dostępna w planie Pro.",
         )
     assert_has_ai_credits(db, user)
 
@@ -469,23 +539,7 @@ def mark_free_import_used(db: Session, user_id: int) -> None:
 
     Uses a conditional UPDATE (not read-then-write) so two concurrent
     successful extractions from the same account cannot both consume the
-    trial. `assert_can_extract_cv` reads `free_import_used` and this function
-    writes it only after the OpenAI call succeeds (see the `/ai/extract_cv`
-    route); if two requests both read `False` before either write lands, a
-    naive read-then-write would let both proceed. Binding the
-    `free_import_used = False` check directly into the UPDATE's WHERE clause
-    makes the database — not application code — enforce the single
-    free-to-used transition, closing that race.
-
-    The WHERE clause already encodes both of the old early-return conditions
-    (wrong plan, or already used) as "zero rows match" cases, so no prior
-    read via `get_or_create_subscription` is needed: a mismatch simply
-    updates nothing and the function returns normally either way.
-
-    Safe to call unconditionally after ANY successful extraction. Callers
-    must only invoke this after `extract_cv_data()` succeeds; a
-    failed/errored extraction must never consume the free try (see
-    `assert_can_extract_cv` for the corresponding gate).
+    trial. Safe to call unconditionally after ANY successful extraction.
     """
     db.query(UserSubscription).filter(
         UserSubscription.user_id == user_id,
@@ -504,7 +558,7 @@ def assert_template_allowed(db: Session, user: User, template_id: str) -> None:
     if template_id not in allowed:
         raise PlanLimitError(
             "plan_feature_template",
-            "Ten szablon jest dostępny w planie Standard.",
+            "Ten szablon jest dostępny w planie Pro.",
         )
 
 
