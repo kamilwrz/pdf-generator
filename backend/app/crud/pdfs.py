@@ -15,6 +15,7 @@ import datetime
 from typing import Any, Mapping
 
 from app.crud.images import request_image_by_id
+from app.schemas.pdf_schema import PdfElement
 from app.services.cv_generator_primitives import (
     DEFAULT_FLOW_SPACING,
     normalize_spacing_px,
@@ -35,6 +36,64 @@ def serialize_runs(element) -> list[dict[str, Any]] | None:
     # Drop marks left at their None default so stored spans stay compact and the
     # hydrated element only carries the overrides the author actually applied.
     return [run.model_dump(exclude_none=True) for run in runs]
+
+
+def elements_from_rows(rows) -> list[PdfElement]:
+    """Reconstruct full `PdfElement` objects from stored `PdfElements` rows.
+
+    Unpacks `extra_properties` back into the flat shape `PDF_Generator.
+    render_elements` expects — the inverse of the packing this module does
+    in `create_new_pdf` / `update_pdf_elements`. Keep both in sync: a new
+    key packed into `extra_properties` there must be unpacked here too, or
+    a re-rendered download (see `document_service.render_pdf_for_download`)
+    will silently drop that field.
+    """
+    elements = []
+    for row in rows:
+        extra = row.extra_properties or {}
+        elements.append(PdfElement(
+            category=row.category,
+            element_id=row.element_id,
+            page=row.page or 1,
+            left=row.left,
+            top=row.top,
+            width=row.width,
+            height=row.height,
+            content=row.content,
+            fontFamily=row.fontFamily,
+            fontSize=row.fontSize,
+            color=row.color,
+            src=row.src,
+            backgroundColor=row.backgroundColor,
+            img_id=row.img_id,
+            lineHeight=extra.get("lineHeight"),
+            letterSpacing=extra.get("letterSpacing"),
+            bold=extra.get("bold", False),
+            italic=extra.get("italic", False),
+            underline=extra.get("underline", False),
+            runs=extra.get("runs"),
+            align=extra.get("align", "left"),
+            bulletList=extra.get("bulletList", False),
+            autoHeight=extra.get("autoHeight", False),
+            flowRole=extra.get("flowRole"),
+            flowGroup=extra.get("flowGroup"),
+            isDecorativeChromeText=extra.get("isDecorativeChromeText", False),
+            preserveInitialLayout=extra.get("preserveInitialLayout", False),
+            alignWithText=extra.get("alignWithText"),
+            id=extra.get("id"),
+            photoSlot=extra.get("photoSlot"),
+            photoShape=extra.get("photoShape"),
+            fixedToPage=extra.get("fixedToPage", False),
+            repeatOnContinuation=extra.get("repeatOnContinuation", True),
+            locked=extra.get("locked", False),
+            borderWidth=extra.get("borderWidth"),
+            borderRadius=extra.get("borderRadius"),
+            filled=extra.get("filled", False),
+            source_id=extra.get("source_id"),
+            target_id=extra.get("target_id"),
+            arrow=extra.get("arrow", False),
+        ))
+    return elements
 
 
 def serialize_spacing_px(raw: Mapping[str, Any] | None) -> dict[str, float] | None:
