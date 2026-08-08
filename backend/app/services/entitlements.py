@@ -334,6 +334,7 @@ def get_entitlements(db: Session, user: User) -> dict[str, Any]:
         "status": sub.status,
         "ai_assistant": bool(plan.ai_assistant),
         "extract_cv": bool(plan.extract_cv),
+        "free_import_used": bool(sub.free_import_used),
         "template_tier": plan.template_tier,
         "allowed_template_ids": template_ids,
         "limits": {
@@ -440,14 +441,44 @@ def assert_can_use_ai_action(db: Session, user: User, action: str) -> None:
 
 
 def assert_can_extract_cv(db: Session, user: User) -> None:
-    """Require extract_cv feature flag plus remaining AI credits."""
+    """Require extract_cv feature flag plus remaining AI credits.
+
+    Free-plan accounts get exactly one lifetime free extract before this
+    gate blocks them (see `mark_free_import_used`, called by the
+    `/ai/extract_cv` route only after a successful extraction).
+    """
     entitlements = get_entitlements(db, user)
     if not entitlements["extract_cv"]:
+        if entitlements["plan_slug"] == "free" and not entitlements["free_import_used"]:
+            return
+        if entitlements["plan_slug"] == "free":
+            raise PlanLimitError(
+                "plan_feature_extract_cv",
+                "Wykorzystano już darmowy import CV. Ulepsz plan do Standard, "
+                "aby importować więcej dokumentów.",
+            )
         raise PlanLimitError(
             "plan_feature_extract_cv",
             "Ekstrakcja CV z PDF jest dostępna w planie Standard.",
         )
     assert_has_ai_credits(db, user)
+
+
+def mark_free_import_used(db: Session, user_id: int) -> None:
+    """Consume the Free plan's one lifetime `extract_cv` trial.
+
+    Safe to call unconditionally after ANY successful extraction — it is a
+    no-op for accounts that are not on Free, or that have already used it.
+    Callers must only invoke this after `extract_cv_data()` succeeds; a
+    failed/errored extraction must never consume the free try (see
+    `assert_can_extract_cv` for the corresponding gate).
+    """
+    sub = get_or_create_subscription(db, user_id)
+    if sub.plan_slug != "free" or sub.free_import_used:
+        return
+    sub.free_import_used = True
+    db.add(sub)
+    db.commit()
 
 
 def assert_template_allowed(db: Session, user: User, template_id: str) -> None:

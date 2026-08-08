@@ -29,6 +29,7 @@ from app.services.entitlements import (
     assert_can_extract_cv,
     assert_template_allowed,
     charge_ai_credits,
+    mark_free_import_used,
 )
 
 router = APIRouter(prefix="/ai", tags=["ai"])
@@ -102,6 +103,7 @@ async def extract_cv(
     try:
         cv_data, usage = extract_cv_data(data)
         charge_ai_credits(db, user.id, usage.get("cost_pln_estimate", 0.0))
+        mark_free_import_used(db, user.id)
         return {"cv_data": cv_data, "usage": usage}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Nie udało się wyodrębnić danych z CV: {exc}")

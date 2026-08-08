@@ -1,4 +1,4 @@
-"""Free-plan gate on POST /ai/extract_cv runs before the OpenAI extract call."""
+"""Free-plan gate on POST /ai/extract_cv: one lifetime free import, then blocked."""
 from __future__ import annotations
 
 import unittest
@@ -13,28 +13,21 @@ from app.core.security import verify_token
 from app.crud import user as user_crud
 from app.dependencies import get_db
 from app.main import app
-from app.models.models import Base
+from app.models.models import Base, User, UserSubscription
 from app.schemas.user_schema import UserCreateRequest
 from app.services import entitlements as ent
 from app.testing_support import ensure_test_auth_env
 
 
 def _extract_must_not_run(*_args, **_kwargs):
-    """Prove the entitlement gate short-circuits before the model call."""
-    raise AssertionError("extract_cv_data must not be called for free users")
+    raise AssertionError("extract_cv_data must not be called once the free import is used")
 
 
-class ExtractCvRejectionTests(unittest.TestCase):
-    """Wire-contract coverage for Free-tier rejection of CV PDF extraction.
-
-    Free plans have ``extract_cv=False``. The route must return
-    ``plan_feature_extract_cv`` without invoking ``extract_cv_data``.
-    """
+class ExtractCvFreeImportTests(unittest.TestCase):
+    """Free plans get exactly one lifetime free `/ai/extract_cv` call."""
 
     def setUp(self):
         ensure_test_auth_env()
-        # StaticPool + a single shared connection so the request runs (on the
-        # TestClient's worker thread) see the same in-memory DB as this thread.
         self.engine = create_engine(
             "sqlite:///:memory:",
             connect_args={"check_same_thread": False},
@@ -46,6 +39,7 @@ class ExtractCvRejectionTests(unittest.TestCase):
 
         user_crud.create_user(self.db, UserCreateRequest(
             username="u1", email="u1@e.pl", password="pw"))
+        self.user = self.db.query(User).filter(User.username == "u1").one()
 
         def _override_db():
             yield self.db
@@ -59,7 +53,28 @@ class ExtractCvRejectionTests(unittest.TestCase):
         self.db.close()
         self.engine.dispose()
 
-    def test_free_user_extract_cv_is_rejected_before_model_call(self):
+    def _sub(self) -> UserSubscription:
+        return self.db.query(UserSubscription).filter(
+            UserSubscription.user_id == self.user.id
+        ).one()
+
+    def test_free_users_first_import_succeeds_and_consumes_the_trial(self):
+        with patch(
+            "app.api.routes.ai.extract_cv_data",
+            return_value=({"name": "Test"}, {"cost_pln_estimate": 0.0}),
+        ):
+            response = self.client.post(
+                "/ai/extract_cv",
+                files={"file": ("cv.pdf", b"%PDF-1.4 fake", "application/pdf")},
+            )
+        self.assertEqual(response.status_code, 200, msg=response.text)
+        self.db.refresh(self._sub())
+        self.assertTrue(self._sub().free_import_used)
+
+    def test_free_users_second_import_is_rejected(self):
+        self._sub().free_import_used = True
+        self.db.commit()
+
         with patch("app.api.routes.ai.extract_cv_data", side_effect=_extract_must_not_run):
             response = self.client.post(
                 "/ai/extract_cv",
@@ -68,6 +83,19 @@ class ExtractCvRejectionTests(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         detail = response.json()["detail"]
         self.assertEqual(detail["code"], "plan_feature_extract_cv")
+
+    def test_failed_extraction_does_not_consume_the_free_import(self):
+        with patch(
+            "app.api.routes.ai.extract_cv_data",
+            side_effect=RuntimeError("openai boom"),
+        ):
+            response = self.client.post(
+                "/ai/extract_cv",
+                files={"file": ("cv.pdf", b"%PDF-1.4 fake", "application/pdf")},
+            )
+        self.assertEqual(response.status_code, 500)
+        self.db.refresh(self._sub())
+        self.assertFalse(self._sub().free_import_used)
 
 
 if __name__ == "__main__":

@@ -104,14 +104,22 @@ class EntitlementsTests(unittest.TestCase):
             ent.assert_can_export(self.db, user)
         self.assertEqual(ctx.exception.detail["code"], "plan_limit_exports")
 
-    def test_free_blocks_ai_assistant_and_extract(self):
+    def test_free_blocks_ai_assistant(self):
         user = self._make_user()
         with self.assertRaises(ent.PlanLimitError) as ctx:
             ent.assert_can_use_ai_assistant(self.db, user)
         self.assertEqual(ctx.exception.detail["code"], "plan_feature_ai_assistant")
-        with self.assertRaises(ent.PlanLimitError) as ctx2:
+
+    def test_free_allows_one_lifetime_extract_then_blocks(self):
+        # Free accounts get exactly one lifetime free `extract_cv` call before
+        # this gate blocks them — see `mark_free_import_used`. The first call
+        # must not raise; only after the trial is consumed does the gate fire.
+        user = self._make_user()
+        ent.assert_can_extract_cv(self.db, user)
+        ent.mark_free_import_used(self.db, user.id)
+        with self.assertRaises(ent.PlanLimitError) as ctx:
             ent.assert_can_extract_cv(self.db, user)
-        self.assertEqual(ctx2.exception.detail["code"], "plan_feature_extract_cv")
+        self.assertEqual(ctx.exception.detail["code"], "plan_feature_extract_cv")
 
     def test_free_template_gate(self):
         user = self._make_user()
