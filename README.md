@@ -49,7 +49,7 @@ Forcing registration before a visitor had seen the editor used to be the largest
 3. **Register / login only when it matters** → clicking “Zapisz PDF” / “Pobierz PDF” as a guest opens `SaveGateModal` instead of calling the backend. Registering or logging in preserves the selected `start` intent, and if a guest document exists, `ClaimGuestDocumentModal` asks the now-authenticated visitor to confirm it is theirs before claiming it — a guest document belongs to the browser, not to any identity, so silently attaching it to whoever happens to log in next would leak one person's draft into an unrelated account.
 4. **Pick a template** → `handleLoadTemplate` materializes specs → canvas.
 5. **Import PDF** (account required) → `POST /ai/extract_cv` → choose template → `POST /ai/fill_template` → Python layout in `cv_generator.generate_resume`.
-6. **Bio wizard** → five-step fullscreen creator (`BioCvModal`). Authenticated users use draft CRUD on `/ai/bio_cv_draft`; guests autosave the wizard profile to `localStorage` (`cvstudio.guest.wizardDraft` via `guestWizardDraft.js`, separate from the canvas key `cvstudio.guest.doc`) → `POST /ai/fill_template` (anonymous Free starter templates allowed).
+6. **Bio wizard** → five-step fullscreen creator (`BioCvModal`). Authenticated users use draft CRUD on `/ai/bio_cv_draft`; guests autosave the wizard profile to `localStorage` (`cvstudio.guest.wizardDraft` via `guestWizardDraft.js`, separate from the canvas key `cvstudio.guest.doc`). After register/login, an empty account draft is filled from that guest snapshot (`claimGuestWizardDraft.js`) so Demo answers survive into Free (and later paid) accounts → `POST /ai/fill_template` (anonymous Free starter templates allowed).
 7. **Edit** → drag/resize/style → debounced `PUT /pdf/save_elements` once authenticated, or a debounced `localStorage` write (`guestDocument.js`) as a guest.
 8. **AI assistant** → `POST /ai/assistant` → tips / corrections / reviewable layout groups (account required — every assistant action is entitlement-gated).
 9. **Export** → create/update PDF → `POST /pdf/download_pdf` (export quota charged; requires an account, reached through the save-gate for guests).
@@ -164,7 +164,7 @@ pdf-generator/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
 │   │   ├── templates/        # 14 template specs + helpers + demoCv.js (guest-mode demo content)
-│   │   └── utils/            # a4ElementFactories, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, guestDocument, guestWizardDraft, guestEvents
+│   │   └── utils/            # a4ElementFactories, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, guestDocument, guestWizardDraft, claimGuestWizardDraft, guestEvents
 │   ├── package.json
 │   └── .env.example
 ├── shared/
@@ -361,7 +361,7 @@ Implementation:
 
 - **Token verification** — the mount effect that revalidates a JWT against `GET /auth/verify-token/{token}` is skipped entirely for guests. When a leftover JWT is expired or invalid, the token is cleared and the visitor **stays** on `/pdfcanvas` as a guest (the old redirect to `/` belonged to the pre-guest-mode era when the editor required auth).
 - **Guest autosave (canvas)** — a 2-second-debounce effect persists the canvas (elements, deleted ids, title, page count, editor mode, template id, spacing, and whether the content is still the demo CV) to `localStorage` via `guestDocument.js` (`cvstudio.guest.doc`), instead of the authenticated `PUT /pdf/save_elements` autosave effect that runs once a real `pdfId` exists.
-- **Guest autosave (bio wizard)** — while the guided wizard is open without a JWT, `BioCvModal` debounces (~650 ms) writes of `{ step, profile, selectedTemplateId, updatedAt }` to `cvstudio.guest.wizardDraft` through `guestWizardDraft.js`. Reopening the wizard offers **Kontynuuj** / **Zacznij od nowa** and hydrates the in-memory profile from that snapshot so a close race cannot overwrite a good draft with an empty shell. A successful template fill (**Wybierz wygląd**) keeps the draft (and records `selectedTemplateId`) so the guest can generate another look later; the draft is cleared only on explicit reset (**Zacznij od nowa** / clear draft) or when an authenticated session opens the wizard. `saveGuestWizardDraft` also refuses to replace a meaningful stored draft with an empty step-0 shell. Authenticated users still use `/ai/bio_cv_draft` and clear any leftover guest wizard draft on open so the two stores do not mix.
+- **Guest autosave (bio wizard)** — while the guided wizard is open without a JWT, `BioCvModal` debounces (~650 ms) writes of `{ step, profile, selectedTemplateId, updatedAt }` to `cvstudio.guest.wizardDraft` through `guestWizardDraft.js`. Reopening the wizard offers **Kontynuuj** / **Zacznij od nowa** and hydrates the in-memory profile from that snapshot so a close race cannot overwrite a good draft with an empty shell. A successful template fill (**Wybierz wygląd**) keeps the draft (and records `selectedTemplateId`) so the guest can generate another look later. After **register/login** (Free today; additional plans at registration later do not change this path), `adoptGuestWizardDraftForAccount` in `claimGuestWizardDraft.js` uploads that guest profile into `PUT /ai/bio_cv_draft` when the account draft is empty, then clears localStorage — so Demo wizard answers survive into the authenticated wizard. If the account already has a non-empty draft, the guest snapshot is discarded instead of overwriting the account. Adoption runs once on `PdfCanvas` mount when a JWT exists and again as a safety net when `BioCvModal` opens. Explicit reset (**Zacznij od nowa** / clear draft) still clears the guest key. `saveGuestWizardDraft` also refuses to replace a meaningful stored draft with an empty step-0 shell.
 - **Save-gate** — `handleSaveClick` (wired to the Topbar's “Zapisz PDF” / “Pobierz PDF”) checks for a token first; a guest sees `SaveGateModal` (“Mam już konto” → `/login`, “Utwórz konto” → `/register`) instead of firing `POST /pdf/create_pdf`.
 - **Claim on login/registration requires explicit confirmation** — a guest document is scoped to the *browser*, not to any identity, so a JWT appearing (fresh login/registration, or a reload with a token already present) is not by itself proof that whoever is now authenticated is the same person who wrote the buffered content. Auto-claiming used to hand it over silently; anyone who next signed in on that browser — a different account on a shared computer, or simply an unrelated login later — would inherit someone else's draft CV, including any real personal data it contained. A one-shot effect now only *detects* a buffered guest document and opens `ClaimGuestDocumentModal` (“Tak, zachowaj na moim koncie” / “To nie moje — odrzuć”); only on confirm does the existing claim logic run: replace the canvas via the same primitive `ModalPdfs` uses to reopen a saved PDF (`hydrateDocumentMode`, not `handleLoadTemplate` / `handleLoadAiElements` — those re-materialize elements and mint new ids, which would silently break connectors saved by `saveGuestDocument`), call `POST /pdf/create_pdf` to persist it for real, clear the guest buffer, and flush any buffered guest analytics events through the normal authenticated `logEvent`. Declining discards the buffered document and its queued events outright, rather than re-offering it to the next login.
 - **Demo entry point** — `?start=demo` loads a static example CV (`demoCvTemplate`) and shows a persistent `DemoBanner` (“Użyj własnych danych” opens the bio wizard in place; “Zacznij od zera” discards the demo content and switches to a blank freeform document). The demo flag is only cleared once real content actually replaces it — in `startFreshDocument`, the shared entry point for every template/AI-fill/clear path — not the instant “Użyj własnych danych” is clicked; cancelling the wizard before it fills anything leaves the demo CV and its banner exactly as they were, instead of stranding unlabeled placeholder content on the canvas with no banner.
@@ -384,6 +384,7 @@ Implementation:
 - `frontend/src/pages/PdfCanvas.jsx`, lines 639–649 — demo path effect
 - `frontend/src/utils/guestDocument.js` — `saveGuestDocument`, `loadGuestDocument`, `clearGuestDocument`, `hasGuestDocument`; storage key `cvstudio.guest.doc`
 - `frontend/src/utils/guestWizardDraft.js` — `saveGuestWizardDraft`, `loadGuestWizardDraft`, `clearGuestWizardDraft`, `hasGuestWizardDraft`, `guestWizardProfileHasContent`, `clampWizardStep`; storage key `cvstudio.guest.wizardDraft`
+- `frontend/src/utils/claimGuestWizardDraft.js` — `adoptGuestWizardDraftForAccount`; promotes Demo/guest wizard profile into `PUT /ai/bio_cv_draft` after login/register when the account draft is empty (plan-agnostic)
 - `frontend/src/utils/guestEvents.js` — `queueGuestEvent`, `loadGuestEvents`, `clearGuestEvents`; storage key `cvstudio.guest.events`, `MAX_BUFFERED_EVENTS = 50`
 - `frontend/src/templates/demoCv.js` — `demoCvTemplate`, a fictional single-column CV built from the same element-spec helpers as the real starter templates
 - `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx` + `.module.css`
@@ -392,7 +393,8 @@ Implementation:
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx` — logout button only renders when `!isGuest`
 - `frontend/src/pages/Hero/Hero.jsx`, lines 112–139 — `buildStartUrl` / `StartButton` guest-first CTA routing
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, lines 211–221 — guest guard on the “Moje dokumenty” fetch
-- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, function `BioCvModal` — `saveDraft` (lines 191–239), mount/resume effect (lines 279–379), `handleClose` (lines 512–538), `clearDraft` (lines 540–571), `handleFill` (lines 573–642); guest localStorage drafts kept after fill + auth `/ai/bio_cv_draft` + stale-JWT recovery; fill uses live `fillTemplate` client
+- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, function `BioCvModal` — `saveDraft` (lines 192–240), mount/resume/adopt effect (lines 280–408), `handleClose` (lines 541–567), `clearDraft` (lines 569–600), `handleFill` (lines 602–671); guest localStorage drafts kept after fill; Demo→account adopt via `adoptGuestWizardDraftForAccount`; auth `/ai/bio_cv_draft` + stale-JWT recovery; fill uses live `fillTemplate` client
+- `frontend/src/pages/PdfCanvas.jsx`, lines 978–999 — silent guest-wizard adopt on authenticated mount
 - `frontend/src/services/fillTemplate.js`, lines 21–46, function `fillTemplate` — omits Bearer header when no JWT
 - `frontend/src/components/gallery/Gallery/Gallery.jsx`, lines 39–54 — guest guard on the image-library fetch
 - `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, lines 38–53 — guest guard on image upload
@@ -406,6 +408,7 @@ Tests:
 
 - `frontend/src/utils/guestDocument.test.js` — round-trip persistence, null on empty/corrupt storage, `hasGuestDocument` requires a non-deleted element
 - `frontend/src/utils/guestWizardDraft.test.js` — round-trip wizard draft, corrupt JSON, clear, empty-overwrite guard, meaningful-content detection, step clamping
+- `frontend/src/utils/claimGuestWizardDraft.test.js` — adopt when account empty; never overwrite non-empty account draft; no-op without guest draft
 - `frontend/src/utils/guestEvents.test.js` — append with timestamp, ordering, empty/corrupt storage, 50-entry cap
 - `backend/tests/test_fill_template_guest.py` — anonymous Free fill succeeds; Standard template rejected; stale Bearer treated as guest
 - `frontend/src/utils/authSession.test.js` — placeholder token rejection and auth-failure detection
@@ -786,7 +789,8 @@ Implementation:
 
 - `frontend/src/utils/bioCvData.js`, lines 5–12 (`BIO_CV_STEPS`), 91–115 (`createCustomSectionFromPreset`), 225–248 (`validateBioCvStep`)
 - `frontend/src/utils/guestWizardDraft.js`, lines 35–141 (`saveGuestWizardDraft`, empty-overwrite guard, `hasGuestWizardDraft`)
-- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, function `BioCvModal` (lines 120–1120)
+- `frontend/src/utils/claimGuestWizardDraft.js`, lines 48–109, function `adoptGuestWizardDraftForAccount`
+- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, function `BioCvModal` (lines 120–1149)
 - `frontend/src/components/common/DialogShell/DialogShell.jsx` — `variant="fullscreen"`
 - `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — optional `visibleCount` / `actionLabel` (wizard uses 3 cards + “Utwórz moje CV”)
 
@@ -794,8 +798,9 @@ Tests:
 
 - `frontend/src/utils/bioCvData.test.js` — payload build, step validation (including merged extras step), summary jump
 - `frontend/src/utils/guestWizardDraft.test.js`
+- `frontend/src/utils/claimGuestWizardDraft.test.js`
 
-Known limitations: no live A4 preview inside the wizard; template cards still show static mockups (not a live fill of the user’s data); canvas guest reload from `cvstudio.guest.doc` remains claim-time only (separate from wizard draft resume).
+Known limitations: no live A4 preview inside the wizard; template cards still show static mockups (not a live fill of the user’s data); canvas guest reload from `cvstudio.guest.doc` remains claim-time only (wizard draft adopts automatically into an empty account draft after login); wizard step index is not stored on the server draft (only `cv_data`) — after adopt the current session restores the guest step, later reopens start at step 0 with the saved profile.
 
 ### CV PDF extract
 
@@ -1283,7 +1288,7 @@ Wymuszanie rejestracji zanim odwiedzający zobaczył edytor było dotąd najwię
 3. **Rejestracja / logowanie tylko wtedy, gdy to ma znaczenie** → kliknięcie „Zapisz PDF” / „Pobierz PDF” jako gość otwiera `SaveGateModal` zamiast wywoływać backend. Rejestracja lub logowanie zachowuje wybrany parametr `start`, a jeśli istnieje bufor dokumentu gościa, `ClaimGuestDocumentModal` prosi świeżo zalogowaną osobę o potwierdzenie, że to jej dokument, zanim zostanie przejęty — dokument gościa należy do przeglądarki, nie do tożsamości, więc ciche przypisanie go komukolwiek, kto akurat się zaloguje, ujawniłoby czyjś szkic na niepowiązanym koncie.
 4. **Wybór szablonu** → `handleLoadTemplate` materializuje elementy → płótno.
 5. **Import PDF** (wymaga konta) → `POST /ai/extract_cv` → szablon → `POST /ai/fill_template` → layout w `cv_generator.generate_resume`.
-6. **Kreator bio** → pięciokrokowy kreator pełnoekranowy (`BioCvModal`). Zalogowani używają CRUD `/ai/bio_cv_draft`; goście zapisują profil kreatora do `localStorage` (`cvstudio.guest.wizardDraft` przez `guestWizardDraft.js`, osobno od klucza płótna `cvstudio.guest.doc`) → `POST /ai/fill_template` (anonimowo dozwolone szablony Free starter).
+6. **Kreator bio** → pięciokrokowy kreator pełnoekranowy (`BioCvModal`). Zalogowani używają CRUD `/ai/bio_cv_draft`; goście zapisują profil kreatora do `localStorage` (`cvstudio.guest.wizardDraft` przez `guestWizardDraft.js`, osobno od klucza płótna `cvstudio.guest.doc`). Po rejestracji/logowaniu pusty szkic konta jest uzupełniany z tego snapshotu gościa (`claimGuestWizardDraft.js`), więc odpowiedzi z Demo przechodzą na konto Free (i później płatne) → `POST /ai/fill_template` (anonimowo dozwolone szablony Free starter).
 7. **Edycja** → przeciąganie / styl → debounced `PUT /pdf/save_elements` po zalogowaniu, albo debounced zapis do `localStorage` (`guestDocument.js`) jako gość.
 8. **Asystent AI** → `POST /ai/assistant` → wskazówki / poprawki / karty układu do akceptacji (wymaga konta — każde działanie asystenta jest objęte entitlements).
 9. **Eksport** → create/update PDF → `POST /pdf/download_pdf` (naliczany limit eksportów; wymaga konta, dla gości osiąganego przez save-gate).
@@ -1396,7 +1401,7 @@ pdf-generator/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage
 │   │   ├── store/            # Canvas / UiSurfaces / Session + fasada PdfContext
 │   │   ├── templates/        # 14 specyfikacji szablonów + helpery + demoCv.js (treść demo w trybie gościa)
-│   │   └── utils/            # a4ElementFactories, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, guestDocument, guestWizardDraft, guestEvents
+│   │   └── utils/            # a4ElementFactories, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, guestDocument, guestWizardDraft, claimGuestWizardDraft, guestEvents
 │   ├── package.json
 │   └── .env.example
 ├── shared/
@@ -1586,7 +1591,7 @@ Implementacja:
 
 - **Weryfikacja tokenu** — efekt montowania, który sprawdza JWT przez `GET /auth/verify-token/{token}`, jest całkowicie pomijany dla gości. Gdy w `localStorage` zostanie wygasły lub nieprawidłowy JWT, token jest usuwany, a odwiedzający **zostaje** na `/pdfcanvas` jako gość (stare przekierowanie na `/` pochodziło z ery sprzed trybu gościa, gdy edytor wymagał logowania).
 - **Autozapis gościa (płótno)** — efekt z debounce 2 sekund zapisuje płótno (elementy, usunięte id, tytuł, liczbę stron, tryb edytora, id szablonu, odstępy oraz informację, czy treść to nadal CV demo) do `localStorage` przez `guestDocument.js` (`cvstudio.guest.doc`), zamiast uwierzytelnionego efektu autozapisu `PUT /pdf/save_elements`, który działa dopiero po powstaniu prawdziwego `pdfId`.
-- **Autozapis gościa (kreator bio)** — gdy kreator jest otwarty bez JWT, `BioCvModal` zapisuje z debounce (~650 ms) `{ step, profile, selectedTemplateId, updatedAt }` do `cvstudio.guest.wizardDraft` przez `guestWizardDraft.js`. Ponowne otwarcie oferuje **Kontynuuj** / **Zacznij od nowa** i odtwarza profil w pamięci z tego snapshotu, żeby wyścig przy zamykaniu nie nadpisał dobrego szkicu pustą powłoką. Udane wypełnienie szablonu (**Wybierz wygląd**) zachowuje szkic (i zapisuje `selectedTemplateId`), żeby gość mógł później wygenerować kolejny wygląd; szkic czyści się tylko przy jawnym resecie (**Zacznij od nowa** / wyczyść szkic) albo gdy zalogowana sesja otwiera kreator. `saveGuestWizardDraft` odmawia też podmiany sensownego zapisanego szkicu pustą powłoką kroku 0. Zalogowani nadal używają `/ai/bio_cv_draft` i przy otwarciu usuwają ewentualny szkic gościa, żeby magazyny się nie mieszały.
+- **Autozapis gościa (kreator bio)** — gdy kreator jest otwarty bez JWT, `BioCvModal` zapisuje z debounce (~650 ms) `{ step, profile, selectedTemplateId, updatedAt }` do `cvstudio.guest.wizardDraft` przez `guestWizardDraft.js`. Ponowne otwarcie oferuje **Kontynuuj** / **Zacznij od nowa** i odtwarza profil w pamięci z tego snapshotu, żeby wyścig przy zamykaniu nie nadpisał dobrego szkicu pustą powłoką. Udane wypełnienie szablonu (**Wybierz wygląd**) zachowuje szkic (i zapisuje `selectedTemplateId`), żeby gość mógł później wygenerować kolejny wygląd. Po **rejestracji/logowaniu** (dziś Free; kolejne plany przy rejestracji później nie zmieniają tej ścieżki) `adoptGuestWizardDraftForAccount` w `claimGuestWizardDraft.js` wgrywa ten profil gościa do `PUT /ai/bio_cv_draft`, gdy szkic konta jest pusty, i czyści localStorage — dzięki temu odpowiedzi z kreatora Demo przechodzą do kreatora na koncie. Gdy konto ma już niepusty szkic, snapshot gościa jest odrzucany zamiast nadpisywać konto. Adopt uruchamia się raz przy montowaniu `PdfCanvas` z JWT oraz ponownie jako siatka bezpieczeństwa przy otwarciu `BioCvModal`. Jawny reset (**Zacznij od nowa** / wyczyść szkic) nadal czyści klucz gościa. `saveGuestWizardDraft` odmawia też podmiany sensownego zapisanego szkicu pustą powłoką kroku 0.
 - **Save-gate** — `handleSaveClick` (podpięty pod „Zapisz PDF” / „Pobierz PDF” w Topbarze) najpierw sprawdza token; gość widzi `SaveGateModal` („Mam już konto” → `/login`, „Utwórz konto” → `/register`) zamiast wywołania `POST /pdf/create_pdf`.
 - **Przejęcie po logowaniu/rejestracji wymaga wyraźnego potwierdzenia** — dokument gościa jest przypisany do *przeglądarki*, nie do tożsamości, więc pojawienie się JWT (świeże logowanie/rejestracja albo przeładowanie z już istniejącym tokenem) samo w sobie nie dowodzi, że zalogowana osoba jest tą samą, która stworzyła zbuforowaną treść. Automatyczne przejęcie działało po cichu: ktokolwiek zalogował się później na tej przeglądarce — inne konto na wspólnym komputerze, albo po prostu niepowiązane logowanie — dziedziczył cudzy szkic CV, wraz z realnymi danymi osobowymi, jakie mógł zawierać. Jednorazowy efekt teraz tylko *wykrywa* zbuforowany dokument i otwiera `ClaimGuestDocumentModal` („Tak, zachowaj na moim koncie” / „To nie moje — odrzuć”); dopiero po potwierdzeniu uruchamia się dotychczasowa logika przejęcia: podmiana płótna tym samym prymitywem, którego `ModalPdfs` używa do ponownego otwarcia zapisanego PDF (`hydrateDocumentMode`, nie `handleLoadTemplate` / `handleLoadAiElements` — te ponownie materializują elementy i nadają nowe id, co po cichu zepsułoby konektory zapisane przez `saveGuestDocument`), wywołanie `POST /pdf/create_pdf`, żeby zapisać dokument naprawdę, wyczyszczenie bufora gościa i wysłanie zbuforowanych zdarzeń analitycznych przez zwykły, uwierzytelniony `logEvent`. Odrzucenie usuwa zbuforowany dokument i jego zdarzenia bez ponawiania oferty przy kolejnym logowaniu.
 - **Punkt wejścia demo** — `?start=demo` wczytuje statyczne przykładowe CV (`demoCvTemplate`) i pokazuje trwały baner `DemoBanner` („Użyj własnych danych” otwiera kreator bio w miejscu; „Zacznij od zera” odrzuca treść demo i przełącza na pusty projekt własny). Flaga trybu demo jest czyszczona dopiero, gdy realna treść faktycznie ją zastępuje — w `startFreshDocument`, wspólnym punkcie wejścia dla każdej ścieżki szablon/wypełnienie AI/wyczyść — a nie w chwili kliknięcia „Użyj własnych danych”; anulowanie kreatora przed wypełnieniem czegokolwiek zostawia CV demo i jego baner dokładnie takimi, jakimi były, zamiast zostawiać nieoznaczoną treść placeholder na płótnie bez banera.
@@ -1609,6 +1614,7 @@ Implementacja:
 - `frontend/src/pages/PdfCanvas.jsx`, linie 639–649 — efekt ścieżki demo
 - `frontend/src/utils/guestDocument.js` — `saveGuestDocument`, `loadGuestDocument`, `clearGuestDocument`, `hasGuestDocument`; klucz `cvstudio.guest.doc`
 - `frontend/src/utils/guestWizardDraft.js` — `saveGuestWizardDraft`, `loadGuestWizardDraft`, `clearGuestWizardDraft`, `hasGuestWizardDraft`, `guestWizardProfileHasContent`, `clampWizardStep`; klucz `cvstudio.guest.wizardDraft`
+- `frontend/src/utils/claimGuestWizardDraft.js` — `adoptGuestWizardDraftForAccount`; przenosi profil kreatora Demo/gościa do `PUT /ai/bio_cv_draft` po logowaniu/rejestracji, gdy szkic konta jest pusty (niezależnie od planu)
 - `frontend/src/utils/guestEvents.js` — `queueGuestEvent`, `loadGuestEvents`, `clearGuestEvents`; klucz `cvstudio.guest.events`, `MAX_BUFFERED_EVENTS = 50`
 - `frontend/src/templates/demoCv.js` — `demoCvTemplate`, fikcyjne jednokolumnowe CV zbudowane z tych samych helperów co prawdziwe szablony startowe
 - `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx` + `.module.css`
@@ -1617,7 +1623,8 @@ Implementacja:
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx` — przycisk wylogowania renderuje się tylko, gdy `!isGuest`
 - `frontend/src/pages/Hero/Hero.jsx`, linie 112–139 — `buildStartUrl` / `StartButton`, routing CTA priorytetowo do trybu gościa
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, linie 211–221 — zabezpieczenie fetcha „Moje dokumenty” dla gości
-- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, funkcja `BioCvModal` — `saveDraft` (linie 191–239), efekt montowania/wznawiania (linie 279–379), `handleClose` (linie 512–538), `clearDraft` (linie 540–571), `handleFill` (linie 573–642); szkice gościa w localStorage zachowane po fill + auth `/ai/bio_cv_draft` + odzyskiwanie po wygasłym JWT; fill przez żywy klient `fillTemplate`
+- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, funkcja `BioCvModal` — `saveDraft` (linie 192–240), efekt montowania/wznawiania/adoptu (linie 280–408), `handleClose` (linie 541–567), `clearDraft` (linie 569–600), `handleFill` (linie 602–671); szkice gościa w localStorage zachowane po fill; adopt Demo→konto przez `adoptGuestWizardDraftForAccount`; auth `/ai/bio_cv_draft` + odzyskiwanie po wygasłym JWT; fill przez żywy klient `fillTemplate`
+- `frontend/src/pages/PdfCanvas.jsx`, linie 978–999 — cichy adopt szkicu kreatora gościa przy montowaniu z JWT
 - `frontend/src/services/fillTemplate.js`, linie 21–46, funkcja `fillTemplate` — pomija nagłówek Bearer, gdy brak JWT
 - `frontend/src/components/gallery/Gallery/Gallery.jsx`, linie 39–54 — zabezpieczenie fetcha biblioteki obrazów dla gości
 - `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, linie 38–53 — zabezpieczenie uploadu obrazów dla gości
@@ -1631,6 +1638,7 @@ Testy:
 
 - `frontend/src/utils/guestDocument.test.js` — round-trip zapisu/odczytu, `null` dla pustego/uszkodzonego magazynu, `hasGuestDocument` wymaga co najmniej jednego nieusuniętego elementu
 - `frontend/src/utils/guestWizardDraft.test.js` — round-trip szkicu kreatora, uszkodzony JSON, clear, ochrona przed pustym nadpisaniem, wykrywanie treści, clamp kroku
+- `frontend/src/utils/claimGuestWizardDraft.test.js` — adopt przy pustym koncie; brak nadpisania niepustego szkicu konta; no-op bez szkicu gościa
 - `frontend/src/utils/guestEvents.test.js` — dodawanie ze znacznikiem czasu, kolejność, pusty/uszkodzony magazyn, limit 50 wpisów
 - `backend/tests/test_fill_template_guest.py` — anonimowy fill Free działa; szablon Standard odrzucony; przestarzały Bearer traktowany jak gość
 - `frontend/src/utils/authSession.test.js` — odrzucanie placeholderów tokena i wykrywanie błędów auth
@@ -2001,7 +2009,8 @@ Implementacja:
 
 - `frontend/src/utils/bioCvData.js`, linie 5–12 (`BIO_CV_STEPS`), 91–115 (`createCustomSectionFromPreset`), 225–248 (`validateBioCvStep`)
 - `frontend/src/utils/guestWizardDraft.js`, linie 35–141 (`saveGuestWizardDraft`, ochrona przed pustym nadpisaniem, `hasGuestWizardDraft`)
-- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, funkcja `BioCvModal` (linie 120–1120)
+- `frontend/src/utils/claimGuestWizardDraft.js`, linie 48–109, funkcja `adoptGuestWizardDraftForAccount`
+- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, funkcja `BioCvModal` (linie 120–1149)
 - `frontend/src/components/common/DialogShell/DialogShell.jsx` — `variant="fullscreen"`
 - `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — opcjonalne `visibleCount` / `actionLabel` (kreator: 3 karty + „Utwórz moje CV”)
 
@@ -2009,8 +2018,9 @@ Testy:
 
 - `frontend/src/utils/bioCvData.test.js` — budowa payloadu, walidacja kroków (w tym scalony krok dodatków), skok do podsumowania
 - `frontend/src/utils/guestWizardDraft.test.js`
+- `frontend/src/utils/claimGuestWizardDraft.test.js`
 
-Znane ograniczenia: brak live podglądu A4 w kreatorze; karty szablonów nadal pokazują statyczne mockupy (nie live fill z danymi użytkownika); odtwarzanie płótna gościa z `cvstudio.guest.doc` nadal tylko przy claim (osobno od wznawiania szkicu kreatora).
+Znane ograniczenia: brak live podglądu A4 w kreatorze; karty szablonów nadal pokazują statyczne mockupy (nie live fill z danymi użytkownika); odtwarzanie płótna gościa z `cvstudio.guest.doc` nadal tylko przy claim (szkic kreatora adoptuje się automatycznie do pustego szkicu konta po logowaniu); indeks kroku kreatora nie jest przechowywany w szkicu serwerowym (tylko `cv_data`) — po adopcie bieżąca sesja odtwarza krok gościa, późniejsze otwarcia startują od kroku 0 z zapisanym profilem.
 
 ### Extract CV z PDF
 

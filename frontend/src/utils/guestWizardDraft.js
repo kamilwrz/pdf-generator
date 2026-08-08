@@ -2,12 +2,13 @@
  * Client-side persistence for the bio/CV wizard while the visitor has no
  * account. Mirrors `guestDocument.js` for the canvas: guests keep edits in
  * localStorage across wizard close and template fill so they can generate
- * another look without retyping. Drafts are removed only on explicit clear
- * ("Zacznij od nowa" / clear draft) or when an authenticated session opens
- * the wizard (to avoid mixing stores).
+ * another look without retyping. Drafts are removed on explicit clear
+ * ("Zacznij od nowa" / clear draft), after a successful adopt into the
+ * account draft (`claimGuestWizardDraft.js`), or when the account already
+ * has its own non-empty draft (guest snapshot is dropped so stores do not mix).
  *
  * Authenticated users continue to use GET/PUT/DELETE `/ai/bio_cv_draft`
- * instead of this key.
+ * instead of this key once the guest snapshot has been adopted or discarded.
  */
 
 import { BIO_CV_SUMMARY_STEP, normalizeBioCvData } from "./bioCvData.js";

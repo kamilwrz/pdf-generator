@@ -39,6 +39,8 @@ import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 import { logEvent } from '../services/eventLog';
 import { saveGuestDocument, loadGuestDocument, clearGuestDocument } from '../utils/guestDocument';
 import { queueGuestEvent, loadGuestEvents, clearGuestEvents } from '../utils/guestEvents';
+import { hasGuestWizardDraft } from '../utils/guestWizardDraft';
+import { adoptGuestWizardDraftForAccount } from '../utils/claimGuestWizardDraft';
 import { previewStructureOperation } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
 import { planErrorMessage } from '../utils/entitlements';
@@ -959,6 +961,7 @@ function PdfCanvas() {
   // component body would hit the temporal-dead-zone for that `const` binding.
   const claimOfferedRef = useRef(false);
   const pendingGuestDocRef = useRef(null);
+  const wizardDraftAdoptedRef = useRef(false);
   useEffect(() => {
     if (claimOfferedRef.current) return;
     const token = localStorage.getItem("token");
@@ -969,6 +972,35 @@ function PdfCanvas() {
     claimOfferedRef.current = true;
     pendingGuestDocRef.current = guestDoc;
     setDialog('claimGuest');
+  }, []);
+
+  // Promote Demo/guest wizard answers into `/ai/bio_cv_draft` as soon as a
+  // JWT exists — independent of which plan the account is on (Free today;
+  // additional plans at registration later). Runs once per mount; BioCvModal
+  // also adopts on open as a safety net if this effect has not finished yet.
+  useEffect(() => {
+    if (wizardDraftAdoptedRef.current) return;
+    const token = localStorage.getItem("token");
+    if (!token || !hasGuestWizardDraft()) return;
+    wizardDraftAdoptedRef.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        await adoptGuestWizardDraftForAccount(
+          new ApiClient({ Authorization: `Bearer ${token}` }),
+        );
+      } catch (error) {
+        if (!cancelled) {
+          // Allow BioCvModal to retry on open; do not clear the guest draft
+          // here on transport/auth failure.
+          wizardDraftAdoptedRef.current = false;
+          console.warn("Nie udało się przenieść szkicu kreatora gościa na konto.", error);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // This intentionally sets `A4_Elements` directly and restores document mode

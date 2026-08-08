@@ -20,6 +20,7 @@ import {
 } from "../../../utils/authSession";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
 import { isTemplateAllowed, planErrorMessage } from "../../../utils/entitlements";
+import { adoptGuestWizardDraftForAccount } from "../../../utils/claimGuestWizardDraft";
 import {
     clearGuestWizardDraft,
     hasGuestWizardDraft,
@@ -326,13 +327,42 @@ export default function BioCvModal() {
         }
 
         setIsGuestSession(false);
-        // Avoid mixing an old anonymous draft into an authenticated session.
-        clearGuestWizardDraft();
         setProfile(createEmptyBioCvData());
         setStep(0);
 
-        createApi().httpRequest(ENDPOINTS.AI.BIO_CV_DRAFT, "GET", null, "Nie udało się pobrać szkicu.")
-            .then((response) => {
+        // Demo/guest wizard data must survive register/login into Free (and
+        // future paid) accounts. Adopt localStorage into `/ai/bio_cv_draft`
+        // when the account draft is empty; never overwrite a filled account
+        // draft. Do not clear the guest snapshot before this runs.
+        (async () => {
+            try {
+                const api = createApi();
+                const claim = await adoptGuestWizardDraftForAccount(api);
+                if (!active) return;
+
+                if (claim.profile && (claim.adopted || claim.serverChecked)) {
+                    skipAutosaveRef.current = true;
+                    profileRef.current = claim.profile;
+                    setProfile(claim.profile);
+                    setStep(claim.adopted ? (claim.step ?? 0) : 0);
+                    selectedTemplateIdRef.current = claim.adopted
+                        ? (claim.selectedTemplateId ?? null)
+                        : null;
+                    setSelectedTemplateId(
+                        claim.adopted ? (claim.selectedTemplateId ?? null) : null,
+                    );
+                    setLastSavedAt(Date.now());
+                    readyRef.current = true;
+                    setIsReady(true);
+                    return;
+                }
+
+                const response = await api.httpRequest(
+                    ENDPOINTS.AI.BIO_CV_DRAFT,
+                    "GET",
+                    null,
+                    "Nie udało się pobrać szkicu.",
+                );
                 if (!active) return;
                 const nextProfile = normalizeBioCvData(response?.cv_data);
                 profileRef.current = nextProfile;
@@ -340,8 +370,7 @@ export default function BioCvModal() {
                 setLastSavedAt(Date.now());
                 readyRef.current = true;
                 setIsReady(true);
-            })
-            .catch((error) => {
+            } catch (error) {
                 if (!active) return;
                 if (isAuthFailure(error)) {
                     clearAccessToken();
@@ -368,10 +397,10 @@ export default function BioCvModal() {
                 setSaveError(error.message || "Nie udało się pobrać szkicu.");
                 readyRef.current = true;
                 setIsReady(true);
-            })
-            .finally(() => {
+            } finally {
                 if (active) setIsLoading(false);
-            });
+            }
+        })();
 
         return () => {
             active = false;
