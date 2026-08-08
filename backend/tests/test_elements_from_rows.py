@@ -36,6 +36,7 @@ class ElementsFromRowsTests(unittest.TestCase):
                 content="Hello world", bold=True, italic=False, underline=True,
                 runs=[TextRun(start=0, end=5, bold=False, color="#ff0000")],
                 fixedToPage=True, locked=True, flowRole="section-chrome",
+                zIndex=5, isSelected=True, isMove=True,
             ),
             PdfElement(
                 category="rectangle", element_id="e2", page=1, left=0, top=0,
@@ -63,6 +64,11 @@ class ElementsFromRowsTests(unittest.TestCase):
         self.assertEqual(text_el.flowRole, "section-chrome")
         self.assertEqual(len(text_el.runs), 1)
         self.assertEqual(text_el.runs[0].color, "#ff0000")
+        # zIndex/isSelected/isMove are packed into extra_properties alongside the
+        # other style flags (see create_new_pdf); confirm they round-trip too.
+        self.assertEqual(text_el.zIndex, 5)
+        self.assertTrue(text_el.isSelected)
+        self.assertTrue(text_el.isMove)
 
         rect_el = rebuilt["e2"]
         self.assertEqual(rect_el.borderRadius, 6)

@@ -92,6 +92,9 @@ def elements_from_rows(rows) -> list[PdfElement]:
             source_id=extra.get("source_id"),
             target_id=extra.get("target_id"),
             arrow=extra.get("arrow", False),
+            zIndex=extra.get("zIndex"),
+            isSelected=extra.get("isSelected"),
+            isMove=extra.get("isMove"),
         ))
     return elements
 
