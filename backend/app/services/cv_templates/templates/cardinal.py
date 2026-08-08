@@ -7,6 +7,10 @@ from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.records import _education_record_height, _experience_record_height, _place_education_record, _place_experience_record
 from app.services.cv_templates.shared.text import _compact_text, _labels, _skills_inline_content
 from app.services.cv_templates.shared.icons import _icon_beside, _icon_key_for_label
+from app.services.cv_templates.shared.contact import (
+    _contact_channel_items,
+    _place_wrapping_icon_contacts,
+)
 
 def _gen_cardinal(cv: dict) -> list[dict]:
     C = {'paper': '#FCFBF9', 'ink': '#24201E', 'accent': '#9E2532', 'mute': '#6E6E6E', 'body': '#333333', 'rule': '#8A8A8A', 'display': 'Times-Roman', 'sans': 'Helvetica', 'mono': 'Helvetica', 'layout': 'cardinal', 'icon_theme': 'cardinal', 'L': 72, 'W': 473, 'icon_x': 50, 'start': 162}
@@ -18,23 +22,29 @@ def _gen_cardinal(cv: dict) -> list[dict]:
     skip_sidebar_extras: set[int] = set()
     name = _compact_text(cv.get('name'), 32)
     title = _compact_text(cv.get('title'), 56)
-    email = _compact_text(cv.get('email'), 42)
-    phone = _compact_text(cv.get('phone'), 24)
-    location = _compact_text(cv.get('location'), 28)
-    start_y = float(C['start'])
     contact_fs, contact_icon = (8.6, 13.0)
     header = [_text(name, 28, DISP, C['ink'], L, 52, zIndex=3), _text(title, 9.4, SANS, C['accent'], L, 92, zIndex=3)]
     header[0]['letterSpacing'] = 0.15
     header[1]['letterSpacing'] = 1.55
-    x = float(C['icon_x'])
-    for key, value in (('email', email), ('phone', phone), ('location', location)):
-        if not value:
-            continue
-        header.append(_icon_beside(ICON, key, x, 118, contact_fs, contact_icon))
-        header.append(_text(value, contact_fs, SANS, C['body'], x + 16, 118, zIndex=3))
-        x += max(150.0, 16 + len(value) * 5.4)
-    header.append(_line(L, 142, W, 1, C['rule'], zIndex=2))
-    start_y = 143.0 + SPACE_AFTER_HEADER_RULE
+    contact_els, contact_bottom = _place_wrapping_icon_contacts(
+        theme=ICON,
+        items=_contact_channel_items(cv, email_limit=42),
+        start_x=float(C['icon_x']),
+        start_y=118.0,
+        right_limit=545.0,
+        text_fs=contact_fs,
+        icon_size=contact_icon,
+        text_color=C['body'],
+        font=SANS,
+        char_width=5.4,
+        icon_gap=16.0,
+        item_pad=20.0,
+        line_step=16.0,
+    )
+    header.extend(contact_els)
+    header_rule_y = contact_bottom + 24.0
+    header.append(_line(L, header_rule_y, W, 1, C['rule'], zIndex=2))
+    start_y = header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE
     b = Builder(start_y)
     label_fs = 8.5
     section_icon = 14.0

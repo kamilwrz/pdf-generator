@@ -277,6 +277,36 @@
     color: var(--chrome-accent);
 }
 
+.linkFieldRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.linkFieldRow input {
+    flex: 1;
+    min-width: 0;
+}
+
+.linkAddRow {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.linkAddLabel {
+    color: var(--chrome-muted);
+    font: 600 11px var(--font-body);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.linkAddActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
 .addBtn:hover,
 .clearBtn:hover,
 .cancelBtn:hover,

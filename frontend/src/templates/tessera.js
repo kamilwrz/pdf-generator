@@ -108,31 +108,33 @@ const starter = [
     ...sideHeading("KONTAKT", "references", 194),
     ...contact("phone", "+48 600 000 000", 222),
     ...contact("email", "aleksandra@email.com", 241),
-    ...contact("github", "linkedin.com/in/aleksandra", 260),
-    ...contact("location", "Warszawa, Polska", 279),
+    ...contact("linkedin", "linkedin.com/in/aleksandra", 260),
+    ...contact("github", "github.com/aleksandra", 279),
+    ...contact("website", "aleksandra.dev", 298),
+    ...contact("location", "Warszawa, Polska", 317),
 
-    ...sideHeading("WYKSZTAŁCENIE", "education", 320),
-    bold(block("MA — Service Design", SIDE_X, 347, 128, 14, 8.2, 11.5, INK, SANS)),
-    block("Uniwersytet SWPS", SIDE_X, 364, 128, 13, 7.7, 11, CORAL, SANS),
-    block("Warszawa  ·  2014–2016", SIDE_X, 380, 128, 13, 7.4, 11, MUTED, SANS),
+    ...sideHeading("WYKSZTAŁCENIE", "education", 356),
+    bold(block("MA — Service Design", SIDE_X, 383, 128, 14, 8.2, 11.5, INK, SANS)),
+    block("Uniwersytet SWPS", SIDE_X, 400, 128, 13, 7.7, 11, CORAL, SANS),
+    block("Warszawa  ·  2014–2016", SIDE_X, 416, 128, 13, 7.4, 11, MUTED, SANS),
 
-    ...sideHeading("KOMPETENCJE", "skills", 414),
+    ...sideHeading("KOMPETENCJE", "skills", 450),
     bulleted(block(
         "• Strategia produktu\n• Service design\n• Badania jakościowe\n"
         + "• Facylitacja\n• Operating models\n• Zarządzanie zmianą",
-        SIDE_X, 441, 128, 78, 8, 11.6, BODY, SANS,
+        SIDE_X, 477, 128, 78, 8, 11.6, BODY, SANS,
     )),
 
-    ...sideHeading("JĘZYKI", "languages", 548),
+    ...sideHeading("JĘZYKI", "languages", 584),
     bulleted(block(
         "• Polski — ojczysty\n• Angielski — C1\n• Niemiecki — B1",
-        SIDE_X, 575, 128, 43, 8, 11.6, BODY, SANS,
+        SIDE_X, 611, 128, 43, 8, 11.6, BODY, SANS,
     )),
 
-    ...sideHeading("NARZĘDZIA", "other", 647),
+    ...sideHeading("NARZĘDZIA", "other", 683),
     bulleted(block(
         "• Miro / FigJam\n• Notion\n• Power BI\n• Jira",
-        SIDE_X, 674, 128, 56, 8, 11.6, BODY, SANS,
+        SIDE_X, 710, 128, 56, 8, 11.6, BODY, SANS,
     )),
 
     // Main profile and experience flow.

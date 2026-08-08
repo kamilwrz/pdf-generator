@@ -7,6 +7,10 @@ from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.records import _education_record_height, _experience_record_height, _place_education_record, _place_experience_record
 from app.services.cv_templates.shared.text import _compact_text, _labels, _skills_inline_content
 from app.services.cv_templates.shared.icons import _icon_beside, _icon_key_for_label
+from app.services.cv_templates.shared.contact import (
+    _contact_channel_items,
+    _place_wrapping_icon_contacts,
+)
 
 def _gen_nova(cv: dict) -> list[dict]:
     C = {'paper': '#F7F1E8', 'ink': '#1A1612', 'accent': '#C45C26', 'mute': '#7A6550', 'body': '#2C241C', 'rule': '#E0D2C0', 'display': 'PlayfairDisplay', 'sans': 'Montserrat', 'mono': 'Montserrat', 'layout': 'nova', 'icon_theme': 'nova', 'L': 68, 'W': 479, 'icon_x': 48, 'start': 162}
@@ -18,22 +22,30 @@ def _gen_nova(cv: dict) -> list[dict]:
     skip_sidebar_extras: set[int] = set()
     name = _compact_text(cv.get('name'), 32)
     title = _compact_text(cv.get('title'), 56)
-    email = _compact_text(cv.get('email'), 42)
-    phone = _compact_text(cv.get('phone'), 24)
-    location = _compact_text(cv.get('location'), 28)
-    start_y = float(C['start'])
     contact_fs, contact_icon = (8.4, 14.0)
     header = [_text(name, 34, DISP, C['ink'], 48, 42, zIndex=3, bold=True), _text(title, 9.2, SANS, C['accent'], 50, 88, zIndex=3)]
     header[1]['letterSpacing'] = 1.8
-    x = 50.0
-    for key, value in (('email', email), ('phone', phone), ('location', location)):
-        if not value:
-            continue
-        header.append(_icon_beside(ICON, key, x, 118, contact_fs, contact_icon))
-        header.append(_text(value, contact_fs, SANS, C['mute'], x + 16, 118, zIndex=3))
-        x += max(120.0, 16 + len(value) * 5.2)
-    header.append(_line(48, 144, 499, 1, C['rule'], zIndex=2))
-    start_y = 145.0 + SPACE_AFTER_HEADER_RULE
+    # Wrap extra social contacts onto a second line and move the header rule /
+    # flow start with the contact band so body text never overlaps icons.
+    contact_els, contact_bottom = _place_wrapping_icon_contacts(
+        theme=ICON,
+        items=_contact_channel_items(cv, email_limit=42),
+        start_x=50.0,
+        start_y=118.0,
+        right_limit=547.0,
+        text_fs=contact_fs,
+        icon_size=contact_icon,
+        text_color=C['mute'],
+        font=SANS,
+        char_width=5.2,
+        icon_gap=16.0,
+        item_pad=14.0,
+        line_step=16.0,
+    )
+    header.extend(contact_els)
+    header_rule_y = contact_bottom + 26.0
+    header.append(_line(48, header_rule_y, 499, 1, C['rule'], zIndex=2))
+    start_y = header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE
     b = Builder(start_y)
     label_fs = 8.5
     section_icon = 14.0

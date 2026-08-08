@@ -46,6 +46,7 @@ import {
     parseList,
     validateBioCvStep,
 } from "../../../utils/bioCvData";
+import { availableExtraContactKinds } from "../../../utils/contactLinks";
 
 function formatSavedAt(timestamp) {
     if (!timestamp) return "";
@@ -694,6 +695,8 @@ export default function BioCvModal() {
         setShowTypePicker(false);
     }, [updateProfile]);
 
+    const extraContactKinds = availableExtraContactKinds(profile);
+
     const renderPersonal = () => (
         <div className={classes.formGrid}>
             <TextField label="Imię i nazwisko *" value={profile.name} onChange={(name) => updateProfile({ ...profile, name })} placeholder="np. Anna Kowalska" />
@@ -701,6 +704,75 @@ export default function BioCvModal() {
             <TextField label="Adres / lokalizacja" value={profile.address} onChange={(address) => updateProfile({ ...profile, address })} placeholder="np. Warszawa, Polska" />
             <TextField label="Telefon" value={profile.phone} onChange={(phone) => updateProfile({ ...profile, phone })} placeholder="+48 500 000 000" type="tel" />
             <TextField label="E-mail" value={profile.email} onChange={(email) => updateProfile({ ...profile, email })} placeholder="anna@example.com" type="email" full />
+            <TextField
+                label="LinkedIn"
+                value={profile.linkedin}
+                onChange={(linkedin) => updateProfile({ ...profile, linkedin })}
+                placeholder="linkedin.com/in/anna-kowalska"
+                full
+            />
+            {profile.github ? (
+                <label className={`${classes.field} ${classes.full}`}>
+                    <span>GitHub</span>
+                    <div className={classes.linkFieldRow}>
+                        <input
+                            type="url"
+                            value={profile.github}
+                            placeholder="github.com/anna"
+                            onChange={(event) => updateProfile({ ...profile, github: event.target.value })}
+                        />
+                        <button
+                            type="button"
+                            className={classes.removeBtn}
+                            onClick={() => updateProfile({ ...profile, github: "" })}
+                        >
+                            Usuń
+                        </button>
+                    </div>
+                </label>
+            ) : null}
+            {profile.website ? (
+                <label className={`${classes.field} ${classes.full}`}>
+                    <span>Strona WWW</span>
+                    <div className={classes.linkFieldRow}>
+                        <input
+                            type="url"
+                            value={profile.website}
+                            placeholder="anna.example.com"
+                            onChange={(event) => updateProfile({ ...profile, website: event.target.value })}
+                        />
+                        <button
+                            type="button"
+                            className={classes.removeBtn}
+                            onClick={() => updateProfile({ ...profile, website: "" })}
+                        >
+                            Usuń
+                        </button>
+                    </div>
+                </label>
+            ) : null}
+            {extraContactKinds.length > 0 ? (
+                <div className={`${classes.linkAddRow} ${classes.full}`}>
+                    <span className={classes.linkAddLabel}>Dodaj link</span>
+                    <div className={classes.linkAddActions}>
+                        {extraContactKinds.map((option) => (
+                            <button
+                                key={option.kind}
+                                type="button"
+                                className={classes.addBtn}
+                                onClick={() => updateProfile({
+                                    ...profile,
+                                    [option.kind]: option.kind === "github"
+                                        ? "github.com/"
+                                        : "https://",
+                                })}
+                            >
+                                {option.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            ) : null}
             <label className={`${classes.field} ${classes.full}`}>
                 <span>Podsumowanie zawodowe (opcjonalne)</span>
                 <textarea

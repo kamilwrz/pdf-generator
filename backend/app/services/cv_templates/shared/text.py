@@ -99,9 +99,22 @@ def _labels(cv: dict) -> dict:
     return {k: (raw.get(k) or v).upper() for k, v in _LABEL_DEFAULTS.items()}
 
 
-def _contact_line(cv: dict) -> str:
+def _contact_line_core(cv: dict) -> str:
+    """Email · phone · location only (no socials — use when socials live elsewhere)."""
     return "   ·   ".join(filter(None, [
-        cv.get("email"), cv.get("phone"), cv.get("location")
+        cv.get("email"), cv.get("phone"), cv.get("location"),
+    ]))
+
+
+def _contact_line(cv: dict) -> str:
+    """Mid-dot masthead contact string: email · phone · location · socials."""
+    from app.services.cv_templates.shared.contact import _social_contact_line_parts
+
+    return "   ·   ".join(filter(None, [
+        cv.get("email"),
+        cv.get("phone"),
+        cv.get("location"),
+        *_social_contact_line_parts(cv),
     ]))
 
 

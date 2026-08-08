@@ -86,7 +86,9 @@ const cardinalElements = [
     ...contact("email", ICON_X, TEXT_X, "anna.kowalska@email.com", 118),
     ...contact("phone", 250, 266, "+48 600 000 000", 118),
     ...contact("location", 420, 436, "Warszawa", 118),
-    line(TEXT_X, 142, CONTENT_W, 1, GREY, 2),
+    ...contact("linkedin", ICON_X, TEXT_X, "linkedin.com/in/akowalska", 134),
+    ...contact("github", 250, 266, "github.com/akowalska", 134),
+    line(TEXT_X, 158, CONTENT_W, 1, GREY, 2),
 
     // ── Podsumowanie zawodowe ───────────────────────────────────────────────
     ...sectionHead("summary", "PODSUMOWANIE ZAWODOWE", 170),

@@ -27,6 +27,9 @@ const BASE_ICON_NAMES = Object.freeze([
   "email",
   "phone",
   "location",
+  "linkedin",
+  "github",
+  "website",
 ]);
 
 /** Theme folder → icon file stems (must match `scripts/generate_iconic_icons.py`). */
@@ -35,17 +38,20 @@ export const THEME_ICON_NAMES = Object.freeze({
   nova: BASE_ICON_NAMES,
   volt: BASE_ICON_NAMES,
   harbor: Object.freeze([
-    "email", "phone", "github", "location", "calendar", "references",
+    "email", "phone", "linkedin", "github", "website", "location",
+    "calendar", "references",
   ]),
   tessera: Object.freeze([
     "summary", "experience", "education", "skills", "languages",
     "interests", "references", "certifications", "other",
-    "email", "phone", "github", "location", "calendar", "portrait",
+    "email", "phone", "linkedin", "github", "website", "location",
+    "calendar", "portrait",
   ]),
   slate: Object.freeze([
     "summary", "experience", "education", "skills", "languages",
     "interests", "references", "certifications", "other",
-    "email", "phone", "github", "location", "calendar", "portrait",
+    "email", "phone", "linkedin", "github", "website", "location",
+    "calendar", "portrait",
   ]),
 });
 
@@ -72,7 +78,9 @@ const ICON_LABELS_PL = Object.freeze({
   email: "E-mail",
   phone: "Telefon",
   location: "Lokalizacja",
-  github: "Profil / kod",
+  linkedin: "LinkedIn",
+  github: "GitHub",
+  website: "Strona WWW",
   calendar: "Data",
   portrait: "Zdjęcie",
 });

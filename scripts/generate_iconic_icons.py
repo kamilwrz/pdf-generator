@@ -185,6 +185,32 @@ def draw_github(color: str) -> Image.Image:
     return _normalize(img)
 
 
+def draw_linkedin(color: str) -> Image.Image:
+    """Compact LinkedIn-style \"in\" mark inside a rounded square."""
+    img, d = _draft()
+    col = _hex(color)
+    d.rounded_rectangle((36, 36, 124, 124), radius=14, outline=col, width=STROKE)
+    # Stem + bowl of a lowercase "in" wordmark, sized for ~14 px contact icons.
+    d.rectangle((54, 62, 66, 112), fill=col)
+    d.ellipse((52, 44, 68, 60), fill=col)
+    d.rectangle((78, 70, 90, 112), fill=col)
+    d.arc((78, 58, 114, 104), start=200, end=340, fill=col, width=STROKE)
+    d.line([(114, 78), (114, 112)], fill=col, width=STROKE)
+    return _normalize(img)
+
+
+def draw_website(color: str) -> Image.Image:
+    """Globe / www mark for personal sites and portfolios."""
+    img, d = _draft()
+    col = _hex(color)
+    d.ellipse((34, 34, 126, 126), outline=col, width=STROKE)
+    d.ellipse((58, 34, 102, 126), outline=col, width=STROKE - 1)
+    d.arc((34, 52, 126, 108), start=0, end=180, fill=col, width=STROKE - 1)
+    d.arc((34, 52, 126, 108), start=180, end=360, fill=col, width=STROKE - 1)
+    d.line([(34, 80), (126, 80)], fill=col, width=STROKE - 1)
+    return _normalize(img)
+
+
 def draw_calendar(color: str) -> Image.Image:
     """Calendar icon for date ranges: framed body, header divider, binder tabs."""
     img, d = _draft()
@@ -223,6 +249,10 @@ ICONS = {
     "email": draw_email,
     "phone": draw_phone,
     "location": draw_location,
+    # Contact profile links — generated for nova/volt/cardinal and subset themes.
+    "github": draw_github,
+    "linkedin": draw_linkedin,
+    "website": draw_website,
     "summary": draw_summary,
     "experience": draw_experience,
     "education": draw_education,
@@ -234,11 +264,8 @@ ICONS = {
     "other": draw_other,
 }
 
-# Glyphs used only by the Harbor two-column template, not by other icon themes.
-# Kept out of the base ICONS set so regenerating does not add unused files to
-# the existing themes (nova/volt/cardinal).
+# Glyphs used only by Harbor / Slate / Tessera subsets, not every Iconic theme.
 EXTRA_ICONS = {
-    "github": draw_github,
     "calendar": draw_calendar,
     "diamond": draw_diamond,
     "portrait": draw_portrait,
@@ -246,7 +273,8 @@ EXTRA_ICONS = {
 
 # Full glyph set shared by both Slate colour variants (see SUBSET_THEMES below).
 _SLATE_GLYPHS = [
-    "email", "phone", "github", "location", "calendar", "portrait",
+    "email", "phone", "linkedin", "github", "website", "location",
+    "calendar", "portrait",
     "summary", "experience", "education", "skills", "languages",
     "interests", "references", "certifications", "other",
 ]
@@ -256,7 +284,10 @@ _SLATE_GLYPHS = [
 # list bullets. Only these subsets are generated, so existing themes are
 # untouched. Format: theme -> (colour, [icon names]).
 SUBSET_THEMES = {
-    "harbor": ("#5C6672", ["email", "phone", "github", "location", "calendar", "references"]),
+    "harbor": (
+        "#5C6672",
+        ["email", "phone", "linkedin", "github", "website", "location", "calendar", "references"],
+    ),
     "harbor-accent": ("#17A2B8", ["diamond"]),
     # Tessera uses aubergine line icons inside coral/cream mosaic tiles. The
     # glyph set is intentionally broader than Harbor because contact, sidebar,
@@ -264,7 +295,8 @@ SUBSET_THEMES = {
     "tessera": (
         "#4A2347",
         [
-            "email", "phone", "github", "location", "calendar", "portrait",
+            "email", "phone", "linkedin", "github", "website", "location",
+            "calendar", "portrait",
             "summary", "experience", "education", "skills", "languages",
             "interests", "references", "certifications", "other",
         ],

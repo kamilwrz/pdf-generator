@@ -50,6 +50,9 @@ export function guestWizardProfileHasContent(profile) {
     if (String(profile.name || "").trim()) return true;
     if (String(profile.title || "").trim()) return true;
     if (String(profile.email || "").trim()) return true;
+    if (String(profile.linkedin || "").trim()) return true;
+    if (String(profile.github || "").trim()) return true;
+    if (String(profile.website || "").trim()) return true;
     if (String(profile.summary || "").trim()) return true;
     if (profile.experience?.length) return true;
     if (profile.education?.length) return true;

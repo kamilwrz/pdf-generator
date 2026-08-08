@@ -1,0 +1,104 @@
+"""Contact-row builders for CV template generators.
+
+Keeps masthead / sidebar contact geometry layout-safe when LinkedIn, GitHub,
+and website join email/phone/location. Wrapping placers return the final Y so
+header rules and flow start can move with the contact band.
+"""
+from __future__ import annotations
+
+from typing import Any, Callable
+
+from app.services.contact_links import contact_display_label, contact_social_items
+from app.services.cv_templates.shared.icons import _icon_beside
+from app.services.cv_templates.shared.text import _compact_text
+from app.services.cv_generator_primitives import _text
+
+
+def _contact_channel_items(
+    cv: dict[str, Any],
+    *,
+    email_limit: int = 40,
+    phone_limit: int = 24,
+    location_limit: int = 28,
+    social_limit: int = 36,
+) -> list[tuple[str, str]]:
+    """Ordered non-empty (icon_key, display) pairs for icon contact rows."""
+    items: list[tuple[str, str]] = []
+    phone = _compact_text(cv.get("phone"), phone_limit)
+    email = _compact_text(cv.get("email"), email_limit)
+    if phone:
+        items.append(("phone", phone))
+    if email:
+        items.append(("email", email))
+    for kind, label in contact_social_items(cv, limit=social_limit):
+        items.append((kind, label))
+    location = _compact_text(cv.get("location"), location_limit)
+    if location:
+        items.append(("location", location))
+    return items
+
+
+def _sidebar_contact_items(cv: dict[str, Any]) -> list[tuple[str, str]]:
+    """Sidebar KONTAKT stack: phone, email, socials, location."""
+    return _contact_channel_items(
+        cv,
+        email_limit=42,
+        phone_limit=28,
+        location_limit=34,
+        social_limit=36,
+    )
+
+
+def _place_wrapping_icon_contacts(
+    *,
+    theme: str,
+    items: list[tuple[str, str]],
+    start_x: float,
+    start_y: float,
+    right_limit: float,
+    text_fs: float,
+    icon_size: float,
+    text_color: str,
+    font: str,
+    char_width: float = 5.2,
+    icon_gap: float = 16.0,
+    item_pad: float = 14.0,
+    line_step: float = 16.0,
+    icon_builder: Callable[..., dict] | None = None,
+) -> tuple[list[dict], float]:
+    """Place icon+label contacts with harbor-style wrap.
+
+    Returns (elements, bottom_y) where bottom_y is the top of the last contact
+    row (not including text height). Callers typically put a rule at
+    ``bottom_y + line_step`` or similar.
+    """
+    build_icon = icon_builder or (
+        lambda name, left, top: _icon_beside(theme, name, left, top, text_fs, icon_size)
+    )
+    elements: list[dict] = []
+    cx = float(start_x)
+    cy = float(start_y)
+    for key, value in items:
+        if not value:
+            continue
+        advance = icon_gap + len(value) * char_width + item_pad
+        if cx > start_x and cx + advance > right_limit:
+            cx = float(start_x)
+            cy += line_step
+        elements.append(build_icon(key, cx, cy))
+        elements.append(_text(value, text_fs, font, text_color, cx + icon_gap, cy, zIndex=3))
+        cx += advance
+    return elements, cy
+
+
+def _social_contact_line_parts(cv: dict[str, Any], *, limit: int = 28) -> list[str]:
+    """Short social labels for mid-dot text contact lines."""
+    parts: list[str] = []
+    for kind in ("linkedin", "github", "website"):
+        value = cv.get(kind)
+        if not value:
+            continue
+        label = contact_display_label(kind, value, limit=limit)  # type: ignore[arg-type]
+        if label:
+            parts.append(label)
+    return parts

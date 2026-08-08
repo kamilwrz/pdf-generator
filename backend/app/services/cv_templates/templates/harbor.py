@@ -61,12 +61,8 @@ def _gen_harbor(cv: dict) -> list[dict]:
         {**_text(name, 23, SANS, C["ink"], MAIN_X, 44, zIndex=3, bold=True), "letterSpacing": 0.3},
         _text(title, 11, SANS, C["accent"], MAIN_X, 80, zIndex=3),
     ]
-    contacts = [
-        ("phone", _compact_text(cv.get("phone"), 24)),
-        ("email", _compact_text(cv.get("email"), 40)),
-        ("github", _compact_text(cv.get("github") or cv.get("website") or cv.get("link"), 36)),
-        ("location", _compact_text(cv.get("location"), 28)),
-    ]
+    from app.services.cv_templates.shared.contact import _contact_channel_items
+    contacts = _contact_channel_items(cv, email_limit=40, social_limit=36)
     # Single contact row that wraps to a second line when the values are long,
     # so real data cannot overrun the right page margin.
     cx, cy = float(MAIN_X), 104.0

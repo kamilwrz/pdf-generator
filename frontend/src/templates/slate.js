@@ -114,19 +114,21 @@ const starter = [
     ...sideHeading("KONTAKT", "references", 194),
     ...contact("phone", "+48 600 000 000", 222),
     ...contact("email", "anna.kowalska@email.com", 241),
-    ...contact("github", "linkedin.com/in/akowalska", 260),
-    ...contact("location", "Warszawa, Polska", 279),
+    ...contact("linkedin", "linkedin.com/in/akowalska", 260),
+    ...contact("github", "github.com/akowalska", 279),
+    ...contact("website", "anna.dev", 298),
+    ...contact("location", "Warszawa, Polska", 317),
 
-    ...sideHeading("WYKSZTAŁCENIE", "education", 318),
-    bold(block("Bachelor of Laws (LL.B.)", SIDE_X, 345, 128, 14, 8.2, 11.5, INK, SANS)),
-    block("Europa-Universität Viadrina", SIDE_X, 362, 128, 13, 7.7, 11, INK, SANS),
-    block("Frankfurt (Oder)  ·  2018–2022", SIDE_X, 378, 128, 13, 7.4, 11, MUTED, SANS),
+    ...sideHeading("WYKSZTAŁCENIE", "education", 356),
+    bold(block("Bachelor of Laws (LL.B.)", SIDE_X, 383, 128, 14, 8.2, 11.5, INK, SANS)),
+    block("Europa-Universität Viadrina", SIDE_X, 400, 128, 13, 7.7, 11, INK, SANS),
+    block("Frankfurt (Oder)  ·  2018–2022", SIDE_X, 416, 128, 13, 7.4, 11, MUTED, SANS),
 
-    ...sideHeading("KOMPETENCJE", "skills", 412),
+    ...sideHeading("KOMPETENCJE", "skills", 450),
     bulleted(block(
         "• Analiza AML/KYC\n• Transaction Monitoring\n• CDD / EDD\n"
         + "• Screening (PEP, sankcje)\n• SAR Reporting\n• Analiza danych",
-        SIDE_X, 439, 128, 78, 8, 11.6, BODY, SANS,
+        SIDE_X, 477, 128, 78, 8, 11.6, BODY, SANS,
     )),
 
     ...sideHeading("JĘZYKI", "languages", 546),

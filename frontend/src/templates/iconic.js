@@ -63,8 +63,12 @@ export const novaTemplate = [
     text("+48 600 000 000", NOVA_CONTACT_FS, NOVA_SANS, NOVA_MUTE, 246, 118, 3),
     iconBeside("nova", "location", 370, 118, NOVA_CONTACT_FS, NOVA_ICON),
     text("Warszawa", NOVA_CONTACT_FS, NOVA_SANS, NOVA_MUTE, 386, 118, 3),
+    iconBeside("nova", "linkedin", 50, 134, NOVA_CONTACT_FS, NOVA_ICON),
+    text("linkedin.com/in/akowalska", NOVA_CONTACT_FS, NOVA_SANS, NOVA_MUTE, 66, 134, 3),
+    iconBeside("nova", "github", 230, 134, NOVA_CONTACT_FS, NOVA_ICON),
+    text("github.com/akowalska", NOVA_CONTACT_FS, NOVA_SANS, NOVA_MUTE, 246, 134, 3),
 
-    line(48, 144, 499, 1, NOVA_RULE, 2),
+    line(48, 160, 499, 1, NOVA_RULE, 2),
 
     iconBeside("nova", "summary", 48, 169, NOVA_HEAD_FS, NOVA_ICON),
     tracked(text("PODSUMOWANIE ZAWODOWE", NOVA_HEAD_FS, NOVA_SANS, NOVA_ACCENT, 66, 169, 3), 1.5),
@@ -166,8 +170,10 @@ export const voltTemplate = [
     ...voltContact("email", 48, 108, 168, "marek.lis@email.com"),
     ...voltContact("phone", 224, 108, 148, "+48 600 000 000"),
     ...voltContact("location", 380, 108, 120, "Warszawa"),
+    ...voltContact("linkedin", 48, 136, 168, "linkedin.com/in/mlis"),
+    ...voltContact("github", 224, 136, 148, "github.com/mlis"),
 
-    ...voltSection("summary", "PODSUMOWANIE ZAWODOWE", 148),
+    ...voltSection("summary", "PODSUMOWANIE ZAWODOWE", 176),
     line(78, 174, 469, 1, VOLT_RULE, 1),
     block(
         "Buduję platformy, które zdejmują złożoność z zespołów produktowych. Łączę architekturę, observability i kulturę właścicielstwa usług.",

@@ -789,32 +789,52 @@ Fullscreen guided creator opened from the landing (`start=wizard`), Topbar, demo
 
 **Steps (5):** Podstawowe dane → Doświadczenie → Wykształcenie → Umiejętności i dodatki → Wybierz wygląd. Experience / education / languages / custom sections use compact cards with an expand-to-edit form. Optional steps expose **Pomiń ten krok**; summary on step 1 is optional (**Pomiń na razie**). Destructive **Wyczyść wszystkie dane** lives under a `⋯` menu. Footer save status shows **Zapisywanie…** / **Zapisano · HH:MM** (auth) or **Zapisano na tym urządzeniu · HH:MM** (guest).
 
+**Contact links on step 0:** LinkedIn is always available; **Dodaj link** optionally reveals GitHub and/or website (max those two extras). Values persist through draft save, guest localStorage, and `fill_template`.
+
 Implementation:
 
-- `frontend/src/utils/bioCvData.js`, lines 5–12 (`BIO_CV_STEPS`), 91–115 (`createCustomSectionFromPreset`), 225–248 (`validateBioCvStep`)
+- `frontend/src/utils/bioCvData.js`, lines 5–12 (`BIO_CV_STEPS`), 49–70 (`createEmptyBioCvData` includes `linkedin` / `github` / `website`), 91–115 (`createCustomSectionFromPreset`), 225–248 (`validateBioCvStep`)
+- `frontend/src/utils/contactLinks.js` — categorize / short labels / available extra kinds
 - `frontend/src/utils/guestWizardDraft.js`, lines 35–141 (`saveGuestWizardDraft`, empty-overwrite guard, `hasGuestWizardDraft`)
 - `frontend/src/utils/claimGuestWizardDraft.js`, lines 48–109, function `adoptGuestWizardDraftForAccount`
-- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, function `BioCvModal` (lines 120–1149)
+- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, function `BioCvModal` — personal step LinkedIn + Dodaj link
 - `frontend/src/components/common/DialogShell/DialogShell.jsx` — `variant="fullscreen"`
 - `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — optional `visibleCount` / `actionLabel` (wizard uses 3 cards + “Utwórz moje CV”)
 
 Tests:
 
-- `frontend/src/utils/bioCvData.test.js` — payload build, step validation (including merged extras step), summary jump
+- `frontend/src/utils/bioCvData.test.js` — payload build, step validation (including merged extras step), summary jump, social fields
+- `frontend/src/utils/contactLinks.test.js`
 - `frontend/src/utils/guestWizardDraft.test.js`
 - `frontend/src/utils/claimGuestWizardDraft.test.js`
 
-Known limitations: no live A4 preview inside the wizard; template cards still show static mockups (not a live fill of the user’s data); canvas guest reload from `cvstudio.guest.doc` remains claim-time only (wizard draft adopts automatically into an empty account draft after login); wizard step index is not stored on the server draft (only `cv_data`) — after adopt the current session restores the guest step, later reopens start at step 0 with the saved profile.
+Known limitations: no live A4 preview inside the wizard; template cards still show static mockups (not a live fill of the user’s data); canvas guest reload from `cvstudio.guest.doc` remains claim-time only (wizard draft adopts automatically into an empty account draft after login); wizard step index is not stored on the server draft (only `cv_data`) — after adopt the current session restores the guest step, later reopens start at step 0 with the saved profile; contact URLs are plain text on the canvas (no PDF link annotations).
 
-### CV PDF extract
+### Contact links (LinkedIn, GitHub, website)
 
-Vision extract of first pages → structured `cv_data`, including record-shaped `extra_sections` items when the source CV has titled entries with description bullets.
+First-class `cv_data` fields `linkedin`, `github`, and `website` survive `normalize_cv_data` (they were previously dropped). Display labels are shortened for mastheads (`linkedin.com/in/…`, `github.com/…`, hostname for sites). Icon templates use dedicated PNGs (`linkedin`, `github`, `website`) from `template_assets/iconic/`; wrapping placers move overflow to a second contact line and push the header rule / flow start so body content does not overlap. Slate/Tessera keep socials in the KONTAKT sidebar and leave the masthead mid-dot line as email/phone/location only. Text mastheads append short socials to `_contact_line`.
 
 Implementation:
 
-- `backend/app/services/ai_service.py`, `extract_cv_data` (line 39+)
+- `backend/app/services/contact_links.py` — categorize, display labels, merge/extract
+- `backend/app/services/cv_data.py`, `normalize_cv_data` — whitelist social fields
+- `backend/app/services/cv_templates/shared/contact.py` — `_contact_channel_items`, `_place_wrapping_icon_contacts`
+- `backend/app/services/cv_templates/shared/text.py` — `_contact_line` / `_contact_line_core`
+- Generators: `nova`, `cardinal`, `volt`, `harbor`, `slate`, `tessera` (+ text templates via `_contact_line`)
+- `scripts/generate_iconic_icons.py` — `draw_linkedin`, `draw_website` (+ `github` in base themes)
+- `frontend/src/utils/sectionIcons.js` — catalog labels
+
+Tests: `backend/tests/test_contact_links.py`.
+
+### CV PDF extract
+
+Vision extract of first pages → structured `cv_data`, including `linkedin` / `github` / `website` from the header and record-shaped `extra_sections` items when the source CV has titled entries with description bullets. Domain heuristics re-categorize misplaced URLs during normalize.
+
+Implementation:
+
+- `backend/app/services/ai_service.py`, `extract_cv_data` (line 39+) — JSON schema includes the three social fields
 - `backend/app/api/routes/ai.py`, `extract_cv`
-- `backend/app/services/cv_data.py`, `normalize_cv_data` (line 585+)
+- `backend/app/services/cv_data.py`, `normalize_cv_data` + `extract_contact_fields_from_raw`
 
 ### Template carousel (import, bio wizard, change template)
 
@@ -2028,28 +2048,50 @@ Pełnoekranowy kreator otwierany z landingu (`start=wizard`), Topbara, banera de
 
 **Kroki (5):** Podstawowe dane → Doświadczenie → Wykształcenie → Umiejętności i dodatki → Wybierz wygląd. Doświadczenie / edukacja / języki / sekcje własne używają kompaktowych kart z rozwijanym formularzem. Kroki opcjonalne mają **Pomiń ten krok**; podsumowanie na kroku 1 jest opcjonalne (**Pomiń na razie**). Destrukcyjne **Wyczyść wszystkie dane** jest w menu `⋯`. Status zapisu w stopce: **Zapisywanie…** / **Zapisano · HH:MM** (konto) albo **Zapisano na tym urządzeniu · HH:MM** (gość).
 
+**Linki kontaktowe na kroku 0:** LinkedIn jest zawsze dostępny; **Dodaj link** opcjonalnie ujawnia GitHub i/lub stronę WWW (maks. te dwa dodatkowe). Wartości przechodzą przez zapis szkicu, localStorage gościa i `fill_template`.
+
 Implementacja:
 
-- `frontend/src/utils/bioCvData.js`, linie 5–12 (`BIO_CV_STEPS`), 91–115 (`createCustomSectionFromPreset`), 225–248 (`validateBioCvStep`)
+- `frontend/src/utils/bioCvData.js`, linie 5–12 (`BIO_CV_STEPS`), 49–70 (`createEmptyBioCvData` z `linkedin` / `github` / `website`), 91–115 (`createCustomSectionFromPreset`), 225–248 (`validateBioCvStep`)
+- `frontend/src/utils/contactLinks.js` — kategoryzacja / krótkie etykiety / dostępne dodatkowe rodzaje
 - `frontend/src/utils/guestWizardDraft.js`, linie 35–141 (`saveGuestWizardDraft`, ochrona przed pustym nadpisaniem, `hasGuestWizardDraft`)
 - `frontend/src/utils/claimGuestWizardDraft.js`, linie 48–109, funkcja `adoptGuestWizardDraftForAccount`
-- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, funkcja `BioCvModal` (linie 120–1149)
+- `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, funkcja `BioCvModal` — LinkedIn + Dodaj link na kroku danych osobowych
 - `frontend/src/components/common/DialogShell/DialogShell.jsx` — `variant="fullscreen"`
 - `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — opcjonalne `visibleCount` / `actionLabel` (kreator: 3 karty + „Utwórz moje CV”)
 
 Testy:
 
-- `frontend/src/utils/bioCvData.test.js` — budowa payloadu, walidacja kroków (w tym scalony krok dodatków), skok do podsumowania
+- `frontend/src/utils/bioCvData.test.js` — budowa payloadu, walidacja kroków, skok do podsumowania, pola social
+- `frontend/src/utils/contactLinks.test.js`
 - `frontend/src/utils/guestWizardDraft.test.js`
 - `frontend/src/utils/claimGuestWizardDraft.test.js`
 
-Znane ograniczenia: brak live podglądu A4 w kreatorze; karty szablonów nadal pokazują statyczne mockupy (nie live fill z danymi użytkownika); odtwarzanie płótna gościa z `cvstudio.guest.doc` nadal tylko przy claim (szkic kreatora adoptuje się automatycznie do pustego szkicu konta po logowaniu); indeks kroku kreatora nie jest przechowywany w szkicu serwerowym (tylko `cv_data`) — po adopcie bieżąca sesja odtwarza krok gościa, późniejsze otwarcia startują od kroku 0 z zapisanym profilem.
+Znane ograniczenia: brak live podglądu A4 w kreatorze; karty szablonów nadal pokazują statyczne mockupy (nie live fill z danymi użytkownika); odtwarzanie płótna gościa z `cvstudio.guest.doc` nadal tylko przy claim (szkic kreatora adoptuje się automatycznie do pustego szkicu konta po logowaniu); indeks kroku kreatora nie jest przechowywany w szkicu serwerowym (tylko `cv_data`) — po adopcie bieżąca sesja odtwarza krok gościa, późniejsze otwarcia startują od kroku 0 z zapisanym profilem; URL-e kontaktowe są zwykłym tekstem na płótnie (bez adnotacji hiperłączy w PDF).
+
+### Linki kontaktowe (LinkedIn, GitHub, strona)
+
+Pola pierwszego rzędu `linkedin`, `github` i `website` w `cv_data` przechodzą przez `normalize_cv_data` (wcześniej były odrzucane). Etykiety wyświetlane w mastheadzie są skracane. Szablony z ikonami używają PNG (`linkedin`, `github`, `website`); zawijanie przenosi nadmiar na drugą linię i przesuwa linię nagłówka / start treści. Slate/Tessera trzymają social w szynie KONTAKT; masthead zostaje przy email/telefon/lokalizacja. Mastheady tekstowe dopisują skrócone social do `_contact_line`.
+
+Implementacja:
+
+- `backend/app/services/contact_links.py`
+- `backend/app/services/cv_data.py`, `normalize_cv_data`
+- `backend/app/services/cv_templates/shared/contact.py`
+- `backend/app/services/cv_templates/shared/text.py` — `_contact_line` / `_contact_line_core`
+- Generatory: `nova`, `cardinal`, `volt`, `harbor`, `slate`, `tessera` (+ szablony tekstowe przez `_contact_line`)
+- `scripts/generate_iconic_icons.py`, `frontend/src/utils/sectionIcons.js`
+
+Testy: `backend/tests/test_contact_links.py`.
 
 ### Extract CV z PDF
 
+Wizyjna ekstrakcja pierwszych stron → strukturalne `cv_data`, w tym `linkedin` / `github` / `website` z nagłówka. Heurystyki domenowe poprawiają kategorię URL-i przy normalizacji.
+
 - `backend/app/services/ai_service.py` — `extract_cv_data` (linia 39+)
 - `backend/app/api/routes/ai.py` — `extract_cv`
-- `backend/app/services/cv_data.py` — `normalize_cv_data` (ok. 585+)
+- `backend/app/services/cv_data.py` — `normalize_cv_data` + `extract_contact_fields_from_raw`
+- `backend/app/services/contact_links.py`
 
 ### Karuzela szablonów (import, kreator bio, zmiana szablonu)
 

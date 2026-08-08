@@ -8,6 +8,8 @@ from collections.abc import Mapping
 from copy import deepcopy
 from typing import Any
 
+from app.services.contact_links import extract_contact_fields_from_raw
+
 # Strip leading list markers so skills stored as "• Foo" or bare "•" do not
 # produce an empty UMIEJĘTNOŚCI chrome block after `_bullet_list_content`.
 _LEADING_LIST_MARKER = re.compile(r"^[\s]*[•\-–*—∙·]\s*")
@@ -691,6 +693,10 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
             "items": language_items,
         })
 
+    # LinkedIn / GitHub / website survive the whitelist so icon templates and
+    # masthead contact lines can render social rows after extract or wizard fill.
+    social = extract_contact_fields_from_raw(raw)
+
     normalized = {
         "name": _text(raw.get("name")),
         "title": _text(raw.get("title") or raw.get("professional_title")),
@@ -698,6 +704,9 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
         "phone": _text(raw.get("phone")),
         "address": address,
         "location": address,
+        "linkedin": social["linkedin"],
+        "github": social["github"],
+        "website": social["website"],
         "summary": _text(raw.get("summary")),
         "experience": _normalize_experience(raw.get("experience")),
         "education": _normalize_education(raw.get("education")),

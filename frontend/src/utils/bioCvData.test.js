@@ -104,3 +104,17 @@ test("preserves spaces while a controlled wizard field is being edited", () => {
     assert.equal(edited.name, "Anna Kowalska ");
     assert.equal(buildBioCvPayload(edited).name, "Anna Kowalska");
 });
+
+test("keeps LinkedIn, GitHub, and website contact links in the wizard payload", () => {
+    const result = buildBioCvPayload({
+        ...createEmptyBioCvData(),
+        name: "Anna",
+        linkedin: " linkedin.com/in/anna ",
+        github: "github.com/anna",
+        website: "https://anna.dev",
+        link: "https://legacy.example",
+    });
+    assert.equal(result.linkedin, "linkedin.com/in/anna");
+    assert.equal(result.github, "github.com/anna");
+    assert.equal(result.website, "https://anna.dev");
+});

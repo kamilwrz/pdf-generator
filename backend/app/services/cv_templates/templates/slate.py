@@ -37,7 +37,7 @@ from app.services.cv_templates.shared.records import (
 )
 from app.services.cv_templates.shared.text import (
     _compact_text,
-    _contact_line,
+    _contact_line_core,
     _labels,
     _skills_inline_content,
 )
@@ -153,12 +153,8 @@ def _gen_slate(cv: dict) -> list[dict]:
         *sidebar_heading("KONTAKT", "references", contact_top),
     ]
     contact_y = contact_top + 28
-    contacts = (
-        ("phone", _compact_text(cv.get("phone"), 28)),
-        ("email", _compact_text(cv.get("email"), 42)),
-        ("github", _compact_text(cv.get("github") or cv.get("website") or cv.get("link"), 36)),
-        ("location", _compact_text(cv.get("location"), 34)),
-    )
+    from app.services.cv_templates.shared.contact import _sidebar_contact_items
+    contacts = _sidebar_contact_items(cv)
     for icon_name, value in contacts:
         if not value:
             continue
@@ -215,7 +211,8 @@ def _gen_slate(cv: dict) -> list[dict]:
     # line, and a 3x3 precision-grid ornament in the top-right corner.
     name = _compact_text(cv.get("name"), 30).upper()
     title = _compact_text(cv.get("title"), 48).upper()
-    contact_line = _compact_text(_contact_line(cv), 80)
+    # Masthead stays email/phone/location only; socials live in the KONTAKT rail.
+    contact_line = _compact_text(_contact_line_core(cv), 80)
     header = [
         _text(name, 24, sans, colors["ink"], main_left, 48, zIndex=3, bold=True),
     ]

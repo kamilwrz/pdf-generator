@@ -50,6 +50,7 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 "Przeczytaj każdą stronę CV i zwróć WYŁĄCZNIE obiekt JSON — bez markdown:\n"
                 "{\n"
                 '  "name":"","title":"","email":"","phone":"","location":"",\n'
+                '  "linkedin":"","github":"","website":"",\n'
                 '  "summary":"",\n'
                 '  "experience":[{"title":"","company":"","period":"","bullets":[]}],\n'
                 '  "education":[{"school":"","city":"","degree":"","period":"","description":""}],\n'
@@ -59,6 +60,10 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 '  "extra_sections":[{"title":"","kind":"languages|certifications|interests|projects|references|awards|publications|volunteering|other","placement":"after_skills","items":[]}]\n'
                 "}\n\n"
                 "Zasady:\n"
+                "- linkedin / github / website: linki kontaktowe z nagłówka CV.\n"
+                "  linkedin = profil LinkedIn (URL lub ścieżka /in/...), github = GitHub,\n"
+                "  website = osobista strona / portfolio (nie LinkedIn i nie GitHub).\n"
+                "  Puste stringi, gdy brak w CV. Nie wklejaj tych URL-i do email/phone/location.\n"
                 "- experience: WSZYSTKIE stanowiska od najnowszego; WSZYSTKIE punkty (bez limitu)\n"
                 "- education: WSZYSTKIE wpisy od najnowszego. Dla każdego wpisu:\n"
                 "  school = uczelnia/szkoła, city = miasto, degree = kierunek/tytuł/dyplom,\n"

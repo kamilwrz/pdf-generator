@@ -54,6 +54,9 @@ export function createEmptyBioCvData() {
         location: "",
         phone: "",
         email: "",
+        linkedin: "",
+        github: "",
+        website: "",
         summary: "",
         experience: [],
         education: [],
@@ -161,6 +164,9 @@ export function normalizeBioCvData(value) {
         location: clean(source.address || source.location),
         phone: clean(source.phone),
         email: clean(source.email),
+        linkedin: clean(source.linkedin),
+        github: clean(source.github),
+        website: clean(source.website || source.link),
         summary: clean(source.summary),
         experience: (Array.isArray(source.experience) ? source.experience : [])
             .filter((entry) => entry && typeof entry === "object")

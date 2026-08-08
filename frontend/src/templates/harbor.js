@@ -141,8 +141,10 @@ export const harborTemplate = [
     text("Starszy Analityk AML / KYC", 11, SANS, ACCENT, MAIN_X, 80, 3),
     ...contact("phone", MAIN_X, MAIN_X + 15, "+48 600 000 000", 104),
     ...contact("email", 168, 183, "anna.kowalska@email.com", 104),
-    ...contact("github", 320, 335, "github.com/akowalska", 104),
-    ...contact("location", 470, 485, "Warszawa", 104),
+    ...contact("linkedin", 320, 335, "linkedin.com/in/akowalska", 104),
+    ...contact("github", MAIN_X, MAIN_X + 15, "github.com/akowalska", 120),
+    ...contact("website", 168, 183, "anna.dev", 120),
+    ...contact("location", 280, 295, "Warszawa", 120),
 
     // Circular photo placeholder: soft-grey disc + centred grey person glyph.
     // `photoSlot` lets gallery upload replace the glyph and cover the disc.
@@ -158,10 +160,10 @@ export const harborTemplate = [
         photoSlot: "glyph",
     },
 
-    { ...line(MAIN_X, 126, SIDE_X + SIDE_W - MAIN_X, 1, RULE, 2) },
+    { ...line(MAIN_X, 142, SIDE_X + SIDE_W - MAIN_X, 1, RULE, 2) },
 
     // ── Main column: summary ────────────────────────────────────────────────
-    ...heading("PODSUMOWANIE", MAIN_X, MAIN_W, 146),
+    ...heading("PODSUMOWANIE", MAIN_X, MAIN_W, 162),
     // Summary shares the experience-bullet size (9 pt) so the lead paragraph
     // does not read a step larger than the records beneath it.
     block(
