@@ -269,7 +269,7 @@
 }
 
 .pdfItem:hover {
-    border-color: #D5DCE5;
+    border-color: #E2DFD8;
     background: var(--chrome-control);
 }
 

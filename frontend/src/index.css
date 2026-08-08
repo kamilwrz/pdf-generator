@@ -1,53 +1,59 @@
 :root {
-    /* Light editor chrome: cool gray surfaces, navy-blue actions, gold detail,
-       and white paper. Layout and control geometry stay unchanged — only the
-       colour system moves from the former charcoal/rust theme. */
+    /* Quiet Luxury editor chrome: warm-white surfaces, black/charcoal actions,
+       gold used sparingly as a signature accent (never as a large button fill —
+       gold-on-white text fails WCAG contrast, so gold stays on kickers, active
+       underlines, icons, badges, and dividers). Layout and control geometry
+       stay unchanged — only the colour system moves from the former
+       navy-blue/gold theme. */
 
     /* ---- Surfaces & backgrounds ---- */
-    --primary-bg: #F4F6F8;
+    --primary-bg: #FFFFFF;
     --secondary-bg: #FFFFFF;
-    --surface-2: #EEF1F5;
-    --bg-cream: #F8F9FB;
+    --surface-2: #F6F5F2;
+    --bg-cream: #FAF9F6;
 
     /* ---- Shared editor chrome (topbar, sidebar, panels, modals) ---- */
-    --chrome-ink: #1A2433;
-    --chrome-muted: #5C6B7A;
-    --chrome-border: #D5DCE5;
+    --chrome-ink: #171717;
+    --chrome-muted: #6B675E;
+    --chrome-border: #E2DFD8;
     --chrome-surface: #FFFFFF;
-    --chrome-control: #F4F6F8;
-    --chrome-hover: #E8EEF5;
-    --chrome-accent: #2F5F8F;
-    --chrome-accent-strong: #1F456C;
-    --chrome-shadow: 0 14px 34px -18px rgba(26, 36, 51, .18);
+    --chrome-control: #F6F5F2;
+    --chrome-hover: #EFEDE7;
+    --chrome-accent: #171717;
+    --chrome-accent-strong: #000000;
+    --chrome-shadow: 0 14px 34px -18px rgba(23, 23, 23, .16);
 
-    /* ---- Brand accent (navy blue) ---- */
-    --accent: #2F5F8F;
-    --accent-strong: #1F456C;
-    --accent-soft: rgba(47, 95, 143, .12);
-    --accent-grad: linear-gradient(135deg, #3A6FA3, #2F5F8F);
+    /* ---- Brand accent (black) ---- */
+    --accent: #171717;
+    --accent-strong: #000000;
+    --accent-soft: rgba(23, 23, 23, .06);
+    --accent-grad: linear-gradient(135deg, #2B2B2B, #171717);
     --on-accent: #FFFFFF;
 
     /* Secondary accents */
+    --gold: #B8954A;
+    --gold-deep: #8F7130;
+    --gold-soft: rgba(184, 149, 74, .12);
     --amber: #B8954A;
     --green: #3F9A6F;
 
     /* ---- Buttons ---- */
     --primary-btn: var(--accent);
-    --secondary-btn: #EEF1F5;
-    --close-btn: #E8EEF5;
+    --secondary-btn: #F6F5F2;
+    --close-btn: #EFEDE7;
 
     /* ---- Text ---- */
-    --primary-font: #1A2433;
-    --ink-2: #1A2433;
-    --secondary-font: #5C6B7A;
-    --muted-font: #7A8794;
-    --label-font: #8A96A3;
+    --primary-font: #171717;
+    --ink-2: #171717;
+    --secondary-font: #57534E;
+    --muted-font: #8B877D;
+    --label-font: #A39D8F;
     --deco-font: #B8954A;
 
     /* ---- Lines & borders ---- */
-    --border: #D5DCE5;
-    --border-soft: #E4E9EF;
-    --border-line: #D5DCE5;
+    --border: #E2DFD8;
+    --border-soft: #EDEBE5;
+    --border-line: #E2DFD8;
 
     /* ---- Status ---- */
     --success: #3F9A6F;
@@ -62,9 +68,9 @@
     --r-sm: 3px;
 
     /* ---- Elevation ---- */
-    --shadow-card: 0 1px 2px rgba(26, 36, 51, .06), 0 18px 40px -24px rgba(26, 36, 51, .22);
-    --shadow-pop: 0 18px 44px -16px rgba(26, 36, 51, .18);
-    --shadow-accent: 0 12px 24px -10px rgba(47, 95, 143, .35);
+    --shadow-card: 0 1px 2px rgba(23, 23, 23, .06), 0 18px 40px -24px rgba(23, 23, 23, .20);
+    --shadow-pop: 0 18px 44px -16px rgba(23, 23, 23, .16);
+    --shadow-accent: 0 12px 24px -10px rgba(23, 23, 23, .30);
 
     /* ---- Typography ---- */
     --font-display: 'Nunito', sans-serif;

@@ -17,9 +17,9 @@ import { ApiClient, ENDPOINTS, wakeBackend } from "../../../services/api";
 import { measureElements } from "../../../utils/elementBounds";
 
 // ── quick actions ─────────────────────────────────────────────────────────
-// Keep AI quick actions aligned with the editor's shared rust accent instead
-// of introducing a separate blue visual language inside the application.
-const CHROME_ACCENT = "#2F5F8F";
+// Keep AI quick actions aligned with the editor's shared black accent instead
+// of introducing a separate visual language inside the application.
+const CHROME_ACCENT = "#171717";
 const ACTIONS = [
     { id: "rating",          label: "Oceń CV",           icon: FaStar,        color: CHROME_ACCENT, description: "Ogólna ocena jakości CV w skali 1–10" },
     { id: "design_rating",   label: "Projekt",           icon: FaPalette,     color: CHROME_ACCENT, description: "Hierarchia, typografia i spójność wizualna szablonu" },

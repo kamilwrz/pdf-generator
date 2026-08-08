@@ -432,7 +432,9 @@ Limitations:
 
 ### Brand logo
 
-The application uses a transparent SVG brand system in the same navy-blue accent as primary actions (`#2F5F8F`). The full logo combines a folded-document CV monogram with the **CV STUDIO** wordmark in Montserrat (with browser-safe sans-serif fallbacks), so it remains legible on the light landing header and cool-paper authentication screens. A compact version of the same mark is used where a wordmark would not fit: the editor tool rail and browser favicon.
+The application uses a transparent SVG brand system. The full logo combines a folded-document CV monogram with the **CV STUDIO** wordmark in Montserrat (with browser-safe sans-serif fallbacks), so it remains legible on the white landing header and warm-paper authentication screens. A compact version of the same mark is used where a wordmark would not fit: the editor tool rail and browser favicon.
+
+Known limitation: the SVG mark files (`cv-studio-logo.svg`, `cv-studio-mark.svg`) still render in the older navy-blue accent (`#2F5F8F`) and were not recoloured as part of the Quiet Luxury palette pass below — recolouring the mark itself is a brand-asset edit, not a CSS token change, and is tracked separately.
 
 Implementation:
 
@@ -446,7 +448,7 @@ Implementation:
 
 ### Auth screens aligned with the landing
 
-Login and registration continue the landing page’s editorial “document transformation” visual language. Both views use a responsive split layout: an explanatory story panel on the left (deep navy `#1A2B3F`) and a cool-paper form panel with the navy-blue action accent on the right. On small screens, the story panel becomes a compact header above the form.
+Login and registration continue the landing page’s editorial “document transformation” visual language. Both views use a responsive split layout: an explanatory story panel on the left (near-black `#171717`, with a gold decorative ring/dot) and a warm-paper form panel with a black primary action button and a gold offset shadow on the right. On small screens, the story panel becomes a compact header above the form.
 
 The intent-aware copy remains functional. Login confirms whether it will open PDF import or the guided wizard after authentication; registration confirms the selected path before account creation. Registration no longer asks the visitor to choose a plan — every new account is created on Free by default (`Register.jsx`'s request body is `{ username, email, password }` only; the former `PlanSelector.jsx` component was deleted). Prices and entitlement gates are unchanged.
 
@@ -455,20 +457,23 @@ Implementation:
 - `frontend/src/pages/Login/Login.jsx`, lines 102–192; `frontend/src/pages/Login/Login.module.css`
 - `frontend/src/pages/Register/Register.jsx`, lines 111–224; `frontend/src/pages/Register/Register.module.css`
 
-### Unified light application palette
+### Unified "Quiet Luxury" application palette
 
-The product UI uses a light gray / blue / gold / white system. Cool gray surfaces (`#F4F6F8` / `#FFFFFF`) dominate the editor chrome; navy blue (`#2F5F8F`, pressed `#1F456C`) is the primary action colour; gold (`#B8954A`) is reserved for decorative detail; ink is deep slate-blue (`#1A2433`). Layout, spacing, radii, and component structure are unchanged — only colour tokens and matching hard-coded accents were retuned. Shared `--on-accent` white keeps text legible on blue buttons. Landing, auth, editor chrome, selection outlines, AI quick actions, page controls, and the PDF-rendering loader share this palette.
+The product UI uses a white / black / gold system. Warm-white surfaces (`#FFFFFF` primary, `#FAF9F6` ivory, `#F6F5F2` panel) dominate the editor chrome and landing sections; near-black (`#171717`, pressed `#000000`) is the primary action colour used for buttons, active states, and body text; gold (`#B8954A`, deep `#8F7130`) is reserved for a signature accent — kickers/eyebrows, active underlines, icon highlights, dividers, checkmarks, and offset card/button shadows — never as a large button fill, because gold-on-white text fails WCAG contrast (~2.3:1) while black-on-white does not. Layout, spacing, radii, and component structure are unchanged — only colour tokens and matching hard-coded accents were retuned, replacing the earlier navy-blue/gold theme. Shared `--on-accent` white keeps text legible on black buttons. Landing, auth, editor chrome, selection outlines, AI quick actions, page controls, and the PDF-rendering loader share this palette.
+
+A recurring signature detail carried over from the prior theme and re-themed rather than removed: primary buttons and highlighted cards keep a hard, non-blurred offset shadow (e.g. `box-shadow: 5px 5px 0 var(--gold)`) — now black-on-white surfaces with a gold offset shadow, instead of the earlier navy-on-white with a black shadow.
 
 White remains intentionally reserved for the editable A4 document and its template preview because it represents the exported page. Green success and red destructive states remain semantic status colours rather than brand accents.
 
 Implementation:
 
 - `frontend/src/index.css`, lines 1–77, root palette tokens (surfaces, chrome, accent, gold, text, shadows)
-- `frontend/src/App.css`, lines 5–18, light application background with blue and gold ambient gradients
-- `frontend/src/pages/Hero/Hero.module.css`, `Login.module.css`, `Register.module.css` — page-local tokens remapped to the same light system
-- `frontend/public/cv-studio-logo.svg`, `cv-studio-mark.svg` — brand mark in navy blue
-- `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.module.css` — cool blue-gray selection chrome
-- `frontend/src/components/common/Spinner/Spinner.module.css` — frosted light overlay and export-status card
+- `frontend/src/App.css`, lines 5–18 (ambient background gradients) and lines 38–97 (canvas scrollbar) — warm-white application background with gold and black ambient gradients, and a black-to-gold canvas scrollbar
+- `frontend/src/pages/Hero/Hero.module.css`, `Login.module.css`, `Register.module.css` — page-local tokens remapped to the same white/black/gold system
+- `frontend/public/cv-studio-logo.svg`, `cv-studio-mark.svg` — brand mark; still navy blue, not yet recoloured (see "Brand logo" above)
+- `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.module.css` — already fully tokenised via `index.css`, recolours automatically
+- `frontend/src/components/common/Spinner/Spinner.module.css` — frosted overlay with a gold ambient glow and export-status card
+- `frontend/src/components/canvas/InlineFormatToolbar/InlineFormatToolbar.jsx`, line 28 — the CV text-colour picker's default swatch was updated to match the new ink token (`#171717`); its other five swatches (navy, gold, green, red, light blue) are independent colour choices for the user's own document content and were intentionally left unchanged
 
 Limits:
 
@@ -1703,7 +1708,9 @@ Ograniczenia:
 
 ### Logo marki
 
-Aplikacja używa przezroczystego systemu logo SVG w tym samym granatowo-niebieskim akcencie co przyciski główne (`#2F5F8F`). Pełne logo łączy monogram CV w formie zagiętego dokumentu z napisem **CV STUDIO** w Montserrat (oraz bezpiecznymi fontami zastępczymi), dlatego pozostaje czytelne na jasnym nagłówku strony głównej i chłodnym papierowym tle ekranów uwierzytelniania. Krótsza wersja tego samego znaku działa tam, gdzie napis nie zmieściłby się dobrze: w pasku narzędzi edytora oraz jako favicon.
+Aplikacja używa przezroczystego systemu logo SVG. Pełne logo łączy monogram CV w formie zagiętego dokumentu z napisem **CV STUDIO** w Montserrat (oraz bezpiecznymi fontami zastępczymi), dlatego pozostaje czytelne na białym nagłówku strony głównej i ciepłym papierowym tle ekranów uwierzytelniania. Krótsza wersja tego samego znaku działa tam, gdzie napis nie zmieściłby się dobrze: w pasku narzędzi edytora oraz jako favicon.
+
+Znane ograniczenie: pliki znaku SVG (`cv-studio-logo.svg`, `cv-studio-mark.svg`) nadal renderują się w dawnym granatowo-niebieskim akcencie (`#2F5F8F`) i nie zostały przekolorowane w ramach poniższej zmiany palety „Quiet Luxury” — przekolorowanie samego znaku to edycja zasobu marki, a nie zmiana tokenu CSS, i jest śledzone osobno.
 
 Implementacja:
 
@@ -1717,7 +1724,7 @@ Implementacja:
 
 ### Ekrany uwierzytelniania spójne z landing page
 
-Logowanie i rejestracja kontynuują redakcyjny język wizualny „transformacji dokumentu” ze strony głównej. Oba widoki mają responsywny układ dzielony: po lewej panel wyjaśniający (głęboki granat `#1A2B3F`), po prawej chłodna papierowa karta formularza z granatowo-niebieskim akcentem akcji. Na małych ekranach panel staje się krótkim nagłówkiem nad formularzem.
+Logowanie i rejestracja kontynuują redakcyjny język wizualny „transformacji dokumentu” ze strony głównej. Oba widoki mają responsywny układ dzielony: po lewej panel wyjaśniający (niemal czarny `#171717`, ze złotym dekoracyjnym pierścieniem/kropką), po prawej ciepła papierowa karta formularza z czarnym przyciskiem akcji i złotym przesuniętym cieniem. Na małych ekranach panel staje się krótkim nagłówkiem nad formularzem.
 
 Treść zależna od intencji nadal działa. Login potwierdza, czy po uwierzytelnieniu otworzy import PDF, czy kreator krok po kroku; rejestracja pokazuje tę ścieżkę jeszcze przed utworzeniem konta. Rejestracja nie pyta już o wybór planu — każde nowe konto powstaje domyślnie na planie Free (treść żądania w `Register.jsx` to wyłącznie `{ username, email, password }`; dawny komponent `PlanSelector.jsx` został usunięty). Ceny i bramki uprawnień nie uległy zmianie.
 
@@ -1726,20 +1733,23 @@ Implementacja:
 - `frontend/src/pages/Login/Login.jsx`, linie 102–192; `frontend/src/pages/Login/Login.module.css`
 - `frontend/src/pages/Register/Register.jsx`, linie 111–224; `frontend/src/pages/Register/Register.module.css`
 
-### Spójna jasna paleta aplikacji
+### Spójna paleta aplikacji „Quiet Luxury”
 
-UI produktu używa systemu szarości / niebieskiego / złota / bieli. Chłodne szare powierzchnie (`#F4F6F8` / `#FFFFFF`) dominują chrome edytora; granatowy niebieski (`#2F5F8F`, wciśnięty `#1F456C`) jest kolorem akcji; złoto (`#B8954A`) służy detalom dekoracyjnym; atrament to głęboki slate-blue (`#1A2433`). Układ, odstępy, promienie i struktura komponentów pozostają bez zmian — przemapowano wyłącznie tokeny kolorów i odpowiadające im hardcodowane akcenty. Wspólny `--on-accent` (biały) zapewnia czytelny tekst na niebieskich przyciskach. Landing, auth, chrome edytora, obramowania zaznaczenia, szybkie akcje AI, sterowanie stronami i ekran generowania PDF dzielą tę samą paletę.
+UI produktu używa systemu biel / czerń / złoto. Ciepłobiałe powierzchnie (`#FFFFFF` główna, `#FAF9F6` kość słoniowa, `#F6F5F2` panel) dominują w chrome edytora i sekcjach landing page; niemal czarny (`#171717`, wciśnięty `#000000`) jest głównym kolorem akcji — przyciski, stany aktywne, tekst; złoto (`#B8954A`, głębsze `#8F7130`) jest zarezerwowane jako sygnaturowy akcent — kickery/eyebrow, aktywne podkreślenia, akcenty ikon, dividery, ptaszki na liście i przesunięte cienie kart/przycisków — nigdy jako duże wypełnienie przycisku, bo złoto na białym tle nie spełnia kontrastu WCAG dla tekstu (~2.3:1), w przeciwieństwie do czerni na bieli. Układ, odstępy, promienie i struktura komponentów pozostają bez zmian — przemapowano wyłącznie tokeny kolorów i odpowiadające im hardcodowane akcenty, zastępując wcześniejszy motyw granatowo-złoty. Wspólny `--on-accent` (biały) zapewnia czytelny tekst na czarnych przyciskach. Landing, auth, chrome edytora, obramowania zaznaczenia, szybkie akcje AI, sterowanie stronami i ekran generowania PDF dzielą tę samą paletę.
+
+Powtarzający się sygnaturowy detal przeniesiony z poprzedniego motywu (nie usunięty, tylko przekolorowany): główne przyciski i wyróżnione karty zachowują twardy, nierozmyty przesunięty cień (np. `box-shadow: 5px 5px 0 var(--gold)`) — teraz czarna powierzchnia na bieli ze złotym cieniem, zamiast wcześniejszej granatowej powierzchni z czarnym cieniem.
 
 Biel pozostaje celowo zarezerwowana dla edytowalnej strony A4 i podglądu szablonu, ponieważ reprezentuje wynikowy dokument. Zielony sukces i czerwone działania destrukcyjne pozostają kolorami stanów semantycznych, a nie akcentami marki.
 
 Implementacja:
 
 - `frontend/src/index.css`, linie 1–77, tokeny głównej palety (powierzchnie, chrome, akcent, złoto, tekst, cienie)
-- `frontend/src/App.css`, linie 5–18, jasne tło aplikacji z niebieskimi i złotymi gradientami otoczenia
-- `frontend/src/pages/Hero/Hero.module.css`, `Login.module.css`, `Register.module.css` — lokalne tokeny stron przemapowane na ten sam jasny system
-- `frontend/public/cv-studio-logo.svg`, `cv-studio-mark.svg` — znak marki w granatowym niebieskim
-- `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.module.css` — chłodny niebiesko-szary chrome zaznaczenia
-- `frontend/src/components/common/Spinner/Spinner.module.css` — matowa jasna warstwa i karta statusu eksportu
+- `frontend/src/App.css`, linie 5–18 (gradienty tła otoczenia) i linie 38–97 (pasek przewijania płótna) — ciepłobiałe tło aplikacji ze złotymi i czarnymi gradientami otoczenia oraz czarno-złotym paskiem przewijania
+- `frontend/src/pages/Hero/Hero.module.css`, `Login.module.css`, `Register.module.css` — lokalne tokeny stron przemapowane na ten sam system biel/czerń/złoto
+- `frontend/public/cv-studio-logo.svg`, `cv-studio-mark.svg` — znak marki; nadal granatowy niebieski, jeszcze nieprzekolorowany (patrz „Logo marki” wyżej)
+- `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.module.css` — już w pełni stokenizowany przez `index.css`, przekolorowuje się automatycznie
+- `frontend/src/components/common/Spinner/Spinner.module.css` — matowa warstwa ze złotą poświatą otoczenia i karta statusu eksportu
+- `frontend/src/components/canvas/InlineFormatToolbar/InlineFormatToolbar.jsx`, linia 28 — domyślna próbka w palecie kolorów tekstu CV zaktualizowana do nowego tokenu atramentu (`#171717`); pozostałych pięć próbek (granat, złoto, zieleń, czerwień, jasny niebieski) to niezależne wybory kolorów dla treści dokumentu użytkownika i zostały celowo pozostawione bez zmian
 
 Ograniczenia:
 

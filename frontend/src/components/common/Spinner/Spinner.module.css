@@ -12,8 +12,8 @@
     align-items: center;
     justify-content: center;
     background:
-        radial-gradient(1000px 520px at 50% 32%, rgba(47, 95, 143, .18), transparent 62%),
-        rgba(26, 43, 63, .78);
+        radial-gradient(1000px 520px at 50% 32%, rgba(184, 149, 74, .14), transparent 62%),
+        rgba(10, 10, 10, .78);
     -webkit-backdrop-filter: blur(8px) saturate(1.15);
             backdrop-filter: blur(8px) saturate(1.15);
     animation: overlayIn .28s ease both;
@@ -28,7 +28,7 @@
     padding: 36px 30px 30px;
     border-radius: 8px;
     text-align: center;
-    background: linear-gradient(180deg, #F6F7F9, #E8ECF1);
+    background: linear-gradient(180deg, #FAF9F6, #F1EFE9);
     border: 1px solid #FFFFFF;
     box-shadow:
         0 34px 80px -28px rgba(0, 0, 0, .7),
@@ -52,14 +52,14 @@
     inset: 0;
     border-radius: 50%;
     background: conic-gradient(from 90deg,
-            rgba(47, 95, 143, 0) 0 8%,
+            rgba(23, 23, 23, 0) 0 8%,
             var(--accent) 42%,
             var(--accent-strong) 60%,
-            rgba(47, 95, 143, 0) 78% 100%);
+            rgba(23, 23, 23, 0) 78% 100%);
     -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
             mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
     animation: ringSpin 1.15s linear infinite;
-    filter: drop-shadow(0 3px 8px rgba(47, 95, 143, .3));
+    filter: drop-shadow(0 3px 8px rgba(184, 149, 74, .35));
 }
 
 /* soft breathing halo behind the page */
@@ -68,7 +68,7 @@
     width: 66px;
     height: 66px;
     border-radius: 20px;
-    background: radial-gradient(circle at 50% 50%, rgba(47, 95, 143, .28), transparent 70%);
+    background: radial-gradient(circle at 50% 50%, rgba(184, 149, 74, .22), transparent 70%);
     filter: blur(6px);
     animation: pulse 2.4s ease-in-out infinite;
 }
@@ -120,8 +120,8 @@
     right: 0;
     height: 16px;
     top: -16px;
-    background: linear-gradient(180deg, transparent, rgba(47, 95, 143, .5), transparent);
-    box-shadow: 0 0 12px 3px rgba(47, 95, 143, .3);
+    background: linear-gradient(180deg, transparent, rgba(184, 149, 74, .5), transparent);
+    box-shadow: 0 0 12px 3px rgba(184, 149, 74, .3);
     animation: scan 2.6s cubic-bezier(.5, 0, .5, 1) infinite;
 }
 
@@ -129,7 +129,7 @@
 .title {
     font: 800 19px var(--font-display);
     letter-spacing: -.01em;
-    color: #1A2433;
+    color: #171717;
     margin-bottom: 5px;
 }
 
@@ -141,7 +141,7 @@
 
 .subtitle {
     font: 600 13px var(--font-body);
-    color: #52544C;
+    color: #57534E;
     margin-bottom: 22px;
 }
 

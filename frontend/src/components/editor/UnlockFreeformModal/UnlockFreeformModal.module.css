@@ -27,13 +27,13 @@
 }
 
 .ghost {
-  border: 1px solid rgba(26, 36, 51, 0.18);
+  border: 1px solid rgba(23, 23, 23, 0.18);
   background: transparent;
 }
 
 .primary {
   border: 0;
-  background: #2F5F8F;
+  background: #171717;
   color: #fff;
   font-weight: 600;
 }

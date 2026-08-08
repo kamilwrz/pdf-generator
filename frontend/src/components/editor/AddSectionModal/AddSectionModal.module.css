@@ -56,7 +56,7 @@
 
 .input:focus {
   border-color: var(--chrome-accent);
-  box-shadow: 0 0 0 2px rgba(47, 95, 143, .13);
+  box-shadow: 0 0 0 2px rgba(23, 23, 23, .13);
 }
 
 .fieldset {
@@ -162,7 +162,7 @@
 .iconTileActive {
   border-color: var(--chrome-accent);
   box-shadow: inset 0 0 0 1px var(--chrome-accent);
-  background: rgba(47, 95, 143, .12);
+  background: rgba(23, 23, 23, .08);
 }
 
 .iconThumb {

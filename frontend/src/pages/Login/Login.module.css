@@ -1,13 +1,13 @@
 .container {
-    --ink: #1A2433;
-    --night: #1A2B3F;
-    --paper: #F6F7F9;
-    --paper-deep: #E8ECF1;
-    --rust: #2F5F8F;
-    --rust-deep: #1F456C;
+    --ink: #171717;
+    --night: #171717;
+    --paper: #FAF9F6;
+    --paper-deep: #F1EFE9;
+    --rust: #171717;
+    --rust-deep: #B8954A;
     --gold: #B8954A;
-    --line-dark: rgba(246, 247, 249, .2);
-    --line-light: rgba(26, 36, 51, .17);
+    --line-dark: rgba(250, 249, 246, .2);
+    --line-light: rgba(23, 23, 23, .17);
     --display: PlayfairDisplay, Georgia, serif;
     --body: Montserrat, sans-serif;
 
@@ -31,7 +31,7 @@
     padding: clamp(28px, 5.4vw, 80px);
     overflow: hidden;
     background:
-        linear-gradient(145deg, rgba(26, 43, 63, .96), rgba(26, 43, 63, .82)),
+        linear-gradient(145deg, rgba(10, 10, 10, .96), rgba(10, 10, 10, .82)),
         url("/women-job-call.png") center / cover;
     color: var(--paper);
 }
@@ -43,7 +43,7 @@
     left: -94px;
     width: min(31vw, 430px);
     aspect-ratio: 1;
-    border: 1px solid rgba(47, 95, 143, .42);
+    border: 1px solid rgba(184, 149, 74, .42);
     border-radius: 50%;
 }
 
@@ -55,7 +55,7 @@
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: var(--rust);
+    background: var(--gold);
 }
 
 .backLink {
@@ -109,7 +109,7 @@
 .storyCopy > p:last-child {
     max-width: 405px;
     margin: 24px 0 0;
-    color: rgba(246, 247, 249, .7);
+    color: rgba(250, 249, 246, .7);
     font: 500 14px/1.75 var(--body);
 }
 
@@ -138,7 +138,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: rgba(246, 247, 249, .56);
+    color: rgba(250, 249, 246, .56);
     font: 600 9px/1.4 var(--body);
     letter-spacing: .08em;
     text-transform: uppercase;
@@ -148,7 +148,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--rust);
+    background: var(--gold);
 }
 
 .authColumn {
@@ -156,8 +156,8 @@
     place-items: center;
     padding: clamp(30px, 7vw, 100px);
     background:
-        linear-gradient(90deg, rgba(47, 95, 143, .08) 0 1px, transparent 1px) 0 0 / 40px 40px,
-        linear-gradient(rgba(47, 95, 143, .08) 0 1px, transparent 1px) 0 0 / 40px 40px,
+        linear-gradient(90deg, rgba(23, 23, 23, .05) 0 1px, transparent 1px) 0 0 / 40px 40px,
+        linear-gradient(rgba(23, 23, 23, .05) 0 1px, transparent 1px) 0 0 / 40px 40px,
         var(--paper);
 }
 
@@ -165,8 +165,8 @@
     width: min(100%, 445px);
     padding: clamp(31px, 4.4vw, 58px);
     border: 1px solid var(--ink);
-    background: rgba(246, 247, 249, .94);
-    box-shadow: 12px 12px 0 var(--rust);
+    background: rgba(250, 249, 246, .94);
+    box-shadow: 12px 12px 0 var(--gold);
     animation: cardEnter 530ms cubic-bezier(.2, .8, .2, 1) both;
 }
 
@@ -247,7 +247,7 @@
 .field:focus-within {
     border-color: var(--rust);
     background: #fff;
-    box-shadow: 4px 4px 0 rgba(47, 95, 143, .17);
+    box-shadow: 4px 4px 0 rgba(23, 23, 23, .17);
 }
 
 .field input {
@@ -277,7 +277,7 @@
     border: 1px solid var(--rust);
     border-radius: 0;
     background: var(--rust);
-    box-shadow: 5px 5px 0 var(--ink);
+    box-shadow: 5px 5px 0 var(--gold);
     color: #FFFFFF;
     cursor: pointer;
     font: 700 12px/1.3 var(--body);
@@ -287,8 +287,8 @@
 
 .authBtn:hover:not(:disabled),
 .authBtn:focus-visible:not(:disabled) {
-    background: #3A6FA3;
-    box-shadow: 8px 8px 0 var(--ink);
+    background: #2E2E2E;
+    box-shadow: 8px 8px 0 var(--gold);
     transform: translate(-2px, -2px);
 }
 
@@ -307,13 +307,13 @@
 .linkWrapper a {
     color: var(--rust-deep);
     font-weight: 800;
-    text-decoration-color: rgba(167, 62, 38, .38);
+    text-decoration-color: rgba(184, 149, 74, .45);
     text-underline-offset: 3px;
 }
 
 .linkWrapper a:hover,
 .linkWrapper a:focus-visible {
-    color: var(--rust);
+    color: #8F7130;
 }
 
 .error,
@@ -367,7 +367,7 @@
 @media (max-width: 430px) {
     .loginCard {
         padding: 30px 22px;
-        box-shadow: 7px 7px 0 var(--rust);
+        box-shadow: 7px 7px 0 var(--gold);
     }
 
     .storyCopy > p:last-child {
