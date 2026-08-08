@@ -86,7 +86,12 @@ def _place_wrapping_icon_contacts(
             cx = float(start_x)
             cy += line_step
         elements.append(build_icon(key, cx, cy))
-        elements.append(_text(value, text_fs, font, text_color, cx + icon_gap, cy, zIndex=3))
+        # Contact labels must stay with their icons when SPACE_* packing runs.
+        # Untagged short phone lines match the "heading + rule below" heuristic
+        # (the masthead divider) and get restacked as a fake first section.
+        label = _text(value, text_fs, font, text_color, cx + icon_gap, cy, zIndex=3)
+        label["flowRole"] = "masthead"
+        elements.append(label)
         cx += advance
     return elements, cy
 

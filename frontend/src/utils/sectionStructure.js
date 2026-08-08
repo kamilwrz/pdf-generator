@@ -116,6 +116,30 @@ function chromeTitleAnchor(chromeElements) {
 }
 
 /**
+ * True when a short label sits on the same row as a masthead contact icon.
+ * Untagged Nova/Cardinal phone/location text otherwise looks like a heading
+ * because the wide masthead divider satisfies `hasSectionRuleBelow`.
+ *
+ * @param {object} element
+ * @param {object[]} elements
+ * @returns {boolean}
+ */
+function hasMastheadIconCompanion(element, elements) {
+  const top = Number(element.top) || 0;
+  const left = Number(element.left) || 0;
+  const page = Number(element.page) || 1;
+  return (elements || []).some((other) => {
+    if (!other || other.flowRole !== "masthead") return false;
+    if (other.category !== "image") return false;
+    if ((Number(other.page) || 1) !== page) return false;
+    if (Math.abs((Number(other.top) || 0) - top) > 2) return false;
+    const otherLeft = Number(other.left) || 0;
+    // Icon is drawn immediately left of its label (typical gap ≤ icon + pad).
+    return otherLeft < left && left - otherLeft <= 40;
+  });
+}
+
+/**
  * Whether this element is a section heading label.
  * @param {object|null|undefined} element
  * @param {object[]} [elements]
@@ -138,10 +162,14 @@ export function isSectionHeading(element, elements = [], pageHeight = 842) {
   if (element.autoHeight || element.flowGroup) return false;
   if (content.length > 56) return false;
 
-  // Contact lines sit just above the Regent/Aldine header rule and match the
-  // legacy "short label + rule below" heuristic — reject them explicitly.
+  // Contact lines sit just above the Regent/Aldine/Nova header rule and match
+  // the legacy "short label + rule below" heuristic — reject them explicitly.
   if (content.includes("@")) return false;
   if ((content.match(/·/g) || []).length >= 1 && /\d/.test(content)) return false;
+  // Phone-only masthead labels (Nova/Cardinal icon rows) have no @ / mid-dot.
+  if (/^\+?\d[\d\s().\-/]{5,}$/.test(content)) return false;
+  // Label sitting beside a masthead icon on the same row is contact chrome.
+  if (hasMastheadIconCompanion(element, elements)) return false;
 
   const fontSize = Number(element.fontSize) || 12;
   // Masthead names are larger; body copy is usually autoHeight textareas.

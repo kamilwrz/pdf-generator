@@ -45,6 +45,9 @@ def _gen_nova(cv: dict) -> list[dict]:
     header.extend(contact_els)
     header_rule_y = contact_bottom + 26.0
     header.append(_line(48, header_rule_y, 499, 1, C['rule'], zIndex=2))
+    # Name, title, contacts, and divider stay out of section packing — otherwise
+    # rhythm knobs treat a phone line as a heading (rule sits just below).
+    header = [{**element, "flowRole": "masthead"} for element in header]
     start_y = header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE
     b = Builder(start_y)
     label_fs = 8.5

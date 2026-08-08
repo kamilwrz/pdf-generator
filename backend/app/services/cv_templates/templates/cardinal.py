@@ -44,6 +44,8 @@ def _gen_cardinal(cv: dict) -> list[dict]:
     header.extend(contact_els)
     header_rule_y = contact_bottom + 24.0
     header.append(_line(L, header_rule_y, W, 1, C['rule'], zIndex=2))
+    # Keep the icon contact band out of applyFlowSpacing section membership.
+    header = [{**element, "flowRole": "masthead"} for element in header]
     start_y = header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE
     b = Builder(start_y)
     label_fs = 8.5

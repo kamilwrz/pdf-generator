@@ -96,6 +96,27 @@ class ContactPlacementTests(unittest.TestCase):
         self.assertGreater(len(tops), 1)
         self.assertGreater(bottom, 118.0)
         self.assertGreaterEqual(len(els), 8)
+        # Labels must share masthead ownership with icons (spacing pack safety).
+        for element in els:
+            if element.get("category") == "text":
+                self.assertEqual(element.get("flowRole"), "masthead")
+
+    def test_nova_header_contacts_are_masthead(self):
+        cv = normalize_cv_data({
+            "name": "Anna Rojek",
+            "phone": "684 732 543",
+            "email": "annarojek87@wp.pl",
+            "location": "Warszawa",
+        })
+        els = generate_resume("nova", cv)
+        contact_texts = [
+            e for e in els
+            if e.get("category") == "text"
+            and e.get("content") in {"684 732 543", "annarojek87@wp.pl", "Warszawa"}
+        ]
+        self.assertEqual(len(contact_texts), 3)
+        for element in contact_texts:
+            self.assertEqual(element.get("flowRole"), "masthead")
 
     def test_nova_generator_includes_social_icons_and_pushes_rule(self):
         cv = normalize_cv_data({

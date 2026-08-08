@@ -21,6 +21,8 @@ const icon = (theme, name, left, top, size = 11, zIndex = 3) => ({
     zIndex,
     // `top` is the companion label's CSS top; canvas + PDF centre the glyph on that line.
     alignWithText: true,
+    // Default ownership for contact/masthead glyphs; section chrome overwrites.
+    flowRole: "masthead",
 });
 
 /**
@@ -34,6 +36,8 @@ const iconBeside = (theme, name, left, textTop, _textFs, size = 11) =>
 const bold = (el) => ({ ...el, bold: true });
 const tracked = (el, letterSpacing) => ({ ...el, letterSpacing });
 const fixed = (el) => ({ ...el, fixedToPage: true });
+const masthead = (el) => ({ ...el, flowRole: "masthead" });
+const chrome = (el) => ({ ...el, flowRole: "section-chrome" });
 
 // ── Nova — warm editorial masthead, Playfair + Montserrat ───────────────────
 const NOVA_PAPER = "#F7F1E8";
@@ -54,33 +58,33 @@ export const novaTemplate = [
     fixed(line(48, 800, 499, 1, NOVA_RULE, 1)),
     fixed(text("01", 8, NOVA_SANS, NOVA_MUTE, 522, 808, 2)),
 
-    bold(text("ANNA KOWALSKA", 34, NOVA_DISP, NOVA_INK, 48, 42, 3)),
-    tracked(text("DYREKTORKA STRATEGII I ROZWOJU", 9.2, NOVA_SANS, NOVA_ACCENT, 50, 88, 3), 1.8),
+    masthead(bold(text("ANNA KOWALSKA", 34, NOVA_DISP, NOVA_INK, 48, 42, 3))),
+    masthead(tracked(text("DYREKTORKA STRATEGII I ROZWOJU", 9.2, NOVA_SANS, NOVA_ACCENT, 50, 88, 3), 1.8)),
 
     iconBeside("nova", "email", 50, 118, NOVA_CONTACT_FS, NOVA_ICON),
-    text("anna.kowalska@email.com", NOVA_CONTACT_FS, NOVA_SANS, NOVA_MUTE, 66, 118, 3),
+    masthead(text("anna.kowalska@email.com", NOVA_CONTACT_FS, NOVA_SANS, NOVA_MUTE, 66, 118, 3)),
     iconBeside("nova", "phone", 230, 118, NOVA_CONTACT_FS, NOVA_ICON),
-    text("+48 600 000 000", NOVA_CONTACT_FS, NOVA_SANS, NOVA_MUTE, 246, 118, 3),
+    masthead(text("+48 600 000 000", NOVA_CONTACT_FS, NOVA_SANS, NOVA_MUTE, 246, 118, 3)),
     iconBeside("nova", "location", 370, 118, NOVA_CONTACT_FS, NOVA_ICON),
-    text("Warszawa", NOVA_CONTACT_FS, NOVA_SANS, NOVA_MUTE, 386, 118, 3),
+    masthead(text("Warszawa", NOVA_CONTACT_FS, NOVA_SANS, NOVA_MUTE, 386, 118, 3)),
     iconBeside("nova", "linkedin", 50, 134, NOVA_CONTACT_FS, NOVA_ICON),
-    text("linkedin.com/in/akowalska", NOVA_CONTACT_FS, NOVA_SANS, NOVA_MUTE, 66, 134, 3),
+    masthead(text("linkedin.com/in/akowalska", NOVA_CONTACT_FS, NOVA_SANS, NOVA_MUTE, 66, 134, 3)),
     iconBeside("nova", "github", 230, 134, NOVA_CONTACT_FS, NOVA_ICON),
-    text("github.com/akowalska", NOVA_CONTACT_FS, NOVA_SANS, NOVA_MUTE, 246, 134, 3),
+    masthead(text("github.com/akowalska", NOVA_CONTACT_FS, NOVA_SANS, NOVA_MUTE, 246, 134, 3)),
 
-    line(48, 160, 499, 1, NOVA_RULE, 2),
+    masthead(line(48, 160, 499, 1, NOVA_RULE, 2)),
 
-    iconBeside("nova", "summary", 48, 169, NOVA_HEAD_FS, NOVA_ICON),
-    tracked(text("PODSUMOWANIE ZAWODOWE", NOVA_HEAD_FS, NOVA_SANS, NOVA_ACCENT, 66, 169, 3), 1.5),
-    line(66, 186, 481, 1, NOVA_RULE, 1),
+    chrome(iconBeside("nova", "summary", 48, 169, NOVA_HEAD_FS, NOVA_ICON)),
+    chrome(tracked(text("PODSUMOWANIE ZAWODOWE", NOVA_HEAD_FS, NOVA_SANS, NOVA_ACCENT, 66, 169, 3), 1.5)),
+    chrome(line(66, 186, 481, 1, NOVA_RULE, 1)),
     block(
         "Łączę strategię biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i dowożą mierzalne rezultaty bez utraty jakości relacji.",
         66, 200, 481, 44, 10.2, 15, NOVA_BODY, NOVA_SANS
     ),
 
-    iconBeside("nova", "experience", 48, 269, NOVA_HEAD_FS, NOVA_ICON),
-    tracked(text("DOŚWIADCZENIE ZAWODOWE", NOVA_HEAD_FS, NOVA_SANS, NOVA_ACCENT, 66, 269, 3), 1.5),
-    line(66, 286, 481, 1, NOVA_RULE, 1),
+    chrome(iconBeside("nova", "experience", 48, 269, NOVA_HEAD_FS, NOVA_ICON)),
+    chrome(tracked(text("DOŚWIADCZENIE ZAWODOWE", NOVA_HEAD_FS, NOVA_SANS, NOVA_ACCENT, 66, 269, 3), 1.5)),
+    chrome(line(66, 286, 481, 1, NOVA_RULE, 1)),
     bold(text("Dyrektorka Strategii  /  Northbridge Partners", 11, NOVA_SANS, NOVA_INK, 66, 304, 3)),
     text("2021 – obecnie  ·  Warszawa", 8.6, NOVA_SANS, NOVA_MUTE, 66, 322, 3),
     bulleted(block(
@@ -94,20 +98,20 @@ export const novaTemplate = [
         66, 452, 481, 42, 9.5, 13.5, NOVA_BODY, NOVA_SANS
     )),
 
-    iconBeside("nova", "education", 48, 521, NOVA_HEAD_FS, NOVA_ICON),
-    tracked(text("WYKSZTAŁCENIE", NOVA_HEAD_FS, NOVA_SANS, NOVA_ACCENT, 66, 521, 3), 1.5),
-    line(66, 538, 481, 1, NOVA_RULE, 1),
+    chrome(iconBeside("nova", "education", 48, 521, NOVA_HEAD_FS, NOVA_ICON)),
+    chrome(tracked(text("WYKSZTAŁCENIE", NOVA_HEAD_FS, NOVA_SANS, NOVA_ACCENT, 66, 521, 3), 1.5)),
+    chrome(line(66, 538, 481, 1, NOVA_RULE, 1)),
     bold(text("Magister Zarządzania  /  SGH Warszawa", 10.5, NOVA_SANS, NOVA_INK, 66, 556, 3)),
     text("2011 – 2016", 8.6, NOVA_SANS, NOVA_MUTE, 66, 574, 3),
 
-    iconBeside("nova", "skills", 48, 611, NOVA_HEAD_FS, NOVA_ICON),
-    tracked(text("UMIEJĘTNOŚCI", NOVA_HEAD_FS, NOVA_SANS, NOVA_ACCENT, 66, 611, 3), 1.5),
-    line(66, 628, 481, 1, NOVA_RULE, 1),
+    chrome(iconBeside("nova", "skills", 48, 611, NOVA_HEAD_FS, NOVA_ICON)),
+    chrome(tracked(text("UMIEJĘTNOŚCI", NOVA_HEAD_FS, NOVA_SANS, NOVA_ACCENT, 66, 611, 3), 1.5)),
+    chrome(line(66, 628, 481, 1, NOVA_RULE, 1)),
     block("Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna", 66, 644, 481, 24, 9.4, 13.5, NOVA_BODY, NOVA_SANS),
 
-    iconBeside("nova", "languages", 48, 689, NOVA_HEAD_FS, NOVA_ICON),
-    tracked(text("JĘZYKI", NOVA_HEAD_FS, NOVA_SANS, NOVA_ACCENT, 66, 689, 3), 1.5),
-    line(66, 706, 481, 1, NOVA_RULE, 1),
+    chrome(iconBeside("nova", "languages", 48, 689, NOVA_HEAD_FS, NOVA_ICON)),
+    chrome(tracked(text("JĘZYKI", NOVA_HEAD_FS, NOVA_SANS, NOVA_ACCENT, 66, 689, 3), 1.5)),
+    chrome(line(66, 706, 481, 1, NOVA_RULE, 1)),
     block("Polski — ojczysty  ·  Angielski — C1  ·  Francuski — B2", 66, 722, 481, 20, 9.4, 13.5, NOVA_BODY, NOVA_SANS),
 ];
 
@@ -142,9 +146,9 @@ const voltSection = (name, label, y) => {
     const textTop = y + (VOLT_CHIP_SIZE - VOLT_HEAD_FS) / 2;
     const iconLeft = 48 + (VOLT_CHIP_SIZE - VOLT_ICON) / 2;
     return [
-        chip(48, y, VOLT_CHIP_SIZE, VOLT_CHIP_SIZE),
-        icon("volt", name, iconLeft, textTop, VOLT_ICON),
-        tracked(text(label, VOLT_HEAD_FS, VOLT_SANS, VOLT_ACCENT, 78, textTop, 3), 1.35),
+        chrome(chip(48, y, VOLT_CHIP_SIZE, VOLT_CHIP_SIZE)),
+        chrome(icon("volt", name, iconLeft, textTop, VOLT_ICON)),
+        chrome(tracked(text(label, VOLT_HEAD_FS, VOLT_SANS, VOLT_ACCENT, 78, textTop, 3), 1.35)),
     ];
 };
 
@@ -152,9 +156,9 @@ const voltContact = (name, chipLeft, y, chipW, label) => {
     const textTop = y + (VOLT_CHIP_SIZE - VOLT_CONTACT_FS) / 2;
     const iconLeft = chipLeft + 6;
     return [
-        chip(chipLeft, y, chipW, VOLT_CHIP_SIZE),
+        masthead(chip(chipLeft, y, chipW, VOLT_CHIP_SIZE)),
         icon("volt", name, iconLeft, textTop, VOLT_ICON),
-        text(label, VOLT_CONTACT_FS, VOLT_MONO, VOLT_BODY, iconLeft + VOLT_ICON + 6, textTop, 3),
+        masthead(text(label, VOLT_CONTACT_FS, VOLT_MONO, VOLT_BODY, iconLeft + VOLT_ICON + 6, textTop, 3)),
     ];
 };
 
@@ -164,8 +168,8 @@ export const voltTemplate = [
     fixed(line(48, 800, 499, 1, VOLT_RULE, 1)),
     fixed(text("01", 8, VOLT_MONO, VOLT_MUTE, 522, 808, 2)),
 
-    bold(text("MAREK LIS", 32, VOLT_SANS, VOLT_INK, 48, 36, 3)),
-    tracked(text("STAFF ENGINEER · PLATFORM", 9, VOLT_MONO, VOLT_ACCENT, 50, 78, 3), 1.2),
+    masthead(bold(text("MAREK LIS", 32, VOLT_SANS, VOLT_INK, 48, 36, 3))),
+    masthead(tracked(text("STAFF ENGINEER · PLATFORM", 9, VOLT_MONO, VOLT_ACCENT, 50, 78, 3), 1.2)),
 
     ...voltContact("email", 48, 108, 168, "marek.lis@email.com"),
     ...voltContact("phone", 224, 108, 148, "+48 600 000 000"),

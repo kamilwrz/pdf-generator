@@ -38,6 +38,8 @@ def _gen_volt(cv: dict) -> list[dict]:
         header.append(_icon(ICON, key, x + 6, text_top, contact_icon))
         header.append(_text(value, contact_fs, MONO, C['body'], x + 6 + contact_icon + 6, text_top, zIndex=3))
         x += width + 8
+    # Chip contacts + name/title must not enter section packing on rhythm edits.
+    header = [{**element, "flowRole": "masthead"} for element in header]
     start_y = chip_top + chip_h + SPACE_AFTER_MASTHEAD
     b = Builder(start_y)
     label_fs = 8.4

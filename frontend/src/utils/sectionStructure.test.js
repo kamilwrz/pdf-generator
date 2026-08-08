@@ -363,6 +363,149 @@ describe("removeSection", () => {
 });
 
 describe("applyFlowSpacing", () => {
+  it("keeps Nova icon-row contacts aligned when rhythm changes", () => {
+    // Untagged phone text used to match "short label + rule below" and become
+    // a fake first section — icons stayed put (masthead) while labels drifted.
+    const elements = [
+      { element_id: "name", category: "text", content: "Anna", left: 48, top: 42, fontSize: 34, height: 40, page: 1 },
+      {
+        element_id: "i1",
+        category: "image",
+        src: "/template-assets/iconic/nova/phone.png",
+        left: 50,
+        top: 118,
+        width: 14,
+        height: 14,
+        page: 1,
+        flowRole: "masthead",
+        alignWithText: true,
+      },
+      {
+        element_id: "t1",
+        category: "text",
+        content: "684 732 543",
+        left: 66,
+        top: 118,
+        fontSize: 8.4,
+        height: 11,
+        page: 1,
+      },
+      {
+        element_id: "i2",
+        category: "image",
+        src: "/template-assets/iconic/nova/email.png",
+        left: 137,
+        top: 118,
+        width: 14,
+        height: 14,
+        page: 1,
+        flowRole: "masthead",
+        alignWithText: true,
+      },
+      {
+        element_id: "t2",
+        category: "text",
+        content: "annarojek87@wp.pl",
+        left: 153,
+        top: 118,
+        fontSize: 8.4,
+        height: 11,
+        page: 1,
+      },
+      {
+        element_id: "rule",
+        category: "line",
+        left: 48,
+        top: 144,
+        width: 499,
+        height: 1,
+        page: 1,
+      },
+      {
+        element_id: "h1",
+        category: "text",
+        content: "DOŚWIADCZENIE ZAWODOWE",
+        left: 68,
+        top: 169,
+        fontSize: 8.5,
+        height: 12,
+        page: 1,
+        flowRole: "section-chrome",
+        letterSpacing: 1.45,
+      },
+      {
+        element_id: "hi1",
+        category: "image",
+        src: "/template-assets/iconic/nova/experience.png",
+        left: 48,
+        top: 169,
+        width: 14,
+        height: 14,
+        page: 1,
+        flowRole: "section-chrome",
+        alignWithText: true,
+      },
+      {
+        element_id: "hr1",
+        category: "line",
+        left: 68,
+        top: 186,
+        width: 481,
+        height: 1,
+        page: 1,
+        flowRole: "section-chrome",
+      },
+      {
+        element_id: "b1",
+        category: "text",
+        content: "Job title",
+        left: 68,
+        top: 200,
+        fontSize: 11,
+        height: 14,
+        page: 1,
+        flowRole: "content",
+      },
+      {
+        element_id: "h2",
+        category: "text",
+        content: "WYKSZTAŁCENIE",
+        left: 68,
+        top: 300,
+        fontSize: 8.5,
+        height: 12,
+        page: 1,
+        flowRole: "section-chrome",
+        letterSpacing: 1.45,
+      },
+      {
+        element_id: "b2",
+        category: "text",
+        content: "Degree",
+        left: 68,
+        top: 330,
+        fontSize: 10,
+        height: 13,
+        page: 1,
+        flowRole: "content",
+      },
+    ];
+    const packed = applyFlowSpacing(elements, {
+      section: 40,
+      record: 20,
+      stack: 8,
+      after_rule: 12,
+    }, 842);
+    const phoneIcon = packed.find((element) => element.element_id === "i1");
+    const phoneText = packed.find((element) => element.element_id === "t1");
+    const emailIcon = packed.find((element) => element.element_id === "i2");
+    const emailText = packed.find((element) => element.element_id === "t2");
+    assert.equal(phoneText.top, phoneIcon.top);
+    assert.equal(emailText.top, emailIcon.top);
+    assert.equal(phoneText.left, 66);
+    assert.equal(emailText.left, 153);
+  });
+
   it("widens section gaps when section rhythm increases", () => {
     const elements = [
       { element_id: "h1", category: "text", flowRole: "section-chrome", content: "A", page: 1, top: 100, height: 14 },

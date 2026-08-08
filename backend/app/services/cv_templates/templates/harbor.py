@@ -73,8 +73,14 @@ def _gen_harbor(cv: dict) -> list[dict]:
         if cx > MAIN_X and cx + advance > 551:
             cx, cy = float(MAIN_X), cy + 16
         header.append(_hicon(key, cx, cy, 11))
-        header.append(_text(value, 8.4, SANS, C["body"], cx + 15, cy, zIndex=3))
+        header.append({
+            **_text(value, 8.4, SANS, C["body"], cx + 15, cy, zIndex=3),
+            "flowRole": "masthead",
+        })
         cx += advance
+    # Name / title join the masthead so spacing packs never treat phone text
+    # as a section heading against the header rule.
+    header = [{**element, "flowRole": element.get("flowRole") or "masthead"} for element in header]
     # Circular photo placeholder: soft-grey disc + centred grey person glyph.
     # photoSlot lets the editor gallery fit a user photo over this cluster.
     header.append({
