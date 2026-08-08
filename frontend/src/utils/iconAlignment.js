@@ -12,12 +12,11 @@
  * locked together regardless of icon size.
  */
 
-// Vertical offset (px) from an ~8.5px single-line label's stored `top` to its
-// optical middle on the canvas. CSS `line-height: 1` creates an ~8.5px line
-// box, so its centre is about 4.25px below `top`. The previous 1px value placed
-// 11px Harbor icons roughly 3.25px too high, making each education glyph look
-// attached to the preceding row.
-export const CANVAS_TEXT_CAP_MID = 4.25;
+// Vertical offset (px) from the label's stored `top` to the established Iconic
+// optical cap midpoint. Harbor uses explicit geometric placement for its
+// mixed textarea/text rows; changing this shared value shifts icons in every
+// other Iconic template.
+export const CANVAS_TEXT_CAP_MID = 1.0;
 
 /**
  * Whether an image element is a text-aligned icon (optical centring) rather than

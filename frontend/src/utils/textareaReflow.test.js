@@ -15,8 +15,8 @@ const textarea = (overrides = {}) => ({
   ...overrides,
 });
 
-test("centres an 11px text icon on an 8.5px canvas label", () => {
-  assert.equal(iconicDrawTop(100, 11), 98.75);
+test("preserves the established Iconic cap offset outside Harbor", () => {
+  assert.equal(iconicDrawTop(100, 11), 95.5);
 });
 
 test("reflows elements below the resized textarea in its horizontal lane", () => {
@@ -184,9 +184,9 @@ test("Harbor right-column rules do not block main-column record reclaim", () => 
       category: "image",
       flowGroup: "record-job4",
       flowRole: "record-overlay",
-      alignWithText: true,
+      alignWithText: false,
       left: 210,
-      top: 87,
+      top: 85.5,
       width: 11,
       height: 11,
       page: 2,
@@ -197,7 +197,7 @@ test("Harbor right-column rules do not block main-column record reclaim", () => 
       flowGroup: "record-job4",
       flowRole: "record-overlay",
       left: 223,
-      top: 87,
+      top: 86.9,
       width: 48,
       height: 9,
       page: 2,
@@ -250,8 +250,12 @@ test("Harbor right-column rules do not block main-column record reclaim", () => 
   assert.equal(bullets.page, 1);
   assert.ok(bullets.top + bullets.height <= 770);
   assert.deepEqual(
-    [calendar, period].map((overlay) => ({ page: overlay.page, top: overlay.top })),
-    Array(2).fill({ page: meta.page, top: meta.top + 2 }),
+    { page: calendar.page, top: calendar.top },
+    { page: meta.page, top: meta.top + 0.5 },
+  );
+  assert.deepEqual(
+    { page: period.page, top: period.top },
+    { page: meta.page, top: meta.top + 1.9 },
   );
   assert.deepEqual(
     [location, city].map((overlay) => ({ page: overlay.page, top: overlay.top })),

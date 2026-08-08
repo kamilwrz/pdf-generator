@@ -1562,7 +1562,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     block.get("flowGroup") == overlay.get("flowGroup")
                     and block.get("page", 1) == overlay.get("page", 1)
                     and abs(
-                        float(overlay.get("top", 0)) - float(block.get("top", 0)) - 1.5
+                        float(overlay.get("top", 0)) - float(block.get("top", 0)) - 0.25
                     ) < 0.01
                     for block in sidebar_blocks
                 ),
@@ -1611,12 +1611,18 @@ class CvTemplateLayoutTests(unittest.TestCase):
             and element.get("flowGroup") == company.get("flowGroup")
         ]
         self.assertEqual(len(meta_overlays), 4)
+        for element in meta_overlays:
+            expected_offset = 0.5 if element.get("category") == "image" else 1.9
+            self.assertEqual(element.get("page", 1), company.get("page", 1))
+            self.assertAlmostEqual(
+                float(element.get("top", 0)) - float(company.get("top", 0)),
+                expected_offset,
+                places=2,
+            )
         self.assertTrue(all(
-            element.get("page", 1) == company.get("page", 1)
-            and abs(
-                float(element.get("top", 0)) - float(company.get("top", 0)) - 2
-            ) < 0.01
+            element.get("alignWithText") is False
             for element in meta_overlays
+            if element.get("category") == "image"
         ))
 
     def test_iconic_templates_pair_contact_and_section_icons(self):
