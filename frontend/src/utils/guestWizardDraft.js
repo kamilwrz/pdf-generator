@@ -1,7 +1,10 @@
 /**
  * Client-side persistence for the bio/CV wizard while the visitor has no
  * account. Mirrors `guestDocument.js` for the canvas: guests keep edits in
- * localStorage until they register or finish a template fill.
+ * localStorage across wizard close and template fill so they can generate
+ * another look without retyping. Drafts are removed only on explicit clear
+ * ("Zacznij od nowa" / clear draft) or when an authenticated session opens
+ * the wizard (to avoid mixing stores).
  *
  * Authenticated users continue to use GET/PUT/DELETE `/ai/bio_cv_draft`
  * instead of this key.
@@ -36,6 +39,35 @@ export function clampWizardStep(step) {
 }
 
 /**
+ * True when the profile has any user-entered content worth keeping.
+ *
+ * @param {object|null|undefined} profile
+ * @returns {boolean}
+ */
+export function guestWizardProfileHasContent(profile) {
+    if (!profile) return false;
+    if (String(profile.name || "").trim()) return true;
+    if (String(profile.title || "").trim()) return true;
+    if (String(profile.email || "").trim()) return true;
+    if (String(profile.summary || "").trim()) return true;
+    if (profile.experience?.length) return true;
+    if (profile.education?.length) return true;
+    if (profile.skills?.length) return true;
+    if (profile.languages?.some((entry) => entry?.name)) return true;
+    if (profile.custom_sections?.some((section) => section?.title || section?.items?.length)) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Persist a wizard snapshot for guests.
+ *
+ * Refuses to overwrite a meaningful stored draft with an empty step-0 shell.
+ * That guards against resume-screen state (or a close race) accidentally
+ * wiping localStorage. Intentional resets must call `clearGuestWizardDraft`
+ * first.
+ *
  * @param {{
  *   step?: number,
  *   profile: object,
@@ -44,10 +76,22 @@ export function clampWizardStep(step) {
  */
 export function saveGuestWizardDraft(draft) {
     try {
+        const step = clampWizardStep(draft?.step);
+        const profile = normalizeBioCvData(draft?.profile);
+        // Never let an empty in-memory shell replace a real draft. Callers that
+        // mean to discard must use `clearGuestWizardDraft` explicitly.
+        if (!guestWizardProfileHasContent(profile) && step === 0) {
+            const existing = loadGuestWizardDraft();
+            if (existing && (
+                guestWizardProfileHasContent(existing.profile) || existing.step > 0
+            )) {
+                return;
+            }
+        }
         const snapshot = {
             version: GUEST_WIZARD_DRAFT_VERSION,
-            step: clampWizardStep(draft?.step),
-            profile: normalizeBioCvData(draft?.profile),
+            step,
+            profile,
             selectedTemplateId: draft?.selectedTemplateId ?? null,
             updatedAt: Date.now(),
         };
@@ -92,18 +136,6 @@ export function clearGuestWizardDraft() {
 export function hasGuestWizardDraft() {
     const draft = loadGuestWizardDraft();
     if (!draft) return false;
-    const profile = draft.profile;
-    if (!profile) return false;
-    if (String(profile.name || "").trim()) return true;
-    if (String(profile.title || "").trim()) return true;
-    if (String(profile.email || "").trim()) return true;
-    if (String(profile.summary || "").trim()) return true;
-    if (profile.experience?.length) return true;
-    if (profile.education?.length) return true;
-    if (profile.skills?.length) return true;
-    if (profile.languages?.some((entry) => entry?.name)) return true;
-    if (profile.custom_sections?.some((section) => section?.title || section?.items?.length)) {
-        return true;
-    }
+    if (guestWizardProfileHasContent(draft.profile)) return true;
     return draft.step > 0;
 }

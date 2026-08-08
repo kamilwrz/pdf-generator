@@ -145,6 +145,7 @@ export default function BioCvModal() {
     const [stepError, setStepError] = useState(null);
     const [fillingId, setFillingId] = useState(null);
     const [resumeDraft, setResumeDraft] = useState(null);
+    const [selectedTemplateId, setSelectedTemplateId] = useState(null);
     const [editingKey, setEditingKey] = useState(null);
     const [menuOpen, setMenuOpen] = useState(false);
     const [showTypePicker, setShowTypePicker] = useState(false);
@@ -152,6 +153,7 @@ export default function BioCvModal() {
     const saveTimer = useRef(null);
     const profileRef = useRef(profile);
     const stepRef = useRef(step);
+    const selectedTemplateIdRef = useRef(null);
     const readyRef = useRef(false);
     const skipAutosaveRef = useRef(false);
     const saveQueueRef = useRef(null);
@@ -170,6 +172,10 @@ export default function BioCvModal() {
     useEffect(() => {
         stepRef.current = step;
     }, [step]);
+
+    useEffect(() => {
+        selectedTemplateIdRef.current = selectedTemplateId;
+    }, [selectedTemplateId]);
 
     useEffect(() => {
         if (!menuOpen) return undefined;
@@ -196,6 +202,7 @@ export default function BioCvModal() {
                 saveGuestWizardDraft({
                     step: currentStep,
                     profile: data,
+                    selectedTemplateId: selectedTemplateIdRef.current,
                 });
                 setLastSavedAt(Date.now());
             });
@@ -221,6 +228,7 @@ export default function BioCvModal() {
                     saveGuestWizardDraft({
                         step: currentStep,
                         profile: data,
+                        selectedTemplateId: selectedTemplateIdRef.current,
                     });
                     setLastSavedAt(Date.now());
                     return;
@@ -236,6 +244,8 @@ export default function BioCvModal() {
         profileRef.current = emptyProfile;
         setProfile(emptyProfile);
         setStep(0);
+        selectedTemplateIdRef.current = null;
+        setSelectedTemplateId(null);
         setEditingKey(null);
         setShowTypePicker(false);
         setStepError(null);
@@ -253,6 +263,8 @@ export default function BioCvModal() {
         profileRef.current = nextProfile;
         setProfile(nextProfile);
         setStep(draft.step ?? 0);
+        selectedTemplateIdRef.current = draft.selectedTemplateId ?? null;
+        setSelectedTemplateId(draft.selectedTemplateId ?? null);
         setEditingKey(null);
         setShowTypePicker(false);
         setStepError(null);
@@ -290,9 +302,17 @@ export default function BioCvModal() {
             if (hasGuestWizardDraft()) {
                 const draft = loadGuestWizardDraft();
                 if (active && draft) {
+                    // Keep profile/refs aligned with localStorage while the
+                    // resume prompt is visible. An empty shell here used to
+                    // let a close/autosave race overwrite a good draft.
+                    const nextProfile = normalizeBioCvData(draft.profile);
+                    profileRef.current = nextProfile;
+                    setProfile(nextProfile);
+                    setStep(draft.step ?? 0);
+                    selectedTemplateIdRef.current = draft.selectedTemplateId ?? null;
+                    setSelectedTemplateId(draft.selectedTemplateId ?? null);
+                    setLastSavedAt(draft.updatedAt || Date.now());
                     setResumeDraft(draft);
-                    setProfile(createEmptyBioCvData());
-                    setStep(0);
                     setIsLoading(false);
                 } else if (active) {
                     beginFreshWizard();
@@ -330,6 +350,13 @@ export default function BioCvModal() {
                     if (hasGuestWizardDraft()) {
                         const draft = loadGuestWizardDraft();
                         if (draft) {
+                            const nextProfile = normalizeBioCvData(draft.profile);
+                            profileRef.current = nextProfile;
+                            setProfile(nextProfile);
+                            setStep(draft.step ?? 0);
+                            selectedTemplateIdRef.current = draft.selectedTemplateId ?? null;
+                            setSelectedTemplateId(draft.selectedTemplateId ?? null);
+                            setLastSavedAt(draft.updatedAt || Date.now());
                             setResumeDraft(draft);
                             setIsLoading(false);
                             return;
@@ -487,8 +514,20 @@ export default function BioCvModal() {
             clearTimeout(saveTimer.current);
             saveTimer.current = null;
         }
+        // Flush while the wizard was editable. On the resume prompt the draft
+        // is already on disk and profile mirrors it — skip to avoid racing the
+        // "Zacznij od nowa" clear path.
         if (readyRef.current && !resumeDraft) {
             await saveDraft(profileRef.current, { silent: true });
+            // Guests also write synchronously so a dialog unmount cannot drop
+            // the last keystrokes if the serial queue has not drained yet.
+            if (!getAccessToken()) {
+                saveGuestWizardDraft({
+                    step: stepRef.current,
+                    profile: profileRef.current,
+                    selectedTemplateId: selectedTemplateIdRef.current,
+                });
+            }
         }
         // Distinct from the plain open/close toggle: this is the user's own
         // Cancel/X action, so it is the only path allowed to redirect a guest
@@ -544,9 +583,20 @@ export default function BioCvModal() {
         }
         setFillingId(template.id);
         setSaveError(null);
+        selectedTemplateIdRef.current = template.id;
+        setSelectedTemplateId(template.id);
         try {
             const payload = buildBioCvPayload(profile);
-            await saveDraft(payload, { silent: true });
+            // Keep the wizard draft after fill so guests can reopen and pick
+            // another look without re-entering data (matches the summary copy).
+            await saveDraft(payload, { silent: true, stepOverride: BIO_CV_SUMMARY_STEP });
+            if (!getAccessToken()) {
+                saveGuestWizardDraft({
+                    step: BIO_CV_SUMMARY_STEP,
+                    profile: payload,
+                    selectedTemplateId: template.id,
+                });
+            }
             let response;
             try {
                 response = await fillTemplate(payload, template.id, {
@@ -557,6 +607,11 @@ export default function BioCvModal() {
                 if (!isAuthFailure(fillError)) throw fillError;
                 clearAccessToken();
                 setIsGuestSession(true);
+                saveGuestWizardDraft({
+                    step: BIO_CV_SUMMARY_STEP,
+                    profile: payload,
+                    selectedTemplateId: template.id,
+                });
                 response = await fillTemplate(payload, template.id, {
                     errorMessage: "Nie udało się utworzyć CV.",
                     spacing: flowSpacing,
@@ -564,7 +619,14 @@ export default function BioCvModal() {
             }
             await loadAiElements(response.elements, `CV ${template.name}`, template.id);
             setActiveCvData(payload);
-            clearGuestWizardDraft();
+            if (!getAccessToken()) {
+                saveGuestWizardDraft({
+                    step: BIO_CV_SUMMARY_STEP,
+                    profile: payload,
+                    selectedTemplateId: template.id,
+                });
+            }
+            // Toggle closes the wizard after a successful fill (see PdfCanvas).
             showBioCvModal();
         } catch (error) {
             if (isAuthFailure(error)) {

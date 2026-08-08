@@ -5,6 +5,7 @@ import {
     loadGuestWizardDraft,
     clearGuestWizardDraft,
     hasGuestWizardDraft,
+    guestWizardProfileHasContent,
     clampWizardStep,
 } from "./guestWizardDraft.js";
 import { BIO_CV_SUMMARY_STEP, createEmptyBioCvData } from "./bioCvData.js";
@@ -67,6 +68,41 @@ test("hasGuestWizardDraft is true only when the draft has meaningful content", (
         profile: { ...createEmptyBioCvData(), name: "Anna" },
     });
     assert.equal(hasGuestWizardDraft(), true);
+});
+
+test("saveGuestWizardDraft refuses to overwrite a meaningful draft with an empty shell", () => {
+    globalThis.localStorage = fakeLocalStorage();
+    saveGuestWizardDraft({
+        step: 2,
+        profile: { ...createEmptyBioCvData(), name: "Anna Kowalska" },
+        selectedTemplateId: "harbor",
+    });
+
+    saveGuestWizardDraft({ step: 0, profile: createEmptyBioCvData() });
+
+    const loaded = loadGuestWizardDraft();
+    assert.equal(loaded.profile.name, "Anna Kowalska");
+    assert.equal(loaded.step, 2);
+    assert.equal(loaded.selectedTemplateId, "harbor");
+});
+
+test("clearGuestWizardDraft still allows a later empty save after intentional reset", () => {
+    globalThis.localStorage = fakeLocalStorage();
+    saveGuestWizardDraft({
+        step: 2,
+        profile: { ...createEmptyBioCvData(), name: "Anna" },
+    });
+    clearGuestWizardDraft();
+    saveGuestWizardDraft({ step: 0, profile: createEmptyBioCvData() });
+    assert.equal(hasGuestWizardDraft(), false);
+});
+
+test("guestWizardProfileHasContent detects entered fields", () => {
+    assert.equal(guestWizardProfileHasContent(createEmptyBioCvData()), false);
+    assert.equal(
+        guestWizardProfileHasContent({ ...createEmptyBioCvData(), email: "a@b.c" }),
+        true,
+    );
 });
 
 test("clampWizardStep keeps indices inside the current wizard range", () => {
