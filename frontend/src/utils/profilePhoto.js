@@ -8,8 +8,8 @@
  * - `photoSlot: "image"` — the applied user photo (stable after upload)
  *
  * Known frame ids (`slate-photo-frame`, `tessera-photo-frame`, `aldine-frame`,
- * `harbor-photo-frame`) are recognised as a fallback for older payloads that
- * still carry the symbolic `id` after load.
+ * `harbor-photo-frame`, `cinder-frame-one`) are recognised as a fallback for
+ * older payloads that still carry the symbolic `id` after load.
  *
  * Applying a photo either resizes the glyph into the frame inset or inserts a
  * new locked image. Ornaments stay in place underneath a higher z-index photo;
@@ -24,6 +24,7 @@ export const PROFILE_PHOTO_FRAME_IDS = new Set([
   "tessera-photo-frame",
   "aldine-frame",
   "harbor-photo-frame",
+  "cinder-frame-one",
 ]);
 
 /** Stable semantic id written onto the applied user photo element. */

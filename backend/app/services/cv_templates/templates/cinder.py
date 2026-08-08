@@ -46,9 +46,23 @@ def _gen_cinder(cv: dict) -> list[dict]:
     L, W, SANS, SERIF = 76, 466, "Inter", "Times-Roman"
     lbl = _labels(cv)
 
-    frame_one = {**_rect(425, 34, 72, 72, RED, 1.2, zIndex=3), "id": "cinder-frame-one"}
-    frame_two = {**_rect(455, 63, 78, 78, "#767B80", 1, zIndex=3), "id": "cinder-frame-two"}
-    node = {**_rect(482, 39, 12, 12, "#FFFFFF", 1, zIndex=3), "id": "cinder-node"}
+    # Geometric masthead frames are also the profile-photo slot.
+    frame_one = {
+        **_rect(425, 34, 72, 72, RED, 1.2, zIndex=3),
+        "id": "cinder-frame-one",
+        "photoSlot": "frame",
+        "photoShape": "ornament-frame",
+    }
+    frame_two = {
+        **_rect(455, 63, 78, 78, "#767B80", 1, zIndex=3),
+        "id": "cinder-frame-two",
+        "photoSlot": "ornament",
+    }
+    node = {
+        **_rect(482, 39, 12, 12, "#FFFFFF", 1, zIndex=3),
+        "id": "cinder-node",
+        "photoSlot": "ornament",
+    }
     header = [
         _line(0, 0, 595, 170, BLACK, zIndex=1),
         _line(52, 36, 5, 99, RED, zIndex=2),

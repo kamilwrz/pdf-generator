@@ -28,10 +28,16 @@ export const cinderTemplate = [
     tracked(text("DYREKTORKA FINANSOWA", 9.5, SANS, "#E06B67", 78, 86, 3), 1.65),
     text("anna.kowalska@email.com  ·  +48 600 000 000  ·  Warszawa", 8.7, SANS, "#B8BCC0", 78, 119, 3),
 
-    // A connected geometric signature balances the masthead without becoming a column.
-    { ...rect(425, 34, 72, 72, RED, 1.2, 3), id: "cinder-frame-one" },
-    { ...rect(455, 63, 78, 78, "#767B80", 1, 3), id: "cinder-frame-two" },
-    { ...rect(482, 39, 12, 12, WHITE, 1, 3), id: "cinder-node" },
+    // Geometric masthead frames double as the profile-photo slot: gallery upload
+    // covers the red square while the offset grey frame stays as chrome.
+    {
+        ...rect(425, 34, 72, 72, RED, 1.2, 3),
+        id: "cinder-frame-one",
+        photoSlot: "frame",
+        photoShape: "ornament-frame",
+    },
+    { ...rect(455, 63, 78, 78, "#767B80", 1, 3), id: "cinder-frame-two", photoSlot: "ornament" },
+    { ...rect(482, 39, 12, 12, WHITE, 1, 3), id: "cinder-node", photoSlot: "ornament" },
     line(497, 45, 18, 1, RED, 2),
     { ...rect(526, 205, 16, 16, RED, 1.2, 2), flowRole: "section-chrome" },
     { ...tracked(text("PROFIL", 8.7, SANS, RED, 76, 207, 2), 1.55), flowRole: "section-chrome" },

@@ -703,9 +703,9 @@ Tests: `backend/tests/test_image_upload_security.py` — accepts a real PNG, rej
 
 ### Profile photo slot (template mode)
 
-In **template** mode, clicking a gallery image offers **Upuść jako zdjęcie profilowe** when the document declares a photo slot. Templates mark the area with `photoSlot`:
+In **template** mode, clicking a gallery image immediately fits it into the profile-photo slot when the document declares one (no confirmation dialog, no freeform prompt). Templates mark the area with `photoSlot`:
 
-- `frame` — the designated rectangle or circle chrome (`slate-photo-frame`, `tessera-photo-frame`, `aldine-frame`, `harbor-photo-frame`)
+- `frame` — the designated rectangle or circle chrome (`slate-photo-frame`, `tessera-photo-frame`, `aldine-frame`, `harbor-photo-frame`, `cinder-frame-one`)
 - `glyph` — portrait placeholder image inside the frame (converted into the user photo)
 - `ornament` — decorative shapes the photo covers (Aldine seal / lozenge / core)
 - `image` — the applied user photo (`id: "profile-photo"`, locked + `fixedToPage`)
@@ -715,13 +715,13 @@ In **template** mode, clicking a gallery image offers **Upuść jako zdjęcie pr
 Implementation:
 
 - `frontend/src/utils/profilePhoto.js`, lines 195–231, function `findProfilePhotoSlot`; lines 233–246, `hasProfilePhotoSlot`; lines 253–376, `applyProfilePhoto`
-- `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, lines 32–64 — template-mode prompt + `setA4_Elements(applyProfilePhoto…)`
+- `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, lines 32–45 — template-mode click → `applyProfilePhoto` (no prompt)
 - `frontend/src/utils/sectionStructure.js` — re-exports the helpers for existing imports
 - `frontend/src/utils/editorMode.js` — `photoSlot: "image"|"glyph"` treated as layout-owned
 - `frontend/src/utils/materializeElementSpecs.js` — preserves template semantic `id`
 - `backend/app/schemas/pdf_schema.py` — optional `id`, `photoSlot`, `photoShape`
 - `backend/app/crud/pdfs.py` / `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx` — persist and hydrate those fields
-- Generators / starters: `slate`, `tessera`, `aldine`, `harbor` (FE + BE)
+- Generators / starters: `slate`, `tessera`, `aldine`, `harbor`, `cinder` (FE + BE)
 
 Tests: `frontend/src/utils/profilePhoto.test.js` — slot detection on Slate/Tessera/Aldine, geometry/z-index after apply, in-place replace.
 
@@ -1881,9 +1881,9 @@ Testy: `backend/tests/test_image_upload_security.py` — PNG, HTML-as-PNG (415),
 
 ### Slot zdjęcia profilowego (tryb szablonu)
 
-W trybie **template** kliknięcie obrazu w galerii oferuje **Upuść jako zdjęcie profilowe**, gdy dokument ma zadeklarowany slot. Szablony oznaczają obszar polem `photoSlot`:
+W trybie **template** kliknięcie obrazu w galerii od razu dopasowuje go do slotu zdjęcia profilowego, gdy dokument ma zadeklarowany slot (bez dialogu potwierdzenia i bez pytania o freeform). Szablony oznaczają obszar polem `photoSlot`:
 
-- `frame` — ramka prostokątna lub koło (`slate-photo-frame`, `tessera-photo-frame`, `aldine-frame`, `harbor-photo-frame`)
+- `frame` — ramka prostokątna lub koło (`slate-photo-frame`, `tessera-photo-frame`, `aldine-frame`, `harbor-photo-frame`, `cinder-frame-one`)
 - `glyph` — placeholder portretu w ramce (zamieniany na zdjęcie użytkownika)
 - `ornament` — dekoracje przykrywane zdjęciem (pieczęć / romb / rdzeń Aldine)
 - `image` — nałożone zdjęcie użytkownika (`id: "profile-photo"`, `locked` + `fixedToPage`)
@@ -1893,13 +1893,13 @@ W trybie **template** kliknięcie obrazu w galerii oferuje **Upuść jako zdjęc
 Implementacja:
 
 - `frontend/src/utils/profilePhoto.js`, linie 195–231, funkcja `findProfilePhotoSlot`; linie 233–246, `hasProfilePhotoSlot`; linie 253–376, `applyProfilePhoto`
-- `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, linie 32–64 — prompt w trybie szablonu + `setA4_Elements(applyProfilePhoto…)`
+- `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, linie 32–45 — klik w trybie szablonu → `applyProfilePhoto` (bez promptu)
 - `frontend/src/utils/sectionStructure.js` — re-eksport helperów
 - `frontend/src/utils/editorMode.js` — `photoSlot: "image"|"glyph"` jako layout-owned
 - `frontend/src/utils/materializeElementSpecs.js` — zachowanie semantycznego `id`
 - `backend/app/schemas/pdf_schema.py` — opcjonalne `id`, `photoSlot`, `photoShape`
 - `backend/app/crud/pdfs.py` / `ModalPdfs.jsx` — zapis i hydratacja
-- Generatory / startery: `slate`, `tessera`, `aldine`, `harbor` (FE + BE)
+- Generatory / startery: `slate`, `tessera`, `aldine`, `harbor`, `cinder` (FE + BE)
 
 Testy: `frontend/src/utils/profilePhoto.test.js` — wykrywanie slotu, geometria/z-index po apply, zamiana w miejscu.
 
