@@ -152,8 +152,11 @@ def _gen_harbor(cv: dict) -> list[dict]:
             color or C["ink"], left=SIDE_BODY_X, width=SIDE_BODY_W,
         )
         text_element = side_b.els[-1]
+        # The 11.5px textarea line is taller than the ~8.5px label used by the
+        # shared icon-centering helper. Store a 1.5px relative offset so both
+        # optical centres coincide without changing the flow cursor.
         icon_element = _hicon(
-            icon_name, SIDE_X, top, 11,
+            icon_name, SIDE_X, top + 1.5, 11,
             accent=accent, page=page, flow_role="record-overlay",
         )
         if atomic_pair:
@@ -288,26 +291,29 @@ def _gen_harbor(cv: dict) -> list[dict]:
         # Right-aligned date + location on the company line. Positions are
         # estimated from text length (there is no measurement pass here); the
         # company block is capped narrow enough that the two never collide.
+        # Centre the smaller 8.2px labels inside the employer's 12px line box;
+        # using the exact textarea top made the metadata baseline sit too high.
+        meta_top = top + 2
         right = MAIN_R
         if city:
             cx_city = right - len(city) * 4.2
             b.els.append({
-                **_text(city, 8.2, SANS, C["meta"], cx_city, top, zIndex=3, page=page),
+                **_text(city, 8.2, SANS, C["meta"], cx_city, meta_top, zIndex=3, page=page),
                 "flowRole": "record-overlay",
             })
             b.els.append(_hicon(
-                "location", cx_city - 13, top, 11,
+                "location", cx_city - 13, meta_top, 11,
                 page=page, flow_role="record-overlay",
             ))
             right = cx_city - 13 - 10
         if period:
             cx_period = right - len(period) * 4.2
             b.els.append({
-                **_text(period, 8.2, SANS, C["meta"], cx_period, top, zIndex=3, page=page),
+                **_text(period, 8.2, SANS, C["meta"], cx_period, meta_top, zIndex=3, page=page),
                 "flowRole": "record-overlay",
             })
             b.els.append(_hicon(
-                "calendar", cx_period - 13, top, 11,
+                "calendar", cx_period - 13, meta_top, 11,
                 page=page, flow_role="record-overlay",
             ))
 

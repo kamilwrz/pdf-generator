@@ -12,14 +12,12 @@
  * locked together regardless of icon size.
  */
 
-// Vertical offset (px) from the label's stored `top` to its optical middle on
-// the CANVAS. The canvas renders single-line text with `line-height: 1`, whose
-// glyph centre sits ~1 px below the stored top for the ~8–9 pt labels these
-// icons accompany. This is deliberately independent of the icon size, so
-// enlarging an icon grows it evenly around the same mid-line instead of pushing
-// it lower. (The PDF renderer uses its own constant because ReportLab positions
-// text differently; each medium centres the icon on its own text.)
-export const CANVAS_TEXT_CAP_MID = 1.0;
+// Vertical offset (px) from an ~8.5px single-line label's stored `top` to its
+// optical middle on the canvas. CSS `line-height: 1` creates an ~8.5px line
+// box, so its centre is about 4.25px below `top`. The previous 1px value placed
+// 11px Harbor icons roughly 3.25px too high, making each education glyph look
+// attached to the preceding row.
+export const CANVAS_TEXT_CAP_MID = 4.25;
 
 /**
  * Whether an image element is a text-aligned icon (optical centring) rather than

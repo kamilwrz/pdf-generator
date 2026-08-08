@@ -92,6 +92,9 @@ function recordOverlayAnchor(elements, overlay, pageHeight) {
   const group = flowGroupOf(overlay);
   if (!group) return null;
   const overlayTop = absoluteTop(overlay, pageHeight);
+  // New overlays may carry a small authored baseline correction (Harbor uses
+  // 1.5–2px). Legacy inferred overlays had the exact textarea top.
+  const maxTopOffset = overlay.flowRole === "record-overlay" ? 3 : 0.5;
 
   return elements.find((candidate) => (
     candidate.element_id !== overlay.element_id
@@ -99,7 +102,7 @@ function recordOverlayAnchor(elements, overlay, pageHeight) {
     && candidate.category === "textarea"
     && flowGroupOf(candidate) === group
     && pageOf(candidate) === pageOf(overlay)
-    && Math.abs(absoluteTop(candidate, pageHeight) - overlayTop) < 0.5
+    && Math.abs(absoluteTop(candidate, pageHeight) - overlayTop) <= maxTopOffset
   )) || null;
 }
 

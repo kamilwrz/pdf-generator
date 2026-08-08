@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { iconicDrawTop } from "./iconAlignment.js";
 import { reflowTextareaHeight } from "./textareaReflow.js";
 
 const textarea = (overrides = {}) => ({
@@ -12,6 +13,10 @@ const textarea = (overrides = {}) => ({
   height: 20,
   page: 1,
   ...overrides,
+});
+
+test("centres an 11px text icon on an 8.5px canvas label", () => {
+  assert.equal(iconicDrawTop(100, 11), 98.75);
 });
 
 test("reflows elements below the resized textarea in its horizontal lane", () => {
@@ -178,10 +183,10 @@ test("Harbor right-column rules do not block main-column record reclaim", () => 
       element_id: "job4-calendar",
       category: "image",
       flowGroup: "record-job4",
-      flowRole: "content",
+      flowRole: "record-overlay",
       alignWithText: true,
       left: 210,
-      top: 85,
+      top: 87,
       width: 11,
       height: 11,
       page: 2,
@@ -190,8 +195,9 @@ test("Harbor right-column rules do not block main-column record reclaim", () => 
       element_id: "job4-period",
       category: "text",
       flowGroup: "record-job4",
+      flowRole: "record-overlay",
       left: 223,
-      top: 85,
+      top: 87,
       width: 48,
       height: 9,
       page: 2,
@@ -243,10 +249,14 @@ test("Harbor right-column rules do not block main-column record reclaim", () => 
   assert.equal(title.page, 1);
   assert.equal(bullets.page, 1);
   assert.ok(bullets.top + bullets.height <= 770);
-  for (const overlay of [calendar, period, location, city]) {
-    assert.equal(overlay.page, meta.page);
-    assert.equal(overlay.top, meta.top);
-  }
+  assert.deepEqual(
+    [calendar, period].map((overlay) => ({ page: overlay.page, top: overlay.top })),
+    Array(2).fill({ page: meta.page, top: meta.top + 2 }),
+  );
+  assert.deepEqual(
+    [location, city].map((overlay) => ({ page: overlay.page, top: overlay.top })),
+    Array(2).fill({ page: meta.page, top: meta.top }),
+  );
   assert.deepEqual(
     { page: sidebarRule.page, top: sidebarRule.top },
     { page: 1, top: 700 },

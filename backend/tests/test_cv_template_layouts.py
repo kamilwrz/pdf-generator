@@ -1561,7 +1561,9 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 any(
                     block.get("flowGroup") == overlay.get("flowGroup")
                     and block.get("page", 1) == overlay.get("page", 1)
-                    and abs(float(block.get("top", 0)) - float(overlay.get("top", 0))) < 0.01
+                    and abs(
+                        float(overlay.get("top", 0)) - float(block.get("top", 0)) - 1.5
+                    ) < 0.01
                     for block in sidebar_blocks
                 ),
                 msg=f"Harbor sidebar icon has no aligned text anchor: {overlay!r}",
@@ -1611,7 +1613,9 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertEqual(len(meta_overlays), 4)
         self.assertTrue(all(
             element.get("page", 1) == company.get("page", 1)
-            and abs(float(element.get("top", 0)) - float(company.get("top", 0))) < 0.01
+            and abs(
+                float(element.get("top", 0)) - float(company.get("top", 0)) - 2
+            ) < 0.01
             for element in meta_overlays
         ))
 
