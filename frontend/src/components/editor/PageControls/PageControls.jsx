@@ -37,8 +37,9 @@ export default function PageControls() {
                     type="button"
                     className={classes.navBtn}
                     onClick={() => goToPage(currentPage + 1)}
-                    disabled={currentPage >= pageCount}
-                    aria-label="Następna strona"
+                    disabled={currentPage >= 20}
+                    aria-label={currentPage >= pageCount ? "Utwórz następną stronę" : "Następna strona"}
+                    title={currentPage >= pageCount ? "Utwórz następną stronę" : "Następna strona"}
                 >
                     <Chevron dir="right" />
                 </button>

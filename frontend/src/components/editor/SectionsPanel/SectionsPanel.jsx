@@ -49,7 +49,6 @@ export default function SectionsPanel({ onClose }) {
   const {
     A4_Elements,
     setA4_Elements,
-    setPageCount,
     pageSize,
     flowSpacing,
     setFlowSpacing,
@@ -80,7 +79,6 @@ export default function SectionsPanel({ onClose }) {
   }, [onClose]);
 
   function move(headingId, direction) {
-    let nextCount = null;
     setA4_Elements((prev) => {
       const next = reorderSection(prev, headingId, direction, pageHeight, {
         spacing,
@@ -90,10 +88,8 @@ export default function SectionsPanel({ onClose }) {
       const reconciled = reconcileDocumentPages(next, nanoid, {
         collapseEmpty: true,
       });
-      nextCount = reconciled.pageCount;
       return reconciled.elements;
     });
-    if (nextCount != null) setPageCount(nextCount);
   }
 
   function applySpacing(nextSpacing) {
@@ -103,17 +99,14 @@ export default function SectionsPanel({ onClose }) {
     // sections onto page 1.
     if (flowSpacingEquals(spacing, normalized)) return;
     setFlowSpacing(normalized);
-    let nextCount = null;
     setA4_Elements((prev) => {
       const packed = applyFlowSpacing(prev, normalized, pageHeight);
       // Do not re-pack after this — only add/drop fixed continuation chrome.
       const reconciled = reconcileDocumentPages(packed, nanoid, {
         collapseEmpty: true,
       });
-      nextCount = reconciled.pageCount;
       return reconciled.elements;
     });
-    if (nextCount != null) setPageCount(nextCount);
   }
 
   function handleSpacingChange(key, rawValue) {

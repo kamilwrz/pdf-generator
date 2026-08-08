@@ -244,11 +244,17 @@ export function useA4Elements(titleRef) {
     if (pageCount < 2) setIsTwoPageView(false);
   }, [pageCount]);
   useEffect(() => {
-    const nextPageCount = reflowPageCountRef.current;
-    if (nextPageCount === null) return;
-
+    // Every element-producing path (textarea growth, section packing, AI
+    // patches, manual page chrome) converges here. Deriving the fallback from
+    // the committed array avoids reading a value assigned inside a React state
+    // updater before that updater has actually run.
+    const committedMaxPage = Math.max(
+      1,
+      ...A4_Elements.map((element) => Math.max(1, Math.trunc(element.page ?? 1))),
+    );
+    const nextPageCount = reflowPageCountRef.current ?? committedMaxPage;
     reflowPageCountRef.current = null;
-    setPageCount(nextPageCount);
+    setPageCount((count) => (count === nextPageCount ? count : nextPageCount));
     const targetPage = layoutTargetPageRef.current;
     layoutTargetPageRef.current = null;
     setCurrentPage((page) => targetPage ?? Math.min(page, nextPageCount));
@@ -395,6 +401,9 @@ export function useA4Elements(titleRef) {
         minPageCount: target,
         collapseEmpty: false,
       }));
+      // Required for freeform documents with no fixed chrome: reconciling an
+      // intentionally blank page can legitimately return the same array.
+      setPageCount(target);
       setCurrentPage(target);
       clearSelection();
       return;
@@ -411,6 +420,7 @@ export function useA4Elements(titleRef) {
       minPageCount: next,
       collapseEmpty: false,
     }));
+    setPageCount(next);
     setCurrentPage(next);
     clearSelection();
   }, [clearSelection, finalizeDocumentPages]);
