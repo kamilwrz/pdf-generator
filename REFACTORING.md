@@ -41,6 +41,7 @@ DONE 10) Uzytkownika zawsze ma zaczynac od zooma 130% nie 100%
 11) SZABLONY - LANDING PAGE - zmienic na CV WIZZARD? SZABLONY - nei dziala rytm....
 12) Zwiekszyc roznorodnosc layoutu sekcji / podobnie jak w enhancecv
 DONE 13) Scroll - Page Change
-13) Po zmianie parametrow SPACE_ przez Sekcje, wartosci przy zmianie szablonu sie nie resetuja. Maja sie resetowac
+14) Po zmianie parametrow SPACE_ przez Sekcje, wartosci przy zmianie szablonu sie nie resetuja. Maja sie resetowac
+niby DONE 15) Dane uzytkownika w CV WIZZARD powinny przetrwac do WIZARDA po Rejestracji i Logowaniu - (P) GENERUJE CV, a moze powinien poprostu wczytac dane JSON do CANVAS?
 
 4. AI - zastanowic sie i zmodyfikowac / reImplement

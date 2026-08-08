@@ -6,9 +6,12 @@
  * who next authenticates on this device would otherwise silently inherit
  * whatever a previous, unrelated guest session left behind (a shared
  * computer, a QA account, or simply a different family member). Asking for
- * explicit confirmation before PdfCanvas's claim effect runs prevents that
- * cross-account leak while still supporting the legitimate case: the same
- * visitor who edited as a guest, closed the tab, and later signed in.
+ * explicit confirmation before PdfCanvas loads that JSON onto the A4 canvas
+ * prevents that cross-account leak while still supporting the legitimate
+ * case: the same visitor who edited as a guest and later signed in.
+ *
+ * Confirm only hydrates the editor canvas. It does not call
+ * `POST /pdf/create_pdf`; the user saves later via the Topbar.
  */
 import DialogShell from "../../common/DialogShell/DialogShell";
 import classes from "./ClaimGuestDocumentModal.module.css";
@@ -27,7 +30,7 @@ export default function ClaimGuestDocumentModal({ open, title, onConfirm, onDecl
             To nie moje — odrzuć
           </button>
           <button type="button" className={classes.primary} onClick={onConfirm}>
-            Tak, zachowaj na moim koncie
+            Tak, wczytaj do edytora
           </button>
         </div>
       )}
@@ -36,8 +39,9 @@ export default function ClaimGuestDocumentModal({ open, title, onConfirm, onDecl
         {title
           ? <>Znaleziony dokument nosi tytuł „{title}”. </>
           : null}
-        Zachowaj go, jeśli to Twoja praca sprzed zalogowania — zapiszemy go na
-        tym koncie. Jeśli to nie Twój szkic (np. wspólny komputer), odrzuć go
+        Wczytamy go na płótno, jeśli to Twoja praca sprzed zalogowania — bez
+        automatycznego zapisu na koncie. Zapiszesz go później, gdy będziesz
+        gotowy. Jeśli to nie Twój szkic (np. wspólny komputer), odrzuć go
         i zacznij od pustego dokumentu.
       </p>
     </DialogShell>

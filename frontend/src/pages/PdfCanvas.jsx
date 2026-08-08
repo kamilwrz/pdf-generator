@@ -1003,16 +1003,18 @@ function PdfCanvas() {
     };
   }, []);
 
-  // This intentionally sets `A4_Elements` directly and restores document mode
-  // via `hydrateDocumentMode` instead of routing through `handleLoadTemplate`/
-  // `handleLoadAiElements`. Both of those call `materializeElementSpecs`,
-  // which always mints fresh `element_id`s and remaps connector
-  // `source_id`/`target_id` through a symbolic `spec.id` field that raw,
-  // already-materialized canvas elements (as saved by `saveGuestDocument`)
-  // do not carry — running a guest document back through it would silently
-  // break every connector on the canvas. `hydrateDocumentMode` is the same
-  // primitive `ModalPdfs.showPDF` already uses to restore a reopened saved
-  // document without re-materializing its elements.
+  // Load the browser-buffered guest JSON onto the A4 canvas only.
+  // Do not call `createPdf` / `POST /pdf/create_pdf` here — that would render
+  // and persist a server document (and count toward Free export limits)
+  // before the user asked to save. They keep an unsaved canvas (`pdfId`
+  // null) and use “Zapisz PDF” when ready.
+  //
+  // Elements are applied directly via `hydrateDocumentMode` instead of
+  // `handleLoadTemplate` / `handleLoadAiElements`. Those call
+  // `materializeElementSpecs`, which mints fresh `element_id`s and remaps
+  // connectors through a symbolic `spec.id` that raw guest-canvas elements
+  // do not carry — re-materializing would silently break connectors.
+  // `hydrateDocumentMode` is the same primitive `ModalPdfs.showPDF` uses.
   const handleClaimGuestDocumentConfirm = useCallback(() => {
     const guestDoc = pendingGuestDocRef.current;
     pendingGuestDocRef.current = null;
@@ -1026,6 +1028,9 @@ function PdfCanvas() {
     buffered.forEach((event) => logEvent(event.eventType));
     clearGuestEvents();
 
+    // Unsaved editor document: authenticated autosave waits for a real pdfId.
+    setPdfId(null);
+    setActiveCvData(null);
     setA4_Elements(guestDoc.elements);
     setA4_Elements_deleted([]);
     resetHistory();
@@ -1039,28 +1044,23 @@ function PdfCanvas() {
     if (titleRef.current && guestDoc.title) {
       titleRef.current.value = guestDoc.title;
     }
-
-    createPdf(guestDoc.elements, titleRef, guestDoc.pageCount || 1, pageSize, {
-      editorMode: guestDoc.editorMode,
-      templateId: guestDoc.templateId,
-      flowSpacing: guestDoc.spacingPx,
-    });
+    setIsDemoContent(Boolean(guestDoc.isDemoContent));
     clearGuestDocument();
 
     pushToast({
-      title: "CV zapisane",
-      msg: "Twój dokument został zapisany na koncie.",
+      title: "Szkic wczytany",
+      msg: "Dokument jest na płótnie. Zapisz go, gdy będziesz gotowy.",
       variant: "success",
     });
   }, [
-    createPdf,
     hydrateDocumentMode,
-    pageSize,
     pushToast,
     resetHistory,
     setA4_Elements,
     setA4_Elements_deleted,
+    setActiveCvData,
     setCurrentPage,
+    setIsDemoContent,
     setPageCount,
     titleRef,
   ]);
