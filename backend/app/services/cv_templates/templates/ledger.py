@@ -46,11 +46,14 @@ def _gen_ledger(cv: dict) -> list[dict]:
     L, W, SANS, SERIF = 52, 490, "Inter", "Times-Roman"
     lbl = _labels(cv)
 
+    def _masthead(element: dict) -> dict:
+        return {**element, "flowRole": "masthead"}
+
     static = [
-        _line(0, 0, 595, 146, NAVY, zIndex=0),
-        _line(0, 146, 595, 5, BLUE, zIndex=1),
-        _rect(416, 24, 122, 126, STEEL, 1.2, zIndex=3),
-        {
+        _masthead(_line(0, 0, 595, 146, NAVY, zIndex=0)),
+        _masthead(_line(0, 146, 595, 5, BLUE, zIndex=1)),
+        _masthead(_rect(416, 24, 122, 126, STEEL, 1.2, zIndex=3)),
+        _masthead({
             "category": "image",
             "src": f"{BACKEND_URL}/template-assets/ledger-finance-accent.png",
             "width": 110,
@@ -59,11 +62,11 @@ def _gen_ledger(cv: dict) -> list[dict]:
             "top": 28,
             "zIndex": 2,
             "page": 1,
-        },
-        _line(400, 30, 2, 102, BLUE, zIndex=2),
-        _text(_compact_text(cv.get("name"), 30), 30, SERIF, "#FFFFFF", L, 58, zIndex=2, bold=True),
-        _text(_compact_text(cv.get("title"), 52), 10, SANS, "#C7D7E2", L, 98, zIndex=2),
-        _text(_compact_text(_contact_line(cv), 78), 8.8, SANS, "#C7D7E2", L, 120, zIndex=2),
+        }),
+        _masthead(_line(400, 30, 2, 102, BLUE, zIndex=2)),
+        _masthead(_text(_compact_text(cv.get("name"), 30), 30, SERIF, "#FFFFFF", L, 58, zIndex=2, bold=True)),
+        _masthead(_text(_compact_text(cv.get("title"), 52), 10, SANS, "#C7D7E2", L, 98, zIndex=2)),
+        _masthead(_text(_compact_text(_contact_line(cv), 78), 8.8, SANS, "#C7D7E2", L, 120, zIndex=2)),
     ]
     static[6]["letterSpacing"] = 1.05
 

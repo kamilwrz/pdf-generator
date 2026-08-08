@@ -36,8 +36,9 @@ DONE 6) nie pokazywac wartosci do edycji w panelu, jezeli nie ma to wplywu (+ br
   DONE ee) zmienic UX / DESIGN
   DONE ff) zmiana kolejnosci sekcji (strzalki po prawej naglowka, jak przy rekordach)
 8) Dodac: Firma . Okres > Firma . Miejsce.  Okres; to samo z edu
-9) masthead / topbar mozna ruszac dragiem w edycji strukturalnej.... ewentulanie inne elementy
+DONE 9) masthead / ikony / dekoracje nie ruszaja sie w edycji strukturalnej (canFreePosition + tagging)
 DONE 10) Uzytkownika zawsze ma zaczynac od zooma 130% nie 100%
 11) SZABLONY - LANDING PAGE - zmienic na CV WIZZARD? SZABLONY - nei dziala rytm....
+12) Zwiekszyc roznorodnosc layoutu sekcji / podobnie jak w enhancecv
 
 4. AI - zastanowic sie i zmodyfikowac / reImplement

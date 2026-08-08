@@ -56,13 +56,16 @@ def _gen_harbor(cv: dict) -> list[dict]:
     lbl = _labels(cv)
 
     def _hicon(name: str, left: float, top: float, size: float,
-               *, accent: bool = False, align: bool = True, page: int = 1) -> dict:
+               *, accent: bool = False, align: bool = True, page: int = 1,
+               flow_role: str = "masthead") -> dict:
         theme = "harbor-accent" if accent else "harbor"
         return {
             "category": "image",
             "src": f"{BACKEND_URL}/template-assets/iconic/{theme}/{name}.png",
             "left": left, "top": top, "width": size, "height": size,
             "zIndex": 3, "page": page, "alignWithText": align,
+            # Keep icons layout-owned in structural edit (contact, bullets, photo glyph).
+            "flowRole": flow_role,
         }
 
     # ── Header (spans both columns) ─────────────────────────────────────────
@@ -91,10 +94,13 @@ def _gen_harbor(cv: dict) -> list[dict]:
         header.append(_text(value, 8.4, SANS, C["body"], cx + 15, cy, zIndex=3))
         cx += advance
     # Circular photo placeholder: soft-grey disc + centred grey person glyph.
-    header.append(_circle(493, 36, 58, C["photo"], filled=True, zIndex=2))
+    header.append({**_circle(493, 36, 58, C["photo"], filled=True, zIndex=2), "flowRole": "masthead"})
     header.append(_hicon("references", 507, 50, 30, align=False))
     header_rule_y = cy + 22
-    header.append(_line(MAIN_X, header_rule_y, SIDE_X + SIDE_W - MAIN_X, 1, C["rule"], zIndex=2))
+    header.append({
+        **_line(MAIN_X, header_rule_y, SIDE_X + SIDE_W - MAIN_X, 1, C["rule"], zIndex=2),
+        "flowRole": "masthead",
+    })
     section_start = header_rule_y + 20
 
     # ── Sidebar (static, page 1) ────────────────────────────────────────────

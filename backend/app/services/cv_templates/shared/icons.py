@@ -17,6 +17,9 @@ def _icon(theme: str, name: str, left: float, top: float, size: float = 12, *,
         "page": page,
         # `top` is the companion label's CSS top; PDF/canvas centre the glyph.
         "alignWithText": True,
+        # Default layout ownership for contact/masthead glyphs. Section
+        # headings overwrite this with flowRole="section-chrome".
+        "flowRole": "masthead",
     }
 
 

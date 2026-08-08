@@ -60,9 +60,39 @@ describe("canFreePositionElement", () => {
     assert.equal(canFreePositionElement(signet, EDITOR_MODE_FREEFORM), true);
   });
 
-  it("allows untagged images in template mode", () => {
+  it("allows user gallery photos in template mode", () => {
     const image = { category: "image", src: "/images/1/content" };
     assert.equal(canFreePositionElement(image, EDITOR_MODE_TEMPLATE), true);
+  });
+
+  it("blocks untagged template icons and accent artwork in template mode", () => {
+    const contactIcon = {
+      category: "image",
+      src: "/template-assets/iconic/harbor/phone.png",
+      alignWithText: true,
+    };
+    const accentArt = {
+      category: "image",
+      src: "/template-assets/ledger-finance-accent.png",
+    };
+    const legacyIconic = {
+      category: "image",
+      src: "https://api.example/template-assets/iconic/nova/email.png",
+    };
+    assert.equal(canFreePositionElement(contactIcon, EDITOR_MODE_TEMPLATE), false);
+    assert.equal(canFreePositionElement(accentArt, EDITOR_MODE_TEMPLATE), false);
+    assert.equal(canFreePositionElement(legacyIconic, EDITOR_MODE_TEMPLATE), false);
+    assert.equal(canFreePositionElement(contactIcon, EDITOR_MODE_FREEFORM), true);
+  });
+
+  it("blocks untagged generator shapes in template mode", () => {
+    const rule = { category: "line", left: 48, top: 144, width: 499, height: 1 };
+    const frame = { category: "rectangle", left: 416, top: 24, width: 122, height: 126 };
+    const disc = { category: "circle", left: 493, top: 36, width: 58, height: 58 };
+    assert.equal(canFreePositionElement(rule, EDITOR_MODE_TEMPLATE), false);
+    assert.equal(canFreePositionElement(frame, EDITOR_MODE_TEMPLATE), false);
+    assert.equal(canFreePositionElement(disc, EDITOR_MODE_TEMPLATE), false);
+    assert.equal(canFreePositionElement(rule, EDITOR_MODE_FREEFORM), true);
   });
 
   it("never allows locked or fixed chrome", () => {

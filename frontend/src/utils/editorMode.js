@@ -5,8 +5,31 @@
  * Freeform mode lets the user place every unlocked element freely.
  */
 
+import { isTextAlignedIcon } from "./iconAlignment.js";
+
 export const EDITOR_MODE_TEMPLATE = "template";
 export const EDITOR_MODE_FREEFORM = "freeform";
+
+/** Generator shapes that must stay layout-owned in template mode. */
+const TEMPLATE_SHAPE_CATEGORIES = new Set([
+  "line",
+  "rectangle",
+  "circle",
+  "ellipse",
+]);
+
+/**
+ * Template-authored images: iconic glyphs, accent artwork, sidebar marks.
+ * User gallery photos (`/images/{id}/content`) are intentionally excluded.
+ *
+ * @param {object} element
+ * @returns {boolean}
+ */
+function isLayoutOwnedTemplateImage(element) {
+  if (element.category !== "image") return false;
+  if (isTextAlignedIcon(element.src, element.alignWithText)) return true;
+  return /\/template-assets\//.test(String(element.src || ""));
+}
 
 /**
  * Normalize an API/session value to a known editor mode.
@@ -68,7 +91,17 @@ export function canFreePositionElement(element, editorMode) {
   if (element.category === "text" || element.category === "textarea") {
     return false;
   }
-  // Images/shapes added by the user (no flow tags) may still be placed.
+  // Icons, accent artwork, rules, badges, and other generator shapes stay
+  // layout-owned even when a template omitted flowRole / locked tags
+  // (harbor contact icons, ledger/nimbus header art, cinder frames, …).
+  // Structural mode does not expose shape tools, so any shape here is
+  // template chrome. User gallery photos (`/images/…`) may still move.
+  if (
+    TEMPLATE_SHAPE_CATEGORIES.has(element.category)
+    || isLayoutOwnedTemplateImage(element)
+  ) {
+    return false;
+  }
   return true;
 }
 

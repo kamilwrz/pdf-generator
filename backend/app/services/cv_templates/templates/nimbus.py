@@ -54,14 +54,17 @@ def _gen_nimbus(cv: dict) -> list[dict]:
         def continuation_top(self) -> float:
             return float(CONTINUATION)
 
-    mark_one = {**_rect(80, 176, 14, 14, BLUE, 1.2, zIndex=2), "id": "nimbus-mark-one"}
-    mark_two = {**_rect(114, 176, 14, 14, POWDER, 1.2, zIndex=2), "id": "nimbus-mark-two"}
-    mark_three = {**_rect(148, 176, 14, 14, POWDER, 1.2, zIndex=2), "id": "nimbus-mark-three"}
+    def _masthead(element: dict) -> dict:
+        return {**element, "flowRole": "masthead"}
+
+    mark_one = _masthead({**_rect(80, 176, 14, 14, BLUE, 1.2, zIndex=2), "id": "nimbus-mark-one"})
+    mark_two = _masthead({**_rect(114, 176, 14, 14, POWDER, 1.2, zIndex=2), "id": "nimbus-mark-two"})
+    mark_three = _masthead({**_rect(148, 176, 14, 14, POWDER, 1.2, zIndex=2), "id": "nimbus-mark-three"})
     static = [
-        _line(0, 0, 595, 4, POWDER, zIndex=0),
-        _line(52, 207, 490, 1, POWDER),
-        _rect(401, 35, 141, 153, POWDER, 1.1, zIndex=3),
-        {
+        _masthead(_line(0, 0, 595, 4, POWDER, zIndex=0)),
+        _masthead(_line(52, 207, 490, 1, POWDER)),
+        _masthead(_rect(401, 35, 141, 153, POWDER, 1.1, zIndex=3)),
+        _masthead({
             "category": "image",
             "src": f"{BACKEND_URL}/template-assets/nimbus-finance-accent.png",
             "width": 129,
@@ -70,16 +73,16 @@ def _gen_nimbus(cv: dict) -> list[dict]:
             "top": 41,
             "zIndex": 2,
             "page": 1,
-        },
-        _line(52, 48, 4, 112, BLUE, zIndex=2),
-        _text(_compact_text(cv.get("name"), 30), 29, SERIF, INK, 78, 55, zIndex=2, bold=True),
-        _text(_compact_text(cv.get("title"), 52), 9.3, SANS, BLUE, 80, 99, zIndex=2),
-        _text(_compact_text(_contact_line(cv), 78), 8.7, SANS, SLATE, 80, 153, zIndex=2),
+        }),
+        _masthead(_line(52, 48, 4, 112, BLUE, zIndex=2)),
+        _masthead(_text(_compact_text(cv.get("name"), 30), 29, SERIF, INK, 78, 55, zIndex=2, bold=True)),
+        _masthead(_text(_compact_text(cv.get("title"), 52), 9.3, SANS, BLUE, 80, 99, zIndex=2)),
+        _masthead(_text(_compact_text(_contact_line(cv), 78), 8.7, SANS, SLATE, 80, 153, zIndex=2)),
         mark_one,
         mark_two,
         mark_three,
-        _line(94, 182, 20, 1, POWDER, zIndex=1),
-        _line(128, 182, 20, 1, POWDER, zIndex=1),
+        _masthead(_line(94, 182, 20, 1, POWDER, zIndex=1)),
+        _masthead(_line(128, 182, 20, 1, POWDER, zIndex=1)),
     ]
     static[6]["letterSpacing"] = 1.5
 
