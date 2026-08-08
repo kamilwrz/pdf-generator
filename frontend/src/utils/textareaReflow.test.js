@@ -175,6 +175,50 @@ test("Harbor right-column rules do not block main-column record reclaim", () => 
       page: 2,
     },
     {
+      element_id: "job4-calendar",
+      category: "image",
+      flowGroup: "record-job4",
+      flowRole: "content",
+      alignWithText: true,
+      left: 210,
+      top: 85,
+      width: 11,
+      height: 11,
+      page: 2,
+    },
+    {
+      element_id: "job4-period",
+      category: "text",
+      flowGroup: "record-job4",
+      left: 223,
+      top: 85,
+      width: 48,
+      height: 9,
+      page: 2,
+    },
+    {
+      element_id: "job4-location",
+      category: "image",
+      flowGroup: "record-job4",
+      flowRole: "content",
+      alignWithText: true,
+      left: 278,
+      top: 85,
+      width: 11,
+      height: 11,
+      page: 2,
+    },
+    {
+      element_id: "job4-city",
+      category: "text",
+      flowGroup: "record-job4",
+      left: 291,
+      top: 85,
+      width: 45,
+      height: 9,
+      page: 2,
+    },
+    {
       element_id: "job4-bullets",
       category: "textarea",
       autoHeight: true,
@@ -189,11 +233,20 @@ test("Harbor right-column rules do not block main-column record reclaim", () => 
   ], "job4-bullets", 55, 842, { pageTop: 66, bottomMargin: 72 });
 
   const title = result.elements.find((element) => element.element_id === "job4-title");
+  const meta = result.elements.find((element) => element.element_id === "job4-meta");
   const bullets = result.elements.find((element) => element.element_id === "job4-bullets");
+  const calendar = result.elements.find((element) => element.element_id === "job4-calendar");
+  const period = result.elements.find((element) => element.element_id === "job4-period");
+  const location = result.elements.find((element) => element.element_id === "job4-location");
+  const city = result.elements.find((element) => element.element_id === "job4-city");
   const sidebarRule = result.elements.find((element) => element.element_id === "sidebar-rule");
   assert.equal(title.page, 1);
   assert.equal(bullets.page, 1);
   assert.ok(bullets.top + bullets.height <= 770);
+  for (const overlay of [calendar, period, location, city]) {
+    assert.equal(overlay.page, meta.page);
+    assert.equal(overlay.top, meta.top);
+  }
   assert.deepEqual(
     { page: sidebarRule.page, top: sidebarRule.top },
     { page: 1, top: 700 },

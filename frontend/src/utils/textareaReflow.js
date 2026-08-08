@@ -63,6 +63,46 @@ function flowGroupOf(element) {
   return typeof group === "string" && group.length > 0 ? group : null;
 }
 
+function isRecordOverlay(element, elements = [], pageHeight = 842) {
+  if (element?.flowRole === "record-overlay") return true;
+  if (!["image", "text"].includes(element?.category)) return false;
+  const group = flowGroupOf(element);
+  if (!group) return false;
+
+  // Backward compatibility for Harbor documents saved before record-overlay
+  // metadata existed. Horizontal meta labels/icons shared a flowGroup and exact
+  // Y coordinate with their owning textarea; that geometry uniquely separates
+  // them from genuinely stacked text rows.
+  return elements.some((candidate) => (
+    candidate.category === "textarea"
+    && flowGroupOf(candidate) === group
+    && pageOf(candidate) === pageOf(element)
+    && Math.abs(absoluteTop(candidate, pageHeight) - absoluteTop(element, pageHeight)) < 0.5
+  ));
+}
+
+/**
+ * Find the textarea that owns a horizontal record overlay.
+ *
+ * Harbor dates, cities and line icons share a Y coordinate with the company
+ * or sidebar text they annotate. They intentionally share the record's
+ * flowGroup for page moves, but must not be counted as vertical stack rows.
+ */
+function recordOverlayAnchor(elements, overlay, pageHeight) {
+  const group = flowGroupOf(overlay);
+  if (!group) return null;
+  const overlayTop = absoluteTop(overlay, pageHeight);
+
+  return elements.find((candidate) => (
+    candidate.element_id !== overlay.element_id
+    && !isRecordOverlay(candidate, elements, pageHeight)
+    && candidate.category === "textarea"
+    && flowGroupOf(candidate) === group
+    && pageOf(candidate) === pageOf(overlay)
+    && Math.abs(absoluteTop(candidate, pageHeight) - overlayTop) < 0.5
+  )) || null;
+}
+
 function heightFor(element, targetId, nextHeight) {
   if (element.element_id === targetId) return nextHeight;
   return elementHeight(element);
@@ -332,6 +372,7 @@ function previousLaneContentBottom(
   let bottom = null;
   for (const element of elements) {
     if (!FLOWABLE_CATEGORIES.has(element.category)) continue;
+    if (isRecordOverlay(element, elements, pageHeight)) continue;
     if (element.fixedToPage || isPositionLockedForReflow(element)) continue;
     if (element.element_id === target.element_id) continue;
     if (pageOf(element) !== page) continue;
@@ -359,6 +400,7 @@ function hasInterveningLaneContent(
   const excluded = excludeIds instanceof Set ? excludeIds : new Set(excludeIds);
   for (const element of elements) {
     if (!FLOWABLE_CATEGORIES.has(element.category)) continue;
+    if (isRecordOverlay(element, elements, pageHeight)) continue;
     if (element.fixedToPage || isPositionLockedForReflow(element)) continue;
     if (excluded.has(element.element_id)) continue;
     if (!belongsToFlowLane(target, element)) continue;
@@ -377,6 +419,7 @@ function recordMatesBeside(elements, target, pageHeight, direction) {
   const targetAbs = absoluteTop(target, pageHeight);
   const laneMates = elements.filter((element) => {
     if (!FLOWABLE_CATEGORIES.has(element.category)) return false;
+    if (isRecordOverlay(element, elements, pageHeight)) return false;
     if (element.fixedToPage || isPositionLockedForReflow(element)) return false;
     if (element.element_id === target.element_id) return false;
     if (isChromeLike(element)) return false;
@@ -694,6 +737,7 @@ export function reflowTextareaHeight(
   const lane = elements
     .filter((element) => (
       FLOWABLE_CATEGORIES.has(element.category)
+      && !isRecordOverlay(element, elements, safePageHeight)
       && !element.fixedToPage
       && !isPositionLockedForReflow(element)
       && (
@@ -873,6 +917,21 @@ export function reflowTextareaHeight(
   }
 
   const reflowed = elements.map((element) => {
+    if (isRecordOverlay(element, elements, safePageHeight)) {
+      const anchor = recordOverlayAnchor(elements, element, safePageHeight);
+      const placedAnchor = anchor ? placed.get(anchor.element_id) : null;
+      if (placedAnchor) {
+        const relativeTop = absoluteTop(element, safePageHeight)
+          - absoluteTop(anchor, safePageHeight);
+        const moved = {
+          ...element,
+          page: pageOf(placedAnchor),
+          top: number(placedAnchor.top) + relativeTop,
+        };
+        maxPage = Math.max(maxPage, pageOf(moved));
+        return moved;
+      }
+    }
     if (placed.has(element.element_id)) {
       return placed.get(element.element_id);
     }

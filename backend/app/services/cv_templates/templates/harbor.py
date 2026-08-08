@@ -129,7 +129,15 @@ def _gen_harbor(cv: dict) -> list[dict]:
         )
 
     def side_icon_line(icon_name: str, content: str, *, accent: bool = False,
-                       color: str | None = None) -> None:
+                       color: str | None = None, atomic_pair: bool = False) -> None:
+        """Place one sidebar label with a non-stacking icon overlay.
+
+        ``record-overlay`` keeps the icon on the label's Y coordinate when
+        browser measurement moves the label. Without that role, the frontend
+        interprets both members of a keep-together ``flowGroup`` as consecutive
+        vertical rows, separating the glyph from its text and inflating the
+        record height.
+        """
         text_content = str(content or "").strip()
         if not text_content:
             return
@@ -139,14 +147,20 @@ def _gen_harbor(cv: dict) -> list[dict]:
         )
         side_b.need(height)
         top, page = side_b.y, side_b.pg
-        side_b.els.append(_hicon(
-            icon_name, SIDE_X, top, 11,
-            accent=accent, page=page, flow_role="content",
-        ))
         side_block(
             text_content, SIDE_ITEM_FS, SIDE_ITEM_LH,
             color or C["ink"], left=SIDE_BODY_X, width=SIDE_BODY_W,
         )
+        text_element = side_b.els[-1]
+        icon_element = _hicon(
+            icon_name, SIDE_X, top, 11,
+            accent=accent, page=page, flow_role="record-overlay",
+        )
+        if atomic_pair:
+            pair_group = f"record-harbor-side-{len(side_b.els)}"
+            text_element["flowGroup"] = pair_group
+            icon_element["flowGroup"] = pair_group
+        side_b.els.append(icon_element)
         side_b.gap(2)
 
     if cv.get("education"):
@@ -199,7 +213,7 @@ def _gen_harbor(cv: dict) -> list[dict]:
         )
         side_section(lbl["skills"], first_height)
         for skill in skills:
-            side_icon_line("diamond", skill, accent=True)
+            side_icon_line("diamond", skill, accent=True, atomic_pair=True)
         side_b.gap(get_spacing().section)
 
     if cv.get("languages"):
@@ -222,7 +236,7 @@ def _gen_harbor(cv: dict) -> list[dict]:
         )
         side_section("JĘZYKI", first_height)
         for language in language_lines:
-            side_icon_line("diamond", language, accent=True)
+            side_icon_line("diamond", language, accent=True, atomic_pair=True)
         side_b.gap(get_spacing().section)
 
     # Every remaining custom section becomes a complete, wrapped diamond list.
@@ -237,7 +251,7 @@ def _gen_harbor(cv: dict) -> list[dict]:
         )
         side_section(title, first_height)
         for item in items:
-            side_icon_line("diamond", item, accent=True)
+            side_icon_line("diamond", item, accent=True, atomic_pair=True)
         side_b.gap(get_spacing().section)
 
     sidebar = [
@@ -277,13 +291,25 @@ def _gen_harbor(cv: dict) -> list[dict]:
         right = MAIN_R
         if city:
             cx_city = right - len(city) * 4.2
-            b.els.append(_text(city, 8.2, SANS, C["meta"], cx_city, top, zIndex=3, page=page))
-            b.els.append(_hicon("location", cx_city - 13, top, 11, page=page))
+            b.els.append({
+                **_text(city, 8.2, SANS, C["meta"], cx_city, top, zIndex=3, page=page),
+                "flowRole": "record-overlay",
+            })
+            b.els.append(_hicon(
+                "location", cx_city - 13, top, 11,
+                page=page, flow_role="record-overlay",
+            ))
             right = cx_city - 13 - 10
         if period:
             cx_period = right - len(period) * 4.2
-            b.els.append(_text(period, 8.2, SANS, C["meta"], cx_period, top, zIndex=3, page=page))
-            b.els.append(_hicon("calendar", cx_period - 13, top, 11, page=page))
+            b.els.append({
+                **_text(period, 8.2, SANS, C["meta"], cx_period, top, zIndex=3, page=page),
+                "flowRole": "record-overlay",
+            })
+            b.els.append(_hicon(
+                "calendar", cx_period - 13, top, 11,
+                page=page, flow_role="record-overlay",
+            ))
 
     if cv.get("summary"):
         # Summary shares the experience-bullet type size (9 pt); the project-wide

@@ -1550,6 +1550,22 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 770,
                 msg=f"Harbor sidebar block overflows the content footer: {element.get('content')!r}",
             )
+        sidebar_overlays = [
+            element for element in elements
+            if element.get("flowRole") == "record-overlay"
+            and float(element.get("left", 0)) >= 364
+        ]
+        self.assertTrue(sidebar_overlays, msg="Harbor emitted no sidebar icon overlays")
+        for overlay in sidebar_overlays:
+            self.assertTrue(
+                any(
+                    block.get("flowGroup") == overlay.get("flowGroup")
+                    and block.get("page", 1) == overlay.get("page", 1)
+                    and abs(float(block.get("top", 0)) - float(overlay.get("top", 0))) < 0.01
+                    for block in sidebar_blocks
+                ),
+                msg=f"Harbor sidebar icon has no aligned text anchor: {overlay!r}",
+            )
 
     def test_harbor_keeps_fourth_experience_record_in_available_page_one_space(self):
         fourth_job = {
@@ -1582,6 +1598,22 @@ class CvTemplateLayoutTests(unittest.TestCase):
             max(float(element["top"]) + float(element.get("height", 0)) for element in fourth_cluster),
             770,
         )
+        company = next(
+            element for element in elements
+            if element.get("category") == "textarea"
+            and element.get("content") == fourth_job["company"]
+        )
+        meta_overlays = [
+            element for element in elements
+            if element.get("flowRole") == "record-overlay"
+            and element.get("flowGroup") == company.get("flowGroup")
+        ]
+        self.assertEqual(len(meta_overlays), 4)
+        self.assertTrue(all(
+            element.get("page", 1) == company.get("page", 1)
+            and abs(float(element.get("top", 0)) - float(company.get("top", 0))) < 0.01
+            for element in meta_overlays
+        ))
 
     def test_iconic_templates_pair_contact_and_section_icons(self):
         contact_keys = ("email", "phone", "location")
