@@ -35,18 +35,37 @@ export function sanitizeChar(ch) {
   return ch;
 }
 
-/** Clean `content` on every text-bearing canvas element before export/save. */
+/**
+ * Normalize canvas elements before export/save.
+ *
+ * Besides cleaning text, this removes a numeric `id` accidentally introduced
+ * when a persisted PdfElements row is spread into canvas state. The API's
+ * optional `id` is a string semantic template key; database identity lives in
+ * `pdf_id` / `element_id` and must never occupy that field. Keeping this guard
+ * at the request boundary also repairs documents already open in browser state.
+ */
 export function sanitizeElementsContent(elements) {
   if (!Array.isArray(elements)) return elements;
   return elements.map((element) => {
-    if (
-      element == null
-      || (element.category !== "text" && element.category !== "textarea")
-      || element.content == null
-    ) {
+    if (element == null || typeof element !== "object") {
       return element;
     }
-    const content = sanitizeTextContent(element.content);
-    return content === element.content ? element : { ...element, content };
+
+    let normalized = element;
+    if (element.id != null && typeof element.id !== "string") {
+      normalized = { ...element };
+      delete normalized.id;
+    }
+
+    if (
+      (normalized.category !== "text" && normalized.category !== "textarea")
+      || normalized.content == null
+    ) {
+      return normalized;
+    }
+    const content = sanitizeTextContent(normalized.content);
+    return content === normalized.content
+      ? normalized
+      : { ...normalized, content };
   });
 }

@@ -986,6 +986,11 @@ Implementation:
   `getSelectionOffsets`, `setSelectionOffsets`), `sanitizeChar` in
   `frontend/src/utils/sanitizeTextContent.js`,
   `frontend/src/utils/renderStyledText.jsx`.
+- Save/export normalization in `sanitizeElementsContent` removes a numeric
+  database-row `id` if a reopened document leaked it into canvas state. The API
+  reserves optional `PdfElement.id` for string template semantic keys; persisted
+  identity remains in `pdf_id` and `element_id`. Hydration in `ModalPdfs` also
+  restores `id` exclusively from `extra_properties.id`.
 - Editing surfaces + toolbar:
   `frontend/src/components/canvas/InlineFormatToolbar/InlineFormatToolbar.jsx`,
   `frontend/src/components/canvas/Text/Text.jsx`,
@@ -2184,6 +2189,12 @@ Implementacja:
   `getSelectionOffsets`, `setSelectionOffsets`), `sanitizeChar` w
   `frontend/src/utils/sanitizeTextContent.js`,
   `frontend/src/utils/renderStyledText.jsx`.
+- Normalizacja zapisu/eksportu w `sanitizeElementsContent` usuwa numeryczne `id`
+  rekordu bazy, jeśli ponownie otwarty dokument wprowadzi je do stanu canvasu.
+  Opcjonalne `PdfElement.id` jest zarezerwowane w API dla tekstowych kluczy
+  semantycznych szablonu; trwała identyfikacja pozostaje w `pdf_id` i
+  `element_id`. Hydratacja w `ModalPdfs` również odtwarza `id` wyłącznie z
+  `extra_properties.id`.
 - Powierzchnie edycji + pasek:
   `frontend/src/components/canvas/InlineFormatToolbar/InlineFormatToolbar.jsx`,
   `frontend/src/components/canvas/Text/Text.jsx`,

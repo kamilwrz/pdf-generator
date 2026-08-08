@@ -94,6 +94,10 @@ export default function ModalPdfs({ title }) {
                 if (element.category === "textarea") {
                     return {
                         ...element,
+                        // `element.id` is the numeric PdfElements primary key.
+                        // Canvas `id` is reserved for an optional semantic
+                        // template key stored in extra_properties.
+                        id: element.extra_properties.id,
                         content: sanitizeTextContent(element.content),
                         zIndex: element.extra_properties.zIndex,
                         lineHeight: element.extra_properties.lineHeight,
@@ -145,6 +149,9 @@ export default function ModalPdfs({ title }) {
                 }
                 return {
                     ...element,
+                    // Do not leak the numeric database row id into the canvas
+                    // element contract; semantic template ids are strings.
+                    id: element.extra_properties.id,
                     content: sanitizeTextContent(element.content),
                     zIndex: element.extra_properties.zIndex,
                     bold: element.extra_properties.bold,
