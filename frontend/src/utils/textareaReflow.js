@@ -131,10 +131,14 @@ function belongsToFlowLane(target, element) {
     0,
   );
 
-  // Iconic glyphs hang to the LEFT of their labels. Never let a narrow left
-  // column (sidebar) drag main-column icons that sit entirely to its right.
+  // Section glyphs and markers may hang to the LEFT of their text lane.
+  // Decorations entirely to the RIGHT belong to the adjacent column, even
+  // when a narrow gutter is smaller than the generic proximity tolerance.
+  // Harbor's 28px gutter exposed this: right-sidebar rules were classified as
+  // main-lane content and blocked reclaim of experience records from page 2.
+  if (elementLeft >= targetRight) return false;
+
   if (isNearbyTextIcon) {
-    if (elementLeft >= targetRight) return false;
     return horizontalGap <= TEXT_ALIGNED_IMAGE_LANE_TOLERANCE;
   }
 
@@ -507,7 +511,12 @@ export function reflowTextareaHeight(
 
   const oldHeight = elementHeight(target);
   const delta = nextHeight - oldHeight;
-  if (Math.abs(delta) < 0.5) {
+  const heightIsUnchanged = Math.abs(delta) < 0.5;
+  // A saved template may already contain a browser-measured height but retain
+  // a stale page break produced before lane classification was corrected.
+  // Permit one reclaim-only pass for page 2+; page-one and freeform elements
+  // still short-circuit so equal measurements cannot cause render loops.
+  if (heightIsUnchanged && (!allowReclaim || pageOf(target) === 1)) {
     return { elements, pageCount: Math.max(1, ...elements.map(pageOf)), changed: false };
   }
 
@@ -617,6 +626,13 @@ export function reflowTextareaHeight(
         recordTop = proposedRecordTop;
       }
     }
+  }
+
+  // With no height delta there is nothing to forward-pack unless reclaim
+  // actually selected an earlier page. Returning unchanged here prevents an
+  // equal post-font measurement from repeatedly replacing canvas state.
+  if (heightIsUnchanged && targetPage === originalAnchorPage) {
+    return { elements, pageCount: Math.max(1, ...elements.map(pageOf)), changed: false };
   }
 
   const movedToDifferentPage = targetPage !== originalAnchorPage;

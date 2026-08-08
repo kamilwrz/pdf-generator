@@ -123,6 +123,83 @@ test("pulls a keep-together experience record back when its body shrinks on page
   assert.ok(bullets.top + bullets.height <= 770);
 });
 
+test("Harbor right-column rules do not block main-column record reclaim", () => {
+  // Harbor's gutter is 28px (main ends at x=336, sidebar starts at x=364).
+  // A generic 32px decoration tolerance previously classified the sidebar
+  // rule as main-lane content and left job 4 stranded on an almost empty page 2.
+  const result = reflowTextareaHeight([
+    {
+      element_id: "job3-bullets",
+      category: "textarea",
+      autoHeight: true,
+      flowGroup: "record-job3",
+      flowRole: "content",
+      left: 44,
+      top: 500,
+      width: 292,
+      height: 52,
+      page: 1,
+    },
+    {
+      element_id: "sidebar-rule",
+      category: "line",
+      flowRole: "section-chrome",
+      left: 364,
+      top: 700,
+      width: 187,
+      height: 1,
+      page: 1,
+    },
+    {
+      element_id: "job4-title",
+      category: "textarea",
+      autoHeight: true,
+      flowGroup: "record-job4",
+      flowRole: "content",
+      left: 44,
+      top: 66,
+      width: 292,
+      height: 15,
+      page: 2,
+    },
+    {
+      element_id: "job4-meta",
+      category: "textarea",
+      autoHeight: true,
+      flowGroup: "record-job4",
+      flowRole: "content",
+      left: 44,
+      top: 85,
+      width: 142,
+      height: 12,
+      page: 2,
+    },
+    {
+      element_id: "job4-bullets",
+      category: "textarea",
+      autoHeight: true,
+      flowGroup: "record-job4",
+      flowRole: "content",
+      left: 44,
+      top: 101,
+      width: 292,
+      height: 55,
+      page: 2,
+    },
+  ], "job4-bullets", 55, 842, { pageTop: 66, bottomMargin: 72 });
+
+  const title = result.elements.find((element) => element.element_id === "job4-title");
+  const bullets = result.elements.find((element) => element.element_id === "job4-bullets");
+  const sidebarRule = result.elements.find((element) => element.element_id === "sidebar-rule");
+  assert.equal(title.page, 1);
+  assert.equal(bullets.page, 1);
+  assert.ok(bullets.top + bullets.height <= 770);
+  assert.deepEqual(
+    { page: sidebarRule.page, top: sidebarRule.top },
+    { page: 1, top: 700 },
+  );
+});
+
 test("does not reclaim a page-2 section when chrome plus grown body do not fit", () => {
   // A newly added section is packed onto page 2 because heading+rule+body do
   // not fit under the last page-1 job. Growing the body with empty lines must

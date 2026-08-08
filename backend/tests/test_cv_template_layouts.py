@@ -1551,6 +1551,38 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 msg=f"Harbor sidebar block overflows the content footer: {element.get('content')!r}",
             )
 
+    def test_harbor_keeps_fourth_experience_record_in_available_page_one_space(self):
+        fourth_job = {
+            "title": "Customer Service Specialist with German",
+            "company": "Amazon CS Poland",
+            "city": "Warszawa",
+            "period": "2022 – 2024",
+            "bullets": [
+                "Profesjonalna obsługa klienta z zachowaniem wysokich standardów jakości.",
+                "Rozwiązywanie eskalacji oraz monitoring nowych pracowników w ramach wdrożeń.",
+                "Analiza jakości obsługi klienta oraz przygotowywanie raportów.",
+            ],
+        }
+        elements = generate_resume("harbor", {
+            **LONG_CV,
+            "experience": [*LONG_CV["experience"], fourth_job],
+        })
+
+        fourth_cluster = [
+            element for element in elements
+            if element.get("content") == fourth_job["title"]
+            or fourth_job["bullets"][0] in str(element.get("content", ""))
+        ]
+        self.assertEqual(len(fourth_cluster), 2)
+        self.assertTrue(
+            all(element.get("page", 1) == 1 for element in fourth_cluster),
+            msg=f"Harbor left a page-one hole: {fourth_cluster!r}",
+        )
+        self.assertLessEqual(
+            max(float(element["top"]) + float(element.get("height", 0)) for element in fourth_cluster),
+            770,
+        )
+
     def test_iconic_templates_pair_contact_and_section_icons(self):
         contact_keys = ("email", "phone", "location")
         for template_id, theme in (

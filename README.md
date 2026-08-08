@@ -635,7 +635,7 @@ Known limitation: like Tessera, sidebar sections are atomic and remain on page 1
 
 Nova, Volt, Cardinal, Harbor, Tessera, and Slate are individual templates that share the `icons` layout tag (and optionally `sidebar` / `dark`). The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so icon images are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
 
-Tessera and Slate fit complete compact sections via `_fit_sidebar_sections`; anything that does not fit spills into the main column instead of being truncated. Harbor instead uses its own page-aware right-column `Builder`, because each education line retains a separate icon and typography role. Iconic experience entries use the same textarea-block stack as project records (`SPACE_STACK` inside a job, `SPACE_RECORD` / 10 px between jobs) so canvas spacing matches exported PDF rhythm.
+Tessera and Slate fit complete compact sections via `_fit_sidebar_sections`; anything that does not fit spills into the main column instead of being truncated. Harbor instead uses its own page-aware right-column `Builder`, because each education line retains a separate icon and typography role. Harbor's 28 px inter-column gutter is also an explicit reflow boundary: a rule or marker lying entirely to the right of a main-column textarea belongs to the sidebar even when it falls inside the generic 32 px decoration tolerance. This prevents deep sidebar chrome from blocking reclaim of an experience record that still fits on page 1. For an already saved document, an equal-height page-2 measurement is allowed to run this reclaim once, so stale pagination repairs itself after the document is reopened without creating a render loop. Iconic experience entries use the same textarea-block stack as project records (`SPACE_STACK` inside a job, `SPACE_RECORD` / 10 px between jobs) so canvas spacing matches exported PDF rhythm.
 
 Implementation:
 
@@ -649,7 +649,7 @@ Implementation:
 
 Tests:
 
-- `frontend/src/utils/textareaReflow.test.js` — Iconic grouping, explicit `flowRole` values, keep-heading-with-body, stale-page gaps, chrome rhythm, non-collapsing record spacing, and page-2 section reclaim that reserves chrome + `SPACE_SECTION` when the body grows
+- `frontend/src/utils/textareaReflow.test.js` — Iconic grouping, explicit `flowRole` values, keep-heading-with-body, stale-page gaps, chrome rhythm, non-collapsing record spacing, page-2 section reclaim that reserves chrome + `SPACE_SECTION` when the body grows, and Harbor's narrow-gutter column isolation
 - `backend/tests/test_pdf_shapes.py`, lines 67–131 — optical alignment, explicit `alignWithText: false`, and alpha-mask regressions
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_iconic_experience_record_gap_matches_projects`
 
@@ -1856,7 +1856,7 @@ Znane ograniczenie: podobnie jak Tessera, sekcje sidebara są atomowe i pozostaj
 
 Nova, Volt, Cardinal, Harbor, Tessera i Slate to indywidualne szablony ze wspólnym tagiem layoutu `icons` (opcjonalnie też `sidebar` / `dark`). Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, obrazy ikon są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
 
-Tessera i Slate pakują kompletne sekcje przez `_fit_sidebar_sections`; to, co się nie mieści, trafia do kolumny głównej zamiast być ucinane. Harbor używa własnego page-aware `Builder` prawej kolumny, ponieważ każda linia edukacji zachowuje osobną ikonę i rolę typograficzną. Wpisy doświadczenia w Iconic używają tego samego stosu bloków textarea co projekty (`SPACE_STACK` w środku wpisu, `SPACE_RECORD` / 10 px między wpisami), żeby rytm na canvas zgadzał się z eksportem PDF.
+Tessera i Slate pakują kompletne sekcje przez `_fit_sidebar_sections`; to, co się nie mieści, trafia do kolumny głównej zamiast być ucinane. Harbor używa własnego page-aware `Builder` prawej kolumny, ponieważ każda linia edukacji zachowuje osobną ikonę i rolę typograficzną. Gutter 28 px między kolumnami Harbor jest też jawną granicą reflow: linia lub marker leżące w całości na prawo od textarea kolumny głównej należą do sidebara, nawet jeżeli mieszczą się w ogólnej tolerancji dekoracji 32 px. Dzięki temu nisko położony chrome sidebara nie blokuje odzyskania miejsca dla wpisu doświadczenia, który nadal mieści się na stronie 1. W już zapisanym dokumencie pomiar tej samej wysokości elementu ze strony 2 może jednokrotnie uruchomić reclaim, więc błędna paginacja naprawia się po ponownym otwarciu bez wywoływania pętli renderowania. Wpisy doświadczenia w Iconic używają tego samego stosu bloków textarea co projekty (`SPACE_STACK` w środku wpisu, `SPACE_RECORD` / 10 px między wpisami), żeby rytm na canvas zgadzał się z eksportem PDF.
 
 Implementacja:
 
@@ -1870,7 +1870,7 @@ Implementacja:
 
 Testy:
 
-- `frontend/src/utils/textareaReflow.test.js` — grupowanie Iconic, jawne wartości `flowRole`, keep-heading-with-body, stale-page gaps, rytm chrome, niekolidujące odstępy rekordów oraz reclaim sekcji ze strony 2 z rezerwacją chrome + `SPACE_SECTION` przy uroście body
+- `frontend/src/utils/textareaReflow.test.js` — grupowanie Iconic, jawne wartości `flowRole`, keep-heading-with-body, stale-page gaps, rytm chrome, niekolidujące odstępy rekordów, reclaim sekcji ze strony 2 z rezerwacją chrome + `SPACE_SECTION` przy uroście body oraz izolacja kolumn Harbor przy wąskim gutterze
 - `backend/tests/test_pdf_shapes.py`, linie 67–131 — wyrównanie optyczne, jawne `alignWithText: false` oraz maska alfa
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_iconic_experience_record_gap_matches_projects`
 
