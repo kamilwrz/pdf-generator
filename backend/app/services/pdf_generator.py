@@ -137,9 +137,11 @@ class PDF_Generator:
     def __init__(self, DATA, CANVAS):
         self.data = DATA
         self.c = CANVAS
-        # Page height drives the top-left -> bottom-left y flip everywhere.
-        # A4 portrait (842) is the default document geometry.
+        # Page height/width drive the top-left -> bottom-left y flip and the
+        # watermark's horizontal centering. A4 portrait (595×842) is the
+        # default document geometry.
         self.page_h = float(getattr(DATA, "page_height", 842) or 842)
+        self.page_w = float(getattr(DATA, "page_width", 595) or 595)
 
     def setTitle(self, title):
         """Set the PDF document title metadata shown in viewers."""
@@ -949,12 +951,40 @@ class PDF_Generator:
         self.c.showPage()
         self.c.save()
 
-    def render_elements(self, elements, image_resolver, pages=1):
+    def _draw_watermark(self):
+        """Overlay a faint diagonal "free plan" watermark on the current page.
+
+        Drawn AFTER normal element rendering and fully isolated with
+        saveState/restoreState, so it can never affect the coordinate
+        system or fill/stroke state other draw calls rely on. Opt-in via
+        `render_elements(..., watermark=True)` — the default path stays
+        byte-for-byte unchanged (this repo's Canvas<->PDF parity rule).
+        """
+        self.c.saveState()
+        try:
+            self.c.setFillColor(HexColor("#8A8A8A"))
+            self.c.setFillAlpha(0.14)
+            self.c.setFont("Helvetica-Bold", 28)
+            cx, cy = self.page_w / 2, self.page_h / 2
+            # Three repeats spaced down the page so at least one is visible
+            # regardless of where real content sits.
+            for offset in (-260, 0, 260):
+                self.c.saveState()
+                self.c.translate(cx, cy + offset)
+                self.c.rotate(45)
+                self.c.drawCentredString(0, 0, "CV STUDIO — WERSJA DARMOWA")
+                self.c.restoreState()
+        finally:
+            self.c.restoreState()
+
+    def render_elements(self, elements, image_resolver, pages=1, watermark=False):
         """Render every element onto the canvas, one ReportLab page per
         document page. Elements are grouped by their ``page`` attribute
         (1-based). Empty pages are still emitted so the page count is
         preserved. ``image_resolver(src)`` returns a local path ReportLab
-        can read."""
+        can read. ``watermark=True`` overlays a diagonal "free plan" stamp
+        on every page after its elements are drawn (Free-plan exports only
+        — see `document_service.py` / `pdf.py` callers)."""
         by_page = {}
         by_id = {}
         for element in elements:
@@ -1017,6 +1047,8 @@ class PDF_Generator:
                         # Preserve explicit False (geometric contact icons); None → path heuristic.
                         align_with_text=getattr(element, "alignWithText", None),
                     )
+            if watermark:
+                self._draw_watermark()
             self.c.showPage()
 
         self.c.save()
