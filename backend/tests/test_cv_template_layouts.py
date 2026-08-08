@@ -1511,6 +1511,46 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     self.assertTrue(element["autoHeight"])
                 self.assertGreater(max(element.get("page", 1) for element in elements), 1)
 
+    def test_harbor_wraps_complete_sidebar_education_without_x_overflow(self):
+        description = (
+            "Międzynarodowe prawo gospodarcze oraz regulacje przeciwdziałania "
+            "praniu pieniędzy w instytucjach finansowych."
+        )
+        cv = {
+            **LONG_CV,
+            "education": [{
+                "degree": "Bachelor of Laws (LL.B.) i dodatkowa specjalizacja",
+                "school": "Europejski Uniwersytet Viadrina we Frankfurcie nad Odrą",
+                "city": "Frankfurt nad Odrą",
+                "period": "2016 – 2019",
+                "description": description,
+            }],
+        }
+
+        elements = generate_resume("harbor", cv)
+        sidebar_blocks = [
+            element for element in elements
+            if element["category"] == "textarea"
+            and float(element.get("left", 0)) >= 364
+        ]
+
+        self.assertTrue(
+            any(element.get("content") == description for element in sidebar_blocks),
+            msg="Harbor truncated or omitted the education description",
+        )
+        self.assertTrue(sidebar_blocks, msg="Harbor emitted no wrapped sidebar blocks")
+        for element in sidebar_blocks:
+            self.assertLessEqual(
+                float(element["left"]) + float(element["width"]),
+                551,
+                msg=f"Harbor sidebar block overflows X: {element.get('content')!r}",
+            )
+            self.assertLessEqual(
+                float(element["top"]) + float(element["height"]),
+                770,
+                msg=f"Harbor sidebar block overflows the content footer: {element.get('content')!r}",
+            )
+
     def test_iconic_templates_pair_contact_and_section_icons(self):
         contact_keys = ("email", "phone", "location")
         for template_id, theme in (

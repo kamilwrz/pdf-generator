@@ -3,35 +3,20 @@ from __future__ import annotations
 from app.core.config import BACKEND_URL
 from app.services.cv_generator_primitives import (
     get_spacing,
-    SPACE_AFTER_HEADER_RULE,
-    SPACE_AFTER_MASTHEAD,
     Builder,
     _circle,
     _line,
     _text,
     section_chrome_height,
 )
-from app.services.cv_templates.shared.extras import (
-    _extra_sections,
-    _fit_sidebar_sections,
-    _flatten_extra_items,
-    _sidebar_candidates,
-)
+from app.services.cv_templates.shared.extras import _flatten_extra_items
 from app.services.cv_templates.shared.records import (
     _education_bullet_items,
-    _education_record_height,
-    _education_sidebar_content,
-    _experience_record_height,
-    _language_sidebar_lines,
-    _obsidian_education_parts,
-    _place_education_record,
-    _place_experience_record,
+    _education_school,
 )
 from app.services.cv_templates.shared.text import (
     _bullets,
     _compact_text,
-    _company_period,
-    _contact_line,
     _labels,
 )
 from app.services.cv_templates.shared.icons import _icon, _icon_beside
@@ -39,11 +24,11 @@ from app.services.cv_templates.shared.icons import _icon, _icon_beside
 def _gen_harbor(cv: dict) -> list[dict]:
     """Generate the Harbor two-column layout.
 
-    The main column (summary + experience) reflows across pages through a
-    ``Builder``; the right sidebar (education, skills, languages, tools as
-    teal-diamond bullet lists) is painted once on page 1 and does not repeat
-    on continuation pages. A single teal accent carries the role line, company
-    names and diamond bullets; all other ink is charcoal on white.
+    The main column (summary + experience) and right sidebar (education,
+    skills, languages, tools as teal-diamond lists) use independent measured
+    flows. Either column may continue on a later page without colliding with
+    the other. A single teal accent carries the role line, company names and
+    diamond bullets; all other ink is charcoal on white.
     """
     C = {
         "accent": "#17A2B8", "ink": "#2B2B2B", "body": "#3A3A3A",
@@ -114,83 +99,154 @@ def _gen_harbor(cv: dict) -> list[dict]:
     })
     section_start = header_rule_y + 20
 
-    # ── Sidebar (static, page 1) ────────────────────────────────────────────
-    def _side_head(label: str, top: float) -> list[dict]:
-        head = _text(label, 8.8, SANS, C["ink"], SIDE_X, top, zIndex=3)
-        head["letterSpacing"] = 1.1
-        return [head, _line(SIDE_X, top + 13, SIDE_W, 1, C["rule"], zIndex=2)]
+    # ── Sidebar (independent flow in the right column) ──────────────────────
+    #
+    # Sidebar copy must be measured, not advanced by a fixed 15 px cursor.
+    # Real education descriptions commonly wrap to two or more lines. Drawing
+    # them as compact single-line text both truncated content and let it escape
+    # past the page's right edge while subsequent sections kept the old Y step.
+    SIDE_BODY_X = SIDE_X + 16
+    SIDE_BODY_W = SIDE_W - 16
+    SIDE_ITEM_FS, SIDE_ITEM_LH = 8.6, 11.5
+    SECTION_CHROME = section_chrome_height(8.8)
+    side_b = Builder(section_start)
 
-    sidebar: list[dict] = []
-    sy = section_start
+    def side_section(label: str, first_body_height: float) -> None:
+        side_b.need_section(SECTION_CHROME, first_body_height)
+        side_b.text(label, 8.8, SANS, C["ink"], SIDE_X)
+        side_b.els[-1]["letterSpacing"] = 1.1
+        side_b.els[-1]["flowRole"] = "section-chrome"
+        side_b.line(SIDE_X, SIDE_W, 1, C["rule"])
+        side_b.els[-1]["flowRole"] = "section-chrome"
+        side_b.gap(get_spacing().after_rule)
+
+    def side_block(content: str, fs: float, lh: float, color: str, *,
+                   bold: bool = False, left: float = SIDE_X,
+                   width: float = SIDE_W) -> float:
+        return side_b.block(
+            str(content or "").strip(), left, width, fs, lh, color, SANS,
+            bold=bold, min_h=lh,
+        )
+
+    def side_icon_line(icon_name: str, content: str, *, accent: bool = False,
+                       color: str | None = None) -> None:
+        text_content = str(content or "").strip()
+        if not text_content:
+            return
+        height = side_b.measure_block(
+            text_content, SIDE_BODY_W, SIDE_ITEM_FS, SIDE_ITEM_LH, SANS,
+            min_h=SIDE_ITEM_LH,
+        )
+        side_b.need(height)
+        top, page = side_b.y, side_b.pg
+        side_b.els.append(_hicon(
+            icon_name, SIDE_X, top, 11,
+            accent=accent, page=page, flow_role="content",
+        ))
+        side_block(
+            text_content, SIDE_ITEM_FS, SIDE_ITEM_LH,
+            color or C["ink"], left=SIDE_BODY_X, width=SIDE_BODY_W,
+        )
+        side_b.gap(2)
 
     if cv.get("education"):
-        sidebar += _side_head(lbl["education"], sy)
-        sy += 24
-        for edu in cv["education"][:2]:
-            degree = _compact_text(edu.get("degree") or edu.get("title"), 40)
-            school = _compact_text(edu.get("school"), 40)
-            period = _compact_text(edu.get("period"), 24)
-            city = _compact_text(edu.get("city"), 26)
-            if degree:
-                sidebar.append(_text(degree, 10, SANS, C["ink"], SIDE_X, sy, zIndex=3, bold=True))
-                sy += 16
-            if school:
-                sidebar.append(_text(school, 9, SANS, C["accent"], SIDE_X, sy, zIndex=3))
-                sy += 16
-            if period:
-                sidebar.append(_hicon("calendar", SIDE_X, sy, 11))
-                sidebar.append(_text(period, 8.2, SANS, C["meta"], SIDE_X + 15, sy, zIndex=3))
-                sy += 15
-            if city:
-                sidebar.append(_hicon("location", SIDE_X, sy, 11))
-                sidebar.append(_text(city, 8.2, SANS, C["meta"], SIDE_X + 15, sy, zIndex=3))
-                sy += 15
-            for item in _education_bullet_items(edu)[:4]:
-                sidebar.append(_hicon("diamond", SIDE_X, sy, 11, accent=True))
-                sidebar.append(_text(_compact_text(item, 34), 8.6, SANS, C["ink"], SIDE_X + 16, sy, zIndex=3))
-                sy += 15
-            sy += 6
-        sy += 12
+        first_edu = cv["education"][0]
+        first_degree = str(first_edu.get("degree") or first_edu.get("title") or "").strip()
+        first_height = side_b.measure_block(
+            first_degree, SIDE_W, 10, 13, SANS, bold=True, min_h=13,
+        )
+        side_section(lbl["education"], first_height)
+        for edu in cv["education"]:
+            degree = str(edu.get("degree") or edu.get("title") or "").strip()
+            school = _education_school(edu)
+            period = str(edu.get("period") or "").strip()
+            city = str(edu.get("city") or "").strip()
+            items = _education_bullet_items(edu)
+
+            record_height = 0.0
+            for content, width, fs, lh, is_bold in (
+                (degree, SIDE_W, 10, 13, True),
+                (school, SIDE_W, 9, 12, False),
+                (period, SIDE_BODY_W, SIDE_ITEM_FS, SIDE_ITEM_LH, False),
+                (city, SIDE_BODY_W, SIDE_ITEM_FS, SIDE_ITEM_LH, False),
+                *((item, SIDE_BODY_W, SIDE_ITEM_FS, SIDE_ITEM_LH, False) for item in items),
+            ):
+                if content:
+                    record_height += side_b.measure_block(
+                        content, width, fs, lh, SANS, bold=is_bold, min_h=lh,
+                    ) + 2
+
+            with side_b.keep_together(record_height):
+                side_block(degree, 10, 13, C["ink"], bold=True)
+                if school:
+                    side_b.gap(2)
+                    side_block(school, 9, 12, C["accent"])
+                side_icon_line("calendar", period, color=C["meta"])
+                side_icon_line("location", city, color=C["meta"])
+                for item in items:
+                    side_icon_line("diamond", item, accent=True)
+            side_b.gap(get_spacing().record)
+        side_b.gap(get_spacing().section)
 
     if cv.get("skills"):
-        sidebar += _side_head(lbl["skills"], sy)
-        iy = sy + 24
-        for skill in cv["skills"][:12]:
-            sidebar.append(_hicon("diamond", SIDE_X, iy, 11, accent=True))
-            sidebar.append(_text(_compact_text(skill, 34), 8.6, SANS, C["ink"], SIDE_X + 16, iy, zIndex=3))
-            iy += 15
-        sy = iy + 12
+        skills = [str(skill or "").strip() for skill in cv["skills"] if str(skill or "").strip()]
+        first_height = (
+            side_b.measure_block(
+                skills[0], SIDE_BODY_W, SIDE_ITEM_FS, SIDE_ITEM_LH, SANS,
+                min_h=SIDE_ITEM_LH,
+            )
+            if skills else 0
+        )
+        side_section(lbl["skills"], first_height)
+        for skill in skills:
+            side_icon_line("diamond", skill, accent=True)
+        side_b.gap(get_spacing().section)
 
     if cv.get("languages"):
-        sidebar += _side_head("JĘZYKI", sy)
-        ly = sy + 24
-        for language in cv["languages"][:6]:
-            lang_name = _compact_text(language.get("name"), 22)
-            level = _compact_text(language.get("level"), 12)
-            line = f"{lang_name} — {level}" if lang_name and level else (lang_name or level)
-            if not line:
-                continue
-            sidebar.append(_hicon("diamond", SIDE_X, ly, 11, accent=True))
-            sidebar.append(_text(_compact_text(line, 34), 8.6, SANS, C["ink"], SIDE_X + 16, ly, zIndex=3))
-            ly += 15
-        sy = ly + 12
+        language_lines = []
+        for language in cv["languages"]:
+            if isinstance(language, dict):
+                name = str(language.get("name") or "").strip()
+                level = str(language.get("level") or "").strip()
+                value = f"{name} — {level}" if name and level else (name or level)
+            else:
+                value = str(language or "").strip()
+            if value:
+                language_lines.append(value)
+        first_height = (
+            side_b.measure_block(
+                language_lines[0], SIDE_BODY_W, SIDE_ITEM_FS, SIDE_ITEM_LH, SANS,
+                min_h=SIDE_ITEM_LH,
+            )
+            if language_lines else 0
+        )
+        side_section("JĘZYKI", first_height)
+        for language in language_lines:
+            side_icon_line("diamond", language, accent=True)
+        side_b.gap(get_spacing().section)
 
-    # Every remaining custom section becomes a teal-diamond bulleted list.
-    for custom in (cv.get("custom_sections") or [])[:3]:
+    # Every remaining custom section becomes a complete, wrapped diamond list.
+    for custom in cv.get("custom_sections") or []:
         items = _flatten_extra_items(custom.get("items"))
-        if not items:
+        title = str(custom.get("title") or "").strip().upper()
+        if not title or not items:
             continue
-        sidebar += _side_head(_compact_text(custom.get("title"), 30), sy)
-        iy = sy + 24
-        for item in items[:8]:
-            sidebar.append(_hicon("diamond", SIDE_X, iy, 11, accent=True))
-            sidebar.append(_text(_compact_text(item, 34), 8.6, SANS, C["ink"], SIDE_X + 16, iy, zIndex=3))
-            iy += 15
-        sy = iy + 12
+        first_height = side_b.measure_block(
+            items[0], SIDE_BODY_W, SIDE_ITEM_FS, SIDE_ITEM_LH, SANS,
+            min_h=SIDE_ITEM_LH,
+        )
+        side_section(title, first_height)
+        for item in items:
+            side_icon_line("diamond", item, accent=True)
+        side_b.gap(get_spacing().section)
+
+    sidebar = [
+        {**element, "flowRole": element.get("flowRole", "content")}
+        for element in side_b.build()
+    ]
 
     # ── Main column (reflows across pages) ──────────────────────────────────
     b = Builder(section_start)
-    SECTION_CHROME = section_chrome_height(8.8)
 
     def section(label: str) -> None:
         b.text(label, 8.8, SANS, C["ink"], MAIN_X)
@@ -270,5 +326,6 @@ def _gen_harbor(cv: dict) -> list[dict]:
             {**_text(f"{page:02d}", 8, SANS, C["meta"], 535, 812, zIndex=3, page=page), "fixedToPage": True},
         )
     ]
-    # The sidebar only exists on page 1; keep it out of continuation pages.
+    # Both columns are page-aware independent flows; decorations cover every
+    # page used by either side.
     return page_decorations + header + sidebar + flow
