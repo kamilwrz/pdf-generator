@@ -227,6 +227,125 @@ describe("listDocumentSections", () => {
 });
 
 describe("sectionElementIds", () => {
+  it("rehomes a body trapped under a stacked continuation heading", () => {
+    // Continuation-page corruption: Obsługa chrome, then Języki chrome, then
+    // Obsługa body. Y-interval membership used to give both bodies to Języki
+    // and packing emitted heading → heading → body → body.
+    const elements = [
+      {
+        element_id: "h1",
+        category: "text",
+        flowRole: "section-chrome",
+        content: "OBSŁUGA KOMPUTERA",
+        page: 2,
+        top: 66,
+        left: 66,
+        fontSize: 8.6,
+        height: 12,
+      },
+      {
+        element_id: "i1",
+        category: "image",
+        flowRole: "section-chrome",
+        alignWithText: true,
+        src: "/template-assets/iconic/nova/skills.png",
+        page: 2,
+        top: 66,
+        left: 48,
+        width: 14,
+        height: 14,
+      },
+      {
+        element_id: "r1",
+        category: "line",
+        flowRole: "section-chrome",
+        page: 2,
+        top: 83,
+        left: 66,
+        width: 481,
+        height: 1,
+      },
+      {
+        element_id: "h2",
+        category: "text",
+        flowRole: "section-chrome",
+        content: "JĘZYKI",
+        page: 2,
+        top: 94,
+        left: 66,
+        fontSize: 8.6,
+        height: 12,
+      },
+      {
+        element_id: "i2",
+        category: "image",
+        flowRole: "section-chrome",
+        alignWithText: true,
+        src: "/template-assets/iconic/nova/languages.png",
+        page: 2,
+        top: 94,
+        left: 48,
+        width: 14,
+        height: 14,
+      },
+      {
+        element_id: "r2",
+        category: "line",
+        flowRole: "section-chrome",
+        page: 2,
+        top: 111,
+        left: 66,
+        width: 481,
+        height: 1,
+      },
+      {
+        element_id: "b1",
+        category: "textarea",
+        flowRole: "content",
+        autoHeight: true,
+        content: "biegła znajomość MS Office",
+        page: 2,
+        top: 120,
+        left: 66,
+        height: 24,
+      },
+      {
+        element_id: "b2",
+        category: "textarea",
+        flowRole: "content",
+        autoHeight: true,
+        bulletList: true,
+        content: "• angielski",
+        page: 2,
+        top: 154,
+        left: 66,
+        height: 40,
+      },
+    ];
+
+    const skillsIds = sectionElementIds(elements, "h1", 842);
+    const langIds = sectionElementIds(elements, "h2", 842);
+    assert.equal(skillsIds.has("b1"), true, "Obsługa keeps its body");
+    assert.equal(skillsIds.has("r1"), true, "Obsługa keeps its underline");
+    assert.equal(skillsIds.has("h2"), false, "Języki heading stays out of Obsługa");
+    assert.equal(langIds.has("b2"), true, "Języki keeps its body");
+    assert.equal(langIds.has("b1"), false, "Obsługa body is not stolen by Języki");
+    assert.equal(langIds.has("r1"), false, "previous underline is not stolen");
+
+    const packed = applyFlowSpacing(elements, {
+      stack: 4,
+      record: 10,
+      section: 11,
+      after_rule: 8,
+    }, 842);
+    const abs = (element) => (element.page - 1) * 842 + element.top;
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+    assert.ok(abs(byId.h1) < abs(byId.r1));
+    assert.ok(abs(byId.r1) < abs(byId.b1));
+    assert.ok(abs(byId.b1) < abs(byId.h2));
+    assert.ok(abs(byId.h2) < abs(byId.b2));
+  });
+
   it("does not absorb the next Monument badge/frame into the previous section", () => {
     // Regression: previous section end was the next heading baseline, so the
     // next badge/frame at heading−8 fell into [start, end) and packing rebuilt
