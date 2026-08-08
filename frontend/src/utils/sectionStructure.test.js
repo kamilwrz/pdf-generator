@@ -12,6 +12,8 @@ import {
   reorderSection,
   sectionElementIds,
 } from "./sectionStructure.js";
+import { novaTemplate, voltTemplate } from "../templates/iconic.js";
+import { cardinalTemplate } from "../templates/cardinal.js";
 
 /**
  * Two-column sidebar fixture modeled on Tessera/Slate's real geometry
@@ -907,6 +909,41 @@ describe("applyFlowSpacing", () => {
     assert.ok(byId.mark1.top < byId.r1.top + 4, "mark stays in the heading band, not below the rule");
   });
 
+  it("treats explicitly tagged decorative chrome as a rigid composition", () => {
+    const elements = [
+      {
+        element_id: "masthead", category: "text", flowRole: "masthead",
+        content: "NAME", page: 1, top: 60, height: 30, left: 48,
+      },
+      {
+        element_id: "frame", category: "rectangle", flowRole: "section-chrome",
+        page: 1, top: 180, height: 18, width: 220, left: 48,
+      },
+      {
+        element_id: "heading", category: "text", flowRole: "section-chrome",
+        content: "EXPERIENCE", page: 1, top: 203, height: 10, left: 66,
+      },
+      {
+        element_id: "rule", category: "line", flowRole: "section-chrome",
+        page: 1, top: 224, height: 1, width: 481, left: 66,
+      },
+      {
+        element_id: "body", category: "textarea", flowRole: "content",
+        autoHeight: true, page: 1, top: 238, height: 40, left: 66,
+      },
+    ];
+
+    const packed = applyFlowSpacing(elements, {
+      stack: 1, record: 30, section: 40, after_rule: 12,
+    }, 842);
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+
+    assert.equal(byId.heading.top - byId.frame.top, 23);
+    assert.equal(byId.rule.top - byId.frame.top, 44);
+    assert.equal(byId.heading.left, 66);
+    assert.equal(byId.rule.left, 66);
+  });
+
   it("does not treat masthead contact lines as section headings", () => {
     const elements = [
       {
@@ -962,6 +999,121 @@ describe("applyFlowSpacing", () => {
     ];
     const sections = listDocumentSections(elements);
     assert.deepEqual(sections.map((section) => section.title), ["PODSUMOWANIE ZAWODOWE"]);
+  });
+
+  it("heals an iconic CV that a prior pack forced to the 36px Regent clearance", () => {
+    const elements = [
+      {
+        element_id: "rule",
+        category: "line",
+        flowRole: "masthead",
+        page: 1,
+        top: 160,
+        left: 48,
+        width: 499,
+        height: 1,
+      },
+      {
+        element_id: "mail-icon",
+        category: "image",
+        flowRole: "masthead",
+        alignWithText: true,
+        src: "/template-assets/iconic/nova/email.png",
+        page: 1,
+        top: 134,
+        left: 50,
+        width: 14,
+        height: 14,
+      },
+      {
+        element_id: "h1",
+        category: "text",
+        flowRole: "section-chrome",
+        content: "PODSUMOWANIE ZAWODOWE",
+        page: 1,
+        top: 197, // 161 + 36 — classic forced-clearance corruption
+        left: 66,
+        fontSize: 8.6,
+        height: 12,
+      },
+      {
+        element_id: "r1",
+        category: "line",
+        flowRole: "section-chrome",
+        page: 1,
+        top: 214,
+        left: 66,
+        width: 481,
+        height: 1,
+      },
+      {
+        element_id: "a1",
+        category: "textarea",
+        flowRole: "content",
+        autoHeight: true,
+        page: 1,
+        top: 222,
+        height: 40,
+        left: 66,
+      },
+    ];
+    const packed = applyFlowSpacing(elements, {
+      stack: 4,
+      record: 10,
+      section: 21,
+      after_rule: 8,
+    }, 842);
+    const heading = packed.find((element) => element.element_id === "h1");
+    assert.ok(
+      heading.top >= 168 && heading.top <= 176,
+      `iconic first section should heal under the masthead, got top=${heading.top}`,
+    );
+  });
+
+  it("preserves tight iconic masthead→section gaps instead of forcing 36px", () => {
+    // Nova authors ~8px under the divider; an older MIN gap of 20px treated that
+    // as corruption and shoved every section down by ~28px (Cardinal/Volt too).
+    for (const [name, template] of [
+      ["nova", novaTemplate],
+      ["cardinal", cardinalTemplate],
+      ["volt", voltTemplate],
+    ]) {
+      const source = template.map((element, index) => ({
+        ...element,
+        element_id: `${name}-${index}`,
+        page: 1,
+      }));
+      const before = listDocumentSections(source, 842);
+      const firstBefore = source.find((element) => (
+        element.element_id === before[0]?.headingId
+      ));
+      const packed = applyFlowSpacing(source, {
+        stack: 4,
+        record: 8,
+        section: 0,
+        after_rule: 8,
+      }, 842);
+      const after = listDocumentSections(packed, 842);
+      const firstAfter = packed.find((element) => (
+        element.element_id === after[0]?.headingId
+      ));
+      assert.ok(firstBefore, `${name}: expected a first section before pack`);
+      assert.equal(
+        firstAfter?.top,
+        firstBefore.top,
+        `${name}: first section must keep authored top ${firstBefore.top}, got ${firstAfter?.top}`,
+      );
+      // Band start (icons / rules above the label) must not jump either.
+      assert.ok(
+        Math.abs((after[0]?.startAbs ?? 0) - (before[0]?.startAbs ?? 0)) < 0.5,
+        `${name}: chrome band start shifted from ${before[0]?.startAbs} to ${after[0]?.startAbs}`,
+      );
+      assert.deepEqual(
+        after.map((section) => section.title),
+        before.map((section) => section.title),
+        `${name}: packing must not invent phantom section headings`,
+      );
+    }
   });
 
   it("keeps Regent masthead clearance when packing after a corrupted heading gap", () => {

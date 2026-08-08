@@ -33,6 +33,13 @@ const PAGE_BREAK_GAP_THRESHOLD = 40;
  * solid-band templates like Cinder use ~32 — both sit in this band).
  */
 const DEFAULT_MASTHEAD_CLEARANCE = 36;
+/**
+ * Iconic mastheads (Nova / Cardinal / Volt) author 8–18px under the divider;
+ * Regent/Aldine sit nearer 20–40px. Only gaps outside this window are treated
+ * as corruption and replaced with DEFAULT_MASTHEAD_CLEARANCE.
+ */
+const MIN_AUTHORED_MASTHEAD_CLEARANCE = 6;
+const MAX_AUTHORED_MASTHEAD_CLEARANCE = 56;
 
 function absoluteTop(element, pageHeight = 842) {
   const page = Math.max(1, Math.trunc(Number(element?.page) || 1));
@@ -168,6 +175,11 @@ export function isSectionHeading(element, elements = [], pageHeight = 842) {
   if ((content.match(/·/g) || []).length >= 1 && /\d/.test(content)) return false;
   // Phone-only masthead labels (Nova/Cardinal icon rows) have no @ / mid-dot.
   if (/^\+?\d[\d\s().\-/]{5,}$/.test(content)) return false;
+  // Untagged education/experience period lines ("2011 – 2016") sit above the
+  // next section rule after a pack and must not become phantom headings.
+  if (/^\d{4}\s*[–—\-]\s*(?:\d{4}|obecnie|present|now)\s*$/i.test(content)) {
+    return false;
+  }
   // Label sitting beside a masthead icon on the same row is contact chrome.
   if (hasMastheadIconCompanion(element, elements)) return false;
 
@@ -328,6 +340,21 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
 }
 
 /**
+ * True when the masthead uses Iconic contact glyphs (Nova / Cardinal / Volt /
+ * Harbor). Those templates author a tight 8–18px band under the divider; the
+ * Regent-style 36px fallback is never intentional for them.
+ */
+function hasIconicMasthead(elements) {
+  return (elements || []).some((element) => (
+    element
+    && !element.fixedToPage
+    && element.category === "image"
+    && (element.flowRole === "masthead" || Boolean(element.alignWithText))
+    && /\/template-assets\/iconic\//.test(String(element.src || ""))
+  ));
+}
+
+/**
  * Absolute Y where the first flow section should start, anchored under the
  * masthead so corrupted heading positions cannot open a large white gap
  * (Regent) or climb into the header band.
@@ -349,10 +376,25 @@ function resolveFlowStart(elements, sections, pageHeight) {
   if (mastheadBottom <= 0) return headingStart;
 
   const authoredGap = headingStart - mastheadBottom;
-  const clearance = (authoredGap >= 20 && authoredGap <= 56)
-    ? authoredGap
-    : DEFAULT_MASTHEAD_CLEARANCE;
-  return mastheadBottom + clearance;
+  const iconic = hasIconicMasthead(list);
+  // A previous pack forced DEFAULT_MASTHEAD_CLEARANCE onto Nova/Cardinal/Volt.
+  // That 36px band is valid for Regent, but iconic templates never author it —
+  // heal back to a tight clearance so already-saved broken CVs recover on the
+  // next spacing / reorder pack without requiring a full template reload.
+  if (iconic && authoredGap >= 28 && authoredGap <= 40) {
+    return mastheadBottom + 10;
+  }
+  // Preserve tight iconic gaps (Nova ~8px) and normal Regent/Aldine gaps.
+  // Huge white bands or overlaps mean a prior pack corrupted the start.
+  if (
+    authoredGap >= MIN_AUTHORED_MASTHEAD_CLEARANCE
+    && authoredGap <= MAX_AUTHORED_MASTHEAD_CLEARANCE
+  ) {
+    return mastheadBottom + authoredGap;
+  }
+  return mastheadBottom + (
+    iconic ? 10 : DEFAULT_MASTHEAD_CLEARANCE
+  );
 }
 
 function isChromeLike(element) {
@@ -509,6 +551,44 @@ function compactChromeCluster(chromeElements, pageHeight) {
 
   const heading = chromeTitleAnchor(chromeElements);
   const headingAbs = absoluteTop(heading, pageHeight);
+  const explicitlyOwned = chromeElements.every(
+    (element) => element.flowRole === "section-chrome",
+  );
+  const smallMarker = chromeElements.find((element) => {
+    if (!["rectangle", "circle", "image"].includes(element.category)) return false;
+    return (Number(element.width) || 0) <= 40 && elementHeight(element) <= 40;
+  });
+  const wideRule = chromeElements.find((element) => (
+    element.category === "line" && (Number(element.width) || 0) >= 120
+  ));
+  const tallBadge = chromeElements.find((element) => (
+    element.category === "line"
+    && (Number(element.width) || 0) < 120
+    && elementHeight(element) >= 20
+  ));
+  const markerWasStacked = smallMarker && wideRule
+    && absoluteTop(smallMarker, pageHeight) >= absoluteBottom(heading, pageHeight)
+    && absoluteTop(smallMarker, pageHeight) - absoluteBottom(heading, pageHeight) <= 16
+    && absoluteTop(wideRule, pageHeight) >= absoluteBottom(smallMarker, pageHeight)
+    && absoluteTop(wideRule, pageHeight) - absoluteBottom(smallMarker, pageHeight) <= 16;
+  const monumentRuleWasFlattened = tallBadge && wideRule
+    && absoluteTop(wideRule, pageHeight) - absoluteTop(tallBadge, pageHeight) > 20;
+
+  if (explicitlyOwned && !markerWasStacked && !monumentRuleWasFlattened) {
+    // Explicit section chrome is authored as one rigid visual composition.
+    // Rebuilding it from generic heading/rule heuristics changes template-
+    // specific offsets (chips, icons, frames and rules) every time a spacing
+    // slider is used. The two legacy-corruption signatures above remain
+    // repairable, while healthy custom compositions keep their exact geometry.
+    const items = chromeElements.map((element) => ({
+      element,
+      relTop: absoluteTop(element, pageHeight) - headingAbs,
+    }));
+    const minRel = Math.min(...items.map((item) => item.relTop));
+    for (const item of items) item.relTop -= minRel;
+    return items.sort((left, right) => left.relTop - right.relTop
+      || (Number(left.element.left) || 0) - (Number(right.element.left) || 0));
+  }
 
   // Pieces far from the heading were stranded by an earlier footer pack.
   const COHERENT_SPAN = 48;

@@ -33,7 +33,7 @@ test("Cardinal reserves red for headings while icons and rules stay grey", () =>
 
     // ── Generated icons: grey cardinal theme, one per heading and contact ────
     const icons = cardinalTemplate.filter((element) => element.category === "image");
-    assert.equal(icons.length, 8); // 5 section headings + 3 contact rows
+    assert.equal(icons.length, 10); // 5 section headings + 5 contact rows (incl. LinkedIn/GitHub)
     assert.ok(icons.every((element) => element.src.includes("/template-assets/iconic/cardinal/")));
     assert.ok(icons.every((element) => element.alignWithText === true));
 

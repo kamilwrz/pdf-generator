@@ -178,14 +178,14 @@ export const voltTemplate = [
     ...voltContact("github", 224, 136, 148, "github.com/mlis"),
 
     ...voltSection("summary", "PODSUMOWANIE ZAWODOWE", 176),
-    line(78, 174, 469, 1, VOLT_RULE, 1),
+    chrome(line(78, 174, 469, 1, VOLT_RULE, 1)),
     block(
         "Buduję platformy, które zdejmują złożoność z zespołów produktowych. Łączę architekturę, observability i kulturę właścicielstwa usług.",
         78, 188, 469, 42, 10, 14.6, VOLT_BODY, VOLT_SANS
     ),
 
     ...voltSection("experience", "DOŚWIADCZENIE ZAWODOWE", 250),
-    line(78, 276, 469, 1, VOLT_RULE, 1),
+    chrome(line(78, 276, 469, 1, VOLT_RULE, 1)),
     bold(text("Staff Engineer  /  Northstar Cloud", 11, VOLT_SANS, VOLT_INK, 78, 294, 3)),
     text("2021 – obecnie  ·  Platform Engineering", 8.4, VOLT_MONO, VOLT_MUTE, 78, 312, 3),
     bulleted(block(
@@ -200,15 +200,15 @@ export const voltTemplate = [
     )),
 
     ...voltSection("education", "WYKSZTAŁCENIE", 504),
-    line(78, 530, 469, 1, VOLT_RULE, 1),
+    chrome(line(78, 530, 469, 1, VOLT_RULE, 1)),
     bold(text("Informatyka  /  Politechnika Warszawska", 10.4, VOLT_SANS, VOLT_INK, 78, 548, 3)),
     text("2011 – 2016", 8.4, VOLT_MONO, VOLT_MUTE, 78, 566, 3),
 
     ...voltSection("skills", "UMIEJĘTNOŚCI", 600),
-    line(78, 626, 469, 1, VOLT_RULE, 1),
+    chrome(line(78, 626, 469, 1, VOLT_RULE, 1)),
     block("Go  ·  TypeScript  ·  Kubernetes  ·  AWS  ·  Observability  ·  System design", 78, 642, 469, 22, 9.3, 13.4, VOLT_BODY, VOLT_SANS),
 
     ...voltSection("languages", "JĘZYKI", 682),
-    line(78, 708, 469, 1, VOLT_RULE, 1),
+    chrome(line(78, 708, 469, 1, VOLT_RULE, 1)),
     block("Polski — ojczysty  ·  Angielski — C1", 78, 724, 469, 18, 9.3, 13.4, VOLT_BODY, VOLT_SANS),
 ];
