@@ -6,6 +6,7 @@
  * Embedding the list inside the rail collapses titles.
  */
 import { use, useEffect, useMemo } from "react";
+import { nanoid } from "nanoid";
 import { FiChevronDown, FiChevronUp, FiPlus, FiX } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import {
@@ -18,6 +19,7 @@ import {
   flowSpacingEquals,
   normalizeFlowSpacing,
 } from "../../../utils/flowSpacing";
+import { reconcileDocumentPages } from "../../../utils/structureOperation";
 import classes from "./SectionsPanel.module.css";
 
 /** User-facing spacing knobs — keys stay aligned with SPACE_* in the generator. */
@@ -47,6 +49,7 @@ export default function SectionsPanel({ onClose }) {
   const {
     A4_Elements,
     setA4_Elements,
+    setPageCount,
     pageSize,
     flowSpacing,
     setFlowSpacing,
@@ -76,11 +79,19 @@ export default function SectionsPanel({ onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  function commitPackedElements(packed) {
+    const reconciled = reconcileDocumentPages(packed, nanoid, {
+      collapseEmpty: true,
+    });
+    setPageCount(reconciled.pageCount);
+    setA4_Elements(reconciled.elements);
+  }
+
   function move(headingId, direction) {
     const next = reorderSection(A4_Elements, headingId, direction, pageHeight, {
       spacing,
     });
-    if (next) setA4_Elements(next);
+    if (next) commitPackedElements(next);
   }
 
   function applySpacing(nextSpacing) {
@@ -90,7 +101,7 @@ export default function SectionsPanel({ onClose }) {
     // sections onto page 1.
     if (flowSpacingEquals(spacing, normalized)) return;
     setFlowSpacing(normalized);
-    setA4_Elements((prev) => applyFlowSpacing(prev, normalized, pageHeight));
+    commitPackedElements(applyFlowSpacing(A4_Elements, normalized, pageHeight));
   }
 
   function handleSpacingChange(key, rawValue) {

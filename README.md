@@ -111,7 +111,7 @@ Section headings are kept with their first body block across page breaks: `avoid
 
 ### Decorative chrome
 
-Elements with `fixedToPage: true` (backgrounds, frames, sidebars, page numbers) are cloned across pages by default and must not be selected/moved/deleted in the UI (`isDecorativeChrome` in `frontend/src/utils/elementInteraction.js`). First-page-only chrome sets `repeatOnContinuation: false`, which prevents `cloneFixedPageDecorations` from copying it when overflow creates another page. Design rating prompts respect template typography.
+Elements with `fixedToPage: true` (backgrounds, frames, sidebars, page numbers) are cloned across pages by default and must not be selected/moved/deleted in the UI (`isDecorativeChrome` in `frontend/src/utils/elementInteraction.js`). First-page-only chrome sets `repeatOnContinuation: false`, which prevents `cloneFixedPageDecorations` from copying it when overflow creates another page. `reconcileDocumentPages` in `frontend/src/utils/structureOperation.js` keeps page chrome in sync: **Dodaj stronę** / Next past the last page clones template aesthetics with a correct page label (including zero-padded Nova-style `01`/`02`); content overflow from reflow or section edits creates the missing continuation the same way; when interactive content leaves a trailing page, chrome-only pages collapse and `pageCount` shrinks. Design rating prompts respect template typography.
 
 ---
 
@@ -1390,7 +1390,7 @@ Nagłówki sekcji zostają z pierwszym blokiem treści przy podziale strony: `av
 
 ### Dekoracje szablonu
 
-Elementy z `fixedToPage: true` — tła, ramki, sidebary, numery stron — są domyślnie klonowane na kolejne strony i nie można ich zaznaczać, przesuwać ani usuwać w UI (`isDecorativeChrome`). Dekoracje przeznaczone wyłącznie dla pierwszej strony ustawiają `repeatOnContinuation: false`, dzięki czemu `cloneFixedPageDecorations` nie kopiuje ich po utworzeniu nowej strony przez overflow. Ocena „Projekt” respektuje typografię szablonu.
+Elementy z `fixedToPage: true` — tła, ramki, sidebary, numery stron — są domyślnie klonowane na kolejne strony i nie można ich zaznaczać, przesuwać ani usuwać w UI (`isDecorativeChrome`). Dekoracje przeznaczone wyłącznie dla pierwszej strony ustawiają `repeatOnContinuation: false`, dzięki czemu `cloneFixedPageDecorations` nie kopiuje ich po utworzeniu nowej strony przez overflow. `reconcileDocumentPages` w `frontend/src/utils/structureOperation.js` utrzymuje chrome stron: **Dodaj stronę** / strzałka Dalej poza ostatnią stronę klonuje estetykę szablonu z poprawnym numerem (w tym zero-padded Nova `01`/`02`); overflow treści z reflow lub edycji sekcji tworzy brakującą kontynuację tak samo; gdy interaktywna treść znika z końcowej strony, strony tylko z chrome są zwijane i `pageCount` maleje. Ocena „Projekt” respektuje typografię szablonu.
 
 ---
 

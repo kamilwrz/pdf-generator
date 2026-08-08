@@ -46,6 +46,6 @@ DONE 15) Dane uzytkownika w CV WIZZARD powinny przetrwac do WIZARDA po Rejestrac
 
 16) SEKCJA Umiejetnosci, wedle 2 lub 3 kolumn, jak jest podzial w CV na podsekcje (AI)
 
-17) (P) - po skasowaniu strony i przejscie wszystkich elementow na 1, ponowny przejscie na 2 (ktorej juz nie ma), powinno stworzyc 2 strone od nowa wedle estetyki szablonu z dobraym nr strony. Jednoczesnie znikniecie elementow z 2 strony powinno ja kasowac. Dodaj strone powinno tworzyc nowa strone z dobrym nr na wzor szablonu
+DONE 17) po skasowaniu strony / zniknieciu tresci ze str. 2 — chrome sie zwija; Dodaj/Next/overflow tworzy strone z estetyka szablonu i dobrym nr (reconcileDocumentPages)
 
 4. AI - zastanowic sie i zmodyfikowac / reImplement

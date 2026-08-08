@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 import { getElementBounds } from '../utils/elementBounds';
 import { measureTextareaHeight } from '../utils/textareaHeight';
 import { reflowTextareaHeight } from '../utils/textareaReflow';
-import { cloneFixedPageDecorations } from '../utils/structureOperation';
+import { reconcileDocumentPages } from '../utils/structureOperation';
 import { findPageCanvasAtPoint } from '../utils/pageSpread';
 import { moveElementsByDelta } from '../utils/pageDrag';
 import { sanitizeTextContent } from '../utils/sanitizeTextContent';
@@ -363,22 +363,53 @@ export function useA4Elements(titleRef) {
     setConnectSourceId(null);
   }, [canvasForPage, visibleCanvasEntries, connectSourceId]);
 
+  /**
+   * After content/page edits, clone template chrome onto new pages, drop
+   * chrome-only trailing pages, and keep page-number labels in sync.
+   *
+   * @param {object[]} elements
+   * @param {{ minPageCount?: number, collapseEmpty?: boolean }} [options]
+   * @returns {object[]}
+   */
+  const finalizeDocumentPages = useCallback((elements, options = {}) => {
+    const reconciled = reconcileDocumentPages(elements, nanoid, options);
+    reflowPageCountRef.current = reconciled.pageCount;
+    return reconciled.elements;
+  }, []);
+
+  // Soft cap so Next / Dodaj stronę cannot grow forever by mis-clicks.
+  const MAX_DOCUMENT_PAGES = 20;
+
   const handleGoToPage = useCallback((page) => {
-    setPageCount(count => {
-      setCurrentPage(Math.min(Math.max(1, page), count));
-      return count;
-    });
+    const target = Math.max(1, Math.trunc(page));
+    if (target > MAX_DOCUMENT_PAGES) return;
+
+    // Navigating past the last page (e.g. after page 2 was collapsed) creates
+    // a fresh continuation with template chrome and the correct page number.
+    if (target > pageCountRef.current) {
+      setA4_Elements((prev) => finalizeDocumentPages(prev, {
+        minPageCount: target,
+        collapseEmpty: false,
+      }));
+      setCurrentPage(target);
+      clearSelection();
+      return;
+    }
+
+    setCurrentPage(Math.min(target, pageCountRef.current));
     clearSelection();
-  }, [clearSelection]);
+  }, [clearSelection, finalizeDocumentPages]);
 
   const handleAddPage = useCallback(() => {
-    setPageCount(prev => {
-      const next = prev + 1;
-      setCurrentPage(next);
-      return next;
-    });
+    const next = Math.min(MAX_DOCUMENT_PAGES, pageCountRef.current + 1);
+    if (next <= pageCountRef.current) return;
+    setA4_Elements((prev) => finalizeDocumentPages(prev, {
+      minPageCount: next,
+      collapseEmpty: false,
+    }));
+    setCurrentPage(next);
     clearSelection();
-  }, [clearSelection]);
+  }, [clearSelection, finalizeDocumentPages]);
 
   // Clone the current page: every element on it is duplicated with a fresh id
   // onto a new page inserted DIRECTLY AFTER it (later pages shift down by one).
@@ -410,65 +441,70 @@ export function useA4Elements(titleRef) {
           ? { ...el, source_id: idMap[el.source_id] ?? el.source_id, target_id: idMap[el.target_id] ?? el.target_id }
           : el);
       markElementsEnter(clones.map((el) => el.element_id));
-      return [...shifted, ...clones];
+      // Renumber "01"/"02" labels after the insert shifts later pages.
+      return finalizeDocumentPages([...shifted, ...clones], {
+        minPageCount: pageCountRef.current + 1,
+        collapseEmpty: false,
+      });
     });
-    setPageCount(pageCountRef.current + 1);
     setCurrentPage(src + 1);   // land on the fresh copy
     clearSelection();
-  }, [clearSelection]);
+  }, [clearSelection, finalizeDocumentPages]);
 
   // Swap the current page with its neighbour (dir: -1 earlier, +1 later) and
   // follow it, so repeated clicks walk the page through the document.
   const handleMovePage = useCallback((dir) => {
     const from = currentPageRef.current;
-    setPageCount(count => {
-      const to = from + dir;
-      if (to < 1 || to > count) return count;
-      setA4_Elements(prev => prev.map(el => {
+    const count = pageCountRef.current;
+    const to = from + dir;
+    if (to < 1 || to > count) return;
+    setA4_Elements((prev) => {
+      const swapped = prev.map((el) => {
         const p = el.page ?? 1;
         if (p === from) return { ...el, page: to };
         if (p === to) return { ...el, page: from };
         return el;
-      }));
-      setCurrentPage(to);
-      return count;
+      });
+      return finalizeDocumentPages(swapped, {
+        minPageCount: count,
+        collapseEmpty: false,
+      });
     });
+    setCurrentPage(to);
     clearSelection();
-  }, [clearSelection]);
+  }, [clearSelection, finalizeDocumentPages]);
 
   const handleRemovePage = useCallback(() => {
-    setPageCount(prevCount => {
-      if (prevCount <= 1) return prevCount;
+    if (pageCountRef.current <= 1) return;
 
-      // Read the page being removed from the ref so we don't depend on
-      // currentPage in this callback.
-      const removed = currentPageRef.current;
+    // Read the page being removed from the ref so we don't depend on
+    // currentPage in this callback.
+    const removed = currentPageRef.current;
 
-      // Track elements on the removed page as deletions so an update wipes
-      // them from the DB (mirrors handleDeleteElement).
-      const removedEls = elementsRef.current.filter(e => (e.page ?? 1) === removed);
-      if (removedEls.length) {
-        setA4_Elements_deleted(prevDel => {
-          const additions = removedEls
-            .filter(e => !prevDel.some(d => d.element_id === e.element_id))
-            .map(e => ({ ...e, deleted: true }));
-          return additions.length ? [...prevDel, ...additions] : prevDel;
-        });
-      }
+    // Track elements on the removed page as deletions so an update wipes
+    // them from the DB (mirrors handleDeleteElement).
+    const removedEls = elementsRef.current.filter((e) => (e.page ?? 1) === removed);
+    if (removedEls.length) {
+      setA4_Elements_deleted((prevDel) => {
+        const additions = removedEls
+          .filter((e) => !prevDel.some((d) => d.element_id === e.element_id))
+          .map((e) => ({ ...e, deleted: true }));
+        return additions.length ? [...prevDel, ...additions] : prevDel;
+      });
+    }
 
-      // Drop the page and shift every later page down by one.
-      setA4_Elements(prev => prev
-        .filter(e => (e.page ?? 1) !== removed)
-        .map(e => {
+    // Drop the page, shift later pages down, then renumber chrome labels.
+    setA4_Elements((prev) => {
+      const shifted = prev
+        .filter((e) => (e.page ?? 1) !== removed)
+        .map((e) => {
           const p = e.page ?? 1;
           return { ...e, isSelected: false, page: p > removed ? p - 1 : p };
-        }));
-
-      const next = prevCount - 1;
-      setCurrentPage(Math.min(removed, next));
-      return next;
+        });
+      return finalizeDocumentPages(shifted, { collapseEmpty: true });
     });
-  }, []);
+    setCurrentPage(Math.min(removed, pageCountRef.current - 1));
+  }, [finalizeDocumentPages]);
 
   // Sidebar / gallery add handlers. Factories own default geometry and category
   // fields; these wrappers stamp a fresh id, the active page, and enter markers.
@@ -621,7 +657,7 @@ export function useA4Elements(titleRef) {
 
       // Select + open the first body for editing; clear any prior selection so
       // typing does not apply to a previously selected element.
-      return next.map((element) => {
+      const selected = next.map((element) => {
         if (element.element_id === firstBodyId) {
           return { ...element, isSelected: true, isEditing: true };
         }
@@ -630,8 +666,9 @@ export function useA4Elements(titleRef) {
         }
         return element;
       });
+      return finalizeDocumentPages(selected, { collapseEmpty: true });
     });
-  }, [activeTemplateId]);
+  }, [activeTemplateId, finalizeDocumentPages]);
 
   /**
    * Append one placeholder record inside an existing multi-line section
@@ -665,7 +702,7 @@ export function useA4Elements(titleRef) {
         if (page !== currentPageRef.current) jumpToPage = page;
       }
 
-      return next.map((element) => {
+      const selected = next.map((element) => {
         if (element.element_id === firstBodyId) {
           return { ...element, isSelected: true, isEditing: true };
         }
@@ -674,9 +711,10 @@ export function useA4Elements(titleRef) {
         }
         return element;
       });
+      return finalizeDocumentPages(selected, { collapseEmpty: true });
     });
     if (jumpToPage != null) setCurrentPage(jumpToPage);
-  }, []);
+  }, [finalizeDocumentPages]);
 
   /**
    * Insert a full placeholder record (edu/exp shape with generic copy) below
@@ -709,7 +747,7 @@ export function useA4Elements(titleRef) {
         if (page !== currentPageRef.current) jumpToPage = page;
       }
 
-      return next.map((element) => {
+      const selected = next.map((element) => {
         if (element.element_id === firstBodyId) {
           return { ...element, isSelected: true, isEditing: true };
         }
@@ -718,9 +756,10 @@ export function useA4Elements(titleRef) {
         }
         return element;
       });
+      return finalizeDocumentPages(selected, { collapseEmpty: true });
     });
     if (jumpToPage != null) setCurrentPage(jumpToPage);
-  }, []);
+  }, [finalizeDocumentPages]);
 
   /**
    * Queue removed canvas elements for autosave tombstones (same contract as
@@ -765,13 +804,9 @@ export function useA4Elements(titleRef) {
 
       rememberDeletedElements(prev, result.removedIds);
       // Collapse empty trailing pages after packing pulls content upward.
-      reflowPageCountRef.current = Math.max(
-        1,
-        ...result.elements.map((element) => element.page ?? 1),
-      );
-      return result.elements;
+      return finalizeDocumentPages(result.elements, { collapseEmpty: true });
     });
-  }, [rememberDeletedElements]);
+  }, [rememberDeletedElements, finalizeDocumentPages]);
 
   /**
    * Delete one multi-line record from the upper-line hover trash, then re-pack
@@ -791,13 +826,9 @@ export function useA4Elements(titleRef) {
       if (!result) return prev;
 
       rememberDeletedElements(prev, result.removedIds);
-      reflowPageCountRef.current = Math.max(
-        1,
-        ...result.elements.map((element) => element.page ?? 1),
-      );
-      return result.elements;
+      return finalizeDocumentPages(result.elements, { collapseEmpty: true });
     });
-  }, [rememberDeletedElements]);
+  }, [rememberDeletedElements, finalizeDocumentPages]);
 
   /**
    * Move a multi-line record up/down via the hover arrows, then re-pack so the
@@ -820,13 +851,9 @@ export function useA4Elements(titleRef) {
         { spacing: flowSpacingRef.current },
       );
       if (!result) return prev;
-      reflowPageCountRef.current = Math.max(
-        1,
-        ...result.elements.map((element) => element.page ?? 1),
-      );
-      return result.elements;
+      return finalizeDocumentPages(result.elements, { collapseEmpty: true });
     });
-  }, []);
+  }, [finalizeDocumentPages]);
 
   /**
    * Move a whole template-mode section up/down via the heading hover arrows,
@@ -849,13 +876,9 @@ export function useA4Elements(titleRef) {
         { spacing: flowSpacingRef.current },
       );
       if (!next) return prev;
-      reflowPageCountRef.current = Math.max(
-        1,
-        ...next.map((element) => element.page ?? 1),
-      );
-      return next;
+      return finalizeDocumentPages(next, { collapseEmpty: true });
     });
-  }, []);
+  }, [finalizeDocumentPages]);
 
   const handleSetTextareaEditing = useCallback((elementId, editing) => {
     setA4_Elements(prevState => prevState.map(el => {
@@ -997,9 +1020,11 @@ export function useA4Elements(titleRef) {
         }
       });
 
-      return prevState.filter(element => !removedIds.has(element.element_id));
+      const remaining = prevState.filter(element => !removedIds.has(element.element_id));
+      // Drop chrome-only trailing pages when the last content on page N is gone.
+      return finalizeDocumentPages(remaining, { collapseEmpty: true });
     });
-  }, []);
+  }, [finalizeDocumentPages]);
 
   const handleDeleteSelectedElements = useCallback(() => {
     if (!canCloneOrDeleteElements(editorModeRef.current)) return;
@@ -1032,9 +1057,10 @@ export function useA4Elements(titleRef) {
         return additions.length ? [...previousDeleted, ...additions] : previousDeleted;
       });
 
-      return prevState.filter((element) => !removedIds.has(element.element_id));
+      const remaining = prevState.filter((element) => !removedIds.has(element.element_id));
+      return finalizeDocumentPages(remaining, { collapseEmpty: true });
     });
-  }, []);
+  }, [finalizeDocumentPages]);
 
   // Applies an AI-proposed deletion only after the reviewed card is accepted.
   // Keep fixed artwork and locked elements protected even if the client has
@@ -1080,9 +1106,10 @@ export function useA4Elements(titleRef) {
         return additions.length ? [...previousDeleted, ...additions] : previousDeleted;
       });
 
-      return prevState.filter((element) => !removedIds.has(element.element_id));
+      const remaining = prevState.filter((element) => !removedIds.has(element.element_id));
+      return finalizeDocumentPages(remaining, { collapseEmpty: true });
     });
-  }, []);
+  }, [finalizeDocumentPages]);
 
   const handleEditElementValues = useCallback((dataObject, id) => {
     setA4_Elements(prevState => {
@@ -1111,29 +1138,38 @@ export function useA4Elements(titleRef) {
           return element;
         }
       });
+      if ("page" in dataObject) {
+        return finalizeDocumentPages(newState, { collapseEmpty: true });
+      }
       return newState;
     });
-  }, [])
+  }, [finalizeDocumentPages]);
 
   // Applies a shared set of editable fields to every selected element. The
   // editor only exposes fields present on the entire selection, so this does
   // not introduce properties incompatible with an element category.
   const handleEditSelectedElementValues = useCallback((dataObject) => {
-    setA4_Elements(prevState => prevState.map((element) => {
-      if (!element.isSelected) return element;
-      if (
-        element.locked
-        && ("left" in dataObject || "top" in dataObject || "page" in dataObject)
-      ) {
-        return element;
+    setA4_Elements((prevState) => {
+      const next = prevState.map((element) => {
+        if (!element.isSelected) return element;
+        if (
+          element.locked
+          && ("left" in dataObject || "top" in dataObject || "page" in dataObject)
+        ) {
+          return element;
+        }
+        if (element.category === "circle" && ("width" in dataObject || "height" in dataObject)) {
+          const diameter = dataObject.width ?? dataObject.height;
+          return { ...element, ...dataObject, width: diameter, height: diameter };
+        }
+        return { ...element, ...dataObject };
+      });
+      if ("page" in dataObject) {
+        return finalizeDocumentPages(next, { collapseEmpty: true });
       }
-      if (element.category === "circle" && ("width" in dataObject || "height" in dataObject)) {
-        const diameter = dataObject.width ?? dataObject.height;
-        return { ...element, ...dataObject, width: diameter, height: diameter };
-      }
-      return { ...element, ...dataObject };
-    }));
-  }, [])
+      return next;
+    });
+  }, [finalizeDocumentPages]);
 
   // The canvas is the typography authority: after a template textarea has
   // rendered, its measured content height replaces the authored placeholder
@@ -1163,10 +1199,11 @@ export function useA4Elements(titleRef) {
       );
       if (!result.changed) return prevState;
 
-      reflowPageCountRef.current = result.pageCount;
-      return result.elements;
+      // Overflow onto a new page must clone template chrome; reclaim that
+      // empties page 2 must drop the orphaned decorations.
+      return finalizeDocumentPages(result.elements, { collapseEmpty: true });
     });
-  }, [markHistoryQuiet]);
+  }, [markHistoryQuiet, finalizeDocumentPages]);
 
   // Applies one reviewed layout group as a single state change. The backend
   // already validates proposals, but this client-side guard prevents stale or
@@ -1255,16 +1292,10 @@ export function useA4Elements(titleRef) {
       const targetPages = patches
         .map(patch => patch.page)
         .filter(Number.isInteger);
-      const nextPageCount = Math.max(
-        1,
-        ...nextElements.map(element => element.page ?? 1),
-        ...targetPages,
-      );
-      reflowPageCountRef.current = nextPageCount;
       layoutTargetPageRef.current = targetPages.length > 0 ? Math.max(...targetPages) : null;
-      return nextElements;
+      return finalizeDocumentPages(nextElements, { collapseEmpty: true });
     });
-  }, []);
+  }, [finalizeDocumentPages]);
 
   // Applies one reviewed section restructure atomically. The backend owns the
   // proposed geometry; the client validates it again, records removals for
@@ -1327,28 +1358,12 @@ export function useA4Elements(titleRef) {
         })),
         ...normalizedAdditions,
       ];
-      const existingMaxPage = Math.max(1, ...prevState.map((element) => element.page ?? 1));
-      const targetMaxPage = Math.max(
-        existingMaxPage,
-        ...documentElements.map((element) => element.page ?? 1),
-      );
-      const generatedDecorations = cloneFixedPageDecorations(
-        documentElements,
-        existingMaxPage + 1,
-        targetMaxPage,
-        nanoid,
-      );
-      const withDecorations = [...documentElements, ...generatedDecorations];
       // Content only — cloned page chrome must appear instantly.
       markContentElementsEnter(normalizedAdditions);
-      reflowPageCountRef.current = Math.max(
-        targetMaxPage,
-        ...withDecorations.map((element) => element.page ?? 1),
-      );
       layoutTargetPageRef.current = normalizedAdditions[0]?.page ?? null;
-      return withDecorations;
+      return finalizeDocumentPages(documentElements, { collapseEmpty: true });
     });
-  }, []);
+  }, [finalizeDocumentPages]);
 
   const applyStructureOperation = useCallback((group) => {
     const removeIds = group?.remove_element_ids;
@@ -1466,22 +1481,12 @@ export function useA4Elements(titleRef) {
       }));
 
       const documentElements = [...moved, ...normalizedAdditions];
-      const existingMaxPage = Math.max(1, ...prevState.map((element) => element.page ?? 1));
-      const targetMaxPage = Math.max(
-        existingMaxPage,
-        group.page_count || 1,
-        ...documentElements.map((element) => element.page ?? 1),
-      );
-      const generatedDecorations = cloneFixedPageDecorations(
-        documentElements,
-        existingMaxPage + 1,
-        targetMaxPage,
-        nanoid,
-      );
-
-      const withDecorations = [...documentElements, ...generatedDecorations];
-      const byNewId = new Map(withDecorations.map((element) => [element.element_id, element]));
-      const reconciled = withDecorations.map((element) => {
+      const withPages = finalizeDocumentPages(documentElements, {
+        minPageCount: group.page_count || 1,
+        collapseEmpty: true,
+      });
+      const byNewId = new Map(withPages.map((element) => [element.element_id, element]));
+      const reconciled = withPages.map((element) => {
         if (element.category !== "connector") return element;
         const connectorSource = byNewId.get(element.source_id);
         const connectorTarget = byNewId.get(element.target_id);
@@ -1491,11 +1496,10 @@ export function useA4Elements(titleRef) {
         return { ...element, page: connectorSource.page ?? 1 };
       });
       markContentElementsEnter(normalizedAdditions);
-      reflowPageCountRef.current = Math.max(targetMaxPage, ...reconciled.map((element) => element.page ?? 1));
       layoutTargetPageRef.current = normalizedAdditions[0]?.page ?? null;
       return reconciled;
     });
-  }, []);
+  }, [finalizeDocumentPages]);
 
   const handleAlignElements = useCallback((elementId, position, width, category) => {
     const target = elementsRef.current.find((element) => element.element_id === elementId);
