@@ -60,7 +60,8 @@ export default function AiCvPanel() {
     const [fillingId, setFillingId] = useState(null);
     const [error, setError] = useState(null);
     const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
-    const canExtract = Boolean(entitlements?.extract_cv);
+    const canExtract = Boolean(entitlements?.extract_cv)
+        || (entitlements?.plan_slug === "free" && !entitlements?.free_import_used);
     const extracted = Boolean(cvData?.name);
     const onStep2 = extracted && wizardStep === 2;
 
@@ -88,7 +89,11 @@ export default function AiCvPanel() {
     const handleExtract = useCallback(async () => {
         if (!fileData) return;
         if (!canExtract) {
-            setError("Ekstrakcja CV z PDF jest dostępna w planie Standard.");
+            setError(
+                entitlements?.plan_slug === "free"
+                    ? "Wykorzystano już darmowy import CV. Ulepsz plan do Standard, aby importować więcej dokumentów."
+                    : "Ekstrakcja CV z PDF jest dostępna w planie Standard.",
+            );
             return;
         }
         setIsExtracting(true);
