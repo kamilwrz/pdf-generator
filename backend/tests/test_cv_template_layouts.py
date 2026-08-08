@@ -1508,7 +1508,14 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     self.assertGreaterEqual(element["top"], 0)
                     self.assertLessEqual(element["left"] + element["width"], 595)
                     self.assertLessEqual(element["top"] + element["height"], 842)
-                    self.assertTrue(element["autoHeight"])
+                    # Flowing copy must remain measurable. A horizontal
+                    # record-overlay (Harbor date/city) intentionally stays a
+                    # fixed one-line box so it shares the employer baseline
+                    # instead of participating in vertical reflow.
+                    self.assertTrue(
+                        element["autoHeight"]
+                        or element.get("flowRole") == "record-overlay"
+                    )
                 self.assertGreater(max(element.get("page", 1) for element in elements), 1)
 
     def test_harbor_wraps_complete_sidebar_education_without_x_overflow(self):
@@ -1612,7 +1619,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         ]
         self.assertEqual(len(meta_overlays), 4)
         for element in meta_overlays:
-            expected_offset = 0.5 if element.get("category") == "image" else 1.9
+            expected_offset = 0.5 if element.get("category") == "image" else 0
             self.assertEqual(element.get("page", 1), company.get("page", 1))
             self.assertAlmostEqual(
                 float(element.get("top", 0)) - float(company.get("top", 0)),
@@ -1623,6 +1630,17 @@ class CvTemplateLayoutTests(unittest.TestCase):
             element.get("alignWithText") is False
             for element in meta_overlays
             if element.get("category") == "image"
+        ))
+        meta_labels = [
+            element for element in meta_overlays
+            if element.get("category") == "textarea"
+        ]
+        self.assertEqual(len(meta_labels), 2)
+        self.assertTrue(all(
+            element.get("lineHeight") == 12
+            and element.get("height") == 12
+            and element.get("autoHeight") is False
+            for element in meta_labels
         ))
 
     def test_iconic_templates_pair_contact_and_section_icons(self):

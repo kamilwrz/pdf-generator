@@ -4,6 +4,7 @@ from app.core.config import BACKEND_URL
 from app.services.cv_generator_primitives import (
     get_spacing,
     Builder,
+    _block,
     _circle,
     _line,
     _text,
@@ -292,29 +293,36 @@ def _gen_harbor(cv: dict) -> list[dict]:
         # Right-aligned date + location on the company line. Positions are
         # estimated from text length (there is no measurement pass here); the
         # company block is capped narrow enough that the two never collide.
-        # Centre the smaller 8.2px labels and 11px icons independently inside
-        # the employer's 12px textarea line box. One shared `top` cannot align
-        # both because Text and Textarea use different CSS line-height metrics.
-        meta_text_top = top + 1.9
+        # Date, city and employer must use the same 12px textarea line box.
+        # A single-line `text` element uses CSS line-height: 1, so no fixed Y
+        # offset can keep its baseline aligned with a 12px textarea across font
+        # loading and browser zoom.
         meta_icon_top = top + 0.5
+
+        def meta_label(content: str, left: float, width: float) -> dict:
+            return {
+                **_block(
+                    content, left, top, width, 12, 8.2, 12,
+                    C["meta"], SANS, zIndex=3, page=page,
+                ),
+                "autoHeight": False,
+                "flowRole": "record-overlay",
+            }
+
         right = MAIN_R
         if city:
-            cx_city = right - len(city) * 4.2
-            b.els.append({
-                **_text(city, 8.2, SANS, C["meta"], cx_city, meta_text_top, zIndex=3, page=page),
-                "flowRole": "record-overlay",
-            })
+            city_width = max(1, len(city) * 4.2)
+            cx_city = right - city_width
+            b.els.append(meta_label(city, cx_city, city_width))
             b.els.append(_hicon(
                 "location", cx_city - 13, meta_icon_top, 11,
                 align=False, page=page, flow_role="record-overlay",
             ))
             right = cx_city - 13 - 10
         if period:
-            cx_period = right - len(period) * 4.2
-            b.els.append({
-                **_text(period, 8.2, SANS, C["meta"], cx_period, meta_text_top, zIndex=3, page=page),
-                "flowRole": "record-overlay",
-            })
+            period_width = max(1, len(period) * 4.2)
+            cx_period = right - period_width
+            b.els.append(meta_label(period, cx_period, period_width))
             b.els.append(_hicon(
                 "calendar", cx_period - 13, meta_icon_top, 11,
                 align=False, page=page, flow_role="record-overlay",

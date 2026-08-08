@@ -193,13 +193,15 @@ test("Harbor right-column rules do not block main-column record reclaim", () => 
     },
     {
       element_id: "job4-period",
-      category: "text",
+      category: "textarea",
+      autoHeight: false,
       flowGroup: "record-job4",
       flowRole: "record-overlay",
       left: 223,
-      top: 86.9,
+      top: 85,
       width: 48,
-      height: 9,
+      height: 12,
+      lineHeight: 12,
       page: 2,
     },
     {
@@ -255,7 +257,7 @@ test("Harbor right-column rules do not block main-column record reclaim", () => 
   );
   assert.deepEqual(
     { page: period.page, top: period.top },
-    { page: meta.page, top: meta.top + 1.9 },
+    { page: meta.page, top: meta.top },
   );
   assert.deepEqual(
     [location, city].map((overlay) => ({ page: overlay.page, top: overlay.top })),
