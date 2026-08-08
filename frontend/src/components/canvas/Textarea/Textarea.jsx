@@ -1,9 +1,9 @@
 /**
  * Multi-line textarea block with optional auto-height and bullet layout.
  * Edit mode uses a contentEditable surface; display mode mirrors PDF wrap
- * metrics. Trailing blank / bare-bullet rows are trimmed on blur / display so
- * they cannot inflate measured height or section rhythm; blank paragraphs
- * between real content are kept. `fixedToPage` is inert chrome.
+ * metrics. Plain-text blank paragraphs are preserved as authored spacing.
+ * Bare bullet placeholders are trimmed on blur / display so they cannot
+ * accidentally inflate section rhythm. `fixedToPage` is inert chrome.
  */
 import classes from "./Textarea.module.css";
 import { memo, useLayoutEffect, useRef, useState } from "react";
@@ -273,8 +273,8 @@ function Textarea({
         if (!isEditing || !editingRef.current) return undefined;
 
         const node = editingRef.current;
-        // Enter edit on already-trimmed copy so a prior session's trailing
-        // empties cannot reopen a tall orange outline on the first paint.
+        // Enter edit on the display-normalized payload. Plain trailing blank
+        // paragraphs survive; only bullet-list placeholders are trimmed.
         const seededPayload = trimTrailingEmptyTextareaPayload(
             sanitizeTextContent(content) ?? "",
             runs,
@@ -337,8 +337,8 @@ function Textarea({
         });
     }
 
-    // Display never paints trailing blank / bare-bullet rows — those inflate
-    // scrollHeight and break template rhythm under the next record.
+    // Display preserves plain authored blank rows. Bullet-list placeholders
+    // remain excluded because they are editor chrome, not document content.
     const {
         content: cleanContent,
         runs: cleanRuns,
@@ -366,10 +366,9 @@ function Textarea({
         // height in sync. Extracted so both typing and toolbar mark changes
         // (which can shift wrap width) run the identical measure + commit path.
         //
-        // Trailing empties: while typing, keep them so Enter can open a blank
-        // paragraph (and a second bullet group under a heading line). On blur,
-        // drop only trailing empties — mid-content blank lines stay — so
-        // stored height matches visible copy and section rhythm is preserved.
+        // While typing, keep every newline so Enter can open a blank paragraph.
+        // On blur, plain textarea newlines remain authored spacing; bullet-list
+        // placeholders alone are removed so section rhythm follows real copy.
         const commitEditable = (node, { finalize = false } = {}) => {
             const serialized = serializeEditable(node);
             const { content: nextContent, runs: nextRuns } = finalize
@@ -380,10 +379,10 @@ function Textarea({
                 )
                 : { content: serialized.content, runs: serialized.runs };
 
-            // On blur, collapse trailing empties in the live DOM before exit so
-            // the last paint matches the stored (trimmed) height. Mid-edit we
-            // never rewrite the DOM here — that used to steal caret position
-            // and made a second Enter feel like a no-op.
+            // On blur, collapse trimmed bullet placeholders before exit so the
+            // last paint matches stored height. Plain textarea blank rows never
+            // enter this branch. Mid-edit we never rewrite the DOM because that
+            // used to steal caret position and make a second Enter a no-op.
             if (finalize && nextContent !== serialized.content) {
                 if (hasRuns(nextRuns)) {
                     node.innerHTML = runsToHtml(nextContent, nextRuns);

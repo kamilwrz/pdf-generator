@@ -188,10 +188,10 @@ export function useA4Elements(titleRef) {
     A4ref.current = pageCanvasRefs.current.get(currentPage) ?? null;
   }, [currentPage]);
   useEffect(() => { elementsRef.current = A4_Elements; }, [A4_Elements]);
-  // Strip NULL/NBSP junk and trailing empty textarea rows already sitting in
+  // Strip NULL/NBSP junk and trailing bullet placeholders already sitting in
   // open documents (loaded before sanitization existed, or left after edit).
-  // Skip the element currently being edited — live typing keeps trailing
-  // blanks so Enter can open a new paragraph; Textarea trims them on blur.
+  // Plain textarea blank rows are authored spacing and remain untouched.
+  // Skip the element currently being edited; Textarea normalizes bullets on blur.
   // One pass; clean state is a no-op.
   useEffect(() => {
     const needsScrub = A4_Elements.some((element) => {

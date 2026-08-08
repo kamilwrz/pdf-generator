@@ -18,12 +18,13 @@ export function isEmptyTextareaLine(line, bulletList = false) {
 }
 
 /**
- * Drop trailing empty lines from textarea content.
+ * Drop trailing empty rows from bullet-list textarea content.
  *
- * Bullet lists and plain textareas both accumulate `\n` / bare `•` rows while
- * editing; those rows were previously stored and measured, so the orange edit
- * outline and the display box grew past the visible copy and broke section
- * rhythm after reflow.
+ * Plain textareas preserve every authored newline, including trailing blank
+ * paragraphs. Those rows are user-controlled spacing and must remain visible
+ * after edit mode closes. Bullet lists still accumulate bare `•` placeholders
+ * while editing; trimming those placeholders prevents accidental list chrome
+ * from inflating section rhythm after reflow.
  *
  * Only *trailing* empties are removed. Blank lines between real content
  * (paragraph breaks, a heading line above a bullet group) are preserved.
@@ -36,6 +37,10 @@ export function trimTrailingEmptyTextareaLines(
   content,
   { bulletList = false, keepTrailingEmptyLines = 0 } = {},
 ) {
+  if (!bulletList) {
+    return String(content ?? "");
+  }
+
   const lines = String(content ?? "").split("\n");
   let end = lines.length;
   while (end > 0 && isEmptyTextareaLine(lines[end - 1], bulletList)) {
@@ -83,8 +88,8 @@ export function measureTextareaHeight(
   lineHeight,
   { bulletList = false } = {},
 ) {
-  // Ignore trailing empty / bare-bullet rows so the heuristic matches the
-  // browser measure used by auto-height display boxes.
+  // Plain textarea blank rows remain measurable authored spacing. Bullet-list
+  // placeholders are trimmed so the heuristic matches display-mode content.
   const text = trimTrailingEmptyTextareaLines(content, { bulletList });
   const cpl = Math.max(10, Math.floor(width / (fontSize * 0.52)));
   let renderedLines = 0;

@@ -49,10 +49,10 @@ test("trims trailing blank and bare-bullet lines from bullet lists", () => {
   );
 });
 
-test("trims trailing empties from plain textareas without touching mid gaps", () => {
+test("preserves trailing and middle blank paragraphs in plain textareas", () => {
   assert.equal(
     trimTrailingEmptyTextareaLines("line a\n\nline b\n\n\n"),
-    "line a\n\nline b",
+    "line a\n\nline b\n\n\n",
   );
 });
 
@@ -72,14 +72,24 @@ test("preserves blank paragraphs between a heading line and a bullet group", () 
 });
 
 test("re-bases runs when trailing empties are removed", () => {
-  const runs = [{ start: 0, end: 3, bold: true }, { start: 10, end: 12, italic: true }];
-  const result = trimTrailingEmptyTextareaPayload("abc\n\n\n", runs);
-  assert.equal(result.content, "abc");
-  assert.deepEqual(result.runs, [{ start: 0, end: 3, bold: true }]);
+  const runs = [{ start: 0, end: 5, bold: true }, { start: 12, end: 14, italic: true }];
+  const result = trimTrailingEmptyTextareaPayload("• abc\n\n• \n\n", runs, {
+    bulletList: true,
+  });
+  assert.equal(result.content, "• abc");
+  assert.deepEqual(result.runs, [{ start: 0, end: 5, bold: true }]);
 });
 
-test("measureTextareaHeight ignores trailing empty rows", () => {
+test("measureTextareaHeight counts authored plain trailing empty rows", () => {
   const solid = measureTextareaHeight("hello", 200, 10, 14);
   const padded = measureTextareaHeight("hello\n\n\n", 200, 10, 14);
+  assert.equal(padded, solid + (3 * 14));
+});
+
+test("measureTextareaHeight ignores trailing bullet placeholders", () => {
+  const solid = measureTextareaHeight("• hello", 200, 10, 14, { bulletList: true });
+  const padded = measureTextareaHeight("• hello\n• \n\n", 200, 10, 14, {
+    bulletList: true,
+  });
   assert.equal(padded, solid);
 });
