@@ -85,6 +85,11 @@ class Pdf(Base):
     # Per-document vertical rhythm override ({stack,record,section,after_rule}).
     # Null means generator/editor defaults (SPACE_* constants).
     spacing_px = Column(JSON, nullable=True)
+    # What is CURRENTLY baked into the stored file at file_path — not the
+    # account's current plan. download_pdf compares this against the live
+    # entitlement and only re-renders when they differ (e.g. right after an
+    # upgrade), so an unchanged plan never pays a re-render cost.
+    watermarked = Column(Boolean, nullable=False, default=False)
 
 
 class PdfElements(Base):
@@ -175,6 +180,9 @@ class UserSubscription(Base):
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
     updated_at = Column(DateTime, nullable=False)
+    # Consumed once, on a successful /ai/extract_cv call, while on the Free
+    # plan — see entitlements.assert_can_extract_cv / mark_free_import_used.
+    free_import_used = Column(Boolean, nullable=False, default=False)
 
 
 class UsageCounter(Base):
