@@ -72,11 +72,11 @@ const contact = (name, iconLeft, textLeft, label, top) => [
 const jobMeta = (date, place, top) => {
     const fs = 8.6;
     const lh = 11.5;
-    const dateWidth = Math.max(1, date.length * fs * 0.52 + 4);
-    const placeWidth = Math.max(1, place.length * fs * 0.52 + 4);
+    const dateWidth = 110;
     const dateLeft = MAIN_X + 15;
     const locationIconLeft = dateLeft + dateWidth + 10;
     const placeLeft = locationIconLeft + 15;
+    const placeWidth = MAIN_X + MAIN_W - placeLeft;
     return [
         icon("harbor", "calendar", MAIN_X, top + 0.25, 11, false),
         block(date, dateLeft, top, dateWidth, 12, fs, lh, META, SANS),

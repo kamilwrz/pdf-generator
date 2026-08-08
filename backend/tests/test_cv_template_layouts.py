@@ -1638,6 +1638,12 @@ class CvTemplateLayoutTests(unittest.TestCase):
             self.assertEqual(label.get("height"), 12)
         self.assertTrue(period_label.get("autoHeight"))
         self.assertFalse(city_label.get("autoHeight"))
+        self.assertEqual(period_label.get("width"), 110)
+        self.assertEqual(city_label.get("width"), 142)
+        self.assertEqual(
+            float(city_label.get("left", 0)) + float(city_label.get("width", 0)),
+            336,
+        )
         self.assertTrue(all(
             element.get("alignWithText") is False
             for element in meta_overlays

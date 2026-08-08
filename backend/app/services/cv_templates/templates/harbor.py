@@ -314,13 +314,20 @@ def _gen_harbor(cv: dict) -> list[dict]:
         cursor = float(MAIN_X)
 
         for index, (icon_name, value) in enumerate(values):
-            value_width = max(1.0, len(value) * meta_fs * 0.52 + 4)
+            label_left = cursor + icon_size + icon_gap
+            # With both values present, reserve a deterministic 110px period
+            # slot and give the complete remainder to the city. Font-width
+            # estimates repeatedly clipped "Warszawa" because browser Inter
+            # metrics differ from ReportLab and vary with zoom.
+            if len(values) == 2 and index == 0:
+                value_width = 110.0
+            else:
+                value_width = max(1.0, MAIN_R - label_left)
             icon_element = _hicon(
                 icon_name, cursor, row_top + 0.25, icon_size,
                 align=False, page=row_page, flow_role="record-overlay",
             )
             b.els.append(icon_element)
-            label_left = cursor + icon_size + icon_gap
             if index == 0:
                 b.block(
                     value, label_left, value_width, meta_fs, meta_lh,
