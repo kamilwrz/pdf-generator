@@ -283,72 +283,60 @@ def _gen_harbor(cv: dict) -> list[dict]:
         height = (
             b.measure_block(job.get("title", ""), MAIN_W, 10.5, 13.5, SANS, bold=True, min_h=15)
             + get_spacing().stack
-            + b.measure_block(job.get("company", ""), MAIN_W - 150, 9.2, 12, SANS, min_h=12)
+            + b.measure_block(job.get("company", ""), MAIN_W, 9.2, 12, SANS, min_h=12)
         )
+        if job.get("period") or job.get("city"):
+            height += 2 + 12
         if bullets:
             height += get_spacing().stack + b.measure_block(bullets, MAIN_W, 9, 13.4, SANS, bulletList=True)
         return height
 
-    def job_meta(period: str, city: str, top: float, page: int) -> None:
-        # Right-aligned date + location on the company line. Positions are
-        # estimated from text length (there is no measurement pass here); the
-        # company block is capped narrow enough that the two never collide.
-        # Date, city and employer must use the same 12px textarea line box.
-        # A single-line `text` element uses CSS line-height: 1, so no fixed Y
-        # offset can keep its baseline aligned with a 12px textarea across font
-        # loading and browser zoom.
-        meta_reserved_width = 150.0
-        meta_base_fs = 7.2
-        meta_min_fs = 6.4
-        meta_icon_size = 9.0
-        icon_to_label = 2.0
-        group_gap = 6.0
-        icon_advance = meta_icon_size + icon_to_label
-        visible_values = [value for value in (period, city) if value]
-        fixed_width = icon_advance * len(visible_values)
-        if len(visible_values) > 1:
-            fixed_width += group_gap
-        # Inter's average glyph is close to 0.52em at these sizes. Add 4px per
-        # label for browser/PDF metric differences, then reduce only the meta
-        # font when unusually long date+city data exceeds the reserved strip.
-        base_text_units = sum(len(value) * 0.52 for value in visible_values)
-        available_text_width = max(1.0, meta_reserved_width - fixed_width - 4 * len(visible_values))
-        meta_fs = (
-            min(meta_base_fs, available_text_width / base_text_units)
-            if base_text_units > 0
-            else meta_base_fs
-        )
-        meta_fs = max(meta_min_fs, meta_fs)
-        meta_icon_top = top + 1.5
+    def job_meta(period: str, city: str) -> None:
+        """Place period and location on their own row below the employer.
 
-        def meta_label(content: str, left: float, width: float) -> dict:
-            return {
-                **_block(
-                    content, left, top, width, 12, meta_fs, 12,
-                    C["meta"], SANS, zIndex=3, page=page,
-                ),
-                "autoHeight": False,
-                "flowRole": "record-overlay",
-            }
+        The row uses the same 8.6/11.5 typography as education metadata. Its
+        first label is a normal flow block, so bullet content always starts
+        below it; the second label and both icons are horizontal overlays that
+        follow the row without increasing its vertical height.
+        """
+        values = [
+            ("calendar", str(period or "").strip()),
+            ("location", str(city or "").strip()),
+        ]
+        values = [(icon_name, value) for icon_name, value in values if value]
+        if not values:
+            return
 
-        right = MAIN_R
-        if city:
-            city_width = max(1, len(city) * meta_fs * 0.52 + 4)
-            cx_city = right - city_width
-            b.els.append(meta_label(city, cx_city, city_width))
-            b.els.append(_hicon(
-                "location", cx_city - icon_advance, meta_icon_top, meta_icon_size,
-                align=False, page=page, flow_role="record-overlay",
-            ))
-            right = cx_city - icon_advance - group_gap
-        if period:
-            period_width = max(1, len(period) * meta_fs * 0.52 + 4)
-            cx_period = right - period_width
-            b.els.append(meta_label(period, cx_period, period_width))
-            b.els.append(_hicon(
-                "calendar", cx_period - icon_advance, meta_icon_top, meta_icon_size,
-                align=False, page=page, flow_role="record-overlay",
-            ))
+        meta_fs, meta_lh = SIDE_ITEM_FS, SIDE_ITEM_LH
+        icon_size, icon_gap, group_gap = 11.0, 4.0, 10.0
+        b.gap(2)
+        row_top, row_page = b.y, b.pg
+        cursor = float(MAIN_X)
+
+        for index, (icon_name, value) in enumerate(values):
+            value_width = max(1.0, len(value) * meta_fs * 0.52 + 4)
+            icon_element = _hicon(
+                icon_name, cursor, row_top + 0.25, icon_size,
+                align=False, page=row_page, flow_role="record-overlay",
+            )
+            b.els.append(icon_element)
+            label_left = cursor + icon_size + icon_gap
+            if index == 0:
+                b.block(
+                    value, label_left, value_width, meta_fs, meta_lh,
+                    C["meta"], SANS, min_h=meta_lh,
+                )
+            else:
+                b.els.append({
+                    **_block(
+                        value, label_left, row_top, value_width, 12,
+                        meta_fs, meta_lh, C["meta"], SANS,
+                        zIndex=3, page=row_page,
+                    ),
+                    "autoHeight": False,
+                    "flowRole": "record-overlay",
+                })
+            cursor = label_left + value_width + group_gap
 
     if cv.get("summary"):
         # Summary shares the experience-bullet type size (9 pt); the project-wide
@@ -367,10 +355,8 @@ def _gen_harbor(cv: dict) -> list[dict]:
             with b.keep_together(experience_height(job)):
                 b.block(job.get("title", ""), MAIN_X, MAIN_W, 10.5, 13.5, C["ink"], SANS, bold=True, min_h=15)
                 b.gap(get_spacing().stack)
-                company_y, company_pg = b.y, b.pg
-                # Company is capped narrow so the right-aligned meta cannot overlap it.
-                b.block(job.get("company", ""), MAIN_X, MAIN_W - 150, 9.2, 12, C["accent"], SANS, min_h=12)
-                job_meta(job.get("period", ""), job.get("city", ""), company_y, company_pg)
+                b.block(job.get("company", ""), MAIN_X, MAIN_W, 9.2, 12, C["accent"], SANS, min_h=12)
+                job_meta(job.get("period", ""), job.get("city", ""))
                 bullets = _bullets(job)
                 if bullets:
                     b.gap(get_spacing().stack)

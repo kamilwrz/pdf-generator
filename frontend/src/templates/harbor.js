@@ -28,7 +28,6 @@ const SANS = "Inter";
 // ── Two-column geometry (A4 at 595×842 pt) ──────────────────────────────────
 const MAIN_X = 44; // main column left edge
 const MAIN_W = 292; // main column width (right edge 336)
-const MAIN_R = MAIN_X + MAIN_W;
 const SIDE_X = 364; // sidebar left edge
 const SIDE_W = 187; // sidebar width (right edge 551)
 const PHOTO_D = 58; // circular photo placeholder diameter
@@ -64,15 +63,27 @@ const contact = (name, iconLeft, textLeft, label, top) => [
 ];
 
 /**
- * Right-aligned date + location for an experience record, sat on the company
- * line. Both use grey meta icons so the row reads as secondary information.
+ * Date + location row below an experience record's employer.
+ *
+ * The 8.6/11.5 typography matches Harbor education metadata. Keeping this row
+ * separate gives both labels enough width and avoids competing with long
+ * employer names.
  */
-const jobMeta = (date, place, top) => [
-    icon("harbor", "calendar", MAIN_R - 98, top, 11),
-    text(date, 8.2, SANS, META, MAIN_R - 84, top, 3),
-    icon("harbor", "location", MAIN_R - 52, top, 11),
-    text(place, 8.2, SANS, META, MAIN_R - 38, top, 3),
-];
+const jobMeta = (date, place, top) => {
+    const fs = 8.6;
+    const lh = 11.5;
+    const dateWidth = Math.max(1, date.length * fs * 0.52 + 4);
+    const placeWidth = Math.max(1, place.length * fs * 0.52 + 4);
+    const dateLeft = MAIN_X + 15;
+    const locationIconLeft = dateLeft + dateWidth + 10;
+    const placeLeft = locationIconLeft + 15;
+    return [
+        icon("harbor", "calendar", MAIN_X, top + 0.25, 11, false),
+        block(date, dateLeft, top, dateWidth, 12, fs, lh, META, SANS),
+        icon("harbor", "location", locationIconLeft, top + 0.25, 11, false),
+        { ...block(place, placeLeft, top, placeWidth, 12, fs, lh, META, SANS), autoHeight: false },
+    ];
+};
 
 /** Teal diamond bullet + charcoal label — skills, languages, tools, edu notes. */
 const diamondItem = (label, left, top) => [
@@ -164,31 +175,31 @@ export const harborTemplate = [
     ...heading("DOŚWIADCZENIE", MAIN_X, MAIN_W, 244),
     bold(text("Senior AML Analyst", 10.5, SANS, INK, MAIN_X, 272, 3)),
     text("Price Waterhouse Coopers", 9.2, SANS, ACCENT, MAIN_X, 289, 3),
-    ...jobMeta("06/2025", "Warszawa", 289),
+    ...jobMeta("06/2025", "Warszawa", 303),
     bulleted(block(
         "• Tworzenie i aktualizacja profili KYC klientów indywidualnych i korporacyjnych.\n"
         + "• Procesy Customer Due Diligence (CDD) i Enhanced Due Diligence (EDD).\n"
         + "• Sporządzanie i zgłaszanie zawiadomień o podejrzanych transakcjach (SAR).",
-        MAIN_X, 307, MAIN_W, 70, 9, 13.4, BODY, SANS,
+        MAIN_X, 319, MAIN_W, 70, 9, 13.4, BODY, SANS,
     )),
 
-    bold(text("AML Analyst", 10.5, SANS, INK, MAIN_X, 392, 3)),
-    text("Citibank Europe", 9.2, SANS, ACCENT, MAIN_X, 409, 3),
-    ...jobMeta("07/2022", "Warszawa", 409),
+    bold(text("AML Analyst", 10.5, SANS, INK, MAIN_X, 404, 3)),
+    text("Citibank Europe", 9.2, SANS, ACCENT, MAIN_X, 421, 3),
+    ...jobMeta("07/2022", "Warszawa", 435),
     bulleted(block(
         "• Monitorowanie transakcji pod kątem ryzyka prania pieniędzy.\n"
         + "• Analiza alertów oraz ocena ich zasadności zgodnie z procedurami AML.\n"
         + "• Kontrole PEP, list sankcyjnych oraz analiza negatywnych informacji medialnych.",
-        MAIN_X, 427, MAIN_W, 70, 9, 13.4, BODY, SANS,
+        MAIN_X, 451, MAIN_W, 70, 9, 13.4, BODY, SANS,
     )),
 
-    bold(text("Customer Service Specialist", 10.5, SANS, INK, MAIN_X, 512, 3)),
-    text("Amazon VCS Poland", 9.2, SANS, ACCENT, MAIN_X, 529, 3),
-    ...jobMeta("08/2020", "Zdalnie", 529),
+    bold(text("Customer Service Specialist", 10.5, SANS, INK, MAIN_X, 536, 3)),
+    text("Amazon VCS Poland", 9.2, SANS, ACCENT, MAIN_X, 553, 3),
+    ...jobMeta("08/2020", "Zdalnie", 567),
     bulleted(block(
         "• Obsługa klientów rynku niemieckiego z zachowaniem wysokich standardów.\n"
         + "• Wewnętrzne szkolenia dla nowo zatrudnionych pracowników.",
-        MAIN_X, 547, MAIN_W, 48, 9, 13.4, BODY, SANS,
+        MAIN_X, 583, MAIN_W, 48, 9, 13.4, BODY, SANS,
     )),
 
     ...sidebar,

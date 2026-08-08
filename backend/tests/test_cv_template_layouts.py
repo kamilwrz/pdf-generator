@@ -1617,42 +1617,45 @@ class CvTemplateLayoutTests(unittest.TestCase):
             if element.get("flowRole") == "record-overlay"
             and element.get("flowGroup") == company.get("flowGroup")
         ]
-        self.assertEqual(len(meta_overlays), 4)
-        for element in meta_overlays:
-            expected_offset = 1.5 if element.get("category") == "image" else 0
-            self.assertEqual(element.get("page", 1), company.get("page", 1))
-            self.assertAlmostEqual(
-                float(element.get("top", 0)) - float(company.get("top", 0)),
-                expected_offset,
-                places=2,
-            )
+        self.assertEqual(len(meta_overlays), 3)
+        period_label = next(
+            element for element in elements
+            if element.get("category") == "textarea"
+            and element.get("content") == fourth_job["period"]
+            and element.get("flowGroup") == company.get("flowGroup")
+        )
+        city_label = next(
+            element for element in meta_overlays
+            if element.get("category") == "textarea"
+            and element.get("content") == fourth_job["city"]
+        )
+        meta_top = float(company["top"]) + float(company["height"]) + 2
+        for label in (period_label, city_label):
+            self.assertEqual(label.get("page", 1), company.get("page", 1))
+            self.assertAlmostEqual(float(label["top"]), meta_top, places=2)
+            self.assertEqual(label.get("fontSize"), 8.6)
+            self.assertEqual(label.get("lineHeight"), 11.5)
+            self.assertEqual(label.get("height"), 12)
+        self.assertTrue(period_label.get("autoHeight"))
+        self.assertFalse(city_label.get("autoHeight"))
         self.assertTrue(all(
             element.get("alignWithText") is False
             for element in meta_overlays
             if element.get("category") == "image"
         ))
-        meta_labels = [
-            element for element in meta_overlays
-            if element.get("category") == "textarea"
-        ]
-        self.assertEqual(len(meta_labels), 2)
         self.assertTrue(all(
-            element.get("lineHeight") == 12
-            and element.get("height") == 12
-            and element.get("autoHeight") is False
-            and 6.4 <= element.get("fontSize", 0) <= 7.2
-            for element in meta_labels
-        ))
-        self.assertTrue(all(
-            float(element.get("left", 0)) >= 186
-            and float(element.get("left", 0)) + float(element.get("width", 0)) <= 336
-            for element in meta_overlays
-        ))
-        self.assertTrue(all(
-            element.get("height") == 9
+            element.get("height") == 11
+            and abs(float(element.get("top", 0)) - meta_top - 0.25) < 0.01
             for element in meta_overlays
             if element.get("category") == "image"
         ))
+        self.assertLessEqual(
+            max(
+                float(element.get("left", 0)) + float(element.get("width", 0))
+                for element in (period_label, city_label, *meta_overlays)
+            ),
+            336,
+        )
 
     def test_iconic_templates_pair_contact_and_section_icons(self):
         contact_keys = ("email", "phone", "location")
