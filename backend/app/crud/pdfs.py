@@ -234,10 +234,26 @@ def request_pdf_by_id_show(db: Session, pdf_id: int):
 
 
 def request_pdf_elements_by_element_id(db: Session, pdf_id: int) -> dict:
-    """Map client `element_id` → ORM row for efficient upsert matching."""
+    """Map client `element_id` → ORM row for efficient upsert matching.
+
+    Ordered by the auto-incrementing primary key so the returned dict's
+    insertion order matches the original client paint order. `create_new_pdf`
+    inserts rows in the exact order of the client's `elements` list, so `id`
+    is a reliable proxy for that order. This matters because callers such as
+    `document_service.render_pdf_for_download` pass `.values()` straight into
+    `elements_from_rows` -> `render_elements`, which draws strictly in list
+    order (no z-index sort) — without this ordering, an unordered database
+    read could silently swap the stacking order of overlapping elements in a
+    self-healed re-render, diverging from the last real save.
+    """
     existing_by_id = {
         e.element_id: e
-        for e in db.query(PdfElements).filter(PdfElements.pdf_id == pdf_id).all()
+        for e in (
+            db.query(PdfElements)
+            .filter(PdfElements.pdf_id == pdf_id)
+            .order_by(PdfElements.id)
+            .all()
+        )
     }
     return existing_by_id
 

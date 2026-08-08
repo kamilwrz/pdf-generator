@@ -9,7 +9,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.crud.pdfs import create_new_pdf, elements_from_rows, request_pdf_by_id_show
+from app.crud.pdfs import (
+    create_new_pdf,
+    elements_from_rows,
+    request_pdf_by_id_show,
+    request_pdf_elements_by_element_id,
+)
 from app.models.models import Base
 from app.schemas.pdf_schema import PdfElement, TextRun
 
@@ -78,6 +83,32 @@ class ElementsFromRowsTests(unittest.TestCase):
         self.assertEqual(conn_el.source_id, "e1")
         self.assertEqual(conn_el.target_id, "e2")
         self.assertTrue(conn_el.arrow)
+
+    def test_preserves_original_paint_order_not_alphabetical_or_reversed(self):
+        # `render_elements` (see `pdf_generator.py`) draws strictly in list order
+        # with no z-index sort, so the download-time self-heal re-render (Task 7's
+        # `render_pdf_for_download`) must reconstruct elements in the exact order
+        # they were originally saved — otherwise overlapping shapes could
+        # silently swap which one paints on top. `element_id`s are deliberately
+        # picked out of alphabetical order ("z", "a", "m") so a test that
+        # accidentally passed due to alphabetical or id-reversed ordering would
+        # be caught.
+        elements = [
+            PdfElement(category="rectangle", element_id="z", page=1, left=0, top=0),
+            PdfElement(category="rectangle", element_id="a", page=1, left=0, top=0),
+            PdfElement(category="rectangle", element_id="m", page=1, left=0, top=0),
+        ]
+        pdf_id = create_new_pdf(
+            self.db, "order-test", 1, "/tmp/order.pdf", elements,
+            pages=1, page_width=595, page_height=842,
+            editor_mode="freeform", template_id=None, spacing_px=None,
+        )
+        rows_by_id = request_pdf_elements_by_element_id(self.db, pdf_id)
+        rebuilt = elements_from_rows(list(rows_by_id.values()))
+        self.assertEqual(
+            [el.element_id for el in rebuilt],
+            ["z", "a", "m"],
+        )
 
 
 if __name__ == "__main__":
