@@ -438,7 +438,7 @@ export default function Hero() {
                     <article className={`${classes.priceCard} ${classes.priceFeatured}`}>
                         <span className={classes.popularTag}>Najlepszy wybór do szukania pracy</span>
                         <p className={classes.planName}>Pro</p>
-                        <p className={classes.planPrice}>39 <small>zł / 30 dni</small></p>
+                        <p className={classes.planPrice}>59 <small>zł / 30 dni</small></p>
                         <p className={classes.planSummary}>Gotowe CV do wysłania.</p>
                         <ul>
                             <li><CheckIcon />PDF bez znaku wodnego</li>

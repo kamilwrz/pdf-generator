@@ -135,12 +135,6 @@
     cursor: default;
 }
 
-.note {
-    margin: 16px 8px 4px;
-    font: 500 14px/1.5 var(--font-body);
-    color: var(--chrome-muted);
-}
-
 @media only screen and (max-width: 720px) {
     .grid {
         grid-template-columns: 1fr;

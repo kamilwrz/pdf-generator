@@ -9,7 +9,7 @@
 
 | | Darmowy (Free) | Pro |
 |--|--|--|
-| Price | 0 zł | **39 zł / 30 days** (one-shot pass) |
+| Price | 0 zł | **59 zł / 30 days** (one-shot pass) |
 | Templates | 5 starters | all 14 |
 | Import | 1 lifetime free | further imports via AI credits |
 | Export | watermark | clean |

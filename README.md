@@ -34,7 +34,7 @@ Job seekers need CVs that look professional and export cleanly to PDF. Generic f
 
 Forcing registration before a visitor had seen the editor used to be the largest funnel loss: every new visitor had to create an account — and pick a paid plan during registration — before touching a single template. **Guest mode** removes that wall: `/pdfcanvas` works with no JWT at all, so a visitor can pick a template, run the guided wizard, or freeform-edit and see the exact document they would export, with state kept in `localStorage` instead of the backend. An account is only required at the point of real value — saving or exporting the PDF (a "save-gate" modal) — or for CV import, which stays account-gated because it calls the paid OpenAI extract endpoint. See [Guest mode (editor without an account)](#guest-mode-editor-without-an-account) for the full implementation.
 
-**Implemented today:** editor (including guest mode without an account), templates, extract/fill, bio draft, AI assistant (ratings, grammar, layout review cards), entitlements (Darmowy / Pro — 39 zł / 30 days, 200 AI credits), autosave, local or S3 storage, JWT auth.
+**Implemented today:** editor (including guest mode without an account), templates, extract/fill, bio draft, AI assistant (ratings, grammar, layout review cards), entitlements (Darmowy / Pro — 59 zł / 30 days), autosave, local or S3 storage, JWT auth.
 
 **Optional:** AWS S3 (`S3_BUCKET_NAME`), unpaid plan selection (`ALLOW_UNPAID_PLAN_SELECTION`).
 
@@ -470,7 +470,7 @@ Implementation:
 
 Limits:
 
-- Free (Darmowy) includes five starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 14 templates, further imports, content AI, ATS, and Layout — metered from a shared **200-credit** fair-use budget per 30-day pass (launch price **39 zł**). Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
+- Free (Darmowy) includes five starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 14 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
 - ATS feedback is guidance about document readability and content structure. It is not a promise of recruiter response or an ATS pass.
 - The privacy section describes implemented data use at a high level and does not claim unimplemented certifications or anonymisation.
 
@@ -909,12 +909,12 @@ Two-tier catalog only:
 
 | | Darmowy (Free) | Pro |
 |--|--|--|
-| Price | 0 zł | **39 zł / 30 days** (launch; one-shot pass, not auto-renew) |
+| Price | 0 zł | **59 zł / 30 days** (one-shot pass, not auto-renew) |
 | Templates | 5 starters | all 14 |
 | Import | 1 lifetime free | further imports from AI credits |
 | Export | watermarked | clean PDF |
 | AI | — | content + ATS + Layout |
-| Credits | 0 | **200** / period (fair use; 1 credit = 0.05 PLN) |
+| Credits | 0 | **200** / period (internal metering; 1 credit = 0.05 PLN) |
 | Projects / exports | 1 / 3 per month | unlimited |
 
 Legacy slugs `standard` and `premium` remap to `pro` at registration and `POST /billing/select-plan`. Expired Pro (`current_period_end`) falls back to Free without deleting documents. Marketing copy: Free = “Stwórz i sprawdź swoje CV”; Pro = “Gotowe CV do wysłania”.
@@ -1313,7 +1313,7 @@ Kandydaci potrzebują CV, które wygląda profesjonalnie i eksportuje się do PD
 
 Wymuszanie rejestracji zanim odwiedzający zobaczył edytor było dotąd największą stratą lejka: każdy nowy odwiedzający musiał założyć konto — i wybrać płatny plan już przy rejestracji — zanim dotknął jakiegokolwiek szablonu. **Tryb gościa** usuwa tę barierę: `/pdfcanvas` działa bez JWT, więc odwiedzający może wybrać szablon, przejść kreator krok po kroku albo edytować w trybie swobodnym i zobaczyć dokładnie ten dokument, który wyeksportuje — stan trzymany jest w `localStorage` zamiast w backendzie. Konto jest potrzebne dopiero w momencie realnej wartości: przy zapisie lub eksporcie PDF (modal „save-gate”) albo przy imporcie CV, który pozostaje wymagający konta, bo wywołuje płatny endpoint OpenAI. Pełny opis: [Tryb gościa (edytor bez konta)](#tryb-gościa-edytor-bez-konta).
 
-**Zaimplementowane:** edytor (w tym tryb gościa bez konta), szablony, extract/fill, szkic bio, asystent AI, entitlements (Darmowy / Pro — 39 zł / 30 dni, 200 kredytów AI), autozapis, dysk lokalny lub S3, JWT.
+**Zaimplementowane:** edytor (w tym tryb gościa bez konta), szablony, extract/fill, szkic bio, asystent AI, entitlements (Darmowy / Pro — 59 zł / 30 dni), autozapis, dysk lokalny lub S3, JWT.
 
 **Opcjonalne:** S3 (`S3_BUCKET_NAME`), wybór planu bez płatności (`ALLOW_UNPAID_PLAN_SELECTION`).
 
@@ -1739,7 +1739,7 @@ Implementacja:
 
 Ograniczenia:
 
-- Plan Darmowy obejmuje pięć szablonów startowych, eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 14 szablonów, kolejne importy, AI treści, ATS i Układ — z puli **200 kredytów** na 30-dniowy pass (cena startowa **39 zł**). Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
+- Plan Darmowy obejmuje pięć szablonów startowych, eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 14 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
 - Wskazówki ATS dotyczą czytelności struktury i treści. Nie są gwarancją odpowiedzi rekrutera ani przejścia przez system ATS.
 - Sekcja prywatności opisuje ogólnie zaimplementowane użycie danych i nie deklaruje niezaimplementowanych certyfikatów ani anonimizacji.
 
@@ -2166,12 +2166,12 @@ Katalog ma tylko dwa pakiety:
 
 | | Darmowy (Free) | Pro |
 |--|--|--|
-| Cena | 0 zł | **39 zł / 30 dni** (start; jednorazowy pass, bez auto-odnawiania) |
+| Cena | 0 zł | **59 zł / 30 dni** (jednorazowy pass, bez auto-odnawiania) |
 | Szablony | 5 startowych | wszystkie 14 |
 | Import | 1 darmowy w życiu konta | kolejne z puli kredytów AI |
 | Eksport | ze znakiem wodnym | czysty PDF |
 | AI | — | treść + ATS + Układ |
-| Kredyty | 0 | **200** / okres (fair use; 1 kredyt = 0,05 PLN) |
+| Kredyty | 0 | **200** / okres (wewnętrzne rozliczanie; 1 kredyt = 0,05 PLN) |
 | Projekty / eksporty | 1 / 3 mies. | bez limitu |
 
 Legacy slugi `standard` i `premium` mapują się na `pro`. Po wygaśnięciu Pro dokumenty zostają — konto wraca do Darmowego. Copy: Darmowy = „Stwórz i sprawdź swoje CV”; Pro = „Gotowe CV do wysłania”.

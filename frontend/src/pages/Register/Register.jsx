@@ -142,7 +142,7 @@ export default function Register() {
                     <h1 id="register-title" className={classes.mainHeading}>Utwórz konto</h1>
                     <p className={classes.subHeading}>
                         {requestedPlan === "pro" || requestedPlan === "standard" || requestedPlan === "premium"
-                            ? "Pro — 39 zł / 30 dni. Jedna płatność, bez automatycznego odnawiania (Stripe wkrótce)."
+                            ? "Pro — 59 zł / 30 dni. Jedna płatność, bez automatycznego odnawiania (Stripe wkrótce)."
                             : "Zacznij bez karty i bez zobowiązań."}
                     </p>
                     <p className={classes.intentNotice}>{startNotice}</p>

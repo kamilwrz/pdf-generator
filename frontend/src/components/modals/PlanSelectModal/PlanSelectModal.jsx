@@ -33,8 +33,8 @@ const FALLBACK_PLANS = [
     {
         slug: "pro",
         name: "Pro",
-        price_pln: 39,
-        price_label: "39 zł / 30 dni",
+        price_pln: 59,
+        price_label: "59 zł / 30 dni",
         blurb: "Gotowe CV do wysłania.",
         highlights: [
             "PDF bez znaku wodnego",
@@ -183,10 +183,6 @@ export default function PlanSelectModal() {
                     );
                 })}
             </div>
-            <p className={classes.note}>
-                1 kredyt AI ≈ 5 gr. Pro ma miesięczny limit kredytów do komfortowej pracy
-                nad CV (fair use). Limity odświeżają się z okresem planu.
-            </p>
         </DialogShell>
     );
 }

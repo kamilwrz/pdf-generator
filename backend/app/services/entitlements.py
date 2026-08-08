@@ -246,8 +246,8 @@ PLAN_DISPLAY: dict[str, dict[str, Any]] = {
         "period_note": "Bez karty. Bez zobowiązań.",
     },
     "pro": {
-        "price_pln": 39,
-        "price_label": "39 zł / 30 dni",
+        "price_pln": 59,
+        "price_label": "59 zł / 30 dni",
         "blurb": "Gotowe CV do wysłania.",
         "highlights": [
             "PDF bez znaku wodnego",
