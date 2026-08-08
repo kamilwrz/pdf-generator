@@ -186,9 +186,9 @@ test("Harbor right-column rules do not block main-column record reclaim", () => 
       flowRole: "record-overlay",
       alignWithText: false,
       left: 210,
-      top: 85.5,
-      width: 11,
-      height: 11,
+      top: 86.5,
+      width: 9,
+      height: 9,
       page: 2,
     },
     {
@@ -253,7 +253,7 @@ test("Harbor right-column rules do not block main-column record reclaim", () => 
   assert.ok(bullets.top + bullets.height <= 770);
   assert.deepEqual(
     { page: calendar.page, top: calendar.top },
-    { page: meta.page, top: meta.top + 0.5 },
+    { page: meta.page, top: meta.top + 1.5 },
   );
   assert.deepEqual(
     { page: period.page, top: period.top },

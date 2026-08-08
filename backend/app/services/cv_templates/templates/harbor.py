@@ -297,12 +297,34 @@ def _gen_harbor(cv: dict) -> list[dict]:
         # A single-line `text` element uses CSS line-height: 1, so no fixed Y
         # offset can keep its baseline aligned with a 12px textarea across font
         # loading and browser zoom.
-        meta_icon_top = top + 0.5
+        meta_reserved_width = 150.0
+        meta_base_fs = 7.2
+        meta_min_fs = 6.4
+        meta_icon_size = 9.0
+        icon_to_label = 2.0
+        group_gap = 6.0
+        icon_advance = meta_icon_size + icon_to_label
+        visible_values = [value for value in (period, city) if value]
+        fixed_width = icon_advance * len(visible_values)
+        if len(visible_values) > 1:
+            fixed_width += group_gap
+        # Inter's average glyph is close to 0.52em at these sizes. Add 4px per
+        # label for browser/PDF metric differences, then reduce only the meta
+        # font when unusually long date+city data exceeds the reserved strip.
+        base_text_units = sum(len(value) * 0.52 for value in visible_values)
+        available_text_width = max(1.0, meta_reserved_width - fixed_width - 4 * len(visible_values))
+        meta_fs = (
+            min(meta_base_fs, available_text_width / base_text_units)
+            if base_text_units > 0
+            else meta_base_fs
+        )
+        meta_fs = max(meta_min_fs, meta_fs)
+        meta_icon_top = top + 1.5
 
         def meta_label(content: str, left: float, width: float) -> dict:
             return {
                 **_block(
-                    content, left, top, width, 12, 8.2, 12,
+                    content, left, top, width, 12, meta_fs, 12,
                     C["meta"], SANS, zIndex=3, page=page,
                 ),
                 "autoHeight": False,
@@ -311,20 +333,20 @@ def _gen_harbor(cv: dict) -> list[dict]:
 
         right = MAIN_R
         if city:
-            city_width = max(1, len(city) * 4.2)
+            city_width = max(1, len(city) * meta_fs * 0.52 + 4)
             cx_city = right - city_width
             b.els.append(meta_label(city, cx_city, city_width))
             b.els.append(_hicon(
-                "location", cx_city - 13, meta_icon_top, 11,
+                "location", cx_city - icon_advance, meta_icon_top, meta_icon_size,
                 align=False, page=page, flow_role="record-overlay",
             ))
-            right = cx_city - 13 - 10
+            right = cx_city - icon_advance - group_gap
         if period:
-            period_width = max(1, len(period) * 4.2)
+            period_width = max(1, len(period) * meta_fs * 0.52 + 4)
             cx_period = right - period_width
             b.els.append(meta_label(period, cx_period, period_width))
             b.els.append(_hicon(
-                "calendar", cx_period - 13, meta_icon_top, 11,
+                "calendar", cx_period - icon_advance, meta_icon_top, meta_icon_size,
                 align=False, page=page, flow_role="record-overlay",
             ))
 

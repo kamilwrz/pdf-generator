@@ -1619,7 +1619,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         ]
         self.assertEqual(len(meta_overlays), 4)
         for element in meta_overlays:
-            expected_offset = 0.5 if element.get("category") == "image" else 0
+            expected_offset = 1.5 if element.get("category") == "image" else 0
             self.assertEqual(element.get("page", 1), company.get("page", 1))
             self.assertAlmostEqual(
                 float(element.get("top", 0)) - float(company.get("top", 0)),
@@ -1640,7 +1640,18 @@ class CvTemplateLayoutTests(unittest.TestCase):
             element.get("lineHeight") == 12
             and element.get("height") == 12
             and element.get("autoHeight") is False
+            and 6.4 <= element.get("fontSize", 0) <= 7.2
             for element in meta_labels
+        ))
+        self.assertTrue(all(
+            float(element.get("left", 0)) >= 186
+            and float(element.get("left", 0)) + float(element.get("width", 0)) <= 336
+            for element in meta_overlays
+        ))
+        self.assertTrue(all(
+            element.get("height") == 9
+            for element in meta_overlays
+            if element.get("category") == "image"
         ))
 
     def test_iconic_templates_pair_contact_and_section_icons(self):
