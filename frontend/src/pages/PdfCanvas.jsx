@@ -42,6 +42,7 @@ import { queueGuestEvent, loadGuestEvents, clearGuestEvents } from '../utils/gue
 import { previewStructureOperation } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
 import { planErrorMessage } from '../utils/entitlements';
+import { useCanvasPageWheel } from '../hooks/useCanvasPageWheel';
 import {
   EDITOR_MODE_FREEFORM,
   EDITOR_MODE_TEMPLATE,
@@ -260,6 +261,11 @@ function PdfCanvas() {
     canRedo,
     resetHistory
   } = useA4Elements(titleRef)
+
+  // Wheel on the canvas scrolls the overflow first; at the edge it changes
+  // currentPage so PageControls ("Strona N / M") stays in sync.
+  const canvasAreaRef = useRef(null);
+  useCanvasPageWheel(canvasAreaRef, { currentPage, pageCount, goToPage });
 
   const handleConfirmAddSection = useCallback(({ name, layout, iconName }) => {
     handleAddSection({
@@ -1303,7 +1309,7 @@ function PdfCanvas() {
                   <DemoBanner onUseOwnData={handleDemoUseOwnData} onStartBlank={handleDemoStartBlank} />
                 ) : null}
                 <Topbar titleRef={titleRef} />
-                <div className="canvas-area">
+                <div className="canvas-area" ref={canvasAreaRef}>
                   <div className={isTwoPageView ? "canvas-spread" : "canvas-single"}>
                     {visiblePages.map((page) => (
                       <A4

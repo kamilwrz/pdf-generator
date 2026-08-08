@@ -25,7 +25,7 @@ DONE 2) KOLOR NA LIGHT THEME (GRAY, BLUE, GOLD, WHITE THEME)
   cc) Github, etc
   dd) wylapac ewentualne bugi i dopracowac...
   ee) ewentualnie nowe lub skopiowane szablony i dopracowac, moze byc mniej niz 14
-DONE 4) IMAGE -> edytor strukturalny: upload zdjęcia w slot (Slate/Tessera/Aldine/Harbor; photoSlot + applyProfilePhoto)
+4) IMAGE -> edytor strukturalny: upload zdjęcia w slot (Slate/Tessera/Aldine/Harbor; photoSlot + applyProfilePhoto) - brak w wielu szablonach tej funkcji
 DONE 5) pokazywanie "Resizera" podczas edycji strukturalnej wylaczyc (drag + pola W/H w panelu)
 DONE 6) nie pokazywac wartosci do edycji w panelu, jezeli nie ma to wplywu (+ brak klonuj/usun w edycji strukturalnej)
 7)  strzalki w a4:
@@ -40,5 +40,6 @@ DONE 9) masthead / ikony / dekoracje nie ruszaja sie w edycji strukturalnej (can
 DONE 10) Uzytkownika zawsze ma zaczynac od zooma 130% nie 100%
 11) SZABLONY - LANDING PAGE - zmienic na CV WIZZARD? SZABLONY - nei dziala rytm....
 12) Zwiekszyc roznorodnosc layoutu sekcji / podobnie jak w enhancecv
+13) Scroll - Page Change
 
 4. AI - zastanowic sie i zmodyfikowac / reImplement
