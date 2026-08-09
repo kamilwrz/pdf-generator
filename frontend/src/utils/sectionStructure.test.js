@@ -14,6 +14,7 @@ import {
 } from "./sectionStructure.js";
 import { novaTemplate, voltTemplate } from "../templates/iconic.js";
 import { cardinalTemplate } from "../templates/cardinal.js";
+import { porticoTemplate } from "../templates/portico.js";
 
 /**
  * Two-column sidebar fixture modeled on Tessera/Slate's real geometry
@@ -1233,6 +1234,41 @@ describe("applyFlowSpacing", () => {
         `${name}: packing must not invent phantom section headings`,
       );
     }
+  });
+
+  it("keeps a centered iconic masthead's authored clearance on reorder (Portico)", () => {
+    // Portico is icon-tagged but authors a deliberate ~36px "Ivy League"
+    // masthead clearance (SPACE_AFTER_HEADER_RULE) under its centered name /
+    // title / contact block. The iconic heal-back that collapses Nova/Cardinal's
+    // over-authored 36px down to a tight 10px must NOT fire here — otherwise
+    // reordering sections yanks the whole document up by ~26px.
+    const source = porticoTemplate.map((element, index) => ({
+      ...element,
+      element_id: `p-${index}`,
+      page: 1,
+    }));
+    const before = listDocumentSections(source, 842);
+    const firstBefore = source.find((element) => (
+      element.element_id === before[0]?.headingId
+    ));
+    assert.ok(firstBefore, "expected a first Portico section before reorder");
+
+    const packed = reorderSection(source, before[1].headingId, "up", 842, {
+      spacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
+    });
+    const after = listDocumentSections(packed, 842);
+    const firstAfter = packed.find((element) => (
+      element.element_id === after[0]?.headingId
+    ));
+    // The reorder swaps which section is first, but whichever heading lands at
+    // the top must keep the authored masthead clearance (~36px), i.e. the same
+    // absolute top the original first section occupied — not a collapsed 10px.
+    assert.equal(
+      firstAfter?.top,
+      firstBefore.top,
+      `Portico first section must keep its ${firstBefore.top}px masthead `
+      + `clearance after reorder, got ${firstAfter?.top}`,
+    );
   });
 
   it("keeps Regent masthead clearance when packing after a corrupted heading gap", () => {

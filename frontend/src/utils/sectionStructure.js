@@ -466,6 +466,23 @@ function hasIconicMasthead(elements) {
 }
 
 /**
+ * True when the masthead centers its name / title block (Portico's "Ivy League"
+ * header). Such mastheads author a deliberate ~36px clearance under the divider
+ * and must be exempt from the iconic heal-back below, which collapses the
+ * over-authored 36px of the tight LEFT-aligned iconic mastheads (Nova / Cardinal
+ * / Volt / Harbor) down to 10px.
+ */
+function hasCenteredMasthead(elements) {
+  return (elements || []).some((element) => (
+    element
+    && !element.fixedToPage
+    && element.flowRole === "masthead"
+    && element.category === "textarea"
+    && element.align === "center"
+  ));
+}
+
+/**
  * Absolute Y where the first flow section should start, anchored under the
  * masthead so corrupted heading positions cannot open a large white gap
  * (Regent) or climb into the header band.
@@ -487,16 +504,21 @@ function resolveFlowStart(elements, sections, pageHeight) {
   if (mastheadBottom <= 0) return headingStart;
 
   const authoredGap = headingStart - mastheadBottom;
-  const iconic = hasIconicMasthead(list);
+  // The iconic heal-back only applies to the tight LEFT-aligned iconic
+  // mastheads (Nova / Cardinal / Volt / Harbor). A centered "Ivy League"
+  // masthead (Portico) is icon-tagged too but authors the wider ~36px clearance
+  // on purpose, so it must be treated like a normal Regent/Aldine masthead.
+  const tightIconic = hasIconicMasthead(list) && !hasCenteredMasthead(list);
   // A previous pack forced DEFAULT_MASTHEAD_CLEARANCE onto Nova/Cardinal/Volt.
-  // That 36px band is valid for Regent, but iconic templates never author it —
-  // heal back to a tight clearance so already-saved broken CVs recover on the
-  // next spacing / reorder pack without requiring a full template reload.
-  if (iconic && authoredGap >= 28 && authoredGap <= 40) {
+  // That 36px band is valid for Regent, but tight iconic templates never author
+  // it — heal back to a tight clearance so already-saved broken CVs recover on
+  // the next spacing / reorder pack without requiring a full template reload.
+  if (tightIconic && authoredGap >= 28 && authoredGap <= 40) {
     return mastheadBottom + 10;
   }
-  // Preserve tight iconic gaps (Nova ~8px) and normal Regent/Aldine gaps.
-  // Huge white bands or overlaps mean a prior pack corrupted the start.
+  // Preserve tight iconic gaps (Nova ~8px), Portico's centered ~36px, and normal
+  // Regent/Aldine gaps. Huge white bands or overlaps mean a prior pack corrupted
+  // the start.
   if (
     authoredGap >= MIN_AUTHORED_MASTHEAD_CLEARANCE
     && authoredGap <= MAX_AUTHORED_MASTHEAD_CLEARANCE
@@ -504,7 +526,7 @@ function resolveFlowStart(elements, sections, pageHeight) {
     return mastheadBottom + authoredGap;
   }
   return mastheadBottom + (
-    iconic ? 10 : DEFAULT_MASTHEAD_CLEARANCE
+    tightIconic ? 10 : DEFAULT_MASTHEAD_CLEARANCE
   );
 }
 
