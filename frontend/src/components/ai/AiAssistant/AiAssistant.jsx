@@ -449,6 +449,8 @@ function correctionFieldLabel(field) {
  * Review card for grammar/style/improve patches.
  * Collapsed by default; pointer or keyboard focus expands the full Przed/Po
  * comparison in the chat's scroll context, so the composer cannot cover it.
+ * Native `title` tooltips are intentionally omitted — long CV text must not
+ * spawn a browser hover bubble over the strikethrough “Przed” line.
  */
 function CorrectionCard({ msgId, patch, correctionStates, onAccept, onReject, A4_Elements }) {
     const cardRef = useRef(null);
@@ -501,12 +503,12 @@ function CorrectionCard({ msgId, patch, correctionStates, onAccept, onReject, A4
                         <div className={classes.diffCompare}>
                             <div className={classes.diffBlock} data-side="old">
                                 <span className={classes.diffLabel}>Przed</span>
-                                <span className={classes.diffOld} title={oldVal}>{oldVal}</span>
+                                <span className={classes.diffOld}>{oldVal}</span>
                             </div>
                             <span className={classes.diffArrow} aria-hidden="true">→</span>
                             <div className={classes.diffBlock} data-side="new">
                                 <span className={classes.diffLabel}>Po</span>
-                                <span className={classes.diffNew} title={nextVal}>{nextVal}</span>
+                                <span className={classes.diffNew}>{nextVal}</span>
                             </div>
                         </div>
                     </div>
