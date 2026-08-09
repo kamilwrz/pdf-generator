@@ -1121,7 +1121,11 @@ describe("applyFlowSpacing", () => {
     assert.deepEqual(sections.map((section) => section.title), ["PODSUMOWANIE ZAWODOWE"]);
   });
 
-  it("heals an iconic CV that a prior pack forced to the 36px Regent clearance", () => {
+  it("preserves an iconic masthead's authored 36px clearance on pack", () => {
+    // The Python generators author ~36px under the divider for iconic templates
+    // (SPACE_AFTER_HEADER_RULE). An earlier heal-back collapsed that to ~10px on
+    // every pack, so a single reorder yanked the whole document up ~26px. Packing
+    // must now KEEP the authored 36px clearance (masthead rule bottom 161 → 197).
     const elements = [
       {
         element_id: "rule",
@@ -1151,7 +1155,7 @@ describe("applyFlowSpacing", () => {
         flowRole: "section-chrome",
         content: "PODSUMOWANIE ZAWODOWE",
         page: 1,
-        top: 197, // 161 + 36 — classic forced-clearance corruption
+        top: 197, // 161 + 36 — the generator's authored clearance
         left: 66,
         fontSize: 8.6,
         height: 12,
@@ -1184,9 +1188,10 @@ describe("applyFlowSpacing", () => {
       after_rule: 8,
     }, 842);
     const heading = packed.find((element) => element.element_id === "h1");
-    assert.ok(
-      heading.top >= 168 && heading.top <= 176,
-      `iconic first section should heal under the masthead, got top=${heading.top}`,
+    assert.equal(
+      heading.top,
+      197,
+      `iconic first section must keep its authored 36px clearance, got top=${heading.top}`,
     );
   });
 

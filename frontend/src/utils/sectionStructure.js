@@ -504,27 +504,26 @@ function resolveFlowStart(elements, sections, pageHeight) {
   if (mastheadBottom <= 0) return headingStart;
 
   const authoredGap = headingStart - mastheadBottom;
-  // The iconic heal-back only applies to the tight LEFT-aligned iconic
-  // mastheads (Nova / Cardinal / Volt / Harbor). A centered "Ivy League"
-  // masthead (Portico) is icon-tagged too but authors the wider ~36px clearance
-  // on purpose, so it must be treated like a normal Regent/Aldine masthead.
-  const tightIconic = hasIconicMasthead(list) && !hasCenteredMasthead(list);
-  // A previous pack forced DEFAULT_MASTHEAD_CLEARANCE onto Nova/Cardinal/Volt.
-  // That 36px band is valid for Regent, but tight iconic templates never author
-  // it — heal back to a tight clearance so already-saved broken CVs recover on
-  // the next spacing / reorder pack without requiring a full template reload.
-  if (tightIconic && authoredGap >= 28 && authoredGap <= 40) {
-    return mastheadBottom + 10;
-  }
-  // Preserve tight iconic gaps (Nova ~8px), Portico's centered ~36px, and normal
-  // Regent/Aldine gaps. Huge white bands or overlaps mean a prior pack corrupted
-  // the start.
+  // Preserve whatever clearance the template authored, as long as it is sane.
+  // The Python generators author ~36px under the divider for iconic templates
+  // (Nova / Cardinal / Volt / Harbor / Portico) via SPACE_AFTER_HEADER_RULE, and
+  // the static starter arrays author as little as ~8px — BOTH are legitimate.
+  // An earlier version collapsed any 28–40px iconic gap down to 10px on every
+  // pack, which meant reordering a section yanked the whole document up ~26px
+  // because the generated 36px clearance was destroyed. We only recompute the
+  // clearance when the authored gap is out of range (a prior pack left a huge
+  // white band or an overlap) — a sane authored gap is always kept as-is.
   if (
     authoredGap >= MIN_AUTHORED_MASTHEAD_CLEARANCE
     && authoredGap <= MAX_AUTHORED_MASTHEAD_CLEARANCE
   ) {
     return mastheadBottom + authoredGap;
   }
+  // Corruption recovery only: a tight LEFT-aligned iconic masthead (Nova /
+  // Cardinal / Volt / Harbor) recovers to a tight clearance; a centered "Ivy
+  // League" masthead (Portico) and non-iconic templates (Regent / Aldine) use
+  // the wider default. `hasCenteredMasthead` keeps Portico out of the tight band.
+  const tightIconic = hasIconicMasthead(list) && !hasCenteredMasthead(list);
   return mastheadBottom + (
     tightIconic ? 10 : DEFAULT_MASTHEAD_CLEARANCE
   );
