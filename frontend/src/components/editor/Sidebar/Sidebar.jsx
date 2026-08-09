@@ -63,7 +63,7 @@ export default function Sidebar({ children }) {
 
         <div className={classes.toolsContainer}>
             <div className={classes.toolsList}>
-                <SidebarControls icon={<LuImagePlus />} labelText="Galeria" sidebarEvent={showGallery} />
+                <SidebarControls icon={<LuImagePlus />} labelText="Zdjęcia" sidebarEvent={showGallery} />
                 {isTemplate ? (
                     <SidebarControls
                         icon={<LuListTree />}
@@ -89,7 +89,7 @@ export default function Sidebar({ children }) {
 
         <div className={classes.toolsContainer}>
             <div className={classes.toolsList}>
-                <SidebarControls icon={<FaRegImages />} labelText="Prześlij obrazy" sidebarEvent={showDropzone} />
+                <SidebarControls icon={<FaRegImages />} labelText="Prześlij zdjęcia" sidebarEvent={showDropzone} />
                 <SidebarControls icon={<FaRegFolderOpen />} labelText="Moje dokumenty" sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
             </div>
         </div>

@@ -1,34 +1,45 @@
 /**
- * Dialog wrapper that mounts Dropzone when the upload surface is open.
+ * Dialog wrapper that mounts Dropzone when the profile-photo upload surface is open.
  */
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import classes from "./DropzoneContainer.module.css";
 import Dropzone from "./Dropzone";
 import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 import DialogShell from "../../common/DialogShell/DialogShell";
-
-const MAX_FILES = 12;
+import { MAX_PROFILE_PHOTOS } from "../../../constants/profilePhotos";
 
 export default function DropzoneContainer() {
     const { isDropzone, showDropzone } = useUiSurfaces();
-    const [count, setCount] = useState(0);
+    const [libraryCount, setLibraryCount] = useState(0);
+
+    const handleLibraryChange = useCallback((info) => {
+        setLibraryCount(info?.libraryCount ?? 0);
+    }, []);
 
     return (
         <DialogShell
             open={isDropzone}
             onClose={showDropzone}
-            width={1280}
+            width={720}
             radius={2}
-            title="Prześlij obrazy"
-            subtitle="Maks. 12 plików · JPG, PNG — miniatury pojawią się w siatce poniżej."
+            title="Prześlij zdjęcia profilowe"
+            subtitle={`Do użycia w CV · maks. ${MAX_PROFILE_PHOTOS} zdjęć · JPG, PNG, WEBP, GIF`}
             footer={(
                 <>
-                    <span className={classes.countLabel}>{count} z {MAX_FILES} przesłanych obrazów</span>
+                    <span className={classes.countLabel}>
+                        {libraryCount}
+                        {" "}
+                        z
+                        {" "}
+                        {MAX_PROFILE_PHOTOS}
+                        {" "}
+                        zdjęć w galerii
+                    </span>
                     <button type="button" className={classes.closeFooterBtn} onClick={showDropzone}>Zamknij</button>
                 </>
             )}
         >
-            <Dropzone onCountChange={setCount} />
+            <Dropzone onLibraryChange={handleLibraryChange} />
         </DialogShell>
     );
 }

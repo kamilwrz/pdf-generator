@@ -404,8 +404,8 @@ Implementation:
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, function `BioCvModal` — `saveDraft` (lines 192–240), mount/resume/adopt effect (lines 280–408), `handleClose` (lines 541–567), `clearDraft` (lines 569–600), `handleFill` (lines 602–671); guest localStorage drafts kept after fill; Demo→account adopt via `adoptGuestWizardDraftForAccount`; auth `/ai/bio_cv_draft` + stale-JWT recovery; fill uses live `fillTemplate` client
 - `frontend/src/pages/PdfCanvas.jsx`, lines 978–999 — silent guest-wizard adopt on authenticated mount
 - `frontend/src/services/fillTemplate.js`, lines 21–46, function `fillTemplate` — omits Bearer header when no JWT
-- `frontend/src/components/gallery/Gallery/Gallery.jsx`, lines 39–54 — guest guard on the image-library fetch
-- `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, lines 38–53 — guest guard on image upload
+- `frontend/src/components/gallery/Gallery/Gallery.jsx`, lines 74–88 — guest guard on the profile-photo library fetch
+- `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, lines 93–101 — guest guard on profile-photo upload
 - `frontend/src/services/eventLog.js` — `logEvent`, the authenticated sink guest events are flushed through
 - `backend/app/core/security.py`, lines 64–66 and 109–128, `optional_bearer` / `verify_token_optional`
 - `frontend/src/utils/authSession.js` — `getAccessToken`, `clearAccessToken`, `isAuthFailure` (guest recovery from stale JWTs / FastAPI "Not authenticated")
@@ -718,14 +718,22 @@ Implementation:
 
 ### Image upload (validated, private content)
 
-Users upload images for canvas elements. The endpoint treats every part of the
-upload as untrusted: it verifies the real raster format from the file's leading
-bytes (PNG, JPEG, WEBP, GIF only — SVG is rejected as an inline-script vector),
-derives the stored name from a server-generated UUID (so a crafted filename
-cannot cause path traversal), caps the body size (bounding memory use), and
-enforces a per-user image count. The original filename is stored for display
-only and is never used to locate the object. Limits are configurable via
-`MAX_UPLOAD_BYTES` (default 8 MB) and `MAX_IMAGES_PER_USER` (default 200).
+Users upload **profile photos** for use in CVs (gallery + template photo slot).
+The library is capped at **5 photos per account**. The endpoint treats every
+part of the upload as untrusted: it verifies the real raster format from the
+file's leading bytes (PNG, JPEG, WEBP, GIF only — SVG is rejected as an
+inline-script vector), derives the stored name from a server-generated UUID
+(so a crafted filename cannot cause path traversal), caps the body size
+(bounding memory use), and enforces the per-user profile-photo count. The
+original filename is stored for display only and is never used to locate the
+object. Limits are configurable via `MAX_UPLOAD_BYTES` (default 8 MB) and
+`MAX_IMAGES_PER_USER` (default **5**).
+
+The editor gallery always shows **five portrait slots** (filled thumbnails +
+empty placeholders). Empty slots open the upload dialog. When the library is
+full, upload is disabled with a Polish message that the user must delete one
+or more photos before adding another. `GET /images/fetch_images` returns an
+empty list when the library has no photos yet (not 404).
 
 Bytes are **not** served from a public `/uploads` StaticFiles mount. The gallery
 and canvas fetch `GET /images/{id}/content` with a Bearer token and display a
@@ -735,15 +743,19 @@ blob URL. Canvas elements persist a stable `/images/{id}/content` `src` plus
 Implementation:
 
 - `backend/app/utils/upload_security.py`, `sniff_image_type`, `safe_object_name`, `is_safe_path_segment`
-- `backend/app/api/routes/images.py`, lines 57–143, `create_upload_image`; lines 167–199, `get_image_content`
+- `backend/app/api/routes/images.py`, lines 57–149, `create_upload_image`; lines 152–162, `fetch_user_images`; lines 166–199, `get_image_content`
 - `backend/app/services/document_service.py`, lines 39–66, `resolve_image_src_for_pdf` / `make_image_resolver`
+- `frontend/src/constants/profilePhotos.js`, `MAX_PROFILE_PHOTOS` (must match backend default)
 - `frontend/src/services/authenticatedImage.js`, `fetchAuthenticatedImageObjectUrl`
-- `frontend/src/components/gallery/Gallery/Gallery.jsx`, `GalleryItem.jsx`, `canvas/Image/Image.jsx`
+- `frontend/src/components/gallery/Gallery/Gallery.jsx`, lines 50–201 — five-slot gallery + placeholders
+- `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, lines 33–303 — max 5, disable when full
+- `frontend/src/components/gallery/Dropzone/DropzoneContainer.jsx`, lines 11–45 — “Prześlij zdjęcia profilowe”
+- `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, `canvas/Image/Image.jsx`
 - `backend/app/crud/images.py`, `create_image`, `count_images_by_user_id`
-- `backend/app/core/config.py`, `MAX_UPLOAD_BYTES`, `MAX_IMAGES_PER_USER`
+- `backend/app/core/config.py`, lines 73–74, `MAX_UPLOAD_BYTES`, `MAX_IMAGES_PER_USER`
 - Deletion is IDOR-checked and blocked while a PDF element still references the image (`delete_user_image`)
 
-Tests: `backend/tests/test_image_upload_security.py` — accepts a real PNG, rejects HTML disguised as PNG (415), neutralises traversal filenames, rejects oversize (413), enforces the per-user count (403), owner-only content GET; `backend/tests/test_document_service.py` — content URL → local path.
+Tests: `backend/tests/test_image_upload_security.py` — accepts a real PNG, rejects HTML disguised as PNG (415), neutralises traversal filenames, rejects oversize (413), enforces the per-user count (403), owner-only content GET; `frontend/src/utils/polishUploadMessage.test.js` — Polish profile-photo upload copy; `backend/tests/test_document_service.py` — content URL → local path.
 
 ### Profile photo slot (template mode)
 
@@ -1205,7 +1217,7 @@ App: `http://localhost:5173`.
 | `ADMIN_RESET_SECRET` | for admin reset | Dedicated secret for `POST /billing/admin/reset-ai-credits` (does **not** fall back to `SECRET_KEY`) | long random string |
 | `ALLOW_INSECURE_SECRET` | no | Local throwaway only: skip strong `SECRET_KEY` boot check | `true` |
 | `MAX_UPLOAD_BYTES` | no | Max image upload size in bytes (default 8 MB) | `8388608` |
-| `MAX_IMAGES_PER_USER` | no | Max stored images per user (default 200) | `200` |
+| `MAX_IMAGES_PER_USER` | no | Max profile photos per user (default 5) | `5` |
 
 #### Frontend
 
@@ -1268,7 +1280,7 @@ CI/CD: configure in your host (Render dashboards / GitHub Actions) — no commit
 - Sessions: JWT Bearer; username in `sub`.
 - Authorisation: ownership checks on PDF/image mutations; plan gates on create/export/AI/templates.
 - CORS: explicit origin allowlist (`CORS_ORIGINS`).
-- Uploads: format verified from file bytes (PNG/JPEG/WEBP/GIF; SVG rejected), stored under server-generated names (no path traversal), size-capped (`MAX_UPLOAD_BYTES`) and count-limited per user (`MAX_IMAGES_PER_USER`); images owned by user; delete blocked while referenced by a PDF element; bytes served only via ownership-checked `GET /images/{id}/content` (no public `/uploads` mount) (`upload_security.py`, `images.py`).
+- Uploads: profile-photo library (max 5 by default); format verified from file bytes (PNG/JPEG/WEBP/GIF; SVG rejected), stored under server-generated names (no path traversal), size-capped (`MAX_UPLOAD_BYTES`) and count-limited per user (`MAX_IMAGES_PER_USER`); images owned by user; delete blocked while referenced by a PDF element; bytes served only via ownership-checked `GET /images/{id}/content` (no public `/uploads` mount) (`upload_security.py`, `images.py`).
 - Registration: duplicate username/email rejected with 400; email format-validated (`auth.py`, `user_schema.py`).
 - AI: provider errors mapped to generic Polish 500; details stay in logs.
 - Metrics: `/events/log` logs numeric `user_id`, not raw usernames (`metrics_logging.py`).
@@ -1280,7 +1292,7 @@ This does not claim SOC2/compliance — it documents controls that exist in code
 
 ## Accessibility and UX
 
-- All app dialogs share one unified `DialogShell` look (Escape to close, backdrop, `popIn` animation, 800/19px title + 12.5px subtitle header with a sharp 32×32 `radius={2}` `CloseButton`, `--surface-2`-tinted footer bar). Most dialogs use the same 1280px width and `radius={2}` corner: `PlanSelectModal`, `TemplatesModal`, `AddSectionModal`, `ModalPdfs` ("Moje dokumenty"), and `DropzoneContainer` ("Prześlij obrazy"); fill/summary galleries widen further to 1400px (`AiCvPanel`, `ChangeTemplateModal`). The bio wizard (`BioCvModal`) uses `DialogShell` `variant="fullscreen"` with a ~920px content column, sticky progress bar, and sticky footer instead of a floating centered card. `AddSectionModal` splits into a two-column body (name + layout radios on the left, icon gallery on the right) with hand-styled radio dots (a thin ring by default, a thick accent ring around a dark center when selected) replacing the native browser radio. `ModalPdfs` lists saved documents in a 2-column card grid; its delete confirmation is a smaller 420px `radius={2}` dialog with the same header/footer chrome. `Dropzone` reports its live batch size up to `DropzoneContainer` via an `onCountChange` callback so the shared footer can show "X z 12 przesłanych obrazów" without lifting upload state into the container.
+- All app dialogs share one unified `DialogShell` look (Escape to close, backdrop, `popIn` animation, 800/19px title + 12.5px subtitle header with a sharp 32×32 `radius={2}` `CloseButton`, `--surface-2`-tinted footer bar). Most dialogs use the same 1280px width and `radius={2}` corner: `PlanSelectModal`, `TemplatesModal`, `AddSectionModal`, `ModalPdfs` ("Moje dokumenty"), and `DropzoneContainer` ("Prześlij zdjęcia profilowe", 720px); fill/summary galleries widen further to 1400px (`AiCvPanel`, `ChangeTemplateModal`). The bio wizard (`BioCvModal`) uses `DialogShell` `variant="fullscreen"` with a ~920px content column, sticky progress bar, and sticky footer instead of a floating centered card. `AddSectionModal` splits into a two-column body (name + layout radios on the left, icon gallery on the right) with hand-styled radio dots (a thin ring by default, a thick accent ring around a dark center when selected) replacing the native browser radio. `ModalPdfs` lists saved documents in a 2-column card grid; its delete confirmation is a smaller 420px `radius={2}` dialog with the same header/footer chrome. `Dropzone` reports its live batch size up to `DropzoneContainer` via an `onCountChange` callback so the shared footer can show "X z 12 przesłanych obrazów" without lifting upload state into the container.
 - Docked panels use `PanelShell`.
 - Forms expose labels/icons; plan radios use `role="radiogroup"`.
 - Loading: PDF spinner minimum display time; toasts via `useToasts` / `ToastStack`.
@@ -1713,8 +1725,8 @@ Implementacja:
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, funkcja `BioCvModal` — `saveDraft` (linie 192–240), efekt montowania/wznawiania/adoptu (linie 280–408), `handleClose` (linie 541–567), `clearDraft` (linie 569–600), `handleFill` (linie 602–671); szkice gościa w localStorage zachowane po fill; adopt Demo→konto przez `adoptGuestWizardDraftForAccount`; auth `/ai/bio_cv_draft` + odzyskiwanie po wygasłym JWT; fill przez żywy klient `fillTemplate`
 - `frontend/src/pages/PdfCanvas.jsx`, linie 978–999 — cichy adopt szkicu kreatora gościa przy montowaniu z JWT
 - `frontend/src/services/fillTemplate.js`, linie 21–46, funkcja `fillTemplate` — pomija nagłówek Bearer, gdy brak JWT
-- `frontend/src/components/gallery/Gallery/Gallery.jsx`, linie 39–54 — zabezpieczenie fetcha biblioteki obrazów dla gości
-- `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, linie 38–53 — zabezpieczenie uploadu obrazów dla gości
+- `frontend/src/components/gallery/Gallery/Gallery.jsx`, linie 74–88 — zabezpieczenie fetcha biblioteki zdjęć profilowych dla gości
+- `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, linie 93–101 — zabezpieczenie uploadu zdjęć profilowych dla gości
 - `frontend/src/services/eventLog.js` — `logEvent`, uwierzytelniony odbiornik, przez który przechodzą zbuforowane zdarzenia gościa
 - `backend/app/core/security.py`, linie 64–66 oraz 109–128, `optional_bearer` / `verify_token_optional`
 - `frontend/src/utils/authSession.js` — `getAccessToken`, `clearAccessToken`, `isAuthFailure` (odzyskiwanie gościa po wygasłym JWT / FastAPI „Not authenticated”)
@@ -2019,14 +2031,22 @@ Moduły starterów używają jawnych rozszerzeń `.js` w importach, a `frontend/
 
 ### Upload obrazów (walidowany, prywatna treść)
 
-Użytkownik przesyła obrazy do elementów kanwy. Endpoint traktuje każdą część
-uploadu jako niezaufaną: weryfikuje rzeczywisty format rastrowy z początkowych
-bajtów pliku (tylko PNG, JPEG, WEBP, GIF — SVG jest odrzucany jako wektor
-skryptu), tworzy nazwę pliku z serwerowego UUID (spreparowana nazwa nie może
-wywołać path traversal), ogranicza rozmiar ciała (limit pamięci) oraz liczbę
-obrazów na użytkownika. Oryginalna nazwa jest zapisywana tylko do wyświetlania
-i nigdy nie służy do lokalizacji pliku. Limity konfiguruje `MAX_UPLOAD_BYTES`
-(domyślnie 8 MB) i `MAX_IMAGES_PER_USER` (domyślnie 200).
+Użytkownik przesyła **zdjęcia profilowe** do użycia w CV (galeria + slot
+szablonu). Biblioteka jest ograniczona do **5 zdjęć na konto**. Endpoint
+traktuje każdą część uploadu jako niezaufaną: weryfikuje rzeczywisty format
+rastrowy z początkowych bajtów pliku (tylko PNG, JPEG, WEBP, GIF — SVG jest
+odrzucany jako wektor skryptu), tworzy nazwę pliku z serwerowego UUID
+(spreparowana nazwa nie może wywołać path traversal), ogranicza rozmiar ciała
+(limit pamięci) oraz liczbę zdjęć profilowych na użytkownika. Oryginalna nazwa
+jest zapisywana tylko do wyświetlania i nigdy nie służy do lokalizacji pliku.
+Limity konfiguruje `MAX_UPLOAD_BYTES` (domyślnie 8 MB) i `MAX_IMAGES_PER_USER`
+(domyślnie **5**).
+
+Galeria w edytorze zawsze pokazuje **pięć slotów portretowych** (miniatury +
+puste placeholdery). Puste miejsce otwiera dialog uploadu. Gdy biblioteka jest
+pełna, upload jest wyłączony z komunikatem, że trzeba usunąć zdjęcie, aby dodać
+kolejne. `GET /images/fetch_images` zwraca pustą listę, gdy nie ma jeszcze
+zdjęć (nie 404).
 
 Bajty **nie** są serwowane z publicznego mountu `/uploads`. Galeria i kanwa
 pobierają `GET /images/{id}/content` z tokenem Bearer i pokazują blob URL.
@@ -2036,15 +2056,19 @@ eksport PDF rozwiązuje ten URL przez `document_service.resolve_image_src_for_pd
 Implementacja:
 
 - `backend/app/utils/upload_security.py` — `sniff_image_type`, `safe_object_name`, `is_safe_path_segment`
-- `backend/app/api/routes/images.py`, linie 57–143 — `create_upload_image`; linie 167–199 — `get_image_content`
+- `backend/app/api/routes/images.py`, linie 57–149 — `create_upload_image`; linie 152–162 — `fetch_user_images`; linie 166–199 — `get_image_content`
 - `backend/app/services/document_service.py`, linie 39–66 — `resolve_image_src_for_pdf` / `make_image_resolver`
+- `frontend/src/constants/profilePhotos.js` — `MAX_PROFILE_PHOTOS` (zgodne z domyślnym limitem backendu)
 - `frontend/src/services/authenticatedImage.js` — `fetchAuthenticatedImageObjectUrl`
-- `frontend/src/components/gallery/Gallery/Gallery.jsx`, `GalleryItem.jsx`, `canvas/Image/Image.jsx`
+- `frontend/src/components/gallery/Gallery/Gallery.jsx`, linie 50–201 — galeria 5 slotów + placeholdery
+- `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, linie 33–303 — maks. 5, disable przy limicie
+- `frontend/src/components/gallery/Dropzone/DropzoneContainer.jsx`, linie 11–45 — „Prześlij zdjęcia profilowe”
+- `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, `canvas/Image/Image.jsx`
 - `backend/app/crud/images.py` — `create_image`, `count_images_by_user_id`
-- `backend/app/core/config.py` — `MAX_UPLOAD_BYTES`, `MAX_IMAGES_PER_USER`
+- `backend/app/core/config.py`, linie 73–74 — `MAX_UPLOAD_BYTES`, `MAX_IMAGES_PER_USER`
 - Usuwanie jest chronione przed IDOR i blokowane, gdy element PDF nadal używa obrazu (`delete_user_image`)
 
-Testy: `backend/tests/test_image_upload_security.py` — PNG, HTML-as-PNG (415), traversal, oversize (413), limit liczby (403), content tylko dla właściciela; `backend/tests/test_document_service.py` — URL content → ścieżka lokalna.
+Testy: `backend/tests/test_image_upload_security.py` — PNG, HTML-as-PNG (415), traversal, oversize (413), limit liczby (403), content tylko dla właściciela; `frontend/src/utils/polishUploadMessage.test.js` — polskie komunikaty uploadu zdjęć profilowych; `backend/tests/test_document_service.py` — URL content → ścieżka lokalna.
 
 ### Slot zdjęcia profilowego (tryb szablonu)
 
@@ -2455,7 +2479,7 @@ Aplikacja: `http://localhost:5173`.
 
 ### Zmienne środowiskowe
 
-Backend (m.in.): `SECRET_KEY` (min. 16 znaków, bez placeholderów; boot-check w lifespan), `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `DATABASE_URL`, `CORS_ORIGINS`, `BACKEND_URL`, `API_GPT_KEY`, `AI_ASSISTANT_MODEL`, `AI_LAYOUT_MODEL`, `AI_LAYOUT_REASONING_EFFORT`, `AI_LAYOUT_SERVICE_TIER`, `AI_LAYOUT_MAX_COMPLETION_TOKENS`, `USD_TO_PLN`, `S3_BUCKET_NAME`, `AWS_*`, `ALLOW_UNPAID_PLAN_SELECTION` (domyślnie `false`; lokalnie `true`), `ADMIN_RESET_SECRET` (osobny sekret ops, bez fallbacku do `SECRET_KEY`), `ALLOW_INSECURE_SECRET` (tylko lokalne throwaway), `MAX_UPLOAD_BYTES` (domyślnie 8 MB), `MAX_IMAGES_PER_USER` (domyślnie 200).
+Backend (m.in.): `SECRET_KEY` (min. 16 znaków, bez placeholderów; boot-check w lifespan), `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `DATABASE_URL`, `CORS_ORIGINS`, `BACKEND_URL`, `API_GPT_KEY`, `AI_ASSISTANT_MODEL`, `AI_LAYOUT_MODEL`, `AI_LAYOUT_REASONING_EFFORT`, `AI_LAYOUT_SERVICE_TIER`, `AI_LAYOUT_MAX_COMPLETION_TOKENS`, `USD_TO_PLN`, `S3_BUCKET_NAME`, `AWS_*`, `ALLOW_UNPAID_PLAN_SELECTION` (domyślnie `false`; lokalnie `true`), `ADMIN_RESET_SECRET` (osobny sekret ops, bez fallbacku do `SECRET_KEY`), `ALLOW_INSECURE_SECRET` (tylko lokalne throwaway), `MAX_UPLOAD_BYTES` (domyślnie 8 MB), `MAX_IMAGES_PER_USER` (domyślnie 5).
 
 Frontend: `VITE_API_URL`.
 
@@ -2505,7 +2529,7 @@ Migracje: `create_all` + Alembic (`backend/alembic/`) przy starcie.
 - JWT Bearer; `sub` = username.
 - IDOR: właściciel PDF/obrazu; bramki planu na create/export/AI/szablony.
 - CORS z allowlistą.
-- Upload: format weryfikowany z bajtów pliku (PNG/JPEG/WEBP/GIF; SVG odrzucany), nazwy generowane po stronie serwera (brak path traversal), limit rozmiaru (`MAX_UPLOAD_BYTES`) i liczby obrazów na użytkownika (`MAX_IMAGES_PER_USER`); usuwanie blokowane, gdy obraz jest używany przez element PDF; bajty tylko przez `GET /images/{id}/content` z kontrolą właściciela (bez publicznego `/uploads`) (`upload_security.py`, `images.py`).
+- Upload: biblioteka zdjęć profilowych (domyślnie maks. 5); format weryfikowany z bajtów pliku (PNG/JPEG/WEBP/GIF; SVG odrzucany), nazwy generowane po stronie serwera (brak path traversal), limit rozmiaru (`MAX_UPLOAD_BYTES`) i liczby zdjęć na użytkownika (`MAX_IMAGES_PER_USER`); usuwanie blokowane, gdy obraz jest używany przez element PDF; bajty tylko przez `GET /images/{id}/content` z kontrolą właściciela (bez publicznego `/uploads`) (`upload_security.py`, `images.py`).
 - Rejestracja: zajęta nazwa/e-mail odrzucane z 400; e-mail walidowany formatem (`auth.py`, `user_schema.py`).
 - Błędy AI bez wycieku szczegółów do klienta.
 - Metryki z `user_id`, nie raw username.
@@ -2515,7 +2539,7 @@ Migracje: `create_all` + Alembic (`backend/alembic/`) przy starcie.
 
 ## Dostępność i UX
 
-- Wszystkie okna dialogowe aplikacji dzielą jeden ujednolicony wygląd `DialogShell` (Escape do zamknięcia, tło, animacja `popIn`, nagłówek 800/19px tytuł + 12.5px podtytuł z ostrym `CloseButton` 32×32 o `radius={2}`, stopka w kolorze `--surface-2`). Większość dialogów ma szerokość 1280px i narożnik `radius={2}`: `PlanSelectModal`, `TemplatesModal`, `AddSectionModal`, `ModalPdfs` („Moje dokumenty”) oraz `DropzoneContainer` („Prześlij obrazy”); galerie wypełniania/podsumowania rozszerzają się dalej do 1400px (`AiCvPanel`, `ChangeTemplateModal`). Kreator bio (`BioCvModal`) używa `DialogShell` `variant="fullscreen"` z kolumną treści ~920px, lepkim paskiem postępu i lepką stopką zamiast pływającej wycentrowanej karty. `AddSectionModal` dzieli treść na dwie kolumny (nazwa + radiowe wybory układu po lewej, galeria ikon po prawej) z ręcznie stylizowanymi kropkami radio (cienki pierścień domyślnie, gruby pierścień w akcencie wokół ciemnego środka po zaznaczeniu) zamiast natywnego radio przeglądarki. `ModalPdfs` wyświetla zapisane dokumenty w siatce kart 2-kolumnowej; potwierdzenie usunięcia to mniejszy dialog 420px z `radius={2}` w tym samym stylu nagłówka/stopki. `Dropzone` zgłasza swój bieżący rozmiar partii do `DropzoneContainer` przez callback `onCountChange`, dzięki czemu wspólna stopka może pokazać „X z 12 przesłanych obrazów” bez przenoszenia stanu uploadu do kontenera.
+- Wszystkie okna dialogowe aplikacji dzielą jeden ujednolicony wygląd `DialogShell` (Escape do zamknięcia, tło, animacja `popIn`, nagłówek 800/19px tytuł + 12.5px podtytuł z ostrym `CloseButton` 32×32 o `radius={2}`, stopka w kolorze `--surface-2`). Większość dialogów ma szerokość 1280px i narożnik `radius={2}`: `PlanSelectModal`, `TemplatesModal`, `AddSectionModal`, `ModalPdfs` („Moje dokumenty”) oraz `DropzoneContainer` („Prześlij zdjęcia profilowe”, 720px); galerie wypełniania/podsumowania rozszerzają się dalej do 1400px (`AiCvPanel`, `ChangeTemplateModal`). Kreator bio (`BioCvModal`) używa `DialogShell` `variant="fullscreen"` z kolumną treści ~920px, lepkim paskiem postępu i lepką stopką zamiast pływającej wycentrowanej karty. `AddSectionModal` dzieli treść na dwie kolumny (nazwa + radiowe wybory układu po lewej, galeria ikon po prawej) z ręcznie stylizowanymi kropkami radio (cienki pierścień domyślnie, gruby pierścień w akcencie wokół ciemnego środka po zaznaczeniu) zamiast natywnego radio przeglądarki. `ModalPdfs` wyświetla zapisane dokumenty w siatce kart 2-kolumnowej; potwierdzenie usunięcia to mniejszy dialog 420px z `radius={2}` w tym samym stylu nagłówka/stopki. `Dropzone` zgłasza swój bieżący rozmiar partii do `DropzoneContainer` przez callback `onCountChange`, dzięki czemu wspólna stopka może pokazać „X z 12 przesłanych obrazów” bez przenoszenia stanu uploadu do kontenera.
 - Toasty i spinner PDF z minimalnym czasem widoczności.
 - Zoom tylko wizualny — eksport zostaje w rozmiarze dokumentu. Edytor otwiera się domyślnie na **130%** (`ZOOM_DEFAULT` w `useA4Elements`); widok dwóch stron nadal wymusza 100% na czas trwania.
 - Brak pełnego audytu WCAG — kolejne poprawki mile widziane.

@@ -1,6 +1,9 @@
 /**
- * Image upload dropzone with shared Polish batch progress messaging.
+ * Profile-photo upload dropzone with shared Polish batch progress messaging.
+ *
  * Uploads run sequentially so the progress bar reflects total files, not one.
+ * The library is capped at {@link MAX_PROFILE_PHOTOS}; when full, the surface
+ * is disabled and explains that photos must be deleted first.
  */
 import classes from "./Dropzone.module.css";
 import { useDropzone } from "react-dropzone";
@@ -17,43 +20,98 @@ import {
     polishUploadResultMessage,
     polishUploadingMessage,
 } from "../../../utils/polishUploadMessage";
+import { MAX_PROFILE_PHOTOS } from "../../../constants/profilePhotos";
 
 const PROGRESS_MAX = 100;
+const LIMIT_FULL_MESSAGE =
+    `Osiągnięto limit ${MAX_PROFILE_PHOTOS} zdjęć profilowych. `
+    + "Usuń jedno lub więcej zdjęć w galerii, aby dodać kolejne.";
 
-export default function Dropzone({ onCountChange }) {
+/**
+ * @param {{ onLibraryChange?: (info: { libraryCount: number; batchCount: number; remainingSlots: number }) => void }} props
+ */
+export default function Dropzone({ onLibraryChange }) {
     const { valueImageUpload, setValueImageUpload, isDropzone } = use(PdfContext);
     const [files, setFiles] = useState([]);
+    const [libraryCount, setLibraryCount] = useState(0);
+    const [libraryLoaded, setLibraryLoaded] = useState(false);
     const [status, setStatus] = useState("idle"); // idle | uploading | success | error
     const [statusMessage, setStatusMessage] = useState("");
     const uploadTokenRef = useRef(0);
 
-    // Reports the current batch size to DropzoneContainer, which renders it in
-    // the unified DialogShell footer ("X z 12 przesłanych obrazów") — the
-    // footer lives outside this component so DialogShell owns one consistent
-    // footer bar across every dialog instead of each body reimplementing it.
+    const remainingSlots = Math.max(0, MAX_PROFILE_PHOTOS - libraryCount);
+    const atLimit = libraryLoaded && remainingSlots === 0;
+
     useEffect(() => {
-        onCountChange?.(files.length);
-    }, [files.length, onCountChange]);
+        onLibraryChange?.({
+            libraryCount,
+            batchCount: files.length,
+            remainingSlots,
+        });
+    }, [libraryCount, files.length, remainingSlots, onLibraryChange]);
+
+    const refreshLibraryCount = useCallback(async () => {
+        if (!localStorage.getItem("token")) {
+            setLibraryCount(0);
+            setLibraryLoaded(true);
+            return;
+        }
+        const api = new ApiClient({
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+        });
+        try {
+            const rows = await api.httpRequest(
+                ENDPOINTS.IMG.FETCH,
+                "GET",
+                null,
+                "Pobieranie zdjęć profilowych nie powiodło się!",
+            );
+            setLibraryCount(Array.isArray(rows) ? rows.length : 0);
+        } catch {
+            // Keep the previous count on transient failures so a network blip
+            // does not unlock uploads past the known library size.
+        } finally {
+            setLibraryLoaded(true);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!isDropzone) return undefined;
+        setLibraryLoaded(false);
+        setStatus("idle");
+        setStatusMessage("");
+        setFiles((prev) => {
+            prev.forEach((file) => URL.revokeObjectURL(file.preview));
+            return [];
+        });
+        setValueImageUpload(0);
+        refreshLibraryCount();
+        return undefined;
+    }, [isDropzone, refreshLibraryCount, setValueImageUpload]);
 
     const onDrop = useCallback((acceptedFiles) => {
         if (!acceptedFiles?.length) return;
 
         // Image upload has nowhere to persist for a guest — there is no
-        // account yet to own the uploaded file, the same situation as the
-        // BioCvModal wizard draft (see BioCvModal.jsx's saveDraft guard).
-        // Skip the network attempt entirely instead of firing one doomed
-        // `Authorization: Bearer null` request per dropped file; those would
-        // all 401 and land in the empty `catch` below, leaving the guest
-        // with an unexplained "upload failed" result and nothing to show
-        // for it.
+        // account yet to own the uploaded file.
         if (!localStorage.getItem("token")) {
             setStatus("error");
-            setStatusMessage("Załóż konto, aby przesyłać obrazy do galerii.");
+            setStatusMessage("Załóż konto, aby przesyłać zdjęcia profilowe do galerii.");
             return;
         }
 
+        if (remainingSlots <= 0) {
+            setStatus("error");
+            setStatusMessage(LIMIT_FULL_MESSAGE);
+            return;
+        }
+
+        // Cap the batch to free slots so a multi-select cannot exceed the library.
+        const capped = acceptedFiles.slice(0, remainingSlots);
+        const truncated = capped.length < acceptedFiles.length;
+
         const token = ++uploadTokenRef.current;
-        const batch = acceptedFiles.map((file) => Object.assign(file, {
+        const batch = capped.map((file) => Object.assign(file, {
             preview: URL.createObjectURL(file),
         }));
 
@@ -62,7 +120,11 @@ export default function Dropzone({ onCountChange }) {
             return batch;
         });
         setStatus("uploading");
-        setStatusMessage(polishUploadingMessage(batch.length));
+        setStatusMessage(
+            truncated
+                ? `Wybrano więcej plików niż wolnych miejsc — przesyłanie ${batch.length} ${batch.length === 1 ? "zdjęcia" : "zdjęć"}…`
+                : polishUploadingMessage(batch.length),
+        );
         setValueImageUpload(0);
 
         const api = new ApiClient({
@@ -71,6 +133,7 @@ export default function Dropzone({ onCountChange }) {
 
         let completed = 0;
         let succeeded = 0;
+        let lastErrorMessage = "";
         const total = batch.length;
 
         const bumpProgress = () => {
@@ -87,28 +150,43 @@ export default function Dropzone({ onCountChange }) {
                     ENDPOINTS.IMG.UPLOAD,
                     "POST",
                     formData,
-                    "Przesyłanie obrazu nie powiodło się!",
+                    "Przesyłanie zdjęcia profilowego nie powiodło się!",
                 );
                 succeeded += 1;
-            } catch {
-                // Counted in completed; final message covers failures.
+            } catch (err) {
+                // Keep the server detail (e.g. library-full 403) for the final status.
+                if (err?.message) lastErrorMessage = err.message;
             } finally {
                 bumpProgress();
             }
-        })).then(() => {
+        })).then(async () => {
             if (token !== uploadTokenRef.current) return;
-            const message = polishUploadResultMessage(succeeded, total);
-            setStatusMessage(message);
+            const summary = polishUploadResultMessage(succeeded, total);
+            const message = succeeded === 0 && lastErrorMessage
+                ? lastErrorMessage
+                : summary;
+            if (message) setStatusMessage(message);
             setStatus(succeeded === 0 ? "error" : "success");
             setValueImageUpload(PROGRESS_MAX);
+            if (succeeded > 0) {
+                await refreshLibraryCount();
+            }
         });
-    }, [setValueImageUpload]);
+    }, [remainingSlots, refreshLibraryCount, setValueImageUpload]);
 
-    const { getRootProps, getInputProps } = useDropzone({
+    const dropDisabled = status === "uploading" || atLimit || !libraryLoaded;
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
         accept: { "image/*": [] },
-        maxFiles: 12,
-        disabled: status === "uploading",
+        maxFiles: Math.max(remainingSlots, 0),
+        disabled: dropDisabled,
         onDrop,
+        onDropRejected: () => {
+            if (atLimit) {
+                setStatus("error");
+                setStatusMessage(LIMIT_FULL_MESSAGE);
+            }
+        },
     });
 
     useEffect(() => () => {
@@ -117,31 +195,77 @@ export default function Dropzone({ onCountChange }) {
 
     const showProgress = status === "uploading" || status === "success" || status === "error";
 
+    let title = "Upuść zdjęcia profilowe tutaj";
+    let hint = <>lub <span>przeglądaj pliki</span></>;
+    if (!libraryLoaded) {
+        title = "Sprawdzanie limitu…";
+        hint = `Maksymalnie ${MAX_PROFILE_PHOTOS} zdjęć profilowych w CV`;
+    } else if (atLimit) {
+        title = "Limit zdjęć profilowych jest pełny";
+        hint = LIMIT_FULL_MESSAGE;
+    } else if (status === "uploading") {
+        title = "Przesyłanie…";
+        hint = statusMessage;
+    } else if (isDragActive) {
+        title = "Upuść, aby przesłać";
+        hint = `Pozostało ${remainingSlots} z ${MAX_PROFILE_PHOTOS} miejsc`;
+    } else {
+        hint = (
+            <>
+                lub <span>przeglądaj pliki</span>
+                {" · "}
+                pozostało
+                {" "}
+                {remainingSlots}
+                {" "}
+                z
+                {" "}
+                {MAX_PROFILE_PHOTOS}
+                {" "}
+                miejsc
+            </>
+        );
+    }
+
     return (
         <section className={classes.dropzoneContainer}>
-            <div {...getRootProps({ className: classes.dropzone })}>
+            <p className={classes.intro}>
+                Prześlij zdjęcia profilowe, które chcesz używać w CV.
+                Biblioteka mieści maksymalnie
+                {" "}
+                {MAX_PROFILE_PHOTOS}
+                {" "}
+                zdjęcia.
+            </p>
+
+            <div
+                {...getRootProps({
+                    className: `${classes.dropzone}${atLimit ? ` ${classes.dropzoneDisabled}` : ""}${isDragActive ? ` ${classes.dropzoneActive}` : ""}`,
+                })}
+                aria-disabled={dropDisabled}
+            >
                 <input {...getInputProps()} />
                 <div className={classes.dropIcon}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 13v8" /><path d="m8 17 4-4 4 4" /><path d="M20 16.5A4.5 4.5 0 0 0 17 8h-1.3A7 7 0 1 0 5 15" /></svg>
                 </div>
-                <div className={classes.dropTitle}>
-                    {status === "uploading" ? "Przesyłanie…" : "Upuść obrazy tutaj"}
-                </div>
-                <div className={classes.dropHint}>
-                    {status === "uploading"
-                        ? statusMessage
-                        : <>lub <span>przeglądaj pliki</span></>}
-                </div>
+                <div className={classes.dropTitle}>{title}</div>
+                <div className={classes.dropHint}>{hint}</div>
             </div>
+
+            {atLimit ? (
+                <p className={classes.limitBanner} role="status">
+                    {LIMIT_FULL_MESSAGE}
+                </p>
+            ) : null}
 
             {isDropzone && files.length > 0 && (
                 <>
                     <div className={classes.divider}>
                         <span className={classes.dividerLine} />
-                        <span className={classes.dividerLabel}>Przesłane obrazy trafią do galerii</span>
+                        <span className={classes.dividerLabel}>Podgląd przed zapisem w galerii</span>
                         <span className={classes.dividerLine} />
                     </div>
-                    <aside className={classes.thumbsWrap} aria-label="Podgląd przesłanych obrazów">
+                    <aside className={classes.thumbsWrap} aria-label="Podgląd przesyłanych zdjęć profilowych">
                         {files.map((file) => (
                             <div className={classes.thumb} key={`${file.name}-${file.size}-${file.lastModified}`}>
                                 <img
@@ -162,7 +286,9 @@ export default function Dropzone({ onCountChange }) {
                         <p className={classes.progressLabel}>
                             {statusMessage}
                             {" "}
-                            ({Math.round(valueImageUpload)}%)
+                            (
+                            {Math.round(valueImageUpload)}
+                            %)
                         </p>
                     )}
                     {status === "success" && (

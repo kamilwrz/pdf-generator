@@ -14,12 +14,108 @@
     z-index: 1500;
 }
 
-.grid {
-    padding: 12px 14px;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+.meta {
+    display: flex;
+    align-items: baseline;
     gap: 8px;
+    padding: 4px 16px 10px;
+    border-bottom: 1px solid var(--chrome-border);
+}
+
+.metaCount {
+    font: 700 18px / 1.1 var(--font-body);
+    color: var(--chrome-ink);
+    letter-spacing: -0.02em;
+}
+
+.metaLabel {
+    font: 500 11px var(--font-body);
+    color: var(--chrome-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.grid {
+    padding: 14px 16px 18px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
     align-content: start;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.emptySlot {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    width: 100%;
+    border-radius: 6px;
+    border: 1.5px dashed color-mix(in srgb, var(--chrome-border) 85%, var(--chrome-muted));
+    background:
+        linear-gradient(
+            160deg,
+            color-mix(in srgb, var(--chrome-control) 70%, transparent) 0%,
+            var(--primary-bg) 55%,
+            color-mix(in srgb, var(--chrome-hover) 55%, transparent) 100%
+        );
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    color: var(--chrome-muted);
+    transition: border-color .15s, background .15s, color .15s, transform .12s;
+    padding: 12px;
+}
+
+.emptySlot:hover:not(:disabled) {
+    border-color: var(--chrome-accent);
+    color: var(--chrome-accent);
+    transform: translateY(-1px);
+    background:
+        linear-gradient(
+            160deg,
+            color-mix(in srgb, var(--chrome-hover) 80%, transparent) 0%,
+            var(--primary-bg) 60%,
+            color-mix(in srgb, var(--chrome-accent) 8%, var(--chrome-hover)) 100%
+        );
+}
+
+.emptySlot:disabled {
+    cursor: default;
+    opacity: 0.72;
+}
+
+.emptyIcon {
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--chrome-surface) 80%, transparent);
+}
+
+.emptyLabel {
+    font: 600 12px var(--font-body);
+    color: inherit;
+}
+
+.emptyHint {
+    font: 500 10.5px var(--font-body);
+    color: var(--chrome-accent);
+    opacity: 0.9;
+}
+
+.limitNote {
+    margin: 0;
+    padding: 10px 16px 16px;
+    color: var(--chrome-muted);
+    font: 500 11.5px / 1.45 var(--font-body);
+    border-top: 1px solid var(--chrome-border);
+    background: color-mix(in srgb, var(--chrome-control) 55%, transparent);
 }
 
 .error {

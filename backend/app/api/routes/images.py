@@ -71,7 +71,7 @@ async def create_upload_image(
     inserts an `images` row (original filename kept for display only).
 
     @raises HTTPException 401 - No account matches the authenticated username.
-    @raises HTTPException 403 - The per-user image limit is reached.
+    @raises HTTPException 403 - The per-user profile-photo library is full.
     @raises HTTPException 413 - The upload exceeds ``MAX_UPLOAD_BYTES``.
     @raises HTTPException 400 - The upload is empty or the username is unsafe.
     @raises HTTPException 415 - The bytes are not a supported raster image.
@@ -86,11 +86,15 @@ async def create_upload_image(
     if not is_safe_path_segment(username):
         raise HTTPException(status_code=400, detail="Nieprawidłowa nazwa użytkownika.")
 
-    # Coarse anti-abuse guard: cap the number of stored images per account.
+    # Profile-photo library cap: the editor gallery exposes a fixed number of
+    # slots for CV portraits. Reject further uploads until the user frees a slot.
     if count_images_by_user_id(db, db_user.id) >= MAX_IMAGES_PER_USER:
         raise HTTPException(
             status_code=403,
-            detail=f"Osiągnięto limit {MAX_IMAGES_PER_USER} obrazów. Usuń nieużywane obrazy, aby dodać nowe.",
+            detail=(
+                f"Osiągnięto limit {MAX_IMAGES_PER_USER} zdjęć profilowych. "
+                "Usuń jedno lub więcej zdjęć w galerii, aby dodać nowe."
+            ),
         )
 
     # Read at most one byte past the limit so an oversized body is detected
@@ -142,7 +146,7 @@ async def create_upload_image(
         mime_type=mime_type,
         owner_id=db_user.id,
     )
-    return {"message": "Obraz został pomyślnie przesłany."}
+    return {"message": "Zdjęcie profilowe zostało pomyślnie przesłane."}
 
 
 @router.get("/fetch_images", status_code=status.HTTP_200_OK)
@@ -150,17 +154,12 @@ async def fetch_user_images(
     payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
-    """List images owned by the caller, or 404 when the library is empty."""
+    """List profile photos owned by the caller (empty list when none yet)."""
     username = payload.get("sub")
     db_user = get_user_by_username(db, username=username)
-    images = request_images_by_user_id(db, db_user.id)
-
-    if not images:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nie przesłano jeszcze żadnych obrazów.",
-        )
-    return images
+    if db_user is None:
+        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+    return request_images_by_user_id(db, db_user.id)
 
 
 @router.get("/{img_id}/content")

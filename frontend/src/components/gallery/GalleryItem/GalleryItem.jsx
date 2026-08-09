@@ -51,12 +51,20 @@ export default function GalleryItem({url, img_id, imageUsed}){
 
     return <div className={classes.imageWrapper}>
         {url ? (
-            <img src={url} id={img_id} className={classes.image} onClick={handleInsert} alt="" />
+            <img
+                src={url}
+                id={img_id}
+                className={classes.image}
+                onClick={handleInsert}
+                alt="Zdjęcie profilowe"
+            />
         ) : (
             <button type="button" className={classes.image} onClick={() => addImage({ img_id })}>
                 Dodaj
             </button>
         )}
-        <button onClick={handleDeleteImage}><AiFillDelete /></button>
+        <button type="button" onClick={handleDeleteImage} aria-label="Usuń zdjęcie profilowe">
+            <AiFillDelete />
+        </button>
     </div>
 }

@@ -67,8 +67,8 @@ ADMIN_RESET_SECRET = (os.getenv("ADMIN_RESET_SECRET") or "").strip()
 
 # Image upload hard limits (see api/routes/images.py). The size cap bounds the
 # memory a single request can consume — the endpoint reads at most this many
-# bytes — and the per-user count is a coarse anti-abuse guard so one account
-# cannot exhaust storage. Per-plan quotas can layer on top later without
-# changing this boundary.
+# bytes — and the per-user count caps the profile-photo library used in CVs
+# (five slots in the editor gallery). Per-plan quotas can layer on top later
+# without changing this boundary.
 MAX_UPLOAD_BYTES = _int_env("MAX_UPLOAD_BYTES", 8 * 1024 * 1024)  # 8 MB
-MAX_IMAGES_PER_USER = _int_env("MAX_IMAGES_PER_USER", 200)
+MAX_IMAGES_PER_USER = _int_env("MAX_IMAGES_PER_USER", 5)

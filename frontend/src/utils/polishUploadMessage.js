@@ -1,23 +1,25 @@
 /**
- * Polish noun form for "obraz".
- * - nominative: 1 obraz / 2–4 obrazy / 5+ obrazów  (Przesłano N …)
- * - genitive:   1 obrazu / 2+ obrazów              (przesłać N …, Przesyłanie N …)
+ * Polish noun forms for profile-photo upload status lines.
+ * - nominative: 1 zdjęcie profilowe / 2–4 zdjęcia profilowe / 5+ zdjęć profilowych
+ * - genitive:   1 zdjęcia profilowego / 2+ zdjęć profilowych
  */
 export function polishObrazWord(n, grammaticalCase = "nominative") {
   const count = Math.abs(Number(n)) || 0;
   if (grammaticalCase === "genitive") {
-    return count === 1 ? "obrazu" : "obrazów";
+    return count === 1 ? "zdjęcia profilowego" : "zdjęć profilowych";
   }
-  if (count === 1) return "obraz";
+  if (count === 1) return "zdjęcie profilowe";
   const mod10 = count % 10;
   const mod100 = count % 100;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "obrazy";
-  return "obrazów";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
+    return "zdjęcia profilowe";
+  }
+  return "zdjęć profilowych";
 }
 
 /** Status line while a batch is still uploading. */
 export function polishUploadingMessage(total) {
-  if (total <= 1) return "Przesyłanie obrazu…";
+  if (total <= 1) return "Przesyłanie zdjęcia profilowego…";
   return `Przesyłanie ${total} ${polishObrazWord(total, "genitive")}…`;
 }
 
@@ -30,11 +32,11 @@ export function polishUploadResultMessage(ok, total) {
 
   if (attempted === 0) return "";
   if (succeeded === attempted) {
-    if (succeeded === 1) return "Przesłano 1 obraz.";
+    if (succeeded === 1) return "Przesłano 1 zdjęcie profilowe.";
     return `Przesłano ${succeeded} ${polishObrazWord(succeeded)}.`;
   }
   if (succeeded === 0) {
-    if (attempted === 1) return "Nie udało się przesłać obrazu.";
+    if (attempted === 1) return "Nie udało się przesłać zdjęcia profilowego.";
     return `Nie udało się przesłać ${attempted} ${polishObrazWord(attempted, "genitive")}.`;
   }
   return `Przesłano ${succeeded} z ${attempted} ${polishObrazWord(attempted, "genitive")}.`;
