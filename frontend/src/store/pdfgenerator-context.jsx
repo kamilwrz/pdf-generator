@@ -108,6 +108,8 @@ export const PdfContext = createContext({
     setFlowSpacing: () => {},
     // Rhythm knobs from the last render / document load (Sections panel Reset).
     baselineFlowSpacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
+    // Adopt knobs + Reset baseline together (load PDF, change template, clear).
+    adoptDocumentFlowSpacing: () => {},
     activeTemplateId: null,
     setActiveTemplateId: () => {},
     hydrateDocumentMode: () => {},

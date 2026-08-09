@@ -1,8 +1,10 @@
 /**
  * Per-document vertical rhythm (px), mirrored from backend SPACE_* defaults.
  *
- * Edited in the Sections panel, persisted as `Pdf.spacing_px`, and sent to
- * `/ai/fill_template` so regeneration matches the live canvas packer.
+ * Edited in the Sections panel and persisted as `Pdf.spacing_px`. Initial
+ * fill flows (import / bio) send the live knobs to `/ai/fill_template`.
+ * Change-template regenerates with `DEFAULT_FLOW_SPACING` so a previous
+ * template’s custom rhythm does not leak into the new layout.
  */
 
 export const DEFAULT_FLOW_SPACING = Object.freeze({

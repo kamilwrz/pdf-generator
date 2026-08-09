@@ -19,6 +19,7 @@ import { fillTemplate } from "../../../services/fillTemplate";
 import { TEMPLATES } from "../../../templates";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
 import { isTemplateAllowed, planErrorMessage } from "../../../utils/entitlements";
+import { DEFAULT_FLOW_SPACING } from "../../../utils/flowSpacing";
 
 export default function ChangeTemplateModal() {
     const {
@@ -28,8 +29,8 @@ export default function ChangeTemplateModal() {
         activeTemplateId,
         entitlements,
         replaceActiveElements,
+        adoptDocumentFlowSpacing,
         pushToast,
-        flowSpacing,
     } = use(PdfContext);
 
     const [fillingId, setFillingId] = useState(null);
@@ -54,15 +55,21 @@ export default function ChangeTemplateModal() {
         setFillingId(template.id);
         setError(null);
         try {
+            // Sections-panel spacing belongs to the current document layout.
+            // A new template must regenerate with the generator defaults — not
+            // the previous template's custom rhythm knobs.
             const res = await fillTemplate(activeCvData, template.id, {
                 api,
                 errorMessage: "Zmiana szablonu nie powiodła się",
-                spacing: flowSpacing,
+                spacing: DEFAULT_FLOW_SPACING,
             });
             // No title argument: `replaceActiveElements` only overwrites the
             // title input when one is passed, so the project keeps whatever
             // name the user already gave it.
             replaceActiveElements(res.elements, undefined, template.id);
+            // Keep knobs / Reset baseline / next autosave `spacing_px` aligned
+            // with the freshly generated layout (after pinFlowSpacingBaseline).
+            adoptDocumentFlowSpacing?.(DEFAULT_FLOW_SPACING);
             pushToast?.({
                 title: "Szablon zmieniony",
                 msg: `CV wygląda teraz jak szablon ${template.name}.`,
@@ -74,7 +81,15 @@ export default function ChangeTemplateModal() {
         } finally {
             setFillingId(null);
         }
-    }, [activeCvData, api, entitlements, flowSpacing, pushToast, replaceActiveElements, showChangeTemplateModal]);
+    }, [
+        activeCvData,
+        adoptDocumentFlowSpacing,
+        api,
+        entitlements,
+        pushToast,
+        replaceActiveElements,
+        showChangeTemplateModal,
+    ]);
 
     return (
         <DialogShell
