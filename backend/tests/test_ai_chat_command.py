@@ -686,7 +686,9 @@ class DesignRatingTemplateRespectTests(unittest.TestCase):
         self.assertEqual(result["categories"][0]["id"], "hierarchy")
         self.assertEqual(result["strengths"], ["Spójne etykiety"])
 
-    def test_design_rating_caps_score_when_elements_overlap(self):
+    def test_design_rating_does_not_cap_score_for_overlapping_elements(self):
+        # Geometry faults belong to Układ — design rating must not silently
+        # force 5/10 when boxes overlap (common false positive on templates).
         elements = [
             {
                 "element_id": "a",
@@ -721,64 +723,10 @@ class DesignRatingTemplateRespectTests(unittest.TestCase):
                 "rating": 9,
                 "tips": ["Hierarchia OK"],
                 "corrections": [],
-            }, {"tokens": 1}
-
-        with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
-            result = ai_assistant_service.analyze_action(
-                action="design_rating",
-                elements=elements,
-                message="",
-                page_size={"width": 100, "height": 100},
-            )
-
-        self.assertEqual(result["rating"], 5)
-        self.assertFalse(any("Geometria:" in tip for tip in result["tips"]))
-        self.assertNotIn("koliz", result["message"].lower())
-
-    def test_design_rating_ignores_fixed_template_backgrounds(self):
-        elements = [
-            {
-                "element_id": "background-image",
-                "category": "image",
-                "left": 0,
-                "top": 0,
-                "width": 100,
-                "height": 100,
-                "page": 1,
-                "zIndex": 0,
-                "fixedToPage": True,
-            },
-            {
-                "element_id": "background-rule",
-                "category": "line",
-                "left": 0,
-                "top": 15,
-                "width": 100,
-                "height": 1,
-                "page": 1,
-                "zIndex": 1,
-                "fixedToPage": True,
-            },
-            {
-                "element_id": "content",
-                "category": "textarea",
-                "content": "Treść doświadczenia zawodowego.",
-                "fontSize": 11,
-                "left": 10,
-                "top": 5,
-                "width": 60,
-                "height": 20,
-                "page": 1,
-                "zIndex": 3,
-            },
-        ]
-
-        def fake_gpt(system, user, **kwargs):
-            return {
-                "message": "Hierarchia i typografia są spójne.",
-                "rating": 9,
-                "tips": ["Hierarchia jest czytelna."],
-                "corrections": [],
+                "categories": [
+                    {"id": "hierarchy", "label": "Hierarchia", "score": 3, "max": 3},
+                    {"id": "overall", "label": "Ocena ogólna", "score": 1, "max": 1},
+                ],
             }, {"tokens": 1}
 
         with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
@@ -790,6 +738,9 @@ class DesignRatingTemplateRespectTests(unittest.TestCase):
             )
 
         self.assertEqual(result["rating"], 9)
+        self.assertEqual([c["id"] for c in result["categories"]], ["hierarchy"])
+        self.assertFalse(any("Geometria:" in tip for tip in result["tips"]))
+        self.assertNotIn("koliz", result["message"].lower())
 
     def test_design_rating_preserves_intentional_identity_font_and_baseline(self):
         elements = [

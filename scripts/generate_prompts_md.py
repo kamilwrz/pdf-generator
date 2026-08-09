@@ -150,8 +150,8 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "| Zmienna | Skąd | Linie |\n"
         "|---------|------|-------|\n"
         "| `{typo}` | `json.dumps(_extract_typography(elements))` | 577, 255–280 |\n\n"
-        "**Uwaga:** `summarize_geometry_issues` / `hard_faults` **nie trafiają do promptu** — "
-        "Python po odpowiedzi obniża ocenę, gdy coś nachodzi lub wychodzi poza stronę.\n\n"
+        "**Uwaga:** ocena Projekt dotyczy tylko typografii — nachodzenia / geometria nie "
+        "obniżają już wyniku (to domena Układu).\n\n"
         "### System\n\n"
     )
     parts.append(code(sl(a, 587, 601)))

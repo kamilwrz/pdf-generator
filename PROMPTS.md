@@ -148,17 +148,16 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
 ### System
 
 ```text
-def _gpt_result(
     system: str,
     user: str,
     *,
     action: str = "",
+    allowed_fields: set | None = None,
 ```
 
 ### User
 
 ```text
-    allowed_fields: set | None = None,
 ) -> dict:
     raw, usage = _gpt(system, user, action=action)
     result = _safe_result(raw, allowed_fields=allowed_fields or _ALLOWED_FIELDS)
@@ -223,6 +222,7 @@ def _normalize_priorities(raw_priorities) -> list[dict]:
     for item in raw_priorities[:5]:
         if isinstance(item, str) and item.strip():
             priorities.append({"title": item.strip(), "description": ""})
+            continue
 ```
 
 ---
@@ -241,12 +241,11 @@ def _normalize_priorities(raw_priorities) -> list[dict]:
 |---------|------|-------|
 | `{typo}` | `json.dumps(_extract_typography(elements))` | 577, 255–280 |
 
-**Uwaga:** `summarize_geometry_issues` / `hard_faults` **nie trafiają do promptu** — Python po odpowiedzi obniża ocenę, gdy coś nachodzi lub wychodzi poza stronę.
+**Uwaga:** ocena Projekt dotyczy tylko typografii — nachodzenia / geometria nie obniżają już wyniku (to domena Układu).
 
 ### System
 
 ```text
-_SCORE_OVER_TEN_RE = re.compile(r"\b([1-9]|10)\s*/\s*10\b")
 
 
 def _scrub_ten_scale_from_text(text: str) -> str:
@@ -261,12 +260,12 @@ def _scrub_ten_scale_from_text(text: str) -> str:
 
 def _safe_result(raw: dict, allowed_fields: set = _ALLOWED_FIELDS) -> dict:
     """Normalise GPT output. Strips any positional fields from corrections."""
+    corrections = []
 ```
 
 ### User
 
 ```text
-    corrections = []
     for c in raw.get("corrections", []):
         if not isinstance(c, dict) or not c.get("element_id"):
             continue
@@ -336,6 +335,7 @@ RUBRYKA OCENY — przeanalizuj wyraźnie każdy etap przed zapisaniem końcowego
 
 ① KOMPLETNOŚĆ SEKCJI (0–2 pkt)
    Określ, które z sekcji są obecne: dane kontaktowe, podsumowanie/cel,
+   doświadczenie zawodowe, wykształcenie, umiejętności/technologie.
 ```
 
 ---
@@ -360,17 +360,16 @@ RUBRYKA OCENY — przeanalizuj wyraźnie każdy etap przed zapisaniem końcowego
 ### System
 
 ```text
-Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
 Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
 W `message` NIE podawaj oceny liczbowej (zakazane: „8/10”, „80%”, „ocena 8”).
 Interfejs wyświetla ocenę osobno jako procent.
 {{
+  "message": "<3–4 zdania: wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Bądź bezpośredni. Odnoś się do konkretnych treści z CV. Bez liczby oceny.>",
 ```
 
 ### User
 
 ```text
-  "message": "<3–4 zdania: wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Bądź bezpośredni. Odnoś się do konkretnych treści z CV. Bez liczby oceny.>",
   "rating": <obliczona suma 1-10>,
   "categories": [
     {{"id": "completeness", "label": "Kompletność", "score": <0-2>, "max": 2}},
@@ -396,16 +395,15 @@ Interfejs wyświetla ocenę osobno jako procent.
 
 
 def _rate_design(elements: list[dict], page_size: dict | None = None) -> dict:
-    """Rate typography and visual consistency with a private safety score cap."""
+    """Rate typography and visual consistency only — no private geometry cap.
+
+    Overlaps / clipped boxes / out-of-bounds are handled by **Układ**, not by
+    silently capping this score at 5/10. ``page_size`` is accepted for API
+    compatibility with other rating actions.
+    """
+    _ = page_size  # kept for analyze_action signature parity; unused here
     typo = json.dumps(_extract_typography(elements), ensure_ascii=False)
     protected_ids = _protected_typography_ids(elements)
-    geometry = summarize_geometry_issues(elements, page_size)
-    hard_faults = (
-        geometry["overlaps"]
-        + geometry["clips"]
-        + geometry["decoration_hits"]
-        + geometry["out_of_bounds"]
-    )
 
     system = (
         "Jesteś ekspertem od typografii i projektowania wizualnego CV. "
@@ -431,6 +429,8 @@ DANE TYPOGRAFICZNE (bez pozycji — nie sugeruj zmian left/top/width/height):
 KONTEKST PRODUKTOWY (OBOWIĄZKOWY):
 - To ocena CV w edytorze szablonów. Typografia startowa pochodzi z szablonu, nie z błędu użytkownika.
 - Małe czcionki (np. 8–9 px etykiet sidebara, kontaktu, „OBSZARY”, numerów stron) są normalne i poprawne.
+- Nie obniżaj oceny za „zbyt małą czcionkę”, jeśli rozmiary są spójne w ramach systemu szablonu.
+- Krytykuj wyłącznie niespójność: złamaną hierarchię, mieszane wyrównanie, odstające kolory, przypadkowe bold.
 ```
 
 ---
@@ -452,18 +452,16 @@ KONTEKST PRODUKTOWY (OBOWIĄZKOWY):
 ### System
 
 ```text
-ETAPY ANALIZY:
-
 ① HIERARCHIA (względem siebie, nie względem uniwersalnych px)
    Czy widać względną progresję: imię/nazwisko > nagłówki sekcji > tekst główny > etykiety meta?
    Nie wymagaj konkretnych zakresów px. Wskaż tylko elementy, które ŁAMIĄ istniejącą hierarchię szablonu.
+
+② POGRUBIENIE I WYRÓŻNIENIE
 ```
 
 ### User
 
 ```text
-
-② POGRUBIENIE I WYRÓŻNIENIE
    Czy nagłówki są konsekwentnie pogrubione? Czy pogrubienie jest nadużywane (jeśli wszystko jest pogrubione, nic się nie wyróżnia)?
 
 ③ SPÓJNOŚĆ KOLORÓW
@@ -483,6 +481,8 @@ Nie proponuj zwiększania fontSize „dla czytelności”, jeśli element pasuje
 Nie uwzględniaj wartości element_id z danych powyżej, jeśli nie masz pewności, że wymagają zmiany.
 
 Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
+Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
+{{
 ```
 
 ---
@@ -505,19 +505,16 @@ Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
 ### System
 
 ```text
-    {{"id": "color", "label": "Kolor", "score": <0-2>, "max": 2}},
-    {{"id": "alignment", "label": "Wyrównanie", "score": <0-2>, "max": 2}},
-    {{"id": "overall", "label": "Ocena ogólna", "score": <0-1>, "max": 1}}
   ],
   "strengths": ["<mocna strona typografii>"],
+  "priorities": [
+    {{"title": "<krótki tytuł poprawki>", "description": "<konkretna niespójność>"}}
+  ],
 ```
 
 ### User
 
 ```text
-  "priorities": [
-    {{"title": "<krótki tytuł poprawki>", "description": "<konkretna niespójność>"}}
-  ],
   "tips": [
     "<konkretna poprawka typografii z podglądem elementu>",
     "<druga konkretna poprawka>"
@@ -531,18 +528,19 @@ Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
     result = _gpt_result(system, user, action="design_rating", allowed_fields=_STYLE_FIELDS)
     result = _strip_protected_corrections(result, protected_ids)
 
+    # Drop a redundant "Ocena ogólna" category if the model still emits one —
+    # the dashboard badge already shows the overall percent.
+    result["categories"] = [
+        cat for cat in (result.get("categories") or [])
+        if str(cat.get("id") or "").lower() not in {"overall", "ocena_ogolna"}
+    ]
+
     # A low visual score must be supported by a concrete, editable discrepancy.
     # Once template chrome and the intentional primary identity are excluded,
     # an empty correction list means the model found no actionable inconsistency.
     # Keep the baseline at 8 instead of returning an unsubstantiated low score.
-    if hard_faults == 0 and not result.get("corrections") and isinstance(result.get("rating"), int):
+    if not result.get("corrections") and isinstance(result.get("rating"), int):
         result["rating"] = max(result["rating"], 8)
-
-    # Keep structural faults out of the design report, but never let a document
-    # with unreadable or off-page content receive a high visual-design score.
-    if hard_faults > 0:
-        capped = min(int(result["rating"]) if isinstance(result.get("rating"), int) else 5, 5)
-        result["rating"] = max(1, capped)
     return result
 
 
@@ -559,6 +557,8 @@ def _rate_position(text: str, job_description: str) -> dict:
     system = (
         "Jesteś starszym doradcą zawodowym i managerem rekrutującym. "
         "Przygotowujesz szczerą, obliczoną ocenę dopasowania CV do opisu stanowiska. "
+        "Nie wpisuj liczby oceny w `message` (ani jako X/10, ani jako procent) — interfejs pokazuje ją osobno. "
+        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
 ```
 
 ---
@@ -580,18 +580,15 @@ def _rate_position(text: str, job_description: str) -> dict:
 ### System
 
 ```text
-
-TREŚĆ CV:
 {text}
 
 KONTEKST Z INTERNETU (standardy branżowe dla tej roli):
+{web_ctx or "Brak dostępnych wyników z internetu."}
 ```
 
 ### User
 
 ```text
-{web_ctx or "Brak dostępnych wyników z internetu."}
-
 ════════════════════════════════════════
 ETAPY OBLICZEŃ:
 
@@ -627,6 +624,8 @@ W `message` NIE podawaj oceny liczbowej (zakazane: „8/10”, „80%”). Inter
     {{"id": "skills", "label": "Umiejętności", "score": <0-4>, "max": 4}},
     {{"id": "seniority", "label": "Seniority", "score": <0-2>, "max": 2}},
     {{"id": "domain", "label": "Obszar", "score": <0-2>, "max": 2}},
+    {{"id": "keywords", "label": "Słowa kluczowe", "score": <0-1>, "max": 1}},
+    {{"id": "differentiators", "label": "Wyróżniki", "score": <0-1>, "max": 1}}
 ```
 
 ---
@@ -648,17 +647,16 @@ W `message` NIE podawaj oceny liczbowej (zakazane: „8/10”, „80%”). Inter
 ### System
 
 ```text
-
-════════════════════════════════════════
 {_TENSE_RULES_PL}
 ETAPY ANALIZY:
+
+① STRONA CZYNNA A BIERNA
+   Znajdź każde użycie strony biernej („byłem odpowiedzialny”, „było zarządzane przez”).
 ```
 
 ### User
 
 ```text
-① STRONA CZYNNA A BIERNA
-   Znajdź każde użycie strony biernej („byłem odpowiedzialny”, „było zarządzane przez”).
    To przeredagowania o najwyższym priorytecie. Po aktywizacji ZACHOWAJ czas z `employment_tense`.
 
 ② FRAZESY I SŁABE SFORMUŁOWANIA
@@ -718,6 +716,8 @@ ZASADY PRZEREDAGOWANIA (stosuj po kolei):
 
 ① MOCNE CZASOWNIKI NA POCZĄTKU — każdy punkt zaczyna się od czasownika działania
    w czasie zgodnym z `employment_tense` (nie ujednolicaj wszystkich ról do jednego czasu).
+   Dla `past`: Zaprojektowałem, Uruchomiłem, Zredukowałem, Zwiększyłem, Wynegocjowałem, Dostarczyłem…
+   Dla `present`: Projektuję, Uruchamiam, Redukuję, Zwiększam, Negocjuję, Dostarczam…
 ```
 
 ---
@@ -740,20 +740,19 @@ ZASADY PRZEREDAGOWANIA (stosuj po kolei):
 ### System
 
 ```text
-  "tips": [],
-  "corrections": [
     {{"element_id": "<id>", "content": "<full corrected text of this element>"}}
   ],
   "web_sources": []
 }}"""
     return _gpt_result(system, user, action="grammar", allowed_fields=_CONTENT_FIELDS)
+
+
+_TENSE_RULES_PL = """\
 ```
 
 ### User
 
 ```text
-
-_TENSE_RULES_PL = """\
 CZAS GRAMATYCZNY STANOWISK (OBOWIĄZKOWE — naruszenie = błąd):
 - Pole `employment_tense` przy elemencie: `present` = aktualna rola, `past` = zakończona.
 - `present` / data końcowa „Obecnie”/„Present”/„Now”: czas TERAŹNIEJSZY (Tworzę, Prowadzę, Weryfikuję).
@@ -778,6 +777,8 @@ def _check_style(text: str, elements: list[dict]) -> dict:
         "Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
     )
     user = f"""Przeanalizuj styl językowy tego CV i przeredaguj słabe elementy.
+
+PEŁNY TEKST CV:
 ```
 
 ---
@@ -801,8 +802,6 @@ def _check_style(text: str, elements: list[dict]) -> dict:
 ### System (fragment początkowy)
 
 ```text
-    "en": "angielski",
-    "de": "niemiecki",
     "fr": "francuski",
     "es": "hiszpański",
     "uk": "ukraiński",
@@ -827,13 +826,13 @@ def _translate_cv(elements: list[dict], target_language: str) -> dict:
             "corrections": [],
             "categories": [],
             "strengths": [],
+            "priorities": [],
+            "web_sources": [],
 ```
 
 ### User (fragment)
 
 ```text
-
-def _normalize_chat_history(history: list | None) -> list[dict]:
     """Keep a short, safe transcript of the current UI session for the model."""
     if not isinstance(history, list):
         return []
@@ -856,6 +855,8 @@ def _chat(
     elements: list[dict],
     page_size: dict | None,
     history: list | None = None,
+) -> dict:
+    structured = _extract_positional(elements)
 ```
 
 ---

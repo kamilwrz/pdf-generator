@@ -23,7 +23,6 @@ from app.services.layout_analysis import (
     resolve_delete_operation,
     resolve_directed_operation,
     resolve_restructure_section,
-    summarize_geometry_issues,
 )
 from app.services.layout_gpt import (
     DEFAULT_LAYOUT_QUESTION,
@@ -728,16 +727,15 @@ Interfejs wyświetla ocenę osobno jako procent.
 
 
 def _rate_design(elements: list[dict], page_size: dict | None = None) -> dict:
-    """Rate typography and visual consistency with a private safety score cap."""
+    """Rate typography and visual consistency only — no private geometry cap.
+
+    Overlaps / clipped boxes / out-of-bounds are handled by **Układ**, not by
+    silently capping this score at 5/10. ``page_size`` is accepted for API
+    compatibility with other rating actions.
+    """
+    _ = page_size  # kept for analyze_action signature parity; unused here
     typo = json.dumps(_extract_typography(elements), ensure_ascii=False)
     protected_ids = _protected_typography_ids(elements)
-    geometry = summarize_geometry_issues(elements, page_size)
-    hard_faults = (
-        geometry["overlaps"]
-        + geometry["clips"]
-        + geometry["decoration_hits"]
-        + geometry["out_of_bounds"]
-    )
 
     system = (
         "Jesteś ekspertem od typografii i projektowania wizualnego CV. "
@@ -807,8 +805,7 @@ Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
     {{"id": "hierarchy", "label": "Hierarchia", "score": <0-3>, "max": 3}},
     {{"id": "emphasis", "label": "Wyróżnienie", "score": <0-2>, "max": 2}},
     {{"id": "color", "label": "Kolor", "score": <0-2>, "max": 2}},
-    {{"id": "alignment", "label": "Wyrównanie", "score": <0-2>, "max": 2}},
-    {{"id": "overall", "label": "Ocena ogólna", "score": <0-1>, "max": 1}}
+    {{"id": "alignment", "label": "Wyrównanie", "score": <0-2>, "max": 2}}
   ],
   "strengths": ["<mocna strona typografii>"],
   "priorities": [
@@ -827,18 +824,19 @@ Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
     result = _gpt_result(system, user, action="design_rating", allowed_fields=_STYLE_FIELDS)
     result = _strip_protected_corrections(result, protected_ids)
 
+    # Drop a redundant "Ocena ogólna" category if the model still emits one —
+    # the dashboard badge already shows the overall percent.
+    result["categories"] = [
+        cat for cat in (result.get("categories") or [])
+        if str(cat.get("id") or "").lower() not in {"overall", "ocena_ogolna"}
+    ]
+
     # A low visual score must be supported by a concrete, editable discrepancy.
     # Once template chrome and the intentional primary identity are excluded,
     # an empty correction list means the model found no actionable inconsistency.
     # Keep the baseline at 8 instead of returning an unsubstantiated low score.
-    if hard_faults == 0 and not result.get("corrections") and isinstance(result.get("rating"), int):
+    if not result.get("corrections") and isinstance(result.get("rating"), int):
         result["rating"] = max(result["rating"], 8)
-
-    # Keep structural faults out of the design report, but never let a document
-    # with unreadable or off-page content receive a high visual-design score.
-    if hard_faults > 0:
-        capped = min(int(result["rating"]) if isinstance(result.get("rating"), int) else 5, 5)
-        result["rating"] = max(1, capped)
     return result
 
 
