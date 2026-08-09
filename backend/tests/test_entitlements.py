@@ -140,6 +140,7 @@ class EntitlementsTests(unittest.TestCase):
         ent.assert_can_use_ai_assistant(self.db, user)
         ent.assert_can_use_ai_action(self.db, user, "grammar")
         ent.assert_can_use_ai_action(self.db, user, "layout")
+        ent.assert_can_use_ai_action(self.db, user, "design_rating")
         ent.assert_can_extract_cv(self.db, user)
         ent.assert_template_allowed(self.db, user, "cinder")
         payload = ent.get_entitlements(self.db, user)
@@ -147,6 +148,10 @@ class EntitlementsTests(unittest.TestCase):
         self.assertIsNone(payload["allowed_template_ids"])
         self.assertEqual(payload["limits"]["monthly_ai_credits"], 200)
         self.assertIsNotNone(payload["current_period_end"])
+
+    def test_appearance_actions_are_pro_only(self):
+        self.assertIn("design_rating", ent.PRO_ONLY_AI_ACTIONS)
+        self.assertIn("layout", ent.PRO_ONLY_AI_ACTIONS)
 
     def test_expired_pro_falls_back_to_free(self):
         user = self._make_user("expired")

@@ -395,6 +395,68 @@ def _ddg_search(query: str, max_results: int = 5) -> list[dict]:
         return []
 
 
+def _normalize_categories(raw_categories) -> list[dict]:
+    """Keep structured score breakdown for the rating dashboard UI.
+
+    Each category needs a stable id, a Polish label, and numeric score/max so
+    the frontend can render percentages without parsing tip strings.
+    """
+    if not isinstance(raw_categories, list):
+        return []
+    categories: list[dict] = []
+    for item in raw_categories[:8]:
+        if not isinstance(item, dict):
+            continue
+        cat_id = str(item.get("id") or "").strip()
+        label = str(item.get("label") or "").strip()
+        if not cat_id or not label:
+            continue
+        try:
+            score = float(item.get("score"))
+            max_score = float(item.get("max"))
+        except (TypeError, ValueError):
+            continue
+        if max_score <= 0:
+            continue
+        # Clamp to the declared max so a model glitch cannot break the UI scale.
+        score = max(0.0, min(score, max_score))
+        categories.append({
+            "id": cat_id,
+            "label": label,
+            "score": score,
+            "max": max_score,
+        })
+    return categories
+
+
+def _normalize_strengths(raw_strengths) -> list[str]:
+    """Normalise short strength bullets for the rating dashboard."""
+    if not isinstance(raw_strengths, list):
+        return []
+    return [str(s).strip() for s in raw_strengths if str(s).strip()][:5]
+
+
+def _normalize_priorities(raw_priorities) -> list[dict]:
+    """Normalise improvement priorities (title + optional description)."""
+    if not isinstance(raw_priorities, list):
+        return []
+    priorities: list[dict] = []
+    for item in raw_priorities[:5]:
+        if isinstance(item, str) and item.strip():
+            priorities.append({"title": item.strip(), "description": ""})
+            continue
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get("title") or "").strip()
+        if not title:
+            continue
+        priorities.append({
+            "title": title,
+            "description": str(item.get("description") or "").strip(),
+        })
+    return priorities
+
+
 def _safe_result(raw: dict, allowed_fields: set = _ALLOWED_FIELDS) -> dict:
     """Normalise GPT output. Strips any positional fields from corrections."""
     corrections = []
@@ -408,12 +470,25 @@ def _safe_result(raw: dict, allowed_fields: set = _ALLOWED_FIELDS) -> dict:
         if len(patch) > 1:
             corrections.append(patch)
 
+    # Drop legacy "Rozkład oceny: …" tip strings — scores live in `categories`.
+    tips = []
+    for tip in raw.get("tips", []):
+        text = str(tip).strip()
+        if not text:
+            continue
+        if text.lower().startswith("rozkład oceny"):
+            continue
+        tips.append(text)
+
     return {
         "message": str(raw.get("message", "")),
         "rating": raw.get("rating") if isinstance(raw.get("rating"), int) else None,
-        "tips": [str(t) for t in raw.get("tips", [])][:8],
+        "tips": tips[:8],
         "corrections": corrections,
         "web_sources": [str(s) for s in raw.get("web_sources", [])][:5],
+        "categories": _normalize_categories(raw.get("categories")),
+        "strengths": _normalize_strengths(raw.get("strengths")),
+        "priorities": _normalize_priorities(raw.get("priorities")),
     }
 
 
@@ -469,12 +544,23 @@ RUBRYKA OCENY — przeanalizuj wyraźnie każdy etap przed zapisaniem końcowego
 SUMA = ①+②+③+④+⑤, zaokrąglona do najbliższej liczby całkowitej, w zakresie 1–10.
 ════════════════════════════════════════
 
-Zwróć JSON (uwzględnij wyniki cząstkowe w wskazówkach):
+Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
+Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
 {{
   "message": "<3–4 zdania: podaj obliczoną ocenę, wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Bądź bezpośredni. Odnoś się do konkretnych treści z CV.>",
   "rating": <obliczona suma 1-10>,
+  "categories": [
+    {{"id": "completeness", "label": "Kompletność", "score": <0-2>, "max": 2}},
+    {{"id": "experience", "label": "Doświadczenie", "score": <0-3>, "max": 3}},
+    {{"id": "language", "label": "Język", "score": <0-2>, "max": 2}},
+    {{"id": "structure", "label": "Struktura", "score": <0-2>, "max": 2}},
+    {{"id": "standout", "label": "Wyróżnienie", "score": <0-1>, "max": 1}}
+  ],
+  "strengths": ["<mocna strona 1>", "<mocna strona 2>"],
+  "priorities": [
+    {{"title": "<krótki tytuł poprawki>", "description": "<1 zdanie z przykładem przed/po>"}}
+  ],
   "tips": [
-    "Rozkład oceny: Sekcje ①/2 + Doświadczenie ②/3 + Język ③/2 + Format ④/2 + Wyróżnienie ⑤/1 = suma/10",
     "<najważniejsza poprawka z przykładem przed/po>",
     "<druga najważniejsza poprawka>",
     "<brakująca sekcja lub element, jeśli występuje>",
@@ -557,12 +643,23 @@ Każda poprawka może zawierać WYŁĄCZNIE pola: fontSize, fontFamily, color, b
 Nie proponuj zwiększania fontSize „dla czytelności”, jeśli element pasuje do peera w szablonie.
 Nie uwzględniaj wartości element_id z danych powyżej, jeśli nie masz pewności, że wymagają zmiany.
 
-Zwróć JSON:
+Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
+Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
 {{
   "message": "<2–3 zdania o hierarchii, wyróżnieniach, kolorach i wyrównaniu. Nie podawaj liczby oceny ani geometrii dokumentu.>",
   "rating": <1-10>,
+  "categories": [
+    {{"id": "hierarchy", "label": "Hierarchia", "score": <0-3>, "max": 3}},
+    {{"id": "emphasis", "label": "Wyróżnienie", "score": <0-2>, "max": 2}},
+    {{"id": "color", "label": "Kolor", "score": <0-2>, "max": 2}},
+    {{"id": "alignment", "label": "Wyrównanie", "score": <0-2>, "max": 2}},
+    {{"id": "overall", "label": "Ocena ogólna", "score": <0-1>, "max": 1}}
+  ],
+  "strengths": ["<mocna strona typografii>"],
+  "priorities": [
+    {{"title": "<krótki tytuł poprawki>", "description": "<konkretna niespójność>"}}
+  ],
   "tips": [
-    "Rozkład oceny: Hierarchia ①/3 + Wyróżnienie ②/2 + Kolor ③/2 + Wyrównanie ④/2 + Ocena ogólna ⑤/1",
     "<konkretna poprawka typografii z podglądem elementu>",
     "<druga konkretna poprawka>"
   ],
@@ -641,12 +738,23 @@ ETAPY OBLICZEŃ:
 SUMA = ①+②+③+④+⑤, zaokrąglona, w zakresie 1–10.
 ════════════════════════════════════════
 
-Zwróć JSON:
+Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
+Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
 {{
   "message": "<3–4 zdania: podaj ocenę i sposób jej obliczenia, wymień dopasowane umiejętności oraz luki. Bądź konkretny.>",
   "rating": <obliczona ocena 1-10>,
+  "categories": [
+    {{"id": "skills", "label": "Umiejętności", "score": <0-4>, "max": 4}},
+    {{"id": "seniority", "label": "Seniority", "score": <0-2>, "max": 2}},
+    {{"id": "domain", "label": "Obszar", "score": <0-2>, "max": 2}},
+    {{"id": "keywords", "label": "Słowa kluczowe", "score": <0-1>, "max": 1}},
+    {{"id": "differentiators", "label": "Wyróżniki", "score": <0-1>, "max": 1}}
+  ],
+  "strengths": ["<dopasowana umiejętność lub mocna strona względem oferty>"],
+  "priorities": [
+    {{"title": "<brakująca umiejętność lub luka>", "description": "<jak uzupełnić w CV>"}}
+  ],
   "tips": [
-    "Rozkład oceny: Umiejętności ①/4 + Seniority ②/2 + Obszar ③/2 + Słowa kluczowe ④/1 + Wyróżniki ⑤/1 = suma/10",
     "<wymień 3–5 najważniejszych umiejętności z opisu stanowiska, których BRAKUJE w CV>",
     "<najważniejsza zmiana CV poprawiająca dopasowanie>",
     "<konkretne słowo kluczowe do dodania do CV>",
@@ -799,6 +907,89 @@ Zwróć JSON:
     return _gpt_result(system, user, action="improve", allowed_fields=_CONTENT_FIELDS)
 
 
+_TRANSLATE_LANGUAGE_NAMES = {
+    "pl": "polski",
+    "en": "angielski",
+    "de": "niemiecki",
+    "fr": "francuski",
+    "es": "hiszpański",
+    "uk": "ukraiński",
+    "it": "włoski",
+    "nl": "niderlandzki",
+}
+
+
+def _translate_cv(elements: list[dict], target_language: str) -> dict:
+    """Translate editable CV text into ``target_language`` via content patches.
+
+    Geometry and template chrome stay untouched. Proper names, emails, phones,
+    and URLs must be preserved so the user can accept patches like grammar.
+    """
+    lang = (target_language or "").strip().lower()
+    lang_name = _TRANSLATE_LANGUAGE_NAMES.get(lang)
+    if not lang_name:
+        return {
+            "message": "Nieobsługiwany język tłumaczenia.",
+            "rating": None,
+            "tips": [],
+            "corrections": [],
+            "categories": [],
+            "strengths": [],
+            "priorities": [],
+            "web_sources": [],
+        }
+
+    # Skip locked / fixed chrome so translation never rewrites template furniture.
+    # `_extract_structured` omits chrome flags, so resolve protection from the
+    # original canvas elements (id or element_id, depending on the client).
+    protected_ids = {
+        str(el.get("element_id") or el.get("id"))
+        for el in elements
+        if el.get("fixedToPage") or el.get("locked")
+    }
+    structured = [
+        el for el in _extract_structured(elements)
+        if str(el.get("element_id")) not in protected_ids
+    ]
+
+    system = (
+        "Jesteś profesjonalnym tłumaczem CV i dokumentów rekrutacyjnych. "
+        "Tłumaczysz treść elementów tekstowych na język docelowy, zachowując znaczenie, "
+        "ton zawodowy i strukturę punktów. "
+        "Zwracasz WYŁĄCZNIE prawidłowy JSON. "
+        "Pola message i tips zwracaj po polsku; pole content w corrections musi być "
+        "w języku docelowym."
+    )
+    user = f"""Przetłumacz treść CV na język: {lang_name} (kod: {lang}).
+
+ELEMENTY DO TŁUMACZENIA:
+{json.dumps(structured, ensure_ascii=False)}
+
+ZASADY:
+- W corrections uwzględniaj tylko elementy, których treść faktycznie trzeba zmienić.
+- Wartość "content" musi zawierać PEŁNY przetłumaczony tekst elementu (nie fragment).
+- Nie zmieniaj left/top/width/height ani stylów — tylko content.
+- Zachowuj nazwy własne (imiona, nazwiska firm, produktów), adresy e-mail, telefony i URL.
+- Nagłówki sekcji też tłumacz, jeśli są zwykłym tekstem użytkownika.
+- Nie tłumacz elementów, które już są w pełni w języku docelowym (pomiń je).
+- NIGDY nie proponuj corrections dla elementów z fixedToPage=true ani locked=true.
+
+Zwróć JSON:
+{{
+  "message": "<2–3 zdania po polsku: ile elementów przetłumaczono i na jaki język>",
+  "rating": null,
+  "tips": [
+    "<krótka wskazówka po polsku, np. sprawdź nazwy własne przed wysyłką>"
+  ],
+  "corrections": [
+    {{"element_id": "<id>", "content": "<pełny tekst w języku docelowym>"}}
+  ],
+  "web_sources": []
+}}"""
+    result = _gpt_result(system, user, action="translate", allowed_fields=_CONTENT_FIELDS)
+    return _strip_protected_corrections(result, protected_ids)
+
+
 def _ats_score(text: str) -> dict:
     """Estimate ATS friendliness from plain CV text."""
     system = (
@@ -841,12 +1032,24 @@ ETAPY OBLICZEŃ:
 SUMA = ①+②+③+④+⑤+⑥, w zakresie 1–10.
 ════════════════════════════════════════
 
-Zwróć JSON:
+Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
+Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
 {{
   "message": "<2–3 zdania: podaj ocenę, główne ryzyko związane z ATS i najważniejszą lukę w słowach kluczowych>",
   "rating": <obliczona ocena 1-10>,
+  "categories": [
+    {{"id": "headers", "label": "Nagłówki", "score": <0-2>, "max": 2}},
+    {{"id": "keywords", "label": "Słowa kluczowe", "score": <0-3>, "max": 3}},
+    {{"id": "contact", "label": "Kontakt", "score": <0-1>, "max": 1}},
+    {{"id": "dates", "label": "Daty", "score": <0-1>, "max": 1}},
+    {{"id": "format", "label": "Format", "score": <0-2>, "max": 2}},
+    {{"id": "length", "label": "Długość", "score": <0-1>, "max": 1}}
+  ],
+  "strengths": ["<mocna strona pod ATS>"],
+  "priorities": [
+    {{"title": "<główne ryzyko ATS>", "description": "<konkretna poprawka>"}}
+  ],
   "tips": [
-    "Rozkład oceny: Nagłówki ①/2 + Słowa kluczowe ②/3 + Kontakt ③/1 + Daty ④/1 + Format ⑤/2 + Długość ⑥/1 = suma/10",
     "<znaleziony niestandardowy nagłówek + proponowana nazwa>",
     "<3 najważniejsze brakujące słowa kluczowe ATS dla widocznej branży/roli>",
     "<brak w danych kontaktowych, jeśli występuje>",
@@ -1279,6 +1482,7 @@ def analyze_action(
     page_size: dict | None = None,
     history: list | None = None,
     template_id: str | None = None,
+    target_language: str = "",
 ) -> dict:
     """Dispatch one assistant button/chat action and return a UI-ready dict.
 
@@ -1295,6 +1499,7 @@ def analyze_action(
         "language":        lambda: _check_style(text, elements),
         "improve":         lambda: _improve_content(elements),
         "ats_score":       lambda: _ats_score(text),
+        "translate":       lambda: _translate_cv(elements, target_language),
         "chat":            lambda: _chat(message, elements, page_size, history),
         "layout":          lambda: _layout_session(
             message, elements, page_size, history, template_id=template_id

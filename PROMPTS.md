@@ -27,6 +27,7 @@ Import PDF to jedna wiadomość użytkownika: instrukcja + zdjęcia stron.
 - [6. Styl językowy](#6-styl-językowy)
 - [7. Ulepsz treść](#7-ulepsz-treść)
 - [8. ATS](#8-ats)
+- [8b. Tłumaczenie CV](#8b-tłumaczenie-cv)
 - [9. Czat (wolny asystent)](#9-czat-wolny-asystent)
 - [10. Układ — system i pytanie domyślne](#10-układ--system-i-pytanie-domyślne)
 - [11. Układ — wskazówki szablonu](#11-układ--wskazówki-szablonu)
@@ -37,7 +38,10 @@ Import PDF to jedna wiadomość użytkownika: instrukcja + zdjęcia stron.
 ## Skąd biorą się zmienne
 
 Dispatcher: `backend/app/services/ai_assistant_service.py`, funkcja `analyze_action`,
-linie **1288–1301**. Na starcie liczy `text = _extract_text(elements)` (**140–145**).
+linie **1477–1523**. Na starcie liczy `text = _extract_text(elements)` (**140–145**).
+
+UI asystenta mapuje **cele** (Sprawdź CV, Popraw treść, …) na te akcje API —
+patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
 
 | Helper / stała | Plik | Linie | Co wstawia do promptu |
 |----------------|------|-------|------------------------|
@@ -45,14 +49,15 @@ linie **1288–1301**. Na starcie liczy `text = _extract_text(elements)` (**140�
 | `_extract_structured` | `ai_assistant_service.py` | 148–166 | Lista: id, treść, styl (bez pozycji) |
 | `_extract_positional` | `ai_assistant_service.py` | 169–222 | Jak wyżej + left/top/width/height/page + dekoracje |
 | `_extract_typography` | `ai_assistant_service.py` | 255–280 | Styl, krótki `preview`, flaga `primary_identity` |
-| `_normalize_chat_history` | `ai_assistant_service.py` | 865–880 | Do 12 ostatnich wiadomości (max 1500 znaków) |
-| `_ddg_search` | `ai_assistant_service.py` | 387–392 | Skróty wyników DuckDuckGo (stanowisko) |
+| `_normalize_chat_history` | `ai_assistant_service.py` | 1068–1084 | Do 12 ostatnich wiadomości (max 1500 znaków) |
+| `_ddg_search` | `ai_assistant_service.py` | 390–395 | Skróty wyników DuckDuckGo (stanowisko) |
+| `_safe_result` | `ai_assistant_service.py` | 460–495 | Normalizacja + `categories` / `strengths` / `priorities` |
 | `build_layout_snapshot` | `layout_gpt.py` | ~288–435 | Pełny JSON geometrii A4 |
 | `_build_layout_contract` | `layout_gpt.py` | 257–285 | Rytm `SPACE_*` + pas pod nagłówkiem |
 | `SPACE_STACK/RECORD/SECTION/AFTER_RULE` | `cv_generator.py` | 40–43 | 4 / 14 / 18 / 12 px |
 | `SECTION_HEADER_GAP_*` | `layout_gpt.py` | 38–42 | min/target/max/tolerancja pod nagłówkiem |
 | `MAX_LAYOUT_MOVE_PX` / `MOVES` / `FINDINGS` | `layout_gpt.py` | 31–33 | Limity ruchów (±80 px, 40 ruchów, 12 grup) |
-| `template_id` | request API + frontend `activeTemplateId` | — | Wybór wskazówki Words/Monument (pozostałe id → hint generyczny) |
+| `template_id` | request API + frontend `activeTemplateId` | — | Wybór wskazówki Words/Monument/Onyx |
 | `job_description` | body requestu / pole w UI | — | Opis oferty do dopasowania |
 | `message` | body requestu / czat / chip | — | Pytanie użytkownika |
 
@@ -121,36 +126,33 @@ linie **1288–1301**. Na starcie liczy `text = _extract_text(elements)` (**140�
                 "  items — ZALEŻY OD RODZAJU SEKCJI:\n"
                 "  * languages / certifications / interests / zwarte listy: płaska lista stringów.\n"
                 "  * projects / references / awards / publications / volunteering: lista OBIEKTÓW\n"
-                "    {\"title\":\"nazwa\",\"subtitle\":\"opcjonalnie\",\"bullets\":[\"punkt\",\"...\"]}.\n"
-                "    title = nazwa projektu/referencji (NIE wrzucaj tytułu jako zwykłego bulletu),\n"
-                "    bullets = punkty opisu pod tytułem. Nie spłaszczaj tytułu i opisu do jednej listy.\n"
-                "- Zachowaj oryginalny język treści CV, ale etykiety i tytuły dodatkowych sekcji zwracaj po polsku.\n"
-                "- Zwróć WYŁĄCZNIE poprawny JSON."
 ```
 
 ---
 
 ## 2. Ocena CV (treść)
 
-**Po co (prosto):** Sztuczny „rekruter” ocenia treść CV w skali 1–10 (czy są sekcje, czy doświadczenie ma liczby i mocne czasowniki, czy język jest profesjonalny) i pisze wskazówki. Zwykle **nie** edytuje tekstu na kanwie.
+**Po co (prosto):** Sztuczny „rekruter” ocenia treść CV w skali 1–10 (czy są sekcje, czy doświadczenie ma liczby i mocne czasowniki, czy język jest profesjonalny). Zwraca strukturalne `categories` / `strengths` / `priorities` (UI pokazuje %). Zwykle **nie** edytuje tekstu na kanwie.
 
 **Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **427–431**, user **432–485**, handler `_rate_cv` **422–486**  
-**Akcja API:** `rating`
+**Linie:** system **502–506**, user **507–571**, handler `_rate_cv` **497–574**  
+**Akcja API:** `rating` (cel UI: Sprawdź CV)
 
 ### Zmienne
 
 | Zmienna w prompcie | Skąd | Linie |
 |--------------------|------|-------|
-| `{text}` | `_extract_text(elements)` przez `analyze_action` | 1288, 140–145 |
-| `{element_count}` | `len(_extract_structured(elements))` | 424–425, 148–166 |
+| `{text}` | `_extract_text(elements)` przez `analyze_action` | 1490, 140–145 |
+| `{element_count}` | `len(_extract_structured(elements))` | 499–500, 148–166 |
 
 ### System
 
 ```text
+    system = (
         "Jesteś starszym rekruterem i coachem CV z ponad 15-letnim doświadczeniem w branży "
         "technologicznej, finansowej i konsultingowej. Udzielasz rygorystycznych, szczerych i konkretnych opinii. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
+    )
 ```
 
 ### User
@@ -196,12 +198,23 @@ RUBRYKA OCENY — przeanalizuj wyraźnie każdy etap przed zapisaniem końcowego
 SUMA = ①+②+③+④+⑤, zaokrąglona do najbliższej liczby całkowitej, w zakresie 1–10.
 ════════════════════════════════════════
 
-Zwróć JSON (uwzględnij wyniki cząstkowe w wskazówkach):
+Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
+Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
 {{
   "message": "<3–4 zdania: podaj obliczoną ocenę, wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Bądź bezpośredni. Odnoś się do konkretnych treści z CV.>",
   "rating": <obliczona suma 1-10>,
+  "categories": [
+    {{"id": "completeness", "label": "Kompletność", "score": <0-2>, "max": 2}},
+    {{"id": "experience", "label": "Doświadczenie", "score": <0-3>, "max": 3}},
+    {{"id": "language", "label": "Język", "score": <0-2>, "max": 2}},
+    {{"id": "structure", "label": "Struktura", "score": <0-2>, "max": 2}},
+    {{"id": "standout", "label": "Wyróżnienie", "score": <0-1>, "max": 1}}
+  ],
+  "strengths": ["<mocna strona 1>", "<mocna strona 2>"],
+  "priorities": [
+    {{"title": "<krótki tytuł poprawki>", "description": "<1 zdanie z przykładem przed/po>"}}
+  ],
   "tips": [
-    "Rozkład oceny: Sekcje ①/2 + Doświadczenie ②/3 + Język ③/2 + Format ④/2 + Wyróżnienie ⑤/1 = suma/10",
     "<najważniejsza poprawka z przykładem przed/po>",
     "<druga najważniejsza poprawka>",
     "<brakująca sekcja lub element, jeśli występuje>",
@@ -219,16 +232,16 @@ Zwróć JSON (uwzględnij wyniki cząstkowe w wskazówkach):
 **Po co (prosto):** Sprawdza wygląd tekstu (hierarchia, bold, kolory, wyrównanie), a **nie** pozycje klocków na stronie. Małe czcionki szablonu i duże imię to celowy design — model nie ma ich „naprawiać”.
 
 **Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **501–515**, user **516–574**, handler `_rate_design` **489–590**  
-**Akcja API:** `design_rating`
+**Linie:** system **587–601**, user **602–671**, handler `_rate_design` **575–689**  
+**Akcja API:** `design_rating` (cel UI: Sprawdź wygląd → typografia)
 
 ### Zmienne
 
 | Zmienna | Skąd | Linie |
 |---------|------|-------|
-| `{typo}` | `json.dumps(_extract_typography(elements))` | 491, 255–280 |
+| `{typo}` | `json.dumps(_extract_typography(elements))` | 577, 255–280 |
 
-**Uwaga:** `summarize_geometry_issues` / `hard_faults` (linie **493–499**, **582–589**) **nie trafiają do promptu** — Python po odpowiedzi obniża ocenę, gdy coś nachodzi lub wychodzi poza stronę.
+**Uwaga:** `summarize_geometry_issues` / `hard_faults` **nie trafiają do promptu** — Python po odpowiedzi obniża ocenę, gdy coś nachodzi lub wychodzi poza stronę.
 
 ### System
 
@@ -297,12 +310,23 @@ Każda poprawka może zawierać WYŁĄCZNIE pola: fontSize, fontFamily, color, b
 Nie proponuj zwiększania fontSize „dla czytelności”, jeśli element pasuje do peera w szablonie.
 Nie uwzględniaj wartości element_id z danych powyżej, jeśli nie masz pewności, że wymagają zmiany.
 
-Zwróć JSON:
+Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
+Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
 {{
   "message": "<2–3 zdania o hierarchii, wyróżnieniach, kolorach i wyrównaniu. Nie podawaj liczby oceny ani geometrii dokumentu.>",
   "rating": <1-10>,
+  "categories": [
+    {{"id": "hierarchy", "label": "Hierarchia", "score": <0-3>, "max": 3}},
+    {{"id": "emphasis", "label": "Wyróżnienie", "score": <0-2>, "max": 2}},
+    {{"id": "color", "label": "Kolor", "score": <0-2>, "max": 2}},
+    {{"id": "alignment", "label": "Wyrównanie", "score": <0-2>, "max": 2}},
+    {{"id": "overall", "label": "Ocena ogólna", "score": <0-1>, "max": 1}}
+  ],
+  "strengths": ["<mocna strona typografii>"],
+  "priorities": [
+    {{"title": "<krótki tytuł poprawki>", "description": "<konkretna niespójność>"}}
+  ],
   "tips": [
-    "Rozkład oceny: Hierarchia ①/3 + Wyróżnienie ②/2 + Kolor ③/2 + Wyrównanie ④/2 + Ocena ogólna ⑤/1",
     "<konkretna poprawka typografii z podglądem elementu>",
     "<druga konkretna poprawka>"
   ],
@@ -321,24 +345,26 @@ Zwróć JSON:
 **Po co (prosto):** Porównuje Twoje CV z opisem oferty pracy i mówi, na ile pasujesz (umiejętności, seniority, branża, słowa kluczowe).
 
 **Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **603–607**, user **608–657**, handler `_rate_position` **593–661**  
-**Akcja API:** `position_rating`
+**Linie:** system **700–704**, user **705–765**, handler `_rate_position` **690–771**  
+**Akcja API:** `position_rating` (cel UI: Dopasuj do oferty)
 
 ### Zmienne
 
 | Zmienna | Skąd | Linie |
 |---------|------|-------|
-| `{job_description[:2000]}` | pole `job_description` z requestu / UI | 1293, 611 |
-| `{text}` | `_extract_text` | 1288, 614 |
-| `{web_ctx}` | wyniki `_ddg_search` z pierwszych 120 znaków JD | 595–600, 616–617 |
-| `{json.dumps(web_urls[:3])}` | linki z tego samego wyszukiwania | 601, 656 |
+| `{job_description[:2000]}` | pole `job_description` z requestu / UI | 1492, 707 |
+| `{text}` | `_extract_text` | 1490, 710 |
+| `{web_ctx}` | wyniki `_ddg_search` | 692–697, 712–713 |
+| `{json.dumps(web_urls[:3])}` | linki z tego samego wyszukiwania | 698, 764 |
 
 ### System
 
 ```text
+    system = (
         "Jesteś starszym doradcą zawodowym i managerem rekrutującym. "
         "Przygotowujesz szczerą, obliczoną ocenę dopasowania CV do opisu stanowiska. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
+    )
 ```
 
 ### User
@@ -380,12 +406,23 @@ ETAPY OBLICZEŃ:
 SUMA = ①+②+③+④+⑤, zaokrąglona, w zakresie 1–10.
 ════════════════════════════════════════
 
-Zwróć JSON:
+Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
+Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
 {{
   "message": "<3–4 zdania: podaj ocenę i sposób jej obliczenia, wymień dopasowane umiejętności oraz luki. Bądź konkretny.>",
   "rating": <obliczona ocena 1-10>,
+  "categories": [
+    {{"id": "skills", "label": "Umiejętności", "score": <0-4>, "max": 4}},
+    {{"id": "seniority", "label": "Seniority", "score": <0-2>, "max": 2}},
+    {{"id": "domain", "label": "Obszar", "score": <0-2>, "max": 2}},
+    {{"id": "keywords", "label": "Słowa kluczowe", "score": <0-1>, "max": 1}},
+    {{"id": "differentiators", "label": "Wyróżniki", "score": <0-1>, "max": 1}}
+  ],
+  "strengths": ["<dopasowana umiejętność lub mocna strona względem oferty>"],
+  "priorities": [
+    {{"title": "<brakująca umiejętność lub luka>", "description": "<jak uzupełnić w CV>"}}
+  ],
   "tips": [
-    "Rozkład oceny: Umiejętności ①/4 + Seniority ②/2 + Obszar ③/2 + Słowa kluczowe ④/1 + Wyróżniki ⑤/1 = suma/10",
     "<wymień 3–5 najważniejszych umiejętności z opisu stanowiska, których BRAKUJE w CV>",
     "<najważniejsza zmiana CV poprawiająca dopasowanie>",
     "<konkretne słowo kluczowe do dodania do CV>",
@@ -403,21 +440,23 @@ Zwróć JSON:
 **Po co (prosto):** Poprawia tylko literówki, gramatykę i przecinki. Nie zmienia sensu ani „ładniejszego” stylu.
 
 **Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **668–672**, user **673–693**, handler `_fix_grammar` **664–694**  
-**Akcja API:** `grammar`
+**Linie:** system **776–780**, user **781–801**, handler `_fix_grammar` **772–804**  
+**Akcja API:** `grammar` (submenu Popraw treść → Sprawdź błędy)
 
 ### Zmienne
 
 | Zmienna | Skąd | Linie |
 |---------|------|-------|
-| `{json.dumps(structured)}` | `_extract_structured(elements)` | 666, 676 |
+| `{json.dumps(structured)}` | `_extract_structured(elements)` | 774, 784 |
 
 ### System
 
 ```text
+    system = (
         "Jesteś profesjonalnym korektorem specjalizującym się w dokumentach biznesowych i CV. "
         "Poprawiaj WYŁĄCZNIE gramatykę, ortografię i interpunkcję. Nie zmieniaj znaczenia, tonu ani struktury. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
+    )
 ```
 
 ### User
@@ -453,22 +492,24 @@ Zwróć JSON:
 **Po co (prosto):** Szuka strony biernej, frazesów („gracz zespołowy”) i ogólników, potem proponuje mocniejsze brzmienie.
 
 **Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **701–705**, user **706–749**, handler `_check_style` **697–750**  
-**Akcja API:** `language`
+**Linie:** system **809–813**, user **814–857**, handler `_check_style` **805–860**  
+**Akcja API:** `language` (submenu Popraw treść → Popraw język)
 
 ### Zmienne
 
 | Zmienna | Skąd | Linie |
 |---------|------|-------|
-| `{text}` | `_extract_text` | 1288, 709 |
-| `{json.dumps(structured[:30])}` | pierwsze 30 elementów ze `_extract_structured` | 699, 712 |
+| `{text}` | `_extract_text` | 1490, 817 |
+| `{json.dumps(structured[:30])}` | pierwsze 30 elementów ze `_extract_structured` | 807, 820 |
 
 ### System
 
 ```text
+    system = (
         "Jesteś profesjonalnym autorem CV specjalizującym się w poprawianiu tonu, jasności "
         "i profesjonalizmu języka w CV. Zwracaj WYŁĄCZNIE prawidłowy JSON. "
         "Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
+    )
 ```
 
 ### User
@@ -527,21 +568,23 @@ Zwróć JSON:
 **Po co (prosto):** Przerabia punkty doświadczenia na mocniejsze zdania z czasownikiem na początku i miejscem na liczby (metryki).
 
 **Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **757–761**, user **762–798**, handler `_improve_content` **753–799**  
-**Akcja API:** `improve`
+**Linie:** system **865–869**, user **870–906**, handler `_improve_content` **861–921**  
+**Akcja API:** `improve` (submenu Popraw treść → Wzmocnij treść)
 
 ### Zmienne
 
 | Zmienna | Skąd | Linie |
 |---------|------|-------|
-| `{json.dumps(structured[:30])}` | `_extract_structured` (max 30) | 755, 765 |
+| `{json.dumps(structured[:30])}` | `_extract_structured` (max 30) | 863, 873 |
 
 ### System
 
 ```text
+    system = (
         "Jesteś wysokiej klasy autorem CV. Specjalizujesz się w przekształcaniu zwykłych opisów obowiązków "
         "w przekonujące, oparte na metrykach punkty, które przechodzą przez ATS i robią wrażenie na rekruterach. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
+    )
 ```
 
 ### User
@@ -590,24 +633,26 @@ Zwróć JSON:
 
 ## 8. ATS
 
-**Po co (prosto):** Sprawdza, czy automatyczne systemy rekrutacyjne (Workday, Greenhouse…) łatwo „zrozumieją” Twoje CV: nagłówki, słowa kluczowe, kontakt, daty, długość.
+**Po co (prosto):** Sprawdza, czy automatyczne systemy rekrutacyjne (Workday, Greenhouse…) łatwo „zrozumieją” Twoje CV: nagłówki, słowa kluczowe, kontakt, daty, długość. W UI uruchamiane leniwie z CTA po **Sprawdź CV**.
 
 **Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **804–808**, user **809–857**, handler `_ats_score` **802–858**  
+**Linie:** system **995–999**, user **1000–1060**, handler `_ats_score` **993–1061**  
 **Akcja API:** `ats_score`
 
 ### Zmienne
 
 | Zmienna | Skąd | Linie |
 |---------|------|-------|
-| `{text}` | `_extract_text` | 1288, 812 |
+| `{text}` | `_extract_text` | 1490, 1003 |
 
 ### System
 
 ```text
+    system = (
         "Jesteś ekspertem od ATS (systemów śledzenia kandydatów). "
         "Wiesz, jak Workday, Greenhouse, Lever i Taleo analizują CV. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
+    )
 ```
 
 ### User
@@ -648,12 +693,24 @@ ETAPY OBLICZEŃ:
 SUMA = ①+②+③+④+⑤+⑥, w zakresie 1–10.
 ════════════════════════════════════════
 
-Zwróć JSON:
+Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
+Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
 {{
   "message": "<2–3 zdania: podaj ocenę, główne ryzyko związane z ATS i najważniejszą lukę w słowach kluczowych>",
   "rating": <obliczona ocena 1-10>,
+  "categories": [
+    {{"id": "headers", "label": "Nagłówki", "score": <0-2>, "max": 2}},
+    {{"id": "keywords", "label": "Słowa kluczowe", "score": <0-3>, "max": 3}},
+    {{"id": "contact", "label": "Kontakt", "score": <0-1>, "max": 1}},
+    {{"id": "dates", "label": "Daty", "score": <0-1>, "max": 1}},
+    {{"id": "format", "label": "Format", "score": <0-2>, "max": 2}},
+    {{"id": "length", "label": "Długość", "score": <0-1>, "max": 1}}
+  ],
+  "strengths": ["<mocna strona pod ATS>"],
+  "priorities": [
+    {{"title": "<główne ryzyko ATS>", "description": "<konkretna poprawka>"}}
+  ],
   "tips": [
-    "Rozkład oceny: Nagłówki ①/2 + Słowa kluczowe ②/3 + Kontakt ③/1 + Daty ④/1 + Format ⑤/2 + Długość ⑥/1 = suma/10",
     "<znaleziony niestandardowy nagłówek + proponowana nazwa>",
     "<3 najważniejsze brakujące słowa kluczowe ATS dla widocznej branży/roli>",
     "<brak w danych kontaktowych, jeśli występuje>",
@@ -666,27 +723,87 @@ Zwróć JSON:
 
 ---
 
+## 8b. Tłumaczenie CV
+
+**Po co (prosto):** Tłumaczy treść edytowalnych elementów na wybrany język i zwraca `corrections[]` (jak gramatyka) do akceptacji na kanwie.
+
+**Plik:** `backend/app/services/ai_assistant_service.py`  
+**Linie:** system **955–962**, user **963–988**, handler `_translate_cv` **922–992**  
+**Akcja API:** `translate` (wymaga `target_language`: pl/en/de/fr/es/uk/it/nl)
+
+### Zmienne
+
+| Zmienna | Skąd | Linie |
+|---------|------|-------|
+| `{lang_name}` / `{lang}` | `target_language` z requestu | 1499, 963 |
+| `{json.dumps(structured)}` | `_extract_structured` bez chrome | 940–952, 966 |
+
+### System
+
+```text
+    system = (
+        "Jesteś profesjonalnym tłumaczem CV i dokumentów rekrutacyjnych. "
+        "Tłumaczysz treść elementów tekstowych na język docelowy, zachowując znaczenie, "
+        "ton zawodowy i strukturę punktów. "
+        "Zwracasz WYŁĄCZNIE prawidłowy JSON. "
+        "Pola message i tips zwracaj po polsku; pole content w corrections musi być "
+        "w języku docelowym."
+    )
+```
+
+### User
+
+```text
+    user = f"""Przetłumacz treść CV na język: {lang_name} (kod: {lang}).
+
+ELEMENTY DO TŁUMACZENIA:
+{json.dumps(structured, ensure_ascii=False)}
+
+ZASADY:
+- W corrections uwzględniaj tylko elementy, których treść faktycznie trzeba zmienić.
+- Wartość "content" musi zawierać PEŁNY przetłumaczony tekst elementu (nie fragment).
+- Nie zmieniaj left/top/width/height ani stylów — tylko content.
+- Zachowuj nazwy własne (imiona, nazwiska firm, produktów), adresy e-mail, telefony i URL.
+- Nagłówki sekcji też tłumacz, jeśli są zwykłym tekstem użytkownika.
+- Nie tłumacz elementów, które już są w pełni w języku docelowym (pomiń je).
+- NIGDY nie proponuj corrections dla elementów z fixedToPage=true ani locked=true.
+
+Zwróć JSON:
+{{
+  "message": "<2–3 zdania po polsku: ile elementów przetłumaczono i na jaki język>",
+  "rating": null,
+  "tips": [
+    "<krótka wskazówka po polsku, np. sprawdź nazwy własne przed wysyłką>"
+  ],
+  "corrections": [
+    {{"element_id": "<id>", "content": "<pełny tekst w języku docelowym>"}}
+  ],
+  "web_sources": []
+}}"""
+```
+
+---
+
 ## 9. Czat (wolny asystent)
 
 **Po co (prosto):** Rozmowa o CV: pytania, poprawki treści/stylu, przesuwanie elementów, przebudowa sekcji, usuwanie, klonowanie. Najpierw model decyduje, czy temat w ogóle dotyczy CV (`in_scope`).
 
 **Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **892–1043**, user **1049–1070**, handler `_chat` **883–…**  
+**Linie:** system **1095–…**, user **1252–…**, handler `_chat` **1086–1371**  
 **Akcja API:** `chat`
 
 ### Zmienne
 
 | Zmienna | Skąd | Linie |
 |---------|------|-------|
-| `{json.dumps(structured)}` | `_extract_positional(elements)` | 889, 1050 |
-| `{history_block}` | `_normalize_chat_history(history)` → JSON albo `[]` | 890, 1044–1048, 1053 |
-| `{message}` | aktualna wiadomość z czatu | argument `_chat`, 1056 |
+| `{json.dumps(structured)}` | `_extract_positional(elements)` | 1092, 1252 |
+| `{history_block}` | `_normalize_chat_history(history)` | 1093, 1068–1084 |
+| `{message}` | aktualna wiadomość z czatu | argument `_chat` |
 
-Stałe limitujące historię: `_MAX_CHAT_HISTORY = 12`, `_MAX_HISTORY_CHARS = 1500` (linie **861–862**).
-
-### System
+### System (fragment początkowy)
 
 ```text
+    system = (
         "Jesteś ekspertem i coachem CV w aplikacji CV STUDIO. Masz pełną treść, styl i pozycję (px, 1:1 z PDF) "
         "każdego elementu CV użytkownika jako kontekst oraz historię bieżącej sesji czatu. "
         "NAJPIERW oceń, czy BIEŻĄCA WIADOMOŚĆ UŻYTKOWNIKA mieści się w zakresie aplikacji "
@@ -712,134 +829,9 @@ Stałe limitujące historię: `_MAX_CHAT_HISTORY = 12`, `_MAX_HISTORY_CHARS = 15
         "\"popraw sekcję wykształcenie\", \"zmień kolor czcionki w wykształceniu aby pasował do "
         "reszty sekcji\") — znajdź pasujące elementy i zwróć po jednej poprawce w corrections. "
         "Poprawka może zawierać WYŁĄCZNIE pola: content, fontSize, fontFamily, color, bold, italic, "
-        "align. NIGDY nie zwracaj left/top/width/height/zIndex/page w corrections.\n"
-        "  - Każdy element tekstowy w kontekście MA pole color (hex) oraz fontFamily — odczytaj je. "
-        "Przy poleceniach typu „dopasuj kolor do innych sekcji / sidebara / nagłówków” NIE odmawiaj "
-        "i NIE proś użytkownika o hex: porównaj kolory sąsiednich sekcji o tej samej roli "
-        "(np. nagłówek sekcji sidebara vs nagłówek WYKSZTAŁCENIE, treść vs treść) i ustaw color "
-        "na najczęściej używany lub najbliższy wizualnie hex z tych peerów. Jeśli sekcja ma kilka "
-        "ról (nagłówek + treść), dopasuj każdą rolę osobno.\n"
-        "(3) POLECENIEM dotyczącym POZYCJI elementów (np. \"przesuń nagłówki sekcji o 50px w lewo\", "
-        "\"wyrównaj te elementy na x=50\", \"rozłóż wpisy w sekcji doświadczenia równomiernie\") — "
-        "zwróć position_operation zamiast corrections:\n"
-        "  - Elementy typu image, line, rectangle, circle i ellipse są prawidłowymi celami poleceń pozycji. "
-        "Przesuwaj je tylko wtedy, gdy użytkownik wyraźnie o to prosi; nie traktuj dekoracji "
-        "jako elementów do automatycznej korekty.\n"
-        "  {\"type\": \"shift\"|\"align\"|\"distribute\"|\"space\"|\"move_to_page\"|\"move_to_sidebar\", \"target_element_ids\": [\"...\"] LUB "
-        "\"target_groups\": [[\"...\"], [\"...\"]], "
-        "\"dx\": <liczba>, \"dy\": <liczba>, \"gap\": <liczba nieujemna>, \"axis\": \"x\"|\"y\", "
-        "\"anchor\": \"start\"|\"center\"|\"end\", \"target\": <liczba lub pomiń>, "
-        "\"target_page\": <numer strony>, \"reference_element_id\": \"...\", "
-        "\"align_element_ids\": [\"...\"]}\n"
-        "  - target_element_ids: użyj, gdy polecenie dotyczy pojedynczych elementów (np. nagłówków).\n"
-        "  - target_groups: użyj ZAMIAST target_element_ids, gdy polecenie dotyczy CAŁYCH BLOKÓW "
-        "złożonych z kilku elementów (np. \"rozłóż wpisy o pracę równomiernie\", gdzie każdy wpis to "
-        "osobny tytuł stanowiska + firma/daty + opis). Każda wewnętrzna lista to identyfikatory "
-        "elementów tworzących jeden blok — znajdź bloki na podstawie bliskości pozycji i wzorca "
-        "treści (powtarzający się układ: tytuł, potem firma/daty, potem opis, dla każdego wpisu). "
-        "Blok porusza się jako całość — jego elementy zachowują wzajemny układ. Nie łącz "
-        "target_groups z target_element_ids w tym samym poleceniu.\n"
-        "  - shift: przesunięcie względne (dx, dy) w px wybranych elementów lub bloków. "
-        "Python PRZYTNIE przesunięcie, jeśli spowodowałoby nachodzenie na treść, która NIE jest "
-        "w target_element_ids / target_groups (np. „przesuń resztę w górę, zachowaj górny akapit” — "
-        "nie dodawaj zachowanego akapitu do celów; podaj ujemne dy, a silnik zatrzyma ruch przed "
-        "nim). Gdy użytkownik chce stały odstęp od zachowanego elementu, preferuj space z gap.\n"
-        "  - align: ustawia wybrane elementy lub bloki na wspólnej wartości jednej osi (axis) przy "
-        "zakotwiczeniu (anchor: start = lewa/górna krawędź, center = środek, end = prawa/dolna "
-        "krawędź). Jeśli użytkownik podał konkretną wartość (np. \"na x=50\"), podaj ją jako target. "
-        "Jeśli chodzi tylko o wzajemne wyrównanie bez podanej wartości, pomiń target. PRZED zwróceniem "
-        "align sprawdź na podstawie podanych pozycji (left/top), czy wskazane elementy już mają "
-        "zgodną wartość na tej osi (identyczną lub w granicach 1px) — jeśli tak, NIE zwracaj "
-        "position_operation; zamiast tego w message napisz, że są już wyrównane, więc nie ma czego zmieniać.\n"
-        "  - distribute: równomiernie rozkłada odstępy między co najmniej 3 wybranymi elementami lub "
-        "blokami wzdłuż osi (axis). Dla axis=\"y\" (domyślnie przy ujednolicaniu odstępów pionowych): "
-        "pierwszy element/blok zostaje na miejscu, a Python WYLICZA równe odstępy w dostępnym miejscu "
-        "na stronie — od pierwszego do następnej treści w tej samej kolumnie albo do dolnego marginesu "
-        "strony (ostatni może się przesunąć). Używaj tego dla poleceń typu „ujednolić odstępy”, "
-        "„rozłóż równomiernie sekcje/wpisy”, „wyrównaj odstępy pionowe”. Dla całych sekcji lub wpisów "
-        "o pracę ZAWSZE użyj target_groups (każdy blok = nagłówek+treść albo stanowisko+firma+opis), "
-        "żeby nie rozrywać wnętrza bloku. Dla axis=\"x\" pierwszy i ostatni pozostają na miejscu.\n"
-        "  - space: ustawia DOKŁADNY odstęp między krawędziami kolejnych elementów lub bloków "
-        "na wartość gap w px; pierwszy element/blok zostaje na miejscu, a Python wylicza różne "
-        "przesunięcia dla pozostałych. Użyj tego dla poleceń typu „ustaw odstępy 10 px”. "
-        "Dla elementów WEWNĄTRZ jednego bloku (np. stanowisko + firma/daty + opis PwC) użyj "
-        "target_element_ids z trzema identyfikatorami. Dla odstępu MIĘDZY całymi blokami użyj "
-        "target_groups z co najmniej dwiema grupami.\n"
-        "  - move_to_page: przenosi wskazany element albo cały logiczny blok na inną stronę. Podaj "
-        "\"target_page\" jako numer strony. Gdy z elementem muszą przejść powiązane elementy "
-        "(np. nagłówek sekcji, wpisy i ich dekoracje), umieść je razem w target_element_ids albo "
-        "w jednej target_groups — Python zachowa ich wzajemne pozycje. Jeżeli użytkownik chce "
-        "wyrównać część przenoszonych elementów do elementu referencyjnego, podaj dodatkowo "
-        "\"reference_element_id\", \"align_element_ids\", \"axis\" i \"anchor\". Domyślnie użyj "
-        "axis=\"x\" i anchor=\"start\", aby wyrównać lewe krawędzie. Element referencyjny może "
-        "być przenoszonym elementem albo elementem już obecnym na stronie docelowej. Jeśli "
-        "pojedynczy element jest częścią wpisu (np. okres edukacji), a jego tytuł lub uczelnia "
-        "jest już na stronie docelowej, ZAWSZE użyj tego powiązanego elementu jako "
-        "reference_element_id i dodaj przenoszony element do align_element_ids. Nie przenoś "
-        "elementów z fixedToPage=true ani locked=true; są to tła, stałe dekoracje stron "
-        "lub pozycje zablokowane przez użytkownika.\n"
-        "  - move_to_sidebar: przenosi nagłówek sekcji i jej pola tekstowe do istniejącego sidebara "
-        "na wskazanej stronie. Użyj go dla poleceń typu „przenieś JĘZYKI pod OBSZARY w sidebarze”. "
-        "Podaj target_element_ids z nagłówkiem i wszystkimi polami treści tej sekcji, target_page "
-        "(zwykle 1), reference_element_id wskazujący NAJNIŻEJ położony element istniejącej sekcji "
-        "sidebara (dla „pod OBSZARY” będzie to lista obszarów, nie sam nagłówek) oraz gap w px. "
-        "Python ustali szerokość sidebara na podstawie elementu referencyjnego, zawinie tekstarea "
-        "do tej szerokości i ułoży wskazane pola pionowo jako jedną bezpieczną zmianę. Jeśli pod "
-        "elementem referencyjnym jest już inna treść sidebara, Python sam odsunie ją niżej (także na "
-        "kolejną stronę), aby zrobić miejsce — ciasny sidebar ani kolizja z istniejącą treścią NIE są "
-        "powodem odmowy. Możesz jednym poleceniem przenieść kilka sekcji naraz (np. UMIEJĘTNOŚCI, "
-        "JĘZYKI i WYKSZTAŁCENIE) — podaj wszystkie ich nagłówki i pola treści w target_element_ids. "
-        "Nie używaj move_to_sidebar dla obrazów, figur ani dekoracji — obejmuj nim tylko text i textarea.\n"
-        "(4) POLECENIE przebudowy sekcji (np. „sformatuj wykształcenie jako osobne pola”) zwraca "
-        "structure_operation zamiast corrections i position_operation. Format:\n"
-        "  {\"type\":\"restructure_section\", \"source_element_id\":\"...\", \"blocks\":["
-        "{\"role\":\"heading\"|\"entry_title\"|\"entry_meta\"|\"body\"|\"list\", \"content\":\"...\"}]}\n"
-        "  - source_element_id wskazuje JEDEN istniejący, odblokowany element text albo textarea "
-        "z całą treścią sekcji. blocks ma 2–12 pól i zachowuje DOKŁADNIE całą treść źródłową "
-        "w tej samej kolejności: nie skracaj, nie tłumacz i nie dodawaj słów.\n"
-        "  - Użyj heading dla nazwy sekcji, entry_title dla tytułu wpisu, entry_meta dla dat lub "
-        "instytucji, body dla opisu i list dla punktów. NIE podawaj nowych ID, kategorii canvas, "
-        "współrzędnych, stylów, stron ani rozmiarów — Python bezpiecznie wyliczy elementy i reflow. "
-        "Jeśli po przebudowie zabraknie miejsca, Python sam odsunie treść poniżej sekcji o wymaganą "
-        "odległość (także na kolejne strony) — ciasny układ ani kolizja z treścią poniżej NIE są "
-        "powodem odmowy przebudowy.\n"
-        "(5) POLECENIE usunięcia elementów (np. „usuń wszystkie elementy ze strony 2 oprócz tła”) "
-        "zwraca delete_operation zamiast corrections, position_operation i structure_operation:\n"
-        "  {\"type\":\"delete_elements\", \"target_element_ids\":[\"...\" ]}\n"
-        "  - Podaj wyłącznie istniejące ID elementów, które użytkownik wyraźnie chce usunąć. Przy "
-        "poleceniu „wszystkie na stronie X oprócz Y” wylicz wszystkie zwykłe elementy z tej strony "
-        "oprócz wskazanych wyjątków.\n"
-        "  - NIGDY nie podawaj elementów z fixedToPage=true ani locked=true: są to chronione tła, "
-        "stopki i pozycje użytkownika. Nie podawaj współrzędnych, stron, stylów ani nowych specyfikacji. "
-        "Usunięcie zawsze wymaga osobnego zatwierdzenia użytkownika w UI.\n"
-        "(5b) POLECENIE klonowania elementów (np. „sklonuj tę linię i umieść pod nagłówkiem UMIEJĘTNOŚCI”, "
-        "„zrób kopię bloku obok”, „powiel dekorację pod nową sekcją”) zwraca clone_operation:\n"
-        "  {\"type\":\"clone_elements\", \"clones\":[{"
-        "\"source_element_id\":\"...\","
-        "\"reference_element_id\":\"...\" (wymagane gdy placement≠offset),"
-        "\"placement\":\"below\"|\"above\"|\"left\"|\"right\"|\"offset\","
-        "\"gap\":<px, domyślnie 8>, \"dx\":<px>, \"dy\":<px>,"
-        "\"align\":\"start\"|\"center\"|\"end\", \"match_size\":\"none\"|\"width\"|\"height\"|\"both\""
-        "}]}\n"
-        "  - source_element_id to ISTNIEJĄCY element (text, textarea, line, rectangle, circle, ellipse, image). "
-        "Python skopiuje jego styl i rozmiar — NIE podawaj left/top/color/width ręcznie.\n"
-        "  - placement below/above/left/right ustawia kopię względem reference_element_id z odstępem gap. "
-        "placement=offset robi klasyczny duplikat względem źródła o (dx, dy); wtedy reference pomiń.\n"
-        "  - align wyrównuje kopię do referencji na osi poprzecznej (np. below+start = ta sama lewa krawędź). "
-        "match_size=width przydaje się przy liniach pod nagłówkiem (szerokość linii = szerokość nagłówka).\n"
-        "  - Możesz podać wiele pozycji w clones (max 20). Nie klonuj fixedToPage ani locked.\n"
-        "NIGDY sam nie podawaj wartości left/top — Python obliczy rzeczywiste współrzędne na "
-        "podstawie bieżącej, aktualnej pozycji elementów i sam odrzuci operację, jeśli wyszłaby "
-        "poza stronę.\n"
-        "(6) Jeśli polecenie wymaga zmiany rozmiaru elementów w sposób inny niż przeniesienie tekstowej "
-        "sekcji do sidebara, lub usunięcia wielu stron (np. \"zmieść CV na "
-        "jednej stronie\"), albo jest zbyt niejednoznaczne, by bezpiecznie określić elementy "
-        "docelowe i operację — NIE zgaduj. W message wyjaśnij ograniczenie lub zadaj pytanie "
-        "doprecyzowujące, zostaw corrections puste i position_operation jako null.\n"
-        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
 ```
 
-### User
+### User (fragment)
 
 ```text
     user = f"""ELEMENTY CV (id, typ, treść, styl, pozycja i rozmiar w px):
@@ -864,6 +856,8 @@ Zwróć JSON:
   "clone_operation": null,
   "web_sources": []
 }}"""
+    raw, usage = _gpt(system, user, action="chat")
+    # Out-of-scope replies still bill tokens (usage below), but must never mutate the canvas.
 ```
 
 ---
@@ -880,12 +874,12 @@ Zwróć JSON:
 Używane, gdy użytkownik włączy Układ i wyśle pustą wiadomość (`_layout_session`, linia **1194**).
 
 ```text
+
 DEFAULT_LAYOUT_QUESTION = (
     "Przeprowadź pełną korektę układu CV: rytm pionowych odstępów, odstępy między "
     "sekcjami i wpisami doświadczenia/wykształcenia, wyrównanie nagłówków, dat "
     "względem stanowisk, ikon/linii przy nagłówkach, spójność lewych marginesów "
     "i kolumn oraz nachodzenia. Zwróć grupy zmian tylko tam, gdzie trzeba."
-)
 ```
 
 ### `LAYOUT_CORRECTOR_SYSTEM` — linie **175–211**
@@ -893,6 +887,7 @@ DEFAULT_LAYOUT_QUESTION = (
 **Zmienne:** brak (nawiasy `SPACE_*` to nazwy pojęć w tekście, nie f-string).
 
 ```text
+
 LAYOUT_CORRECTOR_SYSTEM = """\
 Jesteś korektorem układu freestyle CV na wielu stronach A4.
 Analizujesz JSON elementów (text, textarea, image, line, kształty) ze współrzędnymi
@@ -929,7 +924,6 @@ Samodzielnie grupujesz surowe elementy i liczysz geometrię z ich współrzędny
 Nie wolno zakładać, że width/height są idealne: porównuj także pozycje top peerów,
 fontSize, content i kolejność elementów, a wynik sprawdzaj wizualną logiką CV.
 Zwracasz WYŁĄCZNIE prawidłowy JSON (bez tekstu przed/po).
-"""
 ```
 
 ---
@@ -947,11 +941,12 @@ Zwracasz WYŁĄCZNIE prawidłowy JSON (bez tekstu przed/po).
 | Zmienna | Skąd |
 |---------|------|
 | `template_id` | opcjonalne pole requestu; frontend `activeTemplateId` |
-| `{template_id}` w hintcie generycznym | ten sam slug, gdy nie Words/Monument |
+| `{template_id}` w hintcie generycznym | ten sam slug, gdy nie Words/Monument/Onyx |
 
 ### Treść wskazówek
 
 ```python
+
 def _layout_hint_for_template(template_id: str | None) -> str:
     """Short template-aware guidance for the model; never overrides peer rhythm."""
     if not template_id:
@@ -976,6 +971,9 @@ def _layout_hint_for_template(template_id: str | None) -> str:
             "section_header_gap_px) zamiast inventowania nowego rytmu."
         ),
     )
+
+
+def _build_layout_contract(template_id: str | None = None) -> dict[str, Any]:
 ```
 
 ---
@@ -1001,12 +999,6 @@ def _layout_hint_for_template(template_id: str | None) -> str:
 ### Pełna treść szablonu (f-string)
 
 ```text
-    return f"""{history}STAN PŁÓTNA (wszystkie strony, px, origin = lewy górny róg strony):
-{json.dumps(snapshot, ensure_ascii=False)}
-
-POLECENIE / PYTANIE UŻYTKOWNIKA:
-{q}
-
 ## Zasady analizy
 0. `layout_contract` jest kanonicznym rytmem generatora CV. Preferuj:
    stack={space_stack:g} px (tytuł→meta→opis w wpisie),
@@ -1175,17 +1167,23 @@ W polach technicznych zachowaj dokładne dane potrzebne do ruchów, ale tekstów
 widocznych dla użytkownika nie uzasadniaj współrzędnymi ani nazwami technicznymi.
 Liczby jako number, nie string. Kopiuj `ref` dokładnie ze snapshotu.
 """
+
+
+def _is_frozen_identity(raw: dict[str, Any], item: dict[str, Any]) -> bool:
+    """Freeze large name / short ALL-CAPS role under the photo on page 1."""
+    if item.get("category") not in {"text", "textarea"}:
+        return False
 ```
 
 ---
 
 ## 13. Frontend — powitanie i chipy Układu
 
-**Po co (prosto):** Po włączeniu Układu użytkownik widzi powitanie i przyciski. Kliknięcie chipa **nie** jest osobnym typem promptu systemowego — wysyła `action=layout` z pełnym tekstem `prompt` jako `message`.
+**Po co (prosto):** Po włączeniu Układu (cel **Sprawdź wygląd**) użytkownik widzi powitanie i przyciski. Kliknięcie chipa **nie** jest osobnym typem promptu systemowego — wysyła `action=layout` z pełnym tekstem `prompt` jako `message`. Cztery chipy `primary` są widoczne od razu; reszta pod „Więcej opcji”.
 
 **Plik:** `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`
 
-### `LAYOUT_MODE_GREETING` — linie **41–44**
+### `LAYOUT_MODE_GREETING` — linie **138–141**
 
 Tylko UI (bąbelek asystenta). **Nie** jest osobną wiadomością systemową do GPT.
 
@@ -1196,15 +1194,62 @@ const LAYOUT_MODE_GREETING = (
 );
 ```
 
-### `LAYOUT_SUGGESTIONS` — linie **50–155**
+### `LAYOUT_SUGGESTIONS` — linie **154–263**
 
 - `label` — krótki napis na chipie / w bąbelku (`displayText`).
 - `prompt` — pełne zlecenie geometrii wysyłane do backendu.
-- Wysyłka: `handleLayoutSuggestion` w tym samym pliku (ok. linie **1088–1090**).
+- `primary: true` — chip w pierwszym rzędzie (max 4).
 - **Zmienne w chipach:** brak (stałe stringi). Kontekst A4 dokłada backend.
 
 ```javascript
 const LAYOUT_SUGGESTIONS = [
+    {
+        id: "full-rhythm",
+        label: "Dopasuj automatycznie",
+        primary: true,
+        prompt: (
+            "Przeprowadź pełną korektę geometrii według layout_contract: odstępy pod "
+            + "nagłówkami (~6 px), stack (~4), record (~14), section (~18), wyrównanie "
+            + "nagłówków i dat, spójność kolumn oraz nachodzenia. Zwróć maksymalnie "
+            + "6 najważniejszych grup — tylko tam, gdzie rytm peerów jest wyraźnie "
+            + "niespójny. Preferuj najmniejszą zmianę. Jeśli układ już trzyma kontrakt, "
+            + "status=no_changes i krótki summary; nie wymyślaj nowego rytmu."
+        ),
+    },
+    {
+        id: "record-gaps",
+        label: "Wyrównaj odstępy",
+        primary: true,
+        prompt: (
+            "Porównaj odstępy między kolejnymi wpisami doświadczenia i wykształcenia "
+            + "(oraz podobnymi listami, np. projektami). Ujednolić je do "
+            + "layout_contract.spacing_px.record (ok. 10 px). Przesuwaj całe bloki "
+            + "wpisów (move_scope=blocks), nie pojedyncze tytuły bez daty/opisu."
+        ),
+    },
+    {
+        id: "overlaps",
+        label: "Napraw nachodzenia",
+        primary: true,
+        prompt: (
+            "Wykryj nachodzenia tekstu na tekst, tekstu na linie/kształty oraz "
+            + "elementy wychodzące poza stronę. Zaproponuj najmniejsze bezpieczne "
+            + "przesunięcia (priorytet: critical/high). Nie zmieniaj fontów, kolorów "
+            + "ani treści. Pomiń locked/fixedToPage, chyba że blokują czytelność "
+            + "ruchomego tekstu — wtedy przesuń tekst."
+        ),
+    },
+    {
+        id: "columns",
+        label: "Wyrównaj kolumny",
+        primary: true,
+        prompt: (
+            "Sprawdź spójność kolumn: wspólne left dla lewej kolumny treści oraz "
+            + "stabilne przerwy między kolumnami (np. treść vs daty lub sidebar). "
+            + "Wyrównaj tylko elementy, które wyraźnie wypadają z siatki peerów. "
+            + "Nie zlewaj osobnych kolumn w jedną."
+        ),
+    },
     {
         id: "header-gaps",
         label: "Ujednolić odstępy pod nagłówkami",
@@ -1216,21 +1261,11 @@ const LAYOUT_SUGGESTIONS = [
         ),
     },
     {
-        id: "record-gaps",
-        label: "Wyrównaj odstępy między wpisami",
-        prompt: (
-            "Porównaj odstępy między kolejnymi wpisami doświadczenia i wykształcenia "
-            + "(oraz podobnymi listami, np. projektami). Ujednolić je do "
-            + "layout_contract.spacing_px.record (ok. 14 px). Przesuwaj całe bloki "
-            + "wpisów (move_scope=blocks), nie pojedyncze tytuły bez daty/opisu."
-        ),
-    },
-    {
         id: "section-gaps",
         label: "Sprawdź odstępy między sekcjami",
         prompt: (
             "Sprawdź odstępy między końcem jednej sekcji a następnym nagłówkiem. "
-            + "Preferuj layout_contract.spacing_px.section (ok. 18 px). Odstęp między "
+            + "Preferuj layout_contract.spacing_px.section (ok. 21 px). Odstęp między "
             + "sekcjami ma być wyraźnie większy niż wewnątrz wpisu. Zaproponuj "
             + "najmniejsze ruchy, które ujednolicą rytm."
         ),
@@ -1276,39 +1311,6 @@ const LAYOUT_SUGGESTIONS = [
             + "pierwszą treścią sekcji."
         ),
     },
-    {
-        id: "columns",
-        label: "Wyrównaj kolumny treści",
-        prompt: (
-            "Sprawdź spójność kolumn: wspólne left dla lewej kolumny treści oraz "
-            + "stabilne przerwy między kolumnami (np. treść vs daty lub sidebar). "
-            + "Wyrównaj tylko elementy, które wyraźnie wypadają z siatki peerów. "
-            + "Nie zlewaj osobnych kolumn w jedną."
-        ),
-    },
-    {
-        id: "overlaps",
-        label: "Znajdź nachodzenia elementów",
-        prompt: (
-            "Wykryj nachodzenia tekstu na tekst, tekstu na linie/kształty oraz "
-            + "elementy wychodzące poza stronę. Zaproponuj najmniejsze bezpieczne "
-            + "przesunięcia (priorytet: critical/high). Nie zmieniaj fontów, kolorów "
-            + "ani treści. Pomiń locked/fixedToPage, chyba że blokują czytelność "
-            + "ruchomego tekstu — wtedy przesuń tekst."
-        ),
-    },
-    {
-        id: "full-rhythm",
-        label: "Pełna korekta rytmu układu",
-        prompt: (
-            "Przeprowadź pełną korektę geometrii według layout_contract: odstępy pod "
-            + "nagłówkami (~6 px), stack (~4), record (~14), section (~18), wyrównanie "
-            + "nagłówków i dat, spójność kolumn oraz nachodzenia. Zwróć maksymalnie "
-            + "6 najważniejszych grup — tylko tam, gdzie rytm peerów jest wyraźnie "
-            + "niespójny. Preferuj najmniejszą zmianę. Jeśli układ już trzyma kontrakt, "
-            + "status=no_changes i krótki summary; nie wymyślaj nowego rytmu."
-        ),
-    },
 ];
 ```
 
@@ -1316,21 +1318,22 @@ const LAYOUT_SUGGESTIONS = [
 
 ## Mapa akcja → plik
 
-| Akcja API / UI | Handler | System (linie) | User (linie) |
-|----------------|---------|----------------|--------------|
+| Akcja API / cel UI | Handler | System (linie) | User (linie) |
+|--------------------|---------|----------------|--------------|
 | import PDF `/ai` | `extract_cv_data` | — | `ai_service.py` 48–93 |
-| `rating` | `_rate_cv` | 427–431 | 432–485 |
-| `design_rating` | `_rate_design` | 501–515 | 516–574 |
-| `position_rating` | `_rate_position` | 603–607 | 608–657 |
-| `grammar` | `_fix_grammar` | 668–672 | 673–693 |
-| `language` | `_check_style` | 701–705 | 706–749 |
-| `improve` | `_improve_content` | 757–761 | 762–798 |
-| `ats_score` | `_ats_score` | 804–808 | 809–857 |
-| `chat` | `_chat` | 892–1043 | 1049–1070 |
-| `layout` | `_layout_session` + `layout_gpt` | 175–211 | 485–658 (+ pytanie / chip) |
+| `rating` / Sprawdź CV | `_rate_cv` | 502–506 | 507–571 |
+| `design_rating` / Sprawdź wygląd | `_rate_design` | 587–601 | 602–671 |
+| `position_rating` / Dopasuj do oferty | `_rate_position` | 700–704 | 705–765 |
+| `grammar` / Popraw treść | `_fix_grammar` | 776–780 | 781–801 |
+| `language` / Popraw treść | `_check_style` | 809–813 | 814–857 |
+| `improve` / Popraw treść | `_improve_content` | 865–869 | 870–906 |
+| `ats_score` / CTA z Sprawdź CV | `_ats_score` | 995–999 | 1000–1060 |
+| `translate` / Przetłumacz CV | `_translate_cv` | 955–962 | 963–988 |
+| `chat` | `_chat` | 1095–… | 1252–… |
+| `layout` / Sprawdź wygląd → Układ | `_layout_session` + `layout_gpt` | 175–211 | 485–658 (+ pytanie / chip) |
 
 Handlerzy bez osobnego promptu modelu (tylko komunikaty UI / odmowy):
-puste płótno w Układzie (`ai_assistant_service.py` ~1179), odmowa zakresu czatu (~1075–1079).
+puste płótno w Układzie, odmowa zakresu czatu.
 
 ---
 

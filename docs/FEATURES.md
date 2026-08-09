@@ -111,17 +111,17 @@ Wybierz układ, który pasuje do dokumentu — i uczyn go swoim.
 
 Pływający asystent, który rozumie dokument, który właśnie edytujesz.
 
-### Szybkie analizy
-1. **Oceń CV** — ogólna ocena w skali 1–10  
-2. **Projekt** — krytyka wizualna i układu  
-3. **Dopasowanie** — wklej ogłoszenie o pracę; zobacz, jak dobrze pasujesz  
-4. **Gramatyka** — poprawność językowa  
-5. **Styl** — ton i klarowność  
-6. **Ulepsz** — mocniejsze, bardziej „action” bullet points  
-7. **Wynik ATS** — sygnał czytelności dla systemów rekrutacyjnych  
-8. **Układ** — tryb sesji: GPT czyta pełny JSON A4 i odpowiada na pytania o geometrię; karty Podgląd/Zastosuj  
+### Cele (quick actions)
+Menu asystenta jest ułożone wokół celów użytkownika, nie wokół endpointów API:
 
-Pozycje 1–7 oraz zwykły czat są dostępne w Standard. **Układ** jest funkcją Premium: analizuje odstępy, wyrównanie i kolizje na całym płótnie, a przed zastosowaniem zmian pokazuje podgląd propozycji.
+1. **Sprawdź CV** — audyt treści z dashboardem (% + kategorie); ATS odpala się leniwie z CTA  
+2. **Popraw treść** — submenu: Wzmocnij treść · Popraw język · Sprawdź błędy  
+3. **Dopasuj do oferty** — wklej ogłoszenie; ocena dopasowania i luk  
+4. **Sprawdź wygląd** (Pro) — typografia oraz tryb **Układ** (geometria A4)  
+5. **Przetłumacz CV** — PL / EN / DE / FR / ES / UA / IT / NL; poprawki do akceptacji  
+
+Backend nadal woła wyspecjalizowane akcje (`rating`, `grammar`, `layout`, `translate`, …).  
+Darmowy nie ma asystenta AI (poza jednym importem CV). **Sprawdź wygląd** wymaga Pro.
 
 ### Edycja w rozmowie
 Pisz naturalnym językiem. W trybie Układ dopytuj o odstępy i wyrównania. Akceptuj lub odrzucaj poprawki per element, podglądaj grupy przesunięć, przebudowuj strukturę albo usuwaj słabe bloki — z oznaczeniem istotności, żebyś Ty miał kontrolę.

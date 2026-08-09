@@ -27,7 +27,11 @@ router = APIRouter(prefix="/ai", tags=["ai_assistant"])
 VALID_ACTIONS = {
     "rating", "design_rating", "position_rating",
     "grammar", "language", "improve", "ats_score", "layout", "chat",
+    "translate",
 }
+
+# ISO-ish language codes accepted by the translate action (UA → uk).
+TRANSLATE_LANGUAGES = frozenset({"pl", "en", "de", "fr", "es", "uk", "it", "nl"})
 
 
 class AssistantRequest(BaseModel):
@@ -35,6 +39,7 @@ class AssistantRequest(BaseModel):
 
     `elements` is the current canvas snapshot (client ids + style/geometry).
     `history` is only meaningful for `chat` follow-ups in the open session.
+    `target_language` is required for `translate` (pl/en/de/fr/es/uk/it/nl).
     """
 
     action: str
@@ -47,6 +52,8 @@ class AssistantRequest(BaseModel):
     # Optional template slug (e.g. "words", "monument") for layout_contract hints.
     # Freestyle / saved documents may omit this; the layout session still works.
     template_id: str | None = None
+    # Target language code for the translate action (ignored by other actions).
+    target_language: str = ""
 
 
 class TokenUsage(BaseModel):
@@ -73,13 +80,18 @@ class AssistantResponse(BaseModel):
     """Union response covering rating tips, style corrections, and layout groups.
 
     Unused group lists stay empty depending on the action so the frontend can
-    render one message shape for all assistant buttons.
+    render one message shape for all assistant buttons. Scored actions may also
+    return structured `categories`, `strengths`, and `priorities` for the
+    dashboard UI (partial scores must not live only inside tip strings).
     """
 
     message: str
     rating: int | None = None
     tips: list[str] = []
     corrections: list[dict] = []
+    categories: list[dict] = []
+    strengths: list[str] = []
+    priorities: list[dict] = []
     layout_groups: list[dict] = []
     layout_issues: list[dict] = []
     structure_groups: list[dict] = []
@@ -113,11 +125,27 @@ async def ai_assistant(
             detail="Pole job_description jest wymagane dla akcji position_rating.",
         )
 
+    target_language = (request.target_language or "").strip().lower()
+    if request.action == "translate":
+        if not target_language:
+            raise HTTPException(
+                status_code=400,
+                detail="Pole target_language jest wymagane dla akcji translate.",
+            )
+        if target_language not in TRANSLATE_LANGUAGES:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Nieobsługiwany język tłumaczenia. "
+                    "Dozwolone: pl, en, de, fr, es, uk, it, nl."
+                ),
+            )
+
     user = get_user_by_username(db, username=payload.get("sub"))
     if user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
-    # The regular AI assistant is available from Standard. The higher-cost
-    # full-canvas `layout` session is checked separately and requires Premium.
+    # Content AI is available on Pro. Appearance actions (design_rating + layout)
+    # are gated separately via PRO_ONLY_AI_ACTIONS in entitlements.
     assert_can_use_ai_action(db, user, request.action)
 
     log_metric_event("ai_assistant_call", db, payload, action=request.action)
@@ -131,6 +159,7 @@ async def ai_assistant(
             page_size=request.page_size,
             history=request.history,
             template_id=request.template_id,
+            target_language=target_language,
         )
         charge_ai_credits(db, user.id, result.get("usage", {}).get("cost_pln_estimate", 0.0))
         return AssistantResponse(**result)

@@ -7,7 +7,10 @@ import { useState, useRef, useEffect, useCallback, useMemo, use } from "react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { nanoid } from "nanoid";
 import { BsStars } from "react-icons/bs";
-import { FaArrowsAltH, FaStar, FaPalette, FaBriefcase, FaFont, FaMagic, FaRobot } from "react-icons/fa";
+import {
+    FaArrowsAltH, FaPalette, FaBriefcase, FaFont, FaMagic,
+    FaLanguage, FaSearch,
+} from "react-icons/fa";
 import { RiEditLine } from "react-icons/ri";
 import { IoClose, IoSend } from "react-icons/io5";
 import { MdCheckCircle, MdCancel } from "react-icons/md";
@@ -16,38 +19,186 @@ import { PdfContext } from "../../../store/pdfgenerator-context";
 import { ApiClient, ENDPOINTS, wakeBackend } from "../../../services/api";
 import { measureElements } from "../../../utils/elementBounds";
 
-// ── quick actions ─────────────────────────────────────────────────────────
-// Keep AI quick actions aligned with the editor's shared black accent instead
-// of introducing a separate visual language inside the application.
+// ── goal-oriented quick actions ───────────────────────────────────────────
+// User-facing tiles map to goals; backend still uses specialised API actions
+// (rating, grammar, layout, …). Do not expose every endpoint as its own tile.
 const CHROME_ACCENT = "#171717";
-const ACTIONS = [
-    { id: "rating",          label: "Oceń CV",           icon: FaStar,        color: CHROME_ACCENT, description: "Ogólna ocena jakości CV w skali 1–10" },
-    { id: "design_rating",   label: "Projekt",           icon: FaPalette,     color: CHROME_ACCENT, description: "Hierarchia, typografia i spójność wizualna szablonu" },
-    { id: "position_rating", label: "Dopasowanie",       icon: FaBriefcase,   color: CHROME_ACCENT, description: "Dopasowanie CV do opisu stanowiska" },
-    { id: "grammar",         label: "Gramatyka",         icon: RiEditLine,    color: CHROME_ACCENT, description: "Znajdź i popraw błędy gramatyczne" },
-    { id: "language",        label: "Styl",              icon: FaFont,        color: CHROME_ACCENT, description: "Popraw ton i klarowność tekstu" },
-    { id: "improve",         label: "Ulepsz",            icon: FaMagic,       color: CHROME_ACCENT, description: "Mocniejsze punkty z czasownikami akcji" },
-    { id: "ats_score",       label: "Wynik ATS",         icon: FaRobot,       color: CHROME_ACCENT, description: "Sprawdzenie pod systemy rekrutacyjne ATS" },
+
+/** Labels for API actions shown on assistant message chips. */
+const ACTION_META = {
+    rating:          { label: "Sprawdź CV",           color: CHROME_ACCENT },
+    design_rating:   { label: "Wygląd i typografia",  color: CHROME_ACCENT },
+    position_rating: { label: "Dopasuj do oferty",    color: CHROME_ACCENT },
+    grammar:         { label: "Sprawdź błędy",        color: CHROME_ACCENT },
+    language:        { label: "Popraw język",         color: CHROME_ACCENT },
+    improve:         { label: "Wzmocnij treść",       color: CHROME_ACCENT },
+    ats_score:       { label: "Przyjazność ATS",      color: CHROME_ACCENT },
+    layout:          { label: "Układ strony",         color: CHROME_ACCENT },
+    translate:       { label: "Przetłumacz CV",       color: CHROME_ACCENT },
+    chat:            { label: "Czat",                 color: CHROME_ACCENT },
+};
+
+/**
+ * Top-level goals. Submenus open for improve_content / check_appearance /
+ * translate; check_cv and match_job start their flows immediately.
+ */
+const GOAL_ACTIONS = [
     {
-        id: "layout",
-        label: "Układ",
-        icon: FaArrowsAltH,
+        id: "check_cv",
+        label: "Sprawdź CV",
+        icon: FaSearch,
         color: CHROME_ACCENT,
-        description: "Włącz tryb i opisz zmianę; GPT analizuje pełny JSON A4 dopiero po wysłaniu pytania",
+        description: "Ogólny audyt CV: treść, doświadczenie, język i struktura",
+    },
+    {
+        id: "improve_content",
+        label: "Popraw treść",
+        icon: FaMagic,
+        color: CHROME_ACCENT,
+        description: "Wzmocnij opisy, popraw styl lub sprawdź błędy",
+        panel: "improve_content",
+    },
+    {
+        id: "match_job",
+        label: "Dopasuj do oferty",
+        icon: FaBriefcase,
+        color: CHROME_ACCENT,
+        description: "Oceń dopasowanie CV do opisu stanowiska",
+        panel: "match_job",
+    },
+    {
+        id: "check_appearance",
+        label: "Sprawdź wygląd",
+        icon: FaPalette,
+        color: CHROME_ACCENT,
+        description: "Typografia i układ strony",
+        panel: "check_appearance",
         proOnly: true,
-        toggle: true,
+    },
+    {
+        id: "translate",
+        label: "Przetłumacz CV",
+        icon: FaLanguage,
+        color: CHROME_ACCENT,
+        description: "Przetłumacz treść CV na wybrany język",
+        panel: "translate",
     },
 ];
+
+const CONTENT_SUBACTIONS = [
+    {
+        id: "improve",
+        label: "Wzmocnij treść",
+        description: "Mocniejsze opisy i bardziej konkretne osiągnięcia",
+        icon: FaMagic,
+    },
+    {
+        id: "language",
+        label: "Popraw język",
+        description: "Profesjonalniejszy styl, mniej ogólników i frazesów",
+        icon: FaFont,
+    },
+    {
+        id: "grammar",
+        label: "Sprawdź błędy",
+        description: "Ortografia, gramatyka i interpunkcja",
+        icon: RiEditLine,
+    },
+];
+
+const APPEARANCE_SUBACTIONS = [
+    {
+        id: "design_rating",
+        label: "Wygląd i typografia",
+        description: "Hierarchia, kolory, wyróżnienia i spójność",
+        icon: FaPalette,
+        kind: "api",
+    },
+    {
+        id: "layout",
+        label: "Układ strony",
+        description: "Odstępy, wyrównania, kolumny i puste miejsca",
+        icon: FaArrowsAltH,
+        kind: "layout_toggle",
+    },
+];
+
+/** Codes match backend TRANSLATE_LANGUAGES (UA → uk). */
+const TRANSLATE_LANGUAGES = [
+    { code: "pl", label: "Polski" },
+    { code: "en", label: "Angielski" },
+    { code: "de", label: "Niemiecki" },
+    { code: "fr", label: "Francuski" },
+    { code: "es", label: "Hiszpański" },
+    { code: "uk", label: "Ukraiński" },
+    { code: "it", label: "Włoski" },
+    { code: "nl", label: "Niderlandzki" },
+];
+
 const LAYOUT_MODE_GREETING = (
     "Cześć! Tryb Układ jest aktywny. Opisz zmianę geometrii albo wybierz jedną "
     + "z propozycji poniżej. Analiza ruszy dopiero po wysłaniu zlecenia."
 );
 
+/** Category ids that should offer a "Popraw treść" CTA when the score is weak. */
+const CONTENT_CATEGORY_IDS = new Set(["completeness", "experience", "language"]);
+/** Category ids that should offer a "Sprawdź wygląd" CTA when the score is weak. */
+const APPEARANCE_CATEGORY_IDS = new Set(["structure", "hierarchy", "emphasis", "color", "alignment"]);
+const WEAK_CATEGORY_RATIO = 0.7;
+
 /**
  * Short labels for the chat UI; fuller `prompt` text is what GPT receives.
  * Keep prompts concrete and tied to layout_contract / real_gap vocabulary.
+ * `primary: true` chips appear first; the rest sit under "Więcej opcji".
  */
 const LAYOUT_SUGGESTIONS = [
+    {
+        id: "full-rhythm",
+        label: "Dopasuj automatycznie",
+        primary: true,
+        prompt: (
+            "Przeprowadź pełną korektę geometrii według layout_contract: odstępy pod "
+            + "nagłówkami (~6 px), stack (~4), record (~14), section (~18), wyrównanie "
+            + "nagłówków i dat, spójność kolumn oraz nachodzenia. Zwróć maksymalnie "
+            + "6 najważniejszych grup — tylko tam, gdzie rytm peerów jest wyraźnie "
+            + "niespójny. Preferuj najmniejszą zmianę. Jeśli układ już trzyma kontrakt, "
+            + "status=no_changes i krótki summary; nie wymyślaj nowego rytmu."
+        ),
+    },
+    {
+        id: "record-gaps",
+        label: "Wyrównaj odstępy",
+        primary: true,
+        prompt: (
+            "Porównaj odstępy między kolejnymi wpisami doświadczenia i wykształcenia "
+            + "(oraz podobnymi listami, np. projektami). Ujednolić je do "
+            + "layout_contract.spacing_px.record (ok. 10 px). Przesuwaj całe bloki "
+            + "wpisów (move_scope=blocks), nie pojedyncze tytuły bez daty/opisu."
+        ),
+    },
+    {
+        id: "overlaps",
+        label: "Napraw nachodzenia",
+        primary: true,
+        prompt: (
+            "Wykryj nachodzenia tekstu na tekst, tekstu na linie/kształty oraz "
+            + "elementy wychodzące poza stronę. Zaproponuj najmniejsze bezpieczne "
+            + "przesunięcia (priorytet: critical/high). Nie zmieniaj fontów, kolorów "
+            + "ani treści. Pomiń locked/fixedToPage, chyba że blokują czytelność "
+            + "ruchomego tekstu — wtedy przesuń tekst."
+        ),
+    },
+    {
+        id: "columns",
+        label: "Wyrównaj kolumny",
+        primary: true,
+        prompt: (
+            "Sprawdź spójność kolumn: wspólne left dla lewej kolumny treści oraz "
+            + "stabilne przerwy między kolumnami (np. treść vs daty lub sidebar). "
+            + "Wyrównaj tylko elementy, które wyraźnie wypadają z siatki peerów. "
+            + "Nie zlewaj osobnych kolumn w jedną."
+        ),
+    },
     {
         id: "header-gaps",
         label: "Ujednolić odstępy pod nagłówkami",
@@ -56,16 +207,6 @@ const LAYOUT_SUGGESTIONS = [
             + "krawędzi nagłówka/linii). Ujednolić je do rytmu z layout_contract "
             + "(ok. 6 px, zakres 6–10). Nie celuj w 0 px. Zaproponuj tylko grupy "
             + "section_header_gap tam, gdzie peery różnią się wyraźnie."
-        ),
-    },
-    {
-        id: "record-gaps",
-        label: "Wyrównaj odstępy między wpisami",
-        prompt: (
-            "Porównaj odstępy między kolejnymi wpisami doświadczenia i wykształcenia "
-            + "(oraz podobnymi listami, np. projektami). Ujednolić je do "
-            + "layout_contract.spacing_px.record (ok. 10 px). Przesuwaj całe bloki "
-            + "wpisów (move_scope=blocks), nie pojedyncze tytuły bez daty/opisu."
         ),
     },
     {
@@ -119,40 +260,22 @@ const LAYOUT_SUGGESTIONS = [
             + "pierwszą treścią sekcji."
         ),
     },
-    {
-        id: "columns",
-        label: "Wyrównaj kolumny treści",
-        prompt: (
-            "Sprawdź spójność kolumn: wspólne left dla lewej kolumny treści oraz "
-            + "stabilne przerwy między kolumnami (np. treść vs daty lub sidebar). "
-            + "Wyrównaj tylko elementy, które wyraźnie wypadają z siatki peerów. "
-            + "Nie zlewaj osobnych kolumn w jedną."
-        ),
-    },
-    {
-        id: "overlaps",
-        label: "Znajdź nachodzenia elementów",
-        prompt: (
-            "Wykryj nachodzenia tekstu na tekst, tekstu na linie/kształty oraz "
-            + "elementy wychodzące poza stronę. Zaproponuj najmniejsze bezpieczne "
-            + "przesunięcia (priorytet: critical/high). Nie zmieniaj fontów, kolorów "
-            + "ani treści. Pomiń locked/fixedToPage, chyba że blokują czytelność "
-            + "ruchomego tekstu — wtedy przesuń tekst."
-        ),
-    },
-    {
-        id: "full-rhythm",
-        label: "Pełna korekta rytmu układu",
-        prompt: (
-            "Przeprowadź pełną korektę geometrii według layout_contract: odstępy pod "
-            + "nagłówkami (~6 px), stack (~4), record (~14), section (~18), wyrównanie "
-            + "nagłówków i dat, spójność kolumn oraz nachodzenia. Zwróć maksymalnie "
-            + "6 najważniejszych grup — tylko tam, gdzie rytm peerów jest wyraźnie "
-            + "niespójny. Preferuj najmniejszą zmianę. Jeśli układ już trzyma kontrakt, "
-            + "status=no_changes i krótki summary; nie wymyślaj nowego rytmu."
-        ),
-    },
 ];
+
+const PRIMARY_LAYOUT_SUGGESTIONS = LAYOUT_SUGGESTIONS.filter((s) => s.primary);
+const SECONDARY_LAYOUT_SUGGESTIONS = LAYOUT_SUGGESTIONS.filter((s) => !s.primary);
+
+function ratingToPercent(rating) {
+    if (typeof rating !== "number" || Number.isNaN(rating)) return null;
+    return Math.max(10, Math.min(100, Math.round(rating * 10)));
+}
+
+function categoryPercent(category) {
+    const max = Number(category?.max);
+    const score = Number(category?.score);
+    if (!(max > 0) || Number.isNaN(score)) return null;
+    return Math.max(0, Math.min(100, Math.round((score / max) * 100)));
+}
 const SEVERITY_LABELS = {
     critical: "krytyczny",
     high: "wysoki",
@@ -164,11 +287,153 @@ const SEVERITY_LABELS = {
 // ── sub-components ────────────────────────────────────────────────────────
 
 function RatingBadge({ value }) {
-    const color = value >= 8 ? "#5FA777" : value >= 6 ? "#F59E0B" : "#D2503C";
+    // Backend scores stay on a 1–10 rubric; the UI shows percentages.
+    const percent = ratingToPercent(value);
+    if (percent == null) return null;
+    const color = percent >= 80 ? "#5FA777" : percent >= 60 ? "#F59E0B" : "#D2503C";
     return (
         <div className={classes.ratingBadge} style={{ borderColor: color, color }}>
-            <span className={classes.ratingNum}>{value}</span>
-            <span className={classes.ratingDen}>/10</span>
+            <span className={classes.ratingNum}>{percent}</span>
+            <span className={classes.ratingDen}>%</span>
+        </div>
+    );
+}
+
+/**
+ * Structured score dashboard for rating / ATS / position / design results.
+ * CTAs are computed on the client so the model does not invent navigation.
+ */
+function RatingDashboard({
+    msg,
+    onOpenContentPanel,
+    onOpenAppearancePanel,
+    onRunAts,
+    onOpenMatchJob,
+    ctaDisabled,
+}) {
+    const percent = ratingToPercent(msg.rating);
+    const categories = Array.isArray(msg.categories) ? msg.categories : [];
+    const strengths = Array.isArray(msg.strengths) ? msg.strengths : [];
+    const priorities = Array.isArray(msg.priorities) ? msg.priorities : [];
+    const actionId = msg.actionId;
+
+    const weakContent = categories.some((cat) => {
+        const p = categoryPercent(cat);
+        return p != null && p < WEAK_CATEGORY_RATIO * 100 && CONTENT_CATEGORY_IDS.has(cat.id);
+    });
+    const weakAppearance = categories.some((cat) => {
+        const p = categoryPercent(cat);
+        return p != null && p < WEAK_CATEGORY_RATIO * 100 && APPEARANCE_CATEGORY_IDS.has(cat.id);
+    });
+
+    const showAtsCta = actionId === "rating";
+    const showMatchCta = actionId === "ats_score";
+    const showContentCta = actionId === "rating" && weakContent;
+    const showAppearanceCta = actionId === "rating" && weakAppearance;
+
+    const hasBody = percent != null || categories.length > 0
+        || strengths.length > 0 || priorities.length > 0
+        || showAtsCta || showMatchCta || showContentCta || showAppearanceCta;
+    if (!hasBody) return null;
+
+    return (
+        <div className={classes.ratingDashboard}>
+            {percent != null && (
+                <div className={classes.ratingDashboardScore}>
+                    <RatingBadge value={msg.rating} />
+                    <span className={classes.ratingDashboardLabel}>Ocena ogólna</span>
+                </div>
+            )}
+
+            {categories.length > 0 && (
+                <ul className={classes.categoryList}>
+                    {categories.map((cat) => {
+                        const p = categoryPercent(cat);
+                        return (
+                            <li key={cat.id} className={classes.categoryRow}>
+                                <div className={classes.categoryMeta}>
+                                    <span>{cat.label}</span>
+                                    <span>{p != null ? `${p}%` : "–"}</span>
+                                </div>
+                                <div className={classes.categoryTrack}>
+                                    <div
+                                        className={classes.categoryFill}
+                                        style={{ width: `${p ?? 0}%` }}
+                                    />
+                                </div>
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
+
+            {strengths.length > 0 && (
+                <div className={classes.dashboardBlock}>
+                    <span className={classes.dashboardBlockLabel}>Mocne strony</span>
+                    <ul className={classes.tips}>
+                        {strengths.map((item, i) => <li key={i}>{item}</li>)}
+                    </ul>
+                </div>
+            )}
+
+            {priorities.length > 0 && (
+                <div className={classes.dashboardBlock}>
+                    <span className={classes.dashboardBlockLabel}>Najważniejsze do poprawy</span>
+                    <ul className={classes.priorityList}>
+                        {priorities.map((item, i) => (
+                            <li key={i}>
+                                <strong>{item.title}</strong>
+                                {item.description ? <span>{item.description}</span> : null}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            {(showAtsCta || showContentCta || showAppearanceCta || showMatchCta) && (
+                <div className={classes.dashboardCtas}>
+                    {showAtsCta && (
+                        <button
+                            type="button"
+                            className={classes.dashboardCta}
+                            disabled={ctaDisabled}
+                            onClick={() => onRunAts?.()}
+                        >
+                            Sprawdź ATS
+                        </button>
+                    )}
+                    {showContentCta && (
+                        <button
+                            type="button"
+                            className={classes.dashboardCta}
+                            disabled={ctaDisabled}
+                            onClick={() => onOpenContentPanel?.()}
+                        >
+                            Popraw treść
+                        </button>
+                    )}
+                    {showAppearanceCta && (
+                        <button
+                            type="button"
+                            className={classes.dashboardCta}
+                            disabled={ctaDisabled}
+                            onClick={() => onOpenAppearancePanel?.()}
+                        >
+                            Sprawdź wygląd
+                        </button>
+                    )}
+                    {showMatchCta && (
+                        <button
+                            type="button"
+                            className={classes.dashboardCta}
+                            disabled={ctaDisabled}
+                            onClick={() => onOpenMatchJob?.()}
+                        >
+                            Dopasuj do oferty
+                        </button>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
@@ -464,15 +729,29 @@ function ChatMessage({
     onRejectClone,
     onPickLayoutSuggestion,
     suggestionsDisabled,
+    onOpenContentPanel,
+    onOpenAppearancePanel,
+    onRunAts,
+    onOpenMatchJob,
+    ctaDisabled,
     A4_Elements,
 }) {
     const isUser = msg.role === "user";
+    const [showMoreLayout, setShowMoreLayout] = useState(false);
     const pendingCount = (msg.corrections || []).filter(
         c => (correctionStates[`${msg.id}_${c.element_id}`] || "pending") === "pending"
     ).length;
     // Suggestion chips may send a longer GPT prompt while the bubble shows a
     // short label via displayText, so the user still sees what they commissioned.
     const visibleText = msg.displayText || msg.text;
+    const hasDashboard = !isUser && (
+        typeof msg.rating === "number"
+        || (msg.categories?.length > 0)
+        || (msg.strengths?.length > 0)
+        || (msg.priorities?.length > 0)
+        || msg.actionId === "rating"
+        || msg.actionId === "ats_score"
+    );
 
     return (
         <div className={`${classes.msgWrap} ${isUser ? classes.msgUser : classes.msgAssistant}`}>
@@ -487,13 +766,21 @@ function ChatMessage({
                     </div>
                 )}
 
-                {/* rating badge */}
-                {typeof msg.rating === "number" && <RatingBadge value={msg.rating} />}
+                {/* structured rating dashboard (%, categories, CTAs) */}
+                {hasDashboard && (
+                    <RatingDashboard
+                        msg={msg}
+                        onOpenContentPanel={onOpenContentPanel}
+                        onOpenAppearancePanel={onOpenAppearancePanel}
+                        onRunAts={onRunAts}
+                        onOpenMatchJob={onOpenMatchJob}
+                        ctaDisabled={ctaDisabled}
+                    />
+                )}
 
                 {/* main message text */}
                 <p className={classes.msgText}>{visibleText}</p>
 
-                {/* tips */}
                 {msg.tips?.length > 0 && (
                     <ul className={classes.tips}>
                         {msg.tips.map((tip, i) => <li key={i}>{tip}</li>)}
@@ -516,6 +803,32 @@ function ChatMessage({
                                 </button>
                             ))}
                         </div>
+                        {msg.layoutSuggestionsMore?.length > 0 && (
+                            <>
+                                <button
+                                    type="button"
+                                    className={classes.layoutMoreToggle}
+                                    onClick={() => setShowMoreLayout((v) => !v)}
+                                >
+                                    {showMoreLayout ? "Mniej opcji" : "Więcej opcji"}
+                                </button>
+                                {showMoreLayout && (
+                                    <div className={classes.layoutSuggestionList} role="group" aria-label="Więcej propozycji układu">
+                                        {msg.layoutSuggestionsMore.map((suggestion) => (
+                                            <button
+                                                key={suggestion.id}
+                                                type="button"
+                                                className={classes.layoutSuggestion}
+                                                disabled={suggestionsDisabled}
+                                                onClick={() => onPickLayoutSuggestion?.(suggestion)}
+                                            >
+                                                {suggestion.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
                 )}
 
@@ -683,7 +996,8 @@ export default function AiAssistant() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [jobDesc, setJobDesc] = useState("");
-    const [showJobDesc, setShowJobDesc] = useState(false);
+    // Goal submenu: improve_content | check_appearance | translate | match_job | null
+    const [activePanel, setActivePanel] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [correctionStates, setCorrectionStates] = useState({});
     const [layoutStates, setLayoutStates] = useState({});
@@ -948,9 +1262,10 @@ export default function AiAssistant() {
         try {
             // Warm the Render dyno before a long GPT call, especially a full-canvas layout analysis.
             wakeBackend();
-            const actionMeta = ACTIONS.find(a => a.id === action);
+            const actionMeta = ACTION_META[action] || { label: action, color: CHROME_ACCENT };
             // Full-canvas layout analysis can exceed the default 90s auth timeout.
             const timeoutMs = action === "layout" ? 240_000 : 120_000;
+            const targetLanguage = options.target_language || "";
             const res = await api.httpRequest(
                 ENDPOINTS.AI.ASSISTANT, "POST",
                 JSON.stringify({
@@ -964,6 +1279,9 @@ export default function AiAssistant() {
                     // actions ignore it. Freestyle / reopened docs may omit it.
                     ...(action === "layout" && activeTemplateId
                         ? { template_id: activeTemplateId }
+                        : {}),
+                    ...(action === "translate" && targetLanguage
+                        ? { target_language: targetLanguage }
                         : {}),
                 }),
                 "Asystent AI nie odpowiedział",
@@ -1000,6 +1318,9 @@ export default function AiAssistant() {
                 rating: res.rating ?? null,
                 tips: res.tips ?? [],
                 corrections: res.corrections ?? [],
+                categories: res.categories ?? [],
+                strengths: res.strengths ?? [],
+                priorities: res.priorities ?? [],
                 layout_groups: res.layout_groups ?? [],
                 layout_issues: res.layout_issues ?? [],
                 structure_groups: res.structure_groups ?? [],
@@ -1010,6 +1331,7 @@ export default function AiAssistant() {
                 clone_issues: res.clone_issues ?? [],
                 web_sources: res.web_sources ?? [],
                 usage: res.usage ?? null,
+                actionId: action,
                 actionLabel: actionMeta?.label,
                 actionColor: actionMeta?.color,
             };
@@ -1036,54 +1358,115 @@ export default function AiAssistant() {
         }
     }, [A4_Elements, activeTemplateId, api, isLoading, jobDesc, messages, pageSize, refreshEntitlements]);
 
-    const handleAction = useCallback((actionId) => {
-        const meta = ACTIONS.find(a => a.id === actionId);
-        if (actionId === "position_rating") {
-            setShowJobDesc(true);
+    const toggleLayoutMode = useCallback(() => {
+        // Keep the client journey clear; the API remains the source of
+        // truth for the Pro appearance entitlement.
+        if (entitlements && entitlements.plan_slug !== "pro") {
+            showPlanModal?.();
             return;
         }
-        if (actionId === "layout") {
-            // Keep the client journey clear; the API remains the source of
-            // truth for the Pro layout entitlement.
-            if (entitlements && entitlements.plan_slug !== "pro") {
-                showPlanModal?.();
-                return;
-            }
-            setIsOpen(true);
-            if (layoutMode) {
-                setLayoutMode(false);
-                layoutHistoryStartRef.current = null;
-                setMessages(prev => [...prev, {
-                    id: nanoid(),
-                    role: "assistant",
-                    text: "Tryb Układ wyłączony. Wracasz do zwykłego czatu.",
-                    tips: [],
-                    corrections: [],
-                    layout_groups: [],
-                    layout_issues: [],
-                }]);
-                return;
-            }
-            // Enabling layout mode is intentionally local: it must not consume
-            // credits or upload the canvas before the user submits a request.
-            // Skip the local greeting in GPT history, while retaining later
-            // user/assistant turns from this layout session.
-            layoutHistoryStartRef.current = messages.length + 1;
-            setLayoutMode(true);
+        setIsOpen(true);
+        setActivePanel(null);
+        if (layoutMode) {
+            setLayoutMode(false);
+            layoutHistoryStartRef.current = null;
             setMessages(prev => [...prev, {
                 id: nanoid(),
                 role: "assistant",
-                text: LAYOUT_MODE_GREETING,
+                text: "Tryb Układ wyłączony. Wracasz do zwykłego czatu.",
                 tips: [],
-                layoutSuggestions: LAYOUT_SUGGESTIONS,
                 corrections: [],
                 layout_groups: [],
                 layout_issues: [],
             }]);
             return;
         }
+        // Enabling layout mode is intentionally local: it must not consume
+        // credits or upload the canvas before the user submits a request.
+        layoutHistoryStartRef.current = messages.length + 1;
+        setLayoutMode(true);
+        setMessages(prev => [...prev, {
+            id: nanoid(),
+            role: "assistant",
+            text: LAYOUT_MODE_GREETING,
+            tips: [],
+            layoutSuggestions: PRIMARY_LAYOUT_SUGGESTIONS,
+            layoutSuggestionsMore: SECONDARY_LAYOUT_SUGGESTIONS,
+            corrections: [],
+            layout_groups: [],
+            layout_issues: [],
+        }]);
+    }, [entitlements, layoutMode, messages.length, showPlanModal]);
+
+    const handleGoalAction = useCallback((goalId) => {
+        const goal = GOAL_ACTIONS.find((g) => g.id === goalId);
+        if (!goal) return;
+
+        if (goal.proOnly && entitlements && entitlements.plan_slug !== "pro") {
+            showPlanModal?.();
+            return;
+        }
+
+        if (goalId === "check_cv") {
+            setActivePanel(null);
+            send("rating", goal.label);
+            return;
+        }
+
+        if (goal.panel) {
+            // Toggle the same panel closed; switch panels otherwise.
+            setActivePanel((prev) => (prev === goal.panel ? null : goal.panel));
+            return;
+        }
+
+        send(goalId, goal.label);
+    }, [entitlements, send, showPlanModal]);
+
+    const handleContentSubaction = useCallback((actionId) => {
+        const meta = CONTENT_SUBACTIONS.find((a) => a.id === actionId);
+        setActivePanel(null);
         send(actionId, meta?.label || actionId);
-    }, [entitlements, layoutMode, messages.length, send, showPlanModal]);
+    }, [send]);
+
+    const handleAppearanceSubaction = useCallback((sub) => {
+        if (sub.kind === "layout_toggle") {
+            toggleLayoutMode();
+            return;
+        }
+        setActivePanel(null);
+        send(sub.id, sub.label);
+    }, [send, toggleLayoutMode]);
+
+    const handleTranslateLanguage = useCallback((lang) => {
+        setActivePanel(null);
+        send("translate", `Przetłumacz CV na: ${lang.label}`, {
+            displayText: `Przetłumacz → ${lang.label}`,
+            target_language: lang.code,
+        });
+    }, [send]);
+
+    const openContentPanel = useCallback(() => {
+        setIsOpen(true);
+        setActivePanel("improve_content");
+    }, []);
+
+    const openAppearancePanel = useCallback(() => {
+        if (entitlements && entitlements.plan_slug !== "pro") {
+            showPlanModal?.();
+            return;
+        }
+        setIsOpen(true);
+        setActivePanel("check_appearance");
+    }, [entitlements, showPlanModal]);
+
+    const openMatchJobPanel = useCallback(() => {
+        setIsOpen(true);
+        setActivePanel("match_job");
+    }, []);
+
+    const runAtsScore = useCallback(() => {
+        send("ats_score", "Sprawdź ATS");
+    }, [send]);
 
     const handleLayoutSuggestion = useCallback((suggestion) => {
         if (!suggestion?.prompt || requestInFlightRef.current || isLoading || !layoutMode) return;
@@ -1093,16 +1476,16 @@ export default function AiAssistant() {
     const handleSend = useCallback(() => {
         const text = input.trim();
         if (!text || isLoading) return;
-        if (showJobDesc) {
-            // confirm position_rating with job description
-            setShowJobDesc(false);
+        if (activePanel === "match_job") {
+            // confirm position_rating with job description from the panel
+            setActivePanel(null);
             send("position_rating", `Przeanalizuj moje CV pod kątem tego stanowiska:\n${jobDesc.slice(0, 200)}…`);
             setInput("");
             return;
         }
         send(layoutMode ? "layout" : "chat", text);
         setInput("");
-    }, [input, isLoading, showJobDesc, jobDesc, layoutMode, send]);
+    }, [input, isLoading, activePanel, jobDesc, layoutMode, send]);
 
     const handleKey = (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
@@ -1168,19 +1551,24 @@ export default function AiAssistant() {
                             </div>
                         </div>
 
-                        {/* action buttons */}
+                        {/* goal-oriented quick actions */}
                         <div className={classes.actions}>
-                            {ACTIONS.map(action => (
+                            {GOAL_ACTIONS.map((action) => (
                                 <button
                                     key={action.id}
-                                    className={`${classes.actionBtn} ${action.id === "layout" && layoutMode ? classes.actionBtnActive : ""}`}
+                                    className={`${classes.actionBtn} ${
+                                        (action.panel && activePanel === action.panel)
+                                        || (action.id === "check_appearance" && layoutMode)
+                                            ? classes.actionBtnActive
+                                            : ""
+                                    }`}
                                     style={{ "--action-color": action.color }}
-                                    onClick={() => handleAction(action.id)}
-                                    disabled={isLoading && action.id !== "layout"}
+                                    onClick={() => handleGoalAction(action.id)}
+                                    disabled={isLoading && !(action.id === "check_appearance" && layoutMode)}
                                     title={action.proOnly && entitlements?.plan_slug !== "pro"
                                         ? `${action.description}. Dostępne w planie Pro.`
                                         : action.description}
-                                    aria-pressed={action.id === "layout" ? layoutMode : undefined}
+                                    aria-pressed={action.panel ? activePanel === action.panel : undefined}
                                 >
                                     <action.icon className={classes.actionIcon} />
                                     <span>
@@ -1193,13 +1581,112 @@ export default function AiAssistant() {
                         </div>
                         {layoutMode && (
                             <div className={classes.layoutModeBanner}>
-                                Układ włączony — każde pytanie dostaje pełny JSON A4. Kliknij Układ ponownie, aby wyjść.
+                                Układ włączony — każde pytanie dostaje pełny JSON A4. Otwórz „Sprawdź wygląd” → Układ, aby wyjść.
                             </div>
                         )}
 
-                        {/* job description input (for position fit) */}
+                        {/* goal subpanels */}
                         <AnimatePresence>
-                            {showJobDesc && (
+                            {activePanel === "improve_content" && (
+                                <Motion.div
+                                    className={classes.subPanel}
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: "auto", opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <div className={classes.subPanelTitle}>Co chcesz poprawić?</div>
+                                    <div className={classes.subPanelList}>
+                                        {CONTENT_SUBACTIONS.map((sub) => (
+                                            <button
+                                                key={sub.id}
+                                                type="button"
+                                                className={classes.subPanelBtn}
+                                                disabled={isLoading}
+                                                onClick={() => handleContentSubaction(sub.id)}
+                                            >
+                                                <sub.icon className={classes.subPanelIcon} />
+                                                <span>
+                                                    <strong>{sub.label}</strong>
+                                                    <em>{sub.description}</em>
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button type="button" className={classes.jobDescCancel} onClick={() => setActivePanel(null)}>
+                                        Anuluj
+                                    </button>
+                                </Motion.div>
+                            )}
+                            {activePanel === "check_appearance" && (
+                                <Motion.div
+                                    className={classes.subPanel}
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: "auto", opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <div className={classes.subPanelTitle}>Sprawdź wygląd</div>
+                                    <div className={classes.subPanelList}>
+                                        {APPEARANCE_SUBACTIONS.map((sub) => (
+                                            <button
+                                                key={sub.id}
+                                                type="button"
+                                                className={`${classes.subPanelBtn} ${
+                                                    sub.kind === "layout_toggle" && layoutMode
+                                                        ? classes.actionBtnActive
+                                                        : ""
+                                                }`}
+                                                disabled={isLoading && !(sub.kind === "layout_toggle")}
+                                                onClick={() => handleAppearanceSubaction(sub)}
+                                                aria-pressed={sub.kind === "layout_toggle" ? layoutMode : undefined}
+                                            >
+                                                <sub.icon className={classes.subPanelIcon} />
+                                                <span>
+                                                    <strong>
+                                                        {sub.kind === "layout_toggle" && layoutMode
+                                                            ? "Układ strony · wyłącz"
+                                                            : sub.label}
+                                                    </strong>
+                                                    <em>{sub.description}</em>
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button type="button" className={classes.jobDescCancel} onClick={() => setActivePanel(null)}>
+                                        Anuluj
+                                    </button>
+                                </Motion.div>
+                            )}
+                            {activePanel === "translate" && (
+                                <Motion.div
+                                    className={classes.subPanel}
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: "auto", opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <div className={classes.subPanelTitle}>Wybierz język docelowy</div>
+                                    <div className={classes.langGrid}>
+                                        {TRANSLATE_LANGUAGES.map((lang) => (
+                                            <button
+                                                key={lang.code}
+                                                type="button"
+                                                className={classes.langBtn}
+                                                disabled={isLoading}
+                                                onClick={() => handleTranslateLanguage(lang)}
+                                            >
+                                                <span className={classes.langCode}>{lang.code.toUpperCase()}</span>
+                                                {lang.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button type="button" className={classes.jobDescCancel} onClick={() => setActivePanel(null)}>
+                                        Anuluj
+                                    </button>
+                                </Motion.div>
+                            )}
+                            {activePanel === "match_job" && (
                                 <Motion.div
                                     className={classes.jobDescArea}
                                     initial={{ height: 0, opacity: 0 }}
@@ -1220,13 +1707,13 @@ export default function AiAssistant() {
                                     <div className={classes.jobDescRow}>
                                         <button
                                             className={classes.jobDescCancel}
-                                            onClick={() => setShowJobDesc(false)}
+                                            onClick={() => setActivePanel(null)}
                                         >Anuluj</button>
                                         <button
                                             className={classes.jobDescAnalyse}
                                             disabled={!jobDesc.trim() || isLoading}
                                             onClick={() => {
-                                                setShowJobDesc(false);
+                                                setActivePanel(null);
                                                 send("position_rating", `Przeanalizuj moje CV pod kątem tego stanowiska:\n${jobDesc.slice(0, 200)}…`);
                                             }}
                                         >
@@ -1242,7 +1729,7 @@ export default function AiAssistant() {
                             {messages.length === 0 && (
                                 <div className={classes.emptyState}>
                                     <BsStars className={classes.emptyIcon} />
-                                    <p>Kliknij akcję powyżej, zadaj pytanie o swoje CV lub wpisz polecenie, np. „zmień rozmiar czcionki nagłówków na 13px”.</p>
+                                    <p>Wybierz cel powyżej — sprawdź CV, popraw treść, dopasuj do oferty, wygląd lub przetłumacz — albo wpisz własne pytanie.</p>
                                 </div>
                             )}
                             {messages.map(msg => (
@@ -1275,6 +1762,11 @@ export default function AiAssistant() {
                                     onRejectClone={rejectCloneGroup}
                                     onPickLayoutSuggestion={handleLayoutSuggestion}
                                     suggestionsDisabled={isLoading || !layoutMode}
+                                    onOpenContentPanel={openContentPanel}
+                                    onOpenAppearancePanel={openAppearancePanel}
+                                    onRunAts={runAtsScore}
+                                    onOpenMatchJob={openMatchJobPanel}
+                                    ctaDisabled={isLoading}
                                     A4_Elements={A4_Elements}
                                 />
                             ))}
@@ -1300,12 +1792,12 @@ export default function AiAssistant() {
                                     ? "np. Który nagłówek odstaje? Czy wpis Citibank jest za nisko?"
                                     : "Zadaj pytanie lub wydaj polecenie…"}
                                 rows={2}
-                                disabled={isLoading || showJobDesc}
+                                disabled={isLoading || activePanel === "match_job"}
                             />
                             <button
                                 className={classes.sendBtn}
                                 onClick={handleSend}
-                                disabled={!input.trim() || isLoading || showJobDesc}
+                                disabled={!input.trim() || isLoading || activePanel === "match_job"}
                                 aria-label="Wyślij"
                             >
                                 <IoSend />

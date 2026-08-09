@@ -6,13 +6,14 @@ test("layout mode waits for the user's message before sending a request", async 
     const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
 
     assert.match(source, /setMessages\(prev => \[\.\.\.prev, \{\s*id: nanoid\(\),\s*role: "assistant",\s*text: LAYOUT_MODE_GREETING/s);
-    assert.match(source, /layoutSuggestions:\s*LAYOUT_SUGGESTIONS/);
+    assert.match(source, /layoutSuggestions:\s*PRIMARY_LAYOUT_SUGGESTIONS/);
+    assert.match(source, /layoutSuggestionsMore:\s*SECONDARY_LAYOUT_SUGGESTIONS/);
     assert.match(source, /send\(layoutMode \? "layout" : "chat", text\)/);
 
     // Enabling the toggle must stay local. Suggestion chips may call send later.
-    const toggleBranch = source.match(/if \(actionId === "layout"\) \{([\s\S]*?)\n\s*return;\n\s*\}\n\s*send\(actionId/);
-    assert.ok(toggleBranch, "expected a local layout toggle branch");
-    assert.doesNotMatch(toggleBranch[1], /\bsend\s*\(/);
+    const toggleFn = source.match(/const toggleLayoutMode = useCallback\(\(\) => \{([\s\S]*?)\}, \[entitlements/);
+    assert.ok(toggleFn, "expected a local layout toggle callback");
+    assert.doesNotMatch(toggleFn[1], /\bsend\s*\(/);
 });
 
 test("layout suggestions expose short labels and fuller GPT prompts", async () => {
@@ -31,6 +32,9 @@ test("layout suggestions expose short labels and fuller GPT prompts", async () =
     assert.ok(ids.includes("full-rhythm"));
     assert.match(block, /layout_contract/);
     assert.match(block, /real_gap/);
+
+    const primaryCount = [...block.matchAll(/primary:\s*true/g)].length;
+    assert.equal(primaryCount, 4);
 });
 
 test("assistant send blocks parallel requests before isLoading re-renders", async () => {
@@ -40,4 +44,26 @@ test("assistant send blocks parallel requests before isLoading re-renders", asyn
     assert.match(source, /if \(requestInFlightRef\.current \|\| isLoading\) return/);
     assert.match(source, /requestInFlightRef\.current = true/);
     assert.match(source, /requestInFlightRef\.current = false/);
+});
+
+test("goal-oriented quick actions replace flat feature tiles", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+
+    assert.match(source, /const GOAL_ACTIONS = \[/);
+    assert.match(source, /id: "check_cv"/);
+    assert.match(source, /id: "improve_content"/);
+    assert.match(source, /id: "match_job"/);
+    assert.match(source, /id: "check_appearance"/);
+    assert.match(source, /id: "translate"/);
+    assert.match(source, /CONTENT_SUBACTIONS/);
+    assert.match(source, /APPEARANCE_SUBACTIONS/);
+    assert.match(source, /TRANSLATE_LANGUAGES/);
+    assert.match(source, /function RatingDashboard/);
+    assert.match(source, /target_language/);
+    assert.match(source, /send\("rating"/);
+    assert.match(source, /send\("ats_score"/);
+
+    // Flat feature-centric tiles should no longer be the primary menu.
+    assert.doesNotMatch(source, /label: "Oceń CV"/);
+    assert.doesNotMatch(source, /label: "Wynik ATS"/);
 });

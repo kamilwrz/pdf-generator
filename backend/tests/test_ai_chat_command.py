@@ -657,7 +657,15 @@ class DesignRatingTemplateRespectTests(unittest.TestCase):
             return {
                 "message": "Szablon jest spójny; etykiety 8 px są częścią systemu.",
                 "rating": 8,
-                "tips": ["Rozkład oceny: Hierarchia 3/3"],
+                "tips": [
+                    "Rozkład oceny: Hierarchia 3/3",
+                    "Etykiety są spójne z systemem szablonu.",
+                ],
+                "categories": [
+                    {"id": "hierarchy", "label": "Hierarchia", "score": 3, "max": 3},
+                ],
+                "strengths": ["Spójne etykiety"],
+                "priorities": [],
                 "corrections": [
                     {"element_id": "page-num", "fontSize": 12},
                     {"element_id": "label", "bold": True},
@@ -673,6 +681,10 @@ class DesignRatingTemplateRespectTests(unittest.TestCase):
 
         self.assertEqual(result["rating"], 8)
         self.assertEqual(result["corrections"], [{"element_id": "label", "bold": True}])
+        # Legacy tip strings are stripped; scores live in structured categories.
+        self.assertFalse(any(str(t).lower().startswith("rozkład oceny") for t in result["tips"]))
+        self.assertEqual(result["categories"][0]["id"], "hierarchy")
+        self.assertEqual(result["strengths"], ["Spójne etykiety"])
 
     def test_design_rating_caps_score_when_elements_overlap(self):
         elements = [

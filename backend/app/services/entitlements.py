@@ -69,7 +69,9 @@ CREDIT_PLN = 0.05  # 1 AI credit = 5 groszy
 
 # Layout is included in Pro (no separate Premium tier). Kept as an empty set so
 # action-level gates stay structured if a future exclusive action appears.
-PRO_ONLY_AI_ACTIONS: frozenset[str] = frozenset()
+# Appearance goal in the AI assistant: typography review + full-canvas layout.
+# Content actions (rating, grammar, translate, …) stay on the general AI plan.
+PRO_ONLY_AI_ACTIONS: frozenset[str] = frozenset({"design_rating", "layout"})
 
 
 def normalize_plan_slug(plan_slug: str | None) -> str:
@@ -503,8 +505,8 @@ def assert_can_use_ai_action(db: Session, user: User, action: str) -> None:
     entitlements = get_entitlements(db, user)
     if action in PRO_ONLY_AI_ACTIONS and entitlements["plan_slug"] != "pro":
         raise PlanLimitError(
-            "plan_feature_ai_layout",
-            "Tryb Układ jest dostępny w planie Pro.",
+            "plan_feature_ai_appearance",
+            "Sprawdź wygląd jest dostępny w planie Pro.",
             upgrade_required="pro",
         )
     assert_can_use_ai_assistant(db, user)
