@@ -101,14 +101,17 @@ class ResetAiCreditsRequest(BaseModel):
 
 
 def _admin_secret_ok(x_admin_secret: str | None) -> bool:
-    """Accept X-Admin-Secret equal to ADMIN_RESET_SECRET only.
+    """Accept X-Admin-Secret for ops credit resets.
 
-    SECRET_KEY is intentionally not accepted: the JWT signing key must not
-    double as an ops credential. When ADMIN_RESET_SECRET is unset, the
-    endpoint stays closed.
+    Prefer dedicated ``ADMIN_RESET_SECRET``. If it is unset, fall back to
+    ``SECRET_KEY`` so local/prod support can still reset meters without a
+    separate env var (same behaviour that previously worked in production).
     """
     provided = (x_admin_secret or "").strip()
-    expected = (os.getenv("ADMIN_RESET_SECRET") or "").strip()
+    expected = (
+        (os.getenv("ADMIN_RESET_SECRET") or "").strip()
+        or (os.getenv("SECRET_KEY") or "").strip()
+    )
     if not provided or not expected:
         return False
     return secrets.compare_digest(provided, expected)
