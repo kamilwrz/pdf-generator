@@ -370,7 +370,7 @@ function RatingDashboard({
             {strengths.length > 0 && (
                 <div className={classes.dashboardBlock}>
                     <span className={classes.dashboardBlockLabel}>Mocne strony</span>
-                    <ul className={classes.tips}>
+                    <ul className={classes.strengthList}>
                         {strengths.map((item, i) => <li key={i}>{item}</li>)}
                     </ul>
                 </div>
@@ -379,14 +379,16 @@ function RatingDashboard({
             {priorities.length > 0 && (
                 <div className={classes.dashboardBlock}>
                     <span className={classes.dashboardBlockLabel}>Najważniejsze do poprawy</span>
-                    <ul className={classes.priorityList}>
+                    <ol className={classes.priorityList}>
                         {priorities.map((item, i) => (
                             <li key={i}>
-                                <strong>{item.title}</strong>
-                                {item.description ? <span>{item.description}</span> : null}
+                                <div className={classes.priorityBody}>
+                                    <strong>{item.title}</strong>
+                                    {item.description ? <span>{item.description}</span> : null}
+                                </div>
                             </li>
                         ))}
-                    </ul>
+                    </ol>
                 </div>
             )}
 
@@ -766,7 +768,13 @@ function ChatMessage({
                     </div>
                 )}
 
-                {/* structured rating dashboard (%, categories, CTAs) */}
+                {/* Lead summary first, then structured score card — reads as prose → details. */}
+                {visibleText ? (
+                    <p className={`${classes.msgText} ${!isUser ? classes.msgTextAssistant : ""}`}>
+                        {visibleText}
+                    </p>
+                ) : null}
+
                 {hasDashboard && (
                     <RatingDashboard
                         msg={msg}
@@ -778,13 +786,14 @@ function ChatMessage({
                     />
                 )}
 
-                {/* main message text */}
-                <p className={classes.msgText}>{visibleText}</p>
-
-                {msg.tips?.length > 0 && (
-                    <ul className={classes.tips}>
-                        {msg.tips.map((tip, i) => <li key={i}>{tip}</li>)}
-                    </ul>
+                {/* Tips under the dashboard; skip when priorities already cover the same ground. */}
+                {msg.tips?.length > 0 && !(hasDashboard && msg.priorities?.length > 0) && (
+                    <div className={classes.tipsBlock}>
+                        <span className={classes.tipsBlockLabel}>Wskazówki</span>
+                        <ul className={classes.tips}>
+                            {msg.tips.map((tip, i) => <li key={i}>{tip}</li>)}
+                        </ul>
+                    </div>
                 )}
 
                 {msg.layoutSuggestions?.length > 0 && (
