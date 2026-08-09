@@ -9,7 +9,8 @@
  * lower template gallery is inspiration only — each card opens the wizard,
  * never a blank placeholder canvas. Only the "import" CTA still detours
  * through registration/login (paid OpenAI extract). Wizard and demo go
- * straight to `/pdfcanvas?start=...` for guests and authenticated visitors.
+ * straight to `/cvstudio/guest?start=...` (or `/cvstudio/{username}` when
+ * already authenticated).
  */
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
@@ -17,6 +18,7 @@ import classes from "./Hero.module.css";
 import { TEMPLATES } from "../../templates";
 import { wakeBackend } from "../../services/api";
 import { queueGuestEvent } from "../../utils/guestEvents";
+import { getAccessToken, getEditorPath } from "../../utils/authSession";
 
 const TEMPLATE_PREVIEWS = TEMPLATES.map((template) => ({
     id: template.id,
@@ -111,11 +113,10 @@ function DemoIcon() {
 // straight into guest mode regardless of auth state.
 function buildStartUrl(start, plan) {
     if (start === "import") {
-        const registered = Boolean(window.localStorage.getItem("token"));
-        if (registered) return `/pdfcanvas?start=${start}`;
+        if (getAccessToken()) return getEditorPath({ start });
         return `/register?start=${start}&plan=${plan}`;
     }
-    return `/pdfcanvas?start=${start}`;
+    return getEditorPath({ start });
 }
 
 function StartButton({ start, plan, children, secondary = false }) {
@@ -200,7 +201,7 @@ export default function Hero() {
                     <p className={classes.heroNote}>
                         Bez karty • Zacznij bez konta •{" "}
                         <Link
-                            to="/pdfcanvas?start=demo"
+                            to={getEditorPath({ start: "demo" })}
                             onClick={() => queueGuestEvent("landing_cta_clicked")}
                         >
                             Zobacz edytor na przykładzie

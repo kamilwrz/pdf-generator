@@ -523,7 +523,7 @@ export function useA4Elements(titleRef) {
   // Sidebar / gallery add handlers. Factories own default geometry and category
   // fields; these wrappers stamp a fresh id, the active page, and enter markers.
   // Bodies were dropped during the selection-drag split while return exports
-  // stayed — that left "handleAddText is not defined" and crashed /pdfcanvas.
+  // stayed — that left "handleAddText is not defined" and crashed the editor.
   const handleAddText = useCallback(() => {
     const text = createTextElement({
       elementId: nanoid(),

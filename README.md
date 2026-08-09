@@ -32,7 +32,7 @@ This README is the technical entry point for developers. A beginner-friendly dee
 
 Job seekers need CVs that look professional and export cleanly to PDF. Generic form builders hide layout; design tools are too heavy. CV Studio gives a true A4 canvas (595×842 pt), templates filled with real career data, and AI that extracts or improves content without inventing unsafe coordinates for decorative chrome.
 
-Forcing registration before a visitor had seen the editor used to be the largest funnel loss: every new visitor had to create an account — and pick a paid plan during registration — before touching a single template. **Guest mode** removes that wall: `/pdfcanvas` works with no JWT at all, so a visitor can pick a template, run the guided wizard, or freeform-edit and see the exact document they would export, with state kept in `localStorage` instead of the backend. An account is only required at the point of real value — saving or exporting the PDF (a "save-gate" modal) — or for CV import, which stays account-gated because it calls the paid OpenAI extract endpoint. See [Guest mode (editor without an account)](#guest-mode-editor-without-an-account) for the full implementation.
+Forcing registration before a visitor had seen the editor used to be the largest funnel loss: every new visitor had to create an account — and pick a paid plan during registration — before touching a single template. **Guest mode** removes that wall: `/cvstudio/guest` works with no JWT at all (authenticated users open `/cvstudio/{username}`), so a visitor can pick a template, run the guided wizard, or freeform-edit and see the exact document they would export, with state kept in `localStorage` instead of the backend. An account is only required at the point of real value — saving or exporting the PDF (a "save-gate" modal) — or for CV import, which stays account-gated because it calls the paid OpenAI extract endpoint. See [Guest mode (editor without an account)](#guest-mode-editor-without-an-account) for the full implementation.
 
 **Implemented today:** editor (including guest mode without an account), templates, extract/fill, bio draft, AI assistant (ratings, grammar, layout review cards), entitlements (Darmowy / Pro — 59 zł / 30 days), autosave, local or S3 storage, JWT auth.
 
@@ -44,7 +44,7 @@ Forcing registration before a visitor had seen the editor used to be the largest
 
 ## Main user flows
 
-1. **Choose a landing-page start** → primary funnels are data-first: “Stwórz CV od początku” (`start=wizard`) and “Wgraj moje CV” / “Importuj CV” (`start=import`) collect content, then pick a template, then open the editor. “Zobacz edytor na przykładzie” (`start=demo`) opens a sample document. Wizard and demo go straight to `/pdfcanvas` as a guest; import still detours through registration/login first because it calls the paid `POST /ai/extract_cv` endpoint. The lower template gallery is inspiration only and links into the wizard — not a blank placeholder canvas. The editor topbar no longer has a “Szablony” button; style changes after data exist use “Zmień szablon”.
+1. **Choose a landing-page start** → primary funnels are data-first: “Stwórz CV od początku” (`start=wizard`) and “Wgraj moje CV” / “Importuj CV” (`start=import`) collect content, then pick a template, then open the editor. “Zobacz edytor na przykładzie” (`start=demo`) opens a sample document. Wizard and demo go straight to `/cvstudio/guest` (or `/cvstudio/{username}` when already logged in); import still detours through registration/login first because it calls the paid `POST /ai/extract_cv` endpoint. The lower template gallery is inspiration only and links into the wizard — not a blank placeholder canvas. The editor topbar no longer has a “Szablony” button; style changes after data exist use “Zmień szablon”.
 2. **Edit as a guest** → full canvas access (templates, wizard, freeform, undo/redo) with the document persisted to `localStorage` instead of the backend — see [Guest mode](#guest-mode-editor-without-an-account).
 3. **Register / login only when it matters** → clicking “Zapisz PDF” / “Pobierz PDF” as a guest opens `SaveGateModal` instead of calling the backend. Registering or logging in preserves the selected `start` intent, and if a guest document exists, `ClaimGuestDocumentModal` asks the now-authenticated visitor to confirm it is theirs before loading that JSON onto the A4 canvas (no automatic `POST /pdf/create_pdf`) — a guest document belongs to the browser, not to any identity, so silently attaching it to whoever happens to log in next would leak one person's draft into an unrelated account.
 4. **Pick a template** → `handleLoadTemplate` materializes specs → canvas.
@@ -74,7 +74,7 @@ flowchart LR
 
 | Layer | Entry | Role |
 |--------|--------|------|
-| Frontend | `frontend/src/main.jsx` → `App.jsx` | Router: `/`, `/login`, `/register`, `/pdfcanvas` (guest-accessible — no `ProtectedRoute`) |
+| Frontend | `frontend/src/main.jsx` → `App.jsx` | Router: `/`, `/login`, `/register`, `/cvstudio/:workspace` (`guest` or username — no `ProtectedRoute`); legacy `/pdfcanvas` redirects |
 | Editor page | `frontend/src/pages/PdfCanvas.jsx` (`PdfCanvas`) | Composes hooks into Canvas / UiSurfaces / Session (+ `PdfContext` facade) |
 | Backend | `backend/app/main.py` | FastAPI app, CORS, `/health`, routers, optional SPA static |
 
@@ -123,7 +123,7 @@ Elements with `fixedToPage: true` (backgrounds, frames, sidebars, page numbers) 
 |------------|----------------|---------|----------------|
 | React | ^19.2 | UI components and hooks | `frontend/src/` |
 | Vite | ^7.2 | Dev server and production build | `frontend/` |
-| React Router | ^7.13 | Client routes (`/pdfcanvas` is guest-accessible; `ProtectedRoute` was removed) | `App.jsx` |
+| React Router | ^7.13 | Client routes (`/cvstudio/:workspace` — `guest` or username; `ProtectedRoute` was removed) | `App.jsx`, `authSession.js` (`getEditorPath`) |
 | FastAPI | (requirements) | HTTP API | `backend/app/main.py`, routes |
 | Uvicorn | (requirements) | ASGI server | local / Render |
 | SQLAlchemy | (requirements) | ORM | `models/`, `crud/` |
@@ -347,23 +347,24 @@ Tests:
 
 The landing page presents one outcome — an editable PDF-ready CV — and **three** product paths: create from a template, import an existing CV, or design from a blank freeform page, plus a direct “Zobacz edytor” link into a static demo document. It still explains the shared journey, templates, privacy, plans, and assistive AI review. The hero editor chrome and the “Po imporcie albo kreatorze” screenshot frame keep their layout placeholders; the outdated product PNGs (`hero-canvas-mockup.png`, `hero-mockup.png`) are no longer shipped.
 
-Landing start intents used in the hero: `start=wizard`, `start=import`, `start=demo`. Legacy deep links `start=templates` and `start=blank` still work in `PdfCanvas` but are no longer offered on the landing. Every intent except `import` routes straight to `/pdfcanvas?start=...` as a guest (`buildStartUrl` in `Hero.jsx`) — see [Guest mode](#guest-mode-editor-without-an-account) below for why. `import` still detours through `/register` (or straight to `/pdfcanvas` if already authenticated) because it calls the paid `POST /ai/extract_cv` endpoint. `PdfCanvas` opens the matching surface once and strips the query param.
+Landing start intents used in the hero: `start=wizard`, `start=import`, `start=demo`. Legacy deep links `start=templates` and `start=blank` still work in `PdfCanvas` but are no longer offered on the landing. Every intent except `import` routes through `getEditorPath` (`/cvstudio/guest?start=...` or `/cvstudio/{username}?start=...` when a JWT is present — `buildStartUrl` in `Hero.jsx`) — see [Guest mode](#guest-mode-editor-without-an-account) below for why. `import` still detours through `/register` (or straight to the personalised editor path if already authenticated) because it calls the paid `POST /ai/extract_cv` endpoint. `PdfCanvas` opens the matching surface once and strips the query param.
 
 Topbar entry points are **Importuj CV**, **Utwórz CV krok po kroku**, and **Zmień szablon** (enabled after a successful fill). There is no topbar “Szablony” browser — choosing a style belongs to the wizard / import funnel.
 
 Implementation:
 
-- `frontend/src/pages/Hero/Hero.jsx`, lines 112–139, function `buildStartUrl` and component `StartButton` — only `start=import` conditionally returns a `/register` URL; every other intent always returns `/pdfcanvas?start=...`
-- `frontend/src/pages/Register/Register.jsx` / `Login/Login.jsx` — preserve `templates|import|wizard|blank` through the auth round trip
-- `frontend/src/pages/PdfCanvas.jsx`, lines 69–85 (`initialStartIntentRef`, includes `demo`), lines 605–623 (auto-open templates picker skips every directed intent, including `demo`), lines 636–646 (demo path loads `demoCvTemplate` and sets `isDemoContent`) — intent handling + mode hydration from saved PDFs
+- `frontend/src/pages/Hero/Hero.jsx`, lines 114–135, function `buildStartUrl` and component `StartButton` — only `start=import` conditionally returns a `/register` URL; every other intent uses `getEditorPath({ start })`
+- `frontend/src/utils/authSession.js`, lines 111–120, function `getEditorPath` — builds `/cvstudio/guest` or `/cvstudio/{username}` (plus optional `?start=`)
+- `frontend/src/pages/Register/Register.jsx` / `Login/Login.jsx` — preserve `templates|import|wizard|blank` through the auth round trip; login stores `username` and navigates via `getEditorPath`
+- `frontend/src/pages/PdfCanvas.jsx`, lines 89–106 (workspace slug sync), `initialStartIntentRef` (includes `demo`), auto-open templates picker skips every directed intent, including `demo`, demo path loads `demoCvTemplate` and sets `isDemoContent` — intent handling + mode hydration from saved PDFs
 
 ### Guest mode (editor without an account)
 
 **Problem this solves.** Every visitor used to have to create an account — and pick a paid plan during registration — before touching a single template. That forced-registration wall was the largest funnel loss: visitors who only wanted to see whether the editor was worth using had to commit before they could find out. Guest mode lets a visitor do everything that does not cost the backend money (template editing, the guided wizard, freeform canvas, undo/redo, section/record editing) with zero account, and asks for one only at the point where real value has been created: saving or exporting the PDF. CV import stays account-gated in every case, because it calls the paid OpenAI extract endpoint (`POST /ai/extract_cv`) and giving that away for free would let anonymous traffic consume API budget.
 
-**How it works.** `frontend/src/App.jsx` no longer wraps `/pdfcanvas` in a `ProtectedRoute` (that component was deleted from the repo); the route is public, and `PdfCanvas` branches on `localStorage.getItem("token")` wherever a call would otherwise 401:
+**How it works.** The editor lives at `/cvstudio/:workspace` (`guest` without a JWT, otherwise the account username). `frontend/src/App.jsx` does not wrap that route in a `ProtectedRoute` (that component was deleted from the repo); the route is public, and `PdfCanvas` branches on token presence wherever a call would otherwise 401. The URL slug is cosmetic for bookmarks — API authorisation still comes from the JWT. Legacy `/pdfcanvas` bookmarks redirect through `getEditorPath`.
 
-- **Token verification** — the mount effect that revalidates a JWT against `GET /auth/verify-token/{token}` is skipped entirely for guests. When a leftover JWT is expired or invalid, the token is cleared and the visitor **stays** on `/pdfcanvas` as a guest (the old redirect to `/` belonged to the pre-guest-mode era when the editor required auth).
+- **Token verification** — the mount effect that revalidates a JWT against `GET /auth/verify-token/{token}` is skipped entirely for guests. When a leftover JWT is expired or invalid, the token is cleared and the visitor **stays** on `/cvstudio/guest` (the old redirect to `/` belonged to the pre-guest-mode era when the editor required auth).
 - **Guest autosave (canvas)** — a 2-second-debounce effect persists the canvas (elements, deleted ids, title, page count, editor mode, template id, spacing, and whether the content is still the demo CV) to `localStorage` via `guestDocument.js` (`cvstudio.guest.doc`), instead of the authenticated `PUT /pdf/save_elements` autosave effect that runs once a real `pdfId` exists.
 - **Guest autosave (bio wizard)** — while the guided wizard is open without a JWT, `BioCvModal` debounces (~650 ms) writes of `{ step, profile, selectedTemplateId, updatedAt }` to `cvstudio.guest.wizardDraft` through `guestWizardDraft.js`. Reopening the wizard offers **Kontynuuj** / **Zacznij od nowa** and hydrates the in-memory profile from that snapshot so a close race cannot overwrite a good draft with an empty shell. A successful template fill (**Wybierz wygląd**) keeps the draft (and records `selectedTemplateId`) so the guest can generate another look later. After **register/login** (Free today; additional plans at registration later do not change this path), `adoptGuestWizardDraftForAccount` in `claimGuestWizardDraft.js` uploads that guest profile into `PUT /ai/bio_cv_draft` when the account draft is empty, then clears localStorage — so Demo wizard answers survive into the authenticated wizard. If the account already has a non-empty draft, the guest snapshot is discarded instead of overwriting the account. Adoption runs once on `PdfCanvas` mount when a JWT exists and again as a safety net when `BioCvModal` opens. Explicit reset (**Zacznij od nowa** / clear draft) still clears the guest key. `saveGuestWizardDraft` also refuses to replace a meaningful stored draft with an empty step-0 shell.
 - **Save-gate** — `handleSaveClick` (wired to the Topbar's “Zapisz PDF” / “Pobierz PDF”) checks for a token first; a guest sees `SaveGateModal` (“Mam już konto” → `/login`, “Utwórz konto” → `/register`) instead of firing `POST /pdf/create_pdf`.
@@ -377,8 +378,10 @@ Implementation:
 
 Implementation:
 
-- `frontend/src/App.jsx`, lines 1–20 — `/pdfcanvas` route with no `ProtectedRoute` wrapper (component deleted)
-- `frontend/src/pages/PdfCanvas.jsx`, lines 358–375 — guest-skipped token verification; expired JWT cleared without redirect
+- `frontend/src/App.jsx`, lines 1–41 — `/cvstudio/:workspace` route with no `ProtectedRoute` wrapper; legacy `/pdfcanvas` → `getEditorPath` redirect
+- `frontend/src/utils/authSession.js`, lines 111–120, function `getEditorPath` — personalised editor URLs; `clearAccessToken` also clears cached `username`
+- `frontend/src/pages/PdfCanvas.jsx`, lines 89–106 — keep `:workspace` aligned with guest vs username
+- `frontend/src/pages/PdfCanvas.jsx`, lines 414–428 — guest-skipped token verification; expired JWT cleared and URL rewritten to `/cvstudio/guest`
 - `frontend/src/pages/PdfCanvas.jsx`, lines 515–566 — guest autosave effect (`guestFirstEditLoggedRef`, `guestEditorOpenedLoggedRef`); the demo flag (`isDemoContent`) buffered here is only cleared by `startFreshDocument` (lines 809–830), not by opening the wizard
 - `frontend/src/pages/PdfCanvas.jsx`, lines 734–740, function `handleSaveClick` — save-gate branch
 - `frontend/src/pages/PdfCanvas.jsx`, function `handleCancelBioCvModal` (`wizardEntryNavigatedRef`) — redirects to `/` on the first empty-canvas cancel of a `?start=wizard` entry; kept separate from the plain `handleShowBioCvModal` toggle that `BioCvModal.handleFill` also uses to close on success
@@ -1316,7 +1319,7 @@ Ten README to wejście techniczne dla programistów. Obszerne, napisane dla pocz
 
 Kandydaci potrzebują CV, które wygląda profesjonalnie i eksportuje się do PDF bez niespodzianek. Formularze ukrywają układ; ciężkie narzędzia graficzne są nadmiarem. CV Studio daje prawdziwe płótno A4 (595×842 pt), szablony z danymi kariery oraz AI, które wyciąga lub poprawia treść bez wymyślania niebezpiecznych pozycji dla dekoracji szablonu.
 
-Wymuszanie rejestracji zanim odwiedzający zobaczył edytor było dotąd największą stratą lejka: każdy nowy odwiedzający musiał założyć konto — i wybrać płatny plan już przy rejestracji — zanim dotknął jakiegokolwiek szablonu. **Tryb gościa** usuwa tę barierę: `/pdfcanvas` działa bez JWT, więc odwiedzający może wybrać szablon, przejść kreator krok po kroku albo edytować w trybie swobodnym i zobaczyć dokładnie ten dokument, który wyeksportuje — stan trzymany jest w `localStorage` zamiast w backendzie. Konto jest potrzebne dopiero w momencie realnej wartości: przy zapisie lub eksporcie PDF (modal „save-gate”) albo przy imporcie CV, który pozostaje wymagający konta, bo wywołuje płatny endpoint OpenAI. Pełny opis: [Tryb gościa (edytor bez konta)](#tryb-gościa-edytor-bez-konta).
+Wymuszanie rejestracji zanim odwiedzający zobaczył edytor było dotąd największą stratą lejka: każdy nowy odwiedzający musiał założyć konto — i wybrać płatny plan już przy rejestracji — zanim dotknął jakiegokolwiek szablonu. **Tryb gościa** usuwa tę barierę: `/cvstudio/guest` działa bez JWT (zalogowani użytkownicy otwierają `/cvstudio/{username}`), więc odwiedzający może wybrać szablon, przejść kreator krok po kroku albo edytować w trybie swobodnym i zobaczyć dokładnie ten dokument, który wyeksportuje — stan trzymany jest w `localStorage` zamiast w backendzie. Konto jest potrzebne dopiero w momencie realnej wartości: przy zapisie lub eksporcie PDF (modal „save-gate”) albo przy imporcie CV, który pozostaje wymagający konta, bo wywołuje płatny endpoint OpenAI. Pełny opis: [Tryb gościa (edytor bez konta)](#tryb-gościa-edytor-bez-konta).
 
 **Zaimplementowane:** edytor (w tym tryb gościa bez konta), szablony, extract/fill, szkic bio, asystent AI, entitlements (Darmowy / Pro — 59 zł / 30 dni), autozapis, dysk lokalny lub S3, JWT.
 
@@ -1328,7 +1331,7 @@ Wymuszanie rejestracji zanim odwiedzający zobaczył edytor było dotąd najwię
 
 ## Główne przepływy użytkownika
 
-1. **Wybór startu na stronie głównej** → główne ścieżki są data-first: „Stwórz CV od początku” (`start=wizard`) oraz „Wgraj moje CV” / „Importuj CV” (`start=import`) zbierają treść, potem wybór szablonu, potem edytor. „Zobacz edytor na przykładzie” (`start=demo`) otwiera przykładowy dokument. Kreator i demo idą wprost do `/pdfcanvas` jako gość; import nadal wymaga rejestracji/logowania, bo wywołuje płatny `POST /ai/extract_cv`. Dolna galeria szablonów to inspiracja i prowadzi do kreatora — nie na pusty canvas. W topbarze edytora nie ma już przycisku „Szablony”; po zebraniu danych styl zmienia „Zmień szablon”.
+1. **Wybór startu na stronie głównej** → główne ścieżki są data-first: „Stwórz CV od początku” (`start=wizard`) oraz „Wgraj moje CV” / „Importuj CV” (`start=import`) zbierają treść, potem wybór szablonu, potem edytor. „Zobacz edytor na przykładzie” (`start=demo`) otwiera przykładowy dokument. Kreator i demo idą wprost do `/cvstudio/guest` (albo `/cvstudio/{username}`, gdy użytkownik jest już zalogowany); import nadal wymaga rejestracji/logowania, bo wywołuje płatny `POST /ai/extract_cv`. Dolna galeria szablonów to inspiracja i prowadzi do kreatora — nie na pusty canvas. W topbarze edytora nie ma już przycisku „Szablony”; po zebraniu danych styl zmienia „Zmień szablon”.
 2. **Edycja jako gość** → pełny dostęp do płótna (szablony, kreator, tryb swobodny, undo/redo) z dokumentem zapisywanym w `localStorage` zamiast w backendzie — zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta).
 3. **Rejestracja / logowanie tylko wtedy, gdy to ma znaczenie** → kliknięcie „Zapisz PDF” / „Pobierz PDF” jako gość otwiera `SaveGateModal` zamiast wywoływać backend. Rejestracja lub logowanie zachowuje wybrany parametr `start`, a jeśli istnieje bufor dokumentu gościa, `ClaimGuestDocumentModal` prosi świeżo zalogowaną osobę o potwierdzenie, że to jej dokument, zanim JSON trafi na płótno A4 (bez automatycznego `POST /pdf/create_pdf`) — dokument gościa należy do przeglądarki, nie do tożsamości, więc ciche przypisanie go komukolwiek, kto akurat się zaloguje, ujawniłoby czyjś szkic na niepowiązanym koncie.
 4. **Wybór szablonu** → `handleLoadTemplate` materializuje elementy → płótno.
@@ -1358,7 +1361,7 @@ flowchart LR
 
 | Warstwa | Wejście | Rola |
 |---------|---------|------|
-| Frontend | `frontend/src/main.jsx` → `App.jsx` | Routing: `/`, `/login`, `/register`, `/pdfcanvas` (dostępne dla gościa — bez `ProtectedRoute`) |
+| Frontend | `frontend/src/main.jsx` → `App.jsx` | Routing: `/`, `/login`, `/register`, `/cvstudio/:workspace` (`guest` lub nazwa użytkownika — bez `ProtectedRoute`); legacy `/pdfcanvas` przekierowuje |
 | Edytor | `frontend/src/pages/PdfCanvas.jsx` (`PdfCanvas`) | Canvas / UiSurfaces / Session (+ fasada `PdfContext`) |
 | Backend | `backend/app/main.py` | FastAPI, CORS, `/health`, routery, opcjonalny SPA |
 
@@ -1407,7 +1410,7 @@ Elementy z `fixedToPage: true` — tła, ramki, sidebary, numery stron — są d
 |-------------|----------------|------|----------------|
 | React | ^19.2 | UI | `frontend/src/` |
 | Vite | ^7.2 | Build / dev | `frontend/` |
-| React Router | ^7.13 | Trasy (`/pdfcanvas` dostępne dla gościa; `ProtectedRoute` usunięty) | `App.jsx` |
+| React Router | ^7.13 | Trasy (`/cvstudio/:workspace` — `guest` lub nazwa użytkownika; `ProtectedRoute` usunięty) | `App.jsx`, `authSession.js` (`getEditorPath`) |
 | FastAPI | requirements | API HTTP | `main.py`, routes |
 | Uvicorn | requirements | Serwer ASGI | lokalnie / Render |
 | SQLAlchemy | requirements | ORM | `models/`, `crud/` |
@@ -1619,7 +1622,7 @@ Testy:
 
 Strona główna pokazuje jeden rezultat — edytowalne CV do PDF — oraz **trzy** ścieżki: utwórz z szablonu, importuj CV, projektuj od zera, a dodatkowo bezpośredni link „Zobacz edytor” do statycznego dokumentu demo. Opisuje wspólną drogę, szablony, prywatność, plany i AI jako pomoc (z przeglądem przed zastosowaniem). Ramki hero i sekcji „Po imporcie albo kreatorze” zostają jako placeholdery layoutu; nieaktualne PNG produktu (`hero-canvas-mockup.png`, `hero-mockup.png`) nie są już dostarczane.
 
-Intencje startu używane na hero: `start=wizard`, `start=import`, `start=demo`. Legacy deep linki `start=templates` i `start=blank` nadal działają w `PdfCanvas`, ale nie są oferowane na landingu. Każda intencja poza `import` prowadzi wprost do `/pdfcanvas?start=...` jako gość (`buildStartUrl` w `Hero.jsx`) — zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta) poniżej. `import` nadal kieruje przez `/register` (albo od razu do `/pdfcanvas`, jeśli użytkownik jest już zalogowany), bo wywołuje płatny `POST /ai/extract_cv`. `PdfCanvas` otwiera właściwą powierzchnię raz i usuwa parametr z URL.
+Intencje startu używane na hero: `start=wizard`, `start=import`, `start=demo`. Legacy deep linki `start=templates` i `start=blank` nadal działają w `PdfCanvas`, ale nie są oferowane na landingu. Każda intencja poza `import` prowadzi przez `getEditorPath` (`/cvstudio/guest?start=...` albo `/cvstudio/{username}?start=...` przy JWT — `buildStartUrl` w `Hero.jsx`) — zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta) poniżej. `import` nadal kieruje przez `/register` (albo od razu do spersonalizowanej ścieżki edytora, jeśli użytkownik jest już zalogowany), bo wywołuje płatny `POST /ai/extract_cv`. `PdfCanvas` otwiera właściwą powierzchnię raz i usuwa parametr z URL.
 
 Wejścia w topbarze to **Importuj CV**, **Utwórz CV krok po kroku** oraz **Zmień szablon** (aktywny po udanym fillu). Nie ma już przeglądarki „Szablony” w topbarze — wybór stylu należy do lejka kreatora / importu.
 
@@ -1627,17 +1630,18 @@ Tooltip / `aria-label` topbara **Importuj CV** zastępuje starsze „Wypełnij z
 
 Implementacja:
 
-- `frontend/src/pages/Hero/Hero.jsx`, linie 112–139, funkcja `buildStartUrl` i komponent `StartButton` — tylko `start=import` warunkowo zwraca URL `/register`; każda inna intencja zawsze zwraca `/pdfcanvas?start=...`
-- `frontend/src/pages/Register/Register.jsx` / `Login/Login.jsx` — zachowują `templates|import|wizard|blank` przez cały przepływ logowania
-- `frontend/src/pages/PdfCanvas.jsx`, linie 69–85 (`initialStartIntentRef`, obejmuje `demo`), linie 605–623 (auto-otwarcie modala szablonów pomija każdą skierowaną intencję, w tym `demo`), linie 636–646 (ścieżka demo wczytuje `demoCvTemplate` i ustawia `isDemoContent`) — obsługa intencji i hydratacja trybu z zapisanych PDF
+- `frontend/src/pages/Hero/Hero.jsx`, linie 114–135, funkcja `buildStartUrl` i komponent `StartButton` — tylko `start=import` warunkowo zwraca URL `/register`; każda inna intencja używa `getEditorPath({ start })`
+- `frontend/src/utils/authSession.js`, linie 111–120, funkcja `getEditorPath` — buduje `/cvstudio/guest` albo `/cvstudio/{username}` (plus opcjonalne `?start=`)
+- `frontend/src/pages/Register/Register.jsx` / `Login/Login.jsx` — zachowują `templates|import|wizard|blank` przez cały przepływ logowania; login zapisuje `username` i nawiguje przez `getEditorPath`
+- `frontend/src/pages/PdfCanvas.jsx`, linie 89–106 (synchronizacja sluga workspace), `initialStartIntentRef` (obejmuje `demo`), auto-otwarcie modala szablonów pomija każdą skierowaną intencję, w tym `demo`, ścieżka demo wczytuje `demoCvTemplate` i ustawia `isDemoContent` — obsługa intencji i hydratacja trybu z zapisanych PDF
 
 ### Tryb gościa (edytor bez konta)
 
 **Jaki problem to rozwiązuje.** Każdy odwiedzający musiał wcześniej założyć konto — i wybrać płatny plan już przy rejestracji — zanim dotknął jakiegokolwiek szablonu. Ta bariera wymuszonej rejestracji była największą stratą lejka: osoby, które chciały tylko sprawdzić, czy edytor jest wart użycia, musiały się zaangażować, zanim mogły się o tym przekonać. Tryb gościa pozwala zrobić wszystko, co nie kosztuje backendu pieniędzy (edycja szablonu, kreator krok po kroku, płótno swobodne, undo/redo, edycja sekcji/rekordów) bez żadnego konta, i prosi o nie dopiero w momencie, gdy powstała realna wartość: przy zapisie lub eksporcie PDF. Import CV pozostaje wymagający konta zawsze, bo wywołuje płatny endpoint OpenAI (`POST /ai/extract_cv`), a udostępnienie go za darmo pozwoliłoby anonimowemu ruchowi zużywać budżet API.
 
-**Jak to działa.** `frontend/src/App.jsx` nie owija już `/pdfcanvas` w `ProtectedRoute` (ten komponent został usunięty z repozytorium); trasa jest publiczna, a `PdfCanvas` rozgałęzia się na `localStorage.getItem("token")` wszędzie tam, gdzie wywołanie skończyłoby się błędem 401:
+**Jak to działa.** Edytor jest pod `/cvstudio/:workspace` (`guest` bez JWT, w przeciwnym razie nazwa użytkownika konta). `frontend/src/App.jsx` nie owija tej trasy w `ProtectedRoute` (ten komponent został usunięty z repozytorium); trasa jest publiczna, a `PdfCanvas` rozgałęzia się na obecność tokenu wszędzie tam, gdzie wywołanie skończyłoby się błędem 401. Slug w URL jest kosmetyczny dla zakładek — autoryzacja API nadal pochodzi z JWT. Stare zakładki `/pdfcanvas` są przekierowywane przez `getEditorPath`.
 
-- **Weryfikacja tokenu** — efekt montowania, który sprawdza JWT przez `GET /auth/verify-token/{token}`, jest całkowicie pomijany dla gości. Gdy w `localStorage` zostanie wygasły lub nieprawidłowy JWT, token jest usuwany, a odwiedzający **zostaje** na `/pdfcanvas` jako gość (stare przekierowanie na `/` pochodziło z ery sprzed trybu gościa, gdy edytor wymagał logowania).
+- **Weryfikacja tokenu** — efekt montowania, który sprawdza JWT przez `GET /auth/verify-token/{token}`, jest całkowicie pomijany dla gości. Gdy w `localStorage` zostanie wygasły lub nieprawidłowy JWT, token jest usuwany, a odwiedzający **zostaje** na `/cvstudio/guest` (stare przekierowanie na `/` pochodziło z ery sprzed trybu gościa, gdy edytor wymagał logowania).
 - **Autozapis gościa (płótno)** — efekt z debounce 2 sekund zapisuje płótno (elementy, usunięte id, tytuł, liczbę stron, tryb edytora, id szablonu, odstępy oraz informację, czy treść to nadal CV demo) do `localStorage` przez `guestDocument.js` (`cvstudio.guest.doc`), zamiast uwierzytelnionego efektu autozapisu `PUT /pdf/save_elements`, który działa dopiero po powstaniu prawdziwego `pdfId`.
 - **Autozapis gościa (kreator bio)** — gdy kreator jest otwarty bez JWT, `BioCvModal` zapisuje z debounce (~650 ms) `{ step, profile, selectedTemplateId, updatedAt }` do `cvstudio.guest.wizardDraft` przez `guestWizardDraft.js`. Ponowne otwarcie oferuje **Kontynuuj** / **Zacznij od nowa** i odtwarza profil w pamięci z tego snapshotu, żeby wyścig przy zamykaniu nie nadpisał dobrego szkicu pustą powłoką. Udane wypełnienie szablonu (**Wybierz wygląd**) zachowuje szkic (i zapisuje `selectedTemplateId`), żeby gość mógł później wygenerować kolejny wygląd. Po **rejestracji/logowaniu** (dziś Free; kolejne plany przy rejestracji później nie zmieniają tej ścieżki) `adoptGuestWizardDraftForAccount` w `claimGuestWizardDraft.js` wgrywa ten profil gościa do `PUT /ai/bio_cv_draft`, gdy szkic konta jest pusty, i czyści localStorage — dzięki temu odpowiedzi z kreatora Demo przechodzą do kreatora na koncie. Gdy konto ma już niepusty szkic, snapshot gościa jest odrzucany zamiast nadpisywać konto. Adopt uruchamia się raz przy montowaniu `PdfCanvas` z JWT oraz ponownie jako siatka bezpieczeństwa przy otwarciu `BioCvModal`. Jawny reset (**Zacznij od nowa** / wyczyść szkic) nadal czyści klucz gościa. `saveGuestWizardDraft` odmawia też podmiany sensownego zapisanego szkicu pustą powłoką kroku 0.
 - **Save-gate** — `handleSaveClick` (podpięty pod „Zapisz PDF” / „Pobierz PDF” w Topbarze) najpierw sprawdza token; gość widzi `SaveGateModal` („Mam już konto” → `/login`, „Utwórz konto” → `/register`) zamiast wywołania `POST /pdf/create_pdf`.
@@ -1651,8 +1655,10 @@ Implementacja:
 
 Implementacja:
 
-- `frontend/src/App.jsx`, linie 1–20 — trasa `/pdfcanvas` bez owijki `ProtectedRoute` (komponent usunięty)
-- `frontend/src/pages/PdfCanvas.jsx`, linie 358–375 — pominięta dla gości weryfikacja tokenu; wygasły JWT czyszczony bez przekierowania
+- `frontend/src/App.jsx`, linie 1–41 — trasa `/cvstudio/:workspace` bez owijki `ProtectedRoute`; legacy `/pdfcanvas` → przekierowanie `getEditorPath`
+- `frontend/src/utils/authSession.js`, linie 111–120, funkcja `getEditorPath` — spersonalizowane URL edytora; `clearAccessToken` czyści też cache `username`
+- `frontend/src/pages/PdfCanvas.jsx`, linie 89–106 — utrzymanie `:workspace` zgodnego z guest vs username
+- `frontend/src/pages/PdfCanvas.jsx`, linie 414–428 — pominięta dla gości weryfikacja tokenu; wygasły JWT czyszczony i URL przepisywany na `/cvstudio/guest`
 - `frontend/src/pages/PdfCanvas.jsx`, linie 515–566 — efekt autozapisu gościa (`guestFirstEditLoggedRef`, `guestEditorOpenedLoggedRef`); flaga demo (`isDemoContent`) buforowana tutaj jest czyszczona wyłącznie przez `startFreshDocument` (linie 809–830), nie przez otwarcie kreatora
 - `frontend/src/pages/PdfCanvas.jsx`, linie 734–740, funkcja `handleSaveClick` — gałąź save-gate
 - `frontend/src/pages/PdfCanvas.jsx`, funkcja `handleCancelBioCvModal` (`wizardEntryNavigatedRef`) — przekierowanie na `/` przy pierwszym anulowaniu pustego płótna z wejścia `?start=wizard`; celowo osobna od zwykłego przełącznika `handleShowBioCvModal`, którego `BioCvModal.handleFill` też używa do zamknięcia po sukcesie

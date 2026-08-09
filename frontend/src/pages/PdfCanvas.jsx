@@ -15,7 +15,14 @@ import { useA4Elements } from "../hooks/useA4Elements";
 import { usePdfExport } from '../hooks/usePdfExport';
 import CanvasElements from "../components/canvas/CanvasElements/CanvasElements";
 import SelectionOverlay from "../components/canvas/SelectionOverlay/SelectionOverlay";
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import {
+  clearAccessToken,
+  getAccessToken,
+  getEditorPath,
+  getSessionUsername,
+  GUEST_WORKSPACE,
+} from '../utils/authSession';
 import ModalPdfs from '../components/modals/ModalPdfs/ModalPdfs';
 import { ApiClient } from '../services/api';
 import { ENDPOINTS } from '../services/api';
@@ -75,8 +82,28 @@ const TEMPLATES_MODAL_SEEN_KEY = "cv-studio:templatesModalSeen";
 function PdfCanvas() {
 
   const navigate = useNavigate();
+  const { workspace } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const startIntent = searchParams.get("start");
+
+  // Keep the path slug aligned with auth: guests → /cvstudio/guest,
+  // authenticated users → /cvstudio/{username}. The slug is cosmetic; JWT
+  // ownership still decides which documents the API returns.
+  useEffect(() => {
+    const token = getAccessToken();
+    const expectedSlug = token
+      ? (getSessionUsername() || GUEST_WORKSPACE)
+      : GUEST_WORKSPACE;
+    let currentSlug = GUEST_WORKSPACE;
+    try {
+      currentSlug = decodeURIComponent(workspace || GUEST_WORKSPACE);
+    } catch {
+      currentSlug = workspace || GUEST_WORKSPACE;
+    }
+    if (currentSlug === expectedSlug) return;
+    const nextPath = getEditorPath({ start: startIntent });
+    navigate(nextPath, { replace: true });
+  }, [workspace, startIntent, navigate]);
   // Read the landing intent only while this editor instance is created. It
   // becomes the initial dialog state, which avoids a visual flash of the
   // default template picker before the requested flow is visible.
@@ -362,8 +389,8 @@ function PdfCanvas() {
   }, [isPdfLoading, responsePDF, pushToast, prepareDownload, titleRef]);
 
   function handleLogout() {
-    localStorage.removeItem("token")
-    navigate("/")
+    clearAccessToken();
+    navigate("/");
   }
 
 
@@ -382,21 +409,23 @@ function PdfCanvas() {
   // Guests (no token) are the default state here now, not an expired
   // session — skip verification entirely so a guest visit never triggers
   // a needless network call. When a leftover JWT is expired, clear it and
-  // stay on /pdfcanvas as a guest instead of bouncing to "/" (that redirect
-  // was from the pre-guest-mode era when the editor required auth).
+  // stay on /cvstudio/guest instead of bouncing to "/" (that redirect was
+  // from the pre-guest-mode era when the editor required auth).
   useEffect(() => {
-    if (!localStorage.getItem("token")) return;
+    const token = getAccessToken();
+    if (!token) return;
 
     const api = new ApiClient();
-    api.httpRequest(ENDPOINTS.AUTH.TOKEN + localStorage.getItem("token"), "GET", null, "Weryfikacja tokenu nie powiodła się!").
+    api.httpRequest(ENDPOINTS.AUTH.TOKEN + token, "GET", null, "Weryfikacja tokenu nie powiodła się!").
       catch((error) => {
         console.log(error);
         if (error.status === 401 || error.status === 403) {
-          localStorage.removeItem("token");
+          clearAccessToken();
+          navigate(getEditorPath(), { replace: true });
         }
       })
 
-  }, [checkActivity])
+  }, [checkActivity, navigate])
 
 
   // Each visible page receives this capture handler, allowing connector source

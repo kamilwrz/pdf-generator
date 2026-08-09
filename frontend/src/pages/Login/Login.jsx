@@ -5,6 +5,7 @@
 import classes from "./Login.module.css";
 
 import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
+import { getEditorPath, setSessionUsername } from "../../utils/authSession";
 
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { useEffect, useRef, useState } from "react";
@@ -78,11 +79,14 @@ export default function Login() {
                 },
             );
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+            const sessionUsername = username.trim();
             localStorage.setItem("token", data.access_token);
+            // Persist the handle used for `/cvstudio/{username}` so deep links
+            // match the account without waiting for a JWT decode on remount.
+            setSessionUsername(sessionUsername);
             // The landing CTA's chosen path remains intact for existing users
             // and for users who registered immediately before signing in.
-            const editorPath = startIntent ? `/pdfcanvas?start=${startIntent}` : "/pdfcanvas";
-            navigate(editorPath, { replace: true });
+            navigate(getEditorPath({ start: startIntent }), { replace: true });
         } catch (err) {
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             setError(err.message || "Logowanie nie powiodło się");
