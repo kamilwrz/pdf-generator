@@ -79,7 +79,7 @@ def _gen_portico(cv: dict) -> list[dict]:
         items=_contact_channel_items(cv, email_limit=42),
         center_x=CENTER_X,
         start_y=cursor_y + 14.0,
-        max_width=420.0,
+        max_width=W,
         text_fs=contact_fs,
         icon_size=contact_icon,
         text_color=C['mute'],

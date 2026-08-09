@@ -8,10 +8,29 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from reportlab.pdfbase.pdfmetrics import stringWidth
+
 from app.services.contact_links import contact_display_label, contact_social_items
 from app.services.cv_templates.shared.icons import _icon_beside
 from app.services.cv_templates.shared.text import _compact_text
 from app.services.cv_generator_primitives import _text
+from app.services.pdf_generator import PDF_Generator
+
+
+def _measured_text_width(value: str, font: str, text_fs: float) -> float | None:
+    """Actual rendered width of a label in points, or None if it cannot be
+    measured.
+
+    Uses the same font resolution and ReportLab metrics the PDF renderer uses,
+    so a centered contact row lines up on the real glyph extent rather than a
+    fixed per-character guess. Returns None (never raises) when the font is not
+    registered, so callers can fall back to the character-count estimate.
+    """
+    try:
+        draw_font, _, _ = PDF_Generator._resolve_font(font, False, False)
+        return stringWidth(value, draw_font, text_fs)
+    except Exception:
+        return None
 
 
 def _contact_channel_items(
@@ -50,14 +69,28 @@ def _sidebar_contact_items(cv: dict[str, Any]) -> list[tuple[str, str]]:
 
 
 def _contact_item_width(
-    value: str, *, char_width: float, icon_gap: float, item_pad: float
+    value: str,
+    *,
+    char_width: float,
+    icon_gap: float,
+    item_pad: float,
+    font: str | None = None,
+    text_fs: float | None = None,
 ) -> float:
-    """Estimated horizontal footprint of one icon+label contact chip.
+    """Horizontal footprint of one icon+label contact chip in points.
 
     Shared by the left-anchored and centered placers so their line-wrapping
-    math can't drift apart.
+    math can't drift apart. When ``font`` and ``text_fs`` are supplied the
+    label is measured with real ReportLab metrics (accurate centering and
+    wrapping); otherwise it falls back to the ``char_width`` estimate the
+    left-anchored placer has always used.
     """
-    return icon_gap + len(value) * char_width + item_pad
+    text_width: float | None = None
+    if font is not None and text_fs is not None:
+        text_width = _measured_text_width(value, font, text_fs)
+    if text_width is None:
+        text_width = len(value) * char_width
+    return icon_gap + text_width + item_pad
 
 
 def _place_wrapping_icon_contacts(
@@ -128,12 +161,15 @@ def _place_centered_icon_contacts(
 ) -> tuple[list[dict], float]:
     """Place icon+label contacts centered on ``center_x``, wrapping at ``max_width``.
 
-    Same per-item width estimate and row contract as
-    ``_place_wrapping_icon_contacts`` (see ``_contact_item_width``), but each
-    completed line is re-centered around ``center_x`` instead of being
-    left-anchored at a fixed ``start_x`` — used by masthead layouts where the
-    whole header block, including the contact row, must stay visually
-    centered regardless of how many contact channels a CV has.
+    Each item's footprint is measured with real ReportLab font metrics (via
+    ``_contact_item_width`` with ``font`` / ``text_fs``), not a per-character
+    guess: an overestimate would both wrap an item that actually fits and shift
+    the row off true center. Each completed line is then re-centered around
+    ``center_x`` on its *visible* extent (the trailing ``item_pad`` after the
+    last item is inter-item spacing only and is excluded from the centering
+    width) — used by masthead layouts where the whole header block, including
+    the contact row, must stay visually centered regardless of how many contact
+    channels a CV has.
 
     Returns (elements, bottom_y) with the same contract as
     ``_place_wrapping_icon_contacts``.
@@ -142,17 +178,17 @@ def _place_centered_icon_contacts(
         lambda name, left, top: _icon_beside(theme, name, left, top, text_fs, icon_size)
     )
 
-    # First pass: bucket items into lines using the same width estimate the
-    # left-anchored placer uses, without emitting geometry yet — the X start
-    # of each line depends on that line's total width, which is only known
-    # once the line is complete.
+    # First pass: bucket items into lines using their measured footprints,
+    # without emitting geometry yet — the X start of each line depends on that
+    # line's total width, which is only known once the line is complete.
     lines: list[list[tuple[str, str, float]]] = [[]]
     line_width = 0.0
     for key, value in items:
         if not value:
             continue
         advance = _contact_item_width(
-            value, char_width=char_width, icon_gap=icon_gap, item_pad=item_pad
+            value, char_width=char_width, icon_gap=icon_gap, item_pad=item_pad,
+            font=font, text_fs=text_fs,
         )
         if lines[-1] and line_width + advance > max_width:
             lines.append([])
@@ -164,8 +200,11 @@ def _place_centered_icon_contacts(
     elements: list[dict] = []
     cy = float(start_y)
     for line in non_empty_lines:
-        total_width = sum(advance for _, _, advance in line)
-        cx = center_x - total_width / 2.0
+        # Exclude the last item's trailing item_pad: it is spacing between
+        # items, not part of the drawn row, so keeping it would push the whole
+        # line left of true center.
+        visible_width = sum(advance for _, _, advance in line) - item_pad
+        cx = center_x - visible_width / 2.0
         for key, value, advance in line:
             elements.append(build_icon(key, cx, cy))
             label = _text(value, text_fs, font, text_color, cx + icon_gap, cy, zIndex=3)

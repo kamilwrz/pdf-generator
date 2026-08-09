@@ -93,11 +93,11 @@ const porticoElements = [
     masthead(tracked(block(
         "Dyrektorka Strategii i Rozwoju", L, 101, W, 14, 10, 14, ACCENT, SANS, 0, 3, "center",
     ), 2.0)),
-    ...contact("phone", 90.2, 103.2, "+48 600 000 000", 129),
-    ...contact("email", 197.2, 210.2, "anna.kowalska@email.com", 129),
-    ...contact("linkedin", 345.8, 358.8, "linkedin.com/in/akowalska", 129),
-    ...contact("github", 195.7, 208.7, "github.com/akowalska", 144),
-    ...contact("location", 328.7, 341.7, "Warszawa", 144),
+    ...contact("phone", 120.2, 133.2, "+48 600 000 000", 129),
+    ...contact("email", 220.1, 233.1, "anna.kowalska@email.com", 129),
+    ...contact("linkedin", 356.7, 369.7, "linkedin.com/in/akowalska", 129),
+    ...contact("github", 211.0, 224.0, "github.com/akowalska", 144),
+    ...contact("location", 329.4, 342.4, "Warszawa", 144),
     masthead(line(L, 166, W, 1, RULE, 2)),
 
     // ── Podsumowanie zawodowe (centered paragraph, icon+heading chrome) ─────
