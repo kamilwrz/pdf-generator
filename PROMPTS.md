@@ -148,16 +148,45 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
 ### System
 
 ```text
-    system = (
-        "Jesteś starszym rekruterem i coachem CV z ponad 15-letnim doświadczeniem w branży "
-        "technologicznej, finansowej i konsultingowej. Udzielasz rygorystycznych, szczerych i konkretnych opinii. "
-        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
-    )
+        for s in _normalize_strengths(raw.get("strengths"))
+    ]
+    priorities = []
+    for item in _normalize_priorities(raw.get("priorities")):
+        priorities.append({
 ```
 
 ### User
 
 ```text
+            "title": _scrub_ten_scale_from_text(item["title"]),
+            "description": _scrub_ten_scale_from_text(item["description"]),
+        })
+
+    return {
+        "message": message,
+        "rating": raw.get("rating") if isinstance(raw.get("rating"), int) else None,
+        "tips": tips[:8],
+        "corrections": corrections,
+        "web_sources": [str(s) for s in raw.get("web_sources", [])][:5],
+        "categories": _normalize_categories(raw.get("categories")),
+        "strengths": strengths,
+        "priorities": priorities,
+    }
+
+
+# ── action handlers ────────────────────────────────────────────────────────
+
+def _rate_cv(text: str, elements: list[dict]) -> dict:
+    """Overall CV quality rating (content-focused) with tips and optional patches."""
+    structured = _extract_structured(elements)
+    element_count = len(structured)
+
+    system = (
+        "Jesteś starszym rekruterem i coachem CV z ponad 15-letnim doświadczeniem w branży "
+        "technologicznej, finansowej i konsultingowej. Udzielasz rygorystycznych, szczerych i konkretnych opinii. "
+        "Nie wpisuj liczby oceny w `message` (ani jako X/10, ani jako procent) — interfejs pokazuje ją osobno. "
+        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
+    )
     user = f"""Przeprowadź ustrukturyzowaną analizę poniższego CV według rubryki i oblicz dokładną ocenę.
 
 TEKST CV (połączone wszystkie elementy tekstowe):
@@ -194,35 +223,6 @@ RUBRYKA OCENY — przeanalizuj wyraźnie każdy etap przed zapisaniem końcowego
    Czy CV zawiera coś zapadającego w pamięć — wyjątkowe osiągnięcie, rzadką umiejętność,
    przykład przywództwa lub mierzalny wpływ wyróżniający kandydata?
    1 pkt, jeśli tak; 0 pkt, jeśli treść jest ogólna.
-
-SUMA = ①+②+③+④+⑤, zaokrąglona do najbliższej liczby całkowitej, w zakresie 1–10.
-════════════════════════════════════════
-
-Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
-Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
-{{
-  "message": "<3–4 zdania: podaj obliczoną ocenę, wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Bądź bezpośredni. Odnoś się do konkretnych treści z CV.>",
-  "rating": <obliczona suma 1-10>,
-  "categories": [
-    {{"id": "completeness", "label": "Kompletność", "score": <0-2>, "max": 2}},
-    {{"id": "experience", "label": "Doświadczenie", "score": <0-3>, "max": 3}},
-    {{"id": "language", "label": "Język", "score": <0-2>, "max": 2}},
-    {{"id": "structure", "label": "Struktura", "score": <0-2>, "max": 2}},
-    {{"id": "standout", "label": "Wyróżnienie", "score": <0-1>, "max": 1}}
-  ],
-  "strengths": ["<mocna strona 1>", "<mocna strona 2>"],
-  "priorities": [
-    {{"title": "<krótki tytuł poprawki>", "description": "<1 zdanie z przykładem przed/po>"}}
-  ],
-  "tips": [
-    "<najważniejsza poprawka z przykładem przed/po>",
-    "<druga najważniejsza poprawka>",
-    "<brakująca sekcja lub element, jeśli występuje>",
-    "<możliwość kwantyfikacji: która rola/punkt wymaga metryki>"
-  ],
-  "corrections": [],
-  "web_sources": []
-}}"""
 ```
 
 ---
@@ -246,6 +246,42 @@ Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
 ### System
 
 ```text
+    {{"id": "structure", "label": "Struktura", "score": <0-2>, "max": 2}},
+    {{"id": "standout", "label": "Wyróżnienie", "score": <0-1>, "max": 1}}
+  ],
+  "strengths": ["<mocna strona 1>", "<mocna strona 2>"],
+  "priorities": [
+    {{"title": "<krótki tytuł poprawki>", "description": "<1 zdanie z przykładem przed/po>"}}
+  ],
+  "tips": [
+    "<najważniejsza poprawka z przykładem przed/po>",
+    "<druga najważniejsza poprawka>",
+    "<brakująca sekcja lub element, jeśli występuje>",
+    "<możliwość kwantyfikacji: która rola/punkt wymaga metryki>"
+  ],
+  "corrections": [],
+  "web_sources": []
+```
+
+### User
+
+```text
+}}"""
+    return _gpt_result(system, user, action="rating")
+
+
+def _rate_design(elements: list[dict], page_size: dict | None = None) -> dict:
+    """Rate typography and visual consistency with a private safety score cap."""
+    typo = json.dumps(_extract_typography(elements), ensure_ascii=False)
+    protected_ids = _protected_typography_ids(elements)
+    geometry = summarize_geometry_issues(elements, page_size)
+    hard_faults = (
+        geometry["overlaps"]
+        + geometry["clips"]
+        + geometry["decoration_hits"]
+        + geometry["out_of_bounds"]
+    )
+
     system = (
         "Jesteś ekspertem od typografii i projektowania wizualnego CV. "
         "CV jest zbudowane na gotowym szablonie produktowym — jego rozmiary czcionek, "
@@ -261,11 +297,6 @@ Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
         "Nie wpisuj liczby oceny w `message`, ponieważ interfejs wyświetla ją osobno. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
-```
-
-### User
-
-```text
     user = f"""Przeanalizuj typografię i styl tekstu na tej kanwie CV.
 
 DANE TYPOGRAFICZNE (bez pozycji — nie sugeruj zmian left/top/width/height):
@@ -304,38 +335,6 @@ ETAPY ANALIZY:
 ⑤ OCENA OGÓLNA
    Na podstawie punktów ①–④ przyznaj ocenę projektu w skali 1–10.
 ════════════════════════════════════════
-
-Zwracaj poprawki WYŁĄCZNIE dla jednoznacznych niespójności względem reszty szablonu.
-Każda poprawka może zawierać WYŁĄCZNIE pola: fontSize, fontFamily, color, bold, italic, align.
-Nie proponuj zwiększania fontSize „dla czytelności”, jeśli element pasuje do peera w szablonie.
-Nie uwzględniaj wartości element_id z danych powyżej, jeśli nie masz pewności, że wymagają zmiany.
-
-Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
-Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
-{{
-  "message": "<2–3 zdania o hierarchii, wyróżnieniach, kolorach i wyrównaniu. Nie podawaj liczby oceny ani geometrii dokumentu.>",
-  "rating": <1-10>,
-  "categories": [
-    {{"id": "hierarchy", "label": "Hierarchia", "score": <0-3>, "max": 3}},
-    {{"id": "emphasis", "label": "Wyróżnienie", "score": <0-2>, "max": 2}},
-    {{"id": "color", "label": "Kolor", "score": <0-2>, "max": 2}},
-    {{"id": "alignment", "label": "Wyrównanie", "score": <0-2>, "max": 2}},
-    {{"id": "overall", "label": "Ocena ogólna", "score": <0-1>, "max": 1}}
-  ],
-  "strengths": ["<mocna strona typografii>"],
-  "priorities": [
-    {{"title": "<krótki tytuł poprawki>", "description": "<konkretna niespójność>"}}
-  ],
-  "tips": [
-    "<konkretna poprawka typografii z podglądem elementu>",
-    "<druga konkretna poprawka>"
-  ],
-  "corrections": [
-    {{"element_id": "<id>", "bold": true}},
-    {{"element_id": "<id>", "align": "left"}}
-  ],
-  "web_sources": []
-}}"""
 ```
 
 ---
@@ -360,16 +359,48 @@ Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
 ### System
 
 ```text
-    system = (
-        "Jesteś starszym doradcą zawodowym i managerem rekrutującym. "
-        "Przygotowujesz szczerą, obliczoną ocenę dopasowania CV do opisu stanowiska. "
-        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
-    )
+  ],
+  "web_sources": []
+}}"""
+    result = _gpt_result(system, user, action="design_rating", allowed_fields=_STYLE_FIELDS)
+    result = _strip_protected_corrections(result, protected_ids)
 ```
 
 ### User
 
 ```text
+
+    # A low visual score must be supported by a concrete, editable discrepancy.
+    # Once template chrome and the intentional primary identity are excluded,
+    # an empty correction list means the model found no actionable inconsistency.
+    # Keep the baseline at 8 instead of returning an unsubstantiated low score.
+    if hard_faults == 0 and not result.get("corrections") and isinstance(result.get("rating"), int):
+        result["rating"] = max(result["rating"], 8)
+
+    # Keep structural faults out of the design report, but never let a document
+    # with unreadable or off-page content receive a high visual-design score.
+    if hard_faults > 0:
+        capped = min(int(result["rating"]) if isinstance(result.get("rating"), int) else 5, 5)
+        result["rating"] = max(1, capped)
+    return result
+
+
+def _rate_position(text: str, job_description: str) -> dict:
+    """Score CV fit against a job description, optionally using web context."""
+    jd_preview = job_description[:120]
+    sources = _ddg_search(f"{jd_preview} required skills qualifications job requirements 2025")
+    web_ctx = "\n".join(
+        f"- {r.get('title', '')}: {r.get('body', '')[:250]}"
+        for r in sources
+    )
+    web_urls = [r.get("href", "") for r in sources if r.get("href")]
+
+    system = (
+        "Jesteś starszym doradcą zawodowym i managerem rekrutującym. "
+        "Przygotowujesz szczerą, obliczoną ocenę dopasowania CV do opisu stanowiska. "
+        "Nie wpisuj liczby oceny w `message` (ani jako X/10, ani jako procent) — interfejs pokazuje ją osobno. "
+        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
+    )
     user = f"""Oblicz, jak dobrze to CV pasuje do opisu stanowiska. Oceń je w skali 1–10.
 
 OPIS STANOWISKA:
@@ -399,20 +430,37 @@ ETAPY OBLICZEŃ:
 
 ④ DOPASOWANIE JĘZYKA I SŁÓW KLUCZOWYCH (0–1 pkt)
    Czy CV używa terminologii z opisu stanowiska? (istotne dla ATS)
+```
 
-⑤ WYRÓŻNIKI (0–1 pkt)
-   Czy CV pokazuje coś, co wyróżnia tego kandydata na tym konkretnym stanowisku?
+---
 
-SUMA = ①+②+③+④+⑤, zaokrąglona, w zakresie 1–10.
-════════════════════════════════════════
+## 5. Gramatyka
 
-Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
-Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
+**Po co (prosto):** Poprawia tylko literówki, gramatykę i przecinki. Nie zmienia sensu ani „ładniejszego” stylu.
+
+**Plik:** `backend/app/services/ai_assistant_service.py`  
+**Linie:** system **776–780**, user **781–801**, handler `_fix_grammar` **772–804**  
+**Akcja API:** `grammar` (submenu Popraw treść → Sprawdź błędy)
+
+### Zmienne
+
+| Zmienna | Skąd | Linie |
+|---------|------|-------|
+| `{json.dumps(structured)}` | `_extract_structured(elements)` | 774, 784 |
+
+### System
+
+```text
 {{
-  "message": "<3–4 zdania: podaj ocenę i sposób jej obliczenia, wymień dopasowane umiejętności oraz luki. Bądź konkretny.>",
+  "message": "<3–4 zdania: opisz dopasowanie jakościowo, wymień dopasowane umiejętności oraz luki. Bądź konkretny. Bez liczby oceny.>",
   "rating": <obliczona ocena 1-10>,
   "categories": [
     {{"id": "skills", "label": "Umiejętności", "score": <0-4>, "max": 4}},
+```
+
+### User
+
+```text
     {{"id": "seniority", "label": "Seniority", "score": <0-2>, "max": 2}},
     {{"id": "domain", "label": "Obszar", "score": <0-2>, "max": 2}},
     {{"id": "keywords", "label": "Słowa kluczowe", "score": <0-1>, "max": 1}},
@@ -431,23 +479,27 @@ Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
   "corrections": [],
   "web_sources": {json.dumps(web_urls[:3])}
 }}"""
+    result = _gpt_result(system, user, action="position_rating")
+    if not result["web_sources"] and web_urls:
+        result["web_sources"] = web_urls[:3]
 ```
 
 ---
 
-## 5. Gramatyka
+## 6. Styl językowy
 
-**Po co (prosto):** Poprawia tylko literówki, gramatykę i przecinki. Nie zmienia sensu ani „ładniejszego” stylu.
+**Po co (prosto):** Szuka strony biernej, frazesów („gracz zespołowy”) i ogólników, potem proponuje mocniejsze brzmienie.
 
 **Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **776–780**, user **781–801**, handler `_fix_grammar` **772–804**  
-**Akcja API:** `grammar` (submenu Popraw treść → Sprawdź błędy)
+**Linie:** system **809–813**, user **814–857**, handler `_check_style` **805–860**  
+**Akcja API:** `language` (submenu Popraw treść → Popraw język)
 
 ### Zmienne
 
 | Zmienna | Skąd | Linie |
 |---------|------|-------|
-| `{json.dumps(structured)}` | `_extract_structured(elements)` | 774, 784 |
+| `{text}` | `_extract_text` | 1490, 817 |
+| `{json.dumps(structured[:30])}` | pierwsze 30 elementów ze `_extract_structured` | 807, 820 |
 
 ### System
 
@@ -483,38 +535,18 @@ Zwróć JSON:
   ],
   "web_sources": []
 }}"""
-```
+    return _gpt_result(system, user, action="grammar", allowed_fields=_CONTENT_FIELDS)
 
----
 
-## 6. Styl językowy
+def _check_style(text: str, elements: list[dict]) -> dict:
+    """Polish language/style review with content patches where safe."""
+    structured = _extract_structured(elements)
 
-**Po co (prosto):** Szuka strony biernej, frazesów („gracz zespołowy”) i ogólników, potem proponuje mocniejsze brzmienie.
-
-**Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **809–813**, user **814–857**, handler `_check_style` **805–860**  
-**Akcja API:** `language` (submenu Popraw treść → Popraw język)
-
-### Zmienne
-
-| Zmienna | Skąd | Linie |
-|---------|------|-------|
-| `{text}` | `_extract_text` | 1490, 817 |
-| `{json.dumps(structured[:30])}` | pierwsze 30 elementów ze `_extract_structured` | 807, 820 |
-
-### System
-
-```text
     system = (
         "Jesteś profesjonalnym autorem CV specjalizującym się w poprawianiu tonu, jasności "
         "i profesjonalizmu języka w CV. Zwracaj WYŁĄCZNIE prawidłowy JSON. "
         "Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
     )
-```
-
-### User
-
-```text
     user = f"""Przeanalizuj styl językowy tego CV i przeredaguj słabe elementy.
 
 PEŁNY TEKST CV:
@@ -525,40 +557,6 @@ POJEDYNCZE ELEMENTY (do ukierunkowanych przeredagowań):
 
 ════════════════════════════════════════
 ETAPY ANALIZY:
-
-① STRONA CZYNNA A BIERNA
-   Znajdź każde użycie strony biernej („byłem odpowiedzialny”, „było zarządzane przez”).
-   To przeredagowania o najwyższym priorytecie.
-
-② FRAZESY I SŁABE SFORMUŁOWANIA
-   Oznacz: „gracz zespołowy”, „pracowity”, „pasjonuję się”, „osoba z inicjatywą”,
-   „nastawiony na wyniki”, „dbający o szczegóły”, „synergia”. Zastąp je dowodami.
-
-③ OGÓLNIKOWE STWIERDZENIA
-   Oznacz twierdzenia bez dowodów: „poprawiłem efektywność”, „prowadziłem projekty”.
-   Tam, gdzie to właściwe, dodaj zastępczą metrykę: „poprawiłem efektywność o [X%]”.
-
-④ PROFESJONALNY TON
-   Czy ton jest zbyt nieformalny, zbyt formalny czy odpowiedni dla branży?
-
-Przeredagowuj tylko elementy, które rzeczywiście tego wymagają. Krótkie elementy (imiona i nazwiska, daty, nagłówki)
-nie powinny być przeredagowywane.
-════════════════════════════════════════
-
-Zwróć JSON:
-{{
-  "message": "<2–3 zdania: opisz najczęstsze znalezione problemy stylistyczne i ogólną ocenę tonu>",
-  "rating": null,
-  "tips": [
-    "<znaleziony przykład strony biernej + przykład przeredagowania>",
-    "<znaleziony frazes + konkretna zamiana>",
-    "<ogólnikowe twierdzenie + sposób jego wzmocnienia>"
-  ],
-  "corrections": [
-    {{"element_id": "<id>", "content": "<pełny przeredagowany tekst po polsku>"}}
-  ],
-  "web_sources": []
-}}"""
 ```
 
 ---
@@ -580,53 +578,52 @@ Zwróć JSON:
 ### System
 
 ```text
-    system = (
-        "Jesteś wysokiej klasy autorem CV. Specjalizujesz się w przekształcaniu zwykłych opisów obowiązków "
-        "w przekonujące, oparte na metrykach punkty, które przechodzą przez ATS i robią wrażenie na rekruterach. "
-        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
-    )
+
+③ OGÓLNIKOWE STWIERDZENIA
+   Oznacz twierdzenia bez dowodów: „poprawiłem efektywność”, „prowadziłem projekty”.
+   Tam, gdzie to właściwe, dodaj zastępczą metrykę: „poprawiłem efektywność o [X%]”.
 ```
 
 ### User
 
 ```text
-    user = f"""Przeredaguj poniższą treść CV, aby maksymalizować jej siłę oddziaływania.
+④ PROFESJONALNY TON
+   Czy ton jest zbyt nieformalny, zbyt formalny czy odpowiedni dla branży?
 
-ELEMENTY:
-{json.dumps(structured[:30], ensure_ascii=False)}
-
-════════════════════════════════════════
-ZASADY PRZEREDAGOWANIA (stosuj po kolei):
-
-① MOCNE CZASOWNIKI NA POCZĄTKU — każdy punkt musi zaczynać się od czasownika działania w czasie przeszłym.
-   Preferuj: Zaprojektowałem, Uruchomiłem, Zredukowałem, Zwiększyłem, Wynegocjowałem, Dostarczyłem, Zautomatyzowałem,
-   Skalowałem, Przeprojektowałem, Usprawniłem. Unikaj: Pomagałem, Wspierałem, Byłem zaangażowany.
-
-② KWANTYFIKUJ WSZYSTKO — dodaj metrykę do każdego punktu opisującego osiągnięcie.
-   Jeśli oryginał nie zawiera liczby, dodaj sensowny symbol zastępczy: [X%], [N użytkowników], [K zł].
-   Przykład: „Zarządzałem mediami społecznościowymi” → „Zwiększyłem liczbę obserwujących w mediach społecznościowych o [X%] w ciągu [N] miesięcy”
-
-③ KONKRETNOŚĆ — zastępuj ogólne odniesienia do technologii/narzędzi ich rzeczywistymi nazwami, jeśli można je wywnioskować.
-   „Używałem baz danych” → „Zoptymalizowałem zapytania PostgreSQL, zmniejszając opóźnienia o [X%]”
-
-④ DŁUGOŚĆ — zachowaj 1–2 wiersze na punkt. Usuń wypełniacze. Każde słowo musi być uzasadnione.
-
-⑤ POMIJAJ nagłówki, imiona i nazwiska, dane kontaktowe oraz daty — przeredagowuj tylko tekst doświadczenia, umiejętności i podsumowania.
+Przeredagowuj tylko elementy, które rzeczywiście tego wymagają. Krótkie elementy (imiona i nazwiska, daty, nagłówki)
+nie powinny być przeredagowywane.
 ════════════════════════════════════════
 
 Zwróć JSON:
 {{
-  "message": "<2–3 zdania podsumowujące, co poprawiono i dlaczego>",
+  "message": "<2–3 zdania: opisz najczęstsze znalezione problemy stylistyczne i ogólną ocenę tonu>",
   "rating": null,
   "tips": [
-    "<znaleziony ogólny wzorzec, np. „5 punktów nie miało czasowników działania — wszystkie przeredagowano”>",
-    "<wskazówka dotycząca zastępczych metryk: „Przed wysłaniem zastąp symbole [X%] rzeczywistymi wartościami”>"
+    "<znaleziony przykład strony biernej + przykład przeredagowania>",
+    "<znaleziony frazes + konkretna zamiana>",
+    "<ogólnikowe twierdzenie + sposób jego wzmocnienia>"
   ],
   "corrections": [
-    {{"element_id": "<id>", "content": "<pełny przeredagowany tekst elementu po polsku>"}}
+    {{"element_id": "<id>", "content": "<pełny przeredagowany tekst po polsku>"}}
   ],
   "web_sources": []
 }}"""
+    return _gpt_result(system, user, action="language", allowed_fields=_CONTENT_FIELDS)
+
+
+def _improve_content(elements: list[dict]) -> dict:
+    """Suggest stronger CV wording without changing layout geometry."""
+    structured = _extract_structured(elements)
+
+    system = (
+        "Jesteś wysokiej klasy autorem CV. Specjalizujesz się w przekształcaniu zwykłych opisów obowiązków "
+        "w przekonujące, oparte na metrykach punkty, które przechodzą przez ATS i robią wrażenie na rekruterach. "
+        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
+    )
+    user = f"""Przeredaguj poniższą treść CV, aby maksymalizować jej siłę oddziaływania.
+
+ELEMENTY:
+{json.dumps(structured[:30], ensure_ascii=False)}
 ```
 
 ---
@@ -648,16 +645,50 @@ Zwróć JSON:
 ### System
 
 ```text
-    system = (
-        "Jesteś ekspertem od ATS (systemów śledzenia kandydatów). "
-        "Wiesz, jak Workday, Greenhouse, Lever i Taleo analizują CV. "
-        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
+    user = f"""Przetłumacz treść CV na język: {lang_name} (kod: {lang}).
+
+ELEMENTY DO TŁUMACZENIA:
+{json.dumps(structured, ensure_ascii=False)}
 ```
 
 ### User
 
 ```text
+
+ZASADY:
+- W corrections uwzględniaj tylko elementy, których treść faktycznie trzeba zmienić.
+- Wartość "content" musi zawierać PEŁNY przetłumaczony tekst elementu (nie fragment).
+- Nie zmieniaj left/top/width/height ani stylów — tylko content.
+- Zachowuj nazwy własne (imiona, nazwiska firm, produktów), adresy e-mail, telefony i URL.
+- Nagłówki sekcji też tłumacz, jeśli są zwykłym tekstem użytkownika.
+- Nie tłumacz elementów, które już są w pełni w języku docelowym (pomiń je).
+- NIGDY nie proponuj corrections dla elementów z fixedToPage=true ani locked=true.
+
+Zwróć JSON:
+{{
+  "message": "<2–3 zdania po polsku: ile elementów przetłumaczono i na jaki język>",
+  "rating": null,
+  "tips": [
+    "<krótka wskazówka po polsku, np. sprawdź nazwy własne przed wysyłką>"
+  ],
+  "corrections": [
+    {{"element_id": "<id>", "content": "<pełny tekst w języku docelowym>"}}
+  ],
+  "web_sources": []
+}}"""
+    result = _gpt_result(system, user, action="translate", allowed_fields=_CONTENT_FIELDS)
+    return _strip_protected_corrections(result, protected_ids)
+
+
+def _ats_score(text: str) -> dict:
+    """Estimate ATS friendliness from plain CV text."""
+    system = (
+        "Jesteś ekspertem od ATS (systemów śledzenia kandydatów). "
+        "Wiesz, jak Workday, Greenhouse, Lever i Taleo analizują CV. "
+        "Nie wpisuj liczby oceny w `message` (ani jako X/10, ani jako procent) — interfejs pokazuje ją osobno. "
+        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
+    )
     user = f"""Przeanalizuj to CV pod kątem zgodności z ATS. Oceń je w skali 1–10.
 
 TEKST CV:
@@ -685,40 +716,6 @@ ETAPY OBLICZEŃ:
 
 ⑤ BEZPIECZEŃSTWO FORMATOWANIA (0–2 pkt)
    ATS ma trudności z: tabelami, obrazami w przepływie tekstu, znakami specjalnymi i nietypowymi czcionkami.
-   Na podstawie struktury elementów przyznaj do 2 pkt.
-
-⑥ DŁUGOŚĆ (0–1 pkt)
-   Optymalna długość to 1–2 strony. Oszacuj ją na podstawie liczby słów w tekście.
-
-SUMA = ①+②+③+④+⑤+⑥, w zakresie 1–10.
-════════════════════════════════════════
-
-Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
-Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
-{{
-  "message": "<2–3 zdania: podaj ocenę, główne ryzyko związane z ATS i najważniejszą lukę w słowach kluczowych>",
-  "rating": <obliczona ocena 1-10>,
-  "categories": [
-    {{"id": "headers", "label": "Nagłówki", "score": <0-2>, "max": 2}},
-    {{"id": "keywords", "label": "Słowa kluczowe", "score": <0-3>, "max": 3}},
-    {{"id": "contact", "label": "Kontakt", "score": <0-1>, "max": 1}},
-    {{"id": "dates", "label": "Daty", "score": <0-1>, "max": 1}},
-    {{"id": "format", "label": "Format", "score": <0-2>, "max": 2}},
-    {{"id": "length", "label": "Długość", "score": <0-1>, "max": 1}}
-  ],
-  "strengths": ["<mocna strona pod ATS>"],
-  "priorities": [
-    {{"title": "<główne ryzyko ATS>", "description": "<konkretna poprawka>"}}
-  ],
-  "tips": [
-    "<znaleziony niestandardowy nagłówek + proponowana nazwa>",
-    "<3 najważniejsze brakujące słowa kluczowe ATS dla widocznej branży/roli>",
-    "<brak w danych kontaktowych, jeśli występuje>",
-    "<problem z formatem dat, jeśli występuje>"
-  ],
-  "corrections": [],
-  "web_sources": []
-}}"""
 ```
 
 ---
@@ -741,45 +738,45 @@ Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
 ### System
 
 ```text
-    system = (
-        "Jesteś profesjonalnym tłumaczem CV i dokumentów rekrutacyjnych. "
-        "Tłumaczysz treść elementów tekstowych na język docelowy, zachowując znaczenie, "
-        "ton zawodowy i strukturę punktów. "
-        "Zwracasz WYŁĄCZNIE prawidłowy JSON. "
-        "Pola message i tips zwracaj po polsku; pole content w corrections musi być "
-        "w języku docelowym."
-    )
+def _translate_cv(elements: list[dict], target_language: str) -> dict:
+    """Translate editable CV text into ``target_language`` via content patches.
+
+    Geometry and template chrome stay untouched. Proper names, emails, phones,
+    and URLs must be preserved so the user can accept patches like grammar.
+    """
+    lang = (target_language or "").strip().lower()
+    lang_name = _TRANSLATE_LANGUAGE_NAMES.get(lang)
 ```
 
 ### User
 
 ```text
-    user = f"""Przetłumacz treść CV na język: {lang_name} (kod: {lang}).
+    if not lang_name:
+        return {
+            "message": "Nieobsługiwany język tłumaczenia.",
+            "rating": None,
+            "tips": [],
+            "corrections": [],
+            "categories": [],
+            "strengths": [],
+            "priorities": [],
+            "web_sources": [],
+        }
 
-ELEMENTY DO TŁUMACZENIA:
-{json.dumps(structured, ensure_ascii=False)}
+    # Skip locked / fixed chrome so translation never rewrites template furniture.
+    # `_extract_structured` omits chrome flags, so resolve protection from the
+    # original canvas elements (id or element_id, depending on the client).
+    protected_ids = {
+        str(el.get("element_id") or el.get("id"))
+        for el in elements
+        if el.get("fixedToPage") or el.get("locked")
+    }
+    structured = [
+        el for el in _extract_structured(elements)
+        if str(el.get("element_id")) not in protected_ids
+    ]
 
-ZASADY:
-- W corrections uwzględniaj tylko elementy, których treść faktycznie trzeba zmienić.
-- Wartość "content" musi zawierać PEŁNY przetłumaczony tekst elementu (nie fragment).
-- Nie zmieniaj left/top/width/height ani stylów — tylko content.
-- Zachowuj nazwy własne (imiona, nazwiska firm, produktów), adresy e-mail, telefony i URL.
-- Nagłówki sekcji też tłumacz, jeśli są zwykłym tekstem użytkownika.
-- Nie tłumacz elementów, które już są w pełni w języku docelowym (pomiń je).
-- NIGDY nie proponuj corrections dla elementów z fixedToPage=true ani locked=true.
-
-Zwróć JSON:
-{{
-  "message": "<2–3 zdania po polsku: ile elementów przetłumaczono i na jaki język>",
-  "rating": null,
-  "tips": [
-    "<krótka wskazówka po polsku, np. sprawdź nazwy własne przed wysyłką>"
-  ],
-  "corrections": [
-    {{"element_id": "<id>", "content": "<pełny tekst w języku docelowym>"}}
-  ],
-  "web_sources": []
-}}"""
+    system = (
 ```
 
 ---
@@ -803,61 +800,59 @@ Zwróć JSON:
 ### System (fragment początkowy)
 
 ```text
-    system = (
-        "Jesteś ekspertem i coachem CV w aplikacji CV STUDIO. Masz pełną treść, styl i pozycję (px, 1:1 z PDF) "
-        "każdego elementu CV użytkownika jako kontekst oraz historię bieżącej sesji czatu. "
-        "NAJPIERW oceń, czy BIEŻĄCA WIADOMOŚĆ UŻYTKOWNIKA mieści się w zakresie aplikacji "
-        "(in_scope). Zakres DOZWOLONY obejmuje wyłącznie: treść i układ CV / resume, "
-        "edycję elementów na płótnie, styl typografii i design dokumentu, "
-        "przygotowanie do aplikacji o pracę, ATS, listy motywacyjne powiązane z CV, "
-        "ocenę profilu kandydata względem oferty, karierę w kontekście dokumentów aplikacyjnych "
-        "oraz pytania o funkcje edytora CV STUDIO. "
-        "Poza zakresem (in_scope=false) są m.in.: ogólna wiedza, pogawędki, programowanie niezwiązane z CV, "
-        "matematyka, polityka, rozrywka, przepisy, medycyna, finanse osobiste poza kontekstem CV, "
-        "inne produkty, a także prośby o treść niezwiązaną z dokumentami aplikacyjnymi. "
-        "Gdy in_scope=false: (a) w message krótko wyjaśnij, że nie możesz się wypowiadać na ten temat, "
-        "bo wykracza poza zakres CV STUDIO (CV i szukanie pracy), (b) poproś o pytanie lub zadanie "
-        "dotyczące CV / edycji dokumentu / aplikacji o pracę, (c) NIE odpowiadaj merytorycznie na "
-        "pytanie spoza zakresu, (d) ustaw corrections na [], a position_operation, structure_operation, "
-        "delete_operation i clone_operation na null, tips na []. "
-        "Gdy użytkownik odnosi się do wcześniejszej wiadomości („to”, „tamto”, „jak wcześniej”, "
-        "„co przed chwilą zmieniłeś”), użyj HISTORII SESJI. Aktualny stan płótna (ELEMENTY CV) "
-        "ma pierwszeństwo, jeśli rozmowa i płótno się rozjeżdżają. Wiadomość użytkownika w zakresie może być:\n"
-        "(1) PYTANIEM — odpowiedz konkretnie w message, zostaw corrections jako pustą listę "
-        "i position_operation jako null.\n"
-        "(2) POLECENIEM edycji treści lub stylu (np. \"zmień rozmiar czcionki nagłówków na 13px\", "
-        "\"popraw sekcję wykształcenie\", \"zmień kolor czcionki w wykształceniu aby pasował do "
-        "reszty sekcji\") — znajdź pasujące elementy i zwróć po jednej poprawce w corrections. "
-        "Poprawka może zawierać WYŁĄCZNIE pola: content, fontSize, fontFamily, color, bold, italic, "
+}}"""
+    return _gpt_result(system, user, action="ats_score")
+
+
+_MAX_CHAT_HISTORY = 12
+_MAX_HISTORY_CHARS = 1500
+
+
+def _normalize_chat_history(history: list | None) -> list[dict]:
+    """Keep a short, safe transcript of the current UI session for the model."""
+    if not isinstance(history, list):
+        return []
+    normalized: list[dict] = []
+    for item in history[-_MAX_CHAT_HISTORY:]:
+        if not isinstance(item, dict):
+            continue
+        role = item.get("role")
+        if role not in ("user", "assistant"):
+            continue
+        content = str(item.get("content") or item.get("text") or "").strip()
+        if not content:
+            continue
+        normalized.append({"role": role, "content": content[:_MAX_HISTORY_CHARS]})
+    return normalized
 ```
 
 ### User (fragment)
 
 ```text
-    user = f"""ELEMENTY CV (id, typ, treść, styl, pozycja i rozmiar w px):
-{json.dumps(structured, ensure_ascii=False)}
-
-HISTORIA SESJI CZATU (od najstarszej; bez bieżącej wiadomości):
-{history_block}
-
-BIEŻĄCA WIADOMOŚĆ UŻYTKOWNIKA:
-{message}
-
-Zwróć JSON:
-{{
-  "in_scope": true,
-  "message": "<Twoja odpowiedź — konkretna, oparta na elementach i historii sesji; przy in_scope=false: odmowa zakresu + prośba o pytanie o CV>",
-  "rating": null,
-  "tips": ["<wskazówka lub osiągalna alternatywa, jeśli istotna>"],
-  "corrections": [],
-  "position_operation": null,
-  "structure_operation": null,
-  "delete_operation": null,
-  "clone_operation": null,
-  "web_sources": []
-}}"""
-    raw, usage = _gpt(system, user, action="chat")
-    # Out-of-scope replies still bill tokens (usage below), but must never mutate the canvas.
+        "oprócz wskazanych wyjątków.\n"
+        "  - NIGDY nie podawaj elementów z fixedToPage=true ani locked=true: są to chronione tła, "
+        "stopki i pozycje użytkownika. Nie podawaj współrzędnych, stron, stylów ani nowych specyfikacji. "
+        "Usunięcie zawsze wymaga osobnego zatwierdzenia użytkownika w UI.\n"
+        "(5b) POLECENIE klonowania elementów (np. „sklonuj tę linię i umieść pod nagłówkiem UMIEJĘTNOŚCI”, "
+        "„zrób kopię bloku obok”, „powiel dekorację pod nową sekcją”) zwraca clone_operation:\n"
+        "  {\"type\":\"clone_elements\", \"clones\":[{"
+        "\"source_element_id\":\"...\","
+        "\"reference_element_id\":\"...\" (wymagane gdy placement≠offset),"
+        "\"placement\":\"below\"|\"above\"|\"left\"|\"right\"|\"offset\","
+        "\"gap\":<px, domyślnie 8>, \"dx\":<px>, \"dy\":<px>,"
+        "\"align\":\"start\"|\"center\"|\"end\", \"match_size\":\"none\"|\"width\"|\"height\"|\"both\""
+        "}]}\n"
+        "  - source_element_id to ISTNIEJĄCY element (text, textarea, line, rectangle, circle, ellipse, image). "
+        "Python skopiuje jego styl i rozmiar — NIE podawaj left/top/color/width ręcznie.\n"
+        "  - placement below/above/left/right ustawia kopię względem reference_element_id z odstępem gap. "
+        "placement=offset robi klasyczny duplikat względem źródła o (dx, dy); wtedy reference pomiń.\n"
+        "  - align wyrównuje kopię do referencji na osi poprzecznej (np. below+start = ta sama lewa krawędź). "
+        "match_size=width przydaje się przy liniach pod nagłówkiem (szerokość linii = szerokość nagłówka).\n"
+        "  - Możesz podać wiele pozycji w clones (max 20). Nie klonuj fixedToPage ani locked.\n"
+        "NIGDY sam nie podawaj wartości left/top — Python obliczy rzeczywiste współrzędne na "
+        "podstawie bieżącej, aktualnej pozycji elementów i sam odrzuci operację, jeśli wyszłaby "
+        "poza stronę.\n"
+        "(6) Jeśli polecenie wymaga zmiany rozmiaru elementów w sposób inny niż przeniesienie tekstowej "
 ```
 
 ---

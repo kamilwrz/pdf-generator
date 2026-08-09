@@ -51,6 +51,31 @@ class SafeResultSchemaTests(unittest.TestCase):
             ],
         )
 
+    def test_safe_result_rewrites_ten_scale_scores_to_percent(self):
+        # Dashboard shows rating×10 as %; prose must not keep "8/10" next to "80%".
+        raw = {
+            "message": "Oceniam to CV na 8/10. Mocny profil AML.",
+            "rating": 8,
+            "tips": ["Podnieś wynik z 7 / 10 po dodaniu metryk."],
+            "strengths": ["Ocena blisko 10/10 w kompletności"],
+            "priorities": [
+                {
+                    "title": "Język",
+                    "description": "To obniża ocenę do 5/10.",
+                }
+            ],
+            "corrections": [],
+            "web_sources": [],
+        }
+        result = ai_assistant_service._safe_result(raw)
+        self.assertEqual(result["message"], "Oceniam to CV na 80%. Mocny profil AML.")
+        self.assertEqual(result["tips"], ["Podnieś wynik z 70% po dodaniu metryk."])
+        self.assertEqual(result["strengths"], ["Ocena blisko 100% w kompletności"])
+        self.assertEqual(
+            result["priorities"],
+            [{"title": "Język", "description": "To obniża ocenę do 50%."}],
+        )
+
 
 class TranslateActionTests(unittest.TestCase):
     def test_translate_dispatches_with_target_language(self):

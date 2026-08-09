@@ -14,6 +14,7 @@ Safety invariants:
 """
 import json
 import os
+import re
 from openai import OpenAI, APIError
 from app.core.config import OPENAI_API_KEY
 from app.services.layout_analysis import (
@@ -457,6 +458,21 @@ def _normalize_priorities(raw_priorities) -> list[dict]:
     return priorities
 
 
+# Matches prose scores like "8/10" or "8 / 10". The UI dashboard shows
+# percentages (`rating * 10`), so leftover "/10" copy confuses users.
+_SCORE_OVER_TEN_RE = re.compile(r"\b([1-9]|10)\s*/\s*10\b")
+
+
+def _scrub_ten_scale_from_text(text: str) -> str:
+    """Rewrite X/10 score mentions to X0% so prose matches the dashboard."""
+
+    def _to_percent(match: re.Match) -> str:
+        value = int(match.group(1))
+        return f"{value * 10}%"
+
+    return _SCORE_OVER_TEN_RE.sub(_to_percent, text)
+
+
 def _safe_result(raw: dict, allowed_fields: set = _ALLOWED_FIELDS) -> dict:
     """Normalise GPT output. Strips any positional fields from corrections."""
     corrections = []
@@ -478,17 +494,29 @@ def _safe_result(raw: dict, allowed_fields: set = _ALLOWED_FIELDS) -> dict:
             continue
         if text.lower().startswith("rozkład oceny"):
             continue
-        tips.append(text)
+        tips.append(_scrub_ten_scale_from_text(text))
+
+    message = _scrub_ten_scale_from_text(str(raw.get("message", "")))
+    strengths = [
+        _scrub_ten_scale_from_text(s)
+        for s in _normalize_strengths(raw.get("strengths"))
+    ]
+    priorities = []
+    for item in _normalize_priorities(raw.get("priorities")):
+        priorities.append({
+            "title": _scrub_ten_scale_from_text(item["title"]),
+            "description": _scrub_ten_scale_from_text(item["description"]),
+        })
 
     return {
-        "message": str(raw.get("message", "")),
+        "message": message,
         "rating": raw.get("rating") if isinstance(raw.get("rating"), int) else None,
         "tips": tips[:8],
         "corrections": corrections,
         "web_sources": [str(s) for s in raw.get("web_sources", [])][:5],
         "categories": _normalize_categories(raw.get("categories")),
-        "strengths": _normalize_strengths(raw.get("strengths")),
-        "priorities": _normalize_priorities(raw.get("priorities")),
+        "strengths": strengths,
+        "priorities": priorities,
     }
 
 
@@ -502,6 +530,7 @@ def _rate_cv(text: str, elements: list[dict]) -> dict:
     system = (
         "Jesteś starszym rekruterem i coachem CV z ponad 15-letnim doświadczeniem w branży "
         "technologicznej, finansowej i konsultingowej. Udzielasz rygorystycznych, szczerych i konkretnych opinii. "
+        "Nie wpisuj liczby oceny w `message` (ani jako X/10, ani jako procent) — interfejs pokazuje ją osobno. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
     user = f"""Przeprowadź ustrukturyzowaną analizę poniższego CV według rubryki i oblicz dokładną ocenę.
@@ -546,8 +575,10 @@ SUMA = ①+②+③+④+⑤, zaokrąglona do najbliższej liczby całkowitej, w z
 
 Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
 Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
+W `message` NIE podawaj oceny liczbowej (zakazane: „8/10”, „80%”, „ocena 8”).
+Interfejs wyświetla ocenę osobno jako procent.
 {{
-  "message": "<3–4 zdania: podaj obliczoną ocenę, wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Bądź bezpośredni. Odnoś się do konkretnych treści z CV.>",
+  "message": "<3–4 zdania: wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Bądź bezpośredni. Odnoś się do konkretnych treści z CV. Bez liczby oceny.>",
   "rating": <obliczona suma 1-10>,
   "categories": [
     {{"id": "completeness", "label": "Kompletność", "score": <0-2>, "max": 2}},
@@ -700,6 +731,7 @@ def _rate_position(text: str, job_description: str) -> dict:
     system = (
         "Jesteś starszym doradcą zawodowym i managerem rekrutującym. "
         "Przygotowujesz szczerą, obliczoną ocenę dopasowania CV do opisu stanowiska. "
+        "Nie wpisuj liczby oceny w `message` (ani jako X/10, ani jako procent) — interfejs pokazuje ją osobno. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
     user = f"""Oblicz, jak dobrze to CV pasuje do opisu stanowiska. Oceń je w skali 1–10.
@@ -740,8 +772,9 @@ SUMA = ①+②+③+④+⑤, zaokrąglona, w zakresie 1–10.
 
 Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
 Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
+W `message` NIE podawaj oceny liczbowej (zakazane: „8/10”, „80%”). Interfejs pokazuje ją osobno.
 {{
-  "message": "<3–4 zdania: podaj ocenę i sposób jej obliczenia, wymień dopasowane umiejętności oraz luki. Bądź konkretny.>",
+  "message": "<3–4 zdania: opisz dopasowanie jakościowo, wymień dopasowane umiejętności oraz luki. Bądź konkretny. Bez liczby oceny.>",
   "rating": <obliczona ocena 1-10>,
   "categories": [
     {{"id": "skills", "label": "Umiejętności", "score": <0-4>, "max": 4}},
@@ -995,6 +1028,7 @@ def _ats_score(text: str) -> dict:
     system = (
         "Jesteś ekspertem od ATS (systemów śledzenia kandydatów). "
         "Wiesz, jak Workday, Greenhouse, Lever i Taleo analizują CV. "
+        "Nie wpisuj liczby oceny w `message` (ani jako X/10, ani jako procent) — interfejs pokazuje ją osobno. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
     user = f"""Przeanalizuj to CV pod kątem zgodności z ATS. Oceń je w skali 1–10.
@@ -1034,8 +1068,9 @@ SUMA = ①+②+③+④+⑤+⑥, w zakresie 1–10.
 
 Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
 Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
+W `message` NIE podawaj oceny liczbowej (zakazane: „8/10”, „80%”). Interfejs pokazuje ją osobno.
 {{
-  "message": "<2–3 zdania: podaj ocenę, główne ryzyko związane z ATS i najważniejszą lukę w słowach kluczowych>",
+  "message": "<2–3 zdania: główne ryzyko związane z ATS i najważniejsza luka w słowach kluczowych. Bez liczby oceny.>",
   "rating": <obliczona ocena 1-10>,
   "categories": [
     {{"id": "headers", "label": "Nagłówki", "score": <0-2>, "max": 2}},
