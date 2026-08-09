@@ -49,3 +49,13 @@ DONE 15) Dane uzytkownika w CV WIZZARD powinny przetrwac do WIZARDA po Rejestrac
 DONE 17) po skasowaniu strony / zniknieciu tresci ze str. 2 — chrome sie zwija; Dodaj/Next/overflow tworzy strone z estetyka szablonu i dobrym nr (reconcileDocumentPages)
 
 4. AI - zastanowic sie i zmodyfikowac / reImplement
+
+a) Co zostawic?
+  aa) ATS - zrobic research, czy "bardzo graficzne CV" nie wplywaja negatywnie na ATS?
+  bb) OCEN CV - zmienic ocene z 1 na 10 na %
+  cc) STYL
+  dd) GRAMATYKA / INTERPUNKCJA
+  ee) DOPASOWANIE
+  ff) PROJEKT - SKASOWAC
+  gg) ULEPSZ - troche nie wypal, bardziej sugestie, mniej absolutyzmu
+  hh) UKLAD - (P) - poprawka oferowanych szablonow? Zrobic czat o CV / ZIOM ktory wspiera i ocenia

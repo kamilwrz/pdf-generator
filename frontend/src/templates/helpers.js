@@ -38,11 +38,11 @@ export const ellipse = (left, top, width, height, backgroundColor, filled = fals
 // as they do on the canvas.
 export const block = (
     content, left, top, width, height, fontSize, lineHeight,
-    color = "#2B2B2B", fontFamily = "Inter", letterSpacing = 0, zIndex = 2
+    color = "#2B2B2B", fontFamily = "Inter", letterSpacing = 0, zIndex = 2, align = "left"
 ) => ({
     category: "textarea",
     content, left, top, width, height,
-    fontSize, fontFamily, color, lineHeight, letterSpacing, zIndex,
+    fontSize, fontFamily, color, lineHeight, letterSpacing, zIndex, align,
     // Template text uses its rendered natural height after load. The authored
     // height is only the initial geometry before the canvas measures it.
     autoHeight: true,

@@ -16,6 +16,7 @@ from app.services.cv_templates.templates.words import _gen_words
 from app.services.cv_templates.templates.cardinal import _gen_cardinal
 from app.services.cv_templates.templates.tessera import _gen_tessera
 from app.services.cv_templates.templates.slate import _gen_slate
+from app.services.cv_templates.templates.portico import _gen_portico
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "ledger": frozenset({"single"}),
@@ -32,6 +33,7 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "volt": frozenset({"icons", "dark"}),
     "tessera": frozenset({"sidebar", "icons"}),
     "slate": frozenset({"sidebar", "icons"}),
+    "portico": frozenset({"icons"}),
 }
 
 _GENERATORS = {
@@ -49,6 +51,7 @@ _GENERATORS = {
     "cardinal": _gen_cardinal,
     "tessera": _gen_tessera,
     "slate": _gen_slate,
+    "portico": _gen_portico,
 }
 
 

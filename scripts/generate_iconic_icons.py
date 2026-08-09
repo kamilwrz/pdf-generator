@@ -19,6 +19,7 @@ THEMES = {
     # headings only. Its section and contact icons are deliberately neutral grey
     # so the red stays reserved for typography, matching the template's design.
     "cardinal": "#8A8A8A",
+    "portico": "#7C6A52",
 }
 THEME_VARIANTS = {}
 

@@ -37,6 +37,7 @@ export const THEME_ICON_NAMES = Object.freeze({
   cardinal: BASE_ICON_NAMES,
   nova: BASE_ICON_NAMES,
   volt: BASE_ICON_NAMES,
+  portico: BASE_ICON_NAMES,
   harbor: Object.freeze([
     "email", "phone", "linkedin", "github", "website", "location",
     "calendar", "references",
@@ -63,6 +64,7 @@ export const TEMPLATE_ICON_THEME = Object.freeze({
   harbor: "harbor",
   tessera: "tessera",
   slate: "slate",
+  portico: "portico",
 });
 
 const ICON_LABELS_PL = Object.freeze({
@@ -189,7 +191,7 @@ export function templateOffersSectionIcons(templateId, elements = []) {
 
 /** Themes that decorate section headings with iconic glyphs (not contact-only). */
 const SECTION_HEADING_ICON_THEMES = new Set([
-  "cardinal", "nova", "volt", "tessera", "slate",
+  "cardinal", "nova", "volt", "tessera", "slate", "portico",
 ]);
 
 /**
