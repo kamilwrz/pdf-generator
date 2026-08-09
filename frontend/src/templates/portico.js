@@ -1,13 +1,11 @@
 /**
  * Portico template (`layouts: ["icons"]`).
  *
- * The only template that combines centered typography with icon chrome: the
- * name, title, contact row, and summary paragraph are all centered on the
- * page (an "Ivy League" masthead), while Experience / Education / Skills /
- * Languages stay left-aligned single-column with icon-in-gutter section
- * headings, matching the Cardinal / Nova body structure. The summary keeps
- * the same icon+heading chrome as every other section for stylistic
- * consistency — only its paragraph body is centered.
+ * The only template that combines a centered masthead with icon chrome: the
+ * name, title, and contact row are centered on the page (an "Ivy League"
+ * masthead), while everything below the header rule — Summary, Experience,
+ * Education, Skills, Languages — stays left-aligned single-column with
+ * icon-in-gutter section headings, matching the Cardinal / Nova body structure.
  *
  * Geometry mirrors the backend generator
  * (`backend/app/services/cv_templates/templates/portico.py`) exactly: these
@@ -100,13 +98,13 @@ const porticoElements = [
     ...contact("location", 329.4, 342.4, "Warszawa", 144),
     masthead(line(L, 166, W, 1, RULE, 2)),
 
-    // ── Podsumowanie zawodowe (centered paragraph, icon+heading chrome) ─────
+    // ── Podsumowanie zawodowe (left-aligned paragraph, like every body section) ─
     ...sectionHead("summary", "PODSUMOWANIE ZAWODOWE", 203),
     block(
         "Liderka strategii łącząca perspektywę biznesową z dyscypliną wykonania. "
         + "Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą "
         + "mierzalne rezultaty bez utraty jakości relacji.",
-        L, 224.5, W, 27, 9.4, 13.4, BODY, SANS, 0, 2, "center",
+        L, 224.5, W, 27, 9.4, 13.4, BODY, SANS,
     ),
 
     // ── Doświadczenie zawodowe ───────────────────────────────────────────────

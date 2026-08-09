@@ -27,14 +27,12 @@ from app.services.cv_templates.shared.text import _compact_text, _labels, _skill
 
 
 def _gen_portico(cv: dict) -> list[dict]:
-    """Centered masthead + summary; left-aligned icon body below.
+    """Centered masthead; left-aligned icon body below.
 
-    The only template combining centered typography with icon chrome: name,
-    title, and the contact row are centered on the page, and the summary
-    paragraph stays centered too even though its heading keeps the same
-    left-aligned icon chrome as every other section (a deliberate stylistic
-    choice — see the summary block below). Experience/Education/Skills/Extras
-    stay left-aligned single-column with icon-in-gutter section headings,
+    The only template combining a centered masthead with icon chrome: name,
+    title, and the contact row are centered on the page. Everything below the
+    header rule — summary, experience, education, skills, extras — is a
+    left-aligned single-column body with icon-in-gutter section headings,
     matching the Cardinal/Nova body structure.
     """
     C = {
@@ -133,10 +131,9 @@ def _gen_portico(cv: dict) -> list[dict]:
     if cv.get('summary'):
         b.need_section(SECTION_CHROME, b.measure_block(cv['summary'], W, BODY_FS, BODY_LH, SANS))
         section(lbl['summary'])
-        # Summary keeps the icon+heading chrome for consistency with every
-        # other section, but its paragraph body stays centered — the one
-        # place centering continues past the masthead.
-        b.block(cv['summary'], L, W, BODY_FS, BODY_LH, C['body'], SANS, align='center')
+        # Summary is left-aligned like every other body section; only the
+        # masthead (name / title / contact row) is centered.
+        b.block(cv['summary'], L, W, BODY_FS, BODY_LH, C['body'], SANS)
         close_section()
     if cv.get('experience'):
         jobs = cv['experience']
