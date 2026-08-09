@@ -148,16 +148,153 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
 ### System
 
 ```text
-        for s in _normalize_strengths(raw.get("strengths"))
-    ]
-    priorities = []
-    for item in _normalize_priorities(raw.get("priorities")):
-        priorities.append({
+def _gpt_result(
+    system: str,
+    user: str,
+    *,
+    action: str = "",
 ```
 
 ### User
 
 ```text
+    allowed_fields: set | None = None,
+) -> dict:
+    raw, usage = _gpt(system, user, action=action)
+    result = _safe_result(raw, allowed_fields=allowed_fields or _ALLOWED_FIELDS)
+    result["usage"] = usage
+    return result
+
+
+def _ddg_search(query: str, max_results: int = 5) -> list[dict]:
+    try:
+        from duckduckgo_search import DDGS
+        return list(DDGS().text(query, max_results=max_results))
+    except Exception:
+        return []
+
+
+def _normalize_categories(raw_categories) -> list[dict]:
+    """Keep structured score breakdown for the rating dashboard UI.
+
+    Each category needs a stable id, a Polish label, and numeric score/max so
+    the frontend can render percentages without parsing tip strings.
+    """
+    if not isinstance(raw_categories, list):
+        return []
+    categories: list[dict] = []
+    for item in raw_categories[:8]:
+        if not isinstance(item, dict):
+            continue
+        cat_id = str(item.get("id") or "").strip()
+        label = str(item.get("label") or "").strip()
+        if not cat_id or not label:
+            continue
+        try:
+            score = float(item.get("score"))
+            max_score = float(item.get("max"))
+        except (TypeError, ValueError):
+            continue
+        if max_score <= 0:
+            continue
+        # Clamp to the declared max so a model glitch cannot break the UI scale.
+        score = max(0.0, min(score, max_score))
+        categories.append({
+            "id": cat_id,
+            "label": label,
+            "score": score,
+            "max": max_score,
+        })
+    return categories
+
+
+def _normalize_strengths(raw_strengths) -> list[str]:
+    """Normalise short strength bullets for the rating dashboard."""
+    if not isinstance(raw_strengths, list):
+        return []
+    return [str(s).strip() for s in raw_strengths if str(s).strip()][:5]
+
+
+def _normalize_priorities(raw_priorities) -> list[dict]:
+    """Normalise improvement priorities (title + optional description)."""
+    if not isinstance(raw_priorities, list):
+        return []
+    priorities: list[dict] = []
+    for item in raw_priorities[:5]:
+        if isinstance(item, str) and item.strip():
+            priorities.append({"title": item.strip(), "description": ""})
+```
+
+---
+
+## 3. Ocena projektu (typografia)
+
+**Po co (prosto):** Sprawdza wygląd tekstu (hierarchia, bold, kolory, wyrównanie), a **nie** pozycje klocków na stronie. Małe czcionki szablonu i duże imię to celowy design — model nie ma ich „naprawiać”.
+
+**Plik:** `backend/app/services/ai_assistant_service.py`  
+**Linie:** system **587–601**, user **602–671**, handler `_rate_design` **575–689**  
+**Akcja API:** `design_rating` (cel UI: Sprawdź wygląd → typografia)
+
+### Zmienne
+
+| Zmienna | Skąd | Linie |
+|---------|------|-------|
+| `{typo}` | `json.dumps(_extract_typography(elements))` | 577, 255–280 |
+
+**Uwaga:** `summarize_geometry_issues` / `hard_faults` **nie trafiają do promptu** — Python po odpowiedzi obniża ocenę, gdy coś nachodzi lub wychodzi poza stronę.
+
+### System
+
+```text
+_SCORE_OVER_TEN_RE = re.compile(r"\b([1-9]|10)\s*/\s*10\b")
+
+
+def _scrub_ten_scale_from_text(text: str) -> str:
+    """Rewrite X/10 score mentions to X0% so prose matches the dashboard."""
+
+    def _to_percent(match: re.Match) -> str:
+        value = int(match.group(1))
+        return f"{value * 10}%"
+
+    return _SCORE_OVER_TEN_RE.sub(_to_percent, text)
+
+
+def _safe_result(raw: dict, allowed_fields: set = _ALLOWED_FIELDS) -> dict:
+    """Normalise GPT output. Strips any positional fields from corrections."""
+```
+
+### User
+
+```text
+    corrections = []
+    for c in raw.get("corrections", []):
+        if not isinstance(c, dict) or not c.get("element_id"):
+            continue
+        patch = {"element_id": c["element_id"]}
+        for k, v in c.items():
+            if k in allowed_fields:
+                patch[k] = v
+        if len(patch) > 1:
+            corrections.append(patch)
+
+    # Drop legacy "Rozkład oceny: …" tip strings — scores live in `categories`.
+    tips = []
+    for tip in raw.get("tips", []):
+        text = str(tip).strip()
+        if not text:
+            continue
+        if text.lower().startswith("rozkład oceny"):
+            continue
+        tips.append(_scrub_ten_scale_from_text(text))
+
+    message = _scrub_ten_scale_from_text(str(raw.get("message", "")))
+    strengths = [
+        _scrub_ten_scale_from_text(s)
+        for s in _normalize_strengths(raw.get("strengths"))
+    ]
+    priorities = []
+    for item in _normalize_priorities(raw.get("priorities")):
+        priorities.append({
             "title": _scrub_ten_scale_from_text(item["title"]),
             "description": _scrub_ten_scale_from_text(item["description"]),
         })
@@ -199,53 +336,46 @@ RUBRYKA OCENY — przeanalizuj wyraźnie każdy etap przed zapisaniem końcowego
 
 ① KOMPLETNOŚĆ SEKCJI (0–2 pkt)
    Określ, które z sekcji są obecne: dane kontaktowe, podsumowanie/cel,
-   doświadczenie zawodowe, wykształcenie, umiejętności/technologie.
-   Wynik = (liczba obecnych sekcji / 5) × 2. Zaokrąglij do 1 miejsca po przecinku.
-
-② JAKOŚĆ DOŚWIADCZENIA (0–3 pkt)
-   Dla każdego wpisu dotyczącego stanowiska/roli:
-   - Czy zaczyna się od mocnego czasownika działania? (Prowadziłem, Zbudowałem, Zaprojektowałem, Zwiększyłem…)
-   - Czy zawiera co najmniej jeden mierzalny rezultat (%, zł, liczba, zaoszczędzony czas)?
-   Przyznaj: 1 pkt, jeśli >60% punktów używa czasowników działania, 1 pkt, jeśli >40% zawiera metryki,
-   1 pkt, jeśli role pokazują rozwój lub związek z docelową branżą.
-
-③ JĘZYK I PROFESJONALIZM (0–2 pkt)
-   Sprawdź: stronę bierną („byłem odpowiedzialny”), frazesy („gracz zespołowy”,
-   „osoba z inicjatywą”, „pasjonuję się”), ogólniki oraz błędy gramatyczne i ortograficzne.
-   2 pkt = brak problemów. 1 pkt = drobne problemy. 0 pkt = istotne problemy.
-
-④ FORMAT I HIERARCHIA (0–2 pkt)
-   Na podstawie liczby elementów i różnorodności treści: czy istnieje wyraźna hierarchia wizualna
-   (imię > nagłówki > tekst główny)? Czy długość jest odpowiednia (1–2 strony)?
-   Przyznaj do 2 pkt.
-
-⑤ WYRÓŻNIENIE (0–1 pkt)
-   Czy CV zawiera coś zapadającego w pamięć — wyjątkowe osiągnięcie, rzadką umiejętność,
-   przykład przywództwa lub mierzalny wpływ wyróżniający kandydata?
-   1 pkt, jeśli tak; 0 pkt, jeśli treść jest ogólna.
 ```
 
 ---
 
-## 3. Ocena projektu (typografia)
+## 4. Dopasowanie do stanowiska
 
-**Po co (prosto):** Sprawdza wygląd tekstu (hierarchia, bold, kolory, wyrównanie), a **nie** pozycje klocków na stronie. Małe czcionki szablonu i duże imię to celowy design — model nie ma ich „naprawiać”.
+**Po co (prosto):** Porównuje Twoje CV z opisem oferty pracy i mówi, na ile pasujesz (umiejętności, seniority, branża, słowa kluczowe).
 
 **Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **587–601**, user **602–671**, handler `_rate_design` **575–689**  
-**Akcja API:** `design_rating` (cel UI: Sprawdź wygląd → typografia)
+**Linie:** system **700–704**, user **705–765**, handler `_rate_position` **690–771**  
+**Akcja API:** `position_rating` (cel UI: Dopasuj do oferty)
 
 ### Zmienne
 
 | Zmienna | Skąd | Linie |
 |---------|------|-------|
-| `{typo}` | `json.dumps(_extract_typography(elements))` | 577, 255–280 |
-
-**Uwaga:** `summarize_geometry_issues` / `hard_faults` **nie trafiają do promptu** — Python po odpowiedzi obniża ocenę, gdy coś nachodzi lub wychodzi poza stronę.
+| `{job_description[:2000]}` | pole `job_description` z requestu / UI | 1492, 707 |
+| `{text}` | `_extract_text` | 1490, 710 |
+| `{web_ctx}` | wyniki `_ddg_search` | 692–697, 712–713 |
+| `{json.dumps(web_urls[:3])}` | linki z tego samego wyszukiwania | 698, 764 |
 
 ### System
 
 ```text
+Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
+Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
+W `message` NIE podawaj oceny liczbowej (zakazane: „8/10”, „80%”, „ocena 8”).
+Interfejs wyświetla ocenę osobno jako procent.
+{{
+```
+
+### User
+
+```text
+  "message": "<3–4 zdania: wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Bądź bezpośredni. Odnoś się do konkretnych treści z CV. Bez liczby oceny.>",
+  "rating": <obliczona suma 1-10>,
+  "categories": [
+    {{"id": "completeness", "label": "Kompletność", "score": <0-2>, "max": 2}},
+    {{"id": "experience", "label": "Doświadczenie", "score": <0-3>, "max": 3}},
+    {{"id": "language", "label": "Język", "score": <0-2>, "max": 2}},
     {{"id": "structure", "label": "Struktura", "score": <0-2>, "max": 2}},
     {{"id": "standout", "label": "Wyróżnienie", "score": <0-1>, "max": 1}}
   ],
@@ -261,11 +391,6 @@ RUBRYKA OCENY — przeanalizuj wyraźnie każdy etap przed zapisaniem końcowego
   ],
   "corrections": [],
   "web_sources": []
-```
-
-### User
-
-```text
 }}"""
     return _gpt_result(system, user, action="rating")
 
@@ -306,21 +431,37 @@ DANE TYPOGRAFICZNE (bez pozycji — nie sugeruj zmian left/top/width/height):
 KONTEKST PRODUKTOWY (OBOWIĄZKOWY):
 - To ocena CV w edytorze szablonów. Typografia startowa pochodzi z szablonu, nie z błędu użytkownika.
 - Małe czcionki (np. 8–9 px etykiet sidebara, kontaktu, „OBSZARY”, numerów stron) są normalne i poprawne.
-- Nie obniżaj oceny za „zbyt małą czcionkę”, jeśli rozmiary są spójne w ramach systemu szablonu.
-- Krytykuj wyłącznie niespójność: złamaną hierarchię, mieszane wyrównanie, odstające kolory, przypadkowe bold.
-- Elementy z fixedToPage=true / locked=true to chrome szablonu — pomiń je w message, tips i corrections.
-- Element z templateRole="primary_identity" jest największym napisem tożsamościowym, zwykle imieniem i nazwiskiem.
-  Jego inny fontFamily, większy rozmiar i pogrubienie są celowym kontrastem szablonu: nie krytykuj ich, nie
-  proponuj dla niego corrections i nie obniżaj za nie oceny.
-- Ocena 8–10 oznacza spójny szablon bez jednoznacznej, możliwej do wskazania poprawki. Ocena 6–7 wymaga co
-  najmniej jednej konkretnej niespójności. Ocena 1–5 jest zarezerwowana dla wielu wyraźnych błędów typografii,
-  niezależnych od celowej różnicy kroju w nagłówku tożsamościowym.
+```
 
+---
+
+## 5. Gramatyka
+
+**Po co (prosto):** Poprawia tylko literówki, gramatykę i przecinki. Nie zmienia sensu ani „ładniejszego” stylu.
+
+**Plik:** `backend/app/services/ai_assistant_service.py`  
+**Linie:** system **776–780**, user **781–801**, handler `_fix_grammar` **772–804**  
+**Akcja API:** `grammar` (submenu Popraw treść → Sprawdź błędy)
+
+### Zmienne
+
+| Zmienna | Skąd | Linie |
+|---------|------|-------|
+| `{json.dumps(structured)}` | `_extract_structured(elements)` | 774, 784 |
+
+### System
+
+```text
 ETAPY ANALIZY:
 
 ① HIERARCHIA (względem siebie, nie względem uniwersalnych px)
    Czy widać względną progresję: imię/nazwisko > nagłówki sekcji > tekst główny > etykiety meta?
    Nie wymagaj konkretnych zakresów px. Wskaż tylko elementy, które ŁAMIĄ istniejącą hierarchię szablonu.
+```
+
+### User
+
+```text
 
 ② POGRUBIENIE I WYRÓŻNIENIE
    Czy nagłówki są konsekwentnie pogrubione? Czy pogrubienie jest nadużywane (jeśli wszystko jest pogrubione, nic się nie wyróżnia)?
@@ -335,40 +476,60 @@ ETAPY ANALIZY:
 ⑤ OCENA OGÓLNA
    Na podstawie punktów ①–④ przyznaj ocenę projektu w skali 1–10.
 ════════════════════════════════════════
+
+Zwracaj poprawki WYŁĄCZNIE dla jednoznacznych niespójności względem reszty szablonu.
+Każda poprawka może zawierać WYŁĄCZNIE pola: fontSize, fontFamily, color, bold, italic, align.
+Nie proponuj zwiększania fontSize „dla czytelności”, jeśli element pasuje do peera w szablonie.
+Nie uwzględniaj wartości element_id z danych powyżej, jeśli nie masz pewności, że wymagają zmiany.
+
+Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
 ```
 
 ---
 
-## 4. Dopasowanie do stanowiska
+## 6. Styl językowy
 
-**Po co (prosto):** Porównuje Twoje CV z opisem oferty pracy i mówi, na ile pasujesz (umiejętności, seniority, branża, słowa kluczowe).
+**Po co (prosto):** Szuka strony biernej, frazesów („gracz zespołowy”) i ogólników, potem proponuje mocniejsze brzmienie.
 
 **Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **700–704**, user **705–765**, handler `_rate_position` **690–771**  
-**Akcja API:** `position_rating` (cel UI: Dopasuj do oferty)
+**Linie:** system **809–813**, user **814–857**, handler `_check_style` **805–860**  
+**Akcja API:** `language` (submenu Popraw treść → Popraw język)
 
 ### Zmienne
 
 | Zmienna | Skąd | Linie |
 |---------|------|-------|
-| `{job_description[:2000]}` | pole `job_description` z requestu / UI | 1492, 707 |
-| `{text}` | `_extract_text` | 1490, 710 |
-| `{web_ctx}` | wyniki `_ddg_search` | 692–697, 712–713 |
-| `{json.dumps(web_urls[:3])}` | linki z tego samego wyszukiwania | 698, 764 |
+| `{text}` | `_extract_text` | 1490, 817 |
+| `{json.dumps(structured[:30])}` | pierwsze 30 elementów ze `_extract_structured` | 807, 820 |
 
 ### System
 
 ```text
+    {{"id": "color", "label": "Kolor", "score": <0-2>, "max": 2}},
+    {{"id": "alignment", "label": "Wyrównanie", "score": <0-2>, "max": 2}},
+    {{"id": "overall", "label": "Ocena ogólna", "score": <0-1>, "max": 1}}
   ],
-  "web_sources": []
-}}"""
-    result = _gpt_result(system, user, action="design_rating", allowed_fields=_STYLE_FIELDS)
-    result = _strip_protected_corrections(result, protected_ids)
+  "strengths": ["<mocna strona typografii>"],
 ```
 
 ### User
 
 ```text
+  "priorities": [
+    {{"title": "<krótki tytuł poprawki>", "description": "<konkretna niespójność>"}}
+  ],
+  "tips": [
+    "<konkretna poprawka typografii z podglądem elementu>",
+    "<druga konkretna poprawka>"
+  ],
+  "corrections": [
+    {{"element_id": "<id>", "bold": true}},
+    {{"element_id": "<id>", "align": "left"}}
+  ],
+  "web_sources": []
+}}"""
+    result = _gpt_result(system, user, action="design_rating", allowed_fields=_STYLE_FIELDS)
+    result = _strip_protected_corrections(result, protected_ids)
 
     # A low visual score must be supported by a concrete, editable discrepancy.
     # Once template chrome and the intentional primary identity are excluded,
@@ -398,165 +559,6 @@ def _rate_position(text: str, job_description: str) -> dict:
     system = (
         "Jesteś starszym doradcą zawodowym i managerem rekrutującym. "
         "Przygotowujesz szczerą, obliczoną ocenę dopasowania CV do opisu stanowiska. "
-        "Nie wpisuj liczby oceny w `message` (ani jako X/10, ani jako procent) — interfejs pokazuje ją osobno. "
-        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
-    )
-    user = f"""Oblicz, jak dobrze to CV pasuje do opisu stanowiska. Oceń je w skali 1–10.
-
-OPIS STANOWISKA:
-{job_description[:2000]}
-
-TREŚĆ CV:
-{text}
-
-KONTEKST Z INTERNETU (standardy branżowe dla tej roli):
-{web_ctx or "Brak dostępnych wyników z internetu."}
-
-════════════════════════════════════════
-ETAPY OBLICZEŃ:
-
-① DOPASOWANIE WYMAGANYCH UMIEJĘTNOŚCI (0–4 pkt)
-   Wyodrębnij 10 najważniejszych wymaganych umiejętności/technologii z opisu stanowiska.
-   Policz, ile z nich występuje w CV (dokładnie lub jako bliski synonim).
-   Wynik = (liczba dopasowanych / 10) × 4.
-
-② DOPASOWANIE POZIOMU DOŚWIADCZENIA (0–2 pkt)
-   Czy liczba lat doświadczenia i poziom seniority w CV odpowiadają wymaganiom opisu stanowiska?
-   2 = idealne dopasowanie, 1 = bliskie, 0 = istotna luka.
-
-③ DOPASOWANIE OBSZARU / BRANŻY (0–2 pkt)
-   Czy doświadczenie kandydata w danym obszarze (branża, typ firmy, skala) jest dopasowane?
-   2 = silne dopasowanie, 1 = częściowe, 0 = inny obszar.
-
-④ DOPASOWANIE JĘZYKA I SŁÓW KLUCZOWYCH (0–1 pkt)
-   Czy CV używa terminologii z opisu stanowiska? (istotne dla ATS)
-```
-
----
-
-## 5. Gramatyka
-
-**Po co (prosto):** Poprawia tylko literówki, gramatykę i przecinki. Nie zmienia sensu ani „ładniejszego” stylu.
-
-**Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **776–780**, user **781–801**, handler `_fix_grammar` **772–804**  
-**Akcja API:** `grammar` (submenu Popraw treść → Sprawdź błędy)
-
-### Zmienne
-
-| Zmienna | Skąd | Linie |
-|---------|------|-------|
-| `{json.dumps(structured)}` | `_extract_structured(elements)` | 774, 784 |
-
-### System
-
-```text
-{{
-  "message": "<3–4 zdania: opisz dopasowanie jakościowo, wymień dopasowane umiejętności oraz luki. Bądź konkretny. Bez liczby oceny.>",
-  "rating": <obliczona ocena 1-10>,
-  "categories": [
-    {{"id": "skills", "label": "Umiejętności", "score": <0-4>, "max": 4}},
-```
-
-### User
-
-```text
-    {{"id": "seniority", "label": "Seniority", "score": <0-2>, "max": 2}},
-    {{"id": "domain", "label": "Obszar", "score": <0-2>, "max": 2}},
-    {{"id": "keywords", "label": "Słowa kluczowe", "score": <0-1>, "max": 1}},
-    {{"id": "differentiators", "label": "Wyróżniki", "score": <0-1>, "max": 1}}
-  ],
-  "strengths": ["<dopasowana umiejętność lub mocna strona względem oferty>"],
-  "priorities": [
-    {{"title": "<brakująca umiejętność lub luka>", "description": "<jak uzupełnić w CV>"}}
-  ],
-  "tips": [
-    "<wymień 3–5 najważniejszych umiejętności z opisu stanowiska, których BRAKUJE w CV>",
-    "<najważniejsza zmiana CV poprawiająca dopasowanie>",
-    "<konkretne słowo kluczowe do dodania do CV>",
-    "<sekcja do dopasowania lub dodania>"
-  ],
-  "corrections": [],
-  "web_sources": {json.dumps(web_urls[:3])}
-}}"""
-    result = _gpt_result(system, user, action="position_rating")
-    if not result["web_sources"] and web_urls:
-        result["web_sources"] = web_urls[:3]
-```
-
----
-
-## 6. Styl językowy
-
-**Po co (prosto):** Szuka strony biernej, frazesów („gracz zespołowy”) i ogólników, potem proponuje mocniejsze brzmienie.
-
-**Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **809–813**, user **814–857**, handler `_check_style` **805–860**  
-**Akcja API:** `language` (submenu Popraw treść → Popraw język)
-
-### Zmienne
-
-| Zmienna | Skąd | Linie |
-|---------|------|-------|
-| `{text}` | `_extract_text` | 1490, 817 |
-| `{json.dumps(structured[:30])}` | pierwsze 30 elementów ze `_extract_structured` | 807, 820 |
-
-### System
-
-```text
-    system = (
-        "Jesteś profesjonalnym korektorem specjalizującym się w dokumentach biznesowych i CV. "
-        "Poprawiaj WYŁĄCZNIE gramatykę, ortografię i interpunkcję. Nie zmieniaj znaczenia, tonu ani struktury. "
-        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
-    )
-```
-
-### User
-
-```text
-    user = f"""Sprawdź korektę każdego poniższego elementu tekstowego. Popraw wszystkie błędy gramatyczne, ortograficzne i interpunkcyjne.
-
-ELEMENTY:
-{json.dumps(structured, ensure_ascii=False)}
-
-ZASADY:
-- W tablicy corrections uwzględniaj tylko elementy, które rzeczywiście zawierają błędy.
-- Wartość "content" w każdej poprawce musi zawierać PEŁNY poprawiony tekst (nie fragment).
-- Nie ulepszaj stylu ani nie parafrazuj — tylko poprawiaj błędy.
-- Policz wszystkie znalezione błędy i podaj ich liczbę w message.
-
-Zwróć JSON:
-{{
-  "message": "<podsumowanie: znaleziono X błędów w Y elementach. Wymień najczęstsze rodzaje błędów.>",
-  "rating": null,
-  "tips": [],
-  "corrections": [
-    {{"element_id": "<id>", "content": "<full corrected text of this element>"}}
-  ],
-  "web_sources": []
-}}"""
-    return _gpt_result(system, user, action="grammar", allowed_fields=_CONTENT_FIELDS)
-
-
-def _check_style(text: str, elements: list[dict]) -> dict:
-    """Polish language/style review with content patches where safe."""
-    structured = _extract_structured(elements)
-
-    system = (
-        "Jesteś profesjonalnym autorem CV specjalizującym się w poprawianiu tonu, jasności "
-        "i profesjonalizmu języka w CV. Zwracaj WYŁĄCZNIE prawidłowy JSON. "
-        "Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
-    )
-    user = f"""Przeanalizuj styl językowy tego CV i przeredaguj słabe elementy.
-
-PEŁNY TEKST CV:
-{text}
-
-POJEDYNCZE ELEMENTY (do ukierunkowanych przeredagowań):
-{json.dumps(structured[:30], ensure_ascii=False)}
-
-════════════════════════════════════════
-ETAPY ANALIZY:
 ```
 
 ---
@@ -579,19 +581,99 @@ ETAPY ANALIZY:
 
 ```text
 
-③ OGÓLNIKOWE STWIERDZENIA
-   Oznacz twierdzenia bez dowodów: „poprawiłem efektywność”, „prowadziłem projekty”.
-   Tam, gdzie to właściwe, dodaj zastępczą metrykę: „poprawiłem efektywność o [X%]”.
+TREŚĆ CV:
+{text}
+
+KONTEKST Z INTERNETU (standardy branżowe dla tej roli):
 ```
 
 ### User
 
 ```text
+{web_ctx or "Brak dostępnych wyników z internetu."}
+
+════════════════════════════════════════
+ETAPY OBLICZEŃ:
+
+① DOPASOWANIE WYMAGANYCH UMIEJĘTNOŚCI (0–4 pkt)
+   Wyodrębnij 10 najważniejszych wymaganych umiejętności/technologii z opisu stanowiska.
+   Policz, ile z nich występuje w CV (dokładnie lub jako bliski synonim).
+   Wynik = (liczba dopasowanych / 10) × 4.
+
+② DOPASOWANIE POZIOMU DOŚWIADCZENIA (0–2 pkt)
+   Czy liczba lat doświadczenia i poziom seniority w CV odpowiadają wymaganiom opisu stanowiska?
+   2 = idealne dopasowanie, 1 = bliskie, 0 = istotna luka.
+
+③ DOPASOWANIE OBSZARU / BRANŻY (0–2 pkt)
+   Czy doświadczenie kandydata w danym obszarze (branża, typ firmy, skala) jest dopasowane?
+   2 = silne dopasowanie, 1 = częściowe, 0 = inny obszar.
+
+④ DOPASOWANIE JĘZYKA I SŁÓW KLUCZOWYCH (0–1 pkt)
+   Czy CV używa terminologii z opisu stanowiska? (istotne dla ATS)
+
+⑤ WYRÓŻNIKI (0–1 pkt)
+   Czy CV pokazuje coś, co wyróżnia tego kandydata na tym konkretnym stanowisku?
+
+SUMA = ①+②+③+④+⑤, zaokrąglona, w zakresie 1–10.
+════════════════════════════════════════
+
+Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
+Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
+W `message` NIE podawaj oceny liczbowej (zakazane: „8/10”, „80%”). Interfejs pokazuje ją osobno.
+{{
+  "message": "<3–4 zdania: opisz dopasowanie jakościowo, wymień dopasowane umiejętności oraz luki. Bądź konkretny. Bez liczby oceny.>",
+  "rating": <obliczona ocena 1-10>,
+  "categories": [
+    {{"id": "skills", "label": "Umiejętności", "score": <0-4>, "max": 4}},
+    {{"id": "seniority", "label": "Seniority", "score": <0-2>, "max": 2}},
+    {{"id": "domain", "label": "Obszar", "score": <0-2>, "max": 2}},
+```
+
+---
+
+## 8. ATS
+
+**Po co (prosto):** Sprawdza, czy automatyczne systemy rekrutacyjne (Workday, Greenhouse…) łatwo „zrozumieją” Twoje CV: nagłówki, słowa kluczowe, kontakt, daty, długość. W UI uruchamiane leniwie z CTA po **Sprawdź CV**.
+
+**Plik:** `backend/app/services/ai_assistant_service.py`  
+**Linie:** system **995–999**, user **1000–1060**, handler `_ats_score` **993–1061**  
+**Akcja API:** `ats_score`
+
+### Zmienne
+
+| Zmienna | Skąd | Linie |
+|---------|------|-------|
+| `{text}` | `_extract_text` | 1490, 1003 |
+
+### System
+
+```text
+
+════════════════════════════════════════
+{_TENSE_RULES_PL}
+ETAPY ANALIZY:
+```
+
+### User
+
+```text
+① STRONA CZYNNA A BIERNA
+   Znajdź każde użycie strony biernej („byłem odpowiedzialny”, „było zarządzane przez”).
+   To przeredagowania o najwyższym priorytecie. Po aktywizacji ZACHOWAJ czas z `employment_tense`.
+
+② FRAZESY I SŁABE SFORMUŁOWANIA
+   Oznacz: „gracz zespołowy”, „pracowity”, „pasjonuję się”, „osoba z inicjatywą”,
+   „nastawiony na wyniki”, „dbający o szczegóły”, „synergia”. Zastąp je dowodami.
+
+③ OGÓLNIKOWE STWIERDZENIA
+   Oznacz twierdzenia bez dowodów: „poprawiłem efektywność”, „prowadziłem projekty”.
+   Tam, gdzie to właściwe, dodaj zastępczą metrykę: „poprawiłem efektywność o [X%]”.
+
 ④ PROFESJONALNY TON
    Czy ton jest zbyt nieformalny, zbyt formalny czy odpowiedni dla branży?
 
 Przeredagowuj tylko elementy, które rzeczywiście tego wymagają. Krótkie elementy (imiona i nazwiska, daty, nagłówki)
-nie powinny być przeredagowywane.
+nie powinny być przeredagowywane. Nie „odświeżaj” zakończonych stanowisk do czasu teraźniejszego.
 ════════════════════════════════════════
 
 Zwróć JSON:
@@ -614,108 +696,28 @@ Zwróć JSON:
 def _improve_content(elements: list[dict]) -> dict:
     """Suggest stronger CV wording without changing layout geometry."""
     structured = _extract_structured(elements)
+    full_text = _extract_text(elements)
 
     system = (
         "Jesteś wysokiej klasy autorem CV. Specjalizujesz się w przekształcaniu zwykłych opisów obowiązków "
         "w przekonujące, oparte na metrykach punkty, które przechodzą przez ATS i robią wrażenie na rekruterach. "
+        "Czas gramatyczny obowiązków MUSI odpowiadać dacie stanowiska (`employment_tense` / Obecnie vs data końcowa). "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
     )
     user = f"""Przeredaguj poniższą treść CV, aby maksymalizować jej siłę oddziaływania.
 
-ELEMENTY:
-{json.dumps(structured[:30], ensure_ascii=False)}
-```
+PEŁNY TEKST CV (kontekst dat stanowisk):
+{full_text}
 
----
-
-## 8. ATS
-
-**Po co (prosto):** Sprawdza, czy automatyczne systemy rekrutacyjne (Workday, Greenhouse…) łatwo „zrozumieją” Twoje CV: nagłówki, słowa kluczowe, kontakt, daty, długość. W UI uruchamiane leniwie z CTA po **Sprawdź CV**.
-
-**Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **995–999**, user **1000–1060**, handler `_ats_score` **993–1061**  
-**Akcja API:** `ats_score`
-
-### Zmienne
-
-| Zmienna | Skąd | Linie |
-|---------|------|-------|
-| `{text}` | `_extract_text` | 1490, 1003 |
-
-### System
-
-```text
-    )
-    user = f"""Przetłumacz treść CV na język: {lang_name} (kod: {lang}).
-
-ELEMENTY DO TŁUMACZENIA:
-{json.dumps(structured, ensure_ascii=False)}
-```
-
-### User
-
-```text
-
-ZASADY:
-- W corrections uwzględniaj tylko elementy, których treść faktycznie trzeba zmienić.
-- Wartość "content" musi zawierać PEŁNY przetłumaczony tekst elementu (nie fragment).
-- Nie zmieniaj left/top/width/height ani stylów — tylko content.
-- Zachowuj nazwy własne (imiona, nazwiska firm, produktów), adresy e-mail, telefony i URL.
-- Nagłówki sekcji też tłumacz, jeśli są zwykłym tekstem użytkownika.
-- Nie tłumacz elementów, które już są w pełni w języku docelowym (pomiń je).
-- NIGDY nie proponuj corrections dla elementów z fixedToPage=true ani locked=true.
-
-Zwróć JSON:
-{{
-  "message": "<2–3 zdania po polsku: ile elementów przetłumaczono i na jaki język>",
-  "rating": null,
-  "tips": [
-    "<krótka wskazówka po polsku, np. sprawdź nazwy własne przed wysyłką>"
-  ],
-  "corrections": [
-    {{"element_id": "<id>", "content": "<pełny tekst w języku docelowym>"}}
-  ],
-  "web_sources": []
-}}"""
-    result = _gpt_result(system, user, action="translate", allowed_fields=_CONTENT_FIELDS)
-    return _strip_protected_corrections(result, protected_ids)
-
-
-def _ats_score(text: str) -> dict:
-    """Estimate ATS friendliness from plain CV text."""
-    system = (
-        "Jesteś ekspertem od ATS (systemów śledzenia kandydatów). "
-        "Wiesz, jak Workday, Greenhouse, Lever i Taleo analizują CV. "
-        "Nie wpisuj liczby oceny w `message` (ani jako X/10, ani jako procent) — interfejs pokazuje ją osobno. "
-        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
-    )
-    user = f"""Przeanalizuj to CV pod kątem zgodności z ATS. Oceń je w skali 1–10.
-
-TEKST CV:
-{text}
+ELEMENTY (respektuj `employment_tense`):
+{json.dumps(structured[:40], ensure_ascii=False)}
 
 ════════════════════════════════════════
-ETAPY OBLICZEŃ:
+{_TENSE_RULES_PL}
+ZASADY PRZEREDAGOWANIA (stosuj po kolei):
 
-① STANDARDOWE NAGŁÓWKI SEKCJI (0–2 pkt)
-   ATS oczekuje dokładnych lub zbliżonych standardowych nagłówków. Sprawdź:
-   „Doświadczenie zawodowe” / „Doświadczenie”, „Wykształcenie”, „Umiejętności”, „Podsumowanie” / „Profil”,
-   „Certyfikaty”, „Języki”.
-   Wynik = (liczba znalezionych standardowych nagłówków / 6) × 2.
-
-② GĘSTOŚĆ SŁÓW KLUCZOWYCH (0–3 pkt)
-   Zidentyfikuj 5 najważniejszych standardowych dla branży słów kluczowych obecnych w CV
-   (np. konkretne technologie, metodyki, kompetencje miękkie).
-   Wynik = (liczba znalezionych słów kluczowych / 5) × 3.
-
-③ KOMPLETNOŚĆ DANYCH KONTAKTOWYCH (0–1 pkt)
-   E-mail, telefon, LinkedIn/GitHub, lokalizacja. 1 pkt, jeśli obecne są ≥3; 0,5 pkt, jeśli 2; 0 pkt, jeśli ≤1.
-
-④ SPÓJNOŚĆ FORMATU DAT (0–1 pkt)
-   Daty powinny konsekwentnie mieć format miesiąc rok lub MM/RRRR. 1 pkt, jeśli są spójne; 0 pkt, jeśli są mieszane.
-
-⑤ BEZPIECZEŃSTWO FORMATOWANIA (0–2 pkt)
-   ATS ma trudności z: tabelami, obrazami w przepływie tekstu, znakami specjalnymi i nietypowymi czcionkami.
+① MOCNE CZASOWNIKI NA POCZĄTKU — każdy punkt zaczyna się od czasownika działania
+   w czasie zgodnym z `employment_tense` (nie ujednolicaj wszystkich ról do jednego czasu).
 ```
 
 ---
@@ -738,45 +740,44 @@ ETAPY OBLICZEŃ:
 ### System
 
 ```text
-def _translate_cv(elements: list[dict], target_language: str) -> dict:
-    """Translate editable CV text into ``target_language`` via content patches.
-
-    Geometry and template chrome stay untouched. Proper names, emails, phones,
-    and URLs must be preserved so the user can accept patches like grammar.
-    """
-    lang = (target_language or "").strip().lower()
-    lang_name = _TRANSLATE_LANGUAGE_NAMES.get(lang)
+  "tips": [],
+  "corrections": [
+    {{"element_id": "<id>", "content": "<full corrected text of this element>"}}
+  ],
+  "web_sources": []
+}}"""
+    return _gpt_result(system, user, action="grammar", allowed_fields=_CONTENT_FIELDS)
 ```
 
 ### User
 
 ```text
-    if not lang_name:
-        return {
-            "message": "Nieobsługiwany język tłumaczenia.",
-            "rating": None,
-            "tips": [],
-            "corrections": [],
-            "categories": [],
-            "strengths": [],
-            "priorities": [],
-            "web_sources": [],
-        }
 
-    # Skip locked / fixed chrome so translation never rewrites template furniture.
-    # `_extract_structured` omits chrome flags, so resolve protection from the
-    # original canvas elements (id or element_id, depending on the client).
-    protected_ids = {
-        str(el.get("element_id") or el.get("id"))
-        for el in elements
-        if el.get("fixedToPage") or el.get("locked")
-    }
-    structured = [
-        el for el in _extract_structured(elements)
-        if str(el.get("element_id")) not in protected_ids
-    ]
+_TENSE_RULES_PL = """\
+CZAS GRAMATYCZNY STANOWISK (OBOWIĄZKOWE — naruszenie = błąd):
+- Pole `employment_tense` przy elemencie: `present` = aktualna rola, `past` = zakończona.
+- `present` / data końcowa „Obecnie”/„Present”/„Now”: czas TERAŹNIEJSZY (Tworzę, Prowadzę, Weryfikuję).
+- `past` / konkretna data końcowa (np. 05/2023, 12/2022): czas PRZESZŁY (Tworzyłem, Prowadziłem, Weryfikowałem).
+- NIGDY nie zamieniaj czasu przeszłego zakończonej roli na teraźniejszy.
+- NIGDY nie zamieniaj czasu teraźniejszego aktualnej roli na przeszły.
+- Gdy brak `employment_tense`: zachowaj oryginalny czas i osobę z treści elementu.
+- Zachowaj osobę gramatyczną oryginału (1. os. lub bezosobowa), chyba że poprawiasz jawny błąd.
+"""
+
+
+def _check_style(text: str, elements: list[dict]) -> dict:
+    """Polish language/style review with content patches where safe."""
+    structured = _extract_structured(elements)
 
     system = (
+        "Jesteś profesjonalnym autorem CV specjalizującym się w poprawianiu tonu, jasności "
+        "i profesjonalizmu języka w CV. "
+        "Czas gramatyczny obowiązków MUSI odpowiadać dacie stanowiska: zakończone role = przeszły, "
+        "aktualne (Obecnie) = teraźniejszy. Nigdy nie ujednolicaj wszystkich opisów do jednego czasu. "
+        "Zwracaj WYŁĄCZNIE prawidłowy JSON. "
+        "Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
+    )
+    user = f"""Przeanalizuj styl językowy tego CV i przeredaguj słabe elementy.
 ```
 
 ---
@@ -800,13 +801,37 @@ def _translate_cv(elements: list[dict], target_language: str) -> dict:
 ### System (fragment początkowy)
 
 ```text
-}}"""
-    return _gpt_result(system, user, action="ats_score")
+    "en": "angielski",
+    "de": "niemiecki",
+    "fr": "francuski",
+    "es": "hiszpański",
+    "uk": "ukraiński",
+    "it": "włoski",
+    "nl": "niderlandzki",
+}
 
 
-_MAX_CHAT_HISTORY = 12
-_MAX_HISTORY_CHARS = 1500
+def _translate_cv(elements: list[dict], target_language: str) -> dict:
+    """Translate editable CV text into ``target_language`` via content patches.
 
+    Geometry and template chrome stay untouched. Proper names, emails, phones,
+    and URLs must be preserved so the user can accept patches like grammar.
+    """
+    lang = (target_language or "").strip().lower()
+    lang_name = _TRANSLATE_LANGUAGE_NAMES.get(lang)
+    if not lang_name:
+        return {
+            "message": "Nieobsługiwany język tłumaczenia.",
+            "rating": None,
+            "tips": [],
+            "corrections": [],
+            "categories": [],
+            "strengths": [],
+```
+
+### User (fragment)
+
+```text
 
 def _normalize_chat_history(history: list | None) -> list[dict]:
     """Keep a short, safe transcript of the current UI session for the model."""
@@ -824,35 +849,13 @@ def _normalize_chat_history(history: list | None) -> list[dict]:
             continue
         normalized.append({"role": role, "content": content[:_MAX_HISTORY_CHARS]})
     return normalized
-```
 
-### User (fragment)
 
-```text
-        "oprócz wskazanych wyjątków.\n"
-        "  - NIGDY nie podawaj elementów z fixedToPage=true ani locked=true: są to chronione tła, "
-        "stopki i pozycje użytkownika. Nie podawaj współrzędnych, stron, stylów ani nowych specyfikacji. "
-        "Usunięcie zawsze wymaga osobnego zatwierdzenia użytkownika w UI.\n"
-        "(5b) POLECENIE klonowania elementów (np. „sklonuj tę linię i umieść pod nagłówkiem UMIEJĘTNOŚCI”, "
-        "„zrób kopię bloku obok”, „powiel dekorację pod nową sekcją”) zwraca clone_operation:\n"
-        "  {\"type\":\"clone_elements\", \"clones\":[{"
-        "\"source_element_id\":\"...\","
-        "\"reference_element_id\":\"...\" (wymagane gdy placement≠offset),"
-        "\"placement\":\"below\"|\"above\"|\"left\"|\"right\"|\"offset\","
-        "\"gap\":<px, domyślnie 8>, \"dx\":<px>, \"dy\":<px>,"
-        "\"align\":\"start\"|\"center\"|\"end\", \"match_size\":\"none\"|\"width\"|\"height\"|\"both\""
-        "}]}\n"
-        "  - source_element_id to ISTNIEJĄCY element (text, textarea, line, rectangle, circle, ellipse, image). "
-        "Python skopiuje jego styl i rozmiar — NIE podawaj left/top/color/width ręcznie.\n"
-        "  - placement below/above/left/right ustawia kopię względem reference_element_id z odstępem gap. "
-        "placement=offset robi klasyczny duplikat względem źródła o (dx, dy); wtedy reference pomiń.\n"
-        "  - align wyrównuje kopię do referencji na osi poprzecznej (np. below+start = ta sama lewa krawędź). "
-        "match_size=width przydaje się przy liniach pod nagłówkiem (szerokość linii = szerokość nagłówka).\n"
-        "  - Możesz podać wiele pozycji w clones (max 20). Nie klonuj fixedToPage ani locked.\n"
-        "NIGDY sam nie podawaj wartości left/top — Python obliczy rzeczywiste współrzędne na "
-        "podstawie bieżącej, aktualnej pozycji elementów i sam odrzuci operację, jeśli wyszłaby "
-        "poza stronę.\n"
-        "(6) Jeśli polecenie wymaga zmiany rozmiaru elementów w sposób inny niż przeniesienie tekstowej "
+def _chat(
+    message: str,
+    elements: list[dict],
+    page_size: dict | None,
+    history: list | None = None,
 ```
 
 ---

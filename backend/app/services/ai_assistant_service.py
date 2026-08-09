@@ -138,6 +138,122 @@ _ALLOWED_FIELDS  = _CONTENT_FIELDS | _STYLE_FIELDS
 
 # ── helpers ────────────────────────────────────────────────────────────────
 
+# Employment period lines such as "08/2023 – Obecnie" or "01/2023 – 05/2023".
+# Used to tag nearby body copy with present vs past verb tense before GPT edits.
+_DATE_TOKEN_RE = (
+    r"(?:\d{1,2}[./]\d{4}|\d{4}|"
+    r"(?:Styczeń|Luty|Marzec|Kwiecień|Maj|Czerwiec|Lipiec|Sierpień|Wrzesień|"
+    r"Październik|Listopad|Grudzień|January|February|March|April|May|June|"
+    r"July|August|September|October|November|December)\s+\d{4})"
+)
+_CURRENT_END_TOKEN_RE = (
+    r"(?:Obecnie|Present|Currently|\bNow\b|dziś|dzisiaj|do\s+dziś|do\s+teraz)"
+)
+_EMPLOYMENT_PERIOD_RE = re.compile(
+    rf"(?:{_DATE_TOKEN_RE})\s*(?:[–—\-]|do|to)\s*(?:{_CURRENT_END_TOKEN_RE}|{_DATE_TOKEN_RE})",
+    re.IGNORECASE,
+)
+
+_CURRENT_ROLE_END_RE = re.compile(
+    r"(?:Obecnie|Present|Currently|\bNow\b|dziś|dzisiaj|do\s+dziś|do\s+teraz)",
+    re.IGNORECASE,
+)
+
+_SECTION_HEADER_RE = re.compile(
+    r"^(DO[SŚ]WIADCZENIE|EXPERIENCE|WYKSZTA[LŁ]CENIE|EDUCATION|EDUKACJA|"
+    r"UMIEJ[EĘ]TNO[SŚ]CI|SKILLS|KOMPETENCJE|PODSUMOWANIE|SUMMARY|PROFIL|"
+    r"PROFILE|KONTAKT|CONTACT)\b",
+    re.IGNORECASE,
+)
+
+
+def _reading_order_key(element: dict) -> tuple:
+    """Sort key for canvas reading order (page → top → left)."""
+    try:
+        page = int(element.get("page") or 1)
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        top = float(element.get("top") or 0)
+    except (TypeError, ValueError):
+        top = 0.0
+    try:
+        left = float(element.get("left") or 0)
+    except (TypeError, ValueError):
+        left = 0.0
+    return page, top, left
+
+
+def _is_section_header_line(content: str) -> bool:
+    """True for CV section labels that end an experience-tense block."""
+    text = " ".join(str(content or "").replace("\\n", " ").split()).strip()
+    if not text or len(text) > 48:
+        return False
+    if _SECTION_HEADER_RE.match(text):
+        return True
+    # Tracked template labels are often short ALL CAPS without digits.
+    if re.search(r"\d", text):
+        return False
+    letters = [c for c in text if c.isalpha()]
+    return len(letters) >= 4 and all(c.isupper() for c in letters)
+
+
+def _is_employment_period_line(content: str) -> bool:
+    """True when the text looks like a job/education date range, not body copy."""
+    text = " ".join(str(content or "").replace("\\n", " ").split()).strip()
+    if not text or len(text) > 72:
+        return False
+    if _is_section_header_line(text):
+        return False
+    return bool(_EMPLOYMENT_PERIOD_RE.search(text))
+
+
+def _employment_tense_from_period(content: str) -> str:
+    """Return ``present`` for current roles, ``past`` for ended date ranges."""
+    text = str(content or "")
+    if _CURRENT_ROLE_END_RE.search(text):
+        return "present"
+    return "past"
+
+
+def _annotate_employment_tense(elements: list[dict]) -> dict[str, str]:
+    """Map body ``element_id`` → ``present``/``past`` from the nearest period line.
+
+    Freestyle CVs store the job date as a separate text node above the bullets.
+    Walking reading order lets language/improve prompts keep past roles in the
+    past tense instead of rewriting every bullet as a current job.
+    """
+    text_elements = [
+        el for el in elements
+        if el.get("category") in ("text", "textarea")
+        and el.get("element_id")
+        and str(el.get("content") or "").strip()
+    ]
+    text_elements.sort(key=_reading_order_key)
+
+    tense_by_id: dict[str, str] = {}
+    active_tense: str | None = None
+    for el in text_elements:
+        content = str(el.get("content") or "").replace("\\n", "\n").strip()
+        flat = " ".join(content.split())
+        if _is_section_header_line(flat):
+            active_tense = None
+            continue
+        if _is_employment_period_line(flat):
+            active_tense = _employment_tense_from_period(flat)
+            continue
+        if not active_tense:
+            continue
+        # Annotate duty bullets (and meta lines) under the active period.
+        # Skip contact-like lines; job titles above the next date may briefly
+        # inherit the previous tense, which is harmless because titles are
+        # rarely rewritten into tensed verbs.
+        if "@" in flat or flat.startswith("http"):
+            continue
+        tense_by_id[str(el["element_id"])] = active_tense
+    return tense_by_id
+
+
 def _extract_text(elements: list[dict]) -> str:
     lines = []
     for el in elements:
@@ -147,9 +263,14 @@ def _extract_text(elements: list[dict]) -> str:
 
 
 def _extract_structured(elements: list[dict]) -> list[dict]:
-    return [
-        {
-            "element_id": el.get("element_id"),
+    tense_by_id = _annotate_employment_tense(elements)
+    items = []
+    for el in elements:
+        if el.get("category") not in ("text", "textarea") or not el.get("content"):
+            continue
+        element_id = el.get("element_id")
+        item = {
+            "element_id": element_id,
             "category": el.get("category"),
             "content": el.get("content", ""),
             "fontSize": el.get("fontSize"),
@@ -162,9 +283,12 @@ def _extract_structured(elements: list[dict]) -> list[dict]:
             "italic": el.get("italic", False),
             "align": el.get("align", "left"),
         }
-        for el in elements
-        if el.get("category") in ("text", "textarea") and el.get("content")
-    ]
+        # Present/past tag for duty bullets under dated experience blocks.
+        tense = tense_by_id.get(str(element_id)) if element_id is not None else None
+        if tense:
+            item["employment_tense"] = tense
+        items.append(item)
+    return items
 
 
 def _extract_positional(elements: list[dict]) -> list[dict]:
@@ -808,7 +932,8 @@ def _fix_grammar(elements: list[dict]) -> dict:
 
     system = (
         "Jesteś profesjonalnym korektorem specjalizującym się w dokumentach biznesowych i CV. "
-        "Poprawiaj WYŁĄCZNIE gramatykę, ortografię i interpunkcję. Nie zmieniaj znaczenia, tonu ani struktury. "
+        "Poprawiaj WYŁĄCZNIE gramatykę, ortografię i interpunkcję. Nie zmieniaj znaczenia, tonu, "
+        "czasu gramatycznego ani osoby. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
     )
     user = f"""Sprawdź korektę każdego poniższego elementu tekstowego. Popraw wszystkie błędy gramatyczne, ortograficzne i interpunkcyjne.
@@ -820,6 +945,7 @@ ZASADY:
 - W tablicy corrections uwzględniaj tylko elementy, które rzeczywiście zawierają błędy.
 - Wartość "content" w każdej poprawce musi zawierać PEŁNY poprawiony tekst (nie fragment).
 - Nie ulepszaj stylu ani nie parafrazuj — tylko poprawiaj błędy.
+- Nie zmieniaj czasu gramatycznego (przeszły ↔ teraźniejszy) ani osoby.
 - Policz wszystkie znalezione błędy i podaj ich liczbę w message.
 
 Zwróć JSON:
@@ -835,13 +961,28 @@ Zwróć JSON:
     return _gpt_result(system, user, action="grammar", allowed_fields=_CONTENT_FIELDS)
 
 
+_TENSE_RULES_PL = """\
+CZAS GRAMATYCZNY STANOWISK (OBOWIĄZKOWE — naruszenie = błąd):
+- Pole `employment_tense` przy elemencie: `present` = aktualna rola, `past` = zakończona.
+- `present` / data końcowa „Obecnie”/„Present”/„Now”: czas TERAŹNIEJSZY (Tworzę, Prowadzę, Weryfikuję).
+- `past` / konkretna data końcowa (np. 05/2023, 12/2022): czas PRZESZŁY (Tworzyłem, Prowadziłem, Weryfikowałem).
+- NIGDY nie zamieniaj czasu przeszłego zakończonej roli na teraźniejszy.
+- NIGDY nie zamieniaj czasu teraźniejszego aktualnej roli na przeszły.
+- Gdy brak `employment_tense`: zachowaj oryginalny czas i osobę z treści elementu.
+- Zachowaj osobę gramatyczną oryginału (1. os. lub bezosobowa), chyba że poprawiasz jawny błąd.
+"""
+
+
 def _check_style(text: str, elements: list[dict]) -> dict:
     """Polish language/style review with content patches where safe."""
     structured = _extract_structured(elements)
 
     system = (
         "Jesteś profesjonalnym autorem CV specjalizującym się w poprawianiu tonu, jasności "
-        "i profesjonalizmu języka w CV. Zwracaj WYŁĄCZNIE prawidłowy JSON. "
+        "i profesjonalizmu języka w CV. "
+        "Czas gramatyczny obowiązków MUSI odpowiadać dacie stanowiska: zakończone role = przeszły, "
+        "aktualne (Obecnie) = teraźniejszy. Nigdy nie ujednolicaj wszystkich opisów do jednego czasu. "
+        "Zwracaj WYŁĄCZNIE prawidłowy JSON. "
         "Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
     )
     user = f"""Przeanalizuj styl językowy tego CV i przeredaguj słabe elementy.
@@ -849,15 +990,16 @@ def _check_style(text: str, elements: list[dict]) -> dict:
 PEŁNY TEKST CV:
 {text}
 
-POJEDYNCZE ELEMENTY (do ukierunkowanych przeredagowań):
-{json.dumps(structured[:30], ensure_ascii=False)}
+POJEDYNCZE ELEMENTY (do ukierunkowanych przeredagowań; respektuj `employment_tense`):
+{json.dumps(structured[:40], ensure_ascii=False)}
 
 ════════════════════════════════════════
+{_TENSE_RULES_PL}
 ETAPY ANALIZY:
 
 ① STRONA CZYNNA A BIERNA
    Znajdź każde użycie strony biernej („byłem odpowiedzialny”, „było zarządzane przez”).
-   To przeredagowania o najwyższym priorytecie.
+   To przeredagowania o najwyższym priorytecie. Po aktywizacji ZACHOWAJ czas z `employment_tense`.
 
 ② FRAZESY I SŁABE SFORMUŁOWANIA
    Oznacz: „gracz zespołowy”, „pracowity”, „pasjonuję się”, „osoba z inicjatywą”,
@@ -871,7 +1013,7 @@ ETAPY ANALIZY:
    Czy ton jest zbyt nieformalny, zbyt formalny czy odpowiedni dla branży?
 
 Przeredagowuj tylko elementy, które rzeczywiście tego wymagają. Krótkie elementy (imiona i nazwiska, daty, nagłówki)
-nie powinny być przeredagowywane.
+nie powinny być przeredagowywane. Nie „odświeżaj” zakończonych stanowisk do czasu teraźniejszego.
 ════════════════════════════════════════
 
 Zwróć JSON:
@@ -894,27 +1036,35 @@ Zwróć JSON:
 def _improve_content(elements: list[dict]) -> dict:
     """Suggest stronger CV wording without changing layout geometry."""
     structured = _extract_structured(elements)
+    full_text = _extract_text(elements)
 
     system = (
         "Jesteś wysokiej klasy autorem CV. Specjalizujesz się w przekształcaniu zwykłych opisów obowiązków "
         "w przekonujące, oparte na metrykach punkty, które przechodzą przez ATS i robią wrażenie na rekruterach. "
+        "Czas gramatyczny obowiązków MUSI odpowiadać dacie stanowiska (`employment_tense` / Obecnie vs data końcowa). "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
     )
     user = f"""Przeredaguj poniższą treść CV, aby maksymalizować jej siłę oddziaływania.
 
-ELEMENTY:
-{json.dumps(structured[:30], ensure_ascii=False)}
+PEŁNY TEKST CV (kontekst dat stanowisk):
+{full_text}
+
+ELEMENTY (respektuj `employment_tense`):
+{json.dumps(structured[:40], ensure_ascii=False)}
 
 ════════════════════════════════════════
+{_TENSE_RULES_PL}
 ZASADY PRZEREDAGOWANIA (stosuj po kolei):
 
-① MOCNE CZASOWNIKI NA POCZĄTKU — każdy punkt musi zaczynać się od czasownika działania w czasie przeszłym.
-   Preferuj: Zaprojektowałem, Uruchomiłem, Zredukowałem, Zwiększyłem, Wynegocjowałem, Dostarczyłem, Zautomatyzowałem,
-   Skalowałem, Przeprojektowałem, Usprawniłem. Unikaj: Pomagałem, Wspierałem, Byłem zaangażowany.
+① MOCNE CZASOWNIKI NA POCZĄTKU — każdy punkt zaczyna się od czasownika działania
+   w czasie zgodnym z `employment_tense` (nie ujednolicaj wszystkich ról do jednego czasu).
+   Dla `past`: Zaprojektowałem, Uruchomiłem, Zredukowałem, Zwiększyłem, Wynegocjowałem, Dostarczyłem…
+   Dla `present`: Projektuję, Uruchamiam, Redukuję, Zwiększam, Negocjuję, Dostarczam…
+   Unikaj: Pomagałem/Pomagam, Wspierałem/Wspieram, Byłem zaangażowany (zbyt słabe).
 
 ② KWANTYFIKUJ WSZYSTKO — dodaj metrykę do każdego punktu opisującego osiągnięcie.
    Jeśli oryginał nie zawiera liczby, dodaj sensowny symbol zastępczy: [X%], [N użytkowników], [K zł].
-   Przykład: „Zarządzałem mediami społecznościowymi” → „Zwiększyłem liczbę obserwujących w mediach społecznościowych o [X%] w ciągu [N] miesięcy”
+   Przykład (rola zakończona): „Zarządzałem mediami społecznościowymi” → „Zwiększyłem liczbę obserwujących o [X%] w ciągu [N] miesięcy”
 
 ③ KONKRETNOŚĆ — zastępuj ogólne odniesienia do technologii/narzędzi ich rzeczywistymi nazwami, jeśli można je wywnioskować.
    „Używałem baz danych” → „Zoptymalizowałem zapytania PostgreSQL, zmniejszając opóźnienia o [X%]”

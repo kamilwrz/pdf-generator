@@ -77,6 +77,115 @@ class SafeResultSchemaTests(unittest.TestCase):
         )
 
 
+class EmploymentTenseAnnotationTests(unittest.TestCase):
+    def test_annotate_marks_present_and_past_roles_from_period_lines(self):
+        elements = [
+            {
+                "element_id": "cur_period",
+                "category": "text",
+                "content": "08/2023 – Obecnie",
+                "page": 1,
+                "top": 20,
+                "left": 0,
+            },
+            {
+                "element_id": "cur_bullets",
+                "category": "textarea",
+                "content": "Tworzyłem profile KYC.",
+                "page": 1,
+                "top": 40,
+                "left": 0,
+            },
+            {
+                "element_id": "past_period",
+                "category": "text",
+                "content": "01/2023 – 05/2023",
+                "page": 1,
+                "top": 120,
+                "left": 0,
+            },
+            {
+                "element_id": "past_bullets",
+                "category": "textarea",
+                "content": "Weryfikowałem zamówienia.",
+                "page": 1,
+                "top": 140,
+                "left": 0,
+            },
+            {
+                "element_id": "edu_header",
+                "category": "text",
+                "content": "EDUKACJA I KOMPETENCJE",
+                "page": 1,
+                "top": 220,
+                "left": 0,
+            },
+            {
+                "element_id": "edu_body",
+                "category": "textarea",
+                "content": "Studia ekonomiczne.",
+                "page": 1,
+                "top": 240,
+                "left": 0,
+            },
+        ]
+
+        tense_map = ai_assistant_service._annotate_employment_tense(elements)
+        self.assertEqual(tense_map.get("cur_bullets"), "present")
+        self.assertEqual(tense_map.get("past_bullets"), "past")
+        self.assertNotIn("edu_body", tense_map)
+
+        structured = {
+            item["element_id"]: item
+            for item in ai_assistant_service._extract_structured(elements)
+        }
+        self.assertEqual(structured["cur_bullets"]["employment_tense"], "present")
+        self.assertEqual(structured["past_bullets"]["employment_tense"], "past")
+
+    def test_language_prompt_forbids_rewriting_past_roles_to_present(self):
+        elements = [
+            {
+                "element_id": "past_period",
+                "category": "text",
+                "content": "07/2022 – 12/2022",
+                "page": 1,
+                "top": 10,
+                "left": 0,
+            },
+            {
+                "element_id": "past_bullets",
+                "category": "textarea",
+                "content": "Prowadziłem procesy CDD.",
+                "page": 1,
+                "top": 30,
+                "left": 0,
+            },
+        ]
+        captured = {}
+
+        def fake_gpt_result(system, user, **kwargs):
+            captured["system"] = system
+            captured["user"] = user
+            return {
+                "message": "ok",
+                "rating": None,
+                "tips": [],
+                "corrections": [],
+                "web_sources": [],
+            }
+
+        with patch.object(ai_assistant_service, "_gpt_result", side_effect=fake_gpt_result):
+            ai_assistant_service._check_style(
+                ai_assistant_service._extract_text(elements),
+                elements,
+            )
+
+        self.assertIn("employment_tense", captured["user"])
+        self.assertIn('"employment_tense": "past"', captured["user"])
+        self.assertIn("NIGDY nie zamieniaj czasu przeszłego", captured["user"])
+        self.assertIn("Obecnie", captured["system"])
+
+
 class TranslateActionTests(unittest.TestCase):
     def test_translate_dispatches_with_target_language(self):
         elements = [
