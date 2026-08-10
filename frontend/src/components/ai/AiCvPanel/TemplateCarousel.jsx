@@ -13,6 +13,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import classes from "./TemplateCarousel.module.css";
 import { isTemplateAllowed } from "../../../utils/entitlements";
 import {
+    getTemplateAtsReadability,
     listTemplatesInRegistryOrder,
     startIndexForSelectedTemplate,
 } from "../../../utils/templateLayouts";
@@ -110,6 +111,12 @@ export default function TemplateCarousel({
                         const locked = !isTemplateAllowed(t, entitlements);
                         const filling = fillingId === t.id;
                         const selected = selectedId === t.id;
+                        const ats = getTemplateAtsReadability(t);
+                        const baseTitle = locked
+                            ? "Dostępne w planie Pro"
+                            : selected
+                                ? `Aktualny szablon: ${t.name}`
+                                : (t.description || t.name);
                         return (
                             <motion.button
                                 type="button"
@@ -132,13 +139,7 @@ export default function TemplateCarousel({
                                 }}
                                 disabled={fillingId !== null || locked}
                                 aria-current={selected ? "true" : undefined}
-                                title={
-                                    locked
-                                        ? "Dostępne w planie Pro"
-                                        : selected
-                                            ? `Aktualny szablon: ${t.name}`
-                                            : t.description
-                                }
+                                title={`${baseTitle} · ${ats.label}. ${ats.hint}`}
                             >
                                 <span className={classes.imgWrap}>
                                     <img
@@ -160,6 +161,9 @@ export default function TemplateCarousel({
                                     <span className={classes.dot} style={{ background: t.accent }} />
                                     <span className={classes.name}>{t.name}</span>
                                     <span className={classes.description}>{t.description}</span>
+                                    <span className={`${classes.atsBadge} ${classes[`atsBadge_${ats.id}`] || ""}`}>
+                                        {ats.label}
+                                    </span>
                                     {actionLabel && !locked && !selected && (
                                         <span className={classes.actionLabel}>{actionLabel}</span>
                                     )}

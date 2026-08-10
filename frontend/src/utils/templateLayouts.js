@@ -35,6 +35,51 @@ export function templateHasLayout(template, tag) {
 }
 
 /**
+ * Soft ATS readability recommendation derived from layout tags.
+ *
+ * Not a guarantee that any specific ATS will parse the PDF — only a product
+ * hint for portal vs creative applications.
+ *
+ * Priority: dark → bardziej kreatywny; sidebar|icons → bezpieczny; else
+ * (single-column) → bardzo bezpieczny.
+ *
+ * @typedef {"very_safe" | "safe" | "creative"} AtsReadabilityId
+ *
+ * @param {{ layouts?: string[] } | string[] | null | undefined} templateOrLayouts
+ * @returns {{ id: AtsReadabilityId, label: string, shortLabel: string, hint: string }}
+ */
+export function getTemplateAtsReadability(templateOrLayouts) {
+  const layouts = Array.isArray(templateOrLayouts)
+    ? templateOrLayouts
+      .map((tag) => String(tag || "").trim())
+      .filter((tag) => TEMPLATE_LAYOUT_TAGS.includes(tag))
+    : getTemplateLayouts(templateOrLayouts);
+
+  if (layouts.includes("dark")) {
+    return {
+      id: "creative",
+      label: "ATS: bardziej kreatywny",
+      shortLabel: "bardziej kreatywny",
+      hint: "Rekomendacja, nie gwarancja. Do portali rekrutacyjnych lepiej wybrać szablon o wyższej czytelności ATS.",
+    };
+  }
+  if (layouts.includes("sidebar") || layouts.includes("icons")) {
+    return {
+      id: "safe",
+      label: "ATS: bezpieczny",
+      shortLabel: "bezpieczny",
+      hint: "Rekomendacja, nie gwarancja. Układ z ikonami lub sidebar zwykle pozostaje czytelny dla ATS, gdy treść jest zwykłym tekstem.",
+    };
+  }
+  return {
+    id: "very_safe",
+    label: "ATS: bardzo bezpieczny",
+    shortLabel: "bardzo bezpieczny",
+    hint: "Rekomendacja, nie gwarancja. Jednokolumnowy układ jest zwykle najbezpieczniejszy przy aplikacji przez portal ATS.",
+  };
+}
+
+/**
  * Preserve registry order. Product pickers no longer regroup by industry/style.
  *
  * @param {Array<object>} templates

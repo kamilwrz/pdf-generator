@@ -641,9 +641,27 @@
     gap: 10px;
 }
 
+.ratingDashboardHeading {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
 .ratingDashboardLabel {
     font: 700 12.5px var(--font-body);
     color: var(--chrome-ink);
+}
+
+.ratingDashboardBand {
+    font: 600 11px var(--font-body);
+    color: var(--chrome-muted);
+}
+
+.atsDisclaimer {
+    margin: 0;
+    font: 500 11px/1.45 var(--font-body);
+    color: var(--chrome-muted);
 }
 
 .categoryList {

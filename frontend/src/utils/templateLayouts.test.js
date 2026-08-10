@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   filterTemplatesByLayout,
+  getTemplateAtsReadability,
   getTemplateLayouts,
   listTemplatesInRegistryOrder,
   startIndexForSelectedTemplate,
@@ -40,4 +41,13 @@ test("carousel starts at the selected template", () => {
   assert.equal(startIndexForSelectedTemplate(FIXTURES, null), 0);
   assert.equal(startIndexForSelectedTemplate(FIXTURES, "harbor"), 3);
   assert.equal(startIndexForSelectedTemplate(FIXTURES, "missing"), 0);
+});
+
+test("maps layout tags to soft ATS readability labels", () => {
+  assert.equal(getTemplateAtsReadability({ layouts: ["single"] }).id, "very_safe");
+  assert.equal(getTemplateAtsReadability({ layouts: ["icons"] }).id, "safe");
+  assert.equal(getTemplateAtsReadability({ layouts: ["sidebar", "icons"] }).id, "safe");
+  assert.equal(getTemplateAtsReadability({ layouts: ["icons", "dark"] }).id, "creative");
+  assert.match(getTemplateAtsReadability({ layouts: ["single"] }).label, /bardzo bezpieczny/i);
+  assert.match(getTemplateAtsReadability({ layouts: ["dark"] }).hint, /rekomendacja/i);
 });

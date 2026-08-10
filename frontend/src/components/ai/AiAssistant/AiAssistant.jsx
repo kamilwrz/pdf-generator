@@ -32,7 +32,7 @@ const ACTION_META = {
     grammar:         { label: "Sprawdź błędy",        color: CHROME_ACCENT },
     language:        { label: "Popraw język",         color: CHROME_ACCENT },
     improve:         { label: "Wzmocnij treść",       color: CHROME_ACCENT },
-    ats_score:       { label: "Przyjazność ATS",      color: CHROME_ACCENT },
+    ats_score:       { label: "Czytelność dla ATS",   color: CHROME_ACCENT },
     layout:          { label: "Układ strony",         color: CHROME_ACCENT },
     translate:       { label: "Przetłumacz CV",       color: CHROME_ACCENT },
     chat:            { label: "Czat",                 color: CHROME_ACCENT },
@@ -276,6 +276,15 @@ function categoryPercent(category) {
     if (!(max > 0) || Number.isNaN(score)) return null;
     return Math.max(0, Math.min(100, Math.round((score / max) * 100)));
 }
+
+/** Verbal band for ATS readability overall (percent 0–100). */
+function atsReadabilityBand(percent) {
+    if (typeof percent !== "number" || Number.isNaN(percent)) return null;
+    if (percent >= 90) return "Bardzo dobra";
+    if (percent >= 75) return "Dobra";
+    if (percent >= 50) return "Średnia";
+    return "Słaba";
+}
 const SEVERITY_LABELS = {
     critical: "krytyczny",
     high: "wysoki",
@@ -336,13 +345,30 @@ function RatingDashboard({
         || showAtsCta || showMatchCta || showContentCta || showAppearanceCta;
     if (!hasBody) return null;
 
+    const isAts = actionId === "ats_score";
+    const atsBand = isAts ? atsReadabilityBand(percent) : null;
+
     return (
         <div className={classes.ratingDashboard}>
             {percent != null && (
                 <div className={classes.ratingDashboardScore}>
                     <RatingBadge value={msg.rating} />
-                    <span className={classes.ratingDashboardLabel}>Ocena ogólna</span>
+                    <div className={classes.ratingDashboardHeading}>
+                        <span className={classes.ratingDashboardLabel}>
+                            {isAts ? "Czytelność dla ATS" : "Ocena ogólna"}
+                        </span>
+                        {atsBand ? (
+                            <span className={classes.ratingDashboardBand}>{atsBand}</span>
+                        ) : null}
+                    </div>
                 </div>
+            )}
+
+            {isAts && (
+                <p className={classes.atsDisclaimer}>
+                    Ocena sprawdza strukturę i czytelność dokumentu. Różne systemy ATS mogą
+                    interpretować CV inaczej.
+                </p>
             )}
 
             {categories.length > 0 && (

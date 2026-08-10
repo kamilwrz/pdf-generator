@@ -67,3 +67,18 @@ test("goal-oriented quick actions replace flat feature tiles", async () => {
     assert.doesNotMatch(source, /label: "Oceń CV"/);
     assert.doesNotMatch(source, /label: "Wynik ATS"/);
 });
+
+test("ATS dashboard uses readability copy, verbal band, and disclaimer", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+
+    assert.match(source, /ats_score:\s*\{\s*label:\s*"Czytelność dla ATS"/);
+    assert.match(source, /function atsReadabilityBand/);
+    assert.match(source, /Bardzo dobra/);
+    assert.match(source, /isAts \? "Czytelność dla ATS" : "Ocena ogólna"/);
+    assert.match(source, /atsDisclaimer/);
+    assert.match(
+        source,
+        /Ocena sprawdza strukturę i czytelność dokumentu\. Różne systemy ATS mogą/,
+    );
+    assert.doesNotMatch(source, /Przyjazność ATS/);
+});

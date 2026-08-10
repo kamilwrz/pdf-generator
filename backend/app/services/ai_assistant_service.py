@@ -33,6 +33,16 @@ from app.services.layout_gpt import (
     compile_layout_gpt_response,
 )
 from app.services.openai_pricing import empty_usage, usage_from_response
+from app.services.ats_readability import (
+    AtsReadabilityError,
+    analyze_pdf_readability,
+    expected_plain_text,
+    merge_ats_categories,
+    percent_to_rating,
+    weighted_overall_percent,
+)
+from app.services.document_service import make_image_resolver
+from app.utils.image_src_to_path import image_src_to_local_path
 
 # Default assistant model for ratings / chat / grammar / ATS / …
 _MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.4-mini")
@@ -1171,77 +1181,105 @@ Zwróć JSON:
     return _strip_protected_corrections(result, protected_ids)
 
 
-def _ats_score(text: str) -> dict:
-    """Estimate ATS friendliness from plain CV text."""
+def _ats_score(
+    elements: list[dict],
+    page_size: dict | None = None,
+    template_id: str | None = None,
+    *,
+    image_resolver=None,
+) -> dict:
+    """Score ATS readability from a rendered PDF plus content-only LLM review.
+
+    Deterministic layer (ReportLab → PyMuPDF): text extractability, contact
+    fields, content order, and length. LLM layer: standard headings and
+    keywords only — never decorative lines, ordinals, or visual chrome.
+
+    Overall ``rating`` is recomputed from weighted categories in code so the
+    dashboard cannot show 100% while subscores average ~92%.
+
+    @raises AtsReadabilityError
+        When PDF render or text extraction fails (caller must not charge credits).
+    """
+    resolver = image_resolver or image_src_to_local_path
+    try:
+        det = analyze_pdf_readability(elements, page_size, resolver)
+    except AtsReadabilityError:
+        raise
+
+    # Prefer extracted PDF text for the content review; fall back to canvas text
+    # with decorative chrome already stripped by expected_plain_text.
+    pdf_text = (det.get("pdf_text") or "").strip()
+    canvas_text = expected_plain_text(elements)
+    review_text = pdf_text if len(pdf_text) >= 40 else canvas_text
+    parsing_note = (
+        f"Odczyt tekstu z PDF: {next((c['score'] for c in det['categories'] if c['id'] == 'text_extract'), 0)}/100. "
+        f"Kontakt: {next((c['score'] for c in det['categories'] if c['id'] == 'contact'), 0)}/100. "
+        f"Kolejność: {next((c['score'] for c in det['categories'] if c['id'] == 'section_order'), 0)}/100. "
+        f"Długość (słowa w PDF): {next((c['score'] for c in det['categories'] if c['id'] == 'length'), 0)}/100."
+    )
+    template_note = f"Szablon: {template_id}." if template_id else ""
+
     system = (
         "Jesteś ekspertem od ATS (systemów śledzenia kandydatów). "
         "Wiesz, jak Workday, Greenhouse, Lever i Taleo analizują CV. "
+        "Backend już zweryfikował techniczny odczyt PDF — NIE oceniaj dekoracji wizualnych "
+        "(linie, ordinalne numery 01/02, ramki, tła, ikony, sidebar). "
+        "Oceń WYŁĄCZNIE treść: standardowe nagłówki sekcji i słowa kluczowe. "
         "Nie wpisuj liczby oceny w `message` (ani jako X/10, ani jako procent) — interfejs pokazuje ją osobno. "
+        "Pole `rating` ustaw na 0 (backend nadpisze wynik). "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
-    user = f"""Przeanalizuj to CV pod kątem zgodności z ATS. Oceń je w skali 1–10.
+    user = f"""Przeanalizuj treść CV pod kątem nagłówków i słów kluczowych istotnych dla ATS.
 
-TEKST CV:
-{text}
+TEKST CV (z finalnego PDF lub oczyszczonego canvasu):
+{review_text}
+
+FAKTY Z WARSTWY TECHNICZNEJ (nie zmieniaj ich; nie karaj za dekoracje):
+{parsing_note}
+{template_note}
 
 ════════════════════════════════════════
-ETAPY OBLICZEŃ:
+OCEN TYLKO TE KATEGORIE (skala 0–100 każda):
 
-① STANDARDOWE NAGŁÓWKI SEKCJI (0–2 pkt)
-   ATS oczekuje dokładnych lub zbliżonych standardowych nagłówków. Sprawdź:
-   „Doświadczenie zawodowe” / „Doświadczenie”, „Wykształcenie”, „Umiejętności”, „Podsumowanie” / „Profil”,
-   „Certyfikaty”, „Języki”.
-   Wynik = (liczba znalezionych standardowych nagłówków / 6) × 2.
+① NAGŁÓWKI SEKCJI (id: headers)
+   Standardowe lub bliskie: „Doświadczenie zawodowe” / „Doświadczenie”, „Wykształcenie”,
+   „Umiejętności”, „Podsumowanie” / „Profil”, „Certyfikaty”, „Języki”.
+   100 = większość standardowych obecna; 50 = mieszanka; 20 = nietypowe/brak.
 
-② GĘSTOŚĆ SŁÓW KLUCZOWYCH (0–3 pkt)
-   Zidentyfikuj 5 najważniejszych standardowych dla branży słów kluczowych obecnych w CV
-   (np. konkretne technologie, metodyki, kompetencje miękkie).
-   Wynik = (liczba znalezionych słów kluczowych / 5) × 3.
+② SŁOWA KLUCZOWE (id: keywords)
+   Gęstość konkretnych kompetencji branżowych widocznych w tekście.
+   100 = bogaty, konkretny język; 50 = ogólne sformułowania; 20 = bardzo ubogo.
 
-③ KOMPLETNOŚĆ DANYCH KONTAKTOWYCH (0–1 pkt)
-   E-mail, telefon, LinkedIn/GitHub, lokalizacja. 1 pkt, jeśli obecne są ≥3; 0,5 pkt, jeśli 2; 0 pkt, jeśli ≤1.
-
-④ SPÓJNOŚĆ FORMATU DAT (0–1 pkt)
-   Daty powinny konsekwentnie mieć format miesiąc rok lub MM/RRRR. 1 pkt, jeśli są spójne; 0 pkt, jeśli są mieszane.
-
-⑤ BEZPIECZEŃSTWO FORMATOWANIA (0–2 pkt)
-   ATS ma trudności z: tabelami, obrazami w przepływie tekstu, znakami specjalnymi i nietypowymi czcionkami.
-   Na podstawie struktury elementów przyznaj do 2 pkt.
-
-⑥ DŁUGOŚĆ (0–1 pkt)
-   Optymalna długość to 1–2 strony. Oszacuj ją na podstawie liczby słów w tekście.
-
-SUMA = ①+②+③+④+⑤+⑥, w zakresie 1–10.
+NIE zwracaj kategorii: text_extract, contact, section_order, length, format, dates.
+NIE obniżaj oceny za linie, numery sekcji, ikony ani układ graficzny.
 ════════════════════════════════════════
 
-Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
-Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
-W `message` NIE podawaj oceny liczbowej (zakazane: „8/10”, „80%”). Interfejs pokazuje ją osobno.
+Zwróć JSON:
 {{
-  "message": "<2–3 zdania: główne ryzyko związane z ATS i najważniejsza luka w słowach kluczowych. Bez liczby oceny.>",
-  "rating": <obliczona ocena 1-10>,
+  "message": "<2–3 zdania: główne ryzyko treściowe dla ATS (nagłówki/słowa kluczowe). Bez liczby oceny.>",
+  "rating": 0,
   "categories": [
-    {{"id": "headers", "label": "Nagłówki", "score": <0-2>, "max": 2}},
-    {{"id": "keywords", "label": "Słowa kluczowe", "score": <0-3>, "max": 3}},
-    {{"id": "contact", "label": "Kontakt", "score": <0-1>, "max": 1}},
-    {{"id": "dates", "label": "Daty", "score": <0-1>, "max": 1}},
-    {{"id": "format", "label": "Format", "score": <0-2>, "max": 2}},
-    {{"id": "length", "label": "Długość", "score": <0-1>, "max": 1}}
+    {{"id": "headers", "label": "Nagłówki", "score": <0-100>, "max": 100}},
+    {{"id": "keywords", "label": "Słowa kluczowe", "score": <0-100>, "max": 100}}
   ],
-  "strengths": ["<mocna strona pod ATS>"],
+  "strengths": ["<mocna strona treści pod ATS>"],
   "priorities": [
-    {{"title": "<główne ryzyko ATS>", "description": "<konkretna poprawka>"}}
+    {{"title": "<główne ryzyko treściowe>", "description": "<konkretna poprawka>"}}
   ],
   "tips": [
-    "<znaleziony niestandardowy nagłówek + proponowana nazwa>",
-    "<3 najważniejsze brakujące słowa kluczowe ATS dla widocznej branży/roli>",
-    "<brak w danych kontaktowych, jeśli występuje>",
-    "<problem z formatem dat, jeśli występuje>"
+    "<niestandardowy nagłówek + proponowana nazwa, jeśli dotyczy>",
+    "<brakujące słowa kluczowe dla widocznej branży/roli>"
   ],
   "corrections": [],
   "web_sources": []
 }}"""
-    return _gpt_result(system, user, action="ats_score")
+    llm = _gpt_result(system, user, action="ats_score")
+    merged = merge_ats_categories(det["categories"], llm.get("categories") or [])
+    overall_pct = weighted_overall_percent(merged)
+    llm["categories"] = merged
+    llm["rating"] = percent_to_rating(overall_pct)
+    # Keep prose free of invented overall scores; dashboard owns the number.
+    return llm
 
 
 _MAX_CHAT_HISTORY = 12
@@ -1666,13 +1704,19 @@ def analyze_action(
     history: list | None = None,
     template_id: str | None = None,
     target_language: str = "",
+    db=None,
 ) -> dict:
     """Dispatch one assistant button/chat action and return a UI-ready dict.
 
     Unknown actions return an empty Polish error payload without calling GPT.
     `AIServiceError` is re-raised with action/element context filled in for logs.
+    `AtsReadabilityError` from ``ats_score`` is converted to ``AIServiceError``
+    with a user-facing Polish message so credits are not charged.
     """
     text = _extract_text(elements)
+    # Prefer the DB-backed resolver so user-uploaded `/images/{id}/content`
+    # paths resolve during ATS PDF render; fall back to filesystem/template paths.
+    ats_resolver = make_image_resolver(db) if db is not None else image_src_to_local_path
 
     dispatchers = {
         "rating":          lambda: _rate_cv(text, elements),
@@ -1681,7 +1725,12 @@ def analyze_action(
         "grammar":         lambda: _fix_grammar(elements),
         "language":        lambda: _check_style(text, elements),
         "improve":         lambda: _improve_content(elements),
-        "ats_score":       lambda: _ats_score(text),
+        "ats_score":       lambda: _ats_score(
+            elements,
+            page_size,
+            template_id,
+            image_resolver=ats_resolver,
+        ),
         "translate":       lambda: _translate_cv(elements, target_language),
         "chat":            lambda: _chat(message, elements, page_size, history),
         "layout":          lambda: _layout_session(
@@ -1700,6 +1749,14 @@ def analyze_action(
         }
     try:
         return fn()
+    except AtsReadabilityError as exc:
+        raise AIServiceError(
+            str(exc),
+            action=action,
+            elements_count=len(elements),
+            original=exc,
+            user_message=exc.user_message,
+        ) from exc
     except AIServiceError as exc:
         exc.action = exc.action or action
         exc.elements_count = exc.elements_count or len(elements)

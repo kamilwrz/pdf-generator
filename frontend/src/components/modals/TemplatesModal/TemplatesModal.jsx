@@ -12,6 +12,7 @@ import { TEMPLATES } from "../../../templates";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { logEvent } from "../../../services/eventLog";
 import { isTemplateAllowed } from "../../../utils/entitlements";
+import { getTemplateAtsReadability } from "../../../utils/templateLayouts";
 
 // Real cropped screenshot of the template's own canvas data — see
 // frontend/public/template-mockups/. Card aspect ratio matches A4 portrait.
@@ -95,6 +96,7 @@ export default function TemplatesModal() {
                     <div className={classes.grid}>
                         {TEMPLATES.map((t) => {
                             const locked = !isTemplateAllowed(t, entitlements);
+                            const ats = getTemplateAtsReadability(t);
                             return (
                                 <div key={t.id} className={`${classes.card} ${locked ? classes.cardLocked : ""}`}>
                                     <div className={classes.previewWrap}>
@@ -103,6 +105,12 @@ export default function TemplatesModal() {
                                     </div>
                                     <div className={classes.cardName}>{t.name}</div>
                                     <div className={classes.cardDescription}>{t.description}</div>
+                                    <span
+                                        className={`${classes.atsBadge} ${classes[`atsBadge_${ats.id}`] || ""}`}
+                                        title={ats.hint}
+                                    >
+                                        {ats.label}
+                                    </span>
                                     <button
                                         type="button"
                                         className={locked ? classes.lockedBtn : classes.useBtn}

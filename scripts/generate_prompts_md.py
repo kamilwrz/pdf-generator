@@ -235,23 +235,26 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
     parts.append(code(sl(a, 870, 906)))
 
     # 8 ats
-    parts.append("\n---\n\n## 8. ATS\n\n")
+    parts.append("\n---\n\n## 8. Czytelność dla ATS\n\n")
     parts.append(
-        "**Po co (prosto):** Sprawdza, czy automatyczne systemy rekrutacyjne "
-        "(Workday, Greenhouse…) łatwo „zrozumieją” Twoje CV: nagłówki, słowa kluczowe, "
-        "kontakt, daty, długość. W UI uruchamiane leniwie z CTA po **Sprawdź CV**.\n\n"
-        f"**Plik:** `{a}`  \n"
-        "**Linie:** system **995–999**, user **1000–1060**, handler `_ats_score` **993–1061**  \n"
+        "**Po co (prosto):** Backend najpierw generuje finalny PDF i PyMuPDF sprawdza "
+        "odczyt tekstu, kontakt, kolejność oraz długość (`ats_readability.py`). "
+        "LLM ocenia tylko nagłówki i słowa kluczowe — bez kary za dekoracje (linie, 01/02). "
+        "Overall liczy kod z wag. W UI: CTA po **Sprawdź CV**.\n\n"
+        f"**Plik:** `{a}` (+ `backend/app/services/ats_readability.py`)  \n"
+        "**Linie:** system **1222–1231**, user **1232–1275**, handler `_ats_score` **1184–1282**  \n"
         "**Akcja API:** `ats_score`\n\n"
         "### Zmienne\n\n"
         "| Zmienna | Skąd | Linie |\n"
         "|---------|------|-------|\n"
-        "| `{text}` | `_extract_text` | 1490, 1003 |\n\n"
+        "| `{review_text}` | tekst z PDF lub oczyszczony canvas | 1210–1213, 1235 |\n"
+        "| `{parsing_note}` | score’y deterministyczne | 1214–1218, 1238 |\n"
+        "| `{template_note}` | opcjonalny `template_id` | 1220, 1239 |\n\n"
         "### System\n\n"
     )
-    parts.append(code(sl(a, 995, 999)))
+    parts.append(code(sl(a, 1222, 1231)))
     parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1000, 1060)))
+    parts.append(code(sl(a, 1232, 1275)))
 
     # 8b translate
     parts.append("\n---\n\n## 8b. Tłumaczenie CV\n\n")
@@ -390,7 +393,7 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
 | `grammar` / Popraw treść | `_fix_grammar` | 776–780 | 781–801 |
 | `language` / Popraw treść | `_check_style` | 809–813 | 814–857 |
 | `improve` / Popraw treść | `_improve_content` | 865–869 | 870–906 |
-| `ats_score` / CTA z Sprawdź CV | `_ats_score` | 995–999 | 1000–1060 |
+| `ats_score` / CTA z Sprawdź CV | `_ats_score` + `ats_readability` | 1222–1231 | 1232–1275 |
 | `translate` / Przetłumacz CV | `_translate_cv` | 955–962 | 963–988 |
 | `chat` | `_chat` | 1095–… | 1252–… |
 | `layout` / Sprawdź wygląd → Układ | `_layout_session` + `layout_gpt` | 175–211 | 485–658 (+ pytanie / chip) |

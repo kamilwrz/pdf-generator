@@ -160,6 +160,7 @@ async def ai_assistant(
             history=request.history,
             template_id=request.template_id,
             target_language=target_language,
+            db=db,
         )
         charge_ai_credits(db, user.id, result.get("usage", {}).get("cost_pln_estimate", 0.0))
         return AssistantResponse(**result)

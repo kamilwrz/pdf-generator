@@ -64,6 +64,40 @@
     min-height: 2.6em;
 }
 
+.atsBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    padding: 3px 7px;
+    border-radius: 2px;
+    border: 1px solid var(--chrome-border);
+    font: 600 10px var(--font-body);
+    letter-spacing: 0.02em;
+    color: var(--chrome-ink);
+    background: var(--chrome-control);
+    text-align: center;
+    cursor: help;
+}
+
+.atsBadge_very_safe {
+    border-color: color-mix(in srgb, #5FA777 45%, var(--chrome-border));
+    color: #3F7A55;
+    background: color-mix(in srgb, #5FA777 12%, var(--chrome-surface));
+}
+
+.atsBadge_safe {
+    border-color: color-mix(in srgb, #3E5C76 40%, var(--chrome-border));
+    color: #3E5C76;
+    background: color-mix(in srgb, #3E5C76 10%, var(--chrome-surface));
+}
+
+.atsBadge_creative {
+    border-color: color-mix(in srgb, #C45C26 40%, var(--chrome-border));
+    color: #A34A1C;
+    background: color-mix(in srgb, #C45C26 10%, var(--chrome-surface));
+}
+
 .useBtn {
     width: 100%;
     background: var(--accent-grad);
