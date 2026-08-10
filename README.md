@@ -573,9 +573,28 @@ Tests:
 
 - `frontend/src/utils/canvasEnter.test.js` — pending-id registry and chrome exclusion
 
+### Regent executive template
+
+Regent is a free single-column template (`layouts: ["single"]`) for senior and executive profiles. Its visual system combines a warm ivory page, a slim oxblood rail, a pale hairline frame, and a personalized initials seal generated from the candidate's name. The previous geometric square/circle ornament was replaced with a simpler oval seal so the masthead reads as a premium identity rather than an abstract diagram. The name uses 33 pt **Cormorant Garamond**; role, contact details, section labels, and body use **Inter**. Body copy is `9.6` pt with `14` pt line height, record titles are `11.2` pt, and the main reading column is 410 pt wide.
+
+Each section is anchored by a filled oxblood dot and a two-part rule: a 44 pt accent lead followed by a pale continuation. The frontend starter tags masthead and section decoration with `flowRole`, while the backend generator continues to use `Builder`, `need_section`, `keep_together` / `flowGroup`, and the shared experience, education, skills, and extra-section helpers. Page frames and footers repeat on continuation pages; the name masthead and personalized seal remain page-one content.
+
+Implementation:
+
+- `backend/app/services/cv_templates/templates/regent.py`, function `_gen_regent` — dynamic initials seal, executive typography, section chrome, deterministic flow and repeating page decoration
+- `frontend/src/templates/regent.js`, exported `regentTemplate` — source starter with the same visual system and explicit `masthead` / `section-chrome` roles
+- `frontend/src/templates/index.js`, registry entry `regent` (`tier: "free"`, `layouts: ["single"]`)
+- `frontend/scripts/dump-iconic-templates.mjs` and `scripts/render_iconic_mockups.py` — source-driven Regent preview pipeline
+- `frontend/public/template-mockups/regent.png` — rendered A4 preview
+
+Tests:
+
+- `frontend/src/templates/regent.test.js` — image-free layout, Cormorant masthead, personalized seal, stable content column, and repeated dot/two-tone section system
+- `backend/tests/test_cv_template_layouts.py` — structured records, image-free classic primitives, page bounds, body typography, and continuation-page decoration
+
 ### Monument monochrome template
 
-Monument is a paid Classic template for users who want an elegant editorial result without colour. Its visual identity comes from numbered black rectangles, outlined heading frames, thin grey rules, and an asymmetric masthead. The smallest text is 9 px; body copy and the summary both use 9 px so the lead paragraph does not sit one step above surrounding text, record titles use 11 px, education titles use 10 px, and section headings plus the job-position line use 12.5 px. Cormorant Garamond supplies the formal display voice, while Montserrat keeps dense CV content easy to scan. The same summary-equals-body rule applies across every filled template in `generate_resume` (for example Regent uses 9.3 px to match experience bullets).
+Monument is a paid Classic template for users who want an elegant editorial result without colour. Its visual identity comes from numbered black rectangles, outlined heading frames, thin grey rules, and an asymmetric masthead. The smallest text is 9 px; body copy and the summary both use 9 px so the lead paragraph does not sit one step above surrounding text, record titles use 11 px, education titles use 10 px, and section headings plus the job-position line use 12.5 px. Cormorant Garamond supplies the formal display voice, while Montserrat keeps dense CV content easy to scan. The same summary-equals-body rule applies across every filled template in `generate_resume` (for example Regent uses 9.6 px to match experience bullets).
 
 The frontend starter array and the deterministic Python generator use the same A4 geometry and grayscale palette. `_gen_monument` preserves complete experience and education records during page breaks, supports custom sections through `_extra_sections`, and groups each number, frame, label, and rule into one reflow unit so the heading geometry remains aligned after browser text measurement. The page frame and footer repeat on every page, while the name-and-position masthead and its tall side bars appear only on page one; `repeatOnContinuation: false` preserves this rule when the editor creates another page later. Layout decisions are never sent to the AI model.
 
@@ -806,7 +825,7 @@ Tests:
 - `backend/tests/test_pdf_shapes.py`, lines 67–131 — optical alignment, explicit `alignWithText: false`, and alpha-mask regressions
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_iconic_experience_record_gap_matches_projects`
 
-**Regenerating source-driven mockups.** `frontend/public/template-mockups/{nova,volt,monument,words,cardinal,harbor,tessera,slate,portico,axis,atrium}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, `frontend/src/templates/harbor.js`, `frontend/src/templates/tessera.js`, `frontend/src/templates/slate.js`, `frontend/src/templates/portico.js`, `frontend/src/templates/axis.js`, or `frontend/src/templates/atrium.js` changes, regenerate them:
+**Regenerating source-driven mockups.** `frontend/public/template-mockups/{nova,volt,monument,words,cardinal,harbor,tessera,slate,portico,axis,atrium,regent}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, `frontend/src/templates/harbor.js`, `frontend/src/templates/tessera.js`, `frontend/src/templates/slate.js`, `frontend/src/templates/portico.js`, `frontend/src/templates/axis.js`, `frontend/src/templates/atrium.js`, or `frontend/src/templates/regent.js` changes, regenerate them:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs
@@ -2029,9 +2048,28 @@ Testy:
 
 - `frontend/src/utils/canvasEnter.test.js` — rejestr id oraz wykluczenie chrome
 
+### Szablon executive Regent
+
+Regent to darmowy szablon jednokolumnowy (`layouts: ["single"]`) dla profili senior i executive. Jego system wizualny łączy ciepłą stronę ivory, smukłą szynę oxblood, bladą ramę hairline i personalizowany sygnet z inicjałami generowanymi z nazwiska kandydata. Poprzedni ornament kwadrat/okrąg został zastąpiony prostszym owalnym sygnetem, dzięki czemu masthead wygląda jak dopracowana identyfikacja, a nie przypadkowy diagram. Nazwa używa 33 pt **Cormorant Garamond**; stanowisko, kontakt, nagłówki sekcji i body używają **Inter**. Body ma `9.6` pt i line height `14` pt, tytuły wpisów `11.2` pt, a główna kolumna ma szerokość 410 pt.
+
+Każdą sekcję kotwiczy wypełniona kropka oxblood oraz dwuczęściowa linia: 44 pt akcentu i blada kontynuacja. Starter frontendu oznacza masthead i dekoracje sekcji przez `flowRole`, a generator backendu nadal używa `Builder`, `need_section`, `keep_together` / `flowGroup` oraz wspólnych helperów experience, education, skills i extra sections. Ramy strony i stopki powtarzają się na stronach kontynuacji; masthead z nazwiskiem i personalizowany sygnet pozostają treścią pierwszej strony.
+
+Implementacja:
+
+- `backend/app/services/cv_templates/templates/regent.py`, funkcja `_gen_regent` — dynamiczny sygnet inicjałów, typografia executive, chrome sekcji, deterministyczny flow i powtarzane dekoracje strony
+- `frontend/src/templates/regent.js`, eksport `regentTemplate` — starter źródłowy z tym samym systemem wizualnym i rolami `masthead` / `section-chrome`
+- `frontend/src/templates/index.js`, wpis rejestru `regent` (`tier: "free"`, `layouts: ["single"]`)
+- `frontend/scripts/dump-iconic-templates.mjs` i `scripts/render_iconic_mockups.py` — pipeline podglądu Regent generowanego ze źródła
+- `frontend/public/template-mockups/regent.png` — wyrenderowany podgląd A4
+
+Testy:
+
+- `frontend/src/templates/regent.test.js` — układ bez obrazów, masthead Cormorant, personalizowany sygnet, stabilna kolumna i powtarzalny system kropka/dwukolorowa linia
+- `backend/tests/test_cv_template_layouts.py` — strukturalne wpisy, klasyczne prymitywy bez obrazów, granice strony, typografia body i dekoracje stron kontynuacji
+
 ### Monochromatyczny szablon Monument
 
-Monument to płatny jednokolumnowy szablon (`layouts: ["single"]`) dla osób, które chcą eleganckiego, redakcyjnego efektu bez koloru. Jego charakter budują numerowane czarne prostokąty, konturowe ramki nagłówków, cienkie szare linie i asymetryczny masthead. Najmniejszy tekst ma 9 px; treść główna i podsumowanie używają po 9 px, żeby akapit wstępny nie był o stopień większy od otaczającego tekstu, tytuły stanowisk mają 11 px, tytuły edukacji 10 px, a nagłówki sekcji i linia stanowiska przy nazwisku 12,5 px. Cormorant Garamond odpowiada za formalny charakter display, a Montserrat utrzymuje czytelność gęstej treści CV. Ta sama zasada „podsumowanie = treść body” obowiązuje we wszystkich szablonach wypełnianych przez `generate_resume` (np. Regent używa 9,3 px jak bulletów doświadczenia).
+Monument to płatny jednokolumnowy szablon (`layouts: ["single"]`) dla osób, które chcą eleganckiego, redakcyjnego efektu bez koloru. Jego charakter budują numerowane czarne prostokąty, konturowe ramki nagłówków, cienkie szare linie i asymetryczny masthead. Najmniejszy tekst ma 9 px; treść główna i podsumowanie używają po 9 px, żeby akapit wstępny nie był o stopień większy od otaczającego tekstu, tytuły stanowisk mają 11 px, tytuły edukacji 10 px, a nagłówki sekcji i linia stanowiska przy nazwisku 12,5 px. Cormorant Garamond odpowiada za formalny charakter display, a Montserrat utrzymuje czytelność gęstej treści CV. Ta sama zasada „podsumowanie = treść body” obowiązuje we wszystkich szablonach wypełnianych przez `generate_resume` (np. Regent używa 9,6 px jak bulletów doświadczenia).
 
 Startowa tablica frontendu oraz deterministyczny generator Python używają tej samej geometrii A4 i palety szarości. `_gen_monument` nie rozdziela wpisów doświadczenia ani edukacji przy zmianie strony, obsługuje sekcje własne przez `_extra_sections` i grupuje numer, ramkę, etykietę oraz linię jako jeden element reflow, dzięki czemu geometria nagłówka pozostaje równa po pomiarze tekstu w przeglądarce. Rama strony i stopka powtarzają się na każdej stronie, natomiast masthead z nazwiskiem i stanowiskiem oraz jego wysokie boczne belki występują wyłącznie na pierwszej stronie; `repeatOnContinuation: false` zachowuje tę regułę również wtedy, gdy edytor później utworzy kolejną stronę. Decyzje o layoucie nie są przekazywane do modelu AI.
 
@@ -2262,7 +2300,7 @@ Testy:
 - `backend/tests/test_pdf_shapes.py`, linie 67–131 — wyrównanie optyczne, jawne `alignWithText: false` oraz maska alfa
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_iconic_experience_record_gap_matches_projects`
 
-**Regenerowanie podglądów opartych na kodzie źródłowym.** Pliki `frontend/public/template-mockups/{nova,volt,monument,words,cardinal,harbor,tessera,slate,portico,axis,atrium}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, `frontend/src/templates/harbor.js`, `frontend/src/templates/tessera.js`, `frontend/src/templates/slate.js`, `frontend/src/templates/portico.js`, `frontend/src/templates/axis.js` lub `frontend/src/templates/atrium.js` należy je odtworzyć:
+**Regenerowanie podglądów opartych na kodzie źródłowym.** Pliki `frontend/public/template-mockups/{nova,volt,monument,words,cardinal,harbor,tessera,slate,portico,axis,atrium,regent}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, `frontend/src/templates/harbor.js`, `frontend/src/templates/tessera.js`, `frontend/src/templates/slate.js`, `frontend/src/templates/portico.js`, `frontend/src/templates/axis.js`, `frontend/src/templates/atrium.js` lub `frontend/src/templates/regent.js` należy je odtworzyć:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs

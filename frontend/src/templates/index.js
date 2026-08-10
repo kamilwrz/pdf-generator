@@ -31,7 +31,7 @@ export const TEMPLATES = [
     { id: "nimbus", tier: "free", name: "Nimbus", description: "Jasny i minimalistyczny", layouts: ["single"], accent: "#5F8EAD", elements: nimbusTemplate },
     { id: "cinder", tier: "paid", name: "Cinder", description: "Ciemny i wyrazisty", layouts: ["single"], accent: "#C93F3F", elements: cinderTemplate },
     { id: "kernel", tier: "free", name: "Kernel", description: "Architektura systemów", layouts: ["single"], accent: "#D69B22", elements: kernelTemplate },
-    { id: "regent", tier: "free", name: "Regent", description: "Executive, wyważona elegancja", layouts: ["single"], accent: "#733B43", elements: regentTemplate },
+    { id: "regent", tier: "free", name: "Regent", description: "Executive z personalizowanym sygnetem", layouts: ["single"], accent: "#733B43", elements: regentTemplate },
     { id: "aldine", tier: "paid", name: "Aldine", description: "Szlachetny papier", layouts: ["single"], accent: "#486151", elements: aldineTemplate },
     { id: "monument", tier: "paid", name: "Monument", description: "Monochromatyczny editorial", layouts: ["single"], accent: "#343434", elements: monumentTemplate },
     { id: "words", tier: "paid", name: "Words", description: "Dokument w stylu Word", layouts: ["single"], accent: "#555555", elements: wordsTemplate },

@@ -617,7 +617,10 @@ class CvTemplateLayoutTests(unittest.TestCase):
         main_copy = [
             element["content"]
             for element in main
-            if element["category"] == "textarea" and element.get("left", 0) >= 100
+            # Main-column templates currently start between 96 pt (Regent) and
+            # 218 pt (Tessera). The threshold excludes sidebar copy without
+            # coupling this structural test to one template's exact margin.
+            if element["category"] == "textarea" and element.get("left", 0) >= 90
         ]
         self.assertIn("Magister prawa", main_copy)
         self.assertIn("Uniwersytet Warszawski", main_copy)
@@ -715,6 +718,24 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 self.assertEqual(school["color"], degree["color"])
                 self.assertNotEqual(description["color"], metadata["color"])
                 self.assertNotEqual(school["color"], metadata["color"])
+
+    def test_regent_personalizes_the_masthead_seal(self):
+        """Regent derives a two-letter seal without adding external assets."""
+        elements = generate_resume("regent", {
+            "name": "Maria Skłodowska Curie",
+            "title": "Dyrektorka Badań",
+            "experience": [],
+            "education": [],
+            "skills": [],
+            "extra_sections": [],
+        })
+        initials = next(
+            element for element in elements
+            if element.get("id") == "regent-initials"
+        )
+        self.assertEqual(initials["content"], "MC")
+        self.assertEqual(initials["flowRole"], "masthead")
+        self.assertFalse(any(element["category"] == "image" for element in elements))
 
     def test_classic_templates_are_image_free_single_column_documents(self):
         multi_page_cv = {
@@ -1457,7 +1478,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         # template_id → y of the wide header divider (top of 1px rule)
         cases = {
             "nimbus": 207,
-            "regent": 158,
+            "regent": 154,
             "aldine": 157,
             "nova": 144,
             "words": None,  # hairline is measured from the generated layout
