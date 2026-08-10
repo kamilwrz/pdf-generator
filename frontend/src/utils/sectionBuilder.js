@@ -324,16 +324,34 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
 
   if (style.rule) {
     // Horizontal offset may differ from the title (Monument rule at +251).
-    const ruleRelLeft = Number.isFinite(Number(style.rule.relLeft))
+    let ruleRelLeft = Number.isFinite(Number(style.rule.relLeft))
       ? Number(style.rule.relLeft)
       : 0;
+    let ruleWidth = Number(style.rule.width) || width;
+    // Cardinal-style midline rules trail the label instead of underlining the
+    // whole column. Recompute their start from the new label's tracked width,
+    // while preserving the sampled right edge. Copying the source relLeft
+    // verbatim makes short and long custom labels inherit the wrong blank gap.
+    const sampledLabelGap = Number(style.rule.labelGap);
+    if (
+      ruleTop < 0
+      && ruleRelLeft > 0
+      && Number.isFinite(sampledLabelGap)
+    ) {
+      const estimatedLabelWidth = label.length * (
+        style.heading.fontSize * 0.58 + (Number(style.heading.letterSpacing) || 0)
+      );
+      const sampledRight = ruleRelLeft + ruleWidth;
+      ruleRelLeft = estimatedLabelWidth + sampledLabelGap;
+      ruleWidth = Math.max(1, sampledRight - ruleRelLeft);
+    }
     elements.push({
       element_id: idFactory(),
       category: "line",
       flowRole: "section-chrome",
       left: left + ruleRelLeft,
       top: ruleTop,
-      width: style.rule.width,
+      width: ruleWidth,
       height: style.rule.height,
       backgroundColor: style.rule.backgroundColor,
       isSelected: false,

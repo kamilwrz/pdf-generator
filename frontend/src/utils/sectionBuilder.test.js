@@ -456,20 +456,28 @@ describe("build -> append -> reorder (composed production pipeline)", () => {
     const geometry = listDocumentSections(appended, pageHeight).map((section) => {
       const ids = sectionElementIds(appended, section.headingId, pageHeight);
       const members = appended.filter((element) => ids.has(element.element_id));
+      const heading = members.find((element) => element.element_id === section.headingId);
       const rule = members.find((element) => element.category === "line" && element.width >= 120);
       const body = members
         .filter((element) => element.flowRole === "content")
         .sort((left, right) => absolute(left) - absolute(right))[0];
+      const estimatedHeadingWidth = heading.content.length
+        * (heading.fontSize * 0.58 + heading.letterSpacing);
       return {
         headingId: section.headingId,
         ruleId: rule?.element_id,
         right: rule.left + rule.width,
+        labelGap: rule.left - heading.left - estimatedHeadingWidth,
         gap: absolute(body) - absolute(rule) - rule.height,
       };
     });
 
     assert.ok(geometry.find((section) => section.headingId === headingId)?.ruleId);
     assert.deepEqual(new Set(geometry.map((section) => section.right)), new Set([545]));
+    assert.deepEqual(
+      new Set(geometry.map((section) => Number(section.labelGap.toFixed(6)))),
+      new Set([14]),
+    );
     assert.equal(
       new Set(geometry.map((section) => Number(section.gap.toFixed(6)))).size,
       1,

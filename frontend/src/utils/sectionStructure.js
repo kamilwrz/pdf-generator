@@ -1673,13 +1673,17 @@ export function deriveSectionStyle(elements, pageHeight = 842, fromHeadingId = n
   const bodyColor = String(body?.color || DEFAULT_SECTION_STYLE.body.color);
   const mutedElement = bodyElements.find((element) => String(element.color || "") && String(element.color) !== bodyColor);
   const mutedColor = mutedElement ? String(mutedElement.color) : DEFAULT_SECTION_STYLE.mutedColor;
+  const headingFontSize = Number(heading?.fontSize) || DEFAULT_SECTION_STYLE.heading.fontSize;
+  const headingLetterSpacing = Number(heading?.letterSpacing) || 0;
+  const estimatedHeadingWidth = String(heading?.content || "").length
+    * (headingFontSize * 0.58 + headingLetterSpacing);
 
   return {
     left,
     bodyLeft,
     recordWidth,
     heading: {
-      fontSize: Number(heading?.fontSize) || DEFAULT_SECTION_STYLE.heading.fontSize,
+      fontSize: headingFontSize,
       fontFamily: String(heading?.fontFamily || DEFAULT_SECTION_STYLE.heading.fontFamily),
       color: String(heading?.color || DEFAULT_SECTION_STYLE.heading.color),
       letterSpacing: Number(heading?.letterSpacing) || 0,
@@ -1691,6 +1695,11 @@ export function deriveSectionStyle(elements, pageHeight = 842, fromHeadingId = n
         height: Number(rule.height) || 1,
         backgroundColor: String(rule.backgroundColor || DEFAULT_SECTION_STYLE.rule.backgroundColor),
         relLeft: (Number(rule.left) || 0) - left,
+        // Trailing midline rules (Cardinal) must preserve the whitespace after
+        // the label, not the source label's absolute rule start. The builder
+        // combines this sampled gap with the new label width and retains the
+        // original right edge.
+        labelGap: ((Number(rule.left) || 0) - left) - estimatedHeadingWidth,
         // Vertical offset from the title baseline. Monument's accent rule sits
         // mid-band (~+7), not flush under the label like Builder.line (~+fs*1.35).
         // Without this, built sections park the rule ~10px too low beside the frame.
