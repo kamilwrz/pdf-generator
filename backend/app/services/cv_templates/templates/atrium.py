@@ -33,6 +33,31 @@ from app.services.cv_templates.shared.records import (
 )
 from app.services.cv_templates.shared.text import _compact_text, _labels, _place_skills_section
 
+from reportlab.pdfbase.pdfmetrics import stringWidth
+
+from app.services.pdf_generator import PDF_Generator
+
+
+def _centered_left(label: str, font: str, font_size: float, letter_spacing: float,
+                   center_x: float) -> float:
+    """Left X so `label` (rendered with `letter_spacing`) is centered on `center_x`.
+
+    Section headings are plain ``text`` elements — the same category every other
+    template's headings use, so the shared section packer / textarea reflow keep
+    the heading glued to its body. Centering is therefore a matter of computing
+    the left X from the real glyph width (ReportLab metrics, like the centered
+    contact placer) plus the inter-letter tracking, never a wide centered
+    ``textarea`` (which the generic reflow does not treat as chrome and would
+    detach on any pack).
+    """
+    try:
+        draw_font, _, _ = PDF_Generator._resolve_font(font, False, False)
+        width = stringWidth(label, draw_font, font_size)
+    except Exception:
+        width = len(label) * font_size * 0.55
+    width += max(0, len(label) - 1) * letter_spacing
+    return center_x - width / 2.0
+
 
 def _gen_atrium(cv: dict) -> list[dict]:
     """Centered-axis masthead + centered section identity; left-aligned body."""
@@ -111,18 +136,24 @@ def _gen_atrium(cv: dict) -> list[dict]:
     header = [{**element, "flowRole": "masthead"} for element in header]
 
     # ── Section identity: centered heading + short broken rule (no icon) ──────
-    label_fs, label_lh = (9.0, 12.0)
-    SECTION_CHROME = label_lh + 5 + get_spacing().after_rule + 6
+    # The heading is a plain `text` element (not a wide centered textarea), so it
+    # participates in the shared section packer exactly like Cardinal/Nova/Portico
+    # headings — centering is encoded in the computed left X, not the category.
+    label_fs = 9.0
+    label_ls = 1.9
+    SECTION_CHROME = label_fs + 6 + get_spacing().after_rule + 6
 
     def section(label: str) -> None:
         y = b.y
         page = b.pg
-        heading = _block(label, L, y, W, label_lh, label_fs, label_lh, ACCENT, SANS,
-                         zIndex=3, bold=True, align='center')
-        heading['letterSpacing'] = 1.9
+        heading_x = _centered_left(label, SANS, label_fs, label_ls, CENTER_X)
+        heading = _text(label, label_fs, SANS, ACCENT, heading_x, y, zIndex=3, page=page)
+        heading['letterSpacing'] = label_ls
         heading['flowRole'] = 'section-chrome'
         b.els.append(heading)
-        sep_y = y + label_lh + 4.0
+        # Short broken rule ("── ──") centered on the axis, a few px below the
+        # heading baseline. `text` renders with line-height 1, so its box is ~fs.
+        sep_y = y + label_fs + 5.0
         seg, gap = (15.0, 6.0)
         for lx in (CENTER_X - gap / 2.0 - seg, CENTER_X + gap / 2.0):
             separator = _line(lx, sep_y, seg, 1, RULE, zIndex=2, page=page)

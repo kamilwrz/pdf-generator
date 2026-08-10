@@ -57,14 +57,19 @@ test("Atrium is a centered-axis editorial single column, not a Portico recolor",
     assert.ok(icons.every((element) => element.alignWithText === true));
     assert.ok(icons.every((element) => element.flowRole === "masthead"));
 
-    // ── Section identity is CENTERED (Portico's headings are left-aligned) and
-    // carries no section icon. Five headings: summary/experience/education/skills/languages.
-    const headings = atriumTemplate.filter((element) => element.flowRole === "section-chrome");
-    const headingLabels = headings.filter((element) => element.category === "textarea");
+    // ── Section identity is CENTERED and carries no section icon. Headings are
+    // plain `text` chrome (Portico's are left-aligned; using `text` — not a wide
+    // textarea — keeps the shared section packer gluing each heading to its body,
+    // see atrium.pack.test.js). Five headings: summary/experience/education/skills/languages.
+    const headingLabels = atriumTemplate.filter(
+        (element) => element.flowRole === "section-chrome" && element.category === "text",
+    );
     assert.equal(headingLabels.length, 5);
-    assert.ok(headingLabels.every((element) => element.align === "center"));
     assert.ok(headingLabels.every((element) => element.color === ACCENT));
     assert.ok(headingLabels.every((element) => element.fontFamily === "Montserrat"));
+    // Centered, not column-anchored: each heading's left is indented well to the
+    // right of the content column start (a left-aligned heading would be at L).
+    assert.ok(headingLabels.every((element) => element.left > L + 20));
 
     // ── Body copy stays LEFT-aligned inside the centered column ───────────────
     const bodyBlocks = atriumTemplate.filter(

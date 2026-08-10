@@ -305,11 +305,26 @@ const SIDEBAR_LEFT_GAP = 150;
 
 /**
  * Predicate for "not a different (sidebar) column from `headingLeft`".
+ *
+ * An element is a different column only when it sits well to the LEFT of the
+ * heading AND does not reach the heading horizontally (its right edge stops
+ * before the heading's left). This holds for a real sidebar rail (narrow, ends
+ * far left of the main heading) but NOT for a full-width body sitting under a
+ * *centered* heading: such a body starts left of the centered heading yet
+ * extends across and past it, so it stays in-column. Testing against the
+ * heading's left edge alone is enough — a same-column body always overlaps or
+ * passes that edge — and needs no heading width (unknown for `text` headings).
+ *
  * @param {number} headingLeft
- * @returns {(left: number) => boolean}
+ * @returns {(element: {left?: number, width?: number}) => boolean}
  */
 function sameColumnAsHeading(headingLeft) {
-  return (left) => headingLeft - left <= SIDEBAR_LEFT_GAP;
+  return (element) => {
+    const left = Number(element?.left) || 0;
+    if (headingLeft - left <= SIDEBAR_LEFT_GAP) return true;
+    const right = left + (Number(element?.width) || 0);
+    return right > headingLeft;
+  };
 }
 
 /**
@@ -420,7 +435,7 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
     for (const element of list) {
       if (element.fixedToPage) continue;
       if (element.flowRole === "masthead") continue;
-      if (!isSameColumn(Number(element.left) || 0)) continue;
+      if (!isSameColumn(element)) continue;
       // Another section's title must never join this strip — that is what made
       // Volt chips from a later band attach to an earlier heading and explode
       // chrome relTop across a whole page.
@@ -538,7 +553,7 @@ function resolveFlowStart(elements, sections, pageHeight) {
   for (const element of list) {
     if (!element || element.fixedToPage) continue;
     if (element.flowRole === "section-chrome") continue;
-    if (!isSameColumn(Number(element.left) || 0)) continue;
+    if (!isSameColumn(element)) continue;
     const abs = absoluteTop(element, pageHeight);
     if (abs >= headingStart - 0.01) continue;
     mastheadBottom = Math.max(mastheadBottom, absoluteBottom(element, pageHeight));
@@ -1250,7 +1265,7 @@ export function appendSectionAtEnd(
   let flowBottom = 0;
   for (const element of list) {
     if (!element || element.fixedToPage) continue;
-    if (!isSameColumn(Number(element.left) || 0)) continue;
+    if (!isSameColumn(element)) continue;
     flowBottom = Math.max(flowBottom, absoluteBottom(element, pageHeight));
   }
   const cursorAbs = flowBottom > 0 ? flowBottom + rhythm.section : pageTop;
@@ -1337,7 +1352,7 @@ export function insertSectionAfter(
     if (!element || element.fixedToPage) return element;
     if (anchorIds.has(element.element_id)) return element;
     if (element.flowRole === "masthead") return element;
-    if (!isSameColumn(Number(element.left) || 0)) return element;
+    if (!isSameColumn(element)) return element;
     if (absoluteTop(element, pageHeight) + 0.01 < sectionBottom) return element;
     const newAbs = absoluteTop(element, pageHeight) + hole;
     const page = Math.max(1, Math.floor(newAbs / pageHeight) + 1);
