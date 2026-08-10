@@ -1730,8 +1730,11 @@ class CvTemplateLayoutTests(unittest.TestCase):
         )
         self.assertEqual(icon["left"], 72)
         self.assertEqual(heading["left"], 94)
-        self.assertEqual(heading["fontSize"], 10.4)
+        self.assertEqual(heading["fontSize"], 11.2)
         self.assertTrue(heading["bold"])
+        self.assertEqual(icon["width"], 16.5)
+        self.assertEqual(icon["height"], 16.5)
+        self.assertAlmostEqual(rule["top"], heading["top"] + heading["fontSize"] / 2)
         self.assertGreater(rule["left"], heading["left"])
         self.assertAlmostEqual(rule["left"] + rule["width"], 545)
         masthead_icons = [

@@ -54,9 +54,9 @@ def _gen_cardinal(cv: dict) -> list[dict]:
     header = [{**element, "flowRole": "masthead"} for element in header]
     start_y = header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE
     b = Builder(start_y)
-    label_fs = 10.4
-    label_tracking = 1.15
-    section_icon = 15.0
+    label_fs = 11.2
+    label_tracking = 1.05
+    section_icon = 16.5
     heading_x = L + 22
     SECTION_CHROME = label_fs + 10 + get_spacing().after_rule
 
@@ -79,7 +79,7 @@ def _gen_cardinal(cv: dict) -> list[dict]:
         label_width = len(label) * (label_fs * 0.58 + label_tracking)
         rule_left = min(heading_x + label_width + 14, L + W - 54)
         rule = _line(
-            rule_left, y + label_fs * 0.52, L + W - rule_left, 0.8,
+            rule_left, y + label_fs / 2, L + W - rule_left, 0.8,
             C['rule'], page=page,
         )
         rule['flowRole'] = 'section-chrome'

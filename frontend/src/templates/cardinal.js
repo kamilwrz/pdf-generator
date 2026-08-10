@@ -30,10 +30,10 @@ const TEXT_X = 72; // body, contact icons and section compositions share this ed
 const HEADING_X = TEXT_X + 22; // icon occupies the first 15 pt of the heading row
 const RIGHT = 545; // content right edge (≈72 pt symmetric margins)
 const CONTENT_W = RIGHT - TEXT_X; // 473 pt usable text column
-const SECTION_ICON = 15; // large enough to balance the upgraded heading caps
+const SECTION_ICON = 16.5; // slightly larger than the caps without dominating them
 const CONTACT_ICON = 13; // slightly smaller glyph for the contact row
-const HEAD_FS = 10.4; // clear executive hierarchy without overpowering record titles
-const HEAD_TRACKING = 1.15;
+const HEAD_FS = 11.2; // remains above the requested 11 px minimum
+const HEAD_TRACKING = 1.05;
 
 const bold = (element) => ({ ...element, bold: true });
 const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
@@ -73,7 +73,7 @@ const sectionHead = (iconName, label, top) => {
             flowRole: "section-chrome",
         },
         {
-            ...line(ruleLeft, top + HEAD_FS * 0.52, RIGHT - ruleLeft, 0.8, GREY, 2),
+            ...line(ruleLeft, top + HEAD_FS / 2, RIGHT - ruleLeft, 0.8, GREY, 2),
             flowRole: "section-chrome",
         },
     ];

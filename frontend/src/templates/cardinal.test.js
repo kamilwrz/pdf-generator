@@ -30,7 +30,7 @@ test("Cardinal reserves red for headings while icons and rules stay grey", () =>
     assert.equal(sectionHeadings.length, 5);
     assert.ok(sectionHeadings.every((element) => element.color === CARDINAL));
     assert.ok(sectionHeadings.every((element) => element.fontFamily === "Helvetica"));
-    assert.ok(sectionHeadings.every((element) => element.fontSize === 10.4));
+    assert.ok(sectionHeadings.every((element) => element.fontSize === 11.2));
     assert.ok(sectionHeadings.every((element) => element.bold === true));
     assert.ok(sectionHeadings.every((element) => element.left === 94));
 
@@ -43,6 +43,7 @@ test("Cardinal reserves red for headings while icons and rules stay grey", () =>
     const sectionIcons = icons.filter((element) => element.flowRole === "section-chrome");
     assert.equal(sectionIcons.length, 5);
     assert.ok(sectionIcons.every((element) => element.left === 72));
+    assert.ok(sectionIcons.every((element) => element.width === 16.5 && element.height === 16.5));
 
     // ── Decorative lines: every rule except the paper surface is grey ────────
     const lines = cardinalTemplate.filter((element) => element.category === "line");
@@ -54,8 +55,8 @@ test("Cardinal reserves red for headings while icons and rules stay grey", () =>
     assert.ok(sectionRules.every((element) => element.left > 94));
     assert.ok(sectionRules.every((element) => element.left + element.width === 545));
     for (const heading of sectionHeadings) {
-        const rule = sectionRules.find((element) => element.top > heading.top && element.top < heading.top + heading.fontSize);
-        assert.ok(rule, `${heading.content} rule crosses the optical cap midline`);
+        const rule = sectionRules.find((element) => element.top === heading.top + heading.fontSize / 2);
+        assert.ok(rule, `${heading.content} rule crosses the exact heading midline`);
     }
 
     // ── Body copy: dark grey, readable (never sub-9pt) ───────────────────────
