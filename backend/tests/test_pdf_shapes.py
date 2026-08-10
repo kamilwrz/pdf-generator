@@ -7,9 +7,30 @@ from app.utils.build_pdf import build_pdf_to_buffer
 from app.utils.image_src_to_path import image_src_to_local_path
 
 
+class RecordingPath:
+    def __init__(self):
+        self.ops = []
+
+    def moveTo(self, x, y):
+        self.ops.append(("moveTo", x, y))
+
+    def lineTo(self, x, y):
+        self.ops.append(("lineTo", x, y))
+
+    def curveTo(self, x1, y1, x2, y2, x3, y3):
+        self.ops.append(("curveTo", x1, y1, x2, y2, x3, y3))
+
+    def close(self):
+        self.ops.append(("close",))
+
+    def getCode(self):
+        return "path"
+
+
 class RecordingCanvas:
     def __init__(self):
         self.calls = []
+        self.paths = []
 
     def setFillColor(self, color):
         self.calls.append(("fill_color", color))
@@ -20,8 +41,29 @@ class RecordingCanvas:
     def setLineWidth(self, width):
         self.calls.append(("line_width", width))
 
+    def setLineCap(self, value):
+        self.calls.append(("line_cap", value))
+
+    def setLineJoin(self, value):
+        self.calls.append(("line_join", value))
+
     def ellipse(self, x1, y1, x2, y2, stroke, fill):
         self.calls.append(("ellipse", x1, y1, x2, y2, stroke, fill))
+
+    def rect(self, x, y, width=None, height=None, stroke=1, fill=0):
+        self.calls.append(("rect", x, y, width, height, stroke, fill))
+
+    def roundRect(self, x, y, width, height, radius, stroke=1, fill=0):
+        self.calls.append(("roundRect", x, y, width, height, radius, stroke, fill))
+
+    def beginPath(self):
+        path = RecordingPath()
+        self.paths.append(path)
+        self.calls.append(("beginPath",))
+        return path
+
+    def drawPath(self, path, stroke=1, fill=0):
+        self.calls.append(("drawPath", path.ops, stroke, fill))
 
     def drawImage(self, *args, **kwargs):
         self.calls.append(("drawImage", args, kwargs))
@@ -129,6 +171,38 @@ class PdfShapeTests(unittest.TestCase):
             if pixel[0] < 35 and pixel[1] < 35 and pixel[2] < 35
         )
         self.assertEqual(dark, 0)
+
+    def test_filled_rectangle_paints_solid_panel(self):
+        self.generator.renderRectangle(120, 40, 10, 20, "#123456", 2, 0, True)
+        self.assertIn(("rect", 10, 782, 120, 40, 0, 1), self.generator.c.calls)
+
+    def test_polygon_outline_closes_path(self):
+        self.generator.renderPolygon(
+            100, 80, 10, 20, "#24201E", 1.5, False,
+            [[0.5, 0.0], [1.0, 1.0], [0.0, 1.0]],
+        )
+        draw = [call for call in self.generator.c.calls if call[0] == "drawPath"]
+        self.assertEqual(len(draw), 1)
+        ops, stroke, fill = draw[0][1], draw[0][2], draw[0][3]
+        self.assertEqual(stroke, 1)
+        self.assertEqual(fill, 0)
+        self.assertEqual(ops[0], ("moveTo", 60.0, 822.0))
+        self.assertIn(("close",), ops)
+
+    def test_path_uses_reportlab_curve_to(self):
+        self.generator.renderPath(
+            100, 50, 20, 30, "#24201E", 2,
+            [
+                {"type": "M", "x": 0.0, "y": 0.5},
+                {"type": "C", "x1": 0.25, "y1": 0.0, "x2": 0.75, "y2": 1.0, "x": 1.0, "y": 0.5},
+            ],
+        )
+        draw = [call for call in self.generator.c.calls if call[0] == "drawPath"]
+        self.assertEqual(len(draw), 1)
+        ops = draw[0][1]
+        self.assertEqual(ops[0], ("moveTo", 20.0, 787.0))
+        self.assertEqual(ops[1][0], "curveTo")
+        self.assertIn(("line_cap", 1), self.generator.c.calls)
 
 
 if __name__ == "__main__":

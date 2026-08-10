@@ -6,6 +6,7 @@
  * and a fresh `element_id` (usually from nanoid).
  */
 import { measureTextareaHeight } from "./textareaHeight";
+import { pathCurvesForKind, polygonPointsForShape } from "./freeformShapes.js";
 
 /**
  * @param {{ elementId: string, page?: number }} opts
@@ -60,8 +61,10 @@ export function createLineElement({ elementId, page = 1 }) {
 export function createRectangleElement({ elementId, page = 1 }) {
   return {
     element_id: elementId,
-    backgroundColor: "#000000", // reused as the border (stroke) colour
+    backgroundColor: "#000000", // fill when filled; otherwise stroke colour
     borderWidth: 1,
+    borderRadius: 0,
+    filled: false,
     left: 20,
     top: 20,
     width: 120,
@@ -116,6 +119,68 @@ export function createEllipseElement({ elementId, page = 1 }) {
     isMove: false,
     locked: false,
     category: "ellipse",
+    zIndex: 2,
+    page,
+  };
+}
+
+/**
+ * Closed polygon ornament (triangle / diamond / hexagon).
+ *
+ * Points stay normalized to the bounding box so resize scales the silhouette
+ * without rewriting geometry. `shape` records the preset for inspector UX.
+ *
+ * @param {{ elementId: string, page?: number, shape?: "triangle"|"diamond"|"hexagon" }} opts
+ * @returns {object}
+ */
+export function createPolygonElement({ elementId, page = 1, shape = "triangle" }) {
+  const resolved = ["triangle", "diamond", "hexagon"].includes(shape) ? shape : "triangle";
+  return {
+    element_id: elementId,
+    category: "polygon",
+    shape: resolved,
+    points: polygonPointsForShape(resolved),
+    backgroundColor: "#24201E",
+    borderWidth: 1.2,
+    filled: false,
+    left: 40,
+    top: 40,
+    width: resolved === "hexagon" ? 96 : 72,
+    height: resolved === "hexagon" ? 84 : 72,
+    isSelected: false,
+    isMove: false,
+    locked: false,
+    zIndex: 2,
+    page,
+  };
+}
+
+/**
+ * Open cubic-Bezier path ornament (wave / arc / flourish).
+ *
+ * Curves are cubic segments in unit-square space. Freeform selection exposes
+ * draggable control-point handles; the box remains the move/resize frame.
+ *
+ * @param {{ elementId: string, page?: number, pathKind?: "wave"|"arc"|"flourish" }} opts
+ * @returns {object}
+ */
+export function createPathElement({ elementId, page = 1, pathKind = "wave" }) {
+  const resolved = ["wave", "arc", "flourish"].includes(pathKind) ? pathKind : "wave";
+  return {
+    element_id: elementId,
+    category: "path",
+    pathKind: resolved,
+    curves: pathCurvesForKind(resolved),
+    backgroundColor: "#24201E",
+    borderWidth: 1.4,
+    filled: false,
+    left: 40,
+    top: 60,
+    width: resolved === "flourish" ? 140 : 180,
+    height: resolved === "arc" ? 36 : 48,
+    isSelected: false,
+    isMove: false,
+    locked: false,
     zIndex: 2,
     page,
   };

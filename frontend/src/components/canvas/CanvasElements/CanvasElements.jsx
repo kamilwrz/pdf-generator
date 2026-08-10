@@ -21,6 +21,8 @@ import Line from '../Line/Line';
 import Rectangle from '../Rectangle/Rectangle';
 import Textarea from '../Textarea/Textarea';
 import Ellipse from '../Ellipse/Ellipse';
+import Polygon from '../Polygon/Polygon';
+import Path from '../Path/Path';
 import SectionRecordAdd from '../SectionRecordAdd/SectionRecordAdd';
 import RecordBlockAdd from '../RecordBlockAdd/RecordBlockAdd';
 import FlatSectionLayoutToggle from '../FlatSectionLayoutToggle/FlatSectionLayoutToggle';
@@ -235,6 +237,7 @@ export default function CanvasElements({ elements }) {
           backgroundColor={element.backgroundColor}
           borderWidth={element.borderWidth}
           borderRadius={element.borderRadius}
+          filled={element.filled}
           left={element.left}
           top={element.top}
           isSelected={element.isSelected}
@@ -253,6 +256,43 @@ export default function CanvasElements({ elements }) {
           backgroundColor={element.backgroundColor}
           borderWidth={element.borderWidth}
           filled={element.filled}
+          left={element.left}
+          top={element.top}
+          isSelected={element.isSelected}
+          isMove={element.isMove}
+          category={element.category}
+          zIndex={element.zIndex}
+          fixedToPage={element.fixedToPage}
+        />
+      );
+    } else if (element.category === "polygon") {
+      node = (
+        <Polygon
+          elementId={element.element_id}
+          width={parseFloat(element.width)}
+          height={parseFloat(element.height)}
+          backgroundColor={element.backgroundColor}
+          borderWidth={element.borderWidth}
+          filled={element.filled}
+          points={element.points}
+          left={element.left}
+          top={element.top}
+          isSelected={element.isSelected}
+          isMove={element.isMove}
+          category={element.category}
+          zIndex={element.zIndex}
+          fixedToPage={element.fixedToPage}
+        />
+      );
+    } else if (element.category === "path") {
+      node = (
+        <Path
+          elementId={element.element_id}
+          width={parseFloat(element.width)}
+          height={parseFloat(element.height)}
+          backgroundColor={element.backgroundColor}
+          borderWidth={element.borderWidth}
+          curves={element.curves}
           left={element.left}
           top={element.top}
           isSelected={element.isSelected}

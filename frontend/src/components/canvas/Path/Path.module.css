@@ -1,0 +1,26 @@
+.handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid #1f2937;
+  background: #ffffff;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+.handle:active {
+  cursor: grabbing;
+}
+
+.anchor {
+  border-radius: 2px;
+}
+
+.control {
+  border-radius: 999px;
+  border-color: #9e2532;
+}

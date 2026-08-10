@@ -43,6 +43,7 @@ SECTION_HEADER_GAP_MAX_PX = 10.0
 SECTION_HEADER_GAP_PEER_TOLERANCE_PX = 2.0
 _SNAPSHOT_CATEGORIES = {
     "text", "textarea", "line", "image", "rectangle", "circle", "ellipse",
+    "polygon", "path",
 }
 _TEXT_CATEGORIES = {"text", "textarea"}
 _VALID_SEVERITIES = {"critical", "high", "medium", "low", "review", "warning"}
@@ -302,7 +303,7 @@ def _build_layout_snapshot_data(
         content = str(element.get("content") or "")
         if category == "image":
             preview = "[image]"
-        elif category in {"line", "rectangle", "circle", "ellipse"}:
+        elif category in {"line", "rectangle", "circle", "ellipse", "polygon", "path"}:
             preview = f"[{category}]"
         else:
             preview = content[:MAX_LAYOUT_CONTENT_CHARS]

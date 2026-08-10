@@ -1,6 +1,9 @@
 /**
- * Outline-only rectangle (border colour via backgroundColor).
- * Matches PDF inset stroke so canvas and export align.
+ * Rectangle for freeform/template chrome.
+ *
+ * Outline mode reuses `backgroundColor` as the stroke (legacy contract).
+ * Filled mode paints a solid panel; optional `borderRadius` keeps canvas and
+ * PDF rounded corners aligned via border-box geometry.
  */
 import classes from "./Rectangle.module.css";
 import { memo, useState } from 'react';
@@ -14,6 +17,7 @@ function Rectangle({
     backgroundColor,
     borderWidth,
     borderRadius,
+    filled,
     left,
     top,
     isSelected,
@@ -33,9 +37,8 @@ function Rectangle({
         setIsResizeable(Boolean(active));
     }
 
-    // Outline only: the border colour reuses backgroundColor (same as the line),
-    // background stays transparent. border-box keeps the border inside width/
-    // height so it matches the PDF (which insets the stroke by half its width).
+    // border-box keeps the border inside width/height so it matches the PDF
+    // (which insets the stroke by half its width).
     const style = {
         width: width,
         height: height,
@@ -43,8 +46,8 @@ function Rectangle({
         top: top,
         position: "absolute",
         boxSizing: "border-box",
-        background: "transparent",
-        border: `${borderWidth || 1}px solid ${backgroundColor}`,
+        background: filled ? backgroundColor : "transparent",
+        border: filled ? "none" : `${borderWidth || 1}px solid ${backgroundColor}`,
         // Rounded pill/tag chrome (e.g. Harbor skill pills). Omitted when unset
         // so ordinary rectangles keep square corners identical to the PDF.
         ...(borderRadius ? { borderRadius: `${borderRadius}px` } : {}),

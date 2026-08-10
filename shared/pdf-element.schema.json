@@ -80,6 +80,8 @@
         "rectangle",
         "circle",
         "ellipse",
+        "polygon",
+        "path",
         "connector",
         "image"
       ],
@@ -495,6 +497,64 @@
       ],
       "default": false,
       "title": "Filled"
+    },
+    "shape": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Shape"
+    },
+    "points": {
+      "anyOf": [
+        {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Points"
+    },
+    "pathKind": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pathkind"
+    },
+    "curves": {
+      "anyOf": [
+        {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Curves"
     },
     "source_id": {
       "anyOf": [

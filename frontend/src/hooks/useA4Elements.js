@@ -40,6 +40,8 @@ import {
   createEllipseElement,
   createImageElement,
   createLineElement,
+  createPathElement,
+  createPolygonElement,
   createRectangleElement,
   createTextElement,
   createTextareaElement,
@@ -567,6 +569,26 @@ export function useA4Elements(titleRef) {
     });
     markElementsEnter(ellipse.element_id);
     setA4_Elements((prev) => [...prev, ellipse]);
+  }, []);
+
+  const handleAddPolygon = useCallback((shape = "triangle") => {
+    const polygon = createPolygonElement({
+      elementId: nanoid(),
+      page: currentPageRef.current,
+      shape,
+    });
+    markElementsEnter(polygon.element_id);
+    setA4_Elements((prev) => [...prev, polygon]);
+  }, []);
+
+  const handleAddPath = useCallback((pathKind = "wave") => {
+    const path = createPathElement({
+      elementId: nanoid(),
+      page: currentPageRef.current,
+      pathKind,
+    });
+    markElementsEnter(path.element_id);
+    setA4_Elements((prev) => [...prev, path]);
   }, []);
 
   /**
@@ -1902,6 +1924,8 @@ export function useA4Elements(titleRef) {
     handleAddRectangle,
     handleAddCircle,
     handleAddEllipse,
+    handleAddPolygon,
+    handleAddPath,
     handleAddImage,
     handleAddTextarea,
     handleAddSection,

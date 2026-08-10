@@ -22,6 +22,8 @@ ElementCategory = Literal[
     "rectangle",
     "circle",
     "ellipse",
+    "polygon",
+    "path",
     "connector",
     "image",
 ]
@@ -124,8 +126,16 @@ class PdfElement(BaseModel):
     # value draws a rounded outline (used by tag/pill chrome such as Harbor's
     # skill pills). Ignored by non-rectangle categories.
     borderRadius: Optional[float] = None
-    # Circle/ellipse: solid fill when true, outline when false.
+    # Circle/ellipse/polygon/rectangle: solid fill when true, outline when false.
     filled: Optional[bool] = False
+    # Freeform polygon preset id (`triangle` / `diamond` / `hexagon`).
+    shape: Optional[str] = None
+    # Normalized polygon vertices in unit-square space ``[[x, y], …]``.
+    points: Optional[list[list[float]]] = None
+    # Freeform cubic path preset id (`wave` / `arc` / `flourish`).
+    pathKind: Optional[str] = None
+    # Cubic path segments in unit-square space (``M`` / ``C`` dicts).
+    curves: Optional[list[dict[str, Any]]] = None
     # Connector endpoints reference other elements by client element_id.
     source_id: Optional[str] = None
     target_id: Optional[str] = None

@@ -220,23 +220,39 @@ class PDF_Generator:
         self.c.setFillColor(HexColor(color))
         self.c.rect(left, corrected_y, width=width, height=height, stroke=0, fill=1)
 
-    def renderRectangle(self, width, height, left, top, color, border_width, border_radius=None):
-        """Outline-only rectangle (no fill). ``color`` is the border colour
-        (the element reuses backgroundColor for it, like the line). The stroke
-        is inset by half its width so the outer edge lines up with the box —
-        matching the canvas's box-sizing: border-box.
+    def renderRectangle(self, width, height, left, top, color, border_width, border_radius=None, filled=False):
+        """Rectangle matching the canvas border-box contract.
+
+        Outline mode: ``color`` is the border colour (the element reuses
+        ``backgroundColor`` for it, like the line). The stroke is inset by half
+        its width so the outer edge lines up with the box.
+
+        Filled mode: paints a solid panel with optional rounded corners and no
+        stroke — same as the freeform rectangle inspector's filled toggle.
 
         ``border_radius`` (px) draws rounded corners via ReportLab ``roundRect``;
-        the radius is clamped to half the inset box so a tall/thin pill cannot
-        request a corner larger than the shape. None or 0 keeps square corners.
+        the radius is clamped to half the inset (or full) box so a tall/thin
+        pill cannot request a corner larger than the shape. None or 0 keeps
+        square corners.
         """
         corrected_y = self.page_h - top - height
+        shape_color = HexColor(color or "#000000")
+        radius = float(border_radius) if border_radius else 0.0
+
+        if filled:
+            self.c.setFillColor(shape_color)
+            if radius > 0:
+                radius = min(radius, width / 2, height / 2)
+                self.c.roundRect(left, corrected_y, width, height, radius, stroke=0, fill=1)
+            else:
+                self.c.rect(left, corrected_y, width=width, height=height, stroke=0, fill=1)
+            return
+
         bw = float(border_width) if border_width else 1.0
-        self.c.setStrokeColor(HexColor(color or "#000000"))
+        self.c.setStrokeColor(shape_color)
         self.c.setLineWidth(bw)
         inset_w = width - bw
         inset_h = height - bw
-        radius = float(border_radius) if border_radius else 0.0
         if radius > 0:
             # Match the frontend's border-box radius: clamp to half the inset box.
             radius = min(radius, inset_w / 2, inset_h / 2)
@@ -245,6 +261,72 @@ class PDF_Generator:
             )
         else:
             self.c.rect(left + bw / 2, corrected_y + bw / 2, width=inset_w, height=inset_h, stroke=1, fill=0)
+
+    def renderPolygon(self, width, height, left, top, color, border_width, filled, points):
+        """Closed freeform polygon from normalized unit-square vertices."""
+        verts = list(points or [])
+        if len(verts) < 3:
+            return
+        shape_color = HexColor(color or "#000000")
+        path = self.c.beginPath()
+        for index, point in enumerate(verts):
+            if not isinstance(point, (list, tuple)) or len(point) < 2:
+                continue
+            x = left + float(point[0]) * float(width)
+            # Flip Y from canvas top-left into ReportLab bottom-left space.
+            y = self.page_h - (top + float(point[1]) * float(height))
+            if index == 0:
+                path.moveTo(x, y)
+            else:
+                path.lineTo(x, y)
+        path.close()
+        if filled:
+            self.c.setFillColor(shape_color)
+            self.c.drawPath(path, stroke=0, fill=1)
+            return
+        bw = float(border_width) if border_width else 1.0
+        self.c.setStrokeColor(shape_color)
+        self.c.setLineWidth(bw)
+        self.c.drawPath(path, stroke=1, fill=0)
+
+    def renderPath(self, width, height, left, top, color, border_width, curves):
+        """Open cubic Bezier ornament from normalized ``M`` / ``C`` segments.
+
+        Coordinates stay in unit-square space so canvas SVG and ReportLab
+        ``curveTo`` share one geometry. Control-point edits on the canvas only
+        rewrite the normalized curves; the bounding box remains the move/resize
+        frame.
+        """
+        segments = list(curves or [])
+        if not segments:
+            return
+        shape_color = HexColor(color or "#000000")
+        bw = float(border_width) if border_width else 1.4
+        path = self.c.beginPath()
+        started = False
+        for segment in segments:
+            if not isinstance(segment, dict):
+                continue
+            kind = segment.get("type")
+            if kind == "M":
+                x = left + float(segment.get("x", 0)) * float(width)
+                y = self.page_h - (top + float(segment.get("y", 0)) * float(height))
+                path.moveTo(x, y)
+                started = True
+                continue
+            if kind == "C" and started:
+                x1 = left + float(segment.get("x1", 0)) * float(width)
+                y1 = self.page_h - (top + float(segment.get("y1", 0)) * float(height))
+                x2 = left + float(segment.get("x2", 0)) * float(width)
+                y2 = self.page_h - (top + float(segment.get("y2", 0)) * float(height))
+                x3 = left + float(segment.get("x", 0)) * float(width)
+                y3 = self.page_h - (top + float(segment.get("y", 0)) * float(height))
+                path.curveTo(x1, y1, x2, y2, x3, y3)
+        self.c.setStrokeColor(shape_color)
+        self.c.setLineWidth(bw)
+        self.c.setLineCap(1)  # round
+        self.c.setLineJoin(1)  # round
+        self.c.drawPath(path, stroke=1, fill=0)
 
     def renderEllipse(self, width, height, left, top, color, border_width, filled):
         """Render a CSS border-box circle/ellipse with matching PDF bounds."""
@@ -1021,7 +1103,16 @@ class PDF_Generator:
                 elif category == "line":
                     self.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)
                 elif category == "rectangle":
-                    self.renderRectangle(float(element.width), float(element.height), element.left, element.top, element.backgroundColor, getattr(element, "borderWidth", 1), getattr(element, "borderRadius", None))
+                    self.renderRectangle(
+                        float(element.width),
+                        float(element.height),
+                        element.left,
+                        element.top,
+                        element.backgroundColor,
+                        getattr(element, "borderWidth", 1),
+                        getattr(element, "borderRadius", None),
+                        getattr(element, "filled", False),
+                    )
                 elif category in {"circle", "ellipse"}:
                     self.renderEllipse(
                         float(element.width),
@@ -1031,6 +1122,27 @@ class PDF_Generator:
                         element.backgroundColor,
                         getattr(element, "borderWidth", 1),
                         getattr(element, "filled", False),
+                    )
+                elif category == "polygon":
+                    self.renderPolygon(
+                        float(element.width),
+                        float(element.height),
+                        element.left,
+                        element.top,
+                        element.backgroundColor,
+                        getattr(element, "borderWidth", 1),
+                        getattr(element, "filled", False),
+                        getattr(element, "points", None),
+                    )
+                elif category == "path":
+                    self.renderPath(
+                        float(element.width),
+                        float(element.height),
+                        element.left,
+                        element.top,
+                        element.backgroundColor,
+                        getattr(element, "borderWidth", 1.4),
+                        getattr(element, "curves", None),
                     )
                 elif category == "connector":
                     source = by_id.get(getattr(element, "source_id", None))

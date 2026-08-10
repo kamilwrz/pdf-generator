@@ -29,6 +29,8 @@ export default function Sidebar({ children }) {
         addRectangle,
         addCircle,
         addEllipse,
+        addPolygon,
+        addPath,
         addTextarea,
         showDropzone,
         showGallery,
@@ -81,6 +83,36 @@ export default function Sidebar({ children }) {
                             icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="12" rx="9" ry="5.5" fill="none" stroke="currentColor" strokeWidth="1.7" /></svg>}
                             labelText="Dodaj elipsę"
                             sidebarEvent={addEllipse}
+                        />
+                        <SidebarControls
+                            icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12,3 21,20 3,20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>}
+                            labelText="Dodaj trójkąt"
+                            sidebarEvent={() => addPolygon("triangle")}
+                        />
+                        <SidebarControls
+                            icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12,2 22,12 12,22 2,12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>}
+                            labelText="Dodaj romb"
+                            sidebarEvent={() => addPolygon("diamond")}
+                        />
+                        <SidebarControls
+                            icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><polygon points="7,3 17,3 22,12 17,21 7,21 2,12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>}
+                            labelText="Dodaj sześciokąt"
+                            sidebarEvent={() => addPolygon("hexagon")}
+                        />
+                        <SidebarControls
+                            icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 14 C6 4, 10 20, 14 14 S22 4, 22 10" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>}
+                            labelText="Dodaj falę (Bézier)"
+                            sidebarEvent={() => addPath("wave")}
+                        />
+                        <SidebarControls
+                            icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 18 C8 4, 16 4, 22 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>}
+                            labelText="Dodaj łuk (Bézier)"
+                            sidebarEvent={() => addPath("arc")}
+                        />
+                        <SidebarControls
+                            icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 16 C6 4, 10 20, 14 10 S20 6, 22 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>}
+                            labelText="Dodaj ozdobnik (Bézier)"
+                            sidebarEvent={() => addPath("flourish")}
                         />
                     </>
                 )}

@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import {
   createCircleElement,
   createImageElement,
+  createPathElement,
+  createPolygonElement,
+  createRectangleElement,
   createTextElement,
   createTextareaElement,
 } from "./a4ElementFactories.js";
@@ -39,5 +42,27 @@ describe("a4ElementFactories", () => {
     assert.equal(el.category, "textarea");
     assert.equal(el.isEditing, true);
     assert.ok(el.height > 0);
+  });
+
+  it("creates outline rectangles with radius and fill flags", () => {
+    const el = createRectangleElement({ elementId: "r1" });
+    assert.equal(el.category, "rectangle");
+    assert.equal(el.filled, false);
+    assert.equal(el.borderRadius, 0);
+  });
+
+  it("creates polygon presets with normalized vertices", () => {
+    const el = createPolygonElement({ elementId: "p1", shape: "diamond" });
+    assert.equal(el.category, "polygon");
+    assert.equal(el.shape, "diamond");
+    assert.equal(el.points.length, 4);
+  });
+
+  it("creates cubic Bezier path ornaments", () => {
+    const el = createPathElement({ elementId: "path1", pathKind: "flourish" });
+    assert.equal(el.category, "path");
+    assert.equal(el.pathKind, "flourish");
+    assert.equal(el.curves[0].type, "M");
+    assert.ok(el.curves.some((segment) => segment.type === "C"));
   });
 });

@@ -46,11 +46,30 @@ class ElementsFromRowsTests(unittest.TestCase):
             PdfElement(
                 category="rectangle", element_id="e2", page=1, left=0, top=0,
                 width=100, height=50, backgroundColor="#eeeeee",
-                borderWidth=2, borderRadius=6,
+                borderWidth=2, borderRadius=6, filled=True,
             ),
             PdfElement(
                 category="connector", element_id="e3", page=1, left=0, top=0,
                 source_id="e1", target_id="e2", arrow=True,
+            ),
+            PdfElement(
+                category="polygon", element_id="e4", page=1, left=40, top=40,
+                width=72, height=72, backgroundColor="#24201E",
+                borderWidth=1.2, filled=False, shape="triangle",
+                points=[[0.5, 0.06], [0.94, 0.92], [0.06, 0.92]],
+            ),
+            PdfElement(
+                category="path", element_id="e5", page=1, left=40, top=60,
+                width=180, height=48, backgroundColor="#24201E",
+                borderWidth=1.4, pathKind="wave",
+                curves=[
+                    {"type": "M", "x": 0.02, "y": 0.55},
+                    {
+                        "type": "C",
+                        "x1": 0.18, "y1": 0.1, "x2": 0.32, "y2": 1.0,
+                        "x": 0.5, "y": 0.55,
+                    },
+                ],
             ),
         ]
         pdf_id = create_new_pdf(
@@ -78,11 +97,22 @@ class ElementsFromRowsTests(unittest.TestCase):
         rect_el = rebuilt["e2"]
         self.assertEqual(rect_el.borderRadius, 6)
         self.assertEqual(rect_el.borderWidth, 2)
+        self.assertTrue(rect_el.filled)
 
         conn_el = rebuilt["e3"]
         self.assertEqual(conn_el.source_id, "e1")
         self.assertEqual(conn_el.target_id, "e2")
         self.assertTrue(conn_el.arrow)
+
+        polygon_el = rebuilt["e4"]
+        self.assertEqual(polygon_el.shape, "triangle")
+        self.assertEqual(len(polygon_el.points), 3)
+        self.assertFalse(polygon_el.filled)
+
+        path_el = rebuilt["e5"]
+        self.assertEqual(path_el.pathKind, "wave")
+        self.assertEqual(path_el.curves[0]["type"], "M")
+        self.assertEqual(path_el.curves[1]["type"], "C")
 
     def test_preserves_original_paint_order_not_alphabetical_or_reversed(self):
         # `render_elements` (see `pdf_generator.py`) draws strictly in list order

@@ -82,6 +82,8 @@ export default function Resize({ selectedElement, isResizeable, handleIsResizabl
                 || selectedElement.category === "rectangle"
                 || selectedElement.category === "ellipse"
                 || selectedElement.category === "circle"
+                || selectedElement.category === "polygon"
+                || selectedElement.category === "path"
             ) && (
                 <>
                     {resizeHandle("center-left", classes.roundCenterLeft)}

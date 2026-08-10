@@ -650,6 +650,8 @@ def _extract_positional(elements: list[dict]) -> list[dict]:
         "rectangle": "[prostokąt]",
         "circle": "[koło]",
         "ellipse": "[elipsa]",
+        "polygon": "[wielokąt]",
+        "path": "[krzywa]",
     }
     for el in elements:
         element_id = el.get("element_id")
@@ -670,7 +672,7 @@ def _extract_positional(elements: list[dict]) -> list[dict]:
             "width": bounds["width"],
             "height": bounds["height"],
             "page": bounds["page"],
-            **({"filled": bool(el.get("filled", False))} if category in {"circle", "ellipse"} else {}),
+            **({"filled": bool(el.get("filled", False))} if category in {"circle", "ellipse", "polygon", "rectangle"} else {}),
             **({"fixedToPage": True} if bounds.get("fixedToPage") else {}),
             **({"locked": True} if bounds.get("locked") else {}),
         })

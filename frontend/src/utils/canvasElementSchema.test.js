@@ -7,6 +7,8 @@ describe("assertCanvasElementRoot", () => {
     assert.doesNotThrow(() => assertCanvasElementRoot([
       { element_id: "a", category: "text", content: "Hi" },
       { element_id: "b", category: "image", src: "/x", img_id: 1 },
+      { element_id: "c", category: "polygon", shape: "triangle" },
+      { element_id: "d", category: "path", pathKind: "wave" },
     ]));
   });
 

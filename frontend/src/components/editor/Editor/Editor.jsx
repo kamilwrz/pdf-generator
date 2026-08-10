@@ -49,6 +49,7 @@ import {
   unionRects,
 } from "../../../utils/floatingPanelPosition";
 import { CANVAS_FONT_STACKS } from "../../../utils/canvasFont";
+import { pathCurvesForKind } from "../../../utils/freeformShapes";
 import {
   getSelectionOffsets,
   runsToHtml,
@@ -175,7 +176,7 @@ export default function Editor() {
     ) {
       return;
     }
-    const value = ["fontSize", "height", "width", "lineHeight", "letterSpacing", "left", "top", "borderWidth", "zIndex"].includes(identifier)
+    const value = ["fontSize", "height", "width", "lineHeight", "letterSpacing", "left", "top", "borderWidth", "borderRadius", "zIndex"].includes(identifier)
       ? Number(e.target.value)
       : e.target.value;
     let valueObject = { [identifier]: value };
@@ -333,6 +334,7 @@ export default function Editor() {
       width: selectedElement?.width,
       height: selectedElement?.height,
       borderWidth: selectedElement?.borderWidth,
+      borderRadius: selectedElement?.borderRadius,
       filled: selectedElement?.filled,
       locked: selectedElement?.locked ?? false,
       category: selectedElement?.category,
@@ -639,8 +641,28 @@ export default function Editor() {
                     {canEditElementSizeField(selectedElement, "height", editorMode) && (
                       <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={36} />
                     )}
-                    <NumField label="Obramowanie" icon={<MdFormatSize />} value={elementValues.borderWidth} onChange={(e) => handleChangeValues(e, "borderWidth")} width={32} />
-                    <ColorField label="Kolor obramowania" value={elementValues.backgroundColor} onChange={(e) => handleChangeValues(e, "backgroundColor")} />
+                    <IconBtn
+                      label="Wypełniony kształt"
+                      active={!!selectedElement.filled}
+                      onClick={() => toggleStyle("filled")}
+                    >
+                      ●
+                    </IconBtn>
+                    {!selectedElement.filled && (
+                      <NumField label="Obramowanie" icon={<MdFormatSize />} value={elementValues.borderWidth} onChange={(e) => handleChangeValues(e, "borderWidth")} width={32} />
+                    )}
+                    <NumField
+                      label="Zaokrąglenie narożników"
+                      icon={<MdFormatSize />}
+                      value={elementValues.borderRadius ?? 0}
+                      onChange={(e) => handleChangeValues(e, "borderRadius")}
+                      width={32}
+                    />
+                    <ColorField
+                      label={selectedElement.filled ? "Kolor wypełnienia" : "Kolor obramowania"}
+                      value={elementValues.backgroundColor}
+                      onChange={(e) => handleChangeValues(e, "backgroundColor")}
+                    />
                   </Group>
                 )}
 
@@ -667,6 +689,75 @@ export default function Editor() {
                       value={elementValues.backgroundColor}
                       onChange={(e) => handleChangeValues(e, "backgroundColor")}
                     />
+                  </Group>
+                )}
+
+                {cat === "polygon" && (
+                  <Group label="Wielokąt">
+                    {canEditElementSizeField(selectedElement, "width", editorMode) && (
+                      <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
+                    )}
+                    {canEditElementSizeField(selectedElement, "height", editorMode) && (
+                      <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={36} />
+                    )}
+                    <IconBtn
+                      label="Wypełniony kształt"
+                      active={!!selectedElement.filled}
+                      onClick={() => toggleStyle("filled")}
+                    >
+                      ●
+                    </IconBtn>
+                    {!selectedElement.filled && (
+                      <NumField label="Obramowanie" icon={<MdFormatSize />} value={elementValues.borderWidth} onChange={(e) => handleChangeValues(e, "borderWidth")} width={32} />
+                    )}
+                    <ColorField
+                      label={selectedElement.filled ? "Kolor wypełnienia" : "Kolor obramowania"}
+                      value={elementValues.backgroundColor}
+                      onChange={(e) => handleChangeValues(e, "backgroundColor")}
+                    />
+                  </Group>
+                )}
+
+                {cat === "path" && (
+                  <Group label="Krzywa Béziera">
+                    {canEditElementSizeField(selectedElement, "width", editorMode) && (
+                      <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
+                    )}
+                    {canEditElementSizeField(selectedElement, "height", editorMode) && (
+                      <NumField label="Wysokość" icon={<RxHeight />} value={elementValues.height} onChange={(e) => handleChangeValues(e, "height")} width={36} />
+                    )}
+                    <NumField label="Grubość linii" icon={<MdFormatSize />} value={elementValues.borderWidth} onChange={(e) => handleChangeValues(e, "borderWidth")} width={32} />
+                    <ColorField label="Kolor linii" value={elementValues.backgroundColor} onChange={(e) => handleChangeValues(e, "backgroundColor")} />
+                    <IconBtn
+                      label="Preset: fala"
+                      active={selectedElement.pathKind === "wave"}
+                      onClick={() => editElementValues(
+                        { pathKind: "wave", curves: pathCurvesForKind("wave") },
+                        selectedElement.element_id,
+                      )}
+                    >
+                      ~
+                    </IconBtn>
+                    <IconBtn
+                      label="Preset: łuk"
+                      active={selectedElement.pathKind === "arc"}
+                      onClick={() => editElementValues(
+                        { pathKind: "arc", curves: pathCurvesForKind("arc") },
+                        selectedElement.element_id,
+                      )}
+                    >
+                      ⌒
+                    </IconBtn>
+                    <IconBtn
+                      label="Preset: ozdobnik"
+                      active={selectedElement.pathKind === "flourish"}
+                      onClick={() => editElementValues(
+                        { pathKind: "flourish", curves: pathCurvesForKind("flourish") },
+                        selectedElement.element_id,
+                      )}
+                    >
+                      ∿
+                    </IconBtn>
                   </Group>
                 )}
 

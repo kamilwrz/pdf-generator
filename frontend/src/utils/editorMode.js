@@ -16,6 +16,8 @@ const TEMPLATE_SHAPE_CATEGORIES = new Set([
   "rectangle",
   "circle",
   "ellipse",
+  "polygon",
+  "path",
 ]);
 
 /**

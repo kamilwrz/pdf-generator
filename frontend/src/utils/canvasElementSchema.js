@@ -13,6 +13,8 @@ export const ELEMENT_CATEGORIES = Object.freeze([
   "rectangle",
   "circle",
   "ellipse",
+  "polygon",
+  "path",
   "connector",
   "image",
 ]);
