@@ -41,18 +41,28 @@ class AureliaTemplateTests(unittest.TestCase):
     def setUp(self):
         self.elements = generate_resume("aurelia", CV_DATA)
 
-    def test_uses_one_substantial_cubic_bezier_as_masthead_signature(self):
+    def test_uses_separated_cubic_beziers_as_masthead_signature(self):
         paths = [element for element in self.elements if element["category"] == "path"]
-        self.assertEqual(len(paths), 1)
+        self.assertEqual(len(paths), 2)
 
-        arch = next(
+        lead = next(
             element for element in paths
-            if element.get("id") == "aurelia-golden-arch"
+            if element.get("id") == "aurelia-signature-lead"
         )
-        self.assertEqual(arch["flowRole"], "masthead")
-        self.assertEqual(arch["backgroundColor"], "#8B713A")
-        self.assertEqual(arch["borderWidth"], 4)
-        self.assertEqual(len([s for s in arch["curves"] if s["type"] == "C"]), 1)
+        tail = next(
+            element for element in paths
+            if element.get("id") == "aurelia-signature-tail"
+        )
+        bridge = next(
+            element for element in self.elements
+            if element.get("id") == "aurelia-signature-bridge"
+        )
+        self.assertEqual(lead["flowRole"], "masthead")
+        self.assertEqual(lead["backgroundColor"], "#8B713A")
+        self.assertEqual(lead["borderWidth"], 4)
+        self.assertEqual(tail["borderWidth"], 2.5)
+        self.assertEqual(bridge["category"], "line")
+        self.assertEqual(bridge["height"], 2)
 
         section_bars = [
             element for element in self.elements
@@ -62,6 +72,17 @@ class AureliaTemplateTests(unittest.TestCase):
             and element["height"] == 4
         ]
         self.assertGreaterEqual(len(section_bars), 4)
+        section_rules = [
+            element for element in self.elements
+            if element.get("flowRole") == "section-chrome"
+            and element["category"] == "line"
+            and element["backgroundColor"] == "#DCD8CE"
+        ]
+        self.assertEqual(len(section_rules), 4)
+        self.assertTrue(
+            all(element["left"] + element["width"] == 515 for element in section_rules)
+        )
+        self.assertGreater(len({element["width"] for element in section_rules}), 1)
 
     def test_stays_single_column_with_modest_body_type(self):
         content = [

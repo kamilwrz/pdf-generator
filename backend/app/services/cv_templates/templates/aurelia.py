@@ -1,9 +1,9 @@
 """Aurelia CV template generator.
 
 Aurelia is a one-column quiet-luxury document in charcoal, warm white, and
-antique gold. One substantial normalized cubic Bézier arch closes the masthead.
-Section headings use disciplined rectangular bars, keeping the signature curve
-special and the deliberately modest body copy calm.
+antique gold. Two short cubic Bézier gestures and one quiet bridge form an
+artistic signature below the masthead without entering the text area. Section
+rules react to label length while sharing one precise right edge.
 """
 
 from __future__ import annotations
@@ -31,14 +31,24 @@ from app.services.cv_templates.shared.text import (
 )
 
 
-ARCH_CURVES = [
-    {"type": "M", "x": 0.01, "y": 0.82},
-    {"type": "C", "x1": 0.25, "y1": 0.05, "x2": 0.75, "y2": 0.05, "x": 0.99, "y": 0.82},
+LEAD_CURVES = [
+    {"type": "M", "x": 0.02, "y": 0.72},
+    {"type": "C", "x1": 0.28, "y1": 0.12, "x2": 0.72, "y2": 0.12, "x": 0.98, "y": 0.52},
 ]
+TAIL_CURVES = [
+    {"type": "M", "x": 0.02, "y": 0.5},
+    {"type": "C", "x1": 0.35, "y1": 0.84, "x2": 0.72, "y2": 0.08, "x": 0.98, "y": 0.38},
+]
+
+SECTION_HEADING_LEFT = 116
+SECTION_RULE_RIGHT = 515
+SECTION_HEADING_SIZE = 9
+SECTION_HEADING_TRACKING = 1.35
+SECTION_RULE_GAP = 18
 
 
 def _gen_aurelia(cv: dict) -> list[dict]:
-    """Build the Aurelia single-column CV with one signature Bézier arch."""
+    """Build the Aurelia single-column CV with restrained Bézier artwork."""
     C = {
         "paper": "#FEFDF9",
         "ink": "#272724",
@@ -68,9 +78,18 @@ def _gen_aurelia(cv: dict) -> list[dict]:
         _text(title, 8.4, SANS, C["gold_dark"], 82, 100, zIndex=4),
         _text(contact, 8.4, SANS, C["muted"], 82, 128, zIndex=4),
         {
-            **_path(80, 151, 435, 22, ARCH_CURVES, C["gold_dark"],
+            **_path(80, 151, 158, 16, LEAD_CURVES, C["gold_dark"],
                     borderWidth=4, pathKind="arc", zIndex=3),
-            "id": "aurelia-golden-arch",
+            "id": "aurelia-signature-lead",
+        },
+        {
+            **_line(256, 162, 143, 2, C["gold"], zIndex=3),
+            "id": "aurelia-signature-bridge",
+        },
+        {
+            **_path(419, 155, 96, 16, TAIL_CURVES, C["gold_dark"],
+                    borderWidth=2.5, pathKind="flourish", zIndex=3),
+            "id": "aurelia-signature-tail",
         },
     ]
     header[0]["letterSpacing"] = 0.1
@@ -80,15 +99,34 @@ def _gen_aurelia(cv: dict) -> list[dict]:
     b = AureliaBuilder(204)
 
     def section(label: str) -> None:
-        """Place one substantial gold bar, label, and quiet divider as a unit."""
+        """Place a label-aware rule ending at the shared right-column datum."""
         top = b.y
+        display_label = _compact_text(label, 44)
+        estimated_label_width = len(display_label) * (
+            SECTION_HEADING_SIZE * 0.58 + SECTION_HEADING_TRACKING
+        )
+        # Keep every rule aligned at x=515 while allowing its start to follow
+        # the tracked label width. The 24 pt minimum prevents long custom labels
+        # from eliminating the visual endpoint completely.
+        rule_left = min(
+            SECTION_RULE_RIGHT - 24,
+            SECTION_HEADING_LEFT + estimated_label_width + SECTION_RULE_GAP,
+        )
         chrome = [
             _line(76, top + 7, 28, 4, C["gold"], zIndex=3, page=b.pg),
-            _text(_compact_text(label, 44), 9, SANS, C["ink"], L, top,
+            _text(display_label, SECTION_HEADING_SIZE, SANS, C["ink"], L, top,
                   zIndex=3, page=b.pg, bold=True),
-            _line(274, top + 9, 241, 1, C["rule"], zIndex=2, page=b.pg),
+            _line(
+                rule_left,
+                top + 9,
+                SECTION_RULE_RIGHT - rule_left,
+                1,
+                C["rule"],
+                zIndex=2,
+                page=b.pg,
+            ),
         ]
-        chrome[1]["letterSpacing"] = 1.35
+        chrome[1]["letterSpacing"] = SECTION_HEADING_TRACKING
         b.els.extend({**element, "flowRole": "section-chrome"} for element in chrome)
         b.y = top + SECTION_CHROME
 

@@ -843,27 +843,29 @@ Tests:
 - `frontend/src/templates/atrium.pack.test.js` (with `atrium.multipage.fixture.json`) — a real two-page Atrium document: every section heading stays glued to its own body through `listDocumentSections` / `sectionElementIds` and after `applyFlowSpacing` at both the default and a compact rhythm (regression guard for the reported "headings detach + spacing scrambles the layout" bug)
 - `backend/tests/test_cv_template_layouts.py` and `backend/tests/test_template_registry_sync.py` iterate every registered generator, so Atrium is covered for summary-equals-body type size, page bounds, and frontend/backend id / layout-tag / tier parity without a dedicated entry
 
-### Aurelia golden-arch Bézier template
+### Aurelia three-stroke Bézier template
 
 Aurelia is a paid, one-column template (`layouts: ["single"]`) with a quiet-luxury palette: warm white `#FEFDF9`, charcoal `#272724`, body grey `#464540`, muted grey `#77736B`, and antique gold `#B3924F` / `#8B713A`. It deliberately keeps body copy modest (`9.3` pt with `13.6` pt leading) and uses generous negative space instead of panels, cards, or a sidebar.
 
-Its memorable visual is one **substantial golden cubic Bézier arch**. The normalized path (`M` + one `C` curve) spans the content column below the masthead with a `4` pt stroke. Keeping it clear of the name and contact details gives the curve enough visual weight without creating a collision. The earlier orbit, second sweep, polygon jewel, repeated section flourishes, and footer curve were deliberately removed. Section headings and the footer now use compact `4` px gold bars, establishing one calm repeatable rhythm while reserving Bézier geometry for the single signature gesture. The `curves` coordinates stay in the 0–1 element box, making the React SVG preview and ReportLab `curveTo` export share the same geometry.
+Its memorable visual is a restrained **three-stroke golden signature** placed entirely in the empty band below the contact details. A `4` pt lead Bézier, a `2` pt straight bridge, and a shorter `2.5` pt tail Bézier create an asymmetric editorial cadence without crossing text. The earlier full-width arch, orbit, polygon jewel, repeated section flourishes, and footer curve were deliberately removed. The `curves` coordinates stay in the 0–1 element box, making the React SVG preview and ReportLab `curveTo` export share the same geometry.
 
-The deterministic Python generator uses the standard `Builder`, `need_section`, `keep_together` / `flowGroup`, experience, education, skills, and extra-section helpers. The signature arch carries `flowRole: "masthead"`; heading bars and rules carry `flowRole: "section-chrome"`, so spacing changes and pagination move each ornament with the content it belongs to. The footer bars and asymmetric grey/gold rails are `fixedToPage` and repeat on continuation pages.
+Section headings use compact `4` px gold bars on the left and label-aware grey rules on the right. The rule start is estimated from the tracked heading length (`fontSize × 0.58 + letterSpacing` per character), followed by an `18` px gap. Its endpoint always remains at `x=515`; therefore short headings receive longer lines, long headings receive shorter lines, and every section shares one clean right-hand datum. A `24` px minimum protects the rule when a custom label is unusually long.
+
+The deterministic Python generator uses the standard `Builder`, `need_section`, `keep_together` / `flowGroup`, experience, education, skills, and extra-section helpers. All three signature strokes carry `flowRole: "masthead"`; heading bars and calculated rules carry `flowRole: "section-chrome"`, so spacing changes and pagination move each ornament with the content it belongs to. The footer bars and asymmetric grey/gold rails are `fixedToPage` and repeat on continuation pages.
 
 Implementation:
 
-- `frontend/src/templates/aurelia.js`, lines 21–101, export `aureliaTemplate` — static starter, one normalized heavy arch, restrained section bars, one-column sample content
+- `frontend/src/templates/aurelia.js`, lines 21–143, export `aureliaTemplate` and function `sectionHeading` — static three-stroke signature, label-aware rules, restrained section bars, one-column sample content
 - `frontend/src/templates/helpers.js`, lines 43–65, function `bezierPath` — template-authoring helper for normalized cubic paths
-- `backend/app/services/cv_templates/templates/aurelia.py`, lines 40–194, function `_gen_aurelia` — dynamic masthead arch, rectilinear `section()` chrome, compact shared records, repeating page decorations
+- `backend/app/services/cv_templates/templates/aurelia.py`, lines 34–232, function `_gen_aurelia` and nested function `section` — dynamic three-stroke masthead, label-aware section chrome, compact shared records, repeating page decorations
 - `backend/app/services/cv_generator_primitives.py`, lines 189–210, function `_path` — backend counterpart to `bezierPath`
 - `frontend/src/templates/index.js`, lines 26 and 48, plus `backend/app/services/cv_templates/registry.py`, lines 22, 42, and 63 — paid registry entry and `single` layout parity
 - `frontend/public/template-mockups/aurelia.png` — source-driven A4 preview
 
 Tests:
 
-- `frontend/src/templates/aurelia.test.js`, lines 18–71 — one column, palette, modest body type, exactly one heavy cubic path, four section bars, and no polygon
-- `backend/tests/test_aurelia_template.py`, lines 40–104 — dynamic single-path generation, cubic geometry, rectilinear section bars, and fixed continuation chrome
+- `frontend/src/templates/aurelia.test.js`, lines 18–86 — one column, palette, separated cubic strokes, shared rule endpoints, length-relative rule starts, and no polygon
+- `backend/tests/test_aurelia_template.py`, lines 40–125 — dynamic three-stroke generation, shared rule endpoints, variable rule lengths, and fixed continuation chrome
 - `backend/tests/test_template_registry_sync.py` and `backend/tests/test_cv_template_layouts.py` — registry/layout/tier parity, bounds, and summary/body typography
 
 ### Icon-tagged templates and icon reflow
@@ -2381,27 +2383,29 @@ Testy:
 - `frontend/src/templates/atrium.pack.test.js` (z `atrium.multipage.fixture.json`) — realny dwustronicowy dokument Atrium: każdy nagłówek sekcji pozostaje przyklejony do swojego body w `listDocumentSections` / `sectionElementIds` oraz po `applyFlowSpacing` przy domyślnym i kompaktowym rytmie (guard regresji dla zgłoszonego buga „nagłówki się odrywają + zmiana odstępów psuje układ”)
 - `backend/tests/test_cv_template_layouts.py` i `backend/tests/test_template_registry_sync.py` iterują po wszystkich zarejestrowanych generatorach, więc Atrium jest objęte pokryciem (rozmiar podsumowania=body, granice strony, parytet id/tagów/planu) bez dedykowanego wpisu
 
-### Szablon Aurelia ze złotym łukiem Béziera
+### Szablon Aurelia z trzyczęściowym motywem Béziera
 
 Aurelia to płatny, jednokolumnowy szablon (`layouts: ["single"]`) w estetyce quiet luxury: ciepła biel `#FEFDF9`, grafit `#272724`, szarość treści `#464540`, muted grey `#77736B` oraz antyczne złoto `#B3924F` / `#8B713A`. Tekst body jest celowo skromny (`9.3` pt z interlinią `13.6` pt), a hierarchię buduje oddech zamiast paneli, kart czy sidebaru.
 
-Zapamiętywalnym motywem jest jeden **mocny złoty łuk sześcienny Béziera**. Znormalizowana ścieżka (`M` + jedna krzywa `C`) biegnie przez całą szerokość kolumny pod mastheadem i ma obrys `4` pt. Odsunięcie jej od nazwiska i danych kontaktowych nadaje krzywej odpowiednią wagę bez kolizji wizualnej. Wcześniejsza orbita, drugi sweep, złoty romb, powtarzane flourish przy sekcjach oraz krzywa stopki zostały celowo usunięte. Nagłówki sekcji i stopka używają teraz zwartych złotych belek `4` px, co tworzy jeden spokojny, powtarzalny rytm i pozostawia geometrię Béziera dla pojedynczego gestu-signature. Współrzędne `curves` pozostają w zakresie 0–1 ramki elementu, więc SVG Reacta i eksport ReportLab `curveTo` dzielą jedną geometrię.
+Zapamiętywalnym motywem jest oszczędna **trzyczęściowa złota sygnatura** umieszczona w całości w pustym pasie pod danymi kontaktowymi. Początkowy Bézier `4` pt, prosty łącznik `2` pt i krótszy końcowy Bézier `2.5` pt tworzą asymetryczny rytm editorialny bez przecinania tekstu. Wcześniejszy łuk na całą szerokość, orbita, złoty romb, powtarzane flourish przy sekcjach oraz krzywa stopki zostały celowo usunięte. Współrzędne `curves` pozostają w zakresie 0–1 ramki elementu, więc SVG Reacta i eksport ReportLab `curveTo` dzielą jedną geometrię.
 
-Deterministyczny generator Python używa standardowych mechanizmów `Builder`, `need_section`, `keep_together` / `flowGroup` oraz helperów doświadczenia, edukacji, umiejętności i sekcji dodatkowych. Łuk-signature ma `flowRole: "masthead"`, a belki i linie nagłówków `flowRole: "section-chrome"`, więc zmiany odstępów i paginacja przesuwają ornament razem z należącą do niego treścią. Belki stopki oraz asymetryczne szaro-złote szyny są `fixedToPage` i powtarzają się na kolejnych stronach.
+Nagłówki sekcji używają zwartych złotych belek `4` px po lewej oraz szarych linii reagujących na długość etykiety po prawej. Początek linii jest szacowany z szerokości śledzonego nagłówka (`fontSize × 0.58 + letterSpacing` na znak), po czym dodawany jest odstęp `18` px. Koniec zawsze pozostaje na `x=515`; krótkie nagłówki otrzymują więc dłuższe linie, długie nagłówki krótsze, a wszystkie sekcje współdzielą jedną czystą prawą oś. Minimum `24` px chroni linię przy wyjątkowo długiej własnej etykiecie.
+
+Deterministyczny generator Python używa standardowych mechanizmów `Builder`, `need_section`, `keep_together` / `flowGroup` oraz helperów doświadczenia, edukacji, umiejętności i sekcji dodatkowych. Wszystkie trzy elementy sygnatury mają `flowRole: "masthead"`, a belki i obliczane linie nagłówków `flowRole: "section-chrome"`, więc zmiany odstępów i paginacja przesuwają ornament razem z należącą do niego treścią. Belki stopki oraz asymetryczne szaro-złote szyny są `fixedToPage` i powtarzają się na kolejnych stronach.
 
 Implementacja:
 
-- `frontend/src/templates/aurelia.js`, linie 21–101, eksport `aureliaTemplate` — statyczny starter, jeden znormalizowany gruby łuk, oszczędne belki sekcji, przykładowa treść jednokolumnowa
+- `frontend/src/templates/aurelia.js`, linie 21–143, eksport `aureliaTemplate` i funkcja `sectionHeading` — statyczna trzyczęściowa sygnatura, linie zależne od etykiety, oszczędne belki sekcji, przykładowa treść jednokolumnowa
 - `frontend/src/templates/helpers.js`, linie 43–65, funkcja `bezierPath` — helper authoringu szablonów dla znormalizowanych krzywych sześciennych
-- `backend/app/services/cv_templates/templates/aurelia.py`, linie 40–194, funkcja `_gen_aurelia` — dynamiczny łuk mastheadu, prostoliniowy chrome `section()`, zwarte wspólne rekordy, powtarzalne dekoracje strony
+- `backend/app/services/cv_templates/templates/aurelia.py`, linie 34–232, funkcja `_gen_aurelia` i zagnieżdżona funkcja `section` — dynamiczny trzyczęściowy masthead, chrome sekcji zależny od etykiety, zwarte wspólne rekordy, powtarzalne dekoracje strony
 - `backend/app/services/cv_generator_primitives.py`, linie 189–210, funkcja `_path` — backendowy odpowiednik `bezierPath`
 - `frontend/src/templates/index.js`, linie 26 i 48, oraz `backend/app/services/cv_templates/registry.py`, linie 22, 42 i 63 — płatny wpis rejestru i parytet layoutu `single`
 - `frontend/public/template-mockups/aurelia.png` — podgląd A4 generowany ze źródła
 
 Testy:
 
-- `frontend/src/templates/aurelia.test.js`, linie 18–71 — jedna kolumna, paleta, skromny body type, dokładnie jedna gruba ścieżka sześcienna, cztery belki sekcji i brak wielokąta
-- `backend/tests/test_aurelia_template.py`, linie 40–104 — dynamiczne generowanie pojedynczej ścieżki, geometria sześcienna, prostoliniowe belki sekcji i stały chrome stron kontynuacji
+- `frontend/src/templates/aurelia.test.js`, linie 18–86 — jedna kolumna, paleta, rozdzielone krzywe sześcienne, wspólne końce linii, początki zależne od długości etykiety i brak wielokąta
+- `backend/tests/test_aurelia_template.py`, linie 40–125 — dynamiczne generowanie trzyczęściowego motywu, wspólne końce i zmienne długości linii oraz stały chrome stron kontynuacji
 - `backend/tests/test_template_registry_sync.py` i `backend/tests/test_cv_template_layouts.py` — parytet rejestru/layoutu/planu, granice i zgodność typografii podsumowania z body
 
 ### Szablony z tagiem `icons` i reflow ikon
