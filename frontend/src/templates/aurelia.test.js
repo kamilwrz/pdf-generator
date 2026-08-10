@@ -5,9 +5,9 @@ import { aureliaTemplate } from "./aurelia.js";
 
 const PAPER = "#FEFDF9";
 const GOLD = "#B3924F";
-const CLOUD = "#F4F3EF";
-const SILVER = "#E6E6E2";
-const ASH = "#C4C4BF";
+const SLATE = "#3A3A36";
+const STONE = "#5A5A54";
+const WHITE = "#FFFFFF";
 const MIST = "#D6D6D3";
 const ALLOWED_PALETTE = new Set([
     PAPER,
@@ -18,12 +18,12 @@ const ALLOWED_PALETTE = new Set([
     "#8B713A",
     "#DCD8CE",
     MIST,
-    CLOUD,
-    SILVER,
-    ASH,
+    SLATE,
+    STONE,
+    WHITE,
 ]);
 
-test("Aurelia uses light Bézier name/title plates and label-aware section rules", () => {
+test("Aurelia uses thick contrasting Bézier plates with white type and gold accent", () => {
     const tallShapes = aureliaTemplate.filter((element) => (element.height ?? 0) >= 300);
     assert.equal(tallShapes.length, 2); // paper plus the 1px vertical rail
     assert.equal(tallShapes[0].backgroundColor, PAPER);
@@ -36,7 +36,7 @@ test("Aurelia uses light Bézier name/title plates and label-aware section rules
     );
 
     const paths = aureliaTemplate.filter((element) => element.category === "path");
-    assert.equal(paths.length, 4, "mist companion + name + title + ash accent");
+    assert.equal(paths.length, 4, "mist companion + name + title + gold accent");
     assert.ok(paths.every((element) => element.curves.some((segment) => segment.type === "C")));
     assert.ok(paths.every((element) => element.filled === false));
     assert.equal(new Set(paths.map((element) => element.top)).size, 4);
@@ -50,22 +50,26 @@ test("Aurelia uses light Bézier name/title plates and label-aware section rules
         (element) => element.content === "STRATEGIA  ·  OPERACJE  ·  TRANSFORMACJA",
     );
     assert.equal(backdrop?.backgroundColor, MIST);
-    assert.equal(backdrop?.borderWidth, 18);
+    assert.equal(backdrop?.borderWidth, 22);
     assert.equal(backdrop?.zIndex, 1);
-    assert.equal(nameplate?.backgroundColor, CLOUD);
-    assert.equal(nameplate?.borderWidth, 28);
+    assert.equal(nameplate?.backgroundColor, SLATE);
+    assert.equal(nameplate?.borderWidth, 44);
+    assert.equal(nameplate?.height, 52);
     assert.equal(nameplate?.zIndex, 2);
-    assert.equal(titleplate?.backgroundColor, SILVER);
-    assert.equal(titleplate?.borderWidth, 16);
+    assert.equal(titleplate?.backgroundColor, STONE);
+    assert.equal(titleplate?.borderWidth, 30);
+    assert.equal(titleplate?.height, 36);
     assert.equal(titleplate?.zIndex, 2);
-    assert.equal(ink?.backgroundColor, ASH);
-    assert.equal(ink?.borderWidth, 4.5);
+    assert.equal(ink?.backgroundColor, GOLD);
+    assert.equal(ink?.borderWidth, 6);
     assert.equal(ink?.zIndex, 3);
     assert.equal(name?.zIndex, 4);
-    assert.equal(title?.color, "#77736B");
+    assert.equal(name?.color, WHITE);
+    assert.equal(title?.color, WHITE);
     assert.ok(paths.every((element) => element.flowRole === "masthead"));
     assert.ok(paths.every((element) => element.zIndex < name.zIndex));
     assert.ok(nameplate.width > ink.width);
+    assert.ok(nameplate.borderWidth > titleplate.borderWidth);
     assert.ok(titleplate.top > nameplate.top);
     assert.ok(aureliaTemplate.indexOf(backdrop) < aureliaTemplate.indexOf(nameplate));
     assert.ok(aureliaTemplate.indexOf(nameplate) < aureliaTemplate.indexOf(titleplate));

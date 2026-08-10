@@ -41,7 +41,7 @@ class AureliaTemplateTests(unittest.TestCase):
     def setUp(self):
         self.elements = generate_resume("aurelia", CV_DATA)
 
-    def test_layers_light_cubic_beziers_behind_name_and_title(self):
+    def test_layers_thick_contrasting_beziers_with_white_type(self):
         paths = [element for element in self.elements if element["category"] == "path"]
         self.assertEqual(len(paths), 4)
         self.assertEqual(len({element["top"] for element in paths}), 4)
@@ -71,25 +71,29 @@ class AureliaTemplateTests(unittest.TestCase):
             if element.get("content") == CV_DATA["title"]
         )
         self.assertEqual(backdrop["backgroundColor"], "#D6D6D3")
-        self.assertEqual(backdrop["borderWidth"], 18)
+        self.assertEqual(backdrop["borderWidth"], 22)
         self.assertEqual(backdrop["zIndex"], 1)
-        self.assertEqual(nameplate["backgroundColor"], "#F4F3EF")
-        self.assertEqual(nameplate["borderWidth"], 28)
+        self.assertEqual(nameplate["backgroundColor"], "#3A3A36")
+        self.assertEqual(nameplate["borderWidth"], 44)
+        self.assertEqual(nameplate["height"], 52)
         self.assertEqual(nameplate["zIndex"], 2)
-        self.assertEqual(titleplate["backgroundColor"], "#E6E6E2")
-        self.assertEqual(titleplate["borderWidth"], 16)
+        self.assertEqual(titleplate["backgroundColor"], "#5A5A54")
+        self.assertEqual(titleplate["borderWidth"], 30)
+        self.assertEqual(titleplate["height"], 36)
         self.assertEqual(titleplate["zIndex"], 2)
-        self.assertEqual(ink["backgroundColor"], "#C4C4BF")
-        self.assertEqual(ink["borderWidth"], 4.5)
+        self.assertEqual(ink["backgroundColor"], "#B3924F")
+        self.assertEqual(ink["borderWidth"], 6)
         self.assertEqual(ink["zIndex"], 3)
         self.assertEqual(name["zIndex"], 4)
-        self.assertEqual(title["color"], "#77736B")
+        self.assertEqual(name["color"], "#FFFFFF")
+        self.assertEqual(title["color"], "#FFFFFF")
         self.assertTrue(all(element["zIndex"] < name["zIndex"] for element in paths))
         self.assertLess(self.elements.index(backdrop), self.elements.index(nameplate))
         self.assertLess(self.elements.index(nameplate), self.elements.index(titleplate))
         self.assertLess(self.elements.index(titleplate), self.elements.index(ink))
         self.assertLess(self.elements.index(ink), self.elements.index(name))
         self.assertGreater(titleplate["top"], nameplate["top"])
+        self.assertGreater(nameplate["borderWidth"], titleplate["borderWidth"])
 
         section_bars = [
             element for element in self.elements

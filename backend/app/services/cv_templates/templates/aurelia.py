@@ -1,11 +1,11 @@
 """Aurelia CV template generator.
 
 Aurelia is a one-column quiet-luxury document in charcoal, warm white, mist
-grey, and antique-gold chrome accents. Layered cubic Bézier brushstrokes build
-a light name and title composition: a mist vertical backdrop on the right, a
-soft white nameplate, a pale silver title plate, and a thin ash ink accent.
-Text stays on the foreground layer. Section rules react to label length while
-sharing one precise right edge.
+grey, and antique-gold chrome accents. Thick cubic Bézier brushstrokes build a
+high-contrast name and title composition: a mist vertical backdrop on the
+right, a charcoal nameplate, a stone title plate, and a gold accent stroke.
+White text sits on the foreground layer. Section rules react to label length
+while sharing one precise right edge.
 """
 
 from __future__ import annotations
@@ -62,7 +62,7 @@ TITLE_TRACKING = 1.55
 
 
 def _gen_aurelia(cv: dict) -> list[dict]:
-    """Build the Aurelia single-column CV with light Bézier name/title artwork."""
+    """Build the Aurelia single-column CV with thick contrasting Bézier artwork."""
     C = {
         "paper": "#FEFDF9",
         "ink": "#272724",
@@ -72,9 +72,9 @@ def _gen_aurelia(cv: dict) -> list[dict]:
         "gold_dark": "#8B713A",
         "rule": "#DCD8CE",
         "mist": "#D6D6D3",
-        "cloud": "#F4F3EF",
-        "silver": "#E6E6E2",
-        "ash": "#C4C4BF",
+        "slate": "#3A3A36",
+        "stone": "#5A5A54",
+        "white": "#FFFFFF",
     }
     L, W = 116, 399
     DISPLAY, SANS = "PlayfairDisplay", "Montserrat"
@@ -91,10 +91,10 @@ def _gen_aurelia(cv: dict) -> list[dict]:
     name = _compact_text(cv.get("name"), 34)
     title = _compact_text(cv.get("title"), 58)
     contact = _compact_text(_contact_line(cv), 84)
-    # The soft white nameplate scales with the displayed name; the silver title
-    # plate follows the job title; the mist backdrop anchors the right half.
-    # Clamping protects the page edge for long strings and keeps short ones
-    # visually present.
+    # Thick charcoal/stone plates scale with the displayed name and title; the
+    # mist backdrop anchors the right half. Clamping protects the page edge for
+    # long strings and keeps short ones visually present. Border widths stay
+    # large so the fields read as background mass under white type.
     display_name_width = min(
         435,
         max(
@@ -120,7 +120,7 @@ def _gen_aurelia(cv: dict) -> list[dict]:
                 132,
                 BACKDROP_CURVES,
                 C["mist"],
-                borderWidth=18,
+                borderWidth=22,
                 pathKind="flourish",
                 zIndex=1,
             ),
@@ -128,13 +128,13 @@ def _gen_aurelia(cv: dict) -> list[dict]:
         },
         {
             **_path(
-                76,
-                42,
-                min(435, display_name_width + 40),
-                34,
+                72,
+                36,
+                min(455, display_name_width + 56),
+                52,
                 NAMEPLATE_CURVES,
-                C["cloud"],
-                borderWidth=28,
+                C["slate"],
+                borderWidth=44,
                 pathKind="wave",
                 zIndex=2,
             ),
@@ -142,13 +142,13 @@ def _gen_aurelia(cv: dict) -> list[dict]:
         },
         {
             **_path(
-                80,
-                90,
-                min(380, display_title_width + 28),
-                22,
+                78,
+                86,
+                min(400, display_title_width + 48),
+                36,
                 TITLEPLATE_CURVES,
-                C["silver"],
-                borderWidth=16,
+                C["stone"],
+                borderWidth=30,
                 pathKind="wave",
                 zIndex=2,
             ),
@@ -157,19 +157,19 @@ def _gen_aurelia(cv: dict) -> list[dict]:
         {
             **_path(
                 80,
-                31,
-                display_name_width * 0.5,
-                10,
+                28,
+                display_name_width * 0.55,
+                12,
                 INK_CURVES,
-                C["ash"],
-                borderWidth=4.5,
+                C["gold"],
+                borderWidth=6,
                 pathKind="arc",
                 zIndex=3,
             ),
             "id": "aurelia-name-ink",
         },
-        _text(name, DISPLAY_NAME_SIZE, DISPLAY, C["ink"], 80, 55, zIndex=4, bold=True),
-        _text(title, TITLE_SIZE, SANS, C["muted"], 82, 100, zIndex=4),
+        _text(name, DISPLAY_NAME_SIZE, DISPLAY, C["white"], 80, 55, zIndex=4, bold=True),
+        _text(title, TITLE_SIZE, SANS, C["white"], 82, 100, zIndex=4),
         _text(contact, 8.4, SANS, C["muted"], 82, 128, zIndex=4),
     ]
     header[4]["letterSpacing"] = DISPLAY_NAME_TRACKING
