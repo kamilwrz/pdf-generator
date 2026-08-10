@@ -29,7 +29,7 @@ from app.services.cv_templates.shared.text import (
     _compact_text,
     _contact_line_core,
     _labels,
-    _skills_inline_content,
+    _place_skills_section,
 )
 
 
@@ -329,17 +329,10 @@ def _gen_tessera(cv: dict) -> list[dict]:
         close_section()
 
     if "skills" not in sidebar_keys:
-        skills = _skills_inline_content(cv.get("skills"))
-        if skills:
-            skills_height = builder.measure_block(
-                skills, main_width, body_fs, body_lh, sans,
-            )
-            builder.need_section(section_chrome, skills_height)
-            section(labels["skills"])
-            builder.block(
-                skills, main_left, main_width, body_fs, body_lh,
-                colors["body"], sans,
-            )
+        if _place_skills_section(
+            builder, cv, section, main_left, main_width, colors["body"], sans,
+            body_fs, body_lh, section_chrome_h=section_chrome,
+        ):
             close_section()
 
     _extra_sections(

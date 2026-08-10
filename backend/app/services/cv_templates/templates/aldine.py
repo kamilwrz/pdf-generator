@@ -5,7 +5,7 @@ from __future__ import annotations
 from app.services.cv_generator_primitives import get_spacing, SPACE_AFTER_HEADER_RULE, Builder, _circle, _ellipse, _line, _rect, _text, section_chrome_height
 from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.records import _education_record_height, _experience_record_height, _place_education_record, _place_experience_record
-from app.services.cv_templates.shared.text import _compact_text, _contact_line, _labels, _skills_inline_content
+from app.services.cv_templates.shared.text import _compact_text, _contact_line, _labels, _place_skills_section
 
 def _gen_aldine(cv: dict) -> list[dict]:
     """Image-free, single-column CVs inspired by impeccably edited Word files."""
@@ -93,11 +93,10 @@ def _gen_aldine(cv: dict) -> list[dict]:
         for index, edu in enumerate(education_entries):
             _place_education_record(b, edu, L, W, ink=C['ink'], muted=C['muted'], body=C['ink'], font=SANS, degree_fs=10.2, degree_lh=13, meta_fs=8.5, meta_lh=11.5, body_fs=8.5, body_lh=11.5, after_gap=get_spacing().record if index < len(education_entries) - 1 else None)
         close_section()
-    if cv.get('skills'):
-        skills = _skills_inline_content(cv['skills'])
-        b.need_section(SECTION_CHROME, b.measure_block(skills, W, 9.1, 13, SANS))
-        section(lbl['skills'])
-        b.block(skills, L, W, 9.1, 13, C['ink'], SANS)
+    if _place_skills_section(
+        b, cv, section, L, W, C['ink'], SANS, 9.1, 13,
+        section_chrome_h=SECTION_CHROME,
+    ):
         close_section()
     _extra_sections(b, cv, 'after_skills', section, {'body': C['ink']}, L, W, SANS, fs=9.1, lh=13)
     flow = [

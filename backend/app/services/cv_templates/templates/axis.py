@@ -34,6 +34,7 @@ from app.services.cv_templates.shared.records import (
     _education_bullets,
     _education_school,
 )
+from app.services.cv_data import skill_groups, skills_have_content
 from app.services.cv_templates.shared.text import _bullets, _compact_text, _labels
 from app.services.pdf_generator import PDF_Generator
 
@@ -332,14 +333,22 @@ def _gen_axis(cv: dict) -> list[dict]:
                 b.gap(get_spacing().record)
         close_section()
 
-    # ── Skills ───────────────────────────────────────────────────────────────
-    if cv.get('skills'):
-        skills = [str(skill).strip() for skill in cv['skills'] if str(skill).strip()]
-        if skills:
-            b.need_section(SECTION_CHROME, 24.0)
-            section(lbl['skills'])
-            _place_skill_chips(skills)
-            close_section()
+    # ── Skills (flat chips, or named groups with bold category labels) ───────
+    if skills_have_content(cv.get('skills')):
+        groups = skill_groups(cv['skills'])
+        b.need_section(SECTION_CHROME, 24.0)
+        section(lbl['skills'])
+        for index, group in enumerate(groups):
+            category = str(group.get('category') or '').strip()
+            if category:
+                b.block(category, L, W, 9.5, 12.5, C['navy'], SANS, bold=True, min_h=12.5)
+                b.gap(get_spacing().stack)
+            chips = [str(skill).strip() for skill in group.get('items') or [] if str(skill).strip()]
+            if chips:
+                _place_skill_chips(chips)
+            if index < len(groups) - 1:
+                b.gap(get_spacing().record)
+        close_section()
 
     # ── Languages ─────────────────────────────────────────────────────────────
     if cv.get('languages'):

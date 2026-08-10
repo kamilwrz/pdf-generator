@@ -157,7 +157,7 @@ Ważne szczegóły:
 
 Generator **ufnie zakłada** ten schemat — nie odpytuje AI o brakujące pola.
 
-**Alias skills:** jeśli w `extra_sections` / `custom_sections` jest nagłówek w stylu „Obsługa komputera”, „Technologie”, „Narzędzia” itd., normalizacja rozpoznaje to bez AI jako slot skills: przenosi `items` do `skills`, zapisuje tytuł użytkownika w `labels.skills` i usuwa sekcję z `extra_sections`, żeby nie dublować treści. Generatory sidebar (m.in. Tessera / Harbor) biorą nagłówek z `labels.skills` zamiast hardcodowanego „OBSZARY”.
+**Alias skills:** jeśli w `extra_sections` / `custom_sections` jest nagłówek w stylu „Obsługa komputera”, „Technologie”, „Narzędzia” itd., normalizacja rozpoznaje to bez AI jako slot skills: przenosi `items` do `skills`, zapisuje tytuł użytkownika w `labels.skills` i usuwa sekcję z `extra_sections`, żeby nie dublować treści. Gdy jest **kilka** rodzin (miękkie / twarde / narzędzia) albo wiersze `Kategoria: …`, normalizacja składa je w nazwane grupy `{category, items}` pod nadrzędnym `labels.skills = UMIEJĘTNOŚCI`; szablony rysują to przez `_place_skills_section` (chrome + pogrubione etykiety + chipy). Generatory sidebar (m.in. Tessera / Harbor) biorą nagłówek z `labels.skills` zamiast hardcodowanego „OBSZARY”.
 
 ---
 

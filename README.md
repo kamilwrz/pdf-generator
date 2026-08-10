@@ -707,7 +707,7 @@ Reorder note: because Portico's centered masthead authors a deliberate ~36px cle
 
 Axis is a paid single-column template (`layouts: ["icons"]`) that reproduces a résumé "timeline" (Enhancv's "Oś czasu"): a left-aligned masthead over a full-width rule, then Experience and Education records laid out as a three-band row — a narrow left **date gutter** (period in navy, city in muted grey), a filled **marker dot with a vertical connecting line**, and the wide **content column** (role/degree title in teal, company/school in orange). Summary, Skills, Languages and any extra sections span the full content width. The palette pairs a navy structural colour (`#1B3357` — name, section headings, dates, dots) with an orange accent (`#E2740C` — title, company/school, contact icons, diamond bullets) and a teal content colour (`#2E7391` — titles, language names, skill chips); Inter throughout. Section headings are plain navy bold text with no underline rule, matching the reference.
 
-The date gutter, marker dots and connecting lines are emitted with `flowRole: "record-overlay"` — the same mechanism Harbor uses for its per-record date/location row. Each overlay is anchored to the record's top Y in a different X column, so it rides the record on reflow and pagination without adding to the record's measured vertical height. Skills render as a wrapping row of underlined chips, languages as a three-column name/level grid, and each surviving extra section (certifications, interests, projects, …) as an orange-diamond list. Because `normalize_cv_data` folds only *generic* skills aliases into `cv["skills"]` (and keeps distinct soft/hard/tools families as `kind: "other"` extras) and mirrors `cv["languages"]` into a synthesized `languages` extra section, the generator renders languages once (from `cv["languages"]`) and skips the `languages` / `skills` kinds when drawing the diamond lists, so no section is duplicated.
+The date gutter, marker dots and connecting lines are emitted with `flowRole: "record-overlay"` — the same mechanism Harbor uses for its per-record date/location row. Each overlay is anchored to the record's top Y in a different X column, so it rides the record on reflow and pagination without adding to the record's measured vertical height. Skills render as a wrapping row of underlined chips (named categories become bold labels above chip rows under one UMIEJĘTNOŚCI heading), languages as a three-column name/level grid, and each surviving extra section (certifications, interests, projects, …) as an orange-diamond list. Because `normalize_cv_data` folds generic skills aliases and multi-family soft/hard/tools into grouped `cv["skills"]` (not separate top-level extras) and mirrors `cv["languages"]` into a synthesized `languages` extra section, the generator renders languages once (from `cv["languages"]`) and skips the `languages` / `skills` kinds when drawing the diamond lists, so no section is duplicated.
 
 The orange contact + diamond glyphs come from a dedicated `axis` theme added to the shared icon pipeline (`scripts/generate_iconic_icons.py`, `SUBSET_THEMES["axis"]` = `#E2740C` with `email, phone, linkedin, github, website, location, diamond`); section headings carry no icons, so no heading glyphs are generated.
 
@@ -838,9 +838,9 @@ Python layout from normalised `cv_data` (not LLM placement). Every education rec
 3. **city · period** — muted metadata;
 4. **description** — bullet list in the readable body colour (`bulletList: true`).
 
-Main-column skills render as a compact mid-dot row (`_skills_inline_content`). Vertical bullet lists (`_bullet_list_content`, `bulletList: true`) are reserved for sidebar skills and for other flat chip sections (languages, interests, certifications). Compact sidebar education blocks keep the diploma / school / meta / description structure; Harbor uses teal diamond glyphs for sidebar list lines.
+Main-column skills render via `_place_skills_section` (one UMIEJĘTNOŚCI chrome, then optional bold category labels + mid-dot chip rows from `_skills_inline_content`). Vertical bullet lists (`_bullet_list_content`, `bulletList: true`) are reserved for sidebar skills and for other flat chip sections (languages, interests, certifications). Compact sidebar education blocks keep the diploma / school / meta / description structure; Harbor uses teal diamond glyphs for sidebar list lines.
 
-When a client sends `languages: []` but languages still exist only in legacy `extra_sections` (typical after PDF extract + template change), `normalize_cv_data` recovers them unless `custom_sections: []` was also sent as an intentional clear. Skills are scrubbed of bare list markers so Kernel never emits an empty UMIEJĘTNOŚCI heading, and that template tags flow nodes with `flowRole: "content"`. Distinct skill-family headings (soft skills, hard skills, tools / znane narzędzia) stay as separate `extra_sections` when more than one family is present — they are not merged into the single `skills` slot.
+When a client sends `languages: []` but languages still exist only in legacy `extra_sections` (typical after PDF extract + template change), `normalize_cv_data` recovers them unless `custom_sections: []` was also sent as an intentional clear. Skills are scrubbed of bare list markers so Kernel never emits an empty UMIEJĘTNOŚCI heading, and that template tags flow nodes with `flowRole: "content"`. Distinct skill-family headings (soft skills, hard skills, tools / znane narzędzia) and CV16-style `Category: …` rows become named `{category, items}` groups under the parent skills slot (`labels.skills = UMIEJĘTNOŚCI`) — not separate top-level `extra_sections`.
 
 Implementation:
 
@@ -849,14 +849,14 @@ Implementation:
 - `frontend/src/utils/textareaReflow.test.js` — `flowGroup` reclaim / grow keep-together cases, including Nimbus-style chrome interleaved on the degree line and Kernel page-2 sequential education measurement
 - `backend/app/services/cv_templates/templates/nimbus.py`, `_gen_nimbus` — heading-band markers + `flowRole`; `test_nimbus_keeps_education_record_with_heading_near_page_break`
 - `backend/app/services/cv_templates/shared/records.py`, `_place_education_record` — degree / school / meta / description bullets
-- `backend/app/services/cv_templates/shared/text.py`, `_skills_inline_content` — main-column skills mid-dot row; `_bullet_list_content` — sidebar skills and other flat lists
-- `backend/app/services/cv_data.py`, lines 318–337, `_skill_items`; lines 160–172, `is_distinct_skill_family_title`; lines 234–300, `_expand_skill_category_lines`; lines 736–798, `_absorb_skills_alias_sections`; lines 799–910, `normalize_cv_data` — language recovery, skills scrub, multi-family + skill-subsection sections
+- `backend/app/services/cv_templates/shared/text.py`, lines 42–53, `_skills_inline_content`; lines 55–76, `_skills_sidebar_content`; lines 120–202, `_place_skills_section` — parent heading + nested category labels
+- `backend/app/services/cv_data.py`, lines 270–322, `skill_groups`; lines 332–372, `_normalize_skills`; lines 450–468, `_skill_items`; lines 159–171, `is_distinct_skill_family_title`; lines 373–430, `_expand_skill_category_lines`; lines 869–949, `_absorb_skills_alias_sections`; lines 950–1060, `normalize_cv_data` — language recovery, skills scrub, nested skill groups
 - `backend/app/services/cv_templates/templates/kernel.py` — non-empty skills body + `flowRole: "content"`
 - `backend/app/api/routes/ai.py`, `fill_template`
 - `backend/app/services/document_service.py`, lines 69–127, `create_pdf_document`; lines 129–165, `update_pdf_document`
 - Docs: [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
-Tests: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_kernel_emits_skills_and_languages_bodies`; `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`, `test_soft_hard_tools_stay_as_separate_sections`, `test_skill_category_lines_become_separate_sections`.
+Tests: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_kernel_emits_skills_and_languages_bodies`; `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`, `test_soft_hard_tools_nest_under_skills`, `test_skill_category_lines_become_nested_groups`.
 
 ### Record-style extra sections (projects, references, …)
 
@@ -883,13 +883,13 @@ Tests:
 
 Fullscreen guided creator opened from the landing (`start=wizard`), Topbar, demo banner, or AI import link. It is not a separate route: `DialogShell` `variant="fullscreen"` covers the editor so the user leaves the canvas mentally without leaving `PdfCanvas`.
 
-**Steps (5):** Podstawowe dane → Doświadczenie → Wykształcenie → Umiejętności i dodatki → Wybierz wygląd. Experience / education / languages / custom sections use compact cards with an expand-to-edit form. Optional steps expose **Pomiń ten krok**; summary on step 1 is optional (**Pomiń na razie**). Destructive **Wyczyść wszystkie dane** lives under a `⋯` menu. Footer save status shows **Zapisywanie…** / **Zapisano · HH:MM** (auth) or **Zapisano na tym urządzeniu · HH:MM** (guest).
+**Steps (5):** Podstawowe dane → Doświadczenie → Wykształcenie → Umiejętności i dodatki → Wybierz wygląd. Experience / education / languages / custom sections use compact cards with an expand-to-edit form. On the extras step, skills accept plain chips and `Kategoria: chip, chip` lines (`parseSkills`); the backend turns those into nested groups under UMIEJĘTNOŚCI. Optional steps expose **Pomiń ten krok**; summary on step 1 is optional (**Pomiń na razie**). Destructive **Wyczyść wszystkie dane** lives under a `⋯` menu. Footer save status shows **Zapisywanie…** / **Zapisano · HH:MM** (auth) or **Zapisano na tym urządzeniu · HH:MM** (guest).
 
 **Contact links on step 0:** LinkedIn is always available; **Dodaj link** optionally reveals GitHub and/or website (max those two extras). Values persist through draft save, guest localStorage, and `fill_template`.
 
 Implementation:
 
-- `frontend/src/utils/bioCvData.js`, lines 5–12 (`BIO_CV_STEPS`), 49–70 (`createEmptyBioCvData` includes `linkedin` / `github` / `website`), 91–115 (`createCustomSectionFromPreset`), 225–248 (`validateBioCvStep`)
+- `frontend/src/utils/bioCvData.js`, lines 5–12 (`BIO_CV_STEPS`), 49–70 (`createEmptyBioCvData` includes `linkedin` / `github` / `website`), 94–119 (`createCustomSectionFromPreset`), 138–167 (`parseSkills`), 270–294 (`validateBioCvStep`)
 - `frontend/src/utils/contactLinks.js` — categorize / short labels / available extra kinds
 - `frontend/src/utils/guestWizardDraft.js`, lines 35–141 (`saveGuestWizardDraft`, empty-overwrite guard, `hasGuestWizardDraft`)
 - `frontend/src/utils/claimGuestWizardDraft.js`, lines 48–109, function `adoptGuestWizardDraftForAccount`
@@ -899,7 +899,7 @@ Implementation:
 
 Tests:
 
-- `frontend/src/utils/bioCvData.test.js` — payload build, step validation (including merged extras step), summary jump, social fields
+- `frontend/src/utils/bioCvData.test.js` — payload build, step validation (including merged extras step), summary jump, social fields, `parseSkills` category lines
 - `frontend/src/utils/contactLinks.test.js`
 - `frontend/src/utils/guestWizardDraft.test.js`
 - `frontend/src/utils/claimGuestWizardDraft.test.js`
@@ -926,17 +926,16 @@ Tests: `backend/tests/test_contact_links.py`.
 
 Vision extract of first pages → structured `cv_data`, including `linkedin` / `github` / `website` from the header and record-shaped `extra_sections` items when the source CV has titled entries with description bullets. Domain heuristics re-categorize misplaced URLs during normalize.
 
-When the source CV has **separate** skill-family headings (e.g. Umiejętności miękkie, Umiejętności twarde, Znane narzędzia), the extract prompt keeps each family as its own `extra_sections` entry (`kind: "other"`) instead of merging them into the single `skills` array. `normalize_cv_data` / `_absorb_skills_alias_sections` preserve that split; only a lone generic skills alias (e.g. Obsługa komputera) still fills the primary skills slot.
-
-**Skill subsections** under one UMIEJĘTNOŚCI heading (CV16-style `Bezpieczeństwo: …` / `Przemysł / OT: …` rows) are also promoted to separate `extra_sections` with the category name as the section title — the canvas has no nested-heading primitive, so this reuses the same flat custom-section elements. A nested `Języki:` row merges into `languages`. `_expand_skill_category_lines` performs the same split when the model returns category lines inside `skills`. Training blocks such as **Szkolenia z cyberbezpieczeństwa** must be extracted as `kind: "certifications"` (`placement: "after_experience"`). Extract `max_tokens` is 8000 so dense multi-section CVs are less likely to truncate mid-list.
+When the source CV has **separate** skill-family headings (e.g. Umiejętności miękkie, Umiejętności twarde, Znane narzędzia) or **subsections** under one UMIEJĘTNOŚCI heading (CV16-style `Bezpieczeństwo: …` / `Przemysł / OT: …`), the extract prompt returns `skills` as `[{category, items}, …]` with `labels.skills = "UMIEJĘTNOŚCI"` — not separate `extra_sections` for those categories. Templates render one section chrome plus bold category labels and chip bodies (`_place_skills_section`). A nested `Języki:` row merges into `languages`. `_expand_skill_category_lines` / `_absorb_skills_alias_sections` build the same nested groups when the model returns flat `Category:` lines or family extras. Only a lone generic skills alias (e.g. Obsługa komputera) still fills the primary skills slot with that heading. Training blocks such as **Szkolenia z cyberbezpieczeństwa** must be extracted as `kind: "certifications"` (`placement: "after_experience"`). Extract `max_tokens` is 8000 so dense multi-section CVs are less likely to truncate mid-list.
 
 Implementation:
 
-- `backend/app/services/ai_service.py`, `extract_cv_data` (line 39+) — JSON schema includes social fields, multi-family skills, skill subsections, and szkolenia rules
+- `backend/app/services/ai_service.py`, lines 39–136, `extract_cv_data` — JSON schema shape A/B for skills, nested groups, szkolenia rules
 - `backend/app/api/routes/ai.py`, `extract_cv`
-- `backend/app/services/cv_data.py`, `normalize_cv_data` + `is_distinct_skill_family_title` + `_expand_skill_category_lines` + `_absorb_skills_alias_sections` + `extract_contact_fields_from_raw`
+- `backend/app/services/cv_data.py`, `normalize_cv_data` + `skill_groups` + `is_distinct_skill_family_title` + `_expand_skill_category_lines` + `_absorb_skills_alias_sections` + `extract_contact_fields_from_raw`
+- `backend/app/services/cv_templates/shared/text.py`, `_place_skills_section`
 
-Tests: `backend/tests/test_cv_data.py`, `test_soft_hard_tools_stay_as_separate_sections`, `test_lone_tools_section_still_fills_skills_slot`, `test_skill_category_lines_become_separate_sections`, `test_single_colon_skill_line_is_not_promoted`.
+Tests: `backend/tests/test_cv_data.py`, `test_soft_hard_tools_nest_under_skills`, `test_lone_tools_section_still_fills_skills_slot`, `test_skill_category_lines_become_nested_groups`, `test_single_colon_skill_line_is_not_promoted`.
 
 ### Template carousel (import, bio wizard, change template)
 
@@ -2096,7 +2095,7 @@ Uwaga o zmianie kolejności: ponieważ wycentrowany masthead Portico autoryzuje 
 
 Axis to płatny szablon jednokolumnowy (`layouts: ["icons"]`) odwzorowujący układ „oś czasu" (Enhancv „Oś czasu"): wyrównany do lewej masthead nad linią na całą szerokość, a następnie wpisy Doświadczenia i Wykształcenia w układzie trzech pasm — wąski lewy **margines dat** (okres w kolorze navy, miasto w stonowanej szarości), wypełniona **kropka znacznika z pionową linią łączącą** oraz szeroka **kolumna treści** (nazwa stanowiska/dyplomu w kolorze morskim, firma/uczelnia w pomarańczowym). Podsumowanie, Umiejętności, Języki i sekcje dodatkowe zajmują pełną szerokość. Paleta łączy navy jako kolor strukturalny (`#1B3357` — nazwisko, nagłówki sekcji, daty, kropki), pomarańczowy akcent (`#E2740C` — tytuł, firma/uczelnia, ikony kontaktu, diamentowe punkty) oraz morski kolor treści (`#2E7391` — tytuły, nazwy języków, chipy umiejętności); wszędzie Inter. Nagłówki sekcji to zwykły navy pogrubiony tekst bez linii podkreślenia, zgodnie z referencją.
 
-Margines dat, kropki znaczników i linie łączące są emitowane z `flowRole: "record-overlay"` — tym samym mechanizmem, którego Harbor używa dla wiersza data/lokalizacja przy wpisie. Każda nakładka jest zakotwiczona na współrzędnej Y góry wpisu w innej kolumnie X, więc podąża za wpisem podczas reflow i paginacji, nie dodając nic do mierzonej wysokości wpisu. Umiejętności renderują się jako zawijany wiersz podkreślonych chipów, języki jako trzykolumnowa siatka nazwa/poziom, a każda zachowana sekcja dodatkowa (certyfikaty, zainteresowania, projekty, …) jako lista z pomarańczowymi diamentami. Ponieważ `normalize_cv_data` wciela tylko *ogólne* aliasy skills do `cv["skills"]` (a osobne rodziny miękkie/twarde/narzędzia zostawia jako `kind: "other"`) i kopiuje `cv["languages"]` do syntetycznej sekcji `languages`, generator renderuje języki raz (z `cv["languages"]`) i pomija rodzaje `languages` / `skills` przy rysowaniu list diamentowych, więc żadna sekcja nie jest duplikowana.
+Margines dat, kropki znaczników i linie łączące są emitowane z `flowRole: "record-overlay"` — tym samym mechanizmem, którego Harbor używa dla wiersza data/lokalizacja przy wpisie. Każda nakładka jest zakotwiczona na współrzędnej Y góry wpisu w innej kolumnie X, więc podąża za wpisem podczas reflow i paginacji, nie dodając nic do mierzonej wysokości wpisu. Umiejętności renderują się jako zawijany wiersz podkreślonych chipów (nazwane kategorie to pogrubione etykiety nad wierszami chipów pod jednym nagłówkiem UMIEJĘTNOŚCI), języki jako trzykolumnowa siatka nazwa/poziom, a każda zachowana sekcja dodatkowa (certyfikaty, zainteresowania, projekty, …) jako lista z pomarańczowymi diamentami. Ponieważ `normalize_cv_data` wciela ogólne aliasy skills oraz rodziny miękkie/twarde/narzędzia do pogrupowanego `cv["skills"]` (nie jako osobne top-level extras) i kopiuje `cv["languages"]` do syntetycznej sekcji `languages`, generator renderuje języki raz (z `cv["languages"]`) i pomija rodzaje `languages` / `skills` przy rysowaniu list diamentowych, więc żadna sekcja nie jest duplikowana.
 
 Pomarańczowe glify kontaktu i diamentu pochodzą z dedykowanego motywu `axis` dodanego do wspólnego pipeline'u ikon (`scripts/generate_iconic_icons.py`, `SUBSET_THEMES["axis"]` = `#E2740C` z `email, phone, linkedin, github, website, location, diamond`); nagłówki sekcji nie mają ikon, więc nie generuje się glifów nagłówkowych.
 
@@ -2223,23 +2222,23 @@ Layout Python powstaje ze znormalizowanego `cv_data`, a nie z pozycji wymyślony
 3. **miasto · okres** — stonowany kolor metadanych;
 4. **opis** — lista punktów w kolorze treści (`bulletList: true`).
 
-Umiejętności w kolumnie głównej renderują się jako zwarty wiersz ze środkowymi kropkami (`_skills_inline_content`). Pionowe listy punktów (`_bullet_list_content`, `bulletList: true`) są zarezerwowane dla skills w sidebarze oraz innych płaskich sekcji (języki, zainteresowania, certyfikaty). Harbor używa tealowych diamentów dla list w sidebarze.
+Umiejętności w kolumnie głównej renderuje `_place_skills_section` (jeden chrome UMIEJĘTNOŚCI, potem opcjonalne pogrubione etykiety kategorii + wiersze chipów ze środkowymi kropkami z `_skills_inline_content`). Pionowe listy punktów (`_bullet_list_content`, `bulletList: true`) są zarezerwowane dla skills w sidebarze oraz innych płaskich sekcji (języki, zainteresowania, certyfikaty). Harbor używa tealowych diamentów dla list w sidebarze.
 
-Gdy klient wyśle `languages: []`, a języki nadal są tylko w legacy `extra_sections` (typowy kształt po ekstrakcji PDF i zmianie szablonu), `normalize_cv_data` je odzyskuje — chyba że jednocześnie wysłano `custom_sections: []` jako świadome wyczyszczenie. Umiejętności są oczyszczane z samotnych markerów listy, żeby Kernel nie emitował pustego nagłówka UMIEJĘTNOŚCI; ten szablon oznacza też węzły flow jako `flowRole: "content"`. Osobne nagłówki rodzin umiejętności (miękkie, twarde, narzędzia / znane narzędzia) zostają jako osobne `extra_sections`, gdy jest ich więcej niż jedna — nie są scalane w jeden slot `skills`.
+Gdy klient wyśle `languages: []`, a języki nadal są tylko w legacy `extra_sections` (typowy kształt po ekstrakcji PDF i zmianie szablonu), `normalize_cv_data` je odzyskuje — chyba że jednocześnie wysłano `custom_sections: []` jako świadome wyczyszczenie. Umiejętności są oczyszczane z samotnych markerów listy, żeby Kernel nie emitował pustego nagłówka UMIEJĘTNOŚCI; ten szablon oznacza też węzły flow jako `flowRole: "content"`. Osobne nagłówki rodzin (miękkie, twarde, narzędzia) oraz wiersze `Kategoria: …` stają się nazwanymi grupami `{category, items}` pod nadrzędnym slotem skills (`labels.skills = UMIEJĘTNOŚCI`) — nie osobnymi top-level `extra_sections`.
 
 - `backend/app/services/cv_generator_primitives.py` — klasa `Builder` (`need`, `need_section`, `keep_together` z tagiem `flowGroup`; re-eksport z `cv_generator.py`)
 - `backend/tests/test_builder_keep_together.py` — regresja: rekord nie dzieli się między stronami
 - `frontend/src/utils/textareaReflow.test.js` — przypadki keep-together `flowGroup` przy reclaim/wzroście, w tym chrome Nimbus wpleciony w linię degree oraz sekwencyjny pomiar edukacji Kernela na stronie 2
 - `backend/app/services/cv_templates/templates/nimbus.py`, `_gen_nimbus` — markery w paśmie nagłówka + `flowRole`; `test_nimbus_keeps_education_record_with_heading_near_page_break`
 - `backend/app/services/cv_templates/shared/records.py` — `_place_education_record` (dyplom / uczelnia / meta / bullet opis)
-- `backend/app/services/cv_templates/shared/text.py` — `_skills_inline_content` (skills w main), `_bullet_list_content` (sidebar / inne listy)
-- `backend/app/services/cv_data.py`, linie 318–337 — `_skill_items`; linie 160–172 — `is_distinct_skill_family_title`; linie 234–300 — `_expand_skill_category_lines`; linie 736–798 — `_absorb_skills_alias_sections`; linie 799–910 — `normalize_cv_data` (odzyskiwanie języków, czyszczenie skills, osobne rodziny i podsekcje umiejętności)
+- `backend/app/services/cv_templates/shared/text.py`, linie 42–53 — `_skills_inline_content`; linie 55–76 — `_skills_sidebar_content`; linie 120–202 — `_place_skills_section` (nagłówek nadrzędny + etykiety kategorii)
+- `backend/app/services/cv_data.py`, linie 270–322 — `skill_groups`; linie 332–372 — `_normalize_skills`; linie 450–468 — `_skill_items`; linie 159–171 — `is_distinct_skill_family_title`; linie 373–430 — `_expand_skill_category_lines`; linie 869–949 — `_absorb_skills_alias_sections`; linie 950–1060 — `normalize_cv_data` (odzyskiwanie języków, czyszczenie skills, zagnieżdżone grupy)
 - `backend/app/services/cv_templates/templates/kernel.py` — niepusta treść skills + `flowRole: "content"`
 - `backend/app/api/routes/ai.py` — `fill_template`
 - `backend/app/services/document_service.py`, linie 69–127 — `create_pdf_document`; linie 129–165 — `update_pdf_document`
 - [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
-Testy: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_kernel_emits_skills_and_languages_bodies`; `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`, `test_soft_hard_tools_stay_as_separate_sections`, `test_skill_category_lines_become_separate_sections`.
+Testy: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_kernel_emits_skills_and_languages_bodies`; `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`, `test_soft_hard_tools_nest_under_skills`, `test_skill_category_lines_become_nested_groups`.
 
 ### Sekcje rekordowe (projekty, referencje, …)
 
@@ -2266,13 +2265,13 @@ Testy:
 
 Pełnoekranowy kreator otwierany z landingu (`start=wizard`), Topbara, banera demo albo linku z importu AI. To nie jest osobna trasa: `DialogShell` `variant="fullscreen"` przykrywa edytor, więc użytkownik mentalnie wychodzi z kanwy, pozostając w `PdfCanvas`.
 
-**Kroki (5):** Podstawowe dane → Doświadczenie → Wykształcenie → Umiejętności i dodatki → Wybierz wygląd. Doświadczenie / edukacja / języki / sekcje własne używają kompaktowych kart z rozwijanym formularzem. Kroki opcjonalne mają **Pomiń ten krok**; podsumowanie na kroku 1 jest opcjonalne (**Pomiń na razie**). Destrukcyjne **Wyczyść wszystkie dane** jest w menu `⋯`. Status zapisu w stopce: **Zapisywanie…** / **Zapisano · HH:MM** (konto) albo **Zapisano na tym urządzeniu · HH:MM** (gość).
+**Kroki (5):** Podstawowe dane → Doświadczenie → Wykształcenie → Umiejętności i dodatki → Wybierz wygląd. Doświadczenie / edukacja / języki / sekcje własne używają kompaktowych kart z rozwijanym formularzem. Na kroku dodatków skills przyjmują płaskie chipy oraz linie `Kategoria: chip, chip` (`parseSkills`); backend zamienia je na zagnieżdżone grupy pod UMIEJĘTNOŚCI. Kroki opcjonalne mają **Pomiń ten krok**; podsumowanie na kroku 1 jest opcjonalne (**Pomiń na razie**). Destrukcyjne **Wyczyść wszystkie dane** jest w menu `⋯`. Status zapisu w stopce: **Zapisywanie…** / **Zapisano · HH:MM** (konto) albo **Zapisano na tym urządzeniu · HH:MM** (gość).
 
 **Linki kontaktowe na kroku 0:** LinkedIn jest zawsze dostępny; **Dodaj link** opcjonalnie ujawnia GitHub i/lub stronę WWW (maks. te dwa dodatkowe). Wartości przechodzą przez zapis szkicu, localStorage gościa i `fill_template`.
 
 Implementacja:
 
-- `frontend/src/utils/bioCvData.js`, linie 5–12 (`BIO_CV_STEPS`), 49–70 (`createEmptyBioCvData` z `linkedin` / `github` / `website`), 91–115 (`createCustomSectionFromPreset`), 225–248 (`validateBioCvStep`)
+- `frontend/src/utils/bioCvData.js`, linie 5–12 (`BIO_CV_STEPS`), 49–70 (`createEmptyBioCvData` z `linkedin` / `github` / `website`), 94–119 (`createCustomSectionFromPreset`), 138–167 (`parseSkills`), 270–294 (`validateBioCvStep`)
 - `frontend/src/utils/contactLinks.js` — kategoryzacja / krótkie etykiety / dostępne dodatkowe rodzaje
 - `frontend/src/utils/guestWizardDraft.js`, linie 35–141 (`saveGuestWizardDraft`, ochrona przed pustym nadpisaniem, `hasGuestWizardDraft`)
 - `frontend/src/utils/claimGuestWizardDraft.js`, linie 48–109, funkcja `adoptGuestWizardDraftForAccount`
@@ -2282,7 +2281,7 @@ Implementacja:
 
 Testy:
 
-- `frontend/src/utils/bioCvData.test.js` — budowa payloadu, walidacja kroków, skok do podsumowania, pola social
+- `frontend/src/utils/bioCvData.test.js` — budowa payloadu, walidacja kroków, skok do podsumowania, pola social, linie kategorii `parseSkills`
 - `frontend/src/utils/contactLinks.test.js`
 - `frontend/src/utils/guestWizardDraft.test.js`
 - `frontend/src/utils/claimGuestWizardDraft.test.js`
@@ -2308,16 +2307,15 @@ Testy: `backend/tests/test_contact_links.py`.
 
 Wizyjna ekstrakcja pierwszych stron → strukturalne `cv_data`, w tym `linkedin` / `github` / `website` z nagłówka. Heurystyki domenowe poprawiają kategorię URL-i przy normalizacji.
 
-Gdy CV źródłowe ma **osobne** nagłówki rodzin umiejętności (np. Umiejętności miękkie, Umiejętności twarde, Znane narzędzia), prompt ekstrakcji trzyma każdą rodzinę jako osobny wpis `extra_sections` (`kind: "other"`) zamiast scalać je w jedną tablicę `skills`. `normalize_cv_data` / `_absorb_skills_alias_sections` zachowują ten podział; tylko samotny ogólny alias skills (np. Obsługa komputera) nadal wypełnia główny slot skills.
+Gdy CV źródłowe ma **osobne** nagłówki rodzin umiejętności (np. Umiejętności miękkie, Umiejętności twarde, Znane narzędzia) albo **podsekcje** pod jednym nagłówkiem UMIEJĘTNOŚCI (styl CV16: `Bezpieczeństwo: …` / `Przemysł / OT: …`), prompt ekstrakcji zwraca `skills` jako `[{category, items}, …]` z `labels.skills = "UMIEJĘTNOŚCI"` — nie osobne `extra_sections` dla tych kategorii. Szablony rysują jeden chrome sekcji oraz pogrubione etykiety kategorii i chipy (`_place_skills_section`). Wiersz `Języki:` trafia do `languages`. `_expand_skill_category_lines` / `_absorb_skills_alias_sections` budują te same zagnieżdżone grupy, gdy model zwróci płaskie linie `Kategoria:` albo extras rodzin. Tylko samotny ogólny alias skills (np. Obsługa komputera) nadal wypełnia główny slot skills z tym nagłówkiem. Bloki szkoleń (np. **Szkolenia z cyberbezpieczeństwa**) muszą być ekstrahowane jako `kind: "certifications"` (`placement: "after_experience"`). `max_tokens` ekstrakcji wynosi 8000.
 
-**Podsekcje skills** pod jednym nagłówkiem UMIEJĘTNOŚCI (styl CV16: `Bezpieczeństwo: …` / `Przemysł / OT: …`) też awansują do osobnych `extra_sections` z nazwą kategorii jako tytułem sekcji — płótno nie ma zagnieżdżonych nagłówków, więc używamy tych samych płaskich sekcji własnych. Wiersz `Języki:` trafia do `languages`. `_expand_skill_category_lines` robi ten sam podział, gdy model zwróci linie kategorii wewnątrz `skills`. Bloki szkoleń (np. **Szkolenia z cyberbezpieczeństwa**) muszą być ekstrahowane jako `kind: "certifications"` (`placement: "after_experience"`). `max_tokens` ekstrakcji wynosi 8000.
-
-- `backend/app/services/ai_service.py` — `extract_cv_data` (linia 39+) — schemat JSON + reguły rodzin/podsekcji skills i szkoleń
+- `backend/app/services/ai_service.py`, linie 39–136 — `extract_cv_data` — kształty A/B skills, grupy zagnieżdżone, reguły szkoleń
 - `backend/app/api/routes/ai.py` — `extract_cv`
-- `backend/app/services/cv_data.py` — `normalize_cv_data` + `is_distinct_skill_family_title` + `_expand_skill_category_lines` + `_absorb_skills_alias_sections` + `extract_contact_fields_from_raw`
+- `backend/app/services/cv_data.py` — `normalize_cv_data` + `skill_groups` + `is_distinct_skill_family_title` + `_expand_skill_category_lines` + `_absorb_skills_alias_sections` + `extract_contact_fields_from_raw`
+- `backend/app/services/cv_templates/shared/text.py` — `_place_skills_section`
 - `backend/app/services/contact_links.py`
 
-Testy: `backend/tests/test_cv_data.py`, `test_soft_hard_tools_stay_as_separate_sections`, `test_lone_tools_section_still_fills_skills_slot`, `test_skill_category_lines_become_separate_sections`, `test_single_colon_skill_line_is_not_promoted`.
+Testy: `backend/tests/test_cv_data.py`, `test_soft_hard_tools_nest_under_skills`, `test_lone_tools_section_still_fills_skills_slot`, `test_skill_category_lines_become_nested_groups`, `test_single_colon_skill_line_is_not_promoted`.
 
 ### Karuzela szablonów (import, kreator bio, zmiana szablonu)
 

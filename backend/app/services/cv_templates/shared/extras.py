@@ -10,7 +10,12 @@ from app.services.cv_generator_primitives import (
     section_chrome_height,
 )
 from app.services.cv_templates.shared.records import _education_sidebar_content
-from app.services.cv_templates.shared.text import _bullet_list_content, _extra_section_kind
+from app.services.cv_data import skill_groups, skills_have_content
+from app.services.cv_templates.shared.text import (
+    _bullet_list_content,
+    _extra_section_kind,
+    _skills_sidebar_content,
+)
 
 def _flatten_extra_items(items: list) -> list[str]:
     """Flatten structured records to strings for sidebar / compact consumers."""
@@ -252,15 +257,21 @@ def _sidebar_wrapped_height(content: str, width: float, font_size: float, line_h
 def _sidebar_candidates(cv: dict, labels: dict) -> list[dict]:
     """Prepare complete, non-truncated sections eligible for sidebar placement."""
     candidates: list[dict] = []
-    skills = [str(skill).strip() for skill in (cv.get("skills") or []) if str(skill).strip()]
-    if skills:
+    if skills_have_content(cv.get("skills")):
+        groups = skill_groups(cv.get("skills"))
+        has_named = any(str(group.get("category") or "").strip() for group in groups)
+        # Named groups already embed "•" lines under category labels — keep
+        # bulletList off so category titles are not forced into the glyph column.
         candidates.append({
             "key": "skills",
             "kind": "skills",
             "title": labels["skills"],
-            # Vertical bullet list — matches main-column skills and languages.
-            "content": _bullet_list_content(skills),
-            "bulletList": True,
+            "content": (
+                _skills_sidebar_content(cv.get("skills"))
+                if has_named
+                else _bullet_list_content(groups[0]["items"] if groups else [])
+            ),
+            "bulletList": not has_named,
         })
 
     for index, section in enumerate(cv.get("extra_sections") or []):

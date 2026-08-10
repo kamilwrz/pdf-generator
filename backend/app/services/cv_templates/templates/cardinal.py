@@ -5,7 +5,7 @@ from __future__ import annotations
 from app.services.cv_generator_primitives import get_spacing, SPACE_AFTER_HEADER_RULE, Builder, _line, _text, section_chrome_height
 from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.records import _education_record_height, _experience_record_height, _place_education_record, _place_experience_record
-from app.services.cv_templates.shared.text import _compact_text, _labels, _skills_inline_content
+from app.services.cv_templates.shared.text import _compact_text, _labels, _place_skills_section
 from app.services.cv_templates.shared.icons import _icon_beside, _icon_key_for_label
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
@@ -96,12 +96,10 @@ def _gen_cardinal(cv: dict) -> list[dict]:
         for index, edu in enumerate(education_entries):
             _place_education_record(b, edu, L, W, ink=C['ink'], muted=C['mute'], body=C['body'], font=SANS, degree_fs=10.4, degree_lh=13, meta_fs=8.5, meta_lh=11.5, body_fs=9.2, body_lh=13.2, after_gap=get_spacing().record if index < len(education_entries) - 1 else None)
         close_section()
-    if cv.get('skills'):
-        skills_fs = 9.3
-        skills = _skills_inline_content(cv['skills'])
-        b.need_section(SECTION_CHROME, b.measure_block(skills, W, skills_fs, 13.4, SANS))
-        section(lbl['skills'])
-        b.block(skills, L, W, skills_fs, 13.4, C['body'], SANS)
+    if _place_skills_section(
+        b, cv, section, L, W, C['body'], SANS, 9.3, 13.4,
+        section_chrome_h=SECTION_CHROME,
+    ):
         close_section()
     _extra_sections(b, cv, 'after_skills', section, {'body': C['body']}, L, W, SANS, fs=9.3, lh=13.4, skip_indices=skip_sidebar_extras, section_chrome_h=SECTION_CHROME)
     flow = b.build()

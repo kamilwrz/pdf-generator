@@ -23,7 +23,7 @@ from app.services.cv_templates.shared.records import (
     _place_education_record,
     _place_experience_record,
 )
-from app.services.cv_templates.shared.text import _compact_text, _labels, _skills_inline_content
+from app.services.cv_templates.shared.text import _compact_text, _labels, _place_skills_section
 
 
 def _gen_portico(cv: dict) -> list[dict]:
@@ -167,12 +167,10 @@ def _gen_portico(cv: dict) -> list[dict]:
                 after_gap=get_spacing().record if index < len(education_entries) - 1 else None,
             )
         close_section()
-    if cv.get('skills'):
-        skills_fs = 9.3
-        skills = _skills_inline_content(cv['skills'])
-        b.need_section(SECTION_CHROME, b.measure_block(skills, W, skills_fs, 13.4, SANS))
-        section(lbl['skills'])
-        b.block(skills, L, W, skills_fs, 13.4, C['body'], SANS)
+    if _place_skills_section(
+        b, cv, section, L, W, C['body'], SANS, 9.3, 13.4,
+        section_chrome_h=SECTION_CHROME,
+    ):
         close_section()
     _extra_sections(b, cv, 'after_skills', section, {'body': C['body']}, L, W, SANS,
                      fs=9.3, lh=13.4, section_chrome_h=SECTION_CHROME)

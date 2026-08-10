@@ -82,30 +82,27 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
 ```python
             "text": (
                 "Jesteś precyzyjnym ekstraktorem danych z CV. "
-                # ... schemat JSON bez zmian ...
+                # ... schemat JSON: skills = [] | [{"category","items"}] ...
                 "Zasady:\n"
                 # ... experience / education ...
-                "- skills: TYLKO gdy CV ma jedną PŁASKĄ listę umiejętności bez podsekcji\n"
-                "  (np. 'UMIEJĘTNOŚCI', 'OBSŁUGA KOMPUTERA'). Każda umiejętność osobnym stringiem.\n"
-                "  Gdy CV ma OSOBNE nagłówki rodzin — 'UMIEJĘTNOŚCI MIĘKKIE', 'UMIEJĘTNOŚCI TWARDE',\n"
-                "  'ZNANE NARZĘDZIA' / 'NARZĘDZIA', 'SOFT SKILLS', 'HARD SKILLS', 'TOOLS' —\n"
-                "  NIE łącz ich w skills. Każdą wrzuć do extra_sections (kind='other').\n"
-                "  PODSEKCJE wewnątrz UMIEJĘTNOŚCI (format 'Kategoria: item1, item2' lub pogrubione\n"
-                "  etykiety nad listą, np. 'Bezpieczeństwo', 'Przemysł / OT',\n"
-                "  'Programowanie i systemy'): każda podsekcja = osobny extra_sections\n"
-                "  (kind='other', title=nazwa kategorii WIELKIMI LITERAMI, items=osobne stringi\n"
-                "  — rozbij listę po przecinkach). skills=[] ; labels.skills='UMIEJĘTNOŚCI'.\n"
-                "  Wczytaj WSZYSTKIE podsekcje, nie tylko pierwszą. Podsekcję 'Języki'/'Languages'\n"
-                "  wrzuć do languages (nie do skills ani other).\n"
-                # ... labels ...
-                "- extra_sections: … Szkolenia z cyberbezpieczeństwa, podsekcje skills …\n"
+                "- skills — DWA DOZWOLONE KSZTAŁTY:\n"
+                "  A) Płaska lista stringów, gdy CV ma jedną listę bez podsekcji\n"
+                "     (np. sama 'UMIEJĘTNOŚCI' / 'OBSŁUGA KOMPUTERA').\n"
+                "  B) Lista obiektów {\"category\":\"Nazwa\",\"items\":[\"chip\",\"…\"]} gdy CV ma\n"
+                "     podsekcje lub osobne rodziny umiejętności. Wówczas:\n"
+                "     * labels.skills = 'UMIEJĘTNOŚCI' (nadrzędny nagłówek — ZAWSZE),\n"
+                "     * category = dokładna nazwa podsekcji/rodziny,\n"
+                "     * NIE wrzucaj tych kategorii do extra_sections.\n"
+                "  Podsekcję 'Języki'/'Languages' wrzuć do languages, nie do skills.\n"
+                # ... labels.skills / extra_sections ...
+                "- extra_sections: … Szkolenia z cyberbezpieczeństwa …\n"
                 "  SZKOLENIA / TRENINGI / COURSES / TRAINING: ZAWSZE extra_sections,\n"
                 "  kind='certifications', placement='after_experience', pełna lista punktów.\n"
-                "  RODZINY i PODSEKCJE umiejętności MUSZĄ być osobnymi wpisami extra_sections.\n"
+                "  NIE duplikuj skills ani podsekcji skills w extra_sections.\n"
                 # ... kinds / placements / items ...
 ```
 
-Pełna treść instrukcji: `backend/app/services/ai_service.py`, linie 48–117. Normalizacja podsekcji `Kategoria: …` → `extra_sections`: `_expand_skill_category_lines` w `cv_data.py`.
+Pełna treść instrukcji: `backend/app/services/ai_service.py`, linie 48–113. Normalizacja linii `Kategoria: …` oraz rodzin soft/hard/tools → grupy w `skills` (nie top-level extras): `_expand_skill_category_lines` / `_absorb_skills_alias_sections` w `cv_data.py`; render: `_place_skills_section` w `cv_templates/shared/text.py`.
 
 ---
 

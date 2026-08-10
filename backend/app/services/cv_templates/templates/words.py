@@ -30,8 +30,7 @@ from app.services.cv_templates.shared.records import (
     _place_experience_record,
 )
 from app.services.cv_templates.shared.text import (
-    _bullet_list_content,
-    _skills_inline_content,
+    _place_skills_section,
     _bullets,
     _compact_text,
     _company_period,
@@ -184,12 +183,10 @@ def _gen_words(cv: dict) -> list[dict]:
             )
         b.gap(get_spacing().section)
 
-    if cv.get("skills"):
-        skills = _skills_inline_content(cv["skills"])
-        skills_height = b.measure_block(skills, W, 10.5, 15, FONT)
-        b.need_section(SECTION_CHROME, skills_height)
-        section(lbl["skills"])
-        b.block(skills, L, W, 10.5, 15, C["body"], FONT)
+    if _place_skills_section(
+        b, cv, section, L, W, C["body"], FONT, 10.5, 15,
+        section_chrome_h=SECTION_CHROME,
+    ):
         b.gap(get_spacing().section)
 
     _extra_sections(

@@ -128,6 +128,45 @@ export function parseList(value) {
 }
 
 /**
+ * Skills for the wizard textarea: plain chips or ``Category: a, b, c`` lines.
+ *
+ * Accepts extract/normalize ``{category, items}`` groups and serializes them to
+ * one line per category so the parent UMIEJĘTNOŚCI heading stays on the canvas
+ * while subsections remain editable. Splits input on newlines only — commas
+ * inside a category body must stay on that line.
+ */
+export function parseSkills(value) {
+    if (Array.isArray(value)) {
+        const lines = [];
+        for (const item of value) {
+            if (
+                item
+                && typeof item === "object"
+                && !Array.isArray(item)
+                && ("category" in item || Array.isArray(item.items))
+            ) {
+                const category = clean(item.category || item.title);
+                const chips = uniqueStrings(
+                    (Array.isArray(item.items) ? item.items : [])
+                        .map((chip) => clean(chip))
+                        .filter(Boolean),
+                );
+                if (category && chips.length) {
+                    lines.push(`${category}: ${chips.join(", ")}`);
+                } else if (chips.length) {
+                    lines.push(...chips);
+                }
+                continue;
+            }
+            const text = clean(item);
+            if (text) lines.push(text);
+        }
+        return uniqueStrings(lines);
+    }
+    return uniqueStrings(String(value || "").replace(/\r\n/g, "\n").split("\n"));
+}
+
+/**
  * Expand structured extra-section records into editable flat lines.
  * Backend regroups title + following lines on generate for record kinds.
  */
@@ -186,7 +225,7 @@ export function normalizeBioCvData(value) {
                 degree: clean(entry.degree || entry.diploma),
                 description: clean(entry.description || ""),
             })),
-        skills: parseList(source.skills),
+        skills: parseSkills(source.skills),
         languages: sourceLanguages
             .filter((entry) => entry && typeof entry === "object")
             .map((entry) => ({

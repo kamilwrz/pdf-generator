@@ -86,11 +86,11 @@ class CvDataNormalizationTests(unittest.TestCase):
             for element in elements
         ))
 
-    def test_soft_hard_tools_stay_as_separate_sections(self):
+    def test_soft_hard_tools_nest_under_skills(self):
         """
         CVs like CV19 list soft skills, hard skills, and tools under separate
-        headings. Absorbing them into one skills slot was the root cause of
-        soft/hard items appearing under ZNANE NARZĘDZIA.
+        headings. Those become named skill groups under one UMIEJĘTNOŚCI chrome
+        so chips stay separated by category (not one flat tools dump).
         """
         profile = normalize_cv_data({
             "name": "Kinga Olszewska",
@@ -128,26 +128,34 @@ class CvDataNormalizationTests(unittest.TestCase):
             ],
         })
 
-        self.assertEqual(profile["skills"], [])
+        self.assertEqual(profile["labels"]["skills"], "UMIEJĘTNOŚCI")
+        categories = {
+            group["category"]: group["items"]
+            for group in profile["skills"]
+            if isinstance(group, dict)
+        }
+        self.assertIn("ZNANE NARZĘDZIA", categories)
+        self.assertIn("UMIEJĘTNOŚCI MIĘKKIE", categories)
+        self.assertIn("UMIEJĘTNOŚCI TWARDE", categories)
+        self.assertEqual(
+            categories["UMIEJĘTNOŚCI MIĘKKIE"][0],
+            "Bardzo dobra organizacja pracy",
+        )
+        self.assertNotIn(
+            "Bardzo dobra organizacja pracy",
+            categories["ZNANE NARZĘDZIA"],
+        )
         titles = [section["title"] for section in profile["extra_sections"]]
-        self.assertIn("ZNANE NARZĘDZIA", titles)
-        self.assertIn("UMIEJĘTNOŚCI MIĘKKIE", titles)
-        self.assertIn("UMIEJĘTNOŚCI TWARDE", titles)
-        soft = next(
-            section for section in profile["extra_sections"]
-            if section["title"] == "UMIEJĘTNOŚCI MIĘKKIE"
-        )
-        tools = next(
-            section for section in profile["extra_sections"]
-            if section["title"] == "ZNANE NARZĘDZIA"
-        )
-        self.assertEqual(soft["items"][0], "Bardzo dobra organizacja pracy")
-        self.assertNotIn("Bardzo dobra organizacja pracy", tools["items"])
+        self.assertIn("KURSY I CERTYFIKATY", titles)
+        self.assertNotIn("ZNANE NARZĘDZIA", titles)
+        self.assertNotIn("UMIEJĘTNOŚCI MIĘKKIE", titles)
+        self.assertNotIn("UMIEJĘTNOŚCI TWARDE", titles)
 
         content = "\n".join(
             str(element.get("content", ""))
             for element in generate_resume("nimbus", profile)
         )
+        self.assertIn("UMIEJĘTNOŚCI", content)
         self.assertIn("ZNANE NARZĘDZIA", content)
         self.assertIn("UMIEJĘTNOŚCI MIĘKKIE", content)
         self.assertIn("UMIEJĘTNOŚCI TWARDE", content)
@@ -171,12 +179,12 @@ class CvDataNormalizationTests(unittest.TestCase):
             for section in profile["extra_sections"]
         ))
 
-    def test_skill_category_lines_become_separate_sections(self):
+    def test_skill_category_lines_become_nested_groups(self):
         """
         CV16-style skills: one UMIEJĘTNOŚCI heading with Category: chip rows.
-        Promote each category to its own extra_section; nest languages into
-        the languages field. No nested-heading primitive exists on the canvas,
-        so this reuses the same flat custom-section elements as soft/hard/tools.
+        Each category becomes a named skill group under the parent skills slot
+        (bold label + chips); languages nest into the languages field.
+        Training blocks remain separate certifications extras.
         """
         profile = normalize_cv_data({
             "name": "Anton Tseytlin",
@@ -204,24 +212,29 @@ class CvDataNormalizationTests(unittest.TestCase):
             }],
         })
 
-        self.assertEqual(profile["skills"], [])
-        titles = [section["title"] for section in profile["extra_sections"]]
-        self.assertIn("BEZPIECZEŃSTWO", titles)
-        self.assertIn("PRZEMYSŁ / OT", titles)
-        self.assertIn("PROGRAMOWANIE I SYSTEMY", titles)
-        self.assertIn("SZKOLENIA Z CYBERBEZPIECZEŃSTWA", titles)
-
-        security = next(
-            section for section in profile["extra_sections"]
-            if section["title"] == "BEZPIECZEŃSTWO"
-        )
-        self.assertIn("Wireshark", security["items"])
-        self.assertIn("Nmap", security["items"])
+        self.assertEqual(profile["labels"]["skills"], "UMIEJĘTNOŚCI")
+        categories = {
+            group["category"]: group["items"]
+            for group in profile["skills"]
+            if isinstance(group, dict)
+        }
+        self.assertIn("Bezpieczeństwo", categories)
+        self.assertIn("Przemysł / OT", categories)
+        self.assertIn("Programowanie i systemy", categories)
+        self.assertIn("Wireshark", categories["Bezpieczeństwo"])
+        self.assertIn("Nmap", categories["Bezpieczeństwo"])
         self.assertNotIn(
             "Python",
-            security["items"],
-            "Programming chips must stay under their own category section",
+            categories["Bezpieczeństwo"],
+            "Programming chips must stay under their own category group",
         )
+        self.assertIn("Python", categories["Programowanie i systemy"])
+
+        titles = [section["title"] for section in profile["extra_sections"]]
+        self.assertIn("SZKOLENIA Z CYBERBEZPIECZEŃSTWA", titles)
+        self.assertNotIn("BEZPIECZEŃSTWO", titles)
+        self.assertNotIn("PRZEMYSŁ / OT", titles)
+        self.assertNotIn("PROGRAMOWANIE I SYSTEMY", titles)
 
         self.assertEqual(
             [(entry["name"], entry["level"]) for entry in profile["languages"]],
@@ -235,9 +248,10 @@ class CvDataNormalizationTests(unittest.TestCase):
             str(element.get("content", ""))
             for element in generate_resume("nimbus", profile)
         )
-        self.assertIn("BEZPIECZEŃSTWO", content)
-        self.assertIn("PRZEMYSŁ / OT", content)
-        self.assertIn("PROGRAMOWANIE I SYSTEMY", content)
+        self.assertIn("UMIEJĘTNOŚCI", content)
+        self.assertIn("Bezpieczeństwo", content)
+        self.assertIn("Przemysł / OT", content)
+        self.assertIn("Programowanie i systemy", content)
         self.assertIn("SZKOLENIA Z CYBERBEZPIECZEŃSTWA", content)
         self.assertIn("Wireshark", content)
         self.assertIn("Python", content)

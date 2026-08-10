@@ -44,6 +44,7 @@ import {
     getBioCvSummaryJumpError,
     normalizeBioCvData,
     parseList,
+    parseSkills,
     validateBioCvStep,
 } from "../../../utils/bioCvData";
 import { availableExtraContactKinds } from "../../../utils/contactLinks";
@@ -66,7 +67,7 @@ function entryHasValues(entry) {
     ));
 }
 
-function ListTextarea({ items, onCommit, placeholder, label, hint }) {
+function ListTextarea({ items, onCommit, placeholder, label, hint, parse = parseList }) {
     const [raw, setRaw] = useState(items.join("\n"));
 
     useEffect(() => {
@@ -81,7 +82,7 @@ function ListTextarea({ items, onCommit, placeholder, label, hint }) {
                 rows={Math.max(3, Math.min(6, raw.split("\n").length + 1))}
                 placeholder={placeholder}
                 onChange={(event) => setRaw(event.target.value)}
-                onBlur={() => onCommit(parseList(raw))}
+                onBlur={() => onCommit(parse(raw))}
             />
             <small>{hint || "Każdy punkt wpisz w osobnej linii."}</small>
         </label>
@@ -941,12 +942,17 @@ export default function BioCvModal() {
         <div className={classes.extrasStep}>
             <section className={classes.extrasBlock}>
                 <h4>Umiejętności</h4>
-                <p className={classes.intro}>Dodaj umiejętności techniczne, branżowe i miękkie. Każdy punkt wpisz w osobnej linii.</p>
+                <p className={classes.intro}>
+                    Dodaj umiejętności w osobnych liniach. Podsekcje zapisuj jako
+                    „Kategoria: chip, chip” — na CV pojawią się pod nagłówkiem UMIEJĘTNOŚCI.
+                </p>
                 <ListTextarea
                     items={profile.skills}
                     onCommit={(skills) => updateProfile({ ...profile, skills })}
-                    placeholder={"Zarządzanie projektami\nFigma\nAnaliza danych"}
+                    parse={parseSkills}
+                    placeholder={"Bezpieczeństwo: Wireshark, Nmap, SIEM\nPrzemysł / OT: PLC, RFID\nPython\nSQL"}
                     label="Lista umiejętności"
+                    hint="Każdy punkt lub podsekcję „Kategoria: …” wpisz w osobnej linii."
                 />
             </section>
 

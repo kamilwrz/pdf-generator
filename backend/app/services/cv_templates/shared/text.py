@@ -2,12 +2,17 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
+from typing import Any
 
 from app.services.cv_data import (
     fold_section_label,
     is_distinct_skill_family_title,
     is_skills_like_title,
+    skill_groups,
+    skills_have_content,
 )
+from app.services.cv_generator_primitives import get_spacing, section_chrome_height
 
 # Strip leading glyph/dash markers so callers can pass already-bulleted lines
 # without producing "• • item" in the canvas bulletList renderer.
@@ -38,10 +43,163 @@ def _skills_inline_content(items: list | tuple | None) -> str:
     """
     Main-column skills as a compact mid-dot row.
 
-    Vertical ``bulletList`` formatting is reserved for sidebar skills so the
-    primary column stays dense and matches the pre-bulletList layout.
+    Accepts flat chips or ``{category, items}`` groups (chips only — category
+    labels are rendered separately by ``_place_skills_section``).
     """
-    return "  ·  ".join(_clean_list_items(items))
+    chips: list[str] = []
+    for group in skill_groups(items):
+        chips.extend(group["items"])
+    return "  ·  ".join(_clean_list_items(chips))
+
+
+def _skills_sidebar_content(skills: Any) -> str:
+    """
+    Sidebar / compact skills body: optional category lines + bullet chips.
+
+    Example::
+
+        Bezpieczeństwo
+        • Wireshark
+        • Nmap
+        Przemysł / OT
+        • PLC
+    """
+    parts: list[str] = []
+    for group in skill_groups(skills):
+        category = str(group.get("category") or "").strip()
+        body = _bullet_list_content(group.get("items"))
+        if category:
+            parts.append(category)
+        if body:
+            parts.append(body)
+    return "\n".join(parts)
+
+
+def _measure_skills_body(
+    b: Any,
+    groups: list[dict[str, Any]],
+    width: float,
+    fs: float,
+    lh: float,
+    font: str,
+    *,
+    mode: str = "inline",
+    category_fs: float | None = None,
+) -> float:
+    """Estimate stacked height for named skill groups (no section chrome)."""
+    cat_fs = float(category_fs if category_fs is not None else max(fs, 9.5))
+    cat_lh = max(lh, cat_fs + 2.0)
+    total = 0.0
+    stack = get_spacing().stack
+    between = get_spacing().record
+    for index, group in enumerate(groups):
+        category = str(group.get("category") or "").strip()
+        items = group.get("items") or []
+        if category:
+            total += b.measure_block(
+                category, width, cat_fs, cat_lh, font, bold=True, min_h=cat_lh,
+            )
+            if items:
+                total += stack
+        if items:
+            content = (
+                _skills_inline_content(items)
+                if mode == "inline"
+                else _bullet_list_content(items)
+            )
+            if content:
+                total += b.measure_block(
+                    content, width, fs, lh, font,
+                    bulletList=(mode == "bullets"),
+                )
+        if index < len(groups) - 1:
+            total += between
+    return total
+
+
+def _place_skills_section(
+    b: Any,
+    cv: dict,
+    section_fn: Callable[[str], Any],
+    L: float,
+    W: float,
+    body_color: str,
+    font: str,
+    fs: float,
+    lh: float,
+    *,
+    mode: str = "inline",
+    section_chrome_h: float | None = None,
+    category_fs: float | None = None,
+) -> bool:
+    """
+    Emit one UMIEJĘTNOŚCI heading plus optional named subsections.
+
+    Flat skills → heading + mid-dot/bullet body (unchanged look).
+    Grouped skills → heading, then bold category labels and chip bodies under
+    each. Uses existing textarea bold + list blocks — no new canvas primitives.
+    """
+    raw_skills = cv.get("skills")
+    if not skills_have_content(raw_skills):
+        return False
+
+    groups = skill_groups(raw_skills)
+    labels = _labels(cv)
+    cat_fs = float(category_fs if category_fs is not None else max(fs, 9.5))
+    cat_lh = max(lh, cat_fs + 2.0)
+    chrome_h = (
+        float(section_chrome_h)
+        if section_chrome_h is not None
+        else section_chrome_height(8.6)
+    )
+
+    # Reserve chrome + first group so the heading does not orphan at the footer.
+    first = groups[0]
+    first_h = 0.0
+    if first.get("category"):
+        first_h += b.measure_block(
+            str(first["category"]), W, cat_fs, cat_lh, font, bold=True, min_h=cat_lh,
+        )
+        if first.get("items"):
+            first_h += get_spacing().stack
+    if first.get("items"):
+        first_body = (
+            _skills_inline_content(first["items"])
+            if mode == "inline"
+            else _bullet_list_content(first["items"])
+        )
+        if first_body:
+            first_h += b.measure_block(
+                first_body, W, fs, lh, font, bulletList=(mode == "bullets"),
+            )
+
+    b.need_section(chrome_h, first_h or lh)
+    section_fn(labels["skills"])
+
+    for index, group in enumerate(groups):
+        category = str(group.get("category") or "").strip()
+        items = group.get("items") or []
+        if category:
+            b.block(
+                category, L, W, cat_fs, cat_lh, body_color, font,
+                bold=True, min_h=cat_lh,
+            )
+            if items:
+                b.gap(get_spacing().stack)
+        if items:
+            content = (
+                _skills_inline_content(items)
+                if mode == "inline"
+                else _bullet_list_content(items)
+            )
+            if content:
+                b.block(
+                    content, L, W, fs, lh, body_color, font,
+                    bulletList=(mode == "bullets"),
+                )
+        if index < len(groups) - 1:
+            b.gap(get_spacing().record)
+    return True
 
 _LABEL_DEFAULTS = {
     "summary":    "PODSUMOWANIE ZAWODOWE",

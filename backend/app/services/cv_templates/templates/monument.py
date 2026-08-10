@@ -30,8 +30,7 @@ from app.services.cv_templates.shared.records import (
     _place_experience_record,
 )
 from app.services.cv_templates.shared.text import (
-    _bullet_list_content,
-    _skills_inline_content,
+    _place_skills_section,
     _bullets,
     _compact_text,
     _company_period,
@@ -221,12 +220,10 @@ def _gen_monument(cv: dict) -> list[dict]:
             )
         b.gap(get_spacing().section)
 
-    if cv.get("skills"):
-        skills = _skills_inline_content(cv["skills"])
-        skills_height = b.measure_block(skills, W, BODY_FS, BODY_LH, SANS)
-        b.need_section(SECTION_CHROME, skills_height)
-        section(lbl["skills"])
-        b.block(skills, L, W, BODY_FS, BODY_LH, C["body"], SANS)
+    if _place_skills_section(
+        b, cv, section, L, W, C["body"], SANS, BODY_FS, BODY_LH,
+        section_chrome_h=SECTION_CHROME,
+    ):
         b.gap(get_spacing().section)
 
     _extra_sections(

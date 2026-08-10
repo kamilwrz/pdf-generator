@@ -15,6 +15,7 @@ from app.services.cv_templates.shared.records import (
     _education_bullet_items,
     _education_school,
 )
+from app.services.cv_data import skill_groups, skills_have_content
 from app.services.cv_templates.shared.text import (
     _bullets,
     _compact_text,
@@ -209,18 +210,28 @@ def _gen_harbor(cv: dict) -> list[dict]:
             side_b.gap(get_spacing().record)
         side_b.gap(get_spacing().section)
 
-    if cv.get("skills"):
-        skills = [str(skill or "").strip() for skill in cv["skills"] if str(skill or "").strip()]
-        first_height = (
-            side_b.measure_block(
-                skills[0], SIDE_BODY_W, SIDE_ITEM_FS, SIDE_ITEM_LH, SANS,
-                min_h=SIDE_ITEM_LH,
-            )
-            if skills else 0
+    if skills_have_content(cv.get("skills")):
+        groups = skill_groups(cv["skills"])
+        first_chip = next(
+            (chip for group in groups for chip in group["items"]),
+            "",
+        )
+        first_label = str(groups[0].get("category") or "").strip() if groups else ""
+        first_height = side_b.measure_block(
+            first_label or first_chip, SIDE_BODY_W, SIDE_ITEM_FS, SIDE_ITEM_LH, SANS,
+            min_h=SIDE_ITEM_LH,
+            bold=bool(first_label),
         )
         side_section(lbl["skills"], first_height)
-        for skill in skills:
-            side_icon_line("diamond", skill, accent=True, atomic_pair=True)
+        for group in groups:
+            category = str(group.get("category") or "").strip()
+            if category:
+                side_block(category, SIDE_ITEM_FS, SIDE_ITEM_LH, C["ink"], bold=True)
+                side_b.gap(2)
+            for skill in group["items"]:
+                side_icon_line("diamond", skill, accent=True, atomic_pair=True)
+            if category:
+                side_b.gap(get_spacing().stack)
         side_b.gap(get_spacing().section)
 
     if cv.get("languages"):

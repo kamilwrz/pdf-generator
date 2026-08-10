@@ -8,6 +8,7 @@ import {
     getBioCvSummaryJumpError,
     normalizeBioCvData,
     parseList,
+    parseSkills,
     validateBioCvStep,
 } from "./bioCvData.js";
 
@@ -95,6 +96,20 @@ test("allows jumping to summary when required personal fields are filled", () =>
 
 test("parses and deduplicates tag-list input", () => {
     assert.deepEqual(parseList("Figma, figma\nAnaliza danych\n"), ["Figma", "Analiza danych"]);
+});
+
+test("parseSkills keeps Category: lines intact and expands skill groups", () => {
+    assert.deepEqual(
+        parseSkills("Bezpieczeństwo: Wireshark, Nmap\nPython\n"),
+        ["Bezpieczeństwo: Wireshark, Nmap", "Python"],
+    );
+    assert.deepEqual(
+        parseSkills([
+            { category: "Przemysł / OT", items: ["PLC", "RFID"] },
+            "SQL",
+        ]),
+        ["Przemysł / OT: PLC, RFID", "SQL"],
+    );
 });
 
 test("preserves spaces while a controlled wizard field is being edited", () => {
