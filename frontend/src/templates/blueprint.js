@@ -4,10 +4,14 @@
  * A technical-schematic single column adapted from the "Industry" Claude
  * Design system: steel-blue accent, square corners, hairline "+" registration
  * marks framing the masthead (mirroring the source system's `.blueprint` /
- * `.corner` components). Section headings sit on a full-column hairline rule;
- * experience and education records put their date on the same row as the
- * title, right-aligned. Skills render as square outline tags and languages as
- * a bordered row list with filled proficiency badges.
+ * `.corner` components). Section headings sit on a full-column hairline rule.
+ * Records, skills and languages reuse the same shared, packer-safe stacked
+ * layout every other single-column template uses (see the generator's module
+ * docstring for why a same-row title/date and individually positioned tag /
+ * badge elements were tried and reverted: `sectionStructure.js`'s structural
+ * packer re-stacks section body content sequentially on every Add Section,
+ * reorder, and rhythm change, and has no concept of same-row siblings outside
+ * the masthead).
  *
  * Font note: the source design specifies Barlow Condensed / Barlow. Neither
  * is registered in this app's PDF/canvas font pipeline, so Inter stands in
@@ -303,8 +307,8 @@ const BLUEPRINT_ELEMENTS = [
     "content": "Dyrektorka Strategii",
     "left": 76,
     "top": 289.42,
-    "width": 315.0,
-    "height": 14,
+    "width": 443,
+    "height": 15,
     "fontSize": 10.8,
     "lineHeight": 13.8,
     "letterSpacing": 0,
@@ -318,33 +322,19 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-17822f236bea"
-  },
-  {
-    "category": "text",
-    "content": "2021 – obecnie",
-    "fontSize": 8.3,
-    "fontFamily": "Inter",
-    "color": "#5D5D60",
-    "left": 460.052978515625,
-    "top": 289.42,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "flowGroup": "record-17822f236bea"
+    "flowGroup": "record-2b16d050bb84"
   },
   {
     "category": "textarea",
-    "content": "Northbridge Partners",
+    "content": "Northbridge Partners   ·   2021 – obecnie",
     "left": 76,
-    "top": 307.42,
+    "top": 308.42,
     "width": 443,
-    "height": 13,
-    "fontSize": 8.8,
-    "lineHeight": 12.2,
+    "height": 12,
+    "fontSize": 8.4,
+    "lineHeight": 11.8,
     "letterSpacing": 0,
-    "color": "#416180",
+    "color": "#5D5D60",
     "fontFamily": "Inter",
     "zIndex": 2,
     "page": 1,
@@ -354,7 +344,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-17822f236bea"
+    "flowGroup": "record-2b16d050bb84"
   },
   {
     "category": "textarea",
@@ -376,15 +366,15 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-17822f236bea"
+    "flowGroup": "record-2b16d050bb84"
   },
   {
     "category": "textarea",
     "content": "Menedżerka Rozwoju",
     "left": 76,
     "top": 376.42,
-    "width": 315.0,
-    "height": 14,
+    "width": 443,
+    "height": 15,
     "fontSize": 10.8,
     "lineHeight": 13.8,
     "letterSpacing": 0,
@@ -398,33 +388,19 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2af3b587d4d0"
-  },
-  {
-    "category": "text",
-    "content": "2016 – 2021",
-    "fontSize": 8.3,
-    "fontFamily": "Inter",
-    "color": "#5D5D60",
-    "left": 472.624560546875,
-    "top": 376.42,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "flowGroup": "record-2af3b587d4d0"
+    "flowGroup": "record-6ea375df084e"
   },
   {
     "category": "textarea",
-    "content": "Meridian Group",
+    "content": "Meridian Group   ·   2016 – 2021",
     "left": 76,
-    "top": 394.42,
+    "top": 395.42,
     "width": 443,
-    "height": 13,
-    "fontSize": 8.8,
-    "lineHeight": 12.2,
+    "height": 12,
+    "fontSize": 8.4,
+    "lineHeight": 11.8,
     "letterSpacing": 0,
-    "color": "#416180",
+    "color": "#5D5D60",
     "fontFamily": "Inter",
     "zIndex": 2,
     "page": 1,
@@ -434,7 +410,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2af3b587d4d0"
+    "flowGroup": "record-6ea375df084e"
   },
   {
     "category": "textarea",
@@ -456,7 +432,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2af3b587d4d0"
+    "flowGroup": "record-6ea375df084e"
   },
   {
     "category": "text",
@@ -489,7 +465,7 @@ const BLUEPRINT_ELEMENTS = [
     "content": "Magister Zarządzania",
     "left": 76,
     "top": 484.13,
-    "width": 315.0,
+    "width": 443,
     "height": 14,
     "fontSize": 10.8,
     "lineHeight": 13.8,
@@ -504,21 +480,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d4505f07637b"
-  },
-  {
-    "category": "text",
-    "content": "2011 – 2016",
-    "fontSize": 8.3,
-    "fontFamily": "Inter",
-    "color": "#5D5D60",
-    "left": 474.310498046875,
-    "top": 484.13,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "flowGroup": "record-d4505f07637b"
+    "flowGroup": "record-954bdd85a931"
   },
   {
     "category": "textarea",
@@ -526,11 +488,11 @@ const BLUEPRINT_ELEMENTS = [
     "left": 76,
     "top": 502.13,
     "width": 443,
-    "height": 13,
-    "fontSize": 8.8,
-    "lineHeight": 12.2,
+    "height": 14,
+    "fontSize": 10.8,
+    "lineHeight": 13.8,
     "letterSpacing": 0,
-    "color": "#416180",
+    "color": "#1D1F20",
     "fontFamily": "Inter",
     "zIndex": 2,
     "page": 1,
@@ -540,7 +502,29 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d4505f07637b"
+    "flowGroup": "record-954bdd85a931"
+  },
+  {
+    "category": "textarea",
+    "content": "2011 – 2016",
+    "left": 76,
+    "top": 520.13,
+    "width": 443,
+    "height": 12,
+    "fontSize": 8.4,
+    "lineHeight": 11.8,
+    "letterSpacing": 0,
+    "color": "#5D5D60",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-954bdd85a931"
   },
   {
     "category": "text",
@@ -549,7 +533,7 @@ const BLUEPRINT_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#416180",
     "left": 76,
-    "top": 536.13,
+    "top": 553.13,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -560,7 +544,7 @@ const BLUEPRINT_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 550.84,
+    "top": 567.84,
     "width": 443,
     "height": 1,
     "backgroundColor": "#B5D9FD",
@@ -569,124 +553,26 @@ const BLUEPRINT_ELEMENTS = [
     "flowRole": "section-chrome"
   },
   {
-    "category": "rectangle",
+    "category": "textarea",
+    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
     "left": 76,
-    "top": 559.84,
-    "width": 53.988037109375,
-    "height": 16.5,
-    "backgroundColor": "#5980A6",
-    "borderWidth": 1,
-    "zIndex": 2,
-    "page": 1
-  },
-  {
-    "category": "text",
-    "content": "Strategia",
-    "fontSize": 8.5,
+    "top": 576.84,
+    "width": 443,
+    "height": 14,
+    "fontSize": 9.5,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#1D1F20",
     "fontFamily": "Inter",
-    "color": "#5980A6",
-    "left": 85.0,
-    "top": 563.34,
-    "zIndex": 3,
+    "zIndex": 2,
     "page": 1,
     "bold": false,
-    "italic": false
-  },
-  {
-    "category": "rectangle",
-    "left": 136.988037109375,
-    "top": 559.84,
-    "width": 62.670654296875,
-    "height": 16.5,
-    "backgroundColor": "#5980A6",
-    "borderWidth": 1,
-    "zIndex": 2,
-    "page": 1
-  },
-  {
-    "category": "text",
-    "content": "Leadership",
-    "fontSize": 8.5,
-    "fontFamily": "Inter",
-    "color": "#5980A6",
-    "left": 145.988037109375,
-    "top": 563.34,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false
-  },
-  {
-    "category": "rectangle",
-    "left": 206.65869140625,
-    "top": 559.84,
-    "width": 33.709228515625,
-    "height": 16.5,
-    "backgroundColor": "#5980A6",
-    "borderWidth": 1,
-    "zIndex": 2,
-    "page": 1
-  },
-  {
-    "category": "text",
-    "content": "P&L",
-    "fontSize": 8.5,
-    "fontFamily": "Inter",
-    "color": "#5980A6",
-    "left": 215.65869140625,
-    "top": 563.34,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false
-  },
-  {
-    "category": "rectangle",
-    "left": 247.367919921875,
-    "top": 559.84,
-    "width": 63.226806640625,
-    "height": 16.5,
-    "backgroundColor": "#5980A6",
-    "borderWidth": 1,
-    "zIndex": 2,
-    "page": 1
-  },
-  {
-    "category": "text",
-    "content": "Negocjacje",
-    "fontSize": 8.5,
-    "fontFamily": "Inter",
-    "color": "#5980A6",
-    "left": 256.367919921875,
-    "top": 563.34,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false
-  },
-  {
-    "category": "rectangle",
-    "left": 317.5947265625,
-    "top": 559.84,
-    "width": 135.0244140625,
-    "height": 16.5,
-    "backgroundColor": "#5980A6",
-    "borderWidth": 1,
-    "zIndex": 2,
-    "page": 1
-  },
-  {
-    "category": "text",
-    "content": "Transformacja organizacyjna",
-    "fontSize": 8.5,
-    "fontFamily": "Inter",
-    "color": "#5980A6",
-    "left": 326.5947265625,
-    "top": 563.34,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-e260462b49e8"
   },
   {
     "category": "text",
@@ -695,7 +581,7 @@ const BLUEPRINT_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#416180",
     "left": 76,
-    "top": 597.34,
+    "top": 611.84,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -706,7 +592,7 @@ const BLUEPRINT_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 612.0500000000001,
+    "top": 626.5500000000001,
     "width": 443,
     "height": 1,
     "backgroundColor": "#B5D9FD",
@@ -715,143 +601,25 @@ const BLUEPRINT_ELEMENTS = [
     "flowRole": "section-chrome"
   },
   {
-    "category": "text",
-    "content": "Polski",
-    "fontSize": 9.8,
-    "fontFamily": "Inter",
-    "color": "#1D1F20",
+    "category": "textarea",
+    "content": "• Polski — ojczysty\n• Angielski — C1\n• Francuski — B2",
     "left": 76,
-    "top": 627.5500000000001,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "flowRole": "content"
-  },
-  {
-    "category": "rectangle",
-    "left": 471.4453125,
-    "top": 625.45,
-    "width": 47.5546875,
-    "height": 14.0,
-    "backgroundColor": "#EEF6FF",
-    "borderWidth": 0,
-    "zIndex": 2,
-    "page": 1,
-    "filled": true
-  },
-  {
-    "category": "text",
-    "content": "ojczysty",
-    "fontSize": 8.0,
-    "fontFamily": "Inter",
-    "color": "#2C455D",
-    "left": 479.4453125,
-    "top": 627.95,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false
-  },
-  {
-    "category": "line",
-    "left": 76,
-    "top": 643.85,
+    "top": 635.5500000000001,
     "width": 443,
-    "height": 1,
-    "backgroundColor": "#E7E7EA",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "text",
-    "content": "Angielski",
-    "fontSize": 9.8,
-    "fontFamily": "Inter",
+    "height": 42,
+    "fontSize": 9.5,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
     "color": "#1D1F20",
-    "left": 76,
-    "top": 650.35,
-    "zIndex": 3,
+    "fontFamily": "Inter",
+    "zIndex": 2,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "content"
-  },
-  {
-    "category": "rectangle",
-    "left": 493.90234375,
-    "top": 648.25,
-    "width": 25.09765625,
-    "height": 14.0,
-    "backgroundColor": "#EEF6FF",
-    "borderWidth": 0,
-    "zIndex": 2,
-    "page": 1,
-    "filled": true
-  },
-  {
-    "category": "text",
-    "content": "C1",
-    "fontSize": 8.0,
-    "fontFamily": "Inter",
-    "color": "#2C455D",
-    "left": 501.90234375,
-    "top": 650.75,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false
-  },
-  {
-    "category": "line",
-    "left": 76,
-    "top": 666.65,
-    "width": 443,
-    "height": 1,
-    "backgroundColor": "#E7E7EA",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "text",
-    "content": "Francuski",
-    "fontSize": 9.8,
-    "fontFamily": "Inter",
-    "color": "#1D1F20",
-    "left": 76,
-    "top": 673.15,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "flowRole": "content"
-  },
-  {
-    "category": "rectangle",
-    "left": 492.88671875,
-    "top": 671.05,
-    "width": 26.11328125,
-    "height": 14.0,
-    "backgroundColor": "#EEF6FF",
-    "borderWidth": 0,
-    "zIndex": 2,
-    "page": 1,
-    "filled": true
-  },
-  {
-    "category": "text",
-    "content": "B2",
-    "fontSize": 8.0,
-    "fontFamily": "Inter",
-    "color": "#2C455D",
-    "left": 500.88671875,
-    "top": 673.55,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true
   }
 ];
 

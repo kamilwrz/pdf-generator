@@ -5,14 +5,12 @@ import { blueprintTemplate } from "./blueprint.js";
 
 const PAPER = "#F2F2F3";
 const INK = "#1D1F20";
-const ACCENT = "#5980A6";
 const ACCENT_DEEP = "#416180";
 const ACCENT_PALE = "#B5D9FD";
-const BADGE_BG = "#EEF6FF";
 const L = 76;
 const W = 443;
 
-test("Blueprint is a framed, left-aligned technical single column, not a recolor of another template", () => {
+test("Blueprint is a framed, left-aligned technical single column with packer-safe body content", () => {
     // ── Single column: the only full-height element is the paper surface ─────
     const tall = blueprintTemplate.filter((element) => (element.height ?? 0) >= 300);
     assert.equal(tall.length, 1);
@@ -28,7 +26,10 @@ test("Blueprint is a framed, left-aligned technical single column, not a recolor
     assert.equal(blueprintTemplate.some((element) => element.category === "image"), false);
 
     // ── Masthead: name / title / contact are LEFT-aligned textareas, framed by
-    // an outline rectangle plus 8 corner-mark hairlines (2 per corner) ────────
+    // an outline rectangle plus 8 corner-mark hairlines (2 per corner). Every
+    // masthead element is exempt from the structural packer (flowRole
+    // "masthead" is skipped from section membership in sectionStructure.js),
+    // which is what makes this multi-element geometry safe to co-locate. ─────
     const masthead = blueprintTemplate.filter((element) => element.flowRole === "masthead");
     assert.ok(masthead.length > 0);
     assert.ok(masthead.every((element) => (element.page ?? 1) === 1));
@@ -57,8 +58,6 @@ test("Blueprint is a framed, left-aligned technical single column, not a recolor
         (element) => element.category === "line" && Math.max(element.width, element.height) <= 10,
     );
     assert.equal(cornerMarks.length, 8, "four corners × 2 hairlines each");
-    // Every mark centers on one of the frame's 4 corners (x is L or L+W; y is
-    // the frame's top or bottom), confirming they are not stray decoration.
     const cornerXs = new Set(cornerMarks.map((element) => Math.round(element.left + element.width / 2)));
     assert.ok(cornerXs.has(L) && cornerXs.has(L + W));
 
@@ -78,62 +77,49 @@ test("Blueprint is a framed, left-aligned technical single column, not a recolor
             && element.width === W && element.backgroundColor === ACCENT_PALE,
     );
     assert.equal(sectionRules.length, 5);
-    assert.ok(sectionRules.every((element) => element.backgroundColor === ACCENT_PALE));
     assert.ok(sectionRules.every((element) => element.height === 1));
 
-    // ── Records: title textarea + a plain `text` date on the SAME row,
-    // right-aligned to the column's right edge (the design's `.role` pattern,
-    // distinct from every other template's stacked title/meta layout). ───────
+    // ── Records: reuse the shared stacked title → meta → bullets layout (the
+    // same shape Atrium/Regent/Portico use). A same-row right-aligned date was
+    // tried and reverted — see the generator's module docstring — because
+    // `sectionStructure.js` always re-stacks section body content by reading
+    // order and has no concept of two elements sharing one visual row. ───────
     const jobTitle = blueprintTemplate.find((element) => element.content === "Dyrektorka Strategii");
     assert.ok(jobTitle);
     assert.equal(jobTitle.category, "textarea");
     assert.ok(jobTitle.bold);
-    const jobDate = blueprintTemplate.find((element) => element.content === "2021 – obecnie");
-    assert.ok(jobDate);
-    assert.equal(jobDate.category, "text");
-    assert.equal(jobDate.top, jobTitle.top, "date sits on the same row as the title");
-    assert.ok(jobDate.left > jobTitle.left + jobTitle.width, "date sits to the right of the (narrowed) title column");
-    assert.equal(jobDate.color, "#5D5D60");
-
-    // Company (subtitle) reads in the deep accent, matching the source design's
-    // `.company` treatment — distinct from the muted date.
-    const company = blueprintTemplate.find((element) => element.content === "Northbridge Partners");
-    assert.ok(company);
-    assert.equal(company.color, ACCENT_DEEP);
-
-    // ── Skills: square OUTLINE tags (not filled, not grouped by category) ────
-    const skillTag = blueprintTemplate.find((element) => element.content === "Strategia");
-    assert.ok(skillTag);
-    assert.equal(skillTag.category, "text");
-    assert.equal(skillTag.color, ACCENT);
-    const skillTagBox = blueprintTemplate.find(
-        (element) => element.category === "rectangle"
-            && Math.abs(element.top - skillTag.top) < 6 && element.left <= skillTag.left,
+    const jobMeta = blueprintTemplate.find(
+        (element) => typeof element.content === "string"
+            && element.content.includes("Northbridge Partners")
+            && element.content.includes("2021"),
     );
-    assert.ok(skillTagBox, "every skill tag sits on an outline box");
-    assert.equal(skillTagBox.backgroundColor, ACCENT);
-    assert.notEqual(skillTagBox.filled, true);
+    assert.ok(jobMeta, "company and period share one meta line below the title");
+    assert.ok(jobMeta.top > jobTitle.top, "meta sits on its own row under the title");
+    assert.equal(jobMeta.left, jobTitle.left);
 
-    // ── Languages: name + a FILLED proficiency badge, bordered rows ──────────
-    const languageName = blueprintTemplate.find((element) => element.content === "Angielski");
-    assert.ok(languageName);
-    assert.equal(languageName.category, "text");
-    assert.equal(languageName.color, INK);
-    const badge = blueprintTemplate.find((element) => element.content === "C1");
-    assert.ok(badge);
-    const badgeBox = blueprintTemplate.find(
-        (element) => element.category === "rectangle" && element.filled === true
-            && Math.abs(element.top - (badge.top - 2)) < 6,
+    // ── Skills: one inline mid-dot text block (the shared `_place_skills_section`
+    // shape) — not individually positioned tag elements. ─────────────────────
+    const skillsBody = blueprintTemplate.find(
+        (element) => typeof element.content === "string" && element.content.includes("Strategia"),
     );
-    assert.ok(badgeBox, "language level renders on a filled badge, not an outline tag");
-    assert.equal(badgeBox.backgroundColor, BADGE_BG);
+    assert.ok(skillsBody);
+    assert.equal(skillsBody.category, "textarea");
+    assert.ok(skillsBody.content.includes("  ·  "), "flat skills render as one mid-dot line");
+    assert.equal(
+        blueprintTemplate.some((element) => element.category === "rectangle" && !element.flowRole),
+        false,
+        "no free-floating tag/badge rectangles outside the masthead frame",
+    );
 
-    // Language rows are separated by quiet dividers, not the accent-pale rule
-    // used for section chrome.
-    const languageDividers = blueprintTemplate.filter(
-        (element) => element.category === "line" && element.backgroundColor === "#E7E7EA",
+    // ── Languages: one bulleted textarea ("• Name — Level" per line), not
+    // per-row badge rectangles. ───────────────────────────────────────────────
+    const languagesBody = blueprintTemplate.find(
+        (element) => typeof element.content === "string" && element.content.includes("Polski"),
     );
-    assert.equal(languageDividers.length, 2); // 3 languages → 2 internal dividers
+    assert.ok(languagesBody);
+    assert.equal(languagesBody.category, "textarea");
+    assert.ok(languagesBody.bulletList);
+    assert.ok(languagesBody.content.includes("Polski — ojczysty"));
 
     // ── Footer: a quiet accent-pale rule + page number, no repeated frame ────
     const footerRule = blueprintTemplate.find(
