@@ -15,6 +15,7 @@ import { axisTemplate } from "../src/templates/axis.js";
 import { atriumTemplate } from "../src/templates/atrium.js";
 import { regentTemplate } from "../src/templates/regent.js";
 import { aureliaTemplate } from "../src/templates/aurelia.js";
+import { blueprintTemplate } from "../src/templates/blueprint.js";
 
 const out = {
     nova: novaTemplate,
@@ -30,6 +31,7 @@ const out = {
     atrium: atriumTemplate,
     regent: regentTemplate,
     aurelia: aureliaTemplate,
+    blueprint: blueprintTemplate,
 };
 writeFileSync(new URL("./iconic-templates.json", import.meta.url), JSON.stringify(out, null, 2));
 console.log("wrote iconic-templates.json");

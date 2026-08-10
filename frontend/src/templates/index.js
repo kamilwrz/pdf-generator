@@ -24,6 +24,7 @@ import { porticoTemplate } from "./portico";
 import { axisTemplate } from "./axis";
 import { atriumTemplate } from "./atrium";
 import { aureliaTemplate } from "./aurelia";
+import { blueprintTemplate } from "./blueprint";
 
 export { TEMPLATE_LAYOUT_TAGS } from "../utils/templateLayouts";
 
@@ -46,4 +47,5 @@ export const TEMPLATES = [
     { id: "axis", tier: "paid", name: "Axis", description: "Oś czasu z datami na marginesie, akcenty pomarańczowo-morskie", layouts: ["icons"], accent: "#E2740C", elements: axisTemplate },
     { id: "atrium", tier: "paid", name: "Atrium", description: "Wycentrowana editorialna kompozycja z drukarskim mikro-ornamentem", layouts: ["single", "icons"], accent: "#556158", elements: atriumTemplate },
     { id: "aurelia", tier: "paid", name: "Aurelia", description: "Biało-szary editorial z artystyczną sygnaturą Béziera", layouts: ["single"], accent: "#B3924F", elements: aureliaTemplate },
+    { id: "blueprint", tier: "paid", name: "Blueprint", description: "Techniczny szkic ze stalowym akcentem i narożnymi znacznikami", layouts: ["single"], accent: "#5980A6", elements: blueprintTemplate },
 ];

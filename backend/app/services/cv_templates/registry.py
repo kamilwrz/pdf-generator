@@ -20,6 +20,7 @@ from app.services.cv_templates.templates.portico import _gen_portico
 from app.services.cv_templates.templates.axis import _gen_axis
 from app.services.cv_templates.templates.atrium import _gen_atrium
 from app.services.cv_templates.templates.aurelia import _gen_aurelia
+from app.services.cv_templates.templates.blueprint import _gen_blueprint
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "ledger": frozenset({"single"}),
@@ -40,6 +41,7 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "axis": frozenset({"icons"}),
     "atrium": frozenset({"single", "icons"}),
     "aurelia": frozenset({"single"}),
+    "blueprint": frozenset({"single"}),
 }
 
 _GENERATORS = {
@@ -61,6 +63,7 @@ _GENERATORS = {
     "axis": _gen_axis,
     "atrium": _gen_atrium,
     "aurelia": _gen_aurelia,
+    "blueprint": _gen_blueprint,
 }
 
 

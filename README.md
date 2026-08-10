@@ -2,7 +2,7 @@
 
 # CV Studio
 
-CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 18 individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
+CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 19 individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
 
 This README is the technical entry point for developers. A beginner-friendly deep guide to canvas coordinates, React interaction, deterministic Python layout, AI responsibilities, reflow, persistence, and ReportLab export lives in [`CANVA.md`](CANVA.md). Every live AI prompt (full text, variables, file/line references) is documented in [`PROMPTS.md`](PROMPTS.md). Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md). Marketing brief for the website „Dlaczego CV STUDIO” section (features + competitive positioning, no competitor brand names in public copy) lives in [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Template generation (AI extract vs Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md). A layperson-friendly end-to-end guide covering Frontend and Backend (flows, files, classes, functions) lives in [`CV_GENERATOR.md`](CV_GENERATOR.md).
 
@@ -581,7 +581,7 @@ Implementation:
 
 Limits:
 
-- Free (Darmowy) includes five starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 18 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
+- Free (Darmowy) includes five starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 19 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
 - ATS feedback (**Czytelność dla ATS**) checks whether the final PDF text can be extracted and whether content headings/keywords look standard. It is guidance, not a promise that every recruiter ATS will parse the file the same way.
 - The privacy section describes implemented data use at a high level and does not claim unimplemented certifications or anonymisation.
 
@@ -872,6 +872,35 @@ Tests:
 - `frontend/src/templates/aurelia.test.js` — one column, contrasting palette, thick stroke weights, white name/title type, gold accent, back-to-front array order, shared rule endpoints, length-relative rule starts, and no polygon
 - `backend/tests/test_aurelia_template.py` — dynamic nameplate/titleplate/backdrop scaling, readable paint order, shared rule endpoints, variable rule lengths, and fixed continuation chrome
 - `backend/tests/test_template_registry_sync.py` and `backend/tests/test_cv_template_layouts.py` — registry/layout/tier parity, bounds, and summary/body typography
+
+### Blueprint technical-schematic template
+
+Blueprint is a paid, one-column template (`layouts: ["single"]`) adapted from a Claude Design "Industry" design-system project: a steel-blue (`#5980A6`) accent on a light warm-gray paper (`#F2F2F3`), square corners throughout, and hairline "+" registration marks at the four corners of the masthead — the source system's `.blueprint` / `.corner` wireframe-object language. It has no icon theme: contact channels render as a plain mid-dot text line, matching the source design exactly.
+
+The masthead (name, uppercase title, contact line) is wrapped in an outline rectangle (`#B5D9FD`, the source system's `accent-300` step) with a small two-hairline "+" mark centered on each of its four corners. Section headings are left-aligned bold labels in a deep steel tone (`#416180`, `accent-700` — chosen over the flatter `#5980A6` accent for AA-safe body-size contrast, per the source system's own guidance) sitting above a full-column hairline rule in the pale `accent-300` tone — the same left-anchored heading shape every other single-column template uses, so the shared section packer and Add-section / `deriveSectionStyle` keep each heading glued to its body without any template-specific code.
+
+Two components are unique to Blueprint among this app's templates:
+
+- **Records put the date on the same row as the title**, right-aligned (the source design's `.role` pattern), instead of the stacked title-then-meta layout every other template uses. A local `_place_record` helper (not shared — no other generator uses a same-row date) reserves a fixed-width zone on the right and right-aligns the date with real font-metric measurement (`_measured_text_width`, reused from `shared/contact.py`) rather than a character-count guess.
+- **Skills render as square outline tags** (a wrap-packed tray of bordered chips, not the grouped-category layout `_place_skills_section` draws elsewhere) and **languages as a bordered row list with a filled proficiency badge** on the right (`accent-100` fill, `accent-800` text) — both drawn directly with the shared `_rect` / `_line` / `_text` primitives (`_rect`'s `filled` flag paints the badge; the outline tags leave it off).
+
+Font note: the source design specifies Barlow Condensed (headings) over Barlow (body). Neither is among this app's 8 registered PDF/canvas font families (`backend/app/services/pdf_generator.py`'s font-registration block; `frontend/src/utils/canvasFont.js`), and adding one means bundling licensed TTFs, registering bold/italic cuts server-side, and extending the frontend's canvas font stack — infrastructure shared by every template. Inter stands in for both, with bold, uppercase, wide-letter-spaced headings approximating Barlow Condensed's technical feel.
+
+A generic-packing pitfall this template exposed: the language row's name label sits directly above a full-width divider line, which matched `sectionStructure.js`'s untagged "short label + wide rule below" heading heuristic (`isSectionHeading`) — every language but the last was briefly misclassified as a phantom section. The fix is a one-line `flowRole: "content"` tag on the language name text (an explicit, already-recognized escape hatch in that heuristic), not a change to the shared packer — see `blueprint.pack.test.js`.
+
+Implementation:
+
+- `backend/app/services/cv_templates/templates/blueprint.py`, function `_gen_blueprint` — `_corner_marks` masthead frame, left-aligned `section()`, local `_record_height` / `_place_record` for the same-row title/date layout, inline skill-tag packing, inline language row/badge placement
+- `backend/app/services/cv_templates/registry.py`, `_GENERATORS["blueprint"]` and `TEMPLATE_LAYOUTS["blueprint"]` (`frozenset({"single"})`)
+- `frontend/src/templates/blueprint.js` — static starter emitted directly from the generator's own demo output (no images, so no API_BASE_URL rewrite is needed); exported array `blueprintTemplate`
+- `frontend/src/templates/index.js`, registry entry `blueprint` (`tier: "paid"`, `layouts: ["single"]`, `accent: "#5980A6"`)
+- `frontend/scripts/dump-iconic-templates.mjs`, `frontend/public/template-mockups/blueprint.png` — source-driven A4 preview
+
+Tests:
+
+- `frontend/src/templates/blueprint.test.js` — framed masthead with an outline rectangle and 8 corner-mark hairlines, left-aligned (not centered) name/title/contact, left-anchored bold section headings on a full-column rule, same-row title/date records, square outline skill tags, filled language badges, no repeated frame on continuation pages
+- `frontend/src/templates/blueprint.pack.test.js` (with `blueprint.multipage.fixture.json`) — a real two-page Blueprint document: every section heading (including the tag-tray Skills section and the badge-row Languages section) stays glued to its own body through `listDocumentSections` / `sectionElementIds` and after `applyFlowSpacing` at both the default and a compact rhythm
+- `backend/tests/test_cv_template_layouts.py` and `backend/tests/test_template_registry_sync.py` iterate every registered generator, so Blueprint is covered for summary-equals-body type size, page bounds, and frontend/backend id / layout-tag / tier parity without a dedicated entry
 
 ### Icon-tagged templates and icon reflow
 
@@ -1564,7 +1593,7 @@ Notable product facts:
 
 # CV Studio
 
-CV Studio to polski edytor CV na A4: płótno WYSIWYG, 17 indywidualnych szablonów (każdy z własną nazwą i krótkim opisem stylistycznym), import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
+CV Studio to polski edytor CV na A4: płótno WYSIWYG, 19 indywidualnych szablonów (każdy z własną nazwą i krótkim opisem stylistycznym), import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
 
 Ten README to wejście techniczne dla programistów. Obszerne, napisane dla początkujących wyjaśnienie współrzędnych canvasu, interakcji React, deterministycznego layoutu Python, roli AI, reflow, zapisu i eksportu ReportLab znajduje się w [`CANVA.md`](CANVA.md). Wszystkie prompty AI (treść, zmienne, numery linii): [`PROMPTS.md`](PROMPTS.md). Opis produktowy funkcji: [`docs/FEATURES.md`](docs/FEATURES.md). Brief marketingowy pod sekcję „Dlaczego CV STUDIO” na stronie (funkcje + pozycjonowanie względem rynku, bez nazw marek konkurencji w copy publicznym): [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Generowanie szablonów (AI extract vs layout w Pythonie): [`docs/cv-template-generation.md`](docs/cv-template-generation.md). Przystępny, kompletny przewodnik Frontend + Backend (ścieżki, pliki, klasy, funkcje): [`CV_GENERATOR.md`](CV_GENERATOR.md).
 
@@ -2130,7 +2159,7 @@ Implementacja:
 
 Ograniczenia:
 
-- Plan Darmowy obejmuje pięć szablonów startowych, eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 18 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
+- Plan Darmowy obejmuje pięć szablonów startowych, eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 19 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
 - Wskazówki **Czytelność dla ATS** sprawdzają odczyt tekstu z finalnego PDF oraz standardowość nagłówków/słów kluczowych. To wskazówka, nie gwarancja że każdy system ATS odczyta plik tak samo.
 - Sekcja prywatności opisuje ogólnie zaimplementowane użycie danych i nie deklaruje niezaimplementowanych certyfikatów ani anonimizacji.
 
@@ -2417,6 +2446,35 @@ Testy:
 - `frontend/src/templates/aurelia.test.js` — jedna kolumna, kontrastowa paleta, grube kreski, biały tekst imię/stanowisko, złoty akcent, kolejność tablicy od tła, wspólne końce linii, początki zależne od długości etykiety i brak wielokąta
 - `backend/tests/test_aurelia_template.py` — dynamiczne skalowanie nameplate/titleplate/tła, czytelna kolejność malowania, wspólne końce i zmienne długości linii oraz stały chrome stron kontynuacji
 - `backend/tests/test_template_registry_sync.py` i `backend/tests/test_cv_template_layouts.py` — parytet rejestru/layoutu/planu, granice i zgodność typografii podsumowania z body
+
+### Szablon Blueprint (schemat techniczny)
+
+Blueprint to płatny, jednokolumnowy szablon (`layouts: ["single"]`) zaadaptowany z projektu Claude Design opartego na systemie projektowym „Industry”: stalowo-niebieski akcent (`#5980A6`) na jasnym, ciepłoszarym papierze (`#F2F2F3`), wszędzie kwadratowe narożniki oraz cienkie znaczniki rejestracyjne „+” w czterech rogach mastheadu — język wizualny komponentów `.blueprint` / `.corner` z systemu źródłowego. Szablon nie ma motywu ikon: kanały kontaktowe renderują się jako zwykła linia tekstu z kropkami pośrodku, dokładnie jak w projekcie źródłowym.
+
+Masthead (imię i nazwisko, tytuł wielkimi literami, linia kontaktu) jest opleciony prostokątem konturowym (`#B5D9FD`, odpowiednik `accent-300` z systemu źródłowego) z małym znacznikiem „+” (dwie cienkie kreski) wyśrodkowanym na każdym z czterech rogów. Nagłówki sekcji to pogrubione etykiety wyrównane do lewej w głębokim stalowym tonie (`#416180`, `accent-700` — wybrany zamiast płaskiego akcentu `#5980A6` ze względu na bezpieczny kontrast AA dla tekstu w rozmiarze body, zgodnie z własną wskazówką systemu źródłowego), leżące nad cienką linią na pełną szerokość kolumny w bladym tonie `accent-300` — dokładnie ten sam, zakotwiczony do lewej kształt nagłówka, jakiego używa każdy inny jednokolumnowy szablon, dzięki czemu wspólny packer sekcji oraz Add-section / `deriveSectionStyle` utrzymują każdy nagłówek przyklejony do jego treści bez żadnego kodu specyficznego dla szablonu.
+
+Dwa komponenty są unikalne dla Blueprint wśród szablonów tej aplikacji:
+
+- **Rekordy umieszczają datę w tym samym wierszu co tytuł**, wyrównaną do prawej (wzorzec `.role` z projektu źródłowego), zamiast układu tytuł-potem-metadane używanego przez każdy inny szablon. Lokalny helper `_place_record` (niewspółdzielony — żaden inny generator nie używa daty w tym samym wierszu) rezerwuje stałą szerokość strefy po prawej i wyrównuje datę do prawej krawędzi z rzeczywistym pomiarem metryk czcionki (`_measured_text_width`, reużyte z `shared/contact.py`), a nie szacunkiem opartym na liczbie znaków.
+- **Umiejętności renderują się jako kwadratowe tagi konturowe** (zawijany, upakowany rząd obramowanych chipów, a nie grupowany według kategorii układ rysowany przez `_place_skills_section` w innych szablonach), a **języki jako obramowana lista wierszy z wypełnioną odznaką poziomu** po prawej (wypełnienie `accent-100`, tekst `accent-800`) — oba rysowane bezpośrednio wspólnymi prymitywami `_rect` / `_line` / `_text` (flaga `filled` w `_rect` maluje odznakę; tagi konturowe pozostawiają ją wyłączoną).
+
+Uwaga o czcionce: projekt źródłowy wskazuje Barlow Condensed (nagłówki) nad Barlow (body). Żadna z nich nie należy do 8 zarejestrowanych rodzin czcionek PDF/canvas tej aplikacji (blok rejestracji czcionek w `backend/app/services/pdf_generator.py`; `frontend/src/utils/canvasFont.js`), a dodanie nowej oznacza spakowanie licencjonowanych plików TTF, zarejestrowanie wariantów bold/italic po stronie serwera i rozszerzenie stosu czcionek canvasu we frontendzie — infrastrukturę współdzieloną przez każdy szablon. Inter zastępuje obie, a pogrubione, wielkoliterowe nagłówki z szerokim tropieniem liter przybliżają techniczny charakter Barlow Condensed.
+
+Pułapka generycznego packingu, którą ten szablon ujawnił: etykieta nazwy języka leży bezpośrednio nad linią-dividerem na pełną szerokość, co pasowało do nieoznaczonej heurystyki „krótka etykieta + szeroka linia poniżej” w `sectionStructure.js` (`isSectionHeading`) — każdy język poza ostatnim był chwilowo błędnie klasyfikowany jako fantomowa sekcja. Poprawka to jednolinijkowy tag `flowRole: "content"` na tekście nazwy języka (jawna, już rozpoznawana furtka w tej heurystyce), a nie zmiana wspólnego packera — patrz `blueprint.pack.test.js`.
+
+Implementacja:
+
+- `backend/app/services/cv_templates/templates/blueprint.py`, funkcja `_gen_blueprint` — `_corner_marks` (rama mastheadu), lewostronna `section()`, lokalne `_record_height` / `_place_record` dla układu tytuł/data w jednym wierszu, inline packing tagów umiejętności, inline rozmieszczenie wierszy/odznak języków
+- `backend/app/services/cv_templates/registry.py`, `_GENERATORS["blueprint"]` i `TEMPLATE_LAYOUTS["blueprint"]` (`frozenset({"single"})`)
+- `frontend/src/templates/blueprint.js` — statyczny starter emitowany bezpośrednio z wyjścia demo generatora (bez obrazów, więc bez przepisywania API_BASE_URL); eksportowana tablica `blueprintTemplate`
+- `frontend/src/templates/index.js`, wpis rejestru `blueprint` (`tier: "paid"`, `layouts: ["single"]`, `accent: "#5980A6"`)
+- `frontend/scripts/dump-iconic-templates.mjs`, `frontend/public/template-mockups/blueprint.png` — podgląd A4 generowany ze źródła
+
+Testy:
+
+- `frontend/src/templates/blueprint.test.js` — oprawiony masthead z prostokątem konturowym i 8 kreskami znaczników narożnych, imię/tytuł/kontakt wyrównane do lewej (nie wycentrowane), lewostronnie zakotwiczone pogrubione nagłówki sekcji nad linią na pełną szerokość, rekordy z tytułem i datą w jednym wierszu, kwadratowe tagi konturowe umiejętności, wypełnione odznaki języków, brak powtórzonej ramki na stronach kontynuacji
+- `frontend/src/templates/blueprint.pack.test.js` (z `blueprint.multipage.fixture.json`) — realny dwustronicowy dokument Blueprint: każdy nagłówek sekcji (włącznie z sekcją Umiejętności z tagami i sekcją Języki z odznakami) pozostaje przyklejony do swojego body w `listDocumentSections` / `sectionElementIds` oraz po `applyFlowSpacing` przy domyślnym i kompaktowym rytmie
+- `backend/tests/test_cv_template_layouts.py` i `backend/tests/test_template_registry_sync.py` iterują po wszystkich zarejestrowanych generatorach, więc Blueprint jest objęty pokryciem (rozmiar podsumowania=body, granice strony, parytet id/tagów/planu) bez dedykowanego wpisu
 
 ### Szablony z tagiem `icons` i reflow ikon
 
