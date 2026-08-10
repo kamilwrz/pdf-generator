@@ -87,12 +87,11 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
                 # ... experience / education ...
                 "- skills — DWA DOZWOLONE KSZTAŁTY:\n"
                 "  A) Płaska lista stringów, gdy CV ma jedną listę bez podsekcji\n"
-                "     (np. sama 'UMIEJĘTNOŚCI' / 'OBSŁUGA KOMPUTERA').\n"
-                "  B) Lista obiektów {\"category\":\"Nazwa\",\"items\":[\"chip\",\"…\"]} gdy CV ma\n"
-                "     podsekcje lub osobne rodziny umiejętności. Wówczas:\n"
-                "     * labels.skills = 'UMIEJĘTNOŚCI' (nadrzędny nagłówek — ZAWSZE),\n"
-                "     * category = dokładna nazwa podsekcji/rodziny,\n"
-                "     * NIE wrzucaj tych kategorii do extra_sections.\n"
+                "     (np. sama 'UMIEJĘTNOŚCI' / 'SKILLS' / 'OBSŁUGA KOMPUTERA').\n"
+                "     'SKILLS' bez podkategorii = kształt A — NIGDY {\"category\":\"SKILLS\",…}.\n"
+                "  B) Lista obiektów {\"category\",\"items\"} TYLKO przy ≥2 podsekcjach/rodzinach.\n"
+                "     category NIGDY nie może być 'SKILLS' / 'UMIEJĘTNOŚCI' / 'Obszary'.\n"
+                "  Jedna samotna podsekcja → kształt A (płaskie stringi).\n"
                 "  Podsekcję 'Języki'/'Languages' wrzuć do languages, nie do skills.\n"
                 # ... labels.skills / extra_sections ...
                 "- extra_sections: … Szkolenia z cyberbezpieczeństwa …\n"
@@ -102,7 +101,7 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
                 # ... kinds / placements / items ...
 ```
 
-Pełna treść instrukcji: `backend/app/services/ai_service.py`, linie 48–113. Normalizacja linii `Kategoria: …` oraz rodzin soft/hard/tools → grupy w `skills` (nie top-level extras): `_expand_skill_category_lines` / `_absorb_skills_alias_sections` w `cv_data.py`; render: `_place_skills_section` w `cv_templates/shared/text.py`.
+Pełna treść instrukcji: `backend/app/services/ai_service.py`, funkcja budująca wiadomość ekstrakcji (blok `skills`). Normalizacja: `_normalize_skills` spłaszcza samotne / redundantne kategorie (`SKILLS` pod UMIEJĘTNOŚCI); `_expand_skill_category_lines` / `_absorb_skills_alias_sections` budują prawdziwe taksonomie (≥2 grupy); render: `_place_skills_section`.
 
 ---
 

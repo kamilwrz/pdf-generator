@@ -272,6 +272,50 @@ class CvDataNormalizationTests(unittest.TestCase):
             for section in profile["extra_sections"]
         ))
 
+    def test_lone_skills_category_wrapper_flattens(self):
+        """
+        Extract often wraps a flat English SKILLS sidebar as one named group.
+        That must become plain chips under UMIEJĘTNOŚCI — never a bold
+        "SKILLS" subcategory under the parent chrome.
+        """
+        profile = normalize_cv_data({
+            "name": "Tomasz Kozubal",
+            "labels": {"skills": "UMIEJĘTNOŚCI"},
+            "skills": [{
+                "category": "SKILLS",
+                "items": [
+                    "Python (Pandas, Numpy)",
+                    "SQL",
+                    "FastAPI",
+                ],
+            }],
+        })
+        self.assertEqual(profile["labels"]["skills"], "UMIEJĘTNOŚCI")
+        self.assertEqual(
+            profile["skills"],
+            ["Python (Pandas, Numpy)", "SQL", "FastAPI"],
+        )
+        self.assertTrue(all(isinstance(item, str) for item in profile["skills"]))
+
+        content = "\n".join(
+            str(element.get("content", ""))
+            for element in generate_resume("aldine", profile)
+        )
+        self.assertIn("UMIEJĘTNOŚCI", content)
+        self.assertNotIn("SKILLS", content)
+        self.assertIn("Python (Pandas, Numpy)", content)
+
+    def test_lone_named_skill_category_flattens(self):
+        # A single real-looking category is not a taxonomy — render as flat text.
+        profile = normalize_cv_data({
+            "name": "Anna Nowak",
+            "skills": [{
+                "category": "Languages & Frameworks",
+                "items": ["Python", "FastAPI"],
+            }],
+        })
+        self.assertEqual(profile["skills"], ["Python", "FastAPI"])
+
     def test_explicit_skills_label_is_not_overwritten_by_alias_section(self):
         profile = normalize_cv_data({
             "name": "Jan Nowak",

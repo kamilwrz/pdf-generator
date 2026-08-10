@@ -329,30 +329,71 @@ def _skills_have_named_groups(value: Any) -> bool:
     return any(_text(group.get("category")) for group in skill_groups(value))
 
 
+def _is_redundant_skill_category(category: object) -> bool:
+    """
+    True when a group label duplicates the parent skills chrome.
+
+    Extractors often wrap a flat SKILLS sidebar as
+    ``[{category: "SKILLS", items: [...]}]`` while ``labels.skills`` is already
+    UMIEJĘTNOŚCI — that would print a useless bold "SKILLS" under the section
+    heading. Generic synonyms must never become subcategory chrome.
+    """
+    return is_generic_skills_label(category)
+
+
 def _normalize_skills(value: Any) -> list[Any]:
     """
     Canonical skills list: plain strings and/or ``{category, items}`` groups.
 
-    When at least one named group is present, the whole list is stored as group
-    objects (uncategorized chips become ``category: ""``). Otherwise the list
-    stays a flat chip list for backward compatibility.
+    Named groups are kept only when at least two real categories remain after
+    scrubbing. A single category (including a lone ``SKILLS`` / ``UMIEJĘTNOŚCI``
+    wrapper from extract) collapses to a flat chip list so the canvas shows
+    simple text under the parent skills heading — no fake subcategory.
     """
     groups = skill_groups(value)
     if not groups:
         return []
-    if not any(_text(group.get("category")) for group in groups):
-        # Single uncategorized bag → flat strings.
-        return list(groups[0]["items"]) if len(groups) == 1 else [
-            chip for group in groups for chip in group["items"]
-        ]
-    normalized: list[dict[str, Any]] = []
+
+    # Drop parent-duplicate labels (SKILLS / UMIEJĘTNOŚCI / Obszary) before
+    # deciding whether a taxonomy is present.
+    scrubbed: list[dict[str, Any]] = []
     for group in groups:
         items = list(group["items"])
         if not items:
             continue
+        category = _text(group.get("category"))
+        if category and _is_redundant_skill_category(category):
+            category = ""
+        scrubbed.append({"category": category, "items": items})
+
+    if not scrubbed:
+        return []
+
+    named_count = sum(1 for group in scrubbed if group["category"])
+    # Flatten when there is no real taxonomy:
+    # - every category was a parent duplicate (SKILLS / UMIEJĘTNOŚCI), or
+    # - a single named wrapper with no sibling groups (lone extract category).
+    # Keep groups when two+ real categories exist, or when one named family
+    # sits beside uncategorized chips (absorb: flat skills + soft-skills family).
+    should_flatten = named_count == 0 or (
+        named_count == 1 and len(scrubbed) == 1
+    )
+    if should_flatten:
+        flat: list[str] = []
+        seen: set[str] = set()
+        for group in scrubbed:
+            for chip in group["items"]:
+                key = chip.casefold()
+                if chip and key not in seen:
+                    flat.append(chip)
+                    seen.add(key)
+        return flat
+
+    normalized: list[dict[str, Any]] = []
+    for group in scrubbed:
         normalized.append({
-            "category": _text(group.get("category")),
-            "items": items,
+            "category": group["category"],
+            "items": list(group["items"]),
         })
     return normalized
 
