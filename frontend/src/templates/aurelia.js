@@ -1,11 +1,13 @@
 /**
  * Aurelia template.
  *
- * A one-column quiet-luxury composition built around three layered Bézier
- * brushstrokes behind the display name. A pale vertical gesture sits behind a
- * broad gold nameplate and a narrow dark-gold ink stroke; text remains on the
- * foreground layer. Section divider lengths follow their labels and share one
- * precise right edge.
+ * A one-column quiet-luxury composition built around layered light Bézier
+ * brushstrokes behind the display name and job title. A mist-grey vertical
+ * gesture on the right anchors the stack; a soft white nameplate and a pale
+ * silver title plate sit in front of it, with a thin ash ink accent on the
+ * name. Charcoal text stays on the foreground layer. Section divider lengths
+ * follow their labels and share one precise right edge; antique-gold chrome
+ * remains reserved for section bars and page rails.
  */
 import { bezierPath, block, bulleted, line, text } from "./helpers.js";
 
@@ -17,6 +19,12 @@ const GOLD = "#B3924F";
 const GOLD_DARK = "#8B713A";
 const RULE = "#DCD8CE";
 const MIST = "#D6D6D3";
+/** Soft warm white stroke that still reads on the ivory paper. */
+const CLOUD = "#F4F3EF";
+/** Mid-light grey for the job-title plate; sits between cloud and mist. */
+const SILVER = "#E6E6E2";
+/** Thin ash accent that replaces the former dark-gold ink stroke. */
+const ASH = "#C4C4BF";
 const DISPLAY = "PlayfairDisplay";
 const SANS = "Montserrat";
 
@@ -28,19 +36,33 @@ const NAMEPLATE_CURVES = [
     { type: "M", x: 0.03, y: 0.55 },
     { type: "C", x1: 0.25, y1: 0.23, x2: 0.68, y2: 0.78, x: 0.97, y: 0.46 },
 ];
+const TITLEPLATE_CURVES = [
+    { type: "M", x: 0.02, y: 0.52 },
+    { type: "C", x1: 0.28, y1: 0.16, x2: 0.72, y2: 0.84, x: 0.98, y: 0.48 },
+];
 const INK_CURVES = [
     { type: "M", x: 0.02, y: 0.65 },
     { type: "C", x1: 0.28, y1: 0.05, x2: 0.72, y2: 0.95, x: 0.98, y: 0.25 },
 ];
 
 const STARTER_NAME = "ANNA KOWALSKA";
+const STARTER_TITLE = "STRATEGIA  ·  OPERACJE  ·  TRANSFORMACJA";
 const DISPLAY_NAME_SIZE = 31;
 const DISPLAY_NAME_TRACKING = 0.1;
+const TITLE_SIZE = 8.4;
+const TITLE_TRACKING = 1.55;
 const estimatedStarterNameWidth = Math.min(
     435,
     Math.max(
         180,
         STARTER_NAME.length * (DISPLAY_NAME_SIZE * 0.63 + DISPLAY_NAME_TRACKING),
+    ),
+);
+const estimatedStarterTitleWidth = Math.min(
+    360,
+    Math.max(
+        140,
+        STARTER_TITLE.length * (TITLE_SIZE * 0.52 + TITLE_TRACKING * 0.35),
     ),
 );
 
@@ -99,6 +121,8 @@ const aureliaElements = [
 
     // PDF export paints in array order. Keep all artwork before masthead text so
     // the explicit z-index layering also remains readable in the exported file.
+    // Light stack: mist right companion → white name plate → silver title plate
+    // → thin ash accent → charcoal/muted text.
     masthead({
         ...bezierPath(
             Math.min(425, 80 + estimatedStarterNameWidth * 1.02),
@@ -120,7 +144,7 @@ const aureliaElements = [
             Math.min(435, estimatedStarterNameWidth + 40),
             34,
             NAMEPLATE_CURVES,
-            GOLD,
+            CLOUD,
             28,
             2,
             "wave",
@@ -130,11 +154,25 @@ const aureliaElements = [
     masthead({
         ...bezierPath(
             80,
+            90,
+            Math.min(380, estimatedStarterTitleWidth + 28),
+            22,
+            TITLEPLATE_CURVES,
+            SILVER,
+            16,
+            2,
+            "wave",
+        ),
+        id: "aurelia-titleplate",
+    }),
+    masthead({
+        ...bezierPath(
+            80,
             31,
             estimatedStarterNameWidth * 0.5,
             10,
             INK_CURVES,
-            GOLD_DARK,
+            ASH,
             4.5,
             3,
             "arc",
@@ -145,7 +183,7 @@ const aureliaElements = [
         bold(text(STARTER_NAME, DISPLAY_NAME_SIZE, DISPLAY, INK, 80, 55, 4)),
         DISPLAY_NAME_TRACKING,
     )),
-    masthead(tracked(text("STRATEGIA  ·  OPERACJE  ·  TRANSFORMACJA", 8.4, SANS, GOLD_DARK, 82, 100, 4), 1.55)),
+    masthead(tracked(text(STARTER_TITLE, TITLE_SIZE, SANS, MUTED, 82, 100, 4), TITLE_TRACKING)),
     masthead(text("anna.kowalska@email.com  ·  +48 600 000 000  ·  Warszawa", 8.4, SANS, MUTED, 82, 128, 4)),
 
     ...sectionHeading("PROFIL", 204, "summary"),

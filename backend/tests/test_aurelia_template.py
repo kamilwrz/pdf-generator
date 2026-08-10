@@ -41,10 +41,10 @@ class AureliaTemplateTests(unittest.TestCase):
     def setUp(self):
         self.elements = generate_resume("aurelia", CV_DATA)
 
-    def test_layers_three_cubic_beziers_behind_the_display_name(self):
+    def test_layers_light_cubic_beziers_behind_name_and_title(self):
         paths = [element for element in self.elements if element["category"] == "path"]
-        self.assertEqual(len(paths), 3)
-        self.assertEqual(len({element["top"] for element in paths}), 3)
+        self.assertEqual(len(paths), 4)
+        self.assertEqual(len({element["top"] for element in paths}), 4)
 
         backdrop = next(
             element for element in paths
@@ -54,6 +54,10 @@ class AureliaTemplateTests(unittest.TestCase):
             element for element in paths
             if element.get("id") == "aurelia-nameplate"
         )
+        titleplate = next(
+            element for element in paths
+            if element.get("id") == "aurelia-titleplate"
+        )
         ink = next(
             element for element in self.elements
             if element.get("id") == "aurelia-name-ink"
@@ -62,17 +66,30 @@ class AureliaTemplateTests(unittest.TestCase):
             element for element in self.elements
             if element.get("content") == CV_DATA["name"]
         )
+        title = next(
+            element for element in self.elements
+            if element.get("content") == CV_DATA["title"]
+        )
         self.assertEqual(backdrop["backgroundColor"], "#D6D6D3")
         self.assertEqual(backdrop["borderWidth"], 18)
         self.assertEqual(backdrop["zIndex"], 1)
-        self.assertEqual(nameplate["backgroundColor"], "#B3924F")
+        self.assertEqual(nameplate["backgroundColor"], "#F4F3EF")
         self.assertEqual(nameplate["borderWidth"], 28)
         self.assertEqual(nameplate["zIndex"], 2)
-        self.assertEqual(ink["backgroundColor"], "#8B713A")
+        self.assertEqual(titleplate["backgroundColor"], "#E6E6E2")
+        self.assertEqual(titleplate["borderWidth"], 16)
+        self.assertEqual(titleplate["zIndex"], 2)
+        self.assertEqual(ink["backgroundColor"], "#C4C4BF")
         self.assertEqual(ink["borderWidth"], 4.5)
         self.assertEqual(ink["zIndex"], 3)
         self.assertEqual(name["zIndex"], 4)
+        self.assertEqual(title["color"], "#77736B")
         self.assertTrue(all(element["zIndex"] < name["zIndex"] for element in paths))
+        self.assertLess(self.elements.index(backdrop), self.elements.index(nameplate))
+        self.assertLess(self.elements.index(nameplate), self.elements.index(titleplate))
+        self.assertLess(self.elements.index(titleplate), self.elements.index(ink))
+        self.assertLess(self.elements.index(ink), self.elements.index(name))
+        self.assertGreater(titleplate["top"], nameplate["top"])
 
         section_bars = [
             element for element in self.elements

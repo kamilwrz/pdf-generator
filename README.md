@@ -846,31 +846,31 @@ Tests:
 - `frontend/src/templates/atrium.pack.test.js` (with `atrium.multipage.fixture.json`) — a real two-page Atrium document: every section heading stays glued to its own body through `listDocumentSections` / `sectionElementIds` and after `applyFlowSpacing` at both the default and a compact rhythm (regression guard for the reported "headings detach + spacing scrambles the layout" bug)
 - `backend/tests/test_cv_template_layouts.py` and `backend/tests/test_template_registry_sync.py` iterate every registered generator, so Atrium is covered for summary-equals-body type size, page bounds, and frontend/backend id / layout-tag / tier parity without a dedicated entry
 
-### Aurelia three-stroke Bézier template
+### Aurelia light Bézier name/title template
 
-Aurelia is a paid, one-column template (`layouts: ["single"]`) with a quiet-luxury palette: warm white `#FEFDF9`, charcoal `#272724`, body grey `#464540`, muted grey `#77736B`, mist grey `#D6D6D3`, and antique gold `#B3924F` / `#8B713A`. It deliberately keeps body copy modest (`9.3` pt with `13.6` pt leading) and uses generous negative space instead of panels, cards, or a sidebar.
+Aurelia is a paid, one-column template (`layouts: ["single"]`) with a quiet-luxury palette: warm white `#FEFDF9`, charcoal `#272724`, body grey `#464540`, muted grey `#77736B`, mist grey `#D6D6D3`, soft cloud `#F4F3EF`, silver `#E6E6E2`, ash `#C4C4BF`, and antique gold `#B3924F` / `#8B713A` reserved for section bars and page rails. It deliberately keeps body copy modest (`9.3` pt with `13.6` pt leading) and uses generous negative space instead of panels, cards, or a sidebar.
 
-Its memorable visual is an abstract **three-stroke Bézier name composition**. An `18` pt mist-grey vertical gesture sits at `zIndex: 1`; a broad `28` pt gold stroke forms the organic nameplate at `zIndex: 2`; and a narrow `4.5` pt dark-gold ink stroke adds a handmade top edge at `zIndex: 3`. The name stays at `zIndex: 4`, so its charcoal glyphs remain readable over the gold field. The element array is also emitted from back to front because PDF export paints in array order rather than relying only on CSS stacking.
+Its memorable visual is an abstract **light Bézier name and title composition**. An `18` pt mist-grey vertical gesture on the right sits at `zIndex: 1`; a broad `28` pt cloud-white stroke forms the organic nameplate at `zIndex: 2`; a softer `16` pt silver title plate sits under the job title at the same layer; and a narrow `4.5` pt ash ink stroke adds a handmade top edge at `zIndex: 3`. Name and title stay at `zIndex: 4`, so charcoal/muted glyphs remain readable over the pale fields. The element array is also emitted from back to front because PDF export paints in array order rather than relying only on CSS stacking.
 
-The composition reacts to the displayed name. Its estimated width is clamped to `180–435` px. The gold nameplate adds `40` px of breathing room, the ink stroke uses half the estimate, and the grey backdrop follows the right side while clamping its left edge to `x=425`. This keeps short names visually substantial and prevents long names from pushing artwork beyond the page. The `curves` coordinates stay in the 0–1 element box, making the React SVG preview and ReportLab `curveTo` export share the same geometry.
+The composition reacts to the displayed name and title. Name width is clamped to `180–435` px; title width to `140–360` px. The cloud nameplate adds `40` px of breathing room, the silver title plate adds `28` px, the ash stroke uses half the name estimate, and the mist backdrop follows the right side while clamping its left edge to `x=425`. This keeps short strings visually substantial and prevents long ones from pushing artwork beyond the page. The `curves` coordinates stay in the 0–1 element box, making the React SVG preview and ReportLab `curveTo` export share the same geometry.
 
 Section headings use compact `4` px gold bars on the left and label-aware grey rules on the right. The rule start is estimated from the tracked heading length (`fontSize × 0.58 + letterSpacing` per character), followed by an `18` px gap. Its endpoint always remains at `x=515`; therefore short headings receive longer lines, long headings receive shorter lines, and every section shares one clean right-hand datum. A `24` px minimum protects the rule when a custom label is unusually long.
 
-The deterministic Python generator uses the standard `Builder`, `need_section`, `keep_together` / `flowGroup`, experience, education, skills, and extra-section helpers. All three name-relative brushstrokes carry `flowRole: "masthead"`; heading bars and calculated rules carry `flowRole: "section-chrome"`, so spacing changes and pagination move each ornament with the content it belongs to. The footer bars and asymmetric grey/gold rails are `fixedToPage` and repeat on continuation pages.
+The deterministic Python generator uses the standard `Builder`, `need_section`, `keep_together` / `flowGroup`, experience, education, skills, and extra-section helpers. All four light masthead brushstrokes carry `flowRole: "masthead"`; heading bars and calculated rules carry `flowRole: "section-chrome"`, so spacing changes and pagination move each ornament with the content it belongs to. The footer bars and asymmetric grey/gold rails are `fixedToPage` and repeat on continuation pages.
 
 Implementation:
 
-- `frontend/src/templates/aurelia.js`, lines 21–180, export `aureliaTemplate` and function `sectionHeading` — name-relative three-stroke signature, label-aware rules, restrained section bars, one-column sample content
+- `frontend/src/templates/aurelia.js`, export `aureliaTemplate` and function `sectionHeading` — light name/title Bézier stack, back-to-front paint order, label-aware rules, restrained section bars, one-column sample content
 - `frontend/src/templates/helpers.js`, lines 43–65, function `bezierPath` — template-authoring helper for normalized cubic paths
-- `backend/app/services/cv_templates/templates/aurelia.py`, lines 34–261, function `_gen_aurelia` and nested function `section` — dynamic name-relative masthead artwork, label-aware section chrome, compact shared records, repeating page decorations
+- `backend/app/services/cv_templates/templates/aurelia.py`, function `_gen_aurelia` and nested function `section` — dynamic cloud/silver/ash masthead artwork, PDF-safe paint order, label-aware section chrome, compact shared records, repeating page decorations
 - `backend/app/services/cv_generator_primitives.py`, lines 189–210, function `_path` — backend counterpart to `bezierPath`
 - `frontend/src/templates/index.js`, lines 26 and 48, plus `backend/app/services/cv_templates/registry.py`, lines 22, 42, and 63 — paid registry entry and `single` layout parity
 - `frontend/public/template-mockups/aurelia.png` — source-driven A4 preview
 
 Tests:
 
-- `frontend/src/templates/aurelia.test.js`, lines 18–89 — one column, palette, separated cubic strokes, shared rule endpoints, length-relative rule starts, and no polygon
-- `backend/tests/test_aurelia_template.py`, lines 40–164 — dynamic name-relative stroke scaling, glyph-safe boxes, shared rule endpoints, variable rule lengths, and fixed continuation chrome
+- `frontend/src/templates/aurelia.test.js` — one column, light palette, four stroke weights/layers, title plate under job title, back-to-front array order, shared rule endpoints, length-relative rule starts, and no polygon
+- `backend/tests/test_aurelia_template.py` — dynamic nameplate/titleplate/backdrop scaling, readable paint order, shared rule endpoints, variable rule lengths, and fixed continuation chrome
 - `backend/tests/test_template_registry_sync.py` and `backend/tests/test_cv_template_layouts.py` — registry/layout/tier parity, bounds, and summary/body typography
 
 ### Icon-tagged templates and icon reflow
@@ -2391,31 +2391,31 @@ Testy:
 - `frontend/src/templates/atrium.pack.test.js` (z `atrium.multipage.fixture.json`) — realny dwustronicowy dokument Atrium: każdy nagłówek sekcji pozostaje przyklejony do swojego body w `listDocumentSections` / `sectionElementIds` oraz po `applyFlowSpacing` przy domyślnym i kompaktowym rytmie (guard regresji dla zgłoszonego buga „nagłówki się odrywają + zmiana odstępów psuje układ”)
 - `backend/tests/test_cv_template_layouts.py` i `backend/tests/test_template_registry_sync.py` iterują po wszystkich zarejestrowanych generatorach, więc Atrium jest objęte pokryciem (rozmiar podsumowania=body, granice strony, parytet id/tagów/planu) bez dedykowanego wpisu
 
-### Szablon Aurelia z trzyczęściowym motywem Béziera
+### Szablon Aurelia z jasnym motywem Béziera (imię + stanowisko)
 
-Aurelia to płatny, jednokolumnowy szablon (`layouts: ["single"]`) w estetyce quiet luxury: ciepła biel `#FEFDF9`, grafit `#272724`, szarość treści `#464540`, muted grey `#77736B`, mglista szarość `#D6D6D3` oraz antyczne złoto `#B3924F` / `#8B713A`. Tekst body jest celowo skromny (`9.3` pt z interlinią `13.6` pt), a hierarchię buduje oddech zamiast paneli, kart czy sidebaru.
+Aurelia to płatny, jednokolumnowy szablon (`layouts: ["single"]`) w estetyce quiet luxury: ciepła biel `#FEFDF9`, grafit `#272724`, szarość treści `#464540`, muted grey `#77736B`, mglista szarość `#D6D6D3`, miękka biel `#F4F3EF`, srebro `#E6E6E2`, popiół `#C4C4BF` oraz antyczne złoto `#B3924F` / `#8B713A` zarezerwowane dla belek sekcji i szyn strony. Tekst body jest celowo skromny (`9.3` pt z interlinią `13.6` pt), a hierarchię buduje oddech zamiast paneli, kart czy sidebaru.
 
-Zapamiętywalnym motywem jest abstrakcyjna **trzyczęściowa kompozycja nazwiska z Bézierów**. Pionowy gest w mglistej szarości ma obrys `18` pt i `zIndex: 1`; szeroka złota kreska `28` pt tworzy organiczny nameplate na `zIndex: 2`; a wąski ciemnozłoty ślad `4.5` pt dodaje ręcznie rysowaną górną krawędź na `zIndex: 3`. Nazwisko pozostaje na `zIndex: 4`, dlatego grafitowe glify są czytelne na złotym polu. Tablica elementów jest również emitowana od tła do tekstu, ponieważ eksport PDF maluje według kolejności tablicy, a nie wyłącznie według warstw CSS.
+Zapamiętywalnym motywem jest abstrakcyjna **jasna kompozycja nazwiska i stanowiska z Bézierów**. Pionowy gest w mglistej szarości po prawej ma obrys `18` pt i `zIndex: 1`; szeroka miękko-biała kreska `28` pt tworzy organiczny nameplate na `zIndex: 2`; srebrny title plate `16` pt leży pod stanowiskiem na tej samej warstwie; a wąski popielaty ślad `4.5` pt dodaje ręcznie rysowaną górną krawędź na `zIndex: 3`. Nazwisko i stanowisko pozostają na `zIndex: 4`, dlatego grafitowe/muted glify są czytelne na bladych polach. Tablica elementów jest również emitowana od tła do tekstu, ponieważ eksport PDF maluje według kolejności tablicy, a nie wyłącznie według warstw CSS.
 
-Kompozycja reaguje na wyświetlane nazwisko. Jego szacowana szerokość jest ograniczona do `180–435` px. Złoty nameplate dodaje `40` px oddechu, ślad ink używa połowy oszacowania, a szare tło podąża za prawą częścią i ogranicza początek do `x=425`. Dzięki temu krótkie nazwiska zachowują odpowiednią obecność, a długie nie wypychają grafiki poza stronę. Współrzędne `curves` pozostają w zakresie 0–1 ramki elementu, więc SVG Reacta i eksport ReportLab `curveTo` dzielą jedną geometrię.
+Kompozycja reaguje na wyświetlane nazwisko i stanowisko. Szerokość nazwiska jest ograniczona do `180–435` px, stanowiska do `140–360` px. Biały nameplate dodaje `40` px oddechu, srebrny title plate `28` px, ślad ash używa połowy oszacowania nazwiska, a szare tło podąża za prawą częścią i ogranicza początek do `x=425`. Dzięki temu krótkie napisy zachowują obecność, a długie nie wypychają grafiki poza stronę. Współrzędne `curves` pozostają w zakresie 0–1 ramki elementu, więc SVG Reacta i eksport ReportLab `curveTo` dzielą jedną geometrię.
 
 Nagłówki sekcji używają zwartych złotych belek `4` px po lewej oraz szarych linii reagujących na długość etykiety po prawej. Początek linii jest szacowany z szerokości śledzonego nagłówka (`fontSize × 0.58 + letterSpacing` na znak), po czym dodawany jest odstęp `18` px. Koniec zawsze pozostaje na `x=515`; krótkie nagłówki otrzymują więc dłuższe linie, długie nagłówki krótsze, a wszystkie sekcje współdzielą jedną czystą prawą oś. Minimum `24` px chroni linię przy wyjątkowo długiej własnej etykiecie.
 
-Deterministyczny generator Python używa standardowych mechanizmów `Builder`, `need_section`, `keep_together` / `flowGroup` oraz helperów doświadczenia, edukacji, umiejętności i sekcji dodatkowych. Wszystkie trzy pociągnięcia pędzla zależne od szerokości nazwiska mają `flowRole: "masthead"`, a belki i obliczane linie nagłówków `flowRole: "section-chrome"`, więc zmiany odstępów i paginacja przesuwają ornament razem z należącą do niego treścią. Belki stopki oraz asymetryczne szaro-złote szyny są `fixedToPage` i powtarzają się na kolejnych stronach.
+Deterministyczny generator Python używa standardowych mechanizmów `Builder`, `need_section`, `keep_together` / `flowGroup` oraz helperów doświadczenia, edukacji, umiejętności i sekcji dodatkowych. Wszystkie cztery jasne pociągnięcia mastheadu mają `flowRole: "masthead"`, a belki i obliczane linie nagłówków `flowRole: "section-chrome"`, więc zmiany odstępów i paginacja przesuwają ornament razem z należącą do niego treścią. Belki stopki oraz asymetryczne szaro-złote szyny są `fixedToPage` i powtarzają się na kolejnych stronach.
 
 Implementacja:
 
-- `frontend/src/templates/aurelia.js`, linie 21–180, eksport `aureliaTemplate` i funkcja `sectionHeading` — trzyczęściowa sygnatura zależna od nazwiska, linie zależne od etykiety, oszczędne belki sekcji, przykładowa treść jednokolumnowa
+- `frontend/src/templates/aurelia.js`, eksport `aureliaTemplate` i funkcja `sectionHeading` — jasny stos Bézierów imię/stanowisko, kolejność malowania od tła, linie zależne od etykiety, oszczędne belki sekcji, przykładowa treść jednokolumnowa
 - `frontend/src/templates/helpers.js`, linie 43–65, funkcja `bezierPath` — helper authoringu szablonów dla znormalizowanych krzywych sześciennych
-- `backend/app/services/cv_templates/templates/aurelia.py`, linie 34–261, funkcja `_gen_aurelia` i zagnieżdżona funkcja `section` — dynamiczna grafika mastheadu zależna od nazwiska, chrome sekcji zależny od etykiety, zwarte wspólne rekordy, powtarzalne dekoracje strony
+- `backend/app/services/cv_templates/templates/aurelia.py`, funkcja `_gen_aurelia` i zagnieżdżona funkcja `section` — dynamiczna grafika cloud/silver/ash, kolejność malowania bezpieczna dla PDF, chrome sekcji zależny od etykiety, zwarte wspólne rekordy, powtarzalne dekoracje strony
 - `backend/app/services/cv_generator_primitives.py`, linie 189–210, funkcja `_path` — backendowy odpowiednik `bezierPath`
 - `frontend/src/templates/index.js`, linie 26 i 48, oraz `backend/app/services/cv_templates/registry.py`, linie 22, 42 i 63 — płatny wpis rejestru i parytet layoutu `single`
 - `frontend/public/template-mockups/aurelia.png` — podgląd A4 generowany ze źródła
 
 Testy:
 
-- `frontend/src/templates/aurelia.test.js`, linie 18–89 — jedna kolumna, paleta, rozdzielone krzywe sześcienne, wspólne końce linii, początki zależne od długości etykiety i brak wielokąta
-- `backend/tests/test_aurelia_template.py`, linie 40–164 — dynamiczne skalowanie kresek względem nazwiska, ramki bezpieczne dla glifów, wspólne końce i zmienne długości linii oraz stały chrome stron kontynuacji
+- `frontend/src/templates/aurelia.test.js` — jedna kolumna, jasna paleta, cztery grubości/warstwy kresek, title plate pod stanowiskiem, kolejność tablicy od tła, wspólne końce linii, początki zależne od długości etykiety i brak wielokąta
+- `backend/tests/test_aurelia_template.py` — dynamiczne skalowanie nameplate/titleplate/tła, czytelna kolejność malowania, wspólne końce i zmienne długości linii oraz stały chrome stron kontynuacji
 - `backend/tests/test_template_registry_sync.py` i `backend/tests/test_cv_template_layouts.py` — parytet rejestru/layoutu/planu, granice i zgodność typografii podsumowania z body
 
 ### Szablony z tagiem `icons` i reflow ikon
