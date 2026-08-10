@@ -162,6 +162,7 @@ pdf-generator/
 │   │   │   ├── canvas/FlatSectionLayoutToggle/ # Hover icon on flat-list sections (Skills, Languages) to open the layout modal
 │   │   │   ├── editor/AddSectionModal/   # "+ Dodaj sekcję" modal (name + aa/cc-sub/cc-edu/cc-exp layout picker)
 │   │   │   ├── editor/FlatSectionLayoutModal/  # Inline row ↔ bullet list picker with a live content preview
+│   │   │   ├── editor/LongCvModal/        # "CV too long" assistant: compact spacing → AI shortening
 │   │   │   ├── editor/SaveGateModal/     # "Create an account to save" modal shown to guests
 │   │   │   └── editor/DemoBanner/        # Persistent banner while the guest-mode demo CV is on canvas
 │   │   ├── hooks/            # useA4Elements facade, useDocumentHistory, usePdfExport, …
@@ -367,6 +368,39 @@ Tests:
 
 - `frontend/src/utils/flatSectionLayout.test.js` — parse/format for both styles, whitespace-tolerant mid-dot splitting, empty-content handling, inline↔bullet round-trip
 - `frontend/src/utils/sectionStructure.test.js`, `describe("listFlatSectionAnchors", …)` — Skills/Languages included (real Cardinal template fixture), Summary excluded despite being one textarea, record-style Experience excluded, anchor resolves to the correct content element
+
+### Too-long CV assistant (compact spacing → AI shortening)
+
+When a template-mode document reaches **3+ pages**, `LongCvModal` opens automatically (once per loaded document) and guides the user to a shorter CV — cheapest, deterministic remedy first, AI only when needed. Detection is free and code-side: `diagnoseDocumentLength` (`frontend/src/utils/documentLength.js`) measures the **last page's fill ratio** — `(bottom-most flowing element − pageTop) / usable band`, ignoring `fixedToPage` chrome that would otherwise report ~100% — and picks a lead remedy:
+
+- **Sparse last page** (< 45% full) → the whitespace is the likely culprit, so the modal leads with the free **compact spacing** pass. Clicking **Zmieść na N stronach** applies `COMPACT_FLOW_SPACING` (`{stack:3, record:7, section:15, after_rule:6}` — ~30% tighter than defaults, deliberately not a literal halving that would kill template rhythm) via the same `applyFlowSpacing` + `reconcileDocumentPages` path the Sections panel uses, then branches on the new page count: success (**„Gotowe — CV mieści się teraz na N stronach"**) or still-too-long (**„Odstępy są już zwarte…"** → AI step).
+- **Full pages** (≥ 45%) → spacing alone won't help, so the modal leads with AI shortening and offers "Zmniejsz odstępy mimo to" as a secondary try.
+
+The compact preset is also exposed as a **„Kompaktowo"** button next to **„Przywróć"** in the Sections panel (`SectionsPanel.jsx`), so the same one-click tightening is available manually at any time.
+
+The **AI step** (`shorten` action) is Pro-gated because the whole assistant is: Free users get the plan upsell (`showPlanModal`) instead. For Pro, the modal opens the assistant with the `shorten` action via a small context bridge — `assistantAction: { action, nonce }` + `requestAssistantAction` on `PdfContext`; `AiAssistant` watches the nonce and fires the action once. After the user accepts the resulting Przed/Po corrections and the canvas reflows, a success toast (**„CV skrócone z X do Y stron"**) fires when the page count drops below the value captured when the shorten flow began.
+
+The modal never mutates the document itself — `PdfCanvas` owns the state and passes `onApplyCompact` (returns the new page count so the modal can branch) and `onRequestAiShorten`, keeping `LongCvModal` a pure presenter over the shared `DialogShell`.
+
+Implementation:
+
+- `frontend/src/utils/documentLength.js` — `measureLastPageUtilization`, `diagnoseDocumentLength`, `TOO_LONG_MIN_PAGES` (3), `SPARSE_LAST_PAGE_RATIO` (0.45)
+- `frontend/src/utils/flowSpacing.js` — `COMPACT_FLOW_SPACING`, `isCompactFlowSpacing`
+- `frontend/src/components/editor/LongCvModal/LongCvModal.jsx` + `.module.css` — the multi-step dialog (intro-spacing / intro-content / result-success / result-still)
+- `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` — „Kompaktowo" button
+- `frontend/src/pages/PdfCanvas.jsx` — detection effect (once per document), `applyCompactSpacingPass`, `handleRequestAiShorten`, the shorten-result toast effect, and the `assistantAction` bridge
+- `frontend/src/store/pdfgenerator-context.jsx` — `assistantAction` / `requestAssistantAction` defaults
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `assistantAction` observer effect + „Skróć CV" subaction
+- Backend `shorten` action: `_shorten_content` (`ai_assistant_service.py`), `VALID_ACTIONS` (`ai_assistant.py`)
+
+Tests:
+
+- `frontend/src/utils/documentLength.test.js` — utilization ignores full-page chrome, sparse vs full diagnosis, `targetPages` = pageCount − 1 (never below 1)
+- `backend/tests/test_ai_assistant_schema.py`, `test_shorten_dispatches_and_returns_content_corrections` — the `shorten` prompt leads with shortening intent, forbids inventing facts, and returns content-only corrections
+
+Known limitations:
+
+- Detection uses the deterministic pack's page count to branch; the browser's async auto-height reflow can differ by a hair, but the decision is made from the same measurement the generator uses. The success toast is scoped to the modal-initiated shorten flow (baseline captured on request), so shortening started directly from the assistant subaction does not toast.
 
 ### Outcome-focused landing and directed starts
 
@@ -973,7 +1007,9 @@ Implementation:
 
 ### AI assistant
 
-The floating assistant uses **goal-oriented** quick actions (not one tile per API mode): **Sprawdź CV**, **Popraw treść**, **Dopasuj do oferty**, **Sprawdź wygląd** (Pro), and **Przetłumacz CV**. Backend handlers stay specialised (`rating`, `grammar`, `language`, `improve`, `design_rating`, `layout`, `ats_score`, `position_rating`, `translate`, `chat`). Free has no AI assistant (except the one lifetime CV import).
+The floating assistant uses **goal-oriented** quick actions (not one tile per API mode): **Sprawdź CV**, **Popraw treść**, **Dopasuj do oferty**, **Sprawdź wygląd** (Pro), and **Przetłumacz CV**. Backend handlers stay specialised (`rating`, `grammar`, `language`, `improve`, `shorten`, `design_rating`, `layout`, `ats_score`, `position_rating`, `translate`, `chat`). Free has no AI assistant (except the one lifetime CV import).
+
+**Popraw treść** opens four subactions: `improve` (stronger wording), `language` (style), `grammar` (spelling/punctuation), and **Skróć CV** (`shorten`). `shorten` is the AI escalation of the "CV too long" flow (see [Too-long CV assistant](#too-long-cv-assistant-compact-spacing--ai-shortening)): unlike `improve` (which strengthens and may add placeholder metrics), it only condenses, merges, or removes the least important fragments without inventing new facts, returning the same `corrections` shape so the familiar Przed/Po review cards render. It never touches geometry, headings, names, contact data, or dates (`_CONTENT_FIELDS` scope only). Implementation: `_shorten_content` in `backend/app/services/ai_assistant_service.py`, `"shorten"` in `VALID_ACTIONS` (`ai_assistant.py`) and the service dispatcher; `CONTENT_SUBACTIONS` + `ACTION_META.shorten` in `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`.
 
 **Sprawdź CV** runs `rating` and renders a dashboard: overall score as a percentage derived from rubric `categories` when present (`overallPercentFromRubric`; otherwise `rating × 10`), structured `categories` / `strengths` / `priorities`, and CTAs (lazy **Sprawdź ATS** → `ats_score`, **Popraw treść**, **Sprawdź wygląd** when category scores are weak). Partial scores are no longer dumped into a “Rozkład oceny…” tip string. Prompts for `rating` / `position_rating` / `ats_score` tell the model not to put a numeric score in `message`; `_safe_result` also rewrites any leftover `X/10` phrases in `message`, tips, strengths, and priorities to `X0%` so prose matches the dashboard.
 
@@ -1563,6 +1599,7 @@ pdf-generator/
 │   │   │   ├── canvas/FlatSectionLayoutToggle/ # ikona hover na płaskich sekcjach (Umiejętności, Języki) otwierająca modal układu
 │   │   │   ├── editor/AddSectionModal/   # modal „+ Dodaj sekcję” (nazwa + wybór układu aa/cc-sub/cc-edu/cc-exp)
 │   │   │   ├── editor/FlatSectionLayoutModal/  # wybór w linii ↔ lista z podglądem treści na żywo
+│   │   │   ├── editor/LongCvModal/        # asystent „CV za długie": kompaktowe odstępy → skracanie AI
 │   │   │   ├── editor/SaveGateModal/     # modal „załóż konto, aby zapisać” pokazywany gościom
 │   │   │   └── editor/DemoBanner/        # baner widoczny, gdy na płótnie jest przykładowe CV gościa
 │   │   ├── hooks/            # useA4Elements, useDocumentHistory, useElementSelectionDrag, …
@@ -1758,6 +1795,39 @@ Testy:
 
 - `frontend/src/utils/flatSectionLayout.test.js` — parsowanie/formatowanie dla obu stylów, tolerancyjne na spacje dzielenie po kropce, obsługa pustej treści, round-trip w linii↔lista
 - `frontend/src/utils/sectionStructure.test.js`, `describe("listFlatSectionAnchors", …)` — Umiejętności/Języki uwzględnione (fikstura rzeczywistego szablonu Cardinal), Podsumowanie wykluczone mimo bycia jedną textarea, rekordowe Doświadczenie wykluczone, kotwica wskazuje właściwy element treści
+
+### Asystent zbyt długiego CV (kompaktowe odstępy → skracanie AI)
+
+Gdy dokument w trybie szablonu osiągnie **3+ strony**, `LongCvModal` otwiera się automatycznie (raz na wczytany dokument) i prowadzi użytkownika do krótszego CV — najpierw najtańszy, deterministyczny sposób, AI dopiero gdy trzeba. Wykrywanie jest darmowe i po stronie kodu: `diagnoseDocumentLength` (`frontend/src/utils/documentLength.js`) mierzy **wypełnienie ostatniej strony** — `(dolna krawędź najniższego elementu treści − pageTop) / użyteczne pasmo`, ignorując chrome `fixedToPage`, które inaczej raportowałoby ~100% — i wybiera wiodący sposób:
+
+- **Słabo wypełniona ostatnia strona** (< 45%) → winne jest puste miejsce, więc modal proponuje najpierw darmowe **kompaktowe odstępy**. Kliknięcie **Zmieść na N stronach** stosuje `COMPACT_FLOW_SPACING` (`{stack:3, record:7, section:15, after_rule:6}` — ~30% ciaśniej niż domyślne, celowo bez literalnego dzielenia na pół, które zabiłoby rytm szablonu) tą samą ścieżką `applyFlowSpacing` + `reconcileDocumentPages` co panel Sekcje, a potem rozgałęzia się wg nowej liczby stron: sukces (**„Gotowe — CV mieści się teraz na N stronach"**) albo nadal za długie (**„Odstępy są już zwarte…"** → krok AI).
+- **Gęsto wypełnione strony** (≥ 45%) → sam spacing nie pomoże, więc modal proponuje od razu skracanie AI, a „Zmniejsz odstępy mimo to" jako opcję drugorzędną.
+
+Preset kompaktowy jest też wystawiony jako przycisk **„Kompaktowo"** obok **„Przywróć"** w panelu Sekcje (`SectionsPanel.jsx`), więc to samo jednokliknięciowe ściśnięcie jest dostępne ręcznie w dowolnym momencie.
+
+**Krok AI** (`shorten`) jest za Pro, bo cały asystent jest za Pro: użytkownicy Free dostają upsell planu (`showPlanModal`). Dla Pro modal otwiera asystenta z akcją `shorten` przez mały mostek kontekstu — `assistantAction: { action, nonce }` + `requestAssistantAction` w `PdfContext`; `AiAssistant` obserwuje nonce i odpala akcję raz. Po zaakceptowaniu kart Przed/Po i reflow płótna pojawia się toast sukcesu (**„CV skrócone z X do Y stron"**), gdy liczba stron spadnie poniżej wartości zapamiętanej na starcie skracania.
+
+Modal sam nie zmienia dokumentu — `PdfCanvas` trzyma stan i przekazuje `onApplyCompact` (zwraca nową liczbę stron, żeby modal mógł się rozgałęzić) oraz `onRequestAiShorten`, dzięki czemu `LongCvModal` jest czystym prezenterem nad wspólnym `DialogShell`.
+
+Implementacja:
+
+- `frontend/src/utils/documentLength.js` — `measureLastPageUtilization`, `diagnoseDocumentLength`, `TOO_LONG_MIN_PAGES` (3), `SPARSE_LAST_PAGE_RATIO` (0.45)
+- `frontend/src/utils/flowSpacing.js` — `COMPACT_FLOW_SPACING`, `isCompactFlowSpacing`
+- `frontend/src/components/editor/LongCvModal/LongCvModal.jsx` + `.module.css` — wieloetapowy dialog (intro-spacing / intro-content / result-success / result-still)
+- `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` — przycisk „Kompaktowo"
+- `frontend/src/pages/PdfCanvas.jsx` — efekt wykrywania (raz na dokument), `applyCompactSpacingPass`, `handleRequestAiShorten`, efekt toasta wyniku skracania oraz mostek `assistantAction`
+- `frontend/src/store/pdfgenerator-context.jsx` — domyślne `assistantAction` / `requestAssistantAction`
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — efekt obserwatora `assistantAction` + subakcja „Skróć CV"
+- Backendowa akcja `shorten`: `_shorten_content` (`ai_assistant_service.py`), `VALID_ACTIONS` (`ai_assistant.py`)
+
+Testy:
+
+- `frontend/src/utils/documentLength.test.js` — wypełnienie ignoruje chrome na całą stronę, diagnoza słabo vs gęsto wypełniona, `targetPages` = pageCount − 1 (nigdy poniżej 1)
+- `backend/tests/test_ai_assistant_schema.py`, `test_shorten_dispatches_and_returns_content_corrections` — prompt `shorten` prowadzi ze skracaniem, zakazuje wymyślania faktów i zwraca poprawki tylko treści
+
+Znane ograniczenia:
+
+- Wykrywanie używa liczby stron z deterministycznego packa do rozgałęzienia; asynchroniczny reflow auto-height w przeglądarce może różnić się o włos, ale decyzja jest podejmowana z tego samego pomiaru, którego używa generator. Toast sukcesu jest ograniczony do przepływu skracania zainicjowanego z modala (baseline zapamiętany przy żądaniu), więc skracanie uruchomione bezpośrednio z subakcji asystenta nie pokazuje toasta.
 
 ### Landing skupiony na rezultacie i skierowane starty
 
@@ -2354,7 +2424,9 @@ Implementacja:
 
 ### Asystent AI
 
-Asystent używa **celów użytkownika**, a nie osobnego kafelka na każdy endpoint: **Sprawdź CV**, **Popraw treść**, **Dopasuj do oferty**, **Sprawdź wygląd** (Pro) i **Przetłumacz CV**. Backend nadal ma wyspecjalizowane handlery (`rating`, `grammar`, `language`, `improve`, `design_rating`, `layout`, `ats_score`, `position_rating`, `translate`, `chat`). Darmowy nie ma asystenta AI (poza jednym importem CV).
+Asystent używa **celów użytkownika**, a nie osobnego kafelka na każdy endpoint: **Sprawdź CV**, **Popraw treść**, **Dopasuj do oferty**, **Sprawdź wygląd** (Pro) i **Przetłumacz CV**. Backend nadal ma wyspecjalizowane handlery (`rating`, `grammar`, `language`, `improve`, `shorten`, `design_rating`, `layout`, `ats_score`, `position_rating`, `translate`, `chat`). Darmowy nie ma asystenta AI (poza jednym importem CV).
+
+**Popraw treść** otwiera cztery subakcje: `improve` (mocniejsze opisy), `language` (styl), `grammar` (ortografia/interpunkcja) oraz **Skróć CV** (`shorten`). `shorten` to krok AI w przepływie „CV za długie" (zob. [Asystent zbyt długiego CV](#asystent-zbyt-długiego-cv-kompaktowe-odstępy--skracanie-ai)): w przeciwieństwie do `improve` (który wzmacnia i może dodać zastępcze metryki), wyłącznie skraca, łączy lub usuwa najmniej istotne fragmenty bez wymyślania nowych faktów, zwracając ten sam kształt `corrections`, więc renderują się znane karty Przed/Po. Nigdy nie rusza geometrii, nagłówków, imion, danych kontaktowych ani dat (tylko zakres `_CONTENT_FIELDS`). Implementacja: `_shorten_content` w `backend/app/services/ai_assistant_service.py`, `"shorten"` w `VALID_ACTIONS` (`ai_assistant.py`) i dispatcherze serwisu; `CONTENT_SUBACTIONS` + `ACTION_META.shorten` w `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`.
 
 **Sprawdź CV** uruchamia `rating` i pokazuje dashboard: ocena ogólna w procentach liczona z rubryki `categories`, gdy są obecne (`overallPercentFromRubric`; w przeciwnym razie `rating × 10`), strukturalne `categories` / `strengths` / `priorities` oraz CTA (leniwe **Sprawdź ATS** → `ats_score`, **Popraw treść**, **Sprawdź wygląd** przy słabych kategoriach). Wyniki cząstkowe nie trafiają już do tipa „Rozkład oceny…”. Prompty `rating` / `position_rating` / `ats_score` zakazują liczby oceny w `message`; `_safe_result` dodatkowo przepisuje pozostałe frazy `X/10` w `message`, tipach, mocnych stronach i priorytetach na `X0%`, żeby tekst zgadzał się z dashboardem.
 

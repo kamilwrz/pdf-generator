@@ -15,8 +15,10 @@ import {
   reorderSection,
 } from "../../../utils/sectionStructure";
 import {
+  COMPACT_FLOW_SPACING,
   DEFAULT_FLOW_SPACING,
   flowSpacingEquals,
+  isCompactFlowSpacing,
   normalizeFlowSpacing,
 } from "../../../utils/flowSpacing";
 import { reconcileDocumentPages } from "../../../utils/structureOperation";
@@ -123,6 +125,14 @@ export default function SectionsPanel({ onClose }) {
     applySpacing(baselineSpacing);
   }
 
+  function handleCompactSpacing() {
+    // Same deterministic pack as the "too long" modal's first step: apply the
+    // compact preset (~30% tighter) to reclaim space without touching content.
+    applySpacing(COMPACT_FLOW_SPACING);
+  }
+
+  const alreadyCompact = isCompactFlowSpacing(spacing);
+
   return (
     <div className={classes.panel} role="dialog" aria-label="Sekcje CV">
       <div className={classes.header}>
@@ -200,14 +210,25 @@ export default function SectionsPanel({ onClose }) {
               Zmiana od razu widać na CV. Możesz wrócić do wartości z otwarcia dokumentu.
             </p>
           </div>
-          <button
-            type="button"
-            className={classes.reset}
-            onClick={handleResetSpacing}
-            title="Przywróć odstępy z momentu otwarcia lub wypełnienia CV"
-          >
-            Przywróć
-          </button>
+          <div className={classes.spacingActions}>
+            <button
+              type="button"
+              className={classes.reset}
+              onClick={handleCompactSpacing}
+              disabled={alreadyCompact}
+              title="Zmniejsz wszystkie odstępy, aby zmieścić CV na mniejszej liczbie stron"
+            >
+              Kompaktowo
+            </button>
+            <button
+              type="button"
+              className={classes.reset}
+              onClick={handleResetSpacing}
+              title="Przywróć odstępy z momentu otwarcia lub wypełnienia CV"
+            >
+              Przywróć
+            </button>
+          </div>
         </div>
         <div className={classes.spacingGrid}>
           {SPACING_FIELDS.map((field) => (

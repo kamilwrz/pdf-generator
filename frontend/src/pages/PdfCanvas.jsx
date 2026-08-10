@@ -45,6 +45,7 @@ import ClaimGuestDocumentModal from '../components/editor/ClaimGuestDocumentModa
 import SectionsPanel from '../components/editor/SectionsPanel/SectionsPanel';
 import AddSectionModal from '../components/editor/AddSectionModal/AddSectionModal';
 import FlatSectionLayoutModal from '../components/editor/FlatSectionLayoutModal/FlatSectionLayoutModal';
+import LongCvModal from '../components/editor/LongCvModal/LongCvModal';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 import { logEvent } from '../services/eventLog';
 import { saveGuestDocument, loadGuestDocument, clearGuestDocument } from '../utils/guestDocument';
@@ -52,7 +53,7 @@ import { queueGuestEvent, loadGuestEvents, clearGuestEvents } from '../utils/gue
 import { hasGuestWizardDraft } from '../utils/guestWizardDraft';
 import { adoptGuestWizardDraftForAccount } from '../utils/claimGuestWizardDraft';
 import { resolveActiveCvData } from '../utils/resolveActiveCvData';
-import { previewStructureOperation } from '../utils/structureOperation';
+import { previewStructureOperation, reconcileDocumentPages } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
 import { planErrorMessage } from '../utils/entitlements';
 import { useCanvasPageWheel } from '../hooks/useCanvasPageWheel';
@@ -62,9 +63,11 @@ import {
   inferEditorMode,
   normalizeEditorMode,
 } from '../utils/editorMode';
-import { DEFAULT_FLOW_SPACING } from '../utils/flowSpacing';
+import { COMPACT_FLOW_SPACING, DEFAULT_FLOW_SPACING } from '../utils/flowSpacing';
 import { listSectionIconOptions } from '../utils/sectionIcons';
 import { convertFlatListContent } from '../utils/flatSectionLayout';
+import { diagnoseDocumentLength, TOO_LONG_MIN_PAGES } from '../utils/documentLength';
+import { applyFlowSpacing } from '../utils/sectionStructure';
 import { demoCvTemplate } from '../templates/demoCv';
 import { nanoid } from 'nanoid';
 
@@ -184,6 +187,25 @@ function PdfCanvas() {
   const closeFlatSectionLayoutModal = useCallback(() => {
     setFlatSectionLayoutModal({ open: false, elementId: null });
   }, []);
+  // "CV too long" assistant: auto-detects 3+ page documents once per document
+  // and offers a free compact-spacing pass, then (if needed) AI shortening.
+  const [longCvModal, setLongCvModal] = useState({ open: false, diagnosis: null });
+  const closeLongCvModal = useCallback(() => {
+    setLongCvModal({ open: false, diagnosis: null });
+  }, []);
+  // Guard so the modal auto-opens at most once per loaded document; reset by
+  // the document-identity effect below when a new CV is loaded.
+  const longCvShownRef = useRef(false);
+  // Bridge to open the AI assistant with a preset action (e.g. "shorten").
+  const [assistantAction, setAssistantAction] = useState(null);
+  const assistantNonceRef = useRef(0);
+  const requestAssistantAction = useCallback((action) => {
+    assistantNonceRef.current += 1;
+    setAssistantAction({ action, nonce: assistantNonceRef.current });
+  }, []);
+  // Page count captured when an AI-shorten flow starts, so a later drop shows
+  // the "skrócono z X do Y stron" success toast.
+  const shortenBaselinePagesRef = useRef(null);
   // Compatibility setter: ModalPdfs.jsx and Sidebar.jsx both call this as
   // `setIsModalPdfs(bool => !bool)` / `setIsModalPdfs(false)`, matching
   // React's setState contract, so neither needed to change.
@@ -829,6 +851,70 @@ function PdfCanvas() {
     if (next) setDialog(null);
   }, [panel])
 
+  // ── "CV too long" flow ────────────────────────────────────────────────────
+  // Deterministic first: apply the compact spacing preset and return the new
+  // page count so the modal can branch (success vs. still-too-long → AI).
+  const applyCompactSpacingPass = useCallback(() => {
+    const pageHeight = pageSize?.height ?? 842;
+    const packed = applyFlowSpacing(A4_Elements, COMPACT_FLOW_SPACING, pageHeight);
+    const reconciled = reconcileDocumentPages(packed, nanoid, { collapseEmpty: true });
+    setFlowSpacing(COMPACT_FLOW_SPACING);
+    setA4_Elements(reconciled.elements);
+    return reconciled.pageCount;
+  }, [A4_Elements, pageSize, setA4_Elements, setFlowSpacing]);
+
+  // AI shortening step: Pro only (assistant is Pro-gated). Free users get the
+  // plan upsell; Pro users open the assistant with the `shorten` action and we
+  // record the current page count so a later drop can toast the result.
+  const canUseAiAssistant = Boolean(entitlements?.ai_assistant);
+  const handleRequestAiShorten = useCallback(() => {
+    closeLongCvModal();
+    if (!canUseAiAssistant) {
+      // Free plan: the assistant is Pro-gated, so route to the upsell instead.
+      handleShowPlanModal();
+      return;
+    }
+    shortenBaselinePagesRef.current = pageCount;
+    requestAssistantAction('shorten');
+  }, [canUseAiAssistant, handleShowPlanModal, pageCount, requestAssistantAction, closeLongCvModal]);
+
+  // Auto-detect a too-long CV once per loaded document. Only fires in template
+  // mode (spacing/AI remedies target generated CV structure), when the page
+  // count crosses the threshold and no blocking dialog is already open.
+  useEffect(() => {
+    if (editorMode !== EDITOR_MODE_TEMPLATE) return;
+    if (longCvShownRef.current) return;
+    if (pageCount < TOO_LONG_MIN_PAGES) return;
+    if (dialog || panel) return;
+    if (longCvModal.open) return;
+    const diagnosis = diagnoseDocumentLength({ pageCount, elements: A4_Elements });
+    if (!diagnosis.tooLong) return;
+    longCvShownRef.current = true;
+    setLongCvModal({ open: true, diagnosis });
+  }, [A4_Elements, dialog, editorMode, longCvModal.open, pageCount, panel]);
+
+  // Reset the once-per-document guard whenever a different document is loaded
+  // (new pdfId, or a fresh/cleared canvas signalled by pdfId going null).
+  useEffect(() => {
+    longCvShownRef.current = false;
+    shortenBaselinePagesRef.current = null;
+  }, [pdfId]);
+
+  // Success toast after AI shortening reduces the page count below the value
+  // captured when the shorten flow began (see handleRequestAiShorten).
+  useEffect(() => {
+    const baseline = shortenBaselinePagesRef.current;
+    if (baseline == null) return;
+    if (pageCount < baseline) {
+      pushToast({
+        title: 'Gotowe',
+        msg: `CV skrócone z ${baseline} do ${pageCount} stron.`,
+        variant: 'success',
+      });
+      shortenBaselinePagesRef.current = null;
+    }
+  }, [pageCount, pushToast]);
+
   const handleShowSections = useCallback(() => {
     const next = panel !== 'sections';
     setPanel(next ? 'sections' : null);
@@ -1350,6 +1436,10 @@ function PdfCanvas() {
     setValueImageUpload,
     isModalPdfs,
     setIsModalPdfs,
+    // Bridge for the "CV too long" modal to open the AI assistant with a
+    // preset action (shorten). AiAssistant watches assistantAction.nonce.
+    assistantAction,
+    requestAssistantAction,
   }), [
     isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen,
     isAiPanel, handleShowAiPanel, isBioCvModal, handleShowBioCvModal, handleCancelBioCvModal,
@@ -1358,6 +1448,7 @@ function PdfCanvas() {
     isGallery, handleShowGallery, isSectionsPanel, handleShowSections,
     isDropzone, handleShowDropzone,
     valueImageUpload, setValueImageUpload, isModalPdfs, setIsModalPdfs,
+    assistantAction, requestAssistantAction,
   ]);
 
   // Guest visits never carry a token, and every transition into an
@@ -1440,6 +1531,14 @@ function PdfCanvas() {
                 onCancel={closeFlatSectionLayoutModal}
                 element={flatSectionLayoutElement}
                 onApply={handleApplyFlatSectionLayout}
+              />
+              <LongCvModal
+                open={longCvModal.open}
+                diagnosis={longCvModal.diagnosis}
+                canUseAi={canUseAiAssistant}
+                onApplyCompact={applyCompactSpacingPass}
+                onRequestAiShorten={handleRequestAiShorten}
+                onClose={closeLongCvModal}
               />
               <DropzoneContainer />
               <Sidebar>

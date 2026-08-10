@@ -1,0 +1,49 @@
+.body {
+  padding: 22px 28px 4px;
+}
+
+.lead {
+  margin: 0;
+  font: 500 13.5px/1.6 var(--font-body);
+  color: var(--chrome-ink);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.ghost,
+.primary {
+  height: 38px;
+  border-radius: 2px;
+  font: 600 13px var(--font-body);
+  cursor: pointer;
+}
+
+.ghost {
+  padding: 0 16px;
+  border: 1px solid var(--chrome-border);
+  background: transparent;
+  color: var(--chrome-ink);
+}
+
+.ghost:hover {
+  background: var(--chrome-hover);
+  color: var(--chrome-accent);
+}
+
+.primary {
+  padding: 0 20px;
+  border: none;
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  font-weight: 700;
+}
+
+.primary:hover {
+  filter: brightness(1.07);
+}

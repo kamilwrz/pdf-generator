@@ -231,6 +231,12 @@
   max-width: 170px;
 }
 
+.spacingActions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .reset {
   border: 1px solid var(--chrome-border);
   border-radius: 6px;
@@ -243,9 +249,14 @@
   margin-top: 1px;
 }
 
-.reset:hover {
+.reset:hover:not(:disabled) {
   color: var(--chrome-ink);
   border-color: var(--chrome-accent);
+}
+
+.reset:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .spacingGrid {

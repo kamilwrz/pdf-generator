@@ -221,6 +221,45 @@ class TranslateActionTests(unittest.TestCase):
         )
         self.assertIn("Przetłumaczono", result["message"])
 
+    def test_shorten_dispatches_and_returns_content_corrections(self):
+        elements = [
+            {
+                "element_id": "sum",
+                "category": "textarea",
+                "content": (
+                    "Bardzo długie podsumowanie zawodowe z wieloma powtórzeniami "
+                    "i ogólnikami, które można znacząco skrócić bez utraty sensu."
+                ),
+            }
+        ]
+
+        def fake_gpt(system, user, **kwargs):
+            # The prompt must lead with shortening intent, not strengthening,
+            # and forbid inventing new facts.
+            self.assertIn("skrócić", user)
+            self.assertIn("NIE wymyślasz", system)
+            self.assertIn("NIE WYMYŚLAJ", user)
+            return {
+                "message": "Skrócono podsumowanie z 5 do 3 wierszy.",
+                "rating": None,
+                "tips": ["Sprawdź, czy skrócone punkty oddają najważniejsze osiągnięcia."],
+                "corrections": [
+                    {"element_id": "sum", "content": "Zwięzłe, mocne podsumowanie."},
+                ],
+            }, {"tokens": 1}
+
+        with patch.object(ai_assistant_service, "_gpt", side_effect=fake_gpt):
+            result = ai_assistant_service.analyze_action(
+                action="shorten",
+                elements=elements,
+            )
+
+        self.assertEqual(
+            result["corrections"],
+            [{"element_id": "sum", "content": "Zwięzłe, mocne podsumowanie."}],
+        )
+        self.assertIn("Skrócono", result["message"])
+
 
 class _FakeQuery:
     def filter(self, *args, **kwargs):

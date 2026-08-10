@@ -1155,6 +1155,67 @@ Zwróć JSON:
     return _gpt_result(system, user, action="improve", allowed_fields=_CONTENT_FIELDS)
 
 
+def _shorten_content(elements: list[dict]) -> dict:
+    """Suggest content-only cuts so an over-long CV fits on fewer pages.
+
+    Unlike ``_improve_content`` (which strengthens wording and may add
+    placeholder metrics), this action only shortens: it condenses, merges, or
+    removes the least important fragments without inventing new facts. It
+    returns the same ``corrections`` shape so the frontend renders the familiar
+    Przed/Po review cards, and it never touches geometry, headings, names,
+    contact data, or dates (those stay in ``_CONTENT_FIELDS`` scope only).
+    """
+    structured = _extract_structured(elements)
+    full_text = _extract_text(elements)
+
+    system = (
+        "Jesteś redaktorem CV specjalizującym się w zwięzłości. Skracasz zbyt długie CV, "
+        "aby zmieściło się na mniejszej liczbie stron, nie tracąc ważnych informacji zawodowych. "
+        "NIE wymyślasz nowych danych, liczb ani osiągnięć — wyłącznie skracasz, łączysz lub usuwasz to, co najmniej istotne. "
+        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie wartości tekstowe zwracaj po polsku."
+    )
+    user = f"""CV jest zbyt długie. Znajdź fragmenty, które można skrócić, połączyć lub usunąć bez utraty ważnych informacji zawodowych.
+Priorytetem jest zejście o jedną stronę.
+
+PEŁNY TEKST CV (kontekst):
+{full_text}
+
+ELEMENTY (edytuj tylko treść doświadczenia, umiejętności, podsumowania i sekcji dodatkowych):
+{json.dumps(structured[:40], ensure_ascii=False)}
+
+════════════════════════════════════════
+ZASADY SKRACANIA (stosuj po kolei):
+
+① NIE WYMYŚLAJ — nie dodawaj faktów, liczb, technologii ani osiągnięć, których nie ma w oryginale. Zachowaj prawdziwość CV.
+
+② SKRACAJ PODSUMOWANIE — jeśli ma więcej niż 3 wiersze, zredukuj do 2–3 najmocniejszych zdań.
+
+③ ŁĄCZ PODOBNE PUNKTY — w jednym doświadczeniu połącz powtarzające się lub pokrewne punkty w jeden zwięzły.
+   Usuń wypełniacze i oczywistości. Zachowaj punkty z konkretnymi osiągnięciami/metrykami.
+
+④ OGRANICZAJ DŁUGIE LISTY — bardzo długie listy umiejętności lub zainteresowań skróć do najistotniejszych pozycji.
+
+⑤ POMIJAJ nagłówki, imiona i nazwiska, dane kontaktowe oraz daty — ich nie skracaj.
+
+⑥ Każda poprawka to KOMPLETNY nowy tekst danego elementu (nie fragment). Jeśli element ma zostać usunięty w całości, zwróć dla niego pusty string "".
+════════════════════════════════════════
+
+Zwróć JSON:
+{{
+  "message": "<2–3 zdania: ile miejsca można odzyskać i co skrócono>",
+  "rating": null,
+  "tips": [
+    "<ogólny wzorzec, np. „Podsumowanie miało 5 wierszy — skrócono do 3”>",
+    "<wskazówka, np. „Sprawdź, czy skrócone punkty nadal oddają Twoje najważniejsze osiągnięcia”>"
+  ],
+  "corrections": [
+    {{"element_id": "<id>", "content": "<pełny skrócony tekst elementu po polsku, lub \\"\\" aby usunąć>"}}
+  ],
+  "web_sources": []
+}}"""
+    return _gpt_result(system, user, action="shorten", allowed_fields=_CONTENT_FIELDS)
+
+
 _TRANSLATE_LANGUAGE_NAMES = {
     "pl": "polski",
     "en": "angielski",
@@ -1782,6 +1843,7 @@ def analyze_action(
         "grammar":         lambda: _fix_grammar(elements),
         "language":        lambda: _check_style(text, elements),
         "improve":         lambda: _improve_content(elements),
+        "shorten":         lambda: _shorten_content(elements),
         "ats_score":       lambda: _ats_score(
             elements,
             page_size,

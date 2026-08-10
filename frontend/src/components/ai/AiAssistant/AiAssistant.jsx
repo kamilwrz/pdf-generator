@@ -11,7 +11,7 @@ import {
     FaArrowsAltH, FaPalette, FaBriefcase, FaFont, FaMagic,
     FaLanguage, FaSearch,
 } from "react-icons/fa";
-import { RiEditLine } from "react-icons/ri";
+import { RiEditLine, RiScissorsLine } from "react-icons/ri";
 import { IoClose, IoSend } from "react-icons/io5";
 import { MdCheckCircle, MdCancel } from "react-icons/md";
 import classes from "./AiAssistant.module.css";
@@ -39,6 +39,7 @@ const ACTION_META = {
     grammar:         { label: "Sprawdź błędy",        color: CHROME_ACCENT },
     language:        { label: "Popraw język",         color: CHROME_ACCENT },
     improve:         { label: "Wzmocnij treść",       color: CHROME_ACCENT },
+    shorten:         { label: "Skróć CV",             color: CHROME_ACCENT },
     ats_score:       { label: "Czytelność dla ATS",   color: CHROME_ACCENT },
     layout:          { label: "Układ strony",         color: CHROME_ACCENT },
     translate:       { label: "Przetłumacz CV",       color: CHROME_ACCENT },
@@ -110,6 +111,12 @@ const CONTENT_SUBACTIONS = [
         label: "Sprawdź błędy",
         description: "Ortografia, gramatyka i interpunkcja",
         icon: RiEditLine,
+    },
+    {
+        id: "shorten",
+        label: "Skróć CV",
+        description: "Skróć i połącz fragmenty, aby zmieścić na mniejszej liczbie stron",
+        icon: RiScissorsLine,
     },
 ];
 
@@ -1036,6 +1043,7 @@ export default function AiAssistant() {
         entitlements,
         refreshEntitlements,
         showPlanModal,
+        assistantAction,
     } = use(PdfContext);
 
     const [isOpen, setIsOpen] = useState(false);
@@ -1584,6 +1592,22 @@ export default function AiAssistant() {
     const runAtsScore = useCallback(() => {
         send("ats_score", "Sprawdź ATS");
     }, [send]);
+
+    // Bridge: another surface (e.g. the "CV too long" modal) can request an
+    // assistant action by bumping `assistantAction.nonce`. Open the panel and
+    // fire the action once per nonce. The nonce (not just the action id) is the
+    // dependency so requesting the same action twice still re-triggers.
+    const lastAssistantNonceRef = useRef(0);
+    useEffect(() => {
+        const nonce = assistantAction?.nonce;
+        const action = assistantAction?.action;
+        if (!nonce || !action || nonce === lastAssistantNonceRef.current) return;
+        lastAssistantNonceRef.current = nonce;
+        setIsOpen(true);
+        setActivePanel(null);
+        const meta = ACTION_META[action];
+        send(action, meta?.label || action);
+    }, [assistantAction, send]);
 
     const handleLayoutSuggestion = useCallback((suggestion) => {
         if (!suggestion?.prompt || requestInFlightRef.current || isLoading || !layoutMode) return;

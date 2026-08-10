@@ -24,6 +24,10 @@ export const PdfContext = createContext({
     addSection: () => {},
     openAddSectionModal: () => {},
     openFlatSectionLayoutModal: () => {},
+    // Bridge for surfaces (e.g. the "CV too long" modal) that need to open the
+    // AI assistant and fire an action. `{ action, nonce }`; bump nonce to re-fire.
+    assistantAction: null,
+    requestAssistantAction: () => {},
     addSectionRecord: () => {},
     addRecordBlock: () => {},
     removeSection: () => {},

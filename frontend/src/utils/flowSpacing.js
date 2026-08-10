@@ -14,6 +14,20 @@ export const DEFAULT_FLOW_SPACING = Object.freeze({
   after_rule: 8,
 });
 
+/**
+ * Compact rhythm preset: ~30% tighter than the generator defaults, applied
+ * deterministically (no API cost) as the first attempt to fit a too-long CV
+ * on fewer pages. Deliberately NOT a literal halving of every value — that
+ * kills the visual rhythm of templates like Monument / Portico. Each knob is
+ * reduced proportionally but kept above a legible minimum.
+ */
+export const COMPACT_FLOW_SPACING = Object.freeze({
+  stack: 3,
+  record: 7,
+  section: 15,
+  after_rule: 6,
+});
+
 const SPACING_MIN = 0;
 const SPACING_MAX = 80;
 
@@ -64,4 +78,12 @@ export function flowSpacingEquals(left, right) {
  */
 export function isDefaultFlowSpacing(spacing) {
   return flowSpacingEquals(spacing, DEFAULT_FLOW_SPACING);
+}
+
+/**
+ * True when the spacing already matches the compact preset (used to disable /
+ * mark the "Kompaktowo" control when it would be a no-op).
+ */
+export function isCompactFlowSpacing(spacing) {
+  return flowSpacingEquals(spacing, COMPACT_FLOW_SPACING);
 }
