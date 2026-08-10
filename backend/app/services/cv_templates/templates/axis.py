@@ -340,12 +340,27 @@ def _gen_axis(cv: dict) -> list[dict]:
         section(lbl['skills'])
         for index, group in enumerate(groups):
             category = str(group.get('category') or '').strip()
-            if category:
-                b.block(category, L, W, 9.5, 12.5, C['navy'], SANS, bold=True, min_h=12.5)
-                b.gap(get_spacing().stack)
             chips = [str(skill).strip() for skill in group.get('items') or [] if str(skill).strip()]
+            # Share flowGroup so canvas rhythm keeps category→chips as stack (4),
+            # not record (10) — same contract as `_place_skills_section`.
+            group_h = 0.0
+            if category:
+                group_h += b.measure_block(
+                    category, W, 9.5, 11.5, SANS, bold=True, min_h=11.5,
+                )
+                if chips:
+                    group_h += get_spacing().stack
             if chips:
-                _place_skill_chips(chips)
+                # Chip row height is authored by `_place_skill_chips`; reserve a
+                # single line so keep_together still tags the category+chips pair.
+                group_h += 14.0
+            with b.keep_together(group_h or 14.0):
+                if category:
+                    b.block(category, L, W, 9.5, 11.5, C['navy'], SANS, bold=True, min_h=11.5)
+                    if chips:
+                        b.gap(get_spacing().stack)
+                if chips:
+                    _place_skill_chips(chips)
             if index < len(groups) - 1:
                 b.gap(get_spacing().record)
         close_section()

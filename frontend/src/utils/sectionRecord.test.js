@@ -140,6 +140,95 @@ describe("appendRecordToSection", () => {
     assert.equal(result.firstBodyId, groups[1][0].element_id);
   });
 
+  it("appends a skills subcategory as heading + body, not an education record", () => {
+    const pageHeight = 842;
+    const groupId = "skills-lang";
+    const heading = {
+      element_id: "skills-h",
+      category: "text",
+      content: "UMIEJĘTNOŚCI",
+      flowRole: "section-chrome",
+      left: 48,
+      top: 100,
+      width: 200,
+      fontSize: 9,
+      page: 1,
+    };
+    const rule = {
+      element_id: "skills-r",
+      category: "line",
+      flowRole: "section-chrome",
+      left: 48,
+      top: 112,
+      width: 480,
+      height: 2,
+      page: 1,
+    };
+    const cat = {
+      element_id: "skills-cat",
+      category: "textarea",
+      content: "Languages & Frameworks",
+      flowRole: "content",
+      flowGroup: groupId,
+      autoHeight: true,
+      bold: true,
+      left: 48,
+      top: 122,
+      width: 480,
+      height: 12,
+      fontSize: 9.5,
+      lineHeight: 11.5,
+      page: 1,
+    };
+    const chips = {
+      element_id: "skills-chips",
+      category: "textarea",
+      content: "C#  ·  .NET",
+      flowRole: "content",
+      flowGroup: groupId,
+      autoHeight: true,
+      bold: false,
+      bulletList: false,
+      left: 48,
+      top: 138,
+      width: 480,
+      height: 14,
+      fontSize: 9.4,
+      lineHeight: 13.5,
+      page: 1,
+    };
+    const doc = [heading, rule, cat, chips];
+
+    assert.equal(
+      inferRecordLayout([cat, chips], { sectionTitle: "UMIEJĘTNOŚCI" }),
+      SECTION_LAYOUTS.RECORD_SUBCATEGORY,
+    );
+    assert.deepEqual(
+      placeholderContentsForRecord([cat, chips], { sectionTitle: "UMIEJĘTNOŚCI" }),
+      [
+        "Nazwa kategorii",
+        "Treść…",
+      ],
+    );
+    // Without a skills heading, the same 2-line shape is short education.
+    assert.equal(inferRecordLayout([cat, chips]), null);
+
+    let seq = 0;
+    const result = appendRecordToSection(doc, heading.element_id, pageHeight, {
+      idFactory: () => `new-${++seq}`,
+    });
+    assert.ok(result);
+    const after = listSectionContentElements(result.elements, heading.element_id, pageHeight);
+    const groups = partitionSectionRecords(after);
+    assert.equal(groups.length, 2);
+    assert.equal(groups[1].length, 2, "must stay heading+body, not expand to education");
+    assert.equal(groups[1][0].content, "Nazwa kategorii");
+    assert.equal(groups[1][0].bold, true);
+    assert.equal(groups[1][1].content, "Treść…");
+    assert.equal(groups[1][1].bold, false);
+    assert.equal(groups[1][1].bulletList, false);
+  });
+
   it("appends an experience record after an existing one in a packed document", () => {
     const pageHeight = 842;
     // Seed a minimal prior section so append is not the only strip.

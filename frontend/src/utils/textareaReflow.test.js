@@ -1542,3 +1542,74 @@ test("moves a heading when the full following body cannot fit beneath it", () =>
     assert.equal(heading.page, 2);
   }
 });
+
+test("un-crushes same-top skill category and chips after a page-break pack", () => {
+  // A continuation page can park a named skill group with category + chips on
+  // the same Y. Reflow must restack them with SPACE_STACK instead of treating
+  // equal tops as "no mates".
+  const result = reflowTextareaHeight([
+    {
+      element_id: "prev-chips",
+      category: "textarea",
+      autoHeight: true,
+      flowRole: "content",
+      flowGroup: "skills-lang",
+      left: 48,
+      top: 720,
+      width: 480,
+      height: 28,
+      page: 1,
+    },
+    {
+      element_id: "db-category",
+      category: "textarea",
+      autoHeight: true,
+      flowRole: "content",
+      flowGroup: "skills-db",
+      left: 48,
+      top: 66,
+      width: 480,
+      height: 12,
+      page: 2,
+      content: "Databases & Storage",
+      bold: true,
+    },
+    {
+      element_id: "db-chips",
+      category: "textarea",
+      autoHeight: true,
+      flowRole: "content",
+      flowGroup: "skills-db",
+      left: 48,
+      top: 66,
+      width: 480,
+      height: 28,
+      page: 2,
+      content: "PostgreSQL · Redis · S3-compatible storage (MinIO)",
+    },
+    {
+      element_id: "devops-category",
+      category: "textarea",
+      autoHeight: true,
+      flowRole: "content",
+      flowGroup: "skills-devops",
+      left: 48,
+      top: 110,
+      width: 480,
+      height: 12,
+      page: 2,
+    },
+  ], "db-chips", 28, 842, { pageTop: 66, bottomMargin: 72 });
+
+  const category = result.elements.find((element) => element.element_id === "db-category");
+  const chips = result.elements.find((element) => element.element_id === "db-chips");
+  const devops = result.elements.find((element) => element.element_id === "devops-category");
+
+  assert.equal(category.page, 2);
+  assert.equal(chips.page, 2);
+  assert.ok(
+    chips.top >= category.top + category.height + 3.5,
+    `expected stack gap under category, got category=${category.top} chips=${chips.top}`,
+  );
+  assert.ok(devops.top >= chips.top + chips.height - 0.5);
+});

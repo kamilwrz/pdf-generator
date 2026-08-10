@@ -65,6 +65,8 @@ export const SECTION_LAYOUTS = Object.freeze({
   TEXTAREA: "aa",
   RECORD_EDUCATION: "cc-edu",
   RECORD_EXPERIENCE: "cc-exp",
+  /** Bold heading + body (skills subcategories under UMIEJĘTNOŚCI). */
+  RECORD_SUBCATEGORY: "cc-sub",
 });
 
 /** Field-naming placeholder copy (Polish UI). */
@@ -81,6 +83,10 @@ const PLACEHOLDER = Object.freeze({
     title: "Stanowisko",
     meta: "Firma · okres",
     description: "Opis…",
+  }),
+  subcategory: Object.freeze({
+    title: "Nazwa kategorii",
+    body: "Treść…",
   }),
 });
 

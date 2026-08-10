@@ -239,9 +239,12 @@ class Builder:
         reserved = max(float(height), 0.0)
         self.need(reserved)
         # After ``need``, ``self.y`` is the top of the page that will host the
-        # record. If it still cannot fit, allow normal per-element breaks.
-        page_capacity = CONTENT_BOTTOM - self.y
-        allow_split = reserved > page_capacity + 0.01
+        # record. Only allow splitting when the record is taller than a full
+        # content page — comparing against the remaining space *before* ``need``
+        # would wrongly disable keep-together near the footer and park a skill
+        # category on page N while its chips jump to page N+1 at the same Y.
+        full_page_capacity = CONTENT_BOTTOM - self.continuation_top()
+        allow_split = reserved > full_page_capacity + 0.01
         start = len(self.els)
         group_id = f"record-{secrets.token_hex(6)}"
         previous = self._keep_together

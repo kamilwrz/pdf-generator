@@ -2,8 +2,10 @@
  * Append / insert / remove / reorder records inside an existing template-mode
  * section.
  *
- * Heading hover "+" appends a structured education/experience record that
- * clones the last multi-line group's field shape with Polish placeholders.
+ * Heading / record hover "+" appends a structured record that clones the last
+ * multi-line group's field shape with Polish placeholders:
+ * education (4 lines), experience (3), or skills subcategory (bold heading +
+ * body — 2 lines).
  *
  * Hovering the upper part of an existing record (title / meta, not the bullet
  * description) shows "+" / trash on the left and up/down arrows on the right.
@@ -34,8 +36,27 @@ const PLACEHOLDER = Object.freeze({
     "Firma · okres",
     "Opis…",
   ]),
+  subcategory: Object.freeze([
+    "Nazwa kategorii",
+    "Treść…",
+  ]),
   generic: "Tekst…",
 });
+
+/**
+ * Skills sections (UMIEJĘTNOŚCI / Skills / …) use bold heading + body records.
+ * Short education stacks are also two lines (degree + school) — never treat those
+ * as subcategories unless the section title matches this pattern.
+ */
+const SKILLS_SECTION_TITLE_RE = /umiejęt|umiejet|skills|kompetenc/i;
+
+/**
+ * @param {string|null|undefined} title
+ * @returns {boolean}
+ */
+export function isSkillsSectionTitle(title) {
+  return SKILLS_SECTION_TITLE_RE.test(String(title || ""));
+}
 
 function absoluteTop(element, pageHeight = 842) {
   const page = Math.max(1, Math.trunc(Number(element?.page) || 1));
@@ -163,11 +184,14 @@ export function sectionSupportsRecordAdd(elements, headingId, pageHeight = 842) 
  * Education is degree + school + meta + optional bullets (3 lines without a
  * bulletList still count as education — wizard often omits the description).
  * Experience is title + company·period + bullets (the last line is a list).
+ * Subcategory is bold heading + body under a skills section title — the same
+ * 2-line shape as a short wizard education entry, so section title decides.
  *
  * @param {object[]} members
- * @returns {"cc-edu"|"cc-exp"|null}
+ * @param {{ sectionTitle?: string|null }} [options]
+ * @returns {"cc-edu"|"cc-exp"|"cc-sub"|null}
  */
-export function inferRecordLayout(members) {
+export function inferRecordLayout(members, options = {}) {
   const list = members || [];
   const count = list.length;
   if (count >= 4) return SECTION_LAYOUTS.RECORD_EDUCATION;
@@ -178,6 +202,11 @@ export function inferRecordLayout(members) {
     // degree / school / city·period without description
     return SECTION_LAYOUTS.RECORD_EDUCATION;
   }
+  // Bare 2-line bold+body is ambiguous (skills subcategory vs short education).
+  // Only classify as subcategory when the section title is skills-like.
+  if (count === 2 && list[0]?.bold && isSkillsSectionTitle(options.sectionTitle)) {
+    return SECTION_LAYOUTS.RECORD_SUBCATEGORY;
+  }
   return null;
 }
 
@@ -185,18 +214,24 @@ export function inferRecordLayout(members) {
  * Placeholder strings for a cloned record.
  *
  * @param {object[]} members
+ * @param {{ sectionTitle?: string|null }} [options]
  * @returns {string[]}
  */
-export function placeholderContentsForRecord(members) {
-  const layout = inferRecordLayout(members);
+export function placeholderContentsForRecord(members, options = {}) {
+  const layout = inferRecordLayout(members, options);
   if (layout === SECTION_LAYOUTS.RECORD_EDUCATION) {
     return [...PLACEHOLDER.education];
   }
   if (layout === SECTION_LAYOUTS.RECORD_EXPERIENCE) {
     return [...PLACEHOLDER.experience];
   }
+  if (layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY) {
+    return [...PLACEHOLDER.subcategory];
+  }
   return (members || []).map((element, index) => {
     if (element?.bulletList) return PLACEHOLDER.education[3];
+    if (index === 0 && element?.bold) return PLACEHOLDER.education[0];
+    if (index === 1 && members?.[0]?.bold) return PLACEHOLDER.education[1];
     if (index === 0) return PLACEHOLDER.experience[0];
     return PLACEHOLDER.generic;
   });
@@ -255,16 +290,26 @@ export function pickRecordTemplateGroup(groups, preferred = null) {
  *
  * Education: degree + school + meta + bullets (4).
  * Experience: title + company·period + bullets (3).
+ * Subcategory (skills): bold heading + body (2) — only when `sectionTitle`
+ * matches a skills heading; otherwise a 2-line bold stack expands to education.
  *
  * @param {object[]} members
  * @param {object[][]|null} [sectionGroups] other records in the section
+ * @param {{ sectionTitle?: string|null }} [options]
  * @returns {object[]}
  */
-export function ensureCanonicalRecordTemplate(members, sectionGroups = null) {
+export function ensureCanonicalRecordTemplate(
+  members,
+  sectionGroups = null,
+  options = {},
+) {
   const source = members || [];
   if (source.length === 0) return source;
 
-  const layout = inferRecordLayout(source);
+  const sectionTitle = options.sectionTitle ?? null;
+  const layout = inferRecordLayout(source, { sectionTitle });
+  // Skills subcategory / heading+body — keep the 2-line shape.
+  if (layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY) return source;
   // Full experience (3 with bullets) — leave as-is.
   if (layout === SECTION_LAYOUTS.RECORD_EXPERIENCE) return source;
   // Education with 4 lines — leave as-is. 3-line edu (no bullets) still needs
@@ -276,6 +321,15 @@ export function ensureCanonicalRecordTemplate(members, sectionGroups = null) {
   const title = source[0];
   const second = source[1] || source[0];
   if (!title?.bold) return source;
+
+  // Skills section (even when every group is already 2 lines): never invent
+  // education meta / description lines for a new subcategory.
+  if (
+    isSkillsSectionTitle(sectionTitle)
+    && source.length === 2
+  ) {
+    return source;
+  }
 
   const fullest = sectionGroups
     ? pickRecordTemplateGroup(sectionGroups, source)
@@ -334,12 +388,21 @@ export function ensureCanonicalRecordTemplate(members, sectionGroups = null) {
  * @param {object[]} members last record members in reading order
  * @param {() => string} [idFactory]
  * @param {object[][]|null} [sectionGroups]
+ * @param {{ sectionTitle?: string|null }} [options]
  * @returns {object[]}
  */
-export function buildRecordClone(members, idFactory = nanoid, sectionGroups = null) {
-  const source = ensureCanonicalRecordTemplate(members, sectionGroups);
+export function buildRecordClone(
+  members,
+  idFactory = nanoid,
+  sectionGroups = null,
+  options = {},
+) {
+  const sectionTitle = options.sectionTitle ?? null;
+  const source = ensureCanonicalRecordTemplate(members, sectionGroups, {
+    sectionTitle,
+  });
   if (source.length === 0) return [];
-  const placeholders = placeholderContentsForRecord(source);
+  const placeholders = placeholderContentsForRecord(source, { sectionTitle });
   const group = `record-${idFactory()}`;
   return source.map((element, index) => {
     const fontSize = Number(element.fontSize) || 9.3;
@@ -412,7 +475,11 @@ export function appendRecordToSection(
   const templateGroup = pickRecordTemplateGroup(groups);
   if (!templateGroup) return null;
 
-  const clones = buildRecordClone(templateGroup, idFactory, groups);
+  const heading = (elements || []).find((element) => element.element_id === headingId);
+  const sectionTitle = heading?.content ?? null;
+  const clones = buildRecordClone(templateGroup, idFactory, groups, {
+    sectionTitle,
+  });
   if (clones.length === 0) return null;
 
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
@@ -618,7 +685,11 @@ export function insertRecordBlockAfterRecord(
   const templateGroup = pickRecordTemplateGroup(groups, group);
   if (!templateGroup) return null;
 
-  const clones = buildRecordClone(templateGroup, idFactory, groups);
+  const heading = (elements || []).find((element) => element.element_id === headingId);
+  const sectionTitle = heading?.content ?? null;
+  const clones = buildRecordClone(templateGroup, idFactory, groups, {
+    sectionTitle,
+  });
   if (clones.length === 0) return null;
 
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);

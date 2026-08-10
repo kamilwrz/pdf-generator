@@ -414,12 +414,39 @@ function hasInterveningLaneContent(
 }
 
 /**
+ * Document order index — generators emit category labels before chip bodies, so
+ * when a page-break pack collapses both onto the same Y we still know which
+ * mate is the title.
+ */
+function elementDocIndex(elements, element) {
+  const index = elements.findIndex((entry) => entry.element_id === element.element_id);
+  return index < 0 ? Number.MAX_SAFE_INTEGER : index;
+}
+
+/**
+ * Reading-order compare for keep-together mates. Same-top siblings (collapsed
+ * page-break packs) keep generator / document order so category labels stay
+ * above their chip bodies.
+ */
+function compareRecordMateOrder(left, right, pageHeight, elements) {
+  const topDelta = absoluteTop(left, pageHeight) - absoluteTop(right, pageHeight);
+  if (Math.abs(topDelta) > 0.01) return topDelta;
+  return elementDocIndex(elements, left) - elementDocIndex(elements, right);
+}
+
+/**
  * Content siblings in the target's keep-together record on one side of it.
  * `direction` is -1 for mates above the target, +1 for mates below.
+ *
+ * Same-`top` mates in a shared ``flowGroup`` count as neighbours: a page-break
+ * pack can park a skill category and its chips on the same Y, and the strict
+ * abs inequality used to hide them from each other so reflow could never
+ * un-crush the pair.
  */
 function recordMatesBeside(elements, target, pageHeight, direction) {
   const group = flowGroupOf(target);
   const targetAbs = absoluteTop(target, pageHeight);
+  const targetIndex = elementDocIndex(elements, target);
   const laneMates = elements.filter((element) => {
     if (!FLOWABLE_CATEGORIES.has(element.category)) return false;
     if (isRecordOverlay(element, elements, pageHeight)) return false;
@@ -428,17 +455,29 @@ function recordMatesBeside(elements, target, pageHeight, direction) {
     if (isChromeLike(element)) return false;
     if (!belongsToFlowLane(target, element)) return false;
     const abs = absoluteTop(element, pageHeight);
-    return direction < 0 ? abs < targetAbs - 0.01 : abs > targetAbs + 0.01;
+    if (direction < 0) {
+      if (abs < targetAbs - 0.01) return true;
+      // Overlapping / equal tops: earlier document order counts as "above".
+      return (
+        Boolean(group)
+        && flowGroupOf(element) === group
+        && Math.abs(abs - targetAbs) <= 0.01
+        && elementDocIndex(elements, element) < targetIndex
+      );
+    }
+    if (abs > targetAbs + 0.01) return true;
+    return (
+      Boolean(group)
+      && flowGroupOf(element) === group
+      && Math.abs(abs - targetAbs) <= 0.01
+      && elementDocIndex(elements, element) > targetIndex
+    );
   });
 
   if (group) {
     return laneMates
       .filter((element) => flowGroupOf(element) === group)
-      .sort((left, right) => {
-        const topDelta = absoluteTop(left, pageHeight) - absoluteTop(right, pageHeight);
-        if (Math.abs(topDelta) > 0.01) return topDelta;
-        return String(left.element_id).localeCompare(String(right.element_id));
-      });
+      .sort((left, right) => compareRecordMateOrder(left, right, pageHeight, elements));
   }
 
   if (direction > 0) {
@@ -677,7 +716,21 @@ export function reflowTextareaHeight(
   // With no height delta there is nothing to forward-pack unless reclaim
   // actually selected an earlier page. Returning unchanged here prevents an
   // equal post-font measurement from repeatedly replacing canvas state.
-  if (heightIsUnchanged && targetPage === originalAnchorPage) {
+  //
+  // Still continue when keep-together mates overlap / share a top — a crushed
+  // skill category+chips pair needs a restack even when measured height matches.
+  const matesNeedUncrush = fullRecordCluster.some((mate, index) => {
+    if (index === 0) return false;
+    const previous = fullRecordCluster[index - 1];
+    const gap = absoluteTop(mate, safePageHeight)
+      - (absoluteTop(previous, safePageHeight) + elementHeight(previous));
+    return gap < -0.5;
+  });
+  if (
+    heightIsUnchanged
+    && targetPage === originalAnchorPage
+    && !matesNeedUncrush
+  ) {
     return { elements, pageCount: Math.max(1, ...elements.map(pageOf)), changed: false };
   }
 
@@ -715,9 +768,18 @@ export function reflowTextareaHeight(
   // Same-page growth: place preceding mates + target; following mates keep
   // their bottom-stacking path in the forward packer. Page moves place the
   // whole record atomically so reclaim cannot orphan school/meta/body.
+  //
+  // Exception: same-top / overlapping following mates (crushed skill category
+  // + chips after a page break) must restack here — the forward packer preserves
+  // authored top-to-top deltas and would keep the overlap.
+  const overlappingFollowers = followingMates.filter((mate) => {
+    const gap = absoluteTop(mate, safePageHeight)
+      - (oldTargetTop + oldHeight);
+    return gap < -0.5;
+  });
   const placeCluster = movedToDifferentPage
     ? fullRecordCluster
-    : [...precedingMates, target];
+    : [...precedingMates, target, ...overlappingFollowers];
   placeRecordCluster(
     placed,
     placeCluster,
@@ -864,10 +926,23 @@ export function reflowTextareaHeight(
       const stackFrom = lastContentPlacedBottom != null
         ? lastContentPlacedBottom
         : previousPlacedBottom;
+      // Negative / missing authored gaps (overlapped category+chips) fall back
+      // to SPACE_STACK so the pair un-crushes instead of staying at the same Y.
       const stackGap = (!isChromeLike(previousOriginal) && gapFromPrevious >= 0)
         ? gapFromPrevious
         : spaceStack;
       top = stackFrom - (page - 1) * safePageHeight + stackGap;
+      if (top < pageTop && page > 1) {
+        // stackFrom still on the previous page. If the previous mate already
+        // landed on this page, stack under it — clamping to pageTop alone is
+        // what collapsed skill category labels onto their chip bodies.
+        const pageStartAbs = (page - 1) * safePageHeight + pageTop;
+        if (previousPlacedBottom >= pageStartAbs - 0.01) {
+          top = previousPlacedBottom - (page - 1) * safePageHeight + spaceStack;
+        } else {
+          top = pageTop;
+        }
+      }
       if (top + height > contentBottom && height <= pageCapacity) {
         // Last resort for a record taller than one page.
         page += 1;

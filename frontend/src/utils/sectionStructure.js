@@ -1083,7 +1083,22 @@ function placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin) {
         // line alone if the first-line reservation used a shorter measure.
         const page = activeGroupPage;
         let top = desiredAbs - (page - 1) * pageHeight;
-        if (top < pageTop && page > 1) top = pageTop;
+        if (top < pageTop && page > 1) {
+          // Prefer stacking under the previous mate already on this page.
+          // Clamping every overflow to pageTop collapses skill category labels
+          // onto their chip bodies at the continuation-page inset.
+          const pageStartAbs = (page - 1) * pageHeight + pageTop;
+          if (previous && previous.placed.bottom >= pageStartAbs - 0.01) {
+            const stackGap = Math.max(
+              0,
+              item.relTop
+                - (previous.item.relTop + elementHeight(previous.item.element)),
+            );
+            top = previous.placed.bottom - pageStartAbs + pageTop + stackGap;
+          } else {
+            top = pageTop;
+          }
+        }
         const abs = (page - 1) * pageHeight + top;
         placed = { page, top, abs, bottom: abs + height };
       } else {

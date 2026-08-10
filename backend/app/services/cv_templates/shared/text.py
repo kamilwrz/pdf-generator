@@ -75,6 +75,51 @@ def _skills_sidebar_content(skills: Any) -> str:
     return "\n".join(parts)
 
 
+def _skill_group_body_content(
+    items: list | tuple | None,
+    *,
+    mode: str = "inline",
+) -> str:
+    """Chip body for one skill group (mid-dot row or bullet list)."""
+    if mode == "inline":
+        return _skills_inline_content(items)
+    return _bullet_list_content(items)
+
+
+def _measure_skill_group(
+    b: Any,
+    group: dict[str, Any],
+    width: float,
+    fs: float,
+    lh: float,
+    font: str,
+    *,
+    mode: str = "inline",
+    category_fs: float | None = None,
+) -> float:
+    """Height of one category label + chip body (no trailing inter-group gap)."""
+    cat_fs = float(category_fs if category_fs is not None else max(fs, 9.5))
+    # Match the category font, not the body line-height — inflating to body ``lh``
+    # leaves empty box space that spacing guides read as a ~10 px ink gap.
+    cat_lh = cat_fs + 2.0
+    category = str(group.get("category") or "").strip()
+    items = group.get("items") or []
+    height = 0.0
+    if category:
+        height += b.measure_block(
+            category, width, cat_fs, cat_lh, font, bold=True, min_h=cat_lh,
+        )
+        if items:
+            height += get_spacing().stack
+    if items:
+        content = _skill_group_body_content(items, mode=mode)
+        if content:
+            height += b.measure_block(
+                content, width, fs, lh, font, bulletList=(mode == "bullets"),
+            )
+    return height
+
+
 def _measure_skills_body(
     b: Any,
     groups: list[dict[str, Any]],
@@ -87,31 +132,12 @@ def _measure_skills_body(
     category_fs: float | None = None,
 ) -> float:
     """Estimate stacked height for named skill groups (no section chrome)."""
-    cat_fs = float(category_fs if category_fs is not None else max(fs, 9.5))
-    cat_lh = max(lh, cat_fs + 2.0)
     total = 0.0
-    stack = get_spacing().stack
     between = get_spacing().record
     for index, group in enumerate(groups):
-        category = str(group.get("category") or "").strip()
-        items = group.get("items") or []
-        if category:
-            total += b.measure_block(
-                category, width, cat_fs, cat_lh, font, bold=True, min_h=cat_lh,
-            )
-            if items:
-                total += stack
-        if items:
-            content = (
-                _skills_inline_content(items)
-                if mode == "inline"
-                else _bullet_list_content(items)
-            )
-            if content:
-                total += b.measure_block(
-                    content, width, fs, lh, font,
-                    bulletList=(mode == "bullets"),
-                )
+        total += _measure_skill_group(
+            b, group, width, fs, lh, font, mode=mode, category_fs=category_fs,
+        )
         if index < len(groups) - 1:
             total += between
     return total
@@ -138,6 +164,11 @@ def _place_skills_section(
     Flat skills → heading + mid-dot/bullet body (unchanged look).
     Grouped skills → heading, then bold category labels and chip bodies under
     each. Uses existing textarea bold + list blocks — no new canvas primitives.
+
+    Each category + chip body is emitted inside ``keep_together`` so they share a
+    ``flowGroup``. Canvas rhythm knobs treat that pair as stack (4 px), not
+    record (10 px) — autoHeight textareas without a shared group fall through
+    to record spacing in ``classifyIntraSectionGap``.
     """
     raw_skills = cv.get("skills")
     if not skills_have_content(raw_skills):
@@ -146,32 +177,18 @@ def _place_skills_section(
     groups = skill_groups(raw_skills)
     labels = _labels(cv)
     cat_fs = float(category_fs if category_fs is not None else max(fs, 9.5))
-    cat_lh = max(lh, cat_fs + 2.0)
+    cat_lh = cat_fs + 2.0
     chrome_h = (
         float(section_chrome_h)
         if section_chrome_h is not None
         else section_chrome_height(8.6)
     )
+    stack = get_spacing().stack
 
     # Reserve chrome + first group so the heading does not orphan at the footer.
-    first = groups[0]
-    first_h = 0.0
-    if first.get("category"):
-        first_h += b.measure_block(
-            str(first["category"]), W, cat_fs, cat_lh, font, bold=True, min_h=cat_lh,
-        )
-        if first.get("items"):
-            first_h += get_spacing().stack
-    if first.get("items"):
-        first_body = (
-            _skills_inline_content(first["items"])
-            if mode == "inline"
-            else _bullet_list_content(first["items"])
-        )
-        if first_body:
-            first_h += b.measure_block(
-                first_body, W, fs, lh, font, bulletList=(mode == "bullets"),
-            )
+    first_h = _measure_skill_group(
+        b, groups[0], W, fs, lh, font, mode=mode, category_fs=category_fs,
+    )
 
     b.need_section(chrome_h, first_h or lh)
     section_fn(labels["skills"])
@@ -179,19 +196,18 @@ def _place_skills_section(
     for index, group in enumerate(groups):
         category = str(group.get("category") or "").strip()
         items = group.get("items") or []
-        if category:
-            b.block(
-                category, L, W, cat_fs, cat_lh, body_color, font,
-                bold=True, min_h=cat_lh,
-            )
-            if items:
-                b.gap(get_spacing().stack)
-        if items:
-            content = (
-                _skills_inline_content(items)
-                if mode == "inline"
-                else _bullet_list_content(items)
-            )
+        content = _skill_group_body_content(items, mode=mode) if items else ""
+        group_h = _measure_skill_group(
+            b, group, W, fs, lh, font, mode=mode, category_fs=category_fs,
+        )
+        with b.keep_together(group_h or lh):
+            if category:
+                b.block(
+                    category, L, W, cat_fs, cat_lh, body_color, font,
+                    bold=True, min_h=cat_lh,
+                )
+                if content:
+                    b.gap(stack)
             if content:
                 b.block(
                     content, L, W, fs, lh, body_color, font,
