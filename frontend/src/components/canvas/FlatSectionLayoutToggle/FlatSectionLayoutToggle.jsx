@@ -1,8 +1,10 @@
 /**
  * Hover affordance on a flat-list section's content block (Skills, Languages,
- * flat custom sections): a single bare icon pinned to the block's top-right
- * corner. Click opens `FlatSectionLayoutModal` to switch between an inline
- * mid-dot row and a vertical bullet list.
+ * flat custom sections): a single bare icon to the left of the block,
+ * vertically centered on its height (same left-cluster placement convention
+ * as `SectionRecordAdd` / `RecordBlockAdd`). Click opens
+ * `FlatSectionLayoutModal` to switch between an inline mid-dot row and a
+ * vertical bullet list.
  *
  * Structurally mirrors `SectionRecordAdd` / `RecordBlockAdd` (hover timing,
  * exclusive visible slot, zoom-aware sizing) but shows one button instead of
@@ -25,7 +27,7 @@ const HIDE_AFTER_LEAVE_MS = 3000;
  *   contentElementId: string,
  *   left: number,
  *   top: number,
- *   width?: number,
+ *   height?: number,
  *   fontSize?: number,
  * }} props
  */
@@ -33,7 +35,7 @@ export default function FlatSectionLayoutToggle({
   contentElementId,
   left,
   top,
-  width = 0,
+  height = 0,
   fontSize = 10,
 }) {
   const { editorMode, openFlatSectionLayoutModal, zoom = 1 } = use(PdfContext);
@@ -112,19 +114,19 @@ export default function FlatSectionLayoutToggle({
   if (!eligible) return null;
 
   const { buttonSize, iconSize, gap } = recordPlusLayoutSize(zoom, fontSize);
-  // Prefer authored width; fall back to the live block box so the icon sits
-  // at the real right edge even when a template omits an explicit width.
+  // Prefer authored height; fall back to the live block box so centering
+  // still works when a template omits an explicit height.
   const contentNode = typeof document !== "undefined"
     ? document.getElementById(contentElementId)
     : null;
-  const blockWidth = Number.isFinite(Number(width)) && Number(width) > 0
-    ? Number(width)
-    : (contentNode?.offsetWidth || 120);
+  const blockHeight = Number.isFinite(Number(height)) && Number(height) > 0
+    ? Number(height)
+    : (contentNode?.offsetHeight || (Number(fontSize) || 10) * 1.35);
 
-  // Sits just above the block's top-right corner, clear of the first text line.
+  // Sits to the left of the block, vertically centered on its full height.
   const anchorStyle = {
-    left: left + blockWidth - buttonSize,
-    top: top - buttonSize - gap / 2,
+    left: left - gap - buttonSize,
+    top: top + blockHeight / 2 - buttonSize / 2,
   };
   const buttonStyle = { width: buttonSize, height: buttonSize };
   const iconStyle = { width: iconSize, height: iconSize };

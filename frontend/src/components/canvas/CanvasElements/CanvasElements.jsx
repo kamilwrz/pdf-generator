@@ -10,8 +10,9 @@
  * line (hover anywhere on the upper block → insert, delete, or reorder a
  * record, then re-pack). Flat-list section bodies (Skills, Languages, flat
  * custom sections — exactly one textarea per section) get a
- * `FlatSectionLayoutToggle` icon at their top-right corner instead, opening a
- * modal to switch between an inline mid-dot row and a bullet list.
+ * `FlatSectionLayoutToggle` icon to their left, centered on the block's
+ * height, instead — opening a modal to switch between an inline mid-dot row
+ * and a bullet list.
  */
 import { use, useMemo } from 'react';
 import Text from '../Text/Text';
@@ -133,7 +134,7 @@ export default function CanvasElements({ elements }) {
               contentElementId={flatAnchor.contentElementId}
               left={Number(element.left) || 0}
               top={Number(element.top) || 0}
-              width={Number(element.width) || 0}
+              height={Number(element.height) || 0}
               fontSize={Number(element.fontSize) || 10}
             />
           ) : null}
