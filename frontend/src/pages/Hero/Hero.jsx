@@ -132,7 +132,7 @@ export default function Hero() {
     const proRegisterUrl = "/register?plan=pro";
 
     // Real template mockups drive every product visual — no stock imagery.
-    const heroFront = previewById("regent");
+    const heroFront = previewById("portico");
     const heroBack = previewById("monument");
     const editorMock = previewById("cardinal");
     const afterMock = previewById("regent");
