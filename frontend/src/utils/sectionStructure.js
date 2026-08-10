@@ -447,6 +447,14 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
       }
 
       const abs = absoluteTop(element, pageHeight);
+      const isNextSectionLeadingChrome = sectionIndex + 1 < sections.length
+        && element.flowRole === "section-chrome"
+        && abs >= end - 4
+        && abs < end;
+      // Midline rules and icons may start fractionally above their own title.
+      // Do not let the preceding section claim that explicit chrome merely
+      // because its top is still below the next heading's numerical boundary.
+      if (isNextSectionLeadingChrome) continue;
       if (abs >= start && abs < end - 0.01) {
         ids.add(element.element_id);
         continue;
@@ -454,6 +462,19 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
       // Only tagged chrome / small marks may sit slightly above the heading.
       // Never pull the wide previous-section underline into this band.
       if (abs >= start - 24 && abs < start && isLeadingSectionMark(element)) {
+        // A midline rule can begin fractionally above the heading's stored top
+        // because its rectangle is centred on the visible capitals. Explicit
+        // ownership plus a tight 4 px window distinguishes that rule from a
+        // wide underline belonging to the previous section. Keeping it in the
+        // section lets Add section sample the exact right edge and chrome/body
+        // rhythm instead of silently falling back to rule-less defaults.
+        if (
+          element.flowRole === "section-chrome"
+          && abs >= start - 4
+        ) {
+          ids.add(element.element_id);
+          continue;
+        }
         if (element.category === "line" && (Number(element.width) || 0) >= 120) {
           continue;
         }
@@ -549,6 +570,18 @@ function resolveFlowStart(elements, sections, pageHeight) {
   const headingStart = Math.min(...sections.map((section) => section.startAbs));
   const firstHeading = list.find((element) => element.element_id === sections[0]?.headingId);
   const isSameColumn = sameColumnAsHeading(Number(firstHeading?.left) || 0);
+  // Explicit midline chrome can begin a fraction of a pixel above the title's
+  // stored top. Start packing from that true band edge; compactChromeCluster
+  // normalizes the minimum offset to zero, so this keeps the heading itself at
+  // its authored coordinate instead of nudging it down by the negative offset.
+  const leadingChromeStart = list.reduce((min, element) => {
+    if (!element || element.fixedToPage) return min;
+    if (element.flowRole !== "section-chrome") return min;
+    if (!isSameColumn(element)) return min;
+    const abs = absoluteTop(element, pageHeight);
+    if (abs < headingStart - 4 || abs >= headingStart) return min;
+    return Math.min(min, abs);
+  }, headingStart);
   let mastheadBottom = 0;
   for (const element of list) {
     if (!element || element.fixedToPage) continue;
@@ -558,9 +591,9 @@ function resolveFlowStart(elements, sections, pageHeight) {
     if (abs >= headingStart - 0.01) continue;
     mastheadBottom = Math.max(mastheadBottom, absoluteBottom(element, pageHeight));
   }
-  if (mastheadBottom <= 0) return headingStart;
+  if (mastheadBottom <= 0) return leadingChromeStart;
 
-  const authoredGap = headingStart - mastheadBottom;
+  const authoredGap = leadingChromeStart - mastheadBottom;
   // Preserve whatever clearance the template authored, as long as it is sane.
   // The Python generators author ~36px under the divider for iconic templates
   // (Nova / Cardinal / Volt / Harbor / Portico) via SPACE_AFTER_HEADER_RULE, and

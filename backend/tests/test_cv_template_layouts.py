@@ -1722,11 +1722,13 @@ class CvTemplateLayoutTests(unittest.TestCase):
             and element.get("flowRole") == "section-chrome"
             and element.get("top") == heading["top"]
         )
-        rule = next(
-            element for element in elements
-            if element.get("category") == "line"
-            and element.get("flowRole") == "section-chrome"
-            and heading["top"] < element.get("top", 0) < heading["top"] + heading["fontSize"]
+        rule = min(
+            (
+                element for element in elements
+                if element.get("category") == "line"
+                and element.get("flowRole") == "section-chrome"
+            ),
+            key=lambda element: abs(element.get("top", 0) - heading["top"]),
         )
         self.assertEqual(icon["left"], 72)
         self.assertEqual(heading["left"], 94)
@@ -1734,7 +1736,12 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertTrue(heading["bold"])
         self.assertEqual(icon["width"], 16.5)
         self.assertEqual(icon["height"], 16.5)
-        self.assertAlmostEqual(rule["top"], heading["top"] + heading["fontSize"] / 2)
+        expected_rule_top = (
+            heading["top"]
+            + heading["fontSize"] * (0.34 - (1490 / 2048) / 2)
+            - rule["height"] / 2
+        )
+        self.assertAlmostEqual(rule["top"], expected_rule_top)
         self.assertGreater(rule["left"], heading["left"])
         self.assertAlmostEqual(rule["left"] + rule["width"], 545)
         masthead_icons = [

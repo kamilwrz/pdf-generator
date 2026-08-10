@@ -58,6 +58,11 @@ def _gen_cardinal(cv: dict) -> list[dict]:
     label_tracking = 1.05
     section_icon = 16.5
     heading_x = L + 22
+    rule_height = 0.8
+    # Inter Bold's cap height is 1490/2048 em. PDF text uses a baseline at
+    # `top + 0.34em`, so the visible cap centre is near `top`, not `top + 0.5em`.
+    # Half the rule thickness is removed to centre the rectangle itself.
+    cap_midline_offset = label_fs * (0.34 - (1490 / 2048) / 2) - rule_height / 2
     SECTION_CHROME = label_fs + 10 + get_spacing().after_rule
 
     def section(label: str) -> None:
@@ -79,7 +84,7 @@ def _gen_cardinal(cv: dict) -> list[dict]:
         label_width = len(label) * (label_fs * 0.58 + label_tracking)
         rule_left = min(heading_x + label_width + 14, L + W - 54)
         rule = _line(
-            rule_left, y + label_fs / 2, L + W - rule_left, 0.8,
+            rule_left, y + cap_midline_offset, L + W - rule_left, rule_height,
             C['rule'], page=page,
         )
         rule['flowRole'] = 'section-chrome'

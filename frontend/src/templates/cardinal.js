@@ -34,6 +34,12 @@ const SECTION_ICON = 16.5; // slightly larger than the caps without dominating t
 const CONTACT_ICON = 13; // slightly smaller glyph for the contact row
 const HEAD_FS = 11.2; // remains above the requested 11 px minimum
 const HEAD_TRACKING = 1.05;
+const HEAD_RULE_H = 0.8;
+// Inter Bold has a 1490-unit cap height on a 2048-unit em. The PDF renderer
+// places the baseline 0.34 em below `top`, so cap-centre is not fontSize / 2.
+// Subtract half the rule thickness to align the rectangle's centre, not its top.
+const INTER_CAP_HEIGHT_RATIO = 1490 / 2048;
+const HEAD_CAP_MIDLINE_OFFSET = HEAD_FS * (0.34 - INTER_CAP_HEIGHT_RATIO / 2) - HEAD_RULE_H / 2;
 
 const bold = (element) => ({ ...element, bold: true });
 const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
@@ -73,7 +79,7 @@ const sectionHead = (iconName, label, top) => {
             flowRole: "section-chrome",
         },
         {
-            ...line(ruleLeft, top + HEAD_FS / 2, RIGHT - ruleLeft, 0.8, GREY, 2),
+            ...line(ruleLeft, top + HEAD_CAP_MIDLINE_OFFSET, RIGHT - ruleLeft, HEAD_RULE_H, GREY, 2),
             flowRole: "section-chrome",
         },
     ];

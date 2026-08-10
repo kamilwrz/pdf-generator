@@ -55,8 +55,11 @@ test("Cardinal reserves red for headings while icons and rules stay grey", () =>
     assert.ok(sectionRules.every((element) => element.left > 94));
     assert.ok(sectionRules.every((element) => element.left + element.width === 545));
     for (const heading of sectionHeadings) {
-        const rule = sectionRules.find((element) => element.top === heading.top + heading.fontSize / 2);
-        assert.ok(rule, `${heading.content} rule crosses the exact heading midline`);
+        const expectedTop = heading.top
+            + heading.fontSize * (0.34 - (1490 / 2048) / 2)
+            - 0.8 / 2;
+        const rule = sectionRules.find((element) => Math.abs(element.top - expectedTop) < 1e-9);
+        assert.ok(rule, `${heading.content} rule crosses the visible Inter cap midline`);
     }
 
     // ── Body copy: dark grey, readable (never sub-9pt) ───────────────────────
