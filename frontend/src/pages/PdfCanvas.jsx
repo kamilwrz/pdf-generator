@@ -894,11 +894,14 @@ function PdfCanvas() {
   }, [A4_Elements, dialog, editorMode, longCvModal.open, pageCount, panel]);
 
   // Reset the once-per-document guard whenever a different document is loaded
-  // (new pdfId, or a fresh/cleared canvas signalled by pdfId going null).
+  // (new pdfId, or a fresh/cleared canvas signalled by pdfId going null) OR the
+  // template changes. "Zmień szablon" keeps the same pdfId but swaps the whole
+  // layout via a new activeTemplateId — if the new template is again 3+ pages,
+  // the too-long assistant must re-offer help instead of staying silent.
   useEffect(() => {
     longCvShownRef.current = false;
     shortenBaselinePagesRef.current = null;
-  }, [pdfId]);
+  }, [pdfId, activeTemplateId]);
 
   // Success toast after AI shortening reduces the page count below the value
   // captured when the shorten flow began (see handleRequestAiShorten).
