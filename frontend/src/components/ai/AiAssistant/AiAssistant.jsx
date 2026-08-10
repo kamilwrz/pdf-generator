@@ -18,6 +18,11 @@ import classes from "./AiAssistant.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { ApiClient, ENDPOINTS, wakeBackend } from "../../../services/api";
 import { measureElements } from "../../../utils/elementBounds";
+import {
+    ATS_CATEGORY_WEIGHTS,
+    atsReadabilityBand,
+    overallPercentFromCategories,
+} from "../../../utils/atsScore";
 
 // ── goal-oriented quick actions ───────────────────────────────────────────
 // User-facing tiles map to goals; backend still uses specialised API actions
@@ -277,14 +282,6 @@ function categoryPercent(category) {
     return Math.max(0, Math.min(100, Math.round((score / max) * 100)));
 }
 
-/** Verbal band for ATS readability overall (percent 0–100). */
-function atsReadabilityBand(percent) {
-    if (typeof percent !== "number" || Number.isNaN(percent)) return null;
-    if (percent >= 90) return "Bardzo dobra";
-    if (percent >= 75) return "Dobra";
-    if (percent >= 50) return "Średnia";
-    return "Słaba";
-}
 const SEVERITY_LABELS = {
     critical: "krytyczny",
     high: "wysoki",
@@ -295,9 +292,12 @@ const SEVERITY_LABELS = {
 
 // ── sub-components ────────────────────────────────────────────────────────
 
-function RatingBadge({ value }) {
-    // Backend scores stay on a 1–10 rubric; the UI shows percentages.
-    const percent = ratingToPercent(value);
+function RatingBadge({ value, percent: percentProp }) {
+    // Prefer an explicit percent (ATS weighted categories). Otherwise map the
+    // legacy 1–10 rubric with `rating × 10` for non-ATS dashboards.
+    const percent = typeof percentProp === "number" && !Number.isNaN(percentProp)
+        ? Math.max(0, Math.min(100, Math.round(percentProp)))
+        : ratingToPercent(value);
     if (percent == null) return null;
     const color = percent >= 80 ? "#5FA777" : percent >= 60 ? "#F59E0B" : "#D2503C";
     return (
@@ -320,11 +320,17 @@ function RatingDashboard({
     onOpenMatchJob,
     ctaDisabled,
 }) {
-    const percent = ratingToPercent(msg.rating);
     const categories = Array.isArray(msg.categories) ? msg.categories : [];
     const strengths = Array.isArray(msg.strengths) ? msg.strengths : [];
     const priorities = Array.isArray(msg.priorities) ? msg.priorities : [];
     const actionId = msg.actionId;
+    const isAts = actionId === "ats_score";
+    // ATS: derive the badge from weighted categories so 95% / 82% subscores
+    // cannot collapse into a false 100% via the coarse 1–10 `rating` field.
+    const percent = isAts
+        ? (overallPercentFromCategories(categories, ATS_CATEGORY_WEIGHTS)
+            ?? ratingToPercent(msg.rating))
+        : ratingToPercent(msg.rating);
 
     const weakContent = categories.some((cat) => {
         const p = categoryPercent(cat);
@@ -345,14 +351,13 @@ function RatingDashboard({
         || showAtsCta || showMatchCta || showContentCta || showAppearanceCta;
     if (!hasBody) return null;
 
-    const isAts = actionId === "ats_score";
     const atsBand = isAts ? atsReadabilityBand(percent) : null;
 
     return (
         <div className={classes.ratingDashboard}>
             {percent != null && (
                 <div className={classes.ratingDashboardScore}>
-                    <RatingBadge value={msg.rating} />
+                    <RatingBadge value={msg.rating} percent={isAts ? percent : undefined} />
                     <div className={classes.ratingDashboardHeading}>
                         <span className={classes.ratingDashboardLabel}>
                             {isAts ? "Czytelność dla ATS" : "Ocena ogólna"}

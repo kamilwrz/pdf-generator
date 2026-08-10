@@ -72,8 +72,9 @@ test("ATS dashboard uses readability copy, verbal band, and disclaimer", async (
     const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
 
     assert.match(source, /ats_score:\s*\{\s*label:\s*"Czytelność dla ATS"/);
-    assert.match(source, /function atsReadabilityBand/);
-    assert.match(source, /Bardzo dobra/);
+    assert.match(source, /overallPercentFromCategories/);
+    assert.match(source, /ATS_CATEGORY_WEIGHTS/);
+    assert.match(source, /from "\.\.\/\.\.\/\.\.\/utils\/atsScore"/);
     assert.match(source, /isAts \? "Czytelność dla ATS" : "Ocena ogólna"/);
     assert.match(source, /atsDisclaimer/);
     assert.match(
