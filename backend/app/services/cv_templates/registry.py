@@ -18,6 +18,7 @@ from app.services.cv_templates.templates.tessera import _gen_tessera
 from app.services.cv_templates.templates.slate import _gen_slate
 from app.services.cv_templates.templates.portico import _gen_portico
 from app.services.cv_templates.templates.axis import _gen_axis
+from app.services.cv_templates.templates.atrium import _gen_atrium
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "ledger": frozenset({"single"}),
@@ -36,6 +37,7 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "slate": frozenset({"sidebar", "icons"}),
     "portico": frozenset({"icons"}),
     "axis": frozenset({"icons"}),
+    "atrium": frozenset({"single", "icons"}),
 }
 
 _GENERATORS = {
@@ -55,6 +57,7 @@ _GENERATORS = {
     "slate": _gen_slate,
     "portico": _gen_portico,
     "axis": _gen_axis,
+    "atrium": _gen_atrium,
 }
 
 

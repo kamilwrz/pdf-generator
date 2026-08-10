@@ -319,6 +319,14 @@ SUBSET_THEMES = {
         "#E2740C",
         ["email", "phone", "linkedin", "github", "website", "location", "diamond"],
     ),
+    # Atrium (centered-axis editorial single column) uses graphite-sage contact
+    # glyphs in the centered masthead only. Section headings are centered text
+    # with a printer's-mark ornament (no icons), so just the contact set is
+    # generated — nothing else references this theme.
+    "atrium": (
+        "#556158",
+        ["email", "phone", "location", "linkedin", "github", "website"],
+    ),
 }
 
 

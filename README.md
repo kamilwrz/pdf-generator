@@ -2,7 +2,7 @@
 
 # CV Studio
 
-CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 16 individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
+CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 17 individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
 
 This README is the technical entry point for developers. A beginner-friendly deep guide to canvas coordinates, React interaction, deterministic Python layout, AI responsibilities, reflow, persistence, and ReportLab export lives in [`CANVA.md`](CANVA.md). Every live AI prompt (full text, variables, file/line references) is documented in [`PROMPTS.md`](PROMPTS.md). Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md). Marketing brief for the website „Dlaczego CV STUDIO” section (features + competitive positioning, no competitor brand names in public copy) lives in [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Template generation (AI extract vs Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md). A layperson-friendly end-to-end guide covering Frontend and Backend (flows, files, classes, functions) lives in [`CV_GENERATOR.md`](CV_GENERATOR.md).
 
@@ -169,7 +169,7 @@ pdf-generator/
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
-│   │   ├── templates/        # 16 template specs + helpers + demoCv.js (guest-mode demo content)
+│   │   ├── templates/        # 17 template specs + helpers + demoCv.js (guest-mode demo content)
 │   │   └── utils/            # a4ElementFactories, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, guestDocument, guestWizardDraft, claimGuestWizardDraft, resolveActiveCvData, guestEvents
 │   ├── package.json
 │   └── .env.example
@@ -195,7 +195,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 16 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
+**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 17 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
 
 ---
 
@@ -542,7 +542,7 @@ Implementation:
 
 Limits:
 
-- Free (Darmowy) includes five starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 16 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
+- Free (Darmowy) includes five starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 17 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
 - ATS feedback (**Czytelność dla ATS**) checks whether the final PDF text can be extracted and whether content headings/keywords look standard. It is guidance, not a promise that every recruiter ATS will parse the file the same way.
 - The privacy section describes implemented data use at a high level and does not claim unimplemented certifications or anonymisation.
 
@@ -761,6 +761,28 @@ Implementation:
 
 Tests: covered by the generator-iterating cross-template tests in `backend/tests/test_cv_template_layouts.py` (summary-equals-body type size, page bounds) and `backend/tests/test_template_registry_sync.py` (frontend/backend id, layout-tag and tier parity).
 
+### Atrium centered-axis editorial template
+
+Atrium is a paid template (`layouts: ["single", "icons"]`) built around a **central axis**: unlike Portico — the other centered-masthead template — the *whole section identity* is centered, not just the header. The name, title, contact band, **and every section heading** sit on the page axis; the content column is deliberately narrow with heavy symmetric side margins (`L=90`, `W=415`, so its midpoint is the page center 297.5, vs Portico's `L=76`/`W=443`); and the body stays left-aligned inside that centered column for readability. The palette is a quiet graphite-sage (`#556158` accent, `#242521` ink, `#78796F` muted, `#FBFAF7` warm paper, `#E5E3DB` hairline) — desaturated and greyer than Aldine's `#486151`, and distinct from every other accent in the catalogue. The display name uses **PlayfairDisplay** (high-contrast serif); title, contact labels, section headings, and body use **Montserrat**.
+
+Its decorative language is a printer's **"registration mark" system built only from thin `line` rules** — no section icons, no full-width heading rules, no frames, no badges, no sidebar, no timeline. The masthead is terminated by a **crosshair** ( `────  +  ────`: two hairlines flanking a small plus made of a short horizontal and vertical rule), not a header rule. Each **centered** section heading carries a **short broken rule** beneath it (two ~15 px segments with a 6 px central gap on the axis), never a full underline. Contact glyphs (phone, email, location, LinkedIn, GitHub, website) come from a dedicated graphite-sage `atrium` icon theme in the shared pipeline and are placed by the reused `_place_centered_icon_contacts` helper.
+
+The body reuses the shared deterministic machinery unchanged: `Builder`, `need_section`, `keep_together` / `flowGroup`, `_place_experience_record`, `_place_education_record`, `_place_skills_section`, `_extra_sections`. Only a new centered `section()` closure (centered heading + broken-rule ornament, tagged `section-chrome`) and a `_crosshair` ornament helper are template-specific. Continuation pages do **not** repeat the masthead — they carry only a small centered crosshair near the top edge (`page > 1`) and a centered footer page number; the masthead is authored on page 1 only.
+
+Implementation:
+
+- `backend/app/services/cv_templates/templates/atrium.py`, function `_gen_atrium` — centered masthead, `_crosshair` terminator/continuation ornament, centered `section()` with broken-rule separator, left-aligned body via the shared record/skills/extras helpers
+- `backend/app/services/cv_templates/registry.py`, `_GENERATORS["atrium"]` and `TEMPLATE_LAYOUTS["atrium"]` (`frozenset({"single", "icons"})`)
+- `frontend/src/templates/atrium.js` — static starter emitted directly from the generator's own demo output (image `src` stored relative, API base prepended at load), so the picker preview matches `/ai/fill_template` pixel-for-pixel; exported array `atriumTemplate`
+- `frontend/src/templates/index.js`, registry entry `atrium` (`tier: "paid"`, `layouts: ["single", "icons"]`, `accent: "#556158"`)
+- `scripts/generate_iconic_icons.py`, `SUBSET_THEMES["atrium"]` (contact glyphs only, `#556158`)
+- `frontend/public/template-mockups/atrium.png`, source-driven A4 preview
+
+Tests:
+
+- `frontend/src/templates/atrium.test.js` — centered masthead + centered section headings, contact icons from the `atrium` theme, single column (no sidebar/frames), narrow column centered on the page, left-aligned body, thin short "registration mark" rules (no full-width rule), crosshair terminator, no timeline overlays, masthead on page 1 only
+- `backend/tests/test_cv_template_layouts.py` and `backend/tests/test_template_registry_sync.py` iterate every registered generator, so Atrium is covered for summary-equals-body type size, page bounds, and frontend/backend id / layout-tag / tier parity without a dedicated entry
+
 ### Icon-tagged templates and icon reflow
 
 Nova, Volt, Cardinal, Harbor, Tessera, Slate, Portico, and Axis are individual templates that share the `icons` layout tag (and optionally `sidebar` / `dark`). The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so icon images are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
@@ -783,7 +805,7 @@ Tests:
 - `backend/tests/test_pdf_shapes.py`, lines 67–131 — optical alignment, explicit `alignWithText: false`, and alpha-mask regressions
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_iconic_experience_record_gap_matches_projects`
 
-**Regenerating source-driven mockups.** `frontend/public/template-mockups/{nova,volt,monument,words,cardinal,harbor,tessera,slate,portico,axis}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, `frontend/src/templates/harbor.js`, `frontend/src/templates/tessera.js`, `frontend/src/templates/slate.js`, `frontend/src/templates/portico.js`, or `frontend/src/templates/axis.js` changes, regenerate them:
+**Regenerating source-driven mockups.** `frontend/public/template-mockups/{nova,volt,monument,words,cardinal,harbor,tessera,slate,portico,axis,atrium}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, `frontend/src/templates/harbor.js`, `frontend/src/templates/tessera.js`, `frontend/src/templates/slate.js`, `frontend/src/templates/portico.js`, `frontend/src/templates/axis.js`, or `frontend/src/templates/atrium.js` changes, regenerate them:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs
@@ -1071,7 +1093,7 @@ Two-tier catalog only:
 | | Darmowy (Free) | Pro |
 |--|--|--|
 | Price | 0 zł | **59 zł / 30 days** (one-shot pass, not auto-renew) |
-| Templates | 5 starters | all 16 |
+| Templates | 5 starters | all 17 |
 | Import | 1 lifetime free | further imports from AI credits |
 | Export | watermarked | clean PDF |
 | AI | — | content + ATS + Layout |
@@ -1452,7 +1474,7 @@ Notable product facts:
 
 # CV Studio
 
-CV Studio to polski edytor CV na A4: płótno WYSIWYG, 16 indywidualnych szablonów (każdy z własną nazwą i krótkim opisem stylistycznym), import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
+CV Studio to polski edytor CV na A4: płótno WYSIWYG, 17 indywidualnych szablonów (każdy z własną nazwą i krótkim opisem stylistycznym), import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
 
 Ten README to wejście techniczne dla programistów. Obszerne, napisane dla początkujących wyjaśnienie współrzędnych canvasu, interakcji React, deterministycznego layoutu Python, roli AI, reflow, zapisu i eksportu ReportLab znajduje się w [`CANVA.md`](CANVA.md). Wszystkie prompty AI (treść, zmienne, numery linii): [`PROMPTS.md`](PROMPTS.md). Opis produktowy funkcji: [`docs/FEATURES.md`](docs/FEATURES.md). Brief marketingowy pod sekcję „Dlaczego CV STUDIO” na stronie (funkcje + pozycjonowanie względem rynku, bez nazw marek konkurencji w copy publicznym): [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Generowanie szablonów (AI extract vs layout w Pythonie): [`docs/cv-template-generation.md`](docs/cv-template-generation.md). Przystępny, kompletny przewodnik Frontend + Backend (ścieżki, pliki, klasy, funkcje): [`CV_GENERATOR.md`](CV_GENERATOR.md).
 
@@ -1617,7 +1639,7 @@ pdf-generator/
 │   │   ├── pages/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage
 │   │   ├── store/            # Canvas / UiSurfaces / Session + fasada PdfContext
-│   │   ├── templates/        # 16 specyfikacji szablonów + helpery + demoCv.js (treść demo w trybie gościa)
+│   │   ├── templates/        # 17 specyfikacji szablonów + helpery + demoCv.js (treść demo w trybie gościa)
 │   │   └── utils/            # a4ElementFactories, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, guestDocument, guestWizardDraft, claimGuestWizardDraft, resolveActiveCvData, guestEvents
 │   ├── package.json
 │   └── .env.example
@@ -1643,7 +1665,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Zasady:** 16 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_templates/registry.py` (re-eksport z `cv_generator.py`). Każdy `cv_templates/templates/<id>.py` zawiera wyłącznie żywy generator tego szablonu — bez wspólnego silnika multi-theme i martwych gałęzi siblingów. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Bajty obrazów użytkownika nie są publicznie montowane — tylko przez `GET /images/{id}/content`.
+**Zasady:** 17 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_templates/registry.py` (re-eksport z `cv_generator.py`). Każdy `cv_templates/templates/<id>.py` zawiera wyłącznie żywy generator tego szablonu — bez wspólnego silnika multi-theme i martwych gałęzi siblingów. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Bajty obrazów użytkownika nie są publicznie montowane — tylko przez `GET /images/{id}/content`.
 
 ---
 
@@ -1979,7 +2001,7 @@ Implementacja:
 
 Ograniczenia:
 
-- Plan Darmowy obejmuje pięć szablonów startowych, eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 16 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
+- Plan Darmowy obejmuje pięć szablonów startowych, eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 17 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
 - Wskazówki **Czytelność dla ATS** sprawdzają odczyt tekstu z finalnego PDF oraz standardowość nagłówków/słów kluczowych. To wskazówka, nie gwarancja że każdy system ATS odczyta plik tak samo.
 - Sekcja prywatności opisuje ogólnie zaimplementowane użycie danych i nie deklaruje niezaimplementowanych certyfikatów ani anonimizacji.
 
@@ -2194,6 +2216,28 @@ Implementacja:
 
 Testy: objęte przez iterujące po generatorach testy międzyszablonowe w `backend/tests/test_cv_template_layouts.py` (rozmiar czcionki podsumowania równy treści doświadczenia, granice strony) oraz `backend/tests/test_template_registry_sync.py` (parytet id, tagów layoutu i planu frontend/backend).
 
+### Szablon Atrium z centralną osią (editorial)
+
+Atrium to płatny szablon (`layouts: ["single", "icons"]`) zbudowany wokół **centralnej osi**: w odróżnieniu od Portico — drugiego szablonu z wycentrowanym mastheadem — wycentrowana jest *cała tożsamość sekcji*, nie tylko nagłówek strony. Imię i nazwisko, tytuł, pasek kontaktu **oraz każdy nagłówek sekcji** leżą na osi strony; kolumna treści jest celowo węższa, z mocnymi symetrycznymi marginesami (`L=90`, `W=415`, więc jej środek to środek strony 297.5, wobec `L=76`/`W=443` w Portico); a body pozostaje wyrównane do lewej wewnątrz tej wycentrowanej kolumny dla czytelności. Paleta to stonowany graphite-sage (`#556158` akcent, `#242521` tusz, `#78796F` muted, `#FBFAF7` ciepły papier, `#E5E3DB` hairline) — bardziej zgaszona i greyowsza niż `#486151` z Aldine oraz odmienna od każdego innego akcentu w katalogu. Nazwa używa **PlayfairDisplay** (szeryf o wysokim kontraście); tytuł, etykiety kontaktu, nagłówki sekcji i treść — **Montserrat**.
+
+Język dekoracji to drukarski **system „registration mark” zbudowany wyłącznie z cienkich linii `line`** — bez ikon sekcji, bez pełnych linii pod nagłówkami, bez ramek, bez odznak, bez sidebaru, bez osi czasu. Masthead kończy się **crosshairem** ( `────  +  ────`: dwie hairline wokół małego plusa z krótkiej poziomej i pionowej linii), a nie header rule. Każdy **wycentrowany** nagłówek sekcji ma pod sobą **krótką złamaną kreskę** (dwa odcinki ~15 px z przerwą 6 px na osi), nigdy pełne podkreślenie. Glify kontaktu (telefon, e-mail, lokalizacja, LinkedIn, GitHub, strona) pochodzą z dedykowanego motywu ikon `atrium` (graphite-sage) w tym samym pipeline i są rozmieszczane reużytym helperem `_place_centered_icon_contacts`.
+
+Body reużywa wspólnej deterministycznej maszynerii bez zmian: `Builder`, `need_section`, `keep_together` / `flowGroup`, `_place_experience_record`, `_place_education_record`, `_place_skills_section`, `_extra_sections`. Specyficzne dla szablonu są tylko nowa wycentrowana `section()` (wycentrowany nagłówek + złamana kreska, tag `section-chrome`) i helper ornamentu `_crosshair`. Strony kontynuacji **nie** powtarzają mastheadu — mają tylko mały wycentrowany crosshair przy górnej krawędzi (`page > 1`) i wyśrodkowany numer strony w stopce; masthead istnieje tylko na stronie 1.
+
+Implementacja:
+
+- `backend/app/services/cv_templates/templates/atrium.py`, funkcja `_gen_atrium` — wycentrowany masthead, `_crosshair` (terminator/ornament kontynuacji), wycentrowana `section()` ze złamaną kreską, body do lewej przez wspólne helpery record/skills/extras
+- `backend/app/services/cv_templates/registry.py`, `_GENERATORS["atrium"]` i `TEMPLATE_LAYOUTS["atrium"]` (`frozenset({"single", "icons"})`)
+- `frontend/src/templates/atrium.js` — statyczny starter emitowany bezpośrednio z wyjścia demo generatora (image `src` przechowywany względnie, baza API dodawana przy ładowaniu), więc podgląd w wyborze szablonów odpowiada `/ai/fill_template` co do piksela; eksportowana tablica `atriumTemplate`
+- `frontend/src/templates/index.js`, wpis rejestru `atrium` (`tier: "paid"`, `layouts: ["single", "icons"]`, `accent: "#556158"`)
+- `scripts/generate_iconic_icons.py`, `SUBSET_THEMES["atrium"]` (tylko glify kontaktu, `#556158`)
+- `frontend/public/template-mockups/atrium.png`, podgląd A4 generowany ze źródła
+
+Testy:
+
+- `frontend/src/templates/atrium.test.js` — wycentrowany masthead + wycentrowane nagłówki sekcji, ikony kontaktu z motywu `atrium`, jedna kolumna (bez sidebaru/ramek), wąska kolumna wycentrowana na stronie, body do lewej, cienkie krótkie linie „registration mark” (bez pełnej linii), crosshair terminator, brak nakładek osi czasu, masthead tylko na stronie 1
+- `backend/tests/test_cv_template_layouts.py` i `backend/tests/test_template_registry_sync.py` iterują po wszystkich zarejestrowanych generatorach, więc Atrium jest objęte pokryciem (rozmiar podsumowania=body, granice strony, parytet id/tagów/planu) bez dedykowanego wpisu
+
 ### Szablony z tagiem `icons` i reflow ikon
 
 Nova, Volt, Cardinal, Harbor, Tessera, Slate, Portico i Axis to indywidualne szablony ze wspólnym tagiem layoutu `icons` (opcjonalnie też `sidebar` / `dark`). Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, obrazy ikon są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
@@ -2216,7 +2260,7 @@ Testy:
 - `backend/tests/test_pdf_shapes.py`, linie 67–131 — wyrównanie optyczne, jawne `alignWithText: false` oraz maska alfa
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_iconic_experience_record_gap_matches_projects`
 
-**Regenerowanie podglądów opartych na kodzie źródłowym.** Pliki `frontend/public/template-mockups/{nova,volt,monument,words,cardinal,harbor,tessera,slate,portico,axis}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, `frontend/src/templates/harbor.js`, `frontend/src/templates/tessera.js`, `frontend/src/templates/slate.js`, `frontend/src/templates/portico.js` lub `frontend/src/templates/axis.js` należy je odtworzyć:
+**Regenerowanie podglądów opartych na kodzie źródłowym.** Pliki `frontend/public/template-mockups/{nova,volt,monument,words,cardinal,harbor,tessera,slate,portico,axis,atrium}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, `frontend/src/templates/harbor.js`, `frontend/src/templates/tessera.js`, `frontend/src/templates/slate.js`, `frontend/src/templates/portico.js`, `frontend/src/templates/axis.js` lub `frontend/src/templates/atrium.js` należy je odtworzyć:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs
@@ -2496,7 +2540,7 @@ Katalog ma tylko dwa pakiety:
 | | Darmowy (Free) | Pro |
 |--|--|--|
 | Cena | 0 zł | **59 zł / 30 dni** (jednorazowy pass, bez auto-odnawiania) |
-| Szablony | 5 startowych | wszystkie 16 |
+| Szablony | 5 startowych | wszystkie 17 |
 | Import | 1 darmowy w życiu konta | kolejne z puli kredytów AI |
 | Eksport | ze znakiem wodnym | czysty PDF |
 | AI | — | treść + ATS + Układ |

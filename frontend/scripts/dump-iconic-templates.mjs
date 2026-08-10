@@ -12,6 +12,7 @@ import { tesseraTemplate } from "../src/templates/tessera.js";
 import { slateTemplate } from "../src/templates/slate.js";
 import { porticoTemplate } from "../src/templates/portico.js";
 import { axisTemplate } from "../src/templates/axis.js";
+import { atriumTemplate } from "../src/templates/atrium.js";
 
 const out = {
     nova: novaTemplate,
@@ -24,6 +25,7 @@ const out = {
     slate: slateTemplate,
     portico: porticoTemplate,
     axis: axisTemplate,
+    atrium: atriumTemplate,
 };
 writeFileSync(new URL("./iconic-templates.json", import.meta.url), JSON.stringify(out, null, 2));
 console.log("wrote iconic-templates.json");
