@@ -1082,9 +1082,11 @@ export default function AiAssistant() {
         setDeletionStates({});
         setCloneStates({});
         layoutHistoryStartRef.current = null;
-        setLayoutPreviewPatches?.(null);
+        // Patches / deletion ids are arrays in PdfCanvas state — never null
+        // (preview useMemo reads `.length` without a null guard).
+        setLayoutPreviewPatches?.([]);
         setStructurePreviewGroup?.(null);
-        setDeletionPreviewIds?.(null);
+        setDeletionPreviewIds?.([]);
         setAiCorrectionHighlights?.([]);
     }, [
         activeTemplateId,

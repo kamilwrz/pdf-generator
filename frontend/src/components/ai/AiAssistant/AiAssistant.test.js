@@ -55,6 +55,11 @@ test("assistant chat resets when the active template changes", async () => {
     assert.match(source, /chatSessionRef\.current \+= 1/);
     assert.match(source, /setMessages\(\[\]\)/);
     assert.match(source, /setLayoutMode\(false\)/);
+    // PdfCanvas preview useMemo reads `.length` — clear with [] not null.
+    assert.match(source, /setLayoutPreviewPatches\?\.\(\[\]\)/);
+    assert.match(source, /setDeletionPreviewIds\?\.\(\[\]\)/);
+    assert.doesNotMatch(source, /setLayoutPreviewPatches\?\.\(null\)/);
+    assert.doesNotMatch(source, /setDeletionPreviewIds\?\.\(null\)/);
     assert.match(source, /const sessionAtStart = chatSessionRef\.current/);
     assert.match(source, /if \(chatSessionRef\.current !== sessionAtStart\) return/);
 });
