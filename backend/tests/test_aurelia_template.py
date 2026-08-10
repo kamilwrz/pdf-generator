@@ -41,33 +41,38 @@ class AureliaTemplateTests(unittest.TestCase):
     def setUp(self):
         self.elements = generate_resume("aurelia", CV_DATA)
 
-    def test_uses_separated_cubic_beziers_as_masthead_signature(self):
+    def test_layers_three_cubic_beziers_behind_the_display_name(self):
         paths = [element for element in self.elements if element["category"] == "path"]
         self.assertEqual(len(paths), 3)
         self.assertEqual(len({element["top"] for element in paths}), 3)
-        self.assertTrue(
-            all(147 <= element["top"] and element["top"] + element["height"] <= 178
-                for element in paths)
-        )
 
-        lead = next(
+        backdrop = next(
             element for element in paths
-            if element.get("id") == "aurelia-signature-lead"
+            if element.get("id") == "aurelia-name-backdrop"
         )
-        tail = next(
+        nameplate = next(
             element for element in paths
-            if element.get("id") == "aurelia-signature-tail"
+            if element.get("id") == "aurelia-nameplate"
         )
-        bridge = next(
+        ink = next(
             element for element in self.elements
-            if element.get("id") == "aurelia-signature-bridge"
+            if element.get("id") == "aurelia-name-ink"
         )
-        self.assertEqual(lead["flowRole"], "masthead")
-        self.assertEqual(lead["backgroundColor"], "#8B713A")
-        self.assertEqual(lead["borderWidth"], 4)
-        self.assertEqual(tail["borderWidth"], 3)
-        self.assertEqual(bridge["category"], "path")
-        self.assertEqual(bridge["borderWidth"], 2)
+        name = next(
+            element for element in self.elements
+            if element.get("content") == CV_DATA["name"]
+        )
+        self.assertEqual(backdrop["backgroundColor"], "#D6D6D3")
+        self.assertEqual(backdrop["borderWidth"], 18)
+        self.assertEqual(backdrop["zIndex"], 1)
+        self.assertEqual(nameplate["backgroundColor"], "#B3924F")
+        self.assertEqual(nameplate["borderWidth"], 28)
+        self.assertEqual(nameplate["zIndex"], 2)
+        self.assertEqual(ink["backgroundColor"], "#8B713A")
+        self.assertEqual(ink["borderWidth"], 4.5)
+        self.assertEqual(ink["zIndex"], 3)
+        self.assertEqual(name["zIndex"], 4)
+        self.assertTrue(all(element["zIndex"] < name["zIndex"] for element in paths))
 
         section_bars = [
             element for element in self.elements
@@ -88,6 +93,36 @@ class AureliaTemplateTests(unittest.TestCase):
             all(element["left"] + element["width"] == 515 for element in section_rules)
         )
         self.assertGreater(len({element["width"] for element in section_rules}), 1)
+
+    def test_nameplate_and_backdrop_respond_to_name_length(self):
+        short = generate_resume("aurelia", {**CV_DATA, "name": "Ewa Li"})
+        long = generate_resume(
+            "aurelia",
+            {**CV_DATA, "name": "Aleksandra Wrzosek-Kowalska"},
+        )
+
+        def artwork(elements):
+            return {
+                element["id"]: element
+                for element in elements
+                if str(element.get("id", "")).startswith("aurelia-name")
+            }
+
+        short_artwork = artwork(short)
+        long_artwork = artwork(long)
+        self.assertGreater(
+            long_artwork["aurelia-nameplate"]["width"],
+            short_artwork["aurelia-nameplate"]["width"],
+        )
+        self.assertGreater(
+            long_artwork["aurelia-name-backdrop"]["left"],
+            short_artwork["aurelia-name-backdrop"]["left"],
+        )
+        for elements in (short_artwork, long_artwork):
+            self.assertEqual(
+                {element["zIndex"] for element in elements.values()},
+                {1, 2, 3},
+            )
 
     def test_stays_single_column_with_modest_body_type(self):
         content = [

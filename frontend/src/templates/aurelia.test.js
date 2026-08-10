@@ -13,6 +13,7 @@ const ALLOWED_PALETTE = new Set([
     GOLD,
     "#8B713A",
     "#DCD8CE",
+    "#D6D6D3",
 ]);
 
 test("Aurelia uses restrained Bézier artwork and label-aware section rules", () => {
@@ -28,23 +29,28 @@ test("Aurelia uses restrained Bézier artwork and label-aware section rules", ()
     );
 
     const paths = aureliaTemplate.filter((element) => element.category === "path");
-    assert.equal(paths.length, 3, "three vertically offset gestures form the masthead signature");
+    assert.equal(paths.length, 3, "three layered gestures form the masthead signature");
     assert.ok(paths.every((element) => element.curves.some((segment) => segment.type === "C")));
     assert.ok(paths.every((element) => element.filled === false));
-    assert.ok(paths.every((element) => [GOLD, "#8B713A"].includes(element.backgroundColor)));
     assert.equal(new Set(paths.map((element) => element.top)).size, 3);
-    assert.ok(paths.every((element) => element.top >= 147 && element.top + element.height <= 178));
 
-    const lead = aureliaTemplate.find((element) => element.id === "aurelia-signature-lead");
-    const tail = aureliaTemplate.find((element) => element.id === "aurelia-signature-tail");
-    const bridge = aureliaTemplate.find((element) => element.id === "aurelia-signature-bridge");
-    assert.equal(lead?.borderWidth, 4);
-    assert.equal(lead?.width, 168);
-    assert.equal(tail?.borderWidth, 3);
-    assert.equal(tail?.width, 116);
-    assert.equal(bridge?.category, "path");
-    assert.equal(bridge?.flowRole, "masthead");
-    assert.equal(bridge?.borderWidth, 2);
+    const backdrop = aureliaTemplate.find((element) => element.id === "aurelia-name-backdrop");
+    const nameplate = aureliaTemplate.find((element) => element.id === "aurelia-nameplate");
+    const ink = aureliaTemplate.find((element) => element.id === "aurelia-name-ink");
+    const name = aureliaTemplate.find((element) => element.content === "ANNA KOWALSKA");
+    assert.equal(backdrop?.backgroundColor, "#D6D6D3");
+    assert.equal(backdrop?.borderWidth, 18);
+    assert.equal(backdrop?.zIndex, 1);
+    assert.equal(nameplate?.backgroundColor, GOLD);
+    assert.equal(nameplate?.borderWidth, 28);
+    assert.equal(nameplate?.zIndex, 2);
+    assert.equal(ink?.backgroundColor, "#8B713A");
+    assert.equal(ink?.borderWidth, 4.5);
+    assert.equal(ink?.zIndex, 3);
+    assert.equal(name?.zIndex, 4);
+    assert.ok(paths.every((element) => element.flowRole === "masthead"));
+    assert.ok(paths.every((element) => element.zIndex < name.zIndex));
+    assert.ok(nameplate.width > ink.width);
     assert.equal(aureliaTemplate.some((element) => element.category === "polygon"), false);
 
     const headings = aureliaTemplate.filter(

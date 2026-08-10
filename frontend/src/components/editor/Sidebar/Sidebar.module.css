@@ -15,7 +15,7 @@
     z-index: 1000;
     display: flex;
     flex-direction: column;
-    padding: 10px 12px;
+    padding: 8px 12px;
     font-family: var(--font-body);
     color: var(--sidebar-ink);
     overflow: visible;
@@ -27,14 +27,14 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 37px;
-    padding: 0 0 9px;
+    min-height: 32px;
+    padding: 0 0 6px;
     border-bottom: 1px solid var(--sidebar-border);
 }
 
 .logoMark {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     border-radius: 6px;
     background: transparent;
     display: flex;
@@ -54,8 +54,8 @@
 
 .logoMark img {
     display: block;
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     object-fit: contain;
 }
 
@@ -118,12 +118,12 @@
 
 /* ---- Tools ---- */
 .toolsContainer {
-    margin-top: 12px;
+    margin-top: 8px;
 }
 
 .toolsContainer + .toolsContainer {
-    margin-top: 10px;
-    padding-top: 10px;
+    margin-top: 8px;
+    padding-top: 8px;
     border-top: 1px solid var(--sidebar-border);
 }
 
@@ -131,7 +131,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 1px;
 }
 
 /* ---- My documents ---- */
@@ -142,12 +142,13 @@
 /* ---- Footer ---- */
 .sidebarFooter {
     margin-top: auto;
-    padding-top: 10px;
+    padding-top: 6px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     border-top: 1px solid var(--sidebar-border);
+    flex-shrink: 0;
 }
 
 /* Fixed box the diagonal label is centered inside; the label's untransformed
@@ -156,7 +157,7 @@
 .planBadgeWrap {
     position: relative;
     width: 100%;
-    height: 56px;
+    height: 40px;
     overflow: visible;
 }
 
@@ -259,23 +260,23 @@
 }
 
 .logout {
-    width: 40px;
-    height: 40px;
-    border-radius: 7px;
+    width: 30px;
+    height: 30px;
+    border-radius: 5px;
     background: transparent;
     border: 1px solid transparent;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--sidebar-muted);
-    font-size: 16px;
+    font-size: 14px;
     cursor: pointer;
     transition: color .15s, border-color .15s;
 }
 
 .logout svg {
-    width: 18px;
-    height: 18px;
+    width: 15px;
+    height: 15px;
 }
 
 .logout:hover {

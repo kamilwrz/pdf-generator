@@ -1,10 +1,11 @@
 /**
  * Aurelia template.
  *
- * A one-column quiet-luxury composition built around a restrained three-stroke
- * signature below the masthead. Three cubic Bézier gestures vary in vertical
- * position, amplitude, and weight while staying inside a text-safe band.
- * Section divider lengths follow their labels and share one precise right edge.
+ * A one-column quiet-luxury composition built around three layered Bézier
+ * brushstrokes behind the display name. A pale vertical gesture sits behind a
+ * broad gold nameplate and a narrow dark-gold ink stroke; text remains on the
+ * foreground layer. Section divider lengths follow their labels and share one
+ * precise right edge.
  */
 import { bezierPath, block, bulleted, line, text } from "./helpers.js";
 
@@ -15,21 +16,33 @@ const MUTED = "#77736B";
 const GOLD = "#B3924F";
 const GOLD_DARK = "#8B713A";
 const RULE = "#DCD8CE";
+const MIST = "#D6D6D3";
 const DISPLAY = "PlayfairDisplay";
 const SANS = "Montserrat";
 
-const LEAD_CURVES = [
-    { type: "M", x: 0.02, y: 0.72 },
-    { type: "C", x1: 0.28, y1: 0.12, x2: 0.72, y2: 0.12, x: 0.98, y: 0.52 },
+const BACKDROP_CURVES = [
+    { type: "M", x: 0.72, y: 0.02 },
+    { type: "C", x1: 1, y1: 0.27, x2: 0.08, y2: 0.66, x: 0.34, y: 0.98 },
 ];
-const BRIDGE_CURVES = [
-    { type: "M", x: 0.02, y: 0.28 },
-    { type: "C", x1: 0.28, y1: 0.92, x2: 0.7, y2: 0.08, x: 0.98, y: 0.58 },
+const NAMEPLATE_CURVES = [
+    { type: "M", x: 0.03, y: 0.55 },
+    { type: "C", x1: 0.25, y1: 0.23, x2: 0.68, y2: 0.78, x: 0.97, y: 0.46 },
 ];
-const TAIL_CURVES = [
-    { type: "M", x: 0.02, y: 0.62 },
-    { type: "C", x1: 0.3, y1: 0.05, x2: 0.64, y2: 0.95, x: 0.98, y: 0.32 },
+const INK_CURVES = [
+    { type: "M", x: 0.02, y: 0.65 },
+    { type: "C", x1: 0.28, y1: 0.05, x2: 0.72, y2: 0.95, x: 0.98, y: 0.25 },
 ];
+
+const STARTER_NAME = "ANNA KOWALSKA";
+const DISPLAY_NAME_SIZE = 31;
+const DISPLAY_NAME_TRACKING = 0.1;
+const estimatedStarterNameWidth = Math.min(
+    435,
+    Math.max(
+        180,
+        STARTER_NAME.length * (DISPLAY_NAME_SIZE * 0.63 + DISPLAY_NAME_TRACKING),
+    ),
+);
 
 const masthead = (element) => ({ ...element, flowRole: "masthead" });
 const sectionChrome = (element) => ({ ...element, flowRole: "section-chrome" });
@@ -84,21 +97,56 @@ const aureliaElements = [
     { ...line(63, 42, 3, 54, GOLD, 2), fixedToPage: true },
     { ...line(63, 744, 3, 54, GOLD, 2), fixedToPage: true },
 
-    masthead(tracked(bold(text("ANNA KOWALSKA", 31, DISPLAY, INK, 80, 55, 4)), 0.1)),
+    // PDF export paints in array order. Keep all artwork before masthead text so
+    // the explicit z-index layering also remains readable in the exported file.
+    masthead({
+        ...bezierPath(
+            Math.min(425, 80 + estimatedStarterNameWidth * 1.02),
+            24,
+            90,
+            132,
+            BACKDROP_CURVES,
+            MIST,
+            18,
+            1,
+            "flourish",
+        ),
+        id: "aurelia-name-backdrop",
+    }),
+    masthead({
+        ...bezierPath(
+            76,
+            42,
+            Math.min(435, estimatedStarterNameWidth + 40),
+            34,
+            NAMEPLATE_CURVES,
+            GOLD,
+            28,
+            2,
+            "wave",
+        ),
+        id: "aurelia-nameplate",
+    }),
+    masthead({
+        ...bezierPath(
+            80,
+            31,
+            estimatedStarterNameWidth * 0.5,
+            10,
+            INK_CURVES,
+            GOLD_DARK,
+            4.5,
+            3,
+            "arc",
+        ),
+        id: "aurelia-name-ink",
+    }),
+    masthead(tracked(
+        bold(text(STARTER_NAME, DISPLAY_NAME_SIZE, DISPLAY, INK, 80, 55, 4)),
+        DISPLAY_NAME_TRACKING,
+    )),
     masthead(tracked(text("STRATEGIA  ·  OPERACJE  ·  TRANSFORMACJA", 8.4, SANS, GOLD_DARK, 82, 100, 4), 1.55)),
     masthead(text("anna.kowalska@email.com  ·  +48 600 000 000  ·  Warszawa", 8.4, SANS, MUTED, 82, 128, 4)),
-    masthead({
-        ...bezierPath(80, 150, 168, 18, LEAD_CURVES, GOLD_DARK, 4, 3, "arc"),
-        id: "aurelia-signature-lead",
-    }),
-    masthead({
-        ...bezierPath(229, 164, 191, 14, BRIDGE_CURVES, GOLD, 2, 3, "wave"),
-        id: "aurelia-signature-bridge",
-    }),
-    masthead({
-        ...bezierPath(399, 147, 116, 22, TAIL_CURVES, GOLD_DARK, 3, 3, "flourish"),
-        id: "aurelia-signature-tail",
-    }),
 
     ...sectionHeading("PROFIL", 204, "summary"),
     block(

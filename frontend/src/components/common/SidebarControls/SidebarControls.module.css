@@ -2,10 +2,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    padding: 3px;
-    border-radius: 8px;
+    /* Compact tiles so logo + tools + plan badge + logout fit a laptop
+       viewport without a scrollable rail. */
+    width: 36px;
+    height: 36px;
+    padding: 1px;
+    border-radius: 6px;
     border: 1px solid transparent;
     background: transparent;
     cursor: pointer;
@@ -22,16 +24,16 @@
 }
 
 .iconBox {
-    width: 40px;
-    height: 40px;
-    border-radius: 7px;
+    width: 30px;
+    height: 30px;
+    border-radius: 5px;
     background: var(--chrome-control);
     color: var(--chrome-muted);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 20px;
+    font-size: 15px;
     transition: background .15s, color .15s;
 }
 
@@ -41,6 +43,6 @@
 }
 
 .iconBox svg {
-    width: 20px;
-    height: 20px;
+    width: 15px;
+    height: 15px;
 }
