@@ -11,6 +11,7 @@ import { harborTemplate } from "../src/templates/harbor.js";
 import { tesseraTemplate } from "../src/templates/tessera.js";
 import { slateTemplate } from "../src/templates/slate.js";
 import { porticoTemplate } from "../src/templates/portico.js";
+import { axisTemplate } from "../src/templates/axis.js";
 
 const out = {
     nova: novaTemplate,
@@ -22,6 +23,7 @@ const out = {
     tessera: tesseraTemplate,
     slate: slateTemplate,
     portico: porticoTemplate,
+    axis: axisTemplate,
 };
 writeFileSync(new URL("./iconic-templates.json", import.meta.url), JSON.stringify(out, null, 2));
 console.log("wrote iconic-templates.json");

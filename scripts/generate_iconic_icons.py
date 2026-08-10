@@ -312,6 +312,13 @@ SUBSET_THEMES = {
     # or contact/photo role (accent) always resolves to an existing asset.
     "slate": ("#FFFFFF", _SLATE_GLYPHS),
     "slate-accent": ("#3E5C76", _SLATE_GLYPHS),
+    # Axis (timeline single column) uses orange contact glyphs in the masthead
+    # and an orange diamond bullet for its "systems & tools" lists. Section
+    # headings are plain navy text, so only contact + diamond glyphs are needed.
+    "axis": (
+        "#E2740C",
+        ["email", "phone", "linkedin", "github", "website", "location", "diamond"],
+    ),
 }
 
 

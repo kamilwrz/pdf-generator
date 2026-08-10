@@ -21,6 +21,7 @@ import { harborTemplate } from "./harbor";
 import { tesseraTemplate } from "./tessera";
 import { slateTemplate } from "./slate";
 import { porticoTemplate } from "./portico";
+import { axisTemplate } from "./axis";
 
 export { TEMPLATE_LAYOUT_TAGS } from "../utils/templateLayouts";
 
@@ -40,4 +41,5 @@ export const TEMPLATES = [
     { id: "tessera", tier: "paid", name: "Tessera", description: "Mozaikowy sidebar, prostokątne zdjęcie", layouts: ["sidebar", "icons"], accent: "#E15D4F", elements: tesseraTemplate },
     { id: "slate", tier: "paid", name: "Slate", description: "Stalowy sidebar, siatka i prostokątne zdjęcie", layouts: ["sidebar", "icons"], accent: "#3E5C76", elements: slateTemplate },
     { id: "portico", tier: "paid", name: "Portico", description: "Wycentrowany nagłówek, ikony, spokojny minimalizm", layouts: ["icons"], accent: "#7C6A52", elements: porticoTemplate },
+    { id: "axis", tier: "paid", name: "Axis", description: "Oś czasu z datami na marginesie, akcenty pomarańczowo-morskie", layouts: ["icons"], accent: "#E2740C", elements: axisTemplate },
 ];
