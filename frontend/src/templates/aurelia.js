@@ -2,9 +2,9 @@
  * Aurelia template.
  *
  * A one-column quiet-luxury composition built around a restrained three-stroke
- * signature below the masthead. Two short cubic Bézier gestures and one quiet
- * rule create movement without entering the text area. Section divider lengths
- * follow their heading labels while sharing one precise right edge.
+ * signature below the masthead. Three cubic Bézier gestures vary in vertical
+ * position, amplitude, and weight while staying inside a text-safe band.
+ * Section divider lengths follow their labels and share one precise right edge.
  */
 import { bezierPath, block, bulleted, line, text } from "./helpers.js";
 
@@ -22,9 +22,13 @@ const LEAD_CURVES = [
     { type: "M", x: 0.02, y: 0.72 },
     { type: "C", x1: 0.28, y1: 0.12, x2: 0.72, y2: 0.12, x: 0.98, y: 0.52 },
 ];
+const BRIDGE_CURVES = [
+    { type: "M", x: 0.02, y: 0.28 },
+    { type: "C", x1: 0.28, y1: 0.92, x2: 0.7, y2: 0.08, x: 0.98, y: 0.58 },
+];
 const TAIL_CURVES = [
-    { type: "M", x: 0.02, y: 0.5 },
-    { type: "C", x1: 0.35, y1: 0.84, x2: 0.72, y2: 0.08, x: 0.98, y: 0.38 },
+    { type: "M", x: 0.02, y: 0.62 },
+    { type: "C", x1: 0.3, y1: 0.05, x2: 0.64, y2: 0.95, x: 0.98, y: 0.32 },
 ];
 
 const masthead = (element) => ({ ...element, flowRole: "masthead" });
@@ -84,12 +88,15 @@ const aureliaElements = [
     masthead(tracked(text("STRATEGIA  ·  OPERACJE  ·  TRANSFORMACJA", 8.4, SANS, GOLD_DARK, 82, 100, 4), 1.55)),
     masthead(text("anna.kowalska@email.com  ·  +48 600 000 000  ·  Warszawa", 8.4, SANS, MUTED, 82, 128, 4)),
     masthead({
-        ...bezierPath(80, 151, 158, 16, LEAD_CURVES, GOLD_DARK, 4, 3, "arc"),
+        ...bezierPath(80, 150, 168, 18, LEAD_CURVES, GOLD_DARK, 4, 3, "arc"),
         id: "aurelia-signature-lead",
     }),
-    masthead({ ...line(256, 162, 143, 2, GOLD, 3), id: "aurelia-signature-bridge" }),
     masthead({
-        ...bezierPath(419, 155, 96, 16, TAIL_CURVES, GOLD_DARK, 2.5, 3, "flourish"),
+        ...bezierPath(229, 164, 191, 14, BRIDGE_CURVES, GOLD, 2, 3, "wave"),
+        id: "aurelia-signature-bridge",
+    }),
+    masthead({
+        ...bezierPath(399, 147, 116, 22, TAIL_CURVES, GOLD_DARK, 3, 3, "flourish"),
         id: "aurelia-signature-tail",
     }),
 

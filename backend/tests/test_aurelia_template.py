@@ -43,7 +43,12 @@ class AureliaTemplateTests(unittest.TestCase):
 
     def test_uses_separated_cubic_beziers_as_masthead_signature(self):
         paths = [element for element in self.elements if element["category"] == "path"]
-        self.assertEqual(len(paths), 2)
+        self.assertEqual(len(paths), 3)
+        self.assertEqual(len({element["top"] for element in paths}), 3)
+        self.assertTrue(
+            all(147 <= element["top"] and element["top"] + element["height"] <= 178
+                for element in paths)
+        )
 
         lead = next(
             element for element in paths
@@ -60,9 +65,9 @@ class AureliaTemplateTests(unittest.TestCase):
         self.assertEqual(lead["flowRole"], "masthead")
         self.assertEqual(lead["backgroundColor"], "#8B713A")
         self.assertEqual(lead["borderWidth"], 4)
-        self.assertEqual(tail["borderWidth"], 2.5)
-        self.assertEqual(bridge["category"], "line")
-        self.assertEqual(bridge["height"], 2)
+        self.assertEqual(tail["borderWidth"], 3)
+        self.assertEqual(bridge["category"], "path")
+        self.assertEqual(bridge["borderWidth"], 2)
 
         section_bars = [
             element for element in self.elements

@@ -28,21 +28,23 @@ test("Aurelia uses restrained Bézier artwork and label-aware section rules", ()
     );
 
     const paths = aureliaTemplate.filter((element) => element.category === "path");
-    assert.equal(paths.length, 2, "two separated gestures form the masthead signature");
+    assert.equal(paths.length, 3, "three vertically offset gestures form the masthead signature");
     assert.ok(paths.every((element) => element.curves.some((segment) => segment.type === "C")));
     assert.ok(paths.every((element) => element.filled === false));
-    assert.ok(paths.every((element) => element.backgroundColor === "#8B713A"));
+    assert.ok(paths.every((element) => [GOLD, "#8B713A"].includes(element.backgroundColor)));
+    assert.equal(new Set(paths.map((element) => element.top)).size, 3);
+    assert.ok(paths.every((element) => element.top >= 147 && element.top + element.height <= 178));
 
     const lead = aureliaTemplate.find((element) => element.id === "aurelia-signature-lead");
     const tail = aureliaTemplate.find((element) => element.id === "aurelia-signature-tail");
     const bridge = aureliaTemplate.find((element) => element.id === "aurelia-signature-bridge");
     assert.equal(lead?.borderWidth, 4);
-    assert.equal(lead?.width, 158);
-    assert.equal(tail?.borderWidth, 2.5);
-    assert.equal(tail?.width, 96);
-    assert.equal(bridge?.category, "line");
+    assert.equal(lead?.width, 168);
+    assert.equal(tail?.borderWidth, 3);
+    assert.equal(tail?.width, 116);
+    assert.equal(bridge?.category, "path");
     assert.equal(bridge?.flowRole, "masthead");
-    assert.equal(bridge?.height, 2);
+    assert.equal(bridge?.borderWidth, 2);
     assert.equal(aureliaTemplate.some((element) => element.category === "polygon"), false);
 
     const headings = aureliaTemplate.filter(

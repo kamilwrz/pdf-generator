@@ -1,8 +1,8 @@
 """Aurelia CV template generator.
 
 Aurelia is a one-column quiet-luxury document in charcoal, warm white, and
-antique gold. Two short cubic Bézier gestures and one quiet bridge form an
-artistic signature below the masthead without entering the text area. Section
+antique gold. Three cubic Bézier gestures vary in vertical position, amplitude,
+and weight while remaining inside a text-safe band below the masthead. Section
 rules react to label length while sharing one precise right edge.
 """
 
@@ -35,9 +35,13 @@ LEAD_CURVES = [
     {"type": "M", "x": 0.02, "y": 0.72},
     {"type": "C", "x1": 0.28, "y1": 0.12, "x2": 0.72, "y2": 0.12, "x": 0.98, "y": 0.52},
 ]
+BRIDGE_CURVES = [
+    {"type": "M", "x": 0.02, "y": 0.28},
+    {"type": "C", "x1": 0.28, "y1": 0.92, "x2": 0.7, "y2": 0.08, "x": 0.98, "y": 0.58},
+]
 TAIL_CURVES = [
-    {"type": "M", "x": 0.02, "y": 0.5},
-    {"type": "C", "x1": 0.35, "y1": 0.84, "x2": 0.72, "y2": 0.08, "x": 0.98, "y": 0.38},
+    {"type": "M", "x": 0.02, "y": 0.62},
+    {"type": "C", "x1": 0.3, "y1": 0.05, "x2": 0.64, "y2": 0.95, "x": 0.98, "y": 0.32},
 ]
 
 SECTION_HEADING_LEFT = 116
@@ -78,17 +82,18 @@ def _gen_aurelia(cv: dict) -> list[dict]:
         _text(title, 8.4, SANS, C["gold_dark"], 82, 100, zIndex=4),
         _text(contact, 8.4, SANS, C["muted"], 82, 128, zIndex=4),
         {
-            **_path(80, 151, 158, 16, LEAD_CURVES, C["gold_dark"],
+            **_path(80, 150, 168, 18, LEAD_CURVES, C["gold_dark"],
                     borderWidth=4, pathKind="arc", zIndex=3),
             "id": "aurelia-signature-lead",
         },
         {
-            **_line(256, 162, 143, 2, C["gold"], zIndex=3),
+            **_path(229, 164, 191, 14, BRIDGE_CURVES, C["gold"],
+                    borderWidth=2, pathKind="wave", zIndex=3),
             "id": "aurelia-signature-bridge",
         },
         {
-            **_path(419, 155, 96, 16, TAIL_CURVES, C["gold_dark"],
-                    borderWidth=2.5, pathKind="flourish", zIndex=3),
+            **_path(399, 147, 116, 22, TAIL_CURVES, C["gold_dark"],
+                    borderWidth=3, pathKind="flourish", zIndex=3),
             "id": "aurelia-signature-tail",
         },
     ]
