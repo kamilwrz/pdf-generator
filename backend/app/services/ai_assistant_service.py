@@ -271,6 +271,51 @@ def _extract_text(elements: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _compact_inline_runs(content: str, runs) -> list[dict]:
+    """Shrink inline decoration runs for GPT prompts.
+
+    The canvas POST body already carries full ``runs``; rating/style extractors
+    previously dropped them, so the model only saw the element base colour and
+    could not spot a blue word inside an otherwise graphite paragraph.
+    """
+    if not isinstance(runs, list) or not runs:
+        return []
+    text = content if isinstance(content, str) else ""
+    length = len(text)
+    compact: list[dict] = []
+    for run in runs:
+        if not isinstance(run, dict):
+            continue
+        try:
+            start = int(run.get("start"))
+            end = int(run.get("end"))
+        except (TypeError, ValueError):
+            continue
+        if end <= start or start < 0 or end > length:
+            continue
+        item: dict = {"start": start, "end": end}
+        # Short excerpt so the model can name the painted phrase in tips.
+        excerpt = text[start:end].replace("\n", " ").strip()
+        if excerpt:
+            item["text"] = excerpt[:48]
+        if run.get("bold") is True:
+            item["bold"] = True
+        if run.get("italic") is True:
+            item["italic"] = True
+        if run.get("underline") is True:
+            item["underline"] = True
+        color = run.get("color")
+        if isinstance(color, str) and color.strip():
+            item["color"] = color.strip()
+        # Skip empty overlays that only repeat base style with no marks.
+        if len(item) <= 2:
+            continue
+        compact.append(item)
+        if len(compact) >= 24:
+            break
+    return compact
+
+
 def _extract_structured(elements: list[dict]) -> list[dict]:
     tense_by_id = _annotate_employment_tense(elements)
     items = []
@@ -278,10 +323,11 @@ def _extract_structured(elements: list[dict]) -> list[dict]:
         if el.get("category") not in ("text", "textarea") or not el.get("content"):
             continue
         element_id = el.get("element_id")
+        content = el.get("content", "")
         item = {
             "element_id": element_id,
             "category": el.get("category"),
-            "content": el.get("content", ""),
+            "content": content,
             "fontSize": el.get("fontSize"),
             "lineHeight": el.get("lineHeight"),
             "fontFamily": el.get("fontFamily"),
@@ -292,6 +338,9 @@ def _extract_structured(elements: list[dict]) -> list[dict]:
             "italic": el.get("italic", False),
             "align": el.get("align", "left"),
         }
+        inline_runs = _compact_inline_runs(content, el.get("runs"))
+        if inline_runs:
+            item["runs"] = inline_runs
         # Present/past tag for duty bullets under dated experience blocks.
         tense = tense_by_id.get(str(element_id)) if element_id is not None else None
         if tense:
@@ -393,6 +442,7 @@ def _extract_typography(elements: list[dict]) -> list[dict]:
     for el in elements:
         if el.get("category") not in ("text", "textarea") or not el.get("content"):
             continue
+        content = el.get("content") or ""
         item = {
             "element_id": el.get("element_id"),
             "category": el.get("category"),
@@ -402,8 +452,13 @@ def _extract_typography(elements: list[dict]) -> list[dict]:
             "bold": el.get("bold"),
             "italic": el.get("italic"),
             "align": el.get("align"),
-            "preview": (el.get("content") or "")[:60],
+            "preview": content[:60],
         }
+        inline_runs = _compact_inline_runs(content, el.get("runs"))
+        if inline_runs:
+            # Per-span colour/bold overrides — required to catch accidental
+            # painted words that still share the element's base `color`.
+            item["runs"] = inline_runs
         if el.get("fixedToPage"):
             item["fixedToPage"] = True
         if el.get("locked"):
@@ -791,7 +846,9 @@ ETAPY ANALIZY:
    Czy nagłówki są konsekwentnie pogrubione? Czy pogrubienie jest nadużywane (jeśli wszystko jest pogrubione, nic się nie wyróżnia)?
 
 ③ SPÓJNOŚĆ KOLORÓW
-   Czy kolory tekstu są używane konsekwentnie? Zidentyfikuj elementy o odstającym kolorze względem palety szablonu.
+   Czy kolory tekstu są używane konsekwentnie? Sprawdź zarówno `color` elementu, jak i opcjonalne
+   `runs[]` (kolor/bold/italic na fragmencie `text`). Pojedyncze słowo w odstającym kolorze
+   (np. niebieski run w grafitowym akapicie) to niespójność — wskaż je w tipach/priorytetach.
 
 ④ WYRÓWNANIE
    Czy tekst główny jest konsekwentnie wyrównany do lewej? Czy nagłówki są wyrównane konsekwentnie?

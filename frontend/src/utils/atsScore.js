@@ -50,6 +50,29 @@ export function overallPercentFromCategories(
 }
 
 /**
+ * Overall percent from a rubric whose category `max` values are the weights
+ * (design / rating / position dashboards). Example: hierarchy 3/3 + emphasis
+ * 2/2 + color 2/2 + alignment 2/2 → 100%, never a stale `rating × 10` of 90.
+ *
+ * @param {Array<{ score?: number, max?: number }>} categories
+ * @returns {number|null}
+ */
+export function overallPercentFromRubric(categories) {
+  if (!Array.isArray(categories) || categories.length === 0) return null;
+  let scoreSum = 0;
+  let maxSum = 0;
+  for (const cat of categories) {
+    const max = Number(cat?.max);
+    const score = Number(cat?.score);
+    if (!(max > 0) || Number.isNaN(score)) continue;
+    scoreSum += Math.max(0, Math.min(max, score));
+    maxSum += max;
+  }
+  if (maxSum <= 0) return null;
+  return Math.max(0, Math.min(100, Math.round((scoreSum / maxSum) * 100)));
+}
+
+/**
  * Verbal band for ATS readability overall (percent 0–100).
  *
  * @param {number|null|undefined} percent

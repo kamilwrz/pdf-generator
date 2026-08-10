@@ -22,6 +22,7 @@ import {
     ATS_CATEGORY_WEIGHTS,
     atsReadabilityBand,
     overallPercentFromCategories,
+    overallPercentFromRubric,
 } from "../../../utils/atsScore";
 import { collectPendingAiHighlights } from "../../../utils/aiCorrectionHighlights";
 
@@ -326,12 +327,14 @@ function RatingDashboard({
     const priorities = Array.isArray(msg.priorities) ? msg.priorities : [];
     const actionId = msg.actionId;
     const isAts = actionId === "ats_score";
-    // ATS: derive the badge from weighted categories so 95% / 82% subscores
-    // cannot collapse into a false 100% via the coarse 1–10 `rating` field.
+    // Prefer category math over `rating × 10`:
+    // - ATS uses fixed weights (avoids 96% → false 100%).
+    // - design / rating / position use rubric maxes (avoids 100% bars + 90% badge
+    //   when the model returns rating=9 with every category at full score).
     const percent = isAts
         ? (overallPercentFromCategories(categories, ATS_CATEGORY_WEIGHTS)
             ?? ratingToPercent(msg.rating))
-        : ratingToPercent(msg.rating);
+        : (overallPercentFromRubric(categories) ?? ratingToPercent(msg.rating));
 
     const weakContent = categories.some((cat) => {
         const p = categoryPercent(cat);
@@ -358,7 +361,7 @@ function RatingDashboard({
         <div className={classes.ratingDashboard}>
             {percent != null && (
                 <div className={classes.ratingDashboardScore}>
-                    <RatingBadge value={msg.rating} percent={isAts ? percent : undefined} />
+                    <RatingBadge value={msg.rating} percent={percent} />
                     <div className={classes.ratingDashboardHeading}>
                         <span className={classes.ratingDashboardLabel}>
                             {isAts ? "Czytelność dla ATS" : "Ocena ogólna"}

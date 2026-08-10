@@ -609,6 +609,26 @@ class DesignRatingTemplateRespectTests(unittest.TestCase):
         self.assertNotIn("fixedToPage", by_id["body"])
         self.assertNotIn("locked", by_id["body"])
 
+    def test_extract_typography_includes_inline_color_runs(self):
+        # Accidental painted words must reach design_rating — base `color` alone
+        # hides a blue span inside a graphite paragraph.
+        content = "Analiza transakcji i przygotowywanie raportów SAR."
+        start = content.index("raportów")
+        end = start + len("raportów")
+        items = ai_assistant_service._extract_typography([{
+            "element_id": "duty",
+            "category": "textarea",
+            "content": content,
+            "color": "#2B2B2B",
+            "fontSize": 10,
+            "runs": [{"start": start, "end": end, "color": "#5A86B5"}],
+        }])
+        self.assertEqual(len(items), 1)
+        runs = items[0].get("runs")
+        self.assertEqual(len(runs), 1)
+        self.assertEqual(runs[0]["color"], "#5A86B5")
+        self.assertEqual(runs[0]["text"], "raportów")
+
     def test_design_rating_prompt_rejects_absolute_font_size_critique(self):
         elements = [
             {

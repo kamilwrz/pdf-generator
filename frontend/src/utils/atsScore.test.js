@@ -4,6 +4,7 @@ import {
   ATS_CATEGORY_WEIGHTS,
   atsReadabilityBand,
   overallPercentFromCategories,
+  overallPercentFromRubric,
 } from "./atsScore.js";
 
 test("ATS overall is the weighted blend of categories, not a rounded 1–10 scale", () => {
@@ -34,4 +35,21 @@ test("missing categories renormalise instead of inventing 100%", () => {
     { id: "keywords", score: 50, max: 100 },
   ];
   assert.equal(overallPercentFromCategories(categories), 50);
+});
+
+test("design rubric overall follows category maxes, not rating × 10", () => {
+  // Live bug: every bar at 100% while rating=9 → badge showed 90%.
+  const categories = [
+    { id: "hierarchy", score: 3, max: 3 },
+    { id: "emphasis", score: 2, max: 2 },
+    { id: "color", score: 2, max: 2 },
+    { id: "alignment", score: 2, max: 2 },
+  ];
+  assert.equal(overallPercentFromRubric(categories), 100);
+  assert.equal(overallPercentFromRubric([
+    { id: "hierarchy", score: 3, max: 3 },
+    { id: "emphasis", score: 1, max: 2 },
+    { id: "color", score: 2, max: 2 },
+    { id: "alignment", score: 2, max: 2 },
+  ]), 89);
 });
