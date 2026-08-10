@@ -63,11 +63,19 @@ const monumentElements = [
     bold(tracked(text("DYREKTORKA KREATYWNA", 12.5, SANS, GRAPHITE, 76, 104, 3), 1.1)),
     text("marta.zalewska@email.com  ·  +48 600 000 000  ·  Warszawa", 9, SANS, MUTED, 76, 136, 3),
 
-    { ...rect(425, 54, 84, 84, INK, 1.5, 3), id: "monument-masthead-frame" },
-    line(441, 70, 52, 11, INK, 3),
-    line(441, 88, 34, 11, GRAPHITE, 3),
-    line(441, 106, 52, 11, RULE, 3),
-    text("CV / 01", 9, SANS, MUTED, 449, 145, 3),
+    // Square masthead frame doubles as the profile-photo slot. The three bars
+    // are placeholder ornaments covered when a gallery photo is applied;
+    // `photoShape: "ornament-frame"` keeps the ink outline above the raster.
+    {
+        ...rect(425, 54, 84, 84, INK, 1.5, 3),
+        id: "monument-masthead-frame",
+        photoSlot: "frame",
+        photoShape: "ornament-frame",
+        fixedToPage: true,
+    },
+    { ...line(441, 70, 52, 11, INK, 3), photoSlot: "ornament", fixedToPage: true },
+    { ...line(441, 88, 34, 11, GRAPHITE, 3), photoSlot: "ornament", fixedToPage: true },
+    { ...line(441, 106, 52, 11, RULE, 3), photoSlot: "ornament", fixedToPage: true },
 
     ...sectionHeading("01", "PROFIL", 190, "profile"),
     // Summary matches body size (9 px). It must not sit one step above the

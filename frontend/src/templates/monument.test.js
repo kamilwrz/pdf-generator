@@ -72,4 +72,21 @@ test("Monument keeps its text hierarchy readable and monochrome", () => {
     assert.ok(mastheadRails.every(
         (element) => element.repeatOnContinuation === false,
     ));
+    // Masthead square is the profile-photo slot; abstract bars are ornaments.
+    // The old "CV / 01" caption under the frame is intentionally removed.
+    const photoFrame = monumentTemplate.find(
+        (element) => element.id === "monument-masthead-frame",
+    );
+    assert.equal(photoFrame?.photoSlot, "frame");
+    assert.equal(photoFrame?.photoShape, "ornament-frame");
+    assert.equal(photoFrame?.fixedToPage, true);
+    const photoOrnaments = monumentTemplate.filter(
+        (element) => element.photoSlot === "ornament",
+    );
+    assert.equal(photoOrnaments.length, 3);
+    assert.ok(photoOrnaments.every((element) => element.fixedToPage === true));
+    assert.equal(
+        monumentTemplate.some((element) => String(element.content || "").includes("CV /")),
+        false,
+    );
 });

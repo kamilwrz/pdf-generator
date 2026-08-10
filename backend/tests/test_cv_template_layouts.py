@@ -836,6 +836,28 @@ class CvTemplateLayoutTests(unittest.TestCase):
             element.get("repeatOnContinuation") is False
             for element in masthead_rails
         ))
+        photo_frame = next(
+            (
+                element
+                for element in elements
+                if element.get("id") == "monument-masthead-frame"
+            ),
+            None,
+        )
+        self.assertIsNotNone(photo_frame)
+        self.assertEqual(photo_frame.get("photoSlot"), "frame")
+        self.assertEqual(photo_frame.get("photoShape"), "ornament-frame")
+        self.assertTrue(photo_frame.get("fixedToPage"))
+        photo_ornaments = [
+            element
+            for element in elements
+            if element.get("photoSlot") == "ornament"
+        ]
+        self.assertEqual(len(photo_ornaments), 3)
+        self.assertFalse(any(
+            "CV /" in str(element.get("content") or "")
+            for element in elements
+        ))
         selectable = [element for element in elements if not element.get("fixedToPage")]
         self.assertTrue(all(element.get("flowRole") for element in selectable))
         self.assertTrue(all(

@@ -515,17 +515,21 @@ Monument is a paid Classic template for users who want an elegant editorial resu
 
 The frontend starter array and the deterministic Python generator use the same A4 geometry and grayscale palette. `_gen_monument` preserves complete experience and education records during page breaks, supports custom sections through `_extra_sections`, and groups each number, frame, label, and rule into one reflow unit so the heading geometry remains aligned after browser text measurement. The page frame and footer repeat on every page, while the name-and-position masthead and its tall side bars appear only on page one; `repeatOnContinuation: false` preserves this rule when the editor creates another page later. Layout decisions are never sent to the AI model.
 
+The top-right square masthead frame (`monument-masthead-frame`) is the profile-photo slot (`photoSlot: "frame"`, `photoShape: "ornament-frame"`). Three abstract bars inside it are `photoSlot: "ornament"` placeholders covered when a gallery photo is applied; the ink outline stays above the raster. The former “CV / 01” caption under the frame is removed.
+
 Implementation:
 
-- `frontend/src/templates/monument.js`, lines 1–108, exported array `monumentTemplate`
+- `frontend/src/templates/monument.js`, lines 1–124, exported array `monumentTemplate` (photo frame + ornaments at lines 66–78)
 - `frontend/src/templates/index.js`, registry entry `monument` (`tier: "paid"`, `layouts: ["single"]`)
 - `backend/app/services/cv_templates/templates/monument.py`, function `_gen_monument`; `cv_templates/registry.py`, `_GENERATORS["monument"]`
 - `frontend/src/utils/structureOperation.js`, lines 34–63, function `cloneFixedPageDecorations`
+- `frontend/src/utils/profilePhoto.js` — `monument-masthead-frame` in `PROFILE_PHOTO_FRAME_IDS`
 - `frontend/public/template-mockups/monument.png`, source-driven A4 preview
 
 Tests:
 
-- `frontend/src/templates/monument.test.js`, lines 6–56, starter-layout hierarchy, section-number, frame-geometry, and page-one masthead assertions
+- `frontend/src/templates/monument.test.js`, lines 6–93, starter-layout hierarchy, section-number, frame-geometry, page-one masthead, and profile-photo slot assertions
+- `frontend/src/utils/profilePhoto.test.js` — Monument ornament-frame apply geometry
 - `frontend/src/utils/structureOperation.test.js`, lines 25–44, continuation-page cloning opt-out
 - `backend/tests/test_cv_template_layouts.py`, `test_monument_is_monochrome_and_keeps_summary_at_body_size`; `test_summary_matches_experience_body_type_size` — every generator keeps summary type equal to main-column experience body
 
@@ -780,25 +784,25 @@ Tests: `backend/tests/test_image_upload_security.py` — accepts a real PNG, rej
 
 In **template** mode, clicking a gallery image immediately fits it into the profile-photo slot when the document declares one (no confirmation dialog, no freeform prompt). Templates mark the area with `photoSlot`:
 
-- `frame` — the designated rectangle or circle chrome (`slate-photo-frame`, `tessera-photo-frame`, `aldine-frame`, `harbor-photo-frame`, `cinder-frame-one`)
+- `frame` — the designated rectangle or circle chrome (`slate-photo-frame`, `tessera-photo-frame`, `aldine-frame`, `harbor-photo-frame`, `cinder-frame-one`, `monument-masthead-frame`)
 - `glyph` — portrait placeholder image inside the frame (converted into the user photo)
-- `ornament` — decorative shapes the photo covers (Aldine seal / lozenge / core)
+- `ornament` — decorative shapes the photo covers (Aldine seal / lozenge / core; Monument masthead bars)
 - `image` — the applied user photo (`id: "profile-photo"`, locked + `fixedToPage`)
 
-`applyProfilePhoto` insets the raster inside Slate/Tessera frames (border stays visible), covers Aldine ornaments while raising the sand frame outline, and fills Harbor’s circular disc (canvas clips with `borderRadius`). Fitted photos stay layout-owned in structural edit (`canFreePositionElement`). Semantic `id` / `photoSlot` / `photoShape` persist through `materializeElementSpecs` and `PdfElements.extra_properties`.
+`applyProfilePhoto` insets the raster inside Slate/Tessera frames (border stays visible), covers Aldine/Monument ornaments while raising the frame outline, and fills Harbor’s circular disc (canvas clips with `borderRadius`). Fitted photos stay layout-owned in structural edit (`canFreePositionElement`). Semantic `id` / `photoSlot` / `photoShape` persist through `materializeElementSpecs` and `PdfElements.extra_properties`.
 
 Implementation:
 
-- `frontend/src/utils/profilePhoto.js`, lines 195–231, function `findProfilePhotoSlot`; lines 233–246, `hasProfilePhotoSlot`; lines 253–376, `applyProfilePhoto`
+- `frontend/src/utils/profilePhoto.js`, lines 201–237, function `findProfilePhotoSlot`; lines 239–252, `hasProfilePhotoSlot`; lines 259–382, `applyProfilePhoto`
 - `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, lines 32–45 — template-mode click → `applyProfilePhoto` (no prompt)
 - `frontend/src/utils/sectionStructure.js` — re-exports the helpers for existing imports
 - `frontend/src/utils/editorMode.js` — `photoSlot: "image"|"glyph"` treated as layout-owned
 - `frontend/src/utils/materializeElementSpecs.js` — preserves template semantic `id`
 - `backend/app/schemas/pdf_schema.py` — optional `id`, `photoSlot`, `photoShape`
 - `backend/app/crud/pdfs.py` / `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx` — persist and hydrate those fields
-- Generators / starters: `slate`, `tessera`, `aldine`, `harbor`, `cinder` (FE + BE)
+- Generators / starters: `slate`, `tessera`, `aldine`, `harbor`, `cinder`, `monument` (FE + BE)
 
-Tests: `frontend/src/utils/profilePhoto.test.js` — slot detection on Slate/Tessera/Aldine, geometry/z-index after apply, in-place replace.
+Tests: `frontend/src/utils/profilePhoto.test.js` — slot detection on Slate/Tessera/Aldine/Monument, geometry/z-index after apply, in-place replace.
 
 ### Deterministic template fill
 
@@ -952,6 +956,8 @@ The assistant opens as a responsive panel up to 520 px wide, with enlarged chat 
 
 Activating **Układ** (under **Sprawdź wygląd**) is a local UI action: the assistant greets the user and shows four primary suggestion chips plus **Więcej opcji** for the remaining six, without calling the API, uploading the canvas, consuming credits, or waking the backend. Each chip shows a short Polish label in the chat, while the fuller geometry prompt is what GPT receives. The first layout request is sent only after the user picks a suggestion or writes and submits a message. A synchronous in-flight guard blocks double-clicks on chips before `isLoading` re-renders, so a second parallel call cannot append a provider error under a successful answer.
 
+Changing the active template (`activeTemplateId` via template picker, **Zmień szablon**, AI fill, or bio wizard) clears the assistant conversation: messages, composer text, job-description panel, goal submenu, layout mode, and all pending correction / layout / structure / deletion / clone review state, plus canvas AI preview overlays. A `chatSessionRef` generation token discards late responses from a request that was still in flight when the template changed, so stale bubbles cannot reappear on the empty chat.
+
 **Układ** is a Pro-plan, toggleable GPT **geometry corrector**: while active, every question sends a **full multi-page A4 JSON** (`left`/`top`/`width`/`height`/`fontSize`/…). Starting the mode creates a fresh layout-history boundary, so the first analysis cannot repeat a conclusion from ordinary chat or a previous layout session; follow-up questions receive only turns from the active session. `gpt-5.6-luna` groups raw elements itself; Python does not invent per-section gap metrics from freestyle authoring dimensions such as `width: 3`, which are too unreliable for a deterministic grouping heuristic. Instead, every snapshot includes a canonical `layout_contract` with the generator rhythm (`SPACE_STACK=4`, `SPACE_RECORD=10`, `SPACE_SECTION=21`, `SPACE_AFTER_RULE=8`, `SPACE_AFTER_MASTHEAD=32` under solid header bands and solid/ornament mastheads, `SPACE_AFTER_HEADER_RULE=36` under thin masthead dividers) and the same under-header gap band (6–10 px, target 6). Elements that carry template `flowRole` expose that role in the snapshot so chrome can be distinguished from body text. When the editor knows the active template slug (template picker, AI fill, bio wizard), the request also sends optional `template_id` for a short layout hint; freestyle or reopened documents may omit it and still analyse correctly. Both `text` and `textarea` are explicitly textual—generated experience and education records commonly use `textarea`. The frontend normally records the live DOM box in `layout_bounds`. If a visible single-line `<p>` has a collapsed box, `measureElements` falls back to browser `Range` glyph width and a font-size line box, reporting `bounds_measurement_source`; unmounted pages remain explicitly estimated with `bounds_estimate_reason`. The model sees compact sequential references (`e1`, `e2`, …), while private canvas IDs remain server-side; Python resolves valid references after the response and rejects invented ones. Every snapshot also contains precomputed `right` and `bottom`, so the model does not recalculate `left + width` or `top + height`. A single-line `text` element is normalized to at least its `fontSize` because `Text.jsx` renders it as `<p>` with `line-height: 1`; this prevents absent or near-zero stored heights from collapsing `bottom` onto `top`. The original value remains available as diagnostic `measuredHeight`. Separate `<p>` nodes aligned on the same top axis—typically a job/degree title on the left and its date on the right—are exposed as one authoritative `text_rows` row with `row_top`, `row_bottom`, and peer references. `effectiveLineHeight` therefore reflects the rendered line box even when stored `lineHeight` is null or zero. Before proposing corrections, the model must return `section_inventory`, assigning every textual reference exactly once to a section and logical block. Known decorative refs accidentally included as members are ignored for textual coverage, while genuinely unknown or duplicate refs still reject the response. If the model omits one or more text/textarea ids that are **not** part of any proposed move, the compiler soft-completes the inventory by parking those ids under `INNE / NIEPRZYPISANE` / `unassigned` and keeps the reply (with a mild Polish warning). Hard rejection (`incomplete_text_inventory`) remains only when an omitted text id appears in a move — that would risk splitting a logical block. A block-scoped move is also rejected unless every textual member receives the same delta; this prevents a title/date from moving while its company, description, or bullets stay behind. The high-reasoning layout prompt treats top-to-top only as diagnostic and bases analysis on the real bottom-edge gap. It prefers `layout_contract` spacing over inventing a new rhythm when peers already match the generator values. Under-header spacing targets about **6 px** (allowed 6–10 px). A `real_gap` near 0 px means body text sits on the heading line box and is treated as too tight, not “safe”. When peer section gaps differ by more than 2 px, the model must standardize them to one shared positive rhythm—prefer expanding tight gaps downward rather than collapsing a larger gap to 0. Section-gap changes carry structured before/after metrics; the Python compiler rejects any `section_header_gap` whose `real_gap_after` falls below 6 px. The endpoint returns `status` + Polish `summary` + optional `changes[]`, compiled to previewable `layout_groups`. Legacy `findings[].moves` still works without the new inventory contract. Deselect **Układ** to leave the mode. Chat `position_operation` resolvers remain for freeform edit commands. **Projekt** (`design_rating`) scores typography only and does not apply a private geometry score cap.
 
 Layout explanations shown to users are deliberately plain Polish: they name the visible section and the improvement, rather than internal references, coordinates, formulas, or JSON fields. The compiler replaces leaked technical copy with a short fallback and returns warnings only when a safe proposal cannot be created, so the card explanation is not duplicated underneath it.
@@ -969,9 +975,9 @@ Implementation:
 - `frontend/src/components/canvas/AiCorrectionOverlay/AiCorrectionOverlay.jsx` — opacity-pulse marks on pending AI targets
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `RatingBadge` / `RatingDashboard` — % scores, ATS verbal band + disclaimer, CTA wiring
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `CorrectionCard` — Przed/Po correction review without native text tooltips
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, component `AiAssistant` — goal panels, translate, Pro appearance gate, layout toggle, deferred layout request, review cards, composer
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, component `AiAssistant` — goal panels, translate, Pro appearance gate, layout toggle, deferred layout request, review cards, composer; resets chat on `activeTemplateId` change (`chatSessionRef`)
 - `frontend/src/hooks/useA4Elements.js`, `activeTemplateId` — tracks the last loaded template slug for Layout AI
-- `frontend/src/components/ai/AiAssistant/AiAssistant.test.js` — goal tiles, ATS readability copy, primary layout chips, local layout toggle, in-flight guard
+- `frontend/src/components/ai/AiAssistant/AiAssistant.test.js` — goal tiles, ATS readability copy, primary layout chips, local layout toggle, in-flight guard, template-change chat reset
 - `frontend/src/components/ai/AiAssistant/AiAssistant.module.css` — goal grid, subpanels, language picker, rating dashboard, ATS disclaimer, layout chips
 - `frontend/src/utils/templateLayouts.js`, `getTemplateAtsReadability` — soft ATS badge from `layouts`
 - `frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx` / `TemplateCarousel.jsx` — ATS badge on template cards
@@ -1863,17 +1869,21 @@ Monument to płatny jednokolumnowy szablon (`layouts: ["single"]`) dla osób, kt
 
 Startowa tablica frontendu oraz deterministyczny generator Python używają tej samej geometrii A4 i palety szarości. `_gen_monument` nie rozdziela wpisów doświadczenia ani edukacji przy zmianie strony, obsługuje sekcje własne przez `_extra_sections` i grupuje numer, ramkę, etykietę oraz linię jako jeden element reflow, dzięki czemu geometria nagłówka pozostaje równa po pomiarze tekstu w przeglądarce. Rama strony i stopka powtarzają się na każdej stronie, natomiast masthead z nazwiskiem i stanowiskiem oraz jego wysokie boczne belki występują wyłącznie na pierwszej stronie; `repeatOnContinuation: false` zachowuje tę regułę również wtedy, gdy edytor później utworzy kolejną stronę. Decyzje o layoucie nie są przekazywane do modelu AI.
 
+Kwadratowa ramka mastheadu w prawym górnym rogu (`monument-masthead-frame`) jest slotem zdjęcia profilowego (`photoSlot: "frame"`, `photoShape: "ornament-frame"`). Trzy abstrakcyjne belki w środku to placeholdery `photoSlot: "ornament"` przykrywane po wyborze zdjęcia z galerii; kontur tuszu zostaje nad rastrem. Dawny podpis „CV / 01” pod ramką został usunięty.
+
 Implementacja:
 
-- `frontend/src/templates/monument.js`, linie 1–108, eksportowana tablica `monumentTemplate`
+- `frontend/src/templates/monument.js`, linie 1–124, eksportowana tablica `monumentTemplate` (ramka i ornamenty w liniach 66–78)
 - `frontend/src/templates/index.js`, wpis rejestru `monument` (`tier: "paid"`, `layouts: ["single"]`)
 - `backend/app/services/cv_templates/templates/monument.py`, funkcja `_gen_monument`; `cv_templates/registry.py`, `_GENERATORS["monument"]`
 - `frontend/src/utils/structureOperation.js`, linie 34–63, funkcja `cloneFixedPageDecorations`
+- `frontend/src/utils/profilePhoto.js` — `monument-masthead-frame` w `PROFILE_PHOTO_FRAME_IDS`
 - `frontend/public/template-mockups/monument.png`, podgląd A4 generowany ze źródła
 
 Testy:
 
-- `frontend/src/templates/monument.test.js`, linie 6–56, asercje hierarchii, numeracji sekcji, geometrii ramek i mastheadu wyłącznie na pierwszej stronie
+- `frontend/src/templates/monument.test.js`, linie 6–93, asercje hierarchii, numeracji sekcji, geometrii ramek, mastheadu na pierwszej stronie oraz slotu zdjęcia profilowego
+- `frontend/src/utils/profilePhoto.test.js` — geometria apply dla ornament-frame Monument
 - `frontend/src/utils/structureOperation.test.js`, linie 25–44, wyłączenie klonowania dekoracji na stronach kontynuacji
 - `backend/tests/test_cv_template_layouts.py`, `test_monument_is_monochrome_and_keeps_summary_at_body_size`; `test_summary_matches_experience_body_type_size` — każdy generator trzyma typografię podsumowania równą treści doświadczenia w kolumnie głównej
 
@@ -2124,25 +2134,25 @@ Testy: `backend/tests/test_image_upload_security.py` — PNG, HTML-as-PNG (415),
 
 W trybie **template** kliknięcie obrazu w galerii od razu dopasowuje go do slotu zdjęcia profilowego, gdy dokument ma zadeklarowany slot (bez dialogu potwierdzenia i bez pytania o freeform). Szablony oznaczają obszar polem `photoSlot`:
 
-- `frame` — ramka prostokątna lub koło (`slate-photo-frame`, `tessera-photo-frame`, `aldine-frame`, `harbor-photo-frame`, `cinder-frame-one`)
+- `frame` — ramka prostokątna lub koło (`slate-photo-frame`, `tessera-photo-frame`, `aldine-frame`, `harbor-photo-frame`, `cinder-frame-one`, `monument-masthead-frame`)
 - `glyph` — placeholder portretu w ramce (zamieniany na zdjęcie użytkownika)
-- `ornament` — dekoracje przykrywane zdjęciem (pieczęć / romb / rdzeń Aldine)
+- `ornament` — dekoracje przykrywane zdjęciem (pieczęć / romb / rdzeń Aldine; belki mastheadu Monument)
 - `image` — nałożone zdjęcie użytkownika (`id: "profile-photo"`, `locked` + `fixedToPage`)
 
-`applyProfilePhoto` wstawia raster z insetem w ramkach Slate/Tessera (kontur zostaje), przykrywa ornamenty Aldine podnosząc obramowanie, oraz wypełnia koło Harbor (na kanwie `borderRadius`). Dopasowane zdjęcie zostaje layout-owned w edycji strukturalnej. Pola `id` / `photoSlot` / `photoShape` przechodzą przez `materializeElementSpecs` i `PdfElements.extra_properties`.
+`applyProfilePhoto` wstawia raster z insetem w ramkach Spate/Tessera (kontur zostaje), przykrywa ornamenty Aldine/Monument podnosząc obramowanie, oraz wypełnia koło Harbor (na kanwie `borderRadius`). Dopasowane zdjęcie zostaje layout-owned w edycji strukturalnej. Pola `id` / `photoSlot` / `photoShape` przechodzą przez `materializeElementSpecs` i `PdfElements.extra_properties`.
 
 Implementacja:
 
-- `frontend/src/utils/profilePhoto.js`, linie 195–231, funkcja `findProfilePhotoSlot`; linie 233–246, `hasProfilePhotoSlot`; linie 253–376, `applyProfilePhoto`
+- `frontend/src/utils/profilePhoto.js`, linie 201–237, funkcja `findProfilePhotoSlot`; linie 239–252, `hasProfilePhotoSlot`; linie 259–382, `applyProfilePhoto`
 - `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, linie 32–45 — klik w trybie szablonu → `applyProfilePhoto` (bez promptu)
 - `frontend/src/utils/sectionStructure.js` — re-eksport helperów
 - `frontend/src/utils/editorMode.js` — `photoSlot: "image"|"glyph"` jako layout-owned
 - `frontend/src/utils/materializeElementSpecs.js` — zachowanie semantycznego `id`
 - `backend/app/schemas/pdf_schema.py` — opcjonalne `id`, `photoSlot`, `photoShape`
 - `backend/app/crud/pdfs.py` / `ModalPdfs.jsx` — zapis i hydratacja
-- Generatory / startery: `slate`, `tessera`, `aldine`, `harbor`, `cinder` (FE + BE)
+- Generatory / startery: `slate`, `tessera`, `aldine`, `harbor`, `cinder`, `monument` (FE + BE)
 
-Testy: `frontend/src/utils/profilePhoto.test.js` — wykrywanie slotu, geometria/z-index po apply, zamiana w miejscu.
+Testy: `frontend/src/utils/profilePhoto.test.js` — wykrywanie slotu (w tym Monument), geometria/z-index po apply, zamiana w miejscu.
 
 ### Deterministyczne wypełnianie szablonu
 
@@ -2292,6 +2302,8 @@ Asystent otwiera się jako responsywny panel o szerokości do 520 px, z powięks
 
 Włączenie **Układu** (pod **Sprawdź wygląd**) jest lokalną akcją interfejsu: asystent wita użytkownika i pokazuje cztery główne chipy plus **Więcej opcji** dla pozostałych sześciu, bez wywołania API, wysyłania płótna, zużywania kredytów ani budzenia backendu. Każdy chip ma krótką etykietę w czacie, a do GPT trafia pełniejsze zlecenie geometrii. Pierwszy request Układu wychodzi dopiero po wyborze propozycji albo napisaniu i wysłaniu własnej wiadomości. Synchroniczna blokada in-flight chroni przed podwójnym kliknięciem chipa zanim przeładuje się `isLoading`, więc równoległy drugi request nie dokłada błędu providera pod udaną odpowiedzią.
 
+Zmiana aktywnego szablonu (`activeTemplateId` przez wybór szablonu, **Zmień szablon**, wypełnienie AI lub kreator bio) czyści rozmowę asystenta: wiadomości, pole wpisywania, panel ogłoszenia, submenu celów, tryb Układu oraz wszystkie oczekujące stany poprawek / układu / przebudowy / usuwania / klonowania, a także podglądy AI na płótnie. Token sesji `chatSessionRef` odrzuca spóźnione odpowiedzi z requestu rozpoczętego przed zmianą szablonu, żeby stare bąbelki nie wróciły na pusty czat.
+
 **Układ** to dostępny w Pro, przełączany **korektor geometrii** GPT: gdy aktywny, każde pytanie dostaje **pełny JSON A4**. Włączenie trybu wyznacza nową granicę historii, więc pierwsza analiza nie powtarza wniosku ze zwykłego czatu ani poprzedniej sesji Układu; kolejne pytania otrzymują wyłącznie wcześniejsze wiadomości z aktywnej sesji. `gpt-5.6-luna` sam grupuje surowe elementy; Python nie wymyśla metryk odstępów sekcji z wymiarów freestyle, np. `width: 3`, bo są zbyt zawodne dla deterministycznej heurystyki. Zamiast tego każdy snapshot zawiera kanoniczny `layout_contract` z rytmem generatora (`SPACE_STACK=4`, `SPACE_RECORD=10`, `SPACE_SECTION=21`, `SPACE_AFTER_RULE=8`, `SPACE_AFTER_MASTHEAD=32` pod solidnymi i ornamentowymi mastheadami, `SPACE_AFTER_HEADER_RULE=36` pod cienkimi liniami mastheadu) oraz tym samym pasem odstępu pod nagłówkiem (6–10 px, cel 6). Elementy z szablonowym `flowRole` przekazują tę rolę w snapshocie, żeby chrome dało się odróżnić od treści. Gdy edytor zna aktywny slug szablonu (wybór szablonu, wypełnienie AI, kreator bio), request wysyła opcjonalne `template_id` ze krótką wskazówką układu; dokumenty freestyle lub ponownie otwarte mogą je pominąć i nadal są analizowane poprawnie. Zarówno `text`, jak i `textarea` są jawnie traktowane jako elementy tekstowe—wygenerowane wpisy doświadczenia i wykształcenia zwykle używają `textarea`. Frontend standardowo zapisuje rzeczywiste pole DOM w `layout_bounds`. Jeśli widoczny jednowierszowy `<p>` ma złożone pole o zerowym rozmiarze, `measureElements` używa pomiaru glifów przez przeglądarkowy `Range` oraz pola linii o wysokości co najmniej `fontSize`, zapisując `bounds_measurement_source`; niewyrenderowane strony pozostają jawnie oszacowane wraz z `bounds_estimate_reason`. Model widzi krótkie kolejne referencje (`e1`, `e2`, …), natomiast prywatne ID płótna pozostają po stronie serwera; Python po odpowiedzi zamienia poprawne referencje na ID i odrzuca zmyślone wartości. Każdy snapshot zawiera również gotowe `right` oraz `bottom`, więc model nie liczy ponownie `left + width` ani `top + height`. Jednowierszowy element `text` jest normalizowany do wysokości co najmniej `fontSize`, ponieważ `Text.jsx` renderuje go jako `<p>` z `line-height: 1`; brakująca lub bliska zeru zapisana wysokość nie może już złożyć `bottom` do wartości `top`. Surowa wartość pozostaje dostępna diagnostycznie jako `measuredHeight`. Osobne węzły `<p>` ustawione na tej samej osi `top`—zwykle tytuł stanowiska/wykształcenia po lewej i data po prawej—są przekazywane jako jeden autorytatywny wiersz `text_rows` z `row_top`, `row_bottom` i referencjami peerów. `effectiveLineHeight` odzwierciedla dzięki temu wyrenderowane pole linii również wtedy, gdy zapisane `lineHeight` jest puste lub równe zero. Przed zaproponowaniem korekty model musi zwrócić `section_inventory`, przypisując dokładnie raz każdą tekstową referencję do sekcji i logicznego bloku. Znane referencje dekoracji omyłkowo wpisane do `members` nie psują pokrycia tekstu, natomiast rzeczywiście nieznane albo powtórzone referencje nadal odrzucają odpowiedź. Jeśli model pominie jeden lub więcej elementów text/textarea, które **nie** wchodzą w żadną propozycję ruchu, kompilator uzupełnia inwentarz (parkując je w `INNE / NIEPRZYPISANE` / `unassigned`) i zachowuje odpowiedź (z łagodnym ostrzeżeniem po polsku). Twarde odrzucenie (`incomplete_text_inventory`) zostaje tylko wtedy, gdy pominięte ID tekstowe pojawia się w ruchu — wtedy ryzyko jest rozdzielenie logicznego bloku. Ruch całego bloku jest także odrzucany, jeśli wszystkie jego tekstowe elementy nie otrzymały identycznej delty; tytuł albo data nie mogą więc odjechać bez firmy, opisu lub punktów. Prompt Układu z reasoningiem high traktuje top-to-top tylko diagnostycznie i opiera analizę na realnym odstępie między krawędziami. Preferuje odstępy z `layout_contract` zamiast inventować nowy rytm, gdy peery już odpowiadają wartościom generatora. Odstęp pod nagłówkiem celuje w ok. **6 px** (dopuszczalnie 6–10 px). `real_gap` bliski 0 px oznacza, że treść siedzi na dolnej krawędzi nagłówka — to za ciasno, nie „bezpiecznie”. Gdy peery różnią się o więcej niż 2 px, model musi ujednolicić je do jednego dodatniego rytmu — lepiej odsunąć zbyt ciasną treść w dół niż zwijać większy odstęp do 0. Zmiany odstępu pod nagłówkiem mają strukturalne wartości przed/po; kompilator Pythona odrzuca każdy `section_header_gap` z `real_gap_after` poniżej 6 px. Endpoint zwraca `status` + `summary` + opcjonalne `changes[]` → karty `layout_groups`. Stary format `findings[].moves` nadal działa bez nowego kontraktu inwentarza. Ponowne kliknięcie **Układ** wychodzi z trybu. Czatowe `position_operation` nadal działają. **Projekt** (`design_rating`) ocenia tylko typografię i nie stosuje już prywatnego limitu oceny za kolizje.
 
 Komunikaty **Układu** widoczne dla użytkownika są celowo pisane prostą polszczyzną: wskazują sekcję i efekt zmiany, zamiast referencji wewnętrznych, współrzędnych, wzorów lub pól JSON. Kompilator zastępuje przypadkowo zwrócony techniczny opis krótkim, zrozumiałym komunikatem i zwraca listę ostrzeżeń tylko wtedy, gdy nie da się bezpiecznie przygotować propozycji. Dzięki temu opis karty nie jest powtarzany ponownie pod kartami.
@@ -2309,9 +2321,9 @@ Implementacja:
 - `frontend/src/components/canvas/AiCorrectionOverlay/AiCorrectionOverlay.jsx` — znaczniki z pulsem opacity na oczekujących celach AI
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `RatingBadge` / `RatingDashboard` (%, pasmo ATS + disclaimer, CTA)
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `CorrectionCard` (Przed/Po bez natywnego tooltipa)
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — komponent `AiAssistant` (panele celów, tłumaczenie, Pro dla wyglądu, Układ, karty, composer)
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — komponent `AiAssistant` (panele celów, tłumaczenie, Pro dla wyglądu, Układ, karty, composer; reset czatu przy zmianie `activeTemplateId` / `chatSessionRef`)
 - `frontend/src/hooks/useA4Elements.js`, `activeTemplateId` — zapamiętuje slug ostatnio wczytanego szablonu dla Układu
-- `frontend/src/components/ai/AiAssistant/AiAssistant.test.js` — cele, copy czytelności ATS, chipy primary, lokalny toggle Układu, straż in-flight
+- `frontend/src/components/ai/AiAssistant/AiAssistant.test.js` — cele, copy czytelności ATS, chipy primary, lokalny toggle Układu, straż in-flight, reset czatu przy zmianie szablonu
 - `frontend/src/components/ai/AiAssistant/AiAssistant.module.css` — siatka celów, subpanele, wybór języka, dashboard oceny, disclaimer ATS
 - `frontend/src/utils/templateLayouts.js`, `getTemplateAtsReadability` — miękka plakietka ATS z `layouts`
 - `frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx` / `TemplateCarousel.jsx` — plakietka ATS na kartach szablonów

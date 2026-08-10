@@ -72,15 +72,42 @@ def _gen_monument(cv: dict) -> list[dict]:
     name = _compact_text(cv.get("name"), 32)
     title = _compact_text(cv.get("title"), 52)
     contact = _compact_text(_contact_line(cv), 82)
+    # Square masthead frame is the profile-photo slot; abstract bars are
+    # ornaments covered by a gallery upload while the ink outline stays on top.
+    photo_frame = {
+        **_rect(425, 54, 84, 84, C["ink"], 1.5, zIndex=3),
+        "id": "monument-masthead-frame",
+        "photoSlot": "frame",
+        "photoShape": "ornament-frame",
+        "fixedToPage": True,
+        "locked": True,
+    }
+    photo_ornaments = [
+        {
+            **_line(441, 70, 52, 11, C["ink"], zIndex=3),
+            "photoSlot": "ornament",
+            "fixedToPage": True,
+            "locked": True,
+        },
+        {
+            **_line(441, 88, 34, 11, C["body"], zIndex=3),
+            "photoSlot": "ornament",
+            "fixedToPage": True,
+            "locked": True,
+        },
+        {
+            **_line(441, 106, 52, 11, C["rule"], zIndex=3),
+            "photoSlot": "ornament",
+            "fixedToPage": True,
+            "locked": True,
+        },
+    ]
     header = [
         _text(name, 33, DISPLAY, C["ink"], 74, 59, zIndex=3, bold=True),
         _block(title, 76, 104, 337, 20, 12.5, 16, C["body"], SANS, zIndex=3, bold=True),
         _block(contact, 76, 136, 337, 16, 9, 12, C["muted"], SANS, zIndex=3),
-        {**_rect(425, 54, 84, 84, C["ink"], 1.5, zIndex=3), "id": "monument-masthead-frame"},
-        _line(441, 70, 52, 11, C["ink"], zIndex=3),
-        _line(441, 88, 34, 11, C["body"], zIndex=3),
-        _line(441, 106, 52, 11, C["rule"], zIndex=3),
-        _text("CV / 01", 9, SANS, C["muted"], 449, 145, zIndex=3),
+        photo_frame,
+        *photo_ornaments,
     ]
     header[1]["letterSpacing"] = 1.1
 

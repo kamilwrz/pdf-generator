@@ -13,6 +13,7 @@ import { materializeElementSpecs } from "./materializeElementSpecs.js";
 import { slateTemplate } from "../templates/slate.js";
 import { tesseraTemplate } from "../templates/tessera.js";
 import { aldineTemplate } from "../templates/aldine.js";
+import { monumentTemplate } from "../templates/monument.js";
 
 const PHOTO = { src: "/images/9/content", img_id: 9 };
 
@@ -101,6 +102,26 @@ describe("applyProfilePhoto", () => {
     assert.ok(frame.zIndex > photo.zIndex);
   });
 
+  it("covers monument masthead ornaments and keeps the square frame above the photo", () => {
+    const elements = materializeElementSpecs(monumentTemplate, () => `m-${Math.random()}`);
+    const beforeCount = elements.length;
+    const next = applyProfilePhoto(elements, PHOTO, () => "monument-photo");
+    const photo = next.find((el) => el.photoSlot === "image");
+    const frame = next.find((el) => el.id === "monument-masthead-frame");
+    const ornaments = next.filter((el) => el.photoSlot === "ornament");
+    assert.ok(photo);
+    assert.ok(frame);
+    assert.equal(ornaments.length, 3);
+    assert.equal(next.length, beforeCount + 1);
+    // Inset 2pt inside 425,54,84×84 → 427,56,80×80
+    assert.equal(photo.left, 427);
+    assert.equal(photo.top, 56);
+    assert.equal(photo.width, 80);
+    assert.equal(photo.height, 80);
+    assert.ok(photo.zIndex > ornaments[0].zIndex);
+    assert.ok(frame.zIndex > photo.zIndex);
+  });
+
   it("replaces an already-applied profile photo in place", () => {
     const elements = materializeElementSpecs(slateTemplate, () => `r-${Math.random()}`);
     const once = applyProfilePhoto(elements, PHOTO, () => "p1");
@@ -115,6 +136,7 @@ describe("applyProfilePhoto", () => {
     assert.equal(hasProfilePhotoSlot(slateTemplate), true);
     assert.equal(hasProfilePhotoSlot(tesseraTemplate), true);
     assert.equal(hasProfilePhotoSlot(aldineTemplate), true);
+    assert.equal(hasProfilePhotoSlot(monumentTemplate), true);
     assert.equal(hasProfilePhotoSlot([]), false);
   });
 });

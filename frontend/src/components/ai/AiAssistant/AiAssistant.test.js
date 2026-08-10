@@ -46,6 +46,19 @@ test("assistant send blocks parallel requests before isLoading re-renders", asyn
     assert.match(source, /requestInFlightRef\.current = false/);
 });
 
+test("assistant chat resets when the active template changes", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+
+    assert.match(source, /chatSessionRef/);
+    assert.match(source, /prevTemplateIdRef/);
+    assert.match(source, /prevTemplateIdRef\.current === activeTemplateId/);
+    assert.match(source, /chatSessionRef\.current \+= 1/);
+    assert.match(source, /setMessages\(\[\]\)/);
+    assert.match(source, /setLayoutMode\(false\)/);
+    assert.match(source, /const sessionAtStart = chatSessionRef\.current/);
+    assert.match(source, /if \(chatSessionRef\.current !== sessionAtStart\) return/);
+});
+
 test("goal-oriented quick actions replace flat feature tiles", async () => {
     const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
 

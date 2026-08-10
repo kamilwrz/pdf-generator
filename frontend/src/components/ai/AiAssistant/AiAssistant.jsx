@@ -1055,10 +1055,44 @@ export default function AiAssistant() {
     // Synchronous in-flight guard: React state `isLoading` updates too late to
     // block a double-click on suggestion chips before the next render.
     const requestInFlightRef = useRef(false);
+    // Bumped when the active template changes so a late assistant response from
+    // the previous document context cannot re-populate a cleared chat.
+    const chatSessionRef = useRef(0);
+    const prevTemplateIdRef = useRef(activeTemplateId);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
+
+    // Changing template (picker / Zmień szablon / AI fill) replaces the canvas.
+    // Drop the prior conversation, review cards, and layout session so history
+    // and pending patches cannot target elements that no longer exist.
+    useEffect(() => {
+        if (prevTemplateIdRef.current === activeTemplateId) return;
+        prevTemplateIdRef.current = activeTemplateId;
+        chatSessionRef.current += 1;
+        setMessages([]);
+        setInput("");
+        setJobDesc("");
+        setActivePanel(null);
+        setLayoutMode(false);
+        setCorrectionStates({});
+        setLayoutStates({});
+        setStructureStates({});
+        setDeletionStates({});
+        setCloneStates({});
+        layoutHistoryStartRef.current = null;
+        setLayoutPreviewPatches?.(null);
+        setStructurePreviewGroup?.(null);
+        setDeletionPreviewIds?.(null);
+        setAiCorrectionHighlights?.([]);
+    }, [
+        activeTemplateId,
+        setAiCorrectionHighlights,
+        setDeletionPreviewIds,
+        setLayoutPreviewPatches,
+        setStructurePreviewGroup,
+    ]);
 
     // Keep A4 marks in sync with every pending review category (content, style,
     // layout, structure, deletion, clone). Clear when the panel closes / unmounts.
@@ -1302,6 +1336,9 @@ export default function AiAssistant() {
         // succeeds and leaves a confusing success+error pair in the chat.
         if (requestInFlightRef.current || isLoading) return;
         requestInFlightRef.current = true;
+        // Capture before await: a template change mid-flight increments the
+        // session and must discard both success and error bubbles for that call.
+        const sessionAtStart = chatSessionRef.current;
 
         // A new layout session must reason from the current canvas rather than
         // repeat conclusions from ordinary chat or an earlier layout run.
@@ -1367,6 +1404,8 @@ export default function AiAssistant() {
                 },
             );
 
+            if (chatSessionRef.current !== sessionAtStart) return;
+
             if (res.usage) {
                 console.log("[GPT API cost]", {
                     action,
@@ -1416,6 +1455,7 @@ export default function AiAssistant() {
                 /* ignore — credits UI can stay stale until the next refresh */
             }
         } catch (err) {
+            if (chatSessionRef.current !== sessionAtStart) return;
             setMessages(prev => [...prev, {
                 id: nanoid(),
                 role: "assistant",

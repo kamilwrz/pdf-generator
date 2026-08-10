@@ -8,8 +8,9 @@
  * - `photoSlot: "image"` — the applied user photo (stable after upload)
  *
  * Known frame ids (`slate-photo-frame`, `tessera-photo-frame`, `aldine-frame`,
- * `harbor-photo-frame`, `cinder-frame-one`) are recognised as a fallback for
- * older payloads that still carry the symbolic `id` after load.
+ * `harbor-photo-frame`, `cinder-frame-one`, `monument-masthead-frame`) are
+ * recognised as a fallback for older payloads that still carry the symbolic
+ * `id` after load.
  *
  * Applying a photo either resizes the glyph into the frame inset or inserts a
  * new locked image. Ornaments stay in place underneath a higher z-index photo;
@@ -18,13 +19,14 @@
 
 import { nanoid } from "nanoid";
 
-/** Symbolic frame ids used by Slate, Tessera, Aldine, and Harbor generators. */
+/** Symbolic frame ids used by Slate, Tessera, Aldine, Harbor, Cinder, Monument. */
 export const PROFILE_PHOTO_FRAME_IDS = new Set([
   "slate-photo-frame",
   "tessera-photo-frame",
   "aldine-frame",
   "harbor-photo-frame",
   "cinder-frame-one",
+  "monument-masthead-frame",
 ]);
 
 /** Stable semantic id written onto the applied user photo element. */
@@ -148,7 +150,11 @@ function findGlyphInFrame(elements, frame) {
  * @returns {number}
  */
 function insetForFrame(frame) {
-  if (frame?.id === "aldine-frame" || frame?.photoShape === "ornament-frame") {
+  if (
+    frame?.id === "aldine-frame"
+    || frame?.id === "monument-masthead-frame"
+    || frame?.photoShape === "ornament-frame"
+  ) {
     return ALDINE_INSET_PT;
   }
   if (
