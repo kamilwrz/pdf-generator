@@ -45,7 +45,16 @@
     margin: 0;
 }
 
+/* Animated collapse wrapper for the selection row. `overflow: hidden` clips
+   both the height reveal and the inner left-slide so the row never bleeds past
+   the panel edge or opens the horizontal scroller during the animation. */
 .selectionBar {
+    width: max-content;
+    min-width: 100%;
+    overflow: hidden;
+}
+
+.selectionInner {
     display: flex;
     flex-wrap: nowrap;
     align-items: center;

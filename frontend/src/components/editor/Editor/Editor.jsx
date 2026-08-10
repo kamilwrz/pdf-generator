@@ -451,7 +451,7 @@ export default function Editor() {
         anchor,
         { width: panel.offsetWidth, height: panel.offsetHeight },
         { width: window.innerWidth, height: window.innerHeight },
-        { gap: 14, padding: 8 },
+        { gap: 24, padding: 8 },
       );
       setPanelPosition((previous) => (
         previous.top === next.top && previous.left === next.left
@@ -783,45 +783,70 @@ export default function Editor() {
               </>
             )}
           </form>
-          {inlineSelection ? (
-            <div
-              className={classes.selectionBar}
-              role="toolbar"
-              aria-label="Formatowanie zaznaczenia"
-              // Keep the contentEditable selection alive while using the row.
-              onMouseDown={(event) => event.preventDefault()}
-            >
-              <span className={classes.selectionLabel}>Zaznaczenie</span>
-              <Group label="Styl zaznaczenia">
-                <IconBtn
-                  label="Pogrubienie zaznaczenia"
-                  active={inlineSelection.bold}
-                  onClick={() => applyInlineMark("bold")}
+          {/*
+            The selection formatting row is presented with a designed reveal:
+            the outer wrapper expands the panel body from 0 → natural height
+            while the inner content slides out from the panel's left edge (both
+            clipped by the wrapper's `overflow: hidden`, so nothing bleeds past
+            the panel or triggers the horizontal scroller). It reverses on exit
+            once the highlight clears. AnimatePresence keeps the row mounted
+            through the exit tween; the panel's ResizeObserver re-anchors it
+            above the selection as the height animates.
+          */}
+          <AnimatePresence>
+            {inlineSelection ? (
+              <motion.div
+                key="selection-bar"
+                className={classes.selectionBar}
+                initial={{ height: 0 }}
+                animate={{ height: "auto" }}
+                exit={{ height: 0 }}
+                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <motion.div
+                  className={classes.selectionInner}
+                  role="toolbar"
+                  aria-label="Formatowanie zaznaczenia"
+                  // Keep the contentEditable selection alive while using the row.
+                  onMouseDown={(event) => event.preventDefault()}
+                  initial={{ x: -16, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: -16, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <span className={classes.glyphBold}>B</span>
-                </IconBtn>
-                <IconBtn
-                  label="Kursywa zaznaczenia"
-                  active={inlineSelection.italic}
-                  onClick={() => applyInlineMark("italic")}
-                >
-                  <span className={classes.glyphItalic}>I</span>
-                </IconBtn>
-                <IconBtn
-                  label="Podkreślenie zaznaczenia"
-                  active={inlineSelection.underline}
-                  onClick={() => applyInlineMark("underline")}
-                >
-                  <span className={classes.glyphUnderline}>U</span>
-                </IconBtn>
-                <ColorField
-                  label="Kolor zaznaczenia"
-                  value={inlineSelection.color}
-                  onChange={(event) => applyInlineMark("color", event.target.value)}
-                />
-              </Group>
-            </div>
-          ) : null}
+                  <span className={classes.selectionLabel}>Zaznaczenie</span>
+                  <Group label="Styl zaznaczenia">
+                    <IconBtn
+                      label="Pogrubienie zaznaczenia"
+                      active={inlineSelection.bold}
+                      onClick={() => applyInlineMark("bold")}
+                    >
+                      <span className={classes.glyphBold}>B</span>
+                    </IconBtn>
+                    <IconBtn
+                      label="Kursywa zaznaczenia"
+                      active={inlineSelection.italic}
+                      onClick={() => applyInlineMark("italic")}
+                    >
+                      <span className={classes.glyphItalic}>I</span>
+                    </IconBtn>
+                    <IconBtn
+                      label="Podkreślenie zaznaczenia"
+                      active={inlineSelection.underline}
+                      onClick={() => applyInlineMark("underline")}
+                    >
+                      <span className={classes.glyphUnderline}>U</span>
+                    </IconBtn>
+                    <ColorField
+                      label="Kolor zaznaczenia"
+                      value={inlineSelection.color}
+                      onChange={(event) => applyInlineMark("color", event.target.value)}
+                    />
+                  </Group>
+                </motion.div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </motion.aside>
       )}
     </AnimatePresence>
