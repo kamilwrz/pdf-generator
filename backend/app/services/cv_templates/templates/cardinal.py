@@ -1,8 +1,14 @@
 from __future__ import annotations
 
-"""Cardinal CV template generator (icon, red headings only)."""
+"""Cardinal CV template generator.
 
-from app.services.cv_generator_primitives import get_spacing, SPACE_AFTER_HEADER_RULE, Builder, _line, _text, section_chrome_height
+Cardinal is an image-free single-column composition with neutral line-art icons,
+cardinal-red typography, and section rules that continue from the optical
+midline of each heading. Icons begin on the body column instead of hanging into
+the margin, giving every section one clean left edge.
+"""
+
+from app.services.cv_generator_primitives import get_spacing, SPACE_AFTER_HEADER_RULE, Builder, _line, _text
 from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.records import _education_record_height, _experience_record_height, _place_education_record, _place_experience_record
 from app.services.cv_templates.shared.text import _compact_text, _labels, _place_skills_section
@@ -13,7 +19,7 @@ from app.services.cv_templates.shared.contact import (
 )
 
 def _gen_cardinal(cv: dict) -> list[dict]:
-    C = {'paper': '#FCFBF9', 'ink': '#24201E', 'accent': '#9E2532', 'mute': '#6E6E6E', 'body': '#333333', 'rule': '#8A8A8A', 'display': 'Times-Roman', 'sans': 'Helvetica', 'mono': 'Helvetica', 'layout': 'cardinal', 'icon_theme': 'cardinal', 'L': 72, 'W': 473, 'icon_x': 50, 'start': 162}
+    C = {'paper': '#FCFBF9', 'ink': '#24201E', 'accent': '#9E2532', 'mute': '#6E6E6E', 'body': '#333333', 'rule': '#8A8A8A', 'display': 'Times-Roman', 'sans': 'Helvetica', 'mono': 'Helvetica', 'layout': 'cardinal', 'icon_theme': 'cardinal', 'L': 72, 'W': 473, 'icon_x': 72, 'start': 162}
     L, W = (C['L'], C['W'])
     SANS, DISP = (C['sans'], C['display'])
     ICON = C['icon_theme']
@@ -23,7 +29,7 @@ def _gen_cardinal(cv: dict) -> list[dict]:
     name = _compact_text(cv.get('name'), 32)
     title = _compact_text(cv.get('title'), 56)
     contact_fs, contact_icon = (8.6, 13.0)
-    header = [_text(name, 28, DISP, C['ink'], L, 52, zIndex=3), _text(title, 9.4, SANS, C['accent'], L, 92, zIndex=3)]
+    header = [_text(name, 30, DISP, C['ink'], L, 50, zIndex=3), _text(title, 9.6, SANS, C['accent'], L, 92, zIndex=3)]
     header[0]['letterSpacing'] = 0.15
     header[1]['letterSpacing'] = 1.55
     contact_els, contact_bottom = _place_wrapping_icon_contacts(
@@ -48,34 +54,46 @@ def _gen_cardinal(cv: dict) -> list[dict]:
     header = [{**element, "flowRole": "masthead"} for element in header]
     start_y = header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE
     b = Builder(start_y)
-    label_fs = 8.5
-    section_icon = 14.0
-    SECTION_CHROME = section_chrome_height(label_fs) + 16
+    label_fs = 10.4
+    label_tracking = 1.15
+    section_icon = 15.0
+    heading_x = L + 22
+    SECTION_CHROME = label_fs + 10 + get_spacing().after_rule
 
     def section(label: str) -> None:
+        """Place icon, label, and an optically centered trailing hairline."""
         key = _icon_key_for_label(label)
         y = b.y
         page = b.pg
-        icon = _icon_beside(ICON, key, C['icon_x'], y, label_fs, section_icon, page=page)
+        icon = _icon_beside(ICON, key, L, y, label_fs, section_icon, page=page)
         icon['flowRole'] = 'section-chrome'
         b.els.append(icon)
-        heading = _text(label, label_fs, SANS, C['accent'], L, y, zIndex=3, page=page)
-        heading['letterSpacing'] = 1.45
+        heading = _text(label, label_fs, SANS, C['accent'], heading_x, y, zIndex=3, page=page)
+        heading['letterSpacing'] = label_tracking
+        heading['bold'] = True
         heading['flowRole'] = 'section-chrome'
         b.els.append(heading)
-        b.y = y + label_fs * 1.35
-        b.gap(2)
-        b.line(L, W, 1, C['rule'])
-        b.els[-1]['flowRole'] = 'section-chrome'
+        # Approximate the tracked cap width so the rule starts after the label
+        # with a stable 14 pt breathing gap. The rule sits at cap mid-height,
+        # turning heading and line into one horizontal composition.
+        label_width = len(label) * (label_fs * 0.58 + label_tracking)
+        rule_left = min(heading_x + label_width + 14, L + W - 54)
+        rule = _line(
+            rule_left, y + label_fs * 0.52, L + W - rule_left, 0.8,
+            C['rule'], page=page,
+        )
+        rule['flowRole'] = 'section-chrome'
+        b.els.append(rule)
+        b.y = y + label_fs + 10
         b.gap(get_spacing().after_rule)
 
     def close_section() -> None:
         b.gap(get_spacing().section)
-    BODY_FS, BODY_LH = (9.4, 13.4)
+    BODY_FS, BODY_LH = (9.6, 13.8)
 
     def experience_height(job: dict) -> float:
         meta_font = SANS
-        return _experience_record_height(b, job, W, SANS, title_fs=11, title_lh=13.5, meta_fs=8.5, meta_lh=11.5, body_fs=BODY_FS, body_lh=BODY_LH, meta_font=meta_font)
+        return _experience_record_height(b, job, W, SANS, title_fs=11.2, title_lh=13.8, meta_fs=8.5, meta_lh=11.5, body_fs=BODY_FS, body_lh=BODY_LH, meta_font=meta_font)
     if cv.get('summary'):
         b.need_section(SECTION_CHROME, b.measure_block(cv['summary'], W, BODY_FS, BODY_LH, SANS))
         section(lbl['summary'])
@@ -86,7 +104,7 @@ def _gen_cardinal(cv: dict) -> list[dict]:
         b.need_section(SECTION_CHROME, experience_height(jobs[0]))
         section(lbl['experience'])
         for index, job in enumerate(jobs):
-            _place_experience_record(b, job, L, W, ink=C['ink'], muted=C['mute'], body=C['body'], font=SANS, title_fs=11, title_lh=13.5, meta_fs=8.5, meta_lh=11.5, body_fs=BODY_FS, body_lh=BODY_LH, meta_font=SANS, after_gap=get_spacing().record if index < len(jobs) - 1 else None)
+            _place_experience_record(b, job, L, W, ink=C['ink'], muted=C['mute'], body=C['body'], font=SANS, title_fs=11.2, title_lh=13.8, meta_fs=8.5, meta_lh=11.5, body_fs=BODY_FS, body_lh=BODY_LH, meta_font=SANS, after_gap=get_spacing().record if index < len(jobs) - 1 else None)
         close_section()
         _extra_sections(b, cv, 'after_experience', section, {'body': C['body']}, L, W, SANS, fs=BODY_FS, lh=BODY_LH, section_chrome_h=SECTION_CHROME)
     if cv.get('education'):
@@ -97,11 +115,11 @@ def _gen_cardinal(cv: dict) -> list[dict]:
             _place_education_record(b, edu, L, W, ink=C['ink'], muted=C['mute'], body=C['body'], font=SANS, degree_fs=10.4, degree_lh=13, meta_fs=8.5, meta_lh=11.5, body_fs=9.2, body_lh=13.2, after_gap=get_spacing().record if index < len(education_entries) - 1 else None)
         close_section()
     if _place_skills_section(
-        b, cv, section, L, W, C['body'], SANS, 9.3, 13.4,
+        b, cv, section, L, W, C['body'], SANS, BODY_FS, BODY_LH,
         section_chrome_h=SECTION_CHROME,
     ):
         close_section()
-    _extra_sections(b, cv, 'after_skills', section, {'body': C['body']}, L, W, SANS, fs=9.3, lh=13.4, skip_indices=skip_sidebar_extras, section_chrome_h=SECTION_CHROME)
+    _extra_sections(b, cv, 'after_skills', section, {'body': C['body']}, L, W, SANS, fs=BODY_FS, lh=BODY_LH, skip_indices=skip_sidebar_extras, section_chrome_h=SECTION_CHROME)
     flow = b.build()
     pages_used = max([element.get('page', 1) for element in header + flow] or [1])
     page_decorations: list[dict] = []

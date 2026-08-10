@@ -30,18 +30,33 @@ test("Cardinal reserves red for headings while icons and rules stay grey", () =>
     assert.equal(sectionHeadings.length, 5);
     assert.ok(sectionHeadings.every((element) => element.color === CARDINAL));
     assert.ok(sectionHeadings.every((element) => element.fontFamily === "Helvetica"));
+    assert.ok(sectionHeadings.every((element) => element.fontSize === 10.4));
+    assert.ok(sectionHeadings.every((element) => element.bold === true));
+    assert.ok(sectionHeadings.every((element) => element.left === 94));
 
-    // ── Generated icons: grey cardinal theme, one per heading and contact ────
+    // ── Generated icons: all ornament begins at or inside the body edge ──────
     const icons = cardinalTemplate.filter((element) => element.category === "image");
     assert.equal(icons.length, 10); // 5 section headings + 5 contact rows (incl. LinkedIn/GitHub)
     assert.ok(icons.every((element) => element.src.includes("/template-assets/iconic/cardinal/")));
     assert.ok(icons.every((element) => element.alignWithText === true));
+    assert.ok(icons.every((element) => element.left >= 72));
+    const sectionIcons = icons.filter((element) => element.flowRole === "section-chrome");
+    assert.equal(sectionIcons.length, 5);
+    assert.ok(sectionIcons.every((element) => element.left === 72));
 
     // ── Decorative lines: every rule except the paper surface is grey ────────
     const lines = cardinalTemplate.filter((element) => element.category === "line");
     const rules = lines.filter((element) => element.backgroundColor !== PAPER);
     assert.ok(rules.length > 0);
     assert.ok(rules.every((element) => element.backgroundColor === GREY));
+    const sectionRules = rules.filter((element) => element.flowRole === "section-chrome");
+    assert.equal(sectionRules.length, 5);
+    assert.ok(sectionRules.every((element) => element.left > 94));
+    assert.ok(sectionRules.every((element) => element.left + element.width === 545));
+    for (const heading of sectionHeadings) {
+        const rule = sectionRules.find((element) => element.top > heading.top && element.top < heading.top + heading.fontSize);
+        assert.ok(rule, `${heading.content} rule crosses the optical cap midline`);
+    }
 
     // ── Body copy: dark grey, readable (never sub-9pt) ───────────────────────
     const bodies = cardinalTemplate.filter((element) => element.category === "textarea");

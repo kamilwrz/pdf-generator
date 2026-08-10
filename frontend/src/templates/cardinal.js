@@ -3,9 +3,9 @@
  *
  * A single-column, editorial CV that reserves a "noble red" (cardinal) purely
  * for typography — the name accent and every section heading — while all
- * decoration stays neutral grey: the generated line-art icons that sit beside
- * each section heading and contact detail, plus the decorative rules under the
- * headings and the header/footer keylines. Body copy is dark grey.
+ * decoration stays neutral grey: generated line-art icons begin on the same
+ * left edge as body copy, while each heading's rule continues from the optical
+ * centre of its cap line. Header/footer keylines remain understated.
  *
  * Icon glyphs come from the shared icon pipeline
  * (`scripts/generate_iconic_icons.py`), rendered in grey under the dedicated
@@ -26,13 +26,14 @@ const SERIF = "Times-Roman"; // the name, in the Classic serif convention
 const SANS = "Helvetica"; // labels, contact, dates and body copy
 
 // ── Layout geometry (A4 at 595×842 pt) ──────────────────────────────────────
-const ICON_X = 50; // left gutter that carries every icon
-const TEXT_X = 72; // heading labels, rules and body share this left edge
+const TEXT_X = 72; // body, contact icons and section compositions share this edge
+const HEADING_X = TEXT_X + 22; // icon occupies the first 15 pt of the heading row
 const RIGHT = 545; // content right edge (≈72 pt symmetric margins)
 const CONTENT_W = RIGHT - TEXT_X; // 473 pt usable text column
-const SECTION_ICON = 15; // section-heading glyph size (+25% for optical weight)
+const SECTION_ICON = 15; // large enough to balance the upgraded heading caps
 const CONTACT_ICON = 13; // slightly smaller glyph for the contact row
-const HEAD_FS = 8.8; // section-heading label size
+const HEAD_FS = 10.4; // clear executive hierarchy without overpowering record titles
+const HEAD_TRACKING = 1.15;
 
 const bold = (element) => ({ ...element, bold: true });
 const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
@@ -56,15 +57,27 @@ const icon = (name, left, top, size) => ({
 });
 
 /**
- * A section heading: grey icon in the gutter, cardinal-red tracked label, and a
- * grey rule beneath. Grouped as `section-chrome` so the reflow engine keeps the
- * three parts together when content pushes a heading to the next page.
+ * A section heading: grey icon aligned to the body edge, cardinal-red tracked
+ * label, and a trailing rule on the cap midline. Grouped as `section-chrome` so
+ * reflow keeps the horizontal composition intact across page breaks.
  */
-const sectionHead = (iconName, label, top) => [
-    { ...icon(iconName, ICON_X, top, SECTION_ICON), flowRole: "section-chrome" },
-    { ...tracked(text(label, HEAD_FS, SANS, CARDINAL, TEXT_X, top, 3), 1.5), flowRole: "section-chrome" },
-    { ...line(TEXT_X, top + 17, CONTENT_W, 1, GREY, 2), flowRole: "section-chrome" },
-];
+const sectionHead = (iconName, label, top) => {
+    // The tracked-width estimate is used only for decoration placement. Keeping
+    // a 14 pt gap prevents the hairline from touching long Polish labels.
+    const labelWidth = label.length * (HEAD_FS * 0.58 + HEAD_TRACKING);
+    const ruleLeft = Math.min(HEADING_X + labelWidth + 14, RIGHT - 54);
+    return [
+        { ...icon(iconName, TEXT_X, top, SECTION_ICON), flowRole: "section-chrome" },
+        {
+            ...bold(tracked(text(label, HEAD_FS, SANS, CARDINAL, HEADING_X, top, 3), HEAD_TRACKING)),
+            flowRole: "section-chrome",
+        },
+        {
+            ...line(ruleLeft, top + HEAD_FS * 0.52, RIGHT - ruleLeft, 0.8, GREY, 2),
+            flowRole: "section-chrome",
+        },
+    ];
+};
 
 /**
  * One contact detail: grey icon plus its dark-grey label on a shared text line.
@@ -81,12 +94,12 @@ const cardinalElements = [
     { ...line(0, 0, 595, 842, PAPER, 0), fixedToPage: true },
 
     // Masthead: serif name, cardinal role line, and a single grey contact row.
-    tracked(text("ANNA KOWALSKA", 28, SERIF, INK, TEXT_X, 52, 3), 0.15),
-    tracked(text("DYREKTORKA STRATEGII I ROZWOJU", 9.4, SANS, CARDINAL, TEXT_X, 92, 3), 1.55),
-    ...contact("email", ICON_X, TEXT_X, "anna.kowalska@email.com", 118),
+    tracked(text("ANNA KOWALSKA", 30, SERIF, INK, TEXT_X, 50, 3), 0.15),
+    tracked(text("DYREKTORKA STRATEGII I ROZWOJU", 9.6, SANS, CARDINAL, TEXT_X, 92, 3), 1.55),
+    ...contact("email", TEXT_X, 88, "anna.kowalska@email.com", 118),
     ...contact("phone", 250, 266, "+48 600 000 000", 118),
     ...contact("location", 420, 436, "Warszawa", 118),
-    ...contact("linkedin", ICON_X, TEXT_X, "linkedin.com/in/akowalska", 134),
+    ...contact("linkedin", TEXT_X, 88, "linkedin.com/in/akowalska", 134),
     ...contact("github", 250, 266, "github.com/akowalska", 134),
     line(TEXT_X, 158, CONTENT_W, 1, GREY, 2),
 
@@ -96,44 +109,44 @@ const cardinalElements = [
         "Liderka strategii łącząca perspektywę biznesową z dyscypliną wykonania. "
         + "Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą "
         + "mierzalne rezultaty bez utraty jakości relacji.",
-        TEXT_X, 202, CONTENT_W, 44, 10.2, 15, BODY, SANS,
+        TEXT_X, 198, CONTENT_W, 43, 9.6, 13.8, BODY, SANS,
     ),
 
     // ── Doświadczenie zawodowe ──────────────────────────────────────────────
     ...sectionHead("experience", "DOŚWIADCZENIE ZAWODOWE", 268),
-    bold(text("Dyrektorka Strategii  /  Northbridge Partners", 11, SANS, INK, TEXT_X, 303, 3)),
-    text("2021 – obecnie  ·  Warszawa", 8.6, SANS, META, TEXT_X, 321, 3),
+    bold(text("Dyrektorka Strategii  /  Northbridge Partners", 11.2, SANS, INK, TEXT_X, 296, 3)),
+    text("2021 – obecnie  ·  Warszawa", 8.6, SANS, META, TEXT_X, 315, 3),
     bulleted(block(
         "• Zaprojektowała model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n"
         + "• Uporządkowała rytm decyzji zarządu oraz raportowanie strategiczne.\n"
         + "• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
-        TEXT_X, 339, CONTENT_W, 54, 9.6, 13.6, BODY, SANS,
+        TEXT_X, 331, CONTENT_W, 43, 9.6, 13.8, BODY, SANS,
     )),
-    bold(text("Menedżerka Rozwoju  /  Meridian Group", 11, SANS, INK, TEXT_X, 407, 3)),
-    text("2016 – 2021  ·  Kraków", 8.6, SANS, META, TEXT_X, 425, 3),
+    bold(text("Menedżerka Rozwoju  /  Meridian Group", 11.2, SANS, INK, TEXT_X, 397, 3)),
+    text("2016 – 2021  ·  Kraków", 8.6, SANS, META, TEXT_X, 416, 3),
     bulleted(block(
         "• Rozwinęła portfel projektów ekspansji na rynkach europejskich.\n"
         + "• Wprowadziła standardy współpracy między sprzedażą, produktem i finansami.",
-        TEXT_X, 443, CONTENT_W, 38, 9.6, 13.6, BODY, SANS,
+        TEXT_X, 432, CONTENT_W, 29, 9.6, 13.8, BODY, SANS,
     )),
 
     // ── Wykształcenie ───────────────────────────────────────────────────────
     ...sectionHead("education", "WYKSZTAŁCENIE", 512),
-    bold(text("Magister Zarządzania  /  SGH Warszawa", 10.6, SANS, INK, TEXT_X, 547, 3)),
-    text("2011 – 2016", 8.6, SANS, META, TEXT_X, 565, 3),
+    bold(text("Magister Zarządzania  /  SGH Warszawa", 10.6, SANS, INK, TEXT_X, 540, 3)),
+    text("2011 – 2016", 8.6, SANS, META, TEXT_X, 559, 3),
 
     // ── Umiejętności ────────────────────────────────────────────────────────
     ...sectionHead("skills", "UMIEJĘTNOŚCI", 602),
     block(
         "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
-        TEXT_X, 634, CONTENT_W, 24, 9.6, 13.6, BODY, SANS,
+        TEXT_X, 630, CONTENT_W, 24, 9.6, 13.8, BODY, SANS,
     ),
 
     // ── Języki ──────────────────────────────────────────────────────────────
     ...sectionHead("languages", "JĘZYKI", 680),
     block(
         "Polski — ojczysty  ·  Angielski — C1  ·  Francuski — B2",
-        TEXT_X, 712, CONTENT_W, 20, 9.6, 13.6, BODY, SANS,
+        TEXT_X, 708, CONTENT_W, 20, 9.6, 13.8, BODY, SANS,
     ),
 
     // Footer keyline + page marker. Fixed so they anchor to every page bottom.

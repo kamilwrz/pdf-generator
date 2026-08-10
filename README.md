@@ -640,22 +640,23 @@ Known limitation: Words reproduces the visual language of a carefully formatted 
 
 ### Cardinal noble-red template
 
-Cardinal is a paid single-column template (`layouts: ["icons"]`) for candidates who want a formal document with one restrained accent of colour. It reserves a "noble red" (`#9E2532`) for typography only — the role line under the name and every section heading — while all ornament stays neutral grey (`#8A8A8A`): the generated line-art icons beside each section heading and contact detail, plus the decorative rules under the headings and along the header and footer. Body copy is dark grey (`#333333`); the name uses Times-Roman while labels, contact, dates, and body use Helvetica. Pairing generated icons with every heading and contact row is what sets it apart from Regent, Aldine, Monument, and Words.
+Cardinal is a paid single-column template (`layouts: ["icons"]`) for candidates who want a formal document with one restrained accent of colour. It reserves a "noble red" (`#9E2532`) for typography only — the role line under the name and every section heading — while all ornament stays neutral grey (`#8A8A8A`). Section headings use bold 10.4 pt Helvetica and form one horizontal composition: the 15 pt icon begins exactly at the body column (`x=72`), the label starts at `x=94`, and a 0.8 pt hairline continues from a protected 14 pt gap after the tracked label through the right edge. The line crosses the optical middle of the heading caps instead of sitting beneath them. Contact icons also stay inside the body edge. Body copy is dark grey (`#333333`) at 9.6 pt / 13.8 pt line height; the name uses 30 pt Times-Roman.
 
 The grey glyphs come from a dedicated `cardinal` theme added to the shared icon pipeline (`scripts/generate_iconic_icons.py`, `THEMES["cardinal"] = "#8A8A8A"`), rendered to `backend/template_assets/iconic/cardinal/*.png` and served from the existing `/template-assets/` mount. The static editor preview and the deterministic AI fill share one visual identity because the backend generator reuses the same single-column icon machinery as other icon-tagged templates, under its own layout branch so no red accent band is drawn.
 
 Implementation:
 
-- `frontend/src/templates/cardinal.js`, lines 1–158 — static starter spec; local `icon` helper (line 49), `sectionHead` (line 65), `contact` (line 76), and the `flowRole` mapping in `cardinalTemplate` (line 150)
+- `frontend/src/templates/cardinal.js`, lines 1–171 — static starter spec; local `icon` helper (line 48), `sectionHead` (lines 64–81), `contact` (line 87), and the `flowRole` mapping in `cardinalTemplate` (line 163)
 - `frontend/src/templates/index.js`, registry entry `cardinal` (`tier: "paid"`, `layouts: ["icons"]`, `accent: "#9E2532"`)
-- `backend/app/services/cv_templates/templates/cardinal.py`, function `_gen_cardinal`
+- `backend/app/services/cv_templates/templates/cardinal.py`, lines 21–128, function `_gen_cardinal`; nested `section` at lines 63–88
 - `backend/app/services/cv_templates/registry.py`, `_GENERATORS["cardinal"]`
 - `scripts/generate_iconic_icons.py`, line 23, grey `cardinal` icon theme
 - `frontend/public/template-mockups/cardinal.png`, source-driven A4 preview
 
 Tests:
 
-- `frontend/src/templates/cardinal.test.js`, lines 1–57 — single-column, red-headings-only, grey-icons/rules, dark-grey body, and serif-name assertions
+- `frontend/src/templates/cardinal.test.js`, lines 1–76 — single-column, larger red headings, body-aligned icons, cap-midline rules, dark-grey body, and serif-name assertions
+- `backend/tests/test_cv_template_layouts.py`, lines 1709–1743, `test_cardinal_aligns_section_icons_and_midline_rules_to_the_body_column` — generator parity for icon/heading alignment, right-edge rule geometry, and masthead icon bounds
 - `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — enforces the frontend/backend id parity that `cardinal` now participates in
 
 ### Harbor two-column template
@@ -2115,22 +2116,23 @@ Znane ograniczenie: Words odtwarza wizualny język starannie sformatowanego doku
 
 ### Szablon Cardinal w szlachetnej czerwieni
 
-Cardinal to płatny jednokolumnowy szablon (`layouts: ["icons"]`) dla osób, które chcą formalnego dokumentu z jednym powściągliwym akcentem koloru. „Szlachetna czerwień” (`#9E2532`) jest zarezerwowana wyłącznie dla typografii — linii stanowiska pod nazwiskiem oraz każdego nagłówka sekcji — a cała dekoracja pozostaje neutralnie szara (`#8A8A8A`): generowane ikony line-art przy każdym nagłówku sekcji i elemencie kontaktu oraz dekoracyjne linie pod nagłówkami i wzdłuż nagłówka i stopki. Treść główna jest ciemnoszara (`#333333`); nazwisko używa Times-Roman, a etykiety, kontakt, daty i treść — Helvetica. Połączenie generowanych ikon z każdym nagłówkiem i wierszem kontaktu odróżnia go od Regent, Aldine, Monument i Words.
+Cardinal to płatny jednokolumnowy szablon (`layouts: ["icons"]`) dla osób, które chcą formalnego dokumentu z jednym powściągliwym akcentem koloru. „Szlachetna czerwień” (`#9E2532`) jest zarezerwowana wyłącznie dla typografii — linii stanowiska pod nazwiskiem oraz każdego nagłówka sekcji — a cała dekoracja pozostaje neutralnie szara (`#8A8A8A`). Nagłówki używają pogrubionej Helvetica 10,4 pt i tworzą jedną poziomą kompozycję: ikona 15 pt zaczyna się dokładnie na krawędzi body (`x=72`), etykieta na `x=94`, a hairline 0,8 pt biegnie od bezpiecznego odstępu 14 pt za śledzoną etykietą do prawej krawędzi. Linia przechodzi przez optyczny środek kapitalików zamiast leżeć pod nagłówkiem. Ikony kontaktu również nie wystają poza krawędź body. Treść jest ciemnoszara (`#333333`) w rozmiarze 9,6 pt / line height 13,8 pt; nazwisko używa Times-Roman 30 pt.
 
 Szare glify pochodzą z dedykowanego motywu `cardinal` dodanego do wspólnego potoku ikon (`scripts/generate_iconic_icons.py`, `THEMES["cardinal"] = "#8A8A8A"`), renderowane do `backend/template_assets/iconic/cardinal/*.png` i serwowane z istniejącego montowania `/template-assets/`. Statyczny podgląd w edytorze i deterministyczne wypełnianie AI mają jedną tożsamość wizualną, ponieważ generator backendu korzysta z tej samej jednokolumnowej maszynerii ikon co inne szablony z tagiem `icons`, w osobnej gałęzi układu, dzięki czemu nie jest rysowany żaden czerwony pas akcentu.
 
 Implementacja:
 
-- `frontend/src/templates/cardinal.js`, linie 1–158 — statyczna specyfikacja startowa; lokalny helper `icon` (linia 49), `sectionHead` (linia 65), `contact` (linia 76) oraz mapowanie `flowRole` w `cardinalTemplate` (linia 150)
+- `frontend/src/templates/cardinal.js`, linie 1–171 — statyczna specyfikacja startowa; lokalny helper `icon` (linia 48), `sectionHead` (linie 64–81), `contact` (linia 87) oraz mapowanie `flowRole` w `cardinalTemplate` (linia 163)
 - `frontend/src/templates/index.js`, wpis rejestru `cardinal` (`tier: "paid"`, `layouts: ["icons"]`, `accent: "#9E2532"`)
-- `backend/app/services/cv_templates/templates/cardinal.py`, funkcja `_gen_cardinal`
+- `backend/app/services/cv_templates/templates/cardinal.py`, linie 21–128, funkcja `_gen_cardinal`; zagnieżdżona `section` w liniach 63–88
 - `backend/app/services/cv_templates/registry.py`, `_GENERATORS["cardinal"]`
 - `scripts/generate_iconic_icons.py`, linia 23, szary motyw ikon `cardinal`
 - `frontend/public/template-mockups/cardinal.png`, podgląd A4 generowany ze źródła
 
 Testy:
 
-- `frontend/src/templates/cardinal.test.js`, linie 1–57 — asercje jednej kolumny, czerwieni tylko w nagłówkach, szarych ikon/linii, ciemnoszarej treści i szeryfowego nazwiska
+- `frontend/src/templates/cardinal.test.js`, linie 1–76 — asercje jednej kolumny, większych czerwonych nagłówków, ikon wyrównanych z body, linii na środku kapitalików, ciemnoszarej treści i szeryfowego nazwiska
+- `backend/tests/test_cv_template_layouts.py`, linie 1709–1743, `test_cardinal_aligns_section_icons_and_midline_rules_to_the_body_column` — parytet generatora dla wyrównania ikony/nagłówka, geometrii linii do prawej krawędzi i granic ikon mastheadu
 - `backend/tests/test_template_registry_sync.py`, `test_frontend_ids_match_backend_generators` — wymusza parytet id frontend/backend, w którym `cardinal` teraz uczestniczy
 
 ### Szablon dwukolumnowy Harbor
