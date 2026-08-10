@@ -57,19 +57,18 @@ test("Atrium is a centered-axis editorial single column, not a Portico recolor",
     assert.ok(icons.every((element) => element.alignWithText === true));
     assert.ok(icons.every((element) => element.flowRole === "masthead"));
 
-    // ── Section identity is CENTERED and carries no section icon. Headings are
-    // plain `text` chrome (Portico's are left-aligned; using `text` — not a wide
-    // textarea — keeps the shared section packer gluing each heading to its body,
-    // see atrium.pack.test.js). Five headings: summary/experience/education/skills/languages.
+    // ── Section headings: LEFT-aligned bold accent `text`, no icon. Anchored at
+    // the column left L like every other single-column template, so the shared
+    // packer and Add-section keep each heading glued to its body (see
+    // atrium.pack.test.js). Five: summary/experience/education/skills/languages.
     const headingLabels = atriumTemplate.filter(
         (element) => element.flowRole === "section-chrome" && element.category === "text",
     );
     assert.equal(headingLabels.length, 5);
     assert.ok(headingLabels.every((element) => element.color === ACCENT));
     assert.ok(headingLabels.every((element) => element.fontFamily === "Montserrat"));
-    // Centered, not column-anchored: each heading's left is indented well to the
-    // right of the content column start (a left-aligned heading would be at L).
-    assert.ok(headingLabels.every((element) => element.left > L + 20));
+    assert.ok(headingLabels.every((element) => element.bold === true));
+    assert.ok(headingLabels.every((element) => element.left === L)); // column-anchored, not centered
 
     // ── Body copy stays LEFT-aligned inside the centered column ───────────────
     const bodyBlocks = atriumTemplate.filter(
@@ -87,18 +86,20 @@ test("Atrium is a centered-axis editorial single column, not a Portico recolor",
     const lines = atriumTemplate.filter((element) => element.category === "line");
     const rules = lines.filter((element) => element.backgroundColor !== PAPER);
     assert.ok(rules.length > 0);
-    // Every rule is a hairline in one axis (the crosshair's plus arm is 1×7),
-    // and short overall — no full-width heading/header rule is allowed.
-    assert.ok(rules.every((element) => Math.min(element.width, element.height) <= 1));
+    // Every rule is thin in one axis (heading tick is 26×1.5; crosshair plus arm
+    // is 1×7) and short overall — no full-width heading/header rule is allowed.
+    assert.ok(rules.every((element) => Math.min(element.width, element.height) <= 1.5));
     assert.ok(
         rules.every((element) => Math.max(element.width, element.height) <= 60),
         "no full-width heading/header rule is allowed",
     );
 
-    // Section separators are the short broken rule under each centered heading.
+    // Section ornament is a short accent tick under each left-aligned heading.
     const sectionRules = rules.filter((element) => element.flowRole === "section-chrome");
-    assert.ok(sectionRules.length >= 2);
-    assert.ok(sectionRules.every((element) => element.width <= 16));
+    assert.ok(sectionRules.length >= 5);
+    assert.ok(sectionRules.every((element) => element.width <= 30));
+    assert.ok(sectionRules.every((element) => element.backgroundColor === ACCENT));
+    assert.ok(sectionRules.every((element) => element.left === L)); // tick aligns with the heading
 
     // Masthead terminator is a crosshair (accent hairlines), never a header rule.
     const mastheadRules = rules.filter((element) => element.flowRole === "masthead");

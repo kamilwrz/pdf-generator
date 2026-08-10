@@ -2,14 +2,15 @@ from __future__ import annotations
 
 """Atrium CV template generator.
 
-A central-axis, editorial single column. Unlike Portico (the other centered
-masthead) the *whole* section identity is centered — headings sit on the page
-axis with a printer's-mark ornament instead of a left icon + full-width rule —
-and the content column is narrower with heavier side margins. The visual
-language is a "registration mark" system built only from thin `line` rules: a
-crosshair terminates the masthead, and a short broken rule sits under each
-centered heading. Body copy stays left-aligned inside the centered column for
-readability. Layout decisions are deterministic Python (never sent to the model).
+A central-axis, editorial single column. The masthead is centered (name, title,
+icon contact band, crosshair terminator) to express the page axis; below it,
+section headings are LEFT-aligned bold accent labels with a short accent tick
+beneath — no icon, no full-width rule, no frame. The content column is narrower
+with heavier side margins than Portico, and body copy stays left-aligned inside
+that column. Headings sit at column left `L` like every other single-column
+template so the shared section packer and Add-section (`deriveSectionStyle`)
+keep them glued to their bodies on a stable X. Layout decisions are
+deterministic Python (never sent to the model).
 """
 
 from app.services.cv_generator_primitives import (
@@ -33,34 +34,9 @@ from app.services.cv_templates.shared.records import (
 )
 from app.services.cv_templates.shared.text import _compact_text, _labels, _place_skills_section
 
-from reportlab.pdfbase.pdfmetrics import stringWidth
-
-from app.services.pdf_generator import PDF_Generator
-
-
-def _centered_left(label: str, font: str, font_size: float, letter_spacing: float,
-                   center_x: float) -> float:
-    """Left X so `label` (rendered with `letter_spacing`) is centered on `center_x`.
-
-    Section headings are plain ``text`` elements — the same category every other
-    template's headings use, so the shared section packer / textarea reflow keep
-    the heading glued to its body. Centering is therefore a matter of computing
-    the left X from the real glyph width (ReportLab metrics, like the centered
-    contact placer) plus the inter-letter tracking, never a wide centered
-    ``textarea`` (which the generic reflow does not treat as chrome and would
-    detach on any pack).
-    """
-    try:
-        draw_font, _, _ = PDF_Generator._resolve_font(font, False, False)
-        width = stringWidth(label, draw_font, font_size)
-    except Exception:
-        width = len(label) * font_size * 0.55
-    width += max(0, len(label) - 1) * letter_spacing
-    return center_x - width / 2.0
-
 
 def _gen_atrium(cv: dict) -> list[dict]:
-    """Centered-axis masthead + centered section identity; left-aligned body."""
+    """Centered masthead + left-aligned section headings; left-aligned body."""
     C = {
         'paper': '#FBFAF7', 'ink': '#242521', 'accent': '#556158',
         'mute': '#78796F', 'body': '#2C2C29', 'rule': '#E5E3DB',
@@ -72,7 +48,7 @@ def _gen_atrium(cv: dict) -> list[dict]:
     L, W = (C['L'], C['W'])
     SANS, DISP = (C['sans'], C['display'])
     ICON = C['icon_theme']
-    ACCENT, RULE = (C['accent'], C['rule'])
+    ACCENT = C['accent']
     CENTER_X = L + W / 2.0  # 90 + 415/2 = 297.5, the page's true center
     lbl = _labels(cv)
 
@@ -135,31 +111,34 @@ def _gen_atrium(cv: dict) -> list[dict]:
     # would otherwise be mistaken for a heading by the rhythm knobs.
     header = [{**element, "flowRole": "masthead"} for element in header]
 
-    # ── Section identity: centered heading + short broken rule (no icon) ──────
-    # The heading is a plain `text` element (not a wide centered textarea), so it
-    # participates in the shared section packer exactly like Cardinal/Nova/Portico
-    # headings — centering is encoded in the computed left X, not the category.
-    label_fs = 9.0
-    label_ls = 1.9
+    # ── Section identity: LEFT-aligned bold label + a short accent tick ───────
+    # Headings are anchored at the content column left `L`, exactly like every
+    # other single-column template. This keeps them glued to their body through
+    # the shared section packer AND through Add-section / `deriveSectionStyle`
+    # (which samples the heading's `left` and reuses it — a centered heading has
+    # no stable left, so an added section landed off the column axis). The bold
+    # accent label + a short solid accent tick beneath it give the layout weight
+    # without a full-width rule, an icon, or a frame (the Atrium restraint). The
+    # page's central axis stays expressed by the centered masthead above.
+    label_fs = 9.5
+    label_ls = 1.6
     SECTION_CHROME = label_fs + 6 + get_spacing().after_rule + 6
 
     def section(label: str) -> None:
         y = b.y
         page = b.pg
-        heading_x = _centered_left(label, SANS, label_fs, label_ls, CENTER_X)
-        heading = _text(label, label_fs, SANS, ACCENT, heading_x, y, zIndex=3, page=page)
+        heading = _text(label, label_fs, SANS, ACCENT, L, y, zIndex=3, page=page)
         heading['letterSpacing'] = label_ls
+        heading['bold'] = True
         heading['flowRole'] = 'section-chrome'
         b.els.append(heading)
-        # Short broken rule ("── ──") centered on the axis, a few px below the
-        # heading baseline. `text` renders with line-height 1, so its box is ~fs.
-        sep_y = y + label_fs + 5.0
-        seg, gap = (15.0, 6.0)
-        for lx in (CENTER_X - gap / 2.0 - seg, CENTER_X + gap / 2.0):
-            separator = _line(lx, sep_y, seg, 1, RULE, zIndex=2, page=page)
-            separator['flowRole'] = 'section-chrome'
-            b.els.append(separator)
-        b.y = sep_y + 1 + get_spacing().after_rule
+        # Short accent tick under the heading (26px), a touch heavier than a
+        # hairline so the section reads as deliberate rather than faint.
+        tick_y = y + label_fs + 5.0
+        tick = _line(L, tick_y, 26, 1.5, ACCENT, zIndex=2, page=page)
+        tick['flowRole'] = 'section-chrome'
+        b.els.append(tick)
+        b.y = tick_y + 1.5 + get_spacing().after_rule
 
     def close_section() -> None:
         b.gap(get_spacing().section)
@@ -232,9 +211,7 @@ def _gen_atrium(cv: dict) -> list[dict]:
             {**_text(f'{page:02d}', 8, SANS, C['mute'], CENTER_X - 6, 806, page=page),
              'fixedToPage': True}
         )
-        # Continuation pages carry only a small centered crosshair near the top
-        # edge instead of repeating the masthead.
-        if page > 1:
-            for mark in _crosshair(CENTER_X, 48, page=page):
-                page_decorations.append({**mark, 'fixedToPage': True})
+        # Continuation pages carry no top ornament — just the footer page number.
+        # (An earlier build repeated the masthead crosshair here; it read as a
+        # stray "+" floating above the first continued heading.)
     return page_decorations + header + flow

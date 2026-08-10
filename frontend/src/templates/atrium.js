@@ -1,15 +1,13 @@
 /**
  * Atrium template (`layouts: ["single", "icons"]`).
  *
- * A central-axis editorial single column: the whole section identity is centered
- * on the page (name, title, contact band, and every section heading), the
- * content column is narrow with heavy side margins, and the decorative language
- * is a printer's "registration mark" system built only from thin rules — a
- * crosshair terminates the masthead and a short broken rule sits under each
- * heading. Section headings are plain centered `text` chrome (same kind as every
- * other template, so the shared section packer keeps them glued to their body);
- * there are no section icons, no full-width heading rules, no frames, no sidebar.
- * Body copy stays left-aligned inside the centered column.
+ * A central-axis editorial single column. The masthead is centered (name, title,
+ * icon contact band, and a small crosshair terminator) to express the page axis;
+ * below it, section headings are LEFT-aligned bold accent labels with a short
+ * accent tick beneath (no icon, no full-width rule, no frame, no sidebar), and
+ * body copy is left-aligned in a narrow column with heavy side margins. Headings
+ * sit at the column left like every other single-column template, so the shared
+ * section packer and Add-section keep them glued to their bodies.
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/atrium.py`) for representative
@@ -296,36 +294,25 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "text",
     "content": "PODSUMOWANIE ZAWODOWE",
-    "fontSize": 9.0,
+    "fontSize": 9.5,
     "fontFamily": "Montserrat",
     "color": "#556158",
-    "left": 205.50549999999998,
+    "left": 90,
     "top": 206.0,
     "zIndex": 3,
     "page": 1,
-    "bold": false,
+    "bold": true,
     "italic": false,
-    "letterSpacing": 1.9,
+    "letterSpacing": 1.6,
     "flowRole": "section-chrome"
   },
   {
     "category": "line",
-    "left": 279.5,
-    "top": 220.0,
-    "width": 15.0,
-    "height": 1,
-    "backgroundColor": "#E5E3DB",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "line",
-    "left": 300.5,
-    "top": 220.0,
-    "width": 15.0,
-    "height": 1,
-    "backgroundColor": "#E5E3DB",
+    "left": 90,
+    "top": 220.5,
+    "width": 26,
+    "height": 1.5,
+    "backgroundColor": "#556158",
     "zIndex": 2,
     "page": 1,
     "flowRole": "section-chrome"
@@ -334,7 +321,7 @@ const ATRIUM_ELEMENTS = [
     "category": "textarea",
     "content": "Liderka strategii łącząca perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
     "left": 90,
-    "top": 229.0,
+    "top": 230.0,
     "width": 415,
     "height": 41,
     "fontSize": 9.3,
@@ -354,36 +341,25 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "text",
     "content": "DOŚWIADCZENIE ZAWODOWE",
-    "fontSize": 9.0,
+    "fontSize": 9.5,
     "fontFamily": "Montserrat",
     "color": "#556158",
-    "left": 205.21699999999998,
-    "top": 291.0,
+    "left": 90,
+    "top": 292.0,
     "zIndex": 3,
     "page": 1,
-    "bold": false,
+    "bold": true,
     "italic": false,
-    "letterSpacing": 1.9,
+    "letterSpacing": 1.6,
     "flowRole": "section-chrome"
   },
   {
     "category": "line",
-    "left": 279.5,
-    "top": 305.0,
-    "width": 15.0,
-    "height": 1,
-    "backgroundColor": "#E5E3DB",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "line",
-    "left": 300.5,
-    "top": 305.0,
-    "width": 15.0,
-    "height": 1,
-    "backgroundColor": "#E5E3DB",
+    "left": 90,
+    "top": 306.5,
+    "width": 26,
+    "height": 1.5,
+    "backgroundColor": "#556158",
     "zIndex": 2,
     "page": 1,
     "flowRole": "section-chrome"
@@ -392,7 +368,7 @@ const ATRIUM_ELEMENTS = [
     "category": "textarea",
     "content": "Dyrektorka Strategii  /  Northbridge Partners",
     "left": 90,
-    "top": 314.0,
+    "top": 316.0,
     "width": 415,
     "height": 15,
     "fontSize": 11,
@@ -408,13 +384,13 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-70d3edcee373"
+    "flowGroup": "record-c1bb29ea7956"
   },
   {
     "category": "textarea",
     "content": "Northbridge Partners   ·   2021 – obecnie",
     "left": 90,
-    "top": 333.0,
+    "top": 335.0,
     "width": 415,
     "height": 12,
     "fontSize": 8.5,
@@ -430,13 +406,13 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-70d3edcee373"
+    "flowGroup": "record-c1bb29ea7956"
   },
   {
     "category": "textarea",
     "content": "• Zaprojektowała model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkowała rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
     "left": 90,
-    "top": 349.0,
+    "top": 351.0,
     "width": 415,
     "height": 41,
     "fontSize": 9.3,
@@ -452,13 +428,13 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-70d3edcee373"
+    "flowGroup": "record-c1bb29ea7956"
   },
   {
     "category": "textarea",
     "content": "Menedżerka Rozwoju  /  Meridian Group",
     "left": 90,
-    "top": 400.0,
+    "top": 402.0,
     "width": 415,
     "height": 15,
     "fontSize": 11,
@@ -474,13 +450,13 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2af660955c2d"
+    "flowGroup": "record-55b8a054c141"
   },
   {
     "category": "textarea",
     "content": "Meridian Group   ·   2016 – 2021",
     "left": 90,
-    "top": 419.0,
+    "top": 421.0,
     "width": 415,
     "height": 12,
     "fontSize": 8.5,
@@ -496,13 +472,13 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2af660955c2d"
+    "flowGroup": "record-55b8a054c141"
   },
   {
     "category": "textarea",
     "content": "• Rozwinęła portfel projektów ekspansji na rynkach europejskich.\n• Wprowadziła standardy współpracy między sprzedażą, produktem i finansami.",
     "left": 90,
-    "top": 435.0,
+    "top": 437.0,
     "width": 415,
     "height": 27,
     "fontSize": 9.3,
@@ -518,41 +494,30 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2af660955c2d"
+    "flowGroup": "record-55b8a054c141"
   },
   {
     "category": "text",
     "content": "WYKSZTAŁCENIE",
-    "fontSize": 9.0,
+    "fontSize": 9.5,
     "fontFamily": "Montserrat",
     "color": "#556158",
-    "left": 246.635,
-    "top": 483.0,
+    "left": 90,
+    "top": 485.0,
     "zIndex": 3,
     "page": 1,
-    "bold": false,
+    "bold": true,
     "italic": false,
-    "letterSpacing": 1.9,
+    "letterSpacing": 1.6,
     "flowRole": "section-chrome"
   },
   {
     "category": "line",
-    "left": 279.5,
-    "top": 497.0,
-    "width": 15.0,
-    "height": 1,
-    "backgroundColor": "#E5E3DB",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "line",
-    "left": 300.5,
-    "top": 497.0,
-    "width": 15.0,
-    "height": 1,
-    "backgroundColor": "#E5E3DB",
+    "left": 90,
+    "top": 499.5,
+    "width": 26,
+    "height": 1.5,
+    "backgroundColor": "#556158",
     "zIndex": 2,
     "page": 1,
     "flowRole": "section-chrome"
@@ -561,7 +526,7 @@ const ATRIUM_ELEMENTS = [
     "category": "textarea",
     "content": "Magister Zarządzania",
     "left": 90,
-    "top": 506.0,
+    "top": 509.0,
     "width": 415,
     "height": 13,
     "fontSize": 10.4,
@@ -577,13 +542,13 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0e61f5c364ea"
+    "flowGroup": "record-d5183a4b5323"
   },
   {
     "category": "textarea",
     "content": "SGH Warszawa",
     "left": 90,
-    "top": 523.0,
+    "top": 526.0,
     "width": 415,
     "height": 13,
     "fontSize": 10.4,
@@ -599,13 +564,13 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0e61f5c364ea"
+    "flowGroup": "record-d5183a4b5323"
   },
   {
     "category": "textarea",
     "content": "2011 – 2016",
     "left": 90,
-    "top": 540.0,
+    "top": 543.0,
     "width": 415,
     "height": 12,
     "fontSize": 8.5,
@@ -621,41 +586,30 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0e61f5c364ea"
+    "flowGroup": "record-d5183a4b5323"
   },
   {
     "category": "text",
     "content": "UMIEJĘTNOŚCI",
-    "fontSize": 9.0,
+    "fontSize": 9.5,
     "fontFamily": "Montserrat",
     "color": "#556158",
-    "left": 252.22,
-    "top": 573.0,
+    "left": 90,
+    "top": 576.0,
     "zIndex": 3,
     "page": 1,
-    "bold": false,
+    "bold": true,
     "italic": false,
-    "letterSpacing": 1.9,
+    "letterSpacing": 1.6,
     "flowRole": "section-chrome"
   },
   {
     "category": "line",
-    "left": 279.5,
-    "top": 587.0,
-    "width": 15.0,
-    "height": 1,
-    "backgroundColor": "#E5E3DB",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "line",
-    "left": 300.5,
-    "top": 587.0,
-    "width": 15.0,
-    "height": 1,
-    "backgroundColor": "#E5E3DB",
+    "left": 90,
+    "top": 590.5,
+    "width": 26,
+    "height": 1.5,
+    "backgroundColor": "#556158",
     "zIndex": 2,
     "page": 1,
     "flowRole": "section-chrome"
@@ -664,7 +618,7 @@ const ATRIUM_ELEMENTS = [
     "category": "textarea",
     "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
     "left": 90,
-    "top": 596.0,
+    "top": 600.0,
     "width": 415,
     "height": 14,
     "fontSize": 9.3,
@@ -680,41 +634,30 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d0c2f5c2e6fc"
+    "flowGroup": "record-4c3e2b312ad4"
   },
   {
     "category": "text",
     "content": "JĘZYKI",
-    "fontSize": 9.0,
+    "fontSize": 9.5,
     "fontFamily": "Montserrat",
     "color": "#556158",
-    "left": 277.1395,
-    "top": 631.0,
+    "left": 90,
+    "top": 635.0,
     "zIndex": 3,
     "page": 1,
-    "bold": false,
+    "bold": true,
     "italic": false,
-    "letterSpacing": 1.9,
+    "letterSpacing": 1.6,
     "flowRole": "section-chrome"
   },
   {
     "category": "line",
-    "left": 279.5,
-    "top": 645.0,
-    "width": 15.0,
-    "height": 1,
-    "backgroundColor": "#E5E3DB",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "line",
-    "left": 300.5,
-    "top": 645.0,
-    "width": 15.0,
-    "height": 1,
-    "backgroundColor": "#E5E3DB",
+    "left": 90,
+    "top": 649.5,
+    "width": 26,
+    "height": 1.5,
+    "backgroundColor": "#556158",
     "zIndex": 2,
     "page": 1,
     "flowRole": "section-chrome"
@@ -723,7 +666,7 @@ const ATRIUM_ELEMENTS = [
     "category": "textarea",
     "content": "• Polski — ojczysty\n• Angielski — C1\n• Francuski — B2",
     "left": 90,
-    "top": 654.0,
+    "top": 659.0,
     "width": 415,
     "height": 41,
     "fontSize": 9.3,

@@ -8,9 +8,11 @@ import { applyFlowSpacing, listDocumentSections, sectionElementIds } from "../ut
 // element ids assigned (the loader does that in the app). Regression guard for
 // the reported bug: Atrium section headings (Wykształcenie / Umiejętności /
 // Języki) detached from their bodies and any spacing change scrambled the
-// rhythm, because the headings were authored as wide centered textareas the
-// shared section packer does not treat as chrome. They are now plain centered
-// `text` chrome — identical in kind to every other template's headings.
+// rhythm, because the headings were once authored as wide centered textareas
+// the shared section packer does not treat as chrome. They are now plain
+// left-aligned `text` chrome — identical in kind to every other template's
+// headings — so Add-section / `deriveSectionStyle` also sample a stable column
+// left (L=90) instead of a centered heading's drifting X.
 const FIXTURE = JSON.parse(
     readFileSync(new URL("./atrium.multipage.fixture.json", import.meta.url), "utf8"),
 );
@@ -30,7 +32,7 @@ const absTop = (element) => ((element.page || 1) - 1) * PAGE_HEIGHT + (element.t
  * Every section heading must sit directly above its own body — never orphaned
  * onto an earlier page. `sectionElementIds` groups a section's members; the
  * heading's top must precede its first body block by only the chrome band
- * (heading + broken rule + under-rule gap), well under a section's worth of
+ * (heading + accent tick + under-rule gap), well under a section's worth of
  * space. A detached heading (the bug) would show a gap of hundreds of px.
  */
 function assertHeadingsGlued(elements, label) {
