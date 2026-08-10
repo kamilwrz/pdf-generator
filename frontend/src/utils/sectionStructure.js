@@ -18,6 +18,7 @@
  */
 
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
+import { parseFlatListItems } from "./flatSectionLayout.js";
 
 /** Keep in sync with `textareaReflow.js` / backend CONTENT margins. */
 const DEFAULT_PAGE_TOP = 66;
@@ -448,6 +449,47 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
 
   healStackedSectionBodies(list, sections, membersByHeading, pageHeight);
   return membersByHeading.get(headingId) || new Set();
+}
+
+/**
+ * Sections eligible for the inline/bullet-list layout toggle: exactly one
+ * non-chrome `textarea` body element, whose content currently parses into at
+ * least two items. Record-style sections (Experience, Education, Projects, …)
+ * have multiple per-entry blocks (title + meta + bullets, repeated) and are
+ * excluded automatically by the "exactly one" rule. The item-count check
+ * additionally excludes single-paragraph sections such as Summary — those
+ * also happen to be exactly one textarea, but splitting prose on a mid-dot
+ * that never appears in it produces one meaningless "item", not a real list.
+ * Neither check relies on section-name matching, so a user's own custom
+ * section title still qualifies as long as its body is a genuine flat list.
+ *
+ * Returns `{ headingId, contentElementId }` pairs; callers key their anchor
+ * map by `contentElementId` since the toggle icon is anchored to the content
+ * block, not the heading (see `SectionRecordAdd` for the heading-anchored
+ * equivalent).
+ */
+export function listFlatSectionAnchors(elements, pageHeight = 842) {
+  const list = elements || [];
+  const sections = listDocumentSections(list, pageHeight);
+  const anchors = [];
+  for (const section of sections) {
+    const memberIds = sectionElementIds(list, section.headingId, pageHeight);
+    const bodyTextareas = list.filter((element) => (
+      memberIds.has(element.element_id)
+      && element.category === "textarea"
+      && !element.fixedToPage
+      && element.flowRole !== "section-chrome"
+    ));
+    if (bodyTextareas.length !== 1) continue;
+    const [content] = bodyTextareas;
+    const items = parseFlatListItems(content.content, Boolean(content.bulletList));
+    if (items.length < 2) continue;
+    anchors.push({
+      headingId: section.headingId,
+      contentElementId: content.element_id,
+    });
+  }
+  return anchors;
 }
 
 /**

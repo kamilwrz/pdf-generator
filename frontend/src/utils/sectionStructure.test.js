@@ -7,6 +7,7 @@ import {
   deriveSectionStyle,
   findProfilePhotoSlot,
   listDocumentSections,
+  listFlatSectionAnchors,
   packDocumentSections,
   removeSection,
   reorderSection,
@@ -1779,6 +1780,67 @@ describe("appendSectionAtEnd", () => {
     assert.ok(
       h2.top < sidebarBottomBefore,
       `new section (top=${h2.top}) should follow the main column (bottom=${mainBottomBefore}), not the deeper sidebar (bottom=${sidebarBottomBefore})`,
+    );
+  });
+});
+
+describe("listFlatSectionAnchors", () => {
+  // Cardinal's real starter is used as the fixture: UMIEJĘTNOŚCI and JĘZYKI
+  // are each authored as one `block(...)` textarea with mid-dot items —
+  // exactly the flat-section shape this helper must recognize. PODSUMOWANIE
+  // ZAWODOWE is also a single textarea, but it is one prose paragraph, not a
+  // list, and DOŚWIADCZENIE ZAWODOWE spans several title+meta+bullet blocks
+  // per job — both must be excluded.
+  const source = cardinalTemplate.map((element, index) => ({
+    ...element,
+    element_id: `c-${index}`,
+    page: 1,
+  }));
+
+  it("includes Skills and Languages (single textarea, multiple items)", () => {
+    const anchors = listFlatSectionAnchors(source, 842);
+    const sections = listDocumentSections(source, 842);
+    const anchoredHeadings = new Set(anchors.map((anchor) => anchor.headingId));
+    const skills = sections.find((section) => section.title === "UMIEJĘTNOŚCI");
+    const languages = sections.find((section) => section.title === "JĘZYKI");
+    assert.ok(skills, "expected a UMIEJĘTNOŚCI section in the Cardinal fixture");
+    assert.ok(languages, "expected a JĘZYKI section in the Cardinal fixture");
+    assert.ok(anchoredHeadings.has(skills.headingId), "Skills should be a flat-section anchor");
+    assert.ok(anchoredHeadings.has(languages.headingId), "Languages should be a flat-section anchor");
+  });
+
+  it("excludes the Summary paragraph even though it is also one textarea", () => {
+    const anchors = listFlatSectionAnchors(source, 842);
+    const sections = listDocumentSections(source, 842);
+    const summary = sections.find((section) => section.title === "PODSUMOWANIE ZAWODOWE");
+    assert.ok(summary, "expected a PODSUMOWANIE ZAWODOWE section in the Cardinal fixture");
+    assert.ok(
+      !anchors.some((anchor) => anchor.headingId === summary.headingId),
+      "a single-paragraph section must not get the layout toggle",
+    );
+  });
+
+  it("excludes record-style sections with multiple body blocks per entry", () => {
+    const anchors = listFlatSectionAnchors(source, 842);
+    const sections = listDocumentSections(source, 842);
+    const experience = sections.find((section) => section.title === "DOŚWIADCZENIE ZAWODOWE");
+    assert.ok(experience, "expected a DOŚWIADCZENIE ZAWODOWE section in the Cardinal fixture");
+    assert.ok(
+      !anchors.some((anchor) => anchor.headingId === experience.headingId),
+      "a multi-record section must not get the layout toggle",
+    );
+  });
+
+  it("points each anchor at the section's own body textarea", () => {
+    const anchors = listFlatSectionAnchors(source, 842);
+    const sections = listDocumentSections(source, 842);
+    const skills = sections.find((section) => section.title === "UMIEJĘTNOŚCI");
+    const anchor = anchors.find((entry) => entry.headingId === skills.headingId);
+    const contentElement = source.find((element) => element.element_id === anchor.contentElementId);
+    assert.equal(contentElement.category, "textarea");
+    assert.ok(
+      String(contentElement.content || "").includes("Strategia"),
+      "anchor should resolve to the Skills body textarea, not an unrelated element",
     );
   });
 });

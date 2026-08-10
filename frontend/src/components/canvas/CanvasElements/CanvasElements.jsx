@@ -8,7 +8,10 @@
  * (hover trash/+ left, reorder arrows right → add/delete/reorder section and
  * re-pack). Each multi-line record also gets one `RecordBlockAdd` on its title
  * line (hover anywhere on the upper block → insert, delete, or reorder a
- * record, then re-pack).
+ * record, then re-pack). Flat-list section bodies (Skills, Languages, flat
+ * custom sections — exactly one textarea per section) get a
+ * `FlatSectionLayoutToggle` icon at their top-right corner instead, opening a
+ * modal to switch between an inline mid-dot row and a bullet list.
  */
 import { use, useMemo } from 'react';
 import Text from '../Text/Text';
@@ -19,10 +22,11 @@ import Textarea from '../Textarea/Textarea';
 import Ellipse from '../Ellipse/Ellipse';
 import SectionRecordAdd from '../SectionRecordAdd/SectionRecordAdd';
 import RecordBlockAdd from '../RecordBlockAdd/RecordBlockAdd';
+import FlatSectionLayoutToggle from '../FlatSectionLayoutToggle/FlatSectionLayoutToggle';
 import { useCanvasEnterIds } from '../../../hooks/useCanvasEnterIds';
 import { PdfContext } from '../../../store/pdfgenerator-context';
 import { EDITOR_MODE_TEMPLATE } from '../../../utils/editorMode';
-import { listDocumentSections } from '../../../utils/sectionStructure';
+import { listDocumentSections, listFlatSectionAnchors } from '../../../utils/sectionStructure';
 import { listRecordBlockAddAnchors } from '../../../utils/sectionRecord';
 import classes from './CanvasElements.module.css';
 
@@ -63,10 +67,24 @@ export default function CanvasElements({ elements }) {
     return map;
   }, [editorMode, documentElements, pageHeight]);
 
+  // Content-element id → flat-list layout-toggle anchor (Skills, Languages,
+  // flat custom sections). A section can only be either record-shaped
+  // (recordBlockAnchorsById) or flat (exactly one body textarea), so the two
+  // maps never target the same element in practice.
+  const flatSectionAnchorsById = useMemo(() => {
+    const map = new Map();
+    if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
+    for (const anchor of listFlatSectionAnchors(documentElements, pageHeight)) {
+      map.set(anchor.contentElementId, anchor);
+    }
+    return map;
+  }, [editorMode, documentElements, pageHeight]);
+
   return elements.map((element) => {
     const enterClass = enterClassName(element.element_id, heldIds, fadingIds);
     let node = null;
     const blockAnchor = recordBlockAnchorsById.get(element.element_id);
+    const flatAnchor = flatSectionAnchorsById.get(element.element_id);
 
     if (element.category === "textarea") {
       node = (
@@ -108,6 +126,15 @@ export default function CanvasElements({ elements }) {
               fontSize={blockAnchor.fontSize}
               canMoveUp={blockAnchor.canMoveUp}
               canMoveDown={blockAnchor.canMoveDown}
+            />
+          ) : null}
+          {flatAnchor ? (
+            <FlatSectionLayoutToggle
+              contentElementId={flatAnchor.contentElementId}
+              left={Number(element.left) || 0}
+              top={Number(element.top) || 0}
+              width={Number(element.width) || 0}
+              fontSize={Number(element.fontSize) || 10}
             />
           ) : null}
         </>

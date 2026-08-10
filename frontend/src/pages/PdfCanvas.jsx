@@ -44,6 +44,7 @@ import SaveGateModal from '../components/editor/SaveGateModal/SaveGateModal';
 import ClaimGuestDocumentModal from '../components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal';
 import SectionsPanel from '../components/editor/SectionsPanel/SectionsPanel';
 import AddSectionModal from '../components/editor/AddSectionModal/AddSectionModal';
+import FlatSectionLayoutModal from '../components/editor/FlatSectionLayoutModal/FlatSectionLayoutModal';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 import { logEvent } from '../services/eventLog';
 import { saveGuestDocument, loadGuestDocument, clearGuestDocument } from '../utils/guestDocument';
@@ -63,6 +64,7 @@ import {
 } from '../utils/editorMode';
 import { DEFAULT_FLOW_SPACING } from '../utils/flowSpacing';
 import { listSectionIconOptions } from '../utils/sectionIcons';
+import { convertFlatListContent } from '../utils/flatSectionLayout';
 import { demoCvTemplate } from '../templates/demoCv';
 import { nanoid } from 'nanoid';
 
@@ -165,6 +167,22 @@ function PdfCanvas() {
   }, []);
   const closeAddSectionModal = useCallback(() => {
     setAddSectionModal({ open: false, afterHeadingId: null });
+  }, []);
+  // Layout toggle (inline mid-dot row / bullet list) for flat-list sections
+  // (Skills, Languages, flat custom sections). Owned by PdfCanvas for the
+  // same reason as "Dodaj sekcję": the canvas hover icon must be able to open
+  // it regardless of which sidebar panel is open. Derived values/handlers
+  // that need `A4_Elements` / `handleEditElementValues` are defined further
+  // down, after the `useA4Elements()` destructuring.
+  const [flatSectionLayoutModal, setFlatSectionLayoutModal] = useState({
+    open: false,
+    elementId: null,
+  });
+  const openFlatSectionLayoutModal = useCallback((elementId) => {
+    setFlatSectionLayoutModal({ open: true, elementId });
+  }, []);
+  const closeFlatSectionLayoutModal = useCallback(() => {
+    setFlatSectionLayoutModal({ open: false, elementId: null });
   }, []);
   // Compatibility setter: ModalPdfs.jsx and Sidebar.jsx both call this as
   // `setIsModalPdfs(bool => !bool)` / `setIsModalPdfs(false)`, matching
@@ -330,6 +348,26 @@ function PdfCanvas() {
     }),
     [activeTemplateId, A4_Elements],
   );
+
+  // The flat-list section element currently open in FlatSectionLayoutModal
+  // (looked up live so the preview always reflects the latest saved content).
+  const flatSectionLayoutElement = useMemo(
+    () => A4_Elements.find((element) => element.element_id === flatSectionLayoutModal.elementId) || null,
+    [A4_Elements, flatSectionLayoutModal.elementId],
+  );
+  const handleApplyFlatSectionLayout = useCallback((style) => {
+    if (!flatSectionLayoutElement) return;
+    const { content, bulletList } = convertFlatListContent(
+      flatSectionLayoutElement.content,
+      flatSectionLayoutElement.bulletList,
+      style,
+    );
+    // Same commit path as any manual edit, so undo/redo, autosave, and the
+    // normal auto-height reflow (which shifts later content when a
+    // textarea's measured height changes) all apply with no extra plumbing.
+    handleEditElementValues({ content, bulletList }, flatSectionLayoutElement.element_id);
+    setFlatSectionLayoutModal({ open: false, elementId: null });
+  }, [flatSectionLayoutElement, handleEditElementValues]);
 
   // usePdfExport's callback param only ever signals "the min-spinner delay
   // has elapsed, react now" — the actual toast trigger lives in the
@@ -1185,6 +1223,7 @@ function PdfCanvas() {
     addTextarea: handleAddTextarea,
     addSection: handleAddSection,
     openAddSectionModal,
+    openFlatSectionLayoutModal,
     addSectionRecord: handleAddSectionRecord,
     addRecordBlock: handleAddRecordBlock,
     removeSection: handleRemoveSection,
@@ -1280,7 +1319,7 @@ function PdfCanvas() {
     editorMode, setEditorMode, flowSpacing, setFlowSpacing, baselineFlowSpacing, adoptDocumentFlowSpacing, hydrateDocumentMode, handleShowUnlockFreeform, handleUnlockFreeform,
     activeCvData, setActiveCvData,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
-    isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, openAddSectionModal, handleAddSectionRecord, handleAddRecordBlock, handleRemoveSection, handleRemoveRecordBlock, handleReorderRecordBlock, handleReorderSection, markSelected, handleSetTextareaEditing,
+    isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, openAddSectionModal, openFlatSectionLayoutModal, handleAddSectionRecord, handleAddRecordBlock, handleRemoveSection, handleRemoveRecordBlock, handleReorderRecordBlock, handleReorderSection, markSelected, handleSetTextareaEditing,
     handleDuplicateElement, pageSize, zoom, zoomIn, zoomOut, undo, redo, canUndo, canRedo, resetHistory,
     deletionPreviewIds, layoutPreviewPatches, structurePreviewGroup, spacingHoldId,
     aiCorrectionHighlights,
@@ -1395,6 +1434,12 @@ function PdfCanvas() {
                 onConfirm={handleConfirmAddSection}
                 iconOptions={addSectionIconOptions}
                 insertAfterHeading={Boolean(addSectionModal.afterHeadingId)}
+              />
+              <FlatSectionLayoutModal
+                open={flatSectionLayoutModal.open}
+                onCancel={closeFlatSectionLayoutModal}
+                element={flatSectionLayoutElement}
+                onApply={handleApplyFlatSectionLayout}
               />
               <DropzoneContainer />
               <Sidebar>

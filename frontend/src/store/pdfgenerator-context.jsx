@@ -23,6 +23,7 @@ export const PdfContext = createContext({
     addConnector: () => {},
     addSection: () => {},
     openAddSectionModal: () => {},
+    openFlatSectionLayoutModal: () => {},
     addSectionRecord: () => {},
     addRecordBlock: () => {},
     removeSection: () => {},
