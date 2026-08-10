@@ -91,6 +91,9 @@ export const PdfContext = createContext({
     setStructurePreviewGroup: () => {},
     deletionPreviewIds: [],
     setDeletionPreviewIds: () => {},
+    // Pending AI suggestion marks on the A4 canvas (content/style/layout/…).
+    aiCorrectionHighlights: [],
+    setAiCorrectionHighlights: () => {},
     setPDFdownloadData: () => {},
     PDFdownloadData: [],
     // Structured cv_data behind the CV currently on the canvas (set by

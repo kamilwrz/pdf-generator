@@ -1,0 +1,83 @@
+/*
+ * AI correction marks — clean editorial wash, not a neon selection frame.
+ * Opacity pulse draws attention; reduced-motion users get a steady mark.
+ */
+
+.layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 900;
+}
+
+.mark {
+    position: absolute;
+    box-sizing: border-box;
+    border-radius: 2px;
+    border: 1.5px solid transparent;
+    background: transparent;
+    animation: aiMarkPulse 1.7s ease-in-out infinite;
+    will-change: opacity;
+}
+
+.tick {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: currentColor;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.55);
+}
+
+/* Content / style — warm amber attention, readable on cream paper. */
+.kind_content,
+.kind_style {
+    color: #C27803;
+    border-color: rgba(194, 120, 3, 0.72);
+    background: rgba(245, 180, 60, 0.18);
+    box-shadow: inset 0 0 0 1px rgba(255, 248, 230, 0.35);
+}
+
+/* Layout / structure — cool slate, distinct from content patches. */
+.kind_layout,
+.kind_structure {
+    color: #3E5C76;
+    border-color: rgba(62, 92, 118, 0.7);
+    background: rgba(62, 92, 118, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+/* Deletion — soft rose warning without opaque cover. */
+.kind_deletion {
+    color: #B42318;
+    border-color: rgba(180, 35, 24, 0.7);
+    background: rgba(210, 80, 60, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+/* Clone — muted teal for “will be duplicated”. */
+.kind_clone {
+    color: #0F6E56;
+    border-color: rgba(15, 110, 86, 0.68);
+    background: rgba(15, 110, 86, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+@keyframes aiMarkPulse {
+    0%,
+    100% {
+        opacity: 0.38;
+    }
+    50% {
+        opacity: 0.92;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mark {
+        animation: none;
+        opacity: 0.72;
+    }
+}

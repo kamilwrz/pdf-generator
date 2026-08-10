@@ -23,6 +23,7 @@ import {
     atsReadabilityBand,
     overallPercentFromCategories,
 } from "../../../utils/atsScore";
+import { collectPendingAiHighlights } from "../../../utils/aiCorrectionHighlights";
 
 // ── goal-oriented quick actions ───────────────────────────────────────────
 // User-facing tiles map to goals; backend still uses specialised API actions
@@ -1026,6 +1027,7 @@ export default function AiAssistant() {
         setLayoutPreviewPatches,
         setStructurePreviewGroup,
         setDeletionPreviewIds,
+        setAiCorrectionHighlights,
         pageSize,
         setCurrentPage,
         entitlements,
@@ -1057,6 +1059,34 @@ export default function AiAssistant() {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
+
+    // Keep A4 marks in sync with every pending review category (content, style,
+    // layout, structure, deletion, clone). Clear when the panel closes / unmounts.
+    useEffect(() => {
+        if (!isOpen) {
+            setAiCorrectionHighlights?.([]);
+            return;
+        }
+        setAiCorrectionHighlights?.(collectPendingAiHighlights({
+            messages,
+            correctionStates,
+            layoutStates,
+            structureStates,
+            deletionStates,
+            cloneStates,
+        }));
+    }, [
+        isOpen,
+        messages,
+        correctionStates,
+        layoutStates,
+        structureStates,
+        deletionStates,
+        cloneStates,
+        setAiCorrectionHighlights,
+    ]);
+
+    useEffect(() => () => setAiCorrectionHighlights?.([]), [setAiCorrectionHighlights]);
 
     useEffect(() => {
         const textarea = inputRef.current;

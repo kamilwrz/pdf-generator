@@ -15,6 +15,7 @@ import { useA4Elements } from "../hooks/useA4Elements";
 import { usePdfExport } from '../hooks/usePdfExport';
 import CanvasElements from "../components/canvas/CanvasElements/CanvasElements";
 import SelectionOverlay from "../components/canvas/SelectionOverlay/SelectionOverlay";
+import AiCorrectionOverlay from "../components/canvas/AiCorrectionOverlay/AiCorrectionOverlay";
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   clearAccessToken,
@@ -209,6 +210,8 @@ function PdfCanvas() {
   const [layoutPreviewPatches, setLayoutPreviewPatches] = useState([]);
   const [structurePreviewGroup, setStructurePreviewGroup] = useState(null);
   const [deletionPreviewIds, setDeletionPreviewIds] = useState([]);
+  // Soft marks for elements with pending AI corrections (set by AiAssistant).
+  const [aiCorrectionHighlights, setAiCorrectionHighlights] = useState([]);
   // Text/textarea long-press (2s) — show spacing distance guides without isMove.
   const [spacingHoldId, setSpacingHoldId] = useState(null);
 
@@ -1262,6 +1265,8 @@ function PdfCanvas() {
     setStructurePreviewGroup,
     deletionPreviewIds,
     setDeletionPreviewIds,
+    aiCorrectionHighlights,
+    setAiCorrectionHighlights,
   }), [
     A4_Elements, groupMoveDelta, setPageCanvasRef, isPdfLoading, pdfId, setA4_Elements_deleted,
     handleAddImage, handleAddText, handleAddLine, handleAddRectangle, handleAddCircle, handleAddEllipse,
@@ -1278,6 +1283,7 @@ function PdfCanvas() {
     isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, openAddSectionModal, handleAddSectionRecord, handleAddRecordBlock, handleRemoveSection, handleRemoveRecordBlock, handleReorderRecordBlock, handleReorderSection, markSelected, handleSetTextareaEditing,
     handleDuplicateElement, pageSize, zoom, zoomIn, zoomOut, undo, redo, canUndo, canRedo, resetHistory,
     deletionPreviewIds, layoutPreviewPatches, structurePreviewGroup, spacingHoldId,
+    aiCorrectionHighlights,
   ]);
 
   const uiValue = useMemo(() => ({
@@ -1421,6 +1427,7 @@ function PdfCanvas() {
                           <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
                             <CanvasElements elements={previewedElements.filter((element) => (element.page ?? 1) === page)} />
                             <Connectors elements={previewedElements} page={page} />
+                            <AiCorrectionOverlay elements={previewedElements} page={page} />
                             <SelectionOverlay elements={previewedElements} page={page} />
                             <Guides page={page} />
                           </div>
@@ -1447,6 +1454,7 @@ function PdfCanvas() {
                             <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
                               <CanvasElements elements={previewedElements.filter((element) => (element.page ?? 1) === page)} />
                               <Connectors elements={previewedElements} page={page} />
+                              <AiCorrectionOverlay elements={previewedElements} page={page} />
                               <SelectionOverlay elements={previewedElements} page={page} />
                               <Guides page={page} />
                             </div>
