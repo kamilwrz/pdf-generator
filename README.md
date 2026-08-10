@@ -850,13 +850,13 @@ Implementation:
 - `backend/app/services/cv_templates/templates/nimbus.py`, `_gen_nimbus` — heading-band markers + `flowRole`; `test_nimbus_keeps_education_record_with_heading_near_page_break`
 - `backend/app/services/cv_templates/shared/records.py`, `_place_education_record` — degree / school / meta / description bullets
 - `backend/app/services/cv_templates/shared/text.py`, `_skills_inline_content` — main-column skills mid-dot row; `_bullet_list_content` — sidebar skills and other flat lists
-- `backend/app/services/cv_data.py`, lines 193–212, `_skill_items`; lines 154–166, `is_distinct_skill_family_title`; lines 611–673, `_absorb_skills_alias_sections`; lines 674–777, `normalize_cv_data` — language recovery, skills scrub, multi-family skill sections
+- `backend/app/services/cv_data.py`, lines 318–337, `_skill_items`; lines 160–172, `is_distinct_skill_family_title`; lines 234–300, `_expand_skill_category_lines`; lines 736–798, `_absorb_skills_alias_sections`; lines 799–910, `normalize_cv_data` — language recovery, skills scrub, multi-family + skill-subsection sections
 - `backend/app/services/cv_templates/templates/kernel.py` — non-empty skills body + `flowRole: "content"`
 - `backend/app/api/routes/ai.py`, `fill_template`
 - `backend/app/services/document_service.py`, lines 69–127, `create_pdf_document`; lines 129–165, `update_pdf_document`
 - Docs: [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
-Tests: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_kernel_emits_skills_and_languages_bodies`; `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`, `test_soft_hard_tools_stay_as_separate_sections`.
+Tests: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_kernel_emits_skills_and_languages_bodies`; `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`, `test_soft_hard_tools_stay_as_separate_sections`, `test_skill_category_lines_become_separate_sections`.
 
 ### Record-style extra sections (projects, references, …)
 
@@ -926,15 +926,17 @@ Tests: `backend/tests/test_contact_links.py`.
 
 Vision extract of first pages → structured `cv_data`, including `linkedin` / `github` / `website` from the header and record-shaped `extra_sections` items when the source CV has titled entries with description bullets. Domain heuristics re-categorize misplaced URLs during normalize.
 
-When the source CV has **separate** skill-family headings (e.g. Umiejętności miękkie, Umiejętności twarde, Znane narzędzia), the extract prompt keeps each family as its own `extra_sections` entry (`kind: "other"`) instead of merging them into the single `skills` array. `normalize_cv_data` / `_absorb_skills_alias_sections` preserve that split; only a lone generic skills alias (e.g. Obsługa komputera) still fills the primary skills slot. Extract `max_tokens` is 8000 so dense multi-section CVs are less likely to truncate mid-list.
+When the source CV has **separate** skill-family headings (e.g. Umiejętności miękkie, Umiejętności twarde, Znane narzędzia), the extract prompt keeps each family as its own `extra_sections` entry (`kind: "other"`) instead of merging them into the single `skills` array. `normalize_cv_data` / `_absorb_skills_alias_sections` preserve that split; only a lone generic skills alias (e.g. Obsługa komputera) still fills the primary skills slot.
+
+**Skill subsections** under one UMIEJĘTNOŚCI heading (CV16-style `Bezpieczeństwo: …` / `Przemysł / OT: …` rows) are also promoted to separate `extra_sections` with the category name as the section title — the canvas has no nested-heading primitive, so this reuses the same flat custom-section elements. A nested `Języki:` row merges into `languages`. `_expand_skill_category_lines` performs the same split when the model returns category lines inside `skills`. Training blocks such as **Szkolenia z cyberbezpieczeństwa** must be extracted as `kind: "certifications"` (`placement: "after_experience"`). Extract `max_tokens` is 8000 so dense multi-section CVs are less likely to truncate mid-list.
 
 Implementation:
 
-- `backend/app/services/ai_service.py`, `extract_cv_data` (line 39+) — JSON schema includes social fields + multi-family skills rules
+- `backend/app/services/ai_service.py`, `extract_cv_data` (line 39+) — JSON schema includes social fields, multi-family skills, skill subsections, and szkolenia rules
 - `backend/app/api/routes/ai.py`, `extract_cv`
-- `backend/app/services/cv_data.py`, `normalize_cv_data` + `is_distinct_skill_family_title` + `_absorb_skills_alias_sections` + `extract_contact_fields_from_raw`
+- `backend/app/services/cv_data.py`, `normalize_cv_data` + `is_distinct_skill_family_title` + `_expand_skill_category_lines` + `_absorb_skills_alias_sections` + `extract_contact_fields_from_raw`
 
-Tests: `backend/tests/test_cv_data.py`, `test_soft_hard_tools_stay_as_separate_sections`, `test_lone_tools_section_still_fills_skills_slot`.
+Tests: `backend/tests/test_cv_data.py`, `test_soft_hard_tools_stay_as_separate_sections`, `test_lone_tools_section_still_fills_skills_slot`, `test_skill_category_lines_become_separate_sections`, `test_single_colon_skill_line_is_not_promoted`.
 
 ### Template carousel (import, bio wizard, change template)
 
@@ -2231,13 +2233,13 @@ Gdy klient wyśle `languages: []`, a języki nadal są tylko w legacy `extra_sec
 - `backend/app/services/cv_templates/templates/nimbus.py`, `_gen_nimbus` — markery w paśmie nagłówka + `flowRole`; `test_nimbus_keeps_education_record_with_heading_near_page_break`
 - `backend/app/services/cv_templates/shared/records.py` — `_place_education_record` (dyplom / uczelnia / meta / bullet opis)
 - `backend/app/services/cv_templates/shared/text.py` — `_skills_inline_content` (skills w main), `_bullet_list_content` (sidebar / inne listy)
-- `backend/app/services/cv_data.py`, linie 193–212 — `_skill_items`; linie 154–166 — `is_distinct_skill_family_title`; linie 611–673 — `_absorb_skills_alias_sections`; linie 674–777 — `normalize_cv_data` (odzyskiwanie języków, czyszczenie skills, osobne rodziny umiejętności)
+- `backend/app/services/cv_data.py`, linie 318–337 — `_skill_items`; linie 160–172 — `is_distinct_skill_family_title`; linie 234–300 — `_expand_skill_category_lines`; linie 736–798 — `_absorb_skills_alias_sections`; linie 799–910 — `normalize_cv_data` (odzyskiwanie języków, czyszczenie skills, osobne rodziny i podsekcje umiejętności)
 - `backend/app/services/cv_templates/templates/kernel.py` — niepusta treść skills + `flowRole: "content"`
 - `backend/app/api/routes/ai.py` — `fill_template`
 - `backend/app/services/document_service.py`, linie 69–127 — `create_pdf_document`; linie 129–165 — `update_pdf_document`
 - [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
-Testy: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_kernel_emits_skills_and_languages_bodies`; `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`, `test_soft_hard_tools_stay_as_separate_sections`.
+Testy: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_kernel_emits_skills_and_languages_bodies`; `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`, `test_soft_hard_tools_stay_as_separate_sections`, `test_skill_category_lines_become_separate_sections`.
 
 ### Sekcje rekordowe (projekty, referencje, …)
 
@@ -2306,14 +2308,16 @@ Testy: `backend/tests/test_contact_links.py`.
 
 Wizyjna ekstrakcja pierwszych stron → strukturalne `cv_data`, w tym `linkedin` / `github` / `website` z nagłówka. Heurystyki domenowe poprawiają kategorię URL-i przy normalizacji.
 
-Gdy CV źródłowe ma **osobne** nagłówki rodzin umiejętności (np. Umiejętności miękkie, Umiejętności twarde, Znane narzędzia), prompt ekstrakcji trzyma każdą rodzinę jako osobny wpis `extra_sections` (`kind: "other"`) zamiast scalać je w jedną tablicę `skills`. `normalize_cv_data` / `_absorb_skills_alias_sections` zachowują ten podział; tylko samotny ogólny alias skills (np. Obsługa komputera) nadal wypełnia główny slot skills. `max_tokens` ekstrakcji wynosi 8000, żeby gęste CV rzadziej obcinały listy w połowie.
+Gdy CV źródłowe ma **osobne** nagłówki rodzin umiejętności (np. Umiejętności miękkie, Umiejętności twarde, Znane narzędzia), prompt ekstrakcji trzyma każdą rodzinę jako osobny wpis `extra_sections` (`kind: "other"`) zamiast scalać je w jedną tablicę `skills`. `normalize_cv_data` / `_absorb_skills_alias_sections` zachowują ten podział; tylko samotny ogólny alias skills (np. Obsługa komputera) nadal wypełnia główny slot skills.
 
-- `backend/app/services/ai_service.py` — `extract_cv_data` (linia 39+) — schemat JSON + reguły rodzin skills
+**Podsekcje skills** pod jednym nagłówkiem UMIEJĘTNOŚCI (styl CV16: `Bezpieczeństwo: …` / `Przemysł / OT: …`) też awansują do osobnych `extra_sections` z nazwą kategorii jako tytułem sekcji — płótno nie ma zagnieżdżonych nagłówków, więc używamy tych samych płaskich sekcji własnych. Wiersz `Języki:` trafia do `languages`. `_expand_skill_category_lines` robi ten sam podział, gdy model zwróci linie kategorii wewnątrz `skills`. Bloki szkoleń (np. **Szkolenia z cyberbezpieczeństwa**) muszą być ekstrahowane jako `kind: "certifications"` (`placement: "after_experience"`). `max_tokens` ekstrakcji wynosi 8000.
+
+- `backend/app/services/ai_service.py` — `extract_cv_data` (linia 39+) — schemat JSON + reguły rodzin/podsekcji skills i szkoleń
 - `backend/app/api/routes/ai.py` — `extract_cv`
-- `backend/app/services/cv_data.py` — `normalize_cv_data` + `is_distinct_skill_family_title` + `_absorb_skills_alias_sections` + `extract_contact_fields_from_raw`
+- `backend/app/services/cv_data.py` — `normalize_cv_data` + `is_distinct_skill_family_title` + `_expand_skill_category_lines` + `_absorb_skills_alias_sections` + `extract_contact_fields_from_raw`
 - `backend/app/services/contact_links.py`
 
-Testy: `backend/tests/test_cv_data.py`, `test_soft_hard_tools_stay_as_separate_sections`, `test_lone_tools_section_still_fills_skills_slot`.
+Testy: `backend/tests/test_cv_data.py`, `test_soft_hard_tools_stay_as_separate_sections`, `test_lone_tools_section_still_fills_skills_slot`, `test_skill_category_lines_become_separate_sections`, `test_single_colon_skill_line_is_not_promoted`.
 
 ### Karuzela szablonów (import, kreator bio, zmiana szablonu)
 

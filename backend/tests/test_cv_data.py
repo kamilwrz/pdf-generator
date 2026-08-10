@@ -171,6 +171,93 @@ class CvDataNormalizationTests(unittest.TestCase):
             for section in profile["extra_sections"]
         ))
 
+    def test_skill_category_lines_become_separate_sections(self):
+        """
+        CV16-style skills: one UMIEJĘTNOŚCI heading with Category: chip rows.
+        Promote each category to its own extra_section; nest languages into
+        the languages field. No nested-heading primitive exists on the canvas,
+        so this reuses the same flat custom-section elements as soft/hard/tools.
+        """
+        profile = normalize_cv_data({
+            "name": "Anton Tseytlin",
+            # after_experience extras only render when experience exists.
+            "experience": [{
+                "title": "Specjalista ds. Wsparcia Technicznego",
+                "company": "PHT",
+                "period": "2024 – obecnie",
+                "bullets": ["Wsparcie systemów"],
+            }],
+            "skills": [
+                "Bezpieczeństwo: analiza SIEM/logów, Wireshark, Nmap, Metasploit",
+                "Przemysł / OT: programowanie PLC, systemy wbudowane (Raspberry Pi)",
+                "Programowanie i systemy: Python, SQL, Git, Linux",
+                "Języki: polski — biegły (C1/C2) • angielski — B2 pisemny/techniczny",
+            ],
+            "extra_sections": [{
+                "title": "SZKOLENIA Z CYBERBEZPIECZEŃSTWA",
+                "kind": "certifications",
+                "placement": "after_experience",
+                "items": [
+                    "TryHackMe — ścieżka SOC Analyst Level 1",
+                    "Cisco Networking Academy (Junior Cybersecurity Analyst)",
+                ],
+            }],
+        })
+
+        self.assertEqual(profile["skills"], [])
+        titles = [section["title"] for section in profile["extra_sections"]]
+        self.assertIn("BEZPIECZEŃSTWO", titles)
+        self.assertIn("PRZEMYSŁ / OT", titles)
+        self.assertIn("PROGRAMOWANIE I SYSTEMY", titles)
+        self.assertIn("SZKOLENIA Z CYBERBEZPIECZEŃSTWA", titles)
+
+        security = next(
+            section for section in profile["extra_sections"]
+            if section["title"] == "BEZPIECZEŃSTWO"
+        )
+        self.assertIn("Wireshark", security["items"])
+        self.assertIn("Nmap", security["items"])
+        self.assertNotIn(
+            "Python",
+            security["items"],
+            "Programming chips must stay under their own category section",
+        )
+
+        self.assertEqual(
+            [(entry["name"], entry["level"]) for entry in profile["languages"]],
+            [
+                ("polski", "biegły (C1/C2)"),
+                ("angielski", "B2 pisemny/techniczny"),
+            ],
+        )
+
+        content = "\n".join(
+            str(element.get("content", ""))
+            for element in generate_resume("nimbus", profile)
+        )
+        self.assertIn("BEZPIECZEŃSTWO", content)
+        self.assertIn("PRZEMYSŁ / OT", content)
+        self.assertIn("PROGRAMOWANIE I SYSTEMY", content)
+        self.assertIn("SZKOLENIA Z CYBERBEZPIECZEŃSTWA", content)
+        self.assertIn("Wireshark", content)
+        self.assertIn("Python", content)
+        self.assertIn("TryHackMe", content)
+
+    def test_single_colon_skill_line_is_not_promoted(self):
+        # A lone "Label: value" note must not become a fake taxonomy.
+        profile = normalize_cv_data({
+            "name": "Jan Nowak",
+            "skills": ["Uwaga: wymagane prawo jazdy kat. B", "Python", "SQL"],
+        })
+        self.assertEqual(
+            profile["skills"],
+            ["Uwaga: wymagane prawo jazdy kat. B", "Python", "SQL"],
+        )
+        self.assertFalse(any(
+            section.get("title") == "UWAGA"
+            for section in profile["extra_sections"]
+        ))
+
     def test_explicit_skills_label_is_not_overwritten_by_alias_section(self):
         profile = normalize_cv_data({
             "name": "Jan Nowak",

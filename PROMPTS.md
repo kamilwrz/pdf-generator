@@ -67,14 +67,14 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
 **Po co (prosto):** Model patrzy na strony PDF jak na zdjęcia i wypisuje uporządkowane dane CV (imię, praca, szkoła, umiejętności…), żeby aplikacja mogła wstawić je do szablonu.
 
 **Plik:** `backend/app/services/ai_service.py`  
-**Linie:** 48–111 (instrukcja), 115–118 (obrazy), 120–128 (wywołanie API, `max_tokens=8000`)  
+**Linie:** 48–117 (instrukcja), 121–124 (obrazy), 126–134 (wywołanie API, `max_tokens=8000`)  
 **Symbol:** `extract_cv_data` (inline content)  
 **Rodzaj:** jedna wiadomość `user` (tekst + obrazy), bez osobnego system
 
 ### Zmienne
 
 - W tekście instrukcji **nie ma** placeholderów — schemat JSON jest stały.
-- Obrazy: `_pdf_to_b64_images` w tym samym pliku, linie **24–34**; doklejane w pętli **115–118**.
+- Obrazy: `_pdf_to_b64_images` w tym samym pliku, linie **24–34**; doklejane w pętli **121–124**.
 - Model: `_EXTRACT_MODEL` = `gpt-4o`, linia **19**.
 
 ### Pełna treść (fragment tekstowy wiadomości)
@@ -82,64 +82,30 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
 ```python
             "text": (
                 "Jesteś precyzyjnym ekstraktorem danych z CV. "
-                "Przeczytaj każdą stronę CV i zwróć WYŁĄCZNIE obiekt JSON — bez markdown:\n"
-                "{\n"
-                '  "name":"","title":"","email":"","phone":"","location":"",\n'
-                '  "linkedin":"","github":"","website":"",\n'
-                '  "summary":"",\n'
-                '  "experience":[{"title":"","company":"","period":"","bullets":[]}],\n'
-                '  "education":[{"school":"","city":"","degree":"","period":"","description":""}],\n'
-                '  "skills":[],\n'
-                '  "language":"Polish",\n'
-                '  "labels":{"summary":"PODSUMOWANIE ZAWODOWE","experience":"DOŚWIADCZENIE ZAWODOWE","education":"WYKSZTAŁCENIE","skills":"UMIEJĘTNOŚCI"},\n'
-                '  "extra_sections":[{"title":"","kind":"languages|certifications|interests|projects|references|awards|publications|volunteering|other","placement":"after_skills","items":[]}]\n'
-                "}\n\n"
+                # ... schemat JSON bez zmian ...
                 "Zasady:\n"
-                "- linkedin / github / website: linki kontaktowe z nagłówka CV.\n"
-                "  linkedin = profil LinkedIn (URL lub ścieżka /in/...), github = GitHub,\n"
-                "  website = osobista strona / portfolio (nie LinkedIn i nie GitHub).\n"
-                "  Puste stringi, gdy brak w CV. Nie wklejaj tych URL-i do email/phone/location.\n"
-                "- experience: WSZYSTKIE stanowiska od najnowszego; WSZYSTKIE punkty (bez limitu)\n"
-                "- education: WSZYSTKIE wpisy od najnowszego. Dla każdego wpisu:\n"
-                "  school = uczelnia/szkoła, city = miasto, degree = kierunek/tytuł/dyplom,\n"
-                "  period = lata, description = opis pod dyplomem (specjalizacja, praca dyplomowa,\n"
-                "  osiągnięcia, dodatkowy tekst — NIE wklejaj go do school/degree).\n"
-                "  Jeśli w CV nie ma opisu, description zostaw jako pusty string.\n"
-                "  degree NIE może być samym okresem — period trzymaj w polu period.\n"
-                "- skills: TYLKO gdy CV ma jedną ogólną sekcję umiejętności / kompetencji /\n"
-                "  obsługi komputera / technologii (np. 'UMIEJĘTNOŚCI', 'OBSŁUGA KOMPUTERA').\n"
-                "  Każda umiejętność osobnym stringiem (nie sklejaj listy w jedno zdanie).\n"
-                "  Gdy CV ma OSOBNE nagłówki rodzin umiejętności — 'UMIEJĘTNOŚCI MIĘKKIE',\n"
-                "  'UMIEJĘTNOŚCI TWARDE', 'ZNANE NARZĘDZIA' / 'NARZĘDZIA', 'SOFT SKILLS',\n"
-                "  'HARD SKILLS', 'TOOLS' — NIE łącz ich w skills. Każdą taką sekcję wrzuć do\n"
-                "  extra_sections (kind='other'), z DOKŁADNYM tytułem z CV i pełną listą punktów.\n"
-                "  skills zostaw wtedy jako [] (lub tylko treść spod ogólnego nagłówka UMIEJĘTNOŚCI,\n"
-                "  jeśli taki też istnieje obok rodzin).\n"
-                "- language: główny język CV (np. 'Polish', 'English', 'German')\n"
-                "- labels: summary/experience/education zawsze po polsku WIELKIMI LITERAMI:\n"
-                "  'PODSUMOWANIE ZAWODOWE', 'DOŚWIADCZENIE ZAWODOWE', 'WYKSZTAŁCENIE'.\n"
-                "  labels.skills = DOKŁADNY nagłówek JEDYNEJ ogólnej sekcji skills z CV\n"
-                "  (WIELKIMI LITERAMI), np. 'OBSŁUGA KOMPUTERA', 'TECHNOLOGIE', 'KOMPETENCJE'.\n"
-                "  Gdy skills=[] bo treści są w rodzinach (miękkie/twarde/narzędzia), użyj\n"
-                "  'UMIEJĘTNOŚCI'. Nie wstawiaj 'ZNANE NARZĘDZIA' ani 'UMIEJĘTNOŚCI MIĘKKIE'\n"
-                "  jako labels.skills — te idą jako osobne extra_sections.\n"
-                "- extra_sections: każda sekcja CV NIEobjęta experience/education/skills/summary.\n"
-                "  Przykłady: Certyfikaty, Języki, Projekty, Nagrody, Publikacje,\n"
-                "  Wolontariat, Zainteresowania, Referencje, Kursy, Szkolenia,\n"
-                "  Umiejętności miękkie, Umiejętności twarde, Znane narzędzia —\n"
-                "  tytuł po polsku, WIELKIMI LITERAMI, WSZYSTKIE punkty bez pomijania.\n"
-                "  NIE duplikuj JEDYNEJ ogólnej sekcji skills w extra_sections.\n"
-                "  RODZINY umiejętności (miękkie / twarde / narzędzia) MUSZĄ być osobnymi\n"
-                "  wpisami extra_sections — nigdy nie scalaj ich w jedną listę ani w skills.\n"
-                "  kind: 'languages' | 'certifications' | 'interests' | 'projects' | 'references' |\n"
-                "        'awards' | 'publications' | 'volunteering' | 'other'.\n"
-                "  placement: 'after_experience' dla sekcji rekordowych (projekty, nagrody, wolontariat,\n"
-                "             referencje z opisem); 'after_skills' dla zwartych list (języki, certyfikaty,\n"
-                "             zainteresowania, umiejętności miękkie/twarde, narzędzia).\n"
-                "  items — ZALEŻY OD RODZAJU SEKCJI:\n"
-                "  * languages / certifications / interests / zwarte listy: płaska lista stringów.\n"
-                "  * projects / references / awards / publications / volunteering: lista OBIEKTÓW\n"
+                # ... experience / education ...
+                "- skills: TYLKO gdy CV ma jedną PŁASKĄ listę umiejętności bez podsekcji\n"
+                "  (np. 'UMIEJĘTNOŚCI', 'OBSŁUGA KOMPUTERA'). Każda umiejętność osobnym stringiem.\n"
+                "  Gdy CV ma OSOBNE nagłówki rodzin — 'UMIEJĘTNOŚCI MIĘKKIE', 'UMIEJĘTNOŚCI TWARDE',\n"
+                "  'ZNANE NARZĘDZIA' / 'NARZĘDZIA', 'SOFT SKILLS', 'HARD SKILLS', 'TOOLS' —\n"
+                "  NIE łącz ich w skills. Każdą wrzuć do extra_sections (kind='other').\n"
+                "  PODSEKCJE wewnątrz UMIEJĘTNOŚCI (format 'Kategoria: item1, item2' lub pogrubione\n"
+                "  etykiety nad listą, np. 'Bezpieczeństwo', 'Przemysł / OT',\n"
+                "  'Programowanie i systemy'): każda podsekcja = osobny extra_sections\n"
+                "  (kind='other', title=nazwa kategorii WIELKIMI LITERAMI, items=osobne stringi\n"
+                "  — rozbij listę po przecinkach). skills=[] ; labels.skills='UMIEJĘTNOŚCI'.\n"
+                "  Wczytaj WSZYSTKIE podsekcje, nie tylko pierwszą. Podsekcję 'Języki'/'Languages'\n"
+                "  wrzuć do languages (nie do skills ani other).\n"
+                # ... labels ...
+                "- extra_sections: … Szkolenia z cyberbezpieczeństwa, podsekcje skills …\n"
+                "  SZKOLENIA / TRENINGI / COURSES / TRAINING: ZAWSZE extra_sections,\n"
+                "  kind='certifications', placement='after_experience', pełna lista punktów.\n"
+                "  RODZINY i PODSEKCJE umiejętności MUSZĄ być osobnymi wpisami extra_sections.\n"
+                # ... kinds / placements / items ...
 ```
+
+Pełna treść instrukcji: `backend/app/services/ai_service.py`, linie 48–117. Normalizacja podsekcji `Kategoria: …` → `extra_sections`: `_expand_skill_category_lines` w `cv_data.py`.
 
 ---
 
@@ -1321,7 +1287,7 @@ const LAYOUT_SUGGESTIONS = [
 
 | Akcja API / cel UI | Handler | System (linie) | User (linie) |
 |--------------------|---------|----------------|--------------|
-| import PDF `/ai` | `extract_cv_data` | — | `ai_service.py` 48–111 |
+| import PDF `/ai` | `extract_cv_data` | — | `ai_service.py` 48–117 |
 | `rating` / Sprawdź CV | `_rate_cv` | 502–506 | 507–571 |
 | `design_rating` / Sprawdź wygląd | `_rate_design` | 587–601 | 602–671 |
 | `position_rating` / Dopasuj do oferty | `_rate_position` | 700–704 | 705–765 |

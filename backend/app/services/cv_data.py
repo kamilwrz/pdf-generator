@@ -14,6 +14,12 @@ from app.services.contact_links import extract_contact_fields_from_raw
 # produce an empty UMIEJĘTNOŚCI chrome block after `_bullet_list_content`.
 _LEADING_LIST_MARKER = re.compile(r"^[\s]*[•\-–*—∙·]\s*")
 
+# Skill subsection lines as printed on many PL CVs:
+# "Bezpieczeństwo: Wireshark, Nmap, …" / "Przemysł / OT: PLC, …"
+_SKILL_CATEGORY_LINE = re.compile(r"^(?P<title>[^:]{2,48}?):\s+(?P<body>\S.+)$")
+_SKILL_BODY_SPLIT = re.compile(r"\s*[,;|•·]\s*")
+_LANGUAGE_CATEGORY_TOKENS = ("jezyk", "language", "lingua", "sprache")
+
 
 DEFAULT_LABELS = {
     "summary": "PODSUMOWANIE ZAWODOWE",
@@ -171,6 +177,125 @@ def is_skills_like_section(section: Mapping[str, Any] | None) -> bool:
     if kind == "skills":
         return True
     return is_skills_like_title(section.get("title"))
+
+
+def _looks_like_skill_category_title(title: object) -> bool:
+    """True for short skill-subsection labels, not URLs or long prose."""
+    raw = _text(title)
+    folded = fold_section_label(raw)
+    if not folded or len(folded) > 48:
+        return False
+    if any(token in folded for token in ("http", "www.", ".com", ".pl")):
+        return False
+    if "@" in raw or "://" in raw:
+        return False
+    # Category labels are short; long clauses before a colon are body text.
+    if len(raw.split()) > 6:
+        return False
+    return True
+
+
+def _split_skill_category_body(body: object) -> list[str]:
+    """Split a category body on commas / mid-dots into individual skill chips."""
+    text = _text(body)
+    if not text:
+        return []
+    parts = _SKILL_BODY_SPLIT.split(text)
+    return _string_list(parts)
+
+
+def _explode_multiline_skill_items(skills: list[str]) -> list[str]:
+    """Flatten skills that still contain embedded newlines into one line each."""
+    exploded: list[str] = []
+    for item in skills:
+        if "\n" in item:
+            exploded.extend(
+                line.strip()
+                for line in item.replace("\r\n", "\n").split("\n")
+                if line.strip()
+            )
+        else:
+            exploded.append(item)
+    return exploded
+
+
+def _parse_language_category_body(body: object) -> list[dict[str, str]]:
+    """
+    Parse a languages line nested under skills, e.g.
+    ``polski — biegły (C1/C2) • angielski — B2 pisemny``.
+    """
+    text = _text(body)
+    if not text:
+        return []
+    bits = re.split(r"\s*[•·]\s*", text)
+    return _normalize_languages(bits)
+
+
+def _expand_skill_category_lines(
+    skills: list[str],
+    sections: list[dict[str, Any]],
+    languages: list[dict[str, str]],
+) -> tuple[list[str], list[dict[str, Any]], list[dict[str, str]]]:
+    """
+    Promote in-skills subsection lines into separate custom sections.
+
+    Many CVs (e.g. CV16) print one UMIEJĘTNOŚCI heading and then several
+    ``Category: item, item`` rows. The canvas has no nested-heading primitive,
+    so each category becomes an ``extra_sections`` / ``custom_sections`` block
+    with the category name as the section title — the same pattern used for
+    soft/hard/tools families. A nested ``Języki:`` row merges into ``languages``.
+
+    Requires at least two category lines so a lone ``Uwaga: …`` note is not
+    mistaken for a skill taxonomy.
+    """
+    lines = _explode_multiline_skill_items(skills)
+    categorized: list[tuple[str, str]] = []
+    remainder: list[str] = []
+    for item in lines:
+        match = _SKILL_CATEGORY_LINE.match(item.strip())
+        if not match or not _looks_like_skill_category_title(match.group("title")):
+            remainder.append(item)
+            continue
+        categorized.append((match.group("title").strip(), match.group("body").strip()))
+
+    if len(categorized) < 2:
+        return list(skills), sections, languages
+
+    next_sections = list(sections)
+    next_languages = list(languages)
+    existing_titles = {
+        fold_section_label(section.get("title"))
+        for section in next_sections
+    }
+
+    for title, body in categorized:
+        folded = fold_section_label(title)
+        if any(token in folded for token in _LANGUAGE_CATEGORY_TOKENS):
+            for entry in _parse_language_category_body(body):
+                key = (entry["name"].casefold(), entry["level"].casefold())
+                if not any(
+                    (lang["name"].casefold(), lang["level"].casefold()) == key
+                    for lang in next_languages
+                ):
+                    next_languages.append(entry)
+            continue
+
+        items = _split_skill_category_body(body)
+        if not items:
+            continue
+        # Do not duplicate a category the extractor already emitted as an extra.
+        if folded in existing_titles:
+            continue
+        next_sections.append({
+            "title": title.upper(),
+            "kind": "other",
+            "placement": "after_skills",
+            "items": items,
+        })
+        existing_titles.add(folded)
+
+    # Categories consumed; keep only non-category leftover chips in skills.
+    return _skill_items(remainder), next_sections, next_languages
 
 
 def _string_list(value: Any) -> list[str]:
@@ -723,8 +848,16 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
         for key, default in DEFAULT_LABELS.items()
     }
 
-    skills, custom_sections, labels = _absorb_skills_alias_sections(
+    # Split "Bezpieczeństwo: …" / "Przemysł / OT: …" rows out of the flat skills
+    # list before alias absorb, so category titles become real canvas sections.
+    skills, custom_sections, languages = _expand_skill_category_lines(
         _skill_items(raw.get("skills")),
+        custom_sections,
+        languages,
+    )
+
+    skills, custom_sections, labels = _absorb_skills_alias_sections(
+        skills,
         custom_sections,
         labels,
         labels_skills_explicit=labels_skills_explicit,
