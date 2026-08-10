@@ -1,11 +1,11 @@
 /**
- * Template-mode section list: reorder sections (up/down) and edit vertical
- * spacing between lines, entries, and sections.
+ * Template-mode layout panel ("Układ CV"): reorder sections, density presets,
+ * advanced spacing knobs, and offline auto-fit of page fill/balance.
  *
  * Renders as a docked flyout to the right of the 72px sidebar rail.
- * Embedding the list inside the rail collapses titles.
+ * Does not own pagination / orphan keep-together / LongCv 3+ page correction.
  */
-import { use, useEffect, useMemo } from "react";
+import { use, useEffect, useId, useMemo, useState } from "react";
 import { nanoid } from "nanoid";
 import { FiChevronDown, FiChevronUp, FiPlus, FiX } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
@@ -15,21 +15,31 @@ import {
   reorderSection,
 } from "../../../utils/sectionStructure";
 import {
-  COMPACT_FLOW_SPACING,
   DEFAULT_FLOW_SPACING,
+  densityPresetsFromBaseline,
   flowSpacingEquals,
-  isCompactFlowSpacing,
+  matchDensityPreset,
   normalizeFlowSpacing,
 } from "../../../utils/flowSpacing";
+import {
+  formatPageCountLabel,
+  proposeAutoFitSpacing,
+} from "../../../utils/layoutDensity";
 import { reconcileDocumentPages } from "../../../utils/structureOperation";
 import classes from "./SectionsPanel.module.css";
 
 /** User-facing spacing knobs — keys stay aligned with SPACE_* in the generator. */
 const SPACING_FIELDS = [
-  { key: "stack", label: "Wewnątrz wpisu", hint: "linie jednego doświadczenia" },
-  { key: "record", label: "Między wpisami", hint: "kolejne prace lub szkoły" },
-  { key: "section", label: "Między sekcjami", hint: "np. po doświadczeniu" },
-  { key: "after_rule", label: "Pod nagłówkiem", hint: "od tytułu do treści" },
+  { key: "stack", label: "Wewnątrz wpisu" },
+  { key: "record", label: "Między wpisami" },
+  { key: "section", label: "Między sekcjami" },
+  { key: "after_rule", label: "Pod nagłówkiem" },
+];
+
+const DENSITY_OPTIONS = [
+  { id: "compact", label: "Kompaktowa" },
+  { id: "standard", label: "Standardowa" },
+  { id: "spacious", label: "Przestronna" },
 ];
 
 /**
@@ -52,12 +62,17 @@ export default function SectionsPanel({ onClose }) {
     A4_Elements,
     setA4_Elements,
     pageSize,
+    pageCount,
     flowSpacing,
     setFlowSpacing,
     baselineFlowSpacing,
     openAddSectionModal,
+    pushToast,
   } = use(PdfContext);
   const pageHeight = pageSize?.height ?? 842;
+  const densityGroupId = useId();
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
   const spacing = useMemo(
     () => normalizeFlowSpacing(flowSpacing),
     [flowSpacing],
@@ -66,10 +81,20 @@ export default function SectionsPanel({ onClose }) {
     () => normalizeFlowSpacing(baselineFlowSpacing ?? DEFAULT_FLOW_SPACING),
     [baselineFlowSpacing],
   );
+  const densityPresets = useMemo(
+    () => densityPresetsFromBaseline(baselineSpacing),
+    [baselineSpacing],
+  );
+  const activeDensity = useMemo(
+    () => matchDensityPreset(spacing, baselineSpacing),
+    [spacing, baselineSpacing],
+  );
   const sections = useMemo(
     () => listDocumentSections(A4_Elements, pageHeight),
     [A4_Elements, pageHeight],
   );
+  const pageStatus = formatPageCountLabel(pageCount ?? 1);
+  const atBaseline = flowSpacingEquals(spacing, baselineSpacing);
 
   useEffect(() => {
     if (!onClose) return undefined;
@@ -125,36 +150,49 @@ export default function SectionsPanel({ onClose }) {
     applySpacing(baselineSpacing);
   }
 
-  function handleCompactSpacing() {
-    // Same deterministic pack as the "too long" modal's first step: apply the
-    // compact preset (~30% tighter) to reclaim space without touching content.
-    applySpacing(COMPACT_FLOW_SPACING);
+  function handleDensitySelect(densityId) {
+    const next = densityPresets[densityId];
+    if (!next) return;
+    applySpacing(next);
   }
 
-  const alreadyCompact = isCompactFlowSpacing(spacing);
+  function handleAutoFit() {
+    // Offline trials — only the winner hits setState (one history / autosave).
+    const proposal = proposeAutoFitSpacing({
+      elements: A4_Elements,
+      baselineSpacing,
+      currentSpacing: spacing,
+      pageHeight,
+    });
+    if (!proposal.changed) {
+      pushToast?.({
+        title: "Układ jest już dobrze dopasowany.",
+        variant: "success",
+      });
+      return;
+    }
+    applySpacing(proposal.spacing);
+    pushToast?.({
+      title: "Układ został dopasowany.",
+      msg: "Lepiej wykorzystaliśmy przestrzeń na stronach.",
+      variant: "success",
+    });
+  }
 
   return (
-    <div className={classes.panel} role="dialog" aria-label="Sekcje CV">
+    <div className={classes.panel} role="dialog" aria-label="Układ CV">
       <div className={classes.header}>
         <div className={classes.headerText}>
-          <h2>Sekcje</h2>
+          <h2>Układ CV</h2>
           <p className={classes.lede}>
-            Ułóż kolejność bloków CV. Strzałki przesuwają całą sekcję.
+            Zmieniaj kolejność sekcji i dopasuj rozkład dokumentu.
+          </p>
+          <p className={classes.pageStatus} aria-live="polite">
+            {pageStatus}
           </p>
         </div>
         <button type="button" className={classes.close} onClick={onClose} aria-label="Zamknij">
           <FiX />
-        </button>
-      </div>
-
-      <div className={classes.addRow}>
-        <button
-          type="button"
-          className={classes.addButton}
-          onClick={() => openAddSectionModal?.()}
-        >
-          <FiPlus aria-hidden="true" />
-          Dodaj sekcję
         </button>
       </div>
 
@@ -169,9 +207,6 @@ export default function SectionsPanel({ onClose }) {
               const label = displaySectionTitle(section.title);
               return (
                 <li key={section.id} className={classes.item}>
-                  <span className={classes.index} aria-hidden="true">
-                    {index + 1}
-                  </span>
                   <span className={classes.title} title={section.title}>
                     {label}
                   </span>
@@ -200,55 +235,107 @@ export default function SectionsPanel({ onClose }) {
             })}
           </ul>
         )}
+
+        <button
+          type="button"
+          className={classes.addButton}
+          onClick={() => openAddSectionModal?.()}
+        >
+          <FiPlus aria-hidden="true" />
+          Dodaj sekcję
+        </button>
       </div>
 
-      <div className={classes.spacing}>
-        <div className={classes.spacingHeader}>
-          <div>
-            <h3>Odstępy</h3>
-            <p className={classes.spacingLede}>
-              Zmiana od razu widać na CV. Możesz wrócić do wartości z otwarcia dokumentu.
-            </p>
-          </div>
-          <div className={classes.spacingActions}>
-            <button
-              type="button"
-              className={classes.reset}
-              onClick={handleCompactSpacing}
-              disabled={alreadyCompact}
-              title="Zmniejsz wszystkie odstępy, aby zmieścić CV na mniejszej liczbie stron"
-            >
-              Kompaktowo
-            </button>
-            <button
-              type="button"
-              className={classes.reset}
-              onClick={handleResetSpacing}
-              title="Przywróć odstępy z momentu otwarcia lub wypełnienia CV"
-            >
-              Przywróć
-            </button>
-          </div>
+      <div className={classes.density}>
+        <div className={classes.densityHeader}>
+          <h3>Gęstość układu</h3>
+          <p className={classes.densityLede}>
+            Dopasuj ilość wolnego miejsca bez zmiany treści CV.
+          </p>
         </div>
-        <div className={classes.spacingGrid}>
-          {SPACING_FIELDS.map((field) => (
-            <label key={field.key} className={classes.spacingField}>
-              <span className={classes.spacingLabel}>{field.label}</span>
-              <span className={classes.spacingHint}>{field.hint}</span>
-              <span className={classes.spacingInputWrap}>
-                <input
-                  type="number"
-                  min={0}
-                  max={80}
-                  step={1}
-                  value={spacing[field.key]}
-                  onChange={(event) => handleSpacingChange(field.key, event.target.value)}
-                  aria-label={`${field.label} (piksele)`}
-                />
-                <span className={classes.unit} aria-hidden="true">px</span>
-              </span>
-            </label>
-          ))}
+
+        <div
+          className={classes.segmented}
+          role="radiogroup"
+          aria-labelledby={densityGroupId}
+        >
+          <span id={densityGroupId} className={classes.srOnly}>
+            Gęstość układu
+          </span>
+          {DENSITY_OPTIONS.map((option) => {
+            const pressed = activeDensity === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                aria-checked={pressed}
+                aria-pressed={pressed}
+                className={pressed ? classes.segmentActive : classes.segment}
+                onClick={() => handleDensitySelect(option.id)}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          className={classes.autoFit}
+          onClick={handleAutoFit}
+          title="Dobierz odstępy tak, aby lepiej wykorzystać powierzchnię stron."
+          aria-label="Dopasuj automatycznie odstępy układu"
+        >
+          Dopasuj automatycznie
+        </button>
+
+        <div className={classes.advanced}>
+          <button
+            type="button"
+            className={classes.advancedToggle}
+            aria-expanded={advancedOpen}
+            onClick={() => setAdvancedOpen((open) => !open)}
+          >
+            <span>Zaawansowane odstępy</span>
+            <FiChevronDown
+              className={advancedOpen ? classes.chevronOpen : classes.chevron}
+              aria-hidden="true"
+            />
+          </button>
+
+          {advancedOpen ? (
+            <div className={classes.advancedBody}>
+              <div className={classes.spacingList}>
+                {SPACING_FIELDS.map((field) => (
+                  <label key={field.key} className={classes.spacingField}>
+                    <span className={classes.spacingLabel}>{field.label}</span>
+                    <span className={classes.spacingInputWrap}>
+                      <input
+                        type="number"
+                        min={0}
+                        max={80}
+                        step={1}
+                        value={spacing[field.key]}
+                        onChange={(event) => handleSpacingChange(field.key, event.target.value)}
+                        aria-label={`${field.label} (piksele)`}
+                      />
+                      <span className={classes.unit} aria-hidden="true">px</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <button
+                type="button"
+                className={classes.reset}
+                onClick={handleResetSpacing}
+                disabled={atBaseline}
+                title="Przywróć odstępy z momentu otwarcia lub wypełnienia CV"
+              >
+                Przywróć odstępy szablonu
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

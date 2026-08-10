@@ -175,6 +175,45 @@ _SECTION_HEADER_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Polish vs English signals for mixed-language CV detection. Templates often
+# ship Polish section chrome while imported / edited body copy stays English;
+# that mismatch looks unprofessional and must surface in rating feedback.
+_PL_DIACRITIC_RE = re.compile(r"[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]")
+_PL_LEXICAL_RE = re.compile(
+    r"\b(?:oraz|przez|jestem|byłem|byłam|pracowałem|pracowałam|prowadziłem|"
+    r"prowadziłam|ukończyłem|ukończyłam|zrealizowałem|obecnie|doświadczenie|"
+    r"wykształcenie|podsumowanie|umiejętności|stażysta|analiza|projekt|"
+    r"studia|magister|licencjat|uniwersytet)\b",
+    re.IGNORECASE,
+)
+_EN_LEXICAL_RE = re.compile(
+    r"\b(?:the|and|with|for|from|into|about|graduated|building|analysis|"
+    r"intern|currently|bachelor|degree|university|experience|education|"
+    r"summary|skills|models|tools|research|developed|responsible|"
+    r"improved|working|project|master)\b",
+    re.IGNORECASE,
+)
+_PL_HEADER_HINTS = (
+    "podsumowanie", "doświadczenie", "wykształcenie", "umiejętności",
+    "języki", "jezyki", "certyfikaty", "zainteresowania", "profil",
+    "edukacja", "kontakt", "kompetencje", "osiągnięcia", "osiagniecia",
+)
+_EN_HEADER_HINTS = (
+    "summary", "experience", "education", "skills", "languages",
+    "certifications", "interests", "profile", "contact", "achievements",
+    "currently", "professional summary", "work experience",
+)
+_LANGUAGE_MIX_FEEDBACK_RE = re.compile(
+    r"sp[oó]jno[sś]ć\s+j[eę]zykow|"
+    r"niesp[oó]jno[sś]ć\s+j[eę]zykow|"
+    r"mieszank[aei]\s+j[eę]zyk|"
+    r"nag[lł][oó]wk\w*\s+.+\s+(polsk|angielsk)|"
+    r"(polsk\w*\s+nag[lł][oó]wk|angielsk\w*\s+tre[sś])|"
+    r"ujednoli[cć]\s+j[eę]zyk|"
+    r"jeden\s+j[eę]zyk",
+    re.IGNORECASE,
+)
+
 
 def _reading_order_key(element: dict) -> tuple:
     """Sort key for canvas reading order (page → top → left)."""
@@ -205,6 +244,239 @@ def _is_section_header_line(content: str) -> bool:
         return False
     letters = [c for c in text if c.isalpha()]
     return len(letters) >= 4 and all(c.isupper() for c in letters)
+
+
+def _language_signal_scores(text: str) -> tuple[int, int]:
+    """Return (polish_score, english_score) lexical/diacritic signals for ``text``."""
+    sample = str(text or "")
+    if not sample.strip():
+        return 0, 0
+    pl = len(_PL_DIACRITIC_RE.findall(sample)) * 2 + len(_PL_LEXICAL_RE.findall(sample))
+    en = len(_EN_LEXICAL_RE.findall(sample))
+    return pl, en
+
+
+def _header_language_vote(text: str) -> str | None:
+    """Classify a short heading as ``pl``, ``en``, or ``None`` when unclear."""
+    flat = " ".join(str(text or "").replace("\\n", " ").split()).strip().lower()
+    if not flat:
+        return None
+    if any(hint in flat for hint in _PL_HEADER_HINTS):
+        return "pl"
+    if any(hint in flat for hint in _EN_HEADER_HINTS):
+        return "en"
+    pl, en = _language_signal_scores(flat)
+    if pl > en and pl > 0:
+        return "pl"
+    if en > pl and en > 0:
+        return "en"
+    return None
+
+
+def _is_language_chrome_label(content: str) -> bool:
+    """True for section headings / meta labels used in bilingual-chrome checks.
+
+    Unlike `_header_language_vote`, this must not treat ordinary short English
+    bullets (e.g. „Building AI models”) as headings just because they contain
+    English lexicon — only known section/meta chrome counts.
+    """
+    flat = " ".join(str(content or "").replace("\\n", " ").split()).strip()
+    if not flat or len(flat) > 48:
+        return False
+    if _is_section_header_line(flat):
+        return True
+    lower = flat.lower()
+    return any(hint in lower for hint in (*_PL_HEADER_HINTS, *_EN_HEADER_HINTS))
+
+
+def _detect_language_mix(elements: list[dict]) -> dict | None:
+    """Detect Polish/English mismatch between section headers and body copy.
+
+    Polish product templates commonly keep PL chrome (PODSUMOWANIE ZAWODOWE, …)
+    while imported English body text stays unchanged. GPT rating rubrics used to
+    score only grammar/clichés, so the UI could show Język=0% for typos while
+    never naming the more damaging bilingual layout. This heuristic feeds an
+    explicit fact into rating/style prompts and guarantees a top priority.
+
+    @returns A descriptor with prompt/feedback copy, or ``None`` when consistent.
+    """
+    headers: list[str] = []
+    body_chunks: list[str] = []
+    for el in elements or []:
+        if el.get("category") not in ("text", "textarea"):
+            continue
+        content = str(el.get("content") or "").replace("\\n", "\n").strip()
+        if not content:
+            continue
+        flat = " ".join(content.split())
+        # Keep short meta labels such as CURRENTLY with headers — they are
+        # user-visible chrome and contribute to the bilingual look.
+        if _is_language_chrome_label(flat):
+            headers.append(flat)
+            continue
+        if _is_employment_period_line(flat):
+            continue
+        if "@" in flat or flat.startswith("http"):
+            continue
+        # Ignore tiny tokens (names, cities) — they rarely encode document language.
+        if len(flat) < 18:
+            continue
+        body_chunks.append(flat)
+
+    if not headers or not body_chunks:
+        return None
+
+    header_pl = sum(1 for h in headers if _header_language_vote(h) == "pl")
+    header_en = sum(1 for h in headers if _header_language_vote(h) == "en")
+    body_text = " ".join(body_chunks)
+    body_pl, body_en = _language_signal_scores(body_text)
+
+    headers_lang = None
+    if header_pl >= 2 and header_pl > header_en:
+        headers_lang = "pl"
+    elif header_en >= 2 and header_en > header_pl:
+        headers_lang = "en"
+    elif header_pl >= 1 and header_en == 0:
+        headers_lang = "pl"
+    elif header_en >= 1 and header_pl == 0:
+        headers_lang = "en"
+
+    body_lang = None
+    # Require a clear majority so short bilingual skill lists do not false-positive.
+    if body_en >= 3 and body_en >= body_pl * 2:
+        body_lang = "en"
+    elif body_pl >= 3 and body_pl >= body_en * 2:
+        body_lang = "pl"
+
+    if not headers_lang or not body_lang or headers_lang == body_lang:
+        return None
+
+    header_examples = []
+    for h in headers:
+        vote = _header_language_vote(h)
+        if vote == headers_lang and h not in header_examples:
+            header_examples.append(h)
+        if len(header_examples) >= 3:
+            break
+    examples = ", ".join(f"„{ex}”" for ex in header_examples) or "nagłówki sekcji"
+    if headers_lang == "pl" and body_lang == "en":
+        fact = (
+            f"Nagłówki sekcji są po polsku ({examples}), a treść podsumowania/"
+            "doświadczenia/wykształcenia jest po angielsku."
+        )
+        fix = (
+            "Ujednolić język całego CV: przetłumacz treść na polski "
+            "(Przetłumacz CV → Polski) albo zamień nagłówki na angielskie "
+            "(Summary / Experience / Education), żeby dokument był w jednym języku."
+        )
+    else:
+        fact = (
+            f"Nagłówki sekcji są po angielsku ({examples}), a treść jest po polsku."
+        )
+        fix = (
+            "Ujednolić język całego CV: przetłumacz treść na angielski "
+            "(Przetłumacz CV → English) albo zamień nagłówki na polskie, "
+            "żeby dokument był w jednym języku."
+        )
+    return {
+        "headers_lang": headers_lang,
+        "body_lang": body_lang,
+        "fact": fact,
+        "fix": fix,
+        "priority_title": "Ujednolicić język CV",
+        "priority_description": f"{fact} {fix}",
+        "message_sentence": (
+            f"Największy problem profesjonalny to brak spójności językowej: {fact} "
+            "Mieszanka języków wygląda nieprofesjonalnie."
+        ),
+        "tip": f"Spójność językowa: {fix}",
+    }
+
+
+def _language_mix_prompt_block(mix: dict | None, *, for_rating: bool = False) -> str:
+    """Format a hard fact block for GPT when bilingual chrome/body is detected."""
+    if not mix:
+        return ""
+    rating_rules = ""
+    if for_rating:
+        rating_rules = (
+            "W kategorii Język przyznaj 0 pkt. "
+            "Pierwszy element `priorities` oraz pierwszy tip MUSZĄ dotyczyć ujednolicenia języka "
+            "(nagłówki i treść w jednym języku). "
+        )
+    return (
+        "\n════════════════════════════════════════\n"
+        "FAKT Z WARSTWY DETERMINISTYCZNEJ (OBOWIĄZKOWY — nie ignoruj):\n"
+        f"{mix['fact']}\n"
+        "To jest krytyczny błąd profesjonalizmu. "
+        "W `message` wymień spójność językową jako główny problem (przed literówkami i stylistyką). "
+        f"{rating_rules}"
+        f"Proponowana naprawa: {mix['fix']}\n"
+        "════════════════════════════════════════\n"
+    )
+
+
+def _feedback_mentions_language_mix(result: dict) -> bool:
+    """True when GPT prose already names bilingual header/body inconsistency."""
+    chunks = [str(result.get("message") or "")]
+    chunks.extend(str(t) for t in (result.get("tips") or []))
+    for item in result.get("priorities") or []:
+        if isinstance(item, dict):
+            chunks.append(str(item.get("title") or ""))
+            chunks.append(str(item.get("description") or ""))
+        else:
+            chunks.append(str(item))
+    blob = " ".join(chunks)
+    return bool(_LANGUAGE_MIX_FEEDBACK_RE.search(blob))
+
+
+def _ensure_language_mix_feedback(result: dict, mix: dict | None) -> dict:
+    """Guarantee bilingual CVs surface language consistency in the dashboard.
+
+    GPT sometimes scores Język low for typos alone and never names Polish
+    headers + English body. When the deterministic detector fires, force the
+    language category to 0 and prepend an explicit priority/tip/message lead.
+    """
+    if not mix or not isinstance(result, dict):
+        return result
+
+    categories = list(result.get("categories") or [])
+    updated_categories = []
+    language_touched = False
+    for cat in categories:
+        if not isinstance(cat, dict):
+            continue
+        next_cat = dict(cat)
+        if str(next_cat.get("id") or "").lower() == "language":
+            next_cat["score"] = 0.0
+            language_touched = True
+        updated_categories.append(next_cat)
+    if language_touched:
+        result["categories"] = updated_categories
+        total = sum(float(c.get("score") or 0) for c in updated_categories)
+        # Keep the coarse 1–10 field aligned with the rubric the UI percentages use.
+        result["rating"] = max(1, min(10, int(round(total))))
+
+    if _feedback_mentions_language_mix(result):
+        return result
+
+    priority = {
+        "title": mix["priority_title"],
+        "description": mix["priority_description"],
+    }
+    priorities = [priority, *(result.get("priorities") or [])]
+    result["priorities"] = priorities[:5]
+
+    tips = [mix["tip"], *(result.get("tips") or [])]
+    result["tips"] = tips[:8]
+
+    message = str(result.get("message") or "").strip()
+    lead = mix["message_sentence"]
+    if message:
+        result["message"] = f"{lead} {message}"
+    else:
+        result["message"] = lead
+    return result
 
 
 def _is_employment_period_line(content: str) -> bool:
@@ -714,10 +986,14 @@ def _rate_cv(text: str, elements: list[dict]) -> dict:
     """Overall CV quality rating (content-focused) with tips and optional patches."""
     structured = _extract_structured(elements)
     element_count = len(structured)
+    language_mix = _detect_language_mix(elements)
+    mix_block = _language_mix_prompt_block(language_mix, for_rating=True)
 
     system = (
         "Jesteś starszym rekruterem i coachem CV z ponad 15-letnim doświadczeniem w branży "
         "technologicznej, finansowej i konsultingowej. Udzielasz rygorystycznych, szczerych i konkretnych opinii. "
+        "Spójność językowa CV (jeden język w nagłówkach i treści) jest krytycznym sygnałem profesjonalizmu — "
+        "mieszanka polski/angielski jest poważniejsza niż pojedyncze literówki. "
         "Nie wpisuj liczby oceny w `message` (ani jako X/10, ani jako procent) — interfejs pokazuje ją osobno. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
@@ -727,7 +1003,7 @@ TEKST CV (połączone wszystkie elementy tekstowe):
 {text}
 
 LICZBA ELEMENTÓW: na kanwie znaleziono {element_count} elementów text/textarea.
-
+{mix_block}
 ════════════════════════════════════════
 RUBRYKA OCENY — przeanalizuj wyraźnie każdy etap przed zapisaniem końcowego JSON.
 
@@ -744,9 +1020,16 @@ RUBRYKA OCENY — przeanalizuj wyraźnie każdy etap przed zapisaniem końcowego
    1 pkt, jeśli role pokazują rozwój lub związek z docelową branżą.
 
 ③ JĘZYK I PROFESJONALIZM (0–2 pkt)
-   Sprawdź: stronę bierną („byłem odpowiedzialny”), frazesy („gracz zespołowy”,
-   „osoba z inicjatywą”, „pasjonuję się”), ogólniki oraz błędy gramatyczne i ortograficzne.
-   2 pkt = brak problemów. 1 pkt = drobne problemy. 0 pkt = istotne problemy.
+   Najpierw sprawdź SPÓJNOŚĆ JĘZYKOWĄ całego dokumentu:
+   - Czy nagłówki sekcji (np. PODSUMOWANIE ZAWODOWE / DOŚWIADCZENIE / WYKSZTAŁCENIE vs
+     Summary / Experience / Education) są w tym samym języku co treść pod nimi?
+   - Czy etykiety meta (np. „Obecnie” vs „CURRENTLY”) nie psują jednolitego języka?
+   - Mieszanka PL/EN (polskie nagłówki + angielska treść lub odwrotnie) = 0 pkt w tej kategorii
+     i MUSI być pierwszym priorytetem w `message` / `priorities` / `tips`, przed literówkami.
+   Dopiero potem sprawdź: stronę bierną, frazesy, ogólniki oraz błędy gramatyczne i ortograficzne.
+   2 pkt = jeden spójny język i brak istotnych problemów.
+   1 pkt = jeden język, ale drobne problemy stylistyczne/ortograficzne.
+   0 pkt = niespójność językowa albo istotne błędy językowe.
 
 ④ FORMAT I HIERARCHIA (0–2 pkt)
    Na podstawie liczby elementów i różnorodności treści: czy istnieje wyraźna hierarchia wizualna
@@ -766,7 +1049,7 @@ Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
 W `message` NIE podawaj oceny liczbowej (zakazane: „8/10”, „80%”, „ocena 8”).
 Interfejs wyświetla ocenę osobno jako procent.
 {{
-  "message": "<3–4 zdania: wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Bądź bezpośredni. Odnoś się do konkretnych treści z CV. Bez liczby oceny.>",
+  "message": "<3–4 zdania: wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Jeśli jest niespójność językowa nagłówków i treści — nazwij ją jako główny problem. Bądź bezpośredni. Odnoś się do konkretnych treści z CV. Bez liczby oceny.>",
   "rating": <obliczona suma 1-10>,
   "categories": [
     {{"id": "completeness", "label": "Kompletność", "score": <0-2>, "max": 2}},
@@ -788,7 +1071,8 @@ Interfejs wyświetla ocenę osobno jako procent.
   "corrections": [],
   "web_sources": []
 }}"""
-    return _gpt_result(system, user, action="rating")
+    result = _gpt_result(system, user, action="rating")
+    return _ensure_language_mix_feedback(result, language_mix)
 
 
 def _rate_design(elements: list[dict], page_size: dict | None = None) -> dict:
@@ -1041,10 +1325,14 @@ CZAS GRAMATYCZNY STANOWISK (OBOWIĄZKOWE — naruszenie = błąd):
 def _check_style(text: str, elements: list[dict]) -> dict:
     """Polish language/style review with content patches where safe."""
     structured = _extract_structured(elements)
+    language_mix = _detect_language_mix(elements)
+    mix_block = _language_mix_prompt_block(language_mix)
 
     system = (
         "Jesteś profesjonalnym autorem CV specjalizującym się w poprawianiu tonu, jasności "
         "i profesjonalizmu języka w CV. "
+        "Najpierw upewnij się, że nagłówki i treść są w jednym języku — mieszanka PL/EN "
+        "jest poważniejszym błędem niż frazesy czy strona bierna. "
         "Czas gramatyczny obowiązków MUSI odpowiadać dacie stanowiska: zakończone role = przeszły, "
         "aktualne (Obecnie) = teraźniejszy. Nigdy nie ujednolicaj wszystkich opisów do jednego czasu. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. "
@@ -1057,36 +1345,43 @@ PEŁNY TEKST CV:
 
 POJEDYNCZE ELEMENTY (do ukierunkowanych przeredagowań; respektuj `employment_tense`):
 {json.dumps(structured[:40], ensure_ascii=False)}
-
+{mix_block}
 ════════════════════════════════════════
 {_TENSE_RULES_PL}
 ETAPY ANALIZY:
 
-① STRONA CZYNNA A BIERNA
-   Znajdź każde użycie strony biernej („byłem odpowiedzialny”, „było zarządzane przez”).
-   To przeredagowania o najwyższym priorytecie. Po aktywizacji ZACHOWAJ czas z `employment_tense`.
+① SPÓJNOŚĆ JĘZYKOWA (najwyższy priorytet)
+   Jeśli nagłówki są po polsku, a treść po angielsku (lub odwrotnie), nazwij to w `message`
+   i w tipach jako główny problem. Przeredaguj treść do jednego języka zgodnego z nagłówkami
+   (dla polskich nagłówków szablonu — na polski). Etykiety meta w stylu „CURRENTLY” też ujednolić
+   (np. „Obecnie”), o ile nie są fixedToPage/locked.
 
-② FRAZESY I SŁABE SFORMUŁOWANIA
+② STRONA CZYNNA A BIERNA
+   Znajdź każde użycie strony biernej („byłem odpowiedzialny”, „było zarządzane przez”).
+   Po aktywizacji ZACHOWAJ czas z `employment_tense`.
+
+③ FRAZESY I SŁABE SFORMUŁOWANIA
    Oznacz: „gracz zespołowy”, „pracowity”, „pasjonuję się”, „osoba z inicjatywą”,
    „nastawiony na wyniki”, „dbający o szczegóły”, „synergia”. Zastąp je dowodami.
 
-③ OGÓLNIKOWE STWIERDZENIA
+④ OGÓLNIKOWE STWIERDZENIA
    Oznacz twierdzenia bez dowodów: „poprawiłem efektywność”, „prowadziłem projekty”.
    Tam, gdzie to właściwe, dodaj zastępczą metrykę: „poprawiłem efektywność o [X%]”.
 
-④ PROFESJONALNY TON
+⑤ PROFESJONALNY TON
    Czy ton jest zbyt nieformalny, zbyt formalny czy odpowiedni dla branży?
 
-Przeredagowuj tylko elementy, które rzeczywiście tego wymagają. Krótkie elementy (imiona i nazwiska, daty, nagłówki)
-nie powinny być przeredagowywane. Nie „odświeżaj” zakończonych stanowisk do czasu teraźniejszego.
+Przeredagowuj tylko elementy, które rzeczywiście tego wymagają. Krótkie elementy (imiona i nazwiska, daty)
+nie powinny być przeredagowywane, chyba że to etykieta meta psująca spójność językową (np. CURRENTLY).
+Nie „odświeżaj” zakończonych stanowisk do czasu teraźniejszego.
 ════════════════════════════════════════
 
 Zwróć JSON:
 {{
-  "message": "<2–3 zdania: opisz najczęstsze znalezione problemy stylistyczne i ogólną ocenę tonu>",
+  "message": "<2–3 zdania: opisz najczęstsze problemy; jeśli jest niespójność językowa — wymień ją jako pierwszą>",
   "rating": null,
   "tips": [
-    "<znaleziony przykład strony biernej + przykład przeredagowania>",
+    "<spójność językowa lub przykład strony biernej + przeredagowanie>",
     "<znaleziony frazes + konkretna zamiana>",
     "<ogólnikowe twierdzenie + sposób jego wzmocnienia>"
   ],
@@ -1095,17 +1390,27 @@ Zwróć JSON:
   ],
   "web_sources": []
 }}"""
-    return _gpt_result(system, user, action="language", allowed_fields=_CONTENT_FIELDS)
+    result = _gpt_result(system, user, action="language", allowed_fields=_CONTENT_FIELDS)
+    if language_mix and not _feedback_mentions_language_mix(result):
+        tips = [language_mix["tip"], *(result.get("tips") or [])]
+        result["tips"] = tips[:8]
+        message = str(result.get("message") or "").strip()
+        lead = language_mix["message_sentence"]
+        result["message"] = f"{lead} {message}".strip() if message else lead
+    return result
 
 
 def _improve_content(elements: list[dict]) -> dict:
     """Suggest stronger CV wording without changing layout geometry."""
     structured = _extract_structured(elements)
     full_text = _extract_text(elements)
+    language_mix = _detect_language_mix(elements)
+    mix_block = _language_mix_prompt_block(language_mix)
 
     system = (
         "Jesteś wysokiej klasy autorem CV. Specjalizujesz się w przekształcaniu zwykłych opisów obowiązków "
         "w przekonujące, oparte na metrykach punkty, które przechodzą przez ATS i robią wrażenie na rekruterach. "
+        "Zachowuj spójność językową z nagłówkami CV (polskie nagłówki → treść po polsku). "
         "Czas gramatyczny obowiązków MUSI odpowiadać dacie stanowiska (`employment_tense` / Obecnie vs data końcowa). "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, zwracaj po polsku."
     )
@@ -1116,32 +1421,36 @@ PEŁNY TEKST CV (kontekst dat stanowisk):
 
 ELEMENTY (respektuj `employment_tense`):
 {json.dumps(structured[:40], ensure_ascii=False)}
-
+{mix_block}
 ════════════════════════════════════════
 {_TENSE_RULES_PL}
 ZASADY PRZEREDAGOWANIA (stosuj po kolei):
 
-① MOCNE CZASOWNIKI NA POCZĄTKU — każdy punkt zaczyna się od czasownika działania
+① SPÓJNOŚĆ JĘZYKOWA — jeśli treść jest w innym języku niż nagłówki, najpierw ujednolić język
+   (dla polskich nagłówków szablonu: przeredaguj treść na mocny polski), a dopiero potem wzmacniaj metryki.
+
+② MOCNE CZASOWNIKI NA POCZĄTKU — każdy punkt zaczyna się od czasownika działania
    w czasie zgodnym z `employment_tense` (nie ujednolicaj wszystkich ról do jednego czasu).
    Dla `past`: Zaprojektowałem, Uruchomiłem, Zredukowałem, Zwiększyłem, Wynegocjowałem, Dostarczyłem…
    Dla `present`: Projektuję, Uruchamiam, Redukuję, Zwiększam, Negocjuję, Dostarczam…
    Unikaj: Pomagałem/Pomagam, Wspierałem/Wspieram, Byłem zaangażowany (zbyt słabe).
 
-② KWANTYFIKUJ WSZYSTKO — dodaj metrykę do każdego punktu opisującego osiągnięcie.
+③ KWANTYFIKUJ WSZYSTKO — dodaj metrykę do każdego punktu opisującego osiągnięcie.
    Jeśli oryginał nie zawiera liczby, dodaj sensowny symbol zastępczy: [X%], [N użytkowników], [K zł].
    Przykład (rola zakończona): „Zarządzałem mediami społecznościowymi” → „Zwiększyłem liczbę obserwujących o [X%] w ciągu [N] miesięcy”
 
-③ KONKRETNOŚĆ — zastępuj ogólne odniesienia do technologii/narzędzi ich rzeczywistymi nazwami, jeśli można je wywnioskować.
+④ KONKRETNOŚĆ — zastępuj ogólne odniesienia do technologii/narzędzi ich rzeczywistymi nazwami, jeśli można je wywnioskować.
    „Używałem baz danych” → „Zoptymalizowałem zapytania PostgreSQL, zmniejszając opóźnienia o [X%]”
 
-④ DŁUGOŚĆ — zachowaj 1–2 wiersze na punkt. Usuń wypełniacze. Każde słowo musi być uzasadnione.
+⑤ DŁUGOŚĆ — zachowaj 1–2 wiersze na punkt. Usuń wypełniacze. Każde słowo musi być uzasadnione.
 
-⑤ POMIJAJ nagłówki, imiona i nazwiska, dane kontaktowe oraz daty — przeredagowuj tylko tekst doświadczenia, umiejętności i podsumowania.
+⑥ POMIJAJ nagłówki sekcji, imiona i nazwiska, dane kontaktowe oraz daty — przeredagowuj tylko tekst doświadczenia, umiejętności i podsumowania.
+   Wyjątek: krótkie etykiety meta psujące spójność (np. CURRENTLY → Obecnie) wolno poprawić.
 ════════════════════════════════════════
 
 Zwróć JSON:
 {{
-  "message": "<2–3 zdania podsumowujące, co poprawiono i dlaczego>",
+  "message": "<2–3 zdania podsumowujące, co poprawiono i dlaczego; wspomnij ujednolicenie języka, jeśli dotyczy>",
   "rating": null,
   "tips": [
     "<znaleziony ogólny wzorzec, np. „5 punktów nie miało czasowników działania — wszystkie przeredagowano”>",

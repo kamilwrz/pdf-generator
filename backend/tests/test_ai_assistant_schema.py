@@ -186,6 +186,176 @@ class EmploymentTenseAnnotationTests(unittest.TestCase):
         self.assertIn("Obecnie", captured["system"])
 
 
+class LanguageConsistencyTests(unittest.TestCase):
+    def _mixed_pl_headers_en_body(self):
+        return [
+            {
+                "element_id": "h1",
+                "category": "text",
+                "content": "PODSUMOWANIE ZAWODOWE",
+                "page": 1,
+                "top": 10,
+                "left": 0,
+            },
+            {
+                "element_id": "bio",
+                "category": "textarea",
+                "content": (
+                    "In 2023 I graduated with a bachelor degree in bioinformatics "
+                    "and started working with research data and AI models."
+                ),
+                "page": 1,
+                "top": 30,
+                "left": 0,
+            },
+            {
+                "element_id": "h2",
+                "category": "text",
+                "content": "DOŚWIADCZENIE ZAWODOWE",
+                "page": 1,
+                "top": 80,
+                "left": 0,
+            },
+            {
+                "element_id": "meta",
+                "category": "text",
+                "content": "CURRENTLY",
+                "page": 1,
+                "top": 100,
+                "left": 0,
+            },
+            {
+                "element_id": "job",
+                "category": "textarea",
+                "content": (
+                    "Building AI models for NGS analysis with galaxy and research tools "
+                    "for the university project team."
+                ),
+                "page": 1,
+                "top": 120,
+                "left": 0,
+            },
+            {
+                "element_id": "h3",
+                "category": "text",
+                "content": "WYKSZTAŁCENIE",
+                "page": 1,
+                "top": 180,
+                "left": 0,
+            },
+            {
+                "element_id": "edu",
+                "category": "textarea",
+                "content": (
+                    "Master degree in bioinformatics from the university with research "
+                    "experience and data analysis coursework."
+                ),
+                "page": 1,
+                "top": 200,
+                "left": 0,
+            },
+        ]
+
+    def test_detect_language_mix_flags_polish_headers_with_english_body(self):
+        mix = ai_assistant_service._detect_language_mix(self._mixed_pl_headers_en_body())
+        self.assertIsNotNone(mix)
+        self.assertEqual(mix["headers_lang"], "pl")
+        self.assertEqual(mix["body_lang"], "en")
+        self.assertIn("po polsku", mix["fact"])
+        self.assertIn("angielsku", mix["fact"])
+
+    def test_detect_language_mix_ignores_consistent_polish_cv(self):
+        elements = [
+            {
+                "element_id": "h1",
+                "category": "text",
+                "content": "PODSUMOWANIE ZAWODOWE",
+                "page": 1,
+                "top": 10,
+                "left": 0,
+            },
+            {
+                "element_id": "bio",
+                "category": "textarea",
+                "content": (
+                    "Ukończyłem studia magisterskie z bioinformatyki i prowadzę analizy "
+                    "danych NGS oraz projekty badawcze dla zespołu naukowego."
+                ),
+                "page": 1,
+                "top": 30,
+                "left": 0,
+            },
+            {
+                "element_id": "h2",
+                "category": "text",
+                "content": "DOŚWIADCZENIE ZAWODOWE",
+                "page": 1,
+                "top": 80,
+                "left": 0,
+            },
+            {
+                "element_id": "job",
+                "category": "textarea",
+                "content": (
+                    "Prowadzę modele AI do analizy danych NGS i usprawniam przygotowanie "
+                    "wyników badawczych dla zespołu."
+                ),
+                "page": 1,
+                "top": 100,
+                "left": 0,
+            },
+        ]
+        self.assertIsNone(ai_assistant_service._detect_language_mix(elements))
+
+    def test_rate_cv_injects_language_mix_priority_when_model_only_mentions_typos(self):
+        elements = self._mixed_pl_headers_en_body()
+        captured = {}
+
+        def fake_gpt_result(system, user, **kwargs):
+            captured["system"] = system
+            captured["user"] = user
+            return {
+                "message": (
+                    "Największy problem to język i forma — w podsumowaniu oraz w sekcji "
+                    "edukacji jest sporo literówek i nienaturalnych sformułowań."
+                ),
+                "rating": 6,
+                "tips": ["Popraw literówki w podsumowaniu."],
+                "categories": [
+                    {"id": "completeness", "label": "Kompletność", "score": 2, "max": 2},
+                    {"id": "experience", "label": "Doświadczenie", "score": 1, "max": 3},
+                    {"id": "language", "label": "Język", "score": 0, "max": 2},
+                    {"id": "structure", "label": "Struktura", "score": 2, "max": 2},
+                    {"id": "standout", "label": "Wyróżnienie", "score": 1, "max": 1},
+                ],
+                "strengths": ["Techniczny profil bioinformatyczny"],
+                "priorities": [
+                    {
+                        "title": "Opisz efekty, nie zadania",
+                        "description": "Zamień ogólne punkty na rezultaty.",
+                    }
+                ],
+                "corrections": [],
+                "web_sources": [],
+            }
+
+        with patch.object(ai_assistant_service, "_gpt_result", side_effect=fake_gpt_result):
+            result = ai_assistant_service._rate_cv(
+                ai_assistant_service._extract_text(elements),
+                elements,
+            )
+
+        self.assertIn("SPÓJNOŚĆ JĘZYKOWĄ", captured["user"])
+        self.assertIn("FAKT Z WARSTWY DETERMINISTYCZNEJ", captured["user"])
+        self.assertIn("spójność językowa", captured["system"].lower())
+        self.assertIn("spójności językowej", result["message"])
+        self.assertEqual(result["priorities"][0]["title"], "Ujednolicić język CV")
+        self.assertIn("Przetłumacz CV", result["priorities"][0]["description"])
+        language = next(c for c in result["categories"] if c["id"] == "language")
+        self.assertEqual(language["score"], 0.0)
+        self.assertEqual(result["rating"], 6)
+
+
 class TranslateActionTests(unittest.TestCase):
     def test_translate_dispatches_with_target_language(self):
         elements = [

@@ -87,3 +87,98 @@ export function isDefaultFlowSpacing(spacing) {
 export function isCompactFlowSpacing(spacing) {
   return flowSpacingEquals(spacing, COMPACT_FLOW_SPACING);
 }
+
+/**
+ * Safe minima for density presets / auto-fit scaling. Tighter than absolute
+ * zero so stack/record/section rhythm stays legible on every template.
+ */
+export const DENSITY_SPACING_MIN = Object.freeze({
+  stack: 2,
+  record: 5,
+  section: 12,
+  after_rule: 4,
+});
+
+/**
+ * Scale all four rhythm knobs from a baseline, respecting density minima.
+ *
+ * Used by the Układ CV density segmented control and offline auto-fit trials.
+ * Does not change `spacing_px` shape — still `{ stack, record, section, after_rule }`.
+ *
+ * @param {object} baseline
+ * @param {number} factor
+ * @returns {{ stack: number, record: number, section: number, after_rule: number }}
+ */
+export function scaleFlowSpacing(baseline, factor) {
+  const base = normalizeFlowSpacing(baseline);
+  const scale = Number(factor);
+  const safeFactor = Number.isFinite(scale) && scale > 0 ? scale : 1;
+  return normalizeFlowSpacing({
+    stack: Math.max(
+      DENSITY_SPACING_MIN.stack,
+      Math.round(base.stack * safeFactor),
+    ),
+    record: Math.max(
+      DENSITY_SPACING_MIN.record,
+      Math.round(base.record * safeFactor),
+    ),
+    section: Math.max(
+      DENSITY_SPACING_MIN.section,
+      Math.round(base.section * safeFactor),
+    ),
+    after_rule: Math.max(
+      DENSITY_SPACING_MIN.after_rule,
+      Math.round(base.after_rule * safeFactor),
+    ),
+  });
+}
+
+/**
+ * Compact / standard / spacious presets relative to the document baseline.
+ *
+ * Compact and spacious use the product formulas from the Układ CV panel
+ * (not the absolute `COMPACT_FLOW_SPACING` used by the 3+ page LongCv modal).
+ *
+ * @param {object} baseline
+ * @returns {{
+ *   compact: { stack: number, record: number, section: number, after_rule: number },
+ *   standard: { stack: number, record: number, section: number, after_rule: number },
+ *   spacious: { stack: number, record: number, section: number, after_rule: number },
+ * }}
+ */
+export function densityPresetsFromBaseline(baseline) {
+  const standard = normalizeFlowSpacing(baseline);
+  return {
+    compact: normalizeFlowSpacing({
+      stack: Math.max(DENSITY_SPACING_MIN.stack, Math.round(standard.stack * 0.75)),
+      record: Math.max(DENSITY_SPACING_MIN.record, Math.round(standard.record * 0.70)),
+      section: Math.max(DENSITY_SPACING_MIN.section, Math.round(standard.section * 0.70)),
+      after_rule: Math.max(
+        DENSITY_SPACING_MIN.after_rule,
+        Math.round(standard.after_rule * 0.75),
+      ),
+    }),
+    standard,
+    spacious: normalizeFlowSpacing({
+      stack: Math.round(standard.stack * 1.25),
+      record: Math.round(standard.record * 1.25),
+      section: Math.round(standard.section * 1.20),
+      after_rule: Math.round(standard.after_rule * 1.25),
+    }),
+  };
+}
+
+/**
+ * Which density segment matches the live knobs, or null when custom.
+ *
+ * @param {object} spacing
+ * @param {object} baseline
+ * @returns {"compact"|"standard"|"spacious"|null}
+ */
+export function matchDensityPreset(spacing, baseline) {
+  const presets = densityPresetsFromBaseline(baseline);
+  if (flowSpacingEquals(spacing, presets.standard)) return "standard";
+  if (flowSpacingEquals(spacing, presets.compact)) return "compact";
+  if (flowSpacingEquals(spacing, presets.spacious)) return "spacious";
+  return null;
+}

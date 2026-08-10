@@ -67,7 +67,7 @@ export default function Sidebar({ children }) {
                 {isTemplate ? (
                     <SidebarControls
                         icon={<LuListTree />}
-                        labelText="Sekcje"
+                        labelText="Układ CV"
                         sidebarEvent={showSections}
                     />
                 ) : (
