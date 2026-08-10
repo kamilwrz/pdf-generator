@@ -26,7 +26,6 @@ import {
     serializeEditable,
     setSelectionOffsets,
 } from "../../../utils/editableSerialize";
-import InlineFormatToolbar from "../InlineFormatToolbar/InlineFormatToolbar";
 import {
     endTextSpacingHold,
     startTextSpacingHold,
@@ -403,16 +402,6 @@ function Textarea({
             }
         };
         return (
-            <>
-                <InlineFormatToolbar
-                    nodeRef={editingRef}
-                    isEditing={isEditing}
-                    onApply={() => {
-                        // The toolbar has already rewritten the DOM; re-measure
-                        // and commit so the run change is persisted with height.
-                        if (editingRef.current) commitEditable(editingRef.current);
-                    }}
-                />
                 <div
                     // Distinct key from the display block below. The edit surface
                     // and the display block are both <div id={elementId}> at the
@@ -495,7 +484,6 @@ function Textarea({
                         document.execCommand("insertText", false, text);
                     }}
                 />
-            </>
         );
     }
 

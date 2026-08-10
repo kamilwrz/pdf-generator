@@ -11,7 +11,6 @@ import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
 import { canvasFontFamily } from "../../../utils/canvasFont";
 import { hasRuns } from "../../../utils/textRuns";
 import { runsToHtml, serializeEditable } from "../../../utils/editableSerialize";
-import InlineFormatToolbar from "../InlineFormatToolbar/InlineFormatToolbar";
 import {
     clearTextSpacingHoldTimer,
     endTextSpacingHold,
@@ -140,14 +139,6 @@ function Text({
     }
 
     return (
-        <>
-        {isEditing && !fixedToPage ? (
-            <InlineFormatToolbar
-                nodeRef={nodeRef}
-                isEditing={isEditing}
-                onApply={(next, nextRuns) => editElementValues({ content: next, runs: nextRuns }, elementId)}
-            />
-        ) : null}
         <p
             id={elementId}
             ref={nodeRef}
@@ -244,7 +235,6 @@ function Text({
                 moveElement(e, elementId);
             }}
         />
-        </>
     );
 }
 

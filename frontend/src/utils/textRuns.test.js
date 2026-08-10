@@ -5,6 +5,7 @@ import {
   normalizeRuns,
   applyMark,
   rangeHasMark,
+  rangeColor,
   sliceRuns,
   styledSegments,
   hasRuns,
@@ -60,6 +61,15 @@ test("applyMark sets a color and can change it", () => {
   assert.deepEqual(runs, [{ start: 1, end: 3, color: "#ff0000" }]);
   runs = applyMark(content, runs, 1, 3, "color", "#00ff00");
   assert.deepEqual(runs, [{ start: 1, end: 3, color: "#00ff00" }]);
+});
+
+test("rangeColor returns a shared hex or null for mixed / unmarked ranges", () => {
+  const content = "abcdef";
+  const red = applyMark(content, [], 1, 4, "color", "#ff0000");
+  assert.equal(rangeColor(content, red, 1, 4), "#ff0000");
+  assert.equal(rangeColor(content, red, 0, 4), null);
+  const mixed = applyMark(content, red, 3, 4, "color", "#00ff00");
+  assert.equal(rangeColor(content, mixed, 1, 4), null);
 });
 
 test("sliceRuns re-bases runs onto a substring window", () => {

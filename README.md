@@ -474,7 +474,7 @@ Implementation:
 - `frontend/public/cv-studio-logo.svg`, `cv-studio-mark.svg` — brand mark recoloured to black, with a gold underline on the full wordmark logo
 - `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.module.css` — already fully tokenised via `index.css`, recolours automatically
 - `frontend/src/components/common/Spinner/Spinner.module.css` — frosted overlay with a gold ambient glow and export-status card
-- `frontend/src/components/canvas/InlineFormatToolbar/InlineFormatToolbar.jsx`, line 28 — the CV text-colour picker's default swatch was updated to match the new ink token (`#171717`); its other five swatches (navy, gold, green, red, light blue) are independent colour choices for the user's own document content and were intentionally left unchanged
+- Selection colour for inline runs uses the same native `<input type="color">` control as the element colour field in `Editor.jsx` (no fixed swatch palette)
 
 Limits:
 
@@ -1081,10 +1081,11 @@ Implementation:
 
 Bold, italic, underline and text colour can be applied to a **selection inside**
 a `text` or `textarea` element (for example, bolding a phrase in a summary
-paragraph), not just to the whole element. A small floating toolbar
-(`InlineFormatToolbar`) appears only while a text element is in edit mode and a
-non-collapsed selection exists — selecting text was previously inert, so the
-feature is purely additive and does not change any existing behaviour.
+paragraph), not just to the whole element. While a text element is in edit mode
+and a non-collapsed selection exists, the floating **Editor** panel (the same
+chrome that appears on element click) grows a second row labelled **Zaznaczenie**
+with B / I / U toggles and a native `<input type="color">` — there is no separate
+white swatch toolbar above the caret.
 
 Data model. The plain `content` string stays the source of truth; decoration is
 an **overlay of "runs"** addressed by character offset:
@@ -1125,16 +1126,19 @@ Implementation:
   reserves optional `PdfElement.id` for string template semantic keys; persisted
   identity remains in `pdf_id` and `element_id`. Hydration in `ModalPdfs` also
   restores `id` exclusively from `extra_properties.id`.
-- Editing surfaces + toolbar:
-  `frontend/src/components/canvas/InlineFormatToolbar/InlineFormatToolbar.jsx`,
+- Editing surfaces + selection row:
+  `frontend/src/components/editor/Editor/Editor.jsx` (`inlineSelection`,
+  `applyInlineMark`, `selectionBar`),
+  `frontend/src/utils/textRuns.js` (`rangeColor`),
   `frontend/src/components/canvas/Text/Text.jsx`,
-  `frontend/src/components/canvas/Textarea/Textarea.jsx` (edit mode is now a
-  `contentEditable` div so inline marks can be authored). Any content change that
+  `frontend/src/components/canvas/Textarea/Textarea.jsx` (edit mode is a
+  `contentEditable` surface so inline marks can be authored). Any content change that
   does not carry its own runs clears them (`handleEditElementValues` in
   `frontend/src/hooks/useA4Elements.js`) so offsets can never go stale.
 
 Tests:
 
+- `frontend/src/components/editor/Editor/Editor.test.js` — selection row lives in Editor with colour input
 - `backend/tests/test_pdf_inline_runs.py` — no-run identity, style-neutral wrap
   parity, bold-run piece splitting, draw offsets.
 - `frontend/src/utils/textRuns.test.js`,
@@ -1832,7 +1836,7 @@ Implementacja:
 - `frontend/public/cv-studio-logo.svg`, `cv-studio-mark.svg` — znak marki przekolorowany na czarny, z złotym podkreśleniem w pełnym logo z wordmarkiem
 - `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.module.css` — już w pełni stokenizowany przez `index.css`, przekolorowuje się automatycznie
 - `frontend/src/components/common/Spinner/Spinner.module.css` — matowa warstwa ze złotą poświatą otoczenia i karta statusu eksportu
-- `frontend/src/components/canvas/InlineFormatToolbar/InlineFormatToolbar.jsx`, linia 28 — domyślna próbka w palecie kolorów tekstu CV zaktualizowana do nowego tokenu atramentu (`#171717`); pozostałych pięć próbek (granat, złoto, zieleń, czerwień, jasny niebieski) to niezależne wybory kolorów dla treści dokumentu użytkownika i zostały celowo pozostawione bez zmian
+- Kolor zaznaczenia inline używa tego samego natywnego `<input type="color">` co pole koloru elementu w `Editor.jsx` (bez stałej palety próbek)
 
 Ograniczenia:
 
@@ -2419,10 +2423,11 @@ przycinany przed zapisem.
 
 Pogrubienie, kursywę, podkreślenie i kolor tekstu można nałożyć na **zaznaczenie
 wewnątrz** elementu `text` lub `textarea` (np. pogrubić frazę w akapicie
-podsumowania), a nie tylko na cały element. Mały pływający pasek narzędzi
-(`InlineFormatToolbar`) pojawia się wyłącznie w trybie edycji, gdy istnieje
-niepuste zaznaczenie — wcześniej zaznaczenie nic nie robiło, więc funkcja jest
-czysto addytywna i nie zmienia żadnego istniejącego zachowania.
+podsumowania), a nie tylko na cały element. Gdy tekst jest w trybie edycji i
+istnieje niepuste zaznaczenie, pływający panel **Editor** (ten sam chrome co po
+kliknięciu elementu) dostaje drugi rząd z etykietą **Zaznaczenie**: przełączniki
+B / I / U oraz natywny `<input type="color">` — bez osobnego białego paska z
+próbkami kolorów nad karetką.
 
 Model danych. Zwykły string `content` pozostaje źródłem prawdy; dekoracja to
 **nakładka „runs”** adresowana offsetem znaku:
@@ -2464,16 +2469,19 @@ Implementacja:
   semantycznych szablonu; trwała identyfikacja pozostaje w `pdf_id` i
   `element_id`. Hydratacja w `ModalPdfs` również odtwarza `id` wyłącznie z
   `extra_properties.id`.
-- Powierzchnie edycji + pasek:
-  `frontend/src/components/canvas/InlineFormatToolbar/InlineFormatToolbar.jsx`,
+- Powierzchnie edycji + rząd zaznaczenia:
+  `frontend/src/components/editor/Editor/Editor.jsx` (`inlineSelection`,
+  `applyInlineMark`, `selectionBar`),
+  `frontend/src/utils/textRuns.js` (`rangeColor`),
   `frontend/src/components/canvas/Text/Text.jsx`,
-  `frontend/src/components/canvas/Textarea/Textarea.jsx` (tryb edycji to teraz
+  `frontend/src/components/canvas/Textarea/Textarea.jsx` (tryb edycji to
   `contentEditable`, aby dało się autorować marki inline). Każda zmiana treści,
   która nie niesie własnych runów, czyści je (`handleEditElementValues` w
   `frontend/src/hooks/useA4Elements.js`), więc offsety nie mogą się rozjechać.
 
 Testy:
 
+- `frontend/src/components/editor/Editor/Editor.test.js` — rząd zaznaczenia w Editorze z color input
 - `backend/tests/test_pdf_inline_runs.py` — tożsamość bez runów, parytet
   zawijania dla runów neutralnych stylowo, podział na kawałki dla runu bold,
   offsety rysowania.

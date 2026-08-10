@@ -1,7 +1,11 @@
 /**
- * Compact horizontal floating toolbar above the current selection
+ * Compact floating toolbar above the current element selection
  * (Enhancv-style form, CV STUDIO chrome). Icon-first controls; Text vs
  * TextArea keep different field sets. Positioned via selection DOM bboxes.
+ *
+ * While a text/textarea is contentEditable and the caret range is non-empty,
+ * a second row ("Zaznaczenie") exposes B/I/U and a native colour input for
+ * inline runs — same chrome as the click panel, not a separate floating bar.
  *
  * In template (structural) mode the bar hides controls that cannot affect the
  * selection (layout-owned X/Y / align / lock, all width/height size fields)
@@ -49,7 +53,14 @@ import {
   serializeEditable,
   setSelectionOffsets,
 } from "../../../utils/editableSerialize";
-import { hasRuns, normalizeRuns, runsToPerChar } from "../../../utils/textRuns";
+import {
+  applyMark,
+  hasRuns,
+  normalizeRuns,
+  rangeColor,
+  rangeHasMark,
+  runsToPerChar,
+} from "../../../utils/textRuns";
 
 const FONT_PREVIEW = CANVAS_FONT_STACKS;
 
@@ -67,9 +78,18 @@ const FONT_OPTIONS = [
 ];
 
 const BULLET_PREFIX_PATTERN = /^\s*•[ \t]*/;
+const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 
 function canonicalBulletLine(line) {
   return `• ${line.replace(BULLET_PREFIX_PATTERN, "").trimStart()}`;
+}
+
+/** Native `<input type="color">` requires a 6-digit hex value. */
+function toColorInputValue(value, fallback = "#000000") {
+  const candidate = typeof value === "string" ? value.trim() : "";
+  if (HEX_COLOR_PATTERN.test(candidate)) return candidate;
+  if (HEX_COLOR_PATTERN.test(fallback)) return fallback;
+  return "#000000";
 }
 
 export default function Editor() {
@@ -120,6 +140,10 @@ export default function Editor() {
   const groupMoveOffsetRef = useRef({ x: 0, y: 0 });
   const panelRef = useRef(null);
   const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
+  // Non-collapsed caret range inside the editing text node. Selection marks
+  // (B/I/U/colour) live in a second row of this same floating Editor panel —
+  // not a separate white toolbar — so the chrome stays one composition.
+  const [inlineSelection, setInlineSelection] = useState(null);
   const selectionKey = selectedElements.map((element) => element.element_id).join("|");
   const selectionGeometryKey = selectedElements
     .map((element) => [
@@ -315,6 +339,87 @@ export default function Editor() {
     setGroupMoveValues({ x: "0", y: "0" });
     groupMoveOffsetRef.current = { x: 0, y: 0 };
   }, [selectionKey]);
+
+  // Track the live contentEditable selection so inline marks can be edited from
+  // this panel. Collapsed carets clear the row; leaving edit mode clears it too.
+  useEffect(() => {
+    const editing = Boolean(selectedElement?.isEditing)
+      && (selectedElement?.category === "text" || selectedElement?.category === "textarea")
+      && !isMultiSelection;
+    if (!editing) {
+      setInlineSelection(null);
+      return undefined;
+    }
+    const elementId = selectedElement.element_id;
+    const baseColor = selectedElement.color;
+
+    function updateInlineSelection() {
+      const node = document.getElementById(elementId);
+      if (!node || typeof window === "undefined") {
+        setInlineSelection(null);
+        return;
+      }
+      const offsets = getSelectionOffsets(node);
+      if (!offsets || offsets.start === offsets.end) {
+        setInlineSelection(null);
+        return;
+      }
+      const { content, runs } = serializeEditable(node);
+      setInlineSelection({
+        start: offsets.start,
+        end: offsets.end,
+        bold: rangeHasMark(content, runs, offsets.start, offsets.end, "bold"),
+        italic: rangeHasMark(content, runs, offsets.start, offsets.end, "italic"),
+        underline: rangeHasMark(content, runs, offsets.start, offsets.end, "underline"),
+        color: toColorInputValue(
+          rangeColor(content, runs, offsets.start, offsets.end),
+          baseColor,
+        ),
+      });
+    }
+
+    document.addEventListener("selectionchange", updateInlineSelection);
+    updateInlineSelection();
+    return () => document.removeEventListener("selectionchange", updateInlineSelection);
+  }, [
+    isMultiSelection,
+    selectedElement?.category,
+    selectedElement?.color,
+    selectedElement?.element_id,
+    selectedElement?.isEditing,
+  ]);
+
+  function applyInlineMark(mark, value) {
+    if (!selectedElement?.isEditing) return;
+    const node = document.getElementById(selectedElement.element_id);
+    if (!node) return;
+    // Re-read the DOM at apply time so concurrent typing is never lost.
+    const { content, runs } = serializeEditable(node);
+    const offsets = getSelectionOffsets(node);
+    if (!offsets || offsets.start === offsets.end) return;
+
+    let nextValue = value;
+    if (mark !== "color") {
+      nextValue = !rangeHasMark(content, runs, offsets.start, offsets.end, mark);
+    }
+    const nextRuns = applyMark(content, runs, offsets.start, offsets.end, mark, nextValue);
+    node.innerHTML = runsToHtml(content, nextRuns);
+    setSelectionOffsets(node, offsets.start, offsets.end);
+    editElementValues({ content, runs: nextRuns }, selectedElement.element_id);
+    // Textarea remasures height from its own input handler.
+    node.dispatchEvent(new Event("input", { bubbles: true }));
+    setInlineSelection({
+      start: offsets.start,
+      end: offsets.end,
+      bold: rangeHasMark(content, nextRuns, offsets.start, offsets.end, "bold"),
+      italic: rangeHasMark(content, nextRuns, offsets.start, offsets.end, "italic"),
+      underline: rangeHasMark(content, nextRuns, offsets.start, offsets.end, "underline"),
+      color: toColorInputValue(
+        rangeColor(content, nextRuns, offsets.start, offsets.end),
+        selectedElement.color,
+      ),
+    });
+  }
 
   useLayoutEffect(() => {
     if (!someElementSelected) return undefined;
@@ -669,6 +774,45 @@ export default function Editor() {
               </>
             )}
           </form>
+          {inlineSelection ? (
+            <div
+              className={classes.selectionBar}
+              role="toolbar"
+              aria-label="Formatowanie zaznaczenia"
+              // Keep the contentEditable selection alive while using the row.
+              onMouseDown={(event) => event.preventDefault()}
+            >
+              <span className={classes.selectionLabel}>Zaznaczenie</span>
+              <Group label="Styl zaznaczenia">
+                <IconBtn
+                  label="Pogrubienie zaznaczenia"
+                  active={inlineSelection.bold}
+                  onClick={() => applyInlineMark("bold")}
+                >
+                  <span className={classes.glyphBold}>B</span>
+                </IconBtn>
+                <IconBtn
+                  label="Kursywa zaznaczenia"
+                  active={inlineSelection.italic}
+                  onClick={() => applyInlineMark("italic")}
+                >
+                  <span className={classes.glyphItalic}>I</span>
+                </IconBtn>
+                <IconBtn
+                  label="Podkreślenie zaznaczenia"
+                  active={inlineSelection.underline}
+                  onClick={() => applyInlineMark("underline")}
+                >
+                  <span className={classes.glyphUnderline}>U</span>
+                </IconBtn>
+                <ColorField
+                  label="Kolor zaznaczenia"
+                  value={inlineSelection.color}
+                  onChange={(event) => applyInlineMark("color", event.target.value)}
+                />
+              </Group>
+            </div>
+          ) : null}
         </motion.aside>
       )}
     </AnimatePresence>

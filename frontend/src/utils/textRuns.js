@@ -171,6 +171,27 @@ export function rangeHasMark(content, runs, start, end, mark) {
 }
 
 /**
+ * Shared hex colour for `[start, end)` when every character carries the same
+ * run colour. Mixed or unmarked ranges return null so the toolbar can fall
+ * back to the element base colour in the native colour input.
+ */
+export function rangeColor(content, runs, start, end) {
+  const len = typeof content === "string" ? content.length : 0;
+  const from = clampOffset(start, len);
+  const to = clampOffset(end, len);
+  if (from === null || to === null || to <= from) return null;
+  const perChar = runsToPerChar(content, runs);
+  let shared = null;
+  for (let i = from; i < to; i += 1) {
+    const color = perChar[i]?.color;
+    if (typeof color !== "string" || color === "") return null;
+    if (shared === null) shared = color;
+    else if (shared !== color) return null;
+  }
+  return shared;
+}
+
+/**
  * Re-base runs onto a substring window `[start, end)` of the content, returning
  * runs whose offsets are relative to the window. Used to style a single wrapped
  * or bullet line whose text is a slice of the whole content.
