@@ -71,23 +71,36 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 "  osiągnięcia, dodatkowy tekst — NIE wklejaj go do school/degree).\n"
                 "  Jeśli w CV nie ma opisu, description zostaw jako pusty string.\n"
                 "  degree NIE może być samym okresem — period trzymaj w polu period.\n"
-                "- skills: elementy sekcji umiejętności / kompetencji / obsługi komputera / technologii.\n"
-                "  Każda umiejętność osobnym stringiem (nie sklejaj listy w jedno zdanie, jeśli CV ma listę).\n"
+                "- skills: TYLKO gdy CV ma jedną ogólną sekcję umiejętności / kompetencji /\n"
+                "  obsługi komputera / technologii (np. 'UMIEJĘTNOŚCI', 'OBSŁUGA KOMPUTERA').\n"
+                "  Każda umiejętność osobnym stringiem (nie sklejaj listy w jedno zdanie).\n"
+                "  Gdy CV ma OSOBNE nagłówki rodzin umiejętności — 'UMIEJĘTNOŚCI MIĘKKIE',\n"
+                "  'UMIEJĘTNOŚCI TWARDE', 'ZNANE NARZĘDZIA' / 'NARZĘDZIA', 'SOFT SKILLS',\n"
+                "  'HARD SKILLS', 'TOOLS' — NIE łącz ich w skills. Każdą taką sekcję wrzuć do\n"
+                "  extra_sections (kind='other'), z DOKŁADNYM tytułem z CV i pełną listą punktów.\n"
+                "  skills zostaw wtedy jako [] (lub tylko treść spod ogólnego nagłówka UMIEJĘTNOŚCI,\n"
+                "  jeśli taki też istnieje obok rodzin).\n"
                 "- language: główny język CV (np. 'Polish', 'English', 'German')\n"
                 "- labels: summary/experience/education zawsze po polsku WIELKIMI LITERAMI:\n"
                 "  'PODSUMOWANIE ZAWODOWE', 'DOŚWIADCZENIE ZAWODOWE', 'WYKSZTAŁCENIE'.\n"
-                "  labels.skills = DOKŁADNY nagłówek sekcji umiejętności z CV (WIELKIMI LITERAMI),\n"
-                "  np. 'OBSŁUGA KOMPUTERA', 'TECHNOLOGIE', 'KOMPETENCJE', 'NARZĘDZIA'.\n"
-                "  Tylko gdy w CV nie ma takiego nagłówka, użyj 'UMIEJĘTNOŚCI'.\n"
+                "  labels.skills = DOKŁADNY nagłówek JEDYNEJ ogólnej sekcji skills z CV\n"
+                "  (WIELKIMI LITERAMI), np. 'OBSŁUGA KOMPUTERA', 'TECHNOLOGIE', 'KOMPETENCJE'.\n"
+                "  Gdy skills=[] bo treści są w rodzinach (miękkie/twarde/narzędzia), użyj\n"
+                "  'UMIEJĘTNOŚCI'. Nie wstawiaj 'ZNANE NARZĘDZIA' ani 'UMIEJĘTNOŚCI MIĘKKIE'\n"
+                "  jako labels.skills — te idą jako osobne extra_sections.\n"
                 "- extra_sections: każda sekcja CV NIEobjęta experience/education/skills/summary.\n"
                 "  Przykłady: Certyfikaty, Języki, Projekty, Nagrody, Publikacje,\n"
-                "  Wolontariat, Zainteresowania, Referencje, Kursy, Szkolenia — tytuł po polsku, WIELKIMI LITERAMI.\n"
-                "  NIE duplikuj sekcji skills w extra_sections — skills idą do skills + labels.skills.\n"
+                "  Wolontariat, Zainteresowania, Referencje, Kursy, Szkolenia,\n"
+                "  Umiejętności miękkie, Umiejętności twarde, Znane narzędzia —\n"
+                "  tytuł po polsku, WIELKIMI LITERAMI, WSZYSTKIE punkty bez pomijania.\n"
+                "  NIE duplikuj JEDYNEJ ogólnej sekcji skills w extra_sections.\n"
+                "  RODZINY umiejętności (miękkie / twarde / narzędzia) MUSZĄ być osobnymi\n"
+                "  wpisami extra_sections — nigdy nie scalaj ich w jedną listę ani w skills.\n"
                 "  kind: 'languages' | 'certifications' | 'interests' | 'projects' | 'references' |\n"
                 "        'awards' | 'publications' | 'volunteering' | 'other'.\n"
                 "  placement: 'after_experience' dla sekcji rekordowych (projekty, nagrody, wolontariat,\n"
                 "             referencje z opisem); 'after_skills' dla zwartych list (języki, certyfikaty,\n"
-                "             zainteresowania).\n"
+                "             zainteresowania, umiejętności miękkie/twarde, narzędzia).\n"
                 "  items — ZALEŻY OD RODZAJU SEKCJI:\n"
                 "  * languages / certifications / interests / zwarte listy: płaska lista stringów.\n"
                 "  * projects / references / awards / publications / volunteering: lista OBIEKTÓW\n"
@@ -107,7 +120,9 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
     resp = _client.chat.completions.create(
         model=_EXTRACT_MODEL,
         messages=[{"role": "user", "content": content}],
-        max_tokens=3000,
+        # Dense multi-section CVs (soft/hard/tools + long experience) need headroom
+        # so the model does not truncate mid-list and drop skill-family points.
+        max_tokens=8000,
         temperature=0.1,
         response_format={"type": "json_object"},
     )

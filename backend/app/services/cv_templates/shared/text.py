@@ -3,7 +3,11 @@ from __future__ import annotations
 
 import re
 
-from app.services.cv_data import fold_section_label, is_skills_like_title
+from app.services.cv_data import (
+    fold_section_label,
+    is_distinct_skill_family_title,
+    is_skills_like_title,
+)
 
 # Strip leading glyph/dash markers so callers can pass already-bulleted lines
 # without producing "• • item" in the canvas bulletList renderer.
@@ -88,7 +92,11 @@ def _extra_section_kind(section: dict) -> str:
         return "publications"
     if any(token in title for token in ("wolontar", "volunteer")):
         return "volunteering"
+    # Soft/hard/tools keep kind "other" so templates that skip a folded
+    # skills slot (e.g. Axis) still render each named family as its own list.
     if is_skills_like_title(section.get("title")):
+        if is_distinct_skill_family_title(section.get("title")):
+            return "other"
         return "skills"
     return "other"
 

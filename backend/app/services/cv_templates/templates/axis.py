@@ -349,9 +349,10 @@ def _gen_axis(cv: dict) -> list[dict]:
         close_section()
 
     # ── Extra / custom sections as diamond lists (certifications, interests,
-    # projects, …). `languages` is already rendered above from cv['languages'],
-    # and `skills`-like kinds are folded into cv['skills'] by normalize_cv_data,
-    # so both are skipped here to avoid duplicating a section.
+    # projects, …). `languages` is already rendered above from cv['languages'].
+    # Generic skills aliases are folded into cv['skills'] by normalize_cv_data,
+    # so kind 'skills' is skipped here. Distinct skill families (soft/hard/tools)
+    # stay as kind 'other' and must still render below.
     from app.services.cv_templates.shared.extras import _flatten_extra_items
     from app.services.cv_templates.shared.text import _extra_section_kind
 

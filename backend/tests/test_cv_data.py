@@ -86,6 +86,91 @@ class CvDataNormalizationTests(unittest.TestCase):
             for element in elements
         ))
 
+    def test_soft_hard_tools_stay_as_separate_sections(self):
+        """
+        CVs like CV19 list soft skills, hard skills, and tools under separate
+        headings. Absorbing them into one skills slot was the root cause of
+        soft/hard items appearing under ZNANE NARZĘDZIA.
+        """
+        profile = normalize_cv_data({
+            "name": "Kinga Olszewska",
+            "skills": [],
+            "labels": {"skills": "UMIEJĘTNOŚCI"},
+            "extra_sections": [
+                {
+                    "title": "ZNANE NARZĘDZIA",
+                    "kind": "other",
+                    "placement": "after_skills",
+                    "items": ["Senuto", "Surfer", "Ahrefs", "GSC", "GA4"],
+                },
+                {
+                    "title": "UMIEJĘTNOŚCI MIĘKKIE",
+                    "kind": "other",
+                    "placement": "after_skills",
+                    "items": [
+                        "Bardzo dobra organizacja pracy",
+                        "Pracowitość",
+                        "Odpowiedzialność",
+                    ],
+                },
+                {
+                    "title": "UMIEJĘTNOŚCI TWARDE",
+                    "kind": "other",
+                    "placement": "after_skills",
+                    "items": ["MS Office", "CMS Wordpress", "Znajomość zasad SEO"],
+                },
+                {
+                    "title": "KURSY I CERTYFIKATY",
+                    "kind": "certifications",
+                    "placement": "after_skills",
+                    "items": ["SEO 2022 - Pozycjonowanie od podstaw | Udemy"],
+                },
+            ],
+        })
+
+        self.assertEqual(profile["skills"], [])
+        titles = [section["title"] for section in profile["extra_sections"]]
+        self.assertIn("ZNANE NARZĘDZIA", titles)
+        self.assertIn("UMIEJĘTNOŚCI MIĘKKIE", titles)
+        self.assertIn("UMIEJĘTNOŚCI TWARDE", titles)
+        soft = next(
+            section for section in profile["extra_sections"]
+            if section["title"] == "UMIEJĘTNOŚCI MIĘKKIE"
+        )
+        tools = next(
+            section for section in profile["extra_sections"]
+            if section["title"] == "ZNANE NARZĘDZIA"
+        )
+        self.assertEqual(soft["items"][0], "Bardzo dobra organizacja pracy")
+        self.assertNotIn("Bardzo dobra organizacja pracy", tools["items"])
+
+        content = "\n".join(
+            str(element.get("content", ""))
+            for element in generate_resume("nimbus", profile)
+        )
+        self.assertIn("ZNANE NARZĘDZIA", content)
+        self.assertIn("UMIEJĘTNOŚCI MIĘKKIE", content)
+        self.assertIn("UMIEJĘTNOŚCI TWARDE", content)
+        self.assertIn("Bardzo dobra organizacja pracy", content)
+        self.assertIn("CMS Wordpress", content)
+
+    def test_lone_tools_section_still_fills_skills_slot(self):
+        profile = normalize_cv_data({
+            "name": "Jan Nowak",
+            "extra_sections": [{
+                "title": "Znane narzędzia",
+                "kind": "other",
+                "placement": "after_skills",
+                "items": ["Senuto", "GA4"],
+            }],
+        })
+        self.assertEqual(profile["skills"], ["Senuto", "GA4"])
+        self.assertEqual(profile["labels"]["skills"], "ZNANE NARZĘDZIA")
+        self.assertTrue(all(
+            section.get("title") != "ZNANE NARZĘDZIA"
+            for section in profile["extra_sections"]
+        ))
+
     def test_explicit_skills_label_is_not_overwritten_by_alias_section(self):
         profile = normalize_cv_data({
             "name": "Jan Nowak",

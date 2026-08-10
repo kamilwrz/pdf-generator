@@ -91,6 +91,19 @@ _SKILLS_TITLE_TOKENS = (
     "tools",
 )
 
+# Named skill-family headings that must stay as their own canvas sections when
+# more than one is present. Absorbing them into the single `skills` slot was
+# collapsing "Umiejętności miękkie" / "Umiejętności twarde" / "Znane narzędzia"
+# into one list under a single heading (often tools).
+_DISTINCT_SKILL_FAMILY_TOKENS = (
+    "soft skill",
+    "hard skill",
+    "miekk",       # umiejętności miękkie / kompetencje miękkie
+    "tward",       # umiejętności twarde / kompetencje twarde
+    "narzedz",     # narzędzia / znane narzędzia
+    "tools",
+)
+
 
 class CvDataValidationError(ValueError):
     """Raised when a profile cannot safely be used to generate a CV."""
@@ -136,6 +149,19 @@ def is_skills_like_title(title: object) -> bool:
     if not folded:
         return False
     return any(token in folded for token in _SKILLS_TITLE_TOKENS)
+
+
+def is_distinct_skill_family_title(title: object) -> bool:
+    """
+    True for soft skills / hard skills / tools headings.
+
+    These are skills-like for layout purposes, but they are not interchangeable
+    aliases of a single UMIEJĘTNOŚCI slot — collapsing them loses structure.
+    """
+    folded = fold_section_label(title)
+    if not folded:
+        return False
+    return any(token in folded for token in _DISTINCT_SKILL_FAMILY_TOKENS)
 
 
 def is_skills_like_section(section: Mapping[str, Any] | None) -> bool:
@@ -590,12 +616,19 @@ def _absorb_skills_alias_sections(
     labels_skills_explicit: bool,
 ) -> tuple[list[str], list[dict[str, Any]], dict[str, str]]:
     """
-    Treat skills-like custom sections as the skills slot:
+    Treat generic skills-like custom sections as the skills slot:
     - keep the user's heading in labels['skills']
     - merge items into cv['skills']
     - drop the alias from extra_sections so it is not rendered twice
+
+    Distinct skill-family headings (soft skills, hard skills, tools) are kept
+    as separate custom sections whenever more than one family is present, or
+    when the primary skills list already has content. A lone family with an
+    empty skills slot still fills that slot so single-section CVs keep the
+    main skills placement.
     """
     kept: list[dict[str, Any]] = []
+    distinct_aliases: list[dict[str, Any]] = []
     alias_title: str | None = None
     absorbed: list[str] = []
 
@@ -603,10 +636,29 @@ def _absorb_skills_alias_sections(
         if not is_skills_like_section(section):
             kept.append(section)
             continue
+        if is_distinct_skill_family_title(section.get("title")):
+            distinct_aliases.append(section)
+            continue
         title = _text(section.get("title")).upper()
         if alias_title is None and title:
             alias_title = title
         absorbed.extend(_section_items(section.get("items") or []))
+
+    # Preserve soft / hard / tools as their own sections when collapsing would
+    # erase the CV's skill taxonomy. Absorb only a solitary family into the
+    # primary skills slot (same path as a lone "Obsługa komputera" alias).
+    keep_distinct_separate = (
+        len(distinct_aliases) >= 2
+        or (distinct_aliases and (skills or absorbed))
+    )
+    if keep_distinct_separate:
+        kept.extend(distinct_aliases)
+    elif len(distinct_aliases) == 1:
+        only = distinct_aliases[0]
+        title = _text(only.get("title")).upper()
+        if alias_title is None and title:
+            alias_title = title
+        absorbed.extend(_section_items(only.get("items") or []))
 
     merged_skills = _string_list([*skills, *absorbed]) if absorbed else list(skills)
     next_labels = dict(labels)
