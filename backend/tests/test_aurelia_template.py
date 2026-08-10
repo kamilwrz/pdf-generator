@@ -41,26 +41,27 @@ class AureliaTemplateTests(unittest.TestCase):
     def setUp(self):
         self.elements = generate_resume("aurelia", CV_DATA)
 
-    def test_uses_cubic_bezier_as_masthead_and_section_language(self):
+    def test_uses_one_substantial_cubic_bezier_as_masthead_signature(self):
         paths = [element for element in self.elements if element["category"] == "path"]
-        self.assertGreaterEqual(len(paths), 6)
-        self.assertTrue(
-            all(any(segment.get("type") == "C" for segment in element["curves"]) for element in paths)
-        )
+        self.assertEqual(len(paths), 1)
 
-        orbit = next(
+        arch = next(
             element for element in paths
-            if element.get("id") == "aurelia-golden-orbit"
+            if element.get("id") == "aurelia-golden-arch"
         )
-        self.assertEqual(orbit["flowRole"], "masthead")
-        self.assertEqual(orbit["backgroundColor"], "#B3924F")
-        self.assertEqual(len([s for s in orbit["curves"] if s["type"] == "C"]), 2)
+        self.assertEqual(arch["flowRole"], "masthead")
+        self.assertEqual(arch["backgroundColor"], "#8B713A")
+        self.assertEqual(arch["borderWidth"], 4)
+        self.assertEqual(len([s for s in arch["curves"] if s["type"] == "C"]), 1)
 
-        section_threads = [
-            element for element in paths
+        section_bars = [
+            element for element in self.elements
             if element.get("flowRole") == "section-chrome"
+            and element["category"] == "line"
+            and element["backgroundColor"] == "#B3924F"
+            and element["height"] == 4
         ]
-        self.assertGreaterEqual(len(section_threads), 4)
+        self.assertGreaterEqual(len(section_bars), 4)
 
     def test_stays_single_column_with_modest_body_type(self):
         content = [
@@ -84,19 +85,19 @@ class AureliaTemplateTests(unittest.TestCase):
             )
         )
 
-    def test_includes_filled_polygon_jewel_and_fixed_page_chrome(self):
-        jewel = next(
-            element for element in self.elements
-            if element.get("id") == "aurelia-orbit-jewel"
-        )
-        self.assertEqual(jewel["category"], "polygon")
-        self.assertEqual(jewel["shape"], "diamond")
-        self.assertTrue(jewel["filled"])
-        self.assertEqual(len(jewel["points"]), 4)
-
+    def test_avoids_extra_shapes_and_keeps_fixed_page_chrome(self):
+        self.assertFalse(any(element["category"] == "polygon" for element in self.elements))
         fixed = [element for element in self.elements if element.get("fixedToPage")]
         self.assertTrue(fixed)
-        self.assertTrue(any(element["category"] == "path" for element in fixed))
+        self.assertFalse(any(element["category"] == "path" for element in fixed))
+        self.assertTrue(
+            any(
+                element["category"] == "line"
+                and element["backgroundColor"] == "#B3924F"
+                and element["height"] == 4
+                for element in fixed
+            )
+        )
 
 
 if __name__ == "__main__":

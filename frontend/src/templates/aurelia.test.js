@@ -13,10 +13,9 @@ const ALLOWED_PALETTE = new Set([
     GOLD,
     "#8B713A",
     "#DCD8CE",
-    "#F1EEE7",
 ]);
 
-test("Aurelia is a one-column quiet-luxury template led by cubic Bézier paths", () => {
+test("Aurelia is a one-column quiet-luxury template led by one cubic Bézier arch", () => {
     const tallShapes = aureliaTemplate.filter((element) => (element.height ?? 0) >= 300);
     assert.equal(tallShapes.length, 2); // paper plus the 1px vertical rail
     assert.equal(tallShapes[0].backgroundColor, PAPER);
@@ -29,21 +28,18 @@ test("Aurelia is a one-column quiet-luxury template led by cubic Bézier paths",
     );
 
     const paths = aureliaTemplate.filter((element) => element.category === "path");
-    assert.ok(paths.length >= 7, "masthead, section threads, and footer must use Bézier paths");
+    assert.equal(paths.length, 1, "one signature curve avoids decorative repetition");
     assert.ok(paths.every((element) => element.curves.some((segment) => segment.type === "C")));
     assert.ok(paths.every((element) => element.filled === false));
-    assert.ok(paths.every((element) => [GOLD, "#8B713A"].includes(element.backgroundColor)));
+    assert.equal(paths[0].backgroundColor, "#8B713A");
+    assert.equal(paths[0].borderWidth, 4);
 
-    const orbit = aureliaTemplate.find((element) => element.id === "aurelia-golden-orbit");
-    assert.ok(orbit);
-    assert.equal(orbit.flowRole, "masthead");
-    assert.equal(orbit.width, 229);
-    assert.equal(orbit.curves.filter((segment) => segment.type === "C").length, 2);
-
-    const jewel = aureliaTemplate.find((element) => element.id === "aurelia-orbit-jewel");
-    assert.equal(jewel?.category, "polygon");
-    assert.equal(jewel?.shape, "diamond");
-    assert.equal(jewel?.filled, true);
+    const arch = aureliaTemplate.find((element) => element.id === "aurelia-golden-arch");
+    assert.ok(arch);
+    assert.equal(arch.flowRole, "masthead");
+    assert.equal(arch.width, 435);
+    assert.equal(arch.curves.filter((segment) => segment.type === "C").length, 1);
+    assert.equal(aureliaTemplate.some((element) => element.category === "polygon"), false);
 
     const headings = aureliaTemplate.filter(
         (element) => element.flowRole === "section-chrome"
@@ -52,6 +48,13 @@ test("Aurelia is a one-column quiet-luxury template led by cubic Bézier paths",
     assert.equal(headings.length, 4);
     assert.ok(headings.every((element) => element.left === 116));
     assert.ok(headings.every((element) => element.fontFamily === "Montserrat"));
+    const sectionBars = aureliaTemplate.filter(
+        (element) => element.flowRole === "section-chrome"
+            && element.category === "line"
+            && element.backgroundColor === GOLD
+            && element.height === 4,
+    );
+    assert.equal(sectionBars.length, 4);
 
     const bodyBlocks = aureliaTemplate.filter(
         (element) => element.category === "textarea"

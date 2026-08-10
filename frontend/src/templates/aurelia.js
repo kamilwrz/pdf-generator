@@ -2,9 +2,9 @@
  * Aurelia template.
  *
  * A one-column quiet-luxury composition built around one memorable gesture:
- * a thin golden Bézier orbit crosses the masthead, then reappears as a small
- * thread beside every section. White space and modest copy keep the ornament
- * editorial rather than decorative-for-decoration's-sake.
+ * one substantial golden Bézier arch closes the masthead. Section headings use
+ * disciplined rectangular bars instead of repeating curves, so the signature
+ * stays memorable and the document remains calm.
  */
 import { bezierPath, block, bulleted, line, text } from "./helpers.js";
 
@@ -15,24 +15,12 @@ const MUTED = "#77736B";
 const GOLD = "#B3924F";
 const GOLD_DARK = "#8B713A";
 const RULE = "#DCD8CE";
-const PALE = "#F1EEE7";
 const DISPLAY = "PlayfairDisplay";
 const SANS = "Montserrat";
 
-const ORBIT_CURVES = [
-    { type: "M", x: 0.02, y: 0.72 },
-    { type: "C", x1: 0.18, y1: 0.05, x2: 0.48, y2: 0.02, x: 0.62, y: 0.38 },
-    { type: "C", x1: 0.76, y1: 0.74, x2: 0.86, y2: 1.03, x: 0.98, y: 0.58 },
-];
-const THREAD_CURVES = [
-    { type: "M", x: 0.02, y: 0.54 },
-    { type: "C", x1: 0.22, y1: 0.04, x2: 0.38, y2: 0.98, x: 0.56, y: 0.5 },
-    { type: "C", x1: 0.72, y1: 0.08, x2: 0.86, y2: 0.92, x: 0.98, y: 0.46 },
-];
-const SWEEP_CURVES = [
-    { type: "M", x: 0.01, y: 0.76 },
-    { type: "C", x1: 0.23, y1: 0.12, x2: 0.42, y2: 0.1, x: 0.55, y: 0.48 },
-    { type: "C", x1: 0.68, y1: 0.86, x2: 0.86, y2: 0.82, x: 0.99, y: 0.28 },
+const ARCH_CURVES = [
+    { type: "M", x: 0.01, y: 0.82 },
+    { type: "C", x1: 0.25, y1: 0.05, x2: 0.75, y2: 0.05, x: 0.99, y: 0.82 },
 ];
 
 const masthead = (element) => ({ ...element, flowRole: "masthead" });
@@ -42,12 +30,11 @@ const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
 
 const sectionHeading = (label, top, id) => [
     sectionChrome({
-        ...bezierPath(76, top + 1, 29, 13, THREAD_CURVES, GOLD, 1.35, 3, "flourish"),
-        id: `aurelia-${id}-thread`,
+        ...line(76, top + 7, 28, 4, GOLD, 3),
+        id: `aurelia-${id}-bar`,
     }),
     sectionChrome(tracked(bold(text(label, 9, SANS, INK, 116, top, 3)), 1.35)),
     sectionChrome(line(274, top + 9, 241, 1, RULE, 2)),
-    sectionChrome(line(274, top + 9, 38, 1.4, GOLD, 3)),
 ];
 
 const aureliaElements = [
@@ -60,26 +47,8 @@ const aureliaElements = [
     masthead(tracked(text("STRATEGIA  ·  OPERACJE  ·  TRANSFORMACJA", 8.4, SANS, GOLD_DARK, 82, 100, 4), 1.55)),
     masthead(text("anna.kowalska@email.com  ·  +48 600 000 000  ·  Warszawa", 8.4, SANS, MUTED, 82, 128, 4)),
     masthead({
-        ...bezierPath(302, 25, 229, 128, ORBIT_CURVES, GOLD, 1.2, 2, "arc"),
-        id: "aurelia-golden-orbit",
-    }),
-    masthead({
-        ...bezierPath(80, 153, 435, 19, SWEEP_CURVES, GOLD_DARK, 1.15, 3, "flourish"),
-        id: "aurelia-masthead-sweep",
-    }),
-    masthead({
-        category: "polygon",
-        shape: "diamond",
-        points: [[0.5, 0.04], [0.96, 0.5], [0.5, 0.96], [0.04, 0.5]],
-        left: 495,
-        top: 74,
-        width: 10,
-        height: 10,
-        backgroundColor: GOLD,
-        borderWidth: 0,
-        filled: true,
-        zIndex: 4,
-        id: "aurelia-orbit-jewel",
+        ...bezierPath(80, 151, 435, 22, ARCH_CURVES, GOLD_DARK, 4, 3, "arc"),
+        id: "aurelia-golden-arch",
     }),
 
     ...sectionHeading("PROFIL", 204, "summary"),
@@ -117,12 +86,8 @@ const aureliaElements = [
     ),
 
     { ...line(80, 778, 435, 1, RULE, 2), fixedToPage: true },
-    {
-        ...bezierPath(80, 783, 54, 12, THREAD_CURVES, GOLD, 1.2, 3, "flourish"),
-        fixedToPage: true,
-    },
+    { ...line(80, 787, 54, 4, GOLD, 3), fixedToPage: true },
     { ...tracked(text("AURELIA  /  01", 7.6, SANS, MUTED, 437, 788, 3), 1.1), fixedToPage: true },
-    { ...line(80, 704, 435, 1, PALE, 1), fixedToPage: true },
 ];
 
 export const aureliaTemplate = aureliaElements.map((element) => (

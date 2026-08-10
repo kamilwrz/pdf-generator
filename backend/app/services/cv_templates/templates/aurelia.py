@@ -1,12 +1,12 @@
-from __future__ import annotations
-
 """Aurelia CV template generator.
 
 Aurelia is a one-column quiet-luxury document in charcoal, warm white, and
-antique gold. Its signature golden thread is a normalized cubic Bézier path:
-one large orbit frames the masthead and a smaller flourish introduces every
-section without competing with the deliberately modest body copy.
+antique gold. One substantial normalized cubic Bézier arch closes the masthead.
+Section headings use disciplined rectangular bars, keeping the signature curve
+special and the deliberately modest body copy calm.
 """
+
+from __future__ import annotations
 
 from app.services.cv_generator_primitives import (
     Builder,
@@ -31,25 +31,14 @@ from app.services.cv_templates.shared.text import (
 )
 
 
-ORBIT_CURVES = [
-    {"type": "M", "x": 0.02, "y": 0.72},
-    {"type": "C", "x1": 0.18, "y1": 0.05, "x2": 0.48, "y2": 0.02, "x": 0.62, "y": 0.38},
-    {"type": "C", "x1": 0.76, "y1": 0.74, "x2": 0.86, "y2": 1.03, "x": 0.98, "y": 0.58},
-]
-THREAD_CURVES = [
-    {"type": "M", "x": 0.02, "y": 0.54},
-    {"type": "C", "x1": 0.22, "y1": 0.04, "x2": 0.38, "y2": 0.98, "x": 0.56, "y": 0.5},
-    {"type": "C", "x1": 0.72, "y1": 0.08, "x2": 0.86, "y2": 0.92, "x": 0.98, "y": 0.46},
-]
-SWEEP_CURVES = [
-    {"type": "M", "x": 0.01, "y": 0.76},
-    {"type": "C", "x1": 0.23, "y1": 0.12, "x2": 0.42, "y2": 0.1, "x": 0.55, "y": 0.48},
-    {"type": "C", "x1": 0.68, "y1": 0.86, "x2": 0.86, "y2": 0.82, "x": 0.99, "y": 0.28},
+ARCH_CURVES = [
+    {"type": "M", "x": 0.01, "y": 0.82},
+    {"type": "C", "x1": 0.25, "y1": 0.05, "x2": 0.75, "y2": 0.05, "x": 0.99, "y": 0.82},
 ]
 
 
 def _gen_aurelia(cv: dict) -> list[dict]:
-    """Build the Aurelia single-column CV with reusable Bézier section chrome."""
+    """Build the Aurelia single-column CV with one signature Bézier arch."""
     C = {
         "paper": "#FEFDF9",
         "ink": "#272724",
@@ -58,7 +47,6 @@ def _gen_aurelia(cv: dict) -> list[dict]:
         "gold": "#B3924F",
         "gold_dark": "#8B713A",
         "rule": "#DCD8CE",
-        "pale": "#F1EEE7",
     }
     L, W = 116, 399
     DISPLAY, SANS = "PlayfairDisplay", "Montserrat"
@@ -67,7 +55,7 @@ def _gen_aurelia(cv: dict) -> list[dict]:
     lbl = _labels(cv)
 
     class AureliaBuilder(Builder):
-        """Continue content below a restrained top flourish on later pages."""
+        """Continue content below the restrained top margin on later pages."""
 
         def continuation_top(self) -> float:
             return 66.0
@@ -80,29 +68,9 @@ def _gen_aurelia(cv: dict) -> list[dict]:
         _text(title, 8.4, SANS, C["gold_dark"], 82, 100, zIndex=4),
         _text(contact, 8.4, SANS, C["muted"], 82, 128, zIndex=4),
         {
-            **_path(302, 25, 229, 128, ORBIT_CURVES, C["gold"],
-                    borderWidth=1.2, pathKind="arc", zIndex=2),
-            "id": "aurelia-golden-orbit",
-        },
-        {
-            **_path(80, 153, 435, 19, SWEEP_CURVES, C["gold_dark"],
-                    borderWidth=1.15, pathKind="flourish", zIndex=3),
-            "id": "aurelia-masthead-sweep",
-        },
-        {
-            "category": "polygon",
-            "shape": "diamond",
-            "points": [[0.5, 0.04], [0.96, 0.5], [0.5, 0.96], [0.04, 0.5]],
-            "left": 495,
-            "top": 74,
-            "width": 10,
-            "height": 10,
-            "backgroundColor": C["gold"],
-            "borderWidth": 0,
-            "filled": True,
-            "zIndex": 4,
-            "page": 1,
-            "id": "aurelia-orbit-jewel",
+            **_path(80, 151, 435, 22, ARCH_CURVES, C["gold_dark"],
+                    borderWidth=4, pathKind="arc", zIndex=3),
+            "id": "aurelia-golden-arch",
         },
     ]
     header[0]["letterSpacing"] = 0.1
@@ -112,15 +80,13 @@ def _gen_aurelia(cv: dict) -> list[dict]:
     b = AureliaBuilder(204)
 
     def section(label: str) -> None:
-        """Place one Bézier thread, label, and two-tone divider as one unit."""
+        """Place one substantial gold bar, label, and quiet divider as a unit."""
         top = b.y
         chrome = [
-            _path(76, top + 1, 29, 13, THREAD_CURVES, C["gold"],
-                  borderWidth=1.35, pathKind="flourish", zIndex=3, page=b.pg),
+            _line(76, top + 7, 28, 4, C["gold"], zIndex=3, page=b.pg),
             _text(_compact_text(label, 44), 9, SANS, C["ink"], L, top,
                   zIndex=3, page=b.pg, bold=True),
             _line(274, top + 9, 241, 1, C["rule"], zIndex=2, page=b.pg),
-            _line(274, top + 9, 38, 1.4, C["gold"], zIndex=3, page=b.pg),
         ]
         chrome[1]["letterSpacing"] = 1.35
         b.els.extend({**element, "flowRole": "section-chrome"} for element in chrome)
@@ -205,11 +171,6 @@ def _gen_aurelia(cv: dict) -> list[dict]:
 
     def page_decorations(page: int) -> tuple[dict, ...]:
         """Return the asymmetric gold/grey page rails and quiet footer."""
-        footer_thread = {
-            **_path(80, 783, 54, 12, THREAD_CURVES, C["gold"],
-                    borderWidth=1.2, pathKind="flourish", zIndex=3, page=page),
-            "fixedToPage": True,
-        }
         page_label = _text(
             f"AURELIA  /  {page:02d}", 7.6, SANS, C["muted"],
             437, 788, zIndex=3, page=page,
@@ -221,7 +182,7 @@ def _gen_aurelia(cv: dict) -> list[dict]:
             {**_line(63, 42, 3, 54, C["gold"], zIndex=2, page=page), "fixedToPage": True},
             {**_line(63, 744, 3, 54, C["gold"], zIndex=2, page=page), "fixedToPage": True},
             {**_line(80, 778, 435, 1, C["rule"], zIndex=2, page=page), "fixedToPage": True},
-            footer_thread,
+            {**_line(80, 787, 54, 4, C["gold"], zIndex=3, page=page), "fixedToPage": True},
             {**page_label, "fixedToPage": True},
         )
 

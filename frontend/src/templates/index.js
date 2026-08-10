@@ -45,5 +45,5 @@ export const TEMPLATES = [
     { id: "portico", tier: "paid", name: "Portico", description: "Wycentrowany nagłówek, ikony, spokojny minimalizm", layouts: ["icons"], accent: "#7C6A52", elements: porticoTemplate },
     { id: "axis", tier: "paid", name: "Axis", description: "Oś czasu z datami na marginesie, akcenty pomarańczowo-morskie", layouts: ["icons"], accent: "#E2740C", elements: axisTemplate },
     { id: "atrium", tier: "paid", name: "Atrium", description: "Wycentrowana editorialna kompozycja z drukarskim mikro-ornamentem", layouts: ["single", "icons"], accent: "#556158", elements: atriumTemplate },
-    { id: "aurelia", tier: "paid", name: "Aurelia", description: "Biało-szary editorial ze złotą orbitą Béziera", layouts: ["single"], accent: "#B3924F", elements: aureliaTemplate },
+    { id: "aurelia", tier: "paid", name: "Aurelia", description: "Biało-szary editorial z mocnym złotym łukiem Béziera", layouts: ["single"], accent: "#B3924F", elements: aureliaTemplate },
 ];
