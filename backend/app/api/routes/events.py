@@ -31,6 +31,21 @@ class EventLogRequest(BaseModel):
         "template_picked",
         "template_dismissed",
         "landing_cta_clicked",
+        # Per-source landing CTA events. `landing_cta_clicked` above stays for
+        # backward compatibility, but the redesigned landing emits a specific
+        # source per call-to-action so the funnel can tell which surface drove
+        # the click (hero vs before/after vs templates vs pricing vs final CTA)
+        # without adding a free-form field that would weaken the fixed
+        # vocabulary this endpoint deliberately enforces.
+        "hero_wizard",
+        "hero_import",
+        "hero_demo",
+        "before_after_import",
+        "templates_wizard",
+        "pricing_free",
+        "pricing_pro",
+        "final_wizard",
+        "final_import",
         "guest_editor_opened",
         "guest_demo_loaded",
         "guest_first_edit",

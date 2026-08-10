@@ -119,6 +119,32 @@ class EventsLogTests(unittest.TestCase):
                 )
                 self.assertEqual(response.status_code, 200)
 
+    def test_landing_source_event_types_are_accepted(self):
+        # The redesigned landing emits a per-source CTA event so the funnel can
+        # distinguish which surface drove the click. Each must pass schema
+        # validation the same way the guest-funnel events do.
+        app.dependency_overrides[verify_token] = _fake_verify_token
+        app.dependency_overrides[get_db] = _fake_get_db
+
+        for event_type in (
+            "hero_wizard",
+            "hero_import",
+            "hero_demo",
+            "before_after_import",
+            "templates_wizard",
+            "pricing_free",
+            "pricing_pro",
+            "final_wizard",
+            "final_import",
+        ):
+            with self.subTest(event_type=event_type):
+                response = self.client.post(
+                    "/events/log",
+                    json={"event_type": event_type},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                self.assertEqual(response.status_code, 200)
+
     def test_logging_failure_does_not_break_the_response(self):
         # A DB lookup failure while resolving the numeric user id must not
         # surface to the caller — fire-and-forget guarantee.
