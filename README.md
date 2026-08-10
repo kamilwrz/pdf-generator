@@ -2,7 +2,7 @@
 
 # CV Studio
 
-CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 17 individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
+CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 18 individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
 
 This README is the technical entry point for developers. A beginner-friendly deep guide to canvas coordinates, React interaction, deterministic Python layout, AI responsibilities, reflow, persistence, and ReportLab export lives in [`CANVA.md`](CANVA.md). Every live AI prompt (full text, variables, file/line references) is documented in [`PROMPTS.md`](PROMPTS.md). Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md). Marketing brief for the website „Dlaczego CV STUDIO” section (features + competitive positioning, no competitor brand names in public copy) lives in [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Template generation (AI extract vs Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md). A layperson-friendly end-to-end guide covering Frontend and Backend (flows, files, classes, functions) lives in [`CV_GENERATOR.md`](CV_GENERATOR.md).
 
@@ -169,7 +169,7 @@ pdf-generator/
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
-│   │   ├── templates/        # 17 template specs + helpers + demoCv.js (guest-mode demo content)
+│   │   ├── templates/        # 18 template specs + helpers + demoCv.js (guest-mode demo content)
 │   │   └── utils/            # a4ElementFactories, freeformShapes, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, guestDocument, guestWizardDraft, claimGuestWizardDraft, resolveActiveCvData, guestEvents
 │   ├── package.json
 │   └── .env.example
@@ -578,7 +578,7 @@ Implementation:
 
 Limits:
 
-- Free (Darmowy) includes five starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 17 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
+- Free (Darmowy) includes five starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 18 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
 - ATS feedback (**Czytelność dla ATS**) checks whether the final PDF text can be extracted and whether content headings/keywords look standard. It is guidance, not a promise that every recruiter ATS will parse the file the same way.
 - The privacy section describes implemented data use at a high level and does not claim unimplemented certifications or anonymisation.
 
@@ -843,6 +843,29 @@ Tests:
 - `frontend/src/templates/atrium.pack.test.js` (with `atrium.multipage.fixture.json`) — a real two-page Atrium document: every section heading stays glued to its own body through `listDocumentSections` / `sectionElementIds` and after `applyFlowSpacing` at both the default and a compact rhythm (regression guard for the reported "headings detach + spacing scrambles the layout" bug)
 - `backend/tests/test_cv_template_layouts.py` and `backend/tests/test_template_registry_sync.py` iterate every registered generator, so Atrium is covered for summary-equals-body type size, page bounds, and frontend/backend id / layout-tag / tier parity without a dedicated entry
 
+### Aurelia golden-thread Bézier template
+
+Aurelia is a paid, one-column template (`layouts: ["single"]`) with a quiet-luxury palette: warm white `#FEFDF9`, charcoal `#272724`, body grey `#464540`, muted grey `#77736B`, and antique gold `#B3924F` / `#8B713A`. It deliberately keeps body copy modest (`9.3` pt with `13.6` pt leading) and uses generous negative space instead of panels, cards, or a sidebar.
+
+Its memorable visual is a **golden cubic Bézier thread**. A two-segment normalized path (`M` + two `C` curves) rises from the name, orbits the masthead, and lands near a filled gold diamond `polygon`. A second sweep closes the masthead. Every section repeats a much smaller two-curve flourish next to the label, so the Bézier is a real design system rather than one isolated decoration. Footer threads repeat on every generated page. The `curves` coordinates stay in the 0–1 element box, making the React SVG preview and ReportLab `curveTo` export share the same geometry.
+
+The deterministic Python generator uses the standard `Builder`, `need_section`, `keep_together` / `flowGroup`, experience, education, skills, and extra-section helpers. Bézier section ornaments carry `flowRole: "section-chrome"` and the masthead orbit carries `flowRole: "masthead"`, so spacing changes and pagination move each ornament with the content it belongs to. The footer and asymmetric grey/gold rails are `fixedToPage` and repeat on continuation pages.
+
+Implementation:
+
+- `frontend/src/templates/aurelia.js`, export `aureliaTemplate` — static starter, normalized orbit/thread/sweep curves, filled diamond polygon, one-column sample content
+- `frontend/src/templates/helpers.js`, function `bezierPath` — template-authoring helper for normalized cubic paths
+- `backend/app/services/cv_templates/templates/aurelia.py`, function `_gen_aurelia` — dynamic masthead, Bézier `section()` chrome, compact shared records, repeating page decorations
+- `backend/app/services/cv_generator_primitives.py`, function `_path` — backend counterpart to `bezierPath`
+- `frontend/src/templates/index.js` and `backend/app/services/cv_templates/registry.py` — paid registry entry and `single` layout parity
+- `frontend/public/template-mockups/aurelia.png` — source-driven A4 preview
+
+Tests:
+
+- `frontend/src/templates/aurelia.test.js` — one column, palette, modest body type, cubic path count/roles, filled diamond jewel
+- `backend/tests/test_aurelia_template.py` — dynamic path/polygon generation, normalized cubic segments, fixed continuation chrome
+- `backend/tests/test_template_registry_sync.py` and `backend/tests/test_cv_template_layouts.py` — registry/layout/tier parity, bounds, and summary/body typography
+
 ### Icon-tagged templates and icon reflow
 
 Nova, Volt, Cardinal, Harbor, Tessera, Slate, Portico, and Axis are individual templates that share the `icons` layout tag (and optionally `sidebar` / `dark`). The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so icon images are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
@@ -865,7 +888,7 @@ Tests:
 - `backend/tests/test_pdf_shapes.py`, lines 67–131 — optical alignment, explicit `alignWithText: false`, and alpha-mask regressions
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_iconic_experience_record_gap_matches_projects`
 
-**Regenerating source-driven mockups.** `frontend/public/template-mockups/{nova,volt,monument,words,cardinal,harbor,tessera,slate,portico,axis,atrium,regent}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, `frontend/src/templates/harbor.js`, `frontend/src/templates/tessera.js`, `frontend/src/templates/slate.js`, `frontend/src/templates/portico.js`, `frontend/src/templates/axis.js`, `frontend/src/templates/atrium.js`, or `frontend/src/templates/regent.js` changes, regenerate them:
+**Regenerating source-driven mockups.** `frontend/public/template-mockups/{nova,volt,monument,words,cardinal,harbor,tessera,slate,portico,axis,atrium,regent,aurelia}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from the same starter element arrays a user gets when picking the template in the editor, not hand-drawn mockups. Whenever `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, `frontend/src/templates/harbor.js`, `frontend/src/templates/tessera.js`, `frontend/src/templates/slate.js`, `frontend/src/templates/portico.js`, `frontend/src/templates/axis.js`, `frontend/src/templates/atrium.js`, `frontend/src/templates/regent.js`, or `frontend/src/templates/aurelia.js` changes, regenerate them:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs
@@ -1153,7 +1176,7 @@ Two-tier catalog only:
 | | Darmowy (Free) | Pro |
 |--|--|--|
 | Price | 0 zł | **59 zł / 30 days** (one-shot pass, not auto-renew) |
-| Templates | 5 starters | all 17 |
+| Templates | 5 starters | all 18 |
 | Import | 1 lifetime free | further imports from AI credits |
 | Export | watermarked | clean PDF |
 | AI | — | content + ATS + Layout |
@@ -1699,7 +1722,7 @@ pdf-generator/
 │   │   ├── pages/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage
 │   │   ├── store/            # Canvas / UiSurfaces / Session + fasada PdfContext
-│   │   ├── templates/        # 17 specyfikacji szablonów + helpery + demoCv.js (treść demo w trybie gościa)
+│   │   ├── templates/        # 18 specyfikacji szablonów + helpery + demoCv.js (treść demo w trybie gościa)
 │   │   └── utils/            # a4ElementFactories, freeformShapes, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, guestDocument, guestWizardDraft, claimGuestWizardDraft, resolveActiveCvData, guestEvents
 │   ├── package.json
 │   └── .env.example
@@ -2097,7 +2120,7 @@ Implementacja:
 
 Ograniczenia:
 
-- Plan Darmowy obejmuje pięć szablonów startowych, eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 17 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
+- Plan Darmowy obejmuje pięć szablonów startowych, eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 18 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
 - Wskazówki **Czytelność dla ATS** sprawdzają odczyt tekstu z finalnego PDF oraz standardowość nagłówków/słów kluczowych. To wskazówka, nie gwarancja że każdy system ATS odczyta plik tak samo.
 - Sekcja prywatności opisuje ogólnie zaimplementowane użycie danych i nie deklaruje niezaimplementowanych certyfikatów ani anonimizacji.
 
@@ -2358,6 +2381,29 @@ Testy:
 - `frontend/src/templates/atrium.pack.test.js` (z `atrium.multipage.fixture.json`) — realny dwustronicowy dokument Atrium: każdy nagłówek sekcji pozostaje przyklejony do swojego body w `listDocumentSections` / `sectionElementIds` oraz po `applyFlowSpacing` przy domyślnym i kompaktowym rytmie (guard regresji dla zgłoszonego buga „nagłówki się odrywają + zmiana odstępów psuje układ”)
 - `backend/tests/test_cv_template_layouts.py` i `backend/tests/test_template_registry_sync.py` iterują po wszystkich zarejestrowanych generatorach, więc Atrium jest objęte pokryciem (rozmiar podsumowania=body, granice strony, parytet id/tagów/planu) bez dedykowanego wpisu
 
+### Szablon Aurelia ze złotą nicią Béziera
+
+Aurelia to płatny, jednokolumnowy szablon (`layouts: ["single"]`) w estetyce quiet luxury: ciepła biel `#FEFDF9`, grafit `#272724`, szarość treści `#464540`, muted grey `#77736B` oraz antyczne złoto `#B3924F` / `#8B713A`. Tekst body jest celowo skromny (`9.3` pt z interlinią `13.6` pt), a hierarchię buduje oddech zamiast paneli, kart czy sidebaru.
+
+Zapamiętywalnym motywem jest **złota sześcienna nić Béziera**. Znormalizowana ścieżka z dwóch segmentów (`M` + dwie krzywe `C`) wychodzi od nazwiska, orbituje przez masthead i kończy się przy wypełnionym złotym rombie `polygon`. Drugi sweep domyka masthead. Każda sekcja powtarza dużo mniejszy, dwukrzywiznowy flourish przy etykiecie, dlatego Bézier tworzy pełny język wizualny, a nie pojedynczą dekorację. Nici w stopce powtarzają się na każdej wygenerowanej stronie. Współrzędne `curves` pozostają w zakresie 0–1 ramki elementu, więc SVG Reacta i eksport ReportLab `curveTo` dzielą jedną geometrię.
+
+Deterministyczny generator Python używa standardowych mechanizmów `Builder`, `need_section`, `keep_together` / `flowGroup` oraz helperów doświadczenia, edukacji, umiejętności i sekcji dodatkowych. Ornamenty przy sekcjach mają `flowRole: "section-chrome"`, a orbita mastheadu `flowRole: "masthead"`, więc zmiany odstępów i paginacja przesuwają ornament razem z należącą do niego treścią. Stopka oraz asymetryczne szaro-złote szyny są `fixedToPage` i powtarzają się na kolejnych stronach.
+
+Implementacja:
+
+- `frontend/src/templates/aurelia.js`, eksport `aureliaTemplate` — statyczny starter, znormalizowane krzywe orbit/thread/sweep, wypełniony romb, przykładowa treść jednokolumnowa
+- `frontend/src/templates/helpers.js`, funkcja `bezierPath` — helper authoringu szablonów dla znormalizowanych krzywych sześciennych
+- `backend/app/services/cv_templates/templates/aurelia.py`, funkcja `_gen_aurelia` — dynamiczny masthead, chrome `section()` z Bézierem, zwarte wspólne rekordy, powtarzalne dekoracje strony
+- `backend/app/services/cv_generator_primitives.py`, funkcja `_path` — backendowy odpowiednik `bezierPath`
+- `frontend/src/templates/index.js` i `backend/app/services/cv_templates/registry.py` — płatny wpis rejestru i parytet layoutu `single`
+- `frontend/public/template-mockups/aurelia.png` — podgląd A4 generowany ze źródła
+
+Testy:
+
+- `frontend/src/templates/aurelia.test.js` — jedna kolumna, paleta, skromny body type, liczba/role krzywych, wypełniony złoty romb
+- `backend/tests/test_aurelia_template.py` — dynamiczne generowanie path/polygon, znormalizowane segmenty sześcienne, stały chrome stron kontynuacji
+- `backend/tests/test_template_registry_sync.py` i `backend/tests/test_cv_template_layouts.py` — parytet rejestru/layoutu/planu, granice i zgodność typografii podsumowania z body
+
 ### Szablony z tagiem `icons` i reflow ikon
 
 Nova, Volt, Cardinal, Harbor, Tessera, Slate, Portico i Axis to indywidualne szablony ze wspólnym tagiem layoutu `icons` (opcjonalnie też `sidebar` / `dark`). Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, obrazy ikon są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
@@ -2380,7 +2426,7 @@ Testy:
 - `backend/tests/test_pdf_shapes.py`, linie 67–131 — wyrównanie optyczne, jawne `alignWithText: false` oraz maska alfa
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_iconic_experience_record_gap_matches_projects`
 
-**Regenerowanie podglądów opartych na kodzie źródłowym.** Pliki `frontend/public/template-mockups/{nova,volt,monument,words,cardinal,harbor,tessera,slate,portico,axis,atrium,regent}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, `frontend/src/templates/harbor.js`, `frontend/src/templates/tessera.js`, `frontend/src/templates/slate.js`, `frontend/src/templates/portico.js`, `frontend/src/templates/axis.js`, `frontend/src/templates/atrium.js` lub `frontend/src/templates/regent.js` należy je odtworzyć:
+**Regenerowanie podglądów opartych na kodzie źródłowym.** Pliki `frontend/public/template-mockups/{nova,volt,monument,words,cardinal,harbor,tessera,slate,portico,axis,atrium,regent,aurelia}.png` — podglądy widoczne w galerii szablonów na stronie głównej (`frontend/src/pages/Hero/Hero.jsx`), w wewnętrznym wyborze szablonów (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`) oraz w panelu hover w **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — są renderowane z tych samych tablic elementów startowych, które użytkownik dostaje po wybraniu szablonu w edytorze, a nie rysowane ręcznie. Po każdej zmianie w `frontend/src/templates/iconic.js`, `frontend/src/templates/monument.js`, `frontend/src/templates/words.js`, `frontend/src/templates/cardinal.js`, `frontend/src/templates/harbor.js`, `frontend/src/templates/tessera.js`, `frontend/src/templates/slate.js`, `frontend/src/templates/portico.js`, `frontend/src/templates/axis.js`, `frontend/src/templates/atrium.js`, `frontend/src/templates/regent.js` lub `frontend/src/templates/aurelia.js` należy je odtworzyć:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs
@@ -2660,7 +2706,7 @@ Katalog ma tylko dwa pakiety:
 | | Darmowy (Free) | Pro |
 |--|--|--|
 | Cena | 0 zł | **59 zł / 30 dni** (jednorazowy pass, bez auto-odnawiania) |
-| Szablony | 5 startowych | wszystkie 17 |
+| Szablony | 5 startowych | wszystkie 18 |
 | Import | 1 darmowy w życiu konta | kolejne z puli kredytów AI |
 | Eksport | ze znakiem wodnym | czysty PDF |
 | AI | — | treść + ATS + Układ |

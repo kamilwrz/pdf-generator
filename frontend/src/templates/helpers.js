@@ -34,6 +34,36 @@ export const ellipse = (left, top, width, height, backgroundColor, filled = fals
         zIndex,
     });
 
+/**
+ * Open cubic Bézier ornament authored in normalized 0..1 box coordinates.
+ *
+ * Keeping curves normalized lets the same element scale on the canvas and
+ * export through ReportLab without maintaining a second geometry definition.
+ */
+export const bezierPath = (
+    left,
+    top,
+    width,
+    height,
+    curves,
+    backgroundColor,
+    borderWidth = 1.4,
+    zIndex = 1,
+    pathKind = "custom",
+) => ({
+    category: "path",
+    pathKind,
+    curves: curves.map((segment) => ({ ...segment })),
+    left,
+    top,
+    width,
+    height,
+    backgroundColor,
+    borderWidth,
+    filled: false,
+    zIndex,
+});
+
 // `block` is a metric-exact textarea — multi-line bodies wrap in the PDF exactly
 // as they do on the canvas.
 export const block = (

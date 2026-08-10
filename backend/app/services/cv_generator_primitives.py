@@ -186,6 +186,30 @@ def _ellipse(left, top, width, height, color, *, filled=False, borderWidth=1, zI
             "zIndex": zIndex, "page": page}
 
 
+def _path(left, top, width, height, curves, color, *, borderWidth=1.4,
+          pathKind="custom", zIndex=1, page=1):
+    """Create an open cubic Bézier ornament in normalized box coordinates.
+
+    ``curves`` contains ``M`` and ``C`` segments whose coordinates stay in the
+    0..1 range. The normalized representation is the shared Canvas↔ReportLab
+    contract: resizing changes only the box while preserving the curve design.
+    """
+    return {
+        "category": "path",
+        "pathKind": pathKind,
+        "curves": [dict(segment) for segment in curves],
+        "left": left,
+        "top": top,
+        "width": width,
+        "height": height,
+        "backgroundColor": color,
+        "borderWidth": borderWidth,
+        "filled": False,
+        "zIndex": zIndex,
+        "page": page,
+    }
+
+
 class Builder:
     """Tracks vertical position and page across element-generating calls."""
 
