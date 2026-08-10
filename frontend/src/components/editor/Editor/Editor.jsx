@@ -8,9 +8,10 @@
  * inline runs — same chrome as the click panel, not a separate floating bar.
  *
  * In template (structural) mode the bar hides controls that cannot affect the
- * selection (layout-owned X/Y / align / lock, all width/height size fields)
- * and omits clone / delete — those actions use section/record canvas
- * affordances instead. Drag-resize handles are also suppressed in template mode.
+ * selection (layout-owned X/Y / align / lock, all width/height size fields,
+ * and z-index / Warstwa) and omits clone / delete — those actions use
+ * section/record canvas affordances instead. Drag-resize handles are also
+ * suppressed in template mode.
  */
 import classes from "./Editor.module.css";
 import { useEffect, useLayoutEffect, useState, useRef, use } from "react";
@@ -36,6 +37,7 @@ import { PdfContext } from "../../../store/pdfgenerator-context";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   canCloneOrDeleteElements,
+  canEditElementLayer,
   canEditElementPosition,
   canEditElementSizeField,
   canFreePositionElement,
@@ -127,7 +129,10 @@ export default function Editor() {
     selectedElement && canToggleElementLock(selectedElement, editorMode),
   );
   const allowCloneOrDelete = canCloneOrDeleteElements(editorMode);
-  const showPositionGroup = showPositionFields || showLockToggle || Boolean(selectedElement);
+  // Structural templates own stacking order — hide Warstwa so the Position
+  // group is not left with a single useless control.
+  const showLayerField = canEditElementLayer(editorMode);
+  const showPositionGroup = showPositionFields || showLockToggle || showLayerField;
   const bulkAllowGroupMove = selectedElements.every((element) => (
     canEditElementPosition(element, editorMode)
   ));
@@ -678,7 +683,9 @@ export default function Editor() {
                     <IconBtn label="Grot strzałki" active={!!selectedElement?.arrow} onClick={() => toggleStyle("arrow")}>
                       <TbArrowBigRightLines />
                     </IconBtn>
-                    <NumField label="Warstwa" icon={<RxLayers />} value={elementValues.zIndex} onChange={(e) => handleChangeValues(e, "zIndex")} width={28} />
+                    {showLayerField && (
+                      <NumField label="Warstwa" icon={<RxLayers />} value={elementValues.zIndex} onChange={(e) => handleChangeValues(e, "zIndex")} width={28} />
+                    )}
                   </Group>
                 )}
 
@@ -731,13 +738,15 @@ export default function Editor() {
                           />
                         </>
                       )}
-                      <NumField
-                        label="Warstwa"
-                        icon={<RxLayers />}
-                        value={elementValues.zIndex}
-                        onChange={(e) => handleChangeValues(e, "zIndex")}
-                        width={28}
-                      />
+                      {showLayerField && (
+                        <NumField
+                          label="Warstwa"
+                          icon={<RxLayers />}
+                          value={elementValues.zIndex}
+                          onChange={(e) => handleChangeValues(e, "zIndex")}
+                          width={28}
+                        />
+                      )}
                     </Group>
                   </>
                 )}

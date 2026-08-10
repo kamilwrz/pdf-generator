@@ -156,6 +156,18 @@ export function canCloneOrDeleteElements(editorMode) {
 }
 
 /**
+ * Whether the inspector may expose the z-index ("Warstwa") field.
+ * Structural stacking is owned by the template layout; freeform keeps the
+ * control for hand-authored overlap.
+ *
+ * @param {"template"|"freeform"|null|undefined} editorMode
+ * @returns {boolean}
+ */
+export function canEditElementLayer(editorMode) {
+  return normalizeEditorMode(editorMode) !== EDITOR_MODE_TEMPLATE;
+}
+
+/**
  * Whether drag-resize handles may appear for this element.
  * Structural (template) mode never exposes resize — geometry belongs to the
  * layout rhythm. Freeform keeps resize for unlocked, non-fixed elements.

@@ -4,6 +4,7 @@ import {
   EDITOR_MODE_FREEFORM,
   EDITOR_MODE_TEMPLATE,
   canCloneOrDeleteElements,
+  canEditElementLayer,
   canEditElementPosition,
   canEditElementSizeField,
   canFreePositionElement,
@@ -133,6 +134,11 @@ describe("inspector field gates", () => {
   it("disables clone/delete only in template mode", () => {
     assert.equal(canCloneOrDeleteElements(EDITOR_MODE_TEMPLATE), false);
     assert.equal(canCloneOrDeleteElements(EDITOR_MODE_FREEFORM), true);
+  });
+
+  it("hides the layer (zIndex) field only in template mode", () => {
+    assert.equal(canEditElementLayer(EDITOR_MODE_TEMPLATE), false);
+    assert.equal(canEditElementLayer(EDITOR_MODE_FREEFORM), true);
   });
 
   it("disables drag-resize and size fields in template mode", () => {

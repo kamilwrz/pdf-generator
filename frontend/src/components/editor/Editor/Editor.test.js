@@ -16,4 +16,7 @@ test("Editor hosts selection formatting inside the click panel with a colour inp
   // Standalone swatch palette toolbar must stay removed.
   assert.doesNotMatch(source, /InlineFormatToolbar/);
   assert.doesNotMatch(source, /PALETTE/);
+  // Layer (zIndex) is freeform-only — structural mode has nothing useful to stack.
+  assert.match(source, /canEditElementLayer/);
+  assert.match(source, /showLayerField && \(/);
 });
