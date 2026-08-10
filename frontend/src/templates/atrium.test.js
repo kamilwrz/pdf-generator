@@ -5,9 +5,10 @@ import { atriumTemplate } from "./atrium.js";
 
 const PAPER = "#FBFAF7";
 const ACCENT = "#556158";
+const RULE = "#E5E3DB";
 const BODY = "#2C2C29";
-const L = 90;
-const W = 415;
+const L = 82;
+const W = 431;
 const PAGE_CENTER = 595 / 2; // 297.5
 
 const isTextual = (element) =>
@@ -27,9 +28,8 @@ test("Atrium is a centered-axis editorial single column, not a Portico recolor",
         );
     }
 
-    // ── Narrow content column, centered on the page (heavier side margins than
-    // Portico's L=76/W=443). Every textual block shares this geometry, and its
-    // horizontal midpoint is the true page center.
+    // ── Restrained content column, centered on the page. It remains narrower
+    // than Portico while giving long body lines enough room to breathe.
     const columnBlocks = atriumTemplate.filter(
         (element) => isTextual(element) && element.left === L && element.width === W,
     );
@@ -80,31 +80,30 @@ test("Atrium is a centered-axis editorial single column, not a Portico recolor",
     assert.ok(bodyBlocks.length > 0);
     assert.ok(bodyBlocks.every((element) => element.align === "left"));
 
-    // ── Decorative language: thin "registration mark" rules only. No full-width
-    // heading rule (Portico) and no framing rectangles. Every rule is a hairline
-    // and short — the crosshair segments (44 px) are the widest.
+    // ── Decorative language: line primitives only, with no framing shapes.
+    // Section dividers pair a short sage lead-in with a pale column-wide rule.
     const lines = atriumTemplate.filter((element) => element.category === "line");
     const rules = lines.filter((element) => element.backgroundColor !== PAPER);
     assert.ok(rules.length > 0);
-    // Every rule is thin in one axis (heading tick is 26×1.5; crosshair plus arm
-    // is 1×7) and short overall — no full-width heading/header rule is allowed.
-    assert.ok(rules.every((element) => Math.min(element.width, element.height) <= 1.5));
-    assert.ok(
-        rules.every((element) => Math.max(element.width, element.height) <= 60),
-        "no full-width heading/header rule is allowed",
-    );
+    assert.ok(rules.every((element) => Math.min(element.width, element.height) <= 1.2));
 
-    // Section ornament is a short accent tick under each left-aligned heading.
+    // Each heading has exactly one accent lead-in and one quiet continuation.
     const sectionRules = rules.filter((element) => element.flowRole === "section-chrome");
-    assert.ok(sectionRules.length >= 5);
-    assert.ok(sectionRules.every((element) => element.width <= 30));
-    assert.ok(sectionRules.every((element) => element.backgroundColor === ACCENT));
-    assert.ok(sectionRules.every((element) => element.left === L)); // tick aligns with the heading
+    assert.equal(sectionRules.length, 10);
+    const accentLeads = sectionRules.filter((element) => element.backgroundColor === ACCENT);
+    const quietDividers = sectionRules.filter((element) => element.backgroundColor === RULE);
+    assert.equal(accentLeads.length, 5);
+    assert.equal(quietDividers.length, 5);
+    assert.ok(accentLeads.every((element) => element.left === L && element.width === 18));
+    assert.ok(quietDividers.every((element) => element.left === L + 26));
+    assert.ok(quietDividers.every((element) => element.left + element.width === L + W));
 
-    // Masthead terminator is a crosshair (accent hairlines), never a header rule.
+    // The masthead closes with a centered three-part hairline, not a crosshair.
     const mastheadRules = rules.filter((element) => element.flowRole === "masthead");
-    assert.ok(mastheadRules.length >= 4);
-    assert.ok(mastheadRules.every((element) => element.backgroundColor === ACCENT));
+    assert.equal(mastheadRules.length, 3);
+    assert.equal(mastheadRules.filter((element) => element.backgroundColor === ACCENT).length, 1);
+    assert.equal(mastheadRules.filter((element) => element.backgroundColor === RULE).length, 2);
+    assert.ok(mastheadRules.every((element) => element.height === 1));
 
     // ── Not a timeline: Axis-style record overlays must not appear ────────────
     assert.equal(

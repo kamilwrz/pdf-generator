@@ -2,15 +2,13 @@ from __future__ import annotations
 
 """Atrium CV template generator.
 
-A central-axis, editorial single column. The masthead is centered (name, title,
-icon contact band, crosshair terminator) to express the page axis; below it,
-section headings are LEFT-aligned bold accent labels with a short accent tick
-beneath — no icon, no full-width rule, no frame. The content column is narrower
-with heavier side margins than Portico, and body copy stays left-aligned inside
-that column. Headings sit at column left `L` like every other single-column
-template so the shared section packer and Add-section (`deriveSectionStyle`)
-keep them glued to their bodies on a stable X. Layout decisions are
-deterministic Python (never sent to the model).
+A restrained editorial single column with a centered masthead. Name, title and
+the icon contact band establish the page axis; a quiet segmented hairline closes
+the header. Below it, left-aligned section labels sit on full-column dividers
+with a short accent lead-in. The stable heading X keeps shared section packing
+and Add-section (`deriveSectionStyle`) behavior unchanged while the wider column
+and calmer type rhythm improve readability. Layout decisions are deterministic
+Python (never sent to the model).
 """
 
 from app.services.cv_generator_primitives import (
@@ -41,87 +39,85 @@ def _gen_atrium(cv: dict) -> list[dict]:
         'paper': '#FBFAF7', 'ink': '#242521', 'accent': '#556158',
         'mute': '#78796F', 'body': '#2C2C29', 'rule': '#E5E3DB',
         'display': 'PlayfairDisplay', 'sans': 'Montserrat', 'icon_theme': 'atrium',
-        # Narrower content column, heavier symmetric margins than Portico
-        # (L=76/W=443): stronger side whitespace gives the gallery feeling.
-        'L': 90, 'W': 415,
+        # The 82 pt margins retain Atrium's gallery-like whitespace while giving
+        # long body lines and contact rows enough room to breathe.
+        'L': 82, 'W': 431,
     }
     L, W = (C['L'], C['W'])
     SANS, DISP = (C['sans'], C['display'])
     ICON = C['icon_theme']
-    ACCENT = C['accent']
-    CENTER_X = L + W / 2.0  # 90 + 415/2 = 297.5, the page's true center
+    ACCENT, RULE = (C['accent'], C['rule'])
+    CENTER_X = L + W / 2.0  # 82 + 431/2 = 297.5, the page's true center
     lbl = _labels(cv)
 
-    def _crosshair(center_x: float, y: float, *, page: int = 1) -> list[dict]:
-        """Printer's registration mark: `────  +  ────`.
+    def _header_rule(center_x: float, y: float, *, page: int = 1) -> list[dict]:
+        """Return a centered hairline with a short sage segment at its axis.
 
-        Two thin hairlines flank a small plus built from a short horizontal and
-        vertical rule. This is the masthead terminator — deliberately not a full
-        header rule (Portico) and not a diamond/dot (Harbor/Axis/Tessera).
+        The three line primitives preserve Atrium's print-inspired identity
+        without the previous crosshair, whose vertical stroke competed with the
+        dense contact row and looked like an accidental registration artifact.
         """
-        seg, gap, plus = 44.0, 13.0, 7.0
+        outer, center, gap = 34.0, 10.0, 7.0
         return [
-            _line(center_x - gap - seg, y, seg, 1, ACCENT, zIndex=2, page=page),
-            _line(center_x + gap, y, seg, 1, ACCENT, zIndex=2, page=page),
-            _line(center_x - plus / 2.0, y, plus, 1, ACCENT, zIndex=2, page=page),
-            _line(center_x - 0.5, y - (plus - 1) / 2.0, 1, plus, ACCENT, zIndex=2, page=page),
+            _line(center_x - center / 2.0 - gap - outer, y, outer, 1, RULE, zIndex=2, page=page),
+            _line(center_x - center / 2.0, y, center, 1, ACCENT, zIndex=2, page=page),
+            _line(center_x + center / 2.0 + gap, y, outer, 1, RULE, zIndex=2, page=page),
         ]
 
     # ── Masthead (centered name / title / contact band) ──────────────────────
     name = _compact_text(cv.get('name'), 34)
     title = _compact_text(cv.get('title'), 60)
-    name_fs, name_lh = (30, 34)
-    title_fs, title_lh = (9.5, 13)
+    name_fs, name_lh = (31, 35)
+    title_fs, title_lh = (9.2, 13)
 
     header: list[dict] = []
-    cursor_y = 62.0
+    cursor_y = 54.0
     if name:
         name_h = Builder.measure_block(name, W, name_fs, name_lh, DISP, bold=True)
         header.append(_block(name, L, cursor_y, W, name_h, name_fs, name_lh, C['ink'], DISP,
                              zIndex=3, bold=True, align='center'))
-        cursor_y += name_h + 9.0
+        cursor_y += name_h + 8.0
     if title:
         title_h = Builder.measure_block(title, W, title_fs, title_lh, SANS)
         title_el = _block(title, L, cursor_y, W, title_h, title_fs, title_lh, ACCENT, SANS,
                           zIndex=3, align='center')
-        title_el['letterSpacing'] = 2.4
+        title_el['letterSpacing'] = 2.1
         header.append(title_el)
         cursor_y += title_h
 
-    contact_fs, contact_icon = (8.2, 11.5)
+    contact_fs, contact_icon = (8.4, 10.5)
     contact_els, contact_bottom = _place_centered_icon_contacts(
         theme=ICON,
         items=_contact_channel_items(cv, email_limit=42),
         center_x=CENTER_X,
-        start_y=cursor_y + 15.0,
+        start_y=cursor_y + 16.0,
         max_width=W,
         text_fs=contact_fs,
         icon_size=contact_icon,
         text_color=C['mute'],
         font=SANS,
-        char_width=5.2,
-        icon_gap=13.0,
-        item_pad=16.0,
-        line_step=15.0,
+        char_width=5.0,
+        icon_gap=12.5,
+        item_pad=18.0,
+        line_step=16.0,
     )
     header.extend(contact_els)
-    terminator_y = contact_bottom + 21.0
-    header.extend(_crosshair(CENTER_X, terminator_y))
+    terminator_y = contact_bottom + 19.0
+    header.extend(_header_rule(CENTER_X, terminator_y))
     # Masthead never joins section packing — a short phone line above a rule
     # would otherwise be mistaken for a heading by the rhythm knobs.
     header = [{**element, "flowRole": "masthead"} for element in header]
 
-    # ── Section identity: LEFT-aligned bold label + a short accent tick ───────
+    # ── Section identity: label + restrained full-column divider ─────────────
     # Headings are anchored at the content column left `L`, exactly like every
     # other single-column template. This keeps them glued to their body through
     # the shared section packer AND through Add-section / `deriveSectionStyle`
     # (which samples the heading's `left` and reuses it — a centered heading has
     # no stable left, so an added section landed off the column axis). The bold
-    # accent label + a short solid accent tick beneath it give the layout weight
-    # without a full-width rule, an icon, or a frame (the Atrium restraint). The
-    # page's central axis stays expressed by the centered masthead above.
-    label_fs = 9.5
-    label_ls = 1.6
+    # accent label and two-tone divider create a clear scan line without adding
+    # icons, frames, or sidebars. The centered masthead remains the page's axis.
+    label_fs = 9.2
+    label_ls = 1.25
     SECTION_CHROME = label_fs + 6 + get_spacing().after_rule + 6
 
     def section(label: str) -> None:
@@ -132,13 +128,16 @@ def _gen_atrium(cv: dict) -> list[dict]:
         heading['bold'] = True
         heading['flowRole'] = 'section-chrome'
         b.els.append(heading)
-        # Short accent tick under the heading (26px), a touch heavier than a
-        # hairline so the section reads as deliberate rather than faint.
+        # A short sage lead-in identifies the section; the pale continuation
+        # organizes the column without turning into a heavy underline.
         tick_y = y + label_fs + 5.0
-        tick = _line(L, tick_y, 26, 1.5, ACCENT, zIndex=2, page=page)
-        tick['flowRole'] = 'section-chrome'
-        b.els.append(tick)
-        b.y = tick_y + 1.5 + get_spacing().after_rule
+        accent_rule = _line(L, tick_y, 18, 1.2, ACCENT, zIndex=2, page=page)
+        accent_rule['flowRole'] = 'section-chrome'
+        b.els.append(accent_rule)
+        quiet_rule = _line(L + 26, tick_y, W - 26, 1, RULE, zIndex=2, page=page)
+        quiet_rule['flowRole'] = 'section-chrome'
+        b.els.append(quiet_rule)
+        b.y = tick_y + 1.2 + get_spacing().after_rule
 
     def close_section() -> None:
         b.gap(get_spacing().section)
@@ -146,11 +145,11 @@ def _gen_atrium(cv: dict) -> list[dict]:
     start_y = terminator_y + 1.0 + SPACE_AFTER_HEADER_RULE
     b = Builder(start_y)
 
-    BODY_FS, BODY_LH = (9.3, 13.4)
+    BODY_FS, BODY_LH = (9.6, 14.1)
 
     def experience_height(job: dict) -> float:
         return _experience_record_height(
-            b, job, W, SANS, title_fs=11, title_lh=13.5, meta_fs=8.5, meta_lh=11.5,
+            b, job, W, SANS, title_fs=10.8, title_lh=13.8, meta_fs=8.4, meta_lh=11.8,
             body_fs=BODY_FS, body_lh=BODY_LH, meta_font=SANS,
         )
 
@@ -166,7 +165,7 @@ def _gen_atrium(cv: dict) -> list[dict]:
         for index, job in enumerate(jobs):
             _place_experience_record(
                 b, job, L, W, ink=C['ink'], muted=C['mute'], body=C['body'], font=SANS,
-                title_fs=11, title_lh=13.5, meta_fs=8.5, meta_lh=11.5,
+                title_fs=10.8, title_lh=13.8, meta_fs=8.4, meta_lh=11.8,
                 body_fs=BODY_FS, body_lh=BODY_LH, meta_font=SANS,
                 after_gap=get_spacing().record if index < len(jobs) - 1 else None,
             )
@@ -178,26 +177,26 @@ def _gen_atrium(cv: dict) -> list[dict]:
         b.need_section(
             SECTION_CHROME,
             _education_record_height(
-                b, education_entries[0], W, SANS, degree_fs=10.4, degree_lh=13,
-                meta_fs=8.5, meta_lh=11.5, body_fs=9.2, body_lh=13.2,
+                b, education_entries[0], W, SANS, degree_fs=10.2, degree_lh=13.2,
+                meta_fs=8.4, meta_lh=11.8, body_fs=9.4, body_lh=13.8,
             ),
         )
         section(lbl['education'])
         for index, edu in enumerate(education_entries):
             _place_education_record(
                 b, edu, L, W, ink=C['ink'], muted=C['mute'], body=C['body'], font=SANS,
-                degree_fs=10.4, degree_lh=13, meta_fs=8.5, meta_lh=11.5,
-                body_fs=9.2, body_lh=13.2,
+                degree_fs=10.2, degree_lh=13.2, meta_fs=8.4, meta_lh=11.8,
+                body_fs=9.4, body_lh=13.8,
                 after_gap=get_spacing().record if index < len(education_entries) - 1 else None,
             )
         close_section()
     if _place_skills_section(
-        b, cv, section, L, W, C['body'], SANS, 9.3, 13.4,
+        b, cv, section, L, W, C['body'], SANS, BODY_FS, BODY_LH,
         section_chrome_h=SECTION_CHROME,
     ):
         close_section()
     _extra_sections(b, cv, 'after_skills', section, {'body': C['body']}, L, W, SANS,
-                    fs=9.3, lh=13.4, section_chrome_h=SECTION_CHROME)
+                    fs=BODY_FS, lh=BODY_LH, section_chrome_h=SECTION_CHROME)
 
     flow = b.build()
     pages_used = max([element.get('page', 1) for element in header + flow] or [1])
