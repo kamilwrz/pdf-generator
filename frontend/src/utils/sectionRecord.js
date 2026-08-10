@@ -45,10 +45,16 @@ const PLACEHOLDER = Object.freeze({
 
 /**
  * Skills sections (UMIEJĘTNOŚCI / Skills / …) use bold heading + body records.
- * Short education stacks are also two lines (degree + school) — never treat those
- * as subcategories unless the section title matches this pattern.
+ * Short education stacks are also two lines (degree + school) — those expand
+ * only when the section title looks like education (see below).
  */
 const SKILLS_SECTION_TITLE_RE = /umiejęt|umiejet|skills|kompetenc/i;
+
+/**
+ * Education section titles — short wizard stacks (degree + school) must still
+ * expand to the canonical 4-line education template on insert.
+ */
+const EDUCATION_SECTION_TITLE_RE = /wykształc|wyksztalc|edukac|studia|education|school/i;
 
 /**
  * @param {string|null|undefined} title
@@ -56,6 +62,30 @@ const SKILLS_SECTION_TITLE_RE = /umiejęt|umiejet|skills|kompetenc/i;
  */
 export function isSkillsSectionTitle(title) {
   return SKILLS_SECTION_TITLE_RE.test(String(title || ""));
+}
+
+/**
+ * @param {string|null|undefined} title
+ * @returns {boolean}
+ */
+export function isEducationSectionTitle(title) {
+  return EDUCATION_SECTION_TITLE_RE.test(String(title || ""));
+}
+
+/**
+ * True when a 2-line bold+body record should stay a subcategory (heading +
+ * content) instead of expanding to education. Skills titles always qualify;
+ * other titles qualify unless they look like education. Missing title keeps
+ * the legacy Kernel behaviour (expand) for unit tests and short edu inserts.
+ *
+ * @param {string|null|undefined} title
+ * @returns {boolean}
+ */
+export function isSubcategorySectionTitle(title) {
+  const text = String(title || "").trim();
+  if (!text) return false;
+  if (isEducationSectionTitle(text)) return false;
+  return true;
 }
 
 function absoluteTop(element, pageHeight = 842) {
@@ -184,8 +214,9 @@ export function sectionSupportsRecordAdd(elements, headingId, pageHeight = 842) 
  * Education is degree + school + meta + optional bullets (3 lines without a
  * bulletList still count as education — wizard often omits the description).
  * Experience is title + company·period + bullets (the last line is a list).
- * Subcategory is bold heading + body under a skills section title — the same
- * 2-line shape as a short wizard education entry, so section title decides.
+ * Subcategory is bold heading + body (skills / user "kategorie" sections) —
+ * the same 2-line shape as a short wizard education entry, so the section
+ * title decides (education titles expand; other titles keep heading+body).
  *
  * @param {object[]} members
  * @param {{ sectionTitle?: string|null }} [options]
@@ -202,9 +233,8 @@ export function inferRecordLayout(members, options = {}) {
     // degree / school / city·period without description
     return SECTION_LAYOUTS.RECORD_EDUCATION;
   }
-  // Bare 2-line bold+body is ambiguous (skills subcategory vs short education).
-  // Only classify as subcategory when the section title is skills-like.
-  if (count === 2 && list[0]?.bold && isSkillsSectionTitle(options.sectionTitle)) {
+  // Bare 2-line bold+body is ambiguous (subcategory vs short education).
+  if (count === 2 && list[0]?.bold && isSubcategorySectionTitle(options.sectionTitle)) {
     return SECTION_LAYOUTS.RECORD_SUBCATEGORY;
   }
   return null;
@@ -290,8 +320,9 @@ export function pickRecordTemplateGroup(groups, preferred = null) {
  *
  * Education: degree + school + meta + bullets (4).
  * Experience: title + company·period + bullets (3).
- * Subcategory (skills): bold heading + body (2) — only when `sectionTitle`
- * matches a skills heading; otherwise a 2-line bold stack expands to education.
+ * Subcategory (skills / kategorie): bold heading + body (2) — when
+ * `sectionTitle` is not an education heading; otherwise a 2-line bold stack
+ * expands to education (Kernel short edu).
  *
  * @param {object[]} members
  * @param {object[][]|null} [sectionGroups] other records in the section
@@ -308,7 +339,7 @@ export function ensureCanonicalRecordTemplate(
 
   const sectionTitle = options.sectionTitle ?? null;
   const layout = inferRecordLayout(source, { sectionTitle });
-  // Skills subcategory / heading+body — keep the 2-line shape.
+  // Subcategory / heading+body — keep the 2-line shape.
   if (layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY) return source;
   // Full experience (3 with bullets) — leave as-is.
   if (layout === SECTION_LAYOUTS.RECORD_EXPERIENCE) return source;
@@ -322,10 +353,10 @@ export function ensureCanonicalRecordTemplate(
   const second = source[1] || source[0];
   if (!title?.bold) return source;
 
-  // Skills section (even when every group is already 2 lines): never invent
-  // education meta / description lines for a new subcategory.
+  // Category sections (skills or user-added "kategorie"): never invent
+  // education meta / description lines for a new heading+body block.
   if (
-    isSkillsSectionTitle(sectionTitle)
+    isSubcategorySectionTitle(sectionTitle)
     && source.length === 2
   ) {
     return source;

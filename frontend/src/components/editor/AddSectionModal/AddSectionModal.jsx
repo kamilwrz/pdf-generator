@@ -1,9 +1,9 @@
 /**
  * Modal for adding a new template-mode section: a section name plus a layout
- * choice — a single textarea, an education-style record, or an
- * experience-style record. When the active template uses iconic section
- * decorations, a small gallery lists every available glyph so the new heading
- * gets an icon at the same offset as its siblings.
+ * choice — a single textarea, category heading+body groups, an education-style
+ * record, or an experience-style record. When the active template uses iconic
+ * section decorations, a small gallery lists every available glyph so the new
+ * heading gets an icon at the same offset as its siblings.
  */
 import { useState } from "react";
 import DialogShell from "../../common/DialogShell/DialogShell";
@@ -16,6 +16,13 @@ const LAYOUT_OPTIONS = [
     value: SECTION_LAYOUTS.TEXTAREA,
     title: "Prosta treść",
     description: "Tytuł sekcji i jedno pole na dłuższy tekst — np. podsumowanie.",
+  },
+  {
+    value: SECTION_LAYOUTS.RECORD_SUBCATEGORY,
+    title: "Prosta treść (kategorie)",
+    description:
+      "Nagłówek sekcji oraz powtarzalne bloki „nazwa kategorii + treść” — jak podkategorie w Umiejętnościach. "
+      + "Każdą kategorię możesz później dodać przyciskiem + przy bloku.",
   },
   {
     value: SECTION_LAYOUTS.RECORD_EDUCATION,

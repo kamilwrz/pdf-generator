@@ -142,6 +142,25 @@ describe("buildSectionElements", () => {
     }
   });
 
+  it("cc-sub: one record of two content blocks sharing a flowGroup (category heading + body)", () => {
+    const { elements, headingId } = buildSectionElements({
+      name: "Narzędzia",
+      layout: SECTION_LAYOUTS.RECORD_SUBCATEGORY,
+      style,
+      idFactory: makeIdFactory(),
+    });
+    const body = elements.filter((element) => element.flowRole === "content");
+    assert.equal(body.length, 2);
+    const groups = new Set(body.map((element) => element.flowGroup));
+    assert.equal(groups.size, 1);
+    assert.equal([...groups][0].startsWith(`section-${headingId}`), true);
+    assert.equal(body[0].bold, true);
+    assert.equal(body[0].content, "Nazwa kategorii");
+    assert.equal(body[1].bold, false);
+    assert.equal(body[1].content, "Treść…");
+    assert.equal(body[1].bulletList, false);
+  });
+
   it("cc-exp: one record of three content blocks sharing a flowGroup (title/company·period/description) — no subtitle line", () => {
     // Experience has NO distinct school/company line — company and period are
     // one meta line, matching `_place_experience_record` (title, meta, bullets).

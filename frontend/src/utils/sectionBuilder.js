@@ -17,12 +17,18 @@
  *  - "cc-exp": heading + chrome + one experience-style record — role title,
  *    company·period meta, bullet description (3 lines, no subtitle line).
  *    Mirrors `_place_experience_record` in the same module.
+ *  - "cc-sub": heading + chrome + one subcategory record — bold category
+ *    label + body line (2 lines). Same shape as nested skills groups under
+ *    UMIEJĘTNOŚCI; used for user-added category sections (tools, soft skills,
+ *    certifications-as-groups, …).
  *
  * Education and Experience are NOT interchangeable: Education carries a
  * distinct school/university line that Experience's structure does not have
  * (company and period are a single meta line there). Collapsing both into one
  * generic 4-line "cc" record — as an earlier version of this module did —
  * produces a phantom subtitle field on experience-style sections.
+ * Subcategory must stay at two lines — inflating it to education placeholders
+ * is the Add-record bug fixed in `sectionRecord.ensureCanonicalRecordTemplate`.
  */
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
 
@@ -92,10 +98,10 @@ const PLACEHOLDER = Object.freeze({
 
 /**
  * Field-naming placeholder lines for a record layout, styled from the sampled
- * body/muted colors. Education and Experience have a different number of
- * lines (see module doc) — this is the single place that encodes the split.
+ * body/muted colors. Education, Experience, and Subcategory have different
+ * line counts (see module doc) — this is the single place that encodes the split.
  *
- * @param {"cc-edu"|"cc-exp"} layout
+ * @param {"cc-edu"|"cc-exp"|"cc-sub"} layout
  * @param {object} style
  * @returns {{ content: string, color: string, bold: boolean, bulletList?: boolean }[]}
  */
@@ -107,6 +113,13 @@ function recordLineSpecs(layout, style) {
       { content: copy.subtitle, color: style.body.color, bold: false },
       { content: copy.meta, color: style.mutedColor, bold: false },
       { content: copy.description, color: style.body.color, bold: false, bulletList: true },
+    ];
+  }
+  if (layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY) {
+    const copy = PLACEHOLDER.subcategory;
+    return [
+      { content: copy.title, color: style.body.color, bold: true },
+      { content: copy.body, color: style.body.color, bold: false },
     ];
   }
   const copy = PLACEHOLDER.experience;
@@ -241,7 +254,7 @@ function badgeNumberElement({ elementId, badgeNumber, sectionOrdinal, left }) {
 /**
  * Build a new section's elements for the chosen layout.
  *
- * @param {{ name: string, layout: "aa"|"cc-edu"|"cc-exp", style: object, spacing?: object, sectionOrdinal?: number, idFactory: () => string }} args
+ * @param {{ name: string, layout: "aa"|"cc-edu"|"cc-exp"|"cc-sub", style: object, spacing?: object, sectionOrdinal?: number, idFactory: () => string }} args
  * @returns {{ elements: object[], headingId: string, firstBodyId: string }}
  *
  * Decorative markers (including iconic section images) come from `style.markers`.
@@ -345,7 +358,8 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
   let firstBodyId = null;
 
   const isRecordLayout = layout === SECTION_LAYOUTS.RECORD_EDUCATION
-    || layout === SECTION_LAYOUTS.RECORD_EXPERIENCE;
+    || layout === SECTION_LAYOUTS.RECORD_EXPERIENCE
+    || layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY;
   if (isRecordLayout) {
     const group = `section-${headingId}-rec1`;
     const lines = recordLineSpecs(layout, style);

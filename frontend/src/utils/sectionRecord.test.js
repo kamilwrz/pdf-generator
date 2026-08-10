@@ -210,8 +210,18 @@ describe("appendRecordToSection", () => {
         "Treść…",
       ],
     );
-    // Without a skills heading, the same 2-line shape is short education.
+    // Without a section title, keep legacy Kernel behaviour (expand later).
     assert.equal(inferRecordLayout([cat, chips]), null);
+    // User-added category sections (not named UMIEJĘTNOŚCI) still stay heading+body.
+    assert.equal(
+      inferRecordLayout([cat, chips], { sectionTitle: "Narzędzia" }),
+      SECTION_LAYOUTS.RECORD_SUBCATEGORY,
+    );
+    // Education titles must not be treated as subcategory.
+    assert.equal(
+      inferRecordLayout([cat, chips], { sectionTitle: "Wykształcenie" }),
+      null,
+    );
 
     let seq = 0;
     const result = appendRecordToSection(doc, heading.element_id, pageHeight, {

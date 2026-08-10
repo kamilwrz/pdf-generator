@@ -622,7 +622,7 @@ export function useA4Elements(titleRef) {
    *
    * @param {{
    *   name: string,
-   *   layout: "aa"|"cc-edu"|"cc-exp",
+   *   layout: "aa"|"cc-edu"|"cc-exp"|"cc-sub",
    *   iconName?: string|null,
    *   afterHeadingId?: string|null,
    * }} config
