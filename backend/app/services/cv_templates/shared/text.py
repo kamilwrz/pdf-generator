@@ -212,11 +212,14 @@ def _measure_skill_group(
         if items:
             height += get_spacing().stack
     if items:
-        content = _skill_group_body_content(items, mode=mode)
-        if content:
-            height += b.measure_block(
-                content, width, fs, lh, font, bulletList=(mode == "bullets"),
-            )
+        if mode == "chips":
+            height += _measure_skill_chips_row(items, width, font, fs)
+        else:
+            content = _skill_group_body_content(items, mode=mode)
+            if content:
+                height += b.measure_block(
+                    content, width, fs, lh, font, bulletList=(mode == "bullets"),
+                )
     return height
 
 
@@ -257,22 +260,36 @@ def _place_skills_section(
     mode: str = "inline",
     section_chrome_h: float | None = None,
     category_fs: float | None = None,
+    chip_bg: str | None = None,
+    chip_fg: str | None = None,
 ) -> bool:
     """
     Emit one UMIEJĘTNOŚCI heading plus optional named subsections.
 
-    Flat skills → heading + mid-dot/bullet body (unchanged look).
+    Flat skills → heading + mid-dot/bullet/chip body (unchanged look unless
+    ``mode="chips"`` is requested).
     Grouped skills → heading, then bold category labels and chip bodies under
-    each. Uses existing textarea bold + list blocks — no new canvas primitives.
+    each. ``inline``/``bullets`` reuse existing textarea bold + list blocks —
+    no new canvas primitives. ``mode="chips"`` instead emits one filled,
+    rounded ``rectangle`` + centered ``text`` pair per skill via
+    ``_place_skill_chips_row``, wrapped across rows.
 
-    Each category + chip body is emitted inside ``keep_together`` so they share a
-    ``flowGroup``. Canvas rhythm knobs treat that pair as stack (4 px), not
-    record (10 px) — autoHeight textareas without a shared group fall through
-    to record spacing in ``classifyIntraSectionGap``.
+    ``mode="chips"`` requires ``chip_bg``/``chip_fg`` (pill background/text
+    colors) — callers pass their own template palette so pills stay on-brand
+    without a new persisted configuration field.
+
+    Each category + body is emitted inside ``keep_together`` so they share a
+    ``flowGroup`` — for chips this guarantees a category's label and every one
+    of its wrapped pill rows land on the same page, never split mid-row.
+    Canvas rhythm knobs treat that pair as stack (4 px), not record (10 px) —
+    autoHeight textareas without a shared group fall through to record
+    spacing in ``classifyIntraSectionGap``.
     """
     raw_skills = cv.get("skills")
     if not skills_have_content(raw_skills):
         return False
+    if mode == "chips" and (not chip_bg or not chip_fg):
+        raise ValueError("mode='chips' requires chip_bg and chip_fg")
 
     groups = skill_groups(raw_skills)
     labels = _labels(cv)
@@ -296,7 +313,12 @@ def _place_skills_section(
     for index, group in enumerate(groups):
         category = str(group.get("category") or "").strip()
         items = group.get("items") or []
-        content = _skill_group_body_content(items, mode=mode) if items else ""
+        if mode == "chips":
+            content = ""
+            has_body = bool(_clean_list_items(items))
+        else:
+            content = _skill_group_body_content(items, mode=mode) if items else ""
+            has_body = bool(content)
         group_h = _measure_skill_group(
             b, group, W, fs, lh, font, mode=mode, category_fs=category_fs,
         )
@@ -306,9 +328,12 @@ def _place_skills_section(
                     category, L, W, cat_fs, cat_lh, body_color, font,
                     bold=True, min_h=cat_lh,
                 )
-                if content:
+                if has_body:
                     b.gap(stack)
-            if content:
+            if mode == "chips":
+                if has_body:
+                    _place_skill_chips_row(b, items, L, W, font, fs, chip_bg, chip_fg)
+            elif content:
                 b.block(
                     content, L, W, fs, lh, body_color, font,
                     bulletList=(mode == "bullets"),

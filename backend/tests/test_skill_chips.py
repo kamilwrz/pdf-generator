@@ -8,6 +8,7 @@ from app.services.cv_templates.shared.text import (
     _layout_skill_chips,
     _measure_skill_chips_row,
     _place_skill_chips_row,
+    _place_skills_section,
 )
 
 
@@ -85,6 +86,69 @@ class KeepTogetherPageBreakTests(unittest.TestCase):
         self.assertEqual(pages, {2})
         groups = {element.get("flowGroup") for element in b.els}
         self.assertEqual(len(groups), 1)
+
+
+class PlaceSkillsSectionChipsModeTests(unittest.TestCase):
+    @staticmethod
+    def _section_fn(calls):
+        def _section(label):
+            calls.append(label)
+        return _section
+
+    def test_chips_mode_requires_chip_colors(self):
+        b = Builder(PAGE_TOP)
+        cv = {"skills": ["SQL", "Python"]}
+        with self.assertRaises(ValueError):
+            _place_skills_section(
+                b, cv, self._section_fn([]), 40, 260, "#000000", "Helvetica", 9.6, 13.0,
+                mode="chips",
+            )
+
+    def test_flat_skill_list_renders_wrapped_pills(self):
+        b = Builder(PAGE_TOP)
+        cv = {"skills": ["Analiza AML/KYC", "Transaction Monitoring", "SQL", "Python"]}
+        calls = []
+        placed = _place_skills_section(
+            b, cv, self._section_fn(calls), 40, 260, "#000000", "Helvetica", 9.6, 13.0,
+            mode="chips", chip_bg="#1B3357", chip_fg="#FFFFFF",
+        )
+        self.assertTrue(placed)
+        self.assertEqual(calls, ["UMIEJĘTNOŚCI"])
+        rects = [el for el in b.els if el["category"] == "rectangle"]
+        texts = [el for el in b.els if el["category"] == "text"]
+        self.assertEqual(len(rects), 4)
+        self.assertEqual(len(texts), 4)
+        self.assertTrue(all(rect["filled"] for rect in rects))
+
+    def test_grouped_skills_keep_category_and_its_pills_on_one_page(self):
+        b = Builder(PAGE_TOP)
+        cv = {
+            "skills": [
+                {"category": "Compliance", "items": [f"Skill {i}" for i in range(20)]},
+            ],
+        }
+        placed = _place_skills_section(
+            b, cv, self._section_fn([]), 40, 200, "#000000", "Helvetica", 9.6, 13.0,
+            mode="chips", chip_bg="#1B3357", chip_fg="#FFFFFF",
+        )
+        self.assertTrue(placed)
+        non_chrome_pages = {
+            el["page"] for el in b.els
+            if el.get("flowGroup")
+        }
+        self.assertEqual(len(non_chrome_pages), 1)
+
+    def test_inline_mode_is_unchanged(self):
+        b = Builder(PAGE_TOP)
+        cv = {"skills": ["SQL", "Python", "AML"]}
+        placed = _place_skills_section(
+            b, cv, self._section_fn([]), 40, 300, "#000000", "Helvetica", 9.6, 13.0,
+        )
+        self.assertTrue(placed)
+        textareas = [el for el in b.els if el["category"] == "textarea"]
+        self.assertEqual(len(textareas), 1)
+        self.assertIn("SQL", textareas[0]["content"])
+        self.assertEqual([el for el in b.els if el["category"] == "rectangle"], [])
 
 
 if __name__ == "__main__":
