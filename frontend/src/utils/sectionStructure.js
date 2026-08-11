@@ -872,6 +872,7 @@ export function ensureCardinalMidlineChrome(
 
     const memberIds = sectionElementIds(list, section.headingId, pageHeight);
     const headTop = Number(heading.top) || 0;
+    const headLeft = Number(heading.left) || 0;
     const headFs = Number.isFinite(fs) && fs > 0 ? fs : 12;
     for (const element of list) {
       if (!memberIds.has(element.element_id)) continue;
@@ -881,8 +882,14 @@ export function ensureCardinalMidlineChrome(
       if ((Number(element.height) || 0) > 4) continue;
       if (element.chromeAlign === "midline") continue;
       const ruleTop = Number(element.top) || 0;
-      // Same row as the title glyphs — not an underline parked under the label.
-      if (ruleTop >= headTop - 4 && ruleTop <= headTop + headFs * 0.75) {
+      const ruleLeft = Number(element.left) || 0;
+      // Cardinal hairlines trail the label (start to its right). A prior bad
+      // pack may have parked them under the title — still tag those so the
+      // packer can snap them back onto the heading row.
+      const trailsLabel = ruleLeft >= headLeft + 20;
+      const nearHeadingRow = ruleTop >= headTop - 4
+        && ruleTop <= headTop + band + 2;
+      if (trailsLabel && nearHeadingRow) {
         patchById.set(element.element_id, {
           ...(patchById.get(element.element_id) || element),
           chromeAlign: "midline",
@@ -1087,6 +1094,13 @@ function compactChromeCluster(chromeElements, pageHeight) {
     }));
     const minRel = Math.min(...items.map((item) => item.relTop));
     for (const item of items) item.relTop -= minRel;
+    // Cardinal midline hairlines must stay on the heading row. A previous
+    // pack may have parked them under the label; snap tagged rules to the
+    // heading's relTop after normalization so the whole band does not shift.
+    const headingRel = items.find((item) => item.element === heading)?.relTop ?? 0;
+    for (const item of items) {
+      if (isMidlineChromeRule(item.element)) item.relTop = headingRel;
+    }
     return items.sort((left, right) => left.relTop - right.relTop
       || (Number(left.element.left) || 0) - (Number(right.element.left) || 0));
   }
@@ -1112,6 +1126,10 @@ function compactChromeCluster(chromeElements, pageHeight) {
       items[0]?.relTop ?? 0,
     );
     for (const item of items) item.relTop -= minRel;
+    const headingRel = items.find((item) => item.element === heading)?.relTop ?? 0;
+    for (const item of items) {
+      if (isMidlineChromeRule(item.element)) item.relTop = headingRel;
+    }
 
     // Heal Monument accent rules authored with Builder.line flush-under-label
     // (legacy add-section bug): beside a 32px badge the rule belongs at

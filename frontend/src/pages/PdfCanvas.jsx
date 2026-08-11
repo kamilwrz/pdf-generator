@@ -1123,16 +1123,40 @@ function PdfCanvas() {
     const savedMode = pdfMeta.editor_mode ?? pdfMeta.editorMode;
     const savedTemplate = pdfMeta.template_id ?? pdfMeta.templateId ?? null;
     const savedSpacing = pdfMeta.spacing_px ?? pdfMeta.spacingPx ?? pdfMeta.flowSpacing;
+    const rhythm = savedSpacing || DEFAULT_FLOW_SPACING;
     // Pin Reset to the loaded document's rhythm (or generator defaults).
-    adoptDocumentFlowSpacing(savedSpacing || DEFAULT_FLOW_SPACING);
+    adoptDocumentFlowSpacing(rhythm);
     if (savedTemplate) setActiveTemplateId(savedTemplate);
     else setActiveTemplateId(null);
+
+    // Cardinal-only: heal midline hairlines on open so legacy saves (and docs
+    // whose chromeAlign was dropped on an older save path) repack correctly
+    // without waiting for the user to touch a spacing knob.
+    const list = elements || [];
+    const isCardinal = savedTemplate === "cardinal"
+      || list.some((element) => (
+        element?.chromeAlign === "midline"
+        || /\/template-assets\/iconic\/cardinal\//.test(String(element?.src || ""))
+      ));
+    if (isCardinal) {
+      const pageHeight = pageSize?.height ?? 842;
+      setA4_Elements(applyFlowSpacing(list, rhythm, pageHeight, {
+        templateId: savedTemplate || "cardinal",
+      }));
+    }
+
     if (savedMode) {
       setEditorMode(normalizeEditorMode(savedMode));
       return;
     }
     setEditorMode(inferEditorMode(elements, savedTemplate));
-  }, [adoptDocumentFlowSpacing, setActiveTemplateId, setEditorMode]);
+  }, [
+    adoptDocumentFlowSpacing,
+    pageSize?.height,
+    setA4_Elements,
+    setActiveTemplateId,
+    setEditorMode,
+  ]);
 
   // Offer to claim a buffered guest document once a JWT exists — covers both
   // the save-gate's register/login round trip and simply reloading the page
