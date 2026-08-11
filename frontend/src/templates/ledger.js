@@ -1,72 +1,523 @@
-import API_BASE_URL from "../services/api";
-import { block, bulleted, line, text } from "./helpers";
+/**
+ * Ledger template (`layouts: ["single"]`).
+ *
+ * Institutional finance CV with navy hierarchy and a market accent image.
+ *
+ * This static starter is the backend generator's own output
+ * (`backend/app/services/cv_templates/templates/ledger.py`) for
+ * representative demo content (Jan Kowalski — three roles, one degree, five
+ * skills, and three languages, sized to fit page 1 of the mockup), so the
+ * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. The array already carries `flowRole` / `flowGroup` /
+ * `preserveInitialLayout` from the generator, so it is exported as-is (only
+ * the image src is absolutised).
+ */
+import API_BASE_URL from "../services/api.js";
 
-// Ledger — a composed finance CV inspired by institutional reports: deep navy
-// hierarchy, slate data panels, precise rules, and a restrained market graphic.
-const NAVY = "#102A43";
-const BLUE = "#2E5E86";
-const SLATE = "#607789";
-const STEEL = "#AEBECC";
-const INK = "#17212B";
-const SANS = "Inter";
-const SERIF = "Times-Roman";
-const ACCENT_IMAGE = `${API_BASE_URL}/template-assets/ledger-finance-accent.png`;
-
-const bold = (element) => ({ ...element, bold: true });
-const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
-const rect = (left, top, width, height, color, borderWidth = 1, zIndex = 1) => (
-    { category: "rectangle", left, top, width, height, backgroundColor: color, borderWidth, zIndex }
-);
-
-export const ledgerTemplate = [
-    // Header field and image — image element stays editable like any user asset.
-    line(0, 0, 595, 146, NAVY, 0),
-    line(0, 146, 595, 5, BLUE, 1),
-    rect(416, 24, 122, 126, STEEL, 1.2, 3),
-    {
-        category: "image",
-        src: ACCENT_IMAGE,
-        width: 110,
-        height: 118,
-        left: 422,
-        top: 28,
-        zIndex: 2,
-    },
-    line(400, 30, 2, 102, BLUE, 2),
-    bold(text("ANNA KOWALSKA", 30, SERIF, "#FFFFFF", 52, 58, 2)),
-    tracked(text("DYREKTORKA FINANSOWA · STRATEGIA I KAPITAŁ", 10, SANS, "#C7D7E2", 54, 98, 2), 1.05),
-    text("anna.kowalska@email.com  ·  +48 600 000 000  ·  Warszawa", 8.8, SANS, "#C7D7E2", 54, 120, 2),
-
-    // Main content column.
-    tracked(text("PROFIL", 9, SANS, BLUE, 52, 180, 2), 1.35),
-    line(52, 196, 490, 1, STEEL, 1),
-    block(
-        "Liderka finansów z doświadczeniem w budowaniu skalowalnych modeli operacyjnych, finansowaniu wzrostu i przekładaniu danych na decyzje zarządcze. Łączę rygor raportowania z partnerskim podejściem do biznesu.",
-        52, 212, 490, 44, 10.2, 15, INK, SANS
-    ),
-
-    tracked(text("DOŚWIADCZENIE", 9, SANS, BLUE, 52, 286, 2), 1.35),
-    line(52, 302, 490, 1, STEEL, 1),
-    bold(text("Dyrektorka Finansowa  /  Northbridge Partners", 11, SANS, NAVY, 52, 320, 2)),
-    text("2021 – obecnie  ·  Warszawa", 8.8, SANS, SLATE, 52, 337, 2),
-    bulleted(block(
-        "• Prowadziła refinansowanie grupy o wartości 120 mln PLN, obniżając koszt kapitału o 1,8 pp.\n• Zbudowała model planowania kroczącego, który skrócił cykl forecastu z 15 do 6 dni.\n• Wprowadziła rytm raportowania łączący wynik finansowy, cash flow i priorytety operacyjne.",
-        52, 353, 490, 60, 9.6, 13.5, INK, SANS
-    )),
-    bold(text("Menedżerka FP&A  /  Meridian Capital", 11, SANS, NAVY, 52, 436, 2)),
-    text("2017 – 2021  ·  Gdańsk", 8.8, SANS, SLATE, 52, 453, 2),
-    bulleted(block(
-        "• Odpowiadała za budżetowanie i analizę rentowności pięciu linii biznesowych.\n• Przygotowała scenariusze inwestycyjne wspierające ekspansję na trzy rynki europejskie.",
-        52, 469, 490, 42, 9.6, 13.5, INK, SANS
-    )),
-
-    // Closing ledger strip.
-    line(0, 576, 595, 1, STEEL, 1),
-    rect(52, 602, 490, 74, STEEL, 1, 1),
-    tracked(text("OBSZARY EKSPERTYZY", 8, SANS, BLUE, 66, 616, 2), 1.1),
-    block(
-        "FP&A  ·  Treasury  ·  Finansowanie dłużne  ·  M&A  ·  Modelowanie finansowe  ·  IFRS  ·  Power BI  ·  Zarządzanie ryzykiem",
-        66, 634, 458, 28, 9.3, 13, INK, SANS
-    ),
-    text("01", 8, SANS, SLATE, 522, 796, 2),
+const LEDGER_ELEMENTS = [
+  {
+    "category": "line",
+    "left": 0,
+    "top": 0,
+    "width": 595,
+    "height": 146,
+    "backgroundColor": "#102A43",
+    "zIndex": 0,
+    "page": 1,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "line",
+    "left": 0,
+    "top": 146,
+    "width": 595,
+    "height": 5,
+    "backgroundColor": "#2E5E86",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "rectangle",
+    "left": 416,
+    "top": 24,
+    "width": 122,
+    "height": 126,
+    "backgroundColor": "#AEBECC",
+    "borderWidth": 1.2,
+    "zIndex": 3,
+    "page": 1,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/ledger-finance-accent.png",
+    "width": 110,
+    "height": 118,
+    "left": 422,
+    "top": 28,
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "line",
+    "left": 400,
+    "top": 30,
+    "width": 2,
+    "height": 102,
+    "backgroundColor": "#2E5E86",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "Jan Kowalski",
+    "fontSize": 30,
+    "fontFamily": "Times-Roman",
+    "color": "#FFFFFF",
+    "left": 52,
+    "top": 58,
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "Dyrektor Strategii i Rozwoju",
+    "fontSize": 10,
+    "fontFamily": "Inter",
+    "color": "#C7D7E2",
+    "left": 52,
+    "top": 98,
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead",
+    "letterSpacing": 1.05
+  },
+  {
+    "category": "text",
+    "content": "jan.kowalski@email.com · +48 600 000 000 · Warszawa ·…",
+    "fontSize": 8.8,
+    "fontFamily": "Inter",
+    "color": "#C7D7E2",
+    "left": 52,
+    "top": 120,
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "PODSUMOWANIE ZAWODOWE",
+    "fontSize": 9,
+    "fontFamily": "Inter",
+    "color": "#2E5E86",
+    "left": 52,
+    "top": 183.0,
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 52,
+    "top": 195.15,
+    "width": 490,
+    "height": 1,
+    "backgroundColor": "#AEBECC",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
+    "left": 52,
+    "top": 203.15,
+    "width": 490,
+    "height": 27,
+    "fontSize": 9.6,
+    "lineHeight": 13.5,
+    "letterSpacing": 0,
+    "color": "#17212B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowRole": "content"
+  },
+  {
+    "category": "text",
+    "content": "DOŚWIADCZENIE ZAWODOWE",
+    "fontSize": 9,
+    "fontFamily": "Inter",
+    "color": "#2E5E86",
+    "left": 52,
+    "top": 251.15,
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 52,
+    "top": 263.3,
+    "width": 490,
+    "height": 1,
+    "backgroundColor": "#AEBECC",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Northbridge Partners   ·   Warszawa   ·   2021 – obecnie",
+    "left": 52,
+    "top": 275.3,
+    "width": 490,
+    "height": 12,
+    "fontSize": 9,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#607789",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-d2599bab9b59",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
+    "left": 52,
+    "top": 291.3,
+    "width": 490,
+    "height": 41,
+    "fontSize": 9.6,
+    "lineHeight": 13.5,
+    "letterSpacing": 0,
+    "color": "#17212B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-d2599bab9b59",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Meridian Group   ·   Kraków   ·   2016 – 2021",
+    "left": 52,
+    "top": 346.3,
+    "width": 490,
+    "height": 12,
+    "fontSize": 9,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#607789",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-e815578bb51e",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
+    "left": 52,
+    "top": 362.3,
+    "width": 490,
+    "height": 27,
+    "fontSize": 9.6,
+    "lineHeight": 13.5,
+    "letterSpacing": 0,
+    "color": "#17212B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-e815578bb51e",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Alpine Consulting   ·   Kraków   ·   2013 – 2016",
+    "left": 52,
+    "top": 403.3,
+    "width": 490,
+    "height": 12,
+    "fontSize": 9,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#607789",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-833d7c3c6be8",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
+    "left": 52,
+    "top": 419.3,
+    "width": 490,
+    "height": 14,
+    "fontSize": 9.6,
+    "lineHeight": 13.5,
+    "letterSpacing": 0,
+    "color": "#17212B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-833d7c3c6be8",
+    "flowRole": "content"
+  },
+  {
+    "category": "text",
+    "content": "WYKSZTAŁCENIE",
+    "fontSize": 9,
+    "fontFamily": "Inter",
+    "color": "#2E5E86",
+    "left": 52,
+    "top": 454.3,
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 52,
+    "top": 466.45,
+    "width": 490,
+    "height": 1,
+    "backgroundColor": "#AEBECC",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Magister Zarządzania",
+    "left": 52,
+    "top": 474.45,
+    "width": 490,
+    "height": 13,
+    "fontSize": 10.6,
+    "lineHeight": 13,
+    "letterSpacing": 0,
+    "color": "#102A43",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-6cdec64382aa",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "SGH Warszawa",
+    "left": 52,
+    "top": 491.45,
+    "width": 490,
+    "height": 13,
+    "fontSize": 10.6,
+    "lineHeight": 13,
+    "letterSpacing": 0,
+    "color": "#102A43",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-6cdec64382aa",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "2011 – 2016",
+    "left": 52,
+    "top": 508.45,
+    "width": 490,
+    "height": 12,
+    "fontSize": 9,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#607789",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-6cdec64382aa",
+    "flowRole": "content"
+  },
+  {
+    "category": "text",
+    "content": "UMIEJĘTNOŚCI",
+    "fontSize": 9,
+    "fontFamily": "Inter",
+    "color": "#2E5E86",
+    "left": 52,
+    "top": 541.45,
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 52,
+    "top": 553.6,
+    "width": 490,
+    "height": 1,
+    "backgroundColor": "#AEBECC",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
+    "left": 52,
+    "top": 561.6,
+    "width": 490,
+    "height": 14,
+    "fontSize": 9.8,
+    "lineHeight": 14,
+    "letterSpacing": 0,
+    "color": "#17212B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-761e656371be",
+    "flowRole": "content"
+  },
+  {
+    "category": "text",
+    "content": "JĘZYKI",
+    "fontSize": 9,
+    "fontFamily": "Inter",
+    "color": "#2E5E86",
+    "left": 52,
+    "top": 596.6,
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 52,
+    "top": 608.75,
+    "width": 490,
+    "height": 1,
+    "backgroundColor": "#AEBECC",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "• Polski — ojczysty\n• Angielski — C1\n• Francuski — B2",
+    "left": 52,
+    "top": 616.75,
+    "width": 490,
+    "height": 42,
+    "fontSize": 9.8,
+    "lineHeight": 14,
+    "letterSpacing": 0,
+    "color": "#17212B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowRole": "content"
+  }
 ];
+
+export const ledgerTemplate = LEDGER_ELEMENTS.map((element) => (
+  element.category === "image" && typeof element.src === "string" && element.src.startsWith("/template-assets")
+    ? { ...element, src: `${API_BASE_URL}${element.src}` }
+    : element
+));

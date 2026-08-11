@@ -1,177 +1,722 @@
 /**
  * Cardinal template (`layouts: ["icons"]`).
  *
- * A single-column, editorial CV that reserves a "noble red" (cardinal) purely
- * for typography — the name accent and every section heading — while all
- * decoration stays neutral grey: generated line-art icons begin on the same
- * left edge as body copy, while each heading's rule continues from the optical
- * centre of its cap line. Header/footer keylines remain understated.
+ * Oxblood accent with icon-in-gutter section headings.
  *
- * Icon glyphs come from the shared icon pipeline
- * (`scripts/generate_iconic_icons.py`), rendered in grey under the dedicated
- * `cardinal` theme so the red is never spent on ornament.
+ * This static starter is the backend generator's own output
+ * (`backend/app/services/cv_templates/templates/cardinal.py`) for
+ * representative demo content (Jan Kowalski — three roles, one degree, five
+ * skills, and three languages, sized to fit page 1 of the mockup), so the
+ * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. The array already carries `flowRole` / `flowGroup` /
+ * `preserveInitialLayout` from the generator, so it is exported as-is (only
+ * the image src is absolutised).
  */
 import API_BASE_URL from "../services/api.js";
-import { block, bulleted, line, text } from "./helpers.js";
 
-// ── Colour system ───────────────────────────────────────────────────────────
-const PAPER = "#FCFBF9"; // warm off-white document surface
-const CARDINAL = "#9E2532"; // "szlachetna czerwień" — headings + role only
-const INK = "#24201E"; // near-black for the name and role/company titles
-const BODY = "#333333"; // dark grey body copy ("tekst ciemno szary")
-const META = "#6E6E6E"; // secondary grey for dates and locations
-const GREY = "#8A8A8A"; // icons + decorative rules (matches the cardinal icon theme)
-
-const SERIF = "Times-Roman"; // the name, in the Classic serif convention
-const SANS = "Helvetica"; // labels, contact, dates and body copy
-
-// ── Layout geometry (A4 at 595×842 pt) ──────────────────────────────────────
-const TEXT_X = 72; // body, contact icons and section compositions share this edge
-const HEADING_X = TEXT_X + 22; // icon occupies the first 15 pt of the heading row
-const RIGHT = 545; // content right edge (≈72 pt symmetric margins)
-const CONTENT_W = RIGHT - TEXT_X; // 473 pt usable text column
-const SECTION_ICON = 16.5; // slightly larger than the caps without dominating them
-const CONTACT_ICON = 13; // slightly smaller glyph for the contact row
-const HEAD_FS = 11.2; // remains above the requested 11 px minimum
-const HEAD_TRACKING = 1.05;
-const HEAD_RULE_H = 0.8;
-// Inter Bold has a 1490-unit cap height on a 2048-unit em. The PDF renderer
-// places the baseline 0.34 em below `top`, so cap-centre is not fontSize / 2.
-// Subtract half the rule thickness to align the rectangle's centre, not its top.
-const INTER_CAP_HEIGHT_RATIO = 1490 / 2048;
-const HEAD_CAP_MIDLINE_OFFSET = HEAD_FS * (0.34 - INTER_CAP_HEIGHT_RATIO / 2) - HEAD_RULE_H / 2;
-
-const bold = (element) => ({ ...element, bold: true });
-const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
-
-/**
- * A grey line-art glyph from the `cardinal` icon theme.
- *
- * `top` stores the companion label's CSS top (not a pre-shifted image top);
- * `alignWithText` lets the canvas and PDF centre the glyph on that text line so
- * the icon reads level with the caps rather than floating above them.
- */
-const icon = (name, left, top, size) => ({
-    category: "image",
-    src: `${API_BASE_URL}/template-assets/iconic/cardinal/${name}.png`,
-    width: size,
-    height: size,
-    left,
-    top,
-    zIndex: 3,
-    alignWithText: true,
-});
-
-/**
- * A section heading: grey icon aligned to the body edge, cardinal-red tracked
- * label, and a trailing rule on the cap midline. Grouped as `section-chrome` so
- * reflow keeps the horizontal composition intact across page breaks.
- */
-const sectionHead = (iconName, label, top) => {
-    // The tracked-width estimate is used only for decoration placement. Keeping
-    // a 14 pt gap prevents the hairline from touching long Polish labels.
-    const labelWidth = label.length * (HEAD_FS * 0.58 + HEAD_TRACKING);
-    const ruleLeft = Math.min(HEADING_X + labelWidth + 14, RIGHT - 54);
-    return [
-        { ...icon(iconName, TEXT_X, top, SECTION_ICON), flowRole: "section-chrome" },
-        {
-            ...bold(tracked(text(label, HEAD_FS, SANS, CARDINAL, HEADING_X, top, 3), HEAD_TRACKING)),
-            flowRole: "section-chrome",
-        },
-        {
-            ...line(ruleLeft, top + HEAD_CAP_MIDLINE_OFFSET, RIGHT - ruleLeft, HEAD_RULE_H, GREY, 2),
-            flowRole: "section-chrome",
-        },
-    ];
-};
-
-/**
- * One contact detail: grey icon plus its dark-grey label on a shared text line.
- * `textLeft` is passed explicitly because the three details sit on one row at
- * different x positions rather than stacking.
- */
-const contact = (iconName, iconLeft, textLeft, label, top) => [
-    icon(iconName, iconLeft, top, CONTACT_ICON),
-    text(label, 8.6, SANS, BODY, textLeft, top, 3),
+const CARDINAL_ELEMENTS = [
+  {
+    "category": "line",
+    "left": 0,
+    "top": 0,
+    "width": 595,
+    "height": 842,
+    "backgroundColor": "#FCFBF9",
+    "zIndex": 0,
+    "page": 1,
+    "fixedToPage": true
+  },
+  {
+    "category": "line",
+    "left": 72,
+    "top": 800,
+    "width": 473,
+    "height": 1,
+    "backgroundColor": "#8A8A8A",
+    "zIndex": 1,
+    "page": 1,
+    "fixedToPage": true
+  },
+  {
+    "category": "text",
+    "content": "01",
+    "fontSize": 8,
+    "fontFamily": "Helvetica",
+    "color": "#6E6E6E",
+    "left": 522,
+    "top": 806,
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "fixedToPage": true
+  },
+  {
+    "category": "text",
+    "content": "Jan Kowalski",
+    "fontSize": 30,
+    "fontFamily": "Times-Roman",
+    "color": "#24201E",
+    "left": 72,
+    "top": 50,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "letterSpacing": 0.15,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "Dyrektor Strategii i Rozwoju",
+    "fontSize": 9.6,
+    "fontFamily": "Helvetica",
+    "color": "#9E2532",
+    "left": 72,
+    "top": 92,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "letterSpacing": 1.55,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/cardinal/phone.png",
+    "left": 72.0,
+    "top": 118.0,
+    "width": 13.0,
+    "height": 13.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "+48 600 000 000",
+    "fontSize": 8.6,
+    "fontFamily": "Helvetica",
+    "color": "#333333",
+    "left": 88.0,
+    "top": 118.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/cardinal/email.png",
+    "left": 189.0,
+    "top": 118.0,
+    "width": 13.0,
+    "height": 13.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "jan.kowalski@email.com",
+    "fontSize": 8.6,
+    "fontFamily": "Helvetica",
+    "color": "#333333",
+    "left": 205.0,
+    "top": 118.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/cardinal/linkedin.png",
+    "left": 343.8,
+    "top": 118.0,
+    "width": 13.0,
+    "height": 13.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "linkedin.com/in/jkowalski",
+    "fontSize": 8.6,
+    "fontFamily": "Helvetica",
+    "color": "#333333",
+    "left": 359.8,
+    "top": 118.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/cardinal/github.png",
+    "left": 72.0,
+    "top": 134.0,
+    "width": 13.0,
+    "height": 13.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "github.com/jkowalski",
+    "fontSize": 8.6,
+    "fontFamily": "Helvetica",
+    "color": "#333333",
+    "left": 88.0,
+    "top": 134.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/cardinal/website.png",
+    "left": 216.0,
+    "top": 134.0,
+    "width": 13.0,
+    "height": 13.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "jankowalski.pl",
+    "fontSize": 8.6,
+    "fontFamily": "Helvetica",
+    "color": "#333333",
+    "left": 232.0,
+    "top": 134.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/cardinal/location.png",
+    "left": 327.6,
+    "top": 134.0,
+    "width": 13.0,
+    "height": 13.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "Warszawa",
+    "fontSize": 8.6,
+    "fontFamily": "Helvetica",
+    "color": "#333333",
+    "left": 343.6,
+    "top": 134.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "line",
+    "left": 72,
+    "top": 158.0,
+    "width": 473,
+    "height": 1,
+    "backgroundColor": "#8A8A8A",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/cardinal/summary.png",
+    "left": 72,
+    "top": 195.0,
+    "width": 16.5,
+    "height": 16.5,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "text",
+    "content": "PODSUMOWANIE ZAWODOWE",
+    "fontSize": 11.2,
+    "fontFamily": "Helvetica",
+    "color": "#9E2532",
+    "left": 94,
+    "top": 195.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.05,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 266.466,
+    "top": 194.33378125,
+    "width": 278.534,
+    "height": 0.8,
+    "backgroundColor": "#8A8A8A",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
+    "left": 72,
+    "top": 224.2,
+    "width": 473,
+    "height": 28,
+    "fontSize": 9.6,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#333333",
+    "fontFamily": "Helvetica",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowRole": "content"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/cardinal/experience.png",
+    "left": 72,
+    "top": 273.2,
+    "width": 16.5,
+    "height": 16.5,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "text",
+    "content": "DOŚWIADCZENIE ZAWODOWE",
+    "fontSize": 11.2,
+    "fontFamily": "Helvetica",
+    "color": "#9E2532",
+    "left": 94,
+    "top": 273.2,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.05,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 274.012,
+    "top": 272.53378125,
+    "width": 270.988,
+    "height": 0.8,
+    "backgroundColor": "#8A8A8A",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Northbridge Partners   ·   Warszawa   ·   2021 – obecnie",
+    "left": 72,
+    "top": 306.4,
+    "width": 473,
+    "height": 12,
+    "fontSize": 8.5,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#6E6E6E",
+    "fontFamily": "Helvetica",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-2a5f603c6e74",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
+    "left": 72,
+    "top": 322.4,
+    "width": 473,
+    "height": 42,
+    "fontSize": 9.6,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#333333",
+    "fontFamily": "Helvetica",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-2a5f603c6e74",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Meridian Group   ·   Kraków   ·   2016 – 2021",
+    "left": 72,
+    "top": 378.4,
+    "width": 473,
+    "height": 12,
+    "fontSize": 8.5,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#6E6E6E",
+    "fontFamily": "Helvetica",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-79043e873e18",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
+    "left": 72,
+    "top": 394.4,
+    "width": 473,
+    "height": 28,
+    "fontSize": 9.6,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#333333",
+    "fontFamily": "Helvetica",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-79043e873e18",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Alpine Consulting   ·   Kraków   ·   2013 – 2016",
+    "left": 72,
+    "top": 436.4,
+    "width": 473,
+    "height": 12,
+    "fontSize": 8.5,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#6E6E6E",
+    "fontFamily": "Helvetica",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-8140c77d09a2",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
+    "left": 72,
+    "top": 452.4,
+    "width": 473,
+    "height": 14,
+    "fontSize": 9.6,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#333333",
+    "fontFamily": "Helvetica",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-8140c77d09a2",
+    "flowRole": "content"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/cardinal/education.png",
+    "left": 72,
+    "top": 487.4,
+    "width": 16.5,
+    "height": 16.5,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "text",
+    "content": "WYKSZTAŁCENIE",
+    "fontSize": 11.2,
+    "fontFamily": "Helvetica",
+    "color": "#9E2532",
+    "left": 94,
+    "top": 487.4,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.05,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 206.09799999999998,
+    "top": 486.73378125,
+    "width": 338.90200000000004,
+    "height": 0.8,
+    "backgroundColor": "#8A8A8A",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Magister Zarządzania",
+    "left": 72,
+    "top": 516.5999999999999,
+    "width": 473,
+    "height": 13,
+    "fontSize": 10.4,
+    "lineHeight": 13,
+    "letterSpacing": 0,
+    "color": "#24201E",
+    "fontFamily": "Helvetica",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-a45054783564",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "SGH Warszawa",
+    "left": 72,
+    "top": 533.5999999999999,
+    "width": 473,
+    "height": 13,
+    "fontSize": 10.4,
+    "lineHeight": 13,
+    "letterSpacing": 0,
+    "color": "#24201E",
+    "fontFamily": "Helvetica",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-a45054783564",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "2011 – 2016",
+    "left": 72,
+    "top": 550.5999999999999,
+    "width": 473,
+    "height": 12,
+    "fontSize": 8.5,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#6E6E6E",
+    "fontFamily": "Helvetica",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-a45054783564",
+    "flowRole": "content"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/cardinal/skills.png",
+    "left": 72,
+    "top": 583.5999999999999,
+    "width": 16.5,
+    "height": 16.5,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "text",
+    "content": "UMIEJĘTNOŚCI",
+    "fontSize": 11.2,
+    "fontFamily": "Helvetica",
+    "color": "#9E2532",
+    "left": 94,
+    "top": 583.5999999999999,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.05,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 198.552,
+    "top": 582.9337812499999,
+    "width": 346.448,
+    "height": 0.8,
+    "backgroundColor": "#8A8A8A",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
+    "left": 72,
+    "top": 612.8,
+    "width": 473,
+    "height": 14,
+    "fontSize": 9.6,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#333333",
+    "fontFamily": "Helvetica",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-63721fc148c7",
+    "flowRole": "content"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/cardinal/languages.png",
+    "left": 72,
+    "top": 647.8,
+    "width": 16.5,
+    "height": 16.5,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "text",
+    "content": "JĘZYKI",
+    "fontSize": 11.2,
+    "fontFamily": "Helvetica",
+    "color": "#9E2532",
+    "left": 94,
+    "top": 647.8,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.05,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 153.276,
+    "top": 647.13378125,
+    "width": 391.724,
+    "height": 0.8,
+    "backgroundColor": "#8A8A8A",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "• Polski — ojczysty\n• Angielski — C1\n• Francuski — B2",
+    "left": 72,
+    "top": 677.0,
+    "width": 473,
+    "height": 42,
+    "fontSize": 9.6,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#333333",
+    "fontFamily": "Helvetica",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowRole": "content"
+  }
 ];
 
-const cardinalElements = [
-    // Page surface. Fixed so it never participates in content reflow.
-    { ...line(0, 0, 595, 842, PAPER, 0), fixedToPage: true },
-
-    // Masthead: serif name, cardinal role line, and a single grey contact row.
-    tracked(text("ANNA KOWALSKA", 30, SERIF, INK, TEXT_X, 50, 3), 0.15),
-    tracked(text("DYREKTORKA STRATEGII I ROZWOJU", 9.6, SANS, CARDINAL, TEXT_X, 92, 3), 1.55),
-    ...contact("email", TEXT_X, 88, "anna.kowalska@email.com", 118),
-    ...contact("phone", 250, 266, "+48 600 000 000", 118),
-    ...contact("location", 420, 436, "Warszawa", 118),
-    ...contact("linkedin", TEXT_X, 88, "linkedin.com/in/akowalska", 134),
-    ...contact("github", 250, 266, "github.com/akowalska", 134),
-    line(TEXT_X, 158, CONTENT_W, 1, GREY, 2),
-
-    // ── Podsumowanie zawodowe ───────────────────────────────────────────────
-    ...sectionHead("summary", "PODSUMOWANIE ZAWODOWE", 170),
-    block(
-        "Liderka strategii łącząca perspektywę biznesową z dyscypliną wykonania. "
-        + "Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą "
-        + "mierzalne rezultaty bez utraty jakości relacji.",
-        TEXT_X, 198, CONTENT_W, 43, 9.6, 13.8, BODY, SANS,
-    ),
-
-    // ── Doświadczenie zawodowe ──────────────────────────────────────────────
-    ...sectionHead("experience", "DOŚWIADCZENIE ZAWODOWE", 268),
-    bold(text("Dyrektorka Strategii  /  Northbridge Partners", 11.2, SANS, INK, TEXT_X, 296, 3)),
-    text("2021 – obecnie  ·  Warszawa", 8.6, SANS, META, TEXT_X, 315, 3),
-    bulleted(block(
-        "• Zaprojektowała model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n"
-        + "• Uporządkowała rytm decyzji zarządu oraz raportowanie strategiczne.\n"
-        + "• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
-        TEXT_X, 331, CONTENT_W, 43, 9.6, 13.8, BODY, SANS,
-    )),
-    bold(text("Menedżerka Rozwoju  /  Meridian Group", 11.2, SANS, INK, TEXT_X, 397, 3)),
-    text("2016 – 2021  ·  Kraków", 8.6, SANS, META, TEXT_X, 416, 3),
-    bulleted(block(
-        "• Rozwinęła portfel projektów ekspansji na rynkach europejskich.\n"
-        + "• Wprowadziła standardy współpracy między sprzedażą, produktem i finansami.",
-        TEXT_X, 432, CONTENT_W, 29, 9.6, 13.8, BODY, SANS,
-    )),
-
-    // ── Wykształcenie ───────────────────────────────────────────────────────
-    ...sectionHead("education", "WYKSZTAŁCENIE", 512),
-    bold(text("Magister Zarządzania  /  SGH Warszawa", 10.6, SANS, INK, TEXT_X, 540, 3)),
-    text("2011 – 2016", 8.6, SANS, META, TEXT_X, 559, 3),
-
-    // ── Umiejętności ────────────────────────────────────────────────────────
-    ...sectionHead("skills", "UMIEJĘTNOŚCI", 602),
-    block(
-        "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
-        TEXT_X, 630, CONTENT_W, 24, 9.6, 13.8, BODY, SANS,
-    ),
-
-    // ── Języki ──────────────────────────────────────────────────────────────
-    ...sectionHead("languages", "JĘZYKI", 680),
-    block(
-        "Polski — ojczysty  ·  Angielski — C1  ·  Francuski — B2",
-        TEXT_X, 708, CONTENT_W, 20, 9.6, 13.8, BODY, SANS,
-    ),
-
-    // Footer keyline + page marker. Fixed so they anchor to every page bottom.
-    { ...line(TEXT_X, 800, CONTENT_W, 1, GREY, 2), fixedToPage: true },
-    { ...text("01", 8, SANS, META, 522, 806, 3), fixedToPage: true },
-];
-
-/**
- * Tag content for the reflow engine. Elements that already declare their role
- * (`fixedToPage` chrome, `section-chrome` headings) are preserved as authored;
- * everything else becomes flowing `content`, and textareas keep their measured
- * initial geometry so the loaded layout matches this authored spec exactly.
- */
-export const cardinalTemplate = cardinalElements.map((element) => (
-    element.fixedToPage || element.flowRole
-        ? element
-        : {
-            ...element,
-            flowRole: "content",
-            ...(element.category === "textarea" ? { preserveInitialLayout: true } : {}),
-        }
+export const cardinalTemplate = CARDINAL_ELEMENTS.map((element) => (
+  element.category === "image" && typeof element.src === "string" && element.src.startsWith("/template-assets")
+    ? { ...element, src: `${API_BASE_URL}${element.src}` }
+    : element
 ));

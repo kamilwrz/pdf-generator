@@ -30,7 +30,7 @@ test("Words resembles a monochrome Word document without decorative frames", () 
     )));
     assert.equal(wordsTemplate.some((element) => element.category === "rectangle"), false);
     assert.equal(wordsTemplate.some((element) => element.category === "ellipse"), false);
-    assert.equal(sectionHeadings.length, 4);
+    assert.equal(sectionHeadings.length, 5);
     assert.ok(sectionHeadings.every((element) => element.fontSize === 12));
     assert.ok(circles.length > 0);
     assert.ok(circles.every((element) => element.width <= 7 && element.height <= 7));

@@ -45,9 +45,9 @@ test("Aurelia uses thick contrasting Bézier plates with white type and gold acc
     const nameplate = aureliaTemplate.find((element) => element.id === "aurelia-nameplate");
     const titleplate = aureliaTemplate.find((element) => element.id === "aurelia-titleplate");
     const ink = aureliaTemplate.find((element) => element.id === "aurelia-name-ink");
-    const name = aureliaTemplate.find((element) => element.content === "ANNA KOWALSKA");
+    const name = aureliaTemplate.find((element) => element.content === "Jan Kowalski");
     const title = aureliaTemplate.find(
-        (element) => element.content === "STRATEGIA  ·  OPERACJE  ·  TRANSFORMACJA",
+        (element) => element.content === "Dyrektor Strategii i Rozwoju",
     );
     assert.equal(backdrop?.backgroundColor, MIST);
     assert.equal(backdrop?.borderWidth, 22);
@@ -81,7 +81,7 @@ test("Aurelia uses thick contrasting Bézier plates with white type and gold acc
         (element) => element.flowRole === "section-chrome"
             && element.category === "text",
     );
-    assert.equal(headings.length, 4);
+    assert.equal(headings.length, 5);
     assert.ok(headings.every((element) => element.left === 116));
     assert.ok(headings.every((element) => element.fontFamily === "Montserrat"));
     const sectionBars = aureliaTemplate.filter(
@@ -90,13 +90,13 @@ test("Aurelia uses thick contrasting Bézier plates with white type and gold acc
             && element.backgroundColor === GOLD
             && element.height === 4,
     );
-    assert.equal(sectionBars.length, 4);
+    assert.equal(sectionBars.length, 5);
     const sectionRules = aureliaTemplate.filter(
         (element) => element.flowRole === "section-chrome"
             && element.category === "line"
             && element.backgroundColor === "#DCD8CE",
     );
-    assert.equal(sectionRules.length, 4);
+    assert.equal(sectionRules.length, 5);
     assert.ok(sectionRules.every((element) => element.left + element.width === 515));
     assert.ok(
         new Set(sectionRules.map((element) => element.width)).size > 1,
@@ -109,7 +109,11 @@ test("Aurelia uses thick contrasting Bézier plates with white type and gold acc
     );
     assert.ok(bodyBlocks.length >= 4);
     assert.ok(bodyBlocks.every((element) => element.left === 116 && element.width === 399));
-    assert.ok(bodyBlocks.every((element) => element.fontSize <= 9.3));
+    // Body paragraphs and language bullets stay at the compact reading size;
+    // education diploma/school rows are intentionally a step larger.
+    const proseBlocks = bodyBlocks.filter((element) => element.fontSize <= 9.3);
+    assert.ok(proseBlocks.length >= 4);
+    assert.ok(proseBlocks.every((element) => element.fontSize <= 9.3));
 
     for (const element of aureliaTemplate) {
         const color = element.color ?? element.backgroundColor;

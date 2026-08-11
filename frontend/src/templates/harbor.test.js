@@ -18,18 +18,18 @@ test("Harbor is a two-column layout with teal accent and diamond list widgets", 
         .filter((element) => element.category === "text")
         .map((element) => element.content);
     for (const label of [
-        "PODSUMOWANIE", "DOŚWIADCZENIE", "EDUKACJA",
-        "UMIEJĘTNOŚCI", "JĘZYKI", "SYSTEMY I NARZĘDZIA",
+        "PODSUMOWANIE ZAWODOWE", "DOŚWIADCZENIE ZAWODOWE", "WYKSZTAŁCENIE",
+        "UMIEJĘTNOŚCI", "JĘZYKI",
     ]) {
         assert.ok(labels.includes(label), `missing heading ${label}`);
     }
 
-    // ── Skills + languages + tools + education note: teal diamond bullets ────
-    // 8 skills + 3 languages + 6 tools + 1 education description = 18
+    // ── Skills + languages use teal diamond bullets in the sidebar ───────────
+    // 5 skills + 3 languages = 8 diamonds for the shared Jan Kowalski starter.
     const diamonds = harborTemplate.filter(
         (element) => element.category === "image" && element.src.includes("/iconic/harbor-accent/diamond"),
     );
-    assert.equal(diamonds.length, 18);
+    assert.equal(diamonds.length, 8);
 
     // ── Grey contact + meta icons come from the harbor theme (not accent) ────
     const greyIcons = harborTemplate.filter(
@@ -57,13 +57,20 @@ test("Harbor is a two-column layout with teal accent and diamond list widgets", 
 
     // ── Teal accent reserved for role, companies, and the school line ────────
     const tealText = harborTemplate.filter(
-        (element) => element.category === "text" && element.color === ACCENT,
+        (element) => (
+            (element.category === "text" || element.category === "textarea")
+            && element.color === ACCENT
+        ),
     );
     assert.ok(tealText.length >= 4, `expected >=4 teal text runs, got ${tealText.length}`);
 
     // ── Education structure: bold diploma + distinguished school ─────────────
-    const diploma = harborTemplate.find((element) => element.content === "Bachelor of Laws");
-    const school = harborTemplate.find((element) => element.content === "EU Viadrina");
+    const diploma = harborTemplate.find((element) => element.content === "Magister Zarządzania");
+    const school = harborTemplate.find((element) => element.content === "SGH Warszawa");
     assert.ok(diploma?.bold);
     assert.equal(school?.color, ACCENT);
+
+    // ── Shared Jan Kowalski demo persona ─────────────────────────────────────
+    assert.ok(harborTemplate.some((element) => element.content === "JAN KOWALSKI"));
+    assert.ok(harborTemplate.some((element) => element.content === "jan.kowalski@email.com"));
 });

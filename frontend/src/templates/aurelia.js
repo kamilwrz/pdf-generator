@@ -1,234 +1,733 @@
 /**
- * Aurelia template.
+ * Aurelia template (`layouts: ["single"]`).
  *
- * A one-column quiet-luxury composition built around thick contrasting Bézier
- * brushstrokes behind the display name and job title. A mist-grey vertical
- * gesture on the right softens the stack; charcoal and stone plates create
- * large, high-contrast fields for white type, with a gold accent stroke on
- * the name. Section divider lengths follow their labels and share one precise
- * right edge; antique-gold chrome also marks section bars and page rails.
- */
-import { bezierPath, block, bulleted, line, text } from "./helpers.js";
-
-const PAPER = "#FEFDF9";
-const INK = "#272724";
-const BODY = "#464540";
-const MUTED = "#77736B";
-const GOLD = "#B3924F";
-const GOLD_DARK = "#8B713A";
-const RULE = "#DCD8CE";
-const MIST = "#D6D6D3";
-/** Deep charcoal plate behind the name — enough mass for white glyphs. */
-const SLATE = "#3A3A36";
-/** Mid stone plate behind the job title; still dark enough for white type. */
-const STONE = "#5A5A54";
-const WHITE = "#FFFFFF";
-const DISPLAY = "PlayfairDisplay";
-const SANS = "Montserrat";
-
-const BACKDROP_CURVES = [
-    { type: "M", x: 0.72, y: 0.02 },
-    { type: "C", x1: 1, y1: 0.27, x2: 0.08, y2: 0.66, x: 0.34, y: 0.98 },
-];
-const NAMEPLATE_CURVES = [
-    { type: "M", x: 0.03, y: 0.55 },
-    { type: "C", x1: 0.25, y1: 0.23, x2: 0.68, y2: 0.78, x: 0.97, y: 0.46 },
-];
-const TITLEPLATE_CURVES = [
-    { type: "M", x: 0.02, y: 0.52 },
-    { type: "C", x1: 0.28, y1: 0.16, x2: 0.72, y2: 0.84, x: 0.98, y: 0.48 },
-];
-const INK_CURVES = [
-    { type: "M", x: 0.02, y: 0.65 },
-    { type: "C", x1: 0.28, y1: 0.05, x2: 0.72, y2: 0.95, x: 0.98, y: 0.25 },
-];
-
-const STARTER_NAME = "ANNA KOWALSKA";
-const STARTER_TITLE = "STRATEGIA  ·  OPERACJE  ·  TRANSFORMACJA";
-const DISPLAY_NAME_SIZE = 31;
-const DISPLAY_NAME_TRACKING = 0.1;
-const TITLE_SIZE = 8.4;
-const TITLE_TRACKING = 1.55;
-const estimatedStarterNameWidth = Math.min(
-    435,
-    Math.max(
-        180,
-        STARTER_NAME.length * (DISPLAY_NAME_SIZE * 0.63 + DISPLAY_NAME_TRACKING),
-    ),
-);
-const estimatedStarterTitleWidth = Math.min(
-    360,
-    Math.max(
-        140,
-        STARTER_TITLE.length * (TITLE_SIZE * 0.52 + TITLE_TRACKING * 0.35),
-    ),
-);
-
-const masthead = (element) => ({ ...element, flowRole: "masthead" });
-const sectionChrome = (element) => ({ ...element, flowRole: "section-chrome" });
-const bold = (element) => ({ ...element, bold: true });
-const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
-
-const SECTION_HEADING_LEFT = 116;
-const SECTION_RULE_RIGHT = 515;
-const SECTION_HEADING_SIZE = 9;
-const SECTION_HEADING_TRACKING = 1.35;
-const SECTION_RULE_GAP = 18;
-
-/**
- * Creates section chrome whose trailing rule reacts to the displayed label.
+ * Quiet-luxury single column with contrasting Bézier brushstrokes.
  *
- * The browser and reflow engine use the same tracked-width approximation:
- * average glyph width plus letter spacing. Only the rule's start changes; its
- * right edge remains fixed at x=515, preserving the page's vertical datum.
+ * This static starter is the backend generator's own output
+ * (`backend/app/services/cv_templates/templates/aurelia.py`) for
+ * representative demo content (Jan Kowalski — three roles, one degree, five
+ * skills, and three languages, sized to fit page 1 of the mockup), so the
+ * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. The array already carries `flowRole` / `flowGroup` /
+ * `preserveInitialLayout` from the generator, so it is exported as-is (only
+ * the image src is absolutised).
  */
-const sectionHeading = (label, top, id) => {
-    const estimatedLabelWidth = label.length * (
-        SECTION_HEADING_SIZE * 0.58 + SECTION_HEADING_TRACKING
-    );
-    const ruleLeft = Math.min(
-        SECTION_RULE_RIGHT - 24,
-        SECTION_HEADING_LEFT + estimatedLabelWidth + SECTION_RULE_GAP,
-    );
+import API_BASE_URL from "../services/api.js";
 
-    return [
-        sectionChrome({
-            ...line(76, top + 7, 28, 4, GOLD, 3),
-            id: `aurelia-${id}-bar`,
-        }),
-        sectionChrome(tracked(
-            bold(text(label, SECTION_HEADING_SIZE, SANS, INK, SECTION_HEADING_LEFT, top, 3)),
-            SECTION_HEADING_TRACKING,
-        )),
-        sectionChrome(line(
-            ruleLeft,
-            top + 9,
-            SECTION_RULE_RIGHT - ruleLeft,
-            1,
-            RULE,
-            2,
-        )),
-    ];
-};
-
-const aureliaElements = [
-    { ...line(0, 0, 595, 842, PAPER, 0), fixedToPage: true },
-    { ...line(58, 42, 1, 756, RULE, 1), fixedToPage: true },
-    { ...line(63, 42, 3, 54, GOLD, 2), fixedToPage: true },
-    { ...line(63, 744, 3, 54, GOLD, 2), fixedToPage: true },
-
-    // PDF export paints in array order. Keep all artwork before masthead text so
-    // the explicit z-index layering also remains readable in the exported file.
-    // Contrast stack: mist right companion → thick charcoal name plate →
-    // thick stone title plate → gold accent → white name/title type.
-    masthead({
-        ...bezierPath(
-            Math.min(425, 80 + estimatedStarterNameWidth * 1.02),
-            24,
-            90,
-            132,
-            BACKDROP_CURVES,
-            MIST,
-            22,
-            1,
-            "flourish",
-        ),
-        id: "aurelia-name-backdrop",
-    }),
-    masthead({
-        ...bezierPath(
-            72,
-            36,
-            Math.min(455, estimatedStarterNameWidth + 56),
-            52,
-            NAMEPLATE_CURVES,
-            SLATE,
-            44,
-            2,
-            "wave",
-        ),
-        id: "aurelia-nameplate",
-    }),
-    masthead({
-        ...bezierPath(
-            78,
-            86,
-            Math.min(400, estimatedStarterTitleWidth + 48),
-            36,
-            TITLEPLATE_CURVES,
-            STONE,
-            30,
-            2,
-            "wave",
-        ),
-        id: "aurelia-titleplate",
-    }),
-    masthead({
-        ...bezierPath(
-            80,
-            28,
-            estimatedStarterNameWidth * 0.55,
-            12,
-            INK_CURVES,
-            GOLD,
-            6,
-            3,
-            "arc",
-        ),
-        id: "aurelia-name-ink",
-    }),
-    masthead(tracked(
-        bold(text(STARTER_NAME, DISPLAY_NAME_SIZE, DISPLAY, WHITE, 80, 55, 4)),
-        DISPLAY_NAME_TRACKING,
-    )),
-    masthead(tracked(text(STARTER_TITLE, TITLE_SIZE, SANS, WHITE, 82, 100, 4), TITLE_TRACKING)),
-    masthead(text("anna.kowalska@email.com  ·  +48 600 000 000  ·  Warszawa", 8.4, SANS, MUTED, 82, 128, 4)),
-
-    ...sectionHeading("PROFIL", 204, "summary"),
-    block(
-        "Liderka strategiczna, która przekłada złożoność na klarowne decyzje. "
-        + "Buduje organizacje spokojne w działaniu, ambitne w celach i konsekwentne w realizacji.",
-        116, 228, 399, 31, 9.3, 13.6, BODY, SANS,
-    ),
-
-    ...sectionHeading("DOŚWIADCZENIE", 291, "experience"),
-    bold(text("Director of Operations  /  Waverly Group", 10.8, SANS, INK, 116, 316, 3)),
-    text("2020 – obecnie  ·  Warszawa", 8.2, SANS, MUTED, 116, 335, 3),
-    bulleted(block(
-        "• Przebudowała model operacyjny, skracając drogę od decyzji do wdrożenia.\n"
-        + "• Wprowadziła wspólny rytm planowania dla sześciu zespołów.",
-        116, 352, 399, 31, 9.3, 13.6, BODY, SANS,
-    )),
-    bold(text("Operations Manager  /  Westbury", 10.8, SANS, INK, 116, 407, 3)),
-    text("2016 – 2020  ·  Kraków", 8.2, SANS, MUTED, 116, 426, 3),
-    bulleted(block(
-        "• Uporządkowała portfel inicjatyw i odpowiedzialność właścicieli.\n"
-        + "• Zbudowała zwięzły system raportowania wyników i ryzyk.",
-        116, 443, 399, 31, 9.3, 13.6, BODY, SANS,
-    )),
-
-    ...sectionHeading("WYKSZTAŁCENIE", 515, "education"),
-    bold(text("Zarządzanie i Strategia  /  SGH", 10.4, SANS, INK, 116, 540, 3)),
-    text("2011 – 2016  ·  Warszawa", 8.2, SANS, MUTED, 116, 559, 3),
-
-    ...sectionHeading("KOMPETENCJE", 614, "skills"),
-    block(
-        "Operating models  ·  Change management  ·  Governance  ·  Planning\n"
-        + "Leadership  ·  Process design  ·  Stakeholder alignment",
-        116, 639, 399, 31, 9.3, 13.6, BODY, SANS,
-    ),
-
-    { ...line(80, 778, 435, 1, RULE, 2), fixedToPage: true },
-    { ...line(80, 787, 54, 4, GOLD, 3), fixedToPage: true },
-    { ...tracked(text("AURELIA  /  01", 7.6, SANS, MUTED, 437, 788, 3), 1.1), fixedToPage: true },
+const AURELIA_ELEMENTS = [
+  {
+    "category": "line",
+    "left": 0,
+    "top": 0,
+    "width": 595,
+    "height": 842,
+    "backgroundColor": "#FEFDF9",
+    "zIndex": 0,
+    "page": 1,
+    "fixedToPage": true
+  },
+  {
+    "category": "line",
+    "left": 58,
+    "top": 42,
+    "width": 1,
+    "height": 756,
+    "backgroundColor": "#DCD8CE",
+    "zIndex": 1,
+    "page": 1,
+    "fixedToPage": true
+  },
+  {
+    "category": "line",
+    "left": 63,
+    "top": 42,
+    "width": 3,
+    "height": 54,
+    "backgroundColor": "#B3924F",
+    "zIndex": 2,
+    "page": 1,
+    "fixedToPage": true
+  },
+  {
+    "category": "line",
+    "left": 63,
+    "top": 744,
+    "width": 3,
+    "height": 54,
+    "backgroundColor": "#B3924F",
+    "zIndex": 2,
+    "page": 1,
+    "fixedToPage": true
+  },
+  {
+    "category": "line",
+    "left": 80,
+    "top": 778,
+    "width": 435,
+    "height": 1,
+    "backgroundColor": "#DCD8CE",
+    "zIndex": 2,
+    "page": 1,
+    "fixedToPage": true
+  },
+  {
+    "category": "line",
+    "left": 80,
+    "top": 787,
+    "width": 54,
+    "height": 4,
+    "backgroundColor": "#B3924F",
+    "zIndex": 3,
+    "page": 1,
+    "fixedToPage": true
+  },
+  {
+    "category": "text",
+    "content": "AURELIA  /  01",
+    "fontSize": 7.6,
+    "fontFamily": "Montserrat",
+    "color": "#77736B",
+    "left": 437,
+    "top": 788,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "letterSpacing": 1.1,
+    "fixedToPage": true
+  },
+  {
+    "category": "path",
+    "pathKind": "flourish",
+    "curves": [
+      {
+        "type": "M",
+        "x": 0.72,
+        "y": 0.02
+      },
+      {
+        "type": "C",
+        "x1": 1,
+        "y1": 0.27,
+        "x2": 0.08,
+        "y2": 0.66,
+        "x": 0.34,
+        "y": 0.98
+      }
+    ],
+    "left": 320.2712,
+    "top": 24,
+    "width": 90,
+    "height": 132,
+    "backgroundColor": "#D6D6D3",
+    "borderWidth": 22,
+    "filled": false,
+    "zIndex": 1,
+    "page": 1,
+    "id": "aurelia-name-backdrop",
+    "flowRole": "masthead"
+  },
+  {
+    "category": "path",
+    "pathKind": "wave",
+    "curves": [
+      {
+        "type": "M",
+        "x": 0.03,
+        "y": 0.55
+      },
+      {
+        "type": "C",
+        "x1": 0.25,
+        "y1": 0.23,
+        "x2": 0.68,
+        "y2": 0.78,
+        "x": 0.97,
+        "y": 0.46
+      }
+    ],
+    "left": 72,
+    "top": 36,
+    "width": 291.56000000000006,
+    "height": 52,
+    "backgroundColor": "#3A3A36",
+    "borderWidth": 44,
+    "filled": false,
+    "zIndex": 2,
+    "page": 1,
+    "id": "aurelia-nameplate",
+    "flowRole": "masthead"
+  },
+  {
+    "category": "path",
+    "pathKind": "wave",
+    "curves": [
+      {
+        "type": "M",
+        "x": 0.02,
+        "y": 0.52
+      },
+      {
+        "type": "C",
+        "x1": 0.28,
+        "y1": 0.16,
+        "x2": 0.72,
+        "y2": 0.84,
+        "x": 0.98,
+        "y": 0.48
+      }
+    ],
+    "left": 78,
+    "top": 86,
+    "width": 188,
+    "height": 36,
+    "backgroundColor": "#5A5A54",
+    "borderWidth": 30,
+    "filled": false,
+    "zIndex": 2,
+    "page": 1,
+    "id": "aurelia-titleplate",
+    "flowRole": "masthead"
+  },
+  {
+    "category": "path",
+    "pathKind": "arc",
+    "curves": [
+      {
+        "type": "M",
+        "x": 0.02,
+        "y": 0.65
+      },
+      {
+        "type": "C",
+        "x1": 0.28,
+        "y1": 0.05,
+        "x2": 0.72,
+        "y2": 0.95,
+        "x": 0.98,
+        "y": 0.25
+      }
+    ],
+    "left": 80,
+    "top": 28,
+    "width": 129.55800000000002,
+    "height": 12,
+    "backgroundColor": "#B3924F",
+    "borderWidth": 6,
+    "filled": false,
+    "zIndex": 3,
+    "page": 1,
+    "id": "aurelia-name-ink",
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "Jan Kowalski",
+    "fontSize": 31,
+    "fontFamily": "PlayfairDisplay",
+    "color": "#FFFFFF",
+    "left": 80,
+    "top": 55,
+    "zIndex": 4,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 0.1,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "Dyrektor Strategii i Rozwoju",
+    "fontSize": 8.4,
+    "fontFamily": "Montserrat",
+    "color": "#FFFFFF",
+    "left": 82,
+    "top": 100,
+    "zIndex": 4,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "letterSpacing": 1.55,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "jan.kowalski@email.com · +48 600 000 000 · Warszawa · linkedin.com/in/jkowalski ·…",
+    "fontSize": 8.4,
+    "fontFamily": "Montserrat",
+    "color": "#77736B",
+    "left": 82,
+    "top": 128,
+    "zIndex": 4,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "line",
+    "left": 76,
+    "top": 211.0,
+    "width": 28,
+    "height": 4,
+    "backgroundColor": "#B3924F",
+    "zIndex": 3,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "text",
+    "content": "PODSUMOWANIE ZAWODOWE",
+    "fontSize": 9,
+    "fontFamily": "Montserrat",
+    "color": "#272724",
+    "left": 116,
+    "top": 204.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.35,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 271.97,
+    "top": 213.0,
+    "width": 243.02999999999997,
+    "height": 1,
+    "backgroundColor": "#DCD8CE",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
+    "left": 116,
+    "top": 228.0,
+    "width": 399,
+    "height": 41,
+    "fontSize": 9.3,
+    "lineHeight": 13.6,
+    "letterSpacing": 0,
+    "color": "#464540",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowRole": "content"
+  },
+  {
+    "category": "line",
+    "left": 76,
+    "top": 297.0,
+    "width": 28,
+    "height": 4,
+    "backgroundColor": "#B3924F",
+    "zIndex": 3,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "text",
+    "content": "DOŚWIADCZENIE ZAWODOWE",
+    "fontSize": 9,
+    "fontFamily": "Montserrat",
+    "color": "#272724",
+    "left": 116,
+    "top": 290.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.35,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 278.54,
+    "top": 299.0,
+    "width": 236.45999999999998,
+    "height": 1,
+    "backgroundColor": "#DCD8CE",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Northbridge Partners   ·   Warszawa   ·   2021 – obecnie",
+    "left": 116,
+    "top": 318.0,
+    "width": 399,
+    "height": 12,
+    "fontSize": 8.2,
+    "lineHeight": 11.2,
+    "letterSpacing": 0,
+    "color": "#77736B",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-1595956ddfa2",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
+    "left": 116,
+    "top": 334.0,
+    "width": 399,
+    "height": 41,
+    "fontSize": 9.3,
+    "lineHeight": 13.6,
+    "letterSpacing": 0,
+    "color": "#464540",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-1595956ddfa2",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Meridian Group   ·   Kraków   ·   2016 – 2021",
+    "left": 116,
+    "top": 389.0,
+    "width": 399,
+    "height": 12,
+    "fontSize": 8.2,
+    "lineHeight": 11.2,
+    "letterSpacing": 0,
+    "color": "#77736B",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-de792ba1d2db",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
+    "left": 116,
+    "top": 405.0,
+    "width": 399,
+    "height": 28,
+    "fontSize": 9.3,
+    "lineHeight": 13.6,
+    "letterSpacing": 0,
+    "color": "#464540",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-de792ba1d2db",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Alpine Consulting   ·   Kraków   ·   2013 – 2016",
+    "left": 116,
+    "top": 447.0,
+    "width": 399,
+    "height": 12,
+    "fontSize": 8.2,
+    "lineHeight": 11.2,
+    "letterSpacing": 0,
+    "color": "#77736B",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-0efe80c11cd1",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
+    "left": 116,
+    "top": 463.0,
+    "width": 399,
+    "height": 14,
+    "fontSize": 9.3,
+    "lineHeight": 13.6,
+    "letterSpacing": 0,
+    "color": "#464540",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-0efe80c11cd1",
+    "flowRole": "content"
+  },
+  {
+    "category": "line",
+    "left": 76,
+    "top": 505.0,
+    "width": 28,
+    "height": 4,
+    "backgroundColor": "#B3924F",
+    "zIndex": 3,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "text",
+    "content": "WYKSZTAŁCENIE",
+    "fontSize": 9,
+    "fontFamily": "Montserrat",
+    "color": "#272724",
+    "left": 116,
+    "top": 498.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.35,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 219.41,
+    "top": 507.0,
+    "width": 295.59000000000003,
+    "height": 1,
+    "backgroundColor": "#DCD8CE",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Magister Zarządzania",
+    "left": 116,
+    "top": 522.0,
+    "width": 399,
+    "height": 14,
+    "fontSize": 10.4,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#272724",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-db7ebd97b2d1",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "SGH Warszawa",
+    "left": 116,
+    "top": 540.0,
+    "width": 399,
+    "height": 14,
+    "fontSize": 10.4,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#272724",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-db7ebd97b2d1",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "2011 – 2016",
+    "left": 116,
+    "top": 558.0,
+    "width": 399,
+    "height": 12,
+    "fontSize": 8.2,
+    "lineHeight": 11.2,
+    "letterSpacing": 0,
+    "color": "#77736B",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-db7ebd97b2d1",
+    "flowRole": "content"
+  },
+  {
+    "category": "line",
+    "left": 76,
+    "top": 598.0,
+    "width": 28,
+    "height": 4,
+    "backgroundColor": "#B3924F",
+    "zIndex": 3,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "text",
+    "content": "UMIEJĘTNOŚCI",
+    "fontSize": 9,
+    "fontFamily": "Montserrat",
+    "color": "#272724",
+    "left": 116,
+    "top": 591.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.35,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 212.84,
+    "top": 600.0,
+    "width": 302.15999999999997,
+    "height": 1,
+    "backgroundColor": "#DCD8CE",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
+    "left": 116,
+    "top": 615.0,
+    "width": 399,
+    "height": 14,
+    "fontSize": 9.3,
+    "lineHeight": 13.6,
+    "letterSpacing": 0,
+    "color": "#464540",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-706c79a0ca3a",
+    "flowRole": "content"
+  },
+  {
+    "category": "line",
+    "left": 76,
+    "top": 657.0,
+    "width": 28,
+    "height": 4,
+    "backgroundColor": "#B3924F",
+    "zIndex": 3,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "text",
+    "content": "JĘZYKI",
+    "fontSize": 9,
+    "fontFamily": "Montserrat",
+    "color": "#272724",
+    "left": 116,
+    "top": 650.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.35,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 173.42000000000002,
+    "top": 659.0,
+    "width": 341.58,
+    "height": 1,
+    "backgroundColor": "#DCD8CE",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "• Polski — ojczysty\n• Angielski — C1\n• Francuski — B2",
+    "left": 116,
+    "top": 674.0,
+    "width": 399,
+    "height": 41,
+    "fontSize": 9.3,
+    "lineHeight": 13.6,
+    "letterSpacing": 0,
+    "color": "#464540",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowRole": "content"
+  }
 ];
 
-export const aureliaTemplate = aureliaElements.map((element) => (
-    element.fixedToPage || element.flowRole
-        ? element
-        : {
-            ...element,
-            flowRole: "content",
-            ...(element.category === "textarea" ? { preserveInitialLayout: true } : {}),
-        }
+export const aureliaTemplate = AURELIA_ELEMENTS.map((element) => (
+  element.category === "image" && typeof element.src === "string" && element.src.startsWith("/template-assets")
+    ? { ...element, src: `${API_BASE_URL}${element.src}` }
+    : element
 ));

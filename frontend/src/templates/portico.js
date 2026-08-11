@@ -1,163 +1,737 @@
 /**
  * Portico template (`layouts: ["icons"]`).
  *
- * The only template that combines a centered masthead with icon chrome: the
- * name, title, and contact row are centered on the page (an "Ivy League"
- * masthead), while everything below the header rule — Summary, Experience,
- * Education, Skills, Languages — stays left-aligned single-column with
- * icon-in-gutter section headings, matching the Cardinal / Nova body structure.
+ * Centered masthead with icon contact chrome; left-aligned body with
+ * icon-in-gutter section headings.
  *
- * Geometry mirrors the backend generator
- * (`backend/app/services/cv_templates/templates/portico.py`) exactly: these
- * coordinates were read off that generator's own output for equivalent demo
- * content, so the static picker preview matches what `/ai/fill_template`
- * produces for a real CV.
- *
- * Icon glyphs come from the shared icon pipeline
- * (`scripts/generate_iconic_icons.py`), rendered under the dedicated
- * `portico` theme in a warm bronze/taupe that matches the accent color.
+ * This static starter is the backend generator's own output
+ * (`backend/app/services/cv_templates/templates/portico.py`) for
+ * representative demo content (Jan Kowalski — three roles, one degree, five
+ * skills, and three languages, sized to fit page 1 of the mockup), so the
+ * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. The array already carries `flowRole` / `flowGroup` /
+ * `preserveInitialLayout` from the generator, so it is exported as-is (only
+ * the image src is absolutised).
  */
 import API_BASE_URL from "../services/api.js";
-import { block, bulleted, line, text } from "./helpers.js";
 
-// ── Colour system ───────────────────────────────────────────────────────────
-const PAPER = "#FCFBF8";
-const INK = "#22221F";
-const ACCENT = "#7C6A52"; // warm bronze/taupe — title, section labels, icons
-const MUTE = "#83786B";
-const BODY = "#2A2A28";
-const RULE = "#E4DED2";
-
-const SERIF = "Lora"; // display name only
-const SANS = "Inter"; // everything else
-
-// ── Layout geometry (A4 at 595×842 pt) ──────────────────────────────────────
-const L = 76; // left/right symmetric margin — page center sits at 297.5
-const W = 443; // content column width (595 - 2×76)
-const ICON_X = 54; // section-heading icon gutter
-const SECTION_ICON = 14;
-const CONTACT_ICON = 12;
-const HEAD_FS = 8.5;
-
-const bold = (element) => ({ ...element, bold: true });
-const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
-const fixed = (element) => ({ ...element, fixedToPage: true });
-const masthead = (element) => ({ ...element, flowRole: "masthead" });
-const chrome = (element) => ({ ...element, flowRole: "section-chrome" });
-
-/**
- * A bronze line-art glyph from the `portico` icon theme.
- *
- * `top` stores the companion label's CSS top (not a pre-shifted image top);
- * `alignWithText` lets the canvas and PDF center the glyph on that text line
- * so it reads level with the caps rather than floating above them.
- */
-const icon = (name, left, top, size) => ({
-    category: "image",
-    src: `${API_BASE_URL}/template-assets/iconic/portico/${name}.png`,
-    width: size,
-    height: size,
-    left,
-    top,
-    zIndex: 3,
-    alignWithText: true,
-});
-
-/**
- * A section heading: bronze icon in the gutter, tracked label, and a hairline
- * rule beneath. Grouped as `section-chrome` so the reflow engine keeps the
- * three parts together when content pushes a heading to the next page.
- */
-const sectionHead = (iconName, label, top) => [
-    chrome(icon(iconName, ICON_X, top, SECTION_ICON)),
-    chrome(tracked(text(label, HEAD_FS, SANS, ACCENT, L, top, 3), 1.45)),
-    chrome(line(L, top + 13.5, W, 1, RULE, 1)),
+const PORTICO_ELEMENTS = [
+  {
+    "category": "line",
+    "left": 0,
+    "top": 0,
+    "width": 595,
+    "height": 842,
+    "backgroundColor": "#FCFBF8",
+    "zIndex": 0,
+    "page": 1,
+    "fixedToPage": true
+  },
+  {
+    "category": "line",
+    "left": 76,
+    "top": 800,
+    "width": 443,
+    "height": 1,
+    "backgroundColor": "#E4DED2",
+    "zIndex": 1,
+    "page": 1,
+    "fixedToPage": true
+  },
+  {
+    "category": "text",
+    "content": "01",
+    "fontSize": 8,
+    "fontFamily": "Inter",
+    "color": "#83786B",
+    "left": 504,
+    "top": 808,
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "fixedToPage": true
+  },
+  {
+    "category": "textarea",
+    "content": "Jan Kowalski",
+    "left": 76,
+    "top": 58.0,
+    "width": 443,
+    "height": 33,
+    "fontSize": 29,
+    "lineHeight": 33,
+    "letterSpacing": 0,
+    "color": "#22221F",
+    "fontFamily": "Lora",
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "center",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "textarea",
+    "content": "Dyrektor Strategii i Rozwoju",
+    "left": 76,
+    "top": 101.0,
+    "width": 443,
+    "height": 14,
+    "fontSize": 10,
+    "lineHeight": 14,
+    "letterSpacing": 2.0,
+    "color": "#7C6A52",
+    "fontFamily": "Inter",
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "center",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/portico/phone.png",
+    "left": 128.07373046875,
+    "top": 129.0,
+    "width": 12.0,
+    "height": 12.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "+48 600 000 000",
+    "fontSize": 8.4,
+    "fontFamily": "Inter",
+    "color": "#83786B",
+    "left": 141.07373046875,
+    "top": 129.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/portico/email.png",
+    "left": 227.94462890625002,
+    "top": 129.0,
+    "width": 12.0,
+    "height": 12.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "jan.kowalski@email.com",
+    "fontSize": 8.4,
+    "fontFamily": "Inter",
+    "color": "#83786B",
+    "left": 240.94462890625002,
+    "top": 129.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/portico/linkedin.png",
+    "left": 354.19677734375,
+    "top": 129.0,
+    "width": 12.0,
+    "height": 12.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "linkedin.com/in/jkowalski",
+    "fontSize": 8.4,
+    "fontFamily": "Inter",
+    "color": "#83786B",
+    "left": 367.19677734375,
+    "top": 129.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/portico/github.png",
+    "left": 171.38212890625,
+    "top": 144.0,
+    "width": 12.0,
+    "height": 12.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "github.com/jkowalski",
+    "fontSize": 8.4,
+    "fontFamily": "Inter",
+    "color": "#83786B",
+    "left": 184.38212890625,
+    "top": 144.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/portico/website.png",
+    "left": 284.41904296875,
+    "top": 144.0,
+    "width": 12.0,
+    "height": 12.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "jankowalski.pl",
+    "fontSize": 8.4,
+    "fontFamily": "Inter",
+    "color": "#83786B",
+    "left": 297.41904296875,
+    "top": 144.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/portico/location.png",
+    "left": 369.08134765625,
+    "top": 144.0,
+    "width": 12.0,
+    "height": 12.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "Warszawa",
+    "fontSize": 8.4,
+    "fontFamily": "Inter",
+    "color": "#83786B",
+    "left": 382.08134765625,
+    "top": 144.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "line",
+    "left": 76,
+    "top": 166.0,
+    "width": 443,
+    "height": 1,
+    "backgroundColor": "#E4DED2",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/portico/summary.png",
+    "left": 54,
+    "top": 203.0,
+    "width": 14.0,
+    "height": 14.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "text",
+    "content": "PODSUMOWANIE ZAWODOWE",
+    "fontSize": 8.5,
+    "fontFamily": "Inter",
+    "color": "#7C6A52",
+    "left": 76,
+    "top": 203.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "letterSpacing": 1.45,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 76,
+    "top": 216.475,
+    "width": 443,
+    "height": 1,
+    "backgroundColor": "#E4DED2",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
+    "left": 76,
+    "top": 224.475,
+    "width": 443,
+    "height": 27,
+    "fontSize": 9.4,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#2A2A28",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowRole": "content"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/portico/experience.png",
+    "left": 54,
+    "top": 272.475,
+    "width": 14.0,
+    "height": 14.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "text",
+    "content": "DOŚWIADCZENIE ZAWODOWE",
+    "fontSize": 8.5,
+    "fontFamily": "Inter",
+    "color": "#7C6A52",
+    "left": 76,
+    "top": 272.475,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "letterSpacing": 1.45,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 76,
+    "top": 285.95000000000005,
+    "width": 443,
+    "height": 1,
+    "backgroundColor": "#E4DED2",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Northbridge Partners   ·   Warszawa   ·   2021 – obecnie",
+    "left": 76,
+    "top": 297.95000000000005,
+    "width": 443,
+    "height": 12,
+    "fontSize": 8.5,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#83786B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-76163aec5d3a",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
+    "left": 76,
+    "top": 313.95000000000005,
+    "width": 443,
+    "height": 41,
+    "fontSize": 9.4,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#2A2A28",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-76163aec5d3a",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Meridian Group   ·   Kraków   ·   2016 – 2021",
+    "left": 76,
+    "top": 368.95000000000005,
+    "width": 443,
+    "height": 12,
+    "fontSize": 8.5,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#83786B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-1db74bbd57cf",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
+    "left": 76,
+    "top": 384.95000000000005,
+    "width": 443,
+    "height": 27,
+    "fontSize": 9.4,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#2A2A28",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-1db74bbd57cf",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Alpine Consulting   ·   Kraków   ·   2013 – 2016",
+    "left": 76,
+    "top": 425.95000000000005,
+    "width": 443,
+    "height": 12,
+    "fontSize": 8.5,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#83786B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-1266e6644a58",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
+    "left": 76,
+    "top": 441.95000000000005,
+    "width": 443,
+    "height": 14,
+    "fontSize": 9.4,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#2A2A28",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-1266e6644a58",
+    "flowRole": "content"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/portico/education.png",
+    "left": 54,
+    "top": 476.95000000000005,
+    "width": 14.0,
+    "height": 14.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "text",
+    "content": "WYKSZTAŁCENIE",
+    "fontSize": 8.5,
+    "fontFamily": "Inter",
+    "color": "#7C6A52",
+    "left": 76,
+    "top": 476.95000000000005,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "letterSpacing": 1.45,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 76,
+    "top": 490.42500000000007,
+    "width": 443,
+    "height": 1,
+    "backgroundColor": "#E4DED2",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Magister Zarządzania",
+    "left": 76,
+    "top": 498.42500000000007,
+    "width": 443,
+    "height": 13,
+    "fontSize": 10.4,
+    "lineHeight": 13,
+    "letterSpacing": 0,
+    "color": "#22221F",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-25b85508f7b9",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "SGH Warszawa",
+    "left": 76,
+    "top": 515.4250000000001,
+    "width": 443,
+    "height": 13,
+    "fontSize": 10.4,
+    "lineHeight": 13,
+    "letterSpacing": 0,
+    "color": "#22221F",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-25b85508f7b9",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "2011 – 2016",
+    "left": 76,
+    "top": 532.4250000000001,
+    "width": 443,
+    "height": 12,
+    "fontSize": 8.5,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#83786B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-25b85508f7b9",
+    "flowRole": "content"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/portico/skills.png",
+    "left": 54,
+    "top": 565.4250000000001,
+    "width": 14.0,
+    "height": 14.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "text",
+    "content": "UMIEJĘTNOŚCI",
+    "fontSize": 8.5,
+    "fontFamily": "Inter",
+    "color": "#7C6A52",
+    "left": 76,
+    "top": 565.4250000000001,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "letterSpacing": 1.45,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 76,
+    "top": 578.9000000000001,
+    "width": 443,
+    "height": 1,
+    "backgroundColor": "#E4DED2",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
+    "left": 76,
+    "top": 586.9000000000001,
+    "width": 443,
+    "height": 14,
+    "fontSize": 9.3,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#2A2A28",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-7775363c54b4",
+    "flowRole": "content"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/portico/languages.png",
+    "left": 54,
+    "top": 621.9000000000001,
+    "width": 14.0,
+    "height": 14.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "text",
+    "content": "JĘZYKI",
+    "fontSize": 8.5,
+    "fontFamily": "Inter",
+    "color": "#7C6A52",
+    "left": 76,
+    "top": 621.9000000000001,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "letterSpacing": 1.45,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 76,
+    "top": 635.3750000000001,
+    "width": 443,
+    "height": 1,
+    "backgroundColor": "#E4DED2",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "• Polski — ojczysty\n• Angielski — C1\n• Francuski — B2",
+    "left": 76,
+    "top": 643.3750000000001,
+    "width": 443,
+    "height": 41,
+    "fontSize": 9.3,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#2A2A28",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowRole": "content"
+  }
 ];
 
-/** One masthead contact detail: icon plus its muted label on a shared row. */
-const contact = (iconName, left, textLeft, label, top) => [
-    masthead(icon(iconName, left, top, CONTACT_ICON)),
-    masthead(text(label, 8.4, SANS, MUTE, textLeft, top, 3)),
-];
-
-const porticoElements = [
-    // Page surface + footer chrome. Fixed so they never participate in reflow.
-    fixed(line(0, 0, 595, 842, PAPER, 0)),
-    fixed(line(L, 800, W, 1, RULE, 1)),
-    fixed(text("01", 8, SANS, MUTE, 504, 808, 2)),
-
-    // ── Masthead: centered name, title, and a two-row centered contact band ──
-    masthead(bold(block("Anna Kowalska", L, 58, W, 33, 29, 33, INK, SERIF, 0, 3, "center"))),
-    masthead(tracked(block(
-        "Dyrektorka Strategii i Rozwoju", L, 101, W, 14, 10, 14, ACCENT, SANS, 0, 3, "center",
-    ), 2.0)),
-    ...contact("phone", 120.2, 133.2, "+48 600 000 000", 129),
-    ...contact("email", 220.1, 233.1, "anna.kowalska@email.com", 129),
-    ...contact("linkedin", 356.7, 369.7, "linkedin.com/in/akowalska", 129),
-    ...contact("github", 211.0, 224.0, "github.com/akowalska", 144),
-    ...contact("location", 329.4, 342.4, "Warszawa", 144),
-    masthead(line(L, 166, W, 1, RULE, 2)),
-
-    // ── Podsumowanie zawodowe (left-aligned paragraph, like every body section) ─
-    ...sectionHead("summary", "PODSUMOWANIE ZAWODOWE", 203),
-    block(
-        "Liderka strategii łącząca perspektywę biznesową z dyscypliną wykonania. "
-        + "Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą "
-        + "mierzalne rezultaty bez utraty jakości relacji.",
-        L, 224.5, W, 27, 9.4, 13.4, BODY, SANS,
-    ),
-
-    // ── Doświadczenie zawodowe ───────────────────────────────────────────────
-    ...sectionHead("experience", "DOŚWIADCZENIE ZAWODOWE", 272.5),
-    bold(text("Dyrektorka Strategii  /  Northbridge Partners", 11, SANS, INK, L, 294, 3)),
-    text("2021 – obecnie  ·  Warszawa", 8.5, SANS, MUTE, L, 313, 3),
-    bulleted(block(
-        "• Zaprojektowała model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n"
-        + "• Uporządkowała rytm decyzji zarządu oraz raportowanie strategiczne.\n"
-        + "• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
-        L, 329, W, 41, 9.4, 13.4, BODY, SANS,
-    )),
-    bold(text("Menedżerka Rozwoju  /  Meridian Group", 11, SANS, INK, L, 380, 3)),
-    text("2016 – 2021  ·  Kraków", 8.5, SANS, MUTE, L, 399, 3),
-    bulleted(block(
-        "• Rozwinęła portfel projektów ekspansji na rynkach europejskich.\n"
-        + "• Wprowadziła standardy współpracy między sprzedażą, produktem i finansami.",
-        L, 415, W, 27, 9.4, 13.4, BODY, SANS,
-    )),
-
-    // ── Wykształcenie ───────────────────────────────────────────────────────
-    ...sectionHead("education", "WYKSZTAŁCENIE", 463),
-    bold(text("Magister Zarządzania  /  SGH Warszawa", 10.4, SANS, INK, L, 484.4, 3)),
-    text("2011 – 2016", 8.5, SANS, MUTE, L, 501.4, 3),
-
-    // ── Umiejętności ────────────────────────────────────────────────────────
-    ...sectionHead("skills", "UMIEJĘTNOŚCI", 534.4),
-    block(
-        "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
-        L, 555.9, W, 14, 9.3, 13.4, BODY, SANS,
-    ),
-
-    // ── Języki ──────────────────────────────────────────────────────────────
-    ...sectionHead("languages", "JĘZYKI", 590.9),
-    bulleted(block(
-        "• Polski — ojczysty\n• Angielski — C1\n• Francuski — B2",
-        L, 612.4, W, 41, 9.3, 13.4, BODY, SANS,
-    )),
-];
-
-/**
- * Tag content for the reflow engine. Elements that already declare their role
- * (`fixedToPage` chrome, `masthead`/`section-chrome` chrome) are preserved as
- * authored; everything else becomes flowing `content`, and textareas keep
- * their measured initial geometry so the loaded layout matches this authored
- * spec exactly.
- */
-export const porticoTemplate = porticoElements.map((element) => (
-    element.fixedToPage || element.flowRole
-        ? element
-        : {
-            ...element,
-            flowRole: "content",
-            ...(element.category === "textarea" ? { preserveInitialLayout: true } : {}),
-        }
+export const porticoTemplate = PORTICO_ELEMENTS.map((element) => (
+  element.category === "image" && typeof element.src === "string" && element.src.startsWith("/template-assets")
+    ? { ...element, src: `${API_BASE_URL}${element.src}` }
+    : element
 ));

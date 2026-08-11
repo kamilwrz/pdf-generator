@@ -1,218 +1,1189 @@
 /**
  * Harbor template (`layouts: ["sidebar", "icons"]`).
  *
- * A two-column resume modelled on the popular "double column" layout: a wide
- * main column on the left (summary + experience) and a narrower sidebar on the
- * right (education, skills, languages, tools). A single teal accent carries the
- * role line, company names and teal diamond bullets; everything else is charcoal
- * on white.
+ * Two-column teal layout with circular photo slot and diamond list widgets.
  *
- * Skills, languages, tools and education descriptions all use the same teal
- * diamond bullet list. Contact and meta icons come from the grey `harbor` icon
- * theme; the diamond comes from the teal `harbor-accent` variant
- * (see scripts/generate_iconic_icons.py).
+ * This static starter is the backend generator's own output
+ * (`backend/app/services/cv_templates/templates/harbor.py`) for
+ * representative demo content (Jan Kowalski — three roles, one degree, five
+ * skills, and three languages, sized to fit page 1 of the mockup), so the
+ * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. The array already carries `flowRole` / `flowGroup` /
+ * `preserveInitialLayout` from the generator, so it is exported as-is (only
+ * the image src is absolutised).
  */
 import API_BASE_URL from "../services/api.js";
-import { block, bulleted, circle, line, text } from "./helpers.js";
 
-// ── Colour system ───────────────────────────────────────────────────────────
-const PAPER = "#FFFFFF";
-const ACCENT = "#17A2B8"; // teal: role, company, diamond bullets
-const INK = "#2B2B2B"; // name, section headings, titles
-const BODY = "#3A3A3A"; // body copy and bullets
-const META = "#7A7A7A"; // dates and locations
-const RULE = "#C4C9CE"; // heading underlines and header/footer keylines
-const PHOTO_BG = "#ECEEF1"; // circular photo placeholder fill
-const SANS = "Inter";
+const HARBOR_ELEMENTS = [
+  {
+    "category": "line",
+    "left": 0,
+    "top": 0,
+    "width": 595,
+    "height": 842,
+    "backgroundColor": "#FFFFFF",
+    "zIndex": 0,
+    "page": 1,
+    "fixedToPage": true
+  },
+  {
+    "category": "line",
+    "left": 44,
+    "top": 806,
+    "width": 507,
+    "height": 1,
+    "backgroundColor": "#C4C9CE",
+    "zIndex": 2,
+    "page": 1,
+    "fixedToPage": true
+  },
+  {
+    "category": "text",
+    "content": "01",
+    "fontSize": 8,
+    "fontFamily": "Inter",
+    "color": "#7A7A7A",
+    "left": 535,
+    "top": 812,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "fixedToPage": true
+  },
+  {
+    "category": "text",
+    "content": "JAN KOWALSKI",
+    "fontSize": 23,
+    "fontFamily": "Inter",
+    "color": "#2B2B2B",
+    "left": 44,
+    "top": 44,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 0.3,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "Dyrektor Strategii i Rozwoju",
+    "fontSize": 11,
+    "fontFamily": "Inter",
+    "color": "#17A2B8",
+    "left": 44,
+    "top": 80,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor/phone.png",
+    "left": 44.0,
+    "top": 104.0,
+    "width": 11,
+    "height": 11,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "+48 600 000 000",
+    "fontSize": 8.4,
+    "fontFamily": "Inter",
+    "color": "#3A3A3A",
+    "left": 59.0,
+    "top": 104.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor/email.png",
+    "left": 143.5,
+    "top": 104.0,
+    "width": 11,
+    "height": 11,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "jan.kowalski@email.com",
+    "fontSize": 8.4,
+    "fontFamily": "Inter",
+    "color": "#3A3A3A",
+    "left": 158.5,
+    "top": 104.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor/linkedin.png",
+    "left": 275.9,
+    "top": 104.0,
+    "width": 11,
+    "height": 11,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "linkedin.com/in/jkowalski",
+    "fontSize": 8.4,
+    "fontFamily": "Inter",
+    "color": "#3A3A3A",
+    "left": 290.9,
+    "top": 104.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor/github.png",
+    "left": 422.4,
+    "top": 104.0,
+    "width": 11,
+    "height": 11,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "github.com/jkowalski",
+    "fontSize": 8.4,
+    "fontFamily": "Inter",
+    "color": "#3A3A3A",
+    "left": 437.4,
+    "top": 104.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor/website.png",
+    "left": 44.0,
+    "top": 120.0,
+    "width": 11,
+    "height": 11,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "jankowalski.pl",
+    "fontSize": 8.4,
+    "fontFamily": "Inter",
+    "color": "#3A3A3A",
+    "left": 59.0,
+    "top": 120.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor/location.png",
+    "left": 138.8,
+    "top": 120.0,
+    "width": 11,
+    "height": 11,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "Warszawa",
+    "fontSize": 8.4,
+    "fontFamily": "Inter",
+    "color": "#3A3A3A",
+    "left": 153.8,
+    "top": 120.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "circle",
+    "left": 493,
+    "top": 36,
+    "width": 58,
+    "height": 58,
+    "backgroundColor": "#ECEEF1",
+    "filled": true,
+    "borderWidth": 1,
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "masthead",
+    "id": "harbor-photo-frame",
+    "photoSlot": "frame",
+    "photoShape": "circle"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor/references.png",
+    "left": 507,
+    "top": 50,
+    "width": 30,
+    "height": 30,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "masthead",
+    "id": "harbor-photo-glyph",
+    "photoSlot": "glyph"
+  },
+  {
+    "category": "line",
+    "left": 44,
+    "top": 142.0,
+    "width": 507,
+    "height": 1,
+    "backgroundColor": "#C4C9CE",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "WYKSZTAŁCENIE",
+    "fontSize": 8.8,
+    "fontFamily": "Inter",
+    "color": "#2B2B2B",
+    "left": 364,
+    "top": 162.0,
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "letterSpacing": 1.1,
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "line",
+    "left": 364,
+    "top": 173.88,
+    "width": 187,
+    "height": 1,
+    "backgroundColor": "#C4C9CE",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "textarea",
+    "content": "Magister Zarządzania",
+    "left": 364,
+    "top": 181.88,
+    "width": 187,
+    "height": 13,
+    "fontSize": 10,
+    "lineHeight": 13,
+    "letterSpacing": 0,
+    "color": "#2B2B2B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-f326b189dcb7",
+    "flowRole": "content",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "textarea",
+    "content": "SGH Warszawa",
+    "left": 364,
+    "top": 196.88,
+    "width": 187,
+    "height": 12,
+    "fontSize": 9,
+    "lineHeight": 12,
+    "letterSpacing": 0,
+    "color": "#17A2B8",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-f326b189dcb7",
+    "flowRole": "content",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "textarea",
+    "content": "2011 – 2016",
+    "left": 380,
+    "top": 208.88,
+    "width": 171,
+    "height": 12,
+    "fontSize": 8.6,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#7A7A7A",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-f326b189dcb7",
+    "flowRole": "content",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor/calendar.png",
+    "left": 364,
+    "top": 209.13,
+    "width": 11,
+    "height": 11,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-f326b189dcb7",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "text",
+    "content": "UMIEJĘTNOŚCI",
+    "fontSize": 8.8,
+    "fontFamily": "Inter",
+    "color": "#2B2B2B",
+    "left": 364,
+    "top": 253.88,
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "letterSpacing": 1.1,
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "line",
+    "left": 364,
+    "top": 265.76,
+    "width": 187,
+    "height": 1,
+    "backgroundColor": "#C4C9CE",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "textarea",
+    "content": "Strategia",
+    "left": 380,
+    "top": 273.76,
+    "width": 171,
+    "height": 12,
+    "fontSize": 8.6,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#2B2B2B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-harbor-side-9",
+    "flowRole": "content",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor-accent/diamond.png",
+    "left": 364,
+    "top": 274.01,
+    "width": 11,
+    "height": 11,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-harbor-side-9",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "textarea",
+    "content": "Leadership",
+    "left": 380,
+    "top": 287.76,
+    "width": 171,
+    "height": 12,
+    "fontSize": 8.6,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#2B2B2B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-harbor-side-11",
+    "flowRole": "content",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor-accent/diamond.png",
+    "left": 364,
+    "top": 288.01,
+    "width": 11,
+    "height": 11,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-harbor-side-11",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "textarea",
+    "content": "P&L",
+    "left": 380,
+    "top": 301.76,
+    "width": 171,
+    "height": 12,
+    "fontSize": 8.6,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#2B2B2B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-harbor-side-13",
+    "flowRole": "content",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor-accent/diamond.png",
+    "left": 364,
+    "top": 302.01,
+    "width": 11,
+    "height": 11,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-harbor-side-13",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "textarea",
+    "content": "Negocjacje",
+    "left": 380,
+    "top": 315.76,
+    "width": 171,
+    "height": 12,
+    "fontSize": 8.6,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#2B2B2B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-harbor-side-15",
+    "flowRole": "content",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor-accent/diamond.png",
+    "left": 364,
+    "top": 316.01,
+    "width": 11,
+    "height": 11,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-harbor-side-15",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "textarea",
+    "content": "Transformacja organizacyjna",
+    "left": 380,
+    "top": 329.76,
+    "width": 171,
+    "height": 12,
+    "fontSize": 8.6,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#2B2B2B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-harbor-side-17",
+    "flowRole": "content",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor-accent/diamond.png",
+    "left": 364,
+    "top": 330.01,
+    "width": 11,
+    "height": 11,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-harbor-side-17",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "text",
+    "content": "JĘZYKI",
+    "fontSize": 8.8,
+    "fontFamily": "Inter",
+    "color": "#2B2B2B",
+    "left": 364,
+    "top": 364.76,
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "letterSpacing": 1.1,
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "line",
+    "left": 364,
+    "top": 376.64,
+    "width": 187,
+    "height": 1,
+    "backgroundColor": "#C4C9CE",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "textarea",
+    "content": "Polski — ojczysty",
+    "left": 380,
+    "top": 384.64,
+    "width": 171,
+    "height": 12,
+    "fontSize": 8.6,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#2B2B2B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-harbor-side-21",
+    "flowRole": "content",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor-accent/diamond.png",
+    "left": 364,
+    "top": 384.89,
+    "width": 11,
+    "height": 11,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-harbor-side-21",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "textarea",
+    "content": "Angielski — C1",
+    "left": 380,
+    "top": 398.64,
+    "width": 171,
+    "height": 12,
+    "fontSize": 8.6,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#2B2B2B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-harbor-side-23",
+    "flowRole": "content",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor-accent/diamond.png",
+    "left": 364,
+    "top": 398.89,
+    "width": 11,
+    "height": 11,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-harbor-side-23",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "textarea",
+    "content": "Francuski — B2",
+    "left": 380,
+    "top": 412.64,
+    "width": 171,
+    "height": 12,
+    "fontSize": 8.6,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#2B2B2B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-harbor-side-25",
+    "flowRole": "content",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor-accent/diamond.png",
+    "left": 364,
+    "top": 412.89,
+    "width": 11,
+    "height": 11,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-harbor-side-25",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "text",
+    "content": "PODSUMOWANIE ZAWODOWE",
+    "fontSize": 8.8,
+    "fontFamily": "Inter",
+    "color": "#2B2B2B",
+    "left": 44,
+    "top": 162.0,
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "letterSpacing": 1.1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 44,
+    "top": 173.88,
+    "width": 292,
+    "height": 1,
+    "backgroundColor": "#C4C9CE",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
+    "left": 44,
+    "top": 181.88,
+    "width": 292,
+    "height": 41,
+    "fontSize": 9,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#3A3A3A",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowRole": "content"
+  },
+  {
+    "category": "text",
+    "content": "DOŚWIADCZENIE ZAWODOWE",
+    "fontSize": 8.8,
+    "fontFamily": "Inter",
+    "color": "#2B2B2B",
+    "left": 44,
+    "top": 243.88,
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "letterSpacing": 1.1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 44,
+    "top": 255.76,
+    "width": 292,
+    "height": 1,
+    "backgroundColor": "#C4C9CE",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Northbridge Partners",
+    "left": 44,
+    "top": 267.76,
+    "width": 292,
+    "height": 12,
+    "fontSize": 9.2,
+    "lineHeight": 12,
+    "letterSpacing": 0,
+    "color": "#17A2B8",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-004c58aa1da4",
+    "flowRole": "content"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor/calendar.png",
+    "left": 44.0,
+    "top": 282.01,
+    "width": 11.0,
+    "height": 11.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-004c58aa1da4"
+  },
+  {
+    "category": "textarea",
+    "content": "2021 – obecnie",
+    "left": 59.0,
+    "top": 281.76,
+    "width": 110.0,
+    "height": 12,
+    "fontSize": 8.6,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#7A7A7A",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-004c58aa1da4",
+    "flowRole": "content"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor/location.png",
+    "left": 179.0,
+    "top": 282.01,
+    "width": 11.0,
+    "height": 11.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-004c58aa1da4"
+  },
+  {
+    "category": "textarea",
+    "content": "Warszawa",
+    "left": 194.0,
+    "top": 281.76,
+    "width": 142.0,
+    "height": 12,
+    "fontSize": 8.6,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#7A7A7A",
+    "fontFamily": "Inter",
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": false,
+    "preserveInitialLayout": true,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-004c58aa1da4"
+  },
+  {
+    "category": "textarea",
+    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
+    "left": 44,
+    "top": 297.76,
+    "width": 292,
+    "height": 81,
+    "fontSize": 9,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#3A3A3A",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-004c58aa1da4",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Meridian Group",
+    "left": 44,
+    "top": 392.76,
+    "width": 292,
+    "height": 12,
+    "fontSize": 9.2,
+    "lineHeight": 12,
+    "letterSpacing": 0,
+    "color": "#17A2B8",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-190b88528ecf",
+    "flowRole": "content"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor/calendar.png",
+    "left": 44.0,
+    "top": 407.01,
+    "width": 11.0,
+    "height": 11.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-190b88528ecf"
+  },
+  {
+    "category": "textarea",
+    "content": "2016 – 2021",
+    "left": 59.0,
+    "top": 406.76,
+    "width": 110.0,
+    "height": 12,
+    "fontSize": 8.6,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#7A7A7A",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-190b88528ecf",
+    "flowRole": "content"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor/location.png",
+    "left": 179.0,
+    "top": 407.01,
+    "width": 11.0,
+    "height": 11.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-190b88528ecf"
+  },
+  {
+    "category": "textarea",
+    "content": "Kraków",
+    "left": 194.0,
+    "top": 406.76,
+    "width": 142.0,
+    "height": 12,
+    "fontSize": 8.6,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#7A7A7A",
+    "fontFamily": "Inter",
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": false,
+    "preserveInitialLayout": true,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-190b88528ecf"
+  },
+  {
+    "category": "textarea",
+    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
+    "left": 44,
+    "top": 422.76,
+    "width": 292,
+    "height": 41,
+    "fontSize": 9,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#3A3A3A",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-190b88528ecf",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Alpine Consulting",
+    "left": 44,
+    "top": 477.76,
+    "width": 292,
+    "height": 12,
+    "fontSize": 9.2,
+    "lineHeight": 12,
+    "letterSpacing": 0,
+    "color": "#17A2B8",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-823769e2bff8",
+    "flowRole": "content"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor/calendar.png",
+    "left": 44.0,
+    "top": 492.01,
+    "width": 11.0,
+    "height": 11.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-823769e2bff8"
+  },
+  {
+    "category": "textarea",
+    "content": "2013 – 2016",
+    "left": 59.0,
+    "top": 491.76,
+    "width": 110.0,
+    "height": 12,
+    "fontSize": 8.6,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#7A7A7A",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-823769e2bff8",
+    "flowRole": "content"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/harbor/location.png",
+    "left": 179.0,
+    "top": 492.01,
+    "width": 11.0,
+    "height": 11.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-823769e2bff8"
+  },
+  {
+    "category": "textarea",
+    "content": "Kraków",
+    "left": 194.0,
+    "top": 491.76,
+    "width": 142.0,
+    "height": 12,
+    "fontSize": 8.6,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#7A7A7A",
+    "fontFamily": "Inter",
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": false,
+    "preserveInitialLayout": true,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-823769e2bff8"
+  },
+  {
+    "category": "textarea",
+    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
+    "left": 44,
+    "top": 507.76,
+    "width": 292,
+    "height": 27,
+    "fontSize": 9,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#3A3A3A",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-823769e2bff8",
+    "flowRole": "content"
+  }
+];
 
-// ── Two-column geometry (A4 at 595×842 pt) ──────────────────────────────────
-const MAIN_X = 44; // main column left edge
-const MAIN_W = 292; // main column width (right edge 336)
-const SIDE_X = 364; // sidebar left edge
-const SIDE_W = 187; // sidebar width (right edge 551)
-const PHOTO_D = 58; // circular photo placeholder diameter
-const PHOTO_X = 493;
-const PHOTO_Y = 36;
-
-const bold = (element) => ({ ...element, bold: true });
-const tracked = (element, letterSpacing) => ({ ...element, letterSpacing });
-
-/**
- * A line-art glyph. `theme` is "harbor" (grey contact/meta) or "harbor-accent"
- * (teal diamond). `alignWithText` centres the glyph on the companion text line;
- * pass geometric=false for icons that must sit at an exact geometric position
- * (the photo person mark), not aligned to a text baseline.
- */
-const icon = (theme, name, left, top, size, alignWithText = true) => ({
-    category: "image",
-    src: `${API_BASE_URL}/template-assets/iconic/${theme}/${name}.png`,
-    width: size, height: size, left, top, zIndex: 3,
-    alignWithText,
-});
-
-/** Section heading: charcoal tracked label + a grey rule spanning the column. */
-const heading = (label, left, width, top, { sidebar = false } = {}) => [
-    tracked(text(label, 8.8, SANS, INK, left, top, 3), 1.1),
-    line(left, top + 13, width, 1, RULE, 2),
-].map((element) => (
-    sidebar
-        ? { ...element, flowRole: "sidebar-chrome", flowLane: "sidebar" }
-        : { ...element, flowRole: "section-chrome" }
+export const harborTemplate = HARBOR_ELEMENTS.map((element) => (
+  element.category === "image" && typeof element.src === "string" && element.src.startsWith("/template-assets")
+    ? { ...element, src: `${API_BASE_URL}${element.src}` }
+    : element
 ));
-
-const sideBody = (element) => ({ ...element, flowLane: "sidebar" });
-
-/** One header contact detail: grey icon + label on a shared text line. */
-const contact = (name, iconLeft, textLeft, label, top) => [
-    icon("harbor", name, iconLeft, top, 11),
-    text(label, 8.4, SANS, BODY, textLeft, top, 3),
-];
-
-/**
- * Date + location row below an experience record's employer.
- *
- * The 8.6/11.5 typography matches Harbor education metadata. Keeping this row
- * separate gives both labels enough width and avoids competing with long
- * employer names.
- */
-const jobMeta = (date, place, top) => {
-    const fs = 8.6;
-    const lh = 11.5;
-    const dateWidth = 110;
-    const dateLeft = MAIN_X + 15;
-    const locationIconLeft = dateLeft + dateWidth + 10;
-    const placeLeft = locationIconLeft + 15;
-    const placeWidth = MAIN_X + MAIN_W - placeLeft;
-    return [
-        icon("harbor", "calendar", MAIN_X, top + 0.25, 11, false),
-        block(date, dateLeft, top, dateWidth, 12, fs, lh, META, SANS),
-        icon("harbor", "location", locationIconLeft, top + 0.25, 11, false),
-        { ...block(place, placeLeft, top, placeWidth, 12, fs, lh, META, SANS), autoHeight: false },
-    ];
-};
-
-/** Teal diamond bullet + charcoal label — skills, languages, tools, edu notes. */
-const diamondItem = (label, left, top) => [
-    icon("harbor-accent", "diamond", left, top, 11),
-    text(label, 8.6, SANS, INK, left + 16, top, 4),
-];
-
-// ── Sidebar (running cursor; diamond lists stack with a fixed 15 px rhythm) ──
-const sidebar = (() => {
-    const els = [];
-    let y = 146;
-
-    // Education: bold diploma, accent school, meta icons, diamond description.
-    els.push(...heading("EDUKACJA", SIDE_X, SIDE_W, y, { sidebar: true }));
-    els.push(sideBody(bold(text("Bachelor of Laws", 10, SANS, INK, SIDE_X, y + 24, 3))));
-    els.push(sideBody(text("EU Viadrina", 9, SANS, ACCENT, SIDE_X, y + 40, 3)));
-    els.push(...contact("calendar", SIDE_X, SIDE_X + 15, "2016 – 2019", y + 57).map(sideBody));
-    els.push(...contact("location", SIDE_X, SIDE_X + 15, "Frankfurt nad Odrą", y + 72).map(sideBody));
-    els.push(...diamondItem("Specjalizacja: prawo europejskie", SIDE_X, y + 90).map(sideBody));
-
-    const skills = [
-        "Analiza AML/KYC", "Transaction Monitoring", "CDD / EDD",
-        "Screening (PEP / sankcje)", "SAR Reporting", "Analityczne myślenie",
-        "Dbałość o szczegóły", "Praca zespołowa",
-    ];
-    y += 122;
-    els.push(...heading("UMIEJĘTNOŚCI", SIDE_X, SIDE_W, y, { sidebar: true }));
-    skills.forEach((label, index) => {
-        els.push(...diamondItem(label, SIDE_X, y + 24 + index * 15).map(sideBody));
-    });
-
-    const languages = ["Polski — C2", "Niemiecki — C1", "Angielski — B2"];
-    y += 24 + skills.length * 15 + 20;
-    els.push(...heading("JĘZYKI", SIDE_X, SIDE_W, y, { sidebar: true }));
-    languages.forEach((label, index) => {
-        els.push(...diamondItem(label, SIDE_X, y + 24 + index * 15).map(sideBody));
-    });
-
-    const tools = ["Actimize", "LexisNexis", "SAP / SAP CIC", "MS Office", "SQL", "Python"];
-    y += 24 + languages.length * 15 + 20;
-    els.push(...heading("SYSTEMY I NARZĘDZIA", SIDE_X, SIDE_W, y, { sidebar: true }));
-    tools.forEach((label, index) => {
-        els.push(...diamondItem(label, SIDE_X, y + 24 + index * 15).map(sideBody));
-    });
-
-    return els;
-})();
-
-export const harborTemplate = [
-    // Page surface (white). Fixed so it never moves.
-    { ...line(0, 0, 595, 842, PAPER, 0), fixedToPage: true },
-
-    // Masthead: name, teal role line, single contact row, circular photo.
-    tracked(bold(text("ANNA KOWALSKA", 23, SANS, INK, MAIN_X, 44, 3)), 0.3),
-    text("Starszy Analityk AML / KYC", 11, SANS, ACCENT, MAIN_X, 80, 3),
-    ...contact("phone", MAIN_X, MAIN_X + 15, "+48 600 000 000", 104),
-    ...contact("email", 168, 183, "anna.kowalska@email.com", 104),
-    ...contact("linkedin", 320, 335, "linkedin.com/in/akowalska", 104),
-    ...contact("github", MAIN_X, MAIN_X + 15, "github.com/akowalska", 120),
-    ...contact("website", 168, 183, "anna.dev", 120),
-    ...contact("location", 280, 295, "Warszawa", 120),
-
-    // Circular photo placeholder: soft-grey disc + centred grey person glyph.
-    // `photoSlot` lets gallery upload replace the glyph and cover the disc.
-    {
-        ...circle(PHOTO_X, PHOTO_Y, PHOTO_D, PHOTO_BG, true, 1, 2),
-        id: "harbor-photo-frame",
-        photoSlot: "frame",
-        photoShape: "circle",
-    },
-    {
-        ...icon("harbor", "references", PHOTO_X + (PHOTO_D - 30) / 2, PHOTO_Y + (PHOTO_D - 30) / 2, 30, false),
-        id: "harbor-photo-glyph",
-        photoSlot: "glyph",
-    },
-
-    { ...line(MAIN_X, 142, SIDE_X + SIDE_W - MAIN_X, 1, RULE, 2) },
-
-    // ── Main column: summary ────────────────────────────────────────────────
-    ...heading("PODSUMOWANIE", MAIN_X, MAIN_W, 162),
-    // Summary shares the experience-bullet size (9 pt) so the lead paragraph
-    // does not read a step larger than the records beneath it.
-    block(
-        "Starszy analityk AML/KYC z blisko 4-letnim doświadczeniem w bankowości "
-        + "i doradztwie. Specjalizuję się w monitorowaniu transakcji, tworzeniu "
-        + "profili KYC, screeningu oraz raportowaniu SAR do jednostek analityki finansowej.",
-        MAIN_X, 170, MAIN_W, 58, 9, 13.4, BODY, SANS,
-    ),
-
-    // ── Main column: experience ─────────────────────────────────────────────
-    ...heading("DOŚWIADCZENIE", MAIN_X, MAIN_W, 244),
-    bold(text("Senior AML Analyst", 10.5, SANS, INK, MAIN_X, 272, 3)),
-    text("Price Waterhouse Coopers", 9.2, SANS, ACCENT, MAIN_X, 289, 3),
-    ...jobMeta("06/2025", "Warszawa", 303),
-    bulleted(block(
-        "• Tworzenie i aktualizacja profili KYC klientów indywidualnych i korporacyjnych.\n"
-        + "• Procesy Customer Due Diligence (CDD) i Enhanced Due Diligence (EDD).\n"
-        + "• Sporządzanie i zgłaszanie zawiadomień o podejrzanych transakcjach (SAR).",
-        MAIN_X, 319, MAIN_W, 70, 9, 13.4, BODY, SANS,
-    )),
-
-    bold(text("AML Analyst", 10.5, SANS, INK, MAIN_X, 404, 3)),
-    text("Citibank Europe", 9.2, SANS, ACCENT, MAIN_X, 421, 3),
-    ...jobMeta("07/2022", "Warszawa", 435),
-    bulleted(block(
-        "• Monitorowanie transakcji pod kątem ryzyka prania pieniędzy.\n"
-        + "• Analiza alertów oraz ocena ich zasadności zgodnie z procedurami AML.\n"
-        + "• Kontrole PEP, list sankcyjnych oraz analiza negatywnych informacji medialnych.",
-        MAIN_X, 451, MAIN_W, 70, 9, 13.4, BODY, SANS,
-    )),
-
-    bold(text("Customer Service Specialist", 10.5, SANS, INK, MAIN_X, 536, 3)),
-    text("Amazon VCS Poland", 9.2, SANS, ACCENT, MAIN_X, 553, 3),
-    ...jobMeta("08/2020", "Zdalnie", 567),
-    bulleted(block(
-        "• Obsługa klientów rynku niemieckiego z zachowaniem wysokich standardów.\n"
-        + "• Wewnętrzne szkolenia dla nowo zatrudnionych pracowników.",
-        MAIN_X, 583, MAIN_W, 48, 9, 13.4, BODY, SANS,
-    )),
-
-    ...sidebar,
-
-    // Footer keyline + page marker.
-    { ...line(MAIN_X, 806, SIDE_X + SIDE_W - MAIN_X, 1, RULE, 2), fixedToPage: true },
-    { ...text("01", 8, SANS, META, 535, 812, 3), fixedToPage: true },
-];

@@ -12,7 +12,7 @@ test("Regent renders a personalized executive editorial system", () => {
     assert.equal(regentTemplate.some((element) => element.category === "image"), false);
     assert.equal(regentTemplate.some((element) => element.category === "connector"), false);
 
-    const name = regentTemplate.find((element) => element.content === "ANNA KOWALSKA");
+    const name = regentTemplate.find((element) => element.content === "Jan Kowalski");
     assert.ok(name);
     assert.equal(name.fontFamily, "CormorantGaramond");
     assert.equal(name.fontSize, 33);
@@ -23,7 +23,7 @@ test("Regent renders a personalized executive editorial system", () => {
     assert.ok(regentTemplate.some((element) => element.id === "regent-seal"));
     assert.ok(regentTemplate.some((element) => element.id === "regent-signet"));
     const initials = regentTemplate.find((element) => element.id === "regent-initials");
-    assert.equal(initials?.content, "AK");
+    assert.equal(initials?.content, "JK");
     assert.equal(initials?.flowRole, "masthead");
     assert.equal(regentTemplate.some((element) => element.id === "regent-square"), false);
 
@@ -35,7 +35,13 @@ test("Regent renders a personalized executive editorial system", () => {
     );
     assert.deepEqual(
         headings.map((element) => element.content),
-        ["PROFIL", "DOŚWIADCZENIE", "WYKSZTAŁCENIE", "KOMPETENCJE"],
+        [
+            "PODSUMOWANIE ZAWODOWE",
+            "DOŚWIADCZENIE ZAWODOWE",
+            "WYKSZTAŁCENIE",
+            "UMIEJĘTNOŚCI",
+            "JĘZYKI",
+        ],
     );
     assert.ok(headings.every((element) => element.left === 96));
 
@@ -51,9 +57,9 @@ test("Regent renders a personalized executive editorial system", () => {
     const quietRules = sectionChrome.filter(
         (element) => element.category === "line" && element.backgroundColor === RULE,
     );
-    assert.equal(markers.length, 4);
-    assert.equal(accentRules.length, 4);
-    assert.equal(quietRules.length, 4);
+    assert.equal(markers.length, 5);
+    assert.equal(accentRules.length, 5);
+    assert.equal(quietRules.length, 5);
     assert.ok(markers.every((element) => element.filled === true));
     assert.ok(accentRules.every((element) => element.width === 44));
     assert.ok(quietRules.every((element) => element.left + element.width === 506));
@@ -61,5 +67,7 @@ test("Regent renders a personalized executive editorial system", () => {
     const bodyBlocks = regentTemplate.filter((element) => element.category === "textarea");
     assert.ok(bodyBlocks.length > 0);
     assert.ok(bodyBlocks.every((element) => element.left === 96 && element.width === 410));
-    assert.ok(bodyBlocks.every((element) => element.fontSize >= 9.5));
+    // Body paragraphs stay at reading size; record meta rows sit a step smaller.
+    assert.ok(bodyBlocks.every((element) => element.fontSize >= 8));
+    assert.ok(bodyBlocks.some((element) => element.fontSize >= 9.5));
 });

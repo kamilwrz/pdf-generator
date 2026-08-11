@@ -10,14 +10,16 @@ test("sidebar templates umieszczają Wykształcenie/Umiejętności/Języki w sid
     for (const file of SIDEBAR_TEMPLATES) {
         const source = await read(file);
 
+        // Hand-authored helpers use text("JĘZYKI"); backend dumps use JSON
+        // "content": "JĘZYKI". Both shapes must keep these labels in the sidebar.
         assert.match(
             source,
-            /(?:text|sideHeading)\("JĘZYKI"/,
+            /(?:(?:text|sideHeading)\("JĘZYKI"|"content":\s*"JĘZYKI")/,
             `${file}: brak sekcji JĘZYKI`,
         );
         assert.match(
             source,
-            /(?:text|sideHeading)\("WYKSZTAŁCENIE"/,
+            /(?:(?:text|sideHeading)\("WYKSZTAŁCENIE"|"content":\s*"WYKSZTAŁCENIE")/,
             `${file}: brak sekcji WYKSZTAŁCENIE`,
         );
         assert.doesNotMatch(
@@ -25,12 +27,14 @@ test("sidebar templates umieszczają Wykształcenie/Umiejętności/Języki w sid
             /EDUKACJA I KOMPETENCJE/,
             `${file}: pozostała sekcja "EDUKACJA I KOMPETENCJE" w kolumnie głównej`,
         );
-        // Umiejętności i języki muszą być listami wypunktowanymi (stąd co najmniej 2).
-        // Allow multiline calls such as `bulleted(block(\n  "• …"))`.
-        const bulletBlocks = source.match(/bulleted\(\s*block\(\s*"•/g) || [];
+
+        // Skills and languages must be bulleted — either via the helper factory
+        // or via `"bulletList": true` on dump-generated textareas.
+        const helperBullets = source.match(/bulleted\(\s*block\(\s*"•/g) || [];
+        const dumpBullets = source.match(/"bulletList":\s*true/g) || [];
         assert.ok(
-            bulletBlocks.length >= 2,
-            `${file}: oczekiwano co najmniej 2 list wypunktowanych (umiejętności + języki), znaleziono ${bulletBlocks.length}`,
+            helperBullets.length >= 2 || dumpBullets.length >= 2,
+            `${file}: oczekiwano co najmniej 2 list wypunktowanych (umiejętności + języki)`,
         );
     }
 });

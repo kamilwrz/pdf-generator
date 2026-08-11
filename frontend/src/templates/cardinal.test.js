@@ -36,7 +36,7 @@ test("Cardinal reserves red for headings while icons and rules stay grey", () =>
 
     // ── Generated icons: all ornament begins at or inside the body edge ──────
     const icons = cardinalTemplate.filter((element) => element.category === "image");
-    assert.equal(icons.length, 10); // 5 section headings + 5 contact rows (incl. LinkedIn/GitHub)
+    assert.equal(icons.length, 11); // 5 section headings + 6 contact rows (phone/email/linkedin/github/website/location)
     assert.ok(icons.every((element) => element.src.includes("/template-assets/iconic/cardinal/")));
     assert.ok(icons.every((element) => element.alignWithText === true));
     assert.ok(icons.every((element) => element.left >= 72));
@@ -62,15 +62,17 @@ test("Cardinal reserves red for headings while icons and rules stay grey", () =>
         assert.ok(rule, `${heading.content} rule crosses the visible Inter cap midline`);
     }
 
-    // ── Body copy: dark grey, readable (never sub-9pt) ───────────────────────
+    // ── Body copy: dark grey prose at readable size; meta rows stay muted ────
     const bodies = cardinalTemplate.filter((element) => element.category === "textarea");
     assert.ok(bodies.length > 0);
-    assert.ok(bodies.every((element) => element.color === BODY));
-    assert.ok(bodies.every((element) => element.fontSize >= 9));
+    const prose = bodies.filter((element) => element.color === BODY);
+    assert.ok(prose.length > 0);
+    assert.ok(prose.every((element) => element.fontSize >= 9));
+    assert.ok(bodies.every((element) => element.fontSize >= 8));
 
     // ── Name: serif, anchoring the masthead ──────────────────────────────────
     const name = cardinalTemplate.find(
-        (element) => element.category === "text" && element.content === "ANNA KOWALSKA",
+        (element) => element.category === "text" && element.content === "Jan Kowalski",
     );
     assert.equal(name?.fontFamily, "Times-Roman");
 });
