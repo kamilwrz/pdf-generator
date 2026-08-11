@@ -17,6 +17,7 @@ import { regentTemplate } from "../src/templates/regent.js";
 import { aureliaTemplate } from "../src/templates/aurelia.js";
 import { blueprintTemplate } from "../src/templates/blueprint.js";
 import { manifestTemplate } from "../src/templates/manifest.js";
+import { sterlingTemplate } from "../src/templates/sterling.js";
 import { ledgerTemplate } from "../src/templates/ledger.js";
 import { nimbusTemplate } from "../src/templates/nimbus.js";
 import { cinderTemplate } from "../src/templates/cinder.js";
@@ -39,6 +40,7 @@ const out = {
     aurelia: aureliaTemplate,
     blueprint: blueprintTemplate,
     manifest: manifestTemplate,
+    sterling: sterlingTemplate,
     ledger: ledgerTemplate,
     nimbus: nimbusTemplate,
     cinder: cinderTemplate,

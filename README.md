@@ -2,7 +2,7 @@
 
 # CV Studio
 
-CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 20 individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
+CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, 21 individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
 
 This README is the technical entry point for developers. A beginner-friendly deep guide to canvas coordinates, React interaction, deterministic Python layout, AI responsibilities, reflow, persistence, and ReportLab export lives in [`CANVA.md`](CANVA.md). Every live AI prompt (full text, variables, file/line references) is documented in [`PROMPTS.md`](PROMPTS.md). Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md). Marketing brief for the website „Dlaczego CV STUDIO” section (features + competitive positioning, no competitor brand names in public copy) lives in [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Template generation (AI extract vs Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md). A layperson-friendly end-to-end guide covering Frontend and Backend (flows, files, classes, functions) lives in [`CV_GENERATOR.md`](CV_GENERATOR.md).
 
@@ -583,7 +583,7 @@ Implementation:
 
 Limits:
 
-- Free (Darmowy) includes five starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 20 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
+- Free (Darmowy) includes five starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 21 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
 - ATS feedback (**Czytelność dla ATS**) checks whether the final PDF text can be extracted and whether content headings/keywords look standard. It is guidance, not a promise that every recruiter ATS will parse the file the same way.
 - The privacy section describes implemented data use at a high level and does not claim unimplemented certifications or anonymisation.
 
@@ -924,6 +924,28 @@ Tests:
 - `frontend/src/templates/manifest.test.js` — page/sidebar/divider decorations, header band painted before its own text (the array-order paint-order regression guard), masthead-exempt header content, sidebar kickers tagged `flowRole: "sidebar-chrome"` + `flowLane: "sidebar"`, plain bulleted languages (not a segmented bar), left-anchored main headings on a full-width rule, numbered records with the ordinal folded into the title, one mid-dot skills line, zero `rectangle` elements anywhere
 - `frontend/src/templates/manifest.pack.test.js` (with `manifest.multipage.fixture.json`) — a real two-page, four-job Manifest document: main-column headings stay glued to their bodies through `listDocumentSections` / `sectionElementIds` after `applyFlowSpacing` (default and compact rhythm) and after `reorderSection`; the tagged sidebar lane stays on `left: 42`, anchors its first kicker, and retargets under a compact rhythm without joining main-column membership
 - `backend/tests/test_cv_template_layouts.py` and `backend/tests/test_template_registry_sync.py` iterate every registered generator, so Manifest is covered for summary-equals-body type size (the sidebar summary and main-column body share one font size/line height on purpose, even though their columns differ in width — see `SIDE_BODY_FS`/`SIDE_BODY_LH` in `manifest.py`), page bounds, and frontend/backend id / layout-tag / tier parity without a dedicated entry
+
+### Sterling wide-sidebar elegant template
+
+Sterling is a paid, two-column template (`layouts: ["sidebar"]`) with a quiet blue-gray (`#4A6FA5` accent, `#26313F` ink, `#F7F8FA` paper) palette. It answers a different brief than Manifest: a **centered letterhead masthead** — serif (`CormorantGaramond`) display name, tracked uppercase title, mid-dot contact line — closed by a **horizontal rule spanning both columns**, rather than an inverted color-block header band. Below that rule, a sidebar **wider than Manifest's** (`210` pt vs `180` pt) carries Summary, Education, Skills, and Languages; the main column carries only Experience (plus any record-style extras a CV happens to have). One rule color (`#C7CFDA`) is reused for the masthead underline, the sidebar divider, and every main-column section rule, so the page reads as one coherent system rather than several separately-styled dividers — the "harmonijny" (harmonious) brief was explicit about this.
+
+The masthead is centered — every element in it carries `flowRole: "masthead"` (fully exempt from section packing), so centering introduces no column-detection risk the way a centered *section heading* would. The sidebar reuses the exact same `_sidebar_candidates` / `_fit_sidebar_sections` / `_fitted_sidebar_body_elements` machinery Manifest and Tessera already use, but **does not filter out Skills** — Manifest keeps Skills in its main column by design; Sterling's brief was "every simple/flat section belongs in the sidebar, Education is the one structured exception," which is exactly what that shared, unfiltered candidate list already provides (Education renders as separate degree/school/meta/bullet elements sharing one `flowGroup`, not a single mashed textarea — the same structured treatment Manifest's sidebar education gets).
+
+Implementation note this template surfaced: `_fit_sidebar_sections` auto-picks a body font size from a three-tier ladder (`8.3` / `8.0` / `7.5` pt) to fit its budget, and `test_summary_matches_experience_body_type_size` compares the summary against whichever bulleted sidebar content shares its column once one exists — which only happens for templates (like Sterling) that actually put bulleted content in the same column as the summary. Manifest's unconditionally-placed summary happens to match its main-column body size because Manifest excludes Skills from the sidebar, so no same-column bulleted content exists to prefer over the main-column fallback; Sterling's does include Skills, so its summary must instead match the auto-fit ladder's top tier (`SIDE_SUMMARY_FS`/`SIDE_SUMMARY_LH` = `8.3`/`12.04` in `sterling.py`) rather than reusing the main-column body size.
+
+Implementation:
+
+- `backend/app/services/cv_templates/templates/sterling.py`, function `_gen_sterling` — centered letterhead masthead + closing rule, `sidebar_kicker`, unconditional summary + unfiltered `_fit_sidebar_sections` fitting (Education/Skills/Languages/any simple extra), single-section main column (Experience only) via the shared record helpers
+- `backend/app/services/cv_templates/registry.py`, `_GENERATORS["sterling"]` and `TEMPLATE_LAYOUTS["sterling"]` (`frozenset({"sidebar"})`)
+- `frontend/src/templates/sterling.js` — static starter emitted directly from the generator's own demo output (no images, so no API_BASE_URL rewrite is needed); exported array `sterlingTemplate`
+- `frontend/src/templates/index.js`, registry entry `sterling` (`tier: "paid"`, `layouts: ["sidebar"]`, `accent: "#4A6FA5"`)
+- `frontend/scripts/dump-iconic-templates.mjs`, `frontend/public/template-mockups/sterling.png` — source-driven A4 preview
+
+Tests:
+
+- `frontend/src/templates/sterling.test.js` — page/sidebar/divider decorations (wide rail, thin rule-colored divider), centered masthead content closed by a horizontal rule, sidebar kickers tagged `flowRole: "sidebar-chrome"` + `flowLane: "sidebar"`, summary/skills/languages in the sidebar, structured (not mashed) sidebar education sharing one `flowGroup`, exactly one main-column section (Experience), stacked (not same-row) record title/org/period, zero `rectangle` elements
+- `frontend/src/templates/sterling.pack.test.js` (with `sterling.multipage.fixture.json`) — a real two-page, four-job Sterling document: the Experience heading stays glued to its body through `listDocumentSections` / `sectionElementIds` after `applyFlowSpacing` at both the default and a compact rhythm, the sidebar lane never folds into the main column, and structured sidebar education elements keep their shared `flowGroup` through a rhythm change
+- `backend/tests/test_cv_template_layouts.py` and `backend/tests/test_template_registry_sync.py` iterate every registered generator, so Sterling is covered for summary-equals-body type size, page bounds, and frontend/backend id / layout-tag / tier parity without a dedicated entry
 
 ### Icon-tagged templates and icon reflow
 
@@ -1627,7 +1649,7 @@ Notable product facts:
 
 # CV Studio
 
-CV Studio to polski edytor CV na A4: płótno WYSIWYG, 20 indywidualnych szablonów (każdy z własną nazwą i krótkim opisem stylistycznym), import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
+CV Studio to polski edytor CV na A4: płótno WYSIWYG, 21 indywidualnych szablonów (każdy z własną nazwą i krótkim opisem stylistycznym), import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
 
 Ten README to wejście techniczne dla programistów. Obszerne, napisane dla początkujących wyjaśnienie współrzędnych canvasu, interakcji React, deterministycznego layoutu Python, roli AI, reflow, zapisu i eksportu ReportLab znajduje się w [`CANVA.md`](CANVA.md). Wszystkie prompty AI (treść, zmienne, numery linii): [`PROMPTS.md`](PROMPTS.md). Opis produktowy funkcji: [`docs/FEATURES.md`](docs/FEATURES.md). Brief marketingowy pod sekcję „Dlaczego CV STUDIO” na stronie (funkcje + pozycjonowanie względem rynku, bez nazw marek konkurencji w copy publicznym): [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Generowanie szablonów (AI extract vs layout w Pythonie): [`docs/cv-template-generation.md`](docs/cv-template-generation.md). Przystępny, kompletny przewodnik Frontend + Backend (ścieżki, pliki, klasy, funkcje): [`CV_GENERATOR.md`](CV_GENERATOR.md).
 
@@ -2195,7 +2217,7 @@ Implementacja:
 
 Ograniczenia:
 
-- Plan Darmowy obejmuje pięć szablonów startowych, eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 20 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
+- Plan Darmowy obejmuje pięć szablonów startowych, eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 21 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
 - Wskazówki **Czytelność dla ATS** sprawdzają odczyt tekstu z finalnego PDF oraz standardowość nagłówków/słów kluczowych. To wskazówka, nie gwarancja że każdy system ATS odczyta plik tak samo.
 - Sekcja prywatności opisuje ogólnie zaimplementowane użycie danych i nie deklaruje niezaimplementowanych certyfikatów ani anonimizacji.
 
@@ -2532,6 +2554,28 @@ Testy:
 - `frontend/src/templates/manifest.test.js` — dekoracje strony/sidebaru/dividera, pasek nagłówka namalowany przed swoim tekstem (guard regresji kolejności malowania w tablicy), treść nagłówka zwolniona z packingu jako masthead, kickery sidebaru otagowane `flowRole: "sidebar-chrome"` + `flowLane: "sidebar"`, zwykłe wypunktowane języki (nie segmentowany pasek), lewostronnie zakotwiczone nagłówki główne nad linią na pełną szerokość, numerowane rekordy z numerem porządkowym wtopionym w tytuł, jedna linia umiejętności z kropkami, zero elementów `rectangle` w całym dokumencie
 - `frontend/src/templates/manifest.pack.test.js` (z `manifest.multipage.fixture.json`) — realny dwustronicowy dokument Manifest z czterema stanowiskami: nagłówki kolumny głównej pozostają przyklejone do swojego body w `listDocumentSections` / `sectionElementIds` po `applyFlowSpacing` (rytm domyślny i kompaktowy) oraz po `reorderSection`; otagowany tor sidebara zostaje na `left: 42`, kotwiczy pierwszy kicker i przepisuje rytm przy kompaktowej gęstości bez wchodzenia do membership kolumny głównej
 - `backend/tests/test_cv_template_layouts.py` i `backend/tests/test_template_registry_sync.py` iterują po wszystkich zarejestrowanych generatorach, więc Manifest jest objęty pokryciem (rozmiar podsumowania=body — podsumowanie w sidebarze i treść kolumny głównej celowo współdzielą jeden rozmiar czcionki/interlinię mimo różnej szerokości kolumn, patrz `SIDE_BODY_FS`/`SIDE_BODY_LH` w `manifest.py`), granice strony, parytet id/tagów/planu) bez dedykowanego wpisu
+
+### Szablon Sterling (elegancki, szeroki sidebar)
+
+Sterling to płatny, dwukolumnowy szablon (`layouts: ["sidebar"]`) w stonowanej palecie niebiesko-szarej (`#4A6FA5` akcent, `#26313F` tusz, `#F7F8FA` papier). Odpowiada na inny brief niż Manifest: **wycentrowany masthead w stylu papieru firmowego** — szeryfowe (`CormorantGaramond`) imię i nazwisko, rozstrzelony wielkoliterowy tytuł, linia kontaktu z kropkami pośrodku — zamknięty **poziomą linią rozciągającą się na obie kolumny**, zamiast kolorowego bloku nagłówka jak w Manifest. Poniżej tej linii sidebar **szerszy niż w Manifest** (`210` pt vs `180` pt) niesie Podsumowanie, Wykształcenie, Umiejętności i Języki; kolumna główna zawiera wyłącznie Doświadczenie (plus dowolne sekcje dodatkowe typu rekordowego, jeśli CV je ma). Jeden kolor linii (`#C7CFDA`) jest reużywany dla podkreślenia mastheadu, dividera sidebaru i każdej linii sekcji w kolumnie głównej, dzięki czemu strona czyta się jako jeden spójny system, a nie zbiór osobno stylizowanych linii — brief „harmonijny” był w tej kwestii wyraźny.
+
+Masthead jest wycentrowany — każdy jego element ma `flowRole: "masthead"` (całkowicie zwolniony z packingu sekcji), więc centrowanie nie niesie ryzyka związanego z detekcją kolumn, jakie miałoby centrowanie prawdziwego *nagłówka sekcji*. Sidebar reużywa dokładnie ten sam mechanizm `_sidebar_candidates` / `_fit_sidebar_sections` / `_fitted_sidebar_body_elements`, którego używają już Manifest i Tessera, ale **nie filtruje Umiejętności** — Manifest celowo trzyma Umiejętności w kolumnie głównej; brief Sterling brzmiał „każda prosta/płaska sekcja należy do sidebaru, Wykształcenie jest jedynym strukturalnym wyjątkiem”, co dokładnie zapewnia ta sama, niefiltrowana lista kandydatów (Wykształcenie renderuje się jako osobne elementy stopień/uczelnia/meta/punkty współdzielące jeden `flowGroup`, a nie jedna zlepiona textarea — to samo strukturalne traktowanie, jakie wykształcenie dostaje w sidebarze Manifest).
+
+Implementacyjna uwaga, którą ten szablon ujawnił: `_fit_sidebar_sections` automatycznie dobiera rozmiar czcionki treści z trzystopniowej drabinki (`8.3` / `8.0` / `7.5` pt), aby zmieścić się w budżecie, a `test_summary_matches_experience_body_type_size` porównuje podsumowanie z dowolną wypunktowaną treścią sidebaru dzielącą jego kolumnę, o ile taka istnieje — co zdarza się tylko w szablonach (jak Sterling), które faktycznie umieszczają wypunktowaną treść w tej samej kolumnie co podsumowanie. Bezwarunkowo umieszczone podsumowanie Manifest przypadkiem pasuje rozmiarem do body kolumny głównej, ponieważ Manifest wyklucza Umiejętności z sidebaru, więc nie istnieje żadna wypunktowana treść w tej samej kolumnie, którą test mógłby preferować nad fallbackiem do kolumny głównej; Sterling włącza Umiejętności, więc jego podsumowanie musi zamiast tego pasować do najwyższego stopnia drabinki auto-dopasowania (`SIDE_SUMMARY_FS`/`SIDE_SUMMARY_LH` = `8.3`/`12.04` w `sterling.py`), a nie reużywać rozmiaru body kolumny głównej.
+
+Implementacja:
+
+- `backend/app/services/cv_templates/templates/sterling.py`, funkcja `_gen_sterling` — wycentrowany masthead w stylu papieru firmowego + zamykająca linia, `sidebar_kicker`, bezwarunkowe podsumowanie + niefiltrowane dopasowanie `_fit_sidebar_sections` (Wykształcenie/Umiejętności/Języki/dowolna prosta sekcja dodatkowa), jednosekcyjna kolumna główna (wyłącznie Doświadczenie) przez wspólne helpery rekordów
+- `backend/app/services/cv_templates/registry.py`, `_GENERATORS["sterling"]` i `TEMPLATE_LAYOUTS["sterling"]` (`frozenset({"sidebar"})`)
+- `frontend/src/templates/sterling.js` — statyczny starter emitowany bezpośrednio z wyjścia demo generatora (bez obrazów, więc bez przepisywania API_BASE_URL); eksportowana tablica `sterlingTemplate`
+- `frontend/src/templates/index.js`, wpis rejestru `sterling` (`tier: "paid"`, `layouts: ["sidebar"]`, `accent: "#4A6FA5"`)
+- `frontend/scripts/dump-iconic-templates.mjs`, `frontend/public/template-mockups/sterling.png` — podgląd A4 generowany ze źródła
+
+Testy:
+
+- `frontend/src/templates/sterling.test.js` — dekoracje strony/sidebaru/dividera (szerszy pas, cienka linia w kolorze reguły), wycentrowana treść mastheadu zamknięta poziomą linią, kickery sidebaru otagowane `flowRole: "sidebar-chrome"` + `flowLane: "sidebar"`, podsumowanie/umiejętności/języki w sidebarze, strukturalne (nie zlepione) wykształcenie w sidebarze współdzielące jeden `flowGroup`, dokładnie jedna sekcja w kolumnie głównej (Doświadczenie), warstwowy (nie jednowierszowy) tytuł/organizacja/okres rekordu, zero elementów `rectangle`
+- `frontend/src/templates/sterling.pack.test.js` (z `sterling.multipage.fixture.json`) — realny dwustronicowy dokument Sterling z czterema stanowiskami: nagłówek Doświadczenia pozostaje przyklejony do swojego body w `listDocumentSections` / `sectionElementIds` po `applyFlowSpacing` przy rytmie domyślnym i kompaktowym, tor sidebara nigdy nie wchodzi do kolumny głównej, a strukturalne elementy wykształcenia w sidebarze zachowują wspólny `flowGroup` po zmianie rytmu
+- `backend/tests/test_cv_template_layouts.py` i `backend/tests/test_template_registry_sync.py` iterują po wszystkich zarejestrowanych generatorach, więc Sterling jest objęty pokryciem (rozmiar podsumowania=body, granice strony, parytet id/tagów/planu) bez dedykowanego wpisu
 
 ### Szablony z tagiem `icons` i reflow ikon
 
