@@ -12,7 +12,13 @@ from app.services.cv_data import (
     skill_groups,
     skills_have_content,
 )
-from app.services.cv_generator_primitives import get_spacing, section_chrome_height
+from app.services.cv_generator_primitives import (
+    _rect,
+    _text,
+    _text_width,
+    get_spacing,
+    section_chrome_height,
+)
 
 # Strip leading glyph/dash markers so callers can pass already-bulleted lines
 # without producing "• • item" in the canvas bulletList renderer.
@@ -84,6 +90,100 @@ def _skill_group_body_content(
     if mode == "inline":
         return _skills_inline_content(items)
     return _bullet_list_content(items)
+
+
+# Chip pill layout: horizontal padding/gap around each pill and vertical gap
+# between wrapped rows, in px. Tuned to read as a distinct rounded badge next
+# to the mid-dot/bullet body styles above without dominating the row.
+CHIP_PAD_X = 10.0
+CHIP_PAD_Y = 5.0
+CHIP_GAP_X = 8.0
+CHIP_GAP_Y = 8.0
+
+
+def _layout_skill_chips(
+    items: list | tuple | None,
+    width: float,
+    font: str,
+    fs: float,
+) -> tuple[list[tuple[str, float, float, float]], float]:
+    """Compute wrapped chip positions and the total block height.
+
+    Returns ``(placements, total_height)`` where each placement is
+    ``(skill, dx, dy, chip_width)`` relative to the block's top-left corner.
+    Both the measure pass (``_measure_skill_chips_row``) and the place pass
+    (``_place_skill_chips_row``) call this same function, so the two can
+    never disagree about how many rows a skill list wraps into. Axis's older,
+    unshared ``_place_skill_chips`` only reserves height for the first row
+    before wrapping, which can let a category with many skills paint past
+    the footer; sharing one layout pass here rules that class of bug out.
+    """
+    cleaned = _clean_list_items(items)
+    if not cleaned:
+        return [], 0.0
+    chip_h = fs + 2 * CHIP_PAD_Y
+    row_step = chip_h + CHIP_GAP_Y
+    placements: list[tuple[str, float, float, float]] = []
+    cx = 0.0
+    cy = 0.0
+    row_started = False
+    for skill in cleaned:
+        chip_w = _text_width(skill, font, fs) + 2 * CHIP_PAD_X
+        if row_started and cx + chip_w > width:
+            cx = 0.0
+            cy += row_step
+            row_started = False
+        placements.append((skill, cx, cy, chip_w))
+        cx += chip_w + CHIP_GAP_X
+        row_started = True
+    return placements, cy + chip_h
+
+
+def _measure_skill_chips_row(
+    items: list | tuple | None, width: float, font: str, fs: float,
+) -> float:
+    """Total height of one category's wrapped chip pills."""
+    _, total_height = _layout_skill_chips(items, width, font, fs)
+    return total_height
+
+
+def _place_skill_chips_row(
+    b: Any,
+    items: list | tuple | None,
+    left: float,
+    width: float,
+    font: str,
+    fs: float,
+    chip_bg: str,
+    chip_fg: str,
+) -> float:
+    """Emit one category's skills as wrapped, filled rounded-pill chips.
+
+    Advances and returns ``b.y`` by the same amount
+    ``_measure_skill_chips_row`` reports for identical inputs (both call
+    ``_layout_skill_chips``), which is what lets ``_place_skills_section``
+    reserve exact space via ``keep_together`` and never split a category
+    mid-row.
+    """
+    placements, total_height = _layout_skill_chips(items, width, font, fs)
+    if not placements:
+        return b.y
+    chip_h = fs + 2 * CHIP_PAD_Y
+    radius = chip_h / 2
+    top = b.y
+    for skill, dx, dy, chip_w in placements:
+        x = left + dx
+        y = top + dy
+        b.els.append(_rect(
+            x, y, chip_w, chip_h, chip_bg, 0,
+            filled=True, borderRadius=radius, zIndex=2, page=b.pg,
+        ))
+        b.els.append(_text(
+            skill, fs, font, chip_fg, x + CHIP_PAD_X, y + CHIP_PAD_Y,
+            zIndex=3, page=b.pg,
+        ))
+    b.y = top + total_height
+    return b.y
 
 
 def _measure_skill_group(
