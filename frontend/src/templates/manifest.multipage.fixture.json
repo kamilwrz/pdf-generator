@@ -131,7 +131,7 @@
   },
   {
     "category": "textarea",
-    "content": "Anna Kowalska",
+    "content": "Jan Kowalski",
     "left": 42,
     "top": 54.79,
     "width": 321,
@@ -154,7 +154,7 @@
   },
   {
     "category": "textarea",
-    "content": "DYREKTORKA STRATEGII I ROZWOJU",
+    "content": "DYREKTOR STRATEGII I ROZWOJU",
     "left": 42,
     "top": 95.78999999999999,
     "width": 321,
@@ -177,11 +177,11 @@
   },
   {
     "category": "text",
-    "content": "anna.kowalska@email.com",
+    "content": "jan.kowalski@email.com",
     "fontSize": 10.25,
     "fontFamily": "Roboto",
     "color": "#F3F2F2",
-    "left": 427.8629150390625,
+    "left": 439.7294921875,
     "top": 52.364999999999995,
     "zIndex": 3,
     "page": 1,
@@ -233,7 +233,8 @@
     "bold": true,
     "italic": false,
     "letterSpacing": 1.1,
-    "flowRole": "content",
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar",
     "element_id": "manifest-15"
   },
   {
@@ -245,12 +246,13 @@
     "backgroundColor": "#201E1D",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "content",
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar",
     "element_id": "manifest-16"
   },
   {
     "category": "textarea",
-    "content": "Liderka strategii łącząca perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
+    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
     "left": 42,
     "top": 195.82999999999998,
     "width": 114,
@@ -269,6 +271,7 @@
     "autoHeight": true,
     "preserveInitialLayout": true,
     "flowRole": "content",
+    "flowLane": "sidebar",
     "element_id": "manifest-17"
   },
   {
@@ -284,7 +287,8 @@
     "bold": true,
     "italic": false,
     "letterSpacing": 1.1,
-    "flowRole": "content",
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar",
     "element_id": "manifest-18"
   },
   {
@@ -296,12 +300,13 @@
     "backgroundColor": "#201E1D",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "content",
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar",
     "element_id": "manifest-19"
   },
   {
     "category": "textarea",
-    "content": "• Polski — ojczysty\n• Angielski — C1\n• Francuski — B2\n• Niemiecki — A2",
+    "content": "• Polski — ojczysty\n• Angielski — C1\n• Niemiecki — B2\n• Francuski — A2",
     "left": 42,
     "top": 366.83,
     "width": 114,
@@ -320,11 +325,12 @@
     "autoHeight": true,
     "preserveInitialLayout": true,
     "flowRole": "content",
+    "flowLane": "sidebar",
     "element_id": "manifest-20"
   },
   {
     "category": "text",
-    "content": "WYKSZTAŁCENIE",
+    "content": "CERTYFIKATY",
     "fontSize": 9.2,
     "fontFamily": "Roboto",
     "color": "#201E1D",
@@ -335,7 +341,8 @@
     "bold": true,
     "italic": false,
     "letterSpacing": 1.1,
-    "flowRole": "content",
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar",
     "element_id": "manifest-21"
   },
   {
@@ -347,14 +354,69 @@
     "backgroundColor": "#201E1D",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "content",
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar",
     "element_id": "manifest-22"
+  },
+  {
+    "category": "textarea",
+    "content": "• PMP – Project Management Professional\n• PRINCE2 Practitioner",
+    "left": 42,
+    "top": 453.99,
+    "width": 114,
+    "height": 42.12,
+    "fontSize": 8.3,
+    "lineHeight": 12.04,
+    "letterSpacing": 0,
+    "color": "#201E1D",
+    "fontFamily": "Roboto",
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowRole": "content",
+    "flowLane": "sidebar",
+    "element_id": "manifest-23"
+  },
+  {
+    "category": "text",
+    "content": "WYKSZTAŁCENIE",
+    "fontSize": 9.2,
+    "fontFamily": "Roboto",
+    "color": "#201E1D",
+    "left": 42,
+    "top": 508.11,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.1,
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar",
+    "element_id": "manifest-24"
+  },
+  {
+    "category": "line",
+    "left": 42,
+    "top": 523.15,
+    "width": 114,
+    "height": 2,
+    "backgroundColor": "#201E1D",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar",
+    "element_id": "manifest-25"
   },
   {
     "category": "textarea",
     "content": "Magister Zarządzania\nSGH Warszawa\n2011 – 2016\n\nLicencjat Ekonomii\nUniwersytet Warszawski\nWarszawa   ·   2008 – 2011\n• Specjalizacja: ekonomia międzynarodowa.",
     "left": 42,
-    "top": 453.99,
+    "top": 529.11,
     "width": 114,
     "height": 114.36,
     "fontSize": 8.3,
@@ -371,7 +433,8 @@
     "autoHeight": true,
     "preserveInitialLayout": true,
     "flowRole": "content",
-    "element_id": "manifest-23"
+    "flowLane": "sidebar",
+    "element_id": "manifest-26"
   },
   {
     "category": "text",
@@ -386,7 +449,7 @@
     "bold": true,
     "italic": false,
     "flowRole": "section-chrome",
-    "element_id": "manifest-24"
+    "element_id": "manifest-27"
   },
   {
     "category": "line",
@@ -398,11 +461,11 @@
     "zIndex": 2,
     "page": 1,
     "flowRole": "section-chrome",
-    "element_id": "manifest-25"
+    "element_id": "manifest-28"
   },
   {
     "category": "textarea",
-    "content": "01 · Dyrektorka Strategii",
+    "content": "01 · Dyrektor Strategii",
     "left": 212,
     "top": 202.54,
     "width": 341,
@@ -420,8 +483,8 @@
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b552054e201b",
-    "element_id": "manifest-26"
+    "flowGroup": "record-3b408b023f3a",
+    "element_id": "manifest-29"
   },
   {
     "category": "textarea",
@@ -443,8 +506,8 @@
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b552054e201b",
-    "element_id": "manifest-27"
+    "flowGroup": "record-3b408b023f3a",
+    "element_id": "manifest-30"
   },
   {
     "category": "textarea",
@@ -466,12 +529,12 @@
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b552054e201b",
-    "element_id": "manifest-28"
+    "flowGroup": "record-3b408b023f3a",
+    "element_id": "manifest-31"
   },
   {
     "category": "textarea",
-    "content": "• Zaprojektowała model wzrostu łączący cele finansowe z inicjatywami produktowymi na wielu rynkach.\n• Uporządkowała rytm decyzji zarządu oraz raportowanie strategiczne dla całej organizacji.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy transformacyjne.\n• Zbudowała ramy oceny ryzyka strategicznego stosowane przez wszystkie jednostki biznesowe.",
+    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi na wielu rynkach.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne dla całej organizacji.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy transformacyjne.\n• Zbudował ramy oceny ryzyka strategicznego stosowane przez wszystkie jednostki biznesowe.",
     "left": 212,
     "top": 255.54,
     "width": 341,
@@ -489,12 +552,12 @@
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b552054e201b",
-    "element_id": "manifest-29"
+    "flowGroup": "record-3b408b023f3a",
+    "element_id": "manifest-32"
   },
   {
     "category": "textarea",
-    "content": "02 · Menedżerka Rozwoju",
+    "content": "02 · Menedżer Rozwoju",
     "left": 212,
     "top": 377.53999999999996,
     "width": 341,
@@ -512,8 +575,8 @@
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-aea40bce4bcc",
-    "element_id": "manifest-30"
+    "flowGroup": "record-7455a45020bf",
+    "element_id": "manifest-33"
   },
   {
     "category": "textarea",
@@ -535,8 +598,8 @@
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-aea40bce4bcc",
-    "element_id": "manifest-31"
+    "flowGroup": "record-7455a45020bf",
+    "element_id": "manifest-34"
   },
   {
     "category": "textarea",
@@ -558,16 +621,16 @@
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-aea40bce4bcc",
-    "element_id": "manifest-32"
+    "flowGroup": "record-7455a45020bf",
+    "element_id": "manifest-35"
   },
   {
     "category": "textarea",
-    "content": "• Zaprojektowała model wzrostu łączący cele finansowe z inicjatywami produktowymi na wielu rynkach.\n• Uporządkowała rytm decyzji zarządu oraz raportowanie strategiczne dla całej organizacji.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy transformacyjne.",
+    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
     "left": 212,
     "top": 430.53999999999996,
     "width": 341,
-    "height": 84,
+    "height": 42,
     "fontSize": 10,
     "lineHeight": 14,
     "letterSpacing": 0,
@@ -581,14 +644,14 @@
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-aea40bce4bcc",
-    "element_id": "manifest-33"
+    "flowGroup": "record-7455a45020bf",
+    "element_id": "manifest-36"
   },
   {
     "category": "textarea",
-    "content": "03 · Konsultantka Strategiczna",
+    "content": "03 · Konsultant Strategiczny",
     "left": 212,
-    "top": 524.54,
+    "top": 482.53999999999996,
     "width": 341,
     "height": 16,
     "fontSize": 12,
@@ -604,14 +667,14 @@
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-41abf08b8ef5",
-    "element_id": "manifest-34"
+    "flowGroup": "record-57fce4bffb55",
+    "element_id": "manifest-37"
   },
   {
     "category": "textarea",
     "content": "Alpine Consulting   ·   Kraków",
     "left": 212,
-    "top": 544.54,
+    "top": 502.53999999999996,
     "width": 341,
     "height": 13,
     "fontSize": 10,
@@ -627,14 +690,14 @@
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-41abf08b8ef5",
-    "element_id": "manifest-35"
+    "flowGroup": "record-57fce4bffb55",
+    "element_id": "manifest-38"
   },
   {
     "category": "textarea",
     "content": "2013 – 2016",
     "left": 212,
-    "top": 561.54,
+    "top": 519.54,
     "width": 341,
     "height": 12,
     "fontSize": 9,
@@ -650,14 +713,14 @@
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-41abf08b8ef5",
-    "element_id": "manifest-36"
+    "flowGroup": "record-57fce4bffb55",
+    "element_id": "manifest-39"
   },
   {
     "category": "textarea",
-    "content": "• Zaprojektowała model wzrostu łączący cele finansowe z inicjatywami produktowymi na wielu rynkach.\n• Uporządkowała rytm decyzji zarządu oraz raportowanie strategiczne dla całej organizacji.",
+    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.\n• Opracowywał analizy rynkowe i modele finansowe wspierające decyzje zarządu.",
     "left": 212,
-    "top": 577.54,
+    "top": 535.54,
     "width": 341,
     "height": 56,
     "fontSize": 10,
@@ -673,14 +736,14 @@
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-41abf08b8ef5",
-    "element_id": "manifest-37"
+    "flowGroup": "record-57fce4bffb55",
+    "element_id": "manifest-40"
   },
   {
     "category": "textarea",
-    "content": "04 · Analityczka Biznesowa",
+    "content": "04 · Analityk Biznesowy",
     "left": 212,
-    "top": 66.0,
+    "top": 601.54,
     "width": 341,
     "height": 16,
     "fontSize": 12,
@@ -689,21 +752,21 @@
     "color": "#201E1D",
     "fontFamily": "Roboto",
     "zIndex": 2,
-    "page": 2,
+    "page": 1,
     "bold": true,
     "italic": false,
     "align": "left",
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1f75bac4db66",
-    "element_id": "manifest-38"
+    "flowGroup": "record-4cdd9ec8d045",
+    "element_id": "manifest-41"
   },
   {
     "category": "textarea",
     "content": "Vertex Capital   ·   Poznań",
     "left": 212,
-    "top": 86.0,
+    "top": 621.54,
     "width": 341,
     "height": 13,
     "fontSize": 10,
@@ -712,21 +775,21 @@
     "color": "#AE1800",
     "fontFamily": "Roboto",
     "zIndex": 2,
-    "page": 2,
+    "page": 1,
     "bold": false,
     "italic": false,
     "align": "left",
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1f75bac4db66",
-    "element_id": "manifest-39"
+    "flowGroup": "record-4cdd9ec8d045",
+    "element_id": "manifest-42"
   },
   {
     "category": "textarea",
     "content": "2010 – 2013",
     "left": 212,
-    "top": 103.0,
+    "top": 638.54,
     "width": 341,
     "height": 12,
     "fontSize": 9,
@@ -735,21 +798,21 @@
     "color": "#605D5D",
     "fontFamily": "Roboto",
     "zIndex": 2,
-    "page": 2,
+    "page": 1,
     "bold": false,
     "italic": false,
     "align": "left",
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1f75bac4db66",
-    "element_id": "manifest-40"
+    "flowGroup": "record-4cdd9ec8d045",
+    "element_id": "manifest-43"
   },
   {
     "category": "textarea",
-    "content": "• Zaprojektowała model wzrostu łączący cele finansowe z inicjatywami produktowymi na wielu rynkach.\n• Uporządkowała rytm decyzji zarządu oraz raportowanie strategiczne dla całej organizacji.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy transformacyjne.\n• Zbudowała ramy oceny ryzyka strategicznego stosowane przez wszystkie jednostki biznesowe.",
+    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi na wielu rynkach.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne dla całej organizacji.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy transformacyjne.\n• Zbudował ramy oceny ryzyka strategicznego stosowane przez wszystkie jednostki biznesowe.",
     "left": 212,
-    "top": 119.0,
+    "top": 654.54,
     "width": 341,
     "height": 112,
     "fontSize": 10,
@@ -758,15 +821,15 @@
     "color": "#201E1D",
     "fontFamily": "Roboto",
     "zIndex": 2,
-    "page": 2,
+    "page": 1,
     "bold": false,
     "italic": false,
     "align": "left",
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1f75bac4db66",
-    "element_id": "manifest-41"
+    "flowGroup": "record-4cdd9ec8d045",
+    "element_id": "manifest-44"
   },
   {
     "category": "text",
@@ -775,31 +838,31 @@
     "fontFamily": "Roboto",
     "color": "#201E1D",
     "left": 212,
-    "top": 252.0,
+    "top": 66.0,
     "zIndex": 3,
     "page": 2,
     "bold": true,
     "italic": false,
     "flowRole": "section-chrome",
-    "element_id": "manifest-42"
+    "element_id": "manifest-45"
   },
   {
     "category": "line",
     "left": 212,
-    "top": 273.75,
+    "top": 87.75,
     "width": 341,
     "height": 2,
     "backgroundColor": "#201E1D",
     "zIndex": 2,
     "page": 2,
     "flowRole": "section-chrome",
-    "element_id": "manifest-43"
+    "element_id": "manifest-46"
   },
   {
     "category": "textarea",
     "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna  ·  Zarządzanie zmianą  ·  Budowanie zespołów  ·  Analiza rynku  ·  Fuzje i przejęcia",
     "left": 212,
-    "top": 283.75,
+    "top": 97.75,
     "width": 341,
     "height": 42,
     "fontSize": 10,
@@ -815,7 +878,7 @@
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-cf3d7d917a9f",
-    "element_id": "manifest-44"
+    "flowGroup": "record-9783435e1b6e",
+    "element_id": "manifest-47"
   }
 ]

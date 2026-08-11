@@ -43,7 +43,7 @@ test("Manifest is a two-column sidebar layout with a dark header band and packer
     // the band must be the first masthead element or it paints over the name.
     assert.equal(masthead[0], band, "the band background is painted before the text drawn on top of it");
 
-    const name = masthead.find((element) => element.content === "Anna Kowalska");
+    const name = masthead.find((element) => element.content === "Jan Kowalski");
     assert.ok(name);
     assert.equal(name.category, "textarea");
     assert.equal(name.color, PAPER, "name text is paper-colored against the ink band");
@@ -66,7 +66,7 @@ test("Manifest is a two-column sidebar layout with a dark header band and packer
     assert.ok(sidebarKickers.every((element) => element.flowLane === "sidebar"));
 
     const summaryBody = manifestTemplate.find(
-        (element) => typeof element.content === "string" && element.content.includes("Liderka strategii"),
+        (element) => typeof element.content === "string" && element.content.includes("Lider strategii"),
     );
     assert.ok(summaryBody);
     assert.equal(summaryBody.left, 42);
@@ -96,7 +96,7 @@ test("Manifest is a two-column sidebar layout with a dark header band and packer
     );
     assert.ok(sectionRules.length >= 1);
 
-    const recordTitle = manifestTemplate.find((element) => element.content === "01 · Dyrektorka Strategii");
+    const recordTitle = manifestTemplate.find((element) => element.content === "01 · Dyrektor Strategii");
     assert.ok(recordTitle, "the ordinal is folded into the title text, not a separate same-row element");
     assert.equal(recordTitle.category, "textarea");
     const recordOrg = manifestTemplate.find((element) => element.content === "Northbridge Partners");

@@ -34,7 +34,7 @@ test("Blueprint is a framed, left-aligned technical single column with packer-sa
     assert.ok(masthead.length > 0);
     assert.ok(masthead.every((element) => (element.page ?? 1) === 1));
 
-    const name = masthead.find((element) => element.content === "Anna Kowalska");
+    const name = masthead.find((element) => element.content === "Jan Kowalski");
     assert.ok(name);
     assert.equal(name.category, "textarea");
     assert.equal(name.align, "left");
@@ -42,7 +42,7 @@ test("Blueprint is a framed, left-aligned technical single column with packer-sa
     assert.equal(name.fontFamily, "Inter");
     assert.ok(name.bold);
 
-    const title = masthead.find((element) => element.content === "DYREKTORKA STRATEGII I ROZWOJU");
+    const title = masthead.find((element) => element.content === "DYREKTOR STRATEGII I ROZWOJU");
     assert.ok(title, "title is uppercased (no CSS text-transform in a PDF)");
     assert.equal(title.align, "left");
     assert.equal(title.color, ACCENT_DEEP);
@@ -84,7 +84,7 @@ test("Blueprint is a framed, left-aligned technical single column with packer-sa
     // tried and reverted — see the generator's module docstring — because
     // `sectionStructure.js` always re-stacks section body content by reading
     // order and has no concept of two elements sharing one visual row. ───────
-    const jobTitle = blueprintTemplate.find((element) => element.content === "Dyrektorka Strategii");
+    const jobTitle = blueprintTemplate.find((element) => element.content === "Dyrektor Strategii");
     assert.ok(jobTitle);
     assert.equal(jobTitle.category, "textarea");
     assert.ok(jobTitle.bold);

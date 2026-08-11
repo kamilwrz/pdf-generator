@@ -24,9 +24,12 @@
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/manifest.py`) for
- * representative demo content, so the picker preview matches what
- * `/ai/fill_template` produces pixel-for-pixel. No images are drawn, so no
- * API_BASE_URL rewrite is needed. Exported array `manifestTemplate`.
+ * representative demo content (Jan Kowalski — three roles, two degrees, nine
+ * skills, four languages, and a Certyfikaty extra section in the sidebar, so
+ * the picker preview shows every section type this template supports), so
+ * the picker preview matches what `/ai/fill_template` produces
+ * pixel-for-pixel. No images are drawn, so no API_BASE_URL rewrite is
+ * needed. Exported array `manifestTemplate`.
  */
 const MANIFEST_ELEMENTS = [
   {
@@ -104,7 +107,7 @@ const MANIFEST_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Anna Kowalska",
+    "content": "Jan Kowalski",
     "left": 42,
     "top": 54.79,
     "width": 321,
@@ -126,7 +129,7 @@ const MANIFEST_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "DYREKTORKA STRATEGII I ROZWOJU",
+    "content": "DYREKTOR STRATEGII I ROZWOJU",
     "left": 42,
     "top": 95.78999999999999,
     "width": 321,
@@ -148,11 +151,11 @@ const MANIFEST_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "anna.kowalska@email.com",
+    "content": "jan.kowalski@email.com",
     "fontSize": 10.25,
     "fontFamily": "Roboto",
     "color": "#F3F2F2",
-    "left": 427.8629150390625,
+    "left": 439.7294921875,
     "top": 52.364999999999995,
     "zIndex": 3,
     "page": 1,
@@ -201,7 +204,8 @@ const MANIFEST_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 1.1,
-    "flowRole": "content"
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar"
   },
   {
     "category": "line",
@@ -212,11 +216,12 @@ const MANIFEST_ELEMENTS = [
     "backgroundColor": "#201E1D",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "content"
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar"
   },
   {
     "category": "textarea",
-    "content": "Liderka strategii łącząca perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
+    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
     "left": 42,
     "top": 195.82999999999998,
     "width": 114,
@@ -234,7 +239,8 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowRole": "content"
+    "flowRole": "content",
+    "flowLane": "sidebar"
   },
   {
     "category": "text",
@@ -249,7 +255,8 @@ const MANIFEST_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 1.1,
-    "flowRole": "content"
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar"
   },
   {
     "category": "line",
@@ -260,13 +267,65 @@ const MANIFEST_ELEMENTS = [
     "backgroundColor": "#201E1D",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "content"
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar"
   },
   {
     "category": "textarea",
-    "content": "• Polski — ojczysty\n• Angielski — C1\n• Francuski — B2",
+    "content": "• Polski — ojczysty\n• Angielski — C1\n• Niemiecki — B2\n• Francuski — A2",
     "left": 42,
     "top": 366.83,
+    "width": 114,
+    "height": 54.16,
+    "fontSize": 8.3,
+    "lineHeight": 12.04,
+    "letterSpacing": 0,
+    "color": "#201E1D",
+    "fontFamily": "Roboto",
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowRole": "content",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "text",
+    "content": "CERTYFIKATY",
+    "fontSize": 9.2,
+    "fontFamily": "Roboto",
+    "color": "#201E1D",
+    "left": 42,
+    "top": 432.99,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.1,
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "line",
+    "left": 42,
+    "top": 448.03000000000003,
+    "width": 114,
+    "height": 2,
+    "backgroundColor": "#201E1D",
+    "zIndex": 1,
+    "page": 1,
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar"
+  },
+  {
+    "category": "textarea",
+    "content": "• PMP – Project Management Professional\n• PRINCE2 Practitioner",
+    "left": 42,
+    "top": 453.99,
     "width": 114,
     "height": 42.12,
     "fontSize": 8.3,
@@ -282,7 +341,8 @@ const MANIFEST_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowRole": "content"
+    "flowRole": "content",
+    "flowLane": "sidebar"
   },
   {
     "category": "text",
@@ -291,32 +351,34 @@ const MANIFEST_ELEMENTS = [
     "fontFamily": "Roboto",
     "color": "#201E1D",
     "left": 42,
-    "top": 420.95,
+    "top": 508.11,
     "zIndex": 3,
     "page": 1,
     "bold": true,
     "italic": false,
     "letterSpacing": 1.1,
-    "flowRole": "content"
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar"
   },
   {
     "category": "line",
     "left": 42,
-    "top": 435.99,
+    "top": 523.15,
     "width": 114,
     "height": 2,
     "backgroundColor": "#201E1D",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "content"
+    "flowRole": "sidebar-chrome",
+    "flowLane": "sidebar"
   },
   {
     "category": "textarea",
-    "content": "Magister Zarządzania\nSGH Warszawa\n2011 – 2016",
+    "content": "Magister Zarządzania\nSGH Warszawa\n2011 – 2016\n\nLicencjat Ekonomii\nUniwersytet Warszawski\nWarszawa   ·   2008 – 2011\n• Specjalizacja: ekonomia międzynarodowa.",
     "left": 42,
-    "top": 441.95,
+    "top": 529.11,
     "width": 114,
-    "height": 42.12,
+    "height": 114.36,
     "fontSize": 8.3,
     "lineHeight": 12.04,
     "letterSpacing": 0,
@@ -330,7 +392,8 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowRole": "content"
+    "flowRole": "content",
+    "flowLane": "sidebar"
   },
   {
     "category": "text",
@@ -359,7 +422,7 @@ const MANIFEST_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "01 · Dyrektorka Strategii",
+    "content": "01 · Dyrektor Strategii",
     "left": 212,
     "top": 202.54,
     "width": 341,
@@ -377,7 +440,7 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f872fca6e8db"
+    "flowGroup": "record-868d4d6946f1"
   },
   {
     "category": "textarea",
@@ -399,7 +462,7 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f872fca6e8db"
+    "flowGroup": "record-868d4d6946f1"
   },
   {
     "category": "textarea",
@@ -421,11 +484,11 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f872fca6e8db"
+    "flowGroup": "record-868d4d6946f1"
   },
   {
     "category": "textarea",
-    "content": "• Zaprojektowała model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkowała rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
+    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
     "left": 212,
     "top": 255.54,
     "width": 341,
@@ -443,11 +506,11 @@ const MANIFEST_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f872fca6e8db"
+    "flowGroup": "record-868d4d6946f1"
   },
   {
     "category": "textarea",
-    "content": "02 · Menedżerka Rozwoju",
+    "content": "02 · Menedżer Rozwoju",
     "left": 212,
     "top": 321.53999999999996,
     "width": 341,
@@ -465,7 +528,7 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-fc9ebe1b1c74"
+    "flowGroup": "record-a2e5b59c4928"
   },
   {
     "category": "textarea",
@@ -487,7 +550,7 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-fc9ebe1b1c74"
+    "flowGroup": "record-a2e5b59c4928"
   },
   {
     "category": "textarea",
@@ -509,11 +572,11 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-fc9ebe1b1c74"
+    "flowGroup": "record-a2e5b59c4928"
   },
   {
     "category": "textarea",
-    "content": "• Rozwinęła portfel projektów ekspansji na rynkach europejskich.\n• Wprowadziła standardy współpracy między sprzedażą, produktem i finansami.",
+    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
     "left": 212,
     "top": 374.53999999999996,
     "width": 341,
@@ -531,7 +594,95 @@ const MANIFEST_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-fc9ebe1b1c74"
+    "flowGroup": "record-a2e5b59c4928"
+  },
+  {
+    "category": "textarea",
+    "content": "03 · Konsultant Strategiczny",
+    "left": 212,
+    "top": 426.53999999999996,
+    "width": 341,
+    "height": 16,
+    "fontSize": 12,
+    "lineHeight": 16,
+    "letterSpacing": 0,
+    "color": "#201E1D",
+    "fontFamily": "Roboto",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-da8cf7307f38"
+  },
+  {
+    "category": "textarea",
+    "content": "Alpine Consulting   ·   Kraków",
+    "left": 212,
+    "top": 446.53999999999996,
+    "width": 341,
+    "height": 13,
+    "fontSize": 10,
+    "lineHeight": 13,
+    "letterSpacing": 0,
+    "color": "#AE1800",
+    "fontFamily": "Roboto",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-da8cf7307f38"
+  },
+  {
+    "category": "textarea",
+    "content": "2013 – 2016",
+    "left": 212,
+    "top": 463.53999999999996,
+    "width": 341,
+    "height": 12,
+    "fontSize": 9,
+    "lineHeight": 12,
+    "letterSpacing": 0.6,
+    "color": "#605D5D",
+    "fontFamily": "Roboto",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-da8cf7307f38"
+  },
+  {
+    "category": "textarea",
+    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.\n• Opracowywał analizy rynkowe i modele finansowe wspierające decyzje zarządu.",
+    "left": 212,
+    "top": 479.53999999999996,
+    "width": 341,
+    "height": 56,
+    "fontSize": 10,
+    "lineHeight": 14,
+    "letterSpacing": 0,
+    "color": "#201E1D",
+    "fontFamily": "Roboto",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-da8cf7307f38"
   },
   {
     "category": "text",
@@ -540,7 +691,7 @@ const MANIFEST_ELEMENTS = [
     "fontFamily": "Roboto",
     "color": "#201E1D",
     "left": 212,
-    "top": 437.53999999999996,
+    "top": 556.54,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -550,7 +701,7 @@ const MANIFEST_ELEMENTS = [
   {
     "category": "line",
     "left": 212,
-    "top": 459.28999999999996,
+    "top": 578.29,
     "width": 341,
     "height": 2,
     "backgroundColor": "#201E1D",
@@ -560,11 +711,11 @@ const MANIFEST_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
+    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna  ·  Zarządzanie zmianą  ·  Budowanie zespołów  ·  Analiza rynku  ·  Fuzje i przejęcia",
     "left": 212,
-    "top": 469.28999999999996,
+    "top": 588.29,
     "width": 341,
-    "height": 14,
+    "height": 42,
     "fontSize": 10,
     "lineHeight": 14,
     "letterSpacing": 0,
@@ -578,24 +729,8 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6728e4616a88"
+    "flowGroup": "record-350d8d37dee6"
   }
 ];
 
-// Stamp the sidebar rail with the dedicated lane tags the structural packer
-// expects (`packSidebarLane`). The dumped generator output still carries the
-// older `flowRole: "content"` kickers; rewrite them here so the picker preview
-// and a freshly filled document share the same spacing behaviour.
-const MANIFEST_SIDE_L = 42;
-export const manifestTemplate = MANIFEST_ELEMENTS.map((element) => {
-  if (!element || element.fixedToPage) return element;
-  if (element.flowRole === "masthead") return element;
-  if (Number(element.left) !== MANIFEST_SIDE_L) return element;
-  if (element.category === "text" && element.bold) {
-    return { ...element, flowRole: "sidebar-chrome", flowLane: "sidebar" };
-  }
-  if (element.category === "line") {
-    return { ...element, flowRole: "sidebar-chrome", flowLane: "sidebar" };
-  }
-  return { ...element, flowLane: "sidebar", flowRole: element.flowRole || "content" };
-});
+export const manifestTemplate = MANIFEST_ELEMENTS;

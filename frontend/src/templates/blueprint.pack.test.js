@@ -20,6 +20,7 @@ const EXPECTED_ORDER = [
     "DOŚWIADCZENIE ZAWODOWE",
     "WYKSZTAŁCENIE",
     "UMIEJĘTNOŚCI",
+    "CERTYFIKATY",
     "JĘZYKI",
 ];
 
