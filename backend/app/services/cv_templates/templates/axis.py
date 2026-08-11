@@ -16,8 +16,6 @@ without adding to its measured vertical height (the same mechanism Harbor uses
 for its per-record date + location row).
 """
 
-from reportlab.pdfbase.pdfmetrics import stringWidth
-
 from app.services.cv_generator_primitives import (
     Builder,
     SPACE_AFTER_HEADER_RULE,
@@ -27,6 +25,7 @@ from app.services.cv_generator_primitives import (
     _circle,
     _line,
     _text,
+    _text_width,
 )
 from app.services.cv_templates.shared.contact import _contact_channel_items
 from app.services.cv_templates.shared.icons import _icon
@@ -36,20 +35,6 @@ from app.services.cv_templates.shared.records import (
 )
 from app.services.cv_data import skill_groups, skills_have_content
 from app.services.cv_templates.shared.text import _bullets, _compact_text, _labels
-from app.services.pdf_generator import PDF_Generator
-
-
-def _text_width(value: str, font: str, fs: float) -> float:
-    """Rendered width of a label in points (falls back to a char estimate).
-
-    Used for the wrapping skill chips and language columns so their underlines
-    and column breaks line up with the real glyph extent rather than a guess.
-    """
-    try:
-        draw_font, _, _ = PDF_Generator._resolve_font(font, False, False)
-        return stringWidth(value, draw_font, fs)
-    except Exception:
-        return len(value) * fs * 0.55
 
 
 def _gen_axis(cv: dict) -> list[dict]:

@@ -15,6 +15,8 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any, Iterator, Mapping
 
+from reportlab.pdfbase.pdfmetrics import stringWidth
+
 from app.services.pdf_generator import PDF_Generator
 
 A4_H = 842
@@ -177,6 +179,20 @@ def _rect(left, top, width, height, color, borderWidth=1, *, filled=False, borde
             "width": width, "height": height, "backgroundColor": color,
             "borderWidth": borderWidth, "filled": filled,
             "borderRadius": borderRadius, "zIndex": zIndex, "page": page}
+
+
+def _text_width(value: str, font: str, fs: float) -> float:
+    """Rendered width of a label in points (falls back to a char estimate).
+
+    Shared by every wrapping/column layout that needs real glyph extents —
+    skill chip pills, Axis's timeline chip row, Axis's language columns —
+    instead of a guess, so wraps land where the rendered PDF actually breaks.
+    """
+    try:
+        draw_font, _, _ = PDF_Generator._resolve_font(font, False, False)
+        return stringWidth(value, draw_font, fs)
+    except Exception:
+        return len(value) * fs * 0.55
 
 
 def _circle(left, top, diameter, color, *, filled=False, borderWidth=1, zIndex=1, page=1):
