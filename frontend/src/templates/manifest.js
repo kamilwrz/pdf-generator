@@ -582,4 +582,20 @@ const MANIFEST_ELEMENTS = [
   }
 ];
 
-export const manifestTemplate = MANIFEST_ELEMENTS;
+// Stamp the sidebar rail with the dedicated lane tags the structural packer
+// expects (`packSidebarLane`). The dumped generator output still carries the
+// older `flowRole: "content"` kickers; rewrite them here so the picker preview
+// and a freshly filled document share the same spacing behaviour.
+const MANIFEST_SIDE_L = 42;
+export const manifestTemplate = MANIFEST_ELEMENTS.map((element) => {
+  if (!element || element.fixedToPage) return element;
+  if (element.flowRole === "masthead") return element;
+  if (Number(element.left) !== MANIFEST_SIDE_L) return element;
+  if (element.category === "text" && element.bold) {
+    return { ...element, flowRole: "sidebar-chrome", flowLane: "sidebar" };
+  }
+  if (element.category === "line") {
+    return { ...element, flowRole: "sidebar-chrome", flowLane: "sidebar" };
+  }
+  return { ...element, flowLane: "sidebar", flowRole: element.flowRole || "content" };
+});

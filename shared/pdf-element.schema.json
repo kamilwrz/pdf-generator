@@ -312,6 +312,19 @@
       "default": null,
       "title": "Flowgroup"
     },
+    "flowLane": {
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "Optional packing lane. \"sidebar\" marks two-column rail content packed by packSidebarLane, never by the main-column section packer."
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Flowlane"
+    },
     "isDecorativeChromeText": {
       "anyOf": [
         {

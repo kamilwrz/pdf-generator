@@ -42,6 +42,7 @@ class DecorativeFilterTests(unittest.TestCase):
     def test_chrome_and_ordinals_are_decorative(self):
         self.assertTrue(is_decorative_element(_text("01", isDecorativeChromeText=True)))
         self.assertTrue(is_decorative_element(_text("Doświadczenie", flowRole="section-chrome")))
+        self.assertTrue(is_decorative_element(_text("PODSUMOWANIE", flowRole="sidebar-chrome")))
         self.assertTrue(is_decorative_element(_text("footer", fixedToPage=True)))
         self.assertTrue(is_decorative_element({"category": "line", "width": 100, "height": 1}))
         self.assertTrue(is_decorative_element(_text("02")))

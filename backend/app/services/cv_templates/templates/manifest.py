@@ -36,13 +36,13 @@ same-row date and tag/badge rows did. Both were adapted to safe,
 one-element-per-row shapes: the ordinal is folded into the title text
 ("01 · Senior AML Analyst…", one textarea) and language proficiency is
 folded into the sidebar's plain bulleted "Name — Level" line. The sidebar
-column itself is a distinct case: because it sits well to the left of the
-main column's headings (see `sectionStructure.js`'s `sameColumnAsHeading`,
-`SIDEBAR_LEFT_GAP = 150`), it is excluded from the main-column packer's
-membership sweeps entirely and is never re-stacked — the same guarantee
-that makes the masthead safe. Sidebar content is still built as a plain
-top-to-bottom sequence here regardless, so it also degrades safely if that
-column-exclusion boundary ever changes.
+column itself is a distinct case: kickers are tagged
+`flowRole: "sidebar-chrome"` with `flowLane: "sidebar"`, so they never enter
+`listDocumentSections` / the main packer (see `sectionStructure.js`'s
+`sameColumnAsHeading` and `packSidebarLane`). Density knobs retarget the
+rail on an independent vertical cursor; the Sections panel still does not
+list or reorder sidebar blocks. Sidebar content is still built as a plain
+top-to-bottom sequence here regardless.
 
 Layout decisions are deterministic Python (never sent to the model).
 """
@@ -169,13 +169,12 @@ def _gen_manifest(cv: dict) -> list[dict]:
     def sidebar_kicker(label: str, top: float) -> list[dict]:
         heading = _text(label.upper(), KICKER_FS, SANS, C['ink'], SIDE_L, top, zIndex=3, bold=True)
         heading['letterSpacing'] = 1.1
-        # Explicitly excluded from `isSectionHeading`'s untagged heuristic — a
-        # false match here would let the main-column packer's column check
-        # (evaluated from THIS element's left) treat main-column content as
-        # "same column" (see the module docstring's packer-safety note).
-        heading['flowRole'] = 'content'
+        # Dedicated sidebar chrome role — never enters `listDocumentSections`
+        # (main packer), but `packSidebarLane` / density knobs do retarget it.
+        # See the module docstring's packer-safety note and sectionStructure.js.
+        heading['flowRole'] = 'sidebar-chrome'
         rule = _line(SIDE_L, top + KICKER_FS * 1.2 + 4.0, SIDE_W, 2, C['ink'])
-        rule['flowRole'] = 'content'
+        rule['flowRole'] = 'sidebar-chrome'
         return [heading, rule]
 
     sidebar: list[dict] = []
@@ -215,7 +214,12 @@ def _gen_manifest(cv: dict) -> list[dict]:
             'autoHeight': True, 'preserveInitialLayout': True,
         })
 
-    sidebar = [{**element, 'page': 1, 'flowRole': element.get('flowRole', 'content')} for element in sidebar]
+    sidebar = [{
+        **element,
+        'page': 1,
+        'flowRole': element.get('flowRole', 'content'),
+        'flowLane': 'sidebar',
+    } for element in sidebar]
 
     # ── Main column: ordinary Builder flow, left-anchored heading + full-width
     # ink rule (the same safe shape every single-column template uses). ──────

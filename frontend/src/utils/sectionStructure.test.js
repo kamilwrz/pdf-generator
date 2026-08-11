@@ -8,10 +8,13 @@ import {
   findProfilePhotoSlot,
   listDocumentSections,
   listFlatSectionAnchors,
+  listSidebarSections,
   packDocumentSections,
+  packSidebarLane,
   removeSection,
   reorderSection,
   sectionElementIds,
+  sidebarSectionElementIds,
 } from "./sectionStructure.js";
 import { novaTemplate, voltTemplate } from "../templates/iconic.js";
 import { cardinalTemplate } from "../templates/cardinal.js";
@@ -19,27 +22,33 @@ import { porticoTemplate } from "../templates/portico.js";
 
 /**
  * Two-column sidebar fixture modeled on Tessera/Slate's real geometry
- * (`side_left=25`, `main_left=218`). Sidebar headings are emitted with
- * `flowRole: "content"` (never "section-chrome" — see `tessera.py` /
- * `slate.py` `sidebar_heading()`), so they are structurally invisible to
- * `listDocumentSections`; only the main-column headings are real "sections".
+ * (`side_left=25`, `main_left=218`). Sidebar kickers use `sidebar-chrome` +
+ * `flowLane: "sidebar"` so they pack on an independent lane cursor and stay
+ * invisible to `listDocumentSections`.
  */
 function twoColumnFixture() {
   return [
     // --- sidebar rail (left 25/51) ---
-    { element_id: "sb-kontakt-head", category: "text", content: "KONTAKT", flowRole: "content",
+    { element_id: "sb-kontakt-head", category: "text", content: "KONTAKT",
+      flowRole: "sidebar-chrome", flowLane: "sidebar",
       left: 51, top: 194, fontSize: 7.6 },
-    { element_id: "sb-kontakt-rule", category: "line", flowRole: "content",
+    { element_id: "sb-kontakt-rule", category: "line",
+      flowRole: "sidebar-chrome", flowLane: "sidebar",
       left: 51, top: 207, width: 50, height: 1 },
-    { element_id: "sb-phone", category: "text", content: "+48792575970", flowRole: "content",
+    { element_id: "sb-phone", category: "text", content: "+48792575970",
+      flowRole: "content", flowLane: "sidebar",
       left: 25, top: 222, fontSize: 7.3 },
-    { element_id: "sb-email", category: "text", content: "kwrzochalski@gmail.com", flowRole: "content",
+    { element_id: "sb-email", category: "text", content: "kwrzochalski@gmail.com",
+      flowRole: "content", flowLane: "sidebar",
       left: 25, top: 241, fontSize: 7.3 },
-    { element_id: "sb-edu-head", category: "text", content: "WYKSZTAŁCENIE", flowRole: "content",
+    { element_id: "sb-edu-head", category: "text", content: "WYKSZTAŁCENIE",
+      flowRole: "sidebar-chrome", flowLane: "sidebar",
       left: 51, top: 340, fontSize: 7.6 },
-    { element_id: "sb-edu-rule", category: "line", flowRole: "content",
+    { element_id: "sb-edu-rule", category: "line",
+      flowRole: "sidebar-chrome", flowLane: "sidebar",
       left: 51, top: 353, width: 50, height: 1 },
-    { element_id: "sb-edu-body", category: "textarea", content: "Bachelor of Laws (LL.B.)", flowRole: "content",
+    { element_id: "sb-edu-body", category: "textarea", content: "Bachelor of Laws (LL.B.)",
+      flowRole: "content", flowLane: "sidebar",
       autoHeight: true, left: 25, top: 365, width: 128, height: 120, fontSize: 6.6, lineHeight: 9 },
 
     // --- main column (left 218/248), properly tagged section-chrome ---
@@ -60,6 +69,15 @@ function twoColumnFixture() {
     { element_id: "m-exp-body", category: "textarea", content: "- Transaction monitoring…", flowRole: "content",
       flowGroup: "job-0", autoHeight: true, left: 218, top: 380, width: 329, height: 60, fontSize: 9.0, lineHeight: 13.2 },
   ];
+}
+
+/** Legacy untagged rail — still must never be vacuumed into the main column. */
+function legacyUntaggedSidebarFixture() {
+  return twoColumnFixture().map((element) => {
+    if (!String(element.element_id).startsWith("sb-")) return element;
+    const { flowLane, ...rest } = element;
+    return { ...rest, flowRole: "content" };
+  });
 }
 
 /** Monument-style chrome band: badge + frame sit 8px above the title baseline. */
@@ -368,10 +386,11 @@ describe("sectionElementIds", () => {
   });
 
   it("excludes the sidebar rail from a two-column template's main-section membership", () => {
-    // Regression: Tessera/Slate sidebar headings carry flowRole "content" (not
-    // "section-chrome"), so they were structurally invisible as headings but
-    // still swept into the nearest main-column section by Y alone — dragging
-    // the sidebar into the main flow on every repack.
+    // Regression: sidebar kickers use sidebar-chrome + flowLane and stay out of
+    // listDocumentSections. The lane + column checks must still keep their
+    // Y-overlapping bodies out of main sections — otherwise
+    // packDocumentSections's single shared cursor folds the sidebar into the
+    // main flow on every repack.
     const elements = twoColumnFixture();
     const summaryIds = sectionElementIds(elements, "m-summary-head");
     const expIds = sectionElementIds(elements, "m-exp-head");
@@ -381,6 +400,14 @@ describe("sectionElementIds", () => {
     for (const sidebarId of ["sb-edu-head", "sb-edu-rule", "sb-edu-body"]) {
       assert.equal(expIds.has(sidebarId), false, `${sidebarId} must not join DOŚWIADCZENIE`);
     }
+    assert.deepEqual(
+      listSidebarSections(elements).map((section) => section.title),
+      ["KONTAKT", "WYKSZTAŁCENIE"],
+    );
+    assert.equal(
+      listDocumentSections(elements).some((section) => section.title === "KONTAKT"),
+      false,
+    );
     // Main-column members are still captured correctly.
     assert.equal(expIds.has("m-exp-title"), true);
     assert.equal(expIds.has("m-exp-meta"), true);
@@ -1441,13 +1468,12 @@ describe("applyFlowSpacing", () => {
     );
   });
 
-  it("leaves a two-column template's sidebar rail untouched when repacking rhythm (Sections panel Odstępy)", () => {
-    // Regression: this is the exact call the Sections panel's spacing knobs
-    // trigger. Before the column fix, sidebar elements got vacuumed into
-    // whichever main section shared their Y band, then linearly restacked
-    // into the main flow — scrambling the two-column layout on every knob
-    // change (reported live on the Tessera template).
-    const elements = twoColumnFixture();
+  it("keeps a legacy untagged sidebar rail out of the main flow when repacking rhythm", () => {
+    // Regression: before the column fix, untagged sidebar elements got vacuumed
+    // into whichever main section shared their Y band, then linearly restacked
+    // into the main flow (reported live on Tessera). Untagged rails still must
+    // not scramble; tagged rails are covered by the lane-spacing test below.
+    const elements = legacyUntaggedSidebarFixture();
     const before = new Map(elements.map((element) => [element.element_id, { left: element.left, top: element.top }]));
     const packed = applyFlowSpacing(elements, {
       stack: 4, record: 10, section: 21, after_rule: 8,
@@ -1462,8 +1488,58 @@ describe("applyFlowSpacing", () => {
       assert.equal(byId[sidebarId].left, original.left, `${sidebarId} left must be untouched`);
       assert.equal(byId[sidebarId].top, original.top, `${sidebarId} top must be untouched`);
     }
-    // The main column is still genuinely repacked (not a no-op fix).
     assert.notEqual(byId["m-exp-head"].top, before.get("m-exp-head").top);
+  });
+
+  it("retargets a tagged sidebar lane to the same rhythm without folding it into the main column", () => {
+    const elements = twoColumnFixture();
+    const before = new Map(elements.map((element) => [element.element_id, { left: element.left, top: element.top }]));
+    const packed = applyFlowSpacing(elements, {
+      stack: 4, record: 10, section: 40, after_rule: 8,
+    }, 842);
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+
+    // Left edge of the rail never moves into the main column.
+    for (const sidebarId of [
+      "sb-kontakt-head", "sb-kontakt-rule", "sb-phone", "sb-email",
+      "sb-edu-head", "sb-edu-rule", "sb-edu-body",
+    ]) {
+      assert.equal(byId[sidebarId].left, before.get(sidebarId).left, `${sidebarId} left stays in the rail`);
+    }
+
+    // First kicker stays anchored at its authored top; later kicker moves with
+    // the section gap (authored gap was ~133px; target section=40 is tighter).
+    assert.equal(byId["sb-kontakt-head"].top, before.get("sb-kontakt-head").top);
+    assert.ok(
+      byId["sb-edu-head"].top < before.get("sb-edu-head").top,
+      "sidebar section gap should tighten under a smaller section rhythm",
+    );
+
+    // after_rule between edu rule and body.
+    const eduRuleBottom = byId["sb-edu-rule"].top + (byId["sb-edu-rule"].height || 1);
+    assert.ok(
+      Math.abs(byId["sb-edu-body"].top - eduRuleBottom - 8) <= 1.5,
+      `sidebar after_rule should be ~8, got ${byId["sb-edu-body"].top - eduRuleBottom}`,
+    );
+
+    // Main column still packs independently.
+    assert.notEqual(byId["m-exp-head"].top, before.get("m-exp-head").top);
+    assert.ok(byId["m-exp-head"].left >= 218);
+
+    // Membership stays lane-scoped.
+    const kontaktIds = sidebarSectionElementIds(packed, "sb-kontakt-head");
+    assert.equal(kontaktIds.has("m-summary-body"), false);
+    assert.equal(kontaktIds.has("sb-phone"), true);
+  });
+
+  it("packSidebarLane is a no-op when the document has no sidebar-chrome kickers", () => {
+    const elements = [
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "A", left: 66, top: 100 },
+      { element_id: "b1", category: "textarea", flowRole: "content", left: 66, top: 120, height: 20, autoHeight: true },
+    ];
+    const packed = packSidebarLane(elements, 842, { spacing: { section: 40 } });
+    assert.equal(packed[0].top, 100);
+    assert.equal(listSidebarSections(packed).length, 0);
   });
 });
 

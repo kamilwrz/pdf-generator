@@ -165,6 +165,13 @@ export function isSectionHeading(element, elements = [], pageHeight = 842) {
     // ordinals must not become their own sections.
     return !isDecorativeOrdinalChrome(element);
   }
+  // Sidebar kickers use a dedicated role + lane (see `listSidebarSections`).
+  // They must never enter the main-column section list: a false positive here
+  // would let `sameColumnAsHeading` (evaluated from the kicker's left edge)
+  // absorb the main column into a phantom sidebar section.
+  if (element.flowRole === "sidebar-chrome" || element.flowLane === "sidebar") {
+    return false;
+  }
   // Explicit body / masthead copy is never a section title.
   if (element.flowRole === "content" || element.flowRole === "masthead") return false;
   if (element.autoHeight || element.flowGroup) return false;
@@ -263,7 +270,9 @@ export function listDocumentSections(elements, pageHeight = 842) {
  */
 function isLeadingSectionMark(element) {
   if (!element) return false;
-  if (element.flowRole === "section-chrome") return true;
+  if (element.flowRole === "section-chrome" || element.flowRole === "sidebar-chrome") {
+    return true;
+  }
   if (element.category === "rectangle" || element.category === "circle") {
     const width = Number(element.width) || 0;
     const height = Number(element.height) || 0;
@@ -277,18 +286,19 @@ function isLeadingSectionMark(element) {
 }
 
 /**
- * Two-column templates (Tessera, Slate — `layouts: ["sidebar", …]`) place a
- * narrow sidebar rail far to the LEFT of the main content column's heading
- * (`side_left` ≈ 25-51 vs `main_left` ≈ 218-248 — a ~170-220px gap). Sidebar
- * headings are emitted with `flowRole` defaulting to `"content"` (see e.g.
- * `tessera.py` / `slate.py` `sidebar_heading()`), so `isSectionHeading` never
- * recognizes them as sections — but without this check, every Y-only sweep
- * below (section membership, masthead-bottom detection, flow-bottom
- * detection, insert "hole" shifting) would silently absorb sidebar elements
- * into whichever main-column section shared their Y band.
- * `packDocumentSections`'s single shared vertical cursor would then linearly
- * restack those captured sidebar elements into the main flow, scrambling the
- * two-column layout on every add-section / rhythm-change.
+ * Two-column templates (Tessera, Slate, Manifest, Harbor — `layouts: ["sidebar", …]`)
+ * place a narrow rail beside the main content column. Sidebar kickers are
+ * tagged `flowRole: "sidebar-chrome"` + `flowLane: "sidebar"` (see e.g.
+ * `tessera.py` / `manifest.py` `sidebar_heading()` / `sidebar_kicker()`), so
+ * `isSectionHeading` never promotes them into the main section list. Without
+ * the column check below, every Y-only sweep (section membership,
+ * masthead-bottom detection, flow-bottom detection, insert "hole" shifting)
+ * would silently absorb untagged sidebar bodies into whichever main-column
+ * section shared their Y band. `packDocumentSections`'s single shared vertical
+ * cursor would then linearly restack those captured elements into the main
+ * flow, scrambling the two-column layout on every add-section / rhythm-change.
+ * Density knobs re-pack the sidebar through a separate lane cursor in
+ * `packSidebarLane` (called from `applyFlowSpacing`).
  *
  * The check is intentionally one-directional: reject a candidate only when
  * it sits well to the LEFT of the section's own heading, never when it sits
@@ -435,6 +445,11 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
     for (const element of list) {
       if (element.fixedToPage) continue;
       if (element.flowRole === "masthead") continue;
+      // Explicit sidebar lane (Tessera / Slate / Manifest / Harbor) never joins
+      // a main-column strip — including right-rail Harbor bodies that sit to
+      // the RIGHT of the main heading and would otherwise pass the one-way
+      // `sameColumnAsHeading` check.
+      if (isSidebarLaneElement(element)) continue;
       if (!isSameColumn(element)) continue;
       // Another section's title must never join this strip — that is what made
       // Volt chips from a later band attach to an earlier heading and explode
@@ -586,6 +601,7 @@ function resolveFlowStart(elements, sections, pageHeight) {
   for (const element of list) {
     if (!element || element.fixedToPage) continue;
     if (element.flowRole === "section-chrome") continue;
+    if (isSidebarLaneElement(element)) continue;
     if (!isSameColumn(element)) continue;
     const abs = absoluteTop(element, pageHeight);
     if (abs >= headingStart - 0.01) continue;
@@ -619,9 +635,162 @@ function resolveFlowStart(elements, sections, pageHeight) {
   );
 }
 
+/**
+ * True when the element belongs to a two-column sidebar rail.
+ * Generators stamp `flowLane: "sidebar"` on every rail element; chrome also
+ * carries `flowRole: "sidebar-chrome"` as a belt-and-suspenders signal when
+ * `flowLane` was stripped by an older save/load path.
+ */
+export function isSidebarLaneElement(element) {
+  if (!element) return false;
+  if (element.flowLane === "sidebar") return true;
+  return element.flowRole === "sidebar-chrome";
+}
+
+/**
+ * Whether this text element is a sidebar section kicker (not a main heading).
+ */
+export function isSidebarSectionHeading(element) {
+  if (!element || element.fixedToPage) return false;
+  if (element.flowRole !== "sidebar-chrome") return false;
+  if (element.category !== "text" && element.category !== "textarea") return false;
+  const content = String(element.content || "").trim();
+  if (!content) return false;
+  return !isDecorativeOrdinalChrome(element);
+}
+
+/**
+ * List sidebar-lane sections in reading order.
+ * Independent from `listDocumentSections` — the Sections panel and main
+ * packer never see these ids (phase 1: density only).
+ *
+ * @param {object[]} elements
+ * @param {number} [pageHeight=842]
+ * @returns {{ id: string, title: string, headingId: string, startAbs: number, index: number }[]}
+ */
+export function listSidebarSections(elements, pageHeight = 842) {
+  const list = elements || [];
+  const headings = list
+    .filter((element) => isSidebarSectionHeading(element))
+    .sort((left, right) => absoluteTop(left, pageHeight) - absoluteTop(right, pageHeight));
+
+  return headings.map((heading, index) => ({
+    id: heading.element_id,
+    title: String(heading.content || "").trim(),
+    headingId: heading.element_id,
+    startAbs: resolveSectionChromeBandStart(list, heading, pageHeight),
+    index,
+  }));
+}
+
+/**
+ * Collect element ids belonging to one sidebar section (kicker chrome + body
+ * until the next sidebar kicker). Membership is lane-tagged, not geometric —
+ * so a right-rail Harbor section cannot steal main-column content.
+ */
+export function sidebarSectionElementIds(elements, headingId, pageHeight = 842) {
+  const list = elements || [];
+  const sections = listSidebarSections(list, pageHeight);
+  const index = sections.findIndex((section) => section.headingId === headingId);
+  if (index < 0) return new Set();
+
+  const start = sections[index].startAbs;
+  const end = index + 1 < sections.length
+    ? sections[index + 1].startAbs
+    : Number.POSITIVE_INFINITY;
+  const ids = new Set();
+
+  for (const element of list) {
+    if (!element || element.fixedToPage) continue;
+    if (element.flowRole === "masthead") continue;
+    if (!isSidebarLaneElement(element)) continue;
+    if (
+      isSidebarSectionHeading(element)
+      && element.element_id !== headingId
+    ) {
+      continue;
+    }
+
+    const abs = absoluteTop(element, pageHeight);
+    if (abs >= start && abs < end - 0.01) {
+      ids.add(element.element_id);
+      continue;
+    }
+    // Icon tiles / short rules may start a few px above the kicker baseline.
+    if (
+      abs >= start - 24
+      && abs < start
+      && (element.flowRole === "sidebar-chrome" || isLeadingSectionMark(element))
+    ) {
+      ids.add(element.element_id);
+    }
+  }
+  return ids;
+}
+
+/**
+ * Re-pack every sidebar-lane section with the same SPACE_* rhythm as the main
+ * column, using an independent vertical cursor that never touches main flow.
+ *
+ * Anchors the first kicker at its authored chrome-band top so density changes
+ * cannot yank the rail up under the masthead / photo. Later kickers stack with
+ * `spacing.section`; intra-section gaps use after_rule / stack / record.
+ *
+ * @param {object[]} elements
+ * @param {number} [pageHeight=842]
+ * @param {{ pageTop?: number, bottomMargin?: number, spacing?: object, forceTargets?: boolean }} [options]
+ * @returns {object[]}
+ */
+export function packSidebarLane(
+  elements,
+  pageHeight = 842,
+  {
+    pageTop = DEFAULT_PAGE_TOP,
+    bottomMargin = DEFAULT_BOTTOM_MARGIN,
+    spacing,
+    forceTargets = true,
+  } = {},
+) {
+  const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
+  const list = elements || [];
+  const sections = listSidebarSections(list, pageHeight);
+  if (sections.length === 0) return list;
+
+  const memberIds = new Set();
+  const strips = sections.map((section) => {
+    const ids = sidebarSectionElementIds(list, section.headingId, pageHeight);
+    ids.forEach((id) => memberIds.add(id));
+    const members = list.filter((element) => ids.has(element.element_id));
+    return compactSectionStrip(members, pageHeight, rhythm, forceTargets);
+  });
+
+  const firstHeading = list.find((element) => element.element_id === sections[0].headingId);
+  let cursorAbs = firstHeading
+    ? resolveSectionChromeBandStart(list, firstHeading, pageHeight)
+    : sections[0].startAbs;
+
+  const placedById = new Map();
+  strips.forEach((strip, stripIndex) => {
+    if (strip.length === 0) return;
+    if (stripIndex > 0) cursorAbs += rhythm.section;
+    const { placedById: stripPlaced, bottomAbs } = placeStrip(
+      strip, cursorAbs, pageHeight, pageTop, bottomMargin,
+    );
+    for (const [id, element] of stripPlaced) placedById.set(id, element);
+    cursorAbs = bottomAbs;
+  });
+
+  return list.map((element) => {
+    if (!memberIds.has(element.element_id)) return element;
+    return placedById.get(element.element_id) || element;
+  });
+}
+
 function isChromeLike(element) {
   if (!element) return false;
-  if (element.flowRole === "section-chrome") return true;
+  if (element.flowRole === "section-chrome" || element.flowRole === "sidebar-chrome") {
+    return true;
+  }
   if (element.category === "line") {
     return (Number(element.height) || 0) <= 4;
   }
@@ -1298,6 +1467,7 @@ export function appendSectionAtEnd(
   let flowBottom = 0;
   for (const element of list) {
     if (!element || element.fixedToPage) continue;
+    if (isSidebarLaneElement(element)) continue;
     if (!isSameColumn(element)) continue;
     flowBottom = Math.max(flowBottom, absoluteBottom(element, pageHeight));
   }
@@ -1385,6 +1555,7 @@ export function insertSectionAfter(
     if (!element || element.fixedToPage) return element;
     if (anchorIds.has(element.element_id)) return element;
     if (element.flowRole === "masthead") return element;
+    if (isSidebarLaneElement(element)) return element;
     if (!isSameColumn(element)) return element;
     if (absoluteTop(element, pageHeight) + 0.01 < sectionBottom) return element;
     const newAbs = absoluteTop(element, pageHeight) + hole;
@@ -1503,6 +1674,11 @@ export function removeSection(
  * Re-pack every section in current order using target rhythm values.
  * Used when the Sections panel changes stack/record/section/after_rule.
  *
+ * Main-column sections pack first (`packDocumentSections`). Sidebar-lane
+ * sections then pack on an independent cursor (`packSidebarLane`) so density
+ * knobs reach Tessera / Slate / Manifest / Harbor rails without folding them
+ * into the main flow.
+ *
  * @param {object[]} elements
  * @param {object} spacing
  * @param {number} [pageHeight=842]
@@ -1511,19 +1687,26 @@ export function removeSection(
  */
 export function applyFlowSpacing(elements, spacing, pageHeight = 842, options = {}) {
   const rhythm = normalizeFlowSpacing(spacing);
-  const sections = listDocumentSections(elements, pageHeight);
-  if (sections.length === 0) return elements || [];
-  return packDocumentSections(
-    elements,
-    sections.map((section) => section.headingId),
-    pageHeight,
-    {
-      ...options,
-      spacing: rhythm,
-      sectionGap: rhythm.section,
-      forceTargets: true,
-    },
-  );
+  let next = elements || [];
+  const sections = listDocumentSections(next, pageHeight);
+  if (sections.length > 0) {
+    next = packDocumentSections(
+      next,
+      sections.map((section) => section.headingId),
+      pageHeight,
+      {
+        ...options,
+        spacing: rhythm,
+        sectionGap: rhythm.section,
+        forceTargets: true,
+      },
+    );
+  }
+  return packSidebarLane(next, pageHeight, {
+    ...options,
+    spacing: rhythm,
+    forceTargets: true,
+  });
 }
 
 /**

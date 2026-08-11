@@ -58,11 +58,12 @@ test("Manifest is a two-column sidebar layout with a dark header band and packer
     // see the generator's module docstring for why a false match here would
     // be more dangerous than an ordinary phantom section. ────────────────────
     const sidebarKickers = manifestTemplate.filter(
-        (element) => element.flowRole === "content" && element.category === "text" && element.left === 42
+        (element) => element.flowRole === "sidebar-chrome" && element.category === "text" && element.left === 42
             && element.bold === true,
     );
     assert.ok(sidebarKickers.length >= 2, "at least summary + one fitted sidebar section");
     assert.ok(sidebarKickers.every((element) => (element.page ?? 1) === 1));
+    assert.ok(sidebarKickers.every((element) => element.flowLane === "sidebar"));
 
     const summaryBody = manifestTemplate.find(
         (element) => typeof element.content === "string" && element.content.includes("Liderka strategii"),
@@ -70,6 +71,7 @@ test("Manifest is a two-column sidebar layout with a dark header band and packer
     assert.ok(summaryBody);
     assert.equal(summaryBody.left, 42);
     assert.equal(summaryBody.flowRole, "content");
+    assert.equal(summaryBody.flowLane, "sidebar");
 
     const languagesBody = manifestTemplate.find(
         (element) => typeof element.content === "string" && element.content.includes("Polski"),

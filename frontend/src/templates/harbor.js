@@ -51,10 +51,16 @@ const icon = (theme, name, left, top, size, alignWithText = true) => ({
 });
 
 /** Section heading: charcoal tracked label + a grey rule spanning the column. */
-const heading = (label, left, width, top) => [
+const heading = (label, left, width, top, { sidebar = false } = {}) => [
     tracked(text(label, 8.8, SANS, INK, left, top, 3), 1.1),
     line(left, top + 13, width, 1, RULE, 2),
-];
+].map((element) => (
+    sidebar
+        ? { ...element, flowRole: "sidebar-chrome", flowLane: "sidebar" }
+        : { ...element, flowRole: "section-chrome" }
+));
+
+const sideBody = (element) => ({ ...element, flowLane: "sidebar" });
 
 /** One header contact detail: grey icon + label on a shared text line. */
 const contact = (name, iconLeft, textLeft, label, top) => [
@@ -97,12 +103,12 @@ const sidebar = (() => {
     let y = 146;
 
     // Education: bold diploma, accent school, meta icons, diamond description.
-    els.push(...heading("EDUKACJA", SIDE_X, SIDE_W, y));
-    els.push(bold(text("Bachelor of Laws", 10, SANS, INK, SIDE_X, y + 24, 3)));
-    els.push(text("EU Viadrina", 9, SANS, ACCENT, SIDE_X, y + 40, 3));
-    els.push(...contact("calendar", SIDE_X, SIDE_X + 15, "2016 – 2019", y + 57));
-    els.push(...contact("location", SIDE_X, SIDE_X + 15, "Frankfurt nad Odrą", y + 72));
-    els.push(...diamondItem("Specjalizacja: prawo europejskie", SIDE_X, y + 90));
+    els.push(...heading("EDUKACJA", SIDE_X, SIDE_W, y, { sidebar: true }));
+    els.push(sideBody(bold(text("Bachelor of Laws", 10, SANS, INK, SIDE_X, y + 24, 3))));
+    els.push(sideBody(text("EU Viadrina", 9, SANS, ACCENT, SIDE_X, y + 40, 3)));
+    els.push(...contact("calendar", SIDE_X, SIDE_X + 15, "2016 – 2019", y + 57).map(sideBody));
+    els.push(...contact("location", SIDE_X, SIDE_X + 15, "Frankfurt nad Odrą", y + 72).map(sideBody));
+    els.push(...diamondItem("Specjalizacja: prawo europejskie", SIDE_X, y + 90).map(sideBody));
 
     const skills = [
         "Analiza AML/KYC", "Transaction Monitoring", "CDD / EDD",
@@ -110,23 +116,23 @@ const sidebar = (() => {
         "Dbałość o szczegóły", "Praca zespołowa",
     ];
     y += 122;
-    els.push(...heading("UMIEJĘTNOŚCI", SIDE_X, SIDE_W, y));
+    els.push(...heading("UMIEJĘTNOŚCI", SIDE_X, SIDE_W, y, { sidebar: true }));
     skills.forEach((label, index) => {
-        els.push(...diamondItem(label, SIDE_X, y + 24 + index * 15));
+        els.push(...diamondItem(label, SIDE_X, y + 24 + index * 15).map(sideBody));
     });
 
     const languages = ["Polski — C2", "Niemiecki — C1", "Angielski — B2"];
     y += 24 + skills.length * 15 + 20;
-    els.push(...heading("JĘZYKI", SIDE_X, SIDE_W, y));
+    els.push(...heading("JĘZYKI", SIDE_X, SIDE_W, y, { sidebar: true }));
     languages.forEach((label, index) => {
-        els.push(...diamondItem(label, SIDE_X, y + 24 + index * 15));
+        els.push(...diamondItem(label, SIDE_X, y + 24 + index * 15).map(sideBody));
     });
 
     const tools = ["Actimize", "LexisNexis", "SAP / SAP CIC", "MS Office", "SQL", "Python"];
     y += 24 + languages.length * 15 + 20;
-    els.push(...heading("SYSTEMY I NARZĘDZIA", SIDE_X, SIDE_W, y));
+    els.push(...heading("SYSTEMY I NARZĘDZIA", SIDE_X, SIDE_W, y, { sidebar: true }));
     tools.forEach((label, index) => {
-        els.push(...diamondItem(label, SIDE_X, y + 24 + index * 15));
+        els.push(...diamondItem(label, SIDE_X, y + 24 + index * 15).map(sideBody));
     });
 
     return els;

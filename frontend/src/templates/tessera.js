@@ -58,7 +58,10 @@ const sideHeading = (label, iconName, top) => [
     icon(iconName, SIDE_X + 4, top + 2, 12),
     tracked(bold(text(label, 7.6, SANS, AUBERGINE, SIDE_X + 26, top + 3, 3)), 0.85),
     line(SIDE_X + 26, top + 16, 50, 1, CORAL, 2),
-];
+].map((element) => ({ ...element, flowRole: "sidebar-chrome", flowLane: "sidebar" }));
+
+const sideBody = (element) => ({ ...element, flowLane: "sidebar" });
+const sideContact = (name, label, top) => contact(name, label, top).map(sideBody);
 
 /** Main heading: a larger tile badge and a long warm-grey keyline. */
 const heading = (label, iconName, top) => [
@@ -104,38 +107,38 @@ const starter = [
     circle(506, 58, 13, CORAL, true, 1, 3),
     ellipse(487, 90, 56, 15, OCHRE, false, 1, 2),
 
-    // Left information rail.
+    // Left information rail (`flowLane: "sidebar"` — packed by packSidebarLane).
     ...sideHeading("KONTAKT", "references", 194),
-    ...contact("phone", "+48 600 000 000", 222),
-    ...contact("email", "aleksandra@email.com", 241),
-    ...contact("linkedin", "linkedin.com/in/aleksandra", 260),
-    ...contact("github", "github.com/aleksandra", 279),
-    ...contact("website", "aleksandra.dev", 298),
-    ...contact("location", "Warszawa, Polska", 317),
+    ...sideContact("phone", "+48 600 000 000", 222),
+    ...sideContact("email", "aleksandra@email.com", 241),
+    ...sideContact("linkedin", "linkedin.com/in/aleksandra", 260),
+    ...sideContact("github", "github.com/aleksandra", 279),
+    ...sideContact("website", "aleksandra.dev", 298),
+    ...sideContact("location", "Warszawa, Polska", 317),
 
     ...sideHeading("WYKSZTAŁCENIE", "education", 356),
-    bold(block("MA — Service Design", SIDE_X, 383, 128, 14, 8.2, 11.5, INK, SANS)),
-    block("Uniwersytet SWPS", SIDE_X, 400, 128, 13, 7.7, 11, CORAL, SANS),
-    block("Warszawa  ·  2014–2016", SIDE_X, 416, 128, 13, 7.4, 11, MUTED, SANS),
+    sideBody(bold(block("MA — Service Design", SIDE_X, 383, 128, 14, 8.2, 11.5, INK, SANS))),
+    sideBody(block("Uniwersytet SWPS", SIDE_X, 400, 128, 13, 7.7, 11, CORAL, SANS)),
+    sideBody(block("Warszawa  ·  2014–2016", SIDE_X, 416, 128, 13, 7.4, 11, MUTED, SANS)),
 
     ...sideHeading("KOMPETENCJE", "skills", 450),
-    bulleted(block(
+    sideBody(bulleted(block(
         "• Strategia produktu\n• Service design\n• Badania jakościowe\n"
         + "• Facylitacja\n• Operating models\n• Zarządzanie zmianą",
         SIDE_X, 477, 128, 78, 8, 11.6, BODY, SANS,
-    )),
+    ))),
 
     ...sideHeading("JĘZYKI", "languages", 584),
-    bulleted(block(
+    sideBody(bulleted(block(
         "• Polski — ojczysty\n• Angielski — C1\n• Niemiecki — B1",
         SIDE_X, 611, 128, 43, 8, 11.6, BODY, SANS,
-    )),
+    ))),
 
     ...sideHeading("NARZĘDZIA", "other", 683),
-    bulleted(block(
+    sideBody(bulleted(block(
         "• Miro / FigJam\n• Notion\n• Power BI\n• Jira",
         SIDE_X, 710, 128, 56, 8, 11.6, BODY, SANS,
-    )),
+    ))),
 
     // Main profile and experience flow.
     ...heading("PODSUMOWANIE", "summary", 179),

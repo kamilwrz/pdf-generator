@@ -8,7 +8,7 @@ instead of guessing from decorative canvas chrome. This module:
 2. Extracts text with PyMuPDF.
 3. Scores extractability, contact data, and content order in code.
 
-Decorative elements (`fixedToPage`, `section-chrome`, `isDecorativeChromeText`,
+Decorative elements (`fixedToPage`, `section-chrome`, `sidebar-chrome`, `isDecorativeChromeText`,
 shapes/lines/images) are excluded from the expected content stream so ordinals
 and underlines do not create false negatives.
 """
@@ -90,7 +90,7 @@ def is_decorative_element(element: dict | Any) -> bool:
     if get("isDecorativeChromeText") is True:
         return True
     flow_role = str(get("flowRole") or "").strip().lower()
-    if flow_role == "section-chrome":
+    if flow_role in {"section-chrome", "sidebar-chrome"}:
         return True
     content = str(get("content") or "").strip()
     if not content:

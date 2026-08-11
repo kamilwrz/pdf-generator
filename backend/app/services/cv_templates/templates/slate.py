@@ -143,7 +143,12 @@ def _gen_slate(cv: dict) -> list[dict]:
         )
         heading["letterSpacing"] = 0.85
         keyline = _line(side_left + 24, top + 16, 46, 1, colors["accent"], zIndex=2)
-        return [badge, glyph, heading, keyline]
+        # Sidebar chrome is packed by `packSidebarLane`, never by the main
+        # column section list (see sectionStructure.js).
+        return [
+            {**element, "flowRole": "sidebar-chrome"}
+            for element in (badge, glyph, heading, keyline)
+        ]
 
     # Contact rows use bare accent glyphs (no badge) so they read as metadata
     # rather than section headings, matching the reference layout.
@@ -392,6 +397,7 @@ def _gen_slate(cv: dict) -> list[dict]:
             **element,
             "page": 1,
             "flowRole": element.get("flowRole", "content"),
+            "flowLane": "sidebar",
         }
         for element in sidebar_static
     ]

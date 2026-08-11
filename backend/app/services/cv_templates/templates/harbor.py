@@ -119,9 +119,11 @@ def _gen_harbor(cv: dict) -> list[dict]:
         side_b.need_section(SECTION_CHROME, first_body_height)
         side_b.text(label, 8.8, SANS, C["ink"], SIDE_X)
         side_b.els[-1]["letterSpacing"] = 1.1
-        side_b.els[-1]["flowRole"] = "section-chrome"
+        # Sidebar chrome packs on an independent lane cursor — not the main
+        # column's `listDocumentSections` / `packDocumentSections` path.
+        side_b.els[-1]["flowRole"] = "sidebar-chrome"
         side_b.line(SIDE_X, SIDE_W, 1, C["rule"])
-        side_b.els[-1]["flowRole"] = "section-chrome"
+        side_b.els[-1]["flowRole"] = "sidebar-chrome"
         side_b.gap(get_spacing().after_rule)
 
     def side_block(content: str, fs: float, lh: float, color: str, *,
@@ -273,7 +275,11 @@ def _gen_harbor(cv: dict) -> list[dict]:
         side_b.gap(get_spacing().section)
 
     sidebar = [
-        {**element, "flowRole": element.get("flowRole", "content")}
+        {
+            **element,
+            "flowRole": element.get("flowRole", "content"),
+            "flowLane": "sidebar",
+        }
         for element in side_b.build()
     ]
 

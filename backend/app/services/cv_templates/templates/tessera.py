@@ -124,7 +124,13 @@ def _gen_tessera(cv: dict) -> list[dict]:
             zIndex=3, bold=True,
         )
         heading["letterSpacing"] = 0.85
-        return [tile, outline, icon, heading, _line(side_left + 26, top + 16, 50, 1, colors["coral"], zIndex=2)]
+        rule = _line(side_left + 26, top + 16, 50, 1, colors["coral"], zIndex=2)
+        # Sidebar chrome is packed by `packSidebarLane`, never by the main
+        # column section list (see sectionStructure.js).
+        return [
+            {**element, "flowRole": "sidebar-chrome"}
+            for element in (tile, outline, icon, heading, rule)
+        ]
 
     # Contact rows use dedicated icons rather than text symbols so canvas and
     # PDF export share the same geometry and visual weight.
@@ -369,6 +375,7 @@ def _gen_tessera(cv: dict) -> list[dict]:
             **element,
             "page": 1,
             "flowRole": element.get("flowRole", "content"),
+            "flowLane": "sidebar",
         }
         for element in sidebar_static
     ]
