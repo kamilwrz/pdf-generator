@@ -366,8 +366,10 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "• Polski — C2\n• Angielski — C1",
             "• PMP\n• ICAgile",
             "• Fotografia\n• Żeglarstwo",
-            "MBA\nSGH\n2020",
         }
+        # Education is structured (separate degree / school / period elements),
+        # matching single-column ``_place_education_record``.
+        structured_education_parts = {"MBA", "SGH", "2020"}
 
         for template_id in ("tessera",):
             with self.subTest(template_id=template_id):
@@ -393,6 +395,12 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
                 self.assertTrue(sidebar_titles <= sidebar_heading_copy)
                 self.assertTrue(complete_sidebar_bodies <= sidebar_bodies)
+                self.assertTrue(structured_education_parts <= sidebar_bodies)
+                edu_degree = next(
+                    element for element in elements
+                    if element.get("content") == "MBA" and element.get("left") == 25
+                )
+                self.assertTrue(edu_degree.get("bold"))
                 self.assertTrue(all(
                     element["page"] == 1
                     and element["width"] == 128
@@ -402,6 +410,8 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 ))
                 for body in complete_sidebar_bodies:
                     self.assertNotIn(body, main_copy)
+                for part in structured_education_parts:
+                    self.assertNotIn(part, main_copy)
                 self.assertIn("Platforma obsługi klienta", main_copy)
 
 
@@ -627,23 +637,59 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertIn("Warszawa   ·   2017 – 2022", main_copy)
         self.assertIn("• Specjalizacja: prawo europejskie", main_copy)
 
-        sidebar = generate_resume("tessera", {
-            "name": "Anna Kowalska",
-            "title": "Prawnik",
-            "education": education,
-            "experience": [],
-            "skills": ["Analiza"],
-            "extra_sections": [],
-        })
-        sidebar_copy = "\n".join(
-            element["content"]
-            for element in sidebar
-            if element["category"] == "textarea" and element.get("left") == 25
-        )
-        self.assertIn("Magister prawa", sidebar_copy)
-        self.assertIn("Uniwersytet Warszawski", sidebar_copy)
-        self.assertIn("Warszawa   ·   2017 – 2022", sidebar_copy)
-        self.assertIn("• Specjalizacja: prawo europejskie", sidebar_copy)
+        for template_id in ("tessera", "slate", "manifest"):
+            with self.subTest(template_id=template_id):
+                sidebar = generate_resume(template_id, {
+                    "name": "Anna Kowalska",
+                    "title": "Prawnik",
+                    "education": education,
+                    "experience": [],
+                    "skills": ["Analiza"],
+                    "extra_sections": [],
+                    "summary": "Krotkie podsumowanie zawodowe do sidebara Manifest.",
+                })
+                # Sidebar education must be separate elements (degree / school /
+                # meta / bullets), not one mashed plaintext textarea.
+                side_bodies = [
+                    element
+                    for element in sidebar
+                    if element["category"] == "textarea"
+                    and element.get("flowLane") == "sidebar"
+                ]
+                side_copy = "\n".join(element["content"] for element in side_bodies)
+                self.assertIn("Magister prawa", side_copy)
+                self.assertIn("Uniwersytet Warszawski", side_copy)
+                self.assertIn("Warszawa   ·   2017 – 2022", side_copy)
+                self.assertIn("• Specjalizacja: prawo europejskie", side_copy)
+
+                degree = next(
+                    element for element in side_bodies
+                    if element.get("content") == "Magister prawa"
+                )
+                school = next(
+                    element for element in side_bodies
+                    if element.get("content") == "Uniwersytet Warszawski"
+                )
+                meta = next(
+                    element for element in side_bodies
+                    if element.get("content") == "Warszawa   ·   2017 – 2022"
+                )
+                description = next(
+                    element for element in side_bodies
+                    if element.get("content") == "• Specjalizacja: prawo europejskie"
+                )
+                self.assertTrue(degree.get("bold"))
+                self.assertFalse(school.get("bold"))
+                self.assertNotEqual(degree.get("content"), school.get("content"))
+                self.assertNotEqual(
+                    degree["top"], description["top"],
+                    "description must be its own element, not mashed into the degree box",
+                )
+                self.assertTrue(description.get("bulletList"))
+                # One flowGroup keeps diploma + school + meta + bullets atomic.
+                self.assertEqual(degree.get("flowGroup"), school.get("flowGroup"))
+                self.assertEqual(degree.get("flowGroup"), meta.get("flowGroup"))
+                self.assertEqual(degree.get("flowGroup"), description.get("flowGroup"))
 
     def test_education_description_uses_the_experience_body_color(self):
         """Education descriptions must read like body content, not muted metadata."""

@@ -80,6 +80,19 @@ test("Manifest is a two-column sidebar layout with a dark header band and packer
     assert.ok(languagesBody.bulletList);
     assert.ok(languagesBody.content.includes("Polski — ojczysty"));
 
+    // Education is structured like single-column records (not one mashed box).
+    const eduDegree = manifestTemplate.find((element) => element.content === "Magister Zarządzania");
+    const eduSchool = manifestTemplate.find((element) => element.content === "SGH Warszawa");
+    const eduBullet = manifestTemplate.find(
+        (element) => typeof element.content === "string"
+            && element.content.includes("Specjalizacja: ekonomia międzynarodowa"),
+    );
+    assert.ok(eduDegree?.bold);
+    assert.ok(eduSchool);
+    assert.equal(eduDegree.flowLane, "sidebar");
+    assert.equal(eduDegree.flowGroup, eduSchool.flowGroup);
+    assert.ok(eduBullet?.bulletList);
+
     // ── Main column: left-anchored heading + full-width ink rule (the same
     // safe shape every single-column template uses), numbered records with
     // the ordinal folded into the title text (not a same-row side badge). ───

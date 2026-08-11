@@ -16,6 +16,7 @@ from app.services.cv_generator_primitives import (
 from app.services.cv_templates.shared.extras import (
     _extra_sections,
     _fit_sidebar_sections,
+    _fitted_sidebar_body_elements,
     _sidebar_candidates,
 )
 from app.services.cv_templates.shared.icons import _icon, _icon_beside, _icon_key_for_label
@@ -173,6 +174,7 @@ def _gen_tessera(cv: dict) -> list[dict]:
         # Sidebar bodies are lowered 6 px below the generic fitted heading
         # baseline to clear the 18 px mosaic tile, so reserve that offset here.
         bottom_y=760,
+        font=sans,
     )
     sidebar_extra_indices = {
         section["extra_index"]
@@ -183,27 +185,17 @@ def _gen_tessera(cv: dict) -> list[dict]:
         icon_name = _icon_key_for_label(section_data["title"])
         top = float(section_data["top"])
         sidebar_static.extend(sidebar_heading(section_data["title"], icon_name, top))
-        sidebar_static.append({
-            "category": "textarea",
-            "content": section_data["content"],
-            "left": side_left,
-            "top": float(section_data["body_top"]) + 6,
-            "width": side_body_width,
-            "height": float(section_data["body_height"]),
-            "fontSize": float(section_data["fontSize"]),
-            "lineHeight": float(section_data["lineHeight"]),
-            "letterSpacing": 0,
-            "color": colors["body"],
-            "fontFamily": sans,
-            "zIndex": 3,
-            "page": 1,
-            "bold": False,
-            "italic": False,
-            "align": "left",
-            "bulletList": bool(section_data.get("bulletList")),
-            "autoHeight": True,
-            "preserveInitialLayout": True,
-        })
+        # Education becomes diploma / school / meta / bullet elements; flat
+        # sections (skills, languages, …) stay a single textarea.
+        sidebar_static.extend(_fitted_sidebar_body_elements(
+            section_data,
+            left=side_left,
+            width=side_body_width,
+            ink=colors["ink"],
+            muted=colors["muted"],
+            body=colors["body"],
+            font=sans,
+        ))
 
     # Personal masthead is separated from the reference by serif typography,
     # an offset coral role tile, and an abstract mosaic at the top-right.

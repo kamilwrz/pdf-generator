@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import secrets
 
 from app.services.cv_generator_primitives import get_spacing, Builder
 from app.services.cv_templates.shared.text import (
@@ -314,7 +315,14 @@ def _place_experience_record(
 
 
 def _education_sidebar_content(education: list[dict]) -> str:
-    """Compact, structured records for a narrow sidebar column."""
+    """
+    Compact plain-text education for legacy / height-estimate callers.
+
+    Tessera, Slate and Manifest no longer render this mashed string — they emit
+    separate diploma / school / meta / bullet elements via
+    ``_build_sidebar_education_elements``. Kept for callers that still need a
+    single wrapped block (tests, unused template imports, height fallbacks).
+    """
     records: list[str] = []
     for entry in education:
         lines: list[str] = []
@@ -338,6 +346,176 @@ def _education_sidebar_content(education: list[dict]) -> str:
         if lines:
             records.append("\n".join(lines))
     return "\n\n".join(records)
+
+
+def _sidebar_education_entries(education: list[dict] | None) -> list[dict]:
+    """Education rows that still have at least one renderable line."""
+    entries: list[dict] = []
+    for entry in education or []:
+        if not isinstance(entry, dict):
+            continue
+        if (
+            str(entry.get("degree") or "").strip()
+            or _education_school(entry)
+            or _education_meta(entry)
+            or _education_bullet_items(entry)
+            or str(entry.get("detail") or "").strip()
+        ):
+            entries.append(entry)
+    return entries
+
+
+def _sidebar_education_section_height(
+    entries: list[dict],
+    width: float,
+    font: str,
+    *,
+    degree_fs: float,
+    degree_lh: float,
+    meta_fs: float,
+    meta_lh: float,
+    body_fs: float,
+    body_lh: float,
+) -> float:
+    """
+    Measured height of structured sidebar education (records + inter-record gaps).
+
+    Uses the same per-record stack as ``_place_education_record`` so the fit
+    budget matches what Tessera / Slate / Manifest actually emit.
+    """
+    total = 0.0
+    for index, edu in enumerate(entries):
+        if index:
+            total += get_spacing().record
+        # ``measure_block`` is a staticmethod — pass the Builder class.
+        total += _education_record_height(
+            Builder,
+            edu,
+            width,
+            font,
+            degree_fs=degree_fs,
+            degree_lh=degree_lh,
+            meta_fs=meta_fs,
+            meta_lh=meta_lh,
+            body_fs=body_fs,
+            body_lh=body_lh,
+        )
+    return round(total, 2)
+
+
+def _build_sidebar_education_elements(
+    entries: list[dict],
+    *,
+    left: float,
+    top: float,
+    width: float,
+    ink: str,
+    muted: str,
+    body: str,
+    font: str,
+    degree_fs: float,
+    degree_lh: float,
+    meta_fs: float,
+    meta_lh: float,
+    body_fs: float,
+    body_lh: float,
+) -> list[dict]:
+    """
+    Emit structured education for a narrow sidebar rail.
+
+    Same shape as single-column ``_place_education_record``:
+      1. diploma / degree (bold ink)
+      2. school / university (ink)
+      3. city · period (muted)
+      4. description as ``bulletList: true``
+
+    Each record shares a ``flowGroup`` so sidebar reflow keeps the entry whole.
+    """
+    elements: list[dict] = []
+    cursor = float(top)
+
+    def append_block(
+        content: str,
+        *,
+        fs: float,
+        lh: float,
+        color: str,
+        bold: bool = False,
+        bullet_list: bool = False,
+        group_id: str,
+    ) -> float:
+        nonlocal cursor
+        height = Builder.measure_block(
+            content, width, fs, lh, font,
+            bold=bold, bulletList=bullet_list, min_h=lh,
+        )
+        elements.append({
+            "category": "textarea",
+            "content": content,
+            "left": left,
+            "top": round(cursor, 2),
+            "width": width,
+            "height": height,
+            "fontSize": fs,
+            "lineHeight": lh,
+            "letterSpacing": 0,
+            "color": color,
+            "fontFamily": font,
+            "zIndex": 3,
+            "page": 1,
+            "bold": bold,
+            "italic": False,
+            "align": "left",
+            "bulletList": bullet_list,
+            "autoHeight": True,
+            "preserveInitialLayout": True,
+            "flowGroup": group_id,
+        })
+        cursor += height
+        return height
+
+    for index, edu in enumerate(entries):
+        if index:
+            cursor += get_spacing().record
+        degree = str(edu.get("degree") or "").strip()
+        school = _education_school(edu)
+        meta = _education_meta(edu)
+        bullets = _education_bullets(edu)
+        if not any((degree, school, meta, bullets)):
+            legacy = str(edu.get("detail") or "").strip()
+            if legacy:
+                degree = legacy
+        if not any((degree, school, meta, bullets)):
+            continue
+
+        group_id = f"record-{secrets.token_hex(6)}"
+        placed = False
+        if degree:
+            append_block(degree, fs=degree_fs, lh=degree_lh, color=ink, bold=True, group_id=group_id)
+            placed = True
+        if school:
+            if placed:
+                cursor += get_spacing().stack
+            append_block(school, fs=degree_fs, lh=degree_lh, color=ink, group_id=group_id)
+            placed = True
+        if meta:
+            if placed:
+                cursor += get_spacing().stack
+            append_block(meta, fs=meta_fs, lh=meta_lh, color=muted, group_id=group_id)
+            placed = True
+        if bullets:
+            if placed:
+                cursor += get_spacing().stack
+            append_block(
+                bullets,
+                fs=body_fs,
+                lh=body_lh,
+                color=body,
+                bullet_list=True,
+                group_id=group_id,
+            )
+
+    return elements
 
 
 def _language_sidebar_lines(cv: dict) -> list[str]:

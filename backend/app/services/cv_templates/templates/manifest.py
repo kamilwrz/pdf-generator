@@ -57,6 +57,7 @@ from app.services.cv_templates.shared.contact import _measured_text_width
 from app.services.cv_templates.shared.extras import (
     _extra_sections,
     _fit_sidebar_sections,
+    _fitted_sidebar_body_elements,
     _sidebar_candidates,
 )
 from app.services.cv_templates.shared.records import (
@@ -194,7 +195,7 @@ def _gen_manifest(cv: dict) -> list[dict]:
 
     candidates = [c for c in _sidebar_candidates(cv, lbl) if c.get('kind') != 'skills']
     fitted_sections, sidebar_keys = _fit_sidebar_sections(
-        candidates, width=SIDE_W, start_y=cursor, bottom_y=760,
+        candidates, width=SIDE_W, start_y=cursor, bottom_y=760, font=SANS,
     )
     sidebar_extra_indices = {
         section['extra_index']
@@ -204,15 +205,18 @@ def _gen_manifest(cv: dict) -> list[dict]:
     for section_data in fitted_sections:
         top = float(section_data['top'])
         sidebar.extend(sidebar_kicker(section_data['title'], top))
-        sidebar.append({
-            'category': 'textarea', 'content': section_data['content'], 'left': SIDE_L,
-            'top': float(section_data['body_top']) + 6.0, 'width': SIDE_W,
-            'height': float(section_data['body_height']), 'fontSize': float(section_data['fontSize']),
-            'lineHeight': float(section_data['lineHeight']), 'letterSpacing': 0, 'color': C['ink'],
-            'fontFamily': SANS, 'zIndex': 3, 'page': 1, 'bold': False, 'italic': False,
-            'align': 'left', 'bulletList': bool(section_data.get('bulletList')),
-            'autoHeight': True, 'preserveInitialLayout': True,
-        })
+        # Education becomes diploma / school / meta / bullet elements; flat
+        # sections (languages, …) stay a single textarea. Manifest has no
+        # separate muted token in the rail — meta still uses ink.
+        sidebar.extend(_fitted_sidebar_body_elements(
+            section_data,
+            left=SIDE_L,
+            width=SIDE_W,
+            ink=C['ink'],
+            muted=C['ink'],
+            body=C['ink'],
+            font=SANS,
+        ))
 
     sidebar = [{
         **element,

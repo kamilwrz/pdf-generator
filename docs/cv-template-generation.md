@@ -250,11 +250,12 @@ Algorytm flow (summary → experience → …) jest wspólny koncepcyjnie; palet
 
 Dla szablonów z tagiem `sidebar` działa wspólna logika w `shared/extras.py`:
 
-1. `_sidebar_candidates` — buduje kandydatów: skills, languages/certyfikaty/zainteresowania z `extra_sections`, education.
-2. `_fit_sidebar_sections` — wkłada na pierwszą stronę **tylko kompletne sekcje**, które mieszczą się w **pozostałym budżecie wysokości** sidebara (z próbą mniejszych fontów). Nie ma osobnego limitu „max 160 px na sekcję” — taki limit odrzucał typowe listy z kreatora bio (~10–12 umiejętności) mimo wolnego miejsca. Sekcja, która nie mieści się w całości, **nie jest ucinana** — spada do kolumny głównej.
-3. Indeksy `extra_sections` już umieszczonych w sidebarze są pomijane w `_extra_sections`, żeby nie dublować treści.
+1. `_sidebar_candidates` — buduje kandydatów: skills, languages/certyfikaty/zainteresowania z `extra_sections`, education (education niesie `entries` + `structured: true`, nie zbity string).
+2. `_fit_sidebar_sections` — wkłada na pierwszą stronę **tylko kompletne sekcje**, które mieszczą się w **pozostałym budżecie wysokości** sidebara (z próbą mniejszych fontów). Education mierzy wysokość przez `_sidebar_education_section_height` (ten sam stack co `_place_education_record`). Nie ma osobnego limitu „max 160 px na sekcję” — taki limit odrzucał typowe listy z kreatora bio (~10–12 umiejętności) mimo wolnego miejsca. Sekcja, która nie mieści się w całości, **nie jest ucinana** — spada do kolumny głównej.
+3. `_fitted_sidebar_body_elements` — education emituje osobne textarea (dyplom / uczelnia / meta / opis z `bulletList: true`); pozostałe sekcje zostają jednym blokiem.
+4. Indeksy `extra_sections` już umieszczonych w sidebarze są pomijane w `_extra_sections`, żeby nie dublować treści.
 
-Harbor, Tessera i Slate używają `_fit_sidebar_sections` ze wspólnymi kandydatami `_sidebar_candidates`. Tessera zmienia kolejność (education przed skills).
+Harbor, Tessera, Slate i Manifest używają `_fit_sidebar_sections` ze wspólnymi kandydatami `_sidebar_candidates` (Harbor ma własny Builder sidebara z diamentami). Tessera zmienia kolejność (education przed skills).
 
 ### 6.7 Extra sections
 

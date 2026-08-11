@@ -122,28 +122,34 @@ const starter = [
     ...sideContact("website", "anna.dev", 298),
     ...sideContact("location", "Warszawa, Polska", 317),
 
+    // Education mirrors single-column structure: diploma, school, meta, then
+    // a bulletList description (not one mashed textarea).
     ...sideHeading("WYKSZTAŁCENIE", "education", 356),
     sideBody(bold(block("Bachelor of Laws (LL.B.)", SIDE_X, 383, 128, 14, 8.2, 11.5, INK, SANS))),
     sideBody(block("Europa-Universität Viadrina", SIDE_X, 400, 128, 13, 7.7, 11, INK, SANS)),
     sideBody(block("Frankfurt (Oder)  ·  2018–2022", SIDE_X, 416, 128, 13, 7.4, 11, MUTED, SANS)),
+    sideBody(bulleted(block(
+        "• Specjalizacja: prawo europejskie",
+        SIDE_X, 433, 128, 24, 8, 11.6, BODY, SANS,
+    ))),
 
-    ...sideHeading("KOMPETENCJE", "skills", 450),
+    ...sideHeading("KOMPETENCJE", "skills", 475),
     sideBody(bulleted(block(
         "• Analiza AML/KYC\n• Transaction Monitoring\n• CDD / EDD\n"
         + "• Screening (PEP, sankcje)\n• SAR Reporting\n• Analiza danych",
-        SIDE_X, 477, 128, 78, 8, 11.6, BODY, SANS,
+        SIDE_X, 502, 128, 78, 8, 11.6, BODY, SANS,
     ))),
 
-    ...sideHeading("JĘZYKI", "languages", 546),
+    ...sideHeading("JĘZYKI", "languages", 571),
     sideBody(bulleted(block(
         "• Polski — C2\n• Niemiecki — C1\n• Angielski — B2",
-        SIDE_X, 573, 128, 43, 8, 11.6, BODY, SANS,
+        SIDE_X, 598, 128, 43, 8, 11.6, BODY, SANS,
     ))),
 
-    ...sideHeading("SYSTEMY I NARZĘDZIA", "other", 645),
+    ...sideHeading("SYSTEMY I NARZĘDZIA", "other", 670),
     sideBody(bulleted(block(
         "• Actimize\n• LexisNexis\n• SAP\n• SQL / Python",
-        SIDE_X, 672, 128, 56, 8, 11.6, BODY, SANS,
+        SIDE_X, 697, 128, 56, 8, 11.6, BODY, SANS,
     ))),
 
     // Main profile and experience flow.

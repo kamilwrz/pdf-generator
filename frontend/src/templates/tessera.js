@@ -116,28 +116,34 @@ const starter = [
     ...sideContact("website", "aleksandra.dev", 298),
     ...sideContact("location", "Warszawa, Polska", 317),
 
+    // Education mirrors single-column structure: diploma, school, meta, then
+    // a bulletList description (not one mashed textarea).
     ...sideHeading("WYKSZTAŁCENIE", "education", 356),
     sideBody(bold(block("MA — Service Design", SIDE_X, 383, 128, 14, 8.2, 11.5, INK, SANS))),
     sideBody(block("Uniwersytet SWPS", SIDE_X, 400, 128, 13, 7.7, 11, CORAL, SANS)),
     sideBody(block("Warszawa  ·  2014–2016", SIDE_X, 416, 128, 13, 7.4, 11, MUTED, SANS)),
+    sideBody(bulleted(block(
+        "• Specjalizacja: service design i badania jakościowe",
+        SIDE_X, 433, 128, 24, 8, 11.6, BODY, SANS,
+    ))),
 
-    ...sideHeading("KOMPETENCJE", "skills", 450),
+    ...sideHeading("KOMPETENCJE", "skills", 475),
     sideBody(bulleted(block(
         "• Strategia produktu\n• Service design\n• Badania jakościowe\n"
         + "• Facylitacja\n• Operating models\n• Zarządzanie zmianą",
-        SIDE_X, 477, 128, 78, 8, 11.6, BODY, SANS,
+        SIDE_X, 502, 128, 78, 8, 11.6, BODY, SANS,
     ))),
 
-    ...sideHeading("JĘZYKI", "languages", 584),
+    ...sideHeading("JĘZYKI", "languages", 609),
     sideBody(bulleted(block(
         "• Polski — ojczysty\n• Angielski — C1\n• Niemiecki — B1",
-        SIDE_X, 611, 128, 43, 8, 11.6, BODY, SANS,
+        SIDE_X, 636, 128, 43, 8, 11.6, BODY, SANS,
     ))),
 
-    ...sideHeading("NARZĘDZIA", "other", 683),
+    ...sideHeading("NARZĘDZIA", "other", 708),
     sideBody(bulleted(block(
         "• Miro / FigJam\n• Notion\n• Power BI\n• Jira",
-        SIDE_X, 710, 128, 56, 8, 11.6, BODY, SANS,
+        SIDE_X, 735, 128, 56, 8, 11.6, BODY, SANS,
     ))),
 
     // Main profile and experience flow.

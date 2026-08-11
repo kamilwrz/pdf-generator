@@ -9,7 +9,11 @@ from app.services.cv_generator_primitives import (
     Builder,
     section_chrome_height,
 )
-from app.services.cv_templates.shared.records import _education_sidebar_content
+from app.services.cv_templates.shared.records import (
+    _build_sidebar_education_elements,
+    _sidebar_education_entries,
+    _sidebar_education_section_height,
+)
 from app.services.cv_data import skill_groups, skills_have_content
 from app.services.cv_templates.shared.text import (
     _bullet_list_content,
@@ -290,20 +294,37 @@ def _sidebar_candidates(cv: dict, labels: dict) -> list[dict]:
                 "extra_index": index,
             })
 
-    education_content = _education_sidebar_content(cv.get("education") or [])
-    if education_content:
+    education_entries = _sidebar_education_entries(cv.get("education"))
+    if education_entries:
         candidates.append({
             "key": "education",
             "kind": "education",
             "title": labels["education"],
-            # Already includes • lines for descriptions; keep as plain wrap so
-            # diploma / school rows are not forced into the bullet glyph column.
-            "content": education_content,
+            # Structured records (degree / school / meta / bullets) — Tessera,
+            # Slate and Manifest emit separate elements, not one mashed textarea.
+            "entries": education_entries,
+            "structured": True,
+            # Empty content keeps flat-section height math from KeyErroring if a
+            # caller still reads ``content``; fit uses ``entries`` instead.
+            "content": "",
             "bulletList": False,
         })
 
     order = {kind: index for index, kind in enumerate(_SIDEBAR_SECTION_ORDER)}
     return sorted(candidates, key=lambda candidate: (order[candidate["kind"]], candidate["key"]))
+
+
+def _sidebar_education_type_sizes(font_size: float, line_height: float) -> dict[str, float]:
+    """Compact type roles for structured sidebar education at a fitted body size."""
+    return {
+        "degree_fs": font_size,
+        "degree_lh": line_height,
+        # Meta sits a step smaller/muted under the diploma + school stack.
+        "meta_fs": round(max(7.0, font_size - 0.8), 2),
+        "meta_lh": round(max(10.5, line_height - 0.5), 2),
+        "body_fs": font_size,
+        "body_lh": line_height,
+    }
 
 
 def _fit_sidebar_sections(
@@ -312,6 +333,7 @@ def _fit_sidebar_sections(
     width: float,
     start_y: float,
     bottom_y: float,
+    font: str = "Montserrat",
 ) -> tuple[list[dict], set[str]]:
     """Select only complete sections that fit the first-page sidebar budget.
 
@@ -321,6 +343,9 @@ def _fit_sidebar_sections(
     still had hundreds of free points — while shorter PDF-extracted lists fit.
     Sections that cannot fit intact fall through to the main column instead of
     being truncated.
+
+    Education candidates carry ``entries`` and are measured with the same
+    structured stack the generators emit (diploma / school / meta / bullets).
     """
     placed: list[dict] = []
     placed_keys: set[str] = set()
@@ -329,7 +354,18 @@ def _fit_sidebar_sections(
     for candidate in candidates:
         for font_size in _SIDEBAR_FONT_SIZES:
             line_height = round(max(font_size * 1.45, 11.0), 2)
-            body_height = _sidebar_wrapped_height(candidate["content"], width, font_size, line_height)
+            if candidate.get("structured") and candidate.get("kind") == "education":
+                type_sizes = _sidebar_education_type_sizes(font_size, line_height)
+                body_height = _sidebar_education_section_height(
+                    candidate.get("entries") or [],
+                    width,
+                    font,
+                    **type_sizes,
+                )
+            else:
+                body_height = _sidebar_wrapped_height(
+                    candidate["content"], width, font_size, line_height,
+                )
             section_height = 10 + 5 + body_height + 18
             if cursor + section_height <= bottom_y:
                 placed.append({
@@ -346,3 +382,61 @@ def _fit_sidebar_sections(
                 cursor += section_height
                 break
     return placed, placed_keys
+
+
+def _fitted_sidebar_body_elements(
+    section_data: dict,
+    *,
+    left: float,
+    width: float,
+    ink: str,
+    muted: str,
+    body: str,
+    font: str,
+    body_top_offset: float = 6.0,
+) -> list[dict]:
+    """
+    Body elements for one fitted sidebar section.
+
+    Education emits separate diploma / school / meta / bullet textareas (matching
+    single-column ``_place_education_record``). Flat sections stay one textarea.
+    """
+    body_top = float(section_data["body_top"]) + body_top_offset
+    font_size = float(section_data["fontSize"])
+    line_height = float(section_data["lineHeight"])
+
+    if section_data.get("structured") and section_data.get("kind") == "education":
+        type_sizes = _sidebar_education_type_sizes(font_size, line_height)
+        return _build_sidebar_education_elements(
+            section_data.get("entries") or [],
+            left=left,
+            top=body_top,
+            width=width,
+            ink=ink,
+            muted=muted,
+            body=body,
+            font=font,
+            **type_sizes,
+        )
+
+    return [{
+        "category": "textarea",
+        "content": section_data["content"],
+        "left": left,
+        "top": body_top,
+        "width": width,
+        "height": float(section_data["body_height"]),
+        "fontSize": font_size,
+        "lineHeight": line_height,
+        "letterSpacing": 0,
+        "color": body,
+        "fontFamily": font,
+        "zIndex": 3,
+        "page": 1,
+        "bold": False,
+        "italic": False,
+        "align": "left",
+        "bulletList": bool(section_data.get("bulletList")),
+        "autoHeight": True,
+        "preserveInitialLayout": True,
+    }]
