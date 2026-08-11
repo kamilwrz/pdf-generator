@@ -137,7 +137,6 @@ export default function ModalPdfs({ title }) {
                         photoShape: element.extra_properties.photoShape,
                         flowRole: element.extra_properties.flowRole,
                         flowGroup: element.extra_properties.flowGroup,
-                        chromeAlign: element.extra_properties.chromeAlign,
                         fixedToPage,
                         repeatOnContinuation,
                         locked,

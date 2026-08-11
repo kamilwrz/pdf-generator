@@ -274,8 +274,7 @@ const CARDINAL_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 1.05,
-    "flowRole": "section-chrome",
-    "height": 21.2
+    "flowRole": "section-chrome"
   },
   {
     "category": "line",
@@ -286,8 +285,7 @@ const CARDINAL_ELEMENTS = [
     "backgroundColor": "#8A8A8A",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "section-chrome",
-    "chromeAlign": "midline"
+    "flowRole": "section-chrome"
   },
   {
     "category": "textarea",
@@ -336,8 +334,7 @@ const CARDINAL_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 1.05,
-    "flowRole": "section-chrome",
-    "height": 21.2
+    "flowRole": "section-chrome"
   },
   {
     "category": "line",
@@ -348,8 +345,7 @@ const CARDINAL_ELEMENTS = [
     "backgroundColor": "#8A8A8A",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "section-chrome",
-    "chromeAlign": "midline"
+    "flowRole": "section-chrome"
   },
   {
     "category": "textarea",
@@ -371,7 +367,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b49a96751f9a",
+    "flowGroup": "record-2a5f603c6e74",
     "flowRole": "content"
   },
   {
@@ -394,7 +390,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b49a96751f9a",
+    "flowGroup": "record-2a5f603c6e74",
     "flowRole": "content"
   },
   {
@@ -417,7 +413,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a269f907e319",
+    "flowGroup": "record-79043e873e18",
     "flowRole": "content"
   },
   {
@@ -440,7 +436,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a269f907e319",
+    "flowGroup": "record-79043e873e18",
     "flowRole": "content"
   },
   {
@@ -463,7 +459,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-daa5d24b0ffc",
+    "flowGroup": "record-8140c77d09a2",
     "flowRole": "content"
   },
   {
@@ -486,7 +482,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-daa5d24b0ffc",
+    "flowGroup": "record-8140c77d09a2",
     "flowRole": "content"
   },
   {
@@ -514,8 +510,7 @@ const CARDINAL_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 1.05,
-    "flowRole": "section-chrome",
-    "height": 21.2
+    "flowRole": "section-chrome"
   },
   {
     "category": "line",
@@ -526,8 +521,7 @@ const CARDINAL_ELEMENTS = [
     "backgroundColor": "#8A8A8A",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "section-chrome",
-    "chromeAlign": "midline"
+    "flowRole": "section-chrome"
   },
   {
     "category": "textarea",
@@ -549,7 +543,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6f8186c09308",
+    "flowGroup": "record-a45054783564",
     "flowRole": "content"
   },
   {
@@ -572,7 +566,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6f8186c09308",
+    "flowGroup": "record-a45054783564",
     "flowRole": "content"
   },
   {
@@ -595,7 +589,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6f8186c09308",
+    "flowGroup": "record-a45054783564",
     "flowRole": "content"
   },
   {
@@ -623,8 +617,7 @@ const CARDINAL_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 1.05,
-    "flowRole": "section-chrome",
-    "height": 21.2
+    "flowRole": "section-chrome"
   },
   {
     "category": "line",
@@ -635,8 +628,7 @@ const CARDINAL_ELEMENTS = [
     "backgroundColor": "#8A8A8A",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "section-chrome",
-    "chromeAlign": "midline"
+    "flowRole": "section-chrome"
   },
   {
     "category": "textarea",
@@ -658,7 +650,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b39e15f4eb0a",
+    "flowGroup": "record-63721fc148c7",
     "flowRole": "content"
   },
   {
@@ -686,8 +678,7 @@ const CARDINAL_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 1.05,
-    "flowRole": "section-chrome",
-    "height": 21.2
+    "flowRole": "section-chrome"
   },
   {
     "category": "line",
@@ -698,8 +689,7 @@ const CARDINAL_ELEMENTS = [
     "backgroundColor": "#8A8A8A",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "section-chrome",
-    "chromeAlign": "midline"
+    "flowRole": "section-chrome"
   },
   {
     "category": "textarea",

@@ -333,11 +333,6 @@ export function buildSectionElements({
     zIndex: 3,
     page: 1,
   };
-  // Cardinal samples an authored chrome-band height; keep it so after_rule
-  // originates under the title band, not under a midline hairline.
-  if (Number.isFinite(Number(style.heading.height)) && Number(style.heading.height) > 0) {
-    headingElement.height = Number(style.heading.height);
-  }
   if (flowLane) headingElement.flowLane = flowLane;
   elements.push(headingElement);
 
@@ -348,8 +343,6 @@ export function buildSectionElements({
   const ruleTop = style.rule && Number.isFinite(Number(style.rule.relTop))
     ? Number(style.rule.relTop)
     : defaultRuleTop;
-  // Opt-in from the generator / deriveSectionStyle (Cardinal only today).
-  const midlineRule = style.rule?.chromeAlign === "midline";
 
   if (style.rule) {
     // Horizontal offset may differ from the title (Monument rule at +251).
@@ -357,12 +350,13 @@ export function buildSectionElements({
       ? Number(style.rule.relLeft)
       : 0;
     let ruleWidth = Number(style.rule.width) || width;
-    // Midline rules trail the label instead of underlining the whole column.
-    // Recompute their start from the new label's tracked width, while
-    // preserving the sampled right edge.
+    // Cardinal-style midline rules trail the label instead of underlining the
+    // whole column. Recompute their start from the new label's tracked width,
+    // while preserving the sampled right edge. Copying the source relLeft
+    // verbatim makes short and long custom labels inherit the wrong blank gap.
     const sampledLabelGap = Number(style.rule.labelGap);
     if (
-      midlineRule
+      ruleTop < 0
       && ruleRelLeft > 0
       && Number.isFinite(sampledLabelGap)
     ) {
@@ -388,7 +382,6 @@ export function buildSectionElements({
       zIndex: 2,
       page: 1,
     };
-    if (midlineRule) ruleElement.chromeAlign = "midline";
     if (flowLane) ruleElement.flowLane = flowLane;
     elements.push(ruleElement);
   }
@@ -399,16 +392,10 @@ export function buildSectionElements({
   const markerBottoms = (style.markers || []).map(
     (shape) => (Number(shape.relTop) || 0) + (Number(shape.height) || 0),
   );
-  // Midline hairlines are not underlines — do not let their top define
-  // chromeBottom (they already sit inside the heading row).
-  const ruleBottom = style.rule && !midlineRule
+  const ruleBottom = style.rule
     ? ruleTop + (Number(style.rule.height) || 1)
     : 0;
-  const headingBand = Number.isFinite(Number(style.heading.height))
-    && Number(style.heading.height) > 0
-    ? Number(style.heading.height)
-    : defaultRuleTop;
-  const chromeBottom = Math.max(headingBand, ruleBottom, ...markerBottoms, 0);
+  const chromeBottom = Math.max(defaultRuleTop, ruleBottom, ...markerBottoms, 0);
   const bodyTop = chromeBottom + rhythm.after_rule;
   let firstBodyId = null;
 

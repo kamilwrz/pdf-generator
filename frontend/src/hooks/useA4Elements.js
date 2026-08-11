@@ -680,7 +680,7 @@ export function useA4Elements(titleRef) {
         prev,
         pageHeight,
         afterIndex >= 0 ? afterHeadingId : null,
-        { lane: intoSidebar ? "sidebar" : "main", templateId: activeTemplateId },
+        { lane: intoSidebar ? "sidebar" : "main" },
       );
       // Icon-tagged templates: swap/inject the section-heading glyph chosen in
       // the Add Section gallery, keeping the sampled size and offset.
@@ -705,7 +705,6 @@ export function useA4Elements(titleRef) {
       const packOpts = {
         spacing,
         lane: intoSidebar ? "sidebar" : null,
-        templateId: activeTemplateId,
       };
       const next = afterIndex >= 0
         ? insertSectionAfter(prev, elements, afterHeadingId, pageHeight, packOpts)

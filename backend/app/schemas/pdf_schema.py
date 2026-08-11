@@ -96,9 +96,6 @@ class PdfElement(BaseModel):
     # Keep-together id for a multi-element record (title/meta/body). Reflow
     # moves the whole group across page breaks instead of splitting it.
     flowGroup: Optional[str] = None
-    # Cardinal section hairline: "midline" means the rule sits on the heading
-    # row (not under it). Packer must ignore it when measuring after_rule.
-    chromeAlign: Optional[str] = None
     # Monument-style ordinal badge ("01", "02", …): chrome text that must not
     # be listed as its own section title by the structural editor.
     isDecorativeChromeText: Optional[bool] = False
