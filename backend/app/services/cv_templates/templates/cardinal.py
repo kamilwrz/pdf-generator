@@ -122,6 +122,7 @@ def _gen_cardinal(cv: dict) -> list[dict]:
     if _place_skills_section(
         b, cv, section, L, W, C['body'], SANS, BODY_FS, BODY_LH,
         section_chrome_h=SECTION_CHROME,
+        mode="chips", chip_bg=C['accent'], chip_fg=C['paper'],
     ):
         close_section()
     _extra_sections(b, cv, 'after_skills', section, {'body': C['body']}, L, W, SANS, fs=BODY_FS, lh=BODY_LH, skip_indices=skip_sidebar_extras, section_chrome_h=SECTION_CHROME)
