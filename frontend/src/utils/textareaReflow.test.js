@@ -1613,3 +1613,36 @@ test("un-crushes same-top skill category and chips after a page-break pack", () 
   );
   assert.ok(devops.top >= chips.top + chips.height - 0.5);
 });
+
+test("cascading reflow across several autoHeight textareas keeps a skill-chip grid's rows aligned", () => {
+  // Mirrors a real page mount: several autoHeight textareas above the skills
+  // section each independently measure a slightly different scrollHeight than
+  // the generator estimated and call reflowTextareaHeight in sequence. Every
+  // chip rect+text pair shares one flowGroup (Builder.keep_together) and is
+  // tagged flowRole: "grid-member" — the bottom-plus-gap stacking used for
+  // ordinary title/meta/body records must not apply to them, or two rows of
+  // chips collapse onto one column after the second textarea's reflow.
+  const group = "record-skills-cascade";
+  let elements = [
+    textarea({ element_id: "summary", top: 100, height: 20 }),
+    textarea({ element_id: "meta", top: 130, height: 14 }),
+    { element_id: "rect-a", category: "rectangle", flowRole: "grid-member", flowGroup: group, left: 40, top: 200, width: 80, height: 20, page: 1 },
+    { element_id: "text-a", category: "text", flowRole: "grid-member", flowGroup: group, content: "Python", left: 50, top: 205, fontSize: 9, page: 1 },
+    { element_id: "rect-b", category: "rectangle", flowRole: "grid-member", flowGroup: group, left: 128, top: 200, width: 80, height: 20, page: 1 },
+    { element_id: "text-b", category: "text", flowRole: "grid-member", flowGroup: group, content: "SQL", left: 138, top: 205, fontSize: 9, page: 1 },
+  ];
+
+  elements = reflowTextareaHeight(elements, "summary", 24, 842, { pageTop: 66, bottomMargin: 72 }).elements;
+  elements = reflowTextareaHeight(elements, "meta", 18, 842, { pageTop: 66, bottomMargin: 72 }).elements;
+
+  const byId = Object.fromEntries(elements.map((element) => [element.element_id, element]));
+  assert.equal(byId["rect-b"].top, byId["rect-a"].top, "both chips must stay on the same row");
+  assert.ok(
+    byId["text-a"].top >= byId["rect-a"].top && byId["text-a"].top <= byId["rect-a"].top + byId["rect-a"].height,
+    "chip A's label must stay inside its own pill",
+  );
+  assert.ok(
+    byId["text-b"].top >= byId["rect-b"].top && byId["text-b"].top <= byId["rect-b"].top + byId["rect-b"].height,
+    "chip B's label must stay inside its own pill",
+  );
+});

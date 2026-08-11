@@ -63,6 +63,22 @@ function flowGroupOf(element) {
   return typeof group === "string" && group.length > 0 ? group : null;
 }
 
+/**
+ * Whether `element` is one cell of a 2D grid (wrapped skill-chip pills, etc)
+ * sharing its `flowGroup` with siblings at varying x/y, rather than a linear
+ * title/meta/body stack member. See the `continuesRecord` branch below: for a
+ * grid member, the top-to-top delta chain already computed by the `else`
+ * branch above (`nextAbsolute = previousPlacedTop + (currentOriginalTop -
+ * absoluteTop(previousOriginal, ...))`) telescopes into the correct original
+ * offset from the record's first element by simple algebra, so it must not be
+ * overwritten by the bottom-plus-gap stacking used for genuine vertical
+ * records — that stacking assumes every group member sits directly below the
+ * previous one, which collapses every row of a wrapped grid onto one column.
+ */
+function isGridMember(element) {
+  return element?.flowRole === "grid-member";
+}
+
 function isRecordOverlay(element, elements = [], pageHeight = 842) {
   if (element?.flowRole === "record-overlay") return true;
   if (!["image", "text"].includes(element?.category)) return false;
@@ -919,7 +935,14 @@ export function reflowTextareaHeight(
     );
 
     // Mid-record pieces stay on the page chosen for the record start.
-    if (continuesRecord && activeGroupPage != null) {
+    //
+    // Grid members (wrapped skill-chip pills) are excluded: `top`/`page` were
+    // already computed correctly just above by the top-to-top delta chain,
+    // which telescopes into each element's true original offset from the
+    // record start. Applying the stack-under-previous-bottom recompute below
+    // — correct for a linear title/meta/body record — would instead collapse
+    // every row of the grid onto the previous element's bottom edge.
+    if (continuesRecord && activeGroupPage != null && !isGridMember(current)) {
       page = activeGroupPage;
       // Prefer the last content mate's bottom when chrome was interleaved —
       // raw gap against a decoration that shares the degree line is often 0/neg.
