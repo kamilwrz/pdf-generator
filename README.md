@@ -412,6 +412,23 @@ Tests:
 - `frontend/src/utils/flatSectionLayout.test.js` — parse/format for both styles, whitespace-tolerant mid-dot splitting, empty-content handling, inline↔bullet round-trip
 - `frontend/src/utils/sectionStructure.test.js`, `describe("listFlatSectionAnchors", …)` — Skills/Languages included (real Cardinal template fixture), Summary excluded despite being one textarea, record-style Experience excluded, anchor resolves to the correct content element
 
+### Skill chip pills (backend-only rendering capability)
+
+`_place_skills_section` in `backend/app/services/cv_templates/shared/text.py` accepts a third body style, `mode="chips"`, alongside the existing `"inline"` (mid-dot row) and `"bullets"` (vertical bullet list) styles used by the toggle above. In `chips` mode, each skill in a category renders as its own solid, rounded-pill `rectangle` element with a centered `text` label on top, wrapping to additional rows when a row's pills would overflow the section width. Wrapping is computed once by `_layout_skill_chips`, shared between the measure pass (`_measure_skill_chips_row`) and the place pass (`_place_skill_chips_row`) so the two can never disagree about row count — the category label plus every pill row is measured up front, then emitted inside the same `Builder.keep_together` block already used by `inline`/`bullets` mode, so a category is never split across a page mid-row.
+
+This is a generator-level capability, not yet enabled by any shipped template — no template currently passes `mode="chips"`, and there is no user-facing toggle for it (unlike the inline/bullets switch above, which is driven by `FlatSectionLayoutToggle` in the canvas editor). Enabling it for a specific template is a small, template-local change: passing `mode="chips"`, `chip_bg`, and `chip_fg` (the template's own palette colors) to that template's existing `_place_skills_section` call.
+
+Implementation:
+
+- `backend/app/services/cv_generator_primitives.py`, function `_rect` — gained `filled` / `borderRadius` keyword arguments (previously outline-only; `_circle`/`_ellipse` already supported `filled`)
+- `backend/app/services/cv_generator_primitives.py`, function `_text_width` — shared glyph-width measurement (`reportlab` `stringWidth` via `PDF_Generator._resolve_font`, falling back to a character-count estimate when font resolution fails), promoted out of `cv_templates/templates/axis.py` so both Axis's existing timeline chip row and the new shared chip mode measure text the same way
+- `backend/app/services/cv_templates/shared/text.py`, functions `_layout_skill_chips`, `_measure_skill_chips_row`, `_place_skill_chips_row`, and the `mode="chips"` branch inside `_place_skills_section` / `_measure_skill_group`
+
+Tests:
+
+- `backend/tests/test_cv_generator_primitives.py` — `_rect` backward compatibility, `_text_width` sanity and fallback
+- `backend/tests/test_skill_chips.py` — row-wrapping correctness, measure/place height agreement, page-break `keep_together` behavior for a long chip category, and rendered `rectangle`/`text` element shape
+
 ### Too-long CV assistant (compact spacing → AI shortening)
 
 When a template-mode document reaches **3+ pages**, `LongCvModal` opens automatically (once per loaded document, and again after a template change) and guides the user to a shorter CV — cheapest, deterministic remedy first, AI only when needed. The once-per-document guard resets on both a new `pdfId` **and** a new `activeTemplateId`, because "Zmień szablon" keeps the same `pdfId` but swaps the whole layout — if the new template is again 3+ pages the assistant must re-offer help. Detection is free and code-side: `diagnoseDocumentLength` (`frontend/src/utils/documentLength.js`) measures the **last page's fill ratio** — `(bottom-most flowing element − pageTop) / usable band`, ignoring `fixedToPage` chrome that would otherwise report ~100% — and picks a lead remedy:
@@ -2045,6 +2062,23 @@ Testy:
 
 - `frontend/src/utils/flatSectionLayout.test.js` — parsowanie/formatowanie dla obu stylów, tolerancyjne na spacje dzielenie po kropce, obsługa pustej treści, round-trip w linii↔lista
 - `frontend/src/utils/sectionStructure.test.js`, `describe("listFlatSectionAnchors", …)` — Umiejętności/Języki uwzględnione (fikstura rzeczywistego szablonu Cardinal), Podsumowanie wykluczone mimo bycia jedną textarea, rekordowe Doświadczenie wykluczone, kotwica wskazuje właściwy element treści
+
+### Chipsy umiejętności — pigułki (możliwość dostępna tylko w backendzie)
+
+`_place_skills_section` w `backend/app/services/cv_templates/shared/text.py` przyjmuje trzeci styl ciała sekcji, `mode="chips"`, obok istniejących stylów `"inline"` (wiersz z kropkami) i `"bullets"` (pionowa lista punktowana), które obsługuje przełącznik opisany wyżej. W trybie `chips` każdy skill w kategorii renderuje się jako osobny, w pełni wypełniony, zaokrąglony element `rectangle` z wyśrodkowaną etykietą `text` na wierzchu, zawijany do kolejnych wierszy, gdy pigułki w wierszu przekroczyłyby szerokość sekcji. Zawijanie liczy raz `_layout_skill_chips`, współdzielone między przebiegiem pomiarowym (`_measure_skill_chips_row`) a przebiegiem renderującym (`_place_skill_chips_row`), więc oba nigdy nie mogą się rozjechać co do liczby wierszy — etykieta kategorii wraz ze wszystkimi wierszami pigułek jest zmierzona z góry, a następnie wyemitowana wewnątrz tego samego bloku `Builder.keep_together`, którego już używa tryb `inline`/`bullets`, więc kategoria nigdy nie zostaje przecięta w połowie wiersza pigułek między stronami.
+
+To możliwość na poziomie generatora, jeszcze nie włączona w żadnym wydanym szablonie — żaden szablon obecnie nie przekazuje `mode="chips"`, nie ma też dla niej przełącznika widocznego dla użytkownika (w odróżnieniu od przełącznika inline/bullets opisanego wyżej, sterowanego przez `FlatSectionLayoutToggle` w edytorze canvas). Włączenie jej dla konkretnego szablonu to niewielka, lokalna dla szablonu zmiana: przekazanie `mode="chips"`, `chip_bg` i `chip_fg` (kolorów z własnej palety szablonu) do istniejącego wywołania `_place_skills_section` w tym szablonie.
+
+Implementacja:
+
+- `backend/app/services/cv_generator_primitives.py`, funkcja `_rect` — zyskała argumenty nazwane `filled` / `borderRadius` (wcześniej tylko obrys; `_circle`/`_ellipse` już wspierały `filled`)
+- `backend/app/services/cv_generator_primitives.py`, funkcja `_text_width` — współdzielony pomiar szerokości glifów (`reportlab` `stringWidth` przez `PDF_Generator._resolve_font`, z fallbackiem do szacowania po liczbie znaków, gdy rozwiązanie fontu się nie powiedzie), przeniesiona z `cv_templates/templates/axis.py`, żeby istniejący wiersz chipsów osi czasu w Axis i nowy współdzielony tryb chips mierzyły tekst tak samo
+- `backend/app/services/cv_templates/shared/text.py`, funkcje `_layout_skill_chips`, `_measure_skill_chips_row`, `_place_skill_chips_row` oraz gałąź `mode="chips"` wewnątrz `_place_skills_section` / `_measure_skill_group`
+
+Testy:
+
+- `backend/tests/test_cv_generator_primitives.py` — wsteczna kompatybilność `_rect`, poprawność i fallback `_text_width`
+- `backend/tests/test_skill_chips.py` — poprawność zawijania wierszy, zgodność wysokości między przebiegiem pomiarowym a renderującym, zachowanie `keep_together` przy podziale stron dla długiej kategorii chipsów, kształt wyrenderowanych elementów `rectangle`/`text`
 
 ### Asystent zbyt długiego CV (kompaktowe odstępy → skracanie AI)
 
