@@ -165,11 +165,18 @@ def _line(left, top, width, height, color, *, zIndex=1, page=1):
             "zIndex": zIndex, "page": page}
 
 
-def _rect(left, top, width, height, color, borderWidth=1, *, zIndex=1, page=1):
-    """Outline-only rectangle (backgroundColor = border colour)."""
+def _rect(left, top, width, height, color, borderWidth=1, *, filled=False, borderRadius=None, zIndex=1, page=1):
+    """Outline-only rectangle by default (``backgroundColor`` = border colour).
+
+    ``filled=True`` paints ``color`` as a solid fill instead of a stroke, and
+    ``borderRadius`` draws rounded corners (used for pill/chip chrome, e.g.
+    skill chips). Existing callers that omit both kwargs get the exact
+    element shape they always have.
+    """
     return {"category": "rectangle", "left": left, "top": top,
             "width": width, "height": height, "backgroundColor": color,
-            "borderWidth": borderWidth, "zIndex": zIndex, "page": page}
+            "borderWidth": borderWidth, "filled": filled,
+            "borderRadius": borderRadius, "zIndex": zIndex, "page": page}
 
 
 def _circle(left, top, diameter, color, *, filled=False, borderWidth=1, zIndex=1, page=1):
