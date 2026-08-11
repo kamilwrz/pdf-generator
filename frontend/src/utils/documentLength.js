@@ -18,6 +18,21 @@ const CONTENT_BOTTOM = 842 - 72; // 770
 export const TOO_LONG_MIN_PAGES = 3;
 
 /**
+ * Page count at/above which a SIDEBAR-layout CV is considered too long.
+ *
+ * Sidebar templates (Tessera, Slate, Harbor, Manifest, Sterling, …) only ever
+ * author the rail — summary/education/skills/languages — on page 1; a
+ * continuation page repeats just the rail background/divider chrome with no
+ * sidebar content. A 2nd page is therefore never "a little more CV" the way
+ * it is for a single-column template — it means the rail's own promise (the
+ * reader sees the whole profile at a glance) is already broken. So the bar
+ * is one page lower than the single-column threshold, and the target is
+ * always exactly one page rather than "one page fewer" — see
+ * `diagnoseDocumentLength`'s `isSidebarLayout` option.
+ */
+export const SIDEBAR_TOO_LONG_MIN_PAGES = 2;
+
+/**
  * Last-page fill ratio (0..1). Below this the document has enough wasted
  * whitespace that tightening spacing alone is likely to reclaim a page, so the
  * modal leads with the free spacing pass. At or above it the pages are
@@ -61,13 +76,20 @@ export function measureLastPageUtilization(elements, pageCount) {
  * Diagnose whether the document is too long and, if so, which remedy the modal
  * should lead with.
  *
- * @param {{ pageCount: number, elements: object[] }} args
+ * The `mode` heuristic (sparse last page → try spacing first; full pages → go
+ * straight to AI shortening) is unchanged for sidebar layouts: the rail never
+ * contributes content past page 1 (see `SIDEBAR_TOO_LONG_MIN_PAGES`), so
+ * `measureLastPageUtilization` on an overflow page already reads pure
+ * main-column spillover — exactly the signal this heuristic wants.
+ *
+ * @param {{ pageCount: number, elements: object[], isSidebarLayout?: boolean }} args
  * @returns {{ tooLong: boolean, mode: "spacing"|"content", pageCount: number, targetPages: number, utilization: number }}
  */
-export function diagnoseDocumentLength({ pageCount, elements }) {
+export function diagnoseDocumentLength({ pageCount, elements, isSidebarLayout = false }) {
   const pages = Math.max(1, Math.trunc(Number(pageCount) || 1));
   const utilization = measureLastPageUtilization(elements, pages);
-  const tooLong = pages >= TOO_LONG_MIN_PAGES;
+  const minTooLongPages = isSidebarLayout ? SIDEBAR_TOO_LONG_MIN_PAGES : TOO_LONG_MIN_PAGES;
+  const tooLong = pages >= minTooLongPages;
   // Sparse last page → whitespace is the likely culprit, try spacing first.
   // Full pages → the content itself is too long, go straight to AI shortening.
   const mode = utilization < SPARSE_LAST_PAGE_RATIO ? "spacing" : "content";
@@ -75,8 +97,10 @@ export function diagnoseDocumentLength({ pageCount, elements }) {
     tooLong,
     mode,
     pageCount: pages,
-    // Realistic goal is one page fewer at a time, never below one page.
-    targetPages: Math.max(1, pages - 1),
+    // Single-column: one page fewer at a time, never below one page.
+    // Sidebar: the rail only ever renders on page 1, so anything past that
+    // is the firm target regardless of how many pages currently exist.
+    targetPages: isSidebarLayout ? 1 : Math.max(1, pages - 1),
     utilization,
   };
 }

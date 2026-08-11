@@ -66,9 +66,15 @@ import {
 import { COMPACT_FLOW_SPACING, DEFAULT_FLOW_SPACING } from '../utils/flowSpacing';
 import { listSectionIconOptions } from '../utils/sectionIcons';
 import { convertFlatListContent } from '../utils/flatSectionLayout';
-import { diagnoseDocumentLength, TOO_LONG_MIN_PAGES } from '../utils/documentLength';
+import {
+  diagnoseDocumentLength,
+  TOO_LONG_MIN_PAGES,
+  SIDEBAR_TOO_LONG_MIN_PAGES,
+} from '../utils/documentLength';
 import { applyFlowSpacing } from '../utils/sectionStructure';
 import { demoCvTemplate } from '../templates/demoCv';
+import { TEMPLATES } from '../templates';
+import { templateHasLayout } from '../utils/templateLayouts';
 import { nanoid } from 'nanoid';
 
 /**
@@ -896,26 +902,45 @@ function PdfCanvas() {
     requestAssistantAction('shorten');
   }, [canUseAiAssistant, handleShowPlanModal, pageCount, requestAssistantAction, closeLongCvModal]);
 
+  // Sidebar templates (Tessera, Slate, Harbor, Manifest, Sterling, …) only
+  // ever author the rail on page 1 — a continuation page repeats the rail
+  // background/divider with no sidebar content — so the same "too long"
+  // assistant applies one page sooner and always targets exactly one page
+  // (see SIDEBAR_TOO_LONG_MIN_PAGES / documentLength.js).
+  const isSidebarTemplate = useMemo(
+    () => templateHasLayout(
+      TEMPLATES.find((template) => template.id === activeTemplateId),
+      'sidebar',
+    ),
+    [activeTemplateId],
+  );
+
   // Auto-detect a too-long CV once per loaded document. Only fires in template
   // mode (spacing/AI remedies target generated CV structure), when the page
   // count crosses the threshold and no blocking dialog is already open.
   useEffect(() => {
     if (editorMode !== EDITOR_MODE_TEMPLATE) return;
     if (longCvShownRef.current) return;
-    if (pageCount < TOO_LONG_MIN_PAGES) return;
+    const minTooLongPages = isSidebarTemplate ? SIDEBAR_TOO_LONG_MIN_PAGES : TOO_LONG_MIN_PAGES;
+    if (pageCount < minTooLongPages) return;
     if (dialog || panel) return;
     if (longCvModal.open) return;
-    const diagnosis = diagnoseDocumentLength({ pageCount, elements: A4_Elements });
+    const diagnosis = diagnoseDocumentLength({
+      pageCount,
+      elements: A4_Elements,
+      isSidebarLayout: isSidebarTemplate,
+    });
     if (!diagnosis.tooLong) return;
     longCvShownRef.current = true;
     setLongCvModal({ open: true, diagnosis });
-  }, [A4_Elements, dialog, editorMode, longCvModal.open, pageCount, panel]);
+  }, [A4_Elements, dialog, editorMode, isSidebarTemplate, longCvModal.open, pageCount, panel]);
 
   // Reset the once-per-document guard whenever a different document is loaded
   // (new pdfId, or a fresh/cleared canvas signalled by pdfId going null) OR the
   // template changes. "Zmień szablon" keeps the same pdfId but swaps the whole
-  // layout via a new activeTemplateId — if the new template is again 3+ pages,
-  // the too-long assistant must re-offer help instead of staying silent.
+  // layout via a new activeTemplateId — if the new template is again too long
+  // (3+ pages single-column, or 2+ pages sidebar — see isSidebarTemplate), the
+  // too-long assistant must re-offer help instead of staying silent.
   useEffect(() => {
     longCvShownRef.current = false;
     shortenBaselinePagesRef.current = null;

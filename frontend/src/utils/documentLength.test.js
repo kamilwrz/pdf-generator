@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  SIDEBAR_TOO_LONG_MIN_PAGES,
   SPARSE_LAST_PAGE_RATIO,
   TOO_LONG_MIN_PAGES,
   diagnoseDocumentLength,
@@ -65,5 +66,58 @@ describe("diagnoseDocumentLength", () => {
     assert.equal(diagnoseDocumentLength({ pageCount: 3, elements: [] }).targetPages, 2);
     assert.equal(diagnoseDocumentLength({ pageCount: 4, elements: [] }).targetPages, 3);
     assert.equal(diagnoseDocumentLength({ pageCount: 1, elements: [] }).targetPages, 1);
+  });
+
+  describe("isSidebarLayout", () => {
+    it("flags 2+ pages as too long, one page lower than single-column", () => {
+      assert.equal(SIDEBAR_TOO_LONG_MIN_PAGES, TOO_LONG_MIN_PAGES - 1);
+      assert.equal(
+        diagnoseDocumentLength({ pageCount: 1, elements: [], isSidebarLayout: true }).tooLong,
+        false,
+      );
+      assert.equal(
+        diagnoseDocumentLength({ pageCount: 2, elements: [], isSidebarLayout: true }).tooLong,
+        true,
+      );
+      assert.equal(
+        diagnoseDocumentLength({ pageCount: SIDEBAR_TOO_LONG_MIN_PAGES, elements: [], isSidebarLayout: true }).tooLong,
+        true,
+      );
+    });
+
+    it("a 2-page sidebar CV that would not yet flag single-column does flag here", () => {
+      // The rail (Summary/Education/Skills/Languages) never repeats past page
+      // 1, so a 2nd page is already "too long" for a sidebar template even
+      // though the same page count is fine for a single-column one.
+      assert.equal(diagnoseDocumentLength({ pageCount: 2, elements: [] }).tooLong, false);
+      assert.equal(
+        diagnoseDocumentLength({ pageCount: 2, elements: [], isSidebarLayout: true }).tooLong,
+        true,
+      );
+    });
+
+    it("always targets exactly one page, regardless of current page count", () => {
+      assert.equal(
+        diagnoseDocumentLength({ pageCount: 2, elements: [], isSidebarLayout: true }).targetPages,
+        1,
+      );
+      assert.equal(
+        diagnoseDocumentLength({ pageCount: 5, elements: [], isSidebarLayout: true }).targetPages,
+        1,
+      );
+    });
+
+    it("still derives mode from last-page utilization (unchanged heuristic)", () => {
+      const sparse = [el(2, 66, 84)]; // ~12% util on the overflow page
+      assert.equal(
+        diagnoseDocumentLength({ pageCount: 2, elements: sparse, isSidebarLayout: true }).mode,
+        "spacing",
+      );
+      const full = [el(2, 66, 640)]; // ~90% util on the overflow page
+      assert.equal(
+        diagnoseDocumentLength({ pageCount: 2, elements: full, isSidebarLayout: true }).mode,
+        "content",
+      );
+    });
   });
 });
