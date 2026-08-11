@@ -85,6 +85,34 @@ function CheckIcon() {
     );
 }
 
+// Footer social marks. Lucide-style single-colour glyphs that inherit
+// `currentColor`, so they invert together with their button on hover. Purely
+// decorative — the accessible name lives on the wrapping link, so each icon is
+// hidden from assistive technology.
+function LinkedInIcon() {
+    return (
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9h4v12H3V9Zm7 0h3.8v1.64h.05c.53-.95 1.82-1.95 3.75-1.95C21.4 8.69 22 11 22 14.02V21h-4v-6.2c0-1.48-.03-3.38-2.06-3.38-2.06 0-2.38 1.6-2.38 3.27V21h-4V9Z" />
+        </svg>
+    );
+}
+
+function GithubIcon() {
+    return (
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49 0-.24-.01-.87-.01-1.71-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.36 9.36 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.48-.01 2.82 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z" />
+        </svg>
+    );
+}
+
+function XIcon() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.65l-5.21-6.82-5.97 6.82H1.68l7.73-8.83L1.25 2.25h6.82l4.71 6.23 5.46-6.23Zm-1.16 17.52h1.83L7.01 4.13H5.05L17.08 19.77Z" />
+        </svg>
+    );
+}
+
 // "import" costs a paid OpenAI call (POST /ai/extract_cv) and stays gated
 // behind registration — anonymous visitors are deliberately not given it for
 // free (see docs/superpowers/specs/2026-08-07-onboarding-monetization-design.md
@@ -462,16 +490,49 @@ export default function Hero() {
             </section>
 
             <footer className={classes.footer}>
-                <a className={classes.brand} href="#top" aria-label="CV Studio — strona główna">
-                    <img src="/cv-studio-logo.svg" alt="" />
-                </a>
-                <div>
-                    <a href="#jak-to-dziala">Jak to działa</a>
-                    <a href="#szablony">Szablony</a>
-                    <a href="#cennik">Cennik</a>
-                    <Link to="/login">Zaloguj się</Link>
+                <div className={classes.footerTop}>
+                    <div>
+                        <a className={classes.brand} href="#top" aria-label="CV Studio — strona główna">
+                            <img src="/cv-studio-logo.svg" alt="" />
+                        </a>
+                        <p className={classes.footerTagline}>
+                            Gotowe CV do wysłania — kreator, edytor A4 i eksport PDF.
+                        </p>
+                        {/* Social destinations are placeholders until the public
+                            profiles exist; each link carries an accessible name so
+                            the icon-only buttons stay usable. */}
+                        <div className={classes.footerSocial}>
+                            <a href="#" aria-label="CV Studio na LinkedIn"><LinkedInIcon /></a>
+                            <a href="#" aria-label="CV Studio na GitHub"><GithubIcon /></a>
+                            <a href="#" aria-label="CV Studio na X"><XIcon /></a>
+                        </div>
+                    </div>
+                    <nav className={classes.footerNav} aria-label="Stopka">
+                        <div className={classes.footerCol}>
+                            <p className={classes.footerColTitle}>Produkt</p>
+                            <a href="#jak-to-dziala">Jak to działa</a>
+                            <a href="#szablony">Szablony</a>
+                            <a href="#cennik">Cennik</a>
+                        </div>
+                        <div className={classes.footerCol}>
+                            <p className={classes.footerColTitle}>Konto</p>
+                            <Link to="/login">Zaloguj się</Link>
+                            <Link to={wizardUrl}>Stwórz CV</Link>
+                        </div>
+                        <div className={classes.footerCol}>
+                            <p className={classes.footerColTitle}>Informacje</p>
+                            <a href="#">Prywatność</a>
+                            <a href="#">Regulamin</a>
+                            <a href="#">Kontakt</a>
+                        </div>
+                    </nav>
                 </div>
-                <small>© 2026 CV Studio</small>
+                <div className={classes.footerBottom}>
+                    <small>© 2026 CV Studio</small>
+                    <small className={classes.footerSeo}>
+                        Kreator CV · Szablony CV · Edytor CV online · Eksport PDF
+                    </small>
+                </div>
             </footer>
         </main>
     );

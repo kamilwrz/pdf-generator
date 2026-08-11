@@ -73,7 +73,7 @@ a) Co zostawic?
 ------------
 SIDEBAR:
 - Harbor  (LAYOUT SIE ROZLATUJE, NOWY BLOK EXP=EDU, KOPIA)
-- Tessera (FIXED, but... ZMIANA KOLEJNOSCI SIDEBAROWYCH SEKCJI Z BUGIEM)
+- Tessera (FIXED)
 - Slate
 - Manifest
 - Sterling
