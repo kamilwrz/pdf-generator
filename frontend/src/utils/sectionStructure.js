@@ -803,10 +803,10 @@ export function packSidebarLane(
 }
 
 /**
- * Section hairline tagged by a generator as living on the heading midline
- * (Cardinal sets `chromeAlign: "midline"`). Not an underline — after_rule /
- * chromeBottom must ignore it so spacing is not measured from a line that
- * already sits inside the heading row. Opt-in only; no geometry heuristics.
+ * Section hairline tagged as living on the heading midline
+ * (`chromeAlign: "midline"`). Not an underline — after_rule / chromeBottom
+ * must ignore it so spacing is not measured from a line that already sits
+ * inside the heading row.
  */
 function isMidlineChromeRule(element) {
   return Boolean(
@@ -814,6 +814,85 @@ function isMidlineChromeRule(element) {
     && element.category === "line"
     && element.chromeAlign === "midline",
   );
+}
+
+/** Cardinal generator pad under the label before after_rule (`label_fs + 10`). */
+const CARDINAL_HEADING_BAND_PAD = 10;
+
+/**
+ * True when this document is Cardinal (generator tag, iconic asset path, or
+ * explicit template id). Other templates never enter the midline heal path.
+ */
+function isCardinalDocument(elements, templateId = null) {
+  if (templateId === "cardinal") return true;
+  return (elements || []).some((element) => (
+    element?.chromeAlign === "midline"
+    || /\/template-assets\/iconic\/cardinal\//.test(String(element?.src || ""))
+  ));
+}
+
+/**
+ * Heal saved Cardinal documents that predate `chromeAlign: "midline"`:
+ * stamp the flag on heading-row section hairlines and ensure the heading
+ * carries the authored band height. No-op for every other template.
+ *
+ * @param {object[]} elements
+ * @param {number} [pageHeight=842]
+ * @param {{ templateId?: string|null }} [options]
+ * @returns {object[]}
+ */
+export function ensureCardinalMidlineChrome(
+  elements,
+  pageHeight = 842,
+  { templateId = null } = {},
+) {
+  const list = elements || [];
+  if (list.length === 0 || !isCardinalDocument(list, templateId)) return list;
+
+  const sections = listDocumentSections(list, pageHeight);
+  if (sections.length === 0) return list;
+
+  const patchById = new Map();
+  for (const section of sections) {
+    const heading = list.find((element) => element.element_id === section.headingId);
+    if (!heading) continue;
+
+    const fs = Number(heading.fontSize);
+    const band = (Number.isFinite(fs) && fs > 0 ? fs : 12) + CARDINAL_HEADING_BAND_PAD;
+    const explicitH = Number(heading.height);
+    // Missing height, or the paint-box fallback (fs×1.35), must become the
+    // authored Cardinal band so after_rule does not collapse under the glyphs.
+    if (!Number.isFinite(explicitH) || explicitH <= 0
+      || (Number.isFinite(fs) && explicitH <= fs * 1.35 + 0.05)) {
+      patchById.set(heading.element_id, {
+        ...(patchById.get(heading.element_id) || heading),
+        height: band,
+      });
+    }
+
+    const memberIds = sectionElementIds(list, section.headingId, pageHeight);
+    const headTop = Number(heading.top) || 0;
+    const headFs = Number.isFinite(fs) && fs > 0 ? fs : 12;
+    for (const element of list) {
+      if (!memberIds.has(element.element_id)) continue;
+      if (element.category !== "line") continue;
+      if (element.flowRole !== "section-chrome") continue;
+      if ((Number(element.width) || 0) < 40) continue;
+      if ((Number(element.height) || 0) > 4) continue;
+      if (element.chromeAlign === "midline") continue;
+      const ruleTop = Number(element.top) || 0;
+      // Same row as the title glyphs — not an underline parked under the label.
+      if (ruleTop >= headTop - 4 && ruleTop <= headTop + headFs * 0.75) {
+        patchById.set(element.element_id, {
+          ...(patchById.get(element.element_id) || element),
+          chromeAlign: "midline",
+        });
+      }
+    }
+  }
+
+  if (patchById.size === 0) return list;
+  return list.map((element) => patchById.get(element.element_id) || element);
 }
 
 function isChromeLike(element) {
@@ -1471,7 +1550,12 @@ function appendSidebarSectionAtEnd(
   elements,
   newElements,
   pageHeight = 842,
-  { spacing, pageTop = DEFAULT_PAGE_TOP, bottomMargin = DEFAULT_BOTTOM_MARGIN } = {},
+  {
+    spacing,
+    pageTop = DEFAULT_PAGE_TOP,
+    bottomMargin = DEFAULT_BOTTOM_MARGIN,
+    templateId = null,
+  } = {},
 ) {
   const list = elements || [];
   const additions = newElements || [];
@@ -1498,7 +1582,7 @@ function appendSidebarSectionAtEnd(
     [...list, ...placedAdditions],
     rhythm,
     pageHeight,
-    { pageTop, bottomMargin },
+    { pageTop, bottomMargin, templateId },
   );
 }
 
@@ -1537,11 +1621,12 @@ export function appendSectionAtEnd(
     pageTop = DEFAULT_PAGE_TOP,
     bottomMargin = DEFAULT_BOTTOM_MARGIN,
     lane = null,
+    templateId = null,
   } = {},
 ) {
   if (lane === "sidebar") {
     return appendSidebarSectionAtEnd(elements, newElements, pageHeight, {
-      spacing, pageTop, bottomMargin,
+      spacing, pageTop, bottomMargin, templateId,
     });
   }
 
@@ -1581,7 +1666,7 @@ export function appendSectionAtEnd(
     [...list, ...placedAdditions],
     rhythm,
     pageHeight,
-    { pageTop, bottomMargin },
+    { pageTop, bottomMargin, templateId },
   );
 }
 
@@ -1601,7 +1686,12 @@ function insertSidebarSectionAfter(
   newElements,
   afterHeadingId,
   pageHeight = 842,
-  { spacing, pageTop = DEFAULT_PAGE_TOP, bottomMargin = DEFAULT_BOTTOM_MARGIN } = {},
+  {
+    spacing,
+    pageTop = DEFAULT_PAGE_TOP,
+    bottomMargin = DEFAULT_BOTTOM_MARGIN,
+    templateId = null,
+  } = {},
 ) {
   const list = elements || [];
   const additions = newElements || [];
@@ -1612,7 +1702,7 @@ function insertSidebarSectionAfter(
   const index = sections.findIndex((section) => section.headingId === afterHeadingId);
   if (index < 0) {
     return appendSidebarSectionAtEnd(list, additions, pageHeight, {
-      spacing, pageTop, bottomMargin,
+      spacing, pageTop, bottomMargin, templateId,
     });
   }
 
@@ -1665,7 +1755,9 @@ function insertSidebarSectionAfter(
     ]
     : [...shifted, ...placedAdditions];
 
-  return applyFlowSpacing(withBlock, rhythm, pageHeight, { pageTop, bottomMargin });
+  return applyFlowSpacing(withBlock, rhythm, pageHeight, {
+    pageTop, bottomMargin, templateId,
+  });
 }
 
 /**
@@ -1698,6 +1790,7 @@ export function insertSectionAfter(
     pageTop = DEFAULT_PAGE_TOP,
     bottomMargin = DEFAULT_BOTTOM_MARGIN,
     lane = null,
+    templateId = null,
   } = {},
 ) {
   const list = elements || [];
@@ -1712,14 +1805,14 @@ export function insertSectionAfter(
 
   if (!afterHeadingId) {
     return appendSectionAtEnd(list, additions, pageHeight, {
-      spacing, pageTop, bottomMargin, lane: intoSidebar ? "sidebar" : lane,
+      spacing, pageTop, bottomMargin, lane: intoSidebar ? "sidebar" : lane, templateId,
     });
   }
 
   if (intoSidebar) {
     return insertSidebarSectionAfter(
       list, additions, afterHeadingId, pageHeight,
-      { spacing, pageTop, bottomMargin },
+      { spacing, pageTop, bottomMargin, templateId },
     );
   }
 
@@ -1727,7 +1820,9 @@ export function insertSectionAfter(
   const sections = listDocumentSections(list, pageHeight);
   const index = sections.findIndex((section) => section.headingId === afterHeadingId);
   if (index < 0) {
-    return appendSectionAtEnd(list, additions, pageHeight, { spacing, pageTop, bottomMargin });
+    return appendSectionAtEnd(list, additions, pageHeight, {
+      spacing, pageTop, bottomMargin, templateId,
+    });
   }
 
   const anchorIds = sectionElementIds(list, afterHeadingId, pageHeight);
@@ -1784,7 +1879,9 @@ export function insertSectionAfter(
     ]
     : [...shifted, ...placedAdditions];
 
-  return applyFlowSpacing(withBlock, rhythm, pageHeight, { pageTop, bottomMargin });
+  return applyFlowSpacing(withBlock, rhythm, pageHeight, {
+    pageTop, bottomMargin, templateId,
+  });
 }
 
 /**
@@ -1941,7 +2038,11 @@ export function removeSection(
  */
 export function applyFlowSpacing(elements, spacing, pageHeight = 842, options = {}) {
   const rhythm = normalizeFlowSpacing(spacing);
-  let next = elements || [];
+  // Cardinal-only: heal legacy saves that lack chromeAlign before packing so
+  // after_rule is not measured from the midline hairline.
+  let next = ensureCardinalMidlineChrome(elements || [], pageHeight, {
+    templateId: options.templateId ?? null,
+  });
   const sections = listDocumentSections(next, pageHeight);
   if (sections.length > 0) {
     next = packDocumentSections(
@@ -2018,7 +2119,7 @@ const DECORATIVE_SHAPE_CATEGORIES = new Set(["rectangle", "circle", "ellipse", "
  * @param {object[]} elements
  * @param {number} [pageHeight=842]
  * @param {string|null} [fromHeadingId] sample this section instead of the last one
- * @param {{ lane?: "main"|"sidebar"|null }} [options]
+ * @param {{ lane?: "main"|"sidebar"|null, templateId?: string|null }} [options]
  * @returns {object} style profile (see plan `SectionStyle`)
  */
 export function deriveSectionStyle(
@@ -2027,7 +2128,11 @@ export function deriveSectionStyle(
   fromHeadingId = null,
   options = {},
 ) {
-  const list = elements || [];
+  // Cardinal-only heal so Add section samples chromeAlign + heading band height
+  // even from legacy saves that never stamped the generator flag.
+  const list = ensureCardinalMidlineChrome(elements || [], pageHeight, {
+    templateId: options.templateId ?? null,
+  });
   const fromHeading = fromHeadingId
     ? list.find((element) => element.element_id === fromHeadingId)
     : null;

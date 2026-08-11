@@ -69,6 +69,7 @@ export default function SectionsPanel({ onClose }) {
     baselineFlowSpacing,
     openAddSectionModal,
     pushToast,
+    activeTemplateId,
   } = use(PdfContext);
   const pageHeight = pageSize?.height ?? 842;
   const densityGroupId = useId();
@@ -133,7 +134,9 @@ export default function SectionsPanel({ onClose }) {
     if (flowSpacingEquals(spacing, normalized)) return;
     setFlowSpacing(normalized);
     setA4_Elements((prev) => {
-      const packed = applyFlowSpacing(prev, normalized, pageHeight);
+      const packed = applyFlowSpacing(prev, normalized, pageHeight, {
+        templateId: activeTemplateId,
+      });
       // Do not re-pack after this — only add/drop fixed continuation chrome.
       const reconciled = reconcileDocumentPages(packed, nanoid, {
         collapseEmpty: true,

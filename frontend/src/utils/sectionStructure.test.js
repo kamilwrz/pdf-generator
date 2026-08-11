@@ -2037,6 +2037,44 @@ describe("Cardinal midline chromeAlign + after_rule", () => {
       "untagged underline still defines chromeBottom for after_rule",
     );
   });
+
+  it("heals legacy Cardinal saves that lack chromeAlign before packing", () => {
+    // Production docs saved before the generator stamped chromeAlign still
+    // carry cardinal icons. ensureCardinalMidlineChrome must stamp the flag
+    // and heading band so after_rule=0 stops measuring from the hairline.
+    const labelFs = 11.2;
+    const chromeH = labelFs + 10;
+    const doc = [
+      {
+        element_id: "icon", category: "image", flowRole: "section-chrome",
+        src: "/template-assets/iconic/cardinal/summary.png",
+        left: 72, top: 200, width: 16.5, height: 16.5, page: 1,
+      },
+      {
+        element_id: "h1", category: "text", content: "PODSUMOWANIE ZAWODOWE",
+        flowRole: "section-chrome", left: 94, top: 200, fontSize: labelFs,
+        bold: true, page: 1,
+      },
+      {
+        element_id: "r1", category: "line", flowRole: "section-chrome",
+        left: 280, top: 199.3, width: 240, height: 0.8, page: 1,
+      },
+      {
+        element_id: "b1", category: "textarea", flowRole: "content",
+        left: 72, top: 210, width: 473, height: 40, fontSize: 9.6, page: 1,
+      },
+    ];
+    const next = applyFlowSpacing(doc, {
+      stack: 4, record: 10, section: 21, after_rule: 0,
+    });
+    const byId = Object.fromEntries(next.map((element) => [element.element_id, element]));
+    assert.equal(byId.r1.chromeAlign, "midline");
+    assert.ok(byId.h1.height >= chromeH - 0.01);
+    assert.ok(
+      Math.abs(byId.b1.top - (byId.h1.top + chromeH)) < 0.5,
+      `healed after_rule=0 must clear head+${chromeH}, got ${byId.b1.top - byId.h1.top}`,
+    );
+  });
 });
 
 describe("listFlatSectionAnchors", () => {
