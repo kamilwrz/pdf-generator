@@ -1646,3 +1646,60 @@ test("cascading reflow across several autoHeight textareas keeps a skill-chip gr
     "chip B's label must stay inside its own pill",
   );
 });
+
+test("a chip row that already jumped to page 2 stays aligned when an earlier textarea reflows next (crossedPage)", () => {
+  // Two-call sequence that reproduces a genuine `crossedPage` seam:
+  // call 1 grows a textarea enough to push the (still page-1) chip row past
+  // the footer onto page 2; call 2 then grows a DIFFERENT, earlier textarea
+  // that itself stays on page 1. Walking call 2's lane, the chip row's
+  // stored page (2) is now genuinely ahead of that earlier textarea's page
+  // (1) — the exact "page fields went out of sync across independent reflow
+  // passes" case `crossedPage` exists to absorb. That branch used to apply
+  // bottom-plus-gap stacking even to grid members, breaking row alignment;
+  // the top-to-top delta chain used everywhere else in this function must
+  // apply here too.
+  const group = "record-skills-crossed-page";
+  let elements = [
+    textarea({ element_id: "a", top: 100, height: 20 }),
+    textarea({ element_id: "b", top: 140, height: 20 }),
+    {
+      element_id: "rect-a", category: "rectangle", flowRole: "grid-member", flowGroup: group,
+      left: 40, top: 740, width: 80, height: 20, page: 1,
+    },
+    {
+      element_id: "text-a", category: "text", flowRole: "grid-member", flowGroup: group,
+      content: "Python", left: 50, top: 745, fontSize: 9, page: 1,
+    },
+    {
+      element_id: "rect-b", category: "rectangle", flowRole: "grid-member", flowGroup: group,
+      left: 128, top: 740, width: 80, height: 20, page: 1,
+    },
+    {
+      element_id: "text-b", category: "text", flowRole: "grid-member", flowGroup: group,
+      content: "SQL", left: 138, top: 745, fontSize: 9, page: 1,
+    },
+  ];
+
+  // Call 1: grow "a" by 70px — big enough to push the chip row past the
+  // page-1 footer (740 + 70 = 810 > contentBottom 770) onto page 2.
+  elements = reflowTextareaHeight(elements, "a", 90, 842, { pageTop: 66, bottomMargin: 72 }).elements;
+  const afterCall1 = Object.fromEntries(elements.map((element) => [element.element_id, element]));
+  assert.equal(afterCall1["rect-a"].page, 2, "sanity: chip row moved to page 2 after call 1");
+  assert.equal(afterCall1["b"].page, 1, "sanity: \"b\" stayed on page 1 after call 1");
+
+  // Call 2: grow "b" — its lane walk now finds page-1 "b" immediately
+  // followed by the already-page-2 chip row, the crossedPage condition.
+  elements = reflowTextareaHeight(elements, "b", 55, 842, { pageTop: 66, bottomMargin: 72 }).elements;
+  const byId = Object.fromEntries(elements.map((element) => [element.element_id, element]));
+
+  assert.equal(byId["rect-b"].page, byId["rect-a"].page, "both chips must end up on the same page");
+  assert.equal(byId["rect-b"].top, byId["rect-a"].top, "both chips must stay on the same row");
+  assert.ok(
+    byId["text-a"].top >= byId["rect-a"].top && byId["text-a"].top <= byId["rect-a"].top + byId["rect-a"].height,
+    "chip A's label must stay inside its own pill",
+  );
+  assert.ok(
+    byId["text-b"].top >= byId["rect-b"].top && byId["text-b"].top <= byId["rect-b"].top + byId["rect-b"].height,
+    "chip B's label must stay inside its own pill",
+  );
+});

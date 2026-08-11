@@ -896,7 +896,7 @@ export function reflowTextareaHeight(
     );
 
     let nextAbsolute;
-    if (crossedPage) {
+    if (crossedPage && !isGridMember(current)) {
       // `page` fields can go briefly out of sync across independent reflow
       // passes (each auto-height textarea measures and settles on its own).
       // Before treating this as a genuine page-break seam, check whether the
@@ -904,6 +904,14 @@ export function reflowTextareaHeight(
       // that real gap instead of the generic page-break pack gap so a tightly
       // coupled record (e.g. a title and its meta line) never gets pried
       // apart by SPACE_RECORD-sized whitespace it never had.
+      //
+      // Grid members (wrapped skill-chip pills) are excluded: several
+      // autoHeight textareas above a chip section each fire their own
+      // reflowTextareaHeight call as the browser measures them one by one, so
+      // a chip's stored `page` can briefly lag a row-mate's mid-cascade. That
+      // is exactly the stale-page-field case this comment describes, not a
+      // genuine break — the `else` branch's top-to-top delta chain below
+      // handles it correctly (see `isGridMember`'s doc comment).
       const samePageGap = rawSamePageGap(current, previousOriginal);
       nextAbsolute = previousPlacedBottom + (
         samePageGap >= 0 && samePageGap <= CHROME_CLUSTER_Y_SPAN
