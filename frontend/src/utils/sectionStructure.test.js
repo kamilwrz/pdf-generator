@@ -2013,6 +2013,41 @@ describe("Cardinal trailing midline rule + after_rule", () => {
       "body must not collapse onto the trailing midline hairline",
     );
   });
+
+  it("infers fontSize+10 chrome depth when heading has no explicit height", () => {
+    // Saved / pre-fix Cardinal docs omit heading.height. fontSize×1.35 would
+    // leave only ~4px under the glyphs — the gap the spacing overlay showed
+    // when after_rule was already 0.
+    const labelFs = 11.2;
+    const chromeH = labelFs + 10;
+    const doc = [
+      {
+        element_id: "h1", category: "text", content: "PODSUMOWANIE ZAWODOWE",
+        flowRole: "section-chrome", left: 94, top: 200, fontSize: labelFs,
+        bold: true, page: 1,
+      },
+      {
+        element_id: "r1", category: "line", flowRole: "section-chrome",
+        left: 280, top: 199.3, width: 240, height: 0.8, page: 1,
+      },
+      {
+        element_id: "b1", category: "textarea", flowRole: "content",
+        left: 72, top: 220, width: 473, height: 40, fontSize: 9.6, page: 1,
+      },
+    ];
+    const next = applyFlowSpacing(doc, {
+      stack: 4, record: 10, section: 21, after_rule: 0,
+    });
+    const byId = Object.fromEntries(next.map((element) => [element.element_id, element]));
+    assert.ok(
+      Math.abs(byId.b1.top - (byId.h1.top + chromeH)) < 0.5,
+      `expected body at head+${chromeH}, got ${byId.b1.top - byId.h1.top}`,
+    );
+    assert.ok(
+      byId.b1.top - byId.h1.top > labelFs * 1.35 + 2,
+      "must not use the fontSize×1.35 paint-box as the chrome band",
+    );
+  });
 });
 
 describe("listFlatSectionAnchors", () => {

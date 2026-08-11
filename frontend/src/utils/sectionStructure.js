@@ -803,6 +803,13 @@ export function packSidebarLane(
 }
 
 /**
+ * Extra pad Cardinal's generator adds under the label before `after_rule`
+ * (`b.y = y + label_fs + 10` in `cardinal.py`). Trailing midline hairlines do
+ * not create an underline, so this pad IS the chrome band depth.
+ */
+const TRAILING_MIDLINE_CHROME_PAD = 10;
+
+/**
  * Cardinal / iconic trailing hairline: starts to the right of the label and
  * vertically overlaps the heading band. It is NOT an underline under the title,
  * so after_rule / chromeBottom must ignore it (otherwise spacing appears to
@@ -816,8 +823,27 @@ function isTrailingMidlineRule(element, heading) {
   if (ruleLeft < headLeft + 20) return false;
   const headTop = Number(heading.top) || 0;
   const ruleTop = Number(element.top) || 0;
-  const headH = elementHeight(heading);
+  const fs = Number(heading.fontSize);
+  // Use the paint-box estimate (not an inflated band height) so a rule that
+  // sits on the cap midline still counts as overlapping the glyph row.
+  const headH = Number.isFinite(fs) && fs > 0 ? fs * 1.35 : elementHeight(heading);
   return ruleTop <= headTop + headH * 0.75 + 0.01 && ruleTop >= headTop - 4;
+}
+
+/**
+ * Chrome-band depth for a heading that owns a trailing midline hairline.
+ *
+ * Without an explicit `height`, `elementHeight` falls back to fontSize×1.35 —
+ * only ~0.35em under the glyphs (~4px at 11.2). Cardinal authors fontSize+10
+ * before after_rule; use that floor so "Pod nagłówkiem: 0" still clears the
+ * title band on older documents and freshly built sections.
+ */
+function trailingMidlineHeadingBand(heading) {
+  const fs = Number(heading?.fontSize);
+  const authored = (Number.isFinite(fs) && fs > 0 ? fs : 12) + TRAILING_MIDLINE_CHROME_PAD;
+  const explicit = Number(heading?.height);
+  if (Number.isFinite(explicit) && explicit > 0) return Math.max(explicit, authored);
+  return authored;
 }
 
 function isChromeLike(element) {
@@ -1104,13 +1130,21 @@ function compactSectionStrip(sectionElements, pageHeight, spacing, forceTargets 
   const items = [...chromeItems];
   const bodySorted = sortByReadingOrder(body, pageHeight);
   const chromeHeading = chromeTitleAnchor(chrome);
+  const hasTrailingMidline = Boolean(
+    chromeHeading
+    && chromeItems.some((item) => isTrailingMidlineRule(item.element, chromeHeading)),
+  );
   // Trailing midline hairlines (Cardinal) sit beside the title — exclude them
   // so after_rule is measured from the heading band, not from that side rule.
   const chromeBottom = chromeItems.reduce((max, item) => {
     if (chromeHeading && isTrailingMidlineRule(item.element, chromeHeading)) {
       return max;
     }
-    return Math.max(max, item.relTop + elementHeight(item.element));
+    let depth = item.relTop + elementHeight(item.element);
+    if (hasTrailingMidline && item.element === chromeHeading) {
+      depth = Math.max(depth, item.relTop + trailingMidlineHeadingBand(chromeHeading));
+    }
+    return Math.max(max, depth);
   }, 0);
 
   for (let index = 0; index < bodySorted.length; index += 1) {

@@ -483,4 +483,49 @@ describe("build -> append -> reorder (composed production pipeline)", () => {
       1,
     );
   });
+
+  it("Cardinal added section clears fontSize+10 under the title when after_rule is 0", () => {
+    let id = 0;
+    const doc = cardinalTemplate.map((element, index) => ({
+      ...element,
+      element_id: `cardinal-${index}`,
+      page: 1,
+      isDeleted: false,
+    }));
+    // Strip stamped heights so the builder/packer path matches older saves.
+    for (const element of doc) {
+      if (element.flowRole === "section-chrome" && element.category === "text") {
+        delete element.height;
+      }
+    }
+    const lastSection = listDocumentSections(doc, pageHeight).at(-1);
+    const sampled = deriveSectionStyle(doc, pageHeight, lastSection.headingId);
+    const { elements: additions, headingId } = buildSectionElements({
+      name: "Nowa sekcja",
+      layout: SECTION_LAYOUTS.TEXTAREA,
+      style: sampled,
+      spacing: { stack: 4, record: 10, section: 21, after_rule: 0 },
+      idFactory: () => `added-cardinal-${(id += 1)}`,
+    });
+    const appended = appendSectionAtEnd(doc, additions, pageHeight, {
+      spacing: { stack: 4, record: 10, section: 21, after_rule: 0 },
+    });
+    const ids = sectionElementIds(appended, headingId, pageHeight);
+    const members = appended.filter((element) => ids.has(element.element_id));
+    const heading = members.find((element) => element.element_id === headingId);
+    const rule = members.find((element) => element.category === "line" && element.width >= 120);
+    const body = members
+      .filter((element) => element.flowRole === "content")
+      .sort((left, right) => left.top - right.top)[0];
+    const chromeH = heading.fontSize + 10;
+    assert.ok(rule, "added Cardinal section must keep the trailing hairline");
+    assert.ok(
+      rule.top < heading.top + 4,
+      "hairline must stay on the heading row",
+    );
+    assert.ok(
+      Math.abs(body.top - (heading.top + chromeH)) < 0.5,
+      `after_rule=0 must clear head+${chromeH}, got delta ${body.top - heading.top}`,
+    );
+  });
 });
