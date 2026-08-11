@@ -2,17 +2,15 @@ from __future__ import annotations
 
 from app.core.config import BACKEND_URL
 from app.services.cv_generator_primitives import (
+    DEFAULT_FLOW_SPACING,
     get_spacing,
-    SPACE_AFTER_HEADER_RULE,
     SPACE_AFTER_MASTHEAD,
     Builder,
-    _block,
-    _circle,
-    _ellipse,
     _line,
     _rect,
     _text,
     section_chrome_height,
+    use_spacing,
 )
 from app.services.cv_templates.shared.extras import (
     _extra_sections,
@@ -40,6 +38,15 @@ from app.services.cv_templates.shared.text import (
 
 def _gen_cinder(cv: dict) -> list[dict]:
     """Single-column black, grey and signal-red editorial CV."""
+    # Design reference: 15 px between section headings, 0 px under the rule.
+    # When fill_template / the Sections panel passes an override, honour it.
+    if get_spacing() == DEFAULT_FLOW_SPACING:
+        with use_spacing({"section": 15.0, "after_rule": 0.0}):
+            return _gen_cinder_layout(cv)
+    return _gen_cinder_layout(cv)
+
+
+def _gen_cinder_layout(cv: dict) -> list[dict]:
     BLACK, CHARCOAL, GRAPHITE = "#111315", "#292D31", "#62686D"
     ASH, PAPER, RED = "#D5D6D6", "#F4F3F1", "#C93F3F"
     L, W, SANS, SERIF = 76, 466, "Inter", "Times-Roman"
@@ -74,7 +81,10 @@ def _gen_cinder(cv: dict) -> list[dict]:
         _line(497, 45, 18, 1, RED, zIndex=2),
     ]
     header[3]["letterSpacing"] = 1.65
-    SECTION_CHROME = section_chrome_height(8.7)
+    # Underline is 1 px and does not advance the cursor; reserve it so
+    # after_rule=0 still parks body flush under the rule instead of on it.
+    RULE_H = 1.0
+    SECTION_CHROME = section_chrome_height(8.7) + RULE_H
     # Black masthead band occupies y=0..170. Use masthead clearance (not the
     # tighter get_spacing().section) so the first heading has visible breathing room.
     b = Builder(170 + SPACE_AFTER_MASTHEAD)
@@ -107,8 +117,9 @@ def _gen_cinder(cv: dict) -> list[dict]:
         b.els.append(mark)
         b.text(label, 8.7, SANS, RED, L)
         b.els[-1]["flowRole"] = "section-chrome"
-        b.line(L, W, 1, ASH)
+        b.line(L, W, RULE_H, ASH)
         b.els[-1]["flowRole"] = "section-chrome"
+        b.gap(RULE_H)
         b.gap(get_spacing().after_rule)
 
     def close_section() -> None:
