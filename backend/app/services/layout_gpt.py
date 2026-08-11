@@ -234,10 +234,6 @@ def _layout_hint_for_template(template_id: str | None) -> str:
             "oraz wartości z layout_contract zamiast wymyślać nowe odstępy."
         )
     hints = {
-        "words": (
-            "Szablon Words: klasyczny układ Word-like, szara skala, linie i małe kółka. "
-            "Zachowuj równe odstępy wpisów i sekcji z layout_contract."
-        ),
         "monument": (
             "Szablon Monument: numerowane sekcje w ramkach. Trzymaj chrome nagłówka "
             "(numer, ramka, etykieta, linia) razem z pierwszą treścią sekcji."

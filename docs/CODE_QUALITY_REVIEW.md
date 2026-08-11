@@ -75,7 +75,7 @@ Cel: dojść do **~9 / 10** bez blokowania product work. Kolejność = ROI utrzy
    Przy eksporcie / zapisie — pełniejszy kontrakt niż `assertCanvasElementRoot`.  
    *Efekt:* błędy schematu wcześniej, bliżej API.
 
-3. **Themes: dark / monument / words** (i pozostałe generatory)  
+3. **Themes: dark / monument** (i pozostałe generatory)  
    Kontynuacja wyciągnięcia z `cv_generator.py` do `backend/app/services/themes/`.  
    *Efekt:* plik poniżej ~1–1.5k LOC, łatwiejsze review layoutów.
 
@@ -110,7 +110,7 @@ Cel: dojść do **~9 / 10** bez blokowania product work. Kolejność = ROI utrzy
 
 ```text
 1) PdfContext → focused hooks (A1)
-2) Themes dark/monument/words (A3)  — równolegle OK z A1
+2) Themes dark/monument (A3)  — równolegle OK z A1
 3) Ajv na eksporcie (A2)
 4) Split useA4Elements (B4)
 5) Alembic-only (B5) — gdy będzie pewność migracji

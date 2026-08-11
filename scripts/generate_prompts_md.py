@@ -89,7 +89,7 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
 | `SPACE_STACK/RECORD/SECTION/AFTER_RULE` | `cv_generator.py` | 40–43 | 4 / 14 / 18 / 12 px |
 | `SECTION_HEADER_GAP_*` | `layout_gpt.py` | 38–42 | min/target/max/tolerancja pod nagłówkiem |
 | `MAX_LAYOUT_MOVE_PX` / `MOVES` / `FINDINGS` | `layout_gpt.py` | 31–33 | Limity ruchów (±80 px, 40 ruchów, 12 grup) |
-| `template_id` | request API + frontend `activeTemplateId` | — | Wybór wskazówki Words/Monument/Onyx |
+| `template_id` | request API + frontend `activeTemplateId` | — | Wybór wskazówki Monument / generycznej |
 | `job_description` | body requestu / pole w UI | — | Opis oferty do dopasowania |
 | `message` | body requestu / czat / chip | — | Pytanie użytkownika |
 
@@ -329,7 +329,7 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "| Zmienna | Skąd |\n"
         "|---------|------|\n"
         "| `template_id` | opcjonalne pole requestu; frontend `activeTemplateId` |\n"
-        "| `{template_id}` w hintcie generycznym | ten sam slug, gdy nie Words/Monument/Onyx |\n\n"
+        "| `{template_id}` w hintcie generycznym | ten sam slug, gdy nie Monument |\n\n"
         "### Treść wskazówek\n\n"
     )
     parts.append(code(sl(g, 227, 254), "python"))

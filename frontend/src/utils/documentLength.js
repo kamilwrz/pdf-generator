@@ -104,3 +104,33 @@ export function diagnoseDocumentLength({ pageCount, elements, isSidebarLayout = 
     utilization,
   };
 }
+
+/**
+ * Whether the long-CV auto-open offer should reset for a new editing session.
+ *
+ * A first autosave promotes `pdfId` from null → a real id without changing the
+ * document the user is editing — that must NOT re-arm the modal (doing so was
+ * stacking a second DialogShell on top of the still-open first one). Re-arm
+ * only when the saved document id changes, the canvas is cleared, or the
+ * template slug changes ("Zmień szablon" keeps the same pdfId).
+ *
+ * @param {{ pdfId: string|number|null|undefined, templateId: string|null|undefined }|null} previous
+ * @param {{ pdfId: string|number|null|undefined, templateId: string|null|undefined }} next
+ * @returns {boolean}
+ */
+export function shouldResetLongCvOffer(previous, next) {
+  if (!previous) return false;
+  const prevTemplate = previous.templateId ?? null;
+  const nextTemplate = next.templateId ?? null;
+  if (prevTemplate !== nextTemplate) return true;
+
+  const prevPdf = previous.pdfId ?? null;
+  const nextPdf = next.pdfId ?? null;
+  // Draft → first save of the same canvas: keep the offer consumed.
+  if (prevPdf == null && nextPdf != null) return false;
+  if (prevPdf != null && nextPdf == null) return true;
+  if (prevPdf != null && nextPdf != null && String(prevPdf) !== String(nextPdf)) {
+    return true;
+  }
+  return false;
+}

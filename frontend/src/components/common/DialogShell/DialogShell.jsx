@@ -13,6 +13,10 @@ import CloseButton from "../CloseButton/CloseButton";
 //
 // `radius` is an optional per-instance override for the dialog corner radius.
 // It is applied inline only when provided (ignored for fullscreen).
+//
+// Portals to `document.body` so stacking context / overflow on the editor
+// chrome cannot clip the dialog. Callers must keep a single open instance —
+// auto-open flows (e.g. LongCv) guard against opening twice for the same doc.
 export default function DialogShell({
     open,
     onClose,

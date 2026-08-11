@@ -83,9 +83,9 @@ class LayoutGptTests(unittest.TestCase):
             ),
             el("body", 50, 130, content="Opis", category="textarea", flowRole="entry_body"),
         ]
-        snap = build_layout_snapshot(elements, PAGE, template_id="words")
+        snap = build_layout_snapshot(elements, PAGE, template_id="monument")
         contract = snap["layout_contract"]
-        self.assertEqual(contract["template_id"], "words")
+        self.assertEqual(contract["template_id"], "monument")
         self.assertEqual(contract["spacing_px"]["stack"], 4.0)
         self.assertEqual(contract["spacing_px"]["record"], 10.0)
         self.assertEqual(contract["spacing_px"]["section"], 21.0)
@@ -94,7 +94,7 @@ class LayoutGptTests(unittest.TestCase):
             contract["section_header_gap_px"],
             snap["constraints"]["section_header_gap_px"],
         )
-        self.assertIn("Words", contract["hint"])
+        self.assertIn("Monument", contract["hint"])
         by_content = {item["content"]: item for item in snap["elements"]}
         self.assertEqual(by_content["DOŚWIADCZENIE"]["flowRole"], "section_heading")
         self.assertEqual(by_content["Opis"]["flowRole"], "entry_body")

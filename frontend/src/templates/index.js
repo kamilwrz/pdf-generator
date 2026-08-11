@@ -15,7 +15,6 @@ import { regentTemplate } from "./regent";
 import { aldineTemplate } from "./aldine";
 import { novaTemplate, voltTemplate } from "./iconic";
 import { monumentTemplate } from "./monument";
-import { wordsTemplate } from "./words";
 import { cardinalTemplate } from "./cardinal";
 import { harborTemplate } from "./harbor";
 import { tesseraTemplate } from "./tessera";
@@ -38,7 +37,6 @@ export const TEMPLATES = [
     { id: "regent", tier: "free", name: "Regent", description: "Executive z personalizowanym sygnetem", layouts: ["single"], accent: "#733B43", elements: regentTemplate },
     { id: "aldine", tier: "paid", name: "Aldine", description: "Szlachetny papier", layouts: ["single"], accent: "#486151", elements: aldineTemplate },
     { id: "monument", tier: "paid", name: "Monument", description: "Monochromatyczny editorial", layouts: ["single"], accent: "#343434", elements: monumentTemplate },
-    { id: "words", tier: "paid", name: "Words", description: "Dokument w stylu Word", layouts: ["single"], accent: "#555555", elements: wordsTemplate },
     { id: "cardinal", tier: "paid", name: "Cardinal", description: "Szlachetna czerwień, ikony przy sekcjach", layouts: ["icons"], accent: "#9E2532", elements: cardinalTemplate },
     { id: "harbor", tier: "paid", name: "Harbor", description: "Dwukolumnowy, ikony kontaktu", layouts: ["sidebar", "icons"], accent: "#17A2B8", elements: harborTemplate },
     { id: "nova", tier: "free", name: "Nova", description: "Redakcyjny masthead z ikonami", layouts: ["icons"], accent: "#C45C26", elements: novaTemplate },

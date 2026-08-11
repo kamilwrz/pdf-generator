@@ -57,7 +57,7 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
 | `SPACE_STACK/RECORD/SECTION/AFTER_RULE` | `cv_generator.py` | 40–43 | 4 / 14 / 18 / 12 px |
 | `SECTION_HEADER_GAP_*` | `layout_gpt.py` | 38–42 | min/target/max/tolerancja pod nagłówkiem |
 | `MAX_LAYOUT_MOVE_PX` / `MOVES` / `FINDINGS` | `layout_gpt.py` | 31–33 | Limity ruchów (±80 px, 40 ruchów, 12 grup) |
-| `template_id` | request API + frontend `activeTemplateId` | — | Wybór wskazówki Words/Monument/Onyx |
+| `template_id` | request API + frontend `activeTemplateId` | — | Wybór wskazówki Monument / generycznej |
 | `job_description` | body requestu / pole w UI | — | Opis oferty do dopasowania |
 | `message` | body requestu / czat / chip | — | Pytanie użytkownika |
 
@@ -904,7 +904,7 @@ Zwracasz WYŁĄCZNIE prawidłowy JSON (bez tekstu przed/po).
 | Zmienna | Skąd |
 |---------|------|
 | `template_id` | opcjonalne pole requestu; frontend `activeTemplateId` |
-| `{template_id}` w hintcie generycznym | ten sam slug, gdy nie Words/Monument/Onyx |
+| `{template_id}` w hintcie generycznym | ten sam slug, gdy nie Monument |
 
 ### Treść wskazówek
 
@@ -918,10 +918,6 @@ def _layout_hint_for_template(template_id: str | None) -> str:
             "oraz wartości z layout_contract zamiast wymyślać nowe odstępy."
         )
     hints = {
-        "words": (
-            "Szablon Words: klasyczny układ Word-like, szara skala, linie i małe kółka. "
-            "Zachowuj równe odstępy wpisów i sekcji z layout_contract."
-        ),
         "monument": (
             "Szablon Monument: numerowane sekcje w ramkach. Trzymaj chrome nagłówka "
             "(numer, ramka, etykieta, linia) razem z pierwszą treścią sekcji."

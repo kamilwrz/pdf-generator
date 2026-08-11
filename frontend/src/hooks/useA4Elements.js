@@ -92,7 +92,7 @@ export function useA4Elements(titleRef) {
 
   const [A4_Elements, setA4_Elements] = useState([]);
   const [A4_Elements_deleted, setA4_Elements_deleted] = useState([]);
-  // Last loaded template slug (e.g. "words"). Used by Layout AI for layout_contract
+  // Last loaded template slug (e.g. "monument"). Used by Layout AI for layout_contract
   // hints; cleared for blank canvases and unknown freestyle loads.
   const [activeTemplateId, setActiveTemplateId] = useState(null);
   // Constrained template layout vs freeform project. Persisted with the Pdf row.

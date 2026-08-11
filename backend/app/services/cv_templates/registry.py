@@ -12,7 +12,6 @@ from app.services.cv_templates.templates.harbor import _gen_harbor
 from app.services.cv_templates.templates.nova import _gen_nova
 from app.services.cv_templates.templates.volt import _gen_volt
 from app.services.cv_templates.templates.monument import _gen_monument
-from app.services.cv_templates.templates.words import _gen_words
 from app.services.cv_templates.templates.cardinal import _gen_cardinal
 from app.services.cv_templates.templates.tessera import _gen_tessera
 from app.services.cv_templates.templates.slate import _gen_slate
@@ -32,7 +31,6 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "regent": frozenset({"single"}),
     "aldine": frozenset({"single"}),
     "monument": frozenset({"single"}),
-    "words": frozenset({"single"}),
     "cardinal": frozenset({"icons"}),
     "harbor": frozenset({"sidebar", "icons"}),
     "nova": frozenset({"icons"}),
@@ -59,7 +57,6 @@ _GENERATORS = {
     "nova": _gen_nova,
     "volt": _gen_volt,
     "monument": _gen_monument,
-    "words": _gen_words,
     "cardinal": _gen_cardinal,
     "tessera": _gen_tessera,
     "slate": _gen_slate,

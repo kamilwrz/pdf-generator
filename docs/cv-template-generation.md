@@ -239,7 +239,7 @@ Każdy z 14 szablonów ma osobny plik `cv_templates/templates/<id>.py` z funkcj�
 
 | Tag layoutu | Szablony |
 |---|---|
-| `single` | ledger, nimbus, cinder, kernel, regent, aldine, monument, words |
+| `single` | ledger, nimbus, cinder, kernel, regent, aldine, monument |
 | `icons` | cardinal, nova, volt (+ harbor, tessera, slate) |
 | `sidebar` | harbor, tessera, slate |
 | `dark` | volt |

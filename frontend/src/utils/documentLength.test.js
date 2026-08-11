@@ -6,6 +6,7 @@ import {
   TOO_LONG_MIN_PAGES,
   diagnoseDocumentLength,
   measureLastPageUtilization,
+  shouldResetLongCvOffer,
 } from "./documentLength.js";
 
 // Usable band per page: CONTENT_BOTTOM(770) - PAGE_TOP(66) = 704.
@@ -119,5 +120,54 @@ describe("diagnoseDocumentLength", () => {
         "content",
       );
     });
+  });
+});
+
+describe("shouldResetLongCvOffer", () => {
+  it("does not reset on the first observation (no previous identity)", () => {
+    assert.equal(
+      shouldResetLongCvOffer(null, { pdfId: null, templateId: "harbor" }),
+      false,
+    );
+  });
+
+  it("does not reset when first autosave assigns a pdfId to the same draft", () => {
+    assert.equal(
+      shouldResetLongCvOffer(
+        { pdfId: null, templateId: "harbor" },
+        { pdfId: "doc-1", templateId: "harbor" },
+      ),
+      false,
+    );
+  });
+
+  it("resets when the template changes (Zmień szablon keeps pdfId)", () => {
+    assert.equal(
+      shouldResetLongCvOffer(
+        { pdfId: "doc-1", templateId: "harbor" },
+        { pdfId: "doc-1", templateId: "slate" },
+      ),
+      true,
+    );
+  });
+
+  it("resets when a different saved document is loaded", () => {
+    assert.equal(
+      shouldResetLongCvOffer(
+        { pdfId: "doc-1", templateId: "harbor" },
+        { pdfId: "doc-2", templateId: "harbor" },
+      ),
+      true,
+    );
+  });
+
+  it("resets when the canvas is cleared (pdfId → null)", () => {
+    assert.equal(
+      shouldResetLongCvOffer(
+        { pdfId: "doc-1", templateId: "harbor" },
+        { pdfId: null, templateId: null },
+      ),
+      true,
+    );
   });
 });

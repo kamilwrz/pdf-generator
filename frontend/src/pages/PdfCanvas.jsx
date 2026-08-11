@@ -68,6 +68,7 @@ import { listSectionIconOptions } from '../utils/sectionIcons';
 import { convertFlatListContent } from '../utils/flatSectionLayout';
 import {
   diagnoseDocumentLength,
+  shouldResetLongCvOffer,
   TOO_LONG_MIN_PAGES,
   SIDEBAR_TOO_LONG_MIN_PAGES,
 } from '../utils/documentLength';
@@ -211,12 +212,19 @@ function PdfCanvas() {
   // "CV too long" assistant: auto-detects 3+ page documents once per document
   // and offers a free compact-spacing pass, then (if needed) AI shortening.
   const [longCvModal, setLongCvModal] = useState({ open: false, diagnosis: null });
+  // Mirror of longCvModal.open for the auto-open effect — reading state from
+  // the effect deps re-ran detection on every open and raced the identity reset.
+  const longCvOpenRef = useRef(false);
   const closeLongCvModal = useCallback(() => {
+    longCvOpenRef.current = false;
     setLongCvModal({ open: false, diagnosis: null });
   }, []);
-  // Guard so the modal auto-opens at most once per loaded document; reset by
-  // the document-identity effect below when a new CV is loaded.
-  const longCvShownRef = useRef(false);
+  // Once-per logical document+template: stores the identity we already offered
+  // for. Cleared only on a real document/template change (see shouldResetLongCvOffer).
+  const longCvOfferedForRef = useRef(null);
+  // Previous pdfId/templateId pair so we can distinguish first-save promotion
+  // (null → id) from loading a different document.
+  const longCvIdentityRef = useRef({ pdfId: null, templateId: null });
   // Bridge to open the AI assistant with a preset action (e.g. "shorten").
   const [assistantAction, setAssistantAction] = useState(null);
   const assistantNonceRef = useRef(0);
@@ -915,36 +923,50 @@ function PdfCanvas() {
     [activeTemplateId],
   );
 
-  // Auto-detect a too-long CV once per loaded document. Only fires in template
-  // mode (spacing/AI remedies target generated CV structure), when the page
-  // count crosses the threshold and no blocking dialog is already open.
+  // Auto-detect a too-long CV once per logical document+template. Identity
+  // reset and detection share one effect so a trailing reset cannot clear the
+  // "already offered" guard after detection in the same commit (that race was
+  // stacking a second LongCv DialogShell when the first autosave assigned a
+  // pdfId or activeTemplateId settled after the modal had already opened).
   useEffect(() => {
+    const identity = { pdfId, templateId: activeTemplateId };
+    if (shouldResetLongCvOffer(longCvIdentityRef.current, identity)) {
+      longCvOfferedForRef.current = null;
+      shortenBaselinePagesRef.current = null;
+      if (longCvOpenRef.current) {
+        longCvOpenRef.current = false;
+        setLongCvModal({ open: false, diagnosis: null });
+      }
+    }
+    longCvIdentityRef.current = identity;
+
     if (editorMode !== EDITOR_MODE_TEMPLATE) return;
-    if (longCvShownRef.current) return;
+    if (longCvOfferedForRef.current) return;
+    if (longCvOpenRef.current) return;
     const minTooLongPages = isSidebarTemplate ? SIDEBAR_TOO_LONG_MIN_PAGES : TOO_LONG_MIN_PAGES;
     if (pageCount < minTooLongPages) return;
     if (dialog || panel) return;
-    if (longCvModal.open) return;
     const diagnosis = diagnoseDocumentLength({
       pageCount,
       elements: A4_Elements,
       isSidebarLayout: isSidebarTemplate,
     });
     if (!diagnosis.tooLong) return;
-    longCvShownRef.current = true;
+    // Mark offered before setState so a StrictMode/effect re-run in the same
+    // commit cannot open a second portal.
+    longCvOfferedForRef.current = identity;
+    longCvOpenRef.current = true;
     setLongCvModal({ open: true, diagnosis });
-  }, [A4_Elements, dialog, editorMode, isSidebarTemplate, longCvModal.open, pageCount, panel]);
-
-  // Reset the once-per-document guard whenever a different document is loaded
-  // (new pdfId, or a fresh/cleared canvas signalled by pdfId going null) OR the
-  // template changes. "Zmień szablon" keeps the same pdfId but swaps the whole
-  // layout via a new activeTemplateId — if the new template is again too long
-  // (3+ pages single-column, or 2+ pages sidebar — see isSidebarTemplate), the
-  // too-long assistant must re-offer help instead of staying silent.
-  useEffect(() => {
-    longCvShownRef.current = false;
-    shortenBaselinePagesRef.current = null;
-  }, [pdfId, activeTemplateId]);
+  }, [
+    A4_Elements,
+    activeTemplateId,
+    dialog,
+    editorMode,
+    isSidebarTemplate,
+    pageCount,
+    panel,
+    pdfId,
+  ]);
 
   // Success toast after AI shortening reduces the page count below the value
   // captured when the shorten flow began (see handleRequestAiShorten).

@@ -59,3 +59,30 @@ a) Co zostawic?
   ff) PROJEKT - SKASOWAC
   gg) ULEPSZ - troche nie wypal, bardziej sugestie, mniej absolutyzmu
   hh) UKLAD - (P) - poprawka oferowanych szablonow? Zrobic czat o CV / ZIOM ktory wspiera i ocenia
+
+5) SZABLONY DO ZOSTAWIENIA
+
+- Cardinal (Naprawic)
+- Monument
+- Nova
+- Volt
+- Portico
+- Atrium
+- Blueprint
+- Nimbus
+------------
+SIDEBAR:
+- Harbor
+- Tessera
+- Slate
+- Manifest
+- Sterling
+------------
+- Axis
+- Aurelie
+- Ledger
+- Cinder
+- Kernel
+- Regent
+- Aldine
+- Words (DELETED)

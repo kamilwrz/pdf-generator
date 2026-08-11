@@ -1,3 +1,4 @@
+
 # Chipsy umiejętności (rounded pills) — design
 
 Data: 2026-08-11

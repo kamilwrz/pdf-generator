@@ -95,8 +95,8 @@ DEMO_CV = {
     ],
 }
 
-# Monument and Words use denser chrome; trim one bullet and a clause so every
-# section still lands on page 1 of the mockup without losing the persona.
+# Monument uses denser chrome; trim bullets so every section still lands on
+# page 1 of the mockup without losing the persona.
 COMPACT_DEMO_CV = {
     **DEMO_CV,
     "summary": (
@@ -105,8 +105,8 @@ COMPACT_DEMO_CV = {
         "mierzalne rezultaty."
     ),
     # Job titles now take a full record row (DEMO_CV used to omit them via the
-    # invalid ``role`` key). Trim bullets further so Monument/Words still fit
-    # page 1 with the four-column languages grid.
+    # invalid ``role`` key). Trim bullets further so Monument still fits page 1
+    # with the four-column languages grid.
     "experience": [
         {
             **DEMO_CV["experience"][0],
@@ -123,7 +123,7 @@ COMPACT_DEMO_CV = {
     ],
 }
 
-COMPACT_TEMPLATE_IDS = frozenset({"monument", "words"})
+COMPACT_TEMPLATE_IDS = frozenset({"monument"})
 
 # Manifest's starter tests assert a structured sidebar education description.
 MANIFEST_DEMO_CV = {
@@ -175,7 +175,6 @@ TEMPLATES = [
     "slate",
     "regent",
     "monument",
-    "words",
     "aurelia",
     "ledger",
     "nimbus",
@@ -235,11 +234,6 @@ DOC_BLURBS = {
         "Monument template (`layouts: [\"single\"]`).\n"
         " *\n"
         " * Monochrome editorial single column with strong rules and plates."
-    ),
-    "words": (
-        "Words template (`layouts: [\"single\"]`).\n"
-        " *\n"
-        " * Document-style single column inspired by classic word-processor CVs."
     ),
     "aurelia": (
         "Aurelia template (`layouts: [\"single\"]`).\n"
