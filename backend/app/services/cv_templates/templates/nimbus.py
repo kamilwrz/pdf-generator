@@ -30,7 +30,7 @@ def _gen_nimbus(cv: dict) -> list[dict]:
     INK, BLUE = "#2B3D4C", "#5F8EAD"
     # Body copy uses a neutral dark grey; headings keep the blue accent ink.
     BODY = "#3A3A3A"
-    POWDER, CLOUD, SLATE = "#B9D2E5", "#E9EEF1", "#72818C"
+    POWDER, SKY, CLOUD, SLATE = "#B9D2E5", "#DFEBF4", "#E9EEF1", "#72818C"
     L, W, FONT = 80, 462, "Lora"
     FS_NAME, FS_ROLE, FS_HEADING, FS_BODY, FS_META = 32, 14, 14, 12, 11
     LH_ROLE, LH_BODY, LH_META = 18, 17, 14.5
@@ -50,40 +50,72 @@ def _gen_nimbus(cv: dict) -> list[dict]:
     def _masthead(element: dict) -> dict:
         return {**element, "flowRole": "masthead"}
 
-    # Clean masthead: name / role / contact on the content column, photo on the
-    # right, no left rail or ordinal mark chips. Positions match the Nimbus
-    # picker composition (name top-left, photo top-right, contact mid-band).
+    # Masthead composition (A4 pt):
+    # - blue accent bar beside name + role (kept; mark chips stay removed)
+    # - square photo slot top-right, right edge aligned with the content column
+    # - contact line under the photo band, then the 3 px divider
+    NAME_LEFT, NAME_TOP = 78, 48
+    TITLE_LEFT, TITLE_TOP = 80, 92
+    PHOTO_SIZE = 118
+    PHOTO_LEFT = L + W - PHOTO_SIZE  # 424 — flush with content right edge
+    PHOTO_TOP = 32
+    PHOTO_INSET = 6
+    CONTACT_TOP = PHOTO_TOP + PHOTO_SIZE + 16  # 166
+    rule_top = CONTACT_TOP + 26  # 192
+
     photo_frame = _masthead({
-        **_rect(401, 35, 141, 153, POWDER, 1.1, zIndex=3),
+        **_rect(PHOTO_LEFT, PHOTO_TOP, PHOTO_SIZE, PHOTO_SIZE, POWDER, 1.2, zIndex=3),
         "id": "nimbus-photo-frame",
         "photoSlot": "frame",
         "photoShape": "rect",
     })
+    # Soft fill behind the accent art so an empty slot still reads as a photo
+    # well; gallery upload replaces the image via photoSlot.
+    photo_fill = _masthead(_line(
+        PHOTO_LEFT + PHOTO_INSET,
+        PHOTO_TOP + PHOTO_INSET,
+        PHOTO_SIZE - PHOTO_INSET * 2,
+        PHOTO_SIZE - PHOTO_INSET * 2,
+        SKY,
+        zIndex=1,
+    ))
+    photo_fill["id"] = "nimbus-photo-fill"
+    photo_fill["photoSlot"] = "ornament"
     photo_image = _masthead({
         "category": "image",
         "src": f"{BACKEND_URL}/template-assets/nimbus-finance-accent.png",
-        "width": 129,
-        "height": 141,
-        "left": 407,
-        "top": 41,
+        "width": PHOTO_SIZE - PHOTO_INSET * 2,
+        "height": PHOTO_SIZE - PHOTO_INSET * 2,
+        "left": PHOTO_LEFT + PHOTO_INSET,
+        "top": PHOTO_TOP + PHOTO_INSET,
         "zIndex": 2,
         "page": 1,
         "id": "nimbus-photo-image",
         "photoSlot": "image",
+        "alignWithText": False,
     })
-    # Divider sits under the photo band; body flow starts AFTER_MASTHEAD_RULE
-    # below the rule's bottom edge.
-    rule_top = 207.0
     static = [
         _masthead(_line(0, 0, 595, RULE_H, POWDER, zIndex=0)),
         _masthead(_line(52, rule_top, 490, RULE_H, POWDER)),
+        # Accent bar beside the name / role block (not a removable mark chip).
+        _masthead(_line(52, 44, 4, 78, BLUE, zIndex=2)),
+        photo_fill,
         photo_frame,
         photo_image,
-        _masthead(_text(_compact_text(cv.get("name"), 28), FS_NAME, FONT, INK, L, 52, zIndex=2, bold=True)),
-        _masthead(_text(_compact_text(cv.get("title"), 48), FS_ROLE, FONT, BLUE, L, 98, zIndex=2)),
-        _masthead(_text(_compact_text(_contact_line(cv), 72), FS_META, FONT, SLATE, L, 153, zIndex=2)),
+        _masthead(_text(
+            _compact_text(cv.get("name"), 28), FS_NAME, FONT, INK,
+            NAME_LEFT, NAME_TOP, zIndex=2, bold=True,
+        )),
+        _masthead(_text(
+            _compact_text(cv.get("title"), 48), FS_ROLE, FONT, BLUE,
+            TITLE_LEFT, TITLE_TOP, zIndex=2,
+        )),
+        _masthead(_text(
+            _compact_text(_contact_line(cv), 72), FS_META, FONT, SLATE,
+            L, CONTACT_TOP, zIndex=2,
+        )),
     ]
-    static[5]["letterSpacing"] = 1.2
+    static[7]["letterSpacing"] = 1.2
 
     b = NimbusBuilder(rule_top + RULE_H + AFTER_MASTHEAD_RULE)
 

@@ -19,7 +19,7 @@
 
 import { nanoid } from "nanoid";
 
-/** Symbolic frame ids used by Slate, Tessera, Aldine, Harbor, Cinder, Monument. */
+/** Symbolic frame ids used by Slate, Tessera, Aldine, Harbor, Cinder, Monument, Nimbus. */
 export const PROFILE_PHOTO_FRAME_IDS = new Set([
   "slate-photo-frame",
   "tessera-photo-frame",
@@ -27,6 +27,7 @@ export const PROFILE_PHOTO_FRAME_IDS = new Set([
   "harbor-photo-frame",
   "cinder-frame-one",
   "monument-masthead-frame",
+  "nimbus-photo-frame",
 ]);
 
 /** Stable semantic id written onto the applied user photo element. */

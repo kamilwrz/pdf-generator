@@ -1521,7 +1521,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         """Masthead dividers leave a clear band before the first section."""
         # template_id → (rule top y, rule height, min gap, max gap)
         cases = {
-            "nimbus": (207, 3, 56.0, 56.0),
+            "nimbus": (192, 3, 56.0, 56.0),
             "regent": (154, 1, 25.0, 45.0),
             "aldine": (157, 1, 25.0, 45.0),
             "nova": (160, 1, 25.0, 45.0),
