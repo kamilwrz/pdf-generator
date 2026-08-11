@@ -10,11 +10,12 @@
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/atrium.py`) for representative
- * demo content, so the picker preview matches what `/ai/fill_template` produces
- * pixel-for-pixel. Image `src` values are stored relative and get the API base
- * prepended at load time (contact glyphs live under
- * `/template-assets/iconic/atrium/`, rendered graphite-sage by the shared
- * pipeline). The array already carries `flowRole` / `flowGroup` /
+ * demo content (Jan Kowalski — three roles, one degree, five skills, and three
+ * languages, sized to fit page 1 of the mockup), so the picker preview matches
+ * what `/ai/fill_template` produces pixel-for-pixel. Image `src` values are
+ * stored relative and get the API base prepended at load time (contact glyphs
+ * live under `/template-assets/iconic/atrium/`, rendered graphite-sage by the
+ * shared pipeline). The array already carries `flowRole` / `flowGroup` /
  * `preserveInitialLayout` from the generator, so it is exported as-is (only the
  * image src is absolutised).
  */
@@ -48,7 +49,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Anna Kowalska",
+    "content": "Jan Kowalski",
     "left": 82,
     "top": 54.0,
     "width": 431,
@@ -70,7 +71,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Dyrektorka Strategii i Rozwoju",
+    "content": "Dyrektor Strategii i Rozwoju",
     "left": 82,
     "top": 97.0,
     "width": 431,
@@ -92,8 +93,8 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/phone.png",
-    "left": 111.30139999999997,
+    "src": "http://localhost:8000/template-assets/iconic/atrium/phone.png",
+    "left": 119.49139999999997,
     "top": 126.0,
     "width": 10.5,
     "height": 10.5,
@@ -108,7 +109,7 @@ const ATRIUM_ELEMENTS = [
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 123.80139999999997,
+    "left": 131.99139999999997,
     "top": 126.0,
     "zIndex": 3,
     "page": 1,
@@ -118,34 +119,8 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/email.png",
-    "left": 213.74739999999997,
-    "top": 126.0,
-    "width": 10.5,
-    "height": 10.5,
-    "zIndex": 3,
-    "page": 1,
-    "alignWithText": true,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "text",
-    "content": "anna.kowalska@email.com",
-    "fontSize": 8.4,
-    "fontFamily": "Montserrat",
-    "color": "#78796F",
-    "left": 226.24739999999997,
-    "top": 126.0,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "image",
-    "src": "/template-assets/iconic/atrium/linkedin.png",
-    "left": 359.0922,
+    "src": "http://localhost:8000/template-assets/iconic/atrium/email.png",
+    "left": 221.93739999999997,
     "top": 126.0,
     "width": 10.5,
     "height": 10.5,
@@ -156,11 +131,11 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "linkedin.com/in/akowalska",
+    "content": "jan.kowalski@email.com",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 371.5922,
+    "left": 234.43739999999997,
     "top": 126.0,
     "zIndex": 3,
     "page": 1,
@@ -170,8 +145,34 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/github.png",
-    "left": 156.1574,
+    "src": "http://localhost:8000/template-assets/iconic/atrium/linkedin.png",
+    "left": 356.253,
+    "top": 126.0,
+    "width": 10.5,
+    "height": 10.5,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "linkedin.com/in/jkowalski",
+    "fontSize": 8.4,
+    "fontFamily": "Montserrat",
+    "color": "#78796F",
+    "left": 368.753,
+    "top": 126.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "http://localhost:8000/template-assets/iconic/atrium/github.png",
+    "left": 164.3474,
     "top": 142.0,
     "width": 10.5,
     "height": 10.5,
@@ -182,11 +183,11 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "github.com/akowalska",
+    "content": "github.com/jkowalski",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 168.6574,
+    "left": 176.8474,
     "top": 142.0,
     "zIndex": 3,
     "page": 1,
@@ -196,8 +197,8 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/website.png",
-    "left": 282.52660000000003,
+    "src": "http://localhost:8000/template-assets/iconic/atrium/website.png",
+    "left": 285.36580000000004,
     "top": 142.0,
     "width": 10.5,
     "height": 10.5,
@@ -208,11 +209,11 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "annakowalska.pl",
+    "content": "jankowalski.pl",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 295.02660000000003,
+    "left": 297.86580000000004,
     "top": 142.0,
     "zIndex": 3,
     "page": 1,
@@ -222,8 +223,8 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/location.png",
-    "left": 382.9986,
+    "src": "http://localhost:8000/template-assets/iconic/atrium/location.png",
+    "left": 374.80860000000007,
     "top": 142.0,
     "width": 10.5,
     "height": 10.5,
@@ -238,7 +239,7 @@ const ATRIUM_ELEMENTS = [
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 395.4986,
+    "left": 387.30860000000007,
     "top": 142.0,
     "zIndex": 3,
     "page": 1,
@@ -318,7 +319,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Liderka strategii łącząca perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
+    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
     "left": 82,
     "top": 221.39999999999998,
     "width": 431,
@@ -376,7 +377,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Dyrektorka Strategii  /  Northbridge Partners",
+    "content": "Dyrektor Strategii",
     "left": 82,
     "top": 308.79999999999995,
     "width": 431,
@@ -394,7 +395,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-76f571cf29d4"
+    "flowGroup": "record-4e8828c059b0"
   },
   {
     "category": "textarea",
@@ -416,11 +417,11 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-76f571cf29d4"
+    "flowGroup": "record-4e8828c059b0"
   },
   {
     "category": "textarea",
-    "content": "• Zaprojektowała model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkowała rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
+    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
     "left": 82,
     "top": 343.79999999999995,
     "width": 431,
@@ -438,11 +439,11 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-76f571cf29d4"
+    "flowGroup": "record-4e8828c059b0"
   },
   {
     "category": "textarea",
-    "content": "Menedżerka Rozwoju  /  Meridian Group",
+    "content": "Menedżer Rozwoju",
     "left": 82,
     "top": 396.79999999999995,
     "width": 431,
@@ -460,7 +461,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c2db4cdcb5fa"
+    "flowGroup": "record-0a86a86551db"
   },
   {
     "category": "textarea",
@@ -482,11 +483,11 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c2db4cdcb5fa"
+    "flowGroup": "record-0a86a86551db"
   },
   {
     "category": "textarea",
-    "content": "• Rozwinęła portfel projektów ekspansji na rynkach europejskich.\n• Wprowadziła standardy współpracy między sprzedażą, produktem i finansami.",
+    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
     "left": 82,
     "top": 431.79999999999995,
     "width": 431,
@@ -504,54 +505,17 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c2db4cdcb5fa"
-  },
-  {
-    "category": "text",
-    "content": "WYKSZTAŁCENIE",
-    "fontSize": 9.2,
-    "fontFamily": "Montserrat",
-    "color": "#556158",
-    "left": 82,
-    "top": 481.79999999999995,
-    "zIndex": 3,
-    "page": 1,
-    "bold": true,
-    "italic": false,
-    "letterSpacing": 1.25,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "line",
-    "left": 82,
-    "top": 495.99999999999994,
-    "width": 18,
-    "height": 1.2,
-    "backgroundColor": "#556158",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "line",
-    "left": 108,
-    "top": 495.99999999999994,
-    "width": 405,
-    "height": 1,
-    "backgroundColor": "#E5E3DB",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "section-chrome"
+    "flowGroup": "record-0a86a86551db"
   },
   {
     "category": "textarea",
-    "content": "Magister Zarządzania",
+    "content": "Konsultant Strategiczny",
     "left": 82,
-    "top": 505.19999999999993,
+    "top": 470.79999999999995,
     "width": 431,
-    "height": 14,
-    "fontSize": 10.2,
-    "lineHeight": 13.2,
+    "height": 15,
+    "fontSize": 10.8,
+    "lineHeight": 13.8,
     "letterSpacing": 0,
     "color": "#242521",
     "fontFamily": "Montserrat",
@@ -563,35 +527,13 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b6aabd45989b"
+    "flowGroup": "record-37a58747f96f"
   },
   {
     "category": "textarea",
-    "content": "SGH Warszawa",
+    "content": "Alpine Consulting   ·   Kraków   ·   2013 – 2016",
     "left": 82,
-    "top": 523.1999999999999,
-    "width": 431,
-    "height": 14,
-    "fontSize": 10.2,
-    "lineHeight": 13.2,
-    "letterSpacing": 0,
-    "color": "#242521",
-    "fontFamily": "Montserrat",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-b6aabd45989b"
-  },
-  {
-    "category": "textarea",
-    "content": "2011 – 2016",
-    "left": 82,
-    "top": 541.1999999999999,
+    "top": 489.79999999999995,
     "width": 431,
     "height": 12,
     "fontSize": 8.4,
@@ -607,16 +549,38 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b6aabd45989b"
+    "flowGroup": "record-37a58747f96f"
+  },
+  {
+    "category": "textarea",
+    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
+    "left": 82,
+    "top": 505.79999999999995,
+    "width": 431,
+    "height": 15,
+    "fontSize": 9.6,
+    "lineHeight": 14.1,
+    "letterSpacing": 0,
+    "color": "#2C2C29",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-37a58747f96f"
   },
   {
     "category": "text",
-    "content": "UMIEJĘTNOŚCI",
+    "content": "WYKSZTAŁCENIE",
     "fontSize": 9.2,
     "fontFamily": "Montserrat",
     "color": "#556158",
     "left": 82,
-    "top": 574.1999999999999,
+    "top": 541.8,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -627,7 +591,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 82,
-    "top": 588.4,
+    "top": 556.0,
     "width": 18,
     "height": 1.2,
     "backgroundColor": "#556158",
@@ -638,7 +602,110 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 108,
-    "top": 588.4,
+    "top": 556.0,
+    "width": 405,
+    "height": 1,
+    "backgroundColor": "#E5E3DB",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Magister Zarządzania",
+    "left": 82,
+    "top": 565.2,
+    "width": 431,
+    "height": 14,
+    "fontSize": 10.2,
+    "lineHeight": 13.2,
+    "letterSpacing": 0,
+    "color": "#242521",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-edd92565c194"
+  },
+  {
+    "category": "textarea",
+    "content": "SGH Warszawa",
+    "left": 82,
+    "top": 583.2,
+    "width": 431,
+    "height": 14,
+    "fontSize": 10.2,
+    "lineHeight": 13.2,
+    "letterSpacing": 0,
+    "color": "#242521",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-edd92565c194"
+  },
+  {
+    "category": "textarea",
+    "content": "2011 – 2016",
+    "left": 82,
+    "top": 601.2,
+    "width": 431,
+    "height": 12,
+    "fontSize": 8.4,
+    "lineHeight": 11.8,
+    "letterSpacing": 0,
+    "color": "#78796F",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-edd92565c194"
+  },
+  {
+    "category": "text",
+    "content": "UMIEJĘTNOŚCI",
+    "fontSize": 9.2,
+    "fontFamily": "Montserrat",
+    "color": "#556158",
+    "left": 82,
+    "top": 634.2,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.25,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 82,
+    "top": 648.4000000000001,
+    "width": 18,
+    "height": 1.2,
+    "backgroundColor": "#556158",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 108,
+    "top": 648.4000000000001,
     "width": 405,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -650,7 +717,7 @@ const ATRIUM_ELEMENTS = [
     "category": "textarea",
     "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
     "left": 82,
-    "top": 597.6,
+    "top": 657.6000000000001,
     "width": 431,
     "height": 15,
     "fontSize": 9.6,
@@ -666,7 +733,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-40ea3ac5c2f4"
+    "flowGroup": "record-b991f2c494b4"
   },
   {
     "category": "text",
@@ -675,7 +742,7 @@ const ATRIUM_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#556158",
     "left": 82,
-    "top": 633.6,
+    "top": 693.6000000000001,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -686,7 +753,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 82,
-    "top": 647.8000000000001,
+    "top": 707.8000000000002,
     "width": 18,
     "height": 1.2,
     "backgroundColor": "#556158",
@@ -697,7 +764,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 108,
-    "top": 647.8000000000001,
+    "top": 707.8000000000002,
     "width": 405,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -709,7 +776,7 @@ const ATRIUM_ELEMENTS = [
     "category": "textarea",
     "content": "• Polski — ojczysty\n• Angielski — C1\n• Francuski — B2",
     "left": 82,
-    "top": 657.0000000000001,
+    "top": 717.0000000000002,
     "width": 431,
     "height": 43,
     "fontSize": 9.6,
