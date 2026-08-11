@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
-import { ApiClient } from "../services/api";
-import { ENDPOINTS } from "../services/api";
+import { ApiClient, ENDPOINTS, wakeBackend } from "../services/api";
 import { sanitizeElementsContent } from "../utils/sanitizeTextContent";
 import { assertCanvasElementRoot } from "../utils/canvasElementSchema";
 import { flowSpacingToPayload } from "../utils/flowSpacing";
@@ -51,8 +50,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
     const template_id = meta.templateId || null;
     const spacing_px = flowSpacingToPayload(meta.flowSpacing);
-
-    api.httpRequest(ENDPOINTS.PDF.CREATE, "POST", JSON.stringify({
+    const body = JSON.stringify({
       root: sorted,
       pdf_title: titleRef.current.value + ".pdf",
       pages,
@@ -61,16 +59,36 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       editor_mode,
       template_id,
       spacing_px,
-    }), "Nie udało się utworzyć PDF!").
-    then((data) => {handlePdfId(data.pdf_id); setResponsePDF({success: data.created, link:data.link, pdf_id:data.pdf_id, intent: "save"})}).
-    catch((error) => setResponsePDF(error)).finally(() => {
-      setTimeout(() => {
-        handleShowModal();
-        setIsPdfLoading(false);
-        setA4_Elements_deleted([]);
-      }, Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt)));
     });
-  }, [handlePdfId, handleShowModal, titleRef]);
+
+    // Wake a sleeping Render dyno before the heavy create; then retry transient
+    // "Failed to fetch" blips that otherwise surface as a cold-start toast.
+    wakeBackend()
+      .then(() => api.httpRequest(
+        ENDPOINTS.PDF.CREATE,
+        "POST",
+        body,
+        "Nie udało się utworzyć PDF!",
+        { retries: 2, timeoutMs: 120_000 },
+      ))
+      .then((data) => {
+        handlePdfId(data.pdf_id);
+        setResponsePDF({
+          success: data.created,
+          link: data.link,
+          pdf_id: data.pdf_id,
+          intent: "save",
+        });
+      })
+      .catch((error) => setResponsePDF(error))
+      .finally(() => {
+        setTimeout(() => {
+          handleShowModal();
+          setIsPdfLoading(false);
+          setA4_Elements_deleted([]);
+        }, Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt)));
+      });
+  }, [handlePdfId, handleShowModal, titleRef, setA4_Elements_deleted]);
 
   
   const updatePdf = useCallback((A4_Elements, PDF_ID, titleRef, A4_Elements_deleted, pages = 1, pageSize, meta = {}) => {
@@ -95,8 +113,10 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
     const template_id = meta.templateId || null;
     const spacing_px = flowSpacingToPayload(meta.flowSpacing);
-
-    api.httpRequest(ENDPOINTS.PDF.UPDATE, "PUT", JSON.stringify({
+    // Topbar "Pobierz" uses update; optional meta.intent lets save-style updates
+    // skip the auto-download branch in PdfCanvas.
+    const intent = meta.intent === "save" ? "save" : "download";
+    const body = JSON.stringify({
       root: elements,
       pdf_id: PDF_ID,
       pdf_title: titleRef.current.value +".pdf",
@@ -106,16 +126,33 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       editor_mode,
       template_id,
       spacing_px,
-    }), "Nie udało się zaktualizować PDF!").
-    then((data) => {setResponsePDF({success: data.updated, link: data.link, pdf_id: data.pdf_id, intent: "download"})}).
-    catch((error) => setResponsePDF(error)).finally(() => {
-      setTimeout(() => {
-        handleShowModal();
-        setIsPdfLoading(false);
-        setA4_Elements_deleted([]);
-      }, Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt)));
     });
-  }, [handleShowModal, titleRef, A4_Elements_deleted])
+
+    wakeBackend()
+      .then(() => api.httpRequest(
+        ENDPOINTS.PDF.UPDATE,
+        "PUT",
+        body,
+        "Nie udało się zaktualizować PDF!",
+        { retries: 2, timeoutMs: 120_000 },
+      ))
+      .then((data) => {
+        setResponsePDF({
+          success: data.updated,
+          link: data.link,
+          pdf_id: data.pdf_id,
+          intent,
+        });
+      })
+      .catch((error) => setResponsePDF(error))
+      .finally(() => {
+        setTimeout(() => {
+          handleShowModal();
+          setIsPdfLoading(false);
+          setA4_Elements_deleted([]);
+        }, Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt)));
+      });
+  }, [handleShowModal, titleRef, setA4_Elements_deleted])
 
 
   // Lightweight autosave: persist canvas elements + geometry only (no PDF

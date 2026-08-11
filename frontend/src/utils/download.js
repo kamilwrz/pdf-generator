@@ -40,11 +40,14 @@ export async function fetchOwnedPdfDownload(pdfId, options = {}) {
     throw new Error("Brak identyfikatora dokumentu do pobrania.");
   }
   const api = new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+  // Retries cover Render free-tier blips; the export counter only increments
+  // on a successful 200 from the API, so a failed attempt is safe to repeat.
   const { blob, filename } = await api.httpRequestBlob(
     ENDPOINTS.PDF.DOWNLOAD,
     "POST",
     JSON.stringify(pdfId),
     "Błąd pobierania",
+    { retries: options.retries ?? 2, timeoutMs: options.timeoutMs ?? 120_000 },
   );
   const urlBlob = URL.createObjectURL(blob);
   // Keep the object URL alive long enough for the toast "Pobierz PDF" action.

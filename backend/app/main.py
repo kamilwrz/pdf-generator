@@ -93,6 +93,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # So the editor can read the attachment filename from download_pdf responses.
+    expose_headers=["Content-Disposition"],
 )
 
 

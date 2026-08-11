@@ -437,19 +437,19 @@ function PdfCanvas() {
   const autosaveQueueRef = useRef(Promise.resolve());
   const wasPdfLoadingRef = useRef(false);
 
-  // Fetch the rendered PDF bytes for a specific id through the API (not a
-  // browser-side S3 URL) and return a one-shot object URL + filename. Never
-  // stores into a shared slot — toast and ModalPdfs each keep their own href.
-  const prepareDownload = useCallback(async (pdfId) => {
-    const prepared = await fetchOwnedPdfDownload(pdfId);
-    refreshEntitlements();
-    return prepared;
-  }, [refreshEntitlements]);
+  // Stable callbacks for the post-spinner effect — if `pushToast` /
+  // `refreshEntitlements` change identity mid-download, we must NOT re-run
+  // (and cancel) the in-flight export. That race previously aborted a successful
+  // blob fetch right before `triggerBlobDownload`, so the user saw nothing.
+  const pushToastRef = useRef(pushToast);
+  pushToastRef.current = pushToast;
+  const refreshEntitlementsRef = useRef(refreshEntitlements);
+  refreshEntitlementsRef.current = refreshEntitlements;
+  const downloadJobRef = useRef(0);
 
-  // Fires exactly when the create/update spinner finishes. For download intent
-  // the blob is prepared first, then the toast gets that exact href baked in
-  // (and the file save is triggered) so a stale shared link cannot ship the
-  // wrong document.
+  // Fires exactly when the create/update spinner finishes. Download intent
+  // fetches bytes for that pdf_id, auto-saves the file, then toasts with the
+  // same object URL. Save intent toasts without metering another export.
   useEffect(() => {
     if (!(wasPdfLoadingRef.current && !isPdfLoading)) {
       wasPdfLoadingRef.current = isPdfLoading;
@@ -458,7 +458,7 @@ function PdfCanvas() {
     wasPdfLoadingRef.current = isPdfLoading;
 
     if (responsePDF?.message) {
-      pushToast({
+      pushToastRef.current({
         title: responsePDF?.code?.startsWith?.("plan_") ? "Limit planu" : "Coś poszło nie tak",
         msg: planErrorMessage(responsePDF, responsePDF.message),
         variant: "error",
@@ -469,20 +469,27 @@ function PdfCanvas() {
 
     const fileLabel = titleRef.current?.value ? `${titleRef.current.value}.pdf` : "CV";
     const isDownload = responsePDF.intent === "download";
-    let cancelled = false;
+    const pdfId = responsePDF.pdf_id;
 
+    if (!isDownload) {
+      pushToastRef.current({
+        title: "Twój PDF jest gotowy",
+        msg: `CV zostało zapisane pomyślnie${titleRef.current?.value ? `: ${fileLabel}` : "."}`,
+        variant: "success",
+      });
+      return undefined;
+    }
+
+    const jobId = ++downloadJobRef.current;
     (async () => {
       try {
-        const prepared = await prepareDownload(responsePDF.pdf_id);
-        if (cancelled) return;
-        if (isDownload) {
-          triggerBlobDownload(prepared.blob, prepared.title || fileLabel);
-        }
-        pushToast({
-          title: isDownload ? "CV gotowe do pobrania" : "Twój PDF jest gotowy",
-          msg: isDownload
-            ? `Pobrano plik ${prepared.title || fileLabel}.`
-            : `CV zostało zapisane pomyślnie${titleRef.current?.value ? `: ${fileLabel}` : "."}`,
+        const prepared = await fetchOwnedPdfDownload(pdfId, { fallbackTitle: fileLabel });
+        // A newer download job superseded this one (rare double-click).
+        if (jobId !== downloadJobRef.current) return;
+        triggerBlobDownload(prepared.blob, prepared.title || fileLabel);
+        pushToastRef.current({
+          title: "CV gotowe do pobrania",
+          msg: `Pobrano plik ${prepared.title || fileLabel}.`,
           variant: "success",
           action: {
             label: "Pobierz PDF",
@@ -490,10 +497,13 @@ function PdfCanvas() {
             download: prepared.title || fileLabel,
           },
         });
+        // Refresh after the file is saved — never inside the fetch helper while
+        // an effect depended on that callback's identity (that cancelled downloads).
+        refreshEntitlementsRef.current?.();
       } catch (error) {
-        if (cancelled) return;
+        if (jobId !== downloadJobRef.current) return;
         console.error("Nie udało się przygotować pobierania PDF.", error);
-        pushToast({
+        pushToastRef.current({
           title: error?.code?.startsWith?.("plan_") ? "Limit planu" : "Pobieranie nie powiodło się",
           msg: planErrorMessage(error, "Nie udało się przygotować pobierania PDF."),
           variant: "error",
@@ -501,8 +511,8 @@ function PdfCanvas() {
       }
     })();
 
-    return () => { cancelled = true; };
-  }, [isPdfLoading, responsePDF, pushToast, prepareDownload, titleRef]);
+    return undefined;
+  }, [isPdfLoading, responsePDF, titleRef]);
 
   function handleLogout() {
     clearAccessToken();

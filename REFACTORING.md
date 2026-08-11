@@ -73,7 +73,7 @@ a) Co zostawic?
 ------------
 SIDEBAR:
 - Harbor
-- Tessera
+- Tessera (FIXED)
 - Slate
 - Manifest
 - Sterling

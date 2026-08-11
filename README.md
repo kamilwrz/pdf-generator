@@ -989,16 +989,17 @@ The starter modules use explicit `.js` import extensions, and `frontend/src/serv
 
 Full render on create/update; autosave is elements-only.
 
-Topbar **Pobierz PDF** (`updatePdf`, intent `download`) waits for `POST /pdf/download_pdf`, which **streams the PDF bytes** through the API (local disk or S3 `get_object` proxied server-side). The browser never `fetch`es a cross-origin S3/presigned URL — that path failed with opaque `Failed to fetch` whenever the bucket lacked CORS for the React origin. `fetchOwnedPdfDownload` + `triggerBlobDownload` save **that** `pdf_id` and bake the same object URL into the success toast action — never a shared download slot. **Moje dokumenty** downloads are per-row click handlers with the same helper. The document list refreshes on dialog open / mount only, not when a download finishes.
+Topbar **Pobierz PDF** (`updatePdf`, intent `download`) wakes the API (`wakeBackend`), retries transient network blips, regenerates the file, then waits for `POST /pdf/download_pdf`, which **streams the PDF bytes** through the API (local disk or S3 `get_object` proxied server-side). The browser never `fetch`es a cross-origin S3/presigned URL — that path failed with opaque `Failed to fetch` whenever the bucket lacked CORS for the React origin. `fetchOwnedPdfDownload` + `triggerBlobDownload` save **that** `pdf_id` and bake the same object URL into the success toast action — never a shared download slot. The post-spinner effect uses refs so an entitlements refresh cannot cancel an in-flight download. **Moje dokumenty** downloads are per-row click handlers with the same helper. The document list refreshes on dialog open / mount only, not when a download finishes.
 
 Implementation:
 
-- `frontend/src/hooks/usePdfExport.js`, lines 19+, `createPdf` / `updatePdf` / `saveElements`
-- `frontend/src/pages/PdfCanvas.jsx`, `prepareDownload` + post-spinner toast effect — per-request blob + optional auto-download
+- `frontend/src/hooks/usePdfExport.js`, `createPdf` / `updatePdf` / `saveElements` — `wakeBackend` + retries before create/update
+- `frontend/src/pages/PdfCanvas.jsx`, post-spinner toast/download effect (refs; download intent only)
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `downloadPdf` — click-to-download for one id; list fetch not tied to download state
 - `frontend/src/utils/download.js`, `fetchOwnedPdfDownload`, `triggerBlobDownload`
-- `frontend/src/services/api.js`, `httpRequestBlob` / `parseContentDispositionFilename`
+- `frontend/src/services/api.js`, `httpRequestBlob` / `parseContentDispositionFilename` / `wakeBackend`
 - `backend/app/api/routes/pdf.py`, `create_user_pdf`, `save_pdf_elements`, `download_pdf` (binary attachment)
+- `backend/app/main.py` — CORS `expose_headers=["Content-Disposition"]`
 - `backend/app/services/pdf_generator.py`, class `PDF_Generator`, `render_elements` (line 492+)
 - `backend/app/crud/pdfs.py`, `create_new_pdf`, `update_pdf_elements`
 
@@ -2624,16 +2625,17 @@ Moduły starterów używają jawnych rozszerzeń `.js` w importach, a `frontend/
 
 Pełny render przy create/update; autozapis to tylko elementy.
 
-Topbar **Pobierz PDF** (`updatePdf`, intent `download`) czeka na `POST /pdf/download_pdf`, który **strumieniuje bajty PDF** przez API (dysk lokalny albo S3 `get_object` po stronie serwera). Przeglądarka nie robi `fetch` na cross-origin URL S3/presigned — ta ścieżka kończyła się nieprzezroczystym `Failed to fetch`, gdy bucket nie miał CORS dla originu Reacta. `fetchOwnedPdfDownload` + `triggerBlobDownload` zapisują **ten** `pdf_id` i wklejają ten sam object URL w akcję toasta sukcesu — bez wspólnego slotu. Pobieranie w **Moje dokumenty** to klik per wiersz z tym samym helperem. Lista dokumentów odświeża się przy otwarciu / mount, nie po zakończeniu pobierania.
+Topbar **Pobierz PDF** (`updatePdf`, intent `download`) budzi API (`wakeBackend`), ponawia chwilowe błędy sieci, regeneruje plik, potem czeka na `POST /pdf/download_pdf`, który **strumieniuje bajty PDF** przez API (dysk lokalny albo S3 `get_object` po stronie serwera). Przeglądarka nie robi `fetch` na cross-origin URL S3/presigned — ta ścieżka kończyła się nieprzezroczystym `Failed to fetch`, gdy bucket nie miał CORS dla originu Reacta. `fetchOwnedPdfDownload` + `triggerBlobDownload` zapisują **ten** `pdf_id` i wklejają ten sam object URL w akcję toasta sukcesu — bez wspólnego slotu. Efekt po spinnerze używa refów, żeby odświeżenie uprawnień nie anulowało trwającego pobierania. Pobieranie w **Moje dokumenty** to klik per wiersz z tym samym helperem. Lista dokumentów odświeża się przy otwarciu / mount, nie po zakończeniu pobierania.
 
 Implementacja:
 
-- `frontend/src/hooks/usePdfExport.js` — `createPdf`, `updatePdf`, `saveElements`
-- `frontend/src/pages/PdfCanvas.jsx`, `prepareDownload` + efekt po spinnerze — blob per request + opcjonalne auto-pobranie
+- `frontend/src/hooks/usePdfExport.js` — `createPdf` / `updatePdf` / `saveElements` — `wakeBackend` + ponowienia przed create/update
+- `frontend/src/pages/PdfCanvas.jsx` — efekt toast/pobrania po spinnerze (refy; tylko intent download)
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `downloadPdf` — klik dla jednego id; fetch listy niezależny od stanu pobierania
 - `frontend/src/utils/download.js`, `fetchOwnedPdfDownload`, `triggerBlobDownload`
-- `frontend/src/services/api.js`, `httpRequestBlob` / `parseContentDispositionFilename`
+- `frontend/src/services/api.js`, `httpRequestBlob` / `parseContentDispositionFilename` / `wakeBackend`
 - `backend/app/api/routes/pdf.py` — `download_pdf` (załącznik binarny)
+- `backend/app/main.py` — CORS `expose_headers=["Content-Disposition"]`
 - `backend/app/services/pdf_generator.py` — `PDF_Generator.render_elements` (ok. 492+)
 - `backend/app/crud/pdfs.py` — `create_new_pdf`, `update_pdf_elements`
 
