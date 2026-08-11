@@ -147,7 +147,7 @@ def _gen_portico(cv: dict) -> list[dict]:
                 after_gap=get_spacing().record if index < len(jobs) - 1 else None,
             )
         close_section()
-        _extra_sections(b, cv, 'after_experience', section, {'body': C['body']}, L, W, SANS,
+        _extra_sections(b, cv, 'after_experience', section, {'body': C['body'], 'accent': C['accent']}, L, W, SANS,
                          fs=BODY_FS, lh=BODY_LH, section_chrome_h=SECTION_CHROME)
     if cv.get('education'):
         education_entries = cv['education']
@@ -172,7 +172,7 @@ def _gen_portico(cv: dict) -> list[dict]:
         section_chrome_h=SECTION_CHROME,
     ):
         close_section()
-    _extra_sections(b, cv, 'after_skills', section, {'body': C['body']}, L, W, SANS,
+    _extra_sections(b, cv, 'after_skills', section, {'body': C['body'], 'accent': C['accent']}, L, W, SANS,
                      fs=9.3, lh=13.4, section_chrome_h=SECTION_CHROME)
 
     flow = b.build()

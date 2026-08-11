@@ -1,35 +1,20 @@
 /**
  * Blueprint template (`layouts: ["single"]`).
  *
- * A technical-schematic single column adapted from the "Industry" Claude
- * Design system: steel-blue accent, square corners, hairline "+" registration
- * marks framing the masthead (mirroring the source system's `.blueprint` /
- * `.corner` components). Section headings sit on a full-column hairline rule.
- * Records, skills and languages reuse the same shared, packer-safe stacked
- * layout every other single-column template uses (see the generator's module
- * docstring for why a same-row title/date and individually positioned tag /
- * badge elements were tried and reverted: `sectionStructure.js`'s structural
- * packer re-stacks section body content sequentially on every Add Section,
- * reorder, and rhythm change, and has no concept of same-row siblings outside
- * the masthead).
- *
- * Font note: the source design specifies Barlow Condensed / Barlow. Neither
- * is registered in this app's PDF/canvas font pipeline, so Inter stands in
- * for both (see `backend/app/services/cv_templates/templates/blueprint.py`
- * for the full rationale).
+ * Technical-schematic single column with steel-blue registration marks.
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/blueprint.py`) for
- * representative demo content (Jan Kowalski — three roles, one degree, seven
- * skills, and four languages, sized to fit page 1 of the mockup; Manifest's
- * starter additionally showcases an extra Certyfikaty section, since
- * Blueprint's single column does not have room to spare for a fourth block),
- * so the picker preview matches what `/ai/fill_template` produces
- * pixel-for-pixel. The template draws no images, so unlike the icon-theme
- * templates it needs no API_BASE_URL rewrite. The array already carries
- * `flowRole` / `flowGroup` / `preserveInitialLayout` from the generator,
- * so it is exported as-is.
+ * representative demo content (Jan Kowalski — three roles, one degree, five
+ * skills, and three languages, sized to fit page 1 of the mockup), so the
+ * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. The array already carries `flowRole` / `flowGroup` /
+ * `preserveInitialLayout` from the generator, so it is exported as-is (only
+ * the image src is absolutised).
  */
+import API_BASE_URL from "../services/api.js";
+
 const BLUEPRINT_ELEMENTS = [
   {
     "category": "line",
@@ -141,6 +126,8 @@ const BLUEPRINT_ELEMENTS = [
     "height": 123.0,
     "backgroundColor": "#B5D9FD",
     "borderWidth": 1,
+    "filled": false,
+    "borderRadius": null,
     "zIndex": 2,
     "page": 1,
     "flowRole": "masthead"
@@ -278,7 +265,8 @@ const BLUEPRINT_ELEMENTS = [
     "align": "left",
     "bulletList": false,
     "autoHeight": true,
-    "preserveInitialLayout": true
+    "preserveInitialLayout": true,
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -326,11 +314,12 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7ccfaec5fd5a"
+    "flowGroup": "record-936d6714cbcb",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Northbridge Partners   ·   2021 – obecnie",
+    "content": "Northbridge Partners   ·   Warszawa   ·   2021 – obecnie",
     "left": 76,
     "top": 308.42,
     "width": 443,
@@ -348,13 +337,83 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7ccfaec5fd5a"
+    "flowGroup": "record-936d6714cbcb",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.",
+    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
     "left": 76,
     "top": 324.42,
+    "width": 443,
+    "height": 42,
+    "fontSize": 9.5,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#1D1F20",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-936d6714cbcb",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Menedżer Rozwoju",
+    "left": 76,
+    "top": 376.42,
+    "width": 443,
+    "height": 15,
+    "fontSize": 10.8,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#1D1F20",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-0ac53297f640",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Meridian Group   ·   Kraków   ·   2016 – 2021",
+    "left": 76,
+    "top": 395.42,
+    "width": 443,
+    "height": 12,
+    "fontSize": 8.4,
+    "lineHeight": 11.8,
+    "letterSpacing": 0,
+    "color": "#5D5D60",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-0ac53297f640",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
+    "left": 76,
+    "top": 411.42,
     "width": 443,
     "height": 28,
     "fontSize": 9.5,
@@ -370,79 +429,14 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7ccfaec5fd5a"
-  },
-  {
-    "category": "textarea",
-    "content": "Menedżer Rozwoju",
-    "left": 76,
-    "top": 362.42,
-    "width": 443,
-    "height": 15,
-    "fontSize": 10.8,
-    "lineHeight": 13.8,
-    "letterSpacing": 0,
-    "color": "#1D1F20",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": true,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-80015b14df31"
-  },
-  {
-    "category": "textarea",
-    "content": "Meridian Group   ·   2016 – 2021",
-    "left": 76,
-    "top": 381.42,
-    "width": 443,
-    "height": 12,
-    "fontSize": 8.4,
-    "lineHeight": 11.8,
-    "letterSpacing": 0,
-    "color": "#5D5D60",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-80015b14df31"
-  },
-  {
-    "category": "textarea",
-    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.",
-    "left": 76,
-    "top": 397.42,
-    "width": 443,
-    "height": 14,
-    "fontSize": 9.5,
-    "lineHeight": 13.8,
-    "letterSpacing": 0,
-    "color": "#1D1F20",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": true,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-80015b14df31"
+    "flowGroup": "record-0ac53297f640",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Konsultant Strategiczny",
     "left": 76,
-    "top": 421.42,
+    "top": 449.42,
     "width": 443,
     "height": 15,
     "fontSize": 10.8,
@@ -458,13 +452,14 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ce158c1d8291"
+    "flowGroup": "record-27a5b114cfe2",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Alpine Consulting   ·   Kraków   ·   2013 – 2016",
     "left": 76,
-    "top": 440.42,
+    "top": 468.42,
     "width": 443,
     "height": 12,
     "fontSize": 8.4,
@@ -480,13 +475,14 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ce158c1d8291"
+    "flowGroup": "record-27a5b114cfe2",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
     "left": 76,
-    "top": 456.42,
+    "top": 484.42,
     "width": 443,
     "height": 14,
     "fontSize": 9.5,
@@ -502,7 +498,8 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ce158c1d8291"
+    "flowGroup": "record-27a5b114cfe2",
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -511,7 +508,7 @@ const BLUEPRINT_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#416180",
     "left": 76,
-    "top": 491.42,
+    "top": 519.4200000000001,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -522,7 +519,7 @@ const BLUEPRINT_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 506.13,
+    "top": 534.1300000000001,
     "width": 443,
     "height": 1,
     "backgroundColor": "#B5D9FD",
@@ -534,7 +531,7 @@ const BLUEPRINT_ELEMENTS = [
     "category": "textarea",
     "content": "Magister Zarządzania",
     "left": 76,
-    "top": 515.13,
+    "top": 543.1300000000001,
     "width": 443,
     "height": 14,
     "fontSize": 10.8,
@@ -550,13 +547,14 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4b0c5804a7e3"
+    "flowGroup": "record-6db9f613f527",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "SGH Warszawa",
     "left": 76,
-    "top": 533.13,
+    "top": 561.1300000000001,
     "width": 443,
     "height": 14,
     "fontSize": 10.8,
@@ -572,13 +570,14 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4b0c5804a7e3"
+    "flowGroup": "record-6db9f613f527",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "2011 – 2016",
     "left": 76,
-    "top": 551.13,
+    "top": 579.1300000000001,
     "width": 443,
     "height": 12,
     "fontSize": 8.4,
@@ -594,7 +593,8 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4b0c5804a7e3"
+    "flowGroup": "record-6db9f613f527",
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -603,7 +603,7 @@ const BLUEPRINT_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#416180",
     "left": 76,
-    "top": 584.13,
+    "top": 612.1300000000001,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -614,7 +614,7 @@ const BLUEPRINT_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 598.84,
+    "top": 626.8400000000001,
     "width": 443,
     "height": 1,
     "backgroundColor": "#B5D9FD",
@@ -624,11 +624,11 @@ const BLUEPRINT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna  ·  Zarządzanie zmianą  ·  Budowanie zespołów",
+    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
     "left": 76,
-    "top": 607.84,
+    "top": 635.8400000000001,
     "width": 443,
-    "height": 28,
+    "height": 14,
     "fontSize": 9.5,
     "lineHeight": 13.8,
     "letterSpacing": 0,
@@ -642,7 +642,8 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0088b3d3bfa6"
+    "flowGroup": "record-bb2543a77518",
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -651,7 +652,7 @@ const BLUEPRINT_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#416180",
     "left": 76,
-    "top": 656.84,
+    "top": 670.8400000000001,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -662,7 +663,7 @@ const BLUEPRINT_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 671.5500000000001,
+    "top": 685.5500000000002,
     "width": 443,
     "height": 1,
     "backgroundColor": "#B5D9FD",
@@ -672,11 +673,11 @@ const BLUEPRINT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "• Polski — ojczysty\n• Angielski — C1\n• Niemiecki — B2\n• Francuski — A2",
-    "left": 76,
-    "top": 680.5500000000001,
-    "width": 443,
-    "height": 56,
+    "content": "Polski — ojczysty",
+    "left": 76.0,
+    "top": 694.5500000000002,
+    "width": 102.75,
+    "height": 14,
     "fontSize": 9.5,
     "lineHeight": 13.8,
     "letterSpacing": 0,
@@ -687,10 +688,86 @@ const BLUEPRINT_ELEMENTS = [
     "bold": false,
     "italic": false,
     "align": "left",
-    "bulletList": true,
+    "bulletList": false,
     "autoHeight": true,
-    "preserveInitialLayout": true
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 9,
+        "end": 17,
+        "italic": true,
+        "color": "#416180"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-aedb4fe736a1"
+  },
+  {
+    "category": "textarea",
+    "content": "Angielski — C1",
+    "left": 186.75,
+    "top": 694.5500000000002,
+    "width": 102.75,
+    "height": 14,
+    "fontSize": 9.5,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#1D1F20",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 12,
+        "end": 14,
+        "italic": true,
+        "color": "#416180"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-aedb4fe736a1"
+  },
+  {
+    "category": "textarea",
+    "content": "Francuski — B2",
+    "left": 297.5,
+    "top": 694.5500000000002,
+    "width": 102.75,
+    "height": 14,
+    "fontSize": 9.5,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#1D1F20",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 12,
+        "end": 14,
+        "italic": true,
+        "color": "#416180"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-aedb4fe736a1"
   }
 ];
 
-export const blueprintTemplate = BLUEPRINT_ELEMENTS;
+export const blueprintTemplate = BLUEPRINT_ELEMENTS.map((element) => (
+  element.category === "image" && typeof element.src === "string" && element.src.startsWith("/template-assets")
+    ? { ...element, src: `${API_BASE_URL}${element.src}` }
+    : element
+));

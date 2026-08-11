@@ -76,22 +76,23 @@ test("Manifest is a two-column sidebar layout with a dark header band and packer
     const languagesBody = manifestTemplate.find(
         (element) => typeof element.content === "string" && element.content.includes("Polski"),
     );
-    assert.ok(languagesBody, "languages render as a plain bulleted sidebar line, not a segmented bar");
-    assert.ok(languagesBody.bulletList);
-    assert.ok(languagesBody.content.includes("Polski — ojczysty"));
+    assert.ok(languagesBody, "languages render as plain Name - Level sidebar lines, not a segmented bar");
+    assert.equal(languagesBody.bulletList, false);
+    assert.ok(languagesBody.content.includes("Polski - ojczysty"));
 
     // Education is structured like single-column records (not one mashed box).
     const eduDegree = manifestTemplate.find((element) => element.content === "Magister Zarządzania");
     const eduSchool = manifestTemplate.find((element) => element.content === "SGH Warszawa");
     const eduBullet = manifestTemplate.find(
         (element) => typeof element.content === "string"
-            && element.content.includes("Specjalizacja: ekonomia międzynarodowa"),
+            && element.content.includes("Specjalizacja: ekonomia międzynarodowa")
+            && element.bulletList,
     );
     assert.ok(eduDegree?.bold);
     assert.ok(eduSchool);
     assert.equal(eduDegree.flowLane, "sidebar");
     assert.equal(eduDegree.flowGroup, eduSchool.flowGroup);
-    assert.ok(eduBullet?.bulletList);
+    assert.ok(eduBullet, "sidebar education keeps a bulleted description line");
 
     // ── Main column: left-anchored heading + full-width ink rule (the same
     // safe shape every single-column template uses), numbered records with
@@ -112,7 +113,10 @@ test("Manifest is a two-column sidebar layout with a dark header band and packer
     const recordTitle = manifestTemplate.find((element) => element.content === "01 · Dyrektor Strategii");
     assert.ok(recordTitle, "the ordinal is folded into the title text, not a separate same-row element");
     assert.equal(recordTitle.category, "textarea");
-    const recordOrg = manifestTemplate.find((element) => element.content === "Northbridge Partners");
+    const recordOrg = manifestTemplate.find(
+        (element) => typeof element.content === "string"
+            && element.content.includes("Northbridge Partners"),
+    );
     assert.ok(recordOrg);
     assert.equal(recordOrg.color, ACCENT_DEEP);
     assert.ok(recordOrg.top > recordTitle.top, "org sits on its own row under the title");

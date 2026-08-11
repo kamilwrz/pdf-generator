@@ -299,7 +299,7 @@ def _gen_tessera(cv: dict) -> list[dict]:
             )
         close_section()
         _extra_sections(
-            builder, cv, "after_experience", section, {"body": colors["body"]},
+            builder, cv, "after_experience", section, {"body": colors["body"], "accent": colors["coral"]},
             main_left, main_width, sans, fs=body_fs, lh=body_lh,
             skip_indices=sidebar_extra_indices,
             section_chrome_h=section_chrome,
@@ -334,7 +334,7 @@ def _gen_tessera(cv: dict) -> list[dict]:
             close_section()
 
     _extra_sections(
-        builder, cv, "after_skills", section, {"body": colors["body"]},
+        builder, cv, "after_skills", section, {"body": colors["body"], "accent": colors["coral"]},
         main_left, main_width, sans, fs=body_fs, lh=body_lh,
         skip_indices=sidebar_extra_indices,
         section_chrome_h=section_chrome,

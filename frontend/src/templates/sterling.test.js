@@ -86,7 +86,8 @@ test("Sterling is a wide-sidebar, letterhead-masthead layout with structured sid
         (element) => typeof element.content === "string" && element.content.includes("Polski"),
     );
     assert.ok(languagesBody);
-    assert.ok(languagesBody.bulletList);
+    assert.equal(languagesBody.bulletList, false);
+    assert.ok(languagesBody.content.includes("Polski - ojczysty"));
     assert.equal(languagesBody.flowLane, "sidebar");
 
     // Education is the one structured exception in the sidebar: separate
@@ -121,7 +122,11 @@ test("Sterling is a wide-sidebar, letterhead-masthead layout with structured sid
     assert.ok(jobTitle);
     assert.equal(jobTitle.category, "textarea");
     assert.ok(jobTitle.bold);
-    const jobOrg = sterlingTemplate.find((element) => element.content === "Northbridge Partners   ·   2021 – obecnie");
+    const jobOrg = sterlingTemplate.find(
+        (element) => typeof element.content === "string"
+            && element.content.includes("Northbridge Partners")
+            && element.content.includes("2021"),
+    );
     assert.ok(jobOrg, "company and period share one meta line below the title");
     assert.ok(jobOrg.top > jobTitle.top);
     assert.equal(jobOrg.left, jobTitle.left);

@@ -111,15 +111,23 @@ test("Blueprint is a framed, left-aligned technical single column with packer-sa
         "no free-floating tag/badge rectangles outside the masthead frame",
     );
 
-    // ── Languages: one bulleted textarea ("• Name — Level" per line), not
-    // per-row badge rectangles. ───────────────────────────────────────────────
-    const languagesBody = blueprintTemplate.find(
-        (element) => typeof element.content === "string" && element.content.includes("Polski"),
+    // ── Languages: 4-column textarea grid ("Name — Level" cells with italic
+    // accent CEFR runs), not one bulleted block or badge rectangles. ──────────
+    const languageCells = blueprintTemplate.filter(
+        (element) => element.category === "textarea"
+            && element.flowRole === "grid-member"
+            && typeof element.content === "string"
+            && element.content.includes(" — "),
     );
-    assert.ok(languagesBody);
-    assert.equal(languagesBody.category, "textarea");
-    assert.ok(languagesBody.bulletList);
-    assert.ok(languagesBody.content.includes("Polski — ojczysty"));
+    assert.ok(languageCells.length >= 3, "expected a languages grid cell per language");
+    assert.ok(languageCells.every((cell) => !cell.bulletList));
+    assert.ok(languageCells.some((cell) => cell.content.includes("Polski — ojczysty")));
+    assert.ok(
+        languageCells.some(
+            (cell) => Array.isArray(cell.runs) && cell.runs.some((run) => run.italic && run.color),
+        ),
+        "CEFR level span should use italic accent runs",
+    );
 
     // ── Footer: a quiet accent-pale rule + page number, no repeated frame ────
     const footerRule = blueprintTemplate.find(

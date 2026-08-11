@@ -42,7 +42,9 @@ DEMO_CV = {
     ),
     "experience": [
         {
-            "role": "Dyrektor Strategii",
+            # ``title`` (not ``role``) — ``normalize_cv_data`` only maps
+            # title/position into the experience record title field.
+            "title": "Dyrektor Strategii",
             "company": "Northbridge Partners",
             "city": "Warszawa",
             "period": "2021 – obecnie",
@@ -53,7 +55,7 @@ DEMO_CV = {
             ],
         },
         {
-            "role": "Menedżer Rozwoju",
+            "title": "Menedżer Rozwoju",
             "company": "Meridian Group",
             "city": "Kraków",
             "period": "2016 – 2021",
@@ -63,7 +65,7 @@ DEMO_CV = {
             ],
         },
         {
-            "role": "Konsultant Strategiczny",
+            "title": "Konsultant Strategiczny",
             "company": "Alpine Consulting",
             "city": "Kraków",
             "period": "2013 – 2016",
@@ -102,17 +104,37 @@ COMPACT_DEMO_CV = {
         "Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą "
         "mierzalne rezultaty."
     ),
+    # Job titles now take a full record row (DEMO_CV used to omit them via the
+    # invalid ``role`` key). Trim bullets further so Monument/Words still fit
+    # page 1 with the four-column languages grid.
     "experience": [
         {
             **DEMO_CV["experience"][0],
-            "bullets": DEMO_CV["experience"][0]["bullets"][:2],
+            "bullets": DEMO_CV["experience"][0]["bullets"][:1],
         },
-        DEMO_CV["experience"][1],
-        DEMO_CV["experience"][2],
+        {
+            **DEMO_CV["experience"][1],
+            "bullets": DEMO_CV["experience"][1]["bullets"][:1],
+        },
+        {
+            **DEMO_CV["experience"][2],
+            "bullets": DEMO_CV["experience"][2]["bullets"][:1],
+        },
     ],
 }
 
 COMPACT_TEMPLATE_IDS = frozenset({"monument", "words"})
+
+# Manifest's starter tests assert a structured sidebar education description.
+MANIFEST_DEMO_CV = {
+    **DEMO_CV,
+    "education": [
+        {
+            **DEMO_CV["education"][0],
+            "description": "Specjalizacja: ekonomia międzynarodowa.",
+        },
+    ],
+}
 
 # Nimbus uses larger Lora type (name 32 / headings+roles 14 / body 12 / meta 11),
 # so the shared DEMO_CV spills page 1. Keep the same persona with fewer bullets.
@@ -123,14 +145,14 @@ NIMBUS_DEMO_CV = {
     ),
     "experience": [
         {
-            "title": DEMO_CV["experience"][0]["role"],
+            "title": DEMO_CV["experience"][0]["title"],
             "company": DEMO_CV["experience"][0]["company"],
             "city": DEMO_CV["experience"][0]["city"],
             "period": DEMO_CV["experience"][0]["period"],
             "bullets": DEMO_CV["experience"][0]["bullets"][:1],
         },
         {
-            "title": DEMO_CV["experience"][1]["role"],
+            "title": DEMO_CV["experience"][1]["title"],
             "company": DEMO_CV["experience"][1]["company"],
             "city": DEMO_CV["experience"][1]["city"],
             "period": DEMO_CV["experience"][1]["period"],
@@ -160,6 +182,11 @@ TEMPLATES = [
     "cinder",
     "kernel",
     "aldine",
+    "atrium",
+    "axis",
+    "blueprint",
+    "manifest",
+    "sterling",
 ]
 
 DOC_BLURBS = {
@@ -247,6 +274,32 @@ DOC_BLURBS = {
         "Aldine template (`layouts: [\"single\"]`).\n"
         " *\n"
         " * Fine-paper editorial single column with sage accents."
+    ),
+    "atrium": (
+        "Atrium template (`layouts: [\"single\"]`).\n"
+        " *\n"
+        " * Centered-axis editorial single column with graphite-sage accents."
+    ),
+    "axis": (
+        "Axis template (`layouts: [\"single\"]`).\n"
+        " *\n"
+        " * Timeline single column with date gutter, skill chips, and a\n"
+        " * four-column languages grid."
+    ),
+    "blueprint": (
+        "Blueprint template (`layouts: [\"single\"]`).\n"
+        " *\n"
+        " * Technical-schematic single column with steel-blue registration marks."
+    ),
+    "manifest": (
+        "Manifest template (`layouts: [\"sidebar\"]`).\n"
+        " *\n"
+        " * Architectural two-column layout with inverted header and red accent."
+    ),
+    "sterling": (
+        "Sterling template (`layouts: [\"sidebar\"]`).\n"
+        " *\n"
+        " * Institutional two-column layout with wide sidebar rail."
     ),
 }
 
@@ -358,6 +411,8 @@ def main() -> None:
     for template_id in TEMPLATES:
         if template_id == "nimbus":
             cv = NIMBUS_DEMO_CV
+        elif template_id == "manifest":
+            cv = MANIFEST_DEMO_CV
         elif template_id in COMPACT_TEMPLATE_IDS:
             cv = COMPACT_DEMO_CV
         else:

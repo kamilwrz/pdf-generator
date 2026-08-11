@@ -15,13 +15,21 @@ test("Cardinal reserves red for headings while icons and rules stay grey", () =>
     const tallElements = cardinalTemplate.filter((element) => (element.height ?? 0) >= 300);
     assert.equal(tallElements.length, 1);
     assert.equal(tallElements[0].backgroundColor, PAPER);
-    for (const category of ["rectangle", "circle", "ellipse"]) {
+    // Skill chips are solid rounded rectangles (generator ``mode="chips"``).
+    // Circles/ellipses remain reserved for freestyle — not this starter.
+    for (const category of ["circle", "ellipse"]) {
         assert.equal(
             cardinalTemplate.some((element) => element.category === category),
             false,
             `Cardinal should not use ${category} primitives`,
         );
     }
+    const chipRects = cardinalTemplate.filter(
+        (element) => element.category === "rectangle" && element.flowRole === "grid-member",
+    );
+    assert.ok(chipRects.length >= 5, "skills render as rounded chip rectangles");
+    assert.ok(chipRects.every((element) => element.filled === true));
+    assert.ok(chipRects.every((element) => element.backgroundColor === CARDINAL));
 
     // ── Section headings: cardinal red, sans, grouped as reflow chrome ───────
     const sectionHeadings = cardinalTemplate.filter(

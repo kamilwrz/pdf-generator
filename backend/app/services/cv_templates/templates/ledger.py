@@ -126,7 +126,7 @@ def _gen_ledger(cv: dict) -> list[dict]:
             if index < len(jobs) - 1:
                 b.gap(get_spacing().record)
         close_section()
-        _extra_sections(b, cv, "after_experience", section, {"body": INK}, L, W, SANS, fs=9.6, lh=13.5)
+        _extra_sections(b, cv, "after_experience", section, {"body": INK, "accent": BLUE}, L, W, SANS, fs=9.6, lh=13.5)
 
     if cv.get("education"):
         education_entries = cv["education"]
@@ -149,5 +149,5 @@ def _gen_ledger(cv: dict) -> list[dict]:
     ):
         close_section()
 
-    _extra_sections(b, cv, "after_skills", section, {"body": INK}, L, W, SANS, fs=9.8, lh=14)
+    _extra_sections(b, cv, "after_skills", section, {"body": INK, "accent": BLUE}, L, W, SANS, fs=9.8, lh=14)
     return static + b.build()

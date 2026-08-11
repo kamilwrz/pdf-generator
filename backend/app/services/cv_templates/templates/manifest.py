@@ -307,7 +307,7 @@ def _gen_manifest(cv: dict) -> list[dict]:
                 after_gap=get_spacing().record if index < len(jobs) - 1 else None,
             )
         close_section()
-        _extra_sections(b, cv, 'after_experience', section, {'body': C['ink']}, MAIN_L, MAIN_W, SANS,
+        _extra_sections(b, cv, 'after_experience', section, {'body': C['ink'], 'accent': C['accent']}, MAIN_L, MAIN_W, SANS,
                         fs=BODY_FS, lh=BODY_LH, skip_indices=sidebar_extra_indices,
                         section_chrome_h=SECTION_CHROME)
 
@@ -338,7 +338,7 @@ def _gen_manifest(cv: dict) -> list[dict]:
     ):
         close_section()
 
-    _extra_sections(b, cv, 'after_skills', section, {'body': C['ink']}, MAIN_L, MAIN_W, SANS,
+    _extra_sections(b, cv, 'after_skills', section, {'body': C['ink'], 'accent': C['accent']}, MAIN_L, MAIN_W, SANS,
                     fs=BODY_FS, lh=BODY_LH, skip_indices=sidebar_extra_indices,
                     section_chrome_h=SECTION_CHROME)
 

@@ -7,7 +7,8 @@ an orange accent, then sections whose Experience / Education records use a
 three-band row — a narrow left date gutter, a filled marker dot with a vertical
 connecting line, and the wide content column (teal role/degree titles + orange
 company/school names). Summary, Skills, Languages, and extra "tools" sections
-span the full content width.
+span the full content width. Languages use the shared four-column textarea
+grid (``_place_languages_grid``) with italic teal CEFR runs.
 
 The date gutter, marker dots and connecting lines are emitted as
 ``flowRole="record-overlay"`` elements: they are anchored to the record's top Y
@@ -34,7 +35,15 @@ from app.services.cv_templates.shared.records import (
     _education_school,
 )
 from app.services.cv_data import skill_groups, skills_have_content
-from app.services.cv_templates.shared.text import _bullets, _compact_text, _labels
+from app.services.cv_templates.shared.text import (
+    _bullets,
+    _compact_text,
+    _labels,
+    _language_entries,
+    _language_level_color,
+    _measure_languages_grid_height,
+    _place_languages_grid,
+)
 
 
 def _gen_axis(cv: dict) -> list[dict]:
@@ -221,35 +230,6 @@ def _gen_axis(cv: dict) -> list[dict]:
             cx += advance
         b.y = cy + row_step
 
-    # ── Language columns (name in teal, level in muted grey) ─────────────────
-    def _place_languages(languages: list) -> None:
-        lines: list[tuple[str, str]] = []
-        for language in languages:
-            if isinstance(language, dict):
-                lang_name = str(language.get('name') or '').strip()
-                level = str(language.get('level') or '').strip()
-            else:
-                lang_name, level = str(language or '').strip(), ''
-            if lang_name:
-                lines.append((lang_name, level))
-        if not lines:
-            return
-        columns = 3
-        col_w = W / columns
-        row_step = 16.0
-        b.need(row_step)
-        cy = b.y
-        for index, (lang_name, level) in enumerate(lines):
-            col = index % columns
-            if col == 0 and index > 0:
-                cy += row_step
-            x = L + col * col_w
-            b.els.append(_text(lang_name, 9.0, SANS, C['teal'], x, cy, zIndex=3, page=b.pg, bold=True))
-            if level:
-                level_w = _text_width(level, SANS, 9.0)
-                b.els.append(_text(level, 9.0, SANS, C['meta'], x + col_w - level_w - 18, cy, zIndex=3, page=b.pg))
-        b.y = cy + row_step
-
     # ── Diamond "tools" list (orange diamond + teal item) ────────────────────
     def _place_diamond_list(items: list[str]) -> None:
         for item in items:
@@ -350,11 +330,19 @@ def _gen_axis(cv: dict) -> list[dict]:
                 b.gap(get_spacing().record)
         close_section()
 
-    # ── Languages ─────────────────────────────────────────────────────────────
-    if cv.get('languages'):
-        b.need_section(SECTION_CHROME, 16.0)
+    # ── Languages (shared 4-column textarea grid; accent CEFR runs) ───────────
+    language_entries = _language_entries(cv)
+    if language_entries:
+        lang_h = _measure_languages_grid_height(
+            b, language_entries, W, font=SANS, fs=9.0, lh=13.0,
+        )
+        b.need_section(SECTION_CHROME, lang_h or 16.0)
         section('JĘZYKI')
-        _place_languages(cv['languages'])
+        _place_languages_grid(
+            b, language_entries, L, W,
+            font=SANS, fs=9.0, lh=13.0,
+            body_color=C['body'], level_color=_language_level_color(C),
+        )
         close_section()
 
     # ── Extra / custom sections as diamond lists (certifications, interests,

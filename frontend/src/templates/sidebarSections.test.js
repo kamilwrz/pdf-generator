@@ -28,13 +28,17 @@ test("sidebar templates umieszczają Wykształcenie/Umiejętności/Języki w sid
             `${file}: pozostała sekcja "EDUKACJA I KOMPETENCJE" w kolumnie głównej`,
         );
 
-        // Skills and languages must be bulleted — either via the helper factory
-        // or via `"bulletList": true` on dump-generated textareas.
+        // Skills stay bulleted; languages are plain "Name - Level" lines.
         const helperBullets = source.match(/bulleted\(\s*block\(\s*"•/g) || [];
         const dumpBullets = source.match(/"bulletList":\s*true/g) || [];
         assert.ok(
-            helperBullets.length >= 2 || dumpBullets.length >= 2,
-            `${file}: oczekiwano co najmniej 2 list wypunktowanych (umiejętności + języki)`,
+            helperBullets.length >= 1 || dumpBullets.length >= 1,
+            `${file}: oczekiwano wypunktowanych umiejętności w sidebarze`,
+        );
+        assert.match(
+            source,
+            /Polski - ojczysty/,
+            `${file}: języki powinny być liniami "Name - Level" (hyphen)`,
         );
     }
 });

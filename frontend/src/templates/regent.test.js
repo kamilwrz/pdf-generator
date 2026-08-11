@@ -66,7 +66,11 @@ test("Regent renders a personalized executive editorial system", () => {
 
     const bodyBlocks = regentTemplate.filter((element) => element.category === "textarea");
     assert.ok(bodyBlocks.length > 0);
-    assert.ok(bodyBlocks.every((element) => element.left === 96 && element.width === 410));
+    // Full-width body stays on the content column; languages use a 4-col grid
+    // of narrower ``grid-member`` cells inside the same L…L+W band.
+    assert.ok(bodyBlocks.every((element) => element.left >= 96 && element.left + element.width <= 506));
+    const languageCells = bodyBlocks.filter((element) => element.flowRole === "grid-member");
+    assert.ok(languageCells.length >= 3, "languages render as equal-width grid cells");
     // Body paragraphs stay at reading size; record meta rows sit a step smaller.
     assert.ok(bodyBlocks.every((element) => element.fontSize >= 8));
     assert.ok(bodyBlocks.some((element) => element.fontSize >= 9.5));

@@ -1,17 +1,18 @@
 /**
- * Axis template (`layouts: ["icons"]`) — single-column timeline with a date gutter.
+ * Axis template (`layouts: ["single"]`).
+ *
+ * Timeline single column with date gutter, skill chips, and a
+ * four-column languages grid.
  *
  * This static starter is the backend generator's own output
- * (`backend/app/services/cv_templates/templates/axis.py`) for representative
- * demo content (Jan Kowalski — three roles, one degree, five skills, and three
- * languages), so the picker preview matches what `/ai/fill_template` produces
- * for a real CV pixel-for-pixel. Image `src` values are stored relative and get
- * the API base prepended at load time (icons live under
- * `/template-assets/iconic/axis/`, rendered in orange by the shared pipeline).
- *
- * Because the array already carries `flowRole` / `flowGroup` /
- * `preserveInitialLayout` from the generator, it is exported as-is (only the
- * image src is absolutised); no per-element helper wrapping is required.
+ * (`backend/app/services/cv_templates/templates/axis.py`) for
+ * representative demo content (Jan Kowalski — three roles, one degree, five
+ * skills, and three languages, sized to fit page 1 of the mockup), so the
+ * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. The array already carries `flowRole` / `flowGroup` /
+ * `preserveInitialLayout` from the generator, so it is exported as-is (only
+ * the image src is absolutised).
  */
 import API_BASE_URL from "../services/api.js";
 
@@ -84,7 +85,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/axis/phone.png",
+    "src": "/template-assets/iconic/axis/phone.png",
     "left": 54.0,
     "top": 104.0,
     "width": 11.0,
@@ -110,7 +111,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/axis/email.png",
+    "src": "/template-assets/iconic/axis/email.png",
     "left": 157.55830078125,
     "top": 104.0,
     "width": 11.0,
@@ -136,7 +137,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/axis/linkedin.png",
+    "src": "/template-assets/iconic/axis/linkedin.png",
     "left": 288.1259765625,
     "top": 104.0,
     "width": 11.0,
@@ -162,7 +163,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/axis/github.png",
+    "src": "/template-assets/iconic/axis/github.png",
     "left": 421.22998046875,
     "top": 104.0,
     "width": 11.0,
@@ -188,7 +189,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/axis/website.png",
+    "src": "/template-assets/iconic/axis/website.png",
     "left": 54.0,
     "top": 119.0,
     "width": 11.0,
@@ -214,7 +215,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/axis/location.png",
+    "src": "/template-assets/iconic/axis/location.png",
     "left": 141.98759765625,
     "top": 119.0,
     "width": 11.0,
@@ -283,7 +284,8 @@ const AXIS_ELEMENTS = [
     "align": "left",
     "bulletList": false,
     "autoHeight": true,
-    "preserveInitialLayout": true
+    "preserveInitialLayout": true,
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -320,7 +322,8 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-658b35842331"
+    "flowGroup": "record-fec43df10222",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -342,7 +345,8 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-658b35842331"
+    "flowGroup": "record-fec43df10222",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -364,7 +368,8 @@ const AXIS_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-658b35842331"
+    "flowGroup": "record-fec43df10222",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -387,7 +392,30 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-658b35842331"
+    "flowGroup": "record-fec43df10222"
+  },
+  {
+    "category": "textarea",
+    "content": "Warszawa",
+    "left": 54,
+    "top": 277.92,
+    "width": 100,
+    "height": 11,
+    "fontSize": 8.0,
+    "lineHeight": 10.5,
+    "letterSpacing": 0,
+    "color": "#8A8A8A",
+    "fontFamily": "Inter",
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": false,
+    "preserveInitialLayout": true,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-fec43df10222"
   },
   {
     "category": "circle",
@@ -401,7 +429,7 @@ const AXIS_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-658b35842331"
+    "flowGroup": "record-fec43df10222"
   },
   {
     "category": "line",
@@ -413,7 +441,7 @@ const AXIS_ELEMENTS = [
     "zIndex": 2,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-658b35842331"
+    "flowGroup": "record-fec43df10222"
   },
   {
     "category": "textarea",
@@ -435,7 +463,8 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1e0949b8ef6d"
+    "flowGroup": "record-e14bd93ccf23",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -457,7 +486,8 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1e0949b8ef6d"
+    "flowGroup": "record-e14bd93ccf23",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -479,7 +509,8 @@ const AXIS_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1e0949b8ef6d"
+    "flowGroup": "record-e14bd93ccf23",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -502,7 +533,30 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-1e0949b8ef6d"
+    "flowGroup": "record-e14bd93ccf23"
+  },
+  {
+    "category": "textarea",
+    "content": "Kraków",
+    "left": 54,
+    "top": 376.92,
+    "width": 100,
+    "height": 11,
+    "fontSize": 8.0,
+    "lineHeight": 10.5,
+    "letterSpacing": 0,
+    "color": "#8A8A8A",
+    "fontFamily": "Inter",
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": false,
+    "preserveInitialLayout": true,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-e14bd93ccf23"
   },
   {
     "category": "circle",
@@ -516,7 +570,7 @@ const AXIS_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-1e0949b8ef6d"
+    "flowGroup": "record-e14bd93ccf23"
   },
   {
     "category": "line",
@@ -528,7 +582,7 @@ const AXIS_ELEMENTS = [
     "zIndex": 2,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-1e0949b8ef6d"
+    "flowGroup": "record-e14bd93ccf23"
   },
   {
     "category": "textarea",
@@ -550,7 +604,8 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2049074ad1c6"
+    "flowGroup": "record-9ae84b5d3de9",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -572,7 +627,8 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2049074ad1c6"
+    "flowGroup": "record-9ae84b5d3de9",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -594,7 +650,8 @@ const AXIS_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2049074ad1c6"
+    "flowGroup": "record-9ae84b5d3de9",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -617,7 +674,7 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-2049074ad1c6"
+    "flowGroup": "record-9ae84b5d3de9"
   },
   {
     "category": "textarea",
@@ -640,7 +697,7 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-2049074ad1c6"
+    "flowGroup": "record-9ae84b5d3de9"
   },
   {
     "category": "circle",
@@ -654,7 +711,7 @@ const AXIS_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-2049074ad1c6"
+    "flowGroup": "record-9ae84b5d3de9"
   },
   {
     "category": "line",
@@ -666,7 +723,7 @@ const AXIS_ELEMENTS = [
     "zIndex": 2,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-2049074ad1c6"
+    "flowGroup": "record-9ae84b5d3de9"
   },
   {
     "category": "text",
@@ -703,7 +760,8 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-95bc794e1c3f"
+    "flowGroup": "record-cb3528e2422c",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -725,7 +783,8 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-95bc794e1c3f"
+    "flowGroup": "record-cb3528e2422c",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -748,7 +807,7 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-95bc794e1c3f"
+    "flowGroup": "record-cb3528e2422c"
   },
   {
     "category": "circle",
@@ -762,7 +821,7 @@ const AXIS_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-95bc794e1c3f"
+    "flowGroup": "record-cb3528e2422c"
   },
   {
     "category": "line",
@@ -774,7 +833,7 @@ const AXIS_ELEMENTS = [
     "zIndex": 2,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-95bc794e1c3f"
+    "flowGroup": "record-cb3528e2422c"
   },
   {
     "category": "text",
@@ -803,7 +862,8 @@ const AXIS_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowGroup": "record-ee72b30d64f6"
+    "flowGroup": "record-2227a5b3bbcd",
+    "flowRole": "content"
   },
   {
     "category": "line",
@@ -814,7 +874,8 @@ const AXIS_ELEMENTS = [
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
-    "flowGroup": "record-ee72b30d64f6"
+    "flowGroup": "record-2227a5b3bbcd",
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -828,7 +889,8 @@ const AXIS_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowGroup": "record-ee72b30d64f6"
+    "flowGroup": "record-2227a5b3bbcd",
+    "flowRole": "content"
   },
   {
     "category": "line",
@@ -839,7 +901,8 @@ const AXIS_ELEMENTS = [
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
-    "flowGroup": "record-ee72b30d64f6"
+    "flowGroup": "record-2227a5b3bbcd",
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -853,7 +916,8 @@ const AXIS_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowGroup": "record-ee72b30d64f6"
+    "flowGroup": "record-2227a5b3bbcd",
+    "flowRole": "content"
   },
   {
     "category": "line",
@@ -864,7 +928,8 @@ const AXIS_ELEMENTS = [
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
-    "flowGroup": "record-ee72b30d64f6"
+    "flowGroup": "record-2227a5b3bbcd",
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -878,7 +943,8 @@ const AXIS_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowGroup": "record-ee72b30d64f6"
+    "flowGroup": "record-2227a5b3bbcd",
+    "flowRole": "content"
   },
   {
     "category": "line",
@@ -889,7 +955,8 @@ const AXIS_ELEMENTS = [
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
-    "flowGroup": "record-ee72b30d64f6"
+    "flowGroup": "record-2227a5b3bbcd",
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -903,7 +970,8 @@ const AXIS_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowGroup": "record-ee72b30d64f6"
+    "flowGroup": "record-2227a5b3bbcd",
+    "flowRole": "content"
   },
   {
     "category": "line",
@@ -914,7 +982,8 @@ const AXIS_ELEMENTS = [
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
-    "flowGroup": "record-ee72b30d64f6"
+    "flowGroup": "record-2227a5b3bbcd",
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -932,82 +1001,97 @@ const AXIS_ELEMENTS = [
     "flowRole": "section-chrome"
   },
   {
-    "category": "text",
-    "content": "Polski",
-    "fontSize": 9.0,
-    "fontFamily": "Inter",
-    "color": "#2E7391",
+    "category": "textarea",
+    "content": "Polski — ojczysty",
     "left": 54.0,
     "top": 666.8000000000001,
-    "zIndex": 3,
-    "page": 1,
-    "bold": true,
-    "italic": false
-  },
-  {
-    "category": "text",
-    "content": "ojczysty",
+    "width": 113.75,
+    "height": 13,
     "fontSize": 9.0,
+    "lineHeight": 13.0,
+    "letterSpacing": 0,
+    "color": "#3D3D3D",
     "fontFamily": "Inter",
-    "color": "#8A8A8A",
-    "left": 162.83430989583334,
-    "top": 666.8000000000001,
-    "zIndex": 3,
+    "zIndex": 2,
     "page": 1,
     "bold": false,
-    "italic": false
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 9,
+        "end": 17,
+        "italic": true,
+        "color": "#2E7391"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-7b5a05887bf9"
   },
   {
-    "category": "text",
-    "content": "Angielski",
-    "fontSize": 9.0,
-    "fontFamily": "Inter",
-    "color": "#2E7391",
-    "left": 216.33333333333334,
+    "category": "textarea",
+    "content": "Angielski — C1",
+    "left": 175.75,
     "top": 666.8000000000001,
-    "zIndex": 3,
-    "page": 1,
-    "bold": true,
-    "italic": false
-  },
-  {
-    "category": "text",
-    "content": "C1",
+    "width": 113.75,
+    "height": 13,
     "fontSize": 9.0,
+    "lineHeight": 13.0,
+    "letterSpacing": 0,
+    "color": "#3D3D3D",
     "fontFamily": "Inter",
-    "color": "#8A8A8A",
-    "left": 350.4318033854167,
-    "top": 666.8000000000001,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false
-  },
-  {
-    "category": "text",
-    "content": "Francuski",
-    "fontSize": 9.0,
-    "fontFamily": "Inter",
-    "color": "#2E7391",
-    "left": 378.6666666666667,
-    "top": 666.8000000000001,
-    "zIndex": 3,
-    "page": 1,
-    "bold": true,
-    "italic": false
-  },
-  {
-    "category": "text",
-    "content": "B2",
-    "fontSize": 9.0,
-    "fontFamily": "Inter",
-    "color": "#8A8A8A",
-    "left": 511.62255859375,
-    "top": 666.8000000000001,
-    "zIndex": 3,
+    "zIndex": 2,
     "page": 1,
     "bold": false,
-    "italic": false
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 12,
+        "end": 14,
+        "italic": true,
+        "color": "#2E7391"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-7b5a05887bf9"
+  },
+  {
+    "category": "textarea",
+    "content": "Francuski — B2",
+    "left": 297.5,
+    "top": 666.8000000000001,
+    "width": 113.75,
+    "height": 13,
+    "fontSize": 9.0,
+    "lineHeight": 13.0,
+    "letterSpacing": 0,
+    "color": "#3D3D3D",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 12,
+        "end": 14,
+        "italic": true,
+        "color": "#2E7391"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-7b5a05887bf9"
   }
 ];
 

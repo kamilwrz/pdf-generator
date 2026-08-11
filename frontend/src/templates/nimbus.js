@@ -9,8 +9,8 @@
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/nimbus.py`) for
- * representative demo content (Jan Kowalski — two roles, one degree, four
- * skills, and two languages, sized to fit page 1 of the mockup), so the
+ * representative demo content (Jan Kowalski — three roles, one degree, five
+ * skills, and three languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
  * load time. The array already carries `flowRole` / `flowGroup` /
@@ -74,6 +74,8 @@ const NIMBUS_ELEMENTS = [
     "height": 118,
     "backgroundColor": "#B9D2E5",
     "borderWidth": 1.2,
+    "filled": false,
+    "borderRadius": null,
     "zIndex": 3,
     "page": 1,
     "id": "nimbus-photo-frame",
@@ -230,7 +232,7 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4ed52f6b041b",
+    "flowGroup": "record-b57892815aeb",
     "flowRole": "content"
   },
   {
@@ -253,7 +255,7 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4ed52f6b041b",
+    "flowGroup": "record-b57892815aeb",
     "flowRole": "content"
   },
   {
@@ -276,7 +278,7 @@ const NIMBUS_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4ed52f6b041b",
+    "flowGroup": "record-b57892815aeb",
     "flowRole": "content"
   },
   {
@@ -299,7 +301,7 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c49cff410836",
+    "flowGroup": "record-b876f1e26655",
     "flowRole": "content"
   },
   {
@@ -322,7 +324,7 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c49cff410836",
+    "flowGroup": "record-b876f1e26655",
     "flowRole": "content"
   },
   {
@@ -345,7 +347,7 @@ const NIMBUS_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c49cff410836",
+    "flowGroup": "record-b876f1e26655",
     "flowRole": "content"
   },
   {
@@ -393,7 +395,7 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-12aa1397f85d",
+    "flowGroup": "record-25d214e9aa41",
     "flowRole": "content"
   },
   {
@@ -416,7 +418,7 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-12aa1397f85d",
+    "flowGroup": "record-25d214e9aa41",
     "flowRole": "content"
   },
   {
@@ -439,7 +441,7 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-12aa1397f85d",
+    "flowGroup": "record-25d214e9aa41",
     "flowRole": "content"
   },
   {
@@ -487,7 +489,7 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4fa2a0781189",
+    "flowGroup": "record-f9e4d8aecba7",
     "flowRole": "content"
   },
   {
@@ -517,11 +519,11 @@ const NIMBUS_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "• Polski — ojczysty\n• Angielski — C1",
-    "left": 80,
+    "content": "Polski — ojczysty",
+    "left": 80.0,
     "top": 720.4999999999999,
-    "width": 462,
-    "height": 34,
+    "width": 107.5,
+    "height": 17,
     "fontSize": 12,
     "lineHeight": 17,
     "letterSpacing": 0,
@@ -532,10 +534,50 @@ const NIMBUS_ELEMENTS = [
     "bold": false,
     "italic": false,
     "align": "left",
-    "bulletList": true,
+    "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowRole": "content"
+    "runs": [
+      {
+        "start": 9,
+        "end": 17,
+        "italic": true,
+        "color": "#5F8EAD"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-3030dc74bbbc"
+  },
+  {
+    "category": "textarea",
+    "content": "Angielski — C1",
+    "left": 195.5,
+    "top": 720.4999999999999,
+    "width": 107.5,
+    "height": 17,
+    "fontSize": 12,
+    "lineHeight": 17,
+    "letterSpacing": 0,
+    "color": "#3A3A3A",
+    "fontFamily": "Lora",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 12,
+        "end": 14,
+        "italic": true,
+        "color": "#5F8EAD"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-3030dc74bbbc"
   }
 ];
 

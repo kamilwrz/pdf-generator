@@ -147,18 +147,24 @@ def _text(content, fontSize, fontFamily, color, left, top, *,
 
 
 def _block(content, left, top, width, height, fontSize, lineHeight, color, fontFamily, *,
-           zIndex=2, page=1, bold=False, italic=False, align="left", bulletList=False):
+           zIndex=2, page=1, bold=False, italic=False, align="left", bulletList=False,
+           runs=None):
     # preserveInitialLayout: the generator already paginated with ReportLab
     # metrics. On first canvas mount the client may shrink boxes to browser
     # scrollHeight (ReportLab can overshoot) but must not grow — independent
     # growth races and stretches section gaps. User edits still reflow fully.
-    return {"category": "textarea", "content": str(content),
+    # Optional ``runs`` carry per-span marks (italic/color) already supported by
+    # the PDF renderer and canvas Textarea — used e.g. for CEFR language levels.
+    element = {"category": "textarea", "content": str(content),
             "left": left, "top": top, "width": width, "height": height,
             "fontSize": fontSize, "lineHeight": lineHeight,
             "letterSpacing": 0, "color": color, "fontFamily": fontFamily,
             "zIndex": zIndex, "page": page, "bold": bold, "italic": italic,
             "align": align, "bulletList": bulletList, "autoHeight": True,
             "preserveInitialLayout": True}
+    if runs:
+        element["runs"] = list(runs)
+    return element
 
 
 def _line(left, top, width, height, color, *, zIndex=1, page=1):
@@ -185,7 +191,7 @@ def _text_width(value: str, font: str, fs: float) -> float:
     """Rendered width of a label in points (falls back to a char estimate).
 
     Shared by every wrapping/column layout that needs real glyph extents —
-    skill chip pills, Axis's timeline chip row, Axis's language columns —
+    skill chip pills, Axis's timeline chip row, and similar measured rows —
     instead of a guess, so wraps land where the rendered PDF actually breaks.
     """
     try:
@@ -314,7 +320,8 @@ class Builder:
         return self.y
 
     def block(self, content, left, width, fs, lh, col, fam, *,
-              bold=False, italic=False, align="left", min_h=0.0, bulletList=False) -> float:
+              bold=False, italic=False, align="left", min_h=0.0, bulletList=False,
+              runs=None) -> float:
         if not content:
             return self.y
         h = self.measure_block(
@@ -324,7 +331,7 @@ class Builder:
         self.need(h)
         self.els.append(_block(content, left, self.y, width, h, fs, lh, col, fam,
                                 zIndex=2, page=self.pg, bold=bold, italic=italic, align=align,
-                                bulletList=bulletList))
+                                bulletList=bulletList, runs=runs))
         self.y += h
         return self.y
 

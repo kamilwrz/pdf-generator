@@ -111,7 +111,7 @@ def _gen_cardinal(cv: dict) -> list[dict]:
         for index, job in enumerate(jobs):
             _place_experience_record(b, job, L, W, ink=C['ink'], muted=C['mute'], body=C['body'], font=SANS, title_fs=11.2, title_lh=13.8, meta_fs=8.5, meta_lh=11.5, body_fs=BODY_FS, body_lh=BODY_LH, meta_font=SANS, after_gap=get_spacing().record if index < len(jobs) - 1 else None)
         close_section()
-        _extra_sections(b, cv, 'after_experience', section, {'body': C['body']}, L, W, SANS, fs=BODY_FS, lh=BODY_LH, section_chrome_h=SECTION_CHROME)
+        _extra_sections(b, cv, 'after_experience', section, {'body': C['body'], 'accent': C['accent']}, L, W, SANS, fs=BODY_FS, lh=BODY_LH, section_chrome_h=SECTION_CHROME)
     if cv.get('education'):
         education_entries = cv['education']
         b.need_section(SECTION_CHROME, _education_record_height(b, education_entries[0], W, SANS, degree_fs=10.4, degree_lh=13, meta_fs=8.5, meta_lh=11.5, body_fs=9.2, body_lh=13.2))
@@ -125,7 +125,7 @@ def _gen_cardinal(cv: dict) -> list[dict]:
         mode="chips", chip_bg=C['accent'], chip_fg=C['paper'],
     ):
         close_section()
-    _extra_sections(b, cv, 'after_skills', section, {'body': C['body']}, L, W, SANS, fs=BODY_FS, lh=BODY_LH, skip_indices=skip_sidebar_extras, section_chrome_h=SECTION_CHROME)
+    _extra_sections(b, cv, 'after_skills', section, {'body': C['body'], 'accent': C['accent']}, L, W, SANS, fs=BODY_FS, lh=BODY_LH, skip_indices=skip_sidebar_extras, section_chrome_h=SECTION_CHROME)
     flow = b.build()
     pages_used = max([element.get('page', 1) for element in header + flow] or [1])
     page_decorations: list[dict] = []

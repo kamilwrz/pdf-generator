@@ -71,7 +71,7 @@ def _gen_kernel(cv: dict) -> list[dict]:
         for index, job in enumerate(jobs):
             _place_experience_record(b, job, L, W, ink=C['ink'], muted=C['muted'], body=C['body'], font=SANS, title_fs=title_fs, title_lh=13.5, meta_fs=meta_fs, meta_lh=11.5, body_fs=body_fs, body_lh=body_lh, after_gap=get_spacing().record if index < len(jobs) - 1 else None)
         close_section()
-        _extra_sections(b, cv, 'after_experience', section, {'body': C['body']}, L, W, SANS, fs=body_fs, lh=body_lh)
+        _extra_sections(b, cv, 'after_experience', section, {'body': C['body'], 'accent': C['accent']}, L, W, SANS, fs=body_fs, lh=body_lh)
     if cv.get('education'):
         education_entries = cv['education']
         b.need_section(SECTION_CHROME, education_height(education_entries[0]))
@@ -86,7 +86,7 @@ def _gen_kernel(cv: dict) -> list[dict]:
         section_chrome_h=SECTION_CHROME,
     ):
         close_section()
-    _extra_sections(b, cv, 'after_skills', section, {'body': C['body']}, L, W, SANS, fs=9.3, lh=13.3)
+    _extra_sections(b, cv, 'after_skills', section, {'body': C['body'], 'accent': C['accent']}, L, W, SANS, fs=9.3, lh=13.3)
     # Tag ordinary text/textarea nodes as content so reflow never treats job
     # titles or skill lines as keep-with-next section chrome.
     flow = [

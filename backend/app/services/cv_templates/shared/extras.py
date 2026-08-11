@@ -18,6 +18,11 @@ from app.services.cv_data import skill_groups, skills_have_content
 from app.services.cv_templates.shared.text import (
     _bullet_list_content,
     _extra_section_kind,
+    _language_entries,
+    _language_level_color,
+    _measure_languages_grid_height,
+    _place_languages_grid,
+    _sidebar_language_content,
     _skills_sidebar_content,
 )
 
@@ -228,8 +233,31 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
         items = _flatten_extra_items(raw_items)
         if not items:
             continue
-        # Shared formatter strips legacy leading markers so languages/skills
-        # never mix bare lines with "• • item" or hyphen-only rows.
+
+        kind = _extra_section_kind(sec)
+        # Single-column languages: equal 4-column textarea grid with accent CEFR
+        # runs — not one bulleted "Name — Level" block.
+        if kind == "languages":
+            entries = _language_entries(cv, items)
+            if not entries:
+                continue
+            body_color = C.get("body", "#2B2B2B")
+            level_color = _language_level_color(C)
+            body_height = _measure_languages_grid_height(
+                b, entries, W, font=font_b, fs=fs, lh=lh,
+            )
+            b.need_section(chrome_h, body_height or lh)
+            section_fn(title)
+            _place_languages_grid(
+                b, entries, L, W,
+                font=font_b, fs=fs, lh=lh,
+                body_color=body_color, level_color=level_color,
+            )
+            b.gap(get_spacing().section)
+            continue
+
+        # Shared formatter strips legacy leading markers so skills / interests /
+        # certifications never mix bare lines with "• • item" or hyphen-only rows.
         content = _bullet_list_content(items)
         if not content:
             continue
@@ -284,15 +312,31 @@ def _sidebar_candidates(cv: dict, labels: dict) -> list[dict]:
             continue
         title = str(section.get("title") or "").strip().upper()
         items = _flatten_extra_items(section.get("items") or [])
-        if title and items:
+        if not title or not items:
+            continue
+        # Sidebar languages: plain "Name - Level" lines (no bullets). Prefer the
+        # structured cv.languages field when present so CEFR codes stay aligned.
+        if kind == "languages":
+            content = _sidebar_language_content(cv, items)
+            if not content:
+                continue
             candidates.append({
                 "key": f"extra:{index}",
                 "kind": kind,
                 "title": title,
-                "content": _bullet_list_content(items),
-                "bulletList": True,
+                "content": content,
+                "bulletList": False,
                 "extra_index": index,
             })
+            continue
+        candidates.append({
+            "key": f"extra:{index}",
+            "kind": kind,
+            "title": title,
+            "content": _bullet_list_content(items),
+            "bulletList": True,
+            "extra_index": index,
+        })
 
     education_entries = _sidebar_education_entries(cv.get("education"))
     if education_entries:

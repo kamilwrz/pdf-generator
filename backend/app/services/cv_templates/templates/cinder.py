@@ -128,7 +128,7 @@ def _gen_cinder(cv: dict) -> list[dict]:
             if index < len(jobs) - 1:
                 b.gap(get_spacing().record)
         close_section()
-        _extra_sections(b, cv, "after_experience", section, {"body": CHARCOAL}, L, W, SANS, fs=9.5, lh=13.4)
+        _extra_sections(b, cv, "after_experience", section, {"body": CHARCOAL, "accent": RED}, L, W, SANS, fs=9.5, lh=13.4)
 
     if cv.get("education"):
         education_entries = cv["education"]
@@ -151,7 +151,7 @@ def _gen_cinder(cv: dict) -> list[dict]:
     ):
         close_section()
 
-    _extra_sections(b, cv, "after_skills", section, {"body": CHARCOAL}, L, W, SANS, fs=9.4, lh=13.5)
+    _extra_sections(b, cv, "after_skills", section, {"body": CHARCOAL, "accent": RED}, L, W, SANS, fs=9.4, lh=13.5)
     flow = [
         {**element, "flowRole": element.get("flowRole", "content")}
         for element in b.build()

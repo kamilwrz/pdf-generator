@@ -186,7 +186,7 @@ def _gen_nimbus(cv: dict) -> list[dict]:
                 b.gap(get_spacing().record)
         close_section()
         _extra_sections(
-            b, cv, "after_experience", section, {"body": BODY}, L, W, FONT,
+            b, cv, "after_experience", section, {"body": BODY, "accent": BLUE}, L, W, FONT,
             fs=FS_BODY, lh=LH_BODY,
         )
 
@@ -212,7 +212,7 @@ def _gen_nimbus(cv: dict) -> list[dict]:
         close_section()
 
     _extra_sections(
-        b, cv, "after_skills", section, {"body": BODY}, L, W, FONT,
+        b, cv, "after_skills", section, {"body": BODY, "accent": BLUE}, L, W, FONT,
         fs=FS_BODY, lh=LH_BODY,
     )
     # Tag ordinary flow nodes as content so reflow never promotes job titles

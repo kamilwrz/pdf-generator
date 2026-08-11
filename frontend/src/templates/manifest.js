@@ -1,36 +1,20 @@
 /**
  * Manifest template (`layouts: ["sidebar"]`).
  *
- * A flat, architectural two-column layout adapted from the "Modernist" Claude
- * Design system: near-mono red (#EC3013) on ink/paper, zero corner radius,
- * strong 2px rules, a dark inverted header band, and a light sidebar rail
- * separated from the main column by a solid divider. Proportions carry the
- * source design's own A4 CSS-px page over to this app's A4 canvas (points)
- * via the standard 0.75 (72/96 dpi) ratio.
- *
- * Font note: the source design specifies Archivo throughout; Roboto stands
- * in (a different registered grotesk than Blueprint's Inter, so the two
- * read as distinct) — see the backend generator's module docstring for the
- * full font-substitution rationale.
- *
- * Packer-safety note: the source design's per-record oversized ordinal
- * number and per-language five-segment proficiency bar are both same-row,
- * multi-element patterns that would corrupt under this app's structural
- * packer exactly like Blueprint's reverted same-row date/tag/badge rows did
- * (see blueprint.py's module docstring for the discovery). Both were adapted
- * to safe, one-element-per-row shapes here: the ordinal is folded into the
- * title text ("01 · Senior AML Analyst…") and language level into a
- * plain bulleted "Name — Level" sidebar line.
+ * Architectural two-column layout with inverted header and red accent.
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/manifest.py`) for
- * representative demo content (Jan Kowalski — three roles, two degrees, nine
- * skills, four languages, and a Certyfikaty extra section in the sidebar, so
- * the picker preview shows every section type this template supports), so
- * the picker preview matches what `/ai/fill_template` produces
- * pixel-for-pixel. No images are drawn, so no API_BASE_URL rewrite is
- * needed. Exported array `manifestTemplate`.
+ * representative demo content (Jan Kowalski — three roles, one degree, five
+ * skills, and three languages, sized to fit page 1 of the mockup), so the
+ * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. The array already carries `flowRole` / `flowGroup` /
+ * `preserveInitialLayout` from the generator, so it is exported as-is (only
+ * the image src is absolutised).
  */
+import API_BASE_URL from "../services/api.js";
+
 const MANIFEST_ELEMENTS = [
   {
     "category": "line",
@@ -272,60 +256,9 @@ const MANIFEST_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "• Polski — ojczysty\n• Angielski — C1\n• Niemiecki — B2\n• Francuski — A2",
+    "content": "Polski - ojczysty\nAngielski - C1\nFrancuski - B2",
     "left": 42,
     "top": 366.83,
-    "width": 114,
-    "height": 54.16,
-    "fontSize": 8.3,
-    "lineHeight": 12.04,
-    "letterSpacing": 0,
-    "color": "#201E1D",
-    "fontFamily": "Roboto",
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": true,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowRole": "content",
-    "flowLane": "sidebar"
-  },
-  {
-    "category": "text",
-    "content": "CERTYFIKATY",
-    "fontSize": 9.2,
-    "fontFamily": "Roboto",
-    "color": "#201E1D",
-    "left": 42,
-    "top": 432.99,
-    "zIndex": 3,
-    "page": 1,
-    "bold": true,
-    "italic": false,
-    "letterSpacing": 1.1,
-    "flowRole": "sidebar-chrome",
-    "flowLane": "sidebar"
-  },
-  {
-    "category": "line",
-    "left": 42,
-    "top": 448.03000000000003,
-    "width": 114,
-    "height": 2,
-    "backgroundColor": "#201E1D",
-    "zIndex": 1,
-    "page": 1,
-    "flowRole": "sidebar-chrome",
-    "flowLane": "sidebar"
-  },
-  {
-    "category": "textarea",
-    "content": "• PMP – Project Management Professional\n• PRINCE2 Practitioner",
-    "left": 42,
-    "top": 453.99,
     "width": 114,
     "height": 42.12,
     "fontSize": 8.3,
@@ -338,7 +271,7 @@ const MANIFEST_ELEMENTS = [
     "bold": false,
     "italic": false,
     "align": "left",
-    "bulletList": true,
+    "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
     "flowRole": "content",
@@ -351,7 +284,7 @@ const MANIFEST_ELEMENTS = [
     "fontFamily": "Roboto",
     "color": "#201E1D",
     "left": 42,
-    "top": 508.11,
+    "top": 420.95,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -363,7 +296,7 @@ const MANIFEST_ELEMENTS = [
   {
     "category": "line",
     "left": 42,
-    "top": 523.15,
+    "top": 435.99,
     "width": 114,
     "height": 2,
     "backgroundColor": "#201E1D",
@@ -376,7 +309,7 @@ const MANIFEST_ELEMENTS = [
     "category": "textarea",
     "content": "Magister Zarządzania",
     "left": 42,
-    "top": 529.11,
+    "top": 441.95,
     "width": 114,
     "height": 13,
     "fontSize": 8.3,
@@ -392,15 +325,15 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
+    "flowGroup": "record-f532e868f295",
     "flowRole": "content",
-    "flowLane": "sidebar",
-    "flowGroup": "record-manifest-edu-1"
+    "flowLane": "sidebar"
   },
   {
     "category": "textarea",
     "content": "SGH Warszawa",
     "left": 42,
-    "top": 546.11,
+    "top": 458.95,
     "width": 114,
     "height": 13,
     "fontSize": 8.3,
@@ -416,15 +349,15 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
+    "flowGroup": "record-f532e868f295",
     "flowRole": "content",
-    "flowLane": "sidebar",
-    "flowGroup": "record-manifest-edu-1"
+    "flowLane": "sidebar"
   },
   {
     "category": "textarea",
     "content": "2011 – 2016",
     "left": 42,
-    "top": 563.11,
+    "top": 475.95,
     "width": 114,
     "height": 12,
     "fontSize": 7.5,
@@ -440,87 +373,15 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
+    "flowGroup": "record-f532e868f295",
     "flowRole": "content",
-    "flowLane": "sidebar",
-    "flowGroup": "record-manifest-edu-1"
-  },
-  {
-    "category": "textarea",
-    "content": "Licencjat Ekonomii",
-    "left": 42,
-    "top": 585.11,
-    "width": 114,
-    "height": 13,
-    "fontSize": 8.3,
-    "lineHeight": 12.04,
-    "letterSpacing": 0,
-    "color": "#201E1D",
-    "fontFamily": "Roboto",
-    "zIndex": 3,
-    "page": 1,
-    "bold": true,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowRole": "content",
-    "flowLane": "sidebar",
-    "flowGroup": "record-manifest-edu-2"
-  },
-  {
-    "category": "textarea",
-    "content": "Uniwersytet Warszawski",
-    "left": 42,
-    "top": 602.11,
-    "width": 114,
-    "height": 13,
-    "fontSize": 8.3,
-    "lineHeight": 12.04,
-    "letterSpacing": 0,
-    "color": "#201E1D",
-    "fontFamily": "Roboto",
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowRole": "content",
-    "flowLane": "sidebar",
-    "flowGroup": "record-manifest-edu-2"
-  },
-  {
-    "category": "textarea",
-    "content": "Warszawa   ·   2008 – 2011",
-    "left": 42,
-    "top": 619.11,
-    "width": 114,
-    "height": 12,
-    "fontSize": 7.5,
-    "lineHeight": 11.54,
-    "letterSpacing": 0,
-    "color": "#201E1D",
-    "fontFamily": "Roboto",
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowRole": "content",
-    "flowLane": "sidebar",
-    "flowGroup": "record-manifest-edu-2"
+    "flowLane": "sidebar"
   },
   {
     "category": "textarea",
     "content": "• Specjalizacja: ekonomia międzynarodowa.",
     "left": 42,
-    "top": 635.11,
+    "top": 491.95,
     "width": 114,
     "height": 25,
     "fontSize": 8.3,
@@ -536,9 +397,9 @@ const MANIFEST_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
+    "flowGroup": "record-f532e868f295",
     "flowRole": "content",
-    "flowLane": "sidebar",
-    "flowGroup": "record-manifest-edu-2"
+    "flowLane": "sidebar"
   },
   {
     "category": "text",
@@ -585,11 +446,12 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-868d4d6946f1"
+    "flowGroup": "record-5c84832116ae",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Northbridge Partners",
+    "content": "Northbridge Partners   ·   Warszawa",
     "left": 212,
     "top": 222.54,
     "width": 341,
@@ -607,7 +469,8 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-868d4d6946f1"
+    "flowGroup": "record-5c84832116ae",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -629,7 +492,8 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-868d4d6946f1"
+    "flowGroup": "record-5c84832116ae",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -651,7 +515,8 @@ const MANIFEST_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-868d4d6946f1"
+    "flowGroup": "record-5c84832116ae",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -673,11 +538,12 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a2e5b59c4928"
+    "flowGroup": "record-5bcb369dcb75",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Meridian Group",
+    "content": "Meridian Group   ·   Kraków",
     "left": 212,
     "top": 341.53999999999996,
     "width": 341,
@@ -695,7 +561,8 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a2e5b59c4928"
+    "flowGroup": "record-5bcb369dcb75",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -717,7 +584,8 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a2e5b59c4928"
+    "flowGroup": "record-5bcb369dcb75",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -739,7 +607,8 @@ const MANIFEST_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a2e5b59c4928"
+    "flowGroup": "record-5bcb369dcb75",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -761,7 +630,8 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-da8cf7307f38"
+    "flowGroup": "record-4e0a7c2c7a1d",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -783,7 +653,8 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-da8cf7307f38"
+    "flowGroup": "record-4e0a7c2c7a1d",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -805,15 +676,16 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-da8cf7307f38"
+    "flowGroup": "record-4e0a7c2c7a1d",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.\n• Opracowywał analizy rynkowe i modele finansowe wspierające decyzje zarządu.",
+    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
     "left": 212,
     "top": 479.53999999999996,
     "width": 341,
-    "height": 56,
+    "height": 28,
     "fontSize": 10,
     "lineHeight": 14,
     "letterSpacing": 0,
@@ -827,7 +699,8 @@ const MANIFEST_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-da8cf7307f38"
+    "flowGroup": "record-4e0a7c2c7a1d",
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -836,7 +709,7 @@ const MANIFEST_ELEMENTS = [
     "fontFamily": "Roboto",
     "color": "#201E1D",
     "left": 212,
-    "top": 556.54,
+    "top": 528.54,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -846,7 +719,7 @@ const MANIFEST_ELEMENTS = [
   {
     "category": "line",
     "left": 212,
-    "top": 578.29,
+    "top": 550.29,
     "width": 341,
     "height": 2,
     "backgroundColor": "#201E1D",
@@ -856,11 +729,11 @@ const MANIFEST_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna  ·  Zarządzanie zmianą  ·  Budowanie zespołów  ·  Analiza rynku  ·  Fuzje i przejęcia",
+    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
     "left": 212,
-    "top": 588.29,
+    "top": 560.29,
     "width": 341,
-    "height": 42,
+    "height": 14,
     "fontSize": 10,
     "lineHeight": 14,
     "letterSpacing": 0,
@@ -874,8 +747,13 @@ const MANIFEST_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-350d8d37dee6"
+    "flowGroup": "record-75c061903613",
+    "flowRole": "content"
   }
 ];
 
-export const manifestTemplate = MANIFEST_ELEMENTS;
+export const manifestTemplate = MANIFEST_ELEMENTS.map((element) => (
+  element.category === "image" && typeof element.src === "string" && element.src.startsWith("/template-assets")
+    ? { ...element, src: `${API_BASE_URL}${element.src}` }
+    : element
+));

@@ -363,7 +363,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         }
         complete_sidebar_bodies = {
             "• Strategia\n• Badania",
-            "• Polski — C2\n• Angielski — C1",
+            "Polski - C2\nAngielski - C1",
             "• PMP\n• ICAgile",
             "• Fotografia\n• Żeglarstwo",
         }
@@ -452,9 +452,10 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in elements
             if element["category"] == "textarea" and element["left"] == 25
         )
+        # Main column starts at 218; language grid cells sit at 218 + n·col_w.
         main_textareas = [
             element for element in elements
-            if element["category"] == "textarea" and element["left"] == 218
+            if element["category"] == "textarea" and element["left"] >= 218
         ]
         main_copy = "\n".join(element["content"] for element in main_textareas)
 
@@ -464,8 +465,16 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertNotIn("JĘZYKI", sidebar_heading_copy)
         self.assertIn(skills[0], main_copy)
         self.assertIn(skills[-1], main_copy)
-        self.assertIn(f"• {languages[0]}", main_copy)
-        self.assertIn(f"• {languages[-1]}", main_copy)
+        # Overflow languages land in the main column as a 4-column grid
+        # (one textarea per language, not a bulleted block).
+        self.assertIn(languages[0], main_copy)
+        self.assertIn(languages[-1], main_copy)
+        language_cells = [
+            element for element in main_textareas
+            if element.get("flowRole") == "grid-member"
+            and any(lang in str(element.get("content", "")) for lang in languages)
+        ]
+        self.assertEqual(len(language_cells), len(languages))
         # Education may still fit wholly in the sidebar at a smaller font; if so,
         # every record must be present. Otherwise the full set is in the main column.
         if "WYKSZTAŁCENIE" in sidebar_heading_copy:
@@ -503,7 +512,16 @@ class CvTemplateLayoutTests(unittest.TestCase):
             self.assertIn("UMIEJĘTNOŚCI", content, template_id)
             self.assertIn("Strategia produktowa  ·  ", content, template_id)
             self.assertIn("JĘZYKI", content, template_id)
-            self.assertIn("• Polski — C2", content, template_id)
+            self.assertIn("Polski — C2", content, template_id)
+            language_cells = [
+                element for element in elements
+                if element.get("category") == "textarea"
+                and element.get("flowRole") == "grid-member"
+                and "Polski — C2" in str(element.get("content", ""))
+            ]
+            self.assertEqual(len(language_cells), 1, template_id)
+            self.assertFalse(language_cells[0].get("bulletList"), template_id)
+            self.assertTrue(language_cells[0].get("runs"), template_id)
             skills_body = next(
                 element for element in elements
                 if element.get("category") == "textarea"

@@ -1,24 +1,20 @@
 /**
  * Sterling template (`layouts: ["sidebar"]`).
  *
- * An elegant, harmonious blue-gray two-column layout. A centered letterhead
- * masthead (serif display name, tracked uppercase title, mid-dot contact
- * line) sits above a horizontal rule that separates it from the two-column
- * body below — distinct from Manifest's inverted header band. A wide
- * sidebar rail (Summary, Education, Skills, Languages, and any other simple
- * extra section) sits left of a thin divider; the main column carries only
- * Experience (plus any record-style extras). One rule color is reused for
- * the masthead underline, the sidebar divider, and every section rule, for
- * one coherent, quiet system.
+ * Institutional two-column layout with wide sidebar rail.
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/sterling.py`) for
- * representative demo content (Jan Kowalski — three roles, one degree,
- * seven skills, and three languages, sized to fit one page), so the picker
- * preview matches what `/ai/fill_template` produces pixel-for-pixel. No
- * images are drawn, so no API_BASE_URL rewrite is needed. Exported array
- * `sterlingTemplate`.
+ * representative demo content (Jan Kowalski — three roles, one degree, five
+ * skills, and three languages, sized to fit page 1 of the mockup), so the
+ * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. The array already carries `flowRole` / `flowGroup` /
+ * `preserveInitialLayout` from the generator, so it is exported as-is (only
+ * the image src is absolutised).
  */
+import API_BASE_URL from "../services/api.js";
+
 const STERLING_ELEMENTS = [
   {
     "category": "line",
@@ -113,11 +109,11 @@ const STERLING_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "jan.kowalski@email.com · +48 600 000 000 · Warszawa · linkedin.com/in/jkowalski",
+    "content": "jan.kowalski@email.com · +48 600 000 000 · Warszawa · linkedin.com/in/jkowalski · github.com/jkowalski · jankowalski.pl",
     "left": 67.5,
     "top": 111.0,
     "width": 460.0,
-    "height": 14,
+    "height": 27,
     "fontSize": 9.4,
     "lineHeight": 13.5,
     "letterSpacing": 0.3,
@@ -136,7 +132,7 @@ const STERLING_ELEMENTS = [
   {
     "category": "line",
     "left": 34.0,
-    "top": 145.0,
+    "top": 158.0,
     "width": 511.0,
     "height": 1,
     "backgroundColor": "#C7CFDA",
@@ -151,7 +147,7 @@ const STERLING_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#33517A",
     "left": 34.0,
-    "top": 175.0,
+    "top": 188.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -163,7 +159,7 @@ const STERLING_ELEMENTS = [
   {
     "category": "line",
     "left": 34.0,
-    "top": 191.28,
+    "top": 204.28,
     "width": 22,
     "height": 1.4,
     "backgroundColor": "#4A6FA5",
@@ -176,7 +172,7 @@ const STERLING_ELEMENTS = [
     "category": "textarea",
     "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
     "left": 34.0,
-    "top": 202.68,
+    "top": 215.68,
     "width": 152.0,
     "height": 73,
     "fontSize": 8.3,
@@ -202,7 +198,7 @@ const STERLING_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#33517A",
     "left": 34.0,
-    "top": 301.68,
+    "top": 314.68,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -214,7 +210,7 @@ const STERLING_ELEMENTS = [
   {
     "category": "line",
     "left": 34.0,
-    "top": 317.96,
+    "top": 330.96,
     "width": 22,
     "height": 1.4,
     "backgroundColor": "#4A6FA5",
@@ -225,11 +221,11 @@ const STERLING_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "• Strategia\n• Leadership\n• P&L\n• Negocjacje\n• Transformacja organizacyjna\n• Zarządzanie zmianą\n• Analiza rynku",
+    "content": "• Strategia\n• Leadership\n• P&L\n• Negocjacje\n• Transformacja organizacyjna",
     "left": 34.0,
-    "top": 322.68,
+    "top": 335.68,
     "width": 152.0,
-    "height": 90.28,
+    "height": 66.2,
     "fontSize": 8.3,
     "lineHeight": 12.04,
     "letterSpacing": 0,
@@ -253,7 +249,7 @@ const STERLING_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#33517A",
     "left": 34.0,
-    "top": 424.96,
+    "top": 413.88,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -265,7 +261,7 @@ const STERLING_ELEMENTS = [
   {
     "category": "line",
     "left": 34.0,
-    "top": 441.23999999999995,
+    "top": 430.15999999999997,
     "width": 22,
     "height": 1.4,
     "backgroundColor": "#4A6FA5",
@@ -276,9 +272,9 @@ const STERLING_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "• Polski — ojczysty\n• Angielski — C1\n• Francuski — B2",
+    "content": "Polski - ojczysty\nAngielski - C1\nFrancuski - B2",
     "left": 34.0,
-    "top": 445.96,
+    "top": 434.88,
     "width": 152.0,
     "height": 42.12,
     "fontSize": 8.3,
@@ -291,7 +287,7 @@ const STERLING_ELEMENTS = [
     "bold": false,
     "italic": false,
     "align": "left",
-    "bulletList": true,
+    "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
     "flowRole": "content",
@@ -304,7 +300,7 @@ const STERLING_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#33517A",
     "left": 34.0,
-    "top": 500.08,
+    "top": 489.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -316,7 +312,7 @@ const STERLING_ELEMENTS = [
   {
     "category": "line",
     "left": 34.0,
-    "top": 516.3599999999999,
+    "top": 505.28,
     "width": 22,
     "height": 1.4,
     "backgroundColor": "#4A6FA5",
@@ -329,7 +325,7 @@ const STERLING_ELEMENTS = [
     "category": "textarea",
     "content": "Magister Zarządzania",
     "left": 34.0,
-    "top": 521.08,
+    "top": 510.0,
     "width": 152.0,
     "height": 13,
     "fontSize": 8.3,
@@ -345,7 +341,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f21244cf9cb2",
+    "flowGroup": "record-408edd42dcfc",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -353,7 +349,7 @@ const STERLING_ELEMENTS = [
     "category": "textarea",
     "content": "SGH Warszawa",
     "left": 34.0,
-    "top": 538.08,
+    "top": 527.0,
     "width": 152.0,
     "height": 13,
     "fontSize": 8.3,
@@ -369,7 +365,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f21244cf9cb2",
+    "flowGroup": "record-408edd42dcfc",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -377,7 +373,7 @@ const STERLING_ELEMENTS = [
     "category": "textarea",
     "content": "2011 – 2016",
     "left": 34.0,
-    "top": 555.08,
+    "top": 544.0,
     "width": 152.0,
     "height": 12,
     "fontSize": 7.5,
@@ -393,7 +389,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f21244cf9cb2",
+    "flowGroup": "record-408edd42dcfc",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -404,7 +400,7 @@ const STERLING_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#26313F",
     "left": 245.0,
-    "top": 175.0,
+    "top": 188.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -415,7 +411,7 @@ const STERLING_ELEMENTS = [
   {
     "category": "line",
     "left": 245.0,
-    "top": 195.7,
+    "top": 208.7,
     "width": 300.0,
     "height": 1,
     "backgroundColor": "#C7CFDA",
@@ -427,7 +423,7 @@ const STERLING_ELEMENTS = [
     "category": "textarea",
     "content": "Dyrektor Strategii",
     "left": 245.0,
-    "top": 204.7,
+    "top": 217.7,
     "width": 300.0,
     "height": 15,
     "fontSize": 11.2,
@@ -443,13 +439,14 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0a893870cc60"
+    "flowGroup": "record-4dec9a25da3d",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Northbridge Partners   ·   2021 – obecnie",
+    "content": "Northbridge Partners   ·   Warszawa   ·   2021 – obecnie",
     "left": 245.0,
-    "top": 223.7,
+    "top": 236.7,
     "width": 300.0,
     "height": 12,
     "fontSize": 8.6,
@@ -465,13 +462,14 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0a893870cc60"
+    "flowGroup": "record-4dec9a25da3d",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
     "left": 245.0,
-    "top": 239.7,
+    "top": 252.7,
     "width": 300.0,
     "height": 83,
     "fontSize": 9.5,
@@ -487,13 +485,14 @@ const STERLING_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0a893870cc60"
+    "flowGroup": "record-4dec9a25da3d",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Menedżer Rozwoju",
     "left": 245.0,
-    "top": 332.7,
+    "top": 345.7,
     "width": 300.0,
     "height": 15,
     "fontSize": 11.2,
@@ -509,13 +508,14 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5027449a177e"
+    "flowGroup": "record-8863df11d645",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Meridian Group   ·   2016 – 2021",
+    "content": "Meridian Group   ·   Kraków   ·   2016 – 2021",
     "left": 245.0,
-    "top": 351.7,
+    "top": 364.7,
     "width": 300.0,
     "height": 12,
     "fontSize": 8.6,
@@ -531,13 +531,14 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5027449a177e"
+    "flowGroup": "record-8863df11d645",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
     "left": 245.0,
-    "top": 367.7,
+    "top": 380.7,
     "width": 300.0,
     "height": 42,
     "fontSize": 9.5,
@@ -553,13 +554,14 @@ const STERLING_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5027449a177e"
+    "flowGroup": "record-8863df11d645",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Konsultant Strategiczny",
     "left": 245.0,
-    "top": 419.7,
+    "top": 432.7,
     "width": 300.0,
     "height": 15,
     "fontSize": 11.2,
@@ -575,13 +577,14 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6a5d43ff7ead"
+    "flowGroup": "record-30a0edbf4ada",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Alpine Consulting   ·   Kraków   ·   2013 – 2016",
     "left": 245.0,
-    "top": 438.7,
+    "top": 451.7,
     "width": 300.0,
     "height": 12,
     "fontSize": 8.6,
@@ -597,13 +600,14 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6a5d43ff7ead"
+    "flowGroup": "record-30a0edbf4ada",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
     "left": 245.0,
-    "top": 454.7,
+    "top": 467.7,
     "width": 300.0,
     "height": 28,
     "fontSize": 9.5,
@@ -619,8 +623,13 @@ const STERLING_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6a5d43ff7ead"
+    "flowGroup": "record-30a0edbf4ada",
+    "flowRole": "content"
   }
 ];
 
-export const sterlingTemplate = STERLING_ELEMENTS;
+export const sterlingTemplate = STERLING_ELEMENTS.map((element) => (
+  element.category === "image" && typeof element.src === "string" && element.src.startsWith("/template-assets")
+    ? { ...element, src: `${API_BASE_URL}${element.src}` }
+    : element
+));

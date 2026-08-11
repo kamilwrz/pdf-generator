@@ -529,9 +529,9 @@ class CvDataNormalizationTests(unittest.TestCase):
             str(element.get("content", ""))
             for element in generate_resume("kernel", profile)
         )
-        # Kernel renders skills as an inline · list, languages as bullets.
+        # Kernel renders skills as an inline · list, languages as a 4-col grid.
         self.assertIn("Analiza AML", content)
-        self.assertIn("• Polski — C2", content)
+        self.assertIn("Polski — C2", content)
         self.assertIn("JĘZYKI", content)
 
     def test_generation_requires_name_but_draft_data_can_stay_partial(self):

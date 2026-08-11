@@ -1,23 +1,17 @@
 /**
- * Atrium template (`layouts: ["single", "icons"]`).
+ * Atrium template (`layouts: ["single"]`).
  *
- * A restrained editorial single column. The masthead is centered (name, title,
- * icon contact band, and a segmented hairline) while the body remains
- * left-aligned for comfortable reading. Section labels use a short sage lead-in
- * and a pale full-column divider, creating a clear rhythm without icons, frames,
- * a sidebar, or decorative clutter. Headings stay anchored at the column left,
- * so shared section packing and Add-section behavior remain unchanged.
+ * Centered-axis editorial single column with graphite-sage accents.
  *
  * This static starter is the backend generator's own output
- * (`backend/app/services/cv_templates/templates/atrium.py`) for representative
- * demo content (Jan Kowalski — three roles, one degree, five skills, and three
- * languages, sized to fit page 1 of the mockup), so the picker preview matches
- * what `/ai/fill_template` produces pixel-for-pixel. Image `src` values are
- * stored relative and get the API base prepended at load time (contact glyphs
- * live under `/template-assets/iconic/atrium/`, rendered graphite-sage by the
- * shared pipeline). The array already carries `flowRole` / `flowGroup` /
- * `preserveInitialLayout` from the generator, so it is exported as-is (only the
- * image src is absolutised).
+ * (`backend/app/services/cv_templates/templates/atrium.py`) for
+ * representative demo content (Jan Kowalski — three roles, one degree, five
+ * skills, and three languages, sized to fit page 1 of the mockup), so the
+ * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. The array already carries `flowRole` / `flowGroup` /
+ * `preserveInitialLayout` from the generator, so it is exported as-is (only
+ * the image src is absolutised).
  */
 import API_BASE_URL from "../services/api.js";
 
@@ -93,7 +87,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/atrium/phone.png",
+    "src": "/template-assets/iconic/atrium/phone.png",
     "left": 119.49139999999997,
     "top": 126.0,
     "width": 10.5,
@@ -119,7 +113,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/atrium/email.png",
+    "src": "/template-assets/iconic/atrium/email.png",
     "left": 221.93739999999997,
     "top": 126.0,
     "width": 10.5,
@@ -145,7 +139,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/atrium/linkedin.png",
+    "src": "/template-assets/iconic/atrium/linkedin.png",
     "left": 356.253,
     "top": 126.0,
     "width": 10.5,
@@ -171,7 +165,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/atrium/github.png",
+    "src": "/template-assets/iconic/atrium/github.png",
     "left": 164.3474,
     "top": 142.0,
     "width": 10.5,
@@ -197,7 +191,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/atrium/website.png",
+    "src": "/template-assets/iconic/atrium/website.png",
     "left": 285.36580000000004,
     "top": 142.0,
     "width": 10.5,
@@ -223,7 +217,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/atrium/location.png",
+    "src": "/template-assets/iconic/atrium/location.png",
     "left": 374.80860000000007,
     "top": 142.0,
     "width": 10.5,
@@ -336,7 +330,8 @@ const ATRIUM_ELEMENTS = [
     "align": "left",
     "bulletList": false,
     "autoHeight": true,
-    "preserveInitialLayout": true
+    "preserveInitialLayout": true,
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -395,11 +390,12 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4e8828c059b0"
+    "flowGroup": "record-2e49a8e708f2",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Northbridge Partners   ·   2021 – obecnie",
+    "content": "Northbridge Partners   ·   Warszawa   ·   2021 – obecnie",
     "left": 82,
     "top": 327.79999999999995,
     "width": 431,
@@ -417,7 +413,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4e8828c059b0"
+    "flowGroup": "record-2e49a8e708f2",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -439,7 +436,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4e8828c059b0"
+    "flowGroup": "record-2e49a8e708f2",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -461,11 +459,12 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0a86a86551db"
+    "flowGroup": "record-9c13ccc00305",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Meridian Group   ·   2016 – 2021",
+    "content": "Meridian Group   ·   Kraków   ·   2016 – 2021",
     "left": 82,
     "top": 415.79999999999995,
     "width": 431,
@@ -483,7 +482,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0a86a86551db"
+    "flowGroup": "record-9c13ccc00305",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -505,7 +505,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0a86a86551db"
+    "flowGroup": "record-9c13ccc00305",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -527,7 +528,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-37a58747f96f"
+    "flowGroup": "record-b1dba24b4b08",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -549,7 +551,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-37a58747f96f"
+    "flowGroup": "record-b1dba24b4b08",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -571,7 +574,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-37a58747f96f"
+    "flowGroup": "record-b1dba24b4b08",
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -630,7 +634,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-edd92565c194"
+    "flowGroup": "record-4bc5bcc7618c",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -652,7 +657,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-edd92565c194"
+    "flowGroup": "record-4bc5bcc7618c",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
@@ -674,7 +680,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-edd92565c194"
+    "flowGroup": "record-4bc5bcc7618c",
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -733,7 +740,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b991f2c494b4"
+    "flowGroup": "record-b98135a941e5",
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -774,11 +782,11 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "• Polski — ojczysty\n• Angielski — C1\n• Francuski — B2",
-    "left": 82,
+    "content": "Polski — ojczysty",
+    "left": 82.0,
     "top": 717.0000000000002,
-    "width": 431,
-    "height": 43,
+    "width": 99.75,
+    "height": 15,
     "fontSize": 9.6,
     "lineHeight": 14.1,
     "letterSpacing": 0,
@@ -789,9 +797,81 @@ const ATRIUM_ELEMENTS = [
     "bold": false,
     "italic": false,
     "align": "left",
-    "bulletList": true,
+    "bulletList": false,
     "autoHeight": true,
-    "preserveInitialLayout": true
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 9,
+        "end": 17,
+        "italic": true,
+        "color": "#556158"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-2028982511eb"
+  },
+  {
+    "category": "textarea",
+    "content": "Angielski — C1",
+    "left": 189.75,
+    "top": 717.0000000000002,
+    "width": 99.75,
+    "height": 15,
+    "fontSize": 9.6,
+    "lineHeight": 14.1,
+    "letterSpacing": 0,
+    "color": "#2C2C29",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 12,
+        "end": 14,
+        "italic": true,
+        "color": "#556158"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-2028982511eb"
+  },
+  {
+    "category": "textarea",
+    "content": "Francuski — B2",
+    "left": 297.5,
+    "top": 717.0000000000002,
+    "width": 99.75,
+    "height": 15,
+    "fontSize": 9.6,
+    "lineHeight": 14.1,
+    "letterSpacing": 0,
+    "color": "#2C2C29",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 12,
+        "end": 14,
+        "italic": true,
+        "color": "#556158"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-2028982511eb"
   }
 ];
 

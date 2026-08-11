@@ -203,7 +203,7 @@ def _gen_blueprint(cv: dict) -> list[dict]:
                 after_gap=get_spacing().record if index < len(jobs) - 1 else None,
             )
         close_section()
-        _extra_sections(b, cv, 'after_experience', section, {'body': C['ink']}, L, W, SANS,
+        _extra_sections(b, cv, 'after_experience', section, {'body': C['ink'], 'accent': C['accent_deep']}, L, W, SANS,
                         fs=BODY_FS, lh=BODY_LH, section_chrome_h=SECTION_CHROME)
 
     if cv.get('education'):
@@ -232,10 +232,10 @@ def _gen_blueprint(cv: dict) -> list[dict]:
         close_section()
 
     # `_extra_sections` also renders `cv["languages"]` (normalized into an
-    # `after_skills` extra section by `normalize_cv_data`) as a plain bulleted
-    # block — matching how every other single-column template presents
-    # languages, and the only representation this packer moves safely.
-    _extra_sections(b, cv, 'after_skills', section, {'body': C['ink']}, L, W, SANS,
+    # `after_skills` extra section by `normalize_cv_data`) as a 4-column
+    # textarea grid with italic accent CEFR runs — the same shared layout
+    # every other single-column template uses (`_place_languages_grid`).
+    _extra_sections(b, cv, 'after_skills', section, {'body': C['ink'], 'accent': C['accent_deep']}, L, W, SANS,
                     fs=BODY_FS, lh=BODY_LH, section_chrome_h=SECTION_CHROME)
 
     flow = b.build()

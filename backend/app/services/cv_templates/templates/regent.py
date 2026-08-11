@@ -114,7 +114,7 @@ def _gen_regent(cv: dict) -> list[dict]:
                 after_gap=get_spacing().record if index < len(jobs) - 1 else None,
             )
         close_section()
-        _extra_sections(b, cv, 'after_experience', section, {'body': C['ink']}, L, W, SANS, fs=BODY_FS, lh=BODY_LH)
+        _extra_sections(b, cv, 'after_experience', section, {'body': C['ink'], 'accent': C['accent']}, L, W, SANS, fs=BODY_FS, lh=BODY_LH)
     if cv.get('education'):
         education_entries = cv['education']
         b.need_section(SECTION_CHROME, education_height(education_entries[0]))
@@ -133,7 +133,7 @@ def _gen_regent(cv: dict) -> list[dict]:
     ):
         close_section()
     _extra_sections(
-        b, cv, 'after_skills', section, {'body': C['ink']}, L, W, SANS,
+        b, cv, 'after_skills', section, {'body': C['ink'], 'accent': C['accent']}, L, W, SANS,
         fs=9.5, lh=13.8,
     )
     flow = [

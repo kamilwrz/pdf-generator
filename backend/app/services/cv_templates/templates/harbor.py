@@ -237,16 +237,16 @@ def _gen_harbor(cv: dict) -> list[dict]:
         side_b.gap(get_spacing().section)
 
     if cv.get("languages"):
-        language_lines = []
-        for language in cv["languages"]:
-            if isinstance(language, dict):
-                name = str(language.get("name") or "").strip()
-                level = str(language.get("level") or "").strip()
-                value = f"{name} — {level}" if name and level else (name or level)
-            else:
-                value = str(language or "").strip()
-            if value:
-                language_lines.append(value)
+        from app.services.cv_templates.shared.text import (
+            LANGUAGE_SEP_SIDEBAR,
+            _language_entries,
+            _language_line,
+        )
+
+        language_lines = [
+            _language_line(name, level, sep=LANGUAGE_SEP_SIDEBAR)
+            for name, level in _language_entries(cv)
+        ]
         first_height = (
             side_b.measure_block(
                 language_lines[0], SIDE_BODY_W, SIDE_ITEM_FS, SIDE_ITEM_LH, SANS,

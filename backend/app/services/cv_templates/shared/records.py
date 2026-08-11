@@ -9,7 +9,6 @@ from app.services.cv_templates.shared.text import (
     _bullet_list_content,
     _bullets,
     _company_period,
-    _extra_section_kind,
 )
 
 _LEADING_BULLET = re.compile(r"^[\s]*[•\-–*—∙·]\s*")
@@ -519,28 +518,17 @@ def _build_sidebar_education_elements(
 
 
 def _language_sidebar_lines(cv: dict) -> list[str]:
-    """Language lines for sidebar bullet lists (wizard field or extra_sections)."""
-    lines: list[str] = []
-    for entry in cv.get("languages") or []:
-        if isinstance(entry, dict):
-            name = str(entry.get("name") or "").strip()
-            level = str(entry.get("level") or "").strip()
-            if name:
-                lines.append(f"{name} — {level}" if level else name)
-        else:
-            text = str(entry or "").strip()
-            if text:
-                lines.append(text)
-    if lines:
-        return lines
-    for section in cv.get("extra_sections") or []:
-        if _extra_section_kind(section) != "languages":
-            continue
-        for item in section.get("items") or []:
-            text = str(item or "").strip()
-            if text:
-                lines.append(text)
-    return lines
+    """Language lines for sidebar lists: ``Name - Level`` (no leading bullets)."""
+    from app.services.cv_templates.shared.text import (
+        LANGUAGE_SEP_SIDEBAR,
+        _language_entries,
+        _language_line,
+    )
+
+    return [
+        _language_line(name, level, sep=LANGUAGE_SEP_SIDEBAR)
+        for name, level in _language_entries(cv)
+    ]
 
 
 def _obsidian_education_parts(edu: dict) -> tuple[str, str, str, str]:

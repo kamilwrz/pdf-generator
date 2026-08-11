@@ -13,6 +13,8 @@ from app.services.cv_data import (
     skills_have_content,
 )
 from app.services.cv_generator_primitives import (
+    Builder,
+    _block,
     _rect,
     _text,
     _text_width,
@@ -23,6 +25,13 @@ from app.services.cv_generator_primitives import (
 # Strip leading glyph/dash markers so callers can pass already-bulleted lines
 # without producing "• • item" in the canvas bulletList renderer.
 _LEADING_BULLET = re.compile(r"^[\s]*[•\-–*—∙·]\s*")
+# Split "Name — Level" / "Name - Level" produced by normalize_cv_data extras.
+_LANGUAGE_SEP = re.compile(r"\s+[—–\-]\s+")
+
+# Single-column grid uses an em dash (matches the product mockup). Sidebar
+# lists use a plain hyphen per the languages layout brief.
+LANGUAGE_SEP_SINGLE = " — "
+LANGUAGE_SEP_SIDEBAR = " - "
 
 
 def _clean_list_items(items: list | tuple | None) -> list[str]:
@@ -39,10 +48,188 @@ def _bullet_list_content(items: list | tuple | None) -> str:
     """
     Format flat strings as a ``bulletList`` textarea body.
 
-    Used in sidebars and for non-skills chip sections (languages, interests,
+    Used in sidebars and for non-skills chip sections (interests,
     certifications). Main-column skills use ``_skills_inline_content`` instead.
+    Languages use ``_place_languages_grid`` / sidebar hyphen lines.
     """
     return "\n".join(f"• {text}" for text in _clean_list_items(items))
+
+
+def _language_entries(cv: dict | None, items: list | tuple | None = None) -> list[tuple[str, str]]:
+    """Collect ``(name, level)`` pairs from ``cv['languages']`` or flat items."""
+    entries: list[tuple[str, str]] = []
+    for language in (cv or {}).get("languages") or []:
+        if isinstance(language, dict):
+            name = str(language.get("name") or "").strip()
+            level = str(language.get("level") or "").strip()
+        else:
+            name, level = _parse_language_item(str(language or ""))
+        if name:
+            entries.append((name, level))
+    if entries:
+        return entries
+    for item in items or []:
+        name, level = _parse_language_item(str(item or ""))
+        if name:
+            entries.append((name, level))
+    return entries
+
+
+def _parse_language_item(raw: str) -> tuple[str, str]:
+    """Split a flat language line into name + optional CEFR/level suffix."""
+    text = _LEADING_BULLET.sub("", str(raw or "").strip())
+    if not text:
+        return "", ""
+    parts = _LANGUAGE_SEP.split(text, maxsplit=1)
+    if len(parts) == 2:
+        return parts[0].strip(), parts[1].strip()
+    return text, ""
+
+
+def _language_line(name: str, level: str, *, sep: str = LANGUAGE_SEP_SINGLE) -> str:
+    """Format one language cell/line; omit the separator when level is empty."""
+    name = str(name or "").strip()
+    level = str(level or "").strip()
+    if name and level:
+        return f"{name}{sep}{level}"
+    return name or level
+
+
+def _language_level_runs(
+    content: str,
+    name: str,
+    level: str,
+    *,
+    color: str,
+    sep: str = LANGUAGE_SEP_SINGLE,
+) -> list[dict[str, Any]]:
+    """Build textarea ``runs`` so only the level span is italic + accent-coloured."""
+    level = str(level or "").strip()
+    name = str(name or "").strip()
+    if not content or not level or not name:
+        return []
+    suffix = f"{sep}{level}"
+    if not content.endswith(suffix):
+        return []
+    start = len(content) - len(level)
+    if start < 0:
+        return []
+    return [{
+        "start": start,
+        "end": len(content),
+        "italic": True,
+        "color": color,
+    }]
+
+
+def _measure_languages_grid_height(
+    b: Builder,
+    entries: list[tuple[str, str]],
+    width: float,
+    *,
+    columns: int = 4,
+    font: str,
+    fs: float,
+    lh: float,
+    gutter: float = 8.0,
+) -> float:
+    """Total height of a languages grid (for ``need_section`` reservation)."""
+    if not entries:
+        return 0.0
+    col_w = width / max(int(columns), 1)
+    cell_w = max(col_w - gutter, 12.0)
+    total = 0.0
+    for row_start in range(0, len(entries), max(int(columns), 1)):
+        row = entries[row_start:row_start + max(int(columns), 1)]
+        row_h = 0.0
+        for name, level in row:
+            content = _language_line(name, level, sep=LANGUAGE_SEP_SINGLE)
+            row_h = max(row_h, b.measure_block(content, cell_w, fs, lh, font))
+        total += row_h
+    return total
+
+
+def _place_languages_grid(
+    b: Builder,
+    entries: list[tuple[str, str]],
+    left: float,
+    width: float,
+    *,
+    columns: int = 4,
+    font: str,
+    fs: float,
+    lh: float,
+    body_color: str,
+    level_color: str,
+    gutter: float = 8.0,
+) -> None:
+    """Emit one textarea per language in equal-width columns (default 4).
+
+    Empty trailing slots are not emitted. Level text uses ``runs`` (italic +
+    ``level_color``, typically the template accent used for skill chips).
+    Cells are tagged ``flowRole: grid-member`` so the structural packer keeps
+    the row geometry instead of stacking them as a linear record.
+    """
+    if not entries:
+        return
+    cols = max(int(columns), 1)
+    col_w = width / cols
+    cell_w = max(col_w - gutter, 12.0)
+
+    for row_start in range(0, len(entries), cols):
+        row = entries[row_start:row_start + cols]
+        payloads: list[tuple[str, list[dict[str, Any]], float]] = []
+        row_h = 0.0
+        for name, level in row:
+            content = _language_line(name, level, sep=LANGUAGE_SEP_SINGLE)
+            runs = _language_level_runs(
+                content, name, level, color=level_color, sep=LANGUAGE_SEP_SINGLE,
+            )
+            height = b.measure_block(content, cell_w, fs, lh, font)
+            payloads.append((content, runs, height))
+            row_h = max(row_h, height)
+        with b.keep_together(row_h):
+            row_top = b.y
+            page = b.pg
+            for col_index, (content, runs, height) in enumerate(payloads):
+                element = _block(
+                    content,
+                    left + col_index * col_w,
+                    row_top,
+                    cell_w,
+                    height,
+                    fs,
+                    lh,
+                    body_color,
+                    font,
+                    zIndex=2,
+                    page=page,
+                    runs=runs or None,
+                )
+                element["flowRole"] = "grid-member"
+                b.els.append(element)
+            b.y = row_top + row_h
+
+
+def _language_level_color(palette: dict | None) -> str:
+    """Accent used for CEFR levels — same token skill chips / headings use."""
+    colors = palette or {}
+    # Prefer explicit accent keys; ``teal`` is Axis chip ink; ``accent_deep``
+    # is Blueprint's steel heading colour. Fall back to body ink last.
+    for key in ("accent", "accent_deep", "teal", "orange", "marker", "ink", "body"):
+        value = colors.get(key)
+        if value:
+            return str(value)
+    return "#2B2B2B"
+
+
+def _sidebar_language_content(cv: dict | None, items: list | tuple | None = None) -> str:
+    """Plain sidebar body: one ``Name - Level`` line per language (no bullets)."""
+    lines = [
+        _language_line(name, level, sep=LANGUAGE_SEP_SIDEBAR)
+        for name, level in _language_entries(cv, items)
+    ]
+    return "\n".join(line for line in lines if line)
 
 
 def _skills_inline_content(items: list | tuple | None) -> str:
