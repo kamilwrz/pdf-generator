@@ -236,9 +236,7 @@ DOC_BLURBS = {
     "cinder": (
         "Cinder template (`layouts: [\"single\"]`).\n"
         " *\n"
-        " * Dark, high-contrast single column with ember-red accents.\n"
-        " * Default header rhythm is denser than global defaults\n"
-        " * (section 15 / after_rule 0)."
+        " * Dark, high-contrast single column with ember-red accents."
     ),
     "kernel": (
         "Kernel template (`layouts: [\"single\"]`).\n"

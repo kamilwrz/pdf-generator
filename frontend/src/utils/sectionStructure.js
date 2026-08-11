@@ -802,6 +802,24 @@ export function packSidebarLane(
   });
 }
 
+/**
+ * Cardinal / iconic trailing hairline: starts to the right of the label and
+ * vertically overlaps the heading band. It is NOT an underline under the title,
+ * so after_rule / chromeBottom must ignore it (otherwise spacing appears to
+ * measure from a line that already sits beside the heading).
+ */
+function isTrailingMidlineRule(element, heading) {
+  if (!element || !heading || element.category !== "line") return false;
+  if ((Number(element.width) || 0) < 40) return false;
+  const headLeft = Number(heading.left) || 0;
+  const ruleLeft = Number(element.left) || 0;
+  if (ruleLeft < headLeft + 20) return false;
+  const headTop = Number(heading.top) || 0;
+  const ruleTop = Number(element.top) || 0;
+  const headH = elementHeight(heading);
+  return ruleTop <= headTop + headH * 0.75 + 0.01 && ruleTop >= headTop - 4;
+}
+
 function isChromeLike(element) {
   if (!element) return false;
   if (element.flowRole === "section-chrome" || element.flowRole === "sidebar-chrome") {
@@ -896,15 +914,17 @@ function rebuildTightChromeCluster(chromeElements) {
     if (element.category === "line" && width >= 120) {
       // Builder.line paints flush under the label. Monument's accent rule is
       // different: it sits mid-band beside a tall badge (~title+7), not under it.
+      // Cardinal trailing hairlines stay on the heading midline (relTop ≈ 0).
       const tallBadge = chromeElements.some((piece) => (
         piece !== element
         && piece.category === "line"
         && (Number(piece.width) || 0) < 120
         && elementHeight(piece) >= 20
       ));
+      const trailingMidline = isTrailingMidlineRule(element, heading);
       items.push({
         element,
-        relTop: tallBadge ? 7 : headingHeight,
+        relTop: tallBadge ? 7 : (trailingMidline ? 0 : headingHeight),
       });
     } else if (
       element.category === "rectangle"
@@ -1083,10 +1103,15 @@ function compactSectionStrip(sectionElements, pageHeight, spacing, forceTargets 
   }));
   const items = [...chromeItems];
   const bodySorted = sortByReadingOrder(body, pageHeight);
-  const chromeBottom = chromeItems.reduce(
-    (max, item) => Math.max(max, item.relTop + elementHeight(item.element)),
-    0,
-  );
+  const chromeHeading = chromeTitleAnchor(chrome);
+  // Trailing midline hairlines (Cardinal) sit beside the title — exclude them
+  // so after_rule is measured from the heading band, not from that side rule.
+  const chromeBottom = chromeItems.reduce((max, item) => {
+    if (chromeHeading && isTrailingMidlineRule(item.element, chromeHeading)) {
+      return max;
+    }
+    return Math.max(max, item.relTop + elementHeight(item.element));
+  }, 0);
 
   for (let index = 0; index < bodySorted.length; index += 1) {
     const element = bodySorted[index];
@@ -1100,8 +1125,12 @@ function compactSectionStrip(sectionElements, pageHeight, spacing, forceTargets 
     if (index === 0) {
       let gap = targetGap("after_rule", rhythm);
       if (!forceTargets && chrome.length > 0) {
+        const bandPieces = chrome.filter((piece) => (
+          !chromeHeading || !isTrailingMidlineRule(piece, chromeHeading)
+        ));
         const deepestChromeAbs = Math.max(
-          ...chrome.map((piece) => absoluteBottom(piece, pageHeight)),
+          ...bandPieces.map((piece) => absoluteBottom(piece, pageHeight)),
+          chromeHeading ? absoluteBottom(chromeHeading, pageHeight) : 0,
         );
         const authored = absoluteTop(element, pageHeight) - deepestChromeAbs;
         // Keep authored breathing room when it is still a normal under-rule gap.

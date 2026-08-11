@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from app.core.config import BACKEND_URL
 from app.services.cv_generator_primitives import (
-    DEFAULT_FLOW_SPACING,
     get_spacing,
     SPACE_AFTER_MASTHEAD,
     Builder,
@@ -10,22 +9,13 @@ from app.services.cv_generator_primitives import (
     _rect,
     _text,
     section_chrome_height,
-    use_spacing,
 )
 from app.services.cv_templates.shared.extras import (
     _extra_sections,
-    _fit_sidebar_sections,
-    _flatten_extra_items,
-    _sidebar_candidates,
 )
 from app.services.cv_templates.shared.records import (
     _education_record_height,
-    _education_sidebar_content,
-    _experience_record_height,
-    _language_sidebar_lines,
-    _obsidian_education_parts,
     _place_education_record,
-    _place_experience_record,
 )
 from app.services.cv_templates.shared.text import (
     _place_skills_section,
@@ -38,15 +28,6 @@ from app.services.cv_templates.shared.text import (
 
 def _gen_cinder(cv: dict) -> list[dict]:
     """Single-column black, grey and signal-red editorial CV."""
-    # Design reference: 15 px between section headings, 0 px under the rule.
-    # When fill_template / the Sections panel passes an override, honour it.
-    if get_spacing() == DEFAULT_FLOW_SPACING:
-        with use_spacing({"section": 15.0, "after_rule": 0.0}):
-            return _gen_cinder_layout(cv)
-    return _gen_cinder_layout(cv)
-
-
-def _gen_cinder_layout(cv: dict) -> list[dict]:
     BLACK, CHARCOAL, GRAPHITE = "#111315", "#292D31", "#62686D"
     ASH, PAPER, RED = "#D5D6D6", "#F4F3F1", "#C93F3F"
     L, W, SANS, SERIF = 76, 466, "Inter", "Times-Roman"

@@ -77,6 +77,11 @@ def _gen_cardinal(cv: dict) -> list[dict]:
         heading['letterSpacing'] = label_tracking
         heading['bold'] = True
         heading['flowRole'] = 'section-chrome'
+        # Authored chrome depth before after_rule. The trailing midline hairline
+        # sits beside the label (not under it), so applyFlowSpacing must read
+        # this height — otherwise chromeBottom collapses to fontSize×1.35 and
+        # "Pod nagłówkiem" appears to measure from the misplaced hairline.
+        heading['height'] = label_fs + 10
         b.els.append(heading)
         # Approximate the tracked cap width so the rule starts after the label
         # with a stable 14 pt breathing gap. The rule sits at cap mid-height,

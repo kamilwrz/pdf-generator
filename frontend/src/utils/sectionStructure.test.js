@@ -1953,6 +1953,68 @@ describe("appendSectionAtEnd", () => {
   });
 });
 
+describe("Cardinal trailing midline rule + after_rule", () => {
+  // Cardinal's hairline sits beside the title (cap midline), not under it.
+  // applyFlowSpacing must measure after_rule from the heading band
+  // (height = label_fs+10), not from that side rule — otherwise "Pod
+  // nagłówkiem: 0" collapses content toward a line that never left the
+  // heading row.
+  it("keeps after_rule=0 under the heading band, not under the side hairline", () => {
+    const labelFs = 11.2;
+    const chromeH = labelFs + 10;
+    const doc = [
+      {
+        element_id: "h1", category: "text", content: "PODSUMOWANIE ZAWODOWE",
+        flowRole: "section-chrome", left: 94, top: 200, fontSize: labelFs,
+        height: chromeH, bold: true, page: 1,
+      },
+      {
+        // Trailing midline hairline — overlaps the heading row, starts after the label.
+        element_id: "r1", category: "line", flowRole: "section-chrome",
+        left: 280, top: 199.3, width: 240, height: 0.8, page: 1,
+      },
+      {
+        element_id: "b1", category: "textarea", flowRole: "content",
+        left: 72, top: 200 + chromeH + 8, width: 473, height: 40,
+        fontSize: 9.6, page: 1, content: "Summary",
+      },
+      {
+        element_id: "h2", category: "text", content: "DOSWIADCZENIE ZAWODOWE",
+        flowRole: "section-chrome", left: 94, top: 280, fontSize: labelFs,
+        height: chromeH, bold: true, page: 1,
+      },
+      {
+        element_id: "r2", category: "line", flowRole: "section-chrome",
+        left: 300, top: 279.3, width: 220, height: 0.8, page: 1,
+      },
+      {
+        element_id: "b2", category: "textarea", flowRole: "content",
+        left: 72, top: 280 + chromeH + 8, width: 473, height: 40,
+        fontSize: 9.6, page: 1, content: "Job",
+      },
+    ];
+    const next = applyFlowSpacing(doc, {
+      stack: 4, record: 10, section: 21, after_rule: 0,
+    });
+    const byId = Object.fromEntries(next.map((element) => [element.element_id, element]));
+    // Side hairline stays on the heading row (not rebuilt under the label).
+    assert.ok(
+      byId.r1.top < byId.h1.top + 4,
+      `midline rule must stay beside the title, got rule@${byId.r1.top} head@${byId.h1.top}`,
+    );
+    // Body starts at heading.top + chrome height + after_rule(0).
+    assert.ok(
+      Math.abs(byId.b1.top - (byId.h1.top + chromeH)) < 0.5,
+      `after_rule=0 must clear the heading band (+${chromeH}), got body@${byId.b1.top} head@${byId.h1.top}`,
+    );
+    // Must not park the body on the side hairline (~heading top).
+    assert.ok(
+      byId.b1.top - byId.r1.top > 12,
+      "body must not collapse onto the trailing midline hairline",
+    );
+  });
+});
+
 describe("listFlatSectionAnchors", () => {
   // Cardinal's real starter is used as the fixture: UMIEJĘTNOŚCI and JĘZYKI
   // are each authored as one `block(...)` textarea with mid-dot items —
