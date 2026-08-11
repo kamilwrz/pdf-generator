@@ -1,10 +1,13 @@
 /**
  * Browser file-download helpers for PDF export.
  *
- * The editor never navigates to the S3 URL directly in a way that could race
- * against a shared download slot — callers fetch a blob for the specific
- * `pdf_id`, then trigger a one-shot download with that file's own title.
+ * Downloads go through the authenticated API as binary (`httpRequestBlob`) so
+ * the browser never needs to `fetch` a cross-origin S3 URL (that path failed
+ * with opaque "Failed to fetch" whenever the bucket lacked CORS for the React
+ * origin). Each call is scoped to one `pdf_id` — no shared download slot.
  */
+
+import { ApiClient, ENDPOINTS } from "../services/api";
 
 /**
  * Trigger a file download for an object URL (or same-origin href).
@@ -22,4 +25,30 @@ export function triggerBlobDownload(href, filename) {
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
+}
+
+/**
+ * Fetch one owned PDF from `POST /pdf/download_pdf` and return a one-shot
+ * object URL plus the server-suggested filename.
+ *
+ * @param {number|string} pdfId - Document id to export.
+ * @param {{ fallbackTitle?: string }} [options]
+ * @returns {Promise<{ blob: string, title: string }>}
+ */
+export async function fetchOwnedPdfDownload(pdfId, options = {}) {
+  if (pdfId == null) {
+    throw new Error("Brak identyfikatora dokumentu do pobrania.");
+  }
+  const api = new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+  const { blob, filename } = await api.httpRequestBlob(
+    ENDPOINTS.PDF.DOWNLOAD,
+    "POST",
+    JSON.stringify(pdfId),
+    "Błąd pobierania",
+  );
+  const urlBlob = URL.createObjectURL(blob);
+  // Keep the object URL alive long enough for the toast "Pobierz PDF" action.
+  window.setTimeout(() => URL.revokeObjectURL(urlBlob), 60_000);
+  const title = filename || options.fallbackTitle || "cv.pdf";
+  return { blob: urlBlob, title };
 }

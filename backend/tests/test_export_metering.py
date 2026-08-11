@@ -27,7 +27,7 @@ from app.testing_support import ensure_test_auth_env
 class ExportMeteringTests(unittest.TestCase):
     """Wire-contract coverage for POST /pdf/download_pdf export metering.
 
-    Forces the local (non-S3) path so a successful download returns the Pdf row
+    Forces the local (non-S3) path so a successful download streams PDF bytes
     after ``assert_can_export`` + ``record_export``. Free plan allows 3 exports
     per month; the fourth must surface ``plan_limit_exports``.
     """
@@ -116,9 +116,7 @@ class ExportMeteringTests(unittest.TestCase):
 
     def test_free_plan_allows_three_exports_then_blocks(self):
         # Patch the name bound in the route module (imported by value at
-        # import time). Local path returns the Pdf ORM row after metering;
-        # jsonable_encoder may serialize an expired instance as `{}`, so the
-        # contract under test is status + UsageCounter, not response fields.
+        # import time). Local path streams the PDF bytes after metering.
         with patch.object(pdf_route, "USE_S3", False):
             for i in range(3):
                 response = self.client.post("/pdf/download_pdf", json=self.pdf_id)
@@ -127,6 +125,7 @@ class ExportMeteringTests(unittest.TestCase):
                     200,
                     msg=f"export {i + 1} should succeed: {response.text}",
                 )
+                self.assertIn("application/pdf", response.headers.get("content-type", ""))
 
             self.assertEqual(self._exports_count(), 3)
 

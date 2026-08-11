@@ -989,15 +989,16 @@ The starter modules use explicit `.js` import extensions, and `frontend/src/serv
 
 Full render on create/update; autosave is elements-only.
 
-Topbar **Pobierz PDF** (`updatePdf`, intent `download`) waits for `POST /pdf/download_pdf`, then triggers a browser save for **that** `pdf_id` via `triggerBlobDownload` and bakes the same blob URL into the success toast action — never a shared download slot that another document could overwrite. **Moje dokumenty** downloads are per-row click handlers with the same pattern (no `mouseEnter` prefetch into a global blob). The document list refreshes on dialog open / mount only, not when a download finishes.
+Topbar **Pobierz PDF** (`updatePdf`, intent `download`) waits for `POST /pdf/download_pdf`, which **streams the PDF bytes** through the API (local disk or S3 `get_object` proxied server-side). The browser never `fetch`es a cross-origin S3/presigned URL — that path failed with opaque `Failed to fetch` whenever the bucket lacked CORS for the React origin. `fetchOwnedPdfDownload` + `triggerBlobDownload` save **that** `pdf_id` and bake the same object URL into the success toast action — never a shared download slot. **Moje dokumenty** downloads are per-row click handlers with the same helper. The document list refreshes on dialog open / mount only, not when a download finishes.
 
 Implementation:
 
 - `frontend/src/hooks/usePdfExport.js`, lines 19+, `createPdf` / `updatePdf` / `saveElements`
 - `frontend/src/pages/PdfCanvas.jsx`, `prepareDownload` + post-spinner toast effect — per-request blob + optional auto-download
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `downloadPdf` — click-to-download for one id; list fetch not tied to download state
-- `frontend/src/utils/download.js`, `triggerBlobDownload`
-- `backend/app/api/routes/pdf.py`, `create_user_pdf`, `save_pdf_elements`, `download_pdf`
+- `frontend/src/utils/download.js`, `fetchOwnedPdfDownload`, `triggerBlobDownload`
+- `frontend/src/services/api.js`, `httpRequestBlob` / `parseContentDispositionFilename`
+- `backend/app/api/routes/pdf.py`, `create_user_pdf`, `save_pdf_elements`, `download_pdf` (binary attachment)
 - `backend/app/services/pdf_generator.py`, class `PDF_Generator`, `render_elements` (line 492+)
 - `backend/app/crud/pdfs.py`, `create_new_pdf`, `update_pdf_elements`
 
@@ -1443,7 +1444,7 @@ Base URL: `VITE_API_URL` (frontend) / deployed backend. Auth: `Authorization: Be
 | PUT | `/pdf/update_pdf` | yes | Save + re-render | `update_user_pdf` |
 | PUT | `/pdf/save_elements` | yes | Autosave elements only | `save_pdf_elements` |
 | DELETE | `/pdf/delete_pdf` | yes | Delete owned doc | `delete_user_pdf` |
-| POST | `/pdf/download_pdf` | yes | Export URL/row + meter | `download_pdf` |
+| POST | `/pdf/download_pdf` | yes | Stream PDF bytes + meter (`Content-Disposition` filename) | `download_pdf` |
 | POST | `/images/upload_image` | yes | Multipart image | `create_upload_image` |
 | GET | `/images/fetch_images` | yes | List images | `fetch_user_images` |
 | GET | `/images/{img_id}/content` | yes | Private image bytes (owner only) | `get_image_content` |
@@ -2623,15 +2624,16 @@ Moduły starterów używają jawnych rozszerzeń `.js` w importach, a `frontend/
 
 Pełny render przy create/update; autozapis to tylko elementy.
 
-Topbar **Pobierz PDF** (`updatePdf`, intent `download`) czeka na `POST /pdf/download_pdf`, potem uruchamia zapis w przeglądarce dla **tego** `pdf_id` przez `triggerBlobDownload` i wkleja ten sam blob URL w akcję toasta sukcesu — bez wspólnego slotu pobierania, który mógłby nadpisać inny dokument. Pobieranie w **Moje dokumenty** to klik per wiersz w tym samym modelu (bez prefetchu `mouseEnter` do globalnego bloba). Lista dokumentów odświeża się przy otwarciu / mount, nie po zakończeniu pobierania.
+Topbar **Pobierz PDF** (`updatePdf`, intent `download`) czeka na `POST /pdf/download_pdf`, który **strumieniuje bajty PDF** przez API (dysk lokalny albo S3 `get_object` po stronie serwera). Przeglądarka nie robi `fetch` na cross-origin URL S3/presigned — ta ścieżka kończyła się nieprzezroczystym `Failed to fetch`, gdy bucket nie miał CORS dla originu Reacta. `fetchOwnedPdfDownload` + `triggerBlobDownload` zapisują **ten** `pdf_id` i wklejają ten sam object URL w akcję toasta sukcesu — bez wspólnego slotu. Pobieranie w **Moje dokumenty** to klik per wiersz z tym samym helperem. Lista dokumentów odświeża się przy otwarciu / mount, nie po zakończeniu pobierania.
 
 Implementacja:
 
 - `frontend/src/hooks/usePdfExport.js` — `createPdf`, `updatePdf`, `saveElements`
 - `frontend/src/pages/PdfCanvas.jsx`, `prepareDownload` + efekt po spinnerze — blob per request + opcjonalne auto-pobranie
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `downloadPdf` — klik dla jednego id; fetch listy niezależny od stanu pobierania
-- `frontend/src/utils/download.js`, `triggerBlobDownload`
-- `backend/app/api/routes/pdf.py`
+- `frontend/src/utils/download.js`, `fetchOwnedPdfDownload`, `triggerBlobDownload`
+- `frontend/src/services/api.js`, `httpRequestBlob` / `parseContentDispositionFilename`
+- `backend/app/api/routes/pdf.py` — `download_pdf` (załącznik binarny)
 - `backend/app/services/pdf_generator.py` — `PDF_Generator.render_elements` (ok. 492+)
 - `backend/app/crud/pdfs.py` — `create_new_pdf`, `update_pdf_elements`
 
@@ -3067,7 +3069,7 @@ URL bazowy: `VITE_API_URL`. Auth: `Authorization: Bearer <jwt>` (chyba że zazna
 | PUT | `/pdf/update_pdf` | tak | Zapisz + render | `update_user_pdf` |
 | PUT | `/pdf/save_elements` | tak | Autozapis | `save_pdf_elements` |
 | DELETE | `/pdf/delete_pdf` | tak | Usuń | `delete_user_pdf` |
-| POST | `/pdf/download_pdf` | tak | Pobierz + licznik | `download_pdf` |
+| POST | `/pdf/download_pdf` | tak | Strumień bajtów PDF + licznik (`Content-Disposition`) | `download_pdf` |
 | POST | `/images/upload_image` | tak | Multipart obraz | `create_upload_image` |
 | GET | `/images/fetch_images` | tak | Lista obrazów | `fetch_user_images` |
 | GET | `/images/{img_id}/content` | tak | Bajty obrazu (tylko właściciel) | `get_image_content` |

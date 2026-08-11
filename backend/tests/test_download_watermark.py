@@ -90,6 +90,9 @@ class DownloadWatermarkTests(unittest.TestCase):
         with patch.object(pdf_route, "USE_S3", False):
             response = self.client.post("/pdf/download_pdf", json=self.pdf_id)
         self.assertEqual(response.status_code, 200, msg=response.text)
+        self.assertIn("application/pdf", response.headers.get("content-type", ""))
+        self.assertTrue(response.content.startswith(b"%PDF"))
+        self.assertIn("attachment", response.headers.get("content-disposition", ""))
         self.db.refresh(self._pdf_row())
         self.assertTrue(self._pdf_row().watermarked)
         self.assertTrue(Path(self.file_path).exists())
@@ -97,6 +100,9 @@ class DownloadWatermarkTests(unittest.TestCase):
     def test_already_matching_state_skips_rerender(self):
         self._pdf_row().watermarked = True  # already matches Free's requirement
         self.db.commit()
+        # Write a minimal PDF so the local FileResponse path has bytes to serve
+        # when the re-render is correctly skipped.
+        Path(self.file_path).write_bytes(b"%PDF-1.4 stub")
         # `app.api.routes.pdf` imports `render_pdf_for_download` directly into its
         # own module namespace (`from app.services.document_service import ...
         # render_pdf_for_download`), so the route calls the name bound inside
@@ -109,6 +115,7 @@ class DownloadWatermarkTests(unittest.TestCase):
              patch.object(pdf_route, "render_pdf_for_download") as mock_render:
             response = self.client.post("/pdf/download_pdf", json=self.pdf_id)
         self.assertEqual(response.status_code, 200, msg=response.text)
+        self.assertEqual(response.content, b"%PDF-1.4 stub")
         mock_render.assert_not_called()
 
     def test_upgrade_triggers_clean_rerender(self):
@@ -119,6 +126,7 @@ class DownloadWatermarkTests(unittest.TestCase):
         with patch.object(pdf_route, "USE_S3", False):
             response = self.client.post("/pdf/download_pdf", json=self.pdf_id)
         self.assertEqual(response.status_code, 200, msg=response.text)
+        self.assertTrue(response.content.startswith(b"%PDF"))
         self.db.refresh(self._pdf_row())
         self.assertFalse(self._pdf_row().watermarked)
 

@@ -18,7 +18,7 @@ import { GrView } from "react-icons/gr";
 import { FiSearch, FiAlertTriangle } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
-import { triggerBlobDownload } from "../../../utils/download";
+import { fetchOwnedPdfDownload, triggerBlobDownload } from "../../../utils/download";
 
 import { ApiClient } from "../../../services/api";
 import { ENDPOINTS } from "../../../services/api";
@@ -276,24 +276,16 @@ export default function ModalPdfs({ title }) {
     }, [isModalPdfs]);
 
     /**
-     * Download one document by id. Fetches that row's blob and triggers the
-     * browser save immediately — never writes into a shared download slot that
-     * other rows (or the Topbar toast) could race against.
+     * Download one document by id via the authenticated binary API response.
+     * Never writes into a shared download slot that other rows (or the Topbar
+     * toast) could race against, and never fetches S3 from the browser.
      */
     async function downloadPdf(id) {
         if (downloadingId != null) return;
         setDownloadingId(id);
         try {
-            const response = await api.httpRequest(
-                ENDPOINTS.PDF.DOWNLOAD,
-                "POST",
-                id,
-                "Błąd pobierania",
-            );
-            const blob = await (await fetch(response.url)).blob();
-            const urlBlob = URL.createObjectURL(blob);
-            triggerBlobDownload(urlBlob, response.title);
-            window.setTimeout(() => URL.revokeObjectURL(urlBlob), 60_000);
+            const prepared = await fetchOwnedPdfDownload(id);
+            triggerBlobDownload(prepared.blob, prepared.title);
             refreshEntitlements?.();
         } catch (err) {
             pushToast?.({

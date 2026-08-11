@@ -226,4 +226,135 @@ export class ApiClient {
             clearTimeout(timeoutId);
         }
     }
+
+    /**
+     * Like `httpRequest`, but returns binary body + optional filename from
+     * `Content-Disposition` (used by `POST /pdf/download_pdf`).
+     *
+     * Error responses remain JSON (plan limits, 404s) and are thrown with the
+     * same `status` / `code` / `upgradeRequired` fields as `httpRequest`.
+     */
+    async httpRequestBlob(endpoint, method, body, errorMessage, options = {}) {
+        const retries = Math.max(0, options.retries ?? 0);
+        const retryDelayMs = options.retryDelayMs ?? 2_500;
+        let lastError = null;
+
+        for (let attempt = 0; attempt <= retries; attempt += 1) {
+            if (attempt > 0) {
+                options.onRetry?.(attempt);
+                await sleep(retryDelayMs * Math.min(attempt, 4));
+            }
+            try {
+                return await this._httpRequestBlobOnce(endpoint, method, body, errorMessage, options);
+            } catch (error) {
+                lastError = error;
+                const retryable = options.retryOnTimeout === false
+                    ? isRetryableNetworkError(error)
+                    : isTransientNetworkError(error);
+                if (!retryable || attempt === retries) {
+                    if (error?.name === "AbortError") {
+                        throw error;
+                    }
+                    if (isTransientNetworkError(error) && !error.status) {
+                        throw new Error(
+                            "Nie udało się połączyć z serwerem (trwa uruchamianie). Spróbuj ponownie za chwilę.",
+                        );
+                    }
+                    throw error;
+                }
+            }
+        }
+        throw lastError || new Error(errorMessage || "Wystąpił błąd podczas komunikacji z serwerem.");
+    }
+
+    async _httpRequestBlobOnce(endpoint, method, body, errorMessage, options = {}) {
+        const fallbackMessage = errorMessage || "Wystąpił błąd podczas komunikacji z serwerem.";
+        const headers = { ...this.headers };
+        if (body instanceof FormData) delete headers["Content-Type"];
+
+        const timeoutMs = options.timeoutMs ?? 90_000;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+            const response = await fetch(this.baseUrl + endpoint, {
+                method,
+                headers,
+                body,
+                credentials: "omit",
+                signal: controller.signal,
+            });
+
+            if (!response.ok) {
+                let payload = null;
+                try {
+                    payload = await response.json();
+                } catch {
+                    payload = null;
+                }
+                const detail = payload?.detail;
+                let message = typeof detail === "string"
+                    ? detail
+                    : (detail?.message || fallbackMessage);
+                if (
+                    (response.status === 401 || response.status === 403)
+                    && typeof message === "string"
+                    && message.toLowerCase() === "not authenticated"
+                ) {
+                    message = "Token jest nieprawidłowy lub wygasł";
+                }
+                const requestError = new Error(message);
+                requestError.status = response.status;
+                requestError.code = typeof detail === "object" && detail ? detail.code : undefined;
+                requestError.upgradeRequired = typeof detail === "object" && detail
+                    ? detail.upgrade_required
+                    : undefined;
+                requestError.planMessage = typeof detail === "object" && detail
+                    ? detail.message
+                    : undefined;
+                requestError.detail = detail;
+                throw requestError;
+            }
+
+            const blob = await response.blob();
+            const filename = parseContentDispositionFilename(
+                response.headers.get("Content-Disposition"),
+            );
+            return { blob, filename };
+        } catch (error) {
+            if (error?.name === "AbortError") {
+                const seconds = Math.round(timeoutMs / 1000);
+                const abortError = new Error(
+                    `Przekroczono czas oczekiwania (${seconds} s). Serwer lub model AI nadal pracuje — spróbuj ponownie za chwilę.`,
+                );
+                abortError.name = "AbortError";
+                throw abortError;
+            }
+            if (error instanceof Error) throw error;
+            throw new Error(fallbackMessage);
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
+}
+
+/**
+ * Parse `filename` / `filename*` from a Content-Disposition header.
+ *
+ * @param {string | null} header
+ * @returns {string | null}
+ */
+export function parseContentDispositionFilename(header) {
+    if (!header) return null;
+    // filename*=UTF-8''encoded-name
+    const star = /filename\*\s*=\s*(?:UTF-8''|utf-8'')([^;]+)/i.exec(header);
+    if (star?.[1]) {
+        try {
+            return decodeURIComponent(star[1].trim().replace(/^"+|"+$/g, ""));
+        } catch {
+            // fall through to plain filename=
+        }
+    }
+    const plain = /filename\s*=\s*("?)([^";]+)\1/i.exec(header);
+    return plain?.[2]?.trim() || null;
 }

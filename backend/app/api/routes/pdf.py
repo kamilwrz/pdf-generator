@@ -12,7 +12,11 @@ There are two persistence paths:
 """
 
 import datetime
+from pathlib import Path
+from urllib.parse import quote
+
 from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi.responses import FileResponse, Response
 from starlette import status
 from sqlalchemy.orm import Session
 from app.core.security import verify_token
@@ -37,6 +41,23 @@ from app.services.document_service import (
 
 if USE_S3:
     from app.services import s3_storage
+
+
+def _pdf_download_filename(title: str | None) -> str:
+    """Normalise a stored document title into an attachment filename."""
+    name = (title or "cv.pdf").strip() or "cv.pdf"
+    if not name.lower().endswith(".pdf"):
+        name = f"{name}.pdf"
+    return name
+
+
+def _content_disposition(filename: str) -> str:
+    """Build Content-Disposition with ASCII fallback + RFC 5987 UTF-8 name."""
+    ascii_fallback = filename.encode("ascii", "replace").decode("ascii").replace("?", "_")
+    return (
+        f'attachment; filename="{ascii_fallback}"; '
+        f"filename*=UTF-8''{quote(filename)}"
+    )
 
 
 router = APIRouter(
@@ -195,13 +216,18 @@ async def download_pdf(
     id=Body(),
     payload: dict = Depends(verify_token),
 ):
-    """Return a download URL or row for an owned PDF after export entitlement check.
+    """Stream an owned PDF as an attachment after the export entitlement check.
 
     Side effects: increments the monthly export counter via `record_export`.
     Re-renders the stored file in place when its watermark state no longer
     matches the account's current plan (e.g. right after an upgrade) — an
-    unchanged plan never pays that cost. S3 deployments return a short-lived
-    presigned URL; local returns the Pdf row.
+    unchanged plan never pays that cost.
+
+    Bytes are always proxied through this API (local disk or S3 ``get_object``).
+    Returning a browser-side S3 presigned URL used to fail with opaque
+    ``Failed to fetch`` errors whenever the bucket lacked CORS for the React
+    origin — the editor cannot read cross-origin bodies without that CORS
+    config, so the API streams the file instead.
     """
     pdf_row = _require_owned_pdf(db, payload, id)
     username = payload.get("sub")
@@ -213,15 +239,38 @@ async def download_pdf(
     # was active at its last save. If the account's plan changed since then, the
     # watermark on disk is wrong (a Free->Standard upgrade leaves a watermarked
     # file; a downgrade leaves a clean one). Re-render only on that mismatch so
-    # the common no-change download stays a cheap row/URL lookup.
+    # the common no-change download stays a cheap static serve.
     watermark_required = get_entitlements(db, db_user)["plan_slug"] == "free"
     if bool(pdf_row.watermarked) != watermark_required:
         render_pdf_for_download(db, pdf_row, watermark_required)
         db.commit()
+
+    filename = _pdf_download_filename(pdf_row.title)
+    disposition = _content_disposition(filename)
+    record_export(db, db_user.id)
+
     if USE_S3:
         key = s3_storage.key_from_file_path(pdf_row.file_path)
-        download_url = s3_storage.generate_presigned_download_url(key)
-        record_export(db, db_user.id)
-        return {"url": download_url, "title": pdf_row.title}
-    record_export(db, db_user.id)
-    return pdf_row
+        try:
+            pdf_bytes = s3_storage.download_bytes(key)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=404,
+                detail="Nie znaleziono pliku PDF w magazynie.",
+            ) from exc
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": disposition},
+        )
+
+    path = Path(pdf_row.file_path) if pdf_row.file_path else None
+    if path is None or not path.is_file():
+        raise HTTPException(status_code=404, detail="Nie znaleziono pliku PDF na dysku.")
+    # Prefer an explicit Content-Disposition so Polish titles keep a UTF-8
+    # filename* parameter; FileResponse's filename= helper is ASCII-oriented.
+    return FileResponse(
+        path=str(path),
+        media_type="application/pdf",
+        headers={"Content-Disposition": disposition},
+    )

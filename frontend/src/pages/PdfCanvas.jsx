@@ -56,7 +56,7 @@ import { resolveActiveCvData } from '../utils/resolveActiveCvData';
 import { previewStructureOperation, reconcileDocumentPages } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
 import { planErrorMessage } from '../utils/entitlements';
-import { triggerBlobDownload } from '../utils/download';
+import { fetchOwnedPdfDownload, triggerBlobDownload } from '../utils/download';
 import { useCanvasPageWheel } from '../hooks/useCanvasPageWheel';
 import {
   EDITOR_MODE_FREEFORM,
@@ -437,17 +437,13 @@ function PdfCanvas() {
   const autosaveQueueRef = useRef(Promise.resolve());
   const wasPdfLoadingRef = useRef(false);
 
-  // Fetch the rendered PDF blob for a specific id and return a one-shot object
-  // URL + server title. Never stores into a shared slot — toast and ModalPdfs
-  // each keep their own href so an older download cannot overwrite a newer one.
+  // Fetch the rendered PDF bytes for a specific id through the API (not a
+  // browser-side S3 URL) and return a one-shot object URL + filename. Never
+  // stores into a shared slot — toast and ModalPdfs each keep their own href.
   const prepareDownload = useCallback(async (pdfId) => {
-    const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
-    const response = await api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "POST", pdfId, "Błąd pobierania");
-    const blob = await (await fetch(response.url)).blob();
-    const urlBlob = URL.createObjectURL(blob);
-    window.setTimeout(() => URL.revokeObjectURL(urlBlob), 60_000);
+    const prepared = await fetchOwnedPdfDownload(pdfId);
     refreshEntitlements();
-    return { blob: urlBlob, title: response.title };
+    return prepared;
   }, [refreshEntitlements]);
 
   // Fires exactly when the create/update spinner finishes. For download intent

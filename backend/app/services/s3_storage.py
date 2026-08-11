@@ -1,8 +1,9 @@
 """AWS S3 helpers for PDF and image object storage.
 
 Enabled when `S3_BUCKET` is set. Public HTTPS URLs are returned after upload
-so the frontend and ReportLab resolvers can locate objects. Presigned download
-URLs are used for export so the bucket need not be fully public.
+so ReportLab resolvers can locate objects. PDF export downloads bytes through
+the API (`download_bytes`) rather than browser-side presigned GETs, so the
+bucket does not need CORS rules for the React origin.
 """
 
 import os
