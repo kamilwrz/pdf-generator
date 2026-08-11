@@ -229,7 +229,8 @@ DOC_BLURBS = {
         " *\n"
         " * Light minimal single column with soft blue accents,\n"
         " * set entirely in Lora (name 32 / headings & roles 14 /\n"
-        " * body 12 dark grey / meta 11)."
+        " * body 12 dark grey / meta 11). Clean masthead (no rail/\n"
+        " * mark chips), 3 px rules, 56 px under the header divider."
     ),
     "cinder": (
         "Cinder template (`layouts: [\"single\"]`).\n"

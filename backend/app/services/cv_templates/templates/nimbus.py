@@ -3,12 +3,7 @@ from __future__ import annotations
 from app.core.config import BACKEND_URL
 from app.services.cv_generator_primitives import (
     get_spacing,
-    SPACE_AFTER_HEADER_RULE,
-    SPACE_AFTER_MASTHEAD,
     Builder,
-    _block,
-    _circle,
-    _ellipse,
     _line,
     _rect,
     _text,
@@ -16,18 +11,10 @@ from app.services.cv_generator_primitives import (
 )
 from app.services.cv_templates.shared.extras import (
     _extra_sections,
-    _fit_sidebar_sections,
-    _flatten_extra_items,
-    _sidebar_candidates,
 )
 from app.services.cv_templates.shared.records import (
     _education_record_height,
-    _education_sidebar_content,
-    _experience_record_height,
-    _language_sidebar_lines,
-    _obsidian_education_parts,
     _place_education_record,
-    _place_experience_record,
 )
 from app.services.cv_templates.shared.text import (
     _place_skills_section,
@@ -43,14 +30,17 @@ def _gen_nimbus(cv: dict) -> list[dict]:
     INK, BLUE = "#2B3D4C", "#5F8EAD"
     # Body copy uses a neutral dark grey; headings keep the blue accent ink.
     BODY = "#3A3A3A"
-    POWDER, SKY, CLOUD, SLATE = "#B9D2E5", "#DFEBF4", "#E9EEF1", "#72818C"
+    POWDER, CLOUD, SLATE = "#B9D2E5", "#E9EEF1", "#72818C"
     L, W, FONT = 80, 462, "Lora"
     FS_NAME, FS_ROLE, FS_HEADING, FS_BODY, FS_META = 32, 14, 14, 12, 11
     LH_ROLE, LH_BODY, LH_META = 18, 17, 14.5
     CONTINUATION = 66
-    # Label + rule gap; decorated markers stay inside this band so their tops
-    # never sort between education/experience flowGroup mates during reflow.
-    SECTION_CHROME = section_chrome_height(FS_HEADING)
+    # Masthead divider and section underlines share the same 3 px weight.
+    RULE_H = 3
+    # Authored clearance under the masthead rule (resolveFlowStart 6–56 window).
+    AFTER_MASTHEAD_RULE = 56
+    # Label advance + rule thickness + after-rule gap.
+    SECTION_CHROME = section_chrome_height(FS_HEADING) + RULE_H
     lbl = _labels(cv)
 
     class NimbusBuilder(Builder):
@@ -60,37 +50,42 @@ def _gen_nimbus(cv: dict) -> list[dict]:
     def _masthead(element: dict) -> dict:
         return {**element, "flowRole": "masthead"}
 
-    mark_one = _masthead({**_rect(80, 176, 14, 14, BLUE, 1.2, zIndex=2), "id": "nimbus-mark-one"})
-    mark_two = _masthead({**_rect(114, 176, 14, 14, POWDER, 1.2, zIndex=2), "id": "nimbus-mark-two"})
-    mark_three = _masthead({**_rect(148, 176, 14, 14, POWDER, 1.2, zIndex=2), "id": "nimbus-mark-three"})
+    # Clean masthead: name / role / contact on the content column, photo on the
+    # right, no left rail or ordinal mark chips. Positions match the Nimbus
+    # picker composition (name top-left, photo top-right, contact mid-band).
+    photo_frame = _masthead({
+        **_rect(401, 35, 141, 153, POWDER, 1.1, zIndex=3),
+        "id": "nimbus-photo-frame",
+        "photoSlot": "frame",
+        "photoShape": "rect",
+    })
+    photo_image = _masthead({
+        "category": "image",
+        "src": f"{BACKEND_URL}/template-assets/nimbus-finance-accent.png",
+        "width": 129,
+        "height": 141,
+        "left": 407,
+        "top": 41,
+        "zIndex": 2,
+        "page": 1,
+        "id": "nimbus-photo-image",
+        "photoSlot": "image",
+    })
+    # Divider sits under the photo band; body flow starts AFTER_MASTHEAD_RULE
+    # below the rule's bottom edge.
+    rule_top = 207.0
     static = [
-        _masthead(_line(0, 0, 595, 4, POWDER, zIndex=0)),
-        _masthead(_line(52, 207, 490, 1, POWDER)),
-        _masthead(_rect(401, 35, 141, 153, POWDER, 1.1, zIndex=3)),
-        _masthead({
-            "category": "image",
-            "src": f"{BACKEND_URL}/template-assets/nimbus-finance-accent.png",
-            "width": 129,
-            "height": 141,
-            "left": 407,
-            "top": 41,
-            "zIndex": 2,
-            "page": 1,
-        }),
-        _masthead(_line(52, 48, 4, 112, BLUE, zIndex=2)),
-        _masthead(_text(_compact_text(cv.get("name"), 28), FS_NAME, FONT, INK, 78, 52, zIndex=2, bold=True)),
-        _masthead(_text(_compact_text(cv.get("title"), 48), FS_ROLE, FONT, BLUE, 80, 98, zIndex=2)),
-        _masthead(_text(_compact_text(_contact_line(cv), 72), FS_META, FONT, SLATE, 80, 153, zIndex=2)),
-        mark_one,
-        mark_two,
-        mark_three,
-        _masthead(_line(94, 182, 20, 1, POWDER, zIndex=1)),
-        _masthead(_line(128, 182, 20, 1, POWDER, zIndex=1)),
+        _masthead(_line(0, 0, 595, RULE_H, POWDER, zIndex=0)),
+        _masthead(_line(52, rule_top, 490, RULE_H, POWDER)),
+        photo_frame,
+        photo_image,
+        _masthead(_text(_compact_text(cv.get("name"), 28), FS_NAME, FONT, INK, L, 52, zIndex=2, bold=True)),
+        _masthead(_text(_compact_text(cv.get("title"), 48), FS_ROLE, FONT, BLUE, L, 98, zIndex=2)),
+        _masthead(_text(_compact_text(_contact_line(cv), 72), FS_META, FONT, SLATE, L, 153, zIndex=2)),
     ]
-    static[6]["letterSpacing"] = 1.2
+    static[5]["letterSpacing"] = 1.2
 
-    # Header rail at y=207; masthead clearance before the first section heading.
-    b = NimbusBuilder(208 + SPACE_AFTER_HEADER_RULE)
+    b = NimbusBuilder(rule_top + RULE_H + AFTER_MASTHEAD_RULE)
 
     def job_title(job: dict) -> str:
         # Demo / wizard payloads may use `role` before cv_data normalises to `title`.
@@ -117,20 +112,14 @@ def _gen_nimbus(cv: dict) -> list[dict]:
             body_fs=FS_BODY, body_lh=LH_BODY,
         )
 
-    def section(label: str, decorated: bool = True) -> None:
-        if decorated:
-            # Markers stay in the heading band (above the rule). A taller chip
-            # at y+20 previously sorted onto the first record line and made
-            # client reflow treat school/meta as a new record after the degree.
-            rail = _line(52, b.y + 2, 2, 14, SKY, page=b.pg)
-            chip = _rect(45, b.y + 1, 14, 14, BLUE, zIndex=2, page=b.pg)
-            rail["flowRole"] = "section-chrome"
-            chip["flowRole"] = "section-chrome"
-            b.els.extend((rail, chip))
+    def section(label: str) -> None:
+        # Heading + underline only — no decorative rail/chip beside the label.
         b.text(label, FS_HEADING, FONT, BLUE, L)
         b.els[-1]["flowRole"] = "section-chrome"
-        b.line(L, W, 1, CLOUD)
+        b.line(L, W, RULE_H, CLOUD)
         b.els[-1]["flowRole"] = "section-chrome"
+        # Advance past the rule thickness, then the shared after-rule rhythm.
+        b.gap(RULE_H)
         b.gap(get_spacing().after_rule)
 
     def close_section() -> None:
@@ -138,7 +127,7 @@ def _gen_nimbus(cv: dict) -> list[dict]:
 
     if cv.get("summary"):
         b.need_section(SECTION_CHROME, b.measure_block(cv["summary"], W, FS_BODY, LH_BODY, FONT))
-        section(lbl["summary"], decorated=False)
+        section(lbl["summary"])
         b.block(cv["summary"], L, W, FS_BODY, LH_BODY, BODY, FONT)
         close_section()
 

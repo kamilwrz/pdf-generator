@@ -1196,7 +1196,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in elements
         ))
 
-    def test_nimbus_repeats_section_rail_on_continuation_pages(self):
+    def test_nimbus_repeats_section_underline_on_continuation_pages(self):
         multi_page_cv = {
             **LONG_CV,
             "experience": LONG_CV["experience"] * 4,
@@ -1211,21 +1211,19 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
         self.assertGreater(education_heading["page"], 1)
         self.assertEqual(education_heading.get("flowRole"), "section-chrome")
-        # Chip/rail stay in the heading band (not on the first record line).
-        self.assertTrue(any(
+        # Heading + 3 px underline only — no decorative rail/chip beside labels.
+        self.assertFalse(any(
             element["category"] == "rectangle"
             and element["page"] == education_heading["page"]
-            and element["left"] == 45
-            and abs(element["top"] - (education_heading["top"] + 1)) < 0.01
             and element.get("flowRole") == "section-chrome"
             for element in elements
         ))
         self.assertTrue(any(
             element["category"] == "line"
             and element["page"] == education_heading["page"]
-            and element["left"] == 52
-            and abs(element["top"] - (education_heading["top"] + 2)) < 0.01
-            and element["height"] <= 16
+            and element["left"] == 80
+            and abs(element["top"] - (education_heading["top"] + 14 * 1.35)) < 0.01
+            and element["height"] == 3
             and element.get("flowRole") == "section-chrome"
             for element in elements
         ))
@@ -1292,14 +1290,14 @@ class CvTemplateLayoutTests(unittest.TestCase):
             {degree.get("flowGroup")},
         )
         self.assertLess(heading["top"], degree["top"])
-        # Section markers must sit above the degree so reflow cannot insert
+        # Section underline must sit above the degree so reflow cannot insert
         # chrome between flowGroup mates.
         self.assertTrue(all(
             element["top"] < degree["top"] - 0.01
             for element in elements
             if element.get("flowRole") == "section-chrome"
             and element.get("page", 1) == heading["page"]
-            and element["category"] in {"line", "rectangle"}
+            and element["category"] == "line"
             and abs(element["top"] - heading["top"]) < 24
         ))
 
@@ -1520,20 +1518,20 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 )
 
     def test_header_rule_mastheads_clear_first_section_heading(self):
-        """Thin masthead dividers leave 25–45 px before the first section."""
-        # template_id → y of the wide header divider (top of 1px rule)
+        """Masthead dividers leave a clear band before the first section."""
+        # template_id → (rule top y, rule height, min gap, max gap)
         cases = {
-            "nimbus": 207,
-            "regent": 154,
-            "aldine": 157,
-            "nova": 144,
-            "words": None,  # hairline is measured from the generated layout
+            "nimbus": (207, 3, 56.0, 56.0),
+            "regent": (154, 1, 25.0, 45.0),
+            "aldine": (157, 1, 25.0, 45.0),
+            "nova": (160, 1, 25.0, 45.0),
+            "words": (None, 1, 25.0, 45.0),  # hairline measured from layout
         }
         cv = {
             **LONG_CV,
             "experience": LONG_CV["experience"][:1],
         }
-        for template_id, rule_top in cases.items():
+        for template_id, (rule_top, rule_h, min_gap, max_gap) in cases.items():
             with self.subTest(template_id=template_id):
                 elements = generate_resume(template_id, cv)
                 heading = next(
@@ -1560,22 +1558,22 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     self.assertIsNotNone(divider, msg=f"{template_id}: missing header rule")
                     rule_bottom = divider
                 else:
-                    rule_bottom = rule_top + 1
+                    rule_bottom = rule_top + rule_h
                 gap = heading["top"] - rule_bottom
                 self.assertGreaterEqual(
                     gap,
-                    25.0,
+                    min_gap - 0.01,
                     msg=(
                         f"{template_id}: gap {gap:.1f}px under header rule "
-                        f"ending at y={rule_bottom} is below the 25px band"
+                        f"ending at y={rule_bottom} is below {min_gap}px"
                     ),
                 )
                 self.assertLessEqual(
                     gap,
-                    45.0,
+                    max_gap + 0.01,
                     msg=(
                         f"{template_id}: gap {gap:.1f}px under header rule "
-                        "exceeds the 45px upper band"
+                        f"exceeds {max_gap}px"
                     ),
                 )
 
