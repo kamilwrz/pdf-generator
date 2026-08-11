@@ -6,11 +6,36 @@ import {
     canJumpToBioCvSummary,
     createEmptyBioCvData,
     getBioCvSummaryJumpError,
+    LANGUAGE_CEFR_LEVELS,
     normalizeBioCvData,
+    normalizeLanguageLevel,
     parseList,
     parseSkills,
     validateBioCvStep,
 } from "./bioCvData.js";
+
+test("normalizeLanguageLevel maps CEFR codes and free-text notes", () => {
+    assert.deepEqual(LANGUAGE_CEFR_LEVELS, ["A1", "A2", "B1", "B2", "C1", "C2"]);
+    assert.equal(normalizeLanguageLevel("c1"), "C1");
+    assert.equal(normalizeLanguageLevel("C1 / biegły"), "C1");
+    assert.equal(normalizeLanguageLevel("biegły"), "");
+    assert.equal(normalizeLanguageLevel(""), "");
+});
+
+test("normalizeBioCvData keeps only CEFR language levels", () => {
+    const result = normalizeBioCvData({
+        languages: [
+            { name: "Polski", level: "c2" },
+            { name: "Niemiecki", proficiency: "C1 / zaawansowany" },
+            { name: "Hiszpański", level: "konwersacyjny" },
+        ],
+    });
+    assert.deepEqual(result.languages, [
+        { name: "Polski", level: "C2" },
+        { name: "Niemiecki", level: "C1" },
+        { name: "Hiszpański", level: "" },
+    ]);
+});
 
 test("builds a clean manual CV payload with structured entries", () => {
     const data = {

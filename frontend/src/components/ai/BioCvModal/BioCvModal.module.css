@@ -141,6 +141,49 @@
     padding: 0 12px;
 }
 
+/* Language CEFR select: hide the native arrow and draw a calm chevron so the
+   control matches TextField height/weight while reading as a deliberate picker. */
+.selectShell {
+    position: relative;
+    display: block;
+    min-width: 0;
+}
+
+.selectShell::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid var(--chrome-muted);
+    border-bottom: 1.5px solid var(--chrome-muted);
+    transform: translateY(-65%) rotate(45deg);
+    pointer-events: none;
+}
+
+.selectShell select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 34px;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+.selectShell select:hover {
+    border-color: color-mix(in srgb, var(--chrome-accent) 45%, var(--chrome-border));
+}
+
+.selectFilled select {
+    font-weight: 650;
+    color: var(--chrome-ink);
+}
+
+.selectShell select:not(:focus) option[value=""] {
+    color: var(--chrome-muted);
+}
+
 .field textarea {
     resize: vertical;
     padding: 10px 12px;

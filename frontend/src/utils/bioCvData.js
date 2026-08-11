@@ -31,7 +31,29 @@ const DEFAULT_LABELS = {
     skills: "UMIEJĘTNOŚCI",
 };
 
+/** CEFR language levels offered in the bio wizard Poziom select. */
+export const LANGUAGE_CEFR_LEVELS = Object.freeze(["A1", "A2", "B1", "B2", "C1", "C2"]);
+
 const clean = (value) => String(value || "").trim();
+
+/**
+ * Normalise a language proficiency value to a CEFR code, or empty string.
+ *
+ * Accepts exact codes (any case) and free-text that contains one (e.g. "C1 / biegły").
+ * Values that cannot be mapped are dropped so the select stays on the empty option.
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function normalizeLanguageLevel(value) {
+    const raw = clean(value);
+    if (!raw) return "";
+    const upper = raw.toUpperCase();
+    if (LANGUAGE_CEFR_LEVELS.includes(upper)) return upper;
+    // Prefer a whole-word CEFR token so "A1" inside longer notes still maps.
+    const match = upper.match(/\b([ABC][12])\b/);
+    return match ? match[1] : "";
+}
 
 function uniqueStrings(values) {
     const seen = new Set();
@@ -230,7 +252,7 @@ export function normalizeBioCvData(value) {
             .filter((entry) => entry && typeof entry === "object")
             .map((entry) => ({
                 name: clean(entry.name || entry.language),
-                level: clean(entry.level || entry.proficiency),
+                level: normalizeLanguageLevel(entry.level || entry.proficiency),
             })),
         custom_sections: sourceCustom
             .filter((section) => section && typeof section === "object")

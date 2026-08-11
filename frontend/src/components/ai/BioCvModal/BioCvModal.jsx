@@ -42,6 +42,7 @@ import {
     createLanguage,
     CUSTOM_SECTION_PRESETS,
     getBioCvSummaryJumpError,
+    LANGUAGE_CEFR_LEVELS,
     normalizeBioCvData,
     parseList,
     parseSkills,
@@ -99,6 +100,31 @@ function TextField({ label, value, onChange, placeholder, type = "text", full = 
                 placeholder={placeholder}
                 onChange={(event) => onChange(event.target.value)}
             />
+        </label>
+    );
+}
+
+/**
+ * CEFR level picker for the languages step. Empty value is allowed (optional).
+ * Native select is wrapped so the chevron and filled state can be styled.
+ */
+function LanguageLevelSelect({ value, onChange }) {
+    const selected = LANGUAGE_CEFR_LEVELS.includes(value) ? value : "";
+    return (
+        <label className={classes.field}>
+            <span>Poziom</span>
+            <span className={`${classes.selectShell} ${selected ? classes.selectFilled : ""}`}>
+                <select
+                    value={selected}
+                    onChange={(event) => onChange(event.target.value)}
+                    aria-label="Poziom znajomości języka (CEFR)"
+                >
+                    <option value="">Bez poziomu</option>
+                    {LANGUAGE_CEFR_LEVELS.map((level) => (
+                        <option key={level} value={level}>{level}</option>
+                    ))}
+                </select>
+            </span>
         </label>
     );
 }
@@ -902,7 +928,10 @@ export default function BioCvModal() {
             </div>
             <div className={classes.formGrid}>
                 <TextField label="Język" value={entry.name} onChange={(name) => updateListItem("languages", index, { name })} placeholder="np. Angielski" />
-                <TextField label="Poziom" value={entry.level} onChange={(level) => updateListItem("languages", index, { level })} placeholder="np. C1 / biegły" />
+                <LanguageLevelSelect
+                    value={entry.level}
+                    onChange={(level) => updateListItem("languages", index, { level })}
+                />
             </div>
         </section>
     );
