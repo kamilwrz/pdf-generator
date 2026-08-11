@@ -114,6 +114,33 @@ COMPACT_DEMO_CV = {
 
 COMPACT_TEMPLATE_IDS = frozenset({"monument", "words"})
 
+# Nimbus uses larger Lora type (name 32 / headings+roles 14 / body 12 / meta 11),
+# so the shared DEMO_CV spills page 1. Keep the same persona with fewer bullets.
+NIMBUS_DEMO_CV = {
+    **DEMO_CV,
+    "summary": (
+        "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania."
+    ),
+    "experience": [
+        {
+            "title": DEMO_CV["experience"][0]["role"],
+            "company": DEMO_CV["experience"][0]["company"],
+            "city": DEMO_CV["experience"][0]["city"],
+            "period": DEMO_CV["experience"][0]["period"],
+            "bullets": DEMO_CV["experience"][0]["bullets"][:1],
+        },
+        {
+            "title": DEMO_CV["experience"][1]["role"],
+            "company": DEMO_CV["experience"][1]["company"],
+            "city": DEMO_CV["experience"][1]["city"],
+            "period": DEMO_CV["experience"][1]["period"],
+            "bullets": DEMO_CV["experience"][1]["bullets"][:1],
+        },
+    ],
+    "skills": DEMO_CV["skills"][:4],
+    "languages": DEMO_CV["languages"][:2],
+}
+
 # template_id -> (js filename, export const name, layouts blurb for docstring)
 # iconic.js exports both nova and volt from one module.
 TEMPLATES = [
@@ -200,7 +227,9 @@ DOC_BLURBS = {
     "nimbus": (
         "Nimbus template (`layouts: [\"single\"]`).\n"
         " *\n"
-        " * Light minimal single column with soft blue accents."
+        " * Light minimal single column with soft blue accents,\n"
+        " * set entirely in Lora (name 32 / headings & roles 14 /\n"
+        " * body 12 dark grey / meta 11)."
     ),
     "cinder": (
         "Cinder template (`layouts: [\"single\"]`).\n"
@@ -325,7 +354,12 @@ export const voltTemplate = withAbsoluteAssets(VOLT_ELEMENTS);
 def main() -> None:
     generated: dict[str, list[dict]] = {}
     for template_id in TEMPLATES:
-        cv = COMPACT_DEMO_CV if template_id in COMPACT_TEMPLATE_IDS else DEMO_CV
+        if template_id == "nimbus":
+            cv = NIMBUS_DEMO_CV
+        elif template_id in COMPACT_TEMPLATE_IDS:
+            cv = COMPACT_DEMO_CV
+        else:
+            cv = DEMO_CV
         elements = generate_resume(template_id, cv)
         page_one = [e for e in elements if e.get("page", 1) == 1]
         generated[template_id] = tag_flow_roles(relativize_assets(page_one))
