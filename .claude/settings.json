@@ -13,7 +13,8 @@
       "Bash(node --import ./scripts/register-hook.mjs -e \"import\\('./src/templates/demoCv.js'\\).then\\(m => console.log\\('✓ Module loaded successfully, array length:', m.demoCvTemplate.length, 'elements'\\)\\)\")",
       "Bash(git commit *)",
       "Bash('C:\\\\Users\\\\Kamil/.claude/skills/gstack/browse/dist/browse' click *)",
-      "Bash('C:\\\\Users\\\\Kamil/.claude/skills/gstack/browse/dist/browse' js *)"
+      "Bash('C:\\\\Users\\\\Kamil/.claude/skills/gstack/browse/dist/browse' js *)",
+      "Bash(node frontend/scripts/dump-iconic-templates.mjs)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Kamil\\.gstack\\projects\\kamilwrz-pdf-generator\\ceo-plans"

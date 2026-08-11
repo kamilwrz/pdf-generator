@@ -21,6 +21,7 @@ from app.services.cv_templates.templates.axis import _gen_axis
 from app.services.cv_templates.templates.atrium import _gen_atrium
 from app.services.cv_templates.templates.aurelia import _gen_aurelia
 from app.services.cv_templates.templates.blueprint import _gen_blueprint
+from app.services.cv_templates.templates.manifest import _gen_manifest
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "ledger": frozenset({"single"}),
@@ -42,6 +43,7 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "atrium": frozenset({"single", "icons"}),
     "aurelia": frozenset({"single"}),
     "blueprint": frozenset({"single"}),
+    "manifest": frozenset({"sidebar"}),
 }
 
 _GENERATORS = {
@@ -64,6 +66,7 @@ _GENERATORS = {
     "atrium": _gen_atrium,
     "aurelia": _gen_aurelia,
     "blueprint": _gen_blueprint,
+    "manifest": _gen_manifest,
 }
 
 
