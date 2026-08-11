@@ -1703,3 +1703,50 @@ test("a chip row that already jumped to page 2 stays aligned when an earlier tex
     "chip B's label must stay inside its own pill",
   );
 });
+
+test("a wrapped chip grid's reserved height is its 2D extent, not the sum of every cell", () => {
+  // A skills chip grid shares one flowGroup across many rect+text cells laid
+  // out in rows. `remainingRecordHeight` (used for the page-fit reservation
+  // when a record is placed) used to SUM every cell's height as if they were
+  // a vertical stack, hugely over-estimating the block — 8 cells here would
+  // reserve far more than the real two-row extent. That over-estimate made
+  // the fit check believe the grid could not stay on the current page, so
+  // the whole skills section jumped to the next page even when its true
+  // extent had ample room, leaving a near-empty page behind it.
+  //
+  // Setup: a body textarea whose growth pushes the chip grid's top down to
+  // ~690 on page 1. The grid is two rows (~48px extent) ending near ~738,
+  // comfortably above the 770 footer. With the correct extent-based reserve
+  // the grid stays on page 1; with the old summed reserve it would be
+  // stranded on page 2.
+  const group = "record-skills-extent";
+  const elements = [
+    { element_id: "chrome-h", category: "text", flowRole: "section-chrome", left: 72, top: 80, width: 300, fontSize: 11, height: 13, page: 1 },
+    { element_id: "body", category: "textarea", autoHeight: true, flowRole: "content", left: 72, top: 100, width: 473, height: 200, page: 1 },
+    { element_id: "sk-h", category: "text", flowRole: "section-chrome", left: 72, top: 600, width: 300, fontSize: 11, height: 13, page: 1 },
+    { element_id: "sk-r", category: "line", flowRole: "section-chrome", left: 72, top: 614, width: 473, height: 1, page: 1 },
+  ];
+  const chips = ["AML", "KYC", "SQL", "Python", "SAR", "PEP", "CDD", "EDD"];
+  let cx = 72;
+  let row = 0;
+  let inRow = 0;
+  chips.forEach((label, i) => {
+    if (inRow >= 4) { row += 1; inRow = 0; cx = 72; }
+    const top = 640 + row * 28;
+    elements.push({ element_id: `rect${i}`, category: "rectangle", flowRole: "grid-member", flowGroup: group, left: cx, top, width: 100, height: 20, page: 1 });
+    elements.push({ element_id: `text${i}`, category: "text", flowRole: "grid-member", flowGroup: group, content: label, left: cx + 8, top: top + 5, fontSize: 9, page: 1 });
+    cx += 108;
+    inRow += 1;
+  });
+
+  const result = reflowTextareaHeight(elements, "body", 250, 842, { pageTop: 66, bottomMargin: 72 });
+  const byId = Object.fromEntries(result.elements.map((element) => [element.element_id, element]));
+
+  const chipPages = new Set(chips.map((_, i) => byId[`rect${i}`].page));
+  assert.equal(chipPages.size, 1, "every chip must be on the same page");
+  assert.equal(byId["rect0"].page, 1, "grid's true extent fits on page 1 — must not be stranded on page 2");
+  // Rows stay aligned: first four chips share a top, second row sits below.
+  assert.equal(byId["rect3"].top, byId["rect0"].top, "row 1 chips aligned");
+  assert.equal(byId["rect4"].top, byId["rect7"].top, "row 2 chips aligned");
+  assert.ok(byId["rect4"].top > byId["rect0"].top, "row 2 sits below row 1");
+});
