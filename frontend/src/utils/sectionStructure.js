@@ -807,6 +807,11 @@ function isChromeLike(element) {
   if (element.flowRole === "section-chrome" || element.flowRole === "sidebar-chrome") {
     return true;
   }
+  // A short skill label ("SQL", "Go") produces a chip pill narrower than the
+  // decorative-badge size heuristic below (<=40x40), which would otherwise
+  // misclassify it as chrome and route it through the chrome cluster instead
+  // of the grid-aware body path in `compactSectionStrip`/`placeStrip`.
+  if (isGridMember(element)) return false;
   if (element.category === "line") {
     return (Number(element.height) || 0) <= 4;
   }
@@ -1088,10 +1093,18 @@ function compactSectionStrip(sectionElements, pageHeight, spacing, forceTargets 
     0,
   );
 
+  // Anchor item for the currently active grid-member flowGroup run (wrapped
+  // skill-chip pills, etc). While set, every further same-group grid member
+  // computes `relTop` as a translation of its true original offset from this
+  // anchor — never from the immediately preceding strip item — so unrelated
+  // rows/columns cannot be flattened onto one vertical cursor.
+  let gridAnchor = null;
+
   for (let index = 0; index < bodySorted.length; index += 1) {
     const element = bodySorted[index];
     if (items.length === 0) {
       items.push({ element, relTop: 0, leadingChrome: false });
+      gridAnchor = isGridMember(element) ? items[items.length - 1] : null;
       continue;
     }
 
@@ -1114,10 +1127,27 @@ function compactSectionStrip(sectionElements, pageHeight, spacing, forceTargets 
         relTop: chromeBottom + gap,
         leadingChrome: false,
       });
+      gridAnchor = isGridMember(element) ? items[items.length - 1] : null;
       continue;
     }
 
     const previous = items[items.length - 1];
+    const group = flowGroupOf(element);
+    const continuesGrid = isGridMember(element)
+      && group
+      && gridAnchor
+      && flowGroupOf(gridAnchor.element) === group;
+
+    if (continuesGrid) {
+      items.push({
+        element,
+        relTop: gridAnchor.relTop
+          + (absoluteTop(element, pageHeight) - absoluteTop(gridAnchor.element, pageHeight)),
+        leadingChrome: false,
+      });
+      continue;
+    }
+
     const kind = classifyIntraSectionGap(previous.element, element);
     let gap;
     if (forceTargets) {
@@ -1139,6 +1169,7 @@ function compactSectionStrip(sectionElements, pageHeight, spacing, forceTargets 
       relTop: previous.relTop + elementHeight(previous.element) + gap,
       leadingChrome: false,
     });
+    gridAnchor = isGridMember(element) ? items[items.length - 1] : null;
   }
 
   return items;
@@ -1187,6 +1218,19 @@ function leadingChromeCount(strip) {
 function flowGroupOf(element) {
   const group = element?.flowGroup;
   return typeof group === "string" && group ? group : null;
+}
+
+/**
+ * Whether `element` is one cell of a 2D grid (e.g. wrapped skill-chip pills)
+ * sharing its `flowGroup` with siblings at varying x/y, rather than a linear
+ * title/meta/body stack member. `compactSectionStrip` / `placeStrip` must
+ * reposition grid members by translating each one's original offset from the
+ * group's first member — recomputing "previous item's bottom + gap" (the
+ * stacking math correct for a single column) would collapse every row onto
+ * the same vertical cursor.
+ */
+function isGridMember(element) {
+  return element?.flowRole === "grid-member";
 }
 
 /**
@@ -1286,6 +1330,12 @@ function placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin) {
   // page chosen when the record started (same contract as textareaReflow).
   let activeGroup = null;
   let activeGroupPage = null;
+  // Anchor { item, placed } for the active grid-member flowGroup run. Mirrors
+  // `gridAnchor` in `compactSectionStrip`: once a group's first member is
+  // placed, every further same-group grid member is positioned by translating
+  // its (already anchor-relative) `relTop` from this placed anchor instead of
+  // stacking under whichever item happens to precede it in the strip.
+  let gridAnchor = null;
 
   for (let index = 0; index < strip.length; index += 1) {
     const item = strip[index];
@@ -1297,8 +1347,16 @@ function placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin) {
       const at = pageTopFromOrigin(sectionCursor, item.relTop, pageHeight);
       placed = { page: at.page, top: at.top, abs: at.abs, bottom: at.abs + height };
     } else {
+      const group = flowGroupOf(item.element);
+      const continuesGrid = isGridMember(item.element)
+        && group
+        && gridAnchor
+        && flowGroupOf(gridAnchor.item.element) === group;
+
       let desiredAbs = sectionCursor;
-      if (previous) {
+      if (continuesGrid) {
+        desiredAbs = gridAnchor.placed.abs + (item.relTop - gridAnchor.item.relTop);
+      } else if (previous) {
         const gap = item.relTop
           - (previous.item.relTop + elementHeight(previous.item.element));
         desiredAbs = previous.placed.bottom + Math.max(0, gap);
@@ -1306,7 +1364,6 @@ function placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin) {
         desiredAbs = sectionCursor + item.relTop;
       }
 
-      const group = flowGroupOf(item.element);
       const startsRecord = Boolean(group) && group !== activeGroup;
       const continuesRecord = Boolean(group) && group === activeGroup;
 
@@ -1317,19 +1374,26 @@ function placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin) {
         const page = activeGroupPage;
         let top = desiredAbs - (page - 1) * pageHeight;
         if (top < pageTop && page > 1) {
-          // Prefer stacking under the previous mate already on this page.
-          // Clamping every overflow to pageTop collapses skill category labels
-          // onto their chip bodies at the continuation-page inset.
-          const pageStartAbs = (page - 1) * pageHeight + pageTop;
-          if (previous && previous.placed.bottom >= pageStartAbs - 0.01) {
-            const stackGap = Math.max(
-              0,
-              item.relTop
-                - (previous.item.relTop + elementHeight(previous.item.element)),
-            );
-            top = previous.placed.bottom - pageStartAbs + pageTop + stackGap;
-          } else {
+          if (continuesGrid) {
+            // Keep the anchor-relative offset even when it lands above the
+            // page's content band — clamping to a stacked fallback here would
+            // reintroduce the single-column collapse this branch exists to avoid.
             top = pageTop;
+          } else {
+            // Prefer stacking under the previous mate already on this page.
+            // Clamping every overflow to pageTop collapses skill category labels
+            // onto their chip bodies at the continuation-page inset.
+            const pageStartAbs = (page - 1) * pageHeight + pageTop;
+            if (previous && previous.placed.bottom >= pageStartAbs - 0.01) {
+              const stackGap = Math.max(
+                0,
+                item.relTop
+                  - (previous.item.relTop + elementHeight(previous.item.element)),
+              );
+              top = previous.placed.bottom - pageStartAbs + pageTop + stackGap;
+            } else {
+              top = pageTop;
+            }
           }
         }
         const abs = (page - 1) * pageHeight + top;
@@ -1359,6 +1423,14 @@ function placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin) {
       } else {
         activeGroup = null;
         activeGroupPage = null;
+      }
+
+      if (isGridMember(item.element)) {
+        if (!gridAnchor || flowGroupOf(gridAnchor.item.element) !== group) {
+          gridAnchor = { item, placed };
+        }
+      } else {
+        gridAnchor = null;
       }
     }
 

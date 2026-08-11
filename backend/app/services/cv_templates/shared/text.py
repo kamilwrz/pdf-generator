@@ -174,14 +174,26 @@ def _place_skill_chips_row(
     for skill, dx, dy, chip_w in placements:
         x = left + dx
         y = top + dy
-        b.els.append(_rect(
-            x, y, chip_w, chip_h, chip_bg, 0,
-            filled=True, borderRadius=radius, zIndex=2, page=b.pg,
-        ))
-        b.els.append(_text(
-            skill, fs, font, chip_fg, x + CHIP_PAD_X, y + CHIP_PAD_Y,
-            zIndex=3, page=b.pg,
-        ))
+        # `grid-member` tells the frontend structural-editor repacker
+        # (sectionStructure.js) that these elements form a 2D row/column grid,
+        # not a linear title->meta->body stack. Without it, `compactSectionStrip`
+        # / `placeStrip` treat every keep_together sibling as the next line in a
+        # single vertical record and collapse the whole wrapped grid into one
+        # column when the user runs Add Section.
+        b.els.append({
+            **_rect(
+                x, y, chip_w, chip_h, chip_bg, 0,
+                filled=True, borderRadius=radius, zIndex=2, page=b.pg,
+            ),
+            "flowRole": "grid-member",
+        })
+        b.els.append({
+            **_text(
+                skill, fs, font, chip_fg, x + CHIP_PAD_X, y + CHIP_PAD_Y,
+                zIndex=3, page=b.pg,
+            ),
+            "flowRole": "grid-member",
+        })
     b.y = top + total_height
     return b.y
 

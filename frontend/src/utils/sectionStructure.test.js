@@ -2113,3 +2113,93 @@ describe("insertSectionAfter", () => {
     assert.equal(fromLast.heading.color, "#abcdef");
   });
 });
+
+describe("applyFlowSpacing — skill chip grid (flowRole: grid-member)", () => {
+  /**
+   * A skills section shaped exactly like the backend's `_place_skill_chips_row`
+   * output: one heading, then two wrapped rows of `rectangle` + `text` pairs
+   * sharing one `flowGroup`, each pair tagged `flowRole: "grid-member"`. One
+   * chip ("SQL") is intentionally narrower than 40px — the decorative-badge
+   * size heuristic in `isChromeLike` used to misclassify it as chrome.
+   */
+  function chipSectionFixture() {
+    const group = "record-skills-test";
+    const row1 = ["Analiza AML/KYC", "Transaction Monitoring", "CDD / EDD"];
+    const row2 = ["Screening PEP", "SQL"];
+    const elements = [
+      { element_id: "above-head", category: "text", content: "PODSUMOWANIE", flowRole: "section-chrome", left: 72, top: 100, fontSize: 11, height: 13, page: 1 },
+      { element_id: "above-rule", category: "line", flowRole: "section-chrome", left: 72, top: 116, width: 473, height: 1, page: 1 },
+      { element_id: "above-body", category: "textarea", flowRole: "content", autoHeight: true, content: "Short summary.", left: 72, top: 130, width: 473, height: 30, fontSize: 9.6, page: 1 },
+      { element_id: "skills-head", category: "text", content: "UMIEJĘTNOŚCI", flowRole: "section-chrome", left: 72, top: 200, fontSize: 11, height: 13, page: 1 },
+      { element_id: "skills-rule", category: "line", flowRole: "section-chrome", left: 72, top: 216, width: 473, height: 1, page: 1 },
+    ];
+    let x = 72;
+    const rowTop = [230, 253.6];
+    [row1, row2].forEach((row, rowIndex) => {
+      x = 72;
+      row.forEach((label, colIndex) => {
+        const width = 40 + label.length * 4; // last chip ("SQL") stays <40px wide
+        const chipWidth = label === "SQL" ? 30 : width;
+        const top = rowTop[rowIndex];
+        elements.push({
+          element_id: `chip-rect-${rowIndex}-${colIndex}`,
+          category: "rectangle", flowRole: "grid-member", flowGroup: group,
+          left: x, top, width: chipWidth, height: 19.6,
+          filled: true, borderRadius: 9.8, backgroundColor: "#9E2532", page: 1,
+        });
+        elements.push({
+          element_id: `chip-text-${rowIndex}-${colIndex}`,
+          category: "text", flowRole: "grid-member", flowGroup: group,
+          content: label, left: x + 10, top: top + 5, fontSize: 9.6, height: 12, page: 1,
+        });
+        x += chipWidth + 8;
+      });
+    });
+    return elements;
+  }
+
+  it("keeps every chip row aligned and each label inside its own pill after a full repack", () => {
+    const elements = chipSectionFixture();
+    const packed = applyFlowSpacing(elements, {
+      section: 21, record: 10, stack: 4, after_rule: 8,
+    }, 842, { pageTop: 66, bottomMargin: 72 });
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+
+    // Row 1: three chips must still share one top.
+    const row1Tops = ["chip-rect-0-0", "chip-rect-0-1", "chip-rect-0-2"].map((id) => byId[id].top);
+    assert.equal(row1Tops[1], row1Tops[0]);
+    assert.equal(row1Tops[2], row1Tops[0]);
+
+    // Row 2 (includes the narrow "SQL" pill) must also stay one row.
+    const row2Tops = ["chip-rect-1-0", "chip-rect-1-1"].map((id) => byId[id].top);
+    assert.equal(row2Tops[1], row2Tops[0]);
+
+    // Row 2 must sit strictly below row 1 (rows did not collapse onto each other).
+    assert.ok(row2Tops[0] > row1Tops[0]);
+
+    // `left` (never touched by the packer) still identifies each chip's column.
+    assert.equal(byId["chip-rect-0-0"].left, 72);
+
+    // Every label stays vertically inside its own rectangle, not stacked below it.
+    for (const id of Object.keys(byId)) {
+      if (!id.startsWith("chip-rect-")) continue;
+      const rect = byId[id];
+      const text = byId[id.replace("chip-rect-", "chip-text-")];
+      assert.ok(
+        text.top >= rect.top && text.top <= rect.top + rect.height,
+        `expected ${id}'s label to sit inside its pill (rect.top=${rect.top}, text.top=${text.top})`,
+      );
+    }
+  });
+
+  it("does not misclassify a narrow (<40px) chip as decorative chrome", () => {
+    const elements = chipSectionFixture();
+    const packed = applyFlowSpacing(elements, {
+      section: 21, record: 10, stack: 4, after_rule: 8,
+    }, 842, { pageTop: 66, bottomMargin: 72 });
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+    // The narrow "SQL" pill (row 2, col 1) must land in row 2 with its row-mate,
+    // not get pulled into a separate chrome cluster near the section heading.
+    assert.equal(byId["chip-rect-1-1"].top, byId["chip-rect-1-0"].top);
+  });
+});
