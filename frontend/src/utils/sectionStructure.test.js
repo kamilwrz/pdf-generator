@@ -430,6 +430,33 @@ describe("reorderSection", () => {
     assert.ok(byId.b1.top < byId.a1.top);
   });
 
+  it("swaps sidebar sections without moving the main column", () => {
+    const elements = twoColumnFixture();
+    const beforeMain = elements.find((element) => element.element_id === "m-exp-head").top;
+    const next = reorderSection(elements, "sb-edu-head", "up", 842, {
+      spacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
+    });
+    assert.ok(next);
+    const byId = Object.fromEntries(next.map((element) => [element.element_id, element]));
+    assert.ok(
+      byId["sb-edu-head"].top < byId["sb-kontakt-head"].top,
+      "WYKSZTAŁCENIE must move above KONTAKT in the rail",
+    );
+    assert.ok(
+      byId["sb-edu-body"].top < byId["sb-phone"].top,
+      "edu body must travel with its kicker",
+    );
+    assert.equal(
+      byId["m-exp-head"].top,
+      beforeMain,
+      "main-column headings must stay put during a sidebar reorder",
+    );
+    assert.deepEqual(
+      listSidebarSections(next).map((section) => section.title),
+      ["WYKSZTAŁCENIE", "KONTAKT"],
+    );
+  });
+
   it("compacts multi-page section holes and repacks following sections", () => {
     // Tall section A spans page 1→2 with footer/header dead space in its Y span.
     // Short section B sits on page 2. Moving B above A must not leave B crushed
@@ -509,6 +536,28 @@ describe("removeSection", () => {
 
   it("returns null for an unknown heading", () => {
     assert.equal(removeSection([], "missing"), null);
+  });
+
+  it("removes a sidebar section without touching the main column", () => {
+    const elements = twoColumnFixture();
+    const beforeExp = elements.find((element) => element.element_id === "m-exp-head").top;
+    const result = removeSection(elements, "sb-kontakt-head", 842, {
+      spacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
+    });
+    assert.ok(result);
+    const ids = new Set(result.elements.map((element) => element.element_id));
+    assert.equal(ids.has("sb-kontakt-head"), false);
+    assert.equal(ids.has("sb-phone"), false);
+    assert.ok(ids.has("sb-edu-head"));
+    assert.ok(ids.has("m-summary-head"));
+    assert.ok(result.removedIds.has("sb-kontakt-head"));
+    assert.ok(result.removedIds.has("sb-email"));
+    const afterExp = result.elements.find((element) => element.element_id === "m-exp-head");
+    assert.equal(afterExp.top, beforeExp, "main column must not shift when a rail section is removed");
+    assert.deepEqual(
+      listSidebarSections(result.elements).map((section) => section.title),
+      ["WYKSZTAŁCENIE"],
+    );
   });
 });
 
@@ -1858,6 +1907,50 @@ describe("appendSectionAtEnd", () => {
       `new section (top=${h2.top}) should follow the main column (bottom=${mainBottomBefore}), not the deeper sidebar (bottom=${sidebarBottomBefore})`,
     );
   });
+
+  it("appends a sidebar-chrome strip into the rail when lane is sidebar", () => {
+    const rhythm = { stack: 4, record: 10, section: 21, after_rule: 8 };
+    const doc = twoColumnFixture();
+    const addition = [
+      {
+        element_id: "sb-new-head", category: "text", content: "JĘZYKI",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 51, top: 0, fontSize: 7.6, height: 12, page: 1,
+      },
+      {
+        element_id: "sb-new-rule", category: "line",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 51, top: 12, width: 50, height: 1, page: 1,
+      },
+      {
+        element_id: "sb-new-body", category: "textarea", content: "Polski",
+        flowRole: "content", flowLane: "sidebar",
+        autoHeight: true, left: 25, top: 30, width: 128, height: 20, fontSize: 6.6, page: 1,
+      },
+    ];
+    const result = appendSectionAtEnd(doc, addition, pageHeight, {
+      spacing: rhythm,
+      lane: "sidebar",
+    });
+    const byId = Object.fromEntries(result.map((element) => [element.element_id, element]));
+    assert.ok(byId["sb-new-head"]);
+    assert.equal(byId["sb-new-head"].flowRole, "sidebar-chrome");
+    assert.equal(byId["sb-new-head"].flowLane, "sidebar");
+    assert.ok(
+      byId["sb-new-head"].top > byId["sb-edu-head"].top,
+      "new rail section should land below WYKSZTAŁCENIE",
+    );
+    // applyFlowSpacing may retarget main Y, but order and column must remain.
+    assert.deepEqual(
+      listDocumentSections(result).map((section) => section.title),
+      ["PODSUMOWANIE ZAWODOWE", "DOŚWIADCZENIE ZAWODOWE"],
+    );
+    assert.ok(byId["m-exp-head"].left >= 218, "main heading stays in the main column");
+    assert.deepEqual(
+      listSidebarSections(result).map((section) => section.title),
+      ["KONTAKT", "WYKSZTAŁCENIE", "JĘZYKI"],
+    );
+  });
 });
 
 describe("listFlatSectionAnchors", () => {
@@ -1972,6 +2065,35 @@ describe("insertSectionAfter", () => {
     );
     const titles = listDocumentSections(result, pageHeight).map((section) => section.title);
     assert.deepEqual(titles, ["Doświadczenie", "Umiejętności", "Projekty"]);
+  });
+
+  it("inserts a sidebar strip after a rail kicker without moving the main column", () => {
+    const doc = twoColumnFixture();
+    const addition = [
+      {
+        element_id: "sb-mid-head", category: "text", content: "NARZĘDZIA",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 51, top: 0, fontSize: 7.6, height: 12, page: 1,
+      },
+      {
+        element_id: "sb-mid-body", category: "textarea", content: "Excel",
+        flowRole: "content", flowLane: "sidebar",
+        autoHeight: true, left: 25, top: 20, width: 128, height: 20, fontSize: 6.6, page: 1,
+      },
+    ];
+    const result = insertSectionAfter(doc, addition, "sb-kontakt-head", pageHeight, {
+      spacing: rhythm,
+    });
+    const titles = listSidebarSections(result).map((section) => section.title);
+    assert.deepEqual(titles, ["KONTAKT", "NARZĘDZIA", "WYKSZTAŁCENIE"]);
+    const byId = Object.fromEntries(result.map((element) => [element.element_id, element]));
+    assert.ok(byId["sb-mid-head"].top > byId["sb-kontakt-head"].top);
+    assert.ok(byId["sb-edu-head"].top > byId["sb-mid-head"].top);
+    assert.deepEqual(
+      listDocumentSections(result).map((section) => section.title),
+      ["PODSUMOWANIE ZAWODOWE", "DOŚWIADCZENIE ZAWODOWE"],
+    );
+    assert.ok(byId["m-exp-head"].left >= 218);
   });
 
   it("samples style from the anchor section when deriveSectionStyle is given its id", () => {

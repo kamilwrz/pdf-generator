@@ -161,15 +161,30 @@ function PdfCanvas() {
   const [addSectionModal, setAddSectionModal] = useState({
     open: false,
     afterHeadingId: null,
+    lane: null,
   });
-  const openAddSectionModal = useCallback((afterHeadingId = null) => {
+  // Accept a heading id string (canvas "+") or `{ afterHeadingId, lane }`
+  // (Sections panel "Dodaj w sidebarze").
+  const openAddSectionModal = useCallback((afterHeadingIdOrOptions = null) => {
+    if (
+      afterHeadingIdOrOptions
+      && typeof afterHeadingIdOrOptions === "object"
+    ) {
+      setAddSectionModal({
+        open: true,
+        afterHeadingId: afterHeadingIdOrOptions.afterHeadingId || null,
+        lane: afterHeadingIdOrOptions.lane || null,
+      });
+      return;
+    }
     setAddSectionModal({
       open: true,
-      afterHeadingId: afterHeadingId || null,
+      afterHeadingId: afterHeadingIdOrOptions || null,
+      lane: null,
     });
   }, []);
   const closeAddSectionModal = useCallback(() => {
-    setAddSectionModal({ open: false, afterHeadingId: null });
+    setAddSectionModal({ open: false, afterHeadingId: null, lane: null });
   }, []);
   // Layout toggle (inline mid-dot row / bullet list) for flat-list sections
   // (Skills, Languages, flat custom sections). Owned by PdfCanvas for the
@@ -359,9 +374,10 @@ function PdfCanvas() {
       layout,
       iconName,
       afterHeadingId: addSectionModal.afterHeadingId,
+      lane: addSectionModal.lane,
     });
-    setAddSectionModal({ open: false, afterHeadingId: null });
-  }, [addSectionModal.afterHeadingId, handleAddSection]);
+    setAddSectionModal({ open: false, afterHeadingId: null, lane: null });
+  }, [addSectionModal.afterHeadingId, addSectionModal.lane, handleAddSection]);
 
   // Icon gallery for iconic templates; computed here because AddSectionModal
   // is owned by PdfCanvas (not only SectionsPanel).

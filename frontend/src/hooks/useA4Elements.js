@@ -23,7 +23,9 @@ import {
   deriveSectionStyle,
   appendSectionAtEnd,
   insertSectionAfter,
+  isSidebarSectionHeading,
   listDocumentSections,
+  listSidebarSections,
   removeSection,
   reorderSection,
 } from '../utils/sectionStructure';
@@ -642,11 +644,15 @@ export function useA4Elements(titleRef) {
    * below that section; otherwise it is appended at the end. Style is sampled
    * from the anchor section (or the last section when appending).
    *
+   * Pass `lane: "sidebar"` (or an afterHeadingId that is a sidebar kicker) to
+   * build and insert into the rail instead of the main column.
+   *
    * @param {{
    *   name: string,
    *   layout: "aa"|"cc-edu"|"cc-exp"|"cc-sub",
    *   iconName?: string|null,
    *   afterHeadingId?: string|null,
+   *   lane?: "main"|"sidebar"|null,
    * }} config
    */
   const handleAddSection = useCallback(({
@@ -654,11 +660,19 @@ export function useA4Elements(titleRef) {
     layout,
     iconName = null,
     afterHeadingId = null,
+    lane = null,
   }) => {
     setA4_Elements((prev) => {
       const pageHeight = pageSizeRef.current?.height ?? 842;
       const spacing = flowSpacingRef.current;
-      const sections = listDocumentSections(prev, pageHeight);
+      const afterHeading = afterHeadingId
+        ? prev.find((element) => element.element_id === afterHeadingId)
+        : null;
+      const intoSidebar = lane === "sidebar"
+        || (afterHeading && isSidebarSectionHeading(afterHeading));
+      const sections = intoSidebar
+        ? listSidebarSections(prev, pageHeight)
+        : listDocumentSections(prev, pageHeight);
       const afterIndex = afterHeadingId
         ? sections.findIndex((section) => section.headingId === afterHeadingId)
         : -1;
@@ -666,6 +680,7 @@ export function useA4Elements(titleRef) {
         prev,
         pageHeight,
         afterIndex >= 0 ? afterHeadingId : null,
+        { lane: intoSidebar ? "sidebar" : "main" },
       );
       // Icon-tagged templates: swap/inject the section-heading glyph chosen in
       // the Add Section gallery, keeping the sampled size and offset.
@@ -685,10 +700,15 @@ export function useA4Elements(titleRef) {
         spacing,
         sectionOrdinal,
         idFactory: nanoid,
+        lane: intoSidebar ? "sidebar" : "main",
       });
+      const packOpts = {
+        spacing,
+        lane: intoSidebar ? "sidebar" : null,
+      };
       const next = afterIndex >= 0
-        ? insertSectionAfter(prev, elements, afterHeadingId, pageHeight, { spacing })
-        : appendSectionAtEnd(prev, elements, pageHeight, { spacing });
+        ? insertSectionAfter(prev, elements, afterHeadingId, pageHeight, packOpts)
+        : appendSectionAtEnd(prev, elements, pageHeight, packOpts);
       markElementsEnter(elements.map((element) => element.element_id));
 
       // Select + open the first body for editing; clear any prior selection so

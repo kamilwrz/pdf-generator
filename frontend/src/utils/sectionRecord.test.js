@@ -1,7 +1,11 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { buildSectionElements, SECTION_LAYOUTS } from "./sectionBuilder.js";
-import { appendSectionAtEnd, deriveSectionStyle } from "./sectionStructure.js";
+import {
+  appendSectionAtEnd,
+  deriveSectionStyle,
+  listDocumentSections,
+} from "./sectionStructure.js";
 import {
   appendRecordToSection,
   buildRecordClone,
@@ -678,5 +682,65 @@ describe("removeRecordBlock", () => {
     assert.ok(description);
     assert.equal(removeRecordBlock(elements, description.element_id), null);
     assert.equal(removeRecordBlock(elements, "missing"), null);
+  });
+});
+
+describe("sidebar lane records", () => {
+  const pageHeight = 842;
+  const rhythm = { ...DEFAULT_FLOW_SPACING };
+  const sidebarStyle = {
+    ...style,
+    left: 51,
+    bodyLeft: 25,
+    recordWidth: 128,
+    heading: { ...style.heading, fontSize: 7.6 },
+    rule: { width: 50, height: 1, backgroundColor: "#BFB4AA", relLeft: 0 },
+    body: { fontSize: 6.6, fontFamily: "Inter", lineHeight: 9, color: "#24201E" },
+  };
+
+  function sidebarEduDoc() {
+    const { elements: built, headingId } = buildSectionElements({
+      name: "Wykształcenie",
+      layout: SECTION_LAYOUTS.RECORD_EDUCATION,
+      style: sidebarStyle,
+      idFactory: makeIdFactory("sb-edu"),
+      lane: "sidebar",
+    });
+    // Place the strip at a stable rail Y so membership resolves cleanly.
+    const placed = built.map((element) => ({
+      ...element,
+      top: (Number(element.top) || 0) + 200,
+      page: 1,
+    }));
+    return { elements: placed, headingId };
+  }
+
+  it("lists record anchors for sidebar education and reorders within the rail", () => {
+    let { elements, headingId } = sidebarEduDoc();
+    const appended = appendRecordToSection(elements, headingId, pageHeight, {
+      spacing: rhythm,
+      idFactory: makeIdFactory("sb-rec2"),
+    });
+    assert.ok(appended);
+    elements = appended.elements;
+
+    const anchors = listRecordBlockAddAnchors(elements, pageHeight);
+    assert.ok(
+      anchors.length >= 2,
+      "sidebar education with two records must expose record anchors",
+    );
+    const body = listSectionContentElements(elements, headingId, pageHeight);
+    assert.ok(body.length >= 6);
+    assert.ok(body.every((element) => element.flowLane === "sidebar"));
+
+    const secondTitleId = body[4].element_id;
+    const result = reorderRecordBlock(elements, secondTitleId, "up", pageHeight, {
+      spacing: rhythm,
+    });
+    assert.ok(result);
+    const after = listSectionContentElements(result.elements, headingId, pageHeight);
+    assert.equal(after[0].element_id, secondTitleId);
+    // Main-column section list must stay empty — this fixture is rail-only.
+    assert.equal(listDocumentSections(result.elements, pageHeight).length, 0);
   });
 });

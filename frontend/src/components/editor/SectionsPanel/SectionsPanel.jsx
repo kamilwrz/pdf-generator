@@ -12,6 +12,7 @@ import { PdfContext } from "../../../store/pdfgenerator-context";
 import {
   applyFlowSpacing,
   listDocumentSections,
+  listSidebarSections,
   reorderSection,
 } from "../../../utils/sectionStructure";
 import {
@@ -93,8 +94,13 @@ export default function SectionsPanel({ onClose }) {
     () => listDocumentSections(A4_Elements, pageHeight),
     [A4_Elements, pageHeight],
   );
+  const sidebarSections = useMemo(
+    () => listSidebarSections(A4_Elements, pageHeight),
+    [A4_Elements, pageHeight],
+  );
   const pageStatus = formatPageCountLabel(pageCount ?? 1);
   const atBaseline = flowSpacingEquals(spacing, baselineSpacing);
+  const hasAnySections = sections.length > 0 || sidebarSections.length > 0;
 
   useEffect(() => {
     if (!onClose) return undefined;
@@ -197,43 +203,90 @@ export default function SectionsPanel({ onClose }) {
       </div>
 
       <div className={classes.body}>
-        {sections.length === 0 ? (
+        {!hasAnySections ? (
           <p className={classes.empty}>
             Brak sekcji do uporządkowania. Dodaj pierwszą albo wczytaj szablon.
           </p>
         ) : (
-          <ul className={classes.list}>
-            {sections.map((section, index) => {
-              const label = displaySectionTitle(section.title);
-              return (
-                <li key={section.id} className={classes.item}>
-                  <span className={classes.title} title={section.title}>
-                    {label}
-                  </span>
-                  <div className={classes.actions}>
-                    <button
-                      type="button"
-                      disabled={index === 0}
-                      onClick={() => move(section.headingId, "up")}
-                      aria-label={`Przenieś ${label} wyżej`}
-                      title="Wyżej"
-                    >
-                      <FiChevronUp />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={index === sections.length - 1}
-                      onClick={() => move(section.headingId, "down")}
-                      aria-label={`Przenieś ${label} niżej`}
-                      title="Niżej"
-                    >
-                      <FiChevronDown />
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            {sections.length > 0 ? (
+              <>
+                {sidebarSections.length > 0 ? (
+                  <h3 className={classes.laneHeading}>Kolumna główna</h3>
+                ) : null}
+                <ul className={classes.list}>
+                  {sections.map((section, index) => {
+                    const label = displaySectionTitle(section.title);
+                    return (
+                      <li key={section.id} className={classes.item}>
+                        <span className={classes.title} title={section.title}>
+                          {label}
+                        </span>
+                        <div className={classes.actions}>
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() => move(section.headingId, "up")}
+                            aria-label={`Przenieś ${label} wyżej`}
+                            title="Wyżej"
+                          >
+                            <FiChevronUp />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === sections.length - 1}
+                            onClick={() => move(section.headingId, "down")}
+                            aria-label={`Przenieś ${label} niżej`}
+                            title="Niżej"
+                          >
+                            <FiChevronDown />
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            ) : null}
+
+            {sidebarSections.length > 0 ? (
+              <>
+                <h3 className={classes.laneHeading}>Sidebar</h3>
+                <ul className={classes.list}>
+                  {sidebarSections.map((section, index) => {
+                    const label = displaySectionTitle(section.title);
+                    return (
+                      <li key={section.id} className={classes.item}>
+                        <span className={classes.title} title={section.title}>
+                          {label}
+                        </span>
+                        <div className={classes.actions}>
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() => move(section.headingId, "up")}
+                            aria-label={`Przenieś ${label} wyżej w sidebarze`}
+                            title="Wyżej"
+                          >
+                            <FiChevronUp />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === sidebarSections.length - 1}
+                            onClick={() => move(section.headingId, "down")}
+                            aria-label={`Przenieś ${label} niżej w sidebarze`}
+                            title="Niżej"
+                          >
+                            <FiChevronDown />
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            ) : null}
+          </>
         )}
 
         <button
@@ -244,6 +297,16 @@ export default function SectionsPanel({ onClose }) {
           <FiPlus aria-hidden="true" />
           Dodaj sekcję
         </button>
+        {sidebarSections.length > 0 ? (
+          <button
+            type="button"
+            className={classes.addButtonSecondary}
+            onClick={() => openAddSectionModal?.({ lane: "sidebar" })}
+          >
+            <FiPlus aria-hidden="true" />
+            Dodaj w sidebarze
+          </button>
+        ) : null}
       </div>
 
       <div className={classes.density}>

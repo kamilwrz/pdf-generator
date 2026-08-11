@@ -4,10 +4,11 @@
  * Content enter fades come from ids marked via `markElementsEnter` /
  * `markContentElementsEnter`; decorative chrome is never animated.
  *
- * Template-mode section headings get a `SectionRecordAdd` affordance
- * (hover trash/+ left, reorder arrows right → add/delete/reorder section and
- * re-pack). Each multi-line record also gets one `RecordBlockAdd` on its title
- * line (hover anywhere on the upper block → insert, delete, or reorder a
+ * Template-mode section headings (main `section-chrome` and sidebar
+ * `sidebar-chrome`) get a `SectionRecordAdd` affordance (hover trash/+ left,
+ * reorder arrows right → add/delete/reorder section and re-pack within the
+ * same lane). Each multi-line record also gets one `RecordBlockAdd` on its
+ * title line (hover anywhere on the upper block → insert, delete, or reorder a
  * record, then re-pack). Flat-list section bodies (Skills, Languages, flat
  * custom sections — exactly one textarea per section) get a
  * `FlatSectionLayoutToggle` icon to their left, centered on the block's
@@ -29,7 +30,11 @@ import FlatSectionLayoutToggle from '../FlatSectionLayoutToggle/FlatSectionLayou
 import { useCanvasEnterIds } from '../../../hooks/useCanvasEnterIds';
 import { PdfContext } from '../../../store/pdfgenerator-context';
 import { EDITOR_MODE_TEMPLATE } from '../../../utils/editorMode';
-import { listDocumentSections, listFlatSectionAnchors } from '../../../utils/sectionStructure';
+import {
+  listDocumentSections,
+  listFlatSectionAnchors,
+  listSidebarSections,
+} from '../../../utils/sectionStructure';
 import { listRecordBlockAddAnchors } from '../../../utils/sectionRecord';
 import classes from './CanvasElements.module.css';
 
@@ -37,6 +42,19 @@ function enterClassName(elementId, heldIds, fadingIds) {
   if (fadingIds.has(elementId)) return classes.enter;
   if (heldIds.has(elementId)) return classes.enterHeld;
   return undefined;
+}
+
+/**
+ * Map heading ids → ↑/↓ flags for one lane (main or sidebar).
+ * Indexes are lane-local so a sidebar kicker cannot move into the main column.
+ */
+function fillSectionAnchors(map, sections) {
+  sections.forEach((section, index) => {
+    map.set(section.headingId, {
+      canMoveUp: index > 0,
+      canMoveDown: index < sections.length - 1,
+    });
+  });
 }
 
 export default function CanvasElements({ elements }) {
@@ -47,17 +65,12 @@ export default function CanvasElements({ elements }) {
   const pageHeight = pageSize?.height ?? 842;
   const documentElements = A4_Elements?.length ? A4_Elements : elements;
 
-  // Heading id → reorder flags for the section hover affordance.
+  // Heading id → reorder flags for the section hover affordance (main + rail).
   const sectionAnchorsById = useMemo(() => {
     const map = new Map();
     if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
-    const sections = listDocumentSections(documentElements, pageHeight);
-    sections.forEach((section, index) => {
-      map.set(section.headingId, {
-        canMoveUp: index > 0,
-        canMoveDown: index < sections.length - 1,
-      });
-    });
+    fillSectionAnchors(map, listDocumentSections(documentElements, pageHeight));
+    fillSectionAnchors(map, listSidebarSections(documentElements, pageHeight));
     return map;
   }, [editorMode, documentElements, pageHeight]);
 

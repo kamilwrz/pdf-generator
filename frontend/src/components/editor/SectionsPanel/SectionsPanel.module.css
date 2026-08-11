@@ -87,6 +87,7 @@
 
 .close:focus-visible,
 .addButton:focus-visible,
+.addButtonSecondary:focus-visible,
 .segment:focus-visible,
 .segmentActive:focus-visible,
 .autoFit:focus-visible,
@@ -109,6 +110,18 @@
 
 .empty {
   padding: 8px 2px;
+}
+
+.laneHeading {
+  margin: 8px 2px 4px;
+  font: 650 10px/1.2 var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--chrome-muted);
+}
+
+.laneHeading:first-child {
+  margin-top: 0;
 }
 
 .list {
@@ -212,6 +225,35 @@
 }
 
 .addButton:hover {
+  border-color: var(--chrome-accent);
+  color: var(--chrome-accent);
+  background: var(--chrome-hover);
+}
+
+.addButtonSecondary {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+  border: 1px solid var(--chrome-border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--chrome-ink);
+  font: 550 11.5px var(--font-body);
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: border-color .12s, color .12s, background .12s;
+  flex-shrink: 0;
+}
+
+.addButtonSecondary svg {
+  width: 13px;
+  height: 13px;
+}
+
+.addButtonSecondary:hover {
   border-color: var(--chrome-accent);
   color: var(--chrome-accent);
   background: var(--chrome-hover);

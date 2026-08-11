@@ -19,9 +19,43 @@ import {
   applyFlowSpacing,
   isDecorativeOrdinalChrome,
   isSectionHeading,
+  isSidebarLaneElement,
+  isSidebarSectionHeading,
   listDocumentSections,
+  listSidebarSections,
   sectionElementIds,
+  sidebarSectionElementIds,
 } from "./sectionStructure.js";
+
+/**
+ * Resolve membership ids for a main or sidebar section heading.
+ *
+ * @param {object[]} elements
+ * @param {string} headingId
+ * @param {number} [pageHeight=842]
+ * @returns {Set<string>}
+ */
+function resolveSectionMemberIds(elements, headingId, pageHeight = 842) {
+  const heading = (elements || []).find((element) => element.element_id === headingId);
+  if (heading && isSidebarSectionHeading(heading)) {
+    return sidebarSectionElementIds(elements, headingId, pageHeight);
+  }
+  return sectionElementIds(elements, headingId, pageHeight);
+}
+
+/**
+ * Main-column + sidebar section lists (each in its own reading order).
+ *
+ * @param {object[]} elements
+ * @param {number} [pageHeight=842]
+ * @returns {{ headingId: string, title: string }[]}
+ */
+function listEditableSections(elements, pageHeight = 842) {
+  return [
+    ...listDocumentSections(elements, pageHeight),
+    ...listSidebarSections(elements, pageHeight),
+  ];
+}
 
 /** Polish placeholders — keep aligned with `sectionBuilder` PLACEHOLDER. */
 const PLACEHOLDER = Object.freeze({
@@ -114,17 +148,22 @@ function absoluteBottom(element, pageHeight = 842) {
  * @returns {object[]}
  */
 export function listSectionContentElements(elements, headingId, pageHeight = 842) {
-  const ids = sectionElementIds(elements, headingId, pageHeight);
+  const ids = resolveSectionMemberIds(elements, headingId, pageHeight);
   const members = (elements || []).filter((element) => {
     if (!element || !ids.has(element.element_id)) return false;
     if (element.element_id === headingId) return false;
     if (element.fixedToPage) return false;
-    if (element.flowRole === "section-chrome" || element.flowRole === "masthead") {
+    if (
+      element.flowRole === "section-chrome"
+      || element.flowRole === "sidebar-chrome"
+      || element.flowRole === "masthead"
+    ) {
       return false;
     }
     if (isDecorativeOrdinalChrome(element)) return false;
     // Never treat another section title inside the band as a record line.
     if (isSectionHeading(element, elements, pageHeight)) return false;
+    if (isSidebarSectionHeading(element)) return false;
     if (element.category === "line") return false;
     if (element.category === "rectangle" || element.category === "circle"
       || element.category === "ellipse" || element.category === "image") {
@@ -477,6 +516,8 @@ export function buildRecordClone(
       zIndex: Number.isFinite(Number(element.zIndex)) ? Number(element.zIndex) : 4,
       page: 1,
     };
+    // Preserve sidebar lane so cloned records stay in the rail packer.
+    if (element.flowLane === "sidebar") next.flowLane = "sidebar";
     return next;
   });
 }
@@ -515,13 +556,16 @@ export function appendRecordToSection(
 
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
   const lastBody = body[body.length - 1];
+  const intoSidebar = Boolean(heading && isSidebarSectionHeading(heading));
 
   // New lines must stay inside this section's absolute band so
-  // `sectionElementIds` attributes them here before `applyFlowSpacing`
+  // membership helpers attribute them here before `applyFlowSpacing`
   // expands the strip and pushes following sections down. Placing a tall
   // record at its natural height could land past the next heading and steal
   // the lines into the wrong section.
-  const sections = listDocumentSections(elements, pageHeight);
+  const sections = intoSidebar
+    ? listSidebarSections(elements, pageHeight)
+    : listDocumentSections(elements, pageHeight);
   const sectionIndex = sections.findIndex((section) => section.headingId === headingId);
   const nextSectionStart = sectionIndex >= 0 && sectionIndex + 1 < sections.length
     ? sections[sectionIndex + 1].startAbs
@@ -543,6 +587,7 @@ export function appendRecordToSection(
     const page = Math.max(1, Math.floor(abs / pageHeight) + 1);
     const top = abs - (page - 1) * pageHeight;
     const placed = { ...element, page, top };
+    if (intoSidebar) placed.flowLane = "sidebar";
     // Micro-advance under a tight ceiling so every clone stays in-band even
     // when stacked on top of each other; the packer resolves real gaps.
     cursorAbs = bandCeiling != null
@@ -573,7 +618,7 @@ export function appendRecordToSection(
  */
 export function findRecordGroupForElement(elements, elementId, pageHeight = 842) {
   if (!elementId) return null;
-  const sections = listDocumentSections(elements, pageHeight);
+  const sections = listEditableSections(elements, pageHeight);
   for (const section of sections) {
     if (!sectionSupportsRecordAdd(elements, section.headingId, pageHeight)) {
       continue;
@@ -646,7 +691,7 @@ export function elementSupportsRecordBlockAdd(elements, elementId, pageHeight = 
  */
 export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
   const anchors = [];
-  const sections = listDocumentSections(elements, pageHeight);
+  const sections = listEditableSections(elements, pageHeight);
   for (const section of sections) {
     if (!sectionSupportsRecordAdd(elements, section.headingId, pageHeight)) {
       continue;
@@ -726,13 +771,15 @@ export function insertRecordBlockAfterRecord(
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
   const lastMate = group[group.length - 1];
   const anchorIds = new Set(group.map((element) => element.element_id));
+  const intoSidebar = Boolean(heading && isSidebarSectionHeading(heading));
 
   const cloneStackHeight = clones.reduce((sum, element, index) => (
     sum + elementHeight(element) + (index > 0 ? rhythm.stack : 0)
   ), 0);
-  // Open a document-wide hole under the anchor. Shifting only this section's
+  // Open a lane-scoped hole under the anchor. Shifting only this section's
   // body (and leaving the next section heading put) pushed later education
   // lines past UMIEJĘTNOŚCI — sectionElementIds then stole them into Skills.
+  // Sidebar inserts must not drag the main column down (and vice versa).
   const hole = cloneStackHeight + rhythm.record;
   const thresholdAbs = absoluteBottom(lastMate, pageHeight);
 
@@ -740,8 +787,13 @@ export function insertRecordBlockAfterRecord(
     if (!element || element.fixedToPage) return element;
     if (anchorIds.has(element.element_id)) return element;
     // Masthead stays; every later flow element (sibling records AND later
-    // section chrome/body) moves down by the reserved insert height.
+    // section chrome/body) in the same lane moves down by the reserved height.
     if (element.flowRole === "masthead") return element;
+    if (intoSidebar) {
+      if (!isSidebarLaneElement(element)) return element;
+    } else if (isSidebarLaneElement(element)) {
+      return element;
+    }
     if (absoluteTop(element, pageHeight) + 0.01 < thresholdAbs) return element;
     const newAbs = absoluteTop(element, pageHeight) + hole;
     const page = Math.max(1, Math.floor(newAbs / pageHeight) + 1);
@@ -754,6 +806,7 @@ export function insertRecordBlockAfterRecord(
     const page = Math.max(1, Math.floor(cursorAbs / pageHeight) + 1);
     const top = cursorAbs - (page - 1) * pageHeight;
     const placed = { ...element, page, top };
+    if (intoSidebar) placed.flowLane = "sidebar";
     cursorAbs += elementHeight(element) + rhythm.stack;
     return placed;
   });

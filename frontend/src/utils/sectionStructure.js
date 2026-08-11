@@ -661,8 +661,8 @@ export function isSidebarSectionHeading(element) {
 
 /**
  * List sidebar-lane sections in reading order.
- * Independent from `listDocumentSections` — the Sections panel and main
- * packer never see these ids (phase 1: density only).
+ * Independent from `listDocumentSections` — the main packer never sees these
+ * ids. Structural add / reorder / remove use this list with `packSidebarLane`.
  *
  * @param {object[]} elements
  * @param {number} [pageHeight=842]
@@ -732,13 +732,18 @@ export function sidebarSectionElementIds(elements, headingId, pageHeight = 842) 
  * Re-pack every sidebar-lane section with the same SPACE_* rhythm as the main
  * column, using an independent vertical cursor that never touches main flow.
  *
- * Anchors the first kicker at its authored chrome-band top so density changes
- * cannot yank the rail up under the masthead / photo. Later kickers stack with
- * `spacing.section`; intra-section gaps use after_rule / stack / record.
+ * Anchors the rail at the topmost authored chrome-band top so density changes
+ * and reorders cannot yank the rail up under the masthead / photo. Later
+ * kickers stack with `spacing.section`; intra-section gaps use after_rule /
+ * stack / record.
+ *
+ * When `orderedHeadingIds` is provided, strips are packed in that order
+ * (membership is still resolved from current Y geometry, matching
+ * `packDocumentSections`).
  *
  * @param {object[]} elements
  * @param {number} [pageHeight=842]
- * @param {{ pageTop?: number, bottomMargin?: number, spacing?: object, forceTargets?: boolean }} [options]
+ * @param {{ pageTop?: number, bottomMargin?: number, spacing?: object, forceTargets?: boolean, orderedHeadingIds?: string[]|null }} [options]
  * @returns {object[]}
  */
 export function packSidebarLane(
@@ -749,6 +754,7 @@ export function packSidebarLane(
     bottomMargin = DEFAULT_BOTTOM_MARGIN,
     spacing,
     forceTargets = true,
+    orderedHeadingIds = null,
   } = {},
 ) {
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
@@ -756,18 +762,28 @@ export function packSidebarLane(
   const sections = listSidebarSections(list, pageHeight);
   if (sections.length === 0) return list;
 
+  const byHeading = new Map(sections.map((section) => [section.headingId, section]));
+  const order = orderedHeadingIds?.length
+    ? orderedHeadingIds.map((headingId) => byHeading.get(headingId)).filter(Boolean)
+    : sections;
+  if (order.length === 0) return list;
+
   const memberIds = new Set();
-  const strips = sections.map((section) => {
+  const strips = order.map((section) => {
     const ids = sidebarSectionElementIds(list, section.headingId, pageHeight);
     ids.forEach((id) => memberIds.add(id));
     const members = list.filter((element) => ids.has(element.element_id));
     return compactSectionStrip(members, pageHeight, rhythm, forceTargets);
   });
 
-  const firstHeading = list.find((element) => element.element_id === sections[0].headingId);
+  // Keep the rail top at the current topmost kicker (Y order), not the first
+  // heading of the new order — otherwise moving the bottom section up would
+  // drag the whole rail under the masthead.
+  const railAnchor = sections[0];
+  const firstHeading = list.find((element) => element.element_id === railAnchor.headingId);
   let cursorAbs = firstHeading
     ? resolveSectionChromeBandStart(list, firstHeading, pageHeight)
-    : sections[0].startAbs;
+    : railAnchor.startAbs;
 
   const placedById = new Map();
   strips.forEach((strip, stripIndex) => {
@@ -1421,6 +1437,53 @@ export function packDocumentSections(
 }
 
 /**
+ * Append a freshly built section at the end of the sidebar rail, then
+ * retarget both lanes via `applyFlowSpacing`. Flow bottom is measured from
+ * sidebar-lane elements only so a tall main column cannot push the new strip
+ * below the rail.
+ *
+ * @param {object[]} elements
+ * @param {object[]} newElements
+ * @param {number} [pageHeight=842]
+ * @param {{ spacing?: object, pageTop?: number, bottomMargin?: number }} [options]
+ * @returns {object[]}
+ */
+function appendSidebarSectionAtEnd(
+  elements,
+  newElements,
+  pageHeight = 842,
+  { spacing, pageTop = DEFAULT_PAGE_TOP, bottomMargin = DEFAULT_BOTTOM_MARGIN } = {},
+) {
+  const list = elements || [];
+  const additions = newElements || [];
+  if (additions.length === 0) return list;
+
+  const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
+  let flowBottom = 0;
+  for (const element of list) {
+    if (!element || element.fixedToPage) continue;
+    if (!isSidebarLaneElement(element)) continue;
+    flowBottom = Math.max(flowBottom, absoluteBottom(element, pageHeight));
+  }
+  const sidebarSections = listSidebarSections(list, pageHeight);
+  const cursorAbs = flowBottom > 0
+    ? flowBottom + rhythm.section
+    : (sidebarSections[0]?.startAbs ?? pageTop);
+
+  const strip = compactSectionStrip(additions, pageHeight, rhythm, true);
+  const { placedById } = placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin);
+  const placedAdditions = additions.map(
+    (element) => placedById.get(element.element_id) || element,
+  );
+  return applyFlowSpacing(
+    [...list, ...placedAdditions],
+    rhythm,
+    pageHeight,
+    { pageTop, bottomMargin },
+  );
+}
+
+/**
  * Append a freshly built section's elements at the end of the document flow,
  * then retarget every section to the document's governing rhythm.
  *
@@ -1438,18 +1501,31 @@ export function packDocumentSections(
  * sidebar list (e.g. education fit to the rail) would push the new section
  * far below the actual (shorter) main-column content instead of right after it.
  *
+ * Pass `lane: "sidebar"` to append into the rail instead of the main column.
+ *
  * @param {object[]} elements current document elements
  * @param {object[]} newElements the section's chrome + body (unplaced)
  * @param {number} [pageHeight=842]
- * @param {{ spacing?: object, pageTop?: number, bottomMargin?: number }} [options]
+ * @param {{ spacing?: object, pageTop?: number, bottomMargin?: number, lane?: "main"|"sidebar"|null }} [options]
  * @returns {object[]} elements with the new section appended and positioned
  */
 export function appendSectionAtEnd(
   elements,
   newElements,
   pageHeight = 842,
-  { spacing, pageTop = DEFAULT_PAGE_TOP, bottomMargin = DEFAULT_BOTTOM_MARGIN } = {},
+  {
+    spacing,
+    pageTop = DEFAULT_PAGE_TOP,
+    bottomMargin = DEFAULT_BOTTOM_MARGIN,
+    lane = null,
+  } = {},
 ) {
+  if (lane === "sidebar") {
+    return appendSidebarSectionAtEnd(elements, newElements, pageHeight, {
+      spacing, pageTop, bottomMargin,
+    });
+  }
+
   const list = elements || [];
   const additions = newElements || [];
   if (additions.length === 0) return list;
@@ -1491,6 +1567,89 @@ export function appendSectionAtEnd(
 }
 
 /**
+ * Insert a freshly built section immediately below a sidebar kicker, shifting
+ * only later sidebar-lane elements so the main column stays put.
+ *
+ * @param {object[]} elements
+ * @param {object[]} newElements
+ * @param {string} afterHeadingId
+ * @param {number} [pageHeight=842]
+ * @param {{ spacing?: object, pageTop?: number, bottomMargin?: number }} [options]
+ * @returns {object[]}
+ */
+function insertSidebarSectionAfter(
+  elements,
+  newElements,
+  afterHeadingId,
+  pageHeight = 842,
+  { spacing, pageTop = DEFAULT_PAGE_TOP, bottomMargin = DEFAULT_BOTTOM_MARGIN } = {},
+) {
+  const list = elements || [];
+  const additions = newElements || [];
+  if (additions.length === 0) return list;
+
+  const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
+  const sections = listSidebarSections(list, pageHeight);
+  const index = sections.findIndex((section) => section.headingId === afterHeadingId);
+  if (index < 0) {
+    return appendSidebarSectionAtEnd(list, additions, pageHeight, {
+      spacing, pageTop, bottomMargin,
+    });
+  }
+
+  const anchorIds = sidebarSectionElementIds(list, afterHeadingId, pageHeight);
+  let sectionBottom = sections[index].startAbs;
+  for (const element of list) {
+    if (!element || !anchorIds.has(element.element_id)) continue;
+    sectionBottom = Math.max(sectionBottom, absoluteBottom(element, pageHeight));
+  }
+
+  const cursorAbs = sectionBottom + rhythm.section;
+  const strip = compactSectionStrip(additions, pageHeight, rhythm, true);
+  const { placedById, bottomAbs } = placeStrip(
+    strip, cursorAbs, pageHeight, pageTop, bottomMargin,
+  );
+  const placedAdditions = additions.map(
+    (element) => placedById.get(element.element_id) || element,
+  );
+
+  const hole = Math.max(0, bottomAbs + rhythm.section - cursorAbs);
+  const shifted = list.map((element) => {
+    if (!element || element.fixedToPage) return element;
+    if (anchorIds.has(element.element_id)) return element;
+    if (element.flowRole === "masthead") return element;
+    if (!isSidebarLaneElement(element)) return element;
+    if (absoluteTop(element, pageHeight) + 0.01 < sectionBottom) return element;
+    const newAbs = absoluteTop(element, pageHeight) + hole;
+    const page = Math.max(1, Math.floor(newAbs / pageHeight) + 1);
+    const top = newAbs - (page - 1) * pageHeight;
+    return { ...element, page, top };
+  });
+
+  const mateBottomId = [...anchorIds].reduce((bestId, id) => {
+    const element = shifted.find((item) => item.element_id === id);
+    if (!element) return bestId;
+    if (!bestId) return id;
+    const best = shifted.find((item) => item.element_id === bestId);
+    return absoluteBottom(element, pageHeight) >= absoluteBottom(best, pageHeight)
+      ? id
+      : bestId;
+  }, null);
+  const mateIndex = mateBottomId
+    ? shifted.findIndex((element) => element.element_id === mateBottomId)
+    : -1;
+  const withBlock = mateIndex >= 0
+    ? [
+      ...shifted.slice(0, mateIndex + 1),
+      ...placedAdditions,
+      ...shifted.slice(mateIndex + 1),
+    ]
+    : [...shifted, ...placedAdditions];
+
+  return applyFlowSpacing(withBlock, rhythm, pageHeight, { pageTop, bottomMargin });
+}
+
+/**
  * Insert a freshly built section immediately below the section owned by
  * `afterHeadingId`, then retarget every section to the governing rhythm.
  *
@@ -1501,11 +1660,13 @@ export function appendSectionAtEnd(
  * also drag a two-column template's sidebar rail down by the same amount.
  * Falls back to `appendSectionAtEnd` when the anchor heading is missing.
  *
+ * Sidebar kickers (or `lane: "sidebar"`) insert into the rail instead.
+ *
  * @param {object[]} elements
  * @param {object[]} newElements
  * @param {string} afterHeadingId
  * @param {number} [pageHeight=842]
- * @param {{ spacing?: object, pageTop?: number, bottomMargin?: number }} [options]
+ * @param {{ spacing?: object, pageTop?: number, bottomMargin?: number, lane?: "main"|"sidebar"|null }} [options]
  * @returns {object[]}
  */
 export function insertSectionAfter(
@@ -1513,13 +1674,34 @@ export function insertSectionAfter(
   newElements,
   afterHeadingId,
   pageHeight = 842,
-  { spacing, pageTop = DEFAULT_PAGE_TOP, bottomMargin = DEFAULT_BOTTOM_MARGIN } = {},
+  {
+    spacing,
+    pageTop = DEFAULT_PAGE_TOP,
+    bottomMargin = DEFAULT_BOTTOM_MARGIN,
+    lane = null,
+  } = {},
 ) {
   const list = elements || [];
   const additions = newElements || [];
   if (additions.length === 0) return list;
+
+  const anchorHeading = afterHeadingId
+    ? list.find((element) => element.element_id === afterHeadingId)
+    : null;
+  const intoSidebar = lane === "sidebar"
+    || (anchorHeading && isSidebarSectionHeading(anchorHeading));
+
   if (!afterHeadingId) {
-    return appendSectionAtEnd(list, additions, pageHeight, { spacing, pageTop, bottomMargin });
+    return appendSectionAtEnd(list, additions, pageHeight, {
+      spacing, pageTop, bottomMargin, lane: intoSidebar ? "sidebar" : lane,
+    });
+  }
+
+  if (intoSidebar) {
+    return insertSidebarSectionAfter(
+      list, additions, afterHeadingId, pageHeight,
+      { spacing, pageTop, bottomMargin },
+    );
   }
 
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
@@ -1549,7 +1731,6 @@ export function insertSectionAfter(
   // content after the anchor, and later section chrome/body) moves down so
   // section membership stays correct before applyFlowSpacing.
   const hole = Math.max(0, bottomAbs + rhythm.section - cursorAbs);
-  const anchorHeading = list.find((element) => element.element_id === afterHeadingId);
   const isSameColumn = sameColumnAsHeading(Number(anchorHeading?.left) || 0);
   const shifted = list.map((element) => {
     if (!element || element.fixedToPage) return element;
@@ -1591,6 +1772,9 @@ export function insertSectionAfter(
  * Move a section up/down, then repack every section so page-break holes and
  * following content reflow instead of overlapping.
  *
+ * Sidebar kickers swap within `listSidebarSections` and re-pack via
+ * `packSidebarLane`; main-column headings keep the `packDocumentSections` path.
+ *
  * @returns {object[]|null} new elements, or null if move is invalid
  */
 export function reorderSection(
@@ -1600,7 +1784,31 @@ export function reorderSection(
   pageHeight = 842,
   options = {},
 ) {
-  const sections = listDocumentSections(elements, pageHeight);
+  const list = elements || [];
+  const heading = list.find((element) => element.element_id === headingId);
+  const rhythm = normalizeFlowSpacing(options.spacing || DEFAULT_FLOW_SPACING);
+
+  if (heading && isSidebarSectionHeading(heading)) {
+    const sections = listSidebarSections(list, pageHeight);
+    const index = sections.findIndex((section) => section.headingId === headingId);
+    if (index < 0) return null;
+    const swapWith = direction === "up" ? index - 1 : index + 1;
+    if (swapWith < 0 || swapWith >= sections.length) return null;
+
+    const order = sections.map((section) => section.headingId);
+    const tmp = order[index];
+    order[index] = order[swapWith];
+    order[swapWith] = tmp;
+
+    return packSidebarLane(list, pageHeight, {
+      ...options,
+      spacing: rhythm,
+      orderedHeadingIds: order,
+      forceTargets: options.forceTargets !== false,
+    });
+  }
+
+  const sections = listDocumentSections(list, pageHeight);
   const index = sections.findIndex((section) => section.headingId === headingId);
   if (index < 0) return null;
   const swapWith = direction === "up" ? index - 1 : index + 1;
@@ -1611,8 +1819,7 @@ export function reorderSection(
   order[index] = order[swapWith];
   order[swapWith] = tmp;
 
-  const rhythm = normalizeFlowSpacing(options.spacing || DEFAULT_FLOW_SPACING);
-  return packDocumentSections(elements, order, pageHeight, {
+  return packDocumentSections(list, order, pageHeight, {
     ...options,
     spacing: rhythm,
     sectionGap: options.sectionGap ?? rhythm.section,
@@ -1624,9 +1831,9 @@ export function reorderSection(
  * remaining sections in document order so later content closes the hole under
  * the template rhythm (`stack` / `record` / `section` / `after_rule`).
  *
- * Masthead and fixed-to-page chrome are never removed. Sidebar rails that are
- * not members of the main-column section strip stay put (same column filter as
- * `sectionElementIds`).
+ * Masthead and fixed-to-page chrome are never removed. Sidebar kickers remove
+ * via `sidebarSectionElementIds` + `packSidebarLane`; main-column removals leave
+ * the rail alone (same column filter as `sectionElementIds`).
  *
  * @param {object[]} elements
  * @param {string} headingId
@@ -1642,6 +1849,35 @@ export function removeSection(
 ) {
   if (!headingId) return null;
   const list = elements || [];
+  const heading = list.find((element) => element.element_id === headingId);
+  const rhythm = normalizeFlowSpacing(options.spacing || DEFAULT_FLOW_SPACING);
+
+  if (heading && isSidebarSectionHeading(heading)) {
+    const sections = listSidebarSections(list, pageHeight);
+    const index = sections.findIndex((section) => section.headingId === headingId);
+    if (index < 0) return null;
+
+    const removedIds = sidebarSectionElementIds(list, headingId, pageHeight);
+    if (removedIds.size === 0) return null;
+
+    const remaining = list.filter((element) => !removedIds.has(element.element_id));
+    const order = sections
+      .filter((section) => section.headingId !== headingId)
+      .map((section) => section.headingId);
+
+    if (order.length === 0) {
+      return { elements: remaining, removedIds };
+    }
+
+    const packed = packSidebarLane(remaining, pageHeight, {
+      ...options,
+      spacing: rhythm,
+      orderedHeadingIds: order,
+      forceTargets: true,
+    });
+    return { elements: packed, removedIds };
+  }
+
   const sections = listDocumentSections(list, pageHeight);
   const index = sections.findIndex((section) => section.headingId === headingId);
   if (index < 0) return null;
@@ -1660,7 +1896,6 @@ export function removeSection(
     return { elements: remaining, removedIds };
   }
 
-  const rhythm = normalizeFlowSpacing(options.spacing || DEFAULT_FLOW_SPACING);
   const packed = packDocumentSections(remaining, order, pageHeight, {
     ...options,
     spacing: rhythm,
@@ -1727,6 +1962,19 @@ const DEFAULT_SECTION_STYLE = Object.freeze({
   mutedColor: "#756F6B",
 });
 
+/** Narrow rail defaults for Tessera / Slate-style sidebars when none exist yet. */
+const DEFAULT_SIDEBAR_SECTION_STYLE = Object.freeze({
+  left: 51,
+  bodyLeft: 25,
+  recordWidth: 128,
+  heading: { fontSize: 7.6, fontFamily: "Inter", color: "#24201E", letterSpacing: 1.2, bold: false },
+  rule: { width: 50, height: 1, backgroundColor: "#BFB4AA", relLeft: 0 },
+  markers: [],
+  badgeNumber: null,
+  body: { fontSize: 6.6, fontFamily: "Inter", lineHeight: 9, color: "#24201E" },
+  mutedColor: "#756F6B",
+});
+
 /**
  * Categories eligible to be replicated as a decorative shape alongside a
  * section heading (rectangles, circles, filled "line" blocks used as badges,
@@ -1744,26 +1992,45 @@ const DECORATIVE_SHAPE_CATEGORIES = new Set(["rectangle", "circle", "ellipse", "
  *
  * Sampling the LAST section keeps the new section visually consistent with the
  * content it will sit directly beneath. When no section exists, returns a copy
- * of the template-neutral defaults.
+ * of the template-neutral defaults (narrow rail defaults when `lane: "sidebar"`).
+ *
+ * Pass `lane: "sidebar"` (or a sidebar `fromHeadingId`) to sample the rail.
  *
  * @param {object[]} elements
  * @param {number} [pageHeight=842]
  * @param {string|null} [fromHeadingId] sample this section instead of the last one
+ * @param {{ lane?: "main"|"sidebar"|null }} [options]
  * @returns {object} style profile (see plan `SectionStyle`)
  */
-export function deriveSectionStyle(elements, pageHeight = 842, fromHeadingId = null) {
+export function deriveSectionStyle(
+  elements,
+  pageHeight = 842,
+  fromHeadingId = null,
+  options = {},
+) {
   const list = elements || [];
-  const sections = listDocumentSections(list, pageHeight);
+  const fromHeading = fromHeadingId
+    ? list.find((element) => element.element_id === fromHeadingId)
+    : null;
+  const intoSidebar = options.lane === "sidebar"
+    || (fromHeading && isSidebarSectionHeading(fromHeading));
+  const defaults = intoSidebar ? DEFAULT_SIDEBAR_SECTION_STYLE : DEFAULT_SECTION_STYLE;
+  const sections = intoSidebar
+    ? listSidebarSections(list, pageHeight)
+    : listDocumentSections(list, pageHeight);
   if (sections.length === 0) {
-    return JSON.parse(JSON.stringify(DEFAULT_SECTION_STYLE));
+    return JSON.parse(JSON.stringify(defaults));
   }
 
   const target = (fromHeadingId
     && sections.find((section) => section.headingId === fromHeadingId))
     || sections[sections.length - 1];
   const heading = list.find((element) => element.element_id === target.headingId) || null;
-  const memberIds = sectionElementIds(list, target.headingId, pageHeight);
+  const memberIds = intoSidebar
+    ? sidebarSectionElementIds(list, target.headingId, pageHeight)
+    : sectionElementIds(list, target.headingId, pageHeight);
   const members = list.filter((element) => memberIds.has(element.element_id));
+  const chromeRole = intoSidebar ? "sidebar-chrome" : "section-chrome";
 
   // Resolve the heading's left edge before sampling so candidates can be
   // constrained to the heading's column. The LAST section has no lower Y bound,
@@ -1773,16 +2040,15 @@ export function deriveSectionStyle(elements, pageHeight = 842, fromHeadingId = n
   // mirrors the same-column check in `hasSectionRuleBelow` (widened from 40 to
   // 60 so an offset marker at roughly -25px and normal body copy stay in scope).
   const headingLeft = Number(heading?.left);
-  const left = Number.isFinite(headingLeft) ? headingLeft : DEFAULT_SECTION_STYLE.left;
+  const left = Number.isFinite(headingLeft) ? headingLeft : defaults.left;
   const inHeadingColumn = (element) => Math.abs((Number(element.left) || 0) - left) <= 60;
 
-  // Widest thin line in the section is the heading rule. Do not require the
-  // heading column — Monument's rule sits far right of the label (left≈369)
-  // while the title is at left≈118; an in-column filter would drop it and
-  // the built section would ship without an underline.
+  // Widest thin line in the section is the heading rule. Main column requires
+  // width ≥ 120 (Monument's accent rule). Sidebar rules are often ~50px wide,
+  // so the rail path accepts any thin line in the section strip.
   const rule = members
     .filter((element) => element.category === "line"
-      && (Number(element.width) || 0) >= 120
+      && (intoSidebar || (Number(element.width) || 0) >= 120)
       && (Number(element.height) || 0) <= 4)
     .sort((a, b) => (Number(b.width) || 0) - (Number(a.width) || 0))[0] || null;
 
@@ -1810,7 +2076,7 @@ export function deriveSectionStyle(elements, pageHeight = 842, fromHeadingId = n
   // and decorative text are excluded (see DECORATIVE_SHAPE_CATEGORIES doc).
   const decorativeShapes = members.filter((element) => element.element_id !== target.headingId
     && element.element_id !== rule?.element_id
-    && element.flowRole === "section-chrome"
+    && element.flowRole === chromeRole
     && inDecorativeShapeColumn(element)
     && DECORATIVE_SHAPE_CATEGORIES.has(element.category))
     .sort((a, b) => absoluteTop(a, pageHeight) - absoluteTop(b, pageHeight)
@@ -1822,14 +2088,14 @@ export function deriveSectionStyle(elements, pageHeight = 842, fromHeadingId = n
   // from. `digits` records how many characters the sampled number had, so
   // the caller can zero-pad the new ordinal to match ("04" -> 2 digits).
   const badgeNumberElement = members.find((element) => element.element_id !== target.headingId
-    && element.flowRole === "section-chrome"
+    && element.flowRole === chromeRole
     && isDecorativeOrdinalChrome(element)
     && (element.category === "text" || element.category === "textarea")) || null;
   const badgeNumber = badgeNumberElement
     ? {
-      fontSize: Number(badgeNumberElement.fontSize) || DEFAULT_SECTION_STYLE.heading.fontSize,
-      fontFamily: String(badgeNumberElement.fontFamily || DEFAULT_SECTION_STYLE.heading.fontFamily),
-      color: String(badgeNumberElement.color || DEFAULT_SECTION_STYLE.heading.color),
+      fontSize: Number(badgeNumberElement.fontSize) || defaults.heading.fontSize,
+      fontFamily: String(badgeNumberElement.fontFamily || defaults.heading.fontFamily),
+      color: String(badgeNumberElement.color || defaults.heading.color),
       bold: Boolean(badgeNumberElement.bold),
       digits: String(badgeNumberElement.content || "").trim().length || 2,
       relLeft: (Number(badgeNumberElement.left) || 0) - left,
@@ -1840,23 +2106,38 @@ export function deriveSectionStyle(elements, pageHeight = 842, fromHeadingId = n
   // Body copy: non-chrome content elements, in reading order.
   const bodyElements = members
     .filter((element) => element.element_id !== target.headingId
+      && element.flowRole !== chromeRole
       && element.flowRole !== "section-chrome"
+      && element.flowRole !== "sidebar-chrome"
       && inHeadingColumn(element)
       && element.category !== "line")
     .sort((a, b) => absoluteTop(a, pageHeight) - absoluteTop(b, pageHeight));
-  const body = bodyElements[0] || null;
+  // Sidebar bodies often sit left of the kicker (heading 51, body 25). Fall
+  // back to any in-strip content when the heading-column band misses them.
+  const body = bodyElements[0]
+    || members
+      .filter((element) => element.element_id !== target.headingId
+        && element.flowRole !== chromeRole
+        && element.flowRole !== "section-chrome"
+        && element.flowRole !== "sidebar-chrome"
+        && (element.category === "text" || element.category === "textarea"))
+      .sort((a, b) => absoluteTop(a, pageHeight) - absoluteTop(b, pageHeight))[0]
+    || null;
 
-  const recordWidth = Number(body?.width) || Number(rule?.width) || DEFAULT_SECTION_STYLE.recordWidth;
+  const recordWidth = Number(body?.width) || Number(rule?.width) || defaults.recordWidth;
   // Content column may sit left of the title (Monument body at 102, title at 118).
   const bodyLeftRaw = Number(body?.left);
   const bodyLeft = Number.isFinite(bodyLeftRaw) ? bodyLeftRaw : left;
 
   // Muted color: a body line whose color differs from the main body color
   // (typically the meta line). Best-effort — falls back to the body color.
-  const bodyColor = String(body?.color || DEFAULT_SECTION_STYLE.body.color);
-  const mutedElement = bodyElements.find((element) => String(element.color || "") && String(element.color) !== bodyColor);
-  const mutedColor = mutedElement ? String(mutedElement.color) : DEFAULT_SECTION_STYLE.mutedColor;
-  const headingFontSize = Number(heading?.fontSize) || DEFAULT_SECTION_STYLE.heading.fontSize;
+  const bodyColor = String(body?.color || defaults.body.color);
+  const mutedPool = bodyElements.length > 0
+    ? bodyElements
+    : (body ? [body] : []);
+  const mutedElement = mutedPool.find((element) => String(element.color || "") && String(element.color) !== bodyColor);
+  const mutedColor = mutedElement ? String(mutedElement.color) : defaults.mutedColor;
+  const headingFontSize = Number(heading?.fontSize) || defaults.heading.fontSize;
   const headingLetterSpacing = Number(heading?.letterSpacing) || 0;
   const estimatedHeadingWidth = String(heading?.content || "").length
     * (headingFontSize * 0.58 + headingLetterSpacing);
@@ -1867,8 +2148,8 @@ export function deriveSectionStyle(elements, pageHeight = 842, fromHeadingId = n
     recordWidth,
     heading: {
       fontSize: headingFontSize,
-      fontFamily: String(heading?.fontFamily || DEFAULT_SECTION_STYLE.heading.fontFamily),
-      color: String(heading?.color || DEFAULT_SECTION_STYLE.heading.color),
+      fontFamily: String(heading?.fontFamily || defaults.heading.fontFamily),
+      color: String(heading?.color || defaults.heading.color),
       letterSpacing: Number(heading?.letterSpacing) || 0,
       bold: Boolean(heading?.bold),
     },
@@ -1876,7 +2157,7 @@ export function deriveSectionStyle(elements, pageHeight = 842, fromHeadingId = n
       ? {
         width: Number(rule.width) || recordWidth,
         height: Number(rule.height) || 1,
-        backgroundColor: String(rule.backgroundColor || DEFAULT_SECTION_STYLE.rule.backgroundColor),
+        backgroundColor: String(rule.backgroundColor || defaults.rule.backgroundColor),
         relLeft: (Number(rule.left) || 0) - left,
         // Trailing midline rules (Cardinal) must preserve the whitespace after
         // the label, not the source label's absolute rule start. The builder
@@ -1894,7 +2175,7 @@ export function deriveSectionStyle(elements, pageHeight = 842, fromHeadingId = n
         category: shape.category,
         width: Number(shape.width) || 8,
         height: Number(shape.height) || 8,
-        backgroundColor: String(shape.backgroundColor || DEFAULT_SECTION_STYLE.heading.color),
+        backgroundColor: String(shape.backgroundColor || defaults.heading.color),
         relLeft: (Number(shape.left) || 0) - left,
         relTop: absoluteTop(shape, pageHeight) - absoluteTop(heading, pageHeight),
       };
@@ -1914,9 +2195,9 @@ export function deriveSectionStyle(elements, pageHeight = 842, fromHeadingId = n
     }),
     badgeNumber,
     body: {
-      fontSize: Number(body?.fontSize) || DEFAULT_SECTION_STYLE.body.fontSize,
-      fontFamily: String(body?.fontFamily || DEFAULT_SECTION_STYLE.body.fontFamily),
-      lineHeight: Number(body?.lineHeight) || Math.round((Number(body?.fontSize) || DEFAULT_SECTION_STYLE.body.fontSize) * 1.4),
+      fontSize: Number(body?.fontSize) || defaults.body.fontSize,
+      fontFamily: String(body?.fontFamily || defaults.body.fontFamily),
+      lineHeight: Number(body?.lineHeight) || Math.round((Number(body?.fontSize) || defaults.body.fontSize) * 1.4),
       color: bodyColor,
     },
     mutedColor,

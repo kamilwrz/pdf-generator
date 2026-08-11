@@ -68,6 +68,13 @@ test("section rows keep up/down reorder without hide/show or fake DnD", async ()
   assert.doesNotMatch(source, /ukryj sekcj|hide section/i);
 });
 
+test("sidebar lane list and add CTA use listSidebarSections", async () => {
+  const source = await readFile(panelUrl, "utf8");
+  assert.match(source, /listSidebarSections/);
+  assert.match(source, /Dodaj w sidebarze/);
+  assert.match(source, /lane:\s*"sidebar"/);
+});
+
 test("panel styles stay compact with gold density accent", async () => {
   const css = await readFile(cssUrl, "utf8");
   assert.match(css, /\.segmentActive/);

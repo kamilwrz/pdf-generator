@@ -138,6 +138,7 @@ function contentTextarea({
   elementId, content, left, top, width,
   fontSize, fontFamily, lineHeight, color,
   bold = false, bulletList = false, flowGroup = null,
+  flowLane = null,
 }) {
   const lh = lineHeight || Math.round(fontSize * 1.4);
   const element = {
@@ -171,6 +172,7 @@ function contentTextarea({
     page: 1,
   };
   if (flowGroup) element.flowGroup = flowGroup;
+  if (flowLane) element.flowLane = flowLane;
   return element;
 }
 
@@ -183,11 +185,11 @@ function contentTextarea({
  * shape carried them.
  * @returns {object}
  */
-function decorativeShapeElement({ elementId, shape, left }) {
+function decorativeShapeElement({ elementId, shape, left, flowRole = "section-chrome", flowLane = null }) {
   const base = {
     element_id: elementId,
     category: shape.category,
-    flowRole: "section-chrome",
+    flowRole,
     left: left + shape.relLeft,
     // Preserve the sampled vertical offset verbatim, including negatives.
     // `deriveSectionStyle` reports a negative `relTop` when a template's
@@ -214,6 +216,7 @@ function decorativeShapeElement({ elementId, shape, left }) {
     if (shape.src) base.src = shape.src;
     if (shape.alignWithText) base.alignWithText = true;
   }
+  if (flowLane) base.flowLane = flowLane;
   return base;
 }
 
@@ -228,12 +231,15 @@ function decorativeShapeElement({ elementId, shape, left }) {
  * the section's real title (see `sectionStructure.js`).
  * @returns {object}
  */
-function badgeNumberElement({ elementId, badgeNumber, sectionOrdinal, left }) {
-  return {
+function badgeNumberElement({
+  elementId, badgeNumber, sectionOrdinal, left,
+  flowRole = "section-chrome", flowLane = null,
+}) {
+  const element = {
     element_id: elementId,
     category: "text",
     content: String(sectionOrdinal).padStart(badgeNumber.digits, "0"),
-    flowRole: "section-chrome",
+    flowRole,
     isDecorativeChromeText: true,
     left: left + badgeNumber.relLeft,
     top: badgeNumber.relTop,
@@ -249,20 +255,27 @@ function badgeNumberElement({ elementId, badgeNumber, sectionOrdinal, left }) {
     zIndex: 5,
     page: 1,
   };
+  if (flowLane) element.flowLane = flowLane;
+  return element;
 }
 
 /**
  * Build a new section's elements for the chosen layout.
  *
- * @param {{ name: string, layout: "aa"|"cc-edu"|"cc-exp"|"cc-sub", style: object, spacing?: object, sectionOrdinal?: number, idFactory: () => string }} args
+ * @param {{ name: string, layout: "aa"|"cc-edu"|"cc-exp"|"cc-sub", style: object, spacing?: object, sectionOrdinal?: number, idFactory: () => string, lane?: "main"|"sidebar" }} args
  * @returns {{ elements: object[], headingId: string, firstBodyId: string }}
  *
  * Decorative markers (including iconic section images) come from `style.markers`.
  * Callers that offer an icon gallery should run `applySelectedSectionIcon` on
  * the style before invoking this builder so the chosen glyph lands at the same
  * offset as sibling headings.
+ *
+ * Pass `lane: "sidebar"` to stamp `flowLane: "sidebar"` and
+ * `flowRole: "sidebar-chrome"` so the strip joins the rail packer.
  */
-export function buildSectionElements({ name, layout, style, spacing, sectionOrdinal, idFactory }) {
+export function buildSectionElements({
+  name, layout, style, spacing, sectionOrdinal, idFactory, lane = "main",
+}) {
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
   // `PLACEHOLDER.heading` ("Nowa sekcja") is the authoritative default for a
   // blank section name. Callers such as AddSectionModal.handleConfirm also
@@ -278,9 +291,14 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
   const width = style.recordWidth;
   const headingId = idFactory();
   const elements = [];
+  const intoSidebar = lane === "sidebar";
+  const chromeRole = intoSidebar ? "sidebar-chrome" : "section-chrome";
+  const flowLane = intoSidebar ? "sidebar" : null;
 
   for (const shape of style.markers || []) {
-    elements.push(decorativeShapeElement({ elementId: idFactory(), shape, left }));
+    elements.push(decorativeShapeElement({
+      elementId: idFactory(), shape, left, flowRole: chromeRole, flowLane,
+    }));
   }
 
   if (style.badgeNumber) {
@@ -289,15 +307,17 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
       badgeNumber: style.badgeNumber,
       sectionOrdinal: Number(sectionOrdinal) || 1,
       left,
+      flowRole: chromeRole,
+      flowLane,
     }));
   }
 
   // Heading label (section title). Placed at relTop 0 so it anchors the chrome.
-  elements.push({
+  const headingElement = {
     element_id: headingId,
     category: "text",
     content: label,
-    flowRole: "section-chrome",
+    flowRole: chromeRole,
     left,
     top: 0,
     fontSize: style.heading.fontSize,
@@ -312,7 +332,9 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
     locked: false,
     zIndex: 3,
     page: 1,
-  });
+  };
+  if (flowLane) headingElement.flowLane = flowLane;
+  elements.push(headingElement);
 
   // Default rule top matches Builder.text() cursor advance (Cinder/Regent).
   // Prefer a sampled `rule.relTop` when present — Monument's accent rule sits
@@ -345,10 +367,10 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
       ruleRelLeft = estimatedLabelWidth + sampledLabelGap;
       ruleWidth = Math.max(1, sampledRight - ruleRelLeft);
     }
-    elements.push({
+    const ruleElement = {
       element_id: idFactory(),
       category: "line",
-      flowRole: "section-chrome",
+      flowRole: chromeRole,
       left: left + ruleRelLeft,
       top: ruleTop,
       width: ruleWidth,
@@ -359,7 +381,9 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
       locked: false,
       zIndex: 2,
       page: 1,
-    });
+    };
+    if (flowLane) ruleElement.flowLane = flowLane;
+    elements.push(ruleElement);
   }
 
   // Body starts below the chrome band, using the document's actual
@@ -402,6 +426,7 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
         bold: line.bold,
         bulletList: Boolean(line.bulletList),
         flowGroup: group,
+        flowLane,
       }));
       // Advance by the real box height (not bare lineHeight) so authored
       // intra-record gaps stay non-negative before forceTargets re-pins them.
@@ -419,6 +444,7 @@ export function buildSectionElements({ name, layout, style, spacing, sectionOrdi
       fontFamily: style.body.fontFamily,
       lineHeight: style.body.lineHeight,
       color: style.body.color,
+      flowLane,
     }));
   }
 
