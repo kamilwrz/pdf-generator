@@ -192,8 +192,8 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in elements
             if element.get("id") == "tessera-photo-frame"
         ))
-        # Sidebar contact/section bodies must remain editable; only photo chrome
-        # and page rails are inert (`fixedToPage`).
+        # Sidebar section bodies must remain editable; only photo chrome and
+        # page rails are inert (`fixedToPage`). Contact is masthead-only.
         side_width = 178
         editable_sidebar = [
             element for element in elements
@@ -207,6 +207,30 @@ class CvTemplateLayoutTests(unittest.TestCase):
             not element.get("locked")
             for element in editable_sidebar
         ))
+        self.assertFalse(any(
+            element.get("content") == "KONTAKT"
+            for element in elements
+            if element["category"] == "text" and element["left"] < side_width
+        ))
+        masthead_contact_labels = [
+            element for element in elements
+            if element["category"] == "text"
+            and element.get("flowRole") == "masthead"
+            and element["left"] >= 218
+            and not element.get("bold")
+            and element.get("fontSize", 0) < 10
+        ]
+        self.assertGreaterEqual(len(masthead_contact_labels), 2)
+        contact_icons = [
+            element for element in elements
+            if element["category"] == "image"
+            and element.get("flowRole") == "masthead"
+            and any(
+                element["src"].endswith(f"/{name}.png")
+                for name in ("phone", "email", "location", "linkedin", "github", "website")
+            )
+        ]
+        self.assertGreaterEqual(len(contact_icons), 2)
 
     def test_slate_is_rectilinear_icon_sidebar_with_rectangular_photo(self):
         """Slate keeps a rectilinear (no circle/ellipse) blueprint identity."""

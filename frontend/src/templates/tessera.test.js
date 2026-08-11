@@ -44,4 +44,28 @@ test("Tessera uses an original mosaic sidebar and every supported canvas primiti
             || (element.autoHeight && element.preserveInitialLayout)
         ),
     ));
+
+    // Contact is masthead-only (icon + separate text labels), never a sidebar
+    // KONTAKT block or a single mid-dot textarea/line under the name.
+    assert.ok(!tesseraTemplate.some(
+        (element) => element.category === "text"
+            && element.content === "KONTAKT"
+            && (element.left ?? 0) < 178,
+    ));
+    const mastheadContacts = tesseraTemplate.filter(
+        (element) => element.flowRole === "masthead"
+            && element.category === "text"
+            && (element.left ?? 0) >= 218
+            && !element.bold
+            && (element.fontSize ?? 0) < 10,
+    );
+    assert.ok(
+        mastheadContacts.length >= 2,
+        `expected >=2 masthead contact labels, got ${mastheadContacts.length}`,
+    );
+    assert.ok(tesseraTemplate.some(
+        (element) => element.category === "image"
+            && element.flowRole === "masthead"
+            && /\/(phone|email|location)\.png$/.test(element.src || ""),
+    ));
 });

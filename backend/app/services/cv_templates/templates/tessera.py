@@ -26,9 +26,12 @@ from app.services.cv_templates.shared.records import (
     _place_education_record,
     _place_experience_record,
 )
+from app.services.cv_templates.shared.contact import (
+    _contact_channel_items,
+    _place_wrapping_icon_contacts,
+)
 from app.services.cv_templates.shared.text import (
     _compact_text,
-    _contact_line_core,
     _labels,
     _place_skills_section,
 )
@@ -37,10 +40,12 @@ from app.services.cv_templates.shared.text import (
 def _gen_tessera(cv: dict) -> list[dict]:
     """Generate Tessera's original two-column, mosaic-tile CV layout.
 
-    The left rail owns the rectangular photo placeholder, contact rows, and as
-    many complete compact sections as fit. Overflow sections move to the main
-    column instead of being truncated. Main-column records use Builder page
-    flow and remain atomic through ``flowGroup`` tags.
+    The left rail owns the rectangular photo placeholder and as many complete
+    compact sections as fit (education, skills, languages, …). Contact lives
+    only in the masthead as icon+label rows — never duplicated in the sidebar.
+    Overflow sections move to the main column instead of being truncated.
+    Main-column records use Builder page flow and remain atomic through
+    ``flowGroup`` tags.
     """
     colors = {
         "paper": "#FCF8F2",
@@ -78,10 +83,13 @@ def _gen_tessera(cv: dict) -> list[dict]:
     # image glyph is intentionally separate so a user photo can replace it
     # without removing the surrounding Tessera decoration.
     #
-    # Only this decorative cluster is inert (`fixedToPage` + `locked`). Contact
-    # rows and fitted sidebar sections stay editable — Tessera does
-    # not repeat personal sidebar data on continuation pages.
+    # Only this decorative cluster is inert (`fixedToPage` + `locked`). Fitted
+    # sidebar sections stay editable — Tessera does not repeat personal
+    # sidebar data on continuation pages.
     photo_left, photo_top, photo_width, photo_height = 33, 40, 112, 126
+    # First sidebar section starts under the photo; contact no longer occupies
+    # the rail, so reclaim that band for education / skills / languages.
+    sidebar_sections_start = photo_top + photo_height + 28  # 194
 
     def lock_chrome(element: dict) -> dict:
         return {**element, "fixedToPage": True, "locked": True}
@@ -109,6 +117,9 @@ def _gen_tessera(cv: dict) -> list[dict]:
             ),
             "id": "tessera-photo-glyph",
             "photoSlot": "glyph",
+            # `_icon` defaults to masthead (for contact glyphs); the portrait
+            # placeholder is sidebar chrome, not part of the name/contact band.
+            "flowRole": "content",
         }),
         lock_chrome(_circle(
             photo_left - 5, photo_top + photo_height - 8, 12, colors["coral"], filled=True, zIndex=4,
@@ -133,24 +144,8 @@ def _gen_tessera(cv: dict) -> list[dict]:
             for element in (tile, outline, icon, heading, rule)
         ]
 
-    # Contact rows use dedicated icons rather than text symbols so canvas and
-    # PDF export share the same geometry and visual weight.
-    contact_top = 194.0
-    sidebar_static: list[dict] = [
-        *photo,
-        *sidebar_heading("KONTAKT", "references", contact_top),
-    ]
-    contact_y = contact_top + 28
-    from app.services.cv_templates.shared.contact import _sidebar_contact_items
-    contacts = _sidebar_contact_items(cv)
-    for icon_name, value in contacts:
-        if not value:
-            continue
-        sidebar_static.extend([
-            sidebar_icon(icon_name, side_left, contact_y, 11),
-            _text(value, 7.3, sans, colors["body"], side_left + 17, contact_y + 1, zIndex=3),
-        ])
-        contact_y += 19
+    # Photo chrome only — contact is exclusively in the masthead (see below).
+    sidebar_static: list[dict] = [*photo]
 
     # Tessera deliberately prioritises education before skill lists, unlike the
     # shared generic order. Every chosen section must fit in full; the remainder
@@ -170,7 +165,7 @@ def _gen_tessera(cv: dict) -> list[dict]:
     fitted_sections, sidebar_keys = _fit_sidebar_sections(
         candidates,
         width=side_body_width,
-        start_y=max(contact_y + 20, 320),
+        start_y=sidebar_sections_start,
         # Sidebar bodies are lowered 6 px below the generic fitted heading
         # baseline to clear the 18 px mosaic tile, so reserve that offset here.
         bottom_y=760,
@@ -197,18 +192,33 @@ def _gen_tessera(cv: dict) -> list[dict]:
             font=sans,
         ))
 
-    # Personal masthead is separated from the reference by serif typography,
-    # an offset coral role tile, and an abstract mosaic at the top-right.
+    # Personal masthead: serif name, coral role tile, wrapping icon+label
+    # contact channels (phone / email / socials / location), mosaic ornament.
     name = _compact_text(cv.get("name"), 34).upper()
     title = _compact_text(cv.get("title"), 56).upper()
-    # Masthead stays email/phone/location only; socials live in the KONTAKT rail.
-    contact_line = _compact_text(_contact_line_core(cv), 80)
+    contact_fs, contact_icon = 7.8, 11.0
+    contact_els, contact_bottom = _place_wrapping_icon_contacts(
+        theme=icon_theme,
+        items=_contact_channel_items(cv),
+        start_x=float(main_left),
+        start_y=121.0,
+        right_limit=float(main_left + main_width),
+        text_fs=contact_fs,
+        icon_size=contact_icon,
+        text_color=colors["muted"],
+        font=sans,
+        char_width=5.0,
+        icon_gap=15.0,
+        item_pad=16.0,
+        line_step=16.0,
+    )
+    header_rule_y = contact_bottom + 22.0
     header = [
         _text(name, 24, display, colors["aubergine"], main_left, 48, zIndex=3, bold=True),
         _line(main_left, 88, 164, 22, colors["coral"], zIndex=1),
         _text(title, 8.2, sans, colors["white"], main_left + 10, 94, zIndex=3, bold=True),
-        _text(contact_line, 7.8, sans, colors["muted"], main_left, 121, zIndex=3),
-        _line(main_left, 143, main_width, 1, colors["rule"], zIndex=2),
+        *contact_els,
+        _line(main_left, header_rule_y, main_width, 1, colors["rule"], zIndex=2),
         _rect(491, 42, 41, 41, colors["aubergine"], 1.1, zIndex=2),
         _line(499, 50, 41, 41, colors["tile"], zIndex=1),
         _circle(506, 58, 13, colors["coral"], filled=True, zIndex=3),
@@ -217,7 +227,7 @@ def _gen_tessera(cv: dict) -> list[dict]:
     header[0]["letterSpacing"] = 0.2
     header[2]["letterSpacing"] = 1.15
 
-    builder = TesseraBuilder(143 + SPACE_AFTER_HEADER_RULE)
+    builder = TesseraBuilder(header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE)
     body_fs, body_lh = 9.0, 13.2
     heading_fs = 8.1
     section_chrome = section_chrome_height(heading_fs) + 8
@@ -371,8 +381,10 @@ def _gen_tessera(cv: dict) -> list[dict]:
         }
         for element in sidebar_static
     ]
+    # Entire masthead (name, role tile, icon contacts, ornaments, rule) must
+    # stay out of section packing — same contract as Cardinal / Portico.
     header = [
-        {**element, "flowRole": element.get("flowRole", "content")}
+        {**element, "flowRole": "masthead"}
         for element in header
     ]
     return page_decorations + sidebar + header + flow
