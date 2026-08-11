@@ -1,11 +1,15 @@
 /**
  * “Moje dokumenty” dialog: list, open, download, delete saved PDFs.
  * Opening a doc hydrates canvas elements and restores fixedToPage/locked extras.
+ *
+ * Downloads are per-row and click-triggered: a shared hover-prefetch slot used
+ * to race against the Topbar toast and deliver the wrong file (e.g. an older
+ * “CV CHIPSY” blob while the user meant the open document).
  */
 import classes from "./ModalPdfs.module.css";
 
 import { createPortal } from "react-dom";
-import { useEffect, useState, use, useRef, useMemo } from "react";
+import { useEffect, useState, use, useMemo } from "react";
 import { BsFileEarmarkPdf } from "react-icons/bs";
 import { IoMdDownload } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
@@ -14,6 +18,7 @@ import { GrView } from "react-icons/gr";
 import { FiSearch, FiAlertTriangle } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
+import { triggerBlobDownload } from "../../../utils/download";
 
 import { ApiClient } from "../../../services/api";
 import { ENDPOINTS } from "../../../services/api";
@@ -26,11 +31,10 @@ import DialogShell from "../../common/DialogShell/DialogShell";
 
 export default function ModalPdfs({ title }) {
 
-    const timeout = useRef();
-
     const [error, setError] = useState(false);
     const [isOpening, setIsOpening] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [downloadingId, setDownloadingId] = useState(null);
     const [query, setQuery] = useState("");
     const [sort, setSort] = useState("new");
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
@@ -47,8 +51,6 @@ export default function ModalPdfs({ title }) {
         setPDFs,
         PDFs,
         setPdfsLoaded,
-        setPDFdownloadData,
-        PDFdownloadData,
         pushToast,
         refreshEntitlements,
         setPageCount,
@@ -220,66 +222,89 @@ export default function ModalPdfs({ title }) {
         }
     }
 
+    // Mount fetch: pdfsLoaded/PDFs.length gates template-first onboarding in
+    // PdfCanvas, so this must run even when the dialog stays closed. Guests
+    // skip the request (it would 401) and report the same empty loaded state.
     useEffect(() => {
-        // Guests have no saved documents yet by definition — skip the
-        // request entirely (it would 401) and report the same "loaded,
-        // empty" state an authenticated user with zero PDFs gets, so the
-        // template-first onboarding auto-open gate in PdfCanvas.jsx still
-        // works without waiting on a call that can never succeed.
         if (!localStorage.getItem("token")) {
             setPDFs([]);
             setPdfsLoaded(true);
-            return;
+            return undefined;
         }
-
-        // Must fetch on mount regardless of isModalPdfs (not just when the
-        // dialog is open) — pdfsLoaded/PDFs.length here is what the
-        // template-first onboarding auto-open effect in PdfCanvas.jsx waits
-        // on. Gating this fetch on isModalPdfs (as a first pass at this
-        // rewrite did) silently broke that onboarding flow: pdfsLoaded would
-        // never become true until the user manually opened "Moje dokumenty".
-        // Only the loading-skeleton UI is scoped to the dialog being open.
-        if (isModalPdfs) setLoading(true);
+        let cancelled = false;
         api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, "Nie udało się pobrać listy PDF!").
             then((data) => {
+                if (cancelled) return;
                 setPDFs(data);
                 setPdfsLoaded(true);
-                }).
-            catch((error) => {
-                // The backend signals "no PDFs yet" as a 404 rather than an
-                // empty 200 array — that's the real empty state, not a fetch
-                // failure, so it renders the empty-state UI below instead of
-                // the error banner.
-                if (error?.status === 404) setPDFs([]);
-                else setError(error);
+            }).
+            catch((err) => {
+                if (cancelled) return;
+                if (err?.status === 404) setPDFs([]);
+                else setError(err);
+                setPdfsLoaded(true);
+            });
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only list bootstrap
+    }, []);
+
+    // Refresh when the dialog opens so a freshly saved CV appears, without
+    // re-fetching on every download (that used to flash the skeleton whenever
+    // the shared download slot updated).
+    useEffect(() => {
+        if (!isModalPdfs) return undefined;
+        if (!localStorage.getItem("token")) return undefined;
+        let cancelled = false;
+        setLoading(true);
+        api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, "Nie udało się pobrać listy PDF!").
+            then((data) => {
+                if (cancelled) return;
+                setPDFs(data);
                 setPdfsLoaded(true);
             }).
-            finally(() => setLoading(false));
+            catch((err) => {
+                if (cancelled) return;
+                if (err?.status === 404) setPDFs([]);
+                else setError(err);
+                setPdfsLoaded(true);
+            }).
+            finally(() => {
+                if (!cancelled) setLoading(false);
+            });
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- refresh only when dialog opens
+    }, [isModalPdfs]);
 
-
-    }, [isModalPdfs, PDFdownloadData])
-
-
-  async function downloadPdf(id){
-    try {
-      const response = await api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "POST", id, "Błąd pobierania");
-      const blob = (await fetch(response.url)).blob()
-      const urlBlob = URL.createObjectURL(await blob);
-      setPDFdownloadData({blob: urlBlob, title: response.title})
-      refreshEntitlements?.();
-      timeout.current = setTimeout(() => {
-        //  URL.revokeObjectURL(urlBlob);
-      },6000)
-    } catch (error) {
-      pushToast?.({
-        title: error?.code?.startsWith?.("plan_") ? "Limit planu" : "Pobieranie nie powiodło się",
-        msg: error?.message || "Błąd pobierania",
-        variant: "error",
-      });
+    /**
+     * Download one document by id. Fetches that row's blob and triggers the
+     * browser save immediately — never writes into a shared download slot that
+     * other rows (or the Topbar toast) could race against.
+     */
+    async function downloadPdf(id) {
+        if (downloadingId != null) return;
+        setDownloadingId(id);
+        try {
+            const response = await api.httpRequest(
+                ENDPOINTS.PDF.DOWNLOAD,
+                "POST",
+                id,
+                "Błąd pobierania",
+            );
+            const blob = await (await fetch(response.url)).blob();
+            const urlBlob = URL.createObjectURL(blob);
+            triggerBlobDownload(urlBlob, response.title);
+            window.setTimeout(() => URL.revokeObjectURL(urlBlob), 60_000);
+            refreshEntitlements?.();
+        } catch (err) {
+            pushToast?.({
+                title: err?.code?.startsWith?.("plan_") ? "Limit planu" : "Pobieranie nie powiodło się",
+                msg: err?.message || "Błąd pobierania",
+                variant: "error",
+            });
+        } finally {
+            setDownloadingId(null);
+        }
     }
-  }
-
-  clearTimeout(timeout.current);
 
     const visiblePDFs = useMemo(() => {
         const q = query.trim().toLowerCase();
@@ -357,8 +382,17 @@ export default function ModalPdfs({ title }) {
                         </div>
 
                         <div className={classes.modalControls}>
-                            <button className={classes.downloadPdfBtn} onMouseEnter={() => downloadPdf(PDF.id)}><a href={PDFdownloadData.blob} download={PDFdownloadData.title}>
-                            Pobierz <IoMdDownload /></a></button>
+                            <button
+                                type="button"
+                                className={classes.downloadPdfBtn}
+                                onClick={() => downloadPdf(PDF.id)}
+                                disabled={downloadingId != null}
+                                aria-busy={downloadingId === PDF.id}
+                            >
+                                {downloadingId === PDF.id ? "Pobieranie…" : "Pobierz"}
+                                {" "}
+                                <IoMdDownload />
+                            </button>
                             <button className={classes.showPdfBtn} onClick={() => showPDF(PDF.id)} disabled={isOpening} title="Otwórz na płótnie" aria-label="Otwórz na płótnie"><GrView /></button>
                             <button className={classes.deletePdfBtn} onClick={() => askDelete(PDF.id)} title="Usuń dokument" aria-label="Usuń dokument"><MdDelete /></button>
                         </div>

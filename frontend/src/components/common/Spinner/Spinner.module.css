@@ -8,15 +8,24 @@
     position: fixed;
     inset: 0;
     z-index: 4500;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    /* Card is positioned in screen space against the A4 page; the overlay
+       only dims the editor — do not flex-center the card here. */
     background:
         radial-gradient(1000px 520px at 50% 32%, rgba(184, 149, 74, .14), transparent 62%),
         rgba(10, 10, 10, .78);
     -webkit-backdrop-filter: blur(8px) saturate(1.15);
             backdrop-filter: blur(8px) saturate(1.15);
     animation: overlayIn .28s ease both;
+}
+
+/* Fixed slot: top/left set from the A4 getBoundingClientRect (viewport px).
+   Horizontal centering stays on this wrapper so the card's enter animation
+   can own its own transform without fighting translateX(-50%). */
+.cardSlot {
+    position: fixed;
+    z-index: 4501;
+    transform: translateX(-50%);
+    max-width: 86vw;
 }
 
 .card {

@@ -101,8 +101,6 @@ export const PdfContext = createContext({
     // Pending AI suggestion marks on the A4 canvas (content/style/layout/…).
     aiCorrectionHighlights: [],
     setAiCorrectionHighlights: () => {},
-    setPDFdownloadData: () => {},
-    PDFdownloadData: [],
     // Structured cv_data behind the CV currently on the canvas (set by
     // AiCvPanel/BioCvModal on a successful fill; null when the canvas has no
     // known reusable source data — e.g. a blank template or a reopened saved

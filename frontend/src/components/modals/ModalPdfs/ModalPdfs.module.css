@@ -353,6 +353,9 @@
 }
 
 .downloadPdfBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     background: var(--accent-grad);
     color: var(--on-accent);
     font: 600 12px var(--font-body);
@@ -360,18 +363,17 @@
     height: 32px;
     border-radius: 2px;
     box-shadow: none;
+    border: none;
+    cursor: pointer;
 }
 
-.downloadPdfBtn:hover {
+.downloadPdfBtn:hover:not(:disabled) {
     filter: brightness(1.07);
 }
 
-.downloadPdfBtn a {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--on-accent);
-    text-decoration: none;
+.downloadPdfBtn:disabled {
+    opacity: 0.7;
+    cursor: wait;
 }
 
 .deletePdfBtn {

@@ -595,7 +595,7 @@ Implementation:
 - `frontend/src/pages/Hero/Hero.module.css`, `Login.module.css`, `Register.module.css` — page-local tokens remapped to the same white/black/gold system
 - `frontend/public/cv-studio-logo.svg`, `cv-studio-mark.svg` — brand mark recoloured to black, with a gold underline on the full wordmark logo
 - `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.module.css` — already fully tokenised via `index.css`, recolours automatically
-- `frontend/src/components/common/Spinner/Spinner.module.css` — frosted overlay with a gold ambient glow and export-status card
+- `frontend/src/components/common/Spinner/Spinner.jsx` + `.module.css` — frosted full-viewport overlay; status card pinned **100px** below the live A4 page top via `getBoundingClientRect` (viewport pixels, so canvas zoom does not change the offset), horizontally centered on that page
 - Selection colour for inline runs uses the same native `<input type="color">` control as the element colour field in `Editor.jsx` (no fixed swatch palette)
 
 Limits:
@@ -989,9 +989,14 @@ The starter modules use explicit `.js` import extensions, and `frontend/src/serv
 
 Full render on create/update; autosave is elements-only.
 
+Topbar **Pobierz PDF** (`updatePdf`, intent `download`) waits for `POST /pdf/download_pdf`, then triggers a browser save for **that** `pdf_id` via `triggerBlobDownload` and bakes the same blob URL into the success toast action — never a shared download slot that another document could overwrite. **Moje dokumenty** downloads are per-row click handlers with the same pattern (no `mouseEnter` prefetch into a global blob). The document list refreshes on dialog open / mount only, not when a download finishes.
+
 Implementation:
 
 - `frontend/src/hooks/usePdfExport.js`, lines 19+, `createPdf` / `updatePdf` / `saveElements`
+- `frontend/src/pages/PdfCanvas.jsx`, `prepareDownload` + post-spinner toast effect — per-request blob + optional auto-download
+- `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `downloadPdf` — click-to-download for one id; list fetch not tied to download state
+- `frontend/src/utils/download.js`, `triggerBlobDownload`
 - `backend/app/api/routes/pdf.py`, `create_user_pdf`, `save_pdf_elements`, `download_pdf`
 - `backend/app/services/pdf_generator.py`, class `PDF_Generator`, `render_elements` (line 492+)
 - `backend/app/crud/pdfs.py`, `create_new_pdf`, `update_pdf_elements`
@@ -1610,7 +1615,7 @@ This does not claim SOC2/compliance — it documents controls that exist in code
 - All app dialogs share one unified `DialogShell` look (Escape to close, backdrop, `popIn` animation, 800/19px title + 12.5px subtitle header with a sharp 32×32 `radius={2}` `CloseButton`, `--surface-2`-tinted footer bar). Most dialogs use the same 1280px width and `radius={2}` corner: `PlanSelectModal`, `TemplatesModal`, `AddSectionModal`, `ModalPdfs` ("Moje dokumenty"), and `DropzoneContainer` ("Prześlij zdjęcia profilowe", 720px); fill/summary galleries widen further to 1400px (`AiCvPanel`, `ChangeTemplateModal`). The bio wizard (`BioCvModal`) uses `DialogShell` `variant="fullscreen"` with a ~920px content column, sticky progress bar, and sticky footer instead of a floating centered card. `AddSectionModal` splits into a two-column body (name + layout radios on the left, icon gallery on the right) with hand-styled radio dots (a thin ring by default, a thick accent ring around a dark center when selected) replacing the native browser radio. `ModalPdfs` lists saved documents in a 2-column card grid; its delete confirmation is a smaller 420px `radius={2}` dialog with the same header/footer chrome. `Dropzone` reports its live batch size up to `DropzoneContainer` via an `onCountChange` callback so the shared footer can show "X z 12 przesłanych obrazów" without lifting upload state into the container.
 - Docked panels use `PanelShell`.
 - Forms expose labels/icons; plan radios use `role="radiogroup"`.
-- Loading: PDF spinner minimum display time; toasts via `useToasts` / `ToastStack`.
+- Loading: PDF spinner minimum display time; toasts via `useToasts` / `ToastStack` (download actions carry a per-toast blob href, not a shared slot).
 - Empty docs library returns a clear Polish 404 message prompting create.
 - Canvas zoom is view-only so export size stays document-true. The editor opens at **130%** by default (`ZOOM_DEFAULT` in `useA4Elements`); two-page view still forces 100% while active.
 
@@ -2228,7 +2233,7 @@ Implementacja:
 - `frontend/src/pages/Hero/Hero.module.css`, `Login.module.css`, `Register.module.css` — lokalne tokeny stron przemapowane na ten sam system biel/czerń/złoto
 - `frontend/public/cv-studio-logo.svg`, `cv-studio-mark.svg` — znak marki przekolorowany na czarny, z złotym podkreśleniem w pełnym logo z wordmarkiem
 - `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.module.css` — już w pełni stokenizowany przez `index.css`, przekolorowuje się automatycznie
-- `frontend/src/components/common/Spinner/Spinner.module.css` — matowa warstwa ze złotą poświatą otoczenia i karta statusu eksportu
+- `frontend/src/components/common/Spinner/Spinner.jsx` + `.module.css` — matowa warstwa na cały viewport; karta statusu **100px** pod górną krawędzią żywej strony A4 przez `getBoundingClientRect` (piksele ekranu, więc zoom płótna nie zmienia offsetu), wycentrowana poziomo względem tej strony
 - Kolor zaznaczenia inline używa tego samego natywnego `<input type="color">` co pole koloru elementu w `Editor.jsx` (bez stałej palety próbek)
 
 Ograniczenia:
@@ -2616,7 +2621,16 @@ Moduły starterów używają jawnych rozszerzeń `.js` w importach, a `frontend/
 
 ### PDF create / update / autosave / download
 
+Pełny render przy create/update; autozapis to tylko elementy.
+
+Topbar **Pobierz PDF** (`updatePdf`, intent `download`) czeka na `POST /pdf/download_pdf`, potem uruchamia zapis w przeglądarce dla **tego** `pdf_id` przez `triggerBlobDownload` i wkleja ten sam blob URL w akcję toasta sukcesu — bez wspólnego slotu pobierania, który mógłby nadpisać inny dokument. Pobieranie w **Moje dokumenty** to klik per wiersz w tym samym modelu (bez prefetchu `mouseEnter` do globalnego bloba). Lista dokumentów odświeża się przy otwarciu / mount, nie po zakończeniu pobierania.
+
+Implementacja:
+
 - `frontend/src/hooks/usePdfExport.js` — `createPdf`, `updatePdf`, `saveElements`
+- `frontend/src/pages/PdfCanvas.jsx`, `prepareDownload` + efekt po spinnerze — blob per request + opcjonalne auto-pobranie
+- `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `downloadPdf` — klik dla jednego id; fetch listy niezależny od stanu pobierania
+- `frontend/src/utils/download.js`, `triggerBlobDownload`
 - `backend/app/api/routes/pdf.py`
 - `backend/app/services/pdf_generator.py` — `PDF_Generator.render_elements` (ok. 492+)
 - `backend/app/crud/pdfs.py` — `create_new_pdf`, `update_pdf_elements`
@@ -3167,7 +3181,7 @@ Migracje: `create_all` + Alembic (`backend/alembic/`) przy starcie.
 ## Dostępność i UX
 
 - Wszystkie okna dialogowe aplikacji dzielą jeden ujednolicony wygląd `DialogShell` (Escape do zamknięcia, tło, animacja `popIn`, nagłówek 800/19px tytuł + 12.5px podtytuł z ostrym `CloseButton` 32×32 o `radius={2}`, stopka w kolorze `--surface-2`). Większość dialogów ma szerokość 1280px i narożnik `radius={2}`: `PlanSelectModal`, `TemplatesModal`, `AddSectionModal`, `ModalPdfs` („Moje dokumenty”) oraz `DropzoneContainer` („Prześlij zdjęcia profilowe”, 720px); galerie wypełniania/podsumowania rozszerzają się dalej do 1400px (`AiCvPanel`, `ChangeTemplateModal`). Kreator bio (`BioCvModal`) używa `DialogShell` `variant="fullscreen"` z kolumną treści ~920px, lepkim paskiem postępu i lepką stopką zamiast pływającej wycentrowanej karty. `AddSectionModal` dzieli treść na dwie kolumny (nazwa + radiowe wybory układu po lewej, galeria ikon po prawej) z ręcznie stylizowanymi kropkami radio (cienki pierścień domyślnie, gruby pierścień w akcencie wokół ciemnego środka po zaznaczeniu) zamiast natywnego radio przeglądarki. `ModalPdfs` wyświetla zapisane dokumenty w siatce kart 2-kolumnowej; potwierdzenie usunięcia to mniejszy dialog 420px z `radius={2}` w tym samym stylu nagłówka/stopki. `Dropzone` zgłasza swój bieżący rozmiar partii do `DropzoneContainer` przez callback `onCountChange`, dzięki czemu wspólna stopka może pokazać „X z 12 przesłanych obrazów” bez przenoszenia stanu uploadu do kontenera.
-- Toasty i spinner PDF z minimalnym czasem widoczności.
+- Toasty i spinner PDF z minimalnym czasem widoczności; akcje pobierania niosą blob href w toastcie (nie we wspólnym slocie).
 - Zoom tylko wizualny — eksport zostaje w rozmiarze dokumentu. Edytor otwiera się domyślnie na **130%** (`ZOOM_DEFAULT` w `useA4Elements`); widok dwóch stron nadal wymusza 100% na czas trwania.
 - Brak pełnego audytu WCAG — kolejne poprawki mile widziane.
 

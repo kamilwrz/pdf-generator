@@ -56,6 +56,7 @@ import { resolveActiveCvData } from '../utils/resolveActiveCvData';
 import { previewStructureOperation, reconcileDocumentPages } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
 import { planErrorMessage } from '../utils/entitlements';
+import { triggerBlobDownload } from '../utils/download';
 import { useCanvasPageWheel } from '../hooks/useCanvasPageWheel';
 import {
   EDITOR_MODE_FREEFORM,
@@ -273,7 +274,6 @@ function PdfCanvas() {
   const { toasts, pushToast, dismissToast } = useToasts();
   const { entitlements, refresh: refreshEntitlements } = useEntitlements(true);
 
-  const [PDFdownloadData, setPDFdownloadData] = useState([])
   // Layout suggestions are rendered here before acceptance, so previewing a
   // correction never mutates the saved document state.
   const [layoutPreviewPatches, setLayoutPreviewPatches] = useState([]);
@@ -292,6 +292,7 @@ function PdfCanvas() {
     setA4_Elements_deleted,
     groupMoveDelta,
     setPageCanvasRef,
+    A4ref,
     handleMoveElement,
     handleMoveSelectedElements,
     handleSelectMoveElement,
@@ -436,51 +437,75 @@ function PdfCanvas() {
   const autosaveQueueRef = useRef(Promise.resolve());
   const wasPdfLoadingRef = useRef(false);
 
+  // Fetch the rendered PDF blob for a specific id and return a one-shot object
+  // URL + server title. Never stores into a shared slot — toast and ModalPdfs
+  // each keep their own href so an older download cannot overwrite a newer one.
   const prepareDownload = useCallback(async (pdfId) => {
-    try {
-      const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
-      const response = await api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "POST", pdfId, "Błąd pobierania");
-      const blob = await (await fetch(response.url)).blob();
-      const urlBlob = URL.createObjectURL(blob);
-      setPDFdownloadData({ blob: urlBlob, title: response.title });
-      setTimeout(() => URL.revokeObjectURL(urlBlob), 6000);
-      refreshEntitlements();
-    } catch (error) {
-      console.error("Nie udało się przygotować pobierania PDF.", error);
+    const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
+    const response = await api.httpRequest(ENDPOINTS.PDF.DOWNLOAD, "POST", pdfId, "Błąd pobierania");
+    const blob = await (await fetch(response.url)).blob();
+    const urlBlob = URL.createObjectURL(blob);
+    window.setTimeout(() => URL.revokeObjectURL(urlBlob), 60_000);
+    refreshEntitlements();
+    return { blob: urlBlob, title: response.title };
+  }, [refreshEntitlements]);
+
+  // Fires exactly when the create/update spinner finishes. For download intent
+  // the blob is prepared first, then the toast gets that exact href baked in
+  // (and the file save is triggered) so a stale shared link cannot ship the
+  // wrong document.
+  useEffect(() => {
+    if (!(wasPdfLoadingRef.current && !isPdfLoading)) {
+      wasPdfLoadingRef.current = isPdfLoading;
+      return undefined;
+    }
+    wasPdfLoadingRef.current = isPdfLoading;
+
+    if (responsePDF?.message) {
       pushToast({
-        title: error?.code?.startsWith?.("plan_") ? "Limit planu" : "Pobieranie nie powiodło się",
-        msg: planErrorMessage(error, "Nie udało się przygotować pobierania PDF."),
+        title: responsePDF?.code?.startsWith?.("plan_") ? "Limit planu" : "Coś poszło nie tak",
+        msg: planErrorMessage(responsePDF, responsePDF.message),
         variant: "error",
       });
+      return undefined;
     }
-  }, [pushToast, refreshEntitlements]);
+    if (!responsePDF?.success) return undefined;
 
-  // Fires exactly when the create/update spinner finishes (same timing the
-  // old ModalPdfRequestStatus used), reading responsePDF fresh from this
-  // render rather than a captured closure.
-  useEffect(() => {
-    if (wasPdfLoadingRef.current && !isPdfLoading) {
-      if (responsePDF?.message) {
-        pushToast({
-          title: responsePDF?.code?.startsWith?.("plan_") ? "Limit planu" : "Coś poszło nie tak",
-          msg: planErrorMessage(responsePDF, responsePDF.message),
-          variant: "error",
-        });
-      } else if (responsePDF?.success) {
-        const fileLabel = titleRef.current?.value ? `${titleRef.current.value}.pdf` : "CV";
-        const isDownload = responsePDF.intent === "download";
+    const fileLabel = titleRef.current?.value ? `${titleRef.current.value}.pdf` : "CV";
+    const isDownload = responsePDF.intent === "download";
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const prepared = await prepareDownload(responsePDF.pdf_id);
+        if (cancelled) return;
+        if (isDownload) {
+          triggerBlobDownload(prepared.blob, prepared.title || fileLabel);
+        }
         pushToast({
           title: isDownload ? "CV gotowe do pobrania" : "Twój PDF jest gotowy",
           msg: isDownload
-            ? `Możesz pobrać plik ${fileLabel}.`
+            ? `Pobrano plik ${prepared.title || fileLabel}.`
             : `CV zostało zapisane pomyślnie${titleRef.current?.value ? `: ${fileLabel}` : "."}`,
           variant: "success",
-          pdfDownload: true,
+          action: {
+            label: "Pobierz PDF",
+            href: prepared.blob,
+            download: prepared.title || fileLabel,
+          },
         });
-        prepareDownload(responsePDF.pdf_id);
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Nie udało się przygotować pobierania PDF.", error);
+        pushToast({
+          title: error?.code?.startsWith?.("plan_") ? "Limit planu" : "Pobieranie nie powiodło się",
+          msg: planErrorMessage(error, "Nie udało się przygotować pobierania PDF."),
+          variant: "error",
+        });
       }
-    }
-    wasPdfLoadingRef.current = isPdfLoading;
+    })();
+
+    return () => { cancelled = true; };
   }, [isPdfLoading, responsePDF, pushToast, prepareDownload, titleRef]);
 
   function handleLogout() {
@@ -1539,11 +1564,9 @@ function PdfCanvas() {
     setPDFs,
     pdfsLoaded,
     setPdfsLoaded,
-    PDFdownloadData,
-    setPDFdownloadData,
   }), [
     handlePdfId, pushToast, entitlements, refreshEntitlements, handleLogout, isGuest,
-    PDFs, setPDFs, pdfsLoaded, setPdfsLoaded, PDFdownloadData,
+    PDFs, setPDFs, pdfsLoaded, setPdfsLoaded,
   ]);
 
   // Temporary facade — remove once all consumers use the focused hooks.
@@ -1551,16 +1574,6 @@ function PdfCanvas() {
     () => ({ ...canvasValue, ...uiValue, ...sessionValue }),
     [canvasValue, uiValue, sessionValue],
   );
-
-  // The PDF-ready toast's download link is sourced live from PDFdownloadData
-  // (shared, single-slot context state — same pattern ModalPdfs already uses
-  // for its own per-row download buttons) rather than baked in at push time,
-  // since the blob isn't ready yet when the toast first appears.
-  const displayToasts = useMemo(() => toasts.map((t) => (
-    t.pdfDownload && PDFdownloadData.blob
-      ? { ...t, action: { label: "Pobierz PDF", href: PDFdownloadData.blob, download: PDFdownloadData.title } }
-      : t
-  )), [toasts, PDFdownloadData]);
 
   return (
     <main className='main-container' onMouseMove={throttledHandleIsActive}>
@@ -1624,6 +1637,11 @@ function PdfCanvas() {
                   <DemoBanner onUseOwnData={handleDemoUseOwnData} onStartBlank={handleDemoStartBlank} />
                 ) : null}
                 <Topbar titleRef={titleRef} />
+                {/* Portal loader: card sits 100px under the live A4 top edge
+                    (viewport px via A4ref), independent of canvas zoom. */}
+                {isPdfLoading ? (
+                  <Spinner loading={isPdfLoading} anchorRef={A4ref} />
+                ) : null}
                 <div className="canvas-area" ref={canvasAreaRef}>
                   <div className={isTwoPageView ? "canvas-spread" : "canvas-single"}>
                     {isTwoPageView ? (
@@ -1638,7 +1656,6 @@ function PdfCanvas() {
                           ref={(node) => setPageCanvasRef(page, node)}
                           onPointerDownCapture={(event) => handleCanvasPointerDownCapture(event, page)}
                         >
-                          {isPdfLoading && page === currentPage && <Spinner loading={isPdfLoading}/>}
                           <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
                             <CanvasElements elements={previewedElements.filter((element) => (element.page ?? 1) === page)} />
                             <Connectors elements={previewedElements} page={page} />
@@ -1665,7 +1682,6 @@ function PdfCanvas() {
                             ref={(node) => setPageCanvasRef(page, node)}
                             onPointerDownCapture={(event) => handleCanvasPointerDownCapture(event, page)}
                           >
-                            {isPdfLoading && page === currentPage && <Spinner loading={isPdfLoading}/>}
                             <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
                               <CanvasElements elements={previewedElements.filter((element) => (element.page ?? 1) === page)} />
                               <Connectors elements={previewedElements} page={page} />
@@ -1683,7 +1699,7 @@ function PdfCanvas() {
               <PageControls />
               <Gallery />
               {entitlements?.ai_assistant ? <AiAssistant /> : null}
-              <ToastStack toasts={displayToasts} onDismiss={dismissToast} offsetForGallery={isGallery} />
+              <ToastStack toasts={toasts} onDismiss={dismissToast} offsetForGallery={isGallery} />
             </PdfContext.Provider>
           </SessionContext.Provider>
         </UiSurfacesContext.Provider>
