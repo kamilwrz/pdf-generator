@@ -286,7 +286,8 @@ const CARDINAL_ELEMENTS = [
     "backgroundColor": "#8A8A8A",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "chromeAlign": "midline"
   },
   {
     "category": "textarea",
@@ -347,7 +348,8 @@ const CARDINAL_ELEMENTS = [
     "backgroundColor": "#8A8A8A",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "chromeAlign": "midline"
   },
   {
     "category": "textarea",
@@ -369,7 +371,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-31cdc8b62b6b",
+    "flowGroup": "record-b49a96751f9a",
     "flowRole": "content"
   },
   {
@@ -392,7 +394,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-31cdc8b62b6b",
+    "flowGroup": "record-b49a96751f9a",
     "flowRole": "content"
   },
   {
@@ -415,7 +417,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-be5834b5637f",
+    "flowGroup": "record-a269f907e319",
     "flowRole": "content"
   },
   {
@@ -438,7 +440,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-be5834b5637f",
+    "flowGroup": "record-a269f907e319",
     "flowRole": "content"
   },
   {
@@ -461,7 +463,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d29209d84627",
+    "flowGroup": "record-daa5d24b0ffc",
     "flowRole": "content"
   },
   {
@@ -484,7 +486,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d29209d84627",
+    "flowGroup": "record-daa5d24b0ffc",
     "flowRole": "content"
   },
   {
@@ -524,7 +526,8 @@ const CARDINAL_ELEMENTS = [
     "backgroundColor": "#8A8A8A",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "chromeAlign": "midline"
   },
   {
     "category": "textarea",
@@ -546,7 +549,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f5e981948f33",
+    "flowGroup": "record-6f8186c09308",
     "flowRole": "content"
   },
   {
@@ -569,7 +572,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f5e981948f33",
+    "flowGroup": "record-6f8186c09308",
     "flowRole": "content"
   },
   {
@@ -592,7 +595,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f5e981948f33",
+    "flowGroup": "record-6f8186c09308",
     "flowRole": "content"
   },
   {
@@ -632,7 +635,8 @@ const CARDINAL_ELEMENTS = [
     "backgroundColor": "#8A8A8A",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "chromeAlign": "midline"
   },
   {
     "category": "textarea",
@@ -654,7 +658,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3fb02e741acd",
+    "flowGroup": "record-b39e15f4eb0a",
     "flowRole": "content"
   },
   {
@@ -694,7 +698,8 @@ const CARDINAL_ELEMENTS = [
     "backgroundColor": "#8A8A8A",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "chromeAlign": "midline"
   },
   {
     "category": "textarea",

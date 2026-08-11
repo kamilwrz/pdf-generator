@@ -484,7 +484,7 @@ describe("build -> append -> reorder (composed production pipeline)", () => {
     );
   });
 
-  it("Cardinal added section clears fontSize+10 under the title when after_rule is 0", () => {
+  it("Cardinal added section keeps chromeAlign midline and after_rule under the heading band", () => {
     let id = 0;
     const doc = cardinalTemplate.map((element, index) => ({
       ...element,
@@ -492,14 +492,10 @@ describe("build -> append -> reorder (composed production pipeline)", () => {
       page: 1,
       isDeleted: false,
     }));
-    // Strip stamped heights so the builder/packer path matches older saves.
-    for (const element of doc) {
-      if (element.flowRole === "section-chrome" && element.category === "text") {
-        delete element.height;
-      }
-    }
     const lastSection = listDocumentSections(doc, pageHeight).at(-1);
     const sampled = deriveSectionStyle(doc, pageHeight, lastSection.headingId);
+    assert.equal(sampled.rule?.chromeAlign, "midline");
+    assert.ok(sampled.heading?.height > sampled.heading.fontSize);
     const { elements: additions, headingId } = buildSectionElements({
       name: "Nowa sekcja",
       layout: SECTION_LAYOUTS.TEXTAREA,
@@ -507,6 +503,8 @@ describe("build -> append -> reorder (composed production pipeline)", () => {
       spacing: { stack: 4, record: 10, section: 21, after_rule: 0 },
       idFactory: () => `added-cardinal-${(id += 1)}`,
     });
+    const builtRule = additions.find((element) => element.category === "line");
+    assert.equal(builtRule?.chromeAlign, "midline");
     const appended = appendSectionAtEnd(doc, additions, pageHeight, {
       spacing: { stack: 4, record: 10, section: 21, after_rule: 0 },
     });
@@ -517,15 +515,15 @@ describe("build -> append -> reorder (composed production pipeline)", () => {
     const body = members
       .filter((element) => element.flowRole === "content")
       .sort((left, right) => left.top - right.top)[0];
-    const chromeH = heading.fontSize + 10;
     assert.ok(rule, "added Cardinal section must keep the trailing hairline");
+    assert.equal(rule.chromeAlign, "midline");
     assert.ok(
       rule.top < heading.top + 4,
       "hairline must stay on the heading row",
     );
     assert.ok(
-      Math.abs(body.top - (heading.top + chromeH)) < 0.5,
-      `after_rule=0 must clear head+${chromeH}, got delta ${body.top - heading.top}`,
+      Math.abs(body.top - (heading.top + heading.height)) < 0.5,
+      `after_rule=0 must clear heading.height band, got delta ${body.top - heading.top}`,
     );
   });
 });

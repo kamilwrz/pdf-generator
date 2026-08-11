@@ -312,29 +312,6 @@ export function buildSectionElements({
     }));
   }
 
-  // Default rule top matches Builder.text() cursor advance (Cinder/Regent).
-  // Prefer a sampled `rule.relTop` when present — Monument's accent rule sits
-  // mid-band beside the title frame (~heading+7), not flush under the label.
-  const defaultRuleTop = style.heading.fontSize * TEXT_CURSOR_ADVANCE;
-  const ruleTop = style.rule && Number.isFinite(Number(style.rule.relTop))
-    ? Number(style.rule.relTop)
-    : defaultRuleTop;
-  const ruleRelLeftSample = style.rule && Number.isFinite(Number(style.rule.relLeft))
-    ? Number(style.rule.relLeft)
-    : 0;
-  // Cardinal: rule overlaps the glyph row (relTop ≈ 0 / slightly negative) and
-  // starts after the label. Do not treat Monument's mid-band accent (~+7) as
-  // this pattern. Match `cardinal.py` (`label_fs + 10`) so after_rule=0 still
-  // clears the title.
-  const trailingMidlineRule = Boolean(
-    style.rule
-    && ruleRelLeftSample > 20
-    && ruleTop < 2,
-  );
-  const headingBandHeight = trailingMidlineRule
-    ? style.heading.fontSize + 10
-    : defaultRuleTop;
-
   // Heading label (section title). Placed at relTop 0 so it anchors the chrome.
   const headingElement = {
     element_id: headingId,
@@ -348,9 +325,6 @@ export function buildSectionElements({
     color: style.heading.color,
     letterSpacing: style.heading.letterSpacing,
     bold: style.heading.bold,
-    // Stamp the authored chrome depth so applyFlowSpacing does not fall back
-    // to fontSize×1.35 (~4px under the glyphs) on trailing-midline templates.
-    height: headingBandHeight,
     italic: false,
     underline: false,
     isSelected: false,
@@ -359,20 +333,36 @@ export function buildSectionElements({
     zIndex: 3,
     page: 1,
   };
+  // Cardinal samples an authored chrome-band height; keep it so after_rule
+  // originates under the title band, not under a midline hairline.
+  if (Number.isFinite(Number(style.heading.height)) && Number(style.heading.height) > 0) {
+    headingElement.height = Number(style.heading.height);
+  }
   if (flowLane) headingElement.flowLane = flowLane;
   elements.push(headingElement);
 
+  // Default rule top matches Builder.text() cursor advance (Cinder/Regent).
+  // Prefer a sampled `rule.relTop` when present — Monument's accent rule sits
+  // mid-band beside the title frame (~heading+7), not flush under the label.
+  const defaultRuleTop = style.heading.fontSize * TEXT_CURSOR_ADVANCE;
+  const ruleTop = style.rule && Number.isFinite(Number(style.rule.relTop))
+    ? Number(style.rule.relTop)
+    : defaultRuleTop;
+  // Opt-in from the generator / deriveSectionStyle (Cardinal only today).
+  const midlineRule = style.rule?.chromeAlign === "midline";
+
   if (style.rule) {
     // Horizontal offset may differ from the title (Monument rule at +251).
-    let ruleRelLeft = ruleRelLeftSample;
+    let ruleRelLeft = Number.isFinite(Number(style.rule.relLeft))
+      ? Number(style.rule.relLeft)
+      : 0;
     let ruleWidth = Number(style.rule.width) || width;
-    // Cardinal-style midline rules trail the label instead of underlining the
-    // whole column. Recompute their start from the new label's tracked width,
-    // while preserving the sampled right edge. Copying the source relLeft
-    // verbatim makes short and long custom labels inherit the wrong blank gap.
+    // Midline rules trail the label instead of underlining the whole column.
+    // Recompute their start from the new label's tracked width, while
+    // preserving the sampled right edge.
     const sampledLabelGap = Number(style.rule.labelGap);
     if (
-      trailingMidlineRule
+      midlineRule
       && ruleRelLeft > 0
       && Number.isFinite(sampledLabelGap)
     ) {
@@ -398,6 +388,7 @@ export function buildSectionElements({
       zIndex: 2,
       page: 1,
     };
+    if (midlineRule) ruleElement.chromeAlign = "midline";
     if (flowLane) ruleElement.flowLane = flowLane;
     elements.push(ruleElement);
   }
@@ -408,10 +399,16 @@ export function buildSectionElements({
   const markerBottoms = (style.markers || []).map(
     (shape) => (Number(shape.relTop) || 0) + (Number(shape.height) || 0),
   );
-  const ruleBottom = style.rule && !trailingMidlineRule
+  // Midline hairlines are not underlines — do not let their top define
+  // chromeBottom (they already sit inside the heading row).
+  const ruleBottom = style.rule && !midlineRule
     ? ruleTop + (Number(style.rule.height) || 1)
     : 0;
-  const chromeBottom = Math.max(headingBandHeight, ruleBottom, ...markerBottoms, 0);
+  const headingBand = Number.isFinite(Number(style.heading.height))
+    && Number(style.heading.height) > 0
+    ? Number(style.heading.height)
+    : defaultRuleTop;
+  const chromeBottom = Math.max(headingBand, ruleBottom, ...markerBottoms, 0);
   const bodyTop = chromeBottom + rhythm.after_rule;
   let firstBodyId = null;
 

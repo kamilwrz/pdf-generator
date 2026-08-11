@@ -1953,13 +1953,11 @@ describe("appendSectionAtEnd", () => {
   });
 });
 
-describe("Cardinal trailing midline rule + after_rule", () => {
-  // Cardinal's hairline sits beside the title (cap midline), not under it.
-  // applyFlowSpacing must measure after_rule from the heading band
-  // (height = label_fs+10), not from that side rule — otherwise "Pod
-  // nagłówkiem: 0" collapses content toward a line that never left the
-  // heading row.
-  it("keeps after_rule=0 under the heading band, not under the side hairline", () => {
+describe("Cardinal midline chromeAlign + after_rule", () => {
+  // Cardinal tags its hairline with chromeAlign:"midline". The packer must
+  // ignore that line when measuring after_rule — otherwise "Pod nagłówkiem: 0"
+  // looks like content is flush under a line that already sits in the heading.
+  it("keeps after_rule=0 under the heading band, not under the midline hairline", () => {
     const labelFs = 11.2;
     const chromeH = labelFs + 10;
     const doc = [
@@ -1969,8 +1967,8 @@ describe("Cardinal trailing midline rule + after_rule", () => {
         height: chromeH, bold: true, page: 1,
       },
       {
-        // Trailing midline hairline — overlaps the heading row, starts after the label.
         element_id: "r1", category: "line", flowRole: "section-chrome",
+        chromeAlign: "midline",
         left: 280, top: 199.3, width: 240, height: 0.8, page: 1,
       },
       {
@@ -1985,6 +1983,7 @@ describe("Cardinal trailing midline rule + after_rule", () => {
       },
       {
         element_id: "r2", category: "line", flowRole: "section-chrome",
+        chromeAlign: "midline",
         left: 300, top: 279.3, width: 220, height: 0.8, page: 1,
       },
       {
@@ -1997,42 +1996,36 @@ describe("Cardinal trailing midline rule + after_rule", () => {
       stack: 4, record: 10, section: 21, after_rule: 0,
     });
     const byId = Object.fromEntries(next.map((element) => [element.element_id, element]));
-    // Side hairline stays on the heading row (not rebuilt under the label).
     assert.ok(
       byId.r1.top < byId.h1.top + 4,
       `midline rule must stay beside the title, got rule@${byId.r1.top} head@${byId.h1.top}`,
     );
-    // Body starts at heading.top + chrome height + after_rule(0).
     assert.ok(
       Math.abs(byId.b1.top - (byId.h1.top + chromeH)) < 0.5,
       `after_rule=0 must clear the heading band (+${chromeH}), got body@${byId.b1.top} head@${byId.h1.top}`,
     );
-    // Must not park the body on the side hairline (~heading top).
     assert.ok(
       byId.b1.top - byId.r1.top > 12,
-      "body must not collapse onto the trailing midline hairline",
+      "body must not collapse onto the midline hairline",
     );
   });
 
-  it("infers fontSize+10 chrome depth when heading has no explicit height", () => {
-    // Saved / pre-fix Cardinal docs omit heading.height. fontSize×1.35 would
-    // leave only ~4px under the glyphs — the gap the spacing overlay showed
-    // when after_rule was already 0.
-    const labelFs = 11.2;
-    const chromeH = labelFs + 10;
+  it("does not treat an untagged wide rule as midline chrome", () => {
+    // Guard against the old geometry heuristic: other templates must keep
+    // normal underline → after_rule behaviour.
     const doc = [
       {
-        element_id: "h1", category: "text", content: "PODSUMOWANIE ZAWODOWE",
-        flowRole: "section-chrome", left: 94, top: 200, fontSize: labelFs,
-        bold: true, page: 1,
+        element_id: "h1", category: "text", content: "PODSUMOWANIE",
+        flowRole: "section-chrome", left: 76, top: 200, fontSize: 8.7,
+        height: 12, bold: true, page: 1,
       },
       {
         element_id: "r1", category: "line", flowRole: "section-chrome",
-        left: 280, top: 199.3, width: 240, height: 0.8, page: 1,
+        left: 76, top: 212, width: 466, height: 1, page: 1,
       },
       {
         element_id: "b1", category: "textarea", flowRole: "content",
-        left: 72, top: 220, width: 473, height: 40, fontSize: 9.6, page: 1,
+        left: 76, top: 230, width: 466, height: 40, fontSize: 9.5, page: 1,
       },
     ];
     const next = applyFlowSpacing(doc, {
@@ -2040,12 +2033,8 @@ describe("Cardinal trailing midline rule + after_rule", () => {
     });
     const byId = Object.fromEntries(next.map((element) => [element.element_id, element]));
     assert.ok(
-      Math.abs(byId.b1.top - (byId.h1.top + chromeH)) < 0.5,
-      `expected body at head+${chromeH}, got ${byId.b1.top - byId.h1.top}`,
-    );
-    assert.ok(
-      byId.b1.top - byId.h1.top > labelFs * 1.35 + 2,
-      "must not use the fontSize×1.35 paint-box as the chrome band",
+      Math.abs(byId.b1.top - (byId.r1.top + byId.r1.height)) < 0.5,
+      "untagged underline still defines chromeBottom for after_rule",
     );
   });
 });

@@ -93,6 +93,9 @@ def _gen_cardinal(cv: dict) -> list[dict]:
             C['rule'], page=page,
         )
         rule['flowRole'] = 'section-chrome'
+        # Opt-in signal for the shared packer: this hairline lives on the
+        # heading midline, so after_rule must not treat it as chromeBottom.
+        rule['chromeAlign'] = 'midline'
         b.els.append(rule)
         b.y = y + label_fs + 10
         b.gap(get_spacing().after_rule)

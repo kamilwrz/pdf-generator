@@ -803,47 +803,17 @@ export function packSidebarLane(
 }
 
 /**
- * Extra pad Cardinal's generator adds under the label before `after_rule`
- * (`b.y = y + label_fs + 10` in `cardinal.py`). Trailing midline hairlines do
- * not create an underline, so this pad IS the chrome band depth.
+ * Section hairline tagged by a generator as living on the heading midline
+ * (Cardinal sets `chromeAlign: "midline"`). Not an underline — after_rule /
+ * chromeBottom must ignore it so spacing is not measured from a line that
+ * already sits inside the heading row. Opt-in only; no geometry heuristics.
  */
-const TRAILING_MIDLINE_CHROME_PAD = 10;
-
-/**
- * Cardinal / iconic trailing hairline: starts to the right of the label and
- * vertically overlaps the heading band. It is NOT an underline under the title,
- * so after_rule / chromeBottom must ignore it (otherwise spacing appears to
- * measure from a line that already sits beside the heading).
- */
-function isTrailingMidlineRule(element, heading) {
-  if (!element || !heading || element.category !== "line") return false;
-  if ((Number(element.width) || 0) < 40) return false;
-  const headLeft = Number(heading.left) || 0;
-  const ruleLeft = Number(element.left) || 0;
-  if (ruleLeft < headLeft + 20) return false;
-  const headTop = Number(heading.top) || 0;
-  const ruleTop = Number(element.top) || 0;
-  const fs = Number(heading.fontSize);
-  // Use the paint-box estimate (not an inflated band height) so a rule that
-  // sits on the cap midline still counts as overlapping the glyph row.
-  const headH = Number.isFinite(fs) && fs > 0 ? fs * 1.35 : elementHeight(heading);
-  return ruleTop <= headTop + headH * 0.75 + 0.01 && ruleTop >= headTop - 4;
-}
-
-/**
- * Chrome-band depth for a heading that owns a trailing midline hairline.
- *
- * Without an explicit `height`, `elementHeight` falls back to fontSize×1.35 —
- * only ~0.35em under the glyphs (~4px at 11.2). Cardinal authors fontSize+10
- * before after_rule; use that floor so "Pod nagłówkiem: 0" still clears the
- * title band on older documents and freshly built sections.
- */
-function trailingMidlineHeadingBand(heading) {
-  const fs = Number(heading?.fontSize);
-  const authored = (Number.isFinite(fs) && fs > 0 ? fs : 12) + TRAILING_MIDLINE_CHROME_PAD;
-  const explicit = Number(heading?.height);
-  if (Number.isFinite(explicit) && explicit > 0) return Math.max(explicit, authored);
-  return authored;
+function isMidlineChromeRule(element) {
+  return Boolean(
+    element
+    && element.category === "line"
+    && element.chromeAlign === "midline",
+  );
 }
 
 function isChromeLike(element) {
@@ -940,17 +910,16 @@ function rebuildTightChromeCluster(chromeElements) {
     if (element.category === "line" && width >= 120) {
       // Builder.line paints flush under the label. Monument's accent rule is
       // different: it sits mid-band beside a tall badge (~title+7), not under it.
-      // Cardinal trailing hairlines stay on the heading midline (relTop ≈ 0).
+      // Midline-tagged hairlines (Cardinal) stay on the heading row (relTop ≈ 0).
       const tallBadge = chromeElements.some((piece) => (
         piece !== element
         && piece.category === "line"
         && (Number(piece.width) || 0) < 120
         && elementHeight(piece) >= 20
       ));
-      const trailingMidline = isTrailingMidlineRule(element, heading);
       items.push({
         element,
-        relTop: tallBadge ? 7 : (trailingMidline ? 0 : headingHeight),
+        relTop: tallBadge ? 7 : (isMidlineChromeRule(element) ? 0 : headingHeight),
       });
     } else if (
       element.category === "rectangle"
@@ -1129,22 +1098,11 @@ function compactSectionStrip(sectionElements, pageHeight, spacing, forceTargets 
   }));
   const items = [...chromeItems];
   const bodySorted = sortByReadingOrder(body, pageHeight);
-  const chromeHeading = chromeTitleAnchor(chrome);
-  const hasTrailingMidline = Boolean(
-    chromeHeading
-    && chromeItems.some((item) => isTrailingMidlineRule(item.element, chromeHeading)),
-  );
-  // Trailing midline hairlines (Cardinal) sit beside the title — exclude them
-  // so after_rule is measured from the heading band, not from that side rule.
+  // Midline-tagged hairlines sit inside the heading row — exclude them so
+  // after_rule is measured from the heading band, not from that side rule.
   const chromeBottom = chromeItems.reduce((max, item) => {
-    if (chromeHeading && isTrailingMidlineRule(item.element, chromeHeading)) {
-      return max;
-    }
-    let depth = item.relTop + elementHeight(item.element);
-    if (hasTrailingMidline && item.element === chromeHeading) {
-      depth = Math.max(depth, item.relTop + trailingMidlineHeadingBand(chromeHeading));
-    }
-    return Math.max(max, depth);
+    if (isMidlineChromeRule(item.element)) return max;
+    return Math.max(max, item.relTop + elementHeight(item.element));
   }, 0);
 
   for (let index = 0; index < bodySorted.length; index += 1) {
@@ -1159,12 +1117,10 @@ function compactSectionStrip(sectionElements, pageHeight, spacing, forceTargets 
     if (index === 0) {
       let gap = targetGap("after_rule", rhythm);
       if (!forceTargets && chrome.length > 0) {
-        const bandPieces = chrome.filter((piece) => (
-          !chromeHeading || !isTrailingMidlineRule(piece, chromeHeading)
-        ));
+        const bandPieces = chrome.filter((piece) => !isMidlineChromeRule(piece));
         const deepestChromeAbs = Math.max(
           ...bandPieces.map((piece) => absoluteBottom(piece, pageHeight)),
-          chromeHeading ? absoluteBottom(chromeHeading, pageHeight) : 0,
+          0,
         );
         const authored = absoluteTop(element, pageHeight) - deepestChromeAbs;
         // Keep authored breathing room when it is still a normal under-rule gap.
@@ -2215,6 +2171,11 @@ export function deriveSectionStyle(
       color: String(heading?.color || defaults.heading.color),
       letterSpacing: Number(heading?.letterSpacing) || 0,
       bold: Boolean(heading?.bold),
+      // Cardinal stamps an authored chrome-band height (label_fs+10). Copy it so
+      // added sections keep the same after_rule origin as wizard sections.
+      ...(Number.isFinite(Number(heading?.height)) && Number(heading.height) > 0
+        ? { height: Number(heading.height) }
+        : {}),
     },
     rule: rule
       ? {
@@ -2222,15 +2183,15 @@ export function deriveSectionStyle(
         height: Number(rule.height) || 1,
         backgroundColor: String(rule.backgroundColor || defaults.rule.backgroundColor),
         relLeft: (Number(rule.left) || 0) - left,
-        // Trailing midline rules (Cardinal) must preserve the whitespace after
-        // the label, not the source label's absolute rule start. The builder
-        // combines this sampled gap with the new label width and retains the
-        // original right edge.
+        // Midline rules (Cardinal `chromeAlign: "midline"`) must preserve the
+        // whitespace after the label, not the source label's absolute rule
+        // start. The builder combines this gap with the new label width.
         labelGap: ((Number(rule.left) || 0) - left) - estimatedHeadingWidth,
         // Vertical offset from the title baseline. Monument's accent rule sits
         // mid-band (~+7), not flush under the label like Builder.line (~+fs*1.35).
         // Without this, built sections park the rule ~10px too low beside the frame.
         relTop: absoluteTop(rule, pageHeight) - absoluteTop(heading, pageHeight),
+        ...(rule.chromeAlign === "midline" ? { chromeAlign: "midline" } : {}),
       }
       : null,
     markers: decorativeShapes.map((shape) => {
