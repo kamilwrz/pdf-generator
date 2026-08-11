@@ -72,13 +72,13 @@ a) Co zostawic?
 - Nimbus
 ------------
 SIDEBAR:
-- Harbor
-- Tessera (FIXED)
+- Harbor  (LAYOUT SIE ROZLATUJE, NOWY BLOK EXP=EDU, KOPIA)
+- Tessera (FIXED, but... ZMIANA KOLEJNOSCI SIDEBAROWYCH SEKCJI Z BUGIEM)
 - Slate
 - Manifest
 - Sterling
 ------------
-- Axis
+- Axis (LAYOUT SIE ROZLATUJE, KOPIA)
 - Aurelie
 - Ledger
 - Cinder

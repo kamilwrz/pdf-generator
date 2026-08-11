@@ -648,6 +648,47 @@ export function isSidebarLaneElement(element) {
 }
 
 /**
+ * Recover rail body that lost `flowLane` after save/reload (older packs only
+ * persisted `flowRole` / `flowGroup`). Kickers still identify the column via
+ * `sidebar-chrome`; body copy / skill chips sit near that kicker's left edge
+ * and must travel with it on reorder — otherwise only titles move.
+ *
+ * Main-column content starts well to the right of Tessera/Slate/Harbor
+ * kickers (~218+ vs ~51), so a modest right limit around the kicker keeps
+ * the recovery from vacuuming the main flow.
+ *
+ * @param {object} element
+ * @param {object} heading - Sidebar kicker for this section
+ * @returns {boolean}
+ */
+function isOrphanedSidebarRailBody(element, heading) {
+  if (!element || !heading) return false;
+  if (element.fixedToPage) return false;
+  if (element.flowRole === "masthead" || element.flowRole === "section-chrome") {
+    return false;
+  }
+  if (isSidebarSectionHeading(element) && element.element_id !== heading.element_id) {
+    return false;
+  }
+  // Explicitly tagged rail elements are handled by `isSidebarLaneElement`.
+  if (isSidebarLaneElement(element)) return false;
+
+  const role = element.flowRole;
+  const looksLikeBody = role === "content"
+    || role === "grid-member"
+    || role == null
+    || role === undefined;
+  if (!looksLikeBody) return false;
+
+  const left = Number(element.left) || 0;
+  const headingLeft = Number(heading.left) || 0;
+  // Rail bodies share the kicker column; main-column blocks start ~150px+ right.
+  if (left > headingLeft + 140) return false;
+  if (left > 200) return false;
+  return true;
+}
+
+/**
  * Whether this text element is a sidebar section kicker (not a main heading).
  */
 export function isSidebarSectionHeading(element) {
@@ -694,6 +735,7 @@ export function sidebarSectionElementIds(elements, headingId, pageHeight = 842) 
   const index = sections.findIndex((section) => section.headingId === headingId);
   if (index < 0) return new Set();
 
+  const heading = list.find((element) => element.element_id === headingId);
   const start = sections[index].startAbs;
   const end = index + 1 < sections.length
     ? sections[index + 1].startAbs
@@ -703,7 +745,9 @@ export function sidebarSectionElementIds(elements, headingId, pageHeight = 842) 
   for (const element of list) {
     if (!element || element.fixedToPage) continue;
     if (element.flowRole === "masthead") continue;
-    if (!isSidebarLaneElement(element)) continue;
+    const taggedRail = isSidebarLaneElement(element);
+    const orphanedRail = !taggedRail && isOrphanedSidebarRailBody(element, heading);
+    if (!taggedRail && !orphanedRail) continue;
     if (
       isSidebarSectionHeading(element)
       && element.element_id !== headingId

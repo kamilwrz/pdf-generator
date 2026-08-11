@@ -113,6 +113,7 @@ export default function ModalPdfs({ title }) {
                         bulletList: element.extra_properties.bulletList ?? false,
                         autoHeight: element.extra_properties.autoHeight ?? false,
                         flowRole: element.extra_properties.flowRole,
+                        flowLane: element.extra_properties.flowLane,
                         flowGroup: element.extra_properties.flowGroup,
                         isDecorativeChromeText: element.extra_properties.isDecorativeChromeText ?? false,
                         preserveInitialLayout: element.extra_properties.preserveInitialLayout ?? false,
@@ -138,6 +139,7 @@ export default function ModalPdfs({ title }) {
                         photoSlot: element.extra_properties.photoSlot,
                         photoShape: element.extra_properties.photoShape,
                         flowRole: element.extra_properties.flowRole,
+                        flowLane: element.extra_properties.flowLane,
                         flowGroup: element.extra_properties.flowGroup,
                         fixedToPage,
                         repeatOnContinuation,
@@ -162,6 +164,7 @@ export default function ModalPdfs({ title }) {
                     // Inline decoration overlay; null keeps the plain fast path.
                     runs: element.extra_properties.runs ?? null,
                     flowRole: element.extra_properties.flowRole,
+                    flowLane: element.extra_properties.flowLane,
                     flowGroup: element.extra_properties.flowGroup,
                     isDecorativeChromeText: element.extra_properties.isDecorativeChromeText ?? false,
                     fixedToPage,

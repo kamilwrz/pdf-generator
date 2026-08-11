@@ -93,6 +93,10 @@ class PdfElement(BaseModel):
     autoHeight: Optional[bool] = False
     # Flow classifier used by reflow: "section-chrome" or "content".
     flowRole: Optional[str] = None
+    # Two-column rail tag: "sidebar" keeps body copy on the packSidebarLane
+    # cursor. Without it, only sidebar-chrome kickers reorder and rail body
+    # is left behind after a save/reload that drops unpersisted fields.
+    flowLane: Optional[str] = None
     # Keep-together id for a multi-element record (title/meta/body). Reflow
     # moves the whole group across page breaks instead of splitting it.
     flowGroup: Optional[str] = None

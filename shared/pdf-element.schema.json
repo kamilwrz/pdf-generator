@@ -300,6 +300,19 @@
       "default": null,
       "title": "Flowrole"
     },
+    "flowLane": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Flowlane",
+      "description": "Two-column rail tag. Use \"sidebar\" for left-rail elements packed by packSidebarLane."
+    },
     "flowGroup": {
       "anyOf": [
         {

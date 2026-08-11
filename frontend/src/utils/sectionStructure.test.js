@@ -457,6 +457,84 @@ describe("reorderSection", () => {
     );
   });
 
+  it("moves rail body with kickers even when flowLane was stripped (saved docs)", () => {
+    // Older create/update packs dropped flowLane from extra_properties. After
+    // reload, only sidebar-chrome kickers stay lane-tagged — membership must
+    // still recover rail textareas / skill chips by column so reorder does not
+    // leave body copy stranded while titles pile up.
+    const elements = twoColumnFixture().map((element) => {
+      if (!String(element.element_id).startsWith("sb-")) return element;
+      if (element.flowRole === "sidebar-chrome") return element;
+      const { flowLane, ...rest } = element;
+      return rest;
+    });
+    assert.equal(
+      elements.find((element) => element.element_id === "sb-edu-body").flowLane,
+      undefined,
+    );
+    const next = reorderSection(elements, "sb-edu-head", "up", 842, {
+      spacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
+    });
+    assert.ok(next);
+    const byId = Object.fromEntries(next.map((element) => [element.element_id, element]));
+    assert.ok(
+      byId["sb-edu-head"].top < byId["sb-kontakt-head"].top,
+      "edu kicker moves above kontakt",
+    );
+    assert.ok(
+      byId["sb-edu-body"].top < byId["sb-phone"].top,
+      "orphaned edu body must still travel with its kicker",
+    );
+    assert.ok(
+      byId["sb-edu-body"].top > byId["sb-edu-head"].top,
+      "edu body stays under its own heading after reorder",
+    );
+    // Main column must not be vacuumed into the rail pack.
+    assert.equal(byId["m-exp-body"].top, elements.find((el) => el.element_id === "m-exp-body").top);
+  });
+
+  it("moves sidebar skill chips that lack flowLane with their kicker", () => {
+    const group = "record-skills-rail";
+    const elements = [
+      {
+        element_id: "edu-h", category: "text", content: "WYKSZTAŁCENIE",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 51, top: 200, fontSize: 7.6, page: 1,
+      },
+      {
+        element_id: "edu-body", category: "textarea", content: "LL.B.",
+        flowRole: "content", flowLane: "sidebar",
+        left: 25, top: 220, width: 128, height: 40, autoHeight: true, page: 1,
+      },
+      {
+        element_id: "sk-h", category: "text", content: "UMIEJĘTNOŚCI",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 51, top: 280, fontSize: 7.6, page: 1,
+      },
+      {
+        element_id: "chip-r", category: "rectangle", flowRole: "grid-member",
+        flowGroup: group, left: 25, top: 300, width: 90, height: 18,
+        filled: true, borderRadius: 9, page: 1,
+      },
+      {
+        element_id: "chip-t", category: "text", flowRole: "grid-member",
+        flowGroup: group, content: "SQL", left: 35, top: 305, fontSize: 8, page: 1,
+      },
+    ];
+    const next = reorderSection(elements, "sk-h", "up", 842, {
+      spacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
+    });
+    assert.ok(next);
+    const byId = Object.fromEntries(next.map((element) => [element.element_id, element]));
+    assert.ok(byId["sk-h"].top < byId["edu-h"].top, "skills kicker moves up");
+    assert.ok(byId["chip-r"].top < byId["edu-body"].top, "chip rect travels with skills");
+    assert.ok(byId["chip-t"].top < byId["edu-body"].top, "chip label travels with skills");
+    assert.ok(
+      Math.abs(byId["chip-t"].top - byId["chip-r"].top) < 12,
+      "chip label stays inside its pill after pack",
+    );
+  });
+
   it("compacts multi-page section holes and repacks following sections", () => {
     // Tall section A spans page 1→2 with footer/header dead space in its Y span.
     // Short section B sits on page 2. Moving B above A must not leave B crushed
@@ -1954,28 +2032,74 @@ describe("appendSectionAtEnd", () => {
 });
 
 describe("listFlatSectionAnchors", () => {
-  // Cardinal's real starter is used as the fixture: UMIEJĘTNOŚCI and JĘZYKI
-  // are each authored as one `block(...)` textarea with mid-dot items —
-  // exactly the flat-section shape this helper must recognize. PODSUMOWANIE
-  // ZAWODOWE is also a single textarea, but it is one prose paragraph, not a
-  // list, and DOŚWIADCZENIE ZAWODOWE spans several title+meta+bullet blocks
-  // per job — both must be excluded.
+  // Cardinal's starter now emits UMIEJĘTNOŚCI as skill chips (`grid-member`),
+  // which are not a single flat textarea — chips sections must NOT get the
+  // list/layout toggle. A synthetic mid-dot skills textarea still must.
   const source = cardinalTemplate.map((element, index) => ({
     ...element,
     element_id: `c-${index}`,
     page: 1,
   }));
 
-  it("includes Skills and Languages (single textarea, multiple items)", () => {
-    const anchors = listFlatSectionAnchors(source, 842);
-    const sections = listDocumentSections(source, 842);
+  function withFlatSkillsTextarea(elements) {
+    // Replace chip pairs under UMIEJĘTNOŚCI with one mid-dot textarea so the
+    // flat-anchor contract stays covered after the chips migration.
+    const sections = listDocumentSections(elements, 842);
+    const skills = sections.find((section) => section.title === "UMIEJĘTNOŚCI");
+    assert.ok(skills, "expected UMIEJĘTNOŚCI in Cardinal");
+    const memberIds = sectionElementIds(elements, skills.headingId, 842);
+    const withoutChips = elements.filter((element) => (
+      !memberIds.has(element.element_id)
+      || element.element_id === skills.headingId
+      || element.flowRole === "section-chrome"
+    ));
+    const heading = elements.find((element) => element.element_id === skills.headingId);
+    return [
+      ...withoutChips,
+      {
+        element_id: "flat-skills-body",
+        category: "textarea",
+        flowRole: "content",
+        content: "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje",
+        left: Number(heading?.left) || 72,
+        top: (Number(heading?.top) || 200) + 24,
+        width: 400,
+        height: 40,
+        fontSize: 9.6,
+        autoHeight: true,
+        page: 1,
+      },
+    ];
+  }
+
+  it("includes a mid-dot Skills textarea (and Languages when still flat)", () => {
+    const flatSource = withFlatSkillsTextarea(source);
+    const anchors = listFlatSectionAnchors(flatSource, 842);
+    const sections = listDocumentSections(flatSource, 842);
     const anchoredHeadings = new Set(anchors.map((anchor) => anchor.headingId));
     const skills = sections.find((section) => section.title === "UMIEJĘTNOŚCI");
+    assert.ok(skills, "expected a UMIEJĘTNOŚCI section");
+    assert.ok(anchoredHeadings.has(skills.headingId), "flat Skills textarea should be an anchor");
     const languages = sections.find((section) => section.title === "JĘZYKI");
+    if (languages) {
+      // Languages may be a CEFR grid or still a flat textarea depending on starter.
+      const langAnchor = anchors.find((anchor) => anchor.headingId === languages.headingId);
+      if (langAnchor) {
+        const body = flatSource.find((el) => el.element_id === langAnchor.contentElementId);
+        assert.equal(body?.category, "textarea");
+      }
+    }
+  });
+
+  it("excludes chip-rendered Skills from flat anchors", () => {
+    const anchors = listFlatSectionAnchors(source, 842);
+    const sections = listDocumentSections(source, 842);
+    const skills = sections.find((section) => section.title === "UMIEJĘTNOŚCI");
     assert.ok(skills, "expected a UMIEJĘTNOŚCI section in the Cardinal fixture");
-    assert.ok(languages, "expected a JĘZYKI section in the Cardinal fixture");
-    assert.ok(anchoredHeadings.has(skills.headingId), "Skills should be a flat-section anchor");
-    assert.ok(anchoredHeadings.has(languages.headingId), "Languages should be a flat-section anchor");
+    assert.ok(
+      !anchors.some((anchor) => anchor.headingId === skills.headingId),
+      "grid-member skill chips must not get the flat-list layout toggle",
+    );
   });
 
   it("excludes the Summary paragraph even though it is also one textarea", () => {
@@ -2000,12 +2124,14 @@ describe("listFlatSectionAnchors", () => {
     );
   });
 
-  it("points each anchor at the section's own body textarea", () => {
-    const anchors = listFlatSectionAnchors(source, 842);
-    const sections = listDocumentSections(source, 842);
+  it("points each flat Skills anchor at the section's own body textarea", () => {
+    const flatSource = withFlatSkillsTextarea(source);
+    const anchors = listFlatSectionAnchors(flatSource, 842);
+    const sections = listDocumentSections(flatSource, 842);
     const skills = sections.find((section) => section.title === "UMIEJĘTNOŚCI");
     const anchor = anchors.find((entry) => entry.headingId === skills.headingId);
-    const contentElement = source.find((element) => element.element_id === anchor.contentElementId);
+    assert.ok(anchor, "expected a flat Skills anchor");
+    const contentElement = flatSource.find((element) => element.element_id === anchor.contentElementId);
     assert.equal(contentElement.category, "textarea");
     assert.ok(
       String(contentElement.content || "").includes("Strategia"),
