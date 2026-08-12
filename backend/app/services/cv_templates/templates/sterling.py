@@ -33,6 +33,12 @@ no same-row or individually-positioned decoration was introduced, so this
 inherits the packer-safety guarantees documented in `blueprint.py` without
 needing to re-derive them.
 
+Continuation pages can also receive sidebar content: the balance-driven
+planner in `column_planner.py` generalizes to one bucket per page the main
+column already occupies, so a rail that would otherwise sit empty next to
+page-2+ content can carry a short section instead — see
+docs/superpowers/specs/2026-08-12-multi-page-column-planner-design.md.
+
 Layout decisions are deterministic Python (never sent to the model).
 """
 
@@ -40,12 +46,14 @@ from app.services.cv_data import skill_groups
 from app.services.cv_generator_primitives import (
     Builder,
     get_spacing,
+    PAGE_TOP,
     _line,
     _text,
 )
 from app.services.cv_templates.shared.column_planner import (
+    MainMeasurement,
     PlaceableSection,
-    plan_columns,
+    plan_columns_multi_page,
 )
 from app.services.cv_templates.shared.extras import (
     _extra_sections,
@@ -182,7 +190,7 @@ def _gen_sterling(cv: dict) -> list[dict]:
         tick['flowRole'] = 'sidebar-chrome'
         return [heading, tick]
 
-    def section(label: str) -> None:
+    def section(b: "Builder", label: str) -> None:
         y = b.y
         page = b.pg
         heading = _text(label, HEADING_FS, SANS, C['ink'], MAIN_L, y, zIndex=3, page=page, bold=True)
@@ -195,20 +203,21 @@ def _gen_sterling(cv: dict) -> list[dict]:
         b.els.append(rule)
         b.y = rule_line_y + 1.0 + get_spacing().after_rule
 
-    def close_section() -> None:
+    def close_section(b: "Builder") -> None:
         b.gap(get_spacing().section)
 
     def experience_height(job: dict) -> float:
         return _experience_record_height(
-            b, job, MAIN_W, SANS, title_fs=TITLE_FS2, title_lh=TITLE_LH2,
+            probe, job, MAIN_W, SANS, title_fs=TITLE_FS2, title_lh=TITLE_LH2,
             meta_fs=META_FS, meta_lh=META_LH, body_fs=BODY_FS, body_lh=BODY_LH,
         )
 
     # ── Section placement. Measure each present section in both column widths
-    # and let the shared planner partition them so page 1 is as balanced as
-    # possible. Experience is anchored to the main column; the sidebar is a hard
-    # page-1 fit; the main column may paginate. See
-    # docs/superpowers/specs/2026-08-12-two-column-section-placement-design.md
+    # and let the shared planner partition them so every page the main column
+    # occupies is as balanced as possible. Experience is anchored to the main
+    # column; each sidebar bucket is a hard per-page fit; the main column may
+    # paginate. See
+    # docs/superpowers/specs/2026-08-12-multi-page-column-planner-design.md
     probe = Builder(content_top)
     candidates = _sidebar_candidates(cv, lbl)
     cand_by_key = {candidate['key']: candidate for candidate in candidates}
@@ -291,117 +300,177 @@ def _gen_sterling(cv: dict) -> list[dict]:
             main_height=main_section_height(main_body), sidebar_height=side_h,
         ))
 
-    plan = plan_columns(descriptors, sidebar_budget=sidebar_budget, main_budget=main_budget)
-    sidebar_set = set(plan.sidebar)
-    # Simple extras routed to the sidebar are skipped by `_extra_sections` in the
-    # main column; those routed to main are rendered by it.
-    sidebar_extra_indices = {
-        cand_by_key[key]['extra_index']
-        for key in sidebar_set
-        if key in cand_by_key and isinstance(cand_by_key[key].get('extra_index'), int)
-    }
+    def _sidebar_extra_indices_for(main_keys: list[str]) -> set[int]:
+        """Extra-section indices the planner routed out of ``main_keys``.
 
-    # ── Sidebar (page 1 only) for the planned sidebar set. ────────────────────
-    sidebar: list[dict] = []
-    cursor = content_top
-    if 'summary' in sidebar_set and cv.get('summary'):
-        sidebar.extend(sidebar_kicker(lbl['summary'], cursor))
-        body_top = cursor + CHROME_GAP
-        body_h = Builder.measure_block(cv['summary'], SIDE_W, SIDE_SUMMARY_FS, SIDE_SUMMARY_LH, SANS)
-        sidebar.append({
-            'category': 'textarea', 'content': cv['summary'], 'left': SIDE_L, 'top': body_top,
-            'width': SIDE_W, 'height': body_h, 'fontSize': SIDE_SUMMARY_FS, 'lineHeight': SIDE_SUMMARY_LH,
-            'letterSpacing': 0, 'color': C['ink'], 'fontFamily': SANS, 'zIndex': 3, 'page': 1,
-            'bold': False, 'italic': False, 'align': 'left', 'bulletList': False,
-            'autoHeight': True, 'preserveInitialLayout': True,
-        })
-        cursor = body_top + body_h + 26.0
+        Every ``_sidebar_candidates`` key ends up in exactly one of
+        ``plan.main`` or a sidebar bucket (``ColumnPlan`` is a disjoint
+        cover), so anything with an ``extra_index`` absent from
+        ``main_keys`` was placed in some sidebar bucket and must be skipped
+        by ``_extra_sections``'s own placement-based iteration below to
+        avoid rendering it twice.
+        """
+        main_set = set(main_keys)
+        return {
+            candidate['extra_index']
+            for candidate in candidates
+            if candidate['key'] not in main_set and isinstance(candidate.get('extra_index'), int)
+        }
 
-    # The planner already guaranteed this subset fits the page-1 rail, so
-    # `_fit_sidebar_sections` places all of them (it also assigns their fonts).
-    sidebar_planned = [candidate for candidate in candidates if candidate['key'] in sidebar_set]
-    fitted_sections, _ = _fit_sidebar_sections(
-        sidebar_planned, width=SIDE_W, start_y=cursor, bottom_y=760, font=SANS,
+    def _render_main_column(order: list[str], b: "Builder", skip_indices: set[int]) -> None:
+        """Render one ordered main-column section list into ``b``.
+
+        Shared verbatim between the throwaway measurement pass
+        (``measure_main``, called by ``plan_columns_multi_page`` to learn how
+        many pages a candidate ``main`` order needs) and the final render, so
+        the page count the planner iterates against always matches what the
+        document actually draws.
+        """
+        def section_fn(label: str):
+            return section(b, label)
+
+        for key in order:
+            if key == 'summary' and cv.get('summary'):
+                b.need_section(SECTION_CHROME, Builder.measure_block(cv['summary'], MAIN_W, BODY_FS, BODY_LH, SANS))
+                section(b, lbl['summary'])
+                b.block(cv['summary'], MAIN_L, MAIN_W, BODY_FS, BODY_LH, C['ink'], SANS)
+                close_section(b)
+            elif key == 'experience' and cv.get('experience'):
+                jobs = cv['experience']
+                b.need_section(SECTION_CHROME, experience_height(jobs[0]))
+                section(b, lbl['experience'])
+                for index, job in enumerate(jobs):
+                    _place_experience_record(
+                        b, job, MAIN_L, MAIN_W, ink=C['ink'], muted=C['muted'], body=C['ink'], font=SANS,
+                        title_fs=TITLE_FS2, title_lh=TITLE_LH2, meta_fs=META_FS, meta_lh=META_LH,
+                        body_fs=BODY_FS, body_lh=BODY_LH,
+                        after_gap=get_spacing().record if index < len(jobs) - 1 else None,
+                    )
+                close_section(b)
+                # Record-kind extras (projects/references) live right after Experience.
+                _extra_sections(
+                    b, cv, 'after_experience', section_fn, {'body': C['ink'], 'accent': C['accent']},
+                    MAIN_L, MAIN_W, SANS, fs=BODY_FS, lh=BODY_LH,
+                    skip_indices=skip_indices, section_chrome_h=SECTION_CHROME,
+                )
+            elif key == 'education' and edu_entries:
+                b.need_section(SECTION_CHROME, _education_record_height(
+                    b, edu_entries[0], MAIN_W, SANS, degree_fs=TITLE_FS2, degree_lh=TITLE_LH2,
+                    meta_fs=META_FS, meta_lh=META_LH, body_fs=BODY_FS, body_lh=BODY_LH,
+                ))
+                section(b, lbl['education'])
+                for index, edu in enumerate(edu_entries):
+                    _place_education_record(
+                        b, edu, MAIN_L, MAIN_W, ink=C['ink'], muted=C['muted'], body=C['ink'], font=SANS,
+                        degree_fs=TITLE_FS2, degree_lh=TITLE_LH2, meta_fs=META_FS, meta_lh=META_LH,
+                        body_fs=BODY_FS, body_lh=BODY_LH,
+                        after_gap=get_spacing().record if index < len(edu_entries) - 1 else None,
+                    )
+                close_section(b)
+            elif key == 'skills':
+                if _place_skills_section(
+                    b, cv, section_fn, MAIN_L, MAIN_W, C['ink'], SANS, BODY_FS, BODY_LH,
+                    section_chrome_h=SECTION_CHROME,
+                ):
+                    close_section(b)
+
+        # Simple extras (languages / interests / certifications) the planner left
+        # in the main column render here; those routed to any sidebar bucket
+        # are skipped via `skip_indices`.
+        _extra_sections(
+            b, cv, 'after_skills', section_fn, {'body': C['ink'], 'accent': C['accent']},
+            MAIN_L, MAIN_W, SANS, fs=BODY_FS, lh=BODY_LH,
+            skip_indices=skip_indices, section_chrome_h=SECTION_CHROME,
+        )
+
+    def measure_main(order: list[str]) -> MainMeasurement:
+        """Render ``order`` into a throwaway ``Builder`` and report its page count.
+
+        Used only by ``plan_columns_multi_page``'s bounded iteration to learn
+        how many pages a candidate ``main`` assignment needs; the elements it
+        produces are discarded.
+        """
+        probe_builder = Builder(content_top)
+        _render_main_column(order, probe_builder, _sidebar_extra_indices_for(order))
+        return MainMeasurement(pages_used=probe_builder.pg)
+
+    plan = plan_columns_multi_page(
+        descriptors,
+        page1_sidebar_budget=sidebar_budget,
+        continuation_sidebar_budget=760.0 - PAGE_TOP,
+        page1_main_budget=main_budget,
+        continuation_main_budget=770.0 - PAGE_TOP,
+        measure_main=measure_main,
     )
-    for section_data in fitted_sections:
-        top = float(section_data['top'])
-        sidebar.extend(sidebar_kicker(section_data['title'], top))
-        # Education becomes diploma / school / meta / bullet elements; flat
-        # sections (skills, languages, …) stay a single textarea.
-        sidebar.extend(_fitted_sidebar_body_elements(
-            section_data,
-            left=SIDE_L,
-            width=SIDE_W,
-            ink=C['ink'],
-            muted=C['muted'],
-            body=C['ink'],
-            font=SANS,
-        ))
+    sidebar_extra_indices = _sidebar_extra_indices_for(plan.main)
 
-    sidebar = [{
-        **element,
-        'page': 1,
-        'flowRole': element.get('flowRole', 'content'),
-        'flowLane': 'sidebar',
-    } for element in sidebar]
+    def _render_sidebar_bucket(page: int, keys: list[str], start_y: float) -> list[dict]:
+        """Render one page's sidebar rail content for the planner-assigned ``keys``.
+
+        Summary keeps its distinct inline rendering (fixed body font size,
+        not the auto-fit ladder ``_fit_sidebar_sections`` uses for the rest)
+        on whichever page the planner places it; every other candidate goes
+        through the shared fitting mechanism. This is the exact page-1 logic
+        run once per bucket, not a page-2 special case — page 1 differs only
+        in ``start_y``.
+        """
+        key_set = set(keys)
+        elements: list[dict] = []
+        cursor = start_y
+        if 'summary' in key_set and cv.get('summary'):
+            elements.extend(sidebar_kicker(lbl['summary'], cursor))
+            body_top = cursor + CHROME_GAP
+            body_h = Builder.measure_block(cv['summary'], SIDE_W, SIDE_SUMMARY_FS, SIDE_SUMMARY_LH, SANS)
+            elements.append({
+                'category': 'textarea', 'content': cv['summary'], 'left': SIDE_L, 'top': body_top,
+                'width': SIDE_W, 'height': body_h, 'fontSize': SIDE_SUMMARY_FS, 'lineHeight': SIDE_SUMMARY_LH,
+                'letterSpacing': 0, 'color': C['ink'], 'fontFamily': SANS, 'zIndex': 3, 'page': page,
+                'bold': False, 'italic': False, 'align': 'left', 'bulletList': False,
+                'autoHeight': True, 'preserveInitialLayout': True,
+            })
+            cursor = body_top + body_h + 26.0
+
+        # The planner already guaranteed this subset fits this bucket's rail,
+        # so `_fit_sidebar_sections` places all of them (it also assigns their
+        # fonts).
+        bucket_planned = [candidate for candidate in candidates if candidate['key'] in key_set]
+        fitted_sections, _ = _fit_sidebar_sections(
+            bucket_planned, width=SIDE_W, start_y=cursor, bottom_y=760, font=SANS,
+        )
+        for section_data in fitted_sections:
+            top = float(section_data['top'])
+            elements.extend(sidebar_kicker(section_data['title'], top))
+            # Education becomes diploma / school / meta / bullet elements; flat
+            # sections (skills, languages, …) stay a single textarea.
+            elements.extend(_fitted_sidebar_body_elements(
+                section_data,
+                left=SIDE_L,
+                width=SIDE_W,
+                ink=C['ink'],
+                muted=C['muted'],
+                body=C['ink'],
+                font=SANS,
+            ))
+
+        return [{
+            **element,
+            'page': page,
+            'flowRole': element.get('flowRole', 'content'),
+            'flowLane': 'sidebar',
+        } for element in elements]
+
+    # ── Sidebar: one bucket per page the planner used. ────────────────────
+    sidebar: list[dict] = []
+    for page in sorted(plan.sidebar_by_page.keys()):
+        start_y = content_top if page == 1 else PAGE_TOP
+        sidebar.extend(_render_sidebar_bucket(page, plan.sidebar_by_page[page], start_y))
 
     # ── Main column for the planned main set, in canonical reading order. Each
     # anchored/movable "primary" section (summary, experience, education, skills)
     # dispatches to its existing renderer; simple extras routed to main are
-    # emitted by `_extra_sections` below. ─────────────────────────────────────
+    # emitted by `_extra_sections` inside `_render_main_column`. ──────────────
     b = Builder(content_top)
-    for key in plan.main:
-        if key == 'summary' and cv.get('summary'):
-            b.need_section(SECTION_CHROME, Builder.measure_block(cv['summary'], MAIN_W, BODY_FS, BODY_LH, SANS))
-            section(lbl['summary'])
-            b.block(cv['summary'], MAIN_L, MAIN_W, BODY_FS, BODY_LH, C['ink'], SANS)
-            close_section()
-        elif key == 'experience' and cv.get('experience'):
-            jobs = cv['experience']
-            b.need_section(SECTION_CHROME, experience_height(jobs[0]))
-            section(lbl['experience'])
-            for index, job in enumerate(jobs):
-                _place_experience_record(
-                    b, job, MAIN_L, MAIN_W, ink=C['ink'], muted=C['muted'], body=C['ink'], font=SANS,
-                    title_fs=TITLE_FS2, title_lh=TITLE_LH2, meta_fs=META_FS, meta_lh=META_LH,
-                    body_fs=BODY_FS, body_lh=BODY_LH,
-                    after_gap=get_spacing().record if index < len(jobs) - 1 else None,
-                )
-            close_section()
-            # Record-kind extras (projects/references) live right after Experience.
-            _extra_sections(
-                b, cv, 'after_experience', section, {'body': C['ink'], 'accent': C['accent']},
-                MAIN_L, MAIN_W, SANS, fs=BODY_FS, lh=BODY_LH,
-                skip_indices=sidebar_extra_indices, section_chrome_h=SECTION_CHROME,
-            )
-        elif key == 'education' and edu_entries:
-            b.need_section(SECTION_CHROME, _education_record_height(
-                b, edu_entries[0], MAIN_W, SANS, degree_fs=TITLE_FS2, degree_lh=TITLE_LH2,
-                meta_fs=META_FS, meta_lh=META_LH, body_fs=BODY_FS, body_lh=BODY_LH,
-            ))
-            section(lbl['education'])
-            for index, edu in enumerate(edu_entries):
-                _place_education_record(
-                    b, edu, MAIN_L, MAIN_W, ink=C['ink'], muted=C['muted'], body=C['ink'], font=SANS,
-                    degree_fs=TITLE_FS2, degree_lh=TITLE_LH2, meta_fs=META_FS, meta_lh=META_LH,
-                    body_fs=BODY_FS, body_lh=BODY_LH,
-                    after_gap=get_spacing().record if index < len(edu_entries) - 1 else None,
-                )
-            close_section()
-        elif key == 'skills':
-            if _place_skills_section(
-                b, cv, section, MAIN_L, MAIN_W, C['ink'], SANS, BODY_FS, BODY_LH,
-                section_chrome_h=SECTION_CHROME,
-            ):
-                close_section()
-
-    # Simple extras (languages / interests / certifications) the planner left in
-    # the main column render here; those routed to the sidebar are skipped.
-    _extra_sections(
-        b, cv, 'after_skills', section, {'body': C['ink'], 'accent': C['accent']},
-        MAIN_L, MAIN_W, SANS, fs=BODY_FS, lh=BODY_LH,
-        skip_indices=sidebar_extra_indices, section_chrome_h=SECTION_CHROME,
-    )
+    _render_main_column(plan.main, b, sidebar_extra_indices)
 
     flow = b.build()
     pages_used = max([element.get('page', 1) for element in header + sidebar + flow] or [1])
