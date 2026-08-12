@@ -3,6 +3,8 @@
 These exercise the partitioning algorithm with synthetic heights, independent
 of the CV generation stack, so the balancing rules are pinned precisely.
 """
+import pytest
+
 from app.services.cv_templates.shared.column_planner import (
     ColumnPlan,
     MainMeasurement,
@@ -254,3 +256,20 @@ def test_plan_columns_multi_page_never_infinite_loops():
     )
     assert call_count == 3
     assert plan is not None
+
+
+def test_plan_columns_multi_page_rejects_zero_max_iterations():
+    # With `max_iterations < 1` the `for` loop body never executes, so `plan`
+    # would remain `None` at the `return plan` statement — a silent contract
+    # violation of the `-> ColumnPlan` return type. Guard against it eagerly
+    # instead of returning `None` to the caller.
+    with pytest.raises(ValueError):
+        plan_columns_multi_page(
+            _sections_short_experience(),
+            page1_sidebar_budget=400,
+            continuation_sidebar_budget=400,
+            page1_main_budget=400,
+            continuation_main_budget=400,
+            measure_main=lambda order: MainMeasurement(pages_used=1),
+            max_iterations=0,
+        )

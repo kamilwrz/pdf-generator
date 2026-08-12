@@ -220,7 +220,6 @@ def _gen_sterling(cv: dict) -> list[dict]:
     # docs/superpowers/specs/2026-08-12-multi-page-column-planner-design.md
     probe = Builder(content_top)
     candidates = _sidebar_candidates(cv, lbl)
-    cand_by_key = {candidate['key']: candidate for candidate in candidates}
     edu_entries = _sidebar_education_entries(cv.get('education'))
     sidebar_budget = 760.0 - content_top
     main_budget = 770.0 - content_top

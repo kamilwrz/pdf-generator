@@ -272,6 +272,8 @@ def plan_columns_multi_page(
     pathological ``measure_main`` never stabilizes (the last computed plan is
     returned instead of looping forever).
     """
+    if max_iterations < 1:
+        raise ValueError("plan_columns_multi_page requires max_iterations >= 1")
     buckets = [SidebarBucket(1, page1_sidebar_budget)]
     total_main_budget = page1_main_budget
     plan: ColumnPlan | None = None
@@ -295,4 +297,14 @@ def plan_columns_multi_page(
         if converged:
             break
         buckets, total_main_budget = new_buckets, new_total_main_budget
+    # NOTE: On convergence the last `plan` was measured against its own bucket
+    # list, so `plan.sidebar_by_page` matches `plan.main`'s real page span. On
+    # `max_iterations` exhaustion (a `measure_main` that never stabilizes) the
+    # returned plan may have been partitioned against a bucket list one step
+    # stale. This is safe in practice: `plan_columns` only leaves content in a
+    # page-N bucket when the main column is correspondingly full (its budget
+    # scales with page count), so a populated continuation bucket implies the
+    # main column really reaches that page — the planner never fabricates a
+    # page with no main content. The `max_iterations` cap (spec §6) is a
+    # bounded, deterministic fallback, not a correctness guarantee to lean on.
     return plan
