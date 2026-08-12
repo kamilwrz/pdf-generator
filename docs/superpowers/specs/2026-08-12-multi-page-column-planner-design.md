@@ -28,9 +28,12 @@ none of that happens — all four pile into the main column.
 ## 2. Goal
 
 Generalize the already-implemented planner so **any page the main column
-already occupies can also receive sidebar content**, using the same
-balance-driven logic (minimize the worst bucket's empty space) already
-validated for the single-page case — not a bespoke "page 2 special case."
+already occupies can also receive sidebar content**. Page 1 is still
+balanced the same way as the single-page planner (minimize
+`max(empty_main, empty_page1_sidebar)`). Continuation-page rails are
+overflow catchers for sidebar-affinity sections that do not fit page 1 —
+not extra columns to equalise against, and not a bespoke "page 2 special
+case."
 
 Decisions locked during brainstorming:
 
@@ -141,13 +144,19 @@ def plan_columns(
 number regardless of which page's rail eventually renders it (the rail is the
 same width on every page), so no new per-page measurement is needed there.
 
-**Cost function**, generalized: `cost = max(empty_main, max(empty(bucket) for
-bucket in sidebar_buckets))`, where `empty(bucket) = max(0, bucket.budget -
-sum of sidebar_height for sections assigned to that bucket)`, and `empty_main
-= max(0, main_budget - sum of main_height for sections assigned to main)`.
-With exactly one bucket (`[SidebarBucket(1, budget)]`) this is *identical* to
-today's `max(empty_side, empty_main)` — the single-page case is a special
-case of the general one, not a separate code path.
+**Cost function** (as implemented — this supersedes the "max over every
+bucket" form the design first proposed; see the correction note at the end of
+§5.2): `cost = max(empty_main, empty(first_bucket))`, where `first_bucket` is
+the lowest-`page` bucket (page 1 in practice), `empty(bucket) = max(0,
+bucket.budget - sum of sidebar_height for sections assigned to that bucket)`,
+and `empty_main = max(0, main_budget - sum of main_height for sections
+assigned to main)`. Only page 1's rail (and the page-1 main column) enters
+the balance objective; continuation-page rails are overflow catchers, not
+columns to balance against. With exactly one bucket (`[SidebarBucket(1,
+budget)]`) this is *identical* to today's `max(empty_side, empty_main)` — the
+single-page case is a special case of the general one, not a separate code
+path. Feasibility (below) is still checked against *every* bucket, since each
+rail is a hard per-page fit.
 
 **Feasibility repair**, generalized: process buckets in ascending `page`
 order; while a bucket's assigned total exceeds its budget, evict its
@@ -166,28 +175,41 @@ primitive (if bucket 2 is fuller than bucket 3, a two-step main-mediated
 re-balance already reaches the same result, and this keeps the move space
 small and easy to reason about).
 
-### 5.2 Why `main_budget` is a *lump sum*, not per-page
+### 5.2 Why `main_budget` stays page-1-scoped (not a lump sum)
 
 The pure partitioner has no notion of pagination internally — like today, it
 just sums `main_height` over whatever it assigns to `main` and compares to a
-single number. Once the main column can span multiple pages, that number
-represents **total currently-allocated main capacity**:
+single number. An earlier revision of this design treated that number as
+**total currently-allocated main capacity**:
 
 ```
 main_budget = page1_main_budget + max(0, pages_used - 1) * continuation_main_budget
 ```
 
-This is an approximation (real pagination has page-break rules and
-`keep_together` atomicity that a lump sum can't model exactly), which is why
-step 2 of the iteration periodically re-grounds it with a *real* Builder
-measurement rather than trusting the lump sum indefinitely. The alternative —
-re-measuring pagination with a real Builder pass for every candidate move
-inside the greedy search — was considered and rejected: for a CV with ~7
-movable sections and 3 buckets, the greedy search alone can evaluate on the
-order of 20–150 candidate moves per outer iteration; a full render per
-candidate would multiply request latency for a benefit (pixel-exact
-per-candidate accuracy) that the periodic re-grounding already captures at
-the point that matters — the final chosen plan.
+That form is **rejected**. Because the main column of a long CV is far taller
+than one page, `empty_main` then looked enormous and the greedy loop pulled
+sidebar-affinity sections *into* the main column to fill that phantom
+multi-page capacity, draining the page-1 rail entirely (observed in
+production: a two-page Sterling CV with no sidebar content on page 1). There
+is no hard main budget to respect — the main column paginates freely — so
+`empty_main` must be computed against **page 1's** main budget only, exactly
+as the single-page planner always did. The multi-page aspect lives solely in
+*deriving continuation sidebar buckets*, not in inflating the balance budget.
+
+`plan_columns_multi_page` therefore always passes
+`main_budget=page1_main_budget` and has no `continuation_main_budget`
+parameter. Real pagination is still re-grounded each iteration via
+`measure_main` (to learn how many continuation rails exist); that
+measurement is not used to grow the balance budget.
+
+The alternative — re-measuring pagination with a real Builder pass for every
+candidate move inside the greedy search — was considered and rejected: for a
+CV with ~7 movable sections and 3 buckets, the greedy search alone can
+evaluate on the order of 20–150 candidate moves per outer iteration; a full
+render per candidate would multiply request latency for a benefit
+(pixel-exact per-candidate accuracy) that the periodic `measure_main`
+re-grounding already captures at the point that matters — how many
+continuation rails exist.
 
 ### 5.3 The orchestrator
 
@@ -207,7 +229,6 @@ def plan_columns_multi_page(
     page1_sidebar_budget: float,
     continuation_sidebar_budget: float,
     page1_main_budget: float,
-    continuation_main_budget: float,
     measure_main: Callable[[list[str]], MainMeasurement],
     imbalance_tolerance: float = 60.0,
     min_improvement: float = 24.0,
@@ -220,24 +241,23 @@ def plan_columns_multi_page(
 only the template knows how to actually render its main column. `column_planner.py`
 stays free of any `Builder`/ReportLab dependency — the orchestrator's own
 logic (loop, bucket derivation, convergence check) is pure and independently
-testable with a fake `measure_main`.
+testable with a fake `measure_main`. There is no `continuation_main_budget`
+argument: see §5.2.
 
 Pseudocode:
 
 ```
 buckets = [SidebarBucket(1, page1_sidebar_budget)]
-total_main_budget = page1_main_budget
 plan = None
 for _ in range(max_iterations):
-    plan = plan_columns(sections, sidebar_buckets=buckets, main_budget=total_main_budget, ...)
+    plan = plan_columns(sections, sidebar_buckets=buckets, main_budget=page1_main_budget, ...)
     pages_used = max(1, measure_main(plan.main).pages_used)
     new_buckets = [SidebarBucket(1, page1_sidebar_budget)] + [
         SidebarBucket(p, continuation_sidebar_budget) for p in range(2, pages_used + 1)
     ]
-    new_total_main_budget = page1_main_budget + max(0, pages_used - 1) * continuation_main_budget
-    if [b.page for b in new_buckets] == [b.page for b in buckets] and new_total_main_budget == total_main_budget:
+    if [b.page for b in new_buckets] == [b.page for b in buckets]:
         break
-    buckets, total_main_budget = new_buckets, new_total_main_budget
+    buckets = new_buckets
 return plan
 ```
 
@@ -265,8 +285,8 @@ Budgets used:
 - `page1_sidebar_budget = 760 - content_top` (unchanged from today).
 - `continuation_sidebar_budget = 760 - PAGE_TOP`.
 - `page1_main_budget = 770 - content_top` (`CONTENT_BOTTOM - content_top`,
-  unchanged from today).
-- `continuation_main_budget = 770 - PAGE_TOP` (`CONTENT_BOTTOM - PAGE_TOP`).
+  unchanged from today). Passed through as `plan_columns`'s `main_budget`
+  on every iteration; there is no continuation-page main budget (see §5.2).
 
 (`PAGE_TOP` and `CONTENT_BOTTOM` are existing constants from
 `app/services/cv_generator_primitives.py`; Sterling does not currently
@@ -290,10 +310,11 @@ only the *content* on those rails is new.
   end up assigned to a page that no longer exists.
 - **A section too tall for every current bucket:** falls through to `main`,
   exactly as the single-bucket case today.
-- **`measure_main` disagrees with the lump-sum approximation** (e.g. a
+- **`measure_main` disagrees with a naive height-sum page count** (e.g. a
   `keep_together` record forces an earlier-than-expected page break): the
-  next iteration's bucket list is derived from the *real* measurement, not
-  the approximation, so this self-corrects within the iteration cap.
+  next iteration's bucket list is derived from the *real* measurement, so
+  this self-corrects within the iteration cap. The balance budget itself
+  is never inflated from that measurement (see §5.2).
 - **Oscillation:** bounded by `max_iterations`; if convergence isn't reached
   by then, the last computed `plan` is used (a bounded, deterministic
   fallback — never an infinite loop).
@@ -337,6 +358,9 @@ bucket signature):
   bucket 2's.
 - A 2-bucket feasibility-repair case: bucket 2 over budget evicts its
   lowest-priority member back to `main`.
+- Page-1 fill is not split onto page 2 when it still fits page 1's budget
+  (regression: equalising cost across every bucket drained page 1).
+- Genuine overflow still spills to page 2 after that cost change.
 
 Unit tests for `plan_columns_multi_page` (new, using a fake `measure_main`):
 
@@ -345,6 +369,8 @@ Unit tests for `plan_columns_multi_page` (new, using a fake `measure_main`):
   with a single bucket.
 - 2-page CV (fake `measure_main` returns 2 for the seed's `main` list)
   derives a page-2 bucket and can place a section there.
+- The same 2-page measurement does **not** pull page-1-fitting sidebar
+  sections into the main column (regression: lump-sum `main_budget`).
 - Convergence within `max_iterations` for a case where the derived bucket
   list changes once then stabilizes.
 - A fake `measure_main` that never stabilizes still terminates at
@@ -361,8 +387,11 @@ End-to-end test in `test_cv_template_layouts.py`:
 - Row-level Y alignment between a sidebar entry and a specific main-column
   record (§2, explicitly declined during brainstorming).
 - Per-candidate-move real pagination simulation inside the greedy search
-  (§5.2, rejected for latency; the periodic re-grounding measurement is the
-  chosen middle ground).
+  (§5.2, rejected for latency; `measure_main` re-grounds only the derived
+  bucket list, not the balance budget).
+- Inflating `main_budget` to a lump sum across every page the main column
+  occupies (§5.2, rejected after it drained the page-1 sidebar in
+  production).
 - Rolling this onto Tessera, Slate, or any other sidebar template.
 - Changing the frontend reflow/packing code — confirmed unnecessary (§3).
 

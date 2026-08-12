@@ -1493,24 +1493,35 @@ class CvTemplateLayoutTests(unittest.TestCase):
         """A CV long enough for Sterling's main column to spill onto page 2, with
         more sidebar-eligible content than page 1's rail can hold, places the
         overflow on page 2's rail instead of piling everything into the main
-        column.
+        column — while page 1's rail itself stays filled first.
 
         See docs/superpowers/specs/2026-08-12-multi-page-column-planner-design.md
-        §9. The assertion checks for *some* sidebar kicker landing on a
-        continuation page rather than a specific section by name: which
-        section spills over depends on exact ReportLab-measured heights this
-        test does not hand-compute, but the planner's page-1-only-vs-N-bucket
-        behavior is exactly what's under test either way.
+        §9. The fixture deliberately over-fills the rail (a long summary, a
+        large skills list, and long languages/interests/certifications blocks)
+        so the ~585pt page-1 rail cannot hold everything and genuine overflow
+        exists to place on page 2. The assertion checks for *some* sidebar
+        kicker landing on a continuation page rather than a specific section by
+        name: which section spills over depends on exact ReportLab-measured
+        heights this test does not hand-compute. It also asserts page 1's rail
+        is non-empty, pinning the "fill page 1 first" behaviour that a prior
+        equalising cost function regressed.
         """
         cv = {
             **LONG_CV,
             "experience": LONG_CV["experience"] * 3,
+            "summary": (
+                "Doświadczona liderka produktów cyfrowych, która łączy strategię, "
+                "badania i projektowanie usług, aby prowadzić złożone transformacje "
+                "organizacyjne w sektorze publicznym i prywatnym, dbając o mierzalne "
+                "efekty oraz rozwój zespołów interdyscyplinarnych w wielu kontekstach."
+            ),
+            "skills": [f"Kompetencja zawodowa numer {index}" for index in range(1, 22)],
             "extra_sections": [
                 {
                     "title": "Języki obce",
                     "kind": "languages",
                     "placement": "after_skills",
-                    "items": ["Angielski — C1", "Niemiecki — B2", "Francuski — A2"],
+                    "items": ["Angielski — C1", "Niemiecki — B2", "Francuski — A2", "Hiszpański — A1"],
                 },
                 {
                     "title": "Zainteresowania",
@@ -1518,24 +1529,35 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     "placement": "after_skills",
                     "items": [
                         "Fotografia krajobrazowa", "Bieganie długodystansowe", "Szachy klasyczne",
-                        "Podróże górskie", "Gotowanie kuchni azjatyckiej",
+                        "Podróże górskie", "Gotowanie kuchni azjatyckiej", "Literatura faktu",
+                        "Kolarstwo szosowe", "Muzyka klasyczna",
                     ],
                 },
                 {
                     "title": "Certyfikaty",
                     "kind": "certifications",
                     "placement": "after_skills",
-                    "items": ["AWS Certified Solutions Architect", "Certyfikat PRINCE2"],
+                    "items": [f"Certyfikat branżowy numer {index} z opisową nazwą" for index in range(1, 10)],
                 },
             ],
         }
         elements = generate_resume("sterling", cv)
         self.assertGreater(max(element.get("page", 1) for element in elements), 1)
-        sidebar_kickers_page_2_plus = [
+        sidebar_kickers = [
             element for element in elements
             if element.get("flowLane") == "sidebar"
             and element.get("flowRole") == "sidebar-chrome"
-            and element.get("page", 1) >= 2
+            and element.get("category") == "text"
+        ]
+        # Page 1's rail must be filled first — the regression under test drained
+        # it, leaving sidebar content scattered to main / later pages.
+        page_1_kickers = [element for element in sidebar_kickers if element.get("page", 1) == 1]
+        self.assertTrue(
+            page_1_kickers,
+            "page 1's sidebar rail must be filled before overflow spills to later pages",
+        )
+        sidebar_kickers_page_2_plus = [
+            element for element in sidebar_kickers if element.get("page", 1) >= 2
         ]
         self.assertTrue(
             sidebar_kickers_page_2_plus,

@@ -96,11 +96,25 @@ def _cost(
     *,
     main_budget: float,
 ) -> float:
-    """Imbalance cost: the largest of the main and every bucket's empty space.
+    """Imbalance cost: the larger of the main and *first-page* sidebar empties.
 
     An over-budget bucket is infeasible (it cannot paginate) and returns
-    infinity. An over-budget main column is fine — its overflow flows to the
-    next page, so its empty space clamps to zero rather than going negative.
+    infinity — this check covers EVERY bucket, because each rail is a hard
+    per-page fit. An over-budget main column is fine — its overflow flows to
+    the next page, so its empty space clamps to zero rather than going
+    negative.
+
+    Only the first (lowest ``page``) bucket's empty space enters the balance
+    objective. Continuation-page rails are overflow catchers, not columns to
+    balance against: counting their empty space (an earlier ``max`` over every
+    bucket) made the greedy loop *equalise* fill across sidebar pages — it
+    would move sections off a half-full page-1 rail onto an empty page-2 rail
+    to shrink the worst empty bucket, visibly draining page 1 even when page 1
+    had room. The visual balance that matters is page 1 (the masthead page):
+    fill it against the main column exactly as the single-page planner did,
+    and let seeding's ascending-page first-fit spill only genuine overflow
+    onto later rails. With one bucket this is identical to the original
+    ``max(empty_side, empty_main)``.
     """
     main_h, side_h = _column_heights(assignment, sections, buckets)
     budget_by_page = {bucket.page: bucket.budget for bucket in buckets}
@@ -108,8 +122,9 @@ def _cost(
         if height > budget_by_page[page] + 0.01:
             return float("inf")
     empty_main = max(0.0, main_budget - main_h)
-    empty_sides = [max(0.0, budget_by_page[page] - height) for page, height in side_h.items()]
-    return max([empty_main, *empty_sides])
+    first_page = min(budget_by_page)
+    empty_first_side = max(0.0, budget_by_page[first_page] - side_h[first_page])
+    return max(empty_main, empty_first_side)
 
 
 def plan_columns(
@@ -132,9 +147,10 @@ def plan_columns(
        order and evict each overflowing bucket's lowest-priority (highest
        ``order_rank``) member back to main.
     3. Repeatedly apply the single section move — to main, or to any bucket
-       it fits — that most reduces ``max(empty_main, *empty_buckets)``, until
-       the columns are balanced (cost <= ``imbalance_tolerance``) or no move
-       clears ``min_improvement``.
+       it fits — that most reduces ``max(empty_main, empty_first_bucket)``
+       (see ``_cost``: only the first/page-1 rail is balanced; later rails are
+       overflow catchers), until the columns are balanced (cost <=
+       ``imbalance_tolerance``) or no move clears ``min_improvement``.
 
     The section count is tiny, so evaluating every legal single move each
     pass is cheap and deterministic. With exactly one bucket
@@ -245,7 +261,6 @@ def plan_columns_multi_page(
     page1_sidebar_budget: float,
     continuation_sidebar_budget: float,
     page1_main_budget: float,
-    continuation_main_budget: float,
     measure_main: Callable[[list[str]], MainMeasurement],
     imbalance_tolerance: float = 60.0,
     min_improvement: float = 24.0,
@@ -261,25 +276,37 @@ def plan_columns_multi_page(
     knows how to render its own main column) that reports how many pages the
     resulting ``main`` order actually needs. Each measured page count >= 2
     derives one additional sidebar bucket, so a continuation page's
-    otherwise-empty rail can receive content.
+    otherwise-empty rail can receive sidebar-affinity overflow that does not
+    fit page 1's rail.
 
-    Converges when the derived bucket list and total main budget stop
-    changing between iterations — which happens immediately (after the first
-    pass) for any CV whose main column fits on page 1, since no bucket beyond
-    page 1 is ever derived in that case, matching today's single-page
-    behavior exactly (see ``test_plan_columns_multi_page_one_page_matches_plan_columns``).
-    A hard ``max_iterations`` cap guarantees termination even if a
-    pathological ``measure_main`` never stabilizes (the last computed plan is
-    returned instead of looping forever).
+    ``main_budget`` for the balance is always ``page1_main_budget`` — the
+    balance decision is a page-1 decision (is page 1's main column full, is
+    page 1's sidebar full), exactly like the single-page planner. An earlier
+    revision passed a lump-sum budget spanning every page the main column
+    used; because the main column of a long CV is far taller than one page,
+    ``empty_main`` then looked enormous and the greedy loop pulled
+    sidebar-affinity sections *into* the main column to fill that phantom
+    multi-page capacity, draining the sidebar entirely. There is no hard main
+    budget to respect (the main column paginates freely), so the multi-page
+    aspect lives solely in *deriving continuation buckets*, not in inflating
+    the balance budget.
+
+    Converges when the derived bucket list stops changing between iterations —
+    immediately (after the first pass) for any CV whose main column fits on
+    page 1, since no bucket beyond page 1 is ever derived in that case,
+    matching the single-page behavior exactly (see
+    ``test_plan_columns_multi_page_one_page_matches_plan_columns``). A hard
+    ``max_iterations`` cap guarantees termination even if a pathological
+    ``measure_main`` never stabilizes (the last computed plan is returned
+    instead of looping forever).
     """
     if max_iterations < 1:
         raise ValueError("plan_columns_multi_page requires max_iterations >= 1")
     buckets = [SidebarBucket(1, page1_sidebar_budget)]
-    total_main_budget = page1_main_budget
     plan: ColumnPlan | None = None
     for _ in range(max_iterations):
         plan = plan_columns(
-            sections, sidebar_buckets=buckets, main_budget=total_main_budget,
+            sections, sidebar_buckets=buckets, main_budget=page1_main_budget,
             imbalance_tolerance=imbalance_tolerance, min_improvement=min_improvement,
         )
         pages_used = max(1, measure_main(plan.main).pages_used)
@@ -287,24 +314,14 @@ def plan_columns_multi_page(
             SidebarBucket(page, continuation_sidebar_budget)
             for page in range(2, pages_used + 1)
         ]
-        new_total_main_budget = (
-            page1_main_budget + max(0, pages_used - 1) * continuation_main_budget
-        )
-        converged = (
-            [bucket.page for bucket in new_buckets] == [bucket.page for bucket in buckets]
-            and new_total_main_budget == total_main_budget
-        )
-        if converged:
+        if [bucket.page for bucket in new_buckets] == [bucket.page for bucket in buckets]:
             break
-        buckets, total_main_budget = new_buckets, new_total_main_budget
-    # NOTE: On convergence the last `plan` was measured against its own bucket
-    # list, so `plan.sidebar_by_page` matches `plan.main`'s real page span. On
-    # `max_iterations` exhaustion (a `measure_main` that never stabilizes) the
-    # returned plan may have been partitioned against a bucket list one step
-    # stale. This is safe in practice: `plan_columns` only leaves content in a
-    # page-N bucket when the main column is correspondingly full (its budget
-    # scales with page count), so a populated continuation bucket implies the
-    # main column really reaches that page — the planner never fabricates a
-    # page with no main content. The `max_iterations` cap (spec §6) is a
-    # bounded, deterministic fallback, not a correctness guarantee to lean on.
+        buckets = new_buckets
+    # NOTE: A continuation bucket exists only for a page the real `measure_main`
+    # pass found the main column already using, so overflow can only ever land
+    # on a page that genuinely exists — the planner never fabricates a page
+    # with no main content. On `max_iterations` exhaustion (a `measure_main`
+    # that never stabilizes) the returned plan may have been partitioned
+    # against a bucket list one step stale; the cap (spec §6) is a bounded,
+    # deterministic fallback, not a correctness guarantee to lean on.
     return plan

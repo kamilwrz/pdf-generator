@@ -398,7 +398,6 @@ def _gen_sterling(cv: dict) -> list[dict]:
         page1_sidebar_budget=sidebar_budget,
         continuation_sidebar_budget=760.0 - PAGE_TOP,
         page1_main_budget=main_budget,
-        continuation_main_budget=770.0 - PAGE_TOP,
         measure_main=measure_main,
     )
     sidebar_extra_indices = _sidebar_extra_indices_for(plan.main)

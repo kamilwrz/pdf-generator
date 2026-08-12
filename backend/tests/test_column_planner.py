@@ -161,6 +161,57 @@ def test_feasibility_repair_generalizes_to_any_bucket_page():
     assert "languages" in plan.main
 
 
+def test_sidebar_content_that_fits_page_one_is_not_split_onto_page_two():
+    # Regression: with a long (paginating) main column and MORE than one
+    # sidebar bucket available, every sidebar section that fits page 1's rail
+    # must stay on page 1 — the continuation rail is an overflow catcher, not
+    # a column to balance page 1 against. A prior cost function that took the
+    # max empty space over *every* bucket minimised the worst empty bucket,
+    # which equalised fill across the two sidebar pages: it moved sections off
+    # a half-full page-1 rail onto the empty page-2 rail, visibly draining
+    # page 1 even though page 1 had room. Here all four sidebar sections total
+    # 570 <= page 1's 585 budget, so all four belong on page 1 and page 2's
+    # rail stays empty.
+    sections = [
+        PlaceableSection("summary", 0, "sidebar", main_height=200, sidebar_height=160),
+        PlaceableSection("experience", 1, "main", main_height=1400, sidebar_height=None, anchored_main=True),
+        PlaceableSection("skills", 3, "sidebar", main_height=250, sidebar_height=200),
+        PlaceableSection("languages", 4, "sidebar", main_height=90, sidebar_height=90),
+        PlaceableSection("certifications", 5, "sidebar", main_height=150, sidebar_height=120),
+    ]
+    plan = plan_columns(
+        sections,
+        sidebar_buckets=[SidebarBucket(1, 585), SidebarBucket(2, 694)],
+        main_budget=595,
+    )
+    assert plan.sidebar_by_page[1] == ["summary", "skills", "languages", "certifications"]
+    assert plan.sidebar_by_page[2] == []
+    assert plan.main == ["experience"]
+
+
+def test_sidebar_content_that_overflows_page_one_spills_to_page_two():
+    # The complementary case to the regression above: when page 1's rail
+    # genuinely cannot hold every sidebar section, the ascending-page first-fit
+    # seed fills page 1 to its budget and spills only the remainder onto the
+    # page-2 rail — the multi-page overflow feature still works after the
+    # page-1-only cost change.
+    sections = [
+        PlaceableSection("summary", 0, "sidebar", main_height=200, sidebar_height=300),
+        PlaceableSection("experience", 1, "main", main_height=1400, sidebar_height=None, anchored_main=True),
+        PlaceableSection("skills", 3, "sidebar", main_height=250, sidebar_height=250),
+        PlaceableSection("certifications", 5, "sidebar", main_height=150, sidebar_height=250),
+    ]
+    plan = plan_columns(
+        sections,
+        sidebar_buckets=[SidebarBucket(1, 585), SidebarBucket(2, 694)],
+        main_budget=595,
+    )
+    # summary (300) + skills (250) = 550 <= 585 fit page 1; certifications (250)
+    # would overflow page 1 (800 > 585) so it seeds onto the page-2 rail.
+    assert plan.sidebar_by_page[1] == ["summary", "skills"]
+    assert plan.sidebar_by_page[2] == ["certifications"]
+
+
 def test_plan_columns_multi_page_one_page_matches_plan_columns():
     # A fake measure_main that always reports 1 page never derives a bucket
     # beyond page 1, so the orchestrator's output must match a direct
@@ -175,7 +226,6 @@ def test_plan_columns_multi_page_one_page_matches_plan_columns():
         page1_sidebar_budget=400,
         continuation_sidebar_budget=400,
         page1_main_budget=400,
-        continuation_main_budget=400,
         measure_main=fake_measure_main,
     )
     single = plan_columns(sections, sidebar_buckets=[SidebarBucket(1, 400)], main_budget=400)
@@ -184,10 +234,11 @@ def test_plan_columns_multi_page_one_page_matches_plan_columns():
 
 
 def test_plan_columns_multi_page_derives_a_page_two_bucket():
-    # Experience alone exceeds even the 2-page main budget, so the main
-    # column never has slack to "win" the balance loop — sidebar-affinity
-    # content that doesn't fit page 1's rail lands on page 2's instead of
-    # being pulled back into main.
+    # Experience fills page 1's main budget, so `empty_main` is 0 and the
+    # balance loop never pulls sidebar content into main. `languages` cannot
+    # fit page 1's rail beside `skills`, so once the second measurement pass
+    # derives a page-2 bucket, `languages` lands on that continuation rail
+    # instead of being evicted to the main column.
     sections = [
         PlaceableSection("experience", 1, "main", main_height=900, sidebar_height=None, anchored_main=True),
         PlaceableSection("skills", 3, "sidebar", main_height=140, sidebar_height=90),
@@ -202,18 +253,46 @@ def test_plan_columns_multi_page_derives_a_page_two_bucket():
         page1_sidebar_budget=100,
         continuation_sidebar_budget=100,
         page1_main_budget=400,
-        continuation_main_budget=400,
         measure_main=fake_measure_main,
     )
     assert plan.sidebar_by_page[1] == ["skills"]
     assert plan.sidebar_by_page[2] == ["languages"]
 
 
+def test_plan_columns_multi_page_does_not_drain_page1_sidebar_into_main():
+    # Regression: a long (paginating) Experience block used to inflate
+    # `main_budget` to a lump sum spanning every occupied page. `empty_main`
+    # then looked enormous and the greedy loop pulled skills/languages into
+    # the main column to fill that phantom capacity — a two-page Sterling CV
+    # with an empty page-1 rail. With page-1-scoped `main_budget`, both
+    # sidebar sections fit page 1's rail and must stay there even though
+    # `measure_main` reports two pages.
+    sections = [
+        PlaceableSection("experience", 1, "main", main_height=900, sidebar_height=None, anchored_main=True),
+        PlaceableSection("skills", 3, "sidebar", main_height=140, sidebar_height=150),
+        PlaceableSection("languages", 4, "sidebar", main_height=50, sidebar_height=60),
+    ]
+
+    def fake_measure_main(order):
+        return MainMeasurement(pages_used=2)
+
+    plan = plan_columns_multi_page(
+        sections,
+        page1_sidebar_budget=400,
+        continuation_sidebar_budget=400,
+        page1_main_budget=400,
+        measure_main=fake_measure_main,
+    )
+    assert plan.sidebar_by_page[1] == ["skills", "languages"]
+    assert plan.sidebar_by_page[2] == []
+    assert plan.main == ["experience"]
+
+
 def test_plan_columns_multi_page_converges_when_bucket_list_stabilizes():
     # A fake measure_main that always reports 2 pages derives a page-2 bucket
     # on iteration 1 and finds the *same* page count measuring against that
-    # 2-bucket plan on iteration 2 — the bucket list and main budget stop
-    # changing, so the loop must stop calling measure_main after that.
+    # 2-bucket plan on iteration 2 — the derived bucket list stops changing,
+    # so the loop must stop calling measure_main after that.
     calls = []
     sections = _sections_short_experience()
 
@@ -226,7 +305,6 @@ def test_plan_columns_multi_page_converges_when_bucket_list_stabilizes():
         page1_sidebar_budget=400,
         continuation_sidebar_budget=400,
         page1_main_budget=400,
-        continuation_main_budget=400,
         measure_main=fake_measure_main,
         max_iterations=5,
     )
@@ -250,7 +328,6 @@ def test_plan_columns_multi_page_never_infinite_loops():
         page1_sidebar_budget=400,
         continuation_sidebar_budget=400,
         page1_main_budget=400,
-        continuation_main_budget=400,
         measure_main=flapping_measure_main,
         max_iterations=3,
     )
@@ -269,7 +346,6 @@ def test_plan_columns_multi_page_rejects_zero_max_iterations():
             page1_sidebar_budget=400,
             continuation_sidebar_budget=400,
             page1_main_budget=400,
-            continuation_main_budget=400,
             measure_main=lambda order: MainMeasurement(pages_used=1),
             max_iterations=0,
         )
