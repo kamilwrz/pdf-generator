@@ -117,7 +117,7 @@ Zarówno frontendowe próbki (`frontend/src/templates/*.js`), jak i backendowy g
 
 Wspólne pola pozycjonowania: `left`, `top`, `width`, `height`, `page`, `zIndex`, często `fixedToPage` dla dekoracji powtarzanych na każdej stronie.
 
-Frontendowe pliki JS (`ledger.js`, `tessera.js`, …) to **statyczny mock** z przykładową karierą — służą do podglądu w bibliotece i jako wizualny „kontrakt” designu.  
+Frontendowe pliki JS (`nimbus.js`, `tessera.js`, …) to **statyczny mock** z przykładową karierą — służą do podglądu w bibliotece i jako wizualny „kontrakt” designu.  
 **Wypełnienie realnym CV zawsze idzie przez Pythona**, nie przez podmianę stringów w pliku JS.
 
 ---
@@ -167,7 +167,6 @@ Generator **ufnie zakłada** ten schemat — nie odpytuje AI o brakujące pola.
 
 ```python
 _GENERATORS = {
-    "ledger": _gen_ledger,
     "nimbus": _gen_nimbus,
     # ... 14 szablonów = te same id co frontend/src/templates/index.js
 }
@@ -192,8 +191,8 @@ helpery treści             _bullets, _company_period, _labels,
                            _place_education_record, _extra_sections,
                            logika sidebara (`_fit_sidebar_sections`)
         │
-generatory per szablon     _gen_ledger, _gen_kernel, _gen_regent,
-                           _gen_harbor, _gen_tessera, …
+generatory per szablon     _gen_nimbus, _gen_monument, _gen_harbor,
+                           _gen_tessera, …
 ```
 
 ### 6.3 `Builder` — rytm pionowy i paginacja
@@ -239,8 +238,8 @@ Każdy z 14 szablonów ma osobny plik `cv_templates/templates/<id>.py` z funkcj�
 
 | Tag layoutu | Szablony |
 |---|---|
-| `single` | ledger, nimbus, cinder, kernel, regent, aldine, monument |
-| `icons` | cardinal, nova, volt (+ harbor, tessera, slate) |
+| `single` | nimbus, cinder, monument, atrium, blueprint |
+| `icons` | cardinal, nova, volt, portico, axis (+ harbor, tessera, slate, atrium) |
 | `sidebar` | harbor, tessera, slate, sterling |
 | `dark` | volt |
 
@@ -305,7 +304,7 @@ Dlaczego tak? Layout CV musi być przewidywalny, testowalny (`backend/tests/test
 
 ```
 Biblioteka szablonów
-   TEMPLATES[i].elements  ←  statyczny import z ledger.js / tessera.js / …
+   TEMPLATES[i].elements  ←  statyczny import z nimbus.js / tessera.js / …
    (przykładowa treść „Katarzyna Zielińska” itd.)
 
 Wybór „wypełnij z PDF / z wizarda”

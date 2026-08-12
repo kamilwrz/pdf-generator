@@ -234,7 +234,7 @@ function toPagePosition(absolute, height, pageHeight, pageTop, bottomMargin) {
 
 function packGapAfterPageBreak(current, pageTop, sectionPackGap, defaultPackGap) {
   // Section chrome that lived alone near the top of page N+1 carries a tiny
-  // `top - pageTop` inset (Kernel education often starts at y=72 with pageTop
+  // `top - pageTop` inset (Nimbus education often starts near pageTop
   // 66 → 6 px). Using that inset as the pack gap crushed headings under the
   // previous section. Always restore SPACE_SECTION for chrome.
   if (isChromeLike(current)) {
@@ -676,7 +676,7 @@ export function reflowTextareaHeight(
   const originalAnchorPage = pageOf(recordAnchor);
   // Full keep-together record. Reclaim must reserve school/meta/body under a
   // grown degree — measuring only the target used to orphan those fields on
-  // page N+1 (Kernel education crush on continuation pages).
+  // page N+1 (education crush on continuation pages).
   const fullRecordCluster = [...precedingMates, target, ...followingMates];
   const recordHeight = remainingRecordHeight(
     fullRecordCluster,

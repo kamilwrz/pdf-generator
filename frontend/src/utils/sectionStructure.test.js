@@ -1476,7 +1476,7 @@ describe("applyFlowSpacing", () => {
     );
   });
 
-  it("keeps Regent masthead clearance when packing after a corrupted heading gap", () => {
+  it("keeps authored masthead clearance when packing after a corrupted heading gap", () => {
     // Masthead rule stays at 158; a prior pack pushed the first heading to 280
     // and opened a large white band. Packing must re-anchor under the masthead
     // (~158 + 36) instead of preserving the corrupted 280 start.
@@ -1801,8 +1801,8 @@ describe("deriveSectionStyle", () => {
     assert.deepEqual(style.markers, []); // sidebar rectangle at left 8 is out of the heading's column
   });
 
-  it("captures every decorative shape, not just one (Kernel-style circle + accent line)", () => {
-    // Kernel's section() pushes TWO decorative shapes per heading: a filled
+  it("captures every decorative shape, not just one (circle + accent line)", () => {
+    // A section() helper may push TWO decorative shapes per heading: a filled
     // circle marker and a short accent line, distinct from the wide underline
     // rule. A single-marker model would silently drop the second shape.
     const elements = [

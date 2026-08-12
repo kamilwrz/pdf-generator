@@ -7,10 +7,10 @@
  * - `photoSlot: "ornament"` — decorative shapes the photo should cover
  * - `photoSlot: "image"` — the applied user photo (stable after upload)
  *
- * Known frame ids (`slate-photo-frame`, `tessera-photo-frame`, `aldine-frame`,
- * `harbor-photo-frame`, `cinder-frame-one`, `monument-masthead-frame`) are
- * recognised as a fallback for older payloads that still carry the symbolic
- * `id` after load.
+ * Known frame ids (`slate-photo-frame`, `tessera-photo-frame`,
+ * `harbor-photo-frame`, `cinder-frame-one`, `monument-masthead-frame`,
+ * `nimbus-photo-frame`) are recognised as a fallback for older payloads that
+ * still carry the symbolic `id` after load.
  *
  * Applying a photo either resizes the glyph into the frame inset or inserts a
  * new locked image. Ornaments stay in place underneath a higher z-index photo;
@@ -19,11 +19,10 @@
 
 import { nanoid } from "nanoid";
 
-/** Symbolic frame ids used by Slate, Tessera, Aldine, Harbor, Cinder, Monument, Nimbus. */
+/** Symbolic frame ids used by Slate, Tessera, Harbor, Cinder, Monument, Nimbus. */
 export const PROFILE_PHOTO_FRAME_IDS = new Set([
   "slate-photo-frame",
   "tessera-photo-frame",
-  "aldine-frame",
   "harbor-photo-frame",
   "cinder-frame-one",
   "monument-masthead-frame",
@@ -34,7 +33,7 @@ export const PROFILE_PHOTO_FRAME_IDS = new Set([
 export const PROFILE_PHOTO_ID = "profile-photo";
 
 const DEFAULT_INSET_PT = 3;
-const ALDINE_INSET_PT = 2;
+const ORNAMENT_INSET_PT = 2;
 const HARBOR_INSET_PT = 0;
 
 /**
@@ -96,10 +95,7 @@ function isPortraitGlyph(element) {
  */
 function isOrnament(element) {
   if (!element) return false;
-  if (element.photoSlot === "ornament") return true;
-  return element.id === "aldine-seal"
-    || element.id === "aldine-lozenge"
-    || element.id === "aldine-core";
+  return element.photoSlot === "ornament";
 }
 
 /**
@@ -152,11 +148,10 @@ function findGlyphInFrame(elements, frame) {
  */
 function insetForFrame(frame) {
   if (
-    frame?.id === "aldine-frame"
-    || frame?.id === "monument-masthead-frame"
+    frame?.id === "monument-masthead-frame"
     || frame?.photoShape === "ornament-frame"
   ) {
-    return ALDINE_INSET_PT;
+    return ORNAMENT_INSET_PT;
   }
   if (
     frame?.id === "harbor-photo-frame"
@@ -209,8 +204,8 @@ export function findProfilePhotoSlot(elements) {
   if (frame) {
     const glyph = findGlyphInFrame(list, frame);
     if (glyph) return glyph;
-    // Frame-only templates (Aldine): expose a truthy slot descriptor. Callers
-    // that need geometry must use `applyProfilePhoto`, not editElementValues.
+    // Frame-only templates (Monument masthead): expose a truthy slot descriptor.
+    // Callers that need geometry must use `applyProfilePhoto`, not editElementValues.
     return {
       element_id: frame.element_id || frame.id || "photo-frame-slot",
       category: "image",
@@ -300,10 +295,10 @@ export function applyProfilePhoto(elements, photo, createId = nanoid) {
 
   // Layering:
   // - Slate/Tessera: photo sits under the outline stroke (inset shows the border).
-  // - Aldine: photo covers seal/lozenge/core; frame outline is raised above it.
+  // - Monument ornament-frame: photo covers masthead bars; frame outline is raised.
   // - Harbor circle: photo covers the filled disc (no outline to preserve).
   const frameZ = Number(frame?.zIndex) || 3;
-  const isOrnamentFrame = frame?.photoShape === "ornament-frame" || frame?.id === "aldine-frame";
+  const isOrnamentFrame = frame?.photoShape === "ornament-frame";
   let photoZ = Number(glyph?.zIndex) || 4;
   let nextFrameZ = frameZ;
   if (frame) {

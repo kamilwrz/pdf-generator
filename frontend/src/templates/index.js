@@ -7,12 +7,8 @@
  * collections. `tier` drives Free vs paid gating; `elements` are static specs
  * materialized by useA4Elements.handleLoadTemplate (ids assigned at load time).
  */
-import { ledgerTemplate } from "./ledger";
 import { nimbusTemplate } from "./nimbus";
 import { cinderTemplate } from "./cinder";
-import { kernelTemplate } from "./kernel";
-import { regentTemplate } from "./regent";
-import { aldineTemplate } from "./aldine";
 import { novaTemplate, voltTemplate } from "./iconic";
 import { monumentTemplate } from "./monument";
 import { cardinalTemplate } from "./cardinal";
@@ -22,19 +18,14 @@ import { slateTemplate } from "./slate";
 import { porticoTemplate } from "./portico";
 import { axisTemplate } from "./axis";
 import { atriumTemplate } from "./atrium";
-import { aureliaTemplate } from "./aurelia";
 import { blueprintTemplate } from "./blueprint";
 import { sterlingTemplate } from "./sterling";
 
 export { TEMPLATE_LAYOUT_TAGS } from "../utils/templateLayouts";
 
 export const TEMPLATES = [
-    { id: "ledger", tier: "free", name: "Ledger", description: "Instytucjonalny, spokojna typografia", layouts: ["single"], accent: "#2E5E86", elements: ledgerTemplate },
     { id: "nimbus", tier: "free", name: "Nimbus", description: "Jasny i minimalistyczny", layouts: ["single"], accent: "#5F8EAD", elements: nimbusTemplate },
     { id: "cinder", tier: "paid", name: "Cinder", description: "Ciemny i wyrazisty", layouts: ["single"], accent: "#C93F3F", elements: cinderTemplate },
-    { id: "kernel", tier: "free", name: "Kernel", description: "Architektura systemów", layouts: ["single"], accent: "#D69B22", elements: kernelTemplate },
-    { id: "regent", tier: "free", name: "Regent", description: "Executive z personalizowanym sygnetem", layouts: ["single"], accent: "#733B43", elements: regentTemplate },
-    { id: "aldine", tier: "paid", name: "Aldine", description: "Szlachetny papier", layouts: ["single"], accent: "#486151", elements: aldineTemplate },
     { id: "monument", tier: "paid", name: "Monument", description: "Monochromatyczny editorial", layouts: ["single"], accent: "#343434", elements: monumentTemplate },
     { id: "cardinal", tier: "paid", name: "Cardinal", description: "Szlachetna czerwień, ikony przy sekcjach", layouts: ["icons"], accent: "#9E2532", elements: cardinalTemplate },
     { id: "harbor", tier: "paid", name: "Harbor", description: "Dwukolumnowy, ikony kontaktu", layouts: ["sidebar", "icons"], accent: "#17A2B8", elements: harborTemplate },
@@ -45,7 +36,6 @@ export const TEMPLATES = [
     { id: "portico", tier: "paid", name: "Portico", description: "Wycentrowany nagłówek, ikony, spokojny minimalizm", layouts: ["icons"], accent: "#7C6A52", elements: porticoTemplate },
     { id: "axis", tier: "paid", name: "Axis", description: "Oś czasu z datami na marginesie, akcenty pomarańczowo-morskie", layouts: ["icons"], accent: "#E2740C", elements: axisTemplate },
     { id: "atrium", tier: "paid", name: "Atrium", description: "Wycentrowana editorialna kompozycja z drukarskim mikro-ornamentem", layouts: ["single", "icons"], accent: "#556158", elements: atriumTemplate },
-    { id: "aurelia", tier: "paid", name: "Aurelia", description: "Biało-szary editorial z artystyczną sygnaturą Béziera", layouts: ["single"], accent: "#B3924F", elements: aureliaTemplate },
     { id: "blueprint", tier: "paid", name: "Blueprint", description: "Techniczny szkic ze stalowym akcentem i narożnymi znacznikami", layouts: ["single"], accent: "#5980A6", elements: blueprintTemplate },
     { id: "sterling", tier: "paid", name: "Sterling", description: "Elegancki, niebiesko-szary układ z szerokim sidebarem", layouts: ["sidebar"], accent: "#4A6FA5", elements: sterlingTemplate },
 ];

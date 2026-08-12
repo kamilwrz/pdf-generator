@@ -110,7 +110,7 @@ export function isEducationSectionTitle(title) {
  * True when a 2-line bold+body record should stay a subcategory (heading +
  * content) instead of expanding to education. Skills titles always qualify;
  * other titles qualify unless they look like education. Missing title keeps
- * the legacy Kernel behaviour (expand) for unit tests and short edu inserts.
+ * the legacy expand behaviour for unit tests and short edu inserts.
  *
  * @param {string|null|undefined} title
  * @returns {boolean}
@@ -361,7 +361,7 @@ export function pickRecordTemplateGroup(groups, preferred = null) {
  * Experience: title + company·period + bullets (3).
  * Subcategory (skills / kategorie): bold heading + body (2) — when
  * `sectionTitle` is not an education heading; otherwise a 2-line bold stack
- * expands to education (Kernel short edu).
+ * expands to education (short edu records).
  *
  * @param {object[]} members
  * @param {object[][]|null} [sectionGroups] other records in the section

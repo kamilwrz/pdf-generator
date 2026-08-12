@@ -38,7 +38,7 @@ class BuilderKeepTogetherTests(unittest.TestCase):
         self.assertEqual(len(groups), 1)
         self.assertTrue(all(element.get("flowGroup") for element in b.els))
 
-    def test_kernel_education_records_are_not_split_across_pages(self):
+    def test_education_records_are_not_split_across_pages(self):
         cv = {
             "name": "Anna Kowalska",
             "title": "AML Analyst",
@@ -78,7 +78,7 @@ class BuilderKeepTogetherTests(unittest.TestCase):
             ],
             "skills": ["AML", "KYC", "German", "Python"],
         }
-        elements = generate_resume("kernel", cv)
+        elements = generate_resume("nimbus", cv)
         textual = [
             element
             for element in elements

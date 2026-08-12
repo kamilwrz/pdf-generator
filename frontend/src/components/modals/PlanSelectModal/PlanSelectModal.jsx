@@ -22,7 +22,7 @@ const FALLBACK_PLANS = [
         blurb: "Stwórz i sprawdź swoje CV.",
         highlights: [
             "Kreator i pełna edycja A4",
-            "5 podstawowych szablonów",
+            "2 podstawowe szablony",
             "1 darmowy import CV",
             "PDF ze znakiem CV Studio",
             "1 zapisany dokument · 3 eksporty / mies.",

@@ -342,7 +342,7 @@ export function buildSectionElements({
   if (flowLane) headingElement.flowLane = flowLane;
   elements.push(headingElement);
 
-  // Default rule top matches Builder.text() cursor advance (Cinder/Regent).
+  // Default rule top matches Builder.text() cursor advance (Cinder).
   // Prefer a sampled `rule.relTop` when present — Monument's accent rule sits
   // mid-band beside the title frame (~heading+7), not flush under the label.
   const defaultRuleTop = style.heading.fontSize * TEXT_CURSOR_ADVANCE;

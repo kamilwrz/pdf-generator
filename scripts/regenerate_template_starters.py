@@ -162,14 +162,9 @@ TEMPLATES = [
     "harbor",
     "tessera",
     "slate",
-    "regent",
     "monument",
-    "aurelia",
-    "ledger",
     "nimbus",
     "cinder",
-    "kernel",
-    "aldine",
     "atrium",
     "axis",
     "blueprint",
@@ -213,25 +208,10 @@ DOC_BLURBS = {
         " *\n"
         " * Steel blueprint sidebar with rectangular photo and grid chrome."
     ),
-    "regent": (
-        "Regent template (`layouts: [\"single\"]`).\n"
-        " *\n"
-        " * Executive single column with a personalized oxblood seal."
-    ),
     "monument": (
         "Monument template (`layouts: [\"single\"]`).\n"
         " *\n"
         " * Monochrome editorial single column with strong rules and plates."
-    ),
-    "aurelia": (
-        "Aurelia template (`layouts: [\"single\"]`).\n"
-        " *\n"
-        " * Quiet-luxury single column with contrasting Bézier brushstrokes."
-    ),
-    "ledger": (
-        "Ledger template (`layouts: [\"single\"]`).\n"
-        " *\n"
-        " * Institutional finance CV with navy hierarchy and a market accent image."
     ),
     "nimbus": (
         "Nimbus template (`layouts: [\"single\"]`).\n"
@@ -246,16 +226,6 @@ DOC_BLURBS = {
         "Cinder template (`layouts: [\"single\"]`).\n"
         " *\n"
         " * Dark, high-contrast single column with ember-red accents."
-    ),
-    "kernel": (
-        "Kernel template (`layouts: [\"single\"]`).\n"
-        " *\n"
-        " * Systems-architecture single column with amber technical chrome."
-    ),
-    "aldine": (
-        "Aldine template (`layouts: [\"single\"]`).\n"
-        " *\n"
-        " * Fine-paper editorial single column with sage accents."
     ),
     "atrium": (
         "Atrium template (`layouts: [\"single\"]`).\n"

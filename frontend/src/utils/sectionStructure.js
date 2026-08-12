@@ -30,13 +30,13 @@ const DEFAULT_BOTTOM_MARGIN = 72;
 const PAGE_BREAK_GAP_THRESHOLD = 40;
 /**
  * Fallback clearance under the masthead divider when the authored
- * heading gap has been corrupted by an earlier pack (Regent uses 36,
+ * heading gap has been corrupted by an earlier pack (Nimbus uses 56,
  * solid-band templates like Cinder use ~32 — both sit in this band).
  */
 const DEFAULT_MASTHEAD_CLEARANCE = 36;
 /**
  * Iconic mastheads (Nova / Cardinal / Volt) author 8–18px under the divider;
- * Regent/Aldine sit nearer 20–40px. Only gaps outside this window are treated
+ * Nimbus/Nova sit nearer 20–56px. Only gaps outside this window are treated
  * as corruption and replaced with DEFAULT_MASTHEAD_CLEARANCE.
  */
 const MIN_AUTHORED_MASTHEAD_CLEARANCE = 6;
@@ -244,7 +244,7 @@ export function isSectionHeading(element, elements = [], pageHeight = 842) {
   if (element.autoHeight || element.flowGroup) return false;
   if (content.length > 56) return false;
 
-  // Contact lines sit just above the Regent/Aldine/Nova header rule and match
+  // Contact lines sit just above the Nimbus/Nova header rule and match
   // the legacy "short label + rule below" heuristic — reject them explicitly.
   if (content.includes("@")) return false;
   if ((content.match(/·/g) || []).length >= 1 && /\d/.test(content)) return false;
@@ -332,7 +332,7 @@ export function listDocumentSections(elements, pageHeight = 842) {
 /**
  * Small marks/icons that may sit a few px above the heading baseline.
  * Wide untagged rules are NOT included — those are masthead dividers
- * (Regent/Aldine) and absorbing them into the section chrome cluster
+ * (Nimbus/Nova) and absorbing them into the section chrome cluster
  * pushes the heading down on the next pack.
  */
 function isLeadingSectionMark(element) {
@@ -613,7 +613,7 @@ export function listFlatSectionAnchors(elements, pageHeight = 842) {
 /**
  * True when the masthead uses Iconic contact glyphs (Nova / Cardinal / Volt /
  * Harbor). Those templates author a tight 8–18px band under the divider; the
- * Regent-style 36px fallback is never intentional for them.
+ * 36px default masthead fallback is never intentional for them.
  */
 function hasIconicMasthead(elements) {
   return (elements || []).some((element) => (
@@ -645,7 +645,7 @@ function hasCenteredMasthead(elements) {
 /**
  * Absolute Y where the first flow section should start, anchored under the
  * masthead so corrupted heading positions cannot open a large white gap
- * (Regent) or climb into the header band.
+ * (Nimbus) or climb into the header band.
  */
 function resolveFlowStart(elements, sections, pageHeight) {
   const list = elements || [];
@@ -694,7 +694,7 @@ function resolveFlowStart(elements, sections, pageHeight) {
   }
   // Corruption recovery only: a tight LEFT-aligned iconic masthead (Nova /
   // Cardinal / Volt / Harbor) recovers to a tight clearance; a centered "Ivy
-  // League" masthead (Portico) and non-iconic templates (Regent / Aldine) use
+  // League" masthead (Portico) and non-iconic templates (Nimbus / Monument) use
   // the wider default. `hasCenteredMasthead` keeps Portico out of the tight band.
   const tightIconic = hasIconicMasthead(list) && !hasCenteredMasthead(list);
   return mastheadBottom + (
@@ -995,7 +995,7 @@ function chromeClusterIsHealthy(chromeElements, pageHeight) {
 
 /**
  * Rebuild heading / rule / marker into the classic tight band used by Cinder,
- * Aldine, Regent, etc.: heading at 0, marks near +2, wide rule flush under label.
+ * Nimbus, Monument, etc.: heading at 0, marks near +2, wide rule flush under label.
  *
  * @returns {{ element: object, relTop: number }[]}
  */
@@ -1029,7 +1029,7 @@ function rebuildTightChromeCluster(chromeElements) {
     ) {
       const height = elementHeight(element);
       // Wide title frames (Monument ~251×32) share the badge band above the
-      // label — not the +2 mark offset used for small Cinder/Regent dots.
+      // label — not the +2 mark offset used for small Cinder dots.
       if (width > 40 && height >= 20) {
         items.push({
           element,
@@ -2251,7 +2251,7 @@ export function deriveSectionStyle(
     .sort((a, b) => (Number(b.width) || 0) - (Number(a.width) || 0))[0] || null;
 
   // Decorative shapes cluster near the heading's own left edge in most
-  // templates (Regent, Aldine, Kernel, Monument, …), but Cinder places its
+  // templates (Nimbus, Monument, Cinder, …), but Cinder places its
   // mark at the FAR RIGHT end of the underline rule instead (16px square at
   // left=526, heading at left=76, rule spanning 76..542) — ~450px from the
   // heading, well outside the heading-only column band. Once the rule is
@@ -2269,7 +2269,7 @@ export function deriveSectionStyle(
 
   // Every tagged shape offset from the label (marker, badge square, icon
   // frame, accent tick, …) is a decorative shape to replicate. Size is not a
-  // filter here — templates range from an 8px marker dot (Regent) to a 32px
+  // filter here — templates range from an 8px marker dot (Cinder) to a 32px
   // badge block plus a 251px label frame (Monument). Only the identified rule
   // and decorative text are excluded (see DECORATIVE_SHAPE_CATEGORIES doc).
   const decorativeShapes = members.filter((element) => element.element_id !== target.headingId
@@ -2403,6 +2403,6 @@ export function deriveSectionStyle(
 }
 
 // Profile-photo slot detection lives in `profilePhoto.js` (frame/glyph/ornament
-// contract for Slate, Tessera, Aldine, Harbor). Re-exported here so existing
+// contract for Slate, Tessera, Harbor). Re-exported here so existing
 // imports keep working.
 export { findProfilePhotoSlot, applyProfilePhoto, hasProfilePhotoSlot } from "./profilePhoto.js";

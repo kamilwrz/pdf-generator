@@ -22,10 +22,7 @@ from app.models.models import Pdf, Plan, UsageCounter, User, UserSubscription
 # Must match frontend TEMPLATES entries with tier: "free" in
 # frontend/src/templates/index.js. Enforced by tests/test_template_registry_sync.py.
 FREE_STARTER_TEMPLATE_IDS: tuple[str, ...] = (
-    "ledger",
     "nimbus",
-    "kernel",
-    "regent",
     "nova",
 )
 
@@ -238,7 +235,7 @@ PLAN_DISPLAY: dict[str, dict[str, Any]] = {
         "blurb": "Stwórz i sprawdź swoje CV.",
         "highlights": [
             "Kreator i pełna edycja A4",
-            "5 podstawowych szablonów",
+            "2 podstawowe szablony",
             "1 darmowy import CV",
             "PDF ze znakiem CV Studio",
             "1 zapisany dokument · 3 eksporty / mies.",

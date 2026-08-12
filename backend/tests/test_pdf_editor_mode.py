@@ -85,11 +85,11 @@ class PdfEditorModeTests(unittest.TestCase):
             file_path="/tmp/cv.pdf",
             elements=[_element()],
             editor_mode="template",
-            template_id="kernel",
+            template_id="nimbus",
         )
         row = request_pdf_by_id(self.db, pdf_id)
         self.assertEqual(row.editor_mode, "template")
-        self.assertEqual(row.template_id, "kernel")
+        self.assertEqual(row.template_id, "nimbus")
 
     def test_create_pdf_defaults_freeform(self):
         pdf_id = create_new_pdf(

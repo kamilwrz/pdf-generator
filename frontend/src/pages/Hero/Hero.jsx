@@ -166,7 +166,7 @@ export default function Hero() {
     // Tessera (sidebar + photo) makes the "after" transformation feel like a
     // real redesign, not just a single-column restyle of the wireframe "before".
     const afterMock = previewById("tessera");
-    const finalDocs = ["nova", "harbor", "aldine"].map(previewById);
+    const finalDocs = ["nova", "harbor", "slate"].map(previewById);
 
     return (
         <main className={classes.page}>
@@ -426,7 +426,7 @@ export default function Hero() {
                         <p className={classes.planSummary}>Stwórz i sprawdź swoje CV.</p>
                         <ul>
                             <li><CheckIcon />Kreator i pełna edycja A4</li>
-                            <li><CheckIcon />5 podstawowych szablonów</li>
+                            <li><CheckIcon />2 podstawowe szablony</li>
                             <li><CheckIcon />1 darmowy import CV</li>
                             <li><CheckIcon />PDF ze znakiem CV Studio</li>
                             <li><CheckIcon />1 projekt · 3 eksporty / mies.</li>

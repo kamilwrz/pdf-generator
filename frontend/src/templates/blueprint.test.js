@@ -80,7 +80,7 @@ test("Blueprint is a framed, left-aligned technical single column with packer-sa
     assert.ok(sectionRules.every((element) => element.height === 1));
 
     // ── Records: reuse the shared stacked title → meta → bullets layout (the
-    // same shape Atrium/Regent/Portico use). A same-row right-aligned date was
+    // same shape Atrium/Portico use). A same-row right-aligned date was
     // tried and reverted — see the generator's module docstring — because
     // `sectionStructure.js` always re-stacks section body content by reading
     // order and has no concept of two elements sharing one visual row. ───────

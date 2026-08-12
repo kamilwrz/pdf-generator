@@ -299,7 +299,7 @@ class CvDataNormalizationTests(unittest.TestCase):
 
         content = "\n".join(
             str(element.get("content", ""))
-            for element in generate_resume("aldine", profile)
+            for element in generate_resume("nimbus", profile)
         )
         self.assertIn("UMIEJĘTNOŚCI", content)
         self.assertNotIn("SKILLS", content)
@@ -527,9 +527,9 @@ class CvDataNormalizationTests(unittest.TestCase):
 
         content = "\n".join(
             str(element.get("content", ""))
-            for element in generate_resume("kernel", profile)
+            for element in generate_resume("nimbus", profile)
         )
-        # Kernel renders skills as an inline · list, languages as a 4-col grid.
+        # Nimbus renders skills as an inline · list, languages as a 4-col grid.
         self.assertIn("Analiza AML", content)
         self.assertIn("Polski — C2", content)
         self.assertIn("JĘZYKI", content)
@@ -561,7 +561,7 @@ class CvDataNormalizationTests(unittest.TestCase):
 
         content = "\n".join(
             str(element.get("content", ""))
-            for element in generate_resume("ledger", profile)
+            for element in generate_resume("nimbus", profile)
         )
         self.assertIn("Kompoza   ·   Warszawa   ·   2023 – obecnie", content)
         self.assertIn("Uniwersytet Warszawski", content)

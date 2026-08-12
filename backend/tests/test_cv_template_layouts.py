@@ -89,7 +89,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
     def test_template_images_resolve_to_versioned_local_assets(self):
         for template_id in (
-            "ledger", "nimbus", "kernel", "tessera", "slate",
+            "nimbus", "tessera", "slate",
         ):
             with self.subTest(template_id=template_id):
                 image = next(
@@ -99,42 +99,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 )
                 local_path = Path(image_src_to_local_path(image["src"]))
                 self.assertTrue(local_path.is_file())
-
-    def test_it_templates_use_all_canvas_shapes_and_repeat_artwork(self):
-        multi_page_cv = {
-            **LONG_CV,
-            "experience": LONG_CV["experience"] * 3,
-        }
-        assets = {
-            "kernel": "kernel-it-architecture.png",
-        }
-        expected_categories = {
-            "text", "textarea", "line", "rectangle", "circle", "ellipse",
-            "image",
-        }
-
-        for template_id, asset_name in assets.items():
-            with self.subTest(template_id=template_id):
-                elements = generate_resume(template_id, multi_page_cv)
-                pages = {element.get("page", 1) for element in elements}
-                categories = {element["category"] for element in elements}
-                self.assertTrue(expected_categories <= categories)
-                self.assertNotIn("connector", categories)
-                self.assertGreater(max(pages), 1)
-                self.assertTrue(all(
-                    element.get("autoHeight") is True
-                    for element in elements
-                    if element["category"] == "textarea"
-                ))
-                for page in pages:
-                    backgrounds = [
-                        element for element in elements
-                        if element["category"] == "image"
-                        and element.get("page", 1) == page
-                        and element["src"].endswith(f"/template-assets/{asset_name}")
-                    ]
-                    self.assertEqual(len(backgrounds), 1)
-                    self.assertTrue(backgrounds[0]["fixedToPage"])
 
     def test_tessera_is_original_icon_sidebar_with_rectangular_photo(self):
         """Tessera must use every supported primitive and preserve complete flow."""
@@ -535,8 +499,8 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
 
 
-    def test_kernel_emits_skills_and_languages_bodies(self):
-        """Single-column Kernel must keep skills/languages after wizard-style data."""
+    def test_single_column_emits_skills_and_languages_bodies(self):
+        """Single-column Nimbus must keep skills/languages after wizard-style data."""
         profile = {
             **LONG_CV,
             "languages": [
@@ -550,7 +514,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 "items": ["Polski — C2", "Niemiecki — C1"],
             }],
         }
-        for template_id in ("kernel",):
+        for template_id in ("nimbus",):
             elements = generate_resume(template_id, profile)
             content = "\n".join(
                 str(element.get("content", ""))
@@ -682,7 +646,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "period": "2017 – 2022",
             "description": "Specjalizacja: prawo europejskie",
         }]
-        main = generate_resume("regent", {
+        main = generate_resume("monument", {
             "name": "Anna Kowalska",
             "title": "Prawnik",
             "education": education,
@@ -693,7 +657,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         main_copy = [
             element["content"]
             for element in main
-            # Main-column templates currently start between 96 pt (Regent) and
+            # Main-column templates currently start between 80 pt (Nimbus) and
             # 218 pt (Tessera). The threshold excludes sidebar copy without
             # coupling this structural test to one template's exact margin.
             if element["category"] == "textarea" and element.get("left", 0) >= 90
@@ -785,9 +749,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         # forced into the main column because their sidebar has a deliberately
         # separate palette.
         affected_templates = (
-            "ledger", "nimbus", "cinder",
-            "kernel",
-            "regent", "aldine",
+            "nimbus", "cinder",
             "tessera", "monument",
         )
 
@@ -830,71 +792,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 self.assertEqual(school["color"], degree["color"])
                 self.assertNotEqual(description["color"], metadata["color"])
                 self.assertNotEqual(school["color"], metadata["color"])
-
-    def test_regent_personalizes_the_masthead_seal(self):
-        """Regent derives a two-letter seal without adding external assets."""
-        elements = generate_resume("regent", {
-            "name": "Maria Skłodowska Curie",
-            "title": "Dyrektorka Badań",
-            "experience": [],
-            "education": [],
-            "skills": [],
-            "extra_sections": [],
-        })
-        initials = next(
-            element for element in elements
-            if element.get("id") == "regent-initials"
-        )
-        self.assertEqual(initials["content"], "MC")
-        self.assertEqual(initials["flowRole"], "masthead")
-        self.assertFalse(any(element["category"] == "image" for element in elements))
-
-    def test_classic_templates_are_image_free_single_column_documents(self):
-        multi_page_cv = {
-            **LONG_CV,
-            "experience": LONG_CV["experience"] * 3,
-        }
-        templates = ("regent", "aldine")
-        expected_categories = {
-            "text", "textarea", "line", "rectangle", "circle", "ellipse",
-        }
-
-        for template_id in templates:
-            with self.subTest(template_id=template_id):
-                elements = generate_resume(template_id, multi_page_cv)
-                pages = {element.get("page", 1) for element in elements}
-                rendered_copy = " ".join(
-                    str(element.get("content", ""))
-                    for element in elements
-                    if element["category"] in {"text", "textarea"}
-                ).upper()
-
-                categories = {element["category"] for element in elements}
-                self.assertTrue(expected_categories <= categories)
-                self.assertNotIn("connector", categories)
-                self.assertNotIn("IMAGE", {element["category"] for element in elements})
-                self.assertNotIn(template_id.upper(), rendered_copy)
-                self.assertGreater(max(pages), 1)
-                self.assertTrue(all(
-                    0 <= element["left"] <= 595
-                    and 0 <= element["top"] <= 842
-                    and element["left"] + element["width"] <= 595
-                    and element["top"] + element["height"] <= 842
-                    and element.get("autoHeight") is True
-                    for element in elements
-                    if element["category"] == "textarea"
-                ))
-                for page in pages:
-                    self.assertTrue(any(
-                        element["category"] == "line"
-                        and element.get("page", 1) == page
-                        and element["left"] == 0
-                        and element["top"] == 0
-                        and element["width"] == 595
-                        and element["height"] == 842
-                        and element.get("fixedToPage") is True
-                        for element in elements
-                    ))
 
     def test_monument_is_monochrome_and_keeps_summary_at_body_size(self):
         elements = generate_resume("monument", {
@@ -1034,7 +931,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "Koordynacja zespołu zdjęciowego oraz dostawców zewnętrznych na potrzeby kampanii.",
             "Przygotowanie wariantów layoutu i krótkich form wideo pod różne kanały.",
         ]
-        elements = generate_resume("ledger", {
+        elements = generate_resume("nimbus", {
             **LONG_CV,
             "experience": LONG_CV["experience"][:2],
             "education": [],
@@ -1104,7 +1001,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 "description": "Państwowy egzamin prawniczy.",
             },
         ]
-        elements = generate_resume("aldine", {
+        elements = generate_resume("nimbus", {
             **LONG_CV,
             "experience": LONG_CV["experience"] * 2,
             "education": education,
@@ -1151,28 +1048,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertLess(first_school["top"], first_meta["top"])
         self.assertLess(first_meta["top"], first_body["top"])
         self.assertTrue(first_body.get("bulletList"))
-
-    def test_ledger_contains_every_canvas_element_category(self):
-        elements = generate_resume("ledger", LONG_CV)
-        categories = {element["category"] for element in elements}
-
-        self.assertTrue({"text", "textarea", "line", "rectangle", "image"} <= categories)
-        self.assertNotIn("connector", categories)
-        self.assertFalse(any(
-            element["category"] == "rectangle"
-            and element.get("id", "").startswith("metric-")
-            for element in elements
-        ))
-        self.assertTrue(all(
-            element.get("autoHeight") is True
-            for element in elements
-            if element["category"] == "textarea"
-        ))
-        self.assertTrue(any(
-            element["category"] == "image"
-            and element["src"].endswith("/template-assets/ledger-finance-accent.png")
-            for element in elements
-        ))
 
     def test_nimbus_uses_every_canvas_element_without_theme_copy(self):
         elements = generate_resume("nimbus", LONG_CV)
@@ -1480,13 +1355,12 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
 
     def test_banded_mastheads_clear_first_section_heading(self):
-        """Body copy must start below solid header bands (Cinder/Ledger)."""
+        """Body copy must start below solid header bands (Cinder)."""
         from app.services.cv_generator_primitives import SPACE_AFTER_MASTHEAD
 
         cases = {
             # template_id: (band_top, band_height) of the solid masthead fill
             "cinder": (0, 170),
-            "ledger": (0, 151),  # 146 navy + 5px accent
         }
         cv = {
             **LONG_CV,
@@ -1518,8 +1392,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
         # template_id → (rule top y, rule height, min gap, max gap)
         cases = {
             "nimbus": (192, 3, 56.0, 56.0),
-            "regent": (154, 1, 25.0, 45.0),
-            "aldine": (157, 1, 25.0, 45.0),
             "nova": (160, 1, 25.0, 45.0),
         }
         cv = {
@@ -1619,7 +1491,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
     def test_active_templates_keep_textareas_inside_page_bounds(self):
         for template_id in (
-            "ledger", "kernel", "regent", "harbor", "tessera", "nova",
+            "nimbus", "monument", "cinder", "harbor", "tessera", "nova",
         ):
             with self.subTest(template_id=template_id):
                 multi_page_cv = {

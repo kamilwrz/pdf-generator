@@ -46,7 +46,7 @@ class EventsLogTests(unittest.TestCase):
     def test_unauthenticated_request_is_rejected(self):
         response = self.client.post(
             "/events/log",
-            json={"event_type": "template_picked", "template_id": "ledger"},
+            json={"event_type": "template_picked", "template_id": "nimbus"},
         )
         self.assertEqual(response.status_code, 401)
 
@@ -56,7 +56,7 @@ class EventsLogTests(unittest.TestCase):
 
         response = self.client.post(
             "/events/log",
-            json={"event_type": "template_picked", "template_id": "ledger"},
+            json={"event_type": "template_picked", "template_id": "nimbus"},
             headers={"Authorization": "Bearer fake"},
         )
         self.assertEqual(response.status_code, 200)
@@ -160,7 +160,7 @@ class EventsLogTests(unittest.TestCase):
 
         response = self.client.post(
             "/events/log",
-            json={"event_type": "template_picked", "template_id": "ledger"},
+            json={"event_type": "template_picked", "template_id": "nimbus"},
             headers={"Authorization": "Bearer fake"},
         )
         self.assertEqual(response.status_code, 200)

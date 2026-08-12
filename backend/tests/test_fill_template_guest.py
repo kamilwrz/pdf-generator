@@ -53,7 +53,7 @@ class FillTemplateGuestTests(unittest.TestCase):
         with patch("app.api.routes.ai.generate_resume", side_effect=_fake_elements) as mocked:
             response = self.client.post(
                 "/ai/fill_template",
-                json={"cv_data": {"name": "Anna Kowalska"}, "template_id": "ledger"},
+                json={"cv_data": {"name": "Anna Kowalska"}, "template_id": "nimbus"},
             )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["elements"][0]["content"], "Anna Kowalska")

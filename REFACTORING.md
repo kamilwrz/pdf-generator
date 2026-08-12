@@ -25,7 +25,7 @@ DONE 2) KOLOR NA LIGHT THEME (GRAY, BLUE, GOLD, WHITE THEME)
 DONE?  cc) Github, Linkedin
   dd) wylapac ewentualne bugi i dopracowac...
   ee) ewentualnie nowe lub skopiowane szablony i dopracowac, moze byc mniej niz 14
-4) IMAGE -> edytor strukturalny: upload zdjęcia w slot (Slate/Tessera/Aldine/Harbor; photoSlot + applyProfilePhoto) - brak w wielu szablonach tej funkcji
+4) IMAGE -> edytor strukturalny: upload zdjęcia w slot (Slate/Tessera/Harbor; photoSlot + applyProfilePhoto) - brak w wielu szablonach tej funkcji
 DONE 5) pokazywanie "Resizera" podczas edycji strukturalnej wylaczyc (drag + pola W/H w panelu)
 DONE 6) nie pokazywac wartosci do edycji w panelu, jezeli nie ma to wplywu (+ brak klonuj/usun w edycji strukturalnej)
 7)  strzalki w a4:
@@ -62,6 +62,8 @@ a) Co zostawic?
 
 5) SZABLONY DO ZOSTAWIENIA / USUNIECIA
 
+1-COLUMN:
+------------
 - Cardinal (Naprawic - Naglowki)
 - Monument
 - Nova
@@ -70,19 +72,18 @@ a) Co zostawic?
 - Atrium
 - Blueprint
 - Nimbus
-------------
+- Cinder
+- Axis (LAYOUT SIE ROZLATUJE, KOPIA)
+
 SIDEBAR:
+------------
 - Harbor  (LAYOUT SIE ROZLATUJE, NOWY BLOK EXP=EDU, KOPIA)
 - Tessera (FIXED)
 - Slate   (FIXED)
-- Manifest (DELETED)
-- Sterling
-------------
-- Axis (LAYOUT SIE ROZLATUJE, KOPIA)
-- Aurelie
-- Ledger
-- Cinder
-- Kernel
-- Regent
-- Aldine
-- Words (DELETED)
+- Sterling (ROZMIESZCZANIE ALGO.!)
+
+DONE usunieto (FE + BE + mockupy): Aurelia, Ledger, Kernel, Regent, Aldine
+
+
+
+

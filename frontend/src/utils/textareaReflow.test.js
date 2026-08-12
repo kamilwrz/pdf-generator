@@ -331,7 +331,7 @@ test("does not reclaim a page-2 section when chrome plus grown body do not fit",
 });
 
 test("locked section-chrome rules reflow with their heading across a reclaimed page break", () => {
-  // Kernel locks decorative rules so users cannot drag them.
+  // Decorative rules stay locked so users cannot drag them.
   // Reflow must still move those rules with the heading — otherwise
   // WYKSZTAŁCENIE lands on page 1 without its underline.
   const result = reflowTextareaHeight([
@@ -1045,11 +1045,11 @@ test("freeform mode can disable reclaim packing", () => {
   assert.equal(parked.height, 40);
 });
 
-test("Kernel page-2 education survives sequential font-measurement grows", () => {
+test("page-2 education survives sequential font-measurement grows", () => {
   // Canvas measures each textarea independently after load. Reclaim used to
   // reserve only the grown degree line, pull it onto page 1 under the last
   // experience job, and leave school/meta/body + WYKSZTAŁCENIE crushed on
-  // page 2 (Kernel continuation inset at y=72).
+  // page 2 (continuation inset at y=72).
   let elements = [
     {
       element_id: "job-last",

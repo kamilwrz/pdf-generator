@@ -109,7 +109,7 @@ export function useA4Elements(titleRef) {
   const flowSpacingRef = useRef(flowSpacing);
   // Rhythm knobs captured when the CV was rendered / loaded. Reset restores
   // these — not a blind re-pack to DEFAULT while the knobs are already there
-  // (force-packing generator geometry changes pagination, e.g. Regent education).
+  // (force-packing generator geometry changes pagination, e.g. Monument education).
   const [baselineFlowSpacing, setBaselineFlowSpacingState] = useState(() => ({
     ...DEFAULT_FLOW_SPACING,
   }));

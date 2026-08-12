@@ -214,7 +214,7 @@ describe("appendRecordToSection", () => {
         "Treść…",
       ],
     );
-    // Without a section title, keep legacy Kernel behaviour (expand later).
+    // Without a section title, keep legacy expand behaviour.
     assert.equal(inferRecordLayout([cat, chips]), null);
     // User-added category sections (not named UMIEJĘTNOŚCI) still stay heading+body.
     assert.equal(
@@ -499,7 +499,7 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
   it("keeps SPACE_RECORD between an inserted education block and the next title", () => {
     const pageHeight = 842;
     const rhythm = { ...DEFAULT_FLOW_SPACING };
-    // Two short education records (degree + school only) — the bug case from Kernel.
+    // Two short education records (degree + school only) — the original keep-together bug case.
     function shortEdu(prefix, top) {
       return [
         {

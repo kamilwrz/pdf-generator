@@ -1,5 +1,5 @@
 /**
- * Profile-photo slot detection and apply behaviour for Slate, Tessera, Aldine.
+ * Profile-photo slot detection and apply behaviour for Slate, Tessera, Monument.
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -12,7 +12,6 @@ import {
 import { materializeElementSpecs } from "./materializeElementSpecs.js";
 import { slateTemplate } from "../templates/slate.js";
 import { tesseraTemplate } from "../templates/tessera.js";
-import { aldineTemplate } from "../templates/aldine.js";
 import { monumentTemplate } from "../templates/monument.js";
 
 const PHOTO = { src: "/images/9/content", img_id: 9 };
@@ -31,11 +30,11 @@ describe("findProfilePhotoSlot", () => {
     assert.equal(slot.photoSlot, "glyph");
   });
 
-  it("finds the aldine frame when there is no glyph", () => {
-    const slot = findProfilePhotoSlot(aldineTemplate);
+  it("finds the monument frame when there is no glyph", () => {
+    const slot = findProfilePhotoSlot(monumentTemplate);
     assert.ok(slot);
     assert.equal(slot.photoSlot, "frame");
-    assert.equal(slot.id, "aldine-frame");
+    assert.equal(slot.id, "monument-masthead-frame");
   });
 
   it("still prefers a large near-top non-icon image (legacy)", () => {
@@ -82,27 +81,7 @@ describe("applyProfilePhoto", () => {
     assert.equal(photo.height, 120);
   });
 
-  it("covers aldine ornaments and keeps the frame border above the photo", () => {
-    const elements = materializeElementSpecs(aldineTemplate, () => `a-${Math.random()}`);
-    const beforeCount = elements.length;
-    const next = applyProfilePhoto(elements, PHOTO, () => "aldine-photo");
-    const photo = next.find((el) => el.photoSlot === "image");
-    const frame = next.find((el) => el.id === "aldine-frame");
-    const ornaments = next.filter((el) => el.photoSlot === "ornament");
-    assert.ok(photo);
-    assert.ok(frame);
-    assert.equal(ornaments.length, 3);
-    assert.equal(next.length, beforeCount + 1);
-    // Inset 2pt inside 437,52,66×66 → 439,54,62×62
-    assert.equal(photo.left, 439);
-    assert.equal(photo.top, 54);
-    assert.equal(photo.width, 62);
-    assert.equal(photo.height, 62);
-    assert.ok(photo.zIndex > ornaments[0].zIndex);
-    assert.ok(frame.zIndex > photo.zIndex);
-  });
-
-  it("covers monument masthead ornaments and keeps the square frame above the photo", () => {
+  it("covers monument ornaments and keeps the frame border above the photo", () => {
     const elements = materializeElementSpecs(monumentTemplate, () => `m-${Math.random()}`);
     const beforeCount = elements.length;
     const next = applyProfilePhoto(elements, PHOTO, () => "monument-photo");
@@ -135,7 +114,6 @@ describe("applyProfilePhoto", () => {
   it("reports hasProfilePhotoSlot for tagged templates", () => {
     assert.equal(hasProfilePhotoSlot(slateTemplate), true);
     assert.equal(hasProfilePhotoSlot(tesseraTemplate), true);
-    assert.equal(hasProfilePhotoSlot(aldineTemplate), true);
     assert.equal(hasProfilePhotoSlot(monumentTemplate), true);
     assert.equal(hasProfilePhotoSlot([]), false);
   });
