@@ -311,18 +311,48 @@ export default function Hero() {
                         klasycznych CV po bardziej wyraziste projekty.
                     </p>
                 </div>
-                <div className={classes.templateGrid}>
-                    {TEMPLATE_PREVIEWS.slice(0, 8).map((template) => (
-                        <Link
-                            key={template.id}
-                            to={wizardUrl}
-                            className={classes.templateCard}
-                            onClick={() => queueGuestEvent("templates_wizard")}
-                        >
-                            <img src={template.image} alt={`Szablon CV ${template.name}`} loading="lazy" />
-                            <span><b>{template.name}</b><small>{template.description}</small></span>
-                        </Link>
-                    ))}
+                {/*
+                  Endless right→left marquee of every template mockup. The track
+                  is duplicated so translateX(-50%) loops without a seam. Hover
+                  (or keyboard focus) pauses the animation and scales the card.
+                */}
+                <div
+                    className={classes.templateMarquee}
+                    aria-label={`Galeria ${TEMPLATE_COUNT} szablonów CV`}
+                    style={{
+                        // ~3.2s per card keeps the strip readable as the registry grows.
+                        ["--marquee-duration"]: `${Math.max(36, TEMPLATE_COUNT * 3.2)}s`,
+                    }}
+                >
+                    <div className={classes.templateMarqueeTrack}>
+                        {[0, 1].map((copy) => (
+                            <div
+                                key={copy}
+                                className={classes.templateMarqueeGroup}
+                                aria-hidden={copy === 1 ? true : undefined}
+                            >
+                                {TEMPLATE_PREVIEWS.map((template) => (
+                                    <Link
+                                        key={`${copy}-${template.id}`}
+                                        to={wizardUrl}
+                                        className={classes.templateCard}
+                                        tabIndex={copy === 1 ? -1 : undefined}
+                                        onClick={() => queueGuestEvent("templates_wizard")}
+                                    >
+                                        <img
+                                            src={template.image}
+                                            alt={copy === 0 ? `Szablon CV ${template.name}` : ""}
+                                            loading="lazy"
+                                        />
+                                        <span>
+                                            <b>{template.name}</b>
+                                            <small>{template.description}</small>
+                                        </span>
+                                    </Link>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
                 </div>
                 <CtaLink to={wizardUrl} event="templates_wizard" variant="link">
                     Stwórz CV i wybierz styl

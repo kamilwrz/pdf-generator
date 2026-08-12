@@ -826,28 +826,71 @@
     font: 400 13px/1.65 var(--body);
 }
 
-.templateGrid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: clamp(12px, 1.8vw, 24px);
+/*
+ * Full-bleed endless strip. Negative side margins cancel the shared section
+ * gutters so the track can exit under the viewport edges; soft masks keep the
+ * cut from looking abrupt. Vertical padding leaves room for the hover scale.
+ */
+.templateMarquee {
+    --marquee-gap: clamp(14px, 1.6vw, 22px);
+    --marquee-card-width: clamp(168px, 17vw, 228px);
+
+    overflow: hidden;
+    margin-right: calc(-1 * clamp(24px, 7vw, 112px));
+    margin-left: calc(-1 * clamp(24px, 7vw, 112px));
+    padding: 18px 0 28px;
+    mask-image: linear-gradient(
+        to right,
+        transparent 0,
+        #000 3%,
+        #000 97%,
+        transparent 100%
+    );
+}
+
+.templateMarqueeTrack {
+    display: flex;
+    width: max-content;
+    will-change: transform;
+    animation: templateMarquee var(--marquee-duration, 64s) linear infinite;
+}
+
+/* Pause the whole strip while the pointer is over any card (or while a card
+   receives keyboard focus) so the visitor can read the mockup and click it. */
+.templateMarquee:hover .templateMarqueeTrack,
+.templateMarquee:focus-within .templateMarqueeTrack {
+    animation-play-state: paused;
+}
+
+.templateMarqueeGroup {
+    display: flex;
+    flex-shrink: 0;
+    gap: var(--marquee-gap);
+    /* Matching trailing gap keeps translateX(-50%) seamless across copies. */
+    padding-right: var(--marquee-gap);
 }
 
 .templateCard {
     position: relative;
     display: block;
+    flex: 0 0 var(--marquee-card-width);
+    width: var(--marquee-card-width);
     overflow: hidden;
     border: 1px solid var(--line);
     border-radius: 0;
     background: var(--paper);
     color: var(--ink);
     text-decoration: none;
-    transition: transform 200ms ease, border-color 200ms ease;
+    transform-origin: center center;
+    transition: transform 220ms ease, border-color 200ms ease, box-shadow 220ms ease;
 }
 
 .templateCard:hover,
 .templateCard:focus-visible {
+    z-index: 2;
     border-color: var(--ink);
-    transform: translateY(-4px);
+    box-shadow: 0 10px 28px rgba(17, 17, 17, .12);
+    transform: scale(1.06);
 }
 
 /* Register tick surfaces on hover, echoing the hero crop marks and signalling
@@ -903,7 +946,18 @@
 }
 
 .templatesSection .textCta {
-    margin-top: 36px;
+    margin-top: 28px;
+}
+
+@keyframes templateMarquee {
+    from {
+        transform: translate3d(0, 0, 0);
+    }
+
+    to {
+        /* Two equal groups: -50% advances exactly one full set. */
+        transform: translate3d(-50%, 0, 0);
+    }
 }
 
 /* ---- Editor + AI (inverted section) ------------------------------------ */
@@ -1790,10 +1844,6 @@
         left: -2px;
     }
 
-    .templateGrid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
     .templateCard > span {
         min-height: 54px;
         padding: 10px;
@@ -1841,5 +1891,44 @@
     .heroCopy > *,
     .heroVisual {
         animation: none;
+    }
+
+    /* Replace the endless strip with a static wrap of the first (focusable)
+       copy only — the duplicate group is decorative for the seamless loop. */
+    .templateMarquee {
+        overflow: visible;
+        margin-right: 0;
+        margin-left: 0;
+        padding: 0;
+        mask-image: none;
+    }
+
+    .templateMarqueeTrack {
+        display: block;
+        width: 100%;
+        animation: none;
+        will-change: auto;
+    }
+
+    .templateMarqueeGroup {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+        gap: 14px;
+        padding-right: 0;
+    }
+
+    .templateMarqueeGroup[aria-hidden="true"] {
+        display: none;
+    }
+
+    .templateCard {
+        width: auto;
+        flex: none;
+    }
+
+    .templateCard:hover,
+    .templateCard:focus-visible {
+        box-shadow: none;
+        transform: none;
     }
 }
