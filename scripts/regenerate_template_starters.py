@@ -25,7 +25,7 @@ sys.path.insert(0, str(BACKEND_DIR))
 
 from app.services.cv_generator import generate_resume  # noqa: E402
 
-# Shared demo persona — matches atrium / axis / blueprint / manifest starters.
+# Shared demo persona — matches atrium / axis / blueprint starters.
 DEMO_CV = {
     "name": "Jan Kowalski",
     "title": "Dyrektor Strategii i Rozwoju",
@@ -125,17 +125,6 @@ COMPACT_DEMO_CV = {
 
 COMPACT_TEMPLATE_IDS = frozenset({"monument"})
 
-# Manifest's starter tests assert a structured sidebar education description.
-MANIFEST_DEMO_CV = {
-    **DEMO_CV,
-    "education": [
-        {
-            **DEMO_CV["education"][0],
-            "description": "Specjalizacja: ekonomia międzynarodowa.",
-        },
-    ],
-}
-
 # Nimbus uses larger Lora type (name 32 / headings+roles 14 / body 12 / meta 11),
 # so the shared DEMO_CV spills page 1. Keep the same persona with fewer bullets.
 NIMBUS_DEMO_CV = {
@@ -184,7 +173,6 @@ TEMPLATES = [
     "atrium",
     "axis",
     "blueprint",
-    "manifest",
     "sterling",
 ]
 
@@ -284,11 +272,6 @@ DOC_BLURBS = {
         "Blueprint template (`layouts: [\"single\"]`).\n"
         " *\n"
         " * Technical-schematic single column with steel-blue registration marks."
-    ),
-    "manifest": (
-        "Manifest template (`layouts: [\"sidebar\"]`).\n"
-        " *\n"
-        " * Architectural two-column layout with inverted header and red accent."
     ),
     "sterling": (
         "Sterling template (`layouts: [\"sidebar\"]`).\n"
@@ -405,8 +388,6 @@ def main() -> None:
     for template_id in TEMPLATES:
         if template_id == "nimbus":
             cv = NIMBUS_DEMO_CV
-        elif template_id == "manifest":
-            cv = MANIFEST_DEMO_CV
         elif template_id in COMPACT_TEMPLATE_IDS:
             cv = COMPACT_DEMO_CV
         else:

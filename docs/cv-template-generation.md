@@ -241,7 +241,7 @@ Każdy z 14 szablonów ma osobny plik `cv_templates/templates/<id>.py` z funkcj�
 |---|---|
 | `single` | ledger, nimbus, cinder, kernel, regent, aldine, monument |
 | `icons` | cardinal, nova, volt (+ harbor, tessera, slate) |
-| `sidebar` | harbor, tessera, slate |
+| `sidebar` | harbor, tessera, slate, sterling |
 | `dark` | volt |
 
 Algorytm flow (summary → experience → …) jest wspólny koncepcyjnie; paleta, assety i chrome nagłówków są per szablon.
@@ -255,7 +255,7 @@ Dla szablonów z tagiem `sidebar` działa wspólna logika w `shared/extras.py`:
 3. `_fitted_sidebar_body_elements` — education emituje osobne textarea (dyplom / uczelnia / meta / opis z `bulletList: true`); pozostałe sekcje zostają jednym blokiem.
 4. Indeksy `extra_sections` już umieszczonych w sidebarze są pomijane w `_extra_sections`, żeby nie dublować treści.
 
-Harbor, Tessera, Slate i Manifest używają `_fit_sidebar_sections` ze wspólnymi kandydatami `_sidebar_candidates` (Harbor ma własny Builder sidebara z diamentami). Tessera zmienia kolejność (education przed skills).
+Harbor, Tessera, Slate i Sterling używają `_fit_sidebar_sections` ze wspólnymi kandydatami `_sidebar_candidates` (Harbor ma własny Builder sidebara z diamentami). Tessera zmienia kolejność (education przed skills).
 
 ### 6.7 Extra sections
 

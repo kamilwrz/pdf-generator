@@ -31,7 +31,7 @@ const TEMPLATE_PREVIEWS = TEMPLATES.map((template) => ({
 }));
 
 // Dynamic template count so pricing/marketing copy never drifts from the
-// actual registry (README documents 16; this stays correct as it grows).
+// actual registry (landing kicker / hero chip read TEMPLATES.length).
 const TEMPLATE_COUNT = TEMPLATES.length;
 
 const previewById = (id) => TEMPLATE_PREVIEWS.find((template) => template.id === id);

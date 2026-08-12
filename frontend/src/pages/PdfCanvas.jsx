@@ -941,7 +941,7 @@ function PdfCanvas() {
     requestAssistantAction('shorten');
   }, [canUseAiAssistant, handleShowPlanModal, pageCount, requestAssistantAction, closeLongCvModal]);
 
-  // Sidebar templates (Tessera, Slate, Harbor, Manifest, Sterling, …) only
+  // Sidebar templates (Tessera, Slate, Harbor, Sterling, …) only
   // ever author the rail on page 1 — a continuation page repeats the rail
   // background/divider with no sidebar content — so the same "too long"
   // assistant applies one page sooner and always targets exactly one page

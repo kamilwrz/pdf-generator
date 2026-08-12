@@ -317,7 +317,7 @@ def _education_sidebar_content(education: list[dict]) -> str:
     """
     Compact plain-text education for legacy / height-estimate callers.
 
-    Tessera, Slate and Manifest no longer render this mashed string — they emit
+    Tessera, Slate and Sterling no longer render this mashed string — they emit
     separate diploma / school / meta / bullet elements via
     ``_build_sidebar_education_elements``. Kept for callers that still need a
     single wrapped block (tests, unused template imports, height fallbacks).
@@ -380,7 +380,7 @@ def _sidebar_education_section_height(
     Measured height of structured sidebar education (records + inter-record gaps).
 
     Uses the same per-record stack as ``_place_education_record`` so the fit
-    budget matches what Tessera / Slate / Manifest actually emit.
+    budget matches what Tessera / Slate / Sterling actually emit.
     """
     total = 0.0
     for index, edu in enumerate(entries):

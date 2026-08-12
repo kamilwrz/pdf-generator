@@ -5,23 +5,21 @@ from __future__ import annotations
 An elegant, harmonious blue-gray two-column layout. The centered masthead
 (serif display name, tracked uppercase title, mid-dot contact line) sits
 above a horizontal rule that separates it from the two-column body — a
-refined "letterhead" treatment, distinct from Manifest's inverted header
-band. A wide sidebar rail carries Summary, Education, Skills, and Languages
-(plus any other simple/flat extra section) to the left of a thin vertical
-divider; the main column carries only Experience (plus any record-style
-extras, e.g. Projects). One rule color (`C['rule']`, a soft blue-gray) is
-reused for the masthead underline, the sidebar divider, and every section
-rule, so the page reads as one coherent, quiet system rather than a
-collection of separately-styled dividers.
+refined "letterhead" treatment. A wide sidebar rail carries Summary,
+Education, Skills, and Languages (plus any other simple/flat extra section)
+to the left of a thin vertical divider; the main column carries only
+Experience (plus any record-style extras, e.g. Projects). One rule color
+(`C['rule']`, a soft blue-gray) is reused for the masthead underline, the
+sidebar divider, and every section rule, so the page reads as one coherent,
+quiet system rather than a collection of separately-styled dividers.
 
 Structural family: the same proven two-column shape as Tessera / Slate /
-Harbor / Manifest. Sidebar content lives on an independent
-`flowLane: "sidebar"` cursor (`sectionStructure.js`'s `packSidebarLane`),
-with its kickers tagged `flowRole: "sidebar-chrome"` so density knobs
-retarget the rail without it ever entering the main-column packer
-(`listDocumentSections` / `sameColumnAsHeading`). Unlike Manifest — which
-keeps Skills in the main column — Sterling puts every "simple" (flat-list)
-section in the sidebar via the shared, unfiltered `_sidebar_candidates` /
+Harbor. Sidebar content lives on an independent `flowLane: "sidebar"`
+cursor (`sectionStructure.js`'s `packSidebarLane`), with its kickers tagged
+`flowRole: "sidebar-chrome"` so density knobs retarget the rail without it
+ever entering the main-column packer (`listDocumentSections` /
+`sameColumnAsHeading`). Sterling puts every "simple" (flat-list) section in
+the sidebar via the shared, unfiltered `_sidebar_candidates` /
 `_fit_sidebar_sections` fitting mechanism (Skills, Languages, and any
 flattenable extras), with Education as the one structured exception that
 mechanism already supports (`_education_sidebar_content`). Main column
@@ -29,8 +27,8 @@ records (Experience, and any record-kind extras `_sidebar_candidates` never
 offers to the rail in the first place) reuse the shared
 `_place_experience_record` / `_place_education_record` helpers unchanged —
 no same-row or individually-positioned decoration was introduced, so this
-inherits the packer-safety guarantees documented in `blueprint.py` and
-`manifest.py`'s module docstrings without needing to re-derive them.
+inherits the packer-safety guarantees documented in `blueprint.py` without
+needing to re-derive them.
 
 Layout decisions are deterministic Python (never sent to the model).
 """
@@ -72,7 +70,7 @@ def _gen_sterling(cv: dict) -> list[dict]:
     SANS, DISPLAY = (C['sans'], C['display'])
     lbl = _labels(cv)
 
-    # "szerszym sidebarem" — wider than Manifest's 180 pt rail.
+    # "szerszym sidebarem" — wide 210 pt rail (vs typical ~180 pt sidebars).
     SIDEBAR_W = 210.0
     DIVIDER_W = 1.0
     SIDE_L = 34.0
@@ -139,9 +137,8 @@ def _gen_sterling(cv: dict) -> list[dict]:
     # ── Sidebar (page 1 only): Summary is always placed first, then Education
     # / Skills / Languages / any other simple extra fit into the remaining
     # budget via the shared, UNFILTERED `_fit_sidebar_sections` /
-    # `_sidebar_candidates` (Manifest excludes "skills" from this list to keep
-    # it in its main column; Sterling wants every simple section in the rail,
-    # so nothing is excluded here). ───────────────────────────────────────────
+    # `_sidebar_candidates` (no Skills exclusion — every simple section belongs
+    # in the rail, so nothing is filtered out here). ─────────────────────────────
     KICKER_FS = 9.4
     BODY_FS, BODY_LH = (9.5, 13.8)
     # Match `_fit_sidebar_sections`'s own top-tier auto-fit size exactly
@@ -150,7 +147,7 @@ def _gen_sterling(cv: dict) -> list[dict]:
     # candidate lands in the same column — `test_summary_matches_experience_
     # body_type_size` prefers a same-column comparison over the main column
     # once the sidebar contains bulleted content (Sterling includes Skills in
-    # the rail, unlike Manifest, so that same-column match always exists).
+    # the rail, so that same-column match always exists).
     SIDE_SUMMARY_FS, SIDE_SUMMARY_LH = (8.3, 12.04)
     CHROME_GAP = KICKER_FS * 1.2 + 5.0 + 1.4 + 10.0
 
@@ -259,7 +256,7 @@ def _gen_sterling(cv: dict) -> list[dict]:
 
     if cv.get('education') and 'education' not in sidebar_keys:
         # Fallback: education did not fit the sidebar budget, so it renders in
-        # the main column instead of being truncated (matches Tessera/Manifest).
+        # the main column instead of being truncated (matches Tessera/Slate).
         education_entries = cv['education']
         b.need_section(
             SECTION_CHROME,

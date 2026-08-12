@@ -286,10 +286,10 @@ function isLeadingSectionMark(element) {
 }
 
 /**
- * Two-column templates (Tessera, Slate, Manifest, Harbor — `layouts: ["sidebar", …]`)
+ * Two-column templates (Tessera, Slate, Harbor, Sterling — `layouts: ["sidebar", …]`)
  * place a narrow rail beside the main content column. Sidebar kickers are
  * tagged `flowRole: "sidebar-chrome"` + `flowLane: "sidebar"` (see e.g.
- * `tessera.py` / `manifest.py` `sidebar_heading()` / `sidebar_kicker()`), so
+ * `tessera.py` `sidebar_heading()` / `sidebar_kicker()`), so
  * `isSectionHeading` never promotes them into the main section list. Without
  * the column check below, every Y-only sweep (section membership,
  * masthead-bottom detection, flow-bottom detection, insert "hole" shifting)
@@ -445,7 +445,7 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
     for (const element of list) {
       if (element.fixedToPage) continue;
       if (element.flowRole === "masthead") continue;
-      // Explicit sidebar lane (Tessera / Slate / Manifest / Harbor) never joins
+      // Explicit sidebar lane (Tessera / Slate / Harbor / Sterling) never joins
       // a main-column strip — including right-rail Harbor bodies that sit to
       // the RIGHT of the main heading and would otherwise pass the one-way
       // `sameColumnAsHeading` check.
@@ -2027,7 +2027,7 @@ export function removeSection(
  *
  * Main-column sections pack first (`packDocumentSections`). Sidebar-lane
  * sections then pack on an independent cursor (`packSidebarLane`) so density
- * knobs reach Tessera / Slate / Manifest / Harbor rails without folding them
+ * knobs reach Tessera / Slate / Harbor / Sterling rails without folding them
  * into the main flow.
  *
  * @param {object[]} elements

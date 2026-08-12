@@ -24,7 +24,7 @@ test("Sterling is a wide-sidebar, letterhead-masthead layout with structured sid
         (element) => element.fixedToPage && element.left === 0 && element.width === SIDEBAR_W
             && element.backgroundColor === SIDEBAR_BG,
     );
-    assert.ok(sidebarRail, "the sidebar rail is wider than Manifest's 180pt");
+    assert.ok(sidebarRail, "the sidebar rail uses the wide 210pt column");
     const divider = sterlingTemplate.find(
         (element) => element.fixedToPage && element.left === SIDEBAR_W && element.backgroundColor === RULE
             && element.height === 842,

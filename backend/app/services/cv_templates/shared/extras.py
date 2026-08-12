@@ -345,7 +345,7 @@ def _sidebar_candidates(cv: dict, labels: dict) -> list[dict]:
             "kind": "education",
             "title": labels["education"],
             # Structured records (degree / school / meta / bullets) — Tessera,
-            # Slate and Manifest emit separate elements, not one mashed textarea.
+            # Slate and Sterling emit separate elements, not one mashed textarea.
             "entries": education_entries,
             "structured": True,
             # Empty content keeps flat-section height math from KeyErroring if a

@@ -679,7 +679,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertIn("Warszawa   ·   2017 – 2022", main_copy)
         self.assertIn("• Specjalizacja: prawo europejskie", main_copy)
 
-        for template_id in ("tessera", "slate", "manifest"):
+        for template_id in ("tessera", "slate"):
             with self.subTest(template_id=template_id):
                 sidebar = generate_resume(template_id, {
                     "name": "Anna Kowalska",
@@ -688,7 +688,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     "experience": [],
                     "skills": ["Analiza"],
                     "extra_sections": [],
-                    "summary": "Krotkie podsumowanie zawodowe do sidebara Manifest.",
+                    "summary": "Krotkie podsumowanie zawodowe do sidebara.",
                 })
                 # Sidebar education must be separate elements (degree / school /
                 # meta / bullets), not one mashed plaintext textarea.

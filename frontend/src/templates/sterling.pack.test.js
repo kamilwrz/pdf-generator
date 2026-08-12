@@ -11,10 +11,9 @@ import {
 // A real two-page Sterling document (four experience records force a page
 // break), dumped from the backend generator with element ids assigned (the
 // loader does that in the app). Regression guard: the sidebar rail never
-// folds into the main column, and — unlike Manifest — Sterling's sidebar
-// carries Summary, Education, Skills AND Languages (only Experience stays in
-// the main column), so this fixture exercises the widest sidebar payload of
-// any template in the catalog.
+// folds into the main column. Sterling's sidebar carries Summary, Education,
+// Skills AND Languages (only Experience stays in the main column), so this
+// fixture exercises the widest sidebar payload of any template in the catalog.
 const FIXTURE = JSON.parse(
     readFileSync(new URL("./sterling.multipage.fixture.json", import.meta.url), "utf8"),
 );

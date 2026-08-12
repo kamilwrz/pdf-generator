@@ -60,7 +60,7 @@ a) Co zostawic?
   gg) ULEPSZ - troche nie wypal, bardziej sugestie, mniej absolutyzmu
   hh) UKLAD - (P) - poprawka oferowanych szablonow? Zrobic czat o CV / ZIOM ktory wspiera i ocenia
 
-5) SZABLONY DO ZOSTAWIENIA
+5) SZABLONY DO ZOSTAWIENIA / USUNIECIA
 
 - Cardinal (Naprawic)
 - Monument

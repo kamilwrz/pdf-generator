@@ -20,7 +20,7 @@ export const TOO_LONG_MIN_PAGES = 3;
 /**
  * Page count at/above which a SIDEBAR-layout CV is considered too long.
  *
- * Sidebar templates (Tessera, Slate, Harbor, Manifest, Sterling, …) only ever
+ * Sidebar templates (Tessera, Slate, Harbor, Sterling, …) only ever
  * author the rail — summary/education/skills/languages — on page 1; a
  * continuation page repeats just the rail background/divider chrome with no
  * sidebar content. A 2nd page is therefore never "a little more CV" the way
