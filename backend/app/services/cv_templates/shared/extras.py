@@ -1,8 +1,6 @@
 """Custom / extra section rendering for CV templates."""
 from __future__ import annotations
 
-import math
-
 from app.services.cv_data import group_flat_items_into_records, is_record_section
 from app.services.cv_generator_primitives import (
     get_spacing,
@@ -276,14 +274,27 @@ _SIDEBAR_SECTION_ORDER = ("skills", "languages", "certifications", "interests", 
 _SIDEBAR_FONT_SIZES = (8.3, 8.0, 7.5)
 
 
-def _sidebar_wrapped_height(content: str, width: float, font_size: float, line_height: float) -> float:
-    """Match Builder's text estimate for a narrow, auto-height sidebar block."""
-    chars_per_line = max(10, int(width / (font_size * 0.52)))
-    rendered_lines = sum(
-        max(1, math.ceil(len(line.strip()) / chars_per_line)) if line.strip() else 1
-        for line in content.split("\n")
+def _sidebar_wrapped_height(
+    content: str, width: float, font_size: float, line_height: float,
+    *, font: str = "Montserrat", bulletList: bool = False,
+) -> float:
+    """Authoritative height for a narrow, auto-height sidebar body block.
+
+    Delegates to ``Builder.measure_block`` — the same ReportLab-metrics
+    measurer used for education, main-column records, and the summary body
+    — instead of approximating. A prior character-count heuristic here
+    (``width / (font_size * 0.52)`` characters per line, no word-boundary
+    wrap simulation) could over- or under-estimate the real wrap point
+    depending on the specific text's word lengths, and because
+    ``_fit_sidebar_sections`` positions every subsequent section's heading
+    at a fixed absolute top from this estimate, any divergence surfaced as
+    visibly uneven gaps between sidebar sections once the canvas corrected
+    each body box down to its real rendered height.
+    """
+    return Builder.measure_block(
+        content, width, font_size, line_height, font,
+        bulletList=bulletList, min_h=line_height + 6,
     )
-    return round(max(rendered_lines * line_height + 6, line_height + 6), 2)
 
 
 def _sidebar_candidates(cv: dict, labels: dict) -> list[dict]:
@@ -409,6 +420,7 @@ def _fit_sidebar_sections(
             else:
                 body_height = _sidebar_wrapped_height(
                     candidate["content"], width, font_size, line_height,
+                    font=font, bulletList=bool(candidate.get("bulletList")),
                 )
             section_height = 10 + 5 + body_height + 18
             if cursor + section_height <= bottom_y:

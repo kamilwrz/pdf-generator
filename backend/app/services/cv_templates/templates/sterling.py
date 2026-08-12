@@ -272,6 +272,7 @@ def _gen_sterling(cv: dict) -> list[dict]:
             continue
         side_h = _sidebar_wrapped_height(
             candidate['content'], SIDE_W, SIDE_SUMMARY_FS, SIDE_SUMMARY_LH,
+            font=SANS, bulletList=bool(candidate.get('bulletList')),
         ) + SIDEBAR_CHROME
         if kind == 'skills':
             main_body = _measure_skills_body(
