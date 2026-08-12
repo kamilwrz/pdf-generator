@@ -2,7 +2,7 @@
  * Shared vertical-alignment math for text-aligned template icons.
  *
  * Iconic/Cardinal/Harbor templates store an icon's `top` as the companion
- * label's line top for easy authoring, then the canvas shifts the glyph up so
+ * label's line top for easy authoring, then the canvas shifts the glyph so
  * it centres on the label's optical middle. That shift must be applied in three
  * places that previously disagreed:
  *   - the rendered <img> (Image.jsx),
@@ -10,12 +10,15 @@
  *   - the resize handles (Resize.jsx).
  * Keeping the offset here guarantees the glyph and its selection chrome stay
  * locked together regardless of icon size.
+ *
+ * PDF export (`PDF_Generator.renderImage`) MUST use the same
+ * `CANVAS_TEXT_CAP_MID` value so canvas and PDF stay 1:1.
  */
 
 // Vertical offset (px) from the label's stored `top` to the established Iconic
 // optical cap midpoint. Harbor uses explicit geometric placement for its
 // mixed textarea/text rows; changing this shared value shifts icons in every
-// other Iconic template.
+// other Iconic template — and must be mirrored in pdf_generator.renderImage.
 export const CANVAS_TEXT_CAP_MID = 1.0;
 
 /**

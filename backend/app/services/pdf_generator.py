@@ -156,10 +156,13 @@ class PDF_Generator:
 
         ``align_with_text``:
         - ``True`` — ``top`` is the companion label's CSS top; shift to the
-          optical cap mid-line used by ``renderText``.
+          optical cap mid-line used by the canvas (``iconAlignment.js``).
         - ``False`` — honour the authored ``top`` (geometric placement).
         - ``None`` — legacy Iconic asset paths still get the optical shift.
         """
+        # Must match frontend/src/utils/iconAlignment.js `CANVAS_TEXT_CAP_MID`.
+        # A previous -1.2 offset made PDF icons sit ~2.2 px higher than canvas.
+        text_aligned_icon_cap_mid_offset = 1.0
         h = float(height)
         w = float(width)
         t = float(top)
@@ -176,8 +179,9 @@ class PDF_Generator:
         else:
             align = is_iconic_asset
         if align and h <= 32 and w <= 32:
-            # Cap-centre of an ~8.5pt Montserrat label at the same authored top.
-            text_cap_mid = t - 1.2
+            # Cap-centre of the companion label at the same authored top —
+            # identical math to canvas `iconicDrawTop`.
+            text_cap_mid = t + text_aligned_icon_cap_mid_offset
             t = text_cap_mid - h / 2
         corrected_y = self.page_h - t - h
         if not src_s:

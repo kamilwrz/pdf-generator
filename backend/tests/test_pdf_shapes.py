@@ -115,9 +115,9 @@ class PdfShapeTests(unittest.TestCase):
         draw_calls = [call for call in self.generator.c.calls if call[0] == "drawImage"]
         self.assertEqual(len(draw_calls), 1)
         _name, args, _kwargs = draw_calls[0]
-        # text cap mid ≈ 200 - 1.2; image top = mid - h/2 = 193.3
-        # PDF y = page_h - top - h = 842 - 193.3 - 11 = 637.7
-        self.assertAlmostEqual(args[2], 637.7, places=1)
+        # Must match canvas iconicDrawTop: cap mid = 200 + 1.0; image top =
+        # mid - h/2 = 195.5; PDF y = page_h - top - h = 842 - 195.5 - 11 = 635.5
+        self.assertAlmostEqual(args[2], 635.5, places=1)
 
     def test_explicit_align_with_text_false_keeps_authored_image_top(self):
         icon = Path(__file__).resolve().parents[1] / "template_assets" / "iconic" / "nova" / "email.png"
