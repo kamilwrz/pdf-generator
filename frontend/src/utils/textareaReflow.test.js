@@ -502,6 +502,156 @@ test("keeps a left-hanging section icon in the main text lane", () => {
   assert.equal(heading.top, 306);
 });
 
+test("keeps a Monument ordinal badge with its square when chrome jumps to page 2", () => {
+  // The "04" digits sit at x=74 inside a 32px square at x=66, while the body
+  // column starts at x=102. That text neither overlaps the textarea nor counts
+  // as a line/rect decoration, so reflow used to move the square and title to
+  // page 2 and leave the number behind (or 8px too low after a later clamp).
+  const result = reflowTextareaHeight([
+    {
+      element_id: "job",
+      category: "textarea",
+      autoHeight: true,
+      flowRole: "content",
+      left: 102,
+      top: 600,
+      width: 427,
+      height: 50,
+      page: 1,
+    },
+    {
+      element_id: "sq4",
+      category: "line",
+      flowRole: "section-chrome",
+      left: 66,
+      top: 670,
+      width: 32,
+      height: 32,
+      page: 1,
+    },
+    {
+      element_id: "num4",
+      category: "text",
+      flowRole: "section-chrome",
+      isDecorativeChromeText: true,
+      content: "04",
+      left: 74,
+      top: 678,
+      fontSize: 11,
+      page: 1,
+    },
+    {
+      element_id: "frame4",
+      category: "rectangle",
+      flowRole: "section-chrome",
+      left: 106,
+      top: 670,
+      width: 251,
+      height: 32,
+      page: 1,
+    },
+    {
+      element_id: "h4",
+      category: "text",
+      flowRole: "section-chrome",
+      content: "AWARDS",
+      left: 118,
+      top: 678,
+      fontSize: 12.5,
+      page: 1,
+    },
+    {
+      element_id: "b4",
+      category: "textarea",
+      autoHeight: true,
+      flowRole: "content",
+      left: 102,
+      top: 714,
+      width: 427,
+      height: 40,
+      page: 1,
+    },
+  ], "job", 160, 842, { pageTop: 66, bottomMargin: 72 });
+
+  const square = result.elements.find((element) => element.element_id === "sq4");
+  const ordinal = result.elements.find((element) => element.element_id === "num4");
+  const title = result.elements.find((element) => element.element_id === "h4");
+  assert.equal(square.page, 2);
+  assert.equal(ordinal.page, 2);
+  assert.equal(title.page, 2);
+  assert.equal(+(ordinal.top - square.top).toFixed(2), 8);
+  assert.equal(ordinal.top, title.top);
+});
+
+test("keeps a Monument ordinal aligned after a continuation-page clamp", () => {
+  // Generator page-2 chrome starts at continuation_top 72; canvas packing uses
+  // pageTop 66. Growing an earlier body must move the digits with the square,
+  // not leave them at the authored 80 while the square clamps to 66.
+  const result = reflowTextareaHeight([
+    {
+      element_id: "job",
+      category: "textarea",
+      autoHeight: true,
+      flowRole: "content",
+      left: 102,
+      top: 600,
+      width: 427,
+      height: 140,
+      page: 1,
+    },
+    {
+      element_id: "sq4",
+      category: "line",
+      flowRole: "section-chrome",
+      left: 66,
+      top: 72,
+      width: 32,
+      height: 32,
+      page: 2,
+    },
+    {
+      element_id: "num4",
+      category: "text",
+      flowRole: "section-chrome",
+      isDecorativeChromeText: true,
+      content: "04",
+      left: 74,
+      top: 80,
+      fontSize: 11,
+      page: 2,
+    },
+    {
+      element_id: "h4",
+      category: "text",
+      flowRole: "section-chrome",
+      content: "AWARDS",
+      left: 118,
+      top: 80,
+      fontSize: 12.5,
+      page: 2,
+    },
+    {
+      element_id: "b4",
+      category: "textarea",
+      autoHeight: true,
+      flowRole: "content",
+      left: 102,
+      top: 116,
+      width: 427,
+      height: 40,
+      page: 2,
+    },
+  ], "job", 155, 842, { pageTop: 66, bottomMargin: 72 });
+
+  const square = result.elements.find((element) => element.element_id === "sq4");
+  const ordinal = result.elements.find((element) => element.element_id === "num4");
+  const title = result.elements.find((element) => element.element_id === "h4");
+  assert.equal(square.page, 2);
+  assert.equal(ordinal.page, 2);
+  assert.equal(+(ordinal.top - square.top).toFixed(2), 8);
+  assert.equal(ordinal.top, title.top);
+});
+
 test("sidebar reflow does not drag main-column section icons", () => {
   // Narrow sidebar ends at x=156; main icons sit at x=204 (gap 48). Those icons
   // sit below the sidebar skills block, so a naive lane check previously moved

@@ -174,11 +174,23 @@ function overlapsHorizontally(first, second) {
   return overlap > 0;
 }
 
+function isLeftHangingSectionChrome(element) {
+  // Monument ordinal digits ("01") sit inside a 32px badge to the LEFT of the
+  // body column. They are `text`, so they neither overlap the textarea nor
+  // qualify as a nearby line/rect decoration. Without this, reflow moves the
+  // filled square and title to page 2 while the number stays on page 1 — or
+  // leaves it 8px too low in the square after a continuation-page clamp.
+  if (element?.isDecorativeChromeText) return true;
+  return element?.flowRole === "section-chrome" && element?.category === "text";
+}
+
 function belongsToFlowLane(target, element) {
   if (overlapsHorizontally(target, element)) return true;
   const isNearbyDecoration = NEARBY_DECORATION_CATEGORIES.has(element.category);
   const isNearbyTextIcon = isTextAlignedImage(element);
-  if (!isNearbyDecoration && !isNearbyTextIcon) return false;
+  if (!isNearbyDecoration && !isNearbyTextIcon && !isLeftHangingSectionChrome(element)) {
+    return false;
+  }
 
   const targetLeft = number(target.left);
   const targetRight = targetLeft + elementWidth(target);

@@ -62,7 +62,7 @@ a) Co zostawic?
 
 5) SZABLONY DO ZOSTAWIENIA / USUNIECIA
 
-- Cardinal (Naprawic)
+- Cardinal (Naprawic - Naglowki)
 - Monument
 - Nova
 - Volt
