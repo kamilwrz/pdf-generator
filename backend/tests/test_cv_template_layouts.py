@@ -1573,6 +1573,50 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 )
 
 
+    def test_sterling_balances_education_into_the_main_column(self):
+        """Short experience → Education renders in the main column, not the rail.
+
+        With a short Experience block the two-column planner keeps Education
+        (main-affinity) in the main column beside a lighter sidebar, filling the
+        otherwise half-empty main column.
+        """
+        cv = {
+            "name": "Maja Zielińska",
+            "title": "Studentka Marketingu",
+            "email": "maja@example.com",
+            "summary": "Krótkie podsumowanie zawodowe kandydatki na potrzeby testu układu.",
+            "experience": [
+                {
+                    "title": "Praktyka studencka",
+                    "company": "Dział Marketingu",
+                    "period": "2023",
+                    "bullets": ["Wsparcie kampanii reklamowych", "Treści na blogi firmowe"],
+                },
+            ],
+            "education": [
+                {"degree": "Magister, Marketing", "school": "Uniwersytet Miejski", "period": "2015 - 2019"},
+            ],
+            "skills": ["Analiza danych", "SEO", "Content marketing"],
+            "languages": [{"name": "Angielski", "level": "C1"}],
+        }
+        elements = generate_resume("sterling", cv)
+        # Education heading renders in the main column (left == MAIN_L == 245),
+        # not as a sidebar kicker (left == SIDE_L == 34).
+        edu_headings = [
+            element for element in elements
+            if element.get("category") == "text"
+            and str(element.get("content", "")).upper().startswith("WYKSZTA")
+        ]
+        self.assertEqual(len(edu_headings), 1, "exactly one education heading")
+        self.assertEqual(edu_headings[0]["left"], 245, "education is in the main column")
+        # Experience is always in the main column.
+        exp_heading = next(
+            element for element in elements
+            if element.get("category") == "text"
+            and "DOŚWIADCZENIE" in str(element.get("content", "")).upper()
+        )
+        self.assertEqual(exp_heading["left"], 245)
+
     def test_active_templates_keep_textareas_inside_page_bounds(self):
         for template_id in (
             "ledger", "kernel", "regent", "harbor", "tessera", "nova",

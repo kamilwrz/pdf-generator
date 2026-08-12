@@ -36,28 +36,40 @@ needing to re-derive them.
 Layout decisions are deterministic Python (never sent to the model).
 """
 
+from app.services.cv_data import skill_groups
 from app.services.cv_generator_primitives import (
     Builder,
     get_spacing,
     _line,
     _text,
 )
+from app.services.cv_templates.shared.column_planner import (
+    PlaceableSection,
+    plan_columns,
+)
 from app.services.cv_templates.shared.extras import (
     _extra_sections,
     _fit_sidebar_sections,
     _fitted_sidebar_body_elements,
     _sidebar_candidates,
+    _sidebar_education_type_sizes,
+    _sidebar_wrapped_height,
 )
 from app.services.cv_templates.shared.records import (
     _education_record_height,
     _experience_record_height,
     _place_education_record,
     _place_experience_record,
+    _sidebar_education_entries,
+    _sidebar_education_section_height,
 )
 from app.services.cv_templates.shared.text import (
     _compact_text,
     _contact_line,
     _labels,
+    _language_entries,
+    _measure_languages_grid_height,
+    _measure_skills_body,
     _place_skills_section,
 )
 
@@ -137,22 +149,30 @@ def _gen_sterling(cv: dict) -> list[dict]:
 
     content_top = rule_y + 30.0
 
-    # ── Sidebar (page 1 only): Summary is always placed first, then Education
-    # / Skills / Languages / any other simple extra fit into the remaining
-    # budget via the shared, UNFILTERED `_fit_sidebar_sections` /
-    # `_sidebar_candidates` (no Skills exclusion — every simple section belongs
-    # in the rail, so nothing is filtered out here). ─────────────────────────────
+    # ── Type scale shared by both columns. Defined up front because the section
+    # planner measures every section in both column widths before any rendering.
     KICKER_FS = 9.4
     BODY_FS, BODY_LH = (9.5, 13.8)
-    # Match `_fit_sidebar_sections`'s own top-tier auto-fit size exactly
+    # Sidebar body font: the top tier of `_fit_sidebar_sections`' auto-fit ladder
     # (`_SIDEBAR_FONT_SIZES[0]` = 8.3, paired line height `round(max(fs*1.45,
-    # 11.0), 2)`), so the summary reads at the same size as whichever fitted
-    # candidate lands in the same column — `test_summary_matches_experience_
-    # body_type_size` prefers a same-column comparison over the main column
-    # once the sidebar contains bulleted content (Sterling includes Skills in
-    # the rail, so that same-column match always exists).
+    # 11.0), 2)`), so the summary reads at the same size as the fitted sidebar
+    # candidates (`test_summary_matches_experience_body_type_size`).
     SIDE_SUMMARY_FS, SIDE_SUMMARY_LH = (8.3, 12.04)
     CHROME_GAP = KICKER_FS * 1.2 + 5.0 + 1.4 + 10.0
+    HEADING_FS = 14.0
+    SECTION_CHROME = HEADING_FS * 1.05 + 6.0 + 1.0 + get_spacing().after_rule
+    TITLE_FS2, TITLE_LH2 = (11.2, 14.0)
+    META_FS, META_LH = (8.6, 11.8)
+    # Per-section sidebar chrome advance used by `_fit_sidebar_sections`
+    # (kicker 10 + tick gap 5 + trailing 18); the summary uses `CHROME_GAP`.
+    SIDEBAR_CHROME = 10 + 5 + 18
+    # Canonical reading order. Education sorts right after Experience for the
+    # MAIN column; the sidebar keeps its own order because `_fit_sidebar_sections`
+    # preserves the `_sidebar_candidates` sequence (education last there).
+    RANK = {
+        'summary': 0, 'experience': 1, 'education': 2,
+        'skills': 3, 'languages': 4, 'certifications': 5, 'interests': 6,
+    }
 
     def sidebar_kicker(label: str, top: float) -> list[dict]:
         heading = _text(label.upper(), KICKER_FS, SANS, C['accent_deep'], SIDE_L, top, zIndex=3, bold=True)
@@ -162,9 +182,128 @@ def _gen_sterling(cv: dict) -> list[dict]:
         tick['flowRole'] = 'sidebar-chrome'
         return [heading, tick]
 
+    def section(label: str) -> None:
+        y = b.y
+        page = b.pg
+        heading = _text(label, HEADING_FS, SANS, C['ink'], MAIN_L, y, zIndex=3, page=page, bold=True)
+        heading['letterSpacing'] = 0.8
+        heading['flowRole'] = 'section-chrome'
+        b.els.append(heading)
+        rule_line_y = y + HEADING_FS * 1.05 + 6.0
+        rule = _line(MAIN_L, rule_line_y, MAIN_W, 1, C['rule'], zIndex=2, page=page)
+        rule['flowRole'] = 'section-chrome'
+        b.els.append(rule)
+        b.y = rule_line_y + 1.0 + get_spacing().after_rule
+
+    def close_section() -> None:
+        b.gap(get_spacing().section)
+
+    def experience_height(job: dict) -> float:
+        return _experience_record_height(
+            b, job, MAIN_W, SANS, title_fs=TITLE_FS2, title_lh=TITLE_LH2,
+            meta_fs=META_FS, meta_lh=META_LH, body_fs=BODY_FS, body_lh=BODY_LH,
+        )
+
+    # ── Section placement. Measure each present section in both column widths
+    # and let the shared planner partition them so page 1 is as balanced as
+    # possible. Experience is anchored to the main column; the sidebar is a hard
+    # page-1 fit; the main column may paginate. See
+    # docs/superpowers/specs/2026-08-12-two-column-section-placement-design.md
+    probe = Builder(content_top)
+    candidates = _sidebar_candidates(cv, lbl)
+    cand_by_key = {candidate['key']: candidate for candidate in candidates}
+    edu_entries = _sidebar_education_entries(cv.get('education'))
+    sidebar_budget = 760.0 - content_top
+    main_budget = 770.0 - content_top
+
+    def main_section_height(body_h: float) -> float:
+        """Main-column advance for one section: heading chrome + body + gap."""
+        return SECTION_CHROME + body_h + get_spacing().section
+
+    descriptors: list[PlaceableSection] = []
+
+    if cv.get('summary'):
+        summary_side_body = Builder.measure_block(cv['summary'], SIDE_W, SIDE_SUMMARY_FS, SIDE_SUMMARY_LH, SANS)
+        descriptors.append(PlaceableSection(
+            'summary', RANK['summary'], 'sidebar',
+            main_height=main_section_height(
+                Builder.measure_block(cv['summary'], MAIN_W, BODY_FS, BODY_LH, SANS)
+            ),
+            # Summary's rail advance = kicker gap + body + trailing 26 (matches
+            # the explicit placement below).
+            sidebar_height=CHROME_GAP + summary_side_body + 26.0,
+        ))
+
+    if cv.get('experience'):
+        jobs = cv['experience']
+        exp_body = 0.0
+        for index, job in enumerate(jobs):
+            exp_body += _experience_record_height(
+                probe, job, MAIN_W, SANS, title_fs=TITLE_FS2, title_lh=TITLE_LH2,
+                meta_fs=META_FS, meta_lh=META_LH, body_fs=BODY_FS, body_lh=BODY_LH,
+            )
+            if index < len(jobs) - 1:
+                exp_body += get_spacing().record
+        descriptors.append(PlaceableSection(
+            'experience', RANK['experience'], 'main',
+            main_height=main_section_height(exp_body), sidebar_height=None,
+            anchored_main=True,
+        ))
+
+    for candidate in candidates:
+        kind = candidate['kind']
+        if kind == 'education':
+            edu_type = _sidebar_education_type_sizes(SIDE_SUMMARY_FS, SIDE_SUMMARY_LH)
+            side_h = _sidebar_education_section_height(
+                candidate['entries'], SIDE_W, SANS, **edu_type,
+            ) + SIDEBAR_CHROME
+            edu_body = 0.0
+            for index, edu in enumerate(edu_entries):
+                edu_body += _education_record_height(
+                    probe, edu, MAIN_W, SANS, degree_fs=TITLE_FS2, degree_lh=TITLE_LH2,
+                    meta_fs=META_FS, meta_lh=META_LH, body_fs=BODY_FS, body_lh=BODY_LH,
+                )
+                if index < len(edu_entries) - 1:
+                    edu_body += get_spacing().record
+            descriptors.append(PlaceableSection(
+                candidate['key'], RANK['education'], 'main',
+                main_height=main_section_height(edu_body), sidebar_height=side_h,
+            ))
+            continue
+        side_h = _sidebar_wrapped_height(
+            candidate['content'], SIDE_W, SIDE_SUMMARY_FS, SIDE_SUMMARY_LH,
+        ) + SIDEBAR_CHROME
+        if kind == 'skills':
+            main_body = _measure_skills_body(
+                probe, skill_groups(cv.get('skills')), MAIN_W, BODY_FS, BODY_LH, SANS,
+            )
+        elif kind == 'languages':
+            main_body = _measure_languages_grid_height(
+                probe, _language_entries(cv), MAIN_W, font=SANS, fs=BODY_FS, lh=BODY_LH,
+            )
+        else:  # interests / certifications → flat bullet block
+            main_body = Builder.measure_block(
+                candidate['content'], MAIN_W, BODY_FS, BODY_LH, SANS, bulletList=True,
+            )
+        descriptors.append(PlaceableSection(
+            candidate['key'], RANK.get(kind, 6), 'sidebar',
+            main_height=main_section_height(main_body), sidebar_height=side_h,
+        ))
+
+    plan = plan_columns(descriptors, sidebar_budget=sidebar_budget, main_budget=main_budget)
+    sidebar_set = set(plan.sidebar)
+    # Simple extras routed to the sidebar are skipped by `_extra_sections` in the
+    # main column; those routed to main are rendered by it.
+    sidebar_extra_indices = {
+        cand_by_key[key]['extra_index']
+        for key in sidebar_set
+        if key in cand_by_key and isinstance(cand_by_key[key].get('extra_index'), int)
+    }
+
+    # ── Sidebar (page 1 only) for the planned sidebar set. ────────────────────
     sidebar: list[dict] = []
     cursor = content_top
-    if cv.get('summary'):
+    if 'summary' in sidebar_set and cv.get('summary'):
         sidebar.extend(sidebar_kicker(lbl['summary'], cursor))
         body_top = cursor + CHROME_GAP
         body_h = Builder.measure_block(cv['summary'], SIDE_W, SIDE_SUMMARY_FS, SIDE_SUMMARY_LH, SANS)
@@ -177,15 +316,12 @@ def _gen_sterling(cv: dict) -> list[dict]:
         })
         cursor = body_top + body_h + 26.0
 
-    candidates = _sidebar_candidates(cv, lbl)
-    fitted_sections, sidebar_keys = _fit_sidebar_sections(
-        candidates, width=SIDE_W, start_y=cursor, bottom_y=760, font=SANS,
+    # The planner already guaranteed this subset fits the page-1 rail, so
+    # `_fit_sidebar_sections` places all of them (it also assigns their fonts).
+    sidebar_planned = [candidate for candidate in candidates if candidate['key'] in sidebar_set]
+    fitted_sections, _ = _fit_sidebar_sections(
+        sidebar_planned, width=SIDE_W, start_y=cursor, bottom_y=760, font=SANS,
     )
-    sidebar_extra_indices = {
-        section['extra_index']
-        for section in fitted_sections
-        if isinstance(section.get('extra_index'), int)
-    }
     for section_data in fitted_sections:
         top = float(section_data['top'])
         sidebar.extend(sidebar_kicker(section_data['title'], top))
@@ -208,85 +344,63 @@ def _gen_sterling(cv: dict) -> list[dict]:
         'flowLane': 'sidebar',
     } for element in sidebar]
 
-    # ── Main column: left-anchored heading + thin rule (the same color as the
-    # masthead underline and the sidebar divider, for one coherent, harmonious
-    # rule system across the page). ───────────────────────────────────────────
-    HEADING_FS = 14.0
-    SECTION_CHROME = HEADING_FS * 1.05 + 6.0 + 1.0 + get_spacing().after_rule
-
-    def section(label: str) -> None:
-        y = b.y
-        page = b.pg
-        heading = _text(label, HEADING_FS, SANS, C['ink'], MAIN_L, y, zIndex=3, page=page, bold=True)
-        heading['letterSpacing'] = 0.8
-        heading['flowRole'] = 'section-chrome'
-        b.els.append(heading)
-        rule_y = y + HEADING_FS * 1.05 + 6.0
-        rule = _line(MAIN_L, rule_y, MAIN_W, 1, C['rule'], zIndex=2, page=page)
-        rule['flowRole'] = 'section-chrome'
-        b.els.append(rule)
-        b.y = rule_y + 1.0 + get_spacing().after_rule
-
-    def close_section() -> None:
-        b.gap(get_spacing().section)
-
+    # ── Main column for the planned main set, in canonical reading order. Each
+    # anchored/movable "primary" section (summary, experience, education, skills)
+    # dispatches to its existing renderer; simple extras routed to main are
+    # emitted by `_extra_sections` below. ─────────────────────────────────────
     b = Builder(content_top)
-
-    TITLE_FS2, TITLE_LH2 = (11.2, 14.0)
-    META_FS, META_LH = (8.6, 11.8)
-
-    def experience_height(job: dict) -> float:
-        return _experience_record_height(
-            b, job, MAIN_W, SANS, title_fs=TITLE_FS2, title_lh=TITLE_LH2,
-            meta_fs=META_FS, meta_lh=META_LH, body_fs=BODY_FS, body_lh=BODY_LH,
-        )
-
-    if cv.get('experience'):
-        jobs = cv['experience']
-        b.need_section(SECTION_CHROME, experience_height(jobs[0]))
-        section(lbl['experience'])
-        for index, job in enumerate(jobs):
-            _place_experience_record(
-                b, job, MAIN_L, MAIN_W, ink=C['ink'], muted=C['muted'], body=C['ink'], font=SANS,
-                title_fs=TITLE_FS2, title_lh=TITLE_LH2, meta_fs=META_FS, meta_lh=META_LH,
-                body_fs=BODY_FS, body_lh=BODY_LH,
-                after_gap=get_spacing().record if index < len(jobs) - 1 else None,
+    for key in plan.main:
+        if key == 'summary' and cv.get('summary'):
+            b.need_section(SECTION_CHROME, Builder.measure_block(cv['summary'], MAIN_W, BODY_FS, BODY_LH, SANS))
+            section(lbl['summary'])
+            b.block(cv['summary'], MAIN_L, MAIN_W, BODY_FS, BODY_LH, C['ink'], SANS)
+            close_section()
+        elif key == 'experience' and cv.get('experience'):
+            jobs = cv['experience']
+            b.need_section(SECTION_CHROME, experience_height(jobs[0]))
+            section(lbl['experience'])
+            for index, job in enumerate(jobs):
+                _place_experience_record(
+                    b, job, MAIN_L, MAIN_W, ink=C['ink'], muted=C['muted'], body=C['ink'], font=SANS,
+                    title_fs=TITLE_FS2, title_lh=TITLE_LH2, meta_fs=META_FS, meta_lh=META_LH,
+                    body_fs=BODY_FS, body_lh=BODY_LH,
+                    after_gap=get_spacing().record if index < len(jobs) - 1 else None,
+                )
+            close_section()
+            # Record-kind extras (projects/references) live right after Experience.
+            _extra_sections(
+                b, cv, 'after_experience', section, {'body': C['ink'], 'accent': C['accent']},
+                MAIN_L, MAIN_W, SANS, fs=BODY_FS, lh=BODY_LH,
+                skip_indices=sidebar_extra_indices, section_chrome_h=SECTION_CHROME,
             )
-        close_section()
-        _extra_sections(b, cv, 'after_experience', section, {'body': C['ink'], 'accent': C['accent']}, MAIN_L, MAIN_W, SANS,
-                        fs=BODY_FS, lh=BODY_LH, skip_indices=sidebar_extra_indices,
-                        section_chrome_h=SECTION_CHROME)
-
-    if cv.get('education') and 'education' not in sidebar_keys:
-        # Fallback: education did not fit the sidebar budget, so it renders in
-        # the main column instead of being truncated (matches Tessera/Slate).
-        education_entries = cv['education']
-        b.need_section(
-            SECTION_CHROME,
-            _education_record_height(
-                b, education_entries[0], MAIN_W, SANS, degree_fs=TITLE_FS2, degree_lh=TITLE_LH2,
+        elif key == 'education' and edu_entries:
+            b.need_section(SECTION_CHROME, _education_record_height(
+                b, edu_entries[0], MAIN_W, SANS, degree_fs=TITLE_FS2, degree_lh=TITLE_LH2,
                 meta_fs=META_FS, meta_lh=META_LH, body_fs=BODY_FS, body_lh=BODY_LH,
-            ),
-        )
-        section(lbl['education'])
-        for index, edu in enumerate(education_entries):
-            _place_education_record(
-                b, edu, MAIN_L, MAIN_W, ink=C['ink'], muted=C['muted'], body=C['ink'], font=SANS,
-                degree_fs=TITLE_FS2, degree_lh=TITLE_LH2, meta_fs=META_FS, meta_lh=META_LH,
-                body_fs=BODY_FS, body_lh=BODY_LH,
-                after_gap=get_spacing().record if index < len(education_entries) - 1 else None,
-            )
-        close_section()
+            ))
+            section(lbl['education'])
+            for index, edu in enumerate(edu_entries):
+                _place_education_record(
+                    b, edu, MAIN_L, MAIN_W, ink=C['ink'], muted=C['muted'], body=C['ink'], font=SANS,
+                    degree_fs=TITLE_FS2, degree_lh=TITLE_LH2, meta_fs=META_FS, meta_lh=META_LH,
+                    body_fs=BODY_FS, body_lh=BODY_LH,
+                    after_gap=get_spacing().record if index < len(edu_entries) - 1 else None,
+                )
+            close_section()
+        elif key == 'skills':
+            if _place_skills_section(
+                b, cv, section, MAIN_L, MAIN_W, C['ink'], SANS, BODY_FS, BODY_LH,
+                section_chrome_h=SECTION_CHROME,
+            ):
+                close_section()
 
-    if 'skills' not in sidebar_keys and _place_skills_section(
-        b, cv, section, MAIN_L, MAIN_W, C['ink'], SANS, BODY_FS, BODY_LH,
-        section_chrome_h=SECTION_CHROME,
-    ):
-        close_section()
-
-    _extra_sections(b, cv, 'after_skills', section, {'body': C['ink'], 'accent': C['accent']}, MAIN_L, MAIN_W, SANS,
-                    fs=BODY_FS, lh=BODY_LH, skip_indices=sidebar_extra_indices,
-                    section_chrome_h=SECTION_CHROME)
+    # Simple extras (languages / interests / certifications) the planner left in
+    # the main column render here; those routed to the sidebar are skipped.
+    _extra_sections(
+        b, cv, 'after_skills', section, {'body': C['ink'], 'accent': C['accent']},
+        MAIN_L, MAIN_W, SANS, fs=BODY_FS, lh=BODY_LH,
+        skip_indices=sidebar_extra_indices, section_chrome_h=SECTION_CHROME,
+    )
 
     flow = b.build()
     pages_used = max([element.get('page', 1) for element in header + sidebar + flow] or [1])
