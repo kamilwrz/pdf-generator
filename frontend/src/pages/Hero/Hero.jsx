@@ -163,7 +163,9 @@ export default function Hero() {
     const heroFront = previewById("portico");
     const heroBack = previewById("monument");
     const editorMock = previewById("cardinal");
-    const afterMock = previewById("regent");
+    // Tessera (sidebar + photo) makes the "after" transformation feel like a
+    // real redesign, not just a single-column restyle of the wireframe "before".
+    const afterMock = previewById("tessera");
     const finalDocs = ["nova", "harbor", "aldine"].map(previewById);
 
     return (
