@@ -23,6 +23,7 @@ import {
   deriveSectionStyle,
   appendSectionAtEnd,
   healDecorativeOrdinalBaselines,
+  healSkillChipLabelBaselines,
   insertSectionAfter,
   isSidebarSectionHeading,
   listDocumentSections,
@@ -246,9 +247,11 @@ export function useA4Elements(titleRef) {
   }, [A4_Elements]);
 
   // Repair Monument ordinal badges saved with digits below the title baseline
-  // (legacy badgeNumber.relTop=8 → square+16). No-op when already aligned.
+  // (legacy badgeNumber.relTop=8 → square+16) and Cardinal skill-chip labels
+  // saved at CHIP_PAD_Y instead of the pill midline. No-op when already aligned.
   useEffect(() => {
-    const healed = healDecorativeOrdinalBaselines(A4_Elements);
+    let healed = healDecorativeOrdinalBaselines(A4_Elements);
+    healed = healSkillChipLabelBaselines(healed);
     if (healed === A4_Elements) return;
     const changed = healed.some((element, index) => element !== A4_Elements[index]);
     if (!changed) return;

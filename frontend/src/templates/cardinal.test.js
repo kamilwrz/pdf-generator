@@ -30,6 +30,22 @@ test("Cardinal reserves red for headings while icons and rules stay grey", () =>
     assert.ok(chipRects.length >= 5, "skills render as rounded chip rectangles");
     assert.ok(chipRects.every((element) => element.filled === true));
     assert.ok(chipRects.every((element) => element.backgroundColor === CARDINAL));
+    const chipLabels = cardinalTemplate.filter(
+        (element) => element.category === "text" && element.flowRole === "grid-member",
+    );
+    assert.equal(chipLabels.length, chipRects.length);
+    for (const rect of chipRects) {
+        const label = chipLabels.find((text) => (
+            text.flowGroup === rect.flowGroup
+            && Math.abs(text.left - (rect.left + 10)) < 0.01
+            && Math.abs(text.top - rect.top) < rect.height
+        ));
+        assert.ok(label, `chip at x=${rect.left} should have a label`);
+        assert.ok(
+            Math.abs(label.top - (rect.top + rect.height / 2)) < 0.01,
+            `chip label "${label.content}" must sit on the pill midline`,
+        );
+    }
 
     // ── Section headings: cardinal red, sans, grouped as reflow chrome ───────
     const sectionHeadings = cardinalTemplate.filter(

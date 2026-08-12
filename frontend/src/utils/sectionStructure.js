@@ -168,6 +168,80 @@ export function healDecorativeOrdinalBaselines(elements, pageHeight = 842) {
 }
 
 /**
+ * Whether this rectangle is a filled skill-chip pill (`mode="chips"`).
+ * Language-grid cells also use `flowRole: "grid-member"` but they are
+ * textareas, never filled rounded rectangles.
+ */
+function isSkillChipPill(element) {
+  return Boolean(
+    element
+    && element.category === "rectangle"
+    && element.flowRole === "grid-member"
+    && element.filled === true
+    && (Number(element.borderRadius) || 0) > 0,
+  );
+}
+
+function isSkillChipLabel(element) {
+  return Boolean(
+    element
+    && element.category === "text"
+    && element.flowRole === "grid-member",
+  );
+}
+
+/**
+ * Snap skill-chip labels onto the optical midline of their pill.
+ *
+ * The generator used to store the label at `rect.top + CHIP_PAD_Y` (5px),
+ * treating `top` as the em-box top. Canvas `.page-canvas p` uses
+ * `line-height: 0` and PDF `renderText` places the baseline at `top + 0.34em`,
+ * so the visible cap centre is near stored `top`. Labels therefore sat in the
+ * upper half of every Cardinal pill. New fills use `rect.top + height/2`;
+ * this heal rewrites documents saved with the old inset.
+ *
+ * @param {object[]} elements
+ * @returns {object[]}
+ */
+export function healSkillChipLabelBaselines(elements) {
+  const list = Array.isArray(elements) ? elements : [];
+  if (list.length === 0) return list;
+
+  const pills = list.filter(isSkillChipPill);
+  if (pills.length === 0) return list;
+
+  const fixes = new Map();
+  for (let index = 0; index < list.length; index += 1) {
+    const label = list[index];
+    if (!isSkillChipLabel(label)) continue;
+    const pill = pills.find((candidate) => {
+      if ((candidate.flowGroup || null) !== (label.flowGroup || null)) return false;
+      if ((Number(candidate.page) || 1) !== (Number(label.page) || 1)) return false;
+      const left = Number(label.left) || 0;
+      const top = Number(label.top) || 0;
+      const pillLeft = Number(candidate.left) || 0;
+      const pillWidth = Number(candidate.width) || 0;
+      const pillTop = Number(candidate.top) || 0;
+      const pillHeight = Number(candidate.height) || 0;
+      // Label starts inside the pill (CHIP_PAD_X inset) and sits on the pill's
+      // vertical span — including the legacy 5px inset from the top edge.
+      if (left < pillLeft - 0.5 || left > pillLeft + pillWidth) return false;
+      if (top < pillTop - 1 || top > pillTop + pillHeight) return false;
+      return true;
+    });
+    if (!pill) continue;
+    const centered = (Number(pill.top) || 0) + (Number(pill.height) || 0) / 2;
+    if (Math.abs((Number(label.top) || 0) - centered) <= 0.5) continue;
+    fixes.set(index, centered);
+  }
+
+  if (fixes.size === 0) return list;
+  return list.map((element, index) => (
+    fixes.has(index) ? { ...element, top: fixes.get(index) } : element
+  ));
+}
+
+/**
  * Prefer the real section title inside a chrome cluster over a decorative
  * ordinal badge that may sort first in document order.
  * @param {object[]} chromeElements
@@ -2118,9 +2192,11 @@ export function removeSection(
  */
 export function applyFlowSpacing(elements, spacing, pageHeight = 842, options = {}) {
   const rhythm = normalizeFlowSpacing(spacing);
-  // Repair ordinal/title baseline drift before packing so a spacing pass also
-  // fixes Monument badges that were saved with the legacy square+16 offset.
+  // Repair ordinal/title baseline drift and legacy chip-label insets before
+  // packing so a spacing pass also fixes Monument badges saved with the
+  // square+16 offset and Cardinal pills whose labels sat at CHIP_PAD_Y.
   let next = healDecorativeOrdinalBaselines(elements || [], pageHeight);
+  next = healSkillChipLabelBaselines(next);
   const sections = listDocumentSections(next, pageHeight);
   if (sections.length > 0) {
     next = packDocumentSections(

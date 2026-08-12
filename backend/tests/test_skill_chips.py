@@ -69,6 +69,12 @@ class PlaceSkillChipsRowRenderingTests(unittest.TestCase):
         self.assertEqual({t["content"] for t in texts}, {"SQL", "Python"})
         for text in texts:
             self.assertEqual(text["color"], "#FFFFFF")
+        # Canvas `line-height: 0` + PDF baseline at `top + 0.34em` put the
+        # visible cap centre near stored `top`. Labels must sit on the pill
+        # midline, not at `CHIP_PAD_Y` from the rectangle's top edge.
+        for rect, text in zip(rects, texts):
+            self.assertAlmostEqual(text["left"], rect["left"] + 10.0)
+            self.assertAlmostEqual(text["top"], rect["top"] + rect["height"] / 2.0)
 
 
 class KeepTogetherPageBreakTests(unittest.TestCase):

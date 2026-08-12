@@ -7,6 +7,7 @@ import {
   deriveSectionStyle,
   findProfilePhotoSlot,
   healDecorativeOrdinalBaselines,
+  healSkillChipLabelBaselines,
   listDocumentSections,
   listFlatSectionAnchors,
   listSidebarSections,
@@ -2323,7 +2324,7 @@ describe("applyFlowSpacing — skill chip grid (flowRole: grid-member)", () => {
         elements.push({
           element_id: `chip-text-${rowIndex}-${colIndex}`,
           category: "text", flowRole: "grid-member", flowGroup: group,
-          content: label, left: x + 10, top: top + 5, fontSize: 9.6, height: 12, page: 1,
+          content: label, left: x + 10, top: top + 9.8, fontSize: 9.6, height: 12, page: 1,
         });
         x += chipWidth + 8;
       });
@@ -2353,16 +2354,38 @@ describe("applyFlowSpacing — skill chip grid (flowRole: grid-member)", () => {
     // `left` (never touched by the packer) still identifies each chip's column.
     assert.equal(byId["chip-rect-0-0"].left, 72);
 
-    // Every label stays vertically inside its own rectangle, not stacked below it.
+    // Every label stays on its own pill's optical midline (not stacked below it).
     for (const id of Object.keys(byId)) {
       if (!id.startsWith("chip-rect-")) continue;
       const rect = byId[id];
       const text = byId[id.replace("chip-rect-", "chip-text-")];
       assert.ok(
-        text.top >= rect.top && text.top <= rect.top + rect.height,
-        `expected ${id}'s label to sit inside its pill (rect.top=${rect.top}, text.top=${text.top})`,
+        Math.abs(text.top - (rect.top + rect.height / 2)) < 0.51,
+        `expected ${id}'s label on the pill midline (rect.top=${rect.top}, text.top=${text.top})`,
       );
     }
+  });
+
+  it("heals labels saved at the legacy CHIP_PAD_Y inset onto the pill midline", () => {
+    const elements = chipSectionFixture().map((element) => (
+      element.element_id?.startsWith("chip-text-")
+        ? { ...element, top: element.top - 4.8 }
+        : element
+    ));
+    const healed = healSkillChipLabelBaselines(elements);
+    for (const element of healed) {
+      if (!element.element_id?.startsWith("chip-text-")) continue;
+      const rect = healed.find((other) => (
+        other.element_id === element.element_id.replace("chip-text-", "chip-rect-")
+      ));
+      assert.equal(element.top, rect.top + rect.height / 2);
+    }
+    // Language-grid textareas in the same document must not move.
+    const languages = [
+      { element_id: "lang", category: "textarea", flowRole: "grid-member",
+        flowGroup: "record-lang", left: 72, top: 400, width: 110, height: 14, page: 1 },
+    ];
+    assert.equal(healSkillChipLabelBaselines(languages), languages);
   });
 
   it("does not misclassify a narrow (<40px) chip as decorative chrome", () => {

@@ -288,6 +288,19 @@ CHIP_GAP_X = 8.0
 CHIP_GAP_Y = 8.0
 
 
+def _chip_label_top(pill_top: float, chip_h: float) -> float:
+    """Stored ``top`` that places the visible cap centre on the pill midline.
+
+    Canvas ``.page-canvas p`` uses ``line-height: 0``, which beats
+    ``.textElement { line-height: 1 }``. Combined with PDF ``renderText``
+    placing the baseline at ``top + 0.34em``, the visible cap centre sits
+    near the stored ``top``, not at ``top + 0.5em`` — the same model Cardinal
+    uses for section-rule alignment. ``CHIP_PAD_Y`` sizes the rectangle; using
+    it as the label Y parks the glyph in the upper half of the pill.
+    """
+    return pill_top + chip_h / 2.0
+
+
 def _layout_skill_chips(
     items: list | tuple | None,
     width: float,
@@ -376,7 +389,7 @@ def _place_skill_chips_row(
         })
         b.els.append({
             **_text(
-                skill, fs, font, chip_fg, x + CHIP_PAD_X, y + CHIP_PAD_Y,
+                skill, fs, font, chip_fg, x + CHIP_PAD_X, _chip_label_top(y, chip_h),
                 zIndex=3, page=b.pg,
             ),
             "flowRole": "grid-member",
