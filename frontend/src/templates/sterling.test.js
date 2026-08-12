@@ -83,7 +83,9 @@ test("Sterling is a wide-sidebar, letterhead-masthead layout with structured sid
         (element) => element.flowRole === "sidebar-chrome" && element.category === "text"
             && element.left === 34 && element.bold === true,
     );
-    assert.ok(sidebarKickers.length >= 4, "summary + education + skills + languages, at minimum");
+    // Education may be routed to the main column by the two-column planner, so
+    // the rail is guaranteed only Summary + Skills + Languages here.
+    assert.ok(sidebarKickers.length >= 3, "summary + skills + languages, at minimum");
     assert.ok(sidebarKickers.every((element) => (element.page ?? 1) === 1));
     assert.ok(sidebarKickers.every((element) => element.flowLane === "sidebar"));
 
@@ -109,30 +111,33 @@ test("Sterling is a wide-sidebar, letterhead-masthead layout with structured sid
     assert.ok(languagesBody.content.includes("Polski - ojczysty"));
     assert.equal(languagesBody.flowLane, "sidebar");
 
-    // Education is the one structured exception in the sidebar: separate
-    // degree / school / period elements (matching single-column records),
-    // not one mashed textarea.
+    // Education renders as structured degree / school / period elements
+    // (matching single-column records), not one mashed textarea, and shares a
+    // flowGroup — whichever column the two-column planner routes it to.
     const eduDegree = sterlingTemplate.find((element) => element.content === "Magister Zarządzania");
     const eduSchool = sterlingTemplate.find((element) => element.content === "SGH Warszawa");
     assert.ok(eduDegree?.bold);
     assert.ok(eduSchool);
-    assert.equal(eduDegree.flowLane, "sidebar");
     assert.equal(eduDegree.flowGroup, eduSchool.flowGroup);
 
-    // ── Main column: exactly one section (Experience) — every other section
-    // type lives in the sidebar by design. ────────────────────────────────────
+    // ── Main column: Experience is always here; the two-column planner may also
+    // route Education (and other sections) here to balance the columns against
+    // the page-1-only sidebar. Every main-column heading is left-anchored at
+    // MAIN_L and carries a matching rule in the shared harmonious colour. ─────
     const headingLabels = sterlingTemplate.filter(
         (element) => element.flowRole === "section-chrome" && element.category === "text",
     );
-    assert.equal(headingLabels.length, 1);
-    assert.equal(headingLabels[0].content, "DOŚWIADCZENIE ZAWODOWE");
-    assert.equal(headingLabels[0].left, MAIN_L);
+    assert.ok(headingLabels.some((element) => element.content === "DOŚWIADCZENIE ZAWODOWE"));
+    assert.ok(headingLabels.every((element) => element.left === MAIN_L));
 
     const sectionRules = sterlingTemplate.filter(
         (element) => element.flowRole === "section-chrome" && element.category === "line"
             && element.width === MAIN_W && element.backgroundColor === RULE,
     );
-    assert.equal(sectionRules.length, 1, "the section rule reuses the same harmonious rule color");
+    assert.equal(
+        sectionRules.length, headingLabels.length,
+        "each main-column heading has a matching rule in the shared harmonious colour",
+    );
 
     // ── Records: stacked title → org → period → bullets, every line its own
     // element (no same-row ordinal badge — see the generator's module
