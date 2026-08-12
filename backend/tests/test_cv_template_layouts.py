@@ -1489,6 +1489,64 @@ class CvTemplateLayoutTests(unittest.TestCase):
         )
         self.assertEqual(exp_heading["left"], 245)
 
+    def test_sterling_places_overflow_sidebar_content_on_a_continuation_page_rail(self):
+        """A CV long enough for Sterling's main column to spill onto page 2, with
+        more sidebar-eligible content than page 1's rail can hold, places the
+        overflow on page 2's rail instead of piling everything into the main
+        column.
+
+        See docs/superpowers/specs/2026-08-12-multi-page-column-planner-design.md
+        §9. The assertion checks for *some* sidebar kicker landing on a
+        continuation page rather than a specific section by name: which
+        section spills over depends on exact ReportLab-measured heights this
+        test does not hand-compute, but the planner's page-1-only-vs-N-bucket
+        behavior is exactly what's under test either way.
+        """
+        cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 3,
+            "extra_sections": [
+                {
+                    "title": "Języki obce",
+                    "kind": "languages",
+                    "placement": "after_skills",
+                    "items": ["Angielski — C1", "Niemiecki — B2", "Francuski — A2"],
+                },
+                {
+                    "title": "Zainteresowania",
+                    "kind": "interests",
+                    "placement": "after_skills",
+                    "items": [
+                        "Fotografia krajobrazowa", "Bieganie długodystansowe", "Szachy klasyczne",
+                        "Podróże górskie", "Gotowanie kuchni azjatyckiej",
+                    ],
+                },
+                {
+                    "title": "Certyfikaty",
+                    "kind": "certifications",
+                    "placement": "after_skills",
+                    "items": ["AWS Certified Solutions Architect", "Certyfikat PRINCE2"],
+                },
+            ],
+        }
+        elements = generate_resume("sterling", cv)
+        self.assertGreater(max(element.get("page", 1) for element in elements), 1)
+        sidebar_kickers_page_2_plus = [
+            element for element in elements
+            if element.get("flowLane") == "sidebar"
+            and element.get("flowRole") == "sidebar-chrome"
+            and element.get("page", 1) >= 2
+        ]
+        self.assertTrue(
+            sidebar_kickers_page_2_plus,
+            "expected at least one sidebar section kicker on a continuation page's rail",
+        )
+        for element in sidebar_kickers_page_2_plus:
+            self.assertNotEqual(
+                element["left"], 245,
+                "continuation-page rail content must stay out of the main column",
+            )
+
     def test_active_templates_keep_textareas_inside_page_bounds(self):
         for template_id in (
             "nimbus", "monument", "cinder", "harbor", "tessera", "nova",
