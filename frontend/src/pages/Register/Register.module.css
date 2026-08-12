@@ -1,27 +1,49 @@
+/*
+ * Registration screen — Swiss / International Typographic Style.
+ *
+ * Shares the exact design language of the login screen and the marketing
+ * landing page (see DESIGN.md, Hero.module.css, Login.module.css): monochrome
+ * ink/paper with a single warm taupe accent, Archivo grotesque + JetBrains
+ * Mono, sharp 0px corners, hairline rules, and flat geometric composition.
+ *
+ * Split screen: dark inverted "story" panel (with the three-step numbered
+ * index) on the left, paper form column on the right. Tokens are scoped to
+ * `.container` so nothing leaks into the editor or CV templates.
+ */
 .container {
-    --ink: #171717;
-    --night: #171717;
-    --paper: #FAF9F6;
-    --rust: #171717;
-    --rust-deep: #B8954A;
-    --gold: #B8954A;
-    --sage: #ABA695;
-    --line-dark: rgba(250, 249, 246, .2);
-    --line-light: rgba(23, 23, 23, .17);
-    --display: PlayfairDisplay, Georgia, serif;
-    --body: Montserrat, sans-serif;
+    --ink: #111111;
+    --ink-body: #2B2B2B;
+    --muted: #565656;
+
+    --paper: #FFFFFF;
+    --beige: #F5F1E8;
+    --beige-deep: #ECE7DB;
+    --black: #111111;
+    --taupe: #B38B6D;
+
+    --line: rgba(17, 17, 17, .16);
+    --line-strong: rgba(17, 17, 17, .32);
+    --line-dark: rgba(255, 255, 255, .22);
+
+    --display: "Archivo", "Arial Narrow", sans-serif;
+    --body: "Archivo", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
 
     display: grid;
     grid-template-columns: minmax(350px, .94fr) minmax(470px, 1.06fr);
     min-height: 100vh;
+    min-height: 100dvh;
     background: var(--paper);
-    color: var(--ink);
+    color: var(--ink-body);
     font-family: var(--body);
+    -webkit-font-smoothing: antialiased;
 }
 
 .container * {
     box-sizing: border-box;
 }
+
+/* ---- Story panel (dark, inverted) -------------------------------------- */
 
 .storyPanel {
     position: relative;
@@ -30,30 +52,35 @@
     min-height: 100%;
     padding: clamp(28px, 5.4vw, 80px);
     overflow: hidden;
-    background: var(--night);
+    background: var(--black);
     color: var(--paper);
+    border-right: 1px solid var(--ink);
 }
 
+/* Same constructivist disc + concentric ring as the login panel, so the two
+   auth screens read as one system. */
 .storyPanel::before {
     content: "";
     position: absolute;
-    top: 13%;
-    left: -110px;
-    width: min(36vw, 510px);
+    z-index: 0;
+    top: -70px;
+    right: -90px;
+    width: min(40vw, 360px);
     aspect-ratio: 1;
-    border: 1px solid rgba(184, 149, 74, .44);
+    background: var(--taupe);
     border-radius: 50%;
 }
 
 .storyPanel::after {
     content: "";
     position: absolute;
-    right: 12%;
-    bottom: 13%;
-    width: min(16vw, 190px);
+    z-index: 0;
+    top: -120px;
+    right: -140px;
+    width: min(52vw, 470px);
     aspect-ratio: 1;
-    border: 1px solid rgba(23, 23, 23, .28);
-    transform: rotate(45deg);
+    border: 1.5px solid var(--line-dark);
+    border-radius: 50%;
 }
 
 .backLink {
@@ -64,15 +91,16 @@
     gap: 10px;
     width: fit-content;
     color: var(--paper);
-    font: 700 12px/1 var(--body);
-    letter-spacing: .14em;
+    font: 500 11px/1 var(--mono);
+    letter-spacing: .18em;
+    text-transform: uppercase;
     text-decoration: none;
 }
 
 .backLink span {
-    color: var(--gold);
-    font-size: 18px;
-    transition: transform 160ms ease;
+    color: var(--taupe);
+    font-size: 16px;
+    transition: transform 200ms ease;
 }
 
 .backLink:hover span,
@@ -90,86 +118,124 @@
 
 .storyEyebrow,
 .cardEyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
     margin: 0;
-    color: var(--gold);
-    font: 800 9px/1.4 var(--body);
-    letter-spacing: .16em;
+    color: var(--paper);
+    font: 500 11px/1 var(--mono);
+    letter-spacing: .2em;
     text-transform: uppercase;
+}
+
+.storyEyebrow::before,
+.cardEyebrow::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    background: var(--taupe);
+    flex: 0 0 auto;
 }
 
 .storyCopy h2 {
     max-width: 495px;
-    margin: 19px 0 0;
-    font: 700 clamp(42px, 4.5vw, 69px)/1 var(--display);
-    letter-spacing: -.04em;
+    margin: 22px 0 0;
+    font: 800 clamp(40px, 4.4vw, 64px)/1 var(--display);
+    letter-spacing: -.035em;
+    text-wrap: balance;
 }
 
 .storyCopy > p:last-child {
     max-width: 432px;
     margin: 24px 0 0;
-    color: rgba(250, 249, 246, .7);
-    font: 500 14px/1.75 var(--body);
+    color: rgba(255, 255, 255, .72);
+    font: 400 14px/1.7 var(--body);
 }
+
+/* ---- Numbered three-step index ----------------------------------------- */
 
 .storySteps {
     position: relative;
     z-index: 1;
     display: grid;
-    gap: 13px;
+    gap: 14px;
     max-width: 470px;
     margin: 0;
-    padding: 20px 0 0;
+    padding: 22px 0 0;
     border-top: 1px solid var(--line-dark);
     list-style: none;
 }
 
 .storySteps li {
     display: grid;
-    grid-template-columns: 32px 1fr;
-    column-gap: 11px;
+    grid-template-columns: 38px 1fr;
+    column-gap: 13px;
     align-items: baseline;
 }
 
+/* Inverted index chip (paper on ink) matching the landing-page kicker chip on
+   dark sections; spans both rows so it labels the whole step. */
 .storySteps span {
     grid-row: span 2;
-    color: var(--gold);
-    font: 800 9px/1.4 var(--body);
-    letter-spacing: .08em;
+    align-self: start;
+    justify-self: start;
+    padding: 4px 6px;
+    background: var(--paper);
+    color: var(--ink);
+    font: 700 10px/1 var(--mono);
+    letter-spacing: .04em;
 }
 
 .storySteps b {
-    font: 700 11px/1.3 var(--body);
+    color: var(--paper);
+    font: 700 12px/1.3 var(--display);
+    letter-spacing: -.01em;
 }
 
 .storySteps p {
-    margin: 3px 0 0;
-    color: rgba(250, 249, 246, .56);
-    font: 500 10px/1.5 var(--body);
+    margin: 4px 0 0;
+    color: rgba(255, 255, 255, .58);
+    font: 400 10px/1.5 var(--body);
 }
+
+/* ---- Auth column (paper, faint modular grid) --------------------------- */
 
 .authColumn {
     display: grid;
     place-items: center;
     padding: clamp(30px, 6vw, 88px);
     background:
-        linear-gradient(90deg, rgba(23, 23, 23, .05) 0 1px, transparent 1px) 0 0 / 40px 40px,
-        linear-gradient(rgba(23, 23, 23, .05) 0 1px, transparent 1px) 0 0 / 40px 40px,
-        var(--paper);
+        linear-gradient(90deg, var(--line) 0 1px, transparent 1px) 0 0 / 40px 40px,
+        linear-gradient(var(--line) 0 1px, transparent 1px) 0 0 / 40px 40px,
+        var(--beige);
 }
 
 .loginCard {
+    position: relative;
     width: min(100%, 500px);
     padding: clamp(28px, 3.7vw, 48px);
     border: 1px solid var(--ink);
-    background: rgba(250, 249, 246, .95);
-    box-shadow: 12px 12px 0 var(--gold);
-    animation: cardEnter 530ms cubic-bezier(.2, .8, .2, 1) both;
+    border-radius: 0;
+    background: var(--paper);
+    box-shadow: 0 2px 16px rgba(17, 17, 17, .06);
+    animation: cardEnter 460ms cubic-bezier(.22, .61, .36, 1) both;
+}
+
+.loginCard::after {
+    content: "";
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 13px;
+    height: 13px;
+    border-top: 2px solid var(--taupe);
+    border-right: 2px solid var(--taupe);
 }
 
 @keyframes cardEnter {
     from {
         opacity: 0;
-        transform: translateY(18px);
+        transform: translateY(16px);
     }
     to {
         opacity: 1;
@@ -178,7 +244,7 @@
 }
 
 .logoBadge {
-    width: min(172px, 100%);
+    width: min(168px, 100%);
     height: auto;
     margin: 0 0 22px;
 }
@@ -190,28 +256,30 @@
 }
 
 .cardEyebrow {
-    color: var(--rust-deep);
+    color: var(--ink);
 }
 
 .mainHeading {
-    margin: 10px 0 0;
-    font: 700 clamp(35px, 3.5vw, 48px)/1 var(--display);
-    letter-spacing: -.04em;
+    margin: 12px 0 0;
+    font: 800 clamp(33px, 3.5vw, 46px)/1 var(--display);
+    letter-spacing: -.035em;
+    color: var(--ink);
 }
 
 .subHeading {
     margin: 14px 0 16px;
-    color: #52544c;
-    font: 500 13px/1.65 var(--body);
+    color: var(--muted);
+    font: 400 13px/1.65 var(--body);
 }
 
+/* Intent notice: a taupe-led hairline callout, matching the status style. */
 .intentNotice {
-    margin: 0 0 25px;
+    margin: 0 0 24px;
     padding: 11px 13px;
-    border-left: 3px solid var(--gold);
-    background: #f3e4d7;
-    color: #664130;
-    font: 600 10px/1.55 var(--body);
+    border-left: 3px solid var(--taupe);
+    background: var(--beige);
+    color: #5F4A38;
+    font: 500 10.5px/1.55 var(--body);
 }
 
 .form {
@@ -227,9 +295,9 @@
 
 .control label {
     margin-bottom: 8px;
-    color: #4b4c45;
-    font: 800 10px/1.3 var(--body);
-    letter-spacing: .08em;
+    color: var(--muted);
+    font: 500 10px/1.3 var(--mono);
+    letter-spacing: .14em;
     text-transform: uppercase;
 }
 
@@ -238,11 +306,12 @@
     align-items: center;
     gap: 10px;
     min-height: 50px;
-    padding: 11px 13px;
-    border: 1px solid #b7b1a7;
-    background: #fffdf8;
-    color: #62635c;
-    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    padding: 11px 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: 0;
+    background: var(--paper);
+    color: var(--muted);
+    transition: border-color 200ms ease, box-shadow 200ms ease, color 200ms ease;
 }
 
 .field svg {
@@ -250,9 +319,9 @@
 }
 
 .field:focus-within {
-    border-color: var(--rust);
-    background: #fff;
-    box-shadow: 4px 4px 0 rgba(23, 23, 23, .17);
+    border-color: var(--ink);
+    color: var(--ink);
+    box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--taupe);
 }
 
 .field input {
@@ -262,109 +331,127 @@
     outline: 0;
     background: transparent;
     color: var(--ink);
-    font: 600 14px/1.3 var(--body);
+    font: 500 14px/1.3 var(--body);
 }
 
 .field input::placeholder {
-    color: #88877e;
-    font-weight: 500;
+    color: #8B8B8B;
 }
 
 .fieldError {
-    border-color: #b84332;
-    background: #fff6f2;
+    border-color: #B23A2E;
+    background: #FCF4F2;
 }
+
+.fieldError:focus-within {
+    box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px #B23A2E;
+}
+
+/* ---- Password-strength meter ------------------------------------------- */
 
 .strength {
     display: flex;
     gap: 5px;
-    margin-top: 8px;
+    margin-top: 9px;
 }
 
 .strength span {
     flex: 1;
     height: 3px;
-    background: #c9c0b3;
-    transition: background 160ms ease;
+    background: var(--line);
+    transition: background 200ms ease;
 }
 
+/* Strength ramps along the ink scale with the taupe accent at the midpoint,
+   staying inside the monochrome-plus-taupe palette. */
 .strengthOn[data-level="1"],
 .strengthOn[data-level="2"] {
-    background: #B8B3A6;
+    background: #B9B2A6;
 }
 
 .strengthOn[data-level="3"] {
-    background: var(--gold);
+    background: var(--taupe);
 }
 
 .strengthOn[data-level="4"] {
-    background: #70946d;
+    background: var(--ink);
 }
 
+/* ---- Primary button (matches the landing .buttonPrimary) --------------- */
+
 .authBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     min-height: 52px;
     margin-top: 8px;
-    border: 1px solid var(--rust);
+    border: 1.5px solid var(--ink);
     border-radius: 0;
-    background: var(--rust);
-    box-shadow: 5px 5px 0 var(--gold);
-    color: #FFFFFF;
+    background: var(--ink);
+    color: var(--paper);
     cursor: pointer;
-    font: 700 12px/1.3 var(--body);
-    letter-spacing: .02em;
-    transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    font: 600 12px/1.2 var(--body);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    transition: transform 200ms ease, box-shadow 200ms ease, background 200ms ease;
 }
 
 .authBtn:hover:not(:disabled),
 .authBtn:focus-visible:not(:disabled) {
-    background: #2E2E2E;
-    box-shadow: 8px 8px 0 var(--gold);
-    transform: translate(-2px, -2px);
+    transform: translateY(-2px);
+    box-shadow: inset 0 -4px 0 var(--taupe);
+}
+
+.authBtn:active:not(:disabled) {
+    transform: translateY(0);
 }
 
 .authBtn:disabled {
     cursor: not-allowed;
-    opacity: .66;
+    opacity: .55;
 }
 
 .linkWrapper {
     margin: 25px 0 0;
-    color: #62635c;
-    font: 500 12px/1.6 var(--body);
+    color: var(--muted);
+    font: 400 12px/1.6 var(--body);
     text-align: center;
 }
 
 .linkWrapper a {
-    color: var(--rust-deep);
-    font-weight: 800;
-    text-decoration-color: rgba(184, 149, 74, .45);
+    color: var(--ink);
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-color: var(--taupe);
     text-underline-offset: 3px;
 }
 
 .linkWrapper a:hover,
 .linkWrapper a:focus-visible {
-    color: #8F7130;
+    text-decoration-thickness: 2px;
 }
 
 .error,
 .status {
     margin: 0 0 14px;
-    padding: 11px 12px;
-    font: 600 11px/1.55 var(--body);
+    padding: 11px 13px;
+    font: 500 11px/1.55 var(--body);
 }
 
 .error {
-    border-left: 3px solid #b84332;
-    background: #fff0eb;
-    color: #8d3024;
+    border-left: 3px solid #B23A2E;
+    background: #FCF4F2;
+    color: #8D2C22;
 }
 
 .status {
-    border-left: 3px solid var(--gold);
-    background: #f6eddb;
-    color: #685538;
+    border-left: 3px solid var(--taupe);
+    background: var(--beige);
+    color: #5F4A38;
 }
+
+/* ---- Responsive -------------------------------------------------------- */
 
 @media (max-width: 850px) {
     .container {
@@ -372,28 +459,30 @@
     }
 
     .storyPanel {
-        min-height: 390px;
+        min-height: 380px;
         padding: 26px 24px;
+        border-right: 0;
+        border-bottom: 1px solid var(--ink);
     }
 
     .storyCopy {
-        margin: auto 0 28px;
-        padding: 58px 0 0;
+        margin: auto 0 26px;
+        padding: 54px 0 0;
     }
 
     .storyCopy h2 {
         max-width: 600px;
-        font-size: clamp(38px, 10vw, 58px);
+        font-size: clamp(36px, 9.5vw, 54px);
     }
 
     .authColumn {
-        padding: 56px 24px;
+        padding: 54px 24px;
     }
 }
 
 @media (max-width: 460px) {
     .storyPanel {
-        min-height: 335px;
+        min-height: 330px;
     }
 
     .storyCopy > p:last-child {
@@ -406,7 +495,11 @@
 
     .loginCard {
         padding: 29px 21px;
-        box-shadow: 7px 7px 0 var(--gold);
+    }
+
+    .loginCard::after {
+        top: 11px;
+        right: 11px;
     }
 }
 
