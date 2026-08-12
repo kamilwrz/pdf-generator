@@ -266,7 +266,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertTrue(photo_frame.get("locked") is True)
 
         # Slate uses two icon colour variants: white glyphs for filled heading
-        # badges and accent glyphs for bare contact rows / the photo placeholder.
+        # badges and accent glyphs for masthead contact rows / the photo placeholder.
         icons = [
             element
             for element in elements
@@ -296,8 +296,8 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in elements
         ))
 
-        # Sidebar contact/section bodies must remain editable; only the photo
-        # chrome and page rails are inert (fixedToPage).
+        # Sidebar section bodies must remain editable; only the photo chrome and
+        # page rails are inert (fixedToPage). Contact is masthead-only.
         side_width = 178
         editable_sidebar = [
             element for element in elements
@@ -311,6 +311,30 @@ class CvTemplateLayoutTests(unittest.TestCase):
             not element.get("locked")
             for element in editable_sidebar
         ))
+        self.assertFalse(any(
+            element.get("content") == "KONTAKT"
+            for element in elements
+            if element["category"] == "text" and element["left"] < side_width
+        ))
+        masthead_contact_labels = [
+            element for element in elements
+            if element["category"] == "text"
+            and element.get("flowRole") == "masthead"
+            and element["left"] >= 218
+            and not element.get("bold")
+            and element.get("fontSize", 0) < 10
+        ]
+        self.assertGreaterEqual(len(masthead_contact_labels), 2)
+        contact_icons = [
+            element for element in elements
+            if element["category"] == "image"
+            and element.get("flowRole") == "masthead"
+            and any(
+                element["src"].endswith(f"/{name}.png")
+                for name in ("phone", "email", "location", "linkedin", "github", "website")
+            )
+        ]
+        self.assertGreaterEqual(len(contact_icons), 2)
 
     def test_sidebar_templates_repeat_panel_on_every_page(self):
         """Left-rail sidebars must repaint their panel chrome on every page."""

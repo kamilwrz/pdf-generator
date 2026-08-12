@@ -335,7 +335,7 @@ const KERNEL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a823fc7c69e6",
+    "flowGroup": "record-89504c9d4d0c",
     "flowRole": "content"
   },
   {
@@ -358,7 +358,7 @@ const KERNEL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a823fc7c69e6",
+    "flowGroup": "record-89504c9d4d0c",
     "flowRole": "content"
   },
   {
@@ -381,7 +381,7 @@ const KERNEL_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a823fc7c69e6",
+    "flowGroup": "record-89504c9d4d0c",
     "flowRole": "content"
   },
   {
@@ -404,7 +404,7 @@ const KERNEL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-528539a3c051",
+    "flowGroup": "record-aad16c02000b",
     "flowRole": "content"
   },
   {
@@ -427,7 +427,7 @@ const KERNEL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-528539a3c051",
+    "flowGroup": "record-aad16c02000b",
     "flowRole": "content"
   },
   {
@@ -450,7 +450,7 @@ const KERNEL_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-528539a3c051",
+    "flowGroup": "record-aad16c02000b",
     "flowRole": "content"
   },
   {
@@ -473,7 +473,7 @@ const KERNEL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7db4b397b1fc",
+    "flowGroup": "record-5f8bf204b0a1",
     "flowRole": "content"
   },
   {
@@ -496,7 +496,7 @@ const KERNEL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7db4b397b1fc",
+    "flowGroup": "record-5f8bf204b0a1",
     "flowRole": "content"
   },
   {
@@ -519,7 +519,7 @@ const KERNEL_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7db4b397b1fc",
+    "flowGroup": "record-5f8bf204b0a1",
     "flowRole": "content"
   },
   {
@@ -595,7 +595,7 @@ const KERNEL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-65f071900796",
+    "flowGroup": "record-caf4853c085f",
     "flowRole": "content"
   },
   {
@@ -618,7 +618,7 @@ const KERNEL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-65f071900796",
+    "flowGroup": "record-caf4853c085f",
     "flowRole": "content"
   },
   {
@@ -641,7 +641,7 @@ const KERNEL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-65f071900796",
+    "flowGroup": "record-caf4853c085f",
     "flowRole": "content"
   },
   {
@@ -717,7 +717,7 @@ const KERNEL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c78ba21157dd",
+    "flowGroup": "record-44fdd2bebf07",
     "flowRole": "content"
   },
   {
@@ -802,7 +802,7 @@ const KERNEL_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-bec89ea23e5c"
+    "flowGroup": "record-56f7cd36fa5b"
   },
   {
     "category": "textarea",
@@ -833,7 +833,7 @@ const KERNEL_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-bec89ea23e5c"
+    "flowGroup": "record-56f7cd36fa5b"
   },
   {
     "category": "textarea",
@@ -864,7 +864,7 @@ const KERNEL_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-bec89ea23e5c"
+    "flowGroup": "record-56f7cd36fa5b"
   }
 ];
 

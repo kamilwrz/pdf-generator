@@ -2,14 +2,18 @@
 rectilinear "blueprint" decoration language.
 
 Slate shares the proven Tessera information architecture (a fixed left rail that
-owns the rectangular photo slot, contact rows, and as many complete compact
-sections as fit, with overflow moving into the main column) but its visual
-identity is deliberately distinct from Tessera. Where Tessera uses warm mosaic
-tiles, coral circles, ochre ellipses, and a serif masthead, Slate uses a cool
-palette and only filled/outlined rectangles: solid steel-blue heading badges
-with white glyphs, a filled title pill, a 3x3 precision-grid ornament, and
-drafting-style corner brackets around the photo. There are no circles or
-ellipses — the rectilinear vocabulary is the point of difference.
+owns the rectangular photo slot and as many complete compact sections as fit,
+with overflow moving into the main column) but its visual identity is
+deliberately distinct from Tessera. Where Tessera uses warm mosaic tiles, coral
+circles, ochre ellipses, and a serif masthead, Slate uses a cool palette and
+only filled/outlined rectangles: solid steel-blue heading badges with white
+glyphs, a filled title pill, a 3x3 precision-grid ornament, and drafting-style
+corner brackets around the photo. There are no circles or ellipses — the
+rectilinear vocabulary is the point of difference.
+
+Contact is masthead-only (wrapping accent icon+label rows under the name/role
+pill), never a duplicated KONTAKT block in the rail — same channel set and
+placer as Tessera.
 """
 from __future__ import annotations
 
@@ -22,6 +26,10 @@ from app.services.cv_generator_primitives import (
     _rect,
     _text,
     section_chrome_height,
+)
+from app.services.cv_templates.shared.contact import (
+    _contact_channel_items,
+    _place_wrapping_icon_contacts,
 )
 from app.services.cv_templates.shared.extras import (
     _extra_sections,
@@ -38,7 +46,6 @@ from app.services.cv_templates.shared.records import (
 )
 from app.services.cv_templates.shared.text import (
     _compact_text,
-    _contact_line_core,
     _labels,
     _place_skills_section,
 )
@@ -47,10 +54,11 @@ from app.services.cv_templates.shared.text import (
 def _gen_slate(cv: dict) -> list[dict]:
     """Generate Slate's two-column, blueprint-style CV layout.
 
-    The left rail owns the rectangular photo placeholder, contact rows, and as
-    many complete compact sections as fit. Overflow sections move to the main
-    column instead of being truncated. Main-column records use Builder page flow
-    and remain atomic through ``flowGroup`` tags.
+    The left rail owns the rectangular photo placeholder and as many complete
+    compact sections as fit. Overflow sections move to the main column instead
+    of being truncated. Contact lives only in the masthead as wrapping
+    icon+label rows. Main-column records use Builder page flow and remain
+    atomic through ``flowGroup`` tags.
     """
     colors = {
         "paper": "#FFFFFF",
@@ -69,8 +77,8 @@ def _gen_slate(cv: dict) -> list[dict]:
     # Slate uses a single geometric sans throughout; the masthead differs from
     # Tessera's serif specifically to reinforce the cool, corporate identity.
     sans = "Montserrat"
-    # White glyphs sit inside filled accent badges; accent glyphs sit bare on the
-    # paper for contact rows and the photo placeholder.
+    # White glyphs sit inside filled accent badges; accent glyphs sit bare on
+    # the paper for masthead contacts and the photo placeholder.
     icon_theme = "slate"
     icon_theme_accent = "slate-accent"
     labels = _labels(cv)
@@ -96,9 +104,12 @@ def _gen_slate(cv: dict) -> list[dict]:
     # corner registration squares, and a solid accent base bar. The portrait
     # glyph is separate so a user photo can replace it without removing the
     # surrounding decoration. Only this cluster is inert (fixedToPage + locked);
-    # contact rows and fitted sidebar sections stay editable.
+    # fitted sidebar sections stay editable.
     photo_left, photo_top, photo_width, photo_height = 33, 40, 112, 126
     portrait_size = 46
+    # First sidebar section starts under the photo; contact no longer occupies
+    # the rail, so reclaim that band for skills / languages / education.
+    sidebar_sections_start = photo_top + photo_height + 28  # 194
     photo = [
         lock_chrome(_line(
             photo_left, photo_top, photo_width, photo_height, colors["photo_bg"], zIndex=1,
@@ -151,24 +162,8 @@ def _gen_slate(cv: dict) -> list[dict]:
             for element in (badge, glyph, heading, keyline)
         ]
 
-    # Contact rows use bare accent glyphs (no badge) so they read as metadata
-    # rather than section headings, matching the reference layout.
-    contact_top = 194.0
-    sidebar_static: list[dict] = [
-        *photo,
-        *sidebar_heading("KONTAKT", "references", contact_top),
-    ]
-    contact_y = contact_top + 28
-    from app.services.cv_templates.shared.contact import _sidebar_contact_items
-    contacts = _sidebar_contact_items(cv)
-    for icon_name, value in contacts:
-        if not value:
-            continue
-        sidebar_static.extend([
-            fixed_icon(icon_theme_accent, icon_name, side_left, contact_y, 11),
-            _text(value, 7.3, sans, colors["body"], side_left + 17, contact_y + 1, zIndex=3),
-        ])
-        contact_y += 19
+    # Photo chrome only — contact is exclusively in the masthead (see below).
+    sidebar_static: list[dict] = [*photo]
 
     # Slate follows the shared sidebar order (skills, languages, certifications,
     # interests, education). Every chosen section must fit in full; the remainder
@@ -177,7 +172,7 @@ def _gen_slate(cv: dict) -> list[dict]:
     fitted_sections, sidebar_keys = _fit_sidebar_sections(
         candidates,
         width=side_body_width,
-        start_y=max(contact_y + 20, 320),
+        start_y=sidebar_sections_start,
         # Sidebar bodies are lowered 6 px below the generic fitted heading
         # baseline to clear the 16 px badge, so reserve that offset here.
         bottom_y=760,
@@ -204,12 +199,31 @@ def _gen_slate(cv: dict) -> list[dict]:
             font=sans,
         ))
 
-    # Masthead: geometric sans name, a filled accent title pill, a muted contact
-    # line, and a 3x3 precision-grid ornament in the top-right corner.
+    # Masthead: geometric sans name, filled accent title pill, wrapping
+    # accent-icon contact channels (phone / email / socials / location), and a
+    # 3x3 precision-grid ornament in the top-right corner.
     name = _compact_text(cv.get("name"), 30).upper()
     title = _compact_text(cv.get("title"), 48).upper()
-    # Masthead stays email/phone/location only; socials live in the KONTAKT rail.
-    contact_line = _compact_text(_contact_line_core(cv), 80)
+    contact_fs, contact_icon = 7.8, 11.0
+    # Accent glyphs on white paper (slate white glyphs would vanish). Same
+    # placer / channel order as Tessera so LinkedIn / GitHub / website wrap
+    # onto a second row and push the header rule with them.
+    contact_els, contact_bottom = _place_wrapping_icon_contacts(
+        theme=icon_theme_accent,
+        items=_contact_channel_items(cv),
+        start_x=float(main_left),
+        start_y=119.0,
+        right_limit=float(main_left + main_width),
+        text_fs=contact_fs,
+        icon_size=contact_icon,
+        text_color=colors["muted"],
+        font=sans,
+        char_width=5.0,
+        icon_gap=15.0,
+        item_pad=16.0,
+        line_step=16.0,
+    )
+    header_rule_y = contact_bottom + 22.0
     header = [
         _text(name, 24, sans, colors["ink"], main_left, 48, zIndex=3, bold=True),
     ]
@@ -224,8 +238,8 @@ def _gen_slate(cv: dict) -> list[dict]:
         role["letterSpacing"] = 1.15
         header.append(role)
     header.extend([
-        _text(contact_line, 7.8, sans, colors["muted"], main_left, 119, zIndex=3),
-        _line(main_left, 141, main_width, 1, colors["hairline"], zIndex=2),
+        *contact_els,
+        _line(main_left, header_rule_y, main_width, 1, colors["hairline"], zIndex=2),
     ])
     # 3x3 grid of small accent squares (the "precision grid" motif). Positioned
     # in the top-right corner, slightly above the name baseline so ordinary names
@@ -238,7 +252,7 @@ def _gen_slate(cv: dict) -> list[dict]:
                 grid_x + col * pitch, grid_y + row * pitch, cell, cell, colors["accent"], zIndex=2,
             ))
 
-    builder = SlateBuilder(141 + SPACE_AFTER_HEADER_RULE)
+    builder = SlateBuilder(header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE)
     body_fs, body_lh = 9.0, 13.2
     heading_fs = 8.1
     section_chrome = section_chrome_height(heading_fs) + 8
@@ -393,8 +407,10 @@ def _gen_slate(cv: dict) -> list[dict]:
         }
         for element in sidebar_static
     ]
+    # Entire masthead (name, role pill, icon contacts, grid, rule) must stay
+    # exempt from section packing — same contract as Tessera.
     header = [
-        {**element, "flowRole": element.get("flowRole", "content")}
+        {**element, "flowRole": "masthead"}
         for element in header
     ]
     return page_decorations + sidebar + header + flow

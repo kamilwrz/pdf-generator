@@ -341,7 +341,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-408edd42dcfc",
+    "flowGroup": "record-812d7a2d6f68",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -365,7 +365,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-408edd42dcfc",
+    "flowGroup": "record-812d7a2d6f68",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -389,7 +389,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-408edd42dcfc",
+    "flowGroup": "record-812d7a2d6f68",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -439,7 +439,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4dec9a25da3d",
+    "flowGroup": "record-1f8daff69b54",
     "flowRole": "content"
   },
   {
@@ -462,7 +462,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4dec9a25da3d",
+    "flowGroup": "record-1f8daff69b54",
     "flowRole": "content"
   },
   {
@@ -485,7 +485,7 @@ const STERLING_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4dec9a25da3d",
+    "flowGroup": "record-1f8daff69b54",
     "flowRole": "content"
   },
   {
@@ -508,7 +508,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8863df11d645",
+    "flowGroup": "record-643afe34a0bf",
     "flowRole": "content"
   },
   {
@@ -531,7 +531,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8863df11d645",
+    "flowGroup": "record-643afe34a0bf",
     "flowRole": "content"
   },
   {
@@ -554,7 +554,7 @@ const STERLING_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8863df11d645",
+    "flowGroup": "record-643afe34a0bf",
     "flowRole": "content"
   },
   {
@@ -577,7 +577,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-30a0edbf4ada",
+    "flowGroup": "record-7d996ae8e6ef",
     "flowRole": "content"
   },
   {
@@ -600,7 +600,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-30a0edbf4ada",
+    "flowGroup": "record-7d996ae8e6ef",
     "flowRole": "content"
   },
   {
@@ -623,7 +623,7 @@ const STERLING_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-30a0edbf4ada",
+    "flowGroup": "record-7d996ae8e6ef",
     "flowRole": "content"
   }
 ];

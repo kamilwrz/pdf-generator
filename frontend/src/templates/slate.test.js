@@ -32,13 +32,30 @@ test("Slate uses a rectilinear blueprint sidebar and no circles or ellipses", ()
     assert.equal(photoFrame?.width, 112);
     assert.equal(photoFrame?.height, 126);
 
-    // Two icon colour variants: white glyphs for badges, accent glyphs for rows.
+    // Two icon colour variants: white glyphs for badges, accent glyphs for
+    // masthead contacts / the photo placeholder.
     const icons = slateTemplate.filter((element) => element.category === "image");
     assert.ok(icons.length >= 8, `expected >=8 Slate icons, got ${icons.length}`);
     assert.ok(icons.every((element) => element.src.includes("/iconic/slate")));
     assert.ok(icons.some((element) => element.src.includes("/iconic/slate/")));
     assert.ok(icons.some((element) => element.src.includes("/iconic/slate-accent/")));
     assert.ok(icons.some((element) => element.src.endsWith("/portrait.png")));
+
+    // Contact is masthead-only — never a duplicated KONTAKT block in the rail.
+    assert.equal(
+        slateTemplate.some(
+            (element) => element.category === "text" && element.content === "KONTAKT",
+        ),
+        false,
+    );
+    const mastheadContactIcons = slateTemplate.filter(
+        (element) => (
+            element.category === "image"
+            && element.flowRole === "masthead"
+            && /\/(phone|email|location|linkedin|github|website)\.png$/.test(element.src)
+        ),
+    );
+    assert.ok(mastheadContactIcons.length >= 2);
 
     // Reflow roles and initial-layout protection must be explicit.
     assert.ok(slateTemplate.some((element) => element.flowRole === "section-chrome"));
