@@ -1,7 +1,7 @@
 # Multi-page-aware two-column section placement
 
 **Date:** 2026-08-12
-**Status:** Design approved, pending spec review
+**Status:** Implemented (2026-08-13; see `docs/superpowers/plans/2026-08-13-multi-page-column-planner.md`)
 **Pilot template:** Sterling (`backend/app/services/cv_templates/templates/sterling.py`)
 **Builds on:** `docs/superpowers/specs/2026-08-12-two-column-section-placement-design.md`
 (the single-page balance-driven planner, already implemented in
