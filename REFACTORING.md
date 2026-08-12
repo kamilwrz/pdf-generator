@@ -74,8 +74,8 @@ a) Co zostawic?
 SIDEBAR:
 - Harbor  (LAYOUT SIE ROZLATUJE, NOWY BLOK EXP=EDU, KOPIA)
 - Tessera (FIXED)
-- Slate
-- Manifest
+- Slate   (FIXED)
+- Manifest (DELETED)
 - Sterling
 ------------
 - Axis (LAYOUT SIE ROZLATUJE, KOPIA)

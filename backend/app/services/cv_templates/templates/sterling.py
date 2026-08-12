@@ -3,9 +3,12 @@ from __future__ import annotations
 """Sterling CV template generator.
 
 An elegant, harmonious blue-gray two-column layout. The centered masthead
-(serif display name, tracked uppercase title, mid-dot contact line) sits
-above a horizontal rule that separates it from the two-column body — a
-refined "letterhead" treatment. A wide sidebar rail carries Summary,
+(serif display name, tracked uppercase title, mid-dot contact line) sits on a
+full-width tinted "letterhead band", closed at the bottom by a horizontal rule
+that separates it from the two-column body. The band reuses the rail tint and
+the sidebar divider only begins at the band's bottom edge, so the divider never
+runs up through the centered name/title/contact (which span the page center and
+cross the sidebar column boundary). A wide sidebar rail carries Summary,
 Education, Skills, and Languages (plus any other simple/flat extra section)
 to the left of a thin vertical divider; the main column carries only
 Experience (plus any record-style extras, e.g. Projects). One rule color
@@ -287,19 +290,47 @@ def _gen_sterling(cv: dict) -> list[dict]:
 
     flow = b.build()
     pages_used = max([element.get('page', 1) for element in header + sidebar + flow] or [1])
+
+    # ── Page chrome. On page 1 a full-width "letterhead band" (the same tint as
+    # the rail) sits behind the centered masthead, and BOTH the rail fill and the
+    # vertical divider begin at the band's bottom edge (`rule_y`) instead of at
+    # y = 0. Sterling centers the name/title/contact across the page, so those
+    # lines cross the x = SIDEBAR_W column boundary; a full-height divider run
+    # up from y = 0 would visually "cut" straight through the centered letterhead
+    # (the reason this band exists). Reusing the rail tint makes the top band and
+    # the left rail read as one continuous field — Sterling's single quiet system
+    # — while the main column below the band stays on paper. Continuation pages
+    # carry no masthead, so their rail and divider run the full page height. ────
     page_decorations: list[dict] = []
     for page in range(1, pages_used + 1):
         page_decorations.append(
             {**_line(0, 0, 595, 842, C['paper'], zIndex=0, page=page), 'fixedToPage': True}
         )
-        page_decorations.append(
-            {**_line(0, 0, SIDEBAR_W, 842, C['sidebar_bg'], zIndex=1, page=page), 'fixedToPage': True}
-        )
-        page_decorations.append(
-            {**_line(SIDEBAR_W, 0, DIVIDER_W, 842, C['rule'], zIndex=2, page=page), 'fixedToPage': True}
-        )
-        # Continuation pages: no repeated letterhead or sidebar copy — only the
-        # rail background/divider above and a quiet footer page number.
+        if page == 1:
+            # Full-width letterhead band, closed at the bottom by the masthead
+            # rule that `header` already draws at `rule_y`.
+            page_decorations.append(
+                {**_line(0, 0, 595, rule_y, C['sidebar_bg'], zIndex=1, page=1), 'fixedToPage': True}
+            )
+            # Rail fill and divider start under the band so neither crosses the
+            # centered masthead above them.
+            page_decorations.append(
+                {**_line(0, rule_y, SIDEBAR_W, 842 - rule_y, C['sidebar_bg'], zIndex=1, page=1),
+                 'fixedToPage': True}
+            )
+            page_decorations.append(
+                {**_line(SIDEBAR_W, rule_y, DIVIDER_W, 842 - rule_y, C['rule'], zIndex=2, page=1),
+                 'fixedToPage': True}
+            )
+        else:
+            # Continuation pages: no repeated letterhead or sidebar copy — only the
+            # rail background/divider above and a quiet footer page number.
+            page_decorations.append(
+                {**_line(0, 0, SIDEBAR_W, 842, C['sidebar_bg'], zIndex=1, page=page), 'fixedToPage': True}
+            )
+            page_decorations.append(
+                {**_line(SIDEBAR_W, 0, DIVIDER_W, 842, C['rule'], zIndex=2, page=page), 'fixedToPage': True}
+            )
         page_decorations.append(
             {**_text(f'{page:02d}', 9, SANS, C['muted'], 545.0 - 14.0, 806, page=page),
              'fixedToPage': True}

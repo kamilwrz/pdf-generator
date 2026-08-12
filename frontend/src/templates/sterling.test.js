@@ -25,11 +25,30 @@ test("Sterling is a wide-sidebar, letterhead-masthead layout with structured sid
             && element.backgroundColor === SIDEBAR_BG,
     );
     assert.ok(sidebarRail, "the sidebar rail uses the wide 210pt column");
+
+    // ── Letterhead band: a full-width tinted rectangle behind the centered
+    // masthead. It reuses the rail tint so the top band and the left rail read
+    // as one continuous field, and — crucially — the sidebar divider and the
+    // rail fill both begin at the band's bottom edge instead of at y = 0. A
+    // full-height divider would otherwise run straight up through the centered
+    // name/title/contact (which span the page center, crossing x = SIDEBAR_W).
+    const letterheadBand = sterlingTemplate.find(
+        (element) => element.fixedToPage && element.left === 0 && element.top === 0
+            && element.width === 595 && element.backgroundColor === SIDEBAR_BG,
+    );
+    assert.ok(letterheadBand, "a full-width tinted band sits behind the centered masthead");
+    const bandBottom = letterheadBand.top + letterheadBand.height;
+    assert.equal(sidebarRail.top, bandBottom, "the rail fill starts at the band's bottom edge");
+
     const divider = sterlingTemplate.find(
-        (element) => element.fixedToPage && element.left === SIDEBAR_W && element.backgroundColor === RULE
-            && element.height === 842,
+        (element) => element.fixedToPage && element.left === SIDEBAR_W && element.backgroundColor === RULE,
     );
     assert.ok(divider, "a thin rule-colored divider separates the sidebar from the main column");
+    assert.equal(divider.top, bandBottom, "the divider starts below the letterhead band, not at y = 0");
+    assert.equal(
+        divider.top + divider.height, 842,
+        "the divider still reaches the bottom of the page",
+    );
     assert.equal(sterlingTemplate.some((element) => element.category === "image"), false);
     assert.equal(sterlingTemplate.some((element) => element.category === "rectangle"), false);
 
