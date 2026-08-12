@@ -24,6 +24,7 @@ docs/superpowers/specs/2026-08-12-multi-page-column-planner-design.md.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Callable
 
 
 @dataclass(frozen=True)
@@ -229,3 +230,69 @@ def plan_columns(
         sidebar_by_page[page].sort(key=lambda key: by_key[key].order_rank)
 
     return ColumnPlan(main=main_keys, sidebar_by_page=sidebar_by_page)
+
+
+@dataclass(frozen=True)
+class MainMeasurement:
+    """Result of actually rendering a candidate main-column section order."""
+
+    pages_used: int
+
+
+def plan_columns_multi_page(
+    sections: list[PlaceableSection],
+    *,
+    page1_sidebar_budget: float,
+    continuation_sidebar_budget: float,
+    page1_main_budget: float,
+    continuation_main_budget: float,
+    measure_main: Callable[[list[str]], MainMeasurement],
+    imbalance_tolerance: float = 60.0,
+    min_improvement: float = 24.0,
+    max_iterations: int = 3,
+) -> ColumnPlan:
+    """Resolve the circular main-pagination / sidebar-bucket dependency.
+
+    Which sections belong in the sidebar depends on how many pages the main
+    column needs; how many pages the main column needs depends on which
+    sections are (not) in the sidebar. This alternates a cheap partition pass
+    (``plan_columns``) with a real measurement pass (``measure_main``,
+    supplied by the caller's template generator, since only the template
+    knows how to render its own main column) that reports how many pages the
+    resulting ``main`` order actually needs. Each measured page count >= 2
+    derives one additional sidebar bucket, so a continuation page's
+    otherwise-empty rail can receive content.
+
+    Converges when the derived bucket list and total main budget stop
+    changing between iterations — which happens immediately (after the first
+    pass) for any CV whose main column fits on page 1, since no bucket beyond
+    page 1 is ever derived in that case, matching today's single-page
+    behavior exactly (see ``test_plan_columns_multi_page_one_page_matches_plan_columns``).
+    A hard ``max_iterations`` cap guarantees termination even if a
+    pathological ``measure_main`` never stabilizes (the last computed plan is
+    returned instead of looping forever).
+    """
+    buckets = [SidebarBucket(1, page1_sidebar_budget)]
+    total_main_budget = page1_main_budget
+    plan: ColumnPlan | None = None
+    for _ in range(max_iterations):
+        plan = plan_columns(
+            sections, sidebar_buckets=buckets, main_budget=total_main_budget,
+            imbalance_tolerance=imbalance_tolerance, min_improvement=min_improvement,
+        )
+        pages_used = max(1, measure_main(plan.main).pages_used)
+        new_buckets = [SidebarBucket(1, page1_sidebar_budget)] + [
+            SidebarBucket(page, continuation_sidebar_budget)
+            for page in range(2, pages_used + 1)
+        ]
+        new_total_main_budget = (
+            page1_main_budget + max(0, pages_used - 1) * continuation_main_budget
+        )
+        converged = (
+            [bucket.page for bucket in new_buckets] == [bucket.page for bucket in buckets]
+            and new_total_main_budget == total_main_budget
+        )
+        if converged:
+            break
+        buckets, total_main_budget = new_buckets, new_total_main_budget
+    return plan

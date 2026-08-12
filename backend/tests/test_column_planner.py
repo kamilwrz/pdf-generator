@@ -5,9 +5,11 @@ of the CV generation stack, so the balancing rules are pinned precisely.
 """
 from app.services.cv_templates.shared.column_planner import (
     ColumnPlan,
+    MainMeasurement,
     PlaceableSection,
     SidebarBucket,
     plan_columns,
+    plan_columns_multi_page,
 )
 
 
@@ -155,3 +157,100 @@ def test_feasibility_repair_generalizes_to_any_bucket_page():
     )
     assert plan.sidebar_by_page[2] == ["skills"]
     assert "languages" in plan.main
+
+
+def test_plan_columns_multi_page_one_page_matches_plan_columns():
+    # A fake measure_main that always reports 1 page never derives a bucket
+    # beyond page 1, so the orchestrator's output must match a direct
+    # single-bucket plan_columns call exactly (spec §7, regression safety).
+    sections = _sections_short_experience()
+
+    def fake_measure_main(order):
+        return MainMeasurement(pages_used=1)
+
+    multi = plan_columns_multi_page(
+        sections,
+        page1_sidebar_budget=400,
+        continuation_sidebar_budget=400,
+        page1_main_budget=400,
+        continuation_main_budget=400,
+        measure_main=fake_measure_main,
+    )
+    single = plan_columns(sections, sidebar_buckets=[SidebarBucket(1, 400)], main_budget=400)
+    assert multi.main == single.main
+    assert multi.sidebar_by_page == single.sidebar_by_page
+
+
+def test_plan_columns_multi_page_derives_a_page_two_bucket():
+    # Experience alone exceeds even the 2-page main budget, so the main
+    # column never has slack to "win" the balance loop — sidebar-affinity
+    # content that doesn't fit page 1's rail lands on page 2's instead of
+    # being pulled back into main.
+    sections = [
+        PlaceableSection("experience", 1, "main", main_height=900, sidebar_height=None, anchored_main=True),
+        PlaceableSection("skills", 3, "sidebar", main_height=140, sidebar_height=90),
+        PlaceableSection("languages", 4, "sidebar", main_height=50, sidebar_height=90),
+    ]
+
+    def fake_measure_main(order):
+        return MainMeasurement(pages_used=2)
+
+    plan = plan_columns_multi_page(
+        sections,
+        page1_sidebar_budget=100,
+        continuation_sidebar_budget=100,
+        page1_main_budget=400,
+        continuation_main_budget=400,
+        measure_main=fake_measure_main,
+    )
+    assert plan.sidebar_by_page[1] == ["skills"]
+    assert plan.sidebar_by_page[2] == ["languages"]
+
+
+def test_plan_columns_multi_page_converges_when_bucket_list_stabilizes():
+    # A fake measure_main that always reports 2 pages derives a page-2 bucket
+    # on iteration 1 and finds the *same* page count measuring against that
+    # 2-bucket plan on iteration 2 — the bucket list and main budget stop
+    # changing, so the loop must stop calling measure_main after that.
+    calls = []
+    sections = _sections_short_experience()
+
+    def fake_measure_main(order):
+        calls.append(order)
+        return MainMeasurement(pages_used=2)
+
+    plan_columns_multi_page(
+        sections,
+        page1_sidebar_budget=400,
+        continuation_sidebar_budget=400,
+        page1_main_budget=400,
+        continuation_main_budget=400,
+        measure_main=fake_measure_main,
+        max_iterations=5,
+    )
+    assert len(calls) == 2
+
+
+def test_plan_columns_multi_page_never_infinite_loops():
+    sections = _sections_short_experience()
+    call_count = 0
+
+    def flapping_measure_main(order):
+        nonlocal call_count
+        call_count += 1
+        # Alternates between 2 and 1 pages every call, so the derived bucket
+        # list never stabilizes — the hard `max_iterations` cap must still
+        # terminate the loop deterministically instead of looping forever.
+        return MainMeasurement(pages_used=2 if call_count % 2 else 1)
+
+    plan = plan_columns_multi_page(
+        sections,
+        page1_sidebar_budget=400,
+        continuation_sidebar_budget=400,
+        page1_main_budget=400,
+        continuation_main_budget=400,
+        measure_main=flapping_measure_main,
+        max_iterations=3,
+    )
+    assert call_count == 3
+    assert plan is not None
