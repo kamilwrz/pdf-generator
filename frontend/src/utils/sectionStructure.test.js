@@ -6,6 +6,7 @@ import {
   applyFlowSpacing,
   deriveSectionStyle,
   findProfilePhotoSlot,
+  healDecorativeOrdinalBaselines,
   listDocumentSections,
   listFlatSectionAnchors,
   listSidebarSections,
@@ -1064,15 +1065,59 @@ describe("applyFlowSpacing", () => {
       const frame = packed.find((element) => element.element_id === `frame${n}`);
       const square = packed.find((element) => element.element_id === `sq${n}`);
       const rule = packed.find((element) => element.element_id === `r${n}`);
-      assert.ok(title && frame && square && rule, `section ${n} chrome present`);
+      const ordinal = packed.find((element) => element.element_id === `num${n}`);
+      assert.ok(title && frame && square && rule && ordinal, `section ${n} chrome present`);
       assert.equal(
         +(title.top - frame.top).toFixed(2),
         8,
         `section ${n}: title must stay 8px below frame top (inside the frame)`,
       );
       assert.equal(+(title.top - square.top).toFixed(2), 8, `section ${n}: title vs badge`);
+      assert.equal(+(ordinal.top - square.top).toFixed(2), 8, `section ${n}: ordinal vs badge`);
+      assert.equal(ordinal.top, title.top, `section ${n}: ordinal shares title baseline`);
       assert.equal(+(rule.top - square.top).toFixed(2), 15, `section ${n}: authored rule offset`);
     }
+  });
+
+  it("heals a Monument ordinal that drifted below the title inside the badge", () => {
+    // Regression: legacy badgeNumber.relTop=8 (square inset) + markers at −8
+    // normalised digits to square+16 while the title stayed at square+8.
+    const elements = [
+      ...monumentSection(1, "PODSUMOWANIE", 168),
+      ...monumentSection(2, "DOŚWIADCZENIE", 250),
+      ...monumentSection(3, "WYKSZTAŁCENIE", 360),
+      ...monumentSection(4, "PROJEKTY", 470),
+    ];
+    const corrupted = elements.map((element) => (
+      element.element_id === "num4"
+        ? { ...element, top: element.top + 8 }
+        : element
+    ));
+    assert.equal(
+      corrupted.find((element) => element.element_id === "num4").top
+        - corrupted.find((element) => element.element_id === "sq4").top,
+      16,
+    );
+
+    const healed = healDecorativeOrdinalBaselines(corrupted);
+    assert.equal(
+      healed.find((element) => element.element_id === "num4").top,
+      healed.find((element) => element.element_id === "h4").top,
+    );
+    assert.equal(
+      healed.find((element) => element.element_id === "num4").top
+        - healed.find((element) => element.element_id === "sq4").top,
+      8,
+    );
+
+    const packed = applyFlowSpacing(corrupted, {
+      stack: 4, record: 10, section: 21, after_rule: 8,
+    }, 842);
+    const title = packed.find((element) => element.element_id === "h4");
+    const ordinal = packed.find((element) => element.element_id === "num4");
+    const square = packed.find((element) => element.element_id === "sq4");
+    assert.equal(ordinal.top, title.top);
+    assert.equal(+(ordinal.top - square.top).toFixed(2), 8);
   });
 
   it("preserves Cinder chrome rhythm instead of stacking heading/mark/rule with SPACE_STACK", () => {
@@ -1875,6 +1920,8 @@ describe("deriveSectionStyle", () => {
     assert.equal(style.badgeNumber.bold, true);
     assert.equal(style.badgeNumber.digits, 2); // "04".length, for zero-padding a new ordinal
     assert.equal(style.badgeNumber.relLeft, 74 - 118); // -44
+    // Offset from the heading baseline (both at top 508), not the square inset.
+    assert.equal(style.badgeNumber.relTop, 0);
     // The badge number text must never leak into `markers` (text is excluded there).
     assert.equal(style.markers.some((shape) => shape.category === "text"), false);
   });

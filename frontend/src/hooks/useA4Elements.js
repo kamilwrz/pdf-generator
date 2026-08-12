@@ -22,6 +22,7 @@ import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from '../utils/flowSpacing
 import {
   deriveSectionStyle,
   appendSectionAtEnd,
+  healDecorativeOrdinalBaselines,
   insertSectionAfter,
   isSidebarSectionHeading,
   listDocumentSections,
@@ -242,6 +243,16 @@ export function useA4Elements(titleRef) {
       }
       return sanitized === element.content ? element : { ...element, content: sanitized };
     }));
+  }, [A4_Elements]);
+
+  // Repair Monument ordinal badges saved with digits below the title baseline
+  // (legacy badgeNumber.relTop=8 → square+16). No-op when already aligned.
+  useEffect(() => {
+    const healed = healDecorativeOrdinalBaselines(A4_Elements);
+    if (healed === A4_Elements) return;
+    const changed = healed.some((element, index) => element !== A4_Elements[index]);
+    if (!changed) return;
+    setA4_Elements(healed);
   }, [A4_Elements]);
   useEffect(() => { pageCountRef.current = pageCount; }, [pageCount]);
   useEffect(() => {

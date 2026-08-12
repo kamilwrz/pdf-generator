@@ -310,8 +310,7 @@
         }
       ],
       "default": null,
-      "title": "Flowlane",
-      "description": "Two-column rail tag. Use \"sidebar\" for left-rail elements packed by packSidebarLane."
+      "title": "Flowlane"
     },
     "flowGroup": {
       "anyOf": [

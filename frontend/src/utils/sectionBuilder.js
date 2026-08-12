@@ -235,6 +235,12 @@ function badgeNumberElement({
   elementId, badgeNumber, sectionOrdinal, left,
   flowRole = "section-chrome", flowLane = null,
 }) {
+  // `relTop` is the offset from the SECTION TITLE, not from the filled badge
+  // square. Monument authors both at the same Y (title and "01" share
+  // badge+8), so a healthy sample is `0`. Using `8` here — the inset into the
+  // 32px square — parks digits at square+16 after markers at heading−8 are
+  // normalised, which is the "04 sits too low in the black rectangle" bug.
+  const relTop = Number(badgeNumber.relTop);
   const element = {
     element_id: elementId,
     category: "text",
@@ -242,7 +248,7 @@ function badgeNumberElement({
     flowRole,
     isDecorativeChromeText: true,
     left: left + badgeNumber.relLeft,
-    top: badgeNumber.relTop,
+    top: Number.isFinite(relTop) ? relTop : 0,
     fontSize: badgeNumber.fontSize,
     fontFamily: badgeNumber.fontFamily,
     color: badgeNumber.color,

@@ -262,27 +262,30 @@ describe("buildSectionElements", () => {
   });
 
   it("stamps the computed section ordinal into the badge-number style, zero-padded to match the sampled digit count", () => {
+    // relTop is offset from the heading (0 for Monument), not the square inset.
     const styleWithBadge = {
       ...style,
-      badgeNumber: { fontSize: 11, fontFamily: "Montserrat", color: "#ffffff", bold: true, digits: 2, relLeft: -44, relTop: 8 },
+      badgeNumber: { fontSize: 11, fontFamily: "Montserrat", color: "#ffffff", bold: true, digits: 2, relLeft: -44, relTop: 0 },
     };
     const { elements } = buildSectionElements({
       name: "Certyfikaty", layout: SECTION_LAYOUTS.TEXTAREA, style: styleWithBadge,
       sectionOrdinal: 5, idFactory: makeIdFactory(),
     });
     const badge = elements.find((element) => element.isDecorativeChromeText === true);
+    const heading = elements.find((element) => element.content === "Certyfikaty");
     assert.ok(badge);
     assert.equal(badge.content, "05");
     assert.equal(badge.category, "text");
     assert.equal(badge.flowRole, "section-chrome");
     assert.equal(badge.color, "#ffffff");
     assert.equal(badge.bold, true);
+    assert.equal(badge.top, heading.top, "ordinal shares the title baseline");
   });
 
   it("does not zero-pad past the sampled digit count when the ordinal is already wider", () => {
     const styleWithBadge = {
       ...style,
-      badgeNumber: { fontSize: 11, fontFamily: "Montserrat", color: "#ffffff", bold: true, digits: 1, relLeft: -20, relTop: 8 },
+      badgeNumber: { fontSize: 11, fontFamily: "Montserrat", color: "#ffffff", bold: true, digits: 1, relLeft: -20, relTop: 0 },
     };
     const { elements } = buildSectionElements({
       name: "Certyfikaty", layout: SECTION_LAYOUTS.TEXTAREA, style: styleWithBadge,
@@ -302,7 +305,7 @@ describe("buildSectionElements", () => {
   it("round-trips: a built badge-number is not double-counted as its own section", () => {
     const styleWithBadge = {
       ...style,
-      badgeNumber: { fontSize: 11, fontFamily: "Montserrat", color: "#ffffff", bold: true, digits: 2, relLeft: -44, relTop: 8 },
+      badgeNumber: { fontSize: 11, fontFamily: "Montserrat", color: "#ffffff", bold: true, digits: 2, relLeft: -44, relTop: 0 },
     };
     const { elements, headingId } = buildSectionElements({
       name: "Certyfikaty", layout: SECTION_LAYOUTS.TEXTAREA, style: styleWithBadge,
@@ -453,7 +456,9 @@ describe("build -> append -> reorder (composed production pipeline)", () => {
     });
     const appended = appendSectionAtEnd(doc, additions, pageHeight, {});
     const absolute = (element) => ((element.page || 1) - 1) * pageHeight + element.top;
-    const geometry = listDocumentSections(appended, pageHeight).map((section) => {
+    // Chip-grid sections (Skills) may have no `flowRole: "content"` textarea —
+    // only assert rule geometry on sections that still expose a content body.
+    const geometry = listDocumentSections(appended, pageHeight).flatMap((section) => {
       const ids = sectionElementIds(appended, section.headingId, pageHeight);
       const members = appended.filter((element) => ids.has(element.element_id));
       const heading = members.find((element) => element.element_id === section.headingId);
@@ -461,15 +466,16 @@ describe("build -> append -> reorder (composed production pipeline)", () => {
       const body = members
         .filter((element) => element.flowRole === "content")
         .sort((left, right) => absolute(left) - absolute(right))[0];
+      if (!heading || !rule || !body) return [];
       const estimatedHeadingWidth = heading.content.length
         * (heading.fontSize * 0.58 + heading.letterSpacing);
-      return {
+      return [{
         headingId: section.headingId,
-        ruleId: rule?.element_id,
+        ruleId: rule.element_id,
         right: rule.left + rule.width,
         labelGap: rule.left - heading.left - estimatedHeadingWidth,
         gap: absolute(body) - absolute(rule) - rule.height,
-      };
+      }];
     });
 
     assert.ok(geometry.find((section) => section.headingId === headingId)?.ruleId);

@@ -101,6 +101,73 @@ export function isDecorativeOrdinalChrome(element) {
 }
 
 /**
+ * Snap Monument-style ordinal digits onto their section title baseline.
+ *
+ * Authored geometry places the filled 32px badge at heading−8 and both the
+ * title and the "01"/"02"/… label at the same Y (badge+8). A legacy add-section
+ * path treated `badgeNumber.relTop` as an inset into the square (`8`) instead
+ * of an offset from the heading (`0`). After markers at −8 were normalised,
+ * digits landed at square+16 — visibly too low inside the black rectangle
+ * (seen on section "04" while "01"–"03" stayed correct).
+ *
+ * Only sections that still have a tall filled badge line are adjusted, so
+ * templates without ordinal chrome are untouched.
+ *
+ * @param {object[]} elements
+ * @param {number} [pageHeight=842]
+ * @returns {object[]}
+ */
+export function healDecorativeOrdinalBaselines(elements, pageHeight = 842) {
+  const list = Array.isArray(elements) ? elements : [];
+  if (list.length === 0) return list;
+
+  const sections = listDocumentSections(list, pageHeight);
+  if (sections.length === 0) return list;
+
+  const fixes = new Map();
+  for (let index = 0; index < sections.length; index += 1) {
+    const section = sections[index];
+    const heading = list.find((element) => element.element_id === section.headingId);
+    if (!heading) continue;
+    const headingAbs = absoluteTop(heading, pageHeight);
+    // Next section's band start (or EOF). Do not call `sectionElementIds` here —
+    // that helper mutates stacked-body membership as a side effect and must not
+    // run from a pure geometry heal used on every load / spacing pass.
+    const nextStart = index + 1 < sections.length
+      ? sections[index + 1].startAbs
+      : Number.POSITIVE_INFINITY;
+    const band = list.filter((element) => {
+      if (!element || element.fixedToPage) return false;
+      if (element.flowRole !== "section-chrome") return false;
+      const abs = absoluteTop(element, pageHeight);
+      // Monument badge/frame sit up to 8px above the title baseline.
+      return abs >= headingAbs - 24 && abs < nextStart - 0.01;
+    });
+    const hasTallBadge = band.some((element) => (
+      element.category === "line"
+      && (Number(element.width) || 0) < 120
+      && (Number(element.height) || 0) >= 20
+    ));
+    if (!hasTallBadge) continue;
+
+    const headingTop = Number(heading.top) || 0;
+    const headingPage = Number(heading.page) || 1;
+    for (const element of band) {
+      if (!isDecorativeOrdinalChrome(element)) continue;
+      if ((Number(element.page) || 1) !== headingPage) continue;
+      if (Math.abs((Number(element.top) || 0) - headingTop) <= 0.5) continue;
+      fixes.set(element.element_id, headingTop);
+    }
+  }
+
+  if (fixes.size === 0) return list;
+  return list.map((element) => {
+    if (!fixes.has(element.element_id)) return element;
+    return { ...element, top: fixes.get(element.element_id) };
+  });
+}
+
+/**
  * Prefer the real section title inside a chrome cluster over a decorative
  * ordinal badge that may sort first in document order.
  * @param {object[]} chromeElements
@@ -1034,12 +1101,25 @@ function compactChromeCluster(chromeElements, pageHeight) {
     // Explicit section chrome is authored as one rigid visual composition.
     // Rebuilding it from generic heading/rule heuristics changes template-
     // specific offsets (chips, icons, frames and rules) every time a spacing
-    // slider is used. The two legacy-corruption signatures above remain
+    // slider is used. Recognized legacy-corruption signatures remain
     // repairable, while healthy custom compositions keep their exact geometry.
     const items = chromeElements.map((element) => ({
       element,
       relTop: absoluteTop(element, pageHeight) - headingAbs,
     }));
+    // Third corruption signature: Monument ordinal digits drifted below the
+    // title baseline (square+16 instead of square+8). Snap them back onto the
+    // title before minRel normalisation so packing alone repairs open docs.
+    if (tallBadge && heading) {
+      const titleItem = items.find((item) => item.element === heading);
+      if (titleItem) {
+        for (const item of items) {
+          if (isDecorativeOrdinalChrome(item.element)) {
+            item.relTop = titleItem.relTop;
+          }
+        }
+      }
+    }
     const minRel = Math.min(...items.map((item) => item.relTop));
     for (const item of items) item.relTop -= minRel;
     return items.sort((left, right) => left.relTop - right.relTop
@@ -2038,7 +2118,9 @@ export function removeSection(
  */
 export function applyFlowSpacing(elements, spacing, pageHeight = 842, options = {}) {
   const rhythm = normalizeFlowSpacing(spacing);
-  let next = elements || [];
+  // Repair ordinal/title baseline drift before packing so a spacing pass also
+  // fixes Monument badges that were saved with the legacy square+16 offset.
+  let next = healDecorativeOrdinalBaselines(elements || [], pageHeight);
   const sections = listDocumentSections(next, pageHeight);
   if (sections.length > 0) {
     next = packDocumentSections(
