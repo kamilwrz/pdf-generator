@@ -52,7 +52,7 @@ def _sections_short_experience():
         PlaceableSection("summary", 0, "sidebar", main_height=110, sidebar_height=130),
         PlaceableSection("experience", 1, "main", main_height=120, sidebar_height=None, anchored_main=True),
         PlaceableSection("education", 2, "main", main_height=80, sidebar_height=100),
-        PlaceableSection("skills", 3, "sidebar", main_height=140, sidebar_height=300),
+        PlaceableSection("skills", 3, "sidebar", main_height=140, sidebar_height=150),
         PlaceableSection("languages", 4, "sidebar", main_height=50, sidebar_height=60),
     ]
 
