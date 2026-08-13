@@ -87,7 +87,13 @@ function restyleMemberAsMain(element, headingId, style, appendTop) {
   const headingLeft = Number(style.left) || bodyLeft;
 
   if (element.element_id === headingId) {
+    // Always take the sampled main heading metrics. Rail kickers keep accent
+    // colour / 9.4px / wider tracking; leaving any of those on a transferred
+    // Summary or Languages strip is the live Sterling mismatch vs Experience.
     const fontSize = Number(headingFont.fontSize) || 10;
+    const letterSpacing = Number.isFinite(Number(headingFont.letterSpacing))
+      ? Number(headingFont.letterSpacing)
+      : (Number(element.letterSpacing) || 0);
     return clearSidebarLane({
       ...element,
       flowRole: "section-chrome",
@@ -96,14 +102,13 @@ function restyleMemberAsMain(element, headingId, style, appendTop) {
       fontSize,
       fontFamily: headingFont.fontFamily || element.fontFamily,
       color: headingFont.color || element.color,
-      letterSpacing: Number.isFinite(Number(headingFont.letterSpacing))
-        ? Number(headingFont.letterSpacing)
-        : element.letterSpacing,
-      bold: headingFont.bold ?? element.bold,
+      letterSpacing,
+      bold: headingFont.bold !== undefined ? Boolean(headingFont.bold) : Boolean(element.bold),
       height: measureTextareaHeight(
         element.content, recordWidth, fontSize, fontSize * 1.35,
       ),
       page: 1,
+      preserveInitialLayout: false,
     });
   }
 

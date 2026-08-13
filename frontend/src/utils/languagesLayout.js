@@ -182,7 +182,9 @@ export function buildLanguagesMainGrid(entries, options) {
         align: "left",
         bulletList: false,
         autoHeight: true,
-        preserveInitialLayout: true,
+        // Remeasure at destination geometry after main ↔ sidebar transfer;
+        // locking the authored rail box leaves wrong cell heights / gaps.
+        preserveInitialLayout: false,
         flowRole: "grid-member",
         flowGroup,
         page: 1,

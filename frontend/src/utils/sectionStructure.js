@@ -961,14 +961,24 @@ export function packSidebarLane(
     return compactSectionStrip(members, pageHeight, rhythm, forceTargets);
   });
 
-  // Keep the rail top at the current topmost kicker (Y order), not the first
-  // heading of the new order — otherwise moving the bottom section up would
-  // drag the whole rail under the masthead.
+  // Anchor from the current topmost kicker (Y order), not the first heading of
+  // a reorder — otherwise moving the bottom section up would drag the whole
+  // rail under the masthead. When that kicker sits well below the main-column
+  // content top (hole after moving Summary / another top rail section into
+  // main), pull the rail up to `resolveFlowStart` so remaining sections close
+  // the gap while keeping authored section gaps.
   const railAnchor = sections[0];
   const firstHeading = list.find((element) => element.element_id === railAnchor.headingId);
-  let cursorAbs = firstHeading
+  const authoredRailTop = firstHeading
     ? resolveSectionChromeBandStart(list, firstHeading, pageHeight)
     : railAnchor.startAbs;
+  const mainSections = listDocumentSections(list, pageHeight);
+  let cursorAbs = authoredRailTop;
+  if (mainSections.length > 0) {
+    const mainStart = resolveFlowStart(list, mainSections, pageHeight);
+    // Never push the rail down; only close holes above the first remaining kicker.
+    cursorAbs = Math.min(authoredRailTop, mainStart);
+  }
 
   const placedById = new Map();
   strips.forEach((strip, stripIndex) => {
@@ -2268,6 +2278,42 @@ const DEFAULT_SIDEBAR_SECTION_STYLE = Object.freeze({
 const DECORATIVE_SHAPE_CATEGORIES = new Set(["rectangle", "circle", "ellipse", "line", "image"]);
 
 /**
+ * Choose which linear body element supplies type metrics for transfers / add.
+ *
+ * Experience and education put a short bold title (or degree) above the real
+ * description. The first element in reading order is therefore usually the
+ * wrong sample — prefer bullets, multi-line copy, or a non-bold mid-size line.
+ *
+ * @param {object[]} linearBodies
+ * @param {object[]} bodyElements
+ * @returns {object|null}
+ */
+function pickLinearBodySample(linearBodies, bodyElements) {
+  const pool = (linearBodies && linearBodies.length > 0)
+    ? linearBodies
+    : (bodyElements || []);
+  if (pool.length === 0) return null;
+  const bulleted = pool.find((element) => element.bulletList);
+  if (bulleted) return bulleted;
+  const multiLine = pool.find((element) => String(element.content || "").includes("\n"));
+  if (multiLine) return multiLine;
+  // Body copy sits near 9–10.5px; skip bold titles (~11+) and prefer the larger
+  // plain size so muted meta (~8.6) does not win over description (~9.5).
+  const plainCandidates = pool.filter((element) => {
+    if (element.bold) return false;
+    const fontSize = Number(element.fontSize) || 0;
+    return fontSize > 0 && fontSize <= 10.5;
+  });
+  if (plainCandidates.length > 0) {
+    return plainCandidates.reduce((best, element) => (
+      (Number(element.fontSize) || 0) > (Number(best.fontSize) || 0) ? element : best
+    ));
+  }
+  // Last linear line in reading order is typically the description block.
+  return pool[pool.length - 1];
+}
+
+/**
  * Derive a style profile from the document's last section so a newly added
  * section matches the active template (heading font, rule, decorative shapes, body copy).
  *
@@ -2399,25 +2445,36 @@ export function deriveSectionStyle(
   const linearBodies = bodyElements.filter((element) => element.flowRole !== "grid-member");
   // Sidebar bodies often sit left of the kicker (heading 51, body 25). Fall
   // back to any in-strip content when the heading-column band misses them.
-  const body = linearBodies[0]
-    || bodyElements[0]
-    || members
-      .filter((element) => element.element_id !== target.headingId
-        && element.flowRole !== chromeRole
-        && element.flowRole !== "section-chrome"
-        && element.flowRole !== "sidebar-chrome"
-        && (element.category === "text" || element.category === "textarea"))
-      .sort((a, b) => absoluteTop(a, pageHeight) - absoluteTop(b, pageHeight))[0]
+  const fallbackBody = members
+    .filter((element) => element.element_id !== target.headingId
+      && element.flowRole !== chromeRole
+      && element.flowRole !== "section-chrome"
+      && element.flowRole !== "sidebar-chrome"
+      && (element.category === "text" || element.category === "textarea"))
+    .sort((a, b) => absoluteTop(a, pageHeight) - absoluteTop(b, pageHeight))[0]
     || null;
+  // Prefer description / bullet copy over the first linear element. Experience
+  // records put a larger bold job title first; sampling that made transferred
+  // Summary / Languages inherit ~11px title type instead of ~9.5px body.
+  const body = pickLinearBodySample(linearBodies, bodyElements) || fallbackBody;
 
-  // Column width: linear body → section rule (full main underline) → never a
-  // single grid cell. Rule width matches Experience / Education on Sterling.
-  const recordWidth = Number(linearBodies[0]?.width)
+  // Column width: widest linear body → section rule → never a single grid cell
+  // or a short title line. Rule width matches Experience / Education on Sterling.
+  // When the sampled section is Languages-only, `linearBodies` is empty — fall
+  // through to the underline rule before any ~70px CEFR cell width.
+  const widthSource = linearBodies.reduce((best, element) => (
+    (Number(element.width) || 0) > (Number(best?.width) || 0) ? element : best
+  ), null) || linearBodies[0] || null;
+  const recordWidth = Number(widthSource?.width)
     || Number(rule?.width)
-    || Number(body?.width)
+    || (body && body.flowRole !== "grid-member" ? Number(body.width) : 0)
     || defaults.recordWidth;
   // Content column may sit left of the title (Monument body at 102, title at 118).
-  const bodyLeftRaw = Number(linearBodies[0]?.left ?? body?.left);
+  const bodyLeftRaw = Number(
+    widthSource?.left
+    ?? rule?.left
+    ?? (body && body.flowRole !== "grid-member" ? body.left : undefined),
+  );
   const bodyLeft = Number.isFinite(bodyLeftRaw) ? bodyLeftRaw : left;
 
   // Muted color: a body line whose color differs from the main body color

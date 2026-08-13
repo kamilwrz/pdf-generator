@@ -363,13 +363,14 @@ Implementation:
 
 On **Sterling** (UI gated by `activeTemplateId === "sterling"`; the transfer util itself is template-neutral for any tagged sidebar rail), hovering a movable section heading also shows a bare **↔** icon (`LuArrowLeftRight`, same grey `#5B5B55` style as ↑/↓) on the **destination** side of the heading: **left** of the trash/+ cluster when moving main → sidebar, **right** of the ↑/↓ cluster when moving sidebar → main. Click restyles every member of that section for the destination lane (narrow rail width / type vs main column width / type via `measureTextareaHeight`), appends it **last** in the target column, and re-packs both lanes with the **current** flow spacing (standard density or any custom knobs). Oversized strips may continue onto page 2 between records under the normal packer keep-together rules. **Experience** never receives a main → sidebar affordance (`isAnchoredMainSectionTitle`).
 
-**Languages** are a special case: the rail keeps one hyphenated textarea (`Polski - A2`), while the main column expands to the equal-width accent grid every generator uses (`Name — Level`, italic CEFR runs in the section accent, `flowRole: "grid-member"`). Moving back onto the rail collapses the grid to a single hyphen list. Packing uses the same `after_rule` / section rhythm as Experience. Style sampling for transfers prefers Experience (or another linear main section) and never treats a languages-grid cell width as `recordWidth` — otherwise Summary crushed into a ~70px ribbon on page 2 with a huge empty band above it.
+**Languages** are a special case: the rail keeps one hyphenated textarea (`Polski - A2`), while the main column expands to the equal-width accent grid every generator uses (`Name — Level`, italic CEFR runs in the section accent, `flowRole: "grid-member"`). Moving back onto the rail collapses the grid to a single hyphen list. Packing uses the same `after_rule` / section rhythm as Experience. Style sampling for transfers prefers Experience (or another linear main section): body type comes from the **description / bullet block**, not the bold job-title line (~11px), and never from a languages-grid cell width as `recordWidth` — otherwise Summary/Languages inherited title metrics or crushed into a ~70px ribbon. After a top rail section leaves for main, `packSidebarLane` pulls remaining kickers up to the main-column content top (`min(authoredRailTop, resolveFlowStart)`) so Education/Skills close the hole while keeping section gaps.
 
 Continuation pages clone a **full-height vertical rail + divider** only — never the page-1 letterhead top band (`repeatOnContinuation: false`, plus `isLetterheadBandChrome` / `expandContinuationRailChrome` for legacy short rails).
 
 Implementation:
 
-- `frontend/src/utils/transferSectionLane.js`, functions `resolveSectionLaneTransfer`, `transferSectionLane`, `moveSidebarSectionsToMain` (lines 231–); main → sidebar reuses `moveMainSectionsToSidebar`
+- `frontend/src/utils/transferSectionLane.js`, functions `resolveSectionLaneTransfer`, `transferSectionLane`, `moveSidebarSectionsToMain` (lines 256–), `restyleMemberAsMain` (lines 78–) — main → sidebar reuses `moveMainSectionsToSidebar`
+- `frontend/src/utils/sectionStructure.js`, functions `packSidebarLane` (lines 934–), `deriveSectionStyle` (lines 2332–); private `pickLinearBodySample` (lines 2291–)
 - `frontend/src/utils/languagesLayout.js`, functions `isLanguagesSectionTitle` (lines 26–28), `buildLanguagesMainGrid` (lines 130–), `restyleLanguagesMembersAsSidebar` (lines 269–)
 - `frontend/src/utils/structureOperation.js`, functions `isLetterheadBandChrome` (lines 109–120), `expandContinuationRailChrome` (lines 131–146), `cloneFixedPageDecorations` (lines 149–)
 - `frontend/src/hooks/useA4Elements.js`, function `handleTransferSectionLane` (lines 962–977) — exposed through `PdfContext` as `transferSectionLane`
@@ -378,7 +379,8 @@ Implementation:
 
 Tests:
 
-- `frontend/src/utils/transferSectionLane.test.js` — Education rails last; Skills joins main last; Languages expand to accent grid; Experience blocked
+- `frontend/src/utils/transferSectionLane.test.js` — Education rails last; Skills joins main last; Languages expand to accent grid with Experience body/heading type; Summary transfer closes the sidebar hole; Experience blocked
+- `frontend/src/utils/sectionStructure.test.js` — `deriveSectionStyle` samples description type (not job title); `packSidebarLane` closes rail holes to main content top
 - `frontend/src/utils/languagesLayout.test.js` — grid cells + CEFR runs; sidebar collapse
 - `frontend/src/utils/structureOperation.test.js` — Sterling continuation clones full-height rail without letterhead band
 
@@ -1998,13 +2000,14 @@ Implementacja:
 
 Na **Sterling** (UI ograniczone do `activeTemplateId === "sterling"`; sam util jest neutralny wobec każdego dokumentu z oznaczoną szyną) najechanie na przenoszalny nagłówek pokazuje też gołą ikonę **↔** (`LuArrowLeftRight`, ten sam szary `#5B5B55` co ↑/↓) po **stronie docelowej** nagłówka: **na lewo** od klastra kosz/+ przy main → sidebar, **na prawo** od klastra ↑/↓ przy sidebar → main. Klik restyluje wszystkich członków sekcji pod docelowy tor (wąska szyna vs szeroka kolumna główna przez `measureTextareaHeight`), dokleja sekcję **na końcu** docelowej kolumny i przepakowuje oba tory w **bieżącym** spacingu (gęstość standardowa albo własne pokrętła). Zbyt wysoki pasek może wejść na stronę 2 między rekordami — te same reguły keep-together co przy add/reorder. **Doświadczenie** nie dostaje affordance main → sidebar (`isAnchoredMainSectionTitle`).
 
-**Języki** to osobny przypadek: w szynie zostaje jedna textarea z łącznikami (`Polski - A2`), a w kolumnie głównej rozwijają się do siatki z akcentem CEFR jak w generatorach (`Name — Level`, `flowRole: "grid-member"`). Powrót na szynę zwija siatkę do jednej listy. Packer stosuje ten sam rytm `after_rule` / sekcji co przy Doświadczeniu. Próbkowanie stylu przy transferze bierze Doświadczenie (albo inną liniową sekcję główną) i nigdy nie traktuje szerokości komórki siatki języków jako `recordWidth` — inaczej Podsumowanie wpadało w ~70px wstążkę na stronie 2 z pustką u góry.
+**Języki** to osobny przypadek: w szynie zostaje jedna textarea z łącznikami (`Polski - A2`), a w kolumnie głównej rozwijają się do siatki z akcentem CEFR jak w generatorach (`Name — Level`, `flowRole: "grid-member"`). Powrót na szynę zwija siatkę do jednej listy. Packer stosuje ten sam rytm `after_rule` / sekcji co przy Doświadczeniu. Próbkowanie stylu przy transferze bierze Doświadczenie (albo inną liniową sekcję główną): krój body pochodzi z **opisu / bulletów**, nie z pogrubionego tytułu stanowiska (~11px), i nigdy z szerokości komórki siatki jako `recordWidth` — inaczej Podsumowanie/Języki dziedziczyły typ tytułu albo wpadały w ~70px wstążkę. Po wyjściu górnej sekcji z szyny `packSidebarLane` podciąga pozostałe kickery do góry kolumny głównej (`min(authoredRailTop, resolveFlowStart)`), żeby Wykształcenie/Umiejętności zamknęły dziurę przy zachowaniu odstępów między sekcjami.
 
 Strony kontynuacji klonują **tylko pełny pionowy pasek + divider** — bez letterhead top bara (`repeatOnContinuation: false` oraz `isLetterheadBandChrome` / `expandContinuationRailChrome` dla starszych krótkich szyn).
 
 Implementacja:
 
-- `frontend/src/utils/transferSectionLane.js`, funkcje `resolveSectionLaneTransfer`, `transferSectionLane`, `moveSidebarSectionsToMain` (linie 231–); main → sidebar korzysta z `moveMainSectionsToSidebar`
+- `frontend/src/utils/transferSectionLane.js`, funkcje `resolveSectionLaneTransfer`, `transferSectionLane`, `moveSidebarSectionsToMain` (linie 256–), `restyleMemberAsMain` (linie 78–); main → sidebar korzysta z `moveMainSectionsToSidebar`
+- `frontend/src/utils/sectionStructure.js`, funkcje `packSidebarLane` (linie 934–), `deriveSectionStyle` (linie 2332–); prywatne `pickLinearBodySample` (linie 2291–)
 - `frontend/src/utils/languagesLayout.js`, funkcje `isLanguagesSectionTitle` (linie 26–28), `buildLanguagesMainGrid` (linie 130–), `restyleLanguagesMembersAsSidebar` (linie 269–)
 - `frontend/src/utils/structureOperation.js`, funkcje `isLetterheadBandChrome` (linie 109–120), `expandContinuationRailChrome` (linie 131–146), `cloneFixedPageDecorations` (linie 149–)
 - `frontend/src/hooks/useA4Elements.js`, funkcja `handleTransferSectionLane` (linie 962–977) — wystawiana przez `PdfContext` jako `transferSectionLane`
@@ -2013,7 +2016,8 @@ Implementacja:
 
 Testy:
 
-- `frontend/src/utils/transferSectionLane.test.js` — Wykształcenie na koniec szyny; Umiejętności na koniec main; Języki → siatka z akcentem; Doświadczenie zablokowane
+- `frontend/src/utils/transferSectionLane.test.js` — Wykształcenie na koniec szyny; Umiejętności na koniec main; Języki → siatka z typem Doświadczenia; transfer Podsumowania zamyka dziurę w sidebarze; Doświadczenie zablokowane
+- `frontend/src/utils/sectionStructure.test.js` — `deriveSectionStyle` bierze typ opisu (nie tytułu); `packSidebarLane` zamyka dziury do góry kolumny głównej
 - `frontend/src/utils/languagesLayout.test.js` — komórki siatki + CEFR; zwijanie do sidebara
 - `frontend/src/utils/structureOperation.test.js` — klon Sterling: pełna szyna bez letterhead band
 

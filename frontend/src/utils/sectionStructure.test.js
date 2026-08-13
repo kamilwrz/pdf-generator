@@ -1715,6 +1715,51 @@ describe("applyFlowSpacing", () => {
     assert.equal(listSidebarSections(packed).length, 0);
   });
 
+  it("closes the sidebar hole up to the main-column content top after a top rail section leaves", () => {
+    // Sterling live bug: Summary moved to main, Education stayed at the old
+    // mid-rail Y instead of packing up under the letterhead band.
+    const elements = [
+      { element_id: "m-exp-head", category: "text", content: "DOŚWIADCZENIE",
+        flowRole: "section-chrome", left: 245, top: 188, fontSize: 14, height: 16, page: 1 },
+      { element_id: "m-exp-rule", category: "line", flowRole: "section-chrome",
+        left: 245, top: 208, width: 300, height: 1, page: 1 },
+      { element_id: "m-exp-body", category: "textarea", flowRole: "content",
+        left: 245, top: 220, width: 300, height: 80, fontSize: 9, page: 1 },
+
+      { element_id: "sb-edu-head", category: "text", content: "WYKSZTAŁCENIE",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 360, fontSize: 9.4, height: 12, page: 1 },
+      { element_id: "sb-edu-rule", category: "line",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 376, width: 22, height: 1.4, page: 1 },
+      { element_id: "sb-edu-body", category: "textarea", content: "LL.B.",
+        flowRole: "content", flowLane: "sidebar",
+        left: 34, top: 390, width: 152, height: 40, fontSize: 8.3, page: 1 },
+      { element_id: "sb-sk-head", category: "text", content: "UMIEJĘTNOŚCI",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 460, fontSize: 9.4, height: 12, page: 1 },
+      { element_id: "sb-sk-rule", category: "line",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 476, width: 22, height: 1.4, page: 1 },
+      { element_id: "sb-sk-body", category: "textarea", content: "SQL",
+        flowRole: "content", flowLane: "sidebar",
+        left: 34, top: 490, width: 152, height: 30, fontSize: 8.3, page: 1 },
+    ];
+    const packed = packSidebarLane(elements, 842, {
+      spacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
+    });
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+    assert.ok(
+      Math.abs(byId["sb-edu-head"].top - 188) <= 2,
+      `education should rise to main content top, got ${byId["sb-edu-head"].top}`,
+    );
+    assert.ok(
+      byId["sb-sk-head"].top > byId["sb-edu-head"].top,
+      "skills stays below education after the hole closes",
+    );
+    assert.equal(byId["m-exp-head"].top, 188, "main column must stay untouched");
+  });
+
   it("moves a sidebar kicker with its body instead of orphaning it in the page-1 footer", () => {
     // Education fills the rail to ~720. Skills chrome would "fit" in the
     // leftover band while the list needs ~120px — pack must bump the whole
@@ -1848,6 +1893,34 @@ describe("deriveSectionStyle", () => {
     assert.equal(style.heading.letterSpacing, 1.35);
     assert.equal(style.rule.backgroundColor, "#bbbbbb");
     assert.equal(style.body.fontSize, 9.1);
+  });
+
+  it("samples Experience description type, not the bold job-title line", () => {
+    // Regression: transfers inherited ~11px title metrics because the first
+    // linear body in an Experience strip is the job title, not the bullets.
+    const elements = [
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "DOŚWIADCZENIE",
+        left: 245, top: 188, fontSize: 14, fontFamily: "Montserrat", color: "#26313F",
+        letterSpacing: 0.8, bold: true, page: 1 },
+      { element_id: "r1", category: "line", flowRole: "section-chrome",
+        left: 245, top: 208, width: 300, height: 1, backgroundColor: "#C7CFDA", page: 1 },
+      { element_id: "title", category: "text", flowRole: "content", flowGroup: "job-0",
+        left: 245, top: 220, width: 300, height: 14, fontSize: 11.2, bold: true,
+        fontFamily: "Montserrat", color: "#26313F", page: 1 },
+      { element_id: "meta", category: "text", flowRole: "content", flowGroup: "job-0",
+        left: 245, top: 236, width: 300, height: 12, fontSize: 8.6,
+        fontFamily: "Montserrat", color: "#6B7280", page: 1 },
+      { element_id: "body", category: "textarea", flowRole: "content", flowGroup: "job-0",
+        left: 245, top: 252, width: 300, height: 60, fontSize: 9.5, lineHeight: 13.8,
+        fontFamily: "Montserrat", color: "#26313F", content: "Monitoring.", page: 1 },
+    ];
+    const style = deriveSectionStyle(elements, 842, "h1", { lane: "main" });
+    assert.equal(style.body.fontSize, 9.5);
+    assert.equal(style.body.lineHeight, 13.8);
+    assert.equal(style.heading.fontSize, 14);
+    assert.equal(style.heading.color, "#26313F");
+    assert.equal(style.recordWidth, 300);
+    assert.equal(style.mutedColor, "#6B7280");
   });
 
   it("does not inherit a languages-grid cell width as the column recordWidth", () => {
