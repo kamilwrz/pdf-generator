@@ -1030,6 +1030,7 @@ export default function AiAssistant() {
         A4_Elements,
         activeTemplateId,
         editElementValues,
+        collapseSpilledMainIntoSidebar,
         applyLayoutPatches,
         applyStructureOperation,
         applyCloneOperation,
@@ -1158,7 +1159,8 @@ export default function AiAssistant() {
         const { element_id, ...fields } = patch;
         editElementValues(fields, element_id);
         setCorrectionStates(prev => ({ ...prev, [`${msgId}_${element_id}`]: "accepted" }));
-    }, [editElementValues]);
+        collapseSpilledMainIntoSidebar?.();
+    }, [editElementValues, collapseSpilledMainIntoSidebar]);
 
     const rejectCorrection = useCallback((msgId, element_id) => {
         setCorrectionStates(prev => ({ ...prev, [`${msgId}_${element_id}`]: "rejected" }));
@@ -1177,7 +1179,8 @@ export default function AiAssistant() {
             newStates[`${msgId}_${element_id}`] = "accepted";
         });
         setCorrectionStates(prev => ({ ...prev, ...newStates }));
-    }, [correctionStates, editElementValues]);
+        collapseSpilledMainIntoSidebar?.();
+    }, [correctionStates, editElementValues, collapseSpilledMainIntoSidebar]);
 
     const previewLayoutGroup = useCallback((msgId, group) => {
         setStructurePreviewGroup(null);

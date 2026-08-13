@@ -423,12 +423,39 @@ def _gen_sterling(cv: dict) -> list[dict]:
             content_height=content_height,
         )
 
+    def fit_sidebar_page1(keys: list[str]) -> set[str]:
+        """Keys the page-1 rail can actually place, via the real auto-fit fitter.
+
+        Mirrors ``_render_sidebar_bucket``'s page-1 path (summary consumes the
+        top of the rail at its fixed size; the rest go through
+        ``_fit_sidebar_sections``, which shrinks each section down the font
+        ladder to fit the remaining space) but only reports which keys fit, so
+        the planner's page-collapse pass can move a spilled section (e.g.
+        Education) into the page-1 sidebar when — and only when — it genuinely
+        fits once shrunk. Never over-commits, so nothing can be dropped.
+        """
+        key_set = set(keys)
+        cursor = content_top
+        placed: set[str] = set()
+        if 'summary' in key_set and cv.get('summary'):
+            body_h = Builder.measure_block(cv['summary'], SIDE_W, SIDE_SUMMARY_FS, SIDE_SUMMARY_LH, SANS)
+            cursor = content_top + CHROME_GAP + body_h + 26.0
+            placed.add('summary')
+        cand_lookup = {candidate['key']: candidate for candidate in candidates}
+        planned = [cand_lookup[key] for key in keys if key in cand_lookup]
+        _, placed_keys = _fit_sidebar_sections(
+            planned, width=SIDE_W, start_y=cursor, bottom_y=760, font=SANS,
+        )
+        placed.update(placed_keys)
+        return placed
+
     plan = plan_columns_multi_page(
         descriptors,
         page1_sidebar_budget=sidebar_budget,
         continuation_sidebar_budget=760.0 - PAGE_TOP,
         page1_main_budget=main_budget,
         measure_main=measure_main,
+        fit_sidebar_page1=fit_sidebar_page1,
     )
     sidebar_extra_indices = _sidebar_extra_indices_for(plan.main)
 

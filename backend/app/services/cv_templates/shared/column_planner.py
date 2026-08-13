@@ -288,6 +288,7 @@ def plan_columns_multi_page(
     continuation_sidebar_budget: float,
     page1_main_budget: float,
     measure_main: Callable[[list[str]], MainMeasurement],
+    fit_sidebar_page1: Callable[[list[str]], set[str]] | None = None,
     imbalance_tolerance: float = 60.0,
     min_improvement: float = 24.0,
 ) -> ColumnPlan:
@@ -329,19 +330,26 @@ def plan_columns_multi_page(
        Passing a lump sum spanning every page would have the same draining
        effect for the opposite reason (a phantom multi-page main capacity).
 
-    3. **Move movable leftovers to the page they really land on.** A real
+    3a. **Collapse a page by railing a spilled leftover into page 1's sidebar.**
+       When ``fit_sidebar_page1`` is supplied, a movable leftover (never
+       Experience) that spills onto a continuation page is moved into *page 1's*
+       sidebar whenever the REAL fitter confirms it still fits there beside the
+       existing page-1 rail (the fitter shrinks the rail font exactly as the
+       render does, so a section that misses at full size but fits shrunk is
+       accepted, and the fitter can never over-commit and drop a section). This
+       empties the leftover out of the main column and can drop the whole
+       continuation page — a shorter CV. Greedy, re-measured each round.
+
+    3b. **Move remaining leftovers to the page they really land on.** A real
        ``measure_main(plan.main)`` reports each remaining main section's start
-       page. A movable leftover (non-anchored, sidebar-capable, still in main —
-       Education, or an overflow section evicted in step 2) whose start page
-       ``P`` is a page the current main column actually reaches (``2 <= P <=
-       measured main pages`` — this may exceed ``skeleton_pages`` when the
-       leftovers themselves create a page) and that fits page ``P``'s rail is
-       moved there, but only while page ``P`` still survives WITHOUT it
-       (a per-section measurement check). So a rail is never populated beside
-       an empty main column, and when two leftovers share a new page the first
-       is railed while the second holds the main column. The check runs
-       greedily, re-measuring each round; because it only ever removes sections
-       from main, main shrinks monotonically and it always terminates.
+       page. A movable leftover whose start page ``P`` is a page the current
+       main column actually reaches (``2 <= P <= measured main pages``) and that
+       fits page ``P``'s rail is moved there, but only while page ``P`` still
+       survives WITHOUT it (a per-section measurement check). So a rail is never
+       populated beside an empty main column, and when two leftovers share a new
+       page the first is railed while the second holds the main column. Greedy;
+       because it only removes sections from main, main shrinks monotonically
+       and it always terminates.
 
     A CV whose main fits page 1 has a one-page skeleton, seeds nothing beyond
     page 1, and finds no leftover on page >= 2, so it reduces to the
@@ -421,6 +429,50 @@ def plan_columns_multi_page(
         for page, keys in sidebar_by_page.items()
     }
 
+    # Step 3a: collapse pages by moving a movable leftover that spills onto a
+    # continuation page into PAGE 1's sidebar, whenever doing so removes a page.
+    # A movable section's real rail height is smaller than its main-column
+    # height, and the rail auto-fits its font down a ladder, so a leftover that
+    # barely misses page 1's rail at full size often fits once shrunk — placing
+    # it there empties it out of the main column and can drop the whole
+    # continuation page (a shorter, tidier CV). Only Experience is anchored and
+    # never eligible. The move is confirmed by the REAL fitter
+    # (`fit_sidebar_page1`), which shrinks exactly as the render does, so it can
+    # never over-commit and silently drop a section. Greedy and bounded by the
+    # leftover count. When `fit_sidebar_page1` is not supplied (pure unit tests),
+    #     this pass is skipped and behaviour is unchanged.
+    if fit_sidebar_page1 is not None:
+        while True:
+            pages_before = measure_main(remaining_main).pages_used
+            if pages_before < 2:
+                break
+            moved = False
+            # Try the movable leftovers from the tail of the reading order first —
+            # the deepest sections are the ones spilling past the page boundary.
+            for key in reversed([k for k in remaining_main if _movable(k)]):
+                trial = sorted(
+                    [*sidebar_by_page.get(1, []), key],
+                    key=lambda member: by_key[member].order_rank,
+                )
+                placed = fit_sidebar_page1(trial)
+                if not all(member in placed for member in trial):
+                    continue
+                # Only worth it if pulling this section out of main actually
+                # drops a page (the user's rule: rail it when it removes a page).
+                after = [other for other in remaining_main if other != key]
+                if measure_main(after).pages_used >= pages_before:
+                    continue
+                sidebar_by_page.setdefault(1, []).append(key)
+                rail_used[1] = rail_used.get(1, 0.0) + float(by_key[key].sidebar_height)
+                remaining_main.remove(key)
+                moved = True
+                break
+            if not moved:
+                break
+
+    # Step 3b: rail the remaining movable leftovers that still spill onto a
+    # continuation page onto that page's own rail (survival-checked below), for
+    # pages that could not collapse into page 1.
     while True:
         measurement = measure_main(remaining_main)
         main_pages = measurement.pages_used

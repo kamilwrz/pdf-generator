@@ -44,8 +44,8 @@ test("auto-fit proposes offline then commits once via applySpacing", async () =>
   assert.match(autoFit, /proposeAutoFitSpacing/);
   assert.match(autoFit, /applySpacing\(proposal\.spacing\)/);
   assert.equal((autoFit.match(/applySpacing\(/g) || []).length, 1);
+  assert.match(autoFit, /collapseSpilledMainIntoSidebar/);
   assert.doesNotMatch(autoFit, /setFlowSpacing\(/);
-  assert.doesNotMatch(autoFit, /setA4_Elements\(/);
 });
 
 test("advanced spacing accordion defaults closed and reset uses baseline copy", async () => {

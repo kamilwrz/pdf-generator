@@ -19,6 +19,7 @@ import {
   normalizeEditorMode,
 } from '../utils/editorMode';
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from '../utils/flowSpacing';
+import { collapseSpilledMainIntoSidebar } from '../utils/collapseMainIntoSidebar';
 import {
   deriveSectionStyle,
   appendSectionAtEnd,
@@ -1275,6 +1276,22 @@ export function useA4Elements(titleRef) {
     });
   }, [markHistoryQuiet, finalizeDocumentPages]);
 
+  /**
+   * After AI content patches, move leftover main-column sections onto the
+   * sidebar when that restyle (measured at rail width) drops a page.
+   * Experience stays in the main column.
+   */
+  const handleCollapseSpilledMainIntoSidebar = useCallback(() => {
+    setA4_Elements((prev) => {
+      const collapsed = collapseSpilledMainIntoSidebar(prev, {
+        pageHeight: pageSizeRef.current.height,
+        spacing: flowSpacingRef.current,
+      });
+      if (collapsed === prev) return prev;
+      return finalizeDocumentPages(collapsed, { collapseEmpty: true });
+    });
+  }, [finalizeDocumentPages]);
+
   // Applies one reviewed layout group as a single state change. The backend
   // already validates proposals, but this client-side guard prevents stale or
   // malformed responses from moving elements outside the current canvas.
@@ -1983,6 +2000,7 @@ export function useA4Elements(titleRef) {
     handleDuplicateElement,
     handleDuplicateSelectedElements,
     handleEditElementValues,
+    handleCollapseSpilledMainIntoSidebar,
     handleEditSelectedElementValues,
     fitTextareaToContent: handleFitTextareaToContent,
     applyLayoutPatches,

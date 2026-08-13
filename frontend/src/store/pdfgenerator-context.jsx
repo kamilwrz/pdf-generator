@@ -67,6 +67,7 @@ export const PdfContext = createContext({
     showDropzone: () => {},
     showGallery: () => {},
     editElementValues: () => {},
+    collapseSpilledMainIntoSidebar: () => {},
     editSelectedElementValues: () => {},
     applyStructureOperation: () => {},
     applyCloneOperation: () => {},

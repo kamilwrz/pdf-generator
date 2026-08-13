@@ -73,6 +73,7 @@ import {
   SIDEBAR_TOO_LONG_MIN_PAGES,
 } from '../utils/documentLength';
 import { applyFlowSpacing } from '../utils/sectionStructure';
+import { collapseSpilledMainIntoSidebar } from '../utils/collapseMainIntoSidebar';
 import { demoCvTemplate } from '../templates/demoCv';
 import { TEMPLATES } from '../templates';
 import { templateHasLayout } from '../utils/templateLayouts';
@@ -325,6 +326,7 @@ function PdfCanvas() {
     handleDuplicateSelectedElements,
     handleAlignElements,
     handleEditElementValues,
+    handleCollapseSpilledMainIntoSidebar,
     handleEditSelectedElementValues,
     fitTextareaToContent: handleFitTextareaToContent,
     applyLayoutPatches,
@@ -919,7 +921,11 @@ function PdfCanvas() {
   const applyCompactSpacingPass = useCallback(() => {
     const pageHeight = pageSize?.height ?? 842;
     const packed = applyFlowSpacing(A4_Elements, COMPACT_FLOW_SPACING, pageHeight);
-    const reconciled = reconcileDocumentPages(packed, nanoid, { collapseEmpty: true });
+    const collapsed = collapseSpilledMainIntoSidebar(packed, {
+      spacing: COMPACT_FLOW_SPACING,
+      pageHeight,
+    });
+    const reconciled = reconcileDocumentPages(collapsed, nanoid, { collapseEmpty: true });
     setFlowSpacing(COMPACT_FLOW_SPACING);
     setA4_Elements(reconciled.elements);
     return reconciled.pageCount;
@@ -1425,6 +1431,7 @@ function PdfCanvas() {
     spacingHoldId,
     setSpacingHoldId,
     editElementValues: handleEditElementValues,
+    collapseSpilledMainIntoSidebar: handleCollapseSpilledMainIntoSidebar,
     editSelectedElementValues: handleEditSelectedElementValues,
     fitTextareaToContent: handleFitTextareaToContent,
     applyStructureOperation,

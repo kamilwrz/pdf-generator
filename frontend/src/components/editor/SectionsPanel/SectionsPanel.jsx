@@ -27,6 +27,7 @@ import {
   proposeAutoFitSpacing,
 } from "../../../utils/layoutDensity";
 import { reconcileDocumentPages } from "../../../utils/structureOperation";
+import { collapseSpilledMainIntoSidebar } from "../../../utils/collapseMainIntoSidebar";
 import classes from "./SectionsPanel.module.css";
 
 /** User-facing spacing knobs — keys stay aligned with SPACE_* in the generator. */
@@ -134,8 +135,12 @@ export default function SectionsPanel({ onClose }) {
     setFlowSpacing(normalized);
     setA4_Elements((prev) => {
       const packed = applyFlowSpacing(prev, normalized, pageHeight);
+      const collapsed = collapseSpilledMainIntoSidebar(packed, {
+        spacing: normalized,
+        pageHeight,
+      });
       // Do not re-pack after this — only add/drop fixed continuation chrome.
-      const reconciled = reconcileDocumentPages(packed, nanoid, {
+      const reconciled = reconcileDocumentPages(collapsed, nanoid, {
         collapseEmpty: true,
       });
       return reconciled.elements;
@@ -171,8 +176,28 @@ export default function SectionsPanel({ onClose }) {
       pageHeight,
     });
     if (!proposal.changed) {
+      // Spacing already optimal; still rail leftover main sections when that
+      // would drop a page after AI / earlier tightening (Education → sidebar).
+      const collapsed = collapseSpilledMainIntoSidebar(A4_Elements, {
+        spacing,
+        pageHeight,
+      });
+      if (collapsed === A4_Elements) {
+        pushToast?.({
+          title: "Układ jest już dobrze dopasowany.",
+          variant: "success",
+        });
+        return;
+      }
+      setA4_Elements(() => {
+        const reconciled = reconcileDocumentPages(collapsed, nanoid, {
+          collapseEmpty: true,
+        });
+        return reconciled.elements;
+      });
       pushToast?.({
-        title: "Układ jest już dobrze dopasowany.",
+        title: "Układ został dopasowany.",
+        msg: "Sekcja z kolumny głównej zmieściła się w sidebarze i zdjęła stronę.",
         variant: "success",
       });
       return;
