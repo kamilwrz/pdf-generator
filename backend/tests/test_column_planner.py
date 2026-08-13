@@ -424,6 +424,36 @@ def test_orchestrator_keeps_overflow_in_main_rather_than_railing_an_empty_page()
     assert plan.sidebar_by_page.get(2, []) == []
 
 
+def test_orchestrator_keeps_overflow_on_the_rail_when_skeleton_fills_page_one():
+    # Skeleton (Experience plus the always-rendered record extras modelled by
+    # `base`) already spans two pages, so page-1 main is full — even though the
+    # pure planner's descriptor height for Experience alone looks short. The
+    # balance loop must NOT drag the page-2 Certifications rail section into the
+    # main column to "fill page 1": that content renders on page 2 regardless,
+    # and pulling it in would leave page 2's rail empty. Certifications must stay
+    # on the page-2 rail. (Regression: descriptor heights exclude record extras,
+    # so `empty_main` looked large and the balancer emptied the continuation
+    # rail into main.)
+    sections = _page_one_filling_sidebar() + [
+        PlaceableSection("experience", 1, "main", main_height=300, sidebar_height=None, anchored_main=True),
+        PlaceableSection("education", 2, "main", main_height=100, sidebar_height=100),
+        PlaceableSection("certifications", 5, "sidebar", main_height=150, sidebar_height=150),
+    ]
+    measure = _make_measure(
+        {"experience": 300, "education": 100, "certifications": 150},
+        page_size=700, base=500,
+    )
+    plan = plan_columns_multi_page(
+        sections,
+        page1_sidebar_budget=400,
+        continuation_sidebar_budget=400,
+        page1_main_budget=595,
+        measure_main=measure,
+    )
+    assert "certifications" in plan.sidebar_by_page[2]
+    assert "certifications" not in plan.main
+
+
 def test_orchestrator_rails_one_leftover_and_keeps_another_to_fill_both_columns():
     # Two main-affinity leftovers both land on page 2, which the skeleton
     # (Experience plus the always-rendered ``base`` record extra) does not

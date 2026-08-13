@@ -304,18 +304,22 @@ def plan_columns_multi_page(
        change the page count.
 
     2. **Page-1 balance + overflow seeding.** Run the pure ``plan_columns``
-       with one bucket per *skeleton* page and ``main_budget =
-       page1_main_budget``. This balances page 1 (main vs page-1 rail) exactly
-       like the single-page planner and first-fits sidebar-affinity overflow
-       (e.g. Languages that does not fit page 1) onto the continuation rails —
-       but only onto skeleton pages, which are guaranteed to carry main
+       with one bucket per *skeleton* page. This balances page 1 (main vs
+       page-1 rail) like the single-page planner and first-fits sidebar-affinity
+       overflow (e.g. Languages that does not fit page 1) onto the continuation
+       rails — but only onto skeleton pages, which are guaranteed to carry main
        content. Overflow with no safe skeleton rail is evicted back to main by
        ``plan_columns`` and flows down the main column there (this is what
        stops a section such as Certifications from stranding itself on a rail
-       whose main column would be empty). ``main_budget`` is page-1-scoped on
-       purpose: a lump sum spanning every page would make ``empty_main`` look
-       enormous and pull sidebar content *into* main to fill a phantom
-       multi-page capacity, draining the rail.
+       whose main column would be empty). The balance ``main_budget`` is
+       ``page1_main_budget`` only when the skeleton fits one page; once the
+       skeleton spans two or more pages, page-1 main is already full of
+       non-movable content (Experience + record extras, which are invisible to
+       the pure planner's descriptor heights), so the budget is 0 — otherwise
+       ``empty_main`` would look large and the balancer would pull sidebar
+       overflow off a continuation rail into the main column to "fill page 1".
+       Passing a lump sum spanning every page would have the same draining
+       effect for the opposite reason (a phantom multi-page main capacity).
 
     3. **Move movable leftovers to the page they really land on.** A real
        ``measure_main(plan.main)`` reports each remaining main section's start
@@ -352,8 +356,19 @@ def plan_columns_multi_page(
         SidebarBucket(page, continuation_sidebar_budget)
         for page in range(2, skeleton_pages + 1)
     ]
+    # If the skeleton already spans two or more pages, page 1's MAIN column is
+    # full of non-movable content (Experience + record extras such as Projects)
+    # — even though those record extras are invisible to the pure planner's
+    # descriptor heights. Pass a zero balance budget so `empty_main` is 0 and
+    # the greedy loop only fills the page-1 RAIL; otherwise it would treat the
+    # (descriptor-underestimated) main column as half-empty and pull sidebar
+    # overflow such as Certifications off the page-2 rail into the main column
+    # to "fill page 1", when that content actually renders on page 2. When the
+    # skeleton fits one page, page-1 main may genuinely have room, so keep the
+    # real page-1 budget (a short Experience still pulls Education into main).
+    balance_main_budget = page1_main_budget if skeleton_pages < 2 else 0.0
     plan = plan_columns(
-        sections, sidebar_buckets=seed_buckets, main_budget=page1_main_budget,
+        sections, sidebar_buckets=seed_buckets, main_budget=balance_main_budget,
         imbalance_tolerance=imbalance_tolerance, min_improvement=min_improvement,
     )
 
