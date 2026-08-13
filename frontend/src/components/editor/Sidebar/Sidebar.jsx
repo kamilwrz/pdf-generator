@@ -12,7 +12,7 @@ import { TfiLayoutLineSolid } from "react-icons/tfi";
 import { BiCircle, BiRectangle } from "react-icons/bi";
 import { CiText } from "react-icons/ci";
 import { BsTextParagraph } from "react-icons/bs";
-import { LuImagePlus, LuListTree } from "react-icons/lu";
+import { LuImagePlus, LuListTree, LuLockOpen } from "react-icons/lu";
 import { AiOutlineLogout } from "react-icons/ai";
 import { FaRegFolderOpen } from "react-icons/fa";
 import { PdfContext } from "../../../store/pdfgenerator-context";
@@ -35,6 +35,7 @@ export default function Sidebar({ children }) {
         showDropzone,
         showGallery,
         showSections,
+        showUnlockFreeform,
         editorMode,
         setIsModalPdfs,
         logout,
@@ -67,11 +68,18 @@ export default function Sidebar({ children }) {
             <div className={classes.toolsList}>
                 <SidebarControls icon={<LuImagePlus />} labelText="Zdjęcia" sidebarEvent={showGallery} />
                 {isTemplate ? (
-                    <SidebarControls
-                        icon={<LuListTree />}
-                        labelText="Układ CV"
-                        sidebarEvent={showSections}
-                    />
+                    <>
+                        <SidebarControls
+                            icon={<LuListTree />}
+                            labelText="Układ CV"
+                            sidebarEvent={showSections}
+                        />
+                        <SidebarControls
+                            icon={<LuLockOpen />}
+                            labelText="Odblokuj edycję (kopia freeform)"
+                            sidebarEvent={showUnlockFreeform}
+                        />
+                    </>
                 ) : (
                     <>
                         <SidebarControls icon={<CiText />} labelText="Dodaj tekst" sidebarEvent={addText} />

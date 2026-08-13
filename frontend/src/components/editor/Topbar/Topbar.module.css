@@ -23,7 +23,16 @@
 .group {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* A cluster is one logical set of controls; sibling clusters inside a group are
+   separated by a `.divider`, so buttons within a cluster stay tight. */
+.cluster {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
     flex-shrink: 0;
 }
 

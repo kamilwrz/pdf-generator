@@ -11,11 +11,9 @@
 import classes from "./Topbar.module.css";
 import { use, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { LuLockOpen } from "react-icons/lu";
 import { RiFileTextLine, RiDownload2Line, RiShuffleLine, RiArrowGoBackLine, RiArrowGoForwardLine, RiArrowLeftSLine, RiArrowRightSLine } from "react-icons/ri";
 import { FiEdit3, FiSave, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { TiPen } from "react-icons/ti";
-import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { TEMPLATES } from "../../../templates";
 import { adjacentAllowedTemplate } from "../../../utils/cvTemplateSelection";
 import { useApplyCvTemplate } from "../../../hooks/useApplyCvTemplate";
@@ -26,11 +24,9 @@ export default function Topbar({ titleRef }) {
         showAiPanel,
         showBioCvModal,
         showChangeTemplateModal,
-        showUnlockFreeform,
         activeCvData,
         activeTemplateId,
         entitlements,
-        editorMode,
         createPdf,
         updatePdf,
         clearA4,
@@ -48,7 +44,6 @@ export default function Topbar({ titleRef }) {
     } = use(PdfContext);
     const { applyTemplate, fillingId } = useApplyCvTemplate();
 
-    const isTemplate = editorMode === EDITOR_MODE_TEMPLATE;
     const topbarRef = useRef(null);
     const [a4Left, setA4Left] = useState(null);
 
@@ -99,44 +94,37 @@ export default function Topbar({ titleRef }) {
 
     return (
         <header className={classes.topbar} ref={topbarRef}>
+            {/* Left: content-creation entry points, then edit history. */}
             <div className={classes.group}>
-                <button
-                    type="button"
-                    className={classes.feature}
-                    onClick={showAiPanel}
-                    aria-label="Importuj CV"
-                    title="Importuj CV"
-                >
-                    <RiFileTextLine />
-                </button>
-                <button
-                    type="button"
-                    className={classes.feature}
-                    onClick={showBioCvModal}
-                    aria-label="Utwórz CV krok po kroku"
-                    title="Utwórz CV krok po kroku"
-                >
-                    <FiEdit3 />
-                </button>
-                {isTemplate ? (
+                <div className={classes.cluster} role="group" aria-label="Twórz i importuj">
                     <button
                         type="button"
                         className={classes.feature}
-                        onClick={showUnlockFreeform}
-                        aria-label="Odblokuj edycję"
-                        title="Odblokuj edycję — utwórz kopię ze swobodnym pozycjonowaniem"
+                        onClick={showAiPanel}
+                        aria-label="Importuj CV"
+                        title="Importuj CV"
                     >
-                        <LuLockOpen />
+                        <RiFileTextLine />
                     </button>
-                ) : null}
+                    <button
+                        type="button"
+                        className={classes.feature}
+                        onClick={showBioCvModal}
+                        aria-label="Utwórz CV krok po kroku"
+                        title="Utwórz CV krok po kroku"
+                    >
+                        <FiEdit3 />
+                    </button>
+                </div>
                 <span className={classes.divider} aria-hidden="true" />
-
-                <button type="button" className={classes.iconBtn} onClick={undo} disabled={!canUndo} aria-label="Cofnij" title="Cofnij (Ctrl+Z)">
-                    <RiArrowGoBackLine />
-                </button>
-                <button type="button" className={classes.iconBtn} onClick={redo} disabled={!canRedo} aria-label="Ponów" title="Ponów (Ctrl+Shift+Z)">
-                    <RiArrowGoForwardLine />
-                </button>
+                <div className={classes.cluster} role="group" aria-label="Historia zmian">
+                    <button type="button" className={classes.iconBtn} onClick={undo} disabled={!canUndo} aria-label="Cofnij" title="Cofnij (Ctrl+Z)">
+                        <RiArrowGoBackLine />
+                    </button>
+                    <button type="button" className={classes.iconBtn} onClick={redo} disabled={!canRedo} aria-label="Ponów" title="Ponów (Ctrl+Shift+Z)">
+                        <RiArrowGoForwardLine />
+                    </button>
+                </div>
             </div>
 
             {a4Left != null ? (
@@ -179,6 +167,7 @@ export default function Topbar({ titleRef }) {
                 </div>
             ) : null}
 
+            {/* Center: document identity only. */}
             <div className={classes.center}>
                 <div className={classes.projectField}>
                     <span className={classes.projectIcon} aria-hidden="true">
@@ -202,63 +191,68 @@ export default function Topbar({ titleRef }) {
                         <TiPen />
                     </button>
                 </div>
-                <div className={classes.zoomCluster}>
-                    <button
-                        type="button"
-                        className={classes.zoomBtn}
-                        onClick={zoomOut}
-                        disabled={isTwoPageView || zoom <= 0.25}
-                        aria-label="Pomniejsz"
-                        title="Pomniejsz"
-                    >
-                        <FiZoomOut />
-                    </button>
-                    <span className={classes.zoomValue}>{isTwoPageView ? "100%" : `${Math.round(zoom * 100)}%`}</span>
-                    <button
-                        type="button"
-                        className={classes.zoomBtn}
-                        onClick={zoomIn}
-                        disabled={isTwoPageView || zoom >= 3}
-                        aria-label="Powiększ"
-                        title="Powiększ"
-                    >
-                        <FiZoomIn />
-                    </button>
-                </div>
             </div>
 
+            {/* Right: view controls (zoom + pages), then document output. */}
             <div className={classes.group}>
-                <PageControls />
+                <div className={classes.cluster} role="group" aria-label="Widok dokumentu">
+                    <div className={classes.zoomCluster}>
+                        <button
+                            type="button"
+                            className={classes.zoomBtn}
+                            onClick={zoomOut}
+                            disabled={isTwoPageView || zoom <= 0.25}
+                            aria-label="Pomniejsz"
+                            title="Pomniejsz"
+                        >
+                            <FiZoomOut />
+                        </button>
+                        <span className={classes.zoomValue}>{isTwoPageView ? "100%" : `${Math.round(zoom * 100)}%`}</span>
+                        <button
+                            type="button"
+                            className={classes.zoomBtn}
+                            onClick={zoomIn}
+                            disabled={isTwoPageView || zoom >= 3}
+                            aria-label="Powiększ"
+                            title="Powiększ"
+                        >
+                            <FiZoomIn />
+                        </button>
+                    </div>
+                    <PageControls />
+                </div>
                 <span className={classes.divider} aria-hidden="true" />
-                <button
-                    type="button"
-                    className={classes.ghost}
-                    onClick={clearA4}
-                    aria-label="Wyczyść"
-                    title="Wyczyść"
-                >
-                    <FiTrash2 />
-                </button>
-                <button
-                    type="button"
-                    className={classes.secondary}
-                    onClick={updatePdf}
-                    disabled={isPdfLoading || activePdfId == null}
-                    aria-label="Pobierz PDF"
-                    title={activePdfId == null ? "Najpierw utwórz PDF" : "Pobierz PDF"}
-                >
-                    <RiDownload2Line />
-                </button>
-                <button
-                    type="button"
-                    className={classes.primary}
-                    onClick={createPdf}
-                    disabled={isPdfLoading}
-                    aria-label="Zapisz PDF"
-                    title="Zapisz PDF"
-                >
-                    <FiSave />
-                </button>
+                <div className={classes.cluster} role="group" aria-label="Zapisz i pobierz">
+                    <button
+                        type="button"
+                        className={classes.ghost}
+                        onClick={clearA4}
+                        aria-label="Wyczyść"
+                        title="Wyczyść"
+                    >
+                        <FiTrash2 />
+                    </button>
+                    <button
+                        type="button"
+                        className={classes.secondary}
+                        onClick={updatePdf}
+                        disabled={isPdfLoading || activePdfId == null}
+                        aria-label="Pobierz PDF"
+                        title={activePdfId == null ? "Najpierw utwórz PDF" : "Pobierz PDF"}
+                    >
+                        <RiDownload2Line />
+                    </button>
+                    <button
+                        type="button"
+                        className={classes.primary}
+                        onClick={createPdf}
+                        disabled={isPdfLoading}
+                        aria-label="Zapisz PDF"
+                        title="Zapisz PDF"
+                    >
+                        <FiSave />
+                    </button>
+                </div>
             </div>
         </header>
     );
