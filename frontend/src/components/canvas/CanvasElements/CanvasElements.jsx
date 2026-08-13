@@ -11,16 +11,16 @@
  * transfer arrow also appears on the destination side of the heading. Each
  * multi-line record also gets one `RecordBlockAdd` on its title line (hover
  * anywhere on the upper block → insert, delete, or reorder a record, then
- * re-pack). Flat-list section bodies (Skills, Languages, flat custom sections
- * — exactly one textarea per section) get a `FlatSectionLayoutToggle` icon to
+ * re-pack). Flat-list section bodies (Languages, flat custom sections —
+ * exactly one textarea per section) get a `FlatSectionLayoutToggle` icon to
  * their left, centered on the block's height, instead — opening a modal to
  * switch between an inline mid-dot row and a bullet list. A main-column
- * Skills heading (flat or with subcategories) additionally carries
- * `skillsMode` on its `SectionRecordAdd` anchor, which renders one more
- * hover icon opening `SkillsLayoutModal` to switch between inline / bullet /
- * chip pills — the "Skills" case is not `FlatSectionLayoutToggle`-eligible
- * once it has subcategories (more than one body textarea) or is already
- * rendered as chips (`listFlatSectionAnchors` excludes both).
+ * Skills heading additionally carries `skillsMode` on its `SectionRecordAdd`
+ * anchor, which renders one more hover icon opening `SkillsLayoutModal` to
+ * switch between inline / bullet / chip pills — a strict superset of
+ * `FlatSectionLayoutToggle`'s two modes, so any heading carrying a
+ * `skillsMode` anchor is excluded from `flatSectionAnchorsById` below to
+ * avoid showing both icons on the same row.
  */
 import { use, useMemo } from 'react';
 import Text from '../Text/Text';
@@ -118,18 +118,26 @@ export default function CanvasElements({ elements }) {
     return map;
   }, [editorMode, documentElements, pageHeight]);
 
-  // Content-element id → flat-list layout-toggle anchor (Skills, Languages,
-  // flat custom sections). A section can only be either record-shaped
+  // Content-element id → flat-list layout-toggle anchor (Languages, flat
+  // custom sections). A section can only be either record-shaped
   // (recordBlockAnchorsById) or flat (exactly one body textarea), so the two
   // maps never target the same element in practice.
+  //
+  // A main-column Skills heading is excluded here even though it also
+  // satisfies "exactly one body textarea": `sectionAnchorsById` already
+  // carries a `skillsMode` anchor for it (`SkillsLayoutModal`, inline/bullet/
+  // chips), and that picker's inline/bullet options are a strict superset of
+  // this toggle's. Keeping both produced two overlapping hover icons on the
+  // same row offering the same two modes twice.
   const flatSectionAnchorsById = useMemo(() => {
     const map = new Map();
     if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
     for (const anchor of listFlatSectionAnchors(documentElements, pageHeight)) {
+      if (sectionAnchorsById.get(anchor.headingId)?.skillsMode != null) continue;
       map.set(anchor.contentElementId, anchor);
     }
     return map;
-  }, [editorMode, documentElements, pageHeight]);
+  }, [editorMode, documentElements, pageHeight, sectionAnchorsById]);
 
   return elements.map((element) => {
     const enterClass = enterClassName(element.element_id, heldIds, fadingIds);
