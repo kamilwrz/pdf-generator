@@ -323,6 +323,7 @@ def _make_measure(heights, page_size, *, base=0.0):
     def measure(order):
         pages = 1
         cursor = base
+        total = base
         start = {}
         for key in order:
             height = heights.get(key, 0.0)
@@ -331,10 +332,13 @@ def _make_measure(heights, page_size, *, base=0.0):
                 cursor = 0.0
             start[key] = pages
             cursor += height
+            total += height
             while cursor > page_size + 1e-9:
                 pages += 1
                 cursor -= page_size
-        return MainMeasurement(pages_used=pages, start_page_by_key=start)
+        return MainMeasurement(
+            pages_used=pages, start_page_by_key=start, content_height=total,
+        )
     return measure
 
 
@@ -451,6 +455,33 @@ def test_orchestrator_keeps_overflow_on_the_rail_when_skeleton_fills_page_one():
         measure_main=measure,
     )
     assert "certifications" in plan.sidebar_by_page[2]
+    assert "certifications" not in plan.main
+
+
+def test_orchestrator_keeps_rail_overflow_when_a_one_page_skeleton_fills_page_one():
+    # Skeleton fits one page, but Experience + record extras (modelled by
+    # `base`) fill most of it. The pure planner's descriptor height for
+    # Experience alone is short, so without the measured skeleton height the
+    # balancer would think page-1 main is half-empty and pull Certifications off
+    # the rail into main to "fill" it (the same drain as the >=2-page skeleton
+    # case, one page down). Scoping the balance budget to the measured skeleton
+    # height keeps Certifications on the page-1 rail.
+    sections = [
+        PlaceableSection("summary", 0, "sidebar", main_height=180, sidebar_height=180),
+        PlaceableSection("experience", 1, "main", main_height=200, sidebar_height=None, anchored_main=True),
+        PlaceableSection("certifications", 5, "sidebar", main_height=150, sidebar_height=150),
+    ]
+    measure = _make_measure(
+        {"experience": 200, "certifications": 150}, page_size=700, base=350,
+    )
+    plan = plan_columns_multi_page(
+        sections,
+        page1_sidebar_budget=400,
+        continuation_sidebar_budget=400,
+        page1_main_budget=595,
+        measure_main=measure,
+    )
+    assert "certifications" in plan.sidebar_by_page[1]
     assert "certifications" not in plan.main
 
 

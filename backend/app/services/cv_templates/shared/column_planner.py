@@ -267,10 +267,18 @@ class MainMeasurement:
     track per-section (e.g. record-style extras rendered in bulk) may be
     absent; callers must treat a missing key as "page unknown" and leave that
     section in the main column.
+
+    ``content_height`` is the total main-column height the render consumed (in
+    the same points the budgets use). It lets the orchestrator learn how much
+    of page 1 the skeleton fills *including* record-style extras that are
+    invisible to the pure planner's per-section descriptor heights. Callers
+    that do not compute it leave it 0.0, which the orchestrator reads as "no
+    extra overhead beyond the tracked descriptors".
     """
 
     pages_used: int
     start_page_by_key: dict[str, int] = field(default_factory=dict)
+    content_height: float = 0.0
 
 
 def plan_columns_multi_page(
@@ -341,7 +349,8 @@ def plan_columns_multi_page(
     """
     by_key = {section.key: section for section in sections}
     anchored_keys = [section.key for section in sections if section.anchored_main]
-    skeleton_pages = max(1, measure_main(anchored_keys).pages_used)
+    skeleton = measure_main(anchored_keys)
+    skeleton_pages = max(1, skeleton.pages_used)
 
     def rail_budget(page: int) -> float:
         return page1_sidebar_budget if page == 1 else continuation_sidebar_budget
@@ -356,17 +365,30 @@ def plan_columns_multi_page(
         SidebarBucket(page, continuation_sidebar_budget)
         for page in range(2, skeleton_pages + 1)
     ]
-    # If the skeleton already spans two or more pages, page 1's MAIN column is
-    # full of non-movable content (Experience + record extras such as Projects)
-    # — even though those record extras are invisible to the pure planner's
-    # descriptor heights. Pass a zero balance budget so `empty_main` is 0 and
-    # the greedy loop only fills the page-1 RAIL; otherwise it would treat the
-    # (descriptor-underestimated) main column as half-empty and pull sidebar
-    # overflow such as Certifications off the page-2 rail into the main column
-    # to "fill page 1", when that content actually renders on page 2. When the
-    # skeleton fits one page, page-1 main may genuinely have room, so keep the
-    # real page-1 budget (a short Experience still pulls Education into main).
-    balance_main_budget = page1_main_budget if skeleton_pages < 2 else 0.0
+    # The pure planner sees only per-section descriptor heights, so it cannot
+    # see record-style extras (Projects) that also consume the main column.
+    # Scope the balance budget to the REAL page-1 main headroom, measured from
+    # the skeleton, so `empty_main` reflects the space movable sections could
+    # actually fill on page 1:
+    #   * Skeleton spans >= 2 pages -> page-1 main is already full, headroom 0.
+    #     (Stops the balancer pulling page-2 rail overflow such as Certifications
+    #     into main to "fill page 1" when that content renders on page 2.)
+    #   * Skeleton fits one page -> headroom is what's left after the skeleton's
+    #     measured height, i.e. page1_main_budget minus the record-extra overhead
+    #     the descriptors omit (skeleton height above the anchored descriptors).
+    #     Without this, a page-1 main that Experience + Projects fill looks
+    #     half-empty, so Education is kept in main and pushed to page 2 instead
+    #     of onto the roomy page-1 rail. A genuinely short Experience leaves real
+    #     headroom, so Education still fills the main column
+    #     (test_short_experience_keeps_education_in_main).
+    if skeleton_pages >= 2:
+        balance_main_budget = 0.0
+    else:
+        anchored_height = sum(
+            float(section.main_height) for section in sections if section.anchored_main
+        )
+        extra_overhead = max(0.0, skeleton.content_height - anchored_height)
+        balance_main_budget = max(0.0, page1_main_budget - extra_overhead)
     plan = plan_columns(
         sections, sidebar_buckets=seed_buckets, main_budget=balance_main_budget,
         imbalance_tolerance=imbalance_tolerance, min_improvement=min_improvement,

@@ -414,7 +414,14 @@ def _gen_sterling(cv: dict) -> list[dict]:
         _render_main_column(
             order, probe_builder, _sidebar_extra_indices_for(order), start_pages,
         )
-        return MainMeasurement(pages_used=probe_builder.pg, start_page_by_key=start_pages)
+        # Height the main column consumed, for a single-page render (the only
+        # case the orchestrator reads it): final cursor minus the starting top.
+        content_height = float(probe_builder.y) - content_top
+        return MainMeasurement(
+            pages_used=probe_builder.pg,
+            start_page_by_key=start_pages,
+            content_height=content_height,
+        )
 
     plan = plan_columns_multi_page(
         descriptors,
