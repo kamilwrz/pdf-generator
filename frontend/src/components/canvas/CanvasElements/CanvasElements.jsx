@@ -7,13 +7,14 @@
  * Template-mode section headings (main `section-chrome` and sidebar
  * `sidebar-chrome`) get a `SectionRecordAdd` affordance (hover trash/+ left,
  * reorder arrows right → add/delete/reorder section and re-pack within the
- * same lane). Each multi-line record also gets one `RecordBlockAdd` on its
- * title line (hover anywhere on the upper block → insert, delete, or reorder a
- * record, then re-pack). Flat-list section bodies (Skills, Languages, flat
- * custom sections — exactly one textarea per section) get a
- * `FlatSectionLayoutToggle` icon to their left, centered on the block's
- * height, instead — opening a modal to switch between an inline mid-dot row
- * and a bullet list.
+ * same lane). On Sterling (and other sidebar CVs once enabled) a left-right
+ * transfer arrow also appears on the destination side of the heading. Each
+ * multi-line record also gets one `RecordBlockAdd` on its title line (hover
+ * anywhere on the upper block → insert, delete, or reorder a record, then
+ * re-pack). Flat-list section bodies (Skills, Languages, flat custom sections
+ * — exactly one textarea per section) get a `FlatSectionLayoutToggle` icon to
+ * their left, centered on the block's height, instead — opening a modal to
+ * switch between an inline mid-dot row and a bullet list.
  */
 import { use, useMemo } from 'react';
 import Text from '../Text/Text';
@@ -36,7 +37,11 @@ import {
   listSidebarSections,
 } from '../../../utils/sectionStructure';
 import { listRecordBlockAddAnchors } from '../../../utils/sectionRecord';
+import { resolveSectionLaneTransfer } from '../../../utils/transferSectionLane';
 import classes from './CanvasElements.module.css';
+
+/** Lane-transfer hover control is enabled for Sterling first; util is general. */
+const LANE_TRANSFER_TEMPLATE_IDS = new Set(["sterling"]);
 
 function enterClassName(elementId, heldIds, fadingIds) {
   if (fadingIds.has(elementId)) return classes.enter;
@@ -45,14 +50,17 @@ function enterClassName(elementId, heldIds, fadingIds) {
 }
 
 /**
- * Map heading ids → ↑/↓ flags for one lane (main or sidebar).
- * Indexes are lane-local so a sidebar kicker cannot move into the main column.
+ * Map heading ids → ↑/↓ flags (and optional lane transfer) for one lane.
+ * Indexes are lane-local so a sidebar kicker cannot reorder into the main column.
  */
-function fillSectionAnchors(map, sections) {
+function fillSectionAnchors(map, sections, documentElements, pageHeight, allowLaneTransfer) {
   sections.forEach((section, index) => {
     map.set(section.headingId, {
       canMoveUp: index > 0,
       canMoveDown: index < sections.length - 1,
+      laneTransfer: allowLaneTransfer
+        ? resolveSectionLaneTransfer(documentElements, section.headingId, pageHeight)
+        : null,
     });
   });
 }
@@ -61,18 +69,31 @@ export default function CanvasElements({ elements }) {
   const { heldIds, fadingIds } = useCanvasEnterIds(elements);
   // `elements` is page-filtered by PdfCanvas. Reorder ↑/↓ must use the full
   // document so a heading/record on page 2 still sees neighbours on page 1.
-  const { editorMode, pageSize, A4_Elements } = use(PdfContext);
+  const { editorMode, pageSize, A4_Elements, activeTemplateId } = use(PdfContext);
   const pageHeight = pageSize?.height ?? 842;
   const documentElements = A4_Elements?.length ? A4_Elements : elements;
+  const allowLaneTransfer = LANE_TRANSFER_TEMPLATE_IDS.has(activeTemplateId);
 
-  // Heading id → reorder flags for the section hover affordance (main + rail).
+  // Heading id → reorder / lane-transfer flags for the section hover affordance.
   const sectionAnchorsById = useMemo(() => {
     const map = new Map();
     if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
-    fillSectionAnchors(map, listDocumentSections(documentElements, pageHeight));
-    fillSectionAnchors(map, listSidebarSections(documentElements, pageHeight));
+    fillSectionAnchors(
+      map,
+      listDocumentSections(documentElements, pageHeight),
+      documentElements,
+      pageHeight,
+      allowLaneTransfer,
+    );
+    fillSectionAnchors(
+      map,
+      listSidebarSections(documentElements, pageHeight),
+      documentElements,
+      pageHeight,
+      allowLaneTransfer,
+    );
     return map;
-  }, [editorMode, documentElements, pageHeight]);
+  }, [editorMode, documentElements, pageHeight, allowLaneTransfer]);
 
   const recordBlockAnchorsById = useMemo(() => {
     const map = new Map();
@@ -189,6 +210,7 @@ export default function CanvasElements({ elements }) {
               fontSize={Number(element.fontSize) || 10}
               canMoveUp={sectionAnchor.canMoveUp}
               canMoveDown={sectionAnchor.canMoveDown}
+              laneTransfer={sectionAnchor.laneTransfer}
             />
           ) : null}
           {blockAnchor ? (

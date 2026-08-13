@@ -20,6 +20,7 @@ import {
 } from '../utils/editorMode';
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from '../utils/flowSpacing';
 import { collapseSpilledMainIntoSidebar } from '../utils/collapseMainIntoSidebar';
+import { transferSectionLane } from '../utils/transferSectionLane';
 import {
   deriveSectionStyle,
   appendSectionAtEnd,
@@ -945,6 +946,30 @@ export function useA4Elements(titleRef) {
         direction,
         pageHeight,
         { spacing: flowSpacingRef.current },
+      );
+      if (!next) return prev;
+      return finalizeDocumentPages(next, { collapseEmpty: true });
+    });
+  }, [finalizeDocumentPages]);
+
+  /**
+   * Move a template-mode section between the main column and the sidebar rail.
+   * Restyles members for the destination lane, appends last in that column,
+   * and re-packs under the live flow spacing (standard or custom).
+   *
+   * @param {string} headingId
+   */
+  const handleTransferSectionLane = useCallback((headingId) => {
+    if (!headingId) return;
+    if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return;
+
+    setA4_Elements((prev) => {
+      const pageHeight = pageSizeRef.current?.height ?? 842;
+      const next = transferSectionLane(
+        prev,
+        headingId,
+        pageHeight,
+        flowSpacingRef.current,
       );
       if (!next) return prev;
       return finalizeDocumentPages(next, { collapseEmpty: true });
@@ -1986,6 +2011,7 @@ export function useA4Elements(titleRef) {
     handleRemoveRecordBlock,
     handleReorderRecordBlock,
     handleReorderSection,
+    handleTransferSectionLane,
     // connector mode
     connectMode,
     connectSourceId,

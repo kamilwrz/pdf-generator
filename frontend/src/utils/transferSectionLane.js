@@ -1,0 +1,238 @@
+/**
+ * Manual main ↔ sidebar section transfer for two-column template CVs.
+ *
+ * After a click on the heading lane-transfer control, the whole section is
+ * restyled for the destination column (width / type / chrome roles) and
+ * packed last in that lane under the live flow spacing. Page breaks may land
+ * between records via the normal packer — Experience never moves onto the rail.
+ */
+import { measureTextareaHeight } from "./textareaHeight.js";
+import { moveMainSectionsToSidebar, isAnchoredMainSectionTitle } from "./collapseMainIntoSidebar.js";
+import {
+  applyFlowSpacing,
+  deriveSectionStyle,
+  isSidebarSectionHeading,
+  listSidebarSections,
+  sectionElementIds,
+  sidebarSectionElementIds,
+} from "./sectionStructure.js";
+
+/**
+ * Absolute Y used only to park a strip so reading-order packing appends it
+ * after every existing section in the destination lane.
+ */
+const APPEND_PARK_TOP = 10_000;
+
+/**
+ * @param {object} element
+ * @param {number} pageHeight
+ * @returns {number}
+ */
+function absoluteTop(element, pageHeight) {
+  const page = Math.max(1, Math.trunc(Number(element?.page) || 1));
+  return (page - 1) * pageHeight + (Number(element?.top) || 0);
+}
+
+/**
+ * Drop sidebar lane tags so the main packer owns the element again.
+ *
+ * @param {object} element
+ * @returns {object}
+ */
+function clearSidebarLane(element) {
+  const next = { ...element };
+  delete next.flowLane;
+  return next;
+}
+
+/**
+ * Restyle one rail member onto sampled main-column geometry and recompute
+ * wrapped height at the main record width — never reuse the sidebar box.
+ *
+ * @param {object} element
+ * @param {string} headingId
+ * @param {object} style
+ * @param {number} appendTop
+ * @returns {object|null}
+ */
+function restyleMemberAsMain(element, headingId, style, appendTop) {
+  const headingFont = style.heading || {};
+  const bodyFont = style.body || {};
+  const bodySize = Number(bodyFont.fontSize) || 9.3;
+  const bodyLineHeight = Number(bodyFont.lineHeight) || bodySize * 1.4;
+  const bodyLeft = Number.isFinite(Number(style.bodyLeft))
+    ? Number(style.bodyLeft)
+    : Number(style.left) || 66;
+  const recordWidth = Number(style.recordWidth) || 329;
+  const headingLeft = Number(style.left) || bodyLeft;
+
+  if (element.element_id === headingId) {
+    const fontSize = Number(headingFont.fontSize) || 10;
+    const next = clearSidebarLane({
+      ...element,
+      flowRole: "section-chrome",
+      left: headingLeft,
+      top: appendTop,
+      fontSize,
+      fontFamily: headingFont.fontFamily || element.fontFamily,
+      color: headingFont.color || element.color,
+      letterSpacing: Number.isFinite(Number(headingFont.letterSpacing))
+        ? Number(headingFont.letterSpacing)
+        : element.letterSpacing,
+      bold: headingFont.bold ?? element.bold,
+      height: measureTextareaHeight(
+        element.content, recordWidth, fontSize, fontSize * 1.35,
+      ),
+      page: 1,
+    });
+    return next;
+  }
+
+  if (element.category === "line" && (Number(element.height) || 0) <= 4) {
+    const rule = style.rule || {};
+    const relLeft = Number.isFinite(Number(rule.relLeft)) ? Number(rule.relLeft) : 0;
+    return clearSidebarLane({
+      ...element,
+      flowRole: "section-chrome",
+      left: headingLeft + relLeft,
+      top: appendTop,
+      width: Number(rule.width) || recordWidth,
+      height: Number(rule.height) || Number(element.height) || 1,
+      backgroundColor: rule.backgroundColor || element.backgroundColor,
+      page: 1,
+    });
+  }
+
+  // Rail-only decorative chrome has no main counterpart — drop it. Heading +
+  // thin rule already cover section identity in the main column.
+  if (element.flowRole === "sidebar-chrome") {
+    return null;
+  }
+
+  const wasMuted = Boolean(element.color)
+    && Boolean(bodyFont.color)
+    && String(element.color) !== String(bodyFont.color);
+  const fontSize = bodySize;
+  const lineHeight = bodyLineHeight;
+  const next = clearSidebarLane({
+    ...element,
+    flowRole: element.flowRole === "grid-member" ? "grid-member" : "content",
+    left: bodyLeft,
+    top: appendTop,
+    width: recordWidth,
+    fontSize,
+    lineHeight,
+    fontFamily: bodyFont.fontFamily || element.fontFamily,
+    color: wasMuted ? (style.mutedColor || element.color) : (bodyFont.color || element.color),
+    page: 1,
+  });
+  if (element.category === "textarea" || element.category === "text") {
+    next.height = measureTextareaHeight(
+      element.content,
+      recordWidth,
+      fontSize,
+      lineHeight,
+      { bulletList: Boolean(element.bulletList) },
+    );
+  }
+  return next;
+}
+
+/**
+ * Convert listed sidebar sections into the main column, then pack both lanes
+ * under the current spacing so the strip becomes last in main (page 1 or
+ * continuation pages when records do not fit).
+ *
+ * @param {object[]} elements
+ * @param {string[]} headingIds
+ * @param {number} pageHeight
+ * @param {object} spacing
+ * @returns {object[]|null}
+ */
+export function moveSidebarSectionsToMain(elements, headingIds, pageHeight, spacing) {
+  const list = elements || [];
+  const ids = (headingIds || []).filter(Boolean);
+  if (ids.length === 0) return null;
+
+  const style = deriveSectionStyle(list, pageHeight, null, { lane: "main" });
+  let next = list;
+  const movedIds = new Set();
+
+  // Restyle deepest first so each membership sweep still sees the next kicker.
+  for (const headingId of [...ids].reverse()) {
+    const memberIds = sidebarSectionElementIds(next, headingId, pageHeight);
+    if (memberIds.size === 0) return null;
+    const members = next.filter((element) => memberIds.has(element.element_id));
+    const minAbs = Math.min(...members.map((element) => absoluteTop(element, pageHeight)));
+    const restyledById = new Map();
+    for (const element of members) {
+      const abs = absoluteTop(element, pageHeight);
+      const restyled = restyleMemberAsMain(
+        element, headingId, style, APPEND_PARK_TOP + (abs - minAbs),
+      );
+      if (restyled) restyledById.set(element.element_id, restyled);
+    }
+    if (!restyledById.has(headingId)) return null;
+    next = next.flatMap((element) => {
+      if (!memberIds.has(element.element_id)) return [element];
+      const restyled = restyledById.get(element.element_id);
+      return restyled ? [restyled] : [];
+    });
+    movedIds.add(headingId);
+  }
+
+  if (movedIds.size === 0) return null;
+  return applyFlowSpacing(next, spacing, pageHeight);
+}
+
+/**
+ * Which lane a heading can transfer into, or null when transfer is unavailable.
+ *
+ * Requires a sidebar rail in the document. Main → sidebar skips Experience.
+ * Sidebar → main is always offered for rail kickers.
+ *
+ * @param {object[]} elements
+ * @param {string} headingId
+ * @param {number} [pageHeight=842]
+ * @returns {"to-sidebar"|"to-main"|null}
+ */
+export function resolveSectionLaneTransfer(elements, headingId, pageHeight = 842) {
+  if (!headingId) return null;
+  const list = elements || [];
+  const heading = list.find((element) => element.element_id === headingId);
+  if (!heading) return null;
+
+  if (isSidebarSectionHeading(heading)) {
+    return "to-main";
+  }
+
+  // Main-column heading: need a rail and a movable (non-Experience) section.
+  if (listSidebarSections(list, pageHeight).length === 0) return null;
+  const mainIds = sectionElementIds(list, headingId, pageHeight);
+  if (!mainIds.has(headingId)) return null;
+  if (isAnchoredMainSectionTitle(heading.content)) return null;
+  return "to-sidebar";
+}
+
+/**
+ * Move one section into the opposite column and re-pack with live spacing.
+ *
+ * The strip is restyled for the destination lane, parked last, then packed.
+ * Oversized content may continue onto page 2 between records — same keep-
+ * together rules as add/reorder.
+ *
+ * @param {object[]} elements
+ * @param {string} headingId
+ * @param {number} [pageHeight=842]
+ * @param {object} [spacing]
+ * @returns {object[]|null}
+ */
+export function transferSectionLane(elements, headingId, pageHeight = 842, spacing) {
+  const direction = resolveSectionLaneTransfer(elements, headingId, pageHeight);
+  if (!direction) return null;
+
+  if (direction === "to-sidebar") {
+    return moveMainSectionsToSidebar(elements, [headingId], pageHeight, spacing);
+  }
+  return moveSidebarSectionsToMain(elements, [headingId], pageHeight, spacing);
+}

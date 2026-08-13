@@ -157,7 +157,7 @@ pdf-generator/
 │   ├── src/
 │   │   ├── components/       # canvas, editor, ai, modals, gallery, common
 │   │   │   ├── canvas/CanvasPageStage/   # Smooth slide+fade when changing A4 page (single-page view)
-│   │   │   ├── canvas/SectionRecordAdd/  # Hover trash/+ (left) and reorder arrows (right) on section headings
+│   │   │   ├── canvas/SectionRecordAdd/  # Hover trash/+ (left), reorder arrows (right), optional ↔ lane transfer on section headings
 │   │   │   ├── canvas/RecordBlockAdd/    # Hover trash/+ (left) and reorder arrows (right) on records
 │   │   │   ├── canvas/FlatSectionLayoutToggle/ # Hover icon on flat-list sections (Skills, Languages) to open the layout modal
 │   │   │   ├── editor/AddSectionModal/   # "+ Dodaj sekcję" modal (name + aa/cc-sub/cc-edu/cc-exp layout picker)
@@ -328,12 +328,14 @@ Implementation:
 - `frontend/src/pages/PdfCanvas.jsx` — owns `AddSectionModal` + `openAddSectionModal` (heading id or `{ lane: "sidebar" }`) so the canvas heading **+** works even when the Sections panel is closed
 - `frontend/src/components/editor/AddSectionModal/AddSectionModal.jsx` — name + layout picker (including **Prosta treść (kategorie)** / `cc-sub`) + optional icon gallery; subtitle differs for insert-under vs append-end
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` — "+ Dodaj sekcję" / "+ Dodaj w sidebarze"; lists `listDocumentSections` and `listSidebarSections`; user-facing labels in `SPACING_FIELDS` / `displaySectionTitle`
-- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, lines 35–, component `SectionRecordAdd` — heading hover **trash + +** (left) and **↑ ↓** (right): add section under heading, delete this section, or reorder sections
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 68–, `sectionAnchorsById` — mounts the affordance on every template-mode **main and sidebar** heading with lane-local `canMoveUp` / `canMoveDown` from the **full** `A4_Elements` document (not the per-page filtered list)
+- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, lines 38–, component `SectionRecordAdd` — heading hover **trash + +** (left) and **↑ ↓** (right): add section under heading, delete this section, or reorder sections; optional **↔** lane transfer on the destination side
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 56–, `sectionAnchorsById` — mounts the affordance on every template-mode **main and sidebar** heading with lane-local `canMoveUp` / `canMoveDown` (and Sterling `laneTransfer`) from the **full** `A4_Elements` document (not the per-page filtered list)
+- `frontend/src/utils/transferSectionLane.js`, functions `resolveSectionLaneTransfer` (lines 199–216), `transferSectionLane` (lines 230–238), `moveSidebarSectionsToMain` (lines 152–186) — restyle + append-last pack between main and sidebar under live spacing
 
 Tests:
 
 - `frontend/src/utils/sectionStructure.test.js`, `describe("sectionElementIds", …)`, `describe("applyFlowSpacing", …)` (Monument title-inside-frame regression), `describe("deriveSectionStyle", …)`, `describe("appendSectionAtEnd", …)`, `describe("insertSectionAfter", …)`, `describe("reorderSection", …)`, and `describe("removeSection", …)` — includes regressions that wizard and added sections share the same `after_rule` after append, that insert-after preserves order between neighbouring sections, that Monument badge/frame/title offsets survive a full-document pack, that deleting a middle section re-packs following content upward, that a Tessera/Slate-shaped sidebar rail is excluded from main membership, and that sidebar add / reorder / remove keep the main-column section order intact
+- `frontend/src/utils/transferSectionLane.test.js` — Education → rail last; Skills → main last; Experience never rails; destination widths remasured
 - `frontend/src/utils/sectionBuilder.test.js`, `describe("buildSectionElements", …)` — isolated construction, including assertions that "cc-sub" produces 2 lines (`Nazwa kategorii` / `Treść…`), "cc-edu" produces 4, and "cc-exp" produces 3 (no subtitle line), generator-matched heights / `preserveInitialLayout`, and `describe("build -> append -> reorder (composed production pipeline)", …)`, an integration test that chains the real `deriveSectionStyle` -> `buildSectionElements` -> `appendSectionAtEnd` -> `reorderSection` sequence exactly as `handleAddSection` uses it, asserting the new record's members remain one group after a reorder and that existing sections are retargeted to the same `after_rule`
 - `frontend/src/utils/sectionIcons.test.js` — gallery listing, icon suggestion, `applySelectedSectionIcon` replace/inject + builder placement
 - `frontend/src/utils/sectionRecord.test.js`, `describe("sidebar lane records", …)` — record anchors and reorder inside a sidebar education strip
@@ -351,11 +353,26 @@ In **template mode**, hovering any detected **main or sidebar** section heading 
 
 Implementation:
 
-- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx` — heading hover listeners; calls `openAddSectionModal(headingId)`, `removeSection(headingId)`, or `reorderSection(headingId, direction)`
-- `frontend/src/hooks/useA4Elements.js`, function `handleReorderSection` (lines 921–) — exposed through `PdfContext` as `reorderSection`
-- `frontend/src/pages/PdfCanvas.jsx` — modal state + confirm wiring into `handleAddSection({ …, afterHeadingId, lane })`; exposes `removeSection` / `reorderSection`
-- `frontend/src/utils/sectionStructure.js`, functions `insertSectionAfter` (lines 1672–), `removeSection` (lines 1844–), `reorderSection` (lines 1780–)
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `sectionAnchorsById` (lines 68–) — passes lane-local `canMoveUp` / `canMoveDown` from full-document main + sidebar order (each page mounts its own `CanvasElements` with a page filter; flags must not use that filtered list or cross-page moves stay disabled)
+- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, lines 38–, component `SectionRecordAdd` — heading hover listeners; calls `openAddSectionModal(headingId)`, `removeSection(headingId)`, `reorderSection(headingId, direction)`, or `transferSectionLane(headingId)`
+- `frontend/src/hooks/useA4Elements.js`, function `handleReorderSection` (lines 937–) — exposed through `PdfContext` as `reorderSection`
+- `frontend/src/pages/PdfCanvas.jsx` — modal state + confirm wiring into `handleAddSection({ …, afterHeadingId, lane })`; exposes `removeSection` / `reorderSection` / `transferSectionLane`
+- `frontend/src/utils/sectionStructure.js`, functions `insertSectionAfter`, `removeSection`, `reorderSection`
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `sectionAnchorsById` (lines 56–) — passes lane-local `canMoveUp` / `canMoveDown` (and Sterling `laneTransfer`) from full-document main + sidebar order (each page mounts its own `CanvasElements` with a page filter; flags must not use that filtered list or cross-page moves stay disabled)
+
+### Transfer section between main and sidebar
+
+On **Sterling** (UI gated by `activeTemplateId === "sterling"`; the transfer util itself is template-neutral for any tagged sidebar rail), hovering a movable section heading also shows a bare **↔** icon (`FiArrowLeftRight`, same grey `#5B5B55` style as ↑/↓) on the **destination** side of the heading: **left** of the trash/+ cluster when moving main → sidebar, **right** of the ↑/↓ cluster when moving sidebar → main. Click restyles every member of that section for the destination lane (narrow rail width / type vs main column width / type via `measureTextareaHeight`), appends it **last** in the target column, and re-packs both lanes with the **current** flow spacing (standard density or any custom knobs). Oversized strips may continue onto page 2 between records under the normal packer keep-together rules. **Experience** never receives a main → sidebar affordance (`isAnchoredMainSectionTitle`).
+
+Implementation:
+
+- `frontend/src/utils/transferSectionLane.js`, functions `resolveSectionLaneTransfer` (lines 199–216), `transferSectionLane` (lines 230–238), `moveSidebarSectionsToMain` (lines 152–186); main → sidebar reuses `moveMainSectionsToSidebar`
+- `frontend/src/hooks/useA4Elements.js`, function `handleTransferSectionLane` (lines 962–977) — exposed through `PdfContext` as `transferSectionLane`
+- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, lines 38–, prop `laneTransfer`
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `LANE_TRANSFER_TEMPLATE_IDS` (line 44) + `sectionAnchorsById`
+
+Tests:
+
+- `frontend/src/utils/transferSectionLane.test.js` — Education rails last; Skills joins main last; Experience blocked; destination widths remasured
 
 ### Delete section / record with rhythm reflow
 
@@ -1779,7 +1796,7 @@ pdf-generator/
 │   ├── src/
 │   │   ├── components/       # canvas, editor, ai, modals, gallery, common
 │   │   │   ├── canvas/CanvasPageStage/   # Płynny slide+fade przy zmianie strony A4 (widok jednej strony)
-│   │   │   ├── canvas/SectionRecordAdd/  # kosz/+ (lewo) i strzałki kolejności (prawo) na nagłówkach sekcji
+│   │   │   ├── canvas/SectionRecordAdd/  # kosz/+ (lewo), strzałki kolejności (prawo), opcjonalne ↔ przeniesienie kolumny na nagłówkach sekcji
 │   │   │   ├── canvas/RecordBlockAdd/    # kosz/+ (lewo) i strzałki kolejności (prawo) na rekordach
 │   │   │   ├── canvas/FlatSectionLayoutToggle/ # ikona hover na płaskich sekcjach (Umiejętności, Języki) otwierająca modal układu
 │   │   │   ├── editor/AddSectionModal/   # modal „+ Dodaj sekcję” (nazwa + wybór układu aa/cc-sub/cc-edu/cc-exp)
@@ -1938,12 +1955,14 @@ Implementacja:
 - `frontend/src/pages/PdfCanvas.jsx` — właściciel `AddSectionModal` + `openAddSectionModal` (id nagłówka albo `{ lane: "sidebar" }`), żeby **+** na canvasie działał także przy zamkniętym panelu Sekcje
 - `frontend/src/components/editor/AddSectionModal/AddSectionModal.jsx` — nazwa + wybór układu (w tym **Prosta treść (kategorie)** / `cc-sub`) + opcjonalna galeria ikon; inny podtytuł dla wstawienia pod sekcją vs doklejenia na końcu
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` — „+ Dodaj sekcję” / „+ Dodaj w sidebarze”; listy `listDocumentSections` i `listSidebarSections`; etykiety UI w `SPACING_FIELDS` / `displaySectionTitle`
-- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, linie 35–, komponent `SectionRecordAdd` — klaster hover **kosz + +** (lewo) i **↑ ↓** (prawo): dodaj sekcję pod nagłówkiem, usuń tę sekcję albo zmień kolejność sekcji
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 68–, `sectionAnchorsById` — montaż affordance przy każdym nagłówku **głównym i sidebarowym** z lokalnymi dla toru `canMoveUp` / `canMoveDown` z **pełnego** dokumentu `A4_Elements`
+- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, linie 38–, komponent `SectionRecordAdd` — klaster hover **kosz + +** (lewo) i **↑ ↓** (prawo): dodaj sekcję pod nagłówkiem, usuń tę sekcję albo zmień kolejność sekcji; opcjonalne **↔** przeniesienie między kolumnami po stronie docelowej
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 56–, `sectionAnchorsById` — montaż affordance przy każdym nagłówku **głównym i sidebarowym** z lokalnymi dla toru `canMoveUp` / `canMoveDown` (oraz Sterling `laneTransfer`) z **pełnego** dokumentu `A4_Elements`
+- `frontend/src/utils/transferSectionLane.js`, funkcje `resolveSectionLaneTransfer` (linie 199–216), `transferSectionLane` (linie 230–238), `moveSidebarSectionsToMain` (linie 152–186) — restyle + doklejenie na końcu toru między main a sidebarem w bieżącym spacingu
 
 Testy:
 
 - `frontend/src/utils/sectionStructure.test.js`, `describe("sectionElementIds", …)`, `describe("applyFlowSpacing", …)` (regresja tytułu w ramce Monument), `describe("deriveSectionStyle", …)`, `describe("appendSectionAtEnd", …)`, `describe("insertSectionAfter", …)`, `describe("reorderSection", …)` oraz `describe("removeSection", …)` — w tym regresje wspólnego `after_rule`, zachowania kolejności przy wstawieniu między sekcjami, offsets odznaka/ramka/tytuł Monument po pełnym przepakowaniu, podciągania kolejnych sekcji po usunięciu środkowej, wykluczenia szyny Tessera/Slate z membership kolumny głównej oraz add / reorder / remove w sidebarze bez zmiany kolejności sekcji głównych
+- `frontend/src/utils/transferSectionLane.test.js` — Wykształcenie → koniec szyny; Umiejętności → koniec main; Doświadczenie nigdy na szynę; szerokości docelowe przeliczone
 - `frontend/src/utils/sectionBuilder.test.js`, `describe("buildSectionElements", …)` — izolowana budowa, w tym asercje, że „cc-sub” tworzy 2 linie (`Nazwa kategorii` / `Treść…`), „cc-edu” 4, a „cc-exp” 3 (bez linii podtytułu), wysokości jak w generatorze / `preserveInitialLayout`, oraz `describe("build -> append -> reorder (composed production pipeline)", …)`, test integracyjny łączący rzeczywisty ciąg `deriveSectionStyle` -> `buildSectionElements` -> `appendSectionAtEnd` -> `reorderSection` dokładnie tak, jak używa go `handleAddSection`, sprawdzający, że elementy nowego rekordu pozostają jedną grupą po zmianie kolejności i że istniejące sekcje dostają ten sam `after_rule`
 - `frontend/src/utils/sectionIcons.test.js` — lista galerii, sugestia ikony, `applySelectedSectionIcon` (zamiana/wstrzyknięcie) + umieszczenie w builderze
 - `frontend/src/utils/sectionRecord.test.js`, `describe("sidebar lane records", …)` — anchory rekordów i reorder w edukacji sidebara
@@ -1961,11 +1980,26 @@ W **trybie szablonu** najechanie na dowolny wykryty nagłówek sekcji **główne
 
 Implementacja:
 
-- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx` — nasłuch hover na nagłówku; woła `openAddSectionModal(headingId)`, `removeSection(headingId)` albo `reorderSection(headingId, direction)`
-- `frontend/src/hooks/useA4Elements.js`, funkcja `handleReorderSection` (linie 921–) — wystawiana przez `PdfContext` jako `reorderSection`
-- `frontend/src/pages/PdfCanvas.jsx` — stan modala + potwierdzenie do `handleAddSection({ …, afterHeadingId, lane })`; wystawia `removeSection` / `reorderSection`
-- `frontend/src/utils/sectionStructure.js`, funkcje `insertSectionAfter` (linie 1672–), `removeSection` (linie 1844–), `reorderSection` (linie 1780–)
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `sectionAnchorsById` (linie 68–) — przekazuje lokalne dla toru `canMoveUp` / `canMoveDown` z kolejności main + sidebar w całym dokumencie (każda strona montuje własny `CanvasElements` z filtrem strony; flagi nie mogą używać tej przefiltrowanej listy, bo wtedy przesunięcia między stronami zostają wyłączone)
+- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, linie 38–, komponent `SectionRecordAdd` — nasłuch hover na nagłówku; woła `openAddSectionModal(headingId)`, `removeSection(headingId)`, `reorderSection(headingId, direction)` albo `transferSectionLane(headingId)`
+- `frontend/src/hooks/useA4Elements.js`, funkcja `handleReorderSection` (linie 937–) — wystawiana przez `PdfContext` jako `reorderSection`
+- `frontend/src/pages/PdfCanvas.jsx` — stan modala + potwierdzenie do `handleAddSection({ …, afterHeadingId, lane })`; wystawia `removeSection` / `reorderSection` / `transferSectionLane`
+- `frontend/src/utils/sectionStructure.js`, funkcje `insertSectionAfter`, `removeSection`, `reorderSection`
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `sectionAnchorsById` (linie 56–) — przekazuje lokalne dla toru `canMoveUp` / `canMoveDown` (oraz Sterling `laneTransfer`) z kolejności main + sidebar w całym dokumencie (każda strona montuje własny `CanvasElements` z filtrem strony; flagi nie mogą używać tej przefiltrowanej listy, bo wtedy przesunięcia między stronami zostają wyłączone)
+
+### Przenoszenie sekcji między kolumną główną a sidebarem
+
+Na **Sterling** (UI ograniczone do `activeTemplateId === "sterling"`; sam util jest neutralny wobec każdego dokumentu z oznaczoną szyną) najechanie na przenoszalny nagłówek pokazuje też gołą ikonę **↔** (`FiArrowLeftRight`, ten sam szary `#5B5B55` co ↑/↓) po **stronie docelowej** nagłówka: **na lewo** od klastra kosz/+ przy main → sidebar, **na prawo** od klastra ↑/↓ przy sidebar → main. Klik restyluje wszystkich członków sekcji pod docelowy tor (wąska szyna vs szeroka kolumna główna przez `measureTextareaHeight`), dokleja sekcję **na końcu** docelowej kolumny i przepakowuje oba tory w **bieżącym** spacingu (gęstość standardowa albo własne pokrętła). Zbyt wysoki pasek może wejść na stronę 2 między rekordami — te same reguły keep-together co przy add/reorder. **Doświadczenie** nie dostaje affordance main → sidebar (`isAnchoredMainSectionTitle`).
+
+Implementacja:
+
+- `frontend/src/utils/transferSectionLane.js`, funkcje `resolveSectionLaneTransfer` (linie 199–216), `transferSectionLane` (linie 230–238), `moveSidebarSectionsToMain` (linie 152–186); main → sidebar korzysta z `moveMainSectionsToSidebar`
+- `frontend/src/hooks/useA4Elements.js`, funkcja `handleTransferSectionLane` (linie 962–977) — wystawiana przez `PdfContext` jako `transferSectionLane`
+- `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, linie 38–, prop `laneTransfer`
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `LANE_TRANSFER_TEMPLATE_IDS` (linia 44) + `sectionAnchorsById`
+
+Testy:
+
+- `frontend/src/utils/transferSectionLane.test.js` — Wykształcenie na koniec szyny; Umiejętności na koniec main; Doświadczenie zablokowane; szerokości docelowe przeliczone
 
 ### Usuwanie sekcji / rekordu z reflow rytmu
 

@@ -1,0 +1,140 @@
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import {
+  moveSidebarSectionsToMain,
+  resolveSectionLaneTransfer,
+  transferSectionLane,
+} from "./transferSectionLane.js";
+import { listDocumentSections, listSidebarSections } from "./sectionStructure.js";
+
+const PAGE_HEIGHT = 842;
+const SPACING = { stack: 4, record: 10, section: 21, after_rule: 8 };
+
+/**
+ * Compact Sterling-like two-column fixture: Summary + Skills on the rail,
+ * Experience + Education in main. Heights fit page 1 so transfers are stable.
+ */
+function sterlingLikeFixture() {
+  return [
+    { element_id: "sb-sum-head", category: "text", content: "PODSUMOWANIE ZAWODOWE",
+      flowRole: "sidebar-chrome", flowLane: "sidebar",
+      left: 34, top: 188, fontSize: 9.4, height: 12, page: 1, bold: true },
+    { element_id: "sb-sum-rule", category: "line",
+      flowRole: "sidebar-chrome", flowLane: "sidebar",
+      left: 34, top: 204, width: 22, height: 1.4, page: 1 },
+    { element_id: "sb-sum-body", category: "textarea", content: "AML analyst.",
+      flowRole: "content", flowLane: "sidebar", autoHeight: true,
+      left: 34, top: 216, width: 152, height: 40, fontSize: 8.3, lineHeight: 12, page: 1 },
+    { element_id: "sb-sk-head", category: "text", content: "UMIEJĘTNOŚCI",
+      flowRole: "sidebar-chrome", flowLane: "sidebar",
+      left: 34, top: 280, fontSize: 9.4, height: 12, page: 1, bold: true },
+    { element_id: "sb-sk-rule", category: "line",
+      flowRole: "sidebar-chrome", flowLane: "sidebar",
+      left: 34, top: 296, width: 22, height: 1.4, page: 1 },
+    { element_id: "sb-sk-body", category: "textarea", content: "AML\nKYC\nSQL",
+      flowRole: "content", flowLane: "sidebar", autoHeight: true, bulletList: true,
+      left: 34, top: 308, width: 152, height: 50, fontSize: 8.3, lineHeight: 12, page: 1 },
+
+    { element_id: "m-exp-head", category: "text", content: "DOŚWIADCZENIE ZAWODOWE",
+      flowRole: "section-chrome", left: 218, top: 188, fontSize: 10, height: 14, page: 1, bold: true },
+    { element_id: "m-exp-rule", category: "line", flowRole: "section-chrome",
+      left: 218, top: 206, width: 329, height: 1, page: 1 },
+    { element_id: "m-exp-title", category: "text", content: "AML Analyst",
+      flowRole: "content", flowGroup: "job-0",
+      left: 218, top: 220, fontSize: 10.4, height: 14, page: 1, bold: true },
+    { element_id: "m-exp-body", category: "textarea",
+      content: "Transaction monitoring.",
+      flowRole: "content", flowGroup: "job-0", autoHeight: true,
+      left: 218, top: 240, width: 329, height: 80,
+      fontSize: 9, lineHeight: 13, page: 1 },
+
+    { element_id: "m-edu-head", category: "text", content: "WYKSZTAŁCENIE",
+      flowRole: "section-chrome", left: 218, top: 360, fontSize: 10, height: 14, page: 1, bold: true },
+    { element_id: "m-edu-rule", category: "line", flowRole: "section-chrome",
+      left: 218, top: 378, width: 329, height: 1, page: 1 },
+    { element_id: "m-edu-degree", category: "text", content: "Bachelor of Laws (LL.B.)",
+      flowRole: "content", flowGroup: "edu-0",
+      left: 218, top: 390, fontSize: 10.4, height: 14, page: 1, bold: true },
+    { element_id: "m-edu-body", category: "textarea",
+      content: "University of Warsaw",
+      flowRole: "content", flowGroup: "edu-0", autoHeight: true,
+      left: 218, top: 408, width: 329, height: 40,
+      fontSize: 9, lineHeight: 13, page: 1 },
+  ];
+}
+
+describe("resolveSectionLaneTransfer", () => {
+  it("offers main leftovers to the rail and rail kickers to main", () => {
+    const elements = sterlingLikeFixture();
+    assert.equal(resolveSectionLaneTransfer(elements, "m-edu-head", PAGE_HEIGHT), "to-sidebar");
+    assert.equal(resolveSectionLaneTransfer(elements, "sb-sk-head", PAGE_HEIGHT), "to-main");
+  });
+
+  it("never offers Experience to the rail", () => {
+    const elements = sterlingLikeFixture();
+    assert.equal(resolveSectionLaneTransfer(elements, "m-exp-head", PAGE_HEIGHT), null);
+  });
+
+  it("is a no-op for main headings when the document has no rail", () => {
+    const elements = [
+      { element_id: "h1", category: "text", content: "Wykształcenie",
+        flowRole: "section-chrome", left: 66, top: 120, fontSize: 10, height: 14, page: 1 },
+      { element_id: "b1", category: "textarea", content: "Body",
+        flowRole: "content", left: 66, top: 140, width: 400, height: 40, fontSize: 9, page: 1 },
+    ];
+    assert.equal(resolveSectionLaneTransfer(elements, "h1", PAGE_HEIGHT), null);
+  });
+});
+
+describe("transferSectionLane", () => {
+  it("moves education onto the rail as the last sidebar section", () => {
+    const source = sterlingLikeFixture();
+    const next = transferSectionLane(source, "m-edu-head", PAGE_HEIGHT, SPACING);
+    assert.ok(next);
+    const railTitles = listSidebarSections(next, PAGE_HEIGHT).map((section) => section.title);
+    assert.deepEqual(railTitles.slice(-1), ["WYKSZTAŁCENIE"]);
+    assert.equal(
+      listDocumentSections(next, PAGE_HEIGHT).some((section) => section.headingId === "m-edu-head"),
+      false,
+    );
+    const eduHead = next.find((element) => element.element_id === "m-edu-head");
+    assert.equal(eduHead.flowLane, "sidebar");
+    assert.equal(eduHead.flowRole, "sidebar-chrome");
+    const eduBody = next.find((element) => element.element_id === "m-edu-body");
+    assert.ok((Number(eduBody.width) || 0) < 200);
+  });
+
+  it("moves a sidebar section into main as the last main section", () => {
+    const source = sterlingLikeFixture();
+    const next = transferSectionLane(source, "sb-sk-head", PAGE_HEIGHT, SPACING);
+    assert.ok(next);
+    const mainTitles = listDocumentSections(next, PAGE_HEIGHT).map((section) => section.title);
+    assert.deepEqual(mainTitles.slice(-1), ["UMIEJĘTNOŚCI"]);
+    assert.equal(
+      listSidebarSections(next, PAGE_HEIGHT).some((section) => section.headingId === "sb-sk-head"),
+      false,
+    );
+    const skillsHead = next.find((element) => element.element_id === "sb-sk-head");
+    assert.equal(skillsHead.flowRole, "section-chrome");
+    assert.equal(skillsHead.flowLane, undefined);
+    const skillsBody = next.find((element) => element.element_id === "sb-sk-body");
+    assert.ok((Number(skillsBody.width) || 0) > 250);
+  });
+
+  it("refuses to move Experience onto the rail", () => {
+    const source = sterlingLikeFixture();
+    assert.equal(transferSectionLane(source, "m-exp-head", PAGE_HEIGHT, SPACING), null);
+  });
+});
+
+describe("moveSidebarSectionsToMain", () => {
+  it("recomputes wrapped height at main width instead of copying the rail box", () => {
+    const source = sterlingLikeFixture();
+    const before = source.find((element) => element.element_id === "sb-sum-body");
+    const next = moveSidebarSectionsToMain(source, ["sb-sum-head"], PAGE_HEIGHT, SPACING);
+    assert.ok(next);
+    const after = next.find((element) => element.element_id === "sb-sum-body");
+    assert.notEqual(Number(after.width), Number(before.width));
+    assert.ok((Number(after.width) || 0) > (Number(before.width) || 0));
+  });
+});

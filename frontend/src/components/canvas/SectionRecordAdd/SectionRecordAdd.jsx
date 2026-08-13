@@ -2,8 +2,10 @@
  * Hover affordance on a template-mode section heading: left cluster = trash +
  * "+" ; right cluster = reorder arrows at the same vertical height.
  * "+" opens the "Dodaj sekcję" modal (insert under this heading). Trash deletes
- * the whole section. Arrows swap section display order. All three re-pack under
- * the active template rhythm.
+ * the whole section. Arrows swap section display order. On two-column CVs a
+ * left-right transfer arrow appears on the destination side of the heading
+ * (main → sidebar on the left, sidebar → main on the right) and moves the
+ * section last into that lane under the live spacing rhythm.
  *
  * Timing: appear on pointer enter over the heading; stay while the pointer is
  * on either cluster; only leaving the heading or a cluster starts a 3s hide
@@ -11,7 +13,7 @@
  * follows canvas zoom so 100% view stays compact.
  */
 import { use, useCallback, useEffect, useRef, useState } from "react";
-import { FiChevronDown, FiChevronUp, FiPlus, FiTrash2 } from "react-icons/fi";
+import { FiArrowLeftRight, FiChevronDown, FiChevronUp, FiPlus, FiTrash2 } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { useHoverPlusExclusive } from "../../../hooks/useHoverPlusExclusive";
@@ -30,6 +32,7 @@ const HIDE_AFTER_LEAVE_MS = 3000;
  *   fontSize?: number,
  *   canMoveUp?: boolean,
  *   canMoveDown?: boolean,
+ *   laneTransfer?: "to-sidebar"|"to-main"|null,
  * }} props
  */
 export default function SectionRecordAdd({
@@ -40,12 +43,14 @@ export default function SectionRecordAdd({
   fontSize = 10,
   canMoveUp = false,
   canMoveDown = false,
+  laneTransfer = null,
 }) {
   const {
     editorMode,
     openAddSectionModal,
     removeSection,
     reorderSection,
+    transferSectionLane,
     zoom = 1,
   } = use(PdfContext);
 
@@ -133,13 +138,17 @@ export default function SectionRecordAdd({
     ? Number(width)
     : (headingNode?.offsetWidth || 120);
 
-  // Trash sits to the left of plus; cluster right edge stays `gap` from heading.
-  const leftClusterWidth = buttonSize * 2 + gap;
+  // Main → sidebar: transfer sits furthest left (toward the rail). Sidebar →
+  // main: transfer sits furthest right (toward the main column). Vertical
+  // center matches trash / + / reorder icons.
+  const transferToSidebar = laneTransfer === "to-sidebar";
+  const transferToMain = laneTransfer === "to-main";
+  const leftButtonCount = 2 + (transferToSidebar ? 1 : 0);
+  const leftClusterWidth = buttonSize * leftButtonCount + gap * (leftButtonCount - 1);
   const leftStyle = {
     left: left - gap - leftClusterWidth,
     top: top + headingHeight / 2 - buttonSize / 2,
   };
-  // Arrows sit to the right of the heading at the same vertical center.
   const rightStyle = {
     left: left + headingWidth + gap,
     top: top + headingHeight / 2 - buttonSize / 2,
@@ -157,6 +166,7 @@ export default function SectionRecordAdd({
   };
   const showControls = visible && isExclusiveActive;
   const showReorder = canMoveUp || canMoveDown;
+  const showRightCluster = showReorder || transferToMain;
 
   const clusterPointerProps = {
     onPointerEnter: () => {
@@ -167,11 +177,38 @@ export default function SectionRecordAdd({
     },
   };
 
+  const transferButton = (ariaLabel, title) => (
+    <button
+      type="button"
+      className={classes.arrow}
+      style={buttonStyle}
+      aria-label={ariaLabel}
+      title={title}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+      }}
+      onClick={(event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        transferSectionLane?.(headingId);
+        hide();
+      }}
+    >
+      <FiArrowLeftRight style={iconStyle} />
+    </button>
+  );
+
   return (
     <>
       <div className={classes.anchor} style={leftStyle}>
         {showControls ? (
           <div className={classes.cluster} style={clusterStyle} {...clusterPointerProps}>
+            {transferToSidebar
+              ? transferButton(
+                "Przenieś sekcję do sidebara",
+                "Do sidebara",
+              )
+              : null}
             <button
               type="button"
               className={classes.trash}
@@ -212,50 +249,60 @@ export default function SectionRecordAdd({
         ) : null}
       </div>
 
-      {showReorder ? (
+      {showRightCluster ? (
         <div className={classes.anchor} style={rightStyle}>
           {showControls ? (
             <div className={classes.cluster} style={clusterStyle} {...clusterPointerProps}>
-              <button
-                type="button"
-                className={classes.arrow}
-                style={buttonStyle}
-                aria-label="Przenieś sekcję wyżej"
-                title="Wyżej"
-                disabled={!canMoveUp}
-                onPointerDown={(event) => {
-                  event.stopPropagation();
-                }}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  event.preventDefault();
-                  if (!canMoveUp) return;
-                  reorderSection?.(headingId, "up");
-                  hide();
-                }}
-              >
-                <FiChevronUp style={iconStyle} />
-              </button>
-              <button
-                type="button"
-                className={classes.arrow}
-                style={buttonStyle}
-                aria-label="Przenieś sekcję niżej"
-                title="Niżej"
-                disabled={!canMoveDown}
-                onPointerDown={(event) => {
-                  event.stopPropagation();
-                }}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  event.preventDefault();
-                  if (!canMoveDown) return;
-                  reorderSection?.(headingId, "down");
-                  hide();
-                }}
-              >
-                <FiChevronDown style={iconStyle} />
-              </button>
+              {showReorder ? (
+                <>
+                  <button
+                    type="button"
+                    className={classes.arrow}
+                    style={buttonStyle}
+                    aria-label="Przenieś sekcję wyżej"
+                    title="Wyżej"
+                    disabled={!canMoveUp}
+                    onPointerDown={(event) => {
+                      event.stopPropagation();
+                    }}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      event.preventDefault();
+                      if (!canMoveUp) return;
+                      reorderSection?.(headingId, "up");
+                      hide();
+                    }}
+                  >
+                    <FiChevronUp style={iconStyle} />
+                  </button>
+                  <button
+                    type="button"
+                    className={classes.arrow}
+                    style={buttonStyle}
+                    aria-label="Przenieś sekcję niżej"
+                    title="Niżej"
+                    disabled={!canMoveDown}
+                    onPointerDown={(event) => {
+                      event.stopPropagation();
+                    }}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      event.preventDefault();
+                      if (!canMoveDown) return;
+                      reorderSection?.(headingId, "down");
+                      hide();
+                    }}
+                  >
+                    <FiChevronDown style={iconStyle} />
+                  </button>
+                </>
+              ) : null}
+              {transferToMain
+                ? transferButton(
+                  "Przenieś sekcję do kolumny głównej",
+                  "Do kolumny głównej",
+                )
+                : null}
             </div>
           ) : null}
         </div>
