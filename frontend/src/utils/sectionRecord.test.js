@@ -76,6 +76,36 @@ describe("sectionSupportsRecordAdd", () => {
     });
     assert.equal(sectionSupportsRecordAdd(elements, headingId), true);
   });
+
+  it("rejects a chips-mode Skills section (wrapped grid-member chip pills)", () => {
+    // Regression: a chip category is [bold label, rectangle pill background,
+    // text label] x N, tagged `flowRole: "grid-member"`. The generic clone
+    // model (`buildRecordClone`) drops the rectangle pill as decorative
+    // chrome and stacks each chip's bare text label as a full-width line at
+    // its own x-offset inside the wrapped row — producing scattered,
+    // unstyled placeholder text instead of a new pill. See
+    // `appendRecordToSection` reproduction below.
+    const headingId = "sk-head";
+    const elements = [
+      { element_id: headingId, category: "text", content: "UMIEJĘTNOŚCI",
+        flowRole: "section-chrome", left: 66, top: 100, fontSize: 12, height: 16, page: 1, bold: true },
+      { element_id: "sk-rule", category: "line", flowRole: "section-chrome",
+        left: 66, top: 120.7, width: 460, height: 1, page: 1 },
+      { element_id: "sk-cat", category: "textarea", content: "Narzędzia",
+        flowRole: "content", flowGroup: "sk-g1", left: 66, top: 140, width: 460, height: 14, fontSize: 10, page: 1, bold: true },
+      { element_id: "sk-pill-1-bg", category: "rectangle", flowRole: "grid-member", flowGroup: "sk-g1",
+        left: 66, top: 158, width: 60, height: 20, page: 1 },
+      { element_id: "sk-pill-1-text", category: "text", flowRole: "grid-member", flowGroup: "sk-g1",
+        content: "SQL", left: 76, top: 168, fontSize: 9.3, page: 1 },
+      { element_id: "sk-pill-2-bg", category: "rectangle", flowRole: "grid-member", flowGroup: "sk-g1",
+        left: 134, top: 158, width: 70, height: 20, page: 1 },
+      { element_id: "sk-pill-2-text", category: "text", flowRole: "grid-member", flowGroup: "sk-g1",
+        content: "Python", left: 144, top: 168, fontSize: 9.3, page: 1 },
+    ];
+
+    assert.equal(sectionSupportsRecordAdd(elements, headingId), false);
+    assert.equal(appendRecordToSection(elements, headingId), null);
+  });
 });
 
 describe("placeholderContentsForRecord / inferRecordLayout", () => {

@@ -235,6 +235,22 @@ export function partitionSectionRecords(bodySorted) {
  * True when the body is more than a lone textarea — i.e. at least one record
  * group with two or more lines (education / experience / custom cc structure).
  *
+ * Excludes sections in a wrapped chip grid (Skills/Languages "chips" mode,
+ * `flowRole: "grid-member"`): the generic clone model stacks one full-width
+ * line per source element and copies each element's own `left`, which for a
+ * chip is its x-offset *inside* the wrapped row, not a line-start margin.
+ * `listSectionContentElements` also drops the chip's rectangle background as
+ * decorative chrome, so a clone comes out as bare, unstyled placeholder text
+ * scattered across the row's x-offsets instead of a new pill — and, being far
+ * taller than a real chip row, can push past the next section's heading and
+ * get attributed to the wrong section by `listDocumentSections`. Growing a
+ * chips section safely requires the wrap-aware layout in
+ * `skillsLayout.buildSkillsChipGroups`, not this generic per-line clone;
+ * until "+" is chip-aware, switch the section to bullet/inline mode (where
+ * body lines are plain `flowRole: "content"` and the generic add works),
+ * edit there, then switch back via the display-mode picker, which rebuilds
+ * chip geometry from scratch.
+ *
  * @param {object[]} elements
  * @param {string} headingId
  * @param {number} [pageHeight=842]
@@ -243,6 +259,7 @@ export function partitionSectionRecords(bodySorted) {
 export function sectionSupportsRecordAdd(elements, headingId, pageHeight = 842) {
   const body = listSectionContentElements(elements, headingId, pageHeight);
   if (body.length < 2) return false;
+  if (body.some((element) => element.flowRole === "grid-member")) return false;
   const groups = partitionSectionRecords(body);
   return groups.some((group) => group.length >= 2);
 }
