@@ -176,3 +176,30 @@ test("reconcileDocumentPages is a no-op for content when chrome is already in sy
   assert.equal(result.elements, elements);
   assert.equal(result.pageCount, 1);
 });
+
+test("does not clone a page-1 masthead / photo frame onto a page that already has its own chrome", () => {
+  // Regression: page-1-only masthead chrome (fixedToPage but NOT tagged
+  // repeatOnContinuation:false on templates like Tessera) was cloning onto
+  // every continuation page that already had the generator's own rail/footer.
+  let count = 0;
+  const clones = cloneFixedPageDecorations([
+    // Page-1 masthead cluster (top-anchored, page-1 only, untagged).
+    { element_id: "frame", category: "rectangle", fixedToPage: true, page: 1,
+      left: 400, top: 20, width: 120, height: 120 },
+    { element_id: "orbit", category: "ellipse", fixedToPage: true, page: 1,
+      left: 410, top: 30, width: 90, height: 40 },
+    { element_id: "rail1", category: "line", fixedToPage: true, page: 1,
+      left: 0, top: 0, width: 210, height: 842 },
+    { element_id: "num1", category: "text", fixedToPage: true, page: 1, content: "01" },
+    // Page 2 already carries the generator's own rail + page number.
+    { element_id: "rail2", category: "line", fixedToPage: true, page: 2,
+      left: 0, top: 0, width: 210, height: 842 },
+    { element_id: "num2", category: "text", fixedToPage: true, page: 2, content: "02" },
+  ], 2, 2, () => `id-${++count}`);
+  assert.equal(
+    clones.some((element) => element.category === "rectangle" || element.category === "ellipse"),
+    false,
+    "masthead frame / ornaments must not clone onto a page that already has real chrome",
+  );
+  assert.equal(clones.length, 0, "no chrome cloned onto a fully-decorated continuation page");
+});

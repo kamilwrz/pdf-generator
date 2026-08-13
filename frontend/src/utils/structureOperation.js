@@ -174,6 +174,17 @@ export function cloneFixedPageDecorations(elements, firstNewPage, targetMaxPage,
     const existingOnPage = (elements || []).filter((element) => (
       element.fixedToPage && (element.page ?? 1) === page
     ));
+    // Only populate a continuation page the generator left WITHOUT its own
+    // real fixed chrome. If the page already carries a rail / background /
+    // frame (anything but a bare page number), do NOT clone page-1 chrome onto
+    // it — otherwise the page-1 masthead + photo frame (which are `fixedToPage`
+    // but not tagged `repeatOnContinuation: false` on templates like Tessera)
+    // land on top of every continuation page. A page that carries ONLY a page
+    // number still falls through so its missing rail can be cloned.
+    const hasRealChrome = existingOnPage.some(
+      (element) => !isPageNumberContent(element.content),
+    );
+    if (hasRealChrome) continue;
     const source = [...(elements || [])]
       .filter((element) => element.fixedToPage && (element.page ?? 1) < page)
       .sort((first, second) => (second.page ?? 1) - (first.page ?? 1))[0];
