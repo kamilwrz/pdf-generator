@@ -637,6 +637,7 @@ export function restyleSkillsMembersAsMode(
     ? Number(spacing.after_rule)
     : 8;
   const ruleTop = parkTop + sectionChromeRuleRelTop(style, chrome[0].height);
+  let restyledRuleHeight = 0;
   if (rule) {
     const ruleStyle = style.rule || {};
     const relLeft = Number.isFinite(Number(ruleStyle.relLeft)) ? Number(ruleStyle.relLeft) : 0;
@@ -653,10 +654,35 @@ export function restyleSkillsMembersAsMode(
     };
     delete restyledRule.flowLane;
     chrome.push(restyledRule);
+    restyledRuleHeight = Number(restyledRule.height) || 1;
   }
 
-  const bodyTop = (rule ? ruleTop + (Number(chrome[chrome.length - 1].height) || 1) : ruleTop)
-    + afterRule;
+  // Carry forward any other decorative section-chrome the heading owns —
+  // marker dots/icons (Cinder), ordinal badge digits and their filled square
+  // (Monument), title frames, and any future shape a template adds. These are
+  // NOT rebuilt from `style` (unlike heading/rule above): a resampled marker
+  // would need to know which glyph/icon/badge digit belongs to THIS section,
+  // which only this section's own existing elements do. Instead each is
+  // translated by the same left/top delta the heading itself just moved by,
+  // preserving every other property (color, size, src, digits, …) verbatim.
+  // Dropping these silently deleted a section's whole decorative identity —
+  // regressed by the very first version of this restyle path, which only
+  // ever emitted [heading, rule].
+  const headingDeltaLeft = headingLeft - (Number(heading.left) || 0);
+  const headingDeltaTop = parkTop - (Number(heading.top) || 0);
+  for (const element of members) {
+    if (element.element_id === headingId || element === rule) continue;
+    if (element.flowRole !== "section-chrome") continue;
+    chrome.push({
+      ...element,
+      left: (Number(element.left) || 0) + headingDeltaLeft,
+      top: (Number(element.top) || 0) + headingDeltaTop,
+      page: 1,
+      preserveInitialLayout: false,
+    });
+  }
+
+  const bodyTop = (rule ? ruleTop + restyledRuleHeight : ruleTop) + afterRule;
   let seq = 0;
   const idFactory = () => `${headingId}-sk-${Date.now().toString(36)}-${++seq}`;
   const bodyOptions = {

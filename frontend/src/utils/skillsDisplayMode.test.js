@@ -46,6 +46,19 @@ function flatSkillsFixture() {
   ];
 }
 
+/**
+ * Monument-style fixture: the Umiejętności heading carries a decorative icon
+ * marker (`flowRole: "section-chrome"`, same tag WYKSZTAŁCENIE's own icon
+ * uses) alongside heading + rule.
+ */
+function skillsWithMarkerFixture() {
+  return [
+    ...flatSkillsFixture(),
+    { element_id: "sk-marker", category: "image", flowRole: "section-chrome",
+      src: "/template-assets/iconic/skills.svg", left: 42, top: 102, width: 16, height: 16, page: 1 },
+  ];
+}
+
 function groupsFor(elements, headingId) {
   const memberIds = sectionElementIds(elements, headingId, PAGE_HEIGHT);
   const members = elements.filter((element) => memberIds.has(element.element_id));
@@ -144,6 +157,35 @@ describe("changeSkillsDisplayMode", () => {
       memberIds.has(element.element_id) && element.category === "rectangle" && element.flowRole === "grid-member"
     ));
     assert.equal(pill.backgroundColor, "#123456");
+  });
+
+  it("preserves a decorative heading marker (icon) across every mode conversion", () => {
+    // Regression: restyleSkillsMembersAsMode only ever emitted [heading, rule]
+    // — any other section-chrome the heading owned (marker icons, Monument's
+    // ordinal badge/frame, …) was silently dropped on the first conversion
+    // and never came back on a later conversion, since it no longer existed
+    // in the document to carry forward.
+    let current = skillsWithMarkerFixture();
+    for (const mode of ["chips", "bullet", "inline", "chips"]) {
+      const next = changeSkillsDisplayMode(current, "sk-head", mode, PAGE_HEIGHT, SPACING);
+      assert.ok(next, `expected a result converting to ${mode}`);
+      current = next;
+      const memberIds = sectionElementIds(current, "sk-head", PAGE_HEIGHT);
+      const members = current.filter((element) => memberIds.has(element.element_id));
+      const marker = members.find((element) => element.element_id === "sk-marker");
+      assert.ok(marker, `marker must survive conversion to ${mode}`);
+      assert.equal(marker.src, "/template-assets/iconic/skills.svg");
+      assert.equal(marker.width, 16);
+      assert.equal(marker.height, 16);
+      const heading = members.find((element) => element.element_id === "sk-head");
+      // Marker keeps its authored offset from the heading (left=42 vs
+      // heading left=66 → -24), translated along with wherever the heading
+      // itself landed after packing.
+      assert.equal(
+        Math.round(marker.left - heading.left), -24,
+        `marker must keep its offset from the heading after converting to ${mode}`,
+      );
+    }
   });
 
   it("keeps chip rows aligned within one category (grid does not scatter)", () => {
