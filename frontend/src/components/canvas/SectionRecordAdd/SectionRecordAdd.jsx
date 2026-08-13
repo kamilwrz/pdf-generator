@@ -13,7 +13,8 @@
  * follows canvas zoom so 100% view stays compact.
  */
 import { use, useCallback, useEffect, useRef, useState } from "react";
-import { FiArrowLeftRight, FiChevronDown, FiChevronUp, FiPlus, FiTrash2 } from "react-icons/fi";
+import { FiChevronDown, FiChevronUp, FiPlus, FiTrash2 } from "react-icons/fi";
+import { LuArrowLeftRight } from "react-icons/lu";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { useHoverPlusExclusive } from "../../../hooks/useHoverPlusExclusive";
@@ -194,7 +195,7 @@ export default function SectionRecordAdd({
         hide();
       }}
     >
-      <FiArrowLeftRight style={iconStyle} />
+      <LuArrowLeftRight style={iconStyle} />
     </button>
   );
 
