@@ -123,7 +123,9 @@ COMPACT_DEMO_CV = {
     ],
 }
 
-COMPACT_TEMPLATE_IDS = frozenset({"monument"})
+# Portico's centered photo masthead is taller; use the compacted bullet set
+# so the picker mockup still shows every section on page 1.
+COMPACT_TEMPLATE_IDS = frozenset({"monument", "portico"})
 
 # Nimbus uses larger Lora type (name 31 / headings+roles 13 / body 11 / meta 10),
 # so the shared DEMO_CV spills page 1. Keep the same persona with fewer bullets.

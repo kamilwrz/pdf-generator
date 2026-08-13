@@ -9,6 +9,7 @@ from app.services.cv_generator_primitives import (
     section_chrome_height,
     _block,
     _line,
+    _rect,
     _text,
 )
 from app.services.cv_templates.shared.contact import (
@@ -27,13 +28,12 @@ from app.services.cv_templates.shared.text import _compact_text, _labels, _place
 
 
 def _gen_portico(cv: dict) -> list[dict]:
-    """Centered masthead; left-aligned icon body below.
+    """Centered masthead with photo slot; left-aligned icon body below.
 
-    The only template combining a centered masthead with icon chrome: name,
-    title, and the contact row are centered on the page. Everything below the
-    header rule — summary, experience, education, skills, extras — is a
-    left-aligned single-column body with icon-in-gutter section headings,
-    matching the Cardinal/Nova body structure.
+    Name, square profile slot, title, and the contact row are centered on the
+    page. Everything below the header rule — summary, experience, education,
+    skills, extras — is a left-aligned single-column body with icon-in-gutter
+    section headings, matching the Cardinal/Nova body structure.
     """
     C = {
         'paper': '#FCFBF8', 'ink': '#22221F', 'accent': '#7C6A52',
@@ -52,14 +52,42 @@ def _gen_portico(cv: dict) -> list[dict]:
     title = _compact_text(cv.get('title'), 56)
     name_fs, name_lh = (29, 33)
     title_fs, title_lh = (10, 14)
+    # Centered square photo well — empty in the editor; gallery click fills it.
+    # Kept compact so the shared Jan Kowalski demo still fits page 1.
+    PHOTO_SIZE = 78.0
+    PHOTO_LEFT = CENTER_X - PHOTO_SIZE / 2.0
 
     header: list[dict] = []
-    cursor_y = 58.0
+    cursor_y = 44.0
     if name:
         name_h = Builder.measure_block(name, W, name_fs, name_lh, DISP, bold=True)
         header.append(_block(name, L, cursor_y, W, name_h, name_fs, name_lh, C['ink'], DISP,
                               zIndex=3, bold=True, align='center'))
         cursor_y += name_h + 10.0
+
+    photo_top = cursor_y
+    photo_well = {
+        **_rect(
+            PHOTO_LEFT, photo_top, PHOTO_SIZE, PHOTO_SIZE,
+            '#F3EEE6', 0, filled=True, zIndex=2,
+        ),
+        'id': 'portico-photo-well',
+        'photoSlot': 'ornament',
+        'flowRole': 'masthead',
+    }
+    photo_frame = {
+        **_rect(
+            PHOTO_LEFT, photo_top, PHOTO_SIZE, PHOTO_SIZE,
+            C['ink'], 1.0, zIndex=3,
+        ),
+        'id': 'portico-photo-frame',
+        'photoSlot': 'frame',
+        'photoShape': 'rect',
+        'flowRole': 'masthead',
+    }
+    header.extend([photo_well, photo_frame])
+    cursor_y = photo_top + PHOTO_SIZE + 10.0
+
     if title:
         title_h = Builder.measure_block(title, W, title_fs, title_lh, SANS)
         title_el = _block(title, L, cursor_y, W, title_h, title_fs, title_lh, C['accent'], SANS,
@@ -76,7 +104,7 @@ def _gen_portico(cv: dict) -> list[dict]:
         theme=ICON,
         items=_contact_channel_items(cv, email_limit=42),
         center_x=CENTER_X,
-        start_y=cursor_y + 14.0,
+        start_y=cursor_y + 10.0,
         max_width=W,
         text_fs=contact_fs,
         icon_size=contact_icon,
@@ -88,10 +116,9 @@ def _gen_portico(cv: dict) -> list[dict]:
         line_step=15.0,
     )
     header.extend(contact_els)
-    header_rule_y = contact_bottom + 22.0
+    header_rule_y = contact_bottom + 16.0
     header.append(_line(L, header_rule_y, W, 1, C['rule'], zIndex=2))
-    # Name, title, contacts, and divider stay out of section packing — otherwise
-    # rhythm knobs treat a phone line as a heading (rule sits just below).
+    # Name, photo slot, title, contacts, and divider stay out of section packing.
     header = [{**element, "flowRole": "masthead"} for element in header]
 
     start_y = header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE

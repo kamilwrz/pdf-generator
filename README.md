@@ -828,9 +828,9 @@ Known limitation: like Tessera, sidebar sections are atomic and remain on page 1
 
 ### Portico centered-masthead template
 
-Portico is a paid single-column template (`layouts: ["icons"]`) built around a genuinely new composition: it is the only template that combines a centered masthead with icon chrome. The name, title, and a two-row contact band are all centered on the page (an "Ivy League"-style résumé header), while everything below the header rule — Summary, Experience, Education, Skills, and any extra sections — drops into the same left-aligned single-column icon body used by Cardinal and Nova. Its palette is a warm, quiet bronze/taupe (`#7C6A52` accent, `#22221F` ink, `#FCFBF8` paper, `#E4DED2` rule) — deliberately distinct from every other accent colour in the catalogue. The display name uses Lora (serif); everything else — title, contact labels, section headings, and body copy — uses Inter.
+Portico is a paid single-column template (`layouts: ["icons"]`) built around a genuinely new composition: it is the only template that combines a centered masthead with icon chrome. The masthead stacks a centered name, a square profile-photo slot (`portico-photo-frame` / `portico-photo-well` — empty in the editor; gallery click fills it with `objectFit: cover`), a centered title, and a two-row contact band (an "Ivy League"-style résumé header). Everything below the header rule — Summary, Experience, Education, Skills, and any extra sections — drops into the same left-aligned single-column icon body used by Cardinal and Nova. Its palette is a warm, quiet bronze/taupe (`#7C6A52` accent, `#22221F` ink, `#FCFBF8` paper, `#E4DED2` rule) — deliberately distinct from every other accent colour in the catalogue. The display name uses Lora (serif); everything else — title, contact labels, section headings, and body copy — uses Inter.
 
-Centering is scoped to the masthead only (name / title / contact row); the body is a conventional left-aligned single column. This keeps longer experience bullets and education records readable while still giving the header the distinctive centered look.
+Centering is scoped to the masthead only (name / photo / title / contact row); the body is a conventional left-aligned single column. This keeps longer experience bullets and education records readable while still giving the header the distinctive centered look.
 
 Centering itself needed no renderer or schema changes: `align: "center"` on a `textarea`/`_block` element was already supported end-to-end by both the ReportLab PDF renderer (`renderTextarea`) and the canvas (`Textarea.jsx`), and the centered name/title are `_block` textareas in a page-symmetric box. The only new engineering surface is the contact row, which must re-center itself around the page's horizontal center regardless of how many contact channels (phone, email, socials, location) a CV has — `_place_centered_icon_contacts` buckets contact chips into lines using the same per-item width estimate as the left-anchored `_place_wrapping_icon_contacts` (factored into a shared `_contact_item_width` helper so the two placers cannot drift apart), then re-centers each completed line around `center_x` before laying out icons and labels left-to-right within it.
 
@@ -838,7 +838,8 @@ The bronze glyphs come from a dedicated `portico` theme added to the shared icon
 
 Implementation:
 
-- `backend/app/services/cv_templates/templates/portico.py`, function `_gen_portico` — centered `_block` masthead and `_place_centered_icon_contacts` for the contact row; the entire body (summary/experience/education/skills/extras) reuses the same left-aligned `section()`/`Builder` pattern as `nova.py`
+- `backend/app/services/cv_templates/templates/portico.py`, function `_gen_portico` — centered masthead with photo slot + `_place_centered_icon_contacts`; body reuses the left-aligned `section()`/`Builder` pattern as `nova.py`
+- `frontend/src/utils/profilePhoto.js` — `portico-photo-frame` in `PROFILE_PHOTO_FRAME_IDS` (zero inset, cover-fit)
 - `backend/app/services/cv_templates/shared/contact.py` — `_place_centered_icon_contacts` and the shared `_contact_item_width` helper
 - `backend/app/services/cv_templates/registry.py`, `_GENERATORS["portico"]` and `TEMPLATE_LAYOUTS["portico"]`
 - `frontend/src/templates/portico.js` — static starter spec; local `icon`, `sectionHead`, `contact` helpers mirroring `cardinal.js`, authored from the backend generator's own output coordinates for equivalent demo content
@@ -1065,7 +1066,7 @@ Tests: `backend/tests/test_image_upload_security.py` — accepts a real PNG, rej
 
 In **template** mode, clicking a gallery image immediately fits it into the profile-photo slot when the document declares one (no confirmation dialog, no freeform prompt) and closes the gallery panel. The fitted photo covers the entire slot (`objectFit: "cover"`). Templates mark the area with `photoSlot`:
 
-- `frame` — the designated rectangle or circle chrome (`slate-photo-frame`, `tessera-photo-frame`, `harbor-photo-frame`, `cinder-frame-one`, `monument-masthead-frame`, `nimbus-photo-frame`, `nova-photo-frame`)
+- `frame` — the designated rectangle or circle chrome (`slate-photo-frame`, `tessera-photo-frame`, `harbor-photo-frame`, `cinder-frame-one`, `monument-masthead-frame`, `nimbus-photo-frame`, `nova-photo-frame`, `portico-photo-frame`)
 - `glyph` — portrait placeholder image inside the frame (converted into the user photo)
 - `ornament` — decorative shapes the photo covers (Monument masthead bars)
 - `image` — the applied user photo (`id: "profile-photo"`, locked + `fixedToPage`)
@@ -1082,7 +1083,7 @@ Implementation:
 - `backend/app/schemas/pdf_schema.py` — optional `id`, `photoSlot`, `photoShape`, `objectFit`
 - `shared/pdf-element.schema.json` — `objectFit` enum (`fill` / `cover` / `contain`)
 - `backend/app/crud/pdfs.py` / `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx` — persist and hydrate those fields
-- Generators / starters: `slate`, `tessera`, `harbor`, `cinder`, `monument`, `nimbus`, `nova` (FE + BE)
+- Generators / starters: `slate`, `tessera`, `harbor`, `cinder`, `monument`, `nimbus`, `nova`, `portico` (FE + BE)
 
 Tests: `frontend/src/utils/profilePhoto.test.js` — slot detection on Slate/Tessera/Monument, geometry/z-index after apply, in-place replace.
 
@@ -2492,9 +2493,9 @@ Znane ograniczenie: podobnie jak Tessera, sekcje sidebara są atomowe i pozostaj
 
 ### Szablon Portico z wycentrowanym mastheadem
 
-Portico to płatny szablon jednokolumnowy (`layouts: ["icons"]`) zbudowany wokół naprawdę nowej kompozycji: to jedyny szablon łączący wycentrowany masthead z chrome ikonowym. Imię i nazwisko, tytuł zawodowy oraz dwuwierszowy pasek kontaktu są wycentrowane na stronie (nagłówek w stylu "Ivy League"), natomiast wszystko poniżej linii nagłówka — Podsumowanie, Doświadczenie, Wykształcenie, Umiejętności i ewentualne sekcje dodatkowe — trafia do tego samego wyrównanego do lewej, jednokolumnowego korpusu ikonowego, jakiego używają Cardinal i Nova. Paleta jest ciepła i stonowana — brąz/taupe (`#7C6A52` akcent, `#22221F` tusz, `#FCFBF8` papier, `#E4DED2` linia) — celowo odmienna od każdego innego akcentu w katalogu. Imię i nazwisko używa szeryfowego kroju Lora; wszystko inne — tytuł, etykiety kontaktu, nagłówki sekcji i tekst — używa Inter.
+Portico to płatny szablon jednokolumnowy (`layouts: ["icons"]`) zbudowany wokół naprawdę nowej kompozycji: to jedyny szablon łączący wycentrowany masthead z chrome ikonowym. Masthead układa wycentrowane imię i nazwisko, kwadratowy slot zdjęcia profilowego (`portico-photo-frame` / `portico-photo-well` — pusty w edytorze; klik w galerię wypełnia go przez `objectFit: cover`), wycentrowany tytuł oraz dwuwierszowy pasek kontaktu (nagłówek w stylu "Ivy League"). Wszystko poniżej linii nagłówka — Podsumowanie, Doświadczenie, Wykształcenie, Umiejętności i ewentualne sekcje dodatkowe — trafia do tego samego wyrównanego do lewej, jednokolumnowego korpusu ikonowego, jakiego używają Cardinal i Nova. Paleta jest ciepła i stonowana — brąz/taupe (`#7C6A52` akcent, `#22221F` tusz, `#FCFBF8` papier, `#E4DED2` linia) — celowo odmienna od każdego innego akcentu w katalogu. Imię i nazwisko używa szeryfowego kroju Lora; wszystko inne — tytuł, etykiety kontaktu, nagłówki sekcji i tekst — używa Inter.
 
-Centrowanie ogranicza się wyłącznie do mastheadu (imię i nazwisko / tytuł / wiersz kontaktu); korpus jest zwykłą, wyrównaną do lewej pojedynczą kolumną. Zachowuje to czytelność dłuższych punktów doświadczenia i wpisów edukacji, dając jednocześnie nagłówkowi charakterystyczny, wycentrowany wygląd.
+Centrowanie ogranicza się wyłącznie do mastheadu (imię / zdjęcie / tytuł / wiersz kontaktu); korpus jest zwykłą, wyrównaną do lewej pojedynczą kolumną. Zachowuje to czytelność dłuższych punktów doświadczenia i wpisów edukacji, dając jednocześnie nagłówkowi charakterystyczny, wycentrowany wygląd.
 
 Samo centrowanie nie wymagało żadnych zmian w rendererze ani schemacie: `align: "center"` na elemencie `textarea`/`_block` był już w pełni obsługiwany zarówno przez renderer PDF ReportLab (`renderTextarea`), jak i przez kanwę (`Textarea.jsx`), a wycentrowane imię/tytuł to textarea `_block` w symetrycznym względem strony boksie. Jedyną nową powierzchnią inżynieryjną jest wiersz kontaktu, który musi się samodzielnie centrować wokół poziomego środka strony niezależnie od liczby kanałów kontaktowych (telefon, e-mail, social media, lokalizacja) w danym CV — `_place_centered_icon_contacts` grupuje chipy kontaktowe w wiersze według tego samego oszacowania szerokości co wyrównany do lewej `_place_wrapping_icon_contacts` (wydzielonego do wspólnego helpera `_contact_item_width`, żeby oba placery nie mogły się rozjechać), a następnie centruje każdy ukończony wiersz wokół `center_x` przed rozmieszczeniem ikon i etykiet od lewej do prawej wewnątrz niego.
 
@@ -2502,7 +2503,8 @@ Brązowe glify pochodzą z dedykowanego motywu `portico` dodanego do wspólnego 
 
 Implementacja:
 
-- `backend/app/services/cv_templates/templates/portico.py`, funkcja `_gen_portico` — wycentrowany masthead przez `_block` oraz `_place_centered_icon_contacts` dla wiersza kontaktu; cały korpus (podsumowanie/doświadczenie/wykształcenie/umiejętności/sekcje dodatkowe) używa tego samego wyrównanego do lewej wzorca `section()`/`Builder` co `nova.py`
+- `backend/app/services/cv_templates/templates/portico.py`, funkcja `_gen_portico` — wycentrowany masthead ze slotem zdjęcia + `_place_centered_icon_contacts`; korpus jak w `nova.py`
+- `frontend/src/utils/profilePhoto.js` — `portico-photo-frame` w `PROFILE_PHOTO_FRAME_IDS` (inset 0, cover)
 - `backend/app/services/cv_templates/shared/contact.py` — `_place_centered_icon_contacts` oraz wspólny helper `_contact_item_width`
 - `backend/app/services/cv_templates/registry.py`, `_GENERATORS["portico"]` i `TEMPLATE_LAYOUTS["portico"]`
 - `frontend/src/templates/portico.js` — statyczny starter; lokalne helpery `icon`, `sectionHead`, `contact` na wzór `cardinal.js`, oparte na współrzędnych z rzeczywistego wyjścia backendowego generatora dla równoważnej treści demo
@@ -2729,7 +2731,7 @@ Testy: `backend/tests/test_image_upload_security.py` — PNG, HTML-as-PNG (415),
 
 W trybie **template** kliknięcie obrazu w galerii od razu dopasowuje go do slotu zdjęcia profilowego, gdy dokument ma zadeklarowany slot (bez dialogu potwierdzenia i bez pytania o freeform), i zamyka panel galerii. Dopasowane zdjęcie przykrywa cały slot (`objectFit: "cover"`). Szablony oznaczają obszar polem `photoSlot`:
 
-- `frame` — ramka prostokątna lub koło (`slate-photo-frame`, `tessera-photo-frame`, `harbor-photo-frame`, `cinder-frame-one`, `monument-masthead-frame`, `nimbus-photo-frame`, `nova-photo-frame`)
+- `frame` — ramka prostokątna lub koło (`slate-photo-frame`, `tessera-photo-frame`, `harbor-photo-frame`, `cinder-frame-one`, `monument-masthead-frame`, `nimbus-photo-frame`, `nova-photo-frame`, `portico-photo-frame`)
 - `glyph` — placeholder portretu w ramce (zamieniany na zdjęcie użytkownika)
 - `ornament` — dekoracje przykrywane zdjęciem (belki mastheadu Monument)
 - `image` — nałożone zdjęcie użytkownika (`id: "profile-photo"`, `locked` + `fixedToPage`)
@@ -2746,7 +2748,7 @@ Implementacja:
 - `backend/app/schemas/pdf_schema.py` — opcjonalne `id`, `photoSlot`, `photoShape`, `objectFit`
 - `shared/pdf-element.schema.json` — enum `objectFit` (`fill` / `cover` / `contain`)
 - `backend/app/crud/pdfs.py` / `ModalPdfs.jsx` — zapis i hydratacja
-- Generatory / startery: `slate`, `tessera`, `harbor`, `cinder`, `monument`, `nimbus`, `nova` (FE + BE)
+- Generatory / startery: `slate`, `tessera`, `harbor`, `cinder`, `monument`, `nimbus`, `nova`, `portico` (FE + BE)
 
 Testy: `frontend/src/utils/profilePhoto.test.js` — wykrywanie slotu (w tym Monument), geometria/z-index po apply, zamiana w miejscu.
 

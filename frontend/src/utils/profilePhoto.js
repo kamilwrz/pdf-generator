@@ -28,6 +28,7 @@ export const PROFILE_PHOTO_FRAME_IDS = new Set([
   "monument-masthead-frame",
   "nimbus-photo-frame",
   "nova-photo-frame",
+  "portico-photo-frame",
 ]);
 
 /** Stable semantic id written onto the applied user photo element. */
@@ -148,8 +149,8 @@ function findGlyphInFrame(elements, frame) {
  * @returns {number}
  */
 function insetForFrame(frame) {
-  // Nova: gallery photo fills the portrait well edge-to-edge (object-fit cover).
-  if (frame?.id === "nova-photo-frame") {
+  // Nova / Portico: gallery photo fills the well edge-to-edge (object-fit cover).
+  if (frame?.id === "nova-photo-frame" || frame?.id === "portico-photo-frame") {
     return 0;
   }
   if (
@@ -304,13 +305,16 @@ export function applyProfilePhoto(elements, photo, createId = nanoid) {
   // - Harbor circle: photo covers the filled disc (no outline to preserve).
   const frameZ = Number(frame?.zIndex) || 3;
   const isOrnamentFrame = frame?.photoShape === "ornament-frame";
-  const isNovaFrame = frame?.id === "nova-photo-frame";
+  const coversWell = (
+    frame?.id === "nova-photo-frame"
+    || frame?.id === "portico-photo-frame"
+  );
   let photoZ = Number(glyph?.zIndex) || 4;
   let nextFrameZ = frameZ;
   if (frame) {
     if (isCircle) {
       photoZ = frameZ + 1;
-    } else if (isOrnamentFrame || isNovaFrame) {
+    } else if (isOrnamentFrame || coversWell) {
       photoZ = frameZ + 1;
       nextFrameZ = photoZ + 1;
     } else {
