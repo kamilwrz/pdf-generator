@@ -1,4 +1,3 @@
-import DropzoneContainer from '../components/gallery/Dropzone/DropzoneContainer';
 import Gallery from '../components/gallery/Gallery/Gallery';
 import Sidebar from '../components/editor/Sidebar/Sidebar';
 import Topbar from '../components/editor/Topbar/Topbar';
@@ -752,9 +751,11 @@ function PdfCanvas() {
     titleRef,
   ]);
 
+  // Upload lives inside the gallery panel (lower third dropzone), so the
+  // sidebar "Prześlij zdjęcia" control opens the same sliding gallery.
   const handleShowDropzone = useCallback(() => {
-    const next = panel !== 'upload';
-    setPanel(next ? 'upload' : null);
+    const next = panel !== 'gallery';
+    setPanel(next ? 'gallery' : null);
     if (next) setDialog(null);
   }, [panel])
 
@@ -1638,7 +1639,6 @@ function PdfCanvas() {
                 onRequestAiShorten={handleRequestAiShorten}
                 onClose={closeLongCvModal}
               />
-              <DropzoneContainer />
               <Sidebar>
                 {isSectionsPanel ? (
                   <SectionsPanel onClose={() => setPanel(null)} />

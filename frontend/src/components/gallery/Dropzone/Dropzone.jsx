@@ -1,9 +1,9 @@
 /**
- * Profile-photo upload dropzone with shared Polish batch progress messaging.
+ * Profile-photo upload dropzone.
  *
- * Uploads run sequentially so the progress bar reflects total files, not one.
- * The library is capped at {@link MAX_PROFILE_PHOTOS}; when full, the surface
- * is disabled and explains that photos must be deleted first.
+ * Default (dialog) variant keeps the standalone upload surface. The `embedded`
+ * variant fills the lower third of the gallery panel: each successful upload
+ * reports the new row via `onUploaded` so the parent can fill a slot immediately.
  */
 import classes from "./Dropzone.module.css";
 import { useDropzone } from "react-dropzone";
@@ -28,16 +28,38 @@ const LIMIT_FULL_MESSAGE =
     + "Usuń jedno lub więcej zdjęć w galerii, aby dodać kolejne.";
 
 /**
- * @param {{ onLibraryChange?: (info: { libraryCount: number; batchCount: number; remainingSlots: number }) => void }} props
+ * @param {{
+ *   variant?: "dialog" | "embedded",
+ *   active?: boolean,
+ *   libraryCount?: number,
+ *   onUploaded?: (row: { id: number, filename?: string, mime_type?: string }) => void | Promise<void>,
+ *   onLibraryChange?: (info: { libraryCount: number; batchCount: number; remainingSlots: number }) => void,
+ * }} props
  */
-export default function Dropzone({ onLibraryChange }) {
+export default function Dropzone({
+    variant = "dialog",
+    active,
+    libraryCount: libraryCountProp,
+    onUploaded,
+    onLibraryChange,
+}) {
     const { valueImageUpload, setValueImageUpload, isDropzone } = use(PdfContext);
+    const isEmbedded = variant === "embedded";
+    const isActive = active ?? isDropzone;
+
     const [files, setFiles] = useState([]);
-    const [libraryCount, setLibraryCount] = useState(0);
-    const [libraryLoaded, setLibraryLoaded] = useState(false);
+    const [libraryCount, setLibraryCount] = useState(libraryCountProp ?? 0);
+    const [libraryLoaded, setLibraryLoaded] = useState(libraryCountProp != null);
     const [status, setStatus] = useState("idle"); // idle | uploading | success | error
     const [statusMessage, setStatusMessage] = useState("");
     const uploadTokenRef = useRef(0);
+
+    // Parent-owned count (gallery) wins when provided.
+    useEffect(() => {
+        if (libraryCountProp == null) return;
+        setLibraryCount(libraryCountProp);
+        setLibraryLoaded(true);
+    }, [libraryCountProp]);
 
     const remainingSlots = Math.max(0, MAX_PROFILE_PHOTOS - libraryCount);
     const atLimit = libraryLoaded && remainingSlots === 0;
@@ -51,6 +73,7 @@ export default function Dropzone({ onLibraryChange }) {
     }, [libraryCount, files.length, remainingSlots, onLibraryChange]);
 
     const refreshLibraryCount = useCallback(async () => {
+        if (libraryCountProp != null) return;
         if (!localStorage.getItem("token")) {
             setLibraryCount(0);
             setLibraryLoaded(true);
@@ -68,16 +91,14 @@ export default function Dropzone({ onLibraryChange }) {
             );
             setLibraryCount(Array.isArray(rows) ? rows.length : 0);
         } catch {
-            // Keep the previous count on transient failures so a network blip
-            // does not unlock uploads past the known library size.
+            // Keep the previous count on transient failures.
         } finally {
             setLibraryLoaded(true);
         }
-    }, []);
+    }, [libraryCountProp]);
 
     useEffect(() => {
-        if (!isDropzone) return undefined;
-        setLibraryLoaded(false);
+        if (!isActive) return undefined;
         setStatus("idle");
         setStatusMessage("");
         setFiles((prev) => {
@@ -85,15 +106,16 @@ export default function Dropzone({ onLibraryChange }) {
             return [];
         });
         setValueImageUpload(0);
-        refreshLibraryCount();
+        if (libraryCountProp == null) {
+            setLibraryLoaded(false);
+            refreshLibraryCount();
+        }
         return undefined;
-    }, [isDropzone, refreshLibraryCount, setValueImageUpload]);
+    }, [isActive, refreshLibraryCount, setValueImageUpload, libraryCountProp]);
 
     const onDrop = useCallback((acceptedFiles) => {
         if (!acceptedFiles?.length) return;
 
-        // Image upload has nowhere to persist for a guest — there is no
-        // account yet to own the uploaded file.
         if (!localStorage.getItem("token")) {
             setStatus("error");
             setStatusMessage("Załóż konto, aby przesyłać zdjęcia profilowe do galerii.");
@@ -106,7 +128,6 @@ export default function Dropzone({ onLibraryChange }) {
             return;
         }
 
-        // Cap the batch to free slots so a multi-select cannot exceed the library.
         const capped = acceptedFiles.slice(0, remainingSlots);
         const truncated = capped.length < acceptedFiles.length;
 
@@ -131,35 +152,37 @@ export default function Dropzone({ onLibraryChange }) {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
         });
 
-        let completed = 0;
-        let succeeded = 0;
-        let lastErrorMessage = "";
-        const total = batch.length;
-
-        const bumpProgress = () => {
-            if (token !== uploadTokenRef.current) return;
-            completed += 1;
-            setValueImageUpload(Math.round((completed / total) * PROGRESS_MAX));
-        };
-
-        Promise.all(batch.map(async (file) => {
-            const formData = new FormData();
-            formData.append("file", file);
-            try {
-                await api.httpRequest(
-                    ENDPOINTS.IMG.UPLOAD,
-                    "POST",
-                    formData,
-                    "Przesyłanie zdjęcia profilowego nie powiodło się!",
-                );
-                succeeded += 1;
-            } catch (err) {
-                // Keep the server detail (e.g. library-full 403) for the final status.
-                if (err?.message) lastErrorMessage = err.message;
-            } finally {
-                bumpProgress();
+        // Sequential uploads so each finished file can fill a gallery slot
+        // before the next request starts (live UI update).
+        (async () => {
+            let succeeded = 0;
+            let lastErrorMessage = "";
+            const total = batch.length;
+            for (let index = 0; index < batch.length; index += 1) {
+                if (token !== uploadTokenRef.current) return;
+                const file = batch[index];
+                const formData = new FormData();
+                formData.append("file", file);
+                try {
+                    const result = await api.httpRequest(
+                        ENDPOINTS.IMG.UPLOAD,
+                        "POST",
+                        formData,
+                        "Przesyłanie zdjęcia profilowego nie powiodło się!",
+                    );
+                    succeeded += 1;
+                    if (libraryCountProp == null) {
+                        setLibraryCount((prev) => prev + 1);
+                    }
+                    if (result?.id != null) {
+                        await onUploaded?.(result);
+                    }
+                } catch (err) {
+                    if (err?.message) lastErrorMessage = err.message;
+                }
+                if (token !== uploadTokenRef.current) return;
+                setValueImageUpload(Math.round(((index + 1) / total) * PROGRESS_MAX));
             }
-        })).then(async () => {
             if (token !== uploadTokenRef.current) return;
             const summary = polishUploadResultMessage(succeeded, total);
             const message = succeeded === 0 && lastErrorMessage
@@ -168,11 +191,17 @@ export default function Dropzone({ onLibraryChange }) {
             if (message) setStatusMessage(message);
             setStatus(succeeded === 0 ? "error" : "success");
             setValueImageUpload(PROGRESS_MAX);
-            if (succeeded > 0) {
+            if (succeeded > 0 && libraryCountProp == null) {
                 await refreshLibraryCount();
             }
-        });
-    }, [remainingSlots, refreshLibraryCount, setValueImageUpload]);
+        })();
+    }, [
+        remainingSlots,
+        refreshLibraryCount,
+        setValueImageUpload,
+        onUploaded,
+        libraryCountProp,
+    ]);
 
     const dropDisabled = status === "uploading" || atLimit || !libraryLoaded;
 
@@ -195,20 +224,30 @@ export default function Dropzone({ onLibraryChange }) {
 
     const showProgress = status === "uploading" || status === "success" || status === "error";
 
-    let title = "Upuść zdjęcia profilowe tutaj";
+    let title = isEmbedded ? "Upuść zdjęcie tutaj" : "Upuść zdjęcia profilowe tutaj";
     let hint = <>lub <span>przeglądaj pliki</span></>;
     if (!libraryLoaded) {
         title = "Sprawdzanie limitu…";
-        hint = `Maksymalnie ${MAX_PROFILE_PHOTOS} zdjęć profilowych w CV`;
+        hint = `Maksymalnie ${MAX_PROFILE_PHOTOS} zdjęć`;
     } else if (atLimit) {
-        title = "Limit zdjęć profilowych jest pełny";
+        title = "Limit jest pełny";
         hint = LIMIT_FULL_MESSAGE;
     } else if (status === "uploading") {
         title = "Przesyłanie…";
         hint = statusMessage;
     } else if (isDragActive) {
         title = "Upuść, aby przesłać";
-        hint = `Pozostało ${remainingSlots} z ${MAX_PROFILE_PHOTOS} miejsc`;
+        hint = `Pozostało ${remainingSlots} z ${MAX_PROFILE_PHOTOS}`;
+    } else if (isEmbedded) {
+        hint = (
+            <>
+                lub <span>przeglądaj</span>
+                {" · "}
+                {remainingSlots}
+                /
+                {MAX_PROFILE_PHOTOS}
+            </>
+        );
     } else {
         hint = (
             <>
@@ -228,15 +267,17 @@ export default function Dropzone({ onLibraryChange }) {
     }
 
     return (
-        <section className={classes.dropzoneContainer}>
-            <p className={classes.intro}>
-                Prześlij zdjęcia profilowe, które chcesz używać w CV.
-                Biblioteka mieści maksymalnie
-                {" "}
-                {MAX_PROFILE_PHOTOS}
-                {" "}
-                zdjęcia.
-            </p>
+        <section className={`${classes.dropzoneContainer}${isEmbedded ? ` ${classes.embedded}` : ""}`}>
+            {!isEmbedded ? (
+                <p className={classes.intro}>
+                    Prześlij zdjęcia profilowe, które chcesz używać w CV.
+                    Biblioteka mieści maksymalnie
+                    {" "}
+                    {MAX_PROFILE_PHOTOS}
+                    {" "}
+                    zdjęcia.
+                </p>
+            ) : null}
 
             <div
                 {...getRootProps({
@@ -252,13 +293,13 @@ export default function Dropzone({ onLibraryChange }) {
                 <div className={classes.dropHint}>{hint}</div>
             </div>
 
-            {atLimit ? (
+            {atLimit && !isEmbedded ? (
                 <p className={classes.limitBanner} role="status">
                     {LIMIT_FULL_MESSAGE}
                 </p>
             ) : null}
 
-            {isDropzone && files.length > 0 && (
+            {!isEmbedded && isActive && files.length > 0 && (
                 <>
                     <div className={classes.divider}>
                         <span className={classes.dividerLine} />
@@ -279,7 +320,7 @@ export default function Dropzone({ onLibraryChange }) {
                 </>
             )}
 
-            {isDropzone && showProgress && (
+            {isActive && showProgress && (
                 <>
                     <Progress max={PROGRESS_MAX} value={valueImageUpload} />
                     {status === "uploading" && (

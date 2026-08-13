@@ -28,7 +28,7 @@ def create_image(
     file_path: str,
     mime_type: str,
     owner_id: int,
-) -> None:
+) -> Image:
     """Insert metadata for a file that was already written to disk or S3.
 
     The caller passes verified values explicitly rather than a raw upload:
@@ -37,7 +37,7 @@ def create_image(
     display only. `file_path` must already point at the stored object; this
     helper does not move bytes.
 
-    Side effect: commits immediately.
+    Side effect: commits immediately. Returns the persisted row (with id).
     """
     db_image = Image(
         filename=filename,
@@ -50,3 +50,5 @@ def create_image(
 
     db.add(db_image)
     db.commit()
+    db.refresh(db_image)
+    return db_image

@@ -71,4 +71,4 @@ ADMIN_RESET_SECRET = (os.getenv("ADMIN_RESET_SECRET") or "").strip()
 # (five slots in the editor gallery). Per-plan quotas can layer on top later
 # without changing this boundary.
 MAX_UPLOAD_BYTES = _int_env("MAX_UPLOAD_BYTES", 8 * 1024 * 1024)  # 8 MB
-MAX_IMAGES_PER_USER = _int_env("MAX_IMAGES_PER_USER", 5)
+MAX_IMAGES_PER_USER = _int_env("MAX_IMAGES_PER_USER", 4)

@@ -1019,7 +1019,7 @@ Implementation:
 ### Image upload (validated, private content)
 
 Users upload **profile photos** for use in CVs (gallery + template photo slot).
-The library is capped at **5 photos per account**. The endpoint treats every
+The library is capped at **4 photos per account**. The endpoint treats every
 part of the upload as untrusted: it verifies the real raster format from the
 file's leading bytes (PNG, JPEG, WEBP, GIF only — SVG is rejected as an
 inline-script vector), derives the stored name from a server-generated UUID
@@ -1027,13 +1027,18 @@ inline-script vector), derives the stored name from a server-generated UUID
 (bounding memory use), and enforces the per-user profile-photo count. The
 original filename is stored for display only and is never used to locate the
 object. Limits are configurable via `MAX_UPLOAD_BYTES` (default 8 MB) and
-`MAX_IMAGES_PER_USER` (default **5**).
+`MAX_IMAGES_PER_USER` (default **4**).
 
-The editor gallery always shows **five portrait slots** (filled thumbnails +
-empty placeholders). Empty slots open the upload dialog. When the library is
-full, upload is disabled with a Polish message that the user must delete one
-or more photos before adding another. `GET /images/fetch_images` returns an
-empty list when the library has no photos yet (not 404).
+The editor gallery is a right-edge panel centered vertically (`top`/`bottom`
+25% → 50vh height). The upper **two thirds** show a 2×2 grid of four slots
+(filled thumbnails + empty placeholders); the lower **third** is an embedded
+upload dropzone. Each successful upload returns the new image `id` and fills
+the next empty slot immediately. Clicking a filled slot in template mode
+applies the photo to the canvas profile slot (`objectFit: cover`) and closes
+the gallery. When the library is full, upload is disabled with a Polish
+message that the user must delete one or more photos before adding another.
+`GET /images/fetch_images` returns an empty list when the library has no
+photos yet (not 404).
 
 Bytes are **not** served from a public `/uploads` StaticFiles mount. The gallery
 and canvas fetch `GET /images/{id}/content` with a Bearer token and display a
@@ -1043,23 +1048,22 @@ blob URL. Canvas elements persist a stable `/images/{id}/content` `src` plus
 Implementation:
 
 - `backend/app/utils/upload_security.py`, `sniff_image_type`, `safe_object_name`, `is_safe_path_segment`
-- `backend/app/api/routes/images.py`, lines 57–149, `create_upload_image`; lines 152–162, `fetch_user_images`; lines 166–199, `get_image_content`
-- `backend/app/services/document_service.py`, lines 39–66, `resolve_image_src_for_pdf` / `make_image_resolver`
-- `frontend/src/constants/profilePhotos.js`, `MAX_PROFILE_PHOTOS` (must match backend default)
+- `backend/app/api/routes/images.py`, `create_upload_image` (returns `{ id, filename, mime_type, message }`); `fetch_user_images`; `get_image_content`
+- `backend/app/services/document_service.py`, `resolve_image_src_for_pdf` / `make_image_resolver`
+- `frontend/src/constants/profilePhotos.js`, `MAX_PROFILE_PHOTOS` (must match backend default = 4)
 - `frontend/src/services/authenticatedImage.js`, `fetchAuthenticatedImageObjectUrl`
-- `frontend/src/components/gallery/Gallery/Gallery.jsx`, lines 50–201 — five-slot gallery + placeholders
-- `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, lines 33–303 — max 5, disable when full
-- `frontend/src/components/gallery/Dropzone/DropzoneContainer.jsx`, lines 11–45 — “Prześlij zdjęcia profilowe”
-- `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, `canvas/Image/Image.jsx`
-- `backend/app/crud/images.py`, `create_image`, `count_images_by_user_id`
-- `backend/app/core/config.py`, lines 73–74, `MAX_UPLOAD_BYTES`, `MAX_IMAGES_PER_USER`
+- `frontend/src/components/gallery/Gallery/Gallery.jsx` — 4-slot grid (2/3) + embedded dropzone (1/3), slide-in panel
+- `frontend/src/components/gallery/Dropzone/Dropzone.jsx` — sequential upload + `onUploaded` live slot fill (`variant="embedded"`)
+- `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx` — click applies photo and closes gallery
+- `backend/app/crud/images.py`, `create_image` (returns row), `count_images_by_user_id`
+- `backend/app/core/config.py`, `MAX_UPLOAD_BYTES`, `MAX_IMAGES_PER_USER`
 - Deletion is IDOR-checked and blocked while a PDF element still references the image (`delete_user_image`)
 
 Tests: `backend/tests/test_image_upload_security.py` — accepts a real PNG, rejects HTML disguised as PNG (415), neutralises traversal filenames, rejects oversize (413), enforces the per-user count (403), owner-only content GET; `frontend/src/utils/polishUploadMessage.test.js` — Polish profile-photo upload copy; `backend/tests/test_document_service.py` — content URL → local path.
 
 ### Profile photo slot (template mode)
 
-In **template** mode, clicking a gallery image immediately fits it into the profile-photo slot when the document declares one (no confirmation dialog, no freeform prompt). Templates mark the area with `photoSlot`:
+In **template** mode, clicking a gallery image immediately fits it into the profile-photo slot when the document declares one (no confirmation dialog, no freeform prompt) and closes the gallery panel. The fitted photo covers the entire slot (`objectFit: "cover"`). Templates mark the area with `photoSlot`:
 
 - `frame` — the designated rectangle or circle chrome (`slate-photo-frame`, `tessera-photo-frame`, `harbor-photo-frame`, `cinder-frame-one`, `monument-masthead-frame`, `nimbus-photo-frame`, `nova-photo-frame`)
 - `glyph` — portrait placeholder image inside the frame (converted into the user photo)
@@ -1564,7 +1568,7 @@ App: `http://localhost:5173`.
 | `ADMIN_RESET_SECRET` | for admin reset | Dedicated secret for `POST /billing/admin/reset-ai-credits` (does **not** fall back to `SECRET_KEY`) | long random string |
 | `ALLOW_INSECURE_SECRET` | no | Local throwaway only: skip strong `SECRET_KEY` boot check | `true` |
 | `MAX_UPLOAD_BYTES` | no | Max image upload size in bytes (default 8 MB) | `8388608` |
-| `MAX_IMAGES_PER_USER` | no | Max profile photos per user (default 5) | `5` |
+| `MAX_IMAGES_PER_USER` | no | Max profile photos per user (default 4) | `4` |
 
 #### Frontend
 
@@ -1627,7 +1631,7 @@ CI/CD: configure in your host (Render dashboards / GitHub Actions) — no commit
 - Sessions: JWT Bearer; username in `sub`.
 - Authorisation: ownership checks on PDF/image mutations; plan gates on create/export/AI/templates.
 - CORS: explicit origin allowlist (`CORS_ORIGINS`).
-- Uploads: profile-photo library (max 5 by default); format verified from file bytes (PNG/JPEG/WEBP/GIF; SVG rejected), stored under server-generated names (no path traversal), size-capped (`MAX_UPLOAD_BYTES`) and count-limited per user (`MAX_IMAGES_PER_USER`); images owned by user; delete blocked while referenced by a PDF element; bytes served only via ownership-checked `GET /images/{id}/content` (no public `/uploads` mount) (`upload_security.py`, `images.py`).
+- Uploads: profile-photo library (max 4 by default); format verified from file bytes (PNG/JPEG/WEBP/GIF; SVG rejected), stored under server-generated names (no path traversal), size-capped (`MAX_UPLOAD_BYTES`) and count-limited per user (`MAX_IMAGES_PER_USER`); images owned by user; delete blocked while referenced by a PDF element; bytes served only via ownership-checked `GET /images/{id}/content` (no public `/uploads` mount) (`upload_security.py`, `images.py`).
 - Registration: duplicate username/email rejected with 400; email format-validated (`auth.py`, `user_schema.py`).
 - AI: provider errors mapped to generic Polish 500; details stay in logs.
 - Metrics: `/events/log` logs numeric `user_id`, not raw usernames (`metrics_logging.py`).
@@ -2679,7 +2683,7 @@ Implementacja:
 ### Upload obrazów (walidowany, prywatna treść)
 
 Użytkownik przesyła **zdjęcia profilowe** do użycia w CV (galeria + slot
-szablonu). Biblioteka jest ograniczona do **5 zdjęć na konto**. Endpoint
+szablonu). Biblioteka jest ograniczona do **4 zdjęć na konto**. Endpoint
 traktuje każdą część uploadu jako niezaufaną: weryfikuje rzeczywisty format
 rastrowy z początkowych bajtów pliku (tylko PNG, JPEG, WEBP, GIF — SVG jest
 odrzucany jako wektor skryptu), tworzy nazwę pliku z serwerowego UUID
@@ -2687,13 +2691,17 @@ odrzucany jako wektor skryptu), tworzy nazwę pliku z serwerowego UUID
 (limit pamięci) oraz liczbę zdjęć profilowych na użytkownika. Oryginalna nazwa
 jest zapisywana tylko do wyświetlania i nigdy nie służy do lokalizacji pliku.
 Limity konfiguruje `MAX_UPLOAD_BYTES` (domyślnie 8 MB) i `MAX_IMAGES_PER_USER`
-(domyślnie **5**).
+(domyślnie **4**).
 
-Galeria w edytorze zawsze pokazuje **pięć slotów portretowych** (miniatury +
-puste placeholdery). Puste miejsce otwiera dialog uploadu. Gdy biblioteka jest
-pełna, upload jest wyłączony z komunikatem, że trzeba usunąć zdjęcie, aby dodać
-kolejne. `GET /images/fetch_images` zwraca pustą listę, gdy nie ma jeszcze
-zdjęć (nie 404).
+Galeria w edytorze to panel z prawej, wycentrowany pionowo (`top`/`bottom` 25%
+→ wysokość 50vh). Górne **dwie trzecie** to siatka 2×2 z czterema slotami
+(miniatury + puste placeholdery); dolna **jedna trzecia** to wbudowany dropzone
+uploadu. Każdy udany upload zwraca `id` nowego zdjęcia i od razu wypełnia
+kolejny wolny slot. Kliknięcie wypełnionego slotu w trybie szablonu nakłada
+zdjęcie na slot profilowy na canvasie (`objectFit: cover`) i zamyka galerię.
+Gdy biblioteka jest pełna, upload jest wyłączony z komunikatem, że trzeba
+usunąć zdjęcie, aby dodać kolejne. `GET /images/fetch_images` zwraca pustą
+listę, gdy nie ma jeszcze zdjęć (nie 404).
 
 Bajty **nie** są serwowane z publicznego mountu `/uploads`. Galeria i kanwa
 pobierają `GET /images/{id}/content` z tokenem Bearer i pokazują blob URL.
@@ -2703,23 +2711,22 @@ eksport PDF rozwiązuje ten URL przez `document_service.resolve_image_src_for_pd
 Implementacja:
 
 - `backend/app/utils/upload_security.py` — `sniff_image_type`, `safe_object_name`, `is_safe_path_segment`
-- `backend/app/api/routes/images.py`, linie 57–149 — `create_upload_image`; linie 152–162 — `fetch_user_images`; linie 166–199 — `get_image_content`
-- `backend/app/services/document_service.py`, linie 39–66 — `resolve_image_src_for_pdf` / `make_image_resolver`
-- `frontend/src/constants/profilePhotos.js` — `MAX_PROFILE_PHOTOS` (zgodne z domyślnym limitem backendu)
+- `backend/app/api/routes/images.py` — `create_upload_image` (zwraca `{ id, filename, mime_type, message }`); `fetch_user_images`; `get_image_content`
+- `backend/app/services/document_service.py` — `resolve_image_src_for_pdf` / `make_image_resolver`
+- `frontend/src/constants/profilePhotos.js` — `MAX_PROFILE_PHOTOS` (domyślnie 4)
 - `frontend/src/services/authenticatedImage.js` — `fetchAuthenticatedImageObjectUrl`
-- `frontend/src/components/gallery/Gallery/Gallery.jsx`, linie 50–201 — galeria 5 slotów + placeholdery
-- `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, linie 33–303 — maks. 5, disable przy limicie
-- `frontend/src/components/gallery/Dropzone/DropzoneContainer.jsx`, linie 11–45 — „Prześlij zdjęcia profilowe”
-- `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, `canvas/Image/Image.jsx`
-- `backend/app/crud/images.py` — `create_image`, `count_images_by_user_id`
-- `backend/app/core/config.py`, linie 73–74 — `MAX_UPLOAD_BYTES`, `MAX_IMAGES_PER_USER`
+- `frontend/src/components/gallery/Gallery/Gallery.jsx` — siatka 4 slotów (2/3) + dropzone (1/3), wysuwany panel
+- `frontend/src/components/gallery/Dropzone/Dropzone.jsx` — upload sekwencyjny + `onUploaded` (`variant="embedded"`)
+- `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx` — klik stosuje zdjęcie i zamyka galerię
+- `backend/app/crud/images.py` — `create_image` (zwraca wiersz), `count_images_by_user_id`
+- `backend/app/core/config.py` — `MAX_UPLOAD_BYTES`, `MAX_IMAGES_PER_USER`
 - Usuwanie jest chronione przed IDOR i blokowane, gdy element PDF nadal używa obrazu (`delete_user_image`)
 
 Testy: `backend/tests/test_image_upload_security.py` — PNG, HTML-as-PNG (415), traversal, oversize (413), limit liczby (403), content tylko dla właściciela; `frontend/src/utils/polishUploadMessage.test.js` — polskie komunikaty uploadu zdjęć profilowych; `backend/tests/test_document_service.py` — URL content → ścieżka lokalna.
 
 ### Slot zdjęcia profilowego (tryb szablonu)
 
-W trybie **template** kliknięcie obrazu w galerii od razu dopasowuje go do slotu zdjęcia profilowego, gdy dokument ma zadeklarowany slot (bez dialogu potwierdzenia i bez pytania o freeform). Szablony oznaczają obszar polem `photoSlot`:
+W trybie **template** kliknięcie obrazu w galerii od razu dopasowuje go do slotu zdjęcia profilowego, gdy dokument ma zadeklarowany slot (bez dialogu potwierdzenia i bez pytania o freeform), i zamyka panel galerii. Dopasowane zdjęcie przykrywa cały slot (`objectFit: "cover"`). Szablony oznaczają obszar polem `photoSlot`:
 
 - `frame` — ramka prostokątna lub koło (`slate-photo-frame`, `tessera-photo-frame`, `harbor-photo-frame`, `cinder-frame-one`, `monument-masthead-frame`, `nimbus-photo-frame`, `nova-photo-frame`)
 - `glyph` — placeholder portretu w ramce (zamieniany na zdjęcie użytkownika)
@@ -3223,7 +3230,7 @@ Migracje: `create_all` + Alembic (`backend/alembic/`) przy starcie.
 - JWT Bearer; `sub` = username.
 - IDOR: właściciel PDF/obrazu; bramki planu na create/export/AI/szablony.
 - CORS z allowlistą.
-- Upload: biblioteka zdjęć profilowych (domyślnie maks. 5); format weryfikowany z bajtów pliku (PNG/JPEG/WEBP/GIF; SVG odrzucany), nazwy generowane po stronie serwera (brak path traversal), limit rozmiaru (`MAX_UPLOAD_BYTES`) i liczby zdjęć na użytkownika (`MAX_IMAGES_PER_USER`); usuwanie blokowane, gdy obraz jest używany przez element PDF; bajty tylko przez `GET /images/{id}/content` z kontrolą właściciela (bez publicznego `/uploads`) (`upload_security.py`, `images.py`).
+- Upload: biblioteka zdjęć profilowych (domyślnie maks. 4); format weryfikowany z bajtów pliku (PNG/JPEG/WEBP/GIF; SVG odrzucany), nazwy generowane po stronie serwera (brak path traversal), limit rozmiaru (`MAX_UPLOAD_BYTES`) i liczby zdjęć na użytkownika (`MAX_IMAGES_PER_USER`); usuwanie blokowane, gdy obraz jest używany przez element PDF; bajty tylko przez `GET /images/{id}/content` z kontrolą właściciela (bez publicznego `/uploads`) (`upload_security.py`, `images.py`).
 - Rejestracja: zajęta nazwa/e-mail odrzucane z 400; e-mail walidowany formatem (`auth.py`, `user_schema.py`).
 - Błędy AI bez wycieku szczegółów do klienta.
 - Metryki z `user_id`, nie raw username.

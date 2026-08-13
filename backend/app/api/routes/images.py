@@ -138,7 +138,7 @@ async def create_upload_image(
     # Keep the original name (basename only) for display; it is never used to
     # locate the object on disk or in S3.
     display_name = os.path.basename(file.filename or object_name)[:255]
-    create_image(
+    row = create_image(
         db=db,
         filename=display_name,
         file_size=len(data),
@@ -146,7 +146,14 @@ async def create_upload_image(
         mime_type=mime_type,
         owner_id=db_user.id,
     )
-    return {"message": "Zdjęcie profilowe zostało pomyślnie przesłane."}
+    # Return the new row id so the gallery can fill a slot immediately without
+    # waiting for a full library refetch.
+    return {
+        "id": row.id,
+        "filename": row.filename,
+        "mime_type": row.mime_type,
+        "message": "Zdjęcie profilowe zostało pomyślnie przesłane.",
+    }
 
 
 @router.get("/fetch_images", status_code=status.HTTP_200_OK)
