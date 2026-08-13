@@ -7,6 +7,49 @@
 (the single-page balance-driven planner, already implemented in
 `backend/app/services/cv_templates/shared/column_planner.py`)
 
+## 0. Implementation update (2026-08-13) — supersedes §4, §5.2, §5.3
+
+The bounded-iteration design in §4/§5.3 (alternate a partition pass with a
+real page measurement, deriving continuation buckets from the *full* main
+page count, iterating to a fixpoint) was implemented and then **replaced**:
+it oscillated. Moving a section onto a page-2 rail removed it from the main
+column, which could shrink the main column back to one page, which removed
+the page-2 bucket, which pushed the section back to main — the loop hit its
+cap and returned whichever unconverged plan it last held, so page 2's rail
+was sometimes filled and sometimes empty (the "sometimes harmonious,
+sometimes not" symptom).
+
+The shipped design is **deterministic and non-iterative**, anchored to the
+main column's *skeleton* — the sections that stay in main no matter what
+(`anchored_main` ones plus record-style extras such as Projects, which
+`measure_main` always renders). The skeleton's page span does not depend on
+movable placement, so it is a fixed point measured once. Three steps:
+
+1. **Skeleton pages** = `measure_main([anchored keys]).pages_used`. Passing
+   only the anchored keys makes the caller's `measure_main` render main with
+   every movable section skipped. Pages `2..skeleton_pages` are "safe": they
+   exist because of non-movable content, so railing a movable section onto
+   one never blanks that page's main column.
+2. **Page-1 balance + overflow seeding** — the pure `plan_columns` (§5.1
+   cost, which is page-1-only as implemented) with `main_budget =
+   page1_main_budget` and one bucket per skeleton page. This fills page 1 and
+   first-fits sidebar-affinity overflow onto continuation rails.
+3. **Rail main-affinity leftovers** (Education) whose real start page — from
+   `measure_main(plan.main).start_page_by_key` — is a safe continuation page
+   and that fit that page's rail, greedily and each verified by a
+   `measure_main` of `plan.main` *minus that section*: a leftover is railed
+   only if its page still survives without it, so a rail is never populated
+   beside an empty main column. Two leftovers on the same new page → the
+   first is railed, the second kept in main (both columns filled).
+
+`MainMeasurement` accordingly carries `start_page_by_key` (real per-section
+start pages), and `plan_columns_multi_page` drops `continuation_main_budget`
+and `max_iterations` (no loop). `plan_columns` stays a pure page-1
+partitioner; the leftover-railing lives in the orchestrator because it needs
+real measurement. Sections below describing the lump-sum `main_budget` (§5.2)
+and the iteration (§4, §5.3) are retained for history but do not describe the
+shipped code.
+
 ## 1. Problem
 
 The current planner treats the sidebar as a single page-1-only bucket: any

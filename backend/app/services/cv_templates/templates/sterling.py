@@ -316,14 +316,23 @@ def _gen_sterling(cv: dict) -> list[dict]:
             if candidate['key'] not in main_set and isinstance(candidate.get('extra_index'), int)
         }
 
-    def _render_main_column(order: list[str], b: "Builder", skip_indices: set[int]) -> None:
+    def _render_main_column(
+        order: list[str], b: "Builder", skip_indices: set[int],
+        start_pages: dict[str, int] | None = None,
+    ) -> None:
         """Render one ordered main-column section list into ``b``.
 
         Shared verbatim between the throwaway measurement pass
         (``measure_main``, called by ``plan_columns_multi_page`` to learn how
-        many pages a candidate ``main`` order needs) and the final render, so
-        the page count the planner iterates against always matches what the
-        document actually draws.
+        many pages a candidate ``main`` order needs, and the real page each
+        section starts on) and the final render, so the page count and start
+        pages the planner reasons about always match what the document draws.
+
+        When ``start_pages`` is provided, each explicitly-handled section key
+        records the 1-indexed page its heading lands on (after any page break
+        ``need_section`` forces). Simple extras rendered in bulk by
+        ``_extra_sections`` are intentionally not tracked — the planner only
+        rails main-affinity leftovers (Education), which are handled here.
         """
         def section_fn(label: str):
             return section(b, label)
@@ -331,12 +340,16 @@ def _gen_sterling(cv: dict) -> list[dict]:
         for key in order:
             if key == 'summary' and cv.get('summary'):
                 b.need_section(SECTION_CHROME, Builder.measure_block(cv['summary'], MAIN_W, BODY_FS, BODY_LH, SANS))
+                if start_pages is not None:
+                    start_pages[key] = b.pg
                 section(b, lbl['summary'])
                 b.block(cv['summary'], MAIN_L, MAIN_W, BODY_FS, BODY_LH, C['ink'], SANS)
                 close_section(b)
             elif key == 'experience' and cv.get('experience'):
                 jobs = cv['experience']
                 b.need_section(SECTION_CHROME, experience_height(jobs[0]))
+                if start_pages is not None:
+                    start_pages[key] = b.pg
                 section(b, lbl['experience'])
                 for index, job in enumerate(jobs):
                     _place_experience_record(
@@ -357,6 +370,8 @@ def _gen_sterling(cv: dict) -> list[dict]:
                     b, edu_entries[0], MAIN_W, SANS, degree_fs=TITLE_FS2, degree_lh=TITLE_LH2,
                     meta_fs=META_FS, meta_lh=META_LH, body_fs=BODY_FS, body_lh=BODY_LH,
                 ))
+                if start_pages is not None:
+                    start_pages[key] = b.pg
                 section(b, lbl['education'])
                 for index, edu in enumerate(edu_entries):
                     _place_education_record(
@@ -367,6 +382,8 @@ def _gen_sterling(cv: dict) -> list[dict]:
                     )
                 close_section(b)
             elif key == 'skills':
+                if start_pages is not None:
+                    start_pages[key] = b.pg
                 if _place_skills_section(
                     b, cv, section_fn, MAIN_L, MAIN_W, C['ink'], SANS, BODY_FS, BODY_LH,
                     section_chrome_h=SECTION_CHROME,
@@ -383,15 +400,21 @@ def _gen_sterling(cv: dict) -> list[dict]:
         )
 
     def measure_main(order: list[str]) -> MainMeasurement:
-        """Render ``order`` into a throwaway ``Builder`` and report its page count.
+        """Render ``order`` into a throwaway ``Builder`` and report its pagination.
 
-        Used only by ``plan_columns_multi_page``'s bounded iteration to learn
-        how many pages a candidate ``main`` assignment needs; the elements it
-        produces are discarded.
+        Used only by ``plan_columns_multi_page`` to learn how many pages a
+        candidate ``main`` assignment needs and the real page each section
+        starts on; the elements it produces are discarded. Passing an ``order``
+        of only the anchored keys makes this render the main-column *skeleton*
+        (Experience + record-style extras), whose page span is independent of
+        movable placement.
         """
         probe_builder = Builder(content_top)
-        _render_main_column(order, probe_builder, _sidebar_extra_indices_for(order))
-        return MainMeasurement(pages_used=probe_builder.pg)
+        start_pages: dict[str, int] = {}
+        _render_main_column(
+            order, probe_builder, _sidebar_extra_indices_for(order), start_pages,
+        )
+        return MainMeasurement(pages_used=probe_builder.pg, start_page_by_key=start_pages)
 
     plan = plan_columns_multi_page(
         descriptors,

@@ -3,8 +3,6 @@
 These exercise the partitioning algorithm with synthetic heights, independent
 of the CV generation stack, so the balancing rules are pinned precisely.
 """
-import pytest
-
 from app.services.cv_templates.shared.column_planner import (
     ColumnPlan,
     MainMeasurement,
@@ -212,34 +210,6 @@ def test_sidebar_content_that_overflows_page_one_spills_to_page_two():
     assert plan.sidebar_by_page[2] == ["certifications"]
 
 
-def test_main_affinity_overflow_lands_on_page_two_sidebar():
-    # Regression matching a two-page Sterling CV: page 1's rail is already
-    # full (summary + skills + languages), Experience paginates, and Education
-    # is affinity "main" so it never seeds into the sidebar. The page-1-only
-    # balance cost will not move it onto page 2 (that does not change
-    # max(empty_main, empty_page1)). Without the overflow-catcher pass it
-    # stays in the main column beside an empty continuation rail. The catcher
-    # must place the whole Education section on page 2's rail.
-    sections = [
-        PlaceableSection("summary", 0, "sidebar", main_height=200, sidebar_height=220),
-        PlaceableSection("experience", 1, "main", main_height=900, sidebar_height=None, anchored_main=True),
-        PlaceableSection("education", 2, "main", main_height=80, sidebar_height=100),
-        PlaceableSection("skills", 3, "sidebar", main_height=250, sidebar_height=220),
-        PlaceableSection("languages", 4, "sidebar", main_height=90, sidebar_height=140),
-    ]
-    plan = plan_columns(
-        sections,
-        sidebar_buckets=[SidebarBucket(1, 585), SidebarBucket(2, 694)],
-        main_budget=595,
-    )
-    # summary (220) + skills (220) = 440; languages (140) = 580 <= 585 fill
-    # page 1. Education cannot fit the leftover 5pt, so it is not a page-1
-    # balance candidate and must land on the continuation rail instead.
-    assert plan.sidebar_by_page[1] == ["summary", "skills", "languages"]
-    assert plan.sidebar_by_page[2] == ["education"]
-    assert plan.main == ["experience"]
-
-
 def test_education_stays_in_page_one_main_when_a_later_extra_paginates():
     # Guard for the overflow catcher: a short Experience block still has room
     # for Education on page 1. A later record-kind extra (Volunteer) that
@@ -340,64 +310,111 @@ def test_plan_columns_multi_page_does_not_drain_page1_sidebar_into_main():
     assert plan.main == ["experience"]
 
 
-def test_plan_columns_multi_page_converges_when_bucket_list_stabilizes():
-    # A fake measure_main that always reports 2 pages derives a page-2 bucket
-    # on iteration 1 and finds the *same* page count measuring against that
-    # 2-bucket plan on iteration 2 — the derived bucket list stops changing,
-    # so the loop must stop calling measure_main after that.
-    calls = []
-    sections = _sections_short_experience()
+def _make_measure(heights, page_size, *, base=0.0):
+    """Build a fake ``measure_main`` from synthetic per-key main heights.
 
-    def fake_measure_main(order):
-        calls.append(order)
-        return MainMeasurement(pages_used=2)
+    ``base`` models content the caller always renders regardless of the key
+    list it is given (e.g. Sterling's record-style Projects extra) — so
+    ``measure([anchored])`` returns the main-column skeleton. A section that
+    would not fit the remaining page space starts whole on the next page
+    (modelling ``Builder.need_section`` — the reason Education can start on
+    page 2 even when the skeleton fills only page 1).
+    """
+    def measure(order):
+        pages = 1
+        cursor = base
+        start = {}
+        for key in order:
+            height = heights.get(key, 0.0)
+            if cursor > 0.0 and cursor + height > page_size + 1e-9:
+                pages += 1
+                cursor = 0.0
+            start[key] = pages
+            cursor += height
+            while cursor > page_size + 1e-9:
+                pages += 1
+                cursor -= page_size
+        return MainMeasurement(pages_used=pages, start_page_by_key=start)
+    return measure
 
-    plan_columns_multi_page(
-        sections,
-        page1_sidebar_budget=400,
-        continuation_sidebar_budget=400,
-        page1_main_budget=400,
-        measure_main=fake_measure_main,
-        max_iterations=5,
-    )
-    assert len(calls) == 2
+
+# Summary + Skills exactly fill the 400pt page-1 rail in the orchestrator
+# tests below, so Education (affinity "main") cannot be pulled onto page 1 by
+# the balance loop and is genuinely a main-column leftover — the realistic
+# Sterling situation where the rail is already full of Summary and a long
+# Skills list.
+def _page_one_filling_sidebar():
+    return [
+        PlaceableSection("summary", 0, "sidebar", main_height=200, sidebar_height=200),
+        PlaceableSection("skills", 3, "sidebar", main_height=200, sidebar_height=200),
+    ]
 
 
-def test_plan_columns_multi_page_never_infinite_loops():
-    sections = _sections_short_experience()
-    call_count = 0
-
-    def flapping_measure_main(order):
-        nonlocal call_count
-        call_count += 1
-        # Alternates between 2 and 1 pages every call, so the derived bucket
-        # list never stabilizes — the hard `max_iterations` cap must still
-        # terminate the loop deterministically instead of looping forever.
-        return MainMeasurement(pages_used=2 if call_count % 2 else 1)
-
+def test_orchestrator_rails_a_leftover_onto_a_page_the_skeleton_reaches():
+    # Experience alone spans two pages (the skeleton), so page 2 exists no
+    # matter where Education goes. Education is affinity "main" (never seeds to
+    # the sidebar) and really starts on page 2 of the main column, so the
+    # orchestrator must move it onto page 2's rail rather than leave that rail
+    # empty beside the Experience continuation.
+    sections = _page_one_filling_sidebar() + [
+        PlaceableSection("experience", 1, "main", main_height=900, sidebar_height=None, anchored_main=True),
+        PlaceableSection("education", 2, "main", main_height=120, sidebar_height=120),
+    ]
+    measure = _make_measure({"experience": 900, "education": 120}, page_size=700)
     plan = plan_columns_multi_page(
         sections,
         page1_sidebar_budget=400,
         continuation_sidebar_budget=400,
-        page1_main_budget=400,
-        measure_main=flapping_measure_main,
-        max_iterations=3,
+        page1_main_budget=595,
+        measure_main=measure,
     )
-    assert call_count == 3
-    assert plan is not None
+    assert plan.sidebar_by_page[1] == ["summary", "skills"]
+    assert plan.sidebar_by_page[2] == ["education"]
+    assert plan.main == ["experience"]
 
 
-def test_plan_columns_multi_page_rejects_zero_max_iterations():
-    # With `max_iterations < 1` the `for` loop body never executes, so `plan`
-    # would remain `None` at the `return plan` statement — a silent contract
-    # violation of the `-> ColumnPlan` return type. Guard against it eagerly
-    # instead of returning `None` to the caller.
-    with pytest.raises(ValueError):
-        plan_columns_multi_page(
-            _sections_short_experience(),
-            page1_sidebar_budget=400,
-            continuation_sidebar_budget=400,
-            page1_main_budget=400,
-            measure_main=lambda order: MainMeasurement(pages_used=1),
-            max_iterations=0,
-        )
+def test_orchestrator_keeps_a_leftover_that_alone_creates_its_page():
+    # The skeleton (Experience only) fits one page. Education is the sole
+    # reason the document spills onto page 2. Railing it would blank page 2's
+    # main column, so the survival check must keep Education in the main column
+    # and leave page 2's rail empty (the lesser evil).
+    sections = _page_one_filling_sidebar() + [
+        PlaceableSection("experience", 1, "main", main_height=500, sidebar_height=None, anchored_main=True),
+        PlaceableSection("education", 2, "main", main_height=400, sidebar_height=120),
+    ]
+    measure = _make_measure({"experience": 500, "education": 400}, page_size=700)
+    plan = plan_columns_multi_page(
+        sections,
+        page1_sidebar_budget=400,
+        continuation_sidebar_budget=400,
+        page1_main_budget=595,
+        measure_main=measure,
+    )
+    assert "education" in plan.main
+    assert plan.sidebar_by_page.get(2, []) == []
+
+
+def test_orchestrator_rails_one_leftover_and_keeps_another_to_fill_both_columns():
+    # Two main-affinity leftovers both land on page 2, which the skeleton
+    # (Experience plus the always-rendered ``base`` record extra) does not
+    # reach on its own. Railing BOTH would blank page 2's main column, so the
+    # greedy survival check rails the first (page 2 still reached by the
+    # second) and keeps the second in main — page 2 ends with content in BOTH
+    # columns. This is the Jakub case: Education to the rail, Languages in main.
+    sections = _page_one_filling_sidebar() + [
+        PlaceableSection("experience", 1, "main", main_height=450, sidebar_height=None, anchored_main=True),
+        PlaceableSection("education", 2, "main", main_height=200, sidebar_height=120),
+        PlaceableSection("languages", 4, "main", main_height=200, sidebar_height=120),
+    ]
+    measure = _make_measure(
+        {"experience": 450, "education": 200, "languages": 200}, page_size=700, base=100,
+    )
+    plan = plan_columns_multi_page(
+        sections,
+        page1_sidebar_budget=400,
+        continuation_sidebar_budget=400,
+        page1_main_budget=595,
+        measure_main=measure,
+    )
+    assert plan.sidebar_by_page[2] == ["education"]
+    assert plan.main == ["experience", "languages"]
