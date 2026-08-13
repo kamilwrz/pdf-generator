@@ -148,6 +148,10 @@ function findGlyphInFrame(elements, frame) {
  * @returns {number}
  */
 function insetForFrame(frame) {
+  // Nova: gallery photo fills the portrait well edge-to-edge (object-fit cover).
+  if (frame?.id === "nova-photo-frame") {
+    return 0;
+  }
   if (
     frame?.id === "monument-masthead-frame"
     || frame?.photoShape === "ornament-frame"
@@ -296,16 +300,17 @@ export function applyProfilePhoto(elements, photo, createId = nanoid) {
 
   // Layering:
   // - Slate/Tessera: photo sits under the outline stroke (inset shows the border).
-  // - Monument ornament-frame: photo covers masthead bars; frame outline is raised.
+  // - Monument ornament-frame / Nova well: photo covers the fill; outline raised.
   // - Harbor circle: photo covers the filled disc (no outline to preserve).
   const frameZ = Number(frame?.zIndex) || 3;
   const isOrnamentFrame = frame?.photoShape === "ornament-frame";
+  const isNovaFrame = frame?.id === "nova-photo-frame";
   let photoZ = Number(glyph?.zIndex) || 4;
   let nextFrameZ = frameZ;
   if (frame) {
     if (isCircle) {
       photoZ = frameZ + 1;
-    } else if (isOrnamentFrame) {
+    } else if (isOrnamentFrame || isNovaFrame) {
       photoZ = frameZ + 1;
       nextFrameZ = photoZ + 1;
     } else {

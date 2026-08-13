@@ -707,18 +707,20 @@ Known limitation: long user-provided section names are shortened only inside the
 
 ### Nova editorial masthead template
 
-Nova is a free single-column template (`layouts: ["icons"]`) with a warm paper field (`#F7F1E8`), terracotta accent (`#C45C26`), Playfair Display name, and Montserrat body. The masthead is taller than the earlier wrapping-contact revision: the display name sits near the left edge (`x=36`), contact channels stack **one row each** with iconic glyphs ~12 pt under the name (`_place_stacked_icon_contacts`), and a 104×104 square profile slot occupies the top-right (`nova-photo-frame` / `nova-photo-image`, default raster `backend/template_assets/nova-portrait.png` cropped from the demo face). The starter image uses `objectFit: "cover"` so gallery uploads fill the slot without stretching. Job title, when present, sits under the photo rather than between the name and contacts. Section icons start at `icon_x=64` and bold uppercase headings at `L=84` — 16 pt further right than the legacy `48` / `68` band — matching the annotated editorial mock.
+Nova is a free single-column template (`layouts: ["icons"]`) with a warm paper field (`#F7F1E8`), terracotta accent (`#C45C26`), Playfair Display name, and Montserrat body. The masthead is taller than the earlier wrapping-contact revision: the display name sits near the left edge (`x=32`), the muted job title sits under the name, and contact channels stack **one row each** with iconic glyphs ~12 pt under that stack (`_place_stacked_icon_contacts`). The top-right portrait well is an empty rectangle slot (`nova-photo-well` fill + `nova-photo-frame` outline) — the editor starter ships **no** profile raster. Clicking the frame opens the gallery; choosing a photo runs `applyProfilePhoto` with `objectFit: "cover"` so the well is filled without stretching. Only the marketing mockup injects `backend/template_assets/nova-portrait.png` at render time (`scripts/render_iconic_mockups.py`). Section icons start at `icon_x=64` and bold uppercase headings at `L=84` — 16 pt further right than the legacy `48` / `68` band.
 
 Implementation:
 
-- `backend/app/services/cv_templates/templates/nova.py`, lines 30–240, function `_gen_nova` — stacked masthead contacts, photo slot, bold section headings
+- `backend/app/services/cv_templates/templates/nova.py`, function `_gen_nova` — stacked masthead contacts, empty photo well/frame, bold section headings
 - `backend/app/services/cv_templates/shared/contact.py`, function `_place_stacked_icon_contacts` — one icon+label channel per row
-- `frontend/src/templates/iconic.js`, export `novaTemplate` — regenerated starter (relative `/template-assets/…` URLs)
-- `frontend/src/utils/profilePhoto.js` — `nova-photo-frame` in `PROFILE_PHOTO_FRAME_IDS`; `applyProfilePhoto` sets `objectFit: "cover"`
-- `frontend/src/components/canvas/Image/Image.jsx`, lines 93–110 — canvas honors `objectFit` / photo-slot `cover`
-- `backend/app/services/pdf_generator.py`, lines 150–240, methods `renderImage` / `_draw_image_cover` — PDF center-crop for `cover`
-- `backend/template_assets/nova-portrait.png` — face crop used by the starter and mockup
-- `frontend/public/template-mockups/nova.png` — source-driven A4 preview
+- `frontend/src/templates/iconic.js`, export `novaTemplate` — regenerated starter (slot only, no portrait image)
+- `frontend/src/components/canvas/Rectangle/Rectangle.jsx` — click on `photoSlot: "frame"` opens the gallery
+- `frontend/src/utils/profilePhoto.js` — `nova-photo-frame` in `PROFILE_PHOTO_FRAME_IDS`; zero inset + cover-fit apply
+- `frontend/src/components/canvas/Image/Image.jsx` — canvas honors `objectFit` / photo-slot `cover`
+- `backend/app/services/pdf_generator.py`, methods `renderImage` / `_draw_image_cover` — PDF center-crop for `cover`
+- `scripts/render_iconic_mockups.py`, `_inject_nova_mockup_photo` — demo portrait only for `nova.png`
+- `backend/template_assets/nova-portrait.png` — face crop used by the mockup only
+- `frontend/public/template-mockups/nova.png` — source-driven A4 preview with injected portrait
 
 Tests:
 
@@ -2365,18 +2367,20 @@ Znane ograniczenie: długie nazwy sekcji podane przez użytkownika są skracane 
 
 ### Szablon redakcyjny Nova
 
-Nova to darmowy szablon jednokolumnowy (`layouts: ["icons"]`) na ciepłym papierze (`#F7F1E8`) z akcentem terracotta (`#C45C26`), nazwiskiem w Playfair Display i treścią w Montserrat. Masthead jest wyższy niż we wcześniejszej wersji z zawijanym kontaktem: nazwisko blisko lewej krawędzi (`x=36`), kanały kontaktu w pionie — **jeden wiersz na kanał** z ikonami ~12 pt pod imieniem (`_place_stacked_icon_contacts`), a w prawym górnym rogu kwadratowy slot 104×104 (`nova-photo-frame` / `nova-photo-image`, domyślny raster `backend/template_assets/nova-portrait.png` z wykadrowaną twarzą demo). Starter ustawia `objectFit: "cover"`, żeby upload z galerii wypełniał ramkę bez rozciągania proporcji. Stanowisko, jeśli jest, trafia pod zdjęcie, a nie między nazwisko a kontakt. Ikony sekcji zaczynają się na `icon_x=64`, a pogrubione nagłówki versalikami na `L=84` — 16 pt bardziej w prawo niż dawne `48` / `68`.
+Nova to darmowy szablon jednokolumnowy (`layouts: ["icons"]`) na ciepłym papierze (`#F7F1E8`) z akcentem terracotta (`#C45C26`), nazwiskiem w Playfair Display i treścią w Montserrat. Masthead jest wyższy niż we wcześniejszej wersji z zawijanym kontaktem: nazwisko blisko lewej krawędzi (`x=32`), stonowane stanowisko pod nazwiskiem, a kanały kontaktu w pionie — **jeden wiersz na kanał** z ikonami ~12 pt pod tym stackiem (`_place_stacked_icon_contacts`). Prawy górny slot portretu to pusty prostokąt (`nova-photo-well` + obramowanie `nova-photo-frame`) — starter w edytorze **nie** zawiera rastra profilowego. Klik w ramkę otwiera galerię; wybór zdjęcia woła `applyProfilePhoto` z `objectFit: "cover"`. Dopiero mockup marketingowy wstrzykuje `backend/template_assets/nova-portrait.png` przy renderze (`scripts/render_iconic_mockups.py`). Ikony sekcji na `icon_x=64`, pogrubione nagłówki versalikami na `L=84` (+16 pt względem dawnego `48` / `68`).
 
 Implementacja:
 
-- `backend/app/services/cv_templates/templates/nova.py`, linie 30–240, funkcja `_gen_nova` — masthead ze stackowanym kontaktem, slot zdjęcia, bold nagłówki
-- `backend/app/services/cv_templates/shared/contact.py`, funkcja `_place_stacked_icon_contacts` — jeden kanał ikona+etykieta na wiersz
-- `frontend/src/templates/iconic.js`, eksport `novaTemplate` — zregenerowany starter
-- `frontend/src/utils/profilePhoto.js` — `nova-photo-frame` w `PROFILE_PHOTO_FRAME_IDS`; `applyProfilePhoto` ustawia `objectFit: "cover"`
-- `frontend/src/components/canvas/Image/Image.jsx`, linie 93–110 — kanwa honoruje `objectFit` / `cover` dla slotu
-- `backend/app/services/pdf_generator.py`, linie 150–240, metody `renderImage` / `_draw_image_cover` — center-crop w PDF
-- `backend/template_assets/nova-portrait.png` — crop twarzy używany w starterze i mockupie
-- `frontend/public/template-mockups/nova.png` — podgląd A4 generowany ze źródła
+- `backend/app/services/cv_templates/templates/nova.py`, funkcja `_gen_nova` — stackowany kontakt, pusty well/frame, bold nagłówki
+- `backend/app/services/cv_templates/shared/contact.py`, funkcja `_place_stacked_icon_contacts`
+- `frontend/src/templates/iconic.js`, eksport `novaTemplate` — starter ze slotem, bez portretu
+- `frontend/src/components/canvas/Rectangle/Rectangle.jsx` — klik `photoSlot: "frame"` otwiera galerię
+- `frontend/src/utils/profilePhoto.js` — `nova-photo-frame` w `PROFILE_PHOTO_FRAME_IDS`; inset 0 + cover
+- `frontend/src/components/canvas/Image/Image.jsx` — kanwa honoruje `objectFit` / `cover`
+- `backend/app/services/pdf_generator.py`, metody `renderImage` / `_draw_image_cover`
+- `scripts/render_iconic_mockups.py`, `_inject_nova_mockup_photo` — portret tylko w `nova.png`
+- `backend/template_assets/nova-portrait.png` — crop twarzy wyłącznie do mockupu
+- `frontend/public/template-mockups/nova.png` — podgląd A4 z wstrzykniętym portretem
 
 Testy:
 

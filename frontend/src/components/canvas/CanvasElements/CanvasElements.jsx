@@ -282,6 +282,8 @@ export default function CanvasElements({ elements }) {
           category={element.category}
           zIndex={element.zIndex}
           fixedToPage={element.fixedToPage}
+          photoSlot={element.photoSlot}
+          id={element.id}
         />
       );
     } else if (element.category === "circle" || element.category === "ellipse") {

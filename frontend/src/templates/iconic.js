@@ -63,8 +63,8 @@ const NOVA_ELEMENTS = [
     "fontSize": 34.0,
     "fontFamily": "PlayfairDisplay",
     "color": "#1A1612",
-    "left": 36.0,
-    "top": 40.0,
+    "left": 32.0,
+    "top": 36.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -72,10 +72,25 @@ const NOVA_ELEMENTS = [
     "flowRole": "masthead"
   },
   {
+    "category": "text",
+    "content": "Dyrektor Strategii i Rozwoju",
+    "fontSize": 9.0,
+    "fontFamily": "Montserrat",
+    "color": "#7A6550",
+    "left": 32.0,
+    "top": 77.7,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "letterSpacing": 1.6,
+    "flowRole": "masthead"
+  },
+  {
     "category": "image",
     "src": "/template-assets/iconic/nova/phone.png",
-    "left": 38.0,
-    "top": 87.7,
+    "left": 34.0,
+    "top": 101.85000000000001,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -89,8 +104,8 @@ const NOVA_ELEMENTS = [
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#7A6550",
-    "left": 54.0,
-    "top": 87.7,
+    "left": 50.0,
+    "top": 101.85000000000001,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -100,8 +115,8 @@ const NOVA_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/nova/email.png",
-    "left": 38.0,
-    "top": 105.7,
+    "left": 34.0,
+    "top": 118.85000000000001,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -115,8 +130,8 @@ const NOVA_ELEMENTS = [
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#7A6550",
-    "left": 54.0,
-    "top": 105.7,
+    "left": 50.0,
+    "top": 118.85000000000001,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -126,8 +141,8 @@ const NOVA_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/nova/linkedin.png",
-    "left": 38.0,
-    "top": 123.7,
+    "left": 34.0,
+    "top": 135.85000000000002,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -141,8 +156,8 @@ const NOVA_ELEMENTS = [
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#7A6550",
-    "left": 54.0,
-    "top": 123.7,
+    "left": 50.0,
+    "top": 135.85000000000002,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -152,8 +167,8 @@ const NOVA_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/nova/github.png",
-    "left": 38.0,
-    "top": 141.7,
+    "left": 34.0,
+    "top": 152.85000000000002,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -167,8 +182,8 @@ const NOVA_ELEMENTS = [
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#7A6550",
-    "left": 54.0,
-    "top": 141.7,
+    "left": 50.0,
+    "top": 152.85000000000002,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -178,8 +193,8 @@ const NOVA_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/nova/website.png",
-    "left": 38.0,
-    "top": 159.7,
+    "left": 34.0,
+    "top": 169.85000000000002,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -193,8 +208,8 @@ const NOVA_ELEMENTS = [
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#7A6550",
-    "left": 54.0,
-    "top": 159.7,
+    "left": 50.0,
+    "top": 169.85000000000002,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -204,8 +219,8 @@ const NOVA_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/nova/location.png",
-    "left": 38.0,
-    "top": 177.7,
+    "left": 34.0,
+    "top": 186.85000000000002,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -219,37 +234,36 @@ const NOVA_ELEMENTS = [
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#7A6550",
-    "left": 54.0,
-    "top": 177.7,
+    "left": 50.0,
+    "top": 186.85000000000002,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "text",
-    "content": "Dyrektor Strategii i Rozwoju",
-    "fontSize": 9.2,
-    "fontFamily": "Montserrat",
-    "color": "#C45C26",
-    "left": 443.0,
-    "top": 146.0,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "letterSpacing": 1.8,
-    "width": 104.0,
-    "align": "right",
     "flowRole": "masthead"
   },
   {
     "category": "rectangle",
-    "left": 443.0,
-    "top": 34.0,
-    "width": 104.0,
-    "height": 104.0,
+    "left": 447.0,
+    "top": 30.0,
+    "width": 100.0,
+    "height": 124.0,
+    "backgroundColor": "#EDE4D8",
+    "borderWidth": 0,
+    "filled": true,
+    "borderRadius": null,
+    "zIndex": 2,
+    "page": 1,
+    "id": "nova-photo-well",
+    "photoSlot": "ornament",
+    "flowRole": "masthead"
+  },
+  {
+    "category": "rectangle",
+    "left": 447.0,
+    "top": 30.0,
+    "width": 100.0,
+    "height": 124.0,
     "backgroundColor": "#E0D2C0",
     "borderWidth": 1.0,
     "filled": false,
@@ -262,24 +276,9 @@ const NOVA_ELEMENTS = [
     "flowRole": "masthead"
   },
   {
-    "category": "image",
-    "src": "/template-assets/nova-portrait.png",
-    "width": 104.0,
-    "height": 104.0,
-    "left": 443.0,
-    "top": 34.0,
-    "zIndex": 2,
-    "page": 1,
-    "id": "nova-photo-image",
-    "photoSlot": "image",
-    "objectFit": "cover",
-    "alignWithText": false,
-    "flowRole": "masthead"
-  },
-  {
     "category": "line",
     "left": 48,
-    "top": 211.04,
+    "top": 215.35000000000002,
     "width": 499,
     "height": 1,
     "backgroundColor": "#E0D2C0",
@@ -291,7 +290,7 @@ const NOVA_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/nova/summary.png",
     "left": 64.0,
-    "top": 248.04,
+    "top": 252.35000000000002,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -306,7 +305,7 @@ const NOVA_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#C45C26",
     "left": 84.0,
-    "top": 248.04,
+    "top": 252.35000000000002,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -317,7 +316,7 @@ const NOVA_ELEMENTS = [
   {
     "category": "line",
     "left": 84.0,
-    "top": 261.515,
+    "top": 265.82500000000005,
     "width": 463.0,
     "height": 1,
     "backgroundColor": "#E0D2C0",
@@ -329,7 +328,7 @@ const NOVA_ELEMENTS = [
     "category": "textarea",
     "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
     "left": 84.0,
-    "top": 269.515,
+    "top": 273.82500000000005,
     "width": 463.0,
     "height": 27,
     "fontSize": 9.4,
@@ -351,7 +350,7 @@ const NOVA_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/nova/experience.png",
     "left": 64.0,
-    "top": 317.515,
+    "top": 321.82500000000005,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -366,7 +365,7 @@ const NOVA_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#C45C26",
     "left": 84.0,
-    "top": 317.515,
+    "top": 321.82500000000005,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -377,7 +376,7 @@ const NOVA_ELEMENTS = [
   {
     "category": "line",
     "left": 84.0,
-    "top": 330.99,
+    "top": 335.30000000000007,
     "width": 463.0,
     "height": 1,
     "backgroundColor": "#E0D2C0",
@@ -389,7 +388,7 @@ const NOVA_ELEMENTS = [
     "category": "textarea",
     "content": "Dyrektor Strategii",
     "left": 84.0,
-    "top": 338.99,
+    "top": 343.30000000000007,
     "width": 463.0,
     "height": 15,
     "fontSize": 11,
@@ -405,14 +404,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-80b7f5d70560",
+    "flowGroup": "record-86ac0fb24799",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Northbridge Partners   ·   Warszawa   ·   2021 – obecnie",
     "left": 84.0,
-    "top": 357.99,
+    "top": 362.30000000000007,
     "width": 463.0,
     "height": 12,
     "fontSize": 8.5,
@@ -428,14 +427,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-80b7f5d70560",
+    "flowGroup": "record-86ac0fb24799",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
     "left": 84.0,
-    "top": 373.99,
+    "top": 378.30000000000007,
     "width": 463.0,
     "height": 41,
     "fontSize": 9.4,
@@ -451,14 +450,14 @@ const NOVA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-80b7f5d70560",
+    "flowGroup": "record-86ac0fb24799",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Menedżer Rozwoju",
     "left": 84.0,
-    "top": 424.99,
+    "top": 429.30000000000007,
     "width": 463.0,
     "height": 15,
     "fontSize": 11,
@@ -474,14 +473,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1eb23d4fd3d4",
+    "flowGroup": "record-726fbbef482e",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Meridian Group   ·   Kraków   ·   2016 – 2021",
     "left": 84.0,
-    "top": 443.99,
+    "top": 448.30000000000007,
     "width": 463.0,
     "height": 12,
     "fontSize": 8.5,
@@ -497,14 +496,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1eb23d4fd3d4",
+    "flowGroup": "record-726fbbef482e",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
     "left": 84.0,
-    "top": 459.99,
+    "top": 464.30000000000007,
     "width": 463.0,
     "height": 27,
     "fontSize": 9.4,
@@ -520,14 +519,14 @@ const NOVA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1eb23d4fd3d4",
+    "flowGroup": "record-726fbbef482e",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Konsultant Strategiczny",
     "left": 84.0,
-    "top": 496.99,
+    "top": 501.30000000000007,
     "width": 463.0,
     "height": 15,
     "fontSize": 11,
@@ -543,14 +542,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ab33df87d1fe",
+    "flowGroup": "record-db527f19da8e",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Alpine Consulting   ·   Kraków   ·   2013 – 2016",
     "left": 84.0,
-    "top": 515.99,
+    "top": 520.3000000000001,
     "width": 463.0,
     "height": 12,
     "fontSize": 8.5,
@@ -566,14 +565,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ab33df87d1fe",
+    "flowGroup": "record-db527f19da8e",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
     "left": 84.0,
-    "top": 531.99,
+    "top": 536.3000000000001,
     "width": 463.0,
     "height": 14,
     "fontSize": 9.4,
@@ -589,14 +588,14 @@ const NOVA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ab33df87d1fe",
+    "flowGroup": "record-db527f19da8e",
     "flowRole": "content"
   },
   {
     "category": "image",
     "src": "/template-assets/iconic/nova/education.png",
     "left": 64.0,
-    "top": 566.99,
+    "top": 571.3000000000001,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -611,7 +610,7 @@ const NOVA_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#C45C26",
     "left": 84.0,
-    "top": 566.99,
+    "top": 571.3000000000001,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -622,7 +621,7 @@ const NOVA_ELEMENTS = [
   {
     "category": "line",
     "left": 84.0,
-    "top": 580.465,
+    "top": 584.7750000000001,
     "width": 463.0,
     "height": 1,
     "backgroundColor": "#E0D2C0",
@@ -634,7 +633,7 @@ const NOVA_ELEMENTS = [
     "category": "textarea",
     "content": "Magister Zarządzania",
     "left": 84.0,
-    "top": 588.465,
+    "top": 592.7750000000001,
     "width": 463.0,
     "height": 13,
     "fontSize": 10.4,
@@ -650,14 +649,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6c509ec6980f",
+    "flowGroup": "record-3f7d7adc1946",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "SGH Warszawa",
     "left": 84.0,
-    "top": 605.465,
+    "top": 609.7750000000001,
     "width": 463.0,
     "height": 13,
     "fontSize": 10.4,
@@ -673,14 +672,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6c509ec6980f",
+    "flowGroup": "record-3f7d7adc1946",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "2011 – 2016",
     "left": 84.0,
-    "top": 622.465,
+    "top": 626.7750000000001,
     "width": 463.0,
     "height": 12,
     "fontSize": 8.5,
@@ -696,14 +695,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6c509ec6980f",
+    "flowGroup": "record-3f7d7adc1946",
     "flowRole": "content"
   },
   {
     "category": "image",
     "src": "/template-assets/iconic/nova/skills.png",
     "left": 64.0,
-    "top": 655.465,
+    "top": 659.7750000000001,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -718,7 +717,7 @@ const NOVA_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#C45C26",
     "left": 84.0,
-    "top": 655.465,
+    "top": 659.7750000000001,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -729,7 +728,7 @@ const NOVA_ELEMENTS = [
   {
     "category": "line",
     "left": 84.0,
-    "top": 668.94,
+    "top": 673.2500000000001,
     "width": 463.0,
     "height": 1,
     "backgroundColor": "#E0D2C0",
@@ -741,7 +740,7 @@ const NOVA_ELEMENTS = [
     "category": "textarea",
     "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
     "left": 84.0,
-    "top": 676.94,
+    "top": 681.2500000000001,
     "width": 463.0,
     "height": 14,
     "fontSize": 9.3,
@@ -757,14 +756,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-cb6e5d2c1403",
+    "flowGroup": "record-726792064684",
     "flowRole": "content"
   },
   {
     "category": "image",
     "src": "/template-assets/iconic/nova/languages.png",
     "left": 64.0,
-    "top": 711.94,
+    "top": 716.2500000000001,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -779,7 +778,7 @@ const NOVA_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#C45C26",
     "left": 84.0,
-    "top": 711.94,
+    "top": 716.2500000000001,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -790,7 +789,7 @@ const NOVA_ELEMENTS = [
   {
     "category": "line",
     "left": 84.0,
-    "top": 725.4150000000001,
+    "top": 729.7250000000001,
     "width": 463.0,
     "height": 1,
     "backgroundColor": "#E0D2C0",
@@ -802,7 +801,7 @@ const NOVA_ELEMENTS = [
     "category": "textarea",
     "content": "Polski — ojczysty",
     "left": 84.0,
-    "top": 733.4150000000001,
+    "top": 737.7250000000001,
     "width": 107.75,
     "height": 14,
     "fontSize": 9.3,
@@ -827,13 +826,13 @@ const NOVA_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-107bfb6a344b"
+    "flowGroup": "record-74722d7df13b"
   },
   {
     "category": "textarea",
     "content": "Angielski — C1",
     "left": 199.75,
-    "top": 733.4150000000001,
+    "top": 737.7250000000001,
     "width": 107.75,
     "height": 14,
     "fontSize": 9.3,
@@ -858,13 +857,13 @@ const NOVA_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-107bfb6a344b"
+    "flowGroup": "record-74722d7df13b"
   },
   {
     "category": "textarea",
     "content": "Francuski — B2",
     "left": 315.5,
-    "top": 733.4150000000001,
+    "top": 737.7250000000001,
     "width": 107.75,
     "height": 14,
     "fontSize": 9.3,
@@ -889,7 +888,7 @@ const NOVA_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-107bfb6a344b"
+    "flowGroup": "record-74722d7df13b"
   }
 ];
 
@@ -1356,7 +1355,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c530dab9bcb2",
+    "flowGroup": "record-7086545f1ccc",
     "flowRole": "content"
   },
   {
@@ -1379,7 +1378,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c530dab9bcb2",
+    "flowGroup": "record-7086545f1ccc",
     "flowRole": "content"
   },
   {
@@ -1402,7 +1401,7 @@ const VOLT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c530dab9bcb2",
+    "flowGroup": "record-7086545f1ccc",
     "flowRole": "content"
   },
   {
@@ -1425,7 +1424,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a13774ac9709",
+    "flowGroup": "record-cf48938a27de",
     "flowRole": "content"
   },
   {
@@ -1448,7 +1447,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a13774ac9709",
+    "flowGroup": "record-cf48938a27de",
     "flowRole": "content"
   },
   {
@@ -1471,7 +1470,7 @@ const VOLT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a13774ac9709",
+    "flowGroup": "record-cf48938a27de",
     "flowRole": "content"
   },
   {
@@ -1494,7 +1493,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c9ee763bfe16",
+    "flowGroup": "record-75da4b1b666b",
     "flowRole": "content"
   },
   {
@@ -1517,7 +1516,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c9ee763bfe16",
+    "flowGroup": "record-75da4b1b666b",
     "flowRole": "content"
   },
   {
@@ -1540,7 +1539,7 @@ const VOLT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c9ee763bfe16",
+    "flowGroup": "record-75da4b1b666b",
     "flowRole": "content"
   },
   {
@@ -1615,7 +1614,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ea5d3c2a1fed",
+    "flowGroup": "record-c66668042f84",
     "flowRole": "content"
   },
   {
@@ -1638,7 +1637,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ea5d3c2a1fed",
+    "flowGroup": "record-c66668042f84",
     "flowRole": "content"
   },
   {
@@ -1661,7 +1660,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ea5d3c2a1fed",
+    "flowGroup": "record-c66668042f84",
     "flowRole": "content"
   },
   {
@@ -1736,7 +1735,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5350f8637844",
+    "flowGroup": "record-3ed376ca80c7",
     "flowRole": "content"
   },
   {
@@ -1820,7 +1819,7 @@ const VOLT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-1bc3f94343ba"
+    "flowGroup": "record-bb33e5eb61cd"
   },
   {
     "category": "textarea",
@@ -1851,7 +1850,7 @@ const VOLT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-1bc3f94343ba"
+    "flowGroup": "record-bb33e5eb61cd"
   },
   {
     "category": "textarea",
@@ -1882,7 +1881,7 @@ const VOLT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-1bc3f94343ba"
+    "flowGroup": "record-bb33e5eb61cd"
   }
 ];
 

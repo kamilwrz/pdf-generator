@@ -2,7 +2,6 @@ from __future__ import annotations
 
 """Nova CV template generator (icon single-column + masthead photo)."""
 
-from app.core.config import BACKEND_URL
 from app.services.cv_generator_primitives import (
     get_spacing,
     SPACE_AFTER_HEADER_RULE,
@@ -53,17 +52,21 @@ def _gen_nova(cv: dict) -> list[dict]:
     lbl = _labels(cv)
     skip_sidebar_extras: set[int] = set()
 
-    # ── Masthead: name left, stacked contacts under name, photo top-right ──
-    # Name sits a few pt left of the content column for a stronger letterhead.
-    NAME_LEFT = 36.0
-    NAME_TOP = 40.0
+    # ── Masthead: name + role left, stacked contacts, portrait top-right ──
+    # Matches the editorial Nova mock: name left of the body column, muted
+    # job line under the name, contacts ~12pt below that stack, portrait slot
+    # on the right that the profile photo fully covers (objectFit: cover).
+    NAME_LEFT = 32.0
+    NAME_TOP = 36.0
     NAME_FS = 34.0
-    TITLE_FS = 9.2
+    TITLE_FS = 9.0
     CONTACT_FS, CONTACT_ICON = (8.4, 14.0)
-    PHOTO_SIZE = 104.0
-    PHOTO_LEFT = L + W - PHOTO_SIZE  # flush with content right edge
-    PHOTO_TOP = 34.0
-    PHOTO_INSET = 0.0  # photo fully covers the slot (objectFit: cover)
+    # Portrait slot (empty rectangle). The editor starter has only this frame;
+    # clicking it opens the gallery. The marketing mockup injects a demo photo
+    # at render time — generators must not embed a profile raster.
+    PHOTO_W, PHOTO_H = (100.0, 124.0)
+    PHOTO_LEFT = L + W - PHOTO_W  # flush with content right edge
+    PHOTO_TOP = 30.0
 
     name = _compact_text(cv.get('name'), 32)
     title = _compact_text(cv.get('title'), 56)
@@ -71,11 +74,20 @@ def _gen_nova(cv: dict) -> list[dict]:
     header: list[dict] = []
     name_el = _text(name, NAME_FS, DISP, C['ink'], NAME_LEFT, NAME_TOP, zIndex=3, bold=True)
     header.append(name_el)
-    # Contacts sit ~12pt under the name (one channel per row). Job title lives
-    # under the photo so it does not push the stacked contact band down.
-    contact_start = NAME_TOP + NAME_FS * 1.05 + 12.0
 
-    # Cap contact column so rows do not run under the photo.
+    # Role sits directly under the name (left column), not under the photo.
+    cursor_y = NAME_TOP + NAME_FS * 1.05
+    if title:
+        cursor_y += 6.0
+        title_el = _text(
+            title, TITLE_FS, SANS, C['mute'], NAME_LEFT, cursor_y, zIndex=3,
+        )
+        title_el['letterSpacing'] = 1.6
+        header.append(title_el)
+        cursor_y += TITLE_FS * 1.35
+
+    # One contact channel per row, ~12pt under the name/title stack.
+    contact_start = cursor_y + 12.0
     contact_els, contact_bottom = _place_stacked_icon_contacts(
         theme=ICON,
         items=_contact_channel_items(cv, email_limit=42),
@@ -86,30 +98,30 @@ def _gen_nova(cv: dict) -> list[dict]:
         text_color=C['mute'],
         font=SANS,
         icon_gap=16.0,
-        line_step=18.0,
+        line_step=17.0,
     )
     header.extend(contact_els)
 
-    photo_bottom = PHOTO_TOP + PHOTO_SIZE
-    title_bottom = photo_bottom
-    if title:
-        # Compact role line under the portrait, right-aligned to the photo.
-        title_el = _text(
-            title, TITLE_FS, SANS, C['accent'], PHOTO_LEFT, photo_bottom + 8.0, zIndex=3,
-        )
-        title_el['letterSpacing'] = 1.8
-        title_el['width'] = PHOTO_SIZE
-        title_el['align'] = 'right'
-        header.append(title_el)
-        title_bottom = photo_bottom + 8.0 + TITLE_FS * 1.35
+    photo_bottom = PHOTO_TOP + PHOTO_H
+    masthead_bottom = max(contact_bottom + CONTACT_FS * 1.25, photo_bottom)
+    # Breathing room under the masthead before the first section (kept tight
+    # enough that the Jan Kowalski demo still fits page 1 of the mockup).
+    header_rule_y = masthead_bottom + 18.0
 
-    masthead_bottom = max(contact_bottom + CONTACT_FS * 1.35, title_bottom)
-    # Extra breathing room under the taller masthead before the first section.
-    header_rule_y = masthead_bottom + 22.0
-
+    # Outline + light fill so the empty slot reads as a drop target and the
+    # whole box stays clickable. Gallery upload covers the well via cover-fit.
+    photo_well = {
+        **_rect(
+            PHOTO_LEFT, PHOTO_TOP, PHOTO_W, PHOTO_H,
+            '#EDE4D8', 0, filled=True, zIndex=2,
+        ),
+        'id': 'nova-photo-well',
+        'photoSlot': 'ornament',
+        'flowRole': 'masthead',
+    }
     photo_frame = {
         **_rect(
-            PHOTO_LEFT, PHOTO_TOP, PHOTO_SIZE, PHOTO_SIZE,
+            PHOTO_LEFT, PHOTO_TOP, PHOTO_W, PHOTO_H,
             C['rule'], 1.0, zIndex=3,
         ),
         'id': 'nova-photo-frame',
@@ -117,22 +129,7 @@ def _gen_nova(cv: dict) -> list[dict]:
         'photoShape': 'rect',
         'flowRole': 'masthead',
     }
-    photo_image = {
-        'category': 'image',
-        'src': f'{BACKEND_URL}/template-assets/nova-portrait.png',
-        'width': PHOTO_SIZE - 2 * PHOTO_INSET,
-        'height': PHOTO_SIZE - 2 * PHOTO_INSET,
-        'left': PHOTO_LEFT + PHOTO_INSET,
-        'top': PHOTO_TOP + PHOTO_INSET,
-        'zIndex': 2,
-        'page': 1,
-        'id': 'nova-photo-image',
-        'photoSlot': 'image',
-        'objectFit': 'cover',
-        'alignWithText': False,
-        'flowRole': 'masthead',
-    }
-    header.extend([photo_frame, photo_image])
+    header.extend([photo_well, photo_frame])
     header.append(_line(48, header_rule_y, 499, 1, C['rule'], zIndex=2))
     header = [{**element, 'flowRole': 'masthead'} for element in header]
 

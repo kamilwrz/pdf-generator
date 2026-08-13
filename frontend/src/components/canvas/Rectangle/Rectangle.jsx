@@ -10,6 +10,7 @@ import { memo, useState } from 'react';
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { use } from "react";
 import Resize from "../../common/Resize/Resize";
+import { isProfilePhotoFrame } from "../../../utils/profilePhoto";
 
 function Rectangle({
     width,
@@ -26,15 +27,34 @@ function Rectangle({
     elementId,
     zIndex,
     fixedToPage,
+    photoSlot,
+    id: semanticId,
 }) {
 
-    const { moveElement, selectElement, selectMoveElement, A4_Elements, resizeElement } = use(PdfContext);
+    const {
+        moveElement,
+        selectElement,
+        selectMoveElement,
+        A4_Elements,
+        resizeElement,
+        showGallery,
+    } = use(PdfContext);
 
     const [isResizeable, setIsResizeable] = useState(false);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
+    // Empty profile-photo wells open the gallery on click so the user can pick
+    // a portrait without hunting for the sidebar "Zdjęcia" control.
+    const isPhotoFrame = isProfilePhotoFrame({ photoSlot, id: semanticId });
 
     function handleIsResizeable(active) {
         setIsResizeable(Boolean(active));
+    }
+
+    function handleClick(e) {
+        selectElement(elementId, e.ctrlKey || e.metaKey);
+        if (isPhotoFrame && !e.ctrlKey && !e.metaKey) {
+            showGallery?.();
+        }
     }
 
     // border-box keeps the border inside width/height so it matches the PDF
@@ -53,6 +73,7 @@ function Rectangle({
         ...(borderRadius ? { borderRadius: `${borderRadius}px` } : {}),
         zIndex: zIndex,
         ...(fixedToPage ? { pointerEvents: "none" } : {}),
+        ...(isPhotoFrame ? { cursor: "pointer" } : {}),
     }
 
     if (fixedToPage) {
@@ -76,9 +97,11 @@ function Rectangle({
                 <div
                     id={elementId}
                     onDoubleClick={() => selectElement(elementId)}
-                    onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
+                    onClick={handleClick}
                     onPointerDown={(e) => {
                         if (e.ctrlKey || e.metaKey) return;
+                        // Photo slots are click-targets for the gallery, not drag handles.
+                        if (isPhotoFrame) return;
                         e.currentTarget.setPointerCapture(e.pointerId);
                         selectMoveElement(elementId, true);
                     }}
@@ -95,9 +118,10 @@ function Rectangle({
             <div
                 id={elementId}
                 onDoubleClick={() => selectElement(elementId)}
-                onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
+                onClick={handleClick}
                 onPointerDown={(e) => {
                     if (e.ctrlKey || e.metaKey) return;
+                    if (isPhotoFrame) return;
                     e.currentTarget.setPointerCapture(e.pointerId);
                     selectMoveElement(elementId, true);
                 }}
