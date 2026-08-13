@@ -31,9 +31,12 @@ Generalize the already-implemented planner so **any page the main column
 already occupies can also receive sidebar content**. Page 1 is still
 balanced the same way as the single-page planner (minimize
 `max(empty_main, empty_page1_sidebar)`). Continuation-page rails are
-overflow catchers for sidebar-affinity sections that do not fit page 1 —
-not extra columns to equalise against, and not a bespoke "page 2 special
-case."
+overflow catchers for (a) sidebar-affinity sections that do not fit page 1
+and (b) main-affinity leftovers such as Education that will start on page
+2+ of the main column — not extra columns to equalise against, and not a
+bespoke "page 2 special case." Education stays affinity `"main"` so a short
+Experience block still keeps it on page 1; the catcher only moves it when
+it would already paginate in main *and* a continuation rail already exists.
 
 Decisions locked during brainstorming:
 
@@ -174,6 +177,18 @@ two targets. Moves are `main ↔ bucket`; a bucket-to-bucket move is not a
 primitive (if bucket 2 is fuller than bucket 3, a two-step main-mediated
 re-balance already reaches the same result, and this keeps the move space
 small and easy to reason about).
+
+**Overflow catcher (step 4)**: after the balance loop, walk main-assigned
+sections in `order_rank` against the page-1 `main_budget`. Any movable
+section (`not anchored_main`, `sidebar_height is not None`) that would start
+on page 2+ of the main column is first-fit into continuation buckets
+(`page > 1`) that have remaining room. This is required because Education is
+affinity `"main"`: step 1 never seeds it into the sidebar, and step 3 will
+not move it to page 2 because that does not change `max(empty_main,
+empty_page1)`. Without this pass a full page-1 rail leaves page 2's rail
+empty while Education sits in the main column. A short Experience block that
+still has room for Education on page 1 must keep it there even when a later
+extra paginates.
 
 ### 5.2 Why `main_budget` stays page-1-scoped (not a lump sum)
 
@@ -361,6 +376,12 @@ bucket signature):
 - Page-1 fill is not split onto page 2 when it still fits page 1's budget
   (regression: equalising cost across every bucket drained page 1).
 - Genuine overflow still spills to page 2 after that cost change.
+- A main-affinity leftover (Education) that will start on page 2+ of the
+  main column, when page 1's rail is already full, lands on page 2's rail
+  rather than sitting in the main column beside an empty continuation rail.
+- A short Experience block that still has room for Education on page 1
+  keeps Education in main even when a later extra paginates onto page 2
+  (the overflow catcher must not yank Education just to fill an empty rail).
 
 Unit tests for `plan_columns_multi_page` (new, using a fake `measure_main`):
 

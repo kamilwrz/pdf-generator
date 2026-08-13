@@ -18,7 +18,9 @@ synthetic heights and independent of the generation stack.
 A second function, ``plan_columns_multi_page`` (added alongside this
 partitioner separately), composes it with a bounded iteration that derives
 one sidebar bucket per page the main column actually occupies, so a
-continuation page's otherwise-empty rail can also receive content. See
+continuation page's otherwise-empty rail can also receive content —
+including main-affinity leftovers such as Education that will start on
+page 2+ of the main column. See
 docs/superpowers/specs/2026-08-12-multi-page-column-planner-design.md.
 """
 from __future__ import annotations
@@ -151,6 +153,12 @@ def plan_columns(
        (see ``_cost``: only the first/page-1 rail is balanced; later rails are
        overflow catchers), until the columns are balanced (cost <=
        ``imbalance_tolerance``) or no move clears ``min_improvement``.
+    4. Continuation rails catch leftover movable sections that will start on
+       page 2+ of the main column (Education is main-affinity, so step 1 never
+       seeds it into the sidebar, and step 3 will not move it to page 2
+       because that does not change the page-1 cost). Without this pass a
+       full page-1 rail leaves page 2's rail empty while Education sits in
+       the main column.
 
     The section count is tiny, so evaluating every legal single move each
     pass is cheap and deterministic. With exactly one bucket
@@ -232,6 +240,48 @@ def plan_columns(
             break
         assignment[best_key] = best_target
         current -= best_gain
+
+    # 4. Overflow catchers: continuation rails (page >= 2) receive movable
+    #    sections that the page-1 balance left in main *and* that will start
+    #    on page 2+ of the main column. Education is affinity "main" so it
+    #    never seeds into the sidebar; the balance loop will not move it to
+    #    page 2 because that does not change max(empty_main, empty_page1).
+    #    A short Experience block that still has room for Education on page 1
+    #    must keep it there (test_short_experience_keeps_education_in_main)
+    #    even when a later extra paginates — only sections that do not fit
+    #    the remaining page-1 main budget are eligible.
+    continuation = [bucket for bucket in ordered_buckets if bucket.page > 1]
+    if continuation:
+        cursor = 0.0
+        page2_main_keys: set[str] = set()
+        for section in sorted(sections, key=lambda item: item.order_rank):
+            if assignment[section.key] != "main":
+                continue
+            height = float(section.main_height)
+            if cursor >= main_budget - 0.01:
+                page2_main_keys.add(section.key)
+            elif cursor + height > main_budget + 0.01:
+                page2_main_keys.add(section.key)
+                cursor += height
+            else:
+                cursor += height
+        _, side_h = _column_heights(assignment, sections, sidebar_buckets)
+        budget_by_page = {bucket.page: bucket.budget for bucket in ordered_buckets}
+        leftovers = sorted(
+            (
+                section for section in sections
+                if section.key in page2_main_keys
+                and not section.anchored_main
+                and section.sidebar_height is not None
+            ),
+            key=lambda item: item.order_rank,
+        )
+        for section in leftovers:
+            for bucket in continuation:
+                if side_h[bucket.page] + float(section.sidebar_height) <= budget_by_page[bucket.page] + 0.01:
+                    assignment[section.key] = bucket.page
+                    side_h[bucket.page] += float(section.sidebar_height)
+                    break
 
     main_keys = sorted(
         (section.key for section in sections if assignment[section.key] == "main"),

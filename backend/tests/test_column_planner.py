@@ -212,6 +212,58 @@ def test_sidebar_content_that_overflows_page_one_spills_to_page_two():
     assert plan.sidebar_by_page[2] == ["certifications"]
 
 
+def test_main_affinity_overflow_lands_on_page_two_sidebar():
+    # Regression matching a two-page Sterling CV: page 1's rail is already
+    # full (summary + skills + languages), Experience paginates, and Education
+    # is affinity "main" so it never seeds into the sidebar. The page-1-only
+    # balance cost will not move it onto page 2 (that does not change
+    # max(empty_main, empty_page1)). Without the overflow-catcher pass it
+    # stays in the main column beside an empty continuation rail. The catcher
+    # must place the whole Education section on page 2's rail.
+    sections = [
+        PlaceableSection("summary", 0, "sidebar", main_height=200, sidebar_height=220),
+        PlaceableSection("experience", 1, "main", main_height=900, sidebar_height=None, anchored_main=True),
+        PlaceableSection("education", 2, "main", main_height=80, sidebar_height=100),
+        PlaceableSection("skills", 3, "sidebar", main_height=250, sidebar_height=220),
+        PlaceableSection("languages", 4, "sidebar", main_height=90, sidebar_height=140),
+    ]
+    plan = plan_columns(
+        sections,
+        sidebar_buckets=[SidebarBucket(1, 585), SidebarBucket(2, 694)],
+        main_budget=595,
+    )
+    # summary (220) + skills (220) = 440; languages (140) = 580 <= 585 fill
+    # page 1. Education cannot fit the leftover 5pt, so it is not a page-1
+    # balance candidate and must land on the continuation rail instead.
+    assert plan.sidebar_by_page[1] == ["summary", "skills", "languages"]
+    assert plan.sidebar_by_page[2] == ["education"]
+    assert plan.main == ["experience"]
+
+
+def test_education_stays_in_page_one_main_when_a_later_extra_paginates():
+    # Guard for the overflow catcher: a short Experience block still has room
+    # for Education on page 1. A later record-kind extra (Volunteer) that
+    # paginates must not yank Education onto page 2's empty rail just to fill
+    # it — that would break test_short_experience_keeps_education_in_main
+    # once a continuation bucket exists.
+    sections = [
+        PlaceableSection("summary", 0, "sidebar", main_height=110, sidebar_height=130),
+        PlaceableSection("experience", 1, "main", main_height=120, sidebar_height=None, anchored_main=True),
+        PlaceableSection("education", 2, "main", main_height=80, sidebar_height=100),
+        PlaceableSection("skills", 3, "sidebar", main_height=140, sidebar_height=150),
+        PlaceableSection("languages", 4, "sidebar", main_height=50, sidebar_height=60),
+        PlaceableSection("volunteer", 6, "main", main_height=500, sidebar_height=None),
+    ]
+    plan = plan_columns(
+        sections,
+        sidebar_buckets=[SidebarBucket(1, 400), SidebarBucket(2, 400)],
+        main_budget=400,
+    )
+    assert "education" in plan.main
+    assert "education" not in plan.sidebar_by_page[2]
+    assert "volunteer" in plan.main
+
+
 def test_plan_columns_multi_page_one_page_matches_plan_columns():
     # A fake measure_main that always reports 1 page never derives a bucket
     # beyond page 1, so the orchestrator's output must match a direct

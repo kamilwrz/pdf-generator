@@ -1569,6 +1569,85 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 "continuation-page rail content must stay out of the main column",
             )
 
+    def test_sterling_places_education_on_page_two_sidebar_when_page_one_rail_is_full(self):
+        """Education is main-affinity, so a full page-1 rail used to leave it in
+        page-2 main beside an empty continuation rail.
+
+        Experience paginates; summary/skills/languages fill page 1's rail;
+        Volunteer is a record-kind extra that stays in main. Education must
+        render as a sidebar kicker on page 2 (left == SIDE_L == 34), not in
+        the main column (left == MAIN_L == 245).
+        """
+        cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 3,
+            "summary": (
+                "Doświadczona liderka produktów cyfrowych, która łączy strategię, "
+                "badania i projektowanie usług, aby prowadzić złożone transformacje "
+                "organizacyjne w sektorze publicznym i prywatnym, dbając o mierzalne "
+                "efekty oraz rozwój zespołów interdyscyplinarnych w wielu kontekstach."
+            ),
+            "education": [
+                {
+                    "degree": "Data Science and AI",
+                    "school": "ASOIU",
+                    "period": "2022 – 2026",
+                },
+                {
+                    "degree": "Process automation engineer",
+                    "school": "Technical College",
+                    "period": "2018 – 2022",
+                },
+            ],
+            "skills": [f"Kompetencja zawodowa numer {index}" for index in range(1, 22)],
+            "extra_sections": [
+                {
+                    "title": "Języki obce",
+                    "kind": "languages",
+                    "placement": "after_skills",
+                    "items": ["Angielski — C1", "Niemiecki — B2", "Francuski — A2", "Hiszpański — A1"],
+                },
+                {
+                    "title": "Volunteer",
+                    "kind": "volunteering",
+                    "placement": "after_experience",
+                    "items": [
+                        {
+                            "title": "ASOIU university",
+                            "organization": "Student union",
+                            "period": "2023",
+                            "bullets": ["Organised campus events for incoming students."],
+                        },
+                        {
+                            "title": "FI grand prix",
+                            "organization": "Volunteer crew",
+                            "period": "2024",
+                            "bullets": ["Supported guest operations during the event weekend."],
+                        },
+                    ],
+                },
+            ],
+        }
+        elements = generate_resume("sterling", cv)
+        self.assertGreater(max(element.get("page", 1) for element in elements), 1)
+        edu_headings = [
+            element for element in elements
+            if element.get("category") == "text"
+            and str(element.get("content", "")).upper().startswith("WYKSZTA")
+        ]
+        self.assertEqual(len(edu_headings), 1, "exactly one education heading")
+        heading = edu_headings[0]
+        self.assertGreaterEqual(
+            heading.get("page", 1), 2,
+            "education must sit on a continuation page when page 1's rail is full",
+        )
+        self.assertEqual(
+            heading["left"], 34,
+            "education must render in the page-2 sidebar, not the main column",
+        )
+        self.assertEqual(heading.get("flowLane"), "sidebar")
+        self.assertEqual(heading.get("flowRole"), "sidebar-chrome")
+
     def test_sterling_sidebar_kicker_stays_with_its_body_across_pages(self):
         """A sidebar heading must not sit on page N while its body starts on N+1.
 
