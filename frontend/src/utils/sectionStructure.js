@@ -19,7 +19,6 @@
 
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
 import { parseFlatListItems } from "./flatSectionLayout.js";
-import { CHIP_PAD_X, CHIP_PAD_Y, layoutSkillChips } from "./chipGeometry.js";
 
 /** Keep in sync with `textareaReflow.js` / backend CONTENT margins. */
 const DEFAULT_PAGE_TOP = 66;
@@ -240,172 +239,6 @@ export function healSkillChipLabelBaselines(elements) {
   return list.map((element, index) => (
     fixes.has(index) ? { ...element, top: fixes.get(index) } : element
   ));
-}
-
-/**
- * True when `label` sits inside `pill`'s box — the same pairing test
- * `healSkillChipLabelBaselines` uses, factored out so the corruption heal
- * below can reuse it without duplicating the tolerance values.
- */
-function chipLabelSitsInPill(label, pill) {
-  if ((Number(pill.page) || 1) !== (Number(label.page) || 1)) return false;
-  const left = Number(label.left) || 0;
-  const top = Number(label.top) || 0;
-  const pillLeft = Number(pill.left) || 0;
-  const pillWidth = Number(pill.width) || 0;
-  const pillTop = Number(pill.top) || 0;
-  const pillHeight = Number(pill.height) || 0;
-  if (left < pillLeft - 0.5 || left > pillLeft + pillWidth) return false;
-  if (top < pillTop - 1 || top > pillTop + pillHeight) return false;
-  return true;
-}
-
-/**
- * Repair a chip category (a `flowGroup` of `flowRole: "grid-member"`
- * elements) that lost its wrapped-grid shape: a rectangle pill with no
- * matching text label (a blank pill), or a text label with no matching pill
- * (bare, unstyled skill text sitting at an arbitrary x-offset). Both shapes
- * were produced by the generic record-"+" clone path before it learned to
- * refuse chip-mode sections (`sectionRecord.sectionSupportsRecordAdd`) and
- * persist in any document saved while that bug was live — new clones can no
- * longer produce this shape, so this heal exists to repair documents saved
- * before the fix, and costs nothing once a document is already clean.
- *
- * Detection mirrors `healSkillChipLabelBaselines`'s pairing: a healthy
- * flowGroup has exactly one pill per label, each inside its own pill's box.
- * A flowGroup where the pill/label counts differ, or any label cannot be
- * paired 1:1, is broken and gets fully rebuilt: every label's text is
- * salvaged as an item (so a stray "Python"/"LexisNexis" is re-wrapped, not
- * lost), a bold `flowRole: "content"` sibling sharing the same flowGroup (if
- * any survives — e.g. the clone's own placeholder title line) supplies the
- * category position and anchors the rebuilt row under it, and
- * `layoutSkillChips` recomputes a clean wrapped row reusing an existing
- * pill/label's colour and font when one survived, or backend chip defaults
- * otherwise.
- *
- * This does not relocate a *properly formed* chip category that ended up
- * attributed to the wrong section heading (a packing/geometry issue, not a
- * pairing one) — only genuinely broken pill/label pairs are touched.
- *
- * @param {object[]} elements
- * @returns {object[]}
- */
-export function healOrphanedGridMemberChips(elements) {
-  const list = Array.isArray(elements) ? elements : [];
-  if (list.length === 0) return list;
-
-  const isPill = (element) => Boolean(
-    element && element.category === "rectangle" && element.flowRole === "grid-member",
-  );
-  const isLabel = (element) => Boolean(
-    element && element.category === "text" && element.flowRole === "grid-member",
-  );
-
-  const groups = new Map();
-  for (const element of list) {
-    if (!isPill(element) && !isLabel(element)) continue;
-    const key = typeof element.flowGroup === "string" && element.flowGroup ? element.flowGroup : null;
-    if (key == null) continue; // untagged grid-member content is out of scope for this heal
-    if (!groups.has(key)) groups.set(key, { pills: [], labels: [] });
-    const bucket = groups.get(key);
-    if (isPill(element)) bucket.pills.push(element);
-    else bucket.labels.push(element);
-  }
-  if (groups.size === 0) return list;
-
-  const brokenGroups = new Map();
-  for (const [key, { pills, labels }] of groups) {
-    let healthy = pills.length === labels.length;
-    if (healthy) {
-      const pairedPillIds = new Set();
-      for (const label of labels) {
-        const pill = pills.find(
-          (candidate) => !pairedPillIds.has(candidate.element_id) && chipLabelSitsInPill(label, candidate),
-        );
-        if (!pill) { healthy = false; break; }
-        pairedPillIds.add(pill.element_id);
-      }
-    }
-    if (!healthy) brokenGroups.set(key, { pills, labels });
-  }
-  if (brokenGroups.size === 0) return list;
-
-  const removeIds = new Set();
-  const insertions = [];
-  let seq = 0;
-  const nextId = (prefix) => `${prefix}-heal-${Date.now().toString(36)}-${++seq}`;
-
-  for (const [key, { pills, labels }] of brokenGroups) {
-    for (const element of pills) removeIds.add(element.element_id);
-    for (const element of labels) removeIds.add(element.element_id);
-
-    const items = labels.map((label) => String(label.content || "").trim()).filter(Boolean);
-    if (items.length === 0) continue; // nothing to salvage — drop the debris silently
-
-    const categoryLabel = list.find((element) => (
-      element
-      && element.flowGroup === key
-      && element.flowRole === "content"
-      && Boolean(element.bold)
-      && (element.category === "text" || element.category === "textarea")
-    ));
-
-    const topmost = [...pills, ...labels].reduce((min, element) => {
-      const top = Number(element.top) || 0;
-      return !min || top < min.top ? { top, element } : min;
-    }, null)?.element ?? null;
-
-    const anchorLeft = Number((categoryLabel || topmost)?.left) || 0;
-    const anchorTop = categoryLabel
-      ? (Number(categoryLabel.top) || 0) + (Number(categoryLabel.height) || 0) + 4
-      : Number(topmost?.top) || 0;
-    const page = Number(topmost?.page) || 1;
-
-    const templatePill = pills[0];
-    const templateLabel = labels[0];
-    const fontSize = Number(templateLabel?.fontSize) || 9.3;
-    const fontFamily = templateLabel?.fontFamily || "Inter";
-    const chipFg = templateLabel?.color || "#FFFFFF";
-    const chipBg = templatePill?.backgroundColor || "#2B2B2B";
-    const recordWidth = Number(categoryLabel?.width) || 466;
-
-    const { placements } = layoutSkillChips(items, recordWidth, fontSize);
-    const chipH = fontSize + 2 * CHIP_PAD_Y;
-    const radius = chipH / 2;
-    for (const { skill, dx, dy, width: chipW } of placements) {
-      insertions.push({
-        element_id: nextId("chip-bg"),
-        category: "rectangle",
-        flowRole: "grid-member",
-        flowGroup: key,
-        left: anchorLeft + dx,
-        top: anchorTop + dy,
-        width: chipW,
-        height: chipH,
-        filled: true,
-        borderRadius: radius,
-        backgroundColor: chipBg,
-        page,
-        zIndex: 2,
-      });
-      insertions.push({
-        element_id: nextId("chip-fg"),
-        category: "text",
-        flowRole: "grid-member",
-        flowGroup: key,
-        content: skill,
-        left: anchorLeft + dx + CHIP_PAD_X,
-        top: anchorTop + dy + chipH / 2,
-        fontSize,
-        color: chipFg,
-        fontFamily,
-        page,
-        zIndex: 3,
-      });
-    }
-  }
-
-  return [...list.filter((element) => !removeIds.has(element.element_id)), ...insertions];
 }
 
 /**
@@ -2490,13 +2323,10 @@ export function removeSection(
  */
 export function applyFlowSpacing(elements, spacing, pageHeight = 842, options = {}) {
   const rhythm = normalizeFlowSpacing(spacing);
-  // Repair ordinal/title baseline drift, legacy chip-label insets, and
-  // broken chip pill/label pairs before packing so a spacing pass also fixes
-  // Monument badges saved with the square+16 offset, Cardinal pills whose
-  // labels sat at CHIP_PAD_Y, and skill/language chips corrupted by the
-  // generic record-"+" clone path before it refused chip-mode sections.
+  // Repair ordinal/title baseline drift and legacy chip-label insets before
+  // packing so a spacing pass also fixes Monument badges saved with the
+  // square+16 offset and Cardinal pills whose labels sat at CHIP_PAD_Y.
   let next = healDecorativeOrdinalBaselines(elements || [], pageHeight);
-  next = healOrphanedGridMemberChips(next);
   next = healSkillChipLabelBaselines(next);
   next = healSimpleChromeRuleGaps(next, pageHeight);
   const sections = listDocumentSections(next, pageHeight);

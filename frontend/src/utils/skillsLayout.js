@@ -17,7 +17,6 @@ import {
 } from "./flatSectionLayout.js";
 import { isSkillsSectionTitle } from "./sectionRecord.js";
 import { sectionChromeRuleRelTop } from "./sectionStructure.js";
-import { CHIP_PAD_X, CHIP_PAD_Y, layoutSkillChips } from "./chipGeometry.js";
 
 export { isSkillsSectionTitle };
 
@@ -359,9 +358,58 @@ export function buildSkillsMainGroups(groups, options) {
   return elements;
 }
 
-// estimateTextWidth / layoutSkillChips / CHIP_PAD_* now live in
-// `chipGeometry.js`, shared with `sectionStructure.healOrphanedGridMemberChips`
-// so a freshly built chip row and a repaired one use identical wrap math.
+/**
+ * Estimate one-line text width in px. Mirrors the `fontSize * 0.56` per
+ * character approximation already used elsewhere on the canvas side
+ * (`elementBounds.js`, `spacingGuides.js`, `textareaReflow.js`) — there is no
+ * DOM/canvas text metrics API available where this runs (pure layout
+ * functions, also exercised from Node tests). Not pixel-exact, but the
+ * backend's own `_layout_skill_chips` wraps on the same kind of estimate
+ * (`_text_width`), so wrapping decisions stay close enough that a
+ * regenerated PDF does not reflow chip rows differently than the canvas.
+ */
+function estimateTextWidth(text, fontSize) {
+  return Math.max(1, String(text || "").length) * (Number(fontSize) || 9) * 0.56;
+}
+
+/** Horizontal/vertical pill padding and gaps, px — mirrors backend `CHIP_PAD_*`/`CHIP_GAP_*`. */
+const CHIP_PAD_X = 10;
+const CHIP_PAD_Y = 5;
+const CHIP_GAP_X = 8;
+const CHIP_GAP_Y = 8;
+
+/**
+ * Wrap one category's skill chips into rows, mirroring the backend's
+ * `_layout_skill_chips` greedy left-to-right wrap so the canvas and a
+ * regenerated PDF wrap identically.
+ *
+ * @param {string[]} items
+ * @param {number} width
+ * @param {number} fontSize
+ * @returns {{ placements: { skill: string, dx: number, dy: number, width: number }[], height: number }}
+ */
+function layoutSkillChips(items, width, fontSize) {
+  const cleaned = (items || []).map((item) => String(item || "").trim()).filter(Boolean);
+  if (cleaned.length === 0) return { placements: [], height: 0 };
+  const chipH = fontSize + 2 * CHIP_PAD_Y;
+  const rowStep = chipH + CHIP_GAP_Y;
+  const placements = [];
+  let cx = 0;
+  let cy = 0;
+  let rowStarted = false;
+  for (const skill of cleaned) {
+    const chipW = estimateTextWidth(skill, fontSize) + 2 * CHIP_PAD_X;
+    if (rowStarted && cx + chipW > width) {
+      cx = 0;
+      cy += rowStep;
+      rowStarted = false;
+    }
+    placements.push({ skill, dx: cx, dy: cy, width: chipW });
+    cx += chipW + CHIP_GAP_X;
+    rowStarted = true;
+  }
+  return { placements, height: cy + chipH };
+}
 
 /**
  * Build main-column skill subcategory blocks as wrapped, filled rounded-pill
