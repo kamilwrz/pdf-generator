@@ -19,6 +19,7 @@ import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { TEMPLATES } from "../../../templates";
 import { adjacentAllowedTemplate } from "../../../utils/cvTemplateSelection";
 import { useApplyCvTemplate } from "../../../hooks/useApplyCvTemplate";
+import PageControls from "../PageControls/PageControls";
 
 export default function Topbar({ titleRef }) {
     const {
@@ -227,6 +228,8 @@ export default function Topbar({ titleRef }) {
             </div>
 
             <div className={classes.group}>
+                <PageControls />
+                <span className={classes.divider} aria-hidden="true" />
                 <button
                     type="button"
                     className={classes.ghost}

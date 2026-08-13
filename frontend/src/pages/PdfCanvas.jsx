@@ -28,7 +28,6 @@ import ModalPdfs from '../components/modals/ModalPdfs/ModalPdfs';
 import { ApiClient } from '../services/api';
 import { ENDPOINTS } from '../services/api';
 import Spinner from '../components/common/Spinner/Spinner';
-import PageControls from '../components/editor/PageControls/PageControls';
 import ToastStack from '../components/common/ToastStack/ToastStack';
 import { useToasts } from '../hooks/useToasts';
 import { useEntitlements } from '../hooks/useEntitlements';
@@ -1702,7 +1701,6 @@ function PdfCanvas() {
                   </div>
                 </div>
               </div>
-              <PageControls />
               <Gallery />
               {entitlements?.ai_assistant ? <AiAssistant /> : null}
               <ToastStack toasts={toasts} onDismiss={dismissToast} offsetForGallery={isGallery} />

@@ -1,34 +1,22 @@
-.wrapper {
-    position: fixed;
-    right: 20px;
-    bottom: 18px;
-    display: flex;
-    pointer-events: none;
-    z-index: 1300;
-}
-
+/* Inline pagination cluster embedded in the editor Topbar. Compact, icon-only,
+   and sized to sit inside the 48px topbar next to the save/download actions. */
 .bar {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 3px;
-    background: var(--chrome-surface);
-    border: 1px solid var(--chrome-border);
-    border-radius: 8px;
-    box-shadow: var(--chrome-shadow);
-    padding: 4px 5px;
-    pointer-events: auto;
+    gap: 1px;
+    flex-shrink: 0;
     font-family: var(--font-body);
 }
 
 .navBtn {
     width: 28px;
     height: 28px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     border: none;
     border-radius: 6px;
-    background: var(--chrome-control);
+    background: transparent;
     color: var(--chrome-muted);
     cursor: pointer;
     transition: background .15s, color .15s;
@@ -36,7 +24,7 @@
 
 .navBtn:hover:not(:disabled) {
     background: var(--chrome-hover);
-    color: var(--chrome-accent);
+    color: var(--chrome-ink);
 }
 
 .spreadActive {
@@ -55,10 +43,11 @@
 }
 
 .label {
-    font: 600 10.5px var(--font-body);
+    font: 600 11px var(--font-body);
     color: var(--chrome-muted);
-    padding: 0 5px;
+    padding: 0 4px;
     white-space: nowrap;
+    user-select: none;
 }
 
 .label b {
@@ -67,57 +56,53 @@
 }
 
 .sep {
-    color: var(--chrome-muted);
+    color: var(--chrome-border);
+    margin: 0 2px;
 }
 
 .divider {
     width: 1px;
-    height: 16px;
+    height: 18px;
     background: var(--chrome-border);
-    margin: 0 2px;
+    margin: 0 3px;
+    flex-shrink: 0;
 }
 
 .addBtn {
-    display: flex;
-    align-items: center;
-    gap: 5px;
+    width: 28px;
     height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: var(--accent-grad);
     color: var(--on-accent);
-    font: 600 10.5px var(--font-body);
     border: none;
-    padding: 0 10px;
     border-radius: 6px;
     cursor: pointer;
-    box-shadow: none;
-    transition: transform .15s;
+    transition: background .15s;
 }
 
 .addBtn:hover {
-    transform: translateY(-1px);
+    background: var(--chrome-accent);
 }
 
 .removeBtn {
     width: 28px;
     height: 28px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     border: none;
     border-radius: 6px;
-    background: var(--danger-soft);
-    color: var(--danger);
+    background: transparent;
+    color: var(--chrome-muted);
     cursor: pointer;
-    transition: filter .15s;
-}
-
-.bar svg {
-    width: 13px;
-    height: 13px;
+    transition: background .15s, color .15s;
 }
 
 .removeBtn:hover:not(:disabled) {
-    filter: brightness(.96);
+    background: var(--danger-soft);
+    color: var(--danger);
 }
 
 .removeBtn:disabled {
@@ -125,6 +110,9 @@
     cursor: not-allowed;
 }
 
-@media only screen and (max-width: 700px) {
-    .wrapper { right: 12px; bottom: 12px; }
+/* Advanced page ops (reorder + clone) fold away first when the topbar is tight. */
+@media (max-width: 1100px) {
+    .advanced {
+        display: none;
+    }
 }

@@ -40,11 +40,12 @@
 
 /* ── Slide Panel ────────────────────────────────────────────────── */
 .panel {
+    /* Open flush under the topbar, never covering it. */
     position: fixed;
     right: 0;
-    top: 0;
+    top: var(--topbar-h);
     width: min(520px, 100vw);
-    height: 100vh;
+    height: calc(100vh - var(--topbar-h));
     z-index: 2000;
     background: var(--chrome-surface);
     border-left: 1px solid var(--chrome-border);

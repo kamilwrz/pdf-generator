@@ -61,6 +61,11 @@
     --danger: #C0563F;
     --danger-soft: rgba(192, 86, 63, .12);
 
+    /* ---- Editor chrome geometry ---- */
+    /* Shared topbar height so overlay panels (gallery, AI assistant) can open
+       flush under it instead of covering it. */
+    --topbar-h: 48px;
+
     /* ---- Radius scale ---- */
     --r-xl: 12px;
     --r-lg: 8px;
