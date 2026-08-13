@@ -48,7 +48,27 @@ DONE 15) Dane uzytkownika w CV WIZZARD powinny przetrwac do WIZARDA po Rejestrac
 
 DONE 17) po skasowaniu strony / zniknieciu tresci ze str. 2 — chrome sie zwija; Dodaj/Next/overflow tworzy strone z estetyka szablonu i dobrym nr (reconcileDocumentPages)
 
-4. AI - zastanowic sie i zmodyfikowac / reImplement
+18) CHIPSY - nie mozna zmieni kolejnosci bez "breakingu"
+
+19) Po tlumaczeniu linie dekoracyjne w Cardinal nie dostosowuja wielkosci
+
+20) Po skroceniu tesku CHIPSY nie sa kasowane, jak skasuje cos z UMIEJETNOSCI
+
+21) Poprawic UX zmiany szablonow i importu nowego CV (zbyt duzo klikania)
+
+22) STERLING - SIDEBAR ALGO - nie dziala do konca....
+
+23) Odczyt linkow, jak jest nazwa np. Linkedin (ukryty pod nia URL)
+
+24) RODO - klauzula (SLOT W KAZDYM CV, NAZWA PRACODAWCY, etc.)
+
+25) Lepszy UI w umiejetnosciach (CV WIZZARD)
+
+26) Dodawanie jezykow ma buga, dodaje sie stanowisko a oprocz tego lamie layout w nowym rekordzie. Powinno dodac jedna kolumne do wpisania jezyka
+
+27) Wlaczanie / wylaczanie CHIPSOW
+
+4. AI - zastanowic sie i zmodyfikowac / reImplement / BUGZ
 
 a) Co zostawic?
   aa) ATS - zrobic research, czy "bardzo graficzne CV" nie wplywaja negatywnie na ATS?
@@ -59,6 +79,12 @@ a) Co zostawic?
   ff) PROJEKT - SKASOWAC
   gg) ULEPSZ - troche nie wypal, bardziej sugestie, mniej absolutyzmu
   hh) UKLAD - (P) - poprawka oferowanych szablonow? Zrobic czat o CV / ZIOM ktory wspiera i ocenia
+
+b) POPRAW JEZYK, poprawia na PL, mimo ze jest ANGIELSKI (zrobic angielska wersje na razie)
+ FEATURES ENG VER:
+  aa) rozpoznanie ENG i zmiana naglowko na ENG (automatycznie lub manualnie)
+  bb) AI - korrekta jezykowa w ENG
+  cc) Odpowiedzi na razie po polsku (potem w ustawienia jezyk AI, ale jak po PL to cytaty, zmiany po PL)
 
 5) SZABLONY DO ZOSTAWIENIA / USUNIECIA
 

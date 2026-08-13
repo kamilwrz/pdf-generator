@@ -253,6 +253,29 @@
     user-select: none;
 }
 
+/*
+ * Anchored to the live A4 left edge (viewport x of `.page-canvas` minus the
+ * topbar origin). The grid control sits on that edge; the previous-template
+ * arrow hangs to the left so it does not push the icon off the page.
+ */
+.templateSwitcher {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    z-index: 2;
+}
+
+.templateSwitcherPrev {
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-right: 2px;
+}
+
 @media (max-width: 760px) {
     .projectIcon,
     .rename {

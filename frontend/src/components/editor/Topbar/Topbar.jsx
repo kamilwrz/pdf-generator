@@ -2,18 +2,23 @@
  * Editor chrome: title, save/download, import/wizard/AI entry, undo/redo, zoom.
  * Action buttons are icon-only with tooltips (title + aria-label).
  * Download/save go through PdfContext create/update (entitlement-gated upstream).
- * Template browsing is not a topbar entry — style is chosen in the wizard /
- * import funnel, then optionally via "Zmień szablon" after data exists.
+ *
+ * The templates control sits on the A4 page's left edge (measured from
+ * `.page-canvas`) rather than in the left action group. The grid button still
+ * opens the change-template modal; flanking arrows restyle in place without
+ * opening that dialog.
  */
 import classes from "./Topbar.module.css";
-import { use } from "react";
+import { use, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { LuLockOpen } from "react-icons/lu";
-import { RiFileTextLine, RiDownload2Line, RiShuffleLine } from "react-icons/ri";
+import { RiFileTextLine, RiDownload2Line, RiShuffleLine, RiArrowGoBackLine, RiArrowGoForwardLine, RiArrowLeftSLine, RiArrowRightSLine } from "react-icons/ri";
 import { FiEdit3, FiSave, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
-import { RiArrowGoBackLine, RiArrowGoForwardLine } from "react-icons/ri";
 import { TiPen } from "react-icons/ti";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
+import { TEMPLATES } from "../../../templates";
+import { adjacentAllowedTemplate } from "../../../utils/cvTemplateSelection";
+import { useApplyCvTemplate } from "../../../hooks/useApplyCvTemplate";
 
 export default function Topbar({ titleRef }) {
     const {
@@ -22,6 +27,8 @@ export default function Topbar({ titleRef }) {
         showChangeTemplateModal,
         showUnlockFreeform,
         activeCvData,
+        activeTemplateId,
+        entitlements,
         editorMode,
         createPdf,
         updatePdf,
@@ -32,16 +39,65 @@ export default function Topbar({ titleRef }) {
         zoomIn,
         zoomOut,
         isTwoPageView,
+        currentPage,
         undo,
         redo,
         canUndo,
         canRedo,
     } = use(PdfContext);
+    const { applyTemplate, fillingId } = useApplyCvTemplate();
 
     const isTemplate = editorMode === EDITOR_MODE_TEMPLATE;
+    const topbarRef = useRef(null);
+    const [a4Left, setA4Left] = useState(null);
+
+    useLayoutEffect(() => {
+        const topbar = topbarRef.current;
+        if (!topbar) return undefined;
+
+        const update = () => {
+            const page = document.querySelector(".page-canvas");
+            if (!page) {
+                setA4Left(null);
+                return;
+            }
+            const pageRect = page.getBoundingClientRect();
+            const barRect = topbar.getBoundingClientRect();
+            setA4Left(Math.round(pageRect.left - barRect.left));
+        };
+
+        update();
+        const canvasArea = document.querySelector(".canvas-area");
+        const page = document.querySelector(".page-canvas");
+        const observer = new ResizeObserver(update);
+        observer.observe(topbar);
+        if (canvasArea) observer.observe(canvasArea);
+        if (page) observer.observe(page);
+        canvasArea?.addEventListener("scroll", update, { passive: true });
+        window.addEventListener("resize", update);
+        return () => {
+            observer.disconnect();
+            canvasArea?.removeEventListener("scroll", update);
+            window.removeEventListener("resize", update);
+        };
+    }, [zoom, isTwoPageView, currentPage]);
+
+    const prevTemplate = useMemo(
+        () => adjacentAllowedTemplate(TEMPLATES, activeTemplateId, -1, entitlements),
+        [activeTemplateId, entitlements],
+    );
+    const nextTemplate = useMemo(
+        () => adjacentAllowedTemplate(TEMPLATES, activeTemplateId, 1, entitlements),
+        [activeTemplateId, entitlements],
+    );
+
+    const canRestyle = Boolean(activeCvData) && !fillingId && !isPdfLoading;
+    const templatesHint = activeCvData
+        ? "Zmień szablon"
+        : "Najpierw wypełnij CV z PDF albo kreatorem krok po kroku";
 
     return (
-        <header className={classes.topbar}>
+        <header className={classes.topbar} ref={topbarRef}>
             <div className={classes.group}>
                 <button
                     type="button"
@@ -60,18 +116,6 @@ export default function Topbar({ titleRef }) {
                     title="Utwórz CV krok po kroku"
                 >
                     <FiEdit3 />
-                </button>
-                <button
-                    type="button"
-                    className={classes.feature}
-                    onClick={showChangeTemplateModal}
-                    disabled={!activeCvData}
-                    aria-label="Zmień szablon"
-                    title={activeCvData
-                        ? "Zmień szablon"
-                        : "Najpierw wypełnij CV z PDF albo kreatorem krok po kroku"}
-                >
-                    <RiShuffleLine />
                 </button>
                 {isTemplate ? (
                     <button
@@ -93,6 +137,46 @@ export default function Topbar({ titleRef }) {
                     <RiArrowGoForwardLine />
                 </button>
             </div>
+
+            {a4Left != null ? (
+                <div
+                    className={classes.templateSwitcher}
+                    style={{ left: a4Left }}
+                    role="group"
+                    aria-label="Szablon CV"
+                >
+                    <button
+                        type="button"
+                        className={`${classes.iconBtn} ${classes.templateSwitcherPrev}`}
+                        onClick={() => prevTemplate && applyTemplate(prevTemplate)}
+                        disabled={!canRestyle || !prevTemplate}
+                        aria-label={prevTemplate ? `Poprzedni szablon: ${prevTemplate.name}` : "Poprzedni szablon"}
+                        title={prevTemplate ? `Poprzedni szablon: ${prevTemplate.name}` : templatesHint}
+                    >
+                        <RiArrowLeftSLine />
+                    </button>
+                    <button
+                        type="button"
+                        className={classes.feature}
+                        onClick={showChangeTemplateModal}
+                        disabled={!activeCvData}
+                        aria-label="Szablony"
+                        title={templatesHint}
+                    >
+                        <RiShuffleLine />
+                    </button>
+                    <button
+                        type="button"
+                        className={classes.iconBtn}
+                        onClick={() => nextTemplate && applyTemplate(nextTemplate)}
+                        disabled={!canRestyle || !nextTemplate}
+                        aria-label={nextTemplate ? `Następny szablon: ${nextTemplate.name}` : "Następny szablon"}
+                        title={nextTemplate ? `Następny szablon: ${nextTemplate.name}` : templatesHint}
+                    >
+                        <RiArrowRightSLine />
+                    </button>
+                </div>
+            ) : null}
 
             <div className={classes.center}>
                 <div className={classes.projectField}>

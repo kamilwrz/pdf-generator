@@ -44,7 +44,7 @@ Forcing registration before a visitor had seen the editor used to be the largest
 
 ## Main user flows
 
-1. **Choose a landing-page start** → primary funnels are data-first: the primary CTA “Stwórz CV za darmo” (`start=wizard`) and the secondary “Mam już CV — wgraj PDF” (`start=import`) collect content, then pick a template, then open the editor. A tertiary link “Najpierw zobacz edytor na przykładzie” (`start=demo`) opens a sample document. Wizard and demo go straight to `/cvstudio/guest` (or `/cvstudio/{username}` when already logged in); import still detours through registration/login first because it calls the paid `POST /ai/extract_cv` endpoint. The template gallery is inspiration only and links into the wizard — not a blank placeholder canvas. The editor topbar no longer has a “Szablony” button; style changes after data exist use “Zmień szablon”.
+1. **Choose a landing-page start** → primary funnels are data-first: the primary CTA “Stwórz CV za darmo” (`start=wizard`) and the secondary “Mam już CV — wgraj PDF” (`start=import`) collect content, then pick a template, then open the editor. A tertiary link “Najpierw zobacz edytor na przykładzie” (`start=demo`) opens a sample document. Wizard and demo go straight to `/cvstudio/guest` (or `/cvstudio/{username}` when already logged in); import still detours through registration/login first because it calls the paid `POST /ai/extract_cv` endpoint. The template gallery is inspiration only and links into the wizard — not a blank placeholder canvas. After data exist, the editor topbar’s **Szablony** control (aligned to the A4 left edge) opens the change-template gallery; flanking arrows restyle without opening the modal.
 2. **Edit as a guest** → full canvas access (templates, wizard, freeform, undo/redo) with the document persisted to `localStorage` instead of the backend — see [Guest mode](#guest-mode-editor-without-an-account).
 3. **Register / login only when it matters** → clicking “Zapisz PDF” / “Pobierz PDF” as a guest opens `SaveGateModal` instead of calling the backend. Registering or logging in preserves the selected `start` intent, and if a guest document exists, `ClaimGuestDocumentModal` asks the now-authenticated visitor to confirm it is theirs before loading that JSON onto the A4 canvas (no automatic `POST /pdf/create_pdf`) — a guest document belongs to the browser, not to any identity, so silently attaching it to whoever happens to log in next would leak one person's draft into an unrelated account.
 4. **Pick a template** → `handleLoadTemplate` materializes specs → canvas.
@@ -477,7 +477,7 @@ Landing start intents used in the hero: `start=wizard`, `start=import`, `start=d
 
 **Consistent CTA hierarchy.** The primary action everywhere is **"Stwórz CV za darmo"** (→ wizard); the secondary is **"Mam już CV — wgraj PDF"** (→ import); a tertiary text link offers the demo ("Najpierw zobacz edytor na przykładzie"). The header CTA is **"Stwórz CV"** (→ wizard, no longer the import CTA). Each call-to-action fires a per-source funnel event through `queueGuestEvent` so analytics can attribute the click to its surface: `hero_wizard`, `hero_import`, `hero_demo`, `before_after_import`, `templates_wizard`, `pricing_free`, `pricing_pro`, `final_wizard`, `final_import` (added to the fixed `event_type` vocabulary in `events.py`; buffered while anonymous, flushed after auth — see [Guest mode](#guest-mode-editor-without-an-account)).
 
-Topbar entry points are **Importuj CV**, **Utwórz CV krok po kroku**, and **Zmień szablon** (enabled after a successful fill). There is no topbar “Szablony” browser — choosing a style belongs to the wizard / import funnel.
+Topbar entry points are **Importuj CV**, **Utwórz CV krok po kroku**, and **Szablony** (enabled after a successful fill). The templates control is absolutely positioned over the live A4 left edge; the grid button opens the change-template modal, and the arrows cycle allowed templates in place.
 
 Implementation:
 
@@ -1154,21 +1154,30 @@ Implementation:
 
 ### Change template on the current CV (Topbar)
 
-Once a CV has been filled at least once this session (via PDF import or the bio wizard), the Topbar's **Zmień szablon** button opens a dialog with the same `TemplateCarousel` gallery, so the user can restyle the document without re-uploading a PDF or redoing the wizard. It reuses the exact `cv_data` captured at the last successful fill (`PdfContext.activeCvData`) and calls the same `/ai/fill_template` endpoint. The carousel receives `selectedId={activeTemplateId}`: the current template is labelled **Obecny**, named in the identity header, and becomes the first card in the browsing window so prev/next starts from that choice.
+Once a CV has been filled at least once this session (via PDF import or the bio wizard), the Topbar **Szablony** control restyles the document without re-uploading a PDF or redoing the wizard. It sits on the live left edge of the A4 page (measured from `.page-canvas` relative to the topbar) rather than in the left action group. Clicking the grid icon opens a dialog with the same `TemplateCarousel` gallery. The flanking arrows call the same apply path without opening that dialog, wrapping through templates the current plan may use (`adjacentAllowedTemplate` skips Pro-locked ids).
+
+It reuses the exact `cv_data` captured at the last successful fill (`PdfContext.activeCvData`) and calls the same `/ai/fill_template` endpoint via `useApplyCvTemplate`. The carousel receives `selectedId={activeTemplateId}`: the current template is labelled **Obecny**, named in the identity header, and becomes the first card in the browsing window so prev/next starts from that choice.
 
 The important difference from the initial fill flows: this one applies the result through `replaceActiveElements` (the raw `handleLoadAiElements` from `useA4Elements`) instead of `loadAiElements`. `loadAiElements` is wrapped in `startFreshDocument`, which clears `pdfId` and starts a brand-new, unsaved project — correct for "create a CV," wrong for "restyle this one." `replaceActiveElements` swaps the canvas elements and template id but leaves `pdfId` and the project title untouched, so the very next autosave updates the *same* saved document instead of creating a duplicate. Sections spacing knobs stay document-local: change-template fills with `DEFAULT_FLOW_SPACING` and resets knobs/baseline via `adoptDocumentFlowSpacing`, so a custom rhythm from the previous template is not reused.
 
-`activeCvData` is set only at the moment a fill succeeds (in `AiCvPanel.handleFill` and `BioCvModal.handleFill`) and is cleared whenever the canvas stops representing that data: starting any fresh document (`startFreshDocument` — covers clear/template/AI-load), discarding the active document, or opening a different saved PDF from **Moje dokumenty** (`ModalPdfs.showPDF`, which has no persisted `cv_data` to offer). The Topbar button is disabled with an explanatory tooltip whenever `activeCvData` is null.
+`activeCvData` is set only at the moment a fill succeeds (in `AiCvPanel.handleFill` and `BioCvModal.handleFill`) and is cleared whenever the canvas stops representing that data: starting any fresh document (`startFreshDocument` — covers clear/template/AI-load), discarding the active document, or opening a different saved PDF from **Moje dokumenty** (`ModalPdfs.showPDF`, which has no persisted `cv_data` to offer). The Topbar control is disabled with an explanatory tooltip whenever `activeCvData` is null.
 
 Implementation:
 
 - `frontend/src/store/pdfgenerator-context.jsx` — `activeCvData`, `setActiveCvData`, `replaceActiveElements`, `isChangeTemplateModal`, `showChangeTemplateModal` defaults
 - `frontend/src/pages/PdfCanvas.jsx` — owns `activeCvData` state and the `'changeTemplate'` dialog slot; `startFreshDocument`/`discardActiveDocument` clear it; exposes `replaceActiveElements: handleLoadAiElements` (raw, no `pdfId` reset)
-- `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx`, `.module.css` — identity summary + `TemplateCarousel` with `selectedId={activeTemplateId}`, `handleChangeTemplate`
+- `frontend/src/hooks/useApplyCvTemplate.js`, lines 24–87, function `useApplyCvTemplate` — shared `/ai/fill_template` + `replaceActiveElements` path for the modal and the arrows
+- `frontend/src/utils/cvTemplateSelection.js`, lines 24–34, function `adjacentAllowedTemplate`
+- `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx`, `.module.css` — identity summary + `TemplateCarousel` with `selectedId={activeTemplateId}`
 - `frontend/src/utils/templateLayouts.js`, `startIndexForSelectedTemplate` — carousel window aligned to the active template
-- `frontend/src/components/editor/Topbar/Topbar.jsx` — **Zmień szablon** button, disabled when `activeCvData` is null
+- `frontend/src/components/editor/Topbar/Topbar.jsx`, lines 141–179 — A4-aligned **Szablony** control + prev/next arrows
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` — `setActiveCvData(...)` on successful fill
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `showPDF` — `setActiveCvData(null)` when opening a different saved document
+
+Tests:
+
+- `frontend/src/utils/cvTemplateSelection.test.js` — wrap among plan-allowed templates; skip Pro-locked ids
+- `frontend/src/components/editor/Topbar/ChangeTemplateModal.test.js` — `DEFAULT_FLOW_SPACING` on `useApplyCvTemplate`; topbar arrows + modal wiring
 
 ### AI assistant
 
@@ -1654,7 +1663,7 @@ Wymuszanie rejestracji zanim odwiedzający zobaczył edytor było dotąd najwię
 
 ## Główne przepływy użytkownika
 
-1. **Wybór startu na stronie głównej** → główne ścieżki są data-first: główne CTA „Stwórz CV za darmo” (`start=wizard`) oraz drugorzędne „Mam już CV — wgraj PDF” (`start=import`) zbierają treść, potem wybór szablonu, potem edytor. Trzeciorzędny link „Najpierw zobacz edytor na przykładzie” (`start=demo`) otwiera przykładowy dokument. Kreator i demo idą wprost do `/cvstudio/guest` (albo `/cvstudio/{username}`, gdy użytkownik jest już zalogowany); import nadal wymaga rejestracji/logowania, bo wywołuje płatny `POST /ai/extract_cv`. Galeria szablonów to inspiracja i prowadzi do kreatora — nie na pusty canvas. W topbarze edytora nie ma już przycisku „Szablony”; po zebraniu danych styl zmienia „Zmień szablon”.
+1. **Wybór startu na stronie głównej** → główne ścieżki są data-first: główne CTA „Stwórz CV za darmo” (`start=wizard`) oraz drugorzędne „Mam już CV — wgraj PDF” (`start=import`) zbierają treść, potem wybór szablonu, potem edytor. Trzeciorzędny link „Najpierw zobacz edytor na przykładzie” (`start=demo`) otwiera przykładowy dokument. Kreator i demo idą wprost do `/cvstudio/guest` (albo `/cvstudio/{username}`, gdy użytkownik jest już zalogowany); import nadal wymaga rejestracji/logowania, bo wywołuje płatny `POST /ai/extract_cv`. Galeria szablonów to inspiracja i prowadzi do kreatora — nie na pusty canvas. Po zebraniu danych kontrolka **Szablony** w topbarze (wyrównana do lewej krawędzi A4) otwiera galerię zmiany szablonu; strzałki obok przestylizowują dokument bez otwierania modala.
 2. **Edycja jako gość** → pełny dostęp do płótna (szablony, kreator, tryb swobodny, undo/redo) z dokumentem zapisywanym w `localStorage` zamiast w backendzie — zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta).
 3. **Rejestracja / logowanie tylko wtedy, gdy to ma znaczenie** → kliknięcie „Zapisz PDF” / „Pobierz PDF” jako gość otwiera `SaveGateModal` zamiast wywoływać backend. Rejestracja lub logowanie zachowuje wybrany parametr `start`, a jeśli istnieje bufor dokumentu gościa, `ClaimGuestDocumentModal` prosi świeżo zalogowaną osobę o potwierdzenie, że to jej dokument, zanim JSON trafi na płótno A4 (bez automatycznego `POST /pdf/create_pdf`) — dokument gościa należy do przeglądarki, nie do tożsamości, więc ciche przypisanie go komukolwiek, kto akurat się zaloguje, ujawniłoby czyjś szkic na niepowiązanym koncie.
 4. **Wybór szablonu** → `handleLoadTemplate` materializuje elementy → płótno.
@@ -2074,7 +2083,7 @@ Intencje startu używane na hero: `start=wizard`, `start=import`, `start=demo`. 
 
 **Spójna hierarchia CTA.** Głównym działaniem wszędzie jest **„Stwórz CV za darmo”** (→ kreator); drugorzędnym **„Mam już CV — wgraj PDF”** (→ import); trzeciorzędny link tekstowy prowadzi do demo („Najpierw zobacz edytor na przykładzie”). CTA w headerze to **„Stwórz CV”** (→ kreator, już nie import). Każde CTA wysyła przez `queueGuestEvent` zdarzenie lejka z konkretnym źródłem, żeby analityka mogła przypisać kliknięcie do powierzchni: `hero_wizard`, `hero_import`, `hero_demo`, `before_after_import`, `templates_wizard`, `pricing_free`, `pricing_pro`, `final_wizard`, `final_import` (dodane do stałego słownika `event_type` w `events.py`; buforowane anonimowo, wysyłane po zalogowaniu — zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta)).
 
-Wejścia w topbarze to **Importuj CV**, **Utwórz CV krok po kroku** oraz **Zmień szablon** (aktywny po udanym fillu). Nie ma już przeglądarki „Szablony” w topbarze — wybór stylu należy do lejka kreatora / importu.
+Wejścia w topbarze to **Importuj CV**, **Utwórz CV krok po kroku** oraz **Szablony** (aktywne po udanym fillu). Kontrolka szablonów stoi nad żywą lewą krawędzią A4; ikona otwiera modal zmiany szablonu, a strzałki przełączają dozwolone szablony w miejscu.
 
 Implementacja:
 
@@ -2743,21 +2752,30 @@ Implementacja:
 
 ### Zmiana szablonu na bieżącym CV (Topbar)
 
-Gdy CV zostało w tej sesji przynajmniej raz wypełnione (przez import PDF albo kreator bio), przycisk **Zmień szablon** w Topbarze otwiera dialog z tą samą galerią `TemplateCarousel`, więc użytkownik może przestylizować dokument bez ponownego przesyłania PDF-a czy przechodzenia kreatora od nowa. Wykorzystuje dokładnie te same dane `cv_data` zapisane przy ostatnim udanym wypełnieniu (`PdfContext.activeCvData`) i wywołuje ten sam endpoint `/ai/fill_template`. Karuzela dostaje `selectedId={activeTemplateId}`: bieżący szablon ma etykietę **Obecny**, jest nazwany w nagłówku tożsamości i staje się pierwszą kartą w oknie przeglądania, więc strzałki zaczynają od tego wyboru.
+Gdy CV zostało w tej sesji przynajmniej raz wypełnione (przez import PDF albo kreator bio), kontrolka **Szablony** w Topbarze przestylizowuje dokument bez ponownego przesyłania PDF-a czy przechodzenia kreatora od nowa. Stoi na żywej lewej krawędzi strony A4 (pomiar `.page-canvas` względem topbara), a nie w lewej grupie akcji. Kliknięcie ikony otwiera dialog z tą samą galerią `TemplateCarousel`. Strzałki obok wołają tę samą ścieżkę aplikowania bez otwierania dialogu i owijają listę szablonów dostępnych w planie (`adjacentAllowedTemplate` pomija identyfikatory zablokowane w Pro).
+
+Wykorzystuje dokładnie te same dane `cv_data` zapisane przy ostatnim udanym wypełnieniu (`PdfContext.activeCvData`) i wywołuje ten sam endpoint `/ai/fill_template` przez `useApplyCvTemplate`. Karuzela dostaje `selectedId={activeTemplateId}`: bieżący szablon ma etykietę **Obecny**, jest nazwany w nagłówku tożsamości i staje się pierwszą kartą w oknie przeglądania, więc strzałki zaczynają od tego wyboru.
 
 Kluczowa różnica względem początkowych ścieżek wypełniania: ta akcja aplikuje wynik przez `replaceActiveElements` (surowe `handleLoadAiElements` z `useA4Elements`), a nie przez `loadAiElements`. `loadAiElements` jest opakowane w `startFreshDocument`, które czyści `pdfId` i zaczyna zupełnie nowy, niezapisany projekt — poprawne dla „utwórz CV”, błędne dla „przestylizuj to CV”. `replaceActiveElements` podmienia elementy płótna i id szablonu, ale zostawia `pdfId` oraz tytuł projektu nietknięte, więc najbliższy autozapis aktualizuje *ten sam* zapisany dokument zamiast tworzyć duplikat. Odstępy z panelu Sekcje są lokalne dla dokumentu: zmiana szablonu wypełnia z `DEFAULT_FLOW_SPACING` i resetuje knoby/baseline przez `adoptDocumentFlowSpacing`, więc rytm poprzedniego szablonu nie jest ponownie używany.
 
-`activeCvData` jest ustawiane wyłącznie w momencie udanego wypełnienia (w `AiCvPanel.handleFill` i `BioCvModal.handleFill`) i czyszczone, gdy płótno przestaje reprezentować te dane: rozpoczęcie dowolnego nowego dokumentu (`startFreshDocument` — obejmuje czyszczenie/szablon/wczytanie AI), odrzucenie aktywnego dokumentu albo otwarcie innego zapisanego PDF-a z **Moje dokumenty** (`ModalPdfs.showPDF`, który nie ma trwałych danych `cv_data` do zaoferowania). Przycisk w Topbarze jest wyłączony z wyjaśniającym tooltipem, gdy `activeCvData` jest puste.
+`activeCvData` jest ustawiane wyłącznie w momencie udanego wypełnienia (w `AiCvPanel.handleFill` i `BioCvModal.handleFill`) i czyszczone, gdy płótno przestaje reprezentować te dane: rozpoczęcie dowolnego nowego dokumentu (`startFreshDocument` — obejmuje czyszczenie/szablon/wczytanie AI), odrzucenie aktywnego dokumentu albo otwarcie innego zapisanego PDF-a z **Moje dokumenty** (`ModalPdfs.showPDF`, który nie ma trwałych danych `cv_data` do zaoferowania). Kontrolka w Topbarze jest wyłączona z wyjaśniającym tooltipem, gdy `activeCvData` jest puste.
 
 Implementacja:
 
 - `frontend/src/store/pdfgenerator-context.jsx` — wartości domyślne `activeCvData`, `setActiveCvData`, `replaceActiveElements`, `isChangeTemplateModal`, `showChangeTemplateModal`
 - `frontend/src/pages/PdfCanvas.jsx` — trzyma stan `activeCvData` i slot dialogu `'changeTemplate'`; `startFreshDocument`/`discardActiveDocument` je czyszczą; wystawia `replaceActiveElements: handleLoadAiElements` (surowe, bez resetu `pdfId`)
-- `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx`, `.module.css` — podsumowanie tożsamości + `TemplateCarousel` z `selectedId={activeTemplateId}`, `handleChangeTemplate`
+- `frontend/src/hooks/useApplyCvTemplate.js`, linie 24–87, funkcja `useApplyCvTemplate` — wspólna ścieżka `/ai/fill_template` + `replaceActiveElements` dla modala i strzałek
+- `frontend/src/utils/cvTemplateSelection.js`, linie 24–34, funkcja `adjacentAllowedTemplate`
+- `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx`, `.module.css` — podsumowanie tożsamości + `TemplateCarousel` z `selectedId={activeTemplateId}`
 - `frontend/src/utils/templateLayouts.js`, `startIndexForSelectedTemplate` — okno karuzeli wyrównane do aktywnego szablonu
-- `frontend/src/components/editor/Topbar/Topbar.jsx` — przycisk **Zmień szablon**, wyłączony gdy `activeCvData` jest puste
+- `frontend/src/components/editor/Topbar/Topbar.jsx`, linie 141–179 — kontrolka **Szablony** wyrównana do A4 oraz strzałki prev/next
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` — `setActiveCvData(...)` po udanym wypełnieniu
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `showPDF` — `setActiveCvData(null)` przy otwieraniu innego zapisanego dokumentu
+
+Testy:
+
+- `frontend/src/utils/cvTemplateSelection.test.js` — zawijanie wśród szablonów dostępnych w planie; pomijanie zablokowanych w Pro
+- `frontend/src/components/editor/Topbar/ChangeTemplateModal.test.js` — `DEFAULT_FLOW_SPACING` w `useApplyCvTemplate`; strzałki topbara i podłączenie modala
 
 ### Asystent AI
 

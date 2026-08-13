@@ -3,23 +3,18 @@
  *
  * Reuses the exact cv_data captured by AiCvPanel/BioCvModal on their last
  * successful fill (`PdfContext.activeCvData`) and the same TemplateCarousel
- * gallery, so picking a template here calls the identical `/ai/fill_template`
- * endpoint. The key difference from those two flows: this one applies the
- * result via `replaceActiveElements` (the raw canvas replace) instead of
- * `loadAiElements`, so it keeps the current document's `pdfId` and title —
- * restyling the existing project in place rather than starting a new one.
+ * gallery. Applying a card calls `useApplyCvTemplate` (identical
+ * `/ai/fill_template` + `replaceActiveElements` path as the topbar arrows)
+ * and then closes this dialog.
  */
-import { useCallback, useMemo, useState, use } from "react";
+import { useCallback, useMemo, use } from "react";
 import classes from "./ChangeTemplateModal.module.css";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import TemplateCarousel from "../../ai/AiCvPanel/TemplateCarousel";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { ApiClient } from "../../../services/api";
-import { fillTemplate } from "../../../services/fillTemplate";
 import { TEMPLATES } from "../../../templates";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
-import { isTemplateAllowed, planErrorMessage } from "../../../utils/entitlements";
-import { DEFAULT_FLOW_SPACING } from "../../../utils/flowSpacing";
+import { useApplyCvTemplate } from "../../../hooks/useApplyCvTemplate";
 
 export default function ChangeTemplateModal() {
     const {
@@ -28,68 +23,19 @@ export default function ChangeTemplateModal() {
         activeCvData,
         activeTemplateId,
         entitlements,
-        replaceActiveElements,
-        adoptDocumentFlowSpacing,
-        pushToast,
     } = use(PdfContext);
+    const { applyTemplate, fillingId, error } = useApplyCvTemplate();
 
-    const [fillingId, setFillingId] = useState(null);
-    const [error, setError] = useState(null);
     const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
     const activeTemplate = useMemo(
         () => cvTemplates.find((template) => template.id === activeTemplateId) || null,
         [cvTemplates, activeTemplateId],
     );
 
-    const api = useMemo(
-        () => new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` }),
-        [],
-    );
-
     const handleChangeTemplate = useCallback(async (template) => {
-        if (!activeCvData) return;
-        if (!isTemplateAllowed(template, entitlements)) {
-            setError("Ten szablon jest dostępny w planie Pro.");
-            return;
-        }
-        setFillingId(template.id);
-        setError(null);
-        try {
-            // Sections-panel spacing belongs to the current document layout.
-            // A new template must regenerate with the generator defaults — not
-            // the previous template's custom rhythm knobs.
-            const res = await fillTemplate(activeCvData, template.id, {
-                api,
-                errorMessage: "Zmiana szablonu nie powiodła się",
-                spacing: DEFAULT_FLOW_SPACING,
-            });
-            // No title argument: `replaceActiveElements` only overwrites the
-            // title input when one is passed, so the project keeps whatever
-            // name the user already gave it.
-            replaceActiveElements(res.elements, undefined, template.id);
-            // Keep knobs / Reset baseline / next autosave `spacing_px` aligned
-            // with the freshly generated layout (after pinFlowSpacingBaseline).
-            adoptDocumentFlowSpacing?.(DEFAULT_FLOW_SPACING);
-            pushToast?.({
-                title: "Szablon zmieniony",
-                msg: `CV wygląda teraz jak szablon ${template.name}.`,
-                variant: "success",
-            });
-            showChangeTemplateModal();
-        } catch (err) {
-            setError(planErrorMessage(err, "Nie udało się zmienić szablonu."));
-        } finally {
-            setFillingId(null);
-        }
-    }, [
-        activeCvData,
-        adoptDocumentFlowSpacing,
-        api,
-        entitlements,
-        pushToast,
-        replaceActiveElements,
-        showChangeTemplateModal,
-    ]);
+        const applied = await applyTemplate(template);
+        if (applied) showChangeTemplateModal();
+    }, [applyTemplate, showChangeTemplateModal]);
 
     return (
         <DialogShell
