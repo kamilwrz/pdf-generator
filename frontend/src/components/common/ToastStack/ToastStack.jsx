@@ -29,7 +29,7 @@ export default function ToastStack({ toasts, onDismiss, offsetForGallery }) {
     if (toasts.length === 0) return null;
 
     return (
-        <div className={classes.stack} style={{ right: offsetForGallery ? 396 : 16 }}>
+        <div className={classes.stack} style={{ right: offsetForGallery ? 476 : 16 }}>
             {toasts.map((t) => {
                 const variant = VARIANTS[t.variant] || VARIANTS.success;
                 return (

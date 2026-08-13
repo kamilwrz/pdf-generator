@@ -1030,9 +1030,9 @@ object. Limits are configurable via `MAX_UPLOAD_BYTES` (default 8 MB) and
 `MAX_IMAGES_PER_USER` (default **4**).
 
 The editor gallery is a right-edge panel centered vertically (`top`/`bottom`
-25% → 50vh height). The upper **two thirds** show a 2×2 grid of four slots
-(filled thumbnails + empty placeholders); the lower **third** is an embedded
-upload dropzone. Each successful upload returns the new image `id` and fills
+15% → 70vh height, ~460px wide). The upper **two thirds** show a 2×2 grid of
+four portrait slots (`object-fit: contain`, centered so faces stay fully
+visible); the lower **third** is an embedded upload dropzone. Upload progress uses the gold accent (not black). Each successful upload returns the new image `id` and fills
 the next empty slot immediately. Clicking a filled slot in template mode
 applies the photo to the canvas profile slot (`objectFit: cover`) and closes
 the gallery. When the library is full, upload is disabled with a Polish
@@ -2693,10 +2693,11 @@ jest zapisywana tylko do wyświetlania i nigdy nie służy do lokalizacji pliku.
 Limity konfiguruje `MAX_UPLOAD_BYTES` (domyślnie 8 MB) i `MAX_IMAGES_PER_USER`
 (domyślnie **4**).
 
-Galeria w edytorze to panel z prawej, wycentrowany pionowo (`top`/`bottom` 25%
-→ wysokość 50vh). Górne **dwie trzecie** to siatka 2×2 z czterema slotami
-(miniatury + puste placeholdery); dolna **jedna trzecia** to wbudowany dropzone
-uploadu. Każdy udany upload zwraca `id` nowego zdjęcia i od razu wypełnia
+Galeria w edytorze to panel z prawej, wycentrowany pionowo (`top`/`bottom` 15%
+→ wysokość 70vh, ok. 460px szerokości). Górne **dwie trzecie** to siatka 2×2
+z czterema slotami portretowymi (`object-fit: contain`, wycentrowane, żeby
+twarz była w pełni widoczna); dolna **jedna trzecia** to wbudowany dropzone.
+Pasek postępu uploadu używa akcentu gold (nie czarny). Każdy udany upload zwraca `id` nowego zdjęcia i od razu wypełnia
 kolejny wolny slot. Kliknięcie wypełnionego slotu w trybie szablonu nakłada
 zdjęcie na slot profilowy na canvasie (`objectFit: cover`) i zamyka galerię.
 Gdy biblioteka jest pełna, upload jest wyłączony z komunikatem, że trzeba
