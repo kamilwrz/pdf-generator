@@ -121,6 +121,36 @@ describe("transferSectionLane", () => {
     assert.ok((Number(skillsBody.width) || 0) > 250);
   });
 
+  it("expands sidebar languages into a main-column accent grid", () => {
+    const source = [
+      ...sterlingLikeFixture(),
+      { element_id: "sb-lang-head", category: "text", content: "JĘZYKI",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 400, fontSize: 9.4, height: 12, page: 1, bold: true, color: "#33517A" },
+      { element_id: "sb-lang-rule", category: "line",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 416, width: 22, height: 1.4, page: 1, backgroundColor: "#4A6FA5" },
+      { element_id: "sb-lang-body", category: "textarea",
+        content: "Polski - A2\nNiemiecki - C1\nAngielski - B2",
+        flowRole: "content", flowLane: "sidebar", autoHeight: true,
+        left: 34, top: 428, width: 152, height: 40, fontSize: 8.3, lineHeight: 12, page: 1 },
+    ];
+    const next = transferSectionLane(source, "sb-lang-head", PAGE_HEIGHT, SPACING);
+    assert.ok(next);
+    assert.equal(
+      listDocumentSections(next, PAGE_HEIGHT).some((section) => section.headingId === "sb-lang-head"),
+      true,
+    );
+    const cells = next.filter((element) => (
+      element.flowRole === "grid-member" && String(element.content || "").includes("—")
+    ));
+    assert.equal(cells.length, 3);
+    assert.ok(cells.every((cell) => !cell.flowLane));
+    assert.ok(cells[0].runs?.some((run) => run.color === "#4A6FA5" && run.italic));
+    assert.ok((Number(cells[0].width) || 0) < 120);
+    assert.ok(cells[1].left > cells[0].left);
+  });
+
   it("refuses to move Experience onto the rail", () => {
     const source = sterlingLikeFixture();
     assert.equal(transferSectionLane(source, "m-exp-head", PAGE_HEIGHT, SPACING), null);

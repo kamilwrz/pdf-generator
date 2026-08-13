@@ -17,6 +17,10 @@ import {
   listSidebarSections,
   sectionElementIds,
 } from "./sectionStructure.js";
+import {
+  isLanguagesSectionTitle,
+  restyleLanguagesMembersAsSidebar,
+} from "./languagesLayout.js";
 
 /**
  * True when a main-column heading is Experience and must not join the rail.
@@ -159,12 +163,29 @@ export function moveMainSectionsToSidebar(elements, headingIds, pageHeight, spac
     const memberIds = sectionElementIds(next, headingId, pageHeight);
     if (memberIds.size === 0) return null;
     const members = next.filter((element) => memberIds.has(element.element_id));
+    const heading = members.find((element) => element.element_id === headingId);
     // Park the strip below the current rail so Y-order listing appends it
     // after existing kickers, while preserving intra-section reading order.
     const minAbs = Math.min(...members.map((element) => (
       (Math.max(1, Math.trunc(element.page || 1)) - 1) * pageHeight
       + (Number(element.top) || 0)
     )));
+
+    // Main-column languages grids collapse to one hyphenated sidebar textarea
+    // (the rail never keeps per-cell grid-member geometry).
+    if (heading && isLanguagesSectionTitle(heading.content)) {
+      const restyled = restyleLanguagesMembersAsSidebar(
+        members, headingId, style, 10_000,
+      );
+      if (!restyled) return null;
+      next = [
+        ...next.filter((element) => !memberIds.has(element.element_id)),
+        ...restyled,
+      ];
+      movedIds.add(headingId);
+      continue;
+    }
+
     const restyledById = new Map();
     for (const element of members) {
       const abs = (Math.max(1, Math.trunc(element.page || 1)) - 1) * pageHeight

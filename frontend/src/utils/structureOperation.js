@@ -97,8 +97,58 @@ export function previewStructureOperation(elements, group) {
   ];
 }
 
+/**
+ * True for a page-1-only letterhead band (full-page width, short height at the
+ * top). Sterling's tinted masthead field must not clone onto continuation
+ * pages — those keep a single vertical rail only.
+ *
+ * @param {object} element
+ * @param {number} [pageHeight=842]
+ * @returns {boolean}
+ */
+export function isLetterheadBandChrome(element, pageHeight = 842) {
+  if (!element || element.category !== "line") return false;
+  const left = Number(element.left) || 0;
+  const top = Number(element.top) || 0;
+  const width = Number(element.width) || 0;
+  const height = Number(element.height) || 0;
+  return left <= 1
+    && top <= 1
+    && width >= 500
+    && height > 40
+    && height < pageHeight * 0.4;
+}
+
+/**
+ * Expand a short page-1 sidebar rail / divider so continuation pages get a
+ * full-height vertical strip. Legacy Sterling docs authored rail+divider under
+ * the letterhead band (top > 0); cloning that geometry left a stub on page 2.
+ *
+ * @param {object} element
+ * @param {number} [pageHeight=842]
+ * @returns {object}
+ */
+export function expandContinuationRailChrome(element, pageHeight = 842) {
+  if (!element || element.category !== "line") return element;
+  const left = Number(element.left) || 0;
+  const top = Number(element.top) || 0;
+  const width = Number(element.width) || 0;
+  const height = Number(element.height) || 0;
+  if (top <= 0 || height >= pageHeight - 8) return element;
+  // Wide left rail fill (Tessera / Slate / Sterling ~150–230pt).
+  if (left <= 1 && width >= 100 && width <= 280) {
+    return { ...element, top: 0, height: pageHeight };
+  }
+  // Thin vertical divider at the rail edge.
+  if (left >= 140 && left <= 280 && width > 0 && width <= 4) {
+    return { ...element, top: 0, height: pageHeight };
+  }
+  return element;
+}
+
 export function cloneFixedPageDecorations(elements, firstNewPage, targetMaxPage, createId) {
   const clones = [];
+  const pageHeight = 842;
   for (let page = firstNewPage; page <= targetMaxPage; page += 1) {
     if (elements.some((element) => element.fixedToPage && (element.page ?? 1) === page)) continue;
     const source = [...elements]
@@ -112,11 +162,14 @@ export function cloneFixedPageDecorations(elements, firstNewPage, targetMaxPage,
         && (element.page ?? 1) === sourcePage
         && element.category !== "connector"
         && element.repeatOnContinuation !== false
+        // Legacy docs may omit `repeatOnContinuation` on the letterhead band.
+        && !isLetterheadBandChrome(element, pageHeight)
       ))
       .forEach((element) => {
         const isPageNumber = isPageNumberContent(element.content);
+        const geometry = expandContinuationRailChrome(element, pageHeight);
         clones.push({
-          ...element,
+          ...geometry,
           element_id: createId(),
           page,
           content: isPageNumber

@@ -1,0 +1,109 @@
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import {
+  buildLanguagesMainGrid,
+  collectLanguageEntries,
+  isLanguagesSectionTitle,
+  parseLanguageLine,
+  resolveLanguageLevelColor,
+  restyleLanguagesMembersAsSidebar,
+} from "./languagesLayout.js";
+
+describe("isLanguagesSectionTitle", () => {
+  it("matches Polish and English titles", () => {
+    assert.equal(isLanguagesSectionTitle("JĘZYKI"), true);
+    assert.equal(isLanguagesSectionTitle("Języki obce"), true);
+    assert.equal(isLanguagesSectionTitle("Languages"), true);
+    assert.equal(isLanguagesSectionTitle("Umiejętności"), false);
+  });
+});
+
+describe("parseLanguageLine", () => {
+  it("splits hyphen and em-dash forms", () => {
+    assert.deepEqual(parseLanguageLine("Polski - A2"), { name: "Polski", level: "A2" });
+    assert.deepEqual(parseLanguageLine("Angielski — C1"), { name: "Angielski", level: "C1" });
+    assert.deepEqual(parseLanguageLine("Niemiecki"), { name: "Niemiecki", level: "" });
+  });
+});
+
+describe("buildLanguagesMainGrid", () => {
+  it("emits grid-member cells with accent level runs", () => {
+    const cells = buildLanguagesMainGrid(
+      [
+        { name: "Polski", level: "A2" },
+        { name: "Niemiecki", level: "C1" },
+        { name: "Angielski", level: "B2" },
+      ],
+      {
+        bodyLeft: 245,
+        recordWidth: 300,
+        body: { fontSize: 9, lineHeight: 13, color: "#26313F", fontFamily: "Montserrat" },
+        levelColor: "#4A6FA5",
+        appendTop: 500,
+        idFactory: (() => {
+          let n = 0;
+          return () => `c${++n}`;
+        })(),
+        columns: 4,
+      },
+    );
+    assert.equal(cells.length, 3);
+    assert.ok(cells.every((cell) => cell.flowRole === "grid-member"));
+    assert.ok(cells.every((cell) => cell.flowGroup));
+    assert.equal(cells[0].left, 245);
+    assert.ok(cells[1].left > cells[0].left);
+    assert.equal(cells[0].top, cells[1].top);
+    assert.ok(cells[0].content.includes(" — "));
+    assert.ok(cells[0].runs?.some((run) => run.italic && run.color === "#4A6FA5"));
+    assert.ok((Number(cells[0].width) || 0) < 100);
+  });
+});
+
+describe("collectLanguageEntries + restyleLanguagesMembersAsSidebar", () => {
+  it("collapses a main grid back to one hyphenated sidebar body", () => {
+    const members = [
+      { element_id: "h", category: "text", content: "JĘZYKI",
+        flowRole: "section-chrome", left: 245, top: 600, fontSize: 10, height: 14, page: 1, bold: true },
+      { element_id: "r", category: "line", flowRole: "section-chrome",
+        left: 245, top: 618, width: 300, height: 1, page: 1, backgroundColor: "#4A6FA5" },
+      { element_id: "c1", category: "textarea", content: "Polski — A2",
+        flowRole: "grid-member", flowGroup: "lang", left: 245, top: 630, width: 70, height: 14,
+        fontSize: 9, page: 1 },
+      { element_id: "c2", category: "textarea", content: "Niemiecki — C1",
+        flowRole: "grid-member", flowGroup: "lang", left: 320, top: 630, width: 70, height: 14,
+        fontSize: 9, page: 1 },
+    ];
+    assert.deepEqual(collectLanguageEntries(members, "h"), [
+      { name: "Polski", level: "A2" },
+      { name: "Niemiecki", level: "C1" },
+    ]);
+    const rail = restyleLanguagesMembersAsSidebar(members, "h", {
+      left: 34,
+      bodyLeft: 34,
+      recordWidth: 152,
+      heading: { fontSize: 9.4, fontFamily: "Montserrat", color: "#33517A", bold: true },
+      rule: { width: 22, height: 1.4, backgroundColor: "#4A6FA5", relLeft: 0 },
+      body: { fontSize: 8.3, lineHeight: 12, color: "#26313F", fontFamily: "Montserrat" },
+    }, 1000);
+    assert.ok(rail);
+    assert.equal(rail.length, 3);
+    const body = rail.find((element) => element.category === "textarea");
+    assert.equal(body.flowLane, "sidebar");
+    assert.ok(body.content.includes("Polski - A2"));
+    assert.ok(body.content.includes("Niemiecki - C1"));
+    assert.ok(!body.content.includes("—"));
+  });
+});
+
+describe("resolveLanguageLevelColor", () => {
+  it("prefers the section rule accent", () => {
+    assert.equal(
+      resolveLanguageLevelColor({
+        rule: { backgroundColor: "#4A6FA5" },
+        heading: { color: "#33517A" },
+        body: { color: "#26313F" },
+      }),
+      "#4A6FA5",
+    );
+  });
+});

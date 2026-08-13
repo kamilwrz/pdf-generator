@@ -5,6 +5,11 @@
  * restyled for the destination column (width / type / chrome roles) and
  * packed last in that lane under the live flow spacing. Page breaks may land
  * between records via the normal packer — Experience never moves onto the rail.
+ *
+ * Languages are a special case: the rail keeps one hyphenated textarea, while
+ * the main column uses the equal-width accent grid every template generator
+ * emits (`_place_languages_grid`). Transfer expands / collapses that shape so
+ * spacing and palette match Experience after the move.
  */
 import { measureTextareaHeight } from "./textareaHeight.js";
 import { moveMainSectionsToSidebar, isAnchoredMainSectionTitle } from "./collapseMainIntoSidebar.js";
@@ -16,6 +21,12 @@ import {
   sectionElementIds,
   sidebarSectionElementIds,
 } from "./sectionStructure.js";
+import {
+  buildLanguagesMainGrid,
+  collectLanguageEntries,
+  isLanguagesSectionTitle,
+  resolveLanguageLevelColor,
+} from "./languagesLayout.js";
 
 /**
  * Absolute Y used only to park a strip so reading-order packing appends it
@@ -46,6 +57,14 @@ function clearSidebarLane(element) {
 }
 
 /**
+ * @returns {() => string}
+ */
+function makeIdFactory(prefix) {
+  let n = 0;
+  return () => `${prefix}-${Date.now().toString(36)}-${++n}`;
+}
+
+/**
  * Restyle one rail member onto sampled main-column geometry and recompute
  * wrapped height at the main record width — never reuse the sidebar box.
  *
@@ -68,7 +87,7 @@ function restyleMemberAsMain(element, headingId, style, appendTop) {
 
   if (element.element_id === headingId) {
     const fontSize = Number(headingFont.fontSize) || 10;
-    const next = clearSidebarLane({
+    return clearSidebarLane({
       ...element,
       flowRole: "section-chrome",
       left: headingLeft,
@@ -85,7 +104,6 @@ function restyleMemberAsMain(element, headingId, style, appendTop) {
       ),
       page: 1,
     });
-    return next;
   }
 
   if (element.category === "line" && (Number(element.height) || 0) <= 4) {
@@ -139,6 +157,67 @@ function restyleMemberAsMain(element, headingId, style, appendTop) {
 }
 
 /**
+ * Convert a languages rail strip into main-column chrome + accent grid cells.
+ * Body members are replaced wholesale so a single hyphenated textarea becomes
+ * the equal-width grid used by every main-column generator.
+ *
+ * @param {object[]} members
+ * @param {string} headingId
+ * @param {object} style
+ * @param {number} parkTop
+ * @returns {object[]|null}
+ */
+function restyleLanguagesMembersAsMain(members, headingId, style, parkTop) {
+  const heading = members.find((element) => element.element_id === headingId);
+  if (!heading) return null;
+  const entries = collectLanguageEntries(members, headingId);
+  if (entries.length === 0) return null;
+
+  const chrome = [];
+  const restyledHeading = restyleMemberAsMain(heading, headingId, style, parkTop);
+  if (!restyledHeading) return null;
+  chrome.push(restyledHeading);
+
+  const rule = members.find((element) => (
+    element.element_id !== headingId
+    && element.category === "line"
+    && (Number(element.height) || 0) <= 4
+  ));
+  // Park the rule a few px under the heading; applyFlowSpacing retargets
+  // after_rule to match Experience, so the authored offset only needs to keep
+  // reading order (heading → rule → body).
+  const ruleTop = parkTop + (Number(restyledHeading.height) || 12) + 2;
+  if (rule) {
+    const restyledRule = restyleMemberAsMain(rule, headingId, style, ruleTop);
+    if (restyledRule) {
+      // Keep the languages accent underline when the sampled main rule is a
+      // muted Experience hairline — CEFR runs already use this accent colour.
+      chrome.push({
+        ...restyledRule,
+        backgroundColor: rule.backgroundColor || restyledRule.backgroundColor,
+      });
+    }
+  }
+
+  const bodyTop = ruleTop + 6;
+  // Prefer the languages section's own accent underline (Sterling sidebar
+  // kickers use #4A6FA5) over the main-column Experience rule, which is often
+  // a muted grey hairline unsuitable for CEFR runs.
+  const levelColor = (rule && rule.backgroundColor)
+    || resolveLanguageLevelColor(style);
+  const cells = buildLanguagesMainGrid(entries, {
+    bodyLeft: Number.isFinite(Number(style.bodyLeft)) ? Number(style.bodyLeft) : Number(style.left) || 245,
+    recordWidth: Number(style.recordWidth) || 300,
+    body: style.body || {},
+    levelColor,
+    appendTop: bodyTop,
+    idFactory: makeIdFactory(`${headingId}-lang`),
+  });
+  if (cells.length === 0) return null;
+  return [...chrome, ...cells];
+}
+
+/**
  * Convert listed sidebar sections into the main column, then pack both lanes
  * under the current spacing so the strip becomes last in main (page 1 or
  * continuation pages when records do not fit).
@@ -163,12 +242,26 @@ export function moveSidebarSectionsToMain(elements, headingIds, pageHeight, spac
     const memberIds = sidebarSectionElementIds(next, headingId, pageHeight);
     if (memberIds.size === 0) return null;
     const members = next.filter((element) => memberIds.has(element.element_id));
+    const heading = members.find((element) => element.element_id === headingId);
     const minAbs = Math.min(...members.map((element) => absoluteTop(element, pageHeight)));
+    const parkBase = APPEND_PARK_TOP;
+
+    if (heading && isLanguagesSectionTitle(heading.content)) {
+      const restyled = restyleLanguagesMembersAsMain(members, headingId, style, parkBase);
+      if (!restyled) return null;
+      next = [
+        ...next.filter((element) => !memberIds.has(element.element_id)),
+        ...restyled,
+      ];
+      movedIds.add(headingId);
+      continue;
+    }
+
     const restyledById = new Map();
     for (const element of members) {
       const abs = absoluteTop(element, pageHeight);
       const restyled = restyleMemberAsMain(
-        element, headingId, style, APPEND_PARK_TOP + (abs - minAbs),
+        element, headingId, style, parkBase + (abs - minAbs),
       );
       if (restyled) restyledById.set(element.element_id, restyled);
     }
@@ -219,7 +312,8 @@ export function resolveSectionLaneTransfer(elements, headingId, pageHeight = 842
  *
  * The strip is restyled for the destination lane, parked last, then packed.
  * Oversized content may continue onto page 2 between records — same keep-
- * together rules as add/reorder.
+ * together rules as add/reorder. Languages expand to the main accent grid
+ * (or collapse back to a sidebar hyphen list).
  *
  * @param {object[]} elements
  * @param {string} headingId

@@ -61,6 +61,32 @@ test("zero-padded page numbers keep their width on continuation pages", () => {
   assert.equal(number.page, 2);
 });
 
+test("Sterling continuation clones keep a full-height vertical rail without the letterhead band", () => {
+  let count = 0;
+  const clones = cloneFixedPageDecorations([
+    { element_id: "paper", category: "line", fixedToPage: true, page: 1,
+      left: 0, top: 0, width: 595, height: 842, backgroundColor: "#F7F8FA" },
+    { element_id: "rail", category: "line", fixedToPage: true, page: 1,
+      left: 0, top: 158, width: 210, height: 684, backgroundColor: "#EDF1F6" },
+    { element_id: "divider", category: "line", fixedToPage: true, page: 1,
+      left: 210, top: 158, width: 1, height: 684, backgroundColor: "#C7CFDA" },
+    { element_id: "band", category: "line", fixedToPage: true, page: 1,
+      left: 0, top: 0, width: 595, height: 158, backgroundColor: "#EDF1F6" },
+    { element_id: "num", category: "text", fixedToPage: true, page: 1, content: "01" },
+  ], 2, 2, () => `id-${++count}`);
+
+  assert.equal(clones.some((element) => element.element_id?.startsWith("id-") && element.width === 595 && element.height === 158), false);
+  const rail = clones.find((element) => element.width === 210);
+  const divider = clones.find((element) => element.width === 1);
+  assert.ok(rail);
+  assert.ok(divider);
+  assert.equal(rail.top, 0);
+  assert.equal(rail.height, 842);
+  assert.equal(divider.top, 0);
+  assert.equal(divider.height, 842);
+  assert.equal(rail.page, 2);
+});
+
 test("reconcileDocumentPages clones chrome onto overflow pages and collapses empty trailing pages", () => {
   let count = 0;
   const createId = () => `n-${++count}`;
