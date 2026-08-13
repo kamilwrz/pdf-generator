@@ -367,10 +367,12 @@ On **Sterling** (UI gated by `activeTemplateId === "sterling"`; the transfer uti
 
 Continuation pages clone a **full-height vertical rail + divider** only — never the page-1 letterhead top band (`repeatOnContinuation: false`, plus `isLetterheadBandChrome` / `expandContinuationRailChrome` for legacy short rails).
 
+A transferred section's heading→rule gap is parked at the destination lane's canonical offset (`sectionChromeRuleRelTop`, sampled from `deriveSectionStyle`'s `rule.relTop`) rather than a generic `headingHeight + 2` guess, so the moved section's chrome matches its new neighbours instead of the lane it left. `compactChromeCluster` then treats that offset as an authored, rigid composition and never re-derives it on later packs (see "Sidebar/main-column packing internals" above) — correct for templates that intentionally vary chrome per section, but it means a section whose gap was ever set incorrectly (a document saved before this transfer fix shipped, or any future regression) would otherwise stay wrong forever, since nothing re-checks it against its siblings. `healSimpleChromeRuleGaps` closes that gap: it runs on every `applyFlowSpacing` pack, and for any section whose chrome is the plain "heading + one rule" shape (no marker/badge — the Sterling case; templates with richer per-section chrome like Monument or Cinder have more than two chrome pieces and are skipped) it snaps an outlier heading→rule gap onto the value the majority of that lane's sections already share. Because every transfer ends by calling `applyFlowSpacing`, the *next* structural edit after an inconsistency is introduced (even one unrelated to the mismatched section) re-normalizes the whole lane.
+
 Implementation:
 
 - `frontend/src/utils/transferSectionLane.js`, functions `resolveSectionLaneTransfer`, `transferSectionLane`, `moveSidebarSectionsToMain` (lines 256–), `restyleMemberAsMain` (lines 78–) — main → sidebar reuses `moveMainSectionsToSidebar`
-- `frontend/src/utils/sectionStructure.js`, functions `packSidebarLane` (lines 934–), `deriveSectionStyle` (lines 2332–); private `pickLinearBodySample` (lines 2291–)
+- `frontend/src/utils/sectionStructure.js`, functions `packSidebarLane` (lines 934–), `deriveSectionStyle` (lines 2332–), `sectionChromeRuleRelTop` (lines 2672–), `healSimpleChromeRuleGaps` (lines 270–) — called from `applyFlowSpacing` on every pack; private `pickLinearBodySample` (lines 2291–)
 - `frontend/src/utils/languagesLayout.js`, functions `isLanguagesSectionTitle` (lines 26–28), `buildLanguagesMainGrid` (lines 130–), `restyleLanguagesMembersAsSidebar` (lines 269–)
 - `frontend/src/utils/skillsLayout.js`, functions `parseSkillsSidebarContent`, `buildSkillsMainGroups`, `restyleSkillsMembersAsMain`, `restyleSkillsMembersAsSidebar`
 - `frontend/src/utils/structureOperation.js`, functions `isLetterheadBandChrome` (lines 109–120), `expandContinuationRailChrome` (lines 131–146), `cloneFixedPageDecorations` (lines 149–)
@@ -380,8 +382,8 @@ Implementation:
 
 Tests:
 
-- `frontend/src/utils/transferSectionLane.test.js` — Education rails last; Skills joins main last with subcategory expansion; Languages expand to accent grid with Experience body/heading type; Summary transfer closes the sidebar hole; Experience blocked
-- `frontend/src/utils/sectionStructure.test.js` — `deriveSectionStyle` samples description type (not job title); `packSidebarLane` closes rail holes to main content top
+- `frontend/src/utils/transferSectionLane.test.js` — Education rails last; Skills joins main last with subcategory expansion; Languages expand to accent grid with Experience body/heading type; Summary transfer closes the sidebar hole; Experience blocked; heading→rule gap matches every sibling section after a transfer in either direction
+- `frontend/src/utils/sectionStructure.test.js` — `deriveSectionStyle` samples description type (not job title); `packSidebarLane` closes rail holes to main content top; `describe("healSimpleChromeRuleGaps")` — snaps an outlier gap onto the lane majority, no-ops when every section already agrees, never touches a richer (marker/badge) chrome cluster, and heals automatically inside `applyFlowSpacing`
 - `frontend/src/utils/languagesLayout.test.js` — grid cells + CEFR runs; sidebar collapse
 - `frontend/src/utils/skillsLayout.test.js` — category/bullet parse; main subcategory build; rail ↔ main restyle
 - `frontend/src/utils/structureOperation.test.js` — Sterling continuation clones full-height rail without letterhead band; page with only a page number still gets the missing rail
@@ -2006,10 +2008,12 @@ Na **Sterling** (UI ograniczone do `activeTemplateId === "sterling"`; sam util j
 
 Strony kontynuacji klonują **tylko pełny pionowy pasek + divider** — bez letterhead top bara (`repeatOnContinuation: false` oraz `isLetterheadBandChrome` / `expandContinuationRailChrome` dla starszych krótkich szyn).
 
+Odstęp nagłówek→linia przenoszonej sekcji jest ustawiany na kanoniczny offset toru docelowego (`sectionChromeRuleRelTop`, próbkowany z `rule.relTop` w `deriveSectionStyle`), a nie na generyczne zgadywanie `headingHeight + 2` — dzięki temu chrome przeniesionej sekcji pasuje do nowych sąsiadów, nie do toru, z którego sekcja wyszła. `compactChromeCluster` traktuje potem ten offset jako autorską, sztywną kompozycję i nigdy go nie przelicza przy kolejnych pakowaniach (patrz „Wewnętrzne mechanizmy pakowania sidebar/main" wyżej) — to poprawne dla szablonów, które celowo różnicują chrome między sekcjami, ale oznacza też, że sekcja, której offset kiedykolwiek ustawiono błędnie (dokument zapisany przed wdrożeniem tej poprawki transferu albo przyszła regresja), zostałaby zepsuta na zawsze, bo nic nie porównuje jej z sąsiadami. `healSimpleChromeRuleGaps` domyka tę lukę: uruchamia się przy każdym pakowaniu w `applyFlowSpacing` i dla każdej sekcji, której chrome ma prostą postać „nagłówek + jedna linia" (bez znacznika/plakietki — przypadek Sterlinga; szablony z bogatszym chrome na sekcję, jak Monument czy Cinder, mają więcej niż dwa elementy chrome i są pomijane) dociąga odstający odstęp nagłówek→linia do wartości, którą dzieli większość sekcji w danym torze. Ponieważ każdy transfer kończy się wywołaniem `applyFlowSpacing`, **kolejna** edycja strukturalna po pojawieniu się niespójności (nawet niezwiązana z odstającą sekcją) renormalizuje cały tor.
+
 Implementacja:
 
 - `frontend/src/utils/transferSectionLane.js`, funkcje `resolveSectionLaneTransfer`, `transferSectionLane`, `moveSidebarSectionsToMain` (linie 256–), `restyleMemberAsMain` (linie 78–); main → sidebar korzysta z `moveMainSectionsToSidebar`
-- `frontend/src/utils/sectionStructure.js`, funkcje `packSidebarLane` (linie 934–), `deriveSectionStyle` (linie 2332–); prywatne `pickLinearBodySample` (linie 2291–)
+- `frontend/src/utils/sectionStructure.js`, funkcje `packSidebarLane` (linie 934–), `deriveSectionStyle` (linie 2332–), `sectionChromeRuleRelTop` (linie 2672–), `healSimpleChromeRuleGaps` (linie 270–) — wywoływana z `applyFlowSpacing` przy każdym pakowaniu; prywatne `pickLinearBodySample` (linie 2291–)
 - `frontend/src/utils/languagesLayout.js`, funkcje `isLanguagesSectionTitle` (linie 26–28), `buildLanguagesMainGrid` (linie 130–), `restyleLanguagesMembersAsSidebar` (linie 269–)
 - `frontend/src/utils/skillsLayout.js`, funkcje `parseSkillsSidebarContent`, `buildSkillsMainGroups`, `restyleSkillsMembersAsMain`, `restyleSkillsMembersAsSidebar`
 - `frontend/src/utils/structureOperation.js`, funkcje `isLetterheadBandChrome` (linie 109–120), `expandContinuationRailChrome` (linie 131–146), `cloneFixedPageDecorations` (linie 149–)
@@ -2019,8 +2023,8 @@ Implementacja:
 
 Testy:
 
-- `frontend/src/utils/transferSectionLane.test.js` — Wykształcenie na koniec szyny; Umiejętności z podkategoriami → rekordy w main; Języki → siatka z typem Doświadczenia; transfer Podsumowania zamyka dziurę w sidebarze; Doświadczenie zablokowane
-- `frontend/src/utils/sectionStructure.test.js` — `deriveSectionStyle` bierze typ opisu (nie tytułu); `packSidebarLane` zamyka dziury do góry kolumny głównej
+- `frontend/src/utils/transferSectionLane.test.js` — Wykształcenie na koniec szyny; Umiejętności z podkategoriami → rekordy w main; Języki → siatka z typem Doświadczenia; transfer Podsumowania zamyka dziurę w sidebarze; Doświadczenie zablokowane; odstęp nagłówek→linia zgodny dla wszystkich sekcji po transferze w obu kierunkach
+- `frontend/src/utils/sectionStructure.test.js` — `deriveSectionStyle` bierze typ opisu (nie tytułu); `packSidebarLane` zamyka dziury do góry kolumny głównej; `describe("healSimpleChromeRuleGaps")` — dociąga odstający odstęp do wartości większości toru, nic nie robi gdy wszystkie sekcje już się zgadzają, nigdy nie dotyka bogatszego chrome (znacznik/plakietka), i leczy automatycznie wewnątrz `applyFlowSpacing`
 - `frontend/src/utils/languagesLayout.test.js` — komórki siatki + CEFR; zwijanie do sidebara
 - `frontend/src/utils/skillsLayout.test.js` — parse kategorii/bulletów; budowa podkategorii; restyle rail ↔ main
 - `frontend/src/utils/structureOperation.test.js` — klon Sterling: pełna szyna bez letterhead band; strona z samym numerem dostaje brakujący rail
