@@ -32,8 +32,10 @@ def _gen_nimbus(cv: dict) -> list[dict]:
     BODY = "#3A3A3A"
     POWDER, SKY, CLOUD, SLATE = "#B9D2E5", "#DFEBF4", "#E9EEF1", "#72818C"
     L, W, FONT = 80, 462, "Lora"
-    FS_NAME, FS_ROLE, FS_HEADING, FS_BODY, FS_META = 32, 14, 14, 12, 11
-    LH_ROLE, LH_BODY, LH_META = 18, 17, 14.5
+    # Type scale in points. Line heights drop with the faces so leading
+    # stays about 1.3–1.45 em after the 1 px reduction.
+    FS_NAME, FS_ROLE, FS_HEADING, FS_BODY, FS_META = 31, 13, 13, 11, 10
+    LH_ROLE, LH_BODY, LH_META = 17, 16, 13.5
     CONTINUATION = 66
     # Masthead divider and section underlines share the same 3 px weight.
     RULE_H = 3

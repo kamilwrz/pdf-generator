@@ -1067,6 +1067,63 @@ class CvTemplateLayoutTests(unittest.TestCase):
             for element in elements
         ))
 
+    def test_nimbus_lora_type_scale(self):
+        """Name 31 / headings and roles 13 / body 11 / meta 10."""
+        cv = {
+            "name": "Jan Kowalski",
+            "title": "Dyrektor Strategii",
+            "summary": "Lider strategii łączący biznes z wykonaniem.",
+            "experience": [
+                {
+                    "title": "Dyrektor Strategii",
+                    "company": "Northbridge Partners",
+                    "city": "Warszawa",
+                    "period": "2021 – obecnie",
+                    "bullets": ["Zaprojektował model wzrostu."],
+                },
+            ],
+        }
+        elements = generate_resume("nimbus", cv)
+        name = next(
+            element for element in elements
+            if element.get("category") == "text"
+            and element.get("content") == cv["name"]
+        )
+        heading = next(
+            element for element in elements
+            if element.get("category") == "text"
+            and element.get("content") == "PODSUMOWANIE ZAWODOWE"
+        )
+        role = next(
+            element for element in elements
+            if element.get("category") == "text"
+            and element.get("content") == cv["title"]
+        )
+        summary = next(
+            element for element in elements
+            if element.get("category") == "textarea"
+            and element.get("content") == cv["summary"]
+        )
+        job_title = next(
+            element for element in elements
+            if element.get("category") == "textarea"
+            and element.get("content") == cv["experience"][0]["title"]
+        )
+        meta = next(
+            element for element in elements
+            if element.get("category") == "textarea"
+            and " · " in str(element.get("content", ""))
+        )
+        self.assertEqual(name["fontSize"], 31)
+        self.assertEqual(heading["fontSize"], 13)
+        self.assertEqual(role["fontSize"], 13)
+        self.assertEqual(summary["fontSize"], 11)
+        self.assertEqual(summary["lineHeight"], 16)
+        self.assertEqual(job_title["fontSize"], 13)
+        self.assertEqual(job_title["lineHeight"], 17)
+        self.assertEqual(meta["fontSize"], 10)
+        self.assertEqual(meta["lineHeight"], 13.5)
+
     def test_nimbus_repeats_section_underline_on_continuation_pages(self):
         multi_page_cv = {
             **LONG_CV,
@@ -1093,7 +1150,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             element["category"] == "line"
             and element["page"] == education_heading["page"]
             and element["left"] == 80
-            and abs(element["top"] - (education_heading["top"] + 14 * 1.35)) < 0.01
+            and abs(element["top"] - (education_heading["top"] + education_heading["fontSize"] * 1.35)) < 0.01
             and element["height"] == 3
             and element.get("flowRole") == "section-chrome"
             for element in elements

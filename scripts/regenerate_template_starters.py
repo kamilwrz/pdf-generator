@@ -125,7 +125,7 @@ COMPACT_DEMO_CV = {
 
 COMPACT_TEMPLATE_IDS = frozenset({"monument"})
 
-# Nimbus uses larger Lora type (name 32 / headings+roles 14 / body 12 / meta 11),
+# Nimbus uses larger Lora type (name 31 / headings+roles 13 / body 11 / meta 10),
 # so the shared DEMO_CV spills page 1. Keep the same persona with fewer bullets.
 NIMBUS_DEMO_CV = {
     **DEMO_CV,
@@ -217,8 +217,8 @@ DOC_BLURBS = {
         "Nimbus template (`layouts: [\"single\"]`).\n"
         " *\n"
         " * Light minimal single column with soft blue accents,\n"
-        " * set entirely in Lora (name 32 / headings & roles 14 /\n"
-        " * body 12 dark grey / meta 11). Masthead keeps the name\n"
+        " * set entirely in Lora (name 31 / headings & roles 13 /\n"
+        " * body 11 dark grey / meta 10). Masthead keeps the name\n"
         " * accent bar, square photo slot, contact under the photo,\n"
         " * 3 px rules, 56 px under the header divider."
     ),
