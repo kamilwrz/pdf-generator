@@ -7,6 +7,7 @@ import {
   deriveSectionStyle,
   findProfilePhotoSlot,
   healDecorativeOrdinalBaselines,
+  healSimpleChromeRuleGaps,
   healSkillChipLabelBaselines,
   listDocumentSections,
   listFlatSectionAnchors,
@@ -2582,5 +2583,93 @@ describe("applyFlowSpacing — skill chip grid (flowRole: grid-member)", () => {
     // The narrow "SQL" pill (row 2, col 1) must land in row 2 with its row-mate,
     // not get pulled into a separate chrome cluster near the section heading.
     assert.equal(byId["chip-rect-1-1"].top, byId["chip-rect-1-0"].top);
+  });
+});
+
+describe("healSimpleChromeRuleGaps", () => {
+  const PAGE_HEIGHT = 842;
+
+  /**
+   * Two native Sterling-style main sections (heading→rule = 20.7, the real
+   * `HEADING_FS * 1.05 + 6.0` builder offset) plus a third section whose rule
+   * sits at a stale 12px gap — as if it were transferred by an older, now
+   * fixed, bug and the document was saved before this heal existed.
+   */
+  function staleGapFixture() {
+    return [
+      { element_id: "m-exp-head", category: "text", content: "DOŚWIADCZENIE ZAWODOWE",
+        flowRole: "section-chrome", left: 245, top: 188, fontSize: 14, height: 16, page: 1, bold: true },
+      { element_id: "m-exp-rule", category: "line", flowRole: "section-chrome",
+        left: 245, top: 208.7, width: 300, height: 1, page: 1 },
+      { element_id: "m-exp-body", category: "textarea", content: "Body one.",
+        flowRole: "content", flowGroup: "job-0", autoHeight: true,
+        left: 245, top: 240, width: 300, height: 60, fontSize: 9, lineHeight: 13, page: 1 },
+
+      { element_id: "m-edu-head", category: "text", content: "WYKSZTAŁCENIE",
+        flowRole: "section-chrome", left: 245, top: 340, fontSize: 14, height: 16, page: 1, bold: true },
+      { element_id: "m-edu-rule", category: "line", flowRole: "section-chrome",
+        left: 245, top: 360.7, width: 300, height: 1, page: 1 },
+      { element_id: "m-edu-body", category: "textarea", content: "Body two.",
+        flowRole: "content", flowGroup: "edu-0", autoHeight: true,
+        left: 245, top: 390, width: 300, height: 40, fontSize: 9, lineHeight: 13, page: 1 },
+
+      { element_id: "m-lang-head", category: "text", content: "JĘZYKI",
+        flowRole: "section-chrome", left: 245, top: 460, fontSize: 14, height: 16, page: 1, bold: true },
+      { element_id: "m-lang-rule", category: "line", flowRole: "section-chrome",
+        left: 245, top: 472, width: 300, height: 1, page: 1 },
+      { element_id: "m-lang-c1", category: "textarea", content: "Polski — A2",
+        flowRole: "grid-member", flowGroup: "lang-grid",
+        left: 245, top: 486, width: 67, height: 14, fontSize: 9, lineHeight: 13, page: 1 },
+    ];
+  }
+
+  function headingToRuleGap(elements, headingId) {
+    const ids = sectionElementIds(elements, headingId, PAGE_HEIGHT);
+    const members = elements.filter((element) => ids.has(element.element_id));
+    const head = members.find((element) => element.element_id === headingId);
+    const rule = members.find((element) => element.category === "line");
+    return Number((rule.top - head.top).toFixed(2));
+  }
+
+  it("snaps an outlier section's heading->rule gap onto the majority", () => {
+    const healed = healSimpleChromeRuleGaps(staleGapFixture(), PAGE_HEIGHT);
+    assert.equal(headingToRuleGap(healed, "m-exp-head"), 20.7);
+    assert.equal(headingToRuleGap(healed, "m-edu-head"), 20.7);
+    assert.equal(headingToRuleGap(healed, "m-lang-head"), 20.7);
+  });
+
+  it("is a no-op when every section already agrees", () => {
+    const uniform = staleGapFixture().map((element) => (
+      element.element_id === "m-lang-rule" ? { ...element, top: 480.7 } : element
+    ));
+    const healed = healSimpleChromeRuleGaps(uniform, PAGE_HEIGHT);
+    assert.equal(healed, uniform);
+  });
+
+  it("never touches a richer chrome cluster (marker/badge alongside the rule)", () => {
+    const elements = [
+      ...staleGapFixture(),
+      { element_id: "m-cert-head", category: "text", content: "CERTYFIKATY",
+        flowRole: "section-chrome", left: 245, top: 560, fontSize: 14, height: 16, page: 1, bold: true },
+      { element_id: "m-cert-mark", category: "circle", flowRole: "section-chrome",
+        left: 240, top: 562, width: 6, height: 6, page: 1 },
+      { element_id: "m-cert-rule", category: "line", flowRole: "section-chrome",
+        left: 245, top: 566, width: 300, height: 1, page: 1 },
+      { element_id: "m-cert-body", category: "textarea", content: "Body three.",
+        flowRole: "content", autoHeight: true,
+        left: 245, top: 590, width: 300, height: 30, fontSize: 9, lineHeight: 13, page: 1 },
+    ];
+    const healed = healSimpleChromeRuleGaps(elements, PAGE_HEIGHT);
+    const certRule = healed.find((element) => element.element_id === "m-cert-rule");
+    assert.equal(certRule.top, 566, "3-piece chrome cluster (mark + rule) must stay untouched");
+  });
+
+  it("applyFlowSpacing heals stale transferred-section gaps on every pack", () => {
+    const source = staleGapFixture();
+    const packed = applyFlowSpacing(source, {
+      stack: 4, record: 10, section: 21, after_rule: 8,
+    }, PAGE_HEIGHT);
+    assert.equal(headingToRuleGap(packed, "m-lang-head"), headingToRuleGap(packed, "m-exp-head"));
+    assert.equal(headingToRuleGap(packed, "m-lang-head"), headingToRuleGap(packed, "m-edu-head"));
   });
 });

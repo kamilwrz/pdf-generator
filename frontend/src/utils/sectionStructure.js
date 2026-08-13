@@ -242,6 +242,96 @@ export function healSkillChipLabelBaselines(elements) {
 }
 
 /**
+ * Snap an outlier heading→rule gap back onto the value every sibling section
+ * in the same lane already uses.
+ *
+ * A template's `section()` / `sidebar_kicker()` builder function stamps one
+ * fixed heading→rule offset for EVERY section it renders (Sterling: heading
+ * top + 20.7; other simple two-piece templates are equally uniform), so
+ * within one lane every "plain" chrome cluster (just heading + rule, no
+ * marker/badge) is supposed to share the same gap. `compactChromeCluster`'s
+ * `explicitlyOwned` branch intentionally preserves whatever offset a section
+ * already has — correct for templates that deliberately vary chrome per
+ * section (Monument's badge, Cinder's mark) — but it has no way to tell
+ * "authored" apart from "corrupted": a section transferred between the main
+ * column and the sidebar rail (`transferSectionLane.js`) bakes in a sampled
+ * offset at the moment of transfer, and if that sample was ever wrong (a
+ * stale document saved before a transfer fix, or a future regression), the
+ * wrong offset is preserved on every later pack instead of self-correcting.
+ * This heal runs before every pack and rewrites any section whose gap
+ * disagrees with the majority — restoring one canonical heading→rule gap per
+ * lane without touching templates that legitimately vary their chrome shape
+ * (those have more than 2 chrome pieces and are skipped here).
+ *
+ * @param {object[]} elements
+ * @param {number} [pageHeight=842]
+ * @returns {object[]}
+ */
+export function healSimpleChromeRuleGaps(elements, pageHeight = 842) {
+  const list = elements || [];
+  if (list.length === 0) return list;
+  const fixes = new Map();
+
+  const healLane = (sections, memberIdsFor) => {
+    const entries = [];
+    const gapCounts = new Map();
+    for (const section of sections) {
+      const heading = list.find((element) => element.element_id === section.headingId);
+      if (!heading) continue;
+      const memberIds = memberIdsFor(section.headingId);
+      const members = list.filter((element) => memberIds.has(element.element_id));
+      const chromeMembers = members.filter((element) => (
+        element.element_id === section.headingId || isChromeLike(element)
+      ));
+      // Only the plain "heading + one rule" shape qualifies — a badge, marker,
+      // or icon alongside the rule means this template intentionally varies
+      // chrome geometry per section, which this heal must not touch.
+      if (chromeMembers.length !== 2) continue;
+      const rule = chromeMembers.find((element) => element.element_id !== heading.element_id);
+      if (!rule || rule.category !== "line") continue;
+      const gap = Math.round(
+        (absoluteTop(rule, pageHeight) - absoluteTop(heading, pageHeight)) * 100,
+      ) / 100;
+      entries.push({ heading, rule, gap });
+      gapCounts.set(gap, (gapCounts.get(gap) || 0) + 1);
+    }
+    if (entries.length < 2) return;
+    let modeGap = null;
+    let modeCount = 0;
+    for (const [gap, count] of gapCounts) {
+      if (count > modeCount) {
+        modeGap = gap;
+        modeCount = count;
+      }
+    }
+    // Require at least two sections already agreeing before treating anything
+    // as an outlier — with no majority there is no "canonical" gap to snap to.
+    if (modeGap == null || modeCount < 2) return;
+    for (const { heading, rule, gap } of entries) {
+      if (Math.abs(gap - modeGap) < 0.5) continue;
+      const headingAbs = absoluteTop(heading, pageHeight);
+      const rulePage = Math.max(1, Math.trunc(Number(rule.page) || 1));
+      const top = (headingAbs + modeGap) - (rulePage - 1) * pageHeight;
+      fixes.set(rule.element_id, top);
+    }
+  };
+
+  healLane(
+    listDocumentSections(list, pageHeight),
+    (headingId) => sectionElementIds(list, headingId, pageHeight),
+  );
+  healLane(
+    listSidebarSections(list, pageHeight),
+    (headingId) => sidebarSectionElementIds(list, headingId, pageHeight),
+  );
+
+  if (fixes.size === 0) return list;
+  return list.map((element) => (
+    fixes.has(element.element_id) ? { ...element, top: fixes.get(element.element_id) } : element
+  ));
+}
+
+/**
  * Prefer the real section title inside a chrome cluster over a decorative
  * ordinal badge that may sort first in document order.
  * @param {object[]} chromeElements
@@ -2222,6 +2312,7 @@ export function applyFlowSpacing(elements, spacing, pageHeight = 842, options = 
   // square+16 offset and Cardinal pills whose labels sat at CHIP_PAD_Y.
   let next = healDecorativeOrdinalBaselines(elements || [], pageHeight);
   next = healSkillChipLabelBaselines(next);
+  next = healSimpleChromeRuleGaps(next, pageHeight);
   const sections = listDocumentSections(next, pageHeight);
   if (sections.length > 0) {
     next = packDocumentSections(
