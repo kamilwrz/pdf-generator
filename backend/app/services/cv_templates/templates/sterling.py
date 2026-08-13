@@ -402,7 +402,7 @@ def _gen_sterling(cv: dict) -> list[dict]:
     )
     sidebar_extra_indices = _sidebar_extra_indices_for(plan.main)
 
-    def _render_sidebar_bucket(page: int, keys: list[str], start_y: float) -> list[dict]:
+    def _render_sidebar_bucket(page: int, keys: list[str], start_y: float) -> tuple[list[dict], list[str]]:
         """Render one page's sidebar rail content for the planner-assigned ``keys``.
 
         Summary keeps its distinct inline rendering (fixed body font size,
@@ -411,6 +411,13 @@ def _gen_sterling(cv: dict) -> list[dict]:
         through the shared fitting mechanism. This is the exact page-1 logic
         run once per bucket, not a page-2 special case — page 1 differs only
         in ``start_y``.
+
+        Fitting follows ``keys`` order (planner reading order), not
+        ``_sidebar_candidates`` order. Candidates list skills before
+        education; honouring that filled the leftover rail with a Skills
+        kicker and left the list to start the next page. Keys that do not
+        fit intact (kicker plus at least two body lines) are returned so
+        the caller can spill them onto the next existing rail.
         """
         key_set = set(keys)
         elements: list[dict] = []
@@ -428,11 +435,9 @@ def _gen_sterling(cv: dict) -> list[dict]:
             })
             cursor = body_top + body_h + 26.0
 
-        # The planner already guaranteed this subset fits this bucket's rail,
-        # so `_fit_sidebar_sections` places all of them (it also assigns their
-        # fonts).
-        bucket_planned = [candidate for candidate in candidates if candidate['key'] in key_set]
-        fitted_sections, _ = _fit_sidebar_sections(
+        by_key = {candidate['key']: candidate for candidate in candidates}
+        bucket_planned = [by_key[key] for key in keys if key in by_key]
+        fitted_sections, placed_keys = _fit_sidebar_sections(
             bucket_planned, width=SIDE_W, start_y=cursor, bottom_y=760, font=SANS,
         )
         for section_data in fitted_sections:
@@ -450,18 +455,34 @@ def _gen_sterling(cv: dict) -> list[dict]:
                 font=SANS,
             ))
 
-        return [{
+        unfitted = [
+            key for key in keys
+            if key != 'summary' and key in by_key and key not in placed_keys
+        ]
+        stamped = [{
             **element,
             'page': page,
             'flowRole': element.get('flowRole', 'content'),
             'flowLane': 'sidebar',
         } for element in elements]
+        return stamped, unfitted
 
-    # ── Sidebar: one bucket per page the planner used. ────────────────────
+    # ── Sidebar: one bucket per page the planner used. Spill sections that
+    # did not fit intact (orphan kicker) onto the next existing rail rather
+    # than leaving the heading in the page-1 footer. Never invent a page.
     sidebar: list[dict] = []
+    spill: list[str] = []
     for page in sorted(plan.sidebar_by_page.keys()):
+        keys: list[str] = []
+        seen: set[str] = set()
+        for key in (*spill, *plan.sidebar_by_page[page]):
+            if key in seen:
+                continue
+            seen.add(key)
+            keys.append(key)
         start_y = content_top if page == 1 else PAGE_TOP
-        sidebar.extend(_render_sidebar_bucket(page, plan.sidebar_by_page[page], start_y))
+        els, spill = _render_sidebar_bucket(page, keys, start_y)
+        sidebar.extend(els)
 
     # ── Main column for the planned main set, in canonical reading order. Each
     # anchored/movable "primary" section (summary, experience, education, skills)

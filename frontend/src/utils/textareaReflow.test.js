@@ -1437,6 +1437,60 @@ test("pulls preceding section chrome when the body textarea itself jumps page", 
   assert.ok(body.top > heading.top);
 });
 
+test("pulls preceding sidebar-chrome when the rail body jumps page", () => {
+  // Sterling tags kickers `sidebar-chrome`, not `section-chrome`. Treating
+  // only the latter as chrome left UMIEJĘTNOŚCI in the page-1 footer while
+  // the skills list started the page-2 rail.
+  const result = reflowTextareaHeight([
+    {
+      element_id: "skills-heading",
+      category: "text",
+      content: "UMIEJĘTNOŚCI",
+      flowRole: "sidebar-chrome",
+      flowLane: "sidebar",
+      left: 34,
+      top: 740,
+      width: 120,
+      fontSize: 9.4,
+      height: 12,
+      page: 1,
+    },
+    {
+      element_id: "skills-tick",
+      category: "line",
+      flowRole: "sidebar-chrome",
+      flowLane: "sidebar",
+      left: 34,
+      top: 756,
+      width: 22,
+      height: 1.4,
+      page: 1,
+    },
+    {
+      element_id: "skills-body",
+      category: "textarea",
+      autoHeight: true,
+      flowRole: "content",
+      flowLane: "sidebar",
+      left: 34,
+      top: 761,
+      width: 152,
+      height: 20,
+      page: 1,
+    },
+  ], "skills-body", 80, 842, { pageTop: 66, bottomMargin: 72 });
+
+  const heading = result.elements.find((element) => element.element_id === "skills-heading");
+  const tick = result.elements.find((element) => element.element_id === "skills-tick");
+  const body = result.elements.find((element) => element.element_id === "skills-body");
+
+  assert.equal(body.page, 2);
+  assert.equal(heading.page, 2);
+  assert.equal(tick.page, 2);
+  assert.ok(heading.top >= 66);
+  assert.ok(body.top > heading.top);
+});
+
 test("preserves a small same-record gap even if a lane element's stored page went stale", () => {
   // Each auto-height textarea measures and settles independently (once
   // immediately, once again after webfonts finish loading), so a record's

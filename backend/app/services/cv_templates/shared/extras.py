@@ -390,14 +390,19 @@ def _fit_sidebar_sections(
     bottom_y: float,
     font: str = "Montserrat",
 ) -> tuple[list[dict], set[str]]:
-    """Select only complete sections that fit the first-page sidebar budget.
+    """Select only complete sections that fit the remaining sidebar budget.
 
     The sole hard limit is remaining vertical space (``bottom_y - cursor``).
     A previous per-section cap of 160 px rejected ordinary wizard skill lists
     (~10–12 lines) and pushed them into the main column even when the sidebar
     still had hundreds of free points — while shorter PDF-extracted lists fit.
-    Sections that cannot fit intact fall through to the main column instead of
-    being truncated.
+    Sections that cannot fit intact fall through (Tessera/Slate: main column;
+    Sterling multi-page: the next rail) instead of being truncated.
+
+    A kicker is never placed without room for at least two body lines. The
+    leftover footer band is often tall enough for the heading chrome alone;
+    emitting it there orphans UMIEJĘTNOŚCI on page 1 while the list starts
+    the next page's rail.
 
     Education candidates carry ``entries`` and are measured with the same
     structured stack the generators emit (diploma / school / meta / bullets).
@@ -422,8 +427,13 @@ def _fit_sidebar_sections(
                     candidate["content"], width, font_size, line_height,
                     font=font, bulletList=bool(candidate.get("bulletList")),
                 )
+            # Chrome advance matches the generators (kicker 10 + tick gap 5 +
+            # trailing 18). Require two body lines so a heading cannot sit
+            # alone in the leftover footer when the measured body is a single
+            # squeezed line that the canvas then paginates away.
             section_height = 10 + 5 + body_height + 18
-            if cursor + section_height <= bottom_y:
+            min_keep = 10 + 5 + (line_height * 2) + 18
+            if cursor + max(section_height, min_keep) <= bottom_y:
                 placed.append({
                     **candidate,
                     "left": 24,

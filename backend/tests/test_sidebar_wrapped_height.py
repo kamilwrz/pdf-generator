@@ -90,3 +90,30 @@ def test_consecutive_fitted_sections_keep_an_identical_trailing_gap():
     trailing_gap(languages)
     skills_gap = languages["top"] - (skills["body_top"] + skills["body_height"])
     assert skills_gap == 18.0
+
+
+def test_fit_sidebar_sections_does_not_place_an_orphan_kicker_in_the_footer():
+    """A heading with no room for two body lines must not occupy the leftover band.
+
+    Sterling's multi-page rail previously emitted UMIEJĘTNOŚCI at the page-1
+    footer while the skills list started page 2. `_fit_sidebar_sections` now
+    requires kicker chrome plus two body lines before accepting a section.
+    """
+    from app.services.cv_templates.shared.extras import _fit_sidebar_sections
+
+    long_skills = "\n".join(f"• Kompetencja numer {index}" for index in range(1, 16))
+    candidates = [
+        {
+            "key": "skills",
+            "kind": "skills",
+            "title": "UMIEJĘTNOŚCI",
+            "content": long_skills,
+            "bulletList": True,
+        },
+    ]
+    # ~40px leftover — enough for the kicker chrome, not for two body lines.
+    fitted, placed_keys = _fit_sidebar_sections(
+        candidates, width=WIDTH, start_y=720.0, bottom_y=760.0, font=FONT,
+    )
+    assert fitted == []
+    assert placed_keys == set()

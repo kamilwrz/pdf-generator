@@ -1714,6 +1714,94 @@ describe("applyFlowSpacing", () => {
     assert.equal(packed[0].top, 100);
     assert.equal(listSidebarSections(packed).length, 0);
   });
+
+  it("moves a sidebar kicker with its body instead of orphaning it in the page-1 footer", () => {
+    // Education fills the rail to ~720. Skills chrome would "fit" in the
+    // leftover band while the list needs ~120px — pack must bump the whole
+    // strip to page 2, matching textareaReflow.avoidOrphanChrome.
+    const elements = [
+      {
+        element_id: "sb-edu-head",
+        category: "text",
+        content: "WYKSZTAŁCENIE",
+        flowRole: "sidebar-chrome",
+        flowLane: "sidebar",
+        left: 34,
+        top: 200,
+        height: 12,
+        page: 1,
+      },
+      {
+        element_id: "sb-edu-tick",
+        category: "line",
+        flowRole: "sidebar-chrome",
+        flowLane: "sidebar",
+        left: 34,
+        top: 216,
+        width: 22,
+        height: 1.4,
+        page: 1,
+      },
+      {
+        element_id: "sb-edu-body",
+        category: "textarea",
+        flowRole: "content",
+        flowLane: "sidebar",
+        left: 34,
+        top: 222,
+        width: 152,
+        height: 500,
+        autoHeight: true,
+        page: 1,
+      },
+      {
+        element_id: "sb-skills-head",
+        category: "text",
+        content: "UMIEJĘTNOŚCI",
+        flowRole: "sidebar-chrome",
+        flowLane: "sidebar",
+        left: 34,
+        top: 740,
+        height: 12,
+        page: 1,
+      },
+      {
+        element_id: "sb-skills-tick",
+        category: "line",
+        flowRole: "sidebar-chrome",
+        flowLane: "sidebar",
+        left: 34,
+        top: 756,
+        width: 22,
+        height: 1.4,
+        page: 1,
+      },
+      {
+        element_id: "sb-skills-body",
+        category: "textarea",
+        flowRole: "content",
+        flowLane: "sidebar",
+        left: 34,
+        top: 761,
+        width: 152,
+        height: 120,
+        autoHeight: true,
+        page: 1,
+      },
+    ];
+    const packed = packSidebarLane(elements, 842, {
+      spacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
+      pageTop: 66,
+      bottomMargin: 72,
+    });
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+
+    assert.equal(byId["sb-skills-head"].page, 2);
+    assert.equal(byId["sb-skills-tick"].page, 2);
+    assert.equal(byId["sb-skills-body"].page, 2);
+    assert.ok(byId["sb-skills-body"].top > byId["sb-skills-head"].top);
+    assert.equal(byId["sb-edu-head"].page, 1);
+  });
 });
 
 describe("findProfilePhotoSlot", () => {

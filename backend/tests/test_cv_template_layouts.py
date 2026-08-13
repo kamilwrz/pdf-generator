@@ -1569,6 +1569,57 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 "continuation-page rail content must stay out of the main column",
             )
 
+    def test_sterling_sidebar_kicker_stays_with_its_body_across_pages(self):
+        """A sidebar heading must not sit on page N while its body starts on N+1.
+
+        The multi-page rail previously left UMIEJĘTNOŚCI in the page-1 footer
+        and started the skills list at the top of page 2. Fitting now refuses
+        an orphan kicker and spills the whole section onto the next rail.
+        """
+        cv = {
+            **LONG_CV,
+            "experience": LONG_CV["experience"] * 3,
+            "summary": (
+                "Doświadczona liderka produktów cyfrowych, która łączy strategię, "
+                "badania i projektowanie usług, aby prowadzić złożone transformacje "
+                "organizacyjne w sektorze publicznym i prywatnym, dbając o mierzalne "
+                "efekty oraz rozwój zespołów interdyscyplinarnych w wielu kontekstach."
+            ),
+            "skills": [f"Kompetencja zawodowa numer {index}" for index in range(1, 22)],
+            "extra_sections": [
+                {
+                    "title": "Języki obce",
+                    "kind": "languages",
+                    "placement": "after_skills",
+                    "items": ["Angielski — C1", "Niemiecki — B2", "Francuski — A2"],
+                },
+            ],
+        }
+        elements = generate_resume("sterling", cv)
+        kickers = [
+            element for element in elements
+            if element.get("flowLane") == "sidebar"
+            and element.get("flowRole") == "sidebar-chrome"
+            and element.get("category") == "text"
+        ]
+        self.assertTrue(kickers, "expected sidebar section kickers")
+        for kicker in kickers:
+            page = kicker.get("page", 1)
+            kicker_top = float(kicker.get("top") or 0)
+            bodies = [
+                element for element in elements
+                if element.get("flowLane") == "sidebar"
+                and element.get("category") == "textarea"
+                and element.get("page", 1) == page
+                and float(element.get("top") or 0) > kicker_top
+                and float(element.get("left") or 0) < 210
+            ]
+            self.assertTrue(
+                bodies,
+                f"sidebar kicker {kicker.get('content')!r} on page {page} "
+                "must keep at least one body block on the same page",
+            )
+
     def test_active_templates_keep_textareas_inside_page_bounds(self):
         for template_id in (
             "nimbus", "monument", "cinder", "harbor", "tessera", "nova",

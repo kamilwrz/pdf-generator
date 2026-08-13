@@ -140,8 +140,13 @@ function isChromeLike(element) {
   // ordinary `text` nodes (job titles, company lines) from being mistaken for
   // section chrome and reordered by keep-with-next logic. Unclassified legacy
   // templates retain the previous category-based fallback.
+  //
+  // `sidebar-chrome` is the rail equivalent of `section-chrome` (Sterling /
+  // Tessera / Slate kickers). Omitting it left UMIEJĘTNOŚCI in the page-1
+  // footer while `precedingChromeCluster` moved only the skills body to page 2.
   if (element?.flowRole) {
-    return element.flowRole === "section-chrome";
+    return element.flowRole === "section-chrome"
+      || element.flowRole === "sidebar-chrome";
   }
   if (element.category === "text") return true;
   if (isTextAlignedImage(element)) return true;
@@ -157,12 +162,13 @@ function isChromeLike(element) {
  * with their heading when a textarea shrinks and reclaim packs the section
  * onto the previous page. Without this exception the heading moves and the
  * decorative rule stays on page N+1 (missing underline under WYKSZTAŁCENIE).
- * Only `flowRole: "section-chrome"` unlocks packing; other locked elements
- * (page artwork, pinned user chrome) stay fixed.
+ * `section-chrome` and `sidebar-chrome` still pack with their heading;
+ * other locked elements (page artwork, pinned user chrome) stay fixed.
  */
 function isPositionLockedForReflow(element) {
   if (!element?.locked) return false;
-  return element.flowRole !== "section-chrome";
+  return element.flowRole !== "section-chrome"
+    && element.flowRole !== "sidebar-chrome";
 }
 
 function overlapsHorizontally(first, second) {
