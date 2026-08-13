@@ -2584,6 +2584,41 @@ describe("applyFlowSpacing — skill chip grid (flowRole: grid-member)", () => {
     // not get pulled into a separate chrome cluster near the section heading.
     assert.equal(byId["chip-rect-1-1"].top, byId["chip-rect-1-0"].top);
   });
+
+  it("keeps a chip grid intact across a section reorder even without flowGroup", () => {
+    // Regression: a chip grid whose pills never got a shared `flowGroup`
+    // (stale save, or an origin other than the Python generator's
+    // `keep_together`) used to fall through to per-item linear stacking on
+    // reorder — `left` is never touched by the packer, so each pill kept its
+    // original column while getting stacked into an arbitrary vertical order,
+    // visually scattering the grid.
+    const elements = chipSectionFixture().map((element) => (
+      element.flowRole === "grid-member" ? { ...element, flowGroup: undefined } : element
+    ));
+    const reordered = reorderSection(elements, "skills-head", "up", 842, {
+      spacing: { section: 21, record: 10, stack: 4, after_rule: 8 },
+    });
+    assert.ok(reordered);
+    const byId = Object.fromEntries(reordered.map((element) => [element.element_id, element]));
+
+    const row1Tops = ["chip-rect-0-0", "chip-rect-0-1", "chip-rect-0-2"].map((id) => byId[id].top);
+    assert.equal(row1Tops[1], row1Tops[0], "row 1 chips must share one top after reorder");
+    assert.equal(row1Tops[2], row1Tops[0]);
+
+    const row2Tops = ["chip-rect-1-0", "chip-rect-1-1"].map((id) => byId[id].top);
+    assert.equal(row2Tops[1], row2Tops[0], "row 2 chips must share one top after reorder");
+    assert.ok(row2Tops[0] > row1Tops[0], "row 2 must stay strictly below row 1");
+
+    for (const id of Object.keys(byId)) {
+      if (!id.startsWith("chip-rect-")) continue;
+      const rect = byId[id];
+      const text = byId[id.replace("chip-rect-", "chip-text-")];
+      assert.ok(
+        Math.abs(text.top - (rect.top + rect.height / 2)) < 0.51,
+        `expected ${id}'s label on the pill midline after reorder (rect.top=${rect.top}, text.top=${text.top})`,
+      );
+    }
+  });
 });
 
 describe("healSimpleChromeRuleGaps", () => {

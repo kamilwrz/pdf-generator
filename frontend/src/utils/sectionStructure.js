@@ -1439,10 +1439,21 @@ function compactSectionStrip(sectionElements, pageHeight, spacing, forceTargets 
 
     const previous = items[items.length - 1];
     const group = flowGroupOf(element);
+    const anchorGroup = gridAnchor ? flowGroupOf(gridAnchor.element) : null;
+    // A shared `flowGroup` (stamped by the backend's `keep_together`) is the
+    // strong signal that two grid members belong to the same wrapped grid,
+    // but it is not the only one: two consecutive `grid-member` elements with
+    // no flowGroup conflict are still one grid run. Requiring an exact match
+    // when either side is untagged (a document whose chips never got the
+    // flowGroup — a stale save, or an origin other than the Python
+    // generator) used to fall through to linear stacking and scatter the 2D
+    // chip grid into a broken column on the very next reorder/pack. Only an
+    // explicit mismatch (both tagged, but with different ids) still breaks
+    // the run — that is the real "different grid" signal.
     const continuesGrid = isGridMember(element)
-      && group
       && gridAnchor
-      && flowGroupOf(gridAnchor.element) === group;
+      && isGridMember(gridAnchor.element)
+      && (!group || !anchorGroup || group === anchorGroup);
 
     if (continuesGrid) {
       items.push({
@@ -1661,10 +1672,15 @@ function placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin) {
       placed = { page: at.page, top: at.top, abs: at.abs, bottom: at.abs + height };
     } else {
       const group = flowGroupOf(item.element);
+      const anchorGroup = gridAnchor ? flowGroupOf(gridAnchor.item.element) : null;
+      // Mirrors the `continuesGrid` relaxation in `compactSectionStrip`: only
+      // an explicit flowGroup mismatch (both tagged, but different) breaks a
+      // grid run — an untagged chip run must not fall through to per-item
+      // stacking, which is what scattered the 2D grid on reorder.
       const continuesGrid = isGridMember(item.element)
-        && group
         && gridAnchor
-        && flowGroupOf(gridAnchor.item.element) === group;
+        && isGridMember(gridAnchor.item.element)
+        && (!group || !anchorGroup || group === anchorGroup);
 
       let desiredAbs = sectionCursor;
       if (continuesGrid) {
