@@ -147,7 +147,7 @@ class PDF_Generator:
         """Set the PDF document title metadata shown in viewers."""
         self.c.setTitle(title)
 
-    def renderImage(self, src, width, height, left, top, align_with_text=None):
+    def renderImage(self, src, width, height, left, top, align_with_text=None, object_fit=None):
         """Draw a bitmap after flipping Y so `top` matches the editor.
 
         PNG/RGBA icons must use ``mask='auto'`` — with ``mask=None`` ReportLab
@@ -159,6 +159,11 @@ class PDF_Generator:
           optical cap mid-line used by the canvas (``iconAlignment.js``).
         - ``False`` — honour the authored ``top`` (geometric placement).
         - ``None`` — legacy Iconic asset paths still get the optical shift.
+
+        ``object_fit``:
+        - ``\"cover\"`` — scale uniformly and center-crop into the box (profile
+          photo slots). Matches canvas ``object-fit: cover``.
+        - anything else — stretch to the authored box (legacy fill).
         """
         # Must match frontend/src/utils/iconAlignment.js `CANVAS_TEXT_CAP_MID`.
         # A previous -1.2 offset made PDF icons sit ~2.2 px higher than canvas.
@@ -186,24 +191,63 @@ class PDF_Generator:
         corrected_y = self.page_h - t - h
         if not src_s:
             return
+        fit = str(object_fit or "").strip().lower()
         self.c.saveState()
         try:
-            try:
-                reader = self._image_reader_for_pdf(src_s)
-                self.c.drawImage(
-                    reader,
-                    left,
-                    corrected_y,
-                    width=w,
-                    height=h,
-                    mask="auto",
-                )
-            except Exception:
-                self.c.drawImage(
-                    src_s, left, corrected_y, width=w, height=h, mask="auto",
-                )
+            if fit == "cover":
+                self._draw_image_cover(src_s, left, corrected_y, w, h)
+            else:
+                try:
+                    reader = self._image_reader_for_pdf(src_s)
+                    self.c.drawImage(
+                        reader,
+                        left,
+                        corrected_y,
+                        width=w,
+                        height=h,
+                        mask="auto",
+                    )
+                except Exception:
+                    self.c.drawImage(
+                        src_s, left, corrected_y, width=w, height=h, mask="auto",
+                    )
         finally:
             self.c.restoreState()
+
+    def _draw_image_cover(self, src, left, bottom, width, height):
+        """Center-crop ``src`` into the box (CSS object-fit: cover)."""
+        path = Path(str(src))
+        try:
+            with PilImage.open(path if path.is_file() else src) as opened:
+                image = opened.convert("RGBA") if opened.mode in ("P", "LA", "L") else opened.copy()
+                if image.mode != "RGBA" and "A" in image.getbands():
+                    image = image.convert("RGBA")
+                elif image.mode not in ("RGB", "RGBA"):
+                    image = image.convert("RGBA")
+                iw, ih = image.size
+                if iw <= 0 or ih <= 0:
+                    raise ValueError("empty image")
+                scale = max(float(width) / float(iw), float(height) / float(ih))
+                draw_w = float(iw) * scale
+                draw_h = float(ih) * scale
+                draw_x = float(left) - (draw_w - float(width)) / 2.0
+                draw_y = float(bottom) - (draw_h - float(height)) / 2.0
+                clip = self.c.beginPath()
+                clip.rect(float(left), float(bottom), float(width), float(height))
+                self.c.clipPath(clip, stroke=0, fill=0)
+                self.c.drawImage(
+                    ImageReader(image),
+                    draw_x,
+                    draw_y,
+                    width=draw_w,
+                    height=draw_h,
+                    mask="auto",
+                )
+                return
+        except Exception:
+            self.c.drawImage(
+                src, left, bottom, width=width, height=height, mask="auto",
+            )
 
     @staticmethod
     def _image_reader_for_pdf(src):
@@ -1154,6 +1198,10 @@ class PDF_Generator:
                     if source is not None and target is not None:
                         self.renderConnector(source, target, element.backgroundColor, getattr(element, "borderWidth", 1), getattr(element, "arrow", False))
                 elif category == "image":
+                    object_fit = getattr(element, "objectFit", None)
+                    photo_slot = getattr(element, "photoSlot", None)
+                    if not object_fit and photo_slot in ("image", "glyph"):
+                        object_fit = "cover"
                     self.renderImage(
                         image_resolver(element.src or ""),
                         float(element.width),
@@ -1162,6 +1210,7 @@ class PDF_Generator:
                         element.top,
                         # Preserve explicit False (geometric contact icons); None → path heuristic.
                         align_with_text=getattr(element, "alignWithText", None),
+                        object_fit=object_fit,
                     )
             if watermark:
                 self._draw_watermark()

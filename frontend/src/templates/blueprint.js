@@ -314,7 +314,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-dcf454157191",
+    "flowGroup": "record-f04e149045a7",
     "flowRole": "content"
   },
   {
@@ -337,7 +337,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-dcf454157191",
+    "flowGroup": "record-f04e149045a7",
     "flowRole": "content"
   },
   {
@@ -360,7 +360,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-dcf454157191",
+    "flowGroup": "record-f04e149045a7",
     "flowRole": "content"
   },
   {
@@ -383,7 +383,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e616afa7557a",
+    "flowGroup": "record-23856b83867f",
     "flowRole": "content"
   },
   {
@@ -406,7 +406,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e616afa7557a",
+    "flowGroup": "record-23856b83867f",
     "flowRole": "content"
   },
   {
@@ -429,7 +429,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e616afa7557a",
+    "flowGroup": "record-23856b83867f",
     "flowRole": "content"
   },
   {
@@ -452,7 +452,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-16867c7f873a",
+    "flowGroup": "record-bf960912731f",
     "flowRole": "content"
   },
   {
@@ -475,7 +475,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-16867c7f873a",
+    "flowGroup": "record-bf960912731f",
     "flowRole": "content"
   },
   {
@@ -498,7 +498,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-16867c7f873a",
+    "flowGroup": "record-bf960912731f",
     "flowRole": "content"
   },
   {
@@ -547,7 +547,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4ff9607bc472",
+    "flowGroup": "record-a57c734fba67",
     "flowRole": "content"
   },
   {
@@ -570,7 +570,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4ff9607bc472",
+    "flowGroup": "record-a57c734fba67",
     "flowRole": "content"
   },
   {
@@ -593,7 +593,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4ff9607bc472",
+    "flowGroup": "record-a57c734fba67",
     "flowRole": "content"
   },
   {
@@ -642,7 +642,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5158e590474a",
+    "flowGroup": "record-0f1d6976e0d7",
     "flowRole": "content"
   },
   {
@@ -700,7 +700,7 @@ const BLUEPRINT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-855b504e3684"
+    "flowGroup": "record-99181caa3239"
   },
   {
     "category": "textarea",
@@ -731,7 +731,7 @@ const BLUEPRINT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-855b504e3684"
+    "flowGroup": "record-99181caa3239"
   },
   {
     "category": "textarea",
@@ -762,7 +762,7 @@ const BLUEPRINT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-855b504e3684"
+    "flowGroup": "record-99181caa3239"
   }
 ];
 

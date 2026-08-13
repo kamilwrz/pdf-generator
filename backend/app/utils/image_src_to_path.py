@@ -38,4 +38,8 @@ def image_src_to_local_path(src: str) -> str:
         decoded = unquote(path_part)
         local = (IMAGES_UPLOAD_DIR / decoded).resolve()
         return str(local)
+    # Relative template-asset paths from starters (`/template-assets/...`).
+    normalized = src.replace("\\", "/").lstrip("/")
+    if normalized.startswith("template-assets/"):
+        return str((TEMPLATE_ASSETS_DIR / normalized.removeprefix("template-assets/")).resolve())
     return src

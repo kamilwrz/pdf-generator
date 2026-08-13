@@ -264,7 +264,7 @@ const SLATE_ELEMENTS = [
     "left": 25,
     "top": 215.0,
     "width": 128,
-    "height": 66.2,
+    "height": 61.0,
     "fontSize": 8.3,
     "lineHeight": 12.04,
     "letterSpacing": 0,
@@ -284,7 +284,7 @@ const SLATE_ELEMENTS = [
   {
     "category": "line",
     "left": 25,
-    "top": 293.2,
+    "top": 288.0,
     "width": 16,
     "height": 16,
     "backgroundColor": "#3E5C76",
@@ -297,7 +297,7 @@ const SLATE_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/slate/languages.png",
     "left": 27,
-    "top": 295.2,
+    "top": 290.0,
     "width": 12,
     "height": 12,
     "zIndex": 3,
@@ -313,7 +313,7 @@ const SLATE_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#1C2530",
     "left": 49,
-    "top": 296.2,
+    "top": 291.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -325,7 +325,7 @@ const SLATE_ELEMENTS = [
   {
     "category": "line",
     "left": 49,
-    "top": 309.2,
+    "top": 304.0,
     "width": 46,
     "height": 1,
     "backgroundColor": "#3E5C76",
@@ -338,9 +338,9 @@ const SLATE_ELEMENTS = [
     "category": "textarea",
     "content": "Polski - ojczysty\nAngielski - C1\nFrancuski - B2",
     "left": 25,
-    "top": 314.2,
+    "top": 309.0,
     "width": 128,
-    "height": 42.12,
+    "height": 37.0,
     "fontSize": 8.3,
     "lineHeight": 12.04,
     "letterSpacing": 0,
@@ -360,7 +360,7 @@ const SLATE_ELEMENTS = [
   {
     "category": "line",
     "left": 25,
-    "top": 368.32,
+    "top": 358.0,
     "width": 16,
     "height": 16,
     "backgroundColor": "#3E5C76",
@@ -373,7 +373,7 @@ const SLATE_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/slate/education.png",
     "left": 27,
-    "top": 370.32,
+    "top": 360.0,
     "width": 12,
     "height": 12,
     "zIndex": 3,
@@ -389,7 +389,7 @@ const SLATE_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#1C2530",
     "left": 49,
-    "top": 371.32,
+    "top": 361.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -401,7 +401,7 @@ const SLATE_ELEMENTS = [
   {
     "category": "line",
     "left": 49,
-    "top": 384.32,
+    "top": 374.0,
     "width": 46,
     "height": 1,
     "backgroundColor": "#3E5C76",
@@ -414,7 +414,7 @@ const SLATE_ELEMENTS = [
     "category": "textarea",
     "content": "Magister Zarządzania",
     "left": 25,
-    "top": 389.32,
+    "top": 379.0,
     "width": 128,
     "height": 13,
     "fontSize": 8.3,
@@ -430,7 +430,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-628f26145172",
+    "flowGroup": "record-c83ce92db501",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -438,7 +438,7 @@ const SLATE_ELEMENTS = [
     "category": "textarea",
     "content": "SGH Warszawa",
     "left": 25,
-    "top": 406.32,
+    "top": 396.0,
     "width": 128,
     "height": 13,
     "fontSize": 8.3,
@@ -454,7 +454,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-628f26145172",
+    "flowGroup": "record-c83ce92db501",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -462,7 +462,7 @@ const SLATE_ELEMENTS = [
     "category": "textarea",
     "content": "2011 – 2016",
     "left": 25,
-    "top": 423.32,
+    "top": 413.0,
     "width": 128,
     "height": 12,
     "fontSize": 7.5,
@@ -478,7 +478,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-628f26145172",
+    "flowGroup": "record-c83ce92db501",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -929,7 +929,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-581f9ee6d9c7",
+    "flowGroup": "record-e30f6c7336ae",
     "flowRole": "content"
   },
   {
@@ -952,7 +952,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-581f9ee6d9c7",
+    "flowGroup": "record-e30f6c7336ae",
     "flowRole": "content"
   },
   {
@@ -975,7 +975,7 @@ const SLATE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-581f9ee6d9c7",
+    "flowGroup": "record-e30f6c7336ae",
     "flowRole": "content"
   },
   {
@@ -998,7 +998,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1dbaf20900e5",
+    "flowGroup": "record-554a8f9098b1",
     "flowRole": "content"
   },
   {
@@ -1021,7 +1021,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1dbaf20900e5",
+    "flowGroup": "record-554a8f9098b1",
     "flowRole": "content"
   },
   {
@@ -1044,7 +1044,7 @@ const SLATE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1dbaf20900e5",
+    "flowGroup": "record-554a8f9098b1",
     "flowRole": "content"
   },
   {
@@ -1067,7 +1067,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3a710020afc7",
+    "flowGroup": "record-1347c2209f74",
     "flowRole": "content"
   },
   {
@@ -1090,7 +1090,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3a710020afc7",
+    "flowGroup": "record-1347c2209f74",
     "flowRole": "content"
   },
   {
@@ -1113,7 +1113,7 @@ const SLATE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3a710020afc7",
+    "flowGroup": "record-1347c2209f74",
     "flowRole": "content"
   }
 ];

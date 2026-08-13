@@ -245,6 +245,8 @@ export default function CanvasElements({ elements }) {
           fixedToPage={element.fixedToPage}
           alignWithText={element.alignWithText}
           borderRadius={element.borderRadius}
+          objectFit={element.objectFit}
+          photoSlot={element.photoSlot}
         />
       );
     } else if (element.category === "line") {

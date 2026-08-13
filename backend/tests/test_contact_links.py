@@ -133,14 +133,15 @@ class ContactPlacementTests(unittest.TestCase):
         self.assertIn("linkedin.png", srcs)
         self.assertIn("github.png", srcs)
         self.assertIn("website.png", srcs)
-        # Header rule must sit below the wrapped contact band (not the old 144).
+        # Header rule must sit below the stacked contact band (taller than the
+        # old wrapping layout that stopped around y=144).
         rules = [
             e for e in els
-            if e.get("category") == "line" and e.get("top", 0) > 100 and e.get("top", 0) < 200
+            if e.get("category") == "line" and e.get("top", 0) > 100 and e.get("top", 0) < 280
             and e.get("width", 0) > 400
         ]
         self.assertTrue(rules)
-        self.assertGreater(min(r["top"] for r in rules), 144.0)
+        self.assertGreater(min(r["top"] for r in rules), 170.0)
 
 
 if __name__ == "__main__":

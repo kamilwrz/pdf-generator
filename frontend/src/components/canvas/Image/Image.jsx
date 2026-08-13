@@ -40,6 +40,8 @@ function Image({
     fixedToPage,
     alignWithText,
     borderRadius,
+    objectFit,
+    photoSlot,
 }) {
 
     const { moveElement, selectElement, A4_Elements, selectMoveElement, resizeElement } = use(PdfContext)
@@ -88,9 +90,11 @@ function Image({
         setIsResizeable(Boolean(active));
     }
 
-    // Stretch to the authored box (object-fit: fill). ReportLab's drawImage
-    // does the same. `contain` letterboxes full-page backgrounds whose PNG
-    // aspect ratio differs from A4 (e.g. 1024×1536 → white side gutters).
+    // Default stretch matches ReportLab's plain drawImage. Profile slots use
+    // `cover` so a gallery upload fills the frame without distorting aspect
+    // ratio (center-cropped). `contain` letterboxes full-page backgrounds.
+    const resolvedFit = objectFit
+        || (photoSlot === "image" || photoSlot === "glyph" ? "cover" : "fill");
     const style = {
         width: width,
         height: height,
@@ -98,7 +102,7 @@ function Image({
         top: drawTop,
         position: "absolute",
         zIndex: zIndex,
-        objectFit: "fill",
+        objectFit: resolvedFit,
         // Circular profile slots (Harbor) clip the raster on canvas; PDF export
         // still draws the full box, which covers the underlying disc.
         ...(borderRadius ? { borderRadius: `${borderRadius}px` } : {}),

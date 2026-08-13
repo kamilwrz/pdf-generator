@@ -1449,7 +1449,9 @@ class CvTemplateLayoutTests(unittest.TestCase):
         # template_id → (rule top y, rule height, min gap, max gap)
         cases = {
             "nimbus": (192, 3, 56.0, 56.0),
-            "nova": (160, 1, 25.0, 45.0),
+            # Stacked contacts + photo make the rule Y data-dependent; resolve
+            # the authored header rule dynamically (same path as rule_top=None).
+            "nova": (None, 1, 30.0, 42.0),
         }
         cv = {
             **LONG_CV,

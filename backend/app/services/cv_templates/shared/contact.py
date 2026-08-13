@@ -142,6 +142,51 @@ def _place_wrapping_icon_contacts(
     return elements, cy
 
 
+def _place_stacked_icon_contacts(
+    *,
+    theme: str,
+    items: list[tuple[str, str]],
+    start_x: float,
+    start_y: float,
+    text_fs: float,
+    icon_size: float,
+    text_color: str,
+    font: str,
+    icon_gap: float = 16.0,
+    line_step: float = 18.0,
+    icon_builder: Callable[..., dict] | None = None,
+) -> tuple[list[dict], float]:
+    """Place icon+label contacts one channel per row (Nova masthead).
+
+    Returns (elements, bottom_y) with the same contract as
+    ``_place_wrapping_icon_contacts`` — ``bottom_y`` is the top of the last row.
+    """
+    build_icon = icon_builder or (
+        lambda name, left, top: _icon_beside(theme, name, left, top, text_fs, icon_size)
+    )
+    elements: list[dict] = []
+    cy = float(start_y)
+    placed = 0
+    for key, value in items:
+        if not value:
+            continue
+        icon = build_icon(key, float(start_x), cy)
+        # Keep contact icons on the masthead lane with their labels so spacing
+        # packers never promote a phone/email row into a section heading.
+        icon["flowRole"] = "masthead"
+        elements.append(icon)
+        label = _text(
+            value, text_fs, font, text_color, float(start_x) + icon_gap, cy, zIndex=3,
+        )
+        label["flowRole"] = "masthead"
+        elements.append(label)
+        cy += line_step
+        placed += 1
+    if placed == 0:
+        return elements, float(start_y)
+    return elements, cy - line_step
+
+
 def _place_centered_icon_contacts(
     *,
     theme: str,

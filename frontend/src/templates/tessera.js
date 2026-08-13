@@ -286,7 +286,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2f1375673851",
+    "flowGroup": "record-69ab2f5614b1",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -310,7 +310,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2f1375673851",
+    "flowGroup": "record-69ab2f5614b1",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -334,7 +334,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2f1375673851",
+    "flowGroup": "record-69ab2f5614b1",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -412,7 +412,7 @@ const TESSERA_ELEMENTS = [
     "left": 25,
     "top": 294.0,
     "width": 128,
-    "height": 66.2,
+    "height": 61.0,
     "fontSize": 8.3,
     "lineHeight": 12.04,
     "letterSpacing": 0,
@@ -432,7 +432,7 @@ const TESSERA_ELEMENTS = [
   {
     "category": "line",
     "left": 25,
-    "top": 370.2,
+    "top": 365.0,
     "width": 18,
     "height": 18,
     "backgroundColor": "#FFFDFC",
@@ -444,7 +444,7 @@ const TESSERA_ELEMENTS = [
   {
     "category": "rectangle",
     "left": 27,
-    "top": 372.2,
+    "top": 367.0,
     "width": 18,
     "height": 18,
     "backgroundColor": "#E15D4F",
@@ -460,7 +460,7 @@ const TESSERA_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/tessera/languages.png",
     "left": 29,
-    "top": 374.2,
+    "top": 369.0,
     "width": 12,
     "height": 12,
     "zIndex": 3,
@@ -476,7 +476,7 @@ const TESSERA_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#4A2347",
     "left": 51,
-    "top": 375.2,
+    "top": 370.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -488,7 +488,7 @@ const TESSERA_ELEMENTS = [
   {
     "category": "line",
     "left": 51,
-    "top": 388.2,
+    "top": 383.0,
     "width": 50,
     "height": 1,
     "backgroundColor": "#E15D4F",
@@ -501,9 +501,9 @@ const TESSERA_ELEMENTS = [
     "category": "textarea",
     "content": "Polski - ojczysty\nAngielski - C1\nFrancuski - B2",
     "left": 25,
-    "top": 393.2,
+    "top": 388.0,
     "width": 128,
-    "height": 42.12,
+    "height": 37.0,
     "fontSize": 8.3,
     "lineHeight": 12.04,
     "letterSpacing": 0,
@@ -973,7 +973,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-67c450e0a74d",
+    "flowGroup": "record-96e6f9e28b7f",
     "flowRole": "content"
   },
   {
@@ -996,7 +996,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-67c450e0a74d",
+    "flowGroup": "record-96e6f9e28b7f",
     "flowRole": "content"
   },
   {
@@ -1019,7 +1019,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-67c450e0a74d",
+    "flowGroup": "record-96e6f9e28b7f",
     "flowRole": "content"
   },
   {
@@ -1042,7 +1042,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6f27bbf91191",
+    "flowGroup": "record-366d21c1ac39",
     "flowRole": "content"
   },
   {
@@ -1065,7 +1065,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6f27bbf91191",
+    "flowGroup": "record-366d21c1ac39",
     "flowRole": "content"
   },
   {
@@ -1088,7 +1088,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6f27bbf91191",
+    "flowGroup": "record-366d21c1ac39",
     "flowRole": "content"
   },
   {
@@ -1111,7 +1111,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8206b7dbaacb",
+    "flowGroup": "record-d0d9210eaba8",
     "flowRole": "content"
   },
   {
@@ -1134,7 +1134,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8206b7dbaacb",
+    "flowGroup": "record-d0d9210eaba8",
     "flowRole": "content"
   },
   {
@@ -1157,7 +1157,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8206b7dbaacb",
+    "flowGroup": "record-d0d9210eaba8",
     "flowRole": "content"
   }
 ];

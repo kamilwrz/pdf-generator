@@ -705,6 +705,26 @@ Tests:
 
 Known limitation: long user-provided section names are shortened only inside the fixed decorative heading frame. Their section content remains complete.
 
+### Nova editorial masthead template
+
+Nova is a free single-column template (`layouts: ["icons"]`) with a warm paper field (`#F7F1E8`), terracotta accent (`#C45C26`), Playfair Display name, and Montserrat body. The masthead is taller than the earlier wrapping-contact revision: the display name sits near the left edge (`x=36`), contact channels stack **one row each** with iconic glyphs ~12 pt under the name (`_place_stacked_icon_contacts`), and a 104×104 square profile slot occupies the top-right (`nova-photo-frame` / `nova-photo-image`, default raster `backend/template_assets/nova-portrait.png` cropped from the demo face). The starter image uses `objectFit: "cover"` so gallery uploads fill the slot without stretching. Job title, when present, sits under the photo rather than between the name and contacts. Section icons start at `icon_x=64` and bold uppercase headings at `L=84` — 16 pt further right than the legacy `48` / `68` band — matching the annotated editorial mock.
+
+Implementation:
+
+- `backend/app/services/cv_templates/templates/nova.py`, lines 30–240, function `_gen_nova` — stacked masthead contacts, photo slot, bold section headings
+- `backend/app/services/cv_templates/shared/contact.py`, function `_place_stacked_icon_contacts` — one icon+label channel per row
+- `frontend/src/templates/iconic.js`, export `novaTemplate` — regenerated starter (relative `/template-assets/…` URLs)
+- `frontend/src/utils/profilePhoto.js` — `nova-photo-frame` in `PROFILE_PHOTO_FRAME_IDS`; `applyProfilePhoto` sets `objectFit: "cover"`
+- `frontend/src/components/canvas/Image/Image.jsx`, lines 93–110 — canvas honors `objectFit` / photo-slot `cover`
+- `backend/app/services/pdf_generator.py`, lines 150–240, methods `renderImage` / `_draw_image_cover` — PDF center-crop for `cover`
+- `backend/template_assets/nova-portrait.png` — face crop used by the starter and mockup
+- `frontend/public/template-mockups/nova.png` — source-driven A4 preview
+
+Tests:
+
+- `backend/tests/test_contact_links.py` — Nova masthead contact `flowRole`, social icons, header rule below the stacked band
+- `backend/tests/test_cv_template_layouts.py`, `test_header_rule_mastheads_clear_first_section_heading` — clear band under the Nova header rule
+
 ### Cardinal noble-red template
 
 Cardinal is a paid single-column template (`layouts: ["icons"]`) for candidates who want a formal document with one restrained accent of colour. Noble red (`#9E2532`) is used for the role line under the name, every section heading, and the filled skill-chip pills (`mode="chips"` — see [Skill chip pills](#skill-chip-pills)); all other ornament stays neutral grey (`#8A8A8A`). Chip labels sit on the pill midline (`_chip_label_top`) so the visible cap centre is optically centred inside each rounded rectangle. Section headings use bold 11.2 pt Helvetica and form one horizontal composition: the 16.5 pt icon begins exactly at the body column (`x=72`), the label starts at `x=94`, and a 0.8 pt hairline continues from a protected 14 pt gap after the tracked label through the right edge. The hairline is centred on the visible Inter Bold capitals using the font's `1490/2048 em` cap-height metric and the PDF renderer's `0.34 em` baseline offset; half the rule thickness is also subtracted so its centre, rather than its top edge, follows that axis. Contact icons also stay inside the body edge. Body copy is dark grey (`#333333`) at 9.6 pt / 13.8 pt line height; the name uses 30 pt Times-Roman.
@@ -945,9 +965,9 @@ Implementation:
 - `backend/app/services/cv_templates/shared/extras.py`, `_extra_sections` — flat lists via `_bullet_list_content`; `_sidebar_wrapped_height` — authoritative sidebar body height (delegates to `Builder.measure_block`), used by `_fit_sidebar_sections` for Tessera, Slate, and Sterling
 - `backend/app/services/cv_templates/templates/{nova,volt,cardinal,portico}.py` — per-template `_gen_*` entry points
 - `frontend/src/utils/textareaReflow.js`, functions `isTextAlignedImage`, `isPositionLockedForReflow`, `belongsToFlowLane`, `packGapAfterPageBreak`, `rawSamePageGap`, `remainingRecordHeight`, `avoidOrphanChrome`, `precedingChromeCluster`, `precedingRecordMates`, `followingRecordMates`, `hasInterveningLaneContent`, `placeRecordCluster`, and `reflowTextareaHeight`
-- `frontend/src/components/canvas/Image/Image.jsx`, lines 22–76, functions `isTextAlignedIcon`, `iconicDrawTop`; canvas images use `object-fit: fill` so full-page backgrounds stretch like ReportLab `drawImage` (not `contain`, which letterboxed full-page background PNGs that are 1024×1536)
+- `frontend/src/components/canvas/Image/Image.jsx`, lines 93–110 — default `object-fit: fill` (full-page backgrounds stretch like ReportLab `drawImage`); profile slots / explicit `objectFit: "cover"` center-crop instead
 - `frontend/src/utils/iconAlignment.js`, `CANVAS_TEXT_CAP_MID` / `iconicDrawTop` — shared optical offset for text-aligned icons (canvas source of truth)
-- `backend/app/services/pdf_generator.py`, lines 141–193, method `PDF_Generator.renderImage`
+- `backend/app/services/pdf_generator.py`, lines 150–240, methods `PDF_Generator.renderImage` / `_draw_image_cover`
 - `backend/app/crud/pdfs.py` / `backend/app/schemas/pdf_schema.py` — persist `alignWithText` in `extra_properties`
 
 Tests:
@@ -1039,23 +1059,24 @@ Tests: `backend/tests/test_image_upload_security.py` — accepts a real PNG, rej
 
 In **template** mode, clicking a gallery image immediately fits it into the profile-photo slot when the document declares one (no confirmation dialog, no freeform prompt). Templates mark the area with `photoSlot`:
 
-- `frame` — the designated rectangle or circle chrome (`slate-photo-frame`, `tessera-photo-frame`, `harbor-photo-frame`, `cinder-frame-one`, `monument-masthead-frame`, `nimbus-photo-frame`)
+- `frame` — the designated rectangle or circle chrome (`slate-photo-frame`, `tessera-photo-frame`, `harbor-photo-frame`, `cinder-frame-one`, `monument-masthead-frame`, `nimbus-photo-frame`, `nova-photo-frame`)
 - `glyph` — portrait placeholder image inside the frame (converted into the user photo)
 - `ornament` — decorative shapes the photo covers (Monument masthead bars)
 - `image` — the applied user photo (`id: "profile-photo"`, locked + `fixedToPage`)
 
-`applyProfilePhoto` insets the raster inside Slate/Tessera frames (border stays visible), covers Monument ornaments while raising the frame outline, and fills Harbor’s circular disc (canvas clips with `borderRadius`). Fitted photos stay layout-owned in structural edit (`canFreePositionElement`). Semantic `id` / `photoSlot` / `photoShape` persist through `materializeElementSpecs` and `PdfElements.extra_properties`.
+`applyProfilePhoto` insets the raster inside Slate/Tessera frames (border stays visible), covers Monument ornaments while raising the frame outline, fills Harbor’s circular disc (canvas clips with `borderRadius`), and fills Nova’s square masthead slot. Fitted photos use `objectFit: "cover"` on canvas and in ReportLab (`PDF_Generator._draw_image_cover`) so the frame is filled without distorting aspect ratio. Fitted photos stay layout-owned in structural edit (`canFreePositionElement`). Semantic `id` / `photoSlot` / `photoShape` / `objectFit` persist through `materializeElementSpecs` and `PdfElements.extra_properties`.
 
 Implementation:
 
-- `frontend/src/utils/profilePhoto.js`, lines 198–228, function `findProfilePhotoSlot`; lines 236–246, `hasProfilePhotoSlot`; lines 256–379, `applyProfilePhoto`
+- `frontend/src/utils/profilePhoto.js`, lines 199–228, function `findProfilePhotoSlot`; lines 237–246, `hasProfilePhotoSlot`; lines 257–379, `applyProfilePhoto`
 - `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, lines 32–45 — template-mode click → `applyProfilePhoto` (no prompt)
 - `frontend/src/utils/sectionStructure.js` — re-exports the helpers for existing imports
 - `frontend/src/utils/editorMode.js` — `photoSlot: "image"|"glyph"` treated as layout-owned
 - `frontend/src/utils/materializeElementSpecs.js` — preserves template semantic `id`
-- `backend/app/schemas/pdf_schema.py` — optional `id`, `photoSlot`, `photoShape`
+- `backend/app/schemas/pdf_schema.py` — optional `id`, `photoSlot`, `photoShape`, `objectFit`
+- `shared/pdf-element.schema.json` — `objectFit` enum (`fill` / `cover` / `contain`)
 - `backend/app/crud/pdfs.py` / `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx` — persist and hydrate those fields
-- Generators / starters: `slate`, `tessera`, `harbor`, `cinder`, `monument`, `nimbus` (FE + BE)
+- Generators / starters: `slate`, `tessera`, `harbor`, `cinder`, `monument`, `nimbus`, `nova` (FE + BE)
 
 Tests: `frontend/src/utils/profilePhoto.test.js` — slot detection on Slate/Tessera/Monument, geometry/z-index after apply, in-place replace.
 
@@ -2342,6 +2363,26 @@ Testy:
 
 Znane ograniczenie: długie nazwy sekcji podane przez użytkownika są skracane wyłącznie w stałej ramce dekoracyjnego nagłówka. Treść sekcji pozostaje kompletna.
 
+### Szablon redakcyjny Nova
+
+Nova to darmowy szablon jednokolumnowy (`layouts: ["icons"]`) na ciepłym papierze (`#F7F1E8`) z akcentem terracotta (`#C45C26`), nazwiskiem w Playfair Display i treścią w Montserrat. Masthead jest wyższy niż we wcześniejszej wersji z zawijanym kontaktem: nazwisko blisko lewej krawędzi (`x=36`), kanały kontaktu w pionie — **jeden wiersz na kanał** z ikonami ~12 pt pod imieniem (`_place_stacked_icon_contacts`), a w prawym górnym rogu kwadratowy slot 104×104 (`nova-photo-frame` / `nova-photo-image`, domyślny raster `backend/template_assets/nova-portrait.png` z wykadrowaną twarzą demo). Starter ustawia `objectFit: "cover"`, żeby upload z galerii wypełniał ramkę bez rozciągania proporcji. Stanowisko, jeśli jest, trafia pod zdjęcie, a nie między nazwisko a kontakt. Ikony sekcji zaczynają się na `icon_x=64`, a pogrubione nagłówki versalikami na `L=84` — 16 pt bardziej w prawo niż dawne `48` / `68`.
+
+Implementacja:
+
+- `backend/app/services/cv_templates/templates/nova.py`, linie 30–240, funkcja `_gen_nova` — masthead ze stackowanym kontaktem, slot zdjęcia, bold nagłówki
+- `backend/app/services/cv_templates/shared/contact.py`, funkcja `_place_stacked_icon_contacts` — jeden kanał ikona+etykieta na wiersz
+- `frontend/src/templates/iconic.js`, eksport `novaTemplate` — zregenerowany starter
+- `frontend/src/utils/profilePhoto.js` — `nova-photo-frame` w `PROFILE_PHOTO_FRAME_IDS`; `applyProfilePhoto` ustawia `objectFit: "cover"`
+- `frontend/src/components/canvas/Image/Image.jsx`, linie 93–110 — kanwa honoruje `objectFit` / `cover` dla slotu
+- `backend/app/services/pdf_generator.py`, linie 150–240, metody `renderImage` / `_draw_image_cover` — center-crop w PDF
+- `backend/template_assets/nova-portrait.png` — crop twarzy używany w starterze i mockupie
+- `frontend/public/template-mockups/nova.png` — podgląd A4 generowany ze źródła
+
+Testy:
+
+- `backend/tests/test_contact_links.py` — `flowRole` kontaktu Nova, ikony social, reguła pod stackowanym pasem
+- `backend/tests/test_cv_template_layouts.py`, `test_header_rule_mastheads_clear_first_section_heading` — odstęp pod regułą mastheadu Nova
+
 ### Szablon Cardinal w szlachetnej czerwieni
 
 Cardinal to płatny jednokolumnowy szablon (`layouts: ["icons"]`) dla osób, które chcą formalnego dokumentu z jednym powściągliwym akcentem koloru. Szlachetna czerwień (`#9E2532`) jest używana dla linii stanowiska pod nazwiskiem, każdego nagłówka sekcji oraz wypełnionych pigułek umiejętności (`mode="chips"` — zob. [Chipsy umiejętności — pigułki](#chipsy-umiejętności--pigułki)); pozostała dekoracja pozostaje neutralnie szara (`#8A8A8A`). Etykiety chipów siedzą na środku pionowym pigułki (`_chip_label_top`), żeby widoczny środek kapitalików był optycznie wyśrodkowany w zaokrąglonym prostokącie. Nagłówki używają pogrubionej Helvetica 11,2 pt i tworzą jedną poziomą kompozycję: ikona 16,5 pt zaczyna się dokładnie na krawędzi body (`x=72`), etykieta na `x=94`, a hairline 0,8 pt biegnie od bezpiecznego odstępu 14 pt za śledzoną etykietą do prawej krawędzi. Hairline jest centrowana na widocznych kapitalikach Inter Bold z użyciem metryki cap height `1490/2048 em` oraz offsetu baseline `0,34 em` renderera PDF; odejmowana jest też połowa grubości linii, aby na osi znalazł się jej środek, a nie górna krawędź. Ikony kontaktu również nie wystają poza krawędź body. Treść jest ciemnoszara (`#333333`) w rozmiarze 9,6 pt / line height 13,8 pt; nazwisko używa Times-Roman 30 pt.
@@ -2676,23 +2717,24 @@ Testy: `backend/tests/test_image_upload_security.py` — PNG, HTML-as-PNG (415),
 
 W trybie **template** kliknięcie obrazu w galerii od razu dopasowuje go do slotu zdjęcia profilowego, gdy dokument ma zadeklarowany slot (bez dialogu potwierdzenia i bez pytania o freeform). Szablony oznaczają obszar polem `photoSlot`:
 
-- `frame` — ramka prostokątna lub koło (`slate-photo-frame`, `tessera-photo-frame`, `harbor-photo-frame`, `cinder-frame-one`, `monument-masthead-frame`, `nimbus-photo-frame`)
+- `frame` — ramka prostokątna lub koło (`slate-photo-frame`, `tessera-photo-frame`, `harbor-photo-frame`, `cinder-frame-one`, `monument-masthead-frame`, `nimbus-photo-frame`, `nova-photo-frame`)
 - `glyph` — placeholder portretu w ramce (zamieniany na zdjęcie użytkownika)
 - `ornament` — dekoracje przykrywane zdjęciem (belki mastheadu Monument)
 - `image` — nałożone zdjęcie użytkownika (`id: "profile-photo"`, `locked` + `fixedToPage`)
 
-`applyProfilePhoto` wstawia raster z insetem w ramkach Spate/Tessera (kontur zostaje), przykrywa ornamenty Monument podnosząc obramowanie, oraz wypełnia koło Harbor (na kanwie `borderRadius`). Dopasowane zdjęcie zostaje layout-owned w edycji strukturalnej. Pola `id` / `photoSlot` / `photoShape` przechodzą przez `materializeElementSpecs` i `PdfElements.extra_properties`.
+`applyProfilePhoto` wstawia raster z insetem w ramkach Slate/Tessera (kontur zostaje), przykrywa ornamenty Monument podnosząc obramowanie, wypełnia koło Harbor (na kanwie `borderRadius`) oraz kwadratowy slot mastheadu Nova. Dopasowane zdjęcia używają `objectFit: "cover"` na kanwie i w ReportLab (`PDF_Generator._draw_image_cover`), żeby ramka była wypełniona bez zaburzenia proporcji. Dopasowane zdjęcie zostaje layout-owned w edycji strukturalnej. Pola `id` / `photoSlot` / `photoShape` / `objectFit` przechodzą przez `materializeElementSpecs` i `PdfElements.extra_properties`.
 
 Implementacja:
 
-- `frontend/src/utils/profilePhoto.js`, linie 198–228, funkcja `findProfilePhotoSlot`; linie 236–246, `hasProfilePhotoSlot`; linie 256–379, `applyProfilePhoto`
+- `frontend/src/utils/profilePhoto.js`, linie 199–228, funkcja `findProfilePhotoSlot`; linie 237–246, `hasProfilePhotoSlot`; linie 257–379, `applyProfilePhoto`
 - `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, linie 32–45 — klik w trybie szablonu → `applyProfilePhoto` (bez promptu)
 - `frontend/src/utils/sectionStructure.js` — re-eksport helperów
 - `frontend/src/utils/editorMode.js` — `photoSlot: "image"|"glyph"` jako layout-owned
 - `frontend/src/utils/materializeElementSpecs.js` — zachowanie semantycznego `id`
-- `backend/app/schemas/pdf_schema.py` — opcjonalne `id`, `photoSlot`, `photoShape`
+- `backend/app/schemas/pdf_schema.py` — opcjonalne `id`, `photoSlot`, `photoShape`, `objectFit`
+- `shared/pdf-element.schema.json` — enum `objectFit` (`fill` / `cover` / `contain`)
 - `backend/app/crud/pdfs.py` / `ModalPdfs.jsx` — zapis i hydratacja
-- Generatory / startery: `slate`, `tessera`, `harbor`, `cinder`, `monument`, `nimbus` (FE + BE)
+- Generatory / startery: `slate`, `tessera`, `harbor`, `cinder`, `monument`, `nimbus`, `nova` (FE + BE)
 
 Testy: `frontend/src/utils/profilePhoto.test.js` — wykrywanie slotu (w tym Monument), geometria/z-index po apply, zamiana w miejscu.
 

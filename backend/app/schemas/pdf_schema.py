@@ -114,6 +114,9 @@ class PdfElement(BaseModel):
     photoSlot: Optional[str] = None
     # Optional shape hint for photo fitting: "circle" | "ornament-frame".
     photoShape: Optional[str] = None
+    # CSS object-fit for images: "fill" | "cover" | "contain". Profile photo
+    # slots use "cover" so uploads fill the frame without stretching.
+    objectFit: Optional[str] = None
     # Template chrome: backgrounds, frames, page numbers — not user chrome.
     fixedToPage: Optional[bool] = False
     # False keeps first-page masthead chrome out of auto-created continuations.

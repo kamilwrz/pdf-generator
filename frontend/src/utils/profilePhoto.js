@@ -27,6 +27,7 @@ export const PROFILE_PHOTO_FRAME_IDS = new Set([
   "cinder-frame-one",
   "monument-masthead-frame",
   "nimbus-photo-frame",
+  "nova-photo-frame",
 ]);
 
 /** Stable semantic id written onto the applied user photo element. */
@@ -323,6 +324,8 @@ export function applyProfilePhoto(elements, photo, createId = nanoid) {
     page: photoBox.page,
     zIndex: photoZ,
     photoSlot: "image",
+    // Fill the slot without stretching — canvas + PDF both honor cover.
+    objectFit: "cover",
     id: PROFILE_PHOTO_ID,
     alignWithText: false,
     locked: true,

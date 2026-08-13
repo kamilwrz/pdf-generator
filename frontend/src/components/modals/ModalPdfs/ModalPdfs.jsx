@@ -138,6 +138,7 @@ export default function ModalPdfs({ title }) {
                         id: element.extra_properties.id,
                         photoSlot: element.extra_properties.photoSlot,
                         photoShape: element.extra_properties.photoShape,
+                        objectFit: element.extra_properties.objectFit,
                         flowRole: element.extra_properties.flowRole,
                         flowLane: element.extra_properties.flowLane,
                         flowGroup: element.extra_properties.flowGroup,
