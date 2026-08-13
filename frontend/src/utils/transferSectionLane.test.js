@@ -121,6 +121,65 @@ describe("transferSectionLane", () => {
     assert.ok((Number(skillsBody.width) || 0) > 250);
   });
 
+  it("moves summary into main at full column width even when languages grid is last", () => {
+    // Regression from the live Sterling bug: last main section was Języki cells
+    // (~70px). Summary inherited that width and wrapped into a vertical ribbon
+    // with a huge empty band above it on page 2.
+    const source = [
+      { element_id: "sb-sum-head", category: "text", content: "PODSUMOWANIE ZAWODOWE",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 188, fontSize: 9.4, height: 12, page: 1, bold: true, color: "#33517A" },
+      { element_id: "sb-sum-rule", category: "line",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 204, width: 22, height: 1.4, page: 1, backgroundColor: "#4A6FA5" },
+      { element_id: "sb-sum-body", category: "textarea",
+        content: "Doświadczony analityk AML z praktyką w bankowości i doradztwie. "
+          + "Specjalizacja w monitorowaniu transakcji, KYC oraz raportowaniu SAR.",
+        flowRole: "content", flowLane: "sidebar", autoHeight: true, preserveInitialLayout: true,
+        left: 34, top: 216, width: 152, height: 90, fontSize: 8.3, lineHeight: 12, page: 1,
+        color: "#26313F", fontFamily: "Montserrat" },
+
+      { element_id: "m-exp-head", category: "text", content: "DOŚWIADCZENIE ZAWODOWE",
+        flowRole: "section-chrome", left: 245, top: 188, fontSize: 14, height: 16, page: 1, bold: true },
+      { element_id: "m-exp-rule", category: "line", flowRole: "section-chrome",
+        left: 245, top: 208, width: 300, height: 1, page: 1, backgroundColor: "#C7CFDA" },
+      { element_id: "m-exp-title", category: "text", content: "AML Analyst",
+        flowRole: "content", flowGroup: "job-0",
+        left: 245, top: 220, fontSize: 11, height: 14, page: 1, bold: true },
+      { element_id: "m-exp-body", category: "textarea",
+        content: "Transaction monitoring across case queues.",
+        flowRole: "content", flowGroup: "job-0", autoHeight: true,
+        left: 245, top: 240, width: 300, height: 120, fontSize: 9, lineHeight: 13, page: 1 },
+
+      { element_id: "m-lang-head", category: "text", content: "JĘZYKI",
+        flowRole: "section-chrome", left: 245, top: 520, fontSize: 14, height: 16, page: 1, bold: true },
+      { element_id: "m-lang-rule", category: "line", flowRole: "section-chrome",
+        left: 245, top: 540, width: 300, height: 1, page: 1, backgroundColor: "#4A6FA5" },
+      { element_id: "m-lang-c1", category: "textarea", content: "Polski — A2",
+        flowRole: "grid-member", flowGroup: "lang-grid",
+        left: 245, top: 554, width: 67, height: 14, fontSize: 9, lineHeight: 13, page: 1 },
+      { element_id: "m-lang-c2", category: "textarea", content: "Niemiecki — C1",
+        flowRole: "grid-member", flowGroup: "lang-grid",
+        left: 320, top: 554, width: 67, height: 14, fontSize: 9, lineHeight: 13, page: 1 },
+    ];
+    const next = transferSectionLane(source, "sb-sum-head", PAGE_HEIGHT, SPACING);
+    assert.ok(next);
+    const body = next.find((element) => element.element_id === "sb-sum-body");
+    const heading = next.find((element) => element.element_id === "sb-sum-head");
+    assert.ok(body);
+    assert.ok(heading);
+    assert.equal(body.flowLane, undefined);
+    assert.ok((Number(body.width) || 0) >= 280, `expected main width, got ${body.width}`);
+    assert.equal(Number(body.left) || 0, 245);
+    assert.equal(Number(heading.left) || 0, 245);
+    assert.ok((Number(body.fontSize) || 0) >= 9, "main body type size, not sidebar 8.3");
+    assert.equal(body.preserveInitialLayout, false);
+    // First content on its page must sit on the content band — not mid-page.
+    if ((Number(heading.page) || 1) >= 2) {
+      assert.ok((Number(heading.top) || 0) <= 80, `expected page-top start, got top=${heading.top}`);
+    }
+  });
+
   it("expands sidebar languages into a main-column accent grid", () => {
     const source = [
       ...sterlingLikeFixture(),

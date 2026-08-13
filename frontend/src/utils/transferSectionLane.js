@@ -17,6 +17,7 @@ import {
   applyFlowSpacing,
   deriveSectionStyle,
   isSidebarSectionHeading,
+  listDocumentSections,
   listSidebarSections,
   sectionElementIds,
   sidebarSectionElementIds,
@@ -143,6 +144,9 @@ function restyleMemberAsMain(element, headingId, style, appendTop) {
     fontFamily: bodyFont.fontFamily || element.fontFamily,
     color: wasMuted ? (style.mutedColor || element.color) : (bodyFont.color || element.color),
     page: 1,
+    // Rail bodies often carry preserveInitialLayout from the generator; drop it
+    // so the canvas remasures at the new main-column width after transfer.
+    preserveInitialLayout: false,
   });
   if (element.category === "textarea" || element.category === "text") {
     next.height = measureTextareaHeight(
@@ -228,12 +232,29 @@ function restyleLanguagesMembersAsMain(members, headingId, style, parkTop) {
  * @param {object} spacing
  * @returns {object[]|null}
  */
+/**
+ * Pick a main-column heading to sample style from — prefer a linear section
+ * (Experience / Education) over a trailing languages grid so transfers inherit
+ * full column width and body type, not a ~70px CEFR cell.
+ *
+ * @param {object[]} elements
+ * @param {number} pageHeight
+ * @returns {string|null}
+ */
+function resolveMainStyleSampleHeadingId(elements, pageHeight) {
+  const sections = listDocumentSections(elements, pageHeight);
+  if (sections.length === 0) return null;
+  const linear = sections.find((section) => !isLanguagesSectionTitle(section.title));
+  return (linear || sections[sections.length - 1]).headingId;
+}
+
 export function moveSidebarSectionsToMain(elements, headingIds, pageHeight, spacing) {
   const list = elements || [];
   const ids = (headingIds || []).filter(Boolean);
   if (ids.length === 0) return null;
 
-  const style = deriveSectionStyle(list, pageHeight, null, { lane: "main" });
+  const sampleHeadingId = resolveMainStyleSampleHeadingId(list, pageHeight);
+  const style = deriveSectionStyle(list, pageHeight, sampleHeadingId, { lane: "main" });
   let next = list;
   const movedIds = new Set();
 

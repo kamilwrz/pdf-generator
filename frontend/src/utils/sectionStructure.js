@@ -1383,11 +1383,18 @@ function placeAtFlowCursor(cursorAbs, height, pageHeight, pageTop, bottomMargin)
   let page = Math.max(1, Math.floor(Math.max(0, cursorAbs) / pageHeight) + 1);
   let top = Math.max(0, cursorAbs) - (page - 1) * pageHeight;
 
-  if (height <= pageCapacity && top + height > contentBottom) {
-    page += 1;
-    top = pageTop;
-  } else if (top < pageTop && page > 1) {
+  if (top < pageTop && page > 1) {
     // Landed inside the previous page's top margin band after a naive abs map.
+    top = pageTop;
+  }
+  // Start on the next page when this page has no room below `top`. Previously
+  // only blocks shorter than one page capacity were bumped — a crushed
+  // sidebar-width body (taller than the page) stayed parked mid-page and left
+  // a huge empty band above the section on the continuation page.
+  const fitsFromTop = height <= pageCapacity;
+  const overflowsFooter = top + Math.min(height, pageCapacity || height) > contentBottom;
+  if (overflowsFooter && (fitsFromTop || top > pageTop)) {
+    page += 1;
     top = pageTop;
   }
 
@@ -2386,9 +2393,14 @@ export function deriveSectionStyle(
       && inHeadingColumn(element)
       && element.category !== "line")
     .sort((a, b) => absoluteTop(a, pageHeight) - absoluteTop(b, pageHeight));
+  // Language / skill grids use many narrow `grid-member` cells. Prefer a
+  // linear body (full column width) for style sampling so a transfer / add
+  // after Języki does not inherit a ~70px cell width and crush the new body.
+  const linearBodies = bodyElements.filter((element) => element.flowRole !== "grid-member");
   // Sidebar bodies often sit left of the kicker (heading 51, body 25). Fall
   // back to any in-strip content when the heading-column band misses them.
-  const body = bodyElements[0]
+  const body = linearBodies[0]
+    || bodyElements[0]
     || members
       .filter((element) => element.element_id !== target.headingId
         && element.flowRole !== chromeRole
@@ -2398,9 +2410,14 @@ export function deriveSectionStyle(
       .sort((a, b) => absoluteTop(a, pageHeight) - absoluteTop(b, pageHeight))[0]
     || null;
 
-  const recordWidth = Number(body?.width) || Number(rule?.width) || defaults.recordWidth;
+  // Column width: linear body → section rule (full main underline) → never a
+  // single grid cell. Rule width matches Experience / Education on Sterling.
+  const recordWidth = Number(linearBodies[0]?.width)
+    || Number(rule?.width)
+    || Number(body?.width)
+    || defaults.recordWidth;
   // Content column may sit left of the title (Monument body at 102, title at 118).
-  const bodyLeftRaw = Number(body?.left);
+  const bodyLeftRaw = Number(linearBodies[0]?.left ?? body?.left);
   const bodyLeft = Number.isFinite(bodyLeftRaw) ? bodyLeftRaw : left;
 
   // Muted color: a body line whose color differs from the main body color

@@ -1850,6 +1850,30 @@ describe("deriveSectionStyle", () => {
     assert.equal(style.body.fontSize, 9.1);
   });
 
+  it("does not inherit a languages-grid cell width as the column recordWidth", () => {
+    // Regression: transferring Summary after Języki is last in main used the
+    // first ~70px CEFR cell as recordWidth and crushed the body into a ribbon.
+    const elements = [
+      { element_id: "h-exp", category: "text", flowRole: "section-chrome", content: "Doświadczenie",
+        left: 245, top: 188, fontSize: 14, fontFamily: "Montserrat", color: "#26313F", page: 1 },
+      { element_id: "r-exp", category: "line", flowRole: "section-chrome",
+        left: 245, top: 208, width: 300, height: 1, backgroundColor: "#C7CFDA", page: 1 },
+      { element_id: "b-exp", category: "textarea", flowRole: "content",
+        left: 245, top: 220, width: 300, height: 80, fontSize: 9, lineHeight: 13, page: 1 },
+      { element_id: "h-lang", category: "text", flowRole: "section-chrome", content: "JĘZYKI",
+        left: 245, top: 600, fontSize: 14, fontFamily: "Montserrat", color: "#26313F", page: 1 },
+      { element_id: "r-lang", category: "line", flowRole: "section-chrome",
+        left: 245, top: 620, width: 300, height: 1, backgroundColor: "#4A6FA5", page: 1 },
+      { element_id: "c1", category: "textarea", flowRole: "grid-member", flowGroup: "lang",
+        content: "Polski — A2", left: 245, top: 634, width: 67, height: 14, fontSize: 9, page: 1 },
+      { element_id: "c2", category: "textarea", flowRole: "grid-member", flowGroup: "lang",
+        content: "Niemiecki — C1", left: 320, top: 634, width: 67, height: 14, fontSize: 9, page: 1 },
+    ];
+    const style = deriveSectionStyle(elements);
+    assert.equal(style.recordWidth, 300, "must use the section rule / column width, not a grid cell");
+    assert.equal(style.bodyLeft, 245);
+  });
+
   it("captures a decorative shape offset from the heading", () => {
     const elements = [
       { element_id: "m1", category: "rectangle", flowRole: "section-chrome",
