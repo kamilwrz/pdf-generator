@@ -7,6 +7,7 @@ import {
   deriveSectionStyle,
   findProfilePhotoSlot,
   healDecorativeOrdinalBaselines,
+  healOrphanedGridMemberChips,
   healSimpleChromeRuleGaps,
   healSkillChipLabelBaselines,
   listDocumentSections,
@@ -2706,5 +2707,119 @@ describe("healSimpleChromeRuleGaps", () => {
     }, PAGE_HEIGHT);
     assert.equal(headingToRuleGap(packed, "m-lang-head"), headingToRuleGap(packed, "m-exp-head"));
     assert.equal(headingToRuleGap(packed, "m-lang-head"), headingToRuleGap(packed, "m-edu-head"));
+  });
+});
+
+describe("healOrphanedGridMemberChips", () => {
+  function healthyChipPair(idPrefix, flowGroup, left, top, content = "SQL") {
+    return [
+      { element_id: `${idPrefix}-bg`, category: "rectangle", flowRole: "grid-member", flowGroup,
+        left, top, width: 40, height: 19.3, filled: true, borderRadius: 9.65,
+        backgroundColor: "#2B2B2B", page: 1 },
+      { element_id: `${idPrefix}-fg`, category: "text", flowRole: "grid-member", flowGroup,
+        content, left: left + 10, top: top + 9.65, fontSize: 9.3, color: "#FFFFFF", page: 1 },
+    ];
+  }
+
+  it("is a no-op on a healthy chip row (returns the same array reference)", () => {
+    const elements = [
+      ...healthyChipPair("p1", "g1", 66, 130, "AML"),
+      ...healthyChipPair("p2", "g1", 120, 130, "KYC"),
+    ];
+    const healed = healOrphanedGridMemberChips(elements);
+    assert.equal(healed, elements);
+  });
+
+  it("drops a blank pill with no matching text label, keeping its healthy siblings' content", () => {
+    // Regression: `appendRecordToSection`'s generic clone dropped chip pill
+    // rectangles as decorative chrome and cloned bare text lines instead, so
+    // an unrelated leftover rectangle in the same flowGroup with no label at
+    // all (a "blank pill") could persist in a saved document. The blank pill
+    // has no flowGroup sibling of its own to pair with, so the whole
+    // flowGroup's rect/label count mismatches and the entire group — blank
+    // pill included — is rebuilt as one clean row; the healthy sibling's
+    // text content survives the rebuild even though its element_id changes.
+    const elements = [
+      ...healthyChipPair("p1", "g1", 66, 130, "AML"),
+      { element_id: "blank-bg", category: "rectangle", flowRole: "grid-member", flowGroup: "g1",
+        left: 120, top: 130, width: 40, height: 19.3, filled: true, borderRadius: 9.65,
+        backgroundColor: "#2B2B2B", page: 1 },
+    ];
+    const healed = healOrphanedGridMemberChips(elements);
+    assert.equal(healed.some((element) => element.element_id === "blank-bg"), false);
+    const labels = healed.filter((element) => element.flowGroup === "g1" && element.category === "text");
+    const pills = healed.filter((element) => element.flowGroup === "g1" && element.category === "rectangle");
+    assert.deepEqual(labels.map((label) => label.content), ["AML"], "the healthy sibling's text survives the rebuild");
+    assert.equal(pills.length, 1, "the blank pill is not carried into the rebuilt row");
+  });
+
+  it("rebuilds a bare, unstyled skill label (no pill) into a proper wrapped chip", () => {
+    // Regression: the exact shape reported live — a skill added via the
+    // generic "+" clone came out as plain text with no pill background,
+    // floating at whatever x-offset it was cloned from.
+    const elements = [
+      { element_id: "sk-head", category: "text", content: "UMIEJĘTNOŚCI",
+        flowRole: "section-chrome", left: 66, top: 100, fontSize: 12, height: 16, page: 1, bold: true },
+      { element_id: "bare-python", category: "text", flowRole: "grid-member", flowGroup: "record-x",
+        content: "Python", left: 218, top: 249, fontSize: 9.3, color: "#24201E", page: 1 },
+      { element_id: "bare-lexis", category: "text", flowRole: "grid-member", flowGroup: "record-x",
+        content: "LexisNexis", left: 76, top: 283, fontSize: 9.3, color: "#24201E", page: 1 },
+    ];
+    const healed = healOrphanedGridMemberChips(elements);
+
+    assert.equal(healed.some((element) => element.element_id === "bare-python"), false);
+    assert.equal(healed.some((element) => element.element_id === "bare-lexis"), false);
+
+    const pills = healed.filter((element) => element.flowGroup === "record-x" && element.category === "rectangle");
+    const labels = healed.filter((element) => element.flowGroup === "record-x" && element.category === "text");
+    assert.equal(pills.length, 2, "both salvaged items must get a rebuilt pill background");
+    assert.equal(labels.length, 2);
+    const contents = labels.map((label) => label.content).sort();
+    assert.deepEqual(contents, ["LexisNexis", "Python"], "no salvaged skill text is lost");
+
+    // Every rebuilt label sits inside its own rebuilt pill (real chip, not
+    // floating text) — same pairing test `healSkillChipLabelBaselines` uses.
+    for (const label of labels) {
+      const pill = pills.find((candidate) => (
+        label.left >= candidate.left - 0.5
+        && label.left <= candidate.left + candidate.width
+        && label.top >= candidate.top - 1
+        && label.top <= candidate.top + candidate.height
+      ));
+      assert.ok(pill, `label "${label.content}" must land inside a rebuilt pill`);
+    }
+  });
+
+  it("anchors the rebuilt row under a surviving bold category placeholder", () => {
+    const elements = [
+      { element_id: "sk-cat", category: "textarea", content: "Narzędzia", bold: true,
+        flowRole: "content", flowGroup: "record-y", left: 66, top: 200, width: 460, height: 14, page: 1 },
+      { element_id: "bare-1", category: "text", flowRole: "grid-member", flowGroup: "record-y",
+        content: "SQL", left: 300, top: 260, fontSize: 9.3, color: "#24201E", page: 1 },
+    ];
+    const healed = healOrphanedGridMemberChips(elements);
+    const label = healed.find((element) => element.flowGroup === "record-y" && element.category === "text");
+    const pill = healed.find((element) => element.flowGroup === "record-y" && element.category === "rectangle");
+    assert.ok(label && pill);
+    // Rebuilt row starts under the category label's own left edge, not at
+    // the stray label's old scattered x-offset (300).
+    assert.equal(pill.left, 66);
+    assert.ok(pill.top > 200, "rebuilt row sits below the category label");
+  });
+
+  it("applyFlowSpacing runs the chip heal on every pack", () => {
+    const elements = [
+      { element_id: "sk-head", category: "text", content: "UMIEJĘTNOŚCI",
+        flowRole: "section-chrome", left: 66, top: 100, fontSize: 12, height: 16, page: 1, bold: true },
+      { element_id: "sk-rule", category: "line", flowRole: "section-chrome",
+        left: 66, top: 120.7, width: 460, height: 1, page: 1 },
+      { element_id: "blank-bg", category: "rectangle", flowRole: "grid-member", flowGroup: "record-z",
+        left: 66, top: 140, width: 40, height: 19.3, filled: true, borderRadius: 9.65,
+        backgroundColor: "#2B2B2B", page: 1 },
+    ];
+    const packed = applyFlowSpacing(elements, {
+      stack: 4, record: 10, section: 21, after_rule: 8,
+    }, 842);
+    assert.equal(packed.some((element) => element.element_id === "blank-bg"), false);
   });
 });

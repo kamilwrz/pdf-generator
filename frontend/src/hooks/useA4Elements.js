@@ -26,6 +26,7 @@ import {
   deriveSectionStyle,
   appendSectionAtEnd,
   healDecorativeOrdinalBaselines,
+  healOrphanedGridMemberChips,
   healSkillChipLabelBaselines,
   insertSectionAfter,
   isSidebarSectionHeading,
@@ -250,10 +251,15 @@ export function useA4Elements(titleRef) {
   }, [A4_Elements]);
 
   // Repair Monument ordinal badges saved with digits below the title baseline
-  // (legacy badgeNumber.relTop=8 → square+16) and Cardinal skill-chip labels
-  // saved at CHIP_PAD_Y instead of the pill midline. No-op when already aligned.
+  // (legacy badgeNumber.relTop=8 → square+16), Cardinal skill-chip labels
+  // saved at CHIP_PAD_Y instead of the pill midline, and Skills/Languages
+  // chip pairs broken by the generic record-"+" clone path before it refused
+  // chip-mode sections (blank pills / bare unstyled skill text). No-op when
+  // already healthy — runs on every load so an already-corrupted saved
+  // document self-heals without the user needing to trigger an edit first.
   useEffect(() => {
     let healed = healDecorativeOrdinalBaselines(A4_Elements);
+    healed = healOrphanedGridMemberChips(healed);
     healed = healSkillChipLabelBaselines(healed);
     if (healed === A4_Elements) return;
     const changed = healed.some((element, index) => element !== A4_Elements[index]);
