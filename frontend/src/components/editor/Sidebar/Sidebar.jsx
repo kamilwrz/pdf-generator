@@ -7,7 +7,6 @@
  */
 import classes from "./Sidebar.module.css";
 import SidebarControls from "../../common/SidebarControls/SidebarControls";
-import { FaRegImages } from "react-icons/fa";
 import { TfiLayoutLineSolid } from "react-icons/tfi";
 import { BiCircle, BiRectangle } from "react-icons/bi";
 import { CiText } from "react-icons/ci";
@@ -32,7 +31,6 @@ export default function Sidebar({ children }) {
         addPolygon,
         addPath,
         addTextarea,
-        showDropzone,
         showGallery,
         showSections,
         showUnlockFreeform,
@@ -129,7 +127,6 @@ export default function Sidebar({ children }) {
 
         <div className={classes.toolsContainer}>
             <div className={classes.toolsList}>
-                <SidebarControls icon={<FaRegImages />} labelText="Prześlij zdjęcia" sidebarEvent={showDropzone} />
                 <SidebarControls icon={<FaRegFolderOpen />} labelText="Moje dokumenty" sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
             </div>
         </div>
