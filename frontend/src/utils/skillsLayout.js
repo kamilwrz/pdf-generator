@@ -20,6 +20,16 @@ import { sectionChromeRuleRelTop } from "./sectionStructure.js";
 
 export { isSkillsSectionTitle };
 
+/** Third main-column skills layout, alongside `FLAT_SECTION_LAYOUT_INLINE` / `_BULLET`. */
+export const SKILLS_LAYOUT_CHIPS = "chips";
+
+/** Every mode the main-column skills layout picker offers, in display order. */
+export const SKILLS_LAYOUT_MODES = [
+  FLAT_SECTION_LAYOUT_INLINE,
+  FLAT_SECTION_LAYOUT_BULLET,
+  SKILLS_LAYOUT_CHIPS,
+];
+
 /** Matches backend `_LEADING_BULLET` / sidebar skill item markers. */
 const LEADING_BULLET_RE = /^[\s]*[•\-–*—∙·]\s+(.*)$/;
 
@@ -108,28 +118,79 @@ export function parseSkillsSidebarContent(content, bulletList = false) {
   return [{ category: "", items }];
 }
 
+/** Reading-order comparator (top, then left) shared by the chip/body collectors below. */
+function byReadingOrder(a, b) {
+  const topA = Number(a.top) || 0;
+  const topB = Number(b.top) || 0;
+  if (topA !== topB) return topA - topB;
+  return (Number(a.left) || 0) - (Number(b.left) || 0);
+}
+
 /**
- * Collect skill groups from section members (sidebar textarea or main
- * category + body pairs).
+ * Collect skill groups from a chip-mode section: `buildSkillsChipGroups`
+ * stamps one `flowGroup` per category (bold label + every one of its chip
+ * rect/text pairs, matching the backend's `keep_together` per group), so each
+ * chip's own short `text` label must NOT be read as its own group the way a
+ * full-content textarea body is in the inline/bullet shapes below — it is one
+ * item among many sharing that flowGroup's items list.
+ *
+ * @param {object[]} members
+ * @returns {{ category: string, items: string[] }[]}
+ */
+function collectSkillGroupsFromChips(members) {
+  const categoryByGroup = new Map();
+  for (const element of members) {
+    if (
+      element.flowRole === "content"
+      && Boolean(element.bold)
+      && (element.category === "textarea" || element.category === "text")
+    ) {
+      categoryByGroup.set(element.flowGroup, String(element.content || "").trim());
+    }
+  }
+
+  const itemsByGroup = new Map();
+  const order = [];
+  const chipLabels = members
+    .filter((element) => element.flowRole === "grid-member" && element.category === "text")
+    .sort(byReadingOrder);
+  for (const label of chipLabels) {
+    const group = label.flowGroup || "";
+    if (!itemsByGroup.has(group)) {
+      itemsByGroup.set(group, []);
+      order.push(group);
+    }
+    const skill = String(label.content || "").trim();
+    if (skill) itemsByGroup.get(group).push(skill);
+  }
+
+  return order
+    .map((group) => ({ category: categoryByGroup.get(group) || "", items: itemsByGroup.get(group) }))
+    .filter((group) => group.category || group.items.length > 0);
+}
+
+/**
+ * Collect skill groups from section members (sidebar textarea, main
+ * category + body pairs, or main category + wrapped chip pills).
  *
  * @param {object[]} members
  * @param {string} headingId
  * @returns {{ category: string, items: string[] }[]}
  */
 export function collectSkillGroups(members, headingId) {
-  const bodies = (members || [])
+  const pool = (members || []).filter((element) => element && element.element_id !== headingId);
+  const hasChips = pool.some((element) => (
+    element.flowRole === "grid-member" && element.category === "text"
+  ));
+  if (hasChips) return collectSkillGroupsFromChips(pool);
+
+  const bodies = pool
     .filter((element) => element
-      && element.element_id !== headingId
       && element.flowRole !== "section-chrome"
       && element.flowRole !== "sidebar-chrome"
       && (element.category === "textarea" || element.category === "text")
       && element.category !== "line")
-    .sort((a, b) => {
-      const topA = Number(a.top) || 0;
-      const topB = Number(b.top) || 0;
-      if (topA !== topB) return topA - topB;
-      return (Number(a.left) || 0) - (Number(b.left) || 0);
-    });
+    .sort(byReadingOrder);
 
   if (bodies.length === 0) return [];
 
@@ -197,6 +258,7 @@ export function formatSkillsSidebarContent(groups) {
  *   idFactory: () => string,
  *   stackGap?: number,
  *   recordGap?: number,
+ *   mode?: "inline"|"bullet",
  * }} options
  * @returns {object[]}
  */
@@ -219,12 +281,15 @@ export function buildSkillsMainGroups(groups, options) {
   const stackGap = Number.isFinite(Number(options.stackGap)) ? Number(options.stackGap) : 4;
   const recordGap = Number.isFinite(Number(options.recordGap)) ? Number(options.recordGap) : 10;
   const idFactory = options.idFactory || (() => `skill-${Math.random().toString(36).slice(2, 9)}`);
+  const layoutStyle = options.mode === FLAT_SECTION_LAYOUT_BULLET
+    ? FLAT_SECTION_LAYOUT_BULLET
+    : FLAT_SECTION_LAYOUT_INLINE;
   let cursor = Number(options.appendTop) || 0;
   const elements = [];
 
   list.forEach((group, index) => {
     const category = String(group.category || "").trim();
-    const formatted = formatFlatListContent(group.items || [], FLAT_SECTION_LAYOUT_INLINE);
+    const formatted = formatFlatListContent(group.items || [], layoutStyle);
     const flowGroup = `skill-group-${idFactory()}`;
     const hasBody = Boolean(formatted.content);
 
@@ -259,7 +324,7 @@ export function buildSkillsMainGroups(groups, options) {
 
     if (hasBody) {
       const bodyH = measureTextareaHeight(
-        formatted.content, recordWidth, bodyFs, bodyLh, { bulletList: false },
+        formatted.content, recordWidth, bodyFs, bodyLh, { bulletList: formatted.bulletList },
       );
       elements.push({
         element_id: idFactory(),
@@ -276,7 +341,7 @@ export function buildSkillsMainGroups(groups, options) {
         bold: false,
         italic: false,
         align: "left",
-        bulletList: false,
+        bulletList: formatted.bulletList,
         autoHeight: true,
         preserveInitialLayout: false,
         flowRole: "content",
@@ -294,16 +359,242 @@ export function buildSkillsMainGroups(groups, options) {
 }
 
 /**
- * Expand a rail skills strip into main-column chrome + subcategory records.
+ * Estimate one-line text width in px. Mirrors the `fontSize * 0.56` per
+ * character approximation already used elsewhere on the canvas side
+ * (`elementBounds.js`, `spacingGuides.js`, `textareaReflow.js`) — there is no
+ * DOM/canvas text metrics API available where this runs (pure layout
+ * functions, also exercised from Node tests). Not pixel-exact, but the
+ * backend's own `_layout_skill_chips` wraps on the same kind of estimate
+ * (`_text_width`), so wrapping decisions stay close enough that a
+ * regenerated PDF does not reflow chip rows differently than the canvas.
+ */
+function estimateTextWidth(text, fontSize) {
+  return Math.max(1, String(text || "").length) * (Number(fontSize) || 9) * 0.56;
+}
+
+/** Horizontal/vertical pill padding and gaps, px — mirrors backend `CHIP_PAD_*`/`CHIP_GAP_*`. */
+const CHIP_PAD_X = 10;
+const CHIP_PAD_Y = 5;
+const CHIP_GAP_X = 8;
+const CHIP_GAP_Y = 8;
+
+/**
+ * Wrap one category's skill chips into rows, mirroring the backend's
+ * `_layout_skill_chips` greedy left-to-right wrap so the canvas and a
+ * regenerated PDF wrap identically.
+ *
+ * @param {string[]} items
+ * @param {number} width
+ * @param {number} fontSize
+ * @returns {{ placements: { skill: string, dx: number, dy: number, width: number }[], height: number }}
+ */
+function layoutSkillChips(items, width, fontSize) {
+  const cleaned = (items || []).map((item) => String(item || "").trim()).filter(Boolean);
+  if (cleaned.length === 0) return { placements: [], height: 0 };
+  const chipH = fontSize + 2 * CHIP_PAD_Y;
+  const rowStep = chipH + CHIP_GAP_Y;
+  const placements = [];
+  let cx = 0;
+  let cy = 0;
+  let rowStarted = false;
+  for (const skill of cleaned) {
+    const chipW = estimateTextWidth(skill, fontSize) + 2 * CHIP_PAD_X;
+    if (rowStarted && cx + chipW > width) {
+      cx = 0;
+      cy += rowStep;
+      rowStarted = false;
+    }
+    placements.push({ skill, dx: cx, dy: cy, width: chipW });
+    cx += chipW + CHIP_GAP_X;
+    rowStarted = true;
+  }
+  return { placements, height: cy + chipH };
+}
+
+/**
+ * Build main-column skill subcategory blocks as wrapped, filled rounded-pill
+ * chips — the canvas equivalent of the backend's `_place_skill_chips_row`
+ * (`mode="chips"` in `_place_skills_section`).
+ *
+ * Each category's label + every one of its chip rows share one `flowGroup`
+ * (same contract as `buildSkillsMainGroups`) so `_measure_skill_group`'s
+ * `mode="chips"` reservation and the canvas packer never split a category
+ * mid-row.
+ *
+ * @param {{ category: string, items: string[] }[]} groups
+ * @param {{
+ *   bodyLeft: number,
+ *   recordWidth: number,
+ *   body: object,
+ *   chipBg: string,
+ *   chipFg: string,
+ *   appendTop: number,
+ *   idFactory: () => string,
+ *   stackGap?: number,
+ *   recordGap?: number,
+ * }} options
+ * @returns {object[]}
+ */
+export function buildSkillsChipGroups(groups, options) {
+  const list = (groups || []).filter((group) => (
+    String(group?.category || "").trim() || (group?.items || []).length > 0
+  ));
+  if (list.length === 0) return [];
+
+  const bodyLeft = Number(options.bodyLeft) || 0;
+  const recordWidth = Number(options.recordWidth) || 300;
+  const body = options.body || {};
+  const bodyFs = Number(body.fontSize) || 9.5;
+  const catFs = Math.max(bodyFs, 9.5);
+  const catLh = catFs + 2;
+  const bodyColor = body.color || "#26313F";
+  const fontFamily = body.fontFamily || "Montserrat";
+  const chipBg = options.chipBg || "#2B2B2B";
+  const chipFg = options.chipFg || "#FFFFFF";
+  const stackGap = Number.isFinite(Number(options.stackGap)) ? Number(options.stackGap) : 4;
+  const recordGap = Number.isFinite(Number(options.recordGap)) ? Number(options.recordGap) : 10;
+  const idFactory = options.idFactory || (() => `skill-${Math.random().toString(36).slice(2, 9)}`);
+  let cursor = Number(options.appendTop) || 0;
+  const elements = [];
+
+  list.forEach((group, index) => {
+    const category = String(group.category || "").trim();
+    const items = (group.items || []).filter((item) => String(item || "").trim());
+    const flowGroup = `skill-group-${idFactory()}`;
+    const hasBody = items.length > 0;
+
+    if (category) {
+      const catH = measureTextareaHeight(category, recordWidth, catFs, catLh);
+      elements.push({
+        element_id: idFactory(),
+        category: "textarea",
+        content: category,
+        left: bodyLeft,
+        top: cursor,
+        width: recordWidth,
+        height: Math.max(catH, catLh),
+        fontSize: catFs,
+        lineHeight: catLh,
+        fontFamily,
+        color: bodyColor,
+        bold: true,
+        italic: false,
+        align: "left",
+        bulletList: false,
+        autoHeight: true,
+        preserveInitialLayout: false,
+        flowRole: "content",
+        flowGroup,
+        page: 1,
+        zIndex: 3,
+      });
+      cursor += Math.max(catH, catLh);
+      if (hasBody) cursor += stackGap;
+    }
+
+    if (hasBody) {
+      const { placements, height: rowHeight } = layoutSkillChips(items, recordWidth, bodyFs);
+      const chipH = bodyFs + 2 * CHIP_PAD_Y;
+      const radius = chipH / 2;
+      for (const { skill, dx, dy, width: chipW } of placements) {
+        elements.push({
+          element_id: idFactory(),
+          category: "rectangle",
+          flowRole: "grid-member",
+          flowGroup,
+          left: bodyLeft + dx,
+          top: cursor + dy,
+          width: chipW,
+          height: chipH,
+          filled: true,
+          borderRadius: radius,
+          backgroundColor: chipBg,
+          page: 1,
+          zIndex: 2,
+        });
+        elements.push({
+          element_id: idFactory(),
+          category: "text",
+          flowRole: "grid-member",
+          flowGroup,
+          content: skill,
+          left: bodyLeft + dx + CHIP_PAD_X,
+          // Visible cap centre sits on the pill midline — see `_chip_label_top`
+          // / `healSkillChipLabelBaselines`.
+          top: cursor + dy + chipH / 2,
+          fontSize: bodyFs,
+          color: chipFg,
+          fontFamily,
+          page: 1,
+          zIndex: 3,
+        });
+      }
+      cursor += rowHeight;
+    }
+
+    if (index < list.length - 1) cursor += recordGap;
+  });
+
+  return elements;
+}
+
+/**
+ * Best-effort chip pill colors for a section switching into chip mode.
+ *
+ * Prefers the section's own existing chip colors (round-tripping chips → a
+ * different mode → chips must not repaint them), then any other chip section
+ * already in the document (so a second chips section on the same CV matches
+ * the first), then a sensible fallback derived from the sampled style.
+ *
+ * @param {object[]} sectionMembers - current members of the section being converted
+ * @param {object[]} allElements - full document, for the "another chip section" fallback
+ * @param {object} style - `deriveSectionStyle` result for this section
+ * @returns {{ chipBg: string, chipFg: string }}
+ */
+export function resolveSkillChipColors(sectionMembers, allElements, style) {
+  const findChipPair = (pool) => {
+    const rect = (pool || []).find((element) => (
+      element?.flowRole === "grid-member"
+      && element.category === "rectangle"
+      && element.filled
+      && element.backgroundColor
+    ));
+    if (!rect) return null;
+    const text = (pool || []).find((element) => (
+      element?.flowRole === "grid-member"
+      && element.category === "text"
+      && element.flowGroup === rect.flowGroup
+      && element.color
+    ));
+    return { chipBg: rect.backgroundColor, chipFg: text?.color || "#FFFFFF" };
+  };
+
+  return findChipPair(sectionMembers)
+    || findChipPair(allElements)
+    || {
+      chipBg: style?.rule?.backgroundColor || style?.heading?.color || "#2B2B2B",
+      chipFg: "#FFFFFF",
+    };
+}
+
+/**
+ * Expand a rail skills strip into main-column chrome + subcategory records,
+ * or restyle an existing main-column skills section into a different layout
+ * mode in place. Shared by `transferSectionLane.js` (sidebar → main, always
+ * `mode="inline"`) and the main-column layout picker (`skillsDisplayMode.js`,
+ * any of the three modes).
  *
  * @param {object[]} members
  * @param {string} headingId
  * @param {object} style
  * @param {number} parkTop
  * @param {{ stack?: number, record?: number, after_rule?: number }} [spacing]
+ * @param {"inline"|"bullet"|"chips"} [mode]
  * @returns {object[]|null}
  */
-export function restyleSkillsMembersAsMain(members, headingId, style, parkTop, spacing = {}) {
+export function restyleSkillsMembersAsMode(
+  members, headingId, style, parkTop, spacing = {}, mode = FLAT_SECTION_LAYOUT_INLINE,
+) {
   const heading = members.find((element) => element.element_id === headingId);
   if (!heading) return null;
   const groups = collectSkillGroups(members, headingId);
@@ -368,7 +659,7 @@ export function restyleSkillsMembersAsMain(members, headingId, style, parkTop, s
     + afterRule;
   let seq = 0;
   const idFactory = () => `${headingId}-sk-${Date.now().toString(36)}-${++seq}`;
-  const bodies = buildSkillsMainGroups(groups, {
+  const bodyOptions = {
     bodyLeft,
     recordWidth,
     body: bodyFont,
@@ -376,9 +667,57 @@ export function restyleSkillsMembersAsMain(members, headingId, style, parkTop, s
     idFactory,
     stackGap: Number.isFinite(Number(spacing.stack)) ? Number(spacing.stack) : 4,
     recordGap: Number.isFinite(Number(spacing.record)) ? Number(spacing.record) : 10,
-  });
+  };
+  const bodies = mode === SKILLS_LAYOUT_CHIPS
+    ? buildSkillsChipGroups(groups, {
+      ...bodyOptions,
+      chipBg: style.chipBg,
+      chipFg: style.chipFg,
+    })
+    : buildSkillsMainGroups(groups, { ...bodyOptions, mode });
   if (bodies.length === 0) return null;
   return [...chrome, ...bodies];
+}
+
+/**
+ * Expand a rail skills strip into main-column chrome + subcategory records.
+ * Thin wrapper over `restyleSkillsMembersAsMode` fixed to `mode="inline"` —
+ * transfer always lands in the main column's default inline mid-dot layout;
+ * the chip/bullet layout picker only ever runs on an existing main section.
+ *
+ * @param {object[]} members
+ * @param {string} headingId
+ * @param {object} style
+ * @param {number} parkTop
+ * @param {{ stack?: number, record?: number, after_rule?: number }} [spacing]
+ * @returns {object[]|null}
+ */
+export function restyleSkillsMembersAsMain(members, headingId, style, parkTop, spacing = {}) {
+  return restyleSkillsMembersAsMode(
+    members, headingId, style, parkTop, spacing, FLAT_SECTION_LAYOUT_INLINE,
+  );
+}
+
+/**
+ * Current main-column layout mode of a skills section, detected from its
+ * live elements (never persisted separately — the section IS the source of
+ * truth). Grid-member filled rectangles mean chips; a bulleted body means
+ * the bullet list; otherwise the mid-dot inline row.
+ *
+ * @param {object[]} members - a skills section's own members
+ * @returns {"inline"|"bullet"|"chips"}
+ */
+export function detectSkillsDisplayMode(members) {
+  const hasChipPill = (members || []).some((element) => (
+    element?.flowRole === "grid-member" && element.category === "rectangle"
+  ));
+  if (hasChipPill) return SKILLS_LAYOUT_CHIPS;
+  const hasBulletBody = (members || []).some((element) => (
+    element?.flowRole === "content"
+    && (element.category === "textarea" || element.category === "text")
+    && element.bulletList === true
+  ));
+  return hasBulletBody ? FLAT_SECTION_LAYOUT_BULLET : FLAT_SECTION_LAYOUT_INLINE;
 }
 
 /**
