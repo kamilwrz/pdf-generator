@@ -1625,6 +1625,23 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 element["left"], 245,
                 "continuation-page rail content must stay out of the main column",
             )
+        # No page may carry sidebar-rail content beside an empty main column:
+        # sidebar overflow that has nowhere safe to go must flow down the main
+        # column instead of isolating itself on its own near-empty page.
+        total_pages = max(element.get("page", 1) for element in elements)
+        for page in range(1, total_pages + 1):
+            main_body = [
+                element for element in elements
+                if element.get("category") in {"text", "textarea"}
+                and element.get("flowLane") != "sidebar"
+                and element.get("flowRole") != "masthead"
+                and element.get("page", 1) == page
+                and float(element.get("left", 0)) >= 245
+            ]
+            self.assertTrue(
+                main_body,
+                f"page {page} has an empty main column beside its sidebar rail",
+            )
 
     def test_sterling_places_education_on_page_two_sidebar_when_page_one_rail_is_full(self):
         """Education is main-affinity, so a full page-1 rail used to leave it in

@@ -304,68 +304,69 @@ def plan_columns_multi_page(
        change the page count.
 
     2. **Page-1 balance + overflow seeding.** Run the pure ``plan_columns``
-       with one bucket per skeleton page and ``main_budget =
+       with one bucket per *skeleton* page and ``main_budget =
        page1_main_budget``. This balances page 1 (main vs page-1 rail) exactly
        like the single-page planner and first-fits sidebar-affinity overflow
-       (e.g. Languages that does not fit page 1) onto the continuation rails.
-       ``main_budget`` is page-1-scoped on purpose: a lump sum spanning every
-       page would make ``empty_main`` look enormous and pull sidebar content
-       *into* main to fill a phantom multi-page capacity, draining the rail.
+       (e.g. Languages that does not fit page 1) onto the continuation rails —
+       but only onto skeleton pages, which are guaranteed to carry main
+       content. Overflow with no safe skeleton rail is evicted back to main by
+       ``plan_columns`` and flows down the main column there (this is what
+       stops a section such as Certifications from stranding itself on a rail
+       whose main column would be empty). ``main_budget`` is page-1-scoped on
+       purpose: a lump sum spanning every page would make ``empty_main`` look
+       enormous and pull sidebar content *into* main to fill a phantom
+       multi-page capacity, draining the rail.
 
-    3. **Move main-affinity leftovers to the page they really land on.** A
-       real ``measure_main(plan.main)`` reports each remaining main section's
-       start page. A movable leftover (non-anchored, sidebar-capable, still in
-       main — Education is the canonical case) whose start page ``P`` is a safe
-       continuation page (``2 <= P <= skeleton_pages``) and that fits page
-       ``P``'s rail is moved there, so the rail beside it is not empty. A
-       leftover past the skeleton's last page is left in main: it is what
-       *creates* that page, so railing it would leave the main column empty.
+    3. **Move movable leftovers to the page they really land on.** A real
+       ``measure_main(plan.main)`` reports each remaining main section's start
+       page. A movable leftover (non-anchored, sidebar-capable, still in main —
+       Education, or an overflow section evicted in step 2) whose start page
+       ``P`` is a page the current main column actually reaches (``2 <= P <=
+       measured main pages`` — this may exceed ``skeleton_pages`` when the
+       leftovers themselves create a page) and that fits page ``P``'s rail is
+       moved there, but only while page ``P`` still survives WITHOUT it
+       (a per-section measurement check). So a rail is never populated beside
+       an empty main column, and when two leftovers share a new page the first
+       is railed while the second holds the main column. The check runs
+       greedily, re-measuring each round; because it only ever removes sections
+       from main, main shrinks monotonically and it always terminates.
 
-    With a one-page skeleton no continuation bucket exists and step 3 is
-    skipped, so a CV whose main fits page 1 reduces to the single-page planner
-    exactly.
+    A CV whose main fits page 1 has a one-page skeleton, seeds nothing beyond
+    page 1, and finds no leftover on page >= 2, so it reduces to the
+    single-page planner exactly.
     """
     by_key = {section.key: section for section in sections}
     anchored_keys = [section.key for section in sections if section.anchored_main]
     skeleton_pages = max(1, measure_main(anchored_keys).pages_used)
 
-    # The rail budget is uniform on every continuation page, so provision a
-    # generous bucket list up front (one per page the FULL main could plausibly
-    # reach). Continuation buckets past the real main page count simply stay
-    # empty; step 3's per-section checks below never place onto a page the main
-    # column does not actually reach.
-    full_pages = max(skeleton_pages, measure_main([s.key for s in sections]).pages_used)
-    buckets = [SidebarBucket(1, page1_sidebar_budget)] + [
+    def rail_budget(page: int) -> float:
+        return page1_sidebar_budget if page == 1 else continuation_sidebar_budget
+
+    # Step 2: page-1 balance. Seed sidebar-affinity overflow ONLY onto pages the
+    # skeleton reaches — those are guaranteed to carry main content, so an
+    # overflow section there always sits beside a non-empty main column.
+    # Overflow with nowhere safe to go is evicted back to the main column by
+    # `plan_columns` (single-page behaviour) and simply flows down the page
+    # there; step 3 may still rail it later if it lands on a surviving page.
+    seed_buckets = [SidebarBucket(1, page1_sidebar_budget)] + [
         SidebarBucket(page, continuation_sidebar_budget)
-        for page in range(2, full_pages + 1)
+        for page in range(2, skeleton_pages + 1)
     ]
     plan = plan_columns(
-        sections, sidebar_buckets=buckets, main_budget=page1_main_budget,
+        sections, sidebar_buckets=seed_buckets, main_budget=page1_main_budget,
         imbalance_tolerance=imbalance_tolerance, min_improvement=min_improvement,
     )
-    if full_pages < 2:
-        return plan
 
-    # Step 3: move main-affinity leftovers (Education is the canonical case)
-    # onto the continuation rail of the page they truly land on — but only
-    # while the page survives WITHOUT them, so a continuation page never ends
-    # up with content in the rail and an empty main column. This is a greedy
-    # pass verified by real measurement: each round re-measures the current
-    # main, rails the first (reading-order) leftover whose page both (a) has
-    # rail room and (b) is still reached by the remaining main once that
-    # leftover is removed, then repeats. Bounded by the leftover count (tiny),
-    # so it always terminates.
-    budget_by_page = {bucket.page: bucket.budget for bucket in buckets}
-    rail_used = {
-        bucket.page: sum(
-            float(by_key[key].sidebar_height or 0.0)
-            for key in plan.sidebar_by_page.get(bucket.page, [])
-        )
-        for bucket in buckets
-    }
-    remaining_main = list(plan.main)
-    railed: dict[int, list[str]] = {bucket.page: [] for bucket in buckets}
-
+    # Step 3: move movable leftovers (Education, or any sidebar-affinity section
+    # evicted back to main in step 2) onto the continuation rail of the page
+    # they truly land on — but only while the page survives WITHOUT them, so a
+    # continuation page never ends up with rail content beside an empty main
+    # column. A section may target ANY page the current main column actually
+    # reaches, not just skeleton pages, so a page that exists only because of
+    # movable content (Education spilling past a one-page skeleton) can still
+    # host one of them in its rail while another holds its main column. Greedy
+    # and verified by real measurement each round; bounded by the leftover
+    # count, so it always terminates.
     def _movable(key: str) -> bool:
         section = by_key.get(key)
         return (
@@ -374,20 +375,31 @@ def plan_columns_multi_page(
             and section.sidebar_height is not None
         )
 
+    remaining_main = list(plan.main)
+    sidebar_by_page: dict[int, list[str]] = {
+        page: list(keys) for page, keys in plan.sidebar_by_page.items()
+    }
+    rail_used: dict[int, float] = {
+        page: sum(float(by_key[key].sidebar_height or 0.0) for key in keys)
+        for page, keys in sidebar_by_page.items()
+    }
+
     while True:
-        start_page = measure_main(remaining_main).start_page_by_key
+        measurement = measure_main(remaining_main)
+        main_pages = measurement.pages_used
+        start_page = measurement.start_page_by_key
         chosen: str | None = None
         chosen_page = 0
         for key in remaining_main:
             if not _movable(key):
                 continue
             page = start_page.get(key)
-            if page is None or page < 2 or page not in budget_by_page:
+            if page is None or page < 2 or page > main_pages:
                 continue
             height = float(by_key[key].sidebar_height)
-            if rail_used[page] + height > budget_by_page[page] + 0.01:
+            if rail_used.get(page, 0.0) + height > rail_budget(page) + 0.01:
                 continue
-            # Page must still be reached by main content once this leftover
+            # The page must still be reached by main content once this leftover
             # leaves — otherwise railing it would blank that page's main column.
             trial = [other for other in remaining_main if other != key]
             if measure_main(trial).pages_used >= page:
@@ -395,17 +407,10 @@ def plan_columns_multi_page(
                 break
         if chosen is None:
             break
-        rail_used[chosen_page] += float(by_key[chosen].sidebar_height)
-        railed[chosen_page].append(chosen)
+        rail_used[chosen_page] = rail_used.get(chosen_page, 0.0) + float(by_key[chosen].sidebar_height)
+        sidebar_by_page.setdefault(chosen_page, []).append(chosen)
         remaining_main.remove(chosen)
 
-    if not any(railed.values()):
-        return plan
-
-    new_sidebar = {
-        page: list(plan.sidebar_by_page.get(page, [])) for page in budget_by_page
-    }
-    for page, keys in railed.items():
-        new_sidebar[page].extend(keys)
-        new_sidebar[page].sort(key=lambda key: by_key[key].order_rank)
-    return ColumnPlan(main=remaining_main, sidebar_by_page=new_sidebar)
+    for page in sidebar_by_page:
+        sidebar_by_page[page].sort(key=lambda key: by_key[key].order_rank)
+    return ColumnPlan(main=remaining_main, sidebar_by_page=sidebar_by_page)

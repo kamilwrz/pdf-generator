@@ -394,6 +394,36 @@ def test_orchestrator_keeps_a_leftover_that_alone_creates_its_page():
     assert plan.sidebar_by_page.get(2, []) == []
 
 
+def test_orchestrator_keeps_overflow_in_main_rather_than_railing_an_empty_page():
+    # A sidebar-affinity section (Certifications) cannot fit page 1's full rail
+    # and the skeleton is only one page, so there is no safe continuation rail
+    # to seed it onto — it is evicted back to the main column. It then starts
+    # on page 2 of the main column, but page 2 exists ONLY because of
+    # Certifications itself, so the survival check must keep it in the main
+    # column instead of railing it onto a page whose main column would be
+    # empty. This is the regression behind a near-empty final page: overflow
+    # flows down the main column rather than isolating itself on its own rail.
+    sections = [
+        PlaceableSection("summary", 0, "sidebar", main_height=200, sidebar_height=200),
+        PlaceableSection("experience", 1, "main", main_height=300, sidebar_height=None, anchored_main=True),
+        PlaceableSection("skills", 3, "sidebar", main_height=200, sidebar_height=200),
+        PlaceableSection("certifications", 5, "sidebar", main_height=500, sidebar_height=200),
+    ]
+    measure = _make_measure(
+        {"experience": 300, "certifications": 500}, page_size=700,
+    )
+    plan = plan_columns_multi_page(
+        sections,
+        page1_sidebar_budget=400,
+        continuation_sidebar_budget=400,
+        page1_main_budget=595,
+        measure_main=measure,
+    )
+    assert "certifications" in plan.main
+    assert plan.sidebar_by_page[1] == ["summary", "skills"]
+    assert plan.sidebar_by_page.get(2, []) == []
+
+
 def test_orchestrator_rails_one_leftover_and_keeps_another_to_fill_both_columns():
     # Two main-affinity leftovers both land on page 2, which the skeleton
     # (Experience plus the always-rendered ``base`` record extra) does not

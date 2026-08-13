@@ -32,15 +32,23 @@ movable placement, so it is a fixed point measured once. Three steps:
    one never blanks that page's main column.
 2. **Page-1 balance + overflow seeding** — the pure `plan_columns` (§5.1
    cost, which is page-1-only as implemented) with `main_budget =
-   page1_main_budget` and one bucket per skeleton page. This fills page 1 and
-   first-fits sidebar-affinity overflow onto continuation rails.
-3. **Rail main-affinity leftovers** (Education) whose real start page — from
-   `measure_main(plan.main).start_page_by_key` — is a safe continuation page
-   and that fit that page's rail, greedily and each verified by a
-   `measure_main` of `plan.main` *minus that section*: a leftover is railed
-   only if its page still survives without it, so a rail is never populated
-   beside an empty main column. Two leftovers on the same new page → the
-   first is railed, the second kept in main (both columns filled).
+   page1_main_budget` and one bucket per *skeleton* page. This fills page 1
+   and first-fits sidebar-affinity overflow onto continuation rails, but only
+   onto skeleton pages (guaranteed to carry main content). Overflow with no
+   safe skeleton rail is evicted back to main by `plan_columns` and flows down
+   the main column — this is what stops a section such as Certifications from
+   stranding itself on a rail beside an empty main column on a near-empty
+   final page.
+3. **Rail movable leftovers** (Education, or an overflow section evicted in
+   step 2) whose real start page — from
+   `measure_main(plan.main).start_page_by_key` — is a page the current main
+   column actually reaches (this may exceed `skeleton_pages` when the
+   leftovers themselves create the page) and that fit that page's rail,
+   greedily and each verified by a `measure_main` of `plan.main` *minus that
+   section*: a leftover is railed only if its page still survives without it,
+   so a rail is never populated beside an empty main column. Two leftovers on
+   the same new page → the first is railed, the second kept in main (both
+   columns filled).
 
 `MainMeasurement` accordingly carries `start_page_by_key` (real per-section
 start pages), and `plan_columns_multi_page` drops `continuation_main_budget`
