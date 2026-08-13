@@ -21,6 +21,10 @@ import {
   isLanguagesSectionTitle,
   restyleLanguagesMembersAsSidebar,
 } from "./languagesLayout.js";
+import {
+  isSkillsSectionHeading,
+  restyleSkillsMembersAsSidebar,
+} from "./skillsLayout.js";
 
 /**
  * True when a main-column heading is Experience and must not join the rail.
@@ -175,6 +179,21 @@ export function moveMainSectionsToSidebar(elements, headingIds, pageHeight, spac
     // (the rail never keeps per-cell grid-member geometry).
     if (heading && isLanguagesSectionTitle(heading.content)) {
       const restyled = restyleLanguagesMembersAsSidebar(
+        members, headingId, style, 10_000,
+      );
+      if (!restyled) return null;
+      next = [
+        ...next.filter((element) => !memberIds.has(element.element_id)),
+        ...restyled,
+      ];
+      movedIds.add(headingId);
+      continue;
+    }
+
+    // Main-column skill subcategories collapse to one `_skills_sidebar_content`
+    // textarea (category lines + bullets) on the rail.
+    if (heading && isSkillsSectionHeading(heading.content)) {
+      const restyled = restyleSkillsMembersAsSidebar(
         members, headingId, style, 10_000,
       );
       if (!restyled) return null;

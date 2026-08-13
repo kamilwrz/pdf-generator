@@ -146,12 +146,35 @@ export function expandContinuationRailChrome(element, pageHeight = 842) {
   return element;
 }
 
+/**
+ * True when `candidate` already covers the same fixed chrome role as `source`
+ * (rail fill, divider, page number, …). Used so a continuation page that only
+ * received a page label still gets the missing vertical rail cloned onto it.
+ *
+ * @param {object} candidate
+ * @param {object} source
+ * @returns {boolean}
+ */
+function sameFixedChromeRole(candidate, source) {
+  if (!candidate || !source) return false;
+  if (candidate.category !== source.category) return false;
+  if (Math.abs((Number(candidate.left) || 0) - (Number(source.left) || 0)) > 6) {
+    return false;
+  }
+  if (Math.abs((Number(candidate.width) || 0) - (Number(source.width) || 0)) > 12) {
+    return false;
+  }
+  return true;
+}
+
 export function cloneFixedPageDecorations(elements, firstNewPage, targetMaxPage, createId) {
   const clones = [];
   const pageHeight = 842;
   for (let page = firstNewPage; page <= targetMaxPage; page += 1) {
-    if (elements.some((element) => element.fixedToPage && (element.page ?? 1) === page)) continue;
-    const source = [...elements]
+    const existingOnPage = (elements || []).filter((element) => (
+      element.fixedToPage && (element.page ?? 1) === page
+    ));
+    const source = [...(elements || [])]
       .filter((element) => element.fixedToPage && (element.page ?? 1) < page)
       .sort((first, second) => (second.page ?? 1) - (first.page ?? 1))[0];
     if (!source) continue;
@@ -166,6 +189,11 @@ export function cloneFixedPageDecorations(elements, firstNewPage, targetMaxPage,
         && !isLetterheadBandChrome(element, pageHeight)
       ))
       .forEach((element) => {
+        // Skip only when this page already has the same chrome piece. A lone
+        // page-number clone must not block the full-height rail / divider.
+        if (existingOnPage.some((existing) => sameFixedChromeRole(existing, element))) {
+          return;
+        }
         const isPageNumber = isPageNumberContent(element.content);
         const geometry = expandContinuationRailChrome(element, pageHeight);
         clones.push({

@@ -61,6 +61,34 @@ test("zero-padded page numbers keep their width on continuation pages", () => {
   assert.equal(number.page, 2);
 });
 
+test("continuation pages with only a page number still receive the missing rail", () => {
+  // Regression: clone skipped the whole page once any fixed chrome existed, so
+  // page 3 could keep a lone "03" label without the Sterling vertical rail.
+  let count = 0;
+  const clones = cloneFixedPageDecorations([
+    { element_id: "paper", category: "line", fixedToPage: true, page: 1,
+      left: 0, top: 0, width: 595, height: 842, backgroundColor: "#F7F8FA" },
+    { element_id: "rail", category: "line", fixedToPage: true, page: 1,
+      left: 0, top: 0, width: 210, height: 842, backgroundColor: "#EDF1F6" },
+    { element_id: "divider", category: "line", fixedToPage: true, page: 1,
+      left: 210, top: 0, width: 1, height: 842, backgroundColor: "#C7CFDA" },
+    { element_id: "num1", category: "text", fixedToPage: true, page: 1, content: "01" },
+    { element_id: "paper2", category: "line", fixedToPage: true, page: 2,
+      left: 0, top: 0, width: 595, height: 842, backgroundColor: "#F7F8FA" },
+    { element_id: "rail2", category: "line", fixedToPage: true, page: 2,
+      left: 0, top: 0, width: 210, height: 842, backgroundColor: "#EDF1F6" },
+    { element_id: "divider2", category: "line", fixedToPage: true, page: 2,
+      left: 210, top: 0, width: 1, height: 842, backgroundColor: "#C7CFDA" },
+    { element_id: "num2", category: "text", fixedToPage: true, page: 2, content: "02" },
+    { element_id: "num3", category: "text", fixedToPage: true, page: 3, content: "03" },
+  ], 2, 3, () => `id-${++count}`);
+
+  const page3 = clones.filter((element) => element.page === 3);
+  assert.ok(page3.some((element) => element.width === 210), "rail fill cloned onto page 3");
+  assert.ok(page3.some((element) => element.width === 1), "divider cloned onto page 3");
+  assert.equal(page3.some((element) => element.content === "03"), false, "existing page number not duplicated");
+});
+
 test("Sterling continuation clones keep a full-height vertical rail without the letterhead band", () => {
   let count = 0;
   const clones = cloneFixedPageDecorations([

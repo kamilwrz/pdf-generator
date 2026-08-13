@@ -8,8 +8,11 @@
  *
  * Languages are a special case: the rail keeps one hyphenated textarea, while
  * the main column uses the equal-width accent grid every template generator
- * emits (`_place_languages_grid`). Transfer expands / collapses that shape so
- * spacing and palette match Experience after the move.
+ * emits (`_place_languages_grid`). Skills with subcategories are the other:
+ * the rail keeps `_skills_sidebar_content` (category + bullets), while main
+ * expands to bold category labels + chip bodies (`_place_skills_section`).
+ * Transfer expands / collapses those shapes so spacing and palette match
+ * Experience after the move.
  */
 import { measureTextareaHeight } from "./textareaHeight.js";
 import { moveMainSectionsToSidebar, isAnchoredMainSectionTitle } from "./collapseMainIntoSidebar.js";
@@ -28,6 +31,10 @@ import {
   isLanguagesSectionTitle,
   resolveLanguageLevelColor,
 } from "./languagesLayout.js";
+import {
+  isSkillsSectionHeading,
+  restyleSkillsMembersAsMain,
+} from "./skillsLayout.js";
 
 /**
  * Absolute Y used only to park a strip so reading-order packing appends it
@@ -283,6 +290,22 @@ export function moveSidebarSectionsToMain(elements, headingIds, pageHeight, spac
       continue;
     }
 
+    // Grouped skills: expand the single rail textarea into bold category +
+    // body records so the packer keep-together rules match Experience and
+    // type/width match the main column (not the orphaned-heading failure).
+    if (heading && isSkillsSectionHeading(heading.content)) {
+      const restyled = restyleSkillsMembersAsMain(
+        members, headingId, style, parkBase, spacing,
+      );
+      if (!restyled) return null;
+      next = [
+        ...next.filter((element) => !memberIds.has(element.element_id)),
+        ...restyled,
+      ];
+      movedIds.add(headingId);
+      continue;
+    }
+
     const restyledById = new Map();
     for (const element of members) {
       const abs = absoluteTop(element, pageHeight);
@@ -339,7 +362,8 @@ export function resolveSectionLaneTransfer(elements, headingId, pageHeight = 842
  * The strip is restyled for the destination lane, parked last, then packed.
  * Oversized content may continue onto page 2 between records — same keep-
  * together rules as add/reorder. Languages expand to the main accent grid
- * (or collapse back to a sidebar hyphen list).
+ * (or collapse back to a sidebar hyphen list). Skills with subcategories
+ * expand to bold category + body records (or collapse to one rail textarea).
  *
  * @param {object[]} elements
  * @param {string} headingId

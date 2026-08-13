@@ -5,7 +5,11 @@ import {
   resolveSectionLaneTransfer,
   transferSectionLane,
 } from "./transferSectionLane.js";
-import { listDocumentSections, listSidebarSections } from "./sectionStructure.js";
+import {
+  listDocumentSections,
+  listSidebarSections,
+  sectionElementIds,
+} from "./sectionStructure.js";
 
 const PAGE_HEIGHT = 842;
 const SPACING = { stack: 4, record: 10, section: 21, after_rule: 8 };
@@ -117,8 +121,18 @@ describe("transferSectionLane", () => {
     const skillsHead = next.find((element) => element.element_id === "sb-sk-head");
     assert.equal(skillsHead.flowRole, "section-chrome");
     assert.equal(skillsHead.flowLane, undefined);
-    const skillsBody = next.find((element) => element.element_id === "sb-sk-body");
-    assert.ok((Number(skillsBody.width) || 0) > 250);
+    // Flat rail skills expand into main bodies (new ids); width must be main-column.
+    const skillsMemberIds = sectionElementIds(next, "sb-sk-head", PAGE_HEIGHT);
+    const skillsBodies = next.filter((element) => (
+      skillsMemberIds.has(element.element_id)
+      && element.flowRole === "content"
+    ));
+    assert.ok(skillsBodies.length >= 1);
+    assert.ok(
+      skillsBodies.every((element) => (Number(element.width) || 0) > 250),
+      `expected main widths, got ${skillsBodies.map((element) => element.width)}`,
+    );
+    assert.ok(skillsBodies.some((element) => /AML|KYC|SQL/i.test(String(element.content || ""))));
   });
 
   it("moves summary into main at full column width even when languages grid is last", () => {
@@ -226,6 +240,59 @@ describe("transferSectionLane", () => {
       Math.abs((Number(edu.top) || 0) - 188) <= 2,
       `education should pack to content top after summary leaves, got ${edu.top}`,
     );
+  });
+
+  it("expands sidebar skills with subcategories into main category + body records", () => {
+    const source = [
+      ...sterlingLikeFixture().filter((element) => !String(element.element_id).startsWith("sb-sk")),
+      { element_id: "sb-sk-head", category: "text", content: "UMIEJĘTNOŚCI",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 280, fontSize: 9.4, height: 12, page: 1, bold: true, color: "#33517A" },
+      { element_id: "sb-sk-rule", category: "line",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 296, width: 22, height: 1.4, page: 1, backgroundColor: "#4A6FA5" },
+      { element_id: "sb-sk-body", category: "textarea",
+        content: "Python\n• Backend development\n• REST APIs\nC++\n• OOP\n• basic STL",
+        flowRole: "content", flowLane: "sidebar", autoHeight: true, bulletList: true,
+        left: 34, top: 308, width: 152, height: 180, fontSize: 8.3, lineHeight: 12, page: 1 },
+    ];
+    // Experience heading must carry main type so skills inherit 14 / 9.5 / ink.
+    const withTypedExp = source.map((element) => (
+      element.element_id === "m-exp-head"
+        ? {
+          ...element,
+          fontSize: 14,
+          color: "#26313F",
+          letterSpacing: 0.8,
+          fontFamily: "Montserrat",
+        }
+        : element.element_id === "m-exp-body"
+          ? { ...element, fontSize: 9.5, lineHeight: 13.8, color: "#26313F", width: 329 }
+          : element
+    ));
+    const next = transferSectionLane(withTypedExp, "sb-sk-head", PAGE_HEIGHT, SPACING);
+    assert.ok(next);
+    const heading = next.find((element) => element.element_id === "sb-sk-head");
+    assert.equal(Number(heading.fontSize), 14);
+    assert.equal(heading.color, "#26313F");
+    assert.equal(heading.flowLane, undefined);
+    const categories = next.filter((element) => (
+      element.flowRole === "content"
+      && element.bold
+      && (element.content === "Python" || element.content === "C++")
+    ));
+    assert.equal(categories.length, 2);
+    assert.ok(categories.every((element) => (Number(element.width) || 0) > 250));
+    assert.ok(categories.every((element) => (Number(element.left) || 0) >= 218));
+    const chipBodies = next.filter((element) => (
+      element.flowRole === "content"
+      && !element.bold
+      && String(element.content || "").includes("·")
+    ));
+    assert.equal(chipBodies.length, 2);
+    assert.ok(chipBodies.every((element) => Number(element.fontSize) === 9.5));
+    // Heading and first category share a page — no orphaned chrome alone.
+    assert.equal(Number(heading.page) || 1, Number(categories[0].page) || 1);
   });
 
   it("expands sidebar languages into a main-column accent grid", () => {
