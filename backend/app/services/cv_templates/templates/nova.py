@@ -105,7 +105,7 @@ def _gen_nova(cv: dict) -> list[dict]:
     photo_bottom = PHOTO_TOP + PHOTO_H
     masthead_bottom = max(contact_bottom + CONTACT_FS * 1.25, photo_bottom)
     # Breathing room under the masthead before the first section (kept tight
-    # enough that the Jan Kowalski demo still fits page 1 of the mockup).
+    # enough that the Julia Bernat demo still fits page 1 of the mockup).
     header_rule_y = masthead_bottom + 18.0
 
     # Outline + light fill so the empty slot reads as a drop target and the

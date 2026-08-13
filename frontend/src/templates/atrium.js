@@ -5,7 +5,7 @@
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/atrium.py`) for
- * representative demo content (Jan Kowalski — three roles, one degree, five
+ * representative demo content (Julia Bernat — three roles, one degree, five
  * skills, and three languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
@@ -43,7 +43,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Jan Kowalski",
+    "content": "Julia Bernat",
     "left": 82,
     "top": 54.0,
     "width": 431,
@@ -65,7 +65,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Dyrektor Strategii i Rozwoju",
+    "content": "Analityczka AML i Compliance",
     "left": 82,
     "top": 97.0,
     "width": 431,
@@ -88,7 +88,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/atrium/phone.png",
-    "left": 119.49139999999997,
+    "left": 128.0006,
     "top": 126.0,
     "width": 10.5,
     "height": 10.5,
@@ -99,11 +99,11 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "+48 600 000 000",
+    "content": "+48 512 340 780",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 131.99139999999997,
+    "left": 140.5006,
     "top": 126.0,
     "zIndex": 3,
     "page": 1,
@@ -114,7 +114,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/atrium/email.png",
-    "left": 221.93739999999997,
+    "left": 225.12099999999998,
     "top": 126.0,
     "width": 10.5,
     "height": 10.5,
@@ -125,11 +125,11 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "jan.kowalski@email.com",
+    "content": "julia.bernat@email.com",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 234.43739999999997,
+    "left": 237.62099999999998,
     "top": 126.0,
     "zIndex": 3,
     "page": 1,
@@ -140,7 +140,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/atrium/linkedin.png",
-    "left": 356.253,
+    "left": 355.83299999999997,
     "top": 126.0,
     "width": 10.5,
     "height": 10.5,
@@ -151,11 +151,11 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "linkedin.com/in/jkowalski",
+    "content": "linkedin.com/in/jbernat",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 368.753,
+    "left": 368.33299999999997,
     "top": 126.0,
     "zIndex": 3,
     "page": 1,
@@ -166,7 +166,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/atrium/github.png",
-    "left": 164.3474,
+    "left": 170.19379999999998,
     "top": 142.0,
     "width": 10.5,
     "height": 10.5,
@@ -177,11 +177,11 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "github.com/jkowalski",
+    "content": "github.com/jbernat",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 176.8474,
+    "left": 182.69379999999998,
     "top": 142.0,
     "zIndex": 3,
     "page": 1,
@@ -192,7 +192,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/atrium/website.png",
-    "left": 285.36580000000004,
+    "left": 283.123,
     "top": 142.0,
     "width": 10.5,
     "height": 10.5,
@@ -203,11 +203,11 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "jankowalski.pl",
+    "content": "juliabernat.pl",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 297.86580000000004,
+    "left": 295.623,
     "top": 142.0,
     "zIndex": 3,
     "page": 1,
@@ -218,7 +218,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/atrium/location.png",
-    "left": 374.80860000000007,
+    "left": 368.9622,
     "top": 142.0,
     "width": 10.5,
     "height": 10.5,
@@ -233,7 +233,7 @@ const ATRIUM_ELEMENTS = [
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 387.30860000000007,
+    "left": 381.4622,
     "top": 142.0,
     "zIndex": 3,
     "page": 1,
@@ -313,7 +313,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
+    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz oraz terminowość decyzji bez utraty dokładności.",
     "left": 82,
     "top": 221.39999999999998,
     "width": 431,
@@ -372,7 +372,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Dyrektor Strategii",
+    "content": "Analityczka AML",
     "left": 82,
     "top": 308.79999999999995,
     "width": 431,
@@ -390,12 +390,12 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f2e16a61fbd8",
+    "flowGroup": "record-dbcc3705169c",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Northbridge Partners   ·   Warszawa   ·   2021 – obecnie",
+    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
     "left": 82,
     "top": 327.79999999999995,
     "width": 431,
@@ -413,12 +413,12 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f2e16a61fbd8",
+    "flowGroup": "record-dbcc3705169c",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
+    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.\n• Realizuje CDD/EDD oraz przygotowuje dokumentację zgodną z wymogami FIU.\n• Wspiera zespół L2 przy eskalacjach spraw o podwyższonym ryzyku AML.",
     "left": 82,
     "top": 343.79999999999995,
     "width": 431,
@@ -436,12 +436,12 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f2e16a61fbd8",
+    "flowGroup": "record-dbcc3705169c",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Menedżer Rozwoju",
+    "content": "Analityczka KYC",
     "left": 82,
     "top": 396.79999999999995,
     "width": 431,
@@ -459,12 +459,12 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b1eaaa9b83a4",
+    "flowGroup": "record-991c2f7cd95c",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Meridian Group   ·   Kraków   ·   2016 – 2021",
+    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
     "left": 82,
     "top": 415.79999999999995,
     "width": 431,
@@ -482,12 +482,12 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b1eaaa9b83a4",
+    "flowGroup": "record-991c2f7cd95c",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
+    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
     "left": 82,
     "top": 431.79999999999995,
     "width": 431,
@@ -505,12 +505,12 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b1eaaa9b83a4",
+    "flowGroup": "record-991c2f7cd95c",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Konsultant Strategiczny",
+    "content": "Specjalistka Obsługi Klienta",
     "left": 82,
     "top": 470.79999999999995,
     "width": 431,
@@ -528,12 +528,12 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6e111a27f11a",
+    "flowGroup": "record-b864026c967c",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Alpine Consulting   ·   Kraków   ·   2013 – 2016",
+    "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
     "left": 82,
     "top": 489.79999999999995,
     "width": 431,
@@ -551,12 +551,12 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6e111a27f11a",
+    "flowGroup": "record-b864026c967c",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
+    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
     "left": 82,
     "top": 505.79999999999995,
     "width": 431,
@@ -574,7 +574,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6e111a27f11a",
+    "flowGroup": "record-b864026c967c",
     "flowRole": "content"
   },
   {
@@ -616,7 +616,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Magister Zarządzania",
+    "content": "Licencjat Prawa",
     "left": 82,
     "top": 565.2,
     "width": 431,
@@ -634,12 +634,12 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-01369deda9af",
+    "flowGroup": "record-a31ccba4de47",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "SGH Warszawa",
+    "content": "UW Warszawa",
     "left": 82,
     "top": 583.2,
     "width": 431,
@@ -657,12 +657,12 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-01369deda9af",
+    "flowGroup": "record-a31ccba4de47",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "2011 – 2016",
+    "content": "2012 – 2016",
     "left": 82,
     "top": 601.2,
     "width": 431,
@@ -680,7 +680,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-01369deda9af",
+    "flowGroup": "record-a31ccba4de47",
     "flowRole": "content"
   },
   {
@@ -722,7 +722,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
+    "content": "AML/KYC  ·  Monitoring  ·  CDD/EDD  ·  Raporty SAR  ·  Analiza transakcyjna",
     "left": 82,
     "top": 657.6000000000001,
     "width": 431,
@@ -740,7 +740,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-edcec4644181",
+    "flowGroup": "record-bc3622aeca6d",
     "flowRole": "content"
   },
   {
@@ -809,7 +809,7 @@ const ATRIUM_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-094ab291ca73"
+    "flowGroup": "record-e35db5e61d2a"
   },
   {
     "category": "textarea",
@@ -840,11 +840,11 @@ const ATRIUM_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-094ab291ca73"
+    "flowGroup": "record-e35db5e61d2a"
   },
   {
     "category": "textarea",
-    "content": "Francuski — B2",
+    "content": "Niemiecki — B2",
     "left": 297.5,
     "top": 717.0000000000002,
     "width": 99.75,
@@ -871,7 +871,7 @@ const ATRIUM_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-094ab291ca73"
+    "flowGroup": "record-e35db5e61d2a"
   }
 ];
 

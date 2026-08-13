@@ -6,7 +6,7 @@
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/portico.py`) for
- * representative demo content (Jan Kowalski — three roles, one degree, five
+ * representative demo content (Julia Bernat — three roles, one degree, five
  * skills, and three languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
@@ -55,7 +55,7 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Jan Kowalski",
+    "content": "Julia Bernat",
     "left": 76,
     "top": 44.0,
     "width": 443,
@@ -110,7 +110,7 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Dyrektor Strategii i Rozwoju",
+    "content": "Analityczka AML i Compliance",
     "left": 76,
     "top": 175.0,
     "width": 443,
@@ -133,7 +133,7 @@ const PORTICO_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/portico/phone.png",
-    "left": 128.07373046875,
+    "left": 84.05683593750001,
     "top": 199.0,
     "width": 12.0,
     "height": 12.0,
@@ -144,11 +144,11 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "+48 600 000 000",
+    "content": "+48 512 340 780",
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#83786B",
-    "left": 141.07373046875,
+    "left": 97.05683593750001,
     "top": 199.0,
     "zIndex": 3,
     "page": 1,
@@ -159,7 +159,7 @@ const PORTICO_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/portico/email.png",
-    "left": 227.94462890625002,
+    "left": 181.01152343750002,
     "top": 199.0,
     "width": 12.0,
     "height": 12.0,
@@ -170,11 +170,11 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "jan.kowalski@email.com",
+    "content": "julia.bernat@email.com",
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#83786B",
-    "left": 240.94462890625002,
+    "left": 194.01152343750002,
     "top": 199.0,
     "zIndex": 3,
     "page": 1,
@@ -185,7 +185,7 @@ const PORTICO_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/portico/linkedin.png",
-    "left": 354.19677734375,
+    "left": 302.6166015625,
     "top": 199.0,
     "width": 12.0,
     "height": 12.0,
@@ -196,11 +196,11 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "linkedin.com/in/jkowalski",
+    "content": "linkedin.com/in/jbernat",
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#83786B",
-    "left": 367.19677734375,
+    "left": 315.6166015625,
     "top": 199.0,
     "zIndex": 3,
     "page": 1,
@@ -211,8 +211,8 @@ const PORTICO_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/portico/github.png",
-    "left": 171.38212890625,
-    "top": 214.0,
+    "left": 422.62617187500007,
+    "top": 199.0,
     "width": 12.0,
     "height": 12.0,
     "zIndex": 3,
@@ -222,12 +222,12 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "github.com/jkowalski",
+    "content": "github.com/jbernat",
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#83786B",
-    "left": 184.38212890625,
-    "top": 214.0,
+    "left": 435.62617187500007,
+    "top": 199.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -237,7 +237,7 @@ const PORTICO_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/portico/website.png",
-    "left": 284.41904296875,
+    "left": 230.22412109375,
     "top": 214.0,
     "width": 12.0,
     "height": 12.0,
@@ -248,11 +248,11 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "jankowalski.pl",
+    "content": "juliabernat.pl",
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#83786B",
-    "left": 297.41904296875,
+    "left": 243.22412109375,
     "top": 214.0,
     "zIndex": 3,
     "page": 1,
@@ -263,7 +263,7 @@ const PORTICO_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/portico/location.png",
-    "left": 369.08134765625,
+    "left": 310.23935546875,
     "top": 214.0,
     "width": 12.0,
     "height": 12.0,
@@ -278,7 +278,7 @@ const PORTICO_ELEMENTS = [
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#83786B",
-    "left": 382.08134765625,
+    "left": 323.23935546875,
     "top": 214.0,
     "zIndex": 3,
     "page": 1,
@@ -337,7 +337,7 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty.",
+    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz.",
     "left": 76,
     "top": 288.475,
     "width": 443,
@@ -397,7 +397,7 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Dyrektor Strategii",
+    "content": "Analityczka AML",
     "left": 76,
     "top": 357.95000000000005,
     "width": 443,
@@ -415,12 +415,12 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b951c282331d",
+    "flowGroup": "record-fd1cdeccc758",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Northbridge Partners   ·   Warszawa   ·   2021 – obecnie",
+    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
     "left": 76,
     "top": 376.95000000000005,
     "width": 443,
@@ -438,12 +438,12 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b951c282331d",
+    "flowGroup": "record-fd1cdeccc758",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.",
+    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.",
     "left": 76,
     "top": 392.95000000000005,
     "width": 443,
@@ -461,12 +461,12 @@ const PORTICO_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b951c282331d",
+    "flowGroup": "record-fd1cdeccc758",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Menedżer Rozwoju",
+    "content": "Analityczka KYC",
     "left": 76,
     "top": 416.95000000000005,
     "width": 443,
@@ -484,12 +484,12 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ed75bcfbd09b",
+    "flowGroup": "record-f92af48df222",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Meridian Group   ·   Kraków   ·   2016 – 2021",
+    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
     "left": 76,
     "top": 435.95000000000005,
     "width": 443,
@@ -507,12 +507,12 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ed75bcfbd09b",
+    "flowGroup": "record-f92af48df222",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.",
+    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.",
     "left": 76,
     "top": 451.95000000000005,
     "width": 443,
@@ -530,12 +530,12 @@ const PORTICO_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ed75bcfbd09b",
+    "flowGroup": "record-f92af48df222",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Konsultant Strategiczny",
+    "content": "Specjalistka Obsługi Klienta",
     "left": 76,
     "top": 475.95000000000005,
     "width": 443,
@@ -553,12 +553,12 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d535b66c2056",
+    "flowGroup": "record-fff7d40c697c",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Alpine Consulting   ·   Kraków   ·   2013 – 2016",
+    "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
     "left": 76,
     "top": 494.95000000000005,
     "width": 443,
@@ -576,12 +576,12 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d535b66c2056",
+    "flowGroup": "record-fff7d40c697c",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
+    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
     "left": 76,
     "top": 510.95000000000005,
     "width": 443,
@@ -599,7 +599,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d535b66c2056",
+    "flowGroup": "record-fff7d40c697c",
     "flowRole": "content"
   },
   {
@@ -642,7 +642,7 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Magister Zarządzania",
+    "content": "Licencjat Prawa",
     "left": 76,
     "top": 567.4250000000001,
     "width": 443,
@@ -660,12 +660,12 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ae8357c4b631",
+    "flowGroup": "record-c951e96c5688",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "SGH Warszawa",
+    "content": "UW Warszawa",
     "left": 76,
     "top": 584.4250000000001,
     "width": 443,
@@ -683,12 +683,12 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ae8357c4b631",
+    "flowGroup": "record-c951e96c5688",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "2011 – 2016",
+    "content": "2012 – 2016",
     "left": 76,
     "top": 601.4250000000001,
     "width": 443,
@@ -706,7 +706,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ae8357c4b631",
+    "flowGroup": "record-c951e96c5688",
     "flowRole": "content"
   },
   {
@@ -749,7 +749,7 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
+    "content": "AML/KYC  ·  Monitoring  ·  CDD/EDD  ·  Raporty SAR  ·  Analiza transakcyjna",
     "left": 76,
     "top": 655.9000000000001,
     "width": 443,
@@ -767,7 +767,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-31f8a867cdc7",
+    "flowGroup": "record-4d648d27d2c1",
     "flowRole": "content"
   },
   {
@@ -837,7 +837,7 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-b729ee68e2b0"
+    "flowGroup": "record-59d8e8d67e4e"
   },
   {
     "category": "textarea",
@@ -868,11 +868,11 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-b729ee68e2b0"
+    "flowGroup": "record-59d8e8d67e4e"
   },
   {
     "category": "textarea",
-    "content": "Francuski — B2",
+    "content": "Niemiecki — B2",
     "left": 297.5,
     "top": 712.3750000000001,
     "width": 102.75,
@@ -899,7 +899,7 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-b729ee68e2b0"
+    "flowGroup": "record-59d8e8d67e4e"
   }
 ];
 

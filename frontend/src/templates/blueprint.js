@@ -5,7 +5,7 @@
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/blueprint.py`) for
- * representative demo content (Jan Kowalski — three roles, one degree, five
+ * representative demo content (Julia Bernat — three roles, one degree, five
  * skills, and three languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
@@ -54,7 +54,7 @@ const BLUEPRINT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Jan Kowalski",
+    "content": "Julia Bernat",
     "left": 96.0,
     "top": 66.0,
     "width": 403.0,
@@ -76,7 +76,7 @@ const BLUEPRINT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "DYREKTOR STRATEGII I ROZWOJU",
+    "content": "ANALITYCZKA AML I COMPLIANCE",
     "left": 96.0,
     "top": 101.0,
     "width": 403.0,
@@ -98,7 +98,7 @@ const BLUEPRINT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "jan.kowalski@email.com · +48 600 000 000 · Warszawa · linkedin.com/in/jkowalski · github.com/jkowalski · jankowalski.pl",
+    "content": "julia.bernat@email.com · +48 512 340 780 · Warszawa · linkedin.com/in/jbernat · github.com/jbernat · juliabernat.pl",
     "left": 96.0,
     "top": 126.0,
     "width": 403.0,
@@ -248,7 +248,7 @@ const BLUEPRINT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
+    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz oraz terminowość decyzji bez utraty dokładności.",
     "left": 76,
     "top": 216.71,
     "width": 443,
@@ -296,7 +296,7 @@ const BLUEPRINT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Dyrektor Strategii",
+    "content": "Analityczka AML",
     "left": 76,
     "top": 289.42,
     "width": 443,
@@ -314,12 +314,12 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-96266ab9039d",
+    "flowGroup": "record-39016bbadd39",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Northbridge Partners   ·   Warszawa   ·   2021 – obecnie",
+    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
     "left": 76,
     "top": 308.42,
     "width": 443,
@@ -337,12 +337,12 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-96266ab9039d",
+    "flowGroup": "record-39016bbadd39",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
+    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.\n• Realizuje CDD/EDD oraz przygotowuje dokumentację zgodną z wymogami FIU.\n• Wspiera zespół L2 przy eskalacjach spraw o podwyższonym ryzyku AML.",
     "left": 76,
     "top": 324.42,
     "width": 443,
@@ -360,12 +360,12 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-96266ab9039d",
+    "flowGroup": "record-39016bbadd39",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Menedżer Rozwoju",
+    "content": "Analityczka KYC",
     "left": 76,
     "top": 376.42,
     "width": 443,
@@ -383,12 +383,12 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-35d9489fa1f1",
+    "flowGroup": "record-039a79e35bbb",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Meridian Group   ·   Kraków   ·   2016 – 2021",
+    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
     "left": 76,
     "top": 395.42,
     "width": 443,
@@ -406,12 +406,12 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-35d9489fa1f1",
+    "flowGroup": "record-039a79e35bbb",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
+    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
     "left": 76,
     "top": 411.42,
     "width": 443,
@@ -429,12 +429,12 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-35d9489fa1f1",
+    "flowGroup": "record-039a79e35bbb",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Konsultant Strategiczny",
+    "content": "Specjalistka Obsługi Klienta",
     "left": 76,
     "top": 449.42,
     "width": 443,
@@ -452,12 +452,12 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8e5d94b28e50",
+    "flowGroup": "record-5d23b7df46ba",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Alpine Consulting   ·   Kraków   ·   2013 – 2016",
+    "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
     "left": 76,
     "top": 468.42,
     "width": 443,
@@ -475,12 +475,12 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8e5d94b28e50",
+    "flowGroup": "record-5d23b7df46ba",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
+    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
     "left": 76,
     "top": 484.42,
     "width": 443,
@@ -498,7 +498,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8e5d94b28e50",
+    "flowGroup": "record-5d23b7df46ba",
     "flowRole": "content"
   },
   {
@@ -529,7 +529,7 @@ const BLUEPRINT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Magister Zarządzania",
+    "content": "Licencjat Prawa",
     "left": 76,
     "top": 543.1300000000001,
     "width": 443,
@@ -547,12 +547,12 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-bed2e94ecc1a",
+    "flowGroup": "record-f9a7226be704",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "SGH Warszawa",
+    "content": "UW Warszawa",
     "left": 76,
     "top": 561.1300000000001,
     "width": 443,
@@ -570,12 +570,12 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-bed2e94ecc1a",
+    "flowGroup": "record-f9a7226be704",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "2011 – 2016",
+    "content": "2012 – 2016",
     "left": 76,
     "top": 579.1300000000001,
     "width": 443,
@@ -593,7 +593,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-bed2e94ecc1a",
+    "flowGroup": "record-f9a7226be704",
     "flowRole": "content"
   },
   {
@@ -624,7 +624,7 @@ const BLUEPRINT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
+    "content": "AML/KYC  ·  Monitoring  ·  CDD/EDD  ·  Raporty SAR  ·  Analiza transakcyjna",
     "left": 76,
     "top": 635.8400000000001,
     "width": 443,
@@ -642,7 +642,7 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-232d2b1b9516",
+    "flowGroup": "record-605cc959dc71",
     "flowRole": "content"
   },
   {
@@ -700,7 +700,7 @@ const BLUEPRINT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-99e21837a157"
+    "flowGroup": "record-53e0db2fa588"
   },
   {
     "category": "textarea",
@@ -731,11 +731,11 @@ const BLUEPRINT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-99e21837a157"
+    "flowGroup": "record-53e0db2fa588"
   },
   {
     "category": "textarea",
-    "content": "Francuski — B2",
+    "content": "Niemiecki — B2",
     "left": 297.5,
     "top": 694.5500000000002,
     "width": 102.75,
@@ -762,7 +762,7 @@ const BLUEPRINT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-99e21837a157"
+    "flowGroup": "record-53e0db2fa588"
   }
 ];
 

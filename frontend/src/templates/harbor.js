@@ -5,7 +5,7 @@
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/harbor.py`) for
- * representative demo content (Jan Kowalski — three roles, one degree, five
+ * representative demo content (Julia Bernat — three roles, one degree, five
  * skills, and three languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
@@ -54,7 +54,7 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "JAN KOWALSKI",
+    "content": "JULIA BERNAT",
     "fontSize": 23,
     "fontFamily": "Inter",
     "color": "#2B2B2B",
@@ -69,7 +69,7 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "Dyrektor Strategii i Rozwoju",
+    "content": "Analityczka AML i Compliance",
     "fontSize": 11,
     "fontFamily": "Inter",
     "color": "#17A2B8",
@@ -95,7 +95,7 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "+48 600 000 000",
+    "content": "+48 512 340 780",
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#3A3A3A",
@@ -121,7 +121,7 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "jan.kowalski@email.com",
+    "content": "julia.bernat@email.com",
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#3A3A3A",
@@ -147,7 +147,7 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "linkedin.com/in/jkowalski",
+    "content": "linkedin.com/in/jbernat",
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#3A3A3A",
@@ -162,7 +162,7 @@ const HARBOR_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/harbor/github.png",
-    "left": 422.4,
+    "left": 413.0,
     "top": 104.0,
     "width": 11,
     "height": 11,
@@ -173,11 +173,11 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "github.com/jkowalski",
+    "content": "github.com/jbernat",
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#3A3A3A",
-    "left": 437.4,
+    "left": 428.0,
     "top": 104.0,
     "zIndex": 3,
     "page": 1,
@@ -199,7 +199,7 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "jankowalski.pl",
+    "content": "juliabernat.pl",
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#3A3A3A",
@@ -308,7 +308,7 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Magister Zarządzania",
+    "content": "Licencjat Prawa",
     "left": 364,
     "top": 181.88,
     "width": 187,
@@ -326,13 +326,13 @@ const HARBOR_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b0afd5fa3f50",
+    "flowGroup": "record-22828fd5bb48",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
   {
     "category": "textarea",
-    "content": "SGH Warszawa",
+    "content": "UW Warszawa",
     "left": 364,
     "top": 196.88,
     "width": 187,
@@ -350,13 +350,13 @@ const HARBOR_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b0afd5fa3f50",
+    "flowGroup": "record-22828fd5bb48",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
   {
     "category": "textarea",
-    "content": "2011 – 2016",
+    "content": "2012 – 2016",
     "left": 380,
     "top": 208.88,
     "width": 171,
@@ -374,7 +374,7 @@ const HARBOR_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b0afd5fa3f50",
+    "flowGroup": "record-22828fd5bb48",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -389,7 +389,7 @@ const HARBOR_ELEMENTS = [
     "page": 1,
     "alignWithText": false,
     "flowRole": "record-overlay",
-    "flowGroup": "record-b0afd5fa3f50",
+    "flowGroup": "record-22828fd5bb48",
     "flowLane": "sidebar"
   },
   {
@@ -422,7 +422,7 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Strategia",
+    "content": "AML/KYC",
     "left": 380,
     "top": 273.76,
     "width": 171,
@@ -460,7 +460,7 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Leadership",
+    "content": "Monitoring",
     "left": 380,
     "top": 287.76,
     "width": 171,
@@ -498,7 +498,7 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "P&L",
+    "content": "CDD/EDD",
     "left": 380,
     "top": 301.76,
     "width": 171,
@@ -536,7 +536,7 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Negocjacje",
+    "content": "Raporty SAR",
     "left": 380,
     "top": 315.76,
     "width": 171,
@@ -574,7 +574,7 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Transformacja organizacyjna",
+    "content": "Analiza transakcyjna",
     "left": 380,
     "top": 329.76,
     "width": 171,
@@ -716,7 +716,7 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Francuski - B2",
+    "content": "Niemiecki - B2",
     "left": 380,
     "top": 412.64,
     "width": 171,
@@ -780,7 +780,7 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
+    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz oraz terminowość decyzji bez utraty dokładności.",
     "left": 44,
     "top": 181.88,
     "width": 292,
@@ -828,7 +828,7 @@ const HARBOR_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Dyrektor Strategii",
+    "content": "Analityczka AML",
     "left": 44,
     "top": 263.76,
     "width": 292,
@@ -846,12 +846,12 @@ const HARBOR_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b9cc5d449dd1",
+    "flowGroup": "record-3d33a29c34a7",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Northbridge Partners",
+    "content": "Crestmont Advisory",
     "left": 44,
     "top": 282.76,
     "width": 292,
@@ -869,7 +869,7 @@ const HARBOR_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b9cc5d449dd1",
+    "flowGroup": "record-3d33a29c34a7",
     "flowRole": "content"
   },
   {
@@ -883,11 +883,11 @@ const HARBOR_ELEMENTS = [
     "page": 1,
     "alignWithText": false,
     "flowRole": "record-overlay",
-    "flowGroup": "record-b9cc5d449dd1"
+    "flowGroup": "record-3d33a29c34a7"
   },
   {
     "category": "textarea",
-    "content": "2021 – obecnie",
+    "content": "2022 – obecnie",
     "left": 59.0,
     "top": 296.76,
     "width": 110.0,
@@ -905,7 +905,7 @@ const HARBOR_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b9cc5d449dd1",
+    "flowGroup": "record-3d33a29c34a7",
     "flowRole": "content"
   },
   {
@@ -919,7 +919,7 @@ const HARBOR_ELEMENTS = [
     "page": 1,
     "alignWithText": false,
     "flowRole": "record-overlay",
-    "flowGroup": "record-b9cc5d449dd1"
+    "flowGroup": "record-3d33a29c34a7"
   },
   {
     "category": "textarea",
@@ -942,11 +942,11 @@ const HARBOR_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-b9cc5d449dd1"
+    "flowGroup": "record-3d33a29c34a7"
   },
   {
     "category": "textarea",
-    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
+    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.\n• Realizuje CDD/EDD oraz przygotowuje dokumentację zgodną z wymogami FIU.\n• Wspiera zespół L2 przy eskalacjach spraw o podwyższonym ryzyku AML.",
     "left": 44,
     "top": 312.76,
     "width": 292,
@@ -964,12 +964,12 @@ const HARBOR_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b9cc5d449dd1",
+    "flowGroup": "record-3d33a29c34a7",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Menedżer Rozwoju",
+    "content": "Analityczka KYC",
     "left": 44,
     "top": 403.76,
     "width": 292,
@@ -987,12 +987,12 @@ const HARBOR_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c33883070f82",
+    "flowGroup": "record-8c3e16c869aa",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Meridian Group",
+    "content": "Baltic Trust Bank",
     "left": 44,
     "top": 422.76,
     "width": 292,
@@ -1010,7 +1010,7 @@ const HARBOR_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c33883070f82",
+    "flowGroup": "record-8c3e16c869aa",
     "flowRole": "content"
   },
   {
@@ -1024,11 +1024,11 @@ const HARBOR_ELEMENTS = [
     "page": 1,
     "alignWithText": false,
     "flowRole": "record-overlay",
-    "flowGroup": "record-c33883070f82"
+    "flowGroup": "record-8c3e16c869aa"
   },
   {
     "category": "textarea",
-    "content": "2016 – 2021",
+    "content": "2019 – 2022",
     "left": 59.0,
     "top": 436.76,
     "width": 110.0,
@@ -1046,7 +1046,7 @@ const HARBOR_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c33883070f82",
+    "flowGroup": "record-8c3e16c869aa",
     "flowRole": "content"
   },
   {
@@ -1060,11 +1060,11 @@ const HARBOR_ELEMENTS = [
     "page": 1,
     "alignWithText": false,
     "flowRole": "record-overlay",
-    "flowGroup": "record-c33883070f82"
+    "flowGroup": "record-8c3e16c869aa"
   },
   {
     "category": "textarea",
-    "content": "Kraków",
+    "content": "Warszawa",
     "left": 194.0,
     "top": 436.76,
     "width": 142.0,
@@ -1083,15 +1083,15 @@ const HARBOR_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-c33883070f82"
+    "flowGroup": "record-8c3e16c869aa"
   },
   {
     "category": "textarea",
-    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
+    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
     "left": 44,
     "top": 452.76,
     "width": 292,
-    "height": 41,
+    "height": 54,
     "fontSize": 9,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -1105,14 +1105,14 @@ const HARBOR_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c33883070f82",
+    "flowGroup": "record-8c3e16c869aa",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Konsultant Strategiczny",
+    "content": "Specjalistka Obsługi Klienta",
     "left": 44,
-    "top": 503.76,
+    "top": 516.76,
     "width": 292,
     "height": 15,
     "fontSize": 10.5,
@@ -1128,14 +1128,14 @@ const HARBOR_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5e4ddda2f795",
+    "flowGroup": "record-94d96cf69534",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Alpine Consulting",
+    "content": "Helios Services",
     "left": 44,
-    "top": 522.76,
+    "top": 535.76,
     "width": 292,
     "height": 12,
     "fontSize": 9.2,
@@ -1151,27 +1151,27 @@ const HARBOR_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5e4ddda2f795",
+    "flowGroup": "record-94d96cf69534",
     "flowRole": "content"
   },
   {
     "category": "image",
     "src": "/template-assets/iconic/harbor/calendar.png",
     "left": 44.0,
-    "top": 537.01,
+    "top": 550.01,
     "width": 11.0,
     "height": 11.0,
     "zIndex": 3,
     "page": 1,
     "alignWithText": false,
     "flowRole": "record-overlay",
-    "flowGroup": "record-5e4ddda2f795"
+    "flowGroup": "record-94d96cf69534"
   },
   {
     "category": "textarea",
-    "content": "2013 – 2016",
+    "content": "2016 – 2019",
     "left": 59.0,
-    "top": 536.76,
+    "top": 549.76,
     "width": 110.0,
     "height": 12,
     "fontSize": 8.6,
@@ -1187,27 +1187,27 @@ const HARBOR_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5e4ddda2f795",
+    "flowGroup": "record-94d96cf69534",
     "flowRole": "content"
   },
   {
     "category": "image",
     "src": "/template-assets/iconic/harbor/location.png",
     "left": 179.0,
-    "top": 537.01,
+    "top": 550.01,
     "width": 11.0,
     "height": 11.0,
     "zIndex": 3,
     "page": 1,
     "alignWithText": false,
     "flowRole": "record-overlay",
-    "flowGroup": "record-5e4ddda2f795"
+    "flowGroup": "record-94d96cf69534"
   },
   {
     "category": "textarea",
     "content": "Kraków",
     "left": 194.0,
-    "top": 536.76,
+    "top": 549.76,
     "width": 142.0,
     "height": 12,
     "fontSize": 8.6,
@@ -1224,13 +1224,13 @@ const HARBOR_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-5e4ddda2f795"
+    "flowGroup": "record-94d96cf69534"
   },
   {
     "category": "textarea",
-    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
+    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
     "left": 44,
-    "top": 552.76,
+    "top": 565.76,
     "width": 292,
     "height": 27,
     "fontSize": 9,
@@ -1246,7 +1246,7 @@ const HARBOR_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5e4ddda2f795",
+    "flowGroup": "record-94d96cf69534",
     "flowRole": "content"
   }
 ];

@@ -5,7 +5,7 @@
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/cardinal.py`) for
- * representative demo content (Jan Kowalski — three roles, one degree, five
+ * representative demo content (Julia Bernat — three roles, one degree, five
  * skills, and three languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
@@ -54,7 +54,7 @@ const CARDINAL_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "Jan Kowalski",
+    "content": "Julia Bernat",
     "fontSize": 30,
     "fontFamily": "Times-Roman",
     "color": "#24201E",
@@ -69,7 +69,7 @@ const CARDINAL_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "Dyrektor Strategii i Rozwoju",
+    "content": "Analityczka AML i Compliance",
     "fontSize": 9.6,
     "fontFamily": "Helvetica",
     "color": "#9E2532",
@@ -96,7 +96,7 @@ const CARDINAL_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "+48 600 000 000",
+    "content": "+48 512 340 780",
     "fontSize": 8.6,
     "fontFamily": "Helvetica",
     "color": "#333333",
@@ -122,7 +122,7 @@ const CARDINAL_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "jan.kowalski@email.com",
+    "content": "julia.bernat@email.com",
     "fontSize": 8.6,
     "fontFamily": "Helvetica",
     "color": "#333333",
@@ -148,7 +148,7 @@ const CARDINAL_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "linkedin.com/in/jkowalski",
+    "content": "linkedin.com/in/jbernat",
     "fontSize": 8.6,
     "fontFamily": "Helvetica",
     "color": "#333333",
@@ -174,7 +174,7 @@ const CARDINAL_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "github.com/jkowalski",
+    "content": "github.com/jbernat",
     "fontSize": 8.6,
     "fontFamily": "Helvetica",
     "color": "#333333",
@@ -189,7 +189,7 @@ const CARDINAL_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/cardinal/website.png",
-    "left": 216.0,
+    "left": 205.2,
     "top": 134.0,
     "width": 13.0,
     "height": 13.0,
@@ -200,11 +200,11 @@ const CARDINAL_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "jankowalski.pl",
+    "content": "juliabernat.pl",
     "fontSize": 8.6,
     "fontFamily": "Helvetica",
     "color": "#333333",
-    "left": 232.0,
+    "left": 221.2,
     "top": 134.0,
     "zIndex": 3,
     "page": 1,
@@ -215,7 +215,7 @@ const CARDINAL_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/cardinal/location.png",
-    "left": 327.6,
+    "left": 316.8,
     "top": 134.0,
     "width": 13.0,
     "height": 13.0,
@@ -230,7 +230,7 @@ const CARDINAL_ELEMENTS = [
     "fontSize": 8.6,
     "fontFamily": "Helvetica",
     "color": "#333333",
-    "left": 343.6,
+    "left": 332.8,
     "top": 134.0,
     "zIndex": 3,
     "page": 1,
@@ -289,7 +289,7 @@ const CARDINAL_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
+    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz oraz terminowość decyzji bez utraty dokładności.",
     "left": 72,
     "top": 224.2,
     "width": 473,
@@ -349,7 +349,7 @@ const CARDINAL_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Dyrektor Strategii",
+    "content": "Analityczka AML",
     "left": 72,
     "top": 302.4,
     "width": 473,
@@ -367,12 +367,12 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-346512589303",
+    "flowGroup": "record-2b3678fb60b1",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Northbridge Partners   ·   Warszawa   ·   2021 – obecnie",
+    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
     "left": 72,
     "top": 321.4,
     "width": 473,
@@ -390,12 +390,12 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-346512589303",
+    "flowGroup": "record-2b3678fb60b1",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
+    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.\n• Realizuje CDD/EDD oraz przygotowuje dokumentację zgodną z wymogami FIU.\n• Wspiera zespół L2 przy eskalacjach spraw o podwyższonym ryzyku AML.",
     "left": 72,
     "top": 337.4,
     "width": 473,
@@ -413,12 +413,12 @@ const CARDINAL_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-346512589303",
+    "flowGroup": "record-2b3678fb60b1",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Menedżer Rozwoju",
+    "content": "Analityczka KYC",
     "left": 72,
     "top": 389.4,
     "width": 473,
@@ -436,12 +436,12 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-129aa7caea33",
+    "flowGroup": "record-e27302218178",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Meridian Group   ·   Kraków   ·   2016 – 2021",
+    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
     "left": 72,
     "top": 408.4,
     "width": 473,
@@ -459,12 +459,12 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-129aa7caea33",
+    "flowGroup": "record-e27302218178",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
+    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
     "left": 72,
     "top": 424.4,
     "width": 473,
@@ -482,12 +482,12 @@ const CARDINAL_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-129aa7caea33",
+    "flowGroup": "record-e27302218178",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Konsultant Strategiczny",
+    "content": "Specjalistka Obsługi Klienta",
     "left": 72,
     "top": 462.4,
     "width": 473,
@@ -505,12 +505,12 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4f46d71ff010",
+    "flowGroup": "record-91d902467901",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Alpine Consulting   ·   Kraków   ·   2013 – 2016",
+    "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
     "left": 72,
     "top": 481.4,
     "width": 473,
@@ -528,12 +528,12 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4f46d71ff010",
+    "flowGroup": "record-91d902467901",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
+    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
     "left": 72,
     "top": 497.4,
     "width": 473,
@@ -551,7 +551,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4f46d71ff010",
+    "flowGroup": "record-91d902467901",
     "flowRole": "content"
   },
   {
@@ -594,7 +594,7 @@ const CARDINAL_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Magister Zarządzania",
+    "content": "Licencjat Prawa",
     "left": 72,
     "top": 561.6,
     "width": 473,
@@ -612,12 +612,12 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f28b56fcadf8",
+    "flowGroup": "record-e5f13a95763b",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "SGH Warszawa",
+    "content": "UW Warszawa",
     "left": 72,
     "top": 578.6,
     "width": 473,
@@ -635,12 +635,12 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f28b56fcadf8",
+    "flowGroup": "record-e5f13a95763b",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "2011 – 2016",
+    "content": "2012 – 2016",
     "left": 72,
     "top": 595.6,
     "width": 473,
@@ -658,7 +658,7 @@ const CARDINAL_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f28b56fcadf8",
+    "flowGroup": "record-e5f13a95763b",
     "flowRole": "content"
   },
   {
@@ -703,7 +703,7 @@ const CARDINAL_ELEMENTS = [
     "category": "rectangle",
     "left": 72.0,
     "top": 657.8000000000001,
-    "width": 60.645312499999996,
+    "width": 64.16093749999999,
     "height": 19.6,
     "backgroundColor": "#9E2532",
     "borderWidth": 0,
@@ -712,11 +712,11 @@ const CARDINAL_ELEMENTS = [
     "zIndex": 2,
     "page": 1,
     "flowRole": "grid-member",
-    "flowGroup": "record-2754e8eab2b2"
+    "flowGroup": "record-73f3417d6dc5"
   },
   {
     "category": "text",
-    "content": "Strategia",
+    "content": "AML/KYC",
     "fontSize": 9.6,
     "fontFamily": "Helvetica",
     "color": "#FCFBF9",
@@ -727,13 +727,13 @@ const CARDINAL_ELEMENTS = [
     "bold": false,
     "italic": false,
     "flowRole": "grid-member",
-    "flowGroup": "record-2754e8eab2b2"
+    "flowGroup": "record-73f3417d6dc5"
   },
   {
     "category": "rectangle",
-    "left": 140.6453125,
+    "left": 144.1609375,
     "top": 657.8000000000001,
-    "width": 70.4515625,
+    "width": 68.8203125,
     "height": 19.6,
     "backgroundColor": "#9E2532",
     "borderWidth": 0,
@@ -742,28 +742,28 @@ const CARDINAL_ELEMENTS = [
     "zIndex": 2,
     "page": 1,
     "flowRole": "grid-member",
-    "flowGroup": "record-2754e8eab2b2"
+    "flowGroup": "record-73f3417d6dc5"
   },
   {
     "category": "text",
-    "content": "Leadership",
+    "content": "Monitoring",
     "fontSize": 9.6,
     "fontFamily": "Helvetica",
     "color": "#FCFBF9",
-    "left": 150.6453125,
+    "left": 154.1609375,
     "top": 667.6,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
     "flowRole": "grid-member",
-    "flowGroup": "record-2754e8eab2b2"
+    "flowGroup": "record-73f3417d6dc5"
   },
   {
     "category": "rectangle",
-    "left": 219.09687499999998,
+    "left": 220.98125,
     "top": 657.8000000000001,
-    "width": 37.7421875,
+    "width": 63.9546875,
     "height": 19.6,
     "backgroundColor": "#9E2532",
     "borderWidth": 0,
@@ -772,28 +772,28 @@ const CARDINAL_ELEMENTS = [
     "zIndex": 2,
     "page": 1,
     "flowRole": "grid-member",
-    "flowGroup": "record-2754e8eab2b2"
+    "flowGroup": "record-73f3417d6dc5"
   },
   {
     "category": "text",
-    "content": "P&L",
+    "content": "CDD/EDD",
     "fontSize": 9.6,
     "fontFamily": "Helvetica",
     "color": "#FCFBF9",
-    "left": 229.09687499999998,
+    "left": 230.98125,
     "top": 667.6,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
     "flowRole": "grid-member",
-    "flowGroup": "record-2754e8eab2b2"
+    "flowGroup": "record-73f3417d6dc5"
   },
   {
     "category": "rectangle",
-    "left": 264.83906249999995,
+    "left": 292.9359375,
     "top": 657.8000000000001,
-    "width": 71.0796875,
+    "width": 77.0140625,
     "height": 19.6,
     "backgroundColor": "#9E2532",
     "borderWidth": 0,
@@ -802,28 +802,28 @@ const CARDINAL_ELEMENTS = [
     "zIndex": 2,
     "page": 1,
     "flowRole": "grid-member",
-    "flowGroup": "record-2754e8eab2b2"
+    "flowGroup": "record-73f3417d6dc5"
   },
   {
     "category": "text",
-    "content": "Negocjacje",
+    "content": "Raporty SAR",
     "fontSize": 9.6,
     "fontFamily": "Helvetica",
     "color": "#FCFBF9",
-    "left": 274.83906249999995,
+    "left": 302.9359375,
     "top": 667.6,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
     "flowRole": "grid-member",
-    "flowGroup": "record-2754e8eab2b2"
+    "flowGroup": "record-73f3417d6dc5"
   },
   {
     "category": "rectangle",
-    "left": 343.91875,
+    "left": 377.95,
     "top": 657.8000000000001,
-    "width": 152.16875,
+    "width": 113.53906249999999,
     "height": 19.6,
     "backgroundColor": "#9E2532",
     "borderWidth": 0,
@@ -832,22 +832,22 @@ const CARDINAL_ELEMENTS = [
     "zIndex": 2,
     "page": 1,
     "flowRole": "grid-member",
-    "flowGroup": "record-2754e8eab2b2"
+    "flowGroup": "record-73f3417d6dc5"
   },
   {
     "category": "text",
-    "content": "Transformacja organizacyjna",
+    "content": "Analiza transakcyjna",
     "fontSize": 9.6,
     "fontFamily": "Helvetica",
     "color": "#FCFBF9",
-    "left": 353.91875,
+    "left": 387.95,
     "top": 667.6,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
     "flowRole": "grid-member",
-    "flowGroup": "record-2754e8eab2b2"
+    "flowGroup": "record-73f3417d6dc5"
   },
   {
     "category": "image",
@@ -916,7 +916,7 @@ const CARDINAL_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-ca13ab26c1fb"
+    "flowGroup": "record-33bb673a1a1e"
   },
   {
     "category": "textarea",
@@ -947,11 +947,11 @@ const CARDINAL_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-ca13ab26c1fb"
+    "flowGroup": "record-33bb673a1a1e"
   },
   {
     "category": "textarea",
-    "content": "Francuski — B2",
+    "content": "Niemiecki — B2",
     "left": 308.5,
     "top": 727.6000000000001,
     "width": 110.25,
@@ -978,7 +978,7 @@ const CARDINAL_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-ca13ab26c1fb"
+    "flowGroup": "record-33bb673a1a1e"
   }
 ];
 

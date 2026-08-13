@@ -37,14 +37,14 @@ test("Atrium is a centered-axis editorial single column, not a Portico recolor",
     assert.equal(L + W / 2, PAGE_CENTER);
 
     // ── Masthead: name + title are centered textareas tagged masthead ─────────
-    const name = atriumTemplate.find((element) => element.content === "Jan Kowalski");
+    const name = atriumTemplate.find((element) => element.content === "Julia Bernat");
     assert.ok(name);
     assert.equal(name.category, "textarea");
     assert.equal(name.align, "center");
     assert.equal(name.flowRole, "masthead");
     assert.equal(name.fontFamily, "PlayfairDisplay"); // high-contrast serif — not Portico's Lora
     const title = atriumTemplate.find(
-        (element) => element.content === "Dyrektor Strategii i Rozwoju",
+        (element) => element.content === "Analityczka AML i Compliance",
     );
     assert.equal(title?.align, "center");
     assert.equal(title?.flowRole, "masthead");

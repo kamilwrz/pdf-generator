@@ -9,7 +9,7 @@
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/nimbus.py`) for
- * representative demo content (Jan Kowalski — three roles, one degree, five
+ * representative demo content (Julia Bernat — three roles, one degree, five
  * skills, and three languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
@@ -99,7 +99,7 @@ const NIMBUS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "Jan Kowalski",
+    "content": "Julia Bernat",
     "fontSize": 31,
     "fontFamily": "Lora",
     "color": "#2B3D4C",
@@ -113,7 +113,7 @@ const NIMBUS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "Dyrektor Strategii i Rozwoju",
+    "content": "Analityczka AML i Compliance",
     "fontSize": 13,
     "fontFamily": "Lora",
     "color": "#5F8EAD",
@@ -128,7 +128,7 @@ const NIMBUS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "jan.kowalski@email.com · +48 600 000 000 · Warszawa ·…",
+    "content": "julia.bernat@email.com · +48 512 340 780 · Warszawa ·…",
     "fontSize": 10,
     "fontFamily": "Lora",
     "color": "#72818C",
@@ -167,7 +167,7 @@ const NIMBUS_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania.",
+    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania.",
     "left": 80,
     "top": 279.55,
     "width": 462,
@@ -214,7 +214,7 @@ const NIMBUS_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Dyrektor Strategii",
+    "content": "Analityczka AML",
     "left": 80,
     "top": 345.1,
     "width": 462,
@@ -232,12 +232,12 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0eddc222f18c",
+    "flowGroup": "record-97ce46136a74",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Northbridge Partners   ·   Warszawa   ·   2021 – obecnie",
+    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
     "left": 80,
     "top": 366.1,
     "width": 462,
@@ -255,12 +255,12 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0eddc222f18c",
+    "flowGroup": "record-97ce46136a74",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.",
+    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.",
     "left": 80,
     "top": 384.1,
     "width": 462,
@@ -278,12 +278,12 @@ const NIMBUS_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0eddc222f18c",
+    "flowGroup": "record-97ce46136a74",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Menedżer Rozwoju",
+    "content": "Analityczka KYC",
     "left": 80,
     "top": 410.1,
     "width": 462,
@@ -301,12 +301,12 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d03dc3399098",
+    "flowGroup": "record-214e6698e297",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Meridian Group   ·   Kraków   ·   2016 – 2021",
+    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
     "left": 80,
     "top": 431.1,
     "width": 462,
@@ -324,12 +324,12 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d03dc3399098",
+    "flowGroup": "record-214e6698e297",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.",
+    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.",
     "left": 80,
     "top": 449.1,
     "width": 462,
@@ -347,7 +347,7 @@ const NIMBUS_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d03dc3399098",
+    "flowGroup": "record-214e6698e297",
     "flowRole": "content"
   },
   {
@@ -377,7 +377,7 @@ const NIMBUS_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Magister Zarządzania",
+    "content": "Licencjat Prawa",
     "left": 80,
     "top": 514.6500000000001,
     "width": 462,
@@ -395,12 +395,12 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-95ae84b04f0e",
+    "flowGroup": "record-fe6429ade129",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "SGH Warszawa",
+    "content": "UW Warszawa",
     "left": 80,
     "top": 535.6500000000001,
     "width": 462,
@@ -418,12 +418,12 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-95ae84b04f0e",
+    "flowGroup": "record-fe6429ade129",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "2011 – 2016",
+    "content": "2012 – 2016",
     "left": 80,
     "top": 556.6500000000001,
     "width": 462,
@@ -441,7 +441,7 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-95ae84b04f0e",
+    "flowGroup": "record-fe6429ade129",
     "flowRole": "content"
   },
   {
@@ -471,7 +471,7 @@ const NIMBUS_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje",
+    "content": "AML/KYC  ·  Monitoring  ·  CDD/EDD  ·  Raporty SAR",
     "left": 80,
     "top": 620.2,
     "width": 462,
@@ -489,7 +489,7 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5e7c5de2ef26",
+    "flowGroup": "record-4ee500594cb1",
     "flowRole": "content"
   },
   {
@@ -546,7 +546,7 @@ const NIMBUS_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-a44760163dbf"
+    "flowGroup": "record-9fb2d4954611"
   },
   {
     "category": "textarea",
@@ -577,7 +577,7 @@ const NIMBUS_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-a44760163dbf"
+    "flowGroup": "record-9fb2d4954611"
   }
 ];
 

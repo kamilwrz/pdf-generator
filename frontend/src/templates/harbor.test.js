@@ -25,7 +25,7 @@ test("Harbor is a two-column layout with teal accent and diamond list widgets", 
     }
 
     // ── Skills + languages use teal diamond bullets in the sidebar ───────────
-    // 5 skills + 3 languages = 8 diamonds for the shared Jan Kowalski starter.
+    // 5 skills + 3 languages = 8 diamonds for the shared Julia Bernat starter.
     const diamonds = harborTemplate.filter(
         (element) => element.category === "image" && element.src.includes("/iconic/harbor-accent/diamond"),
     );
@@ -65,12 +65,12 @@ test("Harbor is a two-column layout with teal accent and diamond list widgets", 
     assert.ok(tealText.length >= 4, `expected >=4 teal text runs, got ${tealText.length}`);
 
     // ── Education structure: bold diploma + distinguished school ─────────────
-    const diploma = harborTemplate.find((element) => element.content === "Magister Zarządzania");
-    const school = harborTemplate.find((element) => element.content === "SGH Warszawa");
+    const diploma = harborTemplate.find((element) => element.content === "Licencjat Prawa");
+    const school = harborTemplate.find((element) => element.content === "UW Warszawa");
     assert.ok(diploma?.bold);
     assert.equal(school?.color, ACCENT);
 
-    // ── Shared Jan Kowalski demo persona ─────────────────────────────────────
-    assert.ok(harborTemplate.some((element) => element.content === "JAN KOWALSKI"));
-    assert.ok(harborTemplate.some((element) => element.content === "jan.kowalski@email.com"));
+    // ── Shared Julia Bernat demo persona ─────────────────────────────────────
+    assert.ok(harborTemplate.some((element) => element.content === "JULIA BERNAT"));
+    assert.ok(harborTemplate.some((element) => element.content === "julia.bernat@email.com"));
 });

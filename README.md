@@ -980,7 +980,7 @@ Tests:
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_iconic_experience_record_gap_matches_projects`
 - `backend/tests/test_sidebar_wrapped_height.py` — pins `_sidebar_wrapped_height` to the same output as `Builder.measure_block` for realistic bulleted and plain sidebar content, plus an end-to-end check that two differently-shaped fitted sections keep an identical trailing gap
 
-**Shared demo persona.** Every built-in starter (and the guest `demoCv.js`) uses the same fictional **Jan Kowalski** profile — three experience roles, one degree, five skills, three languages, plus phone / email / LinkedIn / GitHub / website / Warszawa — so picker mockups stay comparable and follow each generator's `SPACE_*` rhythm on page 1. Monument uses a slightly compacted bullet set so every section still fits page 1 of the mockup.
+**Shared demo persona.** Every built-in starter (and the guest `demoCv.js`) uses the same fictional **Julia Bernat** profile — AML/compliance analyst with three experience roles, one degree, five skills, three languages, plus phone / email / LinkedIn / GitHub / website / Warszawa — so picker mockups stay comparable and follow each generator's `SPACE_*` rhythm on page 1. Monument and Portico use a slightly compacted bullet set so every section still fits page 1 of the mockup.
 
 **Regenerating source-driven starters and mockups.** Most `frontend/src/templates/*.js` starters are dumps of `generate_resume` output. To refresh them from the shared persona:
 
@@ -988,7 +988,7 @@ Tests:
 python scripts/regenerate_template_starters.py   # rewrites remaining starters (+ Nova/Volt in iconic.js)
 ```
 
-Atrium, Axis, and Blueprint are already Jan Kowalski dumps and are left alone by that script (edit or re-dump them separately if their generators change).
+Atrium, Axis, and Blueprint are regenerated from the same Julia Bernat persona by `scripts/regenerate_template_starters.py` (re-run that script whenever the shared demo or a generator changes).
 
 `frontend/public/template-mockups/{nova,volt,monument,words,cardinal,harbor,tessera,slate,portico,axis,atrium,blueprint,sterling,nimbus,cinder}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from those starter arrays, not hand-drawn mockups. After starter changes, regenerate the PNGs:
 
@@ -2645,7 +2645,7 @@ Testy:
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_iconic_experience_record_gap_matches_projects`
 - `backend/tests/test_sidebar_wrapped_height.py` — przypina `_sidebar_wrapped_height` do tego samego wyniku co `Builder.measure_block` dla realistycznej treści wypunktowanej i zwykłej w sidebarze, plus sprawdzenie end-to-end, że dwie inaczej ukształtowane dopasowane sekcje zachowują identyczny odstęp końcowy
 
-**Wspólna persona demo.** Każdy wbudowany starter (oraz gościnny `demoCv.js`) używa tej samej fikcyjnej osoby **Jan Kowalski** — trzy role, jedno wykształcenie, pięć umiejętności, trzy języki oraz telefon / e-mail / LinkedIn / GitHub / strona / Warszawa — żeby mockupy w pickerze były porównywalne i trzymały rytm `SPACE_*` generatora na stronie 1. Monument ma lekko skrócone bullet’y, żeby wszystkie sekcje nadal mieściły się na stronie 1 mockupu.
+**Wspólna persona demo.** Każdy wbudowany starter (oraz gościnny `demoCv.js`) używa tej samej fikcyjnej osoby **Julia Bernat** — analityczka AML/compliance z trzema rolami, jednym wykształceniem, pięcioma umiejętnościami, trzema językami oraz telefonem / e-mailem / LinkedIn / GitHub / stroną / Warszawą — żeby mockupy w pickerze były porównywalne i trzymały rytm `SPACE_*` generatora na stronie 1. Monument i Portico mają lekko skrócone bullet’y, żeby wszystkie sekcje nadal mieściły się na stronie 1 mockupu.
 
 **Regenerowanie starterów i podglądów ze źródła.** Większość plików `frontend/src/templates/*.js` to zrzuty wyjścia `generate_resume`. Odświeżenie ze wspólnej persony:
 
@@ -2653,7 +2653,7 @@ Testy:
 python scripts/regenerate_template_starters.py   # przepisuje pozostałe startery (+ Nova/Volt w iconic.js)
 ```
 
-Atrium, Axis i Blueprint są już zrzutami Jana Kowalskiego i ten skrypt ich nie rusza (edytuj lub zrzucaj osobno po zmianie generatora).
+Atrium, Axis i Blueprint są regenerowane z tej samej persony Julia Bernat przez `scripts/regenerate_template_starters.py` (uruchom ponownie po zmianie wspólnego demo lub generatora).
 
 Pliki `frontend/public/template-mockups/{nova,volt,monument,words,cardinal,harbor,tessera,slate,portico,axis,atrium,blueprint,sterling,nimbus,cinder}.png` — podglądy w galerii Hero, pickerze i panelu **Wypełnij z mojego CV** — pochodzą z tych tablic starterów, nie z ręcznych grafik. Po zmianie starterów odtwórz PNG:
 

@@ -53,7 +53,7 @@ def _gen_portico(cv: dict) -> list[dict]:
     name_fs, name_lh = (29, 33)
     title_fs, title_lh = (10, 14)
     # Centered square photo well — empty in the editor; gallery click fills it.
-    # Kept compact so the shared Jan Kowalski demo still fits page 1.
+    # Kept compact so the shared Julia Bernat demo still fits page 1.
     PHOTO_SIZE = 78.0
     PHOTO_LEFT = CENTER_X - PHOTO_SIZE / 2.0
 

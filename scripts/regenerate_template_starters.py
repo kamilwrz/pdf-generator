@@ -1,10 +1,12 @@
 """Regenerate frontend template starters from the backend generators.
 
-Uses a shared Jan Kowalski demo persona (three roles, one degree, five skills,
-three languages) so picker previews match `/ai/fill_template` and follow the
-generator's SPACE_* rhythm. Starters keep page-1 elements only (mockups and the
-template picker show a single A4). Image URLs are stored relative and absolutised
-at load time via API_BASE_URL — same pattern as atrium.js / axis.js.
+Uses a shared Julia Bernat demo persona (AML/compliance analyst — three roles,
+one degree, five skills, three languages) so picker previews match
+`/ai/fill_template` and follow the generator's SPACE_* rhythm. Field lengths
+track the previous shared demo so page-1 mockups stay full. Starters keep
+page-1 elements only (mockups and the template picker show a single A4). Image
+URLs are stored relative and absolutised at load time via API_BASE_URL — same
+pattern as atrium.js / axis.js.
 
 Run from repo root:
 
@@ -25,73 +27,76 @@ sys.path.insert(0, str(BACKEND_DIR))
 
 from app.services.cv_generator import generate_resume  # noqa: E402
 
-# Shared demo persona — matches atrium / axis / blueprint starters.
+# Shared demo persona — fictional AML/compliance analyst sized to fill landing
+# mockups. Field lengths stay close to the previous shared demo so every
+# generator still packs Summary → Experience → Education → Skills → Languages
+# onto page 1 of the picker preview.
 DEMO_CV = {
-    "name": "Jan Kowalski",
-    "title": "Dyrektor Strategii i Rozwoju",
-    "email": "jan.kowalski@email.com",
-    "phone": "+48 600 000 000",
+    "name": "Julia Bernat",
+    "title": "Analityczka AML i Compliance",
+    "email": "julia.bernat@email.com",
+    "phone": "+48 512 340 780",
     "location": "Warszawa",
-    "linkedin": "linkedin.com/in/jkowalski",
-    "github": "github.com/jkowalski",
-    "website": "jankowalski.pl",
+    "linkedin": "linkedin.com/in/jbernat",
+    "github": "github.com/jbernat",
+    "website": "juliabernat.pl",
     "summary": (
-        "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. "
-        "Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą "
-        "mierzalne rezultaty bez utraty jakości relacji."
+        "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. "
+        "Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz "
+        "oraz terminowość decyzji bez utraty dokładności."
     ),
     "experience": [
         {
             # ``title`` (not ``role``) — ``normalize_cv_data`` only maps
             # title/position into the experience record title field.
-            "title": "Dyrektor Strategii",
-            "company": "Northbridge Partners",
+            "title": "Analityczka AML",
+            "company": "Crestmont Advisory",
             "city": "Warszawa",
-            "period": "2021 – obecnie",
+            "period": "2022 – obecnie",
             "bullets": [
-                "Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.",
-                "Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.",
-                "Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
+                "Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.",
+                "Realizuje CDD/EDD oraz przygotowuje dokumentację zgodną z wymogami FIU.",
+                "Wspiera zespół L2 przy eskalacjach spraw o podwyższonym ryzyku AML.",
             ],
         },
         {
-            "title": "Menedżer Rozwoju",
-            "company": "Meridian Group",
-            "city": "Kraków",
-            "period": "2016 – 2021",
+            "title": "Analityczka KYC",
+            "company": "Baltic Trust Bank",
+            "city": "Warszawa",
+            "period": "2019 – 2022",
             "bullets": [
-                "Rozwinął portfel projektów ekspansji na rynkach europejskich.",
-                "Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
+                "Weryfikowała profile klientów oraz screening PEP, sanctions i media.",
+                "Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
             ],
         },
         {
-            "title": "Konsultant Strategiczny",
-            "company": "Alpine Consulting",
+            "title": "Specjalistka Obsługi Klienta",
+            "company": "Helios Services",
             "city": "Kraków",
-            "period": "2013 – 2016",
+            "period": "2016 – 2019",
             "bullets": [
-                "Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
+                "Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
             ],
         },
     ],
     "education": [
         {
-            "degree": "Magister Zarządzania",
-            "school": "SGH Warszawa",
-            "period": "2011 – 2016",
+            "degree": "Licencjat Prawa",
+            "school": "UW Warszawa",
+            "period": "2012 – 2016",
         },
     ],
     "skills": [
-        "Strategia",
-        "Leadership",
-        "P&L",
-        "Negocjacje",
-        "Transformacja organizacyjna",
+        "AML/KYC",
+        "Monitoring",
+        "CDD/EDD",
+        "Raporty SAR",
+        "Analiza transakcyjna",
     ],
     "languages": [
         {"name": "Polski", "level": "ojczysty"},
         {"name": "Angielski", "level": "C1"},
-        {"name": "Francuski", "level": "B2"},
+        {"name": "Niemiecki", "level": "B2"},
     ],
 }
 
@@ -100,13 +105,11 @@ DEMO_CV = {
 COMPACT_DEMO_CV = {
     **DEMO_CV,
     "summary": (
-        "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. "
-        "Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą "
-        "mierzalne rezultaty."
+        "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. "
+        "Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz."
     ),
-    # Job titles now take a full record row (DEMO_CV used to omit them via the
-    # invalid ``role`` key). Trim bullets further so Monument still fits page 1
-    # with the four-column languages grid.
+    # Trim bullets further so Monument still fits page 1 with the four-column
+    # languages grid (and Portico's taller centered photo masthead).
     "experience": [
         {
             **DEMO_CV["experience"][0],
@@ -132,7 +135,7 @@ COMPACT_TEMPLATE_IDS = frozenset({"monument", "portico"})
 NIMBUS_DEMO_CV = {
     **DEMO_CV,
     "summary": (
-        "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania."
+        "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania."
     ),
     "experience": [
         {
@@ -305,7 +308,7 @@ def js_module(template_id: str, elements: list[dict], *, const_name: str | None 
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/{template_id}.py`) for
- * representative demo content (Jan Kowalski — three roles, one degree, five
+ * representative demo content (Julia Bernat — three roles, one degree, five
  * skills, and three languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
@@ -333,7 +336,7 @@ def iconic_module(nova_elements: list[dict], volt_elements: list[dict]) -> str:
  * Icon-driven static layouts (Nova, Volt).
  *
  * Both starters are the backend generators' own output for representative demo
- * content (Jan Kowalski — three roles, one degree, five skills, and three
+ * content (Julia Bernat — three roles, one degree, five skills, and three
  * languages), so the picker preview matches `/ai/fill_template` pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
  * load time. Icons live under `/template-assets/iconic/<theme>/`.

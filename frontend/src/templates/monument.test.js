@@ -32,7 +32,7 @@ test("Monument keeps its text hierarchy readable and monochrome", () => {
         ),
     ));
     assert.ok(monumentTemplate.some(
-        (element) => element.content === "Dyrektor Strategii i Rozwoju" && element.fontSize === 12.5,
+        (element) => element.content === "Analityczka AML i Compliance" && element.fontSize === 12.5,
     ));
     assert.ok(monumentTemplate.some(
         (element) => element.content === "DOŚWIADCZENIE ZAWODOWE" && element.fontSize === 12.5,
@@ -48,7 +48,7 @@ test("Monument keeps its text hierarchy readable and monochrome", () => {
     const summary = monumentTemplate.find(
         (element) => (
             element.category === "textarea"
-            && String(element.content || "").includes("Lider strategii")
+            && String(element.content || "").includes("Analityczka AML łącząca")
         ),
     );
     const body = monumentTemplate.find(

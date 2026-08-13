@@ -34,7 +34,7 @@ test("Blueprint is a framed, left-aligned technical single column with packer-sa
     assert.ok(masthead.length > 0);
     assert.ok(masthead.every((element) => (element.page ?? 1) === 1));
 
-    const name = masthead.find((element) => element.content === "Jan Kowalski");
+    const name = masthead.find((element) => element.content === "Julia Bernat");
     assert.ok(name);
     assert.equal(name.category, "textarea");
     assert.equal(name.align, "left");
@@ -42,7 +42,7 @@ test("Blueprint is a framed, left-aligned technical single column with packer-sa
     assert.equal(name.fontFamily, "Inter");
     assert.ok(name.bold);
 
-    const title = masthead.find((element) => element.content === "DYREKTOR STRATEGII I ROZWOJU");
+    const title = masthead.find((element) => element.content === "ANALITYCZKA AML I COMPLIANCE");
     assert.ok(title, "title is uppercased (no CSS text-transform in a PDF)");
     assert.equal(title.align, "left");
     assert.equal(title.color, ACCENT_DEEP);
@@ -84,14 +84,14 @@ test("Blueprint is a framed, left-aligned technical single column with packer-sa
     // tried and reverted — see the generator's module docstring — because
     // `sectionStructure.js` always re-stacks section body content by reading
     // order and has no concept of two elements sharing one visual row. ───────
-    const jobTitle = blueprintTemplate.find((element) => element.content === "Dyrektor Strategii");
+    const jobTitle = blueprintTemplate.find((element) => element.content === "Analityczka AML");
     assert.ok(jobTitle);
     assert.equal(jobTitle.category, "textarea");
     assert.ok(jobTitle.bold);
     const jobMeta = blueprintTemplate.find(
         (element) => typeof element.content === "string"
-            && element.content.includes("Northbridge Partners")
-            && element.content.includes("2021"),
+            && element.content.includes("Crestmont Advisory")
+            && element.content.includes("2022"),
     );
     assert.ok(jobMeta, "company and period share one meta line below the title");
     assert.ok(jobMeta.top > jobTitle.top, "meta sits on its own row under the title");
@@ -100,7 +100,7 @@ test("Blueprint is a framed, left-aligned technical single column with packer-sa
     // ── Skills: one inline mid-dot text block (the shared `_place_skills_section`
     // shape) — not individually positioned tag elements. ─────────────────────
     const skillsBody = blueprintTemplate.find(
-        (element) => typeof element.content === "string" && element.content.includes("Strategia"),
+        (element) => typeof element.content === "string" && element.content.includes("AML/KYC"),
     );
     assert.ok(skillsBody);
     assert.equal(skillsBody.category, "textarea");

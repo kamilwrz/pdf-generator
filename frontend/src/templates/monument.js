@@ -5,7 +5,7 @@
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/monument.py`) for
- * representative demo content (Jan Kowalski — three roles, one degree, five
+ * representative demo content (Julia Bernat — three roles, one degree, five
  * skills, and three languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
@@ -103,7 +103,7 @@ const MONUMENT_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "Jan Kowalski",
+    "content": "Julia Bernat",
     "fontSize": 33,
     "fontFamily": "CormorantGaramond",
     "color": "#111111",
@@ -117,7 +117,7 @@ const MONUMENT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Dyrektor Strategii i Rozwoju",
+    "content": "Analityczka AML i Compliance",
     "left": 76,
     "top": 104,
     "width": 337,
@@ -139,7 +139,7 @@ const MONUMENT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "jan.kowalski@email.com · +48 600 000 000 · Warszawa · linkedin.com/in/jkowalski…",
+    "content": "julia.bernat@email.com · +48 512 340 780 · Warszawa · linkedin.com/in/jbernat ·…",
     "left": 76,
     "top": 136,
     "width": 337,
@@ -288,7 +288,7 @@ const MONUMENT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty.",
+    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz.",
     "left": 102,
     "top": 228.0,
     "width": 427,
@@ -376,7 +376,7 @@ const MONUMENT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Dyrektor Strategii",
+    "content": "Analityczka AML",
     "left": 102,
     "top": 321.0,
     "width": 427,
@@ -394,12 +394,12 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9535771dbe3e",
+    "flowGroup": "record-7cdf59d0bfe8",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Northbridge Partners   ·   Warszawa   ·   2021 – obecnie",
+    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
     "left": 102,
     "top": 339.0,
     "width": 427,
@@ -417,12 +417,12 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9535771dbe3e",
+    "flowGroup": "record-7cdf59d0bfe8",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.",
+    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.",
     "left": 102,
     "top": 355.0,
     "width": 427,
@@ -440,12 +440,12 @@ const MONUMENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9535771dbe3e",
+    "flowGroup": "record-7cdf59d0bfe8",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Menedżer Rozwoju",
+    "content": "Analityczka KYC",
     "left": 102,
     "top": 379.0,
     "width": 427,
@@ -463,12 +463,12 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-63236280b59f",
+    "flowGroup": "record-89f3fae61977",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Meridian Group   ·   Kraków   ·   2016 – 2021",
+    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
     "left": 102,
     "top": 397.0,
     "width": 427,
@@ -486,12 +486,12 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-63236280b59f",
+    "flowGroup": "record-89f3fae61977",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.",
+    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.",
     "left": 102,
     "top": 413.0,
     "width": 427,
@@ -509,12 +509,12 @@ const MONUMENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-63236280b59f",
+    "flowGroup": "record-89f3fae61977",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Konsultant Strategiczny",
+    "content": "Specjalistka Obsługi Klienta",
     "left": 102,
     "top": 437.0,
     "width": 427,
@@ -532,12 +532,12 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c94d6503768f",
+    "flowGroup": "record-713c61622de5",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Alpine Consulting   ·   Kraków   ·   2013 – 2016",
+    "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
     "left": 102,
     "top": 455.0,
     "width": 427,
@@ -555,12 +555,12 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c94d6503768f",
+    "flowGroup": "record-713c61622de5",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
+    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
     "left": 102,
     "top": 471.0,
     "width": 427,
@@ -578,7 +578,7 @@ const MONUMENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c94d6503768f",
+    "flowGroup": "record-713c61622de5",
     "flowRole": "content"
   },
   {
@@ -649,7 +649,7 @@ const MONUMENT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Magister Zarządzania",
+    "content": "Licencjat Prawa",
     "left": 102,
     "top": 550.0,
     "width": 427,
@@ -667,12 +667,12 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-42925d78f499",
+    "flowGroup": "record-8744af53d4d6",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "SGH Warszawa",
+    "content": "UW Warszawa",
     "left": 102,
     "top": 567.0,
     "width": 427,
@@ -690,12 +690,12 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-42925d78f499",
+    "flowGroup": "record-8744af53d4d6",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "2011 – 2016",
+    "content": "2012 – 2016",
     "left": 102,
     "top": 584.0,
     "width": 427,
@@ -713,7 +713,7 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-42925d78f499",
+    "flowGroup": "record-8744af53d4d6",
     "flowRole": "content"
   },
   {
@@ -784,7 +784,7 @@ const MONUMENT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Strategia  ·  Leadership  ·  P&L  ·  Negocjacje  ·  Transformacja organizacyjna",
+    "content": "AML/KYC  ·  Monitoring  ·  CDD/EDD  ·  Raporty SAR  ·  Analiza transakcyjna",
     "left": 102,
     "top": 661.0,
     "width": 427,
@@ -802,7 +802,7 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e3ba85acb582",
+    "flowGroup": "record-7c943549b81e",
     "flowRole": "content"
   },
   {
@@ -900,7 +900,7 @@ const MONUMENT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-401b83b9deb1"
+    "flowGroup": "record-d5e92d494ed0"
   },
   {
     "category": "textarea",
@@ -931,11 +931,11 @@ const MONUMENT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-401b83b9deb1"
+    "flowGroup": "record-d5e92d494ed0"
   },
   {
     "category": "textarea",
-    "content": "Francuski — B2",
+    "content": "Niemiecki — B2",
     "left": 315.5,
     "top": 740.0,
     "width": 98.75,
@@ -962,7 +962,7 @@ const MONUMENT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-401b83b9deb1"
+    "flowGroup": "record-d5e92d494ed0"
   }
 ];
 

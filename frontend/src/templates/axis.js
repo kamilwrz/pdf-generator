@@ -6,7 +6,7 @@
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/axis.py`) for
- * representative demo content (Jan Kowalski — three roles, one degree, five
+ * representative demo content (Julia Bernat — three roles, one degree, five
  * skills, and three languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
@@ -55,7 +55,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "JAN KOWALSKI",
+    "content": "JULIA BERNAT",
     "fontSize": 23,
     "fontFamily": "Inter",
     "color": "#1B3357",
@@ -70,7 +70,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "Dyrektor Strategii i Rozwoju",
+    "content": "Analityczka AML i Compliance",
     "fontSize": 11.5,
     "fontFamily": "Inter",
     "color": "#E2740C",
@@ -97,7 +97,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "+48 600 000 000",
+    "content": "+48 512 340 780",
     "fontSize": 8.6,
     "fontFamily": "Inter",
     "color": "#3D3D3D",
@@ -112,7 +112,7 @@ const AXIS_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/axis/email.png",
-    "left": 157.55830078125,
+    "left": 154.57265625,
     "top": 104.0,
     "width": 11.0,
     "height": 11.0,
@@ -123,11 +123,11 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "jan.kowalski@email.com",
+    "content": "julia.bernat@email.com",
     "fontSize": 8.6,
     "fontFamily": "Inter",
     "color": "#3D3D3D",
-    "left": 172.55830078125,
+    "left": 169.57265625,
     "top": 104.0,
     "zIndex": 3,
     "page": 1,
@@ -138,7 +138,7 @@ const AXIS_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/axis/linkedin.png",
-    "left": 288.1259765625,
+    "left": 280.3826171875,
     "top": 104.0,
     "width": 11.0,
     "height": 11.0,
@@ -149,11 +149,11 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "linkedin.com/in/jkowalski",
+    "content": "linkedin.com/in/jbernat",
     "fontSize": 8.6,
     "fontFamily": "Inter",
     "color": "#3D3D3D",
-    "left": 303.1259765625,
+    "left": 295.3826171875,
     "top": 104.0,
     "zIndex": 3,
     "page": 1,
@@ -164,7 +164,7 @@ const AXIS_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/axis/github.png",
-    "left": 421.22998046875,
+    "left": 404.55908203125,
     "top": 104.0,
     "width": 11.0,
     "height": 11.0,
@@ -175,11 +175,11 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "github.com/jkowalski",
+    "content": "github.com/jbernat",
     "fontSize": 8.6,
     "fontFamily": "Inter",
     "color": "#3D3D3D",
-    "left": 436.22998046875,
+    "left": 419.55908203125,
     "top": 104.0,
     "zIndex": 3,
     "page": 1,
@@ -201,7 +201,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "jankowalski.pl",
+    "content": "juliabernat.pl",
     "fontSize": 8.6,
     "fontFamily": "Inter",
     "color": "#3D3D3D",
@@ -216,7 +216,7 @@ const AXIS_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/axis/location.png",
-    "left": 141.98759765625,
+    "left": 137.2298828125,
     "top": 119.0,
     "width": 11.0,
     "height": 11.0,
@@ -231,7 +231,7 @@ const AXIS_ELEMENTS = [
     "fontSize": 8.6,
     "fontFamily": "Inter",
     "color": "#3D3D3D",
-    "left": 156.98759765625,
+    "left": 152.2298828125,
     "top": 119.0,
     "zIndex": 3,
     "page": 1,
@@ -267,7 +267,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Lider strategii łączący perspektywę biznesową z dyscypliną wykonania. Buduję zespoły, które podejmują czytelne decyzje i konsekwentnie dowożą mierzalne rezultaty bez utraty jakości relacji.",
+    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz oraz terminowość decyzji bez utraty dokładności.",
     "left": 54,
     "top": 196.96,
     "width": 487,
@@ -304,7 +304,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Dyrektor Strategii",
+    "content": "Analityczka AML",
     "left": 182,
     "top": 265.92,
     "width": 359,
@@ -322,12 +322,12 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-aacbc731a582",
+    "flowGroup": "record-b6154f1cca44",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Northbridge Partners",
+    "content": "Crestmont Advisory",
     "left": 182,
     "top": 283.92,
     "width": 359,
@@ -345,16 +345,16 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-aacbc731a582",
+    "flowGroup": "record-b6154f1cca44",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Zaprojektował model wzrostu łączący cele finansowe z inicjatywami produktowymi.\n• Uporządkował rytm decyzji zarządu oraz raportowanie strategiczne.\n• Prowadzi mentoring liderów odpowiedzialnych za kluczowe programy.",
+    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.\n• Realizuje CDD/EDD oraz przygotowuje dokumentację zgodną z wymogami FIU.\n• Wspiera zespół L2 przy eskalacjach spraw o podwyższonym ryzyku AML.",
     "left": 182,
     "top": 300.92,
     "width": 359,
-    "height": 54,
+    "height": 41,
     "fontSize": 9,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -368,12 +368,12 @@ const AXIS_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-aacbc731a582",
+    "flowGroup": "record-b6154f1cca44",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "2021 – obecnie",
+    "content": "2022 – obecnie",
     "left": 54,
     "top": 265.92,
     "width": 100,
@@ -392,7 +392,7 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-aacbc731a582"
+    "flowGroup": "record-b6154f1cca44"
   },
   {
     "category": "textarea",
@@ -415,7 +415,7 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-aacbc731a582"
+    "flowGroup": "record-b6154f1cca44"
   },
   {
     "category": "circle",
@@ -429,25 +429,25 @@ const AXIS_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-aacbc731a582"
+    "flowGroup": "record-b6154f1cca44"
   },
   {
     "category": "line",
     "left": 161,
     "top": 275.92,
     "width": 1,
-    "height": 89.0,
+    "height": 76.0,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-aacbc731a582"
+    "flowGroup": "record-b6154f1cca44"
   },
   {
     "category": "textarea",
-    "content": "Menedżer Rozwoju",
+    "content": "Analityczka KYC",
     "left": 182,
-    "top": 364.92,
+    "top": 351.92,
     "width": 359,
     "height": 14,
     "fontSize": 11.0,
@@ -463,14 +463,14 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-510fe28d94f6",
+    "flowGroup": "record-2d90ea382e2d",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Meridian Group",
+    "content": "Baltic Trust Bank",
     "left": 182,
-    "top": 382.92,
+    "top": 369.92,
     "width": 359,
     "height": 13,
     "fontSize": 9.5,
@@ -486,14 +486,14 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-510fe28d94f6",
+    "flowGroup": "record-2d90ea382e2d",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Rozwinął portfel projektów ekspansji na rynkach europejskich.\n• Wprowadził standardy współpracy między sprzedażą, produktem i finansami.",
+    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
     "left": 182,
-    "top": 399.92,
+    "top": 386.92,
     "width": 359,
     "height": 27,
     "fontSize": 9,
@@ -509,14 +509,14 @@ const AXIS_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-510fe28d94f6",
+    "flowGroup": "record-2d90ea382e2d",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "2016 – 2021",
+    "content": "2019 – 2022",
     "left": 54,
-    "top": 364.92,
+    "top": 351.92,
     "width": 100,
     "height": 11,
     "fontSize": 8.4,
@@ -533,13 +533,13 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-510fe28d94f6"
+    "flowGroup": "record-2d90ea382e2d"
   },
   {
     "category": "textarea",
-    "content": "Kraków",
+    "content": "Warszawa",
     "left": 54,
-    "top": 376.92,
+    "top": 363.92,
     "width": 100,
     "height": 11,
     "fontSize": 8.0,
@@ -556,12 +556,12 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-510fe28d94f6"
+    "flowGroup": "record-2d90ea382e2d"
   },
   {
     "category": "circle",
     "left": 158,
-    "top": 367.92,
+    "top": 354.92,
     "width": 7,
     "height": 7,
     "backgroundColor": "#1B3357",
@@ -570,25 +570,25 @@ const AXIS_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-510fe28d94f6"
+    "flowGroup": "record-2d90ea382e2d"
   },
   {
     "category": "line",
     "left": 161,
-    "top": 374.92,
+    "top": 361.92,
     "width": 1,
     "height": 62.0,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-510fe28d94f6"
+    "flowGroup": "record-2d90ea382e2d"
   },
   {
     "category": "textarea",
-    "content": "Konsultant Strategiczny",
+    "content": "Specjalistka Obsługi Klienta",
     "left": 182,
-    "top": 436.92,
+    "top": 423.92,
     "width": 359,
     "height": 14,
     "fontSize": 11.0,
@@ -604,14 +604,14 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-92f626cef583",
+    "flowGroup": "record-187cc497e163",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Alpine Consulting",
+    "content": "Helios Services",
     "left": 182,
-    "top": 454.92,
+    "top": 441.92,
     "width": 359,
     "height": 13,
     "fontSize": 9.5,
@@ -627,14 +627,14 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-92f626cef583",
+    "flowGroup": "record-187cc497e163",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Prowadził projekty doradcze dla klientów z sektora finansowego i przemysłowego.",
+    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
     "left": 182,
-    "top": 471.92,
+    "top": 458.92,
     "width": 359,
     "height": 14,
     "fontSize": 9,
@@ -650,14 +650,14 @@ const AXIS_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-92f626cef583",
+    "flowGroup": "record-187cc497e163",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "2013 – 2016",
+    "content": "2016 – 2019",
     "left": 54,
-    "top": 436.92,
+    "top": 423.92,
     "width": 100,
     "height": 11,
     "fontSize": 8.4,
@@ -674,13 +674,13 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-92f626cef583"
+    "flowGroup": "record-187cc497e163"
   },
   {
     "category": "textarea",
     "content": "Kraków",
     "left": 54,
-    "top": 448.92,
+    "top": 435.92,
     "width": 100,
     "height": 11,
     "fontSize": 8.0,
@@ -697,12 +697,12 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-92f626cef583"
+    "flowGroup": "record-187cc497e163"
   },
   {
     "category": "circle",
     "left": 158,
-    "top": 439.92,
+    "top": 426.92,
     "width": 7,
     "height": 7,
     "backgroundColor": "#1B3357",
@@ -711,19 +711,19 @@ const AXIS_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-92f626cef583"
+    "flowGroup": "record-187cc497e163"
   },
   {
     "category": "line",
     "left": 161,
-    "top": 446.92,
+    "top": 433.92,
     "width": 1,
     "height": 39.0,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-92f626cef583"
+    "flowGroup": "record-187cc497e163"
   },
   {
     "category": "text",
@@ -732,7 +732,7 @@ const AXIS_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#1B3357",
     "left": 54,
-    "top": 506.92,
+    "top": 493.92,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -742,9 +742,9 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Magister Zarządzania",
+    "content": "Licencjat Prawa",
     "left": 182,
-    "top": 527.88,
+    "top": 514.88,
     "width": 359,
     "height": 14,
     "fontSize": 10.6,
@@ -760,14 +760,14 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1cc8be9aaa94",
+    "flowGroup": "record-0bdc250a5b02",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "SGH Warszawa",
+    "content": "UW Warszawa",
     "left": 182,
-    "top": 545.88,
+    "top": 532.88,
     "width": 359,
     "height": 13,
     "fontSize": 9.5,
@@ -783,14 +783,14 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1cc8be9aaa94",
+    "flowGroup": "record-0bdc250a5b02",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "2011 – 2016",
+    "content": "2012 – 2016",
     "left": 54,
-    "top": 527.88,
+    "top": 514.88,
     "width": 100,
     "height": 11,
     "fontSize": 8.4,
@@ -807,12 +807,12 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-1cc8be9aaa94"
+    "flowGroup": "record-0bdc250a5b02"
   },
   {
     "category": "circle",
     "left": 158,
-    "top": 530.88,
+    "top": 517.88,
     "width": 7,
     "height": 7,
     "backgroundColor": "#1B3357",
@@ -821,19 +821,19 @@ const AXIS_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-1cc8be9aaa94"
+    "flowGroup": "record-0bdc250a5b02"
   },
   {
     "category": "line",
     "left": 161,
-    "top": 537.88,
+    "top": 524.88,
     "width": 1,
     "height": 21.0,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-1cc8be9aaa94"
+    "flowGroup": "record-0bdc250a5b02"
   },
   {
     "category": "text",
@@ -842,7 +842,7 @@ const AXIS_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#1B3357",
     "left": 54,
-    "top": 579.88,
+    "top": 566.88,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -852,137 +852,137 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "Strategia",
+    "content": "AML/KYC",
     "fontSize": 9.0,
     "fontFamily": "Inter",
     "color": "#2E7391",
     "left": 54.0,
-    "top": 600.84,
+    "top": 587.84,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowGroup": "record-f4592e610f70",
+    "flowGroup": "record-9c29833ac530",
     "flowRole": "content"
   },
   {
     "category": "line",
     "left": 54.0,
-    "top": 613.84,
-    "width": 42.10498046875001,
+    "top": 600.84,
+    "width": 45.40087890625001,
     "height": 1,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
-    "flowGroup": "record-f4592e610f70",
+    "flowGroup": "record-9c29833ac530",
     "flowRole": "content"
   },
   {
     "category": "text",
-    "content": "Leadership",
+    "content": "Monitoring",
     "fontSize": 9.0,
     "fontFamily": "Inter",
     "color": "#2E7391",
-    "left": 114.10498046875,
-    "top": 600.84,
+    "left": 117.40087890625,
+    "top": 587.84,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowGroup": "record-f4592e610f70",
+    "flowGroup": "record-9c29833ac530",
     "flowRole": "content"
   },
   {
     "category": "line",
-    "left": 114.10498046875,
-    "top": 613.84,
-    "width": 51.29833984375001,
+    "left": 117.40087890625,
+    "top": 600.84,
+    "width": 49.76904296875001,
     "height": 1,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
-    "flowGroup": "record-f4592e610f70",
+    "flowGroup": "record-9c29833ac530",
     "flowRole": "content"
   },
   {
     "category": "text",
-    "content": "P&L",
+    "content": "CDD/EDD",
     "fontSize": 9.0,
     "fontFamily": "Inter",
     "color": "#2E7391",
-    "left": 183.4033203125,
-    "top": 600.84,
+    "left": 185.169921875,
+    "top": 587.84,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowGroup": "record-f4592e610f70",
+    "flowGroup": "record-9c29833ac530",
     "flowRole": "content"
   },
   {
     "category": "line",
-    "left": 183.4033203125,
-    "top": 613.84,
-    "width": 20.633300781250004,
+    "left": 185.169921875,
+    "top": 600.84,
+    "width": 45.20751953125001,
     "height": 1,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
-    "flowGroup": "record-f4592e610f70",
+    "flowGroup": "record-9c29833ac530",
     "flowRole": "content"
   },
   {
     "category": "text",
-    "content": "Negocjacje",
+    "content": "Raporty SAR",
     "fontSize": 9.0,
     "fontFamily": "Inter",
     "color": "#2E7391",
-    "left": 222.03662109375,
-    "top": 600.84,
+    "left": 248.37744140625,
+    "top": 587.84,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowGroup": "record-f4592e610f70",
+    "flowGroup": "record-9c29833ac530",
     "flowRole": "content"
   },
   {
     "category": "line",
-    "left": 222.03662109375,
-    "top": 613.84,
-    "width": 51.88720703125001,
+    "left": 248.37744140625,
+    "top": 600.84,
+    "width": 57.45068359375001,
     "height": 1,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
-    "flowGroup": "record-f4592e610f70",
+    "flowGroup": "record-9c29833ac530",
     "flowRole": "content"
   },
   {
     "category": "text",
-    "content": "Transformacja organizacyjna",
+    "content": "Analiza transakcyjna",
     "fontSize": 9.0,
     "fontFamily": "Inter",
     "color": "#2E7391",
-    "left": 291.923828125,
-    "top": 600.84,
+    "left": 323.828125,
+    "top": 587.84,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowGroup": "record-f4592e610f70",
+    "flowGroup": "record-9c29833ac530",
     "flowRole": "content"
   },
   {
     "category": "line",
-    "left": 291.923828125,
-    "top": 613.84,
-    "width": 127.90820312500001,
+    "left": 323.828125,
+    "top": 600.84,
+    "width": 91.69287109375001,
     "height": 1,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
-    "flowGroup": "record-f4592e610f70",
+    "flowGroup": "record-9c29833ac530",
     "flowRole": "content"
   },
   {
@@ -992,7 +992,7 @@ const AXIS_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#1B3357",
     "left": 54,
-    "top": 645.84,
+    "top": 632.84,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -1004,7 +1004,7 @@ const AXIS_ELEMENTS = [
     "category": "textarea",
     "content": "Polski — ojczysty",
     "left": 54.0,
-    "top": 666.8000000000001,
+    "top": 653.8000000000001,
     "width": 113.75,
     "height": 13,
     "fontSize": 9.0,
@@ -1029,13 +1029,13 @@ const AXIS_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-11cdf3e720a2"
+    "flowGroup": "record-d80c6854061a"
   },
   {
     "category": "textarea",
     "content": "Angielski — C1",
     "left": 175.75,
-    "top": 666.8000000000001,
+    "top": 653.8000000000001,
     "width": 113.75,
     "height": 13,
     "fontSize": 9.0,
@@ -1060,13 +1060,13 @@ const AXIS_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-11cdf3e720a2"
+    "flowGroup": "record-d80c6854061a"
   },
   {
     "category": "textarea",
-    "content": "Francuski — B2",
+    "content": "Niemiecki — B2",
     "left": 297.5,
-    "top": 666.8000000000001,
+    "top": 653.8000000000001,
     "width": 113.75,
     "height": 13,
     "fontSize": 9.0,
@@ -1091,7 +1091,7 @@ const AXIS_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-11cdf3e720a2"
+    "flowGroup": "record-d80c6854061a"
   }
 ];
 
