@@ -21,6 +21,7 @@ import {
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from '../utils/flowSpacing';
 import { collapseSpilledMainIntoSidebar } from '../utils/collapseMainIntoSidebar';
 import { transferSectionLane } from '../utils/transferSectionLane';
+import { changeSkillsDisplayMode } from '../utils/skillsDisplayMode';
 import {
   deriveSectionStyle,
   appendSectionAtEnd,
@@ -968,6 +969,31 @@ export function useA4Elements(titleRef) {
       const next = transferSectionLane(
         prev,
         headingId,
+        pageHeight,
+        flowSpacingRef.current,
+      );
+      if (!next) return prev;
+      return finalizeDocumentPages(next, { collapseEmpty: true });
+    });
+  }, [finalizeDocumentPages]);
+
+  /**
+   * Switch a main-column Skills section (flat or with subcategories) between
+   * the inline mid-dot row, a bullet list, or wrapped chip pills, in place.
+   *
+   * @param {string} headingId
+   * @param {"inline"|"bullet"|"chips"} mode
+   */
+  const handleChangeSkillsDisplayMode = useCallback((headingId, mode) => {
+    if (!headingId) return;
+    if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return;
+
+    setA4_Elements((prev) => {
+      const pageHeight = pageSizeRef.current?.height ?? 842;
+      const next = changeSkillsDisplayMode(
+        prev,
+        headingId,
+        mode,
         pageHeight,
         flowSpacingRef.current,
       );
@@ -2012,6 +2038,7 @@ export function useA4Elements(titleRef) {
     handleReorderRecordBlock,
     handleReorderSection,
     handleTransferSectionLane,
+    handleChangeSkillsDisplayMode,
     // connector mode
     connectMode,
     connectSourceId,

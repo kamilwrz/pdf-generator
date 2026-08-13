@@ -14,7 +14,13 @@
  * re-pack). Flat-list section bodies (Skills, Languages, flat custom sections
  * — exactly one textarea per section) get a `FlatSectionLayoutToggle` icon to
  * their left, centered on the block's height, instead — opening a modal to
- * switch between an inline mid-dot row and a bullet list.
+ * switch between an inline mid-dot row and a bullet list. A main-column
+ * Skills heading (flat or with subcategories) additionally carries
+ * `skillsMode` on its `SectionRecordAdd` anchor, which renders one more
+ * hover icon opening `SkillsLayoutModal` to switch between inline / bullet /
+ * chip pills — the "Skills" case is not `FlatSectionLayoutToggle`-eligible
+ * once it has subcategories (more than one body textarea) or is already
+ * rendered as chips (`listFlatSectionAnchors` excludes both).
  */
 import { use, useMemo } from 'react';
 import Text from '../Text/Text';
@@ -38,6 +44,7 @@ import {
 } from '../../../utils/sectionStructure';
 import { listRecordBlockAddAnchors } from '../../../utils/sectionRecord';
 import { resolveSectionLaneTransfer } from '../../../utils/transferSectionLane';
+import { listSkillsDisplayAnchors } from '../../../utils/skillsDisplayMode';
 import classes from './CanvasElements.module.css';
 
 /** Lane-transfer hover control is enabled for Sterling first; util is general. */
@@ -92,6 +99,13 @@ export default function CanvasElements({ elements }) {
       pageHeight,
       allowLaneTransfer,
     );
+    // Skills layout picker (chips / list / text) is main-column only — a
+    // sidebar kicker's headingId never matches, so this only ever augments
+    // an entry `fillSectionAnchors` already created above.
+    for (const anchor of listSkillsDisplayAnchors(documentElements, pageHeight)) {
+      const existing = map.get(anchor.headingId);
+      if (existing) existing.skillsMode = anchor.mode;
+    }
     return map;
   }, [editorMode, documentElements, pageHeight, allowLaneTransfer]);
 
@@ -211,6 +225,7 @@ export default function CanvasElements({ elements }) {
               canMoveUp={sectionAnchor.canMoveUp}
               canMoveDown={sectionAnchor.canMoveDown}
               laneTransfer={sectionAnchor.laneTransfer}
+              skillsMode={sectionAnchor.skillsMode ?? null}
             />
           ) : null}
           {blockAnchor ? (

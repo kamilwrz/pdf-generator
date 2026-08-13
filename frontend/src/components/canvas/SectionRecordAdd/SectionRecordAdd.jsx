@@ -5,7 +5,10 @@
  * the whole section. Arrows swap section display order. On two-column CVs a
  * left-right transfer arrow appears on the destination side of the heading
  * (main → sidebar on the left, sidebar → main on the right) and moves the
- * section last into that lane under the live spacing rhythm.
+ * section last into that lane under the live spacing rhythm. A main-column
+ * Skills heading (`skillsMode` non-null) also gets a layout icon in the
+ * right cluster that opens `SkillsLayoutModal` (inline mid-dot row / bullet
+ * list / chip pills).
  *
  * Timing: appear on pointer enter over the heading; stay while the pointer is
  * on either cluster; only leaving the heading or a cluster starts a 3s hide
@@ -14,7 +17,7 @@
  */
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { FiChevronDown, FiChevronUp, FiPlus, FiTrash2 } from "react-icons/fi";
-import { LuArrowLeftRight } from "react-icons/lu";
+import { LuArrowLeftRight, LuLayoutGrid } from "react-icons/lu";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { useHoverPlusExclusive } from "../../../hooks/useHoverPlusExclusive";
@@ -34,6 +37,7 @@ const HIDE_AFTER_LEAVE_MS = 3000;
  *   canMoveUp?: boolean,
  *   canMoveDown?: boolean,
  *   laneTransfer?: "to-sidebar"|"to-main"|null,
+ *   skillsMode?: "inline"|"bullet"|"chips"|null,
  * }} props
  */
 export default function SectionRecordAdd({
@@ -45,10 +49,12 @@ export default function SectionRecordAdd({
   canMoveUp = false,
   canMoveDown = false,
   laneTransfer = null,
+  skillsMode = null,
 }) {
   const {
     editorMode,
     openAddSectionModal,
+    openSkillsLayoutModal,
     removeSection,
     reorderSection,
     transferSectionLane,
@@ -167,7 +173,14 @@ export default function SectionRecordAdd({
   };
   const showControls = visible && isExclusiveActive;
   const showReorder = canMoveUp || canMoveDown;
-  const showRightCluster = showReorder || transferToMain;
+  const showSkillsLayout = Boolean(skillsMode);
+  const showRightCluster = showReorder || transferToMain || showSkillsLayout;
+
+  const skillsModeLabel = {
+    inline: "w linii",
+    bullet: "listy",
+    chips: "chipsów",
+  }[skillsMode] || "";
 
   const clusterPointerProps = {
     onPointerEnter: () => {
@@ -304,6 +317,26 @@ export default function SectionRecordAdd({
                   "Do kolumny głównej",
                 )
                 : null}
+              {showSkillsLayout ? (
+                <button
+                  type="button"
+                  className={classes.arrow}
+                  style={buttonStyle}
+                  aria-label="Zmień styl umiejętności"
+                  title={`Styl umiejętności: ${skillsModeLabel}`}
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    openSkillsLayoutModal?.(headingId);
+                    hide();
+                  }}
+                >
+                  <LuLayoutGrid style={iconStyle} />
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>

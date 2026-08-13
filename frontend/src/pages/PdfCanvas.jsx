@@ -43,6 +43,7 @@ import ClaimGuestDocumentModal from '../components/editor/ClaimGuestDocumentModa
 import SectionsPanel from '../components/editor/SectionsPanel/SectionsPanel';
 import AddSectionModal from '../components/editor/AddSectionModal/AddSectionModal';
 import FlatSectionLayoutModal from '../components/editor/FlatSectionLayoutModal/FlatSectionLayoutModal';
+import SkillsLayoutModal from '../components/editor/SkillsLayoutModal/SkillsLayoutModal';
 import LongCvModal from '../components/editor/LongCvModal/LongCvModal';
 import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 import { logEvent } from '../services/eventLog';
@@ -209,6 +210,20 @@ function PdfCanvas() {
   const closeFlatSectionLayoutModal = useCallback(() => {
     setFlatSectionLayoutModal({ open: false, elementId: null });
   }, []);
+  // Layout picker (mid-dot row / bullet list / chip pills) for main-column
+  // Skills sections — same "owned by PdfCanvas" reasoning as the flat-list
+  // toggle above (the canvas hover icon must open it regardless of which
+  // sidebar panel is open; the "Uklad CV" panel opens it too).
+  const [skillsLayoutModal, setSkillsLayoutModal] = useState({
+    open: false,
+    headingId: null,
+  });
+  const openSkillsLayoutModal = useCallback((headingId) => {
+    setSkillsLayoutModal({ open: true, headingId });
+  }, []);
+  const closeSkillsLayoutModal = useCallback(() => {
+    setSkillsLayoutModal({ open: false, headingId: null });
+  }, []);
   // "CV too long" assistant: auto-detects 3+ page documents once per document
   // and offers a free compact-spacing pass, then (if needed) AI shortening.
   const [longCvModal, setLongCvModal] = useState({ open: false, diagnosis: null });
@@ -312,6 +327,7 @@ function PdfCanvas() {
     handleReorderRecordBlock,
     handleReorderSection,
     handleTransferSectionLane,
+    handleChangeSkillsDisplayMode,
     connectMode,
     connectSourceId,
     startConnecting,
@@ -424,6 +440,16 @@ function PdfCanvas() {
     handleEditElementValues({ content, bulletList }, flatSectionLayoutElement.element_id);
     setFlatSectionLayoutModal({ open: false, elementId: null });
   }, [flatSectionLayoutElement, handleEditElementValues]);
+
+  const handleApplySkillsLayout = useCallback((mode) => {
+    const headingId = skillsLayoutModal.headingId;
+    if (!headingId) return;
+    // Same commit path as reorder/transfer — full structural re-pack, not a
+    // single-element edit, so undo/redo and autosave apply with no extra
+    // plumbing (see `handleChangeSkillsDisplayMode` in `useA4Elements`).
+    handleChangeSkillsDisplayMode(headingId, mode);
+    setSkillsLayoutModal({ open: false, headingId: null });
+  }, [skillsLayoutModal.headingId, handleChangeSkillsDisplayMode]);
 
   // usePdfExport's callback param only ever signals "the min-spinner delay
   // has elapsed, react now" — the actual toast trigger lives in the
@@ -1418,6 +1444,7 @@ function PdfCanvas() {
     addSection: handleAddSection,
     openAddSectionModal,
     openFlatSectionLayoutModal,
+    openSkillsLayoutModal,
     addSectionRecord: handleAddSectionRecord,
     addRecordBlock: handleAddRecordBlock,
     removeSection: handleRemoveSection,
@@ -1425,6 +1452,7 @@ function PdfCanvas() {
     reorderRecordBlock: handleReorderRecordBlock,
     reorderSection: handleReorderSection,
     transferSectionLane: handleTransferSectionLane,
+    changeSkillsDisplayMode: handleChangeSkillsDisplayMode,
     markSelected,
     setTextareaEditing: handleSetTextareaEditing,
     selectElement: handleSelectElement,
@@ -1516,7 +1544,7 @@ function PdfCanvas() {
     editorMode, setEditorMode, flowSpacing, setFlowSpacing, baselineFlowSpacing, adoptDocumentFlowSpacing, hydrateDocumentMode, handleShowUnlockFreeform, handleUnlockFreeform,
     activeCvData, setActiveCvData,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
-    isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, openAddSectionModal, openFlatSectionLayoutModal, handleAddSectionRecord, handleAddRecordBlock, handleRemoveSection, handleRemoveRecordBlock, handleReorderRecordBlock, handleReorderSection, handleTransferSectionLane, markSelected, handleSetTextareaEditing,
+    isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, openAddSectionModal, openFlatSectionLayoutModal, openSkillsLayoutModal, handleAddSectionRecord, handleAddRecordBlock, handleRemoveSection, handleRemoveRecordBlock, handleReorderRecordBlock, handleReorderSection, handleTransferSectionLane, handleChangeSkillsDisplayMode, markSelected, handleSetTextareaEditing,
     handleDuplicateElement, pageSize, zoom, zoomIn, zoomOut, undo, redo, canUndo, canRedo, resetHistory,
     deletionPreviewIds, layoutPreviewPatches, structurePreviewGroup, spacingHoldId,
     aiCorrectionHighlights,
@@ -1630,6 +1658,14 @@ function PdfCanvas() {
                 onCancel={closeFlatSectionLayoutModal}
                 element={flatSectionLayoutElement}
                 onApply={handleApplyFlatSectionLayout}
+              />
+              <SkillsLayoutModal
+                open={skillsLayoutModal.open}
+                onCancel={closeSkillsLayoutModal}
+                elements={A4_Elements}
+                headingId={skillsLayoutModal.headingId}
+                pageHeight={pageSize?.height ?? 842}
+                onApply={handleApplySkillsLayout}
               />
               <LongCvModal
                 open={longCvModal.open}

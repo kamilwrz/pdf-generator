@@ -26,6 +26,7 @@ export const PdfContext = createContext({
     addSection: () => {},
     openAddSectionModal: () => {},
     openFlatSectionLayoutModal: () => {},
+    openSkillsLayoutModal: () => {},
     // Bridge for surfaces (e.g. the "CV too long" modal) that need to open the
     // AI assistant and fire an action. `{ action, nonce }`; bump nonce to re-fire.
     assistantAction: null,
@@ -37,6 +38,7 @@ export const PdfContext = createContext({
     reorderRecordBlock: () => {},
     reorderSection: () => {},
     transferSectionLane: () => {},
+    changeSkillsDisplayMode: () => {},
     isBioCvModal: false,
     showBioCvModal: () => {},
     cancelBioCvModal: () => {},

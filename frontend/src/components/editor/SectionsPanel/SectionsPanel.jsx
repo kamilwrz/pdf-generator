@@ -1,6 +1,10 @@
 /**
  * Template-mode layout panel ("Układ CV"): reorder sections, density presets,
- * advanced spacing knobs, and offline auto-fit of page fill/balance.
+ * advanced spacing knobs, and offline auto-fit of page fill/balance. A
+ * main-column Skills section's list row also gets a layout icon opening
+ * `SkillsLayoutModal` (same modal the canvas heading hover control opens —
+ * see `SectionRecordAdd`), so the mode picker is reachable without hunting
+ * for the heading on the page.
  *
  * Renders as a docked flyout to the right of the 72px sidebar rail.
  * Does not own pagination / orphan keep-together / LongCv 3+ page correction.
@@ -8,6 +12,7 @@
 import { use, useEffect, useId, useMemo, useState } from "react";
 import { nanoid } from "nanoid";
 import { FiChevronDown, FiChevronUp, FiPlus, FiX } from "react-icons/fi";
+import { LuLayoutGrid } from "react-icons/lu";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import {
   applyFlowSpacing,
@@ -15,6 +20,7 @@ import {
   listSidebarSections,
   reorderSection,
 } from "../../../utils/sectionStructure";
+import { isSkillsSectionTitle } from "../../../utils/skillsLayout";
 import {
   DEFAULT_FLOW_SPACING,
   densityPresetsFromBaseline,
@@ -69,6 +75,7 @@ export default function SectionsPanel({ onClose }) {
     setFlowSpacing,
     baselineFlowSpacing,
     openAddSectionModal,
+    openSkillsLayoutModal,
     pushToast,
   } = use(PdfContext);
   const pageHeight = pageSize?.height ?? 842;
@@ -248,6 +255,16 @@ export default function SectionsPanel({ onClose }) {
                           {label}
                         </span>
                         <div className={classes.actions}>
+                          {isSkillsSectionTitle(section.title) ? (
+                            <button
+                              type="button"
+                              onClick={() => openSkillsLayoutModal?.(section.headingId)}
+                              aria-label={`Zmień styl umiejętności: ${label}`}
+                              title="Styl umiejętności (w linii / lista / chipsy)"
+                            >
+                              <LuLayoutGrid />
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             disabled={index === 0}
