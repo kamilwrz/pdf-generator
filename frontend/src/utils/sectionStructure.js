@@ -326,7 +326,7 @@ export function isSectionHeading(element, elements = [], pageHeight = 842) {
   if (/^\+?\d[\d\s().\-/]{5,}$/.test(content)) return false;
   // Untagged education/experience period lines ("2011 – 2016") sit above the
   // next section rule after a pack and must not become phantom headings.
-  if (/^\d{4}\s*[–—\-]\s*(?:\d{4}|obecnie|present|now)\s*$/i.test(content)) {
+  if (/^\d{4}\s*[–—-]\s*(?:\d{4}|obecnie|present|now)\s*$/i.test(content)) {
     return false;
   }
   // Label sitting beside a masthead icon on the same row is contact chrome.
@@ -1158,8 +1158,16 @@ function compactChromeCluster(chromeElements, pageHeight) {
 
   const heading = chromeTitleAnchor(chromeElements);
   const headingAbs = absoluteTop(heading, pageHeight);
+  // Sidebar-chrome is authored as deliberately as main section-chrome (a kicker
+  // heading + accent tick at fixed offsets). Treating only "section-chrome" as
+  // explicitly-owned forced every rail cluster through the height-based rebuild
+  // path (heading→rule = headingHeight - 1), so a transferred kicker whose
+  // measured heading height differs from the generator's got a different
+  // heading→rule gap than its neighbours. Preserve authored rail-chrome offsets
+  // too, so all rail sections (generated or transferred) keep one consistent gap.
   const explicitlyOwned = chromeElements.every(
-    (element) => element.flowRole === "section-chrome",
+    (element) => element.flowRole === "section-chrome"
+      || element.flowRole === "sidebar-chrome",
   );
   const smallMarker = chromeElements.find((element) => {
     if (!["rectangle", "circle", "image"].includes(element.category)) return false;
@@ -2550,6 +2558,30 @@ export function deriveSectionStyle(
     },
     mutedColor,
   };
+}
+
+/**
+ * Canonical heading→rule vertical offset (top-to-top) for a section built or
+ * transferred into a lane.
+ *
+ * `compactChromeCluster` treats explicitly-owned section chrome as a rigid
+ * composition and PRESERVES each piece's authored offset from the heading
+ * (see the `explicitlyOwned` branch), so it never normalises the heading→rule
+ * gap. A section moved between the sidebar and the main column must therefore
+ * park its rule at the DESTINATION lane's sampled `rule.relTop` (from
+ * `deriveSectionStyle`) — the same offset every other section in that lane
+ * already uses. Parking it at `headingHeight + 2` instead (the old transfer
+ * default) made the moved section's heading→rule gap differ from its
+ * neighbours; the fallback is only used when the sampled style had no rule.
+ *
+ * @param {object} style - `deriveSectionStyle` result for the destination lane.
+ * @param {number} headingHeight - restyled heading height, fallback only.
+ * @returns {number}
+ */
+export function sectionChromeRuleRelTop(style, headingHeight) {
+  const sampled = Number(style?.rule?.relTop);
+  if (Number.isFinite(sampled) && sampled > 0) return sampled;
+  return (Number(headingHeight) || 12) + 2;
 }
 
 // Profile-photo slot detection lives in `profilePhoto.js` (frame/glyph/ornament

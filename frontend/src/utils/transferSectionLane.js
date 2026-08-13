@@ -22,6 +22,7 @@ import {
   isSidebarSectionHeading,
   listDocumentSections,
   listSidebarSections,
+  sectionChromeRuleRelTop,
   sectionElementIds,
   sidebarSectionElementIds,
 } from "./sectionStructure.js";
@@ -199,10 +200,10 @@ function restyleLanguagesMembersAsMain(members, headingId, style, parkTop) {
     && element.category === "line"
     && (Number(element.height) || 0) <= 4
   ));
-  // Park the rule a few px under the heading; applyFlowSpacing retargets
-  // after_rule to match Experience, so the authored offset only needs to keep
-  // reading order (heading → rule → body).
-  const ruleTop = parkTop + (Number(restyledHeading.height) || 12) + 2;
+  // Park the rule at the destination lane's canonical heading→rule offset so
+  // the moved section matches its neighbours (the packer preserves this
+  // intra-chrome offset). applyFlowSpacing still retargets rule→body.
+  const ruleTop = parkTop + sectionChromeRuleRelTop(style, restyledHeading.height);
   if (rule) {
     const restyledRule = restyleMemberAsMain(rule, headingId, style, ruleTop);
     if (restyledRule) {
@@ -315,6 +316,16 @@ export function moveSidebarSectionsToMain(elements, headingIds, pageHeight, spac
       if (restyled) restyledById.set(element.element_id, restyled);
     }
     if (!restyledById.has(headingId)) return null;
+    // The generic path preserves each member's source (sidebar) offset from the
+    // heading, so the rule would keep the SIDEBAR heading→rule gap. Re-park it
+    // at the destination lane's canonical offset so the moved section's rule
+    // lines up with its main-column neighbours (the packer preserves it).
+    const restyledHeadForRule = restyledById.get(headingId);
+    for (const restyled of restyledById.values()) {
+      if (restyled.flowRole === "section-chrome" && restyled.category === "line") {
+        restyled.top = parkBase + sectionChromeRuleRelTop(style, restyledHeadForRule.height);
+      }
+    }
     next = next.flatMap((element) => {
       if (!memberIds.has(element.element_id)) return [element];
       const restyled = restyledById.get(element.element_id);

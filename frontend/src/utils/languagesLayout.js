@@ -8,12 +8,13 @@
  * Języki section matches Experience rhythm and the template palette.
  */
 import { measureTextareaHeight } from "./textareaHeight.js";
+import { sectionChromeRuleRelTop } from "./sectionStructure.js";
 
 const LANGUAGE_SEP_MAIN = " — ";
 const LANGUAGE_SEP_SIDEBAR = " - ";
 /** Matches backend `_LANGUAGE_SEP` / bullet stripping. */
-const LANGUAGE_SEP_RE = /\s+[—–\-]\s+/;
-const LEADING_BULLET_RE = /^[\s]*[•\-–*—∙·]\s*/;
+const LANGUAGE_SEP_RE = /\s+[—–-]\s+/;
+const LEADING_BULLET_RE = /^\s*[-•–*—∙·]\s*/;
 const LANGUAGES_TITLE_RE = /język|jezyk|language/i;
 
 /** Default column count for the main-column languages grid (backend default). */
@@ -300,7 +301,7 @@ export function restyleLanguagesMembersAsSidebar(members, headingId, style, park
     && element.category === "line"
     && (Number(element.height) || 0) <= 4
   ));
-  const ruleTop = parkTop + (Number(chrome[0].height) || 12) + 2;
+  const ruleTop = parkTop + sectionChromeRuleRelTop(style, chrome[0].height);
   if (rule) {
     const ruleStyle = style.rule || {};
     const relLeft = Number.isFinite(Number(ruleStyle.relLeft)) ? Number(ruleStyle.relLeft) : 0;

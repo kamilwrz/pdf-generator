@@ -15,6 +15,7 @@ import {
   deriveSectionStyle,
   listDocumentSections,
   listSidebarSections,
+  sectionChromeRuleRelTop,
   sectionElementIds,
 } from "./sectionStructure.js";
 import {
@@ -215,6 +216,15 @@ export function moveMainSectionsToSidebar(elements, headingIds, pageHeight, spac
       if (restyled) restyledById.set(element.element_id, restyled);
     }
     if (!restyledById.has(headingId)) return null;
+    // Re-park the rule at the rail's canonical heading→rule offset instead of
+    // the preserved main-column gap, so the moved kicker matches other rail
+    // sections (the packer preserves this sidebar-chrome intra-offset).
+    const restyledHeadForRule = restyledById.get(headingId);
+    for (const restyled of restyledById.values()) {
+      if (restyled.flowRole === "sidebar-chrome" && restyled.category === "line") {
+        restyled.top = 10_000 + sectionChromeRuleRelTop(style, restyledHeadForRule.height);
+      }
+    }
     next = next.flatMap((element) => {
       if (!memberIds.has(element.element_id)) return [element];
       const restyled = restyledById.get(element.element_id);

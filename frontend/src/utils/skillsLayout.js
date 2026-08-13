@@ -16,6 +16,7 @@ import {
   parseFlatListItems,
 } from "./flatSectionLayout.js";
 import { isSkillsSectionTitle } from "./sectionRecord.js";
+import { sectionChromeRuleRelTop } from "./sectionStructure.js";
 
 export { isSkillsSectionTitle };
 
@@ -344,7 +345,7 @@ export function restyleSkillsMembersAsMain(members, headingId, style, parkTop, s
   const afterRule = Number.isFinite(Number(spacing.after_rule))
     ? Number(spacing.after_rule)
     : 8;
-  const ruleTop = parkTop + (Number(chrome[0].height) || 12) + 2;
+  const ruleTop = parkTop + sectionChromeRuleRelTop(style, chrome[0].height);
   if (rule) {
     const ruleStyle = style.rule || {};
     const relLeft = Number.isFinite(Number(ruleStyle.relLeft)) ? Number(ruleStyle.relLeft) : 0;
@@ -430,7 +431,7 @@ export function restyleSkillsMembersAsSidebar(members, headingId, style, parkTop
     && element.category === "line"
     && (Number(element.height) || 0) <= 4
   ));
-  const ruleTop = parkTop + (Number(chrome[0].height) || 12) + 2;
+  const ruleTop = parkTop + sectionChromeRuleRelTop(style, chrome[0].height);
   if (rule) {
     const ruleStyle = style.rule || {};
     const relLeft = Number.isFinite(Number(ruleStyle.relLeft)) ? Number(ruleStyle.relLeft) : 0;

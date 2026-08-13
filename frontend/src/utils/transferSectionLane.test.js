@@ -9,6 +9,7 @@ import {
   listDocumentSections,
   listSidebarSections,
   sectionElementIds,
+  sidebarSectionElementIds,
 } from "./sectionStructure.js";
 
 const PAGE_HEIGHT = 842;
@@ -332,6 +333,45 @@ describe("transferSectionLane", () => {
   it("refuses to move Experience onto the rail", () => {
     const source = sterlingLikeFixture();
     assert.equal(transferSectionLane(source, "m-exp-head", PAGE_HEIGHT, SPACING), null);
+  });
+
+  // Regression: a transferred section used to park its rule at
+  // `headingHeight + 2` (main) / `headingHeight - 1` (rail) instead of the
+  // destination lane's sampled offset, so the moved section's heading->rule gap
+  // differed from every other section in that lane.
+  function headingToRuleGaps(elements, lane) {
+    const abs = (element) => ((Number(element.page) || 1) - 1) * PAGE_HEIGHT + (Number(element.top) || 0);
+    const height = (element) => Number(element.height) || 0;
+    const sections = lane === "sidebar"
+      ? listSidebarSections(elements, PAGE_HEIGHT)
+      : listDocumentSections(elements, PAGE_HEIGHT);
+    return sections.map((section) => {
+      const ids = lane === "sidebar"
+        ? sidebarSectionElementIds(elements, section.headingId, PAGE_HEIGHT)
+        : sectionElementIds(elements, section.headingId, PAGE_HEIGHT);
+      const members = elements.filter((element) => ids.has(element.element_id));
+      const head = members.find((element) => element.element_id === section.headingId);
+      const rule = members
+        .filter((element) => element.category === "line" && height(element) <= 4)
+        .sort((a, b) => abs(a) - abs(b))[0];
+      return rule ? Number((abs(rule) - abs(head)).toFixed(2)) : null;
+    });
+  }
+
+  it("keeps one heading->rule gap for every main section after a sidebar->main transfer", () => {
+    const next = transferSectionLane(sterlingLikeFixture(), "sb-sk-head", PAGE_HEIGHT, SPACING);
+    assert.ok(next);
+    const gaps = headingToRuleGaps(next, "main").filter((gap) => gap != null);
+    assert.ok(gaps.length >= 3, `expected >=3 main sections, got ${gaps.length}`);
+    assert.equal(new Set(gaps).size, 1, `main heading->rule gaps must all match, got ${gaps}`);
+  });
+
+  it("keeps one heading->rule gap for every rail section after a main->sidebar transfer", () => {
+    const next = transferSectionLane(sterlingLikeFixture(), "m-edu-head", PAGE_HEIGHT, SPACING);
+    assert.ok(next);
+    const gaps = headingToRuleGaps(next, "sidebar").filter((gap) => gap != null);
+    assert.ok(gaps.length >= 3, `expected >=3 rail sections, got ${gaps.length}`);
+    assert.equal(new Set(gaps).size, 1, `rail heading->rule gaps must all match, got ${gaps}`);
   });
 });
 
