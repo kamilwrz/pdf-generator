@@ -100,6 +100,10 @@ export function useA4Elements(titleRef) {
   // Last loaded template slug (e.g. "monument"). Used by Layout AI for layout_contract
   // hints; cleared for blank canvases and unknown freestyle loads.
   const [activeTemplateId, setActiveTemplateId] = useState(null);
+  // Lets stable callbacks (e.g. the skills layout picker) read the current
+  // template without being recreated on every template change.
+  const activeTemplateIdRef = useRef(null);
+  useEffect(() => { activeTemplateIdRef.current = activeTemplateId; }, [activeTemplateId]);
   // Constrained template layout vs freeform project. Persisted with the Pdf row.
   const [editorMode, setEditorModeState] = useState(EDITOR_MODE_FREEFORM);
   const editorModeRef = useRef(EDITOR_MODE_FREEFORM);
@@ -996,6 +1000,7 @@ export function useA4Elements(titleRef) {
         mode,
         pageHeight,
         flowSpacingRef.current,
+        activeTemplateIdRef.current,
       );
       if (!next) return prev;
       return finalizeDocumentPages(next, { collapseEmpty: true });

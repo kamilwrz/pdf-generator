@@ -449,8 +449,9 @@ export function buildSkillsChipGroups(groups, options) {
   const catLh = catFs + 2;
   const bodyColor = body.color || "#26313F";
   const fontFamily = body.fontFamily || "Montserrat";
-  const chipBg = options.chipBg || "#2B2B2B";
-  const chipFg = options.chipFg || "#FFFFFF";
+  const outline = options.chipStyle === "outline";
+  const chipBg = options.chipBg || (outline ? "#7C6A52" : "#2B2B2B");
+  const chipFg = options.chipFg || (outline ? "#22221F" : "#FFFFFF");
   const stackGap = Number.isFinite(Number(options.stackGap)) ? Number(options.stackGap) : 4;
   const recordGap = Number.isFinite(Number(options.recordGap)) ? Number(options.recordGap) : 10;
   const idFactory = options.idFactory || (() => `skill-${Math.random().toString(36).slice(2, 9)}`);
@@ -506,7 +507,12 @@ export function buildSkillsChipGroups(groups, options) {
           top: cursor + dy,
           width: chipW,
           height: chipH,
-          filled: true,
+          // Outline style (Portico): unfilled pill, thin stroke in chipBg —
+          // `backgroundColor` doubles as the stroke colour when filled=false
+          // (same convention the backend `_rect`/photo-frame elements use).
+          // Filled style (every other chip-capable template): solid pill.
+          filled: !outline,
+          borderWidth: outline ? 1 : 0,
           borderRadius: radius,
           backgroundColor: chipBg,
           page: 1,
@@ -549,14 +555,20 @@ export function buildSkillsChipGroups(groups, options) {
  * @param {object[]} sectionMembers - current members of the section being converted
  * @param {object[]} allElements - full document, for the "another chip section" fallback
  * @param {object} style - `deriveSectionStyle` result for this section
+ * @param {{ chipStyle?: "filled"|"outline" }} [options]
  * @returns {{ chipBg: string, chipFg: string }}
  */
-export function resolveSkillChipColors(sectionMembers, allElements, style) {
+export function resolveSkillChipColors(sectionMembers, allElements, style, options = {}) {
+  const outline = options.chipStyle === "outline";
   const findChipPair = (pool) => {
     const rect = (pool || []).find((element) => (
       element?.flowRole === "grid-member"
       && element.category === "rectangle"
-      && element.filled
+      // Filled pills (every other chip template) and outline pills (Portico,
+      // `filled: false` + a stroke) are both legitimate existing chip chrome
+      // — matching only `filled` here would make round-tripping an outline
+      // section through another mode and back to chips forget its own colors.
+      && (element.filled || Number(element.borderWidth) > 0)
       && element.backgroundColor
     ));
     if (!rect) return null;
@@ -566,14 +578,14 @@ export function resolveSkillChipColors(sectionMembers, allElements, style) {
       && element.flowGroup === rect.flowGroup
       && element.color
     ));
-    return { chipBg: rect.backgroundColor, chipFg: text?.color || "#FFFFFF" };
+    return { chipBg: rect.backgroundColor, chipFg: text?.color || (outline ? "#22221F" : "#FFFFFF") };
   };
 
   return findChipPair(sectionMembers)
     || findChipPair(allElements)
     || {
-      chipBg: style?.rule?.backgroundColor || style?.heading?.color || "#2B2B2B",
-      chipFg: "#FFFFFF",
+      chipBg: style?.rule?.backgroundColor || style?.heading?.color || (outline ? "#7C6A52" : "#2B2B2B"),
+      chipFg: outline ? "#22221F" : "#FFFFFF",
     };
 }
 
@@ -699,6 +711,7 @@ export function restyleSkillsMembersAsMode(
       ...bodyOptions,
       chipBg: style.chipBg,
       chipFg: style.chipFg,
+      chipStyle: style.chipStyle,
     })
     : buildSkillsMainGroups(groups, { ...bodyOptions, mode });
   if (bodies.length === 0) return null;
