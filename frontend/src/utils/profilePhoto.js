@@ -342,7 +342,12 @@ export function applyProfilePhoto(elements, photo, createId = nanoid) {
     isSelected: false,
     isMove: false,
     isEditing: false,
-    ...(isCircle ? { borderRadius: Math.min(photoBox.width, photoBox.height) / 2 } : {}),
+    // Match the frame's own corner rounding so the photo doesn't poke square
+    // corners out past a rounded outline drawn on top of it (frame z-orders
+    // above the photo for `coversWell` slots like Portico's).
+    ...(isCircle
+      ? { borderRadius: Math.min(photoBox.width, photoBox.height) / 2 }
+      : (Number(frame?.borderRadius) > 0 ? { borderRadius: Number(frame.borderRadius) } : {})),
   };
 
   // Prefer updating an existing applied photo or converting the glyph.

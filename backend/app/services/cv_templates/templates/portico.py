@@ -52,24 +52,30 @@ def _gen_portico(cv: dict) -> list[dict]:
     title = _compact_text(cv.get('title'), 56)
     name_fs, name_lh = (29, 33)
     title_fs, title_lh = (10, 14)
-    # Centered square photo well — empty in the editor; gallery click fills it.
-    # Kept compact so the shared Julia Bernat demo still fits page 1.
-    PHOTO_SIZE = 78.0
-    PHOTO_LEFT = CENTER_X - PHOTO_SIZE / 2.0
+    # Centered portrait-aspect photo well — empty in the editor; gallery click
+    # fills it. Taller than wide (not a square crop) so a normal headshot
+    # doesn't look squeezed. The well itself paints the page's own paper
+    # colour (invisible until filled) with a hairline rule-coloured frame and
+    # softly rounded corners, instead of a visible tinted box + heavy ink
+    # border.
+    PHOTO_WIDTH = 78.0
+    PHOTO_HEIGHT = 100.0
+    PHOTO_LEFT = CENTER_X - PHOTO_WIDTH / 2.0
+    PHOTO_RADIUS = 6.0
 
     header: list[dict] = []
-    cursor_y = 28.0
+    cursor_y = 18.0
     if name:
         name_h = Builder.measure_block(name, W, name_fs, name_lh, DISP, bold=True)
         header.append(_block(name, L, cursor_y, W, name_h, name_fs, name_lh, C['ink'], DISP,
                               zIndex=3, bold=True, align='center'))
-        cursor_y += name_h + 6.0
+        cursor_y += name_h + 8.0
 
     photo_top = cursor_y
     photo_well = {
         **_rect(
-            PHOTO_LEFT, photo_top, PHOTO_SIZE, PHOTO_SIZE,
-            '#F3EEE6', 0, filled=True, zIndex=2,
+            PHOTO_LEFT, photo_top, PHOTO_WIDTH, PHOTO_HEIGHT,
+            C['paper'], 0, filled=True, borderRadius=PHOTO_RADIUS, zIndex=2,
         ),
         'id': 'portico-photo-well',
         'photoSlot': 'ornament',
@@ -77,8 +83,8 @@ def _gen_portico(cv: dict) -> list[dict]:
     }
     photo_frame = {
         **_rect(
-            PHOTO_LEFT, photo_top, PHOTO_SIZE, PHOTO_SIZE,
-            C['ink'], 1.0, zIndex=3,
+            PHOTO_LEFT, photo_top, PHOTO_WIDTH, PHOTO_HEIGHT,
+            C['rule'], 0.75, borderRadius=PHOTO_RADIUS, zIndex=3,
         ),
         'id': 'portico-photo-frame',
         'photoSlot': 'frame',
@@ -86,7 +92,7 @@ def _gen_portico(cv: dict) -> list[dict]:
         'flowRole': 'masthead',
     }
     header.extend([photo_well, photo_frame])
-    cursor_y = photo_top + PHOTO_SIZE + 10.0
+    cursor_y = photo_top + PHOTO_HEIGHT + 10.0
 
     if title:
         title_h = Builder.measure_block(title, W, title_fs, title_lh, SANS)
