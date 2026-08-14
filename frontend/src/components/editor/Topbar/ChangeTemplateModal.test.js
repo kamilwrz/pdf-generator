@@ -30,7 +30,10 @@ describe("Topbar template switcher", () => {
     assert.match(topbarSource, /aria-label="Szablony"/);
     assert.match(topbarSource, /showChangeTemplateModal/);
     assert.match(topbarSource, /adjacentAllowedTemplate/);
-    assert.match(topbarSource, /templateSwitcher/);
-    assert.match(topbarSource, /querySelector\("\.page-canvas"\)/);
+  });
+
+  it("lives in the left action group, not anchored to the A4 page edge", () => {
+    assert.match(topbarSource, /aria-label="Szablon CV"/);
+    assert.doesNotMatch(topbarSource, /querySelector\("\.page-canvas"\)/);
   });
 });

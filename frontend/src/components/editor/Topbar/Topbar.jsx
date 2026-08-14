@@ -3,13 +3,15 @@
  * Action buttons are icon-only with tooltips (title + aria-label).
  * Download/save go through PdfContext create/update (entitlement-gated upstream).
  *
- * The templates control sits on the A4 page's left edge (measured from
- * `.page-canvas`) rather than in the left action group. The grid button still
- * opens the change-template modal; flanking arrows restyle in place without
- * opening that dialog.
+ * The project name field and the templates control both live in the left
+ * action group (rather than centered over the canvas or anchored to the A4
+ * page edge). This leaves the middle of the topbar free so the element-
+ * properties panel (`Editor.jsx`, docked left of `[data-anchor="topbar-zoom"]`)
+ * never overlaps them. The grid button still opens the change-template modal;
+ * flanking arrows restyle in place without opening that dialog.
  */
 import classes from "./Topbar.module.css";
-import { use, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { use, useMemo } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { RiFileTextLine, RiDownload2Line, RiShuffleLine, RiArrowGoBackLine, RiArrowGoForwardLine, RiArrowLeftSLine, RiArrowRightSLine } from "react-icons/ri";
 import { FiEdit3, FiSave, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
@@ -44,40 +46,6 @@ export default function Topbar({ titleRef }) {
     } = use(PdfContext);
     const { applyTemplate, fillingId } = useApplyCvTemplate();
 
-    const topbarRef = useRef(null);
-    const [a4Left, setA4Left] = useState(null);
-
-    useLayoutEffect(() => {
-        const topbar = topbarRef.current;
-        if (!topbar) return undefined;
-
-        const update = () => {
-            const page = document.querySelector(".page-canvas");
-            if (!page) {
-                setA4Left(null);
-                return;
-            }
-            const pageRect = page.getBoundingClientRect();
-            const barRect = topbar.getBoundingClientRect();
-            setA4Left(Math.round(pageRect.left - barRect.left));
-        };
-
-        update();
-        const canvasArea = document.querySelector(".canvas-area");
-        const page = document.querySelector(".page-canvas");
-        const observer = new ResizeObserver(update);
-        observer.observe(topbar);
-        if (canvasArea) observer.observe(canvasArea);
-        if (page) observer.observe(page);
-        canvasArea?.addEventListener("scroll", update, { passive: true });
-        window.addEventListener("resize", update);
-        return () => {
-            observer.disconnect();
-            canvasArea?.removeEventListener("scroll", update);
-            window.removeEventListener("resize", update);
-        };
-    }, [zoom, isTwoPageView, currentPage]);
-
     const prevTemplate = useMemo(
         () => adjacentAllowedTemplate(TEMPLATES, activeTemplateId, -1, entitlements),
         [activeTemplateId, entitlements],
@@ -93,9 +61,35 @@ export default function Topbar({ titleRef }) {
         : "Najpierw wypełnij CV z PDF albo kreatorem krok po kroku";
 
     return (
-        <header className={classes.topbar} ref={topbarRef}>
-            {/* Left: content-creation entry points, then edit history. */}
+        <header className={classes.topbar}>
+            {/* Left: document identity, content-creation entry points, edit
+                history, then the template switcher — all grouped here so the
+                middle of the topbar stays clear for the element-properties
+                panel docked left of the zoom control. */}
             <div className={classes.group}>
+                <div className={classes.projectField}>
+                    <span className={classes.projectIcon} aria-hidden="true">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
+                    </span>
+                    <input
+                        type="text"
+                        name="title"
+                        id="title"
+                        ref={titleRef}
+                        placeholder="Projekt bez tytułu"
+                        aria-label="Nazwa bieżącego projektu"
+                    />
+                    <button
+                        type="button"
+                        className={classes.rename}
+                        aria-label="Zmień nazwę projektu"
+                        title="Zmień nazwę projektu"
+                        onClick={() => titleRef?.current?.focus()}
+                    >
+                        <TiPen />
+                    </button>
+                </div>
+                <span className={classes.divider} aria-hidden="true" />
                 <div className={classes.cluster} role="group" aria-label="Twórz i importuj">
                     <button
                         type="button"
@@ -125,18 +119,11 @@ export default function Topbar({ titleRef }) {
                         <RiArrowGoForwardLine />
                     </button>
                 </div>
-            </div>
-
-            {a4Left != null ? (
-                <div
-                    className={classes.templateSwitcher}
-                    style={{ left: a4Left }}
-                    role="group"
-                    aria-label="Szablon CV"
-                >
+                <span className={classes.divider} aria-hidden="true" />
+                <div className={classes.cluster} role="group" aria-label="Szablon CV">
                     <button
                         type="button"
-                        className={`${classes.iconBtn} ${classes.templateSwitcherPrev}`}
+                        className={classes.iconBtn}
                         onClick={() => prevTemplate && applyTemplate(prevTemplate)}
                         disabled={!canRestyle || !prevTemplate}
                         aria-label={prevTemplate ? `Poprzedni szablon: ${prevTemplate.name}` : "Poprzedni szablon"}
@@ -163,32 +150,6 @@ export default function Topbar({ titleRef }) {
                         title={nextTemplate ? `Następny szablon: ${nextTemplate.name}` : templatesHint}
                     >
                         <RiArrowRightSLine />
-                    </button>
-                </div>
-            ) : null}
-
-            {/* Center: document identity only. */}
-            <div className={classes.center}>
-                <div className={classes.projectField}>
-                    <span className={classes.projectIcon} aria-hidden="true">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
-                    </span>
-                    <input
-                        type="text"
-                        name="title"
-                        id="title"
-                        ref={titleRef}
-                        placeholder="Projekt bez tytułu"
-                        aria-label="Nazwa bieżącego projektu"
-                    />
-                    <button
-                        type="button"
-                        className={classes.rename}
-                        aria-label="Zmień nazwę projektu"
-                        title="Zmień nazwę projektu"
-                        onClick={() => titleRef?.current?.focus()}
-                    >
-                        <TiPen />
                     </button>
                 </div>
             </div>

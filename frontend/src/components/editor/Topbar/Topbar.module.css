@@ -36,23 +36,13 @@
     flex-shrink: 0;
 }
 
-/* ---- centered "current project" field ---- */
-.center {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0 4px;
-    gap: 8px;
-}
-
+/* ---- "current project" field, left-aligned in the left action group ---- */
 .projectField {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    width: 100%;
-    max-width: 240px;
+    width: 190px;
+    flex-shrink: 0;
     height: 32px;
     padding: 0 4px 0 9px;
     background: transparent;
@@ -79,7 +69,7 @@
     border: none;
     background: transparent;
     outline: none;
-    text-align: center;
+    text-align: left;
     font: 600 12px var(--font-body);
     color: var(--topbar-ink);
 }
@@ -262,29 +252,6 @@
     user-select: none;
 }
 
-/*
- * Anchored to the live A4 left edge (viewport x of `.page-canvas` minus the
- * topbar origin). The grid control sits on that edge; the previous-template
- * arrow hangs to the left so it does not push the icon off the page.
- */
-.templateSwitcher {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    z-index: 2;
-}
-
-.templateSwitcherPrev {
-    position: absolute;
-    right: 100%;
-    top: 50%;
-    transform: translateY(-50%);
-    margin-right: 2px;
-}
-
 @media (max-width: 760px) {
     .projectIcon,
     .rename {
@@ -292,7 +259,7 @@
     }
 
     .projectField {
-        max-width: 140px;
+        width: 110px;
         padding: 0 4px;
     }
 }
