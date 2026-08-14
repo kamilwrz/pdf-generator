@@ -25,7 +25,8 @@
     color: var(--chrome-ink, var(--primary-font));
     font-family: var(--font-body);
     border: 1px solid color-mix(in srgb, var(--chrome-border, var(--border-soft)) 82%, white 18%);
-    border-radius: 7px;
+    /* rounded.md from DESIGN.md's token scale (2/4/8px). */
+    border-radius: 4px;
     /* Kept deliberately light — the panel docks directly in the topbar
        (Topbar.module.css has no shadow of its own, just a 1px border), so a
        heavy drop shadow would read as a floating card instead of chrome that

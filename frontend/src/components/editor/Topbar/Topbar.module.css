@@ -47,7 +47,8 @@
     padding: 0 4px 0 9px;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 6px;
+    /* rounded.sm from DESIGN.md's token scale (2/4/8px). */
+    border-radius: 2px;
     transition: border-color .15s, box-shadow .15s, background .15s;
 }
 
