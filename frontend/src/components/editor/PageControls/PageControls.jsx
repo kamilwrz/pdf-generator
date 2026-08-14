@@ -3,11 +3,11 @@
  * editor Topbar (right cluster), so it stays compact and icon-only to match the
  * topbar's other action buttons. Reads page state from the canvas context.
  *
- * Reorder/clone/delete are structural, page-destroying operations that make
- * sense on a freeform DTP canvas but not on a template-mode CV, where page
- * count and order are owned by the section flow (add/remove a section, not a
- * page). Those three stay hidden outside `editorMode: "freeform"`; page
- * navigation and "add page" remain available in both modes.
+ * Reorder/clone/add/delete are structural, page-destroying operations that
+ * make sense on a freeform DTP canvas but not on a template-mode CV, where
+ * page count and order are owned by the section flow (add/remove a section,
+ * not a page). Those four stay hidden outside `editorMode: "freeform"`; page
+ * navigation remains available in both modes.
  */
 import { use } from "react";
 import classes from "./PageControls.module.css";
@@ -111,29 +111,31 @@ export default function PageControls() {
                 </>
             ) : null}
 
-            <span className={classes.divider} />
-
-            <button
-                type="button"
-                className={classes.addBtn}
-                onClick={addPage}
-                aria-label="Dodaj stronę"
-                title="Dodaj stronę"
-            >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
-            </button>
-
             {isFreeform ? (
-                <button
-                    type="button"
-                    className={classes.removeBtn}
-                    onClick={removePage}
-                    disabled={pageCount <= 1}
-                    aria-label="Usuń bieżącą stronę"
-                    title="Usuń bieżącą stronę"
-                >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" /></svg>
-                </button>
+                <>
+                    <span className={classes.divider} />
+
+                    <button
+                        type="button"
+                        className={classes.addBtn}
+                        onClick={addPage}
+                        aria-label="Dodaj stronę"
+                        title="Dodaj stronę"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+                    </button>
+
+                    <button
+                        type="button"
+                        className={classes.removeBtn}
+                        onClick={removePage}
+                        disabled={pageCount <= 1}
+                        aria-label="Usuń bieżącą stronę"
+                        title="Usuń bieżącą stronę"
+                    >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" /></svg>
+                    </button>
+                </>
             ) : null}
         </div>
     );

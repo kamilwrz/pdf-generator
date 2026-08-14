@@ -59,6 +59,41 @@ function skillsWithMarkerFixture() {
   ];
 }
 
+/**
+ * Reproduces the live regression: a long flat skills list sitting close above
+ * a Languages grid section. Converting Skills to chips makes its body taller
+ * than the compact inline row it replaces (chip padding/gaps cost more per
+ * item than mid-dot text) — enough to wrap past where Languages currently
+ * starts.
+ */
+function flatSkillsBeforeLanguagesFixture() {
+  const items = [
+    "Analiza AML/KYC", "Transaction Monitoring", "CDD / EDD",
+    "Screening (PEP, Sanctions, Adverse Media)", "SAR Reporting", "Analityczne myślenie",
+    "Dbałość o szczegóły", "Praca zespołowa", "MS Office", "SAP", "SAP CIC", "SQL",
+    "Python", "LexisNexis",
+  ];
+  return [
+    { element_id: "sk-head", category: "text", content: "UMIEJĘTNOŚCI",
+      flowRole: "section-chrome", left: 76, top: 252.745, fontSize: 8.7, height: 12, page: 2, bold: false },
+    { element_id: "sk-rule", category: "line", flowRole: "section-chrome",
+      left: 76, top: 264.49, width: 466, height: 1, page: 2 },
+    { element_id: "sk-body", category: "textarea", content: items.join("  ·  "),
+      flowRole: "content", left: 76, top: 273.49, width: 466, height: 41, fontSize: 9.4, page: 2, bulletList: false },
+
+    { element_id: "lang-head", category: "text", content: "JĘZYKI",
+      flowRole: "section-chrome", left: 76, top: 335.49, fontSize: 8.7, height: 12, page: 2, bold: false },
+    { element_id: "lang-rule", category: "line", flowRole: "section-chrome",
+      left: 76, top: 347.235, width: 466, height: 1, page: 2 },
+    { element_id: "lang-pl", category: "textarea", content: "Polski — A2",
+      flowRole: "grid-member", flowGroup: "lang-g", left: 76, top: 356.235, width: 108.5, height: 14, fontSize: 9.4, page: 2 },
+    { element_id: "lang-de", category: "textarea", content: "Niemiecki — C1",
+      flowRole: "grid-member", flowGroup: "lang-g", left: 192.5, top: 356.235, width: 108.5, height: 14, fontSize: 9.4, page: 2 },
+    { element_id: "lang-en", category: "textarea", content: "Angielski — B2",
+      flowRole: "grid-member", flowGroup: "lang-g", left: 309, top: 356.235, width: 108.5, height: 14, fontSize: 9.4, page: 2 },
+  ];
+}
+
 function groupsFor(elements, headingId) {
   const memberIds = sectionElementIds(elements, headingId, PAGE_HEIGHT);
   const members = elements.filter((element) => memberIds.has(element.element_id));
@@ -186,6 +221,38 @@ describe("changeSkillsDisplayMode", () => {
         `marker must keep its offset from the heading after converting to ${mode}`,
       );
     }
+  });
+
+  it("does not leak overflow chip rows into a following section when chips grow taller than the inline body", () => {
+    // Regression: converting a long flat skills list to chips can wrap into
+    // more vertical space than the compact inline row it replaces. Without
+    // shifting later content down first, `sectionElementIds`'s Y-interval
+    // membership (bounded by the next heading's stale position) misattributes
+    // the overflowing chip rows to Languages instead of Skills.
+    const next = changeSkillsDisplayMode(
+      flatSkillsBeforeLanguagesFixture(), "sk-head", "chips", PAGE_HEIGHT, SPACING,
+    );
+    assert.ok(next);
+
+    const skillsGroups = groupsFor(next, "sk-head");
+    assert.equal(skillsGroups.length, 1);
+    assert.equal(skillsGroups[0].items.length, 14, "every skill chip must stay attributed to Skills");
+
+    const langMemberIds = sectionElementIds(next, "lang-head", PAGE_HEIGHT);
+    const langMembers = next.filter((element) => langMemberIds.has(element.element_id));
+    const langLabels = langMembers
+      .filter((element) => element.category === "textarea" && element.flowRole === "grid-member")
+      .map((element) => element.content);
+    assert.deepEqual(
+      langLabels.sort(),
+      ["Angielski — B2", "Niemiecki — C1", "Polski — A2"],
+      "Languages must contain only its own 3 entries, no stray skill chips",
+    );
+    assert.equal(
+      langMembers.some((element) => element.category === "rectangle"),
+      false,
+      "no chip pill (skill content) should be attributed to the Languages section",
+    );
   });
 
   it("keeps chip rows aligned within one category (grid does not scatter)", () => {

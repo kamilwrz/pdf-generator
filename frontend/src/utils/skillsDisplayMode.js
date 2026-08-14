@@ -11,6 +11,7 @@
 import {
   applyFlowSpacing,
   deriveSectionStyle,
+  isSidebarLaneElement,
   listDocumentSections,
   sectionElementIds,
 } from "./sectionStructure.js";
@@ -25,6 +26,18 @@ import {
 function absoluteTop(element, pageHeight) {
   const page = Math.max(1, Math.trunc(Number(element?.page) || 1));
   return (page - 1) * pageHeight + (Number(element?.top) || 0);
+}
+
+function elementHeight(element) {
+  const explicit = Number(element?.height);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  const fontSize = Number(element?.fontSize);
+  if (Number.isFinite(fontSize) && fontSize > 0) return fontSize * 1.35;
+  return 12;
+}
+
+function absoluteBottom(element, pageHeight) {
+  return absoluteTop(element, pageHeight) + elementHeight(element);
 }
 
 /**
@@ -85,9 +98,33 @@ export function changeSkillsDisplayMode(elements, headingId, mode, pageHeight = 
   );
   if (!restyled) return null;
 
-  const next = [
-    ...list.filter((element) => !memberIds.has(element.element_id)),
-    ...restyled,
-  ];
+  // Chips take more vertical room per item than the inline/bullet body they
+  // replace (or less, going the other way). `sectionElementIds` attributes
+  // membership by Y-interval against neighbouring sections' CURRENT (stale)
+  // positions — if the new body grows past where the next section's heading
+  // still sits, that heading's own membership sweep claims the overflowing
+  // rows as ITS content before `applyFlowSpacing` ever gets a chance to push
+  // it down, splitting one skill group across two sections. Shifting every
+  // later same-lane element by the exact height delta first (same "open a
+  // hole" fix as `insertRecordBlockAfterRecord` in sectionRecord.js) keeps
+  // the boundary honest before membership is recomputed.
+  const oldBottomAbs = Math.max(...members.map((element) => absoluteBottom(element, pageHeight)));
+  const newBottomAbs = Math.max(...restyled.map((element) => absoluteBottom(element, pageHeight)));
+  const delta = newBottomAbs - oldBottomAbs;
+
+  const shifted = list
+    .filter((element) => !memberIds.has(element.element_id))
+    .map((element) => {
+      if (delta === 0 || !element || element.fixedToPage) return element;
+      if (element.flowRole === "masthead") return element;
+      if (isSidebarLaneElement(element)) return element;
+      if (absoluteTop(element, pageHeight) + 0.01 < oldBottomAbs) return element;
+      const newAbs = absoluteTop(element, pageHeight) + delta;
+      const page = Math.max(1, Math.floor(newAbs / pageHeight) + 1);
+      const top = newAbs - (page - 1) * pageHeight;
+      return { ...element, page, top };
+    });
+
+  const next = [...shifted, ...restyled];
   return applyFlowSpacing(next, spacing, pageHeight);
 }
