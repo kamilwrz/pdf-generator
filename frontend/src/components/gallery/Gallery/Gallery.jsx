@@ -44,13 +44,26 @@ export default function Gallery() {
     // getBoundingClientRect, same pattern as the export Spinner's anchorRef)
     // instead of docking at the far edge of the editor chrome, so the panel
     // slides out right where the page itself ends, independent of zoom.
+    //
+    // A ResizeObserver is required because changing the zoom level resizes
+    // the page without firing a window "resize" or canvas-area "scroll"
+    // event — without it, zooming while the panel is open leaves `panelLeft`
+    // stale at the pre-zoom page width, so the panel ends up overlapping the
+    // (now wider) page instead of hugging its right edge. It must observe
+    // `page.parentElement` (A4.jsx's `.zoomWrapper`), not `page` itself:
+    // zoom is applied to `page` as a CSS `transform: scale(...)`, which
+    // changes its rendered (getBoundingClientRect) size but NOT its content
+    // box, so ResizeObserver never fires on `page` directly. The wrapper's
+    // width/height are explicitly set to `calc(size * zoom)`, so its content
+    // box does change on every zoom step.
     const [panelLeft, setPanelLeft] = useState(null);
     useLayoutEffect(() => {
         if (!isGallery) return undefined;
 
+        const page = A4ref?.current ?? document.querySelector(".page-canvas");
+        if (!page) return undefined;
+
         const placePanel = () => {
-            const page = A4ref?.current ?? document.querySelector(".page-canvas");
-            if (!page) return;
             const rect = page.getBoundingClientRect();
             setPanelLeft(rect.right + PAGE_EDGE_GAP_PX);
         };
@@ -59,9 +72,12 @@ export default function Gallery() {
         window.addEventListener("resize", placePanel);
         const area = document.querySelector(".canvas-area");
         area?.addEventListener("scroll", placePanel, { passive: true });
+        const resizeObserver = new ResizeObserver(placePanel);
+        resizeObserver.observe(page.parentElement ?? page);
         return () => {
             window.removeEventListener("resize", placePanel);
             area?.removeEventListener("scroll", placePanel);
+            resizeObserver.disconnect();
         };
     }, [isGallery, A4ref]);
 
