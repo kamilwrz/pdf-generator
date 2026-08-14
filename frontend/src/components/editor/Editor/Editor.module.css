@@ -5,7 +5,12 @@
 
 .editor {
     position: fixed;
-    z-index: 1250;
+    /* Must clear the topbar's z-index (1400, Topbar.module.css) — the
+       properties panel docks vertically centered on the topbar's zoom
+       cluster, so it paints directly under the topbar's opaque background
+       unless it stacks above it. Below Gallery/DemoBanner (1500) and all
+       modal/toast layers so those still win when both are open. */
+    z-index: 1450;
     width: max-content;
     max-width: calc(100vw - 16px);
     display: flex;

@@ -26,3 +26,25 @@ test("Editor renders selection formatting as its own panel, independent of the t
   assert.match(source, /data-anchor="topbar-zoom"/);
   assert.match(source, /GAP_FROM_ZOOM_PX/);
 });
+
+test("Editor panel stacks above the topbar it docks against", async () => {
+  // The properties panel is vertically centered on the topbar's zoom
+  // cluster, so it paints underneath the topbar's opaque background unless
+  // its z-index clears the topbar's. Regression guard for that exact bug:
+  // a shadow was visible but the panel body was hidden behind the topbar.
+  const editorCss = await readFile(new URL("./Editor.module.css", import.meta.url), "utf8");
+  const topbarCss = await readFile(
+    new URL("../Topbar/Topbar.module.css", import.meta.url),
+    "utf8",
+  );
+
+  const editorZIndex = Number(editorCss.match(/\.editor\s*{[^}]*z-index:\s*(\d+)/)?.[1]);
+  const topbarZIndex = Number(topbarCss.match(/\.topbar\s*{[^}]*z-index:\s*(\d+)/)?.[1]);
+
+  assert.ok(Number.isFinite(editorZIndex), "could not find .editor z-index");
+  assert.ok(Number.isFinite(topbarZIndex), "could not find .topbar z-index");
+  assert.ok(
+    editorZIndex > topbarZIndex,
+    `.editor z-index (${editorZIndex}) must be greater than .topbar z-index (${topbarZIndex})`,
+  );
+});
