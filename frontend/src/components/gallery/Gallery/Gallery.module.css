@@ -7,10 +7,10 @@
     border-right: none;
     box-shadow: -10px 0 30px -22px rgba(47, 67, 82, .45);
     font-family: var(--font-body);
-    /* `left` is set inline (Gallery.jsx) from the live A4 page's right edge
-       via getBoundingClientRect, so the panel hugs the page instead of the
-       far edge of the editor chrome. Falls back to the previous fixed-right
-       docking only for the one frame before that measurement lands. */
+    /* Docked to the editor chrome's right edge, independent of the A4 page's
+       size/zoom — the panel must stay put while the user zooms the page,
+       not track its growing right edge (that previously made the panel
+       drift further right on every zoom step). */
     position: fixed;
     right: 0;
     top: 15%;
