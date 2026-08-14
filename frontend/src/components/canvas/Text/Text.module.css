@@ -28,10 +28,12 @@
 .editing {
     cursor: text;
     caret-color: currentColor;
+    /* Matches Textarea.module.css's `.editing` outline so both element types
+       get identical edit-mode chrome. This element is focused as soon as
+       editing starts (Text.jsx), so a `:focus` override would defeat it —
+       unlike Textarea, this class carries no such override. */
+    outline: 1px solid var(--accent, #171717);
+    outline-offset: 2px;
     -webkit-user-select: text;
     user-select: text;
-}
-
-.editing:focus {
-    outline: none;
 }
