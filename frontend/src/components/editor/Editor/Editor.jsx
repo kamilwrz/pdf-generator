@@ -1,11 +1,17 @@
 /**
- * Compact floating toolbar above the current element selection
- * (Enhancv-style form, CV STUDIO chrome). Icon-first controls; Text vs
- * TextArea keep different field sets. Positioned via selection DOM bboxes.
+ * Element-properties panel (Enhancv-style form, CV STUDIO chrome). Icon-first
+ * controls; Text vs TextArea keep different field sets. Docks in the topbar,
+ * 50px left of the zoom control (`Topbar.jsx`'s `[data-anchor="topbar-zoom"]`)
+ * — not anchored to the canvas selection — so it reads as editor chrome
+ * rather than a tooltip hovering over the page. It mounts/unmounts (fade +
+ * slide) with element selection.
  *
  * While a text/textarea is contentEditable and the caret range is non-empty,
- * a second row ("Zaznaczenie") exposes B/I/U and a native colour input for
- * inline runs — same chrome as the click panel, not a separate floating bar.
+ * a second, fully independent floating bar ("Zaznaczenie") appears anchored
+ * to the selected element on the canvas and exposes B/I/U and a native
+ * colour input for inline runs. It is a separate portal with its own
+ * mount/unmount animation — not a row inside the topbar panel — because it
+ * needs to sit next to what the user is actually typing, not next to zoom.
  *
  * In template (structural) mode the bar hides controls that cannot affect the
  * selection (layout-owned X/Y / align / lock, all width/height size fields,
@@ -147,9 +153,12 @@ export default function Editor() {
   const panelRef = useRef(null);
   const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
   // Non-collapsed caret range inside the editing text node. Selection marks
-  // (B/I/U/colour) live in a second row of this same floating Editor panel —
-  // not a separate white toolbar — so the chrome stays one composition.
+  // (B/I/U/colour) render in their own floating panel, anchored to the
+  // selected element on canvas — independent of the topbar-docked panel
+  // above, with its own mount/unmount animation.
   const [inlineSelection, setInlineSelection] = useState(null);
+  const selectionPanelRef = useRef(null);
+  const [selectionPanelPosition, setSelectionPanelPosition] = useState({ top: 0, left: 0 });
   const selectionKey = selectedElements.map((element) => element.element_id).join("|");
   const selectionGeometryKey = selectedElements
     .map((element) => [
@@ -428,26 +437,67 @@ export default function Editor() {
     });
   }
 
+  /** Union bbox of every selected element's live canvas DOM node. */
+  function readSelectionAnchorRect() {
+    const ids = selectionKey ? selectionKey.split("|").filter(Boolean) : [];
+    const rects = ids
+      .map((id) => document.getElementById(id)?.getBoundingClientRect())
+      .filter(Boolean)
+      .map((rect) => ({
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+      }));
+    return unionRects(rects);
+  }
+
+  // Topbar-docked panel: right edge sits GAP_FROM_ZOOM_PX left of the zoom
+  // control, vertically centered on it. Only the zoom cluster's position (not
+  // the canvas selection) drives this, so panning/zooming the page never
+  // moves the panel — it reads as part of the editor chrome, not a tooltip.
+  const GAP_FROM_ZOOM_PX = 50;
   useLayoutEffect(() => {
     if (!someElementSelected) return undefined;
 
-    function readAnchorRect() {
-      const ids = selectionKey ? selectionKey.split("|").filter(Boolean) : [];
-      const rects = ids
-        .map((id) => document.getElementById(id)?.getBoundingClientRect())
-        .filter(Boolean)
-        .map((rect) => ({
-          left: rect.left,
-          top: rect.top,
-          width: rect.width,
-          height: rect.height,
-        }));
-      return unionRects(rects);
-    }
-
     function updatePosition() {
       const panel = panelRef.current;
-      const anchor = readAnchorRect();
+      const zoomAnchor = document.querySelector('[data-anchor="topbar-zoom"]');
+      if (!panel || !zoomAnchor) return;
+      const anchorRect = zoomAnchor.getBoundingClientRect();
+      const panelWidth = panel.offsetWidth;
+      const panelHeight = panel.offsetHeight;
+      const left = Math.max(8, anchorRect.left - GAP_FROM_ZOOM_PX - panelWidth);
+      const top = anchorRect.top + anchorRect.height / 2 - panelHeight / 2;
+      setPanelPosition((previous) => (
+        previous.top === top && previous.left === left
+          ? previous
+          : { top, left }
+      ));
+    }
+
+    updatePosition();
+    const panel = panelRef.current;
+    const resizeObserver = typeof ResizeObserver !== "undefined" && panel
+      ? new ResizeObserver(updatePosition)
+      : null;
+    if (resizeObserver && panel) resizeObserver.observe(panel);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [someElementSelected, selectionKey]);
+
+  // Selection-formatting panel: anchored to the selected element on canvas
+  // (same geometry the topbar panel used before it moved), independent of
+  // the topbar panel above.
+  useLayoutEffect(() => {
+    if (!inlineSelection) return undefined;
+
+    function updatePosition() {
+      const panel = selectionPanelRef.current;
+      const anchor = readSelectionAnchorRect();
       if (!panel || !anchor) return;
       const next = computeFloatingPanelPosition(
         anchor,
@@ -455,7 +505,7 @@ export default function Editor() {
         { width: window.innerWidth, height: window.innerHeight },
         { gap: 24, padding: 8 },
       );
-      setPanelPosition((previous) => (
+      setSelectionPanelPosition((previous) => (
         previous.top === next.top && previous.left === next.left
           ? previous
           : { top: next.top, left: next.left }
@@ -463,7 +513,7 @@ export default function Editor() {
     }
 
     updatePosition();
-    const panel = panelRef.current;
+    const panel = selectionPanelRef.current;
     const resizeObserver = typeof ResizeObserver !== "undefined" && panel
       ? new ResizeObserver(updatePosition)
       : null;
@@ -479,7 +529,7 @@ export default function Editor() {
       canvasArea?.removeEventListener("scroll", updatePosition);
     };
   }, [
-    someElementSelected,
+    inlineSelection,
     selectionKey,
     selectionGeometryKey,
     zoom,
@@ -498,10 +548,10 @@ export default function Editor() {
           role="toolbar"
           aria-label="Właściwości elementu"
           style={{ top: panelPosition.top, left: panelPosition.left }}
-          initial={{ opacity: 0, y: 4, scale: 0.98 }}
+          initial={{ opacity: 0, y: -6, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 4, scale: 0.98 }}
-          transition={{ duration: 0.14, ease: "easeOut" }}
+          exit={{ opacity: 0, y: -6, scale: 0.98 }}
+          transition={{ duration: 0.16, ease: "easeOut" }}
           onPointerDown={(event) => event.stopPropagation()}
           onMouseDown={(event) => event.stopPropagation()}
         >
@@ -874,77 +924,74 @@ export default function Editor() {
               </>
             )}
           </form>
-          {/*
-            The selection formatting row is presented with a designed reveal:
-            the outer wrapper expands the panel body from 0 → natural height
-            while the inner content slides out from the panel's left edge (both
-            clipped by the wrapper's `overflow: hidden`, so nothing bleeds past
-            the panel or triggers the horizontal scroller). It reverses on exit
-            once the highlight clears. AnimatePresence keeps the row mounted
-            through the exit tween; the panel's ResizeObserver re-anchors it
-            above the selection as the height animates.
-          */}
-          <AnimatePresence>
-            {inlineSelection ? (
-              <motion.div
-                key="selection-bar"
-                className={classes.selectionBar}
-                initial={{ height: 0 }}
-                animate={{ height: "auto" }}
-                exit={{ height: 0 }}
-                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <motion.div
-                  className={classes.selectionInner}
-                  role="toolbar"
-                  aria-label="Formatowanie zaznaczenia"
-                  // Keep the contentEditable selection alive while using the row.
-                  onMouseDown={(event) => event.preventDefault()}
-                  initial={{ x: -16, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: -16, opacity: 0 }}
-                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <span className={classes.selectionLabel}>Zaznaczenie</span>
-                  <Group label="Styl zaznaczenia">
-                    <IconBtn
-                      label="Pogrubienie zaznaczenia"
-                      active={inlineSelection.bold}
-                      onClick={() => applyInlineMark("bold")}
-                    >
-                      <span className={classes.glyphBold}>B</span>
-                    </IconBtn>
-                    <IconBtn
-                      label="Kursywa zaznaczenia"
-                      active={inlineSelection.italic}
-                      onClick={() => applyInlineMark("italic")}
-                    >
-                      <span className={classes.glyphItalic}>I</span>
-                    </IconBtn>
-                    <IconBtn
-                      label="Podkreślenie zaznaczenia"
-                      active={inlineSelection.underline}
-                      onClick={() => applyInlineMark("underline")}
-                    >
-                      <span className={classes.glyphUnderline}>U</span>
-                    </IconBtn>
-                    <ColorField
-                      label="Kolor zaznaczenia"
-                      value={inlineSelection.color}
-                      onChange={(event) => applyInlineMark("color", event.target.value)}
-                    />
-                  </Group>
-                </motion.div>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
         </motion.aside>
       )}
     </AnimatePresence>
   );
 
+  // Independent floating panel for inline text-selection formatting (B/I/U +
+  // colour). Anchored to the selected element on canvas, not the topbar —
+  // see the module docstring for why this stays a separate portal instead of
+  // a row inside `panel` above.
+  const selectionPanel = (
+    <AnimatePresence>
+      {inlineSelection ? (
+        <motion.aside
+          ref={selectionPanelRef}
+          className={classes.editor}
+          role="toolbar"
+          aria-label="Formatowanie zaznaczenia"
+          style={{ top: selectionPanelPosition.top, left: selectionPanelPosition.left }}
+          initial={{ opacity: 0, y: 4, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 4, scale: 0.98 }}
+          transition={{ duration: 0.16, ease: "easeOut" }}
+          // Keep the contentEditable selection alive while using the panel.
+          onMouseDown={(event) => event.preventDefault()}
+        >
+          <form className={classes.bar} onSubmit={(event) => event.preventDefault()}>
+            <Group label="Styl zaznaczenia">
+              <IconBtn
+                label="Pogrubienie zaznaczenia"
+                active={inlineSelection.bold}
+                onClick={() => applyInlineMark("bold")}
+              >
+                <span className={classes.glyphBold}>B</span>
+              </IconBtn>
+              <IconBtn
+                label="Kursywa zaznaczenia"
+                active={inlineSelection.italic}
+                onClick={() => applyInlineMark("italic")}
+              >
+                <span className={classes.glyphItalic}>I</span>
+              </IconBtn>
+              <IconBtn
+                label="Podkreślenie zaznaczenia"
+                active={inlineSelection.underline}
+                onClick={() => applyInlineMark("underline")}
+              >
+                <span className={classes.glyphUnderline}>U</span>
+              </IconBtn>
+              <ColorField
+                label="Kolor zaznaczenia"
+                value={inlineSelection.color}
+                onChange={(event) => applyInlineMark("color", event.target.value)}
+              />
+            </Group>
+          </form>
+        </motion.aside>
+      ) : null}
+    </AnimatePresence>
+  );
+
   if (typeof document === "undefined") return null;
-  return createPortal(panel, document.body);
+  return createPortal(
+    <>
+      {panel}
+      {selectionPanel}
+    </>,
+    document.body,
+  );
 }
 
 function Group({ children, label }) {

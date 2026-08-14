@@ -1,5 +1,7 @@
-/* Floating selection toolbar — compact, content-width, and grouped by intent:
-   content → type → paragraph → geometry → position → actions. */
+/* Shared chrome for both floating panels Editor.jsx renders: the topbar-docked
+   element-properties panel and the canvas-anchored selection-formatting panel.
+   Compact, content-width, grouped by intent: content → type → paragraph →
+   geometry → position → actions. */
 
 .editor {
     position: fixed;
@@ -43,37 +45,6 @@
     gap: 3px;
     padding: 3px;
     margin: 0;
-}
-
-/* Animated collapse wrapper for the selection row. `overflow: hidden` clips
-   both the height reveal and the inner left-slide so the row never bleeds past
-   the panel edge or opens the horizontal scroller during the animation. */
-.selectionBar {
-    width: max-content;
-    min-width: 100%;
-    overflow: hidden;
-}
-
-.selectionInner {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    width: max-content;
-    min-width: 100%;
-    gap: 4px;
-    padding: 0 3px 3px;
-    margin: 0;
-    border-top: 1px solid color-mix(in srgb, var(--chrome-border, var(--border-soft)) 75%, transparent);
-    user-select: none;
-}
-
-.selectionLabel {
-    flex-shrink: 0;
-    padding: 0 4px;
-    color: var(--chrome-muted, var(--muted-font));
-    font: 700 8.5px/1 var(--font-display);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
 }
 
 .group {

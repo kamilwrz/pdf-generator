@@ -196,7 +196,11 @@ export default function Topbar({ titleRef }) {
             {/* Right: view controls (zoom + pages), then document output. */}
             <div className={classes.group}>
                 <div className={classes.cluster} role="group" aria-label="Widok dokumentu">
-                    <div className={classes.zoomCluster}>
+                    {/* Anchor for Editor.jsx's element-properties panel — it docks
+                        50px to the left of this cluster, not near the canvas
+                        selection. `data-*` (not the CSS-module class) so the
+                        selector survives module class hashing across files. */}
+                    <div className={classes.zoomCluster} data-anchor="topbar-zoom">
                         <button
                             type="button"
                             className={classes.zoomBtn}
