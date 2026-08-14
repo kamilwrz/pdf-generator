@@ -58,12 +58,12 @@ def _gen_portico(cv: dict) -> list[dict]:
     PHOTO_LEFT = CENTER_X - PHOTO_SIZE / 2.0
 
     header: list[dict] = []
-    cursor_y = 44.0
+    cursor_y = 28.0
     if name:
         name_h = Builder.measure_block(name, W, name_fs, name_lh, DISP, bold=True)
         header.append(_block(name, L, cursor_y, W, name_h, name_fs, name_lh, C['ink'], DISP,
                               zIndex=3, bold=True, align='center'))
-        cursor_y += name_h + 10.0
+        cursor_y += name_h + 6.0
 
     photo_top = cursor_y
     photo_well = {
