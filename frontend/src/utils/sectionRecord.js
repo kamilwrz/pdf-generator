@@ -67,7 +67,7 @@ const PLACEHOLDER = Object.freeze({
   ]),
   experience: Object.freeze([
     "Stanowisko",
-    "Firma · okres",
+    "Firma · Lokalizacja · okres",
     "Opis…",
   ]),
   subcategory: Object.freeze([
