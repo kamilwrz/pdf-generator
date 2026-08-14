@@ -25,6 +25,14 @@
     box-shadow: none;
 }
 
+/* Same frame, recolored — while a text element is contentEditable, its
+   selection frame reuses Textarea's edit-mode accent color instead of the
+   default slate selection blue, so both element types show identical
+   edit-mode chrome without a second, independently-sized outline. */
+.frameEditing {
+    border-color: var(--accent, #171717);
+}
+
 .groupFrame {
     position: absolute;
     box-sizing: border-box;
