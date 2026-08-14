@@ -9,7 +9,7 @@ import CloseButton from "../CloseButton/CloseButton";
 // Upload docks as a card near the sidebar while Gallery is a full-height
 // right-edge drawer — genuinely different shapes, not worth forcing into
 // one geometry.
-export default function PanelShell({ open, onClose, className, motionProps, title, subtitle, footer, children }) {
+export default function PanelShell({ open, onClose, className, style, motionProps, title, subtitle, footer, children }) {
     useEffect(() => {
         if (!open) return;
         const onKey = (e) => {
@@ -22,7 +22,7 @@ export default function PanelShell({ open, onClose, className, motionProps, titl
     return (
         <AnimatePresence>
             {open && (
-                <motion.section className={className} {...motionProps}>
+                <motion.section className={className} style={style} {...motionProps}>
                     <div className={classes.header}>
                         <div>
                             <h2>{title}</h2>

@@ -8,7 +8,7 @@
  */
 import classes from "./Gallery.module.css";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, use } from "react";
 
 import GalleryItem from "../GalleryItem/GalleryItem";
 import Dropzone from "../Dropzone/Dropzone";
@@ -19,7 +19,11 @@ import { fetchAuthenticatedImageObjectUrl } from "../../../services/authenticate
 import { MAX_PROFILE_PHOTOS } from "../../../constants/profilePhotos";
 
 import { useUiSurfaces } from "../../../store/ui-surfaces-context";
+import { PdfContext } from "../../../store/pdfgenerator-context";
 import PanelShell from "../../common/PanelShell/PanelShell";
+
+/** Gap between the live A4 page's right edge and the panel's left edge. */
+const PAGE_EDGE_GAP_PX = 40;
 
 function EmptySlot({ index }) {
     return (
@@ -34,6 +38,32 @@ function EmptySlot({ index }) {
 
 export default function Gallery() {
     const { isGallery, showGallery } = useUiSurfaces();
+    const { A4ref } = use(PdfContext);
+
+    // Rest position hugs the live A4 page's right edge (viewport px via
+    // getBoundingClientRect, same pattern as the export Spinner's anchorRef)
+    // instead of docking at the far edge of the editor chrome, so the panel
+    // slides out right where the page itself ends, independent of zoom.
+    const [panelLeft, setPanelLeft] = useState(null);
+    useLayoutEffect(() => {
+        if (!isGallery) return undefined;
+
+        const placePanel = () => {
+            const page = A4ref?.current ?? document.querySelector(".page-canvas");
+            if (!page) return;
+            const rect = page.getBoundingClientRect();
+            setPanelLeft(rect.right + PAGE_EDGE_GAP_PX);
+        };
+
+        placePanel();
+        window.addEventListener("resize", placePanel);
+        const area = document.querySelector(".canvas-area");
+        area?.addEventListener("scroll", placePanel, { passive: true });
+        return () => {
+            window.removeEventListener("resize", placePanel);
+            area?.removeEventListener("scroll", placePanel);
+        };
+    }, [isGallery, A4ref]);
 
     const [images, setImages] = useState([]);
     const [previewUrls, setPreviewUrls] = useState({});
@@ -156,6 +186,7 @@ export default function Gallery() {
             open={isGallery}
             onClose={showGallery}
             className={classes.gallery}
+            style={panelLeft != null ? { left: panelLeft } : undefined}
             motionProps={{
                 initial: { opacity: 0, x: 28 },
                 animate: { opacity: 1, x: 0 },

@@ -7,7 +7,11 @@
     border-right: none;
     box-shadow: -10px 0 30px -22px rgba(47, 67, 82, .45);
     font-family: var(--font-body);
-    position: absolute;
+    /* `left` is set inline (Gallery.jsx) from the live A4 page's right edge
+       via getBoundingClientRect, so the panel hugs the page instead of the
+       far edge of the editor chrome. Falls back to the previous fixed-right
+       docking only for the one frame before that measurement lands. */
+    position: fixed;
     right: 0;
     top: 15%;
     display: flex;
