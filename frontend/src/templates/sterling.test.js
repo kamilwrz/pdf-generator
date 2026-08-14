@@ -61,14 +61,14 @@ test("Sterling is a wide-sidebar, letterhead-masthead layout with structured sid
     assert.ok(masthead.length > 0);
     assert.ok(masthead.every((element) => (element.page ?? 1) === 1));
 
-    const name = masthead.find((element) => element.content === "Julia Bernat");
+    const name = masthead.find((element) => element.content === "Julia Krawczyk");
     assert.ok(name);
     assert.equal(name.category, "textarea");
     assert.equal(name.align, "center");
     assert.equal(name.fontFamily, "CormorantGaramond");
     assert.equal(name.color, INK);
 
-    const title = masthead.find((element) => element.content === "ANALITYCZKA AML I COMPLIANCE");
+    const title = masthead.find((element) => element.content === "SECURITY OPERATIONS SPECIALIST");
     assert.ok(title);
     assert.equal(title.align, "center");
     assert.equal(title.color, ACCENT);
@@ -91,14 +91,15 @@ test("Sterling is a wide-sidebar, letterhead-masthead layout with structured sid
     assert.ok(sidebarKickers.every((element) => element.flowLane === "sidebar"));
 
     const summaryBody = sterlingTemplate.find(
-        (element) => typeof element.content === "string" && element.content.includes("Analityczka AML łącząca"),
+        (element) => typeof element.content === "string"
+            && element.content.includes("Specjalistka ds. operacji bezpieczeństwa"),
     );
     assert.ok(summaryBody);
     assert.equal(summaryBody.left, 34);
     assert.equal(summaryBody.flowLane, "sidebar");
 
     const skillsBody = sterlingTemplate.find(
-        (element) => typeof element.content === "string" && element.content.includes("AML/KYC")
+        (element) => typeof element.content === "string" && element.content.includes("Nessus")
             && element.bulletList,
     );
     assert.ok(skillsBody, "skills render inside the sidebar as a bulleted list, not the main column");
@@ -115,8 +116,10 @@ test("Sterling is a wide-sidebar, letterhead-masthead layout with structured sid
     // Education renders as structured degree / school / period elements
     // (matching single-column records), not one mashed textarea, and shares a
     // flowGroup — whichever column the two-column planner routes it to.
-    const eduDegree = sterlingTemplate.find((element) => element.content === "Licencjat Prawa");
-    const eduSchool = sterlingTemplate.find((element) => element.content === "UW Warszawa");
+    const eduDegree = sterlingTemplate.find(
+        (element) => element.content === "Magister informatyki — specjalność: Bezpieczeństwo systemów",
+    );
+    const eduSchool = sterlingTemplate.find((element) => element.content === "UMK Toruń");
     assert.ok(eduDegree?.bold);
     assert.ok(eduSchool);
     assert.equal(eduDegree.flowGroup, eduSchool.flowGroup);
@@ -143,13 +146,13 @@ test("Sterling is a wide-sidebar, letterhead-masthead layout with structured sid
     // ── Records: stacked title → org → period → bullets, every line its own
     // element (no same-row ordinal badge — see the generator's module
     // docstring for why that pattern is unsafe under this app's packer). ─────
-    const jobTitle = sterlingTemplate.find((element) => element.content === "Analityczka AML");
+    const jobTitle = sterlingTemplate.find((element) => element.content === "Security Operations Specialist");
     assert.ok(jobTitle);
     assert.equal(jobTitle.category, "textarea");
     assert.ok(jobTitle.bold);
     const jobOrg = sterlingTemplate.find(
         (element) => typeof element.content === "string"
-            && element.content.includes("Crestmont Advisory")
+            && element.content.includes("SecuraNet Sp. z o.o.")
             && element.content.includes("2022"),
     );
     assert.ok(jobOrg, "company and period share one meta line below the title");

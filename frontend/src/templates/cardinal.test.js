@@ -96,7 +96,7 @@ test("Cardinal reserves red for headings while icons and rules stay grey", () =>
 
     // ── Name: serif, anchoring the masthead ──────────────────────────────────
     const name = cardinalTemplate.find(
-        (element) => element.category === "text" && element.content === "Julia Bernat",
+        (element) => element.category === "text" && element.content === "Piotr Zieliński",
     );
     assert.equal(name?.fontFamily, "Times-Roman");
 });

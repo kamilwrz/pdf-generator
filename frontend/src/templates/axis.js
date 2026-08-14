@@ -1,18 +1,13 @@
 /**
- * Axis template (`layouts: ["single"]`).
+ * Axis template (auto-generated demo content).
  *
- * Timeline single column with date gutter, skill chips, and a
- * four-column languages grid.
- *
- * This static starter is the backend generator's own output
- * (`backend/app/services/cv_templates/templates/axis.py`) for
- * representative demo content (Julia Bernat — three roles, one degree, five
- * skills, and three languages, sized to fit page 1 of the mockup), so the
- * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
- * Image `src` values are stored relative and get the API base prepended at
- * load time. The array already carries `flowRole` / `flowGroup` /
- * `preserveInitialLayout` from the generator, so it is exported as-is (only
- * the image src is absolutised).
+ * Landing-page / picker preview content, generated from the backend
+ * template's own output (`backend/app/services/cv_templates/templates/axis.py`)
+ * for representative demo content, so the picker preview matches what
+ * `/ai/fill_template` produces pixel-for-pixel. Image `src` values are stored
+ * relative and get the API base prepended at load time. The array already
+ * carries `flowRole` / `flowGroup` / `preserveInitialLayout` from the
+ * generator, so it is exported as-is (only the image src is absolutised).
  */
 import API_BASE_URL from "../services/api.js";
 
@@ -55,7 +50,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "JULIA BERNAT",
+    "content": "DAWID SZYMAŃSKI",
     "fontSize": 23,
     "fontFamily": "Inter",
     "color": "#1B3357",
@@ -70,7 +65,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "Analityczka AML i Compliance",
+    "content": "Specjalista ds. Bezpieczeństwa OT/ICS",
     "fontSize": 11.5,
     "fontFamily": "Inter",
     "color": "#E2740C",
@@ -85,7 +80,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/axis/phone.png",
+    "src": "http://localhost:8000/template-assets/iconic/axis/phone.png",
     "left": 54.0,
     "top": 104.0,
     "width": 11.0,
@@ -97,7 +92,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "+48 512 340 780",
+    "content": "+48 662 415 730",
     "fontSize": 8.6,
     "fontFamily": "Inter",
     "color": "#3D3D3D",
@@ -111,8 +106,8 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/axis/email.png",
-    "left": 154.57265625,
+    "src": "http://localhost:8000/template-assets/iconic/axis/email.png",
+    "left": 154.49287109375,
     "top": 104.0,
     "width": 11.0,
     "height": 11.0,
@@ -123,11 +118,11 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "julia.bernat@email.com",
+    "content": "dawid.szymanski.ot@gmail.com",
     "fontSize": 8.6,
     "fontFamily": "Inter",
     "color": "#3D3D3D",
-    "left": 169.57265625,
+    "left": 169.49287109375,
     "top": 104.0,
     "zIndex": 3,
     "page": 1,
@@ -137,8 +132,8 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/axis/linkedin.png",
-    "left": 280.3826171875,
+    "src": "http://localhost:8000/template-assets/iconic/axis/linkedin.png",
+    "left": 315.99619140625,
     "top": 104.0,
     "width": 11.0,
     "height": 11.0,
@@ -149,11 +144,11 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "linkedin.com/in/jbernat",
+    "content": "linkedin.com/in/dawid-szymanski",
     "fontSize": 8.6,
     "fontFamily": "Inter",
     "color": "#3D3D3D",
-    "left": 295.3826171875,
+    "left": 330.99619140625,
     "top": 104.0,
     "zIndex": 3,
     "page": 1,
@@ -163,33 +158,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/axis/github.png",
-    "left": 404.55908203125,
-    "top": 104.0,
-    "width": 11.0,
-    "height": 11.0,
-    "zIndex": 3,
-    "page": 1,
-    "alignWithText": true,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "text",
-    "content": "github.com/jbernat",
-    "fontSize": 8.6,
-    "fontFamily": "Inter",
-    "color": "#3D3D3D",
-    "left": 419.55908203125,
-    "top": 104.0,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "image",
-    "src": "/template-assets/iconic/axis/website.png",
+    "src": "http://localhost:8000/template-assets/iconic/axis/github.png",
     "left": 54.0,
     "top": 119.0,
     "width": 11.0,
@@ -201,7 +170,7 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "juliabernat.pl",
+    "content": "github.com/dszymanski",
     "fontSize": 8.6,
     "fontFamily": "Inter",
     "color": "#3D3D3D",
@@ -215,8 +184,8 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/axis/location.png",
-    "left": 137.2298828125,
+    "src": "http://localhost:8000/template-assets/iconic/axis/website.png",
+    "left": 181.9599609375,
     "top": 119.0,
     "width": 11.0,
     "height": 11.0,
@@ -227,11 +196,37 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "Warszawa",
+    "content": "dawidszymanski.pl",
     "fontSize": 8.6,
     "fontFamily": "Inter",
     "color": "#3D3D3D",
-    "left": 152.2298828125,
+    "left": 196.9599609375,
+    "top": 119.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "http://localhost:8000/template-assets/iconic/axis/location.png",
+    "left": 290.1751953125,
+    "top": 119.0,
+    "width": 11.0,
+    "height": 11.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "Rzeszów",
+    "fontSize": 8.6,
+    "fontFamily": "Inter",
+    "color": "#3D3D3D",
+    "left": 305.1751953125,
     "top": 119.0,
     "zIndex": 3,
     "page": 1,
@@ -267,11 +262,11 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz oraz terminowość decyzji bez utraty dokładności.",
+    "content": "Specjalista ds. bezpieczeństwa systemów przemysłowych łączący doświadczenie inżynierskie w automatyce z wiedzą z zakresu cyberbezpieczeństwa OT/ICS. Wspieram segmentację sieci przemysłowych i ocenę podatności protokołów sterowania.",
     "left": 54,
     "top": 196.96,
     "width": 487,
-    "height": 27,
+    "height": 41,
     "fontSize": 9.0,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -284,8 +279,7 @@ const AXIS_ELEMENTS = [
     "align": "left",
     "bulletList": false,
     "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowRole": "content"
+    "preserveInitialLayout": true
   },
   {
     "category": "text",
@@ -294,7 +288,7 @@ const AXIS_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#1B3357",
     "left": 54,
-    "top": 244.96,
+    "top": 258.96000000000004,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -304,9 +298,9 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Analityczka AML",
+    "content": "Specjalista ds. Bezpieczeństwa OT/ICS",
     "left": 182,
-    "top": 265.92,
+    "top": 279.92,
     "width": 359,
     "height": 14,
     "fontSize": 11.0,
@@ -322,14 +316,13 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b6154f1cca44",
-    "flowRole": "content"
+    "flowGroup": "record-3cbc085f57bd"
   },
   {
     "category": "textarea",
-    "content": "Crestmont Advisory",
+    "content": "Trident Industrial Sp.J",
     "left": 182,
-    "top": 283.92,
+    "top": 297.92,
     "width": 359,
     "height": 13,
     "fontSize": 9.5,
@@ -345,16 +338,15 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b6154f1cca44",
-    "flowRole": "content"
+    "flowGroup": "record-3cbc085f57bd"
   },
   {
     "category": "textarea",
-    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.\n• Realizuje CDD/EDD oraz przygotowuje dokumentację zgodną z wymogami FIU.\n• Wspiera zespół L2 przy eskalacjach spraw o podwyższonym ryzyku AML.",
+    "content": "• Oceniam podatności protokołów przemysłowych (Modbus, Profinet) w sieciach klientów.\n• Wspieram wdrożenie segmentacji sieci OT od IT zgodnie z normą IEC 62443.\n• Monitoruję anomalie w ruchu sieciowym systemów SCADA.\n• Przygotowuję rekomendacje bezpieczeństwa dla działów utrzymania ruchu.",
     "left": 182,
-    "top": 300.92,
+    "top": 314.92,
     "width": 359,
-    "height": 41,
+    "height": 67,
     "fontSize": 9,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -368,14 +360,13 @@ const AXIS_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b6154f1cca44",
-    "flowRole": "content"
+    "flowGroup": "record-3cbc085f57bd"
   },
   {
     "category": "textarea",
-    "content": "2022 – obecnie",
+    "content": "Marzec 2023 – obecnie",
     "left": 54,
-    "top": 265.92,
+    "top": 279.92,
     "width": 100,
     "height": 11,
     "fontSize": 8.4,
@@ -392,13 +383,13 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-b6154f1cca44"
+    "flowGroup": "record-3cbc085f57bd"
   },
   {
     "category": "textarea",
-    "content": "Warszawa",
+    "content": "Rzeszów",
     "left": 54,
-    "top": 277.92,
+    "top": 291.92,
     "width": 100,
     "height": 11,
     "fontSize": 8.0,
@@ -415,12 +406,12 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-b6154f1cca44"
+    "flowGroup": "record-3cbc085f57bd"
   },
   {
     "category": "circle",
     "left": 158,
-    "top": 268.92,
+    "top": 282.92,
     "width": 7,
     "height": 7,
     "backgroundColor": "#1B3357",
@@ -429,25 +420,25 @@ const AXIS_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-b6154f1cca44"
+    "flowGroup": "record-3cbc085f57bd"
   },
   {
     "category": "line",
     "left": 161,
-    "top": 275.92,
+    "top": 289.92,
     "width": 1,
-    "height": 76.0,
+    "height": 102.0,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-b6154f1cca44"
+    "flowGroup": "record-3cbc085f57bd"
   },
   {
     "category": "textarea",
-    "content": "Analityczka KYC",
+    "content": "Inżynier Automatyk",
     "left": 182,
-    "top": 351.92,
+    "top": 391.92,
     "width": 359,
     "height": 14,
     "fontSize": 11.0,
@@ -463,14 +454,13 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2d90ea382e2d",
-    "flowRole": "content"
+    "flowGroup": "record-8f490173a005"
   },
   {
     "category": "textarea",
-    "content": "Baltic Trust Bank",
+    "content": "Polbryt Przemysł Sp. z o.o.",
     "left": 182,
-    "top": 369.92,
+    "top": 409.92,
     "width": 359,
     "height": 13,
     "fontSize": 9.5,
@@ -486,14 +476,13 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2d90ea382e2d",
-    "flowRole": "content"
+    "flowGroup": "record-8f490173a005"
   },
   {
     "category": "textarea",
-    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
+    "content": "• Programowałem i serwisowałem sterowniki PLC linii produkcyjnych.\n• Projektowałem szafy sterownicze i dokumentację techniczną.",
     "left": 182,
-    "top": 386.92,
+    "top": 426.92,
     "width": 359,
     "height": 27,
     "fontSize": 9,
@@ -509,14 +498,13 @@ const AXIS_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2d90ea382e2d",
-    "flowRole": "content"
+    "flowGroup": "record-8f490173a005"
   },
   {
     "category": "textarea",
-    "content": "2019 – 2022",
+    "content": "Sierpień 2020 – Luty 2023",
     "left": 54,
-    "top": 351.92,
+    "top": 391.92,
     "width": 100,
     "height": 11,
     "fontSize": 8.4,
@@ -533,13 +521,13 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-2d90ea382e2d"
+    "flowGroup": "record-8f490173a005"
   },
   {
     "category": "textarea",
-    "content": "Warszawa",
+    "content": "Rzeszów",
     "left": 54,
-    "top": 363.92,
+    "top": 403.92,
     "width": 100,
     "height": 11,
     "fontSize": 8.0,
@@ -556,12 +544,12 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-2d90ea382e2d"
+    "flowGroup": "record-8f490173a005"
   },
   {
     "category": "circle",
     "left": 158,
-    "top": 354.92,
+    "top": 394.92,
     "width": 7,
     "height": 7,
     "backgroundColor": "#1B3357",
@@ -570,160 +558,19 @@ const AXIS_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-2d90ea382e2d"
+    "flowGroup": "record-8f490173a005"
   },
   {
     "category": "line",
     "left": 161,
-    "top": 361.92,
+    "top": 401.92,
     "width": 1,
-    "height": 62.0,
+    "height": 52.0,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-2d90ea382e2d"
-  },
-  {
-    "category": "textarea",
-    "content": "Specjalistka Obsługi Klienta",
-    "left": 182,
-    "top": 423.92,
-    "width": 359,
-    "height": 14,
-    "fontSize": 11.0,
-    "lineHeight": 14.0,
-    "letterSpacing": 0,
-    "color": "#2E7391",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": true,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-187cc497e163",
-    "flowRole": "content"
-  },
-  {
-    "category": "textarea",
-    "content": "Helios Services",
-    "left": 182,
-    "top": 441.92,
-    "width": 359,
-    "height": 13,
-    "fontSize": 9.5,
-    "lineHeight": 12.5,
-    "letterSpacing": 0,
-    "color": "#E2740C",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": true,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-187cc497e163",
-    "flowRole": "content"
-  },
-  {
-    "category": "textarea",
-    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
-    "left": 182,
-    "top": 458.92,
-    "width": 359,
-    "height": 14,
-    "fontSize": 9,
-    "lineHeight": 13.4,
-    "letterSpacing": 0,
-    "color": "#3D3D3D",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": true,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-187cc497e163",
-    "flowRole": "content"
-  },
-  {
-    "category": "textarea",
-    "content": "2016 – 2019",
-    "left": 54,
-    "top": 423.92,
-    "width": 100,
-    "height": 11,
-    "fontSize": 8.4,
-    "lineHeight": 11,
-    "letterSpacing": 0,
-    "color": "#1B3357",
-    "fontFamily": "Inter",
-    "zIndex": 3,
-    "page": 1,
-    "bold": true,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": false,
-    "preserveInitialLayout": true,
-    "flowRole": "record-overlay",
-    "flowGroup": "record-187cc497e163"
-  },
-  {
-    "category": "textarea",
-    "content": "Kraków",
-    "left": 54,
-    "top": 435.92,
-    "width": 100,
-    "height": 11,
-    "fontSize": 8.0,
-    "lineHeight": 10.5,
-    "letterSpacing": 0,
-    "color": "#8A8A8A",
-    "fontFamily": "Inter",
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": false,
-    "preserveInitialLayout": true,
-    "flowRole": "record-overlay",
-    "flowGroup": "record-187cc497e163"
-  },
-  {
-    "category": "circle",
-    "left": 158,
-    "top": 426.92,
-    "width": 7,
-    "height": 7,
-    "backgroundColor": "#1B3357",
-    "filled": true,
-    "borderWidth": 1,
-    "zIndex": 3,
-    "page": 1,
-    "flowRole": "record-overlay",
-    "flowGroup": "record-187cc497e163"
-  },
-  {
-    "category": "line",
-    "left": 161,
-    "top": 433.92,
-    "width": 1,
-    "height": 39.0,
-    "backgroundColor": "#D7DBE0",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "record-overlay",
-    "flowGroup": "record-187cc497e163"
+    "flowGroup": "record-8f490173a005"
   },
   {
     "category": "text",
@@ -732,7 +579,7 @@ const AXIS_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#1B3357",
     "left": 54,
-    "top": 493.92,
+    "top": 474.92,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -742,9 +589,9 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Licencjat Prawa",
+    "content": "Magister inżynier automatyki i robotyki",
     "left": 182,
-    "top": 514.88,
+    "top": 495.88,
     "width": 359,
     "height": 14,
     "fontSize": 10.6,
@@ -760,14 +607,13 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0bdc250a5b02",
-    "flowRole": "content"
+    "flowGroup": "record-542170526755"
   },
   {
     "category": "textarea",
-    "content": "UW Warszawa",
+    "content": "Politechnika Rzeszowska",
     "left": 182,
-    "top": 532.88,
+    "top": 513.88,
     "width": 359,
     "height": 13,
     "fontSize": 9.5,
@@ -783,14 +629,35 @@ const AXIS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0bdc250a5b02",
-    "flowRole": "content"
+    "flowGroup": "record-542170526755"
   },
   {
     "category": "textarea",
-    "content": "2012 – 2016",
+    "content": "• Praca magisterska dotycząca bezpieczeństwa protokołów komunikacji przemysłowej.",
+    "left": 182,
+    "top": 530.88,
+    "width": 359,
+    "height": 27,
+    "fontSize": 9,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#3D3D3D",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-542170526755"
+  },
+  {
+    "category": "textarea",
+    "content": "ukończono czerwiec 2020",
     "left": 54,
-    "top": 514.88,
+    "top": 495.88,
     "width": 100,
     "height": 11,
     "fontSize": 8.4,
@@ -807,12 +674,35 @@ const AXIS_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-0bdc250a5b02"
+    "flowGroup": "record-542170526755"
+  },
+  {
+    "category": "textarea",
+    "content": "Rzeszów",
+    "left": 54,
+    "top": 507.88,
+    "width": 100,
+    "height": 11,
+    "fontSize": 8.0,
+    "lineHeight": 10.5,
+    "letterSpacing": 0,
+    "color": "#8A8A8A",
+    "fontFamily": "Inter",
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": false,
+    "preserveInitialLayout": true,
+    "flowRole": "record-overlay",
+    "flowGroup": "record-542170526755"
   },
   {
     "category": "circle",
     "left": 158,
-    "top": 517.88,
+    "top": 498.88,
     "width": 7,
     "height": 7,
     "backgroundColor": "#1B3357",
@@ -821,19 +711,19 @@ const AXIS_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-0bdc250a5b02"
+    "flowGroup": "record-542170526755"
   },
   {
     "category": "line",
     "left": 161,
-    "top": 524.88,
+    "top": 505.88,
     "width": 1,
-    "height": 21.0,
+    "height": 52.0,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
     "flowRole": "record-overlay",
-    "flowGroup": "record-0bdc250a5b02"
+    "flowGroup": "record-542170526755"
   },
   {
     "category": "text",
@@ -842,7 +732,7 @@ const AXIS_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#1B3357",
     "left": 54,
-    "top": 566.88,
+    "top": 578.88,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -852,138 +742,203 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "AML/KYC",
+    "content": "IEC 62443",
     "fontSize": 9.0,
     "fontFamily": "Inter",
     "color": "#2E7391",
     "left": 54.0,
-    "top": 587.84,
+    "top": 599.84,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowGroup": "record-9c29833ac530",
-    "flowRole": "content"
+    "flowGroup": "record-93aeec21db0c"
   },
   {
     "category": "line",
     "left": 54.0,
-    "top": 600.84,
-    "width": 45.40087890625001,
+    "top": 612.84,
+    "width": 49.18896484375001,
     "height": 1,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
-    "flowGroup": "record-9c29833ac530",
-    "flowRole": "content"
+    "flowGroup": "record-93aeec21db0c"
   },
   {
     "category": "text",
-    "content": "Monitoring",
+    "content": "Modbus",
     "fontSize": 9.0,
     "fontFamily": "Inter",
     "color": "#2E7391",
-    "left": 117.40087890625,
-    "top": 587.84,
+    "left": 121.18896484375,
+    "top": 599.84,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowGroup": "record-9c29833ac530",
-    "flowRole": "content"
+    "flowGroup": "record-93aeec21db0c"
   },
   {
     "category": "line",
-    "left": 117.40087890625,
-    "top": 600.84,
-    "width": 49.76904296875001,
+    "left": 121.18896484375,
+    "top": 612.84,
+    "width": 38.62011718750001,
     "height": 1,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
-    "flowGroup": "record-9c29833ac530",
-    "flowRole": "content"
+    "flowGroup": "record-93aeec21db0c"
   },
   {
     "category": "text",
-    "content": "CDD/EDD",
+    "content": "Profinet",
     "fontSize": 9.0,
     "fontFamily": "Inter",
     "color": "#2E7391",
-    "left": 185.169921875,
-    "top": 587.84,
+    "left": 177.80908203125,
+    "top": 599.84,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowGroup": "record-9c29833ac530",
-    "flowRole": "content"
+    "flowGroup": "record-93aeec21db0c"
   },
   {
     "category": "line",
-    "left": 185.169921875,
-    "top": 600.84,
-    "width": 45.20751953125001,
+    "left": 177.80908203125,
+    "top": 612.84,
+    "width": 37.55224609375001,
     "height": 1,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
-    "flowGroup": "record-9c29833ac530",
-    "flowRole": "content"
+    "flowGroup": "record-93aeec21db0c"
   },
   {
     "category": "text",
-    "content": "Raporty SAR",
+    "content": "systemy SCADA",
     "fontSize": 9.0,
     "fontFamily": "Inter",
     "color": "#2E7391",
-    "left": 248.37744140625,
-    "top": 587.84,
+    "left": 233.361328125,
+    "top": 599.84,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowGroup": "record-9c29833ac530",
-    "flowRole": "content"
+    "flowGroup": "record-93aeec21db0c"
   },
   {
     "category": "line",
-    "left": 248.37744140625,
-    "top": 600.84,
-    "width": 57.45068359375001,
+    "left": 233.361328125,
+    "top": 612.84,
+    "width": 73.48632812500001,
     "height": 1,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
-    "flowGroup": "record-9c29833ac530",
-    "flowRole": "content"
+    "flowGroup": "record-93aeec21db0c"
   },
   {
     "category": "text",
-    "content": "Analiza transakcyjna",
+    "content": "programowanie PLC",
     "fontSize": 9.0,
     "fontFamily": "Inter",
     "color": "#2E7391",
-    "left": 323.828125,
-    "top": 587.84,
+    "left": 324.84765625,
+    "top": 599.84,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowGroup": "record-9c29833ac530",
-    "flowRole": "content"
+    "flowGroup": "record-93aeec21db0c"
   },
   {
     "category": "line",
-    "left": 323.828125,
-    "top": 600.84,
-    "width": 91.69287109375001,
+    "left": 324.84765625,
+    "top": 612.84,
+    "width": 90.64257812500001,
     "height": 1,
     "backgroundColor": "#D7DBE0",
     "zIndex": 2,
     "page": 1,
-    "flowGroup": "record-9c29833ac530",
-    "flowRole": "content"
+    "flowGroup": "record-93aeec21db0c"
+  },
+  {
+    "category": "text",
+    "content": "segmentacja sieci OT/IT",
+    "fontSize": 9.0,
+    "fontFamily": "Inter",
+    "color": "#2E7391",
+    "left": 54.0,
+    "top": 623.84,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowGroup": "record-93aeec21db0c"
+  },
+  {
+    "category": "line",
+    "left": 54.0,
+    "top": 636.84,
+    "width": 107.06054687500001,
+    "height": 1,
+    "backgroundColor": "#D7DBE0",
+    "zIndex": 2,
+    "page": 1,
+    "flowGroup": "record-93aeec21db0c"
+  },
+  {
+    "category": "text",
+    "content": "Wireshark",
+    "fontSize": 9.0,
+    "fontFamily": "Inter",
+    "color": "#2E7391",
+    "left": 179.060546875,
+    "top": 623.84,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowGroup": "record-93aeec21db0c"
+  },
+  {
+    "category": "line",
+    "left": 179.060546875,
+    "top": 636.84,
+    "width": 47.13671875000001,
+    "height": 1,
+    "backgroundColor": "#D7DBE0",
+    "zIndex": 2,
+    "page": 1,
+    "flowGroup": "record-93aeec21db0c"
+  },
+  {
+    "category": "text",
+    "content": "Python",
+    "fontSize": 9.0,
+    "fontFamily": "Inter",
+    "color": "#2E7391",
+    "left": 244.197265625,
+    "top": 623.84,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowGroup": "record-93aeec21db0c"
+  },
+  {
+    "category": "line",
+    "left": 244.197265625,
+    "top": 636.84,
+    "width": 33.7861328125,
+    "height": 1,
+    "backgroundColor": "#D7DBE0",
+    "zIndex": 2,
+    "page": 1,
+    "flowGroup": "record-93aeec21db0c"
   },
   {
     "category": "text",
@@ -992,7 +947,7 @@ const AXIS_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#1B3357",
     "left": 54,
-    "top": 632.84,
+    "top": 668.84,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -1002,9 +957,9 @@ const AXIS_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Polski — ojczysty",
+    "content": "angielski — B2",
     "left": 54.0,
-    "top": 653.8000000000001,
+    "top": 689.8000000000001,
     "width": 113.75,
     "height": 13,
     "fontSize": 9.0,
@@ -1022,20 +977,20 @@ const AXIS_ELEMENTS = [
     "preserveInitialLayout": true,
     "runs": [
       {
-        "start": 9,
-        "end": 17,
+        "start": 12,
+        "end": 14,
         "italic": true,
         "color": "#2E7391"
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-d80c6854061a"
+    "flowGroup": "record-31f2d0503773"
   },
   {
     "category": "textarea",
-    "content": "Angielski — C1",
+    "content": "niemiecki — B1",
     "left": 175.75,
-    "top": 653.8000000000001,
+    "top": 689.8000000000001,
     "width": 113.75,
     "height": 13,
     "fontSize": 9.0,
@@ -1060,38 +1015,7 @@ const AXIS_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-d80c6854061a"
-  },
-  {
-    "category": "textarea",
-    "content": "Niemiecki — B2",
-    "left": 297.5,
-    "top": 653.8000000000001,
-    "width": 113.75,
-    "height": 13,
-    "fontSize": 9.0,
-    "lineHeight": 13.0,
-    "letterSpacing": 0,
-    "color": "#3D3D3D",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#2E7391"
-      }
-    ],
-    "flowRole": "grid-member",
-    "flowGroup": "record-d80c6854061a"
+    "flowGroup": "record-31f2d0503773"
   }
 ];
 

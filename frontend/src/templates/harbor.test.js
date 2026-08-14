@@ -65,12 +65,14 @@ test("Harbor is a two-column layout with teal accent and diamond list widgets", 
     assert.ok(tealText.length >= 4, `expected >=4 teal text runs, got ${tealText.length}`);
 
     // ── Education structure: bold diploma + distinguished school ─────────────
-    const diploma = harborTemplate.find((element) => element.content === "Licencjat Prawa");
-    const school = harborTemplate.find((element) => element.content === "UW Warszawa");
+    const diploma = harborTemplate.find(
+        (element) => element.content === "Inżynier informatyki — specjalność: Systemy i sieci komputerowe",
+    );
+    const school = harborTemplate.find((element) => element.content === "Politechnika Gdańska");
     assert.ok(diploma?.bold);
     assert.equal(school?.color, ACCENT);
 
-    // ── Shared Julia Bernat demo persona ─────────────────────────────────────
-    assert.ok(harborTemplate.some((element) => element.content === "JULIA BERNAT"));
-    assert.ok(harborTemplate.some((element) => element.content === "julia.bernat@email.com"));
+    // ── Shared demo persona ───────────────────────────────────────────────────
+    assert.ok(harborTemplate.some((element) => element.content === "NATALIA DĄBROWSKA"));
+    assert.ok(harborTemplate.some((element) => element.content === "natalia.dabrowska@mail.com"));
 });

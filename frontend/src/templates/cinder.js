@@ -1,17 +1,13 @@
 /**
- * Cinder template (`layouts: ["single"]`).
+ * Cinder template (auto-generated demo content).
  *
- * Dark, high-contrast single column with ember-red accents.
- *
- * This static starter is the backend generator's own output
- * (`backend/app/services/cv_templates/templates/cinder.py`) for
- * representative demo content (Julia Bernat — three roles, one degree, five
- * skills, and three languages, sized to fit page 1 of the mockup), so the
- * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
- * Image `src` values are stored relative and get the API base prepended at
- * load time. The array already carries `flowRole` / `flowGroup` /
- * `preserveInitialLayout` from the generator, so it is exported as-is (only
- * the image src is absolutised).
+ * Landing-page / picker preview content, generated from the backend
+ * template's own output (`backend/app/services/cv_templates/templates/cinder.py`)
+ * for representative demo content, so the picker preview matches what
+ * `/ai/fill_template` produces pixel-for-pixel. Image `src` values are stored
+ * relative and get the API base prepended at load time. The array already
+ * carries `flowRole` / `flowGroup` / `preserveInitialLayout` from the
+ * generator, so it is exported as-is (only the image src is absolutised).
  */
 import API_BASE_URL from "../services/api.js";
 
@@ -82,8 +78,7 @@ const CINDER_ELEMENTS = [
     "height": 170,
     "backgroundColor": "#111315",
     "zIndex": 1,
-    "page": 1,
-    "flowRole": "content"
+    "page": 1
   },
   {
     "category": "line",
@@ -93,12 +88,11 @@ const CINDER_ELEMENTS = [
     "height": 99,
     "backgroundColor": "#C93F3F",
     "zIndex": 2,
-    "page": 1,
-    "flowRole": "content"
+    "page": 1
   },
   {
     "category": "text",
-    "content": "Julia Bernat",
+    "content": "Michał Baran",
     "fontSize": 30,
     "fontFamily": "Times-Roman",
     "color": "#FFFFFF",
@@ -107,12 +101,11 @@ const CINDER_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "bold": true,
-    "italic": false,
-    "flowRole": "content"
+    "italic": false
   },
   {
     "category": "text",
-    "content": "Analityczka AML i Compliance",
+    "content": "Incident Response Analyst",
     "fontSize": 9.5,
     "fontFamily": "Inter",
     "color": "#E06B67",
@@ -122,12 +115,11 @@ const CINDER_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "letterSpacing": 1.65,
-    "flowRole": "content"
+    "letterSpacing": 1.65
   },
   {
     "category": "text",
-    "content": "julia.bernat@email.com · +48 512 340 780 · Warszawa ·…",
+    "content": "michal.baran@securemail.pl · +48 601 224 887 · Kraków ·…",
     "fontSize": 8.7,
     "fontFamily": "Inter",
     "color": "#B8BCC0",
@@ -136,8 +128,7 @@ const CINDER_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "bold": false,
-    "italic": false,
-    "flowRole": "content"
+    "italic": false
   },
   {
     "category": "rectangle",
@@ -153,8 +144,7 @@ const CINDER_ELEMENTS = [
     "page": 1,
     "id": "cinder-frame-one",
     "photoSlot": "frame",
-    "photoShape": "ornament-frame",
-    "flowRole": "content"
+    "photoShape": "ornament-frame"
   },
   {
     "category": "rectangle",
@@ -169,8 +159,7 @@ const CINDER_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "id": "cinder-frame-two",
-    "photoSlot": "ornament",
-    "flowRole": "content"
+    "photoSlot": "ornament"
   },
   {
     "category": "rectangle",
@@ -185,8 +174,7 @@ const CINDER_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "id": "cinder-node",
-    "photoSlot": "ornament",
-    "flowRole": "content"
+    "photoSlot": "ornament"
   },
   {
     "category": "line",
@@ -196,8 +184,7 @@ const CINDER_ELEMENTS = [
     "height": 1,
     "backgroundColor": "#C93F3F",
     "zIndex": 2,
-    "page": 1,
-    "flowRole": "content"
+    "page": 1
   },
   {
     "category": "rectangle",
@@ -240,11 +227,11 @@ const CINDER_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz oraz terminowość decyzji bez utraty dokładności.",
+    "content": "Analityk reagowania na incydenty z doświadczeniem w obsłudze naruszeń bezpieczeństwa dla firm z sektora e-commerce i produkcji. Prowadzę analizę powłamaniową, koordynuję działania naprawcze i dokumentuję incydenty zgodnie z wymogami compliance. Ukończyłem ścieżkę Incident Response na TryHackMe.",
     "left": 76,
     "top": 222.745,
     "width": 466,
-    "height": 27,
+    "height": 54,
     "fontSize": 9.5,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -263,7 +250,7 @@ const CINDER_ELEMENTS = [
   {
     "category": "rectangle",
     "left": 526,
-    "top": 272.745,
+    "top": 299.745,
     "width": 16,
     "height": 16,
     "backgroundColor": "#C93F3F",
@@ -281,7 +268,7 @@ const CINDER_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#C93F3F",
     "left": 76,
-    "top": 270.745,
+    "top": 297.745,
     "zIndex": 2,
     "page": 1,
     "bold": false,
@@ -291,7 +278,7 @@ const CINDER_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 282.49,
+    "top": 309.49,
     "width": 466,
     "height": 1.0,
     "backgroundColor": "#D5D6D6",
@@ -301,9 +288,9 @@ const CINDER_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Analityczka AML",
+    "content": "Incident Response Analyst",
     "left": 76,
-    "top": 291.49,
+    "top": 318.49,
     "width": 466,
     "height": 15,
     "fontSize": 11,
@@ -319,14 +306,14 @@ const CINDER_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1b33d76dca5a",
+    "flowGroup": "record-05148f6f0e7b",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
+    "content": "Bastion CyberSec   ·   Kraków   ·   Styczeń 2023 – obecnie",
     "left": 76,
-    "top": 310.49,
+    "top": 337.49,
     "width": 466,
     "height": 12,
     "fontSize": 8.7,
@@ -342,16 +329,16 @@ const CINDER_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1b33d76dca5a",
+    "flowGroup": "record-05148f6f0e7b",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.\n• Realizuje CDD/EDD oraz przygotowuje dokumentację zgodną z wymogami FIU.\n• Wspiera zespół L2 przy eskalacjach spraw o podwyższonym ryzyku AML.",
+    "content": "• Prowadzę analizę powłamaniową i zabezpieczam materiał dowodowy (chain of custody).\n• Koordynuję działania naprawcze między zespołami IT a interesariuszami biznesowymi.\n• Dokumentuję incydenty i przygotowuję raporty post-mortem.\n• Rozwijam playbooki reagowania na najczęstsze scenariusze ataków.",
     "left": 76,
-    "top": 326.49,
+    "top": 353.49,
     "width": 466,
-    "height": 41,
+    "height": 54,
     "fontSize": 9.5,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -365,14 +352,14 @@ const CINDER_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1b33d76dca5a",
+    "flowGroup": "record-05148f6f0e7b",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Analityczka KYC",
+    "content": "Administrator Systemów",
     "left": 76,
-    "top": 377.49,
+    "top": 417.49,
     "width": 466,
     "height": 15,
     "fontSize": 11,
@@ -388,14 +375,14 @@ const CINDER_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-bbe830b8420d",
+    "flowGroup": "record-1d7329079ed9",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
+    "content": "OrbitTrade E-commerce   ·   Kraków   ·   Sierpień 2021 – Grudzień 2022",
     "left": 76,
-    "top": 396.49,
+    "top": 436.49,
     "width": 466,
     "height": 12,
     "fontSize": 8.7,
@@ -411,14 +398,14 @@ const CINDER_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-bbe830b8420d",
+    "flowGroup": "record-1d7329079ed9",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
+    "content": "• Utrzymywałem infrastrukturę serwerową sklepu internetowego (Linux, Docker).\n• Wdrożyłem monitoring dostępności i alerting dla kluczowych usług.",
     "left": 76,
-    "top": 412.49,
+    "top": 452.49,
     "width": 466,
     "height": 27,
     "fontSize": 9.5,
@@ -434,14 +421,14 @@ const CINDER_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-bbe830b8420d",
+    "flowGroup": "record-1d7329079ed9",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Specjalistka Obsługi Klienta",
+    "content": "Technik IT (Praktyka)",
     "left": 76,
-    "top": 449.49,
+    "top": 489.49,
     "width": 466,
     "height": 15,
     "fontSize": 11,
@@ -457,14 +444,14 @@ const CINDER_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-105779bc744a",
+    "flowGroup": "record-3a3d68ebfc42",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
+    "content": "Ferrotech Automatyka   ·   Kraków   ·   Czerwiec 2020 – Lipiec 2021",
     "left": 76,
-    "top": 468.49,
+    "top": 508.49,
     "width": 466,
     "height": 12,
     "fontSize": 8.7,
@@ -480,14 +467,14 @@ const CINDER_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-105779bc744a",
+    "flowGroup": "record-3a3d68ebfc42",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
+    "content": "• Wspierałem dział IT w konfiguracji stacji roboczych i sieci lokalnej.",
     "left": 76,
-    "top": 484.49,
+    "top": 524.49,
     "width": 466,
     "height": 14,
     "fontSize": 9.5,
@@ -503,13 +490,13 @@ const CINDER_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-105779bc744a",
+    "flowGroup": "record-3a3d68ebfc42",
     "flowRole": "content"
   },
   {
     "category": "rectangle",
     "left": 526,
-    "top": 521.49,
+    "top": 561.49,
     "width": 16,
     "height": 16,
     "backgroundColor": "#C93F3F",
@@ -527,7 +514,7 @@ const CINDER_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#C93F3F",
     "left": 76,
-    "top": 519.49,
+    "top": 559.49,
     "zIndex": 2,
     "page": 1,
     "bold": false,
@@ -537,7 +524,7 @@ const CINDER_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 531.235,
+    "top": 571.235,
     "width": 466,
     "height": 1.0,
     "backgroundColor": "#D5D6D6",
@@ -547,9 +534,9 @@ const CINDER_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Licencjat Prawa",
+    "content": "Inżynier teleinformatyki",
     "left": 76,
-    "top": 540.235,
+    "top": 580.235,
     "width": 466,
     "height": 13,
     "fontSize": 10.3,
@@ -565,14 +552,14 @@ const CINDER_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-cf5b80c65d94",
+    "flowGroup": "record-c8206750b710",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "UW Warszawa",
+    "content": "AGH Akademia Górniczo-Hutnicza",
     "left": 76,
-    "top": 557.235,
+    "top": 597.235,
     "width": 466,
     "height": 13,
     "fontSize": 10.3,
@@ -588,14 +575,14 @@ const CINDER_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-cf5b80c65d94",
+    "flowGroup": "record-c8206750b710",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "2012 – 2016",
+    "content": "Kraków   ·   ukończono lipiec 2021",
     "left": 76,
-    "top": 574.235,
+    "top": 614.235,
     "width": 466,
     "height": 12,
     "fontSize": 8.7,
@@ -611,13 +598,36 @@ const CINDER_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-cf5b80c65d94",
+    "flowGroup": "record-c8206750b710",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Specjalizacja w bezpieczeństwie sieci komputerowych.",
+    "left": 76,
+    "top": 630.235,
+    "width": 466,
+    "height": 12,
+    "fontSize": 8.7,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#292D31",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-c8206750b710",
     "flowRole": "content"
   },
   {
     "category": "rectangle",
     "left": 526,
-    "top": 609.235,
+    "top": 665.235,
     "width": 16,
     "height": 16,
     "backgroundColor": "#C93F3F",
@@ -635,7 +645,7 @@ const CINDER_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#C93F3F",
     "left": 76,
-    "top": 607.235,
+    "top": 663.235,
     "zIndex": 2,
     "page": 1,
     "bold": false,
@@ -645,7 +655,7 @@ const CINDER_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 618.98,
+    "top": 674.98,
     "width": 466,
     "height": 1.0,
     "backgroundColor": "#D5D6D6",
@@ -655,11 +665,11 @@ const CINDER_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "AML/KYC  ·  Monitoring  ·  CDD/EDD  ·  Raporty SAR  ·  Analiza transakcyjna",
+    "content": "analiza powłamaniowa  ·  digital forensics  ·  SIEM  ·  Wireshark  ·  Volatility  ·  MITRE ATT&CK  ·  zarządzanie incydentami  ·  Linux  ·  Docker  ·  Python  ·  Bash",
     "left": 76,
-    "top": 627.98,
+    "top": 683.98,
     "width": 466,
-    "height": 14,
+    "height": 27,
     "fontSize": 9.4,
     "lineHeight": 13.5,
     "letterSpacing": 0,
@@ -673,13 +683,13 @@ const CINDER_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-02eee5067744",
+    "flowGroup": "record-0ccb59cb1a53",
     "flowRole": "content"
   },
   {
     "category": "rectangle",
     "left": 526,
-    "top": 664.98,
+    "top": 733.98,
     "width": 16,
     "height": 16,
     "backgroundColor": "#C93F3F",
@@ -697,7 +707,7 @@ const CINDER_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#C93F3F",
     "left": 76,
-    "top": 662.98,
+    "top": 731.98,
     "zIndex": 2,
     "page": 1,
     "bold": false,
@@ -707,7 +717,7 @@ const CINDER_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 674.725,
+    "top": 743.725,
     "width": 466,
     "height": 1.0,
     "backgroundColor": "#D5D6D6",
@@ -717,40 +727,9 @@ const CINDER_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Polski — ojczysty",
+    "content": "angielski — C1",
     "left": 76.0,
-    "top": 683.725,
-    "width": 108.5,
-    "height": 14,
-    "fontSize": 9.4,
-    "lineHeight": 13.5,
-    "letterSpacing": 0,
-    "color": "#292D31",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 9,
-        "end": 17,
-        "italic": true,
-        "color": "#C93F3F"
-      }
-    ],
-    "flowRole": "grid-member",
-    "flowGroup": "record-febb8797dc02"
-  },
-  {
-    "category": "textarea",
-    "content": "Angielski — C1",
-    "left": 192.5,
-    "top": 683.725,
+    "top": 752.725,
     "width": 108.5,
     "height": 14,
     "fontSize": 9.4,
@@ -775,38 +754,7 @@ const CINDER_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-febb8797dc02"
-  },
-  {
-    "category": "textarea",
-    "content": "Niemiecki — B2",
-    "left": 309.0,
-    "top": 683.725,
-    "width": 108.5,
-    "height": 14,
-    "fontSize": 9.4,
-    "lineHeight": 13.5,
-    "letterSpacing": 0,
-    "color": "#292D31",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#C93F3F"
-      }
-    ],
-    "flowRole": "grid-member",
-    "flowGroup": "record-febb8797dc02"
+    "flowGroup": "record-42d4f75be42e"
   }
 ];
 

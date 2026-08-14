@@ -1,21 +1,13 @@
 /**
- * Nimbus template (`layouts: ["single"]`).
+ * Nimbus template (auto-generated demo content).
  *
- * Light minimal single column with soft blue accents,
- * set entirely in Lora (name 31 / headings & roles 13 /
- * body 11 dark grey / meta 10). Masthead keeps the name
- * accent bar, square photo slot, contact under the photo,
- * 3 px rules, 56 px under the header divider.
- *
- * This static starter is the backend generator's own output
- * (`backend/app/services/cv_templates/templates/nimbus.py`) for
- * representative demo content (Julia Bernat — three roles, one degree, five
- * skills, and three languages, sized to fit page 1 of the mockup), so the
- * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
- * Image `src` values are stored relative and get the API base prepended at
- * load time. The array already carries `flowRole` / `flowGroup` /
- * `preserveInitialLayout` from the generator, so it is exported as-is (only
- * the image src is absolutised).
+ * Landing-page / picker preview content, generated from the backend
+ * template's own output (`backend/app/services/cv_templates/templates/nimbus.py`)
+ * for representative demo content, so the picker preview matches what
+ * `/ai/fill_template` produces pixel-for-pixel. Image `src` values are stored
+ * relative and get the API base prepended at load time. The array already
+ * carries `flowRole` / `flowGroup` / `preserveInitialLayout` from the
+ * generator, so it is exported as-is (only the image src is absolutised).
  */
 import API_BASE_URL from "../services/api.js";
 
@@ -85,7 +77,7 @@ const NIMBUS_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/nimbus-finance-accent.png",
+    "src": "http://localhost:8000/template-assets/nimbus-finance-accent.png",
     "width": 106,
     "height": 106,
     "left": 430,
@@ -99,7 +91,7 @@ const NIMBUS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "Julia Bernat",
+    "content": "Aleksandra Nowicka",
     "fontSize": 31,
     "fontFamily": "Lora",
     "color": "#2B3D4C",
@@ -113,7 +105,7 @@ const NIMBUS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "Analityczka AML i Compliance",
+    "content": "Analityczka SOC",
     "fontSize": 13,
     "fontFamily": "Lora",
     "color": "#5F8EAD",
@@ -128,7 +120,7 @@ const NIMBUS_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "julia.bernat@email.com · +48 512 340 780 · Warszawa ·…",
+    "content": "aleksandra.nowicka@proton.me · +48 512 340 118 · Warszawa ·…",
     "fontSize": 10,
     "fontFamily": "Lora",
     "color": "#72818C",
@@ -167,11 +159,11 @@ const NIMBUS_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania.",
+    "content": "Analityczka SOC z 3-letnim doświadczeniem w monitorowaniu incydentów bezpieczeństwa i triage'u alertów dla klientów z sektora finansowego. Na co dzień pracuję z SIEM, analizuję logi i koordynuję eskalacje do zespołu L2. Ukończyłam ścieżkę SOC Analyst na TryHackMe (60+ pokoi) i aktywnie pogłębiam wiedzę z zakresu threat hunting oraz MITRE ATT&CK.",
     "left": 80,
     "top": 279.55,
     "width": 462,
-    "height": 16,
+    "height": 80,
     "fontSize": 11,
     "lineHeight": 16,
     "letterSpacing": 0,
@@ -194,7 +186,7 @@ const NIMBUS_ELEMENTS = [
     "fontFamily": "Lora",
     "color": "#5F8EAD",
     "left": 80,
-    "top": 316.55,
+    "top": 380.55,
     "zIndex": 2,
     "page": 1,
     "bold": false,
@@ -204,7 +196,7 @@ const NIMBUS_ELEMENTS = [
   {
     "category": "line",
     "left": 80,
-    "top": 334.1,
+    "top": 398.1,
     "width": 462,
     "height": 3,
     "backgroundColor": "#E9EEF1",
@@ -214,9 +206,9 @@ const NIMBUS_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Analityczka AML",
+    "content": "Analityczka SOC (L1)",
     "left": 80,
-    "top": 345.1,
+    "top": 409.1,
     "width": 462,
     "height": 17,
     "fontSize": 13,
@@ -232,14 +224,14 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-97ce46136a74",
+    "flowGroup": "record-7d4ea1f73908",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
+    "content": "SecuraNet Sp. z o.o.   ·   Warszawa   ·   Marzec 2023 – obecnie",
     "left": 80,
-    "top": 366.1,
+    "top": 430.1,
     "width": 462,
     "height": 14,
     "fontSize": 10,
@@ -255,16 +247,16 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-97ce46136a74",
+    "flowGroup": "record-7d4ea1f73908",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.",
+    "content": "• Monitoruję alerty bezpieczeństwa w SIEM (Splunk) dla 12 klientów korporacyjnych.\n• Prowadzę triage incydentów i eskalację do zespołu L2 zgodnie z playbookami.\n• Przygotowuję cotygodniowe raporty z trendów zagrożeń dla klientów.\n• Współtworzę reguły korelacyjne ograniczające liczbę fałszywych alarmów.",
     "left": 80,
-    "top": 384.1,
+    "top": 448.1,
     "width": 462,
-    "height": 16,
+    "height": 64,
     "fontSize": 11,
     "lineHeight": 16,
     "letterSpacing": 0,
@@ -278,14 +270,14 @@ const NIMBUS_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-97ce46136a74",
+    "flowGroup": "record-7d4ea1f73908",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Analityczka KYC",
+    "content": "Specjalistka ds. Wsparcia IT",
     "left": 80,
-    "top": 410.1,
+    "top": 522.1,
     "width": 462,
     "height": 17,
     "fontSize": 13,
@@ -301,14 +293,14 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-214e6698e297",
+    "flowGroup": "record-b5eab80b3525",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
+    "content": "Vantis Systems   ·   Warszawa   ·   Lipiec 2021 – Luty 2023",
     "left": 80,
-    "top": 431.1,
+    "top": 543.1,
     "width": 462,
     "height": 14,
     "fontSize": 10,
@@ -324,16 +316,16 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-214e6698e297",
+    "flowGroup": "record-b5eab80b3525",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.",
+    "content": "• Obsługiwałam zgłoszenia helpdesk i administrowałam kontami w Active Directory.\n• Wdrażałam podstawowe polityki bezpieczeństwa stacji roboczych.",
     "left": 80,
-    "top": 449.1,
+    "top": 561.1,
     "width": 462,
-    "height": 16,
+    "height": 32,
     "fontSize": 11,
     "lineHeight": 16,
     "letterSpacing": 0,
@@ -347,7 +339,7 @@ const NIMBUS_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-214e6698e297",
+    "flowGroup": "record-b5eab80b3525",
     "flowRole": "content"
   },
   {
@@ -357,7 +349,7 @@ const NIMBUS_ELEMENTS = [
     "fontFamily": "Lora",
     "color": "#5F8EAD",
     "left": 80,
-    "top": 486.1,
+    "top": 614.1,
     "zIndex": 2,
     "page": 1,
     "bold": false,
@@ -367,7 +359,7 @@ const NIMBUS_ELEMENTS = [
   {
     "category": "line",
     "left": 80,
-    "top": 503.65000000000003,
+    "top": 631.65,
     "width": 462,
     "height": 3,
     "backgroundColor": "#E9EEF1",
@@ -377,9 +369,9 @@ const NIMBUS_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Licencjat Prawa",
+    "content": "Inżynier informatyki — specjalność: Bezpieczeństwo systemów",
     "left": 80,
-    "top": 514.6500000000001,
+    "top": 642.65,
     "width": 462,
     "height": 17,
     "fontSize": 13,
@@ -395,14 +387,14 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-fe6429ade129",
+    "flowGroup": "record-4a46733fe2f1",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "UW Warszawa",
+    "content": "Politechnika Warszawska",
     "left": 80,
-    "top": 535.6500000000001,
+    "top": 663.65,
     "width": 462,
     "height": 17,
     "fontSize": 13,
@@ -418,14 +410,14 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-fe6429ade129",
+    "flowGroup": "record-4a46733fe2f1",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "2012 – 2016",
+    "content": "Warszawa   ·   ukończono czerwiec 2021",
     "left": 80,
-    "top": 556.6500000000001,
+    "top": 684.65,
     "width": 462,
     "height": 14,
     "fontSize": 10,
@@ -441,7 +433,30 @@ const NIMBUS_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-fe6429ade129",
+    "flowGroup": "record-4a46733fe2f1",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Praca inżynierska z zakresu detekcji anomalii w ruchu sieciowym.",
+    "left": 80,
+    "top": 702.65,
+    "width": 462,
+    "height": 16,
+    "fontSize": 11,
+    "lineHeight": 16,
+    "letterSpacing": 0,
+    "color": "#3A3A3A",
+    "fontFamily": "Lora",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-4a46733fe2f1",
     "flowRole": "content"
   },
   {
@@ -451,9 +466,9 @@ const NIMBUS_ELEMENTS = [
     "fontFamily": "Lora",
     "color": "#5F8EAD",
     "left": 80,
-    "top": 591.6500000000001,
+    "top": 66.0,
     "zIndex": 2,
-    "page": 1,
+    "page": 2,
     "bold": false,
     "italic": false,
     "flowRole": "section-chrome"
@@ -461,35 +476,35 @@ const NIMBUS_ELEMENTS = [
   {
     "category": "line",
     "left": 80,
-    "top": 609.2,
+    "top": 83.55,
     "width": 462,
     "height": 3,
     "backgroundColor": "#E9EEF1",
     "zIndex": 1,
-    "page": 1,
+    "page": 2,
     "flowRole": "section-chrome"
   },
   {
     "category": "textarea",
-    "content": "AML/KYC  ·  Monitoring  ·  CDD/EDD  ·  Raporty SAR",
+    "content": "analiza SIEM/logów  ·  triage alertów  ·  Splunk  ·  Wireshark  ·  Nmap  ·  MITRE ATT&CK  ·  podstawy IDS/firewall  ·  Active Directory  ·  Python  ·  SQL  ·  Git  ·  Windows Server  ·  Linux",
     "left": 80,
-    "top": 620.2,
+    "top": 94.55,
     "width": 462,
-    "height": 16,
+    "height": 48,
     "fontSize": 11,
     "lineHeight": 16,
     "letterSpacing": 0,
     "color": "#3A3A3A",
     "fontFamily": "Lora",
     "zIndex": 2,
-    "page": 1,
+    "page": 2,
     "bold": false,
     "italic": false,
     "align": "left",
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4ee500594cb1",
+    "flowGroup": "record-6e4cfa9b83cd",
     "flowRole": "content"
   },
   {
@@ -499,9 +514,9 @@ const NIMBUS_ELEMENTS = [
     "fontFamily": "Lora",
     "color": "#5F8EAD",
     "left": 80,
-    "top": 657.2,
+    "top": 163.55,
     "zIndex": 2,
-    "page": 1,
+    "page": 2,
     "bold": false,
     "italic": false,
     "flowRole": "section-chrome"
@@ -509,19 +524,19 @@ const NIMBUS_ELEMENTS = [
   {
     "category": "line",
     "left": 80,
-    "top": 674.75,
+    "top": 181.10000000000002,
     "width": 462,
     "height": 3,
     "backgroundColor": "#E9EEF1",
     "zIndex": 1,
-    "page": 1,
+    "page": 2,
     "flowRole": "section-chrome"
   },
   {
     "category": "textarea",
-    "content": "Polski — ojczysty",
+    "content": "angielski — B2",
     "left": 80.0,
-    "top": 685.75,
+    "top": 192.10000000000002,
     "width": 107.5,
     "height": 16,
     "fontSize": 11,
@@ -530,38 +545,7 @@ const NIMBUS_ELEMENTS = [
     "color": "#3A3A3A",
     "fontFamily": "Lora",
     "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 9,
-        "end": 17,
-        "italic": true,
-        "color": "#5F8EAD"
-      }
-    ],
-    "flowRole": "grid-member",
-    "flowGroup": "record-9fb2d4954611"
-  },
-  {
-    "category": "textarea",
-    "content": "Angielski — C1",
-    "left": 195.5,
-    "top": 685.75,
-    "width": 107.5,
-    "height": 16,
-    "fontSize": 11,
-    "lineHeight": 16,
-    "letterSpacing": 0,
-    "color": "#3A3A3A",
-    "fontFamily": "Lora",
-    "zIndex": 2,
-    "page": 1,
+    "page": 2,
     "bold": false,
     "italic": false,
     "align": "left",
@@ -577,7 +561,38 @@ const NIMBUS_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-9fb2d4954611"
+    "flowGroup": "record-21259c304c71"
+  },
+  {
+    "category": "textarea",
+    "content": "niemiecki — A2",
+    "left": 195.5,
+    "top": 192.10000000000002,
+    "width": 107.5,
+    "height": 16,
+    "fontSize": 11,
+    "lineHeight": 16,
+    "letterSpacing": 0,
+    "color": "#3A3A3A",
+    "fontFamily": "Lora",
+    "zIndex": 2,
+    "page": 2,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 12,
+        "end": 14,
+        "italic": true,
+        "color": "#5F8EAD"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-21259c304c71"
   }
 ];
 

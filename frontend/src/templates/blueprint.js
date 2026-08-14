@@ -1,17 +1,13 @@
 /**
- * Blueprint template (`layouts: ["single"]`).
+ * Blueprint template (auto-generated demo content).
  *
- * Technical-schematic single column with steel-blue registration marks.
- *
- * This static starter is the backend generator's own output
- * (`backend/app/services/cv_templates/templates/blueprint.py`) for
- * representative demo content (Julia Bernat — three roles, one degree, five
- * skills, and three languages, sized to fit page 1 of the mockup), so the
- * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
- * Image `src` values are stored relative and get the API base prepended at
- * load time. The array already carries `flowRole` / `flowGroup` /
- * `preserveInitialLayout` from the generator, so it is exported as-is (only
- * the image src is absolutised).
+ * Landing-page / picker preview content, generated from the backend
+ * template's own output (`backend/app/services/cv_templates/templates/blueprint.py`)
+ * for representative demo content, so the picker preview matches what
+ * `/ai/fill_template` produces pixel-for-pixel. Image `src` values are stored
+ * relative and get the API base prepended at load time. The array already
+ * carries `flowRole` / `flowGroup` / `preserveInitialLayout` from the
+ * generator, so it is exported as-is (only the image src is absolutised).
  */
 import API_BASE_URL from "../services/api.js";
 
@@ -54,7 +50,7 @@ const BLUEPRINT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Julia Bernat",
+    "content": "Bartosz Wojciechowski",
     "left": 96.0,
     "top": 66.0,
     "width": 403.0,
@@ -76,7 +72,7 @@ const BLUEPRINT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "ANALITYCZKA AML I COMPLIANCE",
+    "content": "ANALITYK SOC",
     "left": 96.0,
     "top": 101.0,
     "width": 403.0,
@@ -98,7 +94,7 @@ const BLUEPRINT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "julia.bernat@email.com · +48 512 340 780 · Warszawa · linkedin.com/in/jbernat · github.com/jbernat · juliabernat.pl",
+    "content": "bartosz.wojciechowski@mail.com · +48 795 340 128 · Białystok · linkedin.com/in/bartosz-woj… · github.com/bwojciechowski · bartoszw.dev",
     "left": 96.0,
     "top": 126.0,
     "width": 403.0,
@@ -248,11 +244,11 @@ const BLUEPRINT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz oraz terminowość decyzji bez utraty dokładności.",
+    "content": "Analityk SOC z doświadczeniem w monitorowaniu infrastruktury krytycznej i obsłudze alertów bezpieczeństwa. Wcześniejsze doświadczenie w utrzymaniu sieci przemysłowych daje mi praktyczne zrozumienie środowisk OT.",
     "left": 76,
     "top": 216.71,
     "width": 443,
-    "height": 28,
+    "height": 42,
     "fontSize": 9.5,
     "lineHeight": 13.8,
     "letterSpacing": 0,
@@ -265,8 +261,7 @@ const BLUEPRINT_ELEMENTS = [
     "align": "left",
     "bulletList": false,
     "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowRole": "content"
+    "preserveInitialLayout": true
   },
   {
     "category": "text",
@@ -275,7 +270,7 @@ const BLUEPRINT_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#416180",
     "left": 76,
-    "top": 265.71000000000004,
+    "top": 279.71000000000004,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -286,7 +281,7 @@ const BLUEPRINT_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 280.42,
+    "top": 294.42,
     "width": 443,
     "height": 1,
     "backgroundColor": "#B5D9FD",
@@ -296,9 +291,9 @@ const BLUEPRINT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Analityczka AML",
+    "content": "Analityk SOC",
     "left": 76,
-    "top": 289.42,
+    "top": 303.42,
     "width": 443,
     "height": 15,
     "fontSize": 10.8,
@@ -314,14 +309,13 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-39016bbadd39",
-    "flowRole": "content"
+    "flowGroup": "record-65d2ef156a85"
   },
   {
     "category": "textarea",
-    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
+    "content": "GridWorks Automatyka   ·   Białystok   ·   Styczeń 2023 – obecnie",
     "left": 76,
-    "top": 308.42,
+    "top": 322.42,
     "width": 443,
     "height": 12,
     "fontSize": 8.4,
@@ -337,14 +331,13 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-39016bbadd39",
-    "flowRole": "content"
+    "flowGroup": "record-65d2ef156a85"
   },
   {
     "category": "textarea",
-    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.\n• Realizuje CDD/EDD oraz przygotowuje dokumentację zgodną z wymogami FIU.\n• Wspiera zespół L2 przy eskalacjach spraw o podwyższonym ryzyku AML.",
+    "content": "• Monitoruję alerty bezpieczeństwa w systemie SIEM dla infrastruktury klienta.\n• Prowadzę triage incydentów i eskalację zgodnie z ustalonymi procedurami.\n• Analizuję logi sieciowe i systemowe w poszukiwaniu wskaźników kompromitacji.",
     "left": 76,
-    "top": 324.42,
+    "top": 338.42,
     "width": 443,
     "height": 42,
     "fontSize": 9.5,
@@ -360,14 +353,13 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-39016bbadd39",
-    "flowRole": "content"
+    "flowGroup": "record-65d2ef156a85"
   },
   {
     "category": "textarea",
-    "content": "Analityczka KYC",
+    "content": "Technik Sieci",
     "left": 76,
-    "top": 376.42,
+    "top": 390.42,
     "width": 443,
     "height": 15,
     "fontSize": 10.8,
@@ -383,14 +375,13 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-039a79e35bbb",
-    "flowRole": "content"
+    "flowGroup": "record-714b158b33b0"
   },
   {
     "category": "textarea",
-    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
+    "content": "Northgate Logistics   ·   Białystok   ·   Wrzesień 2021 – Grudzień 2022",
     "left": 76,
-    "top": 395.42,
+    "top": 409.42,
     "width": 443,
     "height": 12,
     "fontSize": 8.4,
@@ -406,14 +397,175 @@ const BLUEPRINT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-039a79e35bbb",
-    "flowRole": "content"
+    "flowGroup": "record-714b158b33b0"
   },
   {
     "category": "textarea",
-    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
+    "content": "• Konfigurowałem i utrzymywałem urządzenia sieciowe w oddziałach firmy.",
     "left": 76,
-    "top": 411.42,
+    "top": 425.42,
+    "width": 443,
+    "height": 14,
+    "fontSize": 9.5,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#1D1F20",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-714b158b33b0"
+  },
+  {
+    "category": "text",
+    "content": "WYKSZTAŁCENIE",
+    "fontSize": 10.2,
+    "fontFamily": "Inter",
+    "color": "#416180",
+    "left": 76,
+    "top": 460.42,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.2,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 76,
+    "top": 475.13,
+    "width": 443,
+    "height": 1,
+    "backgroundColor": "#B5D9FD",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "Inżynier informatyki — specjalność: Sieci i bezpieczeństwo",
+    "left": 76,
+    "top": 484.13,
+    "width": 443,
+    "height": 14,
+    "fontSize": 10.8,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#1D1F20",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-a5745879576d"
+  },
+  {
+    "category": "textarea",
+    "content": "Politechnika Białostocka",
+    "left": 76,
+    "top": 502.13,
+    "width": 443,
+    "height": 14,
+    "fontSize": 10.8,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#1D1F20",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-a5745879576d"
+  },
+  {
+    "category": "textarea",
+    "content": "Białystok   ·   ukończono czerwiec 2021",
+    "left": 76,
+    "top": 520.13,
+    "width": 443,
+    "height": 12,
+    "fontSize": 8.4,
+    "lineHeight": 11.8,
+    "letterSpacing": 0,
+    "color": "#5D5D60",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-a5745879576d"
+  },
+  {
+    "category": "textarea",
+    "content": "• Praca inżynierska dotycząca detekcji anomalii w ruchu sieciowym.",
+    "left": 76,
+    "top": 536.13,
+    "width": 443,
+    "height": 14,
+    "fontSize": 9.5,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#1D1F20",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-a5745879576d"
+  },
+  {
+    "category": "text",
+    "content": "UMIEJĘTNOŚCI",
+    "fontSize": 10.2,
+    "fontFamily": "Inter",
+    "color": "#416180",
+    "left": 76,
+    "top": 571.13,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.2,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 76,
+    "top": 585.84,
+    "width": 443,
+    "height": 1,
+    "backgroundColor": "#B5D9FD",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "textarea",
+    "content": "analiza SIEM/logów  ·  triage alertów  ·  Wireshark  ·  Tcpdump  ·  Nmap  ·  MITRE ATT&CK  ·  podstawy IDS/firewall  ·  Python  ·  SQL  ·  Linux",
+    "left": 76,
+    "top": 594.84,
     "width": 443,
     "height": 28,
     "fontSize": 9.5,
@@ -426,224 +578,10 @@ const BLUEPRINT_ELEMENTS = [
     "bold": false,
     "italic": false,
     "align": "left",
-    "bulletList": true,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-039a79e35bbb",
-    "flowRole": "content"
-  },
-  {
-    "category": "textarea",
-    "content": "Specjalistka Obsługi Klienta",
-    "left": 76,
-    "top": 449.42,
-    "width": 443,
-    "height": 15,
-    "fontSize": 10.8,
-    "lineHeight": 13.8,
-    "letterSpacing": 0,
-    "color": "#1D1F20",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": true,
-    "italic": false,
-    "align": "left",
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5d23b7df46ba",
-    "flowRole": "content"
-  },
-  {
-    "category": "textarea",
-    "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
-    "left": 76,
-    "top": 468.42,
-    "width": 443,
-    "height": 12,
-    "fontSize": 8.4,
-    "lineHeight": 11.8,
-    "letterSpacing": 0,
-    "color": "#5D5D60",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-5d23b7df46ba",
-    "flowRole": "content"
-  },
-  {
-    "category": "textarea",
-    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
-    "left": 76,
-    "top": 484.42,
-    "width": 443,
-    "height": 14,
-    "fontSize": 9.5,
-    "lineHeight": 13.8,
-    "letterSpacing": 0,
-    "color": "#1D1F20",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": true,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-5d23b7df46ba",
-    "flowRole": "content"
-  },
-  {
-    "category": "text",
-    "content": "WYKSZTAŁCENIE",
-    "fontSize": 10.2,
-    "fontFamily": "Inter",
-    "color": "#416180",
-    "left": 76,
-    "top": 519.4200000000001,
-    "zIndex": 3,
-    "page": 1,
-    "bold": true,
-    "italic": false,
-    "letterSpacing": 1.2,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "line",
-    "left": 76,
-    "top": 534.1300000000001,
-    "width": 443,
-    "height": 1,
-    "backgroundColor": "#B5D9FD",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "textarea",
-    "content": "Licencjat Prawa",
-    "left": 76,
-    "top": 543.1300000000001,
-    "width": 443,
-    "height": 14,
-    "fontSize": 10.8,
-    "lineHeight": 13.8,
-    "letterSpacing": 0,
-    "color": "#1D1F20",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": true,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-f9a7226be704",
-    "flowRole": "content"
-  },
-  {
-    "category": "textarea",
-    "content": "UW Warszawa",
-    "left": 76,
-    "top": 561.1300000000001,
-    "width": 443,
-    "height": 14,
-    "fontSize": 10.8,
-    "lineHeight": 13.8,
-    "letterSpacing": 0,
-    "color": "#1D1F20",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-f9a7226be704",
-    "flowRole": "content"
-  },
-  {
-    "category": "textarea",
-    "content": "2012 – 2016",
-    "left": 76,
-    "top": 579.1300000000001,
-    "width": 443,
-    "height": 12,
-    "fontSize": 8.4,
-    "lineHeight": 11.8,
-    "letterSpacing": 0,
-    "color": "#5D5D60",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-f9a7226be704",
-    "flowRole": "content"
-  },
-  {
-    "category": "text",
-    "content": "UMIEJĘTNOŚCI",
-    "fontSize": 10.2,
-    "fontFamily": "Inter",
-    "color": "#416180",
-    "left": 76,
-    "top": 612.1300000000001,
-    "zIndex": 3,
-    "page": 1,
-    "bold": true,
-    "italic": false,
-    "letterSpacing": 1.2,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "line",
-    "left": 76,
-    "top": 626.8400000000001,
-    "width": 443,
-    "height": 1,
-    "backgroundColor": "#B5D9FD",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "textarea",
-    "content": "AML/KYC  ·  Monitoring  ·  CDD/EDD  ·  Raporty SAR  ·  Analiza transakcyjna",
-    "left": 76,
-    "top": 635.8400000000001,
-    "width": 443,
-    "height": 14,
-    "fontSize": 9.5,
-    "lineHeight": 13.8,
-    "letterSpacing": 0,
-    "color": "#1D1F20",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-605cc959dc71",
-    "flowRole": "content"
+    "flowGroup": "record-62dfa0b6b1a6"
   },
   {
     "category": "text",
@@ -652,7 +590,7 @@ const BLUEPRINT_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#416180",
     "left": 76,
-    "top": 670.8400000000001,
+    "top": 643.84,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -663,7 +601,7 @@ const BLUEPRINT_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 685.5500000000002,
+    "top": 658.5500000000001,
     "width": 443,
     "height": 1,
     "backgroundColor": "#B5D9FD",
@@ -673,9 +611,9 @@ const BLUEPRINT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Polski — ojczysty",
+    "content": "angielski — B2",
     "left": 76.0,
-    "top": 694.5500000000002,
+    "top": 667.5500000000001,
     "width": 102.75,
     "height": 14,
     "fontSize": 9.5,
@@ -693,20 +631,20 @@ const BLUEPRINT_ELEMENTS = [
     "preserveInitialLayout": true,
     "runs": [
       {
-        "start": 9,
-        "end": 17,
+        "start": 12,
+        "end": 14,
         "italic": true,
         "color": "#416180"
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-53e0db2fa588"
+    "flowGroup": "record-56a5a9de5fe2"
   },
   {
     "category": "textarea",
-    "content": "Angielski — C1",
+    "content": "rosyjski — B1",
     "left": 186.75,
-    "top": 694.5500000000002,
+    "top": 667.5500000000001,
     "width": 102.75,
     "height": 14,
     "fontSize": 9.5,
@@ -724,20 +662,20 @@ const BLUEPRINT_ELEMENTS = [
     "preserveInitialLayout": true,
     "runs": [
       {
-        "start": 12,
-        "end": 14,
+        "start": 11,
+        "end": 13,
         "italic": true,
         "color": "#416180"
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-53e0db2fa588"
+    "flowGroup": "record-56a5a9de5fe2"
   },
   {
     "category": "textarea",
-    "content": "Niemiecki — B2",
+    "content": "ukraiński — A2",
     "left": 297.5,
-    "top": 694.5500000000002,
+    "top": 667.5500000000001,
     "width": 102.75,
     "height": 14,
     "fontSize": 9.5,
@@ -762,7 +700,7 @@ const BLUEPRINT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-53e0db2fa588"
+    "flowGroup": "record-56a5a9de5fe2"
   }
 ];
 

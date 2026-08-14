@@ -1,17 +1,13 @@
 /**
- * Atrium template (`layouts: ["single"]`).
+ * Atrium template (auto-generated demo content).
  *
- * Centered-axis editorial single column with graphite-sage accents.
- *
- * This static starter is the backend generator's own output
- * (`backend/app/services/cv_templates/templates/atrium.py`) for
- * representative demo content (Julia Bernat — three roles, one degree, five
- * skills, and three languages, sized to fit page 1 of the mockup), so the
- * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
- * Image `src` values are stored relative and get the API base prepended at
- * load time. The array already carries `flowRole` / `flowGroup` /
- * `preserveInitialLayout` from the generator, so it is exported as-is (only
- * the image src is absolutised).
+ * Landing-page / picker preview content, generated from the backend
+ * template's own output (`backend/app/services/cv_templates/templates/atrium.py`)
+ * for representative demo content, so the picker preview matches what
+ * `/ai/fill_template` produces pixel-for-pixel. Image `src` values are stored
+ * relative and get the API base prepended at load time. The array already
+ * carries `flowRole` / `flowGroup` / `preserveInitialLayout` from the
+ * generator, so it is exported as-is (only the image src is absolutised).
  */
 import API_BASE_URL from "../services/api.js";
 
@@ -43,7 +39,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Julia Bernat",
+    "content": "Weronika Sikora",
     "left": 82,
     "top": 54.0,
     "width": 431,
@@ -65,7 +61,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Analityczka AML i Compliance",
+    "content": "Junior Penetration Tester",
     "left": 82,
     "top": 97.0,
     "width": 431,
@@ -87,8 +83,8 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/phone.png",
-    "left": 128.0006,
+    "src": "http://localhost:8000/template-assets/iconic/atrium/phone.png",
+    "left": 166.3926,
     "top": 126.0,
     "width": 10.5,
     "height": 10.5,
@@ -99,37 +95,11 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "+48 512 340 780",
+    "content": "+48 733 908 261",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 140.5006,
-    "top": 126.0,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "image",
-    "src": "/template-assets/iconic/atrium/email.png",
-    "left": 225.12099999999998,
-    "top": 126.0,
-    "width": 10.5,
-    "height": 10.5,
-    "zIndex": 3,
-    "page": 1,
-    "alignWithText": true,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "text",
-    "content": "julia.bernat@email.com",
-    "fontSize": 8.4,
-    "fontFamily": "Montserrat",
-    "color": "#78796F",
-    "left": 237.62099999999998,
+    "left": 178.8926,
     "top": 126.0,
     "zIndex": 3,
     "page": 1,
@@ -139,8 +109,8 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/linkedin.png",
-    "left": 355.83299999999997,
+    "src": "http://localhost:8000/template-assets/iconic/atrium/email.png",
+    "left": 262.6142,
     "top": 126.0,
     "width": 10.5,
     "height": 10.5,
@@ -151,11 +121,11 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "linkedin.com/in/jbernat",
+    "content": "weronika.sikora.pentest@gmail.com",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 368.33299999999997,
+    "left": 275.1142,
     "top": 126.0,
     "zIndex": 3,
     "page": 1,
@@ -165,8 +135,8 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/github.png",
-    "left": 170.19379999999998,
+    "src": "http://localhost:8000/template-assets/iconic/atrium/linkedin.png",
+    "left": 110.36899999999997,
     "top": 142.0,
     "width": 10.5,
     "height": 10.5,
@@ -177,11 +147,11 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "github.com/jbernat",
+    "content": "linkedin.com/in/weronika-sikora",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 182.69379999999998,
+    "left": 122.86899999999997,
     "top": 142.0,
     "zIndex": 3,
     "page": 1,
@@ -191,8 +161,8 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/website.png",
-    "left": 283.123,
+    "src": "http://localhost:8000/template-assets/iconic/atrium/github.png",
+    "left": 276.24339999999995,
     "top": 142.0,
     "width": 10.5,
     "height": 10.5,
@@ -203,11 +173,11 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "juliabernat.pl",
+    "content": "github.com/wsikora",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 295.623,
+    "left": 288.74339999999995,
     "top": 142.0,
     "zIndex": 3,
     "page": 1,
@@ -217,8 +187,8 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/location.png",
-    "left": 368.9622,
+    "src": "http://localhost:8000/template-assets/iconic/atrium/website.png",
+    "left": 391.0458,
     "top": 142.0,
     "width": 10.5,
     "height": 10.5,
@@ -229,12 +199,38 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "Warszawa",
+    "content": "weronikasikora.dev",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 381.4622,
+    "left": 403.5458,
     "top": 142.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "image",
+    "src": "http://localhost:8000/template-assets/iconic/atrium/location.png",
+    "left": 278.566,
+    "top": 158.0,
+    "width": 10.5,
+    "height": 10.5,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "text",
+    "content": "Kielce",
+    "fontSize": 8.4,
+    "fontFamily": "Montserrat",
+    "color": "#78796F",
+    "left": 291.066,
+    "top": 158.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -244,7 +240,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 251.5,
-    "top": 161.0,
+    "top": 177.0,
     "width": 34.0,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -255,7 +251,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 292.5,
-    "top": 161.0,
+    "top": 177.0,
     "width": 10.0,
     "height": 1,
     "backgroundColor": "#556158",
@@ -266,7 +262,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 309.5,
-    "top": 161.0,
+    "top": 177.0,
     "width": 34.0,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -281,7 +277,7 @@ const ATRIUM_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#556158",
     "left": 82,
-    "top": 198.0,
+    "top": 214.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -292,7 +288,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 82,
-    "top": 212.2,
+    "top": 228.2,
     "width": 18,
     "height": 1.2,
     "backgroundColor": "#556158",
@@ -303,7 +299,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 108,
-    "top": 212.2,
+    "top": 228.2,
     "width": 405,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -313,9 +309,9 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz oraz terminowość decyzji bez utraty dokładności.",
+    "content": "Junior Penetration Tester z pasją do bezpieczeństwa aplikacji webowych. Ukończyłam ponad 70 pokoi na TryHackMe i aktywnie rozwiązuję zadania CTF. Poszukuję pierwszej pełnoetatowej roli w zespole ofensywnego bezpieczeństwa.",
     "left": 82,
-    "top": 221.39999999999998,
+    "top": 237.39999999999998,
     "width": 431,
     "height": 43,
     "fontSize": 9.6,
@@ -330,8 +326,7 @@ const ATRIUM_ELEMENTS = [
     "align": "left",
     "bulletList": false,
     "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowRole": "content"
+    "preserveInitialLayout": true
   },
   {
     "category": "text",
@@ -340,7 +335,7 @@ const ATRIUM_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#556158",
     "left": 82,
-    "top": 285.4,
+    "top": 301.4,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -351,7 +346,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 82,
-    "top": 299.59999999999997,
+    "top": 315.59999999999997,
     "width": 18,
     "height": 1.2,
     "backgroundColor": "#556158",
@@ -362,7 +357,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 108,
-    "top": 299.59999999999997,
+    "top": 315.59999999999997,
     "width": 405,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -372,9 +367,9 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Analityczka AML",
+    "content": "Junior Penetration Tester",
     "left": 82,
-    "top": 308.79999999999995,
+    "top": 324.79999999999995,
     "width": 431,
     "height": 15,
     "fontSize": 10.8,
@@ -390,14 +385,13 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-dbcc3705169c",
-    "flowRole": "content"
+    "flowGroup": "record-a9eb33333adf"
   },
   {
     "category": "textarea",
-    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
+    "content": "Bastion CyberSec   ·   Kielce   ·   Luty 2024 – obecnie",
     "left": 82,
-    "top": 327.79999999999995,
+    "top": 343.79999999999995,
     "width": 431,
     "height": 12,
     "fontSize": 8.4,
@@ -413,14 +407,13 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-dbcc3705169c",
-    "flowRole": "content"
+    "flowGroup": "record-a9eb33333adf"
   },
   {
     "category": "textarea",
-    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.\n• Realizuje CDD/EDD oraz przygotowuje dokumentację zgodną z wymogami FIU.\n• Wspiera zespół L2 przy eskalacjach spraw o podwyższonym ryzyku AML.",
+    "content": "• Prowadzę testy penetracyjne aplikacji webowych pod nadzorem starszych testerów.\n• Identyfikuję i dokumentuję podatności zgodnie z metodyką OWASP.\n• Przygotowuję raporty z testów wraz z rekomendacjami naprawczymi.",
     "left": 82,
-    "top": 343.79999999999995,
+    "top": 359.79999999999995,
     "width": 431,
     "height": 43,
     "fontSize": 9.6,
@@ -436,14 +429,13 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-dbcc3705169c",
-    "flowRole": "content"
+    "flowGroup": "record-a9eb33333adf"
   },
   {
     "category": "textarea",
-    "content": "Analityczka KYC",
+    "content": "Praktykantka ds. Bezpieczeństwa",
     "left": 82,
-    "top": 396.79999999999995,
+    "top": 412.79999999999995,
     "width": 431,
     "height": 15,
     "fontSize": 10.8,
@@ -459,14 +451,13 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-991c2f7cd95c",
-    "flowRole": "content"
+    "flowGroup": "record-627d0a40afdc"
   },
   {
     "category": "textarea",
-    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
+    "content": "Meridian IT Services   ·   Kielce   ·   Czerwiec 2023 – Styczeń 2024",
     "left": 82,
-    "top": 415.79999999999995,
+    "top": 431.79999999999995,
     "width": 431,
     "height": 12,
     "fontSize": 8.4,
@@ -482,14 +473,13 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-991c2f7cd95c",
-    "flowRole": "content"
+    "flowGroup": "record-627d0a40afdc"
   },
   {
     "category": "textarea",
-    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
+    "content": "• Wspierałam zespół bezpieczeństwa w skanowaniu podatności infrastruktury.\n• Uczestniczyłam w przeglądach kodu pod kątem podstawowych błędów bezpieczeństwa.",
     "left": 82,
-    "top": 431.79999999999995,
+    "top": 447.79999999999995,
     "width": 431,
     "height": 29,
     "fontSize": 9.6,
@@ -505,18 +495,54 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-991c2f7cd95c",
-    "flowRole": "content"
+    "flowGroup": "record-627d0a40afdc"
+  },
+  {
+    "category": "text",
+    "content": "WYKSZTAŁCENIE",
+    "fontSize": 9.2,
+    "fontFamily": "Montserrat",
+    "color": "#556158",
+    "left": 82,
+    "top": 497.79999999999995,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.25,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 82,
+    "top": 511.99999999999994,
+    "width": 18,
+    "height": 1.2,
+    "backgroundColor": "#556158",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "section-chrome"
+  },
+  {
+    "category": "line",
+    "left": 108,
+    "top": 511.99999999999994,
+    "width": 405,
+    "height": 1,
+    "backgroundColor": "#E5E3DB",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "section-chrome"
   },
   {
     "category": "textarea",
-    "content": "Specjalistka Obsługi Klienta",
+    "content": "Inżynier informatyki — specjalność: Bezpieczeństwo aplikacji",
     "left": 82,
-    "top": 470.79999999999995,
+    "top": 521.1999999999999,
     "width": 431,
-    "height": 15,
-    "fontSize": 10.8,
-    "lineHeight": 13.8,
+    "height": 14,
+    "fontSize": 10.2,
+    "lineHeight": 13.2,
     "letterSpacing": 0,
     "color": "#242521",
     "fontFamily": "Montserrat",
@@ -528,14 +554,35 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b864026c967c",
-    "flowRole": "content"
+    "flowGroup": "record-e5eacc5ca448"
   },
   {
     "category": "textarea",
-    "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
+    "content": "Politechnika Świętokrzyska",
     "left": 82,
-    "top": 489.79999999999995,
+    "top": 539.1999999999999,
+    "width": 431,
+    "height": 14,
+    "fontSize": 10.2,
+    "lineHeight": 13.2,
+    "letterSpacing": 0,
+    "color": "#242521",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-e5eacc5ca448"
+  },
+  {
+    "category": "textarea",
+    "content": "Kielce   ·   ukończono lipiec 2023",
+    "left": 82,
+    "top": 557.1999999999999,
     "width": 431,
     "height": 12,
     "fontSize": 8.4,
@@ -551,18 +598,17 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b864026c967c",
-    "flowRole": "content"
+    "flowGroup": "record-e5eacc5ca448"
   },
   {
     "category": "textarea",
-    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
+    "content": "• Praca inżynierska: automatyzacja testów bezpieczeństwa aplikacji webowych.",
     "left": 82,
-    "top": 505.79999999999995,
+    "top": 573.1999999999999,
     "width": 431,
-    "height": 15,
-    "fontSize": 9.6,
-    "lineHeight": 14.1,
+    "height": 14,
+    "fontSize": 9.4,
+    "lineHeight": 13.8,
     "letterSpacing": 0,
     "color": "#2C2C29",
     "fontFamily": "Montserrat",
@@ -574,114 +620,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b864026c967c",
-    "flowRole": "content"
-  },
-  {
-    "category": "text",
-    "content": "WYKSZTAŁCENIE",
-    "fontSize": 9.2,
-    "fontFamily": "Montserrat",
-    "color": "#556158",
-    "left": 82,
-    "top": 541.8,
-    "zIndex": 3,
-    "page": 1,
-    "bold": true,
-    "italic": false,
-    "letterSpacing": 1.25,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "line",
-    "left": 82,
-    "top": 556.0,
-    "width": 18,
-    "height": 1.2,
-    "backgroundColor": "#556158",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "line",
-    "left": 108,
-    "top": 556.0,
-    "width": 405,
-    "height": 1,
-    "backgroundColor": "#E5E3DB",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "section-chrome"
-  },
-  {
-    "category": "textarea",
-    "content": "Licencjat Prawa",
-    "left": 82,
-    "top": 565.2,
-    "width": 431,
-    "height": 14,
-    "fontSize": 10.2,
-    "lineHeight": 13.2,
-    "letterSpacing": 0,
-    "color": "#242521",
-    "fontFamily": "Montserrat",
-    "zIndex": 2,
-    "page": 1,
-    "bold": true,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-a31ccba4de47",
-    "flowRole": "content"
-  },
-  {
-    "category": "textarea",
-    "content": "UW Warszawa",
-    "left": 82,
-    "top": 583.2,
-    "width": 431,
-    "height": 14,
-    "fontSize": 10.2,
-    "lineHeight": 13.2,
-    "letterSpacing": 0,
-    "color": "#242521",
-    "fontFamily": "Montserrat",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-a31ccba4de47",
-    "flowRole": "content"
-  },
-  {
-    "category": "textarea",
-    "content": "2012 – 2016",
-    "left": 82,
-    "top": 601.2,
-    "width": 431,
-    "height": 12,
-    "fontSize": 8.4,
-    "lineHeight": 11.8,
-    "letterSpacing": 0,
-    "color": "#78796F",
-    "fontFamily": "Montserrat",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-a31ccba4de47",
-    "flowRole": "content"
+    "flowGroup": "record-e5eacc5ca448"
   },
   {
     "category": "text",
@@ -690,7 +629,7 @@ const ATRIUM_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#556158",
     "left": 82,
-    "top": 634.2,
+    "top": 608.1999999999999,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -701,7 +640,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 82,
-    "top": 648.4000000000001,
+    "top": 622.4,
     "width": 18,
     "height": 1.2,
     "backgroundColor": "#556158",
@@ -712,7 +651,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 108,
-    "top": 648.4000000000001,
+    "top": 622.4,
     "width": 405,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -722,11 +661,11 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "AML/KYC  ·  Monitoring  ·  CDD/EDD  ·  Raporty SAR  ·  Analiza transakcyjna",
+    "content": "OWASP Top 10  ·  Burp Suite  ·  SQLi/XSS  ·  Nmap  ·  Metasploit  ·  Python  ·  Bash  ·  Linux  ·  Git",
     "left": 82,
-    "top": 657.6000000000001,
+    "top": 631.6,
     "width": 431,
-    "height": 15,
+    "height": 29,
     "fontSize": 9.6,
     "lineHeight": 14.1,
     "letterSpacing": 0,
@@ -740,8 +679,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-bc3622aeca6d",
-    "flowRole": "content"
+    "flowGroup": "record-763c000df652"
   },
   {
     "category": "text",
@@ -750,7 +688,7 @@ const ATRIUM_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#556158",
     "left": 82,
-    "top": 693.6000000000001,
+    "top": 681.6,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -761,7 +699,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 82,
-    "top": 707.8000000000002,
+    "top": 695.8000000000001,
     "width": 18,
     "height": 1.2,
     "backgroundColor": "#556158",
@@ -772,7 +710,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 108,
-    "top": 707.8000000000002,
+    "top": 695.8000000000001,
     "width": 405,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -782,9 +720,9 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Polski — ojczysty",
+    "content": "angielski — B2",
     "left": 82.0,
-    "top": 717.0000000000002,
+    "top": 705.0000000000001,
     "width": 99.75,
     "height": 15,
     "fontSize": 9.6,
@@ -802,20 +740,20 @@ const ATRIUM_ELEMENTS = [
     "preserveInitialLayout": true,
     "runs": [
       {
-        "start": 9,
-        "end": 17,
+        "start": 12,
+        "end": 14,
         "italic": true,
         "color": "#556158"
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-e35db5e61d2a"
+    "flowGroup": "record-cac34e96cf9a"
   },
   {
     "category": "textarea",
-    "content": "Angielski — C1",
+    "content": "niemiecki — A2",
     "left": 189.75,
-    "top": 717.0000000000002,
+    "top": 705.0000000000001,
     "width": 99.75,
     "height": 15,
     "fontSize": 9.6,
@@ -840,38 +778,7 @@ const ATRIUM_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-e35db5e61d2a"
-  },
-  {
-    "category": "textarea",
-    "content": "Niemiecki — B2",
-    "left": 297.5,
-    "top": 717.0000000000002,
-    "width": 99.75,
-    "height": 15,
-    "fontSize": 9.6,
-    "lineHeight": 14.1,
-    "letterSpacing": 0,
-    "color": "#2C2C29",
-    "fontFamily": "Montserrat",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": false,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#556158"
-      }
-    ],
-    "flowRole": "grid-member",
-    "flowGroup": "record-e35db5e61d2a"
+    "flowGroup": "record-cac34e96cf9a"
   }
 ];
 
