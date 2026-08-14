@@ -4,15 +4,17 @@
     width: min(460px, calc(100vw - 88px));
     background: var(--chrome-surface);
     border: 1px solid var(--chrome-border);
-    border-right: none;
-    box-shadow: -10px 0 30px -22px rgba(47, 67, 82, .45);
+    box-shadow: 0 10px 30px -14px rgba(47, 67, 82, .45);
     font-family: var(--font-body);
     /* Docked to the editor chrome's right edge, independent of the A4 page's
        size/zoom — the panel must stay put while the user zooms the page,
        not track its growing right edge (that previously made the panel
-       drift further right on every zoom step). */
+       drift further right on every zoom step). Held 150px off the edge so
+       it clears the canvas-area scrollbar instead of sitting flush against
+       it (the previous flush-right docking dropped its right border for
+       that reason; kept here now that the panel floats). */
     position: fixed;
-    right: 0;
+    right: 150px;
     top: 15%;
     display: flex;
     flex-direction: column;
