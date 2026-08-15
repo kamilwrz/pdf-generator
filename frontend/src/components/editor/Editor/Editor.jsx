@@ -206,8 +206,20 @@ export default function Editor() {
     editElementValues({ [key]: !selectedElement[key] }, selectedElement.element_id);
   }
 
+  // Bold/italic/underline are text-styling toggles applicable to every
+  // text/textarea element, but the backend generators only ever serialize
+  // `bold`/`italic` on `_text()` primitives — `underline` is never set at
+  // all (it stays implicitly false). A strict `hasOwnProperty` check made
+  // the whole B/I/U row vanish from the bulk toolbar whenever a selection
+  // included any such element (e.g. two section headings), even though a
+  // single selected element shows the same toggles unconditionally. For
+  // these three keys, "supported" means "is a text-bearing element", not
+  // "already carries this exact property key".
+  const TEXT_STYLE_KEYS = new Set(["bold", "italic", "underline"]);
   const supportsBulkField = (key) => selectedElements.every((element) => (
-    Object.prototype.hasOwnProperty.call(element, key)
+    TEXT_STYLE_KEYS.has(key)
+      ? (element.category === "text" || element.category === "textarea")
+      : Object.prototype.hasOwnProperty.call(element, key)
   ));
   const bulkValue = (key) => selectedElements[0]?.[key] ?? "";
   const isBulkValueMixed = (key) => selectedElements.some((element) => (

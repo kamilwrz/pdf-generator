@@ -48,3 +48,19 @@ test("Editor panel stacks above the topbar it docks against", async () => {
     `.editor z-index (${editorZIndex}) must be greater than .topbar z-index (${topbarZIndex})`,
   );
 });
+
+test("bulk B/I/U toggles stay visible for a multi-selection even when an element never serialized `underline`", async () => {
+  // Regression: the backend's `_text()` primitive only ever sets `bold` /
+  // `italic`, never `underline` (it stays implicitly false). A strict
+  // `hasOwnProperty` check in `supportsBulkField` made the whole bold/
+  // italic/underline row disappear from the bulk toolbar whenever the
+  // selection included such an element (e.g. two section headings) — even
+  // though a single selected element shows the same toggles unconditionally.
+  const source = await readFile(new URL("./Editor.jsx", import.meta.url), "utf8");
+
+  assert.match(source, /TEXT_STYLE_KEYS = new Set\(\["bold", "italic", "underline"\]\)/);
+  assert.match(
+    source,
+    /TEXT_STYLE_KEYS\.has\(key\)\s*\n?\s*\? \(element\.category === "text" \|\| element\.category === "textarea"\)/,
+  );
+});
