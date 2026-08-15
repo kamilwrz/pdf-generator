@@ -2756,13 +2756,27 @@ export function deriveSectionStyle(
  * default) made the moved section's heading→rule gap differ from its
  * neighbours; the fallback is only used when the sampled style had no rule.
  *
+ * A sampled offset of zero or negative is a REAL, valid rule position, not a
+ * missing one — `deriveSectionStyle` already returns `style.rule === null`
+ * when no rule element was found at all, so reaching this function with a
+ * non-null `style.rule` means the offset is genuine. Cardinal's section rule
+ * is a "trailing" hairline that continues from the heading label at the
+ * label's own cap-midline, not a typical underline below it (see
+ * `cap_midline_offset` in `backend/.../cardinal.py`'s `section()`), which
+ * samples as a small NEGATIVE `relTop` (the rule sits a hair above the
+ * heading's own stored top). Rejecting non-positive values here previously
+ * fell through to the `headingHeight + 2` underline default on every skills
+ * mode conversion — visibly relocating Cardinal's rule downward and, because
+ * body content is placed `afterRule` below that same wrong `ruleTop`,
+ * opening an oversized gap between the heading and the section body.
+ *
  * @param {object} style - `deriveSectionStyle` result for the destination lane.
  * @param {number} headingHeight - restyled heading height, fallback only.
  * @returns {number}
  */
 export function sectionChromeRuleRelTop(style, headingHeight) {
   const sampled = Number(style?.rule?.relTop);
-  if (Number.isFinite(sampled) && sampled > 0) return sampled;
+  if (Number.isFinite(sampled)) return sampled;
   return (Number(headingHeight) || 12) + 2;
 }
 

@@ -715,7 +715,16 @@ export function restyleSkillsMembersAsMode(
     });
   }
 
-  const bodyTop = (rule ? ruleTop + restyledRuleHeight : ruleTop) + afterRule;
+  // Most templates draw the rule BELOW the heading, so `ruleBottom` alone
+  // already accounts for the heading's own line height. Cardinal's rule
+  // instead continues from the heading's own cap-midline (`relTop` ≈ -0.67,
+  // see `sectionChromeRuleRelTop`), so `ruleBottom` sits almost at the
+  // heading's TOP — using it alone would place body content underneath the
+  // heading text. Taking the heading's own bottom edge as a floor keeps body
+  // placement correct for both rule shapes without a template-specific branch.
+  const headingBottom = parkTop + (Number(chrome[0].height) || 0);
+  const ruleBottom = rule ? ruleTop + restyledRuleHeight : ruleTop;
+  const bodyTop = Math.max(headingBottom, ruleBottom) + afterRule;
   let seq = 0;
   const idFactory = () => `${headingId}-sk-${Date.now().toString(36)}-${++seq}`;
   const bodyOptions = {
