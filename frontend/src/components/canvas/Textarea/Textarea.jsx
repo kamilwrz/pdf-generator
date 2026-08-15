@@ -159,6 +159,11 @@ function Textarea({
     const editFrameRef = useRef(null);
     const pointerStartRef = useRef(null);
     const spacingHoldTimerRef = useRef(null);
+    // Tracks whether the current pointer sequence turned into a drag, so the
+    // trailing click (fired on pointerup) can be told apart from a plain
+    // click-to-edit tap. Without this a drag-release would immediately flip
+    // the block into edit mode.
+    const didDragRef = useRef(false);
     const initialLayoutPreservedRef = useRef(false);
     // Keep the latest authored height for shrink comparisons without re-running
     // the mount effect whenever fitTextareaToContent updates `height`.
@@ -497,11 +502,25 @@ function Textarea({
             ref={blockRef}
             className={`${classes.block} ${isSelected ? classes.selected : ""}`}
             style={{ ...boxStyle, ...textStyle }}
-            onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
-            onDoubleClick={startEditing}
+            onClick={(e) => {
+                // A drag release also dispatches a trailing click; ignore it so
+                // the block does not jump into edit mode right after a move.
+                if (didDragRef.current) {
+                    didDragRef.current = false;
+                    return;
+                }
+                if (e.ctrlKey || e.metaKey) {
+                    selectElement(elementId, true);
+                    return;
+                }
+                // Single click enters edit mode directly (previously required a
+                // double click); ctrl/meta-click above still only multi-selects.
+                startEditing(e);
+            }}
             onPointerDown={(e) => {
                 if (e.ctrlKey || e.metaKey) return;
                 e.currentTarget.setPointerCapture(e.pointerId);
+                didDragRef.current = false;
                 pointerStartRef.current = {
                     pointerId: e.pointerId,
                     clientX: e.clientX,
@@ -545,6 +564,7 @@ function Textarea({
                 if (!pointerStart.dragging) {
                     if (!hasTextareaDragIntent(pointerStart, e)) return;
                     pointerStart.dragging = true;
+                    didDragRef.current = true;
                     endTextSpacingHold({
                         timerRef: spacingHoldTimerRef,
                         elementId,

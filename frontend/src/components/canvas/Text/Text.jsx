@@ -48,6 +48,11 @@ function Text({
     const editFrameRef = useRef(null);
     const pointerStartRef = useRef(null);
     const spacingHoldTimerRef = useRef(null);
+    // Tracks whether the current pointer sequence turned into a drag, so the
+    // trailing click (fired on pointerup) can be told apart from a plain
+    // click-to-edit tap. Without this a drag-release would immediately flip
+    // the element into edit mode.
+    const didDragRef = useRef(false);
 
     const style = {
         fontSize: `${fontSize}px`,
@@ -147,14 +152,25 @@ function Text({
             spellCheck={false}
             className={`${classes.textElement} ${isEditing ? classes.editing : ""} ${isSelected && !isMove ? classes.selectedElement : ""} ${isMove ? classes.movingElement : ""}`}
             style={style}
-            onDoubleClick={isEditing || fixedToPage ? undefined : startEditing}
             onClick={(e) => {
                 if (fixedToPage) return;
                 if (isEditing) {
                     e.stopPropagation();
                     return;
                 }
-                selectElement(elementId, e.ctrlKey || e.metaKey);
+                // A drag release also dispatches a trailing click; ignore it so
+                // the element does not jump into edit mode right after a move.
+                if (didDragRef.current) {
+                    didDragRef.current = false;
+                    return;
+                }
+                if (e.ctrlKey || e.metaKey) {
+                    selectElement(elementId, true);
+                    return;
+                }
+                // Single click enters edit mode directly (previously required a
+                // double click); ctrl/meta-click above still only multi-selects.
+                startEditing(e);
             }}
             onInput={(e) => {
                 if (fixedToPage) return;
@@ -179,6 +195,7 @@ function Text({
                 }
                 if (e.ctrlKey || e.metaKey) return;
                 e.currentTarget.setPointerCapture(e.pointerId);
+                didDragRef.current = false;
                 pointerStartRef.current = {
                     pointerId: e.pointerId,
                     clientX: e.clientX,
@@ -225,6 +242,7 @@ function Text({
                 if (!pointerStart.dragging) {
                     if (!hasTextareaDragIntent(pointerStart, e)) return;
                     pointerStart.dragging = true;
+                    didDragRef.current = true;
                     endTextSpacingHold({
                         timerRef: spacingHoldTimerRef,
                         elementId,
