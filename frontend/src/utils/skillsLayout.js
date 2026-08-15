@@ -140,8 +140,18 @@ function byReadingOrder(a, b) {
 function collectSkillGroupsFromChips(members) {
   const categoryByGroup = new Map();
   for (const element of members) {
+    // A category label's `flowRole` is NOT reliably `"content"`: the backend
+    // generator's `_place_skills_section` emits it via `b.block(...)`, which
+    // never stamps a `flowRole` at all (only `keep_together` sets
+    // `flowGroup`) — only a section already round-tripped through this same
+    // JS restyle path carries the explicit `"content"` tag. Excluding the
+    // chrome/grid-member roles (the convention every other collector in this
+    // module already follows) recognises the label either way instead of
+    // silently dropping it for a document straight off the generator.
     if (
-      element.flowRole === "content"
+      element.flowRole !== "grid-member"
+      && element.flowRole !== "section-chrome"
+      && element.flowRole !== "sidebar-chrome"
       && Boolean(element.bold)
       && (element.category === "textarea" || element.category === "text")
     ) {

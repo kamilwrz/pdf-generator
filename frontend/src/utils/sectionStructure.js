@@ -2399,14 +2399,13 @@ const DECORATIVE_SHAPE_CATEGORIES = new Set(["rectangle", "circle", "ellipse", "
  * description. The first element in reading order is therefore usually the
  * wrong sample — prefer bullets, multi-line copy, or a non-bold mid-size line.
  *
- * @param {object[]} linearBodies
- * @param {object[]} bodyElements
+ * @param {object[]} linearBodies - already excludes `grid-member` cells; the
+ *   caller falls further back to `findDocumentBodySample` when this is empty,
+ *   so a chip/grid cell can never be reintroduced as the sampled body here.
  * @returns {object|null}
  */
-function pickLinearBodySample(linearBodies, bodyElements) {
-  const pool = (linearBodies && linearBodies.length > 0)
-    ? linearBodies
-    : (bodyElements || []);
+function pickLinearBodySample(linearBodies) {
+  const pool = linearBodies || [];
   if (pool.length === 0) return null;
   const bulleted = pool.find((element) => element.bulletList);
   if (bulleted) return bulleted;
@@ -2426,6 +2425,50 @@ function pickLinearBodySample(linearBodies, bodyElements) {
   }
   // Last linear line in reading order is typically the description block.
   return pool[pool.length - 1];
+}
+
+/**
+ * Last-resort body style sample for a section that is ENTIRELY grid cells —
+ * a flat, uncategorized skills chip list with no bold category label to
+ * anchor on, or an all-grid language row. `deriveSectionStyle`'s own
+ * `bodyElements`/`fallbackBody` intentionally exclude every `grid-member`
+ * chip/cell (its label is painted in the pill's own contrast color, e.g.
+ * white on a dark fill — never the document's real body text color), so
+ * nothing is left to sample from inside that section.
+ *
+ * Borrows font/color from the first other section in the document that DOES
+ * have real body copy, so a converted section reads in the same text color
+ * as the rest of the CV instead of a generic hardcoded default. Same
+ * "another instance in the document beats a generic default" precedent
+ * `resolveSkillChipColors` (skillsLayout.js) already uses for chip pill
+ * colors.
+ *
+ * @param {object[]} list - full document
+ * @param {number} pageHeight
+ * @param {{ headingId: string }[]} sections - every section in this lane, from `deriveSectionStyle`
+ * @param {"section-chrome"|"sidebar-chrome"} chromeRole - lane being sampled
+ * @param {string} excludeHeadingId - the section already known to have no usable body
+ * @returns {object|null}
+ */
+function findDocumentBodySample(list, pageHeight, sections, chromeRole, excludeHeadingId) {
+  const memberIdsFor = chromeRole === "sidebar-chrome"
+    ? (headingId) => sidebarSectionElementIds(list, headingId, pageHeight)
+    : (headingId) => sectionElementIds(list, headingId, pageHeight);
+  for (const candidate of sections || []) {
+    if (candidate.headingId === excludeHeadingId) continue;
+    const ids = memberIdsFor(candidate.headingId);
+    const found = list
+      .filter((element) => ids.has(element.element_id)
+        && element.element_id !== candidate.headingId
+        && element.flowRole !== chromeRole
+        && element.flowRole !== "section-chrome"
+        && element.flowRole !== "sidebar-chrome"
+        && element.flowRole !== "grid-member"
+        && (element.category === "text" || element.category === "textarea"))
+      .sort((a, b) => absoluteTop(a, pageHeight) - absoluteTop(b, pageHeight))[0];
+    if (found) return found;
+  }
+  return null;
 }
 
 /**
@@ -2560,18 +2603,35 @@ export function deriveSectionStyle(
   const linearBodies = bodyElements.filter((element) => element.flowRole !== "grid-member");
   // Sidebar bodies often sit left of the kicker (heading 51, body 25). Fall
   // back to any in-strip content when the heading-column band misses them.
+  // Excludes `grid-member` for the same reason `linearBodies` does above: a
+  // chip pill's label is painted in the pill's own contrast color (e.g. white
+  // on a dark fill), never the document's real body text color, so it must
+  // never become the sampled "body" style either.
   const fallbackBody = members
     .filter((element) => element.element_id !== target.headingId
       && element.flowRole !== chromeRole
       && element.flowRole !== "section-chrome"
       && element.flowRole !== "sidebar-chrome"
+      && element.flowRole !== "grid-member"
       && (element.category === "text" || element.category === "textarea"))
     .sort((a, b) => absoluteTop(a, pageHeight) - absoluteTop(b, pageHeight))[0]
     || null;
   // Prefer description / bullet copy over the first linear element. Experience
   // records put a larger bold job title first; sampling that made transferred
   // Summary / Languages inherit ~11px title type instead of ~9.5px body.
-  const body = pickLinearBodySample(linearBodies, bodyElements) || fallbackBody;
+  //
+  // A section that is ENTIRELY grid cells (a flat, uncategorized skills chip
+  // list with no bold category label to anchor on, or an all-grid language
+  // row) has no candidate left at this point — `bodyElements`/`fallbackBody`
+  // both excluded every grid-member chip/cell on purpose. Borrow font/color
+  // from another section's own body copy elsewhere in the document instead of
+  // a generic hardcoded default, so a converted skills section reads in the
+  // same text color as the rest of the CV (same "another instance in the
+  // document beats a generic default" precedent `resolveSkillChipColors`
+  // already uses for chip pill colors).
+  const body = pickLinearBodySample(linearBodies)
+    || fallbackBody
+    || findDocumentBodySample(list, pageHeight, sections, chromeRole, target.headingId);
 
   // Column width: widest linear body → section rule → never a single grid cell
   // or a short title line. Rule width matches Experience / Education on Sterling.
