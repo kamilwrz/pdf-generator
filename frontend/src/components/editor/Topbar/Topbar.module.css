@@ -210,6 +210,75 @@
     cursor: not-allowed;
 }
 
+/* Template switch arrows: hovering/focusing reveals a small mockup of the
+   adjacent template instead of a text tooltip. `position: relative` anchor
+   around just the arrow keeps the preview from disturbing the cluster's own
+   flex layout or the "Szablony" button between the two arrows. */
+.templateNavAnchor {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.templatePreview {
+    position: absolute;
+    top: calc(100% + 10px);
+    z-index: 1500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 96px;
+    padding: 8px 8px 7px;
+    background: var(--chrome-surface);
+    border: 1px solid var(--chrome-border);
+    border-radius: 4px;
+    box-shadow: var(--shadow-pop);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px) scale(.96);
+    transform-origin: top center;
+    transition: opacity .16s ease-out, transform .16s ease-out, visibility 0s linear .16s;
+    pointer-events: none;
+}
+
+/* Anchor the card to whichever side keeps it inside the topbar: the left
+   arrow's preview grows rightward from the button, the right arrow's grows
+   leftward, so neither can overflow the viewport edge. */
+.templatePreviewLeft {
+    left: 0;
+}
+
+.templatePreviewRight {
+    right: 0;
+}
+
+.templateNavAnchor:hover .templatePreview,
+.templateNavAnchor:focus-within .templatePreview {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    transition: opacity .16s ease-out, transform .16s ease-out;
+}
+
+.templatePreview img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 595 / 842;
+    object-fit: cover;
+    object-position: top center;
+    background: var(--chrome-control);
+    border: 1px solid var(--chrome-border);
+    border-radius: 2px;
+}
+
+.templatePreviewLabel {
+    font: 600 11px var(--font-body);
+    color: var(--topbar-ink);
+    letter-spacing: .1px;
+    white-space: nowrap;
+}
+
 .zoomCluster {
     display: inline-flex;
     align-items: center;

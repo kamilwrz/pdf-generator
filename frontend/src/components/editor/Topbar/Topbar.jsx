@@ -121,16 +121,28 @@ export default function Topbar({ titleRef }) {
                 </div>
                 <span className={classes.divider} aria-hidden="true" />
                 <div className={classes.cluster} role="group" aria-label="Szablon CV">
-                    <button
-                        type="button"
-                        className={classes.iconBtn}
-                        onClick={() => prevTemplate && applyTemplate(prevTemplate)}
-                        disabled={!canRestyle || !prevTemplate}
-                        aria-label={prevTemplate ? `Poprzedni szablon: ${prevTemplate.name}` : "Poprzedni szablon"}
-                        title={prevTemplate ? `Poprzedni szablon: ${prevTemplate.name}` : templatesHint}
-                    >
-                        <RiArrowLeftSLine />
-                    </button>
+                    {/* Hovering/focusing an arrow reveals a small live mockup of the
+                        template it would switch to, instead of a plain text tooltip —
+                        `title` is only set for the disabled edge case (no adjacent
+                        template) so the native tooltip never fights the preview card. */}
+                    <div className={classes.templateNavAnchor}>
+                        <button
+                            type="button"
+                            className={classes.iconBtn}
+                            onClick={() => prevTemplate && applyTemplate(prevTemplate)}
+                            disabled={!canRestyle || !prevTemplate}
+                            aria-label={prevTemplate ? `Poprzedni szablon: ${prevTemplate.name}` : "Poprzedni szablon"}
+                            title={prevTemplate ? undefined : templatesHint}
+                        >
+                            <RiArrowLeftSLine />
+                        </button>
+                        {prevTemplate && (
+                            <div className={`${classes.templatePreview} ${classes.templatePreviewLeft}`} role="presentation">
+                                <img src={`/template-mockups/${prevTemplate.id}.png`} alt="" loading="lazy" />
+                                <span className={classes.templatePreviewLabel}>{prevTemplate.name}</span>
+                            </div>
+                        )}
+                    </div>
                     <button
                         type="button"
                         className={classes.feature}
@@ -141,16 +153,24 @@ export default function Topbar({ titleRef }) {
                     >
                         <RiShuffleLine />
                     </button>
-                    <button
-                        type="button"
-                        className={classes.iconBtn}
-                        onClick={() => nextTemplate && applyTemplate(nextTemplate)}
-                        disabled={!canRestyle || !nextTemplate}
-                        aria-label={nextTemplate ? `Następny szablon: ${nextTemplate.name}` : "Następny szablon"}
-                        title={nextTemplate ? `Następny szablon: ${nextTemplate.name}` : templatesHint}
-                    >
-                        <RiArrowRightSLine />
-                    </button>
+                    <div className={classes.templateNavAnchor}>
+                        <button
+                            type="button"
+                            className={classes.iconBtn}
+                            onClick={() => nextTemplate && applyTemplate(nextTemplate)}
+                            disabled={!canRestyle || !nextTemplate}
+                            aria-label={nextTemplate ? `Następny szablon: ${nextTemplate.name}` : "Następny szablon"}
+                            title={nextTemplate ? undefined : templatesHint}
+                        >
+                            <RiArrowRightSLine />
+                        </button>
+                        {nextTemplate && (
+                            <div className={`${classes.templatePreview} ${classes.templatePreviewRight}`} role="presentation">
+                                <img src={`/template-mockups/${nextTemplate.id}.png`} alt="" loading="lazy" />
+                                <span className={classes.templatePreviewLabel}>{nextTemplate.name}</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
