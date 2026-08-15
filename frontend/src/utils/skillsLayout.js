@@ -560,7 +560,9 @@ export function buildSkillsChipGroups(groups, options) {
  * Prefers the section's own existing chip colors (round-tripping chips → a
  * different mode → chips must not repaint them), then any other chip section
  * already in the document (so a second chips section on the same CV matches
- * the first), then a sensible fallback derived from the sampled style.
+ * the first), then the sampled section heading's own color — every backend
+ * template paints its heading text AND its chip fill in the same accent
+ * color, distinct from the (always softer/neutral) underline rule color.
  *
  * @param {object[]} sectionMembers - current members of the section being converted
  * @param {object[]} allElements - full document, for the "another chip section" fallback
@@ -594,7 +596,16 @@ export function resolveSkillChipColors(sectionMembers, allElements, style, optio
   return findChipPair(sectionMembers)
     || findChipPair(allElements)
     || {
-      chipBg: style?.rule?.backgroundColor || style?.heading?.color || (outline ? "#7C6A52" : "#2B2B2B"),
+      // Every backend template paints its section heading text in the
+      // template's accent color while the underline rule is a separate,
+      // deliberately softer/neutral tone (e.g. Cardinal: heading + chip_bg
+      // both `C['accent']` = '#9E2532', but the rule is `C['rule']` = the
+      // unrelated gray '#8A8A8A'). The heading color is what the backend's
+      // own `_place_skills_section(mode="chips")` actually paints chips
+      // with, so it must be tried BEFORE the rule — preferring the rule here
+      // repaints a converted-back-to-chips section in that neutral divider
+      // gray instead of the template's real accent.
+      chipBg: style?.heading?.color || style?.rule?.backgroundColor || (outline ? "#7C6A52" : "#2B2B2B"),
       chipFg: outline ? "#22221F" : "#FFFFFF",
     };
 }
