@@ -2640,15 +2640,30 @@ export function deriveSectionStyle(
   const widthSource = linearBodies.reduce((best, element) => (
     (Number(element.width) || 0) > (Number(best?.width) || 0) ? element : best
   ), null) || linearBodies[0] || null;
+  // A section's own rule is NOT always a reliable proxy for the body's left
+  // margin / column width: several templates draw a "trailing" rule that
+  // starts well AFTER the heading label rather than at the body's left edge
+  // (Cardinal — `rule_left = heading_x + label_width + 14`, see the
+  // `labelGap` handling below), or a short unrelated accent tick offset from
+  // the body entirely (Monument's `_line(369, ..., 160, 2, ...)` beside a
+  // heading whose body starts at 102). Using such a rule as the width/left
+  // source for a grid-only section (a flat, uncategorized skills chip list,
+  // an all-grid language row — no local linear body to sample from) parks
+  // the restyled content under the trailing rule instead of the real column,
+  // which reads as the whole block being shifted/narrowed. `body` (sampled
+  // above — possibly borrowed from another section via
+  // `findDocumentBodySample`) is a real content element, so it is a more
+  // trustworthy width/left source than that rule whenever it is available.
+  const geometrySource = (body && body.flowRole !== "grid-member") ? body : null;
   const recordWidth = Number(widthSource?.width)
+    || Number(geometrySource?.width)
     || Number(rule?.width)
-    || (body && body.flowRole !== "grid-member" ? Number(body.width) : 0)
     || defaults.recordWidth;
   // Content column may sit left of the title (Monument body at 102, title at 118).
   const bodyLeftRaw = Number(
     widthSource?.left
-    ?? rule?.left
-    ?? (body && body.flowRole !== "grid-member" ? body.left : undefined),
+    ?? geometrySource?.left
+    ?? rule?.left,
   );
   const bodyLeft = Number.isFinite(bodyLeftRaw) ? bodyLeftRaw : left;
 
