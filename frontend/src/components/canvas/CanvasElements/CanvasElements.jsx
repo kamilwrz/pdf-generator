@@ -47,8 +47,16 @@ import { resolveSectionLaneTransfer } from '../../../utils/transferSectionLane';
 import { listSkillsDisplayAnchors } from '../../../utils/skillsDisplayMode';
 import classes from './CanvasElements.module.css';
 
-/** Lane-transfer hover control is enabled for Sterling first; util is general. */
-const LANE_TRANSFER_TEMPLATE_IDS = new Set(["sterling"]);
+/**
+ * Lane-transfer hover control: templates whose generator output carries the
+ * `flowLane: "sidebar"` / `flowRole` tags `transferSectionLane.js` depends on
+ * to restyle a section for its destination column. Sterling, Tessera, and
+ * Slate all emit these tags for their sidebar sections (see their backend
+ * generators under `cv_templates/templates/`), so the same general utility
+ * works unchanged for all three. Other sidebar templates (e.g. Harbor) have
+ * not been verified against this control yet.
+ */
+const LANE_TRANSFER_TEMPLATE_IDS = new Set(["sterling", "tessera", "slate"]);
 
 function enterClassName(elementId, heldIds, fadingIds) {
   if (fadingIds.has(elementId)) return classes.enter;
