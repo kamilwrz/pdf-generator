@@ -109,6 +109,7 @@ const TESSERA_ELEMENTS = [
     "page": 1,
     "fixedToPage": true,
     "locked": true,
+    "repeatOnContinuation": false,
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -125,6 +126,7 @@ const TESSERA_ELEMENTS = [
     "page": 1,
     "fixedToPage": true,
     "locked": true,
+    "repeatOnContinuation": false,
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -139,6 +141,7 @@ const TESSERA_ELEMENTS = [
     "page": 1,
     "fixedToPage": true,
     "locked": true,
+    "repeatOnContinuation": false,
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -158,6 +161,7 @@ const TESSERA_ELEMENTS = [
     "photoSlot": "frame",
     "fixedToPage": true,
     "locked": true,
+    "repeatOnContinuation": false,
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -176,6 +180,7 @@ const TESSERA_ELEMENTS = [
     "photoSlot": "glyph",
     "fixedToPage": true,
     "locked": true,
+    "repeatOnContinuation": false,
     "flowLane": "sidebar"
   },
   {
@@ -191,6 +196,7 @@ const TESSERA_ELEMENTS = [
     "page": 1,
     "fixedToPage": true,
     "locked": true,
+    "repeatOnContinuation": false,
     "flowRole": "content",
     "flowLane": "sidebar"
   },

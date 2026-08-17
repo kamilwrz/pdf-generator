@@ -36,6 +36,7 @@ import {
   isSkillsSectionHeading,
   restyleSkillsMembersAsMain,
 } from "./skillsLayout.js";
+import { buildSectionIconChromeMarkers } from "./sectionIcons.js";
 
 /**
  * Absolute Y used only to park a strip so reading-order packing appends it
@@ -71,6 +72,39 @@ function clearSidebarLane(element) {
 function makeIdFactory(prefix) {
   let n = 0;
   return () => `${prefix}-${Date.now().toString(36)}-${++n}`;
+}
+
+/**
+ * Rebuild the moved heading's icon-chrome cluster in the destination lane and
+ * append it to `list`. Every restyle branch above (generic / languages /
+ * skills) drops the section's source decorative shapes outright — they never
+ * fit the destination lane's cluster shape (see `buildSectionIconChromeMarkers`
+ * doc) — so this runs once per transferred heading regardless of which branch
+ * placed its body content. No-op ([]) for templates with no icon chrome
+ * (Sterling), since `style.markers` is empty for those.
+ *
+ * @param {object[]} list - document after the heading's body/chrome restyle
+ * @param {object[]} documentElements - pre-transfer document, used to detect the icon theme
+ * @param {object} style - destination-lane style sampled by the caller
+ * @param {string} headingId
+ * @param {"section-chrome"|"sidebar-chrome"} flowRole
+ * @param {"sidebar"|null} flowLane
+ * @param {number} pageHeight
+ * @returns {object[]}
+ */
+function appendTransferIconMarkers(list, documentElements, style, headingId, flowRole, flowLane, pageHeight) {
+  const heading = list.find((element) => element.element_id === headingId);
+  if (!heading) return list;
+  const markers = buildSectionIconChromeMarkers({
+    style,
+    elements: documentElements,
+    heading,
+    flowRole,
+    flowLane,
+    idFactory: makeIdFactory(`${headingId}-chrome`),
+    pageHeight,
+  });
+  return markers.length > 0 ? [...list, ...markers] : list;
 }
 
 /**
@@ -287,6 +321,7 @@ export function moveSidebarSectionsToMain(elements, headingIds, pageHeight, spac
         ...next.filter((element) => !memberIds.has(element.element_id)),
         ...restyled,
       ];
+      next = appendTransferIconMarkers(next, list, style, headingId, "section-chrome", null, pageHeight);
       movedIds.add(headingId);
       continue;
     }
@@ -303,6 +338,7 @@ export function moveSidebarSectionsToMain(elements, headingIds, pageHeight, spac
         ...next.filter((element) => !memberIds.has(element.element_id)),
         ...restyled,
       ];
+      next = appendTransferIconMarkers(next, list, style, headingId, "section-chrome", null, pageHeight);
       movedIds.add(headingId);
       continue;
     }
@@ -331,6 +367,7 @@ export function moveSidebarSectionsToMain(elements, headingIds, pageHeight, spac
       const restyled = restyledById.get(element.element_id);
       return restyled ? [restyled] : [];
     });
+    next = appendTransferIconMarkers(next, list, style, headingId, "section-chrome", null, pageHeight);
     movedIds.add(headingId);
   }
 

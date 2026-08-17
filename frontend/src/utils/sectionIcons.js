@@ -12,6 +12,7 @@ import {
   listDocumentSections,
   sectionElementIds,
 } from "./sectionStructure.js";
+import { decorativeShapeElement } from "./sectionBuilder.js";
 
 /** Shared base glyphs generated for nova / volt / cardinal. */
 const BASE_ICON_NAMES = Object.freeze([
@@ -313,4 +314,48 @@ export function applySelectedSectionIcon(
     alignWithText: slot.alignWithText !== false,
   });
   return { ...style, markers };
+}
+
+/**
+ * Rebuild a transferred section's icon-chrome cluster (tile / outline / dot /
+ * icon glyph) for its destination lane, with the icon glyph re-picked from
+ * the moved section's own title.
+ *
+ * `transferSectionLane.js` / `collapseMainIntoSidebar.js` restyle a section
+ * for its destination column but drop every source decorative shape (main
+ * and sidebar icon clusters differ in shape count/size — compare `_gen_tessera`
+ * `section()` with `sidebar_heading()` — so the source cluster can never be
+ * reused verbatim). `style.markers` (from `deriveSectionStyle`) already
+ * samples a sibling heading's cluster in the DESTINATION lane; this only
+ * swaps that sample's icon glyph for the one matching the moved section's own
+ * title and re-anchors the whole cluster under the moved heading. Templates
+ * with no icon chrome (Sterling) sample zero markers and this returns `[]`.
+ *
+ * @param {object} args
+ * @param {object} args.style - destination-lane style from `deriveSectionStyle`
+ * @param {object[]} args.elements - full document, used to detect the active icon theme
+ * @param {{ content: string, left: number, top: number }} args.heading - the already-restyled heading element
+ * @param {"section-chrome"|"sidebar-chrome"} [args.flowRole]
+ * @param {"sidebar"|null} [args.flowLane]
+ * @param {() => string} args.idFactory
+ * @param {number} [args.pageHeight=842]
+ * @returns {object[]} new marker elements, or `[]` when the template has no icon chrome
+ */
+export function buildSectionIconChromeMarkers({
+  style, elements, heading, flowRole = "section-chrome", flowLane = null, idFactory, pageHeight = 842,
+}) {
+  if (!heading || !Array.isArray(style?.markers) || style.markers.length === 0) return [];
+  const theme = resolveIconTheme(null, elements);
+  if (!theme) return [];
+  const iconName = suggestSectionIconName(heading.content, THEME_ICON_NAMES[theme] || []);
+  if (!iconName) return [];
+  const iconStyle = applySelectedSectionIcon(style, elements, pageHeight, { iconName });
+  return (iconStyle.markers || []).map((shape) => decorativeShapeElement({
+    elementId: idFactory(),
+    shape,
+    left: heading.left,
+    topOffset: heading.top,
+    flowRole,
+    flowLane,
+  }));
 }

@@ -97,7 +97,15 @@ def _gen_slate(cv: dict) -> list[dict]:
         return icon
 
     def lock_chrome(element: dict) -> dict:
-        return {**element, "fixedToPage": True, "locked": True}
+        # `repeatOnContinuation: False` matches Sterling's letterhead-band
+        # convention (sterling.py): page-1-only chrome must opt out
+        # explicitly, or the frontend's `cloneFixedPageDecorations`
+        # (structureOperation.js) clones this `fixedToPage` photo cluster onto
+        # any continuation page the canvas creates without its own generator-
+        # authored chrome (e.g. overflow from the main ↔ sidebar section
+        # transfer control) — duplicating the portrait frame on every later
+        # page.
+        return {**element, "fixedToPage": True, "locked": True, "repeatOnContinuation": False}
 
     # Rectangular photo placeholder with a drafting-style decoration: a light
     # tint fill, an offset "shadow" frame behind the main outline, two accent

@@ -92,7 +92,15 @@ def _gen_tessera(cv: dict) -> list[dict]:
     sidebar_sections_start = photo_top + photo_height + 28  # 194
 
     def lock_chrome(element: dict) -> dict:
-        return {**element, "fixedToPage": True, "locked": True}
+        # `repeatOnContinuation: False` matches Sterling's letterhead-band
+        # convention (sterling.py): page-1-only chrome must opt out
+        # explicitly, or the frontend's `cloneFixedPageDecorations`
+        # (structureOperation.js) clones this `fixedToPage` photo cluster onto
+        # any continuation page the canvas creates without its own generator-
+        # authored chrome (e.g. overflow from the main ↔ sidebar section
+        # transfer control) — duplicating the portrait frame on every later
+        # page.
+        return {**element, "fixedToPage": True, "locked": True, "repeatOnContinuation": False}
 
     photo = [
         lock_chrome(_ellipse(20, 25, 138, 80, colors["ochre"], borderWidth=1.1, zIndex=1)),

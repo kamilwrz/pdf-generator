@@ -26,6 +26,45 @@ import {
   isSkillsSectionHeading,
   restyleSkillsMembersAsSidebar,
 } from "./skillsLayout.js";
+import { buildSectionIconChromeMarkers } from "./sectionIcons.js";
+
+/**
+ * @returns {() => string}
+ */
+function makeIdFactory(prefix) {
+  let n = 0;
+  return () => `${prefix}-${Date.now().toString(36)}-${++n}`;
+}
+
+/**
+ * Rebuild the moved heading's icon-chrome cluster in the destination lane and
+ * append it to `list`. Mirrors `appendTransferIconMarkers` in
+ * `transferSectionLane.js` (main → sidebar direction) — every restyle branch
+ * below drops the section's source decorative shapes outright, since main and
+ * rail icon clusters differ in shape count/size. No-op for templates with no
+ * icon chrome (Sterling), since `style.markers` is empty for those.
+ *
+ * @param {object[]} list - document after the heading's body/chrome restyle
+ * @param {object[]} documentElements - pre-transfer document, used to detect the icon theme
+ * @param {object} style - rail style sampled by the caller
+ * @param {string} headingId
+ * @param {number} pageHeight
+ * @returns {object[]}
+ */
+function appendTransferIconMarkers(list, documentElements, style, headingId, pageHeight) {
+  const heading = list.find((element) => element.element_id === headingId);
+  if (!heading) return list;
+  const markers = buildSectionIconChromeMarkers({
+    style,
+    elements: documentElements,
+    heading,
+    flowRole: "sidebar-chrome",
+    flowLane: "sidebar",
+    idFactory: makeIdFactory(`${headingId}-chrome`),
+    pageHeight,
+  });
+  return markers.length > 0 ? [...list, ...markers] : list;
+}
 
 /**
  * True when a main-column heading is Experience and must not join the rail.
@@ -187,6 +226,7 @@ export function moveMainSectionsToSidebar(elements, headingIds, pageHeight, spac
         ...next.filter((element) => !memberIds.has(element.element_id)),
         ...restyled,
       ];
+      next = appendTransferIconMarkers(next, list, style, headingId, pageHeight);
       movedIds.add(headingId);
       continue;
     }
@@ -202,6 +242,7 @@ export function moveMainSectionsToSidebar(elements, headingIds, pageHeight, spac
         ...next.filter((element) => !memberIds.has(element.element_id)),
         ...restyled,
       ];
+      next = appendTransferIconMarkers(next, list, style, headingId, pageHeight);
       movedIds.add(headingId);
       continue;
     }
@@ -230,6 +271,7 @@ export function moveMainSectionsToSidebar(elements, headingIds, pageHeight, spac
       const restyled = restyledById.get(element.element_id);
       return restyled ? [restyled] : [];
     });
+    next = appendTransferIconMarkers(next, list, style, headingId, pageHeight);
     movedIds.add(headingId);
   }
 

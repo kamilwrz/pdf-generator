@@ -68,6 +68,83 @@ function sterlingLikeFixture() {
   ];
 }
 
+/**
+ * Icon-styled two-column fixture (Tessera/Slate shape): every section heading
+ * carries a decorative chrome cluster (tile square + outline rect + iconic
+ * image glyph) in addition to the plain heading + rule Sterling uses. Used to
+ * cover the "transfer must rebuild the destination lane's icon chrome"
+ * regression — dropping these markers wholesale (the pre-fix behaviour) left
+ * a transferred heading with no icon on Tessera/Slate, even though every
+ * sibling heading in both lanes has one.
+ */
+function iconicSidebarFixture() {
+  const iconMarker = (id, headingId, flowLane, left, top, name) => ([
+    { element_id: `${id}-tile`, category: "line",
+      flowRole: flowLane ? "sidebar-chrome" : "section-chrome", flowLane,
+      left, top: top - 2, width: 18, height: 18, backgroundColor: "#FFFFFF", page: 1 },
+    { element_id: `${id}-rect`, category: "rectangle",
+      flowRole: flowLane ? "sidebar-chrome" : "section-chrome", flowLane,
+      left: left + 2, top, width: 18, height: 18, borderWidth: 0.8,
+      backgroundColor: "#E15D4F", filled: false, page: 1 },
+    { element_id: `${id}-icon`, category: "image",
+      flowRole: flowLane ? "sidebar-chrome" : "section-chrome", flowLane,
+      left: left + 4, top: top + 2, width: 12, height: 12,
+      src: `/template-assets/iconic/tessera/${name}.png`, alignWithText: false, page: 1 },
+  ]);
+
+  return [
+    ...iconMarker("sb-sum", "sb-sum-head", "sidebar", 34, 188, "summary"),
+    { element_id: "sb-sum-head", category: "text", content: "PODSUMOWANIE ZAWODOWE",
+      flowRole: "sidebar-chrome", flowLane: "sidebar",
+      left: 60, top: 191, fontSize: 7.6, height: 12, page: 1, bold: true },
+    { element_id: "sb-sum-rule", category: "line",
+      flowRole: "sidebar-chrome", flowLane: "sidebar",
+      left: 60, top: 204, width: 50, height: 1, page: 1 },
+    { element_id: "sb-sum-body", category: "textarea", content: "AML analyst.",
+      flowRole: "content", flowLane: "sidebar", autoHeight: true,
+      left: 34, top: 216, width: 152, height: 40, fontSize: 6.6, lineHeight: 9, page: 1 },
+
+    ...iconMarker("sb-sk", "sb-sk-head", "sidebar", 34, 280, "skills"),
+    { element_id: "sb-sk-head", category: "text", content: "UMIEJĘTNOŚCI",
+      flowRole: "sidebar-chrome", flowLane: "sidebar",
+      left: 60, top: 283, fontSize: 7.6, height: 12, page: 1, bold: true },
+    { element_id: "sb-sk-rule", category: "line",
+      flowRole: "sidebar-chrome", flowLane: "sidebar",
+      left: 60, top: 296, width: 50, height: 1, page: 1 },
+    { element_id: "sb-sk-body", category: "textarea", content: "AML\nKYC\nSQL",
+      flowRole: "content", flowLane: "sidebar", autoHeight: true, bulletList: true,
+      left: 34, top: 308, width: 152, height: 50, fontSize: 6.6, lineHeight: 9, page: 1 },
+
+    ...iconMarker("m-exp", "m-exp-head", null, 218, 188, "experience"),
+    { element_id: "m-exp-head", category: "text", content: "DOŚWIADCZENIE ZAWODOWE",
+      flowRole: "section-chrome", left: 248, top: 191, fontSize: 8.1, height: 14, page: 1, bold: true },
+    { element_id: "m-exp-rule", category: "line", flowRole: "section-chrome",
+      left: 248, top: 209, width: 299, height: 1, page: 1 },
+    { element_id: "m-exp-title", category: "text", content: "AML Analyst",
+      flowRole: "content", flowGroup: "job-0",
+      left: 218, top: 220, fontSize: 10.4, height: 14, page: 1, bold: true },
+    { element_id: "m-exp-body", category: "textarea",
+      content: "Transaction monitoring.",
+      flowRole: "content", flowGroup: "job-0", autoHeight: true,
+      left: 218, top: 240, width: 329, height: 80,
+      fontSize: 9, lineHeight: 13, page: 1 },
+
+    ...iconMarker("m-edu", "m-edu-head", null, 218, 360, "education"),
+    { element_id: "m-edu-head", category: "text", content: "WYKSZTAŁCENIE",
+      flowRole: "section-chrome", left: 248, top: 363, fontSize: 8.1, height: 14, page: 1, bold: true },
+    { element_id: "m-edu-rule", category: "line", flowRole: "section-chrome",
+      left: 248, top: 381, width: 299, height: 1, page: 1 },
+    { element_id: "m-edu-degree", category: "text", content: "Bachelor of Laws (LL.B.)",
+      flowRole: "content", flowGroup: "edu-0",
+      left: 218, top: 390, fontSize: 10.4, height: 14, page: 1, bold: true },
+    { element_id: "m-edu-body", category: "textarea",
+      content: "University of Warsaw",
+      flowRole: "content", flowGroup: "edu-0", autoHeight: true,
+      left: 218, top: 408, width: 329, height: 40,
+      fontSize: 9, lineHeight: 13, page: 1 },
+  ];
+}
+
 describe("resolveSectionLaneTransfer", () => {
   it("offers main leftovers to the rail and rail kickers to main", () => {
     const elements = sterlingLikeFixture();
@@ -384,5 +461,48 @@ describe("moveSidebarSectionsToMain", () => {
     const after = next.find((element) => element.element_id === "sb-sum-body");
     assert.notEqual(Number(after.width), Number(before.width));
     assert.ok((Number(after.width) || 0) > (Number(before.width) || 0));
+  });
+});
+
+describe("icon chrome rebuilt on transfer (Tessera/Slate-style templates)", () => {
+  it("gives a sidebar section its own icon glyph after moving to main, not the sampled sibling's", () => {
+    const next = moveSidebarSectionsToMain(
+      iconicSidebarFixture(), ["sb-sk-head"], PAGE_HEIGHT, SPACING,
+    );
+    assert.ok(next);
+    const headingId = "sb-sk-head";
+    const icon = next.find((element) => (
+      element.category === "image" && element.flowRole === "section-chrome"
+      && Math.abs((Number(element.top) || 0) - (Number(next.find((e) => e.element_id === headingId).top) || 0)) < 30
+    ));
+    assert.ok(icon, "expected a new section-chrome icon marker near the moved heading");
+    assert.match(icon.src, /\/skills\.png$/, `expected the Skills icon, got ${icon.src}`);
+    // The rebuilt cluster (tile + rect + icon) must not still be tagged sidebar.
+    assert.notEqual(icon.flowLane, "sidebar");
+  });
+
+  it("gives a main section its own icon glyph after moving to sidebar, not the sampled sibling's", () => {
+    const next = transferSectionLane(
+      iconicSidebarFixture(), "m-edu-head", PAGE_HEIGHT, SPACING,
+    );
+    assert.ok(next);
+    const headingId = "m-edu-head";
+    const movedHeading = next.find((e) => e.element_id === headingId);
+    const icon = next.find((element) => (
+      element.category === "image" && element.flowRole === "sidebar-chrome"
+      && Math.abs((Number(element.top) || 0) - (Number(movedHeading.top) || 0)) < 30
+    ));
+    assert.ok(icon, "expected a new sidebar-chrome icon marker near the moved heading");
+    assert.match(icon.src, /\/education\.png$/, `expected the Education icon, got ${icon.src}`);
+    assert.equal(icon.flowLane, "sidebar");
+  });
+
+  it("does not add icon markers for non-icon templates (Sterling-style fixture)", () => {
+    const next = moveSidebarSectionsToMain(
+      sterlingLikeFixture(), ["sb-sk-head"], PAGE_HEIGHT, SPACING,
+    );
+    assert.ok(next);
+    const hasImageMarker = next.some((element) => element.category === "image");
+    assert.equal(hasImageMarker, false);
   });
 });

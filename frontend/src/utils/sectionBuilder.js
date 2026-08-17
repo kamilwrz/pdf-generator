@@ -183,9 +183,18 @@ function contentTextarea({
  * square block and a label frame) — each is replicated verbatim, including
  * its category-specific `borderWidth`/`filled` fields where the sampled
  * shape carried them.
+ *
+ * `topOffset` lets a caller anchor the shape at an absolute flow position
+ * (`transferSectionLane.js` parks a transferred section at a computed
+ * `appendTop`, not at `relTop` alone) instead of the relative-to-heading-zero
+ * placement `buildSectionElements` uses before `appendSectionAtEnd`
+ * repositions the whole new-section strip.
+ *
  * @returns {object}
  */
-function decorativeShapeElement({ elementId, shape, left, flowRole = "section-chrome", flowLane = null }) {
+export function decorativeShapeElement({
+  elementId, shape, left, flowRole = "section-chrome", flowLane = null, topOffset = 0,
+}) {
   const base = {
     element_id: elementId,
     category: shape.category,
@@ -198,7 +207,7 @@ function decorativeShapeElement({ elementId, shape, left, flowRole = "section-ch
     // the whole strip on append and handles a negative authored top
     // correctly, so clamping here would needlessly collapse a legitimate
     // offset.
-    top: shape.relTop,
+    top: topOffset + shape.relTop,
     width: shape.width,
     height: shape.height,
     backgroundColor: shape.backgroundColor,
