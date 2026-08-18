@@ -1761,6 +1761,53 @@ describe("applyFlowSpacing", () => {
     assert.equal(byId["m-exp-head"].top, 188, "main column must stay untouched");
   });
 
+  it("does not let the promoted first sidebar section crowd a fixed-to-page photo well (Slate)", () => {
+    // Slate live bug: main content starts at y=119 (short masthead), but the
+    // sidebar rail sits under a much taller fixedToPage photo well ending at
+    // y=166. When the section that used to sit right under the photo is
+    // transferred to main, the next section becomes the new first rail item
+    // — still at its old (far-down) stored top. Closing that hole must clamp
+    // to the photo's own bottom edge, not the main column's shorter masthead.
+    const elements = [
+      { element_id: "sb-photo", category: "rectangle", fixedToPage: true,
+        left: 33, top: 40, width: 112, height: 126, page: 1 },
+
+      { element_id: "m-exp-head", category: "text", content: "DOŚWIADCZENIE",
+        flowRole: "section-chrome", left: 245, top: 119, fontSize: 14, height: 16, page: 1 },
+      { element_id: "m-exp-rule", category: "line", flowRole: "section-chrome",
+        left: 245, top: 139, width: 300, height: 1, page: 1 },
+      { element_id: "m-exp-body", category: "textarea", flowRole: "content",
+        left: 245, top: 151, width: 300, height: 80, fontSize: 9, page: 1 },
+
+      // Old stored position: this was the SECOND sidebar section before the
+      // first ("WYKSZTAŁCENIE") transferred out to main, so its top is still
+      // far below the photo.
+      { element_id: "sb-sk-head", category: "text", content: "UMIEJĘTNOŚCI",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 460, fontSize: 9.4, height: 12, page: 1 },
+      { element_id: "sb-sk-rule", category: "line",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 476, width: 22, height: 1.4, page: 1 },
+      { element_id: "sb-sk-body", category: "textarea", content: "SQL",
+        flowRole: "content", flowLane: "sidebar",
+        left: 34, top: 490, width: 152, height: 30, fontSize: 8.3, page: 1 },
+    ];
+    const packed = packSidebarLane(elements, 842, {
+      spacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
+    });
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+    const photoBottom = elements[0].top + elements[0].height; // 166
+    assert.ok(
+      byId["sb-sk-head"].top >= photoBottom,
+      `promoted section must clear the photo (bottom ${photoBottom}), got ${byId["sb-sk-head"].top}`,
+    );
+    assert.equal(
+      byId["sb-sk-head"].top, photoBottom + 21,
+      "clamps to the photo bottom plus the standard section rhythm, not the main column's shorter masthead",
+    );
+    assert.equal(byId["m-exp-head"].top, 119, "main column must stay untouched");
+  });
+
   it("moves a sidebar kicker with its body instead of orphaning it in the page-1 footer", () => {
     // Education fills the rail to ~720. Skills chrome would "fit" in the
     // leftover band while the list needs ~120px — pack must bump the whole
