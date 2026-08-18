@@ -42,6 +42,18 @@ const DEFAULT_MASTHEAD_CLEARANCE = 36;
 const MIN_AUTHORED_MASTHEAD_CLEARANCE = 6;
 const MAX_AUTHORED_MASTHEAD_CLEARANCE = 56;
 
+/**
+ * Gap (px) between a sidebar photo well's bottom and the first rail section's
+ * chrome band. Mirrors the generators' authored `sidebar_sections_start =
+ * photo_bottom + 28` (Slate `slate.py`, Tessera `tessera.py`). Used as the
+ * photo floor in `packSidebarLane` when a section is promoted to become the
+ * rail's new first item, so the photo→heading clearance matches a freshly
+ * generated document instead of collapsing to the tighter inter-section gap.
+ * This is a fixed masthead-style clearance, not an inter-section rhythm, so it
+ * deliberately does NOT scale with the document's density spacing.
+ */
+const SIDEBAR_PHOTO_SECTION_GAP = 28;
+
 function absoluteTop(element, pageHeight = 842) {
   const page = Math.max(1, Math.trunc(Number(element?.page) || 1));
   return (page - 1) * pageHeight + (Number(element?.top) || 0);
@@ -1105,14 +1117,16 @@ export function packSidebarLane(
   }
   // `mainStart` reflects the MAIN column's masthead, which can end well above
   // the rail's own fixed photo/portrait well (Slate: main content starts at
-  // y=119, the sidebar photo ends at y=194). Without this floor, promoting a
-  // section to be the rail's new first item (e.g. after the section that used
-  // to sit under the photo is transferred out) pulls it up under `mainStart`
-  // and crowds — or overlaps — the photo. Clamp back down to the photo's own
-  // bottom edge plus the standard inter-section rhythm.
+  // y=119, the photo frame ends at y=166). Without this floor, promoting a
+  // section to be the rail's new first item (after the section that used to
+  // sit under the photo is transferred out, or one transferred back from the
+  // main column) pulls it up under `mainStart` and crowds — or overlaps — the
+  // photo. Clamp back down to the photo's bottom plus the generators' authored
+  // photo→first-section gap, so the clearance matches a freshly generated
+  // document rather than the tighter inter-section rhythm.
   const photoFloor = resolveSidebarPhotoFloor(list, firstHeading, pageHeight);
   if (photoFloor != null) {
-    cursorAbs = Math.max(cursorAbs, photoFloor + rhythm.section);
+    cursorAbs = Math.max(cursorAbs, photoFloor + SIDEBAR_PHOTO_SECTION_GAP);
   }
 
   const placedById = new Map();

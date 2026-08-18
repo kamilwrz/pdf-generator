@@ -1813,8 +1813,8 @@ describe("applyFlowSpacing", () => {
       `promoted section must clear the photo (bottom ${photoBottom}), got ${byId["sb-sk-head"].top}`,
     );
     assert.equal(
-      byId["sb-sk-head"].top, photoBottom + 21,
-      "clamps to the photo bottom plus the standard section rhythm, not the main column's shorter masthead",
+      byId["sb-sk-head"].top, photoBottom + 28,
+      "clamps to the photo bottom plus the authored photo→section gap (matches slate.py sidebar_sections_start), not the main column's shorter masthead nor the tighter inter-section rhythm",
     );
     assert.equal(byId["m-exp-head"].top, 119, "main column must stay untouched");
   });
