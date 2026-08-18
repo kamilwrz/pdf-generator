@@ -273,6 +273,129 @@ def _header_language_vote(text: str) -> str | None:
     return None
 
 
+# Supported CV languages for auto-detection and content corrections. Mirrors the
+# translate action's language set so detection, correction, and translation all
+# speak the same vocabulary. Order is irrelevant; membership is what matters.
+_SUPPORTED_LANGS: tuple[str, ...] = ("pl", "en", "de", "fr", "es", "uk", "it", "nl")
+
+# Cyrillic script is unique among the supported languages to Ukrainian, so its
+# mere presence in the body is a strong, cheap signal.
+_CYRILLIC_RE = re.compile(r"[Ѐ-ӿ]")
+
+# High-frequency function/domain words per language. These are deliberately
+# distinctive: each list avoids short tokens (w, i, a) that collide across
+# languages, so a word-boundary count of body copy reliably picks the dominant
+# language without a heavyweight NLP dependency. Extend only with words that do
+# not appear in another supported language.
+_LANG_STOPWORDS: dict[str, tuple[str, ...]] = {
+    "pl": ("oraz", "przez", "doświadczenie", "wykształcenie", "umiejętności",
+           "obecnie", "firma", "projekt", "prowadziłem", "odpowiadałem", "realizację"),
+    "en": ("the", "and", "with", "experience", "education", "skills",
+           "currently", "team", "project", "developed", "managed", "delivered"),
+    "de": ("und", "der", "die", "das", "mit", "für", "erfahrung", "ausbildung",
+           "kenntnisse", "derzeit", "unternehmen", "entwicklung", "berufserfahrung"),
+    "fr": ("et", "les", "des", "avec", "pour", "expérience", "compétences",
+           "actuellement", "entreprise", "projet", "développement", "gestion"),
+    "es": ("los", "las", "con", "para", "experiencia", "habilidades",
+           "actualmente", "empresa", "proyecto", "desarrollo", "gestión"),
+    "it": ("con", "per", "esperienza", "competenze", "attualmente", "azienda",
+           "progetto", "sviluppo", "gestione", "responsabile", "realizzazione"),
+    "nl": ("het", "een", "met", "voor", "ervaring", "opleiding", "vaardigheden",
+           "momenteel", "bedrijf", "ontwikkeling", "verantwoordelijk"),
+    "uk": ("та", "для", "досвід", "освіта", "навички", "наразі", "компанія",
+           "проєкт", "розробка", "відповідальність", "реалізацію"),
+}
+
+# Minimum weighted score before we trust a detection over the Polish fallback.
+_DETECT_MIN_SCORE = 3
+
+
+def _score_language_signals(text: str) -> dict[str, int]:
+    """Return a per-language weighted score for ``text``.
+
+    Word-boundary stopword hits are the base signal; Cyrillic and Polish
+    diacritics add script-level weight because they are unique among the
+    supported languages. The scores are comparable across languages, so the
+    caller can pick the maximum.
+    """
+    scores = {code: 0 for code in _SUPPORTED_LANGS}
+    if not text or not text.strip():
+        return scores
+    lower = text.lower()
+    for code, words in _LANG_STOPWORDS.items():
+        for word in words:
+            # Word-boundary match so "and" does not fire inside "band".
+            scores[code] += len(re.findall(rf"\b{re.escape(word)}\b", lower))
+    # Script-level tie-breakers unique to one supported language.
+    scores["uk"] += len(_CYRILLIC_RE.findall(text)) * 3
+    scores["pl"] += len(_PL_DIACRITIC_RE.findall(text)) * 2
+    return scores
+
+
+def _dominant_language(text: str) -> tuple[str | None, float]:
+    """Pick the highest-scoring language and a 0..1 confidence margin.
+
+    Confidence is the winner's share of the top-two total, so a clear winner
+    approaches 1.0 and a tie approaches 0.5. Returns ``(None, 0.0)`` when no
+    signal crosses ``_DETECT_MIN_SCORE``.
+    """
+    scores = _score_language_signals(text)
+    ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
+    top_code, top_score = ranked[0]
+    if top_score < _DETECT_MIN_SCORE:
+        return None, 0.0
+    runner_up = ranked[1][1] if len(ranked) > 1 else 0
+    confidence = top_score / (top_score + runner_up) if (top_score + runner_up) else 1.0
+    return top_code, confidence
+
+
+def _detect_cv_language(elements: list[dict]) -> dict:
+    """Detect the CV's dominant language from its body copy.
+
+    Business rule: when headers and body disagree (bilingual templates), the
+    BODY language wins, because that is the text the content actions rewrite —
+    we must never translate the user's own prose against their intent. Section
+    headers only inform the ``is_mixed`` flag surfaced to the rating action.
+
+    Falls back to Polish (the product's home market) when the visible text is
+    too short to score, so a name-only canvas still behaves predictably.
+
+    @returns ``{"code", "confidence", "body_lang", "header_lang", "is_mixed"}``.
+    """
+    headers: list[str] = []
+    body_chunks: list[str] = []
+    for el in elements or []:
+        if el.get("category") not in ("text", "textarea"):
+            continue
+        content = str(el.get("content") or "").replace("\\n", "\n").strip()
+        if not content:
+            continue
+        flat = " ".join(content.split())
+        if _is_language_chrome_label(flat):
+            headers.append(flat)
+            continue
+        if _is_employment_period_line(flat):
+            continue
+        if "@" in flat or flat.startswith("http"):
+            continue
+        if len(flat) < 18:
+            continue
+        body_chunks.append(flat)
+
+    body_lang, confidence = _dominant_language(" ".join(body_chunks))
+    header_lang, _ = _dominant_language(" ".join(headers))
+
+    code = body_lang or "pl"
+    is_mixed = bool(header_lang and body_lang and header_lang != body_lang)
+    return {
+        "code": code,
+        "confidence": confidence,
+        "body_lang": body_lang or "pl",
+        "header_lang": header_lang,
+        "is_mixed": is_mixed,
+    }
+
+
 def _is_language_chrome_label(content: str) -> bool:
     """True for section headings / meta labels used in bilingual-chrome checks.
 
