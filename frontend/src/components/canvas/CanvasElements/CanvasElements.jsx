@@ -275,6 +275,7 @@ export default function CanvasElements({ elements }) {
           zIndex={element.zIndex}
           fixedToPage={element.fixedToPage}
           alignWithText={element.alignWithText}
+          flowRole={element.flowRole}
           borderRadius={element.borderRadius}
           objectFit={element.objectFit}
           photoSlot={element.photoSlot}

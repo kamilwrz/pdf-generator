@@ -6,6 +6,8 @@
  * `fixedToPage` disables pointer events (sidebars/backgrounds).
  * Iconic icons store `top` as the companion text line top; the draw offset
  * centres the glyph on that line (mirrors PDF `align_with_text`).
+ * Section-heading icons (`flowRole === "section-chrome"`) additionally get a
+ * background chip behind the glyph (mirrors PDF `_draw_section_icon_chip`).
  */
 import classes from "./Image.module.css";
 import { memo, useEffect, useState } from 'react';
@@ -17,7 +19,13 @@ import {
     fetchAuthenticatedImageObjectUrl,
     isAuthenticatedImageSrc,
 } from "../../../services/authenticatedImage";
-import { iconicDrawTop, isTextAlignedIcon } from "../../../utils/iconAlignment";
+import {
+    iconicDrawTop,
+    isTextAlignedIcon,
+    sectionIconChipRect,
+    SECTION_ICON_CHIP_FILL,
+    SECTION_ICON_CHIP_BORDER,
+} from "../../../utils/iconAlignment";
 
 function resolveTemplateAssetSrc(src) {
     const assetPath = String(src || "").match(/\/template-assets\/[^?#]+(?:[?#].*)?$/)?.[0];
@@ -39,6 +47,7 @@ function Image({
     zIndex,
     fixedToPage,
     alignWithText,
+    flowRole,
     borderRadius,
     objectFit,
     photoSlot,
@@ -109,16 +118,43 @@ function Image({
         ...(fixedToPage ? { pointerEvents: "none" } : {}),
     }
 
+    // Section-heading icons (WYKSZTAŁCENIE, UMIEJĘTNOŚCI, …) get a neutral
+    // background chip so the glyph stays legible over any page/theme color.
+    // Sized and centred from the same optical mid-line as `drawTop`, so chip
+    // and icon never drift apart when the icon moves or resizes.
+    const chipRect = sectionIconChipRect({
+        category: "image", flowRole, src, alignWithText, width, height, left, top,
+    });
+    const chip = chipRect ? (
+        <div
+            aria-hidden="true"
+            style={{
+                position: "absolute",
+                left: chipRect.left,
+                top: chipRect.top,
+                width: chipRect.width,
+                height: chipRect.height,
+                backgroundColor: SECTION_ICON_CHIP_FILL,
+                border: `1px solid ${SECTION_ICON_CHIP_BORDER}`,
+                zIndex: (Number(zIndex) || 0) - 0.5,
+                pointerEvents: "none",
+            }}
+        />
+    ) : null;
+
     if (fixedToPage) {
         return (
-            <img
-                ref={image}
-                id={elementId}
-                draggable={false}
-                src={displaySrc}
-                style={style}
-                alt=""
-            />
+            <>
+                {chip}
+                <img
+                    ref={image}
+                    id={elementId}
+                    draggable={false}
+                    src={displaySrc}
+                    style={style}
+                    alt=""
+                />
+            </>
         );
     }
 
@@ -128,6 +164,7 @@ function Image({
 
         return <>
 
+            {chip}
             <Resize
                 selectedElement={selectedElement}
                 isResizeable={isResizeable}
@@ -157,23 +194,26 @@ function Image({
             /></>
 
     } else {
-        return <img
-            ref={image}
-            id={elementId}
-            draggable={false}
-            src={displaySrc}
-            style={style}
-            onDoubleClick={() => selectElement(elementId)}
-            onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
-            onPointerDown={(e) => {
-                if (e.ctrlKey || e.metaKey) return;
-                e.currentTarget.setPointerCapture(e.pointerId);
-                selectMoveElement(elementId, true);
-            }}
-            onPointerMove={(e) => moveElement(e, elementId)}
-            onPointerUp={() => selectMoveElement(elementId, false)}
-            className={isSelected ? classes.selectedElement : ""}
-        />
+        return <>
+            {chip}
+            <img
+                ref={image}
+                id={elementId}
+                draggable={false}
+                src={displaySrc}
+                style={style}
+                onDoubleClick={() => selectElement(elementId)}
+                onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
+                onPointerDown={(e) => {
+                    if (e.ctrlKey || e.metaKey) return;
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    selectMoveElement(elementId, true);
+                }}
+                onPointerMove={(e) => moveElement(e, elementId)}
+                onPointerUp={() => selectMoveElement(elementId, false)}
+                className={isSelected ? classes.selectedElement : ""}
+            />
+        </>
     }
 }
 

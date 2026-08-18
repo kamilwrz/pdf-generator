@@ -147,7 +147,14 @@ class PDF_Generator:
         """Set the PDF document title metadata shown in viewers."""
         self.c.setTitle(title)
 
-    def renderImage(self, src, width, height, left, top, align_with_text=None, object_fit=None):
+    # Background "chip" behind section-heading icons — must mirror
+    # frontend/src/utils/iconAlignment.js `SECTION_ICON_CHIP_*` constants so
+    # canvas and PDF render the same neutral, sharp-cornered swatch.
+    SECTION_ICON_CHIP_PAD = 3.0
+    SECTION_ICON_CHIP_FILL = "#F5F1E8"  # DESIGN.md Beige
+    SECTION_ICON_CHIP_BORDER = "#B3B3B3"  # DESIGN.md Grey, lightened for a visible hairline
+
+    def renderImage(self, src, width, height, left, top, align_with_text=None, object_fit=None, flow_role=None):
         """Draw a bitmap after flipping Y so `top` matches the editor.
 
         PNG/RGBA icons must use ``mask='auto'`` — with ``mask=None`` ReportLab
@@ -164,6 +171,11 @@ class PDF_Generator:
         - ``\"cover\"`` — scale uniformly and center-crop into the box (profile
           photo slots). Matches canvas ``object-fit: cover``.
         - anything else — stretch to the authored box (legacy fill).
+
+        ``flow_role`` — when ``\"section-chrome\"`` (the icon beside a section
+        heading, e.g. WYKSZTAŁCENIE), a neutral background chip is drawn
+        behind the glyph so it stays legible on any page/theme background.
+        Contact/masthead icons (``flow_role`` unset or other values) stay bare.
         """
         # Must match frontend/src/utils/iconAlignment.js `CANVAS_TEXT_CAP_MID`.
         # A previous -1.2 offset made PDF icons sit ~2.2 px higher than canvas.
@@ -188,6 +200,8 @@ class PDF_Generator:
             # identical math to canvas `iconicDrawTop`.
             text_cap_mid = t + text_aligned_icon_cap_mid_offset
             t = text_cap_mid - h / 2
+        if align and flow_role == "section-chrome":
+            self._draw_section_icon_chip(t, left, w, h)
         corrected_y = self.page_h - t - h
         if not src_s:
             return
@@ -211,6 +225,27 @@ class PDF_Generator:
                     self.c.drawImage(
                         src_s, left, corrected_y, width=w, height=h, mask="auto",
                     )
+        finally:
+            self.c.restoreState()
+
+    def _draw_section_icon_chip(self, icon_top, icon_left, icon_w, icon_h):
+        """Sharp-cornered Beige/Grey square centred behind a section-heading icon.
+
+        ``icon_top``/``icon_left`` are already the optical-mid-adjusted glyph
+        position (post `text_aligned_icon_cap_mid_offset`), so the chip is
+        guaranteed to stay centred on the icon regardless of font size.
+        """
+        pad = self.SECTION_ICON_CHIP_PAD
+        size = max(icon_w, icon_h) + pad * 2
+        chip_left = icon_left - pad
+        chip_top = icon_top - pad
+        corrected_y = self.page_h - chip_top - size
+        self.c.saveState()
+        try:
+            self.c.setFillColor(HexColor(self.SECTION_ICON_CHIP_FILL))
+            self.c.setStrokeColor(HexColor(self.SECTION_ICON_CHIP_BORDER))
+            self.c.setLineWidth(1.0)
+            self.c.rect(chip_left, corrected_y, size, size, stroke=1, fill=1)
         finally:
             self.c.restoreState()
 
@@ -1211,6 +1246,7 @@ class PDF_Generator:
                         # Preserve explicit False (geometric contact icons); None → path heuristic.
                         align_with_text=getattr(element, "alignWithText", None),
                         object_fit=object_fit,
+                        flow_role=getattr(element, "flowRole", None),
                     )
             if watermark:
                 self._draw_watermark()
