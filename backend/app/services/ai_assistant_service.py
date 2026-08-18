@@ -1661,6 +1661,49 @@ _TRANSLATE_LANGUAGE_NAMES = {
 }
 
 
+# Language-neutral tense rule for non-Polish CVs. It states the finished-vs-
+# current rule WITHOUT Polish verb samples, so the model does not drift the
+# rewrite toward Polish while still respecting employment tense.
+_TENSE_RULES_NEUTRAL = """\
+VERB TENSE FOR ROLES (MANDATORY — a violation is an error):
+- Field `employment_tense` on an element: `present` = current role, `past` = ended.
+- `present` / end date "Obecnie"/"Present"/"Now": use PRESENT tense.
+- `past` / a concrete end date (e.g. 05/2023, 12/2022): use PAST tense.
+- NEVER switch an ended role's past tense to present, or a current role's present to past.
+- When `employment_tense` is absent: keep the element's original tense and grammatical person.
+"""
+
+
+def _tense_rules_for(lang_code: str) -> str:
+    """Pick the tense-rule prompt block for the target correction language.
+
+    Polish keeps its verb-sample rules; every other language gets the neutral
+    variant so we never inject Polish verbs into a non-Polish rewrite.
+    """
+    return _TENSE_RULES_PL if (lang_code or "pl") == "pl" else _TENSE_RULES_NEUTRAL
+
+
+def _content_language_directive(lang_code: str) -> str:
+    """Build the prompt directive fixing the language of each response field.
+
+    Correction `content` must be in the CV language; advice fields (`message`,
+    `tips`, `priorities`) stay Polish because the app serves the Polish market
+    and users read guidance in Polish. Unknown codes fall back to Polish.
+    """
+    code = (lang_code or "pl").strip().lower()
+    lang_name = _TRANSLATE_LANGUAGE_NAMES.get(code, "polski")
+    if code == "pl" or lang_name == "polski":
+        return (
+            "Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, "
+            "zwracaj po polsku."
+        )
+    return (
+        f"Pole `content` w każdej poprawce zwracaj w języku: {lang_name} "
+        f"(kod: {code}) — to język CV użytkownika. "
+        "Pola `message`, `tips` i `priorities` ZAWSZE zwracaj po polsku."
+    )
+
+
 def _translate_cv(elements: list[dict], target_language: str) -> dict:
     """Translate editable CV text into ``target_language`` via content patches.
 

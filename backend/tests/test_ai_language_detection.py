@@ -93,5 +93,34 @@ class DetectCvLanguageTests(unittest.TestCase):
         self.assertFalse(result["is_mixed"])
 
 
+class ContentLanguageDirectiveTests(unittest.TestCase):
+    def test_directive_names_target_language_for_content(self):
+        directive = svc._content_language_directive("en")
+        self.assertIn("angielski", directive)
+        # Advice fields must stay Polish regardless of CV language.
+        self.assertIn("po polsku", directive)
+
+    def test_directive_polish_is_all_polish(self):
+        directive = svc._content_language_directive("pl")
+        self.assertIn("po polsku", directive)
+
+    def test_directive_unknown_code_falls_back_to_polish(self):
+        directive = svc._content_language_directive("zz")
+        self.assertIn("po polsku", directive)
+
+
+class TenseRulesForTests(unittest.TestCase):
+    def test_polish_returns_polish_verb_examples(self):
+        rules = svc._tense_rules_for("pl")
+        self.assertIn("Tworzę", rules)
+
+    def test_non_polish_has_no_polish_verb_examples(self):
+        rules = svc._tense_rules_for("en")
+        self.assertNotIn("Tworzę", rules)
+        self.assertNotIn("Tworzyłem", rules)
+        # Still expresses the finished-vs-current rule generically.
+        self.assertTrue(rules.strip())
+
+
 if __name__ == "__main__":
     unittest.main()
