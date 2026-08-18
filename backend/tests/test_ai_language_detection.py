@@ -122,5 +122,21 @@ class TenseRulesForTests(unittest.TestCase):
         self.assertTrue(rules.strip())
 
 
+class LanguageMixReconcileTests(unittest.TestCase):
+    def test_polish_headers_english_body_suggests_unifying_to_english(self):
+        elements = [
+            _text_el("h1", "PODSUMOWANIE ZAWODOWE", fontSize=14),
+            _text_el("h2", "DOŚWIADCZENIE", fontSize=14),
+            _text_el("b1", "Experienced analyst who developed and managed the "
+                           "reporting platform and improved delivery for the team."),
+            _text_el("b2", "Built machine learning models and delivered research "
+                           "for the whole engineering organisation."),
+        ]
+        mix = svc._detect_language_mix(elements)
+        self.assertIsNotNone(mix)
+        # Body wins: the fix must not push the user's English prose into Polish.
+        self.assertNotIn("na polski", mix["fix"])
+
+
 if __name__ == "__main__":
     unittest.main()

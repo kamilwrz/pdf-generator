@@ -486,10 +486,13 @@ def _detect_language_mix(elements: list[dict]) -> dict | None:
             f"Nagłówki sekcji są po polsku ({examples}), a treść podsumowania/"
             "doświadczenia/wykształcenia jest po angielsku."
         )
+        # Body wins: unify toward the language the user actually wrote their
+        # content in, or translate headers up to it — never rewrite the user's
+        # prose into Polish behind their back.
         fix = (
-            "Ujednolić język całego CV: przetłumacz treść na polski "
-            "(Przetłumacz CV → Polski) albo zamień nagłówki na angielskie "
-            "(Summary / Experience / Education), żeby dokument był w jednym języku."
+            "Ujednolić język całego CV do języka treści (angielski): zamień "
+            "nagłówki na angielskie (Summary / Experience / Education) albo "
+            'świadomie użyj akcji „Przetłumacz CV", jeśli chcesz wersję polską.'
         )
     else:
         fact = (
