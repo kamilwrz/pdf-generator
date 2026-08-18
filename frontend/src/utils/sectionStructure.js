@@ -867,16 +867,23 @@ function resolveFlowStart(elements, sections, pageHeight) {
 }
 
 /**
- * Bottom edge of a same-column fixed-to-page decoration (the rail's own
- * photo/portrait well) sitting above `firstHeading`, or `null` when the rail
- * has none.
+ * Bottom edge of the rail's own photo/portrait well sitting above
+ * `firstHeading`, or `null` when the rail has none.
  *
  * `resolveFlowStart` deliberately skips `fixedToPage` elements when it sizes
  * the MAIN column's masthead clearance (that decoration doesn't participate
- * in main's flow). Templates whose sidebar rail starts under its own
- * `fixedToPage` photo (Slate, Tessera, Harbor) need the opposite: that photo
- * IS the thing the rail must clear, and it can sit well below where the main
- * column's (usually shorter) masthead ends — see `packSidebarLane`.
+ * in main's flow). Templates whose sidebar rail starts under its own photo
+ * well (Slate, Tessera) need the opposite: that photo IS the thing the rail
+ * must clear, and it can sit well below where the main column's (usually
+ * shorter) masthead ends — see `packSidebarLane`.
+ *
+ * CRITICAL: match ONLY genuine photo-slot elements (`photoSlot` = frame /
+ * glyph / ornament / image), never arbitrary `fixedToPage` decoration. Every
+ * sidebar template also paints a full-height `fixedToPage` background panel
+ * (Slate `_line(0, 0, side_width, A4_H)`) and page paper; those live in the
+ * same column and start above the heading, so keying off `fixedToPage` alone
+ * returned the PAGE bottom (842) and shoved the whole rail off page 1. Photo
+ * slots are always bounded boxes, so `photoSlot` is the precise, safe filter.
  */
 function resolveSidebarPhotoFloor(elements, firstHeading, pageHeight) {
   if (!firstHeading) return null;
@@ -884,7 +891,7 @@ function resolveSidebarPhotoFloor(elements, firstHeading, pageHeight) {
   const headingAbs = absoluteTop(firstHeading, pageHeight);
   let photoBottom = 0;
   for (const element of elements || []) {
-    if (!element || !element.fixedToPage) continue;
+    if (!element || !element.photoSlot) continue;
     if (!isSameColumn(element)) continue;
     const abs = absoluteTop(element, pageHeight);
     if (abs >= headingAbs) continue;

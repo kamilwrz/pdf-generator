@@ -1763,14 +1763,25 @@ describe("applyFlowSpacing", () => {
 
   it("does not let the promoted first sidebar section crowd a fixed-to-page photo well (Slate)", () => {
     // Slate live bug: main content starts at y=119 (short masthead), but the
-    // sidebar rail sits under a much taller fixedToPage photo well ending at
-    // y=166. When the section that used to sit right under the photo is
-    // transferred to main, the next section becomes the new first rail item
-    // — still at its old (far-down) stored top. Closing that hole must clamp
-    // to the photo's own bottom edge, not the main column's shorter masthead.
+    // sidebar rail sits under a much taller photo well ending at y=166. When
+    // the section that used to sit right under the photo is transferred to
+    // main, the next section becomes the new first rail item — still at its
+    // old (far-down) stored top. Closing that hole must clamp to the photo's
+    // own bottom edge, not the main column's shorter masthead.
+    //
+    // The fixtures below deliberately include the two full-height fixedToPage
+    // panels every sidebar template paints (page paper + sidebar band). The
+    // floor must IGNORE those (they span to y=842) and key only off the real
+    // photo-slot elements, or the whole rail is shoved off page 1.
     const elements = [
-      { element_id: "sb-photo", category: "rectangle", fixedToPage: true,
-        left: 33, top: 40, width: 112, height: 126, page: 1 },
+      { element_id: "bg-paper", category: "line", fixedToPage: true,
+        left: 0, top: 0, width: 595, height: 842, page: 1 },
+      { element_id: "bg-sidebar", category: "line", fixedToPage: true,
+        left: 0, top: 0, width: 178, height: 842, page: 1 },
+      { element_id: "sb-photo-frame", category: "rectangle", fixedToPage: true,
+        photoSlot: "frame", left: 33, top: 40, width: 112, height: 126, page: 1 },
+      { element_id: "sb-photo-glyph", category: "image", fixedToPage: true,
+        photoSlot: "glyph", left: 73, top: 80, width: 32, height: 46, page: 1 },
 
       { element_id: "m-exp-head", category: "text", content: "DOŚWIADCZENIE",
         flowRole: "section-chrome", left: 245, top: 119, fontSize: 14, height: 16, page: 1 },
@@ -1796,7 +1807,7 @@ describe("applyFlowSpacing", () => {
       spacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
     });
     const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
-    const photoBottom = elements[0].top + elements[0].height; // 166
+    const photoBottom = 40 + 126; // frame bottom = 166
     assert.ok(
       byId["sb-sk-head"].top >= photoBottom,
       `promoted section must clear the photo (bottom ${photoBottom}), got ${byId["sb-sk-head"].top}`,
@@ -1806,6 +1817,40 @@ describe("applyFlowSpacing", () => {
       "clamps to the photo bottom plus the standard section rhythm, not the main column's shorter masthead",
     );
     assert.equal(byId["m-exp-head"].top, 119, "main column must stay untouched");
+  });
+
+  it("ignores full-height fixedToPage background panels when there is no photo well", () => {
+    // Cinder / any sidebar template without a rail photo: the only fixedToPage
+    // elements are the page paper and sidebar band, both spanning to y=842.
+    // The photo floor must return nothing so the rail packs to its authored
+    // top, not off the page. Regression for the over-broad fixedToPage match.
+    const elements = [
+      { element_id: "bg-paper", category: "line", fixedToPage: true,
+        left: 0, top: 0, width: 595, height: 842, page: 1 },
+      { element_id: "bg-sidebar", category: "line", fixedToPage: true,
+        left: 300, top: 0, width: 295, height: 842, page: 1 },
+
+      { element_id: "m-exp-head", category: "text", content: "DOŚWIADCZENIE",
+        flowRole: "section-chrome", left: 60, top: 200, fontSize: 14, height: 16, page: 1 },
+      { element_id: "m-exp-body", category: "textarea", flowRole: "content",
+        left: 60, top: 224, width: 210, height: 80, fontSize: 9, page: 1 },
+
+      { element_id: "sb-edu-head", category: "text", content: "WYKSZTAŁCENIE",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 330, top: 200, fontSize: 9.4, height: 12, page: 1 },
+      { element_id: "sb-edu-body", category: "textarea", content: "LL.B.",
+        flowRole: "content", flowLane: "sidebar",
+        left: 330, top: 220, width: 200, height: 40, fontSize: 8.3, page: 1 },
+    ];
+    const packed = packSidebarLane(elements, 842, {
+      spacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
+    });
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+    assert.ok(
+      byId["sb-edu-head"].top <= 210,
+      `sidebar must stay near its authored top, not be pushed down by a full-page panel, got ${byId["sb-edu-head"].top}`,
+    );
+    assert.equal(byId["sb-edu-head"].page, 1, "sidebar heading stays on page 1");
   });
 
   it("moves a sidebar kicker with its body instead of orphaning it in the page-1 footer", () => {
