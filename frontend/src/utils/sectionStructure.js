@@ -867,6 +867,33 @@ function resolveFlowStart(elements, sections, pageHeight) {
 }
 
 /**
+ * Bottom edge of a same-column fixed-to-page decoration (the rail's own
+ * photo/portrait well) sitting above `firstHeading`, or `null` when the rail
+ * has none.
+ *
+ * `resolveFlowStart` deliberately skips `fixedToPage` elements when it sizes
+ * the MAIN column's masthead clearance (that decoration doesn't participate
+ * in main's flow). Templates whose sidebar rail starts under its own
+ * `fixedToPage` photo (Slate, Tessera, Harbor) need the opposite: that photo
+ * IS the thing the rail must clear, and it can sit well below where the main
+ * column's (usually shorter) masthead ends — see `packSidebarLane`.
+ */
+function resolveSidebarPhotoFloor(elements, firstHeading, pageHeight) {
+  if (!firstHeading) return null;
+  const isSameColumn = sameColumnAsHeading(Number(firstHeading.left) || 0);
+  const headingAbs = absoluteTop(firstHeading, pageHeight);
+  let photoBottom = 0;
+  for (const element of elements || []) {
+    if (!element || !element.fixedToPage) continue;
+    if (!isSameColumn(element)) continue;
+    const abs = absoluteTop(element, pageHeight);
+    if (abs >= headingAbs) continue;
+    photoBottom = Math.max(photoBottom, absoluteBottom(element, pageHeight));
+  }
+  return photoBottom > 0 ? photoBottom : null;
+}
+
+/**
  * True when the element belongs to a two-column sidebar rail.
  * Generators stamp `flowLane: "sidebar"` on every rail element; chrome also
  * carries `flowRole: "sidebar-chrome"` as a belt-and-suspenders signal when
@@ -1068,6 +1095,17 @@ export function packSidebarLane(
     const mainStart = resolveFlowStart(list, mainSections, pageHeight);
     // Never push the rail down; only close holes above the first remaining kicker.
     cursorAbs = Math.min(authoredRailTop, mainStart);
+  }
+  // `mainStart` reflects the MAIN column's masthead, which can end well above
+  // the rail's own fixed photo/portrait well (Slate: main content starts at
+  // y=119, the sidebar photo ends at y=194). Without this floor, promoting a
+  // section to be the rail's new first item (e.g. after the section that used
+  // to sit under the photo is transferred out) pulls it up under `mainStart`
+  // and crowds — or overlaps — the photo. Clamp back down to the photo's own
+  // bottom edge plus the standard inter-section rhythm.
+  const photoFloor = resolveSidebarPhotoFloor(list, firstHeading, pageHeight);
+  if (photoFloor != null) {
+    cursorAbs = Math.max(cursorAbs, photoFloor + rhythm.section);
   }
 
   const placedById = new Map();
