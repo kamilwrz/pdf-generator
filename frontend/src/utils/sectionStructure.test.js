@@ -2773,7 +2773,13 @@ describe("healSimpleChromeRuleGaps", () => {
     assert.equal(healed, uniform);
   });
 
-  it("never touches a richer chrome cluster (marker/badge alongside the rule)", () => {
+  it("heals an outlier rule gap in a richer cluster but leaves the decorative mark in place", () => {
+    // A section with a marker + rule (a "rich" cluster) whose rule sits at a
+    // stale 6px gap while every other section is at 20.7. The rule underline
+    // must snap onto the lane majority (matching its neighbours), but the
+    // decorative circle mark keeps its own offset — only the rule moves. This
+    // is the icon-template case (Tessera / Slate / Monument) where a transferred
+    // section's rule otherwise reads as an outlier beside its siblings.
     const elements = [
       ...staleGapFixture(),
       { element_id: "m-cert-head", category: "text", content: "CERTYFIKATY",
@@ -2787,8 +2793,14 @@ describe("healSimpleChromeRuleGaps", () => {
         left: 245, top: 590, width: 300, height: 30, fontSize: 9, lineHeight: 13, page: 1 },
     ];
     const healed = healSimpleChromeRuleGaps(elements, PAGE_HEIGHT);
+    const certHead = healed.find((element) => element.element_id === "m-cert-head");
     const certRule = healed.find((element) => element.element_id === "m-cert-rule");
-    assert.equal(certRule.top, 566, "3-piece chrome cluster (mark + rule) must stay untouched");
+    const certMark = healed.find((element) => element.element_id === "m-cert-mark");
+    assert.equal(
+      Number((certRule.top - certHead.top).toFixed(2)), 20.7,
+      "the rule underline must snap onto the lane majority gap",
+    );
+    assert.equal(certMark.top, 562, "the decorative mark keeps its own offset — only the rule moves");
   });
 
   it("applyFlowSpacing heals stale transferred-section gaps on every pack", () => {

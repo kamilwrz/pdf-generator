@@ -259,21 +259,22 @@ export function healSkillChipLabelBaselines(elements) {
  *
  * A template's `section()` / `sidebar_kicker()` builder function stamps one
  * fixed heading→rule offset for EVERY section it renders (Sterling: heading
- * top + 20.7; other simple two-piece templates are equally uniform), so
- * within one lane every "plain" chrome cluster (just heading + rule, no
- * marker/badge) is supposed to share the same gap. `compactChromeCluster`'s
- * `explicitlyOwned` branch intentionally preserves whatever offset a section
- * already has — correct for templates that deliberately vary chrome per
- * section (Monument's badge, Cinder's mark) — but it has no way to tell
- * "authored" apart from "corrupted": a section transferred between the main
- * column and the sidebar rail (`transferSectionLane.js`) bakes in a sampled
- * offset at the moment of transfer, and if that sample was ever wrong (a
- * stale document saved before a transfer fix, or a future regression), the
- * wrong offset is preserved on every later pack instead of self-correcting.
- * This heal runs before every pack and rewrites any section whose gap
- * disagrees with the majority — restoring one canonical heading→rule gap per
- * lane without touching templates that legitimately vary their chrome shape
- * (those have more than 2 chrome pieces and are skipped here).
+ * top + 20.7; Tessera's mosaic-tile clusters and Slate's badge clusters are
+ * equally uniform), so within one lane every section is supposed to share the
+ * same underline gap — regardless of how much decorative chrome surrounds it.
+ * `compactChromeCluster` intentionally preserves whatever offset a section
+ * already has, but it has no way to tell "authored" apart from "corrupted",
+ * and it can even route two sections with the SAME shape down different
+ * branches: a section transferred between the main column and the sidebar rail
+ * (`transferSectionLane.js`) has its rule re-parked and, beside a wide-rule +
+ * tall-tile pair (Tessera), takes the `explicitlyOwned` preserve branch while
+ * its authored neighbours hit the `healthy` branch's Monument accent-rule
+ * flatten — landing at a different gap and reading as an outlier underline.
+ * This heal runs before every pack and rewrites any section whose underline
+ * gap disagrees with the lane majority — restoring one canonical heading→rule
+ * gap per lane. It identifies the underline as the widest THIN chrome line
+ * (height <= 4), so it works for rich icon clusters too and never moves the
+ * surrounding decorative chrome (tiles, badges, marks, icon glyphs).
  *
  * @param {object[]} elements
  * @param {number} [pageHeight=842]
@@ -292,15 +293,27 @@ export function healSimpleChromeRuleGaps(elements, pageHeight = 842) {
       if (!heading) continue;
       const memberIds = memberIdsFor(section.headingId);
       const members = list.filter((element) => memberIds.has(element.element_id));
-      const chromeMembers = members.filter((element) => (
-        element.element_id === section.headingId || isChromeLike(element)
+      // The section underline is a THIN chrome line (height <= 4). This heal
+      // only ever moves that rule, never the surrounding decorative chrome, so
+      // it is safe for rich icon clusters too (Tessera tile + rect + icon +
+      // rule, Slate badge + rule, Monument badge + rule): those templates use
+      // one section() builder, so every section shares one authored heading→rule
+      // gap, and a section that disagrees is a genuine outlier (typically a
+      // transferred section whose rule was re-parked through a different
+      // compactChromeCluster branch than its freshly generated neighbours).
+      // Decorative tiles are also `line` elements but are tall squares, excluded
+      // by the height filter; when several thin lines exist the widest is the
+      // underline (an accent tick is short; the rule spans the label / column).
+      const ruleCandidates = members.filter((element) => (
+        element.element_id !== heading.element_id
+        && isChromeLike(element)
+        && element.category === "line"
+        && (Number(element.height) || 0) <= 4
       ));
-      // Only the plain "heading + one rule" shape qualifies — a badge, marker,
-      // or icon alongside the rule means this template intentionally varies
-      // chrome geometry per section, which this heal must not touch.
-      if (chromeMembers.length !== 2) continue;
-      const rule = chromeMembers.find((element) => element.element_id !== heading.element_id);
-      if (!rule || rule.category !== "line") continue;
+      if (ruleCandidates.length === 0) continue;
+      const rule = ruleCandidates.reduce((widest, element) => (
+        (Number(element.width) || 0) > (Number(widest.width) || 0) ? element : widest
+      ));
       const gap = Math.round(
         (absoluteTop(rule, pageHeight) - absoluteTop(heading, pageHeight)) * 100,
       ) / 100;

@@ -464,6 +464,68 @@ describe("moveSidebarSectionsToMain", () => {
   });
 });
 
+describe("section-rule gap stays consistent after transfer (Tessera icon cluster)", () => {
+  // Tessera-style geometry: main sections have a 20px tile + rect + icon + a
+  // wide underline; sidebar sections have an 18px tile cluster + a short coral
+  // keyline. A transferred section used to keep a different heading→rule gap
+  // than its neighbours because it routed through a different compactChromeCluster
+  // branch during packing (the wide-rule + tall-tile pair triggers a Monument
+  // accent-rule flatten on authored sections but not on freshly rebuilt ones).
+  const tesseraFixture = () => {
+    const sb = (id, top, name, title) => ([
+      { element_id: `${id}-tile`, category: "line", flowRole: "sidebar-chrome", flowLane: "sidebar", left: 34, top: top - 2, width: 18, height: 18, backgroundColor: "#FFF", page: 1 },
+      { element_id: `${id}-rect`, category: "rectangle", flowRole: "sidebar-chrome", flowLane: "sidebar", left: 36, top, width: 18, height: 18, borderWidth: 0.8, filled: false, backgroundColor: "#E15D4F", page: 1 },
+      { element_id: `${id}-icon`, category: "image", flowRole: "sidebar-chrome", flowLane: "sidebar", left: 38, top: top + 2, width: 12, height: 12, src: `/template-assets/iconic/tessera/${name}.png`, alignWithText: false, page: 1 },
+      { element_id: `${id}-head`, category: "text", content: title, flowRole: "sidebar-chrome", flowLane: "sidebar", left: 60, top: top + 3, fontSize: 7.6, height: 12, page: 1, bold: true },
+      { element_id: `${id}-rule`, category: "line", flowRole: "sidebar-chrome", flowLane: "sidebar", left: 60, top: top + 16, width: 50, height: 1, backgroundColor: "#E15D4F", page: 1 },
+      { element_id: `${id}-body`, category: "textarea", content: "A\nB", flowRole: "content", flowLane: "sidebar", autoHeight: true, bulletList: true, left: 34, top: top + 28, width: 152, height: 30, fontSize: 6.6, lineHeight: 9, page: 1 },
+    ]);
+    const mn = (id, top, name, title) => ([
+      { element_id: `${id}-tile`, category: "line", flowRole: "section-chrome", left: 218, top: top - 2, width: 20, height: 20, backgroundColor: "#F7E9DF", page: 1 },
+      { element_id: `${id}-rect`, category: "rectangle", flowRole: "section-chrome", left: 220, top, width: 20, height: 20, borderWidth: 0.8, filled: false, backgroundColor: "#E15D4F", page: 1 },
+      { element_id: `${id}-icon`, category: "image", flowRole: "section-chrome", left: 224, top: top + 4, width: 12, height: 12, src: `/template-assets/iconic/tessera/${name}.png`, alignWithText: false, page: 1 },
+      { element_id: `${id}-head`, category: "text", content: title, flowRole: "section-chrome", left: 248, top: top + 3, fontSize: 8.1, height: 14, page: 1, bold: true },
+      { element_id: `${id}-rule`, category: "line", flowRole: "section-chrome", left: 248, top: top + 21, width: 299, height: 1, backgroundColor: "#D8C5C7", page: 1 },
+      { element_id: `${id}-body`, category: "textarea", content: "Body copy.", flowRole: "content", autoHeight: true, left: 218, top: top + 30, width: 329, height: 40, fontSize: 9, lineHeight: 13, page: 1 },
+    ]);
+    return [
+      ...sb("sb-edu", 200, "education", "WYKSZTAŁCENIE"),
+      ...sb("sb-sk", 300, "skills", "UMIEJĘTNOŚCI"),
+      ...mn("m-exp", 190, "experience", "DOŚWIADCZENIE"),
+      ...mn("m-sum", 300, "summary", "PODSUMOWANIE"),
+    ];
+  };
+
+  const headingRuleGap = (list, headingId) => {
+    const head = list.find((element) => element.element_id === headingId);
+    const thinLines = list.filter((element) => (
+      element.category === "line" && (Number(element.height) || 0) <= 4
+      && Math.abs((Number(element.top) || 0) - head.top) < 40
+      && Math.abs((Number(element.left) || 0) - head.left) < 40
+    ));
+    const rule = thinLines.reduce((widest, element) => (
+      (Number(element.width) || 0) > (Number(widest.width) || 0) ? element : widest
+    ), thinLines[0]);
+    return rule ? Number((rule.top - head.top).toFixed(1)) : null;
+  };
+
+  it("keeps a section transferred to the sidebar at the same rule gap as its rail neighbours", () => {
+    const next = transferSectionLane(tesseraFixture(), "m-sum-head", PAGE_HEIGHT, SPACING);
+    const moved = next.find((element) => element.content === "PODSUMOWANIE");
+    const sibling = headingRuleGap(next, "sb-edu-head");
+    assert.equal(headingRuleGap(next, moved.element_id), sibling,
+      "moved section's underline must match the sidebar majority gap");
+  });
+
+  it("keeps a section transferred to the main column at the same rule gap as its main neighbours", () => {
+    const next = transferSectionLane(tesseraFixture(), "sb-edu-head", PAGE_HEIGHT, SPACING);
+    const moved = next.find((element) => element.content === "WYKSZTAŁCENIE");
+    const sibling = headingRuleGap(next, "m-exp-head");
+    assert.equal(headingRuleGap(next, moved.element_id), sibling,
+      "moved section's underline must match the main-column majority gap");
+  });
+});
+
 describe("icon chrome rebuilt on transfer (Tessera/Slate-style templates)", () => {
   it("gives a sidebar section its own icon glyph after moving to main, not the sampled sibling's", () => {
     const next = moveSidebarSectionsToMain(

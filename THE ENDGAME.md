@@ -23,3 +23,8 @@ VI.  AI
 -----------------------------------------------------------------------------------------  
 
 1) Wykrywanie i poprawiki w danym jezyku CV (DONE)
+
+VII. INNE
+-----------------------------------------------------------------------------------------
+1) GOOGLE LOGIN
+2) EMAIL Z POTWIERDZENIEM - REJESTRACJA
