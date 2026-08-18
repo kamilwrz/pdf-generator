@@ -77,6 +77,21 @@ class DetectCvLanguageTests(unittest.TestCase):
         self.assertEqual(result["code"], "pl")
         self.assertLess(result["confidence"], 0.5)
 
+    def test_confident_header_but_short_body_is_not_mixed(self):
+        # Header chrome scores English, but every body line is too short to
+        # score. Detector must not claim a mix: body_lang stays None, code
+        # falls back to pl, is_mixed is False.
+        elements = [
+            _text_el("h1", "EXPERIENCE", fontSize=14),
+            _text_el("h2", "EDUCATION", fontSize=14),
+            _text_el("b1", "Berlin"),
+            _text_el("b2", "2021"),
+        ]
+        result = svc._detect_cv_language(elements)
+        self.assertIsNone(result["body_lang"])
+        self.assertEqual(result["code"], "pl")
+        self.assertFalse(result["is_mixed"])
+
 
 if __name__ == "__main__":
     unittest.main()

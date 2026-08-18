@@ -310,6 +310,37 @@ _LANG_STOPWORDS: dict[str, tuple[str, ...]] = {
 _DETECT_MIN_SCORE = 3
 
 
+def _split_headers_and_body(elements: list[dict]) -> tuple[list[str], list[str]]:
+    """Split canvas text into section-header chrome and body copy.
+
+    Shared by language detection and the language-mix rating check so the two
+    never diverge on what counts as a header vs. scoreable body text. Applies
+    the same exclusions both need: employment-period lines, contact lines
+    (emails/URLs), and very short tokens (names, cities) that do not encode
+    document language.
+    """
+    headers: list[str] = []
+    body_chunks: list[str] = []
+    for el in elements or []:
+        if el.get("category") not in ("text", "textarea"):
+            continue
+        content = str(el.get("content") or "").replace("\\n", "\n").strip()
+        if not content:
+            continue
+        flat = " ".join(content.split())
+        if _is_language_chrome_label(flat):
+            headers.append(flat)
+            continue
+        if _is_employment_period_line(flat):
+            continue
+        if "@" in flat or flat.startswith("http"):
+            continue
+        if len(flat) < 18:
+            continue
+        body_chunks.append(flat)
+    return headers, body_chunks
+
+
 def _score_language_signals(text: str) -> dict[str, int]:
     """Return a per-language weighted score for ``text``.
 
@@ -362,36 +393,22 @@ def _detect_cv_language(elements: list[dict]) -> dict:
 
     @returns ``{"code", "confidence", "body_lang", "header_lang", "is_mixed"}``.
     """
-    headers: list[str] = []
-    body_chunks: list[str] = []
-    for el in elements or []:
-        if el.get("category") not in ("text", "textarea"):
-            continue
-        content = str(el.get("content") or "").replace("\\n", "\n").strip()
-        if not content:
-            continue
-        flat = " ".join(content.split())
-        if _is_language_chrome_label(flat):
-            headers.append(flat)
-            continue
-        if _is_employment_period_line(flat):
-            continue
-        if "@" in flat or flat.startswith("http"):
-            continue
-        if len(flat) < 18:
-            continue
-        body_chunks.append(flat)
+    headers, body_chunks = _split_headers_and_body(elements)
 
     body_lang, confidence = _dominant_language(" ".join(body_chunks))
     header_lang, _ = _dominant_language(" ".join(headers))
 
+    # `code` is the usable correction language (never None); `body_lang` is the
+    # raw detection so the dict stays internally consistent — when body copy is
+    # too short to score, body_lang is None and is_mixed is False even if a
+    # header language was detected.
     code = body_lang or "pl"
     is_mixed = bool(header_lang and body_lang and header_lang != body_lang)
     return {
         "code": code,
         "confidence": confidence,
-        "body_lang": body_lang or "pl",
-        "header_lang": header_lang,
+        "body_lang": body_lang,      # raw (may be None)
+        "header_lang": header_lang,  # raw (may be None)
         "is_mixed": is_mixed,
     }
 
@@ -423,28 +440,10 @@ def _detect_language_mix(elements: list[dict]) -> dict | None:
 
     @returns A descriptor with prompt/feedback copy, or ``None`` when consistent.
     """
-    headers: list[str] = []
-    body_chunks: list[str] = []
-    for el in elements or []:
-        if el.get("category") not in ("text", "textarea"):
-            continue
-        content = str(el.get("content") or "").replace("\\n", "\n").strip()
-        if not content:
-            continue
-        flat = " ".join(content.split())
-        # Keep short meta labels such as CURRENTLY with headers — they are
-        # user-visible chrome and contribute to the bilingual look.
-        if _is_language_chrome_label(flat):
-            headers.append(flat)
-            continue
-        if _is_employment_period_line(flat):
-            continue
-        if "@" in flat or flat.startswith("http"):
-            continue
-        # Ignore tiny tokens (names, cities) — they rarely encode document language.
-        if len(flat) < 18:
-            continue
-        body_chunks.append(flat)
+    # Shared with `_detect_cv_language` so both stay aligned on what counts as
+    # header chrome vs. scoreable body text (short meta labels such as CURRENTLY
+    # remain with the headers because they contribute to the bilingual look).
+    headers, body_chunks = _split_headers_and_body(elements)
 
     if not headers or not body_chunks:
         return None
