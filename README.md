@@ -164,13 +164,14 @@ pdf-generator/
 │   │   │   ├── editor/FlatSectionLayoutModal/  # Inline row ↔ bullet list picker with a live content preview
 │   │   │   ├── editor/LongCvModal/        # "CV too long" assistant: compact spacing → AI shortening
 │   │   │   ├── editor/SaveGateModal/     # "Create an account to save" modal shown to guests
-│   │   │   └── editor/DemoBanner/        # Persistent banner while the guest-mode demo CV is on canvas
+│   │   │   ├── editor/DemoBanner/        # Persistent banner while the guest-mode demo CV is on canvas
+│   │   │   └── editor/StartChooser/      # Empty-state onboarding: wizard vs import chooser on a fresh document
 │   │   ├── hooks/            # useA4Elements facade, useDocumentHistory, usePdfExport, …
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
 │   │   ├── templates/        # 14 template specs + helpers + demoCv.js (guest-mode demo content)
-│   │   └── utils/            # a4ElementFactories, freeformShapes, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, guestDocument, guestWizardDraft, claimGuestWizardDraft, resolveActiveCvData, guestEvents
+│   │   └── utils/            # a4ElementFactories, freeformShapes, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, guestDocument, guestWizardDraft, claimGuestWizardDraft, resolveActiveCvData, guestEvents, startChooser
 │   ├── package.json
 │   └── .env.example
 ├── shared/
@@ -549,7 +550,21 @@ Landing start intents used in the hero: `start=wizard`, `start=import`, `start=d
 
 Topbar entry points are **Importuj CV**, **Utwórz CV krok po kroku**, and **Szablony** (enabled after a successful fill). The templates control is absolutely positioned over the live A4 left edge; the grid button opens the change-template modal, and the arrows cycle allowed templates in place.
 
+**Empty-state onboarding (StartChooser).** A user who lands in the editor with nothing on the canvas — right after login, or on a brand-new project — used to see only a blank freeform A4 with no direction. `StartChooser` replaces that blank page with a centred two-card chooser that guides the user into one of the two guided paths: **Stwórz CV w kreatorze** (opens `BioCvModal` via the existing `showBioCvModal` context handler) and **Zaimportuj istniejące CV** (opens `AiCvPanel` via `showAiPanel`). A tertiary "albo zacznij od pustej strony" link dismisses the chooser into freeform editing for users who want to build by hand. The chooser owns no flow logic — it reuses the same handlers the Topbar buttons already call. Visibility is decided by the pure `shouldShowStartChooser` helper: shown only for a genuinely fresh document (zero canvas elements, no persisted `pdfId`, not the guest demo, not mid-load, not dismissed), so emptying an already-saved CV mid-session never re-triggers it, and the guest demo keeps its own `DemoBanner` flow. The surface follows DESIGN.md's Swiss/grid language: sharp 0px corners, the muted chrome token palette, an inline Lucide-style icon system (no emojis), and a `prefers-reduced-motion`-guarded fade + translate-Y entry. It renders inside `.canvas-area` (made a positioned ancestor) so it covers exactly the canvas region, below the Topbar and right of the tool rail.
+
 Implementation:
+
+- `frontend/src/components/editor/StartChooser/StartChooser.jsx` — the two-card onboarding surface; props `onWizard` / `onImport` / `onBlank`
+- `frontend/src/components/editor/StartChooser/StartChooser.module.css` — Swiss/grid styling (sharp corners, chrome tokens, staggered entry, mobile single-column collapse)
+- `frontend/src/utils/startChooser.js`, function `shouldShowStartChooser` — pure visibility gate (empty + unsaved + not demo/loading/dismissed)
+- `frontend/src/pages/PdfCanvas.jsx` — `startChooserDismissed` state, `showStartChooser` computed via the helper, renders `<StartChooser>` inside `.canvas-area` wired to `handleShowBioCvModal` / `handleShowAiPanel`
+- `frontend/src/App.css`, `.canvas-area` — `position: relative` so the overlay fills the scroll region
+
+Tests:
+
+- `frontend/src/utils/startChooser.test.js` — the gate shows for a fresh empty document and hides for filled / demo / loading / saved-then-emptied / dismissed states
+
+Implementation (Topbar / landing entry points):
 
 - `frontend/src/pages/Hero/Hero.jsx`, function `buildStartUrl` and component `CtaLink` — only `start=import` conditionally returns a `/register` URL; every other intent uses `getEditorPath({ start })`; `CtaLink` renders the primary / secondary / text-link chrome and queues the per-source funnel event on click; before/after `afterMock` uses `previewById("tessera")`; templates section renders a duplicated `TEMPLATE_PREVIEWS` marquee (all mockups) under `#szablony`
 - `frontend/src/pages/Hero/Hero.module.css` — quiet-luxury white/ivory + `#171717` + gold `#B8954A` system with hard gold offset shadows; real-mockup compositions (`.heroStack` / `.templateMarquee` + `@keyframes templateMarquee` / `.editorMock` + floating `.aiCard`s / `.finalStack`) and the compact `.trustStrip`
@@ -1886,13 +1901,14 @@ pdf-generator/
 │   │   │   ├── editor/FlatSectionLayoutModal/  # wybór w linii ↔ lista z podglądem treści na żywo
 │   │   │   ├── editor/LongCvModal/        # asystent „CV za długie": kompaktowe odstępy → skracanie AI
 │   │   │   ├── editor/SaveGateModal/     # modal „załóż konto, aby zapisać” pokazywany gościom
-│   │   │   └── editor/DemoBanner/        # baner widoczny, gdy na płótnie jest przykładowe CV gościa
+│   │   │   ├── editor/DemoBanner/        # baner widoczny, gdy na płótnie jest przykładowe CV gościa
+│   │   │   └── editor/StartChooser/      # onboarding pustego stanu: wybór kreator vs import na świeżym dokumencie
 │   │   ├── hooks/            # useA4Elements, useDocumentHistory, useElementSelectionDrag, …
 │   │   ├── pages/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage
 │   │   ├── store/            # Canvas / UiSurfaces / Session + fasada PdfContext
 │   │   ├── templates/        # 14 specyfikacji szablonów + helpery + demoCv.js (treść demo w trybie gościa)
-│   │   └── utils/            # a4ElementFactories, freeformShapes, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, guestDocument, guestWizardDraft, claimGuestWizardDraft, resolveActiveCvData, guestEvents
+│   │   └── utils/            # a4ElementFactories, freeformShapes, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, guestDocument, guestWizardDraft, claimGuestWizardDraft, resolveActiveCvData, guestEvents, startChooser
 │   ├── package.json
 │   └── .env.example
 ├── shared/
@@ -2258,6 +2274,20 @@ Intencje startu używane na hero: `start=wizard`, `start=import`, `start=demo`. 
 **Spójna hierarchia CTA.** Głównym działaniem wszędzie jest **„Stwórz CV za darmo”** (→ kreator); drugorzędnym **„Mam już CV — wgraj PDF”** (→ import); trzeciorzędny link tekstowy prowadzi do demo („Najpierw zobacz edytor na przykładzie”). CTA w headerze to **„Stwórz CV”** (→ kreator, już nie import). Każde CTA wysyła przez `queueGuestEvent` zdarzenie lejka z konkretnym źródłem, żeby analityka mogła przypisać kliknięcie do powierzchni: `hero_wizard`, `hero_import`, `hero_demo`, `before_after_import`, `templates_wizard`, `pricing_free`, `pricing_pro`, `final_wizard`, `final_import` (dodane do stałego słownika `event_type` w `events.py`; buforowane anonimowo, wysyłane po zalogowaniu — zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta)).
 
 Wejścia w topbarze to **Importuj CV**, **Utwórz CV krok po kroku** oraz **Szablony** (aktywne po udanym fillu). Kontrolka szablonów stoi nad żywą lewą krawędzią A4; ikona otwiera modal zmiany szablonu, a strzałki przełączają dozwolone szablony w miejscu.
+
+**Onboarding pustego stanu (StartChooser).** Użytkownik, który trafia do edytora z pustym canvasem — zaraz po zalogowaniu albo w nowym projekcie — widział wcześniej tylko pustą kartkę A4 w trybie freeform, bez żadnej wskazówki. `StartChooser` zastępuje tę pustą stronę wyśrodkowanym wyborem dwóch kart, które prowadzą do dwóch prowadzonych ścieżek: **Stwórz CV w kreatorze** (otwiera `BioCvModal` przez istniejący handler kontekstu `showBioCvModal`) oraz **Zaimportuj istniejące CV** (otwiera `AiCvPanel` przez `showAiPanel`). Trzeciorzędny link „albo zacznij od pustej strony" zamyka wybór i wchodzi w tryb freeform dla użytkowników chcących budować ręcznie. Komponent nie ma własnej logiki przepływu — używa tych samych handlerów co przyciski w Topbarze. O widoczności decyduje czysta funkcja `shouldShowStartChooser`: pokazuje się tylko dla naprawdę świeżego dokumentu (zero elementów na canvasie, brak zapisanego `pdfId`, nie wersja demo gościa, nie w trakcie ładowania, nie odrzucony), więc wyczyszczenie już zapisanego CV w trakcie sesji go nie wywołuje, a demo gościa zachowuje własny przepływ `DemoBanner`. Powierzchnia trzyma się języka Swiss/grid z DESIGN.md: ostre rogi 0px, stonowana paleta tokenów chrome, ikony w stylu Lucide (bez emoji) oraz wejście fade + translate-Y z zabezpieczeniem `prefers-reduced-motion`. Renderuje się wewnątrz `.canvas-area` (uczynionej pozycjonowanym przodkiem), więc pokrywa dokładnie obszar canvasa, poniżej Topbaru i na prawo od szyny narzędzi.
+
+Implementacja:
+
+- `frontend/src/components/editor/StartChooser/StartChooser.jsx` — powierzchnia onboardingu z dwiema kartami; propsy `onWizard` / `onImport` / `onBlank`
+- `frontend/src/components/editor/StartChooser/StartChooser.module.css` — styl Swiss/grid (ostre rogi, tokeny chrome, kaskadowe wejście, zwijanie do jednej kolumny na mobile)
+- `frontend/src/utils/startChooser.js`, funkcja `shouldShowStartChooser` — czysta bramka widoczności (pusty + niezapisany + nie demo/ładowanie/odrzucony)
+- `frontend/src/pages/PdfCanvas.jsx` — stan `startChooserDismissed`, `showStartChooser` liczone przez helper, render `<StartChooser>` w `.canvas-area` podpięty do `handleShowBioCvModal` / `handleShowAiPanel`
+- `frontend/src/App.css`, `.canvas-area` — `position: relative`, aby overlay wypełniał obszar przewijania
+
+Testy:
+
+- `frontend/src/utils/startChooser.test.js` — bramka pokazuje się dla świeżego pustego dokumentu i ukrywa dla wypełnionego / demo / ładowania / zapisanego-potem-opróżnionego / odrzuconego
 
 Implementacja:
 

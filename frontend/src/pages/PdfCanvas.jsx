@@ -2,6 +2,7 @@ import Gallery from '../components/gallery/Gallery/Gallery';
 import Sidebar from '../components/editor/Sidebar/Sidebar';
 import Topbar from '../components/editor/Topbar/Topbar';
 import DemoBanner from '../components/editor/DemoBanner/DemoBanner';
+import StartChooser from '../components/editor/StartChooser/StartChooser';
 import A4 from "../components/canvas/A4/A4";
 import CanvasPageStage from "../components/canvas/CanvasPageStage/CanvasPageStage";
 import Editor from '../components/editor/Editor/Editor';
@@ -52,6 +53,7 @@ import { queueGuestEvent, loadGuestEvents, clearGuestEvents } from '../utils/gue
 import { hasGuestWizardDraft } from '../utils/guestWizardDraft';
 import { adoptGuestWizardDraftForAccount } from '../utils/claimGuestWizardDraft';
 import { resolveActiveCvData } from '../utils/resolveActiveCvData';
+import { shouldShowStartChooser } from '../utils/startChooser';
 import { previewStructureOperation, reconcileDocumentPages } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
 import { planErrorMessage } from '../utils/entitlements';
@@ -726,6 +728,11 @@ function PdfCanvas() {
   const [isDemoContent, setIsDemoContent] = useState(startIntent === "demo");
   const isDemoContentRef = useRef(isDemoContent);
   isDemoContentRef.current = isDemoContent;
+  // Set once the user dismisses the empty-state onboarding via "start from a
+  // blank page"; keeps the chooser hidden for the rest of the session even
+  // though the canvas is still empty. Session-local only — a fresh document
+  // load starts with the chooser available again.
+  const [startChooserDismissed, setStartChooserDismissed] = useState(false);
   const activeCvDataRef = useRef(activeCvData);
   activeCvDataRef.current = activeCvData;
   const guestFirstEditLoggedRef = useRef(false);
@@ -1618,6 +1625,17 @@ function PdfCanvas() {
     [canvasValue, uiValue, sessionValue],
   );
 
+  // Empty-state onboarding: replace the blank freeform A4 a fresh user lands on
+  // with the two guided paths (wizard / import). Gating lives in the pure
+  // `shouldShowStartChooser` helper so it can be unit-tested without a DOM.
+  const showStartChooser = shouldShowStartChooser({
+    elementsCount: A4_Elements.length,
+    isDemoContent,
+    isPdfLoading,
+    pdfId,
+    dismissed: startChooserDismissed,
+  });
+
   return (
     <main className='main-container' onMouseMove={throttledHandleIsActive}>
 
@@ -1693,6 +1711,13 @@ function PdfCanvas() {
                   <Spinner loading={isPdfLoading} anchorRef={A4ref} />
                 ) : null}
                 <div className="canvas-area" ref={canvasAreaRef}>
+                  {showStartChooser ? (
+                    <StartChooser
+                      onWizard={handleShowBioCvModal}
+                      onImport={handleShowAiPanel}
+                      onBlank={() => setStartChooserDismissed(true)}
+                    />
+                  ) : null}
                   <div className={isTwoPageView ? "canvas-spread" : "canvas-single"}>
                     {isTwoPageView ? (
                       visiblePages.map((page) => (

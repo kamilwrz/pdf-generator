@@ -1,0 +1,223 @@
+/*
+ * Empty-state onboarding surface. Fills the `.canvas-area` region (which is
+ * `flex: 1` inside `.right-pane`) and centres a two-card chooser. Uses the
+ * editor's muted chrome tokens for colour/typography and DESIGN.md's Swiss
+ * structural rules: sharp 0px corners, 1px borders, a single subtle shadow,
+ * and transform/opacity-only motion.
+ */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  /* Opaque so the blank A4 behind it never shows through. */
+  background: var(--bg-cream, #f7f4ee);
+  overflow: auto;
+  z-index: 20;
+}
+
+.inner {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
+}
+
+.head {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  /* Fade + translate-Y entry (DESIGN.md), guarded below. */
+  animation: startChooserRise 420ms ease-out both;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display, "Nunito", sans-serif);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-size: clamp(1.6rem, 3.4vw, 2.25rem);
+  color: var(--chrome-ink, #171717);
+}
+
+.subtitle {
+  margin: 0;
+  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--chrome-muted, #6b675e);
+}
+
+.cards {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 1.75rem;
+  text-align: left;
+  cursor: pointer;
+  /* DESIGN.md: sharp 0px corners, surface fill, 1px stroke, subtle shadow. */
+  border-radius: 0;
+  border: 1px solid var(--chrome-border, #e2dfd8);
+  background: var(--chrome-surface, #fff);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  /* Only transform/opacity animate; staggered entry set per-card below. */
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out,
+    border-color 200ms ease-out;
+  animation: startChooserRise 420ms ease-out both;
+}
+
+.card:nth-child(1) {
+  animation-delay: 80ms;
+}
+
+.card:nth-child(2) {
+  animation-delay: 160ms;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
+  border-color: var(--chrome-accent, #171717);
+}
+
+.card:active {
+  transform: translateY(0);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--chrome-accent, #171717);
+  outline-offset: 2px;
+}
+
+/* The recommended path reads slightly heavier without a colour clash. */
+.cardPrimary {
+  border-color: var(--chrome-accent, #171717);
+}
+
+.iconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 0.4rem;
+  border: 1px solid var(--chrome-border, #e2dfd8);
+  background: var(--bg-cream, #f5f1e8);
+  color: var(--chrome-accent, #171717);
+}
+
+.icon {
+  width: 22px;
+  height: 22px;
+}
+
+.cardTitle {
+  font-family: var(--font-display, "Nunito", sans-serif);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--chrome-ink, #171717);
+}
+
+.cardText {
+  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--chrome-muted, #6b675e);
+}
+
+/* Primary CTA: accent fill, sharp edges, no glow (DESIGN.md primary button). */
+.cta {
+  margin-top: 0.6rem;
+  align-self: stretch;
+  text-align: center;
+  padding: 0.6rem 1rem;
+  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--on-accent, #fff);
+  background: var(--chrome-accent, #171717);
+  border: 1px solid var(--chrome-accent, #171717);
+}
+
+/* Secondary CTA: outline/ghost variant. */
+.ctaGhost {
+  margin-top: 0.6rem;
+  align-self: stretch;
+  text-align: center;
+  padding: 0.6rem 1rem;
+  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--chrome-ink, #171717);
+  background: transparent;
+  border: 1.5px solid var(--chrome-border, #e2dfd8);
+}
+
+.card:hover .ctaGhost {
+  border-color: var(--chrome-accent, #171717);
+}
+
+.blankLink {
+  border: none;
+  background: none;
+  padding: 0.25rem 0.5rem;
+  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  font-size: 0.85rem;
+  color: var(--chrome-muted, #6b675e);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  animation: startChooserRise 420ms ease-out 240ms both;
+}
+
+.blankLink:hover {
+  color: var(--chrome-ink, #171717);
+}
+
+.blankLink:focus-visible {
+  outline: 2px solid var(--chrome-accent, #171717);
+  outline-offset: 2px;
+}
+
+/* Mobile: single column, no horizontal overflow. */
+@media (max-width: 767px) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes startChooserRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .head,
+  .card,
+  .blankLink {
+    animation: none;
+  }
+  .card {
+    transition: none;
+  }
+}

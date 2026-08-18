@@ -7,7 +7,7 @@ III. FUNNELING
 IV.  BUGZ / NEEDED FIXES
 -----------------------------------------------------------------------------------------
 
-1) 
+1) JEZYKI - zbyt krotkie columny w sidebar-templates;dostosowac do innerContent
 
  V.  TEMPLATES
 -----------------------------------------------------------------------------------------
