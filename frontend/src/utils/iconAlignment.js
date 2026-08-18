@@ -21,18 +21,6 @@
 // other Iconic template — and must be mirrored in pdf_generator.renderImage.
 export const CANVAS_TEXT_CAP_MID = 1.0;
 
-// Background "chip" behind section-heading icons (WYKSZTAŁCENIE, UMIEJĘTNOŚCI,
-// …) so the glyph stays legible over any page background/theme, per DESIGN.md
-// (sharp 0px corners, muted Swiss palette — no per-template accent tinting,
-// since the same neutral chip must read on every template's page color). The
-// chip is centred on the icon's own optical mid-line (`imageDisplayTop`), so
-// padding reads as even on every side — this is what actually fixes the
-// "icon sits low" perception, since a bare glyph has no reference frame to
-// judge its vertical position against.
-export const SECTION_ICON_CHIP_PAD = 3;
-export const SECTION_ICON_CHIP_FILL = "#F5F1E8"; // DESIGN.md Beige
-export const SECTION_ICON_CHIP_BORDER = "#B3B3B3"; // DESIGN.md Grey, lightened for a visible hairline on both light and dark surfaces
-
 /**
  * Whether an image element is a text-aligned icon (optical centring) rather than
  * a geometrically placed image (backgrounds, photos, Loom sidebar glyphs).
@@ -62,39 +50,4 @@ export function imageDisplayTop(element) {
     return isTextAlignedIcon(element.src, element.alignWithText)
         ? iconicDrawTop(element.top, element.height)
         : Number(element.top) || 0;
-}
-
-/**
- * Whether an image element is a section-heading glyph (the icon beside
- * "WYKSZTAŁCENIE", "UMIEJĘTNOŚCI", …) rather than a masthead/contact icon.
- * Only these get the visibility background chip — contact-row glyphs weren't
- * part of this request and stay bare to avoid cluttering the header row.
- */
-export function isSectionHeadingIcon(element) {
-    return Boolean(
-        element
-        && element.category === "image"
-        && element.flowRole === "section-chrome"
-        && isTextAlignedIcon(element.src, element.alignWithText),
-    );
-}
-
-/**
- * Geometry (canvas px) of the background chip behind a section-heading icon,
- * centred on the same optical mid-line as the glyph itself so chip and icon
- * never drift apart. Returns `null` for anything that isn't a section-heading
- * icon — callers render nothing in that case.
- */
-export function sectionIconChipRect(element) {
-    if (!isSectionHeadingIcon(element)) return null;
-    const size = Math.max(Number(element.width) || 0, Number(element.height) || 0) || 14;
-    const chipSize = size + SECTION_ICON_CHIP_PAD * 2;
-    const iconTop = imageDisplayTop(element);
-    const iconLeft = Number(element.left) || 0;
-    return {
-        left: iconLeft - SECTION_ICON_CHIP_PAD,
-        top: iconTop - SECTION_ICON_CHIP_PAD,
-        width: chipSize,
-        height: chipSize,
-    };
 }
