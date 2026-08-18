@@ -19,7 +19,7 @@ from app.services.cv_templates.shared.extras import (
     _fitted_sidebar_body_elements,
     _sidebar_candidates,
 )
-from app.services.cv_templates.shared.icons import _icon, _icon_beside, _icon_key_for_label
+from app.services.cv_templates.shared.icons import _icon, _icon_key_for_label
 from app.services.cv_templates.shared.records import (
     _education_record_height,
     _experience_record_height,
@@ -244,11 +244,22 @@ def _gen_tessera(cv: dict) -> list[dict]:
         """Render an offset mosaic tile, custom icon, label, and keyline."""
         cursor, page = builder.y, builder.pg
         icon_name = _icon_key_for_label(label)
+        # Geometrically centre the glyph inside the 20 px coral frame
+        # (`_rect(main_left + 2, cursor, 20, 20)`, centre = main_left+12 / cursor+10):
+        # a 12 px icon insets by 4 px, so it sits at (main_left + 6, cursor + 4).
+        # `alignWithText` MUST be False. `_icon_beside` sets it True, which makes
+        # the canvas/PDF optically centre the glyph on the heading TEXT line
+        # (`iconAlignment.js` iconicDrawTop) instead of on the box — pulling the
+        # icon ~6 px up so it hangs near the top of the frame, not its middle.
+        # The sidebar glyphs (`sidebar_icon`) and Slate's main heading
+        # (`fixed_icon`) already place their icons this way.
+        main_icon = _icon(icon_theme, icon_name, main_left + 6, cursor + 4, 12, page=page)
+        main_icon["alignWithText"] = False
         chrome = [
             _line(main_left, cursor - 2, 20, 20, colors["tile"], zIndex=1, page=page),
             _rect(main_left + 2, cursor, 20, 20, colors["coral"], 0.8, zIndex=2, page=page),
             _circle(main_left + 16, cursor - 3, 7, colors["ochre"], filled=True, zIndex=3, page=page),
-            _icon_beside(icon_theme, icon_name, main_left + 5, cursor + 3, heading_fs, 12, page=page),
+            main_icon,
         ]
         for element in chrome:
             element["flowRole"] = "section-chrome"

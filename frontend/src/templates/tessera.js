@@ -846,13 +846,13 @@ const TESSERA_ELEMENTS = [
   {
     "category": "image",
     "src": "http://localhost:8000/template-assets/iconic/tessera/summary.png",
-    "left": 223,
-    "top": 215.0,
+    "left": 224,
+    "top": 216.0,
     "width": 12,
     "height": 12,
     "zIndex": 3,
     "page": 1,
-    "alignWithText": true,
+    "alignWithText": false,
     "flowRole": "section-chrome"
   },
   {
@@ -944,13 +944,13 @@ const TESSERA_ELEMENTS = [
   {
     "category": "image",
     "src": "http://localhost:8000/template-assets/iconic/tessera/experience.png",
-    "left": 223,
-    "top": 318.0,
+    "left": 224,
+    "top": 319.0,
     "width": 12,
     "height": 12,
     "zIndex": 3,
     "page": 1,
-    "alignWithText": true,
+    "alignWithText": false,
     "flowRole": "section-chrome"
   },
   {

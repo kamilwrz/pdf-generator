@@ -196,6 +196,48 @@ class CvTemplateLayoutTests(unittest.TestCase):
         ]
         self.assertGreaterEqual(len(contact_icons), 2)
 
+    def test_tessera_main_section_icon_is_centered_in_its_coral_box(self):
+        """Main-column heading glyphs must sit in the geometric centre of their
+        20px coral frame. The glyph is placed geometrically (`alignWithText`
+        False) rather than via `_icon_beside` (which optically centres on the
+        heading TEXT line and left the icon hanging near the top of the box)."""
+        elements = generate_resume("tessera", LONG_CV)
+        # Main-column coral outline frames: 20x20 rectangles tagged section-chrome
+        # in the main column (left >= 200), one per main section heading.
+        boxes = [
+            element for element in elements
+            if element["category"] == "rectangle"
+            and element.get("flowRole") == "section-chrome"
+            and element.get("width") == 20 and element.get("height") == 20
+            and element["left"] >= 200
+        ]
+        main_icons = [
+            element for element in elements
+            if element["category"] == "image"
+            and element.get("flowRole") == "section-chrome"
+            and "/template-assets/iconic/tessera/" in element["src"]
+            and element["left"] >= 200
+        ]
+        self.assertGreaterEqual(len(boxes), 1)
+        self.assertEqual(len(main_icons), len(boxes))
+        for icon in main_icons:
+            # Geometric placement only — an optical (text-aligned) glyph would be
+            # pulled ~half its height up out of the box on the canvas / PDF.
+            self.assertFalse(
+                icon.get("alignWithText", True),
+                f"main section icon {icon['src']} must be geometrically placed",
+            )
+            box = min(
+                boxes,
+                key=lambda b: abs(b["top"] - icon["top"]) + abs(b["left"] - icon["left"]),
+            )
+            icon_cx = icon["left"] + icon["width"] / 2
+            icon_cy = icon["top"] + icon["height"] / 2
+            box_cx = box["left"] + box["width"] / 2
+            box_cy = box["top"] + box["height"] / 2
+            self.assertAlmostEqual(icon_cx, box_cx, delta=0.5)
+            self.assertAlmostEqual(icon_cy, box_cy, delta=0.5)
+
     def test_slate_is_rectilinear_icon_sidebar_with_rectangular_photo(self):
         """Slate keeps a rectilinear (no circle/ellipse) blueprint identity."""
         multi_page_cv = {
