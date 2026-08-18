@@ -505,4 +505,37 @@ describe("icon chrome rebuilt on transfer (Tessera/Slate-style templates)", () =
     const hasImageMarker = next.some((element) => element.category === "image");
     assert.equal(hasImageMarker, false);
   });
+
+  it("preserves an explicit alignWithText:false on the rebuilt icon so it is not optically shifted out of its box", () => {
+    // Regression: the fixture's sidebar/main icons are geometrically placed
+    // (alignWithText:false — matches Tessera `sidebar_icon` / Slate `fixed_icon`).
+    // `decorativeShapeElement` used to copy only a truthy flag, dropping the
+    // explicit `false` to `undefined`; `isTextAlignedIcon` then fell back to its
+    // iconic-src heuristic, treated the glyph as text-aligned, and shifted it ~half
+    // its height up — the transferred section's icon "fell apart" from its tile.
+    // Both directions rebuild the icon and must keep the flag verbatim.
+    const toMain = moveSidebarSectionsToMain(
+      iconicSidebarFixture(), ["sb-sk-head"], PAGE_HEIGHT, SPACING,
+    );
+    const mainIcon = toMain.find((element) => (
+      element.category === "image" && /\/skills\.png$/.test(String(element.src || ""))
+    ));
+    assert.ok(mainIcon, "expected a rebuilt skills icon after moving to main");
+    assert.strictEqual(
+      mainIcon.alignWithText, false,
+      `rebuilt icon must keep alignWithText:false, got ${mainIcon.alignWithText}`,
+    );
+
+    const toSidebar = transferSectionLane(
+      iconicSidebarFixture(), "m-edu-head", PAGE_HEIGHT, SPACING,
+    );
+    const sidebarIcon = toSidebar.find((element) => (
+      element.category === "image" && /\/education\.png$/.test(String(element.src || ""))
+    ));
+    assert.ok(sidebarIcon, "expected a rebuilt education icon after moving to sidebar");
+    assert.strictEqual(
+      sidebarIcon.alignWithText, false,
+      `rebuilt icon must keep alignWithText:false, got ${sidebarIcon.alignWithText}`,
+    );
+  });
 });

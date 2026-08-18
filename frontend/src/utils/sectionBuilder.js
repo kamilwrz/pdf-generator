@@ -223,7 +223,17 @@ export function decorativeShapeElement({
   // Without src the canvas would render an empty chrome slot beside the title.
   if (shape.category === "image") {
     if (shape.src) base.src = shape.src;
-    if (shape.alignWithText) base.alignWithText = true;
+    // Preserve `alignWithText` faithfully, INCLUDING an explicit `false`.
+    // Tessera / Slate sidebar glyphs are geometrically placed (`false`); only
+    // copying a truthy flag dropped that to `undefined`, and `isTextAlignedIcon`
+    // then falls back to its iconic-src heuristic (any `/template-assets/iconic/`
+    // path is treated as text-aligned) and optically-centres the glyph. That
+    // shifts a rebuilt icon ~half its height up, out of its tile/box, so a
+    // transferred section's icon "falls apart" from its heading. Keeping the
+    // sampled value verbatim renders the rebuilt icon exactly like its siblings.
+    if (shape.alignWithText !== undefined) {
+      base.alignWithText = Boolean(shape.alignWithText);
+    }
   }
   if (flowLane) base.flowLane = flowLane;
   return base;
