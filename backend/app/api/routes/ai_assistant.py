@@ -30,8 +30,10 @@ VALID_ACTIONS = {
     "translate",
 }
 
-# ISO-ish language codes accepted by the translate action (UA → uk).
-TRANSLATE_LANGUAGES = frozenset({"pl", "en", "de", "fr", "es", "uk", "it", "nl"})
+# ISO-ish language codes shared by detection, content corrections, and translate.
+SUPPORTED_LANGUAGES = frozenset({"pl", "en", "de", "fr", "es", "uk", "it", "nl"})
+# Backwards-compatible alias for the translate action's existing references.
+TRANSLATE_LANGUAGES = SUPPORTED_LANGUAGES
 
 
 class AssistantRequest(BaseModel):
@@ -54,6 +56,9 @@ class AssistantRequest(BaseModel):
     template_id: str | None = None
     # Target language code for the translate action (ignored by other actions).
     target_language: str = ""
+    # Optional CV-language override for content actions (grammar/language/
+    # improve/shorten). Empty means the backend auto-detects from the canvas.
+    cv_language: str = ""
 
 
 class TokenUsage(BaseModel):
@@ -102,6 +107,8 @@ class AssistantResponse(BaseModel):
     clone_issues: list[dict] = []
     web_sources: list[str] = []
     usage: TokenUsage | None = None
+    # Language actually used for corrections, echoed so the UI selector syncs.
+    cv_language: str = ""
 
 
 @router.post("/assistant", response_model=AssistantResponse, status_code=200)
@@ -141,6 +148,16 @@ async def ai_assistant(
                 ),
             )
 
+    cv_language = (request.cv_language or "").strip().lower()
+    if cv_language and cv_language not in SUPPORTED_LANGUAGES:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Nieobsługiwany język CV. "
+                "Dozwolone: pl, en, de, fr, es, uk, it, nl."
+            ),
+        )
+
     user = get_user_by_username(db, username=payload.get("sub"))
     if user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
@@ -160,6 +177,7 @@ async def ai_assistant(
             history=request.history,
             template_id=request.template_id,
             target_language=target_language,
+            cv_language=cv_language,
             db=db,
         )
         charge_ai_credits(db, user.id, result.get("usage", {}).get("cost_pln_estimate", 0.0))

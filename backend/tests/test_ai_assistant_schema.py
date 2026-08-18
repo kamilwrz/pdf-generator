@@ -7,6 +7,9 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from app.api.routes import ai_assistant as ai_assistant_route
+from app.api.routes.ai_assistant import (
+    AssistantRequest, AssistantResponse, SUPPORTED_LANGUAGES, TRANSLATE_LANGUAGES,
+)
 from app.core.security import verify_token
 from app.dependencies import get_db
 from app.main import app
@@ -490,6 +493,25 @@ class TranslateRouteValidationTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn("Nieobsługiwany język", response.json()["detail"])
+
+
+class SupportedLanguagesTests(unittest.TestCase):
+    def test_supported_languages_matches_translate_set(self):
+        # One source of truth: detection/correction speak the translate vocabulary.
+        assert SUPPORTED_LANGUAGES == frozenset({"pl", "en", "de", "fr", "es", "uk", "it", "nl"})
+        assert SUPPORTED_LANGUAGES == TRANSLATE_LANGUAGES
+
+    def test_request_accepts_optional_cv_language(self):
+        req = AssistantRequest(action="improve", elements=[], cv_language="en")
+        assert req.cv_language == "en"
+
+    def test_request_defaults_cv_language_empty(self):
+        req = AssistantRequest(action="improve", elements=[])
+        assert req.cv_language == ""
+
+    def test_response_carries_cv_language(self):
+        resp = AssistantResponse(message="ok", cv_language="de")
+        assert resp.cv_language == "de"
 
 
 if __name__ == "__main__":
