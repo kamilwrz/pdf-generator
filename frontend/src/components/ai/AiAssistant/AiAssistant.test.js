@@ -103,3 +103,27 @@ test("ATS dashboard uses readability copy, verbal band, and disclaimer", async (
     );
     assert.doesNotMatch(source, /Przyjazność ATS/);
 });
+
+test("assistant threads a cv_language override into the request body", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+
+    // send() must forward an optional cv_language for content actions.
+    assert.match(source, /const cvLanguageOverride = options\.cv_language \|\| cvLanguage/);
+    assert.match(source, /\.\.\.\(cvLanguageOverride[\s\S]*?cv_language: cvLanguageOverride/);
+});
+
+test("assistant tracks the detected cv_language from responses", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+
+    assert.match(source, /const \[cvLanguage, setCvLanguage\] = useState\(""\)/);
+    // Detected language from the backend syncs the selector default.
+    assert.match(source, /res\.cv_language[\s\S]*?setCvLanguage/);
+});
+
+test("assistant exposes a CV language selector using the shared language list", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+
+    assert.match(source, /handleCvLanguageChange/);
+    // Selector is built from the same TRANSLATE_LANGUAGES source of truth.
+    assert.match(source, /TRANSLATE_LANGUAGES\.map/);
+});

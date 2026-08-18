@@ -1060,6 +1060,10 @@ export default function AiAssistant() {
     const [structureStates, setStructureStates] = useState({});
     const [deletionStates, setDeletionStates] = useState({});
     const [cloneStates, setCloneStates] = useState({});
+    // Detected (or user-overridden) CV language. Empty until the first backend
+    // response reports one; the selector then reflects it. Sent with content
+    // actions so corrections come back in the CV language, not always Polish.
+    const [cvLanguage, setCvLanguage] = useState("");
 
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -1391,6 +1395,11 @@ export default function AiAssistant() {
             // Full-canvas layout analysis can exceed the default 90s auth timeout.
             const timeoutMs = action === "layout" ? 240_000 : 120_000;
             const targetLanguage = options.target_language || "";
+            // Content actions (grammar/language/improve/shorten) may carry a CV
+            // language. An explicit option wins; otherwise reuse the last
+            // detected/selected language. Empty lets the backend auto-detect.
+            const cvLanguageOverride = options.cv_language || cvLanguage;
+            const contentActions = ["grammar", "language", "improve", "shorten"];
             const res = await api.httpRequest(
                 ENDPOINTS.AI.ASSISTANT, "POST",
                 JSON.stringify({
@@ -1408,6 +1417,9 @@ export default function AiAssistant() {
                     ...(action === "translate" && targetLanguage
                         ? { target_language: targetLanguage }
                         : {}),
+                    ...(cvLanguageOverride && contentActions.includes(action)
+                        ? { cv_language: cvLanguageOverride }
+                        : {}),
                 }),
                 "Asystent AI nie odpowiedział",
                 {
@@ -1421,6 +1433,11 @@ export default function AiAssistant() {
             );
 
             if (chatSessionRef.current !== sessionAtStart) return;
+
+            // Keep the selector aligned with the language the backend used.
+            if (res.cv_language && res.cv_language !== cvLanguage) {
+                setCvLanguage(res.cv_language);
+            }
 
             if (res.usage) {
                 console.log("[GPT API cost]", {
@@ -1484,7 +1501,7 @@ export default function AiAssistant() {
             requestInFlightRef.current = false;
             setIsLoading(false);
         }
-    }, [A4_Elements, activeTemplateId, api, isLoading, jobDesc, messages, pageSize, refreshEntitlements]);
+    }, [A4_Elements, activeTemplateId, api, cvLanguage, isLoading, jobDesc, messages, pageSize, refreshEntitlements]);
 
     const toggleLayoutMode = useCallback(() => {
         // Keep the client journey clear; the API remains the source of
@@ -1572,6 +1589,11 @@ export default function AiAssistant() {
             target_language: lang.code,
         });
     }, [send]);
+
+    // Manual override: user picks the CV language when auto-detection is wrong.
+    const handleCvLanguageChange = useCallback((code) => {
+        setCvLanguage(code);
+    }, []);
 
     const openContentPanel = useCallback(() => {
         setIsOpen(true);
@@ -1740,6 +1762,21 @@ export default function AiAssistant() {
                                     transition={{ duration: 0.2 }}
                                 >
                                     <div className={classes.subPanelTitle}>Co chcesz poprawić?</div>
+                                    {/* CV language override for content corrections. Defaults to the detected
+                                        language reported by the backend; users can correct a misdetection. */}
+                                    <label className={classes.cvLangLabel}>
+                                        Język CV
+                                        <select
+                                            className={classes.cvLangSelect}
+                                            value={cvLanguage}
+                                            onChange={(e) => handleCvLanguageChange(e.target.value)}
+                                        >
+                                            <option value="">Auto</option>
+                                            {TRANSLATE_LANGUAGES.map((lang) => (
+                                                <option key={lang.code} value={lang.code}>{lang.label}</option>
+                                            ))}
+                                        </select>
+                                    </label>
                                     <div className={classes.subPanelList}>
                                         {CONTENT_SUBACTIONS.map((sub) => (
                                             <button
